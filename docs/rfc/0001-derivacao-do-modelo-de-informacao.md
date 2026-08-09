@@ -34,6 +34,7 @@ permanece na lista, marcada, com o destino registrado.
 | [Q8](#q8) | Particionamento como alternativa à fronteira | desempenho | baixa |
 | [Q9](#q9) | Origem do papel organizacional | fatia 1 da ingestão | média |
 | [Q10](#q10) | Perfil de consulta: polimórfico vs específico | escolha da fronteira | média |
+| [Q11](#q11) | Extrair a derivação como biblioteca independente | nada por ora | baixa |
 
 ---
 
@@ -282,3 +283,25 @@ user stories*, *quais builds falharam*. As poucas polimórficas são as de
 rastreabilidade transversal, que já exigiriam junção de qualquer forma.
 
 Se confirmado, a fronteira por ontologia otimiza o caso comum.
+
+---
+
+## Q11 — Extrair a derivação como biblioteca independente {#q11}
+
+**Contexto.** `scripts/derive_information_model.py` não tem nada de específico do
+The Band: implementa `one table per kind` mais duas extensões — rede de
+ontologias por referência e geração de views — que servem a qualquer projeto
+partindo de OntoUML.
+
+Os autores mantêm implementação de referência em
+[nemo-ufes/ontouml2db](https://github.com/nemo-ufes/ontouml2db), sobre modelos
+isolados. Havendo interesse do grupo, contribuir para lá é preferível a manter
+implementação paralela — o coorientador da tese é coautor do paper.
+
+**Pré-requisitos**, detalhados em [scripts/README.md](../../scripts/README.md):
+fechar Q4 (142 conceitos sem estereótipo), separar método de convenção deste
+projeto, aceitar o JSON do padrão OntoUML como entrada, emitir DDL como saída, e
+testar contra os dez modelos públicos usados no paper.
+
+**Não bloqueia nada.** Registrada para não se perder — o sinal de que chegou a
+hora é a derivação rodar sobre as doze ontologias sem intervenção manual.

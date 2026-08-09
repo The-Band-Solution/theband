@@ -39,13 +39,26 @@ Agente social que reconhece papéis organizacionais e emprega pessoas.
 
 <sub>categoria UFO: `social_agent`</sub>
 
+#### `eo.sector` — Sector
+
+*Setor*
+
+Agente social interno a uma organização, com responsabilidades próprias, que não constitui uma organização em si. Um departamento, uma diretoria, uma gerência. Diferentemente de uma organização, não existe fora daquela que o contém: extinta a organização, o setor não sobrevive a ela.
+
+<sub>categoria UFO: `social_agent`</sub>
+
+Exemplos: *a diretoria de tecnologia de uma empresa*; *o departamento de qualidade*
+
 #### `eo.organizational_unit` — Organizational Unit
 
 *Unidade Organizacional*
 
-Parte de uma organização com responsabilidades próprias.
+Papel assumido por uma organização ou por um setor quando é parte de uma organização maior. Não é um tipo de organização: é a posição ocupada numa estrutura.
+Classifica indivíduos de dois kinds distintos — uma subsidiária é uma organização que é unidade da matriz, enquanto um departamento é um setor que é unidade da mesma organização. Por isso é não-sortal, e por isso é antirrígido: uma reestruturação desfaz a unidade sem destruir a organização ou o setor que a ocupava.
 
-<sub>categoria UFO: `social_agent` · especializa `eo.organization`</sub>
+<sub>categoria UFO: `social_role` · papel de `ufo.agent`</sub>
+
+Exemplos: *uma subsidiária, que é organização e unidade da matriz*; *o departamento de qualidade, que é setor e unidade da organização*
 
 #### `eo.person` — Person
 
@@ -114,7 +127,7 @@ A mesma pessoa pode ser membro de várias equipes ao mesmo tempo, com papéis di
 
 Relação social que aloca um membro de equipe para desempenhar um papel organizacional em uma equipe. É o relator que conecta pessoa, papel e equipe — e o lugar onde vive a temporalidade da alocação.
 
-<sub>categoria UFO: `relator`</sub>
+<sub>categoria UFO: `relator` · papel de `eo.person`</sub>
 
 | Atributo | Tipo | Obrigatório |
 |---|---|---|
@@ -127,12 +140,16 @@ Exemplos: *A alocação de John como programador na equipe de desenvolvimento do
 
 | Relação | Origem | Destino | Cardinalidade | Tipo |
 |---|---|---|---|---|
+| `is part of` | `eo.organization` | `eo.organization` | many → zero_or_one | part_whole |
+| `is part of` | `eo.sector` | `eo.organization` | many → one | part_whole |
 | `recognizes` | `eo.organization` | `eo.organizational_role` | one → many | association |
 | `allocates` | `eo.team_membership` | `eo.team_member` | one → one | association |
 | `allocates to team` | `eo.team_membership` | `eo.team` | many → one | association |
 | `to play` | `eo.team_membership` | `eo.organizational_role` | many → one | association |
 | `is played by` | `eo.team_member` | `eo.person` | many → one | association |
 
+- **`eo.organization_part_of_organization`** — Uma organização pode ser parte de outra — é o caso da subsidiária dentro do grupo. É relação de parthood, não de generalização: a subsidiária não é um tipo de matriz, é uma organização que ocupa posição na estrutura da matriz. Por ser contingente, admite início e fim.
+- **`eo.sector_part_of_organization`** — Todo setor é parte de exatamente uma organização, e não existe fora dela. A cardinalidade obrigatória no destino é o que distingue setor de organização: uma organização pode não ser parte de nada.
 
 
 ---

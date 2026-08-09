@@ -5,7 +5,7 @@
 
 Documentação gerada a partir de `priv/knowledge_base/`. A base YAML é a fonte da verdade; esta página é derivada dela.
 
-**12 ontologias · 219 conceitos · 141 relações · 64 perguntas de competência**
+**12 ontologias · 220 conceitos · 143 relações · 64 perguntas de competência**
 
 ## Arquitetura
 
@@ -67,7 +67,7 @@ Cada seta significa *reusa conceitos de*. A direção vai sempre do módulo mais
 | Ontologia | Camada | Rede | Depende de | Conceitos | Relações | CQs |
 |---|---|---|---|---:|---:|---:|
 | [UFO](ufo.md) — Unified Foundational Ontology | Fundacional | UFO | — | 12 | 3 | 0 |
-| [EO](eo.md) — Enterprise Ontology | Core | SEON | `ufo` | 9 | 5 | 0 |
+| [EO](eo.md) — Enterprise Ontology | Core | SEON | `ufo` | 10 | 7 | 0 |
 | [SPO](spo.md) — Software Process Ontology | Core | SEON | `ufo`, `eo` | 21 | 12 | 0 |
 | [SysSwO](sys_swo.md) — System and Software Ontology | Core | SEON | `ufo`, `spo` | 11 | 6 | 0 |
 | [CDRO](cdro.md) — Continuous Deployment Reference Ontology | Domínio | Continuum | `ufo`, `spo`, `sys_swo`, `ciro` | 17 | 10 | 13 |

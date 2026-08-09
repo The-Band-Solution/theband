@@ -284,6 +284,13 @@ Atividade que envia uma cópia de artefato sem conflito para a branch de destino
 
 <sub>categoria UFO: `action` · especializa `spo.performed_simple_activity`</sub>
 
+| Atributo | Tipo | Obrigatório |
+|---|---|---|
+| `sha` | string | sim |
+| `message` | text | não |
+| `additions` | integer | não |
+| `deletions` | integer | não |
+
 #### `cmpo.delete_branch` — Delete Branch
 
 *Remoção de Branch*

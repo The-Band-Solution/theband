@@ -55,6 +55,12 @@ class KB:
     # ---------- carga ----------
 
     def load(self):
+        """Lê todos os YAMLs, varrendo segredos antes de qualquer parse.
+
+        A varredura vem primeiro de propósito: um arquivo com token não deve
+        sequer ser processado, e a falha precisa aparecer mesmo que o YAML esteja
+        malformado.
+        """
         files = sorted(glob.glob(f"{self.root}/**/*.yaml", recursive=True))
         docs = {}
         for f in files:
@@ -71,6 +77,11 @@ class KB:
         return len(files)
 
     def index(self):
+        """Indexa conceitos, relações, ontologias, medidas e regras de derivação.
+
+        Detecta duplicidade de id no caminho — dois conceitos com o mesmo id
+        tornariam a integridade referencial ambígua.
+        """
         for f, d in self.files.items():
             if not isinstance(d, dict):
                 continue
@@ -107,6 +118,11 @@ class KB:
         return set(d.get("dependencies") or [])
 
     def check_ids(self):
+        """Ids seguem ``ontologia.conceito``, em minúsculas.
+
+        Id é contrato: mapeamentos, regras e perguntas de competência apontam
+        para ele, e mudá-lo depois quebra referências silenciosamente.
+        """
         for cid, (_, _, f) in self.concepts.items():
             if not ID_RE.match(cid):
                 self.fail("id", f"id de conceito fora do padrão: {cid}", f)
@@ -115,6 +131,7 @@ class KB:
                 self.fail("id", f"id de relação fora do padrão: {rid}", f)
 
     def check_concept_refs(self):
+        """``parent`` e ``is_role_of`` existem e respeitam a direção de dependência."""
         for cid, (o, c, f) in self.concepts.items():
             cls = c.get("classification") or {}
             for key in ("parent", "is_role_of"):
@@ -127,6 +144,7 @@ class KB:
                     self.fail("dep", f"{cid} usa {ref}, mas {o} não declara dependência de {self.onto_of(ref)}", f)
 
     def check_relation_refs(self):
+        """Origem e destino de cada relação existem e são alcançáveis."""
         for rid, (o, r, f) in self.relations.items():
             for side in ("source", "target"):
                 ref = r.get(side)
@@ -171,6 +189,7 @@ class KB:
                 cur = nxt
 
     def check_modules_exist(self):
+        """Cada módulo listado no ``ontology.yaml`` tem arquivo correspondente."""
         for oid, (d, dirname) in self.ontologies.items():
             for m in d.get("modules") or []:
                 path = f"{dirname}/modules/{m}.yaml"
@@ -178,6 +197,11 @@ class KB:
                     self.fail("module", f"{oid}: modules/{m}.yaml declarado no ontology.yaml mas ausente")
 
     def check_cycles(self):
+        """Nenhum ciclo entre ontologias.
+
+        A rede é estratificada: o específico depende do geral, nunca o contrário.
+        Um ciclo tornaria impossível carregar a base em ordem.
+        """
         def walk(oid, seen, path):
             for dep in self.deps(oid):
                 if dep in seen:
@@ -188,6 +212,11 @@ class KB:
             walk(oid, {oid}, [oid])
 
     def check_competency_questions(self):
+        """Perguntas de competência referenciam conceitos e relações existentes.
+
+        Uma CQ apontando para conceito inexistente é pergunta que o modelo não
+        sabe responder — e que ninguém descobriria até tentar.
+        """
         for f, d in self.files.items():
             if not isinstance(d, dict) or "competency_questions" not in d:
                 continue
@@ -203,6 +232,7 @@ class KB:
                         self.fail("cq", f"{q['id']}: relação {r} inexistente", f)
 
     def check_measurements(self):
+        """Toda medida responde a necessidade declarada e expõe suas limitações."""
         for mid, (m, f) in self.measurements.items():
             for need in m.get("answers_information_need") or []:
                 if need not in self.information_needs:
@@ -211,6 +241,12 @@ class KB:
                 self.fail("measure", f"{mid} não declara limitations", f)
 
     def check_mappings(self):
+        """Mapeamentos declaram equivalência, justificativa, limitações e derivação.
+
+        Semelhança de nome não basta para tratar conceitos como equivalentes, e
+        conceito inferido precisa dizer que foi inferido — senão vira fato por
+        acidente.
+        """
         for f, d in self.files.items():
             if not isinstance(d, dict) or "mapping" not in d:
                 continue
@@ -300,6 +336,7 @@ class KB:
                 self.fail("schema", f"falha ao validar contra {name}: {e}", f)
 
     def check_provenance(self):
+        """Ontologias e módulos declaram de onde vêm."""
         for oid, (d, _) in self.ontologies.items():
             if not d.get("provenance"):
                 self.fail("provenance", f"ontologia {oid} sem proveniência")
@@ -308,6 +345,7 @@ class KB:
                 self.fail("provenance", f"módulo {d['module']['id']} sem proveniência", f)
 
     def run(self):
+        """Executa todas as verificações; devolve o número de arquivos lidos."""
         count = self.load()
         self.index()
         self.check_ids()
@@ -325,6 +363,7 @@ class KB:
 
 
 def main():
+    """Entrada de linha de comando. Código 1 quando há qualquer problema."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--kb", default="priv/knowledge_base")
     args = ap.parse_args()

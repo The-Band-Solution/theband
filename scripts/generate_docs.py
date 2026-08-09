@@ -33,6 +33,13 @@ LAYER_LABEL = {"foundational": "Fundacional", "core": "Core", "domain": "Domíni
 
 
 def load_kb(root):
+    """Carrega a base inteira, agrupada por tipo de artefato.
+
+    :returns: dicionário com ``ontologies``, ``modules``, ``cqs``, ``mappings``,
+        ``measurements``, ``needs`` e ``manifest``. O tipo de cada arquivo é
+        inferido pela chave raiz, não pelo caminho — assim mover um arquivo de
+        pasta não quebra a geração.
+    """
     kb = {"ontologies": {}, "modules": defaultdict(list), "cqs": defaultdict(list),
           "mappings": [], "manifest": None, "measurements": [], "needs": []}
     for f in sorted(glob.glob(f"{root}/**/*.yaml", recursive=True)):
@@ -57,17 +64,23 @@ def load_kb(root):
 
 
 def pt(node, default=""):
-    """Extrai o texto pt-BR de um campo bilíngue."""
+    """Texto em pt-BR de um campo bilíngue, com queda para ``en``.
+
+    Aceita string simples além do dicionário ``{pt-BR, en}``, porque nem todo
+    campo da base é bilíngue.
+    """
     if isinstance(node, dict):
         return (node.get("pt-BR") or node.get("en") or default).strip()
     return (node or default).strip() if isinstance(node, str) else default
 
 
 def anchor(concept_id):
+    """Âncora HTML estável para um id de conceito."""
     return concept_id.replace(".", "").replace("_", "-")
 
 
 def write(path, content):
+    """Grava criando diretórios intermediários; devolve o caminho escrito."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "w", encoding="utf-8").write(content)
     return path
@@ -76,6 +89,7 @@ def write(path, content):
 # --------------------------------------------------------------------------- #
 
 def gen_network_readme(kb, out):
+    """Página da rede: contagens, diagrama de dependências e distinções-chave."""
     onts = kb["ontologies"]
     by_net = defaultdict(list)
     for oid, (d, _) in sorted(onts.items()):
@@ -142,6 +156,7 @@ def gen_network_readme(kb, out):
 
 
 def gen_ontology_page(kb, oid, out):
+    """Uma página por ontologia: metadados, módulos, conceitos, relações e CQs."""
     d, _ = kb["ontologies"][oid]
     o = d["ontology"]
     mods = kb["modules"].get(oid, [])
@@ -247,6 +262,7 @@ def gen_ontology_page(kb, oid, out):
 
 
 def gen_concept_index(kb, out):
+    """Índice alfabético de todos os conceitos da rede."""
     rows = []
     for oid, mods in kb["modules"].items():
         for m in mods:
@@ -264,6 +280,7 @@ def gen_concept_index(kb, out):
 
 
 def gen_mappings_doc(kb, out):
+    """Catálogo de mapeamentos, com equivalência, justificativa e limitações."""
     L = [BANNER, "# Mapeamentos semânticos\n",
          "Como cada entidade das ferramentas externas se relaciona com os conceitos da rede.\n",
          "Nenhum dado externo entra no domínio sem um mapeamento declarado, com grau de "
@@ -290,6 +307,7 @@ def gen_mappings_doc(kb, out):
 
 
 def gen_metrics_doc(kb, out):
+    """Necessidades de informação e medidas, com fórmulas e limitações."""
     L = [BANNER, "# Necessidades de informação e medidas\n",
          "Nenhuma medida existe sem uma necessidade de informação declarada, e nenhum "
          "dashboard existe sem medida rastreável até esta página.\n"]

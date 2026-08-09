@@ -1,18 +1,58 @@
 #!/usr/bin/env python3
-"""Deriva o modelo de informação a partir da ontologia.
+"""Deriva o modelo de informação a partir da rede de ontologias.
 
-Aplica a estratégia one table per kind de Guidoni, Almeida & Guizzardi (2020),
-conforme declarado em priv/knowledge_base/transformations/ e decidido na ADR 0004.
+Implementa a estratégia ``one table per kind`` de Guidoni, Almeida & Guizzardi
+(2020), acrescida das extensões deste projeto para redes de ontologias e views.
+As regras não vivem aqui: são declaradas em
+``priv/knowledge_base/transformations/ontology_to_information_model.yaml`` e
+decididas na ADR 0004. Este módulo apenas as executa.
 
-    Passo 1  Flattening  não-sortais achatados em direção aos sortais
-    Passo 2  Lifting     sortais não-kind elevados até seus kinds
-    Passo 3  Tabelas     uma tabela por classe remanescente
+Por que a redução existe
+------------------------
+A ontologia descreve o que existe no mundo real; o modelo de informação, o que
+pode ser armazenado e trocado — a distinção é de Carraretto (2012). Sem ela,
+cada distinção metafísica viraria uma tabela: 220 conceitos produziriam 220
+tabelas, a maioria sem estrutura própria.
 
-Refinamento adotado além do paper (ADR 0004): role é relacionalmente dependente,
-então materializa por relator; phase é mudança intrínseca, então materializa por
-discriminador.
+Os cinco passos
+---------------
+1. **Flattening** — não-sortais (``category``, ``role_mixin``, ``mixin``) são
+   achatados. Classificam indivíduos de kinds diferentes, então não há tabela
+   possível para eles sem misturar princípios de identidade.
+2. **Lifting** — sortais que não são kinds (``subkind``, ``role``, ``phase``)
+   sobem até o kind que lhes dá identidade.
+3. **Tabelas** — uma por classe remanescente; dependentes ganham chave
+   estrangeira.
+4. **Rede** (extensão nossa, ADR 0004 D9) — o kind mora na ontologia que o
+   define; as demais referenciam, contribuem discriminador e estendem.
+5. **Views** (extensão nossa, ADR 0004 D10) — cada conceito absorvido reaparece
+   como view com o seu nome.
 
-Uso: python3 scripts/derive_information_model.py [--ontology eo]
+O que decide cada caso
+----------------------
+Duas meta-propriedades, e só elas: **sortalidade** (fornece princípio de
+identidade próprio?) e **rigidez** (vale para o indivíduo em toda a sua
+existência?). O campo ``ontouml_stereotype`` de cada conceito as expressa; sem
+ele, a derivação falha em vez de adivinhar.
+
+Refinamento além do paper (ADR 0004 D5): ``role`` é relacionalmente dependente e
+materializa por relator, enquanto ``phase`` é mudança intrínseca e materializa
+por discriminador. Um booleano ``is_under_integration`` registraria a
+classificação e perderia em qual processo, desde quando, e se há mais de um.
+
+Uso
+---
+::
+
+    python3 scripts/derive_information_model.py --ontology eo
+
+Saída: tabelas, tabelas de extensão, valores de discriminador contribuídos a
+kinds de outras ontologias, e a lista do que foi absorvido e por quê.
+
+Estado
+------
+Precursor de ``mix knowledge.information_model``. Ver ``scripts/README.md``
+quanto à intenção de extrair isto como biblioteca independente.
 """
 
 import argparse
@@ -27,8 +67,16 @@ except ImportError:
 
 KB = "priv/knowledge_base"
 
+#: Não-sortais: classificam indivíduos de kinds diferentes, são abstratos e só
+#: se instanciam por suas subclasses sortais. Eliminados no passo 1.
 NON_SORTAL = {"category", "role_mixin", "mixin"}
+
+#: Sortais antirrígidos: valem contingentemente e especializam exatamente um
+#: kind, do qual herdam o princípio de identidade. Eliminados no passo 2.
 ANTI_RIGID_SORTAL = {"role", "phase"}
+
+#: Os que sobrevivem e viram tabela. ``relator`` é kind de entidade
+#: existencialmente dependente, que reifica uma relação.
 KIND_LIKE = {"kind", "relator"}
 
 IRREGULAR_PLURAL = {
@@ -63,6 +111,12 @@ def pluralize(name):
 
 
 def load_concepts():
+    """Carrega conceitos e relações de todos os módulos da base.
+
+    :returns: ``(concepts, relations)``, onde ``concepts`` mapeia id para
+        ``(ontologia, dicionário do conceito)`` e ``relations`` é uma lista de
+        ``(ontologia, dicionário da relação)``.
+    """
     concepts, relations = {}, []
     for f in glob.glob(f"{KB}/ontology/**/modules/*.yaml", recursive=True):
         d = yaml.safe_load(open(f, encoding="utf-8"))
@@ -74,15 +128,59 @@ def load_concepts():
 
 
 def stereotype(c):
+    """Estereótipo OntoUML do conceito, ou ``None`` se não declarado.
+
+    É o campo que decide toda a transformação. Distinto de ``ufo_category``, que
+    é a categoria de topo e não expressa sortalidade nem rigidez.
+    """
     return (c.get("classification") or {}).get("ontouml_stereotype")
 
 
 def parent_of(c):
+    """Supertipo direto do conceito, se houver.
+
+    Para papéis, ``is_role_of`` costuma ser mais preciso: aponta o kind que
+    fornece o princípio de identidade, que é o destino do lifting.
+    """
     cl = c.get("classification") or {}
     return cl.get("parent")
 
 
 def derive(ontology, concepts, relations):
+    """Aplica os cinco passos e devolve o modelo de informação de uma ontologia.
+
+    :param ontology: id da ontologia a derivar, por exemplo ``"eo"``.
+    :param concepts: mapa ``{concept_id: (ontology_id, concept_dict)}`` de toda a
+        rede. A rede inteira entra no escopo de leitura, mas só os conceitos da
+        ontologia pedida geram tabelas — é o que permite a um subtipo de CMPO ser
+        elevado a um kind de SPO sem replicá-lo (ADR 0004, D9).
+    :param relations: lista ``[(ontology_id, relation_dict)]`` de toda a rede.
+
+    :returns: ``(resultado, None)`` em caso de sucesso, onde ``resultado`` é a
+        tupla ``(tables, absorbed, notes, extensions, contributes)``; ou
+        ``(None, faltantes)`` quando algum conceito da ontologia não declara
+        ``ontouml_stereotype``. Falhar é deliberado: sem sortalidade e rigidez
+        não há como decidir, e adivinhar produziria esquema plausível e errado.
+
+    Os cinco elementos do resultado:
+
+    ``tables``
+        Kinds e relators que viram tabela, com atributos, discriminadores e
+        chaves estrangeiras.
+    ``absorbed``
+        ``{conceito: (como, alvo)}`` — o que não virou tabela e para onde foi.
+        ``como`` é ``"flattened"`` ou ``"lifted"``.
+    ``notes``
+        Decisões que merecem explicação na saída, como um role que espera relator.
+    ``extensions``
+        Tabelas de extensão: subtipos com atributos próprios cujo kind está em
+        outra ontologia. Mantêm a tabela do kind estreita.
+    ``contributes``
+        ``{kind_externo: [valores]}`` — o que esta ontologia acrescenta ao
+        discriminador de kinds que não lhe pertencem.
+    """
+    # A rede inteira é visível para resolver o lifting entre ontologias, mas
+    # apenas `owned` produz tabelas — ver ADR 0004, D9.
     scope = {cid: c for cid, (o, c) in concepts.items()}
     owned = {cid for cid, (o, _) in concepts.items() if o == ontology}
     unclassified = [cid for cid in owned if not stereotype(scope[cid])]
@@ -217,6 +315,7 @@ def derive(ontology, concepts, relations):
 
 
 def main():
+    """Entrada de linha de comando: deriva uma ontologia e imprime o resultado."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--ontology", default="eo")
     args = ap.parse_args()

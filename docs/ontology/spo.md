@@ -145,6 +145,7 @@ Processo como efetivamente executado no projeto. É uma ação complexa ("ocorr�
 
 | Atributo | Tipo | Obrigatório |
 |---|---|---|
+| `occurred_at` | datetime | sim |
 | `start_date` | datetime | não |
 | `end_date` | datetime | não |
 
@@ -185,11 +186,13 @@ Processo executado específico que contém dois ou mais processos executados esp
 *Atividade Executada do Projeto*
 
 Atividade efetivamente executada, compondo um processo executado específico.
+É o kind das ocorrências de atividade em toda a rede: commits, execuções de teste, cerimônias, implantações e inspeções são todos especializações deste conceito, e compartilham o mesmo princípio de identidade. Por isso o kind mora em SPO, e as ontologias de domínio o especializam em vez de definir cada uma o seu.
 
 <sub>categoria UFO: `action`</sub>
 
 | Atributo | Tipo | Obrigatório |
 |---|---|---|
+| `occurred_at` | datetime | sim |
 | `start_date` | datetime | não |
 | `end_date` | datetime | não |
 
