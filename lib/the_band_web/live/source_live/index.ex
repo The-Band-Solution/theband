@@ -87,7 +87,7 @@ defmodule TheBandWeb.SourceLive.Index do
       </.header>
 
       <div :if={@form_open} class="card bg-base-200 p-6">
-        <form phx-submit="connect" class="space-y-4">
+        <form id="conectar-ferramenta" phx-submit="connect" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="form-control">
               <span class="label-text">Tipo de ferramenta</span>

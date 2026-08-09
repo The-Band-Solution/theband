@@ -143,3 +143,25 @@ visível ao escrever a cláusula que nunca casava.
 implementar, tratar cláusula inalcançável e retorno que nunca ocorre como
 **sintoma de contrato errado**, não como código a apagar em silêncio: a pergunta
 certa é qual das duas afirmações do documento prevalece, e por quê.
+
+### L10 — Rótulo de cipher precisa identificar a chave, não a versão do algoritmo
+
+**O que aconteceu.** A rotação da chave mestra foi implementada com dois ciphers
+de rótulo fixo — `AES.GCM.V1` para a chave nova e `AES.GCM.V0` para a antiga. O
+Cloak escolhe com qual cipher decifrar pelo **rótulo gravado no início do valor
+cifrado**. Como o rótulo não dizia nada sobre a chave, ele escolhia pela ordem da
+configuração e usava a errada. A rotação não funcionava.
+
+**Por que importa.** O sintoma seria "não consigo decifrar esta credencial", sem
+causa aparente, e só no momento de usá-la — no meio de uma coleta, com a
+ferramenta sendo marcada como precisando de atenção por um motivo que não era o
+verdadeiro. Nenhum teste unitário do cifrador teria pego: cada um funciona
+sozinho, e o defeito só existe na convivência das duas chaves.
+
+**Como aplicar.** Rótulo de cipher deriva da chave — oito caracteres do SHA-256
+bastam para identificar sem revelar. Assim cada valor cifrado carrega qual chave
+o cifrou, e a escolha deixa de depender de ordem de configuração.
+
+O ponto mais geral: **rotação de segredo só é verificável executando a rotação.**
+Implementar os dois lados e conferir que compilam não prova nada — a prova é
+recifrar e depois ler com a chave nova, e só com ela.

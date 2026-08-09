@@ -44,7 +44,7 @@ defmodule TheBandWeb.PeopleLive.Index do
         </:subtitle>
       </.header>
 
-      <form phx-change="filter" class="flex flex-wrap gap-4 items-end">
+      <form id="filtro-pessoas" phx-change="filter" class="flex flex-wrap gap-4 items-end">
         <label class="form-control">
           <span class="label-text">Buscar</span>
           <input

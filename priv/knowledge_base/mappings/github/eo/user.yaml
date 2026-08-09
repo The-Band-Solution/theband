@@ -21,7 +21,6 @@ identity:
   natural_key: [login]
 attributes:
   name:  { source_path: name }
-  email: { source_path: email }
 relations:
   organization:
     source_path: organization.id
@@ -30,7 +29,7 @@ relations:
 limitations:
   - Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
   - A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
-  - O campo email costuma ser nulo por configuração de privacidade.
+  - O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

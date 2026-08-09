@@ -10,6 +10,7 @@ defmodule TheBandWeb.ConnCase do
       use TheBandWeb, :verified_routes
 
       import Phoenix.ConnTest
+      import Phoenix.LiveViewTest
       import Plug.Conn
 
       import TheBand.DataCase,

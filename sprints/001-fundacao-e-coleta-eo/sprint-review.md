@@ -57,10 +57,10 @@ dispara — `Ingestion.start_sync/2` enfileira, o Oban executa.
 | SC-003 | Segunda sincronização cria 0 e altera 0 | **atendido** | segunda execução: `criados 0`, `atualizados 0`, contagens inalteradas |
 | SC-004 | 100% dos registros exibem origem, identificador e data | **atendido** | colunas presentes em `/pessoas` e `/equipes` para todas as linhas |
 | SC-005 | Credencial não recuperável em forma utilizável | **atendido** | token ausente do HTML das 4 telas; banco devolve `AES.GCM.V1$…`; `inspect/1` redigido |
-| SC-006 | Retomada consulta no máximo uma página a mais | **parcial** | o mecanismo está implementado e o cursor é gravado depois da página; **não foi executado** um teste de interrupção real |
+| SC-006 | Retomada consulta no máximo uma página a mais | **atendido** | teste de retomada: com checkpoint gravado, a execução seguinte pede a página **seguinte** (`after: cursor-1`), não a primeira |
 | SC-007 | Correção de mapeamento aplicada sem consultar a origem | **atendido** | `SemanticIntegration.reprocess_mappings/2` sobre 32 payloads preservados: 0 criados, 0 atualizados, 32 sem mudança. O teste roda **sem expectativa no Mox da borda HTTP**, então qualquer chamada à origem o derruba |
 | SC-008 | Usuário de uma organização não vê dado de outra | **atendido** | dois tenants povoados; sessão da `outra-org` mostra 0 pessoas e 0 equipes |
-| SC-009 | Organização com 100 pessoas e 20 equipes conclui sem intervenção | **não verificado** | a organização disponível tem 6 pessoas e 2 equipes; o rate limit não foi atingido |
+| SC-009 | Organização com 100 pessoas e 20 equipes conclui sem intervenção | **parcial** | o comportamento sob rate limit é testado com janela simulada: a coleta devolve `{:snooze, n}`, preserva o cursor e **não** falha. O volume de 100 pessoas não foi exercitado — a organização disponível tem 6 |
 | SC-010 | Vínculos pendentes de papel apresentados explicitamente | **atendido** | `7` no relatório da sincronização e no cabeçalho de `/equipes` |
 
 ## Quality gates
@@ -71,7 +71,7 @@ dispara — `Ingestion.start_sync/2` enfileira, o Oban executa.
 | `mix compile --warnings-as-errors` | passou |
 | `mix credo --strict` | passou — `found no issues` |
 | `mix dialyzer` | passou — `Total errors: 0` |
-| `mix test` | passou — **46 testes** |
+| `mix test` | passou — **65 testes** |
 | `mix knowledge.validate` | passou — 84 artefatos |
 | `mix knowledge.graph` | passou — 24 módulos, dependências íntegras |
 | `scripts/validate_knowledge_base.py` | passou — base válida |
@@ -82,12 +82,9 @@ Declarado explicitamente. Nenhum destes está marcado como pronto em lugar nenhu
 
 | Item | Tarefas | Por quê |
 |---|---|---|
-| **Autenticação com senha** | — | A sessão é aberta por escolha de usuário, sem senha. O que está implementado é o **escopo por tenant**, que atravessa toda consulta e é testado com dois tenants. Autenticação é feature própria |
-| **Teste de retomada após interrupção (SC-006)** | T058 | O mecanismo existe; o teste que o exercita, não |
-| **Teste de rate limit (SC-009)** | T059 | A pausa preventiva está implementada e é agendamento Oban, não `Process.sleep`; falta o teste com janela simulada |
+| **Autenticação com senha** | — | A sessão é aberta por escolha de usuário, sem senha. O que está implementado é o **escopo por tenant**, que atravessa toda consulta e é testado com dois tenants percorrendo a interface. Autenticação é feature própria, e não foi silenciosamente incorporada a esta |
+| **Volume de SC-009** | — | O comportamento sob rate limit é testado; o volume de 100 pessoas e 20 equipes exigiria uma organização que não temos |
 | **`mix knowledge.test`, `knowledge.docs`, `knowledge.information_model`** | — | Continuam como scripts Python, chamados pelo CI. Dívida declarada no plan.md |
-| **Rotação da chave mestra (FR-005b)** | T017 | O `Cloak` suporta chave aposentada e o código a lê; a Mix task de recifragem não foi escrita |
-| **Testes de interface (LiveView)** | T040, T068 | As telas foram verificadas por execução HTTP real, não por teste automatizado |
 | **`Estimate` das issues** | — | Nenhuma estimativa foi feita com o time. Preencher com número inventado produziria métrica de fluxo apoiada em ficção |
 | **Revisão independente do PR** | T073 | A constituição exige revisor diferente de quem implementou. **Esta condição não foi satisfeita** e não pode ser marcada como cumprida por quem escreveu o código |
 
@@ -114,6 +111,36 @@ dado da base, o oposto do que FR-017 existe para permitir.
 função pública, e corrigido no mesmo commit quando a implementação mostra que ele
 errou. Registrado em `AGENTS.md` §12 e na constituição, princípio VI, por emenda
 1.1.0.
+
+## Segunda rodada de correções
+
+Depois do `/speckit-analyze`, os pendentes que sobraram foram fechados.
+
+| Item | Resolução |
+|---|---|
+| Rotação da chave mestra (FR-005b) | contrato [credential-rotation.md](../../specs/001-github-eo-ingestion/contracts/credential-rotation.md) escrito antes, e `mix the_band.rotate_key` implementada. Verificada de ponta a ponta: rótulo do valor cifrado mudou de `1ff8e241` para `1ddcd36a`, segredo intacto com a chave nova |
+| Teste de retomada (SC-006) | com checkpoint gravado, a execução pede `after: cursor-1` — a página seguinte, não a primeira |
+| Teste de rate limit (SC-009) | janela simulada apertada devolve `{:snooze, n}`, preserva cursor, não falha |
+| Testes de interface | 9 testes de LiveView, incluindo os três que **não** são fazíveis por teste unitário: segredo ausente do HTML, isolamento percorrendo a interface, e cabeçalho concordando com a listagem |
+| Base de conhecimento e o campo `email` | o mapeamento declarava um atributo que a consulta deixou de pedir. Agora está registrado como limitação, com a razão — o campo exigiria escopo `read:user`, mais amplo do que a coleta precisa |
+| Redação de T005 e T019 | as tarefas prometiam mais do que foi entregue; corrigidas para descrever o que de fato cobrem |
+
+### Um defeito sério encontrado ao testar a rotação
+
+A rotação **não funcionava**, e teria falhado em silêncio. Os dois ciphers — o da
+chave nova e o da antiga — usavam rótulos fixos, e o Cloak escolhe qual chave usar
+pelo rótulo gravado no início do valor cifrado. Com rótulos que não identificavam
+a chave, ele escolhia pela ordem da configuração e usava a errada.
+
+O sintoma seria "não consigo decifrar esta credencial", sem dizer por quê, e só
+no momento de usá-la — no meio de uma coleta.
+
+A correção deriva o rótulo da **própria chave**, por oito caracteres do SHA-256:
+cada valor cifrado passa a carregar qual chave o cifrou, as duas convivem sem
+ambiguidade durante a rotação, e depois dela os registros novos já apontam para a
+nova. Coberto por `test/the_band/vault_test.exs`.
+
+Isso só apareceu porque a rotação foi **executada**, não apenas implementada.
 
 ## Defeitos encontrados durante o sprint
 

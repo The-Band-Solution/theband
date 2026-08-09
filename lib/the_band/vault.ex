@@ -37,6 +37,26 @@ defmodule TheBand.Vault do
   @spec previous_key() :: {:ok, binary()} | {:error, :missing_master_key | :invalid_master_key}
   def previous_key, do: decode_key(env(:previous_key))
 
+  @doc """
+  Rótulo do cipher, derivado da **própria chave**.
+
+  É o detalhe de que a rotação depende. O Cloak escolhe com qual cipher decifrar
+  pelo rótulo gravado no início do valor cifrado; se a chave nova e a antiga
+  compartilhassem rótulo, ele escolheria pela ordem e usaria a chave errada — e o
+  erro apareceria como "não consigo decifrar", sem dizer por quê.
+
+  Derivando o rótulo da chave, cada valor cifrado carrega qual chave o cifrou.
+  Durante a rotação as duas convivem sem ambiguidade, e depois dela os registros
+  novos já apontam para a chave nova.
+
+  Oito caracteres do SHA-256 identificam a chave sem revelá-la: são 32 bits de um
+  digest, insuficientes para reconstruir os 256 bits de entrada.
+  """
+  @spec tag_for(binary()) :: String.t()
+  def tag_for(key) when is_binary(key) do
+    "AES.GCM." <> (:crypto.hash(:sha256, key) |> Base.encode16(case: :lower) |> binary_part(0, 8))
+  end
+
   defp ciphers do
     key =
       case master_key() do
@@ -53,12 +73,14 @@ defmodule TheBand.Vault do
           """
       end
 
-    default = [default: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V1", key: key, iv_length: 12}]
+    default = [default: {Cloak.Ciphers.AES.GCM, tag: tag_for(key), key: key, iv_length: 12}]
 
     case previous_key() do
       {:ok, previous} ->
+        # A chave anterior só decifra. Nunca vira padrão, então nada novo é
+        # gravado com ela — que é o ponto de estar aposentando-a.
         default ++
-          [retired: {Cloak.Ciphers.AES.GCM, tag: "AES.GCM.V0", key: previous, iv_length: 12}]
+          [retired: {Cloak.Ciphers.AES.GCM, tag: tag_for(previous), key: previous, iv_length: 12}]
 
       {:error, _} ->
         default

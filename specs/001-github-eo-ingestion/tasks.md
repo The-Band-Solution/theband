@@ -20,7 +20,7 @@ Bootstrap do projeto. Nada existe hoje além de `docs/`, `priv/knowledge_base/`,
 - [ ] T002 Fixar as versões exatas de R1 e R2/R3 em `mix.exs`: `phoenix ~> 1.8`, `ecto_sql ~> 3.14`, `oban ~> 2.23`, `req ~> 0.7.2`, `yaml_elixir ~> 2.12`, `cloak_ecto ~> 1.3`, `mox` (test) — research.md R1–R3
 - [ ] T003 [P] Criar `compose.yaml` com PostgreSQL 16, volume nomeado e porta 5432 — research.md R1
 - [ ] T004 [P] Criar `.env.example` com `THE_BAND_MASTER_KEY` sem valor e instrução de geração — FR-005, AGENTS.md §14
-- [ ] T005 [P] Configurar `.formatter.exs` e `.credo.exs` (Credo estrito) — constituição VII
+- [ ] T005 [P] Configurar `.formatter.exs` e rodar o Credo com os checks estritos padrão — constituição VII. **Sem `.credo.exs`**: um arquivo de configuração substitui o conjunto de checks em vez de complementá-lo, e enfraqueceria o gate
 - [ ] T006 [P] Criar `.github/workflows/ci.yml` rodando os oito quality gates com serviço PostgreSQL — constituição VII, quickstart.md
 - [ ] T007 Configurar `config/runtime.exs` lendo `THE_BAND_MASTER_KEY` e `DATABASE_URL` do ambiente — FR-005
 - [ ] T008 [P] Adicionar `alias` de `mix setup` cobrindo `deps.get`, `ecto.setup` e `assets.setup` — AGENTS.md §4
@@ -51,7 +51,7 @@ Bloqueia todas as user stories. Nada de US1/US2/US3 começa antes disto.
 ### Tenant, usuário e proveniência
 
 - [ ] T018 Migração + schema de `tenants` em `lib/the_band/tenants/` — FR-001
-- [ ] T019 Migração + schema de `users` com `role` enum `{admin, member}` e autenticação de sessão — Assumptions da spec
+- [ ] T019 Migração + schema de `users` com `role` enum `{admin, member}` e **escopo de sessão** — o tenant e o perfil atravessam toda consulta. Autenticação com senha **não** faz parte desta feature e tem spec própria — Assumptions da spec
 - [ ] T020 [P] Implementar `lib/the_band/provenance/application_reference.ex` resolvendo `source_system + source_instance + external_id` — FR-012, constituição III
 - [ ] T021 [P] Implementar `lib/the_band_web/plugs/require_tenant.ex` e `require_admin.ex` — FR-027, contrato de telas
 
