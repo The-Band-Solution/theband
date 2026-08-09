@@ -482,9 +482,36 @@ Necessidade → Discovery → Feature Request
 → /speckit-plan → revisão arquitetural → revisão semântica
 → /speckit-tasks → /speckit-taskstoissues → /speckit-analyze
 → /sprint-backlog          ← obrigatório: lições, iteration no GitHub, issues tipadas
-→ branch → implementação → testes → quality gates → convergência
+→ branch → contrato da API → implementação → testes → quality gates → convergência
 → Pull Request → revisão independente → merge
 ```
+
+### Contrato da API antes da implementação
+
+**Nenhuma função pública é escrita antes de o contrato dela existir em
+`specs/<feature>/contracts/`.** O contrato declara nome, assinatura, o que a
+função devolve em sucesso e em erro, e — igualmente obrigatório — **o que a API
+não expõe e por quê**.
+
+A ordem não é formalidade. Ela existe por três razões concretas:
+
+- **o contrato é revisável antes de custar caro.** Discutir uma assinatura leva
+  minutos; mudá-la depois de três chamadores e dois testes leva horas, e o
+  segundo chamador costuma nascer torto para acomodar a primeira decisão errada;
+- **contrato escrito depois descreve o código, não o decide.** Quando o
+  documento é redigido a partir da implementação, ele deixa de ser contrato e
+  vira comentário — e a divergência entre os dois passa a ser invisível;
+- **a fronteira do módulo só é verificável se estiver escrita.** Sem contrato,
+  "não fure a fronteira" é opinião; com contrato, é diferença entre dois
+  arquivos.
+
+Quando a implementação mostrar que o contrato estava errado — e vai mostrar —,
+**corrija o contrato no mesmo commit**, com a razão. O que não se aceita é o
+código divergir em silêncio: código certo com contrato desatualizado é a mesma
+falha de rastreabilidade que um mapeamento não declarado.
+
+O `/speckit-analyze` compara os dois e reporta a divergência. Divergência
+reportada e não resolvida é bloqueio, não observação.
 
 Toda feature ontológica identifica: ontologia principal, ontologias das quais depende, conceitos adicionados/alterados, relações, cardinalidades, constraints, perguntas de competência, YAMLs criados/alterados, mapeamentos externos, migrações, testes conceituais e riscos semânticos.
 

@@ -24,6 +24,23 @@ que o AGENTS.md já exigia, e passa a prevalecer sobre ele em caso de conflito.
 
 Itens diferidos: nenhum. RATIFICATION_DATE assumida como a data desta ratificação,
 por não haver adoção anterior registrada — o arquivo era template.
+
+Emenda 1.1.0 — 2026-08-09
+=========================
+Versão: 1.0.0 → 1.1.0 (MINOR: orientação materialmente ampliada, nenhum princípio
+removido ou redefinido).
+
+Princípio VI ganha a exigência de **contrato da API antes da implementação**.
+
+Motivo: o /speckit-analyze da feature 001 encontrou duas divergências entre
+contrato e código — assinatura de `mark_evidence_no_longer_observed/2` e as
+`opts` das funções de leitura — em que o código estava certo e o documento,
+desatualizado. Ambas nasceram de contrato escrito junto com o código em vez de
+antes dele.
+
+O que passa a ser exigido de quem já seguia a versão anterior: escrever o
+contrato em `specs/<feature>/contracts/` antes da primeira função pública, e
+corrigi-lo no mesmo commit quando a implementação mostrar que ele estava errado.
 -->
 
 # Constituição do The Band
@@ -149,6 +166,12 @@ sprint backlog aberto.
   Infraestrutura sem consumidor visível MUST NOT ser entregue como feature. Ao propor uma
   feature, o primeiro enunciado MUST ser o que a pessoa verá ao final; se a resposta for
   "nada ainda", a fatia está mal cortada.
+- **O contrato da API MUST existir antes da implementação.** Nenhuma função pública é escrita
+  antes de sua assinatura, seus retornos de sucesso e de erro, e o que a API deliberadamente
+  não expõe estarem declarados em `specs/<feature>/contracts/`. Quando a implementação
+  revelar que o contrato estava errado, ele MUST ser corrigido no mesmo commit, com a razão
+  registrada — código correto com contrato desatualizado é falha de rastreabilidade, não
+  detalhe de documentação.
 - Requisito novo MUST NOT ser implementado sem atualizar os artefatos do Spec Kit. Ampliar
   escopo em silêncio MUST NOT acontecer.
 - Inconsistência reportada pelo `/speckit-analyze` MUST ser resolvida ou registrada, nunca
@@ -251,4 +274,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-09
+**Version**: 1.1.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-09

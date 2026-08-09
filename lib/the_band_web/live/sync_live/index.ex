@@ -9,13 +9,14 @@ defmodule TheBandWeb.SyncLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ingestion
+  alias TheBand.Jobs.ReprocessMappings
   alias TheBand.Sources
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: Ingestion.subscribe(socket.assigns.current_tenant)
 
-    {:ok, socket |> assign(page_title: "Sincronizações", paused: nil) |> load()}
+    {:ok, socket |> assign(page_title: "Sincronizações", paused: nil, reprocess: nil) |> load()}
   end
 
   @impl true
@@ -45,7 +46,24 @@ defmodule TheBandWeb.SyncLive.Index do
     end
   end
 
+  def handle_event("reprocess", _params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    %{"tenant_id" => tenant.id}
+    |> ReprocessMappings.new()
+    |> Oban.insert()
+
+    {:noreply,
+     socket
+     |> assign(reprocess: :running)
+     |> put_flash(:info, "Reprocessando os mapeamentos sobre os dados já coletados.")}
+  end
+
   @impl true
+  def handle_info({:reprocess_finished, report}, socket) do
+    {:noreply, assign(socket, reprocess: report)}
+  end
+
   def handle_info({:sync_progress, _id, entity_type, count}, socket) do
     {:noreply,
      socket
@@ -104,6 +122,53 @@ defmodule TheBandWeb.SyncLive.Index do
           <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
             {if running?(@syncs, tool), do: "em andamento", else: "Sincronizar"}
           </.button>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 p-4 space-y-3">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <div class="font-semibold">Reprocessar mapeamentos</div>
+            <div class="text-sm opacity-70">
+              Reaplica os mapeamentos semânticos aos dados <b>já coletados</b>, a partir do
+              payload preservado. <b>Não consulta a ferramenta.</b>
+              Use depois de corrigir um YAML em <code>priv/knowledge_base/mappings/</code>
+              e reiniciar a aplicação — a base é lida uma vez por boot.
+            </div>
+          </div>
+          <.button phx-click="reprocess" disabled={@reprocess == :running}>
+            {if @reprocess == :running, do: "reprocessando…", else: "Reprocessar"}
+          </.button>
+        </div>
+
+        <div
+          :if={is_map(@reprocess) and Map.has_key?(@reprocess, :error)}
+          class="alert alert-warning text-sm"
+        >
+          <p>
+            Não há dado coletado para reprocessar. Rode uma sincronização primeiro — o
+            reprocessamento trabalha sobre o payload preservado, e ainda não existe nenhum.
+          </p>
+        </div>
+
+        <div :if={is_map(@reprocess) and Map.has_key?(@reprocess, :reprocessed)} class="space-y-2">
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+            <div><span class="opacity-60">reprocessados</span> <b>{@reprocess.reprocessed}</b></div>
+            <div><span class="opacity-60">criados</span> <b>{@reprocess.created}</b></div>
+            <div><span class="opacity-60">atualizados</span> <b>{@reprocess.updated}</b></div>
+            <div><span class="opacity-60">sem mudança</span> <b>{@reprocess.unchanged}</b></div>
+            <div><span class="opacity-60">ignorados</span> <b>{@reprocess.skipped}</b></div>
+          </div>
+
+          <div :if={map_size(@reprocess.skip_reasons) > 0} class="text-xs opacity-70">
+            motivos dos ignorados:
+            <span :for={{reason, count} <- @reprocess.skip_reasons}>{reason} ({count})&nbsp;</span>
+          </div>
+
+          <p class="text-xs opacity-60">
+            "atualizados" em zero, logo após um reprocessamento, é o resultado esperado quando
+            nenhum mapeamento mudou: o registro só é reescrito quando algum atributo difere.
+          </p>
         </div>
       </div>
 

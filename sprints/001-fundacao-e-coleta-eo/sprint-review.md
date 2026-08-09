@@ -58,7 +58,7 @@ dispara — `Ingestion.start_sync/2` enfileira, o Oban executa.
 | SC-004 | 100% dos registros exibem origem, identificador e data | **atendido** | colunas presentes em `/pessoas` e `/equipes` para todas as linhas |
 | SC-005 | Credencial não recuperável em forma utilizável | **atendido** | token ausente do HTML das 4 telas; banco devolve `AES.GCM.V1$…`; `inspect/1` redigido |
 | SC-006 | Retomada consulta no máximo uma página a mais | **parcial** | o mecanismo está implementado e o cursor é gravado depois da página; **não foi executado** um teste de interrupção real |
-| SC-007 | Correção de mapeamento aplicada sem consultar a origem | **não verificado** | `raw_payloads` guarda payload, `mapping_id` e `mapping_version`; o fluxo de reprocessamento **não foi implementado** |
+| SC-007 | Correção de mapeamento aplicada sem consultar a origem | **atendido** | `SemanticIntegration.reprocess_mappings/2` sobre 32 payloads preservados: 0 criados, 0 atualizados, 32 sem mudança. O teste roda **sem expectativa no Mox da borda HTTP**, então qualquer chamada à origem o derruba |
 | SC-008 | Usuário de uma organização não vê dado de outra | **atendido** | dois tenants povoados; sessão da `outra-org` mostra 0 pessoas e 0 equipes |
 | SC-009 | Organização com 100 pessoas e 20 equipes conclui sem intervenção | **não verificado** | a organização disponível tem 6 pessoas e 2 equipes; o rate limit não foi atingido |
 | SC-010 | Vínculos pendentes de papel apresentados explicitamente | **atendido** | `7` no relatório da sincronização e no cabeçalho de `/equipes` |
@@ -71,7 +71,7 @@ dispara — `Ingestion.start_sync/2` enfileira, o Oban executa.
 | `mix compile --warnings-as-errors` | passou |
 | `mix credo --strict` | passou — `found no issues` |
 | `mix dialyzer` | passou — `Total errors: 0` |
-| `mix test` | passou — **38 testes** |
+| `mix test` | passou — **46 testes** |
 | `mix knowledge.validate` | passou — 84 artefatos |
 | `mix knowledge.graph` | passou — 24 módulos, dependências íntegras |
 | `scripts/validate_knowledge_base.py` | passou — base válida |
@@ -83,7 +83,6 @@ Declarado explicitamente. Nenhum destes está marcado como pronto em lugar nenhu
 | Item | Tarefas | Por quê |
 |---|---|---|
 | **Autenticação com senha** | — | A sessão é aberta por escolha de usuário, sem senha. O que está implementado é o **escopo por tenant**, que atravessa toda consulta e é testado com dois tenants. Autenticação é feature própria |
-| **Reprocessamento de mapeamento corrigido (FR-017, SC-007)** | T060 | O payload bruto e o `mapping_id` são preservados, mas não existe o comando que relê e reaplica |
 | **Teste de retomada após interrupção (SC-006)** | T058 | O mecanismo existe; o teste que o exercita, não |
 | **Teste de rate limit (SC-009)** | T059 | A pausa preventiva está implementada e é agendamento Oban, não `Process.sleep`; falta o teste com janela simulada |
 | **`mix knowledge.test`, `knowledge.docs`, `knowledge.information_model`** | — | Continuam como scripts Python, chamados pelo CI. Dívida declarada no plan.md |
@@ -91,6 +90,30 @@ Declarado explicitamente. Nenhum destes está marcado como pronto em lugar nenhu
 | **Testes de interface (LiveView)** | T040, T068 | As telas foram verificadas por execução HTTP real, não por teste automatizado |
 | **`Estimate` das issues** | — | Nenhuma estimativa foi feita com o time. Preencher com número inventado produziria métrica de fluxo apoiada em ficção |
 | **Revisão independente do PR** | T073 | A constituição exige revisor diferente de quem implementou. **Esta condição não foi satisfeita** e não pode ser marcada como cumprida por quem escreveu o código |
+
+## Correção após o `/speckit-analyze`
+
+O `/speckit-analyze` rodado ao fim do sprint encontrou dois CRITICAL e dois HIGH.
+Três foram corrigidos ainda neste sprint; o quarto é procedimento e permanece
+aberto.
+
+| Achado | O que era | Resolução |
+|---|---|---|
+| **G1** — FR-017 sem tarefa de implementação | só existia o teste (T060); `RawData.list_for_reprocessing/2` não tinha chamador | contrato [reprocessing.md](../../specs/001-github-eo-ingestion/contracts/reprocessing.md) escrito **antes** do código, T060a–T060c acrescentadas, `TheBand.SemanticIntegration` + worker Oban + botão em `/sincronizacoes` implementados, 8 testes |
+| **C1** — assinatura divergente | o contrato pedia lista de ids; o código recebe `DateTime` | contrato corrigido: a plataforma não recebe evento de remoção, ela percebe a ausência por comparação entre coletas — quem chama não teria como saber quais vínculos sumiram |
+| **C2** — `opts` divergentes | contrato prometia `:order_by`, ausente no código; `:only_observed` existia sem estar no contrato | contrato corrigido com tabela por opção, e `:order_by` removido: ordenação parametrizável reintroduziria a divergência entre `list_*` e `count_*` que a regra existe para impedir |
+| **G2** — revisão independente | não satisfeita | **continua aberta**; nenhum entregável pode ser aceito sem ela |
+
+Uma terceira correção de contrato apareceu durante a implementação: o contrato de
+reprocessamento prometia `{:error, {:unknown_mapping, id}}` **e** dizia que um
+mapeamento quebrado não derruba o lote. Contradizia a si mesmo. Prevaleceu a
+segunda regra — derrubar o lote por um registro tornaria a correção refém do pior
+dado da base, o oposto do que FR-017 existe para permitir.
+
+**Prática que passa a valer**: o contrato da API é escrito antes da primeira
+função pública, e corrigido no mesmo commit quando a implementação mostra que ele
+errou. Registrado em `AGENTS.md` §12 e na constituição, princípio VI, por emenda
+1.1.0.
 
 ## Defeitos encontrados durante o sprint
 

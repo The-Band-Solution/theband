@@ -28,9 +28,17 @@ processo (constituição, princípio V).
 @spec record_team_membership_evidence(Tenant.t(), attrs :: map()) ::
         {:ok, TeamMembershipEvidence.t()} | {:error, Ecto.Changeset.t()}
 
-@spec mark_evidence_no_longer_observed(Tenant.t(), [evidence_id :: Ecto.UUID.t()]) ::
+@spec mark_evidence_no_longer_observed(Tenant.t(), collection_started_at :: DateTime.t()) ::
         {:ok, count :: non_neg_integer()}
 ```
+
+**Correção de contrato — `mark_evidence_no_longer_observed/2`.** A primeira versão
+deste documento recebia uma lista de identificadores. Está errada, e a
+implementação está certa: a plataforma **não recebe evento de remoção**, ela
+percebe a ausência por comparação entre coletas. Quem chama não tem como saber
+quais vínculos sumiram — quem sabe é a consulta, marcando tudo que não foi
+reobservado desde o início desta coleta. Passar a lista exigiria que o conector
+descobrisse a ausência antes, que é justamente o que a função existe para fazer.
 
 **`upsert_*_from_source` e não `create_*`.** Entidade ingerida não é criada por
 alguém: é observada. A função recebe a proveniência junto dos atributos, resolve
@@ -58,6 +66,12 @@ em `:provenance`. Registro sem Application Reference é inválido, não incomple
 devolve `{:ok, struct}` sem escrever — `record_version` não muda. É o que SC-003
 verifica.
 
+**O struct devolvido carrega `:outcome`** — campo virtual com `:created`,
+`:updated` ou `:unchanged`. É parte da interface, não detalhe interno: dele sai o
+relatório de FR-028, e sem ele quem chama precisaria de uma segunda consulta só
+para saber se escreveu. Virtual porque descreve **a chamada**, não o registro —
+recarregar a linha do banco devolve `nil` ali, e isso está correto.
+
 ## Leituras
 
 ```elixir
@@ -73,11 +87,28 @@ verifica.
 @spec count_evidence_pending_role(Tenant.t(), opts :: keyword()) :: non_neg_integer()
 ```
 
-**`list_*` e `count_*` aceitam exatamente as mesmas `opts`.** Não é preferência de
-estilo: uma contagem que ignora o filtro que a listagem aplica exibe "41 pessoas"
-acima de uma lista de 10, e o defeito é invisível até existir uma tela. As `opts`
-suportadas nesta feature: `:account_type`, `:search`, `:limit`, `:offset`,
-`:order_by`.
+**`list_*` e `count_*` aceitam exatamente as mesmas `opts` de filtro.** Não é
+preferência de estilo: uma contagem que ignora o filtro que a listagem aplica
+exibe "41 pessoas" acima de uma lista de 10, e o defeito é invisível até existir
+uma tela.
+
+| `opts` | Efeito | Vale em |
+|---|---|---|
+| `:account_type` | átomo ou lista — `"person"`, `["bot", "app"]` | `list_*` e `count_*` |
+| `:search` | nome ou login, sem distinguir maiúsculas | `list_*` e `count_*` |
+| `:only_observed` | `true` exclui o que já foi marcado como não mais observado | `list_*` e `count_*` |
+| `:limit`, `:offset` | paginação | **só `list_*`** |
+| `:team_id` | restringe a uma equipe | `count_evidence_pending_role/2` |
+
+**Correção de contrato — `:order_by` não existe.** A primeira versão deste
+documento o listava. A ordenação é fixa e não parametrizável: pessoas e equipes
+saem por nome. Deixá-la aberta permitiria ordenar por coluna que a contagem
+ignora, o que reintroduziria pela porta dos fundos a divergência que a regra
+acima existe para impedir.
+
+`:limit` e `:offset` são a única assimetria admitida, e ela é deliberada:
+paginação recorta a **exibição**, não o conjunto. Uma contagem que respeitasse o
+`:limit` devolveria sempre o tamanho da página, o que não responde nada.
 
 **Todas recebem o tenant.** Uma função de leitura sem tenant não existe na API —
 query sem filtro de tenant é bug de segurança, não de correção.

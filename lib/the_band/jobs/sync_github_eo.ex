@@ -255,7 +255,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
           last_observed_at: now,
           no_longer_observed_at: nil
         })
-        |> put_defaults(raw_entity_type, node)
+        |> Mapper.complete(raw_entity_type, node)
 
       result = write(ctx, raw_entity_type, attrs)
 
@@ -278,39 +278,6 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   defp write(ctx, "github.team", attrs), do: EO.upsert_team_from_source(ctx.tenant, attrs)
   defp write(ctx, _person_like, attrs), do: EO.upsert_person_from_source(ctx.tenant, attrs)
-
-  # Complementos que o mapeamento não declara porque não são atributos do
-  # conceito: o login usado como nome quando a conta não tem nome preenchido, e a
-  # classificação de automação, que vem do __typename e não de um campo.
-  defp put_defaults(attrs, "github.organization", node) do
-    attrs
-    |> Map.put(:login, node["login"])
-    |> Map.put_new(:name, node["login"])
-  end
-
-  defp put_defaults(attrs, "github.team", node) do
-    attrs
-    |> Map.put(:type, "organizational_team")
-    |> Map.put_new(:name, node["name"] || node["slug"])
-    |> Map.put(:external_created_at, parse_datetime(node["createdAt"]))
-  end
-
-  defp put_defaults(attrs, _person_like, node) do
-    attrs
-    |> Map.put(:login, node["login"])
-    # Conta sem nome preenchido é registrada mesmo assim, identificada pelo login.
-    |> Map.put(:name, node["name"] || node["login"])
-    |> Map.put(:account_type, account_type(node))
-  end
-
-  defp account_type(%{"__typename" => "Bot"}), do: "bot"
-  defp account_type(%{"__typename" => "App"}), do: "app"
-
-  defp account_type(%{"login" => login}) when is_binary(login) do
-    if String.ends_with?(login, "[bot]"), do: "bot", else: "person"
-  end
-
-  defp account_type(_), do: "person"
 
   # ------------------------------------------------------------------ auxiliares
 
@@ -343,15 +310,6 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   defp normalize_error({:error, :unauthorized}), do: {:error, :unauthorized}
   defp normalize_error({:error, reason}), do: {:error, reason}
   defp normalize_error(other), do: {:error, other}
-
-  defp parse_datetime(nil), do: nil
-
-  defp parse_datetime(value) do
-    case DateTime.from_iso8601(value) do
-      {:ok, dt, _} -> DateTime.truncate(dt, :second)
-      _ -> nil
-    end
-  end
 
   defp changeset_reason(%Ecto.Changeset{} = changeset) do
     changeset

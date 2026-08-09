@@ -32,6 +32,67 @@ defmodule TheBand.SemanticIntegration.Mapper do
     end
   end
 
+  @doc """
+  Completa os atributos com o que o mapeamento não declara — e não deveria.
+
+  Dois complementos, ambos derivados do payload e nenhum deles atributo do
+  conceito:
+
+    * **nome a partir do login.** Conta sem nome preenchido é registrada mesmo
+      assim, identificada pelo login. Não é atributo novo: é a mesma propriedade
+      `name`, com a origem de segunda escolha declarada aqui em vez de escondida
+      num `||` no meio da ingestão;
+    * **tipo de conta.** Vem de `__typename`, que é metadado do GraphQL, não campo
+      do usuário. Declará-lo no mapeamento faria parecer que a origem tem um
+      atributo "é bot", e ela não tem.
+
+  Vive aqui, e não em cada chamador, porque coleta e reprocessamento precisam
+  produzir **exatamente** os mesmos atributos a partir do mesmo payload. Duas
+  cópias divergiriam, e a divergência apareceria como registro "atualizado" num
+  reprocessamento que não deveria mudar nada.
+  """
+  @spec complete(map(), String.t(), map()) :: map()
+  def complete(attrs, "github.organization", node) do
+    attrs
+    |> Map.put(:login, node["login"])
+    |> Map.put_new(:name, node["login"])
+  end
+
+  def complete(attrs, "github.team", node) do
+    attrs
+    |> Map.put(:type, "organizational_team")
+    |> Map.put_new(:name, node["name"] || node["slug"])
+    |> Map.put(:slug, node["slug"])
+    |> Map.put(:external_created_at, parse_datetime(node["createdAt"]))
+  end
+
+  def complete(attrs, _person_like, node) do
+    attrs
+    |> Map.put(:login, node["login"])
+    |> Map.put(:name, node["name"] || node["login"])
+    |> Map.put(:account_type, account_type(node))
+  end
+
+  @doc "Classifica a conta a partir do `__typename` e do sufixo do login."
+  @spec account_type(map()) :: String.t()
+  def account_type(%{"__typename" => "Bot"}), do: "bot"
+  def account_type(%{"__typename" => "App"}), do: "app"
+
+  def account_type(%{"login" => login}) when is_binary(login) do
+    if String.ends_with?(login, "[bot]"), do: "bot", else: "person"
+  end
+
+  def account_type(_node), do: "person"
+
+  defp parse_datetime(nil), do: nil
+
+  defp parse_datetime(value) do
+    case DateTime.from_iso8601(value) do
+      {:ok, datetime, _offset} -> DateTime.truncate(datetime, :second)
+      _ -> nil
+    end
+  end
+
   @doc "Identificador da entidade na origem, conforme `identity.external_id_path`."
   @spec external_id(String.t(), map()) :: {:ok, String.t()} | {:error, String.t()}
   def external_id(mapping_id, node) do

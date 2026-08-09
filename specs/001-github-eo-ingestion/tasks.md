@@ -131,6 +131,9 @@ batem com o GitHub; rodar de novo e confirmar que os números não mudam.
 - [ ] T057 [P] [US2] Teste de integração de idempotência: segunda sincronização cria 0 e atualiza 0 — **SC-003**
 - [ ] T058 [P] [US2] Teste de integração de retomada: no máximo uma reconsulta por página — **SC-006**
 - [ ] T059 [P] [US2] Teste de integração de rate limit com resposta simulada de janela esgotada — **SC-009**
+- [ ] T060a [US2] Implementar `TheBand.SemanticIntegration.reprocess_mappings/2` lendo `raw_payloads` e reaplicando os mapeamentos pelo módulo ontológico, sem tocar na origem — **FR-017**, [contracts/reprocessing.md](contracts/reprocessing.md)
+- [ ] T060b [US2] Worker Oban `TheBand.Jobs.ReprocessMappings` na fila `:transformation`, com `tenant_id` validado, publicando `{:reprocess_finished, report}` — contrato de reprocessamento
+- [ ] T060c [US2] Botão "Reprocessar mapeamentos" em `/sincronizacoes` com o relatório do resultado — princípio VI, contrato de telas
 - [ ] T060 [P] [US2] Teste de reprocessamento com mapeamento corrigido, sem nenhuma chamada ao GitHub — **SC-007**
 
 **Checkpoint**: sincronização completa, idempotente e retomável, com tela de acompanhamento.
