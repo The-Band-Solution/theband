@@ -92,6 +92,34 @@ O paper pode usar booleano para roles porque no OntoUML bem modelado o relator j
 existe ao lado, e o discriminador é derivável dele. Nossa base ainda não está
 nessa condição — ver [RFC 0001](../rfc/0001-derivacao-do-modelo-de-informacao.md), Q6.
 
+### Role reificado: catálogo mais relator com período
+
+Decorre do anterior e é decisão própria: o `role` vira **tabela de catálogo**, e
+o kind o instancia **por um período**, através do relator.
+
+```text
+eo_organizational_roles      catálogo — uma linha por papel
+eo_people                    o kind que assume o papel
+eo_team_memberships          o relator: pessoa + equipe + papel + período
+```
+
+O que isso compra, comparado a um discriminador na tabela do kind:
+
+- **Extensibilidade** — papel novo é uma linha, não uma migração de enum.
+- **Temporalidade** — começo e fim vivem no relator, e o histórico sobrevive à
+  saída da pessoa.
+- **Acúmulo** — várias linhas de relator expressam papéis simultâneos sem
+  qualquer construção adicional.
+- **Multitenancy** — cada organização define seus próprios papéis.
+
+O custo é um join a mais para responder "qual o papel desta pessoa", o que é
+aceitável dado que a pergunta correta quase nunca é essa, e sim "qual o papel
+desta pessoa **nesta equipe**, **neste período**" — que exigiria o join de
+qualquer forma.
+
+Validado por derivação sobre a EO: 9 conceitos produzem 5 tabelas, e
+`eo.team_member` é absorvido em `eo.person` sem virar coluna.
+
 ### Extensões próprias, fora do escopo do paper
 
 O paper trata de **endurantes**. Duas regras são nossas e estão marcadas como

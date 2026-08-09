@@ -18,14 +18,14 @@ concepts:
     label: { pt-BR: "Organização", en: "Organization" }
     definition:
       pt-BR: Agente social que reconhece papéis organizacionais e emprega pessoas.
-    classification: { ufo_category: social_agent }
+    classification: { ufo_category: social_agent, ontouml_stereotype: kind }
 
   - id: eo.organizational_unit
     name: Organizational Unit
     label: { pt-BR: "Unidade Organizacional", en: "Organizational Unit" }
     definition:
       pt-BR: Parte de uma organização com responsabilidades próprias.
-    classification: { ufo_category: social_agent, parent: eo.organization }
+    classification: { ufo_category: social_agent, ontouml_stereotype: subkind, parent: eo.organization }
 
   - id: eo.person
     name: Person
@@ -34,7 +34,7 @@ concepts:
       pt-BR: >
         Agente humano. É o conceito de identidade das pessoas em toda a rede:
         SRO, CIRO e CDRO referenciam pessoas apenas por meio de papéis.
-    classification: { ufo_category: agent }
+    classification: { ufo_category: agent, ontouml_stereotype: kind }
     attributes:
       - { name: name, type: string, required: true }
       - { name: email, type: string, required: false }
@@ -46,7 +46,7 @@ concepts:
       pt-BR: >
         Papel social reconhecido pela organização, atribuído a agentes quando são
         contratados, incluídos em uma equipe, alocados ou participam de atividades.
-    classification: { ufo_category: social_role, is_role_of: ufo.agent }
+    classification: { ufo_category: social_role, ontouml_stereotype: kind, is_role_of: ufo.agent }
     examples: ["gerente de projeto", "designer", "programador"]
 
   - id: eo.team
@@ -54,14 +54,14 @@ concepts:
     label: { pt-BR: "Equipe", en: "Team" }
     definition:
       pt-BR: Coletivo de pessoas que desempenham papéis organizacionais em conjunto.
-    classification: { ufo_category: collective }
+    classification: { ufo_category: collective, ontouml_stereotype: kind }
 
   - id: eo.organizational_team
     name: Organizational Team
     label: { pt-BR: "Equipe Organizacional", en: "Organizational Team" }
     definition:
       pt-BR: Equipe ligada a uma organização, e não a um projeto específico.
-    classification: { ufo_category: collective, parent: eo.team }
+    classification: { ufo_category: collective, ontouml_stereotype: subkind, parent: eo.team }
     examples: ["a equipe de marketing de uma organização de software"]
 
   - id: eo.project_team
@@ -69,7 +69,7 @@ concepts:
     label: { pt-BR: "Equipe de Projeto", en: "Project Team" }
     definition:
       pt-BR: Equipe ligada a um projeto.
-    classification: { ufo_category: collective, parent: eo.team }
+    classification: { ufo_category: collective, ontouml_stereotype: subkind, parent: eo.team }
     examples: ["a equipe de desenvolvimento de um projeto"]
 
   - id: eo.team_member
@@ -87,7 +87,7 @@ concepts:
 
         A mesma pessoa pode ser membro de várias equipes ao mesmo tempo, com
         papéis diferentes em cada uma.
-    classification: { ufo_category: role, is_role_of: eo.person }
+    classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: eo.person }
 
   - id: eo.team_membership
     name: Team Membership
@@ -97,7 +97,7 @@ concepts:
         Relação social que aloca um membro de equipe para desempenhar um papel
         organizacional em uma equipe. É o relator que conecta pessoa, papel e
         equipe — e o lugar onde vive a temporalidade da alocação.
-    classification: { ufo_category: relator }
+    classification: { ufo_category: relator, ontouml_stereotype: relator, is_role_of: eo.person }
     attributes:
       - { name: started_at, type: datetime, required: false }
       - { name: ended_at, type: datetime, required: false }
