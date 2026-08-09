@@ -19,21 +19,21 @@ concepts:
     label: { pt-BR: "Processo Pretendido do Projeto", en: "Intended Project Process" }
     definition:
       pt-BR: Processo planejado para ser executado no projeto — uma intenção, não uma ocorrência.
-    classification: { ufo_category: intention }
+    classification: { ufo_category: intention, ontouml_stereotype: kind }
 
   - id: spo.general_intended_project_process
     name: General Intended Project Process
     label: { pt-BR: "Processo Pretendido Geral" }
     definition:
       pt-BR: Processo pretendido que se refere ao processo inteiro definido para um projeto.
-    classification: { ufo_category: intention, parent: spo.intended_project_process }
+    classification: { ufo_category: intention, ontouml_stereotype: subkind, parent: spo.intended_project_process }
 
   - id: spo.specific_intended_project_process
     name: Specific Intended Project Process
     label: { pt-BR: "Processo Pretendido Específico" }
     definition:
       pt-BR: Processo pretendido definido com um propósito específico no projeto.
-    classification: { ufo_category: intention, parent: spo.intended_project_process }
+    classification: { ufo_category: intention, ontouml_stereotype: subkind, parent: spo.intended_project_process }
     examples: ["o processo de Engenharia de Requisitos definido para um projeto"]
 
   - id: spo.intended_project_activity
@@ -41,7 +41,7 @@ concepts:
     label: { pt-BR: "Atividade Pretendida do Projeto" }
     definition:
       pt-BR: Atividade planejada que compõe um processo pretendido específico.
-    classification: { ufo_category: intention }
+    classification: { ufo_category: intention, ontouml_stereotype: kind }
 
   - id: spo.performed_project_process
     name: Performed Project Process
@@ -50,8 +50,24 @@ concepts:
       pt-BR: >
         Processo como efetivamente executado no projeto. É uma ação complexa
         ("ocorrência") que pode não corresponder à intenção original.
-    classification: { ufo_category: complex_action }
+    classification: { ufo_category: complex_action, ontouml_stereotype: kind }
+    identity_criterion:
+      form: composite_hash
+      components:
+        - tenant_id
+        - organization_id
+        - project_id
+        - process_type
+        - occurred_at
+        - source_external_id
+      nullable_components:
+        - source_external_id
+      inherited_by_subtypes: true
+      note: >
+        Mesmo critério das atividades, sem performer: processos não têm executor
+        único — quem executa são as atividades que os compõem.
     attributes:
+      - { name: occurred_at, type: datetime, required: true }
       - { name: start_date, type: datetime, required: false }
       - { name: end_date, type: datetime, required: false }
 
@@ -60,21 +76,21 @@ concepts:
     label: { pt-BR: "Processo Executado Geral" }
     definition:
       pt-BR: Processo executado que corresponde ao processo global do projeto.
-    classification: { ufo_category: complex_action, parent: spo.performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_process }
 
   - id: spo.specific_performed_project_process
     name: Specific Performed Project Process
     label: { pt-BR: "Processo Executado Específico" }
     definition:
       pt-BR: Processo executado com propósito específico, composto de atividades executadas.
-    classification: { ufo_category: complex_action, parent: spo.performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_process }
 
   - id: spo.specific_performed_project_simple_process
     name: Specific Performed Project Simple Process
     label: { pt-BR: "Processo Executado Específico Simples" }
     definition:
       pt-BR: Processo executado específico que contém apenas atividades.
-    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.specific_performed_project_process }
     provenance:
       source_type: thesis
       reference: "Tese, Seção 2.2.2.1 — conceito desenvolvido para apoiar Continuum"
@@ -84,7 +100,7 @@ concepts:
     label: { pt-BR: "Processo Executado Específico Composto" }
     definition:
       pt-BR: Processo executado específico que contém dois ou mais processos executados específicos.
-    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.specific_performed_project_process }
     provenance:
       source_type: thesis
       reference: "Tese, Seção 2.2.2.1 — conceito desenvolvido para apoiar Continuum"
@@ -93,9 +109,44 @@ concepts:
     name: Performed Project Activity
     label: { pt-BR: "Atividade Executada do Projeto" }
     definition:
-      pt-BR: Atividade efetivamente executada, compondo um processo executado específico.
-    classification: { ufo_category: action }
+      pt-BR: >
+        Atividade efetivamente executada, compondo um processo executado específico.
+
+        É o kind das ocorrências de atividade em toda a rede: commits, execuções
+        de teste, cerimônias, implantações e inspeções são todos especializações
+        deste conceito, e compartilham o mesmo princípio de identidade. Por isso
+        o kind mora em SPO, e as ontologias de domínio o especializam em vez de
+        definir cada uma o seu.
+    classification: { ufo_category: action, ontouml_stereotype: kind }
+    identity_criterion:
+      form: composite_hash
+      components:
+        - tenant_id
+        - organization_id
+        - project_id
+        - activity_type
+        - performer_id
+        - occurred_at
+        - source_external_id
+      nullable_components:
+        - performer_id
+        - source_external_id
+      inherited_by_subtypes: true
+      note: >
+        Somente componentes identificadores. start_date e end_date ficam de fora
+        de propósito: end_date é nulo enquanto a atividade corre e preenchido ao
+        terminar, e incluí-lo faria o hash mudar no encerramento, quebrando toda
+        referência existente. occurred_at é o instante que individua a ocorrência
+        e não muda depois de registrado.
+
+        performer_id é anulável porque atividades automatizadas não têm executor
+        humano — build, teste automatizado e implantação contínua. A ausência tem
+        representação canônica no hash para manter o resultado determinístico.
+
+        source_external_id preserva a identidade da fonte quando ela existe, o
+        que evita que duas coletas do mesmo commit gerem ocorrências distintas.
     attributes:
+      - { name: occurred_at, type: datetime, required: true }
       - { name: start_date, type: datetime, required: false }
       - { name: end_date, type: datetime, required: false }
 
@@ -104,14 +155,14 @@ concepts:
     label: { pt-BR: "Atividade Executada Simples" }
     definition:
       pt-BR: Atividade executada que não se decompõe em outras atividades.
-    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_project_activity }
 
   - id: spo.performed_composite_activity
     name: Performed Composite Activity
     label: { pt-BR: "Atividade Executada Composta" }
     definition:
       pt-BR: Atividade executada composta de outras atividades executadas.
-    classification: { ufo_category: complex_action, parent: spo.performed_project_activity }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_project_activity }
 
 relations:
   - id: spo.intended_causes_performed

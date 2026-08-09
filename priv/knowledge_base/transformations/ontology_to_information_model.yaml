@@ -25,6 +25,14 @@ transformation:
 #   Passo 3  Tabelas     uma tabela por classe do modelo refatorado, com chaves
 #                        estrangeiras de dependência
 #
+# Dois passos acrescentados por este projeto, que o paper não cobre por tratar de
+# um modelo conceitual isolado (ver ADR 0004, D9 e D10):
+#
+#   Passo 4  Rede        kind mora na ontologia que o define; as demais
+#                        referenciam, contribuem discriminador e estendem
+#   Passo 5  Views       cada conceito absorvido reaparece como view com o seu
+#                        nome, devolvendo o vocabulário do domínio à consulta
+#
 # O resultado é um esquema cujas tabelas correspondem aos KINDS do domínio,
 # incluindo relator kinds, mais tabelas discriminadoras para os generalization
 # sets sobrepostos.
@@ -265,6 +273,150 @@ rules:
         Toda tabela que representa entidade existencialmente dependente recebe
         chave estrangeira para aquilo de que depende — vale para relator kinds e
         para as tabelas discriminadoras de conjuntos sobrepostos.
+
+  # ============================== PASSO 4 — REDE DE ONTOLOGIAS (extensão nossa)
+  # O paper transforma um modelo conceitual isolado. A rede acrescenta o caso de
+  # um conceito especializar um kind que mora em outra ontologia. Estas três
+  # regras resolvem isso por referência, sem replicar dado — ver ADR 0004, D9.
+
+  - id: t6.kind_owned_by_defining_ontology
+    step: 4
+    operation: network_resolution
+    name: { pt-BR: "O kind mora na ontologia que o define", en: "Kind owned by defining ontology" }
+    applies_to:
+      is_kind: true
+    action: materialize_as_entity
+    scope: defining_ontology
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Um kind é definido uma vez, na ontologia mais geral que o introduz, e as
+        ontologias específicas o referenciam. A alternativa — replicar o kind em
+        cada ontologia, como a tese faz entre OBDRs — exige reconciliação por
+        internal_id e propagação por broker, o que faz sentido para serviços
+        autônomos e não para um banco só.
+
+        Referenciar também é o que torna a rede extensível: uma ontologia nova
+        aponta para os kinds existentes e adiciona os seus, sem alterar nada do
+        que já está lá.
+    examples:
+      - "spo.performed_project_activity é o kind das ocorrências de atividade em toda a rede."
+
+  - id: t7.subtype_contributes_discriminator
+    step: 4
+    operation: network_resolution
+    name: { pt-BR: "Subtipo externo contribui valor ao discriminador", en: "External subtype contributes discriminator value" }
+    applies_to:
+      lifted_to_kind_in_another_ontology: true
+    action: materialize_as_attribute
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Quando o subtipo é elevado a um kind de outra ontologia, ele não ganha
+        tabela: contribui um valor ao discriminador do kind. A contribuição é
+        aditiva e não altera o que já existe.
+    examples:
+      - "CMPO contribui 13 valores a spo_performed_project_activities.activity_type."
+
+  - id: t8.own_attributes_become_extension_table
+    step: 4
+    operation: network_resolution
+    name: { pt-BR: "Atributo próprio vira tabela de extensão", en: "Own attributes become extension table" }
+    applies_to:
+      lifted_to_kind_in_another_ontology: true
+      has_own_attributes: true
+    action: materialize_as_entity
+    scope: owning_ontology
+    dependency_keys: required
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Estrutura que os irmãos não têm não sobe para o kind: fica em tabela da
+        própria ontologia, ligada por chave estrangeira. É o que impede a tabela
+        do kind de acumular colunas nulas de subtipos sem relação entre si —
+        commits e cerimônias convivem no mesmo kind, mas sha e mensagem só fazem
+        sentido para um deles.
+
+        Consulta polimórfica varre a tabela base; consulta específica junta com a
+        extensão.
+    examples:
+      - "cmpo_commits com sha, message, additions e deletions, apontando para a atividade."
+
+  # ================================= PASSO 5 — VIEWS (extensão nossa, ADR 0004 D10)
+  # A transformação é correta e esconde o vocabulário: conceitos absorvidos
+  # deixam de ser encontráveis pelo nome. As views devolvem esse vocabulário sem
+  # custo de armazenamento.
+
+  - id: t9.subtype_view
+    step: 5
+    operation: view_generation
+    name: { pt-BR: "View de subtipo", en: "Subtype view" }
+    applies_to:
+      absorbed_by: lifting
+      stereotype: [subkind]
+    action: materialize_as_view
+    view_shape: kind_filtered_by_discriminator_joined_with_extension
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Reconstitui o conceito absorvido como objeto consultável com o seu nome,
+        filtrando o discriminador e juntando a tabela de extensão quando existe.
+    examples:
+      - "cmpo_commits: activities JOIN extensão WHERE activity_type = 'commit_artifact_copy'."
+
+  - id: t10.role_view
+    step: 5
+    operation: view_generation
+    name: { pt-BR: "View de papel", en: "Role view" }
+    applies_to:
+      absorbed_by: lifting
+      stereotype: [role, social_role]
+    action: materialize_as_view
+    view_shape: kind_joined_with_relator_and_role_catalogue
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Papel materializa por relator (D5, D6), então a view junta o kind, o
+        relator e o catálogo de papéis, expondo também a vigência. É o que
+        permite perguntar por "desenvolvedores" sem saber que a resposta vem de
+        três tabelas.
+    examples:
+      - "sro_developers: people JOIN team_memberships JOIN organizational_roles WHERE code = 'developer'."
+
+  - id: t11.phase_view
+    step: 5
+    operation: view_generation
+    name: { pt-BR: "View de fase", en: "Phase view" }
+    applies_to:
+      absorbed_by: lifting
+      stereotype: [phase]
+    action: materialize_as_view
+    view_shape: kind_filtered_by_status
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Fase é estado no discriminador; a view a expõe como se fosse conjunto
+        próprio, mantendo a reclassificação como simples UPDATE por baixo.
+    examples:
+      - "sro_accepted_deliverables: deliverables WHERE acceptance_status = 'accepted'."
+
+  - id: t12.views_are_derived
+    step: 5
+    operation: view_generation
+    name: { pt-BR: "Views são derivadas, não escritas", en: "Views are derived, not written" }
+    applies_to:
+      all_views: true
+    action: materialize_as_view
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        As views saem da mesma transformação e da mesma base que as tabelas. Uma
+        mudança conceitual regenera as duas juntas, e não há como uma divergir da
+        outra. View escrita à mão reintroduz exatamente a divergência que a
+        ADR 0002 evita.
+
+        Escrita e integridade acontecem contra as tabelas; leitura pode acontecer
+        contra as views. Views não materializadas não custam armazenamento.
 
   # ======================================= regras próprias do The Band =========
   - id: t4.events_are_append_only

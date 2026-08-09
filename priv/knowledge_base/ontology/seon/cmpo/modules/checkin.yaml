@@ -18,7 +18,7 @@ concepts:
     label: { pt-BR: "Check-in" }
     definition:
       pt-BR: Atividade para incluir novas versões de itens de configuração em um repositório de código.
-    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
   - id: cmpo.source_branch
     name: Source Branch
@@ -27,14 +27,14 @@ concepts:
       pt-BR: >
         Papel assumido por uma branch quando há nova versão ou nova cópia de
         artefato que se deseja salvar em outra branch por meio de um check-in.
-    classification: { ufo_category: role, is_role_of: cmpo.branch }
+    classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: cmpo.branch }
 
   - id: cmpo.target_branch
     name: Target Branch
     label: { pt-BR: "Branch de Destino" }
     definition:
       pt-BR: Papel assumido pela branch que recebe a cópia de artefato em um check-in.
-    classification: { ufo_category: role, is_role_of: cmpo.branch }
+    classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: cmpo.branch }
 
   - id: cmpo.check_conflict
     name: Check Conflict
@@ -43,49 +43,54 @@ concepts:
       pt-BR: >
         Atividade que verifica se há conflitos entre uma cópia de artefato na branch
         de origem e sua versão na branch de destino.
-    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.conflict
     name: Conflict
     label: { pt-BR: "Conflito", en: "Conflict" }
     definition:
       pt-BR: Diferença de conteúdo em uma mesma região de uma cópia de artefato.
-    classification: { ufo_category: social_object, parent: spo.information_item }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.information_item }
 
   - id: cmpo.artifact_copy_with_conflict
     name: Artifact Copy With Conflict
     label: { pt-BR: "Cópia de Artefato com Conflito" }
     definition:
       pt-BR: Cópia de artefato criada quando um conflito é identificado.
-    classification: { ufo_category: phase, parent: cmpo.artifact_copy }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: cmpo.artifact_copy }
 
   - id: cmpo.artifact_copy_without_conflict
     name: Artifact Copy Without Conflict
     label: { pt-BR: "Cópia de Artefato sem Conflito" }
     definition:
       pt-BR: Cópia de artefato sem conflito, seja porque nenhum foi identificado, seja porque todos foram resolvidos.
-    classification: { ufo_category: phase, parent: cmpo.artifact_copy }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: cmpo.artifact_copy }
 
   - id: cmpo.resolve_conflict
     name: Resolve Conflict
     label: { pt-BR: "Resolução de Conflito" }
     definition:
       pt-BR: Atividade que permite ao implementador da mudança corrigir um conflito em uma cópia de artefato.
-    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.commit_artifact_copy
     name: Commit Artifact Copy
     label: { pt-BR: "Commit de Cópia de Artefato" }
     definition:
       pt-BR: Atividade que envia uma cópia de artefato sem conflito para a branch de destino.
-    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
+    attributes:
+      - { name: sha, type: string, required: true }
+      - { name: message, type: text, required: false }
+      - { name: additions, type: integer, required: false }
+      - { name: deletions, type: integer, required: false }
 
   - id: cmpo.delete_branch
     name: Delete Branch
     label: { pt-BR: "Remoção de Branch" }
     definition:
       pt-BR: Atividade que remove uma branch de origem em um repositório de código.
-    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
 relations:
   - id: cmpo.checkin_composed_of_check_conflict

@@ -60,12 +60,66 @@ properties:
                  collective, event, situation, disposition, agent, object,
                  social_object, social_role, social_agent, normative_description,
                  action, complex_action, intention, goal, abstract_individual]
+            ontouml_stereotype:
+              description: >
+                Estereótipo OntoUML, que decide a transformação para o modelo de
+                informação (ADR 0004). Ao contrário de ufo_category, que é a
+                categoria de topo, este campo expressa sortalidade e rigidez — as
+                duas meta-propriedades que determinam se o conceito vira tabela,
+                discriminador ou relator.
+
+                  kind        sortal rígido de topo; fornece identidade → vira tabela
+                  subkind     sortal rígido; herda identidade → discriminador
+                  role        sortal antirrígido relacional → relator
+                  phase       sortal antirrígido intrínseco → discriminador
+                  relator     kind de entidade dependente que reifica relação → tabela
+                  category    não-sortal rígido → achatado
+                  role_mixin  não-sortal antirrígido relacional → achatado
+                  mixin       não-sortal semi-rígido → achatado
+              enum: [kind, subkind, role, phase, relator, category, role_mixin, mixin]
             parent:
               description: Conceito mais geral especializado por este (pode ser de outra ontologia).
               type: string
             is_role_of:
               description: Conceito que assume este papel, quando classification for role.
               type: string
+        identity_criterion:
+          description: >
+            Princípio de identidade do conceito: o que permite dizer se dois
+            registros são o mesmo indivíduo. Declarar isto é o teste operacional
+            de kind — um conceito cujos descendentes precisam de critérios
+            diferentes não é kind, é category, e será achatado (ADR 0004).
+
+            Os componentes devem ser IDENTIFICADORES e imutáveis. Incluir
+            atributo descritivo que muda ao longo da vida do indivíduo faria o
+            hash mudar junto, quebrando toda referência existente.
+          type: object
+          additionalProperties: false
+          required: [form, components]
+          properties:
+            form:
+              description: >
+                external — identidade vem da fonte (source_system, source_instance, external_id);
+                natural  — combinação de atributos próprios;
+                composite_hash — hash determinístico dos componentes, usado como internal_id.
+              enum: [external, natural, composite_hash]
+            components:
+              type: array
+              minItems: 1
+              items: { type: string }
+            nullable_components:
+              description: >
+                Componentes que podem estar ausentes, com representação canônica
+                definida para que o hash permaneça determinístico.
+              type: array
+              items: { type: string }
+            inherited_by_subtypes:
+              description: >
+                true quando todos os descendentes usam este mesmo critério — o que
+                sustenta a classificação como kind. false indica que os subtipos
+                refinam a identidade, e então este conceito é candidato a category.
+              type: boolean
+            note: { type: string }
         attributes:
           type: array
           items:

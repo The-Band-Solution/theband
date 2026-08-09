@@ -15,7 +15,7 @@ concepts:
       pt-BR: >
         Processo executado específico que conduz as atividades de gerência de
         configuração, assegurando completude e correção dos itens de configuração.
-    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.specific_performed_project_process }
 
   - id: cmpo.configuration_item
     name: Configuration Item
@@ -24,14 +24,14 @@ concepts:
       pt-BR: >
         Objeto cuja configuração está sendo gerenciada: artefatos, descrições de
         processo e ferramentas sob gerência de configuração.
-    classification: { ufo_category: role, is_role_of: spo.artifact }
+    classification: { ufo_category: role, ontouml_stereotype: role, is_role_of: spo.artifact }
 
   - id: cmpo.artifact_copy
     name: Artifact Copy
     label: { pt-BR: "Cópia de Artefato", en: "Artifact Copy" }
     definition:
       pt-BR: Cópia de um artefato sob controle de versão.
-    classification: { ufo_category: object }
+    classification: { ufo_category: object, ontouml_stereotype: kind }
     examples: ["cópia de um código-fonte", "cópia de um script de banco"]
 
   - id: cmpo.source_repository
@@ -41,7 +41,7 @@ concepts:
       pt-BR: >
         Cópia carregada de sistema de software cujo propósito é tratar as mudanças
         de cópias de artefato.
-    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+    classification: { ufo_category: disposition, ontouml_stereotype: subkind, parent: sys_swo.loaded_software_system_copy }
     examples: ["uma instância do GitLab", "um repositório no GitHub"]
 
   - id: cmpo.change_request
@@ -52,7 +52,7 @@ concepts:
         Solicitação formal para avaliar e potencialmente integrar alterações em
         itens de configuração. Um Pull Request é uma solicitação de mudança —
         não é o merge, nem a decisão de aprovação.
-    classification: { ufo_category: social_object, parent: spo.information_item }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.information_item }
 
   - id: cmpo.change_control
     name: Change Control
@@ -61,14 +61,14 @@ concepts:
       pt-BR: >
         Atividade executada composta para controlar formalmente a modificação de
         itens de configuração: solicitar, avaliar, alterar e revisar.
-    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
   - id: cmpo.change_request_closing
     name: Change Request Closing
     label: { pt-BR: "Fechamento da Solicitação de Mudança" }
     definition:
       pt-BR: Atividade executada simples para fechar uma solicitação de mudança revisada e aprovada.
-    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: spo.performed_simple_activity }
 
   - id: cmpo.change_accomplishment
     name: Change Accomplishment
@@ -77,14 +77,14 @@ concepts:
       pt-BR: >
         Atividade executada composta que realiza mudanças autorizadas em um conjunto
         de itens de configuração sob controle de versão.
-    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
   - id: cmpo.change_implementer
     name: Change Implementer
     label: { pt-BR: "Implementador da Mudança" }
     definition:
       pt-BR: Stakeholder responsável por implementar uma mudança nos itens de configuração.
-    classification: { ufo_category: role, parent: spo.project_stakeholder }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_stakeholder }
 
   - id: cmpo.baseline
     name: Baseline
@@ -93,14 +93,14 @@ concepts:
       pt-BR: >
         Item de informação que empacota um conjunto de versões de itens de
         configuração em um momento específico da vida do produto.
-    classification: { ufo_category: social_object, parent: spo.information_item }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.information_item }
 
   - id: cmpo.baseline_establishment
     name: Baseline Establishment
     label: { pt-BR: "Estabelecimento de Linha de Base" }
     definition:
       pt-BR: Atividade executada composta que estabelece uma linha de base.
-    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+    classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
 relations:
   - id: cmpo.process_composed_of_change_control

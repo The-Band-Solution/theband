@@ -13,7 +13,7 @@ concepts:
     label: { pt-BR: "Projeto", en: "Project" }
     definition:
       pt-BR: Empreendimento temporário com objetivo definido, executado por uma organização.
-    classification: { ufo_category: social_object }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind }
     attributes:
       - { name: name, type: string, required: true }
       - { name: started_at, type: datetime, required: false }
@@ -24,7 +24,7 @@ concepts:
     label: { pt-BR: "Projeto de Software", en: "Software Project" }
     definition:
       pt-BR: Projeto relacionado ao desenvolvimento ou manutenção de software.
-    classification: { ufo_category: social_object, parent: spo.project }
+    classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: spo.project }
 
   - id: spo.project_stakeholder
     name: Project Stakeholder
@@ -34,14 +34,14 @@ concepts:
         Agente interessado em um projeto de software. A identidade vem do agente,
         que pode ser uma pessoa ou uma equipe — por isso a fundamentação é
         ufo.agent, e não eo.person: os subtipos é que fixam qual dos dois.
-    classification: { ufo_category: role, is_role_of: ufo.agent }
+    classification: { ufo_category: role, ontouml_stereotype: role_mixin, is_role_of: ufo.agent }
 
   - id: spo.project_person_stakeholder
     name: Project Person Stakeholder
     label: { pt-BR: "Parte Interessada Pessoa", en: "Project Person Stakeholder" }
     definition:
       pt-BR: Pessoa interessada em um projeto de software.
-    classification: { ufo_category: role, parent: spo.project_stakeholder, is_role_of: eo.person }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_stakeholder, is_role_of: eo.person }
     examples: ["o gerente do projeto"]
 
   - id: spo.project_team_stakeholder
@@ -49,7 +49,7 @@ concepts:
     label: { pt-BR: "Parte Interessada Equipe", en: "Project Team Stakeholder" }
     definition:
       pt-BR: Equipe interessada em um projeto de software.
-    classification: { ufo_category: role, parent: spo.project_stakeholder, is_role_of: eo.team }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_stakeholder, is_role_of: eo.team }
     examples: ["a equipe de desenvolvimento do projeto"]
 
 relations:

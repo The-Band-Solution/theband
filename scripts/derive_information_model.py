@@ -31,6 +31,36 @@ NON_SORTAL = {"category", "role_mixin", "mixin"}
 ANTI_RIGID_SORTAL = {"role", "phase"}
 KIND_LIKE = {"kind", "relator"}
 
+IRREGULAR_PLURAL = {
+    "person": "people",
+    "child": "children",
+    "man": "men",
+    "woman": "women",
+    "datum": "data",
+    "criterion": "criteria",
+    "analysis": "analyses",
+    "index": "indices",
+}
+
+
+def pluralize(name):
+    """Nome de tabela a partir do nome do conceito.
+
+    Plural irregular importa: eo_persons é errado em inglês, e o esquema é lido
+    por gente.
+    """
+    base = name.lower().replace(" ", "_").replace("-", "_")
+    head, _, last = base.rpartition("_")
+    if last in IRREGULAR_PLURAL:
+        last = IRREGULAR_PLURAL[last]
+    elif last.endswith(("s", "x", "z", "ch", "sh")):
+        last += "es"
+    elif last.endswith("y") and len(last) > 1 and last[-2] not in "aeiou":
+        last = last[:-1] + "ies"
+    else:
+        last += "s"
+    return f"{head}_{last}" if head else last
+
 
 def load_concepts():
     concepts, relations = {}, []
@@ -53,8 +83,9 @@ def parent_of(c):
 
 
 def derive(ontology, concepts, relations):
-    scope = {cid: c for cid, (o, c) in concepts.items() if o == ontology}
-    unclassified = [cid for cid, c in scope.items() if not stereotype(c)]
+    scope = {cid: c for cid, (o, c) in concepts.items()}
+    owned = {cid for cid, (o, _) in concepts.items() if o == ontology}
+    unclassified = [cid for cid in owned if not stereotype(scope[cid])]
     if unclassified:
         return None, unclassified
 
@@ -64,9 +95,10 @@ def derive(ontology, concepts, relations):
         if p in scope:
             children[p].append(cid)
 
-    tables, absorbed, notes = {}, {}, []
+    tables, absorbed, notes, extensions, contributes = {}, {}, [], {}, {}
 
-    for cid, c in scope.items():
+    for cid in owned:
+        c = scope[cid]
         st = stereotype(c)
 
         # Passo 1 — não-sortal é achatado, não vira tabela
@@ -100,7 +132,7 @@ def derive(ontology, concepts, relations):
         # Passo 3 — kind e relator viram tabela
         if st in KIND_LIKE:
             tables[cid] = {
-                "table": f"{ontology}_{c['name'].lower().replace(' ', '_')}s",
+                "table": f"{ontology}_{pluralize(c['name'])}",
                 "stereotype": st,
                 "attributes": list(c.get("attributes") or []),
                 "discriminators": [],
@@ -108,10 +140,26 @@ def derive(ontology, concepts, relations):
             }
 
     # discriminadores vindos do lifting de subkind e phase
-    for cid, (how, target) in absorbed.items():
-        if how != "lifted" or target not in tables:
+    for cid, (how, target) in list(absorbed.items()):
+        if how != "lifted":
             continue
         st = stereotype(scope[cid])
+
+        # Kind em outra ontologia: é o caso da referência. O subtipo contribui
+        # com um valor de discriminador na tabela dela, e se tiver atributos
+        # próprios ganha tabela de extensão aqui, ligada por chave estrangeira.
+        if target not in tables:
+            own = scope[cid].get("attributes") or []
+            contributes.setdefault(target, []).append(cid.split(".")[-1])
+            if own:
+                extensions[cid] = {
+                    "table": f"{ontology}_{pluralize(scope[cid]['name'])}",
+                    "extends": target,
+                    "external": True,
+                    "attributes": list(own),
+                    "discriminator_value": cid.split(".")[-1],
+                }
+            continue
         if st in ("subkind", "phase"):
             name = "type" if st == "subkind" else "status"
             disc = next((d for d in tables[target]["discriminators"]
@@ -125,10 +173,31 @@ def derive(ontology, concepts, relations):
             notes.append(
                 f"{cid}: role elevado a {target}; materializa pelo relator, "
                 f"não por discriminador")
-        # atributos do subtipo sobem como opcionais
-        for a in scope[cid].get("attributes") or []:
-            opt = dict(a, required=False, from_subtype=cid)
-            tables[target]["attributes"].append(opt)
+        # Atributos próprios não sobem para o kind: viram tabela de extensão na
+        # ontologia dona, ligada por FK. Mantém a tabela base estreita e permite
+        # que uma ontologia nova se acople sem alterar o que já existe.
+        own = scope[cid].get("attributes") or []
+        if own:
+            extensions[cid] = {
+                "table": f"{cid.split('.')[0]}_{pluralize(scope[cid]['name'])}",
+                "extends": target,
+                "attributes": list(own),
+                "discriminator_value": cid.split(".")[-1],
+            }
+
+    # parthood vira chave estrangeira na tabela da parte, não discriminador
+    for o, r in relations:
+        if o != ontology or r.get("type") != "part_whole":
+            continue
+        src, tgt = r.get("source"), r.get("target")
+        if src in tables and tgt in tables:
+            card = (r.get("cardinality") or {}).get("target", "one")
+            fk = f"{tgt.split('.')[-1]}_id"
+            if src == tgt:
+                fk = f"parent_{fk}"
+            tables[src]["foreign_keys"].append(
+                {"column": fk, "required": card == "one", "kind": "parthood"})
+            notes.append(f"{r['id']}: parthood → {tables[src]['table']}.{fk}")
 
     # chaves estrangeiras dos relators, a partir das relações declaradas
     for o, r in relations:
@@ -140,10 +209,11 @@ def derive(ontology, concepts, relations):
             root = absorbed.get(tgt, (None, tgt))[1] if tgt in absorbed else tgt
             if root in tables:
                 fk = f"{root.split('.')[-1]}_id"
-                if fk not in tables[src]["foreign_keys"]:
-                    tables[src]["foreign_keys"].append(fk)
+                if not any(x["column"] == fk for x in tables[src]["foreign_keys"]):
+                    tables[src]["foreign_keys"].append(
+                        {"column": fk, "required": True, "kind": "mediation"})
 
-    return (tables, absorbed, notes), None
+    return (tables, absorbed, notes, extensions, contributes), None
 
 
 def main():
@@ -161,7 +231,7 @@ def main():
             print("  ", m)
         return 1
 
-    tables, absorbed, notes = result
+    tables, absorbed, notes, extensions, contributes = result
     total = sum(1 for cid, (o, _) in concepts.items() if o == args.ontology)
 
     print(f"═══ modelo de informação: {args.ontology.upper()} ═══\n")
@@ -177,8 +247,29 @@ def main():
             print(f"│    {d['name']:22s} {'enum':9s} NOT NULL  "
                   f"{{{', '.join(d['values'])}}}")
         for fk in t["foreign_keys"]:
-            print(f"│    {fk:22s} {'uuid':9s} NOT NULL  → FK")
+            req = "NOT NULL" if fk["required"] else "NULL    "
+            print(f"│    {fk['column']:22s} {'uuid':9s} {req}  → FK ({fk['kind']})")
         print("└─")
+        print()
+
+    if extensions:
+        print("tabelas de extensão (atributos próprios do subtipo):\n")
+        for cid, e in sorted(extensions.items()):
+            ref = "outra ontologia" if e.get("external") else "mesma ontologia"
+            print(f"┌─ {e['table']}   (estende {e['extends']} [{ref}] "
+                  f"onde type='{e['discriminator_value']}')")
+            fk = e["extends"].split(".")[-1] + "_id"
+            print(f"│    {fk:22s} {'uuid':9s} NOT NULL  → FK (extension)")
+            for a in e["attributes"]:
+                req = "NOT NULL" if a.get("required") else "NULL    "
+                print(f"│    {a['name']:22s} {a['type']:9s} {req}")
+            print("└─")
+            print()
+
+    if contributes:
+        print("valores de discriminador contribuídos a kinds de outras ontologias:\n")
+        for target, vals in sorted(contributes.items()):
+            print(f"   {target}.type += {{{', '.join(sorted(vals))}}}")
         print()
 
     print("absorvidos (não viram tabela):")

@@ -55,6 +55,9 @@ evita para a documentação.
 | D5 | `role` materializa por relator; `phase` e `subkind`, por discriminador | Refinamento nosso sobre o paper | A distinção é entre dependência **relacional** e mudança **intrínseca**. Um `role` só existe em relação a outra coisa: ninguém é "membro de equipe" no vácuo, é membro *daquela* equipe, *naquele* período. Uma coluna booleana registra a classificação e descarta exatamente isso — o contexto, a temporalidade e a possibilidade de acúmulo. Já uma `phase` é estado do próprio indivíduo: um processo de CI é bem-sucedido ou malsucedido por conta do próprio resultado, sem referência a terceiros, e aí o discriminador basta. O paper admite booleano para roles porque pressupõe o relator modelado ao lado; como 41 dos nossos 44 roles não têm relator, essa pressuposição não vale aqui. |
 | D6 | `role` reificado como catálogo, instanciado por período via relator | Decisão própria, validada na EO | Papel vira **linha**, não valor de enum. Isso torna a extensão barata — um papel novo é um `INSERT`, não uma migração —, coloca começo e fim no relator, permite acúmulo simultâneo sem construção adicional, e deixa cada organização definir seus próprios papéis num sistema multitenant. O custo é um join a mais para perguntar "qual o papel desta pessoa", aceitável porque a pergunta útil quase nunca é essa, e sim "qual o papel desta pessoa **nesta equipe**, **neste período**" — que exigiria o join de todo modo. |
 | D7 | Eventos são `append-only`; situações não são materializadas | Extensão nossa | O paper trata de **endurantes** e não cobre nenhum dos dois casos. Evento registra algo que ocorreu: atualizar uma falha para dizer que ela não ocorreu reescreveria o passado, então correções entram como novos registros. Situação é a realidade antes e depois de um evento, integralmente derivável dos instantes dele; persistir em separado criaria três lugares para discordarem sobre o mesmo fato. |
+| D8 | Perdurantes são kinds quando compartilham critério de identidade, declarado explicitamente | Decisão própria | O método de Guidoni et al. trata de endurantes e não diz o que fazer com processos e atividades. Em vez de criar regra separada, aplicamos a eles o **mesmo teste**: um conceito é kind quando seus descendentes compartilham o princípio de identidade. Para `spo.performed_project_activity` isso foi resolvido declarando o critério — `tenant + organização + projeto + tipo + executor + instante + identificador na fonte`, combinados num hash determinístico que vira o `internal_id`. Só componentes **identificadores** entram: `end_date` fica de fora de propósito, porque é nulo enquanto a atividade corre e preenchido ao terminar, e incluí-lo faria o hash mudar no encerramento, quebrando toda referência existente. `performer_id` é anulável porque build, teste automatizado e implantação não têm executor humano. O teste prático é direto: **se você não sabe qual a chave natural, não é kind** — e foi por não saber que `spo.artifact` ficou como `category`. |
+| D9 | Em rede de ontologias, o kind mora na ontologia mais geral; as específicas **referenciam**, não copiam | Decisão própria | O paper transforma **um** modelo conceitual e não trata de redes. A tese trata, mas por replicação: o mesmo conceito aparece em vários OBDRs, reconciliados por `internal_id` e sincronizados por broker. Isso faz sentido para serviços autônomos e não faz para um monólito, onde pagaríamos consistência eventual dentro do mesmo banco. Adotamos referência por três razões, em ordem de peso: **extensibilidade** — uma ontologia nova só aponta para os kinds existentes e adiciona os seus, sem alterar nada do que já está lá, enquanto com cópia cada ontologia nova replicaria kinds e criaria mais um lugar que precisa concordar; **desempenho** — a tabela do kind guarda só o que é comum, e atributos próprios vivem em tabelas de extensão, evitando dezenas de colunas nulas onde convivem commits e cerimônias; **modularidade** — cada ontologia mantém suas tabelas, e a fronteira existe no esquema sem exigir réplica. As colunas `internal_id` e `record_version` continuam presentes, prontas para o dia em que um módulo virar serviço e a réplica passar a ser necessária. |
+| D10 | Cada conceito absorvido ganha uma **view** que o reconstitui | Decisão própria | A transformação é correta e tem um efeito colateral: quem consulta deixa de encontrar os nomes que conhece. `sro.sprint`, `cmpo.commit` e `sro.developer` somem como tabelas, viram valor de discriminador ou linha de relator, e a consulta passa a exigir que quem escreve saiba onde cada conceito foi parar. As 64 perguntas de competência estão escritas em termos dos conceitos, não das tabelas. A view devolve o vocabulário: cada conceito absorvido reaparece como objeto consultável com o seu nome, encapsulando o join com a extensão, o filtro de discriminador ou a junção com o relator. O custo é zero em armazenamento, e o planner resolve o filtro como se estivesse escrito à mão. Assim o esquema otimiza escrita e integridade, enquanto a camada de views preserva a leitura pelo vocabulário do domínio — e a ontologia volta a ser visível para quem consulta. |
 
 ### Política de camadas — da tese, Seção 5.3
 
@@ -127,6 +130,92 @@ qualquer forma.
 
 Validado por derivação sobre a EO: 9 conceitos produzem 5 tabelas, e
 `eo.team_member` é absorvido em `eo.person` sem virar coluna.
+
+### Aplicação em rede de ontologias
+
+O paper transforma um modelo conceitual isolado. A rede acrescenta um problema
+que ele não enfrenta: um conceito de CMPO especializa um kind que mora em SPO.
+Três regras resolvem isso sem replicar dado.
+
+**O kind mora na ontologia que o define.** `spo.performed_project_activity` é o
+kind das ocorrências de atividade em toda a rede — commits, execuções de teste,
+cerimônias, implantações. As ontologias de domínio não definem cada uma o seu.
+
+**O subtipo contribui um valor ao discriminador do kind.** CMPO não ganha tabela
+para `checkout`, `checkin` ou `commit`: contribui treze valores a
+`spo_performed_project_activities.activity_type`.
+
+**Atributo próprio vira tabela de extensão na ontologia dona.** Quando o subtipo
+carrega estrutura que os irmãos não têm, ela não sobe para o kind — fica numa
+tabela da própria ontologia, ligada por chave estrangeira:
+
+```text
+spo_performed_project_activities        kind, atributos comuns, discriminador
+    id, tenant_id, project_id, activity_type, occurred_at, performer_id
+
+cmpo_commits                            extensão, na ontologia dona
+    performed_project_activity_id → FK
+    sha, message, additions, deletions
+```
+
+Consulta polimórfica varre a tabela base; consulta específica junta com a
+extensão. O resultado é que a tabela do kind não acumula colunas nulas de
+subtipos que nada têm a ver entre si.
+
+Verificado por derivação: CMPO produz 26 conceitos → 5 tabelas próprias mais uma
+extensão, contribuindo 13 valores ao discriminador de SPO, **sem alterar nada em
+SPO**.
+
+### Views: a ontologia de volta na camada de consulta
+
+Depois da transformação, `cmpo.commit_artifact_copy` não é tabela: é
+`activity_type = 'commit_artifact_copy'` na tabela do kind, mais uma linha na
+extensão. Consultar commits passaria a exigir conhecimento do modelo de
+informação, e não do domínio.
+
+Três formas de view resolvem isso, uma por forma de absorção:
+
+**View de subtipo** — reconstitui o que foi elevado com discriminador, juntando
+a extensão quando existe:
+
+```sql
+CREATE VIEW cmpo_commits AS
+SELECT a.id, a.tenant_id, a.project_id, a.occurred_at, a.performer_id,
+       c.sha, c.message, c.additions, c.deletions
+  FROM spo_performed_project_activities a
+  JOIN cmpo_commits_ext c ON c.performed_project_activity_id = a.id
+ WHERE a.activity_type = 'commit_artifact_copy';
+```
+
+**View de papel** — reconstitui o que foi materializado por relator, juntando o
+catálogo e respeitando a vigência:
+
+```sql
+CREATE VIEW sro_developers AS
+SELECT p.*, m.team_id, m.started_at, m.ended_at
+  FROM eo_people p
+  JOIN eo_team_memberships m ON m.person_id = p.id
+  JOIN eo_organizational_roles r ON r.id = m.organizational_role_id
+ WHERE r.code = 'developer';
+```
+
+**View de fase** — reconstitui o que foi elevado como estado:
+
+```sql
+CREATE VIEW sro_accepted_deliverables AS
+SELECT * FROM sro_deliverables WHERE acceptance_status = 'accepted';
+```
+
+As views são **derivadas junto com o esquema**, pela mesma transformação e a
+partir da mesma base — não escritas à mão. Uma mudança conceitual atualiza tabela
+e view na mesma regeneração, e não há como uma divergir da outra.
+
+Escrita e integridade acontecem contra as tabelas; leitura pode acontecer contra
+as views. Views não materializadas custam nada em armazenamento, e o filtro por
+discriminador é resolvido pelo planner como se estivesse escrito na consulta.
+
+Isto é distinto de views materializadas para medidas e indicadores, que são
+questão de analytics e não deste ADR.
 
 ### Extensões próprias, fora do escopo do paper
 

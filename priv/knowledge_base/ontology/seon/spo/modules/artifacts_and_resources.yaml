@@ -13,14 +13,14 @@ concepts:
     label: { pt-BR: "Artefato", en: "Artifact" }
     definition:
       pt-BR: Objeto criado, usado ou alterado por atividades executadas do processo.
-    classification: { ufo_category: object }
+    classification: { ufo_category: object, ontouml_stereotype: category }
 
   - id: spo.information_item
     name: Information Item
     label: { pt-BR: "Item de Informação", en: "Information Item" }
     definition:
       pt-BR: Informação relevante para uso humano no contexto do processo de software.
-    classification: { ufo_category: social_object, parent: spo.artifact }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.artifact }
     examples: ["um bug reportado", "um requisito documentado"]
 
   - id: spo.document
@@ -31,7 +31,7 @@ concepts:
         Informação escrita ou pictórica, unicamente identificada, relacionada ao
         processo de software, geralmente em formato predefinido. Um documento
         descreve artefatos; não é o artefato descrito.
-    classification: { ufo_category: social_object, parent: spo.information_item }
+    classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: spo.information_item }
     examples: ["uma Especificação de Projeto"]
 
   - id: spo.resource
@@ -43,7 +43,7 @@ concepts:
         hardware — quando é usado por uma atividade do processo. As especializações
         que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para
         preservar a direção de dependência (SysSwO depende de SPO, não o contrário).
-    classification: { ufo_category: role, is_role_of: spo.artifact }
+    classification: { ufo_category: role, ontouml_stereotype: role_mixin, is_role_of: spo.artifact }
 
 
 relations:
