@@ -481,6 +481,7 @@ Necessidade → Discovery → Feature Request
 → /speckit-specify → /speckit-clarify → /speckit-checklist → aprovação humana
 → /speckit-plan → revisão arquitetural → revisão semântica
 → /speckit-tasks → /speckit-taskstoissues → /speckit-analyze
+→ /sprint-backlog          ← obrigatório: lições, iteration no GitHub, issues tipadas
 → branch → implementação → testes → quality gates → convergência
 → Pull Request → revisão independente → merge
 ```
@@ -568,6 +569,9 @@ ADR em `docs/adr/NNNN-titulo.md`: contexto, decisão, alternativas consideradas,
 Não:
 
 - programar sem Spec Kit, sem spec, sem plano, sem tarefas, sem issue;
+- **implementar sem sprint backlog aberto pela skill `sprint-backlog`**;
+- abrir sprint sem ler `sprints/licoes-aprendidas.md`;
+- fechar sprint sem `sprint-review.md` separando feito de não feito;
 - fazer push direto na branch principal;
 - aprovar o próprio PR, ou fazer merge sem revisão independente;
 - declarar sucesso sem evidência (log, saída de teste, screenshot);

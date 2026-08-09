@@ -22,6 +22,7 @@ Necessidade
 → /speckit-tasks          tasks.md ordenado por dependência
 → /speckit-taskstoissues  cria as GitHub Issues
 → /speckit-analyze        consistência entre spec, plan e tasks
+→ SPRINT BACKLOG          obrigatório — ver abaixo
 → branch
 → /speckit-implement      execução das tarefas
 → testes e quality gates
@@ -34,6 +35,43 @@ Necessidade
 > **Atenção aos nomes.** Nesta versão os comandos usam hífen (`/speckit-specify`), não
 > ponto. Verifique com `specify version` e a listagem de skills antes de assumir outro
 > formato — e nunca invente um comando que não existe.
+
+## Sprint Backlog — obrigatório antes de implementar
+
+Entre `/speckit-analyze` e a primeira linha de código existe um passo que **não é
+opcional**: a skill `sprint-backlog`.
+
+```
+/sprint-backlog
+```
+
+Ela faz três coisas que o Spec Kit não faz:
+
+**Lê as lições dos sprints anteriores.** `sprints/licoes-aprendidas.md` é
+consultado antes de selecionar escopo, e o backlog registra quais lições foram
+aplicadas. Sem esse passo o registro vira decorativo e o mesmo erro se repete —
+que é o erro mais caro, porque já era conhecido.
+
+**Materializa o sprint no GitHub.** O sprint vira iteration do Projects v2; user
+stories, épicos e tarefas viram issues tipadas e hierarquizadas por sub-issues,
+seguindo os mesmos tipos que `priv/knowledge_base/rules/github_issue_type_routing.yaml`
+espera. Isso torna o próprio repositório uma fonte que o The Band consegue
+ingerir — o modelo passa a ser validado contra dados reais em vez de sintéticos.
+
+**Fecha o ciclo ao final.** `sprint-review.md` separa o que foi feito do que não
+foi, e trata entregável recusado como categoria própria — tarefa concluída cujo
+resultado não passou nos critérios não é tarefa concluída, e escondê-la destrói a
+medida de retrabalho que o produto existe para calcular.
+
+| Artefato | Quando | Conceito SRO |
+|---|---|---|
+| `sprints/NNN/sprint-backlog.md` | ao abrir | `sro.sprint_backlog` |
+| `sprints/NNN/sprint-review.md` | ao fechar | tarefas executadas e entregáveis |
+| `sprints/licoes-aprendidas.md` | acumulativo | `sro.retrospective_meeting` |
+
+> **Implementar sem sprint backlog aberto é violação de processo.** Se alguém —
+> pessoa ou agente — pedir implementação direta, a resposta correta é montar o
+> backlog primeiro e apresentar para aprovação.
 
 ## O que uma feature ontológica precisa identificar
 

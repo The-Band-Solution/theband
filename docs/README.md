@@ -26,6 +26,7 @@ for Data-Driven Software Development*.
 | Saber o que construir e em que ordem | [Backlog](backlog/README.md) |
 | Começar pela integração com GitHub | [Backlog GitHub → SRO](backlog/github-to-sro.md) |
 | Contribuir com código | [AGENTS.md](../AGENTS.md) na raiz |
+| Abrir ou fechar um sprint | [skill sprint-backlog](../.claude/skills/sprint-backlog/SKILL.md) |
 
 ---
 

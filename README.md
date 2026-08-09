@@ -79,6 +79,7 @@ scripts/                 validação da base e geração de docs
 | Necessidades de informação e medidas | [docs/metrics/README.md](docs/metrics/README.md) |
 | Decisões arquiteturais | [docs/adr/README.md](docs/adr/README.md) |
 | Processo por feature | [docs/processes/feature-workflow.md](docs/processes/feature-workflow.md) |
+| Sprint Backlog (skill) | [.claude/skills/sprint-backlog/SKILL.md](.claude/skills/sprint-backlog/SKILL.md) |
 
 ## Base de conhecimento
 
@@ -110,3 +111,13 @@ frontend separado na fundação — ver [ADR 0001](docs/adr/0001-monolito-modula
 Leia [AGENTS.md](AGENTS.md) antes de qualquer alteração. Toda mudança passa pelo ciclo
 do GitHub Spec Kit, tem issue própria, branch própria e Pull Request revisado por
 alguém que não a implementou.
+
+Antes de implementar, rode a skill `sprint-backlog`. Ela lê as lições dos sprints
+anteriores, materializa o sprint como iteration no GitHub com as issues tipadas
+como épico, user story e tarefa, e produz o backlog para aprovação. Ao encerrar,
+registra o que foi e o que não foi entregue, e consolida as lições que alimentam
+o sprint seguinte.
+
+```
+/sprint-backlog
+```
