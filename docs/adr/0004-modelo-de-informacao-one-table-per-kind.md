@@ -44,18 +44,26 @@ O modelo de informação é **derivado**, nunca escrito à mão. Editá-lo diret
 o faria divergir da ontologia — o mesmo erro que a [ADR 0002](0002-yaml-como-base-de-conhecimento.md)
 evita para a documentação.
 
+### Resumo das decisões
+
+| # | Decisão | Origem | Explicação |
+|---|---|---|---|
+| D1 | Adotar `one table per kind` | Guidoni et al. (2020) | A tabela pousa no **Kind**, que é o tipo que fornece o princípio de identidade — aquilo que permite dizer se dois registros são o mesmo indivíduo. Tipos que não fornecem identidade própria (`subkind`, `role`, `phase`) não ganham tabela: são absorvidos no kind. Isso resolve por construção as quatro lacunas que o paper aponta nas estratégias dominantes — generalização sobreposta, generalização incompleta, herança múltipla e hierarquias ortogonais — porque a chave primária mora num único lugar e nunca se move. As alternativas falham justamente nas transições mais comuns do nosso domínio: em `one table per class` e `per leaf class`, reclassificar um entregável de não aceito para aceito exigiria `DELETE` mais `INSERT`, quebrando toda referência existente. |
+| D2 | Suprimir a camada fundacional; manter core e domínio | Tese, §5.3 | A UFO existe para **categorizar** os conceitos das outras camadas, não para descrever o domínio da aplicação. `ufo.object` e `ufo.event` não são coisas sobre as quais o The Band tem dados — são a gramática usada para classificar as coisas sobre as quais ele tem dados. Replicá-las como tabelas criaria linhas sem referente no mundo. A classificação permanece na base de conhecimento como metadado, onde continua servindo para validação e para guiar esta própria transformação. |
+| D3 | Preservar associações herdadas de categoria suprimida | Tese, §5.3 | Suprimir a categoria não pode suprimir o que ela fundamenta. `caused by`, entre processo pretendido e executado, é definida em nível fundacional; se sumisse junto com a categoria, não haveria como ligar o que foi planejado ao que foi executado — e toda análise de aderência entre plano e realidade, que é uma das razões de o sistema existir, deixaria de ser possível. |
+| D4 | Modelo de informação derivado, nunca escrito à mão | Coerência com ADR 0002 | Se o esquema pudesse ser editado diretamente, ele divergiria da ontologia em semanas, e passaria a haver duas verdades sobre o mesmo domínio — sem que ninguém soubesse qual está certa. Derivando, uma correção conceitual se propaga ao banco por regeneração, e qualquer divergência entre os dois vira falha de build em vez de descoberta tardia. É a mesma razão pela qual `docs/ontology/` é gerado. |
+| D5 | `role` materializa por relator; `phase` e `subkind`, por discriminador | Refinamento nosso sobre o paper | A distinção é entre dependência **relacional** e mudança **intrínseca**. Um `role` só existe em relação a outra coisa: ninguém é "membro de equipe" no vácuo, é membro *daquela* equipe, *naquele* período. Uma coluna booleana registra a classificação e descarta exatamente isso — o contexto, a temporalidade e a possibilidade de acúmulo. Já uma `phase` é estado do próprio indivíduo: um processo de CI é bem-sucedido ou malsucedido por conta do próprio resultado, sem referência a terceiros, e aí o discriminador basta. O paper admite booleano para roles porque pressupõe o relator modelado ao lado; como 41 dos nossos 44 roles não têm relator, essa pressuposição não vale aqui. |
+| D6 | `role` reificado como catálogo, instanciado por período via relator | Decisão própria, validada na EO | Papel vira **linha**, não valor de enum. Isso torna a extensão barata — um papel novo é um `INSERT`, não uma migração —, coloca começo e fim no relator, permite acúmulo simultâneo sem construção adicional, e deixa cada organização definir seus próprios papéis num sistema multitenant. O custo é um join a mais para perguntar "qual o papel desta pessoa", aceitável porque a pergunta útil quase nunca é essa, e sim "qual o papel desta pessoa **nesta equipe**, **neste período**" — que exigiria o join de todo modo. |
+| D7 | Eventos são `append-only`; situações não são materializadas | Extensão nossa | O paper trata de **endurantes** e não cobre nenhum dos dois casos. Evento registra algo que ocorreu: atualizar uma falha para dizer que ela não ocorreu reescreveria o passado, então correções entram como novos registros. Situação é a realidade antes e depois de um evento, integralmente derivável dos instantes dele; persistir em separado criaria três lugares para discordarem sobre o mesmo fato. |
+
 ### Política de camadas — da tese, Seção 5.3
 
-| Camada | Tratamento |
-|---|---|
-| Fundacional (UFO) | suprimida; conceitos não replicados |
-| Core (EO, SPO, SysSwO) | mantida |
-| Domínio | mantida |
-| Associações herdadas de categoria suprimida | **mantidas** |
-
-A última linha não é detalhe: `caused by`, entre processo pretendido e
-executado, é definida em nível fundacional e sustenta toda análise de aderência
-entre plano e execução. Suprimir a categoria não pode suprimir a relação.
+| Camada | Tratamento | Explicação |
+|---|---|---|
+| Fundacional (UFO) | suprimida | Categoriza as demais camadas e não contém conceitos do domínio da aplicação. Não há dado a guardar sobre `ufo.object` — ele é a régua, não o medido. |
+| Core (EO, SPO, SysSwO) | mantida | Contém os conceitos que dão identidade a quase tudo: pessoa, organização, projeto, artefato, item de software. É onde a maioria das tabelas pousa. |
+| Domínio | mantida | Contém as especializações que o usuário reconhece pelo nome — sprint, pull request, pipeline. A tese exige mantê-las para que cada ontologia possa sustentar seu serviço e seu repositório. |
+| Associações herdadas de categoria suprimida | **mantidas** | Ver D3: a relação sobrevive à supressão da categoria que a definiu, senão perde-se o vínculo entre planejado e executado. |
 
 ### Estratégia de transformação — do paper, três passos
 
@@ -75,12 +83,12 @@ O paper distingue os casos pela estrutura do generalization set. Adotamos essa
 regra **e a refinamos pela natureza do estereótipo**, porque a distinção entre
 papel e fase importa aqui:
 
-| Estereótipo | Natureza | Materialização |
-|---|---|---|
-| `subkind` | rígida | discriminador enumerado |
-| `phase` | **intrínseca** | discriminador enumerado; booleano se não houver generalization set |
-| `role` | **relacional** | **relator / tabela de qua-entity**; discriminador apenas como desnormalização opcional |
-| generalization set sobreposto | — | tabela discriminadora de qua-entities |
+| Estereótipo | Natureza | Materialização | Explicação |
+|---|---|---|---|
+| `subkind` | rígida | discriminador enumerado | O indivíduo é daquele subtipo por toda a sua existência e nunca deixa de ser. A distinção é permanente e exclusiva, então cabe num único valor. `eo.project_team` e `eo.organizational_team` viram `eo_teams.type`. |
+| `phase` | **intrínseca** | discriminador enumerado; booleano se não houver generalization set | O indivíduo muda de fase ao longo da vida, mas por conta de **propriedade própria**, sem depender de vínculo com terceiros. Um processo de CI é bem-sucedido pelo próprio resultado. Como a mudança é intrínseca, ela cabe numa coluna que se atualiza — e a reclassificação vira `UPDATE`, sem mover a linha. |
+| `role` | **relacional** | **relator / tabela de qua-entity**; discriminador apenas como desnormalização opcional | O papel só existe em relação a algo, e a coluna perderia justamente essa relação. `codes.is_under_integration = true` não diz em qual processo, desde quando, nem admite dois processos simultâneos. O relator guarda as três coisas e ainda permite acúmulo por múltiplas linhas. |
+| generalization set sobreposto | — | tabela discriminadora de qua-entities | Quando o indivíduo pode estar em vários subtipos ao mesmo tempo, nenhum valor único serve. O paper introduz uma tabela cujas linhas são qua-entities, cada uma ligando o portador a um dos subtipos que ele assume — é assim que uma pessoa com dupla nacionalidade é representada sem duplicar a pessoa. |
 
 O refinamento existe porque um `role` é relacionalmente dependente: ele só existe
 em relação a algo. Um booleano `is_under_integration` no código registra a
