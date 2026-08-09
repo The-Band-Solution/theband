@@ -1,0 +1,34 @@
+information_need:
+  id: flow.work_in_progress
+  name: { pt-BR: "Trabalho em andamento", en: "Work in progress" }
+  question:
+    pt-BR: >
+      Quantas tarefas de desenvolvimento estavam simultaneamente em execução em um
+      sprint num dado instante, e há quanto tempo cada uma está aberta?
+    en: >
+      How many development tasks were simultaneously in progress in a sprint at a
+      given instant, and how long has each one been open?
+  stakeholders: [product_manager, scrum_master, engineering_manager, team_lead]
+  decision_supported:
+    pt-BR: >
+      Decidir se o time deve parar de puxar trabalho novo e concluir o que já
+      começou, e onde intervir quando uma tarefa deixou de avançar. Sustenta também
+      a decisão de limitar o escopo do próximo sprint, comparando o que está aberto
+      com o que costuma ser concluído.
+  required_concepts:
+    [sro.performed_scrum_development_task, sro.intended_scrum_development_task,
+     sro.sprint, sro.sprint_backlog, spo.performed_project_activity]
+  required_relations:
+    [sro.performed_task_performed_in_sprint, sro.performed_task_caused_by_intended_task,
+     sro.sprint_backlog_specifies_intended_task, sro.sprint_composed_of_development_task]
+  candidate_measurements: [flow.wip.count]
+  provenance:
+    source_type: project_decision
+    note: >
+      Necessidade do papel Product Manager, responsável pelo fluxo do trabalho.
+      Os conceitos vêm da SRO (tarefa executada em um sprint) e da SPO
+      (spo.performed_project_activity, que fornece start_date e end_date e é o kind
+      do qual a tarefa executada é especialização). Uma tarefa está em andamento no
+      instante t quando começou até t e ainda não terminou em t — não existe
+      atributo "em andamento" na ontologia, e inventá-lo seria criar estado que o
+      modelo não tem.

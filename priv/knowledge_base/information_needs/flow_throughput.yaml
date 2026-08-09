@@ -1,0 +1,34 @@
+information_need:
+  id: flow.throughput
+  name: { pt-BR: "Vazão de tarefas concluídas", en: "Throughput of concluded tasks" }
+  question:
+    pt-BR: >
+      Quantas tarefas de desenvolvimento o time conclui por sprint, e essa taxa se
+      sustenta ao longo dos sprints?
+    en: >
+      How many development tasks does the team conclude per sprint, and does that
+      rate hold across sprints?
+  stakeholders: [product_manager, scrum_master, engineering_manager, team_lead]
+  decision_supported:
+    pt-BR: >
+      Dimensionar o escopo do próximo sprint a partir do que foi concluído nos
+      sprints anteriores, em vez de a partir do que se deseja concluir, e detectar
+      queda ou salto de vazão que exija investigação antes de replanejar.
+  required_concepts:
+    [sro.performed_scrum_development_task, sro.intended_scrum_development_task,
+     sro.sprint, sro.deliverable, sro.accepted_deliverable,
+     spo.performed_project_activity]
+  required_relations:
+    [sro.performed_task_performed_in_sprint, sro.performed_task_produced_deliverable,
+     sro.successful_task_produced_accepted_deliverable,
+     sro.performed_task_caused_by_intended_task]
+  candidate_measurements: [flow.throughput.rate]
+  provenance:
+    source_type: project_decision
+    note: >
+      Necessidade do papel Product Manager. Vazão é medida de fluxo, não de valor:
+      responde quanto trabalho atravessa o sistema, nunca se o trabalho valeu a
+      pena. Os conceitos de entregável e entregável aceito entram aqui porque a
+      interpretação da vazão depende deles — tarefa concluída cujo entregável foi
+      recusado atravessou o fluxo e não entregou resultado —, mas a classificação
+      da aceitação é ato do Product Owner, não desta necessidade.

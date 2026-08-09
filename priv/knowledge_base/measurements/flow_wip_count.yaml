@@ -1,0 +1,40 @@
+measurement:
+  id: flow.wip.count
+  name: { pt-BR: "Quantidade de tarefas em andamento", en: "Work in progress count" }
+  answers_information_need: [flow.work_in_progress]
+  value_type: count
+  unit: tasks
+  formula:
+    expression: >
+      count(performed_tasks WHERE start_date <= observation_instant
+      AND (end_date IS NULL OR end_date > observation_instant))
+    inputs: [performed_task_start_date, performed_task_end_date, observation_instant]
+  scope:
+    levels: [sprint, project, team, person]
+    filters:
+      - "excluir tarefas sem start_date registrado, contando-as como lacuna, nunca como zero"
+      - "excluir tarefas cujo start_date é posterior ao fim do sprint observado"
+      - "separar tarefas com executor humano das automatizadas, cujo performer é nulo"
+    period: point_in_time
+  limitations:
+    - Contar tarefa aberta ignora o tamanho da tarefa - uma de duas horas e uma de duas semanas pesam igual, e um time que decompõe grosso parece ter menos trabalho aberto do que tem.
+    - Depende de start_date registrado. Quando o início é derivado da transição de status do item do Projects v2, a confiança é média, e tarefa que nunca passou por "em andamento" não aparece em nenhum instante.
+    - Tarefa sem end_date pode estar em execução ou abandonada; a medida não distingue as duas situações e trata o abandono como trabalho ativo.
+    - Tarefa reaberta gera um segundo intervalo aberto sobre a mesma unidade de trabalho e conta duas vezes no mesmo instante. Este projeto exige criar nova tarefa pretendida em vez de reabrir a executada; onde a regra não for seguida na ferramenta, a contagem infla sem aviso.
+    - Trabalho que não virou tarefa - revisão de solicitação de mudança, apoio a incidente, espera por terceiro - consome capacidade e não entra na contagem, o que faz o WIP medido ser menor que o WIP real.
+    - "Um valor isolado não descreve o sprint. WIP é série temporal, e o instante escolhido determina o resultado: fim de semana, feriado e véspera de review deprimem o número por motivos que nada têm a ver com fluxo."
+    - No nível person, o mesmo trabalho aparece uma vez por participante quando há mais de um responsável, e a soma dos níveis person não é igual ao nível sprint.
+  misinterpretations:
+    - WIP baixo não significa fluxo saudável; pode indicar time bloqueado, dependência externa, ou tarefas grandes demais para se manifestarem como várias.
+    - WIP alto não é sinônimo de produtividade. Costuma ser o contrário - quanto mais itens abertos ao mesmo tempo, maior o tempo de conclusão de cada um, porque o mesmo esforço se divide.
+    - Comparar WIP entre times sem normalizar pelo tamanho do time transforma a medida em contagem de pessoas.
+    - WIP não é medida de esforço nem de capacidade. Somá-lo a story points, ou convertê-lo em capacidade do sprint, mistura unidades que não se somam.
+    - Reduzir o número por decreto não melhora o fluxo; fecha tarefa no board sem que o trabalho tenha terminado, e o efeito aparece depois como retrabalho.
+  provenance:
+    source_type: project_decision
+    note: >
+      Fórmula derivada dos atributos start_date e end_date de
+      spo.performed_project_activity, herdados por
+      sro.performed_scrum_development_task. Nenhum estado "em andamento" é
+      introduzido: em andamento é a situação de ter começado e não ter terminado
+      no instante observado.

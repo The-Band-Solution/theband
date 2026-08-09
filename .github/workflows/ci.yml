@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  MIX_ENV: test
+  # Chave apenas de CI: cifra dados de fixture em banco descartável. A chave real
+  # nunca entra no repositório nem no workflow (FR-005, constituição princípio III).
+  THE_BAND_MASTER_KEY: ${{ secrets.THE_BAND_MASTER_KEY }}
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: the_band_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.2"
+          otp-version: "29"
+
+      - name: Cache de dependências e PLT
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - run: mix deps.get
+
+      # Os oito gates da constituição, princípio VII. Nenhum é opcional, e
+      # nenhum pode ser desabilitado para o pipeline passar.
+      - name: format
+        run: mix format --check-formatted
+
+      - name: compile sem avisos
+        run: mix compile --warnings-as-errors
+
+      - name: credo
+        run: mix credo --strict
+
+      - name: dialyzer
+        run: mix dialyzer
+
+      - name: testes
+        run: mix test
+
+      - name: base de conhecimento — validação
+        run: mix knowledge.validate
+
+      - name: base de conhecimento — grafo de dependências
+        run: mix knowledge.graph
+
+      # Enquanto knowledge.test, knowledge.docs e knowledge.information_model não
+      # forem portados para Mix task, o validador Python cobre o mesmo contrato.
+      # Dívida registrada em specs/001-github-eo-ingestion/plan.md.
+      - name: base de conhecimento — validador Python (paridade)
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install -q -r scripts/requirements.txt
+          .venv/bin/python scripts/validate_knowledge_base.py

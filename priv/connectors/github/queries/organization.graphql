@@ -1,0 +1,12 @@
+# github.organization — a organização observada.
+# rateLimit é obrigatório em toda consulta: o limite do GraphQL é por
+# complexidade, e a informação para evitar estourar a janela vem na resposta.
+query($organization: String!) {
+  rateLimit { cost remaining resetAt }
+  organization(login: $organization) {
+    id
+    login
+    name
+    createdAt
+  }
+}

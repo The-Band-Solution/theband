@@ -183,7 +183,48 @@ correto, e é sinal de épico que nunca foi decomposto.
 Sub-issue do tipo `Task` **não** transforma a user story em épico: tarefa atende
 a user story, não a compõe.
 
-### Passo 4 — registrar no documento
+### Passo 4 — preencher os campos da issue
+
+Issue sem os campos preenchidos não sustenta nem priorização nem métrica. O
+projeto **The Band** já traz `Priority`, `Size` e `Estimate` configurados, e o
+campo `Iteration` com duração de 14 dias.
+
+| Campo no GitHub | Onde vive | Conceito SRO | Preencher em |
+|---|---|---|---|
+| `Priority` | campo do ProjectV2 | `sro.user_story.importance` | user story e épico |
+| `Size` | campo do ProjectV2 | — (t-shirt size, apoio à estimativa) | user story e tarefa |
+| `Estimate` | campo do ProjectV2 | `sro.user_story.complexity` | user story e tarefa |
+| `Iteration` | campo do ProjectV2 | `sro.sprint` | tudo que entra no sprint |
+| `Parent issue` | nativo | composição de épico / atendimento de tarefa | user story e tarefa |
+
+**Importance e complexity não são a mesma coisa, e trocá-las inverte a
+priorização.** A SRO é explícita: *importance* diz quão valiosa a user story é
+para a organização, e quem a define é o Product Owner. *Complexity* diz quão
+difícil é para o time implementá-la. Uma story pode ser altamente valiosa e
+trivial — é a primeira a fazer. Ou pouco valiosa e cara — provavelmente não
+deveria estar no sprint.
+
+`Priority` carrega a *importance*; `Estimate` carrega a *complexity*. `Size`
+existe como apoio grosseiro e não tem correspondente ontológico — não use `Size`
+onde `Estimate` é esperado, porque só `Estimate` é numérico e alimenta as
+medidas de fluxo.
+
+**Ausência é nula, nunca zero.** Story sem `Priority` preenchida não tem
+importância zero: tem importância desconhecida. Preencher com zero produziria
+ordenação errada e mediria como se a decisão tivesse sido tomada. O mapeamento
+em `priv/knowledge_base/mappings/github/sro/issue_user_story.yaml` registra isso
+como limitação; o processo deve respeitar.
+
+**Tarefa não recebe `Priority`.** Prioridade é da user story — a tarefa herda a
+da story que atende. Preencher prioridade na tarefa cria duas fontes que podem
+divergir, e a divergência não teria como ser resolvida.
+
+Os valores são gravados com `updateProjectV2ItemFieldValue`, informando
+`projectId`, `itemId`, `fieldId` e o valor no formato do campo — `number` para
+`Estimate`, `singleSelectOptionId` para `Priority` e `Size`, `iterationId` para
+`Iteration`.
+
+### Passo 5 — registrar no documento
 
 Toda issue criada ou vinculada entra no `sprint-backlog.md` com número e URL.
 Tarefa sem issue é registrada como pendência explícita — **nunca invente o
@@ -223,15 +264,21 @@ Do [registro acumulado](../licoes-aprendidas.md), consideradas neste sprint:
 
 ## User stories selecionadas
 
-| # | User story | Tipo | Épico | Issue | Prioridade | Critérios |
-|---|---|---|---|---|---|---|
-| US1 | <título, do spec.md> | User Story | [#3](url) | [#11](url) | P1 | <quantos> |
+| # | User story | Tipo | Épico | Issue | Priority | Estimate | Critérios |
+|---|---|---|---|---|---|---|---|
+| US1 | <título, do spec.md> | User Story | [#3](url) | [#11](url) | P1 | 5 | <quantos> |
+
+`Priority` é a *importance* da SRO — valor para a organização. `Estimate` é a
+*complexity* — dificuldade para o time. Campo em branco significa desconhecido,
+não zero.
 
 ## Tarefas
 
-| # | Tarefa | Atende | Tipo | Issue | Estado |
-|---|---|---|---|---|---|
-| T01 | <descrição> | US1 | Task | [#12](url) | a fazer |
+| # | Tarefa | Atende | Tipo | Issue | Estimate | Estado |
+|---|---|---|---|---|---|---|
+| T01 | <descrição> | US1 | Task | [#12](url) | 3 | a fazer |
+
+Tarefa não recebe `Priority`: herda a da user story que atende.
 
 Estados: `a fazer` · `em andamento` · `feito` · `bloqueado` · `não iniciado`
 
