@@ -49,7 +49,29 @@ terms:
     concept: sro.developer
     note: >
       Papel desempenhado por uma pessoa em um time, via alocação. A pessoa é
-      eo.person; o papel é sro.developer_role.
+      eo.person; o papel é sro.developer_role. Não é derivável de autoria de
+      commit: commitar é participação em atividade (spo.participates_in), e um
+      designer que ajusta CSS aparece como autor sem ser desenvolvedor.
+
+  - term: { pt-BR: "Membro", en: "Member" }
+    synonyms: ["team member", "org member", "membro de time", "membro da organização"]
+    concept: eo.person
+    note: >
+      Um "member" no GitHub é uma conta que identifica uma pessoa — logo o
+      conceito é eo.person, e não eo.team_member nem sro.developer, que são
+      papéis (role) e exigem alocação com papel organizacional atribuído.
+
+      Três conjuntos distintos usam a mesma palavra e não coincidem: membros da
+      organização, membros de um time e colaboradores de um repositório. Ao
+      dizer "os membros do projeto", é preciso declarar qual dos três.
+
+  - term: { pt-BR: "Mantenedor (GitHub)", en: "Maintainer (GitHub)" }
+    synonyms: ["MAINTAINER", "MEMBER"]
+    concept: null
+    note: >
+      Nível de acesso administrativo a um time na plataforma. Não é
+      eo.organizational_role: não informa se a pessoa é programadora, testadora
+      ou gerente. Ver rules/github_team_membership_evidence.yaml.
 
   - term: { pt-BR: "Time", en: "Team" }
     concept: eo.team

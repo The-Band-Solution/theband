@@ -30,8 +30,11 @@ concepts:
     name: Project Stakeholder
     label: { pt-BR: "Parte Interessada do Projeto", en: "Project Stakeholder" }
     definition:
-      pt-BR: Agente interessado em um projeto de software.
-    classification: { ufo_category: role }
+      pt-BR: >
+        Agente interessado em um projeto de software. A identidade vem do agente,
+        que pode ser uma pessoa ou uma equipe — por isso a fundamentação é
+        ufo.agent, e não eo.person: os subtipos é que fixam qual dos dois.
+    classification: { ufo_category: role, is_role_of: ufo.agent }
 
   - id: spo.project_person_stakeholder
     name: Project Person Stakeholder

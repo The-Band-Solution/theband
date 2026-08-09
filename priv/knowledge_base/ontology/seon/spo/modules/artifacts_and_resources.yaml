@@ -43,7 +43,7 @@ concepts:
         hardware — quando é usado por uma atividade do processo. As especializações
         que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para
         preservar a direção de dependência (SysSwO depende de SPO, não o contrário).
-    classification: { ufo_category: role }
+    classification: { ufo_category: role, is_role_of: spo.artifact }
 
 
 relations:

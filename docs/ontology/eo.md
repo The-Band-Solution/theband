@@ -66,7 +66,7 @@ Agente humano. É o conceito de identidade das pessoas em toda a rede: SRO, CIRO
 
 Papel social reconhecido pela organização, atribuído a agentes quando são contratados, incluídos em uma equipe, alocados ou participam de atividades.
 
-<sub>categoria UFO: `social_role`</sub>
+<sub>categoria UFO: `social_role` · papel de `ufo.agent`</sub>
 
 Exemplos: *gerente de projeto*; *designer*; *programador*
 
@@ -102,7 +102,9 @@ Exemplos: *a equipe de desenvolvimento de um projeto*
 
 *Membro de Equipe*
 
-Pessoa que desempenha um papel organizacional em uma equipe específica. É papel, não tipo: a mesma pessoa pode ser membro de várias equipes, com papéis diferentes, em períodos diferentes.
+Pessoa ligada a uma equipe, desempenhando nela um papel organizacional.
+É papel, não tipo. Em UFO, um papel é um sortal antirrígido que especializa o kind que lhe dá identidade: quem é membro de equipe é, antes de tudo, uma pessoa — e continua sendo a mesma pessoa ao deixar a equipe. Por isso a identidade fica em eo.person, e o vínculo com a equipe vive em eo.team_membership, que carrega equipe, papel e período.
+A mesma pessoa pode ser membro de várias equipes ao mesmo tempo, com papéis diferentes em cada uma.
 
 <sub>categoria UFO: `role` · papel de `eo.person`</sub>
 

@@ -135,6 +135,41 @@ class KB:
                 elif self.onto_of(ref) != o and self.onto_of(ref) not in self.deps(o):
                     self.fail("dep", f"{rid} usa {ref}, mas {o} não declara dependência de {self.onto_of(ref)}", f)
 
+    def check_role_grounding(self):
+        """Todo papel precisa alcançar o tipo rígido que lhe dá identidade.
+
+        Em UFO, um Role é um sortal antirrígido que especializa o Kind do qual
+        herda o princípio de identidade: quem é membro de equipe é, antes disso,
+        uma pessoa, e continua a mesma pessoa ao deixar a equipe.
+
+        Um papel sem fundamentação é um papel sem dono — não dá para dizer o que
+        exatamente assume aquele papel, nem em que tabela o registro vive. A
+        cadeia é percorrida por is_role_of e, na falta dele, por parent.
+        """
+        for cid, (_, c, f) in self.concepts.items():
+            cls = c.get("classification") or {}
+            if cls.get("ufo_category") not in ("role", "social_role"):
+                continue
+            if cid.startswith("ufo."):
+                continue  # categorias da UFO são metamodelo, não papéis instanciáveis
+
+            seen, cur = [], cid
+            while True:
+                if cur in seen:
+                    self.fail("role", f"{cid}: ciclo na cadeia de fundamentação: "
+                                      f"{' -> '.join(seen + [cur])}", f)
+                    break
+                seen.append(cur)
+                cur_cls = (self.concepts.get(cur, (None, {}, None))[1] or {}).get("classification") or {}
+                if cur_cls.get("ufo_category") not in ("role", "social_role"):
+                    break  # chegou a um tipo rígido
+                nxt = cur_cls.get("is_role_of") or cur_cls.get("parent")
+                if not nxt:
+                    self.fail("role", f"{cid}: papel sem fundamentação — declare is_role_of "
+                                      f"(cadeia: {' -> '.join(seen)})", f)
+                    break
+                cur = nxt
+
     def check_modules_exist(self):
         for oid, (d, dirname) in self.ontologies.items():
             for m in d.get("modules") or []:
@@ -278,6 +313,7 @@ class KB:
         self.check_ids()
         self.check_concept_refs()
         self.check_relation_refs()
+        self.check_role_grounding()
         self.check_modules_exist()
         self.check_cycles()
         self.check_competency_questions()

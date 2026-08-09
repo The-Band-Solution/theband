@@ -57,9 +57,9 @@ Projeto relacionado ao desenvolvimento ou manutenção de software.
 
 *Parte Interessada do Projeto*
 
-Agente interessado em um projeto de software.
+Agente interessado em um projeto de software. A identidade vem do agente, que pode ser uma pessoa ou uma equipe — por isso a fundamentação é ufo.agent, e não eo.person: os subtipos é que fixam qual dos dois.
 
-<sub>categoria UFO: `role`</sub>
+<sub>categoria UFO: `role` · papel de `ufo.agent`</sub>
 
 #### `spo.project_person_stakeholder` — Project Person Stakeholder
 
@@ -270,7 +270,7 @@ Exemplos: *uma Especificação de Projeto*
 
 Papel assumido por um artefato — produto de software ou equipamento de hardware — quando é usado por uma atividade do processo. As especializações que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para preservar a direção de dependência (SysSwO depende de SPO, não o contrário).
 
-<sub>categoria UFO: `role`</sub>
+<sub>categoria UFO: `role` · papel de `spo.artifact`</sub>
 
 ### Relações
 
