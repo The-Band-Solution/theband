@@ -1,0 +1,23 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/common
+title: Common definitions
+description: Definições compartilhadas por todos os schemas da base de conhecimento.
+$defs:
+  provenance:
+    type: object
+    additionalProperties: false
+    required: [source_type]
+    properties:
+      source_type:
+        enum: [thesis, reference_ontology, standard, literature, tool_documentation, project_decision]
+      reference:
+        type: string
+        description: Seção, figura ou tabela de origem (ex. "Tese, Seção 3.2.4, Figura 29").
+      source_document: { type: string }
+      authors: { type: array, items: { type: string } }
+      year:    { type: integer }
+      url:     { type: string }
+      note:    { type: string }
+  label:
+    type: object
+    properties: { pt-BR: "{ type: string }", en: "{ type: string }" }

@@ -1,0 +1,152 @@
+module:
+  id: cdro.continuous_deployment_process
+  ontology: cdro
+  name: Continuous Deployment Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Processo automatizado que implanta o código implantado em ambiente produtivo
+      e comunica os stakeholders sobre sucesso ou falha.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.4.2, Figura 44"
+
+concepts:
+  - id: cdro.continuous_deployment_process
+    name: Continuous Deployment Process
+    label: { pt-BR: "Processo de Implantação Contínua" }
+    definition:
+      pt-BR: >
+        Processo executado específico composto e automatizado, com participação de
+        um ou mais servidores de implantação contínua, cujo propósito é implantar
+        um código implantado em um ambiente de implantação sem intervenção humana.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_composite_process }
+    automated: true
+
+  - id: cdro.deployment_activity
+    name: Deployment Activity
+    label: { pt-BR: "Atividade de Implantação" }
+    definition:
+      pt-BR: Atividade executada automatizada que implantou um código implantado em um ambiente de implantação.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: cdro.deployed_code
+    name: Deployed Code
+    label: { pt-BR: "Código Implantado" }
+    definition:
+      pt-BR: Papel do código entregue quando é implantado em um ambiente produtivo ou similar.
+    classification: { ufo_category: role, is_role_of: cdro.delivered_code }
+
+  - id: cdro.continuous_deployment_feedback_activity
+    name: Continuous Deployment Feedback Activity
+    label: { pt-BR: "Atividade de Feedback de Implantação" }
+    definition:
+      pt-BR: >
+        Atividade executada simples e automatizada que informou a um stakeholder de
+        CD o status do processo de implantação.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    automated: true
+
+  - id: cdro.cd_stakeholder
+    name: CD Stakeholder
+    label: { pt-BR: "Parte Interessada de CD" }
+    definition:
+      pt-BR: >
+        Stakeholder que participou ou foi responsável por um processo de implantação
+        contínua, ou que tem interesse em informação sobre ele.
+    classification: { ufo_category: role, parent: spo.project_stakeholder }
+
+  - id: cdro.continuous_deployment_server
+    name: Continuous Deployment Server
+    label: { pt-BR: "Servidor de Implantação Contínua" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que forneceu os artefatos que
+        participaram do processo de implantação contínua.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+    examples: ["uma cópia do ArgoCD carregada em um computador"]
+
+  - id: cdro.deployment_environment
+    name: Deployment Environment
+    label: { pt-BR: "Ambiente de Implantação" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que contém os recursos de software e
+        hardware de implantação para apoiar as atividades de implantação.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+
+  - id: cdro.deployment_software_resource
+    name: Deployment Software Resource
+    label: { pt-BR: "Recurso de Software de Implantação" }
+    definition:
+      pt-BR: Recurso de software que compõe o ambiente de implantação.
+    classification: { ufo_category: role, parent: sys_swo.software_resource }
+
+  - id: cdro.deployment_hardware_resource
+    name: Deployment Hardware Resource
+    label: { pt-BR: "Recurso de Hardware de Implantação" }
+    definition:
+      pt-BR: Recurso de hardware que compõe o ambiente de implantação.
+    classification: { ufo_category: role, parent: sys_swo.hardware_resource }
+
+  - id: cdro.successful_continuous_deployment_process
+    name: Successful Continuous Deployment Process
+    label: { pt-BR: "Processo de Implantação Bem-Sucedido" }
+    definition:
+      pt-BR: Processo de implantação contínua em que o código implantado foi implantado sem problemas.
+    classification: { ufo_category: phase, parent: cdro.continuous_deployment_process }
+
+  - id: cdro.unsuccessful_continuous_deployment_process
+    name: Unsuccessful Continuous Deployment Process
+    label: { pt-BR: "Processo de Implantação Malsucedido" }
+    definition:
+      pt-BR: >
+        Processo de implantação contínua que não implantou o código, devido a
+        problema em seus processos ou atividades.
+    classification: { ufo_category: phase, parent: cdro.continuous_deployment_process }
+    examples: ["uma máquina sem recursos adequados para operar o código implantado"]
+
+relations:
+  - id: cdro.cd_composed_of_deployment_activity
+    name: was composed of
+    source: cdro.continuous_deployment_process
+    target: cdro.deployment_activity
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: cdro.cd_composed_of_feedback_activity
+    name: was composed of
+    source: cdro.continuous_deployment_process
+    target: cdro.continuous_deployment_feedback_activity
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: cdro.deployment_activity_deployed_code
+    name: deployed
+    label: { pt-BR: "implantou" }
+    source: cdro.deployment_activity
+    target: cdro.deployed_code
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: cdro.deployment_activity_in_environment
+    name: was performed in
+    source: cdro.deployment_activity
+    target: cdro.deployment_environment
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: cdro.cd_server_participates_in_process
+    name: participated in
+    source: cdro.continuous_deployment_server
+    target: cdro.continuous_deployment_process
+    type: participation
+    cardinality: { source: one_or_many, target: many }
+
+  - id: cdro.feedback_informs_cd_stakeholder
+    name: informed
+    source: cdro.continuous_deployment_feedback_activity
+    target: cdro.cd_stakeholder
+    type: participation
+    cardinality: { source: many, target: many }

@@ -1,0 +1,88 @@
+module:
+  id: spo.artifacts_and_resources
+  ontology: spo
+  name: Artifacts and Resources
+  version: 1.0.0
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.1, Figuras 16 e 17"
+
+concepts:
+  - id: spo.artifact
+    name: Artifact
+    label: { pt-BR: "Artefato", en: "Artifact" }
+    definition:
+      pt-BR: Objeto criado, usado ou alterado por atividades executadas do processo.
+    classification: { ufo_category: object }
+
+  - id: spo.information_item
+    name: Information Item
+    label: { pt-BR: "Item de Informação", en: "Information Item" }
+    definition:
+      pt-BR: Informação relevante para uso humano no contexto do processo de software.
+    classification: { ufo_category: social_object, parent: spo.artifact }
+    examples: ["um bug reportado", "um requisito documentado"]
+
+  - id: spo.document
+    name: Document
+    label: { pt-BR: "Documento", en: "Document" }
+    definition:
+      pt-BR: >
+        Informação escrita ou pictórica, unicamente identificada, relacionada ao
+        processo de software, geralmente em formato predefinido. Um documento
+        descreve artefatos; não é o artefato descrito.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+    examples: ["uma Especificação de Projeto"]
+
+  - id: spo.resource
+    name: Resource
+    label: { pt-BR: "Recurso", en: "Resource" }
+    definition:
+      pt-BR: >
+        Papel assumido por um artefato — produto de software ou equipamento de
+        hardware — quando é usado por uma atividade do processo. As especializações
+        que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para
+        preservar a direção de dependência (SysSwO depende de SPO, não o contrário).
+    classification: { ufo_category: role }
+
+
+relations:
+  - id: spo.activity_creates_artifact
+    name: creates
+    label: { pt-BR: "cria" }
+    source: spo.performed_project_activity
+    target: spo.artifact
+    type: association
+    cardinality: { source: many, target: many }
+
+  - id: spo.activity_uses_artifact
+    name: uses
+    label: { pt-BR: "usa" }
+    source: spo.performed_project_activity
+    target: spo.artifact
+    type: association
+    cardinality: { source: many, target: many }
+
+  - id: spo.activity_changes_artifact
+    name: changes
+    label: { pt-BR: "altera" }
+    source: spo.performed_project_activity
+    target: spo.artifact
+    type: association
+    cardinality: { source: many, target: many }
+
+  - id: spo.document_describes_artifact
+    name: describes
+    label: { pt-BR: "descreve" }
+    source: spo.document
+    target: spo.artifact
+    type: association
+    cardinality: { source: many, target: many }
+
+  - id: spo.activity_uses_resource
+    name: uses resource
+    label: { pt-BR: "usa recurso" }
+    source: spo.performed_project_activity
+    target: spo.resource
+    type: association
+    cardinality: { source: many, target: many }

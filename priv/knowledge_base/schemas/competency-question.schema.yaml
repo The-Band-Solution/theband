@@ -1,0 +1,31 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/competency-question
+title: Competency Questions
+description: >
+  Perguntas que a ontologia deve ser capaz de responder (requisitos funcionais da
+  ontologia, conforme SABiO). Verificadas por mix knowledge.test.
+type: object
+additionalProperties: false
+required: [ontology, competency_questions]
+properties:
+  ontology: { type: string, pattern: "^[a-z_]+$" }
+  subontology: { type: string }
+  provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }
+  competency_questions:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, question, concepts]
+      properties:
+        id: { type: string, pattern: "^[a-z_]+\\.cq[0-9]+$" }
+        question:
+          type: object
+          required: [pt-BR]
+          properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+        concepts:  { type: array, minItems: 1, items: { type: string } }
+        relations: { type: array, items: { type: string } }
+        attributes: { type: array, items: { type: string } }
+        expected_query_type: { enum: [list, count, boolean, aggregate, timeline, single] }
+        rationale: { type: string, description: Por que esta pergunta importa para a decisão. }

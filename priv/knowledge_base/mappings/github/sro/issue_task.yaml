@@ -1,0 +1,58 @@
+mapping:
+  id: github.issue.task.to.sro.intended_scrum_development_task
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue
+  api: graphql
+  schema_version: v4
+  selector:
+    field: issueType.name
+    rule_ref: github.issue_type_routing
+    values: ["Task", "Tarefa"]
+    structural_requirements:
+      parent_of_concept: sro.atomic_user_story
+derivation:
+  rule_id: github.issue_type_routing
+  confidence: medium
+  inputs: [issueType.name, parent.id, parent.issueType.name]
+  precedence: structure_over_declaration
+  on_divergence: flag_and_follow_precedence
+  fallback: skip
+target:
+  ontology: sro
+  concept: sro.intended_scrum_development_task
+semantics:
+  equivalence: derived
+  justification: >
+    Uma issue do tipo Task descreve trabalho planejado para materializar uma user
+    story — o que corresponde à tarefa pretendida da SRO, e não à executada. A
+    tarefa executada é evento distinto, derivado do histórico de status do item e
+    do fechamento da issue, e é ligada a esta por causação
+    (sro.performed_task_caused_by_intended_task). Colapsar as duas em um registro
+    só destrói a análise de aderência entre planejado e realizado, que é
+    exatamente o que CQ29 pede.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, number]
+attributes:
+  title: { source_path: title }
+  body:  { source_path: body }
+relations:
+  planned_to_meet:
+    source_path: parent.id
+    target_ontology: sro
+    target_concept: sro.atomic_user_story
+  assignee:
+    source_path: assignees.nodes.id
+    target_ontology: eo
+    target_concept: eo.person
+limitations:
+  - Tarefa cujo pai é um épico viola sro.rule07; registrar divergência e não criar o vínculo direto com o épico.
+  - Tarefa sem pai fica sem user story atendida; é escopo órfão e deve aparecer como lacuna, não ser ligada ao sprint por proximidade.
+  - Esta issue é a tarefa PRETENDIDA. A tarefa executada vem de github.project_item_status e não deste mapeamento.
+  - Assignee indica quem foi designado, não necessariamente quem executou; a participação real vem de commits e reviews.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

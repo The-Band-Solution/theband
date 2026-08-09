@@ -1,0 +1,158 @@
+module:
+  id: sys_swo.system_and_software
+  ontology: sys_swo
+  name: System and Software
+  version: 1.0.0
+  description:
+    pt-BR: >
+      A distinção central: código não é idêntico ao programa. O código pode mudar
+      sem alterar a identidade do programa, que está ancorada na sua especificação
+      pretendida.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.1, Figura 16"
+
+concepts:
+  - id: sys_swo.software_product
+    name: Software Product
+    label: { pt-BR: "Produto de Software", en: "Software Product" }
+    definition:
+      pt-BR: >
+        Um ou mais programas de computador junto com itens auxiliares (como
+        documentação), entregues sob um único nome e prontos para uso.
+    classification: { ufo_category: object, parent: spo.artifact }
+    examples: ["Eclipse IDE", "MSWord"]
+
+  - id: sys_swo.software_item
+    name: Software Item
+    label: { pt-BR: "Item de Software", en: "Software Item" }
+    definition:
+      pt-BR: Peça de software considerada resultado intermediário do processo de software.
+    classification: { ufo_category: object, parent: spo.artifact }
+    examples: ["um programa", "um script", "um schema de banco de dados"]
+
+  - id: sys_swo.code
+    name: Code
+    label: { pt-BR: "Código", en: "Code" }
+    definition:
+      pt-BR: >
+        Item de software que representa um conjunto de instruções e definições de
+        dados expressas em uma linguagem de programação ou na saída de um
+        compilador/tradutor. Não é idêntico ao programa que constitui.
+    classification: { ufo_category: object, parent: sys_swo.software_item }
+
+  - id: sys_swo.program
+    name: Program
+    label: { pt-BR: "Programa", en: "Program" }
+    definition:
+      pt-BR: >
+        Item de software que visa produzir certo resultado por execução em um
+        computador, do modo dado pela sua especificação. É constituído por código,
+        mas sua identidade está ancorada na especificação pretendida.
+    classification: { ufo_category: object, parent: sys_swo.software_item }
+
+  - id: sys_swo.program_specification
+    name: Program Specification
+    label: { pt-BR: "Especificação de Programa", en: "Program Specification" }
+    definition:
+      pt-BR: Descrição normativa do resultado pretendido de um programa; ancora sua identidade.
+    classification: { ufo_category: normative_description }
+
+  - id: sys_swo.software_system
+    name: Software System
+    label: { pt-BR: "Sistema de Software", en: "Software System" }
+    definition:
+      pt-BR: Item de software composto de um ou mais programas que operam em conjunto.
+    classification: { ufo_category: object, parent: sys_swo.software_item }
+
+  - id: sys_swo.loaded_software_system_copy
+    name: Loaded Software System Copy
+    label: { pt-BR: "Cópia Carregada de Sistema de Software" }
+    definition:
+      pt-BR: >
+        Disposição que materializa um sistema de software, inerente a uma máquina.
+        É o conceito usado para representar instâncias reais de ferramentas —
+        um GitLab instalado em um servidor, um ambiente de build, um servidor de CI.
+    classification: { ufo_category: disposition }
+
+  - id: sys_swo.hardware_equipment
+    name: Hardware Equipment
+    label: { pt-BR: "Equipamento de Hardware", en: "Hardware Equipment" }
+    definition:
+      pt-BR: Equipamento físico usado no processo de software.
+    classification: { ufo_category: object }
+
+  - id: sys_swo.machine
+    name: Machine
+    label: { pt-BR: "Máquina", en: "Machine" }
+    definition:
+      pt-BR: Equipamento de hardware capaz de executar sistemas de software.
+    classification: { ufo_category: object, parent: sys_swo.hardware_equipment }
+
+  - id: sys_swo.software_resource
+    name: Software Resource
+    label: { pt-BR: Recurso de Software }
+    definition:
+      pt-BR: Produto de software usado como recurso de alguma atividade do processo.
+    classification: { ufo_category: role, parent: spo.resource, is_role_of: sys_swo.software_product }
+
+  - id: sys_swo.hardware_resource
+    name: Hardware Resource
+    label: { pt-BR: Recurso de Hardware }
+    definition:
+      pt-BR: Equipamento de hardware usado como recurso de alguma atividade do processo.
+    classification: { ufo_category: role, parent: spo.resource, is_role_of: sys_swo.hardware_equipment }
+    examples: ["um smartphone usado por uma atividade de teste"]
+
+relations:
+  - id: sys_swo.program_constituted_by_code
+    name: constituted by
+    label: { pt-BR: "constituído por" }
+    source: sys_swo.program
+    target: sys_swo.code
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+    semantics:
+      description: >
+        O código constitui o programa sem ser idêntico a ele. Trocar o código não
+        troca o programa enquanto a especificação pretendida permanecer a mesma.
+
+  - id: sys_swo.program_given_by_specification
+    name: given by
+    label: { pt-BR: "dado por" }
+    source: sys_swo.program
+    target: sys_swo.program_specification
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: sys_swo.software_system_composed_of_program
+    name: composed of
+    label: { pt-BR: "composto por" }
+    source: sys_swo.software_system
+    target: sys_swo.program
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sys_swo.loaded_copy_materializes_system
+    name: materializes
+    label: { pt-BR: "materializa" }
+    source: sys_swo.loaded_software_system_copy
+    target: sys_swo.software_system
+    type: materialization
+    cardinality: { source: many, target: one }
+
+  - id: sys_swo.loaded_copy_inheres_in_machine
+    name: inheres in
+    label: { pt-BR: "inere em" }
+    source: sys_swo.loaded_software_system_copy
+    target: sys_swo.machine
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: sys_swo.software_product_composed_of_item
+    name: composed of
+    label: { pt-BR: "composto por" }
+    source: sys_swo.software_product
+    target: sys_swo.software_item
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }

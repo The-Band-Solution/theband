@@ -1,0 +1,96 @@
+module:
+  id: cdro.continuous_delivery_activity
+  ontology: cdro
+  name: Continuous Delivery Activity
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Entrega contínua é atividade, não processo: ocorre depois de um teste
+      contínuo bem-sucedido e produz o código entregue. Distinguir entrega de
+      implantação é o que permite medir lead time real até produção.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.4.1, Figura 43"
+
+concepts:
+  - id: cdro.delivery_activity
+    name: Delivery Activity
+    label: { pt-BR: "Atividade de Entrega" }
+    definition:
+      pt-BR: >
+        Atividade executada automatizada, com participação do servidor de entrega
+        contínua, que entregou um código entregue em um ambiente de entrega, sem
+        intervenção humana.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: cdro.delivered_code
+    name: Delivered Code
+    label: { pt-BR: "Código Entregue" }
+    definition:
+      pt-BR: >
+        Código candidato testado com sucesso que foi criado em uma atividade de entrega.
+    classification: { ufo_category: role, is_role_of: ciro.candidate_code }
+
+  - id: cdro.continuous_delivery_server
+    name: Continuous Delivery Server
+    label: { pt-BR: "Servidor de Entrega Contínua" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que fornece os artefatos que
+        participaram da atividade de entrega, permitindo executá-la automaticamente.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+
+  - id: cdro.delivery_environment
+    name: Delivery Environment
+    label: { pt-BR: "Ambiente de Entrega" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software constituída de recursos de software
+        e hardware de entrega, para apoiar as atividades de entrega.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+
+  - id: cdro.delivery_software_resource
+    name: Delivery Software Resource
+    label: { pt-BR: "Recurso de Software de Entrega" }
+    definition:
+      pt-BR: Recurso de software que compõe o ambiente de entrega.
+    classification: { ufo_category: role, parent: sys_swo.software_resource }
+
+  - id: cdro.delivery_hardware_resource
+    name: Delivery Hardware Resource
+    label: { pt-BR: "Recurso de Hardware de Entrega" }
+    definition:
+      pt-BR: Recurso de hardware que compõe o ambiente de entrega.
+    classification: { ufo_category: role, parent: sys_swo.hardware_resource }
+
+relations:
+  - id: cdro.delivery_activity_performed_after_successful_test
+    name: was performed after
+    label: { pt-BR: "foi executada após" }
+    source: cdro.delivery_activity
+    target: ciro.successful_continuous_test_process
+    type: dependency
+    cardinality: { source: one, target: one }
+
+  - id: cdro.delivery_activity_created_delivered_code
+    name: created
+    label: { pt-BR: "criou" }
+    source: cdro.delivery_activity
+    target: cdro.delivered_code
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: cdro.delivery_activity_in_environment
+    name: was performed in
+    source: cdro.delivery_activity
+    target: cdro.delivery_environment
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: cdro.delivery_server_participates_in_activity
+    name: participated in
+    source: cdro.continuous_delivery_server
+    target: cdro.delivery_activity
+    type: participation
+    cardinality: { source: one, target: many }

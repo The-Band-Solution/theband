@@ -1,0 +1,21 @@
+measurement:
+  id: ci.pipeline_success_rate.ratio
+  name: { pt-BR: "Taxa de sucesso do processo de integração contínua" }
+  answers_information_need: [ci.pipeline_success_rate]
+  value_type: percentage
+  unit: percent
+  formula:
+    expression: (successful_ci_processes / total_ci_processes) * 100
+    inputs: [successful_ci_processes, total_ci_processes]
+  scope:
+    levels: [repository, project, team]
+    filters: ["excluir execuções canceladas", "excluir execuções puladas"]
+    period: rolling_30_days
+  limitations:
+    - Execuções canceladas e puladas não são insucesso e devem sair do denominador.
+    - Repositórios com pipelines de propósitos distintos precisam de recorte por workflow.
+    - Reexecução manual de um pipeline que falhou pode inflar artificialmente a taxa.
+  misinterpretations:
+    - Taxa alta com poucos testes não indica qualidade; cruzar com cobertura e inspeção.
+  provenance:
+    source_type: project_decision

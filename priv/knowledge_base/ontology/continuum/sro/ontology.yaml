@@ -1,0 +1,30 @@
+ontology:
+  id: sro
+  name: Scrum Reference Ontology
+  acronym: SRO
+  version: 1.0.0
+  namespace: the_band.ontology.continuum.sro
+  layer: domain
+  network: continuum
+  description:
+    pt-BR: >
+      Conceitualização do desenvolvimento ágil com Scrum: eventos e cerimônias do
+      processo, times e papéis, participação dos stakeholders, product e sprint
+      backlog, e entregáveis produzidos.
+dependencies: [ufo, eo, spo, sys_swo, rsro]
+modules:
+  - scrum_process
+  - scrum_stakeholders
+  - scrum_stakeholder_participation
+  - product_and_sprint_backlog
+  - scrum_deliverables
+competency_questions:
+  - sro_competency_questions
+provenance:
+  source_type: thesis
+  reference: "Tese, Seção 3.2 (Figuras 25 a 30)"
+  authors: ["Santos Júnior, P. S."]
+  year: 2023
+  note: >
+    Os verbos das relações estão no passado: Continuum descreve eventos que já
+    ocorreram nos projetos, não intenções.

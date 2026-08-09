@@ -1,0 +1,132 @@
+module:
+  id: sro.scrum_deliverables
+  ontology: sro
+  name: Scrum Deliverables
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Resultados produzidos no projeto Scrum. Entregável aceito e não aceito são
+      fases distintas do entregável, e a tarefa que produziu apenas entregáveis
+      aceitos é distinguida da que produziu algum não aceito — é assim que se mede
+      retrabalho sem inventar heurística.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.5, Figura 30"
+
+concepts:
+  - id: sro.deliverable
+    name: Deliverable
+    label: { pt-BR: "Entregável", en: "Deliverable" }
+    definition:
+      pt-BR: Item de software que materializa user stories tratadas em um sprint.
+    classification: { ufo_category: object, parent: sys_swo.software_item }
+    examples: ["a funcionalidade de pagar a passagem com cartão de crédito"]
+
+  - id: sro.accepted_deliverable
+    name: Accepted Deliverable
+    label: { pt-BR: "Entregável Aceito" }
+    definition:
+      pt-BR: >
+        Entregável em conformidade com os critérios de aceitação das user stories
+        que materializa. Significa que está "done".
+    classification: { ufo_category: phase, parent: sro.deliverable }
+
+  - id: sro.not_accepted_deliverable
+    name: Not Accepted Deliverable
+    label: { pt-BR: "Entregável Não Aceito" }
+    definition:
+      pt-BR: >
+        Entregável que não está em conformidade com ao menos um critério de
+        aceitação. As user stories relacionadas podem retornar ao product backlog.
+    classification: { ufo_category: phase, parent: sro.deliverable }
+
+  - id: sro.successfully_performed_scrum_development_task
+    name: Successfully Performed Scrum Development Task
+    label: { pt-BR: "Tarefa Executada com Sucesso" }
+    definition:
+      pt-BR: Tarefa de desenvolvimento executada que produziu apenas entregáveis aceitos.
+    classification: { ufo_category: phase, parent: sro.performed_scrum_development_task }
+
+  - id: sro.non_successfully_performed_scrum_development_task
+    name: Non-Successfully Performed Scrum Development Task
+    label: { pt-BR: "Tarefa Executada sem Sucesso" }
+    definition:
+      pt-BR: Tarefa de desenvolvimento executada que produziu um ou mais entregáveis não aceitos.
+    classification: { ufo_category: phase, parent: sro.performed_scrum_development_task }
+
+  - id: sro.sprint_deliverable
+    name: Sprint Deliverable
+    label: { pt-BR: "Entregável do Sprint" }
+    definition:
+      pt-BR: >
+        Item de software mais completo, formado pela integração dos entregáveis
+        aceitos produzidos em um sprint. É o resultado do sprint entregue ao cliente.
+    classification: { ufo_category: object, parent: sro.deliverable }
+
+  - id: sro.scrum_project_deliverable
+    name: Scrum Project Deliverable
+    label: { pt-BR: "Entregável do Projeto Scrum" }
+    definition:
+      pt-BR: >
+        Produto de software formado pelo conjunto dos entregáveis de sprint
+        produzidos no projeto. É o entregável final do processo Scrum.
+    classification: { ufo_category: object, parent: sys_swo.software_product }
+
+relations:
+  - id: sro.performed_task_produced_deliverable
+    name: produced
+    label: { pt-BR: "produziu" }
+    source: sro.performed_scrum_development_task
+    target: sro.deliverable
+    type: association
+    cardinality: { source: many, target: one_or_many }
+
+  - id: sro.successful_task_produced_accepted_deliverable
+    name: produced
+    source: sro.successfully_performed_scrum_development_task
+    target: sro.accepted_deliverable
+    type: association
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.non_successful_task_produced_not_accepted_deliverable
+    name: produced
+    source: sro.non_successfully_performed_scrum_development_task
+    target: sro.not_accepted_deliverable
+    type: association
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.deliverable_materializes_user_story
+    name: materialized
+    label: { pt-BR: "materializou" }
+    source: sro.deliverable
+    target: sro.atomic_user_story
+    type: materialization
+    cardinality: { source: many, target: many }
+
+  - id: sro.sprint_produced_sprint_deliverable
+    name: produced
+    source: sro.sprint
+    target: sro.sprint_deliverable
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: sro.sprint_deliverable_composed_of_accepted_deliverable
+    name: was composed of
+    source: sro.sprint_deliverable
+    target: sro.accepted_deliverable
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.project_deliverable_composed_of_sprint_deliverable
+    name: was composed of
+    source: sro.scrum_project_deliverable
+    target: sro.sprint_deliverable
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.scrum_process_created_project_deliverable
+    name: created
+    source: sro.scrum_process
+    target: sro.scrum_project_deliverable
+    type: association
+    cardinality: { source: one, target: one }

@@ -1,0 +1,125 @@
+module:
+  id: cmpo.checkin
+  ontology: cmpo
+  name: Check-in (Git-aligned)
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Extensão do CMPO desenvolvida na tese para representar check-in no Git:
+      verificação e resolução de conflitos, commit de cópia de artefato e remoção
+      de branch. Branch de origem e destino são papéis, não tipos de branch.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.1, Figura 33"
+
+concepts:
+  - id: cmpo.checkin
+    name: Check-in
+    label: { pt-BR: "Check-in" }
+    definition:
+      pt-BR: Atividade para incluir novas versões de itens de configuração em um repositório de código.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: cmpo.source_branch
+    name: Source Branch
+    label: { pt-BR: "Branch de Origem" }
+    definition:
+      pt-BR: >
+        Papel assumido por uma branch quando há nova versão ou nova cópia de
+        artefato que se deseja salvar em outra branch por meio de um check-in.
+    classification: { ufo_category: role, is_role_of: cmpo.branch }
+
+  - id: cmpo.target_branch
+    name: Target Branch
+    label: { pt-BR: "Branch de Destino" }
+    definition:
+      pt-BR: Papel assumido pela branch que recebe a cópia de artefato em um check-in.
+    classification: { ufo_category: role, is_role_of: cmpo.branch }
+
+  - id: cmpo.check_conflict
+    name: Check Conflict
+    label: { pt-BR: "Verificação de Conflito" }
+    definition:
+      pt-BR: >
+        Atividade que verifica se há conflitos entre uma cópia de artefato na branch
+        de origem e sua versão na branch de destino.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.conflict
+    name: Conflict
+    label: { pt-BR: "Conflito", en: "Conflict" }
+    definition:
+      pt-BR: Diferença de conteúdo em uma mesma região de uma cópia de artefato.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+
+  - id: cmpo.artifact_copy_with_conflict
+    name: Artifact Copy With Conflict
+    label: { pt-BR: "Cópia de Artefato com Conflito" }
+    definition:
+      pt-BR: Cópia de artefato criada quando um conflito é identificado.
+    classification: { ufo_category: phase, parent: cmpo.artifact_copy }
+
+  - id: cmpo.artifact_copy_without_conflict
+    name: Artifact Copy Without Conflict
+    label: { pt-BR: "Cópia de Artefato sem Conflito" }
+    definition:
+      pt-BR: Cópia de artefato sem conflito, seja porque nenhum foi identificado, seja porque todos foram resolvidos.
+    classification: { ufo_category: phase, parent: cmpo.artifact_copy }
+
+  - id: cmpo.resolve_conflict
+    name: Resolve Conflict
+    label: { pt-BR: "Resolução de Conflito" }
+    definition:
+      pt-BR: Atividade que permite ao implementador da mudança corrigir um conflito em uma cópia de artefato.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.commit_artifact_copy
+    name: Commit Artifact Copy
+    label: { pt-BR: "Commit de Cópia de Artefato" }
+    definition:
+      pt-BR: Atividade que envia uma cópia de artefato sem conflito para a branch de destino.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.delete_branch
+    name: Delete Branch
+    label: { pt-BR: "Remoção de Branch" }
+    definition:
+      pt-BR: Atividade que remove uma branch de origem em um repositório de código.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+relations:
+  - id: cmpo.checkin_composed_of_check_conflict
+    name: composed of
+    source: cmpo.checkin
+    target: cmpo.check_conflict
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.checkin_composed_of_resolve_conflict
+    name: composed of
+    source: cmpo.checkin
+    target: cmpo.resolve_conflict
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.checkin_composed_of_commit
+    name: composed of
+    source: cmpo.checkin
+    target: cmpo.commit_artifact_copy
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.checkin_composed_of_delete_branch
+    name: composed of
+    source: cmpo.checkin
+    target: cmpo.delete_branch
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.commit_sends_copy_to_target_branch
+    name: sends to
+    label: { pt-BR: "envia para" }
+    source: cmpo.commit_artifact_copy
+    target: cmpo.target_branch
+    type: association
+    cardinality: { source: many, target: one }

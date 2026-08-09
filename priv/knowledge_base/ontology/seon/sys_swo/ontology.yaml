@@ -1,0 +1,19 @@
+ontology:
+  id: sys_swo
+  name: System and Software Ontology
+  acronym: SysSwO
+  version: 1.0.0
+  namespace: the_band.ontology.seon.sys_swo
+  layer: core
+  network: seon
+  description:
+    pt-BR: >
+      Natureza de sistema e software: produto de software, itens de software,
+      constituição do software, execução, sistema computacional e hardware.
+dependencies: [ufo, spo]
+modules:
+  - system_and_software
+provenance:
+  source_type: reference_ontology
+  reference: "Tese, Seção 2.2.2.1, Figura 16"
+  authors: ["Duarte, B. B.", "Costa, S.", "Falbo, R. A."]

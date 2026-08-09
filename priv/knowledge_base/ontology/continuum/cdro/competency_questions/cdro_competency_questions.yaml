@@ -1,0 +1,83 @@
+ontology: cdro
+provenance:
+  source_type: thesis
+  reference: "Tese, Seções 3.4.1 e 3.4.2 e Tabela 5 (Verificação da CDRO)"
+
+competency_questions:
+  - id: cdro.cq01
+    question: { pt-BR: "Quando uma atividade de entrega começou?" }
+    concepts: [cdro.delivery_activity]
+    attributes: [spo.performed_project_activity.start_date]
+    expected_query_type: single
+
+  - id: cdro.cq02
+    question: { pt-BR: "Quando uma atividade de entrega terminou?" }
+    concepts: [cdro.delivery_activity]
+    attributes: [spo.performed_project_activity.end_date]
+    expected_query_type: single
+
+  - id: cdro.cq03
+    question: { pt-BR: "Quais artefatos participaram de uma atividade de entrega?" }
+    concepts: [cdro.delivered_code, ciro.candidate_code]
+    relations: [cdro.delivery_activity_created_delivered_code]
+    expected_query_type: list
+
+  - id: cdro.cq04
+    question: { pt-BR: "O que é um código entregue?" }
+    concepts: [cdro.delivered_code, ciro.successful_continuous_test_process]
+    relations: [cdro.delivery_activity_performed_after_successful_test, cdro.delivery_activity_created_delivered_code]
+    expected_query_type: single
+
+  - id: cdro.cq05
+    question: { pt-BR: "Quais recursos compuseram um ambiente de entrega?" }
+    concepts: [cdro.delivery_environment, cdro.delivery_software_resource, cdro.delivery_hardware_resource]
+    relations: [cdro.delivery_activity_in_environment]
+    expected_query_type: list
+
+  - id: cdro.cq06
+    question: { pt-BR: "Quais processos e atividades compuseram um processo de CD?" }
+    concepts: [cdro.continuous_deployment_process, cdro.deployment_activity, cdro.continuous_deployment_feedback_activity]
+    relations: [cdro.cd_composed_of_deployment_activity, cdro.cd_composed_of_feedback_activity]
+    expected_query_type: list
+
+  - id: cdro.cq07
+    question: { pt-BR: "No processo de CD, de quais outras atividades ou processos uma atividade dependeu?" }
+    concepts: [cdro.deployment_activity, cdro.delivery_activity]
+    relations: [spo.activity_depends_on_activity, cdro.delivery_activity_performed_after_successful_test]
+    expected_query_type: list
+
+  - id: cdro.cq08
+    question: { pt-BR: "Quando um processo de CD começou?" }
+    concepts: [cdro.continuous_deployment_process]
+    attributes: [spo.performed_project_process.start_date]
+    expected_query_type: single
+
+  - id: cdro.cq09
+    question: { pt-BR: "Quando um processo de CD terminou?" }
+    concepts: [cdro.continuous_deployment_process]
+    attributes: [spo.performed_project_process.end_date]
+    expected_query_type: single
+
+  - id: cdro.cq10
+    question: { pt-BR: "O que é um código implantado?" }
+    concepts: [cdro.deployed_code, cdro.delivered_code]
+    relations: [cdro.deployment_activity_deployed_code]
+    expected_query_type: single
+
+  - id: cdro.cq11
+    question: { pt-BR: "Quais artefatos participaram do processo de CD?" }
+    concepts: [cdro.deployed_code, cdro.delivered_code]
+    relations: [cdro.deployment_activity_deployed_code]
+    expected_query_type: list
+
+  - id: cdro.cq12
+    question: { pt-BR: "Quais recursos compuseram um ambiente de implantação?" }
+    concepts: [cdro.deployment_environment, cdro.deployment_software_resource, cdro.deployment_hardware_resource]
+    relations: [cdro.deployment_activity_in_environment]
+    expected_query_type: list
+
+  - id: cdro.cq13
+    question: { pt-BR: "Quais stakeholders participaram do processo de CD?" }
+    concepts: [cdro.cd_stakeholder, cdro.continuous_deployment_feedback_activity]
+    relations: [cdro.feedback_informs_cd_stakeholder]
+    expected_query_type: list

@@ -1,0 +1,50 @@
+source:
+  id: github
+  name: GitHub
+  type: version_control_and_ci
+  version: 1
+
+apis:
+  - id: graphql
+    endpoint: https://api.github.com/graphql
+    schema_version: v4
+    preferred: true
+    note: Usar GraphQL por padrão; REST apenas com justificativa registrada no plano.
+  - id: rest
+    endpoint: https://api.github.com
+    schema_version: "2022-11-28"
+    preferred: false
+
+entities:
+  - { id: organization,  feeds_ontologies: [eo] }
+  - { id: user,          feeds_ontologies: [eo] }
+  - { id: team,          feeds_ontologies: [eo] }
+  - { id: repository,    feeds_ontologies: [cmpo, sys_swo] }
+  - { id: branch,        feeds_ontologies: [cmpo] }
+  - { id: commit,        feeds_ontologies: [cmpo] }
+  - { id: pull_request,  feeds_ontologies: [cmpo, eo, spo] }
+  - { id: review,        feeds_ontologies: [qapo, spo, eo] }
+  - { id: issue,         feeds_ontologies: [sro, rsro] }
+  - { id: project_item,  feeds_ontologies: [sro] }
+  - { id: workflow_run,  feeds_ontologies: [ciro] }
+  - { id: check_run,     feeds_ontologies: [ciro, roost] }
+  - { id: release,       feeds_ontologies: [cdro, cmpo] }
+  - { id: deployment,    feeds_ontologies: [cdro] }
+
+capabilities:
+  pagination: cursor
+  webhooks: true
+  historical_backfill: true
+
+limits:
+  rate_limit:
+    graphql: "5000 pontos/hora por token"
+    rest: "5000 requisições/hora por token"
+  note: >
+    O custo em GraphQL é por complexidade da query, não por requisição. Consultas
+    de página grande podem estourar o limite antes do número de requisições.
+
+authentication:
+  methods: [personal_access_token, github_app]
+  secret_storage: environment_variable
+  note: Nenhum token pode ser gravado neste arquivo nem em qualquer YAML da base.

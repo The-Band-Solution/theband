@@ -1,0 +1,43 @@
+mapping:
+  id: github.pull_request.to.cmpo.change_request
+  version: 1
+  status: proposed
+source: { provider: github, entity: pull_request, api: graphql, schema_version: v4 }
+target: { ontology: cmpo, concept: cmpo.change_request }
+semantics:
+  equivalence: partial
+  justification: >
+    Um Pull Request representa uma solicitação para avaliar e potencialmente
+    integrar alterações presentes em uma branch de origem. Não é equivalente ao
+    merge, nem à decisão de aprovação, nem à atividade de check-in. Cada um desses
+    é evento distinto e possui mapeamento próprio.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, number]
+attributes:
+  title:       { source_path: title }
+  description: { source_path: body }
+  opened_at:   { source_path: createdAt }
+  closed_at:   { source_path: closedAt }
+  merged_at:   { source_path: mergedAt }
+relations:
+  author:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+  source_branch:
+    source_path: headRefName
+    target_ontology: cmpo
+    target_concept: cmpo.source_branch
+  target_branch:
+    source_path: baseRefName
+    target_ontology: cmpo
+    target_concept: cmpo.target_branch
+limitations:
+  - O Pull Request não é equivalente ao merge; mergedAt indica que um merge ocorreu, mas o merge é outro evento.
+  - Reviews e decisões de aprovação são processadas separadamente (ver github.review).
+  - Um PR fechado sem merge não representa mudança integrada.
+  - Autoria da solicitação não implica autoria dos commits.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

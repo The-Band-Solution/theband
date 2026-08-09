@@ -1,0 +1,68 @@
+knowledge_base:
+  name: the-band
+  version: 0.1.0
+  language: pt-BR
+  default_schema_version: 1
+
+  description: >
+    Base de conhecimento declarativa do The Band. Representa a rede de ontologias
+    de referência de Engenharia de Software (UFO + SEON + Continuum) usada para
+    integrar semanticamente dados de ferramentas de desenvolvimento de software.
+
+  provenance:
+    source_type: thesis
+    author: Paulo Sérgio dos Santos Júnior
+    title: >
+      From Continuous Software Engineering Reference Ontologies to the Integration
+      of Data for Data-Driven Software Development
+    institution: Universidade Federal do Espírito Santo (UFES)
+    year: 2023
+    supervisor: Monalessa Perini Barcellos
+    co_supervisor: João Paulo Andrade Almeida
+
+layers:
+  foundational: [ufo]
+  core: [eo, spo, sys_swo]
+  domain: [rsro, cmpo, roost, qapo, osdef, sro, ciro, cdro]
+
+networks:
+  seon:
+    description: Software Engineering Ontology Network
+    ontologies: [eo, spo, sys_swo, rsro, cmpo, roost, qapo, osdef]
+  continuum:
+    description: Continuous Software Engineering Ontology (sub)Network
+    parent_network: seon
+    ontologies: [sro, ciro, cdro]
+
+ontologies:
+  - { id: ufo,     layer: foundational, path: ontology/ufo }
+  - { id: eo,      layer: core,         path: ontology/seon/eo }
+  - { id: spo,     layer: core,         path: ontology/seon/spo }
+  - { id: sys_swo, layer: core,         path: ontology/seon/sys_swo }
+  - { id: rsro,    layer: domain,       path: ontology/seon/rsro }
+  - { id: cmpo,    layer: domain,       path: ontology/seon/cmpo }
+  - { id: roost,   layer: domain,       path: ontology/seon/roost }
+  - { id: qapo,    layer: domain,       path: ontology/seon/qapo }
+  - { id: osdef,   layer: domain,       path: ontology/seon/osdef }
+  - { id: sro,     layer: domain,       path: ontology/continuum/sro }
+  - { id: ciro,    layer: domain,       path: ontology/continuum/ciro }
+  - { id: cdro,    layer: domain,       path: ontology/continuum/cdro }
+
+validation:
+  strict: true
+  reject_unknown_fields: true
+  forbid_dependency_cycles: true
+  require_stable_ids: true
+
+provenance_policy:
+  required: true
+  required_fields: [source_type]
+
+conventions:
+  id_pattern: "^[a-z_]+\\.[a-z0-9_]+$"
+  concept_ids_are_snake_case: true
+  relation_verbs_in_past_tense_for_continuum: true
+  note: >
+    Continuum descreve eventos que já ocorreram; por isso seus verbos de relação
+    estão no passado. As ontologias reusadas da SEON preservam a terminologia
+    original para manter compatibilidade.

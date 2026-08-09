@@ -1,0 +1,26 @@
+ontology:
+  id: ciro
+  name: Continuous Integration Reference Ontology
+  acronym: CIRO
+  version: 1.0.0
+  namespace: the_band.ontology.continuum.ciro
+  layer: domain
+  network: continuum
+  description:
+    pt-BR: >
+      Conceitualização da Integração Contínua: o processo de CI e seus
+      subprocessos automatizados de build, teste e inspeção, os servidores e
+      ambientes envolvidos, e os papéis que os artefatos assumem no contexto.
+dependencies: [ufo, spo, sys_swo, cmpo, roost, qapo, osdef]
+modules:
+  - continuous_integration_process
+  - continuous_build_process
+  - continuous_test_process
+  - continuous_inspection_process
+competency_questions:
+  - ciro_competency_questions
+provenance:
+  source_type: thesis
+  reference: "Tese, Seção 3.3 (Figuras 31 a 41)"
+  authors: ["Santos Júnior, P. S."]
+  year: 2023

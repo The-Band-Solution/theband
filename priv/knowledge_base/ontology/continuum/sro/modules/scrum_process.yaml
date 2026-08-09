@@ -1,0 +1,173 @@
+module:
+  id: sro.scrum_process
+  ontology: sro
+  name: Scrum Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Eventos que ocorrem em um projeto que adota Scrum: o processo, os sprints e
+      as cerimônias, com as relações de dependência que estabelecem a ordem em que
+      ocorreram.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.1, Figura 26"
+
+concepts:
+  - id: sro.scrum_project
+    name: Scrum Project
+    label: { pt-BR: "Projeto Scrum" }
+    definition:
+      pt-BR: Projeto de software que adota Scrum em seu processo.
+    classification: { ufo_category: social_object, parent: spo.software_project }
+
+  - id: sro.scrum_process
+    name: Scrum Process
+    label: { pt-BR: "Processo Scrum" }
+    definition:
+      pt-BR: >
+        Processo executado geral do projeto, composto da Definição do Product
+        Backlog e de dois ou mais Sprints.
+    classification: { ufo_category: complex_action, parent: spo.general_performed_project_process }
+
+  - id: sro.product_backlog_definition
+    name: Product Backlog Definition
+    label: { pt-BR: "Definição do Product Backlog" }
+    definition:
+      pt-BR: >
+        Processo executado específico que define e prioriza as funcionalidades a
+        serem produzidas no projeto Scrum.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+
+  - id: sro.sprint
+    name: Sprint
+    label: { pt-BR: "Sprint" }
+    definition:
+      pt-BR: >
+        Processo executado específico que ocorre após a Definição do Product
+        Backlog e visa desenvolver o produto.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    attributes:
+      - { name: start_date, type: datetime, required: false }
+      - { name: end_date, type: datetime, required: false }
+
+  - id: sro.ceremony
+    name: Ceremony
+    label: { pt-BR: "Cerimônia" }
+    definition:
+      pt-BR: Atividade executada do projeto que compõe um Sprint, correspondendo aos eventos do Scrum.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+
+  - id: sro.planning_meeting
+    name: Planning Meeting
+    label: { pt-BR: "Reunião de Planejamento" }
+    definition:
+      pt-BR: Cerimônia em que as user stories do sprint são selecionadas e as tarefas planejadas.
+    classification: { ufo_category: action, parent: sro.ceremony }
+
+  - id: sro.daily_standup_meeting
+    name: Daily Standup Meeting
+    label: { pt-BR: "Reunião Diária" }
+    definition:
+      pt-BR: Cerimônia diária que ocorre após a execução das tarefas de desenvolvimento discutidas nela.
+    classification: { ufo_category: action, parent: sro.ceremony }
+
+  - id: sro.review_meeting
+    name: Review Meeting
+    label: { pt-BR: "Reunião de Revisão" }
+    definition:
+      pt-BR: Cerimônia de revisão dos resultados produzidos no sprint.
+    classification: { ufo_category: action, parent: sro.ceremony }
+
+  - id: sro.retrospective_meeting
+    name: Retrospective Meeting
+    label: { pt-BR: "Reunião de Retrospectiva" }
+    definition:
+      pt-BR: Cerimônia de avaliação do processo executado no sprint.
+    classification: { ufo_category: action, parent: sro.ceremony }
+
+  - id: sro.performed_scrum_development_task
+    name: Performed Scrum Development Task
+    label: { pt-BR: "Tarefa de Desenvolvimento Executada" }
+    definition:
+      pt-BR: >
+        Atividade executada do projeto realizada em um sprint para materializar
+        user stories. Corresponde à execução de uma tarefa planejada na Reunião
+        de Planejamento.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+
+relations:
+  - id: sro.scrum_process_performed_in_project
+    name: was performed in
+    label: { pt-BR: "foi executado em" }
+    source: sro.scrum_process
+    target: sro.scrum_project
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: sro.scrum_process_composed_of_product_backlog_definition
+    name: was composed of
+    label: { pt-BR: "foi composto por" }
+    source: sro.scrum_process
+    target: sro.product_backlog_definition
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: sro.scrum_process_composed_of_sprint
+    name: was composed of
+    label: { pt-BR: "foi composto por" }
+    source: sro.scrum_process
+    target: sro.sprint
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.sprint_depends_on_product_backlog_definition
+    name: depended on
+    label: { pt-BR: "dependeu de" }
+    source: sro.sprint
+    target: sro.product_backlog_definition
+    type: dependency
+    cardinality: { source: many, target: one }
+
+  - id: sro.sprint_composed_of_ceremony
+    name: was composed of
+    source: sro.sprint
+    target: sro.ceremony
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: sro.sprint_composed_of_development_task
+    name: was composed of
+    source: sro.sprint
+    target: sro.performed_scrum_development_task
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: sro.development_task_depends_on_planning_meeting
+    name: depended on
+    source: sro.performed_scrum_development_task
+    target: sro.planning_meeting
+    type: dependency
+    cardinality: { source: many, target: one }
+    semantics:
+      description: A tarefa executada refere-se à execução de uma tarefa planejada na Reunião de Planejamento.
+
+  - id: sro.daily_depends_on_development_task
+    name: depended on
+    source: sro.daily_standup_meeting
+    target: sro.performed_scrum_development_task
+    type: dependency
+    cardinality: { source: many, target: many }
+
+  - id: sro.review_depends_on_daily
+    name: depended on
+    source: sro.review_meeting
+    target: sro.daily_standup_meeting
+    type: dependency
+    cardinality: { source: one, target: many }
+
+  - id: sro.retrospective_depends_on_review
+    name: depended on
+    source: sro.retrospective_meeting
+    target: sro.review_meeting
+    type: dependency
+    cardinality: { source: one, target: one }

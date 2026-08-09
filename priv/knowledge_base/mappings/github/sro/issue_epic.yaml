@@ -1,0 +1,64 @@
+mapping:
+  id: github.issue.epic.to.sro.epic
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue
+  api: graphql
+  schema_version: v4
+  selector:
+    field: issueType.name
+    rule_ref: github.issue_type_routing
+    values: ["Epic", "Épico", "Epico"]
+    structural_requirements:
+      has_children: true
+      children_of_concept: sro.user_story
+derivation:
+  rule_id: github.issue_type_routing
+  confidence: medium
+  inputs: [issueType.name, subIssues, subIssuesSummary.total]
+  precedence: structure_over_declaration
+  on_divergence: flag_and_follow_precedence
+  fallback: skip
+target:
+  ontology: sro
+  concept: sro.epic
+semantics:
+  equivalence: derived
+  justification: >
+    Uma issue promovida a épico é uma user story que compõe outras user stories.
+    O tipo declarado na organização indica a intenção; a existência de sub-issues
+    que também são user stories é o que efetivamente a torna épico. Épico pode
+    compor outro épico, e a recursão é preservada: uma sub-issue que tenha suas
+    próprias sub-issues de user story também é promovida a épico.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, number]
+attributes:
+  title:      { source_path: title }
+  body:       { source_path: body }
+  importance: { source_path: "projectItems.nodes.fieldValueByName(Priority).number" }
+  complexity: { source_path: "projectItems.nodes.fieldValueByName(Estimate).number" }
+relations:
+  author:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+  parent_epic:
+    source_path: parent.id
+    target_ontology: sro
+    target_concept: sro.epic
+  composed_of:
+    source_path: subIssues.nodes.id
+    target_ontology: sro
+    target_concept: sro.user_story
+limitations:
+  - Issue do tipo Epic sem sub-issues não é épico; é promovida a atomic_user_story com divergência registrada (sro.rule05).
+  - Sub-issues do tipo Task não tornam a issue um épico — tarefas atendem user story, não a compõem (sro.rule07).
+  - A hierarquia precisa ser verificada contra ciclo antes de persistir; o GitHub não impede ancestralidade circular por API (sro.rule04).
+  - Sub-issues são recurso recente da API e podem não existir em GitHub Enterprise Server antigo; sem elas, épico não é derivável.
+  - Nomes de tipo são texto livre da organização; a lista de valores precisa ser confirmada por tenant.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

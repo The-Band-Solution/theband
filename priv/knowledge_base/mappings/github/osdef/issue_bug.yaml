@@ -1,0 +1,51 @@
+mapping:
+  id: github.issue.bug.to.osdef.defect
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue
+  api: graphql
+  schema_version: v4
+  selector:
+    field: issueType.name
+    rule_ref: github.issue_type_routing
+    values: ["Bug", "Defeito", "Defect"]
+derivation:
+  rule_id: github.issue_type_routing
+  confidence: medium
+  inputs: [issueType.name]
+  precedence: declaration_over_structure
+  fallback: skip
+target:
+  ontology: osdef
+  concept: osdef.defect
+semantics:
+  equivalence: partial
+  justification: >
+    Uma issue do tipo Bug registra um defeito percebido no software — uma
+    disposição que pode se manifestar em falha. O registro não é a falha em si:
+    a falha é evento observado, com instante próprio. Uma issue de bug costuma
+    descrever ambos misturados em texto livre, e apenas o defeito é derivável com
+    segurança.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, number]
+attributes:
+  title:      { source_path: title }
+  body:       { source_path: body }
+  opened_at:  { source_path: createdAt }
+  closed_at:  { source_path: closedAt }
+relations:
+  reporter:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+limitations:
+  - Issue de bug não é user story e nunca deve entrar no escopo do produto como tal.
+  - O defeito só vira fault quando há manifestação registrada em uma falha; a issue sozinha não estabelece isso.
+  - O instante da falha não é derivável de createdAt — a data de abertura é quando alguém reportou, não quando o software falhou.
+  - Bug fechado como "não reproduzível" ou duplicado não é defeito confirmado; requer regra de exclusão por tenant.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

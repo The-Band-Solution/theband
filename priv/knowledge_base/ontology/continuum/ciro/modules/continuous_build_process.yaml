@@ -1,0 +1,203 @@
+module:
+  id: ciro.continuous_build_process
+  ontology: ciro
+  name: Continuous Build Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Atividades, recursos e artefatos do build automatizado. Código candidato é o
+      conceito-chave: reúne o código sob integração (novo ou alterado) e o código
+      já integrado em processos anteriores.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.3, Figuras 35 a 37"
+
+concepts:
+  - id: ciro.continuous_build_process
+    name: Continuous Build Process
+    label: { pt-BR: "Processo de Build Contínuo" }
+    definition:
+      pt-BR: >
+        Processo executado específico e automatizado, com participação do servidor
+        de CI, que constrói uma nova versão do software a ser testada.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    automated: true
+
+  - id: ciro.ci_building_environment
+    name: CI Building Environment
+    label: { pt-BR: "Ambiente de Build de CI" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que contém os recursos de software e
+        hardware de build necessários às atividades do processo de build contínuo.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+
+  - id: ciro.building_software_resource
+    name: Building Software Resource
+    label: { pt-BR: "Recurso de Software de Build" }
+    definition:
+      pt-BR: Produto de software que compõe o ambiente de build.
+    classification: { ufo_category: role, parent: sys_swo.software_resource }
+    examples: ["sistema operacional", "compilador", "transpilador", "interpretador", "biblioteca"]
+
+  - id: ciro.building_hardware_resource
+    name: Building Hardware Resource
+    label: { pt-BR: "Recurso de Hardware de Build" }
+    definition:
+      pt-BR: Equipamento de hardware que compõe o ambiente de build.
+    classification: { ufo_category: role, parent: sys_swo.hardware_resource }
+
+  - id: ciro.build_environment_creation
+    name: Build Environment Creation
+    label: { pt-BR: "Criação do Ambiente de Build" }
+    definition:
+      pt-BR: Atividade que cria o ambiente de build de CI para apoiar o checkout e a construção do código candidato.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: ciro.code_checkout
+    name: Code Checkout
+    label: { pt-BR: "Checkout de Código" }
+    definition:
+      pt-BR: Atividade que cria cópias do código-fonte e do código de teste dentro do ambiente de build de CI.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: ciro.source_code_copy
+    name: Source Code Copy
+    label: { pt-BR: "Cópia de Código-Fonte" }
+    definition:
+      pt-BR: Cópia de um código-fonte presente em um repositório, criada no ambiente de build.
+    classification: { ufo_category: object, parent: cmpo.artifact_copy }
+
+  - id: ciro.test_code_copy
+    name: Test Code Copy
+    label: { pt-BR: "Cópia de Código de Teste" }
+    definition:
+      pt-BR: Cópia de um código de teste presente em um repositório, criada no ambiente de build.
+    classification: { ufo_category: object, parent: cmpo.artifact_copy }
+
+  - id: ciro.candidate_code_building
+    name: Candidate Code Building
+    label: { pt-BR: "Construção do Código Candidato" }
+    definition:
+      pt-BR: >
+        Atividade que constrói um código candidato no ambiente de build, usando os
+        recursos de build e as cópias de código-fonte — ou descreve um problema de build.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: ciro.candidate_code
+    name: Candidate Code
+    label: { pt-BR: "Código Candidato" }
+    definition:
+      pt-BR: >
+        Coleção de cópias de código composta por um ou mais itens de código sob
+        integração e por nenhum, um ou mais itens de código já integrado.
+    classification: { ufo_category: collective }
+
+  - id: ciro.code_under_integration
+    name: Code Under Integration
+    label: { pt-BR: "Código sob Integração" }
+    definition:
+      pt-BR: >
+        Papel do código novo ou alterado que um stakeholder de CI deseja integrar
+        ao repositório.
+    classification: { ufo_category: role, is_role_of: sys_swo.code }
+
+  - id: ciro.integrated_code
+    name: Integrated Code
+    label: { pt-BR: "Código Integrado" }
+    definition:
+      pt-BR: Papel do código que já foi integrado ao repositório em um processo de CI executado no passado.
+    classification: { ufo_category: role, is_role_of: sys_swo.code }
+
+  - id: ciro.build_problem
+    name: Build Problem
+    label: { pt-BR: "Problema de Build" }
+    definition:
+      pt-BR: Item de informação sobre problemas ocorridos na construção do código candidato.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+    examples: ["referência a biblioteca ausente que impede compilar o projeto"]
+
+  - id: ciro.successful_continuous_build_process
+    name: Successful Continuous Build Process
+    label: { pt-BR: "Processo de Build Bem-Sucedido" }
+    definition:
+      pt-BR: Processo de build contínuo que construiu o código candidato sem problemas.
+    classification: { ufo_category: phase, parent: ciro.continuous_build_process }
+
+  - id: ciro.unsuccessful_continuous_build_process
+    name: Unsuccessful Continuous Build Process
+    label: { pt-BR: "Processo de Build Malsucedido" }
+    definition:
+      pt-BR: Processo de build contínuo que não construiu o código candidato devido a um problema.
+    classification: { ufo_category: phase, parent: ciro.continuous_build_process }
+
+relations:
+  - id: ciro.build_composed_of_environment_creation
+    name: was composed of
+    source: ciro.continuous_build_process
+    target: ciro.build_environment_creation
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: ciro.build_composed_of_code_checkout
+    name: was composed of
+    source: ciro.continuous_build_process
+    target: ciro.code_checkout
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: ciro.build_composed_of_candidate_code_building
+    name: was composed of
+    source: ciro.continuous_build_process
+    target: ciro.candidate_code_building
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: ciro.candidate_code_building_produced_candidate_code
+    name: produced
+    label: { pt-BR: "produziu" }
+    source: ciro.candidate_code_building
+    target: ciro.candidate_code
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: ciro.candidate_code_building_described_build_problem
+    name: described
+    label: { pt-BR: "descreveu" }
+    source: ciro.candidate_code_building
+    target: ciro.build_problem
+    type: association
+    cardinality: { source: one, target: many }
+
+  - id: ciro.candidate_code_composed_of_code_under_integration
+    name: was composed of
+    source: ciro.candidate_code
+    target: ciro.code_under_integration
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.candidate_code_composed_of_integrated_code
+    name: was composed of
+    source: ciro.candidate_code
+    target: ciro.integrated_code
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: ciro.code_checkout_from_branch
+    name: checked out from
+    label: { pt-BR: "fez checkout de" }
+    source: ciro.code_checkout
+    target: cmpo.branch
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: ciro.build_uses_environment
+    name: used
+    label: { pt-BR: "usou" }
+    source: ciro.continuous_build_process
+    target: ciro.ci_building_environment
+    type: association
+    cardinality: { source: many, target: one }

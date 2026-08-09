@@ -1,0 +1,30 @@
+ontology:
+  id: ufo
+  name: Unified Foundational Ontology
+  acronym: UFO
+  version: 1.0.0
+  namespace: the_band.ontology.ufo
+  layer: foundational
+  network: ufo
+  description:
+    pt-BR: >
+      Ontologia fundacional que fornece as distinções usadas para classificar os
+      conceitos de todas as demais ontologias da rede: objetos, eventos, agentes,
+      papéis, relatores, disposições, situações e coletivos.
+    en: >
+      Foundational ontology providing the distinctions used to classify concepts
+      of all networked ontologies.
+
+dependencies: []
+
+modules:
+  - foundational_categories
+
+provenance:
+  source_type: reference_ontology
+  reference: "Tese, Seção 2.2.1 — UFO"
+  authors: ["Guizzardi, G."]
+  year: 2005
+  note: >
+    Não reproduzimos a UFO inteira computacionalmente. Representamos apenas as
+    categorias efetivamente usadas para classificar conceitos de SEON e Continuum.

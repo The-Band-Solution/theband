@@ -1,0 +1,175 @@
+module:
+  id: ciro.continuous_inspection_process
+  ontology: ciro
+  name: Continuous Inspection Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Inspeção automatizada da aderência do código candidato a critérios de
+      qualidade. O resultado é não conformidade (QAPO), não defeito (OSDEF):
+      transformar uma na outra é decisão explícita, nunca automática.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.5, Figuras 39 a 41"
+
+concepts:
+  - id: ciro.continuous_inspection_process
+    name: Continuous Inspection Process
+    label: { pt-BR: "Processo de Inspeção Contínua" }
+    definition:
+      pt-BR: >
+        Processo de garantia da qualidade automatizado, com participação do servidor
+        de CI, que assegura que os artefatos estejam em conformidade com critérios
+        de qualidade de engenharia de software.
+    classification: { ufo_category: complex_action, parent: qapo.quality_assurance_process }
+    automated: true
+
+  - id: ciro.ci_inspection_environment
+    name: CI Inspection Environment
+    label: { pt-BR: "Ambiente de Inspeção de CI" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que contém os recursos de inspeção
+        necessários às atividades do processo de inspeção contínua.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+
+  - id: ciro.inspection_software_resource
+    name: Inspection Software Resource
+    label: { pt-BR: "Recurso de Software de Inspeção" }
+    definition:
+      pt-BR: Produto de software que compõe o ambiente de inspeção.
+    classification: { ufo_category: role, parent: sys_swo.software_resource }
+    examples: ["uma ferramenta de análise estática de código"]
+
+  - id: ciro.inspection_hardware_resource
+    name: Inspection Hardware Resource
+    label: { pt-BR: "Recurso de Hardware de Inspeção" }
+    definition:
+      pt-BR: Equipamento de hardware que compõe o ambiente de inspeção.
+    classification: { ufo_category: role, parent: sys_swo.hardware_resource }
+
+  - id: ciro.static_code_analysis_tool
+    name: Static Code Analysis Tool
+    label: { pt-BR: "Ferramenta de Análise Estática" }
+    definition:
+      pt-BR: >
+        Produto de software usado para sinalizar erros de programação, bugs, erros
+        de estilo e construções suspeitas.
+    classification: { ufo_category: object, parent: sys_swo.software_product }
+    examples: ["SonarQube", "Credo", "ESLint"]
+
+  - id: ciro.inspection_environment_creation
+    name: Inspection Environment Creation
+    label: { pt-BR: "Criação do Ambiente de Inspeção" }
+    definition:
+      pt-BR: Atividade que cria o ambiente de inspeção de CI no servidor de CI.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: ciro.automated_adherence_inspection
+    name: Automated Adherence Inspection
+    label: { pt-BR: "Inspeção de Aderência Automatizada" }
+    definition:
+      pt-BR: >
+        Avaliação de aderência automatizada que inspeciona a aderência do código
+        candidato sob inspeção executando inspeções automatizadas de artefato.
+    classification: { ufo_category: complex_action, parent: qapo.adherence_evaluation }
+    automated: true
+
+  - id: ciro.automated_artifact_inspection
+    name: Automated Artifact Inspection
+    label: { pt-BR: "Inspeção de Artefato Automatizada" }
+    definition:
+      pt-BR: >
+        Avaliação de artefato automatizada que usa código de critério de qualidade
+        para inspecionar critérios em cada artefato do código candidato.
+    classification: { ufo_category: action, parent: qapo.artifact_evaluation }
+    automated: true
+
+  - id: ciro.quality_assurance_criterion_code
+    name: Quality Assurance Criterion Code
+    label: { pt-BR: "Código de Critério de Qualidade" }
+    definition:
+      pt-BR: Código que materializa um critério de qualidade, tornando-o verificável automaticamente.
+    classification: { ufo_category: object, parent: sys_swo.code }
+    examples: ["uma regra que implementa 'uma função pode ter no máximo 100 linhas'"]
+
+  - id: ciro.candidate_code_under_inspection
+    name: Candidate Code Under Inspection
+    label: { pt-BR: "Código Candidato sob Inspeção" }
+    definition:
+      pt-BR: Papel do código candidato cujos artefatos são artefatos avaliados em um processo de inspeção contínua.
+    classification: { ufo_category: role, parent: qapo.evaluated_artifact, is_role_of: ciro.candidate_code }
+
+  - id: ciro.ci_evaluation_report
+    name: CI Evaluation Report
+    label: { pt-BR: "Relatório de Avaliação de CI" }
+    definition:
+      pt-BR: >
+        Relatório de avaliação que descreve os resultados da inspeção e as questões
+        identificadas no código candidato sob inspeção.
+    classification: { ufo_category: social_object, parent: qapo.evaluation_report }
+
+  - id: ciro.successful_continuous_inspection_process
+    name: Successful Continuous Inspection Process
+    label: { pt-BR: "Processo de Inspeção Bem-Sucedido" }
+    definition:
+      pt-BR: Processo de inspeção contínua em que nenhuma não conformidade foi identificada.
+    classification: { ufo_category: phase, parent: ciro.continuous_inspection_process }
+
+  - id: ciro.unsuccessful_continuous_inspection_process
+    name: Unsuccessful Continuous Inspection Process
+    label: { pt-BR: "Processo de Inspeção Malsucedido" }
+    definition:
+      pt-BR: Processo de inspeção contínua em que ao menos uma não conformidade foi identificada.
+    classification: { ufo_category: phase, parent: ciro.continuous_inspection_process }
+
+relations:
+  - id: ciro.inspection_composed_of_environment_creation
+    name: was composed of
+    source: ciro.continuous_inspection_process
+    target: ciro.inspection_environment_creation
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: ciro.inspection_composed_of_adherence_inspection
+    name: was composed of
+    source: ciro.continuous_inspection_process
+    target: ciro.automated_adherence_inspection
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.adherence_inspection_composed_of_artifact_inspection
+    name: was composed of
+    source: ciro.automated_adherence_inspection
+    target: ciro.automated_artifact_inspection
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.artifact_inspection_uses_criterion_code
+    name: used
+    source: ciro.automated_artifact_inspection
+    target: ciro.quality_assurance_criterion_code
+    type: association
+    cardinality: { source: many, target: one_or_many }
+
+  - id: ciro.criterion_code_materializes_criterion
+    name: materialized
+    source: ciro.quality_assurance_criterion_code
+    target: qapo.quality_criterion
+    type: materialization
+    cardinality: { source: one, target: one }
+
+  - id: ciro.adherence_inspection_produced_report
+    name: produced
+    source: ciro.automated_adherence_inspection
+    target: ciro.ci_evaluation_report
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: ciro.artifact_inspection_registered_noncompliance
+    name: registered
+    source: ciro.automated_artifact_inspection
+    target: qapo.noncompliance_register
+    type: association
+    cardinality: { source: one, target: many }

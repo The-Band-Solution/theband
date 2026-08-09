@@ -1,0 +1,38 @@
+mapping:
+  id: github.commit.to.cmpo.commit_artifact_copy
+  version: 1
+  status: proposed
+source: { provider: github, entity: commit, api: graphql, schema_version: v4 }
+target: { ontology: cmpo, concept: cmpo.commit_artifact_copy }
+semantics:
+  equivalence: partial
+  justification: >
+    Um commit do GitHub registra o envio de uma cópia de artefato sem conflito para
+    uma branch de destino — a atividade Commit Artifact Copy de CMPO. O objeto
+    commit da API carrega tanto o evento quanto metadados da cópia resultante.
+identity:
+  external_id_path: oid
+  natural_key: [repository.node_id, oid]
+attributes:
+  message:        { source_path: message }
+  committed_at:   { source_path: committedDate }
+  authored_at:    { source_path: authoredDate }
+  additions:      { source_path: additions }
+  deletions:      { source_path: deletions }
+relations:
+  author:
+    source_path: author.user.id
+    target_ontology: eo
+    target_concept: eo.person
+  branch:
+    source_path: repository.ref.name
+    target_ontology: cmpo
+    target_concept: cmpo.branch
+limitations:
+  - Autor e committer podem ser pessoas diferentes; não colapsar os dois campos.
+  - Commits de merge não representam alteração de conteúdo por si sós.
+  - Rebase reescreve o oid; o mesmo trabalho pode aparecer com identidades distintas.
+  - Linhas adicionadas/removidas não medem esforço nem valor.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

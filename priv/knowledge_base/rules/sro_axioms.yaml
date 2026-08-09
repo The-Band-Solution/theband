@@ -1,0 +1,137 @@
+rules:
+  - id: sro.rule01.task_must_relate_to_sprint_backlog_user_story
+    ontology: sro
+    name:
+      pt-BR: Tarefa executada deve referir-se a user story do sprint backlog do sprint
+    statement:
+      pt-BR: >
+        Se uma tarefa de desenvolvimento executada dt foi realizada em um sprint s
+        que tem o sprint backlog sb, e dt produziu um entregável d, então existe uma
+        user story us em sb que é materializada por d.
+    formal: >
+      ∀ dt: PerformedScrumDevelopmentTask, s: Sprint, sb: SprintBacklog, d: Deliverable
+      ((isPerformedIn(dt, s) ∧ has(s, sb) ∧ isToProduce(dt, d)) →
+        ∃us (isPartOf(us, sb) ∧ materializes(d, us)))
+    concepts: [sro.performed_scrum_development_task, sro.sprint, sro.sprint_backlog, sro.deliverable, sro.user_story]
+    enforcement: test
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 3.2.5 — axioma da SRO"
+
+  - id: sro.rule02.performed_task_caused_by_intended_task
+    ontology: sro
+    name:
+      pt-BR: Tarefa executada para atender user story foi causada por tarefa planejada
+    statement:
+      pt-BR: >
+        Se uma tarefa executada dt foi realizada para atender a user story us do
+        sprint backlog sb, então existe uma tarefa pretendida idt especificada em sb
+        e planejada para atender us, que causou dt.
+    formal: >
+      ∀ dt: PerformedScrumDevelopmentTask, us: UserStory, sb: SprintBacklog
+      ((wasPerformedToMeet(dt, us) ∧ isPartOf(us, sb)) →
+        ∃idt (specifies(sb, idt) ∧ isPlannedToMeet(idt, us) ∧ causedBy(dt, idt)))
+    concepts: [sro.performed_scrum_development_task, sro.intended_scrum_development_task, sro.user_story, sro.sprint_backlog]
+    enforcement: test
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 3.2.5 — axioma da SRO"
+
+  - id: sro.rule03.deliverable_acceptance_by_criteria
+    ontology: sro
+    name:
+      pt-BR: Classificação do entregável decorre dos critérios de aceitação
+    statement:
+      pt-BR: >
+        Um entregável é aceito quando está em conformidade com todos os critérios de
+        aceitação das user stories que materializa; caso contrário, é não aceito.
+        A classificação nunca é atribuída manualmente sem avaliação dos critérios.
+    concepts: [sro.deliverable, sro.accepted_deliverable, sro.not_accepted_deliverable, sro.acceptance_criterion]
+    enforcement: test
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 3.2.5"
+
+  - id: sro.rule04.epic_hierarchy_is_acyclic
+    ontology: sro
+    name:
+      pt-BR: "A hierarquia de decomposição de user stories é acíclica"
+    statement:
+      pt-BR: >
+        Nenhuma user story pode ser parte de si mesma, direta ou indiretamente.
+        Como um épico pode compor outro épico, a relação de composição forma um
+        grafo dirigido que precisa ser acíclico — caso contrário a decomposição
+        não termina e nenhuma agregação de escopo converge.
+    formal: >
+      ∀ us: UserStory ¬isPartOfPlus(us, us)
+      onde isPartOfPlus é o fecho transitivo de wasComposedOf
+    concepts: [sro.epic, sro.user_story]
+    enforcement: test_and_db_constraint
+    note: >
+      Verificar no comando de registro, antes de persistir. Uma constraint de banco
+      sozinha não pega ciclo transitivo em auto-relacionamento; é preciso checar o
+      caminho até a raiz.
+    provenance:
+      source_type: project_decision
+      reference: "Consequência da recursividade de sro.epic_composed_of_user_story"
+
+  - id: sro.rule05.epic_has_parts
+    ontology: sro
+    name:
+      pt-BR: "Épico tem ao menos uma parte"
+    statement:
+      pt-BR: >
+        Uma user story só é épico se compõe ao menos uma outra user story. Ser
+        épico é consequência de ter partes, não um rótulo atribuído. Uma user
+        story marcada como épico na ferramenta, mas sem partes, é uma user story
+        atômica com rótulo divergente — e a divergência deve ser registrada, não
+        silenciada.
+    formal: >
+      ∀ e: Epic ∃us: UserStory wasComposedOf(e, us)
+    concepts: [sro.epic, sro.atomic_user_story, sro.user_story]
+    enforcement: test
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 3.2.4 — Epic é User Story composta de outras"
+
+  - id: sro.rule06.decomposition_terminates_in_atomic
+    ontology: sro
+    name:
+      pt-BR: "Toda decomposição termina em user stories atômicas"
+    statement:
+      pt-BR: >
+        Percorrendo a composição de um épico, toda folha do grafo é uma user
+        story atômica. Como só user stories atômicas são atendidas por tarefas
+        (sro.intended_task_planned_to_meet_user_story tem alvo
+        sro.atomic_user_story), um ramo que termina em épico é escopo que nunca
+        será materializado por trabalho.
+    formal: >
+      ∀ e: Epic ∀us: UserStory (isPartOfPlus(us, e) ∧ ¬∃x wasComposedOf(us, x))
+        → AtomicUserStory(us)
+    concepts: [sro.epic, sro.atomic_user_story, sro.intended_scrum_development_task]
+    enforcement: test
+    provenance:
+      source_type: project_decision
+      reference: "Deriva de sro.intended_task_planned_to_meet_user_story"
+
+  - id: sro.rule07.task_never_meets_epic
+    ontology: sro
+    name:
+      pt-BR: "Tarefa de desenvolvimento nunca atende um épico diretamente"
+    statement:
+      pt-BR: >
+        Uma tarefa de desenvolvimento, pretendida ou executada, só pode estar
+        ligada a uma user story atômica. Ligar tarefa a épico agrega esforço em
+        um nível que não corresponde a nenhum entregável verificável, e faz o
+        cálculo de materialização de user story contar duas vezes: uma no épico,
+        outra nas suas partes.
+    formal: >
+      ∀ t: ScrumDevelopmentTask, us: UserStory
+        (isPlannedToMeet(t, us) ∨ wasPerformedToMeet(t, us)) → AtomicUserStory(us)
+    concepts:
+      [sro.intended_scrum_development_task, sro.performed_scrum_development_task,
+       sro.atomic_user_story, sro.epic]
+    enforcement: test_and_db_constraint
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 3.2.4, Figura 29 — alvo das relações é Atomic User Story"

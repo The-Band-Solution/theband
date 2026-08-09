@@ -1,0 +1,39 @@
+mapping:
+  id: github.workflow_run.to.ciro.continuous_integration_process
+  version: 1
+  status: proposed
+source: { provider: github, entity: workflow_run, api: rest, schema_version: "2022-11-28" }
+target: { ontology: ciro, concept: ciro.continuous_integration_process }
+semantics:
+  equivalence: partial
+  justification: >
+    Uma execução de workflow do GitHub Actions é uma ocorrência automatizada de
+    processo de integração contínua. O subtipo depende do gatilho: push/pull_request
+    mapeiam para o processo disparado por check-in, schedule para o agendado, e
+    workflow_dispatch para o sob demanda.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, id]
+attributes:
+  started_at:  { source_path: run_started_at }
+  ended_at:    { source_path: updated_at }
+  status:      { source_path: status }
+  conclusion:  { source_path: conclusion, transform: "success -> successful; failure|timed_out -> unsuccessful" }
+  trigger:     { source_path: event }
+relations:
+  repository:
+    source_path: repository.node_id
+    target_ontology: cmpo
+    target_concept: cmpo.source_repository
+  triggering_commit:
+    source_path: head_sha
+    target_ontology: cmpo
+    target_concept: cmpo.commit_artifact_copy
+limitations:
+  - Nem todo workflow é integração contínua; workflows de release mapeiam para CDRO.
+  - conclusion "cancelled" e "skipped" não são insucesso do processo; classificar separadamente.
+  - updated_at aproxima o término, mas não é o instante exato de fim.
+  - Um job dentro do run pode ser build, teste ou inspeção; a distinção exige mapear check_run.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

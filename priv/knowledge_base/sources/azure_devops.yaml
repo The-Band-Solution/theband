@@ -1,0 +1,22 @@
+source:
+  id: azure_devops
+  name: Microsoft Azure DevOps
+  type: alm_suite
+  version: 1
+apis:
+  - { id: rest, endpoint: "https://dev.azure.com", schema_version: "7.1", preferred: true }
+entities:
+  - { id: project,     feeds_ontologies: [spo] }
+  - { id: team,        feeds_ontologies: [eo] }
+  - { id: work_item,   feeds_ontologies: [sro, rsro] }
+  - { id: iteration,   feeds_ontologies: [sro] }
+  - { id: repository,  feeds_ontologies: [cmpo] }
+  - { id: pull_request, feeds_ontologies: [cmpo] }
+  - { id: build,       feeds_ontologies: [ciro] }
+  - { id: release,     feeds_ontologies: [cdro] }
+capabilities: { pagination: continuation_token, webhooks: true, historical_backfill: true }
+authentication: { methods: [personal_access_token, oauth], secret_storage: environment_variable }
+status: planned
+provenance:
+  source_type: thesis
+  reference: "Tese, Seção 5.3 — ASA desenvolvida para comunicar com o Azure DevOps"

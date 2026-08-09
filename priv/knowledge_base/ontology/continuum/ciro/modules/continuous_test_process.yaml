@@ -1,0 +1,138 @@
+module:
+  id: ciro.continuous_test_process
+  ontology: ciro
+  name: Continuous Test Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Teste automatizado no contexto de CI. O código candidato assume o papel de
+      código a ser testado; o resultado de teste de CI pode descrever faults, e é
+      isso — não a ausência de log — que caracteriza um processo malsucedido.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.4, Figura 38"
+
+concepts:
+  - id: ciro.continuous_test_process
+    name: Continuous Test Process
+    label: { pt-BR: "Processo de Teste Contínuo" }
+    definition:
+      pt-BR: >
+        Processo de teste automatizado, com participação do servidor de CI, que
+        verifica se a nova versão do software está em conformidade com os requisitos.
+    classification: { ufo_category: complex_action, parent: roost.testing_process }
+    automated: true
+
+  - id: ciro.ci_testing_environment
+    name: CI Testing Environment
+    label: { pt-BR: "Ambiente de Teste de CI" }
+    definition:
+      pt-BR: >
+        Ambiente de teste que é também uma cópia carregada de sistema de software,
+        criada em um servidor de CI para apoiar o processo de teste contínuo.
+    classification: { ufo_category: disposition, parent: roost.testing_environment }
+
+  - id: ciro.ci_testing_environment_creation
+    name: CI Testing Environment Creation
+    label: { pt-BR: "Criação do Ambiente de Teste de CI" }
+    definition:
+      pt-BR: Atividade automatizada que cria o ambiente de teste de CI no servidor de CI.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    automated: true
+
+  - id: ciro.automated_testing
+    name: Automated Testing
+    label: { pt-BR: "Teste Automatizado" }
+    definition:
+      pt-BR: >
+        Atividade de teste por nível automatizada, que executa testes usando os
+        recursos de software e hardware do ambiente de teste de CI.
+    classification: { ufo_category: complex_action, parent: roost.level_based_testing }
+    automated: true
+
+  - id: ciro.automated_test_execution
+    name: Automated Test Execution
+    label: { pt-BR: "Execução Automatizada de Teste" }
+    definition:
+      pt-BR: >
+        Execução de teste que roda automaticamente os casos de teste por meio do
+        código de teste, produzindo resultados de teste de CI.
+    classification: { ufo_category: action, parent: roost.performed_test_execution }
+    automated: true
+
+  - id: ciro.candidate_code_to_be_tested
+    name: Candidate Code To Be Tested
+    label: { pt-BR: "Código Candidato a Ser Testado" }
+    definition:
+      pt-BR: Papel assumido pelo código candidato quando é alvo de um processo de teste contínuo.
+    classification: { ufo_category: role, parent: roost.code_to_be_tested, is_role_of: ciro.candidate_code }
+
+  - id: ciro.ci_test_result
+    name: CI Test Result
+    label: { pt-BR: "Resultado de Teste de CI" }
+    definition:
+      pt-BR: >
+        Resultado de teste que descreve o observado ao aplicar um caso de teste em
+        um processo de teste contínuo. Pode identificar faults ou servir de
+        evidência de sucesso quando nenhum é observado.
+    classification: { ufo_category: social_object, parent: roost.test_result }
+
+  - id: ciro.successful_continuous_test_process
+    name: Successful Continuous Test Process
+    label: { pt-BR: "Processo de Teste Contínuo Bem-Sucedido" }
+    definition:
+      pt-BR: >
+        Processo de teste contínuo cuja execução automatizada produziu resultado
+        sem faults, após aplicar todos os casos de teste.
+    classification: { ufo_category: phase, parent: ciro.continuous_test_process }
+
+  - id: ciro.unsuccessful_continuous_test_process
+    name: Unsuccessful Continuous Test Process
+    label: { pt-BR: "Processo de Teste Contínuo Malsucedido" }
+    definition:
+      pt-BR: Processo de teste contínuo em que um fault foi identificado em um caso de teste.
+    classification: { ufo_category: phase, parent: ciro.continuous_test_process }
+
+relations:
+  - id: ciro.test_composed_of_environment_creation
+    name: was composed of
+    source: ciro.continuous_test_process
+    target: ciro.ci_testing_environment_creation
+    type: part_whole
+    cardinality: { source: one, target: one }
+
+  - id: ciro.test_composed_of_automated_testing
+    name: was composed of
+    source: ciro.continuous_test_process
+    target: ciro.automated_testing
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.automated_testing_composed_of_execution
+    name: was composed of
+    source: ciro.automated_testing
+    target: ciro.automated_test_execution
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.execution_tested_candidate_code
+    name: tested
+    label: { pt-BR: "testou" }
+    source: ciro.automated_test_execution
+    target: ciro.candidate_code_to_be_tested
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: ciro.execution_produced_ci_test_result
+    name: produced
+    source: ciro.automated_test_execution
+    target: ciro.ci_test_result
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: ciro.ci_test_result_describes_fault
+    name: described
+    source: ciro.ci_test_result
+    target: osdef.fault
+    type: association
+    cardinality: { source: one, target: many }

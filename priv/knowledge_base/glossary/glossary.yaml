@@ -1,0 +1,68 @@
+glossary:
+  version: 1.0.0
+  language: [pt-BR, en]
+  note: >
+    Termos das ferramentas externas frequentemente colidem com conceitos da rede.
+    Esta lista fixa o vocabulário e aponta o conceito formal correspondente.
+
+terms:
+  - term: { pt-BR: "Pull Request", en: "Pull Request" }
+    synonyms: ["PR", "Merge Request", "MR"]
+    concept: cmpo.change_request
+    note: Solicitação de mudança. Não é o merge nem a aprovação.
+
+  - term: { pt-BR: "Merge", en: "Merge" }
+    concept: cmpo.checkin
+    note: Evento de integração de uma branch em outra. Distinto do Pull Request.
+
+  - term: { pt-BR: "Issue", en: "Issue" }
+    concept: null
+    note: >
+      Termo ambíguo. Conforme o tipo, mapeia para sro.user_story, rsro.requirement,
+      osdef.defect ou sro.performed_scrum_development_task. Nunca mapear sem regra
+      de classificação declarada.
+
+  - term: { pt-BR: "Pipeline", en: "Pipeline" }
+    synonyms: ["Workflow run", "Build"]
+    concept: ciro.continuous_integration_process
+    note: Cuidado — pipelines de release mapeiam para cdro, não ciro.
+
+  - term: { pt-BR: "Build", en: "Build" }
+    concept: ciro.continuous_build_process
+    note: Subprocesso do CI; não é o processo de CI inteiro.
+
+  - term: { pt-BR: "Deploy", en: "Deployment" }
+    concept: cdro.deployment_activity
+    note: Distinto de entrega (cdro.delivery_activity).
+
+  - term: { pt-BR: "Bug", en: "Bug" }
+    concept: osdef.defect
+    note: >
+      Se o registro descreve o evento observado em produção, o conceito é
+      osdef.failure. Se descreve a causa no programa, é osdef.defect.
+
+  - term: { pt-BR: "Code smell", en: "Code smell" }
+    concept: qapo.noncompliance_register
+    note: Não conformidade com critério de qualidade. Não é defeito.
+
+  - term: { pt-BR: "Desenvolvedor", en: "Developer" }
+    concept: sro.developer
+    note: >
+      Papel desempenhado por uma pessoa em um time, via alocação. A pessoa é
+      eo.person; o papel é sro.developer_role.
+
+  - term: { pt-BR: "Time", en: "Team" }
+    concept: eo.team
+    note: >
+      Time do GitHub é agrupamento de permissões e não corresponde necessariamente
+      a eo.project_team.
+
+  - term: { pt-BR: "Tarefa", en: "Task" }
+    concept: sro.performed_scrum_development_task
+    note: >
+      Se ainda não foi executada, o conceito é sro.intended_scrum_development_task.
+      Planejado e executado nunca são a mesma entidade.
+
+  - term: { pt-BR: "Entregável", en: "Deliverable" }
+    concept: sro.deliverable
+    note: A aceitação decorre dos critérios de aceitação, não de marcação manual.

@@ -1,0 +1,35 @@
+mapping:
+  id: github.deployment.to.cdro.deployment_activity
+  version: 1
+  status: proposed
+source: { provider: github, entity: deployment, api: graphql, schema_version: v4 }
+target: { ontology: cdro, concept: cdro.deployment_activity }
+semantics:
+  equivalence: partial
+  justification: >
+    Um deployment do GitHub registra a atividade automatizada que implantou um
+    código em um ambiente. O desfecho vem do deployment status associado, não do
+    objeto deployment em si.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, id]
+attributes:
+  environment: { source_path: environment }
+  created_at:  { source_path: createdAt }
+  state:       { source_path: latestStatus.state }
+relations:
+  deployed_code:
+    source_path: commitOid
+    target_ontology: ciro
+    target_concept: ciro.candidate_code
+  environment_ref:
+    source_path: environment
+    target_ontology: cdro
+    target_concept: cdro.deployment_environment
+limitations:
+  - O nome do ambiente é texto livre; "production" em um repositório pode não ser produção real.
+  - Um deployment criado não implica implantação concluída; usar o status mais recente.
+  - Rollbacks aparecem como novos deployments do commit anterior.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

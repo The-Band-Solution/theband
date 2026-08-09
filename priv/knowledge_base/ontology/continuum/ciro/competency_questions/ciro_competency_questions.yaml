@@ -1,0 +1,102 @@
+ontology: ciro
+provenance:
+  source_type: thesis
+  reference: "Tese, Seções 3.3.2 a 3.3.5 e Tabela 3 (Verificação da CIRO)"
+
+competency_questions:
+  - id: ciro.cq01
+    question: { pt-BR: "Quais processos e atividades compuseram um processo de CI?" }
+    concepts: [ciro.continuous_integration_process, ciro.continuous_build_process,
+               ciro.continuous_test_process, ciro.continuous_inspection_process,
+               ciro.continuous_feedback_activity]
+    relations: [ciro.ci_composed_of_build, ciro.ci_composed_of_test,
+                ciro.ci_composed_of_inspection, ciro.ci_composed_of_feedback]
+    expected_query_type: list
+
+  - id: ciro.cq02
+    question: { pt-BR: "No processo de CI, de quais outras atividades ou processos uma atividade dependeu?" }
+    concepts: [ciro.build_environment_creation, ciro.code_checkout, ciro.candidate_code_building]
+    relations: [spo.activity_depends_on_activity]
+    expected_query_type: list
+
+  - id: ciro.cq03
+    question: { pt-BR: "Quando um processo de CI começou?" }
+    concepts: [ciro.continuous_integration_process]
+    attributes: [spo.performed_project_process.start_date]
+    expected_query_type: single
+
+  - id: ciro.cq04
+    question: { pt-BR: "Quando um processo de CI terminou?" }
+    concepts: [ciro.continuous_integration_process]
+    attributes: [spo.performed_project_process.end_date]
+    expected_query_type: single
+
+  - id: ciro.cq05
+    question: { pt-BR: "Quais artefatos participaram do processo de CI?" }
+    concepts: [ciro.candidate_code, ciro.source_code_copy, ciro.test_code_copy,
+               ciro.build_problem, ciro.ci_test_result, ciro.ci_evaluation_report]
+    relations: [ciro.candidate_code_building_produced_candidate_code, ciro.execution_produced_ci_test_result]
+    expected_query_type: list
+
+  - id: ciro.cq06
+    question: { pt-BR: "Quais stakeholders participaram do processo de CI?" }
+    concepts: [ciro.ci_stakeholder, ciro.continuous_feedback_activity]
+    relations: [ciro.feedback_informs_stakeholder]
+    expected_query_type: list
+
+  - id: ciro.cq07
+    question: { pt-BR: "Que tipo de evento disparou o processo de CI?" }
+    concepts: [ciro.check_in_triggered_continuous_integration_process,
+               ciro.scheduled_continuous_integration_process,
+               ciro.on_demand_continuous_integration_process, ciro.ci_request_event]
+    relations: [ciro.ci_triggered_by_checkin, ciro.ci_triggered_by_request_event]
+    expected_query_type: single
+
+  - id: ciro.cq08
+    question: { pt-BR: "Quais atividades compuseram um processo de build contínuo?" }
+    concepts: [ciro.continuous_build_process, ciro.build_environment_creation,
+               ciro.code_checkout, ciro.candidate_code_building]
+    relations: [ciro.build_composed_of_environment_creation, ciro.build_composed_of_code_checkout,
+                ciro.build_composed_of_candidate_code_building]
+    expected_query_type: list
+
+  - id: ciro.cq09
+    question: { pt-BR: "Quais recursos foram usados para construir os artefatos durante o build contínuo?" }
+    concepts: [ciro.ci_building_environment, ciro.building_software_resource, ciro.building_hardware_resource]
+    relations: [ciro.build_uses_environment]
+    expected_query_type: list
+
+  - id: ciro.cq10
+    question: { pt-BR: "Quais artefatos foram criados durante o processo de build contínuo?" }
+    concepts: [ciro.candidate_code, ciro.source_code_copy, ciro.test_code_copy, ciro.build_problem]
+    relations: [ciro.candidate_code_building_produced_candidate_code, ciro.candidate_code_building_described_build_problem]
+    expected_query_type: list
+
+  - id: ciro.cq11
+    question: { pt-BR: "Quais processos e atividades compuseram um processo de teste contínuo?" }
+    concepts: [ciro.continuous_test_process, ciro.ci_testing_environment_creation,
+               ciro.automated_testing, ciro.automated_test_execution]
+    relations: [ciro.test_composed_of_environment_creation, ciro.test_composed_of_automated_testing,
+                ciro.automated_testing_composed_of_execution]
+    expected_query_type: list
+
+  - id: ciro.cq12
+    question: { pt-BR: "Quais testes automáticos foram executados?" }
+    concepts: [ciro.automated_test_execution, roost.test_case, ciro.ci_test_result]
+    relations: [ciro.execution_tested_candidate_code, ciro.execution_produced_ci_test_result]
+    expected_query_type: list
+
+  - id: ciro.cq13
+    question: { pt-BR: "Quais processos e atividades compuseram um processo de inspeção contínua?" }
+    concepts: [ciro.continuous_inspection_process, ciro.inspection_environment_creation,
+               ciro.automated_adherence_inspection, ciro.automated_artifact_inspection]
+    relations: [ciro.inspection_composed_of_environment_creation,
+                ciro.inspection_composed_of_adherence_inspection,
+                ciro.adherence_inspection_composed_of_artifact_inspection]
+    expected_query_type: list
+
+  - id: ciro.cq14
+    question: { pt-BR: "Qual artefato do projeto ficou em (não) conformidade com os requisitos de qualidade?" }
+    concepts: [ciro.candidate_code_under_inspection, qapo.noncompliance_register, ciro.ci_evaluation_report]
+    relations: [ciro.artifact_inspection_registered_noncompliance, ciro.adherence_inspection_produced_report]
+    expected_query_type: list

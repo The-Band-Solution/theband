@@ -1,0 +1,125 @@
+module:
+  id: qapo.quality_assurance_process
+  ontology: qapo
+  name: Quality Assurance Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Uma não conformidade é o registro de desvio em relação a um requisito
+      aplicável. Não é automaticamente um defeito: transformar code smell em
+      defeito é decisão de engenharia, e deve ser explícita.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.4, Figura 20"
+
+concepts:
+  - id: qapo.quality_assurance_process
+    name: Quality Assurance Process
+    label: { pt-BR: "Processo de Garantia da Qualidade" }
+    definition:
+      pt-BR: >
+        Processo executado específico que avalia e assegura a aderência dos
+        processos executados e artefatos produzidos aos requisitos aplicáveis.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+
+  - id: qapo.adherence_evaluation
+    name: Adherence Evaluation
+    label: { pt-BR: "Avaliação de Aderência" }
+    definition:
+      pt-BR: >
+        Atividade que avalia objetivamente a aderência de processos e produtos aos
+        requisitos aplicáveis, registrando as questões identificadas.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: qapo.artifact_evaluation
+    name: Artifact Evaluation
+    label: { pt-BR: "Avaliação de Artefato" }
+    definition:
+      pt-BR: Atividade que avalia objetivamente a aderência de produtos e entregáveis aos requisitos aplicáveis.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+
+  - id: qapo.evaluated_artifact
+    name: Evaluated Artifact
+    label: { pt-BR: "Artefato Avaliado" }
+    definition:
+      pt-BR: Papel assumido por um artefato quando é alvo de uma avaliação de artefato.
+    classification: { ufo_category: role, is_role_of: spo.artifact }
+
+  - id: qapo.quality_criterion
+    name: Quality Criterion
+    label: { pt-BR: "Critério de Qualidade" }
+    definition:
+      pt-BR: Critério aplicável usado para avaliar a aderência de um artefato ou processo.
+    classification: { ufo_category: normative_description }
+    examples: ["uma função não pode ter mais de 100 linhas de código"]
+
+  - id: qapo.noncompliance_identification
+    name: Noncompliance Identification
+    label: { pt-BR: "Identificação de Não Conformidade" }
+    definition:
+      pt-BR: Atividade que registra as não conformidades identificadas em processos e artefatos.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+
+  - id: qapo.noncompliance_register
+    name: Noncompliance Register
+    label: { pt-BR: "Registro de Não Conformidade" }
+    definition:
+      pt-BR: >
+        Item de informação que descreve uma não conformidade — falha ou recusa em
+        atender a um requisito aplicável — em um processo ou artefato, com as
+        informações necessárias para resolvê-la.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+    examples: ["uma atividade negligenciada em um processo", "um documento especificado incorretamente"]
+
+  - id: qapo.evaluation_report
+    name: Evaluation Report
+    label: { pt-BR: "Relatório de Avaliação" }
+    definition:
+      pt-BR: Documento que descreve os resultados da avaliação e as questões identificadas.
+    classification: { ufo_category: social_object, parent: spo.document }
+
+relations:
+  - id: qapo.process_composed_of_adherence_evaluation
+    name: composed of
+    source: qapo.quality_assurance_process
+    target: qapo.adherence_evaluation
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: qapo.adherence_evaluation_composed_of_artifact_evaluation
+    name: composed of
+    source: qapo.adherence_evaluation
+    target: qapo.artifact_evaluation
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: qapo.adherence_evaluation_composed_of_noncompliance_identification
+    name: composed of
+    source: qapo.adherence_evaluation
+    target: qapo.noncompliance_identification
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: qapo.adherence_evaluation_creates_report
+    name: creates
+    label: { pt-BR: "cria" }
+    source: qapo.adherence_evaluation
+    target: qapo.evaluation_report
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: qapo.noncompliance_identification_registers
+    name: registers
+    label: { pt-BR: "registra" }
+    source: qapo.noncompliance_identification
+    target: qapo.noncompliance_register
+    type: association
+    cardinality: { source: one, target: one_or_many }
+
+  - id: qapo.artifact_evaluation_uses_criterion
+    name: uses
+    label: { pt-BR: "usa" }
+    source: qapo.artifact_evaluation
+    target: qapo.quality_criterion
+    type: association
+    cardinality: { source: many, target: one_or_many }

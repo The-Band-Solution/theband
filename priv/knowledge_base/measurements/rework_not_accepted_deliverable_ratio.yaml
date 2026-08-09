@@ -1,0 +1,22 @@
+measurement:
+  id: rework.not_accepted_deliverable_ratio
+  name: { pt-BR: "Proporção de tarefas que produziram entregáveis não aceitos" }
+  answers_information_need: [rework.effort_on_not_accepted_deliverables]
+  value_type: ratio
+  unit: proportion
+  formula:
+    expression: non_successfully_performed_tasks / performed_tasks
+    inputs: [non_successfully_performed_tasks, performed_tasks]
+  scope:
+    levels: [sprint, project, team]
+    period: per_sprint
+  limitations:
+    - Depende de que a aceitação dos entregáveis tenha sido registrada contra critérios de aceitação.
+    - Tarefas sem entregável associado ficam fora do numerador e do denominador.
+    - Uma tarefa que produziu vários entregáveis conta uma vez, mesmo com apenas um não aceito.
+  misinterpretations:
+    - Retrabalho não é sinônimo de baixa produtividade; pode indicar critérios de aceitação mal definidos.
+    - Comparar equipes por esta medida sem normalizar complexidade das user stories induz conclusão errada.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.5"

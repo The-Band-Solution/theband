@@ -1,0 +1,175 @@
+module:
+  id: spo.processes_and_activities
+  ontology: spo
+  name: Processes and Activities
+  version: 1.0.0
+  description:
+    pt-BR: >
+      A distinção central da SPO: processo pretendido (intended) é uma intenção de
+      executar certos tipos de ação; processo executado (performed) é uma ocorrência
+      que pode não corresponder à intenção original. Confundi-los inviabiliza
+      qualquer análise de aderência entre plano e execução.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.1, Figura 16"
+
+concepts:
+  - id: spo.intended_project_process
+    name: Intended Project Process
+    label: { pt-BR: "Processo Pretendido do Projeto", en: "Intended Project Process" }
+    definition:
+      pt-BR: Processo planejado para ser executado no projeto — uma intenção, não uma ocorrência.
+    classification: { ufo_category: intention }
+
+  - id: spo.general_intended_project_process
+    name: General Intended Project Process
+    label: { pt-BR: "Processo Pretendido Geral" }
+    definition:
+      pt-BR: Processo pretendido que se refere ao processo inteiro definido para um projeto.
+    classification: { ufo_category: intention, parent: spo.intended_project_process }
+
+  - id: spo.specific_intended_project_process
+    name: Specific Intended Project Process
+    label: { pt-BR: "Processo Pretendido Específico" }
+    definition:
+      pt-BR: Processo pretendido definido com um propósito específico no projeto.
+    classification: { ufo_category: intention, parent: spo.intended_project_process }
+    examples: ["o processo de Engenharia de Requisitos definido para um projeto"]
+
+  - id: spo.intended_project_activity
+    name: Intended Project Activity
+    label: { pt-BR: "Atividade Pretendida do Projeto" }
+    definition:
+      pt-BR: Atividade planejada que compõe um processo pretendido específico.
+    classification: { ufo_category: intention }
+
+  - id: spo.performed_project_process
+    name: Performed Project Process
+    label: { pt-BR: "Processo Executado do Projeto", en: "Performed Project Process" }
+    definition:
+      pt-BR: >
+        Processo como efetivamente executado no projeto. É uma ação complexa
+        ("ocorrência") que pode não corresponder à intenção original.
+    classification: { ufo_category: complex_action }
+    attributes:
+      - { name: start_date, type: datetime, required: false }
+      - { name: end_date, type: datetime, required: false }
+
+  - id: spo.general_performed_project_process
+    name: General Performed Project Process
+    label: { pt-BR: "Processo Executado Geral" }
+    definition:
+      pt-BR: Processo executado que corresponde ao processo global do projeto.
+    classification: { ufo_category: complex_action, parent: spo.performed_project_process }
+
+  - id: spo.specific_performed_project_process
+    name: Specific Performed Project Process
+    label: { pt-BR: "Processo Executado Específico" }
+    definition:
+      pt-BR: Processo executado com propósito específico, composto de atividades executadas.
+    classification: { ufo_category: complex_action, parent: spo.performed_project_process }
+
+  - id: spo.specific_performed_project_simple_process
+    name: Specific Performed Project Simple Process
+    label: { pt-BR: "Processo Executado Específico Simples" }
+    definition:
+      pt-BR: Processo executado específico que contém apenas atividades.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 2.2.2.1 — conceito desenvolvido para apoiar Continuum"
+
+  - id: spo.specific_performed_project_composite_process
+    name: Specific Performed Project Composite Process
+    label: { pt-BR: "Processo Executado Específico Composto" }
+    definition:
+      pt-BR: Processo executado específico que contém dois ou mais processos executados específicos.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    provenance:
+      source_type: thesis
+      reference: "Tese, Seção 2.2.2.1 — conceito desenvolvido para apoiar Continuum"
+
+  - id: spo.performed_project_activity
+    name: Performed Project Activity
+    label: { pt-BR: "Atividade Executada do Projeto" }
+    definition:
+      pt-BR: Atividade efetivamente executada, compondo um processo executado específico.
+    classification: { ufo_category: action }
+    attributes:
+      - { name: start_date, type: datetime, required: false }
+      - { name: end_date, type: datetime, required: false }
+
+  - id: spo.performed_simple_activity
+    name: Performed Simple Activity
+    label: { pt-BR: "Atividade Executada Simples" }
+    definition:
+      pt-BR: Atividade executada que não se decompõe em outras atividades.
+    classification: { ufo_category: action, parent: spo.performed_project_activity }
+
+  - id: spo.performed_composite_activity
+    name: Performed Composite Activity
+    label: { pt-BR: "Atividade Executada Composta" }
+    definition:
+      pt-BR: Atividade executada composta de outras atividades executadas.
+    classification: { ufo_category: complex_action, parent: spo.performed_project_activity }
+
+relations:
+  - id: spo.intended_causes_performed
+    name: causes
+    label: { pt-BR: "causa" }
+    source: spo.intended_project_activity
+    target: spo.performed_project_activity
+    type: causation
+    cardinality: { source: one, target: many }
+    semantics:
+      description: >
+        A intenção de executar uma atividade pode resultar na execução dela. Nem
+        toda atividade pretendida é executada, e nem toda executada foi pretendida.
+
+  - id: spo.process_composed_of_activity
+    name: composed of
+    label: { pt-BR: "composto por" }
+    source: spo.specific_performed_project_process
+    target: spo.performed_project_activity
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: spo.activity_depends_on_activity
+    name: depends on
+    label: { pt-BR: "depende de" }
+    source: spo.performed_project_activity
+    target: spo.performed_project_activity
+    type: dependency
+    cardinality: { source: many, target: many }
+    semantics:
+      description: Estabelece a ordem em que as atividades ocorreram.
+
+  - id: spo.is_in_charge_of
+    name: is in charge of
+    label: { pt-BR: "é responsável por" }
+    source: spo.project_stakeholder
+    target: spo.performed_project_activity
+    type: participation
+    cardinality: { source: many, target: many }
+    semantics:
+      description: O stakeholder foi responsável pela execução da atividade.
+
+  - id: spo.participates_in
+    name: participates in
+    label: { pt-BR: "participa de" }
+    source: spo.project_stakeholder
+    target: spo.performed_project_activity
+    type: participation
+    cardinality: { source: many, target: many }
+    semantics:
+      description: >
+        O stakeholder contribuiu com a execução da atividade, sem ser o responsável.
+        Distinguir de "is in charge of" é o que permite medir carga real de trabalho.
+
+  - id: spo.process_performed_in_project
+    name: performed in
+    label: { pt-BR: "executado em" }
+    source: spo.performed_project_process
+    target: spo.software_project
+    type: association
+    cardinality: { source: many, target: one }

@@ -1,0 +1,111 @@
+derivation_rule:
+  id: github.issue_type_routing
+  version: 1
+  provider: github
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Roteamento de issue do GitHub por tipo"
+  description:
+    pt-BR: >
+      Decide para qual conceito da rede uma issue do GitHub é promovida, a partir
+      do tipo de issue definido pela organização (campo issueType do GraphQL) e da
+      estrutura de sub-issues.
+
+      Uma issue não tem um destino único: conforme o tipo, ela é um épico, uma user
+      story, uma tarefa de desenvolvimento ou um defeito. Promover toda issue a
+      user story infla o escopo do produto com correções e tarefas técnicas, e o
+      erro só aparece quando alguém pergunta por que o backlog cresce sem features
+      novas.
+
+  inputs:
+    - issueType.name
+    - parent.id
+    - subIssues
+    - subIssuesSummary.total
+
+  availability:
+    note: >
+      Tipos de issue são configuráveis por organização e podem não existir na
+      instalação do tenant, sobretudo em GitHub Enterprise Server mais antigo.
+      Quando issueType for nulo, esta regra não decide e o fallback vale.
+    required_api_fields: [issueType, parent, subIssues]
+
+  # ---------------------------------------------------------------------------
+  # Os nomes abaixo são os tipos padrão do GitHub mais os tipos comumente criados
+  # por organizações que usam Scrum. Cada tenant sobrescreve esta lista em
+  # rules/tenants/<tenant>.yaml — nomes de tipo são texto livre na organização.
+  # ---------------------------------------------------------------------------
+  routes:
+    - target_concept: sro.epic
+      when:
+        issue_type_in: ["Epic", "Épico", "Epico"]
+      structural_requirements:
+        has_children: true
+        children_of_concept: sro.user_story
+      on_divergence: flag_and_follow_precedence
+
+    - target_concept: sro.atomic_user_story
+      when:
+        issue_type_in: ["User Story", "História de Usuário", "Story", "Feature"]
+      structural_requirements:
+        has_children: false
+      on_divergence: flag_and_follow_precedence
+
+    - target_concept: sro.intended_scrum_development_task
+      when:
+        issue_type_in: ["Task", "Tarefa"]
+      structural_requirements:
+        parent_of_concept: sro.atomic_user_story
+      on_divergence: flag_and_follow_precedence
+
+    - target_concept: osdef.defect
+      when:
+        issue_type_in: ["Bug", "Defeito", "Defect"]
+
+  precedence: structure_over_declaration
+
+  precedence_rationale:
+    pt-BR: >
+      Em SRO, épico não é um rótulo: é uma user story que tem partes. O tipo
+      declarado no GitHub expressa a intenção do time; a estrutura de sub-issues
+      expressa o fato. Quando os dois divergem, o fato vence.
+
+      Consequências concretas:
+
+      - issue tipo "Epic" sem sub-issues → promovida a sro.atomic_user_story,
+        com divergência registrada. Não existe épico sem partes (sro.rule05).
+      - issue tipo "User Story" com sub-issues que também são user stories →
+        promovida a sro.epic. A composição a torna épico, independentemente do
+        rótulo.
+      - issue tipo "User Story" cujas sub-issues são todas do tipo Task →
+        permanece sro.atomic_user_story. Tarefas não são partes de user story no
+        sentido da composição: elas a atendem, por
+        sro.intended_task_planned_to_meet_user_story. Confundir os dois casos é o
+        erro mais fácil de cometer aqui.
+
+  divergence_handling:
+    action: flag_and_follow_precedence
+    record:
+      - declared_concept
+      - derived_concept
+      - reason
+    note: >
+      A divergência fica registrada na proveniência do registro promovido. Serve
+      de sinal para o time — normalmente indica épico abandonado sem decomposição
+      ou user story que cresceu e virou épico sem retipagem.
+
+  fallback: skip
+  fallback_rationale:
+    pt-BR: >
+      Quando issueType é nulo, ou seu nome não consta em nenhuma rota, a issue
+      permanece em raw_entities sem promoção. Aparece como lacuna mensurável, e
+      não como user story presumida. Chutar aqui contamina toda medida de escopo.
+
+  provenance:
+    source_type: project_decision
+    reference: "Backlog GitHub → SRO, Fatia 3"
+    note: >
+      Regra global padrão. Tenants com nomenclatura própria a sobrescrevem em
+      rules/tenants/, mantendo a mesma estrutura e a mesma precedência.

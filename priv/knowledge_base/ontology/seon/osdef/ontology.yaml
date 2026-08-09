@@ -1,0 +1,20 @@
+ontology:
+  id: osdef
+  name: Reference Ontology of Software Defects, Errors and Failures
+  acronym: OSDEF
+  version: 1.0.0
+  namespace: the_band.ontology.seon.osdef
+  layer: domain
+  network: seon
+  description:
+    pt-BR: >
+      Conceitualização sobre defeitos, erros e falhas em software, incluindo a
+      distinção entre defect, fault (defeito em tempo de execução) e failure.
+dependencies: [ufo, spo, sys_swo, roost]
+modules:
+  - defects_and_failures
+provenance:
+  source_type: reference_ontology
+  reference: "Tese, Seção 2.2.2.5, Figura 21"
+  authors: ["Duarte, B. B.", "et al."]
+  year: 2018

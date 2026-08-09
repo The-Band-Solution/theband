@@ -1,0 +1,19 @@
+information_need:
+  id: rework.effort_on_not_accepted_deliverables
+  name: { pt-BR: "Esforço gasto em entregáveis não aceitos" }
+  question:
+    pt-BR: "Quanto do trabalho executado em um sprint produziu entregáveis que não foram aceitos?"
+  stakeholders: [product_owner, scrum_master, engineering_manager]
+  decision_supported:
+    pt-BR: >
+      Avaliar qualidade do trabalho e produtividade da equipe, e decidir sobre
+      revisão dos critérios de aceitação ou da granularidade das user stories.
+  required_concepts:
+    [sro.performed_scrum_development_task, sro.non_successfully_performed_scrum_development_task,
+     sro.not_accepted_deliverable, sro.sprint, sro.atomic_user_story]
+  required_relations:
+    [sro.non_successful_task_produced_not_accepted_deliverable, sro.performed_task_performed_in_sprint]
+  candidate_measurements: [rework.not_accepted_deliverable_ratio]
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.5 — CQ31, CQ33, CQ36 e CQ37"

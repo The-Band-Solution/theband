@@ -1,0 +1,114 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/module
+title: Ontology Module
+description: >
+  Módulo (subontologia) contendo os conceitos e relações de uma parte da ontologia.
+  Granularidade equivalente à do módulo Elixir correspondente.
+type: object
+additionalProperties: false
+required: [module, concepts]
+properties:
+  module:
+    type: object
+    additionalProperties: false
+    required: [id, ontology, name, version, provenance]
+    properties:
+      id:       { type: string, pattern: "^[a-z_]+\\.[a-z0-9_]+$" }
+      ontology: { type: string, pattern: "^[a-z_]+$" }
+      name:     { type: string }
+      version:  { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
+      description:
+        type: object
+        properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+      provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }
+
+  concepts:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, name, definition, classification]
+      properties:
+        id:   { type: string, pattern: "^[a-z_]+\\.[a-z0-9_]+$" }
+        name: { type: string, description: Nome do conceito como na ontologia de origem (en) }
+        label:
+          type: object
+          properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+        definition:
+          type: object
+          required: [pt-BR]
+          properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+        classification:
+          type: object
+          additionalProperties: false
+          required: [ufo_category]
+          properties:
+            ufo_category:
+              description: Categoria fundacional da UFO que classifica o conceito.
+              enum:
+                [kind, subkind, role, phase, relator, mode, quality, quantity,
+                 collective, event, situation, disposition, agent, object,
+                 social_object, social_role, social_agent, normative_description,
+                 action, complex_action, intention, goal, abstract_individual]
+            parent:
+              description: Conceito mais geral especializado por este (pode ser de outra ontologia).
+              type: string
+            is_role_of:
+              description: Conceito que assume este papel, quando classification for role.
+              type: string
+        attributes:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, type]
+            properties:
+              name:     { type: string }
+              type:     { enum: [string, text, integer, decimal, boolean, date, datetime, duration, enum] }
+              required: { type: boolean, default: false }
+              values:   { type: array, items: { type: string } }
+              description: { type: string }
+        constraints:
+          type: array
+          description: Ids de regras em rules/ que restringem este conceito.
+          items: { type: string }
+        examples:
+          type: array
+          items: { type: string }
+        automated:
+          type: boolean
+          description: Marca conceitos que, em Continuum, ocorrem sem intervenção humana.
+        provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }
+
+  relations:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, name, source, target]
+      properties:
+        id:     { type: string, pattern: "^[a-z_]+\\.[a-z0-9_]+$" }
+        name:   { type: string, description: "Verbo da relação. Em Continuum, no passado." }
+        label:
+          type: object
+          properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+        source: { type: string }
+        target: { type: string }
+        type:
+          enum: [association, part_whole, dependency, participation, materialization,
+                 causation, specialization, derivation]
+        cardinality:
+          type: object
+          additionalProperties: false
+          properties:
+            source: { enum: [one, zero_or_one, many, one_or_many] }
+            target: { enum: [one, zero_or_one, many, one_or_many] }
+        temporal:
+          type: object
+          additionalProperties: false
+          properties:
+            type: { enum: [enduring_relation, event_relation, historical_relation] }
+        semantics:
+          type: object
+          properties: { description: { type: string } }

@@ -1,0 +1,17 @@
+information_need:
+  id: review.time_to_first_review
+  name: { pt-BR: "Tempo até a primeira revisão" }
+  question:
+    pt-BR: "Quanto tempo uma solicitação de mudança aguarda até receber a primeira revisão?"
+    en: "How long does a change request wait until it receives its first review?"
+  stakeholders: [engineering_manager, team_lead, scrum_master]
+  decision_supported:
+    pt-BR: >
+      Identificar gargalos no processo de revisão de código e decidir sobre
+      redistribuição de revisores ou limites de trabalho em progresso.
+  required_concepts: [cmpo.change_request, qapo.artifact_evaluation, eo.person]
+  required_relations: [qapo.adherence_evaluation_composed_of_artifact_evaluation]
+  candidate_measurements: [review.time_to_first_review.duration]
+  provenance:
+    source_type: project_decision
+    note: Necessidade derivada das perguntas de análise definidas para o The Band.

@@ -1,0 +1,89 @@
+module:
+  id: sro.scrum_stakeholder_participation
+  ontology: sro
+  name: Scrum Stakeholder Participation
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Quem foi responsável e quem participou de cada processo e cerimônia do
+      projeto Scrum. Baseia-se nas relações "is in charge of" e "participates in"
+      de SPO — distinguir as duas é o que permite medir responsabilidade real, e
+      não apenas presença.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.3, Figura 28"
+
+concepts: []
+
+relations:
+  - id: sro.po_in_charge_of_product_backlog_definition
+    name: was in charge of
+    label: { pt-BR: "foi responsável por" }
+    source: sro.product_owner
+    target: sro.product_backlog_definition
+    type: participation
+    cardinality: { source: one, target: one }
+
+  - id: sro.po_in_charge_of_planning_meeting
+    name: was in charge of
+    source: sro.product_owner
+    target: sro.planning_meeting
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.po_in_charge_of_review_meeting
+    name: was in charge of
+    source: sro.product_owner
+    target: sro.review_meeting
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.po_in_charge_of_retrospective_meeting
+    name: was in charge of
+    source: sro.product_owner
+    target: sro.retrospective_meeting
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.scrum_master_in_charge_of_daily
+    name: was in charge of
+    source: sro.scrum_master
+    target: sro.daily_standup_meeting
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.developer_in_charge_of_development_task
+    name: was in charge of
+    source: sro.developer
+    target: sro.performed_scrum_development_task
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.developer_participates_in_development_task
+    name: participated in
+    label: { pt-BR: "participou de" }
+    source: sro.developer
+    target: sro.performed_scrum_development_task
+    type: participation
+    cardinality: { source: many, target: many }
+
+  - id: sro.development_team_participates_in_daily
+    name: participated in
+    source: sro.development_team
+    target: sro.daily_standup_meeting
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.scrum_team_participates_in_ceremony
+    name: participated in
+    source: sro.scrum_team
+    target: sro.ceremony
+    type: participation
+    cardinality: { source: one, target: many }
+
+  - id: sro.client_participates_in_product_backlog_definition
+    name: participated in
+    source: sro.client
+    target: sro.product_backlog_definition
+    type: participation
+    cardinality: { source: many, target: one }

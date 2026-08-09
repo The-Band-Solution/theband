@@ -1,0 +1,81 @@
+module:
+  id: cmpo.checkout
+  ontology: cmpo
+  name: Checkout (Git-aligned)
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Extensão do CMPO desenvolvida na tese para representar checkout como ocorre
+      no Git: criação e troca de branch, e checkout de artefato.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.1, Figura 32"
+
+concepts:
+  - id: cmpo.checkout
+    name: Checkout
+    label: { pt-BR: "Checkout" }
+    definition:
+      pt-BR: >
+        Atividade para acessar versões definidas de um item de configuração em um
+        repositório, normalmente para alteração, criando uma cópia de artefato em
+        um ambiente.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: cmpo.branch
+    name: Branch
+    label: { pt-BR: "Branch", en: "Branch" }
+    definition:
+      pt-BR: Coletivo dos artefatos de um repositório de código.
+    classification: { ufo_category: collective }
+
+  - id: cmpo.branch_creation
+    name: Branch Creation
+    label: { pt-BR: "Criação de Branch" }
+    definition:
+      pt-BR: Atividade executada simples que cria uma branch em um repositório de código.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.branch_switch
+    name: Branch Switch
+    label: { pt-BR: "Troca de Branch" }
+    definition:
+      pt-BR: Atividade executada simples que alterna entre branches de um repositório.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.artifact_checkout
+    name: Artifact Checkout
+    label: { pt-BR: "Checkout de Artefato" }
+    definition:
+      pt-BR: Atividade executada simples que cria ou atualiza uma branch com uma cópia de artefato.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+relations:
+  - id: cmpo.checkout_composed_of_branch_creation
+    name: composed of
+    source: cmpo.checkout
+    target: cmpo.branch_creation
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.checkout_composed_of_branch_switch
+    name: composed of
+    source: cmpo.checkout
+    target: cmpo.branch_switch
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.checkout_composed_of_artifact_checkout
+    name: composed of
+    source: cmpo.checkout
+    target: cmpo.artifact_checkout
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: cmpo.branch_belongs_to_repository
+    name: is in
+    label: { pt-BR: "está em" }
+    source: cmpo.branch
+    target: cmpo.source_repository
+    type: part_whole
+    cardinality: { source: many, target: one }

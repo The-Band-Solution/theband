@@ -1,0 +1,59 @@
+module:
+  id: spo.projects_and_stakeholders
+  ontology: spo
+  name: Projects and Stakeholders
+  version: 1.0.0
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.1, Figura 16"
+
+concepts:
+  - id: spo.project
+    name: Project
+    label: { pt-BR: "Projeto", en: "Project" }
+    definition:
+      pt-BR: Empreendimento temporário com objetivo definido, executado por uma organização.
+    classification: { ufo_category: social_object }
+    attributes:
+      - { name: name, type: string, required: true }
+      - { name: started_at, type: datetime, required: false }
+      - { name: ended_at, type: datetime, required: false }
+
+  - id: spo.software_project
+    name: Software Project
+    label: { pt-BR: "Projeto de Software", en: "Software Project" }
+    definition:
+      pt-BR: Projeto relacionado ao desenvolvimento ou manutenção de software.
+    classification: { ufo_category: social_object, parent: spo.project }
+
+  - id: spo.project_stakeholder
+    name: Project Stakeholder
+    label: { pt-BR: "Parte Interessada do Projeto", en: "Project Stakeholder" }
+    definition:
+      pt-BR: Agente interessado em um projeto de software.
+    classification: { ufo_category: role }
+
+  - id: spo.project_person_stakeholder
+    name: Project Person Stakeholder
+    label: { pt-BR: "Parte Interessada Pessoa", en: "Project Person Stakeholder" }
+    definition:
+      pt-BR: Pessoa interessada em um projeto de software.
+    classification: { ufo_category: role, parent: spo.project_stakeholder, is_role_of: eo.person }
+    examples: ["o gerente do projeto"]
+
+  - id: spo.project_team_stakeholder
+    name: Project Team Stakeholder
+    label: { pt-BR: "Parte Interessada Equipe", en: "Project Team Stakeholder" }
+    definition:
+      pt-BR: Equipe interessada em um projeto de software.
+    classification: { ufo_category: role, parent: spo.project_stakeholder, is_role_of: eo.team }
+    examples: ["a equipe de desenvolvimento do projeto"]
+
+relations:
+  - id: spo.stakeholder_interested_in_project
+    name: is interested in
+    label: { pt-BR: "tem interesse em" }
+    source: spo.project_stakeholder
+    target: spo.software_project
+    type: association
+    cardinality: { source: many, target: many }

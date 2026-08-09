@@ -1,0 +1,59 @@
+mapping:
+  id: github.issue.user_story.to.sro.atomic_user_story
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue
+  api: graphql
+  schema_version: v4
+  selector:
+    field: issueType.name
+    rule_ref: github.issue_type_routing
+    values: ["User Story", "História de Usuário", "Story", "Feature"]
+    structural_requirements:
+      has_children: false
+derivation:
+  rule_id: github.issue_type_routing
+  confidence: medium
+  inputs: [issueType.name, subIssues, parent.id]
+  precedence: structure_over_declaration
+  on_divergence: flag_and_follow_precedence
+  fallback: skip
+target:
+  ontology: sro
+  concept: sro.atomic_user_story
+semantics:
+  equivalence: derived
+  justification: >
+    Uma issue promovida a user story atômica descreve um requisito do produto e
+    não é decomposta em outras user stories. É o nível em que tarefas de
+    desenvolvimento se ligam ao escopo (sro.rule07) e em que entregáveis
+    materializam requisitos — por isso a distinção entre atômica e épico não é
+    cosmética.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, number]
+attributes:
+  title:      { source_path: title }
+  body:       { source_path: body }
+  importance: { source_path: "projectItems.nodes.fieldValueByName(Priority).number" }
+  complexity: { source_path: "projectItems.nodes.fieldValueByName(Estimate).number" }
+relations:
+  author:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+  part_of_epic:
+    source_path: parent.id
+    target_ontology: sro
+    target_concept: sro.epic
+limitations:
+  - Issue com sub-issues que também são user stories é épico, não atômica — a estrutura vence o tipo declarado.
+  - Sub-issues do tipo Task não descaracterizam a user story como atômica; tarefas a atendem, não a compõem.
+  - Critérios de aceitação escritos no corpo em texto livre não são sro.acceptance_criterion até serem extraídos e validados; a extração não faz parte deste mapeamento.
+  - Importance e complexity dependem de campos de GitHub Projects que podem não existir; ausência é nulo, nunca zero.
+  - Feature e User Story são tratadas como o mesmo destino, o que pode ser incorreto em organizações que usam Feature como agrupador — confirmar por tenant.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

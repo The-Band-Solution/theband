@@ -1,0 +1,27 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/information-need
+title: Information Need
+description: >
+  Necessidade de informação de um stakeholder. Nenhuma medida e nenhum dashboard
+  podem existir sem uma entrada correspondente aqui.
+type: object
+additionalProperties: false
+required: [information_need]
+properties:
+  information_need:
+    type: object
+    additionalProperties: false
+    required: [id, name, question, stakeholders, decision_supported, required_concepts]
+    properties:
+      id:   { type: string }
+      name: { $ref: "the-band/schemas/common#/$defs/label" }
+      question: { $ref: "the-band/schemas/common#/$defs/label" }
+      stakeholders:
+        type: array
+        minItems: 1
+        items: { type: string }
+      decision_supported: { $ref: "the-band/schemas/common#/$defs/label" }
+      required_concepts:  { type: array, minItems: 1, items: { type: string } }
+      required_relations: { type: array, items: { type: string } }
+      candidate_measurements: { type: array, items: { type: string } }
+      provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }

@@ -1,0 +1,145 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/mapping
+title: Semantic Mapping
+description: >
+  Mapeamento entre uma entidade de uma fonte externa e um conceito ontológico.
+  Equivalência, justificativa e limitações são obrigatórias: nomes semelhantes
+  não bastam para tratar conceitos como equivalentes.
+type: object
+additionalProperties: false
+required: [mapping, source, target, semantics, identity, limitations, provenance]
+properties:
+  mapping:
+    type: object
+    additionalProperties: false
+    required: [id, version, status]
+    properties:
+      id:      { type: string }
+      version: { type: integer, minimum: 1 }
+      status:  { enum: [proposed, reviewed, approved, deprecated] }
+  source:
+    type: object
+    additionalProperties: false
+    required: [provider, entity]
+    properties:
+      provider:       { type: string }
+      entity:         { type: string }
+      api:            { enum: [graphql, rest, webhook, file] }
+      schema_version: { type: string }
+      selector:
+        description: >
+          Condição que roteia uma mesma entidade externa para conceitos diferentes.
+          Uma issue do GitHub pode ser épico, user story, tarefa ou defeito conforme
+          seu tipo e sua estrutura. Sem selector, o mapeamento vale para toda a
+          entidade — o que só é correto quando ela tem um único destino possível.
+        type: object
+        additionalProperties: false
+        properties:
+          field:
+            description: Caminho do campo discriminador no payload (ex. issueType.name).
+            type: string
+          values:
+            description: Valores do discriminador que ativam este mapeamento.
+            type: array
+            items: { type: string }
+          rule_ref:
+            description: >
+              Id da regra de derivação que resolve o discriminador. Necessário quando
+              os valores são configuráveis por tenant, como os tipos de issue de uma
+              organização do GitHub.
+            type: string
+          structural_requirements:
+            description: >
+              Condições sobre a estrutura, não sobre a declaração. Vencem o
+              discriminador quando houver divergência, se precedence assim mandar.
+            type: object
+            additionalProperties: false
+            properties:
+              has_children:        { type: boolean }
+              children_of_concept: { type: string }
+              has_parent:          { type: boolean }
+              parent_of_concept:   { type: string }
+  derivation:
+    description: >
+      Presente quando o conceito não é lido diretamente de um campo, mas inferido.
+      Sem este bloco, um dado derivado fica indistinguível de um observado — e um
+      número calculado sobre inferência vira fato por acidente.
+    type: object
+    additionalProperties: false
+    required: [rule_id, confidence, inputs]
+    properties:
+      rule_id:
+        description: Id da regra em rules/, que é versionada e revisada.
+        type: string
+      confidence:
+        enum: [high, medium, low]
+      inputs:
+        description: Campos do payload que alimentam a inferência.
+        type: array
+        minItems: 1
+        items: { type: string }
+      precedence:
+        description: >
+          O que vence quando declaração e estrutura divergem. Em SRO, épico é
+          definido por composição, não por rótulo — logo o padrão é a estrutura.
+        enum: [structure_over_declaration, declaration_over_structure]
+      on_divergence:
+        description: O que fazer quando declaração e estrutura discordam.
+        enum: [follow_precedence, skip, flag_and_follow_precedence]
+      fallback:
+        description: >
+          O que fazer quando a regra não decide. O padrão obrigatório é skip: o dado
+          permanece em raw_entities como lacuna visível, sem ser promovido ao domínio.
+        enum: [skip]
+  target:
+    type: object
+    additionalProperties: false
+    required: [ontology, concept]
+    properties:
+      ontology: { type: string }
+      concept:  { type: string }
+  semantics:
+    type: object
+    additionalProperties: false
+    required: [equivalence, justification]
+    properties:
+      equivalence:   { enum: [total, partial, role_of, derived] }
+      justification: { type: string }
+  identity:
+    type: object
+    additionalProperties: false
+    required: [external_id_path]
+    properties:
+      external_id_path: { type: string }
+      natural_key: { type: array, items: { type: string } }
+  attributes:
+    type: object
+    additionalProperties:
+      type: object
+      additionalProperties: false
+      properties:
+        source_path: { type: string }
+        transform:   { type: string }
+        default:     {}
+  relations:
+    type: object
+    additionalProperties:
+      type: object
+      additionalProperties: false
+      properties:
+        source_path:     { type: string }
+        target_ontology: { type: string }
+        target_concept:  { type: string }
+  limitations:
+    type: array
+    minItems: 1
+    items: { type: string }
+  provenance:
+    type: object
+    additionalProperties: false
+    required: [preserve_raw_payload, required_fields]
+    properties:
+      preserve_raw_payload: { type: boolean }
+      required_fields:
+        type: array
+        items: { enum: [source_system, source_instance, external_id, collected_at, schema_version] }

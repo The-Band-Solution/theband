@@ -1,0 +1,36 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/ontology
+title: Ontology
+description: Metadados de uma ontologia da rede (ontology.yaml).
+type: object
+additionalProperties: false
+required: [ontology, dependencies, modules, provenance]
+properties:
+  ontology:
+    type: object
+    additionalProperties: false
+    required: [id, name, version, namespace, layer, network]
+    properties:
+      id:        { type: string, pattern: "^[a-z_]+$" }
+      name:      { type: string }
+      acronym:   { type: string }
+      version:   { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
+      namespace: { type: string }
+      layer:     { enum: [foundational, core, domain] }
+      network:   { enum: [ufo, seon, continuum] }
+      description:
+        type: object
+        properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+  dependencies:
+    type: array
+    description: Ontologias reusadas. Só do mais específico para o mais geral.
+    items: { type: string, pattern: "^[a-z_]+$" }
+  modules:
+    type: array
+    minItems: 1
+    items: { type: string, pattern: "^[a-z0-9_]+$" }
+  competency_questions:
+    type: array
+    items: { type: string }
+  provenance:
+    $ref: "the-band/schemas/common#/$defs/provenance"

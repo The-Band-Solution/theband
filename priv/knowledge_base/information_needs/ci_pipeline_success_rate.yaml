@@ -1,0 +1,17 @@
+information_need:
+  id: ci.pipeline_success_rate
+  name: { pt-BR: "Taxa de sucesso da integração contínua" }
+  question:
+    pt-BR: "Qual a proporção de processos de integração contínua concluídos com sucesso em um repositório?"
+  stakeholders: [engineering_manager, team_lead, developer]
+  decision_supported:
+    pt-BR: >
+      Decidir sobre investimento em estabilidade do pipeline, cobertura de testes
+      e qualidade do código integrado.
+  required_concepts:
+    [ciro.continuous_integration_process, ciro.successful_continuous_integration_process,
+     ciro.unsuccessful_continuous_integration_process, cmpo.source_repository]
+  required_relations: [ciro.ci_performed_in_server]
+  candidate_measurements: [ci.pipeline_success_rate.ratio]
+  provenance:
+    source_type: project_decision

@@ -1,0 +1,140 @@
+module:
+  id: eo.organizational_structure
+  ontology: eo
+  name: Organizational Structure
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Organizações, pessoas, equipes e papéis. O ponto central é que ser membro de
+      equipe não é uma propriedade da pessoa: é um papel alocado por uma relação
+      contextual (Team Membership).
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.1, Figura 16"
+
+concepts:
+  - id: eo.organization
+    name: Organization
+    label: { pt-BR: "Organização", en: "Organization" }
+    definition:
+      pt-BR: Agente social que reconhece papéis organizacionais e emprega pessoas.
+    classification: { ufo_category: social_agent }
+
+  - id: eo.organizational_unit
+    name: Organizational Unit
+    label: { pt-BR: "Unidade Organizacional", en: "Organizational Unit" }
+    definition:
+      pt-BR: Parte de uma organização com responsabilidades próprias.
+    classification: { ufo_category: social_agent, parent: eo.organization }
+
+  - id: eo.person
+    name: Person
+    label: { pt-BR: "Pessoa", en: "Person" }
+    definition:
+      pt-BR: >
+        Agente humano. É o conceito de identidade das pessoas em toda a rede:
+        SRO, CIRO e CDRO referenciam pessoas apenas por meio de papéis.
+    classification: { ufo_category: agent }
+    attributes:
+      - { name: name, type: string, required: true }
+      - { name: email, type: string, required: false }
+
+  - id: eo.organizational_role
+    name: Organizational Role
+    label: { pt-BR: "Papel Organizacional", en: "Organizational Role" }
+    definition:
+      pt-BR: >
+        Papel social reconhecido pela organização, atribuído a agentes quando são
+        contratados, incluídos em uma equipe, alocados ou participam de atividades.
+    classification: { ufo_category: social_role }
+    examples: ["gerente de projeto", "designer", "programador"]
+
+  - id: eo.team
+    name: Team
+    label: { pt-BR: "Equipe", en: "Team" }
+    definition:
+      pt-BR: Coletivo de pessoas que desempenham papéis organizacionais em conjunto.
+    classification: { ufo_category: collective }
+
+  - id: eo.organizational_team
+    name: Organizational Team
+    label: { pt-BR: "Equipe Organizacional", en: "Organizational Team" }
+    definition:
+      pt-BR: Equipe ligada a uma organização, e não a um projeto específico.
+    classification: { ufo_category: collective, parent: eo.team }
+    examples: ["a equipe de marketing de uma organização de software"]
+
+  - id: eo.project_team
+    name: Project Team
+    label: { pt-BR: "Equipe de Projeto", en: "Project Team" }
+    definition:
+      pt-BR: Equipe ligada a um projeto.
+    classification: { ufo_category: collective, parent: eo.team }
+    examples: ["a equipe de desenvolvimento de um projeto"]
+
+  - id: eo.team_member
+    name: Team Member
+    label: { pt-BR: "Membro de Equipe", en: "Team Member" }
+    definition:
+      pt-BR: >
+        Pessoa que desempenha um papel organizacional em uma equipe específica.
+        É papel, não tipo: a mesma pessoa pode ser membro de várias equipes, com
+        papéis diferentes, em períodos diferentes.
+    classification: { ufo_category: role, is_role_of: eo.person }
+
+  - id: eo.team_membership
+    name: Team Membership
+    label: { pt-BR: "Alocação em Equipe", en: "Team Membership" }
+    definition:
+      pt-BR: >
+        Relação social que aloca um membro de equipe para desempenhar um papel
+        organizacional em uma equipe. É o relator que conecta pessoa, papel e
+        equipe — e o lugar onde vive a temporalidade da alocação.
+    classification: { ufo_category: relator }
+    attributes:
+      - { name: started_at, type: datetime, required: false }
+      - { name: ended_at, type: datetime, required: false }
+    examples:
+      - "A alocação de John como programador na equipe de desenvolvimento do projeto X."
+
+relations:
+  - id: eo.recognizes
+    name: recognizes
+    label: { pt-BR: "reconhece" }
+    source: eo.organization
+    target: eo.organizational_role
+    type: association
+    cardinality: { source: one, target: many }
+
+  - id: eo.membership_allocates_member
+    name: allocates
+    label: { pt-BR: "aloca" }
+    source: eo.team_membership
+    target: eo.team_member
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: eo.membership_to_team
+    name: allocates to team
+    label: { pt-BR: "aloca na equipe" }
+    source: eo.team_membership
+    target: eo.team
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: eo.membership_to_play_role
+    name: to play
+    label: { pt-BR: "para desempenhar" }
+    source: eo.team_membership
+    target: eo.organizational_role
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: eo.team_member_is_person
+    name: is played by
+    label: { pt-BR: "é desempenhado por" }
+    source: eo.team_member
+    target: eo.person
+    type: association
+    cardinality: { source: many, target: one }
+    temporal: { type: historical_relation }

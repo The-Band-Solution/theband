@@ -1,0 +1,22 @@
+ontology:
+  id: spo
+  name: Software Process Ontology
+  acronym: SPO
+  version: 1.0.0
+  namespace: the_band.ontology.seon.spo
+  layer: core
+  network: seon
+  description:
+    pt-BR: >
+      Conceitualização comum sobre processos de software: projetos, stakeholders,
+      processos e atividades planejados e executados, artefatos, recursos e
+      participação de stakeholders.
+dependencies: [ufo, eo]
+modules:
+  - projects_and_stakeholders
+  - processes_and_activities
+  - artifacts_and_resources
+provenance:
+  source_type: reference_ontology
+  reference: "Tese, Seção 2.2.2.1 (Figuras 16 e 17)"
+  authors: ["Bringuente, A. C.", "Falbo, R. A.", "Guizzardi, G.", "Ruy, F. B."]

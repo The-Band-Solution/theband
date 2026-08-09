@@ -1,0 +1,19 @@
+source:
+  id: gitlab
+  name: GitLab
+  type: version_control_and_ci
+  version: 1
+apis:
+  - { id: graphql, endpoint: "https://gitlab.com/api/graphql", preferred: true }
+  - { id: rest, endpoint: "https://gitlab.com/api/v4", preferred: false }
+entities:
+  - { id: group,          feeds_ontologies: [eo] }
+  - { id: user,           feeds_ontologies: [eo] }
+  - { id: project,        feeds_ontologies: [cmpo, spo] }
+  - { id: merge_request,  feeds_ontologies: [cmpo, eo, spo] }
+  - { id: pipeline,       feeds_ontologies: [ciro] }
+  - { id: job,            feeds_ontologies: [ciro, roost] }
+  - { id: deployment,     feeds_ontologies: [cdro] }
+capabilities: { pagination: cursor, webhooks: true, historical_backfill: true }
+authentication: { methods: [personal_access_token, oauth], secret_storage: environment_variable }
+status: planned

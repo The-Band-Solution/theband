@@ -1,0 +1,73 @@
+module:
+  id: rsro.requirements
+  ontology: rsro
+  name: Requirements
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Distinção fundamental: o artefato de requisito descreve o requisito, mas não
+      é o requisito. Requisito é o objetivo a ser alcançado.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.3, Figura 22"
+
+concepts:
+  - id: rsro.requirement
+    name: Requirement
+    label: { pt-BR: "Requisito", en: "Requirement" }
+    definition:
+      pt-BR: >
+        Objetivo a ser alcançado, representando uma condição ou capacidade
+        necessária ao usuário.
+    classification: { ufo_category: goal }
+    examples: ["criar ordem de serviço"]
+
+  - id: rsro.functional_requirement
+    name: Functional Requirement
+    label: { pt-BR: "Requisito Funcional" }
+    definition:
+      pt-BR: Requisito que define uma função a ser disponibilizada no produto construído.
+    classification: { ufo_category: goal, parent: rsro.requirement }
+    examples: ["o sistema precisa controlar pedidos de clientes"]
+
+  - id: rsro.non_functional_requirement
+    name: Non-Functional Requirement
+    label: { pt-BR: "Requisito Não Funcional" }
+    definition:
+      pt-BR: Requisito que define critérios ou capacidades para o produto.
+    classification: { ufo_category: goal, parent: rsro.requirement }
+    examples: ["estar acessível em navegadores específicos", "executar uma função em tempo estabelecido"]
+
+  - id: rsro.requirements_artifact
+    name: Requirements Artifact
+    label: { pt-BR: "Artefato de Requisitos" }
+    definition:
+      pt-BR: >
+        Artefato que descreve um ou mais requisitos. Descreve o requisito; não é
+        o requisito.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+
+  - id: rsro.requirements_document
+    name: Requirements Document
+    label: { pt-BR: "Documento de Requisitos" }
+    definition:
+      pt-BR: Documento composto de artefatos de requisitos que descrevem requisitos.
+    classification: { ufo_category: social_object, parent: spo.document }
+    examples: ["uma Especificação de Requisitos"]
+
+relations:
+  - id: rsro.artifact_describes_requirement
+    name: describes
+    label: { pt-BR: "descreve" }
+    source: rsro.requirements_artifact
+    target: rsro.requirement
+    type: association
+    cardinality: { source: many, target: one_or_many }
+
+  - id: rsro.document_composed_of_artifact
+    name: composed of
+    label: { pt-BR: "composto por" }
+    source: rsro.requirements_document
+    target: rsro.requirements_artifact
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }

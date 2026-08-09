@@ -1,0 +1,251 @@
+ontology: sro
+provenance:
+  source_type: thesis
+  reference: "Tese, Seção 3.2 e Tabela 1 (Verificação da SRO)"
+
+competency_questions:
+  # --- Scrum Process (3.2.1) ---
+  - id: sro.cq01
+    question:
+      pt-BR: Quais processos e atividades compuseram um processo Scrum?
+      en: Which processes and activities make up a Scrum process?
+    concepts: [sro.scrum_process, sro.sprint, sro.product_backlog_definition, sro.ceremony]
+    relations: [sro.scrum_process_composed_of_sprint, sro.scrum_process_composed_of_product_backlog_definition]
+    expected_query_type: list
+
+  - id: sro.cq02
+    question:
+      pt-BR: Em um projeto Scrum, de quais outras atividades ou processos uma atividade dependeu?
+    concepts: [sro.sprint, sro.ceremony, sro.performed_scrum_development_task]
+    relations:
+      [sro.sprint_depends_on_product_backlog_definition, sro.development_task_depends_on_planning_meeting,
+       sro.daily_depends_on_development_task, sro.review_depends_on_daily, sro.retrospective_depends_on_review]
+    expected_query_type: list
+
+  - id: sro.cq03
+    question: { pt-BR: "Quantos sprints foram executados em um projeto Scrum?" }
+    concepts: [sro.scrum_process, sro.sprint, sro.scrum_project]
+    relations: [sro.scrum_process_composed_of_sprint, sro.scrum_process_performed_in_project]
+    expected_query_type: count
+
+  - id: sro.cq04
+    question: { pt-BR: "Quais cerimônias foram executadas em um sprint?" }
+    concepts: [sro.sprint, sro.planning_meeting, sro.daily_standup_meeting, sro.review_meeting, sro.retrospective_meeting]
+    relations: [sro.sprint_composed_of_ceremony]
+    expected_query_type: list
+    rationale: >
+      Permite ao Scrum Master identificar cerimônia não realizada em um sprint e
+      investigar a causa.
+
+  - id: sro.cq05
+    question: { pt-BR: "Quais tarefas de desenvolvimento foram executadas em um sprint?" }
+    concepts: [sro.sprint, sro.performed_scrum_development_task]
+    relations: [sro.sprint_composed_of_development_task]
+    expected_query_type: list
+
+  - id: sro.cq06
+    question: { pt-BR: "Quando um projeto Scrum começou?" }
+    concepts: [sro.scrum_process, sro.scrum_project]
+    attributes: [spo.performed_project_process.start_date]
+    relations: [sro.scrum_process_performed_in_project]
+    expected_query_type: single
+
+  - id: sro.cq07
+    question: { pt-BR: "Quando um projeto Scrum terminou?" }
+    concepts: [sro.scrum_process, sro.scrum_project]
+    attributes: [spo.performed_project_process.end_date]
+    relations: [sro.scrum_process_performed_in_project]
+    expected_query_type: single
+
+  - id: sro.cq08
+    question: { pt-BR: "Quando um processo Scrum começou?" }
+    concepts: [sro.scrum_process]
+    attributes: [spo.performed_project_process.start_date]
+    expected_query_type: single
+
+  - id: sro.cq09
+    question: { pt-BR: "Quando um processo Scrum terminou?" }
+    concepts: [sro.scrum_process]
+    attributes: [spo.performed_project_process.end_date]
+    expected_query_type: single
+
+  - id: sro.cq10
+    question: { pt-BR: "Quando uma atividade do projeto Scrum começou?" }
+    concepts: [sro.ceremony, sro.performed_scrum_development_task]
+    attributes: [spo.performed_project_activity.start_date]
+    expected_query_type: single
+
+  - id: sro.cq11
+    question: { pt-BR: "Quando uma atividade do projeto Scrum terminou?" }
+    concepts: [sro.ceremony, sro.performed_scrum_development_task]
+    attributes: [spo.performed_project_activity.end_date]
+    expected_query_type: single
+
+  # --- Scrum Stakeholders (3.2.2) ---
+  - id: sro.cq12
+    question: { pt-BR: "Quais papéis estiveram envolvidos em um projeto Scrum?" }
+    concepts: [sro.scrum_role, sro.developer_role, sro.scrum_master_role, sro.product_owner_role, sro.client_role]
+    expected_query_type: list
+
+  - id: sro.cq13
+    question: { pt-BR: "Quais times estiveram envolvidos em um projeto Scrum?" }
+    concepts: [sro.scrum_team, sro.development_team]
+    relations: [sro.scrum_team_interested_in_project, sro.development_team_part_of_scrum_team]
+    expected_query_type: list
+
+  - id: sro.cq14
+    question: { pt-BR: "Quais papéis estiveram envolvidos em um time de um projeto Scrum?" }
+    concepts: [sro.scrum_team, sro.development_team, sro.scrum_role]
+    relations: [sro.scrum_team_composed_of_member, sro.membership_allocates_to_role]
+    expected_query_type: list
+
+  - id: sro.cq15
+    question: { pt-BR: "Quem são os membros de um time em um projeto Scrum?" }
+    concepts: [sro.scrum_team_member, sro.developer, sro.scrum_master, sro.product_owner, sro.client, eo.person]
+    relations: [sro.scrum_team_composed_of_member, eo.team_member_is_person]
+    expected_query_type: list
+    rationale: >
+      Permite identificar alocação e evitar superalocação da mesma pessoa em
+      múltiplos times.
+
+  - id: sro.cq16
+    question: { pt-BR: "Qual papel é desempenhado por um membro de time em um projeto Scrum?" }
+    concepts: [sro.scrum_team_member, sro.scrum_role, sro.product_owner_membership, sro.scrum_master_membership, sro.developer_membership]
+    relations: [sro.membership_allocates_to_role]
+    expected_query_type: single
+
+  # --- Scrum Stakeholders Participation (3.2.3) ---
+  - id: sro.cq17
+    question: { pt-BR: "Quais stakeholders foram responsáveis pelas cerimônias de um projeto Scrum?" }
+    concepts: [sro.product_owner, sro.scrum_master, sro.ceremony]
+    relations: [sro.po_in_charge_of_planning_meeting, sro.po_in_charge_of_review_meeting,
+                sro.po_in_charge_of_retrospective_meeting, sro.scrum_master_in_charge_of_daily]
+    expected_query_type: list
+
+  - id: sro.cq18
+    question: { pt-BR: "Quais stakeholders participaram das cerimônias de um projeto Scrum?" }
+    concepts: [sro.scrum_team, sro.development_team, sro.client, sro.ceremony]
+    relations: [sro.scrum_team_participates_in_ceremony, sro.development_team_participates_in_daily,
+                sro.client_participates_in_product_backlog_definition]
+    expected_query_type: list
+
+  - id: sro.cq19
+    question: { pt-BR: "Quais stakeholders foram responsáveis pelas tarefas de desenvolvimento de um projeto Scrum?" }
+    concepts: [sro.developer, sro.performed_scrum_development_task]
+    relations: [sro.developer_in_charge_of_development_task]
+    expected_query_type: list
+
+  - id: sro.cq20
+    question: { pt-BR: "Quais stakeholders participaram das tarefas de desenvolvimento de um projeto Scrum?" }
+    concepts: [sro.developer, sro.performed_scrum_development_task]
+    relations: [sro.developer_participates_in_development_task]
+    expected_query_type: list
+
+  - id: sro.cq21
+    question: { pt-BR: "Quais stakeholders foram responsáveis pelos processos de um projeto Scrum?" }
+    concepts: [sro.product_owner, sro.product_backlog_definition]
+    relations: [sro.po_in_charge_of_product_backlog_definition]
+    expected_query_type: list
+
+  - id: sro.cq22
+    question: { pt-BR: "Quais stakeholders participaram dos processos de um projeto Scrum?" }
+    concepts: [sro.client, sro.product_backlog_definition, sro.performed_scrum_development_task]
+    relations: [sro.client_participates_in_product_backlog_definition]
+    expected_query_type: list
+
+  # --- Product and Sprint Backlog (3.2.4) ---
+  - id: sro.cq23
+    question:
+      pt-BR: Quais user stories foram definidas no product backlog de um projeto Scrum?
+      en: Which user stories were defined in the product backlog of a Scrum project?
+    concepts: [sro.product_backlog, sro.user_story, sro.epic, sro.atomic_user_story]
+    relations: [sro.user_story_part_of_product_backlog]
+    expected_query_type: list
+
+  - id: sro.cq24
+    question: { pt-BR: "Qual é a prioridade de uma user story no product backlog de um projeto Scrum?" }
+    concepts: [sro.user_story]
+    attributes: [sro.user_story.importance]
+    expected_query_type: single
+
+  - id: sro.cq25
+    question: { pt-BR: "Como uma user story foi decomposta em outras?" }
+    concepts: [sro.epic, sro.user_story, sro.atomic_user_story]
+    relations: [sro.epic_composed_of_user_story]
+    expected_query_type: list
+
+  - id: sro.cq26
+    question: { pt-BR: "Quais critérios de aceitação foram estabelecidos para uma user story?" }
+    concepts: [sro.user_story, sro.acceptance_criterion, sro.functional_acceptance_criterion, sro.non_functional_acceptance_criterion]
+    relations: [sro.user_story_has_acceptance_criterion]
+    expected_query_type: list
+
+  - id: sro.cq27
+    question: { pt-BR: "Quais user stories foram selecionadas para um sprint backlog?" }
+    concepts: [sro.sprint_backlog, sro.user_story]
+    relations: [sro.user_story_part_of_sprint_backlog]
+    expected_query_type: list
+
+  - id: sro.cq28
+    question: { pt-BR: "Quais tarefas de desenvolvimento foram planejadas para materializar uma user story?" }
+    concepts: [sro.sprint_backlog, sro.user_story, sro.intended_scrum_development_task]
+    relations: [sro.sprint_backlog_specifies_intended_task, sro.intended_task_planned_to_meet_user_story]
+    expected_query_type: list
+
+  - id: sro.cq29
+    question: { pt-BR: "Quais tarefas de desenvolvimento foram executadas para materializar uma user story?" }
+    concepts: [sro.performed_scrum_development_task, sro.intended_scrum_development_task, sro.atomic_user_story]
+    relations: [sro.performed_task_caused_by_intended_task, sro.performed_task_performed_to_meet_user_story]
+    expected_query_type: list
+
+  - id: sro.cq30
+    question: { pt-BR: "Quais tarefas de desenvolvimento foram planejadas para um sprint?" }
+    concepts: [sro.sprint, sro.sprint_backlog, sro.intended_scrum_development_task]
+    relations: [sro.sprint_has_sprint_backlog, sro.sprint_backlog_specifies_intended_task]
+    expected_query_type: list
+
+  - id: sro.cq31
+    question: { pt-BR: "Quais tarefas de desenvolvimento foram executadas em um sprint?" }
+    concepts: [sro.sprint, sro.performed_scrum_development_task]
+    relations: [sro.performed_task_performed_in_sprint]
+    expected_query_type: list
+
+  # --- Scrum Deliverables (3.2.5) ---
+  - id: sro.cq32
+    question: { pt-BR: "Quais tipos de entregáveis foram produzidos em um projeto Scrum?" }
+    concepts: [sro.deliverable, sro.sprint_deliverable, sro.accepted_deliverable, sro.not_accepted_deliverable]
+    expected_query_type: list
+
+  - id: sro.cq33
+    question: { pt-BR: "Quais entregáveis foram produzidos em um sprint?" }
+    concepts: [sro.sprint, sro.performed_scrum_development_task, sro.deliverable, sro.sprint_deliverable]
+    relations: [sro.performed_task_performed_in_sprint, sro.performed_task_produced_deliverable, sro.sprint_produced_sprint_deliverable]
+    expected_query_type: list
+
+  - id: sro.cq34
+    question: { pt-BR: "Quais entregáveis foram produzidos em um projeto Scrum?" }
+    concepts: [sro.scrum_process, sro.sprint, sro.sprint_deliverable, sro.scrum_project_deliverable]
+    relations: [sro.sprint_produced_sprint_deliverable, sro.scrum_process_created_project_deliverable,
+                sro.project_deliverable_composed_of_sprint_deliverable]
+    expected_query_type: list
+
+  - id: sro.cq35
+    question: { pt-BR: "Quais user stories um entregável materializou?" }
+    concepts: [sro.deliverable, sro.atomic_user_story]
+    relations: [sro.deliverable_materializes_user_story]
+    expected_query_type: list
+
+  - id: sro.cq36
+    question: { pt-BR: "Quais entregáveis foram aceitos em um sprint?" }
+    concepts: [sro.accepted_deliverable, sro.successfully_performed_scrum_development_task]
+    relations: [sro.successful_task_produced_accepted_deliverable]
+    expected_query_type: list
+
+  - id: sro.cq37
+    question: { pt-BR: "Quais tarefas de desenvolvimento produziram entregáveis aceitos?" }
+    concepts: [sro.successfully_performed_scrum_development_task, sro.accepted_deliverable]
+    relations: [sro.successful_task_produced_accepted_deliverable]
+    expected_query_type: list
+    rationale: >
+      Cruzada com CQ31 e CQ33, permite quantificar esforço gasto em entregáveis
+      que não foram aceitos — isto é, retrabalho.

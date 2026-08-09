@@ -1,0 +1,214 @@
+module:
+  id: sro.product_and_sprint_backlog
+  ontology: sro
+  name: Product and Sprint Backlog
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Requisitos estabelecidos no projeto Scrum e as tarefas planejadas para
+      materializá-los. A tarefa pretendida (intended) e a executada (performed)
+      são conceitos distintos ligados por causação — é isso que permite medir
+      aderência entre planejado e realizado.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.2.4, Figura 29"
+
+concepts:
+  - id: sro.product_backlog
+    name: Product Backlog
+    label: { pt-BR: "Product Backlog" }
+    definition:
+      pt-BR: >
+        Documento criado durante a Definição do Product Backlog, que contém os
+        requisitos do produto a ser desenvolvido, descritos por user stories.
+    classification: { ufo_category: social_object, parent: spo.document }
+
+  - id: sro.user_story
+    name: User Story
+    label: { pt-BR: "História de Usuário", en: "User Story" }
+    definition:
+      pt-BR: Artefato de requisito que descreve requisitos em um projeto Scrum.
+    classification: { ufo_category: social_object, parent: rsro.requirements_artifact }
+    attributes:
+      - { name: title, type: string, required: true }
+      - { name: importance, type: decimal, required: false, description: "Quão valiosa a user story é para a organização." }
+      - { name: complexity, type: decimal, required: false, description: "Quão difícil é para o time de desenvolvimento implementá-la." }
+    examples:
+      - "US1: Eu, como viajante, quero pagar minha passagem."
+      - "US65: Eu, como servidor público, quero visualizar meus contracheques."
+
+  - id: sro.atomic_user_story
+    name: Atomic User Story
+    label: { pt-BR: "História de Usuário Atômica" }
+    definition:
+      pt-BR: User story que não é decomposta em outras.
+    classification: { ufo_category: social_object, parent: sro.user_story }
+    examples: ["US1.1: Eu, como viajante, quero pagar minha passagem com cartão de crédito."]
+
+  - id: sro.epic
+    name: Epic
+    label: { pt-BR: "Épico", en: "Epic" }
+    definition:
+      pt-BR: >
+        User story composta de outras user stories. Como o épico é ele próprio uma
+        user story, um épico pode ser parte de outro épico: a decomposição é
+        recursiva e não tem profundidade fixa. Ser épico não é rótulo atribuído, e
+        sim consequência de ter partes — uma user story sem partes não é épico,
+        ainda que a ferramenta a chame assim.
+    classification: { ufo_category: social_object, parent: sro.user_story }
+    constraints:
+      - sro.rule04.epic_hierarchy_is_acyclic
+      - sro.rule05.epic_has_parts
+      - sro.rule06.decomposition_terminates_in_atomic
+    examples:
+      - "US1 (épico) composto por US1.1 e US1.2 (atômicas)."
+      - "US0 (épico) composto por US1 (épico) e US2 (atômica) — aninhamento válido."
+
+  - id: sro.acceptance_criterion
+    name: Acceptance Criterion
+    label: { pt-BR: "Critério de Aceitação" }
+    definition:
+      pt-BR: >
+        Requisito usado para verificar se a user story foi desenvolvida corretamente
+        e atende às necessidades do cliente.
+    classification: { ufo_category: goal, parent: rsro.requirement }
+
+  - id: sro.functional_acceptance_criterion
+    name: Functional Acceptance Criterion
+    label: { pt-BR: "Critério de Aceitação Funcional" }
+    definition:
+      pt-BR: Requisito funcional usado para verificar se a funcionalidade da user story foi desenvolvida corretamente.
+    classification: { ufo_category: goal, parent: sro.acceptance_criterion }
+    examples: ["AC1: O cartão de crédito deve ser válido."]
+
+  - id: sro.non_functional_acceptance_criterion
+    name: Non-Functional Acceptance Criterion
+    label: { pt-BR: "Critério de Aceitação Não Funcional" }
+    definition:
+      pt-BR: Requisito não funcional que estabelece critério de qualidade relacionado a características do produto.
+    classification: { ufo_category: goal, parent: sro.acceptance_criterion }
+    examples: ["AC2: A autenticação do pagamento é feita em menos de 10ms."]
+
+  - id: sro.sprint_backlog
+    name: Sprint Backlog
+    label: { pt-BR: "Sprint Backlog" }
+    definition:
+      pt-BR: >
+        Documento que descreve o planejamento do sprint: as user stories
+        selecionadas e as tarefas de desenvolvimento pretendidas para materializá-las.
+    classification: { ufo_category: social_object, parent: spo.document }
+
+  - id: sro.intended_scrum_development_task
+    name: Intended Scrum Development Task
+    label: { pt-BR: "Tarefa de Desenvolvimento Pretendida" }
+    definition:
+      pt-BR: >
+        Atividade pretendida que descreve o que é necessário para materializar uma
+        user story. Tarefas pretendidas não executadas no sprint podem ser
+        associadas ao sprint backlog de sprints seguintes.
+    classification: { ufo_category: intention, parent: spo.intended_project_activity }
+
+relations:
+  - id: sro.product_backlog_definition_creates_product_backlog
+    name: created
+    label: { pt-BR: "criou" }
+    source: sro.product_backlog_definition
+    target: sro.product_backlog
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: sro.user_story_part_of_product_backlog
+    name: was part of
+    label: { pt-BR: "foi parte de" }
+    source: sro.user_story
+    target: sro.product_backlog
+    type: part_whole
+    cardinality: { source: many, target: one }
+
+  - id: sro.epic_composed_of_user_story
+    name: was composed of
+    label: { pt-BR: "foi composto por", en: "was composed of" }
+    source: sro.epic
+    target: sro.user_story
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+    semantics:
+      description: >
+        O destino é sro.user_story, e não sro.atomic_user_story — e um épico é uma
+        user story. Logo a relação é recursiva: um épico pode ter outro épico como
+        parte, em qualquer profundidade. Restringir o destino a user stories
+        atômicas impediria a decomposição em níveis, que é justamente o uso comum
+        de épico em projetos grandes.
+
+        Três restrições delimitam a recursão: a hierarquia é acíclica
+        (sro.rule04), todo épico tem ao menos uma parte (sro.rule05), e toda
+        cadeia de decomposição termina em user stories atômicas (sro.rule06).
+        Sem elas, a relação admitiria um épico que é parte de si mesmo e uma
+        decomposição infinita.
+    temporal: { type: enduring_relation }
+
+  - id: sro.user_story_has_acceptance_criterion
+    name: had
+    label: { pt-BR: "teve" }
+    source: sro.user_story
+    target: sro.acceptance_criterion
+    type: association
+    cardinality: { source: one, target: many }
+
+  - id: sro.user_story_part_of_sprint_backlog
+    name: was part of
+    source: sro.user_story
+    target: sro.sprint_backlog
+    type: part_whole
+    cardinality: { source: many, target: many }
+
+  - id: sro.sprint_has_sprint_backlog
+    name: had
+    source: sro.sprint
+    target: sro.sprint_backlog
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: sro.sprint_backlog_specifies_intended_task
+    name: specified
+    label: { pt-BR: "especificou" }
+    source: sro.sprint_backlog
+    target: sro.intended_scrum_development_task
+    type: association
+    cardinality: { source: one, target: many }
+    semantics:
+      description: >
+        Uma tarefa pretendida pode estar relacionada a vários sprint backlogs
+        quando não foi executada no sprint em que foi planejada.
+
+  - id: sro.intended_task_planned_to_meet_user_story
+    name: was planned to meet
+    label: { pt-BR: "foi planejada para atender" }
+    source: sro.intended_scrum_development_task
+    target: sro.atomic_user_story
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: sro.performed_task_caused_by_intended_task
+    name: was caused by
+    label: { pt-BR: "foi causada por" }
+    source: sro.performed_scrum_development_task
+    target: sro.intended_scrum_development_task
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: sro.performed_task_performed_to_meet_user_story
+    name: was performed to meet
+    label: { pt-BR: "foi executada para atender" }
+    source: sro.performed_scrum_development_task
+    target: sro.atomic_user_story
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: sro.performed_task_performed_in_sprint
+    name: was performed in
+    label: { pt-BR: "foi executada em" }
+    source: sro.performed_scrum_development_task
+    target: sro.sprint
+    type: association
+    cardinality: { source: many, target: one_or_many }

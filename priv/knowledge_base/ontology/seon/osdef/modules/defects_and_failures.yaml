@@ -1,0 +1,107 @@
+module:
+  id: osdef.defects_and_failures
+  ontology: osdef
+  name: Defects and Failures
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Falha é evento; defeito é disposição. Um defeito pode existir por anos sem
+      nunca se manifestar. Quando se manifesta em uma falha, chamamos aquele
+      defeito de fault. Tratar os três como sinônimos destrói qualquer métrica de
+      qualidade.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.5, Figura 21"
+
+concepts:
+  - id: osdef.vulnerability
+    name: Vulnerability
+    label: { pt-BR: "Vulnerabilidade", en: "Vulnerability" }
+    definition:
+      pt-BR: Disposição de um programa que, em certas circunstâncias, pode se manifestar em uma falha.
+    classification: { ufo_category: disposition }
+
+  - id: osdef.defect
+    name: Defect
+    label: { pt-BR: "Defeito", en: "Defect" }
+    definition:
+      pt-BR: >
+        Tipo de vulnerabilidade que pode existir em programas. Alguns defeitos
+        podem, acidentalmente, nunca se manifestar em execuções do software.
+    classification: { ufo_category: disposition, parent: osdef.vulnerability }
+
+  - id: osdef.fault
+    name: Fault (Runtime Defect)
+    label: { pt-BR: "Fault (Defeito em Tempo de Execução)" }
+    definition:
+      pt-BR: Defeito que se manifestou em uma falha. É o defeito visto pelo seu momento de manifestação.
+    classification: { ufo_category: disposition, parent: osdef.defect }
+
+  - id: osdef.failure
+    name: Failure
+    label: { pt-BR: "Falha", en: "Failure" }
+    definition:
+      pt-BR: >
+        Evento em que um programa não se comporta como pretendido, ferindo os
+        objetivos dos stakeholders. É evento, não estado nem propriedade.
+    classification: { ufo_category: event }
+
+  - id: osdef.vulnerable_state
+    name: Vulnerable State
+    label: { pt-BR: "Estado Vulnerável" }
+    definition:
+      pt-BR: >
+        Situação anterior à ocorrência da falha, que ativa a disposição que se
+        manifestará nela. O software está executando e o defeito ainda não se
+        manifestou.
+    classification: { ufo_category: situation }
+
+  - id: osdef.failure_state
+    name: Failure State
+    label: { pt-BR: "Estado de Falha" }
+    definition:
+      pt-BR: >
+        Situação trazida à tona pela ocorrência da falha: o software não está
+        executando suas funções como pretendido pelos stakeholders.
+    classification: { ufo_category: situation }
+
+relations:
+  - id: osdef.defect_exists_in_program
+    name: exists in
+    label: { pt-BR: "existe em" }
+    source: osdef.defect
+    target: sys_swo.program
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: osdef.vulnerable_state_triggers_failure
+    name: triggers
+    label: { pt-BR: "dispara" }
+    source: osdef.vulnerable_state
+    target: osdef.failure
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: osdef.failure_brings_about_failure_state
+    name: brings about
+    label: { pt-BR: "traz à tona" }
+    source: osdef.failure
+    target: osdef.failure_state
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: osdef.defect_manifested_in_failure
+    name: manifested in
+    label: { pt-BR: "manifesta-se em" }
+    source: osdef.fault
+    target: osdef.failure
+    type: materialization
+    cardinality: { source: one, target: one_or_many }
+
+  - id: osdef.test_result_describes_fault
+    name: describes
+    label: { pt-BR: "descreve" }
+    source: roost.test_result
+    target: osdef.fault
+    type: association
+    cardinality: { source: one, target: many }

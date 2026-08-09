@@ -1,0 +1,24 @@
+ontology:
+  id: cdro
+  name: Continuous Deployment Reference Ontology
+  acronym: CDRO
+  version: 1.0.0
+  namespace: the_band.ontology.continuum.cdro
+  layer: domain
+  network: continuum
+  description:
+    pt-BR: >
+      Conceitualização da entrega e da implantação contínuas: a atividade de
+      entrega que produz o código entregue, o processo de implantação que leva o
+      código implantado a um ambiente produtivo, e os servidores e ambientes envolvidos.
+dependencies: [ufo, spo, sys_swo, ciro]
+modules:
+  - continuous_delivery_activity
+  - continuous_deployment_process
+competency_questions:
+  - cdro_competency_questions
+provenance:
+  source_type: thesis
+  reference: "Tese, Seção 3.4 (Figuras 42 a 44)"
+  authors: ["Santos Júnior, P. S."]
+  year: 2023

@@ -1,0 +1,160 @@
+module:
+  id: ciro.continuous_integration_process
+  ontology: ciro
+  name: Continuous Integration Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Visão geral do processo de CI: um processo executado composto e automatizado,
+      classificado pelo tipo de gatilho que o iniciou e pelo desfecho (sucesso ou
+      insucesso). O desfecho é fase do processo, não atributo solto.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Seção 3.3.2, Figura 34"
+
+concepts:
+  - id: ciro.continuous_integration_process
+    name: Continuous Integration Process
+    label: { pt-BR: "Processo de Integração Contínua" }
+    definition:
+      pt-BR: >
+        Processo executado específico composto e automatizado que verifica se um
+        novo artefato de software pode ser integrado sem trazer problemas ao
+        código já aprovado, sem intervenção humana.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_composite_process }
+    automated: true
+
+  - id: ciro.ci_stakeholder
+    name: CI Stakeholder
+    label: { pt-BR: "Parte Interessada de CI" }
+    definition:
+      pt-BR: Stakeholder interessado em informação sobre um processo de integração contínua.
+    classification: { ufo_category: role, parent: spo.project_stakeholder }
+    examples: ["um desenvolvedor", "um testador"]
+
+  - id: ciro.continuous_integration_server
+    name: Continuous Integration Server
+    label: { pt-BR: "Servidor de Integração Contínua" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software que fornece artefatos que participam
+        do processo de CI, permitindo executá-lo automaticamente.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+    examples: ["uma cópia do GitLab carregada em um computador", "GitHub Actions"]
+
+  - id: ciro.continuous_feedback_activity
+    name: Continuous Feedback Activity
+    label: { pt-BR: "Atividade de Feedback Contínuo" }
+    definition:
+      pt-BR: >
+        Atividade executada simples e automatizada que informa a um stakeholder de
+        CI o status de um processo de CI.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+    automated: true
+
+  - id: ciro.ci_request_event
+    name: CI Request Event
+    label: { pt-BR: "Evento de Solicitação de CI" }
+    definition:
+      pt-BR: Evento que ocorre quando um stakeholder executa um comando no servidor de CI para iniciar o processo.
+    classification: { ufo_category: event }
+
+  - id: ciro.check_in_triggered_continuous_integration_process
+    name: Check-in-Triggered Continuous Integration Process
+    label: { pt-BR: "Processo de CI Disparado por Check-in" }
+    definition:
+      pt-BR: Processo de CI iniciado quando um novo artefato é submetido a um repositório de código.
+    classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
+
+  - id: ciro.scheduled_continuous_integration_process
+    name: Scheduled Continuous Integration Process
+    label: { pt-BR: "Processo de CI Agendado" }
+    definition:
+      pt-BR: Processo de CI iniciado quando uma data ou horário específico é alcançado.
+    classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
+
+  - id: ciro.on_demand_continuous_integration_process
+    name: On-Demand Continuous Integration Process
+    label: { pt-BR: "Processo de CI Sob Demanda" }
+    definition:
+      pt-BR: Processo de CI iniciado por um evento de solicitação de CI.
+    classification: { ufo_category: complex_action, parent: ciro.continuous_integration_process }
+
+  - id: ciro.successful_continuous_integration_process
+    name: Successful Continuous Integration Process
+    label: { pt-BR: "Processo de CI Bem-Sucedido" }
+    definition:
+      pt-BR: Processo de CI em que o código candidato foi integrado sem problemas.
+    classification: { ufo_category: phase, parent: ciro.continuous_integration_process }
+
+  - id: ciro.unsuccessful_continuous_integration_process
+    name: Unsuccessful Continuous Integration Process
+    label: { pt-BR: "Processo de CI Malsucedido" }
+    definition:
+      pt-BR: >
+        Processo de CI que não integrou o código candidato, devido a problema em
+        algum de seus processos ou atividades.
+    classification: { ufo_category: phase, parent: ciro.continuous_integration_process }
+
+relations:
+  - id: ciro.ci_composed_of_build
+    name: was composed of
+    label: { pt-BR: "foi composto por" }
+    source: ciro.continuous_integration_process
+    target: ciro.continuous_build_process
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.ci_composed_of_test
+    name: was composed of
+    source: ciro.continuous_integration_process
+    target: ciro.continuous_test_process
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.ci_composed_of_inspection
+    name: was composed of
+    source: ciro.continuous_integration_process
+    target: ciro.continuous_inspection_process
+    type: part_whole
+    cardinality: { source: one, target: many }
+    semantics:
+      description: A inspeção contínua é opcional no processo de CI.
+
+  - id: ciro.ci_composed_of_feedback
+    name: was composed of
+    source: ciro.continuous_integration_process
+    target: ciro.continuous_feedback_activity
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: ciro.ci_performed_in_server
+    name: was performed in
+    label: { pt-BR: "foi executado em" }
+    source: ciro.continuous_integration_process
+    target: ciro.continuous_integration_server
+    type: participation
+    cardinality: { source: many, target: one }
+
+  - id: ciro.ci_triggered_by_checkin
+    name: was triggered by
+    label: { pt-BR: "foi disparado por" }
+    source: ciro.check_in_triggered_continuous_integration_process
+    target: cmpo.checkin
+    type: causation
+    cardinality: { source: many, target: one }
+
+  - id: ciro.ci_triggered_by_request_event
+    name: was triggered by
+    source: ciro.on_demand_continuous_integration_process
+    target: ciro.ci_request_event
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: ciro.feedback_informs_stakeholder
+    name: informed
+    label: { pt-BR: "informou" }
+    source: ciro.continuous_feedback_activity
+    target: ciro.ci_stakeholder
+    type: participation
+    cardinality: { source: many, target: many }

@@ -1,0 +1,167 @@
+module:
+  id: roost.testing_process
+  ontology: roost
+  name: Testing Process
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Distinção central: o caso de teste é um documento planejado; a execução de
+      teste é o evento que o aplica e produz o resultado. Contar casos de teste
+      não é contar execuções.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.3, Figura 19"
+
+concepts:
+  - id: roost.testing_process
+    name: Testing Process
+    label: { pt-BR: "Processo de Teste" }
+    definition:
+      pt-BR: Processo executado específico para planejar e executar as atividades de teste dinâmico.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+
+  - id: roost.level_based_testing
+    name: Level-Based Testing
+    label: { pt-BR: "Teste por Nível" }
+    definition:
+      pt-BR: >
+        Atividade executada composta que agrupa atividades de teste classificadas
+        pelo nível em que são realizadas.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: roost.unit_testing
+    name: Unit Testing
+    label: { pt-BR: "Teste de Unidade" }
+    definition:
+      pt-BR: Teste por nível focado na unidade ou componente individual, isoladamente.
+    classification: { ufo_category: complex_action, parent: roost.level_based_testing }
+
+  - id: roost.integration_testing
+    name: Integration Testing
+    label: { pt-BR: "Teste de Integração" }
+    definition:
+      pt-BR: Teste por nível focado em componentes maiores, garantindo que um conjunto de unidades funcione em conjunto.
+    classification: { ufo_category: complex_action, parent: roost.level_based_testing }
+
+  - id: roost.system_testing
+    name: System Testing
+    label: { pt-BR: "Teste de Sistema" }
+    definition:
+      pt-BR: Teste por nível focado no comportamento do sistema inteiro e sua conformidade com os requisitos.
+    classification: { ufo_category: complex_action, parent: roost.level_based_testing }
+
+  - id: roost.test_coding
+    name: Test Coding
+    label: { pt-BR: "Codificação de Teste" }
+    definition:
+      pt-BR: Atividade executada simples que implementa os casos de teste como código de teste.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: roost.test_case
+    name: Test Case
+    label: { pt-BR: "Caso de Teste", en: "Test Case" }
+    definition:
+      pt-BR: >
+        Documento contendo dados de entrada, resultados esperados, passos e
+        condições gerais para testar uma situação do código sob teste.
+    classification: { ufo_category: social_object, parent: spo.document }
+
+  - id: roost.test_code
+    name: Test Code
+    label: { pt-BR: "Código de Teste" }
+    definition:
+      pt-BR: Código produzido para implementar um caso de teste.
+    classification: { ufo_category: object, parent: sys_swo.code }
+
+  - id: roost.code_to_be_tested
+    name: Code To Be Tested
+    label: { pt-BR: "Código a Ser Testado" }
+    definition:
+      pt-BR: Papel assumido por uma porção de código quando é alvo de um caso de teste.
+    classification: { ufo_category: role, is_role_of: sys_swo.code }
+
+  - id: roost.performed_test_execution
+    name: Performed Test Execution
+    label: { pt-BR: "Execução de Teste" }
+    definition:
+      pt-BR: >
+        Atividade executada simples que efetivamente executa os casos de teste,
+        rodando o código de teste e produzindo resultados.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: roost.test_result
+    name: Test Result
+    label: { pt-BR: "Resultado de Teste" }
+    definition:
+      pt-BR: >
+        Documento com os resultados observados, que descreve faults (defeitos em
+        tempo de execução) e questões identificadas na execução de um caso de teste.
+    classification: { ufo_category: social_object, parent: spo.document }
+
+  - id: roost.testing_environment
+    name: Testing Environment
+    label: { pt-BR: "Ambiente de Teste" }
+    definition:
+      pt-BR: Conjunto de recursos de hardware e software usados para executar as atividades de teste.
+    classification: { ufo_category: object }
+
+  - id: roost.test_software_resource
+    name: Test Software Resource
+    label: { pt-BR: "Recurso de Software de Teste" }
+    definition:
+      pt-BR: Recurso de software que compõe o ambiente de teste.
+    classification: { ufo_category: role, parent: sys_swo.software_resource }
+
+  - id: roost.test_hardware_resource
+    name: Test Hardware Resource
+    label: { pt-BR: "Recurso de Hardware de Teste" }
+    definition:
+      pt-BR: Recurso de hardware que compõe o ambiente de teste.
+    classification: { ufo_category: role, parent: sys_swo.hardware_resource }
+
+relations:
+  - id: roost.process_composed_of_level_based_testing
+    name: composed of
+    source: roost.testing_process
+    target: roost.level_based_testing
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: roost.level_based_testing_composed_of_execution
+    name: composed of
+    source: roost.level_based_testing
+    target: roost.performed_test_execution
+    type: part_whole
+    cardinality: { source: one, target: many }
+
+  - id: roost.execution_applies_test_case
+    name: executes
+    label: { pt-BR: "executa" }
+    source: roost.performed_test_execution
+    target: roost.test_case
+    type: association
+    cardinality: { source: many, target: one_or_many }
+
+  - id: roost.execution_produces_result
+    name: produces
+    label: { pt-BR: "produz" }
+    source: roost.performed_test_execution
+    target: roost.test_result
+    type: association
+    cardinality: { source: one, target: one_or_many }
+
+  - id: roost.test_code_implements_test_case
+    name: implements
+    label: { pt-BR: "implementa" }
+    source: roost.test_code
+    target: roost.test_case
+    type: materialization
+    cardinality: { source: many, target: one }
+
+  - id: roost.test_case_tests_code
+    name: tests
+    label: { pt-BR: "testa" }
+    source: roost.test_case
+    target: roost.code_to_be_tested
+    type: association
+    cardinality: { source: many, target: many }

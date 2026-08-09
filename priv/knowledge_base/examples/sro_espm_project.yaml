@@ -1,0 +1,35 @@
+examples:
+  id: sro.validation.espm_project
+  ontology: sro
+  description:
+    pt-BR: >
+      Instanciação da SRO com dados de um projeto real, usada na validação da
+      ontologia na tese. Serve como fixture de teste e material de onboarding.
+  provenance:
+    source_type: thesis
+    reference: "Tese, Tabela 2 — Validação da SRO"
+    note: Nomes de participantes reduzidos a iniciais na fonte original.
+
+instances:
+  - { concept: sro.scrum_project, value: "Projeto ESPM" }
+  - { concept: sro.scrum_process, value: "Processo Scrum do projeto ESPM, com Definição do Product Backlog, Sprints, Cerimônias e Tarefas" }
+  - { concept: sro.product_backlog_definition, value: "Processo executado no início do projeto, de 02/01/2018 a 11/01/2018" }
+  - { concept: sro.sprint, value: "Sprint S40, executado de 21/10/2019 a 02/11/2019" }
+  - { concept: sro.planning_meeting, value: "Reunião de planejamento no primeiro dia de S40, em 21/10/2019" }
+  - { concept: sro.daily_standup_meeting, value: "Primeira reunião diária de S40, em 22/10/2019" }
+  - { concept: sro.review_meeting, value: "Reunião de revisão de S40, em 02/11/2019" }
+  - { concept: sro.retrospective_meeting, value: "Reunião de retrospectiva de S40, em 02/11/2019" }
+  - { concept: sro.epic, value: "US65: Eu, como servidor público, quero visualizar meus contracheques" }
+  - { concept: sro.atomic_user_story, value: "US65.1: ... em aplicativo para smartphone" }
+  - { concept: sro.atomic_user_story, value: "US65.2: ... em navegador web" }
+  - { concept: sro.product_backlog, value: "Product backlog do projeto ESPM, contendo US65, US65.1 e US65.2, entre outras" }
+  - { concept: sro.sprint_backlog, value: "Sprint backlog criado na reunião de planejamento de S40" }
+  - { concept: sro.functional_acceptance_criterion, value: "AC1 (US65.1): o contracheque exibido é determinado pelo mês e ano informados" }
+  - { concept: sro.non_functional_acceptance_criterion, value: "AC2 (US65.1): o contracheque deve aparecer em 500 ms" }
+  - { concept: sro.intended_scrum_development_task, value: "Criar funcionalidade de contracheque no app mobile, planejada para S40" }
+  - { concept: sro.successfully_performed_scrum_development_task, value: "Criar funcionalidade de contracheque no app mobile, executada em S40" }
+  - { concept: sro.accepted_deliverable, value: "Funcionalidade Contracheque no app mobile" }
+  - { concept: sro.non_successfully_performed_scrum_development_task, value: "Criar contracheque na aplicação web, executada em S40" }
+  - { concept: sro.not_accepted_deliverable, value: "Funcionalidade Contracheque na web, não aceita por falha" }
+  - { concept: sro.sprint_deliverable, value: "Conjunto de funcionalidades aceitas em S40, incorporado à versão entregue" }
+  - { concept: sro.scrum_project_deliverable, value: "SmartCity, produto de software resultante do projeto ESPM" }

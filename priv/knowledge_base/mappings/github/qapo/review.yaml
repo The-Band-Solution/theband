@@ -1,0 +1,36 @@
+mapping:
+  id: github.pull_request_review.to.qapo.artifact_evaluation
+  version: 1
+  status: proposed
+source: { provider: github, entity: pull_request_review, api: graphql, schema_version: v4 }
+target: { ontology: qapo, concept: qapo.artifact_evaluation }
+semantics:
+  equivalence: partial
+  justification: >
+    Uma review de Pull Request é uma avaliação de artefato: alguém avalia
+    objetivamente a aderência das alterações a critérios aplicáveis. O estado
+    CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica
+    conformidade na avaliação daquele revisor.
+identity:
+  external_id_path: id
+  natural_key: [pullRequest.id, id]
+attributes:
+  state:        { source_path: state }
+  submitted_at: { source_path: submittedAt }
+  body:         { source_path: body }
+relations:
+  reviewer:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+  evaluated_artifact:
+    source_path: pullRequest.id
+    target_ontology: cmpo
+    target_concept: cmpo.change_request
+limitations:
+  - Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
+  - Reviews automáticas (bots) devem ser classificadas separadamente das humanas.
+  - Um comentário isolado não é uma review; usar apenas eventos de review submetida.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

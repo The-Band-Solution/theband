@@ -1,0 +1,135 @@
+module:
+  id: cmpo.configuration_management_process
+  ontology: cmpo
+  name: Configuration Management Process
+  version: 1.0.0
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.2.2, Figura 18"
+
+concepts:
+  - id: cmpo.configuration_management_process
+    name: Configuration Management Process
+    label: { pt-BR: "Processo de Gerência de Configuração" }
+    definition:
+      pt-BR: >
+        Processo executado específico que conduz as atividades de gerência de
+        configuração, assegurando completude e correção dos itens de configuração.
+    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+
+  - id: cmpo.configuration_item
+    name: Configuration Item
+    label: { pt-BR: "Item de Configuração", en: "Configuration Item" }
+    definition:
+      pt-BR: >
+        Objeto cuja configuração está sendo gerenciada: artefatos, descrições de
+        processo e ferramentas sob gerência de configuração.
+    classification: { ufo_category: role, is_role_of: spo.artifact }
+
+  - id: cmpo.artifact_copy
+    name: Artifact Copy
+    label: { pt-BR: "Cópia de Artefato", en: "Artifact Copy" }
+    definition:
+      pt-BR: Cópia de um artefato sob controle de versão.
+    classification: { ufo_category: object }
+    examples: ["cópia de um código-fonte", "cópia de um script de banco"]
+
+  - id: cmpo.source_repository
+    name: Source Repository
+    label: { pt-BR: "Repositório de Código", en: "Source Repository" }
+    definition:
+      pt-BR: >
+        Cópia carregada de sistema de software cujo propósito é tratar as mudanças
+        de cópias de artefato.
+    classification: { ufo_category: disposition, parent: sys_swo.loaded_software_system_copy }
+    examples: ["uma instância do GitLab", "um repositório no GitHub"]
+
+  - id: cmpo.change_request
+    name: Change Request
+    label: { pt-BR: "Solicitação de Mudança", en: "Change Request" }
+    definition:
+      pt-BR: >
+        Solicitação formal para avaliar e potencialmente integrar alterações em
+        itens de configuração. Um Pull Request é uma solicitação de mudança —
+        não é o merge, nem a decisão de aprovação.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+
+  - id: cmpo.change_control
+    name: Change Control
+    label: { pt-BR: "Controle de Mudança" }
+    definition:
+      pt-BR: >
+        Atividade executada composta para controlar formalmente a modificação de
+        itens de configuração: solicitar, avaliar, alterar e revisar.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: cmpo.change_request_closing
+    name: Change Request Closing
+    label: { pt-BR: "Fechamento da Solicitação de Mudança" }
+    definition:
+      pt-BR: Atividade executada simples para fechar uma solicitação de mudança revisada e aprovada.
+    classification: { ufo_category: action, parent: spo.performed_simple_activity }
+
+  - id: cmpo.change_accomplishment
+    name: Change Accomplishment
+    label: { pt-BR: "Realização da Mudança" }
+    definition:
+      pt-BR: >
+        Atividade executada composta que realiza mudanças autorizadas em um conjunto
+        de itens de configuração sob controle de versão.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+  - id: cmpo.change_implementer
+    name: Change Implementer
+    label: { pt-BR: "Implementador da Mudança" }
+    definition:
+      pt-BR: Stakeholder responsável por implementar uma mudança nos itens de configuração.
+    classification: { ufo_category: role, parent: spo.project_stakeholder }
+
+  - id: cmpo.baseline
+    name: Baseline
+    label: { pt-BR: "Linha de Base", en: "Baseline" }
+    definition:
+      pt-BR: >
+        Item de informação que empacota um conjunto de versões de itens de
+        configuração em um momento específico da vida do produto.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+
+  - id: cmpo.baseline_establishment
+    name: Baseline Establishment
+    label: { pt-BR: "Estabelecimento de Linha de Base" }
+    definition:
+      pt-BR: Atividade executada composta que estabelece uma linha de base.
+    classification: { ufo_category: complex_action, parent: spo.performed_composite_activity }
+
+relations:
+  - id: cmpo.process_composed_of_change_control
+    name: composed of
+    label: { pt-BR: "composto por" }
+    source: cmpo.configuration_management_process
+    target: cmpo.change_control
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: cmpo.change_control_composed_of_accomplishment
+    name: composed of
+    source: cmpo.change_control
+    target: cmpo.change_accomplishment
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+
+  - id: cmpo.change_implementer_in_charge_of_accomplishment
+    name: is in charge of
+    label: { pt-BR: "é responsável por" }
+    source: cmpo.change_implementer
+    target: cmpo.change_accomplishment
+    type: participation
+    cardinality: { source: many, target: many }
+
+  - id: cmpo.baseline_packages_configuration_items
+    name: packages
+    label: { pt-BR: "empacota" }
+    source: cmpo.baseline
+    target: cmpo.configuration_item
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }

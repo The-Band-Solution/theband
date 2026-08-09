@@ -1,0 +1,22 @@
+measurement:
+  id: review.time_to_first_review.duration
+  name: { pt-BR: "Duração até a primeira revisão" }
+  answers_information_need: [review.time_to_first_review]
+  value_type: duration
+  unit: seconds
+  formula:
+    expression: first_review_submitted_at - change_request_opened_at
+    inputs: [change_request_opened_at, first_review_submitted_at]
+  scope:
+    levels: [change_request, repository, project, team]
+    filters: ["excluir revisões automáticas", "excluir solicitações em rascunho"]
+    period: rolling_30_days
+  limitations:
+    - Revisões automáticas devem ser excluídas ou classificadas separadamente.
+    - Solicitações de mudança sem revisão não possuem valor concluído e não entram na média.
+    - Solicitações abertas como rascunho distorcem o início da espera.
+  misinterpretations:
+    - Um valor baixo pode indicar revisão superficial, não agilidade.
+    - A média esconde a cauda; usar percentis para decisão sobre gargalo.
+  provenance:
+    source_type: project_decision

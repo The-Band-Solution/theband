@@ -1,0 +1,148 @@
+module:
+  id: ufo.foundational_categories
+  ontology: ufo
+  name: Foundational Categories
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Categorias fundacionais usadas no campo classification.ufo_category dos
+      conceitos de SEON e Continuum. Existem para impedir que o modelo trate um
+      evento como objeto, ou um papel como tipo.
+  provenance:
+    source_type: reference_ontology
+    reference: "Tese, Seção 2.2.1 — UFO"
+
+concepts:
+  - id: ufo.object
+    name: Object
+    label: { pt-BR: "Objeto", en: "Object" }
+    definition:
+      pt-BR: Indivíduo que existe no tempo, mantendo sua identidade ao longo dele (endurante).
+    classification: { ufo_category: kind }
+    examples: ["um repositório de código", "uma máquina"]
+
+  - id: ufo.event
+    name: Event
+    label: { pt-BR: "Evento", en: "Event" }
+    definition:
+      pt-BR: >
+        Indivíduo que ocorre no tempo (perdurante). Acontece, não persiste.
+        Falhas, execuções de teste e atividades executadas são eventos.
+    classification: { ufo_category: event }
+    examples: ["uma falha em produção", "a execução de um build"]
+
+  - id: ufo.situation
+    name: Situation
+    label: { pt-BR: "Situação", en: "Situation" }
+    definition:
+      pt-BR: >
+        Porção da realidade que pode ser compreendida como um todo em um instante.
+        Eventos são disparados por situações e trazem à tona novas situações.
+    classification: { ufo_category: situation }
+
+  - id: ufo.disposition
+    name: Disposition
+    label: { pt-BR: "Disposição", en: "Disposition" }
+    definition:
+      pt-BR: >
+        Propriedade que só se manifesta em circunstâncias específicas. Um defeito
+        é uma disposição: existe no programa mesmo quando nunca se manifesta.
+    classification: { ufo_category: disposition }
+
+  - id: ufo.agent
+    name: Agent
+    label: { pt-BR: "Agente", en: "Agent" }
+    definition:
+      pt-BR: Objeto capaz de ter intenções e realizar ações. Pessoas e organizações são agentes.
+    classification: { ufo_category: agent }
+
+  - id: ufo.role
+    name: Role
+    label: { pt-BR: "Papel", en: "Role" }
+    definition:
+      pt-BR: >
+        Tipo antirrígido e relacionalmente dependente: um indivíduo assume o papel
+        em um contexto e pode deixá-lo sem perder identidade. Uma pessoa não é
+        desenvolvedor por natureza; ela desempenha esse papel em um time.
+    classification: { ufo_category: role }
+
+  - id: ufo.social_role
+    name: Social Role
+    label: { pt-BR: "Papel Social", en: "Social Role" }
+    definition:
+      pt-BR: Papel reconhecido por uma entidade social, como uma organização.
+    classification: { ufo_category: social_role }
+    examples: ["Product Owner Role", "Scrum Master Role"]
+
+  - id: ufo.social_object
+    name: Social Object
+    label: { pt-BR: "Objeto Social", en: "Social Object" }
+    definition:
+      pt-BR: >
+        Objeto cuja existência depende de convenção social. Documentos, requisitos
+        e user stories são objetos sociais.
+    classification: { ufo_category: social_object }
+
+  - id: ufo.relator
+    name: Relator
+    label: { pt-BR: "Relator", en: "Relator" }
+    definition:
+      pt-BR: >
+        Indivíduo que fundamenta uma relação material entre outros indivíduos.
+        Team Membership é o relator que conecta pessoa, papel e equipe.
+    classification: { ufo_category: relator }
+
+  - id: ufo.collective
+    name: Collective
+    label: { pt-BR: "Coletivo", en: "Collective" }
+    definition:
+      pt-BR: Todo cujos membros desempenham o mesmo papel em relação ao todo.
+    classification: { ufo_category: collective }
+    examples: ["uma branch, entendida como coleção de artefatos de um repositório"]
+
+  - id: ufo.complex_action
+    name: Complex Action
+    label: { pt-BR: "Ação Complexa", en: "Complex Action" }
+    definition:
+      pt-BR: >
+        Evento intencional composto de outras ações. Um processo executado é uma
+        ação complexa; o processo planejado é uma intenção, não uma ação.
+    classification: { ufo_category: complex_action }
+
+  - id: ufo.intention
+    name: Intention
+    label: { pt-BR: "Intenção", en: "Intention" }
+    definition:
+      pt-BR: >
+        Estado mental de comprometimento com um propósito. Fundamenta a distinção
+        entre processo planejado (intended) e processo executado (performed).
+    classification: { ufo_category: intention }
+
+relations:
+  - id: ufo.triggers
+    name: triggers
+    label: { pt-BR: "dispara" }
+    source: ufo.situation
+    target: ufo.event
+    type: causation
+    cardinality: { source: one, target: many }
+
+  - id: ufo.brings_about
+    name: brings about
+    label: { pt-BR: "traz à tona" }
+    source: ufo.event
+    target: ufo.situation
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: ufo.manifested_in
+    name: manifested in
+    label: { pt-BR: "manifesta-se em" }
+    source: ufo.disposition
+    target: ufo.event
+    type: materialization
+    cardinality: { source: one, target: many }
+    semantics:
+      description: >
+        Uma disposição só é observável quando se manifesta em um evento. Um defeito
+        que nunca se manifesta continua existindo.

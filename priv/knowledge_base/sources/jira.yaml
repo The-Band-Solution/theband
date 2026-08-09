@@ -1,0 +1,20 @@
+source:
+  id: jira
+  name: Atlassian Jira
+  type: project_management
+  version: 1
+apis:
+  - { id: rest, endpoint: "https://<site>.atlassian.net/rest/api/3", preferred: true }
+entities:
+  - { id: project, feeds_ontologies: [spo] }
+  - { id: issue,   feeds_ontologies: [sro, rsro, osdef] }
+  - { id: sprint,  feeds_ontologies: [sro] }
+  - { id: user,    feeds_ontologies: [eo] }
+capabilities: { pagination: offset, webhooks: true, historical_backfill: true }
+authentication: { methods: [api_token, oauth], secret_storage: environment_variable }
+status: planned
+notes:
+  - >
+    "Issue" no Jira é um tipo genérico configurável. Não mapear para um único
+    conceito: o tipo de issue determina se o registro é user story (SRO),
+    requisito (RSRO) ou defeito (OSDEF).

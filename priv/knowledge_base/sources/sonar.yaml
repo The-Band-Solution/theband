@@ -1,0 +1,21 @@
+source:
+  id: sonar
+  name: SonarQube / SonarCloud
+  type: static_analysis
+  version: 1
+apis:
+  - { id: rest, endpoint: "https://sonarcloud.io/api", preferred: true }
+entities:
+  - { id: project,  feeds_ontologies: [sys_swo] }
+  - { id: analysis, feeds_ontologies: [ciro, qapo] }
+  - { id: issue,    feeds_ontologies: [qapo] }
+  - { id: rule,     feeds_ontologies: [qapo] }
+  - { id: measure,  feeds_ontologies: [qapo] }
+capabilities: { pagination: offset, webhooks: true, historical_backfill: false }
+authentication: { methods: [api_token], secret_storage: environment_variable }
+status: planned
+notes:
+  - >
+    Uma issue do Sonar é uma não conformidade (qapo.noncompliance_register), não
+    um defeito (osdef.defect). Promover não conformidade a defeito exige decisão
+    explícita e mapeamento próprio.
