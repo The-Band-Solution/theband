@@ -21,7 +21,9 @@ for Data-Driven Software Development*.
 | Saber como dados externos viram conceitos | [Mapeamentos semânticos](integrations/mappings.md) |
 | Entender de onde vem um número | [Necessidades de informação e medidas](metrics/README.md) |
 | Saber por que uma decisão foi tomada | [ADRs](adr/README.md) |
-| Saber o que construir e em que ordem | [Backlog de CRUD](backlog/crud-entities.md) |
+| Ver o que ainda não foi decidido | [RFCs](rfc/README.md) |
+| Entender as extensões ao método de transformação | [Pesquisa](research/extensions-to-one-table-per-kind.md) |
+| Saber o que construir e em que ordem | [Backlog](backlog/README.md) |
 | Começar pela integração com GitHub | [Backlog GitHub → SRO](backlog/github-to-sro.md) |
 | Contribuir com código | [AGENTS.md](../AGENTS.md) na raiz |
 
@@ -37,6 +39,8 @@ docs/
 ├── metrics/          necessidades de informação e medidas — GERADO
 ├── processes/        processo de trabalho por feature
 ├── backlog/          o que construir e em que ordem
+├── rfc/              propostas abertas a comentário
+├── research/         extensões ao método, com vistas a publicação
 └── adr/              decisões arquiteturais registradas
 ```
 
