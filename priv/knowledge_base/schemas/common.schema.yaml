@@ -20,4 +20,4 @@ $defs:
       note:    { type: string }
   label:
     type: object
-    properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+    properties: { pt-BR: { type: string }, en: { type: string } }

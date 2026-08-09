@@ -1,0 +1,49 @@
+mapping:
+  id: github.team_member.to.eo.person
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: team_member
+  api: graphql
+  schema_version: v4
+derivation:
+  rule_id: github.team_membership_evidence
+  confidence: high
+  inputs: [team.members.node.login, team.members.role, organization.teams.slug]
+  fallback: skip
+target:
+  ontology: eo
+  concept: eo.person
+semantics:
+  equivalence: partial
+  justification: >
+    A associação entre um time do GitHub e uma conta identifica a pessoa que
+    integra aquele time. É por isso que este mapeamento tem como alvo eo.person,
+    e não eo.team_membership: a alocação exige um papel organizacional, que o
+    GitHub não fornece.
+
+    O vínculo pessoa-time observado é preservado como evidência, com o nível de
+    acesso na plataforma (MAINTAINER ou MEMBER) registrado como atributo do
+    vínculo — não como papel. A promoção a eo.team_membership ocorre quando o
+    tenant atribui o papel organizacional, conforme github.team_membership_evidence.
+identity:
+  external_id_path: node.id
+  natural_key: [node.login]
+attributes:
+  login: { source_path: node.login }
+  name:  { source_path: node.name }
+relations:
+  observed_in_team:
+    source_path: team.id
+    target_ontology: eo
+    target_concept: eo.organizational_team
+limitations:
+  - MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.
+  - Sem papel atribuído pelo tenant, o vínculo não é promovido a eo.team_membership e CQ14 e CQ16 permanecem sem resposta.
+  - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
+  - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
+  - Remoção de uma pessoa do time no GitHub não gera evento; só é detectável por comparação entre coletas.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

@@ -1,0 +1,109 @@
+derivation_rule:
+  id: github.team_membership_evidence
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "Vínculo de pessoa a time observado no GitHub"
+  description:
+    pt-BR: >
+      Define como tratar o fato de uma pessoa integrar um time do GitHub, dado
+      que o GitHub não expõe papel organizacional.
+
+      eo.team_membership é o relator que aloca uma pessoa para desempenhar um
+      papel organizacional em uma equipe. Os três elementos são necessários:
+      pessoa, equipe e papel. O GitHub fornece dois — pessoa e equipe — e não
+      fornece o terceiro.
+
+      MAINTAINER e MEMBER, os únicos valores que a API devolve, são níveis de
+      administração do time na plataforma. Dizem quem pode gerir membros e
+      permissões. Não dizem se a pessoa é programadora, testadora, designer ou
+      gerente. Promovê-los a eo.organizational_role produziria um catálogo de
+      papéis que não corresponde a nenhuma função real, e faria CQ12, CQ14 e
+      CQ16 retornarem respostas falsas em vez de nenhuma.
+
+  inputs:
+    - organization.teams.slug
+    - team.members.login
+
+  availability:
+    required_api_fields: [organization.teams, team.members]
+    required_scopes: [read:org]
+
+  # ---------------------------------------------------------------------------
+  # O que é materializado a partir do GitHub
+  # ---------------------------------------------------------------------------
+  materializes:
+    - concept: eo.person
+      from: team.members.node
+      confidence: high
+    - concept: eo.organizational_team
+      from: organization.teams.nodes
+      confidence: high
+
+  # ---------------------------------------------------------------------------
+  # O que NÃO é materializado, e por quê
+  # ---------------------------------------------------------------------------
+  does_not_materialize:
+    - concept: eo.organizational_role
+      reason:
+        pt-BR: >
+          Não existe no GitHub. O papel organizacional vem de cadastro do tenant
+          ou de outra fonte que o registre, como um sistema de RH ou uma
+          ferramenta de gestão de projetos.
+    - concept: eo.team_membership
+      reason:
+        pt-BR: >
+          Depende do papel. Sem ele, o relator estaria incompleto — e uma
+          alocação sem papel não responde nenhuma das perguntas que a alocação
+          existe para responder.
+
+  # ---------------------------------------------------------------------------
+  # O vínculo observado é preservado, sem virar alocação
+  # ---------------------------------------------------------------------------
+  observed_link:
+    name:
+      pt-BR: "Vínculo observado de pessoa a time"
+    persisted_as: team_membership_evidence
+    attributes:
+      - { name: person_external_id, from: team.members.node.id }
+      - { name: team_external_id, from: organization.teams.nodes.id }
+      - { name: platform_access_level, from: team.members.role, note: "MAINTAINER ou MEMBER — nível de acesso, não papel" }
+      - { name: observed_at, from: collected_at }
+    promotion:
+      to: eo.team_membership
+      requires: organizational_role_assigned
+      note: >
+        Quando o tenant atribui um papel organizacional à pessoa naquele time, o
+        vínculo observado é promovido a eo.team_membership. Até lá permanece como
+        evidência: consultável, contável e explicitamente incompleto.
+
+  gap_reporting:
+    metric: memberships_pending_role
+    note: >
+      O número de vínculos observados sem papel atribuído é informação, não erro.
+      Mede quanto da estrutura organizacional o sistema ainda não conhece, e deve
+      aparecer no onboarding do tenant.
+
+  # ---------------------------------------------------------------------------
+  # Limitação temporal
+  # ---------------------------------------------------------------------------
+  temporal_limitation:
+    pt-BR: >
+      A API não informa quando uma pessoa entrou no time. started_at e ended_at
+      de eo.team_membership ficam nulos quando o vínculo é promovido a partir do
+      GitHub. Só é possível saber que o vínculo existia no momento da coleta.
+      Análises que dependam de histórico de alocação — quem estava no time em
+      determinado sprint — não são respondíveis a partir desta fonte.
+
+  fallback: skip
+
+  provenance:
+    source_type: tool_documentation
+    reference: "GitHub GraphQL API — Organization.teams, Team.members"
+    note: >
+      Verificado contra a organização The-Band-Solution em 2026-08-08: 6 membros,
+      2 times, papéis de plataforma observados MAINTAINER e MEMBER. Nenhum campo
+      da API expressa função na organização.

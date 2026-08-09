@@ -27,3 +27,7 @@ erl_crash.dump
 *.swp
 .idea/
 .vscode/
+
+# Python (scripts de validação e geração)
+.venv/
+__pycache__/

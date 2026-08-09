@@ -20,7 +20,7 @@ properties:
       network:   { enum: [ufo, seon, continuum] }
       description:
         type: object
-        properties: { pt-BR: "{ type: string }", en: "{ type: string }" }
+        properties: { pt-BR: { type: string }, en: { type: string } }
   dependencies:
     type: array
     description: Ontologias reusadas. Só do mais específico para o mais geral.

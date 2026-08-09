@@ -20,6 +20,8 @@ Nenhum dado externo entra no domínio sem um mapeamento declarado, com grau de e
 | github | `pull_request_review` | `qapo` | `qapo.artifact_evaluation` | partial | proposed |
 | github | `ref` | `cmpo` | `cmpo.branch` | partial | proposed |
 | github | `repository` | `cmpo` | `cmpo.source_repository` | partial | proposed |
+| github | `team` | `eo` | `eo.organizational_team` | partial | proposed |
+| github | `team_member` | `eo` | `eo.person` | partial | proposed |
 | github | `user` | `eo` | `eo.person` | partial | proposed |
 | github | `workflow_run` | `ciro` | `ciro.continuous_integration_process` | partial | proposed |
 
@@ -161,6 +163,36 @@ Um repositório do GitHub é uma cópia carregada de sistema de software cujo pr
 
 - Repositório não é projeto; não derivar spo.software_project automaticamente daqui.
 - Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.
+
+### `github.team.to.eo.organizational_team`
+
+**github.team → eo.organizational_team** · equivalência *partial* · versão 1 · status *proposed*
+
+Um time do GitHub é um coletivo de pessoas mantido pela organização, com acesso comum a um conjunto de repositórios. Corresponde a eo.organizational_team, que é a equipe ligada à organização — e não a eo.project_team, que é ligada a um projeto.
+A API oferece os campos repositories e projectsV2 no time, o que permitiria derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e frequentemente não é usado: na organização verificada, os dois times têm zero repositórios e zero projetos associados, servindo apenas para agrupar pessoas. Por isso o alvo padrão é eo.organizational_team, e a promoção a eo.project_team exige vínculo efetivamente presente ou declaração do tenant.
+
+**Limitações**
+
+- Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
+- Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
+- A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.
+- A hierarquia de times (parentTeam, childTeams, ancestors) existe na API, mas EO não define composição entre equipes; a hierarquia é registrada como atributo e não como relação ontológica.
+- Uma pessoa pode integrar vários times, e os conjuntos de membros de time, de organização e de colaboradores de repositório são distintos entre si.
+
+### `github.team_member.to.eo.person`
+
+**github.team_member → eo.person** · equivalência *partial* · versão 1 · status *proposed*
+
+A associação entre um time do GitHub e uma conta identifica a pessoa que integra aquele time. É por isso que este mapeamento tem como alvo eo.person, e não eo.team_membership: a alocação exige um papel organizacional, que o GitHub não fornece.
+O vínculo pessoa-time observado é preservado como evidência, com o nível de acesso na plataforma (MAINTAINER ou MEMBER) registrado como atributo do vínculo — não como papel. A promoção a eo.team_membership ocorre quando o tenant atribui o papel organizacional, conforme github.team_membership_evidence.
+
+**Limitações**
+
+- MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.
+- Sem papel atribuído pelo tenant, o vínculo não é promovido a eo.team_membership e CQ14 e CQ16 permanecem sem resposta.
+- A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
+- Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
+- Remoção de uma pessoa do time no GitHub não gera evento; só é detectável por comparação entre coletas.
 
 ### `github.user.to.eo.person`
 

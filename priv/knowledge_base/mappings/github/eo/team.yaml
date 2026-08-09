@@ -1,0 +1,51 @@
+mapping:
+  id: github.team.to.eo.organizational_team
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: team
+  api: graphql
+  schema_version: v4
+target:
+  ontology: eo
+  concept: eo.organizational_team
+semantics:
+  equivalence: partial
+  justification: >
+    Um time do GitHub é um coletivo de pessoas mantido pela organização, com
+    acesso comum a um conjunto de repositórios. Corresponde a eo.organizational_team,
+    que é a equipe ligada à organização — e não a eo.project_team, que é ligada a
+    um projeto.
+
+    A API oferece os campos repositories e projectsV2 no time, o que permitiria
+    derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e
+    frequentemente não é usado: na organização verificada, os dois times têm zero
+    repositórios e zero projetos associados, servindo apenas para agrupar pessoas.
+    Por isso o alvo padrão é eo.organizational_team, e a promoção a
+    eo.project_team exige vínculo efetivamente presente ou declaração do tenant.
+identity:
+  external_id_path: id
+  natural_key: [organization.login, slug]
+attributes:
+  name:       { source_path: name }
+  slug:       { source_path: slug }
+  created_at: { source_path: createdAt }
+relations:
+  organization:
+    source_path: organization.id
+    target_ontology: eo
+    target_concept: eo.organization
+  granted_repositories:
+    source_path: repositories.nodes.id
+    target_ontology: cmpo
+    target_concept: cmpo.source_repository
+limitations:
+  - Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
+  - Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
+  - A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.
+  - A hierarquia de times (parentTeam, childTeams, ancestors) existe na API, mas EO não define composição entre equipes; a hierarquia é registrada como atributo e não como relação ontológica.
+  - Uma pessoa pode integrar vários times, e os conjuntos de membros de time, de organização e de colaboradores de repositório são distintos entre si.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

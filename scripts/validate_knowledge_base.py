@@ -212,6 +212,58 @@ class KB:
                 if concept and concept not in self.concepts:
                     self.fail("mapping", f"{mid}: selector.{key} '{concept}' inexistente", f)
 
+    def check_against_schemas(self):
+        """Valida cada artefato contra o JSON Schema do seu tipo.
+
+        Sem isto, um campo inventado entra na base sem ninguém notar — e a base
+        deixa de ser um contrato para virar convenção oral.
+        """
+        try:
+            from jsonschema import Draft202012Validator
+            from referencing import Registry, Resource
+            from referencing.jsonschema import DRAFT202012
+        except ImportError:
+            self.fail("schema", "jsonschema não instalado — validação de forma NÃO executada "
+                                "(pip install -r scripts/requirements.txt)")
+            return
+
+        schema_dir = f"{self.root}/schemas"
+        schemas, resources = {}, []
+        for f in glob.glob(f"{schema_dir}/*.schema.yaml"):
+            s = yaml.safe_load(open(f, encoding="utf-8"))
+            schemas[os.path.basename(f).replace(".schema.yaml", "")] = s
+            if "$id" in s:
+                resources.append((s["$id"], Resource(contents=s, specification=DRAFT202012)))
+        registry = Registry().with_resources(resources)
+
+        # Qual schema se aplica a qual documento, pela chave raiz.
+        by_root_key = {
+            "ontology": "ontology", "module": "module", "mapping": "mapping",
+            "information_need": "information-need", "measurement": "measurement",
+            "competency_questions": "competency-question",
+        }
+
+        for f, d in self.files.items():
+            if not isinstance(d, dict):
+                continue
+            name = None
+            for key, schema_name in by_root_key.items():
+                if key in d:
+                    # ontology.yaml e arquivos de CQ ambos têm a chave 'ontology'
+                    if key == "ontology" and not isinstance(d["ontology"], dict):
+                        continue
+                    name = schema_name
+                    break
+            if not name or name not in schemas:
+                continue
+            try:
+                validator = Draft202012Validator(schemas[name], registry=registry)
+                for err in sorted(validator.iter_errors(d), key=lambda e: list(e.path)):
+                    path = ".".join(str(p) for p in err.path) or "(raiz)"
+                    self.fail("schema", f"{name}: {path}: {err.message[:160]}", f)
+            except Exception as e:  # schema malformado é falha, não silêncio
+                self.fail("schema", f"falha ao validar contra {name}: {e}", f)
+
     def check_provenance(self):
         for oid, (d, _) in self.ontologies.items():
             if not d.get("provenance"):
@@ -231,6 +283,7 @@ class KB:
         self.check_competency_questions()
         self.check_measurements()
         self.check_mappings()
+        self.check_against_schemas()
         self.check_provenance()
         return count
 
