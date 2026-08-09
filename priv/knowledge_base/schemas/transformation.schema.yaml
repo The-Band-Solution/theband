@@ -1,0 +1,137 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: the-band/schemas/transformation
+title: Ontology to Information Model Transformation
+description: >
+  Regras que transformam o modelo ontológico no modelo de informação.
+
+  A distinção vem de Carraretto (2012): a ontologia trata do que existe no mundo
+  real, enquanto o modelo de informação trata do que pode ser armazenado e
+  trocado — o "mundo registrado". Transformar preserva a conceitualização em uma
+  estrutura adequada à computação, e é o que evita replicar no banco cada
+  distinção metafísica como uma tabela.
+
+  As transformações seguem Carraretto (2012) e Guidoni, Almeida & Guizzardi
+  (2020), conforme adotado na tese que fundamenta o The Band.
+
+type: object
+additionalProperties: false
+required: [transformation, layer_policy, rules, provenance]
+properties:
+  transformation:
+    type: object
+    additionalProperties: false
+    required: [id, version, source, target]
+    properties:
+      id:      { type: string }
+      version: { type: string, pattern: "^\\d+\\.\\d+\\.\\d+$" }
+      source:  { enum: [ontology_network] }
+      target:  { enum: [information_model] }
+      description:
+        type: object
+        properties: { pt-BR: { type: string }, en: { type: string } }
+
+  layer_policy:
+    description: >
+      O que fazer com cada camada da rede. A tese determina suprimir a camada
+      fundacional, por não conter conceitos do domínio da aplicação, e manter as
+      camadas core e domínio, que sustentam os serviços e repositórios.
+    type: object
+    additionalProperties: false
+    required: [foundational, core, domain]
+    properties:
+      foundational: { enum: [suppress, keep] }
+      core:         { enum: [suppress, keep] }
+      domain:       { enum: [suppress, keep] }
+      inherited_associations:
+        description: >
+          Associações herdadas de categorias superiores são mantidas mesmo quando
+          a categoria que as definiu é suprimida — por exemplo caused by entre
+          processo pretendido e executado.
+        enum: [keep, suppress]
+
+  rules:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [id, name, applies_to, action, rationale]
+      properties:
+        id:   { type: string, pattern: "^t[0-9]+\\.[a-z0-9_]+$" }
+        name: { $ref: "the-band/schemas/common#/$defs/label" }
+
+        applies_to:
+          description: Critério de seleção dos elementos afetados pela regra.
+          type: object
+          additionalProperties: false
+          properties:
+            network:       { type: string }
+            ufo_category:  { type: array, items: { type: string } }
+            has_own_attributes:
+              description: >
+                Distingue subclasse que carrega estrutura própria da que só
+                nomeia uma distinção. Só a segunda pode ser absorvida no pai.
+              type: boolean
+            has_own_relations: { type: boolean }
+            is_specialization_of_kind: { type: boolean }
+            grounded_in_relator: { type: boolean }
+
+        action:
+          description: >
+            suppress — não materializa;
+            lift — absorve as subclasses no supertipo, com discriminador;
+            flatten — remove o supertipo e replica sua estrutura nas subclasses;
+            materialize_as_entity — vira entidade própria;
+            materialize_as_attribute — vira atributo de outra entidade;
+            materialize_as_association — vira tabela associativa;
+            materialize_via_relator — o papel é expresso pelo relator que o aloca.
+          enum: [suppress, lift, flatten, materialize_as_entity,
+                 materialize_as_attribute, materialize_as_association,
+                 materialize_via_relator]
+
+        target_kind:
+          description: Onde o elemento passa a viver quando não vira entidade própria.
+          type: string
+
+        discriminator:
+          description: Atributo criado quando a ação é lift.
+          type: object
+          additionalProperties: false
+          properties:
+            name:      { type: string }
+            values_from:
+              enum: [subtype_ids, subtype_names]
+            nullable:  { type: boolean }
+            note:      { type: string }
+
+        mutability:
+          description: >
+            Eventos são imutáveis: registram algo que ocorreu e não são
+            corrigidos por atualização.
+          enum: [mutable, append_only]
+
+        rationale:
+          type: object
+          required: [pt-BR]
+          properties: { pt-BR: { type: string }, en: { type: string } }
+
+        examples:
+          type: array
+          items: { type: string }
+
+  entity_conventions:
+    description: Colunas que toda entidade do modelo de informação carrega.
+    type: object
+    additionalProperties: false
+    properties:
+      identity:
+        type: array
+        items: { type: string }
+      provenance:
+        type: array
+        items: { type: string }
+      table_prefix_from:
+        enum: [ontology_id]
+
+  provenance:
+    $ref: "the-band/schemas/common#/$defs/provenance"

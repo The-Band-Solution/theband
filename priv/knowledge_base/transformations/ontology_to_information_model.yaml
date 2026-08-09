@@ -1,0 +1,329 @@
+transformation:
+  id: seon_continuum.to.information_model
+  version: 1.0.0
+  source: ontology_network
+  target: information_model
+  strategy: one_table_per_kind
+  description:
+    pt-BR: >
+      Transforma o modelo ontológico (UFO + SEON + Continuum) no modelo de
+      informação do The Band — o modelo canônico do qual derivam o esquema
+      relacional e as APIs dos módulos ontológicos.
+
+      A distinção vem de Carraretto (2012): a ontologia trata do que existe no
+      mundo real; o modelo de informação, do que pode ser armazenado e trocado.
+      A estratégia de transformação é a one table per kind de Guidoni, Almeida &
+      Guizzardi (2020), que usa as meta-propriedades de sortalidade e rigidez
+      para decidir o que vira tabela — em vez de replicar cada distinção
+      metafísica como uma tabela própria.
+
+# =============================================================================
+# ESTRATÉGIA — Guidoni, Almeida & Guizzardi (2020), ER 2020, p. 315-330
+#
+#   Passo 1  Flattening  não-sortais são achatados em direção aos sortais
+#   Passo 2  Lifting     sortais não-kind são elevados até alcançar seus kinds
+#   Passo 3  Tabelas     uma tabela por classe do modelo refatorado, com chaves
+#                        estrangeiras de dependência
+#
+# O resultado é um esquema cujas tabelas correspondem aos KINDS do domínio,
+# incluindo relator kinds, mais tabelas discriminadoras para os generalization
+# sets sobrepostos.
+#
+# Implementação de referência dos autores: github.com/nemo-ufes/ontouml2db
+# =============================================================================
+
+layer_policy:
+  foundational: suppress
+  core: keep
+  domain: keep
+  inherited_associations: keep
+  rationale:
+    pt-BR: >
+      Regra da tese, Seção 5.3: a camada fundacional categoriza os conceitos das
+      demais camadas e não contém conceitos do domínio da aplicação, portanto não
+      é replicada. As associações herdadas de categorias superiores permanecem —
+      caused by entre processo pretendido e executado é o exemplo citado.
+
+# -----------------------------------------------------------------------------
+# Classificação das categorias usadas nesta base segundo as meta-propriedades
+# que guiam a transformação. Sortalidade e rigidez são o que decide a operação.
+# -----------------------------------------------------------------------------
+meta_properties:
+  sortal_rigid:
+    categories: [kind, subkind, relator, collective, quantity, mode, quality]
+    note: >
+      Fornecem ou herdam princípio de identidade e valem para o indivíduo em toda
+      a sua existência. Kinds são o topo — é neles que as tabelas pousam.
+  sortal_anti_rigid:
+    categories: [role, phase]
+    note: >
+      Valem contingentemente. Especializam exatamente um kind, do qual herdam o
+      princípio de identidade. São eliminados por lifting.
+  non_sortal:
+    categories: [category, role_mixin, mixin]
+    note: >
+      Aplicam-se a indivíduos de kinds diferentes, são abstratos e só se
+      instanciam através de suas subclasses sortais. São eliminados por
+      flattening.
+  ufo_top_categories:
+    categories: [object, social_object, agent, social_agent, event, situation,
+                 disposition, goal, intention, action, complex_action,
+                 normative_description, social_role, abstract_individual]
+    note: >
+      Categorias de topo da UFO usadas nesta base para classificar conceitos.
+      Não são estereótipos OntoUML de sortalidade; a resolução de qual delas se
+      comporta como kind, subkind ou role está em kind_resolution.
+
+kind_resolution:
+  rule:
+    pt-BR: >
+      Um conceito é tratado como KIND — e portanto ganha tabela — quando é
+      sortal, não é antirrígido, e não especializa outro sortal do mesmo
+      princípio de identidade. Na prática nesta base: o conceito é kind quando
+      não tem parent sortal e não é role nem phase.
+
+      Conceitos com is_role_of declarado já apontam explicitamente o kind que
+      lhes dá identidade — esse campo é o princípio de identidade tornado
+      explícito, e o lifting o segue.
+  identity_field: is_role_of
+  fallback_field: parent
+
+rules:
+  # ======================================================== PASSO 1 — FLATTENING
+  - id: t1.flatten_non_sortals
+    step: 1
+    operation: flattening
+    name: { pt-BR: "Achatar não-sortais", en: "Flatten non-sortals" }
+    applies_to:
+      meta_property: non_sortal
+    action: flatten
+    direction: towards_sortal_subclasses
+    attribute_handling: replicate_to_subclasses
+    rationale:
+      pt-BR: >
+        Não-sortal é abstrato e só se instancia através de suas subclasses
+        sortais, que podem ser de kinds diferentes. Não há tabela possível para
+        ele sem misturar princípios de identidade distintos. Seus atributos são
+        replicados nas subclasses sortais, começando pelos não-sortais de topo.
+    examples:
+      - "No exemplo do paper, o atributo name de NamedEntity é achatado para PERSON e ORGANIZATION."
+
+  - id: t1b.suppress_foundational_categories
+    step: 1
+    operation: flattening
+    name: { pt-BR: "Suprimir categorias fundacionais", en: "Suppress foundational categories" }
+    applies_to:
+      network: ufo
+    action: suppress
+    rationale:
+      pt-BR: >
+        Caso particular do achatamento, e regra explícita da tese: os conceitos
+        da UFO categorizam os demais e não são replicados. A classificação
+        permanece como metadado, disponível para validação e para guiar esta
+        própria transformação.
+
+  # =========================================================== PASSO 2 — LIFTING
+  - id: t2.lift_anti_rigid_sortals
+    step: 2
+    operation: lifting
+    name: { pt-BR: "Elevar sortais antirrígidos até o kind", en: "Lift anti-rigid sortals to kind" }
+    applies_to:
+      meta_property: sortal_anti_rigid
+    action: lift
+    direction: recursively_from_leaves_towards_kind
+    attribute_handling: propagate_mandatory_as_optional
+    rationale:
+      pt-BR: >
+        Papéis e fases não têm identidade própria: são o mesmo indivíduo em um
+        contexto ou estágio. Tabela por papel obrigaria a mover a linha quando o
+        papel muda, perdendo identidade, histórico e referências. O lifting
+        percorre das folhas até o kind, e atributos obrigatórios no subtipo
+        tornam-se opcionais no kind, porque nem toda instância do kind assume
+        aquele papel.
+    examples:
+      - "eo.team_member é elevado a eo.person."
+      - "sro.developer é elevado por scrum_team_member e project_person_stakeholder até eo.person."
+      - "sro.accepted_deliverable e not_accepted_deliverable são elevados a sro.deliverable."
+
+  - id: t2b.lift_structureless_subkinds
+    step: 2
+    operation: lifting
+    name: { pt-BR: "Elevar subkinds", en: "Lift subkinds" }
+    applies_to:
+      meta_property: sortal_rigid
+      is_kind: false
+    action: lift
+    direction: recursively_from_leaves_towards_kind
+    attribute_handling: propagate_mandatory_as_optional
+    rationale:
+      pt-BR: >
+        Subkind é rígido mas não fornece princípio de identidade próprio: ele o
+        herda do kind. O lifting alcança o kind e a distinção sobrevive como
+        discriminador.
+    examples:
+      - "spo.software_project é elevado a spo.project, com project_type."
+      - "sys_swo.code e sys_swo.program são elevados a sys_swo.software_item, com item_type."
+
+  # ------------------------- o que o lifting produz no destino ----------------
+  - id: t2c.discriminator_for_disjoint_generalization_set
+    step: 2
+    operation: lifting
+    name: { pt-BR: "Discriminador para conjunto disjunto", en: "Discriminator for disjoint set" }
+    applies_to:
+      generalization_set: disjoint
+    action: materialize_as_attribute
+    discriminator:
+      form: enumeration
+      values_from: subtype_names
+      nullable_when_incomplete: true
+    rationale:
+      pt-BR: >
+        Quando os subtipos elevados formam um generalization set disjunto, um
+        único atributo enumerado no kind basta: o indivíduo está em exatamente um
+        deles. Se o conjunto for incompleto, o atributo admite nulo.
+    examples:
+      - "sro_deliverables.acceptance_status ∈ {accepted, not_accepted}."
+      - "ciro_processes.outcome ∈ {successful, unsuccessful}."
+
+  - id: t2d.discriminator_table_for_overlapping_generalization_set
+    step: 2
+    operation: lifting
+    name: { pt-BR: "Tabela discriminadora para conjunto sobreposto", en: "Discriminator table for overlapping set" }
+    applies_to:
+      generalization_set: overlapping
+    action: materialize_as_association
+    produces: qua_entity_table
+    rationale:
+      pt-BR: >
+        Quando o indivíduo pode assumir vários subtipos ao mesmo tempo, um
+        atributo não serve. O paper introduz uma tabela discriminadora cujas
+        linhas são qua-entities: cada linha liga o portador ao papel reificado
+        que ele assume. É o caso, no exemplo do paper, de PERSON-NATIONALITY,
+        para alguém com dupla nacionalidade.
+
+        No The Band isto se aplica sempre que uma mesma pessoa pode acumular
+        papéis simultâneos — que é exatamente uma das perguntas que a plataforma
+        existe para responder.
+    examples:
+      - "Uma pessoa que é Scrum Master em uma equipe e Developer em outra."
+
+  - id: t2e.boolean_when_no_generalization_set
+    step: 2
+    operation: lifting
+    name: { pt-BR: "Booleano quando não há conjunto de generalização", en: "Boolean when no generalization set" }
+    applies_to:
+      generalization_set: none
+    action: materialize_as_attribute
+    discriminator:
+      form: boolean
+    rationale:
+      pt-BR: >
+        Subtipo isolado, sem generalization set declarado, é elevado como
+        atributo booleano no kind — basta registrar se o indivíduo assume ou não
+        aquela classificação.
+
+  # ============================================================ PASSO 3 — TABELAS
+  - id: t3.one_table_per_kind
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Uma tabela por kind", en: "One table per kind" }
+    applies_to:
+      is_kind: true
+    action: materialize_as_entity
+    rationale:
+      pt-BR: >
+        Concluídos o achatamento e a elevação, cada classe remanescente do modelo
+        refatorado vira uma tabela. Como só sobram kinds, relator kinds e as
+        tabelas discriminadoras, o esquema resultante tem uma tabela por kind.
+    table_prefix_from: ontology_id
+
+  - id: t3b.relator_kinds_as_tables
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Relator kind vira tabela", en: "Relator kind as table" }
+    applies_to:
+      ufo_category: [relator]
+    action: materialize_as_entity
+    dependency_keys: required
+    rationale:
+      pt-BR: >
+        Relator é kind de entidade existencialmente dependente: tem identidade e
+        propriedades próprias, e reifica a relação que medeia. Vira tabela com
+        chaves estrangeiras obrigatórias para os relata dos quais depende.
+    examples:
+      - "eo.team_membership vira eo_team_memberships, com FK para pessoa, equipe e papel."
+
+  - id: t3c.dependency_foreign_keys
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Chaves de dependência", en: "Dependency foreign keys" }
+    applies_to:
+      existentially_dependent: true
+    action: add_foreign_keys
+    rationale:
+      pt-BR: >
+        Toda tabela que representa entidade existencialmente dependente recebe
+        chave estrangeira para aquilo de que depende — vale para relator kinds e
+        para as tabelas discriminadoras de conjuntos sobrepostos.
+
+  # ======================================= regras próprias do The Band =========
+  - id: t4.events_are_append_only
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Evento é imutável", en: "Events are append-only" }
+    applies_to:
+      ufo_category: [event]
+    action: materialize_as_entity
+    mutability: append_only
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Extensão deste projeto, não do paper, que trata de endurantes. Evento
+        registra algo que ocorreu; corrigir por atualização reescreveria o
+        passado. Correções entram como novos registros.
+    examples:
+      - "osdef.failure e ciro.ci_request_event são criados e lidos, nunca atualizados."
+
+  - id: t5.suppress_situations
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Não materializar situações", en: "Suppress situations" }
+    applies_to:
+      ufo_category: [situation]
+    action: suppress
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Extensão deste projeto. Situação é a realidade antes e depois de um
+        evento, derivável dos instantes do próprio evento. Persistir
+        separadamente criaria três lugares para discordarem entre si.
+    examples:
+      - "osdef.vulnerable_state e osdef.failure_state derivam de failures.occurred_at."
+
+entity_conventions:
+  identity: [tenant_id, internal_id, record_version]
+  provenance: [source_system, source_instance, external_id, collected_at]
+  table_prefix_from: ontology_id
+  note:
+    pt-BR: >
+      Colunas exigidas pela tese para rastreabilidade entre repositórios:
+      internal_id identifica o mesmo dado em repositórios diferentes,
+      record_version detecta dessincronização, e o conjunto de proveniência liga
+      o registro à entidade correspondente na ferramenta de origem.
+
+provenance:
+  source_type: literature
+  reference: >
+    Guidoni, G. L.; Almeida, J. P. A.; Guizzardi, G. Transformation of
+    ontology-based conceptual models into relational schemas. ER 2020, Vienna,
+    Springer, p. 315-330. Estratégia one table per kind, passos de flattening,
+    lifting e geração de tabelas.
+  authors: ["Guidoni, G. L.", "Almeida, J. P. A.", "Guizzardi, G."]
+  year: 2020
+  url: https://github.com/nemo-ufes/ontouml2db
+  note: >
+    A política de camadas vem da tese, Seção 5.3, que também referencia
+    Carraretto (2012) para a distinção entre modelo ontológico e modelo de
+    informação. As regras marcadas com source_of_rule proposed são extensões
+    deste projeto para eventos e situações, que o paper não cobre por tratar de
+    endurantes.
