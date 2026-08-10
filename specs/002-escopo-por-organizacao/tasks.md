@@ -20,7 +20,7 @@ tarefa que dependa da coluna vem **depois** de ela passar a ser derivada.
 Nada de esquema nem de código antes disto. A coluna precisa ter lastro
 conceitual antes de existir.
 
-- [ ] T001 Declarar equipe pertence a organização
+- [x] T001 Declarar equipe pertence a organização
   - **Pronta quando**: nada além do repositório — a análise ontológica já decidiu
     a forma em F4
   - **Descrição**: acrescentar `eo.organizational_team_belongs_to_organization` em
@@ -32,11 +32,25 @@ conceitual antes de existir.
     equipe, que é coletivo (risco R1) — FR-001
   - **Feita quando**: a relação parte do **subkind**, não de `eo.team`; a base
     continua válida e o grafo de dependências íntegro
-  - **Teste**: `mix knowledge.validate` e `mix knowledge.graph` passam, e a
-    relação aparece na saída de `mix knowledge.graph` com origem em
-    `organizational_team`
+  - **Teste**: `test/the_band/ontology/knowledge_base_eo_test.exs` — a relação
+    existe, sai de `eo.organizational_team`, é `association`, é `many → one`, e
+    declara proveniência própria. Mais três testes de violação: unidade
+    organizacional continua `part_whole`, nenhuma outra relação liga equipe a
+    organização, e `eo.team` **não** recebeu a relação
+  - **Correção de tarefa.** O teste original mandava conferir a relação "na saída de
+    `mix knowledge.graph`". A task imprime **uma linha** sobre integridade de
+    dependências entre ontologias e nunca lista relações — o teste era
+    inverificável, e passá-lo seria declarar sucesso sem olhar o que importa.
+    Substituído por teste que trava as três decisões da relação. Verificado nos dois
+    sentidos: com `part_whole` no lugar de `association`, falha
+  - **Fora do previsto, e necessário.** `schemas/module.schema.yaml` passou a admitir
+    `provenance` em relação — antes só em ontologia, módulo e conceito. Sem isso a
+    relação nova ficaria indistinguível das que SEON declara, e a proveniência do
+    módulo, `reference_ontology`, passaria a cobrir algo que não é da referência.
+    Nenhuma das 143 relações anteriores carrega proveniência; esta é a primeira, e é
+    a primeira que precisa
 
-- [ ] T002 [P] Criar as perguntas de competência de EO
+- [x] T002 [P] Criar as perguntas de competência de EO
   - **Pronta quando**: T001 concluída
   - **Descrição**: primeiro arquivo de `competency_questions/` de EO — a ontologia
     não tem nenhuma hoje (F7). Três perguntas: quais pessoas foram observadas em
@@ -48,7 +62,7 @@ conceitual antes de existir.
   - **Teste**: `mix knowledge.validate` aceita o arquivo, e cada pergunta referencia
     relação declarada — inclusive a de T001
 
-- [ ] T003 [P] Reprovar mapeamento com relação inexistente
+- [x] T003 [P] Reprovar mapeamento com relação inexistente
   - **Pronta quando**: T001 concluída
   - **Descrição**: `scripts/validate_knowledge_base.py` passa a conferir que toda
     relação declarada em `relations:` de um mapeamento aponta para relação
@@ -56,10 +70,25 @@ conceitual antes de existir.
     de equipe e de pessoa declaravam vínculo com `eo.organization` sem que a
     relação existisse, e nada avisou (F6) — FR-012
   - **Feita quando**: o validador reprova um mapeamento que declare relação
-    inexistente, nomeando qual; a base atual continua passando
-  - **Teste**: introduzir temporariamente uma relação inventada num mapeamento e
-    conferir que o validador falha citando o identificador; removê-la e conferir
-    que volta a passar
+    inexistente, nomeando qual
+  - **Teste**: três verificações, todas executadas. Conceito inventado no
+    `target_concept` reprova nomeando-o. Vínculo sem lastro cuja limitação é
+    **genérica** reprova. Base restaurada volta a passar
+  - **A tarefa dizia "a base atual continua passando", e não continuava.** A
+    verificação encontrou **12 vínculos sem lastro**, não um: `eo.person →
+    eo.organization` em `user.yaml`, que é o defeito do F6, mais onze em CMPO, CIRO,
+    CDRO, QAPO e um em EO. Dois eram falso positivo meu — o check subia por
+    `specializes` quando a base usa `parent` — e sobraram dez reais
+  - **Três lastros aceitos, decisão da pessoa mantenedora.** O vínculo passa se há
+    relação declarada, se há `derivation.rule_id` que o sustente, **ou** se
+    `limitations` **nomeia o conceito** do outro lado. O terceiro reusa uma obrigação
+    que a base já impõe a todo mapeamento em vez de inventar exceção, e mantém o gate
+    verde sem tocar cinco ontologias que a análise excluiu do escopo. Exige o id de
+    propósito: frase genérica passaria em qualquer mapeamento e o gate viraria carimbo
+  - **`user.yaml` perdeu `relations.organization`**, como a análise prescreve, e
+    ganhou duas limitações: EO não tem nem deve ter relação pessoa↔organização, e
+    `organization.id` não existe no payload de um membro — a organização é o pai da
+    consulta, não campo do nó
 
 **Checkpoint**: a ontologia declara o vínculo, e o validador impede que um
 mapeamento prometa relação que não existe.

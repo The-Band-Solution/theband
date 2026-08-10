@@ -21,12 +21,18 @@ identity:
   natural_key: [login]
 attributes:
   name:  { source_path: name }
-relations:
-  organization:
-    source_path: organization.id
-    target_ontology: eo
-    target_concept: eo.organization
 limitations:
+  - >
+    Não existe vínculo direto entre pessoa e organização, e este mapeamento não o
+    declara. A versão anterior declarava relations.organization apontando para
+    eo.organization, e EO não tem nem deve ter essa relação - o vínculo com
+    organização passaria por papel organizacional, que o GitHub não fornece. O
+    caminho respondível é pessoa -> equipe -> organização, e quem não está em equipe
+    alguma não aparece em organização alguma. Ver eo.cq02.
+  - >
+    O caminho organization.id não existe no payload de um membro - a organização é o
+    pai da consulta, não campo do nó. Declará-lo produziu eo_people.organization_id
+    nula em 100% dos registros. Achados F3 e F6 da feature 002.
   - Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
   - A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
   - O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.

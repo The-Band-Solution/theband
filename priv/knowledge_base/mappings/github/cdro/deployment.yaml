@@ -27,6 +27,8 @@ relations:
     target_ontology: cdro
     target_concept: cdro.deployment_environment
 limitations:
+  - >
+    O código implantado aponta para ciro.candidate_code, e CDRO não declara relação entre cdro.deployment_activity e ciro.candidate_code - a relação existente é com cdro.deployed_code. Nada materializa o vínculo como declarado.
   - O nome do ambiente é texto livre; "production" em um repositório pode não ser produção real.
   - Um deployment criado não implica implantação concluída; usar o status mais recente.
   - Rollbacks aparecem como novos deployments do commit anterior.

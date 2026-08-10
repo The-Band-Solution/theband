@@ -34,6 +34,12 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.target_branch
 limitations:
+  - >
+    O autor da solicitação aponta para eo.person, e CMPO não declara relação entre cmpo.change_request e eo.person - autoria passaria por participação em atividade, ainda não modelada.
+  - >
+    A branch de origem aponta para cmpo.source_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.source_branch. Nada materializa o vínculo.
+  - >
+    A branch de destino aponta para cmpo.target_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.target_branch. Nada materializa o vínculo.
   - O Pull Request não é equivalente ao merge; mergedAt indica que um merge ocorreu, mas o merge é outro evento.
   - Reviews e decisões de aprovação são processadas separadamente (ver github.review).
   - Um PR fechado sem merge não representa mudança integrada.

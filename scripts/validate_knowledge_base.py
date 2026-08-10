@@ -283,6 +283,107 @@ class KB:
                 if concept and concept not in self.concepts:
                     self.fail("mapping", f"{mid}: selector.{key} '{concept}' inexistente", f)
 
+            self.check_mapping_relations(mid, d, f, concept_alvo=d.get("target", {}).get("concept"))
+
+    def check_mapping_relations(self, mid, d, f, concept_alvo):
+        """Vínculo prometido por mapeamento precisa de lastro na ontologia.
+
+        Cada entrada de `relations:` afirma que o conceito alvo do mapeamento se
+        liga a outro conceito. Duas coisas têm de ser verdade, e nenhuma era
+        verificada: o conceito do outro lado existe, e **existe relação declarada
+        que sustente o vínculo**.
+
+        Sem isto, um mapeamento promete um caminho que a ontologia não tem, o
+        derivador não gera coluna alguma, e alguém acaba escrevendo a coluna à mão
+        — que foi exatamente o que produziu `eo_people.organization_id` nula em
+        100% dos registros. Achado F6 da feature 002.
+        """
+        for nome, rel in (d.get("relations") or {}).items():
+            if not isinstance(rel, dict):
+                continue
+
+            outro = rel.get("target_concept")
+            if not outro:
+                continue
+
+            if outro not in self.concepts:
+                self.fail("mapping", f"{mid}: relations.{nome} aponta para conceito inexistente {outro}", f)
+                continue
+
+            onto = rel.get("target_ontology")
+            if onto and self.onto_of(outro) != onto:
+                self.fail(
+                    "mapping",
+                    f"{mid}: relations.{nome} declara target_ontology '{onto}' e conceito de '{self.onto_of(outro)}'",
+                    f,
+                )
+
+            if not concept_alvo or concept_alvo not in self.concepts:
+                continue
+
+            # Vínculo derivado tem lastro na regra, não na ontologia: é evidência
+            # observada, e a regra é que diz como foi obtida. Exigir relação
+            # ontológica aqui forçaria a promover evidência a alocação, que é
+            # justamente o que a base evita quando a origem não fornece papel.
+            if (d.get("derivation") or {}).get("rule_id"):
+                continue
+
+            if self.relation_between(concept_alvo, outro):
+                continue
+
+            # Terceiro lastro: a lacuna declarada. A limitação precisa **nomear o
+            # conceito** do outro lado, e não descrever o problema em geral — uma
+            # frase genérica passaria em qualquer mapeamento e o gate viraria
+            # carimbo. Exigir o id força quem escreve a dizer qual vínculo não tem
+            # lastro, onde quem lê o mapeamento vê.
+            if any(outro in str(lim) for lim in (d.get("limitations") or [])):
+                continue
+
+            self.fail(
+                "mapping",
+                f"{mid}: relations.{nome} promete vínculo {concept_alvo} → {outro} "
+                f"sem relação declarada, sem derivation.rule_id, e sem limitação que nomeie {outro}",
+                f,
+            )
+
+    def relation_between(self, a, b):
+        """Existe relação declarada entre os dois conceitos, em qualquer direção?
+
+        Considera também os supertipos de cada lado: a relação de EO sai de
+        `eo.organizational_team`, e um mapeamento pode alvejar o subkind ou o kind.
+        Ignorar a especialização faria a verificação reprovar vínculo legítimo.
+        """
+        lado_a = self.with_supertypes(a)
+        lado_b = self.with_supertypes(b)
+
+        return any(
+            (r.get("source") in lado_a and r.get("target") in lado_b)
+            or (r.get("source") in lado_b and r.get("target") in lado_a)
+            for _o, r, _f in self.relations.values()
+        )
+
+    def with_supertypes(self, cid, vistos=None):
+        """O conceito e a cadeia de supertipos acima dele.
+
+        Sobe, e só sobe. Relação declarada no supertipo vale para o subtipo — toda
+        equipe organizacional é equipe. O inverso é falso: relação declarada em
+        `cmpo.target_branch` não vale para `cmpo.branch` em geral, e aceitar a
+        descida transformaria a verificação em carimbo.
+        """
+        vistos = vistos or set()
+        if cid in vistos or cid not in self.concepts:
+            return {cid}
+        vistos.add(cid)
+
+        _o, c, _f = self.concepts[cid]
+        cls = c.get("classification") or {}
+        # A base usa `parent`; `specializes` fica aceito porque o schema o admite em
+        # outros pontos e ler só um dos dois produziria falso positivo silencioso.
+        acima = cls.get("parent") or cls.get("specializes")
+        pais = acima if isinstance(acima, list) else ([acima] if acima else [])
+
+        return {cid} | {s for p in pais for s in self.with_supertypes(p, vistos)}
+
     def check_against_schemas(self):
         """Valida cada artefato contra o JSON Schema do seu tipo.
 

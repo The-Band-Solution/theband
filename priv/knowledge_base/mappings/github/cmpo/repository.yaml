@@ -24,6 +24,8 @@ relations:
     target_ontology: eo
     target_concept: eo.organization
 limitations:
+  - >
+    O proprietário aponta para eo.organization, e não existe relação declarada entre cmpo.source_repository e eo.organization. Declará-la exige decidir antes a direção de dependência entre CMPO e EO.
   - Repositório não é projeto; não derivar spo.software_project automaticamente daqui.
   - Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.
 provenance:
