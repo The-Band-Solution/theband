@@ -621,9 +621,21 @@ neste repositório:
 | revisão só se pede a colaborador | `422 Reviews may only be requested from collaborators` |
 | o autor não pode ser revisor | `422 Review cannot be requested from pull request author` |
 
-Resolvido concedendo `pull` — o mínimo que revisão exige — à equipe `the-band`. A
-exigência atravessou um sprint inteiro como "revisão pendente" e custou **duas
-chamadas de API**: era pendência de permissão, não de agenda. Lição L15.
+Resolvido concedendo `pull` à equipe `the-band`, o que a tornou **colaboradora** — o
+que faltava para o pedido passar. `Adylla027` e `EduardoNFraiz` já eram admins da
+organização, então o nível efetivo deles no repositório é `admin`; a concessão não
+elevou ninguém, apenas os tornou alcançáveis. A exigência atravessou um sprint inteiro
+como "revisão pendente" e custou **duas chamadas de API**: era pendência de permissão,
+não de agenda. Lição L15.
+
+**Nível de permissão não contorna a regra de autoria.** A pessoa mantenedora é admin do
+repositório e da organização, e o `422` é o mesmo. Autor não pode ser revisor do próprio
+PR, e não existe flag.
+
+Quando não houver revisor possível, o mais forte que se consegue é o autor registrar uma
+revisão do tipo comentário — `gh pr review <n> --comment`. Entra em `pulls/<n>/reviews`
+com nome e data, e **não é aprovação**. Registre como registro, nunca como aprovação: a
+diferença é o que separa o princípio VII cumprido de um carimbo.
 
 **Antes de escrever regra que dependa de permissão, verifique a permissão.**
 `collaborators` e `teams` respondem em duas chamadas se a regra é cumprível.
