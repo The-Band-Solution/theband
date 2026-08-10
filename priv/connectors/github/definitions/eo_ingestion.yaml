@@ -1,0 +1,101 @@
+# Definições declarativas do conector do GitHub para a Enterprise Ontology.
+#
+# O runtime Elixir carrega estas definições, valida, carrega a query, executa via
+# Req, controla o cursor, trata rate limit, guarda payload bruto, preserva
+# proveniência, agenda páginas com Oban, transforma pelos mapeamentos e chama a
+# API pública do módulo ontológico. Nenhum desses passos vive em código
+# específico por entidade.
+connectors:
+  - id: github.organization
+    version: 1
+    provider: github
+    transport: graphql
+    query:
+      file: queries/organization.graphql
+    variables:
+      organization: { required: true }
+    pagination:
+      type: none
+    output:
+      raw_entity_type: github.organization
+      mappings: [github.organization.to.eo.organization]
+
+  - id: github.organization_members
+    version: 1
+    provider: github
+    transport: graphql
+    query:
+      file: queries/organization_members.graphql
+    variables:
+      organization: { required: true }
+      page_size: { default: 50 }
+    pagination:
+      type: cursor
+      cursor_variable: after
+      end_cursor_path: organization.membersWithRole.pageInfo.endCursor
+      has_next_page_path: organization.membersWithRole.pageInfo.hasNextPage
+      nodes_path: organization.membersWithRole.nodes
+    checkpoint: { strategy: cursor }
+    retry: { max_attempts: 5, backoff: exponential }
+    rate_limit:
+      cost_path: rateLimit.cost
+      remaining_path: rateLimit.remaining
+      reset_at_path: rateLimit.resetAt
+      pause_when: "remaining < cost * 2"
+    output:
+      raw_entity_type: github.user
+      mappings: [github.user.to.eo.person]
+
+  - id: github.teams
+    version: 1
+    provider: github
+    transport: graphql
+    query:
+      file: queries/teams.graphql
+    variables:
+      organization: { required: true }
+      page_size: { default: 50 }
+    pagination:
+      type: cursor
+      cursor_variable: after
+      end_cursor_path: organization.teams.pageInfo.endCursor
+      has_next_page_path: organization.teams.pageInfo.hasNextPage
+      nodes_path: organization.teams.nodes
+    checkpoint: { strategy: cursor }
+    retry: { max_attempts: 5, backoff: exponential }
+    rate_limit:
+      cost_path: rateLimit.cost
+      remaining_path: rateLimit.remaining
+      reset_at_path: rateLimit.resetAt
+      pause_when: "remaining < cost * 2"
+    output:
+      raw_entity_type: github.team
+      mappings: [github.team.to.eo.organizational_team]
+
+  - id: github.team_members
+    version: 1
+    provider: github
+    transport: graphql
+    query:
+      file: queries/team_members.graphql
+    variables:
+      organization: { required: true }
+      team_slug: { required: true }
+      page_size: { default: 50 }
+    pagination:
+      type: cursor
+      cursor_variable: after
+      end_cursor_path: organization.team.members.pageInfo.endCursor
+      has_next_page_path: organization.team.members.pageInfo.hasNextPage
+      nodes_path: organization.team.members.edges
+    checkpoint: { strategy: cursor }
+    retry: { max_attempts: 5, backoff: exponential }
+    rate_limit:
+      cost_path: rateLimit.cost
+      remaining_path: rateLimit.remaining
+      reset_at_path: rateLimit.resetAt
+      pause_when: "remaining < cost * 2"
+    output:
+      raw_entity_type: github.team_member
+      mappings: [github.team_member.to.eo.person]
+      derivation_rules: [github.team_membership_evidence]

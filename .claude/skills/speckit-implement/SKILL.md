@@ -218,9 +218,20 @@ Check if `.specify/extensions.yml` exists in the project root.
 
 Report final status with summary of completed work.
 
+## Design check antes de encerrar
+
+Antes de reportar a implementação como concluída, rode a skill `design-check`
+sobre o diff. Ela aplica o princípio VIII da constituição e a lista de
+antipadrões de `AGENTS.md` §7.7 — consulta sem tenant, fallback silencioso,
+booleano no lugar de relator, mock de domínio próprio, configuração que
+enfraquece gate, acoplamento temporal, ausência virando zero.
+
+Achado dela é defeito, não sugestão: corrija, ou registre a razão de não corrigir.
+
 ## Done When
 
 - [ ] All tasks in tasks.md completed and marked `[X]`
 - [ ] Implementation validated against specification, plan, and test coverage
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
+- [ ] `design-check` rodada sobre o diff, com os achados corrigidos ou registrados
 - [ ] Completion reported to user with summary of completed work

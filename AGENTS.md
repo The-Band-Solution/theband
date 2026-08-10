@@ -316,6 +316,85 @@ Regras: job idempotente (rodar duas vezes = mesmo estado final); cursor/checkpoi
 - E2E do caminho completo: `GitHub → Req → payload bruto → proveniência → YAML de mapeamento → transformação → módulo ontológico → Ecto → medida → LiveView`.
 - Teste descreve comportamento observável, não implementação. Nome do teste é uma frase, não `test "works"`.
 
+### 7.7 Desenho: o padrão precisa do problema
+
+**Aplicar um padrão sem ter o problema dele é o antipadrão.** Uma fábrica com um
+produto, uma interface com uma implementação e uma camada de abstração sobre a
+única fonte que existe não são "boa prática": são custo pago adiantado por uma
+flexibilidade que talvez nunca seja usada, e que atrapalha quem lê hoje.
+
+Antes de introduzir qualquer padrão, responda três perguntas **no plano da
+feature**, não no commit:
+
+1. **Qual problema concreto ele resolve?** Nomeie o problema, não a categoria.
+   "Preciso trocar de fonte" é categoria; "CMPO e EO precisam do mesmo conector
+   com transformações diferentes" é problema.
+2. **O problema existe agora ou é previsão?** Previsão não justifica estrutura.
+   O segundo caso justifica; o primeiro, não (regra dos três: duplicar uma vez é
+   barato, abstrair cedo é caro).
+3. **O que fica pior?** Todo padrão troca algo. Se você não consegue dizer o que
+   piorou, não entendeu o padrão.
+
+#### Padrões que este projeto usa, e o problema de cada um
+
+| Padrão | Onde vive | Problema que resolve |
+|---|---|---|
+| Fachada com `defdelegate` | módulo raiz de cada ontologia | a fronteira precisa ser **verificável em revisão**: `Repo` ou `Schemas.` fora do módulo é violação textual |
+| Separação comando/consulta | `commands/` e `queries/` | escrita e leitura têm invariantes diferentes; juntas, a validação da escrita vaza para a leitura |
+| Porta e adaptador na borda | `Integrations.GitHub.HTTP` como behaviour | dar ao Mox **um único** ponto de substituição, para que mock de domínio nunca seja necessário |
+| Estratégia declarativa | `priv/connectors/*/definitions/*.yaml` | paginação, retry e rate limit são iguais entre entidades; só os caminhos mudam |
+| Data mapper declarativo | `mappings/*.yaml` + `SemanticIntegration.Mapper` | quem revisa a semântica não compila o projeto |
+| Upsert por chave natural | Application Reference | idempotência sem tabela de controle e sem estado extra para discordar |
+| Relator | `eo_team_memberships` | papel é relacional e temporal; uma coluna perderia contexto, período e acúmulo |
+| Discriminador | `eo_teams.type` | `subkind` é rígido e exclusivo — cabe num valor, e reclassificar é `UPDATE` |
+
+A tabela é curta de propósito. **Padrão que não está nela precisa da justificativa
+das três perguntas** antes de entrar.
+
+#### Antipadrões que este projeto atrai
+
+Não é lista genérica de livro: cada um destes já apareceu aqui ou está a um
+descuido de aparecer.
+
+| Antipadrão | Como aparece | Por que dói aqui |
+|---|---|---|
+| **Booleano no lugar do relator** | `code.is_under_integration = true` | perde em qual processo, desde quando, e impede dois simultâneos |
+| **Mapear por semelhança de nome** | `pull_request → merge` porque "é parecido" | contamina toda medida derivada, em silêncio |
+| **Consulta sem tenant** | `Repo.all(Person)` | não é bug de correção, é bug de segurança |
+| **Fallback silencioso** | `rescue -> []`, `|| 0`, `_ -> :ok` | transforma falha em zero, e zero em decisão errada. Ausência é **nula**, nunca zero |
+| **Mock de módulo próprio** | `Mox.defmock(EOMock, for: EO)` | esconde o erro em vez de revelá-lo; mock só na borda HTTP |
+| **Generalidade especulativa** | camada de abstração sobre a única fonte que existe | custo hoje por flexibilidade hipotética |
+| **Configuração que enfraquece o gate** | `.credo.exs` que substitui o conjunto de checks | o gate continua verde e para de proteger — já aconteceu neste repositório |
+| **Acoplamento temporal** | gravar checkpoint **antes** de processar a página | inverte quem paga pela interrupção: reprocessar é seguro, perder não |
+| **Estado como string livre** | `status = "pendente"` sem `check_constraint` | valor novo entra por digitação e ninguém percebe |
+| **Módulo-deus** | `SRO` com comandos, consultas, regras e transformação juntos | a fronteira deixa de ser revisável, que é a razão de ela existir |
+| **Exceção como fluxo de controle** | `raise` para caso de negócio previsto | `{:error, motivo}` é o contrato; `raise` é para bug |
+| **Primitivo no lugar do conceito** | passar `tenant_id` cru entre módulos | `%Tenant{}` na assinatura torna o esquecimento um erro de compilação, não um vazamento |
+| **N+1** | `Enum.map(pessoas, &busca_equipe/1)` | `preload` ou join; e a contagem some junto com a listagem |
+| **Número mágico** | `if remaining < cost * 2` sem nome nem razão | a margem existe por um motivo — escreva o motivo |
+
+#### Práticas que valem em toda mudança
+
+- **O nome carrega o conceito da ontologia.** `PerformedActivity`, não
+  `ActivityDone`. Nome errado vira modelo errado em três meses.
+- **`with` para o caminho feliz; `else` só para traduzir erro.** `else` que
+  reimplementa lógica é sinal de que o `with` está fazendo demais.
+- **Efeito na borda, decisão no núcleo.** Função que decide e grava ao mesmo
+  tempo só é testável com banco.
+- **Comentário diz o *porquê*, nunca o *quê*.** O código já diz o quê. Comentário
+  que repete a linha seguinte é ruído que envelhece.
+- **Deixe quebrar onde a falha é bug.** Defesa contra `nil` em toda função
+  esconde de onde o `nil` veio.
+- **Duplicar duas vezes é barato; abstrair errado é caro.** Na terceira, abstraia
+  — e aí já se sabe o que varia.
+
+#### Quando refatorar
+
+Refatoração **entra na feature** quando o código que você está tocando torna a
+mudança mais difícil. Não entra quando é oportunidade estética: refatoração sem
+relação com a feature em curso é proibida (§17), porque mistura no mesmo diff o
+que precisa ser revisado por critérios diferentes.
+
 ---
 
 ## 8. Base de conhecimento YAML
@@ -482,9 +561,36 @@ Necessidade → Discovery → Feature Request
 → /speckit-plan → revisão arquitetural → revisão semântica
 → /speckit-tasks → /speckit-taskstoissues → /speckit-analyze
 → /sprint-backlog          ← obrigatório: lições, iteration no GitHub, issues tipadas
-→ branch → implementação → testes → quality gates → convergência
+→ branch → contrato da API → implementação → testes → quality gates → convergência
 → Pull Request → revisão independente → merge
 ```
+
+### Contrato da API antes da implementação
+
+**Nenhuma função pública é escrita antes de o contrato dela existir em
+`specs/<feature>/contracts/`.** O contrato declara nome, assinatura, o que a
+função devolve em sucesso e em erro, e — igualmente obrigatório — **o que a API
+não expõe e por quê**.
+
+A ordem não é formalidade. Ela existe por três razões concretas:
+
+- **o contrato é revisável antes de custar caro.** Discutir uma assinatura leva
+  minutos; mudá-la depois de três chamadores e dois testes leva horas, e o
+  segundo chamador costuma nascer torto para acomodar a primeira decisão errada;
+- **contrato escrito depois descreve o código, não o decide.** Quando o
+  documento é redigido a partir da implementação, ele deixa de ser contrato e
+  vira comentário — e a divergência entre os dois passa a ser invisível;
+- **a fronteira do módulo só é verificável se estiver escrita.** Sem contrato,
+  "não fure a fronteira" é opinião; com contrato, é diferença entre dois
+  arquivos.
+
+Quando a implementação mostrar que o contrato estava errado — e vai mostrar —,
+**corrija o contrato no mesmo commit**, com a razão. O que não se aceita é o
+código divergir em silêncio: código certo com contrato desatualizado é a mesma
+falha de rastreabilidade que um mapeamento não declarado.
+
+O `/speckit-analyze` compara os dois e reporta a divergência. Divergência
+reportada e não resolvida é bloqueio, não observação.
 
 Toda feature ontológica identifica: ontologia principal, ontologias das quais depende, conceitos adicionados/alterados, relações, cardinalidades, constraints, perguntas de competência, YAMLs criados/alterados, mapeamentos externos, migrações, testes conceituais e riscos semânticos.
 

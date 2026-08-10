@@ -1,0 +1,23 @@
+services:
+  postgres:
+    # research.md R1 fixou PostgreSQL 16; o ambiente de desenvolvimento já roda
+    # 17-alpine, e a diferença não afeta nada que a feature usa. Alinhado ao que
+    # existe em vez de recriar o container e arriscar o volume.
+    image: postgres:17-alpine
+    container_name: the_band_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: the_band_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - the_band_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  the_band_pgdata:

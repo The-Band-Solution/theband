@@ -44,6 +44,7 @@ limitations:
   - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
   - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
   - Remoção de uma pessoa do time no GitHub não gera evento; só é detectável por comparação entre coletas.
+  - O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

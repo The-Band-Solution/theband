@@ -193,6 +193,7 @@ O vínculo pessoa-time observado é preservado como evidência, com o nível de 
 - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
 - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
 - Remoção de uma pessoa do time no GitHub não gera evento; só é detectável por comparação entre coletas.
+- O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.
 
 ### `github.user.to.eo.person`
 
@@ -204,7 +205,7 @@ Uma conta de usuário do GitHub identifica um agente que atuou no repositório. 
 
 - Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
 - A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
-- O campo email costuma ser nulo por configuração de privacidade.
+- O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.
 
 ### `github.workflow_run.to.ciro.continuous_integration_process`
 
