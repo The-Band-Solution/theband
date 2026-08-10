@@ -836,9 +836,13 @@ interesse.
   vazia significa que ninguém foi pedido, mesmo com o comando saindo com código zero.
   Quando não houver revisor possível, declare a impossibilidade com evidência — nunca
   invente um.
-- **Merge não é revisão, e revisão não é aceitação.** A evidência de revisão é
-  aprovação registrada em `pulls/<n>/reviews`. Vazio significa que não houve, mesmo
-  que o código esteja na `main`.
+- **Merge não é revisão, e revisão não é aceitação.** A evidência mais forte de revisão
+  é aprovação registrada em `pulls/<n>/reviews`.
+- **Mas vazio não prova que não houve.** Prova ausência de registro. Distinga as três:
+  *revisão registrada*, *revisão atestada sem registro* — com data e a frase de quem
+  atesta — e *revisão não ocorreu*. Só a terceira é lacuna de revisão; a segunda é
+  lacuna de prova. Quem implementa aqui é o agente, então o humano registrado como
+  `author` do PR não escreveu o código e é revisor legítimo.
 - **Não reabra tarefa executada sem sucesso.** Nova tarefa pretendida.
 - **Não altere critério para caber no que foi entregue.** Se o critério estava
   errado, corrija-o registrando a mudança — e reavalie.

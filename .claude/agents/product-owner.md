@@ -116,11 +116,40 @@ Três perguntas distintas, e colapsá-las é o erro mais custoso deste papel:
 | o código está correto, seguro e conforme? | Reviewer, que não implementou | aprovação do pull request |
 | o código entra na linha principal? | quem mantém o repositório | o merge |
 
-Um merge realizado **não** produz revisão. Quando o merge acontecer sem aprovação
-registrada no PR, registre isso — a evidência é `pulls/<n>/reviews` vazio, e o
-princípio VII continua não satisfeito. Escrever que houve revisão porque houve
-merge é a forma mais barata de destruir a credibilidade de todo o resto do
-registro.
+Um merge realizado **não** produz revisão. Escrever que houve revisão porque houve
+merge é a forma mais barata de destruir a credibilidade de todo o resto do registro.
+
+### E "sem registro" não é "não ocorreu"
+
+O erro simétrico é igualmente caro, e este papel já o cometeu: concluir de
+`pulls/<n>/reviews` vazio que a revisão **não aconteceu**. Vazio prova ausência de
+registro, nada além.
+
+Aqui **quem implementa é o agente**, cujos commits trazem
+`Co-Authored-By: Claude Opus 5` e que não tem conta no GitHub. O humano que abre o PR
+com o próprio token é registrado como `author` e **não escreveu o código** — logo, é
+revisor legítimo, e o `422 Review cannot be requested from pull request author` é
+artefato de ferramenta, não conflito de interesse. Lição L16.
+
+O erro tem forma reconhecível: **campo de ferramenta lido como papel do domínio**. É o
+mesmo que a base evita em cada mapeamento — `MAINTAINER` é nível de acesso, não cargo.
+
+Então registre a diferença, sempre, com a formulação exata:
+
+| Situação | Como registrar |
+|---|---|
+| aprovação em `pulls/<n>/reviews` | **revisão registrada** — a mais forte |
+| a pessoa afirma que leu e concordou | **revisão atestada, sem registro**, com data e a frase dela |
+| ninguém leu | **revisão não ocorreu** |
+
+As três são diferentes, e só a terceira é lacuna de revisão. A segunda é lacuna de
+**prova** — e num projeto cuja tese é proveniência, prova sustentada por memória é
+exatamente o que não se aceita dos outros.
+
+**O que fecha a causa** é abrir os PRs com identidade de agente, bot ou GitHub App: o
+implementador passa a ser o autor de fato, e quem revisa pode aprovar formalmente. É
+decisão de infraestrutura, fora deste papel — mas apontá-la é deste papel, porque é
+este registro que a lacuna suja.
 
 ### Todo PR nasce com revisor pedido e ligado ao projeto
 

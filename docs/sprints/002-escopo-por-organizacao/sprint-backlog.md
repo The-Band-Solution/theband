@@ -62,14 +62,24 @@ de a uma pessoa. Pedir à equipe é o que **produz** a independência: o pedido 
 aberto a qualquer membro, e o autor, sendo membro, não pode atendê-lo. Quem revisa é
 `Adylla027` ou `EduardoNFraiz`.
 
-**O resíduo do #89 não se recupera.** Não há como pedir revisão de PR mergeado, então o
-código da feature 001 permanece na `main` sem nunca ter sido revisado. A correção vale
-de #91 em diante, e o registro de aceitação continua dizendo isso.
+**Correção do próprio registro.** Este documento afirmava que a revisão da 001 não
+havia acontecido. A pessoa mantenedora corrigiu: *"eu olhei e concordei, por isso não
+coloquei comentário."* A leitura ocorreu; **falta a prova, não a revisão.**
+
+A conclusão errada vinha de ler o campo `author` do GitHub como se nomeasse quem
+implementou. Não nomeia: quem implementou é o agente, cujos commits trazem
+`Co-Authored-By: Claude Opus 5` e que não tem conta. O `422` é artefato de ferramenta,
+não conflito de interesse. Registrado como [L16](../licoes-aprendidas.md).
+
+**O que fecha a lacuna de vez** é abrir os PRs com identidade de agente — bot ou GitHub
+App. Aí o implementador é o autor de fato, e `paulossjunior` pode aprovar formalmente o
+que não escreveu. Enquanto isso, #89, #90 e #91 ficam com o atestado datado no
+`aceitacao.md`, porque PR mergeado não recebe review.
 
 ## Lições aplicadas
 
-Do [registro acumulado](../licoes-aprendidas.md) — quinze lições, L01 a L15.
-Nove se aplicam diretamente:
+Do [registro acumulado](../licoes-aprendidas.md) — dezesseis lições, L01 a L16.
+Dez se aplicam diretamente:
 
 | Lição | O que muda neste sprint |
 |---|---|
@@ -81,6 +91,7 @@ Nove se aplicam diretamente:
 | **L12** — PR não aberto na hora passa a carregar outra feature | Foi por isso que a Fase 0 existe, e é a lição que criou a regra de não puxar trabalho novo. O PR da 002 é aberto **quando a tarefa pedir**, não no fim |
 | **L13** — secret referenciado e não cadastrado chega como string vazia | Onde a ausência tem tratamento, vazio recebe o mesmo. Vale para toda leitura de ambiente que esta feature acrescentar |
 | **L14** — `gh` engole o pedido de revisão recusado | Ao abrir o PR desta feature, conferir `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi pedido, não importa o que o comando disse |
+| **L16** — o autor do PR não é quem implementou | Ao registrar revisão, distinguir "não ocorreu" de "sem prova". O campo `author` do GitHub responde quem abriu o PR, nunca quem escreveu o código |
 | **L15** — não há revisor possível num repositório de um colaborador só | A revisão independente era pendência de **permissão**, não de agenda. Destravada neste sprint: `pull` à equipe `the-band`, e pedido de revisão à equipe. Todo PR desta feature nasce com `team_reviewers[]=the-band` |
 
 As demais foram consideradas e não se aplicam: L01 (não há gerador nesta
