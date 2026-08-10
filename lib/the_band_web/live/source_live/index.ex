@@ -70,6 +70,58 @@ defmodule TheBandWeb.SourceLive.Index do
     {:noreply, load_tools(socket)}
   end
 
+  def handle_event("ask_end", %{"id" => id}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    case Sources.fetch_connected_tool(tenant, id) do
+      {:ok, tool} ->
+        impact = Sources.observation_impact(tenant, tool)
+
+        {:noreply,
+         assign(socket,
+           ending: %{
+             tool: tool,
+             impact: impact,
+             shared_names: Sources.shared_people_names(tenant, tool)
+           }
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
+  def handle_event("cancel_end", _params, socket), do: {:noreply, assign(socket, ending: nil)}
+
+  def handle_event("end_observation", %{"tool_id" => id} = params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, id),
+         {:ok, resultado} <-
+           Sources.end_observation(tenant, tool, %{
+             "confirmation" => params["confirmation"],
+             "actor_user_id" => socket.assigns.current_user.id
+           }) do
+      {:noreply,
+       socket
+       |> assign(ending: nil)
+       |> put_flash(
+         :info,
+         "Observação de #{tool.organization_login} encerrada. " <>
+           "#{resultado.marked.people} pessoa(s), #{resultado.marked.teams} equipe(s) e " <>
+           "#{resultado.marked.links} vínculo(s) marcados. " <>
+           "#{resultado.credentials_destroyed} credencial(is) destruída(s). Nada foi apagado."
+       )
+       |> load_tools()}
+    else
+      {:error, :confirmation_mismatch} ->
+        {:noreply, put_flash(socket, :error, "O nome digitado não corresponde à organização.")}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -146,6 +198,9 @@ defmodule TheBandWeb.SourceLive.Index do
               ]}>
                 {status_label(tool.status)}
               </span>
+              <span :if={@ended[tool.id]} class="badge badge-ghost">
+                observação encerrada
+              </span>
             </div>
             <div class="text-sm opacity-70">{tool.instance_url}</div>
             <div class="text-sm opacity-70">organização observada: {tool.organization_login}</div>
@@ -154,7 +209,71 @@ defmodule TheBandWeb.SourceLive.Index do
           <div class="text-right text-sm opacity-70">
             <div :if={tool.last_sync_at}>última coleta: {tool.last_sync_at}</div>
             <div :if={is_nil(tool.last_sync_at)}>nunca sincronizada</div>
+            <div :if={@ended[tool.id]} class="text-xs">
+              encerrada em {@ended[tool.id]}
+            </div>
+            <button
+              :if={!@ended[tool.id]}
+              class="btn btn-xs btn-outline btn-error mt-2"
+              phx-click="ask_end"
+              phx-value-id={tool.id}
+            >
+              encerrar observação
+            </button>
           </div>
+        </div>
+
+        <div :if={@ending && @ending.tool.id == tool.id} class="alert alert-error text-sm block">
+          <div class="font-semibold mb-2">
+            Encerrar a observação de {tool.organization_login}
+          </div>
+
+          <div class="mb-2">
+            <div class="opacity-80">Serão marcados como não mais observados:</div>
+            <div class="font-mono">
+              {@ending.impact.teams} equipe(s) — {@ending.impact.derived_teams} derivada(s) pela plataforma
+            </div>
+            <div class="font-mono">{@ending.impact.evidence_links} vínculo(s)</div>
+            <div class="font-mono">
+              {@ending.impact.people_exclusive} pessoa(s) conhecida(s) só por esta organização
+            </div>
+          </div>
+
+          <div :if={@ending.impact.people_shared > 0} class="mb-2">
+            <div class="opacity-80">Permanecem vigentes:</div>
+            <div class="font-mono">
+              {@ending.impact.people_shared} pessoa(s) — também observada(s) em outra organização
+            </div>
+            <div :for={p <- @ending.shared_names} class="font-mono text-xs opacity-80">
+              {p}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="opacity-80">Serão destruídas:</div>
+            <div class="font-mono">as credenciais desta ferramenta</div>
+          </div>
+
+          <div class="mb-3">
+            <div class="opacity-80 font-semibold">NÃO serão apagados:</div>
+            <div class="font-mono">
+              {@ending.impact.preserved_payloads} payload(s) preservado(s), nem pessoa, equipe ou vínculo algum
+            </div>
+          </div>
+
+          <form phx-submit="end_observation" class="flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="tool_id" value={tool.id} />
+            <label class="form-control">
+              <span class="label-text text-xs">
+                Para confirmar, digite: <strong>{tool.organization_login}</strong>
+              </span>
+              <input name="confirmation" class="input input-bordered input-sm" autocomplete="off" />
+            </label>
+            <.button type="submit" variant="primary">Encerrar</.button>
+            <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_end">
+              cancelar
+            </button>
+          </form>
         </div>
 
         <div :if={tool.status == "needs_attention"} class="alert alert-warning text-sm">
@@ -212,7 +331,16 @@ defmodule TheBandWeb.SourceLive.Index do
   end
 
   defp load_tools(socket) do
-    assign(socket, tools: Sources.list_connected_tools(socket.assigns.current_tenant))
+    tenant = socket.assigns.current_tenant
+    tools = Sources.list_connected_tools(tenant)
+
+    socket
+    |> assign(tools: tools)
+    # A derivação vem de `observation_ended?/1`, a mesma função que o filtro de coleta
+    # usa. Dois caminhos discordariam, e a tela mostraria como encerrado o que a
+    # plataforma continua coletando.
+    |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
+    |> assign_new(:ending, fn -> nil end)
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)

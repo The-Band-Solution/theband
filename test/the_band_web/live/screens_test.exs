@@ -10,6 +10,7 @@ defmodule TheBandWeb.ScreensTest do
   use TheBandWeb.ConnCase, async: false
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Sources
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ToolCredential
   alias TheBand.Tenants
@@ -337,6 +338,104 @@ defmodule TheBandWeb.ScreensTest do
       # A origem tem 1 time; a plataforma mostra 2 equipes, e diz por quê.
       assert EO.count_teams(tenant) == 2
       assert EO.count_teams(tenant, origin: :observed) == 1
+    end
+  end
+
+  describe "encerrar a observação pela tela (T018, T022)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+
+      alfa = organization_fixture(tenant, "acme")
+      beta = organization_fixture(tenant, "outra-org-fonte")
+      t_alfa = team_fixture(tenant, "T_a", %{organization: alfa})
+      t_beta = team_fixture(tenant, "T_b", %{organization: beta})
+
+      {:ok, sobreposta} =
+        EO.upsert_person_from_source(tenant, source_attrs("U_s", %{name: "Sobreposta"}))
+
+      {:ok, exclusiva} =
+        EO.upsert_person_from_source(tenant, source_attrs("U_e", %{name: "Exclusiva"}))
+
+      for {p, t, sufixo} <- [
+            {sobreposta, t_alfa, "-a"},
+            {sobreposta, t_beta, "-b"},
+            {exclusiva, t_alfa, "-a"}
+          ] do
+        {:ok, _} =
+          EO.record_team_membership_evidence(tenant, %{
+            person_id: p.id,
+            team_id: t.id,
+            person_external_id: p.external_id <> sufixo,
+            team_external_id: t.external_id,
+            platform_access_level: "MEMBER",
+            source_system: "github",
+            source_instance: "https://github.com",
+            observed_at: DateTime.utc_now(:second)
+          })
+      end
+
+      %{conn: log_in(conn, user), tenant: tenant, tool: tool}
+    end
+
+    test "o impacto aparece antes de confirmar, e nomeia quem permanece", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+
+      html = live |> element("button", "encerrar observação") |> render_click()
+
+      assert html =~ "Encerrar a observação de acme"
+      assert html =~ "Permanecem vigentes"
+      # O nome, e não um contador: "1 pessoa permanece" não deixa reconhecer quem é.
+      assert html =~ "Sobreposta"
+      assert html =~ "NÃO serão apagados"
+      assert html =~ "Para confirmar, digite"
+    end
+
+    test "confirmação errada não encerra", %{conn: conn, tool: tool} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "encerrar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acm"})
+        |> render_submit()
+
+      assert html =~ "não corresponde"
+      refute Sources.observation_ended?(tool)
+    end
+
+    test "confirmação certa encerra, e o resumo diz que nada foi apagado", %{
+      conn: conn,
+      tool: tool
+    } do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "encerrar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acme"})
+        |> render_submit()
+
+      assert html =~ "encerrada"
+      assert html =~ "Nada foi apagado"
+      assert html =~ "observação encerrada"
+      assert Sources.observation_ended?(tool)
+    end
+
+    test "o segredo não aparece em nenhum momento do fluxo (SC-011)", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/ferramentas")
+      refute html =~ @segredo
+
+      html = live |> element("button", "encerrar observação") |> render_click()
+      refute html =~ @segredo
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acme"})
+        |> render_submit()
+
+      # A violação: procura o segredo e exige não encontrar, nas três telas do fluxo.
+      refute html =~ @segredo
     end
   end
 end

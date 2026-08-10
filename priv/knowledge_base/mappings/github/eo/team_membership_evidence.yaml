@@ -43,7 +43,23 @@ limitations:
   - Sem papel atribuído pelo tenant, o vínculo não é promovido a eo.team_membership e CQ14 e CQ16 permanecem sem resposta.
   - A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.
   - Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.
-  - Remoção de uma pessoa do time no GitHub não gera evento; só é detectável por comparação entre coletas.
+  - >
+    Um vínculo deixa de ser vigente por DUAS causas, e elas significam coisas diferentes.
+    PRIMEIRA - a origem mudou: remoção de uma pessoa do time no GitHub não gera evento, e
+    só é detectável por comparação entre coletas. SEGUNDA - a plataforma parou de olhar: o
+    tenant encerrou a observação daquela organização, e a decisão é da plataforma, não
+    fato sobre a origem.
+  - >
+    A distinção decide o que a retomada faz. Vínculo marcado pela SEGUNDA causa volta a
+    ser vigente na coleta seguinte, se a origem ainda o mostrar. Vínculo marcado pela
+    PRIMEIRA só volta se a origem passar a mostrá-lo de novo. Tratar as duas iguais faria
+    a retomada ressuscitar vínculo que a origem já não tem, e a plataforma afirmaria
+    observação que não ocorreu.
+  - >
+    A causa não é coluna: é derivável. Registro marcado cuja ferramenta tem evento de
+    encerramento posterior à última coleta foi marcado pela segunda causa; os demais, pela
+    primeira. Acrescentar coluna em pessoas, equipes e vínculos criaria três lugares para
+    discordarem sobre o mesmo fato.
   - O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.
 provenance:
   preserve_raw_payload: true

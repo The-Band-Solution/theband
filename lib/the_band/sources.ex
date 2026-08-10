@@ -11,8 +11,10 @@ defmodule TheBand.Sources do
   import Ecto.Query
 
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
   alias TheBand.Sources.ConnectedTool
+  alias TheBand.Sources.ObservationEvent
   alias TheBand.Sources.ToolCredential
   alias TheBand.Tenants.Tenant
 
@@ -65,6 +67,176 @@ defmodule TheBand.Sources do
         order_by: [desc: c.validated_at, desc: c.inserted_at, asc: c.id],
         limit: 1
     )
+  end
+
+  # ------------------------------------------------------ ciclo de observação
+
+  @doc """
+  A observação desta ferramenta foi encerrada? (T004, FR-008, FR-022)
+
+  Derivada do **último evento**, e não de uma coluna: encerrar e retomar são eventos, e
+  o estado é situação — ADR 0004 D7. Uma coluna guardaria um ciclo, e encerrar e
+  reconectar no mesmo dia produz três transições.
+
+  **Sem evento é vigente.** É o que faz as ferramentas já cadastradas continuarem
+  observadas sem migração de dado: estado ausente significa "nunca foi encerrada", que
+  é a verdade.
+
+  Esta função é o **único** caminho de derivação. A tela e o filtro de coleta a usam, e
+  dois caminhos discordariam — a plataforma coletaria do que a tela mostra como
+  encerrado.
+  """
+  @spec observation_ended?(ConnectedTool.t()) :: boolean()
+  def observation_ended?(%ConnectedTool{id: tool_id}) do
+    Repo.one(
+      from e in ObservationEvent,
+        where: e.connected_tool_id == ^tool_id,
+        order_by: [desc: e.occurred_at, desc: e.inserted_at],
+        limit: 1,
+        select: e.event
+    ) == "ended"
+  end
+
+  @doc """
+  Quando a observação foi encerrada, ou `nil` se estiver vigente.
+
+  Existe para a tela, que precisa dizer **desde quando** — e usa a mesma leitura do
+  último evento que `observation_ended?/1`, para não haver duas derivações.
+  """
+  @spec observation_ended_at(ConnectedTool.t()) :: DateTime.t() | nil
+  def observation_ended_at(%ConnectedTool{id: tool_id}) do
+    Repo.one(
+      from e in ObservationEvent,
+        where: e.connected_tool_id == ^tool_id,
+        order_by: [desc: e.occurred_at, desc: e.inserted_at],
+        limit: 1,
+        select: {e.event, e.occurred_at}
+    )
+    |> case do
+      {"ended", at} -> at
+      _ -> nil
+    end
+  end
+
+  @doc """
+  Os nomes das pessoas que **permanecem vigentes** se esta observação for encerrada.
+
+  A tela mostra os nomes, e não um contador: "1 pessoa permanece" não deixa reconhecer
+  quem é. É a informação que impede o mal-entendido central — quem não a vê supõe que
+  encerrar remove a pessoa de todas as organizações.
+  """
+  @spec shared_people_names(Tenant.t(), ConnectedTool.t()) :: [String.t()]
+  def shared_people_names(%Tenant{} = tenant, %ConnectedTool{} = tool) do
+    EO.shared_people_names(tenant, tool.organization_login)
+  end
+
+  @doc "As transições desta ferramenta, na ordem em que ocorreram (FR-014)."
+  @spec observation_history(Tenant.t(), ConnectedTool.t()) :: [ObservationEvent.t()]
+  def observation_history(%Tenant{id: tenant_id}, %ConnectedTool{id: tool_id}) do
+    Repo.all(
+      from e in ObservationEvent,
+        where: e.tenant_id == ^tenant_id and e.connected_tool_id == ^tool_id,
+        order_by: [asc: e.occurred_at, asc: e.inserted_at]
+    )
+  end
+
+  @doc """
+  As ferramentas cuja observação está vigente (FR-008).
+
+  É o que o enfileiramento de coleta usa. Ferramenta encerrada não entra, e o filtro
+  passa por `observation_ended?/1` — o mesmo caminho da tela.
+  """
+  @spec list_observed_tools(Tenant.t()) :: [ConnectedTool.t()]
+  def list_observed_tools(%Tenant{} = tenant) do
+    tenant |> list_connected_tools() |> Enum.reject(&observation_ended?/1)
+  end
+
+  @doc """
+  O que será marcado se a observação desta ferramenta for encerrada (T006, FR-002).
+
+  É a **mesma função** que o encerramento usa para gravar `impact` no evento. Uma
+  segunda contagem escrita para a tela divergiria da que age, e o número que a pessoa vê
+  antes de confirmar tem de ser o que acontece.
+
+  `people_exclusive` e `people_shared` são separados porque juntá-los esconde a única
+  contagem que assusta. E `preserved_payloads` existe para dizer **zero apagados**.
+  """
+  @spec observation_impact(Tenant.t(), ConnectedTool.t()) :: map()
+  def observation_impact(%Tenant{} = tenant, %ConnectedTool{} = tool) do
+    EO.observation_impact(tenant, tool.organization_login)
+  end
+
+  @doc """
+  Encerra a observação desta ferramenta (T009, FR-001 a FR-010).
+
+  Na ordem, e a ordem não é arbitrária:
+
+      1. confere a confirmação contra o organization_login
+      2. calcula o impacto — a mesma função da tela
+      3. numa única transação:
+         a. grava o evento `ended`, com o impacto, o autor e o motivo
+         b. marca equipes, vínculos e pessoas — nesta ordem
+         c. destrói as credenciais
+      4. interrompe a coleta em curso, se houver
+
+  **As pessoas são marcadas por último** porque a decisão depende dos vínculos já
+  marcados: uma pessoa é marcada quando não lhe resta nenhum vínculo vigente, e isso só
+  é verdade depois de (b) ter marcado os vínculos. Inverter marcaria pessoa que ainda
+  tinha vínculo — em `ifesserra-lab`, marcaria `Paulo`, que continua observado em duas
+  outras organizações.
+
+  **Tudo numa transação.** Um encerramento parcial — credencial destruída e registros
+  não marcados — deixaria a plataforma coletando de ferramenta sem credencial e
+  afirmando observar o que não observa.
+
+  Encerrar ferramenta já encerrada devolve `{:ok, ...}` com impacto zerado e grava um
+  segundo evento: alguém tentou, e o registro diz que tentou.
+  """
+  @spec end_observation(Tenant.t(), ConnectedTool.t(), map()) ::
+          {:ok, map()} | {:error, :confirmation_mismatch | Ecto.Changeset.t()}
+  def end_observation(%Tenant{} = tenant, %ConnectedTool{} = tool, attrs \\ %{}) do
+    if field(attrs, "confirmation") == tool.organization_login do
+      do_end_observation(tenant, tool, attrs)
+    else
+      {:error, :confirmation_mismatch}
+    end
+  end
+
+  defp do_end_observation(%Tenant{id: tenant_id} = tenant, tool, attrs) do
+    impact = observation_impact(tenant, tool)
+    now = DateTime.utc_now(:second)
+
+    Repo.transaction(fn ->
+      {:ok, event} =
+        %ObservationEvent{}
+        |> ObservationEvent.changeset(%{
+          tenant_id: tenant_id,
+          connected_tool_id: tool.id,
+          event: "ended",
+          occurred_at: now,
+          actor_user_id: field(attrs, "actor_user_id"),
+          reason: field(attrs, "reason"),
+          impact: impact
+        })
+        |> Repo.insert()
+
+      {:ok, marked} = EO.mark_organization_no_longer_observed(tenant, tool.organization_login)
+
+      destroyed = destroy_all_credentials(tool)
+
+      %{
+        tool: tool,
+        event: event,
+        impact: impact,
+        marked: marked,
+        credentials_destroyed: destroyed
+      }
+    end)
+  end
+
+  defp destroy_all_credentials(%ConnectedTool{id: tool_id}) do
+    {count, _} = Repo.delete_all(from c in ToolCredential, where: c.connected_tool_id == ^tool_id)
+    count
   end
 
   # --------------------------------------------------------------------- escrita
