@@ -93,6 +93,56 @@ defmodule TheBandWeb.SourceLive.Index do
 
   def handle_event("cancel_end", _params, socket), do: {:noreply, assign(socket, ending: nil)}
 
+  def handle_event("ask_resume", %{"id" => id}, socket) do
+    case Sources.fetch_connected_tool(socket.assigns.current_tenant, id) do
+      {:ok, tool} -> {:noreply, assign(socket, resuming: tool)}
+      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
+  def handle_event("cancel_resume", _params, socket),
+    do: {:noreply, assign(socket, resuming: nil)}
+
+  def handle_event("resume_observation", %{"tool_id" => id} = params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, id),
+         {:ok, _resultado} <-
+           Sources.resume_observation(tenant, tool, %{
+             "secret" => params["secret"],
+             "label" => params["label"],
+             "actor_user_id" => socket.assigns.current_user.id
+           }) do
+      {:noreply,
+       socket
+       |> assign(resuming: nil)
+       |> put_flash(
+         :info,
+         "Observação de #{tool.organization_login} retomada. " <>
+           "Os registros marcados voltam a ser vigentes na próxima coleta, " <>
+           "e só os que a origem ainda mostrar."
+       )
+       |> load_tools()}
+    else
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "A credencial foi recusada pela ferramenta.")}
+
+      {:error, {:missing_scopes, faltando}} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "A credencial não tem os escopos: #{Enum.join(faltando, ", ")}"
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Não foi possível retomar a observação.")}
+    end
+  end
+
   def handle_event("end_observation", %{"tool_id" => id} = params, socket) do
     tenant = socket.assigns.current_tenant
 
@@ -226,7 +276,58 @@ defmodule TheBandWeb.SourceLive.Index do
             >
               encerrar observação
             </button>
+            <button
+              :if={@ended[tool.id]}
+              class="btn btn-xs btn-outline mt-2"
+              phx-click="ask_resume"
+              phx-value-id={tool.id}
+            >
+              retomar observação
+            </button>
           </div>
+        </div>
+
+        <div :if={@resuming && @resuming.id == tool.id} class="alert block text-sm">
+          <div class="font-semibold mb-2">
+            Retomar a observação de {tool.organization_login}
+          </div>
+
+          <p class="mb-2 opacity-80">
+            A credencial anterior foi destruída no encerramento, então é preciso informar
+            uma nova. Ela é validada contra a origem antes de qualquer coisa ser gravada.
+          </p>
+
+          <p class="mb-3 opacity-80">
+            Os registros marcados <strong>não voltam a ser vigentes agora</strong>: só a
+            coleta seguinte pode dizer se a origem ainda os mostra. Desmarcar aqui
+            afirmaria uma observação que não aconteceu.
+          </p>
+
+          <form phx-submit="resume_observation" class="flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="tool_id" value={tool.id} />
+            <label class="form-control">
+              <span class="label-text text-xs">Credencial nova</span>
+              <input
+                name="secret"
+                type="password"
+                class="input input-bordered input-sm"
+                autocomplete="off"
+                placeholder="ghp_..."
+              />
+            </label>
+            <label class="form-control">
+              <span class="label-text text-xs">Rótulo</span>
+              <input
+                name="label"
+                class="input input-bordered input-sm"
+                placeholder="credencial principal"
+              />
+            </label>
+            <.button type="submit" variant="primary">Validar e retomar</.button>
+            <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_resume">
+              cancelar
+            </button>
+          </form>
         </div>
 
         <div :if={@ending && @ending.tool.id == tool.id} class="alert alert-error text-sm block">
@@ -347,6 +448,7 @@ defmodule TheBandWeb.SourceLive.Index do
     # plataforma continua coletando.
     |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
     |> assign_new(:ending, fn -> nil end)
+    |> assign_new(:resuming, fn -> nil end)
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)

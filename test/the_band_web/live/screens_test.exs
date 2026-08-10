@@ -9,6 +9,10 @@ defmodule TheBandWeb.ScreensTest do
 
   use TheBandWeb.ConnCase, async: false
 
+  import Mox
+
+  setup :verify_on_exit!
+
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Sources
   alias TheBand.Sources.ConnectedTool
@@ -436,6 +440,95 @@ defmodule TheBandWeb.ScreensTest do
 
       # A violação: procura o segredo e exige não encontrar, nas três telas do fluxo.
       refute html =~ @segredo
+    end
+  end
+
+  describe "retomar a observação pela tela (US2)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+      org = organization_fixture(tenant, "acme")
+      team_fixture(tenant, "T_a", %{organization: org})
+
+      {:ok, _} = Sources.end_observation(tenant, tool, %{"confirmation" => "acme"})
+
+      %{conn: log_in(conn, user), tenant: tenant, tool: tool}
+    end
+
+    test "o botão de retomar aparece só na encerrada", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/ferramentas")
+
+      assert html =~ "retomar observação"
+      refute html =~ "encerrar observação"
+    end
+
+    test "o formulário diz que a coleta é que devolve vigência", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+
+      html = live |> element("button", "retomar observação") |> render_click()
+
+      assert html =~ "credencial anterior foi destruída"
+      # A frase existe para impedir o mal-entendido: retomar não ressuscita nada por si.
+      assert html =~ "não voltam a ser vigentes agora"
+    end
+
+    test "credencial recusada não retoma, e a tela diz", %{conn: conn, tool: tool} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok, %{status: 401, body: %{}, headers: %{}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{"secret" => "ghp_ruim"})
+        |> render_submit()
+
+      assert html =~ "recusada pela ferramenta"
+      assert Sources.observation_ended?(tool)
+    end
+
+    test "credencial válida retoma, e o aviso diz o que a coleta fará", %{
+      conn: conn,
+      tool: tool
+    } do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{
+          "secret" => "ghp_boa",
+          "label" => "nova"
+        })
+        |> render_submit()
+
+      assert html =~ "retomada"
+      assert html =~ "só os que a origem ainda mostrar"
+      refute Sources.observation_ended?(tool)
+    end
+
+    test "o segredo novo não aparece no HTML (SC-011)", %{conn: conn} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{"secret" => "ghp_segredo_novo_12345"})
+        |> render_submit()
+
+      refute html =~ "ghp_segredo_novo_12345"
     end
   end
 end

@@ -267,10 +267,7 @@ defmodule TheBand.Sources do
           })
           |> Repo.insert()
 
-        {:ok, credential} =
-          tenant_id
-          |> credential_changeset(tool.id, attrs, scopes)
-          |> Repo.insert()
+        credential = insert_credential_or_rollback(tenant_id, tool, attrs, scopes)
 
         # A ferramenta volta ao estado ativo: o motivo de atenção, se havia, era da
         # credencial destruída — e ela não existe mais.
@@ -278,6 +275,15 @@ defmodule TheBand.Sources do
 
         %{tool: tool, event: event, credential: credential}
       end)
+    end
+  end
+
+  # `Repo.rollback` e não `{:ok, _} =`: um changeset inválido é resposta da aplicação,
+  # e derrubar o processo tiraria da tela a chance de dizer o que está errado.
+  defp insert_credential_or_rollback(tenant_id, %ConnectedTool{} = tool, attrs, scopes) do
+    case tenant_id |> credential_changeset(tool.id, attrs, scopes) |> Repo.insert() do
+      {:ok, credential} -> credential
+      {:error, changeset} -> Repo.rollback(changeset)
     end
   end
 
@@ -404,13 +410,18 @@ defmodule TheBand.Sources do
     ToolCredential.changeset(%ToolCredential{}, %{
       tenant_id: tenant_id,
       connected_tool_id: tool_id,
-      label: field(attrs, "label", "credencial principal"),
+      # `""` e `nil` são a mesma coisa aqui: a tela manda campo vazio, não campo
+      # ausente, e só o ausente pegava o padrão. Mesma classe da L13.
+      label: blank_to_default(field(attrs, "label"), "credencial principal"),
       secret: secret,
       last_four: ToolCredential.last_four(secret),
       scopes: scopes,
       validated_at: DateTime.utc_now(:second)
     })
   end
+
+  defp blank_to_default(value, default) when value in [nil, ""], do: default
+  defp blank_to_default(value, _default), do: value
 
   # Os atributos chegam da tela com chave string e dos testes com átomo. Ler os
   # dois formatos num lugar só evita espalhar `attrs["x"] || attrs[:x]`.
