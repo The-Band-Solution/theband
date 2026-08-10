@@ -190,7 +190,7 @@ Atualizado em 2026-08-10, depois do [registro de aceitação](aceitacao.md).
 | encerradas, com entregável aceito | #1 a #76 e #88 — 75 no total |
 | fechada como `not planned` | #2 — duplicata órfã da US1, criada por uma execução do script de materialização que falhou depois de a issue já existir |
 | encerrada com limitação declarada | #77 — evidência do quickstart; V3, V4 e V8 provados por teste e não por ocorrência real |
-| concluída no sprint 002 | #78 — abertura do pull request, T073. Ver a [herança](../002-escopo-por-organizacao/sprint-backlog.md) |
+| concluída no sprint 002 | #78 — abertura do pull request, T073. [PR #89](https://github.com/The-Band-Solution/theband/pull/89). Ver a [herança](../002-escopo-por-organizacao/sprint-backlog.md) |
 
 **O fechamento das issues não substitui a revisão independente.** São perguntas
 diferentes: a issue fecha quando a tarefa foi executada e o entregável aceito; a

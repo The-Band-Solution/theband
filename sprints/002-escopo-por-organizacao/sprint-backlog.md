@@ -25,8 +25,8 @@ merge, e não é revisão de código — o que sobrou está abaixo, item por ite
 
 | O que sobrou | Tipo | Destino |
 |---|---|---|
-| **T073 — abrir o pull request** · [#78](https://github.com/The-Band-Solution/theband/issues/78) | não executada | **Fase 0 deste sprint** |
-| **Revisão independente do código** — princípio VII | bloqueada por terceiro | **bloqueador nomeado**: exige revisor que não implementou, e não existe esforço do time que produza essa pessoa. O PR é o que torna a revisão possível; enquanto ela não ocorrer, nada da 001 entra na `main` |
+| **T073 — abrir o pull request** · [#78](https://github.com/The-Band-Solution/theband/issues/78) | não executada | **concluída na Fase 0**: [PR #89](https://github.com/The-Band-Solution/theband/pull/89), com a tabela de mapeamentos semânticos |
+| **Revisão independente do código** — princípio VII | bloqueada por terceiro | **bloqueador nomeado**: exige revisor que não implementou, e não existe esforço do time que produza essa pessoa. O [PR #89](https://github.com/The-Band-Solution/theband/pull/89) torna a revisão possível; enquanto ela não ocorrer, nada da 001 entra na `main` |
 | **T072 — evidência do quickstart** · [#77](https://github.com/The-Band-Solution/theband/issues/77) | executada em parte | encerrada **com a limitação declarada**: V3, V4 e V8 estão provados por teste e não por ocorrência real. Já aceito assim no `aceitacao.md`, com a ressalva escrita |
 | **Volume de SC-009** — 100 pessoas e 20 equipes | não executável | **descartada, com motivo**: exigiria uma organização de origem que não existe. O comportamento sob limite de uso está coberto por teste |
 | **`Estimate` das issues** | não executada | **devolvida**: depende de estimativa feita com o time. Número inventado produziria métrica de fluxo apoiada em ficção |
