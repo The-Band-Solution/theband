@@ -107,10 +107,13 @@ Duas razões, e a segunda é a que decide:
    qualquer vínculo empregatício. Mapear um no outro afirmaria o que a origem não
    afirma — o mesmo erro que a regra do vínculo com equipe já recusa.
 
-O vínculo observado entre conta e organização permanece **evidência**, irmã de
-`eo_team_membership_evidence`. Não é conceito de EO, e não deve virar um.
+**Decisão final, após a medição abaixo e a decisão de projeto de F4b**: não há
+vínculo direto entre pessoa e organização. A organização de uma pessoa é lida
+pelas equipes dela, e a equipe derivada garante que toda pessoa tenha ao menos
+uma. Um segundo vínculo, direto, criaria dois caminhos para a mesma pergunta —
+exatamente o que este achado recusa acrescentar em EO.
 
-#### Por que não basta derivar a organização pela equipe
+#### A medição que levou até aqui
 
 A leitura natural do modelo é: uma equipe pertence a uma organização, uma pessoa
 está em uma ou mais equipes, **logo** a organização da pessoa sai das equipes
@@ -135,10 +138,11 @@ independentemente de participação em times. Ser membro da organização e inte
 uma equipe são **duas observações distintas**, e a segunda não implica a primeira
 nem vice-versa.
 
-Portanto: **dois vínculos observados, nenhum derivado do outro.** A consulta por
-organização usa o vínculo direto; a consulta por equipe usa o vínculo com equipe;
-e uma pessoa pode aparecer numa organização sem equipe, numa equipe, ou nas duas
-condições ao mesmo tempo.
+Duas saídas eram possíveis: um segundo vínculo, direto entre pessoa e
+organização, ou uma equipe que acolhesse quem está fora das equipes observadas.
+**A decisão de projeto escolheu a segunda** — ver F4b. Com ela, todo membro passa
+a estar em alguma equipe, o caminho pela equipe fica completo, e o vínculo direto
+deixa de ser necessário.
 
 ### F4 — Equipe e organização: a relação falta, e declará-la é fiel
 
@@ -173,12 +177,19 @@ Três decisões dentro dela:
 
 ### F4b — Decisão de projeto: equipe padrão para organização sem times
 
-**Decisão da pessoa mantenedora, 2026-08-10**: quando uma organização observada
-não possui nenhuma equipe, a plataforma cria uma equipe com o nome da
-organização.
+**Decisão da pessoa mantenedora, 2026-08-10**: toda organização observada que
+tenha membros fora de suas equipes recebe uma equipe com o nome da organização, e
+esses membros são vinculados a ela.
 
-O caso existe e está medido: `ifesserra-lab` tem 5 membros e **0 times**. Sem
-equipe, seus membros não aparecem em nenhuma consulta que parta de equipe.
+Dois casos, e a regra cobre os dois com um enunciado só:
+
+| Caso | Medido | Efeito |
+|---|---|---|
+| organização sem nenhuma equipe | `ifesserra-lab`: 5 membros, 0 times | os 5 vão para a equipe derivada |
+| organização com equipes e membros fora delas | 18 de 72 pessoas sem equipe | só os de fora vão para a derivada |
+| organização com todos em equipes | `The-Band-Solution`: 6 membros, todos em times | **nenhuma** equipe derivada é criada |
+
+O terceiro caso importa: equipe derivada vazia seria registro sem referente.
 
 **A leitura que sustenta a decisão**: `eo.team` é "coletivo de pessoas que
 desempenham papéis organizacionais em conjunto". Quando a organização não se
@@ -198,10 +209,19 @@ inventa um agrupamento — ela nomeia o agrupamento que já existe por omissão.
    número da plataforma com o do GitHub precisa entender a diferença sem
    investigar.
 
-**O que a decisão não substitui**: a evidência direta entre pessoa e organização
-continua necessária. Os 18 sem equipe do quadro atual incluem gente de
-organizações **que têm** times — a equipe padrão só cobre a organização sem
-nenhum. Derivar tudo pela equipe continuaria perdendo essas pessoas.
+**O que a decisão substitui**: a evidência direta entre pessoa e organização
+deixa de ser necessária. Com a equipe derivada acolhendo quem está de fora, todo
+membro passa a estar em alguma equipe da organização, e o caminho
+`pessoa → equipe → organização` fica completo.
+
+Isso **simplifica** a feature: some uma tabela, some um caminho de escrita, e some
+a possibilidade de os dois caminhos discordarem.
+
+**O que a decisão custa**: a equipe derivada não existe na ferramenta de origem.
+Ela precisa se declarar derivada em todo lugar onde aparece — na contagem, na
+listagem e na proveniência. Sem isso, a plataforma passa a afirmar que existe um
+time que não existe, e quem comparar com o GitHub encontrará uma diferença que
+nada explica.
 
 **Formalização**: regra de derivação declarada em
 `rules/github_default_team.yaml`, no mesmo formato de
