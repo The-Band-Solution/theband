@@ -138,11 +138,18 @@ gh pr create ... --reviewer paulossjunior
 gh pr edit <n> --add-reviewer paulossjunior
 ```
 
-**A restrição que isso encontra, e que precisa estar declarada**: o GitHub **recusa
-pedir revisão ao autor do próprio PR**. Quando o PR é aberto com o token de
-`paulossjunior`, ele é o autor, e não pode ser o revisor. Nesse caso o pedido
-falha, e a resposta correta é registrar a lacuna — não silenciá-la, e não inventar
-outro revisor.
+**Confira o resultado; não confie no comando.** `--reviewer` e `--add-reviewer`
+falham **em silêncio**: imprimem a URL, saem com zero e não atribuem ninguém.
+
+```bash
+gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
+```
+
+**A restrição que isso encontra, verificada no PR #90**: o GitHub recusa pedir
+revisão ao autor do próprio PR — `422 Review cannot be requested from pull request
+author.` Quando o PR é aberto com o token de `paulossjunior`, ele é o autor e não
+pode ser o revisor. A resposta correta é registrar a lacuna, nunca inventar outro
+revisor. Virou a lição L14.
 
 Fechar isso exige separar as identidades: quem abre o PR e quem revisa não podem
 ser a mesma conta. É decisão de infraestrutura, fora deste papel, e enquanto não

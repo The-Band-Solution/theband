@@ -265,3 +265,50 @@ configuração, não. Um trecho tratava vazio como ausente, o outro como valor.
    a prova é executar, não implementar.
 
 **Aplicada em**: Sprint 002 — Fase 0, ao abrir o PR da 001.
+
+### L14 — `gh` engole em silêncio o pedido de revisão recusado
+
+**O que aconteceu.** Passou a valer a regra de todo PR nascer com revisor pedido, e
+o PR #90 foi aberto com `gh pr create ... --reviewer paulossjunior`. O comando
+imprimiu a URL e **nada mais** — nenhum aviso, código de saída zero.
+
+O revisor não foi atribuído. `gh pr edit 90 --add-reviewer paulossjunior` fez o
+mesmo: imprimiu a URL, saiu com zero, não atribuiu ninguém.
+
+Só a chamada direta à API mostrou o motivo:
+
+```text
+POST repos/.../pulls/90/requested_reviewers
+422  Review cannot be requested from pull request author.
+```
+
+**Por que aconteceu.** O PR foi aberto com o token de `paulossjunior`, então ele é
+o autor — e o GitHub recusa pedir revisão ao autor do próprio PR. A recusa é
+legítima e é exatamente a regra que o princípio VII quer: ninguém revisa o que
+escreveu.
+
+O defeito não é a recusa. É o `gh` **não reportá-la**: a flag `--reviewer` falha
+sem sinal, e quem roda o comando fica convencido de que pediu revisão.
+
+**Por que importa.** É a pior classe de falha para uma regra de processo. Uma regra
+que falha alto é corrigida na hora; uma que falha em silêncio produz um registro
+que afirma conformidade — "o PR foi aberto com revisor" — enquanto a fila do
+revisor continua vazia. A verificação e o resultado divergem, e nada avisa.
+
+Mesma forma da [L13](#l13--secret-referenciado-e-não-cadastrado-chega-como-string-vazia):
+a configuração parecia certa e o efeito não existia.
+
+**Como aplicar.**
+
+1. **Nunca confiar no código de saída de `gh pr create --reviewer`.** Depois de
+   abrir o PR, conferir o resultado:
+   `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi
+   pedido, independentemente do que o comando disse;
+2. **Para ver o erro, usar a API**, não a flag:
+   `gh api -X POST repos/<owner>/<repo>/pulls/<n>/requested_reviewers -f 'reviewers[]=<login>'`;
+3. **Registrar a lacuna quando o pedido é impossível.** Uma conta só não satisfaz
+   o princípio VII: quem abre o PR e quem revisa têm de ser identidades diferentes.
+   Enquanto for a mesma, a exigência é inalcançável, e isso pertence ao registro de
+   cada sprint em vez de reaparecer como surpresa a cada merge.
+
+**Aplicada em**: Sprint 002 — ao abrir o PR #90, que é o próprio caso.

@@ -580,10 +580,26 @@ notificado, nada entra na fila de ninguém, e a pendência só aparece no merge 
 quando já é tarde. Foi o que ocorreu no PR #89, mergeado com
 `pulls/89/reviews` vazio.
 
-**Restrição declarada**: o GitHub **recusa pedir revisão ao autor do próprio PR**.
-Como o PR é aberto com o token de `paulossjunior`, ele é o autor e não pode ser o
-revisor — o pedido falha. Registre a lacuna; não invente outro revisor e não
-silencie.
+**Restrição declarada, e verificada**: o GitHub **recusa pedir revisão ao autor do
+próprio PR**. Como o PR é aberto com o token de `paulossjunior`, ele é o autor e
+não pode ser o revisor:
+
+```text
+POST repos/.../pulls/90/requested_reviewers
+422  Review cannot be requested from pull request author.
+```
+
+**E o `gh` não reporta isso.** `--reviewer` e `--add-reviewer` imprimem a URL, saem
+com código zero e não atribuem ninguém. Por isso a regra tem um segundo passo,
+obrigatório:
+
+```bash
+gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
+```
+
+Lista vazia significa que a revisão não foi solicitada, **independentemente do que
+o comando disse**. Registre a lacuna; não invente outro revisor e não silencie.
+Virou a lição L14.
 
 Satisfazer o princípio VII neste repositório exige **duas identidades**: quem abre
 o PR e quem revisa não podem ser a mesma conta. Enquanto houver uma só, a
