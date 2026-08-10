@@ -153,8 +153,9 @@ tentar alterar a organização e conferir que a interface não oferece, dizendo 
 - **FR-002**: A plataforma MUST apresentar, **antes da confirmação**, quantas
   pessoas, equipes e vínculos têm proveniência naquela ferramenta, e quantos deles
   existem exclusivamente por causa dela.
-- **FR-003**: A plataforma MUST exigir confirmação explícita, distinta de um clique
-  único, para encerrar uma observação que tenha dado coletado.
+- **FR-003**: A plataforma MUST exigir, para encerrar uma observação que tenha dado
+  coletado, que a pessoa **digite o nome da organização** — confirmação distinta de um
+  clique, e distinta de dois cliques.
 - **FR-004**: A plataforma MUST NOT apagar pessoas, equipes, vínculos ou payloads
   preservados ao encerrar uma observação.
 - **FR-005**: A plataforma MUST marcar como não mais observados, com a data do

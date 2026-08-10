@@ -70,6 +70,7 @@ Bloqueia F3: encerrar é um evento, e sem a tabela ele não tem onde ser registr
 
 - [ ] T004 Derivar o estado da observação
   - **Pronta quando**: T003 concluída; o contrato está escrito
+  - **Atende**: FR-008, FR-022 · ADR 0004 D7
   - **Descrição**: `observation_ended?/1` em `lib/the_band/sources.ex`, lendo o último
     evento da ferramenta. **Sem evento é vigente** — é o que faz as três ferramentas
     atuais continuarem observadas sem migração de dado. Esta função é o **único**
@@ -84,6 +85,7 @@ Bloqueia F3: encerrar é um evento, e sem a tabela ele não tem onde ser registr
 
 - [ ] T005 [P] Registrar evento com autor e impacto
   - **Pronta quando**: T003 concluída
+  - **Atende**: FR-009, FR-014 · ADR 0004 D7
   - **Descrição**: schema e changeset de `ObservationEvent` em
     `lib/the_band/sources/observation_event.ex`. `event` restrito a `ended` e `resumed`
     por `validate_inclusion` **e** por `check_constraint` — o segundo é o que vale
@@ -131,7 +133,7 @@ consultáveis marcadas.
     ainda tinha vínculo — é o defeito que a primeira versão da spec tinha. R2 explica por
     que a pessoa não tem proveniência por ferramenta — FR-005, FR-006, FR-010
   - **Feita quando**: encerrar `ifesserra-lab` marca 4 pessoas, 1 equipe e 5 vínculos;
-    `Paulo` **não** é marcado; a equipe derivada é marcada e não apagada
+    `Paulo` **não** é marcado; a equipe derivada é marcada e não apagada — SC-002, SC-003, SC-008
   - **Teste**: **a violação, e é o teste que decide a feature.** Encerrar
     `ifesserra-lab` e afirmar que `Paulo` continua vigente, porque está em
     `The-Band-Solution` e `leds-conectafapes`. Se ele aparecer marcado, nenhum outro
@@ -146,8 +148,8 @@ consultáveis marcadas.
   - **Feita quando**: nenhuma linha de credencial daquela ferramenta existe; as
     sincronizações continuam existindo com `credential_id` nulo
   - **Teste**: **consulta direta à tabela**, não afirmação no código — nenhuma linha com
-    aquele identificador, e nenhum valor cifrado remanescente responde por ela. Mais a
-    contagem de `syncs` antes e depois, que não muda
+    aquele identificador, e nenhum valor cifrado remanescente responde por ela — SC-004.
+    Mais a contagem de `syncs` antes e depois, que não muda
 
 - [ ] T009 [US1] Encerrar numa transação única
   - **Pronta quando**: T006, T007 e T008 concluídas
@@ -159,10 +161,13 @@ consultáveis marcadas.
     afirmando observar o que não observa — FR-001, FR-003, FR-004, FR-009
   - **Feita quando**: confirmação errada não altera nada; encerrar duas vezes devolve
     sucesso com impacto zerado e grava o segundo evento; uma falha no meio não deixa
-    estado parcial
-  - **Teste**: três casos — confirmação errada com o banco conferido intacto depois;
-    idempotência com dois eventos gravados; e uma falha forçada dentro da transação
-    conferindo que nem o evento nem a marcação persistiram
+    estado parcial; **o `impact` gravado no evento traz os seis números**, e não um mapa
+    vazio; as quatro contagens da base são idênticas antes e depois — SC-001
+  - **Teste**: quatro casos — confirmação errada com o banco conferido intacto depois;
+    idempotência com dois eventos gravados; uma falha forçada dentro da transação
+    conferindo que nem o evento nem a marcação persistiram; e o `impact` **lido de volta
+    do banco** com os seis números, porque gravar sem verificar deixaria o campo vazio
+    passar (achado M2 da análise)
 
 - [ ] T010 [US1] Excluir origem encerrada da coleta
   - **Pronta quando**: T004 concluída
@@ -188,6 +193,48 @@ consultáveis marcadas.
   - **Teste**: coleta simulada de duas páginas com o encerramento acontecendo entre
     elas — a primeira página está gravada, a segunda não, e o checkpoint aponta para o
     fim da primeira
+
+- [ ] T011a [US1] Recusar operação de outro tenant
+  - **Pronta quando**: T009 concluída
+  - **Descrição**: `end_observation/3`, `rename_credential/3` e `destroy_credential/2`
+    recebem o tenant e devolvem **não encontrado** para ferramenta ou credencial de outra
+    organização cliente. Hoje só `clear_needs_attention` tem essa checagem prevista, em
+    T017 — as três operações de maior consequência não tinham, e é achado **C1** da
+    análise. "Não encontrado", nunca "sem permissão": dizer que existe mas não é sua já
+    vaza que existe — FR-025, SC-010, princípio V
+  - **Feita quando**: as três operações devolvem não encontrado para recurso de outro
+    tenant; nenhuma delas devolve mensagem que revele existência
+  - **Teste**: **a violação, três vezes.** Com dois tenants povoados, tentar encerrar,
+    renomear e remover pela sessão do outro, conferindo não encontrado e que o registro
+    alheio permaneceu intacto. É o V9 do quickstart
+
+- [ ] T011b [US1] Derivar a causa da marca
+  - **Pronta quando**: T007 concluída
+  - **Descrição**: a função que decide, para um registro marcado, **qual das duas causas
+    se aplicou** — decisão da plataforma ou ausência na origem. O `data-model.md` recusou
+    criar coluna de causa argumentando que a informação é derivável: registro marcado
+    cuja ferramenta tem evento `ended` posterior à última coleta foi marcado por decisão;
+    os demais, por ausência. **O argumento é válido e ninguém havia agendado a
+    derivação** — achado **C2** da análise, e é a mesma forma do G1 da feature 001, em
+    que FR-017 tinha teste e nenhum chamador — FR-023
+  - **Feita quando**: um registro marcado por encerramento é classificado como decisão da
+    plataforma; um marcado por ausência entre coletas é classificado como mudança na
+    origem; nenhuma coluna nova foi criada para isso
+  - **Teste**: os dois casos, cada um construído pelo seu caminho — um encerrando a
+    observação, outro marcando por ausência com `mark_evidence_no_longer_observed` — e a
+    classificação conferida em cada
+
+- [ ] T011c [US1] Encerrar não afeta a outra instância
+  - **Pronta quando**: T009 concluída
+  - **Descrição**: duas ferramentas para a **mesma** organização em instâncias diferentes
+    são registros distintos, e encerrar uma não encerra a outra. Os registros com
+    proveniência da outra permanecem vigentes. Edge case sem cobertura antes — achado
+    **H1** da análise
+  - **Feita quando**: encerrada uma, a outra continua vigente e continua sendo coletada;
+    os registros da outra não são marcados
+  - **Teste**: duas ferramentas com o mesmo `organization_login` e instâncias diferentes;
+    encerrar a primeira e conferir que a segunda coleta normalmente e que nada dela foi
+    marcado
 
 **Checkpoint**: US1 entrega valor sozinha — dá para parar de observar uma organização
 sem que nada se perca.
@@ -272,6 +319,18 @@ alterar a organização e conferir que não há caminho.
   - **Teste**: os dois casos, e o segundo é a violação — a recusa é conferida, e a
     mensagem diz que encerrar a observação é o caminho para parar de coletar
 
+- [ ] T016a [US3] Remover credencial em uso pela coleta
+  - **Pronta quando**: T016 concluída
+  - **Descrição**: remover a credencial que uma coleta está usando **naquele instante**.
+    A coleta já tem o segredo em memória e não vai relê-lo, então ela termina; a próxima
+    escolhe outra credencial ativa, ou falha com `:no_active_credential` se não houver.
+    O que **não** pode acontecer é a coleta em curso quebrar no meio por causa da
+    remoção. Edge case sem cobertura antes — achado **H1** da análise
+  - **Feita quando**: a coleta em andamento termina normalmente; a seguinte usa outra
+    credencial ativa; sem nenhuma ativa, a seguinte é recusada com o erro nomeado
+  - **Teste**: coleta simulada com a remoção acontecendo entre duas páginas — a coleta
+    conclui, e a sincronização seguinte escolhe a outra credencial
+
 - [ ] T017 [P] [US3] Limpar o estado de atenção
   - **Pronta quando**: nada além do repositório — a função já existe
   - **Descrição**: `clear_needs_attention/2` passa a **receber o tenant explicitamente**.
@@ -332,6 +391,18 @@ alterar a organização e conferir que não há caminho.
   - **Feita quando**: as duas causas são distinguíveis na tela; a data aparece
   - **Teste**: teste de interface com um registro marcado por cada causa, conferindo que
     os dois textos são diferentes
+
+- [ ] T021a [P] Distinguir nunca conectou de encerrou tudo
+  - **Pronta quando**: T019 concluída
+  - **Descrição**: encerrar a **última** ferramenta do tenant deixa a organização cliente
+    sem origem alguma, e as telas de ferramentas, pessoas e equipes precisam distinguir
+    "nunca conectou" de "encerrou tudo". São situações diferentes: a primeira pede
+    conectar, a segunda pede retomar ou conectar outra. Edge case sem cobertura antes —
+    achado **H1** da análise, FR-024
+  - **Feita quando**: os dois estados vazios têm textos diferentes nas três telas; o
+    texto de "encerrou tudo" diz quantas foram encerradas
+  - **Teste**: teste de interface nos dois estados — tenant sem ferramenta alguma, e
+    tenant cuja única ferramenta foi encerrada —, conferindo que os textos diferem
 
 - [ ] T022 Provar que o segredo não vaza
   - **Pronta quando**: T015, T016 e T018 concluídas
