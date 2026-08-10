@@ -422,3 +422,57 @@ agenda; era de permissão, e a única razão de ter durado tanto é que ninguém
 existe como pedir revisão de PR mergeado. O código da feature 001 está na `main` sem
 nunca ter sido revisado, e isso permanece no registro de aceitação — a correção vale
 de #91 em diante.
+
+### L16 — O autor do PR não é quem implementou, e isso inverteu a conclusão
+
+**O que aconteceu.** Três PRs — #89, #90 e #91 — foram mergeados com
+`pulls/<n>/reviews` vazio, e o registro de aceitação concluiu que **a revisão
+independente não havia acontecido**. A pessoa mantenedora corrigiu: *"eu olhei e
+concordei, por isso não coloquei comentário."*
+
+A leitura ocorreu. Faltava o registro, não a revisão.
+
+**Por que a conclusão estava errada.** O raciocínio era: o GitHub diz que o autor é
+`paulossjunior`; o princípio VII exige revisor diferente de quem implementou; logo
+`paulossjunior` não pode revisar. A premissa é falsa.
+
+| Papel | Quem é | Como a ferramenta vê |
+|---|---|---|
+| quem implementou | o agente — os commits trazem `Co-Authored-By: Claude Opus 5` | não aparece; não tem conta |
+| quem revisou | `paulossjunior`, que leu e concordou | registrado como **autor**, porque abriu o PR com o próprio token |
+
+O `422 Review cannot be requested from pull request author` é, aqui, **artefato de
+ferramenta e não conflito de interesse**. O GitHub não tem como expressar um
+implementador sem conta, então atribui a autoria a quem operou a ferramenta — e depois
+impede essa pessoa de revisar o que ela não escreveu.
+
+**Por que importa além deste caso.** A conclusão errada era pior que ignorância: ela
+afirmava, com aparência de rigor e com evidência de API, que uma prática de qualidade
+não estava sendo cumprida quando estava. Três documentos passaram a registrar isso, e
+o registro é o produto deste projeto.
+
+O erro tem forma reconhecível: **um campo da ferramenta foi lido como se nomeasse o
+papel do domínio.** É o mesmo erro que a base de conhecimento evita em todo mapeamento
+— `MAINTAINER` no GitHub é nível de acesso e não cargo, e por isso a tela rotula
+"acesso na plataforma" e marca o papel organizacional como pendente. Aqui o mesmo
+descuido passou, e passou no documento que julga os outros.
+
+**O que continua sendo lacuna, e é diferente do que se afirmava.** Não falta revisão:
+falta **prova** de revisão. Atestado depende de quem lembra; registro não. Num projeto
+cuja tese é proveniência, a própria revisão não pode ficar sustentada por memória.
+
+**Como aplicar.**
+
+1. **Antes de concluir que uma prática não ocorreu, verifique se a ferramenta
+   consegue representá-la.** Ausência de registro é ausência de registro, não ausência
+   do fato — e a diferença é exatamente a que este projeto existe para medir;
+2. **Não leia campo de ferramenta como papel do domínio.** `author` do GitHub responde
+   quem abriu o PR, nunca quem escreveu o código;
+3. **Fechar a lacuna é abrir os PRs com identidade de agente.** Bot ou GitHub App como
+   autor faz o implementador ser o autor de fato, e libera a aprovação formal de quem
+   revisa. Resolve a causa; as alternativas — segundo humano aprovando, ou atestado
+   registrado como comentário no PR — tratam o sintoma, em ordem decrescente de
+   solidez.
+
+**Aplicada em**: Sprint 002 — o registro de aceitação do sprint 001 foi corrigido, e
+passou a distinguir "revisão não ocorreu" de "revisão sem prova".

@@ -237,29 +237,60 @@ está correto, seguro e conforme.
 mergeado na `main` em `45d21a0`, por decisão da pessoa mantenedora, com o CI
 verde.
 
-**`GET /repos/The-Band-Solution/theband/pulls/89/reviews` devolve lista vazia.**
-Nenhuma aprovação foi registrada, e portanto o princípio VII **continua não
-satisfeito**. Isso não é uma ressalva de forma: a exigência é revisor diferente de
-quem implementou, e o merge não produz revisor.
+**`GET /repos/.../pulls/89/reviews` devolve lista vazia**, e o mesmo vale para #90 e
+#91. Nenhuma aprovação formal foi registrada em nenhum dos três.
 
-O que se afirma, então, é o mais fraco que a evidência sustenta:
+### A revisão aconteceu; o registro é que não
+
+**Atestado pela pessoa mantenedora em 2026-08-10**: *"eu olhei e concordei, por isso
+não coloquei comentário."* A leitura do código ocorreu antes de cada merge. O que não
+existe é a aprovação formal no GitHub.
+
+Isso importa mais do que parece, porque **corrige um erro de leitura do princípio VII
+que este documento propagou**. A versão anterior desta seção dizia que o autor do PR é
+quem implementou, e concluía que a revisão não podia ter acontecido. Está errado:
+
+| Papel | Quem é | Como o GitHub vê |
+|---|---|---|
+| **quem implementou** | o agente — os commits trazem `Co-Authored-By: Claude Opus 5` | não aparece; não tem conta |
+| **quem revisou** | `paulossjunior`, que leu e concordou | registrado como **autor** do PR, porque o PR foi aberto com o token dele |
+
+O `422 Review cannot be requested from pull request author` é, neste projeto, **um
+artefato de ferramenta e não um conflito de interesse**. O GitHub não tem como
+expressar que o implementador é um agente sem conta, então atribui a autoria a quem
+operou a ferramenta — e depois impede essa pessoa de revisar o que ela não escreveu.
+
+### O que continua sendo verdade
 
 | Pergunta | Resposta | Evidência |
 |---|---|---|
 | o entregue atende ao especificado? | **sim** | este documento, 14 critérios funcionais e 10 não funcionais |
 | os gates de qualidade passam? | **sim** | oito gates verdes, local e no CI |
-| o código foi revisado por quem não o escreveu? | **não** | nenhuma review no PR |
-| o código está na `main`? | **sim** | `45d21a0` |
+| o código foi lido por um humano que não o escreveu? | **sim** | atestado da pessoa mantenedora, 2026-08-10 |
+| existe aprovação registrada e verificável? | **não** | `pulls/{89,90,91}/reviews` vazios |
+| o código está na `main`? | **sim** | `45d21a0`, `41b8636`, `82ce72f` |
 
-**A quarta linha não implica a terceira.** Se a revisão ocorreu fora do GitHub — em
-leitura direta, em conversa —, ela não deixou registro, e registro é o que
-distingue revisão de suposição. Este documento se corrige quando houver evidência,
-não quando houver lembrança.
+A quarta linha é a lacuna real, e ela é diferente da que este documento afirmava
+antes. **Não falta revisão — falta prova de revisão.** A distinção não é formalismo:
+atestado depende de quem lembra, e registro não. Um projeto cuja tese é proveniência
+não pode ter a própria revisão sustentada por memória.
 
-**O que o merge muda para os sprints seguintes**: a exceção que o sprint 002
-assumiu — partir de código não revisado — deixa de ser sobre código fora da `main`
-e passa a ser sobre código **dentro** dela sem revisão. O risco não diminuiu por
-ter sido mergeado; mudou de lugar, e ficou mais difícil de ver.
+### O que fecharia a lacuna
+
+Três caminhos, em ordem de solidez:
+
+| Caminho | O que muda |
+|---|---|
+| **abrir os PRs com identidade de agente** — bot ou GitHub App | o implementador passa a ser o autor de fato, e `paulossjunior` pode **aprovar formalmente**. Resolve a causa, não o sintoma |
+| aprovação de `Adylla027` ou `EduardoNFraiz` | segundo humano revisando; hoje já é possível, desde que a equipe `the-band` recebeu acesso |
+| registrar o atestado no próprio PR, como comentário | mais fraco, e ainda melhor que nada: fica datado e público em vez de conversado |
+
+**Nada disso é recuperável para #89, #90 e #91**: PR mergeado não recebe review. O
+atestado acima é o registro que esses três terão.
+
+**O que o merge muda para os sprints seguintes**: a exceção que o sprint 002 assumiu
+deixa de ser sobre código fora da `main` e passa a ser sobre código **dentro** dela com
+revisão atestada e não registrada. O risco diminuiu — não desapareceu.
 
 ---
 
