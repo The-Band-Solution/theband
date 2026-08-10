@@ -23,12 +23,20 @@ não, e estão na seção do que não foi feito.
 
 | # | User story | Entregável | Estado |
 |---|---|---|---|
-| US1 | Saber de qual organização veio cada registro | D01 — organização em cada pessoa e equipe, nas consultas e nas telas | **entregue**, a avaliar |
+| US1 | Saber de qual organização veio cada registro | D01 — organização em cada pessoa e equipe, nas consultas e nas telas | **aceito** em 2026-08-10, com duas ressalvas |
 | US2 | Consultar uma organização de cada vez | — | **não feita**; o filtro por organização existe nas consultas, a tela de seleção não |
 | US3 | Enxergar quem atravessa organizações | — | **não feita**; a consulta responde, a sinalização na tela não |
 
-A classificação de aceitação é do Product Owner e vive em
-[aceitacao.md](aceitacao.md). Esta coluna diz **entregue**, não **aceito**.
+A coluna é **derivada** do [registro de aceitação](aceitacao.md), nunca preenchida
+direto: review sem registro de aceitação é afirmação sem prova.
+
+**Entregável do sprint**: composto de **D01**. As duas ressalvas acompanham a aceitação
+e não a diluem — colisão de slug garantida pelo modelo e não observada em dado, e
+esvaziamento da equipe derivada coberto por teste e não por ocorrência.
+
+**Nenhuma tarefa foi executada sem sucesso.** As quatro cuja definição estava errada
+tiveram a *definição* corrigida, não o entregável recusado, e a distinção é o que a
+medida de retrabalho calcula.
 
 ## Evidência, verificação por verificação
 
