@@ -147,6 +147,37 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> Repo.all()
   end
 
+  @doc """
+  As organizações de várias pessoas de uma vez: `%{person_id => [organizações]}`.
+
+  Existe porque a tela de pessoas precisa da organização de **cada linha**, e chamar
+  `list_person_organizations/3` por linha faria uma consulta por pessoa — 72 idas ao
+  banco para desenhar uma página, e o custo cresce com a coleta.
+
+  Pessoa sem equipe alguma **não aparece no mapa**. Quem usa trata a ausência com
+  `Map.get(mapa, id, [])`: devolver a chave com lista vazia sugeriria que a ausência
+  foi verificada pessoa a pessoa, quando ela é consequência de não haver vínculo.
+  """
+  @spec organizations_by_person(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          Ecto.UUID.t() => [Organization.t()]
+        }
+  def organizations_by_person(_tenant, []), do: %{}
+
+  def organizations_by_person(%Tenant{id: tenant_id}, person_ids) do
+    from(o in Organization,
+      join: t in Team,
+      on: t.organization_id == o.id and t.tenant_id == o.tenant_id,
+      join: e in TeamMembershipEvidence,
+      on: e.team_id == t.id and e.tenant_id == t.tenant_id,
+      where: o.tenant_id == ^tenant_id and e.person_id in ^person_ids,
+      distinct: true,
+      order_by: o.name,
+      select: {e.person_id, o}
+    )
+    |> Repo.all()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
   # ------------------------------------------------------------------- lacunas
 
   @doc """

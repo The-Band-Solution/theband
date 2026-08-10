@@ -263,7 +263,7 @@ as duas.
     e pela migração da restrição, que recusaria aplicar se alguma tivesse ficado.
     **Retrofito é migração de uma vez só, não caminho permanente**
 
-- [ ] T012 [US1] Mostrar a organização em pessoas e equipes
+- [x] T012 [US1] Mostrar a organização em pessoas e equipes
   - **Pronta quando**: T010 e T011 concluídas; `contracts/screens.md` escrito
   - **Descrição**: coluna de organização nas telas de pessoas e de equipes. Na de
     pessoas são **as** organizações, no plural — quem está em duas mostra as duas

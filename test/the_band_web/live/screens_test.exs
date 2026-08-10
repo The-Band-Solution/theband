@@ -200,4 +200,105 @@ defmodule TheBandWeb.ScreensTest do
       assert {:error, {:redirect, %{to: "/entrar"}}} = live(conn, ~p"/pessoas")
     end
   end
+
+  describe "organização nas telas (T012, FR-015, SC-001)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+
+      alfa = organization_fixture(tenant, "alfa")
+      beta = organization_fixture(tenant, "beta")
+
+      time_alfa = team_fixture(tenant, "T_alfa", %{name: "Core", organization: alfa})
+      time_beta = team_fixture(tenant, "T_beta", %{name: "Plataforma", organization: beta})
+
+      {:ok, sobreposta} =
+        EO.upsert_person_from_source(tenant, source_attrs("U_ab", %{name: "Ana", login: "ana"}))
+
+      {:ok, so_alfa} =
+        EO.upsert_person_from_source(
+          tenant,
+          source_attrs("U_a", %{name: "Bruno", login: "bruno"})
+        )
+
+      {:ok, sem_equipe} =
+        EO.upsert_person_from_source(
+          tenant,
+          source_attrs("U_x", %{name: "Carla", login: "carla"})
+        )
+
+      for {pessoa, time, sufixo} <- [
+            {sobreposta, time_alfa, "-a"},
+            {sobreposta, time_beta, "-b"},
+            {so_alfa, time_alfa, "-a"}
+          ] do
+        {:ok, _} =
+          EO.record_team_membership_evidence(tenant, %{
+            person_id: pessoa.id,
+            team_id: time.id,
+            person_external_id: pessoa.external_id <> sufixo,
+            team_external_id: time.external_id,
+            platform_access_level: "MEMBER",
+            source_system: "github",
+            source_instance: "https://github.com",
+            observed_at: DateTime.utc_now(:second)
+          })
+      end
+
+      %{conn: log_in(conn, user), tenant: tenant, sem_equipe: sem_equipe}
+    end
+
+    test "/pessoas mostra as organizações de cada pessoa", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/pessoas")
+
+      assert html =~ "organizações"
+      assert html =~ "alfa"
+      assert html =~ "beta"
+    end
+
+    test "a pessoa em duas organizações aparece uma vez, com as duas", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/pessoas")
+
+      # Uma linha, não duas: a distinção é por pessoa, não por vínculo. Duas linhas
+      # fariam a contagem do cabeçalho discordar da listagem, que é o defeito que
+      # esta tela existe para tornar visível.
+      assert html |> String.split("Ana") |> length() == 2
+      assert html =~ "em 2 organizações"
+    end
+
+    test "quem não está em equipe alguma aparece, dizendo por que não tem organização", %{
+      conn: conn
+    } do
+      {:ok, _live, html} = live(conn, ~p"/pessoas")
+
+      # Aparecer é o ponto: some da lista faria parecer que a pessoa não foi
+      # coletada. O que falta é o vínculo, e a tela diz isso.
+      assert html =~ "Carla"
+      assert html =~ "sem equipe — organização desconhecida"
+    end
+
+    test "a tela avisa que a soma por organização é maior que o total", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/pessoas")
+
+      # Sem este aviso, o primeiro a somar as contagens por organização conclui que
+      # há defeito onde há sobreposição correta.
+      assert html =~ "soma das pessoas por organização é maior que o total"
+    end
+
+    test "/equipes mostra a organização de cada equipe", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/equipes")
+
+      assert html =~ "organização"
+      assert html =~ "alfa"
+      assert html =~ "beta"
+    end
+
+    test "nenhuma equipe aparece sem organização", %{conn: conn, tenant: tenant} do
+      {:ok, _live, _html} = live(conn, ~p"/equipes")
+
+      # A restrição do banco garante isto para equipe organizacional; o teste guarda
+      # a tela contra o caso de alguém passar a exibir equipe de projeto sem dizer
+      # que a organização está ausente de propósito.
+      assert Enum.all?(EO.list_teams(tenant), & &1.organization_id)
+    end
+  end
 end

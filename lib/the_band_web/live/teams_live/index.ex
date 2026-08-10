@@ -43,6 +43,7 @@ defmodule TheBandWeb.TeamsLive.Index do
         <thead>
           <tr>
             <th>equipe</th>
+            <th>organização</th>
             <th>tipo</th>
             <th>origem</th>
             <th>identificador na origem</th>
@@ -55,6 +56,13 @@ defmodule TheBandWeb.TeamsLive.Index do
             <td>
               <div class="font-medium">{team.name}</div>
               <div :if={team.slug} class="text-xs opacity-60">{team.slug}</div>
+            </td>
+            <td class="text-xs">
+              <%= if org = Map.get(@organizations, team.organization_id) do %>
+                {org.login}
+              <% else %>
+                <span class="opacity-60">—</span>
+              <% end %>
             </td>
             <td><span class="badge badge-sm">{team.type}</span></td>
             <td class="text-xs">
@@ -87,6 +95,10 @@ defmodule TheBandWeb.TeamsLive.Index do
 
     socket
     |> assign(teams: EO.list_teams(tenant))
+    # Indexado por id porque a tabela precisa da organização de cada linha. As
+    # organizações observadas de um tenant são poucas — carregar todas custa menos
+    # que uma consulta por equipe.
+    |> assign(organizations: Map.new(EO.list_organizations(tenant), &{&1.id, &1}))
     |> assign(teams_count: EO.count_teams(tenant))
     |> assign(pending_role: EO.count_evidence_pending_role(tenant))
   end

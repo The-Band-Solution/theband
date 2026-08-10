@@ -76,6 +76,7 @@ defmodule TheBandWeb.PeopleLive.Index do
           <tr>
             <th>nome</th>
             <th>tipo de conta</th>
+            <th>organizações</th>
             <th>origem</th>
             <th>identificador na origem</th>
             <th>coletado em</th>
@@ -96,6 +97,16 @@ defmodule TheBandWeb.PeopleLive.Index do
               </span>
             </td>
             <td class="text-xs">
+              <% orgs = Map.get(@organizations_by_person, person.id, []) %>
+              <div :if={orgs == []} class="opacity-60">
+                sem equipe — organização desconhecida
+              </div>
+              <div :for={org <- orgs}>{org.login}</div>
+              <div :if={length(orgs) > 1} class="badge badge-sm badge-outline mt-1">
+                em {length(orgs)} organizações
+              </div>
+            </td>
+            <td class="text-xs">
               {person.source_system}
               <div class="opacity-60">{person.source_instance}</div>
             </td>
@@ -104,6 +115,13 @@ defmodule TheBandWeb.PeopleLive.Index do
           </tr>
         </tbody>
       </table>
+
+      <p class="text-xs opacity-60">
+        A organização de uma pessoa vem das equipes dela: não existe vínculo direto entre
+        pessoa e organização, e quem não está em equipe alguma aparece sem organização.
+        Quem está em mais de uma aparece <strong>uma vez</strong>, com todas indicadas — então a
+        soma das pessoas por organização é maior que o total, e isso está correto.
+      </p>
 
       <p class="text-xs opacity-60">
         Contas de automação são registradas e classificadas separadamente: aparecem na lista
@@ -125,8 +143,15 @@ defmodule TheBandWeb.PeopleLive.Index do
         if socket.assigns.show_automation, do: opts, else: [{:account_type, "person"} | opts]
       end)
 
+    rows = EO.list_people(tenant, opts)
+
     socket
-    |> assign(rows: EO.list_people(tenant, opts))
+    |> assign(rows: rows)
+    # Um mapa para todas as linhas, e não uma consulta por linha: a tela desenha 72
+    # pessoas hoje, e uma consulta por pessoa cresceria com a coleta.
+    |> assign(
+      organizations_by_person: EO.organizations_by_person(tenant, Enum.map(rows, & &1.id))
+    )
     |> assign(people_count: EO.count_people(tenant, Keyword.put(opts, :account_type, "person")))
     |> assign(
       automation_count: EO.count_people(tenant, Keyword.put(opts, :account_type, ["bot", "app"]))
