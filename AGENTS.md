@@ -562,8 +562,49 @@ Necessidade → Discovery → Feature Request
 → /speckit-tasks → /speckit-taskstoissues → /speckit-analyze
 → /sprint-backlog          ← obrigatório: lições, iteration no GitHub, issues tipadas
 → branch → contrato da API → implementação → testes → quality gates → convergência
-→ Pull Request → revisão independente → merge
+→ Pull Request (com revisor pedido) → revisão independente → merge
 ```
+
+### Todo PR nasce com revisor pedido
+
+**O revisor deste repositório é `paulossjunior`**, e a solicitação é feita **ao
+abrir** o PR:
+
+```bash
+gh pr create ... --reviewer paulossjunior
+gh pr edit <n> --add-reviewer paulossjunior   # num PR já aberto
+```
+
+PR sem revisor solicitado é PR cuja revisão não vai acontecer: ninguém é
+notificado, nada entra na fila de ninguém, e a pendência só aparece no merge —
+quando já é tarde. Foi o que ocorreu no PR #89, mergeado com
+`pulls/89/reviews` vazio.
+
+**Restrição declarada, e verificada**: o GitHub **recusa pedir revisão ao autor do
+próprio PR**. Como o PR é aberto com o token de `paulossjunior`, ele é o autor e
+não pode ser o revisor:
+
+```text
+POST repos/.../pulls/90/requested_reviewers
+422  Review cannot be requested from pull request author.
+```
+
+**E o `gh` não reporta isso.** `--reviewer` e `--add-reviewer` imprimem a URL, saem
+com código zero e não atribuem ninguém. Por isso a regra tem um segundo passo,
+obrigatório:
+
+```bash
+gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
+```
+
+Lista vazia significa que a revisão não foi solicitada, **independentemente do que
+o comando disse**. Registre a lacuna; não invente outro revisor e não silencie.
+Virou a lição L14.
+
+Satisfazer o princípio VII neste repositório exige **duas identidades**: quem abre
+o PR e quem revisa não podem ser a mesma conta. Enquanto houver uma só, a
+exigência é impossível de cumprir, e essa impossibilidade pertence ao registro de
+cada sprint.
 
 ### Contrato da API antes da implementação
 
@@ -676,7 +717,7 @@ Não:
 
 - programar sem Spec Kit, sem spec, sem plano, sem tarefas, sem issue;
 - **implementar sem sprint backlog aberto pela skill `sprint-backlog`**;
-- abrir sprint sem ler `sprints/licoes-aprendidas.md`;
+- abrir sprint sem ler `docs/sprints/licoes-aprendidas.md`;
 - fechar sprint sem `sprint-review.md` separando feito de não feito;
 - fazer push direto na branch principal;
 - aprovar o próprio PR, ou fazer merge sem revisão independente;

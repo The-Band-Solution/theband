@@ -62,7 +62,7 @@ Nesses casos a resposta correta é apontar o que falta, não improvisar.
 ## Onde os arquivos vivem
 
 ```text
-sprints/
+docs/sprints/
 ├── licoes-aprendidas.md          acumulativo, atravessa os sprints
 ├── 001-<nome-curto>/
 │   ├── sprint-backlog.md         o que será feito
@@ -77,12 +77,12 @@ Numeração sequencial, estável, nunca reciclada.
 
 ## Procedimento — abrir o sprint
 
-1. **Ler `sprints/licoes-aprendidas.md` primeiro.** Antes de qualquer outra
+1. **Ler `docs/sprints/licoes-aprendidas.md` primeiro.** Antes de qualquer outra
    coisa. As lições em aberto que se apliquem a este sprint entram como
    restrição, não como sugestão — e o backlog registra quais foram consideradas.
    Se o arquivo não existir, este é o primeiro sprint.
 
-2. **Descobrir o número.** Maior número em `sprints/`, mais um.
+2. **Descobrir o número.** Maior número em `docs/sprints/`, mais um.
 
 3. **Ler os artefatos de origem.** `spec.md` para user stories e critérios de
    aceitação; `plan.md` para decisões técnicas; `tasks.md` para tarefas.
@@ -433,7 +433,7 @@ lembrete.
 
 ---
 
-## Modelo — `sprints/licoes-aprendidas.md`
+## Modelo — `docs/sprints/licoes-aprendidas.md`
 
 ```markdown
 # Lições aprendidas

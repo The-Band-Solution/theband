@@ -1,6 +1,6 @@
 # Sprint 001 — Registro de aceitação
 
-**Feature**: [001-github-eo-ingestion](../../specs/001-github-eo-ingestion/spec.md)
+**Feature**: [001-github-eo-ingestion](../../../specs/001-github-eo-ingestion/spec.md)
 **Avaliado em**: 2026-08-10
 **Papel**: Product Owner — **a confirmar por Paulo Sérgio dos Santos Júnior**
 
@@ -225,13 +225,41 @@ o que a constituição exige:
 | **aceitação dos entregáveis** | Product Owner — este documento | `aceitacao.md` |
 | **revisão independente do código** | Reviewer, alguém que não implementou | aprovação do pull request |
 
-O princípio VII fala da segunda. E **o pull request não existe**: a branch
-`feature/001-github-eo-ingestion` está treze commits à frente da `main`, e a
-tarefa T073 previa abri-lo.
+O princípio VII fala da segunda.
 
 Aceitar D02 e D03 não aprova o código deles. São perguntas diferentes: o PO
 pergunta se o entregue atende ao especificado; o revisor pergunta se o código
 está correto, seguro e conforme.
+
+### O merge aconteceu, e a revisão independente não
+
+**2026-08-10** — [PR #89](https://github.com/The-Band-Solution/theband/pull/89)
+mergeado na `main` em `45d21a0`, por decisão da pessoa mantenedora, com o CI
+verde.
+
+**`GET /repos/The-Band-Solution/theband/pulls/89/reviews` devolve lista vazia.**
+Nenhuma aprovação foi registrada, e portanto o princípio VII **continua não
+satisfeito**. Isso não é uma ressalva de forma: a exigência é revisor diferente de
+quem implementou, e o merge não produz revisor.
+
+O que se afirma, então, é o mais fraco que a evidência sustenta:
+
+| Pergunta | Resposta | Evidência |
+|---|---|---|
+| o entregue atende ao especificado? | **sim** | este documento, 14 critérios funcionais e 10 não funcionais |
+| os gates de qualidade passam? | **sim** | oito gates verdes, local e no CI |
+| o código foi revisado por quem não o escreveu? | **não** | nenhuma review no PR |
+| o código está na `main`? | **sim** | `45d21a0` |
+
+**A quarta linha não implica a terceira.** Se a revisão ocorreu fora do GitHub — em
+leitura direta, em conversa —, ela não deixou registro, e registro é o que
+distingue revisão de suposição. Este documento se corrige quando houver evidência,
+não quando houver lembrança.
+
+**O que o merge muda para os sprints seguintes**: a exceção que o sprint 002
+assumiu — partir de código não revisado — deixa de ser sobre código fora da `main`
+e passa a ser sobre código **dentro** dela sem revisão. O risco não diminuiu por
+ter sido mergeado; mudou de lugar, e ficou mais difícil de ver.
 
 ---
 

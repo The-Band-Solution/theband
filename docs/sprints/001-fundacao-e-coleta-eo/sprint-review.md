@@ -110,7 +110,7 @@ aberto.
 
 | Achado | O que era | Resolução |
 |---|---|---|
-| **G1** — FR-017 sem tarefa de implementação | só existia o teste (T060); `RawData.list_for_reprocessing/2` não tinha chamador | contrato [reprocessing.md](../../specs/001-github-eo-ingestion/contracts/reprocessing.md) escrito **antes** do código, T060a–T060c acrescentadas, `TheBand.SemanticIntegration` + worker Oban + botão em `/sincronizacoes` implementados, 8 testes |
+| **G1** — FR-017 sem tarefa de implementação | só existia o teste (T060); `RawData.list_for_reprocessing/2` não tinha chamador | contrato [reprocessing.md](../../../specs/001-github-eo-ingestion/contracts/reprocessing.md) escrito **antes** do código, T060a–T060c acrescentadas, `TheBand.SemanticIntegration` + worker Oban + botão em `/sincronizacoes` implementados, 8 testes |
 | **C1** — assinatura divergente | o contrato pedia lista de ids; o código recebe `DateTime` | contrato corrigido: a plataforma não recebe evento de remoção, ela percebe a ausência por comparação entre coletas — quem chama não teria como saber quais vínculos sumiram |
 | **C2** — `opts` divergentes | contrato prometia `:order_by`, ausente no código; `:only_observed` existia sem estar no contrato | contrato corrigido com tabela por opção, e `:order_by` removido: ordenação parametrizável reintroduziria a divergência entre `list_*` e `count_*` que a regra existe para impedir |
 | **G2** — revisão independente | não satisfeita | **continua aberta**; nenhum entregável pode ser aceito sem ela |
@@ -132,7 +132,7 @@ Depois do `/speckit-analyze`, os pendentes que sobraram foram fechados.
 
 | Item | Resolução |
 |---|---|
-| Rotação da chave mestra (FR-005b) | contrato [credential-rotation.md](../../specs/001-github-eo-ingestion/contracts/credential-rotation.md) escrito antes, e `mix the_band.rotate_key` implementada. Verificada de ponta a ponta: rótulo do valor cifrado mudou de `1ff8e241` para `1ddcd36a`, segredo intacto com a chave nova |
+| Rotação da chave mestra (FR-005b) | contrato [credential-rotation.md](../../../specs/001-github-eo-ingestion/contracts/credential-rotation.md) escrito antes, e `mix the_band.rotate_key` implementada. Verificada de ponta a ponta: rótulo do valor cifrado mudou de `1ff8e241` para `1ddcd36a`, segredo intacto com a chave nova |
 | Teste de retomada (SC-006) | com checkpoint gravado, a execução pede `after: cursor-1` — a página seguinte, não a primeira |
 | Teste de rate limit (SC-009) | janela simulada apertada devolve `{:snooze, n}`, preserva cursor, não falha |
 | Testes de interface | 9 testes de LiveView, incluindo os três que **não** são fazíveis por teste unitário: segredo ausente do HTML, isolamento percorrendo a interface, e cabeçalho concordando com a listagem |

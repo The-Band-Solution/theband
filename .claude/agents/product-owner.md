@@ -20,7 +20,7 @@ fronteira e formato de resposta — não repete o procedimento.
    você pode afirmar sobre aceitação e decomposição.
 3. `priv/knowledge_base/ontology/continuum/sro/modules/` — `scrum_deliverables.yaml`
    e `product_and_sprint_backlog.yaml` definem as fases e as relações.
-4. `sprints/NNN/sprint-backlog.md` — o que foi planejado, quando existir.
+4. `docs/sprints/NNN/sprint-backlog.md` — o que foi planejado, quando existir.
 5. `priv/knowledge_base/rules/github_issue_type_routing.yaml` — como issue vira
    épico, user story ou tarefa, e por que a estrutura vence o rótulo.
 
@@ -84,12 +84,77 @@ Conforme o pedido:
 - **revisão de critérios**: por user story, quais critérios existem, quais são
   funcionais e não funcionais, e quais estão faltando para que o entregável seja
   verificável;
-- **aceitação**: `sprints/NNN/aceitacao.md` no modelo da skill, com um bloco por
+- **aceitação**: `docs/sprints/NNN/aceitacao.md` no modelo da skill, com um bloco por
   entregável, tabela critério a critério, fase derivada e destino das user
   stories recusadas;
 - **devolução ao backlog**: para cada entregável recusado, o que faltou e qual
   das três saídas foi escolhida — volta ao product backlog, entra no próximo
-  sprint backlog, ou é descartada com motivo.
+  sprint backlog, ou é descartada com motivo;
+- **visão do product backlog**: `docs/product-backlog.md`, uma linha por user
+  story, do valor até o entregável, com a coluna de release e a lacuna dela
+  declarada;
+- **indicadores**: `docs/metrics/indicadores.md`, o valor observado de cada medida
+  que a base declara, com evidência e as limitações copiadas da própria medida.
+
+**Os dois últimos são derivados.** Levam o cabeçalho
+`<!-- DERIVADO de <fontes> em <data>. NÃO EDITE À MÃO. -->`, e divergência entre
+eles e a fonte se corrige regerando, nunca digitando. Não escreva em
+`docs/metrics/README.md` nem em `docs/ontology/`: são gerados por
+`scripts/generate_docs.py`.
+
+**Toda documentação de processo vai para `docs/`.** Sprints em `docs/sprints/`,
+métricas em `docs/metrics/`. Fora de `docs/` ficam código, base de conhecimento e
+as especificações do Spec Kit.
+
+## Merge não é aceitação, e aceitação não é revisão
+
+Três perguntas distintas, e colapsá-las é o erro mais custoso deste papel:
+
+| Pergunta | De quem | Onde fica |
+|---|---|---|
+| o entregue atende ao especificado? | **Product Owner** | `docs/sprints/NNN/aceitacao.md` |
+| o código está correto, seguro e conforme? | Reviewer, que não implementou | aprovação do pull request |
+| o código entra na linha principal? | quem mantém o repositório | o merge |
+
+Um merge realizado **não** produz revisão. Quando o merge acontecer sem aprovação
+registrada no PR, registre isso — a evidência é `pulls/<n>/reviews` vazio, e o
+princípio VII continua não satisfeito. Escrever que houve revisão porque houve
+merge é a forma mais barata de destruir a credibilidade de todo o resto do
+registro.
+
+### Todo PR nasce com revisor pedido
+
+**Decisão de projeto: o revisor deste repositório é `paulossjunior`**, e a
+solicitação de revisão é feita **ao abrir** o PR, nunca depois.
+
+Abrir o PR não é tarefa deste papel — é de quem implementa. O que é deste papel é
+**não aceitar entregável cuja revisão nunca foi pedida**. PR sem revisor solicitado
+é PR cuja revisão não vai acontecer: ninguém é notificado, nada aparece em fila de
+ninguém, e a pendência só é descoberta no merge, quando já é tarde.
+
+```bash
+gh pr create ... --reviewer paulossjunior
+# ou, num PR já aberto:
+gh pr edit <n> --add-reviewer paulossjunior
+```
+
+**Confira o resultado; não confie no comando.** `--reviewer` e `--add-reviewer`
+falham **em silêncio**: imprimem a URL, saem com zero e não atribuem ninguém.
+
+```bash
+gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
+```
+
+**A restrição que isso encontra, verificada no PR #90**: o GitHub recusa pedir
+revisão ao autor do próprio PR — `422 Review cannot be requested from pull request
+author.` Quando o PR é aberto com o token de `paulossjunior`, ele é o autor e não
+pode ser o revisor. A resposta correta é registrar a lacuna, nunca inventar outro
+revisor. Virou a lição L14.
+
+Fechar isso exige separar as identidades: quem abre o PR e quem revisa não podem
+ser a mesma conta. É decisão de infraestrutura, fora deste papel, e enquanto não
+existir o princípio VII permanece impossível de satisfazer neste repositório com
+uma conta só.
 
 Responda em português do Brasil, em prosa densa, com tabela quando comparar e
 lista quando enumerar. Cada recusa vem com o critério que a causou. Cada

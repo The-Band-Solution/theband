@@ -191,6 +191,39 @@ que agrega vários repositórios.
 Melhor ainda: criar todas as iterations previstas de uma vez, no início, e não
 tocar mais na configuração enquanto houver sprint aberto.
 
+**Aplicada em**: Sprint 002 — ao mudar a cadência de 14 para 7 dias, em 2026-08-10.
+
+### O procedimento que funcionou, e a descoberta que ele revelou
+
+A mudança de cadência exigia mexer na mesma configuração. Com a lição aplicada como
+procedimento, o estrago foi integralmente revertido:
+
+| Passo | Resultado |
+|---|---|
+| snapshot **antes** — item, repositório, número e iteration de cada item | 97 itens: 76 no sprint 001, 11 no 002, 10 sem iteration |
+| `updateProjectV2Field` com `duration: 7` | as duas iterations recriadas, **97 itens órfãos** — como previsto |
+| reatribuição pelo **`item id`** do snapshot | 87 reatribuídos, 0 falhas |
+| conferência contra o snapshot | 76 · 11 · 10, e os 10 sem iteration de **outros repositórios**, como estavam |
+
+Duas escolhas fizeram a diferença, e as duas vêm desta lição:
+
+- **reatribuir pelo `item id`**, que não muda quando a iteration é recriada. Foi o que
+  evitou repetir o erro de casar por número de issue — número não é único num projeto
+  que agrega vários repositórios;
+- **tirar o snapshot antes.** Sem ele, a informação de qual item pertencia a qual
+  sprint não existiria em lugar nenhum depois da mutação. Não é backup por precaução:
+  é a única cópia.
+
+**Descoberta nova: iteration com data no passado sai de `iterations` e entra em
+`completedIterations`.** Ao receber 2026-08-03 com 7 dias, a do sprint 001 terminou
+antes de hoje e mudou de lista, com identificador próprio (`2849580c`). A resposta da
+própria mutação devolveu **só** o sprint 002, o que parece perda de dado e não é.
+
+Consequência para qualquer script: **ler as duas listas.** Quem consulta apenas
+`iterations` conclui que a iteration passada deixou de existir, e um script de
+reatribuição que só a procure ali falha em silêncio — deixando órfãos os itens do
+sprint encerrado, que é justamente o histórico de que as medidas de fluxo dependem.
+
 ### L12 — Pull request não aberto na hora passa a carregar outra feature
 
 **O que aconteceu.** A tarefa T073 da feature 001 previa abrir o pull request ao
@@ -265,3 +298,50 @@ configuração, não. Um trecho tratava vazio como ausente, o outro como valor.
    a prova é executar, não implementar.
 
 **Aplicada em**: Sprint 002 — Fase 0, ao abrir o PR da 001.
+
+### L14 — `gh` engole em silêncio o pedido de revisão recusado
+
+**O que aconteceu.** Passou a valer a regra de todo PR nascer com revisor pedido, e
+o PR #90 foi aberto com `gh pr create ... --reviewer paulossjunior`. O comando
+imprimiu a URL e **nada mais** — nenhum aviso, código de saída zero.
+
+O revisor não foi atribuído. `gh pr edit 90 --add-reviewer paulossjunior` fez o
+mesmo: imprimiu a URL, saiu com zero, não atribuiu ninguém.
+
+Só a chamada direta à API mostrou o motivo:
+
+```text
+POST repos/.../pulls/90/requested_reviewers
+422  Review cannot be requested from pull request author.
+```
+
+**Por que aconteceu.** O PR foi aberto com o token de `paulossjunior`, então ele é
+o autor — e o GitHub recusa pedir revisão ao autor do próprio PR. A recusa é
+legítima e é exatamente a regra que o princípio VII quer: ninguém revisa o que
+escreveu.
+
+O defeito não é a recusa. É o `gh` **não reportá-la**: a flag `--reviewer` falha
+sem sinal, e quem roda o comando fica convencido de que pediu revisão.
+
+**Por que importa.** É a pior classe de falha para uma regra de processo. Uma regra
+que falha alto é corrigida na hora; uma que falha em silêncio produz um registro
+que afirma conformidade — "o PR foi aberto com revisor" — enquanto a fila do
+revisor continua vazia. A verificação e o resultado divergem, e nada avisa.
+
+Mesma forma da [L13](#l13--secret-referenciado-e-não-cadastrado-chega-como-string-vazia):
+a configuração parecia certa e o efeito não existia.
+
+**Como aplicar.**
+
+1. **Nunca confiar no código de saída de `gh pr create --reviewer`.** Depois de
+   abrir o PR, conferir o resultado:
+   `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi
+   pedido, independentemente do que o comando disse;
+2. **Para ver o erro, usar a API**, não a flag:
+   `gh api -X POST repos/<owner>/<repo>/pulls/<n>/requested_reviewers -f 'reviewers[]=<login>'`;
+3. **Registrar a lacuna quando o pedido é impossível.** Uma conta só não satisfaz
+   o princípio VII: quem abre o PR e quem revisa têm de ser identidades diferentes.
+   Enquanto for a mesma, a exigência é inalcançável, e isso pertence ao registro de
+   cada sprint em vez de reaparecer como surpresa a cada merge.
+
+**Aplicada em**: Sprint 002 — ao abrir o PR #90, que é o próprio caso.

@@ -197,19 +197,22 @@ um sprint honesto sobre o que já devia estar pronto.
 
 ## Onde os artefatos vivem
 
-O product backlog **não é um arquivo novo**. Criar `product-backlog.md` produziria
-uma segunda fonte da verdade que diverge do GitHub no primeiro sprint. O backlog
-existe nos artefatos que já existem:
+Toda documentação de processo deste papel mora em **`docs/`**, junto com o resto
+da documentação do projeto. Fora dela só ficam código, base de conhecimento e as
+especificações do Spec Kit.
 
 | Artefato | Onde | Papel |
 |---|---|---|
 | user stories e critérios | `specs/<feature>/spec.md` | origem; texto normativo |
-| product backlog | itens do Projects v2 **sem iteration atribuída** | o que ainda não foi puxado |
+| **fonte** do product backlog | itens do Projects v2 **sem iteration atribuída** | o que ainda não foi puxado |
 | user story / épico | issue tipada, hierarquizada por sub-issues | unidade rastreável |
 | importância | campo numérico do Project | ordem do backlog |
-| escopo do sprint | `sprints/NNN/sprint-backlog.md` | skill `sprint-backlog` |
-| **registro de aceitação** | `sprints/NNN/aceitacao.md` | **esta skill** |
-| review do sprint | `sprints/NNN/sprint-review.md` | skill `sprint-backlog`, alimentada pelo registro de aceitação |
+| escopo do sprint | `docs/sprints/NNN/sprint-backlog.md` | skill `sprint-backlog` |
+| **registro de aceitação** | `docs/sprints/NNN/aceitacao.md` | **esta skill** |
+| review do sprint | `docs/sprints/NNN/sprint-review.md` | skill `sprint-backlog`, alimentada pelo registro de aceitação |
+| lições aprendidas | `docs/sprints/licoes-aprendidas.md` | skill `sprint-backlog` |
+| **visão do product backlog** | `docs/product-backlog.md` | **esta skill** — derivada, ver abaixo |
+| **indicadores** | `docs/metrics/indicadores.md` | **esta skill** — derivada, ver abaixo |
 
 A coluna `Aceito` do `sprint-review.md` é **derivada** do `aceitacao.md`. Nunca
 preencha uma sem a outra: a review sem registro de aceitação é afirmação sem
@@ -219,6 +222,34 @@ Se o Projects v2 não tiver campo numérico de importância, registre isso como
 limitação no documento — mesma postura da skill irmã diante de projeto sem
 iteration. Improvisar com label troca um dado ordenável por um rótulo que não
 ordena.
+
+### O que "derivada" significa, e por que a regra mudou
+
+**A versão anterior desta skill proibia `product-backlog.md`**, com a razão certa:
+um arquivo mantido à mão vira uma segunda fonte da verdade que diverge do GitHub
+no primeiro sprint. A regra continua valendo — mudou o que ela proíbe.
+
+O proibido é **arquivo mantido à mão**. Um arquivo **derivado** não é fonte: é
+relatório, e existe porque a fonte é difícil de ler. Ninguém percorre um Projects
+v2 de noventa itens para responder "o que ainda não foi puxado, em que ordem, e
+qual entregável materializou o quê". O repositório já usa esse padrão em
+`docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/README.md`, todos
+gerados a partir de `priv/knowledge_base/`.
+
+Três condições, e nenhuma é opcional:
+
+1. **cabeçalho declarando origem e data**, na primeira linha do arquivo:
+   `<!-- DERIVADO de <fontes> em <data>. NÃO EDITE À MÃO. -->`;
+2. **nunca editar à mão.** Divergência entre o arquivo e a fonte é corrigida
+   regerando, nunca digitando — editar transforma o relatório em fonte, que é
+   exatamente o que a regra impede;
+3. **o que a fonte não tem, o arquivo não inventa.** Campo vazio na origem sai
+   como *desconhecido*, jamais como zero ou como estimativa plausível.
+
+`docs/metrics/README.md` é gerado por `scripts/generate_docs.py` e traz
+`NÃO EDITE À MÃO` no topo. **Não escreva nele.** O arquivo deste papel é
+`docs/metrics/indicadores.md`, e são coisas diferentes: o primeiro é o catálogo do
+que a base declara, o segundo é a leitura do que se observou.
 
 ---
 
@@ -291,6 +322,211 @@ abandonado sem decomposição, e é justamente o sinal que interessa.
 Sub-issue do tipo `Task` **não** transforma a user story em épico: tarefa atende
 a user story (`sro.intended_task_planned_to_meet_user_story`), não a compõe.
 Confundir composição com atendimento é o erro mais fácil de cometer aqui.
+
+---
+
+## Procedimento — dimensionar a duração do sprint
+
+Duração de sprint **não é preferência nem hábito**: sai do escopo selecionado. E não
+sai de contar tarefas, que é o erro que este procedimento existe para evitar.
+
+`flow.throughput` já declara apoiar "dimensionar o escopo do próximo sprint a partir
+do que foi concluído nos sprints anteriores". Escopo e duração são a mesma equação
+com variáveis trocadas:
+
+```text
+escopo ≈ vazão × duração
+```
+
+Fixar a duração faz o escopo ser a saída; fixar o escopo faz a duração ser a saída.
+Nenhuma medida nova é necessária — muda o que se resolve.
+
+### Duas fronteiras, e a duração é a maior das duas
+
+Contar tarefas responde volume. Não responde **ordem**, e é a ordem que costuma
+mandar.
+
+| Fronteira | O que é | Como se obtém |
+|---|---|---|
+| **volume** | tarefas ÷ vazão observada | contagem no `tasks.md`, vazão da série de sprints |
+| **caminho crítico** | níveis de dependência que **não podem** ser paralelizados | grafo de dependências do `tasks.md` |
+
+```text
+duração ≥ max(volume, caminho crítico)
+```
+
+**Vinte e sete tarefas paralelas e vinte e sete tarefas encadeadas têm a mesma
+contagem e durações muito diferentes.** Um sprint cuja primeira fase bloqueia todas
+as outras não encurta com mais gente nem com mais horas: encurta se a cadeia
+encurtar, e mais nada.
+
+Conte os níveis, não as fases: fases que dependem da mesma antecessora e não uma da
+outra ocupam **um** nível.
+
+### O piso que nenhuma conta pode furar
+
+**Todo sprint entrega fatia vertical.** Um sprint que só contém infraestrutura —
+ontologia, transformação, esquema — cabe na aritmética e **não é entregável**: não
+materializa user story alguma, e `sro.sprint_deliverable` compõe-se de entregáveis
+aceitos, que materializam user story atômica.
+
+Quando o caminho crítico até o primeiro consumidor visível é mais longo que a
+duração desejada, **a duração desejada é que cede**. Encurtar cortando a tela produz
+um sprint que fecha no papel e não entrega nada.
+
+### Cadência fixa vence duração sob medida
+
+**A cadência deste projeto é de uma semana**, decidida em 2026-08-10. Duração
+calculada por sprint foi considerada e descartada, e a razão está na própria medida:
+"comparar sprints exige duração constante". Sprint dimensionado sob medida a cada
+rodada produz uma série em que **nenhum valor é comparável ao anterior**, e a vazão
+deixa de sustentar qualquer dimensionamento.
+
+Então o cálculo dos dois parágrafos anteriores não escolhe a duração — ele responde
+**se o escopo cabe na cadência**:
+
+| Resultado | O que fazer |
+|---|---|
+| caminho crítico ≤ cadência | o escopo cabe; a folga é margem, não escopo disponível |
+| caminho crítico > cadência | **corte escopo, não estenda o sprint** — e o corte preserva a fatia vertical |
+| piso vertical > cadência | a feature não cabe em um sprint; divida por user story, nunca por camada |
+
+A última linha é a que se erra: dividir por camada — um sprint de ontologia, outro de
+tela — cabe na aritmética e produz um sprint sem entregável. Dividir por user story
+mantém cada sprint entregando algo.
+
+**Mudar a cadência é decisão registrada, não ajuste.** Ela invalida a comparação com
+todos os sprints anteriores, e o registro precisa dizer a partir de quando a série
+recomeça.
+
+### A vazão precisa de série, e a série precisa de duração constante
+
+Três limitações que a própria `flow.throughput.rate` declara, e que decidem quando o
+número pode ser usado:
+
+| Limitação declarada | Consequência aqui |
+|---|---|
+| "um sprint isolado não descreve o fluxo" | com **um** sprint de histórico não há vazão; há uma observação |
+| "comparar sprints exige duração constante" | **encurtar a duração quebra a comparação com o histórico.** A vazão do sprint curto não é comparável à do longo, e a queda aparente não é queda |
+| "contar tarefa concluída ignora o tamanho da tarefa" | decompor mais fino eleva a vazão sem mais trabalho feito. Vazão medida em tarefas só serve com granularidade estável |
+
+E a má interpretação que este procedimento mais arrisca: **"usar a vazão como meta a
+bater a torna alvo, e alvo deixa de ser medida"**. Dimensionar duração pela vazão é
+legítimo; dimensionar para atingir uma vazão é o efeito conhecido de fechar tarefa
+no board antes de o trabalho terminar.
+
+Com menos de três sprints de histórico, a vazão **é uma premissa declarada**, não um
+dado. Escreva de onde ela veio e o que a torna frágil. Premissa declarada se corrige
+quando erra; número sem origem não.
+
+### Registro obrigatório
+
+No `sprint-backlog.md`, junto do período:
+
+```markdown
+## Duração — como foi dimensionada
+
+**Escopo**: <n> tarefas, <m> níveis de dependência
+**Caminho crítico**: <a cadeia, fase a fase>
+**Vazão usada**: <valor> — **observada** em <sprints> / **premissa declarada**, porque <razão>
+**Piso de fatia vertical**: <até onde é preciso ir para haver consumidor visível>
+
+**Duração proposta**: <n> dias — max(volume, caminho crítico, piso vertical)
+
+**Confiança**: <alta com série de 3+ sprints e granularidade estável | baixa, e por quê>
+**O que invalida esta conta**: <o que muda o número>
+```
+
+**Sem os quatro insumos não há proposta.** Duração escrita sem eles é hábito
+apresentado como cálculo — e hábito não se corrige, porque não diz de onde veio.
+
+---
+
+## Procedimento — gerar a visão do product backlog
+
+Produz `docs/product-backlog.md`: uma linha por user story, do valor até o que
+ficou entregue. Responde a pergunta que a fonte não responde de relance — *o que
+existe, em que ordem, e o que dele já virou entregável aceito*.
+
+### Cada coluna diz de onde veio
+
+Coluna sem origem declarada é coluna que alguém vai preencher com palpite.
+
+| Coluna | Origem | Conceito |
+|---|---|---|
+| user story | issue tipada no GitHub | `sro.user_story` |
+| épico | `Parent issue`, quando houver | `sro.epic_composed_of_user_story` |
+| importância | campo `Priority` do Project, convertido pela tabela acima | `sro.user_story.importance` |
+| complexidade | campo `Estimate` do Project | `sro.user_story.complexity` |
+| sprint | campo `Iteration`; **vazio = ainda no product backlog** | `sro.sprint` |
+| entregável | `docs/sprints/NNN/aceitacao.md` | `sro.deliverable_materializes_user_story` |
+| fase do entregável | o mesmo registro de aceitação | `sro.accepted_deliverable` / `sro.not_accepted_deliverable` |
+| release | **ver a lacuna abaixo** | — |
+
+**Só user story atômica recebe entregável.** `sro.deliverable_materializes_user_story`
+tem alvo `sro.atomic_user_story`, então a linha de um épico traz as partes, não um
+entregável próprio. Preencher entregável em épico contaria o mesmo resultado duas
+vezes.
+
+**Vazio é desconhecido.** `Estimate` em branco não é complexidade zero, e sprint
+em branco significa "não puxado" — que é informação, não ausência de informação.
+
+### A lacuna de release, e por que ela não se resolve preenchendo
+
+**Release não é conceito da base de conhecimento.** Não existe em SRO, em SPO nem
+em CDRO. O mais próximo que a rede oferece é o resultado do deploy —
+`cdro.deployed_code`, produzido por `cdro.deployment_activity` — e isso responde
+"o que foi implantado em qual ambiente", não "que versão foi anunciada".
+
+`priv/knowledge_base/sources/github.yaml` declara a entidade de origem `release`
+com `feeds_ontologies: [cdro, cmpo]`, e **não existe mapeamento** que a leve a
+concept algum. A lacuna é dupla: falta o conceito **e** falta a ligação.
+
+Enquanto isso não mudar, a coluna existe e é preenchida com `—`, junto de uma nota
+dizendo por quê. Duas coisas que **não** se deve fazer:
+
+- **inventar release a partir de tag, milestone ou branch.** Seria conceito novo
+  entrando pela porta de trás, com aparência de dado observado;
+- **omitir a coluna.** Omitir esconde a lacuna; declará-la a mantém visível até
+  alguém decidir fechá-la.
+
+Fechar a lacuna é trabalho de ontologia, não deste papel: declarar o conceito e a
+relação com `sro.deliverable`, mapear `github.release`, e só então a coluna passa a
+ter conteúdo. Ver `O que este papel não faz`.
+
+### Modelo — `docs/product-backlog.md`
+
+```markdown
+<!-- DERIVADO do Projects v2, de specs/*/spec.md e de docs/sprints/*/aceitacao.md
+     em <data>. NÃO EDITE À MÃO. -->
+
+# Product backlog
+
+**Fonte da verdade**: [Projects v2](<url>). Este arquivo é uma leitura dela.
+**Escala de importância**: P1=100, P2=70, P3=40, P4 ou inferior=10.
+
+## Ainda no product backlog
+
+Itens sem iteration atribuída, em ordem decrescente de importância.
+
+| # | User story | Épico | Importância | Complexidade |
+|---|---|---|---:|---:|
+
+## Puxado para sprints
+
+| # | User story | Épico | Import. | Sprint | Entregável | Fase | Release |
+|---|---|---|---:|---|---|---|---|
+
+## Release
+
+<Estado da ligação entre entregável e release. Se a lacuna descrita na skill
+continuar aberta, dizer isso aqui, com o que falta para fechá-la.>
+
+## Lacunas
+
+<Campo vazio na fonte, critério sem user story, épico sem partes, user story sem
+critério. Cada um com o que falta. Seção vazia só é verdade se nada faltar.>
+```
 
 ---
 
@@ -370,12 +606,12 @@ produz aceitação que ninguém consegue reproduzir.
    e um sprint sem nenhum aceito não produz entregável de sprint. Dizer isso é
    desconfortável e é o ponto: a alternativa é um resultado que aparenta existir.
 
-7. **Escrever `sprints/NNN/aceitacao.md`** e submeter à confirmação de quem
+7. **Escrever `docs/sprints/NNN/aceitacao.md`** e submeter à confirmação de quem
    desempenha o papel. Só depois a coluna `Aceito` da review é preenchida.
 
 ---
 
-## Modelo — `sprints/NNN/aceitacao.md`
+## Modelo — `docs/sprints/NNN/aceitacao.md`
 
 ```markdown
 # Sprint <N> — Registro de aceitação
@@ -472,6 +708,90 @@ sinônimo de time ruim — costuma indicar critério de aceitação mal definido
 
 ---
 
+## Procedimento — gerar os indicadores
+
+Produz `docs/metrics/indicadores.md`: o valor **observado** de cada medida que a
+base declara, com a evidência e as limitações que a própria medida enuncia.
+
+**Não é um catálogo de métricas.** O catálogo existe e é gerado:
+`docs/metrics/README.md`, por `scripts/generate_docs.py`, e traz `NÃO EDITE À MÃO`
+no topo. Aqui vai a leitura — o que se observou, quando, e o que o número não
+autoriza a concluir.
+
+### Regras que fazem o documento valer algo
+
+**Uma medida por necessidade declarada, e nenhuma além.** As cinco que existem
+hoje em `priv/knowledge_base/`:
+
+| Necessidade | Medida |
+|---|---|
+| `flow.throughput` | `flow.throughput.rate` |
+| `flow.work_in_progress` | `flow.wip.count` |
+| `rework.effort_on_not_accepted_deliverables` | `rework.not_accepted_deliverable_ratio` |
+| `review.time_to_first_review` | `review.time_to_first_review.duration` |
+| `ci.pipeline_success_rate` | `ci.pipeline_success_rate.ratio` |
+
+Indicador fora dessa lista **não entra**. Primeiro o YAML da necessidade, com
+pergunta, decisão apoiada, conceitos e limitações; só então a medida; só então a
+linha aqui.
+
+**Copie as limitações da medida, não as resuma.** Elas são a parte do indicador
+que impede a leitura errada, e um resumo perde exatamente o caso que a limitação
+existia para cobrir.
+
+**Não calculável é um resultado.** Uma medida cujos conceitos ainda não são
+coletados não vale zero e não vale "N/A": vale *não calculável*, com o que falta
+para calculá-la. Zero afirma que foi medido e deu zero.
+
+**Todo número traz a decisão que apoia.** O campo `decision_supported` da
+necessidade responde por que alguém deveria olhar. Indicador sem decisão associada
+é número que todos citam e ninguém usa.
+
+### Modelo — `docs/metrics/indicadores.md`
+
+```markdown
+<!-- DERIVADO de priv/knowledge_base/{information_needs,measurements}/, do
+     Projects v2 e de docs/sprints/*/ em <data>. NÃO EDITE À MÃO. -->
+
+# Indicadores
+
+Nenhum indicador existe aqui sem necessidade de informação declarada em
+`priv/knowledge_base/information_needs/`. O catálogo do que a base declara está em
+[README.md](README.md), que é gerado — esta página é a leitura do observado.
+
+## Resumo
+
+| Indicador | Medida | Valor | Apurado em |
+|---|---|---|---|
+
+Vazio significa **não calculável**, nunca zero. A coluna diz qual dos dois é.
+
+## <nome do indicador>
+
+**Necessidade**: `<id>` · **Medida**: `<id>`
+**Pergunta**: <a pergunta, copiada da necessidade>
+**Decisão que apoia**: <copiada da necessidade>
+
+**Valor**: <número com unidade, ou **não calculável**>
+**Evidência**: <consulta, saída de comando, registro de aceitação>
+
+**Limitações declaradas pela medida** — copiadas, não resumidas:
+
+- <limitação>
+
+**O que este número não autoriza a concluir**: <a má interpretação registrada, se
+houver>
+
+## Não calculáveis
+
+| Indicador | O que falta |
+|---|---|
+
+<Seção vazia só é verdade se todas as cinco tiverem valor.>
+```
+
+---
+
 ## O que este papel não faz
 
 | Não faz | De quem é |
@@ -508,6 +828,12 @@ interesse.
   a libera — não o silêncio, e não a marcação como feita.
 - **Trabalho novo que corrige o antigo é exceção legítima**, e vai para os riscos
   do sprint com o resíduo nomeado. Exceção silenciosa é a regra contornada.
+- **Não aceite entregável cuja revisão nunca foi pedida.** Todo PR nasce com
+  `--reviewer paulossjunior`. PR sem revisor solicitado é PR cuja revisão não vai
+  acontecer, e a pendência só aparece no merge.
+- **Merge não é revisão, e revisão não é aceitação.** A evidência de revisão é
+  aprovação registrada em `pulls/<n>/reviews`. Vazio significa que não houve, mesmo
+  que o código esteja na `main`.
 - **Não reabra tarefa executada sem sucesso.** Nova tarefa pretendida.
 - **Não altere critério para caber no que foi entregue.** Se o critério estava
   errado, corrija-o registrando a mudança — e reavalie.
