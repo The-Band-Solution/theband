@@ -234,6 +234,53 @@ defmodule TheBand.Sources do
     end)
   end
 
+  @doc """
+  Retoma uma observação encerrada, reusando a ferramenta existente (T012, FR-011 a FR-013).
+
+  A identidade da ferramenta é tipo, instância e organização, e o índice de unicidade já
+  garante — o que faltava era o evento. Reconectar não cria uma segunda linha: criaria
+  duas proveniências para o mesmo dado.
+
+  **Credencial nova é obrigatória**, porque a anterior foi destruída no encerramento. Não
+  há parâmetro para reusar o que não existe.
+
+  **A retomada não desmarca nada por si.** Só a coleta pode dizer se a origem ainda mostra
+  o registro; desmarcar aqui ressuscitaria vínculo que a origem já não tem, e a plataforma
+  afirmaria observação que não ocorreu. Quem devolve vigência é a coleta seguinte, ao
+  reobservar.
+  """
+  @spec resume_observation(Tenant.t(), ConnectedTool.t(), map()) ::
+          {:ok, map()} | {:error, term()}
+  def resume_observation(%Tenant{id: tenant_id}, %ConnectedTool{} = tool, attrs) do
+    with {:ok, %{scopes: scopes}} <-
+           Client.verify_credential(tool.instance_url, field(attrs, "secret")) do
+      Repo.transaction(fn ->
+        {:ok, event} =
+          %ObservationEvent{}
+          |> ObservationEvent.changeset(%{
+            tenant_id: tenant_id,
+            connected_tool_id: tool.id,
+            event: "resumed",
+            occurred_at: DateTime.utc_now(:second),
+            actor_user_id: field(attrs, "actor_user_id"),
+            reason: field(attrs, "reason")
+          })
+          |> Repo.insert()
+
+        {:ok, credential} =
+          tenant_id
+          |> credential_changeset(tool.id, attrs, scopes)
+          |> Repo.insert()
+
+        # A ferramenta volta ao estado ativo: o motivo de atenção, se havia, era da
+        # credencial destruída — e ela não existe mais.
+        {:ok, _} = clear_needs_attention(tool)
+
+        %{tool: tool, event: event, credential: credential}
+      end)
+    end
+  end
+
   defp destroy_all_credentials(%ConnectedTool{id: tool_id}) do
     {count, _} = Repo.delete_all(from c in ToolCredential, where: c.connected_tool_id == ^tool_id)
     count

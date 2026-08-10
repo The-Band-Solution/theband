@@ -615,3 +615,42 @@ observa, e o registro diz isso.
 estava com **zero** vínculos vigentes, pelo próprio defeito. "0 antes, 0 depois" é
 intacto no zero, e prova pouco. A prova forte está nos testes, com duas organizações
 construídas do zero.
+
+### L20 — Estado derivado do "último" precisa de desempate determinístico
+
+**O que aconteceu.** Ao implementar o retomar, o teste "reusa a ferramenta existente"
+falhou dizendo que a observação continuava encerrada depois de retomada. Os dois eventos
+— `ended` e `resumed` — tinham sido gravados no **mesmo segundo**, e a derivação do
+estado pede o último evento por `occurred_at desc, inserted_at desc`. Com as duas colunas
+em `timestamp(0)`, o empate era total, e o banco devolvia qualquer um dos dois.
+
+**Já tinha acontecido, com outro nome.** No sprint 001, `active_credential/1` escolhia a
+credencial mais recentemente validada, e duas cadastradas no mesmo segundo empatavam em
+`validated_at` — o mesmo estado do banco escolhia credenciais diferentes entre execuções.
+A correção lá foi acrescentar desempate; a correção aqui é a mesma ideia com outro
+mecanismo.
+
+**Por que reincidiu.** Porque a lição anterior foi registrada como sendo sobre
+**credenciais**, e não sobre **derivar estado de um conjunto ordenado**. O padrão é o
+mesmo toda vez que o código pergunta "qual o último": se a chave de ordenação tem
+granularidade maior que a frequência de escrita, o "último" é indefinido.
+
+E a granularidade que engana é justamente o segundo, porque parece fino o bastante. Duas
+ações de interface distam segundos; duas de um teste, microssegundos.
+
+**A correção.** `occurred_at` continua em segundos — é quando a coisa **ocorreu**, e
+segundo basta. `inserted_at` passou a microssegundo: é a ordem de gravação, e é ela que
+desempata. Separar os dois papéis é o que torna a ordem definida sem fingir precisão que
+o evento não tem.
+
+**Como aplicar.**
+
+1. **Toda derivação de "o último" declara o desempate.** Se a resposta muda conforme o
+   plano de execução, não é derivação;
+2. **Segundo não é desempate.** Onde a escrita pode ocorrer mais de uma vez por segundo —
+   e quase sempre pode —, a ordem precisa de coluna com resolução maior, ou de sequência;
+3. **Ao registrar lição sobre um caso, pergunte de que classe ele é.** "Credencial
+   empatada" travou o caso; "estado derivado sem desempate" teria travado a classe, e
+   esta lição não existiria.
+
+**Aplicada em**: Sprint 003 — a tabela de eventos de observação.

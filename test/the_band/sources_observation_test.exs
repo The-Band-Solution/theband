@@ -10,6 +10,10 @@ defmodule TheBand.SourcesObservationTest do
   """
   use TheBand.DataCase, async: true
 
+  import Mox
+
+  setup :verify_on_exit!
+
   alias TheBand.Ingestion
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
@@ -327,6 +331,116 @@ defmodule TheBand.SourcesObservationTest do
 
       assert Sources.observation_ended?(primeira)
       refute Sources.observation_ended?(segunda)
+    end
+  end
+
+  describe "retomar a observação encerrada (T012, US2)" do
+    setup do
+      tenant = tenant_fixture()
+      c = cenario(tenant)
+      {:ok, _} = Sources.end_observation(tenant, c.tools["alfa"], %{"confirmation" => "alfa"})
+      %{tenant: tenant, c: c}
+    end
+
+    test "reusa a ferramenta existente, não cria uma segunda", %{tenant: tenant, c: c} do
+      antes = Repo.aggregate(ConnectedTool, :count, :id)
+
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{"login" => "conta"},
+           headers: %{"x-oauth-scopes" => ["read:org"]}
+         }}
+      end)
+
+      {:ok, r} =
+        Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova_credencial"})
+
+      assert r.tool.id == c.tools["alfa"].id
+      assert Repo.aggregate(ConnectedTool, :count, :id) == antes
+      refute Sources.observation_ended?(c.tools["alfa"])
+    end
+
+    test "exige credencial nova, e ela passa a ser a ativa", %{tenant: tenant, c: c} do
+      # A anterior foi destruída no encerramento: não existe o que reusar.
+      assert is_nil(Sources.active_credential(c.tools["alfa"]))
+
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{"login" => "conta"},
+           headers: %{"x-oauth-scopes" => ["read:org"]}
+         }}
+      end)
+
+      {:ok, r} =
+        Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova_credencial"})
+
+      assert Sources.active_credential(c.tools["alfa"]).id == r.credential.id
+    end
+
+    test "credencial recusada não retoma", %{tenant: tenant, c: c} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok, %{status: 401, body: %{}, headers: %{}}}
+      end)
+
+      assert {:error, :unauthorized} =
+               Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_ruim"})
+
+      assert Sources.observation_ended?(c.tools["alfa"]),
+             "a observação foi retomada com credencial recusada"
+    end
+
+    test "a retomada NÃO desmarca nada por si", %{tenant: tenant, c: c} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{"login" => "conta"},
+           headers: %{"x-oauth-scopes" => ["read:org"]}
+         }}
+      end)
+
+      {:ok, _} =
+        Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova"})
+
+      # Só a coleta pode dizer se a origem ainda mostra o registro. Desmarcar aqui
+      # ressuscitaria vínculo que a origem já não tem.
+      assert marcada?(EO.Schemas.Team, c.teams["alfa"].id)
+      assert marcada?(EO.Schemas.Person, c.pessoas["so_alfa"].id)
+    end
+
+    test "o histórico mostra as duas transições, não o estado final", %{tenant: tenant, c: c} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{"login" => "conta"},
+           headers: %{"x-oauth-scopes" => ["read:org"]}
+         }}
+      end)
+
+      {:ok, _} = Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova"})
+
+      assert [%{event: "ended"}, %{event: "resumed"}] =
+               Sources.observation_history(tenant, c.tools["alfa"])
+    end
+
+    test "a coleta volta a aceitar a ferramenta", %{tenant: tenant, c: c} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{"login" => "conta"},
+           headers: %{"x-oauth-scopes" => ["read:org"]}
+         }}
+      end)
+
+      {:ok, _} = Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova"})
+
+      refute match?({:error, :observation_ended}, Ingestion.start_sync(tenant, c.tools["alfa"]))
     end
   end
 end

@@ -43,7 +43,10 @@ defmodule TheBand.Sources.ObservationEvent do
     field :reason, :string
     field :impact, :map
 
-    timestamps(type: :utc_datetime, updated_at: false)
+    # Microssegundo, e não segundo: dois eventos do mesmo segundo empatariam, e o
+    # estado derivado do "último evento" passaria a depender de acidente do plano de
+    # execução. Mesma classe do defeito de escolha de credencial do sprint 001.
+    timestamps(type: :utc_datetime_usec, updated_at: false)
   end
 
   @doc "Os dois eventos possíveis."
