@@ -53,15 +53,15 @@ E há uma descoberta que torna a pendência estrutural, não circunstancial: **u
 conta só não satisfaz o princípio VII.** O GitHub recusa pedir revisão ao autor do
 próprio PR — `422 Review cannot be requested from pull request author.` Como os PRs
 são abertos com o token de `paulossjunior`, ele é o autor e não pode ser o revisor.
-Verificado no PR #90, e registrado como [L14](../licoes-aprendidas.md).
+Verificado no PR #90, e registrado como [L14](../licoes-aprendidas.md) e [L15](../licoes-aprendidas.md) — esta última mostra que o problema é de **permissão**: o repositório tem um colaborador só, e nenhuma equipe tem acesso.
 
 Enquanto quem abre o PR e quem revisa forem a mesma conta, a exigência é
 **inalcançável** — não atrasada. Consta nos riscos.
 
 ## Lições aplicadas
 
-Do [registro acumulado](../licoes-aprendidas.md) — quatorze lições, L01 a L14.
-Oito se aplicam diretamente:
+Do [registro acumulado](../licoes-aprendidas.md) — quinze lições, L01 a L15.
+Nove se aplicam diretamente:
 
 | Lição | O que muda neste sprint |
 |---|---|
@@ -73,6 +73,7 @@ Oito se aplicam diretamente:
 | **L12** — PR não aberto na hora passa a carregar outra feature | Foi por isso que a Fase 0 existe, e é a lição que criou a regra de não puxar trabalho novo. O PR da 002 é aberto **quando a tarefa pedir**, não no fim |
 | **L13** — secret referenciado e não cadastrado chega como string vazia | Onde a ausência tem tratamento, vazio recebe o mesmo. Vale para toda leitura de ambiente que esta feature acrescentar |
 | **L14** — `gh` engole o pedido de revisão recusado | Ao abrir o PR desta feature, conferir `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi pedido, não importa o que o comando disse |
+| **L15** — não há revisor possível num repositório de um colaborador só | A revisão independente deixa de ser tratada como pendência de agenda. É pendência de **permissão**, e por isso está na tabela de herança como bloqueio estrutural, com as quatro evidências |
 
 As demais foram consideradas e não se aplicam: L01 (não há gerador nesta
 feature), L04 (nenhuma consulta nova ao GitHub), L05 e L07 (correções já

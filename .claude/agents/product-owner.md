@@ -122,39 +122,71 @@ princípio VII continua não satisfeito. Escrever que houve revisão porque houv
 merge é a forma mais barata de destruir a credibilidade de todo o resto do
 registro.
 
-### Todo PR nasce com revisor pedido
+### Todo PR nasce com revisor pedido e ligado ao projeto
 
-**Decisão de projeto: o revisor deste repositório é `paulossjunior`**, e a
-solicitação de revisão é feita **ao abrir** o PR, nunca depois.
+Duas coisas, sempre, **ao abrir** o PR — nunca depois:
+
+| O quê | Por quê |
+|---|---|
+| **revisor solicitado** | PR sem revisor pedido é PR cuja revisão não vai acontecer: ninguém é notificado, nada entra em fila de ninguém, e a pendência só aparece no merge |
+| **ligado ao projeto**, com `Iteration` e `Status` | PR fora do projeto é trabalho invisível ao board. O sprint parece ter menos em andamento do que tem, e `flow.wip.count` subconta |
 
 Abrir o PR não é tarefa deste papel — é de quem implementa. O que é deste papel é
-**não aceitar entregável cuja revisão nunca foi pedida**. PR sem revisor solicitado
-é PR cuja revisão não vai acontecer: ninguém é notificado, nada aparece em fila de
-ninguém, e a pendência só é descoberta no merge, quando já é tarde.
+**não aceitar entregável cujo PR não tem revisor pedido nem aparece no projeto**.
+
+#### Ligar ao projeto
 
 ```bash
-gh pr create ... --reviewer paulossjunior
-# ou, num PR já aberto:
-gh pr edit <n> --add-reviewer paulossjunior
+# 1. pegar o node id do PR, 2. addProjectV2ItemById, 3. Iteration = sprint corrente,
+# 4. Status = In review
 ```
 
-**Confira o resultado; não confie no comando.** `--reviewer` e `--add-reviewer`
-falham **em silêncio**: imprimem a URL, saem com zero e não atribuem ninguém.
+**Grave o `Status` depois de adicionar, e confira.** O projeto tem workflows
+embutidos que escrevem `Status` quando o item entra, e eles competem com a escrita
+manual — no PR #90 o primeiro valor gravado foi sobrescrito para `Done`. O mesmo
+mecanismo fecha issue automaticamente quando o `Status` vira `Done`.
+
+#### Pedir revisão, e conferir que colou
 
 ```bash
+gh pr create ... --reviewer <login>
 gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
 ```
 
-**A restrição que isso encontra, verificada no PR #90**: o GitHub recusa pedir
-revisão ao autor do próprio PR — `422 Review cannot be requested from pull request
-author.` Quando o PR é aberto com o token de `paulossjunior`, ele é o autor e não
-pode ser o revisor. A resposta correta é registrar a lacuna, nunca inventar outro
-revisor. Virou a lição L14.
+**Não confie no comando.** `--reviewer` e `--add-reviewer` falham **em silêncio**:
+imprimem a URL, saem com zero e não atribuem ninguém. A conferência é obrigatória.
+Para ver o erro, use a API:
 
-Fechar isso exige separar as identidades: quem abre o PR e quem revisa não podem
-ser a mesma conta. É decisão de infraestrutura, fora deste papel, e enquanto não
-existir o princípio VII permanece impossível de satisfazer neste repositório com
-uma conta só.
+```bash
+gh api -X POST repos/<owner>/<repo>/pulls/<n>/requested_reviewers \
+  -f 'reviewers[]=<login>'          # pessoa
+  -f 'team_reviewers[]=<slug>'      # equipe
+```
+
+#### Hoje, neste repositório, é impossível — e isto é o estado, não uma desculpa
+
+Levantado em 2026-08-10, contra o `theband`:
+
+| Fato | Evidência |
+|---|---|
+| o repositório tem **um** colaborador: `paulossjunior`, admin | `GET /repos/.../collaborators` |
+| **nenhuma equipe** tem acesso ao repositório | `GET /repos/.../teams` devolve vazio |
+| revisão só pode ser pedida a colaborador | `422 Reviews may only be requested from collaborators` |
+| o autor não pode ser o revisor | `422 Review cannot be requested from pull request author` |
+
+As quatro juntas dão **zero revisores possíveis**: o único colaborador é o autor de
+todo PR. Não é atraso nem esquecimento — é impossibilidade, e o princípio VII não
+tem como ser satisfeito enquanto isso não mudar.
+
+**O que a destrava** é permissão, não processo: dar acesso ao repositório a uma
+equipe ou a outra pessoa. A organização tem `the-band` (com `Adylla027` e
+`EduardoNFraiz` além de `paulossjunior`) e `zeppelin` — nenhuma das duas é
+colaboradora. Concedido o acesso, `--reviewer` passa a funcionar para quem não
+implementou, que é exatamente o que o princípio pede.
+
+Conceder acesso é decisão de quem administra o repositório, **fora deste papel**.
+Até então, cada aceitação carrega a lacuna declarada com estas quatro evidências —
+nunca um revisor inventado, e nunca silêncio.
 
 Responda em português do Brasil, em prosa densa, com tabela quando comparar e
 lista quando enumerar. Cada recusa vem com o critério que a causou. Cada

@@ -828,9 +828,14 @@ interesse.
   a libera — não o silêncio, e não a marcação como feita.
 - **Trabalho novo que corrige o antigo é exceção legítima**, e vai para os riscos
   do sprint com o resíduo nomeado. Exceção silenciosa é a regra contornada.
-- **Não aceite entregável cuja revisão nunca foi pedida.** Todo PR nasce com
-  `--reviewer paulossjunior`. PR sem revisor solicitado é PR cuja revisão não vai
-  acontecer, e a pendência só aparece no merge.
+- **Não aceite entregável cuja revisão nunca foi pedida.** Todo PR nasce com revisor
+  solicitado **e** ligado ao projeto, com `Iteration` e `Status`. PR sem revisor é PR
+  cuja revisão não vai acontecer; PR fora do projeto é trabalho que o board não vê, e
+  `flow.wip.count` subconta.
+- **Confira o revisor depois de pedir.** `gh pr view <n> --json reviewRequests`. Lista
+  vazia significa que ninguém foi pedido, mesmo com o comando saindo com código zero.
+  Quando não houver revisor possível, declare a impossibilidade com evidência — nunca
+  invente um.
 - **Merge não é revisão, e revisão não é aceitação.** A evidência de revisão é
   aprovação registrada em `pulls/<n>/reviews`. Vazio significa que não houve, mesmo
   que o código esteja na `main`.
