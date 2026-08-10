@@ -171,6 +171,43 @@ Três decisões dentro dela:
 - **`many → one`.** Uma equipe organizacional pertence a exatamente uma
   organização; uma organização tem várias.
 
+### F4b — Decisão de projeto: equipe padrão para organização sem times
+
+**Decisão da pessoa mantenedora, 2026-08-10**: quando uma organização observada
+não possui nenhuma equipe, a plataforma cria uma equipe com o nome da
+organização.
+
+O caso existe e está medido: `ifesserra-lab` tem 5 membros e **0 times**. Sem
+equipe, seus membros não aparecem em nenhuma consulta que parta de equipe.
+
+**A leitura que sustenta a decisão**: `eo.team` é "coletivo de pessoas que
+desempenham papéis organizacionais em conjunto". Quando a organização não se
+subdivide em times, o coletivo é a própria organização. A equipe padrão não
+inventa um agrupamento — ela nomeia o agrupamento que já existe por omissão.
+
+**As duas condições que a mantêm honesta**, e sem as quais ela vira dado falso:
+
+1. **A equipe derivada nunca se apresenta como observada.** Ela não tem
+   identificador na origem, porque não existe na origem. Sua proveniência declara
+   `source_type: derivation`, e sua Application Reference é da derivação, não do
+   GitHub — algo como `derived:default_team:<id externo da organização>`. Gravá-la
+   como se viesse do GitHub afirmaria o que a fonte não afirma, que é o erro que a
+   regra do vínculo com equipe existe para recusar.
+2. **A contagem de equipes distingue observadas de derivadas.** "10 equipes" e
+   "10 equipes, 1 derivada" respondem perguntas diferentes. Alguém que compare o
+   número da plataforma com o do GitHub precisa entender a diferença sem
+   investigar.
+
+**O que a decisão não substitui**: a evidência direta entre pessoa e organização
+continua necessária. Os 18 sem equipe do quadro atual incluem gente de
+organizações **que têm** times — a equipe padrão só cobre a organização sem
+nenhum. Derivar tudo pela equipe continuaria perdendo essas pessoas.
+
+**Formalização**: regra de derivação declarada em
+`rules/github_default_team.yaml`, no mesmo formato de
+`github_team_membership_evidence` — o que materializa, o que **não** materializa,
+com a razão, e as limitações.
+
 ### F5 — A transformação não gera chave estrangeira para associação
 
 `derive_information_model.py` produz FK a partir de exatamente dois casos:

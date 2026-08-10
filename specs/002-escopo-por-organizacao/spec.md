@@ -110,6 +110,7 @@ conferir que ela é identificada como tal e que as duas organizações são exib
 - **Equipes com o mesmo identificador curto em organizações diferentes**: são equipes distintas. O identificador curto de equipe não é único entre organizações.
 - **Organização observada removida da coleta**: os registros que ela originou permanecem, com o vínculo marcado como não mais observado. Apagar perderia o histórico que a plataforma existe para preservar.
 - **Equipe coletada antes da organização**: não deve ocorrer, mas se ocorrer a equipe fica registrada como pendente de organização e a coleta relata a pendência, em vez de gravar vínculo inventado.
+- **Organização sem nenhuma equipe na origem**: recebe uma equipe derivada com o nome da organização, identificada como derivada. Ela **não** substitui o vínculo direto entre pessoa e organização: pessoas sem equipe em organizações que **têm** times continuam alcançáveis só por ele.
 - **Registros já coletados antes desta feature**: precisam receber o vínculo sem nova consulta à ferramenta de origem.
 
 ## Requirements *(mandatory)*
@@ -124,6 +125,9 @@ conferir que ela é identificada como tal e que as duas organizações são exib
 - **FR-006**: A plataforma MUST tratar equipes de organizações diferentes como distintas, ainda que compartilhem identificador curto.
 - **FR-007**: A plataforma MUST NOT unificar em um único registro de pessoa contas distintas que apareçam em organizações diferentes; a identidade continua sendo a origem.
 - **FR-008**: A plataforma MUST NOT desdobrar uma pessoa em vários registros por ela pertencer a várias organizações.
+- **FR-008a**: Quando uma organização observada não possui nenhuma equipe na origem, a plataforma MUST criar uma equipe com o nome da organização, para que seus integrantes sejam alcançáveis por consulta que parta de equipe.
+- **FR-008b**: A equipe criada por FR-008a MUST declarar-se como derivada, e MUST NOT apresentar-se como observada na origem — ela não tem identificador na ferramenta porque não existe nela.
+- **FR-008c**: As contagens de equipes MUST distinguir as observadas das derivadas, para que a comparação com a ferramenta de origem seja possível sem investigação.
 
 ### Base de conhecimento
 
@@ -155,6 +159,8 @@ conferir que ela é identificada como tal e que as duas organizações são exib
 - **SC-005**: Os registros coletados antes desta feature recebem o vínculo sem nenhuma consulta à ferramenta de origem.
 - **SC-006**: Uma pessoa removida de uma organização mantém o vínculo com as demais, e o vínculo removido permanece consultável como histórico.
 - **SC-007**: Duas equipes de organizações diferentes com o mesmo identificador curto permanecem dois registros distintos.
+- **SC-009**: Uma organização sem equipes na origem passa a ter exatamente uma equipe na plataforma, identificada como derivada, e seus integrantes aparecem em consulta que parte de equipe.
+- **SC-010**: A contagem de equipes de uma organização, descontadas as derivadas, é igual à quantidade que existe na origem.
 - **SC-008**: Um usuário de uma organização cliente não vê, por nenhum caminho, dado de outra — verificado com duas organizações clientes povoadas.
 
 ## Assumptions
