@@ -99,7 +99,7 @@ mapeamento prometa relação que não existe.
 
 Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produzi-la.
 
-- [ ] T004 Gerar chave estrangeira a partir de associação
+- [x] T004 Gerar chave estrangeira a partir de associação
   - **Pronta quando**: T001 concluída; o contrato
     `contracts/information-model.md` está escrito
   - **Descrição**: declarar a regra em
@@ -112,7 +112,25 @@ Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produ
     `association`, com o `check_constraint`; **a derivação de todas as outras
     ontologias sai idêntica** à de antes
   - **Teste**: guardar a saída atual de todas as ontologias, aplicar a mudança, e
-    comparar — só EO pode diferir, e só pela coluna nova. É o V1 do quickstart
+    comparar — só EO pode diferir, e só pela coluna nova. É o V1 do quickstart.
+    **Executado**: das 11 ontologias, só EO diferiu, e apenas por
+    `organization_id NULL → FK (association)`, o `check` correspondente e a nota
+  - **A regressão era impossível, e foi isso que ela revelou.** A primeira comparação
+    acusou **dez das onze** ontologias como alteradas. Nenhuma havia mudado: três
+    execuções do mesmo código sobre a mesma base davam três saídas diferentes.
+    `owned` era um conjunto de strings, e iterá-lo varia entre execuções por
+    randomização de hash — essa ordem decidia a ordem dos discriminadores, das notas
+    e das colunas; `glob` somava a ordem do sistema de arquivos. Consertado com
+    `sorted` nos quatro pontos, e o CI passou a derivar quatro ontologias duas vezes
+    e comparar. Lição L17. O baseline foi então refeito com o código do `HEAD` mais o
+    conserto e nada mais, e só aí a regra nova foi comparada
+  - **Um defeito da minha própria regra, achado ao executar.** A primeira versão
+    gerava `eo_people.person_id` — autorreferência — a partir de
+    `eo.team_member_is_person`. `eo.team_member` é **papel** elevado a `eo.person`, e
+    pela ADR 0004 D5/D6 papel materializa por relator, nunca por coluna: aquela
+    relação é identidade, não referência. Dois guardas acrescentados, cada um
+    suficiente por si — origem `role` não gera chave, e origem elevada ao próprio
+    destino não gera chave
 
 **Checkpoint**: a coluna existe no modelo derivado, com lastro na ontologia.
 

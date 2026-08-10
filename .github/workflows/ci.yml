@@ -90,3 +90,17 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install -q -r scripts/requirements.txt
           .venv/bin/python scripts/validate_knowledge_base.py
+
+      # A ADR 0004 diz que o esquema é derivado e nunca escrito à mão. Isso só vale
+      # se a derivação for **função da ontologia**: duas execuções iguais têm de dar
+      # a mesma saída. Não davam — iterar um conjunto de strings varia entre
+      # execuções, e a variação tornava impossível revisar um diff de derivação ou
+      # exigir que a derivação das outras ontologias saísse idêntica.
+      - name: modelo de informação — derivação reproduzível
+        run: |
+          for o in eo sro cmpo spo; do
+            .venv/bin/python scripts/derive_information_model.py --ontology "$o" > "/tmp/d1-$o.txt"
+            .venv/bin/python scripts/derive_information_model.py --ontology "$o" > "/tmp/d2-$o.txt"
+            diff "/tmp/d1-$o.txt" "/tmp/d2-$o.txt" \
+              || { echo "derivação de $o não é reproduzível"; exit 1; }
+          done

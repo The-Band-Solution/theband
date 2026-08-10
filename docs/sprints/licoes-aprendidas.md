@@ -422,3 +422,59 @@ agenda; era de permissão, e a única razão de ter durado tanto é que ninguém
 existe como pedir revisão de PR mergeado. O código da feature 001 está na `main` sem
 nunca ter sido revisado, e isso permanece no registro de aceitação — a correção vale
 de #91 em diante.
+
+## Sprint 002 — Escopo por organização (2026-08-10 a 2026-08-16)
+
+### L17 — A derivação do esquema não era função da ontologia
+
+**O que aconteceu.** A tarefa T004 exigia uma regressão obrigatória: acrescentar a
+regra de associação ao derivador e conferir que **a derivação de todas as outras
+ontologias sai idêntica**. A comparação acusou dez das onze ontologias como
+alteradas.
+
+Nenhuma tinha mudado. Três execuções do **mesmo código**, sobre a **mesma base**,
+davam três saídas diferentes:
+
+```text
+run1 != run2
+run1 != run3
+```
+
+**Por que acontecia.** `owned = {cid for cid, (o, _) in concepts.items() ...}` é um
+conjunto de strings, e iterar um conjunto de strings em Python varia entre execuções
+por randomização de hash. Essa ordem decidia a ordem de inserção em `absorbed`, que
+decidia a ordem dos valores de discriminador, das notas e das colunas. `glob` somava
+a sua parte: devolve na ordem do sistema de arquivos, e a ordem de leitura decidia a
+ordem das relações, logo das chaves estrangeiras.
+
+**Por que importa muito mais que a estética da saída.** A ADR 0004 decide que o
+modelo de informação é **derivado e nunca escrito à mão**. Uma derivação que muda
+entre execuções não é derivação: é sorteio estável o suficiente para parecer
+determinístico e instável o suficiente para não ser verificável. Três consequências
+concretas:
+
+- **nenhum diff de derivação é revisável.** Todo diff vem cheio de reordenação, e a
+  mudança real fica escondida no ruído;
+- **a regressão que T004 exige era impossível**, e ninguém tinha notado porque
+  ninguém a havia executado;
+- **a promessa da ADR 0004 D4 ficava sem verificação.** "O esquema corresponde ao
+  modelo derivado" não é conferível quando o modelo derivado depende de quando foi
+  gerado.
+
+Vale notar o que **não** era o problema: o defeito não produzia esquema errado. A
+mesma tabela, com as mesmas colunas, saía descrita em outra ordem. É por isso que
+sobreviveu — ninguém compara duas execuções quando a de hoje parece certa.
+
+**Como aplicar.**
+
+1. **Ordene toda iteração cuja ordem chegue à saída.** Conjunto e `glob` não têm
+   ordem; `sorted` custa nada e é a diferença entre derivação e sorteio;
+2. **Gate de reprodutibilidade no CI**, e não confiança: o pipeline deriva quatro
+   ontologias duas vezes e compara. É o único jeito de isto não voltar;
+3. **Regressão sobre saída de gerador exige gerador determinístico primeiro.**
+   Quando uma comparação acusar mudança em tudo, desconfie da comparação antes de
+   desconfiar da mudança — e execute o baseline duas vezes contra si mesmo.
+
+**Aplicada em**: Sprint 002 — T004. O baseline foi refeito com o código do `HEAD`
+mais o conserto de determinismo e nada mais, e só então a regra nova foi comparada:
+**apenas EO mudou**, e apenas pela coluna nova.
