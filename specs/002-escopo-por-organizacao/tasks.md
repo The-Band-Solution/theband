@@ -160,7 +160,7 @@ as duas.
   - **Feita quando**: toda equipe coletada tem organização; nenhuma consulta
     precisa adivinhar a partir do nome
   - **Teste**: coleta simulada de duas organizações com times de mesmo slug — as
-    duas equipes ficam distintas, cada uma sob a sua organização
+    duas equipes ficam distintas, cada uma sob a sua organização. É FR-002 e SC-007
 
 - [ ] T010 [US1] Ler as organizações de uma pessoa
   - **Pronta quando**: T009 concluída
@@ -169,8 +169,10 @@ as duas.
     entre pessoa e organização, e criar uma seria o segundo caminho que a spec
     rejeitou — FR-003, contrato de EO
   - **Feita quando**: a pessoa em equipes de duas organizações devolve as duas,
-    sem repetição; a pessoa em duas equipes da mesma organização devolve uma
-  - **Teste**: os dois casos, mais o de quem não está em equipe alguma — que
+    sem repetição; a pessoa em duas equipes da mesma organização devolve uma; a
+    pessoa cujo vínculo com uma organização deixou de ser observado **mantém** as
+    demais (FR-009, SC-006)
+  - **Teste**: os três casos, mais o de quem não está em equipe alguma — que
     devolve lista vazia, não erro
 
 - [ ] T011 [US1] Retrofitar a organização do que já foi coletado
@@ -182,7 +184,7 @@ as duas.
   - **Feita quando**: as 10 equipes existentes têm organização; o relatório diz
     quantas receberam e quantas ficaram sem, com o motivo
   - **Teste**: o teste roda **sem registrar expectativa no Mox da borda HTTP** —
-    qualquer chamada à origem o derruba sozinho. É o V3 do quickstart
+    qualquer chamada à origem o derruba sozinho. É o V3 do quickstart, e SC-005
 
 - [ ] T012 [US1] Mostrar a organização em pessoas e equipes
   - **Pronta quando**: T010 e T011 concluídas; `contracts/screens.md` escrito
@@ -192,7 +194,7 @@ as duas.
   - **Feita quando**: nenhuma linha aparece sem organização; a pessoa em duas
     aparece **uma vez**, com as duas indicadas
   - **Teste**: teste de interface com duas organizações povoadas — o que precisa
-    estar visível, e que a pessoa sobreposta não aparece duplicada
+    estar visível, e que a pessoa sobreposta não aparece duplicada. É SC-001
 
 **Checkpoint**: US1 entrega valor sozinha — dá para responder de onde veio cada
 registro sem que US2 exista.
@@ -214,9 +216,12 @@ corresponde ao que ela tem na origem.
     contagem compartilham a montagem do filtro — contagem que ignora o filtro da
     listagem exibe um total que não corresponde à tela — FR-016, FR-018
   - **Feita quando**: `list_*` e `count_*` concordam sob qualquer combinação de
-    organização, busca e tipo de conta
+    organização, busca e tipo de conta; a pessoa em **duas equipes da mesma
+    organização** aparece **uma vez**, não duas — atravessar equipes sem
+    `distinct` é o modo natural de errar aqui (FR-010)
   - **Teste**: percorrer as combinações comparando o tamanho da lista com a
-    contagem — o teste que já existe para a feature 001, estendido
+    contagem, mais o caso da pessoa em duas equipes da mesma organização — o
+    teste que já existe para a feature 001, estendido
 
 - [ ] T014 [US2] Contar pessoa sobreposta uma vez só
   - **Pronta quando**: T013 concluída
@@ -226,7 +231,7 @@ corresponde ao que ela tem na origem.
   - **Feita quando**: a diferença entre a soma das parciais e o total é exatamente
     o número de pessoas sobrepostas
   - **Teste**: com uma pessoa em duas organizações, conferir que total é 1 e a
-    soma das parciais é 2 — é o SC-004
+    soma das parciais é 2 — é SC-003 e SC-004
 
 - [ ] T015 [US2] Seletor de organização nas telas
   - **Pronta quando**: T013 concluída; `contracts/screens.md` escrito
@@ -237,9 +242,24 @@ corresponde ao que ela tem na origem.
   - **Feita quando**: o filtro combina com a busca; a contagem do cabeçalho segue
     a escolha; a nota explica por que a soma das parciais não fecha
   - **Teste**: teste de interface — filtrar reduz a lista, a contagem acompanha, e
-    a nota sobre a soma está presente
+    a nota sobre a soma está presente. Conferir o quadro filtrado contra a origem
+    é SC-002
 
-- [ ] T016 [P] [US2] Separar estado vazio de filtro vazio
+- [ ] T016 [US2] Provar que o filtro não vaza entre clientes
+  - **Pronta quando**: T013 concluída
+  - **Descrição**: o filtro por organização vem da interface, e é onde um
+    vazamento entre organizações clientes nasceria: `organization_id` de outro
+    tenant, composto sem o escopo, alcança dado alheio. Toda consulta continua
+    recebendo o tenant, e o filtro compõe **sobre** ele, nunca no lugar dele —
+    FR-022, constituição princípio V
+  - **Feita quando**: passar o identificador de uma organização de outro tenant
+    devolve vazio, não o registro; nenhuma função de leitura nova existe sem o
+    tenant na assinatura
+  - **Teste**: dois tenants povoados, cada um com sua organização; o de um pede o
+    `organization_id` do outro e recebe vazio. O teste é a **violação** — é o V10
+    do quickstart, e SC-008
+
+- [ ] T017 [P] [US2] Separar estado vazio de filtro vazio
   - **Pronta quando**: T015 concluída
   - **Descrição**: "nenhuma coleta ocorreu" e "nada corresponde ao filtro" são
     causas diferentes. Um estado vazio genérico faz procurar defeito onde não há —
@@ -258,7 +278,7 @@ corresponde ao que ela tem na origem.
 **Teste independente**: com a mesma conta em duas organizações, conferir que ela
 é sinalizada e que as duas aparecem.
 
-- [ ] T017 [US3] Encontrar pessoas em mais de uma organização
+- [ ] T018 [US3] Encontrar pessoas em mais de uma organização
   - **Pronta quando**: T010 concluída
   - **Descrição**: `list_people_in_several_organizations/2` em `queries/`, contando
     organizações distintas alcançadas pelas equipes. É informação que a
@@ -269,8 +289,8 @@ corresponde ao que ela tem na origem.
   - **Teste**: os dois casos, mais o de quem está em duas equipes da **mesma**
     organização — que não é sobreposição e não deve aparecer
 
-- [ ] T018 [US3] Sinalizar a sobreposição na tela
-  - **Pronta quando**: T017 e T012 concluídas
+- [ ] T019 [US3] Sinalizar a sobreposição na tela
+  - **Pronta quando**: T018 e T012 concluídas
   - **Descrição**: marcar na tela de pessoas quem está em mais de uma organização,
     e quais são — sem exigir que se comparem listas à mão — FR-021
   - **Feita quando**: a marcação aparece só para quem tem sobreposição; as
@@ -284,7 +304,7 @@ corresponde ao que ela tem na origem.
 
 Atravessa as três histórias: é o que completa o caminho pela equipe.
 
-- [ ] T019 Declarar a regra da equipe derivada
+- [ ] T020 Declarar a regra da equipe derivada
   - **Pronta quando**: `contracts/derived-team.md` escrito
   - **Descrição**: `rules/github_default_team.yaml`, no formato da regra de
     vínculo com equipe — o que materializa, o que **não** materializa com a razão,
@@ -295,8 +315,8 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: `mix knowledge.validate` aceita a regra; o mapeamento de equipe a
     referencia
 
-- [ ] T020 Criar a equipe derivada
-  - **Pronta quando**: T008 e T019 concluídas
+- [ ] T021 Criar a equipe derivada
+  - **Pronta quando**: T008 e T021 concluídas
   - **Descrição**: ao fim de cada coleta, a organização com membros fora de todas
     as suas equipes recebe uma equipe com o nome dela, e esses membros são
     vinculados. Avaliar **ao fim** é o único momento em que se sabe quem ficou de
@@ -306,10 +326,10 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
     com times recebe só os de fora; organização com todos em times **não** recebe
     nada
   - **Teste**: os três casos, com os números reais — 5/0 times, 64/8 times e 6
-    membros todos em times. É o V4 do quickstart
+    membros todos em times. É o V4 do quickstart, e cobre FR-007 e SC-009
 
-- [ ] T021 Impedir derivada passar por observada
-  - **Pronta quando**: T020 concluída
+- [ ] T022 Impedir derivada passar por observada
+  - **Pronta quando**: T021 concluída
   - **Descrição**: invariantes em `constraints/` — equipe com `external_id` de
     derivação não pode ter `source_system` do GitHub; vínculo derivado não pode ter
     nível de acesso; e quem chama o comando **não** escolhe a proveniência, a
@@ -319,8 +339,8 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: tentar gravar pela API pública uma derivada como observada e
     conferir que é recusado — o teste é a **violação**
 
-- [ ] T022 Esvaziar a derivada sem apagá-la
-  - **Pronta quando**: T020 concluída
+- [ ] T023 Esvaziar a derivada sem apagá-la
+  - **Pronta quando**: T021 concluída
   - **Descrição**: a equipe derivada que fica sem integrantes é marcada como não
     mais observada, nunca removida. Uma equipe que existiu e esvaziou é
     informação — FR-008, contrato da equipe derivada
@@ -330,8 +350,8 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: duas coletas, a segunda com a pessoa já num time observado —
     conferir a marcação e que nada foi apagado
 
-- [ ] T023 Distinguir derivada na contagem e na tela
-  - **Pronta quando**: T020 e T015 concluídas
+- [ ] T024 Distinguir derivada na contagem e na tela
+  - **Pronta quando**: T021 e T015 concluídas
   - **Descrição**: `opts[:origin]` nas consultas, lendo `source_system`; selo
     visível na tela, não nota de rodapé; contagem no formato "N equipes, M
     derivadas". Esconder é pior que marcar: quem não vê a equipe não explica por
@@ -339,13 +359,13 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Feita quando**: descontadas as derivadas, a contagem por organização bate com
     a origem; o selo aparece sempre que a equipe aparece
   - **Teste**: teste de interface conferindo o selo, mais a comparação da contagem
-    com o que a origem tem — é o V5 do quickstart
+    com o que a origem tem — é o V5 do quickstart, e cobre SC-010
 
 ---
 
 ## Phase 8 — Polish
 
-- [ ] T024 [P] Atualizar a documentação gerada
+- [ ] T025 [P] Atualizar a documentação gerada
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: regerar `docs/ontology/` e `docs/integrations/` a partir da
     base, que mudou com a relação nova, as perguntas de competência e a regra
@@ -353,15 +373,15 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: o gerador roda sem erro, e a relação nova aparece na documentação
     de EO
 
-- [ ] T025 Rodar os quality gates
+- [ ] T026 Rodar os quality gates
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: os oito gates da constituição, sem exceção e sem desabilitar
     check para o pipeline passar
   - **Feita quando**: todos verdes, com a saída registrada
   - **Teste**: os próprios gates — a saída de cada um é a evidência
 
-- [ ] T026 Executar os cenários do quickstart
-  - **Pronta quando**: T025 concluída
+- [ ] T027 Executar os cenários do quickstart
+  - **Pronta quando**: T026 concluída
   - **Descrição**: percorrer V1 a V10 de [quickstart.md](quickstart.md) e registrar
     a evidência de cada um, inclusive dos que não puderem ser executados, com o
     motivo
@@ -392,20 +412,35 @@ relação foi exatamente o erro que criou este trabalho.
 | Fase | Tarefas `[P]` | Por que são seguras |
 |---|---|---|
 | 1 | T002, T003 | arquivos distintos, ambas só dependem de T001 |
-| 5 | T016 | tela, sem colisão com as consultas |
-| 8 | T024 | documentação |
+| 5 | T017 | tela, sem colisão com as consultas |
+| 8 | T025 | documentação |
 
 As demais são sequenciais por dependência real, não por conveniência.
 
 ## Estratégia de entrega
 
-**MVP** = Fases 1 a 4. Entrega a correção do defeito: cada pessoa e cada equipe
-indicam de onde vieram, e o esquema volta a corresponder ao modelo derivado.
+**MVP** = Fases 1 a 4 **e 7**. A fase 7 não é opcional no MVP, e a versão
+anterior deste documento errava ao dizer que podia ficar para depois.
+
+A razão é um critério de sucesso: SC-003a exige que **nenhuma pessoa conhecida
+fique sem organização**. Sem a equipe derivada, as 18 pessoas que não estão em
+equipe alguma continuam sem — inclusive as 5 de `ifesserra-lab`, que não tem
+nenhum time. Entregar as fases 1 a 4 sozinhas produziria uma feature que corrige
+o defeito para 54 das 72 pessoas e o mantém para as outras 18, sem que a tela
+diga por quê.
 
 Incremento 2 = Fase 5, filtrar por organização.
 Incremento 3 = Fase 6, a sobreposição.
-Fase 7 pode entrar junto do MVP ou depois — ela completa o caminho pela equipe,
-e sem ela as pessoas sem time ficam sem organização.
 
-**Total**: 26 tarefas — 3 de ontologia, 1 de transformação, 4 de esquema, 4 de
-US1, 4 de US2, 2 de US3, 5 de equipe derivada, 3 de polish.
+**Total**: 27 tarefas — 3 de ontologia, 1 de transformação, 4 de esquema, 4 de
+US1, 5 de US2, 2 de US3, 5 de equipe derivada, 3 de polish.
+
+### Correções após o `/speckit-analyze`
+
+| Achado | O que era | Correção |
+|---|---|---|
+| **G1** | isolamento por tenant sem tarefa nem teste, no lugar exato onde esta feature introduz o risco | T016, com o teste da violação — o tenant pede o `organization_id` do outro e recebe vazio |
+| **X1** | o MVP declarado não satisfazia SC-003a | a fase 7 passa a fazer parte do MVP, com a razão escrita |
+| **G2** | FR-010 sem cobertura: atravessar equipes sem `distinct` desdobra a pessoa | asserção acrescentada a T013 |
+| **G3** | SC-006 sem tarefa | asserção acrescentada a T010 |
+| **M1, M2** | oito critérios verificados só pela T027, no fim | cada um citado na tarefa que o realiza |
