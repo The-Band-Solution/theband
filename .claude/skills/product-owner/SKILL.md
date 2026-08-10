@@ -325,6 +325,123 @@ Confundir composição com atendimento é o erro mais fácil de cometer aqui.
 
 ---
 
+## Procedimento — dimensionar a duração do sprint
+
+Duração de sprint **não é preferência nem hábito**: sai do escopo selecionado. E não
+sai de contar tarefas, que é o erro que este procedimento existe para evitar.
+
+`flow.throughput` já declara apoiar "dimensionar o escopo do próximo sprint a partir
+do que foi concluído nos sprints anteriores". Escopo e duração são a mesma equação
+com variáveis trocadas:
+
+```text
+escopo ≈ vazão × duração
+```
+
+Fixar a duração faz o escopo ser a saída; fixar o escopo faz a duração ser a saída.
+Nenhuma medida nova é necessária — muda o que se resolve.
+
+### Duas fronteiras, e a duração é a maior das duas
+
+Contar tarefas responde volume. Não responde **ordem**, e é a ordem que costuma
+mandar.
+
+| Fronteira | O que é | Como se obtém |
+|---|---|---|
+| **volume** | tarefas ÷ vazão observada | contagem no `tasks.md`, vazão da série de sprints |
+| **caminho crítico** | níveis de dependência que **não podem** ser paralelizados | grafo de dependências do `tasks.md` |
+
+```text
+duração ≥ max(volume, caminho crítico)
+```
+
+**Vinte e sete tarefas paralelas e vinte e sete tarefas encadeadas têm a mesma
+contagem e durações muito diferentes.** Um sprint cuja primeira fase bloqueia todas
+as outras não encurta com mais gente nem com mais horas: encurta se a cadeia
+encurtar, e mais nada.
+
+Conte os níveis, não as fases: fases que dependem da mesma antecessora e não uma da
+outra ocupam **um** nível.
+
+### O piso que nenhuma conta pode furar
+
+**Todo sprint entrega fatia vertical.** Um sprint que só contém infraestrutura —
+ontologia, transformação, esquema — cabe na aritmética e **não é entregável**: não
+materializa user story alguma, e `sro.sprint_deliverable` compõe-se de entregáveis
+aceitos, que materializam user story atômica.
+
+Quando o caminho crítico até o primeiro consumidor visível é mais longo que a
+duração desejada, **a duração desejada é que cede**. Encurtar cortando a tela produz
+um sprint que fecha no papel e não entrega nada.
+
+### Cadência fixa vence duração sob medida
+
+**A cadência deste projeto é de uma semana**, decidida em 2026-08-10. Duração
+calculada por sprint foi considerada e descartada, e a razão está na própria medida:
+"comparar sprints exige duração constante". Sprint dimensionado sob medida a cada
+rodada produz uma série em que **nenhum valor é comparável ao anterior**, e a vazão
+deixa de sustentar qualquer dimensionamento.
+
+Então o cálculo dos dois parágrafos anteriores não escolhe a duração — ele responde
+**se o escopo cabe na cadência**:
+
+| Resultado | O que fazer |
+|---|---|
+| caminho crítico ≤ cadência | o escopo cabe; a folga é margem, não escopo disponível |
+| caminho crítico > cadência | **corte escopo, não estenda o sprint** — e o corte preserva a fatia vertical |
+| piso vertical > cadência | a feature não cabe em um sprint; divida por user story, nunca por camada |
+
+A última linha é a que se erra: dividir por camada — um sprint de ontologia, outro de
+tela — cabe na aritmética e produz um sprint sem entregável. Dividir por user story
+mantém cada sprint entregando algo.
+
+**Mudar a cadência é decisão registrada, não ajuste.** Ela invalida a comparação com
+todos os sprints anteriores, e o registro precisa dizer a partir de quando a série
+recomeça.
+
+### A vazão precisa de série, e a série precisa de duração constante
+
+Três limitações que a própria `flow.throughput.rate` declara, e que decidem quando o
+número pode ser usado:
+
+| Limitação declarada | Consequência aqui |
+|---|---|
+| "um sprint isolado não descreve o fluxo" | com **um** sprint de histórico não há vazão; há uma observação |
+| "comparar sprints exige duração constante" | **encurtar a duração quebra a comparação com o histórico.** A vazão do sprint curto não é comparável à do longo, e a queda aparente não é queda |
+| "contar tarefa concluída ignora o tamanho da tarefa" | decompor mais fino eleva a vazão sem mais trabalho feito. Vazão medida em tarefas só serve com granularidade estável |
+
+E a má interpretação que este procedimento mais arrisca: **"usar a vazão como meta a
+bater a torna alvo, e alvo deixa de ser medida"**. Dimensionar duração pela vazão é
+legítimo; dimensionar para atingir uma vazão é o efeito conhecido de fechar tarefa
+no board antes de o trabalho terminar.
+
+Com menos de três sprints de histórico, a vazão **é uma premissa declarada**, não um
+dado. Escreva de onde ela veio e o que a torna frágil. Premissa declarada se corrige
+quando erra; número sem origem não.
+
+### Registro obrigatório
+
+No `sprint-backlog.md`, junto do período:
+
+```markdown
+## Duração — como foi dimensionada
+
+**Escopo**: <n> tarefas, <m> níveis de dependência
+**Caminho crítico**: <a cadeia, fase a fase>
+**Vazão usada**: <valor> — **observada** em <sprints> / **premissa declarada**, porque <razão>
+**Piso de fatia vertical**: <até onde é preciso ir para haver consumidor visível>
+
+**Duração proposta**: <n> dias — max(volume, caminho crítico, piso vertical)
+
+**Confiança**: <alta com série de 3+ sprints e granularidade estável | baixa, e por quê>
+**O que invalida esta conta**: <o que muda o número>
+```
+
+**Sem os quatro insumos não há proposta.** Duração escrita sem eles é hábito
+apresentado como cálculo — e hábito não se corrige, porque não diz de onde veio.
+
+---
+
 ## Procedimento — gerar a visão do product backlog
 
 Produz `docs/product-backlog.md`: uma linha por user story, do valor até o que

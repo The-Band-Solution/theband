@@ -1,6 +1,6 @@
 # Sprint Backlog 001 — Fundação e coleta EO
 
-**Iteration no GitHub**: Sprint 001 — Fundação e coleta EO · 2026-08-10, 14 dias
+**Iteration no GitHub**: Sprint 001 — Fundação e coleta EO · 2026-08-03 a 2026-08-09 · 7 dias
 **Projeto**: [The Band](https://github.com/orgs/The-Band-Solution/projects/2)
 **Feature**: [001-github-eo-ingestion](../../../specs/001-github-eo-ingestion/spec.md)
 **Épico**: [#1](https://github.com/The-Band-Solution/theband/issues/1)
@@ -78,7 +78,7 @@ Estados: `a fazer` · `em andamento` · `feito` · `bloqueado` · `não iniciado
 
 | Conceito SRO | GitHub | Estado |
 |---|---|---|
-| `sro.sprint` | iteration `ff0877d8` do ProjectV2 | criada, 14 dias, início 2026-08-10 |
+| `sro.sprint` | iteration `2849580c` do ProjectV2, em `completedIterations` | 7 dias, 2026-08-03 a 2026-08-09 |
 | `sro.epic` | issue [#1](https://github.com/The-Band-Solution/theband/issues/1), tipo `Feature`, 3 sub-issues user story | criado |
 | `sro.atomic_user_story` | issues #3, #4, #5, tipo `Feature` | criadas e ligadas ao épico |
 | `sro.intended_scrum_development_task` | issues #6–#78, tipo `Task` | criadas e ligadas às user stories |

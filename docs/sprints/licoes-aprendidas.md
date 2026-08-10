@@ -191,6 +191,39 @@ que agrega vários repositórios.
 Melhor ainda: criar todas as iterations previstas de uma vez, no início, e não
 tocar mais na configuração enquanto houver sprint aberto.
 
+**Aplicada em**: Sprint 002 — ao mudar a cadência de 14 para 7 dias, em 2026-08-10.
+
+### O procedimento que funcionou, e a descoberta que ele revelou
+
+A mudança de cadência exigia mexer na mesma configuração. Com a lição aplicada como
+procedimento, o estrago foi integralmente revertido:
+
+| Passo | Resultado |
+|---|---|
+| snapshot **antes** — item, repositório, número e iteration de cada item | 97 itens: 76 no sprint 001, 11 no 002, 10 sem iteration |
+| `updateProjectV2Field` com `duration: 7` | as duas iterations recriadas, **97 itens órfãos** — como previsto |
+| reatribuição pelo **`item id`** do snapshot | 87 reatribuídos, 0 falhas |
+| conferência contra o snapshot | 76 · 11 · 10, e os 10 sem iteration de **outros repositórios**, como estavam |
+
+Duas escolhas fizeram a diferença, e as duas vêm desta lição:
+
+- **reatribuir pelo `item id`**, que não muda quando a iteration é recriada. Foi o que
+  evitou repetir o erro de casar por número de issue — número não é único num projeto
+  que agrega vários repositórios;
+- **tirar o snapshot antes.** Sem ele, a informação de qual item pertencia a qual
+  sprint não existiria em lugar nenhum depois da mutação. Não é backup por precaução:
+  é a única cópia.
+
+**Descoberta nova: iteration com data no passado sai de `iterations` e entra em
+`completedIterations`.** Ao receber 2026-08-03 com 7 dias, a do sprint 001 terminou
+antes de hoje e mudou de lista, com identificador próprio (`2849580c`). A resposta da
+própria mutação devolveu **só** o sprint 002, o que parece perda de dado e não é.
+
+Consequência para qualquer script: **ler as duas listas.** Quem consulta apenas
+`iterations` conclui que a iteration passada deixou de existir, e um script de
+reatribuição que só a procure ali falha em silêncio — deixando órfãos os itens do
+sprint encerrado, que é justamente o histórico de que as medidas de fluxo dependem.
+
 ### L12 — Pull request não aberto na hora passa a carregar outra feature
 
 **O que aconteceu.** A tarefa T073 da feature 001 previa abrir o pull request ao

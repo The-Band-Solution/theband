@@ -1,6 +1,6 @@
 # Sprint 002 — Escopo por organização
 
-**Período**: 2026-08-24 a 2026-09-06 (14 dias)
+**Período**: 2026-08-10 a 2026-08-16 (7 dias — cadência semanal)
 **Feature**: [002-escopo-por-organizacao](../../../specs/002-escopo-por-organizacao/spec.md)
 **Plano**: [plan.md](../../../specs/002-escopo-por-organizacao/plan.md)
 **Análise ontológica**: [ontology-analysis.md](../../../specs/002-escopo-por-organizacao/ontology-analysis.md)
@@ -60,8 +60,8 @@ Enquanto quem abre o PR e quem revisa forem a mesma conta, a exigência é
 
 ## Lições aplicadas
 
-Do [registro acumulado](../licoes-aprendidas.md) — doze lições, L01 a L12.
-Seis se aplicam diretamente:
+Do [registro acumulado](../licoes-aprendidas.md) — quatorze lições, L01 a L14.
+Oito se aplicam diretamente:
 
 | Lição | O que muda neste sprint |
 |---|---|
@@ -69,8 +69,10 @@ Seis se aplicam diretamente:
 | **L08** — contrato escrito junto com o código descreve, não decide | Os **quatro contratos foram escritos antes** de qualquer código, e cada tarefa que cria API pública tem "o contrato existe" no `Pronta quando` |
 | **L09** — um contrato pode contradizer a si mesmo | O contrato de reprocessamento da 001 se contradizia e só a implementação revelou. Aqui, cláusula inalcançável durante a implementação será tratada como **sintoma de contrato errado**, não como código a apagar |
 | **L02** — servidor no ar duplica o efeito de job disparado por script | O retrofito (T011) roda por Oban. Nenhuma verificação vai chamar `perform/1` à mão com o servidor no ar |
-| **L11** — configurar iterations do ProjectV2 recria as existentes | Nenhuma alteração na configuração de iterations enquanto houver sprint aberto. A correção do sprint anterior já custou uma reatribuição de 96 itens |
+| **L11** — configurar iterations do ProjectV2 recria as existentes | Aplicada **na prática**, ao mudar a cadência para 7 dias: snapshot de todos os 97 itens **antes**, reatribuição por `item id` e não por número de issue, e conferência contra o snapshot depois. Os 97 ficaram órfãos, como a lição previu, e os 87 voltaram ao lugar |
 | **L12** — PR não aberto na hora passa a carregar outra feature | Foi por isso que a Fase 0 existe, e é a lição que criou a regra de não puxar trabalho novo. O PR da 002 é aberto **quando a tarefa pedir**, não no fim |
+| **L13** — secret referenciado e não cadastrado chega como string vazia | Onde a ausência tem tratamento, vazio recebe o mesmo. Vale para toda leitura de ambiente que esta feature acrescentar |
+| **L14** — `gh` engole o pedido de revisão recusado | Ao abrir o PR desta feature, conferir `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi pedido, não importa o que o comando disse |
 
 As demais foram consideradas e não se aplicam: L01 (não há gerador nesta
 feature), L04 (nenhuma consulta nova ao GitHub), L05 e L07 (correções já
@@ -79,17 +81,125 @@ rotação de chave aqui).
 
 ## Sprint no GitHub
 
-**Iteration**: Sprint 002 — Escopo por organização · 2026-08-24 a 2026-09-06 · 14 dias
+**Iteration**: Sprint 002 — Escopo por organização · 2026-08-10 a 2026-08-16 · 7 dias
 **Projeto**: [The Band](https://github.com/orgs/The-Band-Solution/projects/2)
 
-**Ocorrência registrada.** Ao criar a iteration do sprint 002, a API do
+**Primeira ocorrência.** Ao criar a iteration do sprint 002, a API do
 ProjectV2 recriou a do sprint 001 com identificador novo, e os 77 itens dele
 ficaram órfãos — `updateProjectV2Field` substitui o conjunto de iterations e não
 aceita `id` nas existentes. Os itens foram reatribuídos, e no caminho 10 itens de
 **outros repositórios** (`eo_lib`, `theband-frontend`, `theband-backend` e um
-pull request) foram atribuídos por engano ao sprint 001 e depois limpos. Estado
-conferido: 77 itens no sprint 001, 9 no sprint 002, e os alheios sem iteration,
-como estavam. Vira lição.
+pull request) foram atribuídos por engano ao sprint 001 e depois limpos. Virou a
+[L11](../licoes-aprendidas.md).
+
+**Segunda ocorrência, esta deliberada.** Mudar a cadência para 7 dias exige mexer
+na mesma configuração, então a L11 foi aplicada como procedimento:
+
+| Passo | Resultado |
+|---|---|
+| snapshot antes — item, repositório, número e iteration de cada um | 97 itens: 76 no sprint 001, 11 no sprint 002, 10 sem iteration |
+| `updateProjectV2Field` com `duration: 7` | as duas iterations recriadas, **97 itens órfãos** |
+| reatribuição pelo `item id` do snapshot | 87 reatribuídos, 0 falhas |
+| conferência contra o snapshot | 76 · 11 · 10 sem iteration, e os 10 sem são de **outros repositórios** |
+
+Duas coisas fizeram diferença. Reatribuir pelo **`item id`**, que não muda quando a
+iteration é recriada, em vez de casar por número de issue — número não é único num
+projeto que agrega vários repositórios, e foi o segundo erro da primeira vez. E ter
+o snapshot **antes**: sem ele a informação de qual item pertencia a qual sprint
+simplesmente não existiria em lugar nenhum.
+
+**Descoberta nova.** A iteration do sprint 001, com data no passado, saiu de
+`iterations` e apareceu em **`completedIterations`** — com identificador próprio,
+`2849580c`. Um script que leia só `iterations` não a encontra e conclui que ela
+deixou de existir. Está em [L11](../licoes-aprendidas.md).
+
+## Duração — como foi dimensionada
+
+**Escopo**: 27 tarefas em 8 fases · **5 níveis** de dependência
+**Caminho crítico**:
+
+```text
+nível 1  Ontologia (T001–T003)
+nível 2  Transformação (T004)          ── só depois de a relação existir
+nível 3  Esquema (T005–T008)           ── só depois de a derivação produzir a coluna
+nível 4  US1 (T009–T012) ‖ Equipe derivada (T020–T024)
+nível 5  US2 (T013–T017) ‖ US3 (T018–T019) ‖ Polish (T025–T027)
+```
+
+Cinco níveis, não oito fases: US1 e a equipe derivada dependem ambas do esquema e
+não uma da outra, então ocupam **um** nível. O mesmo vale para US2, US3 e Polish.
+
+**Vazão usada**: **nenhuma.** Não é premissa declarada nem dado — é ausência, e a
+razão está abaixo.
+
+**Piso de fatia vertical**: **nível 4.** Os três primeiros níveis são ontologia,
+transformação e esquema — infraestrutura sem consumidor visível. O primeiro
+entregável que materializa user story é US1, no nível 4. Um sprint de três níveis
+fecha na aritmética e **não produz `sro.sprint_deliverable`**.
+
+**Duração proposta**: **4 dias** para o MVP (níveis 1 a 4), **5 dias** para a feature
+inteira.
+
+**Confiança**: **baixa.** Um dia por nível é premissa, não observação.
+
+**Duração decidida**: **7 dias — uma semana**, por decisão da pessoa mantenedora em
+2026-08-10, como cadência padrão do projeto.
+
+A decisão é de cadência, não deste sprint: sprint de duração fixa é o que torna a
+vazão comparável entre sprints, e comparabilidade é condição declarada da
+`flow.throughput.rate`. Cadência variável por sprint tornaria a série ilegível — foi
+por isso que a proposta de 2 a 3 dias sob demanda foi descartada em favor de uma
+semana fixa.
+
+Sete dias **acomodam a feature inteira** com folga sobre os 5 dias do caminho
+crítico. A folga não é escopo disponível: é onde caberá o nível 3, que remove
+colunas com migração e reconferência e é o mais provável de estourar.
+
+### Por que 2 ou 3 dias não cabem nesta feature
+
+Não é conservadorismo: é a cadeia. Os três primeiros níveis são rígidos — coluna
+antes de relação foi exatamente o erro que criou este trabalho —, e o primeiro
+consumidor visível está no quarto. **Três dias comprariam os três níveis de
+infraestrutura e nenhuma tela.**
+
+Encurtar teria de vir de cortar escopo, e o escopo que sobraria não é entregável.
+Duração é a maior entre volume, caminho crítico e piso vertical — aqui o piso
+vertical é que manda.
+
+**A partir da 003, sprints de 2 a 3 dias são viáveis.** O que os impede aqui é esta
+feature começar por três níveis de correção estrutural. Uma feature cujo primeiro
+nível já toca tela cabe em dois dias.
+
+### Por que a vazão não entrou na conta
+
+Três razões, e as três estão declaradas na própria `flow.throughput.rate`:
+
+| Razão | O que a medida diz |
+|---|---|
+| **histórico de um sprint** | "um sprint isolado não descreve o fluxo" — há uma observação, não uma vazão |
+| **a janela do sprint 001 não continha as tarefas dele** | corrigido neste planejamento: a iteration passou a 2026-08-03 → 08-09, que contém 09/08. Antes a vazão dele era **zero**; agora é **76 tarefas em 7 dias**. Um valor, não uma série |
+| **a duração era desigual** | "comparar sprints exige duração constante". Com 14 dias no 001 e 7 no 002 a comparação não existiria. A cadência semanal resolve isso **a partir daqui** — e o 001 só é comparável porque sua janela foi reescrita para 7 dias, o que é ajuste de registro, não de trabalho realizado |
+
+Há ainda a armadilha que a medida nomeia: **"usar a vazão como meta a bater a torna
+alvo, e alvo deixa de ser medida"**. Dimensionar duração pela vazão é legítimo;
+escolher a duração para atingir uma vazão produz tarefa fechada no board antes de o
+trabalho terminar.
+
+**Consequência prática: corrigir as datas da iteration deixou de ser cosmético.**
+Enquanto o sprint 001 tiver janela que não contém as próprias tarefas, a vazão dele
+é zero, e nenhum sprint seguinte pode ser dimensionado por série. A decisão 1 do
+planejamento virou pré-requisito de todo dimensionamento futuro.
+
+### O que invalida esta conta
+
+- **granularidade mudar**: 27 tarefas aqui e 76 no sprint 001 não são a mesma
+  unidade. Decompor mais fino eleva a vazão sem mais trabalho feito;
+- **um nível levar mais de um dia**: o nível 3 remove colunas com migração e
+  reconferência, e é o mais provável de estourar;
+- **as três primeiras fases não serem rígidas de fato**: se a derivação já emitisse
+  a chave, o nível 2 sairia e a cadeia encurtaria um dia;
+- **trabalho que não virou tarefa**: revisão, apoio, espera por terceiro. A medida
+  declara que isso consome capacidade e não aparece na contagem.
 
 ## Planejamento — `sro.planning_meeting`
 
@@ -107,38 +217,39 @@ a exigir: herança antes de escopo novo, e importância só depois.
 o que é a condição da regra — e não é o mesmo que dizer que tudo do 001 ficou
 pronto. A revisão independente segue pendente, com bloqueador nomeado.
 
-### Duas decisões que o planejamento não pode tomar sozinho
+### Duas decisões que o planejamento levou ao papel, e que foram tomadas
 
-**1. As datas da iteration contradizem o que aconteceu, e isso corrompe as medidas
-de fluxo.**
+**1. Cadência semanal, e as datas corrigidas.** As datas da iteration contradiziam
+o que aconteceu, e a contradição zerava as medidas de fluxo:
 
-| | Declarado na iteration | O que ocorreu |
+| | Antes | Agora |
 |---|---|---|
-| Sprint 001 | início 2026-08-10, 14 dias → termina 2026-08-23 | aberto **e** encerrado em 2026-08-09 |
-| Sprint 002 | início 2026-08-24, 14 dias | não iniciado; hoje é 2026-08-10 |
+| Sprint 001 | início 2026-08-10, 14 dias → terminaria 2026-08-23 | **2026-08-03 a 2026-08-09**, 7 dias |
+| Sprint 002 | início 2026-08-24, 14 dias | **2026-08-10 a 2026-08-16**, 7 dias |
 
-Duas consequências, e a segunda é grave:
+O defeito era que **as tarefas do sprint 001 foram executadas antes da data em que a
+iteration dizia que ele começou** — 2026-08-09, fora da janela. `flow.throughput.rate`
+e `flow.wip.count` atribuem tarefa a sprint por janela de datas, então os dois
+devolviam **zero** para o sprint 001: um sprint que produziu 76 tarefas aparecia sem
+trabalho algum. Resíduo da [L11](../licoes-aprendidas.md), onde os itens foram
+consertados e a data não.
 
-- há **duas semanas vazias** entre hoje e o início declarado do sprint 002;
-- **as tarefas do sprint 001 foram executadas antes da data em que a iteration diz
-  que ele começou.** Qualquer medida que ligue tarefa executada a sprint por janela
-  de datas — `flow.throughput.rate` e `flow.wip.count` fazem isso — devolve **zero**
-  para o sprint 001. O sprint aparece sem trabalho nenhum.
+Agora a janela 03→09/08 contém 09/08, e o sprint 002 começa **hoje**, sem as duas
+semanas vazias que a configuração anterior deixava.
 
-A data errada é resíduo da [L11](../licoes-aprendidas.md): `updateProjectV2Field`
-recriou a iteration do sprint 001 e reatribuiu a data de início ao dia da
-recriação. Os itens foram consertados na época; a data não.
+**A correção custou o que a L11 previu**, e a mitigação funcionou. Mudar `duration`
+de 14 para 7 recriou as duas iterations e deixou **todos os 97 itens órfãos**. O
+snapshot tirado antes — item, repositório, número e iteration de cada um — permitiu
+reatribuir os 87 que tinham iteration: 76 no sprint 001, 11 no sprint 002, e os 10
+sem iteration ficaram sem, porque são de **outros repositórios**. Reatribuir pelo
+`item id` do snapshot, e não pelo número da issue, é o que evitou repetir o segundo
+erro da L11.
 
-**Não corrigi.** Mexer na configuração de iterations é exatamente o que causou a
-L11, e o custo daquela vez foi reatribuir 96 itens. A correção precisa de decisão
-explícita sobre qual data cada sprint deve ter, e de um plano para não repetir o
-estrago.
-
-**2. O épico #79 está sem importância.** A skill exige `Priority` preenchida em user
-story **e** épico; #79 tem `—`. Campo vazio significa desconhecido, não zero, então
-a lacuna é real. As partes são P0, P1 e P2. Proposta: **P0**, por ser a importância
-da parte mais importante — mas é decisão do papel, não derivação, e por isso não
-gravei.
+**2. Épico #79 recebeu importância P0** — a da parte mais importante, entre US1 (P0),
+US2 (P1) e US3 (P2). É decisão do papel, não derivação, e por isso foi tomada por
+quem desempenha o papel em vez de gravada por conveniência. As tarefas #83 a #87
+seguem **sem** `Priority`, o que é o correto: tarefa herda a da user story que
+atende.
 
 ## Escopo — 9 issues em vez de 27
 
