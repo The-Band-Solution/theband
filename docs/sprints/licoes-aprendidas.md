@@ -478,3 +478,54 @@ sobreviveu — ninguém compara duas execuções quando a de hoje parece certa.
 **Aplicada em**: Sprint 002 — T004. O baseline foi refeito com o código do `HEAD`
 mais o conserto de determinismo e nada mais, e só então a regra nova foi comparada:
 **apenas EO mudou**, e apenas pela coluna nova.
+
+### L18 — Um critério atendido não é um critério suficiente
+
+**O que aconteceu.** A verificação V9 do sprint 002 exigia zero pessoas sem
+organização, e é o critério SC-003a do MVP. A primeira execução devolveu exatamente
+isso:
+
+```text
+pessoas sem organização alcançável: 0
+```
+
+Critério atendido. E a plataforma estava mentindo: a equipe derivada de
+`ifesserra-lab`, organização de **5 membros**, havia recebido **72** pessoas — o
+tenant inteiro. As três organizações passaram a mostrar todas as 72.
+
+O defeito só apareceu ao percorrer o critério **seguinte**, SC-009, que exige
+"exatamente uma equipe derivada, e nela exatamente os membros que faltavam". 72 não é
+5.
+
+**Por que aconteceu.** `list_people_without_team/2` devolvia toda pessoa do tenant
+fora das equipes daquela organização, e isso é coisa diferente de "membro da
+organização fora das equipes dela". A definição de "de uma organização" nunca havia
+sido escrita, e sem ela a função respondia à pergunta errada com a forma certa.
+
+O que tornou o erro invisível é que **ele satisfazia o critério com folga**: quanto
+mais pessoas na derivada, mais garantido o zero de V9.
+
+**Por que importa.** Um critério de aceitação verifica uma afirmação, não o sistema.
+V9 afirma "ninguém sem organização", e a derivada acolhendo o mundo torna isso
+verdadeiro pelo pior caminho possível. Só a leitura conjunta dos critérios — o que
+percorrer um a um obriga — expôs a contradição.
+
+Um registro de aceitação que se contentasse com V9 teria aceito o entregável, com
+evidência, de boa-fé, e errado.
+
+**Como aplicar.**
+
+1. **Nunca aceite por um critério.** Percorrer todos não é formalidade de processo: é
+   o mecanismo que faz um critério corrigir a leitura de outro;
+2. **Desconfie do critério que passa com folga.** Zero absoluto, 100%, "nenhum caso
+   restante" — quando um limite é atingido com margem, pergunte qual excesso o
+   produziu;
+3. **Critério de contagem exige o critério de composição ao lado.** "Ninguém de fora"
+   e "exatamente estes dentro" respondem coisas diferentes, e só juntos descrevem o
+   resultado;
+4. **Definição ausente é defeito, não estilo.** "De uma organização" parecia óbvio, e
+   a função implementava outra coisa. Onde um termo do domínio aparece na assinatura,
+   ele precisa estar definido na documentação da função.
+
+**Aplicada em**: Sprint 002 — a avaliação de D01 encontrou o defeito antes da
+aceitação, e a correção está registrada no `aceitacao.md`.
