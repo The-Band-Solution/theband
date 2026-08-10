@@ -628,6 +628,23 @@ chamadas de API**: era pendência de permissão, não de agenda. Lição L15.
 **Antes de escrever regra que dependa de permissão, verifique a permissão.**
 `collaborators` e `teams` respondem em duas chamadas se a regra é cumprível.
 
+### A branch é apagada no merge
+
+`delete_branch_on_merge: true` no repositório, desde 2026-08-10. Cada merge pelo
+GitHub apaga a própria head branch, e a faxina manual deixa de existir.
+
+Duas coisas que ele **não** faz, e por isso continuam sendo suas:
+
+- **PR fechado sem merge deixa a branch.** A configuração só age no merge;
+- **a branch local não some.** Vira referência morta até `git fetch --prune`, e
+  `git branch -D` continua manual.
+
+**Antes de apagar branch cuja `main` não a contém, verifique o conteúdo.** Houve o
+caso do `chore/po-docs-em-docs`: PR #90 mergeado e a branch **não** ancestral da
+`main`, porque houve force-push depois do merge. O commit exclusivo era redação já
+superada, e o conteúdo útil tinha entrado por cherry-pick — mas isso foi **conferido**,
+não deduzido de o PR estar mergeado.
+
 ### Contrato da API antes da implementação
 
 **Nenhuma função pública é escrita antes de o contrato dela existir em
