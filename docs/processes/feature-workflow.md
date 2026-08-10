@@ -47,7 +47,7 @@ opcional**: a skill `sprint-backlog`.
 
 Ela faz três coisas que o Spec Kit não faz:
 
-**Lê as lições dos sprints anteriores.** `sprints/licoes-aprendidas.md` é
+**Lê as lições dos sprints anteriores.** `docs/sprints/licoes-aprendidas.md` é
 consultado antes de selecionar escopo, e o backlog registra quais lições foram
 aplicadas. Sem esse passo o registro vira decorativo e o mesmo erro se repete —
 que é o erro mais caro, porque já era conhecido.
@@ -65,9 +65,9 @@ medida de retrabalho que o produto existe para calcular.
 
 | Artefato | Quando | Conceito SRO |
 |---|---|---|
-| `sprints/NNN/sprint-backlog.md` | ao abrir | `sro.sprint_backlog` |
-| `sprints/NNN/sprint-review.md` | ao fechar | tarefas executadas e entregáveis |
-| `sprints/licoes-aprendidas.md` | acumulativo | `sro.retrospective_meeting` |
+| `docs/sprints/NNN/sprint-backlog.md` | ao abrir | `sro.sprint_backlog` |
+| `docs/sprints/NNN/sprint-review.md` | ao fechar | tarefas executadas e entregáveis |
+| `docs/sprints/licoes-aprendidas.md` | acumulativo | `sro.retrospective_meeting` |
 
 > **Implementar sem sprint backlog aberto é violação de processo.** Se alguém —
 > pessoa ou agente — pedir implementação direta, a resposta correta é montar o

@@ -1,9 +1,9 @@
 # Sprint 002 — Escopo por organização
 
 **Período**: 2026-08-24 a 2026-09-06 (14 dias)
-**Feature**: [002-escopo-por-organizacao](../../specs/002-escopo-por-organizacao/spec.md)
-**Plano**: [plan.md](../../specs/002-escopo-por-organizacao/plan.md)
-**Análise ontológica**: [ontology-analysis.md](../../specs/002-escopo-por-organizacao/ontology-analysis.md)
+**Feature**: [002-escopo-por-organizacao](../../../specs/002-escopo-por-organizacao/spec.md)
+**Plano**: [plan.md](../../../specs/002-escopo-por-organizacao/plan.md)
+**Análise ontológica**: [ontology-analysis.md](../../../specs/002-escopo-por-organizacao/ontology-analysis.md)
 
 ## Objetivo do sprint
 
@@ -179,7 +179,7 @@ outras 18, sem a tela dizer por quê.
 - [ ] quality gates verdes: `mix format --check-formatted`, `compile --warnings-as-errors`, `credo --strict`, `dialyzer`, `test`
 - [ ] `mix knowledge.validate` e `mix knowledge.graph` verdes, mais o validador Python
 - [ ] a derivação das demais ontologias sai idêntica à de antes
-- [ ] V1 a V10 do [quickstart](../../specs/002-escopo-por-organizacao/quickstart.md) executados, com evidência de cada um
+- [ ] V1 a V10 do [quickstart](../../../specs/002-escopo-por-organizacao/quickstart.md) executados, com evidência de cada um
 - [ ] V9 devolve **zero** pessoas sem equipe
 - [ ] issues encerradas ou repriorizadas com justificativa
 - [ ] `sprint-review.md` escrito, separando feito de não feito

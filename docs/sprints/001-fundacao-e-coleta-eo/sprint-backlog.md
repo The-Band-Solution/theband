@@ -2,7 +2,7 @@
 
 **Iteration no GitHub**: Sprint 001 — Fundação e coleta EO · 2026-08-10, 14 dias
 **Projeto**: [The Band](https://github.com/orgs/The-Band-Solution/projects/2)
-**Feature**: [001-github-eo-ingestion](../../specs/001-github-eo-ingestion/spec.md)
+**Feature**: [001-github-eo-ingestion](../../../specs/001-github-eo-ingestion/spec.md)
 **Épico**: [#1](https://github.com/The-Band-Solution/theband/issues/1)
 **Aberto em**: 2026-08-09
 
@@ -58,7 +58,7 @@ foi tomada — ausência é nula, nunca zero.
 
 73 tarefas, issues [#6](https://github.com/The-Band-Solution/theband/issues/6) a
 [#78](https://github.com/The-Band-Solution/theband/issues/78), derivadas de
-[tasks.md](../../specs/001-github-eo-ingestion/tasks.md). Numeração: `Tnnn` →
+[tasks.md](../../../specs/001-github-eo-ingestion/tasks.md). Numeração: `Tnnn` →
 issue `#(nnn + 5)`.
 
 | Fase | Tarefas | Issues | Atende |
