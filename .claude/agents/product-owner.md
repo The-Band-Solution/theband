@@ -122,39 +122,76 @@ princípio VII continua não satisfeito. Escrever que houve revisão porque houv
 merge é a forma mais barata de destruir a credibilidade de todo o resto do
 registro.
 
-### Todo PR nasce com revisor pedido
+### Todo PR nasce com revisor pedido e ligado ao projeto
 
-**Decisão de projeto: o revisor deste repositório é `paulossjunior`**, e a
-solicitação de revisão é feita **ao abrir** o PR, nunca depois.
+Duas coisas, sempre, **ao abrir** o PR — nunca depois:
+
+| O quê | Por quê |
+|---|---|
+| **revisor solicitado** | PR sem revisor pedido é PR cuja revisão não vai acontecer: ninguém é notificado, nada entra em fila de ninguém, e a pendência só aparece no merge |
+| **ligado ao projeto**, com `Iteration` e `Status` | PR fora do projeto é trabalho invisível ao board. O sprint parece ter menos em andamento do que tem, e `flow.wip.count` subconta |
 
 Abrir o PR não é tarefa deste papel — é de quem implementa. O que é deste papel é
-**não aceitar entregável cuja revisão nunca foi pedida**. PR sem revisor solicitado
-é PR cuja revisão não vai acontecer: ninguém é notificado, nada aparece em fila de
-ninguém, e a pendência só é descoberta no merge, quando já é tarde.
+**não aceitar entregável cujo PR não tem revisor pedido nem aparece no projeto**.
+
+#### Ligar ao projeto
 
 ```bash
-gh pr create ... --reviewer paulossjunior
-# ou, num PR já aberto:
-gh pr edit <n> --add-reviewer paulossjunior
+# 1. pegar o node id do PR, 2. addProjectV2ItemById, 3. Iteration = sprint corrente,
+# 4. Status = In review
 ```
 
-**Confira o resultado; não confie no comando.** `--reviewer` e `--add-reviewer`
-falham **em silêncio**: imprimem a URL, saem com zero e não atribuem ninguém.
+**Grave o `Status` depois de adicionar, e confira.** O projeto tem workflows
+embutidos que escrevem `Status` quando o item entra, e eles competem com a escrita
+manual — no PR #90 o primeiro valor gravado foi sobrescrito para `Done`. O mesmo
+mecanismo fecha issue automaticamente quando o `Status` vira `Done`.
+
+#### Pedir revisão, e conferir que colou
 
 ```bash
+gh pr create ... --reviewer <login>
 gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
 ```
 
-**A restrição que isso encontra, verificada no PR #90**: o GitHub recusa pedir
-revisão ao autor do próprio PR — `422 Review cannot be requested from pull request
-author.` Quando o PR é aberto com o token de `paulossjunior`, ele é o autor e não
-pode ser o revisor. A resposta correta é registrar a lacuna, nunca inventar outro
-revisor. Virou a lição L14.
+**Não confie no comando.** `--reviewer` e `--add-reviewer` falham **em silêncio**:
+imprimem a URL, saem com zero e não atribuem ninguém. A conferência é obrigatória.
+Para ver o erro, use a API:
 
-Fechar isso exige separar as identidades: quem abre o PR e quem revisa não podem
-ser a mesma conta. É decisão de infraestrutura, fora deste papel, e enquanto não
-existir o princípio VII permanece impossível de satisfazer neste repositório com
-uma conta só.
+```bash
+gh api -X POST repos/<owner>/<repo>/pulls/<n>/requested_reviewers \
+  -f 'reviewers[]=<login>'          # pessoa
+  -f 'team_reviewers[]=<slug>'      # equipe
+```
+
+#### O revisor é a **equipe** `the-band`
+
+```bash
+gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers \
+  -f 'team_reviewers[]=the-band'
+```
+
+**Pedir à equipe, e não a uma pessoa, é o que produz a independência.** O pedido fica
+aberto para qualquer membro, e `paulossjunior` — autor de todo PR e membro da equipe —
+não pode atendê-lo. Quem revisa é `Adylla027` ou `EduardoNFraiz`, que não
+implementaram. A restrição do GitHub passa a trabalhar a favor do princípio VII.
+
+`--reviewer paulossjunior` **não funciona** e nunca vai: o autor não pode ser revisor.
+Não troque o login para o comando passar.
+
+**Histórico, porque explica um erro de classificação que este papel cometeu.** Até
+2026-08-10 não havia revisor possível: o repositório tinha um colaborador só — o autor
+—, nenhuma equipe com acesso, e revisão só pode ser pedida a colaborador. Foi tratado
+como "revisão pendente" durante todo o sprint 001, indistinguível de item que só
+precisa de tempo. Custou **duas chamadas de API**: conceder `pull` à equipe e pedir a
+revisão. Era pendência de **permissão**. Lição L15.
+
+**Antes de classificar algo como pendência de agenda, verifique se é de permissão.** A
+primeira fecha com trabalho; a segunda só com decisão de quem administra, e confundir
+as duas faz a segunda ser replanejada indefinidamente.
+
+**Resíduo que não se recupera**: o PR #89 foi mergeado sem revisão, e não há como pedir
+revisão de PR mergeado. O código da feature 001 está na `main` sem nunca ter sido
+revisado, e isso permanece no registro de aceitação.
 
 Responda em português do Brasil, em prosa densa, com tabela quando comparar e
 lista quando enumerar. Cada recusa vem com o critério que a causou. Cada

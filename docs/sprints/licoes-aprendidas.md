@@ -345,3 +345,80 @@ a configuração parecia certa e o efeito não existia.
    cada sprint em vez de reaparecer como surpresa a cada merge.
 
 **Aplicada em**: Sprint 002 — ao abrir o PR #90, que é o próprio caso.
+
+### L15 — Não há revisor possível num repositório de um colaborador só
+
+**O que aconteceu.** A regra de todo PR nascer com revisor pedido foi escrita e
+falhou nas três tentativas seguintes, cada uma por um motivo diferente:
+
+```text
+reviewers[]=paulossjunior
+  422  Review cannot be requested from pull request author.
+
+team_reviewers[]=the-band
+  422  Reviews may only be requested from collaborators.
+       One or more of the users or teams you specified is not a collaborator.
+```
+
+O levantamento explicou por quê:
+
+| Fato | Evidência |
+|---|---|
+| o repositório tem **um** colaborador: `paulossjunior`, admin | `GET /repos/.../collaborators` |
+| **nenhuma equipe** tem acesso | `GET /repos/.../teams` devolve vazio |
+| revisão só pode ser pedida a colaborador | o segundo 422 |
+| o autor não pode ser o revisor | o primeiro 422 |
+
+**Por que importa.** As quatro juntas dão **zero revisores possíveis**: o único
+colaborador é o autor de todo PR. O princípio VII da constituição — revisão por quem
+não implementou — é **inalcançável** neste repositório, não atrasado. Foi tratado
+como pendência de agenda durante todo o sprint 001; era pendência de permissão.
+
+A organização tem duas equipes com pessoas que não implementaram — `the-band`, com
+`Adylla027` e `EduardoNFraiz`, e `zeppelin`, com mais três. Nenhuma das duas é
+colaboradora do repositório. **A capacidade de revisar existe na organização e não
+alcança o repositório**, e nada no processo revela isso: a exigência aparece como
+item pendente numa lista, indistinguível de um item que só precisa de tempo.
+
+**Como aplicar.**
+
+1. **Antes de escrever regra que dependa de permissão, verifique a permissão.**
+   `collaborators` e `teams` do repositório respondem em duas chamadas se a regra é
+   cumprível. Regra incumprível gasta o mesmo esforço de escrita e não produz efeito;
+2. **Distinga pendência de agenda de pendência de permissão.** A primeira fecha com
+   trabalho, a segunda só com decisão de quem administra. Misturá-las faz a segunda
+   ser replanejada sprint após sprint sem nunca avançar;
+3. **Declare a impossibilidade com as quatro evidências**, e não como "revisão
+   pendente". A frase genérica sugere que basta esperar.
+
+**Aplicada em**: Sprint 002 — a herança do sprint 001 passou a classificar a revisão
+independente como bloqueada **estruturalmente**, e não como atrasada.
+
+**Resolvida em 2026-08-10, com duas chamadas de API:**
+
+```text
+PUT /orgs/The-Band-Solution/teams/the-band/repos/The-Band-Solution/theband
+    permission=pull
+
+POST /repos/.../pulls/91/requested_reviewers
+    team_reviewers[]=the-band          → {"equipes":["the-band"]}
+```
+
+`pull` é o mínimo que revisão exige — quem revisa precisa ler, não escrever. Elevar a
+`push` é decisão separada, e não é necessária para o princípio VII.
+
+**Pedir à equipe é melhor que pedir a uma pessoa**, e não por conveniência: o pedido
+fica aberto para qualquer membro, e o autor, sendo membro, simplesmente não pode
+atendê-lo. A restrição do GitHub passa a **produzir** a independência que o princípio
+exige, em vez de bloqueá-la.
+
+**O que isso ensina, e é o ponto da lição.** A exigência atravessou um sprint inteiro
+como "revisão pendente", indistinguível de qualquer item que só precisa de tempo. O
+que faltava eram **duas chamadas de API**. A pendência não era de esforço nem de
+agenda; era de permissão, e a única razão de ter durado tanto é que ninguém perguntou
+*se* era possível antes de planejar *quando* seria feito.
+
+**Fica um resíduo que não se recupera**: o PR #89 já foi mergeado sem revisão, e não
+existe como pedir revisão de PR mergeado. O código da feature 001 está na `main` sem
+nunca ter sido revisado, e isso permanece no registro de aceitação — a correção vale
+de #91 em diante.

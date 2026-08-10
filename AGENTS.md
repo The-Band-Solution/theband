@@ -565,46 +565,68 @@ Necessidade → Discovery → Feature Request
 → Pull Request (com revisor pedido) → revisão independente → merge
 ```
 
-### Todo PR nasce com revisor pedido
+### Todo PR nasce com revisor pedido e ligado ao projeto
 
-**O revisor deste repositório é `paulossjunior`**, e a solicitação é feita **ao
-abrir** o PR:
+Duas obrigações, **ao abrir** o PR:
 
 ```bash
-gh pr create ... --reviewer paulossjunior
-gh pr edit <n> --add-reviewer paulossjunior   # num PR já aberto
+gh pr create ... --reviewer <login>            # 1. revisor
+# 2. addProjectV2ItemById, Iteration = sprint corrente, Status = In review
 ```
 
 PR sem revisor solicitado é PR cuja revisão não vai acontecer: ninguém é
 notificado, nada entra na fila de ninguém, e a pendência só aparece no merge —
-quando já é tarde. Foi o que ocorreu no PR #89, mergeado com
-`pulls/89/reviews` vazio.
+quando já é tarde. Foi o que ocorreu no PR #89, mergeado com `pulls/89/reviews`
+vazio.
 
-**Restrição declarada, e verificada**: o GitHub **recusa pedir revisão ao autor do
-próprio PR**. Como o PR é aberto com o token de `paulossjunior`, ele é o autor e
-não pode ser o revisor:
+PR fora do projeto é trabalho invisível ao board: o sprint aparenta ter menos em
+andamento do que tem, e `flow.wip.count` subconta. **Grave o `Status` depois de
+adicionar o item e confira** — os workflows embutidos do projeto escrevem `Status`
+na entrada e competem com a escrita manual; no PR #90 o valor gravado foi
+sobrescrito para `Done`.
 
-```text
-POST repos/.../pulls/90/requested_reviewers
-422  Review cannot be requested from pull request author.
-```
-
-**E o `gh` não reporta isso.** `--reviewer` e `--add-reviewer` imprimem a URL, saem
-com código zero e não atribuem ninguém. Por isso a regra tem um segundo passo,
-obrigatório:
+**Confira o revisor; o `gh` não reporta a recusa.** `--reviewer` e `--add-reviewer`
+imprimem a URL, saem com código zero e não atribuem ninguém:
 
 ```bash
 gh pr view <n> --json reviewRequests   # lista vazia = ninguém foi pedido
 ```
 
 Lista vazia significa que a revisão não foi solicitada, **independentemente do que
-o comando disse**. Registre a lacuna; não invente outro revisor e não silencie.
-Virou a lição L14.
+o comando disse** — lição L14. Para ver o erro, use a API com `reviewers[]` ou
+`team_reviewers[]`.
 
-Satisfazer o princípio VII neste repositório exige **duas identidades**: quem abre
-o PR e quem revisa não podem ser a mesma conta. Enquanto houver uma só, a
-exigência é impossível de cumprir, e essa impossibilidade pertence ao registro de
-cada sprint.
+#### O revisor é a **equipe** `the-band`, não uma pessoa
+
+```bash
+gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers \
+  -f 'team_reviewers[]=the-band'
+```
+
+**Pedir à equipe é o que funciona, e é melhor que pedir a uma pessoa.** O pedido fica
+aberto para qualquer membro, e o autor — `paulossjunior`, sendo membro — não pode
+atendê-lo. A restrição do GitHub passa a **produzir** a independência que o princípio
+VII exige, em vez de bloqueá-la. Quem revisa é `Adylla027` ou `EduardoNFraiz`.
+
+`gh pr create --reviewer paulossjunior` **não** funciona: o autor não pode ser
+revisor. Não substitua por outro login para o comando passar.
+
+**Histórico, porque a causa não era óbvia.** Até 2026-08-10 não havia revisor possível
+neste repositório:
+
+| Fato | Evidência |
+|---|---|
+| um único colaborador, `paulossjunior`, admin | `GET /repos/.../collaborators` |
+| nenhuma equipe com acesso | `GET /repos/.../teams` vazio |
+| revisão só se pede a colaborador | `422 Reviews may only be requested from collaborators` |
+| o autor não pode ser revisor | `422 Review cannot be requested from pull request author` |
+
+Resolvido concedendo `pull` — o mínimo que revisão exige — à equipe `the-band`. A
+exigência atravessou um sprint inteiro como "revisão pendente" e custou **duas
+chamadas de API**: era pendência de permissão, não de agenda. Lição L15.
+
+**Antes de escrever regra que dependa de permissão, verifique a permissão.**
+`collaborators` e `teams` respondem em duas chamadas se a regra é cumprível.
 
 ### Contrato da API antes da implementação
 

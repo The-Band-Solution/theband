@@ -26,7 +26,7 @@ merge, e não é revisão de código — o que sobrou está abaixo, item por ite
 | O que sobrou | Tipo | Destino |
 |---|---|---|
 | **T073 — abrir o pull request** · [#78](https://github.com/The-Band-Solution/theband/issues/78) | não executada | **concluída na Fase 0**: [PR #89](https://github.com/The-Band-Solution/theband/pull/89), com a tabela de mapeamentos semânticos. Mergeado em `45d21a0` |
-| **Revisão independente do código** — princípio VII | bloqueada, e agora **estruturalmente** | **bloqueador nomeado**: exige revisor que não implementou. Descobriu-se que uma conta só não basta — o GitHub recusa pedir revisão ao autor do PR. Fechar exige duas identidades, o que é decisão de infraestrutura. O merge **não** satisfez a exigência |
+| **Revisão independente do código** — princípio VII | era bloqueio estrutural; **destravado em 2026-08-10** | A causa era permissão: o repositório tinha um colaborador só, o autor. Concedido `pull` à equipe `the-band`, o pedido de revisão passou a funcionar — feito no [PR #91](https://github.com/The-Band-Solution/theband/pull/91), e quem revisa é `Adylla027` ou `EduardoNFraiz`. **Resíduo irrecuperável**: o #89 foi mergeado sem revisão e não há como pedir revisão de PR mergeado. Lição L15 |
 | **T072 — evidência do quickstart** · [#77](https://github.com/The-Band-Solution/theband/issues/77) | executada em parte | encerrada **com a limitação declarada**: V3, V4 e V8 estão provados por teste e não por ocorrência real. Já aceito assim no `aceitacao.md`, com a ressalva escrita |
 | **Volume de SC-009** — 100 pessoas e 20 equipes | não executável | **descartada, com motivo**: exigiria uma organização de origem que não existe. O comportamento sob limite de uso está coberto por teste |
 | **`Estimate` das issues** | não executada | **devolvida**: depende de estimativa feita com o time. Número inventado produziria métrica de fluxo apoiada em ficção |
@@ -49,19 +49,27 @@ fora da linha principal, visível como branch pendente. Agora é código não re
 **dentro** da linha principal, indistinguível do resto. É a forma mais difícil de
 lembrar que a dívida existe, e é a razão de este parágrafo existir.
 
-E há uma descoberta que torna a pendência estrutural, não circunstancial: **uma
-conta só não satisfaz o princípio VII.** O GitHub recusa pedir revisão ao autor do
-próprio PR — `422 Review cannot be requested from pull request author.` Como os PRs
-são abertos com o token de `paulossjunior`, ele é o autor e não pode ser o revisor.
-Verificado no PR #90, e registrado como [L14](../licoes-aprendidas.md).
+**A causa da revisão nunca ter acontecido foi encontrada, e era outra.** Não era
+agenda: o repositório tinha **um colaborador só**, `paulossjunior`, e nenhuma equipe
+com acesso. Revisão só pode ser pedida a colaborador, e o autor não pode ser revisor —
+então havia **zero revisores possíveis**. A exigência atravessou o sprint 001 inteiro
+como "revisão pendente", indistinguível de item que só precisava de tempo. Registrado
+em [L14](../licoes-aprendidas.md) e [L15](../licoes-aprendidas.md).
 
-Enquanto quem abre o PR e quem revisa forem a mesma conta, a exigência é
-**inalcançável** — não atrasada. Consta nos riscos.
+**Destravado em 2026-08-10, com duas chamadas de API**: `pull` concedido à equipe
+`the-band` — o mínimo que revisão exige — e o pedido de revisão feito à equipe em vez
+de a uma pessoa. Pedir à equipe é o que **produz** a independência: o pedido fica
+aberto a qualquer membro, e o autor, sendo membro, não pode atendê-lo. Quem revisa é
+`Adylla027` ou `EduardoNFraiz`.
+
+**O resíduo do #89 não se recupera.** Não há como pedir revisão de PR mergeado, então o
+código da feature 001 permanece na `main` sem nunca ter sido revisado. A correção vale
+de #91 em diante, e o registro de aceitação continua dizendo isso.
 
 ## Lições aplicadas
 
-Do [registro acumulado](../licoes-aprendidas.md) — quatorze lições, L01 a L14.
-Oito se aplicam diretamente:
+Do [registro acumulado](../licoes-aprendidas.md) — quinze lições, L01 a L15.
+Nove se aplicam diretamente:
 
 | Lição | O que muda neste sprint |
 |---|---|
@@ -73,6 +81,7 @@ Oito se aplicam diretamente:
 | **L12** — PR não aberto na hora passa a carregar outra feature | Foi por isso que a Fase 0 existe, e é a lição que criou a regra de não puxar trabalho novo. O PR da 002 é aberto **quando a tarefa pedir**, não no fim |
 | **L13** — secret referenciado e não cadastrado chega como string vazia | Onde a ausência tem tratamento, vazio recebe o mesmo. Vale para toda leitura de ambiente que esta feature acrescentar |
 | **L14** — `gh` engole o pedido de revisão recusado | Ao abrir o PR desta feature, conferir `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi pedido, não importa o que o comando disse |
+| **L15** — não há revisor possível num repositório de um colaborador só | A revisão independente era pendência de **permissão**, não de agenda. Destravada neste sprint: `pull` à equipe `the-band`, e pedido de revisão à equipe. Todo PR desta feature nasce com `team_reviewers[]=the-band` |
 
 As demais foram consideradas e não se aplicam: L01 (não há gerador nesta
 feature), L04 (nenhuma consulta nova ao GitHub), L05 e L07 (correções já
