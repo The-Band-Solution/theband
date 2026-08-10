@@ -10,7 +10,70 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
   """
   use TheBand.DataCase, async: true
 
+  import Ecto.Query
+
+  alias TheBand.Ingestion.Sync
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.RawData
+  alias TheBand.Repo
+  alias TheBand.Sources.ConnectedTool
+
+  # A regra `github.default_team` só acolhe **membro observado da organização**, e a
+  # observação vem do payload preservado. Registrá-la nos testes não é cerimônia: sem
+  # ela, "quem é da organização" degenera em "quem do tenant", e foi esse o defeito que
+  # a execução no banco real revelou — ifesserra-lab, com 5 membros, recebeu 72.
+  defp observa_membro(tenant, org, pessoa) do
+    tool =
+      Repo.one(
+        from t in ConnectedTool,
+          where: t.tenant_id == ^tenant.id and t.organization_login == ^org.login
+      ) ||
+        (
+          {:ok, t} =
+            %ConnectedTool{}
+            |> ConnectedTool.changeset(%{
+              tenant_id: tenant.id,
+              tool_type: "github",
+              instance_url: "https://github-#{System.unique_integer([:positive])}.example",
+              organization_login: org.login
+            })
+            |> Repo.insert()
+
+          t
+        )
+
+    sync =
+      Repo.one(from s in Sync, where: s.connected_tool_id == ^tool.id) ||
+        (
+          {:ok, s} =
+            %Sync{}
+            |> Sync.changeset(%{
+              tenant_id: tenant.id,
+              connected_tool_id: tool.id,
+              status: "completed",
+              started_at: DateTime.utc_now(:second)
+            })
+            |> Repo.insert()
+
+          s
+        )
+
+    {:ok, _} =
+      RawData.store(%{
+        tenant_id: tenant.id,
+        sync_id: sync.id,
+        raw_entity_type: "github.user",
+        external_id: pessoa.external_id,
+        payload: %{"id" => pessoa.external_id, "login" => pessoa.login},
+        mapping_id: "github.user.to.eo.person",
+        mapping_version: 1,
+        source_system: "github",
+        source_instance: "https://github.com",
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    pessoa
+  end
 
   defp pessoa(tenant, id, nome), do: pessoa(tenant, id, nome, %{})
 
@@ -44,7 +107,10 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
     test "organização sem nenhum time: todos entram — o caso de ifesserra-lab" do
       tenant = tenant_fixture()
       org = organization_fixture(tenant, "ifesserra-lab")
-      for i <- 1..5, do: pessoa(tenant, "U_#{i}", "Pessoa#{i}")
+
+      for i <- 1..5 do
+        tenant |> pessoa("U_#{i}", "Pessoa#{i}") |> then(&observa_membro(tenant, org, &1))
+      end
 
       assert length(EO.list_people_without_team(tenant, org.id)) == 5
 
@@ -60,8 +126,8 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
       org = organization_fixture(tenant, "alfa")
       time = team_fixture(tenant, "T_obs", %{organization: org})
 
-      dentro = pessoa(tenant, "U_dentro", "Dentro")
-      _fora = pessoa(tenant, "U_fora", "Fora")
+      dentro = observa_membro(tenant, org, pessoa(tenant, "U_dentro", "Dentro"))
+      observa_membro(tenant, org, pessoa(tenant, "U_fora", "Fora"))
       vincula(tenant, dentro, time)
 
       assert ["Fora"] = EO.list_people_without_team(tenant, org.id) |> Enum.map(& &1.name)
@@ -71,8 +137,8 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
       tenant = tenant_fixture()
       org = organization_fixture(tenant, "beta")
       time = team_fixture(tenant, "T_todos", %{organization: org})
-      vincula(tenant, pessoa(tenant, "U_a", "Ana"), time)
-      vincula(tenant, pessoa(tenant, "U_b", "Bruno"), time)
+      vincula(tenant, observa_membro(tenant, org, pessoa(tenant, "U_a", "Ana")), time)
+      vincula(tenant, observa_membro(tenant, org, pessoa(tenant, "U_b", "Bruno")), time)
 
       # A lista vazia é o sinal de que a derivada não deve existir. Criá-la vazia
       # seria registro sem referente, e faria a contagem de derivadas crescer com o
@@ -84,7 +150,12 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
     test "conta de automação não é acolhida" do
       tenant = tenant_fixture()
       org = organization_fixture(tenant, "gama")
-      pessoa(tenant, "U_bot", "Dependabot", %{account_type: "bot"})
+
+      observa_membro(
+        tenant,
+        org,
+        pessoa(tenant, "U_bot", "Dependabot", %{account_type: "bot"})
+      )
 
       # Acolher o bot inflaria justamente o quadro que a equipe derivada existe para
       # completar.

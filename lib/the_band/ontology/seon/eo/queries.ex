@@ -18,6 +18,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
+  alias TheBand.RawData
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
 
@@ -167,16 +168,25 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   É a entrada da regra `github.default_team`: exatamente quem a equipe derivada
   existe para acolher.
 
-  "De uma organização" aqui significa **membro observado da organização** — pessoa
-  cujo vínculo de evidência aponta para alguma equipe dela, ou que foi coletada na
-  mesma instância. A segunda parte é o que torna o caso de `ifesserra-lab` resolvível:
-  5 membros, 0 times, ninguém com vínculo de equipe.
+  **"De uma organização" precisa de definição, e a primeira versão desta função não a
+  tinha.** Ela devolvia toda pessoa do tenant fora das equipes daquela organização, o
+  que é coisa diferente: medido no banco real, `ifesserra-lab` — 5 membros — recebeu
+  **72** pessoas, o tenant inteiro. A equipe derivada teria afirmado que todos são de
+  todas as organizações.
 
-  Automação fica fora: conta de bot não é pessoa, e acolhê-la na equipe derivada
-  inflaria o quadro que a equipe existe para completar.
+  A definição correta é **membro observado da organização**, e a observação existe:
+  a conta apareceu em `organization.membersWithRole`, e o payload está preservado.
+  `RawData.organization_member_external_ids/2` a lê, atravessando a mesma corrente do
+  retrofito. Não é aresta nova em EO — é leitura da coleta.
+
+  Automação fica fora: conta de bot não é pessoa, e acolhê-la inflaria o quadro que a
+  equipe derivada existe para completar.
   """
   @spec list_people_without_team(Tenant.t(), Ecto.UUID.t()) :: [Person.t()]
-  def list_people_without_team(%Tenant{id: tenant_id}, organization_id) do
+  def list_people_without_team(%Tenant{id: tenant_id} = tenant, organization_id) do
+    organization = fetch_organization!(tenant, organization_id)
+    membros = RawData.organization_member_external_ids(tenant_id, organization.login)
+
     em_equipe_observada =
       from e in TeamMembershipEvidence,
         join: t in Team,
@@ -189,6 +199,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         where:
           p.tenant_id == ^tenant_id and p.account_type == "person" and
             is_nil(p.no_longer_observed_at) and
+            p.external_id in ^membros and
             p.id not in subquery(em_equipe_observada),
         order_by: p.name
     )

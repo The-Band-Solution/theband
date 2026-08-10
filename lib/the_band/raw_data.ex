@@ -115,6 +115,38 @@ defmodule TheBand.RawData do
     )
   end
 
+  @doc """
+  Quais pessoas foram observadas como membros de uma organização.
+
+  Devolve os `external_id` dos membros, atravessando
+  `raw_payloads → syncs → connected_tools.organization_login`.
+
+  **Existe porque EO não tem relação direta pessoa↔organização**, e não deve ter — o
+  vínculo passaria por papel organizacional, que o GitHub não fornece. Mas a
+  *observação* de que a conta apareceu em `organization.membersWithRole` existe, e está
+  preservada. Esta consulta a lê.
+
+  É a entrada da regra `github.default_team`: sem ela, "quem é da organização e não
+  está em time algum" degenera em "quem do tenant não está em time daquela
+  organização", e a equipe derivada acolheria o tenant inteiro. Medido antes da
+  correção: `ifesserra-lab`, que tem 5 membros, recebeu 72.
+  """
+  @spec organization_member_external_ids(Ecto.UUID.t(), String.t()) :: [String.t()]
+  def organization_member_external_ids(tenant_id, organization_login) do
+    Repo.all(
+      from r in __MODULE__,
+        join: s in Sync,
+        on: s.id == r.sync_id,
+        join: t in ConnectedTool,
+        on: t.id == s.connected_tool_id,
+        where:
+          r.tenant_id == ^tenant_id and r.raw_entity_type == "github.user" and
+            t.organization_login == ^organization_login,
+        distinct: true,
+        select: r.external_id
+    )
+  end
+
   @spec count(Tenant.t()) :: non_neg_integer()
   def count(%Tenant{id: tenant_id}) do
     Repo.aggregate(from(r in __MODULE__, where: r.tenant_id == ^tenant_id), :count, :id)
