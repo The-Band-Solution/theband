@@ -74,6 +74,37 @@ sabe se funciona — por isso as duas entram na mesma transação.
 combinação já existente atualiza a ferramenta e **acrescenta** a credencial: é
 como uma segunda conta de serviço entra (FR-004).
 
+### Qual credencial a coleta usa
+
+`active_credential/1` devolve **uma** credencial entre as ativas, e a escolha é:
+
+```text
+1. apenas as ativas
+2. a validada mais recentemente
+3. empate no instante de validação → a criada mais recentemente
+4. empate também aí → a de identificador menor
+```
+
+**Lacuna de contrato corrigida.** A primeira versão deste documento não dizia
+qual credencial era escolhida, e a implementação ordenava só por `validated_at`.
+Duas credenciais cadastradas no mesmo segundo — o que acontece quando as duas
+entram pelo mesmo formulário, ou por script — produziam empate, e o Postgres
+resolvia empate na ordem que quisesse. **O mesmo estado do banco escolhia
+credenciais diferentes entre execuções.**
+
+Isso importa porque credenciais diferentes enxergam conjuntos diferentes: a mesma
+sincronização traria dados diferentes sem que nada mudasse na origem, e o
+registro diria qual credencial foi usada — sem dizer por que aquela.
+
+Os dois critérios de desempate existem para tornar a escolha **determinística**,
+não para expressar preferência. Quem quer controlar qual credencial é usada
+desativa as outras.
+
+**Desativar é o mecanismo de escolha.** Credencial inativa nunca é usada, e
+desativar a que estava em uso faz a coleta passar a usar a seguinte pela ordem
+acima. Sem nenhuma ativa, a sincronização é recusada com
+`{:error, :no_active_credential}` — não silenciosamente adiada.
+
 **Uma organização cliente pode observar várias organizações de origem**, na mesma
 instância ou em instâncias diferentes. Cada uma é uma ferramenta conectada com
 sua própria credencial, seu próprio estado e sua própria sincronização — inclusive

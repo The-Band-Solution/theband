@@ -34,6 +34,7 @@ concepts:
       - "a diretoria de tecnologia de uma empresa"
       - "o departamento de qualidade"
     provenance:
+      source_type: project_decision
       note: >
         Chamava-se eo.sector até 2026-08-10. Renomeado por decisão da pessoa
         mantenedora, alinhando o vocabulário ao uso corrente em modelagem
@@ -60,6 +61,7 @@ concepts:
       - "uma subsidiária, que é organização e parte da matriz"
       - "o departamento de qualidade, que é unidade organizacional e parte da organização"
     provenance:
+      source_type: project_decision
       note: >
         Chamava-se eo.organizational_unit até 2026-08-10. O nome foi cedido ao
         kind que hoje se chama assim; este conceito ficou com um nome tirado da

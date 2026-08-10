@@ -19,9 +19,10 @@ ausente.
 |---|---:|
 | Entregáveis avaliados | 3 |
 | Critérios de aceitação percorridos | 14 funcionais + 10 não funcionais |
-| Propostos como aceitos | 2 |
-| Propostos como **não** aceitos | 1 |
-| Critérios sem evidência | 1 |
+| Aceitos, após a correção de #88 | 3 |
+| Não aceitos na primeira avaliação | 1 — D01 |
+| Critérios sem evidência | 0 |
+| Tarefas executadas sem sucesso | 2 — T033, T038 |
 
 ---
 
@@ -35,7 +36,7 @@ ausente.
 | AC1 — admin conecta o GitHub informando instância e credencial válida; a plataforma confirma o acesso e registra a ferramenta | funcional | **sim** | três organizações conectadas contra o GitHub real: `The-Band-Solution`, `ifesserra-lab`, `leds-conectafapes`; escopos devolvidos `gist, project, read:org, repo, workflow` |
 | AC2 — credencial inválida ou sem permissão é recusada com explicação, e nada é gravado | funcional | **sim** | execução com token inválido devolveu `:unauthorized`; contagem de ferramentas antes 1, depois 1. Testes `credencial recusada não grava nada` e `escopo insuficiente recusa nomeando o que falta` |
 | AC3 — a credencial aparece apenas por identificação parcial, nunca em forma utilizável | funcional | **sim** | tela exibe `••••••••••••••••slKb`; token ausente do HTML das quatro telas; `select secret` devolve `AES.GCM.1ddcd36a$…`; teste garante que nenhuma mensagem de erro vaza struct |
-| AC4 — duas contas de serviço no mesmo GitHub coexistem e podem ser **usadas ou desativadas independentemente** | funcional | **não** | a coexistência está provada — teste `reconectar a mesma organização não duplica a ferramenta, e acrescenta a credencial` verifica duas credenciais na mesma ferramenta. **A independência não está**: `set_credential_active/2` e o botão existem, e nenhum teste ou execução demonstra que desativar uma faz a outra ser usada |
+| AC4 — duas contas de serviço no mesmo GitHub coexistem e podem ser **usadas ou desativadas independentemente** | funcional | **sim**, após correção | ver a reavaliação abaixo. Cinco testes em `test/the_band/sources_test.exs`: desativar a em uso faz a outra ser usada; reativar devolve à escolha; sem nenhuma ativa a sincronização é recusada com `:no_active_credential`; desativar uma não altera a outra |
 | AC5 — credencial que deixou de funcionar marca a ferramenta como precisando de atenção, com data e motivo, sem interromper as demais | funcional | **sim** | teste `marcar uma não afeta as outras do tenant`; teste `credencial revogada durante a coleta` verifica `status = needs_attention`, `needs_attention_since` preenchido e a sincronização em `interrupted` com progresso preservado |
 
 **Critérios não funcionais atribuídos a esta user story**
@@ -45,18 +46,59 @@ ausente.
 | SC-001 — conectar e validar em menos de 2 minutos, sem consultar documentação | **sim** | formulário de uma tela, com validação imediata e mensagem do que faltou |
 | SC-005 — nenhuma credencial recuperável a partir da base, dos registros ou da interface | **sim** | as três verificações de AC3, mais a rotação de chave que provou o segredo intacto só com a chave nova |
 
-**Fase derivada**: `sro.not_accepted_deliverable` — falha em AC4.
+### Primeira avaliação — 2026-08-10
+
+**Fase derivada**: `sro.not_accepted_deliverable` — falhava em AC4.
+
+**Confirmada pela pessoa mantenedora**: "D01 fica como não aceito."
 
 **Fase das tarefas**: T033 e T038, que produziram o cadastro de credenciais e a
-tela, ficam `sro.non_successfully_performed_scrum_development_task`. As demais de
-US1 permanecem bem-sucedidas.
+tela, ficam `sro.non_successfully_performed_scrum_development_task` —
+permanentemente. Elas foram executadas e não produziram entregável aceito, e essa
+é a informação que a medida `rework.not_accepted_deliverable_ratio` calcula.
 
-**O que faltou**: uma verificação de que desativar uma credencial faz a coleta
-passar a usar a outra. `Sources.active_credential/1` escolhe a ativa mais
-recente, então o comportamento provavelmente existe — **provavelmente não é
-evidência**.
+**O que faltava**: verificação de que desativar uma credencial faz a coleta passar
+a usar a outra. `Sources.active_credential/1` escolhia a ativa mais recente, então
+o comportamento provavelmente existia — **provavelmente não é evidência**.
 
-**Destino da user story**: decisão do papel. Ver as opções ao fim do documento.
+**Destino escolhido**: nova tarefa pretendida
+[#88](https://github.com/The-Band-Solution/theband/issues/88), ligada à mesma
+US1. T033 e T038 **não** foram reabertas.
+
+### Reavaliação — 2026-08-10, após #88
+
+A correção encontrou mais do que o teste que faltava.
+
+**Um defeito latente.** `active_credential/1` ordenava apenas por
+`validated_at`. Duas credenciais cadastradas **no mesmo segundo** — o caso normal
+quando as duas entram pelo mesmo formulário ou por script — empatavam, e o banco
+resolvia o empate na ordem que quisesse. O mesmo estado do banco podia escolher
+credenciais diferentes entre execuções.
+
+Isso importa porque credenciais diferentes enxergam conjuntos diferentes: a mesma
+sincronização traria dados diferentes sem nada ter mudado na origem, e o registro
+diria qual credencial foi usada sem dizer **por que aquela**.
+
+Corrigido com dois critérios de desempate — instante de criação e identificador —
+cuja função é tornar a escolha determinística, não expressar preferência.
+
+**Lacuna de contrato corrigida no mesmo commit**, como o princípio VI exige: o
+contrato `connected-tools.md` não dizia qual credencial era escolhida entre as
+ativas. Agora diz, com a razão.
+
+**Honestidade sobre a força da evidência**: o teste de determinismo repete a
+consulta vinte vezes e obtém sempre a mesma credencial. Isso não **prova** que a
+versão anterior era instável na prática — o Postgres pode ser estável por
+acidente de plano de execução. O que se afirma é mais fraco e suficiente: sem
+critério de desempate, a ordenação é indeterminada por semântica de SQL, e
+depender de acidente de implementação não é garantia.
+
+**Fase derivada agora**: `sro.accepted_deliverable` — os cinco critérios
+funcionais e os dois não funcionais de US1 conformes, com evidência.
+
+**A fase das tarefas não muda.** T033 e T038 continuam
+`sro.non_successfully_performed_scrum_development_task`, e #88 é uma tarefa nova
+bem-sucedida. O esforço aparece duas vezes porque foi gasto duas vezes.
 
 ---
 
@@ -132,11 +174,17 @@ ela é deste papel.
 ## Entregável do sprint
 
 `sro.sprint_deliverable_composed_of_accepted_deliverable` admite **apenas**
-entregáveis aceitos. Pela classificação proposta, o entregável do sprint 001 é
-composto de **D02 e D03**. D01 fica fora até que AC4 tenha evidência.
+entregáveis aceitos.
 
-Dizer isso é desconfortável e é o ponto: a alternativa seria um resultado de
-sprint que aparenta estar completo.
+| Momento | Composição |
+|---|---|
+| primeira avaliação | **D02 e D03** — D01 fora, por falha em AC4 |
+| após #88 | **D01, D02 e D03** |
+
+O registro guarda os dois momentos de propósito. Um sprint cujo entregável
+precisou de correção para ficar completo é diferente de um que nasceu completo, e
+apagar a primeira avaliação apagaria essa diferença — que é exatamente a medida de
+retrabalho que o produto existe para calcular.
 
 ---
 
@@ -148,12 +196,22 @@ critério de user story mudou.
 
 ## Critérios sem evidência
 
-| Critério | User story | O que falta |
-|---|---|---|
-| AC4 — credenciais usadas ou desativadas independentemente | US1 | um teste que desative a credencial em uso e verifique que a coleta passa a usar a outra; ou execução manual registrada |
+**Nenhum.** Os 14 critérios funcionais e os 10 não funcionais foram avaliados
+contra evidência.
 
-Esta seção tem exatamente um item. Todos os outros 13 critérios funcionais e os
-10 não funcionais foram avaliados contra evidência.
+Havia um — AC4 da US1 — e ele foi fechado por #88. O registro dessa passagem está
+na reavaliação de D01, não apagado daqui.
+
+### Duas verificações que continuam sendo por teste, e não por ocorrência
+
+Não impedem aceitação, e ficam registradas para que ninguém adiante confunda uma
+coisa com a outra:
+
+| Critério | Por que não houve ocorrência real |
+|---|---|
+| AC4 de **US2** — automação classificada separadamente | nenhuma conta de automação existe nas três organizações observadas |
+| AC6 de **US2** — pausa antes do limite de uso | o limite real nunca foi atingido; a maior coleta terminou com 4.656 pontos restantes |
+| Edge case — ausência não é remoção | exigiria **remover alguém de uma equipe real** na organização da pessoa mantenedora. Não foi feito, e não deve ser: o teste cobre o comportamento, e alterar a organização de outra pessoa para validar software é preço que não se paga |
 
 ---
 

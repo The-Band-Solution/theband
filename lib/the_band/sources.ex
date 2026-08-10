@@ -43,12 +43,26 @@ defmodule TheBand.Sources do
     end
   end
 
+  @doc """
+  A credencial que a coleta usa, entre as ativas.
+
+  A ordem é a validada mais recentemente, e os dois desempates existem para
+  tornar a escolha **determinística** — não para expressar preferência.
+
+  Sem eles, duas credenciais cadastradas no mesmo segundo empatavam em
+  `validated_at`, e o banco resolvia o empate na ordem que quisesse: o mesmo
+  estado escolhia credenciais diferentes entre execuções. Credenciais diferentes
+  enxergam conjuntos diferentes, então a mesma sincronização traria dados
+  diferentes sem nada ter mudado na origem.
+
+  Quem quer controlar qual credencial é usada desativa as outras.
+  """
   @spec active_credential(ConnectedTool.t()) :: ToolCredential.t() | nil
   def active_credential(%ConnectedTool{id: tool_id}) do
     Repo.one(
       from c in ToolCredential,
         where: c.connected_tool_id == ^tool_id and c.active == true,
-        order_by: [desc: c.validated_at],
+        order_by: [desc: c.validated_at, desc: c.inserted_at, asc: c.id],
         limit: 1
     )
   end

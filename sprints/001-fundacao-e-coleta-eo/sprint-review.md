@@ -9,11 +9,24 @@ renderizada.
 
 ## Resultado por user story
 
-| # | User story | Situação | Evidência |
-|---|---|---|---|
-| US1 | Conectar ferramenta com credencial protegida | **entregue** | tela `/ferramentas` funcionando; credencial validada contra o GitHub antes de gravar; segredo cifrado no banco |
-| US2 | Conhecer pessoas e equipes | **entregue** | coleta real contra `The-Band-Solution`: 6 pessoas, 2 equipes, 7 vínculos observados |
-| US3 | Rastrear de onde veio cada informação | **entregue** | telas `/pessoas`, `/equipes` e `/equipes/:id` exibindo origem, identificador externo e data de coleta |
+A coluna `Aceito` é **derivada** do [registro de aceitação](aceitacao.md), nunca
+preenchida direto. Review sem registro de aceitação é afirmação sem prova.
+
+| # | User story | Entregável | Aceito | Onde |
+|---|---|---|---|---|
+| US1 | Conectar ferramenta com credencial protegida | D01 | **sim**, na reavaliação | [aceitacao.md](aceitacao.md) — não aceito na primeira avaliação por falha em AC4; corrigido por [#88](https://github.com/The-Band-Solution/theband/issues/88) |
+| US2 | Conhecer pessoas e equipes | D02 | sim | [aceitacao.md](aceitacao.md) — com duas ressalvas registradas |
+| US3 | Rastrear de onde veio cada informação | D03 | sim | [aceitacao.md](aceitacao.md) |
+
+**Entregável do sprint**: composto de D01, D02 e D03 — depois da correção. Na
+primeira avaliação era composto só de D02 e D03, e o registro guarda os dois
+momentos: um sprint que precisou de correção para ficar completo é diferente de um
+que nasceu completo.
+
+**Tarefas executadas sem sucesso**: T033 e T038. Permanecem assim — foram
+executadas e não produziram entregável aceito, e é isso que a medida
+`rework.not_accepted_deliverable_ratio` calcula. #88 é tarefa nova, não
+reabertura.
 
 ## Evidência da coleta real
 
@@ -71,7 +84,7 @@ dispara — `Ingestion.start_sync/2` enfileira, o Oban executa.
 | `mix compile --warnings-as-errors` | passou |
 | `mix credo --strict` | passou — `found no issues` |
 | `mix dialyzer` | passou — `Total errors: 0` |
-| `mix test` | passou — **65 testes** |
+| `mix test` | passou — **81 testes** |
 | `mix knowledge.validate` | passou — 84 artefatos |
 | `mix knowledge.graph` | passou — 24 módulos, dependências íntegras |
 | `scripts/validate_knowledge_base.py` | passou — base válida |
@@ -87,6 +100,7 @@ Declarado explicitamente. Nenhum destes está marcado como pronto em lugar nenhu
 | **`mix knowledge.test`, `knowledge.docs`, `knowledge.information_model`** | — | Continuam como scripts Python, chamados pelo CI. Dívida declarada no plan.md |
 | **`Estimate` das issues** | — | Nenhuma estimativa foi feita com o time. Preencher com número inventado produziria métrica de fluxo apoiada em ficção |
 | **Revisão independente do PR** | T073 | A constituição exige revisor diferente de quem implementou. **Esta condição não foi satisfeita** e não pode ser marcada como cumprida por quem escreveu o código |
+| **Ocorrência real de três verificações** | — | Automação classificada, pausa por limite de uso e ausência-não-é-remoção estão provadas por teste, não por ocorrência. A última exigiria remover alguém de uma equipe real na organização da pessoa mantenedora, e isso não deve ser feito para validar software |
 
 ## Correção após o `/speckit-analyze`
 

@@ -146,6 +146,87 @@ defmodule TheBand.SourcesTest do
     end
   end
 
+  describe "independência entre credenciais (AC4 da US1)" do
+    setup do
+      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "c"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      tenant = tenant_fixture()
+
+      {:ok, %{tool: tool, credential: primeira}} =
+        Sources.connect_tool(tenant, %{
+          "tool_type" => "github",
+          "instance_url" => "https://github.com",
+          "organization_login" => "acme",
+          "label" => "primeira conta",
+          "secret" => "token-um"
+        })
+
+      {:ok, segunda} =
+        Sources.add_credential(tenant, tool, %{
+          "label" => "segunda conta",
+          "secret" => "token-dois"
+        })
+
+      %{tenant: tenant, tool: tool, primeira: primeira, segunda: segunda}
+    end
+
+    test "desativar a credencial em uso faz a coleta passar a usar a outra", %{
+      tool: tool,
+      primeira: primeira,
+      segunda: segunda
+    } do
+      em_uso = Sources.active_credential(tool)
+      assert em_uso.id in [primeira.id, segunda.id]
+
+      {:ok, _} = Sources.set_credential_active(em_uso, false)
+
+      outra = Sources.active_credential(tool)
+      assert outra.id != em_uso.id
+      assert outra.active
+    end
+
+    test "reativar devolve a credencial à escolha", %{tool: tool} do
+      em_uso = Sources.active_credential(tool)
+      {:ok, desativada} = Sources.set_credential_active(em_uso, false)
+      {:ok, _} = Sources.set_credential_active(desativada, true)
+
+      assert Sources.active_credential(tool).id == em_uso.id
+    end
+
+    test "sem nenhuma ativa, a sincronização é recusada com motivo legível", %{
+      tenant: tenant,
+      tool: tool,
+      primeira: primeira,
+      segunda: segunda
+    } do
+      {:ok, _} = Sources.set_credential_active(primeira, false)
+      {:ok, _} = Sources.set_credential_active(segunda, false)
+
+      assert is_nil(Sources.active_credential(tool))
+      # Recusada, não silenciosamente adiada.
+      assert {:error, :no_active_credential} = TheBand.Ingestion.start_sync(tenant, tool)
+    end
+
+    test "a escolha é determinística: mesmo estado, mesma credencial", %{tool: tool} do
+      # Duas credenciais cadastradas no mesmo segundo empatam em validated_at. Sem
+      # desempate, o banco resolveria na ordem que quisesse, e a mesma
+      # sincronização traria dados diferentes sem nada ter mudado na origem.
+      escolhas = for _ <- 1..20, do: Sources.active_credential(tool).id
+
+      assert length(Enum.uniq(escolhas)) == 1
+    end
+
+    test "desativar uma não afeta o estado da outra", %{primeira: primeira, segunda: segunda} do
+      {:ok, _} = Sources.set_credential_active(primeira, false)
+
+      recarregada = Repo.get!(TheBand.Sources.ToolCredential, segunda.id)
+      assert recarregada.active
+    end
+  end
+
   describe "ferramenta que precisa de atenção (FR-009)" do
     test "marcar uma não afeta as outras do tenant" do
       tenant = tenant_fixture()
