@@ -57,7 +57,7 @@ Bloqueia todas as user stories. Nada de US1/US2/US3 começa antes disto.
 
 ### Ontologia EO — o esquema derivado
 
-- [ ] T022 Migração das seis tabelas derivadas (`eo_organizations`, `eo_people`, `eo_teams`, `eo_sectors`, `eo_organizational_roles`, `eo_team_memberships`) conferida contra `derive_information_model.py --ontology eo` — ADR 0004, data-model.md
+- [ ] T022 Migração das seis tabelas derivadas (`eo_organizations`, `eo_people`, `eo_teams`, `eo_organizational_units`, `eo_organizational_roles`, `eo_team_memberships`) conferida contra `derive_information_model.py --ontology eo` — ADR 0004, data-model.md
 - [ ] T023 Migração de `eo_team_membership_evidence` com as colunas de D-1/D-2 e o `unique_index` de idempotência — data-model.md, regra `github.team_membership_evidence`
 - [ ] T024 Acrescentar as colunas obrigatórias (`tenant_id`, `internal_id`, `record_version`, quádrupla de proveniência) e o `unique_index` em toda tabela alimentada por fonte externa — **FR-012, FR-014, SC-003**
 - [ ] T025 [P] Schemas Ecto privados em `lib/the_band/ontology/seon/eo/schemas/` — contrato ontology-eo.md

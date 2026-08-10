@@ -286,6 +286,43 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
     end
   end
 
+  describe "falha de rede (taxonomia de erro)" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "não marca a sincronização como falha — o Oban retenta", %{tenant: tenant, sync: sync} do
+      stub(TheBand.GitHubHTTPMock, :post, fn _url, _body, _token ->
+        {:error, %Req.TransportError{reason: :nxdomain}}
+      end)
+
+      assert {:error, {:transport, :nxdomain}} = perform(tenant, sync)
+
+      # Continua em andamento: marcar como falha levaria alguém a investigar uma
+      # coleta que ainda vai ser retentada, e liberaria o índice que impede duas
+      # coletas simultâneas da mesma ferramenta.
+      assert Ingestion.reload(sync).status == "running"
+      refute Ingestion.reload(sync).error_reason
+    end
+
+    test "erro terminal marca a falha com mensagem legível", %{tenant: tenant, sync: sync} do
+      stub(TheBand.GitHubHTTPMock, :post, fn _url, _body, _token ->
+        {:ok, %{status: 200, body: %{"data" => %{"organization" => nil}}, headers: %{}}}
+      end)
+
+      assert {:error, {:organization_not_found, "acme"}} = perform(tenant, sync)
+
+      sync = Ingestion.reload(sync)
+      assert sync.status == "failed"
+      assert sync.error_reason =~ "não foi encontrada"
+      # A mensagem diz o que fazer, e não expõe o struct.
+      assert sync.error_reason =~ "login da organização"
+      refute sync.error_reason =~ "%"
+    end
+  end
+
   describe "credencial revogada durante a coleta" do
     setup do
       tenant = tenant_fixture()

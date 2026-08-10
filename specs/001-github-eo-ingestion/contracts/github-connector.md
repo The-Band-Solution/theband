@@ -117,6 +117,44 @@ Recurso ausente na instalação própria não é falha: a sincronização regist
 está disponível e reporta explicitamente o que não pôde ser coletado, no relatório
 final (FR-028, `skip_reasons`).
 
+## Taxonomia de erro
+
+Nem toda falha é do mesmo tipo, e tratá-las igual produz os dois erros opostos:
+desistir de algo que ia funcionar, e insistir em algo que nunca vai.
+
+| Retorno | Natureza | O que a plataforma faz |
+|---|---|---|
+| `{:transport, motivo}` | **transitória** | a sincronização **permanece em andamento** e o Oban retenta. Só o esgotamento das tentativas a marca como falha |
+| `{:unexpected_status, 5xx}` | **transitória** | idem — erro do servidor da origem não é erro da coleta |
+| `:unauthorized` | terminal | interrompe, preserva o progresso, marca a ferramenta como precisando de atenção |
+| `{:missing_scopes, escopos}` | terminal | recusa no cadastro; nada é gravado |
+| `{:organization_not_found, login}` | terminal | falha nomeando a organização que não foi encontrada |
+| `{:graphql_errors, erros}` | terminal | a consulta está errada ou o token não alcança o campo; retentar repetiria o mesmo |
+| `{:unexpected_status, 4xx}` | terminal | o pedido está errado; o servidor não vai mudar de ideia |
+
+**Falha transitória não marca a sincronização como `failed`.** Marcar levaria a
+pessoa a investigar uma coleta que o Oban ainda vai retentar sozinho — e, pior,
+liberaria o índice que impede duas coletas simultâneas da mesma ferramenta,
+porque ele só bloqueia enquanto o estado é `running`.
+
+## Contrato de mensagem
+
+Toda falha que chega à interface ou ao registro da sincronização MUST ser texto
+legível, em português, dizendo **o que aconteceu** e **o que fazer**. O `inspect/1`
+de um struct não é mensagem: `%Req.TransportError{reason: :nxdomain}` não informa
+quem lê que o endereço não pôde ser resolvido.
+
+| Causa | Mensagem |
+|---|---|
+| `:nxdomain` | não foi possível resolver o endereço da instância; conferir a conexão de rede e o endereço cadastrado |
+| `:timeout`, `:closed`, `:econnrefused` | a instância não respondeu a tempo, ou recusou a conexão; a coleta será retentada |
+| `:unauthorized` | a credencial foi recusada pela ferramenta; pode ter sido revogada ou expirado |
+| escopo insuficiente | nomear **quais** escopos faltam |
+| organização não encontrada | nomear a organização, e lembrar que se usa o login, não a URL |
+
+O motivo técnico permanece disponível no log estruturado. Ele sai da mensagem,
+não do registro — quem opera precisa da frase, quem depura precisa do struct.
+
 ## Contrato de teste
 
 | Camada | Onde | Regra |

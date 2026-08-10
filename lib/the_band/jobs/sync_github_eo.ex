@@ -94,10 +94,28 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         {:error, :unauthorized}
 
       {:error, reason} ->
-        sync |> Ingestion.reload() |> Ingestion.finish(:failed, error_reason: inspect(reason))
-        Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
-        {:error, reason}
+        finish_with_error(tenant, sync, reason)
     end
+  end
+
+  # Falha transitória **não** encerra a sincronização. Marcá-la como falha levaria
+  # alguém a investigar uma coleta que o Oban ainda vai retentar sozinho — e,
+  # pior, liberaria o índice que impede duas coletas simultâneas da mesma
+  # ferramenta, porque ele só bloqueia enquanto o estado é `running`.
+  defp finish_with_error(tenant, sync, reason) do
+    if Client.transient?(reason) do
+      Logger.warning("falha transitória na coleta, será retentada: #{inspect(reason)}")
+      Ingestion.broadcast(tenant.id, {:sync_retrying, sync.id, Client.describe_error(reason)})
+    else
+      sync
+      |> Ingestion.reload()
+      |> Ingestion.finish(:failed, error_reason: Client.describe_error(reason))
+
+      Logger.error("coleta falhou: #{inspect(reason)}")
+      Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+    end
+
+    {:error, reason}
   end
 
   # ------------------------------------------------------------------ coleta

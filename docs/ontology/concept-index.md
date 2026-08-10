@@ -98,12 +98,12 @@
 | `cmpo.source_repository` | Source Repository | Repositório de Código | [cmpo](cmpo.md) | `disposition` |
 | `cmpo.target_branch` | Target Branch | Branch de Destino | [cmpo](cmpo.md) | `role` |
 | `eo.organization` | Organization | Organização | [eo](eo.md) | `social_agent` |
+| `eo.organizational_part` | Organizational Part | Parte Organizacional | [eo](eo.md) | `social_role` |
 | `eo.organizational_role` | Organizational Role | Papel Organizacional | [eo](eo.md) | `social_role` |
 | `eo.organizational_team` | Organizational Team | Equipe Organizacional | [eo](eo.md) | `collective` |
-| `eo.organizational_unit` | Organizational Unit | Unidade Organizacional | [eo](eo.md) | `social_role` |
+| `eo.organizational_unit` | Organizational Unit | Unidade Organizacional | [eo](eo.md) | `social_agent` |
 | `eo.person` | Person | Pessoa | [eo](eo.md) | `agent` |
 | `eo.project_team` | Project Team | Equipe de Projeto | [eo](eo.md) | `collective` |
-| `eo.sector` | Sector | Setor | [eo](eo.md) | `social_agent` |
 | `eo.team` | Team | Equipe | [eo](eo.md) | `collective` |
 | `eo.team_member` | Team Member | Membro de Equipe | [eo](eo.md) | `role` |
 | `eo.team_membership` | Team Membership | Alocação em Equipe | [eo](eo.md) | `relator` |

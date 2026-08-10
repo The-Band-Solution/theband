@@ -64,7 +64,7 @@ basta para promover a equipe de projeto.
 |---|---|
 | `eo_organizational_roles` | catálogo de papéis; o GitHub não fornece papel organizacional. Criada pela migração, sem linhas |
 | `eo_team_memberships` | o relator exige pessoa **e** equipe **e** papel. Sem o terceiro, não se grava |
-| `eo_sectors` | setor não existe na API do GitHub |
+| `eo_organizational_units` | unidade organizacional não existe na API do GitHub |
 
 Criar a tabela vazia é deliberado: o esquema é derivado da ontologia inteira, e
 omitir tabela porque a primeira fonte não a alimenta faria a próxima fonte exigir

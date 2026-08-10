@@ -20,38 +20,52 @@ concepts:
       pt-BR: Agente social que reconhece papéis organizacionais e emprega pessoas.
     classification: { ufo_category: social_agent, ontouml_stereotype: kind }
 
-  - id: eo.sector
-    name: Sector
-    label: { pt-BR: "Setor", en: "Sector" }
-    definition:
-      pt-BR: >
-        Agente social interno a uma organização, com responsabilidades próprias,
-        que não constitui uma organização em si. Um departamento, uma diretoria,
-        uma gerência. Diferentemente de uma organização, não existe fora daquela
-        que o contém: extinta a organização, o setor não sobrevive a ela.
-    classification: { ufo_category: social_agent, ontouml_stereotype: kind }
-    examples:
-      - "a diretoria de tecnologia de uma empresa"
-      - "o departamento de qualidade"
-
   - id: eo.organizational_unit
     name: Organizational Unit
     label: { pt-BR: "Unidade Organizacional", en: "Organizational Unit" }
     definition:
       pt-BR: >
-        Papel assumido por uma organização ou por um setor quando é parte de uma
-        organização maior. Não é um tipo de organização: é a posição ocupada numa
-        estrutura.
+        Agente social interno a uma organização, com responsabilidades próprias,
+        que não constitui uma organização em si. Um departamento, uma diretoria,
+        uma gerência. Diferentemente de uma organização, não existe fora daquela
+        que o contém: extinta a organização, a unidade não sobrevive a ela.
+    classification: { ufo_category: social_agent, ontouml_stereotype: kind }
+    examples:
+      - "a diretoria de tecnologia de uma empresa"
+      - "o departamento de qualidade"
+    provenance:
+      note: >
+        Chamava-se eo.sector até 2026-08-10. Renomeado por decisão da pessoa
+        mantenedora, alinhando o vocabulário ao uso corrente em modelagem
+        corporativa — em ArchiMate, "organizational unit" é o agente concreto,
+        não um papel. O conceito, a categoria UFO e o critério de identidade
+        permanecem os mesmos; mudou o nome, não o que ele significa.
+
+  - id: eo.organizational_part
+    name: Organizational Part
+    label: { pt-BR: "Parte Organizacional", en: "Organizational Part" }
+    definition:
+      pt-BR: >
+        Papel assumido por uma organização ou por uma unidade organizacional
+        quando é parte de uma organização maior. Não é um tipo de organização: é
+        a posição ocupada numa estrutura.
 
         Classifica indivíduos de dois kinds distintos — uma subsidiária é uma
-        organização que é unidade da matriz, enquanto um departamento é um setor
-        que é unidade da mesma organização. Por isso é não-sortal, e por isso é
-        antirrígido: uma reestruturação desfaz a unidade sem destruir a
-        organização ou o setor que a ocupava.
+        organização que é parte da matriz, enquanto um departamento é uma unidade
+        organizacional que é parte da mesma organização. Por isso é não-sortal, e
+        por isso é antirrígido: uma reestruturação desfaz a posição sem destruir a
+        organização ou a unidade que a ocupava.
     classification: { ufo_category: social_role, ontouml_stereotype: role_mixin, is_role_of: ufo.agent }
     examples:
-      - "uma subsidiária, que é organização e unidade da matriz"
-      - "o departamento de qualidade, que é setor e unidade da organização"
+      - "uma subsidiária, que é organização e parte da matriz"
+      - "o departamento de qualidade, que é unidade organizacional e parte da organização"
+    provenance:
+      note: >
+        Chamava-se eo.organizational_unit até 2026-08-10. O nome foi cedido ao
+        kind que hoje se chama assim; este conceito ficou com um nome tirado da
+        própria definição, que fala em "ser parte de uma organização maior". A
+        distinção que ele carrega — kind fornece identidade, role_mixin classifica
+        indivíduos de kinds distintos — permanece intacta.
 
   - id: eo.person
     name: Person
@@ -146,18 +160,18 @@ relations:
         é um tipo de matriz, é uma organização que ocupa posição na estrutura da
         matriz. Por ser contingente, admite início e fim.
 
-  - id: eo.sector_part_of_organization
+  - id: eo.organizational_unit_part_of_organization
     name: is part of
     label: { pt-BR: "é parte de", en: "is part of" }
-    source: eo.sector
+    source: eo.organizational_unit
     target: eo.organization
     type: part_whole
     cardinality: { source: many, target: one }
     semantics:
       description: >
-        Todo setor é parte de exatamente uma organização, e não existe fora dela.
-        A cardinalidade obrigatória no destino é o que distingue setor de
-        organização: uma organização pode não ser parte de nada.
+        Toda unidade organizacional é parte de exatamente uma organização, e não
+        existe fora dela. A cardinalidade obrigatória no destino é o que a
+        distingue de uma organização: uma organização pode não ser parte de nada.
 
   - id: eo.recognizes
     name: recognizes
