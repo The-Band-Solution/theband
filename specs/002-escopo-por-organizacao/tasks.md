@@ -140,7 +140,7 @@ Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produ
 
 Corrige o F1. Só agora, e nesta ordem.
 
-- [ ] T005 Reconferir que as colunas inventadas estão vazias
+- [x] T005 Reconferir que as colunas inventadas estão vazias
   - **Pronta quando**: T004 concluída
   - **Descrição**: contar registros com `eo_people.organization_id` ou
     `eo_teams.organization_id` preenchidos. A análise mediu 0 de 72 e 0 de 10, e o
@@ -150,8 +150,11 @@ Corrige o F1. Só agora, e nesta ordem.
     corpo da migração
   - **Teste**: a própria consulta; se devolver diferente de zero, a tarefa
     **para** e o caso vira decisão, não migração
+  - **Executado em 2026-08-10**: `eo_people` 72 registros, **0** com
+    `organization_id`; `eo_teams` 10 registros, **0**. Registrado no corpo da
+    migração `20260810140000`
 
-- [ ] T006 Remover as colunas sem lastro
+- [x] T006 Remover as colunas sem lastro
   - **Pronta quando**: T005 concluída com zero
   - **Descrição**: migração que remove `eo_people.organization_id` e a
     `eo_teams.organization_id` atual. `eo_people.organization_id` é
@@ -163,7 +166,7 @@ Corrige o F1. Só agora, e nesta ordem.
   - **Teste**: aplicar e reverter a migração, conferindo o esquema nos dois
     sentidos
 
-- [ ] T007 Receber a organização da equipe pela derivação
+- [x] T007 Receber a organização da equipe pela derivação
   - **Pronta quando**: T004 e T006 concluídas
   - **Descrição**: migração que cria `eo_teams.organization_id` **conforme a saída
     do derivador** — anulável, com `check_constraint` exigindo-a quando
@@ -173,8 +176,18 @@ Corrige o F1. Só agora, e nesta ordem.
     gravar equipe organizacional sem organização é recusado **pelo banco**
   - **Teste**: tentar inserir `type = 'organizational_team'` com `organization_id`
     nula e conferir que o banco recusa; com `project_team`, aceita
+  - **A ordem da tarefa estava errada, e a execução provou.** Criar coluna e
+    `check_constraint` juntos é impossível num banco povoado: as 10 equipes já
+    coletadas são todas `organizational_team` com `organization_id` nula, e o Postgres
+    recusou a restrição com `ERROR 23514 (check_violation)`. O retrofito que preenche a
+    coluna é a T011, de outra fase
+  - **A restrição ganhou migração própria, aplicada depois do retrofito** — e isso é
+    melhor que um contorno: ela passa a ser **a verificação do retrofito**. Se
+    qualquer equipe organizacional ficar sem organização, a migração se recusa a
+    aplicar. Esta tarefa entrega a coluna conferida contra a saída do derivador; a
+    recusa pelo banco vem com a restrição
 
-- [ ] T008 Admitir vínculo sem nível de acesso
+- [x] T008 Admitir vínculo sem nível de acesso
   - **Pronta quando**: T007 concluída; `contracts/derived-team.md` escrito
   - **Descrição**: `eo_team_membership_evidence.platform_access_level` passa a ser
     anulável, com `check_constraint` exigindo-a quando `source_system = 'github'`.
@@ -182,8 +195,14 @@ Corrige o F1. Só agora, e nesta ordem.
     ausência é nula, e gravar `MEMBER` inventaria dado (research.md R2) — FR-006
   - **Feita quando**: vínculo com `source_system` da plataforma aceita nível nulo;
     vínculo do GitHub sem nível é recusado pelo banco
-  - **Teste**: os dois casos, cada um conferido contra a restrição — o teste é a
-    **violação**, não o caminho feliz
+  - **Teste**: `test/the_band/ontology/seon/eo/constraints_test.exs`, três casos, os
+    três pela violação — vínculo do GitHub sem nível é recusado; vínculo derivado sem
+    nível é aceito **e o nível fica nulo**, não `MEMBER`; nível inventado é recusado
+    mesmo em vínculo derivado. Conferidos também direto no banco, contra as duas
+    `check_constraint`
+  - **A regra vive nos dois lugares, de propósito.** O changeset recusa, e o
+    `check_constraint` recusa — o segundo é o que vale quando a gravação não passa
+    pelo changeset: script, console, correção manual
 
 **Checkpoint**: esquema e modelo derivado voltam a corresponder.
 

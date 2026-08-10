@@ -29,7 +29,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
 
   @comparable %{
     Organization => [:name, :login, :parent_organization_id],
-    Person => [:name, :email, :login, :account_type, :organization_id],
+    Person => [:name, :email, :login, :account_type],
     Team => [:type, :name, :slug, :organization_id, :external_created_at]
   }
 
