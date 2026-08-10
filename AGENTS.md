@@ -596,9 +596,23 @@ Lista vazia significa que a revisão não foi solicitada, **independentemente do
 o comando disse** — lição L14. Para ver o erro, use a API com `reviewers[]` ou
 `team_reviewers[]`.
 
-#### Neste repositório, hoje, não há revisor possível
+#### O revisor é a **equipe** `the-band`, não uma pessoa
 
-Levantado em 2026-08-10:
+```bash
+gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers \
+  -f 'team_reviewers[]=the-band'
+```
+
+**Pedir à equipe é o que funciona, e é melhor que pedir a uma pessoa.** O pedido fica
+aberto para qualquer membro, e o autor — `paulossjunior`, sendo membro — não pode
+atendê-lo. A restrição do GitHub passa a **produzir** a independência que o princípio
+VII exige, em vez de bloqueá-la. Quem revisa é `Adylla027` ou `EduardoNFraiz`.
+
+`gh pr create --reviewer paulossjunior` **não** funciona: o autor não pode ser
+revisor. Não substitua por outro login para o comando passar.
+
+**Histórico, porque a causa não era óbvia.** Até 2026-08-10 não havia revisor possível
+neste repositório:
 
 | Fato | Evidência |
 |---|---|
@@ -607,12 +621,12 @@ Levantado em 2026-08-10:
 | revisão só se pede a colaborador | `422 Reviews may only be requested from collaborators` |
 | o autor não pode ser revisor | `422 Review cannot be requested from pull request author` |
 
-**Zero revisores possíveis**, porque o único colaborador é o autor de todo PR. O
-princípio VII é **inalcançável** aqui — não atrasado.
+Resolvido concedendo `pull` — o mínimo que revisão exige — à equipe `the-band`. A
+exigência atravessou um sprint inteiro como "revisão pendente" e custou **duas
+chamadas de API**: era pendência de permissão, não de agenda. Lição L15.
 
-Destrava-se com permissão, não com processo: dar acesso ao repositório à equipe
-`the-band` (que tem `Adylla027` e `EduardoNFraiz`) ou a outra pessoa. Enquanto não
-acontecer, registre a lacuna com estas quatro evidências. Nunca invente revisor.
+**Antes de escrever regra que dependa de permissão, verifique a permissão.**
+`collaborators` e `teams` respondem em duas chamadas se a regra é cumprível.
 
 ### Contrato da API antes da implementação
 

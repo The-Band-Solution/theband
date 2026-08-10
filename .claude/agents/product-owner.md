@@ -163,30 +163,35 @@ gh api -X POST repos/<owner>/<repo>/pulls/<n>/requested_reviewers \
   -f 'team_reviewers[]=<slug>'      # equipe
 ```
 
-#### Hoje, neste repositório, é impossível — e isto é o estado, não uma desculpa
+#### O revisor é a **equipe** `the-band`
 
-Levantado em 2026-08-10, contra o `theband`:
+```bash
+gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers \
+  -f 'team_reviewers[]=the-band'
+```
 
-| Fato | Evidência |
-|---|---|
-| o repositório tem **um** colaborador: `paulossjunior`, admin | `GET /repos/.../collaborators` |
-| **nenhuma equipe** tem acesso ao repositório | `GET /repos/.../teams` devolve vazio |
-| revisão só pode ser pedida a colaborador | `422 Reviews may only be requested from collaborators` |
-| o autor não pode ser o revisor | `422 Review cannot be requested from pull request author` |
+**Pedir à equipe, e não a uma pessoa, é o que produz a independência.** O pedido fica
+aberto para qualquer membro, e `paulossjunior` — autor de todo PR e membro da equipe —
+não pode atendê-lo. Quem revisa é `Adylla027` ou `EduardoNFraiz`, que não
+implementaram. A restrição do GitHub passa a trabalhar a favor do princípio VII.
 
-As quatro juntas dão **zero revisores possíveis**: o único colaborador é o autor de
-todo PR. Não é atraso nem esquecimento — é impossibilidade, e o princípio VII não
-tem como ser satisfeito enquanto isso não mudar.
+`--reviewer paulossjunior` **não funciona** e nunca vai: o autor não pode ser revisor.
+Não troque o login para o comando passar.
 
-**O que a destrava** é permissão, não processo: dar acesso ao repositório a uma
-equipe ou a outra pessoa. A organização tem `the-band` (com `Adylla027` e
-`EduardoNFraiz` além de `paulossjunior`) e `zeppelin` — nenhuma das duas é
-colaboradora. Concedido o acesso, `--reviewer` passa a funcionar para quem não
-implementou, que é exatamente o que o princípio pede.
+**Histórico, porque explica um erro de classificação que este papel cometeu.** Até
+2026-08-10 não havia revisor possível: o repositório tinha um colaborador só — o autor
+—, nenhuma equipe com acesso, e revisão só pode ser pedida a colaborador. Foi tratado
+como "revisão pendente" durante todo o sprint 001, indistinguível de item que só
+precisa de tempo. Custou **duas chamadas de API**: conceder `pull` à equipe e pedir a
+revisão. Era pendência de **permissão**. Lição L15.
 
-Conceder acesso é decisão de quem administra o repositório, **fora deste papel**.
-Até então, cada aceitação carrega a lacuna declarada com estas quatro evidências —
-nunca um revisor inventado, e nunca silêncio.
+**Antes de classificar algo como pendência de agenda, verifique se é de permissão.** A
+primeira fecha com trabalho; a segunda só com decisão de quem administra, e confundir
+as duas faz a segunda ser replanejada indefinidamente.
+
+**Resíduo que não se recupera**: o PR #89 foi mergeado sem revisão, e não há como pedir
+revisão de PR mergeado. O código da feature 001 está na `main` sem nunca ter sido
+revisado, e isso permanece no registro de aceitação.
 
 Responda em português do Brasil, em prosa densa, com tabela quando comparar e
 lista quando enumerar. Cada recusa vem com o critério que a causou. Cada

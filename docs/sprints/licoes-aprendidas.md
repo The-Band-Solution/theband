@@ -393,3 +393,32 @@ item pendente numa lista, indistinguível de um item que só precisa de tempo.
 
 **Aplicada em**: Sprint 002 — a herança do sprint 001 passou a classificar a revisão
 independente como bloqueada **estruturalmente**, e não como atrasada.
+
+**Resolvida em 2026-08-10, com duas chamadas de API:**
+
+```text
+PUT /orgs/The-Band-Solution/teams/the-band/repos/The-Band-Solution/theband
+    permission=pull
+
+POST /repos/.../pulls/91/requested_reviewers
+    team_reviewers[]=the-band          → {"equipes":["the-band"]}
+```
+
+`pull` é o mínimo que revisão exige — quem revisa precisa ler, não escrever. Elevar a
+`push` é decisão separada, e não é necessária para o princípio VII.
+
+**Pedir à equipe é melhor que pedir a uma pessoa**, e não por conveniência: o pedido
+fica aberto para qualquer membro, e o autor, sendo membro, simplesmente não pode
+atendê-lo. A restrição do GitHub passa a **produzir** a independência que o princípio
+exige, em vez de bloqueá-la.
+
+**O que isso ensina, e é o ponto da lição.** A exigência atravessou um sprint inteiro
+como "revisão pendente", indistinguível de qualquer item que só precisa de tempo. O
+que faltava eram **duas chamadas de API**. A pendência não era de esforço nem de
+agenda; era de permissão, e a única razão de ter durado tanto é que ninguém perguntou
+*se* era possível antes de planejar *quando* seria feito.
+
+**Fica um resíduo que não se recupera**: o PR #89 já foi mergeado sem revisão, e não
+existe como pedir revisão de PR mergeado. O código da feature 001 está na `main` sem
+nunca ter sido revisado, e isso permanece no registro de aceitação — a correção vale
+de #91 em diante.
