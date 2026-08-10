@@ -539,3 +539,61 @@ evidência, de boa-fé, e errado.
 
 **Aplicada em**: Sprint 002 — a avaliação de D01 encontrou o defeito antes da
 aceitação, e a correção está registrada no `aceitacao.md`.
+
+### L19 — Marcar ausência por tenant marca o que é de outra organização
+
+**O que aconteceu.** A demonstração da feature 003 mostrou `Paulo` com uma única
+organização vigente — `leds-conectafapes` — quando `The-Band-Solution` também continua
+sendo observada. E `EduardoNFraiz` apareceu com **nenhuma** vigente, estando em duas
+organizações ativas.
+
+Nenhum dos dois foi marcado pelo encerramento. O que estava marcado eram os **vínculos**,
+e a marca tinha vindo de antes:
+
+```text
+organização        vínculos  marcados  primeira marca
+The-Band-Solution         7         7  2026-08-10 00:44:30
+leds-conectafapes        70        55  2026-08-10 00:44:30
+ifesserra-lab             5         5  2026-08-10 23:21:59   ← o encerramento
+```
+
+Os dois primeiros no **mesmo instante**, muito antes de a feature 003 existir.
+
+**Por que aconteceu.** `mark_evidence_no_longer_observed/2` é chamada ao fim de cada
+coleta para marcar o que não apareceu nela, e filtra por **tenant**:
+
+```elixir
+where: e.tenant_id == ^tenant_id and e.last_observed_at < ^collection_started_at
+```
+
+Sem escopo de organização. Então coletar `The-Band-Solution` marca os vínculos de
+`leds-conectafapes`, porque eles não apareceram *naquela* coleta — e não apareceriam,
+porque são de outra organização.
+
+**Por que importa.** É defeito da feature 001, e a semântica que ele quebra é a mais
+central do projeto: a marca significa "a origem deixou de mostrar", e passou a significar
+"a última coleta não era desta organização". Toda consulta que pede só o vigente devolve
+menos do que a plataforma observa — foi exatamente o que a demonstração mostrou.
+
+**Não foi corrigido na feature 003, de propósito.** Emendar aqui misturaria a correção de
+um defeito antigo com a entrega de uma feature, e é a mesma razão pela qual a dívida de
+`connected_tools.status` também não foi tocada.
+
+**O que torna a lição maior que o defeito.** A feature 002 deu à plataforma exatamente o
+vocabulário que falta aqui — `organization_id` na equipe, e o caminho pessoa → equipe →
+organização. Ela corrigiu o modelo e **não revisitou quem já usava a semântica antiga**.
+Acrescentar a capacidade de escopar não escopa nada por si.
+
+**Como aplicar.**
+
+1. **Feature que acrescenta uma dimensão deve procurar quem decide sem ela.** Ao
+   introduzir escopo por organização, a pergunta seguinte é "que consultas e escritas hoje
+   decidem por tenant e deveriam decidir por organização?";
+2. **Marca de ausência precisa do escopo da observação que a produziu.** "Não apareceu"
+   só significa algo em relação ao que foi olhado;
+3. **Demonstrar no dado real acha o que o teste não acha.** Os 151 testes passam: cada um
+   cria o seu cenário, e num cenário de uma organização a falta de escopo é invisível. O
+   defeito exige duas organizações e duas coletas em sequência — que é o que o banco de
+   desenvolvimento tem e o teste não tinha.
+
+**Aplicada em**: registrada durante a feature 003, para correção em feature própria.
