@@ -190,16 +190,22 @@ defmodule TheBandWeb.SourceLive.Index do
           <div>
             <div class="flex items-center gap-2">
               <span class="font-semibold text-lg">{tool.tool_type}</span>
-              <span class={[
-                "badge",
-                tool.status == "active" && "badge-success",
-                tool.status == "needs_attention" && "badge-warning",
-                tool.status == "disabled" && "badge-ghost"
-              ]}>
-                {status_label(tool.status)}
-              </span>
+              <%!-- Um selo só. Mostrar "ativa" ao lado de "observação encerrada" fazia o
+                    cartão afirmar duas coisas contrárias — o estado de observação vence,
+                    porque é ele que decide se a plataforma coleta (FR-022). --%>
               <span :if={@ended[tool.id]} class="badge badge-ghost">
                 observação encerrada
+              </span>
+              <span
+                :if={!@ended[tool.id]}
+                class={[
+                  "badge",
+                  tool.status == "active" && "badge-success",
+                  tool.status == "needs_attention" && "badge-warning",
+                  tool.status == "disabled" && "badge-ghost"
+                ]}
+              >
+                {status_label(tool.status)}
               </span>
             </div>
             <div class="text-sm opacity-70">{tool.instance_url}</div>
