@@ -175,3 +175,9 @@ properties:
         semantics:
           type: object
           properties: { description: { type: string } }
+        # Opcional, como em concepts. Existe para o caso em que o módulo vem de uma
+        # ontologia publicada e uma relação dele **não** vem: sem isto, a relação que
+        # o projeto acrescentou fica indistinguível das que SEON declara, e a
+        # proveniência do módulo — reference_ontology — passaria a cobrir algo que
+        # não é da referência.
+        provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }

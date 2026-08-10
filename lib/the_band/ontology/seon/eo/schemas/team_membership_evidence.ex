@@ -72,19 +72,42 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence do
       :team_id,
       :person_external_id,
       :team_external_id,
-      :platform_access_level,
       :source_system,
       :source_instance,
       :observed_at,
       :last_observed_at
     ])
+    |> require_access_level_when_observed()
     |> validate_inclusion(:platform_access_level, @access_levels,
       message: "é nível de acesso na plataforma; só MAINTAINER ou MEMBER existem na origem"
+    )
+    |> check_constraint(:platform_access_level,
+      name: :eo_evidence_github_has_access_level,
+      message: "vínculo observado no GitHub precisa trazer o nível de acesso"
     )
     |> unique_constraint(
       [:tenant_id, :source_system, :source_instance, :person_external_id, :team_external_id],
       name: :eo_team_membership_evidence_application_reference_index
     )
+  end
+
+  # O nível de acesso é obrigatório onde a origem o fornece, e nulo onde ela não
+  # conhece o vínculo. A equipe derivada não existe no GitHub, então o vínculo com
+  # ela também não, e não há nível a informar sobre algo que a origem ignora —
+  # gravar `MEMBER` para preencher faria "observado como membro comum" e "não há
+  # vínculo na origem" ficarem indistinguíveis em toda consulta futura (FR-006,
+  # research.md R2).
+  #
+  # A regra vive aqui **e** no banco. O `check_constraint` acima é o que vale quando
+  # a gravação não passa por este changeset — script, console, correção manual.
+  defp require_access_level_when_observed(changeset) do
+    if get_field(changeset, :source_system) == "github" do
+      validate_required(changeset, [:platform_access_level],
+        message: "vínculo observado no GitHub precisa trazer o nível de acesso"
+      )
+    else
+      changeset
+    end
   end
 
   @doc "FR-021 — vínculo ainda sem papel organizacional atribuído."

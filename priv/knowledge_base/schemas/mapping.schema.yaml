@@ -130,6 +130,11 @@ properties:
         source_path:     { type: string }
         target_ontology: { type: string }
         target_concept:  { type: string }
+        # Existe para o caminho que não é óbvio a partir do payload — quando o valor
+        # vem do pai da consulta e o conector o embute no nó, por exemplo. Sem isto a
+        # explicação teria de ir para `limitations`, onde descreveria como limitação
+        # algo que é decisão de coleta.
+        note:            { type: string }
   limitations:
     type: array
     minItems: 1

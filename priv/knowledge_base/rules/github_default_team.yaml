@@ -1,0 +1,139 @@
+derivation_rule:
+  id: github.default_team
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "Equipe padrão para membros fora de qualquer time"
+  description:
+    pt-BR: >
+      Define a equipe que a plataforma cria, com o nome da organização observada,
+      para acolher os membros que não integram nenhum time daquela organização.
+
+      A regra existe porque o caminho pessoa -> organização passa pela equipe. EO
+      não define relação direta entre pessoa e organização: o vínculo passaria por
+      papel organizacional, que o GitHub não fornece. Então quem não está em time
+      algum não pertence a organização alguma, do ponto de vista do modelo — e
+      isso mede errado uma organização real.
+
+      O caso não é hipotético. Medido em 2026-08-10: ifesserra-lab tem 5 membros e
+      0 times; das 72 pessoas conhecidas, 18 não estavam em time nenhum, e várias
+      delas em organizações que têm times.
+
+      Esta equipe NÃO EXISTE NA FERRAMENTA DE ORIGEM. Toda a regra existe para
+      que isso permaneça verdadeiro e visível — em cada consulta, em cada
+      contagem, em cada tela.
+
+  inputs:
+    - organization.membersWithRole
+    - organization.teams
+    - team.members
+
+  availability:
+    required_api_fields: [organization.membersWithRole, organization.teams]
+    required_scopes: [read:org]
+
+  # ---------------------------------------------------------------------------
+  # Quando a equipe existe
+  # ---------------------------------------------------------------------------
+  evaluated_at: end_of_collection
+  evaluation_note:
+    pt-BR: >
+      Ao fim da coleta, depois de equipes e integrantes processados. É o único
+      momento em que se sabe quem ficou de fora: avaliar antes usaria um conjunto
+      de times incompleto e acolheria gente que estava em time ainda não coletado.
+
+  conditions:
+    - when: "a organização tem membros fora de todas as suas equipes observadas"
+      then: "a equipe derivada existe, e recebe esses membros"
+    - when: "todos os membros estão em equipes observadas"
+      then: "nenhuma equipe derivada é criada"
+    - when: "a derivada existia e ficou sem integrantes"
+      then: "marcada como não mais observada; nunca apagada"
+
+  rejected_alternative:
+    pt-BR: >
+      Criar a equipe derivada sempre, mesmo vazia, foi rejeitado: seria registro
+      sem referente, e faria a contagem de equipes derivadas crescer com o número
+      de organizações sem significar nada.
+
+  # ---------------------------------------------------------------------------
+  # O que é materializado, e com qual proveniência
+  # ---------------------------------------------------------------------------
+  materializes:
+    - concept: eo.organizational_team
+      from: organization
+      confidence: high
+      provenance_override:
+        source_system: the_band
+        external_id_pattern: "derived:default_team:<external_id da organização>"
+        note: >
+          source_system é o que distingue observada de derivada, e nenhuma coluna
+          nova foi criada para isso: a que responde já existe por exigência do
+          princípio III. O external_id é determinístico para que reprocessar a
+          mesma organização produza o mesmo identificador e o upsert reconheça, em
+          vez de duplicar.
+
+  # ---------------------------------------------------------------------------
+  # O que NÃO é materializado, e por quê
+  # ---------------------------------------------------------------------------
+  does_not_materialize:
+    - concept: eo.organizational_role
+      reason:
+        pt-BR: >
+          Mesma razão da regra github.team_membership_evidence: o GitHub não
+          expõe papel organizacional. A equipe derivada não muda isso.
+    - concept: eo.team_membership
+      reason:
+        pt-BR: >
+          Depende do papel. O vínculo com a equipe derivada é evidência, como o
+          vínculo com equipe observada, e por mais um motivo: a origem não conhece
+          este vínculo, então não há nem o nível de acesso que ela informa nos
+          outros.
+
+  # ---------------------------------------------------------------------------
+  # O vínculo com a equipe derivada
+  # ---------------------------------------------------------------------------
+  observed_link:
+    name:
+      pt-BR: "Vínculo de pessoa à equipe derivada"
+    persisted_as: team_membership_evidence
+    attributes:
+      - { name: person_external_id, from: organization.membersWithRole.node.id }
+      - { name: team_external_id, from: "derived:default_team:<organização>" }
+      - name: platform_access_level
+        from: null
+        note: >
+          NULO, e não MEMBER. MAINTAINER e MEMBER são o que a origem informa sobre
+          um vínculo que ela conhece; deste ela não sabe. Gravar MEMBER faria
+          observado como membro comum e a origem não conhece este vínculo ficarem
+          indistinguíveis em toda consulta futura. Ausência é nula, nunca zero.
+      - { name: observed_at, from: collected_at }
+
+  limitations:
+    - A equipe não existe na ferramenta de origem. Comparar a contagem de equipes da plataforma com a do GitHub exige descontar as derivadas, e é por isso que a contagem as separa.
+    - O vínculo com a equipe derivada não tem nível de acesso, porque a origem não conhece o vínculo. Consultas que agrupem por nível encontram nulo, e nulo aqui significa não informado, não ausente de privilégio.
+    - A avaliação é por organização. A mesma pessoa pode estar na equipe observada de uma organização e na derivada de outra, e as duas coisas são verdade ao mesmo tempo.
+    - Um time criado no GitHub depois não promove a equipe derivada a observada: são registros distintos, com origens distintas. A derivada perde quem migrar e desaparece por esvaziamento.
+    - A equipe derivada não é eo.project_team. É eo.organizational_team, como toda equipe vinda desta fonte.
+
+  gap_reporting:
+    metric: derived_teams
+    note: >
+      A quantidade de equipes derivadas é informação sobre a origem, não sobre a
+      plataforma: mede quantas organizações observadas mantêm gente fora de
+      qualquer time. Esconder o número faria a contagem de pessoas por organização
+      fechar sem que ninguém soubesse por quê.
+
+  fallback: skip
+
+  provenance:
+    source_type: project_decision
+    note: >
+      Decisão da pessoa mantenedora em 2026-08-10, registrada no achado F4b da
+      análise ontológica da feature 002. Não vem da documentação do GitHub nem da
+      tese: é escolha de modelagem deste projeto, tomada diante de um defeito
+      medido — 18 de 72 pessoas sem organização alcançável, e uma organização
+      inteira sem nenhum time.

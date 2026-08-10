@@ -274,6 +274,45 @@ rules:
         chave estrangeira para aquilo de que depende — vale para relator kinds e
         para as tabelas discriminadoras de conjuntos sobrepostos.
 
+  - id: t3d.association_foreign_keys
+    step: 3
+    operation: table_generation
+    name: { pt-BR: "Chaves de associação", en: "Association foreign keys" }
+    applies_to:
+      relation_type: association
+      target_is_kind: true
+      target_cardinality: one
+    action: add_foreign_keys
+    source_of_rule: proposed
+    rationale:
+      pt-BR: >
+        Associação com destino em kind e cardinalidade many → one vira chave
+        estrangeira na tabela do kind de origem. Sem esta regra, declarar a relação
+        não produz coluna alguma: a tese cobre parthood e dependência de relator, e
+        associação simples ficava de fora.
+
+        A ausência dela é a causa raiz do defeito que a feature 002 corrige. Como
+        declarar a relação não fazia a coluna aparecer, as colunas foram escritas à
+        mão na migração e ficaram nulas em 100% dos registros, contra a ADR 0004 D4.
+
+        Quando a origem é subkind elevado, a chave é **anulável** e a
+        obrigatoriedade vira check_constraint ligada ao valor do discriminador. Uma
+        chave obrigatória na tabela do kind forçaria todos os subtipos a tê-la, e
+        isso é falso: a relação equipe↔organização parte de eo.organizational_team,
+        e eo.project_team liga-se a um projeto — equipe de projeto entre
+        organizações não pertence a uma organização só.
+
+        A regra é aditiva de propósito. Parthood e mediação continuam gerando
+        exatamente o que geram hoje, e a derivação de toda ontologia que não
+        declare associação com estas características sai idêntica.
+    constraints:
+      - "many → many não gera chave: exigiria tabela associativa, que é decisão de modelagem e não de tradução"
+      - "destino subkind não gera chave: subkind não tem tabela para a chave apontar"
+      - "origem que não é subkind elevado não recebe check_constraint: não há discriminador a que ligar a obrigatoriedade"
+      - "a saída anota a origem de cada chave, para que o modelo derivado diga qual regra produziu qual coluna"
+    examples:
+      - "eo.organizational_team_belongs_to_organization → eo_teams.organization_id anulável, com check ligado a type = 'organizational_team'."
+
   # ============================== PASSO 4 — REDE DE ONTOLOGIAS (extensão nossa)
   # O paper transforma um modelo conceitual isolado. A rede acrescenta o caso de
   # um conceito especializar um kind que mora em outra ontologia. Estas três

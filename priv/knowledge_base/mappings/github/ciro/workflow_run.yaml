@@ -30,6 +30,8 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.commit_artifact_copy
 limitations:
+  - >
+    A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.
   - Nem todo workflow é integração contínua; workflows de release mapeiam para CDRO.
   - conclusion "cancelled" e "skipped" não são insucesso do processo; classificar separadamente.
   - updated_at aproxima o término, mas não é o instante exato de fim.

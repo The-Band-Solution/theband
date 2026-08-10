@@ -1,0 +1,105 @@
+ontology: eo
+provenance:
+  source_type: project_decision
+  note: >
+    Primeiras perguntas de competência de EO — a ontologia não tinha nenhuma, achado
+    F7 da análise da feature 002. Não vêm da tese: são as perguntas que a plataforma
+    precisa responder sobre pessoas, equipes e organizações observadas, escritas para
+    que a próxima alteração em EO tenha contra o que ser verificada.
+
+    Todas usam apenas conceitos e relações declarados em EO. Nenhuma depende de dado
+    semeado: são verificáveis contra a declaração, não contra uma base povoada.
+
+competency_questions:
+  - id: eo.cq01
+    question:
+      pt-BR: "Quais equipes organizacionais pertencem a uma organização?"
+      en: "Which organizational teams belong to an organization?"
+    concepts: [eo.organization, eo.organizational_team]
+    relations: [eo.organizational_team_belongs_to_organization]
+    expected_query_type: list
+    rationale: >
+      É a pergunta mais direta que a relação acrescentada na feature 002 torna
+      respondível. Antes dela a organização e suas equipes coexistiam na base sem
+      vínculo declarado, e a resposta não existia — as colunas que a fingiam foram
+      escritas à mão e ficaram nulas em 100% dos registros.
+
+      Vale para eo.organizational_team e não para eo.team: eo.project_team liga-se a
+      um projeto, e uma equipe de projeto entre organizações não pertence a nenhuma
+      delas.
+
+  - id: eo.cq02
+    question:
+      pt-BR: "A quais organizações uma pessoa está vinculada?"
+      en: "Which organizations is a person linked to?"
+    concepts:
+      [eo.person, eo.team_member, eo.team_membership, eo.organizational_team, eo.organization]
+    relations:
+      [eo.team_member_is_person, eo.membership_allocates_member, eo.membership_to_team,
+       eo.organizational_team_belongs_to_organization]
+    expected_query_type: list
+    rationale: >
+      **EO não define relação direta entre pessoa e organização, e esta pergunta não
+      inventa uma.** O caminho passa pela equipe: a pessoa é membro de equipe por uma
+      alocação, e a equipe organizacional pertence à organização.
+
+      A consequência é declarada e não é acidente: **pessoa que não está em equipe
+      alguma não aparece em organização alguma.** Vínculo direto exigiria papel
+      organizacional, que a ferramenta de origem não fornece — o mesmo motivo pelo
+      qual a participação em equipe é tratada como evidência observada, e não como
+      alocação.
+
+      É essa lacuna que a decisão da equipe derivada endereça: organização cujos
+      membros não estão em equipe nenhuma recebe uma equipe com o nome dela, para que
+      o caminho exista.
+
+  - id: eo.cq03
+    question:
+      pt-BR: "Quais pessoas foram observadas em uma organização?"
+      en: "Which people were observed in an organization?"
+    concepts:
+      [eo.organization, eo.organizational_team, eo.team_membership, eo.team_member, eo.person]
+    relations:
+      [eo.organizational_team_belongs_to_organization, eo.membership_to_team,
+       eo.membership_allocates_member, eo.team_member_is_person]
+    expected_query_type: list
+    rationale: >
+      A inversa de eo.cq02, e não é redundante: percorre o mesmo caminho na direção em
+      que a plataforma de fato consulta — a partir da organização observada.
+
+      Duas coisas que a resposta **não** afirma. Não afirma que a pessoa trabalha na
+      organização: afirma que foi observada em uma equipe que pertence a ela.
+      "Observada" é o limite do que a origem sustenta. E a mesma pessoa pode aparecer
+      em mais de uma organização, porque a identidade é a conta e não o indivíduo — a
+      soma das respostas por organização pode ser maior que o total de pessoas
+      conhecidas, e isso está correto.
+
+  - id: eo.cq04
+    question:
+      pt-BR: "Quais unidades organizacionais compõem uma organização?"
+      en: "Which organizational units are part of an organization?"
+    concepts: [eo.organization, eo.organizational_unit]
+    relations: [eo.organizational_unit_part_of_organization]
+    expected_query_type: list
+    rationale: >
+      Existe para manter visível a distinção que a feature 002 quase apagou. Unidade
+      organizacional é **parte** da organização; equipe organizacional **pertence** a
+      ela. Duas perguntas separadas, dois tipos de relação, e ver as duas lado a lado
+      é o que impede alguém de declarar a segunda como parthood para conveniência do
+      derivador.
+
+  - id: eo.cq05
+    question:
+      pt-BR: "Quais papéis organizacionais uma organização reconhece?"
+      en: "Which organizational roles does an organization recognize?"
+    concepts: [eo.organization, eo.organizational_role]
+    relations: [eo.recognizes]
+    expected_query_type: list
+    rationale: >
+      A pergunta que explica por que as outras param onde param. O papel
+      organizacional é o que ligaria pessoa a organização sem passar por equipe, e a
+      ferramenta de origem não o fornece: MAINTAINER e MEMBER são nível de acesso na
+      plataforma, não cargo.
+
+      Hoje a resposta é vazia para toda organização observada, e vazia é a resposta
+      certa — não zero, e não uma inferência a partir do nível de acesso.

@@ -29,7 +29,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
 
   @comparable %{
     Organization => [:name, :login, :parent_organization_id],
-    Person => [:name, :email, :login, :account_type, :organization_id],
+    Person => [:name, :email, :login, :account_type],
     Team => [:type, :name, :slug, :organization_id, :external_created_at]
   }
 
@@ -42,9 +42,168 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           {:ok, Person.t()} | {:error, Ecto.Changeset.t()}
   def upsert_person_from_source(tenant, attrs), do: upsert(Person, tenant, attrs)
 
+  @doc """
+  Grava a equipe, resolvendo a organização pelo identificador externo dela.
+
+  `organization_external_id` chega do mapeamento, que o lê do payload. A resolução
+  para `organization_id` acontece **aqui**, e não no conector, por uma razão que
+  importa: o reprocessamento (FR-017) roda a partir do payload preservado, sem
+  contexto de coleta e sem consultar a origem. Resolver no conector faria a coleta
+  produzir a organização e o reprocessamento produzir nulo, para o mesmo payload.
+
+  Organização não encontrada deixa `organization_id` nulo em vez de falhar. A equipe
+  existe e foi observada; o que falta é o vínculo, e a restrição do banco é quem
+  decide se essa ausência é tolerável — ela é, para `project_team`, e não é para
+  `organizational_team`.
+  """
   @spec upsert_team_from_source(Tenant.t(), map()) ::
           {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
-  def upsert_team_from_source(tenant, attrs), do: upsert(Team, tenant, attrs)
+  def upsert_team_from_source(tenant, attrs) do
+    attrs = attrs |> normalize() |> resolve_organization(tenant)
+    upsert(Team, tenant, attrs)
+  end
+
+  defp resolve_organization(%{organization_external_id: external_id} = attrs, %Tenant{id: tid})
+       when is_binary(external_id) do
+    org_id =
+      Repo.one(
+        from o in Organization,
+          where:
+            o.tenant_id == ^tid and o.external_id == ^external_id and
+              o.source_system == ^attrs[:source_system],
+          select: o.id
+      )
+
+    attrs |> Map.delete(:organization_external_id) |> Map.put(:organization_id, org_id)
+  end
+
+  defp resolve_organization(attrs, _tenant), do: Map.delete(attrs, :organization_external_id)
+
+  @doc """
+  Atribui a organização a uma equipe já coletada (T011).
+
+  Existe separada de `upsert_team_from_source/2` porque não é coleta: nada foi
+  observado agora, e a proveniência da equipe não muda. Só o vínculo passa a existir,
+  a partir de dado que já estava preservado.
+
+  Não aceita `nil`: apagar o vínculo não é retrofito, e a assinatura recusar já evita
+  o uso errado.
+  """
+  @spec assign_team_organization(Tenant.t(), Team.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def assign_team_organization(%Tenant{}, %Team{} = team, organization_id)
+      when is_binary(organization_id) do
+    team
+    |> Team.from_source_changeset(%{organization_id: organization_id})
+    |> Repo.update()
+  end
+
+  @derived_source "the_band"
+  @derived_prefix "derived:default_team:"
+
+  @doc """
+  A equipe derivada de uma organização — regra `github.default_team` (FR-004, FR-005).
+
+  Recebe a **organização já persistida**, e não o identificador externo dela, porque a
+  equipe derivada só existe em função da organização: sem organização não há o que
+  derivar, e receber o struct torna isso erro de compilação em vez de um `nil`
+  descoberto no banco.
+
+  **Quem chama não decide a proveniência.** `source_system` e `external_id` são
+  montados aqui, e é o que impede o único jeito de esta feature mentir — gravar uma
+  equipe derivada como se fosse observada. Não há parâmetro que permita isso.
+
+  O `external_id` é determinístico a partir da organização, então reprocessar produz o
+  mesmo identificador, o upsert reconhece, e nada duplica.
+  """
+  @spec upsert_derived_team(Tenant.t(), Organization.t(), map()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def upsert_derived_team(%Tenant{} = tenant, %Organization{} = organization, attrs \\ %{}) do
+    now = DateTime.utc_now(:second)
+
+    attrs =
+      attrs
+      |> normalize()
+      |> Map.merge(%{
+        type: "organizational_team",
+        name: organization.name || organization.login,
+        organization_id: organization.id,
+        source_system: @derived_source,
+        source_instance: organization.source_instance,
+        external_id: @derived_prefix <> organization.external_id,
+        collected_at: now,
+        last_observed_at: now,
+        no_longer_observed_at: nil
+      })
+
+    upsert(Team, tenant, attrs)
+  end
+
+  @doc """
+  Vínculo de uma pessoa com a equipe derivada (FR-006).
+
+  Sem nível de acesso, e a função **não aceita um**: a origem não conhece este
+  vínculo, então não há o que ela informe sobre ele. `MAINTAINER` e `MEMBER` são o que
+  ela diz de vínculos que conhece.
+  """
+  @spec record_derived_team_membership(Tenant.t(), map()) ::
+          {:ok, TeamMembershipEvidence.t()} | {:error, Ecto.Changeset.t()}
+  def record_derived_team_membership(%Tenant{} = tenant, attrs) do
+    attrs =
+      attrs
+      |> normalize()
+      |> Map.merge(%{
+        platform_access_level: nil,
+        source_system: @derived_source
+      })
+
+    record_team_membership_evidence(tenant, attrs)
+  end
+
+  @doc """
+  A equipe derivada que ficou sem integrantes é **marcada**, nunca apagada (T023, FR-008).
+
+  Uma equipe que existiu e esvaziou é informação: diz que aquela organização mantinha
+  gente fora de qualquer time, e deixou de manter. Apagar perderia isso, e a próxima
+  coleta recriaria a equipe como se fosse nova.
+
+  Os vínculos dela também não são apagados — ficam marcados como não mais observados
+  pelo mesmo mecanismo que trata a ausência em equipe observada. Ausência não é
+  remoção, e a regra não muda por a equipe ser derivada.
+  """
+  @spec retire_derived_team(Tenant.t(), Team.t()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def retire_derived_team(%Tenant{id: tenant_id}, %Team{} = team) do
+    now = DateTime.utc_now(:second)
+
+    Repo.update_all(
+      from(e in TeamMembershipEvidence,
+        where:
+          e.tenant_id == ^tenant_id and e.team_id == ^team.id and
+            is_nil(e.no_longer_observed_at)
+      ),
+      set: [no_longer_observed_at: now]
+    )
+
+    team
+    |> Team.from_source_changeset(%{no_longer_observed_at: now})
+    |> Repo.update()
+  end
+
+  @doc "Se a equipe é derivada, pela proveniência — nenhuma coluna nova responde isto."
+  @spec derived_team?(Team.t()) :: boolean()
+  def derived_team?(%Team{source_system: @derived_source, external_id: external_id}),
+    do: String.starts_with?(external_id || "", @derived_prefix)
+
+  def derived_team?(%Team{}), do: false
+
+  @doc "Prefixo do identificador de equipe derivada, para consultas e invariantes."
+  @spec derived_prefix() :: String.t()
+  def derived_prefix, do: @derived_prefix
+
+  @doc "Sistema de origem das entidades que a plataforma deriva."
+  @spec derived_source() :: String.t()
+  def derived_source, do: @derived_source
 
   # ------------------------------------------------------------------ evidência
 

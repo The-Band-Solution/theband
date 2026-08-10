@@ -43,11 +43,26 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate count_teams(tenant, opts \\ []), to: Queries
   defdelegate list_team_members(tenant, team_id, opts \\ []), to: Queries
   defdelegate list_organizations(tenant, opts \\ []), to: Queries
+  defdelegate list_person_organizations(tenant, person_id, opts \\ []), to: Queries
+  defdelegate fetch_organization_by_login(tenant_id, login), to: Queries
+  defdelegate organizations_by_person(tenant, person_ids), to: Queries
+  defdelegate fetch_organization!(tenant, organization_id), to: Queries
+  defdelegate list_people_without_team(tenant, organization_id), to: Queries
+  defdelegate fetch_derived_team(tenant, organization_id), to: Queries
+  defdelegate assign_team_organization(tenant, team, organization_id), to: Commands
+  defdelegate upsert_derived_team(tenant, organization, attrs \\ %{}), to: Commands
+  defdelegate record_derived_team_membership(tenant, attrs), to: Commands
+  defdelegate retire_derived_team(tenant, team), to: Commands
+  defdelegate derived_team?(team), to: Commands
+  defdelegate derived_prefix(), to: Commands
+  defdelegate derived_source(), to: Commands
   defdelegate count_evidence_pending_role(tenant, opts \\ []), to: Queries
 
   # ---------------------------------------------------------------- invariantes
 
   defdelegate check_evidence(attrs), to: Constraints
   defdelegate check_team(attrs), to: Constraints
+  defdelegate derived_team_declares_itself(attrs), to: Constraints
+  defdelegate derived_link_has_no_access_level(attrs), to: Constraints
   defdelegate countable_as_person?(attrs), to: Constraints
 end

@@ -18,6 +18,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
+  alias TheBand.RawData
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
 
@@ -92,6 +93,161 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     Repo.all(from o in Organization, where: o.tenant_id == ^tenant_id, order_by: o.name)
   end
 
+  @doc """
+  A organização observada com aquele `login`, ou `nil`.
+
+  Usada pelo retrofito para fechar a corrente `connected_tools.organization_login →
+  eo_organizations.login`. Devolve `nil` em vez de erro: organização de origem que
+  não está na base é lacuna a registrar no relatório, não exceção.
+  """
+  @spec fetch_organization_by_login(Ecto.UUID.t(), String.t()) :: Organization.t() | nil
+  def fetch_organization_by_login(tenant_id, login) do
+    Repo.one(
+      from o in Organization,
+        where: o.tenant_id == ^tenant_id and o.login == ^login,
+        limit: 1
+    )
+  end
+
+  @doc """
+  As organizações de uma pessoa, pelo caminho pessoa → equipe → organização.
+
+  **Não existe aresta direta entre pessoa e organização**, e criar uma seria o
+  segundo caminho que a especificação rejeitou: EO faz o vínculo passar por papel
+  organizacional, que o GitHub não fornece. O caminho aqui é o declarado em
+  `eo.cq02` — a evidência de participação em equipe, e a organização da equipe.
+
+  Três consequências que a assinatura não mostra:
+
+  - **quem não está em equipe alguma devolve lista vazia**, não erro. É informação:
+    a organização é conhecida e o vínculo não;
+  - **duas equipes da mesma organização devolvem uma organização.** A distinção é
+    por organização, não por vínculo;
+  - **vínculo que deixou de ser observado continua contando** (FR-009). Ausência
+    numa coleta não é remoção: a pessoa esteve naquela organização, e apagar o
+    vínculo ao primeiro silêncio da origem perderia isso. Quem quiser só o vigente
+    passa `only_observed: true`.
+  """
+  @spec list_person_organizations(Tenant.t(), Ecto.UUID.t(), keyword()) :: [Organization.t()]
+  def list_person_organizations(%Tenant{id: tenant_id}, person_id, opts \\ []) do
+    query =
+      from o in Organization,
+        join: t in Team,
+        on: t.organization_id == o.id and t.tenant_id == o.tenant_id,
+        join: e in TeamMembershipEvidence,
+        on: e.team_id == t.id and e.tenant_id == t.tenant_id,
+        where: o.tenant_id == ^tenant_id and e.person_id == ^person_id,
+        distinct: true,
+        order_by: o.name,
+        select: o
+
+    query
+    |> then(fn q ->
+      if opts[:only_observed], do: where(q, [_o, _t, e], is_nil(e.no_longer_observed_at)), else: q
+    end)
+    |> Repo.all()
+  end
+
+  @doc """
+  A organização daquele id, ou levanta.
+
+  Levanta de propósito: quem chama já a coletou nesta mesma sincronização, então
+  ausência aqui é defeito de programação e não estado do mundo.
+  """
+  @spec fetch_organization!(Tenant.t(), Ecto.UUID.t()) :: Organization.t()
+  def fetch_organization!(%Tenant{id: tenant_id}, organization_id) do
+    Repo.one!(
+      from o in Organization,
+        where: o.tenant_id == ^tenant_id and o.id == ^organization_id
+    )
+  end
+
+  @doc """
+  As pessoas de uma organização que **não** estão em nenhuma equipe observada dela.
+
+  É a entrada da regra `github.default_team`: exatamente quem a equipe derivada
+  existe para acolher.
+
+  **"De uma organização" precisa de definição, e a primeira versão desta função não a
+  tinha.** Ela devolvia toda pessoa do tenant fora das equipes daquela organização, o
+  que é coisa diferente: medido no banco real, `ifesserra-lab` — 5 membros — recebeu
+  **72** pessoas, o tenant inteiro. A equipe derivada teria afirmado que todos são de
+  todas as organizações.
+
+  A definição correta é **membro observado da organização**, e a observação existe:
+  a conta apareceu em `organization.membersWithRole`, e o payload está preservado.
+  `RawData.organization_member_external_ids/2` a lê, atravessando a mesma corrente do
+  retrofito. Não é aresta nova em EO — é leitura da coleta.
+
+  Automação fica fora: conta de bot não é pessoa, e acolhê-la inflaria o quadro que a
+  equipe derivada existe para completar.
+  """
+  @spec list_people_without_team(Tenant.t(), Ecto.UUID.t()) :: [Person.t()]
+  def list_people_without_team(%Tenant{id: tenant_id} = tenant, organization_id) do
+    organization = fetch_organization!(tenant, organization_id)
+    membros = RawData.organization_member_external_ids(tenant_id, organization.login)
+
+    em_equipe_observada =
+      from e in TeamMembershipEvidence,
+        join: t in Team,
+        on: t.id == e.team_id and t.tenant_id == e.tenant_id,
+        where: t.organization_id == ^organization_id and t.source_system != "the_band",
+        select: e.person_id
+
+    Repo.all(
+      from p in Person,
+        where:
+          p.tenant_id == ^tenant_id and p.account_type == "person" and
+            is_nil(p.no_longer_observed_at) and
+            p.external_id in ^membros and
+            p.id not in subquery(em_equipe_observada),
+        order_by: p.name
+    )
+  end
+
+  @doc "A equipe derivada de uma organização, se existir."
+  @spec fetch_derived_team(Tenant.t(), Ecto.UUID.t()) :: Team.t() | nil
+  def fetch_derived_team(%Tenant{id: tenant_id}, organization_id) do
+    Repo.one(
+      from t in Team,
+        where:
+          t.tenant_id == ^tenant_id and t.organization_id == ^organization_id and
+            t.source_system == "the_band",
+        limit: 1
+    )
+  end
+
+  @doc """
+  As organizações de várias pessoas de uma vez: `%{person_id => [organizações]}`.
+
+  Existe porque a tela de pessoas precisa da organização de **cada linha**, e chamar
+  `list_person_organizations/3` por linha faria uma consulta por pessoa — 72 idas ao
+  banco para desenhar uma página, e o custo cresce com a coleta.
+
+  Pessoa sem equipe alguma **não aparece no mapa**. Quem usa trata a ausência com
+  `Map.get(mapa, id, [])`: devolver a chave com lista vazia sugeriria que a ausência
+  foi verificada pessoa a pessoa, quando ela é consequência de não haver vínculo.
+  """
+  @spec organizations_by_person(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          Ecto.UUID.t() => [Organization.t()]
+        }
+  def organizations_by_person(_tenant, []), do: %{}
+
+  def organizations_by_person(%Tenant{id: tenant_id}, person_ids) do
+    from(o in Organization,
+      join: t in Team,
+      on: t.organization_id == o.id and t.tenant_id == o.tenant_id,
+      join: e in TeamMembershipEvidence,
+      on: e.team_id == t.id and e.tenant_id == t.tenant_id,
+      where: o.tenant_id == ^tenant_id and e.person_id in ^person_ids,
+      distinct: true,
+      order_by: o.name,
+      select: {e.person_id, o}
+    )
+    |> Repo.all()
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
   # ------------------------------------------------------------------- lacunas
 
   @doc """
@@ -125,7 +281,46 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> filter_account_type(opts[:account_type])
     |> filter_search(opts[:search])
     |> filter_observed(opts[:only_observed])
+    |> filter_missing_organization(opts[:missing_organization])
+    |> filter_organization(opts[:organization_id])
+    |> filter_origin(opts[:origin])
   end
+
+  # `:organization_id` sobre equipes é direto; sobre pessoas atravessa as equipes,
+  # porque não existe aresta direta pessoa↔organização (eo.cq02).
+  defp filter_organization(query, nil), do: query
+
+  defp filter_organization(%Ecto.Query{from: %{source: {_, Person}}} = query, organization_id) do
+    where(
+      query,
+      [p],
+      p.id in subquery(
+        from e in TeamMembershipEvidence,
+          join: t in Team,
+          on: t.id == e.team_id and t.tenant_id == e.tenant_id,
+          where: t.organization_id == ^organization_id,
+          select: e.person_id
+      )
+    )
+  end
+
+  defp filter_organization(query, organization_id),
+    do: where(query, [r], r.organization_id == ^organization_id)
+
+  # A origem é lida de `source_system`, e nenhuma coluna nova responde isto: a
+  # proveniência é obrigatória em toda linha por exigência do princípio III.
+  defp filter_origin(query, :observed), do: where(query, [r], r.source_system != "the_band")
+  defp filter_origin(query, :derived), do: where(query, [r], r.source_system == "the_band")
+  defp filter_origin(query, _), do: query
+
+  # Só para o retrofito: quais equipes ainda não têm organização. Não vira opção
+  # pública de listagem porque a pergunta é de manutenção, não de consulta — e uma
+  # opção pública convidaria a tela a exibir "equipes sem organização" como se fosse
+  # categoria do domínio, quando é lacuna a fechar.
+  defp filter_missing_organization(query, true),
+    do: where(query, [r], is_nil(r.organization_id))
+
+  defp filter_missing_organization(query, _), do: query
 
   defp filter_account_type(query, nil), do: query
 

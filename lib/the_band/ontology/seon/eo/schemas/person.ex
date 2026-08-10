@@ -35,7 +35,14 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Person do
     field :login, :string
     field :account_type, :string, default: "person"
 
-    field :organization_id, :binary_id
+    # Não há `organization_id` aqui, e é decisão, não omissão. A mesma conta aparece
+    # em mais de uma organização, e a pessoa é uma linha só porque a identidade é a
+    # Application Reference — uma coluna simples alternaria de valor a cada coleta, e
+    # a última organização sincronizada apagaria a anterior.
+    #
+    # EO também não define relação direta pessoa↔organização: o vínculo passaria por
+    # papel organizacional, que o GitHub não fornece. O caminho é
+    # pessoa → equipe → organização, declarado em `eo.cq02`.
 
     field :source_system, :string
     field :source_instance, :string
@@ -62,7 +69,6 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Person do
       :email,
       :login,
       :account_type,
-      :organization_id,
       :source_system,
       :source_instance,
       :external_id,

@@ -423,56 +423,109 @@ existe como pedir revisão de PR mergeado. O código da feature 001 está na `ma
 nunca ter sido revisado, e isso permanece no registro de aceitação — a correção vale
 de #91 em diante.
 
-### L16 — O autor do PR não é quem implementou, e isso inverteu a conclusão
+## Sprint 002 — Escopo por organização (2026-08-10 a 2026-08-16)
 
-**O que aconteceu.** Três PRs — #89, #90 e #91 — foram mergeados com
-`pulls/<n>/reviews` vazio, e o registro de aceitação concluiu que **a revisão
-independente não havia acontecido**. A pessoa mantenedora corrigiu: *"eu olhei e
-concordei, por isso não coloquei comentário."*
+### L17 — A derivação do esquema não era função da ontologia
 
-A leitura ocorreu. Faltava o registro, não a revisão.
+**O que aconteceu.** A tarefa T004 exigia uma regressão obrigatória: acrescentar a
+regra de associação ao derivador e conferir que **a derivação de todas as outras
+ontologias sai idêntica**. A comparação acusou dez das onze ontologias como
+alteradas.
 
-**Por que a conclusão estava errada.** O raciocínio era: o GitHub diz que o autor é
-`paulossjunior`; o princípio VII exige revisor diferente de quem implementou; logo
-`paulossjunior` não pode revisar. A premissa é falsa.
+Nenhuma tinha mudado. Três execuções do **mesmo código**, sobre a **mesma base**,
+davam três saídas diferentes:
 
-| Papel | Quem é | Como a ferramenta vê |
-|---|---|---|
-| quem implementou | o agente — os commits trazem `Co-Authored-By: Claude Opus 5` | não aparece; não tem conta |
-| quem revisou | `paulossjunior`, que leu e concordou | registrado como **autor**, porque abriu o PR com o próprio token |
+```text
+run1 != run2
+run1 != run3
+```
 
-O `422 Review cannot be requested from pull request author` é, aqui, **artefato de
-ferramenta e não conflito de interesse**. O GitHub não tem como expressar um
-implementador sem conta, então atribui a autoria a quem operou a ferramenta — e depois
-impede essa pessoa de revisar o que ela não escreveu.
+**Por que acontecia.** `owned = {cid for cid, (o, _) in concepts.items() ...}` é um
+conjunto de strings, e iterar um conjunto de strings em Python varia entre execuções
+por randomização de hash. Essa ordem decidia a ordem de inserção em `absorbed`, que
+decidia a ordem dos valores de discriminador, das notas e das colunas. `glob` somava
+a sua parte: devolve na ordem do sistema de arquivos, e a ordem de leitura decidia a
+ordem das relações, logo das chaves estrangeiras.
 
-**Por que importa além deste caso.** A conclusão errada era pior que ignorância: ela
-afirmava, com aparência de rigor e com evidência de API, que uma prática de qualidade
-não estava sendo cumprida quando estava. Três documentos passaram a registrar isso, e
-o registro é o produto deste projeto.
+**Por que importa muito mais que a estética da saída.** A ADR 0004 decide que o
+modelo de informação é **derivado e nunca escrito à mão**. Uma derivação que muda
+entre execuções não é derivação: é sorteio estável o suficiente para parecer
+determinístico e instável o suficiente para não ser verificável. Três consequências
+concretas:
 
-O erro tem forma reconhecível: **um campo da ferramenta foi lido como se nomeasse o
-papel do domínio.** É o mesmo erro que a base de conhecimento evita em todo mapeamento
-— `MAINTAINER` no GitHub é nível de acesso e não cargo, e por isso a tela rotula
-"acesso na plataforma" e marca o papel organizacional como pendente. Aqui o mesmo
-descuido passou, e passou no documento que julga os outros.
+- **nenhum diff de derivação é revisável.** Todo diff vem cheio de reordenação, e a
+  mudança real fica escondida no ruído;
+- **a regressão que T004 exige era impossível**, e ninguém tinha notado porque
+  ninguém a havia executado;
+- **a promessa da ADR 0004 D4 ficava sem verificação.** "O esquema corresponde ao
+  modelo derivado" não é conferível quando o modelo derivado depende de quando foi
+  gerado.
 
-**O que continua sendo lacuna, e é diferente do que se afirmava.** Não falta revisão:
-falta **prova** de revisão. Atestado depende de quem lembra; registro não. Num projeto
-cuja tese é proveniência, a própria revisão não pode ficar sustentada por memória.
+Vale notar o que **não** era o problema: o defeito não produzia esquema errado. A
+mesma tabela, com as mesmas colunas, saía descrita em outra ordem. É por isso que
+sobreviveu — ninguém compara duas execuções quando a de hoje parece certa.
 
 **Como aplicar.**
 
-1. **Antes de concluir que uma prática não ocorreu, verifique se a ferramenta
-   consegue representá-la.** Ausência de registro é ausência de registro, não ausência
-   do fato — e a diferença é exatamente a que este projeto existe para medir;
-2. **Não leia campo de ferramenta como papel do domínio.** `author` do GitHub responde
-   quem abriu o PR, nunca quem escreveu o código;
-3. **Fechar a lacuna é abrir os PRs com identidade de agente.** Bot ou GitHub App como
-   autor faz o implementador ser o autor de fato, e libera a aprovação formal de quem
-   revisa. Resolve a causa; as alternativas — segundo humano aprovando, ou atestado
-   registrado como comentário no PR — tratam o sintoma, em ordem decrescente de
-   solidez.
+1. **Ordene toda iteração cuja ordem chegue à saída.** Conjunto e `glob` não têm
+   ordem; `sorted` custa nada e é a diferença entre derivação e sorteio;
+2. **Gate de reprodutibilidade no CI**, e não confiança: o pipeline deriva quatro
+   ontologias duas vezes e compara. É o único jeito de isto não voltar;
+3. **Regressão sobre saída de gerador exige gerador determinístico primeiro.**
+   Quando uma comparação acusar mudança em tudo, desconfie da comparação antes de
+   desconfiar da mudança — e execute o baseline duas vezes contra si mesmo.
 
-**Aplicada em**: Sprint 002 — o registro de aceitação do sprint 001 foi corrigido, e
-passou a distinguir "revisão não ocorreu" de "revisão sem prova".
+**Aplicada em**: Sprint 002 — T004. O baseline foi refeito com o código do `HEAD`
+mais o conserto de determinismo e nada mais, e só então a regra nova foi comparada:
+**apenas EO mudou**, e apenas pela coluna nova.
+
+### L18 — Um critério atendido não é um critério suficiente
+
+**O que aconteceu.** A verificação V9 do sprint 002 exigia zero pessoas sem
+organização, e é o critério SC-003a do MVP. A primeira execução devolveu exatamente
+isso:
+
+```text
+pessoas sem organização alcançável: 0
+```
+
+Critério atendido. E a plataforma estava mentindo: a equipe derivada de
+`ifesserra-lab`, organização de **5 membros**, havia recebido **72** pessoas — o
+tenant inteiro. As três organizações passaram a mostrar todas as 72.
+
+O defeito só apareceu ao percorrer o critério **seguinte**, SC-009, que exige
+"exatamente uma equipe derivada, e nela exatamente os membros que faltavam". 72 não é
+5.
+
+**Por que aconteceu.** `list_people_without_team/2` devolvia toda pessoa do tenant
+fora das equipes daquela organização, e isso é coisa diferente de "membro da
+organização fora das equipes dela". A definição de "de uma organização" nunca havia
+sido escrita, e sem ela a função respondia à pergunta errada com a forma certa.
+
+O que tornou o erro invisível é que **ele satisfazia o critério com folga**: quanto
+mais pessoas na derivada, mais garantido o zero de V9.
+
+**Por que importa.** Um critério de aceitação verifica uma afirmação, não o sistema.
+V9 afirma "ninguém sem organização", e a derivada acolhendo o mundo torna isso
+verdadeiro pelo pior caminho possível. Só a leitura conjunta dos critérios — o que
+percorrer um a um obriga — expôs a contradição.
+
+Um registro de aceitação que se contentasse com V9 teria aceito o entregável, com
+evidência, de boa-fé, e errado.
+
+**Como aplicar.**
+
+1. **Nunca aceite por um critério.** Percorrer todos não é formalidade de processo: é
+   o mecanismo que faz um critério corrigir a leitura de outro;
+2. **Desconfie do critério que passa com folga.** Zero absoluto, 100%, "nenhum caso
+   restante" — quando um limite é atingido com margem, pergunte qual excesso o
+   produziu;
+3. **Critério de contagem exige o critério de composição ao lado.** "Ninguém de fora"
+   e "exatamente estes dentro" respondem coisas diferentes, e só juntos descrevem o
+   resultado;
+4. **Definição ausente é defeito, não estilo.** "De uma organização" parecia óbvio, e
+   a função implementava outra coisa. Onde um termo do domínio aparece na assinatura,
+   ele precisa estar definido na documentação da função.
+
+**Aplicada em**: Sprint 002 — a avaliação de D01 encontrou o defeito antes da
+aceitação, e a correção está registrada no `aceitacao.md`.

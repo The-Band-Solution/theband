@@ -78,8 +78,8 @@ que não escreveu. Enquanto isso, #89, #90 e #91 ficam com o atestado datado no
 
 ## Lições aplicadas
 
-Do [registro acumulado](../licoes-aprendidas.md) — dezesseis lições, L01 a L16.
-Dez se aplicam diretamente:
+Do [registro acumulado](../licoes-aprendidas.md) — dezoito lições, L01 a L18.
+Doze se aplicam diretamente:
 
 | Lição | O que muda neste sprint |
 |---|---|
@@ -91,7 +91,9 @@ Dez se aplicam diretamente:
 | **L12** — PR não aberto na hora passa a carregar outra feature | Foi por isso que a Fase 0 existe, e é a lição que criou a regra de não puxar trabalho novo. O PR da 002 é aberto **quando a tarefa pedir**, não no fim |
 | **L13** — secret referenciado e não cadastrado chega como string vazia | Onde a ausência tem tratamento, vazio recebe o mesmo. Vale para toda leitura de ambiente que esta feature acrescentar |
 | **L14** — `gh` engole o pedido de revisão recusado | Ao abrir o PR desta feature, conferir `gh pr view <n> --json reviewRequests`. Lista vazia significa que ninguém foi pedido, não importa o que o comando disse |
-| **L16** — o autor do PR não é quem implementou | Ao registrar revisão, distinguir "não ocorreu" de "sem prova". O campo `author` do GitHub responde quem abriu o PR, nunca quem escreveu o código |
+| **L16** — o autor do PR não é quem implementou | Ao registrar a revisão, distinguir "não ocorreu" de "sem prova". Aplicada no `aceitacao.md` deste sprint |
+| **L17** — a derivação do esquema não era função da ontologia | Descoberta **neste** sprint, ao executar a regressão de T004. Consertada, com gate de reprodutibilidade no CI |
+| **L18** — um critério atendido não é um critério suficiente | Descoberta **neste** sprint: V9 passou com a equipe derivada acolhendo o tenant inteiro. A aceitação percorre todos os critérios, e foi SC-009 que expôs |
 | **L15** — não há revisor possível num repositório de um colaborador só | A revisão independente era pendência de **permissão**, não de agenda. Destravada neste sprint: `pull` à equipe `the-band`, e pedido de revisão à equipe. Todo PR desta feature nasce com `team_reviewers[]=the-band` |
 
 As demais foram consideradas e não se aplicam: L01 (não há gerador nesta
@@ -305,14 +307,14 @@ A escala do projeto é P0/P1/P2 e a da spec é P1/P2/P3 — o mapeamento preserv
 |---|---|---|---|---|---|---|
 | **F0** | **Abrir o pull request da 001** | herança | Task | [#78](https://github.com/The-Band-Solution/theband/issues/78) | T073 da 001 | **feito** |
 | **F0** | **Encerrar a evidência do quickstart** | herança | Task | [#77](https://github.com/The-Band-Solution/theband/issues/77) | T072 da 001 | **feito**, com limitação declarada |
-| F1 | Declarar o vínculo na ontologia | épico | Task | [#83](https://github.com/The-Band-Solution/theband/issues/83) | T001–T003 | a fazer |
-| F2 | Gerar chave estrangeira a partir de associação | épico | Task | [#84](https://github.com/The-Band-Solution/theband/issues/84) | T004 | a fazer |
-| F3 | Corrigir o esquema escrito à mão | épico | Task | [#85](https://github.com/The-Band-Solution/theband/issues/85) | T005–T008 | a fazer |
-| — | Tarefas da US1 | US1 | checklist em #80 | — | T009–T012 | a fazer |
-| — | Tarefas da US2 | US2 | checklist em #81 | — | T013–T017 | a fazer |
-| — | Tarefas da US3 | US3 | checklist em #82 | — | T018–T019 | a fazer |
-| F7 | Criar a equipe derivada | épico | Task | [#86](https://github.com/The-Band-Solution/theband/issues/86) | T020–T024 | a fazer |
-| F8 | Fechar a feature | épico | Task | [#87](https://github.com/The-Band-Solution/theband/issues/87) | T025–T027 | a fazer |
+| F1 | Declarar o vínculo na ontologia | épico | Task | [#83](https://github.com/The-Band-Solution/theband/issues/83) | T001–T003 | **feito** |
+| F2 | Gerar chave estrangeira a partir de associação | épico | Task | [#84](https://github.com/The-Band-Solution/theband/issues/84) | T004 | **feito** |
+| F3 | Corrigir o esquema escrito à mão | épico | Task | [#85](https://github.com/The-Band-Solution/theband/issues/85) | T005–T008 | **feito** |
+| — | Tarefas da US1 | US1 | checklist em #80 | — | T009–T012 | **feito** |
+| — | Tarefas da US2 | US2 | checklist em #81 | — | T013–T017 | **não feito** — volta ao backlog |
+| — | Tarefas da US3 | US3 | checklist em #82 | — | T018–T019 | **não feito** — volta ao backlog |
+| F7 | Criar a equipe derivada | épico | Task | [#86](https://github.com/The-Band-Solution/theband/issues/86) | T020–T024 | **feito** |
+| F8 | Fechar a feature | épico | Task | [#87](https://github.com/The-Band-Solution/theband/issues/87) | T025–T027 | **feito** |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 

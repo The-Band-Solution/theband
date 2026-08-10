@@ -175,6 +175,43 @@ relations:
         existe fora dela. A cardinalidade obrigatória no destino é o que a
         distingue de uma organização: uma organização pode não ser parte de nada.
 
+  - id: eo.organizational_team_belongs_to_organization
+    name: belongs to
+    label: { pt-BR: "pertence a", en: "belongs to" }
+    source: eo.organizational_team
+    target: eo.organization
+    type: association
+    cardinality: { source: many, target: one }
+    semantics:
+      description: >
+        Uma equipe organizacional pertence a exatamente uma organização, e uma
+        organização tem várias. A definição de eo.organizational_team já afirmava
+        esse vínculo em prosa; declará-lo não inventa semântica, torna explícito o
+        que o conceito diz de si.
+
+        Parte do subkind e não do kind: eo.project_team liga-se a um projeto — um
+        conceito de SPO —, não a uma organização. Pôr a relação em eo.team
+        obrigaria toda equipe de projeto a ter organização, o que é falso em
+        projeto entre organizações.
+
+        É association e não part_whole. Uma equipe é coletivo de pessoas; a
+        organização é agente social. "Pertence a" não é "é parte de", e a distinção
+        entre eo.organizational_unit — que é parte — e eo.organizational_team é
+        justamente essa. Declará-la como parthood faria o derivador gerar a chave
+        estrangeira sem esforço, ao custo de apagar a distinção.
+    provenance:
+      source_type: project_decision
+      note: >
+        Acréscimo da feature 002, achado F4 da análise ontológica — não vem de SEON,
+        e é por isso que declara proveniência própria: o módulo é reference_ontology,
+        e sem esta marca a relação apareceria como se a referência a tivesse
+        declarado.
+
+        A ausência dela é a causa raiz do defeito que a feature corrige: as colunas
+        eo_teams.organization_id e eo_people.organization_id foram escritas à mão na
+        migração da feature 001, sem existir no modelo derivado, contra a ADR 0004
+        D4. A relação vem antes da coluna.
+
   - id: eo.recognizes
     name: recognizes
     label: { pt-BR: "reconhece" }

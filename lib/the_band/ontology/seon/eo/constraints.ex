@@ -102,4 +102,60 @@ defmodule TheBand.Ontology.SEON.EO.Constraints do
 
   defp team_attrs(%Team{type: type}), do: [type: type, granted_repositories: []]
   defp team_attrs(map) when is_map(map), do: Map.to_list(map)
+
+  @doc """
+  Equipe derivada nunca se apresenta como observada (T022, FR-005).
+
+  Origem: contrato `derived-team.md`, seção Garantias. A equipe derivada não existe na
+  ferramenta de origem, e afirmar que existe é o único jeito de esta feature produzir
+  dado falso — quem comparasse o número da plataforma com o do GitHub encontraria uma
+  equipe a mais sem explicação.
+
+  A invariante olha as duas direções, porque as duas são mentiras diferentes:
+  identificador de derivação com proveniência do GitHub, e proveniência da plataforma
+  sem identificador de derivação.
+  """
+  @spec derived_team_declares_itself(map()) :: :ok | {:error, String.t()}
+  def derived_team_declares_itself(%{external_id: external_id, source_system: source})
+      when is_binary(external_id) do
+    derivada_pelo_id? = String.starts_with?(external_id, "derived:default_team:")
+    derivada_pela_origem? = source == "the_band"
+
+    cond do
+      derivada_pelo_id? and not derivada_pela_origem? ->
+        {:error,
+         "equipe com identificador de derivação e proveniência '#{source}': " <>
+           "seria uma equipe derivada se apresentando como observada na origem."}
+
+      derivada_pela_origem? and not derivada_pelo_id? ->
+        {:error,
+         "equipe com proveniência da plataforma e sem identificador de derivação: " <>
+           "a plataforma só produz equipe pela regra github.default_team."}
+
+      true ->
+        :ok
+    end
+  end
+
+  def derived_team_declares_itself(_), do: :ok
+
+  @doc """
+  Vínculo derivado não carrega nível de acesso (FR-006).
+
+  Origem: regra `github.default_team`, `observed_link.platform_access_level`. Um nível
+  preenchido em vínculo que a origem não conhece seria dado inventado, e faria
+  "observado como membro comum" e "a origem não sabe deste vínculo" ficarem
+  indistinguíveis.
+  """
+  @spec derived_link_has_no_access_level(map()) :: :ok | {:error, String.t()}
+  def derived_link_has_no_access_level(%{source_system: "github"}), do: :ok
+
+  def derived_link_has_no_access_level(%{platform_access_level: level, source_system: source})
+      when not is_nil(level) do
+    {:error,
+     "vínculo de origem '#{source}' com nível de acesso '#{level}': " <>
+       "a origem não conhece este vínculo, então não informa nível — ausência é nula."}
+  end
+
+  def derived_link_has_no_access_level(_), do: :ok
 end

@@ -76,5 +76,13 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
     |> unique_constraint([:tenant_id, :source_system, :source_instance, :external_id],
       name: :eo_teams_application_reference_index
     )
+    # A restrição vive no banco (T007), e esta declaração é o que transforma a
+    # violação em changeset em vez de exceção. Sem ela, gravar equipe organizacional
+    # sem organização derruba o processo com `Ecto.ConstraintError` — o
+    # comportamento é o mesmo, a mensagem é que deixa de dizer o que fazer.
+    |> check_constraint(:organization_id,
+      name: :eo_teams_organizational_team_has_organization,
+      message: "equipe organizacional precisa da organização a que pertence"
+    )
   end
 end

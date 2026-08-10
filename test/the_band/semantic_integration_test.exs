@@ -189,4 +189,154 @@ defmodule TheBand.SemanticIntegrationTest do
       assert {:error, :no_raw_payloads} = SemanticIntegration.reprocess_mappings(outro)
     end
   end
+
+  describe "retrofito da organização das equipes (T011, FR-023)" do
+    setup do
+      tenant = tenant_fixture()
+
+      # A ferramenta conectada é quem sempre soube qual organização estava sendo
+      # observada. O payload da equipe **não** traz esse dado, e é exatamente essa
+      # a situação das equipes já coletadas.
+      instance = "https://github-#{System.unique_integer([:positive])}.example"
+
+      {:ok, tool} =
+        %ConnectedTool{}
+        |> ConnectedTool.changeset(%{
+          tenant_id: tenant.id,
+          tool_type: "github",
+          instance_url: instance,
+          organization_login: "alfa"
+        })
+        |> Repo.insert()
+
+      {:ok, sync} =
+        %Sync{}
+        |> Sync.changeset(%{
+          tenant_id: tenant.id,
+          connected_tool_id: tool.id,
+          status: "completed",
+          started_at: DateTime.utc_now(:second)
+        })
+        |> Repo.insert()
+
+      {:ok, org} =
+        EO.upsert_organization_from_source(tenant, %{
+          name: "Alfa",
+          login: "alfa",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "O_alfa",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      %{tenant: tenant, sync: sync, org: org, instance: instance}
+    end
+
+    defp raw_team(tenant, sync_id, external_id, payload) do
+      {:ok, raw} =
+        RawData.store(%{
+          tenant_id: tenant.id,
+          sync_id: sync_id,
+          raw_entity_type: "github.team",
+          external_id: external_id,
+          payload: payload,
+          mapping_id: "github.team.to.eo.organizational_team",
+          mapping_version: 1,
+          source_system: "github",
+          source_instance: "https://github.com",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      raw
+    end
+
+    # `project_team`, e não `organizational_team`, e a razão é o próprio sucesso da
+    # feature: a restrição do banco passou a recusar equipe organizacional sem
+    # organização, então o estado que o retrofito conserta **não é mais alcançável**
+    # por nenhum caminho de escrita.
+    #
+    # Isto é o que se pode e o que não se pode afirmar. Estes testes provam o
+    # mecanismo — a corrente percorrida, o relatório, e zero consultas à origem. O
+    # conserto das equipes organizacionais reais foi provado por execução: 10 de 10 no
+    # banco de desenvolvimento, e a migração da restrição recusaria aplicar se alguma
+    # tivesse ficado. Retrofito é migração de uma vez só, não caminho permanente.
+    defp equipe_sem_organizacao(tenant, external_id) do
+      {:ok, team} =
+        EO.upsert_team_from_source(tenant, %{
+          type: "project_team",
+          name: "Time #{external_id}",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: external_id,
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      team
+    end
+
+    test "atribui a organização sem consultar a origem", ctx do
+      # Nenhuma expectativa registrada no Mox: qualquer chamada ao GitHub derruba
+      # este teste sozinho. É a garantia de FR-023, não uma promessa no comentário.
+      equipe = equipe_sem_organizacao(ctx.tenant, "T_1")
+      raw_team(ctx.tenant, ctx.sync.id, "T_1", %{"id" => "T_1", "slug" => "time"})
+
+      assert is_nil(equipe.organization_id)
+
+      assert {:ok, report} = SemanticIntegration.backfill_team_organizations(ctx.tenant)
+      assert report.teams == 1
+      assert report.assigned == 1
+      assert report.unresolved == 0
+
+      assert [%{organization_id: org_id}] = EO.list_teams(ctx.tenant)
+      assert org_id == ctx.org.id
+    end
+
+    test "equipe sem payload preservado fica sem organização, e o relatório diz", ctx do
+      equipe_sem_organizacao(ctx.tenant, "T_orfa")
+
+      assert {:ok, report} = SemanticIntegration.backfill_team_organizations(ctx.tenant)
+      assert report.assigned == 0
+      assert report.unresolved == 1
+      assert map_size(report.reasons) == 1
+
+      # Não adivinhada: preencher pelo nome inventaria o vínculo que esta feature
+      # existe para corrigir.
+      assert [%{organization_id: nil}] = EO.list_teams(ctx.tenant)
+    end
+
+    test "organização de origem ausente da base não é inventada", ctx do
+      equipe_sem_organizacao(ctx.tenant, "T_2")
+      raw_team(ctx.tenant, ctx.sync.id, "T_2", %{"id" => "T_2"})
+
+      # A organização observada existe com login "alfa"; se a ferramenta apontasse
+      # para outra, não haveria a que ligar.
+      Repo.update_all(TheBand.Sources.ConnectedTool, set: [organization_login: "inexistente"])
+
+      assert {:ok, report} = SemanticIntegration.backfill_team_organizations(ctx.tenant)
+      assert report.assigned == 0
+      assert report.unresolved == 1
+    end
+
+    test "rodar de novo não muda nada", ctx do
+      equipe_sem_organizacao(ctx.tenant, "T_3")
+      raw_team(ctx.tenant, ctx.sync.id, "T_3", %{"id" => "T_3"})
+
+      {:ok, primeiro} = SemanticIntegration.backfill_team_organizations(ctx.tenant)
+      {:ok, segundo} = SemanticIntegration.backfill_team_organizations(ctx.tenant)
+
+      assert primeiro.assigned == 1
+      # Nada pendente na segunda: o retrofito só olha o que está sem organização.
+      assert segundo.teams == 0
+      assert segundo.assigned == 0
+    end
+
+    test "não atravessa tenant", ctx do
+      equipe_sem_organizacao(ctx.tenant, "T_4")
+      raw_team(ctx.tenant, ctx.sync.id, "T_4", %{"id" => "T_4"})
+      outro = tenant_fixture("outra-org")
+
+      assert {:ok, %{teams: 0, assigned: 0}} =
+               SemanticIntegration.backfill_team_organizations(outro)
+    end
+  end
 end

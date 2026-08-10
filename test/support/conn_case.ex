@@ -14,7 +14,16 @@ defmodule TheBandWeb.ConnCase do
       import Plug.Conn
 
       import TheBand.DataCase,
-        only: [tenant_fixture: 0, tenant_fixture: 1, source_attrs: 1, source_attrs: 2]
+        only: [
+          tenant_fixture: 0,
+          tenant_fixture: 1,
+          source_attrs: 1,
+          source_attrs: 2,
+          organization_fixture: 1,
+          organization_fixture: 2,
+          team_fixture: 2,
+          team_fixture: 3
+        ]
 
       import TheBandWeb.ConnCase
 

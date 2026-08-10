@@ -34,6 +34,12 @@ attributes:
 relations:
   organization:
     source_path: organization.id
+    note: >
+      A organização é o pai da consulta, e nao campo do nó do time. O conector embute
+      o pai no nó antes de preservar o payload, para que este caminho seja verdadeiro
+      e para que o reprocessamento reproduza o vínculo sem consultar a origem.
+      Declarar o caminho sem embutir o pai foi o defeito que deixou
+      eo_teams.organization_id vazia em 100% dos registros - achado F6.
     target_ontology: eo
     target_concept: eo.organization
   granted_repositories:
@@ -41,6 +47,14 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.source_repository
 limitations:
+  - >
+    Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a
+    plataforma cria com o nome da organização para acolher quem não está em time
+    algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela
+    regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id,
+    marcaria toda equipe observada como derivada.
+  - >
+    Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.
   - Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
   - Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
   - A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.

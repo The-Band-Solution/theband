@@ -28,6 +28,8 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.change_request
 limitations:
+  - >
+    O revisor aponta para eo.person, e QAPO não declara relação entre qapo.artifact_evaluation e eo.person - a participação de agente em avaliação ainda não é modelada.
   - Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
   - Reviews automáticas (bots) devem ser classificadas separadamente das humanas.
   - Um comentário isolado não é uma review; usar apenas eventos de review submetida.

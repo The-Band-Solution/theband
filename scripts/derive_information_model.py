@@ -118,7 +118,10 @@ def load_concepts():
         ``(ontologia, dicionário da relação)``.
     """
     concepts, relations = {}, []
-    for f in glob.glob(f"{KB}/ontology/**/modules/*.yaml", recursive=True):
+    # Ordenado de propósito: `glob` devolve na ordem do sistema de arquivos, e a
+    # ordem de leitura decide a ordem de `relations` e, por consequência, a ordem
+    # das chaves estrangeiras na saída. Derivação tem de ser função da ontologia.
+    for f in sorted(glob.glob(f"{KB}/ontology/**/modules/*.yaml", recursive=True)):
         d = yaml.safe_load(open(f, encoding="utf-8"))
         for c in d.get("concepts") or []:
             concepts[c["id"]] = (d["module"]["ontology"], c)
@@ -182,13 +185,18 @@ def derive(ontology, concepts, relations):
     # A rede inteira é visível para resolver o lifting entre ontologias, mas
     # apenas `owned` produz tabelas — ver ADR 0004, D9.
     scope = {cid: c for cid, (o, c) in concepts.items()}
-    owned = {cid for cid, (o, _) in concepts.items() if o == ontology}
+    # `sorted` e não `set`: iterar um conjunto de strings varia entre execuções por
+    # randomização de hash, e essa ordem decide a ordem de inserção em `absorbed`,
+    # logo a ordem dos valores de discriminador, das notas e das colunas. Sem isto a
+    # derivação não é reproduzível — duas execuções da mesma ontologia davam saídas
+    # diferentes, e nenhuma regressão sobre a saída era verificável.
+    owned = sorted(cid for cid, (o, _) in concepts.items() if o == ontology)
     unclassified = [cid for cid in owned if not stereotype(scope[cid])]
     if unclassified:
         return None, unclassified
 
     children = defaultdict(list)
-    for cid, c in scope.items():
+    for cid, c in sorted(scope.items()):
         p = parent_of(c)
         if p in scope:
             children[p].append(cid)
@@ -297,6 +305,82 @@ def derive(ontology, concepts, relations):
                 {"column": fk, "required": card == "one", "kind": "parthood"})
             notes.append(f"{r['id']}: parthood → {tables[src]['table']}.{fk}")
 
+    # associação com destino em kind e cardinalidade many → one vira chave
+    # estrangeira na tabela do kind de origem — regra t3d.association_foreign_keys.
+    #
+    # Sem ela, declarar a relação não produz coluna: a tese cobre parthood e
+    # dependência de relator, e associação simples ficava de fora. Foi essa ausência
+    # que levou alguém a escrever a coluna à mão, contra a ADR 0004 D4.
+    for o, r in relations:
+        if o != ontology or r.get("type") != "association":
+            continue
+
+        card = r.get("cardinality") or {}
+        if card.get("target") != "one":
+            # many → many exigiria tabela associativa, que é decisão de modelagem e
+            # não de tradução. Fica de fora até virar regra própria.
+            continue
+
+        src, tgt = r.get("source"), r.get("target")
+
+        # O destino precisa ter tabela própria: subkind não tem para onde apontar.
+        if tgt not in tables:
+            continue
+
+        # Papel não vira coluna (ADR 0004, D5 e D6): materializa pelo relator, e o
+        # relator já recebe as chaves por mediação. A relação de um papel com o kind
+        # que lhe dá identidade — `eo.team_member_is_person` — é identidade, não
+        # referência: gerar `eo_people.person_id` a partir dela faria a tabela
+        # apontar para si mesma e sugeriria uma hierarquia que não existe.
+        if src in scope and stereotype(scope[src]) == "role":
+            continue
+
+        # A origem pode ser o próprio kind ou um subkind elevado até ele. Quando é
+        # elevado, a chave nasce anulável e a obrigatoriedade vira check_constraint
+        # ligada ao discriminador — uma chave obrigatória na tabela do kind
+        # forçaria todos os subtipos a tê-la, e isso é falso.
+        elevado = absorbed.get(src, (None, None))
+        raiz = elevado[1] if elevado[0] == "lifted" else src
+        if raiz not in tables:
+            continue
+
+        # Origem elevada ao próprio destino é identidade, não referência. A coluna
+        # apontaria a tabela para si mesma sem que nenhuma hierarquia exista.
+        if raiz == tgt:
+            continue
+
+        # Relator já recebe chave por mediação, no laço seguinte. Gerar aqui também
+        # produziria a mesma coluna com duas origens declaradas.
+        if tables[raiz]["stereotype"] == "relator":
+            continue
+
+        fk = f"{tgt.split('.')[-1]}_id"
+        if any(x["column"] == fk for x in tables[raiz]["foreign_keys"]):
+            continue
+
+        entrada = {"column": fk, "required": raiz == src, "kind": "association"}
+
+        if raiz != src:
+            valor = src.split(".")[-1]
+            disc = next((d["name"] for d in tables[raiz]["discriminators"]
+                         if valor in d["values"]), None)
+            if disc:
+                entrada["check"] = f"{fk} IS NOT NULL OR {disc} <> '{valor}'"
+                notes.append(
+                    f"{r['id']}: associação → {tables[raiz]['table']}.{fk} anulável, "
+                    f"obrigatória quando {disc}='{valor}'")
+            else:
+                # Sem discriminador não há a que ligar a obrigatoriedade. A coluna
+                # existe e a restrição fica declarada como ausente, em vez de
+                # inventada.
+                notes.append(
+                    f"{r['id']}: associação → {tables[raiz]['table']}.{fk} anulável, "
+                    f"sem discriminador para restringir a obrigatoriedade")
+        else:
+            notes.append(f"{r['id']}: associação → {tables[raiz]['table']}.{fk}")
+
+        tables[raiz]["foreign_keys"].append(entrada)
+
     # chaves estrangeiras dos relators, a partir das relações declaradas
     for o, r in relations:
         if o != ontology:
@@ -326,7 +410,7 @@ def main():
     if missing:
         print(f"não é possível derivar {args.ontology}: "
               f"{len(missing)} conceito(s) sem ontouml_stereotype\n")
-        for m in missing:
+        for m in sorted(missing):
             print("  ", m)
         return 1
 
@@ -348,6 +432,9 @@ def main():
         for fk in t["foreign_keys"]:
             req = "NOT NULL" if fk["required"] else "NULL    "
             print(f"│    {fk['column']:22s} {'uuid':9s} {req}  → FK ({fk['kind']})")
+        for fk in t["foreign_keys"]:
+            if fk.get("check"):
+                print(f"│    check: {fk['check']}")
         print("└─")
         print()
 

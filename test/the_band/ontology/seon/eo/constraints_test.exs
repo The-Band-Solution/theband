@@ -25,7 +25,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "a evidência recusa nível de acesso desconhecido no changeset" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_1", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_1", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_1")
 
       assert {:error, changeset} =
                EO.record_team_membership_evidence(tenant, %{
@@ -80,7 +80,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "é contado como pendente de papel enquanto não for promovido (FR-021)" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_2", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_2", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_2")
 
       {:ok, evidencia} =
         EO.record_team_membership_evidence(tenant, %{
@@ -102,7 +102,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "reobservar o mesmo vínculo não cria um segundo" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_3", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_3", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_3")
 
       attrs = %{
         person_id: pessoa.id,
@@ -122,12 +122,102 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     end
   end
 
+  describe "nível de acesso: obrigatório onde a origem o fornece (T008, FR-006)" do
+    setup do
+      tenant = tenant_fixture()
+      {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_9", %{name: "Ana"}))
+      equipe = team_fixture(tenant, "T_9")
+
+      base = %{
+        person_id: pessoa.id,
+        team_id: equipe.id,
+        person_external_id: "U_9",
+        team_external_id: "T_9",
+        source_instance: "https://github.com",
+        observed_at: DateTime.utc_now(:second)
+      }
+
+      %{tenant: tenant, base: base}
+    end
+
+    test "vínculo do GitHub sem nível é recusado", %{tenant: tenant, base: base} do
+      attrs = Map.merge(base, %{source_system: "github", platform_access_level: nil})
+
+      assert {:error, changeset} = EO.record_team_membership_evidence(tenant, attrs)
+
+      assert "vínculo observado no GitHub precisa trazer o nível de acesso" in errors_on(
+               changeset
+             ).platform_access_level
+    end
+
+    test "vínculo derivado sem nível é aceito, e o nível fica nulo", %{
+      tenant: tenant,
+      base: base
+    } do
+      attrs =
+        Map.merge(base, %{
+          source_system: "the_band",
+          source_instance: "plataforma",
+          platform_access_level: nil
+        })
+
+      assert {:ok, evidencia} = EO.record_team_membership_evidence(tenant, attrs)
+
+      # Nulo, e não "MEMBER": preencher faria "observado como membro comum no
+      # GitHub" e "a origem não conhece este vínculo" ficarem indistinguíveis.
+      assert is_nil(evidencia.platform_access_level)
+    end
+
+    test "nível inventado é recusado, mesmo em vínculo derivado", %{tenant: tenant, base: base} do
+      attrs =
+        Map.merge(base, %{
+          source_system: "the_band",
+          source_instance: "plataforma",
+          platform_access_level: "CHEFE"
+        })
+
+      assert {:error, changeset} = EO.record_team_membership_evidence(tenant, attrs)
+      assert errors_on(changeset).platform_access_level != []
+    end
+  end
+
   describe "equipe do GitHub gravada" do
     test "nasce como organizational_team, nunca como project_team (FR-023)" do
       tenant = tenant_fixture()
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_4", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_4")
 
       assert equipe.type == "organizational_team"
+    end
+  end
+
+  describe "equipe organizacional exige organização (T007, FR-001)" do
+    test "o banco recusa equipe organizacional sem organização" do
+      tenant = tenant_fixture()
+
+      assert {:error, changeset} =
+               EO.upsert_team_from_source(
+                 tenant,
+                 source_attrs("T_sem_org", %{name: "Sem organização"})
+               )
+
+      # A recusa vem da restrição do banco, e não de validação em changeset. É a
+      # diferença que importa: validação é contornável por qualquer caminho que não
+      # passe por ela — script, console, correção manual.
+      assert errors_on(changeset) != %{}
+    end
+
+    test "equipe de projeto sem organização é aceita" do
+      tenant = tenant_fixture()
+
+      assert {:ok, equipe} =
+               EO.upsert_team_from_source(
+                 tenant,
+                 source_attrs("T_projeto", %{name: "Projeto", type: "project_team"})
+               )
+
+      # A obrigatoriedade é do subtipo. Equipe de projeto entre organizações não
+      # pertence a uma só, e um NOT NULL na tabela do kind afirmaria o contrário.
+      assert is_nil(equipe.organization_id)
     end
   end
 end

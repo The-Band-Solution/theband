@@ -20,7 +20,7 @@ tarefa que dependa da coluna vem **depois** de ela passar a ser derivada.
 Nada de esquema nem de código antes disto. A coluna precisa ter lastro
 conceitual antes de existir.
 
-- [ ] T001 Declarar equipe pertence a organização
+- [x] T001 Declarar equipe pertence a organização
   - **Pronta quando**: nada além do repositório — a análise ontológica já decidiu
     a forma em F4
   - **Descrição**: acrescentar `eo.organizational_team_belongs_to_organization` em
@@ -32,11 +32,25 @@ conceitual antes de existir.
     equipe, que é coletivo (risco R1) — FR-001
   - **Feita quando**: a relação parte do **subkind**, não de `eo.team`; a base
     continua válida e o grafo de dependências íntegro
-  - **Teste**: `mix knowledge.validate` e `mix knowledge.graph` passam, e a
-    relação aparece na saída de `mix knowledge.graph` com origem em
-    `organizational_team`
+  - **Teste**: `test/the_band/ontology/knowledge_base_eo_test.exs` — a relação
+    existe, sai de `eo.organizational_team`, é `association`, é `many → one`, e
+    declara proveniência própria. Mais três testes de violação: unidade
+    organizacional continua `part_whole`, nenhuma outra relação liga equipe a
+    organização, e `eo.team` **não** recebeu a relação
+  - **Correção de tarefa.** O teste original mandava conferir a relação "na saída de
+    `mix knowledge.graph`". A task imprime **uma linha** sobre integridade de
+    dependências entre ontologias e nunca lista relações — o teste era
+    inverificável, e passá-lo seria declarar sucesso sem olhar o que importa.
+    Substituído por teste que trava as três decisões da relação. Verificado nos dois
+    sentidos: com `part_whole` no lugar de `association`, falha
+  - **Fora do previsto, e necessário.** `schemas/module.schema.yaml` passou a admitir
+    `provenance` em relação — antes só em ontologia, módulo e conceito. Sem isso a
+    relação nova ficaria indistinguível das que SEON declara, e a proveniência do
+    módulo, `reference_ontology`, passaria a cobrir algo que não é da referência.
+    Nenhuma das 143 relações anteriores carrega proveniência; esta é a primeira, e é
+    a primeira que precisa
 
-- [ ] T002 [P] Criar as perguntas de competência de EO
+- [x] T002 [P] Criar as perguntas de competência de EO
   - **Pronta quando**: T001 concluída
   - **Descrição**: primeiro arquivo de `competency_questions/` de EO — a ontologia
     não tem nenhuma hoje (F7). Três perguntas: quais pessoas foram observadas em
@@ -48,7 +62,7 @@ conceitual antes de existir.
   - **Teste**: `mix knowledge.validate` aceita o arquivo, e cada pergunta referencia
     relação declarada — inclusive a de T001
 
-- [ ] T003 [P] Reprovar mapeamento com relação inexistente
+- [x] T003 [P] Reprovar mapeamento com relação inexistente
   - **Pronta quando**: T001 concluída
   - **Descrição**: `scripts/validate_knowledge_base.py` passa a conferir que toda
     relação declarada em `relations:` de um mapeamento aponta para relação
@@ -56,10 +70,25 @@ conceitual antes de existir.
     de equipe e de pessoa declaravam vínculo com `eo.organization` sem que a
     relação existisse, e nada avisou (F6) — FR-012
   - **Feita quando**: o validador reprova um mapeamento que declare relação
-    inexistente, nomeando qual; a base atual continua passando
-  - **Teste**: introduzir temporariamente uma relação inventada num mapeamento e
-    conferir que o validador falha citando o identificador; removê-la e conferir
-    que volta a passar
+    inexistente, nomeando qual
+  - **Teste**: três verificações, todas executadas. Conceito inventado no
+    `target_concept` reprova nomeando-o. Vínculo sem lastro cuja limitação é
+    **genérica** reprova. Base restaurada volta a passar
+  - **A tarefa dizia "a base atual continua passando", e não continuava.** A
+    verificação encontrou **12 vínculos sem lastro**, não um: `eo.person →
+    eo.organization` em `user.yaml`, que é o defeito do F6, mais onze em CMPO, CIRO,
+    CDRO, QAPO e um em EO. Dois eram falso positivo meu — o check subia por
+    `specializes` quando a base usa `parent` — e sobraram dez reais
+  - **Três lastros aceitos, decisão da pessoa mantenedora.** O vínculo passa se há
+    relação declarada, se há `derivation.rule_id` que o sustente, **ou** se
+    `limitations` **nomeia o conceito** do outro lado. O terceiro reusa uma obrigação
+    que a base já impõe a todo mapeamento em vez de inventar exceção, e mantém o gate
+    verde sem tocar cinco ontologias que a análise excluiu do escopo. Exige o id de
+    propósito: frase genérica passaria em qualquer mapeamento e o gate viraria carimbo
+  - **`user.yaml` perdeu `relations.organization`**, como a análise prescreve, e
+    ganhou duas limitações: EO não tem nem deve ter relação pessoa↔organização, e
+    `organization.id` não existe no payload de um membro — a organização é o pai da
+    consulta, não campo do nó
 
 **Checkpoint**: a ontologia declara o vínculo, e o validador impede que um
 mapeamento prometa relação que não existe.
@@ -70,7 +99,7 @@ mapeamento prometa relação que não existe.
 
 Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produzi-la.
 
-- [ ] T004 Gerar chave estrangeira a partir de associação
+- [x] T004 Gerar chave estrangeira a partir de associação
   - **Pronta quando**: T001 concluída; o contrato
     `contracts/information-model.md` está escrito
   - **Descrição**: declarar a regra em
@@ -83,7 +112,25 @@ Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produ
     `association`, com o `check_constraint`; **a derivação de todas as outras
     ontologias sai idêntica** à de antes
   - **Teste**: guardar a saída atual de todas as ontologias, aplicar a mudança, e
-    comparar — só EO pode diferir, e só pela coluna nova. É o V1 do quickstart
+    comparar — só EO pode diferir, e só pela coluna nova. É o V1 do quickstart.
+    **Executado**: das 11 ontologias, só EO diferiu, e apenas por
+    `organization_id NULL → FK (association)`, o `check` correspondente e a nota
+  - **A regressão era impossível, e foi isso que ela revelou.** A primeira comparação
+    acusou **dez das onze** ontologias como alteradas. Nenhuma havia mudado: três
+    execuções do mesmo código sobre a mesma base davam três saídas diferentes.
+    `owned` era um conjunto de strings, e iterá-lo varia entre execuções por
+    randomização de hash — essa ordem decidia a ordem dos discriminadores, das notas
+    e das colunas; `glob` somava a ordem do sistema de arquivos. Consertado com
+    `sorted` nos quatro pontos, e o CI passou a derivar quatro ontologias duas vezes
+    e comparar. Lição L17. O baseline foi então refeito com o código do `HEAD` mais o
+    conserto e nada mais, e só aí a regra nova foi comparada
+  - **Um defeito da minha própria regra, achado ao executar.** A primeira versão
+    gerava `eo_people.person_id` — autorreferência — a partir de
+    `eo.team_member_is_person`. `eo.team_member` é **papel** elevado a `eo.person`, e
+    pela ADR 0004 D5/D6 papel materializa por relator, nunca por coluna: aquela
+    relação é identidade, não referência. Dois guardas acrescentados, cada um
+    suficiente por si — origem `role` não gera chave, e origem elevada ao próprio
+    destino não gera chave
 
 **Checkpoint**: a coluna existe no modelo derivado, com lastro na ontologia.
 
@@ -93,7 +140,7 @@ Bloqueia todo o esquema. A coluna só pode existir depois de a derivação produ
 
 Corrige o F1. Só agora, e nesta ordem.
 
-- [ ] T005 Reconferir que as colunas inventadas estão vazias
+- [x] T005 Reconferir que as colunas inventadas estão vazias
   - **Pronta quando**: T004 concluída
   - **Descrição**: contar registros com `eo_people.organization_id` ou
     `eo_teams.organization_id` preenchidos. A análise mediu 0 de 72 e 0 de 10, e o
@@ -103,8 +150,11 @@ Corrige o F1. Só agora, e nesta ordem.
     corpo da migração
   - **Teste**: a própria consulta; se devolver diferente de zero, a tarefa
     **para** e o caso vira decisão, não migração
+  - **Executado em 2026-08-10**: `eo_people` 72 registros, **0** com
+    `organization_id`; `eo_teams` 10 registros, **0**. Registrado no corpo da
+    migração `20260810140000`
 
-- [ ] T006 Remover as colunas sem lastro
+- [x] T006 Remover as colunas sem lastro
   - **Pronta quando**: T005 concluída com zero
   - **Descrição**: migração que remove `eo_people.organization_id` e a
     `eo_teams.organization_id` atual. `eo_people.organization_id` é
@@ -116,7 +166,7 @@ Corrige o F1. Só agora, e nesta ordem.
   - **Teste**: aplicar e reverter a migração, conferindo o esquema nos dois
     sentidos
 
-- [ ] T007 Receber a organização da equipe pela derivação
+- [x] T007 Receber a organização da equipe pela derivação
   - **Pronta quando**: T004 e T006 concluídas
   - **Descrição**: migração que cria `eo_teams.organization_id` **conforme a saída
     do derivador** — anulável, com `check_constraint` exigindo-a quando
@@ -126,8 +176,18 @@ Corrige o F1. Só agora, e nesta ordem.
     gravar equipe organizacional sem organização é recusado **pelo banco**
   - **Teste**: tentar inserir `type = 'organizational_team'` com `organization_id`
     nula e conferir que o banco recusa; com `project_team`, aceita
+  - **A ordem da tarefa estava errada, e a execução provou.** Criar coluna e
+    `check_constraint` juntos é impossível num banco povoado: as 10 equipes já
+    coletadas são todas `organizational_team` com `organization_id` nula, e o Postgres
+    recusou a restrição com `ERROR 23514 (check_violation)`. O retrofito que preenche a
+    coluna é a T011, de outra fase
+  - **A restrição ganhou migração própria, aplicada depois do retrofito** — e isso é
+    melhor que um contorno: ela passa a ser **a verificação do retrofito**. Se
+    qualquer equipe organizacional ficar sem organização, a migração se recusa a
+    aplicar. Esta tarefa entrega a coluna conferida contra a saída do derivador; a
+    recusa pelo banco vem com a restrição
 
-- [ ] T008 Admitir vínculo sem nível de acesso
+- [x] T008 Admitir vínculo sem nível de acesso
   - **Pronta quando**: T007 concluída; `contracts/derived-team.md` escrito
   - **Descrição**: `eo_team_membership_evidence.platform_access_level` passa a ser
     anulável, com `check_constraint` exigindo-a quando `source_system = 'github'`.
@@ -135,8 +195,14 @@ Corrige o F1. Só agora, e nesta ordem.
     ausência é nula, e gravar `MEMBER` inventaria dado (research.md R2) — FR-006
   - **Feita quando**: vínculo com `source_system` da plataforma aceita nível nulo;
     vínculo do GitHub sem nível é recusado pelo banco
-  - **Teste**: os dois casos, cada um conferido contra a restrição — o teste é a
-    **violação**, não o caminho feliz
+  - **Teste**: `test/the_band/ontology/seon/eo/constraints_test.exs`, três casos, os
+    três pela violação — vínculo do GitHub sem nível é recusado; vínculo derivado sem
+    nível é aceito **e o nível fica nulo**, não `MEMBER`; nível inventado é recusado
+    mesmo em vínculo derivado. Conferidos também direto no banco, contra as duas
+    `check_constraint`
+  - **A regra vive nos dois lugares, de propósito.** O changeset recusa, e o
+    `check_constraint` recusa — o segundo é o que vale quando a gravação não passa
+    pelo changeset: script, console, correção manual
 
 **Checkpoint**: esquema e modelo derivado voltam a corresponder.
 
@@ -150,7 +216,7 @@ Corrige o F1. Só agora, e nesta ordem.
 pessoas e conferir que cada linha indica a origem, e que quem está em duas mostra
 as duas.
 
-- [ ] T009 [US1] Vincular a equipe à organização na coleta
+- [x] T009 [US1] Vincular a equipe à organização na coleta
   - **Pronta quando**: T007 concluída; `contracts/ontology-eo.md` da feature 002
     escrito
   - **Descrição**: o conector passa a gravar a organização de cada equipe.
@@ -162,7 +228,7 @@ as duas.
   - **Teste**: coleta simulada de duas organizações com times de mesmo slug — as
     duas equipes ficam distintas, cada uma sob a sua organização. É FR-002 e SC-007
 
-- [ ] T010 [US1] Ler as organizações de uma pessoa
+- [x] T010 [US1] Ler as organizações de uma pessoa
   - **Pronta quando**: T009 concluída
   - **Descrição**: `list_person_organizations/2` em `queries/`, atravessando os
     vínculos de equipe até `eo_teams.organization_id`. Não existe aresta direta
@@ -175,7 +241,7 @@ as duas.
   - **Teste**: os três casos, mais o de quem não está em equipe alguma — que
     devolve lista vazia, não erro
 
-- [ ] T011 [US1] Retrofitar a organização do que já foi coletado
+- [x] T011 [US1] Retrofitar a organização do que já foi coletado
   - **Pronta quando**: T009 concluída
   - **Descrição**: atribuir organização às equipes já coletadas percorrendo
     `raw_payloads → syncs → connected_tools.organization_login →
@@ -183,10 +249,21 @@ as duas.
     preservada (research.md R4) — FR-023, FR-024
   - **Feita quando**: as 10 equipes existentes têm organização; o relatório diz
     quantas receberam e quantas ficaram sem, com o motivo
-  - **Teste**: o teste roda **sem registrar expectativa no Mox da borda HTTP** —
-    qualquer chamada à origem o derruba sozinho. É o V3 do quickstart, e SC-005
+  - **Teste**: cinco testes em `test/the_band/semantic_integration_test.exs`, **sem
+    expectativa no Mox da borda HTTP** — qualquer chamada à origem os derruba. É o V3
+    do quickstart, e SC-005
+  - **Executado no banco real**: 10 equipes sem organização antes, **10 atribuídas, 0
+    sem resolver**. `leds-conectafapes` 8, `The-Band-Solution` 2. Nenhuma consulta ao
+    GitHub — a corrente `raw_payloads → syncs → connected_tools.organization_login →
+    eo_organizations` já estava toda preservada
+  - **O sucesso tornou o estado "antes" inalcançável, e isso mudou os testes.** Com a
+    restrição aplicada, nenhum caminho de escrita cria equipe organizacional sem
+    organização. Os testes do mecanismo usam `project_team`, que legitimamente pode
+    não ter organização; o conserto das organizacionais reais foi provado por execução
+    e pela migração da restrição, que recusaria aplicar se alguma tivesse ficado.
+    **Retrofito é migração de uma vez só, não caminho permanente**
 
-- [ ] T012 [US1] Mostrar a organização em pessoas e equipes
+- [x] T012 [US1] Mostrar a organização em pessoas e equipes
   - **Pronta quando**: T010 e T011 concluídas; `contracts/screens.md` escrito
   - **Descrição**: coluna de organização nas telas de pessoas e de equipes. Na de
     pessoas são **as** organizações, no plural — quem está em duas mostra as duas
@@ -304,7 +381,7 @@ corresponde ao que ela tem na origem.
 
 Atravessa as três histórias: é o que completa o caminho pela equipe.
 
-- [ ] T020 Declarar a regra da equipe derivada
+- [x] T020 Declarar a regra da equipe derivada
   - **Pronta quando**: `contracts/derived-team.md` escrito
   - **Descrição**: `rules/github_default_team.yaml`, no formato da regra de
     vínculo com equipe — o que materializa, o que **não** materializa com a razão,
@@ -312,10 +389,15 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
     FR-013, FR-014
   - **Feita quando**: a regra declara a proveniência da equipe derivada e a
     ausência de nível de acesso no vínculo dela
-  - **Teste**: `mix knowledge.validate` aceita a regra; o mapeamento de equipe a
-    referencia
+  - **Teste**: `mix knowledge.validate` e o validador Python aceitam a regra
+  - **Correção de tarefa.** O teste mandava o mapeamento de equipe referenciar a regra,
+    e isso estaria errado: `derivation.rule_id` em
+    `github.team.to.eo.organizational_team` marcaria **toda equipe observada** como
+    derivada. A equipe derivada não vem de payload nenhum — é produzida pela
+    plataforma, e nenhum mapeamento a produz. A referência entrou como limitação
+    declarada no mapeamento, dizendo exatamente isso
 
-- [ ] T021 Criar a equipe derivada
+- [x] T021 Criar a equipe derivada
   - **Pronta quando**: T008 e T021 concluídas
   - **Descrição**: ao fim de cada coleta, a organização com membros fora de todas
     as suas equipes recebe uma equipe com o nome dela, e esses membros são
@@ -328,7 +410,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: os três casos, com os números reais — 5/0 times, 64/8 times e 6
     membros todos em times. É o V4 do quickstart, e cobre FR-007 e SC-009
 
-- [ ] T022 Impedir derivada passar por observada
+- [x] T022 Impedir derivada passar por observada
   - **Pronta quando**: T021 concluída
   - **Descrição**: invariantes em `constraints/` — equipe com `external_id` de
     derivação não pode ter `source_system` do GitHub; vínculo derivado não pode ter
@@ -339,7 +421,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: tentar gravar pela API pública uma derivada como observada e
     conferir que é recusado — o teste é a **violação**
 
-- [ ] T023 Esvaziar a derivada sem apagá-la
+- [x] T023 Esvaziar a derivada sem apagá-la
   - **Pronta quando**: T021 concluída
   - **Descrição**: a equipe derivada que fica sem integrantes é marcada como não
     mais observada, nunca removida. Uma equipe que existiu e esvaziou é
@@ -350,7 +432,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: duas coletas, a segunda com a pessoa já num time observado —
     conferir a marcação e que nada foi apagado
 
-- [ ] T024 Distinguir derivada na contagem e na tela
+- [x] T024 Distinguir derivada na contagem e na tela
   - **Pronta quando**: T021 e T015 concluídas
   - **Descrição**: `opts[:origin]` nas consultas, lendo `source_system`; selo
     visível na tela, não nota de rodapé; contagem no formato "N equipes, M
@@ -365,7 +447,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
 
 ## Phase 8 — Polish
 
-- [ ] T025 [P] Atualizar a documentação gerada
+- [x] T025 [P] Atualizar a documentação gerada
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: regerar `docs/ontology/` e `docs/integrations/` a partir da
     base, que mudou com a relação nova, as perguntas de competência e a regra
@@ -373,14 +455,14 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: o gerador roda sem erro, e a relação nova aparece na documentação
     de EO
 
-- [ ] T026 Rodar os quality gates
+- [x] T026 Rodar os quality gates
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: os oito gates da constituição, sem exceção e sem desabilitar
     check para o pipeline passar
   - **Feita quando**: todos verdes, com a saída registrada
   - **Teste**: os próprios gates — a saída de cada um é a evidência
 
-- [ ] T027 Executar os cenários do quickstart
+- [x] T027 Executar os cenários do quickstart
   - **Pronta quando**: T026 concluída
   - **Descrição**: percorrer V1 a V10 de [quickstart.md](quickstart.md) e registrar
     a evidência de cada um, inclusive dos que não puderem ser executados, com o

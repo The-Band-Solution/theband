@@ -29,6 +29,10 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.branch
 limitations:
+  - >
+    O autor do commit aponta para eo.person, e CMPO não declara relação entre cmpo.commit_artifact_copy e eo.person - autoria passaria por participação em atividade, que a ontologia ainda não modela. O vínculo é caminho de referência no payload, não relação materializável.
+  - >
+    O commit aponta para cmpo.branch em geral, e a única relação declarada é cmpo.commit_sends_copy_to_target_branch, que sai para cmpo.target_branch. A promessa é mais ampla que a declaração e nada a materializa.
   - Autor e committer podem ser pessoas diferentes; não colapsar os dois campos.
   - Commits de merge não representam alteração de conteúdo por si sós.
   - Rebase reescreve o oid; o mesmo trabalho pode aparecer com identidades distintas.
