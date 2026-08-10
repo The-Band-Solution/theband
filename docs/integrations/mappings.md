@@ -35,6 +35,10 @@ Um commit do GitHub registra o envio de uma cópia de artefato sem conflito para
 
 **Limitações**
 
+- O autor do commit aponta para eo.person, e CMPO não declara relação entre cmpo.commit_artifact_copy e eo.person - autoria passaria por participação em atividade, que a ontologia ainda não modela. O vínculo é caminho de referência no payload, não relação materializável.
+
+- O commit aponta para cmpo.branch em geral, e a única relação declarada é cmpo.commit_sends_copy_to_target_branch, que sai para cmpo.target_branch. A promessa é mais ampla que a declaração e nada a materializa.
+
 - Autor e committer podem ser pessoas diferentes; não colapsar os dois campos.
 - Commits de merge não representam alteração de conteúdo por si sós.
 - Rebase reescreve o oid; o mesmo trabalho pode aparecer com identidades distintas.
@@ -47,6 +51,8 @@ Um commit do GitHub registra o envio de uma cópia de artefato sem conflito para
 Um deployment do GitHub registra a atividade automatizada que implantou um código em um ambiente. O desfecho vem do deployment status associado, não do objeto deployment em si.
 
 **Limitações**
+
+- O código implantado aponta para ciro.candidate_code, e CDRO não declara relação entre cdro.deployment_activity e ciro.candidate_code - a relação existente é com cdro.deployed_code. Nada materializa o vínculo como declarado.
 
 - O nome do ambiente é texto livre; "production" em um repositório pode não ser produção real.
 - Um deployment criado não implica implantação concluída; usar o status mais recente.
@@ -125,6 +131,12 @@ Um Pull Request representa uma solicitação para avaliar e potencialmente integ
 
 **Limitações**
 
+- O autor da solicitação aponta para eo.person, e CMPO não declara relação entre cmpo.change_request e eo.person - autoria passaria por participação em atividade, ainda não modelada.
+
+- A branch de origem aponta para cmpo.source_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.source_branch. Nada materializa o vínculo.
+
+- A branch de destino aponta para cmpo.target_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.target_branch. Nada materializa o vínculo.
+
 - O Pull Request não é equivalente ao merge; mergedAt indica que um merge ocorreu, mas o merge é outro evento.
 - Reviews e decisões de aprovação são processadas separadamente (ver github.review).
 - Um PR fechado sem merge não representa mudança integrada.
@@ -137,6 +149,8 @@ Um Pull Request representa uma solicitação para avaliar e potencialmente integ
 Uma review de Pull Request é uma avaliação de artefato: alguém avalia objetivamente a aderência das alterações a critérios aplicáveis. O estado CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica conformidade na avaliação daquele revisor.
 
 **Limitações**
+
+- O revisor aponta para eo.person, e QAPO não declara relação entre qapo.artifact_evaluation e eo.person - a participação de agente em avaliação ainda não é modelada.
 
 - Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
 - Reviews automáticas (bots) devem ser classificadas separadamente das humanas.
@@ -161,6 +175,8 @@ Um repositório do GitHub é uma cópia carregada de sistema de software cujo pr
 
 **Limitações**
 
+- O proprietário aponta para eo.organization, e não existe relação declarada entre cmpo.source_repository e eo.organization. Declará-la exige decidir antes a direção de dependência entre CMPO e EO.
+
 - Repositório não é projeto; não derivar spo.software_project automaticamente daqui.
 - Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.
 
@@ -172,6 +188,10 @@ Um time do GitHub é um coletivo de pessoas mantido pela organização, com aces
 A API oferece os campos repositories e projectsV2 no time, o que permitiria derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e frequentemente não é usado: na organização verificada, os dois times têm zero repositórios e zero projetos associados, servindo apenas para agrupar pessoas. Por isso o alvo padrão é eo.organizational_team, e a promoção a eo.project_team exige vínculo efetivamente presente ou declaração do tenant.
 
 **Limitações**
+
+- Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a plataforma cria com o nome da organização para acolher quem não está em time algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id, marcaria toda equipe observada como derivada.
+
+- Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.
 
 - Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
 - Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.
@@ -203,6 +223,10 @@ Uma conta de usuário do GitHub identifica um agente que atuou no repositório. 
 
 **Limitações**
 
+- Não existe vínculo direto entre pessoa e organização, e este mapeamento não o declara. A versão anterior declarava relations.organization apontando para eo.organization, e EO não tem nem deve ter essa relação - o vínculo com organização passaria por papel organizacional, que o GitHub não fornece. O caminho respondível é pessoa -> equipe -> organização, e quem não está em equipe alguma não aparece em organização alguma. Ver eo.cq02.
+
+- O caminho organization.id não existe no payload de um membro - a organização é o pai da consulta, não campo do nó. Declará-lo produziu eo_people.organization_id nula em 100% dos registros. Achados F3 e F6 da feature 002.
+
 - Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.
 - A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.
 - O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.
@@ -214,6 +238,8 @@ Uma conta de usuário do GitHub identifica um agente que atuou no repositório. 
 Uma execução de workflow do GitHub Actions é uma ocorrência automatizada de processo de integração contínua. O subtipo depende do gatilho: push/pull_request mapeiam para o processo disparado por check-in, schedule para o agendado, e workflow_dispatch para o sob demanda.
 
 **Limitações**
+
+- A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.
 
 - Nem todo workflow é integração contínua; workflows de release mapeiam para CDRO.
 - conclusion "cancelled" e "skipped" não são insucesso do processo; classificar separadamente.

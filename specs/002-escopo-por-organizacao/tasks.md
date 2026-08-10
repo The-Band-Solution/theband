@@ -447,7 +447,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
 
 ## Phase 8 — Polish
 
-- [ ] T025 [P] Atualizar a documentação gerada
+- [x] T025 [P] Atualizar a documentação gerada
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: regerar `docs/ontology/` e `docs/integrations/` a partir da
     base, que mudou com a relação nova, as perguntas de competência e a regra
@@ -455,14 +455,14 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: o gerador roda sem erro, e a relação nova aparece na documentação
     de EO
 
-- [ ] T026 Rodar os quality gates
+- [x] T026 Rodar os quality gates
   - **Pronta quando**: as fases 1 a 7 concluídas
   - **Descrição**: os oito gates da constituição, sem exceção e sem desabilitar
     check para o pipeline passar
   - **Feita quando**: todos verdes, com a saída registrada
   - **Teste**: os próprios gates — a saída de cada um é a evidência
 
-- [ ] T027 Executar os cenários do quickstart
+- [x] T027 Executar os cenários do quickstart
   - **Pronta quando**: T026 concluída
   - **Descrição**: percorrer V1 a V10 de [quickstart.md](quickstart.md) e registrar
     a evidência de cada um, inclusive dos que não puderem ser executados, com o
