@@ -10,6 +10,7 @@ defmodule TheBand.DataCase do
   use ExUnit.CaseTemplate
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias TheBand.Ontology.SEON.EO
 
   using do
     quote do
@@ -45,6 +46,47 @@ defmodule TheBand.DataCase do
       },
       extra
     )
+  end
+
+  @doc """
+  Uma organização observada, para os testes que precisam de uma equipe.
+
+  Existe porque equipe organizacional **exige** organização desde a feature 002: a
+  restrição do banco recusa a linha sem ela. Antes disso os testes criavam equipe
+  solta, e passar a exigir a organização é o que se quer — o helper evita repetir
+  quatro linhas em cada um.
+  """
+  def organization_fixture(tenant, login \\ nil) do
+    login = login || "org-#{System.unique_integer([:positive])}"
+
+    {:ok, organization} =
+      EO.upsert_organization_from_source(
+        tenant,
+        source_attrs("O_#{login}", %{name: login, login: login})
+      )
+
+    organization
+  end
+
+  @doc """
+  Uma equipe organizacional já ligada a uma organização.
+
+  Passe `organization: org` para reusar uma; sem isso, cria a sua.
+  """
+  def team_fixture(tenant, external_id, extra \\ %{}) do
+    {organization, extra} =
+      Map.pop_lazy(extra, :organization, fn -> organization_fixture(tenant) end)
+
+    {:ok, team} =
+      EO.upsert_team_from_source(
+        tenant,
+        source_attrs(
+          external_id,
+          Map.merge(%{name: "Time #{external_id}", organization_id: organization.id}, extra)
+        )
+      )
+
+    team
   end
 
   def errors_on(changeset) do

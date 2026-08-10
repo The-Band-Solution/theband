@@ -216,7 +216,7 @@ Corrige o F1. Só agora, e nesta ordem.
 pessoas e conferir que cada linha indica a origem, e que quem está em duas mostra
 as duas.
 
-- [ ] T009 [US1] Vincular a equipe à organização na coleta
+- [x] T009 [US1] Vincular a equipe à organização na coleta
   - **Pronta quando**: T007 concluída; `contracts/ontology-eo.md` da feature 002
     escrito
   - **Descrição**: o conector passa a gravar a organização de cada equipe.
@@ -228,7 +228,7 @@ as duas.
   - **Teste**: coleta simulada de duas organizações com times de mesmo slug — as
     duas equipes ficam distintas, cada uma sob a sua organização. É FR-002 e SC-007
 
-- [ ] T010 [US1] Ler as organizações de uma pessoa
+- [x] T010 [US1] Ler as organizações de uma pessoa
   - **Pronta quando**: T009 concluída
   - **Descrição**: `list_person_organizations/2` em `queries/`, atravessando os
     vínculos de equipe até `eo_teams.organization_id`. Não existe aresta direta
@@ -241,7 +241,7 @@ as duas.
   - **Teste**: os três casos, mais o de quem não está em equipe alguma — que
     devolve lista vazia, não erro
 
-- [ ] T011 [US1] Retrofitar a organização do que já foi coletado
+- [x] T011 [US1] Retrofitar a organização do que já foi coletado
   - **Pronta quando**: T009 concluída
   - **Descrição**: atribuir organização às equipes já coletadas percorrendo
     `raw_payloads → syncs → connected_tools.organization_login →
@@ -249,8 +249,19 @@ as duas.
     preservada (research.md R4) — FR-023, FR-024
   - **Feita quando**: as 10 equipes existentes têm organização; o relatório diz
     quantas receberam e quantas ficaram sem, com o motivo
-  - **Teste**: o teste roda **sem registrar expectativa no Mox da borda HTTP** —
-    qualquer chamada à origem o derruba sozinho. É o V3 do quickstart, e SC-005
+  - **Teste**: cinco testes em `test/the_band/semantic_integration_test.exs`, **sem
+    expectativa no Mox da borda HTTP** — qualquer chamada à origem os derruba. É o V3
+    do quickstart, e SC-005
+  - **Executado no banco real**: 10 equipes sem organização antes, **10 atribuídas, 0
+    sem resolver**. `leds-conectafapes` 8, `The-Band-Solution` 2. Nenhuma consulta ao
+    GitHub — a corrente `raw_payloads → syncs → connected_tools.organization_login →
+    eo_organizations` já estava toda preservada
+  - **O sucesso tornou o estado "antes" inalcançável, e isso mudou os testes.** Com a
+    restrição aplicada, nenhum caminho de escrita cria equipe organizacional sem
+    organização. Os testes do mecanismo usam `project_team`, que legitimamente pode
+    não ter organização; o conserto das organizacionais reais foi provado por execução
+    e pela migração da restrição, que recusaria aplicar se alguma tivesse ficado.
+    **Retrofito é migração de uma vez só, não caminho permanente**
 
 - [ ] T012 [US1] Mostrar a organização em pessoas e equipes
   - **Pronta quando**: T010 e T011 concluídas; `contracts/screens.md` escrito

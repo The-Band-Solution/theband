@@ -34,6 +34,12 @@ attributes:
 relations:
   organization:
     source_path: organization.id
+    note: >
+      A organização é o pai da consulta, e nao campo do nó do time. O conector embute
+      o pai no nó antes de preservar o payload, para que este caminho seja verdadeiro
+      e para que o reprocessamento reproduza o vínculo sem consultar a origem.
+      Declarar o caminho sem embutir o pai foi o defeito que deixou
+      eo_teams.organization_id vazia em 100% dos registros - achado F6.
     target_ontology: eo
     target_concept: eo.organization
   granted_repositories:

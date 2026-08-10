@@ -121,7 +121,11 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # ------------------------------------------------------------------ coleta
 
   defp collect(ctx) do
-    with :ok <- collect_organization(ctx),
+    with {:ok, org_node} <- collect_organization(ctx),
+         # A organização coletada viaja no contexto porque toda equipe precisa dela.
+         # Guardamos o **nó**, e não a linha do banco, para que o mesmo dado seja
+         # embutido no payload preservado — ver `handle_team/2`.
+         ctx = Map.put(ctx, :organization_node, org_node),
          :ok <- paginate(ctx, "github.user", "organization_members", &handle_member/2),
          :ok <- paginate(ctx, "github.team", "teams", &handle_team/2) do
       collect_team_members(ctx)
@@ -142,7 +146,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         )
 
         Ingestion.checkpoint_page(ctx.sync, "github.organization", nil, 1)
-        :ok
+        {:ok, node}
 
       other ->
         normalize_error(other)
@@ -216,7 +220,16 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     store_and_upsert(ctx, node, "github.user", "github.user.to.eo.person")
   end
 
+  # A organização é o **pai da consulta**, não campo do nó do time — declarar
+  # `organization.id` como caminho de origem produzia nulo, e foi isso que deixou
+  # `eo_teams.organization_id` vazia em 100% dos registros (achado F6).
+  #
+  # A correção embute o pai no nó **antes de preservar o payload**, e não depois de
+  # mapear. Assim o payload guardado responde sozinho de qual organização a equipe
+  # veio, e o reprocessamento (FR-017) reproduz o vínculo sem consultar a origem.
+  # Injetar depois do armazenamento faria a coleta acertar e o reprocessamento errar.
   defp handle_team(ctx, node) do
+    node = Map.put(node, "organization", Map.take(ctx.organization_node, ["id", "login"]))
     store_and_upsert(ctx, node, "github.team", "github.team.to.eo.organizational_team")
   end
 

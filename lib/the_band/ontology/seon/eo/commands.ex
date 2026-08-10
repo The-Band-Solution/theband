@@ -42,9 +42,61 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           {:ok, Person.t()} | {:error, Ecto.Changeset.t()}
   def upsert_person_from_source(tenant, attrs), do: upsert(Person, tenant, attrs)
 
+  @doc """
+  Grava a equipe, resolvendo a organização pelo identificador externo dela.
+
+  `organization_external_id` chega do mapeamento, que o lê do payload. A resolução
+  para `organization_id` acontece **aqui**, e não no conector, por uma razão que
+  importa: o reprocessamento (FR-017) roda a partir do payload preservado, sem
+  contexto de coleta e sem consultar a origem. Resolver no conector faria a coleta
+  produzir a organização e o reprocessamento produzir nulo, para o mesmo payload.
+
+  Organização não encontrada deixa `organization_id` nulo em vez de falhar. A equipe
+  existe e foi observada; o que falta é o vínculo, e a restrição do banco é quem
+  decide se essa ausência é tolerável — ela é, para `project_team`, e não é para
+  `organizational_team`.
+  """
   @spec upsert_team_from_source(Tenant.t(), map()) ::
           {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
-  def upsert_team_from_source(tenant, attrs), do: upsert(Team, tenant, attrs)
+  def upsert_team_from_source(tenant, attrs) do
+    attrs = attrs |> normalize() |> resolve_organization(tenant)
+    upsert(Team, tenant, attrs)
+  end
+
+  defp resolve_organization(%{organization_external_id: external_id} = attrs, %Tenant{id: tid})
+       when is_binary(external_id) do
+    org_id =
+      Repo.one(
+        from o in Organization,
+          where:
+            o.tenant_id == ^tid and o.external_id == ^external_id and
+              o.source_system == ^attrs[:source_system],
+          select: o.id
+      )
+
+    attrs |> Map.delete(:organization_external_id) |> Map.put(:organization_id, org_id)
+  end
+
+  defp resolve_organization(attrs, _tenant), do: Map.delete(attrs, :organization_external_id)
+
+  @doc """
+  Atribui a organização a uma equipe já coletada (T011).
+
+  Existe separada de `upsert_team_from_source/2` porque não é coleta: nada foi
+  observado agora, e a proveniência da equipe não muda. Só o vínculo passa a existir,
+  a partir de dado que já estava preservado.
+
+  Não aceita `nil`: apagar o vínculo não é retrofito, e a assinatura recusar já evita
+  o uso errado.
+  """
+  @spec assign_team_organization(Tenant.t(), Team.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def assign_team_organization(%Tenant{}, %Team{} = team, organization_id)
+      when is_binary(organization_id) do
+    team
+    |> Team.from_source_changeset(%{organization_id: organization_id})
+    |> Repo.update()
+  end
 
   # ------------------------------------------------------------------ evidência
 

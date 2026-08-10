@@ -92,6 +92,61 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     Repo.all(from o in Organization, where: o.tenant_id == ^tenant_id, order_by: o.name)
   end
 
+  @doc """
+  A organização observada com aquele `login`, ou `nil`.
+
+  Usada pelo retrofito para fechar a corrente `connected_tools.organization_login →
+  eo_organizations.login`. Devolve `nil` em vez de erro: organização de origem que
+  não está na base é lacuna a registrar no relatório, não exceção.
+  """
+  @spec fetch_organization_by_login(Ecto.UUID.t(), String.t()) :: Organization.t() | nil
+  def fetch_organization_by_login(tenant_id, login) do
+    Repo.one(
+      from o in Organization,
+        where: o.tenant_id == ^tenant_id and o.login == ^login,
+        limit: 1
+    )
+  end
+
+  @doc """
+  As organizações de uma pessoa, pelo caminho pessoa → equipe → organização.
+
+  **Não existe aresta direta entre pessoa e organização**, e criar uma seria o
+  segundo caminho que a especificação rejeitou: EO faz o vínculo passar por papel
+  organizacional, que o GitHub não fornece. O caminho aqui é o declarado em
+  `eo.cq02` — a evidência de participação em equipe, e a organização da equipe.
+
+  Três consequências que a assinatura não mostra:
+
+  - **quem não está em equipe alguma devolve lista vazia**, não erro. É informação:
+    a organização é conhecida e o vínculo não;
+  - **duas equipes da mesma organização devolvem uma organização.** A distinção é
+    por organização, não por vínculo;
+  - **vínculo que deixou de ser observado continua contando** (FR-009). Ausência
+    numa coleta não é remoção: a pessoa esteve naquela organização, e apagar o
+    vínculo ao primeiro silêncio da origem perderia isso. Quem quiser só o vigente
+    passa `only_observed: true`.
+  """
+  @spec list_person_organizations(Tenant.t(), Ecto.UUID.t(), keyword()) :: [Organization.t()]
+  def list_person_organizations(%Tenant{id: tenant_id}, person_id, opts \\ []) do
+    query =
+      from o in Organization,
+        join: t in Team,
+        on: t.organization_id == o.id and t.tenant_id == o.tenant_id,
+        join: e in TeamMembershipEvidence,
+        on: e.team_id == t.id and e.tenant_id == t.tenant_id,
+        where: o.tenant_id == ^tenant_id and e.person_id == ^person_id,
+        distinct: true,
+        order_by: o.name,
+        select: o
+
+    query
+    |> then(fn q ->
+      if opts[:only_observed], do: where(q, [_o, _t, e], is_nil(e.no_longer_observed_at)), else: q
+    end)
+    |> Repo.all()
+  end
+
   # ------------------------------------------------------------------- lacunas
 
   @doc """
@@ -125,7 +180,17 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> filter_account_type(opts[:account_type])
     |> filter_search(opts[:search])
     |> filter_observed(opts[:only_observed])
+    |> filter_missing_organization(opts[:missing_organization])
   end
+
+  # Só para o retrofito: quais equipes ainda não têm organização. Não vira opção
+  # pública de listagem porque a pergunta é de manutenção, não de consulta — e uma
+  # opção pública convidaria a tela a exibir "equipes sem organização" como se fosse
+  # categoria do domínio, quando é lacuna a fechar.
+  defp filter_missing_organization(query, true),
+    do: where(query, [r], is_nil(r.organization_id))
+
+  defp filter_missing_organization(query, _), do: query
 
   defp filter_account_type(query, nil), do: query
 

@@ -77,6 +77,74 @@ defmodule TheBand.SemanticIntegration do
     )
   end
 
+  @type backfill_report :: %{
+          teams: non_neg_integer(),
+          assigned: non_neg_integer(),
+          unresolved: non_neg_integer(),
+          reasons: %{String.t() => non_neg_integer()}
+        }
+
+  @doc """
+  Atribui organização às equipes coletadas antes de o vínculo existir (T011, FR-023).
+
+  As equipes já na base foram coletadas quando o payload preservado não trazia a
+  organização — ela é o pai da consulta, e o conector só passou a embuti-la nesta
+  feature. Reaplicar o mapeamento não as conserta, porque o payload antigo não tem o
+  campo.
+
+  A corrente que resolve isso já está toda preservada, e nenhum elo exige a origem:
+
+      eo_teams → raw_payloads (pelo external_id) → syncs
+               → connected_tools.organization_login → eo_organizations.login
+
+  **Zero consultas ao GitHub**, e a garantia não é por inspeção: o teste roda sem
+  registrar expectativa no Mox da borda HTTP, então qualquer chamada o derruba.
+
+  Equipe que não resolve **não é adivinhada**. O relatório diz quantas ficaram e por
+  quê — sem payload preservado, ou com organização de origem que não está na base.
+  Preencher pelo nome seria inventar o vínculo que esta feature existe para corrigir.
+  """
+  @spec backfill_team_organizations(Tenant.t()) :: {:ok, backfill_report()}
+  def backfill_team_organizations(%Tenant{id: tenant_id} = tenant) do
+    pendentes = EO.list_teams(tenant, missing_organization: true)
+
+    resolvidas = organization_by_team_external_id(tenant_id)
+
+    inicial = %{teams: length(pendentes), assigned: 0, unresolved: 0, reasons: %{}}
+
+    {:ok, Enum.reduce(pendentes, inicial, &assign_one(&1, &2, tenant, resolvidas))}
+  end
+
+  defp assign_one(team, report, tenant, resolvidas) do
+    case Map.get(resolvidas, team.external_id) do
+      nil -> bump(report, :unresolved, "sem payload preservado ou organização de origem ausente")
+      org_id -> record_assignment(report, EO.assign_team_organization(tenant, team, org_id))
+    end
+  end
+
+  defp record_assignment(report, {:ok, _team}), do: %{report | assigned: report.assigned + 1}
+
+  defp record_assignment(report, {:error, changeset}),
+    do: bump(report, :unresolved, changeset_reason(changeset))
+
+  defp bump(report, campo, motivo) do
+    report
+    |> Map.update!(campo, &(&1 + 1))
+    |> Map.update!(:reasons, &Map.update(&1, motivo, 1, fn n -> n + 1 end))
+  end
+
+  # Um mapa external_id da equipe → id da organização, montado numa consulta só.
+  # Percorrer a corrente por equipe faria N+1 consultas para responder o mesmo.
+  defp organization_by_team_external_id(tenant_id) do
+    RawData.team_organization_logins(tenant_id)
+    |> Enum.reduce(%{}, fn {team_external_id, login}, acc ->
+      case EO.fetch_organization_by_login(tenant_id, login) do
+        nil -> acc
+        org -> Map.put(acc, team_external_id, org.id)
+      end
+    end)
+  end
+
   defp load_payloads(tenant, nil) do
     ~w(github.organization github.user github.team github.team_member)
     |> Enum.flat_map(&RawData.list_for_reprocessing(tenant, &1))

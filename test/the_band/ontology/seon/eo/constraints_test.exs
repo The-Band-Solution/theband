@@ -25,7 +25,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "a evidência recusa nível de acesso desconhecido no changeset" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_1", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_1", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_1")
 
       assert {:error, changeset} =
                EO.record_team_membership_evidence(tenant, %{
@@ -80,7 +80,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "é contado como pendente de papel enquanto não for promovido (FR-021)" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_2", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_2", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_2")
 
       {:ok, evidencia} =
         EO.record_team_membership_evidence(tenant, %{
@@ -102,7 +102,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     test "reobservar o mesmo vínculo não cria um segundo" do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_3", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_3", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_3")
 
       attrs = %{
         person_id: pessoa.id,
@@ -126,7 +126,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
     setup do
       tenant = tenant_fixture()
       {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_9", %{name: "Ana"}))
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_9", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_9")
 
       base = %{
         person_id: pessoa.id,
@@ -184,9 +184,40 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
   describe "equipe do GitHub gravada" do
     test "nasce como organizational_team, nunca como project_team (FR-023)" do
       tenant = tenant_fixture()
-      {:ok, equipe} = EO.upsert_team_from_source(tenant, source_attrs("T_4", %{name: "Time"}))
+      equipe = team_fixture(tenant, "T_4")
 
       assert equipe.type == "organizational_team"
+    end
+  end
+
+  describe "equipe organizacional exige organização (T007, FR-001)" do
+    test "o banco recusa equipe organizacional sem organização" do
+      tenant = tenant_fixture()
+
+      assert {:error, changeset} =
+               EO.upsert_team_from_source(
+                 tenant,
+                 source_attrs("T_sem_org", %{name: "Sem organização"})
+               )
+
+      # A recusa vem da restrição do banco, e não de validação em changeset. É a
+      # diferença que importa: validação é contornável por qualquer caminho que não
+      # passe por ela — script, console, correção manual.
+      assert errors_on(changeset) != %{}
+    end
+
+    test "equipe de projeto sem organização é aceita" do
+      tenant = tenant_fixture()
+
+      assert {:ok, equipe} =
+               EO.upsert_team_from_source(
+                 tenant,
+                 source_attrs("T_projeto", %{name: "Projeto", type: "project_team"})
+               )
+
+      # A obrigatoriedade é do subtipo. Equipe de projeto entre organizações não
+      # pertence a uma só, e um NOT NULL na tabela do kind afirmaria o contrário.
+      assert is_nil(equipe.organization_id)
     end
   end
 end

@@ -13,7 +13,9 @@ defmodule TheBand.RawData do
   import Ecto.Changeset
   import Ecto.Query
 
+  alias TheBand.Ingestion.Sync
   alias TheBand.Repo
+  alias TheBand.Sources.ConnectedTool
   alias TheBand.Tenants.Tenant
 
   @primary_key {:id, :binary_id, autogenerate: true}
@@ -78,6 +80,38 @@ defmodule TheBand.RawData do
       from r in __MODULE__,
         where: r.tenant_id == ^tenant_id and r.raw_entity_type == ^raw_entity_type,
         order_by: [asc: r.collected_at]
+    )
+  end
+
+  @doc """
+  De qual organização de origem veio cada equipe coletada (T011).
+
+  Devolve `[{external_id_da_equipe, organization_login}]`, atravessando
+  `raw_payloads → syncs → connected_tools`. A organização não está no payload das
+  equipes antigas — ela é o pai da consulta —, mas a ferramenta conectada que
+  originou a sincronização sempre soube qual era.
+
+  Uma consulta só, e não uma por equipe: percorrer a corrente equipe a equipe faria
+  N+1 idas ao banco para responder exatamente isto.
+
+  `distinct` porque a mesma equipe é preservada em cada sincronização. Se duas
+  sincronizações de **ferramentas diferentes** trouxerem a mesma equipe, ela aparece
+  duas vezes e quem chama decide — não é caso conhecido hoje, e resolver por
+  arbitragem silenciosa aqui esconderia o conflito.
+  """
+  @spec team_organization_logins(Ecto.UUID.t()) :: [{String.t(), String.t()}]
+  def team_organization_logins(tenant_id) do
+    Repo.all(
+      from r in __MODULE__,
+        join: s in Sync,
+        on: s.id == r.sync_id,
+        join: t in ConnectedTool,
+        on: t.id == s.connected_tool_id,
+        where:
+          r.tenant_id == ^tenant_id and r.raw_entity_type == "github.team" and
+            not is_nil(t.organization_login),
+        distinct: true,
+        select: {r.external_id, t.organization_login}
     )
   end
 

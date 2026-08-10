@@ -29,10 +29,9 @@ defmodule TheBandWeb.ScreensTest do
         source_attrs("U_2", %{name: "dependabot", login: "dependabot[bot]", account_type: "bot"})
       )
 
-    {:ok, equipe} =
-      EO.upsert_team_from_source(tenant, source_attrs("T_1", %{name: "Core", slug: "core"}))
-
-    equipe
+    # A organização é obrigatória para equipe organizacional desde a feature 002, e
+    # a tela passa a exibi-la — então os dados de teste precisam tê-la.
+    team_fixture(tenant, "T_1", %{name: "Core", slug: "core"})
   end
 
   defp conectar_ferramenta(tenant) do
