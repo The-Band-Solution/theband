@@ -62,9 +62,19 @@ de a uma pessoa. Pedir à equipe é o que **produz** a independência: o pedido 
 aberto a qualquer membro, e o autor, sendo membro, não pode atendê-lo. Quem revisa é
 `Adylla027` ou `EduardoNFraiz`.
 
-**O resíduo do #89 não se recupera.** Não há como pedir revisão de PR mergeado, então o
-código da feature 001 permanece na `main` sem nunca ter sido revisado. A correção vale
-de #91 em diante, e o registro de aceitação continua dizendo isso.
+**Correção do próprio registro.** Este documento afirmava que a revisão da 001 não
+havia acontecido. A pessoa mantenedora corrigiu: *"eu olhei e concordei, por isso não
+coloquei comentário."* A leitura ocorreu; **falta a prova, não a revisão.**
+
+A conclusão errada vinha de ler o campo `author` do GitHub como se nomeasse quem
+implementou. Não nomeia: quem implementou é o agente, cujos commits trazem
+`Co-Authored-By: Claude Opus 5` e que não tem conta. O `422` é artefato de ferramenta,
+não conflito de interesse. Registrado como [L16](../licoes-aprendidas.md).
+
+**O que fecha a lacuna de vez** é abrir os PRs com identidade de agente — bot ou GitHub
+App. Aí o implementador é o autor de fato, e `paulossjunior` pode aprovar formalmente o
+que não escreveu. Enquanto isso, #89, #90 e #91 ficam com o atestado datado no
+`aceitacao.md`, porque PR mergeado não recebe review.
 
 ## Lições aplicadas
 
