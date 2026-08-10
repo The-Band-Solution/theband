@@ -55,8 +55,9 @@ defmodule TheBand.Sources.ConnectedTool do
     |> validate_github_organization()
     |> validate_inclusion(:tool_type, @tool_types)
     |> validate_inclusion(:status, @statuses)
-    |> unique_constraint([:tenant_id, :tool_type, :instance_url],
-      message: "esta instância já está conectada para esta organização"
+    |> unique_constraint([:tenant_id, :tool_type, :instance_url, :organization_login],
+      name: :connected_tools_identity_index,
+      message: "esta organização já está conectada nesta instância"
     )
   end
 

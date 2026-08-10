@@ -72,6 +72,57 @@ defmodule TheBand.SourcesTest do
     end
   end
 
+  describe "identidade da ferramenta conectada" do
+    setup do
+      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "c"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      :ok
+    end
+
+    test "a mesma organização cliente observa várias organizações na mesma instância" do
+      tenant = tenant_fixture()
+
+      for org <- ~w(acme acme-labs) do
+        assert {:ok, _} =
+                 Sources.connect_tool(tenant, %{
+                   "tool_type" => "github",
+                   "instance_url" => "https://github.com",
+                   "organization_login" => org,
+                   "secret" => "t"
+                 })
+      end
+
+      observadas =
+        tenant
+        |> Sources.list_connected_tools()
+        |> Enum.map(& &1.organization_login)
+        |> Enum.sort()
+
+      assert observadas == ["acme", "acme-labs"]
+    end
+
+    test "reconectar a mesma organização não duplica a ferramenta, e acrescenta a credencial" do
+      tenant = tenant_fixture()
+
+      attrs = %{
+        "tool_type" => "github",
+        "instance_url" => "https://github.com",
+        "organization_login" => "acme",
+        "secret" => "t"
+      }
+
+      assert {:ok, _} = Sources.connect_tool(tenant, attrs)
+      assert {:ok, _} = Sources.connect_tool(tenant, Map.put(attrs, "label", "segunda conta"))
+
+      assert [tool] = Sources.list_connected_tools(tenant)
+      # FR-004 — credenciais coexistem, porque enxergam conjuntos diferentes.
+      assert length(tool.credentials) == 2
+    end
+  end
+
   describe "segredo da credencial (FR-007, FR-008)" do
     test "inspect não expõe o segredo" do
       credential = %ToolCredential{secret: "ghp_supersecreto", last_four: "reto"}

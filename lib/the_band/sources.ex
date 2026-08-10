@@ -160,7 +160,7 @@ defmodule TheBand.Sources do
     |> ConnectedTool.changeset(tool_attrs)
     |> Repo.insert(
       on_conflict: {:replace, [:updated_at]},
-      conflict_target: [:tenant_id, :tool_type, :instance_url],
+      conflict_target: [:tenant_id, :tool_type, :instance_url, :organization_login],
       returning: true
     )
   end
