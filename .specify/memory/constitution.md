@@ -18,6 +18,9 @@ Seções definidas:
   [SECTION_2_NAME] → Restrições tecnológicas
   [SECTION_3_NAME] → Fluxo de desenvolvimento
 
+Princípios acrescentados por emenda posterior:
+  1.2.0 → VIII. Desenho que o problema justifica
+
 Fonte dos princípios: AGENTS.md na raiz do repositório, documento normativo de fato
 desde antes desta ratificação. Esta constituição não inventa regra nova — codifica o
 que o AGENTS.md já exigia, e passa a prevalecer sobre ele em caso de conflito.
@@ -41,6 +44,28 @@ antes dele.
 O que passa a ser exigido de quem já seguia a versão anterior: escrever o
 contrato em `specs/<feature>/contracts/` antes da primeira função pública, e
 corrigi-lo no mesmo commit quando a implementação mostrar que ele estava errado.
+
+Emenda 1.2.0 — 2026-08-09
+=========================
+Versão: 1.1.0 → 1.2.0 (MINOR: princípio adicionado, nenhum removido ou redefinido).
+
+Acrescentado o princípio **VIII. Desenho que o problema justifica**.
+
+Motivo: instrução da pessoa mantenedora para que boas práticas, padrões de
+desenho e a recusa a antipadrões passem a ser norma. A formulação escolhida
+**não** é "aplique padrões": é "o padrão precisa do problema". A diferença
+importa — "aplique design patterns" é justamente o que produz fábrica com um
+produto, interface com uma implementação e camada de abstração sobre a única
+fonte que existe.
+
+Os antipadrões nomeados não vieram de livro: cada um já apareceu neste
+repositório ou está a um descuido de aparecer. O `.credo.exs` que substituía o
+conjunto de checks em vez de complementá-lo, criado e removido no sprint 001, é o
+exemplo de configuração que mantém o gate verde e o faz parar de proteger.
+
+O que passa a ser exigido de quem já seguia a versão anterior: registrar no
+`plan.md` as três respostas antes de introduzir qualquer padrão — qual problema
+concreto, se ele existe agora, e o que fica pior.
 -->
 
 # Constituição do The Band
@@ -201,6 +226,37 @@ Quem implementa MUST NOT ser quem valida sozinho.
 **Razão**: o custo de um gate vermelho é minutos; o de um dado errado em produção é a
 confiança na plataforma inteira.
 
+### VIII. Desenho que o problema justifica
+
+Boas práticas e padrões de desenho MUST ser aplicados **quando existe o problema que
+eles resolvem**, e MUST NOT ser aplicados por serem reconhecíveis. Padrão sem problema é
+antipadrão: paga complexidade hoje por flexibilidade hipotética, e atrapalha quem lê.
+
+- Todo padrão introduzido MUST trazer, no `plan.md` da feature, as três respostas: qual
+  problema concreto ele resolve, se esse problema **existe agora** ou é previsão, e o que
+  fica pior por adotá-lo. Quem não sabe dizer o que piorou não entendeu o padrão.
+- Abstração criada para um caso hipotético MUST NOT ser introduzida. Duplicar duas vezes é
+  barato; abstrair cedo e errado é caro. Na terceira ocorrência já se sabe o que varia.
+- Os antipadrões declarados em `AGENTS.md` §7.7 MUST ser tratados como defeito em revisão,
+  não como preferência de estilo. Entre eles, os que a arquitetura deste projeto atrai:
+  booleano no lugar do relator, mapeamento por semelhança de nome, consulta sem tenant,
+  fallback silencioso, mock de módulo de domínio próprio, configuração que enfraquece um
+  quality gate, e acoplamento temporal em checkpoint.
+- **Ausência MUST ser representada como nula, nunca como zero.** Preencher com zero o que
+  não se sabe transforma lacuna em decisão, e a medida derivada mente sem avisar.
+- Erro previsto de negócio MUST ser retorno — `{:error, motivo}` —, e exceção MUST ficar
+  reservada ao que é bug. Exceção como fluxo de controle esconde o caso previsto entre os
+  imprevistos.
+- Refatoração MUST entrar na feature apenas quando o código tocado torna a mudança mais
+  difícil. Refatoração oportunista MUST NOT ser misturada ao mesmo diff: ela precisa de
+  critério de revisão diferente do da feature.
+
+**Razão**: este projeto já tem complexidade essencial — uma rede de doze ontologias, um
+modelo de informação derivado e proveniência em cada registro. Complexidade acidental
+somada a essa não é neutra: ela consome a atenção que a semântica exige. A regra existe
+para que a estrutura que houver seja a que o problema pediu, e para que a lista de
+antipadrões seja verificável em revisão em vez de opinião de quem revisa.
+
 ## Restrições tecnológicas
 
 Stack fixada: Elixir/Erlang OTP, Phoenix e LiveView, Ecto e PostgreSQL, Oban para jobs e
@@ -274,4 +330,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-09
+**Version**: 1.2.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-09

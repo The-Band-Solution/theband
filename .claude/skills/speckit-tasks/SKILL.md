@@ -81,10 +81,11 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Setup tasks (project initialization)
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
-   - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
+   - Each phase includes: story goal, independent test criteria, implementation tasks
    - Final Phase: Polish & cross-cutting concerns
-   - All tasks must follow the strict checklist format (see Task Generation Rules below)
-   - Clear file paths for each task
+   - Every task follows the Task Format below: short title, then `Pronta quando`,
+     `Descrição`, `Feita quando` and `Teste`
+   - File paths and commands live in `Descrição`, never in the title
    - Dependencies section showing story completion order
    - Parallel execution examples per story
    - Implementation strategy section (MVP first, incremental delivery)
@@ -132,7 +133,10 @@ Output path to generated tasks.md and summary:
 - Parallel opportunities identified
 - Independent test criteria for each story
 - Suggested MVP scope (typically just User Story 1)
-- Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
+- Format validation: confirm EVERY task has a short title without commands, plus
+  the four fields — `Pronta quando`, `Descrição`, `Feita quando`, `Teste`. Report
+  any task missing one of them by ID; a task without a test is not ready to be
+  handed to anyone
 
 Context for task generation: $ARGUMENTS
 
@@ -142,39 +146,131 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
-**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
+**Every task carries a test.** Not "tests are optional": a task whose completion
+cannot be demonstrated is a task nobody can accept. See *Test* below for what
+counts when the task produces no code.
 
-### Checklist Format (REQUIRED)
+### Task Format (REQUIRED)
 
-Every task MUST strictly follow this format:
+A task is a **short title** plus four fields. The title says *what*; the fields
+say when it can start, what to do, when it is finished, and how that is proven.
 
 ```text
-- [ ] [TaskID] [P?] [Story?] Description with file path
+- [ ] TID [P?] [US?] Short, direct title
+  - **Pronta quando**: what must already be true for this task to start
+  - **Descrição**: what to do — file paths, commands, and the requirement or
+    contract that justifies it
+  - **Feita quando**: observable conditions, each one checkable by someone else
+  - **Teste**: the command or verification that demonstrates it
 ```
 
-**Format Components**:
+Field labels are written in the **project's language** — the example above and
+those below use pt-BR because this project's artifacts are in pt-BR.
 
-1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
-2. **Task ID**: Sequential number (T001, T002, T003...) in execution order
-3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
-4. **[Story] label**: REQUIRED for user story phase tasks only
-   - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)
-   - Setup phase: NO story label
-   - Foundational phase: NO story label
-   - User Story phases: MUST have story label
-   - Polish phase: NO story label
-5. **Description**: Clear action with exact file path
+#### The title
 
-**Examples**:
+**Short and direct. No commands, no file paths, no flags.** Those belong in
+`Descrição`. A title is read in a list of seventy; it has to say what the task is
+in a glance, and a title carrying `mix phx.new . --app the_band --no-mailer`
+says nothing at a glance.
 
-- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`
-- ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
-- ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
-- ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
-- ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
-- ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
-- ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
-- ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+| ✅ | ❌ |
+|---|---|
+| `Gerar o projeto Phoenix` | `Rodar mix phx.new . --app the_band --module TheBand --database postgres` |
+| `Cifrar a credencial em repouso` | `Implementar lib/the_band/vault.ex com Cloak.Vault e AES-GCM 256` |
+| `Recusar o boot sem chave mestra` | `Fazer application.ex checar THE_BAND_MASTER_KEY antes do supervisor` |
+| `Tela de pessoas com proveniência` | `LiveView /pessoas em lib/the_band_web/live/people_live/index.ex` |
+
+Aim for **three to six words**, starting with a verb. If the title needs a comma
+to stay honest, the task is probably two tasks.
+
+#### Pronta quando — Definition of Ready
+
+What must **already be true** before anyone starts. It exists to stop work that
+will have to be redone.
+
+Draw from what actually blocks:
+
+- **the contract exists** — the constitution requires the API contract in
+  `specs/<feature>/contracts/` before the first public function. For any task
+  that adds public API, this is the first item;
+- **the decision was taken** — a task that depends on an open question in
+  `research.md` or an unresolved `[NEEDS CLARIFICATION]` is not ready;
+- **the dependency is done** — name the task ID, not "the previous one";
+- **the input exists** — fixture, migration, credential, seeded data.
+
+`Pronta quando: nada além do repositório` is a legitimate answer for the first
+tasks of the Setup phase. Write it rather than leaving the field empty.
+
+#### Descrição — where the commands live
+
+Everything the title deliberately left out: exact paths, exact commands, flags,
+and the **requirement (FR/SC) or contract** that justifies the task.
+
+This is also where a constraint that is easy to get wrong is stated — not as
+trivia, but because someone will otherwise get it wrong. Example: "gravar o
+checkpoint **depois** de processar a página, nunca antes".
+
+#### Feita quando — Definition of Done
+
+Observable conditions, in the **past tense of a fact**, each checkable by someone
+who did not do the work.
+
+The trap to avoid is restating the title. `Feita quando: o vault está
+implementado` says nothing — it is the title with a verb changed.
+
+| ✅ | ❌ |
+|---|---|
+| `a leitura direta da tabela devolve texto cifrado` | `a credencial está cifrada` |
+| `a aplicação não sobe sem THE_BAND_MASTER_KEY, e a mensagem diz o que fazer` | `FR-005a implementado` |
+| `a contagem do cabeçalho bate com a listagem sob qualquer filtro` | `a tela funciona` |
+
+Two or three conditions is usually right. More than five means the task is too
+big.
+
+#### Teste — how it is proven
+
+The command, the assertion, or the verification. **Every task has one**, and the
+form follows what the task produces:
+
+| Task produces | Test is |
+|---|---|
+| domain code | the test file and what it asserts |
+| a screen | what has to be visible, and what must **not** be |
+| a migration | the round trip: `mix ecto.migrate` then rollback |
+| a connector | contract test with the HTTP edge mocked, using a captured payload |
+| configuration or a quality gate | the command that fails when it is wrong |
+| documentation or a contract | the artifact that reads it, or the review that compares it against the code |
+
+Two rules about this field:
+
+- **`mix test` alone is not a test.** It says the suite passed, not that *this*
+  task works. Name the file, the case, or the assertion;
+- **for anything with a security or semantic invariant, the test is the
+  violation**, not the happy path. "The credential does not appear in the HTML"
+  proves more than "the screen renders".
+
+### Full example
+
+```text
+- [ ] T014 Cifrar a credencial em repouso
+  - **Pronta quando**: o contrato em `contracts/credential-rotation.md` está
+    escrito; T007 (configuração de runtime) concluída
+  - **Descrição**: `lib/the_band/vault.ex` com `Cloak.Vault`, AES-GCM de 256
+    bits e chave mestra vinda do ambiente. A cifragem acontece no `Ecto.Type`,
+    nunca no código de aplicação — FR-005, research.md R3
+  - **Feita quando**: a leitura direta de `tool_credentials` devolve texto
+    cifrado; nenhum caminho da aplicação grava o segredo em claro
+  - **Teste**: `test/the_band/vault_test.exs` — o valor cifrado não contém o
+    texto claro, e decifrar devolve o original
+```
+
+### Format rules that still hold
+
+1. **Checkbox**: always `- [ ]`
+2. **Task ID**: `T001`, `T002`… sequential, in execution order
+3. **[P] marker**: only when parallelizable — different files, no pending dependency
+4. **[US] label**: required in user story phases, absent in Setup, Foundational and Polish
 
 ### Task Organization
 
@@ -184,12 +280,13 @@ Every task MUST strictly follow this format:
      - Models needed for that story
      - Services needed for that story
      - Interfaces/UI needed for that story
-     - If tests requested: Tests specific to that story
+     - The test of each task, in its own `Teste` field
    - Mark story dependencies (most stories should be independent)
 
 2. **From Contracts**:
    - Map each interface contract → to the user story it serves
-   - If tests requested: Each interface contract → contract test task [P] before implementation in that story's phase
+   - The contract is a **Definition of Ready** item for every task that adds
+     public API: it must exist before the task starts, per the constitution
 
 3. **From Data Model**:
    - Map each entity to the user story(ies) that need it
@@ -206,12 +303,16 @@ Every task MUST strictly follow this format:
 - **Phase 1**: Setup (project initialization)
 - **Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)
 - **Phase 3+**: User Stories in priority order (P1, P2, P3...)
-  - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
+  - Within each story: Models → Services → Endpoints → Integration, each task
+    carrying its own test in the `Teste` field
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
 
 ## Done When
 
-- [ ] tasks.md generated with all phases, task IDs, and file paths
+- [ ] tasks.md generated with all phases and task IDs
+- [ ] every task has a short title, with no commands or paths in it
+- [ ] every task has `Pronta quando`, `Descrição`, `Feita quando` and `Teste`
+- [ ] no `Feita quando` merely restates its title, and no `Teste` is just `mix test`
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
 - [ ] Completion reported to user with task count, story breakdown, and MVP scope

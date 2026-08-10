@@ -64,6 +64,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
    - Fill Constitution Check section from constitution
+   - **Register the design decisions**: for every pattern, abstraction, layer,
+     behaviour or indirection the plan introduces, record the three answers the
+     constitution's principle VIII requires — which concrete problem it solves,
+     whether that problem **exists now** or is a prediction, and what gets worse.
+     A pattern whose cost cannot be named was not understood. Patterns already
+     justified in `AGENTS.md` §7.7 need no rejustification; using one outside the
+     problem that motivated it does
    - Evaluate gates (ERROR if violations unjustified)
    - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
    - Phase 1: Generate data-model.md, contracts/, quickstart.md

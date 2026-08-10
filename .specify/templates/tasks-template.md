@@ -9,15 +9,31 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Testes**: cada tarefa carrega o seu, no campo `Teste`. Não há tarefa sem forma
+de demonstrar que ficou pronta.
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+**Organização**: as tarefas são agrupadas por user story, para que cada uma possa
+ser implementada, testada e entregue de forma independente.
 
-## Format: `[ID] [P?] [Story] Description`
+## Formato
 
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
-- Include exact file paths in descriptions
+```text
+- [ ] TID [P?] [US?] Título curto e direto
+  - **Pronta quando**: o que precisa já ser verdade para a tarefa começar
+  - **Descrição**: o que fazer — caminhos, comandos, e o requisito (FR/SC) ou
+    contrato que a justifica
+  - **Feita quando**: condições observáveis, cada uma conferível por outra pessoa
+  - **Teste**: o comando ou a verificação que demonstra
+```
+
+- **[P]**: pode rodar em paralelo — arquivo distinto, sem dependência pendente
+- **[US]**: a user story que a tarefa atende (US1, US2, US3…)
+- **Título sem comandos e sem caminhos.** Eles vivem em `Descrição`: um título é
+  lido numa lista de setenta, e precisa dizer o que a tarefa é num relance
+- `Feita quando` **não repete o título**. "o vault está implementado" é o título
+  com um verbo trocado, e não dá para conferir
+- `Teste` **não é `mix test`**. Isso diz que a suíte passou, não que *esta*
+  tarefa funciona — nomeie o arquivo, o caso ou a asserção
 
 ## Path Conventions
 
@@ -49,9 +65,27 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Gerar a estrutura do projeto
+  - **Pronta quando**: nada além do repositório
+  - **Descrição**: estrutura conforme a decisão de estrutura do `plan.md`
+  - **Feita quando**: a árvore de diretórios corresponde ao plano; nenhum
+    diretório vazio foi criado antecipadamente
+  - **Teste**: a compilação roda limpa a partir da raiz
+
+- [ ] T002 Fixar as versões das dependências
+  - **Pronta quando**: T001 concluída; as versões estão decididas em `research.md`
+  - **Descrição**: fixar as versões exatas no manifesto, com a justificativa de
+    cada dependência nova registrada no plano
+  - **Feita quando**: o arquivo de lock está commitado; nenhuma versão está aberta
+    onde a pesquisa pediu fixação
+  - **Teste**: a instalação de dependências resolve sem conflito, do zero
+
+- [ ] T003 [P] Configurar formatador e linter
+  - **Pronta quando**: T002 concluída
+  - **Descrição**: configuração do formatador e do linter no modo estrito exigido
+    pela constituição
+  - **Feita quando**: os dois rodam sem apontar nada no código existente
+  - **Teste**: os comandos de verificação de formato e de lint retornam zero
 
 ---
 
@@ -61,14 +95,23 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+Exemplos de tarefas de fundação (ajuste ao seu projeto):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Criar o esquema base do banco
+  - **Pronta quando**: o modelo de dados está aprovado em `data-model.md`
+  - **Descrição**: migração das tabelas comuns, com as colunas obrigatórias de
+    identidade e proveniência exigidas pela constituição
+  - **Feita quando**: as restrições existem no banco, e não apenas no changeset;
+    a migração tem `down` explícito
+  - **Teste**: aplicar e reverter a migração deixa o banco no estado anterior
+
+- [ ] T005 [P] Escopo de acesso por organização
+  - **Pronta quando**: T004 concluída
+  - **Descrição**: toda consulta de domínio recebe o tenant explicitamente;
+    nenhuma o busca do dicionário de processo
+  - **Feita quando**: nenhuma função pública de leitura existe sem o parâmetro de
+    tenant
+  - **Teste**: dois tenants povoados, e a listagem de um não devolve nada do outro
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -80,21 +123,36 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Implementação da User Story 1
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
+O teste de cada tarefa vive no campo `Teste` dela. Não há uma seção de testes
+separada: teste que mora longe da tarefa é teste que ninguém escreve.
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T010 [P] [US1] Modelar [entidade principal]
+  - **Pronta quando**: o contrato do módulo está escrito em `contracts/`;
+    T004 concluída
+  - **Descrição**: schema e migração de [entidade], com as invariantes que a
+    especificação declara — [FR-XXX]
+  - **Feita quando**: gravar sem [campo obrigatório] é recusado pelo banco, não
+    apenas pelo changeset
+  - **Teste**: o teste da **violação** — a escrita inválida devolve erro nomeando
+    o que faltou
 
-### Implementation for User Story 1
+- [ ] T011 [US1] [Ação principal da user story]
+  - **Pronta quando**: T010 concluída
+  - **Descrição**: [o que fazer], em [caminho]. [Restrição que é fácil errar, e
+    por que importa] — [FR-XXX], contrato [nome]
+  - **Feita quando**: [condição observável]; [segunda condição]
+  - **Teste**: [arquivo] — [o que a asserção prova]
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T012 [US1] Tela de [o que a pessoa vê]
+  - **Pronta quando**: T011 concluída; o contrato de telas está escrito
+  - **Descrição**: [rota] exibindo [o que], com os estados vazio, carregando e
+    sem permissão — contrato de telas
+  - **Feita quando**: o estado vazio diz **por que** está vazio; a contagem do
+    cabeçalho bate com a listagem sob qualquer filtro
+  - **Teste**: teste de interface — o que precisa estar visível, e o que **não**
+    pode aparecer
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -106,17 +164,11 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Implementação da User Story 2
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
-
-### Implementation for User Story 2
-
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+Mesma forma da US1: título curto, e os quatro campos em cada tarefa. Uma tarefa
+que integra com a US1 declara isso em `Pronta quando`, citando o ID — não "a
+anterior".
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -128,16 +180,9 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Implementação da User Story 3
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
-
-### Implementation for User Story 3
-
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+Mesma forma.
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -151,12 +196,28 @@ Examples of foundational tasks (adjust based on your project):
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
-- [ ] TXXX Code cleanup and refactoring
-- [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
-- [ ] TXXX Security hardening
-- [ ] TXXX Run quickstart.md validation
+- [ ] TXXX [P] Atualizar a documentação
+  - **Pronta quando**: as user stories estão concluídas
+  - **Descrição**: refletir em `docs/` e no README o que a feature entregou, e o
+    que ela deliberadamente não entregou
+  - **Feita quando**: nenhum documento descreve comportamento que não existe
+  - **Teste**: seguir o guia do zero, num ambiente limpo, e chegar ao resultado
+    descrito
+
+- [ ] TXXX Rodar os quality gates
+  - **Pronta quando**: todas as tarefas de implementação concluídas
+  - **Descrição**: os gates obrigatórios da constituição, sem exceção e sem
+    desabilitar check para o pipeline passar
+  - **Feita quando**: todos verdes, com a saída registrada
+  - **Teste**: os próprios gates — a saída de cada um é a evidência
+
+- [ ] TXXX Executar os cenários do quickstart
+  - **Pronta quando**: os gates estão verdes
+  - **Descrição**: percorrer cada cenário de `quickstart.md` e registrar a
+    evidência de cada um
+  - **Feita quando**: todo cenário tem resultado registrado — inclusive os que
+    **não** puderam ser executados, com o motivo
+  - **Teste**: o próprio percurso; a evidência vai para o `sprint-review.md`
 
 ---
 
