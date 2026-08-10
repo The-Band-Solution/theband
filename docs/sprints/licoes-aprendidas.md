@@ -404,8 +404,18 @@ POST /repos/.../pulls/91/requested_reviewers
     team_reviewers[]=the-band          → {"equipes":["the-band"]}
 ```
 
-`pull` é o mínimo que revisão exige — quem revisa precisa ler, não escrever. Elevar a
-`push` é decisão separada, e não é necessária para o princípio VII.
+`pull` é o mínimo que revisão exige — quem revisa precisa ler, não escrever.
+
+**Correção do registro.** Este parágrafo dizia que a concessão deu **leitura** à equipe,
+e o efetivo é outro: `Adylla027` e `EduardoNFraiz` são admins da organização, então o
+nível resolvido no repositório é `admin`. A concessão de `pull` à equipe não elevou
+ninguém — apenas os tornou **visíveis como colaboradores**, que era exatamente o que
+faltava para o pedido de revisão passar.
+
+O mecanismo da lição continua certo; a descrição do acesso estava errada. E a
+distinção importa: "dei leitura a duas pessoas" e "duas pessoas que já eram admins
+passaram a ser alcançáveis pelo pedido de revisão" são fatos diferentes, e só o segundo
+é verdade.
 
 **Pedir à equipe é melhor que pedir a uma pessoa**, e não por conveniência: o pedido
 fica aberto para qualquer membro, e o autor, sendo membro, simplesmente não pode

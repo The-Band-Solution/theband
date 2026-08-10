@@ -135,12 +135,45 @@ evidência executada.
 | aceitação dos entregáveis | Product Owner — este documento | `aceitacao.md` |
 | **revisão independente do código** | Reviewer, alguém que não implementou | aprovação do pull request |
 
-A revisão passou de **impossível** a **pendente** neste sprint: a equipe `the-band`
-recebeu acesso ao repositório, e o pedido de revisão é feito à equipe. Quem revisa é
-`Adylla027` ou `EduardoNFraiz`.
+### A revisão do PR #93, e o que ela é
+
+**2026-08-10** — [PR #93](https://github.com/The-Band-Solution/theband/pull/93)
+mergeado na `main` em `f8941ee`, com uma revisão registrada:
+
+```text
+GET /repos/.../pulls/93/reviews
+  paulossjunior  COMMENTED  2026-08-10T21:24:21Z
+```
+
+**É registro, e não é aprovação.** O GitHub recusa `requested_reviewer` para o autor do
+PR — `422 Review cannot be requested from pull request author` —, e recusa o autor
+aprovar o próprio PR. Nenhum nível de permissão contorna: a pessoa mantenedora é admin
+do repositório e da organização, e a recusa é a mesma.
+
+O que se afirma, então, é o mais forte que a evidência sustenta e não mais que isso:
+
+| Pergunta | Resposta | Evidência |
+|---|---|---|
+| o entregue atende ao especificado? | **sim** | este documento, 5 critérios funcionais e 7 não funcionais |
+| os gates passam? | **sim** | nove verdes, incluindo o de reprodutibilidade |
+| o código foi lido por um humano que não o escreveu? | **sim** | revisão registrada em `pulls/93/reviews`, com data |
+| existe **aprovação** registrada? | **não** | a revisão é `COMMENTED`; o GitHub não permite `APPROVE` do autor |
+
+Isso é melhor que o sprint 001, onde a revisão existia apenas como atestado neste
+arquivo — atestado depende de quem lembra, registro não. E continua abaixo do que o
+princípio VII pede.
+
+**A causa está nomeada, e é de ferramenta.** Quem implementou é o agente, cujos commits
+trazem `Co-Authored-By: Claude Opus 5` e que não tem conta; quem abre o PR com o próprio
+token é registrado como autor sem ter escrito o código. Fecha-se abrindo os PRs com
+identidade de agente — GitHub App ou conta de bot —, e aí esta mesma revisão pode ser
+um `APPROVE`.
+
+**Duas revisões idênticas ficaram no #93**, por repetição do comando. Revisão submetida
+não se apaga pela API — só rascunho. Ruído registrado em vez de escondido.
 
 **O resíduo do sprint 001 não se recupera**: #89, #90 e #91 foram mergeados sem
-aprovação registrada, e não há como pedir revisão de PR mergeado.
+nenhuma revisão registrada, e não há como revisar PR mergeado.
 
 ## Decisões que aguardam o papel
 
