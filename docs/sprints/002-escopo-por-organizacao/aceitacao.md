@@ -2,23 +2,24 @@
 
 **Feature**: [002-escopo-por-organizacao](../../../specs/002-escopo-por-organizacao/spec.md)
 **Avaliado em**: 2026-08-10
-**Papel**: Product Owner — **a confirmar por Paulo Sérgio dos Santos Júnior**
+**Papel**: Product Owner — Paulo Sérgio dos Santos Júnior
+**Confirmado em**: 2026-08-10 — *"D01 .. aceito"*
 
 **Tipo de Product Owner**: `sro.product_owner_client` — a pessoa mantenedora é também
 quem demanda. A decisão de aceitação é final, não representativa.
 
-> **Este documento propõe; não decide.** Cada critério foi percorrido contra
-> evidência, e a classificação é derivada do que a evidência sustenta. A fase de cada
-> entregável só passa a valer quando a pessoa alocada ao papel confirmar.
+> **Confirmado pelo papel.** Cada critério foi percorrido contra evidência, a
+> classificação foi derivada do que a evidência sustenta, e a pessoa alocada ao papel
+> confirmou: **D01 aceito**. A fase vale a partir daqui.
 
-## Resumo proposto
+## Resumo
 
 | | Quantidade |
 |---|---:|
 | Entregáveis avaliados | 1 — D01 |
 | Critérios funcionais percorridos | 5 |
 | Critérios não funcionais percorridos | 6 |
-| Aceitos | **1**, se confirmado |
+| Aceitos | **1** — D01, confirmado |
 | Critérios sem evidência | 0 |
 | User stories não entregues | 2 — US2 e US3 |
 
@@ -55,8 +56,16 @@ quem demanda. A decisão de aceitação é final, não representativa.
 | SC-007 — duas equipes de organizações diferentes com o mesmo identificador curto permanecem distintas | **sim, por construção** | mesma ressalva de AC4 |
 | SC-009 — organização com membros fora de equipes passa a ter **exatamente uma** derivada, com **exatamente** os que faltavam | **sim** | os três casos ocorreram em dado real: The-Band-Solution 6/6 em times → nenhuma derivada; ifesserra-lab 5 membros, 0 times → derivada com 5; leds-conectafapes 64 membros, 15 fora → derivada com 15 |
 
-**Fase derivada**: `sro.accepted_deliverable` — os cinco critérios funcionais e os
-sete não funcionais conformes, com evidência.
+**Fase**: `sro.accepted_deliverable` — os cinco critérios funcionais e os sete não
+funcionais conformes, com evidência. **Derivada dos critérios e confirmada pelo papel
+em 2026-08-10**, nesta ordem: a classificação decorreu da avaliação, e a confirmação
+veio depois. Inverter a ordem é o que `sro.rule03` proíbe.
+
+**Fase das tarefas**: T001 a T012 e T020 a T024 ficam
+`sro.successfully_performed_scrum_development_task` — todas produziram apenas
+entregáveis aceitos. **Nenhuma tarefa deste sprint foi executada sem sucesso**, e a
+distinção importa: as quatro tarefas cuja definição estava errada tiveram a *definição*
+corrigida, não o entregável recusado.
 
 ### Duas ressalvas que acompanham a aceitação
 
@@ -112,9 +121,9 @@ e F7. O sprint entregou o MVP.
 `sro.sprint_deliverable_composed_of_accepted_deliverable` admite apenas entregáveis
 aceitos.
 
-| Composição proposta |
+| Composição |
 |---|
-| **D01** — se confirmado |
+| **D01** — confirmado em 2026-08-10 |
 
 ## Critérios alterados durante o sprint
 
@@ -175,12 +184,14 @@ não se apaga pela API — só rascunho. Ruído registrado em vez de escondido.
 **O resíduo do sprint 001 não se recupera**: #89, #90 e #91 foram mergeados sem
 nenhuma revisão registrada, e não há como revisar PR mergeado.
 
-## Decisões que aguardam o papel
+## Decisões do papel
 
-1. **Confirmar ou alterar a classificação de D01** — proposto: aceito, com as duas
-   ressalvas registradas.
-2. **Destino de US2 e US3** — proposto: voltam ao product backlog. As alternativas
-   são entrar no sprint 003 ou serem descartadas com motivo.
-3. **A dívida dos 10 vínculos sem lastro** — hoje fechada por limitação declarada.
-   Fechá-la de verdade exige declarar 10 relações em 5 ontologias, e isso é feature
-   própria.
+| Decisão | Resultado |
+|---|---|
+| classificação de D01 | **aceito** em 2026-08-10, com as duas ressalvas registradas — colisão de slug garantida pelo modelo e não observada; esvaziamento da derivada coberto por teste e não por ocorrência |
+| destino de US2 e US3 | **voltam ao product backlog** — feito: iteration limpa e status `Backlog` nos itens [#81](https://github.com/The-Band-Solution/theband/issues/81) e [#82](https://github.com/The-Band-Solution/theband/issues/82), que permanecem abertos |
+| dívida dos 10 vínculos sem lastro | **fechada por limitação declarada**, com o id do conceito nomeado em cada mapeamento. Fechá-la de verdade exige declarar 10 relações em 5 ontologias — feature própria |
+
+**As ressalvas acompanham a aceitação e não a diluem.** Um entregável aceito com
+ressalva registrada é diferente de um aceito sem nenhuma, e quem ler adiante precisa
+poder distinguir os dois sem investigar.
