@@ -596,4 +596,22 @@ Acrescentar a capacidade de escopar não escopa nada por si.
    defeito exige duas organizações e duas coletas em sequência — que é o que o banco de
    desenvolvimento tem e o teste não tinha.
 
-**Aplicada em**: registrada durante a feature 003, para correção em feature própria.
+**Corrigida no sprint 003.** `mark_evidence_no_longer_observed/3` passou a exigir a
+organização, e a coleta devolve **qual organização observou** em vez de só dizer que
+terminou. Quatro testes reprovam quando o escopo é removido, incluindo um cuja mensagem
+diz o motivo: *"coletar alfa marcou o vínculo de beta — é a L19 de volta"*.
+
+**O dado histórico continua errado, e a correção não o conserta.** A mudança vale para
+coletas futuras; os vínculos marcados antes seguem marcados. Não foram desmarcados por
+decisão: não se sabe o que a origem mostrava naquele instante, e desmarcar por conta
+própria afirmaria observação que não ocorreu — exatamente o erro que a L19 é.
+
+O reparo acontece sozinho na próxima coleta real de cada organização: reobservar um
+vínculo limpa a marca. Até lá, consultas por vigência devolvem menos do que a plataforma
+observa, e o registro diz isso.
+
+**A demonstração no banco ficou fraca, e é honesto dizer.** Ao simular uma coleta de
+`leds-conectafapes`, os vínculos de `The-Band-Solution` ficaram intactos — mas ela já
+estava com **zero** vínculos vigentes, pelo próprio defeito. "0 antes, 0 depois" é
+intacto no zero, e prova pouco. A prova forte está nos testes, com duas organizações
+construídas do zero.

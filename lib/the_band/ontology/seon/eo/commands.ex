@@ -255,16 +255,42 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   @doc """
   Marca como não mais observados os vínculos que não apareceram nesta coleta.
 
-  Ausência não é remoção: a plataforma não recebe evento de remoção, apenas
-  percebe a ausência por comparação entre coletas. Nada é apagado.
+  Ausência não é remoção: a plataforma não recebe evento de remoção, apenas percebe a
+  ausência por comparação entre coletas. Nada é apagado.
+
+  ## O escopo da organização não é opcional (L19)
+
+  `organization_id` é obrigatório, e a versão anterior desta função não o tinha — filtrava
+  só por tenant. O efeito era que **coletar uma organização marcava os vínculos das
+  outras**, porque eles não haviam aparecido *naquela* coleta. E não apareceriam: são de
+  outra organização.
+
+  Medido no banco de desenvolvimento antes da correção: os 7 vínculos de
+  `The-Band-Solution` e 55 dos 70 de `leds-conectafapes` marcados **no mesmo instante**, e
+  `EduardoNFraiz` aparecendo com zero organizações vigentes estando em duas observadas.
+
+  "Não apareceu" só significa algo em relação **ao que foi olhado**. A coleta olha uma
+  organização por vez, então a comparação também é por organização.
   """
-  @spec mark_evidence_no_longer_observed(Tenant.t(), DateTime.t()) :: {:ok, non_neg_integer()}
-  def mark_evidence_no_longer_observed(%Tenant{id: tenant_id}, collection_started_at) do
+  @spec mark_evidence_no_longer_observed(Tenant.t(), Ecto.UUID.t(), DateTime.t()) ::
+          {:ok, non_neg_integer()}
+  def mark_evidence_no_longer_observed(
+        %Tenant{id: tenant_id},
+        organization_id,
+        collection_started_at
+      )
+      when is_binary(organization_id) do
+    equipes_da_org =
+      from t in Team,
+        where: t.tenant_id == ^tenant_id and t.organization_id == ^organization_id,
+        select: t.id
+
     {count, _} =
       Repo.update_all(
         from(e in TeamMembershipEvidence,
           where:
             e.tenant_id == ^tenant_id and
+              e.team_id in subquery(equipes_da_org) and
               e.last_observed_at < ^collection_started_at and
               is_nil(e.no_longer_observed_at)
         ),
