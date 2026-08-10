@@ -301,4 +301,42 @@ defmodule TheBandWeb.ScreensTest do
       assert Enum.all?(EO.list_teams(tenant), & &1.organization_id)
     end
   end
+
+  describe "equipe derivada na tela (T024, FR-011, SC-010)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      org = organization_fixture(tenant, "ifesserra-lab")
+      team_fixture(tenant, "T_obs", %{name: "Core", organization: org})
+      {:ok, derivada} = EO.upsert_derived_team(tenant, org)
+
+      %{conn: log_in(conn, user), tenant: tenant, derivada: derivada}
+    end
+
+    test "o selo aparece sempre que a equipe aparece", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/equipes")
+
+      # Selo visível, não nota de rodapé: esconder é pior que marcar, porque quem não
+      # vê a equipe não explica por que a contagem de pessoas não fecha.
+      assert html =~ "derivada"
+      assert html =~ "não existe na ferramenta de origem"
+    end
+
+    test "a contagem separa observadas de derivadas", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/equipes")
+
+      assert html =~ "1 derivada"
+      assert html =~ "1 na origem"
+    end
+
+    test "descontadas as derivadas, a contagem bate com a origem", %{
+      conn: conn,
+      tenant: tenant
+    } do
+      {:ok, _live, _html} = live(conn, ~p"/equipes")
+
+      # A origem tem 1 time; a plataforma mostra 2 equipes, e diz por quê.
+      assert EO.count_teams(tenant) == 2
+      assert EO.count_teams(tenant, origin: :observed) == 1
+    end
+  end
 end

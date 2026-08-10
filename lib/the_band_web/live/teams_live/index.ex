@@ -29,6 +29,10 @@ defmodule TheBandWeb.TeamsLive.Index do
                                                                                                        "vínculo pendente",
                                                                                                      else:
                                                                                                        "vínculos pendentes"} de papel organizacional
+          <span :if={@derived_count > 0}>
+            · {@derived_count} {if @derived_count == 1, do: "derivada", else: "derivadas"} pela
+            plataforma, {@observed_count} na origem
+          </span>
         </:subtitle>
       </.header>
 
@@ -64,7 +68,16 @@ defmodule TheBandWeb.TeamsLive.Index do
                 <span class="opacity-60">—</span>
               <% end %>
             </td>
-            <td><span class="badge badge-sm">{team.type}</span></td>
+            <td>
+              <span class="badge badge-sm">{team.type}</span>
+              <span
+                :if={EO.derived_team?(team)}
+                class="badge badge-sm badge-warning ml-1"
+                title="Esta equipe não existe na ferramenta de origem: a plataforma a criou para reunir quem é da organização e não está em nenhum time."
+              >
+                derivada
+              </span>
+            </td>
             <td class="text-xs">
               {team.source_system}
               <div class="opacity-60">{team.source_instance}</div>
@@ -79,6 +92,14 @@ defmodule TheBandWeb.TeamsLive.Index do
           </tr>
         </tbody>
       </table>
+
+      <p :if={@derived_count > 0} class="text-xs opacity-60">
+        A equipe marcada como <strong>derivada</strong> não existe na ferramenta de origem: a
+        plataforma a criou com o nome da organização para reunir quem é da organização e não
+        está em nenhum time. Sem ela, essas pessoas não pertenceriam a organização alguma no
+        modelo — o vínculo com organização passa pela equipe. Ao comparar a contagem com a do
+        GitHub, desconte as derivadas.
+      </p>
 
       <p class="text-xs opacity-60">
         Equipe do GitHub é registrada como equipe organizacional. Time do GitHub é agrupamento
@@ -100,6 +121,11 @@ defmodule TheBandWeb.TeamsLive.Index do
     # que uma consulta por equipe.
     |> assign(organizations: Map.new(EO.list_organizations(tenant), &{&1.id, &1}))
     |> assign(teams_count: EO.count_teams(tenant))
+    # Separadas de propósito: quem compara o número da plataforma com o do GitHub
+    # precisa ver a diferença sem investigar. Esconder é pior que marcar — quem não vê
+    # a equipe não explica por que a contagem de pessoas não fecha.
+    |> assign(derived_count: EO.count_teams(tenant, origin: :derived))
+    |> assign(observed_count: EO.count_teams(tenant, origin: :observed))
     |> assign(pending_role: EO.count_evidence_pending_role(tenant))
   end
 end

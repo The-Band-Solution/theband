@@ -98,6 +98,113 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     |> Repo.update()
   end
 
+  @derived_source "the_band"
+  @derived_prefix "derived:default_team:"
+
+  @doc """
+  A equipe derivada de uma organização — regra `github.default_team` (FR-004, FR-005).
+
+  Recebe a **organização já persistida**, e não o identificador externo dela, porque a
+  equipe derivada só existe em função da organização: sem organização não há o que
+  derivar, e receber o struct torna isso erro de compilação em vez de um `nil`
+  descoberto no banco.
+
+  **Quem chama não decide a proveniência.** `source_system` e `external_id` são
+  montados aqui, e é o que impede o único jeito de esta feature mentir — gravar uma
+  equipe derivada como se fosse observada. Não há parâmetro que permita isso.
+
+  O `external_id` é determinístico a partir da organização, então reprocessar produz o
+  mesmo identificador, o upsert reconhece, e nada duplica.
+  """
+  @spec upsert_derived_team(Tenant.t(), Organization.t(), map()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def upsert_derived_team(%Tenant{} = tenant, %Organization{} = organization, attrs \\ %{}) do
+    now = DateTime.utc_now(:second)
+
+    attrs =
+      attrs
+      |> normalize()
+      |> Map.merge(%{
+        type: "organizational_team",
+        name: organization.name || organization.login,
+        organization_id: organization.id,
+        source_system: @derived_source,
+        source_instance: organization.source_instance,
+        external_id: @derived_prefix <> organization.external_id,
+        collected_at: now,
+        last_observed_at: now,
+        no_longer_observed_at: nil
+      })
+
+    upsert(Team, tenant, attrs)
+  end
+
+  @doc """
+  Vínculo de uma pessoa com a equipe derivada (FR-006).
+
+  Sem nível de acesso, e a função **não aceita um**: a origem não conhece este
+  vínculo, então não há o que ela informe sobre ele. `MAINTAINER` e `MEMBER` são o que
+  ela diz de vínculos que conhece.
+  """
+  @spec record_derived_team_membership(Tenant.t(), map()) ::
+          {:ok, TeamMembershipEvidence.t()} | {:error, Ecto.Changeset.t()}
+  def record_derived_team_membership(%Tenant{} = tenant, attrs) do
+    attrs =
+      attrs
+      |> normalize()
+      |> Map.merge(%{
+        platform_access_level: nil,
+        source_system: @derived_source
+      })
+
+    record_team_membership_evidence(tenant, attrs)
+  end
+
+  @doc """
+  A equipe derivada que ficou sem integrantes é **marcada**, nunca apagada (T023, FR-008).
+
+  Uma equipe que existiu e esvaziou é informação: diz que aquela organização mantinha
+  gente fora de qualquer time, e deixou de manter. Apagar perderia isso, e a próxima
+  coleta recriaria a equipe como se fosse nova.
+
+  Os vínculos dela também não são apagados — ficam marcados como não mais observados
+  pelo mesmo mecanismo que trata a ausência em equipe observada. Ausência não é
+  remoção, e a regra não muda por a equipe ser derivada.
+  """
+  @spec retire_derived_team(Tenant.t(), Team.t()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def retire_derived_team(%Tenant{id: tenant_id}, %Team{} = team) do
+    now = DateTime.utc_now(:second)
+
+    Repo.update_all(
+      from(e in TeamMembershipEvidence,
+        where:
+          e.tenant_id == ^tenant_id and e.team_id == ^team.id and
+            is_nil(e.no_longer_observed_at)
+      ),
+      set: [no_longer_observed_at: now]
+    )
+
+    team
+    |> Team.from_source_changeset(%{no_longer_observed_at: now})
+    |> Repo.update()
+  end
+
+  @doc "Se a equipe é derivada, pela proveniência — nenhuma coluna nova responde isto."
+  @spec derived_team?(Team.t()) :: boolean()
+  def derived_team?(%Team{source_system: @derived_source, external_id: external_id}),
+    do: String.starts_with?(external_id || "", @derived_prefix)
+
+  def derived_team?(%Team{}), do: false
+
+  @doc "Prefixo do identificador de equipe derivada, para consultas e invariantes."
+  @spec derived_prefix() :: String.t()
+  def derived_prefix, do: @derived_prefix
+
+  @doc "Sistema de origem das entidades que a plataforma deriva."
+  @spec derived_source() :: String.t()
+  def derived_source, do: @derived_source
+
   # ------------------------------------------------------------------ evidência
 
   @spec record_team_membership_evidence(Tenant.t(), map()) ::

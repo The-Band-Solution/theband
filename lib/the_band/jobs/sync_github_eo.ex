@@ -121,14 +121,61 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # ------------------------------------------------------------------ coleta
 
   defp collect(ctx) do
-    with {:ok, org_node} <- collect_organization(ctx),
+    with {:ok, org_node, organization} <- collect_organization(ctx),
          # A organização coletada viaja no contexto porque toda equipe precisa dela.
          # Guardamos o **nó**, e não a linha do banco, para que o mesmo dado seja
          # embutido no payload preservado — ver `handle_team/2`.
-         ctx = Map.put(ctx, :organization_node, org_node),
+         ctx = Map.merge(ctx, %{organization_node: org_node, organization_id: organization.id}),
          :ok <- paginate(ctx, "github.user", "organization_members", &handle_member/2),
-         :ok <- paginate(ctx, "github.team", "teams", &handle_team/2) do
-      collect_team_members(ctx)
+         :ok <- paginate(ctx, "github.team", "teams", &handle_team/2),
+         :ok <- collect_team_members(ctx) do
+      # Avaliada **ao fim**, e não antes: é o único momento em que se sabe quem ficou
+      # fora de todas as equipes. Antes disso o conjunto de equipes está incompleto, e
+      # a derivada acolheria gente que estava em time ainda não coletado.
+      derive_default_team(ctx)
+    end
+  end
+
+  # Regra `github.default_team`, contrato `derived-team.md`.
+  defp derive_default_team(ctx) do
+    organization = EO.fetch_organization!(ctx.tenant, ctx.organization_id)
+    fora = EO.list_people_without_team(ctx.tenant, organization.id)
+
+    case fora do
+      [] ->
+        # Nenhuma equipe derivada é criada quando todos estão em equipes observadas:
+        # seria registro sem referente (FR-007). E a que já existia, se existir,
+        # esvazia e é marcada — nunca apagada.
+        retire_empty_derived_team(ctx.tenant, organization)
+
+      pessoas ->
+        with {:ok, team} <- EO.upsert_derived_team(ctx.tenant, organization) do
+          Enum.each(pessoas, &link_to_derived_team(ctx.tenant, team, organization, &1))
+
+          Logger.info(
+            "equipe derivada de #{organization.login}: #{length(pessoas)} pessoas fora de time"
+          )
+
+          :ok
+        end
+    end
+  end
+
+  defp link_to_derived_team(tenant, team, organization, person) do
+    EO.record_derived_team_membership(tenant, %{
+      person_id: person.id,
+      team_id: team.id,
+      person_external_id: person.external_id,
+      team_external_id: team.external_id,
+      source_instance: organization.source_instance,
+      observed_at: DateTime.utc_now(:second)
+    })
+  end
+
+  defp retire_empty_derived_team(tenant, organization) do
+    case EO.fetch_derived_team(tenant, organization.id) do
+      nil -> :ok
+      team -> with {:ok, _} <- EO.retire_derived_team(tenant, team), do: :ok
     end
   end
 
@@ -138,24 +185,31 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         {:error, {:organization_not_found, ctx.org}}
 
       {:ok, %{data: %{"organization" => node}}} ->
-        store_and_upsert(
-          ctx,
-          node,
-          "github.organization",
-          "github.organization.to.eo.organization"
-        )
+        {:ok, organization} =
+          store_and_upsert(
+            ctx,
+            node,
+            "github.organization",
+            "github.organization.to.eo.organization"
+          )
 
         Ingestion.checkpoint_page(ctx.sync, "github.organization", nil, 1)
-        {:ok, node}
+        {:ok, node, organization}
 
       other ->
         normalize_error(other)
     end
   end
 
+  # Escopado à organização desta coleta, e só às equipes **observadas**.
+  #
+  # Sem o escopo, coletar a organização A paginaria os integrantes das equipes da
+  # organização B — consultando o GitHub por slugs que não existem naquela
+  # organização. E a equipe derivada não tem integrantes na origem: pedi-los seria
+  # perguntar à ferramenta sobre uma equipe que ela não conhece.
   defp collect_team_members(ctx) do
     ctx.tenant
-    |> EO.list_teams()
+    |> EO.list_teams(organization_id: ctx.organization_id, origin: :observed)
     |> Enum.reduce_while(:ok, fn team, _acc ->
       case paginate(
              ctx,

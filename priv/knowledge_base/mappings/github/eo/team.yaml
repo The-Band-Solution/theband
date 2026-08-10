@@ -48,6 +48,12 @@ relations:
     target_concept: cmpo.source_repository
 limitations:
   - >
+    Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a
+    plataforma cria com o nome da organização para acolher quem não está em time
+    algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela
+    regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id,
+    marcaria toda equipe observada como derivada.
+  - >
     Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.
   - Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.
   - Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.

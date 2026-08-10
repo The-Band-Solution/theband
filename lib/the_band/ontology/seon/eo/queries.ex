@@ -148,6 +148,65 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  A organização daquele id, ou levanta.
+
+  Levanta de propósito: quem chama já a coletou nesta mesma sincronização, então
+  ausência aqui é defeito de programação e não estado do mundo.
+  """
+  @spec fetch_organization!(Tenant.t(), Ecto.UUID.t()) :: Organization.t()
+  def fetch_organization!(%Tenant{id: tenant_id}, organization_id) do
+    Repo.one!(
+      from o in Organization,
+        where: o.tenant_id == ^tenant_id and o.id == ^organization_id
+    )
+  end
+
+  @doc """
+  As pessoas de uma organização que **não** estão em nenhuma equipe observada dela.
+
+  É a entrada da regra `github.default_team`: exatamente quem a equipe derivada
+  existe para acolher.
+
+  "De uma organização" aqui significa **membro observado da organização** — pessoa
+  cujo vínculo de evidência aponta para alguma equipe dela, ou que foi coletada na
+  mesma instância. A segunda parte é o que torna o caso de `ifesserra-lab` resolvível:
+  5 membros, 0 times, ninguém com vínculo de equipe.
+
+  Automação fica fora: conta de bot não é pessoa, e acolhê-la na equipe derivada
+  inflaria o quadro que a equipe existe para completar.
+  """
+  @spec list_people_without_team(Tenant.t(), Ecto.UUID.t()) :: [Person.t()]
+  def list_people_without_team(%Tenant{id: tenant_id}, organization_id) do
+    em_equipe_observada =
+      from e in TeamMembershipEvidence,
+        join: t in Team,
+        on: t.id == e.team_id and t.tenant_id == e.tenant_id,
+        where: t.organization_id == ^organization_id and t.source_system != "the_band",
+        select: e.person_id
+
+    Repo.all(
+      from p in Person,
+        where:
+          p.tenant_id == ^tenant_id and p.account_type == "person" and
+            is_nil(p.no_longer_observed_at) and
+            p.id not in subquery(em_equipe_observada),
+        order_by: p.name
+    )
+  end
+
+  @doc "A equipe derivada de uma organização, se existir."
+  @spec fetch_derived_team(Tenant.t(), Ecto.UUID.t()) :: Team.t() | nil
+  def fetch_derived_team(%Tenant{id: tenant_id}, organization_id) do
+    Repo.one(
+      from t in Team,
+        where:
+          t.tenant_id == ^tenant_id and t.organization_id == ^organization_id and
+            t.source_system == "the_band",
+        limit: 1
+    )
+  end
+
+  @doc """
   As organizações de várias pessoas de uma vez: `%{person_id => [organizações]}`.
 
   Existe porque a tela de pessoas precisa da organização de **cada linha**, e chamar
@@ -212,7 +271,36 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> filter_search(opts[:search])
     |> filter_observed(opts[:only_observed])
     |> filter_missing_organization(opts[:missing_organization])
+    |> filter_organization(opts[:organization_id])
+    |> filter_origin(opts[:origin])
   end
+
+  # `:organization_id` sobre equipes é direto; sobre pessoas atravessa as equipes,
+  # porque não existe aresta direta pessoa↔organização (eo.cq02).
+  defp filter_organization(query, nil), do: query
+
+  defp filter_organization(%Ecto.Query{from: %{source: {_, Person}}} = query, organization_id) do
+    where(
+      query,
+      [p],
+      p.id in subquery(
+        from e in TeamMembershipEvidence,
+          join: t in Team,
+          on: t.id == e.team_id and t.tenant_id == e.tenant_id,
+          where: t.organization_id == ^organization_id,
+          select: e.person_id
+      )
+    )
+  end
+
+  defp filter_organization(query, organization_id),
+    do: where(query, [r], r.organization_id == ^organization_id)
+
+  # A origem é lida de `source_system`, e nenhuma coluna nova responde isto: a
+  # proveniência é obrigatória em toda linha por exigência do princípio III.
+  defp filter_origin(query, :observed), do: where(query, [r], r.source_system != "the_band")
+  defp filter_origin(query, :derived), do: where(query, [r], r.source_system == "the_band")
+  defp filter_origin(query, _), do: query
 
   # Só para o retrofito: quais equipes ainda não têm organização. Não vira opção
   # pública de listagem porque a pergunta é de manutenção, não de consulta — e uma

@@ -381,7 +381,7 @@ corresponde ao que ela tem na origem.
 
 Atravessa as três histórias: é o que completa o caminho pela equipe.
 
-- [ ] T020 Declarar a regra da equipe derivada
+- [x] T020 Declarar a regra da equipe derivada
   - **Pronta quando**: `contracts/derived-team.md` escrito
   - **Descrição**: `rules/github_default_team.yaml`, no formato da regra de
     vínculo com equipe — o que materializa, o que **não** materializa com a razão,
@@ -389,10 +389,15 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
     FR-013, FR-014
   - **Feita quando**: a regra declara a proveniência da equipe derivada e a
     ausência de nível de acesso no vínculo dela
-  - **Teste**: `mix knowledge.validate` aceita a regra; o mapeamento de equipe a
-    referencia
+  - **Teste**: `mix knowledge.validate` e o validador Python aceitam a regra
+  - **Correção de tarefa.** O teste mandava o mapeamento de equipe referenciar a regra,
+    e isso estaria errado: `derivation.rule_id` em
+    `github.team.to.eo.organizational_team` marcaria **toda equipe observada** como
+    derivada. A equipe derivada não vem de payload nenhum — é produzida pela
+    plataforma, e nenhum mapeamento a produz. A referência entrou como limitação
+    declarada no mapeamento, dizendo exatamente isso
 
-- [ ] T021 Criar a equipe derivada
+- [x] T021 Criar a equipe derivada
   - **Pronta quando**: T008 e T021 concluídas
   - **Descrição**: ao fim de cada coleta, a organização com membros fora de todas
     as suas equipes recebe uma equipe com o nome dela, e esses membros são
@@ -405,7 +410,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: os três casos, com os números reais — 5/0 times, 64/8 times e 6
     membros todos em times. É o V4 do quickstart, e cobre FR-007 e SC-009
 
-- [ ] T022 Impedir derivada passar por observada
+- [x] T022 Impedir derivada passar por observada
   - **Pronta quando**: T021 concluída
   - **Descrição**: invariantes em `constraints/` — equipe com `external_id` de
     derivação não pode ter `source_system` do GitHub; vínculo derivado não pode ter
@@ -416,7 +421,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: tentar gravar pela API pública uma derivada como observada e
     conferir que é recusado — o teste é a **violação**
 
-- [ ] T023 Esvaziar a derivada sem apagá-la
+- [x] T023 Esvaziar a derivada sem apagá-la
   - **Pronta quando**: T021 concluída
   - **Descrição**: a equipe derivada que fica sem integrantes é marcada como não
     mais observada, nunca removida. Uma equipe que existiu e esvaziou é
@@ -427,7 +432,7 @@ Atravessa as três histórias: é o que completa o caminho pela equipe.
   - **Teste**: duas coletas, a segunda com a pessoa já num time observado —
     conferir a marcação e que nada foi apagado
 
-- [ ] T024 Distinguir derivada na contagem e na tela
+- [x] T024 Distinguir derivada na contagem e na tela
   - **Pronta quando**: T021 e T015 concluídas
   - **Descrição**: `opts[:origin]` nas consultas, lendo `source_system`; selo
     visível na tela, não nota de rodapé; contagem no formato "N equipes, M
