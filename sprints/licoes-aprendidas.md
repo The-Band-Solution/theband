@@ -190,3 +190,39 @@ que agrega vários repositórios.
 
 Melhor ainda: criar todas as iterations previstas de uma vez, no início, e não
 tocar mais na configuração enquanto houver sprint aberto.
+
+### L12 — Pull request não aberto na hora passa a carregar outra feature
+
+**O que aconteceu.** A tarefa T073 da feature 001 previa abrir o pull request ao
+fim daquela feature. Não foi aberto. O sprint 001 encerrou, o sprint 002 foi
+planejado, e três commits de documentação da 002 entraram na mesma branch
+`feature/001-github-eo-ingestion`.
+
+Quando o PR finalmente foi aberto, ele já não continha a feature 001: continha a
+001 **mais** o planejamento da 002. Quinze commits, dois escopos.
+
+**Por que aconteceu.** Abrir o PR era a última tarefa da feature, e a última
+tarefa é a que se empurra. Não havia nada que impedisse o trabalho seguinte de
+começar antes dela — e trabalho seguinte, na mesma branch, é trabalho que entra
+no PR.
+
+**Por que importa.** Quem revisa perde a unidade de revisão. Um PR de dois
+escopos obriga o revisor a separar mentalmente o que pertence a qual feature, e é
+exatamente aí que passa o que não deveria passar. Pior: a revisão da 001 passa a
+ser condição para o merge de documentos da 002 que não têm nada a ver com ela.
+
+**Como aplicar.** Duas coisas, e a segunda é a que resolve:
+
+1. abrir o PR **quando a tarefa pedir**, não quando a feature "estiver redonda" —
+   PR aberto cedo é revisável em partes; PR aberto tarde é irrevisável;
+2. **não puxar trabalho novo com item anterior sem destino.** Esta lição é a
+   origem da regra que a skill `product-owner` passou a exigir no planejamento, e
+   da Fase 0 do sprint 002: o que sobrou do sprint anterior recebe destino antes
+   de qualquer escopo novo ser selecionado.
+
+O destino não precisa ser "concluído". Pode ser devolvido ao backlog, descartado
+com motivo, ou bloqueado com bloqueador nomeado — a revisão independente é desse
+último tipo, porque exige uma pessoa que o time não pode produzir. O que não pode
+é ficar aberto sem nenhum dos quatro.
+
+**Aplicada em**: Sprint 002 — Fase 0, antes de F1.

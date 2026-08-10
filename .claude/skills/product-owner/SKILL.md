@@ -1,6 +1,6 @@
 ---
 name: product-owner
-description: Zela pelo product backlog do The Band — o que entra, a importância e a decomposição — e decide se cada entregável é aceito ou não aceito avaliando os critérios de aceitação, nunca por marcação manual. Use ao priorizar ou decompor user stories, ao revisar os critérios de aceitação de uma spec, ao encerrar um sprint para classificar os entregáveis, e ao devolver ao backlog as user stories cujos entregáveis foram recusados. Dispara com "product owner", "aceitar entregável", "o entregável foi aceito?", "revisar critérios de aceitação", "priorizar backlog", "decompor épico", "devolver ao backlog", "aceitação do sprint".
+description: Zela pelo product backlog do The Band — o que entra, a importância e a decomposição —, contém o trabalho novo enquanto o anterior não tem destino, e decide se cada entregável é aceito ou não aceito avaliando os critérios de aceitação, nunca por marcação manual. Use ao priorizar ou decompor user stories, ao revisar os critérios de aceitação de uma spec, ao selecionar o escopo de um sprint, ao encerrar um sprint para classificar os entregáveis, e ao devolver ao backlog as user stories cujos entregáveis foram recusados. Dispara com "product owner", "aceitar entregável", "o entregável foi aceito?", "revisar critérios de aceitação", "priorizar backlog", "decompor épico", "devolver ao backlog", "aceitação do sprint", "o que ficou faltando no sprint anterior", "não iniciar tarefa nova".
 ---
 
 # Product Owner
@@ -112,11 +112,83 @@ selecionadas do product backlog e as tarefas pretendidas são planejadas. Escopo
 de sprint definido sem o PO contraria a ontologia e, na prática, produz sprint
 cujo valor ninguém garantiu.
 
+## Não puxar trabalho novo com trabalho antigo em aberto
+
+**Nenhuma user story nova entra num sprint enquanto houver item do sprint anterior
+sem destino registrado.** É a primeira coisa a verificar no planejamento, antes
+de olhar importância — porque ordenar por valor um escopo que já não cabe produz
+uma lista bem ordenada de trabalho que não vai acontecer.
+
+A necessidade de informação que sustenta isso já existe na base, e a decisão está
+escrita nela: `flow.work_in_progress` declara apoiar "decidir se o time deve
+parar de puxar trabalho novo e concluir o que já começou". A regra aqui é essa
+decisão exercida pelo papel que tem a alavanca para exercê-la.
+
+**A alavanca do PO é o planejamento, não a execução.** Este papel não diz a
+ninguém em que hora digitar o quê — ele decide o que entra no sprint backlog. É
+por aí que o trabalho novo é contido, e é a única forma legítima: pela seleção de
+escopo, não por supervisão.
+
+### Terminar não é a mesma coisa que fechar
+
+Um item do sprint anterior está **finalizado** quando tem destino registrado, e há
+três destinos legítimos — os mesmos da devolução ao backlog:
+
+| Destino | Quando cabe |
+|---|---|
+| concluído, com entregável aceito | percorreu os critérios e passou |
+| devolvido ao product backlog ou puxado para o sprint seguinte | o valor continua de pé |
+| descartado, com o motivo escrito | o valor deixou de existir |
+
+O que a regra proíbe é a quarta situação: **item em aberto sem destino**. Ele não
+é trabalho, não é decisão e não é descarte — é escopo que ninguém está carregando
+e que aparece como pendência para sempre.
+
+### Três tipos de não finalizado, com tratamentos diferentes
+
+Confundi-los faz o retrabalho desaparecer da contagem:
+
+| Situação | O que é | Tratamento |
+|---|---|---|
+| **não executada** | a tarefa nunca virou trabalho | entra primeiro no sprint seguinte, volta ao backlog, ou é descartada com motivo |
+| **executada sem sucesso** | rodou, e o entregável foi recusado | **nova** tarefa pretendida ligada à mesma user story atômica; nunca reabrir a antiga |
+| **executada e bloqueada por terceiro** | depende de quem não é do time — revisão independente, credencial de cliente, resposta de fornecedor | destino registrado **e bloqueador nomeado**; só isso libera trabalho novo |
+
+A terceira linha é a que impede a regra de virar paralisia. Há pendência que o
+time não consegue fechar por si — o princípio VII da constituição exige revisor
+diferente de quem implementou, e nenhuma quantidade de esforço do time produz
+essa pessoa. Bloquear o produto até ela aparecer não protegeria nada. **Nomear
+quem falta, e no quê, é o que substitui a conclusão** — e é diferente de omitir.
+
+### A exceção: quando o trabalho novo corrige o antigo
+
+Uma feature nova pode ser exatamente a correção de um defeito da anterior. Nesse
+caso esperar o fechamento do sprint anterior **mantém o defeito em produção por
+mais um ciclo**, e a regra estaria trabalhando contra o próprio objetivo.
+
+A exceção é legítima, e tem preço: o sprint novo parte de código ainda não
+revisado, e herda o retrabalho se a revisão reprovar algo que ele toca. **Registre
+a exceção nos riscos do sprint backlog, com o resíduo nomeado.** Exceção assumida
+é decisão; exceção silenciosa é a regra sendo contornada.
+
+### O que verificar no planejamento, nesta ordem
+
+1. **listar o que está aberto** dos sprints anteriores — issues, entregáveis
+   recusados, pendências declaradas na review;
+2. **dar destino a cada um**, pela tabela acima;
+3. **colocar o herdado em primeiro lugar** no sprint backlog, antes do escopo
+   novo — herança que entra no fim da lista é herança que não entra;
+4. **só então** selecionar user stories novas por importância.
+
+Um sprint cuja primeira fase é herança do anterior não é um sprint fracassado. É
+um sprint honesto sobre o que já devia estar pronto.
+
 ## Quando rodar
 
 | Momento | O que fazer | Cerimônia SRO |
 |---|---|---|
 | Depois do `/speckit-specify` | conferir user stories, importância, decomposição e critérios | `sro.product_backlog_definition` |
+| **Antes** de selecionar escopo novo | dar destino ao que ficou aberto, e colocá-lo em primeiro lugar | `sro.planning_meeting` |
 | Ao abrir o sprint | ordenar por importância e dizer o que entra | `sro.planning_meeting` |
 | Durante o sprint | responder dúvida de critério; **não** reescrever critério de história em andamento sem registrar | — |
 | Ao encerrar o sprint | avaliar cada entregável contra os critérios e classificar | `sro.review_meeting` |
@@ -377,10 +449,16 @@ Registre a devolução no `aceitacao.md` e no `sprint-review.md`, na seção
 
 ## Medidas: não invente
 
-A necessidade de informação que este processo alimenta já existe:
-`rework.effort_on_not_accepted_deliverables`, respondida por
-`rework.not_accepted_deliverable_ratio`. Use essa, com as limitações que ela
-mesma declara.
+As necessidades de informação que este processo alimenta já existem na base:
+
+| Necessidade | Medida | Para quê aqui |
+|---|---|---|
+| `rework.effort_on_not_accepted_deliverables` | `rework.not_accepted_deliverable_ratio` | quanto esforço foi gasto em entregável recusado |
+| `flow.work_in_progress` | `flow.wip.count` | quanto trabalho está aberto ao mesmo tempo, e há quanto tempo cada item está aberto |
+
+Use essas, com as limitações que cada uma declara. A segunda é a que sustenta a
+regra de não puxar trabalho novo: ela já declara apoiar exatamente essa decisão,
+e por isso a regra não precisou de número novo.
 
 **Nenhum número novo sem necessidade de informação declarada.** "Taxa de
 aceitação", "velocidade do PO", "aderência ao backlog" não existem na base e não
@@ -422,6 +500,14 @@ interesse.
   ferramenta diga o contrário. Divergência é registrada, não corrigida em
   silêncio.
 - **Tarefa nunca se liga a épico** (`sro.rule07`).
+- **Não selecione escopo novo com item anterior sem destino.** Os três destinos
+  são concluir, devolver ou descartar com motivo. Aberto sem destino não é
+  nenhum dos três.
+- **Herança vai em primeiro lugar no sprint backlog**, nunca no fim.
+- **Pendência que o time não pode fechar exige bloqueador nomeado**, e é isso que
+  a libera — não o silêncio, e não a marcação como feita.
+- **Trabalho novo que corrige o antigo é exceção legítima**, e vai para os riscos
+  do sprint com o resíduo nomeado. Exceção silenciosa é a regra contornada.
 - **Não reabra tarefa executada sem sucesso.** Nova tarefa pretendida.
 - **Não altere critério para caber no que foi entregue.** Se o critério estava
   errado, corrija-o registrando a mudança — e reavalie.

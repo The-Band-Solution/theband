@@ -99,7 +99,7 @@ Declarado explicitamente. Nenhum destes está marcado como pronto em lugar nenhu
 | **Volume de SC-009** | — | O comportamento sob rate limit é testado; o volume de 100 pessoas e 20 equipes exigiria uma organização que não temos |
 | **`mix knowledge.test`, `knowledge.docs`, `knowledge.information_model`** | — | Continuam como scripts Python, chamados pelo CI. Dívida declarada no plan.md |
 | **`Estimate` das issues** | — | Nenhuma estimativa foi feita com o time. Preencher com número inventado produziria métrica de fluxo apoiada em ficção |
-| **Revisão independente do PR** | T073 | A constituição exige revisor diferente de quem implementou. **Esta condição não foi satisfeita** e não pode ser marcada como cumprida por quem escreveu o código |
+| **Revisão independente do PR** | T073 | A constituição exige revisor diferente de quem implementou. **Esta condição não foi satisfeita** e não pode ser marcada como cumprida por quem escreveu o código. O PR foi aberto no sprint 002, o que torna a revisão possível — não a substitui |
 | **Ocorrência real de três verificações** | — | Automação classificada, pausa por limite de uso e ausência-não-é-remoção estão provadas por teste, não por ocorrência. A última exigiria remover alguém de uma equipe real na organização da pessoa mantenedora, e isso não deve ser feito para validar software |
 
 ## Correção após o `/speckit-analyze`
@@ -183,9 +183,17 @@ Todos corrigidos, e cada um virou lição.
 
 ## Estado das issues
 
-As 77 issues permanecem **abertas**. Fechá-las exige a revisão independente que a
-constituição impõe, e marcá-las como concluídas sem esse passo seria declarar
-sucesso sem evidência — proibido pelo princípio VII.
+Atualizado em 2026-08-10, depois do [registro de aceitação](aceitacao.md).
 
-A issue #2 foi fechada como `not planned`: duplicata órfã da US1, criada por uma
-execução do script de materialização que falhou depois de a issue já existir.
+| Situação | Issues |
+|---|---|
+| encerradas, com entregável aceito | #1 a #76 e #88 — 75 no total |
+| fechada como `not planned` | #2 — duplicata órfã da US1, criada por uma execução do script de materialização que falhou depois de a issue já existir |
+| encerrada com limitação declarada | #77 — evidência do quickstart; V3, V4 e V8 provados por teste e não por ocorrência real |
+| concluída no sprint 002 | #78 — abertura do pull request, T073. Ver a [herança](../002-escopo-por-organizacao/sprint-backlog.md) |
+
+**O fechamento das issues não substitui a revisão independente.** São perguntas
+diferentes: a issue fecha quando a tarefa foi executada e o entregável aceito; a
+revisão pergunta se o código está correto, seguro e conforme, e o princípio VII
+exige que quem responda não seja quem implementou. O pull request existe e a
+revisão continua **pendente** — nada da 001 entra na `main` antes dela.
