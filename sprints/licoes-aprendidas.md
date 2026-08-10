@@ -226,3 +226,42 @@ com motivo, ou bloqueado com bloqueador nomeado — a revisão independente é d
 é ficar aberto sem nenhum dos quatro.
 
 **Aplicada em**: Sprint 002 — Fase 0, antes de F1.
+
+### L13 — Secret referenciado e não cadastrado chega como string vazia
+
+**O que aconteceu.** O PR da feature 001 foi aberto e o CI reprovou em `mix test`,
+com a aplicação recusando o boot por chave mestra ausente. Os oito gates passavam
+na máquina local, e nada no código estava errado.
+
+O workflow declarava `THE_BAND_MASTER_KEY: ${{ secrets.THE_BAND_MASTER_KEY }}`, e
+o secret **não estava cadastrado** no repositório. O GitHub não omite a variável
+nesse caso: define como **string vazia**.
+
+**Por que aconteceu.** O `config/runtime.exs` tem um fallback deliberado — em
+`config_env() == :test` fornece uma chave fixa e assumidamente pública, porque em
+CI ela cifra apenas fixture em banco descartável. O padrão era `{nil, :test}`, e
+`""` não é `nil`. O fallback existia e não era alcançado.
+
+O resultado é o pior dos dois mundos: **referenciar um secret que não existe ficou
+pior que nunca tê-lo referenciado.** Sem a linha, o fallback funcionaria.
+
+**Por que importa além deste caso.** Ausente e vazio são a mesma coisa para
+qualquer segredo, credencial ou chave — nenhum sistema aceita `""` como valor
+válido. Onde o código distingue os dois, ele criou um terceiro estado que ninguém
+modelou, e esse estado aparece exatamente quando alguém esquece de cadastrar algo.
+O `TheBand.Vault` já acertava (`decode_key(value) when value in [nil, ""]`); a
+configuração, não. Um trecho tratava vazio como ausente, o outro como valor.
+
+**Como aplicar.**
+
+1. **Onde a ausência tem tratamento, tratar vazio igual.** `when blank in [nil, ""]`,
+   nunca só `nil`;
+2. **Não referenciar secret que o ambiente não precisa.** O CI não precisava de
+   chave própria: o `:test` já fornece uma. A referência não adicionava proteção e
+   quebrava o fallback;
+3. **Gate verde localmente não é gate verde.** Este defeito só existia no CI, e só
+   apareceu porque o PR foi aberto e o pipeline **rodou**. É a mesma forma da
+   [L10](#l10--rótulo-de-cipher-precisa-identificar-a-chave-não-a-versão-do-algoritmo):
+   a prova é executar, não implementar.
+
+**Aplicada em**: Sprint 002 — Fase 0, ao abrir o PR da 001.

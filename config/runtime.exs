@@ -12,7 +12,12 @@ import Config
 # ---------------------------------------------------------------------------
 master_key =
   case {System.get_env("THE_BAND_MASTER_KEY"), config_env()} do
-    {nil, :test} ->
+    # `nil` e `""` são a mesma coisa aqui, e distingui-los custou um CI vermelho:
+    # um workflow que referencia `secrets.THE_BAND_MASTER_KEY` sem o secret estar
+    # cadastrado define a variável como **string vazia**, não a deixa ausente. O
+    # caso `{nil, :test}` não pegava isso, e a ausência do secret ficava pior que
+    # nunca tê-lo referenciado — desligava este fallback.
+    {blank, :test} when blank in [nil, ""] ->
       # Chave fixa **apenas** de teste, e assumidamente pública: cifra somente
       # dados de fixture em banco descartável. Não enfraquece FR-005a, que
       # continua valendo em dev e produção e é verificado lá — ver quickstart.md.

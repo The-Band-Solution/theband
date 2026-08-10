@@ -7,9 +7,20 @@ on:
 
 env:
   MIX_ENV: test
-  # Chave apenas de CI: cifra dados de fixture em banco descartável. A chave real
-  # nunca entra no repositório nem no workflow (FR-005, constituição princípio III).
-  THE_BAND_MASTER_KEY: ${{ secrets.THE_BAND_MASTER_KEY }}
+  # `THE_BAND_MASTER_KEY` **não** é declarada aqui, de propósito.
+  #
+  # `config/runtime.exs` já fornece uma chave fixa e assumidamente pública quando
+  # `config_env() == :test`: em CI ela cifra apenas dados de fixture em um banco
+  # descartado no fim da execução, e nada precisa sobreviver entre execuções.
+  #
+  # A versão anterior referenciava `secrets.THE_BAND_MASTER_KEY`. Com o secret não
+  # cadastrado, a variável chegava como **string vazia** em vez de ausente, e isso
+  # desligava o fallback de teste: a aplicação recusava o boot e `mix test` falhava
+  # sem que houvesse nada de errado com o código. Referenciar um secret que não
+  # existe é pior que não referenciar nenhum.
+  #
+  # A chave real continua fora do repositório e fora do workflow — FR-005,
+  # constituição princípio III.
 
 jobs:
   quality-gates:
