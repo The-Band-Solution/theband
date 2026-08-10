@@ -25,22 +25,38 @@ merge, e não é revisão de código — o que sobrou está abaixo, item por ite
 
 | O que sobrou | Tipo | Destino |
 |---|---|---|
-| **T073 — abrir o pull request** · [#78](https://github.com/The-Band-Solution/theband/issues/78) | não executada | **concluída na Fase 0**: [PR #89](https://github.com/The-Band-Solution/theband/pull/89), com a tabela de mapeamentos semânticos |
-| **Revisão independente do código** — princípio VII | bloqueada por terceiro | **bloqueador nomeado**: exige revisor que não implementou, e não existe esforço do time que produza essa pessoa. O [PR #89](https://github.com/The-Band-Solution/theband/pull/89) torna a revisão possível; enquanto ela não ocorrer, nada da 001 entra na `main` |
+| **T073 — abrir o pull request** · [#78](https://github.com/The-Band-Solution/theband/issues/78) | não executada | **concluída na Fase 0**: [PR #89](https://github.com/The-Band-Solution/theband/pull/89), com a tabela de mapeamentos semânticos. Mergeado em `45d21a0` |
+| **Revisão independente do código** — princípio VII | bloqueada, e agora **estruturalmente** | **bloqueador nomeado**: exige revisor que não implementou. Descobriu-se que uma conta só não basta — o GitHub recusa pedir revisão ao autor do PR. Fechar exige duas identidades, o que é decisão de infraestrutura. O merge **não** satisfez a exigência |
 | **T072 — evidência do quickstart** · [#77](https://github.com/The-Band-Solution/theband/issues/77) | executada em parte | encerrada **com a limitação declarada**: V3, V4 e V8 estão provados por teste e não por ocorrência real. Já aceito assim no `aceitacao.md`, com a ressalva escrita |
 | **Volume de SC-009** — 100 pessoas e 20 equipes | não executável | **descartada, com motivo**: exigiria uma organização de origem que não existe. O comportamento sob limite de uso está coberto por teste |
 | **`Estimate` das issues** | não executada | **devolvida**: depende de estimativa feita com o time. Número inventado produziria métrica de fluxo apoiada em ficção |
 | **`mix knowledge.test`, `knowledge.docs`, `knowledge.information_model`** | diferida por decisão registrada | **não entra aqui.** O `plan.md` da 001 declara: portar as três é trabalho comparável ao da feature inteira, e elas viram feature própria ligada à extração da biblioteca. O CI segue rodando os scripts Python, então o gate existe — muda o executor, não a exigência |
 
-### A exceção, assumida
+### A exceção, assumida — e o que o merge mudou nela
 
 Este sprint parte do código da 001 **sem a revisão independente**, e a regra que
 o parágrafo acima instituiu admite isso num caso só: quando o trabalho novo
 **corrige um defeito do antigo**. É exatamente este caso — F3 conserta colunas
-escritas à mão na 001, e esperar o merge manteria o defeito por mais um ciclo.
+escritas à mão na 001.
 
-O preço está nomeado: se a revisão reprovar algo que esta feature toca, este
-sprint herda o retrabalho. Consta na seção de riscos.
+**2026-08-10**: o [PR #89](https://github.com/The-Band-Solution/theband/pull/89)
+foi mergeado na `main` em `45d21a0`, por decisão da pessoa mantenedora, com o CI
+verde e **sem nenhuma aprovação registrada** — `pulls/89/reviews` devolve lista
+vazia.
+
+Isso não reduziu o risco; **mudou o lugar dele.** Antes era código não revisado
+fora da linha principal, visível como branch pendente. Agora é código não revisado
+**dentro** da linha principal, indistinguível do resto. É a forma mais difícil de
+lembrar que a dívida existe, e é a razão de este parágrafo existir.
+
+E há uma descoberta que torna a pendência estrutural, não circunstancial: **uma
+conta só não satisfaz o princípio VII.** O GitHub recusa pedir revisão ao autor do
+próprio PR — `422 Review cannot be requested from pull request author.` Como os PRs
+são abertos com o token de `paulossjunior`, ele é o autor e não pode ser o revisor.
+Verificado no PR #90, e registrado como [L14](../licoes-aprendidas.md).
+
+Enquanto quem abre o PR e quem revisa forem a mesma conta, a exigência é
+**inalcançável** — não atrasada. Consta nos riscos.
 
 ## Lições aplicadas
 
@@ -74,6 +90,55 @@ aceita `id` nas existentes. Os itens foram reatribuídos, e no caminho 10 itens 
 pull request) foram atribuídos por engano ao sprint 001 e depois limpos. Estado
 conferido: 77 itens no sprint 001, 9 no sprint 002, e os alheios sem iteration,
 como estavam. Vira lição.
+
+## Planejamento — `sro.planning_meeting`
+
+**Realizado em 2026-08-10.** A ordem seguida é a que a skill `product-owner` passou
+a exigir: herança antes de escopo novo, e importância só depois.
+
+| Passo | Resultado |
+|---|---|
+| 1. listar o que está aberto do sprint anterior | 6 itens, na tabela de herança acima |
+| 2. dar destino a cada um | 6 destinos: 2 concluídos, 1 encerrado com limitação, 1 descartado com motivo, 1 devolvido, 1 bloqueado com bloqueador nomeado |
+| 3. herança em primeiro lugar | Fase 0, antes de F1 |
+| 4. selecionar escopo novo por importância | as 9 issues abaixo, com o MVP declarado |
+
+**Conclusão: F1 está liberada.** Nenhum item do sprint 001 permanece sem destino,
+o que é a condição da regra — e não é o mesmo que dizer que tudo do 001 ficou
+pronto. A revisão independente segue pendente, com bloqueador nomeado.
+
+### Duas decisões que o planejamento não pode tomar sozinho
+
+**1. As datas da iteration contradizem o que aconteceu, e isso corrompe as medidas
+de fluxo.**
+
+| | Declarado na iteration | O que ocorreu |
+|---|---|---|
+| Sprint 001 | início 2026-08-10, 14 dias → termina 2026-08-23 | aberto **e** encerrado em 2026-08-09 |
+| Sprint 002 | início 2026-08-24, 14 dias | não iniciado; hoje é 2026-08-10 |
+
+Duas consequências, e a segunda é grave:
+
+- há **duas semanas vazias** entre hoje e o início declarado do sprint 002;
+- **as tarefas do sprint 001 foram executadas antes da data em que a iteration diz
+  que ele começou.** Qualquer medida que ligue tarefa executada a sprint por janela
+  de datas — `flow.throughput.rate` e `flow.wip.count` fazem isso — devolve **zero**
+  para o sprint 001. O sprint aparece sem trabalho nenhum.
+
+A data errada é resíduo da [L11](../licoes-aprendidas.md): `updateProjectV2Field`
+recriou a iteration do sprint 001 e reatribuiu a data de início ao dia da
+recriação. Os itens foram consertados na época; a data não.
+
+**Não corrigi.** Mexer na configuração de iterations é exatamente o que causou a
+L11, e o custo daquela vez foi reatribuir 96 itens. A correção precisa de decisão
+explícita sobre qual data cada sprint deve ter, e de um plano para não repetir o
+estrago.
+
+**2. O épico #79 está sem importância.** A skill exige `Priority` preenchida em user
+story **e** épico; #79 tem `—`. Campo vazio significa desconhecido, não zero, então
+a lacuna é real. As partes são P0, P1 e P2. Proposta: **P0**, por ser a importância
+da parte mais importante — mas é decisão do papel, não derivação, e por isso não
+gravei.
 
 ## Escopo — 9 issues em vez de 27
 
@@ -165,7 +230,9 @@ outras 18, sem a tela dizer por quê.
 
 | Risco | Mitigação |
 |---|---|
-| **A revisão independente da 001 reprovar algo que esta feature toca** | risco aceito e declarado, pela exceção registrada na seção de herança. O PR agora existe, então a revisão passou de impossível a pendente — o que reduz o tempo de exposição, não o risco |
+| **A revisão independente da 001 nunca acontecer** | deixou de ser risco de atraso e passou a ser **impedimento estrutural**: uma conta só não pode revisar o próprio PR. Fechar exige duas identidades — decisão de infraestrutura, fora deste sprint. Até então, todo entregável carrega a lacuna declarada |
+| **O código não revisado estar na `main`** | mergeado em `45d21a0` sem aprovação registrada. O risco não diminuiu com o merge: ficou indistinguível do resto do código, e é por isso que está escrito na herança e aqui |
+| **As medidas de fluxo devolverem zero para o sprint 001** | as datas da iteration não correspondem ao que ocorreu, e a correção não foi feita porque mexer em iterations causou a L11. Decisão pendente, registrada no planejamento |
 | **O `mix knowledge.validate` passar onde o validador Python reprova** | ocorreu no sprint 001: depois do rename de `eo.sector`, o validador Elixir passou e o Python reprovou por proveniência de conceito sem `source_type`. O Elixir tem 4 verificações, o Python tem 11 — os dois gates **não** são equivalentes. Neste sprint a T003 fecha uma delas (mapeamento declarando relação inexistente). Enquanto as outras não forem portadas, **o gate Python é o que decide**, e ele roda no CI |
 | **A regra nova do derivador alterar a derivação de outra ontologia** | T004 exige que a saída de todas as demais saia **idêntica**; é regressão obrigatória, não verificação opcional |
 | **Remover coluna com dado dentro** | T005 reconfere antes de T006 migrar; se a contagem não der zero, a tarefa para e vira decisão |
