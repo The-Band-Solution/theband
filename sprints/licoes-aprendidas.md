@@ -165,3 +165,28 @@ o cifrou, e a escolha deixa de depender de ordem de configuração.
 O ponto mais geral: **rotação de segredo só é verificável executando a rotação.**
 Implementar os dois lados e conferir que compilam não prova nada — a prova é
 recifrar e depois ler com a chave nova, e só com ela.
+
+### L11 — Configurar iterations do ProjectV2 recria as existentes
+
+**O que aconteceu.** Ao acrescentar a iteration do sprint 002,
+`updateProjectV2Field` **substituiu o conjunto inteiro** de iterations. A do
+sprint 001 foi recriada com identificador novo, e os 77 itens atribuídos a ela
+ficaram órfãos. A mutação não aceita `id` nas iterations existentes, então não há
+como preservá-las passando a lista.
+
+Ao reatribuir, um segundo erro: o script atribuiu por número de issue, e o projeto
+continha 10 itens de **outros repositórios** — que foram para o sprint 001 e
+precisaram ser limpos.
+
+**Por que importa.** Nada avisa. A iteration continua existindo com o mesmo
+título e as mesmas datas; só o identificador mudou, e os itens simplesmente
+deixam de aparecer no sprint. Quem olhasse o quadro veria um sprint vazio sem
+explicação.
+
+**Como aplicar.** Antes de mexer na configuração de iterations, listar os itens e
+seus identificadores de iteration — é o que permite reatribuir. E filtrar por
+**repositório**, não por número de issue: número de issue não é único num projeto
+que agrega vários repositórios.
+
+Melhor ainda: criar todas as iterations previstas de uma vez, no início, e não
+tocar mais na configuração enquanto houver sprint aberto.
