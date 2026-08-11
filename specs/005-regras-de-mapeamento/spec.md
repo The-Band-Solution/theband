@@ -53,7 +53,52 @@ stories que são rótulos de equipe, e a medida de escopo mentiria sem avisar.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Mapear um tipo que a plataforma não reconhece (Priority: P1)
+### User Story 1 - Começar com um catálogo pronto, e editá-lo (Priority: P1)
+
+A pessoa que administra o tenant abre a tela de regras e **não encontra uma lista vazia**:
+encontra um catálogo de regras já escritas para os padrões usuais — `[TASK]`, `[FEATURE]`,
+`[US]`, `[BUG]`, `[FIX]`, `Chore`, `Refactor`, `Hotfix` — cada uma com o conceito de
+destino proposto e a contagem de issues que casaria **naquela organização**.
+
+Ela revisa, ajusta o que discorda, ativa em bloco o que concorda, e ignora o resto.
+
+**Why this priority**: sem catálogo, a primeira sessão de quem administra é escrever oito
+regras à mão para padrões que qualquer projeto usa. O catálogo transforma isso em revisar e
+confirmar — e revisar é onde o julgamento humano de fato agrega.
+
+**As regras do catálogo chegam PROPOSTAS, nunca ativas.** Ativá-las por padrão promoveria
+1409 issues sem ninguém decidir, e a plataforma passaria a afirmar conceitos que ninguém
+declarou. O catálogo economiza a **escrita**, não a **decisão**.
+
+**Independent Test**: abrir a tela numa organização recém-conectada, conferir que o
+catálogo aparece com a contagem real de cada padrão, que **nenhuma** issue está promovida
+por regra ainda, e que ativar `[TASK]` promove exatamente as 1024.
+
+**Acceptance Scenarios**:
+
+1. **Dado** uma organização observada, **quando** o usuário abre a tela de regras,
+   **então** vê o catálogo com o padrão, o conceito proposto e **quantas issues daquela
+   organização** cada um casaria.
+2. **Dado** o catálogo apresentado, **quando** o usuário não faz nada, **então**
+   **nenhuma** issue é promovida por regra — proposta não é decisão.
+3. **Dado** uma regra do catálogo, **quando** o usuário a ativa, **então** ela passa a
+   valer para aquela organização, com **ele** como autor da decisão — nunca "sistema".
+4. **Dado** uma regra do catálogo, **quando** o usuário a edita, **então** a alteração
+   vale **só para a organização dele**, e o catálogo permanece como estava para as
+   outras.
+5. **Dado** uma regra editada pelo usuário, **quando** o catálogo mudar numa versão nova
+   da plataforma, **então** a edição dele **não** é sobrescrita, e a tela mostra que a
+   regra divergiu do catálogo.
+6. **Dado** o catálogo, **quando** o usuário quer aceitar tudo, **então** existe **uma
+   ação** que ativa as regras propostas de uma vez — com a prévia do total antes de
+   confirmar.
+7. **Dado** um padrão do catálogo que casa zero issues naquela organização, **quando** a
+   tela é aberta, **então** ele aparece como **sem ocorrências aqui** em vez de sumir:
+   pode casar o que a próxima coleta trouxer.
+
+---
+
+### User Story 2 - Mapear um tipo que a plataforma não reconhece (Priority: P1)
 
 A pessoa que administra o tenant vê que 17 issues têm o tipo `Chore`, que nenhuma regra
 reconhece. Ela declara que `Chore` é tarefa pretendida, vê **quantas issues isso afeta
@@ -85,7 +130,7 @@ coleta ocorra.
 
 ---
 
-### User Story 2 - Resgatar issues sem tipo por padrão de título (Priority: P1)
+### User Story 3 - Resgatar issues sem tipo por padrão de título (Priority: P1)
 
 A mesma pessoa vê que 1024 issues começam com `[TASK]` e não têm tipo na origem. Ela cria
 uma regra dizendo que **título começando com `[TASK]`** é tarefa pretendida — por texto
@@ -116,7 +161,7 @@ conceito, e nenhuma medida de escopo do produto tem base.
 
 ---
 
-### User Story 3 - Não mapear o que não é tipo (Priority: P2)
+### User Story 4 - Não mapear o que não é tipo (Priority: P2)
 
 A pessoa vê que `[Devops]`, `[Back-end]` e `[QA]` aparecem entre os padrões mais
 frequentes, e a tela **diz que eles provavelmente não são tipos** — são área ou equipe. Ela
@@ -164,6 +209,26 @@ registrada com autor.
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
+
+#### O catálogo
+
+- **FR-038**: A plataforma DEVE trazer um **catálogo de regras pré-escritas** para os
+  padrões usuais, declarado na base de conhecimento em YAML versionado — nunca embutido em
+  código.
+- **FR-039**: As regras do catálogo DEVEM chegar **propostas**, e NÃO DEVEM promover nada
+  antes de alguém ativá-las. O catálogo economiza a escrita, não a decisão.
+- **FR-040**: A tela DEVE mostrar, para cada regra do catálogo, **quantas issues daquela
+  organização** ela casaria — o catálogo é o mesmo para todas, e o efeito é de cada uma.
+- **FR-041**: Ativar uma regra do catálogo DEVE registrar **a pessoa** como autora da
+  decisão, e nunca "sistema": o catálogo propôs, alguém decidiu.
+- **FR-042**: Editar uma regra do catálogo DEVE criar uma versão **da organização**, sem
+  alterar o catálogo nem afetar outras organizações.
+- **FR-043**: Uma atualização do catálogo NÃO DEVE sobrescrever regra que a organização
+  editou, e a tela DEVE mostrar que a regra **divergiu** do catálogo.
+- **FR-044**: A plataforma DEVE oferecer **uma ação** para ativar todas as propostas de
+  uma vez, com a prévia do total antes de confirmar.
+- **FR-045**: Regra do catálogo que casa zero issues naquela organização DEVE aparecer
+  como **sem ocorrências aqui**, e NÃO DEVE ser escondida.
 
 #### A regra
 
@@ -313,12 +378,22 @@ registrada com autor.
   nenhum caminho.
 - **SC-014**: Um usuário de um tenant não alcança regra, padrão nem promoção de outro
   tenant por nenhum caminho.
+- **SC-015**: Numa organização recém-conectada, o catálogo aparece com contagem por padrão
+  e **zero** issues promovidas por regra.
+- **SC-016**: Nenhuma regra do catálogo promove issue sem ter sido ativada por uma pessoa,
+  e toda ativação tem autor.
+- **SC-017**: Uma regra editada pela organização permanece como ela a deixou depois de o
+  catálogo mudar, e a divergência é visível.
 
 ## Assumptions
 
 - **O prefixo entre colchetes é o padrão candidato mais frequente**, mas não o único: a
   tela também agrupa a primeira palavra seguida de separador, porque 52 issues começam com
   "Criar" e 13 com "Testar". Nenhum dos dois é sugerido como tipo automaticamente.
+- **O catálogo inicial cobre os padrões medidos no dado real** — `[TASK]`, `[FEATURE]`,
+  `[US]`, `[BUG]`, `[FIX]`, `[EPIC]`, `[E2E]` — mais os tipos declarados que apareceram
+  como desconhecidos: `Chore`, `Refactor`, `Hotfix`. Ele cresce por commit revisável na
+  base de conhecimento, não por formulário.
 - **A sugestão de "provavelmente é área" parte de uma lista conhecida** — Devops, Back-end,
   Front-end, Dados, QA, Infra — declarada na base de conhecimento e revisável, não
   embutida em código. Ela é sugestão a conferir, e a pessoa decide.
