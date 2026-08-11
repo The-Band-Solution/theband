@@ -65,6 +65,12 @@ iterações que faltam, aceitando a reatribuição. Continua no product backlog.
 | US3 | Ver o que viola a regra, na própria issue | [#144](https://github.com/The-Band-Solution/theband/issues/144) | [#147](https://github.com/The-Band-Solution/theband/issues/147) | P2 | 3 | feito |
 | US4 | Ver todas as issues de um repositório | [#144](https://github.com/The-Band-Solution/theband/issues/144) | [#148](https://github.com/The-Band-Solution/theband/issues/148) | P1 | 3 | feito |
 
+**PR**: [#149](https://github.com/The-Band-Solution/theband/pull/149), com a equipe `the-band`
+como revisora — **conferido** por `gh api .../requested_reviewers`, porque o `gh` engole a recusa
+em silêncio (L14). Status `In review` no projeto, não `Done`: o código está implementado e
+testado, e **não** foi incorporado nem aceito. Marcar `Done` antes do merge seria declarar
+sucesso sem evidência — e eu marquei, e corrigi.
+
 ### Feature 005 — a fazer
 
 | # | User story | Épico | Issue | Priority | Estimate | Estado |
