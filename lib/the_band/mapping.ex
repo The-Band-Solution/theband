@@ -31,6 +31,7 @@ defmodule TheBand.Mapping do
     * qualquer função sobre `tool_concept_mappings` — substituída por esta feature.
   """
 
+  alias TheBand.Mapping.Catalog
   alias TheBand.Mapping.Commands
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
@@ -46,6 +47,11 @@ defmodule TheBand.Mapping do
     to: Commands
 
   defdelegate revert_not_a_type(tenant, decision_id, actor_id), to: Commands
+
+  defdelegate activate_catalog_rule(tenant, organization_id, catalog_key, actor_id),
+    to: Commands
+
+  defdelegate activate_all_proposals(tenant, organization_id, actor_id), to: Commands
   defdelegate preview(tenant, organization_id, attrs), to: Commands
   defdelegate recompute(tenant, organization_id), to: Commands
 
@@ -57,6 +63,9 @@ defmodule TheBand.Mapping do
   defdelegate list_not_a_type(tenant, organization_id), to: Queries
   defdelegate title_sample(tenant, organization_id), to: Queries
   defdelegate issues_for_decision(tenant, organization_id), to: Queries
+  defdelegate list_proposals(tenant, organization_id), to: Catalog
+  defdelegate not_type_patterns(tenant, organization_id), to: Catalog
+  defdelegate not_type_reason(), to: Catalog
 
   # ------------------------------------------------------------------ validação
 

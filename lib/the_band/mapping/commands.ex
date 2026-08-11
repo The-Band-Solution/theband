@@ -3,6 +3,7 @@ defmodule TheBand.Mapping.Commands do
 
   import Ecto.Query
 
+  alias TheBand.Mapping.Catalog
   alias TheBand.Mapping.Decision
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
@@ -178,6 +179,65 @@ defmodule TheBand.Mapping.Commands do
         })
         |> Repo.update()
     end
+  end
+
+  @doc """
+  Materializa uma proposta do catálogo como regra da organização.
+
+  **A pessoa é a autora, nunca "sistema"** — é o que FR-041 exige, e é o motivo de o
+  catálogo não ser copiado na conexão.
+
+  `{:error, :unknown_entry}` quando a chave não existe mais no catálogo: uma entrada
+  removida não pode ser ativada, e o silêncio criaria regra a partir de nada.
+  """
+  @spec activate_catalog_rule(Tenant.t(), Ecto.UUID.t(), String.t(), Ecto.UUID.t()) ::
+          {:ok, MappingRule.t()} | {:error, :unknown_entry | Ecto.Changeset.t() | recusa()}
+  def activate_catalog_rule(%Tenant{} = tenant, organization_id, catalog_key, actor_id) do
+    case Catalog.fetch_entry(catalog_key) do
+      :error ->
+        {:error, :unknown_entry}
+
+      {:ok, entrada} ->
+        create_rule(
+          tenant,
+          organization_id,
+          %{
+            where: entrada.where,
+            how: entrada.how,
+            pattern: entrada.pattern,
+            case_sensitive: entrada.case_sensitive,
+            target_concept: entrada.target_concept,
+            catalog_key: catalog_key
+          },
+          actor_id
+        )
+    end
+  end
+
+  @doc """
+  Ativa todas as propostas ainda não decididas.
+
+  Uma ação, uma autoria: todas as regras criadas registram o mesmo autor. As já ativadas
+  ou editadas são **puladas** — reativar sobrescreveria a edição, e FR-043 proíbe.
+  """
+  @spec activate_all_proposals(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, [MappingRule.t()]}
+  def activate_all_proposals(%Tenant{} = tenant, organization_id, actor_id) do
+    criadas =
+      tenant
+      |> Catalog.list_proposals(organization_id)
+      |> Enum.filter(&(&1.state == :proposed))
+      |> Enum.flat_map(fn proposta ->
+        case activate_catalog_rule(tenant, organization_id, proposta.catalog_key, actor_id) do
+          {:ok, regra} -> [regra]
+          # Proposta que a organização não pode ativar — conceito removido da base, por
+          # exemplo — é pulada, e não interrompe as outras. Interromper deixaria metade
+          # ativada sem ninguém saber qual metade.
+          {:error, _} -> []
+        end
+      end)
+
+    {:ok, criadas}
   end
 
   @doc """
