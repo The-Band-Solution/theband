@@ -2,7 +2,7 @@
 
 **Spec**: [spec.md](spec.md) · **Plano**: [plan.md](plan.md) · **Contratos**: [contracts/](contracts/)
 
-Quarenta e duas tarefas em seis fases. **MVP: F0 a F3** — issues classificadas, com
+Quarenta e seis tarefas em sete fases. **MVP: F0 a F3** — issues classificadas, com
 a lacuna visível e uma tela que as mostra.
 
 A ordem das fases é **dependência**, não preferência. Cada fase existe porque a
@@ -576,9 +576,75 @@ sprint.
 
 ---
 
+## Fase F6 — Mapeamento por organização (US3, P2)
+
+**Objetivo da história**: quem conecta uma organização configura, na mesma tela, como
+os conceitos dela correspondem aos da ontologia.
+
+**Teste independente**: conectar uma organização que usa `Feature`, `Task` e `Bug`, e
+conferir que os três aparecem com destino sugerido, que `Epic` e `User Story` aparecem
+como não usados aqui, e que a primeira coleta já classifica pelo configurado.
+
+**Fora do sprint 004**, com o custo declarado: a regra fica em YAML, e ajustá-la exige
+editar o repositório.
+
+- [ ] T041 [US3] Migrar o mapeamento por organização
+  - **Pronta quando**: T031 concluída; `contracts/screens.md` escrito
+  - **Descrição**: migração criando `tool_concept_mappings` com `connected_tool_id`
+    como escopo — **não** `tenant_id` sozinho —, `kind`, `source_name`,
+    `source_external_id`, `target_concept`, `decided_by` e `declared_by_user_id`
+    **não anulável**. FR-041a. Índice único por
+    `(connected_tool_id, kind, source_name)`: duas organizações mapeiam o mesmo nome
+    para conceitos diferentes sem colidir
+  - **Feita quando**: duas ferramentas do mesmo tenant gravam `Feature` com destinos
+    diferentes, e nenhuma sobrescreve a outra; `declared_by_user_id` nulo é recusado
+    pelo banco
+  - **Teste**: `mix ecto.migrate` e rollback; e inserir dois mapeamentos de `Feature`
+    para ferramentas diferentes tem de passar, e para a mesma ferramenta tem de violar
+    o índice
+
+- [ ] T042 [US3] Descobrir os tipos da organização
+  - **Pronta quando**: T043 concluída
+  - **Descrição**: consulta que lista os tipos de issue **em uso** naquela
+    organização, chamada depois de a credencial ser validada — FR-041. Antes da
+    validação não há como consultar, e a tela exibiria campos vazios
+  - **Feita quando**: a consulta devolve `Feature`, `Task` e `Bug` para
+    `The-Band-Solution`, com a contagem de cada um; um tipo previsto pela regra global
+    e ausente na organização vem marcado como não usado
+  - **Teste**: `test/the_band/sources/type_discovery_test.exs` — com o payload real,
+    os três tipos usados e os dois não usados aparecem separados
+
+- [ ] T043 [US3] Gravar o mapeamento, recusando o inválido
+  - **Pronta quando**: T044 concluída
+  - **Descrição**: `record_concept_mapping/3` em `TheBand.Sources`. **Recusa** três
+    coisas, nomeando a causa: campo de seleção única para atributo numérico (FR-046),
+    declaração que contraria axioma (FR-045), e criação de tipo na organização.
+    Precedência: regra global, regra do tenant, configuração da ferramenta — FR-049
+  - **Feita quando**: `Priority → importance` é recusado explicando a diferença de
+    escala; `Chore → sro.epic` é recusado nomeando `sro.rule05`; um mapeamento válido
+    grava com autor e data
+  - **Teste**: `test/the_band/sources/concept_mapping_test.exs` — as duas recusas pela
+    violação, e a mensagem de cada uma contendo a causa e não só "inválido"
+
+- [ ] T044 [US3] Mapeamento no fluxo de conexão
+  - **Pronta quando**: T045 concluída
+  - **Descrição**: passo novo em `lib/the_band_web/live/source_live/`, **depois** da
+    credencial e antes de confirmar. Mostra os tipos descobertos, o destino sugerido,
+    e para `Feature` que **a estrutura decide**. "Usar o padrão" é saída legítima —
+    conectar não é bloqueado por mapeamento pendente (FR-041c). A mesma tela é
+    acessível depois, pela ferramenta (FR-041b)
+  - **Feita quando**: conectar sem configurar funciona e usa o padrão; `Epic` e
+    `User Story` aparecem como não usados aqui, não como erro; a tela é alcançável
+    pela ferramenta já conectada
+  - **Teste**: `test/the_band_web/live/source_live_mapping_test.exs` — o HTML contém
+    `não usados aqui`, e conectar com "usar o padrão" grava a ferramenta sem nenhuma
+    linha de mapeamento
+
+---
+
 ## Fase F5 — Fechamento
 
-- [ ] T041 Executar o quickstart no dado real
+- [ ] T045 Executar o quickstart no dado real
   - **Pronta quando**: as fases do MVP concluídas — T001 a T029
   - **Descrição**: rodar V1 a V12 de [quickstart.md](quickstart.md) contra o banco de
     desenvolvimento e a organização real, registrando cada número obtido ao lado do
@@ -591,7 +657,7 @@ sprint.
   - **Teste**: o próprio quickstart, com a saída colada no `sprint-review.md` — e a
     aplicação no ar mostrando as duas telas
 
-- [ ] T042 Abrir o PR com a tabela de mapeamentos
+- [ ] T046 Abrir o PR com a tabela de mapeamentos
   - **Pronta quando**: T037 concluída; `mix gates` verde
   - **Descrição**: PR com a tabela origem→conceito de cada mapeamento novo, as
     limitações declaradas, e o que **não** foi promovido com o motivo. Revisor: a
@@ -609,8 +675,16 @@ sprint.
 ```
 F0 ─▶ F1 ─▶ F2 ─▶ F3 ─▶ F5
                    │
-                   └▶ F4 ─▶ F5
+                   ├▶ F4 ─▶ F5
+                   │
+                   └▶ F6 ─▶ F5     mapeamento por organização
 ```
+
+**F6 depende de F3 e não o contrário**, e é uma escolha discutível registrada como
+tal: configurar o mapeamento antes de coletar seria a ordem ideal, e é o que a tela
+faz em produção. Mas construir a tela antes de haver promoção deixaria a configuração
+sem efeito observável — e a L21 diz que função sem consumidor não é entrega. F3
+primeiro dá à F6 um efeito que se pode medir na coleta seguinte.
 
 **F0 bloqueia tudo**: sem a tabela do kind referenciado, o repositório não existe.
 **F2 bloqueia F3**: a issue pertence a um repositório, e o escopo da ausência é ele.
@@ -624,6 +698,7 @@ F0 ─▶ F1 ─▶ F2 ─▶ F3 ─▶ F5
 | T013, T014, T015 | três migrações independentes, depois de T009 |
 | T024, T025 | ramos distintos do mesmo comando |
 | T033, T034 | tabelas diferentes, depois de T031 |
+| T044, T045 | descoberta e gravação são módulos distintos |
 
 ## Estratégia de entrega
 
@@ -632,6 +707,9 @@ issues classificadas e as lacunas, com a promoção rastreável até a regra e a
 
 **F4 depois, e não junto**: um sprint sem issues não responde nada. A dependência é
 nessa direção, e inverter produziria quadros com backlogs vazios.
+
+**F6 depois de F3**, pelo mesmo tipo de razão: a configuração do mapeamento precisa de
+um efeito observável, e o efeito é a classificação da coleta seguinte.
 
 **F5 fecha**: o quickstart no dado real é o que separa "os testes passam" de "a
 plataforma faz o que a spec disse".
