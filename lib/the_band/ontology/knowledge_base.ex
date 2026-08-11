@@ -49,6 +49,30 @@ defmodule TheBand.Ontology.KnowledgeBase do
     end
   end
 
+  @doc """
+  Os identificadores de todos os conceitos da rede — 220 na base atual.
+
+  Existe para o comando que grava regra de mapeamento poder recusar conceito que não
+  existe. Sem esta consulta, a validação seria uma lista fixa no código, e ela divergiria
+  da base no primeiro conceito novo — a semântica vive no YAML (princípio IV), e quem
+  pergunta "este conceito existe?" tem de perguntar a ela.
+
+  Os conceitos vivem nos artefatos de **módulo**, e não de ontologia: a ontologia declara
+  os módulos, e o módulo declara os conceitos.
+  """
+  @spec concept_ids() :: MapSet.t(String.t())
+  def concept_ids do
+    :module
+    |> list()
+    |> Enum.flat_map(fn modulo -> modulo["concepts"] || [] end)
+    |> MapSet.new(& &1["id"])
+  end
+
+  @doc "Se o identificador de conceito existe na base carregada."
+  @spec concept?(String.t() | nil) :: boolean()
+  def concept?(nil), do: false
+  def concept?(id), do: MapSet.member?(concept_ids(), id)
+
   @doc "Contagem por tipo de artefato, para diagnóstico e para a Mix task."
   @spec stats() :: %{atom() => non_neg_integer()}
   def stats do

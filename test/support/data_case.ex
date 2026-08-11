@@ -35,6 +35,22 @@ defmodule TheBand.DataCase do
     tenant
   end
 
+  @doc """
+  Cria uma pessoa usuária administradora do tenant.
+
+  Vive aqui, e não só no `ConnCase`, porque decisão tem autor: as escritas de `Mapping`
+  exigem `actor_id` na assinatura, e a suíte de domínio precisa de alguém para ser o autor.
+  """
+  def user_fixture(tenant, role \\ "admin") do
+    {:ok, user} =
+      TheBand.Tenants.create_user(tenant, %{
+        "email" => "pessoa-#{System.unique_integer([:positive])}@example.test",
+        "role" => role
+      })
+
+    user
+  end
+
   @doc "Atributos mínimos de uma entidade observada, com proveniência completa."
   def source_attrs(external_id, extra \\ %{}) do
     Map.merge(
