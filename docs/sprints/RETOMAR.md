@@ -13,9 +13,34 @@ A plataforma coleta e classifica o trabalho de duas organizações:
 135 repositórios · 4455 issues · 4455 promoções vigentes · 1614 vínculos
 ```
 
-## A PRIMEIRA COISA a fazer ao voltar
+## Defeito conhecido, e sem caminho pela interface
 
-**Barra de progresso com percentual**, pedida e interrompida no meio.
+**Job `discarded` deixa o `sync` em `running` para sempre.** O índice único
+`syncs_one_running_per_tool_index` então bloqueia qualquer coleta nova daquela ferramenta, e
+não existe botão para destravar — só SQL:
+
+```sql
+UPDATE syncs SET status='interrupted', finished_at=now(),
+  error_reason='interrompida: o processo que a executava não existe mais'
+WHERE status='running';
+```
+
+Vai acontecer com qualquer job que esgote as tentativas. As duas correções possíveis: um
+`Oban.Telemetry` handler no evento de descarte, ou marcar como interrompido ao carregar a
+tela todo `sync` `running` cujo job não está mais executando. A segunda é mais simples e não
+depende de o handler estar registrado.
+
+## Feito — a barra com percentual
+
+**Concluída.** O denominador vem da origem: `repositories.totalCount` e `issues.totalCount`,
+guardados em `sync_checkpoints.expected_count`.
+
+```
+████████████████████  100%   208 de 208
+organização 1 │ pessoas │ equipes │ repositórios 14 │ issues 194 │ promoção 4463
+```
+
+Onde a origem não informa total, a barra **não aparece** — a fase mostra contagem e estado.
 
 Hoje a tela `/sincronizacoes` mostra **seis fases** com contagem, e não percentual — e o
 comentário no código explica por quê: a paginação é por cursor, e a plataforma não sabe
