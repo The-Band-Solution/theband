@@ -31,6 +31,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ontology.SEON.CMPO
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
 
   @conceitos [
@@ -47,16 +48,28 @@ defmodule TheBandWeb.WorkItemLive.Index do
   }
 
   @impl true
+  @por_pagina 50
+
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "Trabalho", repositorio: nil) |> load()}
+    {:ok,
+     socket
+     |> assign(page_title: "Trabalho", repositorio: nil, pagina: 1)
+     |> load()}
   end
 
   @impl true
+  # Trocar o filtro volta para a primeira página. Manter a página 4 ao filtrar um
+  # repositório de 12 issues mostraria uma lista vazia, e quem lê concluiria que não há
+  # issues em vez de que está fora do fim.
   def handle_event("filtrar", %{"repositorio" => ""}, socket),
-    do: {:noreply, socket |> assign(repositorio: nil) |> load()}
+    do: {:noreply, socket |> assign(repositorio: nil, pagina: 1) |> load()}
 
   def handle_event("filtrar", %{"repositorio" => id}, socket),
-    do: {:noreply, socket |> assign(repositorio: id) |> load()}
+    do: {:noreply, socket |> assign(repositorio: id, pagina: 1) |> load()}
+
+  def handle_event("pagina", %{"n" => n}, socket) do
+    {:noreply, socket |> assign(pagina: String.to_integer(n)) |> load()}
+  end
 
   @impl true
   def render(assigns) do
@@ -216,10 +229,17 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </div>
 
         <div>
-          <h3 class="font-semibold mb-2">Issues</h3>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Issues</h3>
+            <span class="text-sm opacity-70">
+              {faixa(@pagina, @por_pagina, @coletadas)} de {@coletadas}
+            </span>
+          </div>
           <table class="table table-sm">
             <thead>
               <tr>
+                <th>organização</th>
+                <th>repositório</th>
                 <th>#</th>
                 <th>título</th>
                 <th>tipo na origem</th>
@@ -229,8 +249,10 @@ defmodule TheBandWeb.WorkItemLive.Index do
             </thead>
             <tbody>
               <tr :for={i <- @issues}>
+                <td class="text-xs opacity-70">{origem(@onde, i).organizacao}</td>
+                <td class="text-xs">{origem(@onde, i).repositorio}</td>
                 <td class="font-mono">{i.number}</td>
-                <td class="max-w-md truncate">{i.title}</td>
+                <td class="max-w-sm truncate">{i.title}</td>
                 <td>
                   <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
                   <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">—</span>
@@ -248,6 +270,28 @@ defmodule TheBandWeb.WorkItemLive.Index do
               </tr>
             </tbody>
           </table>
+
+          <div class="flex items-center gap-2 mt-3">
+            <button
+              class="btn btn-sm btn-outline"
+              disabled={@pagina == 1}
+              phx-click="pagina"
+              phx-value-n={@pagina - 1}
+            >
+              anterior
+            </button>
+            <span class="text-sm opacity-70">
+              página {@pagina} de {ultima_pagina(@coletadas, @por_pagina)}
+            </span>
+            <button
+              class="btn btn-sm btn-outline"
+              disabled={@pagina >= ultima_pagina(@coletadas, @por_pagina)}
+              phx-click="pagina"
+              phx-value-n={@pagina + 1}
+            >
+              próxima
+            </button>
+          </div>
         </div>
       </div>
     </Layouts.app>
@@ -276,7 +320,15 @@ defmodule TheBandWeb.WorkItemLive.Index do
       desvio: coletadas - total_promovido - total_lacuna,
       tipos_desconhecidos: WorkItems.unknown_types(tenant, opts),
       divergencias: WorkItems.list_divergences(tenant, opts),
-      issues: WorkItems.list_issues(tenant, Keyword.put(opts, :limit, 60)),
+      issues:
+        WorkItems.list_issues(
+          tenant,
+          opts
+          |> Keyword.put(:limit, @por_pagina)
+          |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
+        ),
+      por_pagina: @por_pagina,
+      onde: onde(tenant, repositorios),
       repositorios: repositorios,
       repos_observados: length(repositorios),
       por_repositorio: por_repositorio(tenant, repositorios),
@@ -286,6 +338,32 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   defp filtro(nil), do: []
   defp filtro(id), do: [observed_repository_id: id]
+
+  # Repositório e organização vêm de **outros módulos**, e a composição é aqui: a issue
+  # é plataforma, o repositório é CMPO, a organização é EO. Uma consulta que juntasse as
+  # três tabelas alcançaria schema alheio e quebraria a fronteira que a ADR 0003 impõe —
+  # e passaria a quebrar a cada mudança de derivação.
+  defp onde(tenant, repositorios) do
+    orgs = Map.new(EO.list_organizations(tenant), &{&1.id, &1.login || &1.name})
+
+    Map.new(repositorios, fn r ->
+      {r.observed_repository_id,
+       %{repositorio: r.name, organizacao: Map.get(orgs, r.organization_id, "—")}}
+    end)
+  end
+
+  defp origem(onde, issue),
+    do: Map.get(onde, issue.observed_repository_id, %{repositorio: "—", organizacao: "—"})
+
+  defp faixa(_pagina, _por_pagina, 0), do: "0"
+
+  defp faixa(pagina, por_pagina, total) do
+    inicio = (pagina - 1) * por_pagina + 1
+    "#{inicio}–#{min(pagina * por_pagina, total)}"
+  end
+
+  defp ultima_pagina(0, _por_pagina), do: 1
+  defp ultima_pagina(total, por_pagina), do: ceil(total / por_pagina)
 
   defp por_repositorio(tenant, repositorios) do
     Map.new(repositorios, fn r ->

@@ -46,9 +46,14 @@ defmodule TheBandWeb.Layouts do
       </div>
       <div :if={@current_tenant} class="flex-none">
         <ul class="flex px-1 space-x-1 items-center">
+          <%!-- A ordem segue o que a plataforma observa, do agente para o trabalho:
+                quem (pessoas), com quem (equipes), sobre o quê (trabalho). Depois vêm as
+                telas de operação — sincronizações e ferramentas —, separadas por borda,
+                porque respondem "a plataforma está funcionando" e não "o que ela sabe". --%>
           <li><.link navigate={~p"/pessoas"} class="btn btn-ghost btn-sm">Pessoas</.link></li>
           <li><.link navigate={~p"/equipes"} class="btn btn-ghost btn-sm">Equipes</.link></li>
-          <li>
+          <li><.link navigate={~p"/trabalho"} class="btn btn-ghost btn-sm">Trabalho</.link></li>
+          <li class="pl-2 border-l border-base-300">
             <.link navigate={~p"/sincronizacoes"} class="btn btn-ghost btn-sm">Sincronizações</.link>
           </li>
           <li :if={@current_user && @current_user.role == "admin"}>

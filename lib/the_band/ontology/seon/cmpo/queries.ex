@@ -31,6 +31,10 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         observed_repository_id: o.id,
         source_repository_id: r.id,
         connected_tool_id: o.connected_tool_id,
+        # A organização vem como id, e não como login: quem quiser o nome pergunta a EO.
+        # Juntar `eo_organizations` aqui faria CMPO ler tabela de outra ontologia, e a
+        # fronteira da ADR 0003 é o que impede a mudança de uma quebrar a outra.
+        organization_id: r.organization_id,
         name: r.name,
         qualified_name: r.qualified_name,
         url: r.url,

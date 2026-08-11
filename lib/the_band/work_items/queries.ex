@@ -37,15 +37,21 @@ defmodule TheBand.WorkItems.Queries do
   @spec list_issues(Tenant.t(), keyword()) :: [map()]
   def list_issues(%Tenant{} = tenant, opts \\ []) do
     limite = Keyword.get(opts, :limit, 100)
+    deslocamento = Keyword.get(opts, :offset, 0)
 
     tenant
     |> escopo(opts)
     |> join(:left, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
-    |> order_by([i], asc: i.number)
+    # Ordem estável, e é o que torna a paginação confiável: ordenar só por `number`
+    # daria páginas que se sobrepõem, porque o número repete entre repositórios — esta
+    # organização tem 121 deles, e vários `#1`.
+    |> order_by([i], asc: i.observed_repository_id, asc: i.number, asc: i.id)
     |> limit(^limite)
+    |> offset(^deslocamento)
     |> select([i, p], %{
       id: i.id,
       number: i.number,
+      observed_repository_id: i.observed_repository_id,
       title: i.title,
       state: i.state,
       issue_type: i.issue_type,
