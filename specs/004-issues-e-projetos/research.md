@@ -7,14 +7,14 @@ razão e o que foi considerado e recusado.
 
 ## R1 — Repositório vira tabela, ou fica dentro do payload?
 
-**Decisão**: tabela própria, `cmpo_source_repositories`, derivada de
-`cmpo.source_repository`.
+**Decisão**: tabela por **referência** — `cmpo.source_repository` é `subkind` de
+`sys_swo.loaded_software_system_copy` e contribui um valor de discriminador na
+tabela desse kind, com tabela de extensão em CMPO para os atributos próprios.
 
-**Razão**: o repositório é o **escopo da marca de ausência** (FR-010). Um escopo
-que vive dentro de um payload JSON não pode ser o lado de um `subquery`, e a
-consulta de ausência precisa exatamente disso — foi o que a L19 mostrou custar.
-Além disso, o tenant precisa excluir um repositório da observação (FR-004), e
-exclusão é estado de um registro, não campo de payload.
+**Razão**: o repositório é o **escopo da marca de ausência** (FR-010). Um escopo que
+vive dentro de um payload JSON não pode ser o lado de um `subquery`, e a consulta de
+ausência precisa exatamente disso — foi o que a L19 mostrou custar. E o tenant
+precisa excluir um repositório da observação (FR-004), que é estado de um registro.
 
 O conceito **já existe na base** e não precisa ser criado:
 
@@ -24,29 +24,37 @@ O conceito **já existe na base** e não precisa ser criado:
                     parent: sys_swo.loaded_software_system_copy }
 ```
 
-**Consequência que o plano tem de tratar**: sendo `subkind` de um kind da
-SYS_SWO, o derivador o **eleva** — ele contribui um valor de discriminador na
-tabela de `sys_swo.loaded_software_system_copy`, que **não existe**, porque
-SYS_SWO tem 11 conceitos sem `ontouml_stereotype`.
+### O que fazer com o kind referenciado — e como isso mudou
 
-**Duas saídas, e a escolha**:
+Escrevi primeiro que a saída era **anotar os 11 conceitos da SysSwO** para a tabela
+base existir. A pessoa mantenedora emendou a constituição no meio desta pesquisa
+(princípio IX, versão 1.3.0), e a **regra da fronteira** resolve melhor:
 
-| Saída | Custo |
+> Dentro de uma ontologia, aplicam-se as técnicas de transformação. Ao atravessar a
+> fronteira, aplica-se **referência** — e qual das duas vale é decidido pelo
+> **estereótipo declarado**, nunca pela ferramenta.
+
+Consequência: a referência exige **um** conceito, não uma ontologia.
+`sys_swo.loaded_software_system_copy` não tem pai declarado, logo é `kind`, e a
+decisão é mecânica. Os outros 10 ficam como estão.
+
+O derivador passou a declarar a exigência em vez de silenciar:
+
+```
+exigências para materializar — anotar SÓ estes conceitos, não a ontologia inteira:
+
+   sys_swo.loaded_software_system_copy   kind de sys_swo, sem ontouml_stereotype
+```
+
+### Duas saídas que eu tinha considerado, e por que as duas eram piores
+
+| Recusada | Por quê |
 |---|---|
-| anotar os 11 conceitos da SYS_SWO e derivar a tabela base | trabalho de ontologia numa terceira ontologia, dentro desta feature |
-| **declarar `cmpo.source_repository` como `kind`** | contradiz o `parent` declarado, exatamente a decisão que a SRO tomou no sprint 003 |
+| **declarar `source_repository` como `kind`** | afirmaria que um repositório tem princípio de identidade próprio, quando a definição dele é "cópia carregada de sistema de software". O estereótipo é afirmação semântica, não conveniência de esquema |
+| **fazer o derivador materializar o kind estrangeiro localmente** | cheguei a implementar, e a pergunta da pessoa mantenedora — "como fica a modularidade se eu quiser instalar outras ontologias?" — mostrou o defeito: CMPO e SPO passariam a ter cada um sua tabela de atividade, "todas as atividades" viraria união, e a ontologia seguinte encontraria **dois** lugares para apontar. Revertido |
 
-**Escolhido**: anotar a SYS_SWO. A razão é diferente da que valeu para a SRO. Lá,
-`user_story` como `kind` deixava a SRO fechada e autossuficiente. Aqui,
-`source_repository` **não é o conceito central da feature** — issue é —, e forçá-lo
-a `kind` faria a plataforma afirmar que um repositório tem princípio de identidade
-próprio, quando ele é uma cópia carregada de sistema de software. São 11 conceitos,
-e o repositório é o primeiro de vários que virão da SYS_SWO.
-
-**Recusado**: guardar repositório apenas como `raw_payload`. Impediria FR-004 e
-FR-010, que são o núcleo da feature.
-
----
+**Recusado também**: guardar repositório apenas como `raw_payload`. Impediria FR-004
+e FR-010, que são o núcleo da feature.
 
 ## R2 — Onde mora a promoção de uma issue a um conceito?
 

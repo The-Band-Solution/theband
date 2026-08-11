@@ -20,6 +20,7 @@ Seções definidas:
 
 Princípios acrescentados por emenda posterior:
   1.2.0 → VIII. Desenho que o problema justifica
+  1.3.0 → IX. Ontologias modulares e autônomas
 
 Fonte dos princípios: AGENTS.md na raiz do repositório, documento normativo de fato
 desde antes desta ratificação. Esta constituição não inventa regra nova — codifica o
@@ -257,6 +258,66 @@ somada a essa não é neutra: ela consome a atenção que a semântica exige. A 
 para que a estrutura que houver seja a que o problema pediu, e para que a lista de
 antipadrões seja verificável em revisão em vez de opinião de quem revisa.
 
+### IX. Ontologias modulares e autônomas
+
+Cada ontologia da rede MUST ser **autônoma**: validável e derivável sem que outra esteja
+completa. SWO e SRO MUST ser independentes entre si, e o mesmo vale para qualquer par.
+
+Autonomia MUST NOT ser confundida com isolamento. Referência entre ontologias é o padrão,
+exigido pelo princípio I e detalhado no ADR 0004 D9 — a ontologia nova aponta para os
+kinds que já existem e acrescenta os seus, sem alterar nada do que está lá.
+
+> **A regra da fronteira.** Dentro de uma ontologia, aplicam-se as técnicas de
+> transformação. Ao atravessar a fronteira, aplica-se **referência** — e qual das duas
+> vale é decidido pelo **estereótipo declarado**, nunca pela ferramenta. `subkind` afirma
+> identidade herdada e materializa na tabela do kind referenciado; `kind` afirma
+> identidade própria e materializa na ontologia que o declara.
+
+- **A derivação de uma ontologia MUST NOT falhar por causa do estado de outra.** O que
+  bloqueia é a falta de estereótipo nos conceitos **da própria** ontologia. Derivar não
+  depende de a rede estar completa.
+- **As técnicas de transformação — lifting, flattening, discriminador, relator — MUST ser
+  aplicadas dentro da fronteira de uma ontologia.** Elas resolvem a hierarquia interna do
+  módulo: um `subkind` sobe ao kind da própria ontologia, um não-sortal é achatado nos
+  sortais dela, uma `phase` vira discriminador na tabela dela.
+- **Atravessar a fronteira é decisão de identidade, e MUST estar declarada no
+  estereótipo** — nunca resolvida pela ferramenta:
+
+  | Declaração | O que afirma | Como materializa |
+  |---|---|---|
+  | `subkind` com pai em outra ontologia | tem a **mesma** identidade daquele kind | por referência: valor de discriminador na tabela do pai, e tabela de extensão para os atributos próprios |
+  | `kind` | tem identidade **própria** | tabela na própria ontologia; o `parent` permanece como referência semântica e deixa de decidir a transformação |
+
+- A ferramenta MUST NOT materializar localmente um kind de outra ontologia por conta
+  própria. Fazê-lo escolheria identidade no lugar de quem modela, e fragmentaria em duas
+  tabelas o que a referência mantém em uma — quebrando a promessa de que instalar uma
+  ontologia nova só acrescenta.
+- Quando um conceito referencia kind de ontologia **ainda não materializada**, a derivação
+  MUST declarar a exigência, nomeando o conceito que falta. Atender a exigência MUST ser
+  **incremental**: anota-se o conceito referenciado, não a ontologia inteira.
+- Nenhuma feature MUST ser bloqueada por anotação em massa de ontologia alheia. Anotar
+  onze conceitos para registrar um repositório é acoplamento disfarçado de pré-requisito;
+  anotar o único conceito referenciado é a referência funcionando.
+- A fronteira MUST valer também no código: um módulo ontológico fala com outro pela API
+  pública do módulo raiz, nunca por schema Ecto nem por consulta direta às tabelas dele.
+
+**Razão**: a rede tem doze ontologias e quatro anotadas, e vai crescer por instalação
+incremental. Duas falhas simétricas ameaçam isso, e o princípio existe para barrar as
+duas.
+
+**Fragmentar** — cada ontologia materializando localmente o que referencia — faz "todas as
+atividades de configuração" virar uma união entre tabelas, e faz a ontologia seguinte
+encontrar dois lugares para apontar em vez de um.
+
+**Bloquear** — exigir a ontologia alheia inteira antes de começar — faz cada feature nova
+carregar a anotação de todo caminho que atravessa, até que ninguém comece.
+
+A saída não é escolher entre as duas: é que **o estereótipo já responde**. Identidade
+própria é `kind` e materializa aqui; identidade herdada é `subkind` e materializa por
+referência. Foi assim que a SRO ficou independente da RSRO e da SysSwO — `user_story` e
+`deliverable` são `kind` porque têm identidade própria, não para contornar anotação
+pendente.
+
 ## Restrições tecnológicas
 
 Stack fixada: Elixir/Erlang OTP, Phoenix e LiveView, Ecto e PostgreSQL, Oban para jobs e
@@ -330,4 +391,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.2.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-09
+**Version**: 1.3.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-11

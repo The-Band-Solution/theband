@@ -28,7 +28,7 @@ colateral.
 | Jobs | Oban 2.23 |
 | Fonte | GitHub GraphQL v4 — issues, sub-issues, ProjectV2 |
 | Testes | ExUnit + Mox na borda HTTP |
-| Base de conhecimento | 12 ontologias; **4** com `ontouml_stereotype` |
+| Base de conhecimento | 12 ontologias; **4** derivadas; constituição **1.3.0** |
 
 **Nada de novo na stack.** O runtime declarativo do conector já resolve paginação
 por cursor, checkpoint, limite de consumo, retentativa e preservação de payload —
@@ -74,10 +74,19 @@ consultas de escopo, e lacuna silenciosa é pior que imprecisão medida.
 `sro.scrum_project` continua por declaração, porque **adotar Scrum não é
 observável**: um projeto com iterações pode ser Kanban com recorte temporal.
 
-**Uma lacuna a fechar antes do código**: `cmpo.source_repository` é `subkind` de
-`sys_swo.loaded_software_system_copy`, e a SYS_SWO tem 11 conceitos sem
-`ontouml_stereotype`. Sem anotá-los, o repositório não tem tabela para onde ser
-elevado. É a primeira fase.
+**Uma lacuna a fechar antes do código, e ela encolheu de 11 conceitos para 1.**
+`cmpo.source_repository` é `subkind` de `sys_swo.loaded_software_system_copy`, e
+esse kind não tem estereótipo. Pela **regra da fronteira** (constituição IX), a
+referência exige apenas o conceito referenciado — não a ontologia inteira. Ele não
+tem pai, logo é `kind`, sem julgamento.
+
+O derivador passou a declarar isso em vez de silenciar:
+
+```
+exigências para materializar — anotar SÓ estes conceitos, não a ontologia inteira:
+
+   sys_swo.loaded_software_system_copy   kind de sys_swo, sem ontouml_stereotype
+```
 
 ### II. Fonte externa não é domínio — **conforme, e é o eixo da feature**
 
@@ -219,7 +228,7 @@ specs/004-issues-e-projetos/
 
 ```
 priv/knowledge_base/
-├── ontology/seon/sys_swo/modules/*.yaml       + 11 estereótipos
+├── ontology/seon/sys_swo/modules/*.yaml       + 1 estereótipo (kind referenciado)
 ├── mappings/github/spo/project.yaml           novo
 ├── mappings/github/cmpo/repository.yaml        novo
 ├── mappings/github/sro/
@@ -256,14 +265,20 @@ priv/repo/migrations/                          derivadas, nunca escritas à mão
 A ordem não é preferência. Cada fase existe porque a seguinte não funciona sem
 ela.
 
-### F0 — Anotar a SYS_SWO
+### F0 — Anotar o kind referenciado
 
-Onze conceitos ganham `ontouml_stereotype`. **Bloqueia tudo**: sem a tabela base de
-`sys_swo.loaded_software_system_copy`, `cmpo.source_repository` não tem para onde
-ser elevado, e sem repositório não existe o escopo da marca de ausência.
+**Um** conceito: `sys_swo.loaded_software_system_copy` como `kind`. Sem pai
+declarado, logo a decisão é mecânica. **Bloqueia tudo**: sem ele
+`cmpo.source_repository` não tem tabela para referenciar, e sem repositório não
+existe o escopo da marca de ausência.
 
-Prova: `derive_information_model.py --ontology cmpo` passa a imprimir a tabela do
-repositório, e a derivação continua reprodutível nas quatro ontologias.
+Os outros 10 conceitos da SysSwO **ficam como estão** — anotar a ontologia inteira
+para registrar um repositório é o acoplamento que a constituição IX nomeia como
+pré-requisito disfarçado.
+
+Prova: `derive_information_model.py --ontology cmpo` para de listar a exigência e
+passa a materializar o discriminador `source_repository` na tabela do kind, e a
+derivação continua reprodutível nas quatro ontologias.
 
 ### F1 — Semântica declarada: mapeamentos e regra do tenant
 
@@ -314,7 +329,7 @@ responde nada — a dependência é nessa direção.
 
 | Risco | Mitigação |
 |---|---|
-| **Anotar a SYS_SWO muda a derivação de outras ontologias** | o gate de reprodutibilidade roda antes e depois; qualquer mudança fora de CMPO é examinada, não aceita |
+| **Anotar o kind da SysSwO muda a derivação de outras ontologias** | o gate de reprodutibilidade roda antes e depois; qualquer mudança fora de CMPO é examinada, não aceita |
 | **A regra de roteamento está errada** — tem `status: proposed` | a feature a **mede**: a lacuna por motivo é a métrica que diz onde ela erra. Corrigir é consequência, não pré-requisito |
 | **Volume de issues estoura o limite de consumo** | checkpoint por repositório, não por organização: retomar não recomeça o repositório inteiro |
 | **Sub-issues indisponíveis na instância do tenant** | detectar no início da coleta e **declarar** que a distinção épico/atômica não é feita. Nunca cair para heurística de markdown |
@@ -328,7 +343,7 @@ responde nada — a dependência é nessa direção.
 | 4 tabelas de plataforma para issue (coletada, promoção, vínculo, recusa) | cada uma responde uma pergunta que as outras não respondem; ver P1 e P2 |
 | 3 tabelas para campo de projeto | FR-023 e FR-027; ver P3 |
 | classificação derivada em vez de coluna | D7; ver P4 |
-| 11 anotações fora do escopo da feature | sem elas o conceito central não tem tabela |
+| 1 anotação fora do escopo da feature | sem ela o conceito central não tem kind para referenciar. Eram 11 antes da regra da fronteira |
 
 **O que ficaria mais simples e foi recusado**: gravar `is_epic` e `promoted_to`
 como colunas na issue. Duas tabelas em vez de quatro, uma consulta em vez de um
@@ -339,9 +354,10 @@ para mostrar.
 
 Nenhuma violação. Duas coisas declaradas:
 
-**A anotação da SYS_SWO é trabalho de ontologia dentro de uma feature de
-ingestão.** Está aqui porque o conceito central da feature depende dela, não por
-oportunidade. Se fosse maior — como os 43 da SRO — seria trabalho próprio.
+**A anotação de um conceito da SysSwO é trabalho de ontologia dentro de uma
+feature de ingestão.** Está aqui porque o conceito central depende dele, e porque a
+regra da fronteira o reduziu a **um** conceito sem julgamento. Se fossem os 11 —
+como era antes da emenda — seria trabalho próprio.
 
 **A data do sprint vem do planejamento, não da observação.** Declarado em R6: um
 sprint que começou atrasado terá a data que o projeto dizia. Este repositório já
