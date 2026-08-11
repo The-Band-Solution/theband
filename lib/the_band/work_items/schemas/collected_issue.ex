@@ -60,16 +60,29 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     timestamps(type: :utc_datetime)
   end
 
+  # `cast/4` descarta string vazia por padrão — `empty_values` é `[""]`. Para quase todo
+  # campo isso é o certo: `""` e ausente significam a mesma coisa.
+  #
+  # **Para `body`, não.** A origem devolve `""` quando a issue não tem descrição, e `nil`
+  # só existe onde a plataforma nunca pediu o corpo. Deixar o `cast` padrão apagar o `""`
+  # colapsa os dois casos, e a tela passa a dizer "corpo não coletado" sobre 480 issues
+  # que foram coletadas e estão genuinamente vazias.
+  #
+  # Foi medido contra a origem: `bodyText` da issue `#1` de `Integrador SIGFAPES` devolve
+  # `""` com comprimento zero, e o banco tinha `NULL`. É a L13 de novo — a suíte estava
+  # verde, e o número só apareceu ao conferir com a API.
+  @campos_com_vazio_significativo [:body]
+
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(issue, attrs) do
     issue
+    |> cast(attrs, @campos_com_vazio_significativo, empty_values: [])
     |> cast(attrs, [
       :tenant_id,
       :observed_repository_id,
       :number,
       :title,
       :state,
-      :body,
       :state_reason,
       :author_login,
       :author_person_id,

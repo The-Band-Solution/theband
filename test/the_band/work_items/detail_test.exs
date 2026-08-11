@@ -181,6 +181,35 @@ defmodule TheBand.WorkItems.DetailTest do
       assert WorkItems.fetch_issue(outro, c.issues[1].pai.id) == {:error, :not_found}
     end
 
+    test "corpo vazio na origem é gravado como vazio, e não vira nulo",
+         %{tenant: tenant, cenario: c} do
+      issue = c.issues[79].pai
+
+      {:ok, _} =
+        WorkItems.record_collected_issue(tenant, %{
+          observed_repository_id: issue.observed_repository_id,
+          number: issue.number,
+          title: issue.title,
+          state: issue.state,
+          body: "",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: issue.external_id
+        })
+
+      {:ok, detalhe} = WorkItems.fetch_issue(tenant, issue.id)
+
+      assert detalhe.body == "", """
+      `cast/4` descarta string vazia por padrão, e isso colapsa os dois casos que a tela
+      precisa distinguir: `nil` é "nunca pedido à origem", `""` é "a origem não tem
+      descrição".
+
+      Foi medido contra a origem: 480 issues tinham NULL no banco e `bodyText` de
+      comprimento zero na API. A suíte estava verde — o defeito só apareceu ao conferir
+      o número com a origem.
+      """
+    end
+
     test "corpo nunca coletado é nil, e é diferente de corpo vazio",
          %{tenant: tenant, cenario: c} do
       {:ok, sem_coletar} = WorkItems.fetch_issue(tenant, c.issues[1].pai.id)

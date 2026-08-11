@@ -139,18 +139,24 @@ ilegível; o caminho é encerrar e retomar a observação com token novo, em `/f
 ar executa o job com a chave dele. Script de exemplo ficou em `/tmp/refazer.exs` desta sessão
 — ele tem a organização **fixa** em `The-Band-Solution`, o que já causou confusão.
 
-## Feature 006 — o que já existe, e o que falta
+## Onde parou
 
-Implementada na branch `006-detalhe-da-issue`: as duas telas, os campos novos, o axioma
-como função pura, 29 testes.
+**Sprint 005 aberto** — [backlog](005-mapeamento-e-detalhe/sprint-backlog.md). Escopo
+confirmado: feature 005 **completa**, F1 a F5.
 
-**Falta o processo.** A spec e o contrato existem; `plan.md`, `tasks.md` e o sprint backlog
-**não**. A implementação veio de pedido direto da pessoa mantenedora, e isso é dívida de
-processo declarada — não silenciada.
+| Feature | Estado |
+|---|---|
+| 006 — detalhe da issue | implementada, ciclo Spec Kit completo, PR [#149](https://github.com/The-Band-Solution/theband/pull/149) **aguardando revisão humana** |
+| 005 — regras de mapeamento | ciclo completo escrito, **nenhuma linha de código**; 25 issues de tarefa criadas (#150 a #174) |
 
-**Os campos novos estão vazios nas 4455 issues já coletadas.** `body` é `nil` para todas
-elas, e a tela **declara** isso em vez de mostrar vazio. Preenche na próxima coleta de cada
-organização, porque a consulta passou a pedir os campos à origem.
+**A próxima ação é T001 da feature 005**: criar `issue_mapping_rules`. Ver
+[tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
+
+**Defeito corrigido na aceitação, e a lição**: 480 issues tinham `body` nulo depois de uma
+coleta que as observou — `cast/4` descarta string vazia por padrão, e isso colapsava a
+distinção entre "nunca pedido" e "a origem não tem descrição". A suíte estava verde; o defeito
+só apareceu ao conferir o número **contra a API**. Corrigido, com teste que falha sem a
+correção. **As 480 linhas corrigem-se na próxima coleta** — nenhum reparo retroativo.
 
 ## Documentos que valem ler antes de mexer
 
