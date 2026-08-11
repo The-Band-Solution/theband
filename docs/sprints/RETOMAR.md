@@ -41,7 +41,7 @@ parece informação e não é.
 | # | O que | Estado |
 |---|---|---|
 | 1 | **Percentual na barra** | pedido, interrompido |
-| 2 | **Plano da feature 005** | `research.md` escrito com as seis decisões; falta `plan.md`, `data-model.md`, `contracts/`, `quickstart.md` |
+| 2 | **Plano da feature 005** | `research.md` com **sete** decisões; falta `plan.md`, `data-model.md`, `contracts/`, `quickstart.md`. Backlog: épico [#139](https://github.com/The-Band-Solution/theband/issues/139), US [#140](https://github.com/The-Band-Solution/theband/issues/140) a [#143](https://github.com/The-Band-Solution/theband/issues/143) |
 | 3 | **Plano da feature 006** | spec pronta (34 FR), nada do plano |
 | 4 | Sprint 005 | abrir depois dos planos |
 
@@ -59,6 +59,11 @@ seções: 3 regras de tipo declarado, 7 padrões de título, e **8 padrões que 
 
 A decisão central do `research.md`: **catálogo em YAML lido no boot, regra da organização no
 banco lida por consulta** — porque regra cadastrada pela tela precisa valer sem restart.
+
+E a tela **vive na sincronização** (FR-050 a FR-052), decidido em 2026-08-11: a lacuna nasce
+da coleta, e quem acabou de sincronizar está a um clique de resolver. Como **componente com
+cabeçalho próprio**, alcançado pela organização — o princípio X não permite misturá-la ao
+relatório de execução.
 
 **006 — detalhe da issue e decomposição** (34 FR, 13 SC, 4 US)
 Corpo, autor, designados, rótulos, estado. E a decomposição com as duas relações

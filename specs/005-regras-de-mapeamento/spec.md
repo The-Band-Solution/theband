@@ -310,6 +310,18 @@ registrada com autor.
 - **FR-028**: A reobservação de uma issue numa coleta seguinte NÃO DEVE apagar a promoção
   que uma regra decidiu.
 
+#### Onde a tela vive
+
+- **FR-050**: A tela de regras DEVE viver **na tela de sincronização**, e não como página
+  própria. Decisão da pessoa mantenedora em 2026-08-11.
+- **FR-051**: A colocação DEVE respeitar o princípio X — a tela de sincronização responde
+  "a coleta está funcionando", e as regras respondem "o que a plataforma entende". São
+  perguntas diferentes, logo o mapeamento entra como **componente ou aba própria**, com
+  cabeçalho próprio, e NÃO misturado ao relatório de execução.
+- **FR-052**: O acesso DEVE partir da **organização** cuja coleta produziu a lacuna: a
+  regra é por organização, e chegar nela por uma lista global obrigaria escolher a
+  organização duas vezes.
+
 #### A tela
 
 - **FR-029**: A tela DEVE listar, por organização, os **tipos declarados não

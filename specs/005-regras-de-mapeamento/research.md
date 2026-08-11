@@ -169,3 +169,30 @@ aplica a ele.
 o segundo nível de precedência.
 
 **Recusado**: implementar as duas e escolher depois. É a definição de divergência silenciosa.
+
+
+---
+
+## R7 — Onde a tela vive: sincronização, e não página própria
+
+**Decisão**: componente na tela de sincronização, alcançado **pela organização**, com
+cabeçalho próprio. Decisão da pessoa mantenedora em 2026-08-11.
+
+**Razão da colocação**: a lacuna nasce da coleta. Quem acabou de sincronizar e viu "3440 não
+promovidas" está a um clique de resolver — e uma página separada obrigaria a lembrar que ela
+existe, e a escolher a organização de novo.
+
+**A tensão com o princípio X, e como ela se resolve.** A tela de sincronização responde *"a
+coleta está funcionando"*; as regras respondem *"o que a plataforma entende"*. São duas
+perguntas, e o princípio X diz que uma tela mostra uma coisa.
+
+A resolução não é ignorar o princípio: é **componente com cabeçalho próprio**, alcançado a
+partir da organização. O componente tem uma responsabilidade só; a tela hospeda, e a
+hospedagem fica visivelmente separada do relatório de execução — FR-051.
+
+**Recusado**: misturar as regras ao cartão da execução. Seria o mesmo erro do resumo de
+trabalho que eu exibi dentro do cartão de cada sync e tive de corrigir: o número parecia da
+execução e era do tenant.
+
+**Recusado**: página própria em `/mapeamento`. Funcionaria, e perderia a proximidade com o
+momento em que a pessoa vê a lacuna.
