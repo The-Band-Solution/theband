@@ -124,6 +124,43 @@ descreve, e a fatia vertical exige tela e backend juntos.
 sem conceito, e deixar US1 (catálogo) e US4 ("não é tipo") para o sprint seguinte. Cortar F5
 deixaria a feature sem consumidor, e é o que a L21 proíbe.
 
+## Issues das tarefas
+
+Cada tarefa é filha da **user story que ela atende** — nunca do épico. Tarefa sob épico
+viola `sro.rule07`, e é exatamente o aviso que a feature 006 passou a mostrar: o produto
+ingerindo o próprio repositório encontraria a violação que este processo tivesse criado.
+
+| # | Tarefa | Atende | Issue | Estimate | Fase |
+|---|---|---|---|---|---|
+| T001 | Criar a tabela de regras | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#150](https://github.com/The-Band-Solution/theband/issues/150) | 3 | F1 |
+| T002 | Criar a tabela de decisão não é tipo | [#143](https://github.com/The-Band-Solution/theband/issues/143) | [#151](https://github.com/The-Band-Solution/theband/issues/151) | 2 | F1 |
+| T003 | Acrescentar proveniência à promoção | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#152](https://github.com/The-Band-Solution/theband/issues/152) | 2 | F1 |
+| T004 | Validar o padrão antes de qualquer escrita | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#153](https://github.com/The-Band-Solution/theband/issues/153) | 5 | F1 |
+| T005 | Criar regra com autor obrigatório | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#154](https://github.com/The-Band-Solution/theband/issues/154) | 3 | F1 |
+| T006 | Alterar regra criando versão | [#140](https://github.com/The-Band-Solution/theband/issues/140) | [#155](https://github.com/The-Band-Solution/theband/issues/155) | 2 | F1 |
+| T007 | Desativar sem apagar | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#156](https://github.com/The-Band-Solution/theband/issues/156) | 2 | F1 |
+| T008 | Listar as regras na ordem de aplicação | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#157](https://github.com/The-Band-Solution/theband/issues/157) | 2 | F1 |
+| T009 | Ler a regra da organização na decisão por tipo | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#158](https://github.com/The-Band-Solution/theband/issues/158) | 3 | F2 |
+| T010 | Acrescentar a etapa de título, e só depois | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#159](https://github.com/The-Band-Solution/theband/issues/159) | 5 | F2 |
+| T011 | Aplicar as quatro formas de comparação | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#160](https://github.com/The-Band-Solution/theband/issues/160) | 3 | F2 |
+| T012 | Registrar fonte da evidência e confiança | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#161](https://github.com/The-Band-Solution/theband/issues/161) | 3 | F2 |
+| T013 | Ligar a promoção à regra que decidiu | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#162](https://github.com/The-Band-Solution/theband/issues/162) | 2 | F2 |
+| T014 | Declarar e reverter não é tipo | [#143](https://github.com/The-Band-Solution/theband/issues/143) | [#163](https://github.com/The-Band-Solution/theband/issues/163) | 3 | F2 |
+| T015 | Calcular a prévia sem consultar a origem | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#164](https://github.com/The-Band-Solution/theband/issues/164) | 5 | F3 |
+| T016 | Provar que prévia e efeito coincidem | [#142](https://github.com/The-Band-Solution/theband/issues/142) | [#165](https://github.com/The-Band-Solution/theband/issues/165) | 3 | F3 |
+| T017 | Recalcular na fila que já existe | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#166](https://github.com/The-Band-Solution/theband/issues/166) | 5 | F3 |
+| T018 | Gravar promoção nova, preservando a anterior | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#167](https://github.com/The-Band-Solution/theband/issues/167) | 2 | F3 |
+| T019 | Tornar o recálculo idempotente | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#168](https://github.com/The-Band-Solution/theband/issues/168) | 3 | F3 |
+| T020 | Preservar a promoção na reobservação | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#169](https://github.com/The-Band-Solution/theband/issues/169) | 3 | F3 |
+| T021 | Ler o catálogo e compor com as regras da organização | [#140](https://github.com/The-Band-Solution/theband/issues/140) | [#170](https://github.com/The-Band-Solution/theband/issues/170) | 5 | F4 |
+| T022 | Contar quantas issues cada proposta casaria | [#140](https://github.com/The-Band-Solution/theband/issues/140) | [#171](https://github.com/The-Band-Solution/theband/issues/171) | 3 | F4 |
+| T023 | Ativar proposta e ativar todas, com autoria | [#140](https://github.com/The-Band-Solution/theband/issues/140) | [#172](https://github.com/The-Band-Solution/theband/issues/172) | 3 | F4 |
+| T024 | Componente de regras na tela de sincronização | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#173](https://github.com/The-Band-Solution/theband/issues/173) | 8 | F5 |
+| T025 | Alcançar as regras pela organização | [#141](https://github.com/The-Band-Solution/theband/issues/141) | [#174](https://github.com/The-Band-Solution/theband/issues/174) | 3 | F5 |
+
+Tarefa **não** recebe `Priority`: prioridade é da user story, e a tarefa herda a dela.
+Duas fontes divergiriam, e a divergência não teria como ser resolvida.
+
 ## Fora do escopo deste sprint
 
 | Item | Por quê |
