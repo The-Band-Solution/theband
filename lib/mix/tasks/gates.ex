@@ -190,13 +190,12 @@ defmodule Mix.Tasks.Gates do
       Mix.shell().info("   criando #{@venv} (uma vez)")
       {_, 0} = System.cmd("python3", ["-m", "venv", @venv])
 
+      # `-m pip` em vez do executável `pip`: um caminho a expandir em vez de dois, e
+      # é o próprio interpretador do venv que resolve o módulo. A versão anterior
+      # chamava `.venv/bin/pip` relativo e falhava com `:enoent` — só no CI, porque
+      # aqui o venv já existia e este ramo nunca rodava.
       {_, 0} =
-        System.cmd(Path.join([@venv, "bin", "pip"]), [
-          "install",
-          "-q",
-          "-r",
-          "scripts/requirements.txt"
-        ])
+        System.cmd(python, ["-m", "pip", "install", "-q", "-r", "scripts/requirements.txt"])
 
       python
     end

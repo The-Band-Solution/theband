@@ -811,3 +811,59 @@ que a constituição já dá para dado: ausência é nula, nunca zero.
    com a razão escrita.
 
 **Aplicada em**: feature 004 — seis mapeamentos corrigidos, e o venv documentado.
+
+
+---
+
+## L24 — Caminho que só roda no ambiente limpo não é testado por quem já tem o ambiente
+
+**Onde**: feature 004, ao criar `mix gates`.
+
+**O que aconteceu.** A task provisiona `.venv` na primeira execução. Rodei `mix
+gates` nove vezes localmente, os nove gates verdes todas as vezes, e o CI reprovou:
+
+```text
+── 8/9 validador Python
+   criando .venv (uma vez)
+** (ErlangError) Erlang error: :enoent
+    System.cmd(".venv/bin/pip", ["install", ...])
+```
+
+`System.cmd` não resolve caminho relativo. Eu já sabia disso — tinha corrigido
+exatamente isso para o `python` na mesma função, minutos antes — e não corrigi para o
+`pip` ao lado.
+
+**Por que passou nove vezes.** Porque `.venv` **já existia** na minha máquina, desde
+agosto. `ensure_venv` encontrava o interpretador e devolvia o caminho sem nunca
+entrar no ramo de criação. O código que falhava era o único que eu não executava, e
+era o único que o CI sempre executa.
+
+**O que fechou.** Movi `.venv` para fora e rodei de novo. O ramo de criação rodou,
+falhou onde o CI falhava, e a correção pôde ser verificada:
+
+```bash
+mv .venv /tmp/venv-guardado
+mix gates --from "validador Python"
+```
+
+E a correção em si é melhor que consertar o caminho: `python -m pip` em vez do
+executável `pip` deixa **um** caminho a expandir em vez de dois, e é o próprio
+interpretador do venv que resolve o módulo.
+
+**Como aplicar.**
+
+1. **Todo ramo de provisionamento tem de ser exercitado sem o recurso.** `mv` do
+   diretório, `docker rm` do volume, `unset` da variável — o custo é uma linha, e é
+   o único jeito de rodar o caminho que o CI roda;
+2. **Ambiente sujo esconde o ramo do ambiente limpo.** Nove execuções verdes não
+   dizem nada sobre a décima numa máquina nova, e é a máquina nova que o CI é;
+3. **Corrigir uma ocorrência de um defeito não corrige as vizinhas.** Duas chamadas
+   com o mesmo problema estavam a cinco linhas de distância. Ao corrigir, procure o
+   padrão no arquivo inteiro antes de seguir.
+
+**Relação com a L23**: a L23 foi sobre paridade de **verificação** — o CI validava
+mais que o local. Esta é sobre paridade de **ambiente** — o CI parte de máquina
+limpa e o local não. As duas produzem verde falso, e por caminhos diferentes.
+
+**Aplicada em**: `mix gates` — `python -m pip`, e o ramo de criação exercitado com o
+venv removido.
