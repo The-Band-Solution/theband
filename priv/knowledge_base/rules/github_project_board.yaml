@@ -1,0 +1,74 @@
+derivation_rule:
+  id: github.project_board
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "O quadro do Projects v2 é planejamento, não projeto"
+  description:
+    pt-BR: >
+      Decisão da pessoa mantenedora, 2026-08-11, substituindo a decisão anterior de
+      mapear `project` do GitHub para `spo.software_project`.
+
+      Um quadro do Projects v2 é **planejamento**: uma forma de organizar as issues
+      e seus estados, e uma forma de visualização. Não é o empreendimento.
+
+      A distinção tem consequência medível. Esta organização mantém dois quadros —
+      `The Band` e `Zeppelin`. Promovê-los a projeto de software faria a plataforma
+      registrar dois empreendimentos onde pode haver um; e um mesmo quadro aceita
+      itens de repositórios de empreendimentos diferentes, o que produziria o erro
+      inverso.
+
+      O quadro é, portanto, **artefato de fonte**: coletado, preservado e
+      consultável, sem promoção a conceito nenhum. O que ele CONTÉM é que promove —
+      iterações viram sprints, e a atribuição de iteração separa os dois backlogs.
+
+  inputs:
+    - project.id
+    - project.title
+    - project.number
+    - project.owner.id
+
+  materializes: []
+
+  does_not_materialize:
+    - concept: spo.software_project
+      reason:
+        pt-BR: >
+          Quadro é visualização, e projeto é empreendimento temporário com objetivo
+          definido. Uma organização mantém vários quadros para o mesmo
+          empreendimento, e um quadro atravessa empreendimentos. Nenhuma das duas
+          direções da relação é função.
+    - concept: sro.scrum_project
+      reason:
+        pt-BR: >
+          Adotar Scrum não é observável. Um quadro com iterations pode ser Kanban
+          com recorte temporal.
+    - concept: sro.planning_meeting
+      reason:
+        pt-BR: >
+          O quadro é o resultado de planejar, e não a cerimônia. `sro.planning_meeting`
+          é `action` — algo que ocorreu, com pessoas, num instante. Derivá-la da
+          existência de um quadro afirmaria uma reunião que ninguém registrou.
+
+  fallback: skip
+  fallback_rationale:
+    pt-BR: >
+      Não há promoção a recusar: o quadro nunca é promovido. Ele permanece na camada
+      de plataforma, e a coleta dele existe para alcançar iterações e itens.
+
+  limitations:
+    - >
+      Sem promoção, não existe consulta "quais projetos de software o tenant tem" a
+      partir do GitHub. O empreendimento vem de cadastro declarado, quando alguém o
+      declarar. Isto é lacuna nomeada, não silêncio.
+    - >
+      O quadro é a única origem de sprint e de backlog nesta fonte. Organização que
+      não usa Projects v2 não produz nenhum dos dois, e isso é declarado no fim da
+      coleta em vez de aparecer como coleta vazia por falha.
+
+  provenance:
+    source_type: project_decision
+    reference: "Decisão da pessoa mantenedora em 2026-08-11; substitui a de project → project"

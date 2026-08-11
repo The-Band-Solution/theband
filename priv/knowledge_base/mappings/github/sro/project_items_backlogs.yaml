@@ -1,0 +1,77 @@
+mapping:
+  id: github.project_items.to.sro.backlogs
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: project_v2_item
+  api: graphql
+  schema_version: v4
+  selector:
+    field: fieldValueByName.iteration
+    rule_ref: github.item_iteration_assignment
+derivation:
+  rule_id: github.item_iteration_assignment
+  confidence: medium
+  inputs: [content.id, fieldValueByName.iteration.iterationId, project.id]
+  fallback: skip
+target:
+  ontology: sro
+  concept: sro.product_backlog
+semantics:
+  equivalence: derived
+  justification: >
+    Nem o product backlog nem o sprint backlog são objetos que o GitHub tenha. Os
+    dois são CONJUNTOS de itens, e o que separa um do outro é uma única coisa: a
+    atribuição de iteração.
+
+      sem iteração atribuída          → product backlog
+      iteração atribuída, já iniciada → sprint backlog daquele sprint
+
+    A composição é derivada da atribuição, e NUNCA gravada como pertencimento
+    escolhido por quem coleta. Gravá-la seria o mesmo erro que materializar a
+    classificação épico/atômica: no instante em que alguém arrastasse um item no
+    quadro, o registro divergiria da origem.
+
+    Consequência verificável: a soma dos itens no product backlog e nos sprint
+    backlogs de um projeto é igual ao total de itens dele. Nenhum item nos dois
+    conjuntos, nenhum fora dos dois.
+identity:
+  external_id_path: id
+  natural_key: [project.id, content.id]
+relations:
+  contains_user_story:
+    source_path: content.id
+    target_ontology: sro
+    target_concept: sro.user_story
+  part_of_sprint_backlog:
+    source_path: fieldValueByName.iteration.iterationId
+    target_ontology: sro
+    target_concept: sro.sprint_backlog
+    note: >
+      Só quando a iteração já começou. Item atribuído a iteração futura permanece
+      no product backlog: o sprint dela não existe ainda.
+limitations:
+  - >
+    Item RASCUNHO não tem issue por trás, e não é promovido a nada. Ele é
+    registrado como item sem trabalho associado — um rascunho no quadro é intenção
+    de alguém, não escopo do produto.
+  - >
+    A ordem DENTRO do backlog não é coletada como ordem. sro.user_story.importance
+    é decimal, e o quadro deste tenant não tem campo numérico — a ausência fica
+    declarada, e nenhum outro campo é usado como substituto.
+  - >
+    O MOMENTO em que o item entrou na iteração não é coletado, e é ele que a matriz
+    de cobertura pede para derivar sro.intended_scrum_development_task com confiança
+    baixa. Exigiria o histórico de itens, fora de escopo por custo.
+  - >
+    Um item pode estar em mais de um quadro. Nesse caso a mesma user story aparece
+    em mais de um backlog, o que a SRO não proíbe e ninguém deveria interpretar
+    como duplicação.
+  - >
+    Iteração removida da configuração deixa seus itens sem iteração vigente. Eles
+    NÃO voltam ao product backlog automaticamente: voltar afirmaria uma decisão de
+    replanejamento que ninguém tomou.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

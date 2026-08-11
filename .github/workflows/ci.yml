@@ -59,48 +59,22 @@ jobs:
 
       - run: mix deps.get
 
-      # Os oito gates da constituição, princípio VII. Nenhum é opcional, e
-      # nenhum pode ser desabilitado para o pipeline passar.
-      - name: format
-        run: mix format --check-formatted
-
-      - name: compile sem avisos
-        run: mix compile --warnings-as-errors
-
-      - name: credo
-        run: mix credo --strict
-
-      - name: dialyzer
-        run: mix dialyzer
-
-      - name: testes
-        run: mix test
-
-      - name: base de conhecimento — validação
-        run: mix knowledge.validate
-
-      - name: base de conhecimento — grafo de dependências
-        run: mix knowledge.graph
-
-      # Enquanto knowledge.test, knowledge.docs e knowledge.information_model não
-      # forem portados para Mix task, o validador Python cobre o mesmo contrato.
-      # Dívida registrada em specs/001-github-eo-ingestion/plan.md.
-      - name: base de conhecimento — validador Python (paridade)
-        run: |
-          python3 -m venv .venv
-          .venv/bin/pip install -q -r scripts/requirements.txt
-          .venv/bin/python scripts/validate_knowledge_base.py
-
-      # A ADR 0004 diz que o esquema é derivado e nunca escrito à mão. Isso só vale
-      # se a derivação for **função da ontologia**: duas execuções iguais têm de dar
-      # a mesma saída. Não davam — iterar um conjunto de strings varia entre
-      # execuções, e a variação tornava impossível revisar um diff de derivação ou
-      # exigir que a derivação das outras ontologias saísse idêntica.
-      - name: modelo de informação — derivação reproduzível
-        run: |
-          for o in eo sro cmpo spo; do
-            .venv/bin/python scripts/derive_information_model.py --ontology "$o" > "/tmp/d1-$o.txt"
-            .venv/bin/python scripts/derive_information_model.py --ontology "$o" > "/tmp/d2-$o.txt"
-            diff "/tmp/d1-$o.txt" "/tmp/d2-$o.txt" \
-              || { echo "derivação de $o não é reproduzível"; exit 1; }
-          done
+      # ------------------------------------------------------------------------
+      # Os nove gates da constituição, princípio VII. Nenhum é opcional, e nenhum
+      # pode ser desabilitado para o pipeline passar.
+      # Um passo, e a definição dos gates vive em `mix gates`.
+      #
+      # Antes eram nove passos com o comando de cada um escrito aqui, e a lista do
+      # README era uma décima cópia. As três divergiram: rodar os gates localmente
+      # pulava a validação de FORMA dos YAML, porque o venv só existia no CI. O
+      # resultado era verde falso local e reprovação aqui — L23.
+      #
+      # Com uma definição só, a paridade não pode apodrecer sem alguém notar: quem
+      # roda `mix gates` roda o que este passo roda, incluindo o provisionamento do
+      # venv. E `act` executa este workflow na máquina, o que fecha o círculo.
+      #
+      # O que se perde: a granularidade por passo na interface do GitHub. O que se
+      # ganha: não existir um segundo lugar onde a lista pode ficar desatualizada.
+      # ------------------------------------------------------------------------
+      - name: nove quality gates
+        run: mix gates

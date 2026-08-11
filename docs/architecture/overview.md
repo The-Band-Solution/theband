@@ -1,5 +1,8 @@
 # Arquitetura do The Band
 
+O **modelo de dados** — tabelas, schemas Ecto e a razão da forma de cada um — está
+em [modelo-de-dados.md](modelo-de-dados.md).
+
 ## 1. O problema
 
 Organizações de software usam dezenas de ferramentas — GitHub, GitLab, Azure DevOps,

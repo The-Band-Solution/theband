@@ -1,0 +1,73 @@
+mapping:
+  id: github.project_iteration.to.sro.sprint
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: project_v2_iteration
+  api: graphql
+  schema_version: v4
+  selector:
+    field: startDate
+    rule_ref: github.iteration_started
+derivation:
+  rule_id: github.iteration_started
+  confidence: medium
+  inputs: [startDate, duration, configuration.iterations, configuration.completedIterations]
+  fallback: skip
+target:
+  ontology: sro
+  concept: sro.sprint
+semantics:
+  equivalence: derived
+  justification: >
+    A iteração do Projects v2 é o que mais se aproxima de um sprint, e não é a
+    mesma coisa. Iteração é CONFIGURAÇÃO do quadro; sprint é processo EXECUTADO —
+    sro.sprint é complex_action, algo que ocorreu.
+
+    Daí a condição: só iteração cuja data de início já passou é promovida.
+    Promover uma iteração futura afirmaria um sprint que não aconteceu, e toda
+    medida de vazão passaria a incluir sprints com zero entregas.
+
+    A promoção é derivada, não observada, e a proveniência diz isso: a origem é
+    configuração de projeto.
+identity:
+  external_id_path: id
+  natural_key: [project.id, title]
+attributes:
+  start_date: { source_path: startDate }
+  end_date:   { transform: start_date_plus_duration }
+relations:
+  has_sprint_backlog:
+    target_ontology: sro
+    target_concept: sro.sprint_backlog
+    note: >
+      O sprint backlog não vem de um campo: é o CONJUNTO dos itens atribuídos a
+      esta iteração. Derivado da atribuição, nunca gravado como pertencimento.
+limitations:
+  - >
+    Só iteração JÁ INICIADA vem para cá. A futura é pretendida, e tem mapeamento
+    próprio para spo.specific_intended_project_process — "interações futuras são
+    plannings que não foram feitas". A mesma iteração troca de registro ao começar.
+  - >
+    A data de início é PLANEJAMENTO, não observação. Um sprint que começou atrasado
+    terá a data que o quadro dizia. Este repositório já produziu essa divergência
+    duas vezes: sprints declarados de sete dias, aceitos no primeiro. A data
+    ocorrida exigiria o histórico de itens, fora de escopo por custo de consumo.
+  - >
+    `end_date` é calculada de `startDate + duration`, e é a data PREVISTA de
+    término. O GitHub não registra quando a iteração de fato terminou.
+  - >
+    Iteração removida da configuração depois de ter tido itens permanece
+    consultável, marcada como não mais presente na origem — apagar destruiria a
+    resposta a "o que foi feito naquele sprint".
+  - >
+    Iteração NÃO é release. O mesmo campo é usado por times para as duas coisas, e
+    distinguir exigiria declaração do tenant.
+  - >
+    sro.scrum_process, que a matriz de cobertura lista como derivável da existência
+    de sprints, NÃO é derivado aqui. A confiança declarada é baixa, e inferir
+    processo a partir de configuração de quadro seria afirmar demais.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]

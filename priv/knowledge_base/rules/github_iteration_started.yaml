@@ -1,0 +1,93 @@
+derivation_rule:
+  id: github.iteration_started
+  version: 1
+  provider: github
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Iteração já iniciada é promovida a sprint"
+  description:
+    pt-BR: >
+      Decide quais iterações do Projects v2 são promovidas a sro.sprint.
+
+      Iteração é CONFIGURAÇÃO de um quadro: alguém declarou que existirá um
+      período com início e duração. Sprint é processo EXECUTADO — sro.sprint é
+      complex_action, algo que ocorreu no mundo.
+
+      Promover toda iteração configurada afirmaria sprints que não aconteceram.
+      Numa configuração com seis iterações futuras, a plataforma passaria a
+      registrar seis sprints com zero entregas, e toda medida de vazão dividiria
+      trabalho por um denominador inflado.
+
+      A condição é uma só: `startDate` já passou. Não é heurística — é a
+      diferença entre planejado e ocorrido, que a SPO e a SRO tratam como
+      conceitos distintos em todo o modelo.
+
+  inputs:
+    - startDate
+    - duration
+    - configuration.iterations
+    - configuration.completedIterations
+
+  availability:
+    required_api_fields: [ProjectV2IterationField.configuration]
+    required_scopes: [read:project]
+    note: >
+      Projects v2 é opcional. Organização que não usa iterations não produz
+      sprint nenhum, e isso é declarado no fim da coleta em vez de aparecer como
+      coleta vazia por falha.
+
+  routes:
+    - target_concept: sro.sprint
+      when:
+        start_date_reached: true
+    - target_concept: spo.specific_intended_project_process
+      when:
+        start_date_reached: false
+
+  materializes:
+    - concept: sro.sprint
+      from: iterations cujo startDate já passou
+      confidence: medium
+    - concept: spo.specific_intended_project_process
+      from: iterations cujo startDate ainda não chegou
+      confidence: medium
+      note:
+        pt-BR: >
+          Decisão da pessoa mantenedora: "interações futuras são plannings que não
+          foram feitas". Intenção é `intention` em UFO, e ocorrência é
+          `complex_action` — o par é simétrico e ambos têm registro.
+
+  does_not_materialize:
+    - concept: sro.scrum_process
+      reason:
+        pt-BR: >
+          A matriz de cobertura o lista como derivável da existência de sprints,
+          com confiança BAIXA. Inferir que existe um processo Scrum porque um
+          quadro tem iterações afirma demais: o time pode usar iterations para
+          release, ou para recorte de Kanban.
+    - concept: sro.sprint_deliverable
+      reason:
+        pt-BR: >
+          Exige entregável aceito, e aceitação decorre de critérios de aceitação,
+          que o GitHub não expõe.
+
+  fallback: skip
+  fallback_rationale:
+    pt-BR: >
+      Não há caso sem rota: as duas datas possíveis têm destino. O `skip` vale para
+      iteração sem `startDate`, que a API não deveria devolver e que não se
+      classifica como pretendida nem como ocorrida.
+
+  limitations:
+    - >
+      A data de início é a PLANEJADA. Um sprint que começou atrasado terá a data
+      que o quadro dizia. A data ocorrida exigiria o histórico de itens.
+    - >
+      A data de término é calculada de início + duração, e é PREVISTA. O GitHub
+      não registra quando a iteração de fato terminou.
+
+  provenance:
+    source_type: project_decision
+    reference: "Feature 004, research.md R6"

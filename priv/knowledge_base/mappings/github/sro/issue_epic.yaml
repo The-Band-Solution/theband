@@ -1,5 +1,5 @@
 mapping:
-  id: github.issue.epic.to.sro.epic
+  id: github.issue.to.sro.epic
   version: 1
   status: proposed
 source:
@@ -10,14 +10,14 @@ source:
   selector:
     field: issueType.name
     rule_ref: github.issue_type_routing
-    values: ["Epic", "Épico", "Epico"]
+    values: ["Epic", "Épico", "Epico", "User Story", "História de Usuário", "Story", "Feature"]
     structural_requirements:
       has_children: true
       children_of_concept: sro.user_story
 derivation:
   rule_id: github.issue_type_routing
   confidence: medium
-  inputs: [issueType.name, subIssues, subIssuesSummary.total]
+  inputs: [issueType.name, subIssues, subIssues.nodes.issueType.name]
   precedence: structure_over_declaration
   on_divergence: flag_and_follow_precedence
   fallback: skip
@@ -27,38 +27,50 @@ target:
 semantics:
   equivalence: derived
   justification: >
-    Uma issue promovida a épico é uma user story que compõe outras user stories.
-    O tipo declarado na organização indica a intenção; a existência de sub-issues
-    que também são user stories é o que efetivamente a torna épico. Épico pode
-    compor outro épico, e a recursão é preservada: uma sub-issue que tenha suas
-    próprias sub-issues de user story também é promovida a épico.
+    Épico é uma user story que TEM PARTES — sro.rule05. Não é um rótulo: é
+    consequência da composição. Por isso `values` aqui inclui tanto os nomes de
+    tipo "Epic" quanto os de "User Story": o que decide é
+    `structural_requirements`, e o tipo declarado apenas informa a intenção do
+    time.
+
+    `children_of_concept: sro.user_story` é a parte que não se pode omitir. As
+    partes têm de ser user stories para haver composição. Se as sub-issues são
+    todas do tipo `Task`, elas ATENDEM a user story em vez de compô-la, e a issue
+    permanece atômica.
+
+    Quando declaração e estrutura divergem, a estrutura vence e a divergência é
+    registrada. Ela normalmente significa uma de duas coisas, e as duas interessam
+    a quem administra o processo: épico abandonado sem decomposição, ou user story
+    que cresceu e virou épico sem ninguém retipar.
 identity:
-  external_id_path: id
-  natural_key: [repository.node_id, number]
+  external_id_path: node.id
+  natural_key: [node.repository.nameWithOwner, node.number]
 attributes:
-  title:      { source_path: title }
-  body:       { source_path: body }
-  importance: { source_path: "projectItems.nodes.fieldValueByName(Priority).number" }
-  complexity: { source_path: "projectItems.nodes.fieldValueByName(Estimate).number" }
+  title:      { source_path: node.title }
 relations:
-  author:
-    source_path: author.id
-    target_ontology: eo
-    target_concept: eo.person
-  parent_epic:
-    source_path: parent.id
-    target_ontology: sro
-    target_concept: sro.epic
-  composed_of:
-    source_path: subIssues.nodes.id
+  composed_of_user_story:
+    source_path: node.subIssues.nodes.id
     target_ontology: sro
     target_concept: sro.user_story
+  observed_in_repository:
+    source_path: node.repository.id
+    target_ontology: cmpo
+    target_concept: cmpo.source_repository
 limitations:
-  - Issue do tipo Epic sem sub-issues não é épico; é promovida a atomic_user_story com divergência registrada (sro.rule05).
-  - Sub-issues do tipo Task não tornam a issue um épico — tarefas atendem user story, não a compõem (sro.rule07).
-  - A hierarquia precisa ser verificada contra ciclo antes de persistir; o GitHub não impede ancestralidade circular por API (sro.rule04).
-  - Sub-issues são recurso recente da API e podem não existir em GitHub Enterprise Server antigo; sem elas, épico não é derivável.
-  - Nomes de tipo são texto livre da organização; a lista de valores precisa ser confirmada por tenant.
+  - >
+    Um vínculo de composição que fecharia CICLO é recusado, e a recusa nomeia o
+    caminho — sro.rule04. As duas issues permanecem coletadas: a issue existe no
+    GitHub, e esconder dado observado por causa de relação inválida seria pior.
+  - >
+    Sub-issue em repositório fora do escopo observado é registrada como referência
+    externa. A relação existe; a parte não é promovida.
+  - >
+    A classificação como épico é derivada da coleta, e não materializada em
+    coluna. Uma issue que perde todas as partes deixa de ser épico — gravar o
+    valor faria o registro divergir da estrutura no instante seguinte (ADR 0004 D7).
+  - >
+    `importance` e `complexity` ficam nulas, pela mesma razão do mapeamento da
+    user story atômica.
 provenance:
   preserve_raw_payload: true
-  required_fields: [source_system, source_instance, external_id, collected_at]
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
