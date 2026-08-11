@@ -18,7 +18,7 @@ concepts:
     label: { pt-BR: "Projeto Scrum" }
     definition:
       pt-BR: Projeto de software que adota Scrum em seu processo.
-    classification: { ufo_category: social_object, parent: spo.software_project }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.software_project }
 
   - id: sro.scrum_process
     name: Scrum Process
@@ -27,7 +27,7 @@ concepts:
       pt-BR: >
         Processo executado geral do projeto, composto da Definição do Product
         Backlog e de dois ou mais Sprints.
-    classification: { ufo_category: complex_action, parent: spo.general_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.general_performed_project_process }
 
   - id: sro.product_backlog_definition
     name: Product Backlog Definition
@@ -36,7 +36,7 @@ concepts:
       pt-BR: >
         Processo executado específico que define e prioriza as funcionalidades a
         serem produzidas no projeto Scrum.
-    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.specific_performed_project_process }
 
   - id: sro.sprint
     name: Sprint
@@ -45,7 +45,7 @@ concepts:
       pt-BR: >
         Processo executado específico que ocorre após a Definição do Product
         Backlog e visa desenvolver o produto.
-    classification: { ufo_category: complex_action, parent: spo.specific_performed_project_process }
+    classification: { ufo_category: complex_action, ontouml_stereotype: kind, parent: spo.specific_performed_project_process }
     attributes:
       - { name: start_date, type: datetime, required: false }
       - { name: end_date, type: datetime, required: false }
@@ -55,35 +55,35 @@ concepts:
     label: { pt-BR: "Cerimônia" }
     definition:
       pt-BR: Atividade executada do projeto que compõe um Sprint, correspondendo aos eventos do Scrum.
-    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_project_activity }
 
   - id: sro.planning_meeting
     name: Planning Meeting
     label: { pt-BR: "Reunião de Planejamento" }
     definition:
       pt-BR: Cerimônia em que as user stories do sprint são selecionadas e as tarefas planejadas.
-    classification: { ufo_category: action, parent: sro.ceremony }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.daily_standup_meeting
     name: Daily Standup Meeting
     label: { pt-BR: "Reunião Diária" }
     definition:
       pt-BR: Cerimônia diária que ocorre após a execução das tarefas de desenvolvimento discutidas nela.
-    classification: { ufo_category: action, parent: sro.ceremony }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.review_meeting
     name: Review Meeting
     label: { pt-BR: "Reunião de Revisão" }
     definition:
       pt-BR: Cerimônia de revisão dos resultados produzidos no sprint.
-    classification: { ufo_category: action, parent: sro.ceremony }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.retrospective_meeting
     name: Retrospective Meeting
     label: { pt-BR: "Reunião de Retrospectiva" }
     definition:
       pt-BR: Cerimônia de avaliação do processo executado no sprint.
-    classification: { ufo_category: action, parent: sro.ceremony }
+    classification: { ufo_category: action, ontouml_stereotype: subkind, parent: sro.ceremony }
 
   - id: sro.performed_scrum_development_task
     name: Performed Scrum Development Task
@@ -93,7 +93,7 @@ concepts:
         Atividade executada do projeto realizada em um sprint para materializar
         user stories. Corresponde à execução de uma tarefa planejada na Reunião
         de Planejamento.
-    classification: { ufo_category: action, parent: spo.performed_project_activity }
+    classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_project_activity }
 
 relations:
   - id: sro.scrum_process_performed_in_project

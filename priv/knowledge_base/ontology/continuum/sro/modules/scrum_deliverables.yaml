@@ -19,7 +19,7 @@ concepts:
     label: { pt-BR: "Entregável", en: "Deliverable" }
     definition:
       pt-BR: Item de software que materializa user stories tratadas em um sprint.
-    classification: { ufo_category: object, parent: sys_swo.software_item }
+    classification: { ufo_category: object, ontouml_stereotype: kind, parent: sys_swo.software_item }
     examples: ["a funcionalidade de pagar a passagem com cartão de crédito"]
 
   - id: sro.accepted_deliverable
@@ -29,7 +29,7 @@ concepts:
       pt-BR: >
         Entregável em conformidade com os critérios de aceitação das user stories
         que materializa. Significa que está "done".
-    classification: { ufo_category: phase, parent: sro.deliverable }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.deliverable }
 
   - id: sro.not_accepted_deliverable
     name: Not Accepted Deliverable
@@ -38,21 +38,21 @@ concepts:
       pt-BR: >
         Entregável que não está em conformidade com ao menos um critério de
         aceitação. As user stories relacionadas podem retornar ao product backlog.
-    classification: { ufo_category: phase, parent: sro.deliverable }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.deliverable }
 
   - id: sro.successfully_performed_scrum_development_task
     name: Successfully Performed Scrum Development Task
     label: { pt-BR: "Tarefa Executada com Sucesso" }
     definition:
       pt-BR: Tarefa de desenvolvimento executada que produziu apenas entregáveis aceitos.
-    classification: { ufo_category: phase, parent: sro.performed_scrum_development_task }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.performed_scrum_development_task }
 
   - id: sro.non_successfully_performed_scrum_development_task
     name: Non-Successfully Performed Scrum Development Task
     label: { pt-BR: "Tarefa Executada sem Sucesso" }
     definition:
       pt-BR: Tarefa de desenvolvimento executada que produziu um ou mais entregáveis não aceitos.
-    classification: { ufo_category: phase, parent: sro.performed_scrum_development_task }
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: sro.performed_scrum_development_task }
 
   - id: sro.sprint_deliverable
     name: Sprint Deliverable
@@ -61,7 +61,7 @@ concepts:
       pt-BR: >
         Item de software mais completo, formado pela integração dos entregáveis
         aceitos produzidos em um sprint. É o resultado do sprint entregue ao cliente.
-    classification: { ufo_category: object, parent: sro.deliverable }
+    classification: { ufo_category: object, ontouml_stereotype: subkind, parent: sro.deliverable }
 
   - id: sro.scrum_project_deliverable
     name: Scrum Project Deliverable
@@ -70,7 +70,7 @@ concepts:
       pt-BR: >
         Produto de software formado pelo conjunto dos entregáveis de sprint
         produzidos no projeto. É o entregável final do processo Scrum.
-    classification: { ufo_category: object, parent: sys_swo.software_product }
+    classification: { ufo_category: object, ontouml_stereotype: kind, parent: sys_swo.software_product }
 
 relations:
   - id: sro.performed_task_produced_deliverable
