@@ -149,8 +149,13 @@ confirmado: feature 005 **completa**, F1 a F5.
 | 006 — detalhe da issue | implementada, ciclo Spec Kit completo, PR [#149](https://github.com/The-Band-Solution/theband/pull/149) **aguardando revisão humana** |
 | 005 — regras de mapeamento | ciclo completo escrito, **nenhuma linha de código**; 25 issues de tarefa criadas (#150 a #174) |
 
-**A próxima ação é T001 da feature 005**: criar `issue_mapping_rules`. Ver
-[tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
+**A próxima ação é T001 da feature 005** — issue [#150](https://github.com/The-Band-Solution/theband/issues/150): criar
+`issue_mapping_rules`. Ver [tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
+
+As 25 tarefas são as issues **#150 a #174**, cada uma filha da user story que atende. E as
+dívidas e defeitos levantados ao fechar o sprint viraram as issues **#175 a #181**, listadas
+em [docs/backlog](../backlog/README.md) — nenhuma com iteration, todas com o motivo de ainda
+não terem sido feitas.
 
 **Defeito corrigido na aceitação, e a lição**: 480 issues tinham `body` nulo depois de uma
 coleta que as observou — `cast/4` descarta string vazia por padrão, e isso colapsava a
