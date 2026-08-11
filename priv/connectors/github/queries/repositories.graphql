@@ -12,6 +12,10 @@ query($organization: String!, $page_size: Int = 50, $after: String) {
   organization(login: $organization) {
     id
     repositories(first: $page_size, after: $after, orderBy: {field: NAME, direction: ASC}) {
+      # `totalCount` é o denominador do progresso. Sem ele a barra teria de inventar o
+      # total, e um percentual sobre denominador inventado é número que parece
+      # informação e não é.
+      totalCount
       pageInfo { hasNextPage endCursor }
       nodes {
         id

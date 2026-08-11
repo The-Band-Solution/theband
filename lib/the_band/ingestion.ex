@@ -161,9 +161,14 @@ defmodule TheBand.Ingestion do
 
   Chamado depois do processamento, nunca antes.
   """
-  @spec checkpoint_page(Sync.t(), String.t(), String.t() | nil, non_neg_integer()) ::
-          {:ok, Checkpoint.t()} | {:error, Ecto.Changeset.t()}
-  def checkpoint_page(%Sync{} = sync, entity_type, cursor, record_count) do
+  @spec checkpoint_page(
+          Sync.t(),
+          String.t(),
+          String.t() | nil,
+          non_neg_integer(),
+          non_neg_integer() | nil
+        ) :: {:ok, Checkpoint.t()} | {:error, Ecto.Changeset.t()}
+  def checkpoint_page(%Sync{} = sync, entity_type, cursor, record_count, expected \\ nil) do
     existing =
       Repo.one(
         from c in Checkpoint, where: c.sync_id == ^sync.id and c.entity_type == ^entity_type
@@ -174,9 +179,16 @@ defmodule TheBand.Ingestion do
       sync_id: sync.id,
       entity_type: entity_type,
       cursor: cursor,
-      page_count: ((existing && existing.page_count) || 0) + 1,
-      record_count: ((existing && existing.record_count) || 0) + record_count,
+      page_count: acumular(existing, :page_count, 1),
+      record_count: acumular(existing, :record_count, record_count),
       last_page_at: DateTime.utc_now(:second),
+      # O esperado ACUMULA, e não guarda o primeiro. Cada chamada corresponde a UMA
+      # origem já paginada por inteiro: repositórios vêm numa chamada com o total da
+      # organização; issues vêm numa chamada por repositório, cada uma com o total dele.
+      #
+      # Guardar o primeiro dava `194 de 0`, porque o primeiro repositório coletado é o
+      # `.github`, que tem zero issues — e `0 || novo` devolve 0 em Elixir.
+      expected_count: acumular_esperado(existing, expected),
       status: if(cursor, do: "running", else: "completed")
     }
 
@@ -245,6 +257,14 @@ defmodule TheBand.Ingestion do
 
     sync |> Sync.changeset(attrs) |> Repo.update()
   end
+
+  defp acumular(nil, _campo, incremento), do: incremento
+  defp acumular(existing, campo, incremento), do: Map.fetch!(existing, campo) + incremento
+
+  defp acumular_esperado(_existing, nil), do: nil
+  defp acumular_esperado(nil, novo), do: novo
+  defp acumular_esperado(%{expected_count: nil}, novo), do: novo
+  defp acumular_esperado(%{expected_count: atual}, novo), do: atual + novo
 
   @spec reload(Sync.t()) :: Sync.t()
   def reload(%Sync{id: id}), do: Repo.get!(Sync, id)

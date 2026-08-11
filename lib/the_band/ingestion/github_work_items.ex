@@ -89,7 +89,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # ------------------------------------------------------------------ repositórios
 
   defp coletar_repositorios(ctx, organization) do
-    with {:ok, nodes} <-
+    with {:ok, nodes, total} <-
            paginar(ctx, "repositories", %{organization: ctx.tool.organization_login}) do
       repositorios =
         Enum.map(nodes, fn node ->
@@ -101,7 +101,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
       # Checkpoint **depois** de processar, nunca antes — e é o que a tela lê para dizer
       # em que fase a coleta está. Sem ele, o progresso seria um spinner sem informação.
-      Ingestion.checkpoint_page(ctx.sync, "github.repository", nil, length(nodes))
+      Ingestion.checkpoint_page(ctx.sync, "github.repository", nil, length(nodes), total)
       Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "github.repository"})
 
       # Só os coletáveis seguem: excluído e inacessível ficam de fora, e nenhum dos dois
@@ -154,11 +154,13 @@ defmodule TheBand.Ingestion.GithubWorkItems do
     [owner, name] = String.split(node["nameWithOwner"], "/", parts: 2)
 
     case paginar(ctx, "issues", %{owner: owner, name: name}) do
-      {:ok, nodes} ->
+      {:ok, nodes, total} ->
         gravadas = Enum.map(nodes, &gravar_issue(ctx, observado_id, &1))
         vincular(ctx, nodes)
 
-        Ingestion.checkpoint_page(ctx.sync, "github.issue", nil, length(nodes))
+        # O esperado de issues é a SOMA dos repositórios, e cada chamada acrescenta o
+        # total daquele. Guardar só o do primeiro faria a barra passar de 100%.
+        Ingestion.checkpoint_page(ctx.sync, "github.issue", nil, length(nodes), total)
 
         # A tela recebe o nome do repositório: "coletando issues" sem dizer de qual, numa
         # organização de 121 repositórios, não informa nada.
@@ -304,7 +306,10 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   # ----------------------------------------------------------------------- comuns
 
-  defp paginar(ctx, query_name, variables, cursor \\ nil, acumulado \\ []) do
+  # Devolve `{:ok, nodes, total}` — o total é o denominador do progresso, e vem da origem.
+  # `nil` quando a origem não o informa, e nesse caso a tela mostra contagem em vez de
+  # percentual.
+  defp paginar(ctx, query_name, variables, cursor \\ nil, acumulado \\ [], total \\ nil) do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
     case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(query_name), vars) do
@@ -313,12 +318,13 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       # erro: o job completava com zero coletados. Foi o que aconteceu na primeira
       # execução contra o dado real.
       {:ok, %{data: data}} ->
-        {nodes, page_info} = extrair(data, query_name)
+        {nodes, page_info, total_da_pagina} = extrair(data, query_name)
         acumulado = acumulado ++ nodes
+        total = total || total_da_pagina
 
         if page_info["hasNextPage"],
-          do: paginar(ctx, query_name, variables, page_info["endCursor"], acumulado),
-          else: {:ok, acumulado}
+          do: paginar(ctx, query_name, variables, page_info["endCursor"], acumulado, total),
+          else: {:ok, acumulado, total}
 
       {:error, reason} ->
         {:error, reason}
@@ -327,12 +333,12 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   defp extrair(data, "repositories") do
     repos = get_in(data, ["organization", "repositories"]) || %{}
-    {repos["nodes"] || [], repos["pageInfo"] || %{}}
+    {repos["nodes"] || [], repos["pageInfo"] || %{}, repos["totalCount"]}
   end
 
   defp extrair(data, "issues") do
     issues = get_in(data, ["repository", "issues"]) || %{}
-    {issues["nodes"] || [], issues["pageInfo"] || %{}}
+    {issues["nodes"] || [], issues["pageInfo"] || %{}, issues["totalCount"]}
   end
 
   defp read_query(name) do

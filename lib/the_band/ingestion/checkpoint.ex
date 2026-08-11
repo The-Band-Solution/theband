@@ -25,7 +25,12 @@ defmodule TheBand.Ingestion.Checkpoint do
     # mecanismo válido se o formato do cursor mudar.
     field :cursor, :string
     field :page_count, :integer, default: 0
-    field :record_count, :integer, default: 0
+    field :record_count, :integer
+
+    # Denominador do progresso, vindo da origem. Anulável: onde a origem não informa
+    # total, a tela mostra contagem em vez de percentual — inventar o denominador
+    # produziria número que parece informação e não é.
+    field :expected_count, :integer, default: 0
     field :last_page_at, :utc_datetime
     field :status, :string, default: "running"
 
@@ -42,6 +47,7 @@ defmodule TheBand.Ingestion.Checkpoint do
       :cursor,
       :page_count,
       :record_count,
+      :expected_count,
       :last_page_at,
       :status
     ])

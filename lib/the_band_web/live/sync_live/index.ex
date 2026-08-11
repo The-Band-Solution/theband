@@ -214,11 +214,23 @@ defmodule TheBandWeb.SyncLive.Index do
           </span>
         </div>
 
-        <%!-- Fases, e não percentual. A paginação é por cursor: a plataforma não sabe
-              quantas páginas existem antes de pedir a última, e uma barra de 0 a 100
-              teria de inventar o denominador. Fase concluída, fase em curso e fase
-              pendente é o que se pode afirmar. --%>
+        <%!-- Percentual quando a origem informa o total — `repositories.totalCount` e
+              `issues.totalCount`, guardados no checkpoint. Onde ela não informa, a barra
+              mostra a CONTAGEM e o estado da fase: inventar o denominador produziria
+              número que parece informação e não é. --%>
         <div :if={sync.status in ["running", "completed"]} class="space-y-1">
+          <div :if={progresso(sync)} class="flex items-center gap-2">
+            <progress
+              class="progress progress-success flex-1"
+              value={progresso(sync).feitos}
+              max={progresso(sync).total}
+            ></progress>
+            <span class="text-sm font-mono">{progresso(sync).percentual}%</span>
+            <span class="text-xs opacity-70">
+              {progresso(sync).feitos} de {progresso(sync).total}
+            </span>
+          </div>
+
           <div class="flex gap-1">
             <div
               :for={{fase, rotulo, n} <- fases(sync)}
@@ -333,6 +345,28 @@ defmodule TheBandWeb.SyncLive.Index do
     {"github.issue", "issues"},
     {"promocao", "promoção"}
   ]
+
+  @doc false
+  # Percentual real: numerador e denominador **medidos**, nenhum estimado. O denominador
+  # vem de `totalCount` da origem, guardado no checkpoint.
+  #
+  # Devolve `nil` quando nenhuma fase informou total — e nesse caso a tela não mostra
+  # percentual nenhum. Uma barra sobre denominador inventado é a família da L22: número
+  # que parece informação e não é.
+  defp progresso(sync) do
+    com_total = Enum.filter(checkpoints(sync), &(&1.expected_count && &1.expected_count > 0))
+
+    case com_total do
+      [] ->
+        nil
+
+      cps ->
+        total = Enum.sum(Enum.map(cps, & &1.expected_count))
+        feitos = Enum.sum(Enum.map(cps, &min(&1.record_count, &1.expected_count)))
+
+        %{feitos: feitos, total: total, percentual: round(feitos / total * 100)}
+    end
+  end
 
   defp fases(sync) do
     contagens = Map.new(checkpoints(sync), &{&1.entity_type, &1.record_count})
