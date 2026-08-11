@@ -34,10 +34,21 @@ Campos do mapa:
 | `derived_concept`, `declared_concept`, `divergence_reason` | promoção vigente | não promovida |
 | `skip_reason`, `skip_detail` | promoção vigente | promovida |
 | `rule_id`, `rule_version` | promoção vigente | — |
+| `classification` | **derivada** das partes | nunca ausente: `:epic` ou `:atomic_user_story` |
+| `external_created_at`, `external_updated_at`, `external_closed_at` | origem | não informado / issue aberta |
+| `collected_at`, `last_observed_at`, `no_longer_observed_at` | plataforma | — / issue vigente |
 
-**`body` ausente é ambíguo, e a tela resolve a ambiguidade pela data**: issue cuja última
-observação é anterior à feature 006 nunca teve o corpo pedido à origem. A tela declara
-"não reobservada" nesse caso, em vez de mostrar vazio — FR-009.
+**`body` ausente distingue dois casos, e a distinção é no valor — não na data.**
+
+Durante a implementação ficou claro que a data da última observação não resolve: ela muda por
+qualquer coleta, e uma issue reobservada depois desta feature ainda pode ter corpo vazio na
+origem. O que resolve é o próprio valor, porque `bodyText` devolve `""` e nunca `nil`:
+
+- **`nil`** — a plataforma nunca pediu o corpo. Estado das 4463 issues coletadas antes desta
+  feature;
+- **`""`** — a origem devolveu corpo vazio: a issue não tem descrição.
+
+A tela diz coisas diferentes para os dois — FR-009. É a L13 no valor, em vez de na data.
 
 ### `promotion_history(tenant, collected_issue_id) :: [map()]`
 
@@ -63,6 +74,14 @@ distinção que a plataforma existe para preservar — FR-016, SC-003.
 Num épico com 3 user stories e 36 tarefas, `list_composition/2` devolve 3 e
 `list_attendance/2` devolve 36. **39 não aparece em lugar nenhum** — SC-004.
 
+### `list_unpromoted_parts(tenant, collected_issue_id) :: [map()]`
+
+As partes que a plataforma **não promoveu a nada**.
+
+*Acrescentada durante a implementação.* Sem ela, composição + atendimento é menor do que a
+origem declara, e quem lê conclui que a plataforma perdeu vínculos. Ela não perdeu: falta regra
+de mapeamento, que é a feature 005.
+
 ### `fetch_parent(tenant, collected_issue_id) :: map() | nil`
 
 O pai vigente, com o conceito dele. `nil` quando a issue não tem pai.
@@ -80,6 +99,14 @@ As duas formas de violar `sro.rule07`, **separadas**:
 
 **A issue continua promovida.** O inválido é o **vínculo**, não a issue — e é por isso que
 esta função devolve aviso, nunca remove promoção (FR-024).
+
+**A decisão é de `TheBand.WorkItems.Axioms.rule07/2`**, função pura, e ela é o **único**
+caminho de derivação — a mesma que o detalhe de uma issue usa. O que muda entre os dois é como
+os dados chegam: uma consulta por issue no detalhe, o grafo inteiro em `left_join` no lote.
+Duas implementações do mesmo axioma fariam a tela do repositório avisar o que o detalhe nega, e
+é a lição de `classification/2` na sua segunda forma.
+
+Delegadas pela fronteira como `WorkItems.rule07/2` e `WorkItems.rule07_explanation/1`.
 
 ### `list_refused_for(tenant, collected_issue_id) :: [map()]`
 
@@ -115,10 +142,15 @@ Mesma semântica, mesma razão.
 
 ## `TheBand.Ontology.SEON.CMPO`
 
-### `fetch_observed(tenant, id)`
+### `fetch_observed(tenant, id) :: {:ok, map()} | {:error, :not_found}`
 
-Já existe. A tela do repositório usa o que ele traz: nome qualificado, linguagem, URL,
-ramo padrão, datas, estado da observação (FR-031).
+Já existe, e devolve **`{:ok, _}` ou `{:error, :not_found}`** — não o mapa direto. A tela do
+repositório usa nome qualificado, linguagem, URL, ramo padrão, datas e estado da observação
+(FR-031).
+
+**`list_observed/2` passou a expor três campos que FR-031 pede e não estavam no select**:
+`description`, `external_created_at` e `collected_at`. Ampliação de `select`, sem mudança de
+assinatura nem de fronteira.
 
 Repositório **excluído da observação** tem as issues consultáveis, e a tela diz que a
 plataforma parou de olhar — não que o dado sumiu (FR-030).
