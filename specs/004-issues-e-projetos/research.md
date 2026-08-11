@@ -280,3 +280,64 @@ Só **um** conceito novo precisa entrar na base nesta feature: nenhum. Todos os
 alvos existem. O que falta é **anotação** — os 11 conceitos da SYS_SWO sem
 `ontouml_stereotype`, sem os quais `cmpo.source_repository` não tem para onde ser
 elevado.
+
+
+---
+
+## R8 — Decisão da pessoa mantenedora sobre as três correspondências
+
+Registrada em 2026-08-11, **substituindo a leitura de R7** no caso do projeto.
+
+| GitHub | Conceito |
+|---|---|
+| `repository` | `cmpo.source_repository` |
+| `issue` | `sro.user_story` e as rotas por tipo |
+| `project` | `spo.software_project` |
+
+### O que muda em relação a R7
+
+R7 concluiu que um Project v2 **não** é um projeto no sentido de `spo.project`, e
+que promovê-lo exigiria declaração do tenant. Eu apresentei essa leitura, e a
+decisão foi **`project → project`**, direta.
+
+A correspondência passa a ser observável: coletar um projeto do GitHub promove a
+`spo.software_project`, sem depender de ninguém declarar nada.
+
+### A ressalva que eu levantei, e que continua valendo como limitação
+
+Uma organização mantém vários quadros para o mesmo empreendimento — este
+repositório tem dois, `The Band` e `Zeppelin`. Com a correspondência direta, a
+plataforma contará dois projetos de software onde há dois quadros, e não
+necessariamente dois empreendimentos.
+
+**Isso não invalida a decisão**, e a razão é que a alternativa era pior: exigir
+declaração para toda promoção deixaria a tabela de projetos vazia até alguém
+preencher formulário, e um projeto não declarado ficaria invisível para todas as
+consultas de escopo. Contar quadro como projeto é uma imprecisão **declarada e
+mensurável**; um projeto ausente é lacuna silenciosa.
+
+Fica registrado como limitação do mapeamento — `semantics.equivalence: partial`,
+com a justificativa escrita no YAML, que é onde a base de conhecimento guarda
+exatamente esse tipo de ressalva.
+
+### O que **não** muda
+
+`sro.scrum_project` continua exigindo declaração do tenant, e não por cautela
+minha: a matriz de cobertura do `github-to-sro.md` já dizia
+`⚠️ por configuração`, com confiança média. A razão é sólida — **adotar Scrum não
+é observável**. Um projeto com iterações pode ser Kanban com recorte temporal, e
+`sro.scrum_project` é "projeto de software que adota Scrum em seu processo".
+
+Então há duas promoções, em dois níveis:
+
+```
+project do GitHub ──▶ spo.software_project     observável, automática
+                  └─▶ sro.scrum_project        declarada pelo tenant
+```
+
+E `issue → sro.user_story` continua passando pelas rotas por tipo: `Bug` vira
+`osdef.defect` e `Task` vira `sro.intended_scrum_development_task`. Promover toda
+issue a user story infla o escopo do produto com correção e trabalho técnico — é o
+que a própria regra `github.issue_type_routing` existe para evitar, e o erro só
+apareceria quando alguém perguntasse por que o backlog cresce sem funcionalidade
+nova.

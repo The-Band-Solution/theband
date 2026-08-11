@@ -228,13 +228,13 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 #### Projetos
 
 - **FR-020**: A plataforma DEVE coletar os projetos das organizações observadas,
-  com nome, número e organização de origem, **como artefato de fonte**. Um projeto
-  do GitHub NÃO É por si um projeto no sentido da ontologia: `spo.project` é
-  empreendimento temporário com objetivo definido, e uma organização mantém vários
-  quadros para o mesmo empreendimento.
-- **FR-020a**: A promoção de um projeto observado a projeto Scrum DEVE exigir
-  **declaração do tenant**, e NUNCA ocorrer automaticamente. Sem a declaração, o
-  projeto permanece artefato de fonte, consultável e não promovido.
+  com nome, número e organização de origem, e DEVE promovê-los a **projeto de
+  software** — a correspondência é direta, decidida pela pessoa mantenedora:
+  `project` do GitHub é `spo.software_project`.
+- **FR-020a**: A promoção adicional a **projeto Scrum** DEVE exigir declaração do
+  tenant, e NUNCA ocorrer automaticamente. Adotar Scrum não é observável no
+  GitHub: um projeto com iterações pode ser Kanban com recorte temporal. Sem a
+  declaração o projeto permanece `spo.software_project`, que já é promoção.
 - **FR-021**: A plataforma DEVE coletar os itens de cada projeto e ligá-los às
   issues já coletadas, sem duplicar a issue.
 - **FR-022**: Um item de projeto que não referencia issue — rascunho — DEVE ser
