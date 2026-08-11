@@ -46,6 +46,8 @@ defmodule TheBand.Mapping do
     to: Commands
 
   defdelegate revert_not_a_type(tenant, decision_id, actor_id), to: Commands
+  defdelegate preview(tenant, organization_id, attrs), to: Commands
+  defdelegate recompute(tenant, organization_id), to: Commands
 
   # ------------------------------------------------------------------- leituras
 

@@ -3,13 +3,16 @@ defmodule TheBand.Mapping.Commands do
 
   import Ecto.Query
 
+  alias TheBand.Mapping.Decision
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
   alias TheBand.Mapping.Schemas.MappingRule
   alias TheBand.Mapping.Schemas.UnmappedPatternDecision
+  alias TheBand.Jobs.RecomputePromotions
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
+  alias TheBand.WorkItems
 
   @typedoc "Por que a gravação foi recusada antes de tocar o banco."
   @type recusa ::
@@ -47,8 +50,20 @@ defmodule TheBand.Mapping.Commands do
         |> Map.put_new_lazy(:position, fn -> proxima_posicao(tenant_id, organization_id) end)
       )
       |> Repo.insert()
+      |> enfileirar_recalculo(tenant_id, organization_id)
     end
   end
+
+  # Gravar regra sem recalcular deixaria a tela mostrar a regra e o dado antigo — e quem
+  # lesse concluiria que a regra não funciona. O recálculo é parte de gravar, não uma ação
+  # separada que alguém pode esquecer.
+  defp enfileirar_recalculo({:ok, registro} = resultado, tenant_id, organization_id) do
+    {:ok, _job} = RecomputePromotions.enqueue(tenant_id, organization_id)
+    _ = registro
+    resultado
+  end
+
+  defp enfileirar_recalculo(erro, _tenant_id, _organization_id), do: erro
 
   @doc """
   Altera a regra, **criando versão**. Revalida o padrão: alterar sem revalidar deixaria
@@ -67,6 +82,7 @@ defmodule TheBand.Mapping.Commands do
         regra
         |> MappingRule.changeset(Map.put(attrs, :version, regra.version + 1))
         |> Repo.update()
+        |> enfileirar_recalculo(regra.tenant_id, regra.organization_id)
       end
     end
   end
@@ -88,6 +104,7 @@ defmodule TheBand.Mapping.Commands do
         deactivated_by_id: actor_id
       })
       |> Repo.update()
+      |> enfileirar_recalculo(regra.tenant_id, regra.organization_id)
     end
   end
 
@@ -99,6 +116,7 @@ defmodule TheBand.Mapping.Commands do
       regra
       |> MappingRule.changeset(%{active: true, deactivated_at: nil, deactivated_by_id: nil})
       |> Repo.update()
+      |> enfileirar_recalculo(regra.tenant_id, regra.organization_id)
     end
   end
 
@@ -160,6 +178,156 @@ defmodule TheBand.Mapping.Commands do
         })
         |> Repo.update()
     end
+  end
+
+  @doc """
+  A prévia: quantas issues a regra casa, e quantas **mudariam de conceito**.
+
+  Os dois números são diferentes, e mostrar só o primeiro esconderia o caso perigoso: uma
+  regra que casa 1031 issues e muda 1031 é muito diferente de uma que casa 1031 e muda 3.
+
+  Calculada sobre as issues **já coletadas**: nenhuma requisição à origem (FR-023). Os
+  payloads estão preservados desde a feature 004, e a promoção é recalculável.
+
+  A candidata entra na **posição** dela, e não no fim — ver `Decision.com_candidata/3`.
+  """
+  @spec preview(Tenant.t(), Ecto.UUID.t(), map()) ::
+          {:ok, map()} | {:error, recusa()}
+  def preview(%Tenant{} = tenant, organization_id, attrs) do
+    attrs = normalizar(attrs)
+
+    with :ok <- validar(tenant, organization_id, attrs) do
+      candidata = candidata(tenant, organization_id, attrs)
+
+      vigentes =
+        Decision.decidir_lote(
+          tenant,
+          organization_id,
+          Decision.com_candidata(tenant, organization_id, nil)
+        )
+
+      com_regra =
+        Decision.decidir_lote(
+          tenant,
+          organization_id,
+          Decision.com_candidata(tenant, organization_id, candidata)
+        )
+
+      _ = vigentes
+      atuais = promocoes_vigentes(tenant, organization_id)
+
+      casadas =
+        Enum.filter(com_regra, fn %{decisao: d} -> d.mapping_rule_id == candidata.id end)
+
+      mudariam =
+        Enum.filter(com_regra, fn %{issue: i, decisao: d} ->
+          Decision.mudou_conceito?(d, Map.get(atuais, i.id))
+        end)
+
+      # As duas contagens vêm das **mesmas funções** que o recálculo usa. Uma comparação
+      # própria aqui faria a prévia dizer um número e a gravação produzir outro — e é
+      # exatamente o que o teste do SC-007 pegou na primeira versão: 1 contra 90.
+      linhas =
+        Enum.count(com_regra, fn %{issue: i, decisao: d} ->
+          Decision.mudou_registro?(d, Map.get(atuais, i.id))
+        end)
+
+      {:ok,
+       %{
+         matched: length(casadas),
+         would_change: length(mudariam),
+         rows_to_write: linhas,
+         sample: Enum.map(Enum.take(mudariam, 10), & &1.issue.title),
+         total: length(com_regra)
+       }}
+    end
+  end
+
+  # A candidata é uma struct **não gravada**: a prévia é o efeito de uma regra antes de
+  # ela existir. `id` sintético para a comparação de "quem decidiu" funcionar.
+  defp candidata(tenant, organization_id, attrs) do
+    posicao =
+      attrs[:position] || proxima_posicao_para(tenant, organization_id)
+
+    %MappingRule{
+      id: attrs[:id] || Ecto.UUID.generate(),
+      organization_id: organization_id,
+      where: attrs[:where],
+      how: attrs[:how],
+      pattern: attrs[:pattern],
+      case_sensitive: attrs[:case_sensitive] || false,
+      target_concept: attrs[:target_concept],
+      position: posicao,
+      active: true,
+      version: 1
+    }
+  end
+
+  defp proxima_posicao_para(%Tenant{id: tenant_id}, organization_id),
+    do: proxima_posicao(tenant_id, organization_id)
+
+  @doc """
+  Recalcula a promoção das issues da organização — **append-only e idempotente**.
+
+  Grava linha nova só quando a decisão **difere da vigente**. Sem essa comparação, cada
+  execução dobraria o histórico e a tela mostraria dezenas de decisões idênticas.
+
+  Devolve **dois números**, e eles são diferentes:
+
+    * `concept_changed` — quantas issues mudaram de conceito. É o que a prévia promete;
+    * `written` — quantas linhas foram gravadas. Inclui as que mantiveram o conceito e
+      mudaram a **proveniência** — decididas pela regra da organização em vez da global.
+
+  Executar duas vezes sobre o mesmo estado devolve zero nos dois — é o SC-009.
+  """
+  @spec recompute(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, %{written: non_neg_integer(), concept_changed: non_neg_integer()}}
+  def recompute(%Tenant{} = tenant, organization_id) do
+    regras = Decision.com_candidata(tenant, organization_id, nil)
+    vigentes = promocoes_vigentes(tenant, organization_id)
+
+    resultados = Decision.decidir_lote(tenant, organization_id, regras)
+
+    escritas =
+      Enum.count(resultados, fn %{issue: issue, decisao: decisao} ->
+        gravar_se_mudou(tenant, issue, decisao, Map.get(vigentes, issue.id))
+      end)
+
+    conceito =
+      Enum.count(resultados, fn %{issue: issue, decisao: decisao} ->
+        Decision.mudou_conceito?(decisao, Map.get(vigentes, issue.id))
+      end)
+
+    {:ok, %{written: escritas, concept_changed: conceito}}
+  end
+
+  defp gravar_se_mudou(tenant, issue, decisao, vigente) do
+    if Decision.mudou_registro?(decisao, vigente) do
+      {:ok, _} =
+        WorkItems.record_promotion(tenant, %{
+          collected_issue_id: issue.id,
+          declared_concept: decisao.declared,
+          derived_concept: decisao.derived,
+          divergence_reason: decisao.divergence,
+          skip_reason: decisao.skip_reason,
+          skip_detail: decisao.skip_detail,
+          rule_id: decisao.rule_id,
+          rule_version: decisao.rule_version,
+          evidence_source: decisao.evidence_source,
+          confidence: decisao.confidence,
+          mapping_rule_id: decisao.mapping_rule_id
+        })
+
+      true
+    else
+      false
+    end
+  end
+
+  defp promocoes_vigentes(%Tenant{} = tenant, organization_id) do
+    ids = Enum.map(Queries.issues_for_decision(tenant, organization_id), & &1.id)
+
+    Map.new(WorkItems.current_promotions(tenant, ids), &{&1.collected_issue_id, &1})
   end
 
   # ------------------------------------------------------------------- privados

@@ -27,6 +27,24 @@ defmodule TheBand.WorkItems.Routing do
   `Epic` afirma. Quando a estrutura discorda dele, aí há divergência, e ela é
   registrada — é o dado que a tela mostra.
 
+  ## Duas etapas, e a ordem é a garantia
+
+      1. tipo declarado  → regra da organização, depois tenant, depois global
+      2. título, SE a etapa 1 não decidiu → regra da organização apenas
+
+  FR-008 exige que tipo declarado vença regra de título, e a única forma de garantir isso
+  é **não chegar** à etapa 2 quando a etapa 1 decidiu. Avaliar as duas e escolher depois
+  deixaria a precedência dependente da ordem de comparação — e um dado errado a inverteria
+  em silêncio.
+
+  **Regra de título não existe em YAML global.** O catálogo propõe padrões de título, mas
+  eles só valem depois de ativados por organização — e ativados, vivem no banco. Isso
+  mantém a inferência sobre texto livre sempre como decisão declarada de alguém, nunca como
+  padrão da plataforma.
+
+  A confiança sai daqui: etapa 1 grava `high`, etapa 2 grava `medium`. É o vocabulário de
+  níveis que a base de conhecimento já usa, e não um número inventado.
+
   ## O caso que erra quem não lê a regra
 
   Sub-issues do tipo **tarefa** não tornam a issue épica. Tarefa **atende** a user
@@ -35,9 +53,13 @@ defmodule TheBand.WorkItems.Routing do
   faz 78 tarefas se ligarem a épicos, violando `sro.rule07`.
   """
 
+  alias TheBand.Mapping.Schemas.MappingRule
   alias TheBand.Ontology.KnowledgeBase
 
   @global "github.issue_type_routing"
+  # Identifica o **mecanismo**, não a regra: qual regra decidiu está em `mapping_rule_id`,
+  # e a versão dela em `rule_version`.
+  @regra_da_organizacao "organization.issue_mapping_rule"
   @epico "sro.epic"
   @atomica "sro.atomic_user_story"
 
@@ -49,7 +71,10 @@ defmodule TheBand.WorkItems.Routing do
           skip_reason: String.t() | nil,
           skip_detail: String.t() | nil,
           rule_id: String.t(),
-          rule_version: pos_integer()
+          rule_version: pos_integer(),
+          evidence_source: String.t() | nil,
+          confidence: String.t() | nil,
+          mapping_rule_id: Ecto.UUID.t() | nil
         }
 
   @doc """
@@ -58,18 +83,132 @@ defmodule TheBand.WorkItems.Routing do
   `issue` precisa de `:issue_type` e `:sub_issue_types` — a lista de tipos das partes.
   A segunda é o que distingue épico de atômica, e sem ela a distinção não é possível.
 
-  `opts[:tenant_rule_id]` põe a regra da organização à frente da global.
+  `opts[:tenant_rule_id]` põe a regra do tenant à frente da global.
+
+  `opts[:organization_rules]` são as regras que a organização declarou, **já ordenadas por
+  posição** — as vigentes, vindas de `Mapping.active_rules/2`. Elas vêm por parâmetro e não
+  por consulta aqui dentro: `Routing` decide, e decidir não é ir ao banco. Fosse consulta,
+  cada uma das 4471 issues faria a sua.
   """
   @spec decide(map(), keyword()) :: decision()
   def decide(issue, opts \\ []) do
     regras = carregar(opts)
+    da_organizacao = Keyword.get(opts, :organization_rules, [])
     tipo = issue[:issue_type]
 
-    case candidatos(regras, tipo) do
-      :type_absent -> vazio(regras) |> Map.put(:skip_reason, "type_absent")
-      :unknown -> vazio(regras) |> Map.merge(%{skip_reason: "type_unknown", skip_detail: tipo})
-      {conceitos, regra} -> decidir(conceitos, regra, issue, regras)
+    case por_tipo_declarado(issue, tipo, da_organizacao, regras) do
+      {:ok, decisao} ->
+        decisao
+
+      {:sem_conceito, base} ->
+        # A etapa 2 só é alcançada aqui. Não há caminho que avalie as duas e escolha
+        # depois — é o que torna a precedência estrutura, e não dado.
+        por_titulo(issue, da_organizacao, base)
     end
+  end
+
+  # Etapa 1: a regra da organização primeiro, depois tenant e global.
+  defp por_tipo_declarado(_issue, nil, _da_organizacao, regras),
+    do: {:sem_conceito, Map.put(vazio(regras), :skip_reason, "type_absent")}
+
+  defp por_tipo_declarado(issue, tipo, da_organizacao, regras) do
+    case regra_que_casa(da_organizacao, "declared_type", tipo) do
+      %MappingRule{} = regra ->
+        {:ok, decidir_por_regra_da_organizacao(regra, issue, regras, "declared_type", "high")}
+
+      nil ->
+        case candidatos(regras, tipo) do
+          :unknown ->
+            {:sem_conceito,
+             Map.merge(vazio(regras), %{skip_reason: "type_unknown", skip_detail: tipo})}
+
+          {conceitos, regra} ->
+            {:ok,
+             conceitos
+             |> decidir(regra, issue, regras)
+             |> Map.merge(%{evidence_source: "declared_type", confidence: "high"})}
+        end
+    end
+  end
+
+  # Etapa 2: só regras da organização, e só sobre o título.
+  defp por_titulo(issue, da_organizacao, base) do
+    case regra_que_casa(da_organizacao, "title", issue[:title]) do
+      nil -> base
+      regra -> decidir_por_regra_da_organizacao(regra, issue, [], "title", "medium")
+    end
+  end
+
+  # A primeira regra que casa decide, e "primeira" é por `position` — que é único por
+  # organização. Sem ordem determinística, acrescentar regra mudaria a classificação de
+  # issues que ninguém tocou.
+  defp regra_que_casa(regras, onde, texto) when is_binary(texto) do
+    Enum.find(regras, fn regra ->
+      regra.where == onde and combina?(regra, texto)
+    end)
+  end
+
+  defp regra_que_casa(_regras, _onde, _texto), do: nil
+
+  @doc """
+  Se o texto casa a regra, pela forma de comparação que ela declara.
+
+  Pública porque a **prévia** usa a mesma função: prévia e efeito por caminhos diferentes
+  é o que o SC-007 proíbe.
+
+  `contains "US"` casa `"STATUS"` e `starts_with "US"` não — a diferença é exatamente o
+  motivo de a forma ser declarada, e não inferida do texto.
+  """
+  @spec combina?(MappingRule.t(), String.t() | nil) :: boolean()
+  def combina?(_regra, nil), do: false
+
+  def combina?(%MappingRule{how: how} = regra, texto) do
+    {alvo, padrao} = caixa(regra, texto)
+
+    case how do
+      "equals" -> alvo == padrao
+      "starts_with" -> String.starts_with?(alvo, padrao)
+      "contains" -> String.contains?(alvo, padrao)
+      "regex" -> casa_regex?(regra, texto)
+    end
+  end
+
+  defp caixa(%MappingRule{case_sensitive: true, pattern: padrao}, texto), do: {texto, padrao}
+
+  defp caixa(%MappingRule{pattern: padrao}, texto),
+    do: {String.downcase(texto), String.downcase(padrao)}
+
+  # `Regex.compile/2` e não `compile!/2`: a regra foi validada na gravação, mas uma linha
+  # gravada por script ou migração pode não ter passado por lá. Expressão inválida aqui
+  # significa **não casa** — nunca exceção no meio da promoção de 4471 issues.
+  defp casa_regex?(%MappingRule{pattern: padrao, case_sensitive: sensivel}, texto) do
+    opcoes = if sensivel, do: "", else: "i"
+
+    case Regex.compile(padrao, opcoes) do
+      {:ok, regex} -> Regex.match?(regex, texto)
+      {:error, _} -> false
+    end
+  end
+
+  # A regra da organização oferece **um** conceito. A estrutura continua decidindo entre
+  # épico e atômica quando o conceito é um dos dois: `sro.rule05` diz que não há épico sem
+  # partes, e nenhuma regra de texto pode contradizer o axioma.
+  defp decidir_por_regra_da_organizacao(regra, issue, regras, fonte, confianca) do
+    base = vazio_ou(regras)
+
+    %{
+      base
+      | declared: regra.target_concept,
+        derived: derivado([regra.target_concept], issue),
+        rule_id: @regra_da_organizacao,
+        rule_version: regra.version
+    }
+    |> then(fn d -> %{d | divergence: motivo(d.declared, d.derived)} end)
+    |> Map.merge(%{
+      evidence_source: fonte,
+      confidence: confianca,
+      mapping_rule_id: regra.id
+    })
   end
 
   defp carregar(opts) do
@@ -91,11 +230,17 @@ defmodule TheBand.WorkItems.Routing do
       skip_reason: nil,
       skip_detail: nil,
       rule_id: regra["id"],
-      rule_version: regra["version"]
+      rule_version: regra["version"],
+      evidence_source: nil,
+      confidence: nil,
+      mapping_rule_id: nil
     }
   end
 
-  defp candidatos(_regras, nil), do: :type_absent
+  # A regra da organização decide sem que nenhuma regra do YAML tenha sido carregada — é o
+  # caso da etapa 2, onde a lista chega vazia de propósito.
+  defp vazio_ou([]), do: vazio([%{"id" => @regra_da_organizacao, "version" => 1}])
+  defp vazio_ou(regras), do: vazio(regras)
 
   defp candidatos(regras, tipo) do
     Enum.find_value(regras, :unknown, fn regra ->
