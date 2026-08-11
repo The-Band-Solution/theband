@@ -265,8 +265,12 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-007**: A plataforma DEVE coletar as issues de cada repositório observado,
   preservando o payload bruto de cada uma para reprocessamento.
 - **FR-008**: Cada issue DEVE ser identificada pela Application Reference —
-  sistema de origem, instância e identificador externo global — e NUNCA pelo
-  número dentro do repositório.
+  sistema de origem, instância e identificador externo — e NUNCA pelo número dentro
+  do repositório.
+- **FR-008a**: A unicidade da Application Reference DEVE ser escopada pelo **tipo da
+  entidade**, nunca pelo identificador sozinho: o mesmo identificador pode designar
+  artefatos diferentes, e em fontes que numeram por tipo a coincidência é rotina. O
+  tipo DEVE estar na tabela ou numa coluna do índice.
 - **FR-009**: Duas coletas idênticas NÃO DEVEM produzir registros duplicados nem
   alterar a contagem de nada.
 - **FR-010**: A marca de "não mais observado" para issues DEVE ser escopada pelo
@@ -330,6 +334,8 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   de issue — DEVE ser o identificador que a origem fornece, e não o nome, de modo que
   renomear não crie entidade nova. O nome DEVE ser gravado junto, para leitura humana
   e para a tela mostrar como a organização chama cada coisa.
+- **FR-027a**: O identificador NÃO DEVE ser tratado como único entre tipos de
+  entidade. Toda restrição de unicidade sobre ele DEVE incluir o tipo.
 - **FR-028**: A coleta de projeto DEVE trazer projeto, campos, itens e valores de
   campo dos itens, e NÃO DEVE trazer o histórico de alterações dos itens.
 
@@ -477,6 +483,8 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   organização ou sem estar marcado como não usado por ela.
 - **SC-013a**: Duas organizações observadas com mapeamentos diferentes produzem
   classificações diferentes para o mesmo nome de tipo, e nenhuma interfere na outra.
+- **SC-016**: Dois artefatos de tipos diferentes com o mesmo identificador coexistem,
+  e nenhuma restrição de unicidade recusa o segundo.
 - **SC-014**: Nenhuma declaração que contrarie axioma da rede é gravada, e a recusa
   nomeia o axioma.
 - **SC-015**: Nenhum campo de seleção única aparece mapeado para atributo numérico

@@ -129,11 +129,16 @@ Bloqueia F3: a issue pertence a um repositório, e o escopo da ausência é ele.
 
 - [ ] T008 Migrar a extensão do repositório
   - **Pronta quando**: T007 concluída
-  - **Descrição**: migração criando `cmpo_source_repositories` como extensão, com FK
-    para a tabela do kind, mais `name`, `full_name`, `organization_id`,
-    `archived_at`, `last_observed_at` e `no_longer_observed_at`. **`archived_at` e
-    `no_longer_observed_at` são coisas diferentes** e o `@moduledoc` precisa dizer:
-    arquivado é fato da origem, não mais observado é inferência da plataforma — FR-003,
+  - **Descrição**: migração criando `cmpo_source_repositories` **a partir da saída do
+    derivador**, que agora emite a extensão porque o conceito declara atributos:
+    `name`, `qualified_name`, `url`, `description`, `primary_language`,
+    `default_branch`, `archived_at`, `external_created_at` e `last_pushed_at`, com FK
+    para a tabela do kind.
+
+    **`archived_at` e `no_longer_observed_at` são coisas diferentes** e o `@moduledoc`
+    precisa dizer: arquivado é fato da origem, não mais observado é inferência da
+    plataforma. E **nenhum booleano `is_fork`**: ser fork é a cópia derivar de outra
+    cópia, que é relação e não propriedade — FR-003,
     e as issues de repositório arquivado continuam consultáveis
   - **Feita quando**: apagar a linha do kind apaga a extensão; a leitura da extensão
     sem juntar com o kind não devolve o discriminador — a fronteira existe no esquema
@@ -206,12 +211,21 @@ classificam certo, e que a tarefa sem pai aparece como divergência.
     `observed_repository_id` **não anulável** — é o escopo da ausência —, `issue_type`
     anulável e **cru**, `number`, `title`, `state`, Application Reference, e o par
     `last_observed_at` / `no_longer_observed_at`. Índice único por
-    `(tenant_id, source_system, source_instance, external_id)`. `number` **não** entra
-    no índice: mover a issue entre repositórios cria outro número — FR-008
+    `(tenant_id, source_system, source_instance, external_id)`, e o **tipo da entidade
+    está implícito na tabela** — FR-008a. `number` **não** entra no índice: mover a
+    issue entre repositórios cria outro número — FR-008.
+
+    O `@moduledoc` precisa dizer que este único **não vale entre tabelas**: o mesmo
+    identificador pode designar artefatos diferentes, e é por isso que não existe
+    tabela compartilhada indexada por `external_id`. `raw_payloads` mostra a
+    alternativa quando compartilhar é necessário — ela carrega `raw_entity_type`
   - **Feita quando**: o índice único recusa a segunda inserção da mesma issue; uma
-    issue com `issue_type` nulo é gravada sem erro
-  - **Teste**: `mix ecto.migrate` e rollback; e inserir duas vezes a mesma
-    Application Reference tem de violar o índice
+    issue com `issue_type` nulo é gravada sem erro; **um repositório e uma issue com o
+    mesmo `external_id` coexistem** — SC-016
+  - **Teste**: `mix ecto.migrate` e rollback; inserir duas vezes a mesma Application
+    Reference tem de violar o índice; e inserir um repositório e uma issue com o
+    **mesmo** identificador tem de passar — se falhar, alguém indexou como se o
+    identificador fosse único entre tipos
 
 - [ ] T014 [US1] Migrar a promoção da issue
   - **Pronta quando**: T013 concluída
@@ -592,13 +606,18 @@ editar o repositório.
   - **Pronta quando**: T031 concluída; `contracts/screens.md` escrito
   - **Descrição**: migração criando `tool_concept_mappings` com `connected_tool_id`
     como escopo — **não** `tenant_id` sozinho —, `kind`, `source_name`,
-    `source_external_id`, `target_concept`, `decided_by` e `declared_by_user_id`
-    **não anulável**. FR-041a. Índice único por
-    `(connected_tool_id, kind, source_name)`: duas organizações mapeiam o mesmo nome
-    para conceitos diferentes sem colidir
+    `source_external_id` **não anulável**, `target_concept`, `decided_by` e
+    `declared_by_user_id` **não anulável**. FR-041a, FR-027.
+
+    Índice único por `(connected_tool_id, kind, source_external_id)` — com `kind`, e
+    **nunca o identificador sozinho**: o mesmo identificador pode aparecer em
+    artefatos diferentes, e um único sobre ele recusaria mapeamento válido com um erro
+    de "já existe" sobre coisas que não são a mesma (FR-027a). `source_name` **não**
+    entra no único: renomear atualiza a mesma linha
   - **Feita quando**: duas ferramentas do mesmo tenant gravam `Feature` com destinos
-    diferentes, e nenhuma sobrescreve a outra; `declared_by_user_id` nulo é recusado
-    pelo banco
+    diferentes, e nenhuma sobrescreve a outra; um tipo de issue e um campo de quadro
+    com o **mesmo** identificador coexistem, porque `kind` os separa;
+    `declared_by_user_id` nulo é recusado pelo banco
   - **Teste**: `mix ecto.migrate` e rollback; e inserir dois mapeamentos de `Feature`
     para ferramentas diferentes tem de passar, e para a mesma ferramenta tem de violar
     o índice

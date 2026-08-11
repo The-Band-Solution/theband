@@ -208,9 +208,17 @@ vale **por organização**.
 │    declared_by_user_id   uuid    NOT NULL  decisão tem autor
 │    declared_at           datetime NOT NULL
 │
-│  UNIQUE (connected_tool_id, kind, source_name)
+│  UNIQUE (connected_tool_id, kind, source_external_id)
 └─
 ```
+
+**O único carrega `kind`, e não pode ser o identificador sozinho.** Decisão da pessoa
+mantenedora: o mesmo identificador pode aparecer em artefatos diferentes. Um índice
+sobre `source_external_id` isolado recusaria o segundo mapeamento válido, e o erro
+apareceria como "já existe" sobre coisas que não são a mesma.
+
+`source_name` **não** entra no único: renomear "Priority" para "Prioridade" precisa
+atualizar a mesma linha, e um único sobre o nome criaria uma segunda.
 
 **`connected_tool_id` e não `tenant_id` como escopo.** A ferramenta conectada **é** a
 organização: a identidade dela é tenant, tipo, instância e organização. Guardar o
@@ -305,6 +313,20 @@ no_longer_observed_at datetime NULL
 
 UNIQUE (tenant_id, source_system, source_instance, external_id)
 ```
+
+**O tipo da entidade está no índice, e está implícito na tabela.** A Application
+Reference não é única entre tipos diferentes: o mesmo identificador pode designar uma
+issue numa fonte e outra coisa em outra, e em fontes que numeram por tipo — Jira,
+Azure DevOps — a colisão é rotina em vez de exceção.
+
+Aqui isso se resolve porque **cada tipo tem sua tabela**, e o índice vive dentro dela.
+`collected_issues` e `cmpo_source_repositories` podem ter o mesmo `external_id` sem
+que nada colida, porque nenhuma consulta cruza as duas por esse campo.
+
+A consequência é uma regra para quem for acrescentar entidade: **nunca uma tabela
+compartilhada indexada por `external_id`.** `raw_payloads` mostra a alternativa quando
+a tabela precisa ser compartilhada — ela carrega `raw_entity_type` ao lado do
+`external_id`, e o tipo entra em toda consulta.
 
 **`number` não é identidade.** Mover uma issue entre repositórios cria outro número
 no destino e preserva o da origem — duas linhas para a mesma issue. O identificador
