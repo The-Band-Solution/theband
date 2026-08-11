@@ -129,13 +129,14 @@ defmodule TheBandWeb.WorkItemLiveTest do
       assert html =~ "main"
     end
 
-    test "não há botão de coletar aqui: sincronizar traz tudo", %{conn: conn} do
+    test "nenhuma ação de coleta nesta tela", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
-      # Dois lugares para disparar a mesma coleta produziriam duas leituras de "quando
-      # isto foi atualizado". A coleta é uma, e tem tela própria.
+      # O mesmo botão de Sincronizações traz tudo. Um segundo lugar para disparar a
+      # mesma coleta produziria duas leituras de "quando isto foi atualizado", e a
+      # resposta certa é uma.
       refute html =~ "coletar issues de"
-      assert html =~ "pessoas, equipes, repositórios e issues vêm na mesma coleta"
+      refute html =~ ~r/>\s*sincronizar\s*</
     end
   end
 

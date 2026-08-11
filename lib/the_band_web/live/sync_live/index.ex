@@ -16,7 +16,10 @@ defmodule TheBandWeb.SyncLive.Index do
   def mount(_params, _session, socket) do
     if connected?(socket), do: Ingestion.subscribe(socket.assigns.current_tenant)
 
-    {:ok, socket |> assign(page_title: "Sincronizações", paused: nil, reprocess: nil) |> load()}
+    {:ok,
+     socket
+     |> assign(page_title: "Sincronizações", fase: nil, paused: nil, reprocess: nil)
+     |> load()}
   end
 
   @impl true
@@ -72,6 +75,12 @@ defmodule TheBandWeb.SyncLive.Index do
      |> load()}
   end
 
+  # A fase de trabalho emite sem contagem: o que ela informa é **onde está**, e a
+  # contagem já vem do checkpoint que a tela lê.
+  def handle_info({:sync_progress, _id, entity_type}, socket) do
+    {:noreply, socket |> assign(paused: nil, fase: entity_type) |> load()}
+  end
+
   def handle_info({:sync_paused, _id, seconds}, socket) do
     {:noreply, assign(socket, paused: seconds)}
   end
@@ -118,6 +127,11 @@ defmodule TheBandWeb.SyncLive.Index do
           <div>
             <div class="font-semibold">{tool.tool_type} · {tool.organization_login}</div>
             <div class="text-xs opacity-70">{tool.instance_url}</div>
+            <%!-- Dizer o que o botão traz é o que impede alguém procurar uma coleta
+                  separada de issues. Ela não existe: é uma sincronização, em fases. --%>
+            <div class="text-xs opacity-70 mt-1">
+              pessoas, equipes, repositórios e issues — na mesma coleta
+            </div>
           </div>
           <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
             {if running?(@syncs, tool), do: "em andamento", else: "Sincronizar"}
@@ -190,11 +204,42 @@ defmodule TheBandWeb.SyncLive.Index do
             ]}>
               {status_label(sync.status)}
             </span>
+            <%!-- A organização, e não só o horário. Numa tela com execuções de duas
+                  organizações, "iniciada em 15:10" não diz qual delas. --%>
+            <span class="font-semibold">{organizacao(@tools, sync)}</span>
             <span class="text-sm opacity-70">iniciada em {sync.started_at}</span>
           </div>
           <span :if={sync.finished_at} class="text-sm opacity-70">
             concluída em {sync.finished_at}
           </span>
+        </div>
+
+        <%!-- Fases, e não percentual. A paginação é por cursor: a plataforma não sabe
+              quantas páginas existem antes de pedir a última, e uma barra de 0 a 100
+              teria de inventar o denominador. Fase concluída, fase em curso e fase
+              pendente é o que se pode afirmar. --%>
+        <div :if={sync.status in ["running", "completed"]} class="space-y-1">
+          <div class="flex gap-1">
+            <div
+              :for={{fase, rotulo, n} <- fases(sync)}
+              class={[
+                "flex-1 h-2 rounded",
+                estado_fase(fase, sync, @fase) == :feita && "bg-success",
+                estado_fase(fase, sync, @fase) == :em_curso && "bg-info animate-pulse",
+                estado_fase(fase, sync, @fase) == :pendente && "bg-base-300"
+              ]}
+              title={"#{rotulo}: #{n}"}
+            >
+            </div>
+          </div>
+          <div class="flex justify-between text-xs opacity-70">
+            <span :for={{_f, rotulo, n} <- fases(sync)} class="flex-1">
+              {rotulo}{if n > 0, do: " #{n}"}
+            </span>
+          </div>
+          <div :if={sync.status == "running" && @fase} class="text-xs">
+            coletando agora: <span class="font-mono">{legivel(@fase)}</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
@@ -267,7 +312,54 @@ defmodule TheBandWeb.SyncLive.Index do
   # trouxe.
   defp work_summary(sync), do: Ingestion.work_summary(sync)
 
-  defp put_progress(socket, _entity_type, _count), do: socket
+  defp put_progress(socket, entity_type, _count), do: assign(socket, fase: entity_type)
+
+  # A organização vem da ferramenta conectada, que **é** a organização: a identidade dela
+  # é tenant, tipo, instância e organização.
+  defp organizacao(tools, sync) do
+    case Enum.find(tools, &(&1.id == sync.connected_tool_id)) do
+      nil -> "—"
+      tool -> tool.organization_login
+    end
+  end
+
+  # As seis fases de uma sincronização, na ordem em que ocorrem. As contagens vêm dos
+  # checkpoints, que são gravados **depois** de cada página ser processada.
+  @fases [
+    {"github.organization", "organização"},
+    {"github.organization_members", "pessoas"},
+    {"github.teams", "equipes"},
+    {"github.repository", "repositórios"},
+    {"github.issue", "issues"},
+    {"promocao", "promoção"}
+  ]
+
+  defp fases(sync) do
+    contagens = Map.new(checkpoints(sync), &{&1.entity_type, &1.record_count})
+    for {fase, rotulo} <- @fases, do: {fase, rotulo, Map.get(contagens, fase, 0)}
+  end
+
+  # Três estados, e nenhum é percentual: a fase tem registro (feita), é a que a última
+  # mensagem nomeou (em curso), ou não começou.
+  defp estado_fase(fase, sync, atual) do
+    tem_registro = Enum.any?(checkpoints(sync), &(&1.entity_type == fase))
+    em_curso = sync.status == "running" and atual != nil and String.starts_with?(atual, fase)
+
+    cond do
+      em_curso -> :em_curso
+      tem_registro -> :feita
+      sync.status == "completed" -> :pendente
+      true -> :pendente
+    end
+  end
+
+  # A fase de issues carrega o repositório: "coletando issues" sem dizer de qual, numa
+  # organização de 121 repositórios, não informa nada.
+  defp legivel("github.issue:" <> repo), do: "issues de #{repo}"
+
+  defp legivel(fase) do
+    Enum.find_value(@fases, fase, fn {id, rotulo} -> id == fase && rotulo end)
+  end
 
   defp running?(syncs, tool) do
     Enum.any?(syncs, &(&1.connected_tool_id == tool.id and &1.status == "running"))

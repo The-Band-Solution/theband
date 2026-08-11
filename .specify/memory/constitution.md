@@ -21,6 +21,7 @@ Seções definidas:
 Princípios acrescentados por emenda posterior:
   1.2.0 → VIII. Desenho que o problema justifica
   1.3.0 → IX. Ontologias modulares e autônomas
+  1.4.0 → X. Responsabilidade única, em módulo e em tela
 
 Fonte dos princípios: AGENTS.md na raiz do repositório, documento normativo de fato
 desde antes desta ratificação. Esta constituição não inventa regra nova — codifica o
@@ -318,6 +319,60 @@ referência. Foi assim que a SRO ficou independente da RSRO e da SysSwO — `use
 `deliverable` são `kind` porque têm identidade própria, não para contornar anotação
 pendente.
 
+### X. Responsabilidade única, em módulo e em tela
+
+Cada módulo e cada tela MUST ter **uma razão para mudar**. Quando duas mudanças de origens
+diferentes tocam o mesmo arquivo, ele tinha duas responsabilidades — e a segunda estava
+escondida.
+
+> **A regra.** Um módulo faz uma coisa. Uma tela mostra uma coisa. Se descrever o que ele
+> faz exige a palavra "e", ele provavelmente são dois.
+
+- **Módulo com duas razões para mudar MUST ser dividido**, e o critério é a origem da
+  mudança, não a contagem de linhas. Um módulo de 400 linhas que muda só quando a
+  ontologia muda está correto; um de 80 que muda quando a regra de negócio muda **e**
+  quando o formato de exibição muda, não.
+- **Tela MUST mostrar uma coisa.** Duas perguntas diferentes na mesma tela são duas telas,
+  ou uma tela e um componente. O sinal é o cabeçalho: se ele precisa de duas frases para
+  dizer o que a tela responde, a tela responde duas coisas.
+- **Ação MUST existir num lugar só.** Dois botões que disparam a mesma operação produzem
+  duas leituras de "quando isto foi atualizado", e a resposta certa é uma.
+- **Módulo `utils`, `helpers` ou `common` MUST NOT ser criado.** Ele é o lugar onde
+  responsabilidade sem dono vai morar, e cresce até ninguém saber o que há dentro. Função
+  sem casa clara indica conceito ainda não nomeado.
+- **A extração acontece quando a segunda razão aparece**, nunca antes. Dividir por previsão
+  é o que o princípio VIII proíbe: os dois módulos nascem acoplados por uma interface que
+  ninguém precisou.
+
+**As cinco letras, traduzidas para o que significam aqui.** SOLID nasceu em orientação a
+objetos, e aplicá-lo ao pé da letra em Elixir produz `behaviour` sem implementação
+alternativa e protocolo sem segundo tipo — abstração sem problema, que o princípio VIII
+recusa. O que cada letra exige neste projeto:
+
+| Letra | O que MUST valer aqui |
+|---|---|
+| **S** — responsabilidade única | uma razão para mudar, por módulo e por tela |
+| **O** — aberto/fechado | estender por **cláusula ou módulo novo**, não editando um `case` que cresce. Um `case` com sete ramos sobre o mesmo eixo é a semântica pedindo para virar dado — e neste projeto, dado é YAML versionado |
+| **L** — substituição | quem implementa um `behaviour` MUST honrar o contrato dele, incluindo o que ele devolve em falha. Implementação que levanta onde o contrato prevê `{:error, motivo}` quebra quem a chama |
+| **I** — segregação de interface | a API pública MUST ser o menor conjunto que serve ao caso de uso. Função que devolve `Ecto.Query` viola por obrigar quem chama a conhecer o schema interno |
+| **D** — inversão de dependência | um módulo MUST depender da **fronteira pública** de outro, nunca dos schemas nem das tabelas dele. É a ADR 0003, e é o que a constituição IX já exige entre ontologias |
+
+**Razão**: esta plataforma tem doze ontologias, um modelo derivado e proveniência em cada
+registro. A complexidade essencial é alta, e é justamente aí que responsabilidade misturada
+custa mais: um módulo que faz duas coisas força quem lê a carregar as duas para entender
+uma.
+
+E há o custo específico das telas. Uma tela que responde duas perguntas obriga quem olha a
+decidir qual delas está vendo — e a decisão errada é silenciosa. O caso concreto deste
+projeto: um resumo de trabalho **do tenant** exibido dentro do cartão de **cada**
+sincronização fazia uma coleta de 14 repositórios aparecer com 135 ao lado. Nada falhou;
+o número simplesmente respondia outra pergunta.
+
+**Relação com o princípio VIII**: os dois não se sobrepõem. **VIII decide se estrutura
+nova deve existir**; **X decide como dividir a que existe.** Usar X para justificar
+abstração antecipada inverte os dois: a segunda razão para mudar tem de ter **aparecido**,
+não de ser prevista.
+
 ## Restrições tecnológicas
 
 Stack fixada: Elixir/Erlang OTP, Phoenix e LiveView, Ecto e PostgreSQL, Oban para jobs e
@@ -391,4 +446,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.3.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-11
+**Version**: 1.4.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-11

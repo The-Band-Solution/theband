@@ -39,6 +39,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   """
   require Logger
 
+  alias TheBand.Ingestion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
@@ -94,8 +95,14 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         Enum.map(nodes, fn node ->
           {:ok, repo} = gravar_repositorio(ctx, organization, node)
           {:ok, observado} = CMPO.observe_repository(ctx.tenant, ctx.tool.id, repo.id)
+          ctx.sync |> Ingestion.reload() |> Ingestion.tally(:unchanged)
           %{repo: repo, observed_repository_id: observado.id, node: node}
         end)
+
+      # Checkpoint **depois** de processar, nunca antes — e é o que a tela lê para dizer
+      # em que fase a coleta está. Sem ele, o progresso seria um spinner sem informação.
+      Ingestion.checkpoint_page(ctx.sync, "github.repository", nil, length(nodes))
+      Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "github.repository"})
 
       # Só os coletáveis seguem: excluído e inacessível ficam de fora, e nenhum dos dois
       # tem a ausência marcada por causa disso.
@@ -151,6 +158,15 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         gravadas = Enum.map(nodes, &gravar_issue(ctx, observado_id, &1))
         vincular(ctx, nodes)
 
+        Ingestion.checkpoint_page(ctx.sync, "github.issue", nil, length(nodes))
+
+        # A tela recebe o nome do repositório: "coletando issues" sem dizer de qual, numa
+        # organização de 121 repositórios, não informa nada.
+        Ingestion.broadcast(
+          ctx.tenant.id,
+          {:sync_progress, ctx.sync.id, "github.issue:#{repo.name}"}
+        )
+
         # Por repositório, e é a L19 impedida: só o que foi olhado é marcado.
         {:ok, _} =
           WorkItems.mark_issues_no_longer_observed(ctx.tenant, observado_id, ctx.started_at)
@@ -181,6 +197,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       source_instance: ctx.tool.instance_url,
       collected_at: now
     })
+
+    ctx.sync |> Ingestion.reload() |> Ingestion.tally(:unchanged)
 
     {:ok, issue} =
       WorkItems.record_collected_issue(ctx.tenant, %{
@@ -248,6 +266,9 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   defp promover(ctx) do
     issues = WorkItems.list_issues(ctx.tenant, limit: 100_000)
     tipos_das_partes = tipos_das_partes(ctx, issues)
+
+    Ingestion.checkpoint_page(ctx.sync, "promocao", nil, length(issues))
+    Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "promocao"})
 
     for issue <- issues do
       decisao =

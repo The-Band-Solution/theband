@@ -87,17 +87,10 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </:subtitle>
       </.header>
 
-      <%!-- Sem botão de coletar aqui: sincronizar traz tudo, e a sincronização tem
-            tela própria. Dois lugares para disparar a mesma coleta produziriam duas
-            leituras de "quando isto foi atualizado". --%>
-      <div class="mt-4">
-        <.link navigate={~p"/sincronizacoes"} class="btn btn-sm btn-outline">
-          sincronizar
-        </.link>
-        <span class="text-sm opacity-70 ml-2">
-          pessoas, equipes, repositórios e issues vêm na mesma coleta
-        </span>
-      </div>
+      <%!-- Nenhuma ação de coleta aqui, e é decisão. O mesmo botão de Sincronizações
+            traz tudo — pessoas, equipes, repositórios e issues, na mesma coleta. Um
+            segundo lugar para disparar produziria duas leituras de "quando isto foi
+            atualizado", e a resposta certa é uma. --%>
 
       <div :if={@coletadas == 0} class="alert mt-6 block">
         <div class="font-semibold">{estado_vazio_titulo(@repos_observados)}</div>
