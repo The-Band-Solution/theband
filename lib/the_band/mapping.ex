@@ -66,6 +66,7 @@ defmodule TheBand.Mapping do
   defdelegate list_proposals(tenant, organization_id), to: Catalog
   defdelegate not_type_patterns(tenant, organization_id), to: Catalog
   defdelegate not_type_reason(), to: Catalog
+  defdelegate gap_summary(tenant, organization_id), to: Queries
 
   # ------------------------------------------------------------------ validação
 

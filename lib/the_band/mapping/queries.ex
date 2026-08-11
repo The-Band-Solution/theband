@@ -149,6 +149,55 @@ defmodule TheBand.Mapping.Queries do
   end
 
   @doc """
+  Quanto do trabalho da organização ainda não tem conceito, e por quê.
+
+  Responde a pergunta que abre a tela — FR-034: *"quanto falta?"*. Sem o total, "12 tipos
+  desconhecidos" não diz se o problema é grande ou marginal.
+
+  Os tipos desconhecidos vêm **com o nome**: "tipo desconhecido: 37" não diz onde a regra
+  precisa mudar, e "Chore (17), Refactor (16), Hotfix (4)" diz.
+  """
+  @spec gap_summary(Tenant.t(), Ecto.UUID.t()) :: map()
+  def gap_summary(%Tenant{} = tenant, organization_id) do
+    ids = repositorios_da_organizacao(tenant, organization_id)
+
+    vigentes =
+      from p in subquery(promocoes_vigentes(tenant.id)),
+        join: i in CollectedIssue,
+        on: i.id == p.collected_issue_id,
+        where: i.observed_repository_id in ^ids
+
+    total = Repo.one(from p in subquery(vigentes), select: count(p.collected_issue_id))
+
+    promovidas =
+      Repo.one(
+        from p in subquery(vigentes),
+          where: not is_nil(p.derived_concept),
+          select: count(p.collected_issue_id)
+      )
+
+    tipos =
+      Repo.all(
+        from p in subquery(vigentes),
+          where: p.skip_reason == "type_unknown" and not is_nil(p.skip_detail),
+          group_by: p.skip_detail,
+          order_by: [desc: count(p.collected_issue_id)],
+          select: {p.skip_detail, count(p.collected_issue_id)}
+      )
+
+    %{total: total, promovidas: promovidas, sem_conceito: total - promovidas, tipos: tipos}
+  end
+
+  # A vigente é a última por `inserted_at` — a L20 vale aqui como em todo lugar que lê
+  # "a última".
+  defp promocoes_vigentes(tenant_id) do
+    from p in IssuePromotion,
+      where: p.tenant_id == ^tenant_id,
+      distinct: p.collected_issue_id,
+      order_by: [asc: p.collected_issue_id, desc: p.inserted_at]
+  end
+
+  @doc """
   Os identificadores de repositório observado da organização.
 
   Vem por `CMPO.list_observed/2`, e não por junção: `Mapping` alcançar

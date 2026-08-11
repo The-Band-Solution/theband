@@ -3,13 +3,13 @@ defmodule TheBand.Mapping.Commands do
 
   import Ecto.Query
 
+  alias TheBand.Jobs.RecomputePromotions
   alias TheBand.Mapping.Catalog
   alias TheBand.Mapping.Decision
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
   alias TheBand.Mapping.Schemas.MappingRule
   alias TheBand.Mapping.Schemas.UnmappedPatternDecision
-  alias TheBand.Jobs.RecomputePromotions
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant

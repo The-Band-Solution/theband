@@ -10,6 +10,7 @@ defmodule TheBandWeb.SyncLive.Index do
 
   alias TheBand.Ingestion
   alias TheBand.Jobs.ReprocessMappings
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Sources
 
   @impl true
@@ -18,11 +19,28 @@ defmodule TheBandWeb.SyncLive.Index do
 
     {:ok,
      socket
-     |> assign(page_title: "Sincronizações", fase: nil, paused: nil, reprocess: nil)
+     |> assign(
+       page_title: "Sincronizações",
+       fase: nil,
+       paused: nil,
+       reprocess: nil,
+       mapeamento: nil
+     )
      |> load()}
   end
 
   @impl true
+  # O acesso parte da **organização cuja coleta produziu a lacuna** — FR-052. Uma lista
+  # global obrigaria escolher a organização duas vezes: uma para ver a coleta, outra para
+  # ver as regras.
+  def handle_event("abrir_mapeamento", %{"tool_id" => tool_id}, socket) do
+    {:noreply, assign(socket, mapeamento: tool_id)}
+  end
+
+  def handle_event("fechar_mapeamento", _params, socket) do
+    {:noreply, assign(socket, mapeamento: nil)}
+  end
+
   def handle_event("sync", %{"tool_id" => tool_id}, socket) do
     tenant = socket.assigns.current_tenant
 
@@ -89,6 +107,12 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply, socket |> assign(paused: nil) |> load()}
   end
 
+  # O componente de regras não tem flash próprio: manda a mensagem ao processo pai, que é
+  # dono do `@flash`. Precisa vir **antes** da cláusula que ignora o resto.
+  def handle_info({:mapping_flash, tipo, mensagem}, socket) do
+    {:noreply, put_flash(socket, tipo, mensagem)}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
@@ -133,9 +157,19 @@ defmodule TheBandWeb.SyncLive.Index do
               pessoas, equipes, repositórios e issues — na mesma coleta
             </div>
           </div>
-          <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
-            {if running?(@syncs, tool), do: "em andamento", else: "Sincronizar"}
-          </.button>
+          <div class="flex flex-col gap-2 items-end">
+            <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
+              {if running?(@syncs, tool), do: "em andamento", else: "Sincronizar"}
+            </.button>
+            <%!-- A lacuna nasce da coleta, e o acesso parte da organização que a produziu. --%>
+            <.button
+              phx-click="abrir_mapeamento"
+              phx-value-tool_id={tool.id}
+              class="btn-outline btn-xs"
+            >
+              regras de mapeamento
+            </.button>
+          </div>
         </div>
       </div>
 
@@ -185,6 +219,19 @@ defmodule TheBandWeb.SyncLive.Index do
           </p>
         </div>
       </div>
+
+      <%!-- O componente é hospedado aqui e fica **visivelmente separado** do relatório de
+            execução — FR-051. Misturá-lo ao cartão de cada sync repetiria o erro do resumo
+            de trabalho, cujo número parecia da execução e era do tenant. --%>
+      <.live_component
+        :if={organizacao_do_mapeamento(@tools, @mapeamento)}
+        module={TheBandWeb.SyncLive.MappingRules}
+        id="regras-de-mapeamento"
+        tenant={@current_tenant}
+        actor_id={@current_user.id}
+        organization_id={organizacao_do_mapeamento(@tools, @mapeamento).id}
+        organization_login={organizacao_do_mapeamento(@tools, @mapeamento).login}
+      />
 
       <.header>Execuções</.header>
 
@@ -328,6 +375,21 @@ defmodule TheBandWeb.SyncLive.Index do
 
   # A organização vem da ferramenta conectada, que **é** a organização: a identidade dela
   # é tenant, tipo, instância e organização.
+  # A ferramenta conectada guarda o `organization_login`; a organização em si vive em EO.
+  # A ligação é por login, e não por chave estrangeira, porque a ferramenta é conectada
+  # antes de a organização ser coletada.
+  defp organizacao_do_mapeamento(_tools, nil), do: nil
+
+  defp organizacao_do_mapeamento(tools, tool_id) do
+    with tool when not is_nil(tool) <- Enum.find(tools, &(&1.id == tool_id)),
+         org when not is_nil(org) <-
+           EO.fetch_organization_by_login(tool.tenant_id, tool.organization_login) do
+      %{id: org.id, login: org.login || org.name}
+    else
+      _ -> nil
+    end
+  end
+
   defp organizacao(tools, sync) do
     case Enum.find(tools, &(&1.id == sync.connected_tool_id)) do
       nil -> "—"
