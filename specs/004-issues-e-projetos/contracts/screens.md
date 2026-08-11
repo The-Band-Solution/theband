@@ -180,11 +180,39 @@ encontrar.
 
 ---
 
-## `/mapeamento` — tipos e campos desta organização
+## `/ferramentas/nova` e `/ferramentas/:id/mapeamento`
 
-Tela pedida pela pessoa mantenedora em 2026-08-11. Ela existe porque a regra de
-roteamento tem `status: proposed` e **vai** errar — e corrigir a regra por YAML no
-repositório não é caminho para quem administra o tenant.
+**Não é tela própria: é parte de definir a ferramenta.** Decisão da pessoa
+mantenedora em 2026-08-11 — o mapeamento entre os conceitos da organização e os da
+ontologia é configurado **ao conectar**, e vale **por organização**.
+
+Duas razões, e a segunda é a que muda o desenho:
+
+**Configurar ao definir evita coletar sabendo que vai errar.** Perguntar depois da
+primeira coleta significa classificar errado e reprocessar. Perguntar antes exige uma
+consulta à origem no momento da conexão — e é o que permite a plataforma **mostrar os
+tipos que encontrou** em vez de pedir para a pessoa digitar nomes.
+
+**O escopo é a organização, não o tenant.** Uma organização usa `Feature`, outra usa
+`História`, outra criou `Spike`. Um mapeamento por tenant obrigaria todas a
+concordarem, e a primeira divergência viraria lacuna sem culpado — porque nenhuma das
+duas estaria errada.
+
+### O passo novo no fluxo de conexão
+
+```
+1. instância e organização        já existe
+2. credencial                     já existe — validada antes de gravar
+3. MAPEAMENTO                     ← o passo novo, com os tipos já descobertos
+4. confirmar
+```
+
+O passo 3 só tem o que mostrar porque o 2 passou: a consulta que descobre os tipos
+usa a credencial recém-validada. Colocá-lo antes exibiria campos vazios.
+
+**Conectar não é bloqueado por mapeamento pendente** (FR-041c). "Usar o padrão" é uma
+saída legítima do passo 3, e os tipos não reconhecidos aparecem como lacuna — que é o
+que a tela de issues já mostra.
 
 ### O que a tela afirma
 
@@ -232,12 +260,19 @@ concluiria que falta configurar algo.
 | esconder tipo desconhecido | é a lacuna, e é o dado que diz onde a regra precisa mudar |
 | editar a regra global | a declaração é **do tenant**, e sobrescreve sem alterar o padrão de ninguém |
 
-### Duas proveniências, e a tela as distingue
+### Três níveis de precedência, e a tela mostra de onde veio
+
+```
+regra global da rede                    padrão de todas as organizações
+  └─ regra do tenant, em YAML           padrão deste tenant
+       └─ configuração desta ferramenta  vale só para esta organização
+```
 
 | Origem | Como aparece |
 |---|---|
-| YAML versionado, em `rules/tenants/` | *declarado no repositório*, com a versão da regra |
-| declaração feita nesta tela | *declarado por <pessoa>, em <data>* |
+| regra global | *padrão da rede* |
+| YAML do tenant, em `rules/tenants/` | *declarado no repositório*, com a versão |
+| configuração desta organização | *declarado por <pessoa>, em <data>* |
 
 As duas têm o mesmo efeito na promoção. **A diferença é auditável de propósito**: uma
 passou por revisão de código, a outra não — e quem lê uma medida derivada precisa

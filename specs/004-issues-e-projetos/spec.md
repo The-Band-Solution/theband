@@ -104,32 +104,46 @@ interpretado.
 
 ---
 
-### User Story 3 - Ver e ajustar como os tipos da organização são mapeados (Priority: P2)
+### User Story 3 - Configurar o mapeamento ao definir a ferramenta (Priority: P2)
 
-A pessoa que administra o tenant abre uma tela que mostra **os tipos de issue que a
-organização de fato usa**, para qual conceito cada um é roteado, e o que a estrutura
-decide em vez do rótulo. A mesma tela mostra os campos do quadro e quais deles a
-plataforma interpreta.
+A pessoa que conecta uma ferramenta configura, **na mesma tela**, como os conceitos
+daquela organização correspondem aos da ontologia: quais tipos de issue ela usa, para
+qual conceito cada um vai, e quais campos do quadro a plataforma deve interpretar.
 
-Quando um tipo não é reconhecido, a tela é onde ela declara o que ele significa.
+O mapeamento é **por organização observada**, não por tenant. Um tenant observa
+várias organizações, e cada uma nomeia as coisas como quer: uma usa `Feature`, outra
+usa `História`, outra criou `Spike`. Um mapeamento por tenant obrigaria todas a
+concordarem, e a primeira divergência viraria lacuna sem culpado.
+
+**A organização observada é a ferramenta conectada** — a identidade dela é tenant,
+tipo, instância e organização. Guardar o mapeamento nela é guardá-lo por organização,
+sem criar um segundo lugar que possa divergir.
 
 **Why this priority**: a regra de roteamento tem `status: proposed` e `confidence:
-medium` — ela **vai** errar, e errar em silêncio é o que a US1 evita mostrando a
-lacuna. Esta tela é o outro lado: sem ela, corrigir a regra exige editar YAML no
-repositório, e quem administra o tenant não faz isso. A lacuna ficaria visível e
-inendereçável.
+medium` — ela **vai** errar. A US1 torna a lacuna visível; esta tela é o outro lado,
+e sem ela corrigir exigiria editar YAML no repositório, o que quem administra o tenant
+não faz. A lacuna ficaria visível e inendereçável.
 
-**Independent Test**: abrir a tela numa organização que usa `Feature`, `Task` e
-`Bug`, conferir que os três aparecem com o conceito de destino, que `Epic` e
-`User Story` aparecem como **não usados por esta organização** em vez de ausentes, e
-que declarar um tipo desconhecido faz a coleta seguinte deixar de contá-lo como
-lacuna.
+**Configurar ao definir é o que muda de lugar.** Perguntar depois da primeira coleta
+significa coletar sabendo que vai classificar errado, e depois reprocessar. Perguntar
+antes exige uma consulta à origem no momento da conexão — a plataforma **descobre**
+os tipos que a organização usa e mostra os que encontrou, em vez de pedir para a
+pessoa digitar nomes.
+
+**Independent Test**: conectar uma organização que usa `Feature`, `Task` e `Bug`,
+conferir que os três aparecem na tela de conexão com o conceito de destino sugerido,
+que `Epic` e `User Story` aparecem como **não usados por esta organização**, e que a
+primeira coleta já classifica pelo que foi configurado.
 
 **Acceptance Scenarios**:
 
-1. **Dado** uma organização observada, **quando** o usuário abre a tela de
-   mapeamento, **então** vê os tipos de issue **que a organização usa**, com a
-   contagem de issues de cada um e o conceito para o qual é roteado.
+1. **Dado** que o usuário está conectando uma ferramenta, **quando** a credencial é
+   validada, **então** a plataforma consulta os tipos de issue que **aquela
+   organização** usa e os apresenta na mesma tela, com o conceito de destino sugerido
+   por tipo.
+1a. **Dado** uma ferramenta já conectada, **quando** o usuário abre a configuração
+   dela, **então** vê e ajusta o mesmo mapeamento — configurar na conexão não é a
+   única porta, é a primeira.
 2. **Dado** um tipo da regra global que a organização não usa — `Epic`,
    `User Story` —, **quando** o usuário abre a tela, **então** ele aparece marcado
    como **não usado aqui**, e não como erro nem como ausência.
@@ -138,8 +152,12 @@ lacuna.
    com partes que são user stories é épico, sem partes ou com partes que são tarefas
    é atômica.
 4. **Dado** um tipo desconhecido contado como lacuna, **quando** o usuário declara
-   para qual conceito ele vai, **então** a declaração é gravada com autor e data, e a
-   coleta seguinte o promove — deixando de contá-lo como lacuna.
+   para qual conceito ele vai, **então** a declaração é gravada com autor e data
+   **na ferramenta conectada**, e a coleta seguinte o promove — deixando de contá-lo
+   como lacuna.
+4a. **Dado** duas ferramentas conectadas com nomes de tipo diferentes para a mesma
+   coisa, **quando** cada uma é configurada, **então** as duas configurações coexistem
+   sem uma sobrescrever a outra.
 5. **Dado** uma declaração do usuário que contraria um axioma — por exemplo mapear
    um tipo para `sro.epic` sem exigir partes —, **quando** ele tenta salvar,
    **então** a plataforma recusa nomeando o axioma, e não grava.
@@ -152,6 +170,10 @@ lacuna.
 8. **Dado** uma declaração gravada pela tela, **quando** alguém a consulta,
    **então** a proveniência diz que veio de decisão do tenant, com quem e quando —
    nunca de observação.
+9. **Dado** que o usuário conecta sem configurar mapeamento nenhum, **quando** a
+   coleta ocorre, **então** a regra global vale como padrão e os tipos não
+   reconhecidos aparecem como lacuna — **conectar não fica bloqueado** por
+   configuração pendente.
 
 ---
 
@@ -331,8 +353,18 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 
 #### Mapeamento declarado pelo tenant
 
-- **FR-041**: A plataforma DEVE apresentar, por organização observada, os tipos de
-  issue **que ela de fato usa**, com a contagem de cada um e o conceito de destino.
+- **FR-041**: A plataforma DEVE apresentar, **na tela de definição da ferramenta
+  conectada**, os tipos de issue que aquela organização de fato usa, descobertos por
+  consulta à origem, com o conceito de destino sugerido por tipo.
+- **FR-041a**: O mapeamento DEVE ser escopado **por organização observada**, que é a
+  ferramenta conectada — e NÃO pelo tenant. Duas organizações do mesmo tenant DEVEM
+  poder mapear o mesmo nome de tipo para conceitos diferentes, sem que uma
+  sobrescreva a outra.
+- **FR-041b**: A configuração DEVE ser acessível também **depois** da conexão, pela
+  tela da ferramenta. Configurar ao definir é a primeira porta, não a única.
+- **FR-041c**: Conectar uma ferramenta NÃO DEVE ser bloqueado por mapeamento
+  pendente. Sem configuração, a regra global vale como padrão e os tipos não
+  reconhecidos aparecem como lacuna.
 - **FR-042**: Um tipo previsto pela regra global e **não usado** pela organização
   DEVE aparecer como *não usado aqui*, distinto de erro e de ausência de
   configuração.
@@ -349,6 +381,9 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   e não interpretados, com o motivo de cada não interpretado.
 - **FR-048**: Uma declaração feita pela tela DEVE ter o mesmo efeito que a declarada
   em YAML versionado, e DEVE ser distinguível dela pela proveniência.
+- **FR-049**: A regra em YAML versionado DEVE ser o **padrão** do qual a
+  configuração de uma ferramenta parte; a configuração da ferramenta sobrescreve o
+  padrão apenas para ela.
 
 #### Tela
 
@@ -435,6 +470,8 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   item de outro tenant por nenhum caminho.
 - **SC-013**: Nenhum tipo de issue aparece na tela de mapeamento sem existir na
   organização ou sem estar marcado como não usado por ela.
+- **SC-013a**: Duas organizações observadas com mapeamentos diferentes produzem
+  classificações diferentes para o mesmo nome de tipo, e nenhuma interfere na outra.
 - **SC-014**: Nenhuma declaração que contrarie axioma da rede é gravada, e a recusa
   nomeia o axioma.
 - **SC-015**: Nenhum campo de seleção única aparece mapeado para atributo numérico

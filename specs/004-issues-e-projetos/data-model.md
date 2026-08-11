@@ -165,9 +165,76 @@ A tela e a consulta de escopo usam a mesma função. Dois caminhos discordariam.
 
 ---
 
-## 3. Plataforma: as tabelas de coleta
+## 3. O mapeamento por organização observada
 
-### 3.1 `observed_repositories`
+Decisão da pessoa mantenedora em 2026-08-11: o mapeamento entre os conceitos da
+organização e os da ontologia é configurado **na tela de definição da ferramenta**, e
+vale **por organização**.
+
+```
+┌─ tool_concept_mappings   (por organização observada)
+│    connected_tool_id     uuid    NOT NULL  ← o escopo: uma organização, uma instância
+│    tenant_id             uuid    NOT NULL
+│    kind                  enum    NOT NULL  {issue_type, project_field}
+│    source_name           string  NOT NULL  "Feature", "Spike", "Estimate"
+│    source_external_id    string  NULL      obrigatório para campo de quadro
+│    target_concept        string  NULL      "sro.user_story", "osdef.defect"
+│    target_attribute      string  NULL      "sro.user_story.complexity"
+│    decided_by            enum    NOT NULL  {structure, declaration}
+│    declared_by_user_id   uuid    NOT NULL  decisão tem autor
+│    declared_at           datetime NOT NULL
+│
+│  UNIQUE (connected_tool_id, kind, source_name)
+└─
+```
+
+**`connected_tool_id` e não `tenant_id` como escopo.** A ferramenta conectada **é** a
+organização: a identidade dela é tenant, tipo, instância e organização. Guardar o
+mapeamento nela é guardá-lo por organização sem criar um segundo lugar que possa
+divergir do primeiro.
+
+O que isso permite, e um mapeamento por tenant impediria: uma organização usa
+`Feature`, outra usa `História`, e as duas convivem. Sem esse escopo, a segunda
+organização a ser conectada viraria lacuna permanente — e a lacuna não teria culpado,
+porque nenhuma das duas está errada.
+
+### Três coisas que o desenho separa de propósito
+
+**`decided_by`** distingue o que a estrutura decide do que a declaração decide.
+`Feature` roteia para dois conceitos e quem escolhe é a estrutura — `decided_by:
+structure`, e `target_concept` fica `sro.user_story`, o abstrato. `Bug` é
+`declaration`, com destino concreto.
+
+**`source_external_id` obrigatório só para campo.** Tipo de issue não tem
+identificador estável na API — o nome é a chave. Campo de quadro tem, e é ele que vale
+(FR-027): renomear "Priority" não pode criar mapeamento novo.
+
+**`declared_by_user_id` não é anulável.** Ao contrário do evento de observação, que
+pode vir de processo, um mapeamento é sempre decisão de alguém. Sem autor não há como
+responder "quem decidiu que Spike é uma user story".
+
+### A precedência, e por que o YAML continua existindo
+
+```
+regra global em rules/github_issue_type_routing.yaml     padrão da rede
+  └─ regra do tenant em rules/tenants/<tenant>.yaml      padrão do tenant
+       └─ tool_concept_mappings                          desta organização
+```
+
+O YAML é o **padrão do qual a configuração parte**, e a linha da tabela sobrescreve
+apenas para aquela organização — FR-049. As duas têm o mesmo efeito na promoção, e são
+distinguíveis pela proveniência: a do YAML passou por revisão de código, a da tela não.
+Quem lê uma medida derivada precisa poder saber qual das duas a sustenta.
+
+**Conectar não é bloqueado por mapeamento pendente** (FR-041c). Sem linha nenhuma, o
+padrão vale e os tipos não reconhecidos aparecem como lacuna — que é o que a US1 já
+mostra.
+
+---
+
+## 4. Plataforma: as tabelas de coleta
+
+### 4.1 `observed_repositories`
 
 O que a plataforma decidiu sobre cada repositório — separado do repositório em si,
 que é domínio.
@@ -184,7 +251,7 @@ tenant; inacessível é falha de alcance. As duas impedem a coleta e **nenhuma d
 duas marca ausência** — é o que FR-005 e FR-006 exigem, e é a L19 aplicada: só
 marca ausência quem foi realmente olhado.
 
-### 3.2 `collected_issues`
+### 4.2 `collected_issues`
 
 ```
 tenant_id            uuid      NOT NULL
@@ -210,7 +277,7 @@ global não muda.
 **`issue_type` é texto livre e fica cru.** Normalizá-lo na coleta destruiria o dado
 que a lacuna precisa mostrar: FR-034 manda exibir *o nome do tipo encontrado*.
 
-### 3.3 `issue_promotions`
+### 4.3 `issue_promotions`
 
 ```
 collected_issue_id   uuid      NOT NULL
@@ -240,7 +307,7 @@ e virou épico sem retipagem.
 `rule_version` é o que permite responder *"por que esta issue foi classificada assim
 em março"* depois de a regra mudar — e ela vai mudar, tem `status: proposed`.
 
-### 3.4 `decomposition_links` e `refused_links`
+### 4.4 `decomposition_links` e `refused_links`
 
 ```
 decomposition_links          refused_links
@@ -262,7 +329,7 @@ depois de duas coletas reais em todos os tenants, vira contagem no relatório do
 `reason: out_of_scope` cobre o edge case 3: a parte está em repositório fora do
 escopo observado. A relação existe e é registrada; a parte não é promovida.
 
-### 3.5 Projeto, campos e itens
+### 4.5 Projeto, campos e itens
 
 ```
 observed_projects                project_field_definitions
@@ -309,9 +376,9 @@ Quem promove é o conteúdo dele.
 
 ---
 
-## 4. O modelo de classes
+## 5. O modelo de classes
 
-### 4.1 Fronteiras de módulo
+### 5.1 Fronteiras de módulo
 
 ```
 lib/the_band/
@@ -343,7 +410,7 @@ schema é a forma da tabela, e a tabela é derivada — ela muda quando a ontolo
 muda. Dependentes do schema fariam cada mudança de derivação quebrar consumidores
 por toda a aplicação, e a pressão para não mexer na derivação venceria a semântica.
 
-### 4.2 Quem chama quem
+### 5.2 Quem chama quem
 
 ```
 Jobs.SyncGithubSRO
@@ -370,7 +437,7 @@ em vez de um commit revisável na base de conhecimento.
 `sro.rule04` diz por quê: *"uma constraint de banco sozinha não pega ciclo
 transitivo em auto-relacionamento; é preciso checar o caminho até a raiz"*.
 
-### 4.3 API pública, e o que ela não expõe
+### 5.3 API pública, e o que ela não expõe
 
 ```elixir
 # WorkItems
@@ -404,7 +471,7 @@ volume muito maior que as três organizações do defeito original.
 
 ---
 
-## 5. O que **não** é materializado
+## 6. O que **não** é materializado
 
 | Não existe como coluna | Onde vive |
 |---|---|
@@ -419,7 +486,7 @@ volume muito maior que as três organizações do defeito original.
 
 ---
 
-## 6. Migrações
+## 7. Migrações
 
 Uma por fase, cada uma explicando no `@moduledoc` por que a forma é essa —
 inclusive as ausências deliberadas, que são o que ninguém recupera depois.
