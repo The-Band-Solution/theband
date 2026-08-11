@@ -248,6 +248,125 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
   end
 
+  @doc """
+  O que será marcado se a observação de uma organização for encerrada (T006, FR-002).
+
+  Devolve os seis números que a tela mostra antes de confirmar, e é a **mesma** função
+  que o encerramento usa para gravar `impact` no evento — uma segunda contagem
+  divergiria da que age.
+
+  `people_exclusive` e `people_shared` são separados porque juntá-los esconde a única
+  contagem que assusta: quem tem vínculo apenas nesta organização perde a vigência, quem
+  tem em outra permanece.
+
+  `preserved_payloads` está aqui para dizer **zero apagados** — o número existe na tela
+  para que ninguém suponha que encerrar destrói o histórico de coleta.
+  """
+  @spec observation_impact(Tenant.t(), String.t()) :: map()
+  def observation_impact(%Tenant{id: tenant_id} = tenant, organization_login) do
+    case fetch_organization_by_login(tenant_id, organization_login) do
+      nil ->
+        zero_impact()
+
+      organization ->
+        equipes_da_org =
+          from t in Team,
+            where: t.tenant_id == ^tenant_id and t.organization_id == ^organization.id,
+            select: t.id
+
+        pessoas_da_org =
+          from e in TeamMembershipEvidence,
+            where: e.tenant_id == ^tenant_id and e.team_id in subquery(equipes_da_org),
+            select: e.person_id
+
+        # Vínculo vigente FORA desta organização é o que mantém a pessoa observada.
+        com_vinculo_fora =
+          from e in TeamMembershipEvidence,
+            where:
+              e.tenant_id == ^tenant_id and is_nil(e.no_longer_observed_at) and
+                e.team_id not in subquery(equipes_da_org),
+            select: e.person_id
+
+        pessoas =
+          Repo.all(from p in Person, where: p.id in subquery(pessoas_da_org), select: p.id)
+
+        fora = Repo.all(from p in Person, where: p.id in subquery(com_vinculo_fora), select: p.id)
+        compartilhadas = MapSet.intersection(MapSet.new(pessoas), MapSet.new(fora))
+
+        %{
+          teams:
+            Repo.aggregate(from(t in Team, where: t.id in subquery(equipes_da_org)), :count, :id),
+          derived_teams:
+            Repo.aggregate(
+              from(t in Team,
+                where: t.id in subquery(equipes_da_org) and t.source_system == "the_band"
+              ),
+              :count,
+              :id
+            ),
+          evidence_links:
+            Repo.aggregate(
+              from(e in TeamMembershipEvidence, where: e.team_id in subquery(equipes_da_org)),
+              :count,
+              :id
+            ),
+          people_exclusive: length(pessoas) - MapSet.size(compartilhadas),
+          people_shared: MapSet.size(compartilhadas),
+          preserved_payloads: RawData.count_for_organization(tenant, organization_login)
+        }
+    end
+  end
+
+  @doc """
+  Nomes das pessoas desta organização que têm vínculo vigente em **outra**.
+
+  São exatamente as que permanecem se a observação for encerrada, e a tela as mostra
+  pelo nome.
+  """
+  @spec shared_people_names(Tenant.t(), String.t()) :: [String.t()]
+  def shared_people_names(%Tenant{id: tenant_id}, organization_login) do
+    case fetch_organization_by_login(tenant_id, organization_login) do
+      nil ->
+        []
+
+      organization ->
+        equipes_da_org =
+          from t in Team,
+            where: t.tenant_id == ^tenant_id and t.organization_id == ^organization.id,
+            select: t.id
+
+        pessoas_da_org =
+          from e in TeamMembershipEvidence,
+            where: e.tenant_id == ^tenant_id and e.team_id in subquery(equipes_da_org),
+            select: e.person_id
+
+        com_vinculo_fora =
+          from e in TeamMembershipEvidence,
+            where:
+              e.tenant_id == ^tenant_id and is_nil(e.no_longer_observed_at) and
+                e.team_id not in subquery(equipes_da_org),
+            select: e.person_id
+
+        Repo.all(
+          from p in Person,
+            where: p.id in subquery(pessoas_da_org) and p.id in subquery(com_vinculo_fora),
+            order_by: p.name,
+            select: p.name
+        )
+    end
+  end
+
+  defp zero_impact do
+    %{
+      teams: 0,
+      derived_teams: 0,
+      evidence_links: 0,
+      people_exclusive: 0,
+      people_shared: 0,
+      preserved_payloads: 0
+    }
+  end
+
   # ------------------------------------------------------------------- lacunas
 
   @doc """

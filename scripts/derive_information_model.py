@@ -255,6 +255,17 @@ def derive(ontology, concepts, relations):
         # com um valor de discriminador na tabela dela, e se tiver atributos
         # próprios ganha tabela de extensão aqui, ligada por chave estrangeira.
         if target not in tables:
+            # A regra do role vale igual quando o kind está em outra ontologia. Sem
+            # esta guarda, `sro.product_owner` viraria valor de discriminador em
+            # `eo.person`, e a tabela de pessoas passaria a afirmar que alguém *é* um
+            # Product Owner — o que a ADR 0004 D5 recusa. Papel é alocação: tem
+            # contexto e duração, e vive no relator.
+            if st == "role":
+                notes.append(
+                    f"{cid}: role elevado a {target} [outra ontologia]; materializa "
+                    f"pelo relator, não por discriminador")
+                continue
+
             own = scope[cid].get("attributes") or []
             contributes.setdefault(target, []).append(cid.split(".")[-1])
             if own:

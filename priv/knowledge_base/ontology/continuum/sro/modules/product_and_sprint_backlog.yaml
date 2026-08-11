@@ -21,14 +21,14 @@ concepts:
       pt-BR: >
         Documento criado durante a Definição do Product Backlog, que contém os
         requisitos do produto a ser desenvolvido, descritos por user stories.
-    classification: { ufo_category: social_object, parent: spo.document }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.document }
 
   - id: sro.user_story
     name: User Story
     label: { pt-BR: "História de Usuário", en: "User Story" }
     definition:
       pt-BR: Artefato de requisito que descreve requisitos em um projeto Scrum.
-    classification: { ufo_category: social_object, parent: rsro.requirements_artifact }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: rsro.requirements_artifact }
     attributes:
       - { name: title, type: string, required: true }
       - { name: importance, type: decimal, required: false, description: "Quão valiosa a user story é para a organização." }
@@ -42,7 +42,7 @@ concepts:
     label: { pt-BR: "História de Usuário Atômica" }
     definition:
       pt-BR: User story que não é decomposta em outras.
-    classification: { ufo_category: social_object, parent: sro.user_story }
+    classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: sro.user_story }
     examples: ["US1.1: Eu, como viajante, quero pagar minha passagem com cartão de crédito."]
 
   - id: sro.epic
@@ -55,7 +55,7 @@ concepts:
         recursiva e não tem profundidade fixa. Ser épico não é rótulo atribuído, e
         sim consequência de ter partes — uma user story sem partes não é épico,
         ainda que a ferramenta a chame assim.
-    classification: { ufo_category: social_object, parent: sro.user_story }
+    classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: sro.user_story }
     constraints:
       - sro.rule04.epic_hierarchy_is_acyclic
       - sro.rule05.epic_has_parts
@@ -71,14 +71,14 @@ concepts:
       pt-BR: >
         Requisito usado para verificar se a user story foi desenvolvida corretamente
         e atende às necessidades do cliente.
-    classification: { ufo_category: goal, parent: rsro.requirement }
+    classification: { ufo_category: goal, ontouml_stereotype: kind, parent: rsro.requirement }
 
   - id: sro.functional_acceptance_criterion
     name: Functional Acceptance Criterion
     label: { pt-BR: "Critério de Aceitação Funcional" }
     definition:
       pt-BR: Requisito funcional usado para verificar se a funcionalidade da user story foi desenvolvida corretamente.
-    classification: { ufo_category: goal, parent: sro.acceptance_criterion }
+    classification: { ufo_category: goal, ontouml_stereotype: subkind, parent: sro.acceptance_criterion }
     examples: ["AC1: O cartão de crédito deve ser válido."]
 
   - id: sro.non_functional_acceptance_criterion
@@ -86,7 +86,7 @@ concepts:
     label: { pt-BR: "Critério de Aceitação Não Funcional" }
     definition:
       pt-BR: Requisito não funcional que estabelece critério de qualidade relacionado a características do produto.
-    classification: { ufo_category: goal, parent: sro.acceptance_criterion }
+    classification: { ufo_category: goal, ontouml_stereotype: subkind, parent: sro.acceptance_criterion }
     examples: ["AC2: A autenticação do pagamento é feita em menos de 10ms."]
 
   - id: sro.sprint_backlog
@@ -96,7 +96,7 @@ concepts:
       pt-BR: >
         Documento que descreve o planejamento do sprint: as user stories
         selecionadas e as tarefas de desenvolvimento pretendidas para materializá-las.
-    classification: { ufo_category: social_object, parent: spo.document }
+    classification: { ufo_category: social_object, ontouml_stereotype: kind, parent: spo.document }
 
   - id: sro.intended_scrum_development_task
     name: Intended Scrum Development Task
@@ -106,7 +106,7 @@ concepts:
         Atividade pretendida que descreve o que é necessário para materializar uma
         user story. Tarefas pretendidas não executadas no sprint podem ser
         associadas ao sprint backlog de sprints seguintes.
-    classification: { ufo_category: intention, parent: spo.intended_project_activity }
+    classification: { ufo_category: intention, ontouml_stereotype: kind, parent: spo.intended_project_activity }
 
 relations:
   - id: sro.product_backlog_definition_creates_product_backlog

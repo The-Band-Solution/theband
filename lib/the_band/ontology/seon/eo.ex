@@ -33,7 +33,9 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate upsert_person_from_source(tenant, attrs), to: Commands
   defdelegate upsert_team_from_source(tenant, attrs), to: Commands
   defdelegate record_team_membership_evidence(tenant, attrs), to: Commands
-  defdelegate mark_evidence_no_longer_observed(tenant, collection_started_at), to: Commands
+
+  defdelegate mark_evidence_no_longer_observed(tenant, organization_id, collection_started_at),
+    to: Commands
 
   # ------------------------------------------------------------------- leituras
 
@@ -49,6 +51,9 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_organization!(tenant, organization_id), to: Queries
   defdelegate list_people_without_team(tenant, organization_id), to: Queries
   defdelegate fetch_derived_team(tenant, organization_id), to: Queries
+  defdelegate observation_impact(tenant, organization_login), to: Queries
+  defdelegate shared_people_names(tenant, organization_login), to: Queries
+  defdelegate mark_organization_no_longer_observed(tenant, organization_login), to: Commands
   defdelegate assign_team_organization(tenant, team, organization_id), to: Commands
   defdelegate upsert_derived_team(tenant, organization, attrs \\ %{}), to: Commands
   defdelegate record_derived_team_membership(tenant, attrs), to: Commands

@@ -18,91 +18,91 @@ concepts:
     label: { pt-BR: "Papel Scrum" }
     definition:
       pt-BR: Papel organizacional reconhecido no contexto de um projeto Scrum.
-    classification: { ufo_category: social_role, parent: eo.organizational_role }
+    classification: { ufo_category: social_role, ontouml_stereotype: role, parent: eo.organizational_role }
 
   - id: sro.product_owner_role
     name: Product Owner Role
     label: { pt-BR: "Papel de Product Owner" }
     definition:
       pt-BR: Papel Scrum responsável por representar os interesses do cliente e priorizar o backlog.
-    classification: { ufo_category: social_role, parent: sro.scrum_role }
+    classification: { ufo_category: social_role, ontouml_stereotype: role, parent: sro.scrum_role }
 
   - id: sro.scrum_master_role
     name: Scrum Master Role
     label: { pt-BR: "Papel de Scrum Master" }
     definition:
       pt-BR: Papel Scrum responsável por facilitar o processo e remover impedimentos.
-    classification: { ufo_category: social_role, parent: sro.scrum_role }
+    classification: { ufo_category: social_role, ontouml_stereotype: role, parent: sro.scrum_role }
 
   - id: sro.developer_role
     name: Developer Role
     label: { pt-BR: "Papel de Desenvolvedor" }
     definition:
       pt-BR: Papel Scrum responsável por desenvolver o produto e os resultados intermediários.
-    classification: { ufo_category: social_role, parent: sro.scrum_role }
+    classification: { ufo_category: social_role, ontouml_stereotype: role, parent: sro.scrum_role }
 
   - id: sro.client_role
     name: Client Role
     label: { pt-BR: "Papel de Cliente" }
     definition:
       pt-BR: Papel Scrum de quem demanda o produto e participa da definição do product backlog.
-    classification: { ufo_category: social_role, parent: sro.scrum_role }
+    classification: { ufo_category: social_role, ontouml_stereotype: role, parent: sro.scrum_role }
 
   - id: sro.scrum_team_member
     name: Scrum Team Member
     label: { pt-BR: "Membro do Time Scrum" }
     definition:
       pt-BR: Pessoa interessada em um projeto Scrum e alocada a um time Scrum para desempenhar um papel Scrum.
-    classification: { ufo_category: role, parent: spo.project_person_stakeholder }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: spo.project_person_stakeholder }
 
   - id: sro.product_owner
     name: Product Owner
     label: { pt-BR: "Product Owner" }
     definition:
       pt-BR: Membro do time Scrum que desempenha o Papel de Product Owner no time.
-    classification: { ufo_category: role, parent: sro.scrum_team_member }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.scrum_team_member }
 
   - id: sro.product_owner_client
     name: Product Owner Client
     label: { pt-BR: "Product Owner Cliente" }
     definition:
       pt-BR: Ocorre quando o próprio cliente é membro do time Scrum e desempenha o Papel de Product Owner.
-    classification: { ufo_category: role, parent: sro.product_owner }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.product_owner }
 
   - id: sro.product_owner_project_stakeholder
     name: Product Owner Project Stakeholder
     label: { pt-BR: "Product Owner Representante" }
     definition:
       pt-BR: Ocorre quando outra pessoa representa os interesses do cliente desempenhando o Papel de Product Owner.
-    classification: { ufo_category: role, parent: sro.product_owner }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.product_owner }
 
   - id: sro.scrum_master
     name: Scrum Master
     label: { pt-BR: "Scrum Master" }
     definition:
       pt-BR: Membro do time Scrum que desempenha o Papel de Scrum Master.
-    classification: { ufo_category: role, parent: sro.scrum_team_member }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.scrum_team_member }
 
   - id: sro.developer
     name: Developer
     label: { pt-BR: "Desenvolvedor" }
     definition:
       pt-BR: Membro do time Scrum que desempenha o Papel de Desenvolvedor no time de desenvolvimento.
-    classification: { ufo_category: role, parent: sro.scrum_team_member }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.scrum_team_member }
 
   - id: sro.client
     name: Client
     label: { pt-BR: "Cliente" }
     definition:
       pt-BR: Membro do time Scrum que desempenha o Papel de Cliente.
-    classification: { ufo_category: role, parent: sro.scrum_team_member }
+    classification: { ufo_category: role, ontouml_stereotype: role, parent: sro.scrum_team_member }
 
   - id: sro.scrum_team
     name: Scrum Team
     label: { pt-BR: "Time Scrum" }
     definition:
       pt-BR: Equipe interessada em um projeto Scrum, composta pelos membros do time Scrum.
-    classification: { ufo_category: collective, parent: spo.project_team_stakeholder }
+    classification: { ufo_category: collective, ontouml_stereotype: kind, parent: spo.project_team_stakeholder }
 
   - id: sro.development_team
     name: Development Team
@@ -111,28 +111,28 @@ concepts:
       pt-BR: >
         Parte do time Scrum responsável por desenvolver o produto e os resultados
         intermediários.
-    classification: { ufo_category: collective, parent: spo.project_team_stakeholder }
+    classification: { ufo_category: collective, ontouml_stereotype: kind, parent: spo.project_team_stakeholder }
 
   - id: sro.product_owner_membership
     name: Product Owner Membership
     label: { pt-BR: "Alocação de Product Owner" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Product Owner em um time Scrum.
-    classification: { ufo_category: relator, parent: eo.team_membership }
+    classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
   - id: sro.scrum_master_membership
     name: Scrum Master Membership
     label: { pt-BR: "Alocação de Scrum Master" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Scrum Master em um time de desenvolvimento.
-    classification: { ufo_category: relator, parent: eo.team_membership }
+    classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
   - id: sro.developer_membership
     name: Developer Membership
     label: { pt-BR: "Alocação de Desenvolvedor" }
     definition:
       pt-BR: Alocação que faz um membro do time desempenhar o Papel de Desenvolvedor em um time de desenvolvimento.
-    classification: { ufo_category: relator, parent: eo.team_membership }
+    classification: { ufo_category: relator, ontouml_stereotype: relator, parent: eo.team_membership }
 
 relations:
   - id: sro.scrum_team_interested_in_project

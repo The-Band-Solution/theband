@@ -39,6 +39,17 @@ defmodule TheBand.Ingestion do
   @spec start_sync(Tenant.t(), ConnectedTool.t()) ::
           {:ok, Sync.t()} | {:error, :already_running | :no_active_credential | term()}
   def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool) do
+    # Origem encerrada não é coletada (FR-008). O filtro passa por
+    # `observation_ended?/1`, que é o mesmo caminho que a tela usa — dois caminhos
+    # discordariam, e a plataforma coletaria do que a tela mostra como encerrado.
+    if Sources.observation_ended?(tool) do
+      {:error, :observation_ended}
+    else
+      do_start_sync(tenant_id, tenant, tool)
+    end
+  end
+
+  defp do_start_sync(tenant_id, tenant, tool) do
     case Sources.active_credential(tool) do
       nil ->
         {:error, :no_active_credential}

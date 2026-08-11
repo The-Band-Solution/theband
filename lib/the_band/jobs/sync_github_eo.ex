@@ -63,9 +63,12 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       org: tool.organization_login
     }
 
+    # A coleta devolve **qual organização observou**, e não só que terminou. É o que a
+    # marca de ausência precisa saber: "não apareceu" só significa algo em relação ao
+    # que foi olhado, e a coleta olha uma organização por vez (L19).
     case collect(ctx) do
-      :ok ->
-        {:ok, _} = EO.mark_evidence_no_longer_observed(tenant, started_at)
+      {:ok, organization_id} ->
+        {:ok, _} = EO.mark_evidence_no_longer_observed(tenant, organization_id, started_at)
         pending = EO.count_evidence_pending_role(tenant)
 
         sync
@@ -132,7 +135,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       # Avaliada **ao fim**, e não antes: é o único momento em que se sabe quem ficou
       # fora de todas as equipes. Antes disso o conjunto de equipes está incompleto, e
       # a derivada acolheria gente que estava em time ainda não coletado.
-      derive_default_team(ctx)
+      with :ok <- derive_default_team(ctx), do: {:ok, ctx.organization_id}
     end
   end
 

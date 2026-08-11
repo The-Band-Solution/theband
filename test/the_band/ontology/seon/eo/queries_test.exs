@@ -104,8 +104,13 @@ defmodule TheBand.Ontology.SEON.EO.QueriesTest do
           observed_at: ontem
         })
 
-      # Uma coleta posterior não observou o vínculo.
-      assert {:ok, 1} = EO.mark_evidence_no_longer_observed(tenant, DateTime.utc_now(:second))
+      # Uma coleta posterior da **mesma organização** não observou o vínculo.
+      assert {:ok, 1} =
+               EO.mark_evidence_no_longer_observed(
+                 tenant,
+                 equipe.organization_id,
+                 DateTime.utc_now(:second)
+               )
 
       assert [membro] = EO.list_team_members(tenant, equipe.id)
       assert membro.no_longer_observed_at
@@ -201,8 +206,13 @@ defmodule TheBand.Ontology.SEON.EO.QueriesTest do
       # O instante somado em um segundo não é detalhe de teste: as colunas são
       # `timestamp(0)`, então um `utc_now()` do mesmo segundo é truncado ao mesmo
       # valor de `last_observed_at`, e `X < X` não marca nada.
+      # A marca é **por organização**: a coleta olha uma por vez, e "não apareceu" só
+      # significa algo em relação ao que foi olhado (L19). Marcar as duas exige duas
+      # chamadas, uma por organização — e é essa exigência que impede uma coleta de
+      # marcar os vínculos da outra.
       depois = DateTime.utc_now(:second) |> DateTime.add(1, :second)
-      {:ok, 2} = EO.mark_evidence_no_longer_observed(ctx.tenant, depois)
+      {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.orgs["alfa"].id, depois)
+      {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.orgs["beta"].id, depois)
 
       assert ["alfa", "beta"] =
                EO.list_person_organizations(ctx.tenant, ctx.pessoa.id) |> Enum.map(& &1.login)
@@ -220,6 +230,86 @@ defmodule TheBand.Ontology.SEON.EO.QueriesTest do
       outro = tenant_fixture("outra-org")
 
       assert [] == EO.list_person_organizations(outro, ctx.pessoa.id)
+    end
+  end
+
+  describe "a marca de ausência é por organização (L19)" do
+    setup do
+      tenant = tenant_fixture()
+
+      alfa = organization_fixture(tenant, "alfa")
+      beta = organization_fixture(tenant, "beta")
+      t_alfa = team_fixture(tenant, "T_alfa", %{organization: alfa})
+      t_beta = team_fixture(tenant, "T_beta", %{organization: beta})
+
+      {:ok, pessoa} = EO.upsert_person_from_source(tenant, source_attrs("U_x", %{name: "Ana"}))
+
+      ontem = DateTime.add(DateTime.utc_now(:second), -86_400)
+
+      for {equipe, sufixo} <- [{t_alfa, "-a"}, {t_beta, "-b"}] do
+        {:ok, _} =
+          EO.record_team_membership_evidence(tenant, %{
+            person_id: pessoa.id,
+            team_id: equipe.id,
+            person_external_id: "U_x" <> sufixo,
+            team_external_id: equipe.external_id,
+            platform_access_level: "MEMBER",
+            source_system: "github",
+            source_instance: "https://github.com",
+            observed_at: ontem
+          })
+      end
+
+      %{tenant: tenant, alfa: alfa, beta: beta, t_alfa: t_alfa, t_beta: t_beta, pessoa: pessoa}
+    end
+
+    test "coletar uma organização NÃO marca os vínculos da outra", ctx do
+      # É o defeito da L19 escrito como violação. Antes da correção, esta chamada marcava
+      # os dois vínculos — o de `beta` inclusive, que não apareceu na coleta de `alfa`
+      # porque é de outra organização e nunca apareceria.
+      agora = DateTime.utc_now(:second)
+      assert {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.alfa.id, agora)
+
+      [vinculo_beta] = EO.list_team_members(ctx.tenant, ctx.t_beta.id)
+
+      refute vinculo_beta.no_longer_observed_at,
+             "coletar alfa marcou o vínculo de beta — é a L19 de volta"
+    end
+
+    test "a pessoa continua vigente na organização não coletada", ctx do
+      agora = DateTime.utc_now(:second)
+      {:ok, _} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.alfa.id, agora)
+
+      vigentes =
+        EO.list_person_organizations(ctx.tenant, ctx.pessoa.id, only_observed: true)
+        |> Enum.map(& &1.login)
+
+      # Antes da correção isto devolvia lista vazia: era o que fazia `EduardoNFraiz`
+      # aparecer sem organização alguma estando em duas observadas.
+      assert vigentes == ["beta"]
+    end
+
+    test "o vínculo da organização coletada é marcado — a correção não marca de menos",
+         ctx do
+      agora = DateTime.utc_now(:second)
+      {:ok, _} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.alfa.id, agora)
+
+      [vinculo_alfa] = EO.list_team_members(ctx.tenant, ctx.t_alfa.id)
+
+      # O oposto do defeito é igualmente errado. Marcar de menos faria a plataforma
+      # afirmar observação que a origem deixou de mostrar.
+      assert vinculo_alfa.no_longer_observed_at
+    end
+
+    test "duas coletas em sequência marcam cada uma a sua", ctx do
+      agora = DateTime.utc_now(:second)
+
+      assert {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.alfa.id, agora)
+      assert {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.beta.id, agora)
+
+      # É a sequência que o banco de desenvolvimento tinha e o teste não: uma coleta
+      # após a outra, cada uma de uma organização diferente.
+      assert [] == EO.list_person_organizations(ctx.tenant, ctx.pessoa.id, only_observed: true)
     end
   end
 end

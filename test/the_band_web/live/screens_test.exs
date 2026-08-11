@@ -9,7 +9,12 @@ defmodule TheBandWeb.ScreensTest do
 
   use TheBandWeb.ConnCase, async: false
 
+  import Mox
+
+  setup :verify_on_exit!
+
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Sources
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ToolCredential
   alias TheBand.Tenants
@@ -86,9 +91,8 @@ defmodule TheBandWeb.ScreensTest do
       assert html =~ "dependabot"
     end
 
-    test "estado vazio explica a causa em vez de só dizer que está vazio", %{conn: conn} do
-      {tenant, user} = tenant_with_admin("vazio")
-      _ = tenant
+    test "estado vazio explica a causa em vez de só dizer que está vazio" do
+      {_tenant, user} = tenant_with_admin("vazio")
 
       {:ok, _live, html} = live(log_in(build_conn(), user), ~p"/pessoas")
 
@@ -337,6 +341,230 @@ defmodule TheBandWeb.ScreensTest do
       # A origem tem 1 time; a plataforma mostra 2 equipes, e diz por quê.
       assert EO.count_teams(tenant) == 2
       assert EO.count_teams(tenant, origin: :observed) == 1
+    end
+  end
+
+  describe "encerrar a observação pela tela (T018, T022)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+
+      alfa = organization_fixture(tenant, "acme")
+      beta = organization_fixture(tenant, "outra-org-fonte")
+      t_alfa = team_fixture(tenant, "T_a", %{organization: alfa})
+      t_beta = team_fixture(tenant, "T_b", %{organization: beta})
+
+      {:ok, sobreposta} =
+        EO.upsert_person_from_source(tenant, source_attrs("U_s", %{name: "Sobreposta"}))
+
+      {:ok, exclusiva} =
+        EO.upsert_person_from_source(tenant, source_attrs("U_e", %{name: "Exclusiva"}))
+
+      for {p, t, sufixo} <- [
+            {sobreposta, t_alfa, "-a"},
+            {sobreposta, t_beta, "-b"},
+            {exclusiva, t_alfa, "-a"}
+          ] do
+        {:ok, _} =
+          EO.record_team_membership_evidence(tenant, %{
+            person_id: p.id,
+            team_id: t.id,
+            person_external_id: p.external_id <> sufixo,
+            team_external_id: t.external_id,
+            platform_access_level: "MEMBER",
+            source_system: "github",
+            source_instance: "https://github.com",
+            observed_at: DateTime.utc_now(:second)
+          })
+      end
+
+      %{conn: log_in(conn, user), tenant: tenant, tool: tool}
+    end
+
+    test "o impacto aparece antes de confirmar, e nomeia quem permanece", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+
+      html = live |> element("button", "encerrar observação") |> render_click()
+
+      assert html =~ "Encerrar a observação de acme"
+      assert html =~ "Permanecem vigentes"
+      # O nome, e não um contador: "1 pessoa permanece" não deixa reconhecer quem é.
+      assert html =~ "Sobreposta"
+      assert html =~ "NÃO serão apagados"
+      assert html =~ "Para confirmar, digite"
+    end
+
+    test "confirmação errada não encerra", %{conn: conn, tool: tool} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "encerrar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acm"})
+        |> render_submit()
+
+      assert html =~ "não corresponde"
+      refute Sources.observation_ended?(tool)
+    end
+
+    test "confirmação certa encerra, e o resumo diz que nada foi apagado", %{
+      conn: conn,
+      tool: tool
+    } do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "encerrar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acme"})
+        |> render_submit()
+
+      assert html =~ "encerrada"
+      assert html =~ "Nada foi apagado"
+      assert html =~ "observação encerrada"
+      assert Sources.observation_ended?(tool)
+    end
+
+    test "o segredo não aparece em nenhum momento do fluxo (SC-011)", %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/ferramentas")
+      refute html =~ @segredo
+
+      html = live |> element("button", "encerrar observação") |> render_click()
+      refute html =~ @segredo
+
+      html =
+        live
+        |> form("form[phx-submit=end_observation]", %{"confirmation" => "acme"})
+        |> render_submit()
+
+      # A violação: procura o segredo e exige não encontrar, nas três telas do fluxo.
+      refute html =~ @segredo
+    end
+  end
+
+  describe "retomar a observação pela tela (US2)" do
+    setup %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+      org = organization_fixture(tenant, "acme")
+      team_fixture(tenant, "T_a", %{organization: org})
+
+      {:ok, _} = Sources.end_observation(tenant, tool, %{"confirmation" => "acme"})
+
+      %{conn: log_in(conn, user), tenant: tenant, tool: tool}
+    end
+
+    test "o botão de retomar aparece só na encerrada", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/ferramentas")
+
+      assert html =~ "retomar observação"
+      refute html =~ "encerrar observação"
+    end
+
+    test "o formulário diz que a coleta é que devolve vigência", %{conn: conn} do
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+
+      html = live |> element("button", "retomar observação") |> render_click()
+
+      assert html =~ "credencial anterior foi destruída"
+      # A frase existe para impedir o mal-entendido: retomar não ressuscita nada por si.
+      assert html =~ "não voltam a ser vigentes agora"
+    end
+
+    test "credencial recusada não retoma, e a tela diz", %{conn: conn, tool: tool} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok, %{status: 401, body: %{}, headers: %{}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{"secret" => "ghp_ruim"})
+        |> render_submit()
+
+      assert html =~ "recusada pela ferramenta"
+      assert Sources.observation_ended?(tool)
+    end
+
+    test "credencial válida retoma, e o aviso diz o que a coleta fará", %{
+      conn: conn,
+      tool: tool
+    } do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{
+          "secret" => "ghp_boa",
+          "label" => "nova"
+        })
+        |> render_submit()
+
+      assert html =~ "retomada"
+      assert html =~ "só os que a origem ainda mostrar"
+      refute Sources.observation_ended?(tool)
+    end
+
+    test "o segredo novo não aparece no HTML (SC-011)", %{conn: conn} do
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      live |> element("button", "retomar observação") |> render_click()
+
+      html =
+        live
+        |> form("form[phx-submit=resume_observation]", %{"secret" => "ghp_segredo_novo_12345"})
+        |> render_submit()
+
+      refute html =~ "ghp_segredo_novo_12345"
+    end
+  end
+
+  describe "histórico de observação (US2, AC4)" do
+    test "depois de retomar, o histórico guarda o encerramento e a retomada", %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+      conn = log_in(conn, user)
+
+      {:ok, _} = Sources.end_observation(tenant, tool, %{"confirmation" => "acme"})
+
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, _} = Sources.resume_observation(tenant, tool, %{"secret" => "ghp_nova"})
+
+      {:ok, live, html} = live(conn, ~p"/ferramentas")
+
+      # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
+      refute html =~ "observação encerrada"
+      assert html =~ "histórico de observação (2)"
+
+      aberto = live |> element("button", "histórico de observação") |> render_click()
+
+      assert aberto =~ "encerrada"
+      assert aberto =~ "retomada"
+    end
+
+    test "ferramenta que nunca encerrou não mostra histórico", %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      conectar_ferramenta(tenant)
+
+      {:ok, _live, html} = live(log_in(conn, user), ~p"/ferramentas")
+
+      refute html =~ "histórico de observação"
     end
   end
 end

@@ -70,6 +70,115 @@ defmodule TheBandWeb.SourceLive.Index do
     {:noreply, load_tools(socket)}
   end
 
+  def handle_event("ask_end", %{"id" => id}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    case Sources.fetch_connected_tool(tenant, id) do
+      {:ok, tool} ->
+        impact = Sources.observation_impact(tenant, tool)
+
+        {:noreply,
+         assign(socket,
+           ending: %{
+             tool: tool,
+             impact: impact,
+             shared_names: Sources.shared_people_names(tenant, tool)
+           }
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
+  def handle_event("cancel_end", _params, socket), do: {:noreply, assign(socket, ending: nil)}
+
+  def handle_event("ask_resume", %{"id" => id}, socket) do
+    case Sources.fetch_connected_tool(socket.assigns.current_tenant, id) do
+      {:ok, tool} -> {:noreply, assign(socket, resuming: tool)}
+      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
+  def handle_event("toggle_history", %{"id" => id}, socket) do
+    abertos = socket.assigns.open_history
+
+    {:noreply,
+     assign(socket, open_history: if(id in abertos, do: abertos -- [id], else: [id | abertos]))}
+  end
+
+  def handle_event("cancel_resume", _params, socket),
+    do: {:noreply, assign(socket, resuming: nil)}
+
+  def handle_event("resume_observation", %{"tool_id" => id} = params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, id),
+         {:ok, _resultado} <-
+           Sources.resume_observation(tenant, tool, %{
+             "secret" => params["secret"],
+             "label" => params["label"],
+             "actor_user_id" => socket.assigns.current_user.id
+           }) do
+      {:noreply,
+       socket
+       |> assign(resuming: nil)
+       |> put_flash(
+         :info,
+         "Observação de #{tool.organization_login} retomada. " <>
+           "Os registros marcados voltam a ser vigentes na próxima coleta, " <>
+           "e só os que a origem ainda mostrar."
+       )
+       |> load_tools()}
+    else
+      {:error, :unauthorized} ->
+        {:noreply, put_flash(socket, :error, "A credencial foi recusada pela ferramenta.")}
+
+      {:error, {:missing_scopes, faltando}} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "A credencial não tem os escopos: #{Enum.join(faltando, ", ")}"
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Não foi possível retomar a observação.")}
+    end
+  end
+
+  def handle_event("end_observation", %{"tool_id" => id} = params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, id),
+         {:ok, resultado} <-
+           Sources.end_observation(tenant, tool, %{
+             "confirmation" => params["confirmation"],
+             "actor_user_id" => socket.assigns.current_user.id
+           }) do
+      {:noreply,
+       socket
+       |> assign(ending: nil)
+       |> put_flash(
+         :info,
+         "Observação de #{tool.organization_login} encerrada. " <>
+           "#{resultado.marked.people} pessoa(s), #{resultado.marked.teams} equipe(s) e " <>
+           "#{resultado.marked.links} vínculo(s) marcados. " <>
+           "#{resultado.credentials_destroyed} credencial(is) destruída(s). Nada foi apagado."
+       )
+       |> load_tools()}
+    else
+      {:error, :confirmation_mismatch} ->
+        {:noreply, put_flash(socket, :error, "O nome digitado não corresponde à organização.")}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -138,12 +247,21 @@ defmodule TheBandWeb.SourceLive.Index do
           <div>
             <div class="flex items-center gap-2">
               <span class="font-semibold text-lg">{tool.tool_type}</span>
-              <span class={[
-                "badge",
-                tool.status == "active" && "badge-success",
-                tool.status == "needs_attention" && "badge-warning",
-                tool.status == "disabled" && "badge-ghost"
-              ]}>
+              <%!-- Um selo só. Mostrar "ativa" ao lado de "observação encerrada" fazia o
+                    cartão afirmar duas coisas contrárias — o estado de observação vence,
+                    porque é ele que decide se a plataforma coleta (FR-022). --%>
+              <span :if={@ended[tool.id]} class="badge badge-ghost">
+                observação encerrada
+              </span>
+              <span
+                :if={!@ended[tool.id]}
+                class={[
+                  "badge",
+                  tool.status == "active" && "badge-success",
+                  tool.status == "needs_attention" && "badge-warning",
+                  tool.status == "disabled" && "badge-ghost"
+                ]}
+              >
                 {status_label(tool.status)}
               </span>
             </div>
@@ -154,7 +272,145 @@ defmodule TheBandWeb.SourceLive.Index do
           <div class="text-right text-sm opacity-70">
             <div :if={tool.last_sync_at}>última coleta: {tool.last_sync_at}</div>
             <div :if={is_nil(tool.last_sync_at)}>nunca sincronizada</div>
+            <div :if={@ended[tool.id]} class="text-xs">
+              encerrada em {@ended[tool.id]}
+            </div>
+            <button
+              :if={!@ended[tool.id]}
+              class="btn btn-xs btn-outline btn-error mt-2"
+              phx-click="ask_end"
+              phx-value-id={tool.id}
+            >
+              encerrar observação
+            </button>
+            <button
+              :if={@ended[tool.id]}
+              class="btn btn-xs btn-outline mt-2"
+              phx-click="ask_resume"
+              phx-value-id={tool.id}
+            >
+              retomar observação
+            </button>
           </div>
+        </div>
+
+        <%!-- AC4 da US2: depois de retomada, a ferramenta volta a parecer ativa e o
+              cartão não diria que houve encerramento. O histórico é o que preserva
+              que aconteceu — e é append-only, então nunca encolhe. --%>
+        <div :if={@history[tool.id] != []} class="mt-3">
+          <button class="link link-hover text-xs" phx-click="toggle_history" phx-value-id={tool.id}>
+            histórico de observação ({length(@history[tool.id])})
+          </button>
+
+          <ul :if={tool.id in @open_history} class="mt-2 text-xs space-y-1">
+            <li :for={event <- @history[tool.id]} class="flex gap-2">
+              <span class={[
+                "badge badge-xs",
+                event.event == "ended" && "badge-error",
+                event.event == "resumed" && "badge-success"
+              ]}>
+                {if event.event == "ended", do: "encerrada", else: "retomada"}
+              </span>
+              <span class="opacity-70">{event.occurred_at}</span>
+              <span :if={event.reason} class="opacity-70">— {event.reason}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div :if={@resuming && @resuming.id == tool.id} class="alert block text-sm">
+          <div class="font-semibold mb-2">
+            Retomar a observação de {tool.organization_login}
+          </div>
+
+          <p class="mb-2 opacity-80">
+            A credencial anterior foi destruída no encerramento, então é preciso informar
+            uma nova. Ela é validada contra a origem antes de qualquer coisa ser gravada.
+          </p>
+
+          <p class="mb-3 opacity-80">
+            Os registros marcados <strong>não voltam a ser vigentes agora</strong>: só a
+            coleta seguinte pode dizer se a origem ainda os mostra. Desmarcar aqui
+            afirmaria uma observação que não aconteceu.
+          </p>
+
+          <form phx-submit="resume_observation" class="flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="tool_id" value={tool.id} />
+            <label class="form-control">
+              <span class="label-text text-xs">Credencial nova</span>
+              <input
+                name="secret"
+                type="password"
+                class="input input-bordered input-sm"
+                autocomplete="off"
+                placeholder="ghp_..."
+              />
+            </label>
+            <label class="form-control">
+              <span class="label-text text-xs">Rótulo</span>
+              <input
+                name="label"
+                class="input input-bordered input-sm"
+                placeholder="credencial principal"
+              />
+            </label>
+            <.button type="submit" variant="primary">Validar e retomar</.button>
+            <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_resume">
+              cancelar
+            </button>
+          </form>
+        </div>
+
+        <div :if={@ending && @ending.tool.id == tool.id} class="alert alert-error text-sm block">
+          <div class="font-semibold mb-2">
+            Encerrar a observação de {tool.organization_login}
+          </div>
+
+          <div class="mb-2">
+            <div class="opacity-80">Serão marcados como não mais observados:</div>
+            <div class="font-mono">
+              {@ending.impact.teams} equipe(s) — {@ending.impact.derived_teams} derivada(s) pela plataforma
+            </div>
+            <div class="font-mono">{@ending.impact.evidence_links} vínculo(s)</div>
+            <div class="font-mono">
+              {@ending.impact.people_exclusive} pessoa(s) conhecida(s) só por esta organização
+            </div>
+          </div>
+
+          <div :if={@ending.impact.people_shared > 0} class="mb-2">
+            <div class="opacity-80">Permanecem vigentes:</div>
+            <div class="font-mono">
+              {@ending.impact.people_shared} pessoa(s) — também observada(s) em outra organização
+            </div>
+            <div :for={p <- @ending.shared_names} class="font-mono text-xs opacity-80">
+              {p}
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <div class="opacity-80">Serão destruídas:</div>
+            <div class="font-mono">as credenciais desta ferramenta</div>
+          </div>
+
+          <div class="mb-3">
+            <div class="opacity-80 font-semibold">NÃO serão apagados:</div>
+            <div class="font-mono">
+              {@ending.impact.preserved_payloads} payload(s) preservado(s), nem pessoa, equipe ou vínculo algum
+            </div>
+          </div>
+
+          <form phx-submit="end_observation" class="flex flex-wrap gap-2 items-end">
+            <input type="hidden" name="tool_id" value={tool.id} />
+            <label class="form-control">
+              <span class="label-text text-xs">
+                Para confirmar, digite: <strong>{tool.organization_login}</strong>
+              </span>
+              <input name="confirmation" class="input input-bordered input-sm" autocomplete="off" />
+            </label>
+            <.button type="submit" variant="primary">Encerrar</.button>
+            <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_end">
+              cancelar
+            </button>
+          </form>
         </div>
 
         <div :if={tool.status == "needs_attention"} class="alert alert-warning text-sm">
@@ -212,7 +468,19 @@ defmodule TheBandWeb.SourceLive.Index do
   end
 
   defp load_tools(socket) do
-    assign(socket, tools: Sources.list_connected_tools(socket.assigns.current_tenant))
+    tenant = socket.assigns.current_tenant
+    tools = Sources.list_connected_tools(tenant)
+
+    socket
+    |> assign(tools: tools)
+    # A derivação vem de `observation_ended?/1`, a mesma função que o filtro de coleta
+    # usa. Dois caminhos discordariam, e a tela mostraria como encerrado o que a
+    # plataforma continua coletando.
+    |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
+    |> assign(history: Map.new(tools, &{&1.id, Sources.observation_history(tenant, &1)}))
+    |> assign_new(:ending, fn -> nil end)
+    |> assign_new(:resuming, fn -> nil end)
+    |> assign_new(:open_history, fn -> [] end)
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)

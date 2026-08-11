@@ -539,3 +539,224 @@ evidência, de boa-fé, e errado.
 
 **Aplicada em**: Sprint 002 — a avaliação de D01 encontrou o defeito antes da
 aceitação, e a correção está registrada no `aceitacao.md`.
+
+### L19 — Marcar ausência por tenant marca o que é de outra organização
+
+**O que aconteceu.** A demonstração da feature 003 mostrou `Paulo` com uma única
+organização vigente — `leds-conectafapes` — quando `The-Band-Solution` também continua
+sendo observada. E `EduardoNFraiz` apareceu com **nenhuma** vigente, estando em duas
+organizações ativas.
+
+Nenhum dos dois foi marcado pelo encerramento. O que estava marcado eram os **vínculos**,
+e a marca tinha vindo de antes:
+
+```text
+organização        vínculos  marcados  primeira marca
+The-Band-Solution         7         7  2026-08-10 00:44:30
+leds-conectafapes        70        55  2026-08-10 00:44:30
+ifesserra-lab             5         5  2026-08-10 23:21:59   ← o encerramento
+```
+
+Os dois primeiros no **mesmo instante**, muito antes de a feature 003 existir.
+
+**Por que aconteceu.** `mark_evidence_no_longer_observed/2` é chamada ao fim de cada
+coleta para marcar o que não apareceu nela, e filtra por **tenant**:
+
+```elixir
+where: e.tenant_id == ^tenant_id and e.last_observed_at < ^collection_started_at
+```
+
+Sem escopo de organização. Então coletar `The-Band-Solution` marca os vínculos de
+`leds-conectafapes`, porque eles não apareceram *naquela* coleta — e não apareceriam,
+porque são de outra organização.
+
+**Por que importa.** É defeito da feature 001, e a semântica que ele quebra é a mais
+central do projeto: a marca significa "a origem deixou de mostrar", e passou a significar
+"a última coleta não era desta organização". Toda consulta que pede só o vigente devolve
+menos do que a plataforma observa — foi exatamente o que a demonstração mostrou.
+
+**Não foi corrigido na feature 003, de propósito.** Emendar aqui misturaria a correção de
+um defeito antigo com a entrega de uma feature, e é a mesma razão pela qual a dívida de
+`connected_tools.status` também não foi tocada.
+
+**O que torna a lição maior que o defeito.** A feature 002 deu à plataforma exatamente o
+vocabulário que falta aqui — `organization_id` na equipe, e o caminho pessoa → equipe →
+organização. Ela corrigiu o modelo e **não revisitou quem já usava a semântica antiga**.
+Acrescentar a capacidade de escopar não escopa nada por si.
+
+**Como aplicar.**
+
+1. **Feature que acrescenta uma dimensão deve procurar quem decide sem ela.** Ao
+   introduzir escopo por organização, a pergunta seguinte é "que consultas e escritas hoje
+   decidem por tenant e deveriam decidir por organização?";
+2. **Marca de ausência precisa do escopo da observação que a produziu.** "Não apareceu"
+   só significa algo em relação ao que foi olhado;
+3. **Demonstrar no dado real acha o que o teste não acha.** Os 151 testes passam: cada um
+   cria o seu cenário, e num cenário de uma organização a falta de escopo é invisível. O
+   defeito exige duas organizações e duas coletas em sequência — que é o que o banco de
+   desenvolvimento tem e o teste não tinha.
+
+**Corrigida no sprint 003.** `mark_evidence_no_longer_observed/3` passou a exigir a
+organização, e a coleta devolve **qual organização observou** em vez de só dizer que
+terminou. Quatro testes reprovam quando o escopo é removido, incluindo um cuja mensagem
+diz o motivo: *"coletar alfa marcou o vínculo de beta — é a L19 de volta"*.
+
+**O dado histórico continua errado, e a correção não o conserta.** A mudança vale para
+coletas futuras; os vínculos marcados antes seguem marcados. Não foram desmarcados por
+decisão: não se sabe o que a origem mostrava naquele instante, e desmarcar por conta
+própria afirmaria observação que não ocorreu — exatamente o erro que a L19 é.
+
+O reparo acontece sozinho na próxima coleta real de cada organização: reobservar um
+vínculo limpa a marca. Até lá, consultas por vigência devolvem menos do que a plataforma
+observa, e o registro diz isso.
+
+**A demonstração no banco ficou fraca, e é honesto dizer.** Ao simular uma coleta de
+`leds-conectafapes`, os vínculos de `The-Band-Solution` ficaram intactos — mas ela já
+estava com **zero** vínculos vigentes, pelo próprio defeito. "0 antes, 0 depois" é
+intacto no zero, e prova pouco. A prova forte está nos testes, com duas organizações
+construídas do zero.
+
+### L20 — Estado derivado do "último" precisa de desempate determinístico
+
+**O que aconteceu.** Ao implementar o retomar, o teste "reusa a ferramenta existente"
+falhou dizendo que a observação continuava encerrada depois de retomada. Os dois eventos
+— `ended` e `resumed` — tinham sido gravados no **mesmo segundo**, e a derivação do
+estado pede o último evento por `occurred_at desc, inserted_at desc`. Com as duas colunas
+em `timestamp(0)`, o empate era total, e o banco devolvia qualquer um dos dois.
+
+**Já tinha acontecido, com outro nome.** No sprint 001, `active_credential/1` escolhia a
+credencial mais recentemente validada, e duas cadastradas no mesmo segundo empatavam em
+`validated_at` — o mesmo estado do banco escolhia credenciais diferentes entre execuções.
+A correção lá foi acrescentar desempate; a correção aqui é a mesma ideia com outro
+mecanismo.
+
+**Por que reincidiu.** Porque a lição anterior foi registrada como sendo sobre
+**credenciais**, e não sobre **derivar estado de um conjunto ordenado**. O padrão é o
+mesmo toda vez que o código pergunta "qual o último": se a chave de ordenação tem
+granularidade maior que a frequência de escrita, o "último" é indefinido.
+
+E a granularidade que engana é justamente o segundo, porque parece fino o bastante. Duas
+ações de interface distam segundos; duas de um teste, microssegundos.
+
+**A correção.** `occurred_at` continua em segundos — é quando a coisa **ocorreu**, e
+segundo basta. `inserted_at` passou a microssegundo: é a ordem de gravação, e é ela que
+desempata. Separar os dois papéis é o que torna a ordem definida sem fingir precisão que
+o evento não tem.
+
+**Como aplicar.**
+
+1. **Toda derivação de "o último" declara o desempate.** Se a resposta muda conforme o
+   plano de execução, não é derivação;
+2. **Segundo não é desempate.** Onde a escrita pode ocorrer mais de uma vez por segundo —
+   e quase sempre pode —, a ordem precisa de coluna com resolução maior, ou de sequência;
+3. **Ao registrar lição sobre um caso, pergunte de que classe ele é.** "Credencial
+   empatada" travou o caso; "estado derivado sem desempate" teria travado a classe, e
+   esta lição não existiria.
+
+**Aplicada em**: Sprint 003 — a tabela de eventos de observação.
+
+---
+
+## L21 — Função pública testada e sem consumidor não é funcionalidade entregue
+
+**Onde**: Sprint 003, feature 003 — `resume_observation/3`.
+
+**O que aconteceu.** Retomar a observação estava especificado (US2, quatro cenários de
+aceitação), implementado e coberto por seis testes verdes. A pessoa mantenedora pediu
+"especifique a opção de reativar a observação", e a conferência mostrou que a
+especificação já existia. O que não existia era o **botão**: a LiveView tinha zero
+ocorrências de `resume_observation`.
+
+Encerrar era possível pela interface. Retomar, só pelo console — e um encerramento que na
+prática é irreversível faz as pessoas não encerrarem, que é exatamente o que a própria
+US2 diz na justificativa da prioridade.
+
+**Por que passou.** Porque cada gate media o que sabe medir, e nenhum mede alcance:
+
+| Gate | O que disse | O que não disse |
+|---|---|---|
+| `mix test` | 161 verdes | ninguém consegue chamar a função |
+| cobertura das tarefas | T023 a T025 concluídas | as tarefas eram de domínio |
+| `sprint-review.md` | F4 entregue | entregue **para quem** |
+
+O `sprint-backlog` declarava F4 como "US2 — retomar", e a fase terminou quando o domínio
+terminou. A fatia vertical existe precisamente para impedir isso, e a regra estava
+escrita: *nunca infraestrutura sem consumidor visível*. Ela foi seguida em F3 — a tela de
+encerramento veio junto — e não em F4.
+
+**O que exercitar pela tela achou, e os testes não.** Dois defeitos, ambos por os testes
+de domínio sempre passarem atributos completos:
+
+- rótulo `""` não pegava o padrão, porque o padrão só valia para campo **ausente**;
+- changeset inválido virava `MatchError` dentro da transação, matando a LiveView em vez
+  de responder.
+
+Nenhum dos dois é sutil. Os dois exigiam um formulário para aparecer.
+
+**Como aplicar.**
+
+1. **Fase de user story só fecha com consumidor.** Se a US descreve alguém fazendo algo,
+   a fase não termina enquanto esse alguém não conseguir fazer;
+2. **Antes de declarar uma fase pronta, procure a função na camada de interface.** Um
+   `grep` do nome da função pública custa segundos e responde "entregue para quem";
+3. **Ao ler um pedido que já parece atendido, confira o caminho inteiro.** "Já está
+   especificado e implementado" era verdade e escondia a lacuna. A pergunta útil não é
+   "existe?", é "quem consegue usar?".
+
+**Aplicada em**: Sprint 003 — botão de retomar, formulário e histórico de observação.
+
+
+---
+
+## L22 — Gate que só compara duas execuções não sabe dizer se alguma funcionou
+
+**Onde**: Sprint 003 — o gate "modelo de informação — derivação reproduzível".
+
+**O que aconteceu.** O gate nasceu na correção da [L17](#l17), para provar que a
+derivação é determinística. Ele roda o script duas vezes e compara as saídas:
+
+```bash
+for o in eo sro cmpo spo; do
+  python scripts/derive_information_model.py --ontology "$o" > /tmp/d1-$o.txt
+  python scripts/derive_information_model.py --ontology "$o" > /tmp/d2-$o.txt
+  diff "/tmp/d1-$o.txt" "/tmp/d2-$o.txt" || { echo "não é reproduzível"; exit 1; }
+done
+```
+
+A derivação da SRO **falha**, porque 43 conceitos não declaram
+`ontouml_stereotype` — e falha do mesmo jeito nas duas execuções. O `diff` passa.
+O que reprovou o passo foi o `bash -e` interrompendo no código de saída do script,
+e a mensagem que o gate imprime nunca apareceu: quem lesse o log veria um erro sem
+explicação, no meio de um passo que se chama "reproduzível".
+
+**E eu reportei o gate como verde duas vezes**, nas reviews dos sprints 002 e 003.
+Conferi que as duas saídas eram iguais e não conferi se alguma delas era uma
+derivação. A `main` estava vermelha desde o PR #93.
+
+**O que o gate escondia.** Anotar a SRO e voltar a derivar mostrou um defeito que
+existia antes dela: a guarda da ADR 0004 D5 — `role` materializa por relator,
+nunca por discriminador — só era aplicada quando o alvo do lifting estava na mesma
+ontologia. **CMPO e SPO já produziam a violação**, visível na saída, verde no CI:
+
+```
+spo.artifact.type += {configuration_item}
+ufo.agent.type    += {change_implementer}
+eo.person.type    += {project_person_stakeholder}
+```
+
+Uma tabela de pessoas afirmando que alguém **é** um Product Owner. O gate lia essa
+saída duas vezes, achava as duas iguais, e dizia que estava tudo bem.
+
+**Como aplicar.**
+
+1. **Todo gate diferencial precisa de um gate de sucesso antes.** Comparar duas
+   execuções só significa algo depois de saber que uma execução vale. `set -o
+   pipefail`, checar código de saída, e falhar com a mensagem do gate — não com o
+   `-e` do shell;
+2. **Ler o log do passo verde uma vez.** O que a derivação imprime é o modelo de
+   informação; ninguém o leu, e ele dizia a violação em voz alta;
+3. **Reportar gate como verde exige ter visto o verde.** Eu carreguei adiante uma
+   afirmação de uma review anterior. Uma afirmação repetida não vira verificação.
+
+**Aplicada em**: Sprint 003 — os 43 estereótipos da SRO e a guarda de `role` para
+kind de outra ontologia.

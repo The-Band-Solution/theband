@@ -147,6 +147,22 @@ defmodule TheBand.RawData do
     )
   end
 
+  @doc "Quantos payloads preservados vieram de uma organização observada (T006)."
+  @spec count_for_organization(Tenant.t(), String.t()) :: non_neg_integer()
+  def count_for_organization(%Tenant{id: tenant_id}, organization_login) do
+    Repo.aggregate(
+      from(r in __MODULE__,
+        join: s in Sync,
+        on: s.id == r.sync_id,
+        join: t in ConnectedTool,
+        on: t.id == s.connected_tool_id,
+        where: r.tenant_id == ^tenant_id and t.organization_login == ^organization_login
+      ),
+      :count,
+      :id
+    )
+  end
+
   @spec count(Tenant.t()) :: non_neg_integer()
   def count(%Tenant{id: tenant_id}) do
     Repo.aggregate(from(r in __MODULE__, where: r.tenant_id == ^tenant_id), :count, :id)
