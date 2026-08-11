@@ -16,6 +16,7 @@ defmodule TheBand.SourcesObservationTest do
 
   alias TheBand.Ingestion
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.Repo
   alias TheBand.Sources
   alias TheBand.Sources.ConnectedTool
@@ -91,6 +92,10 @@ defmodule TheBand.SourcesObservationTest do
       )
 
     %{orgs: orgs, tools: tools, teams: teams, pessoas: pessoas}
+  end
+
+  defp vinculo(pessoa, equipe) do
+    Repo.get_by!(TeamMembershipEvidence, person_id: pessoa.id, team_id: equipe.id)
   end
 
   defp marcada?(schema, id) do
@@ -441,6 +446,85 @@ defmodule TheBand.SourcesObservationTest do
       {:ok, _} = Sources.resume_observation(tenant, c.tools["alfa"], %{"secret" => "ghp_nova"})
 
       refute match?({:error, :observation_ended}, Ingestion.start_sync(tenant, c.tools["alfa"]))
+    end
+  end
+
+  describe "SC-007 — reobservar devolve vigência ao que a origem ainda mostra" do
+    setup do
+      tenant = tenant_fixture()
+      c = cenario(tenant)
+      %{tenant: tenant, c: c}
+    end
+
+    test "o vínculo que reaparece perde a marca; o que não reaparece a mantém", %{
+      tenant: tenant,
+      c: c
+    } do
+      {:ok, _} = Sources.end_observation(tenant, c.tools["alfa"], %{"confirmation" => "alfa"})
+
+      volta = c.pessoas["so_alfa"]
+      nao_volta = c.pessoas["em_duas"]
+      equipe = c.teams["alfa"]
+
+      assert marcada?(TeamMembershipEvidence, vinculo(volta, equipe).id)
+      assert marcada?(TeamMembershipEvidence, vinculo(nao_volta, equipe).id)
+
+      # A coleta seguinte reobserva **um** dos dois. É a distinção que a retomada
+      # promete e não cumpre sozinha.
+      {:ok, _} =
+        EO.record_team_membership_evidence(tenant, %{
+          person_id: volta.id,
+          team_id: equipe.id,
+          person_external_id: "U_so_alfa@alfa",
+          team_external_id: equipe.external_id,
+          platform_access_level: "MEMBER",
+          source_system: "github",
+          source_instance: "https://github.com",
+          observed_at: DateTime.utc_now(:second)
+        })
+
+      refute marcada?(TeamMembershipEvidence, vinculo(volta, equipe).id),
+             "o vínculo reobservado continuou marcado — a coleta não devolveu vigência"
+
+      assert marcada?(TeamMembershipEvidence, vinculo(nao_volta, equipe).id),
+             "o vínculo que NÃO reapareceu foi desmarcado — a plataforma afirmaria " <>
+               "uma observação que não ocorreu"
+    end
+  end
+
+  describe "SC-010 — o ciclo de observação não atravessa tenant" do
+    setup do
+      dono = tenant_fixture()
+      invasor = tenant_fixture()
+      %{dono: dono, invasor: invasor, c: cenario(dono)}
+    end
+
+    test "o tenant vizinho não alcança a ferramenta nem para ler", %{invasor: invasor, c: c} do
+      # "não encontrado", e não "sem permissão": dizer que existe já entrega que
+      # aquela organização é observada por alguém.
+      assert {:error, :not_found} = Sources.fetch_connected_tool(invasor, c.tools["alfa"].id)
+    end
+
+    test "encerrar pelo tenant vizinho não marca nada", %{
+      dono: dono,
+      invasor: invasor,
+      c: c
+    } do
+      equipe = c.teams["alfa"]
+
+      assert {:error, :not_found} = Sources.fetch_connected_tool(invasor, c.tools["alfa"].id)
+
+      # O caminho da tela passa por `fetch_connected_tool/2`, então o encerramento nem
+      # chega a ser tentado. A prova é o estado: nada foi marcado.
+      refute marcada?(TeamMembershipEvidence, vinculo(c.pessoas["so_alfa"], equipe).id)
+      refute Sources.observation_ended?(c.tools["alfa"])
+
+      # E o dono continua conseguindo — senão o teste passaria com tudo quebrado.
+      assert {:ok, _} = Sources.fetch_connected_tool(dono, c.tools["alfa"].id)
+    end
+
+    test "a lista do vizinho não traz a ferramenta alheia", %{invasor: invasor} do
+      assert Sources.list_connected_tools(invasor) == []
     end
   end
 end

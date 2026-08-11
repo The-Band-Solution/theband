@@ -91,9 +91,8 @@ defmodule TheBandWeb.ScreensTest do
       assert html =~ "dependabot"
     end
 
-    test "estado vazio explica a causa em vez de só dizer que está vazio", %{conn: conn} do
-      {tenant, user} = tenant_with_admin("vazio")
-      _ = tenant
+    test "estado vazio explica a causa em vez de só dizer que está vazio" do
+      {_tenant, user} = tenant_with_admin("vazio")
 
       {:ok, _live, html} = live(log_in(build_conn(), user), ~p"/pessoas")
 
