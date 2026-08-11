@@ -205,6 +205,9 @@ def derive(ontology, concepts, relations):
     tables, absorbed, notes, extensions, contributes = {}, {}, [], {}, {}
     # {ontologia: {conceitos referenciados que ainda não têm estereótipo}}
     requires = {}
+    # {conceito: especificação da tabela de um kind de outra ontologia que esta
+    # referencia — emitida para a migração poder criá-la incrementalmente}
+    referenced_kinds = {}
 
     for cid in owned:
         c = scope[cid]
@@ -274,8 +277,22 @@ def derive(ontology, concepts, relations):
             # **declarada** em vez de resolvida aqui: materializar localmente escolheria
             # identidade no lugar de quem modela, e fragmentaria em duas tabelas o que a
             # referência mantém em uma (constituição IX).
-            if not stereotype(scope.get(target) or {}):
+            tgt = scope.get(target) or {}
+            if not stereotype(tgt):
                 requires.setdefault(ontology_of.get(target, "?"), set()).add(target)
+            elif target not in referenced_kinds:
+                # O kind referenciado está anotado e a ontologia dele pode não estar
+                # materializada. A constituição IX exige que atender a referência seja
+                # **incremental** — anota-se o conceito, não a ontologia —, então a
+                # especificação da tabela dele sai daqui, para a migração poder criá-la
+                # sem esperar a ontologia inteira. Continua sendo UMA tabela: a próxima
+                # ontologia que referenciar o mesmo kind aponta para ela.
+                referenced_kinds[target] = {
+                    "table": f"{ontology_of.get(target, '?')}_{pluralize(tgt['name'])}",
+                    "ontology": ontology_of.get(target, "?"),
+                    "stereotype": stereotype(tgt),
+                    "attributes": list(tgt.get("attributes") or []),
+                }
 
             own = scope[cid].get("attributes") or []
             contributes.setdefault(target, []).append(cid.split(".")[-1])
@@ -417,7 +434,8 @@ def derive(ontology, concepts, relations):
                     tables[src]["foreign_keys"].append(
                         {"column": fk, "required": True, "kind": "mediation"})
 
-    return (tables, absorbed, notes, extensions, contributes, requires), None
+    return (tables, absorbed, notes, extensions, contributes, requires,
+            referenced_kinds), None
 
 
 def main():
@@ -436,7 +454,8 @@ def main():
             print("  ", m)
         return 1
 
-    tables, absorbed, notes, extensions, contributes, requires = result
+    (tables, absorbed, notes, extensions, contributes, requires,
+     referenced_kinds) = result
     total = sum(1 for cid, (o, _) in concepts.items() if o == args.ontology)
 
     print(f"═══ modelo de informação: {args.ontology.upper()} ═══\n")
@@ -473,6 +492,19 @@ def main():
                 print(f"│    {a['name']:22s} {a['type']:9s} {req}")
             print("└─")
             print()
+
+    if referenced_kinds:
+        print("\ntabelas de kinds referenciados em outras ontologias — criar se ainda "
+              "não existirem, uma vez só:")
+        print()
+        for cid, spec in sorted(referenced_kinds.items()):
+            print(f"┌─ {spec['table']}   ({cid}, {spec['stereotype']} de "
+                  f"{spec['ontology']})")
+            for a in spec["attributes"]:
+                req = "NOT NULL" if a.get("required") else "NULL"
+                print(f"│    {a['name']:22} {a['type']:9} {req}")
+            print("└─")
+        print()
 
     if requires:
         print("\nexigências para materializar — anotar SÓ estes conceitos, não a "
