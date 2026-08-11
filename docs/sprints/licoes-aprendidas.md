@@ -957,3 +957,44 @@ os três, a ausência de erro foi lida como presença de resultado.
 
 **Aplicada em**: Sprint 004 — a coleta passou de 0 para 14 repositórios e 189 issues na
 primeira organização.
+
+---
+
+## L27 — Implementar antes do plano faz o teste descobrir o que o plano descobriria
+
+**Onde**: Sprint 005 — feature 006, detalhe da issue.
+
+**O que aconteceu.** A spec e o contrato de API existiam; o pedido foi direto — *"ao clicar no
+titulo do repositorio e da issue quero ver os detalhes"* —, e eu implementei a partir do
+contrato, sem `plan.md`, `research.md` nem `tasks.md`.
+
+O código ficou bom: nove gates verdes, 29 testes novos, o axioma com caminho único. Mas **duas
+decisões de desenho só foram examinadas quando um teste as reprovou**:
+
+1. eu exibia `partes declaradas: 39` no painel do épico, ao lado de 9 na composição e 30 no
+   atendimento. O `refute html =~ ">39<"` do SC-004 reprovou, e estava certo: 39 é exatamente a
+   soma, e um leitor concluiria que as duas seções contam a mesma coisa duas vezes;
+2. o teste que compara os dois caminhos do axioma usava `for issue <- ..., pai = fetch_parent(...)`
+   — e em comprehension uma expressão que não é gerador vale como **filtro pelo seu valor**.
+   `pai = nil` descartava justamente a tarefa sem pai, que é um dos dois casos comparados. O
+   teste concordava por não olhar.
+
+**Por que aconteceu.** As duas são perguntas de desenho, não de código: *o que a tela mostra ao
+lado das duas relações?* e *como se prova que os dois caminhos concordam?* São exatamente as
+perguntas que `research.md` obriga a responder com o que foi recusado, e que a fase de tarefas
+obriga a escrever como *Teste* antes de existir implementação.
+
+Sem o plano, elas viraram descoberta tardia — e a primeira só foi pega porque o SC-004 estava
+escrito na spec com o número proibido. Se a spec tivesse dito apenas "mostre a decomposição", a
+soma teria passado.
+
+**O que fazer diferente.** Quando o pedido chega direto e a tentação é implementar, escrever
+**só o `research.md`** já paga: são as perguntas de desenho, com o recusado ao lado. `plan.md`,
+`data-model.md` e `tasks.md` podem vir junto com o código sem custo comparável — mas as decisões
+de desenho examinadas depois do código já foram tomadas, e o que sobra é justificá-las.
+
+E o corolário que vale para toda spec: **escreva o número proibido**. "Mostre 9 e 30, nunca 39"
+é verificável; "mostre a decomposição separada" não é.
+
+**Estado**: aberta. **Tipo**: processo. **Aplicar em**: sprint 005, feature 005 — cujo ciclo
+completo foi escrito antes de qualquer linha de código, e é a primeira verificação desta lição.

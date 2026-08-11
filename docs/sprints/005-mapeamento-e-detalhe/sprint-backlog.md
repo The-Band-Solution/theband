@@ -107,25 +107,22 @@ Detalhadas em [005/tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
 | F4 | T021–T023 | US1 | catálogo composto por organização, com contagem |
 | F5 | T024–T025 | US1–US4 | a tela, na sincronização, alcançada pela organização |
 
-**As issues por tarefa serão criadas quando o escopo for confirmado** — nunca inventadas.
+As 25 tarefas existem como issues tipadas `Task`, cada uma **filha da user story que ela
+atende** — nunca do épico: tarefa sob épico viola `sro.rule07`, e é exatamente o que a feature
+006 passou a avisar. A tabela com os números está em [a seção seguinte](#issues-das-tarefas).
 
-## Escopo, e a decisão que falta
+## Escopo confirmado
 
-A 006 está entregue. Para a 005, duas leituras defensáveis:
+**Feature 005 completa — F1 a F5, T001 a T025.** Decisão da pessoa mantenedora em 2026-08-11.
 
-| Opção | O que entra | Custo declarado |
-|---|---|---|
-| **MVP** | F1, F2, F3 — T001 a T020 | a feature existe pela API e **ninguém sem console a usa**. É a L21 aceita de propósito por um sprint |
-| **Completa** | F1 a F5 — T001 a T025 | 25 tarefas numa semana, sobre um sprint que já entregou 20 |
+A razão é a L21: função pública testada e sem consumidor visível não é funcionalidade
+entregue. Uma feature de mapeamento sem a tela de mapeamento é o caso exato que a lição
+descreve, e a fatia vertical exige tela e backend juntos.
 
-**Recomendação**: **completa**, e a razão é a L21 — função pública testada e sem consumidor
-visível não é funcionalidade entregue. Uma feature de mapeamento sem a tela de mapeamento é
-exatamente o caso que a lição descreve, e o princípio da fatia vertical diz que tela e backend
-vão juntos.
-
-Se a semana não couber, o corte deve ser por **user story**, não por camada: entregar US2 e
-US3 completas — tipo desconhecido e padrão de título, que juntas cobrem 3443 issues — e deixar
-US1 (catálogo) e US4 ("não é tipo") para o sprint seguinte.
+**O que foi recusado, e continua registrado como saída se a semana não couber**: cortar por
+**user story**, não por camada — entregar US2 e US3 completas, que juntas cobrem as 3443 issues
+sem conceito, e deixar US1 (catálogo) e US4 ("não é tipo") para o sprint seguinte. Cortar F5
+deixaria a feature sem consumidor, e é o que a L21 proíbe.
 
 ## Fora do escopo deste sprint
 
