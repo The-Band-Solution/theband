@@ -45,7 +45,7 @@ e declaradas, nunca descobertas por coleta vazia:
 
 ## Constitution Check
 
-Constituição v1.2.0, os oito princípios, um a um.
+Constituição **v1.3.0**, os nove princípios, um a um.
 
 ### I. Domínio organizado pelas ontologias — **conforme**
 
@@ -153,15 +153,47 @@ primeira linha de código.
 
 Nove gates. Dois deles ganham peso nesta feature:
 
-- **derivação reproduzível** — anotar a SYS_SWO muda a saída de duas ontologias; o
-  gate é o que prova que a mudança é a pretendida;
-- **validador Python** — mantém a paridade das verificações da base.
+- **derivação reproduzível** — anotar o kind da SysSwO muda a saída de CMPO; o gate é
+  o que prova que a mudança é a pretendida, e ele agora confere o **código de saída**
+  de cada derivação e não só o diff (L22);
+- **validador Python** — mantém a paridade das verificações da base, incluindo a
+  validação de **forma** dos YAML, que só roda com o venv (L23).
+
+Os nove rodam por `mix gates`, que é a **única definição** deles: o `ci.yml` chama a
+mesma task. Não existe segunda lista para divergir, e foi a divergência que produziu
+verde falso local por dez execuções.
 
 **Lacuna**: a aprovação de revisão registrada segue bloqueada por ferramenta. Com
 uma identidade no repositório, o autor não aprova o próprio PR. Declarada, nunca
 marcada como cumprida.
 
 ### VIII. Desenho que o problema justifica — **conforme**; ver a seção abaixo
+
+### IX. Ontologias modulares e autônomas — **conforme, e a feature o exercitou**
+
+Princípio acrescentado por emenda **durante** o planejamento desta feature, e foi
+ela que o motivou: o plano original mandava anotar onze conceitos da SysSwO para
+poder registrar um repositório.
+
+**A regra da fronteira aplicada aqui:**
+
+| Conceito | Estereótipo | Materializa |
+|---|---|---|
+| `cmpo.source_repository` | `subkind`, pai em SysSwO | por **referência** — discriminador na tabela do kind, extensão em CMPO |
+| `sro.user_story` | `kind` | tabela própria da SRO |
+| `spo.specific_intended_project_process` | `subkind`, pai em SPO | dentro da própria SPO, sem atravessar |
+
+Consequência medida: **F0 caiu de 11 conceitos para 1**. E o conceito exigido não tem
+pai declarado, logo é `kind` — decisão mecânica, sem julgamento.
+
+O derivador ganhou a capacidade que o princípio exige: emitir a especificação da
+tabela do kind referenciado, para a migração poder criá-la **uma vez só**, sem
+esperar a ontologia inteira. É o que preserva a promessa da referência — a próxima
+ontologia que precisar de "cópia carregada de sistema de software" aponta para a
+mesma tabela.
+
+**Verificação**: `mix gates` deriva as quatro ontologias isoladamente e confere o
+código de saída de cada uma, não só o diff.
 
 ## Registro dos padrões introduzidos (princípio VIII)
 
@@ -226,7 +258,7 @@ specs/004-issues-e-projetos/
 ├── research.md                R1 a R7
 ├── plan.md                    este arquivo
 ├── data-model.md              tabelas, e o que NÃO é materializado
-├── quickstart.md              V1 a V12, contra dado real
+├── quickstart.md              V1 a V12, com os números do dado real
 └── contracts/
     ├── issue-ingestion.md     API pública da coleta e da promoção
     ├── project-ingestion.md   API pública de projeto, campos e iterações
@@ -361,7 +393,7 @@ para mostrar.
 
 ## Reavaliação da constituição, pós-desenho
 
-Nenhuma violação. Duas coisas declaradas:
+Os nove princípios avaliados, nenhuma violação. Duas coisas declaradas:
 
 **A anotação de um conceito da SysSwO é trabalho de ontologia dentro de uma
 feature de ingestão.** Está aqui porque o conceito central depende dele, e porque a
