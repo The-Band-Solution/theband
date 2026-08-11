@@ -867,3 +867,93 @@ limpa e o local não. As duas produzem verde falso, e por caminhos diferentes.
 
 **Aplicada em**: `mix gates` — `python -m pip`, e o ramo de criação exercitado com o
 venv removido.
+
+---
+
+## L25 — Número da issue não identifica: ele é único dentro do repositório
+
+**Onde**: Sprint 004 — ligação de sub-issues ao pai, na coleta.
+
+**O que aconteceu.** A tabela `collected_issues` já carregava a regra no índice único: a
+identidade é a Application Reference, e `number` fica fora dela, com o motivo escrito na
+migração.
+
+E eu liguei as partes ao pai por **número**:
+
+```elixir
+por_externo = Map.new(WorkItems.list_issues(ctx.tenant), &{&1.number, &1.id})
+pai_id = por_externo[node["number"]]
+```
+
+A organização tem 135 repositórios. Vários têm issue `#1`. O `Map.new` manteve a última de
+cada número, e partes de um repositório foram ligadas ao pai de outro.
+
+**O efeito foi silencioso.** Nenhum erro, nenhuma exceção, nenhum teste vermelho: a
+classificação saiu errada. A tela mostrava **2 épicos** onde havia 3, e a issue `#1` — com
+39 partes — aparecia como user story atômica.
+
+**Por que passou.** Porque o teste de roteamento chama `decide/2` com a lista de tipos das
+partes **já montada**, e a montagem é justamente o que estava errado. O defeito vivia entre
+duas peças que cada teste exercitava separadamente.
+
+O que o achou foi olhar a tela com dado real e reparar num número que não fechava com o que
+a API dizia.
+
+**A correção.** Chavear por `external_id`, que é global:
+
+```elixir
+por_externo = Map.new(WorkItems.list_by_external_id(ctx.tenant), &{&1.external_id, &1.id})
+```
+
+**Como aplicar.**
+
+1. **Onde a identidade estiver declarada, use-a.** O índice único de `collected_issues` já
+   dizia qual era a chave; eu escrevi outra ao lado dele;
+2. **Chave que "funciona no meu teste" costuma ser chave de um só escopo.** Um fixture com
+   um repositório não distingue número de identificador — o dado real com 135 distingue;
+3. **`Map.new` sobre chave não única perde silenciosamente.** Ele não avisa colisão: mantém
+   um e descarta o resto. Onde a unicidade não é garantida, `Enum.group_by` mostra o
+   problema em vez de escondê-lo.
+
+**Aplicada em**: Sprint 004 — `vincular/2`, e a contagem de épicos passou de 2 para 3.
+
+---
+
+## L26 — Casar o envelope errado devolve lista vazia em vez de erro
+
+**Onde**: Sprint 004 — primeira execução da coleta de repositórios contra a origem real.
+
+**O que aconteceu.** `Client.graphql/4` devolve `{:ok, %{data: ..., rate_limit: ...}}` — um
+envelope. Eu casei `{:ok, data}` e passei o envelope para a função que extrai os nós:
+
+```elixir
+{:ok, data} -> {nodes, page_info} = extrair(data, query_name)
+```
+
+`extrair` faz `get_in(data, ["organization", "repositories"])`. Num envelope com chaves
+`:data` e `:rate_limit`, isso devolve `nil`, que o código trata como `[]`.
+
+**Resultado: o job completou com sucesso e coletou zero.** `status: completed`, nenhum erro
+registrado, nenhum payload gravado. A tela mostrou "0 issues coletadas" e a explicação
+plausível era "a organização não tem repositórios".
+
+**Por que compilou e passou.** `{:ok, data}` casa qualquer `{:ok, _}`. O Dialyzer não
+reclama porque `get_in/2` aceita mapa e devolve `nil` legitimamente. E os testes usavam o
+Mox da borda HTTP com payload já no formato interno — nunca exercitaram o envelope real.
+
+**A relação com a L22 e a L23.** É a mesma família: **o sucesso silencioso**. Lá um gate
+comparava duas execuções que falhavam igual; aqui um job completa sem fazer nada. Em todos
+os três, a ausência de erro foi lida como presença de resultado.
+
+**Como aplicar.**
+
+1. **Casamento de padrão largo esconde mudança de forma.** `{:ok, %{data: data}}` falha alto
+   quando a forma muda; `{:ok, data}` segue adiante com o que vier;
+2. **Coleta que devolve zero precisa ser distinguível de coleta que não olhou.** O relatório
+   do `sync` agora conta por `sync_id`, e zero com 14 repositórios observados é diferente de
+   zero sem nenhum;
+3. **Teste com Mox no formato interno não valida a fronteira.** O payload capturado da
+   origem tem de passar pelo cliente inteiro, envelope incluído, ao menos uma vez.
+
+**Aplicada em**: Sprint 004 — a coleta passou de 0 para 14 repositórios e 189 issues na
+primeira organização.
