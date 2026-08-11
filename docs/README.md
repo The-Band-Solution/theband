@@ -17,6 +17,7 @@ for Data-Driven Software Development*.
 |---|---|
 | Entender o que o sistema é e como está organizado | [Arquitetura](architecture/overview.md) |
 | Entender as tabelas e os schemas, e por que têm essa forma | [Modelo de dados](architecture/modelo-de-dados.md) |
+| Colocar a aplicação em execução, e configurar o ambiente | [Deployment](deployment.md) |
 | Entender o modelo conceitual | [Rede de ontologias](ontology/README.md) |
 | Achar um conceito específico | [Índice de conceitos](ontology/concept-index.md) |
 | Saber como dados externos viram conceitos | [Mapeamentos semânticos](integrations/mappings.md) |
