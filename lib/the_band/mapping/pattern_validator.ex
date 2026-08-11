@@ -78,11 +78,13 @@ defmodule TheBand.Mapping.PatternValidator do
       "a expressão passou de #{limite}ms sobre títulos reais desta organização; " <>
         "quantificadores aninhados são a causa usual"
 
+  # `Regex.compile/2` devolve `{:error, {razão, posição}}` e nada mais — o dialyzer
+  # confirma. Uma cláusula extra para `{:error, razão}` nunca casaria, e cláusula morta é
+  # pior que ausência: quem lê acredita que o caso existe.
   defp compilar(pattern) do
     case Regex.compile(pattern) do
       {:ok, regex} -> {:ok, regex}
       {:error, {razao, posicao}} -> {:error, {:does_not_compile, to_string(razao), posicao}}
-      {:error, razao} -> {:error, {:does_not_compile, inspect(razao), 0}}
     end
   end
 
