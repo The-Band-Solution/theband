@@ -654,3 +654,53 @@ o evento não tem.
    esta lição não existiria.
 
 **Aplicada em**: Sprint 003 — a tabela de eventos de observação.
+
+---
+
+## L21 — Função pública testada e sem consumidor não é funcionalidade entregue
+
+**Onde**: Sprint 003, feature 003 — `resume_observation/3`.
+
+**O que aconteceu.** Retomar a observação estava especificado (US2, quatro cenários de
+aceitação), implementado e coberto por seis testes verdes. A pessoa mantenedora pediu
+"especifique a opção de reativar a observação", e a conferência mostrou que a
+especificação já existia. O que não existia era o **botão**: a LiveView tinha zero
+ocorrências de `resume_observation`.
+
+Encerrar era possível pela interface. Retomar, só pelo console — e um encerramento que na
+prática é irreversível faz as pessoas não encerrarem, que é exatamente o que a própria
+US2 diz na justificativa da prioridade.
+
+**Por que passou.** Porque cada gate media o que sabe medir, e nenhum mede alcance:
+
+| Gate | O que disse | O que não disse |
+|---|---|---|
+| `mix test` | 161 verdes | ninguém consegue chamar a função |
+| cobertura das tarefas | T023 a T025 concluídas | as tarefas eram de domínio |
+| `sprint-review.md` | F4 entregue | entregue **para quem** |
+
+O `sprint-backlog` declarava F4 como "US2 — retomar", e a fase terminou quando o domínio
+terminou. A fatia vertical existe precisamente para impedir isso, e a regra estava
+escrita: *nunca infraestrutura sem consumidor visível*. Ela foi seguida em F3 — a tela de
+encerramento veio junto — e não em F4.
+
+**O que exercitar pela tela achou, e os testes não.** Dois defeitos, ambos por os testes
+de domínio sempre passarem atributos completos:
+
+- rótulo `""` não pegava o padrão, porque o padrão só valia para campo **ausente**;
+- changeset inválido virava `MatchError` dentro da transação, matando a LiveView em vez
+  de responder.
+
+Nenhum dos dois é sutil. Os dois exigiam um formulário para aparecer.
+
+**Como aplicar.**
+
+1. **Fase de user story só fecha com consumidor.** Se a US descreve alguém fazendo algo,
+   a fase não termina enquanto esse alguém não conseguir fazer;
+2. **Antes de declarar uma fase pronta, procure a função na camada de interface.** Um
+   `grep` do nome da função pública custa segundos e responde "entregue para quem";
+3. **Ao ler um pedido que já parece atendido, confira o caminho inteiro.** "Já está
+   especificado e implementado" era verdade e escondia a lacuna. A pergunta útil não é
+   "existe?", é "quem consegue usar?".
+
+**Aplicada em**: Sprint 003 — botão de retomar, formulário e histórico de observação.
