@@ -33,7 +33,7 @@ infraestrutura e não conceito.
 │  sro_intended_scrum_development_tasks                                  │
 │  osdef_defects                                                         │
 │  sro_sprints             sro_sprint_backlogs    sro_product_backlogs   │
-│  spo_projects            type ∈ {software_project}                      │
+│  spo_intended_project_processes   iteração futura — intenção            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -283,7 +283,8 @@ project_iterations
   observed_project_id
   iteration_external_id
   title, start_date, duration_days
-  sro_sprint_id        NULL   ← preenchido só quando start_date já passou
+  sro_sprint_id                    NULL  ← quando start_date já passou
+  spo_intended_process_id          NULL  ← quando ainda não chegou
 ```
 
 **A identidade do campo é `field_external_id`** (FR-027). Renomear "Priority" para
@@ -295,8 +296,16 @@ declarado** (FR-025). Um campo chamado `Priority` **não** é `importance`: impo
 inventou. Converter por semelhança de nome é o antipadrão nomeado em `AGENTS.md`
 §7.7.
 
-**`sro_sprint_id` nulo em iteração futura** (FR-030). Um sprint que não começou não
-ocorreu.
+**Exatamente um dos dois preenchido, nunca os dois** (FR-030, SC-009c). Iteração
+futura é *planning que não foi feito* — `spo.specific_intended_project_process`,
+categoria UFO `intention`. Iteração iniciada é `sro.sprint`, `complex_action`.
+
+A troca acontece **na coleta seguinte ao início**, não no instante do início: a
+plataforma afirma o que observou, não o que o calendário implica.
+
+**O quadro não tem coluna de promoção.** `observed_projects` não aponta para
+conceito nenhum, porque quadro é planejamento e visualização — não empreendimento.
+Quem promove é o conteúdo dele.
 
 ---
 
@@ -403,7 +412,9 @@ volume muito maior que as três organizações do defeito original.
 | pertencimento a product backlog ou sprint backlog | derivado da atribuição de iteração do item |
 | `is_epic` booleano | é o antipadrão "booleano no lugar do relator" |
 | tipo de issue normalizado | `issue_type` fica cru; a promoção guarda o conceito |
-| `sro.scrum_project` | promoção adicional, atrás de declaração do tenant |
+| `sro.scrum_project` | não é promovido: adotar Scrum não é observável |
+| `spo.software_project` a partir do quadro | quadro é planejamento; empreendimento vem de cadastro declarado |
+| `sro.planning_meeting` | o quadro é o resultado de planejar, não a cerimônia |
 | histórico de mudança de item | fora de escopo por custo de consumo |
 
 ---
@@ -418,7 +429,7 @@ inclusive as ausências deliberadas, que são o que ninguém recupera depois.
 | F0 | nada. Anota `sys_swo.loaded_software_system_copy` como `kind` |
 | F2 | `sys_swo_loaded_software_system_copies`, `cmpo_source_repositories`, `observed_repositories` |
 | F3 | `collected_issues`, `issue_promotions`, `decomposition_links`, `refused_links` |
-| F4 | `observed_projects`, `project_field_definitions`, `project_items`, `item_field_values`, `project_iterations`, `spo_projects` |
+| F4 | `observed_projects`, `project_field_definitions`, `project_items`, `item_field_values`, `project_iterations`, `spo_intended_project_processes` |
 
 **Nenhuma migração desta feature remove coluna**, e nenhuma cria
 `sro_user_stories.status`.

@@ -42,11 +42,22 @@ derivation_rule:
     - target_concept: sro.sprint
       when:
         start_date_reached: true
+    - target_concept: spo.specific_intended_project_process
+      when:
+        start_date_reached: false
 
   materializes:
     - concept: sro.sprint
-      from: configuration.iterations + configuration.completedIterations
+      from: iterations cujo startDate já passou
       confidence: medium
+    - concept: spo.specific_intended_project_process
+      from: iterations cujo startDate ainda não chegou
+      confidence: medium
+      note:
+        pt-BR: >
+          Decisão da pessoa mantenedora: "interações futuras são plannings que não
+          foram feitas". Intenção é `intention` em UFO, e ocorrência é
+          `complex_action` — o par é simétrico e ambos têm registro.
 
   does_not_materialize:
     - concept: sro.scrum_process
@@ -65,9 +76,9 @@ derivation_rule:
   fallback: skip
   fallback_rationale:
     pt-BR: >
-      Iteração cuja data de início não chegou permanece guardada como
-      planejamento, sem promoção. Aparece como o que é — configuração —, e não
-      como sprint vazio.
+      Não há caso sem rota: as duas datas possíveis têm destino. O `skip` vale para
+      iteração sem `startDate`, que a API não deveria devolver e que não se
+      classifica como pretendida nem como ocorrida.
 
   limitations:
     - >

@@ -349,3 +349,88 @@ issue a user story infla o escopo do produto com correção e trabalho técnico 
 que a própria regra `github.issue_type_routing` existe para evitar, e o erro só
 apareceria quando alguém perguntasse por que o backlog cresce sem funcionalidade
 nova.
+
+
+---
+
+## R9 — Decisões e conceitos da pessoa mantenedora, 2026-08-11
+
+Quatro decisões. A terceira **substitui** a de R8, e está registrada como
+substituição em vez de emendada em silêncio.
+
+| # | Decisão | Efeito |
+|---|---|---|
+| 1 | defeito é mapeado como `bug` do GitHub | **confirma** o mapeamento já escrito |
+| 2 | iteração representa sprint | **confirma** |
+| 3 | **quadros são planning** — forma de organizar issues e seus estados, forma de visualização | **substitui R8**: quadro deixa de ser promovido a `spo.software_project` |
+| 4 | **iterações futuras são plannings que não foram feitas** | dá alvo à iteração futura: `spo.specific_intended_project_process` |
+
+### O que muda com a 3
+
+Em R8 a decisão foi `project → project`, direta. Eu havia registrado como limitação
+o problema que agora a decisão resolve: esta organização tem dois quadros, e contar
+quadros como projetos contaria dois empreendimentos onde pode haver um.
+
+A decisão nova elimina a imprecisão em vez de declará-la. **O quadro não é
+promovido a nada** — é artefato de fonte, coletado e consultável. O que ele
+**contém** é que promove:
+
+```
+quadro (Projects v2)         artefato de fonte, sem promoção
+  ├── iteração iniciada   ──▶ sro.sprint
+  ├── iteração futura     ──▶ spo.specific_intended_project_process
+  ├── item com iteração
+  │     iniciada          ──▶ compõe sro.sprint_backlog
+  └── item sem iteração   ──▶ compõe sro.product_backlog
+```
+
+O mapeamento `github.project_v2.to.spo.software_project` foi **removido**, e a
+decisão ficou registrada em `rules/github_project_board.yaml`, com o bloco
+`does_not_materialize` nomeando os três conceitos que o quadro **não** vira e o
+motivo de cada um.
+
+**O custo declarado**: não existe consulta "quais projetos de software o tenant tem"
+a partir do GitHub. O empreendimento vem de cadastro declarado, quando alguém o
+declarar. É lacuna nomeada, e não silêncio — que é o critério que a decisão anterior
+usava para preferir promover.
+
+### O que muda com a 4
+
+A iteração futura tinha destino vago: a spec dizia "guardada como planejamento", e
+guardada onde não estava escrito. Agora tem conceito, e o conceito é exato:
+
+```yaml
+- id: spo.intended_project_process
+  definition:
+    pt-BR: Processo planejado para ser executado no projeto — uma intenção, não
+      uma ocorrência.
+  classification: { ufo_category: intention, ontouml_stereotype: kind }
+```
+
+`intention`, não `complex_action`. O par fica simétrico, e é isso que dá sentido aos
+dois mapeamentos:
+
+| Iteração | Conceito | Categoria UFO |
+|---|---|---|
+| já iniciada | `sro.sprint` | `complex_action` — ocorreu |
+| futura | `spo.specific_intended_project_process` | `intention` — pretendida |
+
+E a pergunta "o que este time planejou e ainda não executou" passa a ter resposta.
+Antes ela ficava só no payload.
+
+**Uma coisa que a decisão 4 NÃO autoriza**: derivar `sro.planning_meeting`. A
+cerimônia de planejamento é `action` — ocorreu, com pessoas, num instante. Uma
+iteração pretendida é o **resultado** planejado, não a reunião. Derivá-la da
+existência de um quadro afirmaria uma reunião que ninguém registrou, e está no
+`does_not_materialize` das duas regras.
+
+### A transição, que é onde isto pode enganar
+
+A mesma iteração muda de registro ao começar: pretendida antes, sprint depois. A
+troca acontece **na coleta seguinte ao início**, não no instante do início. Uma
+iteração que começou hoje, com a última coleta de ontem, continua registrada como
+pretendida até a próxima coleta.
+
+Isso é consequência de a plataforma afirmar o que observou, e não o que o calendário
+implica. Está declarado nas limitações do mapeamento, e virou o SC-009c: toda
+iteração tem exatamente um registro vigente — nunca os dois, nunca nenhum.

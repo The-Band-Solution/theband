@@ -47,6 +47,10 @@ relations:
       esta iteração. Derivado da atribuição, nunca gravado como pertencimento.
 limitations:
   - >
+    Só iteração JÁ INICIADA vem para cá. A futura é pretendida, e tem mapeamento
+    próprio para spo.specific_intended_project_process — "interações futuras são
+    plannings que não foram feitas". A mesma iteração troca de registro ao começar.
+  - >
     A data de início é PLANEJAMENTO, não observação. Um sprint que começou atrasado
     terá a data que o quadro dizia. Este repositório já produziu essa divergência
     duas vezes: sprints declarados de sete dias, aceitos no primeiro. A data

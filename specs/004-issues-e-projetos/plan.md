@@ -58,21 +58,29 @@ promovida a `sro.user_story` e às rotas por tipo. As três correspondências fo
 fixadas pela pessoa mantenedora em R8:
 
 ```
-repository ──▶ cmpo.source_repository
-issue      ──▶ sro.user_story  (+ rotas: Bug → osdef.defect, Task → intended task)
-project    ──▶ spo.software_project
+repository        ──▶ cmpo.source_repository
+issue             ──▶ sro.user_story   (+ Bug → osdef.defect, Task → intended task)
+quadro (Projects) ──▶ nada — é planejamento e visualização
+  iteração iniciada ──▶ sro.sprint
+  iteração futura   ──▶ spo.specific_intended_project_process
+  item sem iteração ──▶ compõe sro.product_backlog
+  item com iteração
+    iniciada        ──▶ compõe sro.sprint_backlog
 ```
 
-Sobre o projeto, minha leitura em R7 era outra — que um quadro do Project v2 não é
-um projeto de software — e a decisão foi a correspondência direta. A imprecisão
-que eu apontei fica como limitação declarada no mapeamento
-(`semantics.equivalence: partial`): esta organização tem dois quadros, e a
-plataforma contará dois projetos. A alternativa recusada era pior — exigir
-declaração para toda promoção deixaria projeto não declarado invisível a todas as
-consultas de escopo, e lacuna silenciosa é pior que imprecisão medida.
+Sobre o quadro, a decisão passou por duas versões e a segunda está registrada em
+R9 como substituição, não como emenda silenciosa. R8 mandava promover a
+`spo.software_project`; R9 diz que **quadro é planejamento** — forma de organizar
+as issues e seus estados, forma de visualização — e que não é promovido a nada.
 
-`sro.scrum_project` continua por declaração, porque **adotar Scrum não é
-observável**: um projeto com iterações pode ser Kanban com recorte temporal.
+Isso elimina a imprecisão que R8 declarava como limitação: esta organização tem
+dois quadros, e contá-los como projetos contaria dois empreendimentos onde pode
+haver um. **Custo declarado**: não existe consulta "quais projetos de software o
+tenant tem" a partir do GitHub. O empreendimento vem de cadastro declarado.
+
+E a iteração futura ganhou conceito exato — `spo.specific_intended_project_process`,
+`ufo_category: intention`. O par fica simétrico: ocorreu é `complex_action`,
+pretendida é `intention`.
 
 **Uma lacuna a fechar antes do código, e ela encolheu de 11 conceitos para 1.**
 `cmpo.source_repository` é `subkind` de `sys_swo.loaded_software_system_copy`, e
@@ -119,7 +127,8 @@ Três artefatos de conhecimento, nenhum em código:
 | Artefato | O que declara |
 |---|---|
 | `mappings/github/sro/*.yaml` | issue → conceito, iteração → sprint, itens → backlogs |
-| `mappings/github/spo/project.yaml` | projeto → `spo.software_project`, com a equivalência parcial justificada |
+| `mappings/github/spo/iteration_intended_process.yaml` | iteração futura → processo pretendido |
+| `rules/github_project_board.yaml` | o quadro é planejamento, e os três conceitos que ele **não** vira |
 | `rules/tenants/<tenant>.yaml` | nomes de tipo próprios do tenant, e o mapeamento campo → atributo |
 | anotação da SYS_SWO | os 11 estereótipos que faltam |
 
@@ -229,7 +238,7 @@ specs/004-issues-e-projetos/
 ```
 priv/knowledge_base/
 ├── ontology/seon/sys_swo/modules/*.yaml       + 1 estereótipo (kind referenciado)
-├── mappings/github/spo/project.yaml           novo
+├── mappings/github/spo/iteration_intended_process.yaml  novo
 ├── mappings/github/cmpo/repository.yaml        novo
 ├── mappings/github/sro/
 │   ├── issue_to_user_story.yaml               novo

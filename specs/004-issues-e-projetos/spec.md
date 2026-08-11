@@ -74,10 +74,10 @@ interpretado.
 
 **Acceptance Scenarios**:
 
-1. **Dado** uma organização observada com projetos, **quando** a coleta ocorre,
-   **então** cada projeto aparece com nome, número e a organização de origem,
-   **como artefato de fonte e não como projeto Scrum** — promover exige declaração
-   do tenant.
+1. **Dado** uma organização observada com quadros, **quando** a coleta ocorre,
+   **então** cada quadro aparece com nome, número e organização de origem, **como
+   artefato de fonte** — e não como projeto, porque quadro é planejamento e
+   visualização, não empreendimento.
 2. **Dado** um projeto com itens, **quando** a coleta ocorre, **então** cada item
    que referencia uma issue já coletada aponta para ela, e nenhum item duplica a
    issue.
@@ -93,8 +93,8 @@ interpretado.
 6. **Dado** uma iteração que **já começou**, **quando** a coleta ocorre, **então**
    ela é promovida a sprint, com proveniência de derivação.
 7. **Dado** uma iteração cuja data de início ainda **não chegou**, **quando** a
-   coleta ocorre, **então** ela é guardada como planejamento e **não** é
-   promovida a sprint — um sprint que não começou não ocorreu.
+   coleta ocorre, **então** ela é promovida a **processo pretendido** e **não** a
+   sprint — é um planejamento que não foi feito, e intenção não é ocorrência.
 8. **Dado** um item de projeto **sem** iteração atribuída, **quando** o usuário
    consulta o produto, **então** ele aparece como product backlog, que é
    exatamente o que "sem iteração" significa.
@@ -227,14 +227,14 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 
 #### Projetos
 
-- **FR-020**: A plataforma DEVE coletar os projetos das organizações observadas,
-  com nome, número e organização de origem, e DEVE promovê-los a **projeto de
-  software** — a correspondência é direta, decidida pela pessoa mantenedora:
-  `project` do GitHub é `spo.software_project`.
-- **FR-020a**: A promoção adicional a **projeto Scrum** DEVE exigir declaração do
-  tenant, e NUNCA ocorrer automaticamente. Adotar Scrum não é observável no
-  GitHub: um projeto com iterações pode ser Kanban com recorte temporal. Sem a
-  declaração o projeto permanece `spo.software_project`, que já é promoção.
+- **FR-020**: A plataforma DEVE coletar os quadros (Projects v2) das organizações
+  observadas, com nome, número e organização de origem, como **artefato de fonte**.
+  O quadro é **planejamento** — uma forma de organizar as issues e seus estados, e
+  uma forma de visualização —, e NÃO DEVE ser promovido a nenhum conceito.
+- **FR-020a**: O que o quadro CONTÉM é que promove: iterações iniciadas viram
+  sprints, iterações futuras viram processos pretendidos, e a atribuição de iteração
+  separa os dois backlogs. Nenhuma consulta DEVE tratar o quadro como
+  empreendimento.
 - **FR-021**: A plataforma DEVE coletar os itens de cada projeto e ligá-los às
   issues já coletadas, sem duplicar a issue.
 - **FR-022**: Um item de projeto que não referencia issue — rascunho — DEVE ser
@@ -261,7 +261,12 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   sprint, com proveniência de derivação declarando que a origem é configuração de
   projeto.
 - **FR-030**: Uma iteração cuja data de início ainda não chegou NÃO DEVE ser
-  promovida a sprint; DEVE ser guardada como planejamento.
+  promovida a sprint; DEVE ser promovida a **processo pretendido**, porque é um
+  planejamento que não foi feito.
+- **FR-030a**: Quando a coleta seguinte encontrar a iteração já iniciada, ela DEVE
+  passar de pretendida a sprint — mesma identidade externa, registro novo. A
+  transição ocorre na **coleta**, nunca no instante do início: a plataforma afirma
+  o que observou.
 - **FR-031**: Uma iteração removida da configuração do projeto depois de ter tido
   itens DEVE permanecer consultável, marcada como não mais presente na origem.
 - **FR-032**: O conjunto dos itens de um projeto **sem** iteração atribuída DEVE
@@ -342,8 +347,11 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **SC-008**: Nenhum valor de campo configurável sem mapeamento declarado aparece
   convertido em atributo da ontologia.
 - **SC-009**: Nenhuma iteração com início no futuro aparece como sprint.
-- **SC-009a**: Nenhum projeto observado aparece como projeto Scrum sem declaração
-  do tenant registrada.
+- **SC-009a**: Nenhum quadro observado aparece promovido a projeto, de software ou
+  Scrum, por nenhum caminho.
+- **SC-009c**: Toda iteração coletada tem exatamente um registro vigente — sprint
+  se já começou, processo pretendido se não. Nenhuma tem os dois, nenhuma tem
+  nenhum.
 - **SC-009b**: A soma dos itens no product backlog e nos sprint backlogs de um
   projeto é igual ao total de itens dele — nenhum item fica em dois conjuntos nem
   fora dos dois.
@@ -401,3 +409,5 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 | Tarefa executada e entregável | exigem ligar issue a commit e a PR, que é a CMPO |
 | Escrever de volta no GitHub | a plataforma observa; escrever é outra decisão |
 | Projetos de usuário | a plataforma observa organizações |
+| Promover quadro a projeto de software ou Scrum | quadro é planejamento e visualização; empreendimento vem de cadastro declarado |
+| `sro.planning_meeting` a partir do quadro | o quadro é o resultado de planejar, não a cerimônia. Derivá-la afirmaria uma reunião que ninguém registrou |

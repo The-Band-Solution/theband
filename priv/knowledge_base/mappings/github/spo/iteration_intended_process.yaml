@@ -1,0 +1,76 @@
+mapping:
+  id: github.project_iteration.to.spo.specific_intended_project_process
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: project_v2_iteration
+  api: graphql
+  schema_version: v4
+  selector:
+    field: startDate
+    rule_ref: github.iteration_started
+derivation:
+  rule_id: github.iteration_started
+  confidence: medium
+  inputs: [startDate, duration, configuration.iterations]
+  fallback: skip
+target:
+  ontology: spo
+  concept: spo.specific_intended_project_process
+semantics:
+  equivalence: derived
+  justification: >
+    Decisão da pessoa mantenedora, 2026-08-11: "interações futuras são plannings
+    que não foram feitas".
+
+    Uma iteração cuja data de início ainda não chegou é intenção, não ocorrência —
+    e é exatamente o que `spo.intended_project_process` define: "processo planejado
+    para ser executado no projeto — uma intenção, não uma ocorrência". A categoria
+    UFO é `intention`, e não `complex_action`.
+
+    O par é simétrico e é o que dá sentido aos dois mapeamentos:
+
+      iteração já iniciada  → sro.sprint                            ocorreu
+      iteração futura       → spo.specific_intended_project_process pretendida
+
+    Sem este mapeamento, a iteração futura ficaria só no payload, e a pergunta "o
+    que este time planejou e ainda não executou" não teria resposta. Com ele, a
+    resposta existe e é honesta sobre o que é: plano, não fato.
+identity:
+  external_id_path: id
+  natural_key: [project.id, title]
+attributes:
+  name: { source_path: title }
+relations:
+  becomes_sprint_when_started:
+    source_path: id
+    target_ontology: sro
+    target_concept: sro.sprint
+    note: >
+      Mesma iteração, dois registros ao longo do tempo: pretendida antes de
+      começar, sprint depois. A identidade externa é a mesma, e é por ela que a
+      coleta seguinte reconhece a transição.
+limitations:
+  - >
+    A transição de pretendida para ocorrida acontece na COLETA seguinte ao início,
+    não no instante do início. Uma iteração que começou hoje e cuja coleta rodou
+    ontem continua registrada como pretendida até a próxima coleta. A plataforma
+    afirma o que observou.
+  - >
+    `spo.specific_intended_project_process` não é `sro.planning_meeting`. A
+    cerimônia de planejamento é `action` — ocorreu, com pessoas, num instante — e
+    o GitHub não a registra. Uma iteração pretendida é o RESULTADO planejado, não
+    a reunião.
+  - >
+    Iteração pretendida não tem itens contados como sprint backlog. Itens
+    atribuídos a ela permanecem no product backlog, porque o sprint dela não
+    existe — regra github.item_iteration_assignment.
+  - >
+    Iteração excluída da configuração antes de começar desaparece da origem sem
+    ter ocorrido. Ela permanece consultável, marcada como não mais presente: o
+    plano existiu, e foi abandonado. Apagar destruiria a resposta a "o que foi
+    planejado e nunca aconteceu".
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at]
