@@ -36,20 +36,20 @@ defmodule TheBand.Ingestion do
   **não** inicia em paralelo, e quem chamou é informado em vez de ver duas
   coletas disputando a mesma janela de API.
   """
-  @spec start_sync(Tenant.t(), ConnectedTool.t()) ::
+  @spec start_sync(Tenant.t(), ConnectedTool.t(), keyword()) ::
           {:ok, Sync.t()} | {:error, :already_running | :no_active_credential | term()}
-  def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool) do
+  def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool, opts \\ []) do
     # Origem encerrada não é coletada (FR-008). O filtro passa por
     # `observation_ended?/1`, que é o mesmo caminho que a tela usa — dois caminhos
     # discordariam, e a plataforma coletaria do que a tela mostra como encerrado.
     if Sources.observation_ended?(tool) do
       {:error, :observation_ended}
     else
-      do_start_sync(tenant_id, tenant, tool)
+      do_start_sync(tenant_id, tenant, tool, Keyword.get(opts, :worker, SyncGitHubEO))
     end
   end
 
-  defp do_start_sync(tenant_id, tenant, tool) do
+  defp do_start_sync(tenant_id, tenant, tool, worker) do
     case Sources.active_credential(tool) do
       nil ->
         {:error, :no_active_credential}
@@ -66,26 +66,30 @@ defmodule TheBand.Ingestion do
         %Sync{}
         |> Sync.changeset(attrs)
         |> Repo.insert()
-        |> handle_open(tenant)
+        |> handle_open(tenant, worker)
     end
   end
 
-  defp handle_open({:ok, sync}, tenant) do
-    enqueue(tenant, sync)
+  defp handle_open({:ok, sync}, tenant, worker) do
+    enqueue(tenant, sync, worker)
     {:ok, sync}
   end
 
   # O índice único parcial é a defesa que impede duas coletas simultâneas; aqui
   # ele é traduzido no motivo que a tela precisa exibir.
-  defp handle_open({:error, %Ecto.Changeset{errors: errors}}, _tenant) do
+  defp handle_open({:error, %Ecto.Changeset{errors: errors}}, _tenant, _worker) do
     if Keyword.has_key?(errors, :connected_tool_id),
       do: {:error, :already_running},
       else: {:error, :invalid}
   end
 
-  defp enqueue(%Tenant{id: tenant_id}, %Sync{id: sync_id}) do
+  # O worker é escolha de quem chama, e não vive no registro do `sync`: o que o payload
+  # preservado carrega é `raw_entity_type`, e é ele que diz o que foi coletado. Uma
+  # coluna de worker guardaria o **como** em vez do **quê**, e envelheceria a cada
+  # renomeação de módulo.
+  defp enqueue(%Tenant{id: tenant_id}, %Sync{id: sync_id}, worker) do
     %{"tenant_id" => tenant_id, "sync_id" => sync_id}
-    |> SyncGitHubEO.new()
+    |> worker.new()
     |> Oban.insert()
   end
 

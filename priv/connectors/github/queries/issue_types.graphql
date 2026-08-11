@@ -1,0 +1,18 @@
+# Tipos de issue que a organização definiu, com o identificador.
+#
+# Consultada no momento da conexão, depois de a credencial ser validada — antes disso
+# não há como consultar, e a tela exibiria campos vazios.
+#
+# O identificador é o que liga a entidade do modelo à da organização, e é ele que faz
+# o mapeamento sobreviver a renomeação. Ele NÃO é único entre tipos de artefato: a
+# unicidade vive junto com o tipo, nunca sobre o identificador sozinho.
+query($organization: String!) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    id
+    issueTypes(first: 25) {
+      nodes { id name description isEnabled }
+    }
+  }
+}

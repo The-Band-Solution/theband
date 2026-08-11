@@ -1,0 +1,38 @@
+# Issues de um repositório, com o que decide a promoção.
+#
+# `issueType` pode vir nulo — organização que não usa tipos —, e a consulta não falha
+# por isso: o nulo é o dado, e a regra de roteamento o trata pelo fallback.
+#
+# `subIssues.totalCount` diz SE tem partes; `subIssues.nodes.issueType.name` diz DE QUE
+# TIPO elas são. As duas coisas são necessárias, e é a segunda que distingue épico de
+# atômica: partes que são tarefas ATENDEM a user story, não a compõem.
+query($owner: String!, $name: String!, $page_size: Int = 50, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  repository(owner: $owner, name: $name) {
+    id
+    issues(first: $page_size, after: $after, orderBy: {field: CREATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        number
+        title
+        state
+        createdAt
+        issueType { id name }
+        repository { id nameWithOwner }
+        parent { id number issueType { id name } }
+        subIssues(first: 50) {
+          totalCount
+          nodes {
+            id
+            number
+            issueType { id name }
+            repository { id nameWithOwner }
+          }
+        }
+      }
+    }
+  }
+}

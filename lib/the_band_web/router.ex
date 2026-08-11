@@ -35,6 +35,7 @@ defmodule TheBandWeb.Router do
       live "/equipes", TeamsLive.Index, :index
       live "/equipes/:id", TeamsLive.Show, :show
       live "/sincronizacoes", SyncLive.Index, :index
+      live "/trabalho", WorkItemLive.Index, :index
     end
   end
 
