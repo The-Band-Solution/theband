@@ -208,6 +208,21 @@ defmodule TheBandWeb.SyncLive.Index do
           </div>
         </div>
 
+        <%!-- O que a coleta trouxe de trabalho. Vem da mesma sincronização — não há
+              coleta separada de issues —, e por isso aparece na mesma linha em vez de
+              numa tela que ninguém saberia quando foi atualizada. --%>
+        <div class="flex flex-wrap gap-4 text-sm border-t border-base-300 pt-2">
+          <div>
+            <span class="opacity-60">repositórios nesta coleta</span>
+            <b>{work_summary(sync).repositorios}</b>
+          </div>
+          <div>
+            <span class="opacity-60">issues nesta coleta</span>
+            <b>{work_summary(sync).issues}</b>
+          </div>
+          <.link navigate={~p"/trabalho"} class="link link-hover">ver o trabalho →</.link>
+        </div>
+
         <div :if={map_size(sync.skip_reasons) > 0} class="text-xs opacity-70">
           motivos dos ignorados:
           <span :for={{reason, count} <- sync.skip_reasons}>{reason} ({count})&nbsp;</span>
@@ -247,6 +262,10 @@ defmodule TheBandWeb.SyncLive.Index do
     |> assign(tools: Sources.list_connected_tools(tenant))
     |> assign(syncs: Ingestion.list_syncs(tenant, limit: 10))
   end
+
+  # Por sync, e não do tenant: o número ao lado de uma execução tem de ser o que **ela**
+  # trouxe.
+  defp work_summary(sync), do: Ingestion.work_summary(sync)
 
   defp put_progress(socket, _entity_type, _count), do: socket
 

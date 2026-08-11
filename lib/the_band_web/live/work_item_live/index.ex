@@ -30,10 +30,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   use TheBandWeb, :live_view
 
-  alias TheBand.Ingestion
-  alias TheBand.Jobs.SyncGithubSRO
   alias TheBand.Ontology.SEON.CMPO
-  alias TheBand.Sources
   alias TheBand.WorkItems
 
   @conceitos [
@@ -61,33 +58,6 @@ defmodule TheBandWeb.WorkItemLive.Index do
   def handle_event("filtrar", %{"repositorio" => id}, socket),
     do: {:noreply, socket |> assign(repositorio: id) |> load()}
 
-  def handle_event("coletar", %{"tool_id" => tool_id}, socket) do
-    tenant = socket.assigns.current_tenant
-
-    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
-         {:ok, _sync} <- Ingestion.start_sync(tenant, tool, worker: SyncGithubSRO) do
-      {:noreply,
-       put_flash(
-         socket,
-         :info,
-         "Coleta de issues de #{tool.organization_login} enfileirada. " <>
-           "Os repositórios são descobertos a partir da organização."
-       )}
-    else
-      {:error, :already_running} ->
-        {:noreply, put_flash(socket, :error, "Já existe uma coleta em andamento.")}
-
-      {:error, :observation_ended} ->
-        {:noreply, put_flash(socket, :error, "A observação desta organização está encerrada.")}
-
-      {:error, :no_active_credential} ->
-        {:noreply, put_flash(socket, :error, "Nenhuma credencial ativa nesta ferramenta.")}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível enfileirar a coleta.")}
-    end
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -104,15 +74,16 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </:subtitle>
       </.header>
 
-      <div class="mt-4 flex flex-wrap gap-2">
-        <button
-          :for={t <- @ferramentas}
-          class="btn btn-sm btn-outline"
-          phx-click="coletar"
-          phx-value-tool_id={t.id}
-        >
-          coletar issues de {t.organization_login}
-        </button>
+      <%!-- Sem botão de coletar aqui: sincronizar traz tudo, e a sincronização tem
+            tela própria. Dois lugares para disparar a mesma coleta produziriam duas
+            leituras de "quando isto foi atualizado". --%>
+      <div class="mt-4">
+        <.link navigate={~p"/sincronizacoes"} class="btn btn-sm btn-outline">
+          sincronizar
+        </.link>
+        <span class="text-sm opacity-70 ml-2">
+          pessoas, equipes, repositórios e issues vêm na mesma coleta
+        </span>
       </div>
 
       <div :if={@coletadas == 0} class="alert mt-6 block">
@@ -309,7 +280,6 @@ defmodule TheBandWeb.WorkItemLive.Index do
       repositorios: repositorios,
       repos_observados: length(repositorios),
       por_repositorio: por_repositorio(tenant, repositorios),
-      ferramentas: Sources.list_observed_tools(tenant),
       conceitos: @conceitos
     )
   end

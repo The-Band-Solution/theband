@@ -152,6 +152,23 @@ defmodule TheBand.WorkItems.Queries do
   end
 
   @doc """
+  Identificador interno por identificador externo, para ligar partes a pais.
+
+  Existe porque ligar por `number` é errado: o número é único **dentro** do repositório,
+  e uma organização com 14 repositórios tem vários `#1`. Chavear por número liga a parte
+  de um repositório ao pai de outro, e o erro é silencioso — a classificação sai errada
+  em vez de falhar.
+  """
+  @spec list_by_external_id(Tenant.t()) :: [%{external_id: String.t(), id: Ecto.UUID.t()}]
+  def list_by_external_id(%Tenant{id: tenant_id}) do
+    Repo.all(
+      from i in CollectedIssue,
+        where: i.tenant_id == ^tenant_id,
+        select: %{external_id: i.external_id, id: i.id}
+    )
+  end
+
+  @doc """
   Os vínculos de decomposição vigentes, para derivar a classificação em lote.
 
   Existe porque promover issue por issue chamando `classification/2` faria uma consulta

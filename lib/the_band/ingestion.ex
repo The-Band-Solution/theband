@@ -95,6 +95,36 @@ defmodule TheBand.Ingestion do
 
   # ------------------------------------------------------------------- leitura
 
+  @doc """
+  O que **aquela** sincronização trouxe de repositórios e issues.
+
+  Conta por `sync_id` em `raw_payloads`, e não o total do tenant. A primeira versão desta
+  função somava o tenant inteiro e exibia o número dentro do cartão de cada sync — o que
+  fazia uma coleta de 14 repositórios aparecer com 135 ao lado, porque outra organização
+  havia sido coletada depois.
+
+  Contar o estado atual e mostrá-lo como resultado de uma execução é o mesmo erro que a
+  coluna `impact` do evento de observação evita: o que interessa é o que foi observado
+  **naquele** momento.
+  """
+  @spec work_summary(Sync.t()) :: %{repositorios: non_neg_integer(), issues: non_neg_integer()}
+  def work_summary(%Sync{id: sync_id}) do
+    contagens =
+      Repo.all(
+        from p in "raw_payloads",
+          where: p.sync_id == type(^sync_id, :binary_id),
+          where: p.raw_entity_type in ["github.repository", "github.issue"],
+          group_by: p.raw_entity_type,
+          select: {p.raw_entity_type, count(p.id)}
+      )
+      |> Map.new()
+
+    %{
+      repositorios: Map.get(contagens, "github.repository", 0),
+      issues: Map.get(contagens, "github.issue", 0)
+    }
+  end
+
   @spec list_syncs(Tenant.t(), keyword()) :: [Sync.t()]
   def list_syncs(%Tenant{id: tenant_id}, opts \\ []) do
     query =

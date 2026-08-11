@@ -1,6 +1,20 @@
-defmodule TheBand.Jobs.SyncGithubSRO do
+defmodule TheBand.Ingestion.GithubWorkItems do
   @moduledoc """
   Coleta repositórios e issues de uma organização observada (feature 004, F2 e F3).
+
+  ## Por que não é um worker Oban próprio
+
+  Era, e virou fase da sincronização existente. Decisão da pessoa mantenedora:
+  **sincronizar traz tudo**.
+
+  Dois workers produziriam dois registros de `sync` para uma única ação de quem opera, e
+  a pergunta "o que esta sincronização trouxe" passaria a ter duas respostas parciais.
+  Pior: a tela de sincronizações mostraria duas linhas por coleta, e quem lesse
+  concluiria que houve duas.
+
+  Uma fase da mesma execução mantém um registro, um relatório, e a ordem garantida —
+  pessoas e equipes antes de repositórios e issues, o que importa porque a organização
+  precisa existir para o repositório apontar para ela.
 
   ## A ordem, e ela é a regra
 
@@ -23,40 +37,27 @@ defmodule TheBand.Jobs.SyncGithubSRO do
   Repositório excluído pelo tenant ou inacessível **não é coletado e não é marcado**: a
   plataforma parou de olhar, e isso não é o mesmo que o dado ter sumido.
   """
-  use Oban.Worker, queue: :sync, max_attempts: 3
-
   require Logger
 
-  alias TheBand.Ingestion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
-  alias TheBand.Sources
-  alias TheBand.Sources.ToolCredential
-  alias TheBand.Tenants
   alias TheBand.WorkItems
 
   @page_size 50
   @tenant_rule "github.issue_type_routing.the_band_solution"
 
-  @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"tenant_id" => tenant_id, "sync_id" => sync_id}}) do
-    with {:ok, tenant} <- Tenants.fetch(tenant_id),
-         {:ok, sync} <- Ingestion.fetch_sync(tenant, sync_id),
-         {:ok, tool} <- Sources.fetch_connected_tool(tenant, sync.connected_tool_id),
-         %ToolCredential{} = credential <- Sources.active_credential(tool) do
-      run(%{
-        tenant: tenant,
-        sync: sync,
-        tool: tool,
-        token: credential.secret,
-        started_at: sync.started_at
-      })
-    else
-      nil -> {:error, :no_active_credential}
-      {:error, reason} -> {:error, reason}
-    end
+  @doc """
+  Coleta repositórios e issues, como fase da sincronização em andamento.
+
+  Recebe o mesmo `ctx` da coleta de EO — tenant, sync, tool e token — e devolve o que
+  coletou, para o relatório. **Não** encerra o `sync`: quem encerra é a sincronização,
+  uma vez só.
+  """
+  @spec collect(map()) :: {:ok, map()} | {:error, term()}
+  def collect(ctx) do
+    run(Map.put_new(ctx, :started_at, ctx.sync.started_at))
   end
 
   defp run(ctx) do
@@ -66,18 +67,12 @@ defmodule TheBand.Jobs.SyncGithubSRO do
 
       promover(ctx)
 
-      Ingestion.finish(ctx.sync, :completed)
-
       {:ok,
        %{
          organization_id: organization.id,
          repositories: length(repositorios),
          issues: Enum.sum(Enum.map(resultado, & &1.coletadas))
        }}
-    else
-      {:error, reason} ->
-        Ingestion.finish(ctx.sync, :failed, error_reason: Client.describe_error(reason))
-        {:error, reason}
     end
   end
 
@@ -211,12 +206,19 @@ defmodule TheBand.Jobs.SyncGithubSRO do
   # Depois de todas as issues existirem: uma parte pode ser coletada depois do pai, e
   # ligar durante a paginação perderia os vínculos das partes ainda não gravadas.
   defp vincular(ctx, nodes) do
-    por_externo = Map.new(WorkItems.list_issues(ctx.tenant, limit: 10_000), &{&1.number, &1.id})
+    # Por `external_id`, e **não** por `number`. O número é único dentro do repositório,
+    # e esta organização tem 14 — dois repositórios têm issue #1. Chavear por número
+    # ligou partes de um repositório ao pai de outro, e o efeito foi silencioso: a
+    # classificação saiu errada em vez de dar erro.
+    #
+    # É a mesma lição que `collected_issues` já carrega no índice único, e eu a violei
+    # no código de ligação.
+    por_externo = Map.new(WorkItems.list_by_external_id(ctx.tenant), &{&1.external_id, &1.id})
 
     for node <- nodes,
         parte <- get_in(node, ["subIssues", "nodes"]) || [] do
-      pai_id = por_externo[node["number"]]
-      parte_id = por_externo[parte["number"]]
+      pai_id = por_externo[node["id"]]
+      parte_id = por_externo[parte["id"]]
 
       cond do
         is_nil(pai_id) ->
@@ -244,7 +246,7 @@ defmodule TheBand.Jobs.SyncGithubSRO do
 
   # Por último, porque a classificação épico/atômica depende dos vínculos já gravados.
   defp promover(ctx) do
-    issues = WorkItems.list_issues(ctx.tenant, limit: 10_000)
+    issues = WorkItems.list_issues(ctx.tenant, limit: 100_000)
     tipos_das_partes = tipos_das_partes(ctx, issues)
 
     for issue <- issues do
@@ -272,6 +274,7 @@ defmodule TheBand.Jobs.SyncGithubSRO do
 
   defp tipos_das_partes(ctx, issues) do
     por_id = Map.new(issues, &{&1.id, &1.issue_type})
+    _ = ctx
 
     ctx.tenant
     |> WorkItems.list_links()
@@ -284,7 +287,11 @@ defmodule TheBand.Jobs.SyncGithubSRO do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
     case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(query_name), vars) do
-      {:ok, data} ->
+      # O cliente devolve o ENVELOPE — `%{data: ..., rate_limit: ...}` —, e não o `data`
+      # direto. Casar com `{:ok, data}` compilava, rodava, e devolvia lista vazia sem
+      # erro: o job completava com zero coletados. Foi o que aconteceu na primeira
+      # execução contra o dado real.
+      {:ok, %{data: data}} ->
         {nodes, page_info} = extrair(data, query_name)
         acumulado = acumulado ++ nodes
 

@@ -46,6 +46,7 @@ defmodule TheBand.WorkItems do
   defdelegate list_divergences(tenant, opts \\ []), to: Queries
   defdelegate classification(tenant, collected_issue_id), to: Queries
   defdelegate list_links(tenant), to: Queries
+  defdelegate list_by_external_id(tenant), to: Queries
   defdelegate count_refused(tenant, opts \\ []), to: Queries
 
   # -------------------------------------------------------------------- decisão
