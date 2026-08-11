@@ -1,6 +1,6 @@
 mapping:
   id: github.repository.to.cmpo.source_repository
-  version: 2
+  version: 3
   status: proposed
 source: { provider: github, entity: repository, api: graphql, schema_version: v4 }
 target: { ontology: cmpo, concept: cmpo.source_repository }
@@ -25,11 +25,15 @@ identity:
   external_id_path: id
   natural_key: [owner.login, name]
 attributes:
-  name:        { source_path: name }
-  full_name:   { source_path: nameWithOwner }
-  description: { source_path: description }
-  created_at:  { source_path: createdAt }
-  archived_at: { source_path: archivedAt }
+  name:                { source_path: name }
+  qualified_name:      { source_path: nameWithOwner }
+  url:                 { source_path: url }
+  description:         { source_path: description }
+  primary_language:    { source_path: primaryLanguage.name }
+  default_branch:      { source_path: defaultBranchRef.name }
+  archived_at:         { source_path: archivedAt }
+  external_created_at: { source_path: createdAt }
+  last_pushed_at:      { source_path: pushedAt }
 relations:
   owner:
     source_path: owner.id
@@ -48,6 +52,29 @@ limitations:
     projeto pode ter vários repositórios, e um repositório pode servir a vários
     projetos.
   - Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.
+  - >
+    `isFork` NÃO é coletado como booleano, de propósito. Ser fork é dizer que esta
+    cópia deriva de OUTRA cópia — é relação, não propriedade. Um booleano seria o
+    antipadrão "booleano no lugar do relator" nomeado no AGENTS.md §7.7: guardaria
+    que existe origem e perderia qual é. Fica pendente até a relação
+    cópia-deriva-de-cópia ser declarada em CMPO.
+  - >
+    `languages` — a lista com todas as linguagens — não é coletada. Só
+    `primaryLanguage` é, e como atributo do repositório. A lista completa exigiria um
+    conceito próprio para linguagem, e uma relação com peso por linguagem; sem isso
+    seria um array sem semântica declarada.
+  - >
+    `primary_language` é calculada pela ORIGEM sobre o código, e não é propriedade da
+    cópia carregada em si. Registrada no repositório porque é onde a origem a
+    fornece, com a atribuição declarada aqui em vez de presumida.
+  - >
+    `licenseInfo` e `diskUsage` não são coletados: licença é conceito de outra
+    ontologia, e tamanho em disco é métrica da hospedagem, não do item de
+    configuração.
+  - >
+    `default_branch` guarda o NOME do ramo, não uma referência a `cmpo.branch`. A
+    relação existiria — `cmpo.branch_belongs_to_repository` já está declarada —, mas
+    apontar para ela exigiria coletar ramos, que está fora do escopo desta feature.
   - >
     `archivedAt` diz que a ORIGEM arquivou, e isso não é ausência. Repositório
     arquivado continua observado, e suas issues continuam consultáveis. Confundir

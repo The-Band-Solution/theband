@@ -82,25 +82,49 @@ O repositório tem atributos que só ele tem, e eles não sobem para a tabela do
 kind — iriam conviver com servidores de CI e ambientes de build, produzindo
 colunas nulas em toda linha que não é repositório.
 
+Saída real do derivador, depois de declarar os atributos do conceito:
+
 ```
-┌─ cmpo_source_repositories   (extensão de sys_swo.loaded_software_system_copy
-│                              onde type='source_repository')
-│    loaded_software_system_copy_id  uuid  NOT NULL  → FK (extension)
-│    tenant_id                       uuid  NOT NULL
-│    internal_id                     string NOT NULL
-│    record_version                  integer NOT NULL
-│    name                            string NOT NULL
-│    full_name                       string NOT NULL
-│    organization_id                 uuid  NOT NULL  → eo_organizations
-│    archived_at                     datetime NULL     arquivado na origem
-│    source_system                   string NOT NULL ┐
-│    source_instance                 string NOT NULL ├ Application Reference
-│    external_id                     string NOT NULL ┘
-│    collected_at                    datetime NOT NULL
-│    last_observed_at                datetime NULL
-│    no_longer_observed_at           datetime NULL
+┌─ cmpo_source_repositories   (estende sys_swo.loaded_software_system_copy
+│                              [outra ontologia] onde type='source_repository')
+│    loaded_software_system_copy_id  uuid      NOT NULL  → FK (extension)
+│    name                            string    NOT NULL
+│    qualified_name                  string    NOT NULL
+│    url                             string    NOT NULL
+│    description                     text      NULL
+│    primary_language                string    NULL
+│    default_branch                  string    NULL
+│    archived_at                     datetime  NULL
+│    external_created_at             datetime  NULL
+│    last_pushed_at                  datetime  NULL
 └─
 ```
+
+**A tabela só existe porque o conceito declara atributos.** Um `subkind` sem
+atributos contribui apenas um valor de discriminador na tabela do kind e desaparece —
+foi o que a primeira versão deste documento descreveu, e estava incompleta. Declarar
+os atributos em `cmpo.source_repository` é o que faz a extensão ser emitida.
+
+Os atributos são o que **qualquer hospedagem de Git** fornece, não o que o GitHub
+fornece. A Application Reference, `tenant_id`, `internal_id` e o par de observação
+vivem na tabela do kind, que é onde a identidade mora.
+
+### Três coisas que o repositório **não** guarda, e por quê
+
+| Fora | Motivo |
+|---|---|
+| `is_fork` booleano | ser fork é dizer que esta cópia deriva de **outra cópia** — relação, não propriedade. Um booleano guardaria que existe origem e perderia qual é: o antipadrão "booleano no lugar do relator" |
+| a lista completa de linguagens | exigiria conceito próprio para linguagem e relação com peso. Um array sem semântica declarada não responde nada |
+| `licenseInfo`, `diskUsage` | licença é conceito de outra ontologia; tamanho em disco é métrica da hospedagem, não do item de configuração |
+
+E uma declarada em vez de escondida: **`primary_language` é calculada pela origem
+sobre o código**, e não é propriedade da cópia carregada em si. Fica no repositório
+porque é onde a origem a fornece, com a atribuição escrita no mapeamento em vez de
+presumida.
+
+`default_branch` guarda o **nome** do ramo, não referência a `cmpo.branch`. A relação
+existe na base — `cmpo.branch_belongs_to_repository` —, e apontar para ela exigiria
+coletar ramos, fora do escopo desta feature.
 
 **`archived_at` e `no_longer_observed_at` são coisas diferentes**, e confundi-las
 seria o defeito. Arquivado é fato da origem: o GitHub diz. Não mais observado é
@@ -205,9 +229,21 @@ porque nenhuma das duas está errada.
 structure`, e `target_concept` fica `sro.user_story`, o abstrato. `Bug` é
 `declaration`, com destino concreto.
 
-**`source_external_id` obrigatório só para campo.** Tipo de issue não tem
-identificador estável na API — o nome é a chave. Campo de quadro tem, e é ele que vale
-(FR-027): renomear "Priority" não pode criar mapeamento novo.
+**`source_external_id` obrigatório em tudo.** Decisão da pessoa mantenedora em
+2026-08-11: é o identificador que liga a entidade do modelo à da organização, e é ele
+que faz o mapeamento sobreviver a renomeação.
+
+Eu havia escrito que tipo de issue não tinha identificador estável e que o nome seria
+a chave. **Estava errado** — o GraphQL devolve `issueType.id`:
+
+```
+Feature  IT_kwDODHSRm84BlVJy
+Task     IT_kwDODHSRm84BlVJw
+Bug      IT_kwDODHSRm84BlVJx
+```
+
+`source_name` continua gravado, para leitura humana e para a tela mostrar o que a
+organização chama de quê. Mas a chave é o identificador.
 
 **`declared_by_user_id` não é anulável.** Ao contrário do evento de observação, que
 pode vir de processo, um mapeamento é sempre decisão de alguém. Sem autor não há como

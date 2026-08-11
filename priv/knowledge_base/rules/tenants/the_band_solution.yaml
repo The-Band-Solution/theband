@@ -1,6 +1,6 @@
 derivation_rule:
   id: github.issue_type_routing.the_band_solution
-  version: 1
+  version: 2
   provider: github
   status: proposed
   confidence: high
@@ -32,8 +32,13 @@ derivation_rule:
   # ---------------------------------------------------------------------------
   # Correspondência dos tipos desta organização
   # ---------------------------------------------------------------------------
+  # Identificadores conferidos pela API em 2026-08-11. TODA entidade mapeada tem
+  # identificador — decisão da pessoa mantenedora: é ele que liga a entidade do
+  # modelo à da organização. Tipo de issue tem `id` no GraphQL, e usá-lo faz o
+  # mapeamento sobreviver a renomeação.
   type_mapping:
-    - github_type: Feature
+    - github_type_external_id: IT_kwDODHSRm84BlVJy
+      github_type: Feature
       concepts: [sro.epic, sro.atomic_user_story]
       decided_by: structure
       note:
@@ -43,7 +48,8 @@ derivation_rule:
           organização exercitam as duas leituras, incluindo três Features com
           sub-issues que são atômicas porque as partes são tarefas.
 
-    - github_type: Task
+    - github_type_external_id: IT_kwDODHSRm84BlVJw
+      github_type: Task
       concepts: [sro.intended_scrum_development_task]
       decided_by: declaration
       note:
@@ -53,7 +59,8 @@ derivation_rule:
           atômico — uma tarefa sem pai, ou com pai épico, é registrada como
           divergência e o VÍNCULO não é criado. Existe uma no dado real.
 
-    - github_type: Bug
+    - github_type_external_id: IT_kwDODHSRm84BlVJx
+      github_type: Bug
       concepts: [osdef.defect]
       decided_by: declaration
       note:
@@ -61,6 +68,8 @@ derivation_rule:
           Sem requisito estrutural: ser defeito não depende de composição. Um bug
           com sub-issues continua sendo um bug.
 
+  # Sem identificador porque não existem nesta organização — e é justamente o que
+  # `absent_types` afirma. Um identificador aqui seria inventado.
   absent_types:
     - github_type: Epic
       reason:

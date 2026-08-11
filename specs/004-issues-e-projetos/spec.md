@@ -246,6 +246,9 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-002**: Cada repositório descoberto DEVE ser registrado com a organização
   de origem, e a proveniência DEVE permitir dizer por qual ferramenta conectada
   ele foi observado.
+- **FR-002a**: O repositório DEVE ter tabela própria, com os atributos que qualquer
+  hospedagem de Git fornece: nome, nome qualificado, endereço, descrição, linguagem
+  predominante, ramo padrão, e as datas de criação e da última escrita observada.
 - **FR-003**: A plataforma DEVE registrar, para cada repositório, se ele está
   arquivado na origem, e MANTER consultáveis as issues de repositório arquivado.
 - **FR-004**: A plataforma DEVE permitir excluir um repositório da observação sem
@@ -323,8 +326,10 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-026**: Quando o projeto não tiver campo mapeado para um atributo da
   ontologia, esse atributo DEVE permanecer vazio e a ausência DEVE ser exibida
   como limitação — nenhum outro campo DEVE ser usado como substituto.
-- **FR-027**: A identidade de um campo configurável DEVE ser o identificador do
-  campo, e não o nome, de modo que renomear não crie um campo novo.
+- **FR-027**: A identidade de **toda entidade mapeada** — campo configurável e tipo
+  de issue — DEVE ser o identificador que a origem fornece, e não o nome, de modo que
+  renomear não crie entidade nova. O nome DEVE ser gravado junto, para leitura humana
+  e para a tela mostrar como a organização chama cada coisa.
 - **FR-028**: A coleta de projeto DEVE trazer projeto, campos, itens e valores de
   campo dos itens, e NÃO DEVE trazer o histórico de alterações dos itens.
 

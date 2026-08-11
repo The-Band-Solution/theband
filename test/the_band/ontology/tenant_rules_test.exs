@@ -103,6 +103,29 @@ defmodule TheBand.Ontology.TenantRulesTest do
       end
     end
 
+    test "todo tipo EM USO traz o identificador", %{regra: regra} do
+      for tipo <- regra["type_mapping"] do
+        assert tipo["github_type_external_id"], """
+        O tipo "#{tipo["github_type"]}" está declarado sem
+        `github_type_external_id`.
+
+        Decisão da pessoa mantenedora em 2026-08-11: o identificador liga a entidade
+        do modelo à da organização, e é ele que faz o mapeamento sobreviver a
+        renomeação. Tipo de issue tem `id` no GraphQL — não há razão para mapear pelo
+        nome.
+        """
+      end
+    end
+
+    test "tipo AUSENTE não traz identificador, porque seria inventado", %{regra: regra} do
+      # A simetria com o teste anterior é o ponto: exigir identificador de algo que
+      # não existe na organização obrigaria a inventá-lo, e um identificador inventado
+      # é pior que nenhum — ele passa a parecer conferido.
+      for tipo <- regra["absent_types"] do
+        refute tipo["github_type_external_id"]
+      end
+    end
+
     test "a ausência de importância é declarada, não omitida", %{regra: regra} do
       faltantes = Map.new(regra["missing_attributes"], &{&1["attribute"], &1["reason"]["pt-BR"]})
 
