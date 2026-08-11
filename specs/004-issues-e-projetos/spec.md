@@ -104,7 +104,58 @@ interpretado.
 
 ---
 
-### User Story 3 - Restringir quais repositórios são observados (Priority: P3)
+### User Story 3 - Ver e ajustar como os tipos da organização são mapeados (Priority: P2)
+
+A pessoa que administra o tenant abre uma tela que mostra **os tipos de issue que a
+organização de fato usa**, para qual conceito cada um é roteado, e o que a estrutura
+decide em vez do rótulo. A mesma tela mostra os campos do quadro e quais deles a
+plataforma interpreta.
+
+Quando um tipo não é reconhecido, a tela é onde ela declara o que ele significa.
+
+**Why this priority**: a regra de roteamento tem `status: proposed` e `confidence:
+medium` — ela **vai** errar, e errar em silêncio é o que a US1 evita mostrando a
+lacuna. Esta tela é o outro lado: sem ela, corrigir a regra exige editar YAML no
+repositório, e quem administra o tenant não faz isso. A lacuna ficaria visível e
+inendereçável.
+
+**Independent Test**: abrir a tela numa organização que usa `Feature`, `Task` e
+`Bug`, conferir que os três aparecem com o conceito de destino, que `Epic` e
+`User Story` aparecem como **não usados por esta organização** em vez de ausentes, e
+que declarar um tipo desconhecido faz a coleta seguinte deixar de contá-lo como
+lacuna.
+
+**Acceptance Scenarios**:
+
+1. **Dado** uma organização observada, **quando** o usuário abre a tela de
+   mapeamento, **então** vê os tipos de issue **que a organização usa**, com a
+   contagem de issues de cada um e o conceito para o qual é roteado.
+2. **Dado** um tipo da regra global que a organização não usa — `Epic`,
+   `User Story` —, **quando** o usuário abre a tela, **então** ele aparece marcado
+   como **não usado aqui**, e não como erro nem como ausência.
+3. **Dado** o tipo `Feature`, **quando** o usuário vê a linha dele, **então** a tela
+   mostra que ele roteia para **dois** conceitos e que **a estrutura decide qual** —
+   com partes que são user stories é épico, sem partes ou com partes que são tarefas
+   é atômica.
+4. **Dado** um tipo desconhecido contado como lacuna, **quando** o usuário declara
+   para qual conceito ele vai, **então** a declaração é gravada com autor e data, e a
+   coleta seguinte o promove — deixando de contá-lo como lacuna.
+5. **Dado** uma declaração do usuário que contraria um axioma — por exemplo mapear
+   um tipo para `sro.epic` sem exigir partes —, **quando** ele tenta salvar,
+   **então** a plataforma recusa nomeando o axioma, e não grava.
+6. **Dado** os campos do quadro, **quando** o usuário abre a tela, **então** vê
+   quais estão mapeados para atributo da ontologia e quais não, com o motivo de cada
+   não mapeado.
+7. **Dado** que o usuário quer mapear `Priority` para `importance`, **quando** ele
+   tenta, **então** a plataforma **recusa** e explica: importance é decimal com
+   escala declarada, `Priority` é seleção única cujos valores o tenant inventou.
+8. **Dado** uma declaração gravada pela tela, **quando** alguém a consulta,
+   **então** a proveniência diz que veio de decisão do tenant, com quem e quando —
+   nunca de observação.
+
+---
+
+### User Story 4 - Restringir quais repositórios são observados (Priority: P3)
 
 A pessoa que administra o tenant vê que a organização tem repositórios que não
 interessam — arquivados, forks, experimentos — e quer excluí-los da coleta sem
@@ -278,6 +329,27 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   iteração**, e NUNCA gravada como pertencimento escolhido por quem coleta — pelo
   mesmo motivo que a classificação épico/atômica é derivada das partes.
 
+#### Mapeamento declarado pelo tenant
+
+- **FR-041**: A plataforma DEVE apresentar, por organização observada, os tipos de
+  issue **que ela de fato usa**, com a contagem de cada um e o conceito de destino.
+- **FR-042**: Um tipo previsto pela regra global e **não usado** pela organização
+  DEVE aparecer como *não usado aqui*, distinto de erro e de ausência de
+  configuração.
+- **FR-043**: Para tipo que roteia para mais de um conceito, a tela DEVE dizer que
+  **a estrutura decide**, e qual estrutura decide o quê.
+- **FR-044**: A pessoa autorizada DEVE poder declarar o conceito de destino de um
+  tipo desconhecido, e a declaração DEVE ser gravada com autor, data e proveniência
+  de decisão do tenant.
+- **FR-045**: A plataforma DEVE recusar declaração que contrarie um axioma da rede,
+  nomeando o axioma — e NÃO DEVE gravá-la.
+- **FR-046**: A plataforma DEVE recusar mapear campo de seleção única para atributo
+  numérico da ontologia, explicando a diferença de escala.
+- **FR-047**: A tela DEVE apresentar os campos do quadro separados em interpretados
+  e não interpretados, com o motivo de cada não interpretado.
+- **FR-048**: Uma declaração feita pela tela DEVE ter o mesmo efeito que a declarada
+  em YAML versionado, e DEVE ser distinguível dela pela proveniência.
+
 #### Tela
 
 - **FR-033**: A plataforma DEVE apresentar, por organização observada, os
@@ -361,6 +433,12 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   não recoleta nenhuma página já coletada.
 - **SC-012**: Um usuário de um tenant não alcança repositório, issue, projeto nem
   item de outro tenant por nenhum caminho.
+- **SC-013**: Nenhum tipo de issue aparece na tela de mapeamento sem existir na
+  organização ou sem estar marcado como não usado por ela.
+- **SC-014**: Nenhuma declaração que contrarie axioma da rede é gravada, e a recusa
+  nomeia o axioma.
+- **SC-015**: Nenhum campo de seleção única aparece mapeado para atributo numérico
+  da ontologia.
 
 ## Assumptions
 
