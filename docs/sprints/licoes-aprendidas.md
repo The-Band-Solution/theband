@@ -704,3 +704,59 @@ Nenhum dos dois é sutil. Os dois exigiam um formulário para aparecer.
    "existe?", é "quem consegue usar?".
 
 **Aplicada em**: Sprint 003 — botão de retomar, formulário e histórico de observação.
+
+
+---
+
+## L22 — Gate que só compara duas execuções não sabe dizer se alguma funcionou
+
+**Onde**: Sprint 003 — o gate "modelo de informação — derivação reproduzível".
+
+**O que aconteceu.** O gate nasceu na correção da [L17](#l17), para provar que a
+derivação é determinística. Ele roda o script duas vezes e compara as saídas:
+
+```bash
+for o in eo sro cmpo spo; do
+  python scripts/derive_information_model.py --ontology "$o" > /tmp/d1-$o.txt
+  python scripts/derive_information_model.py --ontology "$o" > /tmp/d2-$o.txt
+  diff "/tmp/d1-$o.txt" "/tmp/d2-$o.txt" || { echo "não é reproduzível"; exit 1; }
+done
+```
+
+A derivação da SRO **falha**, porque 43 conceitos não declaram
+`ontouml_stereotype` — e falha do mesmo jeito nas duas execuções. O `diff` passa.
+O que reprovou o passo foi o `bash -e` interrompendo no código de saída do script,
+e a mensagem que o gate imprime nunca apareceu: quem lesse o log veria um erro sem
+explicação, no meio de um passo que se chama "reproduzível".
+
+**E eu reportei o gate como verde duas vezes**, nas reviews dos sprints 002 e 003.
+Conferi que as duas saídas eram iguais e não conferi se alguma delas era uma
+derivação. A `main` estava vermelha desde o PR #93.
+
+**O que o gate escondia.** Anotar a SRO e voltar a derivar mostrou um defeito que
+existia antes dela: a guarda da ADR 0004 D5 — `role` materializa por relator,
+nunca por discriminador — só era aplicada quando o alvo do lifting estava na mesma
+ontologia. **CMPO e SPO já produziam a violação**, visível na saída, verde no CI:
+
+```
+spo.artifact.type += {configuration_item}
+ufo.agent.type    += {change_implementer}
+eo.person.type    += {project_person_stakeholder}
+```
+
+Uma tabela de pessoas afirmando que alguém **é** um Product Owner. O gate lia essa
+saída duas vezes, achava as duas iguais, e dizia que estava tudo bem.
+
+**Como aplicar.**
+
+1. **Todo gate diferencial precisa de um gate de sucesso antes.** Comparar duas
+   execuções só significa algo depois de saber que uma execução vale. `set -o
+   pipefail`, checar código de saída, e falhar com a mensagem do gate — não com o
+   `-e` do shell;
+2. **Ler o log do passo verde uma vez.** O que a derivação imprime é o modelo de
+   informação; ninguém o leu, e ele dizia a violação em voz alta;
+3. **Reportar gate como verde exige ter visto o verde.** Eu carreguei adiante uma
+   afirmação de uma review anterior. Uma afirmação repetida não vira verificação.
+
+**Aplicada em**: Sprint 003 — os 43 estereótipos da SRO e a guarda de `role` para
+kind de outra ontologia.
