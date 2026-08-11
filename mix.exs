@@ -107,7 +107,10 @@ defmodule TheBand.MixProject do
         "esbuild the_band --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      # `mix gates` é a definição dos nove; este alias existe só para quem procura
+      # por "ci" antes de procurar por "gates".
+      ci: ["gates"]
     ]
   end
 end

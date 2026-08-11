@@ -1,0 +1,15 @@
+# Configuração do `act`, que roda o workflow do GitHub nesta máquina.
+#
+#     act -j quality-gates
+#
+# Existe versionada porque, sem ela, `act` pergunta a imagem de forma interativa a
+# cada máquina nova e cada pessoa escolhe uma diferente — e aí "rodou no meu act"
+# deixa de significar algo.
+#
+# Imagem média (~500MB) em vez da grande (~53GB): o workflow instala Elixir e OTP
+# pelo `setup-beam`, então não precisa de uma imagem que já os traga.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Apple Silicon: sem isto o `act` avisa a cada execução e algumas actions quebram.
+# Em máquina x86 a linha é inócua.
+--container-architecture linux/amd64

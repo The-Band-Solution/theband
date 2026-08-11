@@ -88,17 +88,43 @@ versionado, validado e revisado — ver
 [ADR 0002](docs/adr/0002-yaml-como-base-de-conhecimento.md).
 
 ```bash
-# Uma vez, e o venv é o que faz a validação de FORMA rodar. Sem ele, o validador
-# avisa que pulou essa parte, e o CI reprova o que passou aqui.
-python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements.txt
+mix gates                       # os nove, na ordem do CI, abortando no primeiro
+mix gates --list                # os nomes, sem rodar
+mix gates --from testes         # retoma de um gate, sem repetir o que passou
+```
 
+`mix gates` é a **única definição** dos gates: o CI chama a mesma task, então não
+existe uma segunda lista para ficar desatualizada. Ela provisiona `.venv` na
+primeira execução — sem ele o validador Python **não valida a forma** dos YAML,
+avisa que pulou, e sai diferente de zero. Quem lê a saída com `| tail` vê o aviso
+como nota de ambiente e conclui que passou. Foi o que aconteceu dez vezes até o CI
+reprovar seis mapeamentos ([L23](docs/sprints/licoes-aprendidas.md)).
+
+Para rodar o **workflow inteiro** na máquina, com o mesmo runner do GitHub — útil
+para validar mudanças no `ci.yml` em si, já que os gates em si `mix gates` já cobre:
+
+```bash
+brew install act
+docker stop the_band_postgres    # o serviço do workflow publica a 5432
+act -j quality-gates             # configuração em .actrc, versionada
+docker start the_band_postgres
+```
+
+O `docker stop` é necessário e não é detalhe: o workflow declara um serviço
+PostgreSQL que publica a porta 5432, e o Postgres de desenvolvimento já a ocupa.
+Sem liberar, o `act` falha em *Set up job* com `port is already allocated` — que
+parece erro de workflow e é conflito de porta.
+
+`act -n` (dry-run) **não funciona** neste workflow: a versão 0.2.89 tem um
+`nil pointer dereference` ao inspecionar containers de serviço em modo dry-run.
+Rode sem `-n`.
+
+Os scripts avulsos continuam existindo para uso pontual:
+
+```bash
 .venv/bin/python scripts/validate_knowledge_base.py   # valida a base
 .venv/bin/python scripts/generate_docs.py             # regenera docs/*
 ```
-
-**Confira o código de saída, não só a última linha.** O validador reprova com
-mensagem e sai diferente de zero; um `| tail` esconde os dois. É como o gate de
-derivação passou meses vermelho sem ninguém ver — [L22](docs/sprints/licoes-aprendidas.md).
 
 As páginas em `docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/` são
 **geradas** e não devem ser editadas à mão.
