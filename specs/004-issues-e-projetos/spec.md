@@ -75,7 +75,9 @@ interpretado.
 **Acceptance Scenarios**:
 
 1. **Dado** uma organização observada com projetos, **quando** a coleta ocorre,
-   **então** cada projeto aparece com nome, número e a organização de origem.
+   **então** cada projeto aparece com nome, número e a organização de origem,
+   **como artefato de fonte e não como projeto Scrum** — promover exige declaração
+   do tenant.
 2. **Dado** um projeto com itens, **quando** a coleta ocorre, **então** cada item
    que referencia uma issue já coletada aponta para ela, e nenhum item duplica a
    issue.
@@ -96,6 +98,9 @@ interpretado.
 8. **Dado** um item de projeto **sem** iteração atribuída, **quando** o usuário
    consulta o produto, **então** ele aparece como product backlog, que é
    exatamente o que "sem iteração" significa.
+9. **Dado** itens atribuídos a uma iteração já iniciada, **quando** o usuário
+   consulta aquele sprint, **então** eles aparecem como o sprint backlog dele — e
+   nenhum item aparece nos dois conjuntos.
 
 ---
 
@@ -223,7 +228,13 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 #### Projetos
 
 - **FR-020**: A plataforma DEVE coletar os projetos das organizações observadas,
-  com nome, número e organização de origem.
+  com nome, número e organização de origem, **como artefato de fonte**. Um projeto
+  do GitHub NÃO É por si um projeto no sentido da ontologia: `spo.project` é
+  empreendimento temporário com objetivo definido, e uma organização mantém vários
+  quadros para o mesmo empreendimento.
+- **FR-020a**: A promoção de um projeto observado a projeto Scrum DEVE exigir
+  **declaração do tenant**, e NUNCA ocorrer automaticamente. Sem a declaração, o
+  projeto permanece artefato de fonte, consultável e não promovido.
 - **FR-021**: A plataforma DEVE coletar os itens de cada projeto e ligá-los às
   issues já coletadas, sem duplicar a issue.
 - **FR-022**: Um item de projeto que não referencia issue — rascunho — DEVE ser
@@ -253,8 +264,14 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   promovida a sprint; DEVE ser guardada como planejamento.
 - **FR-031**: Uma iteração removida da configuração do projeto depois de ter tido
   itens DEVE permanecer consultável, marcada como não mais presente na origem.
-- **FR-032**: Um item de projeto sem iteração atribuída DEVE ser consultável como
-  product backlog.
+- **FR-032**: O conjunto dos itens de um projeto **sem** iteração atribuída DEVE
+  ser consultável como product backlog. A ausência de iteração é o que o define —
+  não um campo separado.
+- **FR-032a**: O conjunto dos itens atribuídos a uma iteração **já iniciada** DEVE
+  ser consultável como o sprint backlog daquele sprint.
+- **FR-032b**: A composição dos dois conjuntos DEVE ser **derivada da atribuição de
+  iteração**, e NUNCA gravada como pertencimento escolhido por quem coleta — pelo
+  mesmo motivo que a classificação épico/atômica é derivada das partes.
 
 #### Tela
 
@@ -325,6 +342,11 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **SC-008**: Nenhum valor de campo configurável sem mapeamento declarado aparece
   convertido em atributo da ontologia.
 - **SC-009**: Nenhuma iteração com início no futuro aparece como sprint.
+- **SC-009a**: Nenhum projeto observado aparece como projeto Scrum sem declaração
+  do tenant registrada.
+- **SC-009b**: A soma dos itens no product backlog e nos sprint backlogs de um
+  projeto é igual ao total de itens dele — nenhum item fica em dois conjuntos nem
+  fora dos dois.
 - **SC-010**: A tela distingue, sem ambiguidade, repositório coletado e vazio de
   repositório não coletado.
 - **SC-011**: Uma coleta interrompida pelo limite de consumo, ao ser retomada,
