@@ -82,25 +82,49 @@ O repositório tem atributos que só ele tem, e eles não sobem para a tabela do
 kind — iriam conviver com servidores de CI e ambientes de build, produzindo
 colunas nulas em toda linha que não é repositório.
 
+Saída real do derivador, depois de declarar os atributos do conceito:
+
 ```
-┌─ cmpo_source_repositories   (extensão de sys_swo.loaded_software_system_copy
-│                              onde type='source_repository')
-│    loaded_software_system_copy_id  uuid  NOT NULL  → FK (extension)
-│    tenant_id                       uuid  NOT NULL
-│    internal_id                     string NOT NULL
-│    record_version                  integer NOT NULL
-│    name                            string NOT NULL
-│    full_name                       string NOT NULL
-│    organization_id                 uuid  NOT NULL  → eo_organizations
-│    archived_at                     datetime NULL     arquivado na origem
-│    source_system                   string NOT NULL ┐
-│    source_instance                 string NOT NULL ├ Application Reference
-│    external_id                     string NOT NULL ┘
-│    collected_at                    datetime NOT NULL
-│    last_observed_at                datetime NULL
-│    no_longer_observed_at           datetime NULL
+┌─ cmpo_source_repositories   (estende sys_swo.loaded_software_system_copy
+│                              [outra ontologia] onde type='source_repository')
+│    loaded_software_system_copy_id  uuid      NOT NULL  → FK (extension)
+│    name                            string    NOT NULL
+│    qualified_name                  string    NOT NULL
+│    url                             string    NOT NULL
+│    description                     text      NULL
+│    primary_language                string    NULL
+│    default_branch                  string    NULL
+│    archived_at                     datetime  NULL
+│    external_created_at             datetime  NULL
+│    last_pushed_at                  datetime  NULL
 └─
 ```
+
+**A tabela só existe porque o conceito declara atributos.** Um `subkind` sem
+atributos contribui apenas um valor de discriminador na tabela do kind e desaparece —
+foi o que a primeira versão deste documento descreveu, e estava incompleta. Declarar
+os atributos em `cmpo.source_repository` é o que faz a extensão ser emitida.
+
+Os atributos são o que **qualquer hospedagem de Git** fornece, não o que o GitHub
+fornece. A Application Reference, `tenant_id`, `internal_id` e o par de observação
+vivem na tabela do kind, que é onde a identidade mora.
+
+### Três coisas que o repositório **não** guarda, e por quê
+
+| Fora | Motivo |
+|---|---|
+| `is_fork` booleano | ser fork é dizer que esta cópia deriva de **outra cópia** — relação, não propriedade. Um booleano guardaria que existe origem e perderia qual é: o antipadrão "booleano no lugar do relator" |
+| a lista completa de linguagens | exigiria conceito próprio para linguagem e relação com peso. Um array sem semântica declarada não responde nada |
+| `licenseInfo`, `diskUsage` | licença é conceito de outra ontologia; tamanho em disco é métrica da hospedagem, não do item de configuração |
+
+E uma declarada em vez de escondida: **`primary_language` é calculada pela origem
+sobre o código**, e não é propriedade da cópia carregada em si. Fica no repositório
+porque é onde a origem a fornece, com a atribuição escrita no mapeamento em vez de
+presumida.
+
+`default_branch` guarda o **nome** do ramo, não referência a `cmpo.branch`. A relação
+existe na base — `cmpo.branch_belongs_to_repository` —, e apontar para ela exigiria
+coletar ramos, fora do escopo desta feature.
 
 **`archived_at` e `no_longer_observed_at` são coisas diferentes**, e confundi-las
 seria o defeito. Arquivado é fato da origem: o GitHub diz. Não mais observado é
@@ -165,9 +189,96 @@ A tela e a consulta de escopo usam a mesma função. Dois caminhos discordariam.
 
 ---
 
-## 3. Plataforma: as tabelas de coleta
+## 3. O mapeamento por organização observada
 
-### 3.1 `observed_repositories`
+Decisão da pessoa mantenedora em 2026-08-11: o mapeamento entre os conceitos da
+organização e os da ontologia é configurado **na tela de definição da ferramenta**, e
+vale **por organização**.
+
+```
+┌─ tool_concept_mappings   (por organização observada)
+│    connected_tool_id     uuid    NOT NULL  ← o escopo: uma organização, uma instância
+│    tenant_id             uuid    NOT NULL
+│    kind                  enum    NOT NULL  {issue_type, project_field}
+│    source_name           string  NOT NULL  "Feature", "Spike", "Estimate"
+│    source_external_id    string  NULL      obrigatório para campo de quadro
+│    target_concept        string  NULL      "sro.user_story", "osdef.defect"
+│    target_attribute      string  NULL      "sro.user_story.complexity"
+│    decided_by            enum    NOT NULL  {structure, declaration}
+│    declared_by_user_id   uuid    NOT NULL  decisão tem autor
+│    declared_at           datetime NOT NULL
+│
+│  UNIQUE (connected_tool_id, kind, source_external_id)
+└─
+```
+
+**O único carrega `kind`, e não pode ser o identificador sozinho.** Decisão da pessoa
+mantenedora: o mesmo identificador pode aparecer em artefatos diferentes. Um índice
+sobre `source_external_id` isolado recusaria o segundo mapeamento válido, e o erro
+apareceria como "já existe" sobre coisas que não são a mesma.
+
+`source_name` **não** entra no único: renomear "Priority" para "Prioridade" precisa
+atualizar a mesma linha, e um único sobre o nome criaria uma segunda.
+
+**`connected_tool_id` e não `tenant_id` como escopo.** A ferramenta conectada **é** a
+organização: a identidade dela é tenant, tipo, instância e organização. Guardar o
+mapeamento nela é guardá-lo por organização sem criar um segundo lugar que possa
+divergir do primeiro.
+
+O que isso permite, e um mapeamento por tenant impediria: uma organização usa
+`Feature`, outra usa `História`, e as duas convivem. Sem esse escopo, a segunda
+organização a ser conectada viraria lacuna permanente — e a lacuna não teria culpado,
+porque nenhuma das duas está errada.
+
+### Três coisas que o desenho separa de propósito
+
+**`decided_by`** distingue o que a estrutura decide do que a declaração decide.
+`Feature` roteia para dois conceitos e quem escolhe é a estrutura — `decided_by:
+structure`, e `target_concept` fica `sro.user_story`, o abstrato. `Bug` é
+`declaration`, com destino concreto.
+
+**`source_external_id` obrigatório em tudo.** Decisão da pessoa mantenedora em
+2026-08-11: é o identificador que liga a entidade do modelo à da organização, e é ele
+que faz o mapeamento sobreviver a renomeação.
+
+Eu havia escrito que tipo de issue não tinha identificador estável e que o nome seria
+a chave. **Estava errado** — o GraphQL devolve `issueType.id`:
+
+```
+Feature  IT_kwDODHSRm84BlVJy
+Task     IT_kwDODHSRm84BlVJw
+Bug      IT_kwDODHSRm84BlVJx
+```
+
+`source_name` continua gravado, para leitura humana e para a tela mostrar o que a
+organização chama de quê. Mas a chave é o identificador.
+
+**`declared_by_user_id` não é anulável.** Ao contrário do evento de observação, que
+pode vir de processo, um mapeamento é sempre decisão de alguém. Sem autor não há como
+responder "quem decidiu que Spike é uma user story".
+
+### A precedência, e por que o YAML continua existindo
+
+```
+regra global em rules/github_issue_type_routing.yaml     padrão da rede
+  └─ regra do tenant em rules/tenants/<tenant>.yaml      padrão do tenant
+       └─ tool_concept_mappings                          desta organização
+```
+
+O YAML é o **padrão do qual a configuração parte**, e a linha da tabela sobrescreve
+apenas para aquela organização — FR-049. As duas têm o mesmo efeito na promoção, e são
+distinguíveis pela proveniência: a do YAML passou por revisão de código, a da tela não.
+Quem lê uma medida derivada precisa poder saber qual das duas a sustenta.
+
+**Conectar não é bloqueado por mapeamento pendente** (FR-041c). Sem linha nenhuma, o
+padrão vale e os tipos não reconhecidos aparecem como lacuna — que é o que a US1 já
+mostra.
+
+---
+
+## 4. Plataforma: as tabelas de coleta
+
+### 4.1 `observed_repositories`
 
 O que a plataforma decidiu sobre cada repositório — separado do repositório em si,
 que é domínio.
@@ -184,7 +295,7 @@ tenant; inacessível é falha de alcance. As duas impedem a coleta e **nenhuma d
 duas marca ausência** — é o que FR-005 e FR-006 exigem, e é a L19 aplicada: só
 marca ausência quem foi realmente olhado.
 
-### 3.2 `collected_issues`
+### 4.2 `collected_issues`
 
 ```
 tenant_id            uuid      NOT NULL
@@ -203,6 +314,20 @@ no_longer_observed_at datetime NULL
 UNIQUE (tenant_id, source_system, source_instance, external_id)
 ```
 
+**O tipo da entidade está no índice, e está implícito na tabela.** A Application
+Reference não é única entre tipos diferentes: o mesmo identificador pode designar uma
+issue numa fonte e outra coisa em outra, e em fontes que numeram por tipo — Jira,
+Azure DevOps — a colisão é rotina em vez de exceção.
+
+Aqui isso se resolve porque **cada tipo tem sua tabela**, e o índice vive dentro dela.
+`collected_issues` e `cmpo_source_repositories` podem ter o mesmo `external_id` sem
+que nada colida, porque nenhuma consulta cruza as duas por esse campo.
+
+A consequência é uma regra para quem for acrescentar entidade: **nunca uma tabela
+compartilhada indexada por `external_id`.** `raw_payloads` mostra a alternativa quando
+a tabela precisa ser compartilhada — ela carrega `raw_entity_type` ao lado do
+`external_id`, e o tipo entra em toda consulta.
+
 **`number` não é identidade.** Mover uma issue entre repositórios cria outro número
 no destino e preserva o da origem — duas linhas para a mesma issue. O identificador
 global não muda.
@@ -210,7 +335,7 @@ global não muda.
 **`issue_type` é texto livre e fica cru.** Normalizá-lo na coleta destruiria o dado
 que a lacuna precisa mostrar: FR-034 manda exibir *o nome do tipo encontrado*.
 
-### 3.3 `issue_promotions`
+### 4.3 `issue_promotions`
 
 ```
 collected_issue_id   uuid      NOT NULL
@@ -240,7 +365,7 @@ e virou épico sem retipagem.
 `rule_version` é o que permite responder *"por que esta issue foi classificada assim
 em março"* depois de a regra mudar — e ela vai mudar, tem `status: proposed`.
 
-### 3.4 `decomposition_links` e `refused_links`
+### 4.4 `decomposition_links` e `refused_links`
 
 ```
 decomposition_links          refused_links
@@ -262,7 +387,7 @@ depois de duas coletas reais em todos os tenants, vira contagem no relatório do
 `reason: out_of_scope` cobre o edge case 3: a parte está em repositório fora do
 escopo observado. A relação existe e é registrada; a parte não é promovida.
 
-### 3.5 Projeto, campos e itens
+### 4.5 Projeto, campos e itens
 
 ```
 observed_projects                project_field_definitions
@@ -309,9 +434,9 @@ Quem promove é o conteúdo dele.
 
 ---
 
-## 4. O modelo de classes
+## 5. O modelo de classes
 
-### 4.1 Fronteiras de módulo
+### 5.1 Fronteiras de módulo
 
 ```
 lib/the_band/
@@ -343,7 +468,7 @@ schema é a forma da tabela, e a tabela é derivada — ela muda quando a ontolo
 muda. Dependentes do schema fariam cada mudança de derivação quebrar consumidores
 por toda a aplicação, e a pressão para não mexer na derivação venceria a semântica.
 
-### 4.2 Quem chama quem
+### 5.2 Quem chama quem
 
 ```
 Jobs.SyncGithubSRO
@@ -370,7 +495,7 @@ em vez de um commit revisável na base de conhecimento.
 `sro.rule04` diz por quê: *"uma constraint de banco sozinha não pega ciclo
 transitivo em auto-relacionamento; é preciso checar o caminho até a raiz"*.
 
-### 4.3 API pública, e o que ela não expõe
+### 5.3 API pública, e o que ela não expõe
 
 ```elixir
 # WorkItems
@@ -404,7 +529,7 @@ volume muito maior que as três organizações do defeito original.
 
 ---
 
-## 5. O que **não** é materializado
+## 6. O que **não** é materializado
 
 | Não existe como coluna | Onde vive |
 |---|---|
@@ -419,7 +544,7 @@ volume muito maior que as três organizações do defeito original.
 
 ---
 
-## 6. Migrações
+## 7. Migrações
 
 Uma por fase, cada uma explicando no `@moduledoc` por que a forma é essa —
 inclusive as ausências deliberadas, que são o que ninguém recupera depois.

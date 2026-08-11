@@ -73,7 +73,14 @@ concepts:
         Disposição que materializa um sistema de software, inerente a uma máquina.
         É o conceito usado para representar instâncias reais de ferramentas —
         um GitLab instalado em um servidor, um ambiente de build, um servidor de CI.
-    classification: { ufo_category: disposition }
+    # `kind` porque não há supertipo declarado: este conceito fornece o próprio
+    # princípio de identidade. Anotado sozinho, na feature 004, porque
+    # `cmpo.source_repository` é `subkind` dele e precisa de uma tabela para
+    # referenciar — constituição IX, a regra da fronteira. Os outros 10 conceitos
+    # desta ontologia seguem sem estereótipo, e isso é correto: anotar a ontologia
+    # inteira para registrar um repositório seria o pré-requisito disfarçado que o
+    # princípio nomeia.
+    classification: { ufo_category: disposition, ontouml_stereotype: kind }
 
   - id: sys_swo.hardware_equipment
     name: Hardware Equipment

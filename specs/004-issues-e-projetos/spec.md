@@ -104,7 +104,80 @@ interpretado.
 
 ---
 
-### User Story 3 - Restringir quais repositórios são observados (Priority: P3)
+### User Story 3 - Configurar o mapeamento ao definir a ferramenta (Priority: P2)
+
+A pessoa que conecta uma ferramenta configura, **na mesma tela**, como os conceitos
+daquela organização correspondem aos da ontologia: quais tipos de issue ela usa, para
+qual conceito cada um vai, e quais campos do quadro a plataforma deve interpretar.
+
+O mapeamento é **por organização observada**, não por tenant. Um tenant observa
+várias organizações, e cada uma nomeia as coisas como quer: uma usa `Feature`, outra
+usa `História`, outra criou `Spike`. Um mapeamento por tenant obrigaria todas a
+concordarem, e a primeira divergência viraria lacuna sem culpado.
+
+**A organização observada é a ferramenta conectada** — a identidade dela é tenant,
+tipo, instância e organização. Guardar o mapeamento nela é guardá-lo por organização,
+sem criar um segundo lugar que possa divergir.
+
+**Why this priority**: a regra de roteamento tem `status: proposed` e `confidence:
+medium` — ela **vai** errar. A US1 torna a lacuna visível; esta tela é o outro lado,
+e sem ela corrigir exigiria editar YAML no repositório, o que quem administra o tenant
+não faz. A lacuna ficaria visível e inendereçável.
+
+**Configurar ao definir é o que muda de lugar.** Perguntar depois da primeira coleta
+significa coletar sabendo que vai classificar errado, e depois reprocessar. Perguntar
+antes exige uma consulta à origem no momento da conexão — a plataforma **descobre**
+os tipos que a organização usa e mostra os que encontrou, em vez de pedir para a
+pessoa digitar nomes.
+
+**Independent Test**: conectar uma organização que usa `Feature`, `Task` e `Bug`,
+conferir que os três aparecem na tela de conexão com o conceito de destino sugerido,
+que `Epic` e `User Story` aparecem como **não usados por esta organização**, e que a
+primeira coleta já classifica pelo que foi configurado.
+
+**Acceptance Scenarios**:
+
+1. **Dado** que o usuário está conectando uma ferramenta, **quando** a credencial é
+   validada, **então** a plataforma consulta os tipos de issue que **aquela
+   organização** usa e os apresenta na mesma tela, com o conceito de destino sugerido
+   por tipo.
+1a. **Dado** uma ferramenta já conectada, **quando** o usuário abre a configuração
+   dela, **então** vê e ajusta o mesmo mapeamento — configurar na conexão não é a
+   única porta, é a primeira.
+2. **Dado** um tipo da regra global que a organização não usa — `Epic`,
+   `User Story` —, **quando** o usuário abre a tela, **então** ele aparece marcado
+   como **não usado aqui**, e não como erro nem como ausência.
+3. **Dado** o tipo `Feature`, **quando** o usuário vê a linha dele, **então** a tela
+   mostra que ele roteia para **dois** conceitos e que **a estrutura decide qual** —
+   com partes que são user stories é épico, sem partes ou com partes que são tarefas
+   é atômica.
+4. **Dado** um tipo desconhecido contado como lacuna, **quando** o usuário declara
+   para qual conceito ele vai, **então** a declaração é gravada com autor e data
+   **na ferramenta conectada**, e a coleta seguinte o promove — deixando de contá-lo
+   como lacuna.
+4a. **Dado** duas ferramentas conectadas com nomes de tipo diferentes para a mesma
+   coisa, **quando** cada uma é configurada, **então** as duas configurações coexistem
+   sem uma sobrescrever a outra.
+5. **Dado** uma declaração do usuário que contraria um axioma — por exemplo mapear
+   um tipo para `sro.epic` sem exigir partes —, **quando** ele tenta salvar,
+   **então** a plataforma recusa nomeando o axioma, e não grava.
+6. **Dado** os campos do quadro, **quando** o usuário abre a tela, **então** vê
+   quais estão mapeados para atributo da ontologia e quais não, com o motivo de cada
+   não mapeado.
+7. **Dado** que o usuário quer mapear `Priority` para `importance`, **quando** ele
+   tenta, **então** a plataforma **recusa** e explica: importance é decimal com
+   escala declarada, `Priority` é seleção única cujos valores o tenant inventou.
+8. **Dado** uma declaração gravada pela tela, **quando** alguém a consulta,
+   **então** a proveniência diz que veio de decisão do tenant, com quem e quando —
+   nunca de observação.
+9. **Dado** que o usuário conecta sem configurar mapeamento nenhum, **quando** a
+   coleta ocorre, **então** a regra global vale como padrão e os tipos não
+   reconhecidos aparecem como lacuna — **conectar não fica bloqueado** por
+   configuração pendente.
+
+---
+
+### User Story 4 - Restringir quais repositórios são observados (Priority: P3)
 
 A pessoa que administra o tenant vê que a organização tem repositórios que não
 interessam — arquivados, forks, experimentos — e quer excluí-los da coleta sem
@@ -173,6 +246,9 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-002**: Cada repositório descoberto DEVE ser registrado com a organização
   de origem, e a proveniência DEVE permitir dizer por qual ferramenta conectada
   ele foi observado.
+- **FR-002a**: O repositório DEVE ter tabela própria, com os atributos que qualquer
+  hospedagem de Git fornece: nome, nome qualificado, endereço, descrição, linguagem
+  predominante, ramo padrão, e as datas de criação e da última escrita observada.
 - **FR-003**: A plataforma DEVE registrar, para cada repositório, se ele está
   arquivado na origem, e MANTER consultáveis as issues de repositório arquivado.
 - **FR-004**: A plataforma DEVE permitir excluir um repositório da observação sem
@@ -189,8 +265,12 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-007**: A plataforma DEVE coletar as issues de cada repositório observado,
   preservando o payload bruto de cada uma para reprocessamento.
 - **FR-008**: Cada issue DEVE ser identificada pela Application Reference —
-  sistema de origem, instância e identificador externo global — e NUNCA pelo
-  número dentro do repositório.
+  sistema de origem, instância e identificador externo — e NUNCA pelo número dentro
+  do repositório.
+- **FR-008a**: A unicidade da Application Reference DEVE ser escopada pelo **tipo da
+  entidade**, nunca pelo identificador sozinho: o mesmo identificador pode designar
+  artefatos diferentes, e em fontes que numeram por tipo a coincidência é rotina. O
+  tipo DEVE estar na tabela ou numa coluna do índice.
 - **FR-009**: Duas coletas idênticas NÃO DEVEM produzir registros duplicados nem
   alterar a contagem de nada.
 - **FR-010**: A marca de "não mais observado" para issues DEVE ser escopada pelo
@@ -250,8 +330,12 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-026**: Quando o projeto não tiver campo mapeado para um atributo da
   ontologia, esse atributo DEVE permanecer vazio e a ausência DEVE ser exibida
   como limitação — nenhum outro campo DEVE ser usado como substituto.
-- **FR-027**: A identidade de um campo configurável DEVE ser o identificador do
-  campo, e não o nome, de modo que renomear não crie um campo novo.
+- **FR-027**: A identidade de **toda entidade mapeada** — campo configurável e tipo
+  de issue — DEVE ser o identificador que a origem fornece, e não o nome, de modo que
+  renomear não crie entidade nova. O nome DEVE ser gravado junto, para leitura humana
+  e para a tela mostrar como a organização chama cada coisa.
+- **FR-027a**: O identificador NÃO DEVE ser tratado como único entre tipos de
+  entidade. Toda restrição de unicidade sobre ele DEVE incluir o tipo.
 - **FR-028**: A coleta de projeto DEVE trazer projeto, campos, itens e valores de
   campo dos itens, e NÃO DEVE trazer o histórico de alterações dos itens.
 
@@ -277,6 +361,40 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
 - **FR-032b**: A composição dos dois conjuntos DEVE ser **derivada da atribuição de
   iteração**, e NUNCA gravada como pertencimento escolhido por quem coleta — pelo
   mesmo motivo que a classificação épico/atômica é derivada das partes.
+
+#### Mapeamento declarado pelo tenant
+
+- **FR-041**: A plataforma DEVE apresentar, **na tela de definição da ferramenta
+  conectada**, os tipos de issue que aquela organização de fato usa, descobertos por
+  consulta à origem, com o conceito de destino sugerido por tipo.
+- **FR-041a**: O mapeamento DEVE ser escopado **por organização observada**, que é a
+  ferramenta conectada — e NÃO pelo tenant. Duas organizações do mesmo tenant DEVEM
+  poder mapear o mesmo nome de tipo para conceitos diferentes, sem que uma
+  sobrescreva a outra.
+- **FR-041b**: A configuração DEVE ser acessível também **depois** da conexão, pela
+  tela da ferramenta. Configurar ao definir é a primeira porta, não a única.
+- **FR-041c**: Conectar uma ferramenta NÃO DEVE ser bloqueado por mapeamento
+  pendente. Sem configuração, a regra global vale como padrão e os tipos não
+  reconhecidos aparecem como lacuna.
+- **FR-042**: Um tipo previsto pela regra global e **não usado** pela organização
+  DEVE aparecer como *não usado aqui*, distinto de erro e de ausência de
+  configuração.
+- **FR-043**: Para tipo que roteia para mais de um conceito, a tela DEVE dizer que
+  **a estrutura decide**, e qual estrutura decide o quê.
+- **FR-044**: A pessoa autorizada DEVE poder declarar o conceito de destino de um
+  tipo desconhecido, e a declaração DEVE ser gravada com autor, data e proveniência
+  de decisão do tenant.
+- **FR-045**: A plataforma DEVE recusar declaração que contrarie um axioma da rede,
+  nomeando o axioma — e NÃO DEVE gravá-la.
+- **FR-046**: A plataforma DEVE recusar mapear campo de seleção única para atributo
+  numérico da ontologia, explicando a diferença de escala.
+- **FR-047**: A tela DEVE apresentar os campos do quadro separados em interpretados
+  e não interpretados, com o motivo de cada não interpretado.
+- **FR-048**: Uma declaração feita pela tela DEVE ter o mesmo efeito que a declarada
+  em YAML versionado, e DEVE ser distinguível dela pela proveniência.
+- **FR-049**: A regra em YAML versionado DEVE ser o **padrão** do qual a
+  configuração de uma ferramenta parte; a configuração da ferramenta sobrescreve o
+  padrão apenas para ela.
 
 #### Tela
 
@@ -361,6 +479,16 @@ plataforma parou de olhar, e isso não é o mesmo que ter sumido.
   não recoleta nenhuma página já coletada.
 - **SC-012**: Um usuário de um tenant não alcança repositório, issue, projeto nem
   item de outro tenant por nenhum caminho.
+- **SC-013**: Nenhum tipo de issue aparece na tela de mapeamento sem existir na
+  organização ou sem estar marcado como não usado por ela.
+- **SC-013a**: Duas organizações observadas com mapeamentos diferentes produzem
+  classificações diferentes para o mesmo nome de tipo, e nenhuma interfere na outra.
+- **SC-016**: Dois artefatos de tipos diferentes com o mesmo identificador coexistem,
+  e nenhuma restrição de unicidade recusa o segundo.
+- **SC-014**: Nenhuma declaração que contrarie axioma da rede é gravada, e a recusa
+  nomeia o axioma.
+- **SC-015**: Nenhum campo de seleção única aparece mapeado para atributo numérico
+  da ontologia.
 
 ## Assumptions
 

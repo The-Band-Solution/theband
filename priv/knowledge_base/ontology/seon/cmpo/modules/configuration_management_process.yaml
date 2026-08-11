@@ -42,6 +42,19 @@ concepts:
         Cópia carregada de sistema de software cujo propósito é tratar as mudanças
         de cópias de artefato.
     classification: { ufo_category: disposition, ontouml_stereotype: subkind, parent: sys_swo.loaded_software_system_copy }
+    # Atributos próprios, e é o que faz a extensão existir: um subkind sem atributos
+    # contribui só um valor de discriminador na tabela do kind, e some. Estes são o
+    # que qualquer hospedagem de Git fornece — não são específicos do GitHub.
+    attributes:
+      - { name: name, type: string, required: true, description: "Nome do repositório na hospedagem." }
+      - { name: qualified_name, type: string, required: true, description: "Nome com o dono, que é como a hospedagem o endereça." }
+      - { name: url, type: string, required: true, description: "Endereço de leitura da cópia." }
+      - { name: description, type: text, required: false }
+      - { name: primary_language, type: string, required: false, description: "Linguagem predominante, calculada pela origem sobre o código." }
+      - { name: default_branch, type: string, required: false, description: "Nome do ramo padrão." }
+      - { name: archived_at, type: datetime, required: false, description: "Quando a ORIGEM arquivou. Não é ausência de observação." }
+      - { name: external_created_at, type: datetime, required: false }
+      - { name: last_pushed_at, type: datetime, required: false, description: "Última escrita observada na origem." }
     examples: ["uma instância do GitLab", "um repositório no GitHub"]
 
   - id: cmpo.change_request

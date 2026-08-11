@@ -1,0 +1,35 @@
+# Repositórios de uma organização, com o que qualquer hospedagem de Git fornece.
+#
+# `pushedAt` e `archivedAt` vêm juntos porque as duas datas respondem coisas
+# diferentes: a primeira é atividade, a segunda é fato da origem — e nenhuma das duas
+# é "não mais observado", que é inferência da plataforma.
+#
+# `primaryLanguage` é calculada pela origem sobre o código. O mapeamento declara essa
+# atribuição em vez de presumi-la.
+query($organization: String!, $page_size: Int = 50, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    id
+    repositories(first: $page_size, after: $after, orderBy: {field: NAME, direction: ASC}) {
+      # `totalCount` é o denominador do progresso. Sem ele a barra teria de inventar o
+      # total, e um percentual sobre denominador inventado é número que parece
+      # informação e não é.
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        name
+        nameWithOwner
+        url
+        description
+        archivedAt
+        createdAt
+        pushedAt
+        primaryLanguage { name }
+        defaultBranchRef { name }
+        owner { id }
+      }
+    }
+  }
+}

@@ -1,0 +1,142 @@
+derivation_rule:
+  id: github.issue_pattern_catalog
+  version: 1
+  provider: github
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Catálogo de padrões de tipo de issue"
+  description:
+    pt-BR: >
+      Regras pré-escritas para os padrões usuais de tipo de issue, medidos no dado real em
+      2026-08-11. O catálogo existe para que a primeira sessão de quem administra seja
+      **revisar e confirmar**, e não escrever oito regras à mão.
+
+      **As regras chegam PROPOSTAS, nunca ativas.** Ativá-las por padrão promoveria 1409
+      issues sem ninguém decidir, e a plataforma passaria a afirmar conceitos que ninguém
+      declarou. O catálogo economiza a escrita, não a decisão.
+
+      Editar uma regra cria uma versão da organização; o catálogo permanece como está para
+      as outras, e uma atualização dele não sobrescreve a edição.
+
+  # ---------------------------------------------------------------------------
+  # Tipos DECLARADOS na origem que nenhuma rota global reconhece.
+  # Evidência forte: alguém tipou a issue na ferramenta.
+  # ---------------------------------------------------------------------------
+  declared_type_patterns:
+    - match: { where: issue_type, how: equals, text: "Chore" }
+      proposes: sro.intended_scrum_development_task
+      seen: 17
+      note:
+        pt-BR: >
+          Trabalho interno de manutenção. É tarefa pretendida, e **não** user story: chore
+          não descreve requisito do produto, e promovê-lo a user story infla o backlog com
+          trabalho que ninguém pediu como valor.
+
+    - match: { where: issue_type, how: equals, text: "Refactor" }
+      proposes: sro.intended_scrum_development_task
+      seen: 16
+      note:
+        pt-BR: >
+          Refatoração é tarefa. Pela definição do OSDEF, ela não é defeito — não há falha a
+          corrigir; há estrutura a melhorar.
+
+    - match: { where: issue_type, how: equals, text: "Hotfix" }
+      proposes: osdef.defect
+      seen: 4
+      note:
+        pt-BR: >
+          Hotfix pressupõe defeito em produção. É a única das três que aponta para OSDEF, e
+          a razão é a existência da falha — não a urgência.
+
+  # ---------------------------------------------------------------------------
+  # Padrões de TÍTULO, para issues SEM tipo declarado.
+  # Evidência mais fraca: é convenção de escrita, não campo da ferramenta.
+  # ---------------------------------------------------------------------------
+  title_patterns:
+    - match: { where: title, how: starts_with, text: "[TASK]", case_sensitive: false }
+      proposes: sro.intended_scrum_development_task
+      seen: 1041
+      note:
+        pt-BR: "Inclui [TASK] e [Task] — a insensibilidade cobre as duas grafias."
+
+    - match: { where: title, how: starts_with, text: "[FEATURE]", case_sensitive: false }
+      proposes: sro.atomic_user_story
+      seen: 111
+      note:
+        pt-BR: >
+          Atômica, e não épico: a composição decide, e quem decide é a estrutura de
+          sub-issues. Uma regra não pode declarar épico — sro.rule05 exige partes.
+
+    - match: { where: title, how: starts_with, text: "[US", case_sensitive: false }
+      proposes: sro.atomic_user_story
+      seen: 60
+      note:
+        pt-BR: >
+          Sem o colchete de fechamento de propósito: cobre `[US]`, `[US 1.1]` e `[US1]`,
+          que apareceram no dado real. Fechar o colchete perderia as numeradas.
+
+    - match: { where: title, how: starts_with, text: "[BUG]", case_sensitive: false }
+      proposes: osdef.defect
+      seen: 51
+
+    - match: { where: title, how: starts_with, text: "[FIX]", case_sensitive: false }
+      proposes: osdef.defect
+      seen: 57
+      note:
+        pt-BR: >
+          `[FIX]` costuma nomear a correção, e não o defeito. Proposto como defeito porque é
+          o que a issue registra; se o time usa `[FIX]` para refatoração, a organização
+          edita esta regra — é o caso que a edição existe para resolver.
+
+    - match: { where: title, how: starts_with, text: "[EPIC]", case_sensitive: false }
+      proposes: sro.atomic_user_story
+      seen: 12
+      note:
+        pt-BR: >
+          Proposto como ATÔMICA, mesmo o rótulo dizendo épico. Não é contradição: épico é
+          consequência de ter partes (sro.rule05), e a estrutura promove a épico quem as
+          tiver. Propor épico aqui criaria épico sem partes.
+
+    - match: { where: title, how: starts_with, text: "[E2E]", case_sensitive: false }
+      proposes: sro.intended_scrum_development_task
+      seen: 24
+      note:
+        pt-BR: "Teste ponta a ponta é trabalho a fazer, não requisito do produto."
+
+  # ---------------------------------------------------------------------------
+  # Padrões que NÃO são tipo. Aparecem no catálogo para serem RECUSADOS, e é o que
+  # impede a tela de empurrar o mapeamento de área como conceito.
+  # ---------------------------------------------------------------------------
+  not_type_patterns:
+    patterns:
+      - { text: "[Devops]", seen: 340 }
+      - { text: "[Back-end]", seen: 256 }
+      - { text: "[Front-end]", seen: 237 }
+      - { text: "[Dados]", seen: 186 }
+      - { text: "[QA]", seen: 97 }
+      - { text: "[Backend]", seen: 57 }
+      - { text: "[Front]", seen: 35 }
+      - { text: "[Infra]", seen: 0 }
+    reason:
+      pt-BR: >
+        Estes prefixos dizem **quem** faz ou **em que área**, não **o que** a issue é. São
+        1274 issues, quase metade das que têm prefixo — e mapeá-las como tipo produziria
+        1274 registros com conceito errado.
+
+        Conceito errado é pior que conceito ausente: a medida passa a existir e a mentir,
+        e ninguém tem como notar. Por isso eles aparecem aqui — para a tela sugerir a
+        recusa, não o mapeamento.
+
+  limits:
+    max_evaluation_ms: 100
+    forbid_empty_match: true
+    note:
+      pt-BR: >
+        Expressão que casa string vazia é recusada: `.*` grava sem erro e reclassifica
+        tudo. E o limite de tempo existe porque regex é código que o usuário escreve.
+
+  provenance:
+    source_type: project_decision
+    reference: "Feature 005; padrões e contagens medidos na organização real em 2026-08-11"

@@ -41,6 +41,8 @@ defmodule TheBand.Ontology.SEON.EO do
 
   defdelegate list_people(tenant, opts \\ []), to: Queries
   defdelegate count_people(tenant, opts \\ []), to: Queries
+  defdelegate person_ids_by_login(tenant), to: Queries
+  defdelegate people_names(tenant, ids), to: Queries
   defdelegate list_teams(tenant, opts \\ []), to: Queries
   defdelegate count_teams(tenant, opts \\ []), to: Queries
   defdelegate list_team_members(tenant, team_id, opts \\ []), to: Queries

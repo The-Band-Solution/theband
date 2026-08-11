@@ -25,6 +25,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
@@ -71,6 +72,14 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         {:ok, _} = EO.mark_evidence_no_longer_observed(tenant, organization_id, started_at)
         pending = EO.count_evidence_pending_role(tenant)
 
+        # Segunda fase da MESMA sincronização: repositórios, issues e promoção.
+        # Sincronizar traz tudo — dois registros de `sync` para uma ação de quem opera
+        # tornariam "o que esta coleta trouxe" uma pergunta com duas respostas parciais.
+        #
+        # A ordem importa: a organização precisa existir para o repositório apontar para
+        # ela, e é a primeira fase que a grava.
+        trabalho = coletar_trabalho(ctx)
+
         sync
         |> Ingestion.reload()
         |> Ingestion.finish(:completed, memberships_pending_role: pending)
@@ -78,6 +87,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         Sources.touch_last_sync(tool)
         Sources.clear_needs_attention(tool)
         Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+        Logger.info("trabalho coletado: #{inspect(trabalho)}")
         :ok
 
       {:snooze, seconds} ->
@@ -98,6 +108,20 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
       {:error, reason} ->
         finish_with_error(tenant, sync, reason)
+    end
+  end
+
+  # A coleta de trabalho não derruba a sincronização de EO: pessoas e equipes já foram
+  # gravadas, e perdê-las por causa de uma falha na segunda fase seria pior que
+  # registrar a falha. O motivo fica no log e a fase seguinte tenta na próxima coleta.
+  defp coletar_trabalho(ctx) do
+    case GithubWorkItems.collect(ctx) do
+      {:ok, resumo} ->
+        resumo
+
+      {:error, reason} ->
+        Logger.warning("coleta de repositórios e issues falhou: #{inspect(reason)}")
+        %{repositories: 0, issues: 0, error: reason}
     end
   end
 

@@ -1,0 +1,138 @@
+derivation_rule:
+  id: github.issue_type_routing.the_band_solution
+  version: 2
+  provider: github
+  status: proposed
+  confidence: high
+
+  overrides: github.issue_type_routing
+
+  name:
+    pt-BR: "Roteamento de issue por tipo — organização The-Band-Solution"
+  description:
+    pt-BR: >
+      Sobrescreve a regra global com os nomes de tipo que ESTA organização de fato
+      usa. Medido pela API em 2026-08-11, no repositório `theband`:
+
+        Task ....... 79
+        Feature .... 15
+        Bug ......... 1
+
+      A organização **não tem** os tipos `Epic` nem `User Story`. A regra global os
+      lista porque outras organizações os criam; aqui eles não existem, e criá-los
+      alteraria a configuração da organização para casar com um documento em vez do
+      contrário.
+
+      Isto não é limitação: é a estrutura fazendo o trabalho que o rótulo faria.
+      `Feature` cobre user story atômica E épico, e o que separa os dois é ter
+      partes que são user stories — `sro.rule05`. Uma organização com o tipo `Epic`
+      teria a mesma decisão tomada pela mesma via, com o rótulo apenas informando
+      intenção.
+
+  # ---------------------------------------------------------------------------
+  # Correspondência dos tipos desta organização
+  # ---------------------------------------------------------------------------
+  # Identificadores conferidos pela API em 2026-08-11. TODA entidade mapeada tem
+  # identificador — decisão da pessoa mantenedora: é ele que liga a entidade do
+  # modelo à da organização. Tipo de issue tem `id` no GraphQL, e usá-lo faz o
+  # mapeamento sobreviver a renomeação.
+  type_mapping:
+    - github_type_external_id: IT_kwDODHSRm84BlVJy
+      github_type: Feature
+      concepts: [sro.epic, sro.atomic_user_story]
+      decided_by: structure
+      note:
+        pt-BR: >
+          Um só tipo, dois conceitos. COM sub-issues que são user stories → épico;
+          SEM, ou com partes que são tarefas → atômica. Os seis casos reais desta
+          organização exercitam as duas leituras, incluindo três Features com
+          sub-issues que são atômicas porque as partes são tarefas.
+
+    - github_type_external_id: IT_kwDODHSRm84BlVJw
+      github_type: Task
+      concepts: [sro.intended_scrum_development_task]
+      decided_by: declaration
+      note:
+        pt-BR: >
+          Tarefa pretendida, e não executada: issue aberta declara intenção, e
+          issue fechada não basta para afirmar execução. `sro.rule07` exige pai
+          atômico — uma tarefa sem pai, ou com pai épico, é registrada como
+          divergência e o VÍNCULO não é criado. Existe uma no dado real.
+
+    - github_type_external_id: IT_kwDODHSRm84BlVJx
+      github_type: Bug
+      concepts: [osdef.defect]
+      decided_by: declaration
+      note:
+        pt-BR: >
+          Sem requisito estrutural: ser defeito não depende de composição. Um bug
+          com sub-issues continua sendo um bug.
+
+  # Sem identificador porque não existem nesta organização — e é justamente o que
+  # `absent_types` afirma. Um identificador aqui seria inventado.
+  absent_types:
+    - github_type: Epic
+      reason:
+        pt-BR: >
+          Não existe nesta organização. Não é criado: `sro.epic` é derivado da
+          estrutura, e criar o tipo para casar com a regra global inverteria a
+          precedência que a própria regra declara — a estrutura vence a declaração.
+    - github_type: User Story
+      reason:
+        pt-BR: >
+          Não existe. `Feature` cumpre o papel, e está na lista de valores da rota
+          de user story atômica na regra global.
+
+  # ---------------------------------------------------------------------------
+  # Campos configuráveis do quadro → atributos da ontologia
+  # A identidade é o identificador do campo, NUNCA o nome (FR-027).
+  # ---------------------------------------------------------------------------
+  field_mapping:
+    - field_external_id: PVTF_lADODHSRm84BAAnTzgy8XUA
+      field_name_at_declaration: Estimate
+      target_attribute: sro.user_story.complexity
+      note:
+        pt-BR: >
+          `Estimate` é numérico e carrega complexity — quão difícil é para o time
+          implementar. O nome é registrado apenas para leitura humana; renomear o
+          campo não invalida este mapeamento, porque a chave é o identificador.
+
+  # Identificadores conferidos pela API em 2026-08-11. Registrados porque a
+  # identidade do campo é o identificador — renomear não invalida o mapeamento.
+  unmapped_fields:
+    - field_external_id: PVTSSF_lADODHSRm84BAAnTzgy8XT4
+      field_name: Priority
+      reason:
+        pt-BR: >
+          `Priority` NÃO é `importance`. Importance é decimal com escala declarada —
+          "quão valiosa a user story é para a organização" —, e Priority é seleção
+          única cujos valores esta organização inventou (P0, P1, P2). Converter um no
+          outro é mapeamento por semelhança de nome, que o princípio I proíbe.
+          O valor é guardado e exibido como não interpretado.
+    - field_external_id: PVTSSF_lADODHSRm84BAAnTzgy8XT8
+      field_name: Size
+      reason:
+        pt-BR: >
+          Camiseta (S, M, L), apoio grosseiro à estimativa. Não tem correspondente
+          ontológico, e usá-lo onde `Estimate` é esperado produziria medida de fluxo
+          sobre escala ordinal.
+    - field_external_id: PVTSSF_lADODHSRm84BAAnTzgy8XSQ
+      field_name: Status
+      reason:
+        pt-BR: >
+          Coluna do quadro. Mapear para fase de tarefa exigiria o histórico de itens
+          — quando entrou em cada coluna —, que está fora de escopo por custo de
+          consumo.
+
+  missing_attributes:
+    - attribute: sro.user_story.importance
+      reason:
+        pt-BR: >
+          Nenhum campo numérico de importância existe neste quadro. A ausência é
+          DECLARADA, e a tela a diz por extenso: a ordem do product backlog não é
+          derivável, e nenhum outro campo é usado como substituto. Ausência é nula,
+          nunca zero — preencher com zero transformaria lacuna em decisão.
+
+  provenance:
+    source_type: project_decision
+    reference: "Feature 004, T003; tipos e campos medidos pela API em 2026-08-11"

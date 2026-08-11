@@ -177,3 +177,127 @@ do outro por nenhum caminho (SC-012).
 Nenhuma destas telas exibe credencial. As de ferramenta conectada já cobrem esse
 caso, e o teste que vale é o da violação: procurar o segredo no HTML e exigir não
 encontrar.
+
+---
+
+## `/ferramentas/nova` e `/ferramentas/:id/mapeamento`
+
+**Não é tela própria: é parte de definir a ferramenta.** Decisão da pessoa
+mantenedora em 2026-08-11 — o mapeamento entre os conceitos da organização e os da
+ontologia é configurado **ao conectar**, e vale **por organização**.
+
+Duas razões, e a segunda é a que muda o desenho:
+
+**Configurar ao definir evita coletar sabendo que vai errar.** Perguntar depois da
+primeira coleta significa classificar errado e reprocessar. Perguntar antes exige uma
+consulta à origem no momento da conexão — e é o que permite a plataforma **mostrar os
+tipos que encontrou** em vez de pedir para a pessoa digitar nomes.
+
+**O escopo é a organização, não o tenant.** Uma organização usa `Feature`, outra usa
+`História`, outra criou `Spike`. Um mapeamento por tenant obrigaria todas a
+concordarem, e a primeira divergência viraria lacuna sem culpado — porque nenhuma das
+duas estaria errada.
+
+### O passo novo no fluxo de conexão
+
+```
+1. instância e organização        já existe
+2. credencial                     já existe — validada antes de gravar
+3. MAPEAMENTO                     ← o passo novo, com os tipos já descobertos
+4. confirmar
+```
+
+O passo 3 só tem o que mostrar porque o 2 passou: a consulta que descobre os tipos
+usa a credencial recém-validada. Colocá-lo antes exibiria campos vazios.
+
+**Conectar não é bloqueado por mapeamento pendente** (FR-041c). "Usar o padrão" é uma
+saída legítima do passo 3, e os tipos não reconhecidos aparecem como lacuna — que é o
+que a tela de issues já mostra.
+
+### O que a tela afirma
+
+```
+The-Band-Solution                          tipos de issue desta organização
+
+  TIPOS USADOS
+    Feature ......  15 issues   →  épico OU user story atômica
+                                   a ESTRUTURA decide: com partes que são user
+                                   stories é épico; sem partes, ou com partes que
+                                   são tarefas, é atômica
+    Task ......... 128 issues   →  tarefa pretendida
+                                   exige pai atômico (sro.rule07); 1 sem pai
+    Bug ..........   1 issue    →  defeito
+
+  PREVISTOS PELA REGRA GLOBAL, NÃO USADOS AQUI
+    Epic                            não usado — `sro.epic` é derivado da estrutura
+    User Story                      não usado — `Feature` cumpre o papel
+
+  NÃO RECONHECIDOS                  0
+    (quando houver: o nome, a contagem, e o botão de declarar o destino)
+
+  CAMPOS DO QUADRO                 17
+    interpretados ...... 1     Estimate → sro.user_story.complexity
+    não interpretados .. 16    Priority, Size, Status, ...
+
+    sro.user_story.importance      NENHUM campo mapeado
+      Nenhum campo numérico de importância existe neste quadro. A ordem do
+      product backlog não é derivável, e nenhum outro campo é usado como
+      substituto.
+```
+
+**"não usado aqui" é o ponto da tela.** `Epic` e `User Story` não existem nesta
+organização, e isso **não é erro nem falta de configuração** — a regra global os
+lista porque outras organizações os criam. Sem essa distinção, quem abrisse a tela
+concluiria que falta configurar algo.
+
+### O que a tela **não** faz
+
+| Não faz | Por quê |
+|---|---|
+| criar tipo de issue na organização | alteraria a configuração da organização para casar com um documento, invertendo a precedência que a própria regra declara |
+| aceitar `Priority` → `importance` | escala ordinal para atributo decimal; é o antipadrão de mapeamento por semelhança de nome |
+| aceitar declaração que contraria axioma | mapear um tipo para `sro.epic` sem exigir partes contraria `sro.rule05`, e a recusa nomeia o axioma |
+| esconder tipo desconhecido | é a lacuna, e é o dado que diz onde a regra precisa mudar |
+| editar a regra global | a declaração é **do tenant**, e sobrescreve sem alterar o padrão de ninguém |
+
+### Três níveis de precedência, e a tela mostra de onde veio
+
+```
+regra global da rede                    padrão de todas as organizações
+  └─ regra do tenant, em YAML           padrão deste tenant
+       └─ configuração desta ferramenta  vale só para esta organização
+```
+
+| Origem | Como aparece |
+|---|---|
+| regra global | *padrão da rede* |
+| YAML do tenant, em `rules/tenants/` | *declarado no repositório*, com a versão |
+| configuração desta organização | *declarado por <pessoa>, em <data>* |
+
+As duas têm o mesmo efeito na promoção. **A diferença é auditável de propósito**: uma
+passou por revisão de código, a outra não — e quem lê uma medida derivada precisa
+poder saber qual das duas a sustenta.
+
+### O que a recusa precisa dizer
+
+Recusa que só diz "inválido" faz a pessoa tentar de novo igual. As três recusas
+possíveis nomeiam a causa:
+
+```
+Priority → sro.user_story.importance
+  Recusado. `importance` é decimal com escala declarada — quão valiosa a user
+  story é para a organização. `Priority` é seleção única, e os valores P0, P1 e P2
+  foram escolhidos por esta organização. Converter um no outro atribuiria escala
+  a um rótulo.
+
+Chore → sro.epic
+  Recusado por sro.rule05: épico tem ao menos uma parte, e ser épico é
+  consequência de ter partes — não um destino que se escolhe. Se as issues de
+  tipo Chore têm partes que são user stories, elas já são promovidas a épico
+  pela estrutura.
+
+Spike → sro.user_story
+  Aceito com ressalva: `sro.user_story` é abstrato na promoção — o destino
+  concreto sai da estrutura, entre épico e atômica. A declaração é gravada como
+  rota para user story, e a estrutura decide qual.
+```

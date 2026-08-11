@@ -36,20 +36,20 @@ defmodule TheBand.Ingestion do
   **não** inicia em paralelo, e quem chamou é informado em vez de ver duas
   coletas disputando a mesma janela de API.
   """
-  @spec start_sync(Tenant.t(), ConnectedTool.t()) ::
+  @spec start_sync(Tenant.t(), ConnectedTool.t(), keyword()) ::
           {:ok, Sync.t()} | {:error, :already_running | :no_active_credential | term()}
-  def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool) do
+  def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool, opts \\ []) do
     # Origem encerrada não é coletada (FR-008). O filtro passa por
     # `observation_ended?/1`, que é o mesmo caminho que a tela usa — dois caminhos
     # discordariam, e a plataforma coletaria do que a tela mostra como encerrado.
     if Sources.observation_ended?(tool) do
       {:error, :observation_ended}
     else
-      do_start_sync(tenant_id, tenant, tool)
+      do_start_sync(tenant_id, tenant, tool, Keyword.get(opts, :worker, SyncGitHubEO))
     end
   end
 
-  defp do_start_sync(tenant_id, tenant, tool) do
+  defp do_start_sync(tenant_id, tenant, tool, worker) do
     case Sources.active_credential(tool) do
       nil ->
         {:error, :no_active_credential}
@@ -66,30 +66,64 @@ defmodule TheBand.Ingestion do
         %Sync{}
         |> Sync.changeset(attrs)
         |> Repo.insert()
-        |> handle_open(tenant)
+        |> handle_open(tenant, worker)
     end
   end
 
-  defp handle_open({:ok, sync}, tenant) do
-    enqueue(tenant, sync)
+  defp handle_open({:ok, sync}, tenant, worker) do
+    enqueue(tenant, sync, worker)
     {:ok, sync}
   end
 
   # O índice único parcial é a defesa que impede duas coletas simultâneas; aqui
   # ele é traduzido no motivo que a tela precisa exibir.
-  defp handle_open({:error, %Ecto.Changeset{errors: errors}}, _tenant) do
+  defp handle_open({:error, %Ecto.Changeset{errors: errors}}, _tenant, _worker) do
     if Keyword.has_key?(errors, :connected_tool_id),
       do: {:error, :already_running},
       else: {:error, :invalid}
   end
 
-  defp enqueue(%Tenant{id: tenant_id}, %Sync{id: sync_id}) do
+  # O worker é escolha de quem chama, e não vive no registro do `sync`: o que o payload
+  # preservado carrega é `raw_entity_type`, e é ele que diz o que foi coletado. Uma
+  # coluna de worker guardaria o **como** em vez do **quê**, e envelheceria a cada
+  # renomeação de módulo.
+  defp enqueue(%Tenant{id: tenant_id}, %Sync{id: sync_id}, worker) do
     %{"tenant_id" => tenant_id, "sync_id" => sync_id}
-    |> SyncGitHubEO.new()
+    |> worker.new()
     |> Oban.insert()
   end
 
   # ------------------------------------------------------------------- leitura
+
+  @doc """
+  O que **aquela** sincronização trouxe de repositórios e issues.
+
+  Conta por `sync_id` em `raw_payloads`, e não o total do tenant. A primeira versão desta
+  função somava o tenant inteiro e exibia o número dentro do cartão de cada sync — o que
+  fazia uma coleta de 14 repositórios aparecer com 135 ao lado, porque outra organização
+  havia sido coletada depois.
+
+  Contar o estado atual e mostrá-lo como resultado de uma execução é o mesmo erro que a
+  coluna `impact` do evento de observação evita: o que interessa é o que foi observado
+  **naquele** momento.
+  """
+  @spec work_summary(Sync.t()) :: %{repositorios: non_neg_integer(), issues: non_neg_integer()}
+  def work_summary(%Sync{id: sync_id}) do
+    contagens =
+      Repo.all(
+        from p in "raw_payloads",
+          where: p.sync_id == type(^sync_id, :binary_id),
+          where: p.raw_entity_type in ["github.repository", "github.issue"],
+          group_by: p.raw_entity_type,
+          select: {p.raw_entity_type, count(p.id)}
+      )
+      |> Map.new()
+
+    %{
+      repositorios: Map.get(contagens, "github.repository", 0),
+      issues: Map.get(contagens, "github.issue", 0)
+    }
+  end
 
   @spec list_syncs(Tenant.t(), keyword()) :: [Sync.t()]
   def list_syncs(%Tenant{id: tenant_id}, opts \\ []) do
@@ -127,9 +161,14 @@ defmodule TheBand.Ingestion do
 
   Chamado depois do processamento, nunca antes.
   """
-  @spec checkpoint_page(Sync.t(), String.t(), String.t() | nil, non_neg_integer()) ::
-          {:ok, Checkpoint.t()} | {:error, Ecto.Changeset.t()}
-  def checkpoint_page(%Sync{} = sync, entity_type, cursor, record_count) do
+  @spec checkpoint_page(
+          Sync.t(),
+          String.t(),
+          String.t() | nil,
+          non_neg_integer(),
+          non_neg_integer() | nil
+        ) :: {:ok, Checkpoint.t()} | {:error, Ecto.Changeset.t()}
+  def checkpoint_page(%Sync{} = sync, entity_type, cursor, record_count, expected \\ nil) do
     existing =
       Repo.one(
         from c in Checkpoint, where: c.sync_id == ^sync.id and c.entity_type == ^entity_type
@@ -140,9 +179,16 @@ defmodule TheBand.Ingestion do
       sync_id: sync.id,
       entity_type: entity_type,
       cursor: cursor,
-      page_count: ((existing && existing.page_count) || 0) + 1,
-      record_count: ((existing && existing.record_count) || 0) + record_count,
+      page_count: acumular(existing, :page_count, 1),
+      record_count: acumular(existing, :record_count, record_count),
       last_page_at: DateTime.utc_now(:second),
+      # O esperado ACUMULA, e não guarda o primeiro. Cada chamada corresponde a UMA
+      # origem já paginada por inteiro: repositórios vêm numa chamada com o total da
+      # organização; issues vêm numa chamada por repositório, cada uma com o total dele.
+      #
+      # Guardar o primeiro dava `194 de 0`, porque o primeiro repositório coletado é o
+      # `.github`, que tem zero issues — e `0 || novo` devolve 0 em Elixir.
+      expected_count: acumular_esperado(existing, expected),
       status: if(cursor, do: "running", else: "completed")
     }
 
@@ -211,6 +257,14 @@ defmodule TheBand.Ingestion do
 
     sync |> Sync.changeset(attrs) |> Repo.update()
   end
+
+  defp acumular(nil, _campo, incremento), do: incremento
+  defp acumular(existing, campo, incremento), do: Map.fetch!(existing, campo) + incremento
+
+  defp acumular_esperado(_existing, nil), do: nil
+  defp acumular_esperado(nil, novo), do: novo
+  defp acumular_esperado(%{expected_count: nil}, novo), do: novo
+  defp acumular_esperado(%{expected_count: atual}, novo), do: atual + novo
 
   @spec reload(Sync.t()) :: Sync.t()
   def reload(%Sync{id: id}), do: Repo.get!(Sync, id)
