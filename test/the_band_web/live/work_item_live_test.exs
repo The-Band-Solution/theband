@@ -20,6 +20,32 @@ defmodule TheBandWeb.WorkItemLiveTest do
     %{conn: log_in(conn, user), tenant: tenant, cenario: cenario}
   end
 
+  describe "a tabela de repositórios" do
+    test "traz a organização de cada repositório", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/trabalho")
+
+      # A linha do repositório é a que tem link para o detalhe **do repositório** — a da
+      # issue aponta para `/trabalho/issues/`. Casar pelo texto "theband" pegaria as duas.
+      [linha] =
+        Regex.scan(~r{<tr>(?:(?!</tr>).)*?/trabalho/repositorios/(?:(?!</tr>).)*?</tr>}s, html)
+        |> Enum.map(&hd/1)
+
+      assert linha =~ "The-Band-Solution", """
+      A linha do repositório precisa dizer de quem ele é.
+
+      Sem a organização, dois repositórios com o mesmo nome em organizações diferentes
+      aparecem como `theband` duas vezes, e quem lê não tem como distinguir — é o mesmo
+      motivo pelo qual o número da issue não identifica sozinho (L25).
+      """
+    end
+
+    test "o cabeçalho declara a coluna", %{conn: conn} do
+      {:ok, _live, html} = live(conn, ~p"/trabalho")
+
+      assert html =~ "<th>organização</th>"
+    end
+  end
+
   describe "as contagens" do
     test "a soma fecha: coletadas = promovidas + lacunas", %{tenant: tenant} do
       coletadas = WorkItems.count_collected(tenant)

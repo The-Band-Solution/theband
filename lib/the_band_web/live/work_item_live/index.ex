@@ -186,6 +186,10 @@ defmodule TheBandWeb.WorkItemLive.Index do
           <table class="table table-sm">
             <thead>
               <tr>
+                <%!-- A organização vem antes do repositório, e é a ordem da leitura: dois
+                      repositórios podem ter o mesmo nome em organizações diferentes, e sem
+                      a coluna a lista mostra `theband` duas vezes sem dizer de quem é. --%>
+                <th>organização</th>
                 <th>repositório</th>
                 <th>linguagem</th>
                 <th>ramo</th>
@@ -195,6 +199,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
             </thead>
             <tbody>
               <tr :for={r <- @repositorios}>
+                <td class="text-xs opacity-70">{organizacao(@onde, r)}</td>
                 <%!-- O nome abre o detalhe **na plataforma**, não a origem: o que
                       interessa ao clicar é o que foi coletado. O link para a origem
                       está lá dentro. --%>
@@ -351,6 +356,11 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   defp origem(onde, issue),
     do: Map.get(onde, issue.observed_repository_id, %{repositorio: "—", organizacao: "—"})
+
+  # O mesmo mapa que a listagem de issues usa. Uma segunda consulta aqui poderia devolver
+  # nome diferente do que a linha da issue mostra, para a mesma organização.
+  defp organizacao(onde, repositorio),
+    do: Map.get(onde, repositorio.observed_repository_id, %{organizacao: "—"}).organizacao
 
   defp faixa(_pagina, _por_pagina, 0), do: "0"
 
