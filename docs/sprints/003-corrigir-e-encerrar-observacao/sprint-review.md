@@ -12,7 +12,7 @@ Separa o que foi entregue do que não foi. Nada marcado como pronto sem evidênc
 | Fases | F0 e F4 (MVP) | **2** |
 | Fases herdadas, já feitas | F1, F2, F3 | 3 |
 | Testes | — | 129 → **172** |
-| Lições novas | — | 3 — L19, L20 e L21 |
+| Lições novas | — | 4 — L19 a L22 |
 
 ## O que foi feito
 
@@ -123,7 +123,29 @@ eventos de observação: 5, append-only
 | `mix knowledge.validate` | passou |
 | `mix knowledge.graph` | passou |
 | validador Python | passou |
-| derivação reproduzível | passou |
+| derivação reproduzível | passou — **e desta vez de verdade**, ver abaixo |
+
+### O gate que eu reportei verde e estava vermelho
+
+O passo "derivação reproduzível" está vermelho na `main` desde o PR #93, e eu o
+reportei como passando nas reviews dos sprints 002 e 003. Ele roda o script duas vezes
+e compara: a derivação da SRO falhava **igual** nas duas, e o `diff` passava.
+
+A causa: 43 conceitos da SRO sem `ontouml_stereotype`. Anotados — 36 por consequência
+direta de `ufo_category` e do pai, 7 decididos com a pessoa mantenedora.
+
+E anotar expôs um defeito que existia antes da SRO: a guarda da ADR 0004 D5 —
+`role` materializa por relator, nunca por discriminador — só valia quando o alvo do
+lifting estava na mesma ontologia. **CMPO e SPO já produziam a violação**, impressa na
+saída, verde no CI:
+
+```text
+eo.person.type    += {project_person_stakeholder}
+ufo.agent.type    += {change_implementer}
+spo.artifact.type += {configuration_item}
+```
+
+Nenhuma chegou ao banco. Virou a [L22](../licoes-aprendidas.md).
 
 ## O que **não** foi feito
 
@@ -134,6 +156,7 @@ eventos de observação: 5, append-only
 | **Telas T019 a T022** | fora do escopo. A tela de encerramento **existe** — veio com F3 —, então o caminho principal está coberto. Falta distinguir "nunca conectou" de "encerrou tudo", e explicar o que não é editável |
 | **Reparo do dado histórico da L19** | a correção vale para coletas futuras. Os vínculos marcados antes seguem marcados, e **não foram desmarcados por decisão**: não se sabe o que a origem mostrava naquele instante, e desmarcar afirmaria observação que não ocorreu — o próprio erro da L19. O reparo acontece na próxima coleta real de cada organização |
 | **Corrigir a janela da iteration do sprint 002** | exige mexer na configuração de iterations, que causou a L11. Decisão pendente |
+| **Anotar RSRO e SYS_SWO** | 16 conceitos sem estereótipo, em duas ontologias fora do escopo. Ao fazer, reavaliar se `sro.user_story` é `subkind` de `rsro.requirements_artifact` — a decisão de hoje foi `kind` para a SRO fechar sozinha |
 
 ## Duas coisas que eu fiz errado
 
