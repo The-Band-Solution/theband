@@ -88,9 +88,17 @@ versionado, validado e revisado — ver
 [ADR 0002](docs/adr/0002-yaml-como-base-de-conhecimento.md).
 
 ```bash
-python3 scripts/validate_knowledge_base.py   # valida a base
-python3 scripts/generate_docs.py             # regenera docs/ontology, integrations, metrics
+# Uma vez, e o venv é o que faz a validação de FORMA rodar. Sem ele, o validador
+# avisa que pulou essa parte, e o CI reprova o que passou aqui.
+python3 -m venv .venv && .venv/bin/pip install -r scripts/requirements.txt
+
+.venv/bin/python scripts/validate_knowledge_base.py   # valida a base
+.venv/bin/python scripts/generate_docs.py             # regenera docs/*
 ```
+
+**Confira o código de saída, não só a última linha.** O validador reprova com
+mensagem e sai diferente de zero; um `| tail` esconde os dois. É como o gate de
+derivação passou meses vermelho sem ninguém ver — [L22](docs/sprints/licoes-aprendidas.md).
 
 As páginas em `docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/` são
 **geradas** e não devem ser editadas à mão.

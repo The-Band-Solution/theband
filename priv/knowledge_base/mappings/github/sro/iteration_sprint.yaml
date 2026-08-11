@@ -36,10 +36,9 @@ identity:
   natural_key: [project.id, title]
 attributes:
   start_date: { source_path: startDate }
-  end_date:   { source_path: null, transform: start_date_plus_duration }
+  end_date:   { transform: start_date_plus_duration }
 relations:
   has_sprint_backlog:
-    source_path: null
     target_ontology: sro
     target_concept: sro.sprint_backlog
     note: >

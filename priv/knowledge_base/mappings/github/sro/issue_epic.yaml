@@ -47,8 +47,6 @@ identity:
   natural_key: [node.repository.nameWithOwner, node.number]
 attributes:
   title:      { source_path: node.title }
-  importance: { source_path: null }
-  complexity: { source_path: null }
 relations:
   composed_of_user_story:
     source_path: node.subIssues.nodes.id

@@ -760,3 +760,54 @@ saída duas vezes, achava as duas iguais, e dizia que estava tudo bem.
 
 **Aplicada em**: Sprint 003 — os 43 estereótipos da SRO e a guarda de `role` para
 kind de outra ontologia.
+
+
+---
+
+## L23 — Aviso de verificação pulada é reprovação, não observação
+
+**Onde**: feature 004, ao escrever os mapeamentos.
+
+**O que aconteceu.** O validador Python imprime, quando falta a biblioteca de
+schema:
+
+```text
+[schema] jsonschema não instalado — validação de forma NÃO executada
+         (pip install -r scripts/requirements.txt)
+```
+
+Eu li isso em **todas** as execuções desta sessão — foram mais de dez — e tratei
+como nota de ambiente. Não é: a linha é registrada como `fail`, o validador conta
+"1 problema(s)" e **sai diferente de zero**. Eu rodava com `| tail -2`, que engole o
+código de saída, e concluía "passou" a cada vez.
+
+O CI, que instala a dependência, reprovou seis mapeamentos por erro de forma —
+`source_path: null` onde o schema exige string. Erros que estavam ali desde o
+primeiro arquivo que escrevi.
+
+**A relação com a L22.** É o mesmo defeito, e reincidiu **dois dias depois** de eu
+registrá-lo. Lá, o gate de derivação comparava duas execuções que falhavam igual e
+eu não conferi o código de saída. Aqui, o validador dizia que não tinha validado e
+eu não conferi o código de saída.
+
+A L22 foi registrada como sendo sobre **gate diferencial**. O padrão é maior:
+**qualquer verificação cujo resultado eu leio por texto, e não por código de
+saída**.
+
+**O que a correção do erro ensinou de quebra.** `source_path: null` não era só
+inválido no schema — era errado no conteúdo. Declarar um atributo apontando para
+nada afirma "existe mapeamento, e ele mapeia para nada". A ausência de mapeamento
+se representa **omitindo o atributo**, e a limitação nomeia o porquê. Mesma regra
+que a constituição já dá para dado: ausência é nula, nunca zero.
+
+**Como aplicar.**
+
+1. **Nunca `| tail` num gate.** Rode, olhe o código de saída, e só então resuma.
+   `cmd && echo OK || echo FALHOU` custa nada;
+2. **Verificação que se auto-declara pulada é falha.** "Não executada" e "executada
+   e passou" não podem produzir a mesma reação em quem lê;
+3. **Paridade de ambiente é parte do gate.** Se o CI valida mais que a máquina
+   local, o local dá falso verde. O `README` passou a mandar criar o venv antes,
+   com a razão escrita.
+
+**Aplicada em**: feature 004 — seis mapeamentos corrigidos, e o venv documentado.

@@ -37,8 +37,6 @@ identity:
 attributes:
   title:      { source_path: title }
   body:       { source_path: body }
-  importance: { source_path: null }
-  complexity: { source_path: null }
 relations:
   author:
     source_path: author.id
