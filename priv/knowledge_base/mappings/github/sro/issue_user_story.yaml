@@ -1,6 +1,6 @@
 mapping:
   id: github.issue.user_story.to.sro.atomic_user_story
-  version: 1
+  version: 2
   status: proposed
 source:
   provider: github
@@ -37,8 +37,8 @@ identity:
 attributes:
   title:      { source_path: title }
   body:       { source_path: body }
-  importance: { source_path: "projectItems.nodes.fieldValueByName(Priority).number" }
-  complexity: { source_path: "projectItems.nodes.fieldValueByName(Estimate).number" }
+  importance: { source_path: null }
+  complexity: { source_path: null }
 relations:
   author:
     source_path: author.id
@@ -52,7 +52,40 @@ limitations:
   - Issue com sub-issues que também são user stories é épico, não atômica — a estrutura vence o tipo declarado.
   - Sub-issues do tipo Task não descaracterizam a user story como atômica; tarefas a atendem, não a compõem.
   - Critérios de aceitação escritos no corpo em texto livre não são sro.acceptance_criterion até serem extraídos e validados; a extração não faz parte deste mapeamento.
-  - Importance e complexity dependem de campos de GitHub Projects que podem não existir; ausência é nulo, nunca zero.
+  - >
+    `importance` e `complexity` ficam NULAS, e a versão 1 deste mapeamento as lia
+    de `fieldValueByName(Priority)` e `fieldValueByName(Estimate)`. Duas coisas
+    erradas ali, corrigidas na versão 2.
+
+    A primeira: `Priority` NÃO é `importance`. Importance é decimal com escala
+    declarada — "quão valiosa a user story é para a organização" —, e Priority é
+    seleção única cujos valores o tenant inventou (P0, P1, P2). Converter um no
+    outro é mapeamento por semelhança de nome, que o princípio I proíbe e o
+    AGENTS.md §7.7 nomeia como antipadrão. O quadro real deste tenant não tem
+    campo numérico de importância, e a ausência fica declarada em vez de
+    substituída.
+
+    A segunda: `fieldValueByName` identifica o campo pelo NOME. Renomear "Priority"
+    para "Prioridade" quebraria o mapeamento em silêncio. A identidade de um campo
+    configurável é o identificador dele — FR-027 da feature 004 —, e o mapeamento
+    campo→atributo passa a ser declarado por tenant em `rules/tenants/`.
+  - >
+    Uma issue marcada `Epic` SEM sub-issues cai aqui, e a divergência entre tipo
+    declarado e conceito derivado fica registrada. Não existe épico sem partes
+    (sro.rule05), e a divergência costuma significar épico abandonado sem
+    decomposição.
+  - >
+    Sub-issues do tipo `Task` NÃO tornam a issue épica: tarefa ATENDE user story
+    (sro.intended_task_planned_to_meet_user_story), não a compõe. É o erro mais
+    fácil de cometer nesta regra.
+  - >
+    Sem a API de sub-issues — GitHub Enterprise Server antigo — a distinção
+    épico/atômica NÃO é feita, e isso é declarado em vez de suprido por heurística
+    de lista em markdown.
+  - >
+    Critério de aceitação não é extraído do corpo. `sro.acceptance_criterion`
+    consta como não observável na matriz de cobertura; extrair por heurística
+    produziria critério plausível e errado.
   - Feature e User Story são tratadas como o mesmo destino, o que pode ser incorreto em organizações que usam Feature como agrupador — confirmar por tenant.
 provenance:
   preserve_raw_payload: true

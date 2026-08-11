@@ -1,6 +1,6 @@
 mapping:
   id: github.repository.to.cmpo.source_repository
-  version: 1
+  version: 2
   status: proposed
 source: { provider: github, entity: repository, api: graphql, schema_version: v4 }
 target: { ontology: cmpo, concept: cmpo.source_repository }
@@ -11,13 +11,25 @@ semantics:
     propósito é tratar mudanças de cópias de artefato — exatamente o papel do
     Source Repository em CMPO. Não é o projeto de software (SPO) nem o produto
     (SysSwO); um projeto pode ter vários repositórios.
+
+    Parcial, e não total: um repositório do GitHub também hospeda issues, wiki e
+    execuções de CI, que estão fora do que o conceito cobre. O que sobra é
+    mapeado por outros mapeamentos — issue vai para SRO —, e o que não é mapeado
+    por nenhum permanece só no payload preservado.
+
+    Atravessa a fronteira de ontologia: cmpo.source_repository é subkind de
+    sys_swo.loaded_software_system_copy, logo materializa por REFERÊNCIA — valor
+    de discriminador na tabela daquele kind, com extensão em CMPO para os
+    atributos próprios. Constituição IX, a regra da fronteira.
 identity:
   external_id_path: id
   natural_key: [owner.login, name]
 attributes:
   name:        { source_path: name }
+  full_name:   { source_path: nameWithOwner }
   description: { source_path: description }
   created_at:  { source_path: createdAt }
+  archived_at: { source_path: archivedAt }
 relations:
   owner:
     source_path: owner.id
@@ -25,9 +37,23 @@ relations:
     target_concept: eo.organization
 limitations:
   - >
-    O proprietário aponta para eo.organization, e não existe relação declarada entre cmpo.source_repository e eo.organization. Declará-la exige decidir antes a direção de dependência entre CMPO e EO.
-  - Repositório não é projeto; não derivar spo.software_project automaticamente daqui.
+    O proprietário aponta para eo.organization, e a relação entre
+    cmpo.source_repository e eo.organization AINDA não está declarada na base. A
+    direção CMPO → EO é permitida — vai do específico para o geral —, mas declarar
+    a relação é passo próprio, como foi eo.organizational_team_belongs_to_organization
+    na feature 002. Até lá o vínculo existe no mapeamento e não no modelo derivado.
+  - >
+    Repositório NÃO é projeto; não derivar spo.software_project automaticamente
+    daqui. O projeto de software vem do Projects v2, por mapeamento próprio — um
+    projeto pode ter vários repositórios, e um repositório pode servir a vários
+    projetos.
   - Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.
+  - >
+    `archivedAt` diz que a ORIGEM arquivou, e isso não é ausência. Repositório
+    arquivado continua observado, e suas issues continuam consultáveis. Confundir
+    os dois faria a plataforma marcar como não mais observado o que ela vê muito
+    bem — e a exclusão decidida pelo tenant é uma TERCEIRA coisa, que vive na
+    camada de plataforma porque é decisão e não fato do mundo.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

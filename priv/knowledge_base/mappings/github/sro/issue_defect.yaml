@@ -1,0 +1,56 @@
+mapping:
+  id: github.issue.to.osdef.defect
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue
+  api: graphql
+  schema_version: v4
+  selector:
+    field: issueType.name
+    rule_ref: github.issue_type_routing
+    values: ["Bug", "Defeito", "Defect"]
+derivation:
+  rule_id: github.issue_type_routing
+  confidence: medium
+  inputs: [issueType.name]
+  fallback: skip
+target:
+  ontology: osdef
+  concept: osdef.defect
+semantics:
+  equivalence: derived
+  justification: >
+    Issue do tipo Bug é um defeito — não uma user story. Promover toda issue a
+    user story inflaria o product backlog com correção, e o erro só apareceria
+    quando alguém perguntasse por que o backlog cresce sem funcionalidade nova.
+
+    Este mapeamento NÃO tem `structural_requirements`. Ao contrário de épico e
+    atômica, ser defeito não depende de composição: um bug com sub-issues continua
+    sendo um bug. A ausência do bloco é decisão, não esquecimento.
+identity:
+  external_id_path: node.id
+  natural_key: [node.repository.nameWithOwner, node.number]
+attributes:
+  title: { source_path: node.title }
+relations:
+  observed_in_repository:
+    source_path: node.repository.id
+    target_ontology: cmpo
+    target_concept: cmpo.source_repository
+limitations:
+  - >
+    Defeito NÃO é falta nem falha. OSDEF distingue defect, fault e failure, e o
+    GitHub não dá base para separá-los: uma issue de bug descreve o que alguém
+    observou, sem dizer se é a causa no artefato, o estado errado em execução, ou
+    o desvio percebido. Só `defect` é afirmável.
+  - >
+    Severidade não é coletada. O que existe é label de texto livre, e mapear label
+    para severidade por semelhança de nome é o antipadrão declarado.
+  - >
+    Um bug pode ser tipado como Task por times que não usam o tipo Bug. A regra é
+    sobrescrita por tenant, e a lacuna aparece contada em vez de suposta.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

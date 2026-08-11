@@ -1,0 +1,87 @@
+derivation_rule:
+  id: github.item_iteration_assignment
+  version: 1
+  provider: github
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "A atribuição de iteração separa product backlog de sprint backlog"
+  description:
+    pt-BR: >
+      Decide de qual backlog um item de Projects v2 faz parte.
+
+      Nem sro.product_backlog nem sro.sprint_backlog existem como objeto no
+      GitHub. Os dois são CONJUNTOS de itens, e uma única coisa os separa:
+
+        sem iteração atribuída            → product backlog
+        iteração atribuída, já iniciada   → sprint backlog daquele sprint
+        iteração atribuída, ainda futura  → product backlog
+
+      A terceira linha é a que se erra: um item planejado para a iteração da
+      semana que vem ainda não está em sprint nenhum, porque aquele sprint não
+      começou.
+
+      A composição é DERIVADA da atribuição, nunca gravada como pertencimento.
+      Gravá-la faria o registro divergir da origem no instante em que alguém
+      arrastasse um item no quadro — o mesmo erro que materializar a classificação
+      épico contra atômica.
+
+  inputs:
+    - content.id
+    - fieldValueByName.iteration.iterationId
+    - project.id
+
+  availability:
+    required_api_fields: [ProjectV2Item.fieldValueByName]
+    required_scopes: [read:project]
+
+  routes:
+    - target_concept: sro.sprint_backlog
+      when:
+        has_iteration: true
+        iteration_started: true
+    - target_concept: sro.product_backlog
+      when:
+        has_iteration: false
+
+  materializes:
+    - concept: sro.product_backlog
+      from: project items without iteration
+      confidence: medium
+    - concept: sro.sprint_backlog
+      from: project items with started iteration
+      confidence: high
+
+  does_not_materialize:
+    - concept: sro.intended_scrum_development_task
+      reason:
+        pt-BR: >
+          A matriz de cobertura a deriva do MOMENTO em que o item entrou na
+          iteração, com confiança baixa. Esse momento está no histórico de itens,
+          que não é coletado por custo de consumo.
+
+  fallback: skip
+  fallback_rationale:
+    pt-BR: >
+      Item de rascunho, sem issue por trás, não é promovido a nada. Um rascunho no
+      quadro é intenção de alguém, não escopo do produto.
+
+  invariant:
+    pt-BR: >
+      A soma dos itens no product backlog e nos sprint backlogs de um projeto é
+      igual ao total de itens dele. Nenhum item nos dois conjuntos, nenhum fora
+      dos dois. É o critério SC-009b da feature 004.
+
+  limitations:
+    - >
+      Item pode estar em mais de um quadro, e então a mesma user story aparece em
+      mais de um backlog. A SRO não proíbe, e não é duplicação.
+    - >
+      Iteração removida da configuração deixa seus itens sem iteração vigente.
+      Eles NÃO voltam ao product backlog: voltar afirmaria um replanejamento que
+      ninguém decidiu.
+
+  provenance:
+    source_type: project_decision
+    reference: "Feature 004, spec FR-032a e FR-032b"
