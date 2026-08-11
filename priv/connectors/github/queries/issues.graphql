@@ -18,8 +18,22 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $after: String) {
         id
         number
         title
+        # `bodyText` e não `body`: o segundo traz o markdown cru, e a tela renderizaria
+        # HTML da origem. O texto é o que a promoção por padrão de título usa.
+        bodyText
         state
+        # COMPLETED e NOT_PLANNED mudam o significado do fechamento.
+        stateReason
         createdAt
+        updatedAt
+        closedAt
+        author { login }
+        assignees(first: 10) { nodes { login } }
+        labels(first: 20) { nodes { name color } }
+        milestone { title }
+        projectItems: projectItems(first: 10) { nodes { project { title } } }
+        comments { totalCount }
+        reactions { totalCount }
         issueType { id name }
         repository { id nameWithOwner }
         parent { id number issueType { id name } }

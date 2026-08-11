@@ -22,6 +22,7 @@ defmodule TheBand.WorkItems do
       filtro de tenant.
   """
 
+  alias TheBand.WorkItems.Axioms
   alias TheBand.WorkItems.Commands
   alias TheBand.WorkItems.Queries
   alias TheBand.WorkItems.Routing
@@ -32,6 +33,8 @@ defmodule TheBand.WorkItems do
   defdelegate record_promotion(tenant, attrs), to: Commands
   defdelegate record_decomposition_link(tenant, attrs), to: Commands
   defdelegate recusar(tenant, attrs), to: Commands
+  defdelegate replace_assignees(tenant, collected_issue_id, designados), to: Commands
+  defdelegate replace_labels(tenant, collected_issue_id, rotulos), to: Commands
 
   defdelegate mark_issues_no_longer_observed(tenant, observed_repository_id, desde),
     to: Commands
@@ -48,8 +51,21 @@ defmodule TheBand.WorkItems do
   defdelegate list_links(tenant), to: Queries
   defdelegate list_by_external_id(tenant), to: Queries
   defdelegate count_refused(tenant, opts \\ []), to: Queries
+  defdelegate fetch_issue(tenant, id), to: Queries
+  defdelegate promotion_history(tenant, collected_issue_id), to: Queries
+  defdelegate list_composition(tenant, collected_issue_id), to: Queries
+  defdelegate list_attendance(tenant, collected_issue_id), to: Queries
+  defdelegate list_unpromoted_parts(tenant, collected_issue_id), to: Queries
+  defdelegate fetch_parent(tenant, collected_issue_id), to: Queries
+  defdelegate rule07_violations(tenant, opts \\ []), to: Queries
+  defdelegate list_refused_for(tenant, collected_issue_id), to: Queries
 
   # -------------------------------------------------------------------- decisão
 
   defdelegate decide(issue, opts \\ []), to: Routing
+
+  # -------------------------------------------------------------------- axiomas
+
+  defdelegate rule07(concept, parent_concept), to: Axioms
+  defdelegate rule07_explanation(forma), to: Axioms, as: :explicacao
 end

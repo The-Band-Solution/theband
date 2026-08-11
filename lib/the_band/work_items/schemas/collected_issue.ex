@@ -26,6 +26,21 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     field :title, :string
     field :state, :string
 
+    # O corpo fica **cru**, pelo mesmo motivo de `issue_type`: é a evidência que a
+    # promoção por padrão de título usa, e normalizar destruiria o que sustenta a
+    # decisão. A renderização segura é responsabilidade da tela.
+    field :body, :string
+    # `COMPLETED` e `NOT_PLANNED` são fechamentos diferentes. Traduzir na gravação
+    # perderia a distinção que só a origem tem.
+    field :state_reason, :string
+
+    field :author_login, :string
+    field :author_person_id, :binary_id
+    field :milestone_title, :string
+    field :project_titles, {:array, :string}, default: []
+    field :comment_count, :integer, default: 0
+    field :reaction_count, :integer, default: 0
+
     field :issue_type, :string
     field :issue_type_external_id, :string
 
@@ -36,6 +51,8 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     field :source_instance, :string
     field :external_id, :string
     field :external_created_at, :utc_datetime
+    field :external_updated_at, :utc_datetime
+    field :external_closed_at, :utc_datetime
     field :collected_at, :utc_datetime
     field :last_observed_at, :utc_datetime
     field :no_longer_observed_at, :utc_datetime
@@ -52,6 +69,14 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
       :number,
       :title,
       :state,
+      :body,
+      :state_reason,
+      :author_login,
+      :author_person_id,
+      :milestone_title,
+      :project_titles,
+      :comment_count,
+      :reaction_count,
       :issue_type,
       :issue_type_external_id,
       :external_parent_id,
@@ -60,6 +85,8 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
       :source_instance,
       :external_id,
       :external_created_at,
+      :external_updated_at,
+      :external_closed_at,
       :collected_at,
       :last_observed_at,
       :no_longer_observed_at

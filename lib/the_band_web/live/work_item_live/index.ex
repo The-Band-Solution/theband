@@ -33,19 +33,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
-
-  @conceitos [
-    {"sro.epic", "épico"},
-    {"sro.atomic_user_story", "user story atômica"},
-    {"sro.intended_scrum_development_task", "tarefa pretendida"},
-    {"osdef.defect", "defeito"}
-  ]
-
-  @motivos %{
-    "type_absent" => "sem tipo na origem",
-    "type_unknown" => "tipo desconhecido",
-    "sub_issues_unavailable" => "sub-issues indisponíveis"
-  }
+  alias TheBandWeb.ConceptLabel
 
   @impl true
   @por_pagina 50
@@ -166,7 +154,9 @@ defmodule TheBandWeb.WorkItemLive.Index do
               </p>
               <ul :if={@divergencias != []} class="text-sm space-y-2 mt-1">
                 <li :for={d <- Enum.take(@divergencias, 6)}>
-                  <span class="font-mono">#{d.number}</span>
+                  <.link navigate={~p"/trabalho/issues/#{d.id}"} class="link link-hover font-mono">
+                    #{d.number}
+                  </.link>
                   <span class="badge badge-xs badge-warning">{d.issue_type}</span>
                   → {rotulo(d.derived_concept)}
                   <div class="text-xs opacity-70">{d.divergence_reason}</div>
@@ -205,10 +195,16 @@ defmodule TheBandWeb.WorkItemLive.Index do
             </thead>
             <tbody>
               <tr :for={r <- @repositorios}>
+                <%!-- O nome abre o detalhe **na plataforma**, não a origem: o que
+                      interessa ao clicar é o que foi coletado. O link para a origem
+                      está lá dentro. --%>
                 <td>
-                  <a href={r.url} target="_blank" rel="noopener" class="link link-hover">
+                  <.link
+                    navigate={~p"/trabalho/repositorios/#{r.observed_repository_id}"}
+                    class="link link-hover"
+                  >
                     {r.name}
-                  </a>
+                  </.link>
                 </td>
                 <td class="opacity-70">{r.primary_language || "—"}</td>
                 <td class="opacity-70 font-mono text-xs">{r.default_branch || "—"}</td>
@@ -236,7 +232,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
                 <th>#</th>
                 <th>título</th>
                 <th>tipo na origem</th>
-                <th>partes</th>
+                <th>partes na origem</th>
                 <th>promovida a</th>
               </tr>
             </thead>
@@ -244,8 +240,16 @@ defmodule TheBandWeb.WorkItemLive.Index do
               <tr :for={i <- @issues}>
                 <td class="text-xs opacity-70">{origem(@onde, i).organizacao}</td>
                 <td class="text-xs">{origem(@onde, i).repositorio}</td>
-                <td class="font-mono">{i.number}</td>
-                <td class="max-w-sm truncate">{i.title}</td>
+                <td class="font-mono">
+                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                    {i.number}
+                  </.link>
+                </td>
+                <td class="max-w-sm truncate">
+                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                    {i.title}
+                  </.link>
+                </td>
                 <td>
                   <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
                   <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">—</span>
@@ -325,7 +329,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
       repositorios: repositorios,
       repos_observados: length(repositorios),
       por_repositorio: por_repositorio(tenant, repositorios),
-      conceitos: @conceitos
+      conceitos: ConceptLabel.conceitos()
     )
   end
 
@@ -367,11 +371,12 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   defp soma(mapa), do: mapa |> Map.values() |> Enum.sum()
 
-  defp rotulo(conceito) do
-    Enum.find_value(@conceitos, conceito, fn {id, rotulo} -> id == conceito && rotulo end)
-  end
+  # Os rótulos vivem em `TheBandWeb.ConceptLabel`, e não aqui: três telas mostram os
+  # mesmos conceitos, e com a lista copiada em cada uma `sro.epic` viraria "épico" numa e
+  # "epic" na outra.
+  defp rotulo(conceito), do: ConceptLabel.rotulo(conceito)
 
-  defp motivo_legivel(motivo), do: Map.get(@motivos, motivo, motivo)
+  defp motivo_legivel(motivo), do: ConceptLabel.motivo(motivo)
 
   # Três estados vazios diferentes. Um texto só para os três faria alguém concluir que o
   # time não trabalha — FR-036.

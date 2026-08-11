@@ -62,6 +62,10 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   end
 
   defp run(ctx) do
+    # O mapa login → pessoa vem **uma vez**, e não por issue: 4455 issues resolvendo
+    # autor e designados por consulta seriam 4455 idas ao banco só para isso.
+    ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
+
     with {:ok, organization} <- organizacao(ctx),
          {:ok, repositorios} <- coletar_repositorios(ctx, organization) do
       resultado = Enum.map(repositorios, &coletar_issues(ctx, &1))
@@ -215,10 +219,42 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         source_system: "github",
         source_instance: ctx.tool.instance_url,
         external_id: node["id"],
-        external_created_at: parse_datetime(node["createdAt"])
+        external_created_at: parse_datetime(node["createdAt"]),
+        external_updated_at: parse_datetime(node["updatedAt"]),
+        external_closed_at: parse_datetime(node["closedAt"]),
+        # `bodyText`, não `body`: o segundo traz markdown cru, e a tela renderizaria
+        # conteúdo da origem como HTML.
+        body: node["bodyText"],
+        state_reason: node["stateReason"],
+        author_login: get_in(node, ["author", "login"]),
+        author_person_id: ctx.pessoas[get_in(node, ["author", "login"])],
+        milestone_title: get_in(node, ["milestone", "title"]),
+        project_titles: titulos_de_quadro(node),
+        comment_count: get_in(node, ["comments", "totalCount"]) || 0,
+        reaction_count: get_in(node, ["reactions", "totalCount"]) || 0
       })
 
+    designados =
+      for %{"login" => login} <- get_in(node, ["assignees", "nodes"]) || [],
+          do: %{login: login, person_id: ctx.pessoas[login]}
+
+    rotulos =
+      for rotulo <- get_in(node, ["labels", "nodes"]) || [],
+          do: %{name: rotulo["name"], color: rotulo["color"]}
+
+    {:ok, _} = WorkItems.replace_assignees(ctx.tenant, issue.id, designados)
+    {:ok, _} = WorkItems.replace_labels(ctx.tenant, issue.id, rotulos)
+
     issue
+  end
+
+  # O quadro entra como **referência**: só o título. A coleta de quadros como entidade
+  # ficou fora da feature 004 (F4), e inventá-la aqui criaria quadro sem proveniência.
+  defp titulos_de_quadro(node) do
+    for item <- get_in(node, ["projectItems", "nodes"]) || [],
+        titulo = get_in(item, ["project", "title"]),
+        titulo != nil,
+        do: titulo
   end
 
   # ---------------------------------------------------------------------- vínculos

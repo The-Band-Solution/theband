@@ -38,6 +38,7 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         name: r.name,
         qualified_name: r.qualified_name,
         url: r.url,
+        description: r.description,
         primary_language: r.primary_language,
         default_branch: r.default_branch,
         archived_at: r.archived_at,
@@ -46,6 +47,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         inaccessible_since: o.inaccessible_since,
         inaccessible_reason: o.inaccessible_reason,
         external_id: c.external_id,
+        external_created_at: r.external_created_at,
+        collected_at: c.collected_at,
         last_observed_at: c.last_observed_at,
         no_longer_observed_at: c.no_longer_observed_at
       }

@@ -7,6 +7,8 @@ defmodule TheBand.WorkItems.Commands do
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.DecompositionLink
+  alias TheBand.WorkItems.Schemas.IssueAssignee
+  alias TheBand.WorkItems.Schemas.IssueLabel
   alias TheBand.WorkItems.Schemas.IssuePromotion
   alias TheBand.WorkItems.Schemas.RefusedLink
 
@@ -39,6 +41,80 @@ defmodule TheBand.WorkItems.Commands do
       |> Map.put(:no_longer_observed_at, nil)
     )
     |> Repo.insert_or_update()
+  end
+
+  @doc """
+  Substitui os designados da issue pelos informados.
+
+  **A substituição apaga, e é decisão consciente.** Designação retirada na origem não é o
+  caso de issue que desapareceu: o histórico continua no payload bruto que a feature 004
+  preserva, e manter designado antigo marcado obrigaria a tela a mostrar ex-designados —
+  informação que ninguém pediu, e que confundiria quem lê "quem está nisto agora".
+
+  `person_id` ausente é declaração: o login fica, o vínculo não. Criar a pessoa a partir
+  da issue produziria registro sem a proveniência que a coleta de EO dá.
+  """
+  @spec replace_assignees(Tenant.t(), Ecto.UUID.t(), [map()]) :: {:ok, non_neg_integer()}
+  def replace_assignees(%Tenant{id: tenant_id}, collected_issue_id, designados) do
+    logins = Enum.map(designados, & &1.login)
+
+    Repo.delete_all(
+      from a in IssueAssignee,
+        where:
+          a.tenant_id == ^tenant_id and a.collected_issue_id == ^collected_issue_id and
+            a.login not in ^logins
+    )
+
+    for designado <- designados do
+      base =
+        Repo.get_by(IssueAssignee,
+          collected_issue_id: collected_issue_id,
+          login: designado.login
+        ) || %IssueAssignee{}
+
+      base
+      |> IssueAssignee.changeset(
+        designado
+        |> Map.put(:tenant_id, tenant_id)
+        |> Map.put(:collected_issue_id, collected_issue_id)
+      )
+      |> Repo.insert_or_update()
+    end
+
+    {:ok, length(designados)}
+  end
+
+  @doc """
+  Substitui os rótulos da issue pelos informados. Mesma semântica de `replace_assignees/3`.
+
+  O rótulo é **preservado e não promovido**: um rótulo `bug` não faz a issue um defeito.
+  """
+  @spec replace_labels(Tenant.t(), Ecto.UUID.t(), [map()]) :: {:ok, non_neg_integer()}
+  def replace_labels(%Tenant{id: tenant_id}, collected_issue_id, rotulos) do
+    nomes = Enum.map(rotulos, & &1.name)
+
+    Repo.delete_all(
+      from l in IssueLabel,
+        where:
+          l.tenant_id == ^tenant_id and l.collected_issue_id == ^collected_issue_id and
+            l.name not in ^nomes
+    )
+
+    for rotulo <- rotulos do
+      base =
+        Repo.get_by(IssueLabel, collected_issue_id: collected_issue_id, name: rotulo.name) ||
+          %IssueLabel{}
+
+      base
+      |> IssueLabel.changeset(
+        rotulo
+        |> Map.put(:tenant_id, tenant_id)
+        |> Map.put(:collected_issue_id, collected_issue_id)
+      )
+      |> Repo.insert_or_update()
+    end
+
+    {:ok, length(rotulos)}
   end
 
   @doc """

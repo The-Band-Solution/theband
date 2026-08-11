@@ -33,6 +33,45 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> Repo.all()
   end
 
+  @doc """
+  Identificador da pessoa por `login`, para quem precisa ligar em lote.
+
+  Existe porque a coleta de issues precisa resolver autor e designados de milhares de
+  issues: uma consulta por login faria uma ida ao banco por pessoa por issue. Aqui o
+  mapa vem numa consulta e a ligação é em memória.
+
+  Pessoa não coletada simplesmente **não está no mapa** — e quem chama grava o login com
+  vínculo ausente, em vez de criar pessoa sem proveniência.
+  """
+  @spec person_ids_by_login(Tenant.t()) :: %{String.t() => Ecto.UUID.t()}
+  def person_ids_by_login(%Tenant{id: tenant_id}) do
+    Repo.all(
+      from p in Person,
+        where: p.tenant_id == ^tenant_id and not is_nil(p.login),
+        select: {p.login, p.id}
+    )
+    |> Map.new()
+  end
+
+  @doc """
+  Nome de cada pessoa pelos identificadores informados.
+
+  É como a tela de issue mostra o nome do autor sem que `WorkItems` alcance
+  `eo_people`: WorkItems guarda a **referência**, e o nome vem pela API pública de EO —
+  a regra da fronteira do princípio IX aplicada em leitura.
+  """
+  @spec people_names(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
+  def people_names(_tenant, []), do: %{}
+
+  def people_names(%Tenant{id: tenant_id}, ids) do
+    Repo.all(
+      from p in Person,
+        where: p.tenant_id == ^tenant_id and p.id in ^ids,
+        select: {p.id, p.name}
+    )
+    |> Map.new()
+  end
+
   @spec count_people(Tenant.t(), keyword()) :: non_neg_integer()
   def count_people(tenant, opts \\ []) do
     Person |> scope(tenant, opts) |> Repo.aggregate(:count, :id)
