@@ -100,6 +100,13 @@ defmodule TheBandWeb.SourceLive.Index do
     end
   end
 
+  def handle_event("toggle_history", %{"id" => id}, socket) do
+    abertos = socket.assigns.open_history
+
+    {:noreply,
+     assign(socket, open_history: if(id in abertos, do: abertos -- [id], else: [id | abertos]))}
+  end
+
   def handle_event("cancel_resume", _params, socket),
     do: {:noreply, assign(socket, resuming: nil)}
 
@@ -287,6 +294,29 @@ defmodule TheBandWeb.SourceLive.Index do
           </div>
         </div>
 
+        <%!-- AC4 da US2: depois de retomada, a ferramenta volta a parecer ativa e o
+              cartão não diria que houve encerramento. O histórico é o que preserva
+              que aconteceu — e é append-only, então nunca encolhe. --%>
+        <div :if={@history[tool.id] != []} class="mt-3">
+          <button class="link link-hover text-xs" phx-click="toggle_history" phx-value-id={tool.id}>
+            histórico de observação ({length(@history[tool.id])})
+          </button>
+
+          <ul :if={tool.id in @open_history} class="mt-2 text-xs space-y-1">
+            <li :for={event <- @history[tool.id]} class="flex gap-2">
+              <span class={[
+                "badge badge-xs",
+                event.event == "ended" && "badge-error",
+                event.event == "resumed" && "badge-success"
+              ]}>
+                {if event.event == "ended", do: "encerrada", else: "retomada"}
+              </span>
+              <span class="opacity-70">{event.occurred_at}</span>
+              <span :if={event.reason} class="opacity-70">— {event.reason}</span>
+            </li>
+          </ul>
+        </div>
+
         <div :if={@resuming && @resuming.id == tool.id} class="alert block text-sm">
           <div class="font-semibold mb-2">
             Retomar a observação de {tool.organization_login}
@@ -447,8 +477,10 @@ defmodule TheBandWeb.SourceLive.Index do
     # usa. Dois caminhos discordariam, e a tela mostraria como encerrado o que a
     # plataforma continua coletando.
     |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
+    |> assign(history: Map.new(tools, &{&1.id, Sources.observation_history(tenant, &1)}))
     |> assign_new(:ending, fn -> nil end)
     |> assign_new(:resuming, fn -> nil end)
+    |> assign_new(:open_history, fn -> [] end)
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)

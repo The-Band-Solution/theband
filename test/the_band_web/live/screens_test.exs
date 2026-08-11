@@ -531,4 +531,41 @@ defmodule TheBandWeb.ScreensTest do
       refute html =~ "ghp_segredo_novo_12345"
     end
   end
+
+  describe "histórico de observação (US2, AC4)" do
+    test "depois de retomar, o histórico guarda o encerramento e a retomada", %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      tool = conectar_ferramenta(tenant)
+      conn = log_in(conn, user)
+
+      {:ok, _} = Sources.end_observation(tenant, tool, %{"confirmation" => "acme"})
+
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok,
+         %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
+      end)
+
+      {:ok, _} = Sources.resume_observation(tenant, tool, %{"secret" => "ghp_nova"})
+
+      {:ok, live, html} = live(conn, ~p"/ferramentas")
+
+      # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
+      refute html =~ "observação encerrada"
+      assert html =~ "histórico de observação (2)"
+
+      aberto = live |> element("button", "histórico de observação") |> render_click()
+
+      assert aberto =~ "encerrada"
+      assert aberto =~ "retomada"
+    end
+
+    test "ferramenta que nunca encerrou não mostra histórico", %{conn: conn} do
+      {tenant, user} = tenant_with_admin()
+      conectar_ferramenta(tenant)
+
+      {:ok, _live, html} = live(log_in(conn, user), ~p"/ferramentas")
+
+      refute html =~ "histórico de observação"
+    end
+  end
 end
