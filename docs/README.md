@@ -16,6 +16,7 @@ for Data-Driven Software Development*.
 | Se você quer… | Vá para |
 |---|---|
 | Entender o que o sistema é e como está organizado | [Arquitetura](architecture/overview.md) |
+| Entender as tabelas e os schemas, e por que têm essa forma | [Modelo de dados](architecture/modelo-de-dados.md) |
 | Entender o modelo conceitual | [Rede de ontologias](ontology/README.md) |
 | Achar um conceito específico | [Índice de conceitos](ontology/concept-index.md) |
 | Saber como dados externos viram conceitos | [Mapeamentos semânticos](integrations/mappings.md) |
@@ -34,7 +35,7 @@ for Data-Driven Software Development*.
 
 ```text
 docs/
-├── architecture/     visão da arquitetura e das fronteiras internas
+├── architecture/     visão da arquitetura, fronteiras internas e modelo de dados
 ├── ontology/         modelo conceitual — GERADO da base de conhecimento
 ├── integrations/     fontes externas e mapeamentos — GERADO
 ├── metrics/          necessidades de informação e medidas — GERADO
