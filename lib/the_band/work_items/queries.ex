@@ -329,7 +329,8 @@ defmodule TheBand.WorkItems.Queries do
           derived_concept: p.derived_concept,
           skip_reason: p.skip_reason,
           evidence_source: p.evidence_source,
-          mapping_rule_id: p.mapping_rule_id
+          mapping_rule_id: p.mapping_rule_id,
+          divergence_kind: p.divergence_kind
         }
     )
   end

@@ -100,6 +100,29 @@ defmodule TheBand.WorkItems.DivergenceKindTest do
     end
   end
 
+  describe "gravar a divergência" do
+    test "issue que só ganhou divergência é regravada", %{tenant: t, org: org} do
+      # O recálculo compara a decisão com a vigente. Sem a divergência na comparação, uma
+      # issue cujo conceito não muda nunca recebe a divergência descoberta depois — e no
+      # dado real isso deixou 469 user stories folhas sem o sinal que já era calculado.
+      {:ok, primeira} = Mapping.recompute(t, org)
+      assert primeira.written > 0
+
+      com_divergencia =
+        t
+        |> Mapping.decidir_lote(org, Mapping.active_rules(t, org))
+        |> Enum.count(&(&1.decisao.divergence_kind != nil))
+
+      gravadas = map_size(WorkItems.count_divergences_by_kind(t))
+
+      assert com_divergencia == 0 or gravadas > 0, """
+      A decisão calculou #{com_divergencia} divergências e o banco tem #{gravadas} tipos
+      gravados. Calcular e não gravar é pior que não calcular: a tela mostra zero, e quem
+      lê conclui que não há divergência nenhuma.
+      """
+    end
+  end
+
   defp arvore(tenant, cenario) do
     n = System.unique_integer([:positive])
 

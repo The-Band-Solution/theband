@@ -298,10 +298,15 @@ defmodule TheBand.Mapping.Decision do
   def mudou_registro?(_decisao, nil), do: true
 
   def mudou_registro?(decisao, vigente) do
+    # A divergência entra na comparação, e a ausência dela custou caro: sem esta linha,
+    # uma issue cujo conceito não muda **nunca** recebe a divergência descoberta depois.
+    # No dado real foram 469 user stories que são folhas — o sinal existia, era
+    # calculado, e não era gravado. Zero divergências no banco, e nenhuma delas certa.
     decisao.derived != vigente.derived_concept or
       decisao.skip_reason != vigente.skip_reason or
       decisao.mapping_rule_id != vigente.mapping_rule_id or
-      decisao.evidence_source != vigente.evidence_source
+      decisao.evidence_source != vigente.evidence_source or
+      decisao.divergence_kind != vigente.divergence_kind
   end
 
   defp tipos_das_partes(tenant, issues) do
