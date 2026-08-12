@@ -276,4 +276,72 @@ defmodule TheBand.WorkItems.Commands do
 
     {:ok, count}
   end
+
+  @doc """
+  Marca os vínculos de decomposição **do repositório informado** que não apareceram nesta
+  coleta.
+
+  ## O escopo é o repositório do **pai**, e não é detalhe
+
+  A origem declara a decomposição de cima para baixo: as partes vêm **dentro** da
+  issue-pai, e a coleta lê essa lista uma vez por repositório. Quem afirma o vínculo é o
+  pai — uma coleta do repositório da **filha** não vê a lista, e não tem como saber que o
+  vínculo acabou.
+
+  São **57** os vínculos cujo pai e filha estão em repositórios diferentes. Escopar pela
+  filha os marcaria por engano toda vez que o repositório dela fosse coletado sem o do pai.
+
+  E marcar por tenant seria a L19 no nível do vínculo: numa organização de 121
+  repositórios, coletar um marcaria os vínculos dos outros 120. Por isso **não existe
+  aridade 2** — a obrigatoriedade está no tipo, como na irmã de issue.
+
+  ## Dois instantes, e eles não são o mesmo
+
+  `desde` é o **corte** — o `started_at` da execução. A data **gravada** é o instante em
+  que a ausência foi notada, que é o que `mark_issues_no_longer_observed/3`,
+  `replace_assignees/3` e `replace_labels/3` já fazem. Gravar o `started_at` daria à mesma
+  coluna dois significados em tabelas vizinhas.
+
+  Cortar por "agora" em vez de pelo início da execução marcaria o vínculo que a **própria**
+  execução acabou de gravar: `record_decomposition_link/2` carimba `last_observed_at` com o
+  instante da escrita, sempre posterior ao início.
+
+  ## Não reescreve marca existente
+
+  `is_nil(no_longer_observed_at)` no `WHERE`. O que se registra é **quando deixou de ser
+  visto**, não quando se olhou de novo — e uma segunda coleta sem mudança devolve `{:ok, 0}`.
+  """
+  @spec mark_decomposition_links_no_longer_observed(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          DateTime.t()
+        ) :: {:ok, non_neg_integer()}
+  def mark_decomposition_links_no_longer_observed(
+        %Tenant{id: tenant_id},
+        observed_repository_id,
+        desde
+      )
+      when is_binary(observed_repository_id) do
+    pais =
+      from(i in CollectedIssue,
+        where:
+          i.tenant_id == ^tenant_id and
+            i.observed_repository_id == ^observed_repository_id,
+        select: i.id
+      )
+
+    {count, _} =
+      Repo.update_all(
+        from(l in DecompositionLink,
+          where:
+            l.tenant_id == ^tenant_id and
+              l.parent_issue_id in subquery(pais) and
+              l.last_observed_at < ^desde and
+              is_nil(l.no_longer_observed_at)
+        ),
+        set: [no_longer_observed_at: DateTime.utc_now(:second)]
+      )
+
+    {:ok, count}
+  end
 end
