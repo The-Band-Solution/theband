@@ -199,4 +199,32 @@ defmodule TheBandWeb.IssueDetailTest do
   defp numeros(html) do
     Regex.scan(~r{/trabalho/issues/([0-9a-f-]+)}, html) |> Enum.map(&List.last/1)
   end
+
+  describe "o alerta de discordância" do
+    test "a divergência aparece como alerta, e diz que o conceito foi mantido",
+         %{conn: conn, tenant: t, cenario: c} do
+      # #98 é `Feature` com duas partes `Feature`: a regra decide épico, e o rótulo não
+      # afirmava épico — logo não há divergência. Forço uma: gravo promoção com motivo.
+      issue = c.issues[98].pai
+
+      {:ok, _} =
+        TheBand.WorkItems.record_promotion(t, %{
+          collected_issue_id: issue.id,
+          derived_concept: "sro.intended_scrum_development_task",
+          divergence_reason: "classificada como tarefa e tem 2 partes coletadas",
+          rule_id: "github.issue_structure_routing",
+          rule_version: 1
+        })
+
+      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{issue.id}")
+
+      assert html =~ "O rótulo e a estrutura discordam"
+      assert html =~ "tem 2 partes coletadas"
+
+      assert html =~ "O conceito foi mantido", """
+      A tela precisa dizer que nada foi corrigido. Sem isso, quem lê supõe que a
+      plataforma ajustou o conceito — e a plataforma não decide por quem escreveu a issue.
+      """
+    end
+  end
 end

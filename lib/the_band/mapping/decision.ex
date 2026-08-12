@@ -82,10 +82,30 @@ defmodule TheBand.Mapping.Decision do
   end
 
   @doc """
-  Preenche, **pela estrutura**, o que as duas primeiras etapas não decidiram.
+  Preenche, **pela estrutura**, o que as duas primeiras etapas não decidiram — e **registra
+  a divergência** quando o que elas decidiram discorda da estrutura.
 
-  Só toca em issue sem conceito: a estrutura é a evidência mais fraca, e sobrescrever com
-  ela um tipo que alguém declarou na ferramenta seria inverter a precedência.
+  ## Por que não trocar o conceito
+
+  Medido no dado real: 9 issues com título `[TASK]` têm partes, e 319 com título `[US` ou
+  `[FEATURE]` são folhas. Fazer a estrutura vencer custaria **319 declarações do time**
+  para consertar **9** — e o erro seria do tipo pior, silencioso e em massa, porque uma
+  user story que ninguém decompôs é indistinguível de uma tarefa.
+
+  ## Por que nem sequer seria correto
+
+  `sro.rule05` é axioma e a plataforma já o aplica: não há épico sem partes, e a composição
+  torna épico. Mas **nenhum axioma proíbe tarefa com partes** — `sro.rule07` proíbe tarefa
+  *atender* épico, que é a relação de atendimento, não a de composição. Tarefa com
+  sub-issues é **não modelada**, e não inválida.
+
+  Trocar o conceito por causa disso seria a plataforma inventando axioma.
+
+  ## O que ela faz
+
+  Registra em `divergence_reason` — o mesmo campo que já diz "o rótulo e a estrutura
+  discordam" para épico sem partes. Vira sinal sobre o processo do time, visível na issue e
+  na lista de divergências, e nada é corrigido em silêncio.
   """
   @spec completar_por_estrutura(Tenant.t(), [resultado()]) :: [resultado()]
   def completar_por_estrutura(%Tenant{} = tenant, resultados) do
@@ -100,14 +120,14 @@ defmodule TheBand.Mapping.Decision do
 
     {finais, _memoria} =
       Enum.map_reduce(resultados, %{}, fn %{issue: issue, decisao: decisao} = linha, memoria ->
-        if decisao.derived do
-          {linha, memoria}
-        else
-          {conceito, memoria} =
-            por_estrutura(issue.id, filhos, presentes, ja_decidido, memoria, 0)
+        {conceito, memoria} = por_estrutura(issue.id, filhos, presentes, ja_decidido, memoria, 0)
 
-          {%{linha | decisao: estrutural(decisao, conceito, versao)}, memoria}
-        end
+        decisao =
+          if decisao.derived,
+            do: anotar_divergencia(decisao, conceito, filhos, presentes, issue.id),
+            else: estrutural(decisao, conceito, versao)
+
+        {%{linha | decisao: decisao}, memoria}
       end)
 
     finais
@@ -163,6 +183,42 @@ defmodule TheBand.Mapping.Decision do
   defp se_compoe(conceitos) do
     if Enum.any?(conceitos, &(&1 in [@atomica, @epico])), do: @epico, else: @atomica
   end
+
+  # A divergência é **acrescentada**, nunca substitui a que já existe: a de `sro.rule05`
+  # explica a mesma issue por outro ângulo, e apagá-la perderia informação.
+  defp anotar_divergencia(decisao, estrutural, filhos, presentes, id) do
+    partes =
+      filhos
+      |> Map.get(id, [])
+      |> Enum.filter(&MapSet.member?(presentes, &1))
+      |> length()
+
+    case divergencia_estrutural(decisao.derived, estrutural, partes) do
+      nil -> decisao
+      motivo -> %{decisao | divergence: juntar(decisao.divergence, motivo)}
+    end
+  end
+
+  defp divergencia_estrutural(mesmo, mesmo, _partes), do: nil
+
+  defp divergencia_estrutural(@tarefa, _estrutural, partes) when partes > 0,
+    do:
+      "classificada como tarefa e tem #{partes} #{plural(partes)} coletada#{if partes > 1, do: "s"}; " <>
+        "tarefa com partes não é modelada pela SRO — o conceito foi mantido, e isto é " <>
+        "sinal sobre como o time escreve as issues"
+
+  defp divergencia_estrutural(@atomica, @tarefa, 0),
+    do:
+      "classificada como user story atômica e não tem partes nem tarefas coletadas ligadas " <>
+        "a ela; pode ser user story ainda não decomposta, e por isso o conceito foi mantido"
+
+  defp divergencia_estrutural(_derivado, _estrutural, _partes), do: nil
+
+  defp plural(1), do: "parte"
+  defp plural(_), do: "partes"
+
+  defp juntar(nil, motivo), do: motivo
+  defp juntar(existente, motivo), do: existente <> "; e " <> motivo
 
   defp estrutural(base, conceito, versao) do
     %{

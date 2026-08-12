@@ -115,6 +115,18 @@ defmodule TheBandWeb.WorkItemLive.Show do
         <p class="text-sm">{WorkItems.rule07_explanation(@violacao)}</p>
       </div>
 
+      <%!-- A divergência entre o rótulo e a estrutura é **alerta**, e não nota de rodapé:
+            ela muda como se lê o conceito logo abaixo. E o conceito foi **mantido** — a
+            plataforma não corrige em silêncio o que o time declarou. --%>
+      <div :if={@issue.divergence_reason} class="alert alert-warning mt-6 block">
+        <div class="font-semibold">O rótulo e a estrutura discordam.</div>
+        <p class="text-sm">{@issue.divergence_reason}</p>
+        <p class="text-xs opacity-80 mt-1">
+          O conceito foi mantido. Não é erro da plataforma: é sinal sobre o processo do
+          time — e corrigi-lo aqui seria a plataforma decidir por quem escreveu a issue.
+        </p>
+      </div>
+
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
           <div class="card bg-base-200">

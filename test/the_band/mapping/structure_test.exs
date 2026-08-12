@@ -147,6 +147,67 @@ defmodule TheBand.Mapping.StructureTest do
     end
   end
 
+  describe "a discordância entre rótulo e estrutura" do
+    test "tarefa com partes mantém o conceito e ganha divergência",
+         %{tenant: t, org: org, user: u, cenario: c} do
+      {pai, _} = arvore(t, c, ["", ""])
+
+      {:ok, _} =
+        Mapping.create_rule(
+          t,
+          org,
+          %{
+            where: "title",
+            how: "starts_with",
+            pattern: pai.title,
+            target_concept: @tarefa
+          },
+          u.id
+        )
+
+      linha = conceito(t, org, pai.id)
+
+      assert linha.decisao.derived == @tarefa, """
+      O conceito é MANTIDO. Fazer a estrutura vencer custaria 319 user stories declaradas
+      para consertar 9 tarefas com partes — medido no dado real. E nenhum axioma proíbe
+      tarefa com partes: `sro.rule07` proíbe tarefa ATENDER épico, que é outra relação.
+      """
+
+      assert linha.decisao.divergence =~ "tem 2 partes coletadas"
+      assert linha.decisao.divergence =~ "não é modelada"
+    end
+
+    test "user story sem partes mantém o conceito e ganha divergência",
+         %{tenant: t, org: org, user: u, cenario: c} do
+      {:ok, _} =
+        Mapping.create_rule(
+          t,
+          org,
+          %{
+            where: "title",
+            how: "starts_with",
+            pattern: "issue #203",
+            target_concept: @atomica
+          },
+          u.id
+        )
+
+      linha = conceito(t, org, c.issues[203].pai.id)
+
+      assert linha.decisao.derived == @atomica
+      assert linha.decisao.divergence =~ "ainda não decomposta"
+    end
+
+    test "quando rótulo e estrutura concordam, não há divergência",
+         %{tenant: t, org: org, cenario: c} do
+      # #201 é `Task` declarada e é folha: as duas dizem tarefa.
+      linha = conceito(t, org, c.issues[201].pai.id)
+
+      assert linha.decisao.derived == @tarefa
+      assert linha.decisao.divergence == nil
+    end
+  end
+
   # Cria um pai sem tipo com N partes sem tipo, opcionalmente sob um pai já existente.
   defp arvore(tenant, cenario, partes, sob \\ nil) do
     n = System.unique_integer([:positive])
