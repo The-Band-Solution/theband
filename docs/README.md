@@ -76,3 +76,7 @@ Quando o projeto Elixir existir, esses scripts serão substituídos pelas Mix ta
 | Conectores executáveis | não iniciados — feature `025 Motor declarativo GraphQL/YAML` |
 
 O roadmap completo está em [AGENTS.md](../AGENTS.md), seção 19.
+
+## Interface
+
+[design-system.md](design-system.md) — a gramática da evidência, a paleta, as três vozes tipográficas, WCAG 2.0 e mobile-first. **Normativo**: vale para toda tela nova.
