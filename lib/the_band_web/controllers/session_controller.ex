@@ -12,7 +12,7 @@ defmodule TheBandWeb.SessionController do
         |> redirect(to: ~p"/people")
 
       {:error, :not_found} ->
-        conn |> put_flash(:error, "Usuário não encontrado.") |> redirect(to: ~p"/sign-in")
+        conn |> put_flash(:error, "User not found.") |> redirect(to: ~p"/sign-in")
     end
   end
 

@@ -31,7 +31,7 @@ defmodule TheBandWeb.SourceLive.Index do
       {:ok, %{tool: tool}} ->
         {:noreply,
          socket
-         |> put_flash(:info, "#{tool.tool_type} conectado e credencial validada.")
+         |> put_flash(:info, "#{tool.tool_type} connected, credential validated.")
          |> assign(form_open: false)
          |> load_tools()}
 
@@ -49,7 +49,7 @@ defmodule TheBandWeb.SourceLive.Index do
            socket,
            :error,
            "A credencial é válida mas não tem os escopos necessários: #{Enum.join(missing, ", ")}. " <>
-             "Sem eles a coleta devolveria zero equipes, o que é pior que falhar. Nada foi gravado."
+             "Without them the collection would return zero teams, which is worse than failing. Nothing was saved."
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->

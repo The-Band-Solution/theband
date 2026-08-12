@@ -15,8 +15,8 @@ defmodule TheBand.Integrations.GitHub.ClientTest do
     test "endereço não resolvido diz o que conferir" do
       mensagem = Client.describe_error({:transport, :nxdomain})
 
-      assert mensagem =~ "não foi possível resolver o endereço"
-      assert mensagem =~ "conexão de rede"
+      assert mensagem =~ "address could not be resolved"
+      assert mensagem =~ "network connection"
       refute mensagem =~ "nxdomain"
     end
 
@@ -48,7 +48,7 @@ defmodule TheBand.Integrations.GitHub.ClientTest do
     end
 
     test "falha desconhecida ainda produz frase, sem quebrar" do
-      assert Client.describe_error(:algo_novo) =~ "não classificada"
+      assert Client.describe_error(:algo_novo) =~ "unclassified failure"
     end
   end
 

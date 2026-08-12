@@ -46,24 +46,24 @@ defmodule TheBandWeb.SyncLive.Index do
 
     with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
          {:ok, _sync} <- Ingestion.start_sync(tenant, tool) do
-      {:noreply, socket |> put_flash(:info, "Sincronização iniciada.") |> load()}
+      {:noreply, socket |> put_flash(:info, "Sync started.") |> load()}
     else
       {:error, :already_running} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "Já existe uma sincronização em andamento para esta ferramenta. A segunda não foi iniciada."
+           "A sync is already running for this tool. The second one was not started."
          )}
 
       {:error, :no_active_credential} ->
-        {:noreply, put_flash(socket, :error, "Esta ferramenta não tem credencial ativa.")}
+        {:noreply, put_flash(socket, :error, "This tool has no active credential.")}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível iniciar: #{inspect(reason)}")}
+        {:noreply, put_flash(socket, :error, "Could not start: #{inspect(reason)}")}
     end
   end
 
@@ -77,7 +77,7 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply,
      socket
      |> assign(reprocess: :running)
-     |> put_flash(:info, "Reprocessando os mapeamentos sobre os dados já coletados.")}
+     |> put_flash(:info, "Reprocessing the mappings over the data already collected.")}
   end
 
   @impl true

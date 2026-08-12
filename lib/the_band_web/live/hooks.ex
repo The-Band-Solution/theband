@@ -33,7 +33,7 @@ defmodule TheBandWeb.Live.Hooks do
         else
           {:halt,
            socket
-           |> put_flash(:error, "Apenas administradores da organização podem fazer isso.")
+           |> put_flash(:error, "Only organisation administrators can do that.")
            |> redirect(to: "/people")}
         end
 

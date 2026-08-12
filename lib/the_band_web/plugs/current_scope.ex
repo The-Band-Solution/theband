@@ -62,7 +62,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       conn
       |> Phoenix.Controller.put_flash(
         :error,
-        "Apenas administradores da organização podem fazer isso."
+        "Only organisation administrators can do that."
       )
       |> redirect(to: "/people")
       |> halt()
