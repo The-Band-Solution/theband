@@ -1517,9 +1517,19 @@ fecham, o PR mergeia.
 **É o padrão do sucesso silencioso**, aplicado ao processo em vez ao código: ausência de erro lida
 como trabalho concluído.
 
-**O que fazer diferente.** O sprint só está fechado quando os três arquivos existem, e a conferência é
-mecânica: `ls docs/sprints/<n>-*/` tem de listar `sprint-backlog.md`, `sprint-review.md` e
-`aceitacao.md`. **Abrir um sprint novo confere o anterior** — e citar uma lição obriga a achá-la no
-arquivo, não na memória.
+**O que fazer diferente.** O sprint só está fechado quando os **três** documentos existem, e a
+conferência é mecânica:
+
+```bash
+ls docs/sprints/<n>-*/          # sprint-backlog.md e sprint-review.md
+ls specs/<feature>/aceitacao.md # a aceitação, do sprint 006 em diante
+```
+
+**E a aceitação mora em dois lugares**, o que atrasou notar a falta: até o sprint 005 ela ficava em
+`docs/sprints/<n>/aceitacao.md`, e do 006 em diante em `specs/<feature>/aceitacao.md`, junto da spec
+que ela avalia. Procurar num só lugar dá falso negativo nos dois sentidos.
+
+**Abrir um sprint novo confere o anterior** — e citar uma lição obriga a achá-la no arquivo, não na
+memória.
 
 **Estado**: aberta.

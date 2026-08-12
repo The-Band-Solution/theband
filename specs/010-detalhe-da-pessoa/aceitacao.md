@@ -1,7 +1,7 @@
 # Aceitação — Feature 010: o detalhe da pessoa
 
 **Avaliado em**: 2026-08-12, **depois** do merge — o sprint fechou sem esta avaliação, e é a **L44**
-**Base**: os 13 critérios de sucesso da [spec](../../specs/010-detalhe-da-pessoa/spec.md), um a um
+**Base**: os 13 critérios de sucesso da [spec](spec.md), um a um
 
 **A suíte verde não é evidência** — é a L18. Cada linha aponta o teste, a consulta ou a medida.
 

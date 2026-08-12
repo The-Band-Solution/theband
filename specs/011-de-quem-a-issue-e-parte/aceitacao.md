@@ -1,7 +1,7 @@
 # Aceitação — Feature 011: de quem cada issue é parte
 
 **Avaliado em**: 2026-08-12 · **Branch**: `015-de-quem-a-issue-e-parte`
-**Base**: os 13 critérios de sucesso da [spec](../../specs/011-de-quem-a-issue-e-parte/spec.md), um a
+**Base**: os 13 critérios de sucesso da [spec](spec.md), um a
 um, **com evidência**
 
 **A suíte verde não é evidência de critério atendido** — é a L18. Cada linha abaixo aponta o teste, a
