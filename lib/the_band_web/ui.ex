@@ -57,12 +57,19 @@ defmodule TheBandWeb.UI do
       class={["inline-flex items-center gap-1.5 text-sm", @class]}
       title={evidence_title(@concept, @source, @confidence)}
     >
+      <%!-- O padrão vive **aqui**, em utilitário do Tailwind, e não numa classe do
+            `app.css`. A razão é a proximidade: quem lê o componente vê que a marca sólida
+            e a hachurada diferem no preenchimento, sem abrir outro arquivo.
+
+            `currentColor` no gradiente é o que faz a hachura seguir a cor do texto — e é
+            por isso que o mesmo utilitário serve para sucesso, aviso e neutro. --%>
       <span
         class={[
           "size-2.5 shrink-0 rounded-[1px]",
-          @shape == :solid && "evidence-solid text-success",
-          @shape == :hatched && "evidence-hatched text-success",
-          @shape == :dashed && "evidence-dashed text-base-content/50"
+          @shape == :solid && "bg-current text-success",
+          @shape == :hatched &&
+            "text-success outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]",
+          @shape == :dashed && "border border-dashed border-current text-base-content/50"
         ]}
         aria-hidden="true"
       ></span>
@@ -92,7 +99,10 @@ defmodule TheBandWeb.UI do
   def absent(assigns) do
     ~H"""
     <span class={["inline-flex items-center gap-1.5 text-sm text-base-content/60", @class]}>
-      <span class="size-2.5 shrink-0 rounded-[1px] evidence-dashed" aria-hidden="true"></span>
+      <span
+        class="size-2.5 shrink-0 rounded-[1px] border border-dashed border-current"
+        aria-hidden="true"
+      ></span>
       {@reason}
     </span>
     """
@@ -112,7 +122,7 @@ defmodule TheBandWeb.UI do
     ~H"""
     <div class="flex flex-col gap-0.5">
       <span class="text-xs uppercase tracking-wider text-base-content/60">{@label}</span>
-      <span class="text-2xl font-semibold tabular">{@value}</span>
+      <span class="text-2xl font-semibold tabular-nums">{@value}</span>
       <span :if={@sub} class="text-xs text-base-content/70">{@sub}</span>
     </div>
     """
@@ -224,13 +234,18 @@ defmodule TheBandWeb.UI do
         aria-valuemax={@total || @done || 0}
       >
         <div
-          class={[
-            "h-full",
-            @state == :running && "motion-safe:animate-pulse",
-            @derived && "bar-hatched",
-            not @derived && @state != :pending && "bar-solid",
-            @state == :pending && "bg-transparent"
-          ]}
+          class={
+            [
+              "h-full text-success",
+              @state == :running && "motion-safe:animate-pulse",
+              # A barra derivada usa a mesma hachura da marca, em escala maior — o utilitário
+              # é longo e é o preço de o padrão viver junto do componente que o usa.
+              @derived &&
+                "bg-[repeating-linear-gradient(135deg,currentColor_0_3px,color-mix(in_oklch,currentColor_30%,transparent)_3px_6px)]",
+              not @derived && @state != :pending && "bg-current",
+              @state == :pending && "bg-transparent"
+            ]
+          }
           style={"width: #{@width}%"}
         >
         </div>

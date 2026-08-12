@@ -423,7 +423,7 @@ defmodule TheBandWeb.SourceLive.Index do
 
         <div>
           <div class="text-sm font-semibold mb-2">Credentials</div>
-          <table class="table table-sm">
+          <table class="table table-sm stacked">
             <thead>
               <tr>
                 <th>rótulo</th>

@@ -173,13 +173,15 @@ defmodule TheBandWeb.SyncLive.MappingRules do
               writing, not the decision.
             </p>
 
-            <table class="table table-sm mt-2">
+            <table class="table table-sm stacked mt-2">
               <tbody>
                 <tr :for={p <- @propostas}>
-                  <td class="font-mono text-xs">{p.pattern}</td>
-                  <td class="text-xs opacity-70">{onde(p.where)}</td>
-                  <td class="text-sm">{ConceptLabel.rotulo(p.target_concept)}</td>
-                  <td class="text-right font-mono text-xs">
+                  <td data-label="text" class="font-mono text-xs">{p.pattern}</td>
+                  <td data-label="where" class="text-xs opacity-70">{onde(p.where)}</td>
+                  <td data-label="promotes to" class="text-sm">
+                    {ConceptLabel.rotulo(p.target_concept)}
+                  </td>
+                  <td data-label="issues" class="text-right font-mono text-xs">
                     <span :if={p.would_match > 0}>{p.would_match}</span>
                     <%!-- Zero é "não aplicável a esta organização", e não erro: um catálogo
                           com 10 entradas mostraria 10 avisos numa organização que usa três
@@ -220,11 +222,11 @@ defmodule TheBandWeb.SyncLive.MappingRules do
               existing, and lying.
             </p>
 
-            <table class="table table-sm mt-2">
+            <table class="table table-sm stacked mt-2">
               <tbody>
                 <tr :for={p <- @nao_tipo}>
-                  <td class="font-mono text-xs">{p.pattern}</td>
-                  <td class="text-right font-mono text-xs">{p.would_match}</td>
+                  <td data-label="text" class="font-mono text-xs">{p.pattern}</td>
+                  <td data-label="issues" class="text-right font-mono text-xs">{p.would_match}</td>
                   <td class="text-right">
                     <.button
                       phx-click="nao_e_tipo"
@@ -272,7 +274,7 @@ defmodule TheBandWeb.SyncLive.MappingRules do
             precisely so that adding a rule does not change the classification silently.
           </p>
 
-          <table :if={@regras != []} class="table table-sm">
+          <table :if={@regras != []} class="table table-sm stacked">
             <thead>
               <tr>
                 <th class="text-right">#</th>
@@ -286,12 +288,16 @@ defmodule TheBandWeb.SyncLive.MappingRules do
             </thead>
             <tbody>
               <tr :for={r <- @regras} class={if(!r.active, do: "opacity-50")}>
-                <td class="font-mono">{r.position}</td>
-                <td class="text-xs">{onde(r.where)}</td>
-                <td class="text-xs">{como(r.how)}</td>
-                <td class="font-mono text-xs">{r.pattern}</td>
-                <td class="text-sm">{ConceptLabel.rotulo(r.target_concept)}</td>
-                <td class="text-right font-mono text-xs">{r.promoted_count}</td>
+                <td data-label="#" class="text-right font-mono">{r.position}</td>
+                <td data-label="where" class="text-xs">{onde(r.where)}</td>
+                <td data-label="how" class="text-xs">{como(r.how)}</td>
+                <td data-label="text" class="font-mono text-xs">{r.pattern}</td>
+                <td data-label="promotes to" class="text-sm">
+                  {ConceptLabel.rotulo(r.target_concept)}
+                </td>
+                <td data-label="issues" class="text-right font-mono text-xs">
+                  {r.promoted_count}
+                </td>
                 <td class="text-right">
                   <span :if={!r.active} class="badge badge-xs">inactive</span>
                   <.button

@@ -200,60 +200,65 @@ defmodule TheBandWeb.RepositoryLive.Show do
           <h3 class="font-semibold">Issues</h3>
           <span class="text-sm opacity-70">{faixa(@pagina, @coletadas)} of {@coletadas}</span>
         </div>
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>title</th>
-              <th>type at source</th>
-              <th>state</th>
-              <th class="text-right">parts at source</th>
-              <th>promoted to</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :for={i <- @issues}>
-              <td class="font-mono">{i.number}</td>
-              <td class="max-w-md">
-                <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
-                  {i.title}
-                </.link>
-                <div :if={i.no_longer_observed_at} class="text-xs opacity-60">
-                  did not show up in the last collection
-                </div>
-              </td>
-              <td>
-                <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
-                <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">—</span>
-              </td>
-              <td class="text-xs opacity-70">{String.downcase(i.state)}</td>
-              <td class="font-mono text-xs">{i.sub_issue_count}</td>
-              <td>
-                <span :if={i.derived_concept} class="text-sm">
-                  {ConceptLabel.rotulo(i.derived_concept)}
-                </span>
-                <span :if={is_nil(i.derived_concept)} class="text-sm opacity-60">
-                  {ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
-                </span>
-                <div :if={i.divergence_reason} class="text-xs text-warning">
-                  contra o rótulo {ConceptLabel.rotulo(i.declared_concept)}
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="overflow-x-auto">
+          <table class="table table-sm stacked">
+            <thead>
+              <tr>
+                <th class="text-right">#</th>
+                <th>title</th>
+                <th>type at source</th>
+                <th>state</th>
+                <th class="text-right">parts at source</th>
+                <th>promoted to</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={i <- @issues}>
+                <td data-label="#" class="text-right font-mono">{i.number}</td>
+                <td data-label="title" class="max-w-md">
+                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                    {i.title}
+                  </.link>
+                  <div :if={i.no_longer_observed_at} class="text-xs opacity-60">
+                    did not show up in the last collection
+                  </div>
+                </td>
+                <td data-label="type at source">
+                  <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
+                  <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">none</span>
+                </td>
+                <td data-label="state" class="text-xs opacity-70">{String.downcase(i.state)}</td>
+                <td data-label="parts at source" class="text-right font-mono text-xs">
+                  {i.sub_issue_count}
+                </td>
+                <td data-label="promoted to">
+                  <.evidence
+                    concept={i.derived_concept}
+                    source={i.evidence_source}
+                    confidence={i.confidence}
+                    skip_reason={i.skip_reason}
+                    skip_detail={i.skip_detail}
+                  />
+                  <div :if={i.divergence_kind} class="text-xs text-warning">
+                    {ConceptLabel.divergencia(i.divergence_kind)}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-        <div class="flex items-center gap-2 mt-3">
+        <nav class="mt-3 flex items-center gap-2" aria-label="Pagination">
           <button
             class="btn btn-sm btn-outline"
             disabled={@pagina == 1}
             phx-click="pagina"
             phx-value-n={@pagina - 1}
           >
-            anterior
+            Previous
           </button>
           <span class="text-sm opacity-70">
-            página {@pagina} de {ultima_pagina(@coletadas)}
+            page {@pagina} of {ultima_pagina(@coletadas)}
           </span>
           <button
             class="btn btn-sm btn-outline"
@@ -261,9 +266,9 @@ defmodule TheBandWeb.RepositoryLive.Show do
             phx-click="pagina"
             phx-value-n={@pagina + 1}
           >
-            próxima
+            Next
           </button>
-        </div>
+        </nav>
       </div>
     </Layouts.app>
     """
