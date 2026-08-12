@@ -170,13 +170,20 @@ vez de repetir a lista: assim uma versão nova do Oban que acrescente estado nã
 1. handler não registrado é **sucesso silencioso** — a família L22/L23/L26 deste projeto. Provar
    registro exige um teste que inspeciona `:telemetry.list_handlers/1`, o que é possível e ainda
    assim frágil;
-2. **ele não cobriria o caso do Lifeline.** O Lifeline transiciona jobs **em SQL**, e emite
-   telemetria de *plugin* (`rescued_jobs`, `discarded_jobs`) — não eventos de job. Um handler de
-   evento de job **nunca veria** o job que o Lifeline descartou, que é exatamente o caso novo
-   criado por R1.
+2. **ele não cobriria o caso órfão, que é o que aconteceu de verdade duas vezes.** Trabalho que
+   morre com o nó **não emite evento nenhum**: não há `[:oban, :job, :exception]`, porque não houve
+   exceção — houve ausência de processo. Telemetria vê o que acontece; ninguém emite evento sobre o
+   que deixou de acontecer.
+
+   O mesmo valeria para qualquer transição feita em SQL por plugin, que emite telemetria de
+   *plugin* e não de job.
 
 O trabalho periódico vê o **estado**, e não o evento. Estado é o que sobrevive a reinício da
-aplicação, a plugin que muda linha por SQL, e a handler que ninguém registrou.
+aplicação, a nó que morre sem avisar, a plugin que muda linha por SQL, e a handler que ninguém
+registrou.
+
+**É a diferença entre perguntar "o que aconteceu?" e "como as coisas estão?"** — e o defeito desta
+issue é justamente algo que **não** aconteceu: ninguém encerrou o registro.
 
 **Por que 5 minutos**: é o atraso máximo aceitável entre a coleta morrer e a ferramenta voltar a
 aceitar coleta. Menor que isso gasta consulta sem ganho; a tela cobre a pressa de quem está olhando.
