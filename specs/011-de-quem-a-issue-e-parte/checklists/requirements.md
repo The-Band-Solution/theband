@@ -47,23 +47,38 @@ inventei quatro estados para um símbolo. A diferença: cada requisito acima tem
 o exige. Sem FR-003, doze linhas ficariam erradas; sem FR-005, 293 esconderiam um sinal que a
 plataforma já produz.
 
-## O defeito que a medida achou fora da feature
+## Os dois defeitos que a medida achou fora da feature
 
-`fetch_parent/2` — usada no detalhe da issue — tem `limit: 1` **sem `order_by`**. Para as **36** issues
-com mais de um pai, ela devolve um pai arbitrário, e o resultado pode mudar entre execuções.
+**1. `fetch_parent/2` com `limit: 1` sem `order_by`.** Usada no detalhe da issue. Para as **36** issues
+com mais de um pai, devolve um pai arbitrário, e o resultado pode mudar entre execuções.
 
 É a família da **L20**: estado derivado do "um" precisa de desempate determinístico. A lista herdaria o
 defeito se reusasse a função como está, e FR-009 existe por causa disso.
+
+**2. Filha promovida a defeito não aparece no detalhe do pai.** `list_composition/2` filtra épico e
+user story, `list_attendance/2` filtra tarefa, e `list_unpromoted_parts/2` filtra quem **não tem**
+conceito. Defeito não cai em nenhuma: **33 vínculos** invisíveis na tela do pai, sem erro nenhum.
+
+É a família do **sucesso silencioso**. Achado ao decidir a FR-004b, e é a razão de a coluna ter um
+quarto caso em vez de três.
+
+**As duas vão para o backlog com número.** Nenhuma das duas é corrigida nesta feature: as duas são de
+outra tela.
 
 ## Notes
 
 Nenhum item incompleto.
 
-**Medido antes de escrever**, com a promoção **vigente** de cada issue: 4 529 issues, **1 666 com
-pai**, 2 863 sem. E as duplas: 1 136 tarefa sob user story, 293 tarefa sob épico, 178 user story sob
-épico, 21 defeito sob épico, 14 épico sob épico, 7 defeito sob user story, 7 tarefa sob defeito, 5 user
-story sob user story, 5 defeito sob defeito.
+**Medido antes de escrever**, com a promoção **vigente** de cada issue: 4 529 issues vigentes,
+**1 630 com pai**, **2 899 sem**, e **1 666 vínculos**. As duplas: 1 136 tarefa sob user story, 293
+tarefa sob épico, 178 user story sob épico, 21 defeito sob épico, 14 épico sob épico, 7 defeito sob
+user story, 7 tarefa sob defeito, 5 user story sob user story, 5 defeito sob defeito.
 
 **A soma fecha em 1 666 exatamente** — e foi isso que provou que o "545 sem conceito" da primeira
-medida era artefato de juntar o histórico de promoções em vez da vigente. É a L20 aparecendo antes de
-qualquer linha de código.
+medida era artefato de juntar o histórico de promoções em vez da vigente.
+
+**E a primeira versão desta spec errou aqui**: escreveu "1 666 issues com pai" e derivou 2 863 como
+complemento. 1 666 é a contagem de **vínculos**; as issues são **1 630**, e a diferença de 36 são
+exatamente as issues com mais de um pai. Corrigido antes do plano, e registrado porque é a **L30**
+cometida dentro do documento que existe para medir — duas grandezas com nomes parecidos, somadas sem
+conferir contra a origem.

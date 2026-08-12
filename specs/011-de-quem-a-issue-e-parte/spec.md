@@ -19,22 +19,37 @@
 | | |
 |---|---:|
 | issues vigentes | 4 529 |
-| **com pai** | **1 666** |
-| sem pai | 2 863 |
+| **com pai** | **1 630** |
+| sem pai | 2 899 |
+| **vínculos** | **1 666** |
 
-E as duplas de conceito — pai e filha —, que é o que decide o desenho:
+**Issue e vínculo não são a mesma contagem, e a diferença é exatamente 36**: as 36 issues com mais
+de um pai. A primeira versão desta spec contou vínculos e chamou de issues — o erro da **L30**,
+cometido dentro do documento que existe para medir.
 
-| pai | filha | quantas | a relação é |
+E as duplas de conceito — pai e filha —, que é o que decide o desenho. **A contagem é de
+vínculos**:
+
+| pai | filha | vínculos | a relação é |
 |---|---|---:|---|
 | user story | tarefa | **1 136** | atendimento |
 | **épico** | **tarefa** | **293** | **violação da `sro.rule07`** |
 | épico | user story | 178 | composição |
-| épico | defeito | 21 | composição |
 | épico | épico | 14 | composição |
-| user story | defeito | 7 | — |
-| defeito | tarefa | 7 | atendimento |
 | user story | user story | 5 | composição |
-| defeito | defeito | 5 | — |
+| defeito | tarefa | 7 | atendimento |
+| épico | defeito | 21 | **a ontologia não nomeia** |
+| user story | defeito | 7 | **a ontologia não nomeia** |
+| defeito | defeito | 5 | **a ontologia não nomeia** |
+
+Agrupado pela relação: **1 143** atendimento · **293** violação · **197** composição · **33** que a
+ontologia não nomeia. Soma 1 666.
+
+**Quem decide a relação é o conceito da filha, e a plataforma já decide assim.**
+`list_composition/2` devolve as filhas promovidas a épico ou user story; `list_attendance/2`, as
+promovidas a tarefa. Uma filha promovida a **defeito** não cai em nenhuma das duas — nem na terceira
+lista, que é das filhas **sem** conceito. **São 33 vínculos que o detalhe do pai não mostra hoje.**
+Achado por esta medida, e registrado como dívida vizinha: corrigir a tela do pai é outra feature.
 
 **Três coisas saltam, e nenhuma estava no pedido:**
 
@@ -51,7 +66,7 @@ E as duplas de conceito — pai e filha —, que é o que decide o desenho:
 
 | | |
 |---|---:|
-| issues com **mais de um** pai | **36** |
+| issues com **mais de um** pai vigente | **36** |
 | vínculos cujo pai está em **outro repositório** | **57** |
 
 **A função que já existe erra os 36.** `fetch_parent/2` — usada no detalhe da issue — tem `limit: 1`
@@ -87,7 +102,7 @@ abrir uma por uma.
 A linha diz **o conceito do pai** e **qual das duas relações** é — atendimento ou composição. E
 quando a dupla viola a regra do processo, a linha diz isso.
 
-**Por que é P1**: 293 das 1 666 têm pai que viola a `sro.rule07`. Mostrar esse pai como relação
+**Por que é P1**: 293 dos 1 666 vínculos têm dupla que viola a `sro.rule07`. Mostrar esse pai como relação
 normal apagaria um sinal que a plataforma já produz.
 
 **Teste independente**: uma tarefa sob user story e uma tarefa sob épico aparecem com **textos
@@ -112,7 +127,7 @@ diferentes** na mesma lista.
 
 Trinta e seis issues têm **mais de um** pai. A linha não escolhe um em silêncio.
 
-**Por que é P2**: são 36 de 1 666 — pouco, e é exatamente onde uma escolha silenciosa passa
+**Por que é P2**: são 36 de 1 630 — pouco, e é exatamente onde uma escolha silenciosa passa
 despercebida. E a função que já existe faz essa escolha hoje, sem ordem definida.
 
 **Teste independente**: uma issue com dois pais mostra que há dois, e a mesma lista desenhada duas
@@ -149,10 +164,21 @@ vezes mostra a **mesma** coisa.
 - **FR-001**: A lista de issues do repositório DEVE mostrar, para cada issue com pai, **o número e o
   título** do pai.
 - **FR-002**: Issue **sem** pai DEVE ter isso dito em texto — nunca célula vazia.
+- **FR-002a**: A coluna caracteriza **a relação**, e não há relação quando não há pai. As **2 091**
+  tarefas sem pai NÃO DEVEM receber na coluna o aviso de violação que o painel da mesma tela já dá:
+  `Axioms.rule07/2` trata "tarefa sem pai" como violação, e chamá-lo com pai nulo encheria 2 091 das
+  2 899 células de aviso, afogando as **293** que são o caso interessante. O painel continua sendo
+  onde essa violação é contada e explicada.
 - **FR-003**: A linha DEVE dizer o **conceito do pai**, e NÃO DEVE reduzi-lo a "user story ou épico":
   há 12 issues com pai que é defeito.
 - **FR-004**: A linha DEVE dizer **qual relação** é — **atendimento** ou **composição** —, e as duas
   NÃO DEVEM ser chamadas pelo mesmo nome.
+- **FR-004a**: Quando a rede de ontologias **não nomeia** a relação da dupla, a linha DEVE dizer que o
+  vínculo existe e que a relação não é nomeada — e NÃO DEVE encaixá-la em composição nem em
+  atendimento. São **33** vínculos, todos com filha promovida a defeito.
+- **FR-004b**: Qual relação é DEVE ser decidido pelo **conceito da filha**, que é como a plataforma já
+  decide em `list_composition/2` e `list_attendance/2` — vistas do pai. Decidir de outro jeito faria a
+  mesma relação ter nome diferente conforme a tela.
 - **FR-005**: Quando a dupla de conceitos **viola a `sro.rule07`**, a linha DEVE dizer isso, com
   texto diferente do de uma relação em ordem.
 - **FR-006**: A decisão de qual relação é DEVE usar **o mesmo axioma** que a plataforma já usa —
@@ -167,7 +193,10 @@ vezes mostra a **mesma** coisa.
 - **FR-011**: Vínculo que deixou de ser observado NÃO DEVE aparecer como atual.
 - **FR-012**: O pai DEVE ser navegável — clicar abre o detalhe dele.
 - **FR-013**: Desenhar a lista NÃO DEVE consultar por linha, nem aumentar o número de consultas que a
-  tela faz hoje mais do que **uma**.
+  tela faz hoje mais do que **duas** — e são duas porque são **duas fronteiras**: os pais são de
+  `WorkItems`, e o **nome do repositório** do pai é de `CMPO`. A primeira versão desta spec dizia
+  uma, antes de a fronteira do nome ser notada; é a mesma terceira fronteira que a análise da
+  feature 010 achou.
 - **FR-014**: Cada caso DEVE ser distinguível por **texto**, e não apenas por cor.
 - **FR-015**: A informação DEVE ser legível quando a tabela vira cartão no telefone.
 - **FR-016**: Nenhuma tela DEVE exibir issue de outro tenant, e a consulta a issue de outro tenant
@@ -186,15 +215,21 @@ vezes mostra a **mesma** coisa.
 
 ### Measurable Outcomes
 
-- **SC-001**: As **1 666** issues com pai mostram o pai na própria linha, sem abrir a issue.
-- **SC-002**: As **2 863** sem pai dizem isso em texto, e nenhuma célula fica vazia.
+- **SC-001**: As **1 630** issues com pai mostram o pai na própria linha, sem abrir a issue.
+- **SC-002**: As **2 899** sem pai dizem isso em texto, e nenhuma célula fica vazia.
 - **SC-003**: Uma tarefa sob user story e uma tarefa sob épico têm textos **diferentes** na mesma
   lista — são 1 136 e 293 no dado real.
 - **SC-004**: Nenhuma linha chama de "user story ou épico" um pai que é **defeito** — são 12.
-- **SC-005**: As **36** issues com mais de um pai dizem que há mais de um.
+- **SC-004a**: Nenhuma das **2 091** tarefas sem pai recebe aviso de violação **na coluna**, e o
+  painel que conta essa violação continua na tela.
+- **SC-004b**: Os **33** vínculos com filha promovida a defeito aparecem dizendo que a relação não é
+  nomeada — e nenhum deles é chamado de composição ou de atendimento.
+- **SC-005**: As **36** issues com mais de um pai dizem que há mais de um — e a contagem
+  considera só o vínculo **vigente**.
 - **SC-006**: A mesma lista desenhada duas vezes produz **exatamente** o mesmo resultado.
 - **SC-007**: Os **57** vínculos com pai em outro repositório mostram de qual repositório ele é.
-- **SC-008**: Desenhar a lista acrescenta **no máximo uma** consulta ao que a tela já faz.
+- **SC-008**: Desenhar a lista acrescenta **no máximo duas** consultas ao que a tela já faz, e o
+  número **não cresce** com o tamanho da página.
 - **SC-009**: Os casos continuam distinguíveis com a cor removida.
 - **SC-010**: A informação é legível em 360 px.
 - **SC-011**: Um tenant não alcança issue de outro, e a mensagem não confirma existência.
