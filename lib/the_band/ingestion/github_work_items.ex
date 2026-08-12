@@ -41,6 +41,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   alias TheBand.Ingestion
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Mapping
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
@@ -70,7 +71,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
          {:ok, repositorios} <- coletar_repositorios(ctx, organization) do
       resultado = Enum.map(repositorios, &coletar_issues(ctx, &1))
 
-      promover(ctx)
+      promover(ctx, organization)
 
       {:ok,
        %{
@@ -301,9 +302,16 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # ---------------------------------------------------------------------- promoção
 
   # Por último, porque a classificação épico/atômica depende dos vínculos já gravados.
-  defp promover(ctx) do
+  defp promover(ctx, organization) do
     issues = WorkItems.list_issues(ctx.tenant, limit: 100_000)
     tipos_das_partes = tipos_das_partes(ctx, issues)
+
+    # As regras da organização vêm **uma vez**, e não por issue: 4471 issues fariam 4471
+    # consultas para responder a mesma pergunta.
+    #
+    # Sem elas aqui, a reobservação apagaria a promoção que a regra produziu: a coleta
+    # regravaria "não promovida" sobre o que a pessoa configurou (FR-028).
+    regras = Mapping.active_rules(ctx.tenant, organization.id)
 
     Ingestion.checkpoint_page(ctx.sync, "promocao", nil, length(issues))
     Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "promocao"})
@@ -313,9 +321,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         WorkItems.decide(
           %{
             issue_type: issue.issue_type,
+            title: issue.title,
             sub_issue_types: Map.get(tipos_das_partes, issue.id, [])
           },
-          tenant_rule_id: @tenant_rule
+          tenant_rule_id: @tenant_rule,
+          organization_rules: regras
         )
 
       WorkItems.record_promotion(ctx.tenant, %{
@@ -326,7 +336,10 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         skip_reason: decisao.skip_reason,
         skip_detail: decisao.skip_detail,
         rule_id: decisao.rule_id,
-        rule_version: decisao.rule_version
+        rule_version: decisao.rule_version,
+        evidence_source: decisao.evidence_source,
+        confidence: decisao.confidence,
+        mapping_rule_id: decisao.mapping_rule_id
       })
     end
   end

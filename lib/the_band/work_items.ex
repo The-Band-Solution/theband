@@ -53,6 +53,7 @@ defmodule TheBand.WorkItems do
   defdelegate count_refused(tenant, opts \\ []), to: Queries
   defdelegate fetch_issue(tenant, id), to: Queries
   defdelegate promotion_history(tenant, collected_issue_id), to: Queries
+  defdelegate current_promotions(tenant, issue_ids), to: Queries
   defdelegate list_composition(tenant, collected_issue_id), to: Queries
   defdelegate list_attendance(tenant, collected_issue_id), to: Queries
   defdelegate list_unpromoted_parts(tenant, collected_issue_id), to: Queries

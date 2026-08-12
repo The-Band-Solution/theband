@@ -291,6 +291,29 @@ defmodule TheBand.WorkItems.Queries do
   end
 
   @doc """
+  As promoções vigentes de um conjunto de issues, para comparar em lote.
+
+  Existe para o recálculo da feature 005 poder gravar **só o que mudou**: sem ela, seriam
+  4471 consultas de uma linha para responder "o que já estava decidido".
+  """
+  @spec current_promotions(Tenant.t(), [Ecto.UUID.t()]) :: [map()]
+  def current_promotions(_tenant, []), do: []
+
+  def current_promotions(%Tenant{id: tenant_id}, issue_ids) do
+    Repo.all(
+      from p in subquery(promocoes_vigentes(tenant_id)),
+        where: p.collected_issue_id in ^issue_ids,
+        select: %{
+          collected_issue_id: p.collected_issue_id,
+          derived_concept: p.derived_concept,
+          skip_reason: p.skip_reason,
+          evidence_source: p.evidence_source,
+          mapping_rule_id: p.mapping_rule_id
+        }
+    )
+  end
+
+  @doc """
   As promoções da issue em ordem cronológica, a última marcada como vigente.
 
   A ordem é por `inserted_at` em microssegundo — a L20 aplicada: duas promoções do mesmo

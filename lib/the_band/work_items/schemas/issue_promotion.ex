@@ -38,6 +38,17 @@ defmodule TheBand.WorkItems.Schemas.IssuePromotion do
     field :rule_id, :string
     field :rule_version, :integer
 
+    # De onde veio a evidência, e com que confiança (feature 005).
+    #
+    # Nulos nas promoções decididas antes daquela feature: preencher retroativamente
+    # afirmaria que alguém verificou de onde cada uma veio, e ninguém verificou.
+    #
+    # `confidence` é NÍVEL — `high` para tipo declarado, `medium` para inferência de
+    # título. Um número seria inventado, e viraria meta.
+    field :evidence_source, :string
+    field :confidence, :string
+    field :mapping_rule_id, :binary_id
+
     field :divergence_reason, :string
     field :skip_reason, :string
     field :skip_detail, :string
@@ -62,6 +73,9 @@ defmodule TheBand.WorkItems.Schemas.IssuePromotion do
       :target_id,
       :rule_id,
       :rule_version,
+      :evidence_source,
+      :confidence,
+      :mapping_rule_id,
       :divergence_reason,
       :skip_reason,
       :skip_detail,
