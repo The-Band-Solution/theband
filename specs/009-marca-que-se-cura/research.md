@@ -167,9 +167,18 @@ página. Se falhar, é uma consulta perdida; se alcançar, é a coleta que devia
 E a distribuição pesa a favor: **33 dos 39 têm zero issues na origem**, então a consulta que os
 alcança devolve uma página vazia e termina. Só 6 têm issues, e desses, 2 concentram 879.
 
-**O custo real por coleta**: até 39 consultas a mais, num orçamento de 5 000 pontos por hora que a
-coleta inteira já consome com 121 repositórios. É **menos de um terço** do que a coleta já faz, e o
-limite de taxa tem pausa própria — `pause_needed?/1`, com margem de duas vezes o custo.
+**A limitação desta medida, e ela importa**: os números foram medidos com a credencial de quem
+conferiu, não com a credencial da plataforma. Se a credencial da plataforma **não alcança** algum
+desses repositórios, a consulta não devolve página vazia — ela **falha** com "não encontrado", que é
+permanente. O repositório é remarcado a cada coleta, ao custo de **uma** consulta.
+
+Isso é aceito e não muda o desenho: uma consulta por coleta é o preço de não desistir, e a data
+preservada dirá que o problema é crônico. Mas o custo estimado acima é **piso**, não teto.
+
+**O custo real por coleta, medido na origem**: `cost = 1` por página de issues, com limite de
+**5 000 pontos por hora**. Cento e vinte e um repositórios mais 39 tentativas dão **160 pontos** — e
+a pausa dispara em `remaining < cost * 2`, ou seja abaixo de 2. **Não há risco de orçamento**, e a
+medida está aqui porque a suspeita era razoável.
 
 **O que fica pior**: uma organização com muitos repositórios permanentemente apagados na origem
 pagaria consulta por cada um, para sempre. Aceito, e o critério de revisão é claro: se isso

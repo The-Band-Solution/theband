@@ -139,6 +139,9 @@ respondeu**.
 3. **Repositório que oscila**: alcança numa coleta, falha na seguinte, alcança na terceira. A data
    de início da marca precisa significar algo em cada ciclo.
 4. **Limpar a marca apaga a informação de que houve problema.**
+4a. **Motivo mais longo que a coluna aceita.** O texto vem da origem, e o maior gravado hoje tem
+   181 caracteres num limite de 255 — 27 de folga, num campo que a feature passa a escrever a cada
+   coleta que falhar.
 5. **Repositório excluído E inacessível.** As duas marcas coexistem hoje; a exclusão vence.
 
 ---
@@ -173,6 +176,12 @@ respondeu**.
   outro tenant DEVE responder **não encontrado**.
 - **FR-014**: O relatório da coleta DEVE dizer **quantos repositórios não foram alcançados** na
   execução — um número que hoje não existe.
+- **FR-014a**: Esse número DEVE ser correto **mesmo se a execução for interrompida**. Registrá-lo
+  só no fim faria uma coleta interrompida ficar com zero — e zero ali **afirma** que tudo foi
+  alcançado.
+- **FR-015**: O motivo da falha DEVE ser gravado **qualquer que seja o tamanho do texto que a
+  origem devolva**, sem perder a informação essencial e **sem interromper a coleta**. O texto vem
+  de terceiro e não tem tamanho garantido.
 
 ### Key Entities
 
@@ -187,8 +196,12 @@ respondeu**.
 
 ### Measurable Outcomes
 
-- **SC-001**: Depois de **uma** coleta com a origem respondendo, **zero** dos 39 repositórios
-  permanece marcado — hoje são 39 depois de duas coletas.
+- **SC-001**: Depois de **uma** coleta, **nenhum repositório que a origem alcança** permanece
+  marcado — hoje são 39 depois de duas coletas, e nenhuma limpou nada.
+
+  A formulação anterior dizia "zero dos 39", e era **inverificável**: se algum dos 39 estiver
+  inacessível porque a credencial não o alcança, ele volta a ser marcado — corretamente —, e o
+  critério reprovaria por estar certo.
 - **SC-002**: As **899** issues dos repositórios hoje marcados voltam a ser alcançadas, e
   `leds-conectafapes-prestacao-de-contas` passa a ter as 11 da origem.
 - **SC-003**: A resposta real de falha interna gravada no banco **não** marca o repositório —
@@ -199,6 +212,10 @@ respondeu**.
 - **SC-006**: Repositório excluído pelo tenant não é tentado — nenhuma requisição é feita por ele.
 - **SC-007**: A data de início da marca **não muda** entre duas falhas consecutivas.
 - **SC-008**: A lista diz desde quando e por quê, e o estado é legível com a cor removida.
+- **SC-009a**: Uma coleta **interrompida** no meio da fase de repositórios registra o número de não
+  alcançados **até ali**, e não zero.
+- **SC-009b**: Um motivo com **500 caracteres** é gravado sem interromper a coleta, e a lista o
+  exibe sem dominar a linha.
 - **SC-009**: Nenhuma issue, checkpoint ou payload é removido ao limpar a marca — a contagem antes
   e depois é a mesma, mais o que a origem passou a ter.
 - **SC-010**: Um tenant não alcança repositório de outro, e a mensagem não confirma existência.

@@ -27,7 +27,8 @@ não muda porque ele já dizia o certo — era a implementação que discordava.
 ## `TheBand.Ontology.SEON.CMPO.mark_inaccessible(tenant, observed_repository_id, reason)`
 
 **Comportamento novo**: a data é gravada **na primeira** falha e **preservada** nas seguintes. O
-motivo é sempre atualizado.
+motivo é sempre atualizado, e **truncado na borda** antes de chegar aqui — a coluna passa a ser
+`text`, e deixa de ser a defesa contra texto longo.
 
 | Chamada | `inaccessible_since` | `inaccessible_reason` |
 |---|---|---|
@@ -67,7 +68,9 @@ classificar melhor. Marcar de menos deixaria repositório apagado sendo consulta
 %{organization_id: _, repositories: _, issues: _, unreachable: non_neg_integer()}
 ```
 
-E o registro de sincronização recebe o mesmo número em `repositories_unreachable`.
+E o registro de sincronização recebe o mesmo número em `repositories_unreachable`, **incrementado a
+cada repositório que falha** — não no fim da fase. Uma coleta interrompida antes do fim ficaria com
+zero, e zero ali afirma que tudo foi alcançado.
 
 **Zero é um fato aqui**, e não ausência: a coleta que alcançou todos não alcançou zero. O que era
 ausência é o estado de hoje — a plataforma não sabendo quantos deixou de alcançar, com 39 caídos e a

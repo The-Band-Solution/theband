@@ -117,7 +117,22 @@ a plataforma decidiu olhar.
 — o defeito da L32 esperando acontecer. Mitigação: o teste de uma coleta em que tudo falha exige o
 número igual à contagem de repositórios.
 
-### P2 — A cláusula de erro de GraphQL em `transient?/1`
+### P2 — `inaccessible_reason` sem limite arbitrário
+
+**Qual problema concreto resolve?** A coluna é `varchar(255)`, o maior motivo gravado hoje tem **181**
+caracteres, e o motivo da falha interna dá **~228** com o prefixo. Sem validação no changeset, um
+texto maior vai ao banco e **levanta** — e o tratamento de erro da coleta só cobre changeset
+inválido, então a fase cai.
+
+**O problema existe agora?** A folga é de **27 caracteres**, num texto que a origem controla e que
+carrega identificador de incidente de tamanho variável. E a feature multiplica a frequência de
+escrita.
+
+**O que fica pior?** `text` aceita qualquer coisa, inclusive um payload inteiro por engano.
+Mitigação: a truncagem acontece na **borda**, onde a mensagem é montada, e a coluna deixa de ser a
+defesa — ela nunca deveria ter sido, e é o que a L05 concluiu.
+
+### P3 — A cláusula de erro de GraphQL em `transient?/1`
 
 **Qual problema concreto resolve?** Falha interna da origem — HTTP 200 com erro no corpo — é
 classificada como permanente, e criou uma marca no mesmo dia em que a correção anterior entrou.
@@ -171,10 +186,19 @@ priv/repo/migrations/*_add_repositories_unreachable.exs
 
 ## Fases, e por que esta ordem
 
-### F1 — A natureza do erro
+### F1 — A natureza do erro, e a coluna que aguenta o motivo
 
-`transient?/1` julga erro de GraphQL. **Primeiro porque é o que impede marcas novas erradas** — e
-sem isso a cura de F2 ficaria limpando marcas que a própria coleta recria.
+`transient?/1` julga erro de GraphQL, e `inaccessible_reason` deixa de ter limite arbitrário.
+
+**Primeiro porque para de sangrar**: enquanto a classificação estiver errada, marcas novas nascem
+erradas. E porque a feature faz a plataforma **escrever o motivo com muito mais frequência** — a
+cada coleta que falhar, em vez de uma vez —, então o limite de 255 caracteres passa a ser exercitado.
+
+**A ordem não é dependência técnica, e a versão anterior deste plano dizia que era.** Sem F1, um
+repositório marcado por engano é tentado e limpo **na coleta seguinte**: não existe "a cura limpando
+o que a coleta recria na mesma execução". As duas fases são necessárias, e poderiam ir em paralelo —
+F1 vem primeiro porque marca nova errada é dano novo, e curar sem parar de sangrar é trabalho
+repetido.
 
 ### F2 — A cura
 
@@ -199,6 +223,8 @@ medida.
 | repositório apagado consultado para sempre | `NOT_FOUND` é permanente, e o custo medido é uma consulta por coleta |
 | zero em `repositories_unreachable` afirmar que tudo foi alcançado | teste com falha total exige o número igual à contagem de repositórios |
 | a classificação depender de texto de terceiro | teste com o payload real; e a cura torna o erro reversível |
+| **motivo maior que a coluna derrubar a coleta** | coluna vira `text`, e a truncagem fica na borda — L05 |
+| **coleta interrompida deixar o número em zero** | o número é incrementado **a cada** falha, não no fim — a mesma regra do checkpoint |
 | a célula de estado crescer na tabela | data curta, motivo em fonte reduzida — o mesmo tratamento da organização na linha da issue |
 | exclusão ser desfeita por engano | excluído **nunca** é tentado; teste exige zero requisições por ele |
 
@@ -216,7 +242,7 @@ medida.
 
 ## Reavaliação da constituição, pós-desenho
 
-Dez princípios: oito conformes, dois não aplicáveis (IV e IX). **Dois** padrões introduzidos, sete
+Dez princípios: oito conformes, dois não aplicáveis (IV e IX). **Três** padrões introduzidos, sete
 recusados.
 
 O princípio II é o que organiza a feature: a natureza do erro é julgada **na borda**, e o domínio só

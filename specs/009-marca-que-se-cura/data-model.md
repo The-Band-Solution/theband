@@ -1,7 +1,7 @@
 # Modelo de dados — Feature 009
 
-**Uma coluna nova, e duas semânticas corrigidas.** Nenhuma tabela nova, nenhuma removida, nenhum
-estado novo.
+**Uma coluna nova, um tipo corrigido e duas semânticas corrigidas.** Nenhuma tabela nova, nenhuma
+removida, nenhum estado novo.
 
 ---
 
@@ -35,6 +35,33 @@ O mecanismo de "pulado" incrementa `records_collected` junto:
 Trinta e nove repositórios não alcançados entrariam como **39 registros coletados**. Misturar
 unidade num contador é como um número certo começa a mentir — e este projeto já pagou por isso,
 quando a contagem por execução somava o tenant inteiro.
+
+### O número é escrito a cada falha, não no fim
+
+Se ele fosse gravado ao terminar a fase, uma coleta **interrompida** ficaria com **zero** — e zero
+ali afirma que tudo foi alcançado. É a mesma regra que o checkpoint já segue: registrar **depois de
+processar**, e por item, nunca no fim de tudo.
+
+---
+
+## `observed_repositories.inaccessible_reason` — de `varchar(255)` para `text`
+
+| Antes | Depois |
+|---|---|
+| `character varying(255)` | `text` |
+
+**Medido**: o maior motivo gravado hoje tem **181** caracteres. O motivo da falha interna da origem,
+com o prefixo que a plataforma acrescenta, dá **~228** — **27 de folga**, num texto que a origem
+controla e que carrega um identificador de incidente de tamanho variável.
+
+**Sem validação de tamanho no changeset, o valor longo vai ao banco e levanta** — e o tratamento de
+erro da coleta cobre changeset inválido, não exceção do driver. A fase cairia.
+
+É a **L05** literal: `varchar(255)` em coluna de diagnóstico troca o erro real por um erro de banco.
+A lição concluiu que coluna de diagnóstico não tem limite arbitrário, e é o que esta migração faz.
+
+**A truncagem continua existindo, e na borda** — onde a mensagem é montada. A coluna deixa de ser a
+defesa, porque ela nunca deveria ter sido.
 
 ---
 

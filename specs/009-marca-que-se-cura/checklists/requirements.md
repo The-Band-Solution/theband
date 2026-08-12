@@ -53,9 +53,31 @@ que a plataforma decidiu olhar. É a L29 na parte que a correção anterior não
 tentado para sempre. A alternativa é desistir, que é exatamente o defeito desta feature — então o
 ruído fica, e se incomodar o critério será a **natureza do erro**, nunca o tempo.
 
+## O que a análise achou depois, e uma correção é crítica
+
+`/speckit-analyze` rodou antes do código. **Quatro das sete suspeitas procederam**, e a mais grave
+não tinha nada a ver com a lógica da feature:
+
+| # | O que estava errado | O que passou a valer |
+|---|---|---|
+| **A1** | `inaccessible_reason` é **`varchar(255)`**, o maior motivo gravado tem 181 e o da falha interna dá ~228 — **27 de folga**. Sem `validate_length`, o valor longo vai ao banco e **levanta**, e o tratamento de erro da coleta cobre changeset inválido, não exceção do driver | coluna vira `text`, truncagem na borda — FR-015, T001. **É a L05 literal**, e a feature multiplicava a frequência de escrita |
+| A2 | SC-001 dizia "zero dos 39", o que é **inverificável**: um repositório inacessível porque a credencial não alcança volta a ser marcado, corretamente, e o critério reprovaria por estar certo | "nenhum repositório **que a origem alcança** permanece marcado" |
+| A3 | o número de não alcançados era gravado **no fim** da fase; coleta interrompida ficaria com zero, afirmando que tudo foi alcançado | incremento **a cada** falha — FR-014a, SC-009a |
+| A4 | a justificativa da ordem F1→F2 era **falsa**: sem F1, o repositório marcado por engano é tentado e limpo na coleta seguinte | a ordem é preferência declarada — F1 para de sangrar, F2 cura o que existe |
+| A5 | "33 dos 39 têm zero issues" foi medido com a credencial de quem conferiu, não com a da plataforma | limitação declarada em R6, e o custo estimado é **piso**, não teto |
+| A6 | o motivo ia para a tela sem limite | truncado na exibição, com o texto completo no `title` — T009 |
+
+**Três suspeitas não procederam, e as três foram medidas** em vez de aceitas: o orçamento da origem
+(`cost = 1` por página, 160 pontos de 5 000 — sem risco), outro consumidor de `list_collectable/2`
+(**um** de produção, zero em teste), e `clear_inaccessible/2` deixar o motivo para trás (ele limpa os
+**dois** campos).
+
 ## Notes
 
 Nenhum item incompleto.
+
+**Dezesseis requisitos, doze critérios.** Cresceu em relação à primeira versão — 14 e 10 —, e o
+acréscimo veio todo da análise.
 
 **O peso desta spec vem de medida.** 39 repositórios marcados, 899 issues dentro, duas coletas
 concluídas depois da última marca e zero limpezas. E o custo já começou:

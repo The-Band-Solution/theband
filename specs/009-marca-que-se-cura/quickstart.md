@@ -132,6 +132,28 @@ observados — hoje 121 na `leds-conectafapes`. É o SC-005.
 **O que NÃO pode**: `completed` com `repositories_unreachable = 0` numa coleta em que nada foi
 alcançado. Zero ali **afirma** que tudo foi alcançado, e é o defeito da L32 nesta feature.
 
+**E o caso que a análise acrescentou**: uma coleta **interrompida** no meio da fase precisa gravar o
+que falhou **até ali**. Se o número só fosse escrito no fim, a interrupção deixaria zero — e a
+interrupção é justamente quando alguém vai olhar o registro para entender o que aconteceu.
+
+---
+
+## V9 — Motivo longo não derruba a coleta
+
+```bash
+mix test test/the_band/ontology/seon/cmpo/inaccessible_test.exs -o "longo"
+```
+
+**Esperado**: um motivo de **500 caracteres** é gravado sem levantar. A coluna é `text`, e a
+truncagem vive na borda — onde a mensagem é montada.
+
+**Falha típica**, e é a L05: `varchar(255)` com o valor longo indo ao banco. Sem `validate_length`,
+o driver levanta, e o tratamento de erro da coleta cobre changeset inválido — não exceção. A fase
+cai, e o erro que aparece no log é do banco, não da origem.
+
+**Medido**: o maior motivo gravado hoje tem **181** caracteres; o da falha interna dá **~228**. São
+27 de folga, e esta feature escreve esse campo a cada coleta que falhar.
+
 ---
 
 ## Os dez gates
