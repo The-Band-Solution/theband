@@ -61,8 +61,8 @@ atômica.
 
 | # | User story | Épico | Issue | Priority | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| US1 | Achar onde há trabalho, sem ler número | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#186](https://github.com/The-Band-Solution/theband/issues/186) | P1 | 17 | em revisão |
-| US2 | Ir do repositório para as issues dele | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#187](https://github.com/The-Band-Solution/theband/issues/187) | P1 | 1 | em revisão |
+| US1 | Achar onde há trabalho, sem ler número | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#186](https://github.com/The-Band-Solution/theband/issues/186) | P1 | 17 | feito |
+| US2 | Ir do repositório para as issues dele | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#187](https://github.com/The-Band-Solution/theband/issues/187) | P1 | 1 | feito |
 
 `Priority` é a *importance* da SRO — valor para a organização. `Estimate` é a *complexity* —
 dificuldade para o time. Campo em branco significa **desconhecido**, nunca zero.
@@ -79,13 +79,13 @@ que a própria feature 006 passou a mostrar.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Contar issues por repositório numa consulta | US1 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | 3 | F1 | em revisão |
-| T002 | Trocar as 135 consultas por uma | US1 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | 2 | F1 | em revisão |
-| T003 | Registrar quando as issues foram coletadas | US1 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | 2 | F2 | em revisão |
-| T004 | Gravar a data no fim da fase de issues | US1 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | 3 | F2 | em revisão |
-| T005 | Exibir a marca com três canais | US1 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | 5 | F3 | em revisão |
-| T006 | Dizer que houve trabalho e não há vigente | US1 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | 2 | F3 | em revisão |
-| T007 | Manter todo repositório clicável | US2 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | 1 | F3 | em revisão |
+| T001 | Contar issues por repositório numa consulta | US1 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | 3 | F1 | feito |
+| T002 | Trocar as 135 consultas por uma | US1 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | 2 | F1 | feito |
+| T003 | Registrar quando as issues foram coletadas | US1 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | 2 | F2 | feito |
+| T004 | Gravar a data no fim da fase de issues | US1 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | 3 | F2 | feito |
+| T005 | Exibir a marca com três canais | US1 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | 5 | F3 | feito |
+| T006 | Dizer que houve trabalho e não há vigente | US1 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | 2 | F3 | feito |
+| T007 | Manter todo repositório clicável | US2 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | 1 | F3 | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende. Duas fontes divergiriam, e a
 divergência não teria como ser resolvida.
@@ -152,11 +152,12 @@ O número da branch difere do diretório da spec de propósito, e está explicad
 
 ## Definition of Done do sprint
 
-- [ ] `mix gates` verde pelo **código de saída** — dez gates
-- [ ] base de conhecimento válida, com o validador Python de fato executado
-- [ ] V1 a V9 do [quickstart](../../specs/007-marca-de-issues/quickstart.md) verificados
-- [ ] V9 medido **no dado real**: nenhum dos 41 repositórios com issues exibe `no collection recorded`
-- [ ] as sete issues encerradas ou repriorizadas com justificativa
-- [ ] PR com revisor pedido e **conferido** por `requested_reviewers` (L14), ligado ao projeto
-- [ ] `sprint-review.md` escrito, separando feito de não feito
-- [ ] `licoes-aprendidas.md` atualizado
+- [x] `mix gates` verde pelo **código de saída** — dez gates, em `main` (`277d159`)
+- [x] base de conhecimento válida, com o validador Python de fato executado — 96 artefatos
+- [x] V1 a V9 verificados, **menos V7** (360 px): SC-009 declarado **não verificado** na aceitação
+- [x] V9 medido **no dado real**: os 41 aparecem com trabalho; o maior tem 2 514 issues e nenhuma data
+- [x] as sete issues encerradas
+- [x] PR [#195](https://github.com/The-Band-Solution/theband/pull/195) com revisor `the-band` **conferido** por `requested_reviewers`, ligado ao projeto
+- [x] [`sprint-review.md`](sprint-review.md) escrito, separando feito de não feito
+- [x] `licoes-aprendidas.md` atualizado — L32 e L33
+- [x] [`aceitacao.md`](../../specs/007-marca-de-issues/aceitacao.md) — 11 SC avaliados um a um

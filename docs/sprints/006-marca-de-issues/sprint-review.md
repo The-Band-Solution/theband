@@ -11,23 +11,28 @@
 |---|---:|---:|
 | User stories | 2 | 2 |
 | Tarefas | 7 | 7 |
-| Entregáveis aceitos | 7 | **a aceitação depende da incorporação** |
+| Entregáveis aceitos | 7 | **7** |
 
-**Nada está `Done`, e é de propósito.** O código está implementado e testado; o PR aguarda
-revisão independente. Marcar `Done` antes do merge é declarar sucesso sem evidência — foi o erro
-corrigido no sprint 005, e não se repete aqui.
+**Incorporado em 2026-08-12T12:21:51Z**, PR [#195](https://github.com/The-Band-Solution/theband/pull/195),
+depois do #184 — a ordem importava, porque a marca aplica o design system que vive lá.
+
+`main` em `277d159` com **10 gates verdes por código de saída**. A avaliação critério por
+critério está em [aceitacao.md](../../specs/007-marca-de-issues/aceitacao.md): **10 dos 11 SC
+atendidos**, e o restante — SC-009, legibilidade em 360 px — está declarado como **não
+verificado**, porque a estrutura existe e ninguém olhou a tela. Declarar atendido seria declarar
+sucesso sem evidência.
 
 ## O que foi feito
 
 | Tarefa | Issue | Entregável | Estado |
 |---|---|---|---|
-| T001 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | `count_collected_by_repository/2` — consulta agrupada de issues vigentes, com 5 testes | em revisão |
-| T002 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | `por_repositorio/2` faz **1** consulta em vez de 135 | em revisão |
-| T003 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | migração `issues_collected_at`, campo no schema e em `list_observed/2`; round trip conferido | em revisão |
-| T004 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | `CMPO.mark_issues_collected/3`, gravada no mesmo ponto do checkpoint, com 2 testes de ingestão | em revisão |
-| T005 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | a marca com três canais, contagem decidindo primeiro | em revisão |
-| T006 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | `no current work` — houve trabalho e não há vigente | em revisão |
-| T007 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | os 135 seguem clicáveis, inclusive os 94 sem trabalho | em revisão |
+| T001 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | `count_collected_by_repository/2` — consulta agrupada de issues vigentes, com 5 testes | aceito |
+| T002 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | `por_repositorio/2` faz **1** consulta em vez de 135 | aceito |
+| T003 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | migração `issues_collected_at`, campo no schema e em `list_observed/2`; round trip conferido | aceito |
+| T004 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | `CMPO.mark_issues_collected/3`, gravada no mesmo ponto do checkpoint, com 2 testes de ingestão | aceito |
+| T005 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | a marca com três canais, contagem decidindo primeiro | aceito |
+| T006 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | `no current work` — houve trabalho e não há vigente | aceito |
+| T007 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | os 135 seguem clicáveis, inclusive os 94 sem trabalho | aceito |
 
 ## O que não foi feito
 
@@ -35,7 +40,7 @@ corrigido no sprint 005, e não se repete aqui.
 |---|---|---|
 | iteration própria do sprint no ProjectV2 | configurar iterations recria as existentes — L11, custou reatribuir 96 itens | product backlog, decisão da pessoa mantenedora |
 | tipos `Epic` e `User Story` na organização | criar tipo altera a configuração da organização | product backlog |
-| verificação visual de V1 e V7 (olho na tela, 360 px) | os três estados estão asseridos no HTML renderizado pelos testes, mas ninguém **olhou** | conferir antes de aceitar |
+| verificação visual de V1 e V7 (olho na tela, 360 px) | os três estados estão asseridos no HTML renderizado, e ninguém **olhou** | pendente — SC-009 registrado como não verificado na aceitação |
 
 ## Duas mudanças de desenho durante a execução, e as duas são declaradas
 
