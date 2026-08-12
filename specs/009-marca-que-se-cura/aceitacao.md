@@ -91,11 +91,11 @@ main limpo: código de saída 1
 redefining @doc attribute previously set at line 395
 ```
 
-O gate compila **incrementalmente**, então não emite aviso de arquivo que não recompilou. E o CI
-cacheia `_build` com chave baseada só em `mix.lock` — herda a mesma cegueira.
+**O mecanismo que eu registrei aqui primeiro estava errado**, e a correção está na L36: o aviso **é**
+emitido, e o gate sai zero porque `execute({:mix, ...})` descartava o retorno de `Mix.Task.run/2` —
+e `mix compile --warnings-as-errors` devolve `{:error, diagnostics}` em vez de levantar.
 
-Registrado em [#229](https://github.com/The-Band-Solution/theband/issues/229), **Bug, P0**. É a L24
-numa forma nova: *caminho que só roda no ambiente limpo não é testado por quem já tem o ambiente*.
+Registrado em [#229](https://github.com/The-Band-Solution/theband/issues/229), **Bug, P0**.
 
 ## Veredito
 

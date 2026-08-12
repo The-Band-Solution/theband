@@ -1,214 +1,103 @@
-# Retomar — estado em 2026-08-11, 16h30
+# Retomar — estado em 2026-08-12, fim do sprint 008
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
 ## Onde o trabalho parou
 
-**Sprint 004 fechado com sucesso.** PR [#138](https://github.com/The-Band-Solution/theband/pull/138)
-verde, revisor `the-band` pedido, 29 issues fechadas, 218 testes, nove gates.
+**Quatro sprints fechados em sequência**, todos com o ciclo Spec Kit completo antes do código:
 
-A plataforma coleta e classifica o trabalho de duas organizações:
-
-```
-135 repositórios · 4455 issues · 4455 promoções vigentes · 1614 vínculos
-```
-
-## Defeito conhecido, e sem caminho pela interface
-
-**Job `discarded` deixa o `sync` em `running` para sempre.** O índice único
-`syncs_one_running_per_tool_index` então bloqueia qualquer coleta nova daquela ferramenta, e
-não existe botão para destravar — só SQL:
-
-```sql
-UPDATE syncs SET status='interrupted', finished_at=now(),
-  error_reason='interrompida: o processo que a executava não existe mais'
-WHERE status='running';
-```
-
-Vai acontecer com qualquer job que esgote as tentativas. As duas correções possíveis: um
-`Oban.Telemetry` handler no evento de descarte, ou marcar como interrompido ao carregar a
-tela todo `sync` `running` cujo job não está mais executando. A segunda é mais simples e não
-depende de o handler estar registrado.
-
-## Feito — a barra com percentual
-
-**Concluída.** O denominador vem da origem: `repositories.totalCount` e `issues.totalCount`,
-guardados em `sync_checkpoints.expected_count`.
-
-```
-████████████████████  100%   208 de 208
-organização 1 │ pessoas │ equipes │ repositórios 14 │ issues 194 │ promoção 4463
-```
-
-Onde a origem não informa total, a barra **não aparece** — a fase mostra contagem e estado.
-
-Hoje a tela `/syncs` mostra **seis fases** com contagem, e não percentual — e o
-comentário no código explica por quê: a paginação é por cursor, e a plataforma não sabe
-quantas páginas existem antes de pedir a última.
-
-**O pedido é percentual, e ele é atendível — com uma decisão sobre o denominador:**
-
-| Denominador possível | O que ele afirma | Custo |
+| Sprint | Feature | Estado |
 |---|---|---|
-| fases concluídas / 6 | progresso do **processo**, não do volume | zero; é o que já existe, expresso em % |
-| `totalCount` da origem | progresso do **volume** | uma consulta a mais por entidade; o GitHub fornece `totalCount` em `issues` e `repositories` |
-| contagem da coleta anterior | estimativa | mente na primeira coleta e quando o volume muda |
+| 005 | 005 regras de mapeamento · 006 detalhe da issue | fechado |
+| 006 | 007 marca de trabalho no repositório | fechado, 10 de 11 critérios |
+| 007 | 008 destravar a sincronização presa | fechado, 14 de 14 |
+| 008 | 009 a marca de inacessível se cura | fechado, 12 de 12 |
 
-A segunda é a honesta e é viável: `issues(first: n) { totalCount }` já vem nas consultas que
-existem em `priv/connectors/github/queries/issues.graphql`. **Guardar o total no checkpoint**
-e dividir dá percentual real por entidade.
+`main` em `26f8a45` — **10 gates verdes por código de saída, 430 testes**.
 
-O que **não** fazer: percentual sobre denominador inventado. É a família da L22 — número que
-parece informação e não é.
-
-## Depois disso, a fila
-
-| # | O que | Estado |
-|---|---|---|
-| 1 | **Percentual na barra** | pedido, interrompido |
-| 2 | **Plano da feature 005** | `research.md` com **sete** decisões; falta `plan.md`, `data-model.md`, `contracts/`, `quickstart.md`. Backlog: épico [#139](https://github.com/The-Band-Solution/theband/issues/139), US [#140](https://github.com/The-Band-Solution/theband/issues/140) a [#143](https://github.com/The-Band-Solution/theband/issues/143) |
-| 3 | **Plano da feature 006** | spec pronta (34 FR), nada do plano |
-| 4 | Sprint 005 | abrir depois dos planos |
-
-### A decisão de ordem entre 005 e 006, e a razão
-
-**005 primeiro.** Ela recalcula sobre payload preservado, **sem nenhuma requisição à
-origem**, e promove até 3440 issues. A 006 exige coletar campos novos das 4455.
-
-## As duas features especificadas
-
-**005 — regras de mapeamento por organização** (45 FR, 17 SC, 4 US)
-Regex e texto simples, prévia antes de gravar, recálculo sem recoleta. O catálogo de padrões
-**já existe** em `priv/knowledge_base/rules/github_issue_pattern_catalog.yaml`, com três
-seções: 3 regras de tipo declarado, 7 padrões de título, e **8 padrões que NÃO são tipo**.
-
-A decisão central do `research.md`: **catálogo em YAML lido no boot, regra da organização no
-banco lida por consulta** — porque regra cadastrada pela tela precisa valer sem restart.
-
-E a tela **vive na sincronização** (FR-050 a FR-052), decidido em 2026-08-11: a lacuna nasce
-da coleta, e quem acabou de sincronizar está a um clique de resolver. Como **componente com
-cabeçalho próprio**, alcançado pela organização — o princípio X não permite misturá-la ao
-relatório de execução.
-
-**006 — detalhe da issue e decomposição** (34 FR, 13 SC, 4 US)
-Corpo, autor, designados, rótulos, estado. E a decomposição com as duas relações
-**separadas**: épico **compõe-se de** user story; user story **é atendida por** tarefa. Somar
-as duas conta esforço duas vezes.
-
-## O que o dado real mostra, e que vale ter na cabeça
+## O que a plataforma sabe hoje
 
 ```
-3403  issues sem tipo na origem     76% — a leds-conectafapes quase não usa tipos
-2911  delas com prefixo no título   [TASK] 1024 · [FEATURE] 111 · [US] 60
-1409  prefixo que É tipo
-1274  prefixo que é ÁREA            [Devops] 340 · [Back-end] 256 · [QA] 97
-  37  tipo declarado desconhecido   Chore 17 · Refactor 16 · Hotfix 4
-  41  tarefas cujo pai é ÉPICO      viola sro.rule07
-   3  tarefas sem pai               viola sro.rule07
+135 repositórios observados · 4521 issues · 3 organizações
+leds-conectafapes: 121 repos, 4280 issues no banco contra 4283 na origem
 ```
 
-**Quase metade dos prefixos não é tipo.** É a razão da US4 da 005 — "não mapear o que não é
-tipo" — e do catálogo trazer os padrões de área **para serem recusados**.
+**A diferença de 3 issues está explicada**: nasceram depois da última coleta, e estão localizadas em
+`conectafapes-project` (1) e `leds-conectafapes-prestacao-de-contas` (2).
 
-## Dívida declarada, com destino
+## O único item aberto do sprint 008, e ele precisa de você
 
-| O quê | Situação |
-|---|---|
-| `connected_tools.status` materializa situação | contra a D7; **não ampliada** — a 004 não criou `sro_user_stories.status` |
-| `refused_links` como previsão | 4 linhas, todas `out_of_scope`, **nenhuma por ciclo**. O critério de reversão do plano continua valendo |
-| RSRO e SYS_SWO sem estereótipo | 15 conceitos. Era 16; a regra da fronteira exigiu **um** |
-| Paridade Elixir/Python | 4 verificações contra 12 |
-| Iteration no Projects v2 | não existe para os sprints 003 e 004. Criar mexe na configuração que causou a L11 |
-| Aprovação de revisão | bloqueada por ferramenta: com uma identidade, o autor não aprova |
-| Reparo do dado da L19 | acontece na próxima coleta real de cada organização |
+**A prova no dado real da feature 009.** Uma coleta com a origem respondendo precisa:
 
-## Como rodar
+1. limpar as **39** marcas de inacessível — o mecanismo está medido no banco: `list_collectable`
+   passou de **96** para **135** repositórios;
+2. trazer `leds-conectafapes-prestacao-de-contas` de 9 para as **11** issues que a origem tem.
+
+**Exige a chave mestra e o token da ferramenta.** Eu não os peço nem os recebo, e por isso o item
+está declarado como pendente em vez de contado como cumprido.
 
 ```bash
-docker compose up -d
-export THE_BAND_MASTER_KEY=$(mix the_band.gen_key)   # a original foi perdida
-mix phx.server                                        # localhost:4000
-mix gates                                             # os nove
+export THE_BAND_MASTER_KEY=...   # no seu terminal, nunca no chat
+mix phx.server                   # e disparar a sincronização em /syncs
 ```
 
-**A chave original do banco de desenvolvimento não existe mais.** O PAT cifrado com ela é
-ilegível; o caminho é encerrar e retomar a observação com token novo, em `/tools`. Ver
-[deployment.md](../deployment.md).
+Depois, a conferência:
 
-**Para enfileirar coleta sem a chave**: `mix run --no-start` sobe só o Repo, e o servidor no
-ar executa o job com a chave dele. Script de exemplo ficou em `/tmp/refazer.exs` desta sessão
-— ele tem a organização **fixa** em `The-Band-Solution`, o que já causou confusão.
+```bash
+docker exec -e PGPASSWORD=postgres the_band_postgres psql -U postgres -d the_band_dev -tAc "
+select count(*) filter (where inaccessible_since is not null) as ainda_marcados
+  from observed_repositories;"
+```
 
-## Onde parou
+## Pull requests abertos
 
-**Sprint 005 aberto** — [backlog](005-mapeamento-e-detalhe/sprint-backlog.md). Escopo
-confirmado: feature 005 **completa**, F1 a F5.
+| PR | O que é | Estado |
+|---|---|---|
+| [#231](https://github.com/The-Band-Solution/theband/pull/231) | o veredito do gate é o código de saída, mais a correção do registro da L36 | `MERGEABLE · CLEAN`, CI verde, aguardando revisão |
 
-| Feature | Estado |
+## O que mudou no processo, e vale ler antes de tocar em gate
+
+**O gate de compilação nunca reprovou por aviso.** `execute({:mix, ...})` descartava o retorno de
+`Mix.Task.run/2`, e `mix compile --warnings-as-errors` devolve `{:error, diagnostics}` em vez de
+levantar. Valia para todo gate `{:mix, ...}` — `credo`, `dialyzer`, os dois validadores.
+
+Corrigido no #231: **veredito é o código de saída**, cada gate em subprocesso. `mix gates` em
+**78,6 s**.
+
+**E eu publiquei um diagnóstico errado antes de isolar a causa.** A primeira versão da L36 dizia que
+a compilação incremental não emitia o aviso — falso. A lição foi reescrita com o mecanismo real, e o
+erro ficou registrado nela: *quando duas medidas verdadeiras parecem se contradizer, o elo entre elas
+é hipótese, não conclusão.*
+
+## Product backlog — o que está por cima
+
+| # | O que é | Prioridade |
+|---|---|---|
+| [#211](https://github.com/The-Band-Solution/theband/issues/211) | página de detalhe da pessoa: equipes, repositórios e issues | P1, **pedida pela pessoa mantenedora** |
+| [#176](https://github.com/The-Band-Solution/theband/issues/176) | criar as iterações que faltam no ProjectV2 | decisão pendente desde o sprint 004 |
+| [#177](https://github.com/The-Band-Solution/theband/issues/177) | validador Elixir à paridade com o Python | |
+| [#178](https://github.com/The-Band-Solution/theband/issues/178) | derivar `connected_tools.status` em vez de materializar | |
+| [#179](https://github.com/The-Band-Solution/theband/issues/179), [#180](https://github.com/The-Band-Solution/theband/issues/180), [#181](https://github.com/The-Band-Solution/theband/issues/181) | comentários e timeline; quadros do Projects v2 | |
+| #81, #82, #98 a #100, #104, #107, #108 | papéis Scrum, quadros, escopo de observação | |
+
+**A #211 é a próxima feature natural**: foi pedida durante o sprint 007, tem as sete armadilhas
+levantadas no corpo da issue, e a primeira delas é a que decide o desenho — *"trabalhou no
+repositório" é derivado, não observado*.
+
+## Duas coisas que ficaram sem olho humano
+
+| Item | Onde |
 |---|---|
-| 006 — detalhe da issue | implementada, ciclo Spec Kit completo, PR [#149](https://github.com/The-Band-Solution/theband/pull/149) **aguardando revisão humana** |
-| 005 — regras de mapeamento | ciclo completo escrito, **nenhuma linha de código**; 25 issues de tarefa criadas (#150 a #174) |
+| a tela em 360 px, com a célula de estado que cresceu | feature 009, T009 |
+| a marca de trabalho em 360 px | feature 007, SC-009 |
 
-**A próxima ação é T001 da feature 005** — issue [#150](https://github.com/The-Band-Solution/theband/issues/150): criar
-`issue_mapping_rules`. Ver [tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
+As duas estão asseridas em HTML e **nenhuma foi olhada**. Asserção em markup não substitui olhar.
 
-As 25 tarefas são as issues **#150 a #174**, cada uma filha da user story que atende. E as
-dívidas e defeitos levantados ao fechar o sprint viraram as issues **#175 a #181**, listadas
-em [docs/backlog](../backlog/README.md) — nenhuma com iteration, todas com o motivo de ainda
-não terem sido feitas.
+## O que continua valendo, e não muda
 
-**Defeito corrigido na aceitação, e a lição**: 480 issues tinham `body` nulo depois de uma
-coleta que as observou — `cast/4` descarta string vazia por padrão, e isso colapsava a
-distinção entre "nunca pedido" e "a origem não tem descrição". A suíte estava verde; o defeito
-só apareceu ao conferir o número **contra a API**. Corrigido, com teste que falha sem a
-correção. **As 480 linhas corrigem-se na próxima coleta** — nenhum reparo retroativo.
-
-## Onde parou — interface em inglês, acessível e mobile-first
-
-Branch **`007-interface-em-ingles`**, empurrada, PR [#184](https://github.com/The-Band-Solution/theband/pull/184) aberto, **10 gates verdes** e 354 testes.
-
-O décimo gate é `assets`, e ele nasceu de um CI vermelho: o teste dos tokens do design system mede o CSS **compilado**, e sem build ele não tinha o que medir. Passava na máquina de quem já tinha buildado — a L24 outra vez.
-
-### O que motivou
-
-Três pedidos que são uma mudança só — plataforma em inglês, WCAG 2.0 com daltonismo, e
-mobile-first — mais o significado do nome, que a pessoa mantenedora forneceu do rodapé da
-tese e que **não estava em lugar nenhum do repositório**. Está agora no `README.md`, seção
-"De onde vem o nome".
-
-### Feito
-
-| peça | onde |
-|---|---|
-| gramática da evidência em CSS | `assets/css/app.css` — sólido, hachurado, tracejado, foco, alvo de toque, movimento |
-| componentes do produto | `lib/the_band_web/ui.ex` — evidence, absent, metric, field, notice, empty, phase |
-| vocabulário em inglês | `lib/the_band_web/concept_label.ex` |
-| layout e navegação | rola no telefone, vira barra em `sm:`; tagline `Orchestrating data into information organisations can act on` |
-| telas | trabalho, detalhe da issue, repositório, sincronização |
-
-### Falta
-
-1. **Componente de regras de mapeamento** (`sync_live/mapping_rules.ex`) — ainda em pt-BR;
-2. **Telas menores**: pessoas, equipes, ferramentas, entrada — pouca prosa, quase mecânico;
-3. **`core_components.ex`** — mensagens de erro de formulário e rótulos genéricos;
-4. **Documentar o design system** em `docs/` e registrá-lo no `AGENTS.md` para ser aplicado
-   por padrão — **pedido explícito, ainda não feito**;
-5. **Spec Kit da feature 007** — a pessoa mantenedora pediu que a mudança passasse pelo
-   ciclo, e a implementação começou antes. É a **L27 acontecendo de novo**, e desta vez
-   ela foi apontada durante, não depois.
-
-### A regra que a tradução seguiu
-
-A **interface** fala inglês; **código, comentários e documentação** continuam em português.
-Frase que vai para a tela é em inglês mesmo nascendo no domínio — `Axioms.explicacao/1`,
-os motivos de divergência de `Routing` e `Decision` —, e cada uma tem comentário dizendo
-isso, para ninguém traduzir de volta por engano.
-
-## Documentos que valem ler antes de mexer
-
-| Documento | Para quê |
-|---|---|
-| [modelo-de-dados.md](../architecture/modelo-de-dados.md) | por que o esquema tem essa forma — ele é **derivado** |
-| [deployment.md](../deployment.md) | as 12 variáveis, e as armadilhas de cada uma |
-| [licoes-aprendidas.md](licoes-aprendidas.md) | 26 lições. As quatro últimas são o mesmo defeito |
-| constituição v1.4.0 | dez princípios; IX e X foram acrescentados hoje |
+- **`mix gates` é a definição única dos dez gates**, e agora o veredito é o código de saída;
+- **nunca se apaga dado** — ausência é marcada, nunca removida;
+- **a chave mestra e o token nunca entram no chat**, nem no repositório;
+- **o ciclo Spec Kit vem antes do código**, e a fase de análise achou defeito de desenho em **três**
+  features seguidas: a ordem de decisão da 007, o resgate por tempo da 008, e a coluna estreita da
+  009.

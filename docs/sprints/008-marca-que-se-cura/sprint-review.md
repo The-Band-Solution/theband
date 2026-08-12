@@ -95,17 +95,33 @@ main limpo: código de saída 1
 redefining @doc attribute previously set at line 395
 ```
 
-O gate compila **incrementalmente**; o CI cacheia `_build` com chave baseada só em `mix.lock`, e
-herda a mesma cegueira. Registrado em
-[#229](https://github.com/The-Band-Solution/theband/issues/229), **Bug, P0**.
+**E o mecanismo que eu publiquei estava errado.** O experimento que o isolou, feito depois, mostrou
+outra coisa: o aviso **é** emitido — três vezes na saída —, e o gate sai **zero** porque
+`execute({:mix, ...})` **descartava o retorno** de `Mix.Task.run/2`. `mix compile
+--warnings-as-errors` não levanta: devolve `{:error, diagnostics}`.
+
+O gate de compilação **nunca reprovou por aviso**, nem local nem no CI. Registrado em
+[#229](https://github.com/The-Band-Solution/theband/issues/229), **Bug, P0**, com o diagnóstico
+corrigido, e a L36 reescrita.
 
 A correção veio junto nesta branch porque sem ela a própria feature não passa nos gates — e está
 declarado no PR.
 
+## O defeito do gate, corrigido depois
+
+O achado do `@doc` órfão levou a uma segunda correção, no
+[PR #231](https://github.com/The-Band-Solution/theband/pull/231): **o gate de compilação nunca
+reprovou por aviso**, porque `execute({:mix, ...})` descartava o retorno de `Mix.Task.run/2` — e isso
+valia para todo gate `{:mix, ...}`.
+
+O veredito passou a ser o **código de saída**, com cada gate em subprocesso. `mix gates` completo em
+**78,6 s**, e **2,46 s** para reprovar com o defeito presente. O CI ficou verde com o gate honesto,
+o que significa que nenhuma dívida invisível estava escondida atrás dele.
+
 ## Lições deste sprint
 
-**L36** — gate que compila incrementalmente não vê aviso em arquivo que não recompilou, e cache de
-CI reproduz a cegueira.
+**L36** — gate que descarta o retorno da task não é gate. E o corolário sobre método: quando duas
+medidas verdadeiras parecem se contradizer, o elo entre elas é **hipótese**, não conclusão.
 
 **L37** — a coluna estreita só cai quando a escrita fica frequente.
 
