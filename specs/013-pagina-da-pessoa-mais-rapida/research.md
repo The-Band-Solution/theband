@@ -11,11 +11,26 @@ desenvolvimento. Nenhum número aqui veio de suspeita.
 | Tela | Tempo (5 medidas) | Consultas | Consulta dominante |
 |---|---:|---:|---|
 | `/people` | 25 ms · variação < 6% | 9 | nenhuma acima de 3 ms |
-| `/people/:id` | **85 ms** · variação < 10% | 13 | **60 ms** numa só |
-| `/work` | **322 ms** · variação < 1% | 15 | quatro acima de 40 ms |
+| `/people/:id` | **0,09 s a 6,12 s** conforme a pessoa | 13 | **6 326 ms** numa só, no pior caso |
+| `/work` | 322 ms · variação < 1% | 15 | quatro acima de 40 ms |
 
-**A tela pedida não é a mais lenta.** A lista de pessoas está boa; o detalhe custa 85 ms, e `/work`
-— que não estava no pedido — custa 322 ms. **A causa é a mesma**, e está no D2.
+**A primeira medida desta pesquisa pegou a exceção.** Medi `vinicius-je` — 85 ms — e concluí que a
+tela custava 85 ms. A pessoa mantenedora apontou uma página de **2 s**, e a medida das oito com mais
+trabalho mostrou o quadro real:
+
+| pessoa | designadas | tempo |
+|---|---:|---:|
+| tadeuaugustovs | 288 | **6,12 s** |
+| MateusLannes | 276 | 5,51 s |
+| joaomrpimentel | 221 | 4,55 s |
+| marcelasfl | 191 | 4,53 s |
+| Ilhe8l | 201 | 4,08 s |
+| LuizRojas | 177 | 3,85 s |
+| luanotoni | 173 | 3,58 s |
+| vinicius-je | **350** | **0,09 s** |
+
+**Quem tem mais trabalho é a mais rápida** — e é essa inversão que prova que o custo não vem da
+página. É a **L30** cobrando de novo: uma medida não descreve uma distribuição.
 
 ---
 
