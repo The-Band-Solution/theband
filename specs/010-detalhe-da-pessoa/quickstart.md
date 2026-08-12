@@ -114,8 +114,11 @@ Hoje **não existe** pessoa sem nada: as 75 têm evidência de equipe. O teste m
 mix test test/the_band_web/live/person_detail_test.exs -o "consultas"
 ```
 
-**Esperado**: **oito** — e não "um número que não cresce", que era o que este quickstart dizia antes da
-análise. Frase assim não é asserção: passa com 8 e passa com 80.
+**Esperado**: **oito acrescentadas** sobre a lista de pessoas, e não oito no total. Medido em
+2026-08-12: `live/2` na lista faz **16** consultas e na página faz **24** — as 16 são framework e
+autenticação, em **dois** renders.
+
+A diferença isola o custo da página; o total obrigaria a explicar 16 que não são dela.
 
 | # | consulta |
 |---:|---|
@@ -132,8 +135,8 @@ análise. Frase assim não é asserção: passa com 8 e passa com 80.
 isso** — a feature 007 nasceu com 135 consultas por render exatamente assim, e o achado A1 desta
 análise foi que o nome do repositório não estava em lugar nenhum.
 
-**E o teste vale mais que o número**: rodar a mesma verificação com uma pessoa de **duas** issues e com
-uma de **duzentas** tem de dar o mesmo oito.
+**E a constância vale mais que o número**: a mesma verificação com uma pessoa de poucas issues e com
+uma de muitas tem de dar o **mesmo** resultado. É essa asserção que pega consulta por linha.
 
 ---
 

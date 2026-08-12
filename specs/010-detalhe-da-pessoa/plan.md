@@ -221,7 +221,7 @@ funcionalidade entregue — é a L21, e por isso as três fases estão no mesmo 
 |---|---|---|
 | duas opções novas em `escopo/2` | a função cresce | os nomes carregam a distinção que a spec exige |
 | um componente privado | mais um lugar para olhar | três usos na mesma tela |
-| **oito** consultas por render | oito em vez de uma | juntá-las produziria o número proibido, e o nome do repositório exige a terceira fronteira |
+| **oito** consultas próprias por render | oito em vez de uma | juntá-las produziria o número proibido, e o nome do repositório exige a terceira fronteira. Medido: 24 na página contra 16 na lista |
 | uma consulta de contagem de papéis | uma a mais, barata | é o que impede a explicação de envelhecer |
 
 ---

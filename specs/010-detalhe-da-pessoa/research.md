@@ -50,8 +50,21 @@ tabela de trabalho é a fronteira quebrada por conveniência, e a ADR 0003 exist
 tarefas produzem: faltavam a busca da pessoa, as organizações dela, a contagem de papéis, e — a que
 mais importa — **o nome do repositório**, que exige a terceira fronteira.
 
-**O oito é aserido, não estimado**: o teste conta as consultas de uma renderização e exige o número.
-"Um número que não cresce" não é asserção, e era o que o quickstart dizia.
+**O oito é aserido como diferença, e a medida mostrou por quê**: `live/2` faz **dois** renders, e a
+autenticação consulta em cada um. Medido em 2026-08-12:
+
+| o que | consultas em `live/2` |
+|---|---:|
+| a lista `/people` | **16** |
+| a página `/people/:id` | **24** |
+| **a diferença** | **8** |
+
+Contar o total daria 24 e obrigaria a explicar 16 que não são da página. **A diferença isola o custo
+dela**, e é o que o teste assere — junto com a constância: a mesma contagem com poucas issues e com
+muitas.
+
+"Um número que não cresce" não é asserção — passa com 8 e passa com 80 —, e era o que o quickstart
+dizia antes da análise.
 
 **Razão**: FR-016 proíbe consultar por linha, e a feature 007 mostrou o custo de não decidir — 135
 consultas por render, que nasceram sem ninguém escolher.

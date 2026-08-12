@@ -89,8 +89,14 @@ defmodule TheBandWeb.PeopleLive.Index do
           </thead>
           <tbody>
             <tr :for={person <- @rows} class={person.no_longer_observed_at && "opacity-50"}>
+              <%!-- O nome abre o detalhe **dentro da plataforma**, não na origem: o que interessa
+                    ao clicar é o que foi coletado, e o link para a origem vive lá dentro. --%>
               <td data-label="name">
-                <div class="font-medium">{person.name}</div>
+                <div class="font-medium">
+                  <.link navigate={~p"/people/#{person.id}"} class="link link-hover">
+                    {person.name || person.login}
+                  </.link>
+                </div>
                 <div :if={person.login} class="text-xs opacity-60">@{person.login}</div>
                 <div :if={person.no_longer_observed_at} class="text-xs opacity-60">
                   no longer observed since {person.no_longer_observed_at}
