@@ -40,6 +40,7 @@ defmodule TheBand.Ontology.SEON.CMPO do
   defdelegate exclude_from_observation(tenant, observed_repository_id, user_id), to: Commands
   defdelegate include_in_observation(tenant, observed_repository_id), to: Commands
   defdelegate mark_inaccessible(tenant, observed_repository_id, reason), to: Commands
+  defdelegate clear_inaccessible(tenant, observed_repository_id), to: Commands
 
   # -------------------------------------------------------------------- leituras
 

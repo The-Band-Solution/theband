@@ -24,10 +24,54 @@ defmodule TheBandWeb.ConceptLabel do
     {"osdef.defect", "defeito"}
   ]
 
+  @doc """
+  Como uma issue **sem conceito** aparece: `indefinida`, com o motivo ao lado.
+
+  ## Por que não é um conceito da ontologia
+
+  `indefinida` **não existe** na base de conhecimento, e não deve existir. Ela não é uma
+  coisa que a issue é — é o estado de a plataforma ainda não saber o que ela é. Criar
+  `sro.undefined` faria a ausência de conhecimento virar conhecimento: as issues entrariam
+  em contagens de conceito, e "3360 indefinidas" seria lido como um tipo de trabalho que o
+  time faz.
+
+  É a distinção entre lacuna e fato, e a plataforma existe para preservá-la.
+
+  ## Por que então nomear
+
+  Porque sem nome elas aparecem como um traço e somem da leitura. Nomear a lacuna é o que
+  permite alguém agir sobre ela — e a ação é a tela de regras de mapeamento, não uma
+  promoção inventada.
+  """
+  @spec indefinida(String.t() | nil, String.t() | nil) :: String.t()
+  def indefinida(motivo, detalhe) do
+    caso =
+      case {motivo, detalhe} do
+        {"type_unknown", nil} -> "tipo desconhecido"
+        {"type_unknown", tipo} -> "tipo #{tipo} sem regra"
+        {"type_absent", _} -> "sem tipo na origem"
+        {nil, _} -> "sem promoção registrada"
+        {outro, _} -> motivo(outro)
+      end
+
+    "indefinida — #{caso}"
+  end
+
   @motivos %{
     "type_absent" => "sem tipo na origem",
     "type_unknown" => "tipo desconhecido",
     "sub_issues_unavailable" => "sub-issues indisponíveis"
+  }
+
+  # O tipo diz **o que** aconteceu; a frase gravada diz o caso concreto. Os dois primeiros
+  # são axioma aplicado — a plataforma mudou o conceito. Os dois seguintes são sinal: o
+  # conceito foi mantido, e a divergência existe para ser vista, não para ser corrigida.
+  @divergencias %{
+    "epic_without_parts" => "rótulo dizia épico, e não há partes",
+    "composition_makes_epic" => "a composição torna épico",
+    "task_with_parts" => "tarefa com partes coletadas",
+    "user_story_without_parts" => "user story sem partes nem tarefas",
+    "label_vs_structure" => "rótulo e estrutura discordam"
   }
 
   @recusas %{
@@ -51,6 +95,21 @@ defmodule TheBandWeb.ConceptLabel do
   @spec motivo(String.t() | nil) :: String.t() | nil
   def motivo(nil), do: nil
   def motivo(motivo), do: Map.get(@motivos, motivo, motivo)
+
+  @doc """
+  O tipo da divergência em português.
+
+  Devolve o próprio identificador quando não há tradução: um tipo novo aparece como está
+  até alguém traduzi-lo, e isso é melhor que desaparecer da tela.
+  """
+  @spec divergencia(String.t() | nil) :: String.t() | nil
+  def divergencia(nil), do: nil
+  def divergencia(tipo), do: Map.get(@divergencias, tipo, tipo)
+
+  @doc "Se a divergência **mudou** o conceito, ou é sinal com o conceito mantido."
+  @spec divergencia_mudou_conceito?(String.t() | nil) :: boolean()
+  def divergencia_mudou_conceito?(tipo),
+    do: tipo in ["epic_without_parts", "composition_makes_epic"]
 
   @doc "O motivo da recusa de vínculo em português."
   @spec recusa(String.t() | nil) :: String.t() | nil

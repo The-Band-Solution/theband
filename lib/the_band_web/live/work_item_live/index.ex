@@ -148,10 +148,24 @@ defmodule TheBandWeb.WorkItemLive.Index do
               <p :if={@divergencias == []} class="text-sm opacity-70">
                 Nenhuma. Em todas as issues, o tipo declarado e a estrutura concordam.
               </p>
-              <p :if={@divergencias != []} class="text-xs opacity-70">
-                Não é erro da plataforma: é sinal sobre o processo. A estrutura vence o
-                rótulo, e é isto que aparece.
-              </p>
+              <%!-- Agrupado por **tipo**, e não só listado: "12 divergências" não diz o
+                    que fazer, e "9 tarefas com partes, 3 épicos sem partes" diz. Contar
+                    pela frase exigiria casar substring, que quebra ao melhorar a redação. --%>
+              <table :if={@por_tipo != %{}} class="table table-sm">
+                <tbody>
+                  <tr :for={{tipo, n} <- @por_tipo}>
+                    <td>
+                      {ConceptLabel.divergencia(tipo)}
+                      <div class="text-xs opacity-60">
+                        {if ConceptLabel.divergencia_mudou_conceito?(tipo),
+                          do: "conceito decidido pelo axioma",
+                          else: "conceito mantido — sinal"}
+                      </div>
+                    </td>
+                    <td class="text-right font-mono">{n}</td>
+                  </tr>
+                </tbody>
+              </table>
               <ul :if={@divergencias != []} class="text-sm space-y-2 mt-1">
                 <li :for={d <- Enum.take(@divergencias, 6)}>
                   <.link navigate={~p"/trabalho/issues/#{d.id}"} class="link link-hover font-mono">
@@ -262,8 +276,12 @@ defmodule TheBandWeb.WorkItemLive.Index do
                 <td class="font-mono text-xs">{i.sub_issue_count}</td>
                 <td>
                   <span :if={i.derived_concept} class="text-sm">{rotulo(i.derived_concept)}</span>
-                  <span :if={i.skip_reason} class="text-sm opacity-60">
-                    {motivo_legivel(i.skip_reason)}{if i.skip_detail, do: ": #{i.skip_detail}"}
+                  <%!-- A issue que não se enquadrou em nenhum conceito aparece **nomeada**,
+                        e não como traço: sem nome ela some da leitura, e a lacuna deixa de
+                        ser acionável. `indefinida` não é conceito da ontologia — é o estado
+                        de a plataforma não saber, e o motivo vem junto. --%>
+                  <span :if={is_nil(i.derived_concept)} class="text-sm opacity-60">
+                    {ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
                   </span>
                   <div :if={i.divergence_reason} class="text-xs text-warning">
                     contra o rótulo {i.declared_concept && rotulo(i.declared_concept)}
@@ -322,6 +340,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
       desvio: coletadas - total_promovido - total_lacuna,
       tipos_desconhecidos: WorkItems.unknown_types(tenant, opts),
       divergencias: WorkItems.list_divergences(tenant, opts),
+      por_tipo: WorkItems.count_divergences_by_kind(tenant, opts),
       issues:
         WorkItems.list_issues(
           tenant,

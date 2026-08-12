@@ -141,7 +141,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
                   <td class="text-right font-mono">{@promovidas[conceito]}</td>
                 </tr>
                 <tr :for={{motivo, n} <- @lacunas}>
-                  <td class="opacity-70">{ConceptLabel.motivo(motivo)}</td>
+                  <td class="opacity-70">indefinida — {ConceptLabel.motivo(motivo)}</td>
                   <td class="text-right font-mono opacity-70">{n}</td>
                 </tr>
                 <tr class="font-semibold border-t">
@@ -229,8 +229,8 @@ defmodule TheBandWeb.RepositoryLive.Show do
                 <span :if={i.derived_concept} class="text-sm">
                   {ConceptLabel.rotulo(i.derived_concept)}
                 </span>
-                <span :if={i.skip_reason} class="text-sm opacity-60">
-                  {ConceptLabel.motivo(i.skip_reason)}{if i.skip_detail, do: ": #{i.skip_detail}"}
+                <span :if={is_nil(i.derived_concept)} class="text-sm opacity-60">
+                  {ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
                 </span>
                 <div :if={i.divergence_reason} class="text-xs text-warning">
                   contra o rótulo {ConceptLabel.rotulo(i.declared_concept)}

@@ -115,6 +115,34 @@ defmodule TheBandWeb.WorkItemLive.Show do
         <p class="text-sm">{WorkItems.rule07_explanation(@violacao)}</p>
       </div>
 
+      <%!-- A divergência entre o rótulo e a estrutura é **alerta**, e não nota de rodapé:
+            ela muda como se lê o conceito logo abaixo. E o conceito foi **mantido** — a
+            plataforma não corrige em silêncio o que o time declarou. --%>
+      <div :if={@issue.divergence_reason} class="alert alert-warning mt-6 block">
+        <div class="font-semibold">
+          {ConceptLabel.divergencia(@issue.divergence_kind) || "O rótulo e a estrutura discordam"}
+        </div>
+        <p class="text-sm">{@issue.divergence_reason}</p>
+        <%!-- As duas frases dizem coisas opostas, e por isso o tipo importa: numa a
+              plataforma **mudou** o conceito por axioma, na outra ela o **manteve** de
+              propósito. Um texto só para os dois casos faria alguém supor a correção onde
+              ela não houve. --%>
+        <p
+          :if={ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
+          class="text-xs opacity-80 mt-1"
+        >
+          O conceito foi decidido pela estrutura: um axioma da SRO contradiz o rótulo, e o
+          axioma vence.
+        </p>
+        <p
+          :if={not ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
+          class="text-xs opacity-80 mt-1"
+        >
+          O conceito foi mantido. Não é erro da plataforma: é sinal sobre o processo do
+          time — e corrigi-lo aqui seria a plataforma decidir por quem escreveu a issue.
+        </p>
+      </div>
+
       <div class="mt-6 grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
           <div class="card bg-base-200">
@@ -218,8 +246,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 <.campo rotulo="conceito">
                   <span :if={@issue.derived_concept}>{ConceptLabel.rotulo(@issue.derived_concept)}</span>
                   <span :if={is_nil(@issue.derived_concept)} class="opacity-70">
-                    não promovida — {ConceptLabel.motivo(@issue.skip_reason)}{if @issue.skip_detail,
-                      do: ": #{@issue.skip_detail}"}
+                    {ConceptLabel.indefinida(@issue.skip_reason, @issue.skip_detail)}
                   </span>
                 </.campo>
                 <.campo rotulo="classificação">
@@ -335,7 +362,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 <li :for={h <- @historico}>
                   <span class="font-medium">
                     {ConceptLabel.rotulo(h.derived_concept) ||
-                      "não promovida — #{ConceptLabel.motivo(h.skip_reason)}"}
+                      ConceptLabel.indefinida(h.skip_reason, h.skip_detail)}
                   </span>
                   <span :if={h.current} class="badge badge-xs badge-primary ml-1">vigente</span>
                   <div class="text-xs opacity-70">
@@ -378,7 +405,8 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </.link>
           </td>
           <td class="text-xs opacity-70 w-40">
-            {ConceptLabel.rotulo(i.derived_concept) || ConceptLabel.motivo(i.skip_reason) || "—"}
+            {ConceptLabel.rotulo(i.derived_concept) ||
+              ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
           </td>
           <td class="text-xs opacity-60 w-20">
             {if i.sub_issue_count > 0, do: "#{i.sub_issue_count} partes"}

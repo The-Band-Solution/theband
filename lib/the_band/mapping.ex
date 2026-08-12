@@ -33,6 +33,7 @@ defmodule TheBand.Mapping do
 
   alias TheBand.Mapping.Catalog
   alias TheBand.Mapping.Commands
+  alias TheBand.Mapping.Decision
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
 
@@ -67,6 +68,7 @@ defmodule TheBand.Mapping do
   defdelegate not_type_patterns(tenant, organization_id), to: Catalog
   defdelegate not_type_reason(), to: Catalog
   defdelegate gap_summary(tenant, organization_id), to: Queries
+  defdelegate decidir_lote(tenant, organization_id, regras), to: Decision
 
   # ------------------------------------------------------------------ validação
 

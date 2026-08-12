@@ -81,6 +81,25 @@ defmodule TheBand.WorkItems.Queries do
     |> Map.new()
   end
 
+  @doc """
+  Quantas issues têm cada **tipo** de divergência.
+
+  Existe porque a frase não responde isto: contar por substring quebraria na primeira vez
+  que alguém melhorasse a redação. É o mesmo par de `count_gaps_by_reason/2`, que agrupa
+  por motivo e não por texto.
+  """
+  @spec count_divergences_by_kind(Tenant.t(), keyword()) :: %{String.t() => non_neg_integer()}
+  def count_divergences_by_kind(%Tenant{} = tenant, opts \\ []) do
+    tenant
+    |> escopo(opts)
+    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> where([_i, p], not is_nil(p.divergence_kind))
+    |> group_by([_i, p], p.divergence_kind)
+    |> select([_i, p], {p.divergence_kind, count(p.collected_issue_id)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
   @spec count_gaps_by_reason(Tenant.t(), keyword()) :: %{String.t() => non_neg_integer()}
   def count_gaps_by_reason(%Tenant{} = tenant, opts \\ []) do
     tenant
@@ -131,7 +150,8 @@ defmodule TheBand.WorkItems.Queries do
       issue_type: i.issue_type,
       declared_concept: p.declared_concept,
       derived_concept: p.derived_concept,
-      divergence_reason: p.divergence_reason
+      divergence_reason: p.divergence_reason,
+      divergence_kind: p.divergence_kind
     })
     |> Repo.all()
   end
@@ -251,6 +271,7 @@ defmodule TheBand.WorkItems.Queries do
           derived_concept: p.derived_concept,
           declared_concept: p.declared_concept,
           divergence_reason: p.divergence_reason,
+          divergence_kind: p.divergence_kind,
           skip_reason: p.skip_reason,
           skip_detail: p.skip_detail,
           rule_id: p.rule_id,
@@ -308,7 +329,8 @@ defmodule TheBand.WorkItems.Queries do
           derived_concept: p.derived_concept,
           skip_reason: p.skip_reason,
           evidence_source: p.evidence_source,
-          mapping_rule_id: p.mapping_rule_id
+          mapping_rule_id: p.mapping_rule_id,
+          divergence_kind: p.divergence_kind
         }
     )
   end

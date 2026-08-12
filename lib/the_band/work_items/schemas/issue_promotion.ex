@@ -49,7 +49,11 @@ defmodule TheBand.WorkItems.Schemas.IssuePromotion do
     field :confidence, :string
     field :mapping_rule_id, :binary_id
 
+    # A frase explica; o tipo **classifica**. Sem o tipo, "quantas issues têm tarefa com
+    # partes?" exigiria casar substring — e substring quebra na primeira vez que alguém
+    # melhorar a redação. É o mesmo par de `skip_reason` e `skip_detail`.
     field :divergence_reason, :string
+    field :divergence_kind, :string
     field :skip_reason, :string
     field :skip_detail, :string
 
@@ -77,6 +81,7 @@ defmodule TheBand.WorkItems.Schemas.IssuePromotion do
       :confidence,
       :mapping_rule_id,
       :divergence_reason,
+      :divergence_kind,
       :skip_reason,
       :skip_detail,
       :promoted_at

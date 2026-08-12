@@ -142,6 +142,11 @@ defmodule TheBand.Integrations.GitHub.Client do
   desistir do que ia funcionar, e insistir no que nunca vai. Falha transitória
   **não** marca a sincronização como falha: ela permanece em andamento e o Oban
   retenta.
+
+  **E não marca o repositório como inacessível.** Marcar o tira de
+  `CMPO.list_collectable/2`, e nenhuma coleta seguinte o olha de novo — a marca é
+  permanente na prática. Um `:nxdomain` de um instante custou 38 repositórios e 899 issues
+  fora de toda observação, e o número só apareceu ao conferir a contagem contra a origem.
   """
   @spec transient?(term()) :: boolean()
   def transient?({:transport, _reason}), do: true

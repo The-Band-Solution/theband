@@ -273,15 +273,18 @@ defmodule TheBand.Mapping.Commands do
           Decision.com_candidata(tenant, organization_id, candidata)
         )
 
-      _ = vigentes
       atuais = promocoes_vigentes(tenant, organization_id)
+      sem_a_regra = Map.new(vigentes, &{&1.issue.id, &1.decisao.derived})
 
       casadas =
         Enum.filter(com_regra, fn %{decisao: d} -> d.mapping_rule_id == candidata.id end)
 
+      # O efeito **da regra**, e não do recálculo: comparar com o que está gravado
+      # atribuiria à regra tudo o que a etapa estrutural decide, e ela decidiria de todo
+      # modo. Quem lê a prévia quer saber o que ESTA regra muda.
       mudariam =
         Enum.filter(com_regra, fn %{issue: i, decisao: d} ->
-          Decision.mudou_conceito?(d, Map.get(atuais, i.id))
+          d.derived != Map.get(sem_a_regra, i.id)
         end)
 
       # As duas contagens vêm das **mesmas funções** que o recálculo usa. Uma comparação
@@ -296,6 +299,8 @@ defmodule TheBand.Mapping.Commands do
        %{
          matched: length(casadas),
          would_change: length(mudariam),
+         # O que a gravação produz, contra o que está gravado. Difere de `would_change`
+         # porque o recálculo também aplica a etapa estrutural e preenche proveniência.
          rows_to_write: linhas,
          sample: Enum.map(Enum.take(mudariam, 10), & &1.issue.title),
          total: length(com_regra)
@@ -334,7 +339,7 @@ defmodule TheBand.Mapping.Commands do
 
   Devolve **dois números**, e eles são diferentes:
 
-    * `concept_changed` — quantas issues mudaram de conceito. É o que a prévia promete;
+    * `concept_changed` — quantas issues mudaram de conceito em relação ao que está gravado;
     * `written` — quantas linhas foram gravadas. Inclui as que mantiveram o conceito e
       mudaram a **proveniência** — decididas pela regra da organização em vez da global.
 
@@ -369,6 +374,7 @@ defmodule TheBand.Mapping.Commands do
           declared_concept: decisao.declared,
           derived_concept: decisao.derived,
           divergence_reason: decisao.divergence,
+          divergence_kind: decisao.divergence_kind,
           skip_reason: decisao.skip_reason,
           skip_detail: decisao.skip_detail,
           rule_id: decisao.rule_id,

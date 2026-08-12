@@ -160,6 +160,10 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
     case paginar(ctx, "issues", %{owner: owner, name: name}) do
       {:ok, nodes, total} ->
+        # Alcançou: se estava marcado como inacessível, a marca sai. A cura é a própria
+        # coleta — ninguém precisa lembrar de destravar.
+        {:ok, _} = CMPO.clear_inaccessible(ctx.tenant, observado_id)
+
         gravadas = Enum.map(nodes, &gravar_issue(ctx, observado_id, &1))
         vincular(ctx, nodes)
 
@@ -181,10 +185,24 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         %{repositorio: repo.name, coletadas: length(gravadas)}
 
       {:error, reason} ->
-        # Perder alcance não é o dado ter sumido: marca a ferramenta e NÃO marca as
-        # issues (FR-006).
-        {:ok, _} = CMPO.mark_inaccessible(ctx.tenant, observado_id, Client.describe_error(reason))
-        Logger.warning("repositório inacessível: #{repo.name}")
+        # Falha **transitória** não marca nada: marcar tira o repositório de
+        # `list_collectable/2`, e nenhuma coleta seguinte o olha de novo. Um `:nxdomain`
+        # de um instante já custou 38 repositórios e 899 issues fora de observação.
+        #
+        # Permanente marca, e aí está certo: credencial recusada ou repositório que não
+        # existe encontrariam o mesmo na próxima vez.
+        if Client.transient?(reason) do
+          Logger.warning(
+            "falha transitória em #{repo.name}: #{Client.describe_error(reason)} — " <>
+              "não marcado como inacessível"
+          )
+        else
+          {:ok, _} =
+            CMPO.mark_inaccessible(ctx.tenant, observado_id, Client.describe_error(reason))
+
+          Logger.warning("repositório inacessível: #{repo.name}")
+        end
+
         %{repositorio: repo.name, coletadas: 0}
     end
   end
@@ -333,6 +351,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         declared_concept: decisao.declared,
         derived_concept: decisao.derived,
         divergence_reason: decisao.divergence,
+        divergence_kind: decisao.divergence_kind,
         skip_reason: decisao.skip_reason,
         skip_detail: decisao.skip_detail,
         rule_id: decisao.rule_id,
