@@ -63,6 +63,17 @@ defmodule TheBandWeb.ConceptLabel do
     "sub_issues_unavailable" => "sub-issues indisponíveis"
   }
 
+  # O tipo diz **o que** aconteceu; a frase gravada diz o caso concreto. Os dois primeiros
+  # são axioma aplicado — a plataforma mudou o conceito. Os dois seguintes são sinal: o
+  # conceito foi mantido, e a divergência existe para ser vista, não para ser corrigida.
+  @divergencias %{
+    "epic_without_parts" => "rótulo dizia épico, e não há partes",
+    "composition_makes_epic" => "a composição torna épico",
+    "task_with_parts" => "tarefa com partes coletadas",
+    "user_story_without_parts" => "user story sem partes nem tarefas",
+    "label_vs_structure" => "rótulo e estrutura discordam"
+  }
+
   @recusas %{
     "cycle" => "ciclo de decomposição",
     "out_of_scope" => "parte fora do escopo observado"
@@ -84,6 +95,21 @@ defmodule TheBandWeb.ConceptLabel do
   @spec motivo(String.t() | nil) :: String.t() | nil
   def motivo(nil), do: nil
   def motivo(motivo), do: Map.get(@motivos, motivo, motivo)
+
+  @doc """
+  O tipo da divergência em português.
+
+  Devolve o próprio identificador quando não há tradução: um tipo novo aparece como está
+  até alguém traduzi-lo, e isso é melhor que desaparecer da tela.
+  """
+  @spec divergencia(String.t() | nil) :: String.t() | nil
+  def divergencia(nil), do: nil
+  def divergencia(tipo), do: Map.get(@divergencias, tipo, tipo)
+
+  @doc "Se a divergência **mudou** o conceito, ou é sinal com o conceito mantido."
+  @spec divergencia_mudou_conceito?(String.t() | nil) :: boolean()
+  def divergencia_mudou_conceito?(tipo),
+    do: tipo in ["epic_without_parts", "composition_makes_epic"]
 
   @doc "O motivo da recusa de vínculo em português."
   @spec recusa(String.t() | nil) :: String.t() | nil

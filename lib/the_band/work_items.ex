@@ -47,6 +47,7 @@ defmodule TheBand.WorkItems do
   defdelegate count_gaps_by_reason(tenant, opts \\ []), to: Queries
   defdelegate unknown_types(tenant, opts \\ []), to: Queries
   defdelegate list_divergences(tenant, opts \\ []), to: Queries
+  defdelegate count_divergences_by_kind(tenant, opts \\ []), to: Queries
   defdelegate classification(tenant, collected_issue_id), to: Queries
   defdelegate list_links(tenant), to: Queries
   defdelegate list_by_external_id(tenant), to: Queries

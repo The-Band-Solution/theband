@@ -148,10 +148,24 @@ defmodule TheBandWeb.WorkItemLive.Index do
               <p :if={@divergencias == []} class="text-sm opacity-70">
                 Nenhuma. Em todas as issues, o tipo declarado e a estrutura concordam.
               </p>
-              <p :if={@divergencias != []} class="text-xs opacity-70">
-                Não é erro da plataforma: é sinal sobre o processo. A estrutura vence o
-                rótulo, e é isto que aparece.
-              </p>
+              <%!-- Agrupado por **tipo**, e não só listado: "12 divergências" não diz o
+                    que fazer, e "9 tarefas com partes, 3 épicos sem partes" diz. Contar
+                    pela frase exigiria casar substring, que quebra ao melhorar a redação. --%>
+              <table :if={@por_tipo != %{}} class="table table-sm">
+                <tbody>
+                  <tr :for={{tipo, n} <- @por_tipo}>
+                    <td>
+                      {ConceptLabel.divergencia(tipo)}
+                      <div class="text-xs opacity-60">
+                        {if ConceptLabel.divergencia_mudou_conceito?(tipo),
+                          do: "conceito decidido pelo axioma",
+                          else: "conceito mantido — sinal"}
+                      </div>
+                    </td>
+                    <td class="text-right font-mono">{n}</td>
+                  </tr>
+                </tbody>
+              </table>
               <ul :if={@divergencias != []} class="text-sm space-y-2 mt-1">
                 <li :for={d <- Enum.take(@divergencias, 6)}>
                   <.link navigate={~p"/trabalho/issues/#{d.id}"} class="link link-hover font-mono">
@@ -326,6 +340,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
       desvio: coletadas - total_promovido - total_lacuna,
       tipos_desconhecidos: WorkItems.unknown_types(tenant, opts),
       divergencias: WorkItems.list_divergences(tenant, opts),
+      por_tipo: WorkItems.count_divergences_by_kind(tenant, opts),
       issues:
         WorkItems.list_issues(
           tenant,

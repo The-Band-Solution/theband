@@ -119,9 +119,25 @@ defmodule TheBandWeb.WorkItemLive.Show do
             ela muda como se lê o conceito logo abaixo. E o conceito foi **mantido** — a
             plataforma não corrige em silêncio o que o time declarou. --%>
       <div :if={@issue.divergence_reason} class="alert alert-warning mt-6 block">
-        <div class="font-semibold">O rótulo e a estrutura discordam.</div>
+        <div class="font-semibold">
+          {ConceptLabel.divergencia(@issue.divergence_kind) || "O rótulo e a estrutura discordam"}
+        </div>
         <p class="text-sm">{@issue.divergence_reason}</p>
-        <p class="text-xs opacity-80 mt-1">
+        <%!-- As duas frases dizem coisas opostas, e por isso o tipo importa: numa a
+              plataforma **mudou** o conceito por axioma, na outra ela o **manteve** de
+              propósito. Um texto só para os dois casos faria alguém supor a correção onde
+              ela não houve. --%>
+        <p
+          :if={ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
+          class="text-xs opacity-80 mt-1"
+        >
+          O conceito foi decidido pela estrutura: um axioma da SRO contradiz o rótulo, e o
+          axioma vence.
+        </p>
+        <p
+          :if={not ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
+          class="text-xs opacity-80 mt-1"
+        >
           O conceito foi mantido. Não é erro da plataforma: é sinal sobre o processo do
           time — e corrigi-lo aqui seria a plataforma decidir por quem escreveu a issue.
         </p>

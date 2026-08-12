@@ -194,8 +194,17 @@ defmodule TheBand.Mapping.Decision do
       |> length()
 
     case divergencia_estrutural(decisao.derived, estrutural, partes) do
-      nil -> decisao
-      motivo -> %{decisao | divergence: juntar(decisao.divergence, motivo)}
+      nil ->
+        decisao
+
+      {tipo, motivo} ->
+        %{
+          decisao
+          | divergence: juntar(decisao.divergence, motivo),
+            # O tipo do axioma aplicado tem precedência sobre o do sinal: quando as duas
+            # divergências existem, a que mudou o conceito é a que classifica a linha.
+            divergence_kind: decisao.divergence_kind || tipo
+        }
     end
   end
 
@@ -203,14 +212,16 @@ defmodule TheBand.Mapping.Decision do
 
   defp divergencia_estrutural(@tarefa, _estrutural, partes) when partes > 0,
     do:
-      "classificada como tarefa e tem #{partes} #{plural(partes)} coletada#{if partes > 1, do: "s"}; " <>
-        "tarefa com partes não é modelada pela SRO — o conceito foi mantido, e isto é " <>
-        "sinal sobre como o time escreve as issues"
+      {"task_with_parts",
+       "classificada como tarefa e tem #{partes} #{plural(partes)} coletada#{if partes > 1, do: "s"}; " <>
+         "tarefa com partes não é modelada pela SRO — o conceito foi mantido, e isto é " <>
+         "sinal sobre como o time escreve as issues"}
 
   defp divergencia_estrutural(@atomica, @tarefa, 0),
     do:
-      "classificada como user story atômica e não tem partes nem tarefas coletadas ligadas " <>
-        "a ela; pode ser user story ainda não decomposta, e por isso o conceito foi mantido"
+      {"user_story_without_parts",
+       "classificada como user story atômica e não tem partes nem tarefas coletadas ligadas " <>
+         "a ela; pode ser user story ainda não decomposta, e por isso o conceito foi mantido"}
 
   defp divergencia_estrutural(_derivado, _estrutural, _partes), do: nil
 
@@ -226,6 +237,7 @@ defmodule TheBand.Mapping.Decision do
       | derived: conceito,
         declared: nil,
         divergence: nil,
+        divergence_kind: nil,
         skip_reason: nil,
         skip_detail: nil,
         rule_id: @regra_estrutural,

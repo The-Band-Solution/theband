@@ -374,6 +374,7 @@ defmodule TheBand.Mapping.Commands do
           declared_concept: decisao.declared,
           derived_concept: decisao.derived,
           divergence_reason: decisao.divergence,
+          divergence_kind: decisao.divergence_kind,
           skip_reason: decisao.skip_reason,
           skip_detail: decisao.skip_detail,
           rule_id: decisao.rule_id,

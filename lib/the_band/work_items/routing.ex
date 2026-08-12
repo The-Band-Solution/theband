@@ -68,6 +68,7 @@ defmodule TheBand.WorkItems.Routing do
           declared: String.t() | nil,
           derived: String.t() | nil,
           divergence: String.t() | nil,
+          divergence_kind: String.t() | nil,
           skip_reason: String.t() | nil,
           skip_detail: String.t() | nil,
           rule_id: String.t(),
@@ -203,7 +204,13 @@ defmodule TheBand.WorkItems.Routing do
         rule_id: @regra_da_organizacao,
         rule_version: regra.version
     }
-    |> then(fn d -> %{d | divergence: motivo(d.declared, d.derived)} end)
+    |> then(fn d ->
+      %{
+        d
+        | divergence: motivo(d.declared, d.derived),
+          divergence_kind: tipo_de_divergencia(d.declared, d.derived)
+      }
+    end)
     |> Map.merge(%{
       evidence_source: fonte,
       confidence: confianca,
@@ -227,6 +234,7 @@ defmodule TheBand.WorkItems.Routing do
       declared: nil,
       derived: nil,
       divergence: nil,
+      divergence_kind: nil,
       skip_reason: nil,
       skip_detail: nil,
       rule_id: regra["id"],
@@ -274,7 +282,13 @@ defmodule TheBand.WorkItems.Routing do
     declarado = declarado(conceitos)
     derivado = derivado(conceitos, issue)
 
-    %{base | declared: declarado, derived: derivado, divergence: motivo(declarado, derivado)}
+    %{
+      base
+      | declared: declarado,
+        derived: derivado,
+        divergence: motivo(declarado, derivado),
+        divergence_kind: tipo_de_divergencia(declarado, derivado)
+    }
   end
 
   # O rótulo afirma um conceito só quando a regra lhe dá um só. Um tipo que cobre épico
@@ -315,6 +329,14 @@ defmodule TheBand.WorkItems.Routing do
     |> Enum.reject(&(is_nil(&1) or &1 in tarefas))
     |> length()
   end
+
+  # O tipo classifica o que a frase explica. Os dois primeiros são **axioma aplicado** — a
+  # plataforma mudou o conceito e diz por quê; e essa diferença em relação ao mero sinal é
+  # o que fica consultável.
+  defp tipo_de_divergencia(declarado, derivado) when declarado in [nil, derivado], do: nil
+  defp tipo_de_divergencia(@epico, @atomica), do: "epic_without_parts"
+  defp tipo_de_divergencia(@atomica, @epico), do: "composition_makes_epic"
+  defp tipo_de_divergencia(_declarado, _derivado), do: "label_vs_structure"
 
   defp motivo(declarado, derivado) when declarado in [nil, derivado], do: nil
 
