@@ -48,9 +48,9 @@ iterations do ProjectV2 recria as existentes (L11), e já custou reatribuir 96 i
 
 | # | User story | Épico | Issue | Priority | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| US1 | A coleta volta a alcançar o que falhou | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#217](https://github.com/The-Band-Solution/theband/issues/217) | **P0** | 11 | a fazer |
-| US2 | Falha do momento não vira decisão permanente | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#218](https://github.com/The-Band-Solution/theband/issues/218) | **P0** | 8 | a fazer |
-| US3 | Ver desde quando não se alcança, e por quê | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#219](https://github.com/The-Band-Solution/theband/issues/219) | P1 | 5 | a fazer |
+| US1 | A coleta volta a alcançar o que falhou | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#217](https://github.com/The-Band-Solution/theband/issues/217) | **P0** | 11 | feito |
+| US2 | Falha do momento não vira decisão permanente | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#218](https://github.com/The-Band-Solution/theband/issues/218) | **P0** | 8 | feito |
+| US3 | Ver desde quando não se alcança, e por quê | [#216](https://github.com/The-Band-Solution/theband/issues/216) | [#219](https://github.com/The-Band-Solution/theband/issues/219) | P1 | 5 | feito |
 
 **US1 e US2 são P0**: enquanto elas não entram, 899 issues estão fora de toda coleta futura e o
 número cresce sozinho.
@@ -62,15 +62,15 @@ Detalhadas em [009/tasks.md](../../specs/009-marca-que-se-cura/tasks.md). Cada t
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Tirar o limite da coluna de motivo | US2 | [#220](https://github.com/The-Band-Solution/theband/issues/220) | 2 | F1 | a fazer |
-| T002 | Julgar a natureza do erro da origem | US2 | [#221](https://github.com/The-Band-Solution/theband/issues/221) | 5 | F1 | a fazer |
-| T003 | Não marcar por falha do momento | US2 | [#222](https://github.com/The-Band-Solution/theband/issues/222) | 2 | F1 | a fazer |
-| T004 | Voltar a tentar o repositório marcado | US1 | [#223](https://github.com/The-Band-Solution/theband/issues/223) | 3 | F2 | a fazer |
-| T005 | Preservar desde quando não se alcança | US1 | [#224](https://github.com/The-Band-Solution/theband/issues/224) | 2 | F2 | a fazer |
-| T006 | Limpar a marca ao alcançar | US1 | [#225](https://github.com/The-Band-Solution/theband/issues/225) | 2 | F2 | a fazer |
-| T007 | Concluir mesmo com tudo falhando | US1 | [#226](https://github.com/The-Band-Solution/theband/issues/226) | 3 | F2 | a fazer |
-| T008 | Contar os repositórios não alcançados | US3 | [#227](https://github.com/The-Band-Solution/theband/issues/227) | 3 | F3 | a fazer |
-| T009 | Dizer desde quando, e por quê | US3 | [#228](https://github.com/The-Band-Solution/theband/issues/228) | 2 | F3 | a fazer |
+| T001 | Tirar o limite da coluna de motivo | US2 | [#220](https://github.com/The-Band-Solution/theband/issues/220) | 2 | F1 | feito |
+| T002 | Julgar a natureza do erro da origem | US2 | [#221](https://github.com/The-Band-Solution/theband/issues/221) | 5 | F1 | feito |
+| T003 | Não marcar por falha do momento | US2 | [#222](https://github.com/The-Band-Solution/theband/issues/222) | 2 | F1 | feito |
+| T004 | Voltar a tentar o repositório marcado | US1 | [#223](https://github.com/The-Band-Solution/theband/issues/223) | 3 | F2 | feito |
+| T005 | Preservar desde quando não se alcança | US1 | [#224](https://github.com/The-Band-Solution/theband/issues/224) | 2 | F2 | feito |
+| T006 | Limpar a marca ao alcançar | US1 | [#225](https://github.com/The-Band-Solution/theband/issues/225) | 2 | F2 | feito |
+| T007 | Concluir mesmo com tudo falhando | US1 | [#226](https://github.com/The-Band-Solution/theband/issues/226) | 3 | F2 | feito |
+| T008 | Contar os repositórios não alcançados | US3 | [#227](https://github.com/The-Band-Solution/theband/issues/227) | 3 | F3 | feito |
+| T009 | Dizer desde quando, e por quê | US3 | [#228](https://github.com/The-Band-Solution/theband/issues/228) | 2 | F3 | feito |
 
 **Total: 24 de complexity, nove tarefas.**
 
@@ -122,12 +122,18 @@ que este defeito viveu dois dias.
 
 ## Definition of Done do sprint
 
-- [ ] `mix gates` verde pelo **código de saída** — dez gates
-- [ ] V1 a V9 do [quickstart](../../specs/009-marca-que-se-cura/quickstart.md) verificados
-- [ ] **no dado real**: uma coleta com a origem respondendo deixa zero repositórios marcados dos que
-      ela alcança, e `leds-conectafapes-prestacao-de-contas` passa a ter as 11 issues da origem
-- [ ] as nove issues encerradas ou repriorizadas com justificativa
-- [ ] PR com revisor pedido e **conferido** por `requested_reviewers` (L14), ligado ao projeto
-- [ ] `sprint-review.md` escrito, separando feito de não feito
-- [ ] `licoes-aprendidas.md` atualizado
-- [ ] `aceitacao.md` com os 12 SC avaliados um a um
+- [x] `mix gates` verde pelo **código de saída** — dez gates, em `main` (`26f8a45`), 430 testes
+- [x] V1 e V4 a V9 do [quickstart](../../specs/009-marca-que-se-cura/quickstart.md) verificados
+- [ ] **V2 e V3 — no dado real**: exigem a chave mestra e o token, que são da pessoa mantenedora.
+      Declarado como pendente na [aceitação](../../specs/009-marca-que-se-cura/aceitacao.md), e o
+      mecanismo está medido no banco: **96 → 135** repositórios coletáveis
+- [x] as nove issues encerradas — #216 a #228, todas `Done` no projeto
+- [x] PR [#230](https://github.com/The-Band-Solution/theband/pull/230) com revisor `the-band`
+      **conferido** por `requested_reviewers`, ligado ao projeto, incorporado em `26f8a45`
+- [x] [`sprint-review.md`](sprint-review.md) escrito, separando feito de não feito
+- [x] `licoes-aprendidas.md` atualizado — L36 e L37, e a **L36 foi reescrita** quando o experimento
+      mostrou que o mecanismo que eu havia publicado estava errado
+- [x] [`aceitacao.md`](../../specs/009-marca-que-se-cura/aceitacao.md) com os 12 SC avaliados um a um
+
+**O sprint fecha com um item aberto e ele está nomeado**: a prova no dado real. Marcar como feito o
+que depende de credencial que não é minha seria declarar sucesso sem evidência.
