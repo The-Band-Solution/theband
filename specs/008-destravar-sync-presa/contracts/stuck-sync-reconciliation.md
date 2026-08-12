@@ -19,11 +19,21 @@ outro. Está declarado no Constitution Check do plano para não parecer descuido
 **Uma execução é considerada presa quando não existe trabalho ativo com aquele `sync_id` nos args,
 e ela foi aberta há mais de um minuto.**
 
-**Trabalho ativo são cinco estados** — `Oban.Job.states/0` menos os três terminais:
+**Duas noções de "vivo", e confundi-las foi o defeito que a execução no dado real revelou.**
 
-| Ativo | Não ativo |
-|---|---|
-| `suspended`, `scheduled`, `available`, `executing`, `retryable` | `completed`, `discarded`, `cancelled` |
+| noção | estados | para quê |
+|---|---|---|
+| **não terminal** | `suspended`, `scheduled`, `available`, `executing`, `retryable` | impede o encerramento **automático** |
+| **vai executar** | `suspended`, `scheduled`, `available`, `retryable` | impede o encerramento **por pessoa** |
+
+A diferença é `executing`, e ela é o centro da feature: **trabalho em execução não é prova de
+vida.** É o registro de que algum processo reivindicou o trabalho, e a reivindicação sobrevive ao
+processo — o job 5 do banco de desenvolvimento está `executing` desde 2026-08-09, num nó que não
+existe mais.
+
+A plataforma **não encerra sozinha** nesse caso: se a coleta estiver de fato rodando, liberar a
+restrição faria uma segunda começar em paralelo. Mas **a pessoa pode**, porque só ela sabe que
+reiniciou a aplicação — e é exatamente o caso que exigiu SQL duas vezes.
 
 A lista é derivada da função, **nunca copiada**: uma versão nova do Oban que acrescente estado
 entraria em silêncio numa lista literal. A primeira versão deste contrato listava quatro e omitia
@@ -57,7 +67,7 @@ Encerra por **decisão humana**, e grava o autor.
 |---|---|
 | `{:ok, sync}` | encerrada, com `interrupted_by_user_id` preenchido |
 | `{:error, :not_found}` | não existe, **ou é de outro tenant** — a mensagem não confirma existência (FR-013) |
-| `{:error, :job_alive}` | há trabalho ativo: encerrar derrubaria coleta viva, e é pior que o problema |
+| `{:error, :job_alive}` | há trabalho que a fila **vai pegar**: encerrar liberaria a restrição, e a coleta começaria em paralelo com uma segunda |
 | `{:error, :not_running}` | já encerrada; o motivo e o autor originais **permanecem** |
 
 `:job_alive` é a defesa que o `:not_found` não dá: sem ela, a ação humana seria o caminho para
@@ -65,8 +75,15 @@ quebrar FR-005 por engano.
 
 ### `interruptible?(sync) :: boolean()`
 
-Se a tela deve **oferecer** a ação. Verdadeiro só quando a execução está `running` e a plataforma
-não consegue provar que o trabalho está vivo — FR-008.
+Se a tela deve **oferecer** a ação. Verdadeiro quando a execução está `running` e a plataforma não
+consegue provar que o trabalho **vai executar** — o que **inclui** o trabalho que consta em
+execução (FR-008).
+
+### `claimed_by_dead_process?(sync) :: boolean()`
+
+Se o que sustenta a execução é um trabalho **em execução** que a plataforma não pode verificar.
+Existe para a confirmação dizer o risco certo — FR-008a: encerrar aqui é decisão de quem sabe que o
+processo morreu, e se a coleta estiver rodando uma segunda começa em paralelo.
 
 É consulta de exibição, e **não** a decisão: quem decide é `interrupt_sync/3`, que reconfere. Uma
 tela que confia no próprio botão decide com dado de segundos atrás.

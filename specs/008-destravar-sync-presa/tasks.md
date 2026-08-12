@@ -53,9 +53,16 @@ contra o recálculo.
     copiada:
 
     ```
-    ativo:      suspended  scheduled  available  executing  retryable
-    não ativo:  completed  discarded  cancelled
+    não terminal (bloqueia o automático):  suspended scheduled available executing retryable
+    vai executar (bloqueia a pessoa):      suspended scheduled available           retryable
+    terminal:                              completed discarded cancelled
     ```
+
+    **A diferença é `executing`, e ela é o centro da feature.** Trabalho em execução **não é prova
+    de vida**: é o registro de que algum processo reivindicou o trabalho, e a reivindicação
+    sobrevive ao processo. A plataforma não encerra sozinha — se a coleta estiver rodando, liberar
+    a restrição faria uma segunda começar em paralelo. **A pessoa pode**, porque só ela sabe que
+    reiniciou a aplicação, e é o caso que exigiu SQL duas vezes.
 
     A análise achou a lista errada: a primeira versão tinha **quatro** e omitia `suspended`, que é
     trabalho pausado — vai executar. A reconciliação teria encerrado coleta viva por causa de uma
@@ -65,10 +72,10 @@ contra o recálculo.
     de fila dentro do domínio — R3, com critério de reversão escrito
   - **Feita quando**: para um sync com job `executing`, devolve o job; para um sync sem job nenhum,
     devolve ausência; job de **outro** sync não é devolvido
-  - **Teste**: `test/the_band/ingestion/reconcile_stuck_syncs_test.exs` — os **cinco** estados
-    ativos num caso cada, inserindo o job **de verdade** em `oban_jobs`. E a asserção que impede a
-    lista de envelhecer: ela **compara com `Oban.Job.states/0`** e falha se o Oban acrescentar
-    estado que ninguém classificou
+  - **Teste**: `test/the_band/ingestion/reconcile_stuck_syncs_test.exs` — os cinco estados não
+    terminais num caso cada, inserindo o job **de verdade** em `oban_jobs`; o caso `executing` nos
+    dois sentidos, bloqueando o automático e **liberando** a pessoa; e a asserção que impede a
+    lista de envelhecer, comparando com `Oban.Job.states/0`
 
 - [ ] T003 Decidir se a execução está presa
   - **Pronta quando**: T002 concluída

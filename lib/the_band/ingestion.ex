@@ -10,6 +10,8 @@ defmodule TheBand.Ingestion do
 
   import Ecto.Query
 
+  require Logger
+
   alias TheBand.Ingestion.Checkpoint
   alias TheBand.Ingestion.Sync
   alias TheBand.Jobs.SyncGitHubEO
@@ -17,6 +19,7 @@ defmodule TheBand.Ingestion do
   alias TheBand.Sources
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Tenants.Tenant
+  alias TheBand.Tenants.User
 
   @topic "syncs"
 
@@ -37,7 +40,8 @@ defmodule TheBand.Ingestion do
   coletas disputando a mesma janela de API.
   """
   @spec start_sync(Tenant.t(), ConnectedTool.t(), keyword()) ::
-          {:ok, Sync.t()} | {:error, :already_running | :no_active_credential | term()}
+          {:ok, Sync.t()}
+          | {:error, :already_running | :no_active_credential | :enqueue_failed | term()}
   def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool, opts \\ []) do
     # Origem encerrada não é coletada (FR-008). O filtro passa por
     # `observation_ended?/1`, que é o mesmo caminho que a tela usa — dois caminhos
@@ -70,9 +74,28 @@ defmodule TheBand.Ingestion do
     end
   end
 
+  # O resultado da criação do trabalho é **conferido**, e antes não era: ele ia para o
+  # vazio. Se a criação falha, o registro fica `running` sem nada para executá-lo — e o
+  # índice único passa a bloquear a ferramenta, que é o defeito da issue #175 por outra
+  # porta. Ninguém saberia se já aconteceu, porque o retorno era descartado.
+  #
+  # Encerra **na hora**, e não espera a reconciliação: o motivo dela seria errado. "O
+  # processo que a executava não existe mais" afirma que houve processo, e aqui ele nunca
+  # existiu.
   defp handle_open({:ok, sync}, tenant, worker) do
-    enqueue(tenant, sync, worker)
-    {:ok, sync}
+    case enqueue(tenant, sync, worker) do
+      {:ok, _job} ->
+        {:ok, sync}
+
+      {:error, reason} ->
+        Logger.error("não foi possível enfileirar a coleta #{sync.id}: #{inspect(reason)}")
+
+        finish(sync, :interrupted,
+          error_reason: "o trabalho que a executaria não pôde ser criado"
+        )
+
+        {:error, :enqueue_failed}
+    end
   end
 
   # O índice único parcial é a defesa que impede duas coletas simultâneas; aqui
@@ -91,6 +114,11 @@ defmodule TheBand.Ingestion do
     %{"tenant_id" => tenant_id, "sync_id" => sync_id}
     |> worker.new()
     |> Oban.insert()
+  rescue
+    # `Oban.insert/1` levanta quando o worker não é worker — dois dos cinco descartes no
+    # dado real vêm de `module is not a worker`. Levantar aqui deixaria o registro `running`,
+    # que é exatamente o que esta feature existe para impedir.
+    error -> {:error, error}
   end
 
   # ------------------------------------------------------------------- leitura
@@ -254,6 +282,13 @@ defmodule TheBand.Ingestion do
           n -> Map.put(attrs, :memberships_pending_role, n)
         end
       end)
+      |> then(fn attrs ->
+        # Ausente quando quem encerrou foi a plataforma, e a ausência é a afirmação.
+        case opts[:interrupted_by_user_id] do
+          nil -> attrs
+          id -> Map.put(attrs, :interrupted_by_user_id, id)
+        end
+      end)
 
     sync |> Sync.changeset(attrs) |> Repo.update()
   end
@@ -268,4 +303,182 @@ defmodule TheBand.Ingestion do
 
   @spec reload(Sync.t()) :: Sync.t()
   def reload(%Sync{id: id}), do: Repo.get!(Sync, id)
+
+  # ------------------------------------------------- execução presa (feature 008)
+
+  # Duas noções de "vivo", e confundi-las é o defeito que a execução no dado real revelou.
+  #
+  # `@ativos` — o que **impede o encerramento automático**. Inclui `executing`, porque a
+  # plataforma não pode encerrar por conta própria uma execução que talvez esteja rodando:
+  # encerrar libera o índice, e uma coleta nova rodaria **em paralelo** com a que continua.
+  #
+  # `@vai_executar` — o que a plataforma consegue **provar**. A fila vai pegar o trabalho em
+  # `available`, `scheduled`, `retryable` e `suspended`, e isso é verificável. `executing`
+  # **não** é prova de vida: é um claim que sobrevive ao processo que o fez. O job 5 do banco
+  # de desenvolvimento está `executing` desde 2026-08-09, num nó que não existe mais.
+  #
+  # É por isso que a ação humana existe (US3): só uma pessoa sabe que reiniciou a aplicação,
+  # e a plataforma não tem como saber.
+  #
+  # As duas listas são **derivadas** de `Oban.Job.states/0`, nunca copiadas: uma versão nova
+  # do Oban que acrescente estado entraria em silêncio numa lista literal — e a primeira
+  # versão desta feature já errou assim, esquecendo `suspended`.
+  @terminais ~w(completed discarded cancelled)
+  @ativos Enum.map(Oban.Job.states(), &to_string/1) -- @terminais
+  @vai_executar @ativos -- ["executing"]
+
+  # A execução recém-aberta não é candidata. Abrir o registro e criar o trabalho são duas
+  # operações, e no intervalo a execução tem a assinatura exata de "presa" — `running` e sem
+  # trabalho. O intervalo real é de milissegundos; um minuto é margem de três ordens de
+  # grandeza. Falha na criação **não** espera a carência: `start_sync/3` encerra na hora.
+  @carencia_segundos 60
+
+  @doc """
+  Encerra toda execução `running` cujo trabalho não existe mais.
+
+  **Atravessa tenants de propósito**: é manutenção da plataforma, não consulta de tenant, e
+  nenhum dado de um tenant chega a outro. A ação **por pessoa** continua escopada, em
+  `interrupt_sync/3`.
+
+  Devolve as execuções que encerrou. Lista vazia é o caso normal, e **não** produz log:
+  ruído periódico treina quem lê a ignorar o log, e aí o log que importa passa batido.
+
+  A decisão é **ausência de trabalho ativo**, nunca idade. Uma coleta de 16 minutos é
+  indistinguível de uma coleta morta pela idade, e encerrar coleta viva derruba trabalho em
+  andamento — pior que o bloqueio que esta função existe para resolver.
+  """
+  @spec reconcile_stuck_syncs() :: {:ok, [Sync.t()]}
+  def reconcile_stuck_syncs do
+    limite = DateTime.add(DateTime.utc_now(:second), -@carencia_segundos, :second)
+
+    encerradas =
+      from(s in Sync, where: s.status == "running" and s.started_at <= ^limite)
+      |> Repo.all()
+      |> Enum.reject(&trabalho_ativo?/1)
+      |> Enum.flat_map(fn sync ->
+        case finish(sync, :interrupted, error_reason: motivo(sync)) do
+          {:ok, encerrada} ->
+            Logger.warning(
+              "sincronização #{sync.id} encerrada pela plataforma: #{encerrada.error_reason}"
+            )
+
+            [encerrada]
+
+          {:error, _} ->
+            []
+        end
+      end)
+
+    {:ok, encerradas}
+  end
+
+  @doc """
+  Encerra por **decisão humana**, e grava o autor.
+
+  `:job_alive` é a defesa que o `:not_found` não dá: sem ela, a ação da tela seria o caminho
+  para derrubar uma coleta viva por engano. A tela reconfere aqui, e não confia no próprio
+  botão — entre desenhar e clicar, a coleta pode ter voltado a executar.
+  """
+  @spec interrupt_sync(Tenant.t(), Ecto.UUID.t(), User.t()) ::
+          {:ok, Sync.t()} | {:error, :not_found | :not_running | :job_alive}
+  def interrupt_sync(%Tenant{} = tenant, sync_id, %User{} = user) do
+    with {:ok, sync} <- fetch_sync(tenant, sync_id),
+         :ok <- confirmar_running(sync),
+         :ok <- confirmar_sem_trabalho(sync) do
+      finish(sync, :interrupted,
+        error_reason: motivo_humano(sync, user),
+        interrupted_by_user_id: user.id
+      )
+    end
+  end
+
+  @doc """
+  Se a tela deve **oferecer** a ação de encerrar.
+
+  Consulta de exibição, e não a decisão: quem decide é `interrupt_sync/3`, que reconfere.
+  """
+  @doc """
+  Se o que sustenta esta execução é um trabalho **em execução** que a plataforma não pode
+  verificar.
+
+  Existe para a tela avisar o risco certo: encerrar aqui é decisão de quem sabe que o
+  processo morreu, e se a coleta estiver de fato rodando uma segunda começa em paralelo.
+  """
+  @spec claimed_by_dead_process?(Sync.t()) :: boolean()
+  def claimed_by_dead_process?(%Sync{id: sync_id}) do
+    Repo.exists?(from j in trabalhos(sync_id), where: j.state == "executing")
+  end
+
+  @spec interruptible?(Sync.t()) :: boolean()
+  def interruptible?(%Sync{status: "running"} = sync), do: not vai_executar?(sync)
+  def interruptible?(%Sync{}), do: false
+
+  # O motivo diz **o que a pessoa afirmou**, e não o que a plataforma observou. Quando há
+  # trabalho `executing`, ela está afirmando que o processo morreu — informação que só ela
+  # tem, e que o registro precisa carregar para quem lê depois.
+  defp motivo_humano(sync, user) do
+    quem = user.name || user.email
+
+    if Repo.exists?(from j in trabalhos(sync.id), where: j.state == "executing") do
+      "encerrada por #{quem}: o trabalho constava em execução, e o processo não existe mais"
+    else
+      "encerrada por #{quem}"
+    end
+  end
+
+  defp confirmar_running(%Sync{status: "running"}), do: :ok
+  defp confirmar_running(%Sync{}), do: {:error, :not_running}
+
+  # A pessoa pode encerrar o que a plataforma não consegue provar vivo — inclusive o caso do
+  # trabalho `executing` num nó que morreu, que é o que aconteceu duas vezes e motivou a issue
+  # #175. O que ela **não** pode encerrar é trabalho que a fila vai pegar: aí a coleta começa
+  # sozinha, e encerrar o registro faria duas rodarem juntas.
+  defp confirmar_sem_trabalho(sync) do
+    if vai_executar?(sync), do: {:error, :job_alive}, else: :ok
+  end
+
+  defp trabalho_ativo?(%Sync{id: sync_id}) do
+    Repo.exists?(from j in trabalhos(sync_id), where: j.state in @ativos)
+  end
+
+  defp vai_executar?(%Sync{id: sync_id}) do
+    Repo.exists?(from j in trabalhos(sync_id), where: j.state in @vai_executar)
+  end
+
+  # A ligação é pelos args porque o sync **não guarda** id de job: pôr um lá seria
+  # identificador de fila dentro do registro de domínio. Os args são escritos por
+  # `enqueue/3`, no mesmo módulo que os lê.
+  defp trabalhos(sync_id) do
+    from j in Oban.Job, where: fragment("? ->> 'sync_id' = ?", j.args, ^sync_id)
+  end
+
+  # O motivo depende da causa, e **nunca inventa falha que ninguém observou**. Ausência de
+  # trabalho é dita como ausência: dizer "erro" ali afirmaria uma falha que a plataforma não
+  # viu, e apagaria a diferença entre falha transitória e permanente — a L29.
+  defp motivo(%Sync{id: sync_id}) do
+    consulta =
+      from j in trabalhos(sync_id),
+        where: j.state == "discarded",
+        order_by: [desc: j.attempted_at, desc: j.id],
+        limit: 1
+
+    case Repo.one(consulta) do
+      nil ->
+        "o processo que a executava não existe mais"
+
+      job ->
+        "as tentativas se esgotaram (#{job.attempt} de #{job.max_attempts}): #{ultimo_erro(job)}"
+    end
+  end
+
+  defp ultimo_erro(%Oban.Job{errors: errors}) when is_list(errors) and errors != [] do
+    errors
+    |> List.last()
+    |> Map.get("error", "sem detalhe registrado")
+    |> String.split("\n")
+    |> List.first()
+    |> String.slice(0, 300)
+  end
+
+  defp ultimo_erro(%Oban.Job{}), do: "sem detalhe registrado"
 end

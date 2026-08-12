@@ -71,8 +71,10 @@ coleta nova **funciona**, e a execução presa aparece encerrada com o motivo.
    sincronizações, **então** o registro aparece encerrado, com o motivo que veio do trabalho.
 2. **Dado** o mesmo registro encerrado, **quando** alguém inicia uma coleta, **então** ela começa
    — e o índice não recusa mais.
-3. **Dado** um registro `running` cujo trabalho **ainda está executando**, **quando** a tela é
-   carregada, **então** ele **continua** `running`: encerrar uma coleta viva é pior que o problema.
+3. **Dado** um registro `running` cujo trabalho consta **em execução**, **quando** a tela é
+   carregada, **então** ele **continua** `running`: a plataforma não encerra sozinha o que não
+   consegue verificar, porque encerrar liberaria a restrição e uma segunda coleta começaria em
+   paralelo.
 4. **Dado** um registro encerrado por este caminho, **quando** alguém o abre, **então** os
    checkpoints, as contagens e os payloads que ele produziu continuam lá.
 
@@ -116,10 +118,15 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
 
 **Cenários de aceitação**
 
-1. **Dado** um registro `running` que a plataforma não consegue provar vivo, **quando** quem
-   administra encerra, **então** o registro fica encerrado com o motivo e **com o autor**.
-2. **Dado** um registro cujo trabalho deu sinal recente, **quando** a tela é exibida, **então** a
-   ação de encerrar **não** é oferecida.
+1. **Dado** um registro cujo trabalho consta **em execução** num processo que morreu, **quando**
+   quem administra encerra, **então** o registro fica encerrado com o autor e com o motivo dizendo
+   **o que a pessoa afirmou** — que o processo não existe mais.
+2. **Dado** um registro cujo trabalho a fila **vai pegar** — `available`, `scheduled`, `retryable`
+   ou pausado —, **quando** a tela é exibida, **então** a ação **não** é oferecida, porque isso a
+   plataforma prova.
+2a. **Dado** que a ação é oferecida sobre trabalho em execução, **quando** a confirmação aparece,
+   **então** ela diz que a plataforma não sabe se o processo vive, e que uma segunda coleta pode
+   começar em paralelo.
 3. **Dado** que a ação é oferecida, **quando** quem administra a vê, **então** o texto diz o que
    vai acontecer — encerrar o registro, não cancelar a coleta que já rodou.
 4. **Dado** um registro de outro tenant, **quando** alguém tenta encerrá-lo, **então** a resposta é
@@ -162,15 +169,24 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
   trabalho é dito como ausência — nunca como erro genérico.
 - **FR-004**: Encerrar NÃO DEVE apagar nada: checkpoints, contagens, payloads e o próprio registro
   continuam. Muda o estado e o motivo.
-- **FR-005**: Uma execução cujo trabalho **está vivo** NÃO DEVE ser encerrada por verificação
-  automática. "Vivo" DEVE incluir **todo** estado que significa "vai executar" — e a lista completa
-  vem da fila, não da memória de quem escreve o código.
+- **FR-005**: A verificação automática NÃO DEVE encerrar execução que tenha **qualquer** trabalho
+  não terminal — inclusive trabalho que **consta em execução**. Se a coleta estiver de fato
+  rodando, encerrar o registro libera a restrição e uma segunda coleta começa **em paralelo**.
+- **FR-005a**: Trabalho **em execução NÃO é prova de vida**. É um registro de que algum processo
+  reivindicou o trabalho, e a reivindicação sobrevive ao processo. A plataforma consegue provar
+  "vai executar" para o que a fila ainda vai pegar; para o que consta em execução, **não consegue
+  provar nada** — e é dessa lacuna que a decisão humana existe.
+- **FR-005b**: A lista de estados DEVE ser derivada da própria fila, nunca escrita de memória.
 - **FR-006**: O bloqueio DEVE sair **sem depender de alguém abrir a tela** — a plataforma percebe
   quando o trabalho termina mal.
 - **FR-007**: A decisão de encerrar DEVE ter **um caminho só**, usado por todos os gatilhos: dois
   caminhos para a mesma decisão discordariam, e o projeto já pagou por isso três vezes.
-- **FR-008**: A tela de sincronizações DEVE oferecer a ação de encerrar **apenas** quando a
-  plataforma não consegue provar que o trabalho está vivo.
+- **FR-008**: A tela DEVE oferecer a ação de encerrar **exatamente** quando a plataforma não
+  consegue provar que o trabalho vai executar — o que inclui o trabalho que **consta em execução**,
+  e é o caso que aconteceu duas vezes. Trabalho que a fila vai pegar NÃO DEVE receber a ação.
+- **FR-008a**: Quando o trabalho consta em execução, a confirmação DEVE dizer **o que a plataforma
+  não sabe** e **qual é o risco**: se a coleta estiver rodando, uma segunda começa em paralelo.
+  Pedir confirmação sem informar o risco é pedir confirmação de nada.
 - **FR-009**: O encerramento **por decisão humana** DEVE registrar **quem** decidiu. O
   encerramento pela plataforma DEVE deixar o autor **ausente** — e ausente significa "não foi
   pessoa", nunca um autor inventado.
@@ -213,8 +229,10 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
   deles é a palavra "erro" sozinha.
 - **SC-004**: Execução encerrada por este caminho preserva **100%** dos checkpoints, contagens e
   payloads que produziu.
-- **SC-005**: Nenhuma execução com trabalho vivo é encerrada automaticamente — verificado com um
-  trabalho em execução de fato.
+- **SC-005**: Nenhuma execução com trabalho não terminal é encerrada **automaticamente** —
+  verificado com trabalho em execução de fato na fila.
+- **SC-005a**: Execução cujo trabalho consta **em execução** é encerrável **por pessoa**, e é o
+  caso que motivou a feature. Se ela não for, o órfão de nó morto continua exigindo SQL.
 - **SC-006**: A ação de encerrar aparece **apenas** nas execuções que a plataforma não consegue
   provar vivas.
 - **SC-007**: Execução encerrada por pessoa tem autor; encerrada pela plataforma tem autor
