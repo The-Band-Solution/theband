@@ -210,6 +210,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
                 <th>state</th>
                 <th class="text-right">parts at source</th>
                 <th>promoted to</th>
+                <th>part of</th>
               </tr>
             </thead>
             <tbody>
@@ -243,6 +244,9 @@ defmodule TheBandWeb.RepositoryLive.Show do
                     {ConceptLabel.divergencia(i.divergence_kind)}
                   </div>
                 </td>
+                <td data-label="part of" class="max-w-xs">
+                  <.parte_de vinculos={vinculos(i, @pais, @repositorio, @nomes)} />
+                </td>
               </tr>
             </tbody>
           </table>
@@ -274,6 +278,93 @@ defmodule TheBandWeb.RepositoryLive.Show do
     """
   end
 
+  # A célula da coluna `part of`. **Ausência é nomeada**: 2 899 das 4 529 issues não são parte de
+  # nada, e uma célula vazia não distingue isso de "a plataforma não sabe" — ela sabe.
+  #
+  # Quando há mais de um pai **vigente**, a tela diz que há mais de um em vez de escolher. São 36
+  # issues, e é onde uma escolha silenciosa passa despercebida — `fetch_parent/2` faz exatamente
+  # essa escolha hoje, com `limit: 1` sem ordem.
+  attr :vinculos, :list, required: true
+
+  defp parte_de(assigns) do
+    ~H"""
+    <span :if={@vinculos == []} class="text-xs opacity-60">not part of anything</span>
+    <div :if={@vinculos != []} class="space-y-1">
+      <div :if={mais_de_um?(@vinculos)} class="text-xs text-warning">
+        {length(vigentes(@vinculos))} parents at the source — the platform does not choose between
+        them
+      </div>
+      <div :for={v <- @vinculos} class="text-sm">
+        <.link navigate={~p"/work/issues/#{v.id}"} class="link link-hover">
+          <span class="font-mono text-xs">#{v.number}</span> {v.title}
+        </.link>
+        <div :if={v.repositorio} class="text-xs opacity-60">in {v.repositorio}</div>
+        <span class="inline-flex items-center gap-1.5 text-xs">
+          <span
+            class={[
+              "size-2.5 shrink-0 rounded-[1px]",
+              is_nil(v.ausente_em) && "bg-current text-success",
+              v.ausente_em && "border border-dashed border-current text-base-content/50"
+            ]}
+            aria-hidden="true"
+          ></span>
+          <span :if={v.conceito} class="badge badge-xs badge-ghost">{v.conceito}</span>
+          <span class={v.ausente_em && "text-base-content/60"}>{v.relacao}</span>
+          <span class="sr-only">{rotulo_do_vinculo(v)}</span>
+        </span>
+        <div :if={v.ausente_em} class="text-xs opacity-60">
+          this link is no longer observed since {Calendar.strftime(v.ausente_em, "%d %b %Y")}
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp rotulo_do_vinculo(%{ausente_em: nil}),
+    do: "observed: the source declares this issue is part of that one"
+
+  defp rotulo_do_vinculo(_vinculo),
+    do: "absent: this link existed and is not present now"
+
+  # O que a célula precisa, montado fora do template: o conceito do pai (FR-003), a relação
+  # decidida pelo axioma (FR-004), e o repositório **só quando difere** — repetir o nome nas outras
+  # 1 609 linhas gastaria a atenção que os 57 vínculos de fora precisam ter.
+  #
+  # `Map.get/3` com `[]`, e não `pais[i.id]`: `list_parents/2` não cria chave para issue sem pai, e
+  # o acesso direto levantaria `KeyError` em 2 899 linhas.
+  defp vinculos(issue, pais, repositorio, nomes) do
+    pais
+    |> Map.get(issue.id, [])
+    |> Enum.map(fn pai ->
+      %{
+        id: pai.id,
+        number: pai.number,
+        title: pai.title,
+        conceito: ConceptLabel.rotulo(pai.derived_concept),
+        relacao:
+          ConceptLabel.relacao(WorkItems.relation(issue.derived_concept, pai.derived_concept)),
+        ausente_em: pai.no_longer_observed_at,
+        repositorio: outro_repositorio(pai, repositorio, nomes)
+      }
+    end)
+  end
+
+  defp outro_repositorio(
+         %{observed_repository_id: mesmo},
+         %{observed_repository_id: mesmo},
+         _nomes
+       ),
+       do: nil
+
+  defp outro_repositorio(pai, _repositorio, nomes),
+    do: Map.get(nomes, pai.observed_repository_id)
+
+  # **Só o vigente conta.** Um pai vigente mais um vínculo que acabou é **um** pai, não dois — e
+  # dizer "2 parents" nesse caso afirmaria uma decomposição que a origem não declara mais.
+  defp vigentes(vinculos), do: Enum.reject(vinculos, & &1.ausente_em)
+
+  defp mais_de_um?(vinculos), do: length(vigentes(vinculos)) > 1
+
   attr :issues, :list, required: true
 
   defp lista_curta(assigns) do
@@ -298,6 +389,14 @@ defmodule TheBandWeb.RepositoryLive.Show do
     total_promovido = soma(promovidas)
     total_lacuna = soma(lacunas)
 
+    issues =
+      WorkItems.list_issues(
+        tenant,
+        opts
+        |> Keyword.put(:limit, @por_pagina)
+        |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
+      )
+
     socket
     |> assign(
       coletadas: coletadas,
@@ -308,14 +407,23 @@ defmodule TheBandWeb.RepositoryLive.Show do
       desvio: coletadas - total_promovido - total_lacuna,
       # A mesma função que o detalhe da issue usa, aqui em lote.
       violacoes: WorkItems.rule07_violations(tenant, opts),
-      issues:
-        WorkItems.list_issues(
-          tenant,
-          opts
-          |> Keyword.put(:limit, @por_pagina)
-          |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
-        ),
+      issues: issues,
+      # **Uma** consulta para a página inteira, e não uma por linha: são 50 issues por página, e o
+      # repositório maior desta organização tem 2 514. A entrada são as issues já listadas.
+      pais: WorkItems.list_parents(tenant, Enum.map(issues, & &1.id)),
+      # A segunda consulta, e a segunda **fronteira**: o nome do repositório do pai é de CMPO, e
+      # `WorkItems` juntar a tabela dele quebraria a ADR 0003. Uma consulta virando mapa, como
+      # `nomes_de_repositorio/1` na página da pessoa. Incondicional de propósito: condicioná-la a
+      # "existe pai fora daqui" faria o número de consultas variar com o dado.
+      nomes: nomes_de_repositorio(tenant),
       organizacao: organizacao(tenant, socket.assigns.repositorio)
+    )
+  end
+
+  defp nomes_de_repositorio(tenant) do
+    Map.new(
+      CMPO.list_observed(tenant),
+      &{&1.observed_repository_id, &1.qualified_name || &1.name}
     )
   end
 

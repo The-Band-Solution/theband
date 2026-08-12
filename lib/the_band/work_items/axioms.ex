@@ -31,6 +31,8 @@ defmodule TheBand.WorkItems.Axioms do
 
   @tarefa "sro.intended_scrum_development_task"
   @epico "sro.epic"
+  @user_story "sro.atomic_user_story"
+  @compoem [@epico, @user_story]
 
   @doc """
   Verifica `sro.rule07` para uma issue, dado o conceito dela e o do pai.
@@ -60,4 +62,59 @@ defmodule TheBand.WorkItems.Axioms do
     do:
       "sro.rule07: a task attends an atomic user story, and this one has no parent. " <>
         "The task is still promoted — the link is missing, not the issue."
+
+  @doc """
+  Qual relação o vínculo é, dado o conceito da **filha** e o do **pai**.
+
+  ## Precondição: há pai
+
+  A ausência de pai **não** é caso desta função — quem não tem pai não tem relação. E chamá-la
+  com o pai ausente teria custo medido: `rule07/2` trata `nil` como "não tem pai", e as
+  **2 091** tarefas sem pai viriam com aviso de violação, afogando as **293** que são o caso
+  interessante. Essa violação continua sendo contada por `rule07_violations/2`, num painel
+  separado.
+
+  ## Dois `nil` diferentes, e é a ordem das cláusulas que os separa
+
+  Em `rule07/2`, `nil` no conceito do pai significa **não tem pai**. Aqui significa **o pai
+  existe e não foi promovido** — e por isso essa cláusula vem **antes** de o axioma ser
+  chamado. Passar esse `nil` adiante faria a tela dizer *task without parent* sobre uma issue
+  que tem pai.
+
+  O mesmo vale para a filha: sem o conceito dela, a relação não é decidível — e dizer "a
+  ontologia não nomeia" seria afirmar coisa diferente da verdade, que é "a plataforma não sabe
+  o conceito desta issue".
+
+  ## Quem decide é o conceito da filha
+
+  É como a plataforma **já** decide, do outro lado da mesma relação: `list_composition/2`
+  filtra filhas promovidas a épico ou user story, e `list_attendance/2` filtra filhas
+  promovidas a tarefa. Decidir pela dupla faria a mesma relação ter nome diferente dependendo
+  da tela por onde se olha.
+
+  Filha promovida a **defeito** não cai em nenhuma das duas: a rede de ontologias **não
+  nomeia** essa relação, e são 33 vínculos. Encaixá-la em composição daria à tela uma convicção
+  que a rede não sustenta — `sro.epic_composed_of_user_story` fala de user story, e defeito é
+  `osdef`.
+  """
+  @spec relacao(String.t() | nil, String.t() | nil) ::
+          :atendimento
+          | :composicao
+          | :nao_nomeada
+          | :filha_sem_conceito
+          | :pai_sem_conceito
+          | {:violacao, :task_parent_is_epic}
+  def relacao(nil, _conceito_do_pai), do: :filha_sem_conceito
+  def relacao(_conceito, nil), do: :pai_sem_conceito
+
+  def relacao(conceito, conceito_do_pai) do
+    case rule07(conceito, conceito_do_pai) do
+      {:violation, forma} -> {:violacao, forma}
+      :ok -> nomear(conceito)
+    end
+  end
+
+  defp nomear(@tarefa), do: :atendimento
+  defp nomear(conceito) when conceito in @compoem, do: :composicao
+  defp nomear(_conceito), do: :nao_nomeada
 end

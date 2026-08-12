@@ -64,6 +64,7 @@ defmodule TheBand.WorkItems do
   defdelegate list_attendance(tenant, collected_issue_id), to: Queries
   defdelegate list_unpromoted_parts(tenant, collected_issue_id), to: Queries
   defdelegate fetch_parent(tenant, collected_issue_id), to: Queries
+  defdelegate list_parents(tenant, issue_ids), to: Queries
   defdelegate rule07_violations(tenant, opts \\ []), to: Queries
   defdelegate list_refused_for(tenant, collected_issue_id), to: Queries
 
@@ -75,4 +76,5 @@ defmodule TheBand.WorkItems do
 
   defdelegate rule07(concept, parent_concept), to: Axioms
   defdelegate rule07_explanation(forma), to: Axioms, as: :explicacao
+  defdelegate relation(concept, parent_concept), to: Axioms, as: :relacao
 end
