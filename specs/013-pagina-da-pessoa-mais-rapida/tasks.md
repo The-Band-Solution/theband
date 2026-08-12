@@ -42,13 +42,18 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
 
 - **Pronta quando**: o servidor sobe localmente.
 - **Descrição**: para `/people/:id` (três pessoas: a mais lenta, a mais rápida e uma do meio),
-  `/work`, `/work/issues/:id` e `/work/repositories/:id`, gravar o HTML da tabela renderizada em
+  `/work`, `/work/issues/:id` e `/work/repositories/:id`, gravar o conteúdo da tabela renderizada em
   `specs/013-pagina-da-pessoa-mais-rapida/retratos/`. **É o "antes" da FR-008**, e sem ele a prova de
   conteúdo idêntico vira memória.
-- **Feita quando**: existe um arquivo por tela, com issues, conceitos, contagens e ordem; e o
-  procedimento para regravá-los está no `quickstart.md`.
-- **Teste**: regravar duas vezes seguidas produz arquivos **idênticos** — se não produzir, a tela já
-  é não determinística hoje, e isso é achado, não ruído.
+
+  **O HTML cru não serve, e isso é da análise**: `csrf_token`, ids de sessão e marcas de depuração do
+  LiveView mudam a cada render, e o `diff` **nunca** seria vazio — a fase de prova viraria "ignorar o
+  que parece inofensivo", que é o oposto do que ela existe para fazer. Grava-se o **texto das células
+  na ordem em que aparecem**, e o que foi removido fica declarado no cabeçalho do arquivo.
+- **Feita quando**: existe um arquivo por tela; regravar duas vezes seguidas produz arquivos
+  **idênticos**; e o procedimento está no `quickstart.md`.
+- **Teste**: a dupla gravação, com `diff` vazio. Se não for vazio, a tela **já** é não determinística
+  hoje — e isso é achado, não ruído.
 
 ---
 
@@ -58,18 +63,28 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
 
 - **Pronta quando**: T002 feita — os casos de vigência precisam estar passando **antes**.
 - **Descrição**: reescrever `promocoes_vigentes/1` em `lib/the_band/work_items/queries.ex` para
-  `left_lateral_join` com `parent_as/1` e `limit: 1`, ordenando por `inserted_at DESC, id DESC`
-  (FR-004). São **14** pontos de chamada no arquivo, em duas formas:
-  - `join(:left|:inner, [i], p in subquery(vigentes(tenant)), on: …)` — 8 pontos, ganham binding
-    nomeado;
-  - `left_join: p in subquery(promocoes_vigentes(tenant_id))` dentro de `from` — 6 pontos.
+  junção **lateral** com `parent_as/1` e `limit: 1`, ordenando por `inserted_at DESC, id DESC`
+  (FR-004). São **14** pontos de chamada, e **a variante importa mais que a reescrita**:
+
+  | Forma de hoje | Vira | Por quê |
+  |---|---|---|
+  | `join(:inner, …)` — **8 pontos** | `inner_lateral_join` | `inner` **exclui** issue sem promoção. `left` faria a tela ganhar linhas que ela não tem hoje, e nada falharia |
+  | `left_join:` dentro de `from` — **6 pontos** | `left_lateral_join` | mantém a issue sem promoção, com conceito nulo |
+
+  **A armadilha dos bindings é a L39, e ela já cobrou uma vez.** `parent_as` exige binding nomeado, e
+  acrescentar junção ao escopo compartilhado **desloca os bindings posicionais** de quem compõe sobre
+  ele — `[i, p]` passa a apontar para outra coisa, em silêncio. **Nenhum `select` ou `where` afetado
+  fica posicional**: os que dependem da promoção passam a nomear o binding.
+
   **Uma exceção declarada**: `current_promotions/2` recebe a lista de ids e não decora linha nenhuma
-  — ali a correção é **restringir a subconsulta aos ids recebidos**, não `LATERAL`. FR-001.
-- **Feita quando**: nenhuma consulta do módulo produz varredura sequencial de `issue_promotions`; o
-  caso do empate de T002 passa e a etiqueta `:pending` sai; e `mix gates` fica verde.
-- **Teste**: `test/the_band/work_items/promocao_vigente_test.exs` — o caso do empate, mais um teste
-  que executa `EXPLAIN` da consulta da pessoa e **falha se o plano contiver `Seq Scan` sobre
-  `issue_promotions`** (FR-010).
+  — ali a correção é **restringir a subconsulta aos ids recebidos**, não lateral. FR-001.
+- **Feita quando**: cada ponto usa a variante que preserva a semântica dele; o caso do empate de T002
+  passa e a etiqueta `:pending` sai; nenhum `select` afetado usa binding posicional; e `mix gates`
+  fica verde.
+- **Teste**: `test/the_band/work_items/promocao_vigente_test.exs` — três coisas, e a primeira é a que
+  a análise achou: **uma issue sem promoção nenhuma não pode aparecer** nas consultas que hoje usam
+  `inner`, e **precisa** aparecer nas que usam `left`; o caso do empate; e a contagem de linhas do
+  `select` de cada consulta afetada, comparada com a de hoje.
 
 ### T005 Indexar a designação pela pessoa
 
@@ -78,10 +93,11 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
   Os dois índices existentes são por `collected_issue_id` e respondem "quem é designado desta
   issue"; **nenhum responde a pergunta inversa**, que é a da página da pessoa. Medido: varredura de
   4 232 linhas descartando 3 882. FR-002.
-- **Feita quando**: `mix ecto.migrate` e o rollback voltam limpos; e o plano da consulta da pessoa
-  usa o índice em vez de varrer.
-- **Teste**: a ida e volta da migração, mais a asserção de `EXPLAIN` no teste de T004 — **sem
-  `Seq Scan` em `issue_assignees`**.
+- **Feita quando**: `mix ecto.migrate` e o rollback voltam limpos; e o índice existe com as duas
+  colunas na ordem declarada.
+- **Teste**: a ida e volta da migração, mais a conferência do índice em `pg_indexes`. **Não** se
+  assere ausência de `Seq Scan` na suíte: com dezenas de linhas o Postgres varre de propósito, e o
+  teste reprovaria com o código certo. A prova do plano é no dado real, em T009.
 
 ### T006 [P] Unificar a segunda definição de promoção vigente
 
@@ -139,12 +155,16 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
 
 - **Pronta quando**: T004 feita.
 - **Descrição**: teste que **dobra** o histórico de promoções de um cenário — sem apagar nada,
-  acrescentando — e exige que o tempo da consulta da pessoa varie menos de 10%. SC-006, FR-010. É o
-  teste que impede a regressão de voltar: sem ele, alguém reintroduz a varredura e ninguém percebe
-  até a tela doer de novo.
-- **Feita quando**: com o dobro do histórico, o tempo não dobra; e o teste falha se a varredura
-  voltar.
-- **Teste**: o próprio arquivo, medindo com o histórico simples e com o dobrado, no mesmo caso.
+  acrescentando — e exige que o **trabalho** da consulta não dobre. SC-006, FR-010.
+
+  **Mede linhas lidas, nunca milissegundos.** Relógio dentro da suíte reprova em CI carregada e passa
+  em máquina ociosa: é a **L22** — gate que compara duas execuções não sabe dizer se alguma
+  funcionou. O número vem do `EXPLAIN (ANALYZE)` da própria consulta, comparando linhas de
+  `issue_promotions` lidas nos dois cenários.
+- **Feita quando**: dobrar o histórico **não** dobra as linhas lidas; a contagem de promoções depois
+  é maior que antes (SC-007, nada foi apagado); e o teste falha se a varredura voltar.
+- **Teste**: o próprio arquivo, com o histórico simples e o dobrado no mesmo caso, asserindo sobre
+  linhas lidas.
 
 ---
 
