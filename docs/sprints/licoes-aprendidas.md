@@ -1170,3 +1170,68 @@ Foi `/speckit-analyze` que fez a pergunta, e é o argumento concreto para a fase
 examina o desenho contra o estado do mundo, e não contra o cenário do teste.
 
 **Estado**: aberta. **Tipo**: processo.
+
+---
+
+## L34 — A mesma palavra para duas coisas diferentes esconde o caso que a feature existe para resolver
+
+**Onde**: Sprint 007 — a feature de destravar a sincronização presa.
+
+**O que aconteceu.** O desenho tinha **uma** noção de "trabalho vivo": qualquer job em estado não
+terminal. A implementação passou nos testes, e estava errada.
+
+O job órfão medido no banco está `executing` desde 2026-08-09, num nó que não existe mais. Com uma
+noção só, `executing` bloqueava o encerramento automático **e** o humano — e a feature deixava preso
+exatamente o caso que a motivou. As duas execuções que exigiram SQL eram esse caso.
+
+**Por que aconteceu.** "Vivo" parecia uma pergunta; eram duas. *A plataforma pode encerrar sozinha?*
+e *a pessoa pode encerrar?* têm respostas diferentes para `executing`, porque a plataforma não
+consegue distinguir coleta rodando de processo morto — e a pessoa que reiniciou a aplicação
+consegue.
+
+**Por que os testes não pegaram.** Eles mediam o que o desenho dizia. O teste de "não encerrar
+coleta viva" passava com `executing`, e nenhum teste perguntava *"e o órfão, quem encerra?"* —
+porque o desenho tinha respondido "ninguém" sem dizer.
+
+**O que fazer diferente.** Quando uma condição aparece em **dois** pontos de decisão — aqui, o
+gatilho automático e a ação humana —, perguntar se ela significa a mesma coisa nos dois. Se a
+resposta para algum estado divergir, são duas condições, e usar uma só apaga um caso.
+
+O sinal de alerta é o nome genérico: "ativo", "válido", "pronto". Nome genérico costuma cobrir duas
+perguntas que ninguém separou.
+
+**Estado**: aberta. **Tipo**: técnica.
+
+---
+
+## L35 — Conferir contra a origem acha defeito fora da feature que se está entregando
+
+**Onde**: Sprint 007 — a pessoa mantenedora achou o número de issues baixo e pediu conferência.
+
+**O que aconteceu.** A conferência confirmou que a coleta está quase completa — **4283 na origem,
+4280 no banco**, e as 3 que faltam nasceram depois da última coleta. Nada é filtrado por estado nem
+por arquivamento.
+
+E achou **dois defeitos que ninguém procurava**:
+
+| defeito | custo |
+|---|---|
+| a marca de inacessível não se cura: o repositório marcado é filtrado **antes** da coleta, e a função que limparia a marca nunca o alcança | 39 repositórios e **899 issues** fora de toda coleta futura |
+| erro **interno** do GitHub — HTTP 200 com `errors` — é classificado como falha permanente | criou uma marca nova no mesmo dia |
+
+O primeiro é a **L29 revisitada**, e é o que mais importa: a correção da L29 impediu marcas novas
+por falha transitória e não alcançou as que já existiam — porque a cura declarada, *"a cura é a
+própria coleta"*, pressupõe que a coleta **tente**. Ela não tenta: o inacessível é filtrado antes.
+
+**Por que passou despercebido por dois sprints.** O total no banco está a 3 issues do total da
+origem. **O número agregado está certo, e o mecanismo está quebrado** — a perda é de tudo que for
+criado a partir de agora nesses 39 repositórios, e hoje ela é quase zero.
+
+**O que fazer diferente.** Conferir contra a origem **não é só somar o total**. A soma casou aqui e
+esconderia o defeito para sempre. O que achou foi comparar **repositório por repositório**, e depois
+perguntar *por que este está marcado, e o que limparia a marca?*
+
+E o corolário: quando uma lição declara uma cura — "a cura é a própria coleta" —, conferir se o
+caminho da cura é **alcançável**. Cura que pressupõe um passo que o filtro impede não é cura.
+
+**Estado**: aberta. **Tipo**: processo.
