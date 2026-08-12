@@ -17,7 +17,7 @@ defmodule TheBandWeb.SourceLive.Index do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Ferramentas", form_open: false)
+     |> assign(page_title: "Tools", form_open: false)
      |> load_tools()}
   end
 
@@ -40,7 +40,7 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "A credencial foi recusada pela ferramenta. Nada foi gravado."
+           "The tool refused the credential. Nothing was saved."
          )}
 
       {:error, {:missing_scopes, missing}} ->
@@ -53,10 +53,11 @@ defmodule TheBandWeb.SourceLive.Index do
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível gravar: #{errors(changeset)}")}
+        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Falha ao validar a credencial: #{inspect(reason)}")}
+        {:noreply,
+         put_flash(socket, :error, "Failed to validate the credential: #{inspect(reason)}")}
     end
   end
 
@@ -87,7 +88,7 @@ defmodule TheBandWeb.SourceLive.Index do
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
     end
   end
 
@@ -96,7 +97,7 @@ defmodule TheBandWeb.SourceLive.Index do
   def handle_event("ask_resume", %{"id" => id}, socket) do
     case Sources.fetch_connected_tool(socket.assigns.current_tenant, id) do
       {:ok, tool} -> {:noreply, assign(socket, resuming: tool)}
-      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Tool not found.")}
     end
   end
 
@@ -125,14 +126,14 @@ defmodule TheBandWeb.SourceLive.Index do
        |> assign(resuming: nil)
        |> put_flash(
          :info,
-         "Observação de #{tool.organization_login} retomada. " <>
-           "Os registros marcados voltam a ser vigentes na próxima coleta, " <>
+         "Observation of #{tool.organization_login} resumed. " <>
+           "The marked records become current again on the next collection, " <>
            "e só os que a origem ainda mostrar."
        )
        |> load_tools()}
     else
       {:error, :unauthorized} ->
-        {:noreply, put_flash(socket, :error, "A credencial foi recusada pela ferramenta.")}
+        {:noreply, put_flash(socket, :error, "The tool refused the credential.")}
 
       {:error, {:missing_scopes, faltando}} ->
         {:noreply,
@@ -143,10 +144,10 @@ defmodule TheBandWeb.SourceLive.Index do
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível retomar a observação.")}
+        {:noreply, put_flash(socket, :error, "Could not resume the observation.")}
     end
   end
 
@@ -164,18 +165,18 @@ defmodule TheBandWeb.SourceLive.Index do
        |> assign(ending: nil)
        |> put_flash(
          :info,
-         "Observação de #{tool.organization_login} encerrada. " <>
+         "Observation of #{tool.organization_login} ended. " <>
            "#{resultado.marked.people} pessoa(s), #{resultado.marked.teams} equipe(s) e " <>
            "#{resultado.marked.links} vínculo(s) marcados. " <>
-           "#{resultado.credentials_destroyed} credencial(is) destruída(s). Nada foi apagado."
+           "#{resultado.credentials_destroyed} credential(s) destroyed. Nothing was deleted."
        )
        |> load_tools()}
     else
       {:error, :confirmation_mismatch} ->
-        {:noreply, put_flash(socket, :error, "O nome digitado não corresponde à organização.")}
+        {:noreply, put_flash(socket, :error, "The name typed does not match the organisation.")}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
     end
   end
 
@@ -190,7 +191,7 @@ defmodule TheBandWeb.SourceLive.Index do
         </:subtitle>
         <:actions>
           <.button phx-click="toggle_form">
-            {if @form_open, do: "Cancelar", else: "Conectar ferramenta"}
+            {if @form_open, do: "Cancel", else: "Connect tool"}
           </.button>
         </:actions>
       </.header>
@@ -199,14 +200,14 @@ defmodule TheBandWeb.SourceLive.Index do
         <form id="conectar-ferramenta" phx-submit="connect" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="form-control">
-              <span class="label-text">Tipo de ferramenta</span>
+              <span class="label-text">Tool type</span>
               <select name="tool_type" class="select select-bordered">
                 <option value="github">github</option>
               </select>
             </label>
 
             <label class="form-control">
-              <span class="label-text">Instância</span>
+              <span class="label-text">Instance</span>
               <input
                 name="instance_url"
                 value="https://github.com"
@@ -216,25 +217,25 @@ defmodule TheBandWeb.SourceLive.Index do
             </label>
 
             <label class="form-control">
-              <span class="label-text">Organização a observar</span>
+              <span class="label-text">Organisation to observe</span>
               <input name="organization_login" class="input input-bordered" placeholder="minha-org" />
             </label>
 
             <label class="form-control">
-              <span class="label-text">Rótulo da credencial</span>
+              <span class="label-text">Credential label</span>
               <input name="label" class="input input-bordered" placeholder="conta de serviço" />
             </label>
           </div>
 
           <label class="form-control">
-            <span class="label-text">Credencial</span>
+            <span class="label-text">Credential</span>
             <input type="password" name="secret" class="input input-bordered" autocomplete="off" />
             <span class="label-text-alt opacity-70">
               Validada contra a ferramenta antes de ser gravada. Depois disso não é mais exibida.
             </span>
           </label>
 
-          <.button type="submit" variant="primary">Validar e conectar</.button>
+          <.button type="submit" variant="primary">Validate and connect</.button>
         </form>
       </div>
 
@@ -251,7 +252,7 @@ defmodule TheBandWeb.SourceLive.Index do
                     cartão afirmar duas coisas contrárias — o estado de observação vence,
                     porque é ele que decide se a plataforma coleta (FR-022). --%>
               <span :if={@ended[tool.id]} class="badge badge-ghost">
-                observação encerrada
+                observation ended
               </span>
               <span
                 :if={!@ended[tool.id]}
@@ -271,9 +272,9 @@ defmodule TheBandWeb.SourceLive.Index do
 
           <div class="text-right text-sm opacity-70">
             <div :if={tool.last_sync_at}>última coleta: {tool.last_sync_at}</div>
-            <div :if={is_nil(tool.last_sync_at)}>nunca sincronizada</div>
+            <div :if={is_nil(tool.last_sync_at)}>never synced</div>
             <div :if={@ended[tool.id]} class="text-xs">
-              encerrada em {@ended[tool.id]}
+              ended at {@ended[tool.id]}
             </div>
             <button
               :if={!@ended[tool.id]}
@@ -309,7 +310,7 @@ defmodule TheBandWeb.SourceLive.Index do
                 event.event == "ended" && "badge-error",
                 event.event == "resumed" && "badge-success"
               ]}>
-                {if event.event == "ended", do: "encerrada", else: "retomada"}
+                {if event.event == "ended", do: "ended", else: "resumed"}
               </span>
               <span class="opacity-70">{event.occurred_at}</span>
               <span :if={event.reason} class="opacity-70">— {event.reason}</span>
@@ -328,7 +329,7 @@ defmodule TheBandWeb.SourceLive.Index do
           </p>
 
           <p class="mb-3 opacity-80">
-            Os registros marcados <strong>não voltam a ser vigentes agora</strong>: só a
+            Os registros marcados <strong>do not become current again now</strong>: só a
             coleta seguinte pode dizer se a origem ainda os mostra. Desmarcar aqui
             afirmaria uma observação que não aconteceu.
           </p>
@@ -336,7 +337,7 @@ defmodule TheBandWeb.SourceLive.Index do
           <form phx-submit="resume_observation" class="flex flex-wrap gap-2 items-end">
             <input type="hidden" name="tool_id" value={tool.id} />
             <label class="form-control">
-              <span class="label-text text-xs">Credencial nova</span>
+              <span class="label-text text-xs">New credential</span>
               <input
                 name="secret"
                 type="password"
@@ -353,7 +354,7 @@ defmodule TheBandWeb.SourceLive.Index do
                 placeholder="credencial principal"
               />
             </label>
-            <.button type="submit" variant="primary">Validar e retomar</.button>
+            <.button type="submit" variant="primary">Validate and resume</.button>
             <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_resume">
               cancelar
             </button>
@@ -366,7 +367,7 @@ defmodule TheBandWeb.SourceLive.Index do
           </div>
 
           <div class="mb-2">
-            <div class="opacity-80">Serão marcados como não mais observados:</div>
+            <div class="opacity-80">Will be marked as no longer observed:</div>
             <div class="font-mono">
               {@ending.impact.teams} equipe(s) — {@ending.impact.derived_teams} derivada(s) pela plataforma
             </div>
@@ -377,7 +378,7 @@ defmodule TheBandWeb.SourceLive.Index do
           </div>
 
           <div :if={@ending.impact.people_shared > 0} class="mb-2">
-            <div class="opacity-80">Permanecem vigentes:</div>
+            <div class="opacity-80">Remain current:</div>
             <div class="font-mono">
               {@ending.impact.people_shared} pessoa(s) — também observada(s) em outra organização
             </div>
@@ -387,12 +388,12 @@ defmodule TheBandWeb.SourceLive.Index do
           </div>
 
           <div class="mb-2">
-            <div class="opacity-80">Serão destruídas:</div>
-            <div class="font-mono">as credenciais desta ferramenta</div>
+            <div class="opacity-80">Will be destroyed:</div>
+            <div class="font-mono">this tool&#39;s credentials</div>
           </div>
 
           <div class="mb-3">
-            <div class="opacity-80 font-semibold">NÃO serão apagados:</div>
+            <div class="opacity-80 font-semibold">Will NOT be deleted:</div>
             <div class="font-mono">
               {@ending.impact.preserved_payloads} payload(s) preservado(s), nem pessoa, equipe ou vínculo algum
             </div>
@@ -406,7 +407,7 @@ defmodule TheBandWeb.SourceLive.Index do
               </span>
               <input name="confirmation" class="input input-bordered input-sm" autocomplete="off" />
             </label>
-            <.button type="submit" variant="primary">Encerrar</.button>
+            <.button type="submit" variant="primary">End observation</.button>
             <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_end">
               cancelar
             </button>
@@ -421,14 +422,14 @@ defmodule TheBandWeb.SourceLive.Index do
         </div>
 
         <div>
-          <div class="text-sm font-semibold mb-2">Credenciais</div>
+          <div class="text-sm font-semibold mb-2">Credentials</div>
           <table class="table table-sm">
             <thead>
               <tr>
                 <th>rótulo</th>
-                <th>credencial</th>
-                <th>escopos</th>
-                <th>validada em</th>
+                <th>credential</th>
+                <th>scopes</th>
+                <th>validated at</th>
                 <th>estado</th>
                 <th></th>
               </tr>

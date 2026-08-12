@@ -65,18 +65,19 @@ defmodule TheBand.Mapping.PatternValidator do
   pessoa relê a expressão inteira procurando o parêntese que faltou.
   """
   @spec explicar(motivo()) :: String.t()
+  # As três frases vão para a tela, e por isso são em inglês.
   def explicar({:does_not_compile, razao, posicao}),
-    do: "a expressão não compila: #{razao}, na posição #{posicao}"
+    do: "the expression does not compile: #{razao}, at position #{posicao}"
 
   def explicar(:matches_empty),
     do:
-      "a expressão casa texto vazio, e casaria todas as issues da organização — " <>
-        "uma regra que casa tudo não classifica nada"
+      "the expression matches empty text, so it would match every issue in the organisation — " <>
+        "a rule that matches everything classifies nothing"
 
   def explicar({:too_slow, limite}),
     do:
-      "a expressão passou de #{limite}ms sobre títulos reais desta organização; " <>
-        "quantificadores aninhados são a causa usual"
+      "the expression took longer than #{limite}ms over real titles from this organisation; " <>
+        "nested quantifiers are the usual cause"
 
   # `Regex.compile/2` devolve `{:error, {razão, posição}}` e nada mais — o dialyzer
   # confirma. Uma cláusula extra para `{:error, razão}` nunca casaria, e cláusula morta é

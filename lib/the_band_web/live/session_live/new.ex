@@ -15,7 +15,7 @@ defmodule TheBandWeb.SessionLive.New do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, users: Tenants.list_all_users(), page_title: "Entrar")}
+    {:ok, assign(socket, users: Tenants.list_all_users(), page_title: "Sign in")}
   end
 
   @impl true
@@ -23,13 +23,13 @@ defmodule TheBandWeb.SessionLive.New do
     ~H"""
     <Layouts.app flash={@flash}>
       <.header>
-        Entrar
-        <:subtitle>Escolha com qual organização e pessoa você quer trabalhar.</:subtitle>
+        Sign in
+        <:subtitle>Choose which organisation and person you want to work as.</:subtitle>
       </.header>
 
       <div :if={@users == []} class="alert alert-warning">
         <div>
-          <p class="font-semibold">Nenhuma organização cadastrada ainda.</p>
+          <p class="font-semibold">No organisation registered yet.</p>
           <p class="text-sm">
             Rode <code>mix run priv/repo/seeds.exs</code> para criar as organizações de exemplo.
           </p>

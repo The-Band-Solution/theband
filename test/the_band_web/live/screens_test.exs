@@ -86,8 +86,8 @@ defmodule TheBandWeb.ScreensTest do
 
       # Duas contas conhecidas, uma pessoa: o cabeçalho conta pessoas, e a
       # automação aparece contada à parte.
-      assert html =~ "1 pessoa"
-      assert html =~ "conta de automação"
+      assert html =~ "1 person"
+      assert html =~ "automation account"
       assert html =~ "dependabot"
     end
 
@@ -96,7 +96,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(log_in(build_conn(), user), ~p"/pessoas")
 
-      assert html =~ "Nenhuma sincronização trouxe pessoas ainda"
+      assert html =~ "No sync has brought people yet"
     end
   end
 
@@ -179,7 +179,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(log_in(conn, usuario_outro), ~p"/pessoas")
       refute html =~ "Ana Souza"
-      assert html =~ "Nenhuma sincronização trouxe pessoas ainda"
+      assert html =~ "No sync has brought people yet"
 
       {:ok, _live, html} = live(log_in(build_conn(), usuario_outro), ~p"/equipes")
       refute html =~ "Core"
@@ -254,7 +254,7 @@ defmodule TheBandWeb.ScreensTest do
     test "/pessoas mostra as organizações de cada pessoa", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/pessoas")
 
-      assert html =~ "organizações"
+      assert html =~ "organisations"
       assert html =~ "alfa"
       assert html =~ "beta"
     end
@@ -266,7 +266,7 @@ defmodule TheBandWeb.ScreensTest do
       # fariam a contagem do cabeçalho discordar da listagem, que é o defeito que
       # esta tela existe para tornar visível.
       assert html |> String.split("Ana") |> length() == 2
-      assert html =~ "em 2 organizações"
+      assert html =~ "in 2 organisations"
     end
 
     test "quem não está em equipe alguma aparece, dizendo por que não tem organização", %{
@@ -277,7 +277,7 @@ defmodule TheBandWeb.ScreensTest do
       # Aparecer é o ponto: some da lista faria parecer que a pessoa não foi
       # coletada. O que falta é o vínculo, e a tela diz isso.
       assert html =~ "Carla"
-      assert html =~ "sem equipe — organização desconhecida"
+      assert html =~ "no team — organisation unknown"
     end
 
     test "a tela avisa que a soma por organização é maior que o total", %{conn: conn} do
@@ -285,7 +285,7 @@ defmodule TheBandWeb.ScreensTest do
 
       # Sem este aviso, o primeiro a somar as contagens por organização conclui que
       # há defeito onde há sobreposição correta.
-      assert html =~ "soma das pessoas por organização é maior que o total"
+      assert html =~ "sum of people per"
     end
 
     test "/equipes mostra a organização de cada equipe", %{conn: conn} do
@@ -386,11 +386,11 @@ defmodule TheBandWeb.ScreensTest do
 
       html = live |> element("button", "encerrar observação") |> render_click()
 
-      assert html =~ "Encerrar a observação de acme"
-      assert html =~ "Permanecem vigentes"
+      assert html =~ "End observation"
+      assert html =~ "Remain current"
       # O nome, e não um contador: "1 pessoa permanece" não deixa reconhecer quem é.
       assert html =~ "Sobreposta"
-      assert html =~ "NÃO serão apagados"
+      assert html =~ "Will NOT be deleted"
       assert html =~ "Para confirmar, digite"
     end
 
@@ -403,7 +403,7 @@ defmodule TheBandWeb.ScreensTest do
         |> form("form[phx-submit=end_observation]", %{"confirmation" => "acm"})
         |> render_submit()
 
-      assert html =~ "não corresponde"
+      assert html =~ "does not match"
       refute Sources.observation_ended?(tool)
     end
 
@@ -419,9 +419,9 @@ defmodule TheBandWeb.ScreensTest do
         |> form("form[phx-submit=end_observation]", %{"confirmation" => "acme"})
         |> render_submit()
 
-      assert html =~ "encerrada"
-      assert html =~ "Nada foi apagado"
-      assert html =~ "observação encerrada"
+      assert html =~ "ended"
+      assert html =~ "Nothing was deleted"
+      assert html =~ "observation ended"
       assert Sources.observation_ended?(tool)
     end
 
@@ -468,7 +468,7 @@ defmodule TheBandWeb.ScreensTest do
 
       assert html =~ "credencial anterior foi destruída"
       # A frase existe para impedir o mal-entendido: retomar não ressuscita nada por si.
-      assert html =~ "não voltam a ser vigentes agora"
+      assert html =~ "do not become current again now"
     end
 
     test "credencial recusada não retoma, e a tela diz", %{conn: conn, tool: tool} do
@@ -484,7 +484,7 @@ defmodule TheBandWeb.ScreensTest do
         |> form("form[phx-submit=resume_observation]", %{"secret" => "ghp_ruim"})
         |> render_submit()
 
-      assert html =~ "recusada pela ferramenta"
+      assert html =~ "refused the credential"
       assert Sources.observation_ended?(tool)
     end
 
@@ -508,7 +508,7 @@ defmodule TheBandWeb.ScreensTest do
         })
         |> render_submit()
 
-      assert html =~ "retomada"
+      assert html =~ "resumed"
       assert html =~ "só os que a origem ainda mostrar"
       refute Sources.observation_ended?(tool)
     end
@@ -549,13 +549,13 @@ defmodule TheBandWeb.ScreensTest do
       {:ok, live, html} = live(conn, ~p"/ferramentas")
 
       # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
-      refute html =~ "observação encerrada"
+      refute html =~ "observation ended"
       assert html =~ "histórico de observação (2)"
 
       aberto = live |> element("button", "histórico de observação") |> render_click()
 
-      assert aberto =~ "encerrada"
-      assert aberto =~ "retomada"
+      assert aberto =~ "ended"
+      assert aberto =~ "resumed"
     end
 
     test "ferramenta que nunca encerrou não mostra histórico", %{conn: conn} do

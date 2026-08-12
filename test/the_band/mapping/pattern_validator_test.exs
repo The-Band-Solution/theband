@@ -21,14 +21,14 @@ defmodule TheBand.Mapping.PatternValidatorTest do
       assert is_binary(razao)
       assert is_integer(posicao)
 
-      assert V.explicar({:does_not_compile, razao, posicao}) =~ "posição"
+      assert V.explicar({:does_not_compile, razao, posicao}) =~ "at position"
     end
 
     test "expressão que casa texto vazio é recusada" do
       assert V.validate("regex", ".*", @titulos) == {:error, :matches_empty}
       assert V.validate("regex", "(a)?", @titulos) == {:error, :matches_empty}
 
-      assert V.explicar(:matches_empty) =~ "casaria todas as issues"
+      assert V.explicar(:matches_empty) =~ "match every issue"
     end
 
     test "padrão vazio é recusado em qualquer forma de comparação" do
