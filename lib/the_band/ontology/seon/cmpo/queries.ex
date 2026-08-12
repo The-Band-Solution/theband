@@ -61,14 +61,21 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
   @doc """
   Os repositórios que a coleta deve consultar.
 
-  Exclui os que o tenant excluiu e os inacessíveis — e nenhum dos dois tem a ausência
-  marcada por causa disso.
+  Exclui **só** os que o tenant excluiu. O inacessível **entra**, e a coleta tenta de novo —
+  porque exclusão é decisão de alguém e inacessibilidade é inferência da plataforma, e tratar
+  as duas como uma deu à inferência a mesma força da decisão.
+
+  Foi assim que um `:nxdomain` de um instante tirou 39 repositórios e 899 issues de circulação
+  por dois dias: o inacessível era filtrado **antes** da fase que limparia a marca, então a
+  cura declarada — "alcançou, limpa" — nunca era alcançada.
+
+  Nenhum dos dois casos marca a ausência das issues por causa disso.
   """
   @spec list_collectable(Tenant.t(), Ecto.UUID.t()) :: [map()]
   def list_collectable(%Tenant{} = tenant, connected_tool_id) do
     tenant
     |> list_observed(connected_tool_id: connected_tool_id)
-    |> Enum.reject(&(&1.excluded_at || &1.inaccessible_since))
+    |> Enum.reject(& &1.excluded_at)
   end
 
   @spec count_observed(Tenant.t(), keyword()) :: non_neg_integer()

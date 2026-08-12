@@ -127,8 +127,11 @@ defmodule TheBand.Integrations.GitHub.Client do
       "organisation #{inspect(login)} was not found on this instance. " <>
         "Use the organisation login — what comes after github.com/ — not the whole URL"
 
+  # Truncado **aqui**, onde a mensagem é montada, e não pela largura da coluna: o texto vem da
+  # origem e não tem tamanho garantido. Antes desta truncagem, a coluna era `varchar(255)` com
+  # 27 caracteres de folga, e um valor maior derrubaria a fase de coleta — a L05.
   def describe_error({:graphql_errors, [%{"message" => mensagem} | _]}),
-    do: "the tool refused the query: #{mensagem}"
+    do: "the tool refused the query: #{String.slice(mensagem, 0, 400)}"
 
   def describe_error({:unexpected_status, status}) when status >= 500,
     do:
@@ -159,7 +162,36 @@ defmodule TheBand.Integrations.GitHub.Client do
   def transient?({:transport, _reason}), do: true
   def transient?({:unexpected_status, status}) when status >= 500, do: true
   def transient?({:unexpected_status, status, _body}) when status >= 500, do: true
+
+  # Erro de GraphQL chega com **sucesso de transporte** — HTTP 200 e `errors` no corpo —, e
+  # antes desta cláusula caía no caso geral como permanente. Foi assim que uma falha interna
+  # da origem, de 2026-08-12 às 12:32:29, tirou um repositório de circulação: a mensagem pede
+  # para reportar o incidente com um identificador, o que é o oposto de permanente.
+  #
+  # **Numa lista, vence o permanente.** A origem pode responder "não encontrado" para um campo
+  # e falha interna para outro; tratar como transitório faria a plataforma insistir num
+  # recurso que não existe.
+  def transient?({:graphql_errors, errors}) when is_list(errors) and errors != [],
+    do: Enum.all?(errors, &erro_do_momento?/1)
+
   def transient?(_outro), do: false
+
+  # `RATE_LIMITED` chega aqui quando a pausa não o alcançou antes — e ele se cura esperando.
+  defp erro_do_momento?(%{"type" => "RATE_LIMITED"}), do: true
+
+  # "Não encontrado" e "sem escopo" se repetem: o repositório não existe, ou a credencial não
+  # o alcança. Escopo não muda sozinho.
+  defp erro_do_momento?(%{"type" => tipo}) when is_binary(tipo), do: false
+
+  # Sem `type`, decide a mensagem. A assinatura da falha interna da origem é estável e vem
+  # com identificador de incidente — é o payload que produziu a 39ª marca no dado real.
+  defp erro_do_momento?(%{"message" => mensagem}) when is_binary(mensagem),
+    do: String.contains?(mensagem, "Something went wrong while executing your query")
+
+  # O desconhecido é **permanente**, e a ordem das correções é a razão: marcar de menos
+  # deixaria repositório apagado sendo consultado a cada coleta, para sempre. Marcar de mais
+  # deixou de ser permanente, porque a coleta seguinte tenta de novo.
+  defp erro_do_momento?(_erro), do: false
 
   @doc """
   Decide se é hora de pausar (FR-016, research.md R6).

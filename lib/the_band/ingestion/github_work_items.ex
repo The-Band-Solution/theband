@@ -76,7 +76,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
        %{
          organization_id: organization.id,
          repositories: length(repositorios),
-         issues: Enum.sum(Enum.map(resultado, & &1.coletadas))
+         issues: Enum.sum(Enum.map(resultado, & &1.coletadas)),
+         unreachable: Enum.count(resultado, &(&1.alcancado == false))
        }}
     end
   end
@@ -190,7 +191,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         {:ok, _} =
           WorkItems.mark_issues_no_longer_observed(ctx.tenant, observado_id, ctx.started_at)
 
-        %{repositorio: repo.name, coletadas: length(gravadas)}
+        %{repositorio: repo.name, coletadas: length(gravadas), alcancado: true}
 
       {:error, reason} ->
         # Falha **transitória** não marca nada: marcar tira o repositório de
@@ -211,7 +212,12 @@ defmodule TheBand.Ingestion.GithubWorkItems do
           Logger.warning("repositório inacessível: #{repo.name}")
         end
 
-        %{repositorio: repo.name, coletadas: 0}
+        # Registrado **agora**, no instante da falha, e não no fim da fase: se a execução for
+        # interrompida, o número precisa dizer o que falhou até aqui. Zero num registro
+        # interrompido afirmaria que tudo foi alcançado.
+        ctx.sync |> Ingestion.reload() |> Ingestion.tally(:repository_unreachable)
+
+        %{repositorio: repo.name, coletadas: 0, alcancado: false}
     end
   end
 

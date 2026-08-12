@@ -156,9 +156,20 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
           {:ok, ObservedRepository.t()} | {:error, :not_found | Ecto.Changeset.t()}
   def mark_inaccessible(%Tenant{id: tenant_id}, observed_repository_id, reason) do
     with {:ok, observed} <- fetch_observed(tenant_id, observed_repository_id) do
+      # A data é gravada **na primeira** falha e preservada nas seguintes: ela responde *desde
+      # quando* a plataforma não alcança, e não *quando alguém tentou por último*.
+      #
+      # Sobrescrever fazia um repositório inacessível há dez dias parecer novo em cada coleta —
+      # e com a coleta tentando de novo a cada execução, a data seria reescrita sempre, apagando
+      # a diferença entre problema crônico e falha de agora.
+      #
+      # O **motivo** é sempre atualizado: ele carrega a última falha, e é o que decide se
+      # alguém age.
+      desde = observed.inaccessible_since || DateTime.utc_now(:second)
+
       observed
       |> ObservedRepository.changeset(%{
-        inaccessible_since: DateTime.utc_now(:second),
+        inaccessible_since: desde,
         inaccessible_reason: reason
       })
       |> Repo.update()

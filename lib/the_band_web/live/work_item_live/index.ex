@@ -159,7 +159,15 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
         <section class="space-y-2">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 class="font-semibold">Repositories</h3>
+            <div>
+              <h3 class="font-semibold">Repositories</h3>
+              <%!-- A frase entra UMA vez, e não uma por linha: repetir 39 vezes gastaria a
+                    atenção que o motivo de cada uma precisa ter. --%>
+              <p :if={@inacessiveis > 0} class="text-xs text-base-content/60">
+                {@inacessiveis} {plural(@inacessiveis, "repository", "repositories")} could not be
+                reached in the last collection. The platform tries again on every collection.
+              </p>
+            </div>
             <form phx-change="filtrar">
               <label class="sr-only" for="repo-filter">Filter by repository</label>
               <select
@@ -245,7 +253,20 @@ defmodule TheBandWeb.WorkItemLive.Index do
                   <td data-label="issues" class="text-right tabular">
                     {@por_repositorio[r.observed_repository_id] || 0}
                   </td>
-                  <td data-label="state">{situacao(r)}</td>
+                  <%!-- `unreachable` sozinho lê como abandono — e era verdade até a feature 009,
+                        porque o repositório marcado era filtrado antes da fase que limparia a
+                        marca. Com a data, quem lê distingue falha de agora de problema crônico;
+                        com o motivo, decide se age. Em texto, nunca só por cor. --%>
+                  <td data-label="state">
+                    {situacao(r)}
+                    <div
+                      :if={r.inaccessible_since && r.inaccessible_reason}
+                      class="text-xs text-base-content/60"
+                      title={r.inaccessible_reason}
+                    >
+                      {motivo_curto(r.inaccessible_reason)}
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -377,6 +398,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
       repositorios: repositorios,
       repos_observados: length(repositorios),
       por_repositorio: por_repositorio(tenant, repositorios),
+      inacessiveis: Enum.count(repositorios, & &1.inaccessible_since),
       com_ausentes:
         WorkItems.repositories_with_absent_issues(
           tenant,
@@ -525,8 +547,15 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   defp situacao(%{excluded_at: at}) when not is_nil(at), do: "excluded by the tenant"
 
-  defp situacao(%{inaccessible_since: at}) when not is_nil(at), do: "unreachable"
+  defp situacao(%{inaccessible_since: at}) when not is_nil(at),
+    do: "unreachable since #{Calendar.strftime(at, "%d %b")}"
 
   defp situacao(%{archived_at: at}) when not is_nil(at), do: "archived at the source"
   defp situacao(_), do: "observed"
+
+  # Truncado na exibição, com o texto completo no `title`: o motivo real tem 228 caracteres, e
+  # numa tabela de 135 linhas ele domina a linha. Isto **não** substitui a truncagem na borda —
+  # aquela impede a queda, esta cuida da leitura.
+  defp motivo_curto(motivo) when byte_size(motivo) > 80, do: String.slice(motivo, 0, 80) <> "…"
+  defp motivo_curto(motivo), do: motivo
 end
