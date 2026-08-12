@@ -21,7 +21,7 @@ Do [registro acumulado](../licoes-aprendidas.md), 39 lições. As que entram com
 | Lição | Origem | Como está sendo aplicada |
 |---|---|---|
 | **L08** | Sprint 002 | contrato antes da primeira função pública — `contracts/issue-parent.md` |
-| **L18** | Sprint 003 | a aceitação avalia os 15 SC com evidência, nunca a suíte verde |
+| **L18** | Sprint 003 | a aceitação avalia os 13 SC com evidência, nunca a suíte verde |
 | **L20** | Sprint 003 | `order_by` determinístico em `list_parents/2`; é a lição que **achou** o defeito da `fetch_parent/2` |
 | **L21** | Sprint 004 | F1 são consultas sem consumidor; a coluna está no mesmo sprint |
 | **L22**, **L23** | Sprint 004 | gate por código de saída |
@@ -151,6 +151,6 @@ migração.
 - [ ] PR com revisor pedido e **conferido** por `requested_reviewers` (L14), ligado ao projeto
 - [ ] `sprint-review.md` escrito, separando feito de não feito
 - [ ] `licoes-aprendidas.md` atualizado
-- [ ] `aceitacao.md` com os 15 SC avaliados um a um
+- [ ] `aceitacao.md` com os 13 SC avaliados um a um
 - [ ] **a tela olhada em 360 px** — e não só asserida em HTML, que é a dívida que atravessou quatro
       sprints
