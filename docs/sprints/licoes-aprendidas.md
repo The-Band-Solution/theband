@@ -1533,3 +1533,91 @@ que ela avalia. Procurar num só lugar dá falso negativo nos dois sentidos.
 memória.
 
 **Estado**: aberta.
+
+---
+
+## L45 — Sprint novo tirado da `main` não enxerga o fecho do sprint anterior enquanto o PR está aberto
+
+**Origem**: Sprint 011 · **Tipo**: processo
+
+**O que aconteceu.** A branch do sprint 011 saiu da `main`, como sempre. E na `main` não existiam o
+`sprint-review.md` do sprint 010, a aceitação da feature 011, o `RETOMAR.md` atualizado, nem as
+lições **L38 a L44** — os quatro estão no PR [#264](https://github.com/The-Band-Solution/theband/pull/264),
+aberto e aguardando revisão.
+
+O sprint 011 abriria citando lições que, **daquela branch**, não existiam. É o defeito da L44 por
+outro caminho: lá a lição não tinha sido escrita; aqui ela foi escrita e não está onde quem abre o
+sprint procura.
+
+**Por que aconteceu.** A L44 conferiu a **existência** dos três documentos e não a **visibilidade**
+deles. `ls docs/sprints/<n>-*/` responde diferente conforme a branch, e a conferência foi escrita
+como se `main` fosse o único lugar onde documento vive.
+
+E há a causa de fundo: o fecho de um sprint viaja no **mesmo PR** da feature. Enquanto ele não
+incorpora, o sprint está fechado no repositório e aberto na `main`.
+
+**O que fazer diferente.** Ao abrir sprint, conferir **onde** o fecho do anterior está antes de
+escolher a base da branch:
+
+```bash
+gh pr list --state open           # o fecho do sprint anterior está num PR aberto?
+git log --oneline main -1         # a main tem o commit que fecha o sprint anterior?
+```
+
+Se estiver em PR aberto, **empilhar** a branch sobre a dele — foi o que este sprint fez, e teve o
+efeito colateral de desbloquear a tarefa de tela, que dependia do mesmo código.
+
+**Estado**: aberta.
+
+---
+
+## L46 — Teste com corte temporal e dado montado no mesmo instante passa ou falha por sorte
+
+**Origem**: Sprint 011 · **Tipo**: técnica
+
+**O que aconteceu.** Dois defeitos de teste, ambos de relógio, ambos no mesmo dia:
+
+| Sintoma | Causa |
+|---|---|
+| a segunda coleta não marcava nada | as duas coletas caem no **mesmo segundo**, e o corte é `<` estrito |
+| a marca alcançou **33** vínculos onde se esperava 9 | o corte era `DateTime.utc_now/1`, e montar a fixture leva centenas de milissegundos: parte dos vínculos ficou do lado errado da virada do segundo |
+
+O segundo é o pior dos dois: ele **passa** quando a máquina está rápida.
+
+**Por que aconteceu.** O corte de uma marca de ausência é uma afirmação sobre **tempo decorrido**, e
+o teste montava tudo num instante só. No dado real, entre uma coleta e a seguinte passam horas.
+
+**O que fazer diferente.** Em teste de corte temporal, duas regras:
+
+- **envelhecer o dado explicitamente** — recuar o carimbo do que a coleta anterior gravou, em vez de
+  esperar que o relógio ande sozinho;
+- **o corte é sempre passado e fixo** — `agora() - 15 min`, nunca `agora()`. Um corte no instante da
+  chamada compete com o tempo de montagem do cenário.
+
+**Estado**: aberta.
+
+---
+
+## L47 — Vínculo entre repositórios só existe a partir da segunda coleta
+
+**Origem**: Sprint 011 · **Tipo**: conhecimento
+
+**O que aconteceu.** O teste do vínculo cujo pai está em `A` e a filha em `B` falhou por não achar
+vínculo nenhum. A causa não é o teste: é como a coleta funciona.
+
+`vincular/2` roda **por repositório**, e resolve a filha por `external_id` entre as issues **já
+gravadas**. Quando `A` é processado, a issue de `B` ainda não existe — a relação vira recusa
+`out_of_scope`. Na coleta **seguinte**, a filha já está no banco, e aí o vínculo é registrado.
+
+**Por que importa.** Explica dois números do dado real que pareciam desconexos: as **4** recusas
+`out_of_scope`, e os **57** vínculos que cruzam repositório. São o mesmo fenômeno em momentos
+diferentes — a recusa é o vínculo cruzado **antes** da coleta que o completa.
+
+E tem consequência direta: **a primeira coleta de uma organização subconta a decomposição**, e
+ninguém percebe, porque a recusa é registrada em silêncio.
+
+**O que fazer diferente.** Ao medir decomposição em organização recém-observada, conferir
+`refused_links` antes de concluir que a origem não declara. E ao montar cenário de teste com vínculo
+entre repositórios, **coletar duas vezes** — uma coleta só não produz o estado.
+
+**Estado**: aberta.
