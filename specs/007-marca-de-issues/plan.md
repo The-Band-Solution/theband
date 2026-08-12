@@ -190,7 +190,7 @@ desenho**, mais cinco menores. As correções estão nos artefatos, e duas mudam
 
 | # | O que estava errado | O que passou a valer |
 |---|---|---|
-| A1 | a marca decidia pela data antes da contagem, e diria `not collected yet` sobre os **41** repositórios que têm issues — porque depois da migração todos têm data nula | a ordem é **contagem primeiro**; a data só decide quando a contagem é zero — FR-005a, T005, V9 |
+| A1 | a marca decidia pela data antes da contagem, e diria `no collection recorded` sobre os **41** repositórios que têm issues — porque depois da migração todos têm data nula | a ordem é **contagem primeiro**; a data só decide quando a contagem é zero — FR-005a, T005, V9 |
 | A5 | o MVP declarado era F1+F3, que produz tela afirmando coleta que não houve | o MVP é **F1+F2+F3**; só F1 é cortável sozinha |
 | A2 | FR-010 tinha verificação no quickstart e nenhum SC | SC-007 |
 | A3 | nenhuma tarefa dizia o que a coleta faz com `{:error, :not_found}` | T004: registra em log e segue, nunca interrompe |

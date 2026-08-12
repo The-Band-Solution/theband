@@ -31,6 +31,73 @@ defmodule TheBand.WorkItems.Queries do
     do: tenant |> escopo(opts) |> select([i], count(i.id)) |> Repo.one()
 
   @doc """
+  Quantas issues **vigentes** cada repositório tem, numa consulta agrupada.
+
+  Existe porque a tela chamava `count_collected/2` uma vez por repositório — 135
+  consultas para desenhar `/work` — e a marca de trabalho precisa do mesmo número.
+  Ler de novo faria 270; agrupar faz 1.
+
+  **Repositório sem nenhuma issue não aparece no mapa.** Quem chama usa
+  `Map.get(mapa, id, 0)`, e o zero ali significa "nenhuma issue vigente", nunca "não
+  sei" — distinguir os dois é papel de `observed_repositories.issues_collected_at`, e
+  não desta função.
+
+  **Vigente é `no_longer_observed_at` nulo.** Issue marcada como ausente não conta
+  como trabalho presente. A coluna de contagem da tela lê deste mesmo mapa, então as
+  duas nunca divergem — FR-010.
+  """
+  @spec count_collected_by_repository(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          Ecto.UUID.t() => non_neg_integer()
+        }
+  def count_collected_by_repository(%Tenant{}, []), do: %{}
+
+  def count_collected_by_repository(%Tenant{id: tenant_id}, repository_ids)
+      when is_list(repository_ids) do
+    from(i in CollectedIssue,
+      where:
+        i.tenant_id == ^tenant_id and
+          i.observed_repository_id in ^repository_ids and
+          is_nil(i.no_longer_observed_at),
+      group_by: i.observed_repository_id,
+      select: {i.observed_repository_id, count(i.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
+  Quais destes repositórios têm issue marcada como **não mais observada**.
+
+  Existe para o quarto texto da marca de trabalho, que não é um quarto estado dela:
+  repositório sem issue vigente **mas** com issue ausente exibe `no current work`, e não
+  `collected, no issues`. Houve trabalho e ele não está presente — são fatos diferentes, e
+  "no issues" apagaria o fato de que existiram.
+
+  Devolve `MapSet`, e não contagem: a pergunta é de existência, e uma contagem convidaria
+  alguém a exibi-la ao lado como se fosse trabalho vigente.
+
+  **Não estava no contrato original desta feature.** Ele declarava duas funções, e a
+  implementação mostrou que o quarto texto não é derivável delas: a contagem de vigentes
+  não distingue "nunca teve issue" de "teve e não tem mais".
+  """
+  @spec repositories_with_absent_issues(Tenant.t(), [Ecto.UUID.t()]) :: MapSet.t(Ecto.UUID.t())
+  def repositories_with_absent_issues(%Tenant{}, []), do: MapSet.new()
+
+  def repositories_with_absent_issues(%Tenant{id: tenant_id}, repository_ids)
+      when is_list(repository_ids) do
+    from(i in CollectedIssue,
+      where:
+        i.tenant_id == ^tenant_id and
+          i.observed_repository_id in ^repository_ids and
+          not is_nil(i.no_longer_observed_at),
+      distinct: true,
+      select: i.observed_repository_id
+    )
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  @doc """
   Issues com a promoção vigente de cada uma.
 
   A promoção vigente é a **última** — `inserted_at` em microssegundo desempata, e é a

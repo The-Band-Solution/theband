@@ -98,14 +98,14 @@ feature acrescenta uma coluna, uma consulta e cerca de 15 linhas de markup.
 **Depois da migração de T003, todos os 135 repositórios têm `issues_collected_at` nulo** — nenhuma
 coleta anterior registrou a data. E **41 deles têm issues vigentes**, um com 2 514.
 
-Se a marca decidir pela data antes da contagem, a tela diz `not collected yet` sobre esses 41.
+Se a marca decidir pela data antes da contagem, a tela diz `no collection recorded` sobre esses 41.
 Não é lacuna: é a plataforma **afirmando** que nunca olhou um repositório de que ela tem 2 514
 issues coletadas. A ordem é fixa:
 
 ```
 contagem > 0                → cheia,     "N issues"
 contagem 0 e data presente  → vazia,     "collected, no issues"
-contagem 0 e data nula      → tracejada, "not collected yet"
+contagem 0 e data nula      → tracejada, "no collection recorded"
 ```
 
 Está em FR-005a, na descrição de T005, no contrato, em SC-008, e é medido por V9 contra o banco.
@@ -114,7 +114,7 @@ Está em FR-005a, na descrição de T005, no contrato, em SC-008, e é medido po
 
 **Feature 007 completa — F1 a F3, T001 a T007.** É o MVP, e a análise corrigiu isto: a versão
 anterior do plano dizia F1+F3, e sem a coluna de F2 a marca diria `collected, no issues` sobre 94
-repositórios que a plataforma nunca consultou.
+repositórios de que **não há registro de coleta** — afirmando coleta que ela não tem como provar.
 
 **Afirmação falsa não é MVP — é defeito com menos código.**
 
@@ -155,7 +155,7 @@ O número da branch difere do diretório da spec de propósito, e está explicad
 - [ ] `mix gates` verde pelo **código de saída** — dez gates
 - [ ] base de conhecimento válida, com o validador Python de fato executado
 - [ ] V1 a V9 do [quickstart](../../specs/007-marca-de-issues/quickstart.md) verificados
-- [ ] V9 medido **no dado real**: nenhum dos 41 repositórios com issues exibe `not collected yet`
+- [ ] V9 medido **no dado real**: nenhum dos 41 repositórios com issues exibe `no collection recorded`
 - [ ] as sete issues encerradas ou repriorizadas com justificativa
 - [ ] PR com revisor pedido e **conferido** por `requested_reviewers` (L14), ligado ao projeto
 - [ ] `sprint-review.md` escrito, separando feito de não feito

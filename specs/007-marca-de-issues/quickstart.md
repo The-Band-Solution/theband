@@ -27,7 +27,7 @@ Abra `/work`.
 |---|---|---|
 | `theband` (194 issues) | preenchida | `194 issues` |
 | um dos 94 sem issue, já coletado | vazia | `collected, no issues` |
-| um recém-observado, sem coleta | tracejada | `not collected yet` |
+| um recém-observado, sem coleta | tracejada | `no collection recorded` |
 
 **O que NÃO pode aparecer**: `0` como quantidade em nenhum dos dois últimos.
 
@@ -50,7 +50,7 @@ mix test test/the_band_web/live/work_mark_test.exs -o "sem cor"
 mix test test/the_band_web/live/work_mark_test.exs -o "desconhecido"
 ```
 
-**Esperado**: `collected, no issues` para quem tem `issues_collected_at`, `not collected yet` para
+**Esperado**: `collected, no issues` para quem tem `issues_collected_at`, `no collection recorded` para
 quem não tem. **Se os dois textos forem iguais, o teste falha** — é o defeito que a feature existe
 para não ter.
 
@@ -128,7 +128,7 @@ muda sozinha.
 **É a verificação que a análise acrescentou**, e a que pega o defeito mais grave possível nesta
 feature: depois da migração **todos** os 135 repositórios têm `issues_collected_at` nulo, e 41
 deles têm issues dentro. Se a marca decidir pela data antes da contagem, a tela diz
-`not collected yet` sobre um repositório com 2 514 issues.
+`no collection recorded` sobre um repositório com 2 514 issues.
 
 ```bash
 mix test test/the_band_web/live/work_mark_test.exs -o "contagem primeiro"
@@ -145,7 +145,7 @@ select count(*) from observed_repositories r
 ```
 
 **Esperado**: o número que sair dali — 41 hoje — é quantos repositórios a tela **precisa** mostrar
-como tendo trabalho apesar de não haver data. Nenhum deles pode exibir `not collected yet`.
+como tendo trabalho apesar de não haver data. Nenhum deles pode exibir `no collection recorded`.
 
 **Falha típica**: `if repo.issues_collected_at == nil, do: :desconhecido` como primeiro ramo.
 

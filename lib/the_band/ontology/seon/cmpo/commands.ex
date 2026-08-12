@@ -189,6 +189,32 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
     end
   end
 
+  @doc """
+  Registra que a fase de issues rodou para este repositório.
+
+  É **evento**, não situação: diz que a plataforma olhou, e não quantas issues achou. A
+  contagem vem da consulta, sempre — guardá-la aqui seria situação materializada, a ADR
+  0004 D7.
+
+  Idempotente: sobrescreve com a data da última coleta.
+
+  **Repositório excluído ou inacessível não recebe a data**, porque não foi consultado, e
+  a ausência dela é a informação — é o que permite a tela dizer "não sei" em vez de
+  "zero".
+
+  `{:error, :not_found}` não é falha da coleta: significa que o repositório saiu da
+  observação entre o começo da fase e a marcação. Quem chama registra e segue.
+  """
+  @spec mark_issues_collected(Tenant.t(), Ecto.UUID.t(), DateTime.t()) ::
+          {:ok, ObservedRepository.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def mark_issues_collected(%Tenant{id: tenant_id}, observed_repository_id, at) do
+    with {:ok, observed} <- fetch_observed(tenant_id, observed_repository_id) do
+      observed
+      |> ObservedRepository.changeset(%{issues_collected_at: at})
+      |> Repo.update()
+    end
+  end
+
   defp fetch_observed(tenant_id, id) do
     case Repo.one(from o in ObservedRepository, where: o.tenant_id == ^tenant_id and o.id == ^id) do
       nil -> {:error, :not_found}

@@ -37,7 +37,7 @@ para a marca; a informação que eu queria carregar — repositório inacessíve
 
 **A análise achou um defeito crítico no desenho, e ele entrou como requisito.** `/speckit-analyze`
 rodou antes do código: a marca decidia pela data de coleta antes da contagem, e depois da migração
-**todos** os 135 repositórios têm data nula — então a tela diria `not collected yet` sobre os 41
+**todos** os 135 repositórios têm data nula — então a tela diria `no collection recorded` sobre os 41
 que têm issues dentro, um deles com 2 514. FR-005a fixa a ordem: **contagem primeiro**, e a data só
 decide quando a contagem é zero. Verificado por V9, medido no dado real.
 

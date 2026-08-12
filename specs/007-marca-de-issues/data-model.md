@@ -79,7 +79,7 @@ E daí sai o **quarto texto**, que não é um quarto estado da marca:
 | > 0 | — | `N issues` |
 | 0 | **sim**, todas ausentes | `no current work` |
 | 0 | não, e a coleta rodou | `collected, no issues` |
-| 0 | não, e a coleta nunca rodou | `not collected yet` |
+| 0 | não, e a coleta nunca rodou | `no collection recorded` |
 
 `no current work` afirma que **houve** trabalho e ele não está presente. Dizer "no issues" ali
 apagaria o fato de que existiram — e é a mesma distinção que `no_longer_observed_at` carrega em

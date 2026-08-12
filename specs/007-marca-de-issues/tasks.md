@@ -102,19 +102,19 @@ defeito que a feature existe para não ter.
     `lib/the_band_web/live/work_item_live/index.ex`, com um helper privado para o texto.
     **Nenhum componente novo** — há um chamador só, e a tabela e o cartão do telefone são o mesmo
     HTML (R1). Três estados, três canais: forma preenchida/vazia/tracejada, texto
-    `N issues`/`collected, no issues`/`not collected yet`, e rótulo acessível por extenso.
+    `N issues`/`collected, no issues`/`no collection recorded`, e rótulo acessível por extenso.
     **Cor não conta como canal** — WCAG 1.4.1, e é regra do design system. Os utilitários de
     forma são os mesmos de `<.evidence>`, e o padrão vem do `docs/design-system.md`.
 
     **A ordem de decisão é a contagem primeiro, e errá-la faz a tela mentir sobre 41
     repositórios.** Depois da migração de T003 todos os 135 têm `issues_collected_at` nulo,
     porque nenhuma coleta anterior a registrou — e 41 deles têm issues vigentes. Decidir pela
-    data primeiro diria `not collected yet` sobre um repositório com 2 514 issues dentro:
+    data primeiro diria `no collection recorded` sobre um repositório com 2 514 issues dentro:
 
     ```
     contagem > 0                    → cheia,       "N issues"
     contagem 0 e data presente      → vazia,       "collected, no issues"
-    contagem 0 e data nula          → tracejada,   "not collected yet"
+    contagem 0 e data nula          → tracejada,   "no collection recorded"
     ```
 
     A data só decide quando a contagem é zero. **Nunca antes disso**
@@ -189,8 +189,8 @@ real.
 nenhuma mudança visível. Se a feature parar aqui, o ganho permanece.
 
 **F1+F2+F3 é o MVP, e a análise corrigiu isto.** A versão anterior dizia F1+F3, e estava errada:
-sem a coluna de F2 a marca diria `collected, no issues` sobre 94 repositórios que a plataforma
-nunca consultou. É o único ponto da feature onde omitir produz **afirmação falsa**, e afirmação
+sem a coluna de F2 a marca diria `collected, no issues` sobre 94 repositórios de que não há
+registro de coleta. É o único ponto da feature onde omitir produz **afirmação falsa**, e afirmação
 falsa não é MVP — é defeito com menos código.
 
 ## Fora do escopo, e ficou de fora
