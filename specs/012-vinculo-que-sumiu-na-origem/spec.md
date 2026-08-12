@@ -173,8 +173,10 @@ no que respondeu.
 - **O ciclo recusado** (`reason: "cycle"`) continua fora: nunca foi vínculo.
 - **A coleta que falha no meio da paginação** do repositório: se a leitura não completou, o
   repositório não conta como olhado, e nada dele é marcado.
-- **O relógio.** A marca usa o instante em que a **execução começou**, nunca "agora" no momento da
-  escrita — senão um vínculo gravado durante a própria execução pode cair do lado errado do corte.
+- **O relógio, e são dois instantes diferentes.** O **corte** é o início da execução: sem isso, um
+  vínculo gravado durante a própria execução cai do lado errado. A **data da marca** é quando a
+  ausência foi notada — igual a issue, designado e rótulo, e trocar isso daria dois significados à
+  mesma coluna em tabelas vizinhas.
 - **Vínculo já marcado que continua ausente** numa coleta seguinte: a data **não** é reescrita. O que
   se registra é quando deixou de ser visto, não quando se olhou de novo.
 
@@ -186,8 +188,9 @@ no que respondeu.
 
 - **FR-001**: A coleta MUST marcar como ausente todo vínculo de decomposição cujo **pai** está no
   repositório coletado e que a execução **não** reviu.
-- **FR-002**: A marca MUST usar o instante em que a execução da sincronização **começou**, e nunca o
-  instante da escrita.
+- **FR-002**: O **corte** entre "revisto nesta execução" e "não revisto" MUST ser o instante em que a
+  execução **começou** — nunca "agora". A **data gravada na marca** MUST seguir a convenção que a
+  plataforma já usa em issue, designado e rótulo: o instante em que a ausência foi notada.
 - **FR-003**: O escopo da marca MUST ser o **repositório do pai** — nunca o tenant, nunca a
   organização.
 - **FR-004**: A marca MUST ser aplicada **uma vez por repositório coletado**, e só depois de a
@@ -206,8 +209,10 @@ no que respondeu.
   texto — não só cor.
 - **FR-012**: Contagens de decomposição — "mais de um pai", partes de um pai, e as listas de
   atendimento e composição — MUST contar **só** os vínculos vigentes.
-- **FR-013**: O relatório da sincronização MUST informar **quantos** vínculos a execução marcou como
-  ausentes, por repositório.
+- **FR-013**: A coleta MUST registrar, **por repositório**, quantos vínculos marcou — no resultado da
+  fase e no log da execução. E MUST NOT criar número novo na tela de sincronizações: o consumidor
+  visível é a lista de issues, e um segundo número ao lado dos outros convida a somar o que não se
+  soma.
 - **FR-014**: Recusas (`refused_links`) MUST permanecer fora desta marcação.
 
 ### Key Entities
@@ -237,8 +242,8 @@ no que respondeu.
   passa a dizer, em texto, que elas acabaram.
 - **SC-005**: Duas coletas seguidas sem mudança na origem produzem **as mesmas** datas em todos os
   1 666 vínculos.
-- **SC-006**: O relatório da sincronização informa o número de vínculos marcados, e esse número bate
-  com a contagem feita direto no banco.
+- **SC-006**: O log da execução nomeia o repositório e quantos vínculos ele marcou, e esse número
+  bate com a contagem feita direto no banco.
 
 ---
 
