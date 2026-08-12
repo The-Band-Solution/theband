@@ -42,15 +42,25 @@ defmodule TheBandWeb.Layouts do
           barra a partir de `sm:`. O caminho inverso — desenhar para a mesa e quebrar para
           baixo — produz o menu que corta no meio em 360px.
 
-          A tagline vem do rodapé da tese: cada serviço é um músico tocando um instrumento —
-          uma ontologia —, e juntos produzem música (informação) a partir de notas (os dados
-          das aplicações). É o que distingue isto de um ETL: notas não são música. --%>
+          A tagline diz a cadeia inteira, e nesta ordem: dado, informação, ação de quem
+          decide. O nome carrega a metáfora da tese — cada serviço é um músico tocando um
+          instrumento, uma ontologia, e juntos produzem música (informação) a partir de
+          notas (os dados das aplicações) para um público (a organização).
+
+          `Orchestrating` é escolha deliberada da pessoa mantenedora, e tem um sentido a
+          desfazer: em vocabulário técnico ele virou palavra de infraestrutura — contêiner,
+          fluxo de tarefa. Aqui ele é o maestro da metáfora, e o resto da frase é o que
+          impede a leitura errada: orquestrador de contêiner não entrega informação sobre
+          que a organização age.
+
+          E a frase termina em `act on` porque informação que ninguém usa para decidir não
+          é o produto. É o público da tese, dito sem metáfora. --%>
     <header class="border-b border-base-300 px-4 py-2 sm:px-6 sm:py-0 lg:px-8">
       <div class="flex flex-col gap-2 sm:h-16 sm:flex-row sm:items-center sm:gap-4">
         <a href="/" class="flex items-baseline gap-2 font-semibold">
           The Band
           <span class="hidden text-xs font-normal text-base-content/60 sm:inline">
-            notes into music
+            Orchestrating data into information organisations can act on
           </span>
         </a>
       </div>

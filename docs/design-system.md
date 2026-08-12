@@ -25,7 +25,33 @@ Este documento é normativo: o que está aqui vale para toda tela nova.
 | música | informação: o conceito, a medida, a resposta | *promoted to*, as contagens, as divergências |
 | público | a organização que decide | toda tela é escopada por organização |
 
-A tagline é `notes into music`. Cinco palavras, sem explicação — quem pergunta recebe o rodapé.
+A tagline é **`Orchestrating data into information organisations can act on`**.
+
+Ela diz a cadeia inteira, na ordem em que a plataforma a percorre:
+
+| na frase | na plataforma |
+|---|---|
+| `data` | a nota: o dado como a origem entregou |
+| `orchestrating` | os músicos e os instrumentos: cada serviço tocando uma ontologia |
+| `information` | a música: o conceito, a medida, a resposta |
+| `organisations can act on` | o público: quem decide, e a decisão que a medida sustenta |
+
+**A metáfora saiu da tagline e ficou no nome.** `The Band` carrega a banda; a linha abaixo diz o que
+a banda entrega, sem pedir que ninguém conheça o rodapé da tese. Quem pergunta pelo nome recebe a
+tabela acima.
+
+`Orchestrating` tem um sentido a desfazer, e vale registrar: em vocabulário técnico a palavra virou
+infraestrutura — orquestrar contêiner, orquestrar fluxo de tarefa. Aqui é o maestro, e o que impede
+a leitura errada é o fim da frase: nenhum orquestrador de contêiner entrega **informação sobre que a
+organização age**.
+
+`act on` é o teste da frase inteira. Informação que ninguém usa para decidir não é o produto — e é o
+que a base de conhecimento já exige, com `decision_supported` declarado em cada necessidade de
+informação antes de existir medida.
+
+Versões anteriores, e por que saíram: `notes into music` parava no meio — transformar dado em
+informação é o que todo pipeline promete; `notes into music you can decide on` acrescentava o
+público e continuava exigindo a metáfora para ser entendida.
 
 E a metáfora dá o argumento central: **um músico que improvisa não está errado, mas quem ouve
 precisa saber que aquilo não estava escrito.** É a distinção entre observado e derivado.
