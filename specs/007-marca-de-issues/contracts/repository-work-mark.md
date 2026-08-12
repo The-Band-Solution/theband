@@ -41,6 +41,10 @@ Idempotente: sobrescreve com a data da última coleta.
 **Repositório excluído ou inacessível não recebe a data**, porque não foi consultado — e a
 ausência dela é a informação.
 
+**`{:error, :not_found}` não é falha da coleta.** Ele significa que o repositório saiu da
+observação entre o começo da fase e a marcação. Quem chama registra em log e segue: casar só
+`{:ok, _}` derrubaria a fase inteira com `MatchError` por causa de um repositório excluído.
+
 ### `list_observed(tenant, opts)` — ampliada
 
 Passa a expor `issues_collected_at`. Ampliação de `select`, sem mudança de assinatura nem de
@@ -50,13 +54,19 @@ fronteira — a mesma feita na feature 006 para `description` e `collected_at`.
 
 ## O estado da marca — derivado, nunca gravado
 
-A tela combina os dois dados em três valores:
+A tela combina os dois dados em três valores, e **a ordem das linhas desta tabela é a ordem da
+decisão** — contagem primeiro, data depois:
 
 | contagem | `issues_collected_at` | marca | texto |
 |---|---|---|---|
-| > 0 | qualquer | cheia | `N issues` |
+| > 0 | **qualquer, inclusive `nil`** | cheia | `N issues` |
 | 0 | presente | vazia | `collected, no issues` |
 | 0 | `nil` | desconhecida | `not collected yet` |
+
+**Inverter a ordem é o defeito A1 da análise**: no dia da migração todos os 135 repositórios têm
+`issues_collected_at` nulo, e 41 têm issues — decidir pela data primeiro faria a tela dizer
+`not collected yet` sobre um repositório com 2 514 issues dentro. A data **só** decide quando a
+contagem é zero — FR-005a.
 
 E o quarto caso, que não é estado da marca e sim do texto: repositório cujas issues são **todas**
 não vigentes exibe **`no current work`** — houve trabalho e ele não está presente.

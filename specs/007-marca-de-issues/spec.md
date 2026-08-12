@@ -26,10 +26,15 @@ O que falta é a **distinção visível**. Medido nos 135 repositórios observad
 
 | | quantos |
 |---|---:|
-| com issues coletadas | **36** |
-| sem issues coletadas | **99** |
+| com issues vigentes | **41** |
+| sem nenhuma issue vigente | **94** |
 
-**73% das linhas não têm trabalho a mostrar**, e descobrir isso hoje exige ler 135 números.
+**70% das linhas não têm trabalho a mostrar**, e descobrir isso hoje exige ler 135 números.
+
+**Sobre o 41 e o 36.** Contando por estado de observação, 36 repositórios têm issues **e** estão
+sendo observados; outros 5 têm issues **e** estão inacessíveis. A marca conta os dois: ela responde
+*"há trabalho aqui"*, e o estado de observação é da coluna `state` — FR-004. Confundir os dois
+números foi o erro da primeira versão desta spec.
 
 ---
 
@@ -40,7 +45,7 @@ O que falta é a **distinção visível**. Medido nos 135 repositórios observad
 Quem administra abre `/work` numa organização de 121 repositórios e precisa saber, de relance,
 quais têm trabalho coletado.
 
-**Teste independente**: com 36 repositórios com issues e 99 sem, a marca distingue os dois grupos
+**Teste independente**: com 41 repositórios com issues vigentes e 94 sem, a marca distingue os grupos
 sem que ninguém leia a coluna de contagem.
 
 **Cenários de aceitação**
@@ -51,7 +56,7 @@ sem que ninguém leia a coluna de contagem.
    aparece vazia, com texto dizendo que não há.
 3. **Dado** que a pessoa usa leitor de tela, **quando** percorre a lista, **então** cada marca é
    anunciada por extenso.
-4. **Dado** que a pessoa não distingue cores, **quando** vê a lista, **então** os dois estados
+4. **Dado** que a pessoa não distingue cores, **quando** vê a lista, **então** os três estados
    continuam distinguíveis pela forma e pelo texto.
 5. **Dado** o telefone, **quando** a lista vira cartões, **então** a marca continua legível.
 
@@ -92,15 +97,20 @@ explicação de por que não há.
 ### Functional Requirements
 
 - **FR-001**: A lista de repositórios em `/work` DEVE exibir, para cada repositório, uma marca
-  que distingue **tem trabalho coletado** de **não tem**.
-- **FR-002**: A marca DEVE distinguir os dois estados por **forma e texto**, e NÃO apenas por
-  cor — os dois permanecem distinguíveis em monocromático.
+  que distingue **tem trabalho coletado**, **não tem**, e **não se sabe** — o terceiro existe
+  porque zero e desconhecido são fatos diferentes (FR-005), e não porque a marca carrega estado
+  de observação, que continua na coluna `state` (FR-004).
+- **FR-002**: A marca DEVE distinguir os três estados por **forma e texto**, e NÃO apenas por
+  cor — os três permanecem distinguíveis em monocromático.
 - **FR-003**: Cada marca DEVE ter rótulo acessível a leitor de tela dizendo o estado por
   extenso.
 - **FR-004**: A marca NÃO DEVE repetir o que a coluna `state` já diz sobre observação —
   `unreachable`, `excluded` e `archived` continuam onde estão.
 - **FR-005**: Repositório com contagem **desconhecida** — nunca submetido a coleta de issues —
   NÃO DEVE aparecer como tendo zero: a marca e o texto dizem que não se sabe.
+- **FR-005a**: A decisão DEVE olhar **a contagem primeiro**: repositório com issues aparece como
+  tendo trabalho independentemente de haver registro de coleta. O registro só decide quando a
+  contagem é zero.
 - **FR-006**: A marca DEVE funcionar na tabela e no cartão do telefone.
 - **FR-007**: Todo repositório da lista DEVE continuar navegável, **inclusive os sem trabalho** —
   a tela deles explica por que estão vazios.
@@ -127,14 +137,18 @@ explicação de por que não há.
 
 - **SC-001**: Numa organização de 121 repositórios, é possível identificar os que têm trabalho
   coletado **sem ler nenhum número**.
-- **SC-002**: Os dois estados permanecem distinguíveis com a cor removida.
+- **SC-002**: Os três estados permanecem distinguíveis com a cor removida.
 - **SC-003**: Cada marca é anunciada por leitor de tela com o estado por extenso.
 - **SC-004**: Nenhum repositório com contagem desconhecida aparece como zero.
 - **SC-005**: Todos os 135 repositórios continuam navegáveis.
 - **SC-006**: Desenhar a lista faz o mesmo número de consultas que hoje, ou menos.
-- **SC-007**: A marca é legível e o link é tocável em largura de 360 px.
-- **SC-008**: Um tenant não alcança repositório de outro, e a mensagem não confirma existência.
-- **SC-009**: A tela de sincronização permanece sem a marca.
+- **SC-007**: Em toda linha, o número da coluna de contagem e o número que a marca resume são **o
+  mesmo** — nunca há "2514 issues" ao lado de uma marca vazia.
+- **SC-008**: Repositório com issues coletadas e **sem** registro de coleta aparece como tendo
+  trabalho, nunca como "não coletado" — **41 repositórios estão nesse estado hoje**.
+- **SC-009**: A marca é legível e o link é tocável em largura de 360 px.
+- **SC-010**: Um tenant não alcança repositório de outro, e a mensagem não confirma existência.
+- **SC-011**: A tela de sincronização permanece sem a marca.
 
 ---
 

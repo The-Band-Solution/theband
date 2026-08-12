@@ -1,7 +1,10 @@
 # Quickstart — Feature 007: a marca de trabalho no repositório
 
-Oito verificações. Os números vêm do dado real, medidos em 2026-08-12: **135 repositórios, 36 com
-issues, 61 coletados e vazios, 38 inacessíveis** — e 4474 issues no total.
+Nove verificações. Os números vêm do dado real, medidos em 2026-08-12: **135 repositórios, 41 com
+issues vigentes, 94 sem, 38 inacessíveis** — e 4474 issues no total.
+
+Dos 41 com issues, **5 estão inacessíveis** — e a marca conta os dois, porque o estado de
+observação é da coluna `state` (FR-004).
 
 ## Pré-requisitos
 
@@ -23,8 +26,8 @@ Abra `/work`.
 | repositório | marca | texto |
 |---|---|---|
 | `theband` (194 issues) | preenchida | `194 issues` |
-| um dos 61 vazios | vazia | `collected, no issues` |
-| um recém-observado | tracejada | `not collected yet` |
+| um dos 94 sem issue, já coletado | vazia | `collected, no issues` |
+| um recém-observado, sem coleta | tracejada | `not collected yet` |
 
 **O que NÃO pode aparecer**: `0` como quantidade em nenhum dos dois últimos.
 
@@ -89,7 +92,7 @@ leitores — FR-010.
 mix test test/the_band_web/live/work_mark_test.exs -o "clicável"
 ```
 
-**Esperado**: os 135 têm link, **inclusive os 61 vazios**. A tela deles explica por que estão
+**Esperado**: os 135 têm link, **inclusive os 94 sem issue**. A tela deles explica por que estão
 vazios, e é isso que alguém procura ao clicar num vazio.
 
 ---
@@ -117,6 +120,34 @@ data é a informação.
 
 **E o oposto também vale**: depois de uma coleta que os alcance, eles ganham a data e a marca
 muda sozinha.
+
+---
+
+## V9 — Nenhum dos 41 aparece como "não coletado"
+
+**É a verificação que a análise acrescentou**, e a que pega o defeito mais grave possível nesta
+feature: depois da migração **todos** os 135 repositórios têm `issues_collected_at` nulo, e 41
+deles têm issues dentro. Se a marca decidir pela data antes da contagem, a tela diz
+`not collected yet` sobre um repositório com 2 514 issues.
+
+```bash
+mix test test/the_band_web/live/work_mark_test.exs -o "contagem primeiro"
+```
+
+E no dado real, depois de abrir `/work`:
+
+```bash
+docker exec -e PGPASSWORD=postgres the_band_postgres psql -U postgres -d the_band_dev -tAc "
+select count(*) from observed_repositories r
+ where r.issues_collected_at is null
+   and exists (select 1 from collected_issues i
+                where i.observed_repository_id = r.id and i.no_longer_observed_at is null);"
+```
+
+**Esperado**: o número que sair dali — 41 hoje — é quantos repositórios a tela **precisa** mostrar
+como tendo trabalho apesar de não haver data. Nenhum deles pode exibir `not collected yet`.
+
+**Falha típica**: `if repo.issues_collected_at == nil, do: :desconhecido` como primeiro ramo.
 
 ---
 
