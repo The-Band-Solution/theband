@@ -116,15 +116,19 @@ defmodule Mix.Tasks.Gates do
   defp abort_if_failed({:error, motivo}, name),
     do: Mix.raise("gate reprovou: #{name} — #{motivo}")
 
-  defp execute({:mix, [task | args]}) do
-    Mix.Task.reenable(task)
-    Mix.Task.run(task, args)
-    :ok
-  rescue
-    e in Mix.Error -> {:error, Exception.message(e)}
-  catch
-    :exit, _ -> {:error, nil}
-  end
+  # **Subprocesso, e o veredito é o código de saída.** A versão anterior chamava
+  # `Mix.Task.run/2` e **descartava o retorno**, devolvendo `:ok` a menos que a task
+  # levantasse `Mix.Error` ou saísse.
+  #
+  # `mix compile --warnings-as-errors` **não levanta**: ele devolve `{:error, diagnostics}`.
+  # Então o gate de compilação nunca reprovava por aviso — e um `@doc` órfão entrou em `main`
+  # com os dez gates verdes, o aviso impresso **três vezes** na saída, e código de saída zero.
+  #
+  # É a L22 na própria definição dos gates: *gate conferido por texto não é gate*. O que ela
+  # dizia sobre `| tail` vale aqui para o valor de retorno.
+  #
+  # Custo medido em 2026-08-12: cada gate passa a subir um VM próprio.
+  defp execute({:mix, args}), do: execute({:cmd, "mix", args, []})
 
   defp execute({:cmd, program, args, env}) do
     case System.cmd(program, args, env: env, into: IO.stream(:stdio, :line)) do

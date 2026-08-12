@@ -1238,43 +1238,63 @@ caminho da cura é **alcançável**. Cura que pressupõe um passo que o filtro i
 
 ---
 
-## L36 — Gate que compila incrementalmente não vê aviso em arquivo que não recompilou
+## L36 — Gate que descarta o retorno da task não é gate
 
-**Onde**: Sprint 008 — ao implementar a feature 009, a compilação reprovou por um aviso que já
-estava em `main`.
+**Onde**: Sprint 008 — e a primeira versão desta lição estava **errada** no mecanismo. A correção
+está registrada abaixo, porque o erro é instrutivo.
 
-**O que aconteceu.** Um `@doc` órfão entrou em `main` no commit da feature 008: ao inserir uma função
-entre um `@doc` e o `def` que ele documentava, a documentação passou a valer para a função errada e a
-seguinte perdeu a dela.
+**O que aconteceu.** Um `@doc` órfão entrou em `main` com **os dez gates verdes** e o CI verde.
 
-Os dez gates passaram. O CI passou. E numa compilação limpa:
+**O mecanismo, isolado por experimento:**
 
 ```
-$ git stash && rm -rf _build/dev/lib/the_band && mix compile --warnings-as-errors
-main limpo: código de saída 1
-redefining @doc attribute previously set at line 395
+$ mix gates            # com o defeito presente
+   código de saída: 0
+   warning: redefining @doc attribute previously set at line 419   ← impresso três vezes
+── 1/10 format
+── 2/10 compile
 ```
 
-**Por que aconteceu.** O gate de compilação é incremental: ele não emite aviso de arquivo que não
-recompilou. E o CI guarda `_build` em cache com chave baseada só em `mix.lock` — enquanto as
-dependências não mudam, o `_build` do app volta do cache, e o CI **herda a mesma cegueira** do
-ambiente local.
+O aviso **é emitido**. O gate **imprime** o aviso e sai **zero**.
 
-**Por que importa mais que este aviso.** O aviso em si é inofensivo. O que não é: **qualquer** aviso
-num arquivo não recompilado passa — inclusive variável não usada onde deveria haver uso, cláusula
-inalcançável, ou função deprecada. O `--warnings-as-errors` existe exatamente para esses, e estava
-cego.
+A causa está na própria definição dos gates:
 
-**É a L24 numa forma nova**: *caminho que só roda no ambiente limpo não é testado por quem já tem o
-ambiente*. Ali era o `.venv` do validador Python; aqui é o `_build`.
+```elixir
+defp execute({:mix, [task | args]}) do
+  Mix.Task.reenable(task)
+  Mix.Task.run(task, args)      # ← o retorno é DESCARTADO
+  :ok
+rescue
+  e in Mix.Error -> {:error, Exception.message(e)}
+end
+```
 
-**O que fazer diferente.** O gate de compilação precisa forçar a recompilação do **app** — não das
-dependências —, para que `mix gates` continue sendo a definição única e o CI herde o comportamento.
-Excluir `_build` do cache do CI corrigiria só o CI, e deixaria o ambiente local cego.
+`mix compile --warnings-as-errors` **não levanta**: ele devolve `{:error, diagnostics}`. Como o
+retorno era descartado e nada era levantado, o gate reportava `:ok`. **O gate de compilação nunca
+reprovou por aviso** — nem local, nem no CI, porque o CI roda a mesma task.
 
-E o corolário: **quando um gate depende de estado acumulado, ele mede o acúmulo, não o código.**
+**O que eu tinha escrito, e por que estava errado.** A primeira versão desta lição dizia que a
+compilação incremental não emitia aviso de arquivo não recompilado, e que o cache de `_build` no CI
+reproduzia a cegueira. **Duas afirmações, nenhuma verificada.** O experimento que as testaria — e que
+eu fiz depois — mostra o contrário: o Elixir **reemite** diagnóstico em cache, e `mix compile
+--warnings-as-errors` num processo próprio reprova mesmo sem recompilar nada.
 
-**Estado**: aberta, com correção pendente em #229. **Tipo**: processo.
+Eu tinha duas medidas verdadeiras — `main` reprovando numa árvore limpa, e os gates passando — e
+**inventei o elo entre elas** em vez de isolá-lo. A conclusão certa exigia um experimento a mais.
+
+**O que fazer diferente, e são duas coisas.**
+
+Primeiro, no código: **o veredito de um gate é o código de saída**, e por isso cada gate passou a
+rodar em subprocesso. É a L22 aplicada à própria definição dos gates — ela dizia que conferir gate
+por texto (`| tail`) não vale, e o mesmo vale para conferir por valor de retorno descartado.
+
+Segundo, no método: **quando duas medidas verdadeiras parecem se contradizer, o elo entre elas é
+hipótese, não conclusão.** Publicar a hipótese como causa foi o erro, e ele custou uma lição errada
+no registro que o próximo sprint vai ler.
+
+**Custo medido da correção**: `mix gates` completo em **78,6 s**, com cada gate subindo um VM próprio.
+
+**Estado**: aberta. **Tipo**: processo.
 
 ---
 
