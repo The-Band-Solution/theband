@@ -134,8 +134,19 @@ dizer conceitos diferentes.
 **Decisão**: a resolução nova ordena por `inserted_at DESC, id DESC`. O desempate não é enfeite —
 é o que torna a FR-004 verificável.
 
-**Quantas issues estão nessa situação hoje**: a medir na fase de tarefas, com uma consulta de
-contagem. Se for zero, o desempate continua entrando: ele é barato e a ausência dele é silenciosa.
+**Quantas issues estão nessa situação hoje — medido (T001)**:
+
+```sql
+select count(*) from (
+  select collected_issue_id from issue_promotions
+   group by collected_issue_id, inserted_at having count(*) > 1) t;
+→ 0
+```
+
+**Zero, e o desempate entra assim mesmo.** A coleta idempotente grava uma promoção por execução, e
+execuções não caem no mesmo segundo — hoje. O que impede o empate é acidente de cadência, não regra:
+duas execuções concorrentes de ferramentas diferentes no mesmo tenant produziriam o caso, e ele
+apareceria como conceito que muda entre renders, sem erro nenhum.
 
 ---
 
