@@ -37,6 +37,15 @@ defmodule TheBand.Tenants do
     Repo.all(from u in User, where: u.tenant_id == ^tenant_id, order_by: u.email)
   end
 
+  @doc """
+  As pessoas do tenant, por id.
+
+  Existe para a tela resolver **quem** tomou uma decisão registrada — encerrar uma
+  sincronização presa, por exemplo — sem uma consulta por linha.
+  """
+  @spec users_by_id(Tenant.t()) :: %{Ecto.UUID.t() => User.t()}
+  def users_by_id(%Tenant{} = tenant), do: Map.new(list_users(tenant), &{&1.id, &1})
+
   @spec list_all_users() :: [User.t()]
   def list_all_users do
     Repo.all(from u in User, order_by: u.email, preload: [:tenant])

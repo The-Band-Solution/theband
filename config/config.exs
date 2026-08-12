@@ -64,7 +64,25 @@ config :the_band, Oban,
   repo: TheBand.Repo,
   engine: Oban.Engines.Basic,
   queues: [ingestion: 5, transformation: 5],
-  plugins: [{Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7}]
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
+    # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a
+    # coleta morrer e a ferramenta voltar a aceitar coleta nova.
+    {Oban.Plugins.Cron, crontab: [{"*/5 * * * *", TheBand.Jobs.ReconcileStuckSyncs}]}
+  ]
+
+# `Oban.Plugins.Lifeline` NÃO entra, e a razão está medida em
+# specs/008-destravar-sync-presa/research.md R1: o resgate dele é
+#
+#     where([j], j.state == "executing" and j.attempted_at < ^cut)
+#
+# sem nenhuma verificação de processo vivo. `rescue_after` é uma constante que envelhece com o
+# crescimento da coleta — a mais longa medida leva 16 min 25 s e cresce com o número de
+# repositórios. No dia em que passar do valor, o plugin resgata coleta VIVA e ela roda duas
+# vezes: é a L02, onde 32 registros apareceram no lugar de 16 e o número pareceu plausível.
+#
+# Trabalho órfão é ENCERRADO pela reconciliação, e a coleta nova recoleta — sem duplicar
+# linha, porque a gravação é por chave natural.
 
 # Base de conhecimento — carregada uma vez no boot para ETS (research.md R4).
 # Falha de carga é falha de boot: uma aplicação que sobe com o modelo pela

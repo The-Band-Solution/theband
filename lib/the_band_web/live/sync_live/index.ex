@@ -12,6 +12,7 @@ defmodule TheBandWeb.SyncLive.Index do
   alias TheBand.Jobs.ReprocessMappings
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Sources
+  alias TheBand.Tenants
 
   @impl true
   def mount(_params, _session, socket) do
@@ -64,6 +65,35 @@ defmodule TheBandWeb.SyncLive.Index do
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Could not start: #{inspect(reason)}")}
+    end
+  end
+
+  # A tela não é a defesa: `interrupt_sync/3` reconfere se há trabalho vivo. Entre desenhar o
+  # botão e alguém clicar, a coleta pode ter voltado a executar.
+  def handle_event("encerrar", %{"sync_id" => sync_id}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    case Ingestion.interrupt_sync(tenant, sync_id, socket.assigns.current_user) do
+      {:ok, _sync} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Sync closed. The tool accepts a new collection now.")
+         |> load()}
+
+      {:error, :job_alive} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :error,
+           "This sync still has work running. Closing it would drop a collection in progress."
+         )
+         |> load()}
+
+      {:error, :not_running} ->
+        {:noreply, socket |> put_flash(:info, "This sync was already closed.") |> load()}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Sync not found.")}
     end
   end
 
@@ -254,9 +284,33 @@ defmodule TheBandWeb.SyncLive.Index do
             <span class="font-semibold">{organizacao(@tools, sync)}</span>
             <span class="text-sm opacity-70">started {sync.started_at}</span>
           </div>
-          <span :if={sync.finished_at} class="text-sm opacity-70">
-            finished {sync.finished_at}
-          </span>
+          <div class="flex items-center gap-3">
+            <span :if={sync.finished_at} class="text-sm opacity-70">
+              finished {sync.finished_at}
+            </span>
+            <%!-- A ação só aparece onde a plataforma não consegue provar que o trabalho está
+                  vivo. Encerrar coleta viva derruba trabalho em andamento, e é pior que o
+                  bloqueio que esta ação existe para resolver. O texto diz o que acontece:
+                  encerra o REGISTRO, e não cancela o que já foi coletado. --%>
+            <button
+              :if={Ingestion.interruptible?(sync)}
+              class="btn btn-xs btn-outline btn-warning"
+              phx-click="encerrar"
+              phx-value-sync_id={sync.id}
+              data-confirm={confirmacao(sync)}
+            >
+              Close stuck sync
+            </button>
+          </div>
+        </div>
+
+        <%!-- Quem encerrou, por extenso — e nunca um travessão para os dois casos: o autor
+              ausente AFIRMA que foi a plataforma, e apagar a afirmação é o que o design
+              system proíbe. --%>
+        <div :if={sync.status == "interrupted"} class="text-sm">
+          <span class="opacity-70">closed by</span>
+          <span class="font-medium">{quem_encerrou(sync, @usuarios)}</span>
+          <span :if={sync.error_reason} class="opacity-70">— {sync.error_reason}</span>
         </div>
 
         <%!-- Percentual quando a origem informa o total — `repositories.totalCount` e
@@ -389,9 +443,18 @@ defmodule TheBandWeb.SyncLive.Index do
   defp load(socket) do
     tenant = socket.assigns.current_tenant
 
+    # Reconcilia **antes** de listar, e é um dos três gatilhos da mesma decisão — os outros
+    # dois são o trabalho periódico e a ação de encerrar. Nenhum reimplementa a regra.
+    #
+    # Aqui ela existe para quem está olhando: o trabalho periódico roda a cada cinco minutos,
+    # e quem acabou de ver a coleta morrer não deveria esperar cinco minutos para poder tentar
+    # de novo.
+    {:ok, _encerradas} = Ingestion.reconcile_stuck_syncs()
+
     socket
     |> assign(tools: Sources.list_connected_tools(tenant))
     |> assign(syncs: Ingestion.list_syncs(tenant, limit: 10))
+    |> assign(usuarios: Tenants.users_by_id(tenant))
   end
 
   # Por sync, e não do tenant: o número ao lado de uma execução tem de ser o que **ela**
@@ -552,6 +615,32 @@ defmodule TheBandWeb.SyncLive.Index do
   end
 
   defp checkpoints(sync), do: Ingestion.list_checkpoints(sync)
+
+  # O aviso muda com o que a plataforma sabe. Quando o trabalho consta **em execução**, ela
+  # não tem como provar que o processo morreu — só quem reiniciou a aplicação sabe. E o risco
+  # de encerrar nesse caso é real: se a coleta estiver de fato rodando, uma segunda começa em
+  # paralelo. Esconder isso atrás de "tem certeza?" seria pedir confirmação sem informar.
+  defp confirmacao(sync) do
+    if Ingestion.claimed_by_dead_process?(sync) do
+      "This sync still shows work as running, and the platform cannot tell whether the process " <>
+        "is alive. Close it only if you know it died — if the collection is in fact running, a " <>
+        "second one will start alongside it. Nothing already collected is removed."
+    else
+      "This sync has no work queued. Closing it records why it ended and lets the tool collect " <>
+        "again. Nothing already collected is removed."
+    end
+  end
+
+  # `the platform` por extenso, e não `—`: nulo aqui significa "não foi pessoa", e a
+  # plataforma sabe disso. Um travessão diria "não se sabe quem", que é outra coisa.
+  defp quem_encerrou(%{interrupted_by_user_id: nil}, _usuarios), do: "the platform"
+
+  defp quem_encerrou(%{interrupted_by_user_id: id}, usuarios) do
+    case Map.get(usuarios, id) do
+      nil -> "a person no longer registered"
+      user -> user.name || user.email
+    end
+  end
 
   defp status_label("running"), do: "running"
   defp status_label("completed"), do: "completed"

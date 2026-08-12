@@ -30,6 +30,11 @@ defmodule TheBand.Ingestion.Sync do
 
     field :error_reason, :string
 
+    # Quem encerrou. **Nulo afirma "foi a plataforma"** — não "não se sabe quem": a
+    # plataforma sabe que não foi pessoa. Sem check constraint exigindo autor, porque há
+    # dois encerradores legítimos; exigir forçaria inventar um usuário-sistema.
+    field :interrupted_by_user_id, :binary_id
+
     timestamps(type: :utc_datetime)
   end
 
@@ -49,7 +54,8 @@ defmodule TheBand.Ingestion.Sync do
       :records_skipped,
       :skip_reasons,
       :memberships_pending_role,
-      :error_reason
+      :error_reason,
+      :interrupted_by_user_id
     ])
     |> validate_required([:tenant_id, :connected_tool_id, :status, :started_at])
     |> validate_inclusion(:status, @statuses)
