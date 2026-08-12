@@ -244,6 +244,25 @@ no que respondeu.
   1 666 vínculos.
 - **SC-006**: O log da execução nomeia o repositório e quantos vínculos ele marcou, e esse número
   bate com a contagem feita direto no banco.
+- **SC-007**: O painel de violações da `sro.rule07` cai de **293** para **281** — as **12** violações
+  que dependiam de vínculo que a origem não declara mais deixam de ser afirmadas, e as 12 tarefas
+  passam a contar na outra forma da violação, a que é sobre tarefa **sem** pai.
+
+### A consequência que a marca tem fora da feature, e ela é esperada
+
+**Número derivado muda quando o vínculo sai da vigência**, porque a plataforma inteira já conta só o
+vigente. Conferido nas seis consultas de vínculo: todas filtram o ausente. O que muda, medido:
+
+| O que | Hoje | Depois |
+|---|---:|---:|
+| violações da `sro.rule07` por tarefa sob épico | 293 | **281** |
+| pais afetados pela marca | — | **4** |
+| pai que **deixaria** de ser épico | — | **nenhum hoje** — o único épico afetado mantém 3 das 6 partes user story |
+
+**O terceiro caso é mecanismo novo, não número novo**: um pai cujas partes user story ficam todas
+ausentes deixa de ser classificado como épico. Está correto — épico é derivado das partes, e parte
+que a origem não declara mais não sustenta a derivação. Hoje ninguém cai nesse caso, e é por isso que
+ele está declarado em vez de descoberto depois.
 
 ---
 

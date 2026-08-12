@@ -5,7 +5,7 @@
 **Branch**: `016-vinculo-que-sumiu-na-origem` · **Nenhuma migração** — a coluna existe desde
 2026-08-11
 
-Oito tarefas em quatro fases. Cada uma tem teste, e nenhuma delas é `mix test` sozinho.
+Nove tarefas em quatro fases. Cada uma tem teste, e nenhuma delas é `mix test` sozinho.
 
 **Ordem que é dependência**: F1 marca · F2 chama no lugar certo · F3 prova que a tela recebe o dado ·
 F4 confere no dado real.
@@ -83,8 +83,15 @@ que F1 e F2 estão no mesmo sprint.
   corte — FR-004, research D4. **Depois de `vincular/2` e não antes**: antes marcaria todos os
   vínculos e a renovação limparia parte, deixando dois estados para o mesmo fato dentro da mesma
   execução. O número entra no mapa devolvido pela fase como `vinculos_ausentes` — FR-013.
+  **E a ordem em relação a `promover/2` passa a importar**: a marca acontece dentro de
+  `coletar_issues/2`, e a promoção roda depois de todos os repositórios. `classification/2` conta
+  **só vínculos vigentes** — promover antes de marcar classificaria um pai como épico por causa de
+  partes que a origem não declara mais. Hoje a ordem está certa pela posição; a tarefa é declará-la
+  no módulo, junto da ordem que já está documentada ali.
 - **Feita quando**: uma coleta em que o pai deixou de declarar uma parte marca **aquele** vínculo; os
-  outros vínculos do mesmo repositório continuam vigentes; e o mapa da fase traz o número.
+  outros vínculos do mesmo repositório continuam vigentes; o mapa da fase traz o número; e o
+  `@moduledoc` da coleta registra a marca de vínculo como parte da ordem, ao lado das quatro etapas
+  que já estão lá.
 - **Teste**: `test/the_band/ingestion/github_work_items_test.exs` — duas coletas com a borda HTTP
   fingida: a primeira traz o pai com duas partes, a segunda com uma. Exigir um vínculo marcado, um
   vigente, e `vinculos_ausentes: 1` no resultado.
@@ -97,12 +104,16 @@ que F1 e F2 estão no mesmo sprint.
   todos. FR-005, e é a feature 009 inteira: um `:nxdomain` de um instante já custou 38 repositórios
   e 899 issues. Cobrir também o caso do vínculo entre repositórios: pai em `A`, filha em `B`,
   coletar só `B`, e exigir que o vínculo continue vigente (FR-003, e são 57 no dado real).
+  Cobrir por último o **FR-014**: depois de uma coleta que marca vínculos, `refused_links` continua
+  intacta — recusa nunca foi vínculo afirmado, e marcá-la afirmaria ausência do que nunca foi
+  afirmado.
 - **Feita quando**: coleta com erro transitório não marca nada; com erro permanente também não;
-  repositório inacessível não é sequer coletado; e o vínculo cujo pai está em outro repositório
-  sobrevive à coleta da filha.
-- **Teste**: `test/the_band/ingestion/github_work_items_test.exs` — quatro casos, cada um
-  asserindo `no_longer_observed_at` **nulo**, que é a asserção que falha se a chamada escorregar
-  para fora do ramo `{:ok, …}`.
+  repositório inacessível não é sequer coletado; o vínculo cujo pai está em outro repositório
+  sobrevive à coleta da filha; e nenhuma linha de `refused_links` é alterada.
+- **Teste**: `test/the_band/ingestion/github_work_items_test.exs` — cinco casos, cada um
+  asserindo o que **não** mudou: `no_longer_observed_at` nulo nos quatro primeiros — a asserção que
+  falha se a chamada escorregar para fora do ramo `{:ok, …}` — e `refused_links` byte a byte igual no
+  quinto.
 
 ### T007 [P] [US1] Dizer no log o que deixou de ser declarado
 
@@ -122,8 +133,12 @@ que F1 e F2 estão no mesmo sprint.
 
 ### T008 [US2] Provar que a lista diz que o vínculo acabou
 
-- **Pronta quando**: T005 feita; e a feature 011 incorporada — o rótulo e a contagem que exclui o
-  ausente vivem no PR [#264](https://github.com/The-Band-Solution/theband/pull/264).
+- **Pronta quando**: T005 feita; **e a feature 011 disponível nesta branch** — o rótulo e a contagem
+  que exclui o ausente vivem no PR [#264](https://github.com/The-Band-Solution/theband/pull/264), que
+  ainda não foi incorporado, e esta branch saiu da `main`. Duas formas de desbloquear, e a escolha é
+  de quem executa: **esperar o merge do #264** e rebasear, ou **rebasear já sobre
+  `015-de-quem-a-issue-e-parte`**. Enquanto nenhuma das duas acontecer, T008 fica **bloqueada** — e
+  bloqueada é diferente de pendente: não há como escrevê-la contra código que não está aqui.
 - **Descrição**: teste de LiveView em `test/the_band_web/live/` sobre `/work/repositories/:id`, com o
   estado montado **pela coleta**, não por `insert` direto: coletar duas vezes, a segunda sem a parte.
   Exigir o texto *"absent: this link existed and is not present now"* na linha, e exigir que uma
@@ -147,10 +162,14 @@ que F1 e F2 estão no mesmo sprint.
 - **Descrição**: seguir [quickstart.md](quickstart.md) — retrato antes (`1666|0`), sincronizar, e as
   três conferências: os que a origem largou saem da vigência, **só** eles, e nenhum repositório não
   coletado é tocado. Depois a conferência de tela em `/work/repositories/<id>` de `eo_lib`, com as 29
-  issues. **A chave mestra não entra no chat nem no repositório.**
+  issues. **E a quarta conferência, que é a consequência fora da feature**: o painel de violações da
+  `sro.rule07` cai de **293** para **281**, e as 12 tarefas que saíram passam a contar na violação de
+  tarefa **sem** pai — SC-007. Número derivado que muda sem ninguém ter previsto é como se descobre
+  tarde que a marca alcançou mais do que devia. **A chave mestra não entra no chat nem no
+  repositório.**
 - **Feita quando**: a contagem de marcados deixa de ser zero; no `theband` os 157 revistos continuam
-  vigentes; a contagem de marcados em repositório inacessível é zero; e alguém **olhou** a coluna em
-  `eo_lib`.
+  vigentes; a contagem de marcados em repositório inacessível é zero; o painel da `sro.rule07`
+  mostra 281; e alguém **olhou** a coluna em `eo_lib`.
 - **Teste**: as três consultas SQL do quickstart, com a saída colada no `sprint-review.md`. **Sem
   olho humano na tela, o item fica declarado como pendente** — asserção em HTML não substitui olhar,
   e há quatro telas em `RETOMAR.md` provando que a distinção é real.
@@ -195,6 +214,9 @@ própria, e refatoração oportunista no mesmo diff precisa de critério de revi
 | FR-010 | T004 |
 | FR-011, FR-012 | T008 |
 | FR-013 | T005, T007 |
-| FR-014 | nenhuma — `refused_links` fica fora, e a tarefa é **não** tocá-la |
-| SC-001 a SC-004, SC-006 | T009 |
+| FR-014 | T006 — a asserção é que `refused_links` **não** mudou |
+| SC-001 a SC-004, SC-006, SC-007 | T009 |
 | SC-005 | T003 |
+
+**Cobertura**: 14 de 14 FR e 7 de 7 SC. A análise achou o FR-014 sem tarefa, e a resposta não foi
+declarar a lacuna — era testável, e virou asserção em T006.

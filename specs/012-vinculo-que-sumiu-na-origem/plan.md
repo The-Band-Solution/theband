@@ -211,6 +211,24 @@ coleta → teste de integração da coleta → conferência no dado real.
 
 ---
 
+## O que a análise achou, e é a sexta feature seguida
+
+`/speckit-analyze` rodou depois das tarefas e achou **quatro** coisas, três delas de desenho:
+
+| # | O que | Onde foi parar |
+|---|---|---|
+| 1 | **a marca muda número em outra tela**: 12 dos 52 vínculos são violação da `sro.rule07` hoje, e o painel cai de 293 para 281 | SC-007 na spec, e a quarta conferência em T009 |
+| 2 | **a ordem contra `promover/2` passa a ser carga**: `classification/2` conta só vigentes, e promover antes de marcar classificaria épico por parte que a origem largou | declarada em T005, e no `@moduledoc` da coleta |
+| 3 | **FR-014 sem tarefa** — e ele era testável | asserção em T006: `refused_links` intacta |
+| 4 | **T008 bloqueada**, não pendente: exige a feature 011, que está em PR não incorporado | condição de desbloqueio escrita no `Pronta quando` |
+
+**E uma conferência que deu certo, e valia fazer**: as **seis** consultas de vínculo em `queries.ex`
+já filtram `is_nil(no_longer_observed_at)`. Nenhum consumidor quebra quando o dado começar a chegar
+marcado — o que confirma o diagnóstico da issue #263: a plataforma inteira já sabia ler o estado que
+ninguém escrevia.
+
+---
+
 ## Complexity Tracking
 
 | Violação | Por que é necessária | Alternativa mais simples recusada porque |
