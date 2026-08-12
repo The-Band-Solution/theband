@@ -60,20 +60,24 @@ Execution Time: 6 326 ms
 decide "qual é a promoção vigente de cada issue" é feita **para o tenant inteiro**, sem relação com
 a pessoa que está na tela, e depois cruzada com as issues dela.
 
-### E o que multiplica o custo são as colunas
+### E a estratégia de execução vira no meio, o que explica a variação de setenta vezes
 
-A subconsulta arrasta **as 18 colunas** da promoção, inclusive textos como `skip_detail` e
-`divergence_reason`. Medido com o mesmo dado, mudando só a projeção:
+Medido com o mesmo dado, mudando só a projeção da subconsulta:
 
-| O que a subconsulta carrega | Tempo |
-|---|---:|
-| duas colunas | **35 ms** — uma ordenação de 3,8 MB |
-| as dezoito | **2 271 ms** — `Full-sort Groups: 53 555` |
-| as dezoito, na pior pessoa | **6 326 ms** |
+| O que a subconsulta carrega | Tempo | Como o Postgres ordena |
+|---|---:|---|
+| duas colunas | **35 ms** | uma ordenação só, 3,8 MB |
+| **nove** colunas — as que a tela usa | **5 738 ms** | `Full-sort Groups: 163 451` |
+| as dezoito | **6 326 ms** | `Full-sort Groups: 53 555` |
 
-**É a mesma consulta.** O que muda é quanto ela carrega por linha ordenada — e é por isso que o
-planejador escolhe caminhos diferentes para pessoas diferentes, produzindo 0,09 s para uma e 6,12 s
-para outra.
+**Enxugar as colunas não resolve, e isso foi medido antes de virar tarefa.** A hipótese barata era
+que a largura da linha custava; ela é falsa. O que acontece é que a mesma consulta é executada por
+**estratégias diferentes** — uma ordenação única quando o planejador acha que cabe, e dezenas de
+milhares de ordenações em grupo quando não acha.
+
+**É por isso que a tela varia de 0,09 s a 6,12 s conforme a pessoa**: não é o volume dela, é qual
+caminho o planejador escolheu. Uma tela cujo tempo depende dessa escolha não tem como ser
+sintonizada — o que precisa sair é a varredura do tenant inteiro.
 
 ### Paginar mais não é a saída, e isso foi medido
 

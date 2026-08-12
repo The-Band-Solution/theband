@@ -58,6 +58,12 @@ Execution Time: 3,19 ms
 
 **Treze vezes mais rápida, sem tabela nova, sem coluna nova e sem apagar nada.**
 
+**E uma alternativa que parecia barata, medida antes de virar tarefa**: enxugar a projeção da
+subconsulta para as nove colunas que a tela usa. **Não resolve — 5 738 ms**, contra 6 326 da versão
+completa. A largura não é a causa; a estratégia de execução é. Com duas colunas o planejador faz uma
+ordenação só (35 ms), com nove ele faz **163 451** ordenações em grupo. A tela não é sintonizável por
+projeção.
+
 **Alternativas descartadas**:
 
 | Alternativa | Por que não |
@@ -66,7 +72,9 @@ Execution Time: 3,19 ms
 | marcar a vigente com um booleano `is_current` | booleano no lugar do relator, antipadrão declarado no `AGENTS.md` §7.7; e exigiria escrita a cada coleta |
 | view materializada | mesmo problema do D7, mais defasagem: a tela mostraria promoção antiga sem dizer que é antiga |
 | apagar promoções antigas | o histórico **é** proveniência — princípio III, e a FR-005 proíbe |
-| cache em memória | esconde o custo em vez de removê-lo, e a primeira visita continua pagando |
+| cache em memória | esconde o custo em vez de removê-lo; a primeira visita de cada pessoa continua pagando **6 s**, e cada coleta invalida tudo |
+| **enxugar a projeção** | medido: **5 738 ms**. A largura não é a causa |
+| paginar de 100 em 100 | medido: `LIMIT 5` custa 6 300 ms e `LIMIT 100` custa 6 648. A varredura acontece **antes** do limite, e cada lote pagaria de novo |
 
 ---
 
