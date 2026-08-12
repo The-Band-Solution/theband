@@ -16,8 +16,11 @@ defmodule TheBand.WorkItems do
     * `delete_issue/2` — ausência marca, nunca apaga;
     * `set_classification/3` — a classificação é derivada das partes. Uma função para
       gravá-la é a porta para materializar situação, contra a ADR 0004 D7;
-    * `mark_issues_no_longer_observed/2` — sem escopo de repositório é a L19. A aridade
-      3 é a única que existe, e a obrigatoriedade está no tipo;
+    * `mark_issues_no_longer_observed/2` e
+      `mark_decomposition_links_no_longer_observed/2` — sem escopo de repositório é a
+      L19. A aridade 3 é a única que existe nas duas, e a obrigatoriedade está no tipo.
+      No caso do vínculo, o repositório é o **do pai**: quem declara a decomposição é
+      ele, e 57 vínculos têm a filha em outro repositório;
     * qualquer função que devolva `Ecto.Query` — vaza a fronteira e permite contornar o
       filtro de tenant.
   """
@@ -38,6 +41,13 @@ defmodule TheBand.WorkItems do
 
   defdelegate mark_issues_no_longer_observed(tenant, observed_repository_id, desde),
     to: Commands
+
+  defdelegate mark_decomposition_links_no_longer_observed(
+                tenant,
+                observed_repository_id,
+                desde
+              ),
+              to: Commands
 
   # -------------------------------------------------------------------- leituras
 

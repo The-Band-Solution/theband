@@ -30,12 +30,18 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   ## A marca de ausência é por repositório
 
-  `mark_issues_no_longer_observed/3` é chamada **uma vez por repositório coletado**, com
-  o id dele. Chamar por tenant marcaria as issues dos repositórios que esta execução
-  nunca olhou — a L19 numa organização de 14 repositórios atingiria 13.
+  `mark_issues_no_longer_observed/3` e `mark_decomposition_links_no_longer_observed/3` são
+  chamadas **uma vez por repositório coletado**, com o id dele. Chamar por tenant marcaria
+  o que esta execução nunca olhou — a L19 numa organização de 14 repositórios atingiria 13.
 
   Repositório excluído pelo tenant ou inacessível **não é coletado e não é marcado**: a
   plataforma parou de olhar, e isso não é o mesmo que o dado ter sumido.
+
+  **O vínculo é marcado no escopo do repositório do pai**, e depois de `vincular/2`. A
+  ordem contra a promoção é carga, não estilo: `classification/2` conta **só vínculos
+  vigentes**, e promover antes de marcar classificaria um pai como épico por causa de
+  partes que a origem não declara mais. Marcar dentro de `coletar_issues/2` garante que
+  toda marca aconteceu antes de `promover/2`, que roda depois de todos os repositórios.
   """
   require Logger
 
@@ -70,6 +76,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
          {:ok, repositorios} <- coletar_repositorios(ctx, organization) do
       resultado = Enum.map(repositorios, &coletar_issues(ctx, &1))
 
+      # **Depois de todas as marcas de ausência**, e isso é carga: a classificação conta só
+      # vínculos vigentes, e promover antes de marcar afirmaria épico por parte largada.
       promover(ctx, organization)
 
       {:ok,
@@ -77,7 +85,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
          organization_id: organization.id,
          repositories: length(repositorios),
          issues: Enum.sum(Enum.map(resultado, & &1.coletadas)),
-         unreachable: Enum.count(resultado, &(&1.alcancado == false))
+         unreachable: Enum.count(resultado, &(&1.alcancado == false)),
+         decomposition_links_absent: Enum.sum(Enum.map(resultado, & &1.vinculos_ausentes))
        }}
     end
   end
@@ -191,7 +200,17 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         {:ok, _} =
           WorkItems.mark_issues_no_longer_observed(ctx.tenant, observado_id, ctx.started_at)
 
-        %{repositorio: repo.name, coletadas: length(gravadas), alcancado: true}
+        # **Depois de `vincular/2`, nunca antes.** Antes marcaria todos os vínculos e a
+        # renovação limparia parte, deixando dois estados para o mesmo fato dentro da
+        # mesma execução.
+        ausentes = marcar_vinculos_ausentes(ctx, observado_id, repo.name)
+
+        %{
+          repositorio: repo.name,
+          coletadas: length(gravadas),
+          alcancado: true,
+          vinculos_ausentes: ausentes
+        }
 
       {:error, reason} ->
         # Falha **transitória** não marca nada: marcar tira o repositório de
@@ -217,8 +236,34 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # interrompido afirmaria que tudo foi alcançado.
         ctx.sync |> Ingestion.reload() |> Ingestion.tally(:repository_unreachable)
 
-        %{repositorio: repo.name, coletadas: 0, alcancado: false}
+        %{repositorio: repo.name, coletadas: 0, alcancado: false, vinculos_ausentes: 0}
     end
+  end
+
+  # O número vai para o log **e** para o resultado da fase, e não para um campo novo em
+  # `syncs`: o consumidor visível é a coluna `part of` na lista de issues, e um segundo
+  # número no cartão da sincronização entraria ao lado de "records collected" e "issues",
+  # que respondem outras perguntas.
+  #
+  # **Silêncio quando é zero**, pela mesma razão que a tela esconde "0 unreachable": a
+  # linha que aparece em toda execução treina quem lê a ignorá-la, e é justamente a linha
+  # que importa quando não é zero.
+  defp marcar_vinculos_ausentes(ctx, observado_id, nome) do
+    {:ok, count} =
+      WorkItems.mark_decomposition_links_no_longer_observed(
+        ctx.tenant,
+        observado_id,
+        ctx.started_at
+      )
+
+    if count > 0 do
+      Logger.info(
+        "#{nome}: #{count} vínculo(s) de decomposição que a origem não declara mais — " <>
+          "marcados como ausentes, nunca apagados"
+      )
+    end
+
+    count
   end
 
   defp marcar_issues_coletadas(ctx, observado_id, nome) do
