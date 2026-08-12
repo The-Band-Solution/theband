@@ -48,7 +48,6 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   alias TheBand.WorkItems
 
   @page_size 50
-  @tenant_rule "github.issue_type_routing.the_band_solution"
 
   @doc """
   Coleta repositórios e issues, como fase da sincronização em andamento.
@@ -320,56 +319,36 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # ---------------------------------------------------------------------- promoção
 
   # Por último, porque a classificação épico/atômica depende dos vínculos já gravados.
+  #
+  # ## Um caminho só, e ele é o do recálculo
+  #
+  # Esta função tinha o **seu próprio** laço de promoção: montava a decisão com
+  # `WorkItems.decide/2` e gravava. O recálculo da feature 005 tinha outro, com a etapa
+  # estrutural. Dois caminhos para a mesma decisão, e quem rodava por último ganhava.
+  #
+  # O efeito medido no dado real: a coleta das 10h14 regravou **3451 issues como não
+  # promovidas** sobre as promoções que a etapa estrutural havia decidido às 02h08. A
+  # interface passou a mostrar 77% sem conceito, e nada no log dizia por quê — a coleta
+  # concluiu com sucesso.
+  #
+  # Pior: aquele laço **não era idempotente**. Gravava uma linha por issue por
+  # sincronização, com proveniência nula para as não promovidas — 40 238 promoções para
+  # 4474 issues, nove por issue.
+  #
+  # `Mapping.recompute/2` é o caminho. Ele aplica as três etapas — tipo declarado, título,
+  # estrutura —, grava **só o que mudou**, e é o mesmo que a tela de regras usa.
   defp promover(ctx, organization) do
-    issues = WorkItems.list_issues(ctx.tenant, limit: 100_000)
-    tipos_das_partes = tipos_das_partes(ctx, issues)
+    {:ok, efeito} = Mapping.recompute(ctx.tenant, organization.id)
 
-    # As regras da organização vêm **uma vez**, e não por issue: 4471 issues fariam 4471
-    # consultas para responder a mesma pergunta.
-    #
-    # Sem elas aqui, a reobservação apagaria a promoção que a regra produziu: a coleta
-    # regravaria "não promovida" sobre o que a pessoa configurou (FR-028).
-    regras = Mapping.active_rules(ctx.tenant, organization.id)
-
-    Ingestion.checkpoint_page(ctx.sync, "promocao", nil, length(issues))
+    Ingestion.checkpoint_page(ctx.sync, "promocao", nil, efeito.written)
     Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "promocao"})
 
-    for issue <- issues do
-      decisao =
-        WorkItems.decide(
-          %{
-            issue_type: issue.issue_type,
-            title: issue.title,
-            sub_issue_types: Map.get(tipos_das_partes, issue.id, [])
-          },
-          tenant_rule_id: @tenant_rule,
-          organization_rules: regras
-        )
+    Logger.info(
+      "promoção: #{efeito.written} linhas gravadas, " <>
+        "#{efeito.concept_changed} mudaram de conceito"
+    )
 
-      WorkItems.record_promotion(ctx.tenant, %{
-        collected_issue_id: issue.id,
-        declared_concept: decisao.declared,
-        derived_concept: decisao.derived,
-        divergence_reason: decisao.divergence,
-        divergence_kind: decisao.divergence_kind,
-        skip_reason: decisao.skip_reason,
-        skip_detail: decisao.skip_detail,
-        rule_id: decisao.rule_id,
-        rule_version: decisao.rule_version,
-        evidence_source: decisao.evidence_source,
-        confidence: decisao.confidence,
-        mapping_rule_id: decisao.mapping_rule_id
-      })
-    end
-  end
-
-  defp tipos_das_partes(ctx, issues) do
-    por_id = Map.new(issues, &{&1.id, &1.issue_type})
-    _ = ctx
-
-    ctx.tenant
-    |> WorkItems.list_links()
-    |> Enum.group_by(& &1.parent_issue_id, &por_id[&1.child_issue_id])
+    efeito
   end
 
   # ----------------------------------------------------------------------- comuns

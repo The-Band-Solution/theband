@@ -340,16 +340,17 @@ defmodule TheBand.WorkItems.Routing do
 
   defp motivo(declarado, derivado) when declarado in [nil, derivado], do: nil
 
+  # As frases vão para a tela, e por isso são em inglês.
   defp motivo(@epico, @atomica),
     do:
-      "tipo indicava épico e a issue não tem partes que sejam user stories; " <>
-        "não existe épico sem partes (sro.rule05)"
+      "the type said epic and the issue has no parts that are user stories; " <>
+        "there is no epic without parts (sro.rule05)"
 
   defp motivo(@atomica, @epico),
     do:
-      "tipo indicava user story atômica e a issue tem partes que são user stories; " <>
-        "a composição a torna épico (sro.rule05)"
+      "the type said atomic user story and the issue has parts that are user stories; " <>
+        "composition makes it an epic (sro.rule05)"
 
   defp motivo(declarado, derivado),
-    do: "tipo indicava #{declarado} e a estrutura decidiu #{derivado}"
+    do: "the type said #{declarado} and the structure decided #{derivado}"
 end

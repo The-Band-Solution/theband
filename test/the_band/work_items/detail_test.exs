@@ -223,7 +223,7 @@ defmodule TheBand.WorkItems.DetailTest do
   end
 
   describe "designados e rótulos" do
-    test "substituir remove o que a origem não traz mais",
+    test "substituir MARCA o que a origem não traz mais, e não apaga",
          %{tenant: tenant, cenario: c} do
       issue = c.issues[3].pai
 
@@ -235,8 +235,46 @@ defmodule TheBand.WorkItems.DetailTest do
 
       {:ok, 1} = WorkItems.replace_assignees(tenant, issue.id, [%{login: "b", person_id: nil}])
 
+      # A tela mostra quem está nisto agora.
       {:ok, detalhe} = WorkItems.fetch_issue(tenant, issue.id)
       assert Enum.map(detalhe.assignees, & &1.login) == ["b"]
+
+      # E o que saiu **continua no banco**, marcado. Nunca se apaga dados: quem foi
+      # responsável por uma issue é parte de como o trabalho aconteceu.
+      linhas =
+        TheBand.Repo.all(
+          Ecto.Query.from(a in "issue_assignees",
+            where: a.collected_issue_id == type(^issue.id, Ecto.UUID),
+            select: %{login: a.login, ausente: not is_nil(a.no_longer_observed_at)}
+          )
+        )
+
+      assert length(linhas) == 2, """
+      O designado que saiu foi apagado. A regra da plataforma é que nunca se apaga dados —
+      reconstruir "quem estava designado em março" do payload bruto é arqueologia, e marcar
+      custa uma coluna.
+      """
+
+      assert Enum.sort_by(linhas, & &1.login) == [
+               %{login: "a", ausente: true},
+               %{login: "b", ausente: false}
+             ]
+    end
+
+    test "designado que volta a aparecer tem a marca limpa",
+         %{tenant: tenant, cenario: c} do
+      issue = c.issues[79].pai
+      um = [%{login: "a", person_id: nil}]
+
+      {:ok, _} = WorkItems.replace_assignees(tenant, issue.id, um)
+      {:ok, _} = WorkItems.replace_assignees(tenant, issue.id, [])
+      {:ok, _} = WorkItems.replace_assignees(tenant, issue.id, um)
+
+      {:ok, detalhe} = WorkItems.fetch_issue(tenant, issue.id)
+
+      assert Enum.map(detalhe.assignees, & &1.login) == ["a"], """
+      Quem devolve vigência é a coleta: reaparecer limpa a marca, como em toda a plataforma.
+      """
     end
 
     test "substituir duas vezes com o mesmo dado não duplica",

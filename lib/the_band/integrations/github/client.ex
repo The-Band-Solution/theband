@@ -85,6 +85,9 @@ defmodule TheBand.Integrations.GitHub.Client do
   @doc """
   Traduz a falha para uma frase legível, dizendo o que aconteceu e o que fazer.
 
+  **As frases vão para a tela** — a tela de ferramentas e a de repositório mostram este
+  texto —, e por isso são em inglês, como todo texto de interface.
+
   Contrato: `contracts/github-connector.md`, seção "Contrato de mensagem".
   `%Req.TransportError{reason: :nxdomain}` não informa a quem opera que o
   endereço não pôde ser resolvido — e é essa pessoa que precisa decidir se
@@ -96,44 +99,48 @@ defmodule TheBand.Integrations.GitHub.Client do
   @spec describe_error(term()) :: String.t()
   def describe_error({:transport, :nxdomain}),
     do:
-      "não foi possível resolver o endereço da instância. Confira a conexão de rede " <>
-        "e se o endereço cadastrado está correto"
+      "the instance address could not be resolved. Check the network connection " <>
+        "and whether the registered address is correct"
 
   def describe_error({:transport, reason}) when reason in [:timeout, :closed, :econnrefused],
-    do: "a instância não respondeu a tempo ou recusou a conexão. A coleta será retentada"
+    do:
+      "the instance did not answer in time or refused the connection. The collection " <>
+        "will be retried"
 
   def describe_error({:transport, reason}),
-    do: "falha de rede ao falar com a instância (#{inspect(reason)}). A coleta será retentada"
+    do:
+      "network failure talking to the instance (#{inspect(reason)}). The collection will be " <>
+        "retried"
 
   def describe_error(:unauthorized),
     do:
-      "a credencial foi recusada pela ferramenta. Ela pode ter sido revogada ou expirado — " <>
-        "cadastre uma credencial válida"
+      "the tool refused the credential. It may have been revoked or expired — " <>
+        "register a valid credential"
 
   def describe_error({:missing_scopes, escopos}),
     do:
-      "a credencial não tem os escopos necessários: #{Enum.join(escopos, ", ")}. " <>
-        "Sem eles a coleta devolveria zero equipes, o que é pior que falhar"
+      "the credential lacks the required scopes: #{Enum.join(escopos, ", ")}. " <>
+        "Without them the collection would return zero teams, which is worse than failing"
 
   def describe_error({:organization_not_found, login}),
     do:
-      "a organização #{inspect(login)} não foi encontrada nesta instância. " <>
-        "Use o login da organização — o que vem depois de github.com/ —, não a URL inteira"
+      "organisation #{inspect(login)} was not found on this instance. " <>
+        "Use the organisation login — what comes after github.com/ — not the whole URL"
 
   def describe_error({:graphql_errors, [%{"message" => mensagem} | _]}),
-    do: "a ferramenta recusou a consulta: #{mensagem}"
+    do: "the tool refused the query: #{mensagem}"
 
   def describe_error({:unexpected_status, status}) when status >= 500,
     do:
-      "a instância respondeu com erro #{status}. É falha do servidor de origem, e será retentada"
+      "the instance answered with error #{status}. It is a source-server failure, and will be retried"
 
   def describe_error({:unexpected_status, status}),
-    do: "a instância respondeu com status inesperado #{status}"
+    do: "the instance answered with unexpected status #{status}"
 
   def describe_error({:unexpected_status, status, _body}),
     do: describe_error({:unexpected_status, status})
 
-  def describe_error(outro), do: "falha não classificada: #{inspect(outro)}"
+  def describe_error(outro), do: "unclassified failure: #{inspect(outro)}"
 
   @doc """
   Diz se a falha é transitória — se vale retentar.

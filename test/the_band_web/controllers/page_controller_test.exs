@@ -3,7 +3,7 @@ defmodule TheBandWeb.PageControllerTest do
 
   test "a raiz leva para a entrada quando não há sessão", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert redirected_to(conn) == ~p"/entrar"
+    assert redirected_to(conn) == ~p"/sign-in"
   end
 
   test "a raiz leva para as pessoas quando há sessão", %{conn: conn} do
@@ -11,6 +11,6 @@ defmodule TheBandWeb.PageControllerTest do
 
     conn = conn |> log_in(user) |> get(~p"/")
 
-    assert redirected_to(conn) == ~p"/pessoas"
+    assert redirected_to(conn) == ~p"/people"
   end
 end

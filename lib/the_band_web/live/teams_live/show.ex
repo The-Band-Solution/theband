@@ -1,6 +1,6 @@
 defmodule TheBandWeb.TeamsLive.Show do
   @moduledoc """
-  `/equipes/:id` — integrantes observados de uma equipe (US3).
+  `/teams/:id` — integrantes observados de uma equipe (US3).
 
   O nível de acesso é rotulado como **acesso na plataforma**, nunca como papel ou
   cargo. O rótulo é parte do contrato: chamá-lo de papel na tela desfaria na
@@ -18,8 +18,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     case Enum.find(EO.list_teams(tenant), &(&1.id == id)) do
       # FR-027 — id de outro tenant não devolve o registro; devolve 404.
       nil ->
-        {:ok,
-         socket |> put_flash(:error, "Equipe não encontrada.") |> push_navigate(to: ~p"/equipes")}
+        {:ok, socket |> put_flash(:error, "Team not found.") |> push_navigate(to: ~p"/teams")}
 
       team ->
         {:ok,
@@ -40,7 +39,7 @@ defmodule TheBandWeb.TeamsLive.Show do
           {length(@members)} {if length(@members) == 1, do: "integrante", else: "integrantes"} · {@pending_role} sem papel organizacional atribuído
         </:subtitle>
         <:actions>
-          <.link navigate={~p"/equipes"} class="btn btn-ghost btn-sm">voltar</.link>
+          <.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">voltar</.link>
         </:actions>
       </.header>
 

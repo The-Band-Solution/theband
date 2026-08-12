@@ -210,26 +210,27 @@ defmodule TheBand.Mapping.Decision do
 
   defp divergencia_estrutural(mesmo, mesmo, _partes), do: nil
 
+  # As frases vão para a tela, e por isso são em inglês — como todo texto de interface.
   defp divergencia_estrutural(@tarefa, _estrutural, partes) when partes > 0,
     do:
       {"task_with_parts",
-       "classificada como tarefa e tem #{partes} #{plural(partes)} coletada#{if partes > 1, do: "s"}; " <>
-         "tarefa com partes não é modelada pela SRO — o conceito foi mantido, e isto é " <>
-         "sinal sobre como o time escreve as issues"}
+       "classified as a task, and it has #{partes} collected #{plural(partes)}; " <>
+         "a task with parts is not modelled by the SRO — the concept was kept, and this is " <>
+         "a signal about how the team writes issues"}
 
   defp divergencia_estrutural(@atomica, @tarefa, 0),
     do:
       {"user_story_without_parts",
-       "classificada como user story atômica e não tem partes nem tarefas coletadas ligadas " <>
-         "a ela; pode ser user story ainda não decomposta, e por isso o conceito foi mantido"}
+       "classified as an atomic user story, with no parts and no tasks linked to it; " <>
+         "it may be a user story nobody decomposed, and that is why the concept was kept"}
 
   defp divergencia_estrutural(_derivado, _estrutural, _partes), do: nil
 
-  defp plural(1), do: "parte"
-  defp plural(_), do: "partes"
+  defp plural(1), do: "part"
+  defp plural(_), do: "parts"
 
   defp juntar(nil, motivo), do: motivo
-  defp juntar(existente, motivo), do: existente <> "; e " <> motivo
+  defp juntar(existente, motivo), do: existente <> "; and " <> motivo
 
   defp estrutural(base, conceito, versao) do
     %{

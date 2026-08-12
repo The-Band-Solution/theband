@@ -63,8 +63,14 @@ defmodule TheBand.WorkItems.Queries do
       derived_concept: p.derived_concept,
       declared_concept: p.declared_concept,
       divergence_reason: p.divergence_reason,
+      divergence_kind: p.divergence_kind,
       skip_reason: p.skip_reason,
-      skip_detail: p.skip_detail
+      skip_detail: p.skip_detail,
+      # A proveniência viaja com a issue porque a tela a mostra em toda linha: sem ela, a
+      # listagem trataria decisão por campo declarado e inferência sobre texto livre como a
+      # mesma coisa — que é o que o princípio III proíbe.
+      evidence_source: p.evidence_source,
+      confidence: p.confidence
     })
     |> Repo.all()
   end
@@ -276,6 +282,8 @@ defmodule TheBand.WorkItems.Queries do
           skip_detail: p.skip_detail,
           rule_id: p.rule_id,
           rule_version: p.rule_version,
+          evidence_source: p.evidence_source,
+          confidence: p.confidence,
           promoted_at: p.promoted_at
         }
 
@@ -293,10 +301,14 @@ defmodule TheBand.WorkItems.Queries do
     end
   end
 
+  # Vigentes na tela. O designado que saiu continua no banco — nunca se apaga dados — e a
+  # tela mostra quem está nisto agora, que é a pergunta que ela responde.
   defp assignees(tenant_id, issue_id) do
     Repo.all(
       from a in IssueAssignee,
-        where: a.tenant_id == ^tenant_id and a.collected_issue_id == ^issue_id,
+        where:
+          a.tenant_id == ^tenant_id and a.collected_issue_id == ^issue_id and
+            is_nil(a.no_longer_observed_at),
         order_by: [asc: a.login],
         select: %{login: a.login, person_id: a.person_id}
     )
@@ -305,7 +317,9 @@ defmodule TheBand.WorkItems.Queries do
   defp labels(tenant_id, issue_id) do
     Repo.all(
       from l in IssueLabel,
-        where: l.tenant_id == ^tenant_id and l.collected_issue_id == ^issue_id,
+        where:
+          l.tenant_id == ^tenant_id and l.collected_issue_id == ^issue_id and
+            is_nil(l.no_longer_observed_at),
         order_by: [asc: l.name],
         select: %{name: l.name, color: l.color}
     )
@@ -416,7 +430,9 @@ defmodule TheBand.WorkItems.Queries do
         sub_issue_count: c.sub_issue_count,
         derived_concept: p.derived_concept,
         skip_reason: p.skip_reason,
-        skip_detail: p.skip_detail
+        skip_detail: p.skip_detail,
+        evidence_source: p.evidence_source,
+        confidence: p.confidence
       }
     )
     |> filtrar_conceito(filtro)

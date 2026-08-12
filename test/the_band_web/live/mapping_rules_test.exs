@@ -31,28 +31,28 @@ defmodule TheBandWeb.MappingRulesTest do
       assert Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/mapeamento", "host") == :error
 
       assert %{plug: _} =
-               Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/sincronizacoes", "host")
+               Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/syncs", "host")
     end
 
     test "o acesso parte da organização que produziu a lacuna", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, live, html} = live(conn, ~p"/syncs")
 
-      assert html =~ "regras de mapeamento"
+      assert html =~ "Mapping rules"
 
       # Um clique a partir do cartão da organização — FR-052.
       assert live
-             |> element("button", "regras de mapeamento")
-             |> render_click() =~ "Regras de mapeamento"
+             |> element("button", "Mapping rules")
+             |> render_click() =~ "Mapping rules"
     end
 
     test "o componente tem cabeçalho próprio, separado do relatório de execução",
          %{conn: conn} do
       html = abrir(conn)
 
-      assert html =~ "Regras de mapeamento"
-      assert html =~ "O que esta organização declarou"
+      assert html =~ "Mapping rules"
+      assert html =~ "What this organisation declares"
       # E a tela hospedeira continua respondendo a pergunta dela.
-      assert html =~ "Execuções"
+      assert html =~ "Runs"
     end
   end
 
@@ -60,15 +60,15 @@ defmodule TheBandWeb.MappingRulesTest do
     test "declara quanto ainda não tem conceito", %{conn: conn} do
       html = abrir(conn)
 
-      assert html =~ "ainda sem conceito"
+      assert html =~ "still without a concept"
     end
 
     test "as propostas do catálogo chegam propostas, não ativas", %{conn: conn} do
       html = abrir(conn)
 
-      assert html =~ "Propostas do catálogo"
-      assert html =~ "ativar todas"
-      assert html =~ "economiza a escrita"
+      assert html =~ "Catalogue proposals"
+      assert html =~ "Activate all"
+      assert html =~ "saves the"
     end
 
     test "os padrões de área aparecem em lista separada, propondo a recusa",
@@ -77,8 +77,8 @@ defmodule TheBandWeb.MappingRulesTest do
       # tem, então a lista fica vazia — e é o comportamento certo.
       html = abrir(conn)
 
-      assert html =~ "Não são tipo"
-      assert html =~ "quem faz"
+      assert html =~ "Not a type"
+      assert html =~ "who does it"
 
       # E o ponto que mais importa: nenhum padrão de área é oferecido como proposta.
       propostas = Enum.map(Mapping.list_proposals(t, c.organization.id), & &1.pattern)
@@ -90,8 +90,8 @@ defmodule TheBandWeb.MappingRulesTest do
   describe "ativar uma proposta" do
     test "cria a regra com a pessoa como autora, e enfileira o recálculo",
          %{conn: conn, tenant: t, user: u, cenario: c} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      {:ok, live, _} = live(conn, ~p"/syncs")
+      live |> element("button", "Mapping rules") |> render_click()
 
       chave =
         t
@@ -101,7 +101,9 @@ defmodule TheBandWeb.MappingRulesTest do
 
       html = live |> element("button[phx-value-chave='#{chave}']") |> render_click()
 
-      assert html =~ "ativada"
+      # A regra passa a existir e a proposta deixa de ser proposta — o flash vai para o
+      # processo pai, e afirmar sobre ele aqui testaria o LiveView hospedeiro, não isto.
+      assert html =~ "Active rules"
 
       [regra] = Mapping.list_rules(t, c.organization.id)
       assert regra.created_by_id == u.id
@@ -114,8 +116,8 @@ defmodule TheBandWeb.MappingRulesTest do
   describe "a prévia antes de gravar" do
     test "mostra quantas casam e quantas mudariam, e são números diferentes",
          %{conn: conn} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      {:ok, live, _} = live(conn, ~p"/syncs")
+      live |> element("button", "Mapping rules") |> render_click()
 
       html =
         live
@@ -129,14 +131,14 @@ defmodule TheBandWeb.MappingRulesTest do
           }
         })
 
-      assert html =~ "issues casam"
-      assert html =~ "mudariam de conceito"
+      assert html =~ "issues match"
+      assert html =~ "would change concept"
     end
 
     test "expressão que casa vazio é recusada com a razão, e nada é gravado",
          %{conn: conn, tenant: t, cenario: c} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      {:ok, live, _} = live(conn, ~p"/syncs")
+      live |> element("button", "Mapping rules") |> render_click()
 
       html =
         live
@@ -150,7 +152,7 @@ defmodule TheBandWeb.MappingRulesTest do
           }
         })
 
-      assert html =~ "casaria todas as issues"
+      assert html =~ "match every issue"
       assert Mapping.list_rules(t, c.organization.id) == []
     end
   end
@@ -158,7 +160,7 @@ defmodule TheBandWeb.MappingRulesTest do
   # Abre o componente a partir do cartão da organização — é o único caminho, e é o que
   # FR-052 pede.
   defp abrir(conn) do
-    {:ok, live, _html} = live(conn, ~p"/sincronizacoes")
-    live |> element("button", "regras de mapeamento") |> render_click()
+    {:ok, live, _html} = live(conn, ~p"/syncs")
+    live |> element("button", "Mapping rules") |> render_click()
   end
 end

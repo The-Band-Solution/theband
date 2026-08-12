@@ -55,7 +55,7 @@ export THE_BAND_MASTER_KEY=$(mix the_band.gen_key)   # 1. chave nova, guardada
 mix phx.server                                        # 2. sobe
 ```
 
-3. Em `/ferramentas`: **encerrar observação** na ferramenta afetada — o que destrói a
+3. Em `/tools`: **encerrar observação** na ferramenta afetada — o que destrói a
    credencial ilegível — e depois **retomar observação** com um token novo, que é validado
    contra a origem antes de ser gravado.
 

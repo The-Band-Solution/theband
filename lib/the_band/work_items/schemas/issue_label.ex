@@ -9,6 +9,9 @@ defmodule TheBand.WorkItems.Schemas.IssueLabel do
   Esta tabela existe justamente para registrar o rótulo sem agir sobre ele: sem ela, a
   tela não teria como mostrar o que a origem diz, e a tentação de inferir a partir do
   nome voltaria.
+  `no_longer_observed_at` marca o rótulo que a origem deixou de trazer. **Nunca se apaga
+  dados**: o rótulo que a issue teve é fato sobre como o time a classificou, mesmo depois de
+  removido.
   """
   use Ecto.Schema
 
@@ -25,13 +28,15 @@ defmodule TheBand.WorkItems.Schemas.IssueLabel do
     field :name, :string
     field :color, :string
 
+    field :no_longer_observed_at, :utc_datetime
+
     timestamps(type: :utc_datetime)
   end
 
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(label, attrs) do
     label
-    |> cast(attrs, [:tenant_id, :collected_issue_id, :name, :color])
+    |> cast(attrs, [:tenant_id, :collected_issue_id, :name, :color, :no_longer_observed_at])
     |> validate_required([:tenant_id, :collected_issue_id, :name])
     |> unique_constraint([:collected_issue_id, :name])
   end

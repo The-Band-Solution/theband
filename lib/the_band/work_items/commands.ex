@@ -44,25 +44,35 @@ defmodule TheBand.WorkItems.Commands do
   end
 
   @doc """
-  Substitui os designados da issue pelos informados.
+  Substitui os designados da issue pelos informados — **marcando** o que saiu, nunca apagando.
 
-  **A substituição apaga, e é decisão consciente.** Designação retirada na origem não é o
-  caso de issue que desapareceu: o histórico continua no payload bruto que a feature 004
-  preserva, e manter designado antigo marcado obrigaria a tela a mostrar ex-designados —
-  informação que ninguém pediu, e que confundiria quem lê "quem está nisto agora".
+  ## A correção que a regra da plataforma exigiu
 
-  `person_id` ausente é declaração: o login fica, o vínculo não. Criar a pessoa a partir
-  da issue produziria registro sem a proveniência que a coleta de EO dá.
+  A feature 006 apagava o que a origem não trouxesse mais, com a justificativa de que
+  designação é atributo do agora. A pessoa mantenedora enunciou a regra — **nunca se apaga
+  dados** —, que era a condição de reversão registrada naquela pesquisa.
+
+  E a regra está certa: quem foi responsável por uma issue é parte de como o trabalho
+  aconteceu. Reconstruir isso do payload bruto é arqueologia; marcar custa uma coluna e
+  responde por consulta.
+
+  Designado que **volta** a aparecer tem a marca limpa: quem devolve vigência é a coleta.
+
+  `person_id` ausente é declaração: o login fica, o vínculo não. Criar a pessoa a partir da
+  issue produziria registro sem a proveniência que a coleta de EO dá.
   """
   @spec replace_assignees(Tenant.t(), Ecto.UUID.t(), [map()]) :: {:ok, non_neg_integer()}
   def replace_assignees(%Tenant{id: tenant_id}, collected_issue_id, designados) do
     logins = Enum.map(designados, & &1.login)
+    agora = DateTime.utc_now(:second)
 
-    Repo.delete_all(
-      from a in IssueAssignee,
+    Repo.update_all(
+      from(a in IssueAssignee,
         where:
           a.tenant_id == ^tenant_id and a.collected_issue_id == ^collected_issue_id and
-            a.login not in ^logins
+            a.login not in ^logins and is_nil(a.no_longer_observed_at)
+      ),
+      set: [no_longer_observed_at: agora]
     )
 
     for designado <- designados do
@@ -77,6 +87,8 @@ defmodule TheBand.WorkItems.Commands do
         designado
         |> Map.put(:tenant_id, tenant_id)
         |> Map.put(:collected_issue_id, collected_issue_id)
+        # Reaparecer limpa a marca: quem devolve vigência é a coleta.
+        |> Map.put(:no_longer_observed_at, nil)
       )
       |> Repo.insert_or_update()
     end
@@ -85,19 +97,25 @@ defmodule TheBand.WorkItems.Commands do
   end
 
   @doc """
-  Substitui os rótulos da issue pelos informados. Mesma semântica de `replace_assignees/3`.
+  Substitui os rótulos da issue pelos informados. Mesma semântica de `replace_assignees/3`:
+  **marca** o que saiu, nunca apaga.
 
-  O rótulo é **preservado e não promovido**: um rótulo `bug` não faz a issue um defeito.
+  O rótulo que a issue teve é fato sobre como o time a classificou, mesmo depois de removido.
+
+  E o rótulo é **preservado e não promovido**: um rótulo `bug` não faz a issue um defeito.
   """
   @spec replace_labels(Tenant.t(), Ecto.UUID.t(), [map()]) :: {:ok, non_neg_integer()}
   def replace_labels(%Tenant{id: tenant_id}, collected_issue_id, rotulos) do
     nomes = Enum.map(rotulos, & &1.name)
+    agora = DateTime.utc_now(:second)
 
-    Repo.delete_all(
-      from l in IssueLabel,
+    Repo.update_all(
+      from(l in IssueLabel,
         where:
           l.tenant_id == ^tenant_id and l.collected_issue_id == ^collected_issue_id and
-            l.name not in ^nomes
+            l.name not in ^nomes and is_nil(l.no_longer_observed_at)
+      ),
+      set: [no_longer_observed_at: agora]
     )
 
     for rotulo <- rotulos do
@@ -110,6 +128,7 @@ defmodule TheBand.WorkItems.Commands do
         rotulo
         |> Map.put(:tenant_id, tenant_id)
         |> Map.put(:collected_issue_id, collected_issue_id)
+        |> Map.put(:no_longer_observed_at, nil)
       )
       |> Repo.insert_or_update()
     end

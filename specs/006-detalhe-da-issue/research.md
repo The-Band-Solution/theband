@@ -62,10 +62,20 @@ como distinguir "pessoa coletada" de "login solto".
 
 ---
 
-## R3 — Substituir apaga, ou marca ausência?
+## R3 — Substituir apaga, ou marca ausência? — **REVERTIDA em 2026-08-12**
 
-**Decisão**: `replace_assignees/3` e `replace_labels/3` **apagam** o que a origem não traz
-mais.
+> **Esta decisão foi revertida.** A pessoa mantenedora enunciou a regra da plataforma —
+> **nunca se apaga dados** —, que é exatamente o critério de reversão escrito no fim desta
+> seção. Designado e rótulo passaram a ser **marcados** com `no_longer_observed_at`.
+>
+> E a regra está certa: reconstruir "quem estava designado em março" a partir de payload bruto
+> é arqueologia — exige saber qual execução olhar e confiar que o payload daquele momento foi
+> preservado. Marcar custa uma coluna e responde por consulta.
+>
+> O que segue é a decisão original, mantida para registro.
+
+**Decisão original**: `replace_assignees/3` e `replace_labels/3` **apagam** o que a origem não
+traz mais.
 
 **Razão, e ela contraria a regra geral do projeto** — "ausência marca, nunca apaga". A regra
 existe para **entidades observadas**: uma issue que desaparece da origem continua sendo um

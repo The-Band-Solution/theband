@@ -1,6 +1,6 @@
 defmodule TheBandWeb.SyncLive.Index do
   @moduledoc """
-  `/sincronizacoes` — disparar e acompanhar a coleta (US2).
+  `/syncs` — disparar e acompanhar a coleta (US2).
 
   O progresso chega por PubSub. A pausa por rate limit aparece como estado
   próprio, com o horário de retomada: não é erro, e não deve se parecer com um.
@@ -20,7 +20,7 @@ defmodule TheBandWeb.SyncLive.Index do
     {:ok,
      socket
      |> assign(
-       page_title: "Sincronizações",
+       page_title: "Syncs",
        fase: nil,
        paused: nil,
        reprocess: nil,
@@ -46,24 +46,24 @@ defmodule TheBandWeb.SyncLive.Index do
 
     with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
          {:ok, _sync} <- Ingestion.start_sync(tenant, tool) do
-      {:noreply, socket |> put_flash(:info, "Sincronização iniciada.") |> load()}
+      {:noreply, socket |> put_flash(:info, "Sync started.") |> load()}
     else
       {:error, :already_running} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "Já existe uma sincronização em andamento para esta ferramenta. A segunda não foi iniciada."
+           "A sync is already running for this tool. The second one was not started."
          )}
 
       {:error, :no_active_credential} ->
-        {:noreply, put_flash(socket, :error, "Esta ferramenta não tem credencial ativa.")}
+        {:noreply, put_flash(socket, :error, "This tool has no active credential.")}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Ferramenta não encontrada.")}
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Não foi possível iniciar: #{inspect(reason)}")}
+        {:noreply, put_flash(socket, :error, "Could not start: #{inspect(reason)}")}
     end
   end
 
@@ -77,7 +77,7 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply,
      socket
      |> assign(reprocess: :running)
-     |> put_flash(:info, "Reprocessando os mapeamentos sobre os dados já coletados.")}
+     |> put_flash(:info, "Reprocessing the mappings over the data already collected.")}
   end
 
   @impl true
@@ -120,26 +120,24 @@ defmodule TheBandWeb.SyncLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
       <.header>
-        Sincronizações
-        <:subtitle>Trazer da ferramenta o que a plataforma passa a conhecer.</:subtitle>
+        Syncs
+        <:subtitle>Bring in from the tool what the platform comes to know.</:subtitle>
       </.header>
 
       <div :if={@paused} class="alert alert-info">
         <div>
-          <span class="font-semibold">Aguardando a janela da API.</span>
+          <span class="font-semibold">Waiting for the API window.</span>
           <div class="text-sm">
-            A coleta pausou antes de esgotar o limite e retoma em cerca de {@paused} segundos.
-            Não é erro: o limite do GraphQL é por complexidade de consulta, e pausar
-            antes preserva o progresso.
+            The collection paused before exhausting the limit and resumes in about {@paused} seconds. Not an error: the GraphQL limit is per query complexity, and pausing early
+            preserves the progress.
           </div>
         </div>
       </div>
 
       <div :if={@tools == []} class="alert">
         <p>
-          Nenhuma ferramenta conectada. Conecte uma em
-          <.link navigate={~p"/ferramentas"} class="link">Ferramentas</.link>
-          antes de sincronizar.
+          No tool connected. Connect one in <.link navigate={~p"/tools"} class="link">Tools</.link>
+          before syncing.
         </p>
       </div>
 
@@ -154,12 +152,12 @@ defmodule TheBandWeb.SyncLive.Index do
             <%!-- Dizer o que o botão traz é o que impede alguém procurar uma coleta
                   separada de issues. Ela não existe: é uma sincronização, em fases. --%>
             <div class="text-xs opacity-70 mt-1">
-              pessoas, equipes, repositórios e issues — na mesma coleta
+              people, teams, repositories and issues — in one run
             </div>
           </div>
           <div class="flex flex-col gap-2 items-end">
             <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
-              {if running?(@syncs, tool), do: "em andamento", else: "Sincronizar"}
+              {if running?(@syncs, tool), do: "running", else: "Sync"}
             </.button>
             <%!-- A lacuna nasce da coleta, e o acesso parte da organização que a produziu. --%>
             <.button
@@ -167,7 +165,7 @@ defmodule TheBandWeb.SyncLive.Index do
               phx-value-tool_id={tool.id}
               class="btn-outline btn-xs"
             >
-              regras de mapeamento
+              Mapping rules
             </.button>
           </div>
         </div>
@@ -176,12 +174,12 @@ defmodule TheBandWeb.SyncLive.Index do
       <div class="card bg-base-200 p-4 space-y-3">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <div class="font-semibold">Reprocessar mapeamentos</div>
+            <div class="font-semibold">Reprocess mappings</div>
             <div class="text-sm opacity-70">
-              Reaplica os mapeamentos semânticos aos dados <b>já coletados</b>, a partir do
-              payload preservado. <b>Não consulta a ferramenta.</b>
-              Use depois de corrigir um YAML em <code>priv/knowledge_base/mappings/</code>
-              e reiniciar a aplicação — a base é lida uma vez por boot.
+              Reapplies the semantic mappings to data <b>already collected</b>, from the
+              preserved payload. <b>It does not call the tool.</b>
+              Use it after fixing a YAML in <code>priv/knowledge_base/mappings/</code>
+              and restarting the app — the knowledge base is read once per boot.
             </div>
           </div>
           <.button phx-click="reprocess" disabled={@reprocess == :running}>
@@ -201,21 +199,21 @@ defmodule TheBandWeb.SyncLive.Index do
 
         <div :if={is_map(@reprocess) and Map.has_key?(@reprocess, :reprocessed)} class="space-y-2">
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
-            <div><span class="opacity-60">reprocessados</span> <b>{@reprocess.reprocessed}</b></div>
-            <div><span class="opacity-60">criados</span> <b>{@reprocess.created}</b></div>
-            <div><span class="opacity-60">atualizados</span> <b>{@reprocess.updated}</b></div>
-            <div><span class="opacity-60">sem mudança</span> <b>{@reprocess.unchanged}</b></div>
-            <div><span class="opacity-60">ignorados</span> <b>{@reprocess.skipped}</b></div>
+            <div><span class="opacity-60">reprocessed</span> <b>{@reprocess.reprocessed}</b></div>
+            <div><span class="opacity-60">created</span> <b>{@reprocess.created}</b></div>
+            <div><span class="opacity-60">updated</span> <b>{@reprocess.updated}</b></div>
+            <div><span class="opacity-60">unchanged</span> <b>{@reprocess.unchanged}</b></div>
+            <div><span class="opacity-60">skipped</span> <b>{@reprocess.skipped}</b></div>
           </div>
 
           <div :if={map_size(@reprocess.skip_reasons) > 0} class="text-xs opacity-70">
-            motivos dos ignorados:
+            reasons for skipping:
             <span :for={{reason, count} <- @reprocess.skip_reasons}>{reason} ({count})&nbsp;</span>
           </div>
 
           <p class="text-xs opacity-60">
-            "atualizados" em zero, logo após um reprocessamento, é o resultado esperado quando
-            nenhum mapeamento mudou: o registro só é reescrito quando algum atributo difere.
+            "updated" at zero right after a reprocess is the expected result when no mapping
+            changed: a record is only rewritten when some attribute differs.
           </p>
         </div>
       </div>
@@ -233,10 +231,10 @@ defmodule TheBandWeb.SyncLive.Index do
         organization_login={organizacao_do_mapeamento(@tools, @mapeamento).login}
       />
 
-      <.header>Execuções</.header>
+      <.header>Runs</.header>
 
       <div :if={@syncs == []} class="alert">
-        <p>Nenhuma sincronização executada ainda.</p>
+        <p>No sync has run yet.</p>
       </div>
 
       <div :for={sync <- @syncs} class="card bg-base-200 p-4 space-y-2">
@@ -254,10 +252,10 @@ defmodule TheBandWeb.SyncLive.Index do
             <%!-- A organização, e não só o horário. Numa tela com execuções de duas
                   organizações, "iniciada em 15:10" não diz qual delas. --%>
             <span class="font-semibold">{organizacao(@tools, sync)}</span>
-            <span class="text-sm opacity-70">iniciada em {sync.started_at}</span>
+            <span class="text-sm opacity-70">started {sync.started_at}</span>
           </div>
           <span :if={sync.finished_at} class="text-sm opacity-70">
-            concluída em {sync.finished_at}
+            finished {sync.finished_at}
           </span>
         </div>
 
@@ -309,7 +307,7 @@ defmodule TheBandWeb.SyncLive.Index do
           </div>
 
           <div :if={sync.status == "running" && @fase} class="text-xs">
-            coletando agora: <span class="font-mono">{legivel(@fase)}</span>
+            collecting now: <span class="font-mono">{legivel(@fase)}</span>
           </div>
         </div>
 
@@ -320,64 +318,66 @@ defmodule TheBandWeb.SyncLive.Index do
         <div class="grid gap-4 sm:grid-cols-3 border-t border-base-300 pt-3">
           <div>
             <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
-              o que a execução fez
+              what the run did
             </div>
             <dl class="mt-1 text-sm space-y-0.5">
-              <.linha rotulo="registros coletados" valor={sync.records_collected} />
-              <.linha rotulo="criados" valor={sync.records_created} />
-              <.linha rotulo="atualizados" valor={sync.records_updated} />
-              <.linha rotulo="ignorados" valor={sync.records_skipped} />
+              <.field label="records collected">{sync.records_collected}</.field>
+              <.field label="created">{sync.records_created}</.field>
+              <.field label="updated">{sync.records_updated}</.field>
+              <.field label="skipped">{sync.records_skipped}</.field>
             </dl>
           </div>
 
           <div>
             <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
-              o trabalho que ela trouxe
+              the work it brought
             </div>
             <dl class="mt-1 text-sm space-y-0.5">
-              <.linha rotulo="repositórios" valor={work_summary(sync).repositorios} />
-              <.linha rotulo="issues" valor={work_summary(sync).issues} />
+              <.field label="repositories">{work_summary(sync).repositorios}</.field>
+              <.field label="issues">{work_summary(sync).issues}</.field>
             </dl>
-            <.link navigate={~p"/trabalho"} class="link link-hover text-sm">
-              ver o trabalho →
+            <.link navigate={~p"/work"} class="link link-hover text-sm">
+              View the work →
             </.link>
           </div>
 
           <div>
             <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
-              o que ficou sem resposta
+              what went unanswered
             </div>
             <dl class="mt-1 text-sm space-y-0.5">
-              <.linha rotulo="vínculos sem papel" valor={sync.memberships_pending_role} />
+              <.field label="links with no role">{sync.memberships_pending_role}</.field>
             </dl>
             <%!-- A explicação fica **junto** do número que ela explica. Solta no rodapé do
                   cartão, ela era lida como observação geral sobre a coleta. --%>
             <p class="text-xs opacity-60 mt-1">
-              Lacuna de conhecimento, não erro: mede quanto da estrutura organizacional o
-              sistema ainda não conhece.
+              A knowledge gap, not an error: it measures how much of the organisational
+              structure the system still does not know.
             </p>
           </div>
         </div>
 
         <div :if={map_size(sync.skip_reasons) > 0} class="text-xs opacity-70">
-          motivos dos ignorados:
+          reasons for skipping:
           <span :for={{reason, count} <- sync.skip_reasons}>{reason} ({count})&nbsp;</span>
         </div>
 
         <div :if={sync.error_reason} class="text-sm text-error">{sync.error_reason}</div>
 
-        <table :if={sync.status != "running"} class="table table-xs">
+        <table :if={sync.status != "running"} class="table table-xs stacked">
           <thead>
             <tr>
-              <th>entidade</th><th>páginas</th><th>registros</th><th>última página</th>
+              <th>entity</th><th class="text-right">pages</th><th class="text-right">records</th><th>
+                last page
+              </th>
             </tr>
           </thead>
           <tbody>
             <tr :for={checkpoint <- checkpoints(sync)}>
-              <td class="font-mono text-xs">{checkpoint.entity_type}</td>
-              <td>{checkpoint.page_count}</td>
-              <td>{checkpoint.record_count}</td>
-              <td>{checkpoint.last_page_at}</td>
+              <td data-label="entity" class="font-mono text-xs">{checkpoint.entity_type}</td>
+              <td data-label="pages" class="text-right tabular-nums">{checkpoint.page_count}</td>
+              <td data-label="records" class="text-right tabular-nums">{checkpoint.record_count}</td>
+              <td data-label="last page">{checkpoint.last_page_at}</td>
             </tr>
           </tbody>
         </table>
@@ -434,13 +434,13 @@ defmodule TheBandWeb.SyncLive.Index do
   # Era ausência virando zero na tela: "não coletou" e "coletou e não achou nada" liam-se
   # igual, e o primeiro estava errado.
   @fases [
-    {"github.organization", "organização"},
-    {"github.user", "pessoas"},
-    {"github.team", "equipes"},
-    {"github.team_member", "vínculos de equipe"},
-    {"github.repository", "repositórios"},
+    {"github.organization", "organisation"},
+    {"github.user", "people"},
+    {"github.team", "teams"},
+    {"github.team_member", "team links"},
+    {"github.repository", "repositories"},
     {"github.issue", "issues"},
-    {"promocao", "promoção"}
+    {"promocao", "promotion"}
   ]
 
   @doc false
@@ -473,18 +473,6 @@ defmodule TheBandWeb.SyncLive.Index do
   # `registros` é `nil` quando a fase **não tem checkpoint nenhum** — não executada — e é
   # zero quando executou e não achou nada. Colapsar os dois em zero foi o defeito que esta
   # tela tinha.
-  attr :rotulo, :string, required: true
-  attr :valor, :any, required: true
-
-  defp linha(assigns) do
-    ~H"""
-    <div class="flex justify-between gap-2">
-      <dt class="opacity-60">{@rotulo}</dt>
-      <dd class="font-mono">{@valor}</dd>
-    </div>
-    """
-  end
-
   # A largura é o progresso **da própria fase**, nunca a proporção entre fases: comparar
   # 1 organização com 4474 promoções não significa nada, e uma barra que insinuasse essa
   # comparação estaria mentindo.
@@ -553,7 +541,7 @@ defmodule TheBandWeb.SyncLive.Index do
 
   # A fase de issues carrega o repositório: "coletando issues" sem dizer de qual, numa
   # organização de 121 repositórios, não informa nada.
-  defp legivel("github.issue:" <> repo), do: "issues de #{repo}"
+  defp legivel("github.issue:" <> repo), do: "issues from #{repo}"
 
   defp legivel(fase) do
     Enum.find_value(@fases, fase, fn {id, rotulo} -> id == fase && rotulo end)
@@ -565,8 +553,8 @@ defmodule TheBandWeb.SyncLive.Index do
 
   defp checkpoints(sync), do: Ingestion.list_checkpoints(sync)
 
-  defp status_label("running"), do: "em andamento"
-  defp status_label("completed"), do: "concluída"
-  defp status_label("failed"), do: "falhou"
-  defp status_label("interrupted"), do: "interrompida"
+  defp status_label("running"), do: "running"
+  defp status_label("completed"), do: "completed"
+  defp status_label("failed"), do: "failed"
+  defp status_label("interrupted"), do: "interrupted"
 end

@@ -316,9 +316,9 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
       sync = Ingestion.reload(sync)
       assert sync.status == "failed"
-      assert sync.error_reason =~ "não foi encontrada"
+      assert sync.error_reason =~ "was not found"
       # A mensagem diz o que fazer, e não expõe o struct.
-      assert sync.error_reason =~ "login da organização"
+      assert sync.error_reason =~ "organisation login"
       refute sync.error_reason =~ "%"
     end
   end

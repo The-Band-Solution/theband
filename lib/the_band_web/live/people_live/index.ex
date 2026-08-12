@@ -1,6 +1,6 @@
 defmodule TheBandWeb.PeopleLive.Index do
   @moduledoc """
-  `/pessoas` — as pessoas que a plataforma conhece (US3).
+  `/people` — as pessoas que a plataforma conhece (US3).
 
   Cada registro exibe origem, identificador na ferramenta e data de coleta
   (FR-026, SC-004). A contagem do cabeçalho usa **as mesmas** `opts` da listagem:
@@ -14,7 +14,7 @@ defmodule TheBandWeb.PeopleLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "Pessoas", search: "", show_automation: true) |> load()}
+    {:ok, socket |> assign(page_title: "People", search: "", show_automation: true) |> load()}
   end
 
   @impl true
@@ -33,25 +33,29 @@ defmodule TheBandWeb.PeopleLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
       <.header>
-        Pessoas
+        People
         <:subtitle>
-          {@people_count} {if @people_count == 1, do: "pessoa", else: "pessoas"}
+          {@people_count} {if @people_count == 1, do: "person", else: "people"}
           <span :if={@automation_count > 0}>
             · {@automation_count} {if @automation_count == 1,
-              do: "conta de automação",
-              else: "contas de automação"} classificadas à parte
+              do: "automation account",
+              else: "automation accounts"} classified apart
           </span>
         </:subtitle>
       </.header>
 
-      <form id="filtro-pessoas" phx-change="filter" class="flex flex-wrap gap-4 items-end">
+      <form
+        id="filtro-pessoas"
+        phx-change="filter"
+        class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+      >
         <label class="form-control">
-          <span class="label-text">Buscar</span>
+          <span class="label-text">Search</span>
           <input
             name="search"
             value={@search}
             class="input input-bordered input-sm"
-            placeholder="nome ou login"
+            placeholder="name or login"
             phx-debounce="300"
           />
         </label>
@@ -63,7 +67,7 @@ defmodule TheBandWeb.PeopleLive.Index do
             checked={@show_automation}
             class="checkbox checkbox-sm"
           />
-          <span class="label-text">mostrar contas de automação</span>
+          <span class="label-text">show automation accounts</span>
         </label>
       </form>
 
@@ -71,62 +75,67 @@ defmodule TheBandWeb.PeopleLive.Index do
         <p>{empty_message(@search, @has_any)}</p>
       </div>
 
-      <table :if={@rows != []} class="table">
-        <thead>
-          <tr>
-            <th>nome</th>
-            <th>tipo de conta</th>
-            <th>organizações</th>
-            <th>origem</th>
-            <th>identificador na origem</th>
-            <th>coletado em</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr :for={person <- @rows} class={person.no_longer_observed_at && "opacity-50"}>
-            <td>
-              <div class="font-medium">{person.name}</div>
-              <div :if={person.login} class="text-xs opacity-60">@{person.login}</div>
-              <div :if={person.no_longer_observed_at} class="text-xs opacity-60">
-                não mais observada desde {person.no_longer_observed_at}
-              </div>
-            </td>
-            <td>
-              <span class={["badge badge-sm", person.account_type != "person" && "badge-ghost"]}>
-                {person.account_type}
-              </span>
-            </td>
-            <td class="text-xs">
-              <% orgs = Map.get(@organizations_by_person, person.id, []) %>
-              <div :if={orgs == []} class="opacity-60">
-                sem equipe — organização desconhecida
-              </div>
-              <div :for={org <- orgs}>{org.login}</div>
-              <div :if={length(orgs) > 1} class="badge badge-sm badge-outline mt-1">
-                em {length(orgs)} organizações
-              </div>
-            </td>
-            <td class="text-xs">
-              {person.source_system}
-              <div class="opacity-60">{person.source_instance}</div>
-            </td>
-            <td class="font-mono text-xs">{person.external_id}</td>
-            <td class="text-xs">{person.collected_at}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div :if={@rows != []} class="overflow-x-auto">
+        <table class="table table-sm stacked">
+          <thead>
+            <tr>
+              <th>name</th>
+              <th>account type</th>
+              <th>organisations</th>
+              <th>source</th>
+              <th>identifier at source</th>
+              <th>collected at</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={person <- @rows} class={person.no_longer_observed_at && "opacity-50"}>
+              <td data-label="name">
+                <div class="font-medium">{person.name}</div>
+                <div :if={person.login} class="text-xs opacity-60">@{person.login}</div>
+                <div :if={person.no_longer_observed_at} class="text-xs opacity-60">
+                  no longer observed since {person.no_longer_observed_at}
+                </div>
+              </td>
+              <td data-label="account type">
+                <span class={["badge badge-sm", person.account_type != "person" && "badge-ghost"]}>
+                  {person.account_type}
+                </span>
+              </td>
+              <td data-label="organisations" class="text-xs">
+                <% orgs = Map.get(@organizations_by_person, person.id, []) %>
+                <%!-- Quem não está em equipe alguma aparece **sem** organização, e a frase diz
+                    isso: o vínculo pessoa→organização não existe na origem, ele vem das
+                    equipes. Um traço aqui esconderia a razão. --%>
+                <.absent :if={orgs == []} reason="no team — organisation unknown" />
+                <div :for={org <- orgs}>{org.login}</div>
+                <div :if={length(orgs) > 1} class="badge badge-sm badge-outline mt-1">
+                  in {length(orgs)} organisations
+                </div>
+              </td>
+              <td data-label="source" class="text-xs">
+                {person.source_system}
+                <div class="opacity-60">{person.source_instance}</div>
+              </td>
+              <td data-label="identifier at source" class="font-mono text-xs">
+                {person.external_id}
+              </td>
+              <td data-label="collected at" class="text-xs">{person.collected_at}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <p class="text-xs opacity-60">
-        A organização de uma pessoa vem das equipes dela: não existe vínculo direto entre
-        pessoa e organização, e quem não está em equipe alguma aparece sem organização.
-        Quem está em mais de uma aparece <strong>uma vez</strong>, com todas indicadas — então a
-        soma das pessoas por organização é maior que o total, e isso está correto.
+        A person's organisation comes from their teams: there is no direct link between person and
+        organisation, so whoever is in no team appears with none. Whoever is in more than one
+        appears <strong>once</strong>, with all of them listed — so the sum of people per
+        organisation is larger than the total, and that is correct.
       </p>
 
       <p class="text-xs opacity-60">
-        Contas de automação são registradas e classificadas separadamente: aparecem na lista
-        e não entram na contagem de pessoas. Duas contas da mesma pessoa continuam sendo dois
-        registros — a reconciliação de identidade não faz parte desta entrega.
+        Automation accounts are recorded and classified separately: they appear in the list and do
+        not enter the people count. Two accounts of the same person remain two records —
+        identity reconciliation is not part of this delivery.
       </p>
     </Layouts.app>
     """
@@ -160,7 +169,7 @@ defmodule TheBandWeb.PeopleLive.Index do
   end
 
   defp empty_message(search, has_any)
-  defp empty_message("", false), do: "Nenhuma sincronização trouxe pessoas ainda."
-  defp empty_message("", true), do: "Nenhuma pessoa corresponde aos filtros aplicados."
-  defp empty_message(_search, _), do: "Nenhuma pessoa corresponde à busca."
+  defp empty_message("", false), do: "No sync has brought people yet."
+  defp empty_message("", true), do: "No person matches the filters applied."
+  defp empty_message(_search, _), do: "No person matches the search."
 end

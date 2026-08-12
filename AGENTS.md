@@ -551,6 +551,41 @@ measurement:
 
 ---
 
+## 11.1 Interface — o design system é normativo
+
+**Antes de escrever qualquer tela, leia [docs/design-system.md](docs/design-system.md).** Ele
+não é sugestão: o que está lá vale para toda tela nova, e três regras não se negociam.
+
+**1. O preenchimento carrega a proveniência.** Sólido é observado, hachurado é derivado,
+tracejado é ausente — e cada marca leva **texto** junto, sempre. A plataforma existe para
+separar o que observou do que concluiu; se a interface carrega isso só em cor, ela desfaz o
+produto, e reprova em WCAG 1.4.1.
+
+Use `<.evidence>` de `TheBandWeb.UI`. Não escreva o badge à mão.
+
+**2. Ausência é nomeada, nunca desenhada como quantidade.** Nunca `—`, nunca `0`, nunca célula
+em branco. Use `<.absent reason="...">` e diga **de quem** é a ausência: da origem, ou da
+plataforma. As duas frases são diferentes porque os dois fatos são diferentes.
+
+**3. Mobile-first, e nunca o contrário.** Empilhado por padrão, colunas a partir de `sm:`.
+Tabela com mais de três colunas leva `stacked` e cada `<td>` leva `data-label`.
+
+E duas convenções de escrita:
+
+- **a interface fala inglês; código, comentários e documentação falam português.** Frase que vai
+  para a tela é em inglês **mesmo nascendo no domínio** — e leva comentário dizendo isso, para
+  ninguém traduzir de volta;
+- **recurso de outro tenant devolve "not found", nunca "permission denied"** — dizer que falta
+  permissão confirma que o recurso existe.
+
+Tailwind no markup; CSS próprio só para o que Tailwind não expressa, e **com a razão escrita**.
+Um bloco sem razão é convite para alguém convertê-lo em utilitário e quebrar o que ele
+protegia.
+
+Verificação: `mix test test/the_band_web/design_tokens_test.exs` mede os tokens no **CSS
+compilado** — "apliquei a paleta" é afirmação sobre o build, e o Tailwind poda o que não
+encontra no markup.
+
 ## 12. Processo de trabalho
 
 GitHub Spec Kit é **obrigatório** por feature. Não invente comandos que não existem na versão instalada — confira com `specify version` e a listagem de skills. Nesta instalação (Spec Kit 0.15.1.dev0, integração `claude`) os comandos usam hífen.

@@ -1,6 +1,6 @@
 defmodule TheBandWeb.WorkItemLive.Index do
   @moduledoc """
-  `/trabalho` — as issues coletadas, o que elas são, e **o que não foi classificado**.
+  `/work` — as issues coletadas, o que elas são, e **o que não foi classificado**.
 
   ## As três seções somam o total, sempre
 
@@ -64,128 +64,110 @@ defmodule TheBandWeb.WorkItemLive.Index do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
       <.header>
-        Trabalho
+        Work
         <:subtitle>
-          {@coletadas} {if @coletadas == 1, do: "issue coletada", else: "issues coletadas"} · {@repos_observados} {if @repos_observados ==
-                                                                                                                        1,
-                                                                                                                      do:
-                                                                                                                        "repositório observado",
-                                                                                                                      else:
-                                                                                                                        "repositórios observados"}
+          {@coletadas} {plural(@coletadas, "issue")} collected · {@repos_observados} {plural(
+            @repos_observados,
+            "repository",
+            "repositories"
+          )} observed
         </:subtitle>
       </.header>
 
-      <%!-- Nenhuma ação de coleta aqui, e é decisão. O mesmo botão de Sincronizações
-            traz tudo — pessoas, equipes, repositórios e issues, na mesma coleta. Um
-            segundo lugar para disparar produziria duas leituras de "quando isto foi
-            atualizado", e a resposta certa é uma. --%>
+      <%!-- No collect action here, and that is a decision. The Syncs button brings
+            everything — people, teams, repositories and issues, in one run. A second place
+            to trigger it would produce two readings of "when was this updated", and the
+            right answer is one. --%>
 
-      <div :if={@coletadas == 0} class="alert mt-6 block">
-        <div class="font-semibold">{estado_vazio_titulo(@repos_observados)}</div>
-        <p class="text-sm opacity-80 mt-1">{estado_vazio_texto(@repos_observados)}</p>
-      </div>
+      <.empty :if={@coletadas == 0} title={estado_vazio_titulo(@repos_observados)}>
+        {estado_vazio_texto(@repos_observados)}
+      </.empty>
 
-      <div :if={@coletadas > 0} class="mt-6 space-y-6">
-        <%!-- A diferença aparece em vermelho em vez de ser escondida: ela significa
-              promoção não registrada, e é defeito de coleta, não de exibição. --%>
-        <div :if={@desvio != 0} class="alert alert-error block">
-          <div class="font-semibold">As contagens não somam.</div>
-          <p class="text-sm">
-            {@coletadas} coletadas, {@total_promovido} promovidas e {@total_lacuna} não
-            promovidas — sobram {@desvio}. Alguma issue não tem promoção registrada, e
-            os números abaixo são menores que a realidade.
-          </p>
-        </div>
+      <div :if={@coletadas > 0} class="space-y-6">
+        <%!-- The deviation is shown in full, not hidden: it means a promotion was never
+              recorded, and that is a collection defect rather than a display one. --%>
+        <.notice :if={@desvio != 0} kind={:refused} title="The counts do not add up.">
+          {@coletadas} collected, {@total_promovido} promoted and {@total_lacuna} not promoted
+          — {@desvio} unaccounted for. Some issue has no promotion recorded, and the numbers
+          below are smaller than reality.
+        </.notice>
 
-        <div class="grid gap-6 md:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">
-                Promovidas <span class="opacity-60">{@total_promovido}</span>
-              </h3>
-              <table class="table table-sm">
-                <tbody>
-                  <tr :for={{conceito, rotulo} <- @conceitos} :if={@promovidas[conceito]}>
-                    <td>{rotulo}</td>
-                    <td class="text-right font-mono">{@promovidas[conceito]}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="card-body gap-3 p-4 sm:p-5">
+              <.metric
+                label="promoted"
+                value={@total_promovido}
+                sub={"of #{@coletadas} collected"}
+              />
+              <dl class="text-sm">
+                <div :for={{conceito, rotulo} <- @conceitos} :if={@promovidas[conceito]}>
+                  <.field label={rotulo}>
+                    <span class="tabular">{@promovidas[conceito]}</span>
+                  </.field>
+                </div>
+              </dl>
             </div>
           </div>
 
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">
-                Não promovidas <span class="opacity-60">{@total_lacuna}</span>
-              </h3>
-              <p :if={@total_lacuna == 0} class="text-sm opacity-70">
-                Todos os tipos usados por esta organização têm rota.
+            <div class="card-body gap-3 p-4 sm:p-5">
+              <.metric label="not promoted" value={@total_lacuna} />
+              <p :if={@total_lacuna == 0} class="text-sm text-base-content/70">
+                Every type this organisation uses has a route.
               </p>
-              <table :if={@total_lacuna > 0} class="table table-sm">
-                <tbody>
-                  <tr :for={{motivo, n} <- @lacunas}>
-                    <td>
-                      {motivo_legivel(motivo)}
-                      <%!-- Sem o nome do tipo, a lacuna não diz onde a regra
-                            precisa mudar. --%>
-                      <div :if={motivo == "type_unknown"} class="text-xs opacity-70">
-                        {Enum.map_join(@tipos_desconhecidos, ", ", fn {t, c} -> "#{t} (#{c})" end)}
-                      </div>
-                    </td>
-                    <td class="text-right font-mono">{n}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <dl :if={@total_lacuna > 0} class="text-sm">
+                <div :for={{motivo, n} <- @lacunas}>
+                  <.field label={ConceptLabel.motivo(motivo)}>
+                    <span class="tabular">{n}</span>
+                  </.field>
+                </div>
+              </dl>
+              <%!-- Without the type name the gap says nothing about where the rule must
+                    change: "unknown type: 37" answers nothing, "Chore (17)" answers. --%>
+              <p :if={@tipos_desconhecidos != []} class="text-xs text-base-content/60">
+                {Enum.map_join(@tipos_desconhecidos, ", ", fn {t, c} -> "#{t} (#{c})" end)}
+              </p>
             </div>
           </div>
 
-          <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">
-                Divergências <span class="opacity-60">{length(@divergencias)}</span>
-              </h3>
-              <p :if={@divergencias == []} class="text-sm opacity-70">
-                Nenhuma. Em todas as issues, o tipo declarado e a estrutura concordam.
+          <div class="card bg-base-200 sm:col-span-2 lg:col-span-1">
+            <div class="card-body gap-3 p-4 sm:p-5">
+              <.metric label="divergences" value={length(@divergencias)} />
+              <p :if={@divergencias == []} class="text-sm text-base-content/70">
+                None. Label and structure agree on every issue.
               </p>
-              <%!-- Agrupado por **tipo**, e não só listado: "12 divergências" não diz o
-                    que fazer, e "9 tarefas com partes, 3 épicos sem partes" diz. Contar
-                    pela frase exigiria casar substring, que quebra ao melhorar a redação. --%>
-              <table :if={@por_tipo != %{}} class="table table-sm">
-                <tbody>
-                  <tr :for={{tipo, n} <- @por_tipo}>
-                    <td>
-                      {ConceptLabel.divergencia(tipo)}
-                      <div class="text-xs opacity-60">
-                        {if ConceptLabel.divergencia_mudou_conceito?(tipo),
-                          do: "conceito decidido pelo axioma",
-                          else: "conceito mantido — sinal"}
-                      </div>
-                    </td>
-                    <td class="text-right font-mono">{n}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <ul :if={@divergencias != []} class="text-sm space-y-2 mt-1">
-                <li :for={d <- Enum.take(@divergencias, 6)}>
-                  <.link navigate={~p"/trabalho/issues/#{d.id}"} class="link link-hover font-mono">
-                    #{d.number}
-                  </.link>
-                  <span class="badge badge-xs badge-warning">{d.issue_type}</span>
-                  → {rotulo(d.derived_concept)}
-                  <div class="text-xs opacity-70">{d.divergence_reason}</div>
-                </li>
-              </ul>
+              <%!-- Grouped by kind, not merely listed: "12 divergences" says nothing about
+                    what to do, "9 tasks with parts, 3 epics without parts" does. Counting
+                    by the sentence would need substring matching, which breaks the moment
+                    someone improves the wording. --%>
+              <dl :if={@por_tipo != %{}} class="text-sm">
+                <div :for={{tipo, n} <- @por_tipo}>
+                  <.field label={ConceptLabel.divergencia(tipo)}>
+                    <span class="tabular">{n}</span>
+                    <div class="text-xs text-base-content/60">
+                      {if ConceptLabel.divergencia_mudou_conceito?(tipo),
+                        do: "concept decided by the axiom",
+                        else: "concept kept — signal"}
+                    </div>
+                  </.field>
+                </div>
+              </dl>
             </div>
           </div>
         </div>
 
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Repositórios</h3>
+        <section class="space-y-2">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 class="font-semibold">Repositories</h3>
             <form phx-change="filtrar">
-              <select name="repositorio" class="select select-sm select-bordered">
-                <option value="">todos</option>
+              <label class="sr-only" for="repo-filter">Filter by repository</label>
+              <select
+                id="repo-filter"
+                name="repositorio"
+                class="select select-sm select-bordered w-full sm:w-auto"
+              >
+                <option value="">all repositories</option>
                 <option
                   :for={r <- @repositorios}
                   value={r.observed_repository_id}
@@ -197,111 +179,127 @@ defmodule TheBandWeb.WorkItemLive.Index do
             </form>
           </div>
 
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <%!-- A organização vem antes do repositório, e é a ordem da leitura: dois
-                      repositórios podem ter o mesmo nome em organizações diferentes, e sem
-                      a coluna a lista mostra `theband` duas vezes sem dizer de quem é. --%>
-                <th>organização</th>
-                <th>repositório</th>
-                <th>linguagem</th>
-                <th>ramo</th>
-                <th class="text-right">issues</th>
-                <th>situação</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={r <- @repositorios}>
-                <td class="text-xs opacity-70">{organizacao(@onde, r)}</td>
-                <%!-- O nome abre o detalhe **na plataforma**, não a origem: o que
-                      interessa ao clicar é o que foi coletado. O link para a origem
-                      está lá dentro. --%>
-                <td>
-                  <.link
-                    navigate={~p"/trabalho/repositorios/#{r.observed_repository_id}"}
-                    class="link link-hover"
-                  >
-                    {r.name}
-                  </.link>
-                </td>
-                <td class="opacity-70">{r.primary_language || "—"}</td>
-                <td class="opacity-70 font-mono text-xs">{r.default_branch || "—"}</td>
-                <td class="text-right font-mono">
-                  {@por_repositorio[r.observed_repository_id] || 0}
-                </td>
-                <td>{situacao(r)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+          <div class="overflow-x-auto">
+            <table class="table table-sm stacked">
+              <thead>
+                <tr>
+                  <%!-- The organisation comes before the repository, and that is reading
+                        order: two repositories can share a name across organisations, and
+                        without the column the list shows `theband` twice saying nothing. --%>
+                  <th>organisation</th>
+                  <th>repository</th>
+                  <th>language</th>
+                  <th>branch</th>
+                  <th class="text-right">issues</th>
+                  <th>state</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={r <- @repositorios}>
+                  <td data-label="organisation" class="text-xs opacity-70">
+                    {organizacao(@onde, r)}
+                  </td>
+                  <%!-- The name opens the detail **inside the platform**, not the source:
+                        what matters on click is what was collected. The link to the source
+                        lives in there. --%>
+                  <td data-label="repository">
+                    <.link
+                      navigate={~p"/work/repositories/#{r.observed_repository_id}"}
+                      class="link link-hover"
+                    >
+                      {r.name}
+                    </.link>
+                  </td>
+                  <td data-label="language" class="opacity-70">
+                    {r.primary_language || "not declared"}
+                  </td>
+                  <td data-label="branch" class="font-mono text-xs opacity-70">
+                    {r.default_branch || "—"}
+                  </td>
+                  <td data-label="issues" class="text-right tabular">
+                    {@por_repositorio[r.observed_repository_id] || 0}
+                  </td>
+                  <td data-label="state">{situacao(r)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
-        <div>
-          <div class="flex items-center justify-between mb-2">
+        <section class="space-y-2">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <h3 class="font-semibold">Issues</h3>
-            <span class="text-sm opacity-70">
-              {faixa(@pagina, @por_pagina, @coletadas)} de {@coletadas}
+            <span class="text-sm text-base-content/70">
+              {faixa(@pagina, @por_pagina, @coletadas)} of {@coletadas}
             </span>
           </div>
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>organização</th>
-                <th>repositório</th>
-                <th>#</th>
-                <th>título</th>
-                <th>tipo na origem</th>
-                <th>partes na origem</th>
-                <th>promovida a</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={i <- @issues}>
-                <td class="text-xs opacity-70">{origem(@onde, i).organizacao}</td>
-                <td class="text-xs">{origem(@onde, i).repositorio}</td>
-                <td class="font-mono">
-                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
-                    {i.number}
-                  </.link>
-                </td>
-                <td class="max-w-sm truncate">
-                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
-                    {i.title}
-                  </.link>
-                </td>
-                <td>
-                  <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
-                  <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">—</span>
-                </td>
-                <td class="font-mono text-xs">{i.sub_issue_count}</td>
-                <td>
-                  <span :if={i.derived_concept} class="text-sm">{rotulo(i.derived_concept)}</span>
-                  <%!-- A issue que não se enquadrou em nenhum conceito aparece **nomeada**,
-                        e não como traço: sem nome ela some da leitura, e a lacuna deixa de
-                        ser acionável. `indefinida` não é conceito da ontologia — é o estado
-                        de a plataforma não saber, e o motivo vem junto. --%>
-                  <span :if={is_nil(i.derived_concept)} class="text-sm opacity-60">
-                    {ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
-                  </span>
-                  <div :if={i.divergence_reason} class="text-xs text-warning">
-                    contra o rótulo {i.declared_concept && rotulo(i.declared_concept)}
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
 
-          <div class="flex items-center gap-2 mt-3">
+          <div class="overflow-x-auto">
+            <table class="table table-sm stacked">
+              <thead>
+                <tr>
+                  <th>organisation</th>
+                  <th>repository</th>
+                  <th class="text-right">#</th>
+                  <th>title</th>
+                  <th>type at source</th>
+                  <th class="text-right">parts at source</th>
+                  <th>promoted to</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={i <- @issues}>
+                  <td data-label="organisation" class="text-xs opacity-70">
+                    {origem(@onde, i).organizacao}
+                  </td>
+                  <td data-label="repository" class="text-xs">{origem(@onde, i).repositorio}</td>
+                  <td data-label="#" class="text-right tabular">
+                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
+                      {i.number}
+                    </.link>
+                  </td>
+                  <td data-label="title" class="max-w-sm sm:truncate">
+                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
+                      {i.title}
+                    </.link>
+                  </td>
+                  <td data-label="type at source">
+                    <span :if={i.issue_type} class="badge badge-xs badge-ghost">
+                      {i.issue_type}
+                    </span>
+                    <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">none</span>
+                  </td>
+                  <td data-label="parts at source" class="text-right tabular text-xs">
+                    {i.sub_issue_count}
+                  </td>
+                  <td data-label="promoted to">
+                    <.evidence
+                      concept={i.derived_concept}
+                      source={i.evidence_source}
+                      confidence={i.confidence}
+                      skip_reason={i.skip_reason}
+                      skip_detail={i.skip_detail}
+                    />
+                    <div :if={i.divergence_kind} class="text-xs text-warning">
+                      {ConceptLabel.divergencia(i.divergence_kind)}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <nav class="flex items-center gap-2" aria-label="Pagination">
             <button
               class="btn btn-sm btn-outline"
               disabled={@pagina == 1}
               phx-click="pagina"
               phx-value-n={@pagina - 1}
             >
-              anterior
+              Previous
             </button>
-            <span class="text-sm opacity-70">
-              página {@pagina} de {ultima_pagina(@coletadas, @por_pagina)}
+            <span class="text-sm text-base-content/70">
+              page {@pagina} of {ultima_pagina(@coletadas, @por_pagina)}
             </span>
             <button
               class="btn btn-sm btn-outline"
@@ -309,10 +307,10 @@ defmodule TheBandWeb.WorkItemLive.Index do
               phx-click="pagina"
               phx-value-n={@pagina + 1}
             >
-              próxima
+              Next
             </button>
-          </div>
-        </div>
+          </nav>
+        </section>
       </div>
     </Layouts.app>
     """
@@ -403,31 +401,31 @@ defmodule TheBandWeb.WorkItemLive.Index do
   # Os rótulos vivem em `TheBandWeb.ConceptLabel`, e não aqui: três telas mostram os
   # mesmos conceitos, e com a lista copiada em cada uma `sro.epic` viraria "épico" numa e
   # "epic" na outra.
-  defp rotulo(conceito), do: ConceptLabel.rotulo(conceito)
-
-  defp motivo_legivel(motivo), do: ConceptLabel.motivo(motivo)
+  defp plural(1, singular, _plural), do: singular
+  defp plural(_n, _singular, plural), do: plural
+  defp plural(n, singular), do: plural(n, singular, singular <> "s")
 
   # Três estados vazios diferentes. Um texto só para os três faria alguém concluir que o
   # time não trabalha — FR-036.
-  defp estado_vazio_titulo(0), do: "Nenhuma coleta de issues ocorreu ainda."
-  defp estado_vazio_titulo(_), do: "Nenhum repositório desta organização tem issues."
+  # Three different empty states. One text for all three would let someone conclude the
+  # team does not work — FR-036.
+  defp estado_vazio_titulo(0), do: "No issue collection has run yet."
+  defp estado_vazio_titulo(_), do: "No repository in this organisation has issues."
 
   defp estado_vazio_texto(0),
     do:
-      "Conecte uma ferramenta e sincronize. Os repositórios são descobertos a partir " <>
-        "da organização — não é preciso conectar cada um."
+      "Connect a tool and sync. Repositories are discovered from the organisation — " <>
+        "you do not need to connect them one by one."
 
   defp estado_vazio_texto(n),
     do:
-      "#{n} repositórios foram observados e nenhum tem issue. Isso é diferente de não " <>
-        "ter coletado: a coleta ocorreu e o resultado é vazio."
+      "#{n} repositories were observed and none has issues. That is different from not " <>
+        "having collected: the collection ran, and the result is empty."
 
-  defp situacao(%{excluded_at: at}) when not is_nil(at),
-    do: "excluído pelo tenant"
+  defp situacao(%{excluded_at: at}) when not is_nil(at), do: "excluded by the tenant"
 
-  defp situacao(%{inaccessible_since: at, inaccessible_reason: motivo}) when not is_nil(at),
-    do: "inacessível — #{motivo}"
+  defp situacao(%{inaccessible_since: at}) when not is_nil(at), do: "unreachable"
 
-  defp situacao(%{archived_at: at}) when not is_nil(at), do: "arquivado na origem"
-  defp situacao(_), do: "observado"
+  defp situacao(%{archived_at: at}) when not is_nil(at), do: "archived at the source"
+  defp situacao(_), do: "observed"
 end

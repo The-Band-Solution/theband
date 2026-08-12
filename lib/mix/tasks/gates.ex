@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Gates do
-  @shortdoc "Roda os nove quality gates, na ordem do CI, abortando no primeiro que reprovar"
+  @shortdoc "Roda os dez quality gates, na ordem do CI, abortando no primeiro que reprovar"
 
   @moduledoc """
-  Os nove quality gates da constituição, num comando.
+  Os dez quality gates da constituição, num comando.
 
       mix gates
 
@@ -55,6 +55,14 @@ defmodule Mix.Tasks.Gates do
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já
     # rodadas em dev. O CI roda o job inteiro em test; aqui o isolamento é do gate.
+    # Os assets são compilados **antes** dos testes porque o teste dos tokens do design
+    # system mede o CSS **compilado** — "apliquei a paleta" é afirmação sobre o build, e o
+    # Tailwind poda o que não encontra no markup.
+    #
+    # Sem este passo o teste passava na máquina de quem já tinha buildado e falhava no CI
+    # limpo. É a L24, e a correção é a mesma dela: o caminho do ambiente limpo tem de ser
+    # o caminho que roda.
+    {"assets", {:cmd, "mix", ["assets.build"], [{"MIX_ENV", "test"}]}},
     {"testes", {:cmd, "mix", ["test"], [{"MIX_ENV", "test"}]}},
     {"knowledge.validate", {:mix, ["knowledge.validate"]}},
     {"knowledge.graph", {:mix, ["knowledge.graph"]}},
