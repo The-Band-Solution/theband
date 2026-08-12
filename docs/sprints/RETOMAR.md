@@ -16,15 +16,18 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 | 010 | 011 de quem cada issue é parte | fechado, 12 de 13 |
 | 011 | **012 o vínculo que sumiu na origem** | fechado, 14 FR e 3 de 7 SC — quatro pendem do dado real |
 
-**Dois PRs abertos, e um depende do outro:**
+**Os dois PRs foram aprovados e incorporados**, na ordem certa:
 
 | PR | O que é | Estado |
 |---|---|---|
-| [#264](https://github.com/The-Band-Solution/theband/pull/264) | feature 011, a coluna `part of` | `MERGEABLE · CLEAN`, CI verde, **revisão pedida e não atendida** |
-| [#278](https://github.com/The-Band-Solution/theband/pull/278) | feature 012, a marca do vínculo ausente | empilhado sobre o #264, revisão pedida |
+| [#264](https://github.com/The-Band-Solution/theband/pull/264) | feature 011, a coluna `part of` | **mergeado** |
+| [#278](https://github.com/The-Band-Solution/theband/pull/278) | feature 012, a marca do vínculo ausente | **mergeado**, e o GitHub reapontou a base para `main` sozinho |
 
-**O #278 tem base no #264, e não na `main`.** Quando o #264 for incorporado, o #278 passa a mostrar
-só os commits da feature 012. Incorporar na ordem inversa não funciona.
+`main` em `8677752`, **10 gates verdes por código de saída**. As duas branches foram apagadas no
+merge, e as locais também.
+
+**A #263 não fechou sozinha, e foi fechada na mão**: o corpo do PR dizia "Fecha #263", e o GitHub só
+reconhece a palavra em inglês. É a **L48**.
 
 ## O que a plataforma sabe hoje
 
@@ -40,14 +43,9 @@ de zero quando houver coleta com a origem respondendo.
 
 ## O que precisa de você, e eu não consigo fazer
 
-**Quatro coisas, e todas precisam da chave mestra, de revisão humana ou de olho humano.**
+**Três coisas, e todas precisam da chave mestra ou de olho humano.**
 
-### 1. Revisar os dois PRs
-
-O #264 espera revisão desde 2026-08-12, e o #278 empilhou sobre ele. **Autor não pode revisar o
-próprio PR** — não é limitação de permissão, é regra do GitHub, e já foi conferida.
-
-### 2. A prova no dado real das features 009 e 012 — a mesma coleta serve para as duas
+### 1. A prova no dado real das features 009 e 012 — a mesma coleta serve para as duas
 
 ```bash
 export THE_BAND_MASTER_KEY=...   # no seu terminal, nunca no chat
@@ -63,7 +61,7 @@ mix phx.server                   # e disparar a sincronização em /syncs
 
 As consultas estão em [`specs/012-vinculo-que-sumiu-na-origem/quickstart.md`](../../specs/012-vinculo-que-sumiu-na-origem/quickstart.md).
 
-### 3. A tela em 360 px — sexto sprint com este item
+### 2. A tela em 360 px — sexto sprint com este item
 
 | Tela | Feature |
 |---|---|
@@ -74,7 +72,7 @@ As consultas estão em [`specs/012-vinculo-que-sumiu-na-origem/quickstart.md`](.
 
 Todas asseridas em HTML, **nenhuma olhada**. Asserção em markup não substitui olhar.
 
-### 4. Duas conferências de tela no dado real
+### 3. Duas conferências de tela no dado real
 
 - `/people/<id>` de `vinicius-je`: **350 e 609, nunca 959** — a soma é proibida;
 - `/work/repositories/<id>` de `eo_lib`: as **29** issues dizendo, em texto, que a decomposição
@@ -119,4 +117,7 @@ coleta seguinte. Ninguém percebe — a recusa é silenciosa. Ainda não tem iss
   009, a terceira fronteira da 010, os dois requisitos sem tarefa da 011, e — na 012 — **a
   consequência da marca em outra tela e a ordem contra a promoção**;
 - **abrir um sprint novo confere o anterior**, e agora confere **onde** ele está: é a L45, e foi
-  ela que mandou empilhar esta branch em vez de sair da `main`.
+  ela que mandou empilhar a branch da 012 em vez de sair da `main`;
+- **depois do merge, conferir o que o merge não fez**: a issue de origem fechada, as branches
+  apagadas, e o número que a feature prometeu mudar — é a L48, e ela nasceu de "Fecha #263" não ter
+  fechado nada.

@@ -86,3 +86,29 @@ Três, e as três nasceram de erro cometido dentro do sprint — não de teoria.
 - **L47** — vínculo entre repositórios só existe a partir da **segunda** coleta.
 
 Detalhadas em [licoes-aprendidas.md](../licoes-aprendidas.md).
+
+---
+
+## Depois do merge
+
+Os PRs [#264](https://github.com/The-Band-Solution/theband/pull/264) e
+[#278](https://github.com/The-Band-Solution/theband/pull/278) foram aprovados e incorporados na
+ordem certa. `main` em `8677752`, **10 gates verdes por código de saída**, branches apagadas.
+
+**E o merge deixou uma coisa por fazer, que ninguém teria notado:** a **#263** continuou aberta. O
+corpo do PR dizia *"Fecha #263"*, e o GitHub só reconhece a palavra em inglês — a menção cruzada
+aparece igual nos dois casos, e a issue fica aberta parecendo trabalho não feito. Fechada à mão,
+com a evidência, e virou a **L48**.
+
+**Uma quarta lição do sprint**, e da mesma família das outras três: nenhum erro, e o resultado
+errado.
+
+## O que continua pendente
+
+| # | O que | Por quê |
+|---|---|---|
+| [#277](https://github.com/The-Band-Solution/theband/issues/277) | a conferência no dado real | exige a chave mestra e a origem respondendo |
+| [#265](https://github.com/The-Band-Solution/theband/issues/265) | o épico | fica aberto enquanto a #277 estiver — épico com verificação pendente não está pronto |
+
+Quatro dos sete critérios de sucesso seguem **declarados como pendentes**. O código está na `main`;
+o efeito dele no dado, não foi observado.
