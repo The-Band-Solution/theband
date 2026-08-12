@@ -24,6 +24,39 @@ defmodule TheBandWeb.ConceptLabel do
     {"osdef.defect", "defeito"}
   ]
 
+  @doc """
+  Como uma issue **sem conceito** aparece: `indefinida`, com o motivo ao lado.
+
+  ## Por que não é um conceito da ontologia
+
+  `indefinida` **não existe** na base de conhecimento, e não deve existir. Ela não é uma
+  coisa que a issue é — é o estado de a plataforma ainda não saber o que ela é. Criar
+  `sro.undefined` faria a ausência de conhecimento virar conhecimento: as issues entrariam
+  em contagens de conceito, e "3360 indefinidas" seria lido como um tipo de trabalho que o
+  time faz.
+
+  É a distinção entre lacuna e fato, e a plataforma existe para preservá-la.
+
+  ## Por que então nomear
+
+  Porque sem nome elas aparecem como um traço e somem da leitura. Nomear a lacuna é o que
+  permite alguém agir sobre ela — e a ação é a tela de regras de mapeamento, não uma
+  promoção inventada.
+  """
+  @spec indefinida(String.t() | nil, String.t() | nil) :: String.t()
+  def indefinida(motivo, detalhe) do
+    caso =
+      case {motivo, detalhe} do
+        {"type_unknown", nil} -> "tipo desconhecido"
+        {"type_unknown", tipo} -> "tipo #{tipo} sem regra"
+        {"type_absent", _} -> "sem tipo na origem"
+        {nil, _} -> "sem promoção registrada"
+        {outro, _} -> motivo(outro)
+      end
+
+    "indefinida — #{caso}"
+  end
+
   @motivos %{
     "type_absent" => "sem tipo na origem",
     "type_unknown" => "tipo desconhecido",

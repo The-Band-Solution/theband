@@ -262,8 +262,12 @@ defmodule TheBandWeb.WorkItemLive.Index do
                 <td class="font-mono text-xs">{i.sub_issue_count}</td>
                 <td>
                   <span :if={i.derived_concept} class="text-sm">{rotulo(i.derived_concept)}</span>
-                  <span :if={i.skip_reason} class="text-sm opacity-60">
-                    {motivo_legivel(i.skip_reason)}{if i.skip_detail, do: ": #{i.skip_detail}"}
+                  <%!-- A issue que não se enquadrou em nenhum conceito aparece **nomeada**,
+                        e não como traço: sem nome ela some da leitura, e a lacuna deixa de
+                        ser acionável. `indefinida` não é conceito da ontologia — é o estado
+                        de a plataforma não saber, e o motivo vem junto. --%>
+                  <span :if={is_nil(i.derived_concept)} class="text-sm opacity-60">
+                    {ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
                   </span>
                   <div :if={i.divergence_reason} class="text-xs text-warning">
                     contra o rótulo {i.declared_concept && rotulo(i.declared_concept)}

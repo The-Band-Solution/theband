@@ -218,8 +218,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 <.campo rotulo="conceito">
                   <span :if={@issue.derived_concept}>{ConceptLabel.rotulo(@issue.derived_concept)}</span>
                   <span :if={is_nil(@issue.derived_concept)} class="opacity-70">
-                    não promovida — {ConceptLabel.motivo(@issue.skip_reason)}{if @issue.skip_detail,
-                      do: ": #{@issue.skip_detail}"}
+                    {ConceptLabel.indefinida(@issue.skip_reason, @issue.skip_detail)}
                   </span>
                 </.campo>
                 <.campo rotulo="classificação">
@@ -335,7 +334,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 <li :for={h <- @historico}>
                   <span class="font-medium">
                     {ConceptLabel.rotulo(h.derived_concept) ||
-                      "não promovida — #{ConceptLabel.motivo(h.skip_reason)}"}
+                      ConceptLabel.indefinida(h.skip_reason, h.skip_detail)}
                   </span>
                   <span :if={h.current} class="badge badge-xs badge-primary ml-1">vigente</span>
                   <div class="text-xs opacity-70">
@@ -378,7 +377,8 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </.link>
           </td>
           <td class="text-xs opacity-70 w-40">
-            {ConceptLabel.rotulo(i.derived_concept) || ConceptLabel.motivo(i.skip_reason) || "—"}
+            {ConceptLabel.rotulo(i.derived_concept) ||
+              ConceptLabel.indefinida(i.skip_reason, i.skip_detail)}
           </td>
           <td class="text-xs opacity-60 w-20">
             {if i.sub_issue_count > 0, do: "#{i.sub_issue_count} partes"}

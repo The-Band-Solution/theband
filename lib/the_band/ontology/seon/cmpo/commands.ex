@@ -165,6 +165,30 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
     end
   end
 
+  @doc """
+  Limpa a marca de inacessível — o repositório voltou a responder.
+
+  Existe porque a marca era **permanente na prática**: uma falha de rede de um instante
+  tirava o repositório de `list_collectable/2` para sempre, e nenhuma coleta seguinte o
+  olhava de novo. Foram 38 repositórios e 899 issues fora de toda coleta, por um
+  `:nxdomain`.
+
+  A cura é a própria coleta: alcançou, limpa. Ninguém precisa lembrar de destravar.
+  """
+  @spec clear_inaccessible(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, ObservedRepository.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def clear_inaccessible(%Tenant{id: tenant_id}, observed_repository_id) do
+    with {:ok, observed} <- fetch_observed(tenant_id, observed_repository_id) do
+      if observed.inaccessible_since do
+        observed
+        |> ObservedRepository.changeset(%{inaccessible_since: nil, inaccessible_reason: nil})
+        |> Repo.update()
+      else
+        {:ok, observed}
+      end
+    end
+  end
+
   defp fetch_observed(tenant_id, id) do
     case Repo.one(from o in ObservedRepository, where: o.tenant_id == ^tenant_id and o.id == ^id) do
       nil -> {:error, :not_found}
