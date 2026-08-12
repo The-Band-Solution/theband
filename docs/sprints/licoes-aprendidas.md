@@ -998,3 +998,118 @@ E o corolário que vale para toda spec: **escreva o número proibido**. "Mostre 
 
 **Estado**: aberta. **Tipo**: processo. **Aplicar em**: sprint 005, feature 005 — cujo ciclo
 completo foi escrito antes de qualquer linha de código, e é a primeira verificação desta lição.
+
+---
+
+## L28 — Calcular e não gravar é pior que não calcular
+
+**Onde**: Sprint 005 — primeira execução do recálculo no dado real.
+
+**O que aconteceu.** A decisão calculava a divergência entre o rótulo e a estrutura, com
+frase e tipo, para 488 issues. O banco tinha **zero**.
+
+`mudou_registro?/2` — a função que decide se vale gravar linha nova — comparava conceito,
+motivo da lacuna, regra e fonte da evidência. **Não comparava a divergência.** Uma issue cujo
+conceito não mudava nunca recebia a divergência descoberta depois.
+
+**Por que aconteceu.** A função nasceu antes da divergência estrutural existir, e ninguém
+voltou nela quando o campo novo entrou. O teste que eu escrevi verificava que a decisão
+*calcula* a divergência — e passava, porque ela calcula mesmo.
+
+**Por que é pior que não calcular.** Uma feature ausente é visivelmente ausente. Esta
+mostrava **zero divergências** numa tela desenhada para exibi-las, e quem lesse concluiria
+que nenhuma issue diverge. O produto afirmava o contrário do que sabia.
+
+**O que fazer diferente.** Quando um campo novo entra numa estrutura que já é comparada em
+algum lugar, **procurar a comparação**. `grep` pelo nome dos campos vizinhos acha em segundos:
+se `evidence_source` é comparado e o campo novo não, é defeito.
+
+E o teste tem de ir até o banco. "A decisão calcula X" e "X está gravado" são afirmações
+diferentes, e só a segunda é o que a tela lê.
+
+**Estado**: aberta. **Tipo**: técnica.
+
+---
+
+## L29 — Falha transitória que marca estado permanente tira dado de circulação em silêncio
+
+**Onde**: Sprint 005 — conferência da contagem de issues contra a origem.
+
+**O que aconteceu.** A API do GitHub diz que `leds-conectafapes` tem 4282 issues. A coleta
+via 3383. A diferença — **899 issues** — estava em **38 repositórios marcados como
+inacessíveis** por um `:nxdomain`, uma falha de DNS de um instante.
+
+A marca era permanente na prática: `list_collectable/2` exclui inacessíveis, e nada a
+limpava. Os 38 saíram de **toda** coleta seguinte, e a tela dizia "concluída · 100%".
+
+**Por que aconteceu.** `mark_inaccessible/3` era chamada para qualquer erro. A distinção entre
+falha que se repete — credencial revogada, repositório apagado — e falha do momento existia no
+código (`Client.transient?/1`, usada para decidir retry) e **não era consultada aqui**.
+
+**Por que passou despercebido.** A coleta terminou com sucesso, o percentual fechou em 100%, e
+o denominador também vinha só dos repositórios acessíveis. **O número era coerente consigo
+mesmo e errado.**
+
+**O que fazer diferente.** Antes de marcar estado que retira algo de circulação, perguntar:
+*isto se cura sozinho?* Se sim, não marque — e se marcar, marque **quem limpa**. A cura aqui é
+a própria coleta: alcançou, limpa.
+
+E: um percentual calculado sobre o que a plataforma decidiu olhar nunca detecta o que ela
+deixou de olhar.
+
+**Estado**: aberta. **Tipo**: técnica.
+
+---
+
+## L30 — Conferir o número contra a origem acha o que a suíte não acha
+
+**Onde**: Sprint 005 — as duas lições acima, e o corpo vazio da feature 006.
+
+**O que aconteceu.** Três defeitos em dois dias, todos com a suíte verde:
+
+| defeito | como apareceu |
+|---|---|
+| 480 issues com corpo `NULL` | a origem devolve `""`; `cast/4` descarta string vazia |
+| 899 issues fora de coleta | soma dos `totalCount` da origem contra o que a coleta viu |
+| 488 divergências não gravadas | a decisão calculava e o banco não tinha |
+
+Nenhum tinha teste que falhasse, porque **os três eram sobre dado que o cenário de teste não
+produz**: corpo vazio, repositório inacessível, issue cujo conceito não muda.
+
+**Por que aconteceu.** O cenário de teste é construído a partir do que se espera. O dado real
+tem o que ninguém esperou — e é exatamente aí que o defeito mora.
+
+**O que fazer diferente.** Ao entregar qualquer coisa que conte, **medir contra a origem uma
+vez**. Não é auditoria: é uma consulta. `search(query: "org:x is:issue")` e a soma de
+`issues.totalCount` levaram dois minutos e acharam 899 issues perdidas.
+
+Quando os dois números divergirem, **explicar a diferença até o fim**. "Provavelmente issues
+criadas depois" é uma hipótese, não uma explicação — e neste sprint essa hipótese estava
+errada.
+
+**Estado**: aberta. **Tipo**: processo.
+
+---
+
+## L31 — Regra nova muda o significado de teste que passava
+
+**Onde**: Sprint 005 — a classificação por estrutura.
+
+**O que aconteceu.** A regra estrutural passou a classificar toda issue. Dois testes da prévia
+quebraram, e **nenhum deles estava errado**: eles mediam "quantas issues mudariam de conceito",
+comparando com o que estava gravado. Com a estrutura decidindo de todo modo, essa comparação
+passou a atribuir à regra o que a estrutura faria sozinha.
+
+A correção não foi no teste nem na regra: foi no **significado**. `would_change` passou a
+medir o efeito *da regra* — com ela contra sem ela — e um número novo, `rows_to_write`, passou
+a medir o que a gravação produz.
+
+**Por que importa.** Um teste que quebra depois de uma regra nova é convite a "ajustar o
+esperado". Fazer isso aqui teria mantido o teste verde e a prévia mentindo: ela diria que uma
+regra inócua muda 3451 issues.
+
+**O que fazer diferente.** Quando um teste correto quebra por causa de uma regra nova,
+perguntar **o que a asserção significava** antes de mudar o número. Se a pergunta que ela fazia
+deixou de fazer sentido, a resposta é uma pergunta nova — não um valor novo.
+
+**Estado**: aberta. **Tipo**: processo.
