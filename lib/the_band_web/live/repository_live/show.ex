@@ -47,7 +47,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
       {:error, :not_found} ->
         {:ok,
          socket
-         |> put_flash(:error, "Repositório não encontrado.")
+         |> put_flash(:error, "Repository not found.")
          |> push_navigate(to: ~p"/trabalho")}
 
       {:ok, repositorio} ->
@@ -75,50 +75,52 @@ defmodule TheBandWeb.RepositoryLive.Show do
         </:subtitle>
         <:actions>
           <.link navigate={~p"/trabalho"}>
-            <.button class="btn-outline btn-sm">todas as issues</.button>
+            <.button class="btn-outline btn-sm">All issues</.button>
           </.link>
           <a :if={@repositorio.url} href={@repositorio.url} target="_blank" rel="noopener">
-            <.button class="btn-outline btn-sm">ver na origem</.button>
+            <.button class="btn-outline btn-sm">View at source</.button>
           </a>
         </:actions>
       </.header>
 
       <div :if={@repositorio.excluded_at} class="alert mt-6 block">
-        <div class="font-semibold">Este repositório está excluído da observação.</div>
+        <div class="font-semibold">This repository is excluded from observation.</div>
         <p class="text-sm opacity-80">
-          As issues abaixo continuam consultáveis: a plataforma parou de olhar, e isso é
-          diferente de o dado ter sumido. Nenhuma delas foi marcada como ausente por causa
-          da exclusão.
+          The issues below are still readable: the platform stopped looking, and that is
+          different from the data being gone. None of them was marked absent because of the
+          exclusion.
         </p>
       </div>
 
       <div :if={@repositorio.inaccessible_since} class="alert alert-warning mt-6 block">
-        <div class="font-semibold">Repositório inacessível na última coleta.</div>
+        <div class="font-semibold">Repository unreachable in the last collection.</div>
         <p class="text-sm">
-          {@repositorio.inaccessible_reason} — perder alcance não marca as issues como
-          ausentes.
+          {@repositorio.inaccessible_reason} — losing reach does not mark the issues as
+          absent.
         </p>
       </div>
 
       <div class="mt-6 grid gap-6 md:grid-cols-3">
         <div class="card bg-base-200 md:col-span-2">
           <div class="card-body">
-            <h3 class="font-semibold">O que a origem informa</h3>
+            <h3 class="font-semibold">What the source reports</h3>
             <dl class="text-sm grid gap-x-6 gap-y-1 sm:grid-cols-2">
-              <.campo rotulo="nome qualificado">
+              <.field label="qualified name">
                 <span class="font-mono text-xs">{@repositorio.qualified_name}</span>
-              </.campo>
-              <.campo rotulo="linguagem">{@repositorio.primary_language || "não declarada"}</.campo>
-              <.campo rotulo="ramo padrão">
+              </.field>
+              <.field label="language">{@repositorio.primary_language || "not declared"}</.field>
+              <.field label="default branch">
                 <span class="font-mono text-xs">{@repositorio.default_branch || "—"}</span>
-              </.campo>
-              <.campo rotulo="criado na origem">{data(@repositorio.external_created_at)}</.campo>
-              <.campo rotulo="último push">{data(@repositorio.last_pushed_at)}</.campo>
-              <.campo rotulo="arquivado">
-                {data(@repositorio.archived_at) || "não"}
-              </.campo>
-              <.campo rotulo="primeira coleta">{data(@repositorio.collected_at)}</.campo>
-              <.campo rotulo="última observação">{data(@repositorio.last_observed_at)}</.campo>
+              </.field>
+              <.field label="created at source">
+                {data(@repositorio.external_created_at) || "—"}
+              </.field>
+              <.field label="last push">{data(@repositorio.last_pushed_at) || "—"}</.field>
+              <.field label="archived">
+                {data(@repositorio.archived_at) || "no"}
+              </.field>
+              <.field label="first collected">{data(@repositorio.collected_at)}</.field>
+              <.field label="last observed">{data(@repositorio.last_observed_at)}</.field>
             </dl>
             <p :if={@repositorio.description} class="text-sm opacity-80 mt-2">
               {@repositorio.description}
@@ -128,11 +130,11 @@ defmodule TheBandWeb.RepositoryLive.Show do
 
         <div class="card bg-base-200">
           <div class="card-body">
-            <h3 class="font-semibold">Por conceito</h3>
+            <h3 class="font-semibold">By concept</h3>
             <%!-- A soma é a verificação: quando não fecha, a promoção de alguma issue
                   não foi registrada e o número mostrado é menor que a realidade. --%>
             <div :if={@desvio != 0} class="alert alert-error block text-sm">
-              As contagens não somam: {@coletadas} coletadas contra {@total_promovido} + {@total_lacuna}. Sobram {@desvio}.
+              The counts do not add up: {@coletadas} collected against {@total_promovido} + {@total_lacuna}. {@desvio} unaccounted for.
             </div>
             <table class="table table-sm">
               <tbody>
@@ -141,7 +143,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
                   <td class="text-right font-mono">{@promovidas[conceito]}</td>
                 </tr>
                 <tr :for={{motivo, n} <- @lacunas}>
-                  <td class="opacity-70">indefinida — {ConceptLabel.motivo(motivo)}</td>
+                  <td class="opacity-70">undefined — {ConceptLabel.motivo(motivo)}</td>
                   <td class="text-right font-mono opacity-70">{n}</td>
                 </tr>
                 <tr class="font-semibold border-t">
@@ -161,12 +163,13 @@ defmodule TheBandWeb.RepositoryLive.Show do
         <div :if={@violacoes.task_parent_is_epic != []} class="card bg-base-200">
           <div class="card-body">
             <h3 class="font-semibold">
-              Tarefas cujo pai é épico
+              Tasks whose parent is an epic
               <span class="opacity-60">{length(@violacoes.task_parent_is_epic)}</span>
             </h3>
             <p class="text-xs opacity-70">
-              <span class="font-mono">sro.rule07</span> — uma tarefa atende a uma user story
-              atômica. Todas continuam promovidas: o inválido é o vínculo, não a issue.
+              <span class="font-mono">sro.rule07</span>
+              — a task attends an atomic user story. All of them are still promoted: the link is
+              what is invalid, not the issue.
             </p>
             <.lista_curta issues={@violacoes.task_parent_is_epic} />
           </div>
@@ -175,12 +178,12 @@ defmodule TheBandWeb.RepositoryLive.Show do
         <div :if={@violacoes.task_without_parent != []} class="card bg-base-200">
           <div class="card-body">
             <h3 class="font-semibold">
-              Tarefas sem user story
+              Tasks with no user story
               <span class="opacity-60">{length(@violacoes.task_without_parent)}</span>
             </h3>
             <p class="text-xs opacity-70">
-              O mesmo axioma, outra forma de violá-lo: não há user story a que estas
-              tarefas atendam. Não é caso do anterior, e pede ação diferente.
+              The same axiom, violated a different way: there is no user story for these tasks
+              to attend. It is not a case of the one above, and it asks for a different action.
             </p>
             <.lista_curta issues={@violacoes.task_without_parent} />
           </div>
@@ -195,17 +198,17 @@ defmodule TheBandWeb.RepositoryLive.Show do
       <div :if={@coletadas > 0} class="mt-6">
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-semibold">Issues</h3>
-          <span class="text-sm opacity-70">{faixa(@pagina, @coletadas)} de {@coletadas}</span>
+          <span class="text-sm opacity-70">{faixa(@pagina, @coletadas)} of {@coletadas}</span>
         </div>
         <table class="table table-sm">
           <thead>
             <tr>
               <th>#</th>
-              <th>título</th>
-              <th>tipo na origem</th>
-              <th>estado</th>
-              <th>partes na origem</th>
-              <th>promovida a</th>
+              <th>title</th>
+              <th>type at source</th>
+              <th>state</th>
+              <th class="text-right">parts at source</th>
+              <th>promoted to</th>
             </tr>
           </thead>
           <tbody>
@@ -216,7 +219,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
                   {i.title}
                 </.link>
                 <div :if={i.no_longer_observed_at} class="text-xs opacity-60">
-                  não apareceu na última coleta
+                  did not show up in the last collection
                 </div>
               </td>
               <td>
@@ -263,18 +266,6 @@ defmodule TheBandWeb.RepositoryLive.Show do
         </div>
       </div>
     </Layouts.app>
-    """
-  end
-
-  attr :rotulo, :string, required: true
-  slot :inner_block, required: true
-
-  defp campo(assigns) do
-    ~H"""
-    <div class="flex justify-between gap-3">
-      <dt class="opacity-60 shrink-0">{@rotulo}</dt>
-      <dd class="text-right">{render_slot(@inner_block)}</dd>
-    </div>
     """
   end
 
@@ -346,30 +337,31 @@ defmodule TheBandWeb.RepositoryLive.Show do
   # Três vazios diferentes, e a diferença importa: um diz que a coleta ocorreu e não achou
   # nada; os outros dois dizem que a plataforma não olhou.
   defp vazio_titulo(%{excluded_at: at}) when not is_nil(at),
-    do: "Nenhuma issue coletada, e este repositório está fora da observação."
+    do: "No issue collected, and this repository is out of observation."
 
   defp vazio_titulo(%{inaccessible_since: at}) when not is_nil(at),
-    do: "Nenhuma issue coletada, e o repositório está inacessível."
+    do: "No issue collected, and the repository is unreachable."
 
-  defp vazio_titulo(_), do: "Este repositório não tem issues."
+  defp vazio_titulo(_), do: "This repository has no issues."
 
   defp vazio_texto(%{excluded_at: at}) when not is_nil(at),
-    do: "A plataforma parou de olhar. Incluir de volta faz a próxima coleta trazer as issues."
+    do:
+      "The platform stopped looking. Including it back makes the next collection bring the issues."
 
   defp vazio_texto(%{inaccessible_since: _}),
     do:
       "A coleta perdeu alcance antes de listar issues. Ausência de acesso não é ausência de dado."
 
   defp vazio_texto(_),
-    do: "A coleta ocorreu e o resultado é vazio — diferente de não ter coletado."
+    do: "The collection ran and the result is empty — different from not having collected."
 
-  defp situacao(%{excluded_at: at}) when not is_nil(at), do: "excluído da observação"
+  defp situacao(%{excluded_at: at}) when not is_nil(at), do: "excluded from observation"
 
-  defp situacao(%{inaccessible_since: at}) when not is_nil(at), do: "inacessível"
+  defp situacao(%{inaccessible_since: at}) when not is_nil(at), do: "unreachable"
 
-  defp situacao(%{archived_at: at}) when not is_nil(at), do: "arquivado na origem"
-  defp situacao(_), do: "observado"
+  defp situacao(%{archived_at: at}) when not is_nil(at), do: "archived at the source"
+  defp situacao(_), do: "observed"
 
   defp data(nil), do: nil
-  defp data(%DateTime{} = dt), do: Calendar.strftime(dt, "%d/%m/%Y %H:%M")
+  defp data(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
 end

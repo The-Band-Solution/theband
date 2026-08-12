@@ -115,7 +115,7 @@ defmodule TheBand.WorkItems.RoutingTest do
 
       assert decisao.declared == "sro.epic"
       assert decisao.derived == "sro.atomic_user_story"
-      assert decisao.divergence =~ "não existe épico sem partes"
+      assert decisao.divergence =~ "no epic without parts"
     end
 
     test "Epic com partes que são tarefas: atômica, com a divergência" do

@@ -195,7 +195,7 @@ defmodule TheBand.WorkItems.RoutingOrgRulesTest do
       tem partes que são user stories, independentemente do que o texto diga.
       """
 
-      assert decisao.divergence =~ "composição"
+      assert decisao.divergence =~ "composition makes it an epic"
     end
 
     test "tarefa continua tarefa mesmo com sub-issues" do

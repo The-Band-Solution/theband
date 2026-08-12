@@ -282,6 +282,8 @@ defmodule TheBand.WorkItems.Queries do
           skip_detail: p.skip_detail,
           rule_id: p.rule_id,
           rule_version: p.rule_version,
+          evidence_source: p.evidence_source,
+          confidence: p.confidence,
           promoted_at: p.promoted_at
         }
 
@@ -422,7 +424,9 @@ defmodule TheBand.WorkItems.Queries do
         sub_issue_count: c.sub_issue_count,
         derived_concept: p.derived_concept,
         skip_reason: p.skip_reason,
-        skip_detail: p.skip_detail
+        skip_detail: p.skip_detail,
+        evidence_source: p.evidence_source,
+        confidence: p.confidence
       }
     )
     |> filtrar_conceito(filtro)

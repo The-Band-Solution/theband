@@ -48,8 +48,8 @@ defmodule TheBandWeb.IssueDetailTest do
          %{conn: conn, cenario: c} do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
 
-      assert html =~ "Composição"
-      assert html =~ "Atendimento"
+      assert html =~ "Composition"
+      assert html =~ "Attendance"
       assert html =~ "sro.epic_composed_of_user_story"
       assert html =~ "sro.intended_task_planned_to_meet_user_story"
 
@@ -63,9 +63,9 @@ defmodule TheBandWeb.IssueDetailTest do
          %{conn: conn, cenario: c} do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[3].pai.id}")
 
-      assert html =~ "atômica"
-      assert html =~ "Nenhuma."
-      refute html =~ "épico — tem partes"
+      assert html =~ "atomic"
+      assert html =~ "None."
+      refute html =~ "epic — it has parts"
     end
   end
 
@@ -78,7 +78,7 @@ defmodule TheBandWeb.IssueDetailTest do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{violacao.id}")
 
       assert html =~ "sro.rule07"
-      assert html =~ "o inválido é o vínculo"
+      assert html =~ "the link is what is invalid"
       # A issue continua promovida: o aviso não a esconde nem a despromove.
       assert html =~ "intended task"
     end
@@ -88,7 +88,7 @@ defmodule TheBandWeb.IssueDetailTest do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[201].pai.id}")
 
       assert html =~ "sro.rule07"
-      assert html =~ "não tem pai"
+      assert html =~ "has no parent"
     end
   end
 
@@ -97,17 +97,17 @@ defmodule TheBandWeb.IssueDetailTest do
          %{conn: conn, cenario: c} do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
 
-      assert html =~ "Corpo não coletado"
-      refute html =~ "não tem descrição na origem"
+      assert html =~ "Body not collected"
+      refute html =~ "no description at the source"
     end
 
     test "ausência de designado e de marco aparece nomeada",
          %{conn: conn, cenario: c} do
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
 
-      assert html =~ "ninguém designado"
-      assert html =~ "fora de marco"
-      assert html =~ "fora de quadro"
+      assert html =~ "nobody assigned"
+      assert html =~ "not in a milestone"
+      assert html =~ "not on a board"
     end
   end
 
@@ -125,8 +125,8 @@ defmodule TheBandWeb.IssueDetailTest do
 
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{issue.id}")
 
-      assert html =~ "Histórico de promoção"
-      assert html =~ "vigente"
+      assert html =~ "Promotion history"
+      assert html =~ "current"
       assert html =~ "regra.nova"
     end
   end
@@ -140,8 +140,8 @@ defmodule TheBandWeb.IssueDetailTest do
       assert {:error, {:live_redirect, %{to: "/trabalho", flash: flash}}} =
                live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
 
-      assert flash["error"] =~ "não encontrada"
-      refute flash["error"] =~ "permissão"
+      assert flash["error"] =~ "not found"
+      refute flash["error"] =~ "permission"
     end
   end
 
@@ -151,11 +151,11 @@ defmodule TheBandWeb.IssueDetailTest do
       {:ok, _live, html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
 
       assert html =~ "theband"
-      assert html =~ "Por conceito"
-      refute html =~ "As contagens não somam"
+      assert html =~ "By concept"
+      refute html =~ "The counts do not add up"
 
       total = WorkItems.count_collected(tenant, observed_repository_id: c.observed_repository_id)
-      assert html =~ "de #{total}"
+      assert html =~ "of #{total}"
     end
 
     test "as issues do repositório são navegáveis pelo título",
@@ -180,8 +180,8 @@ defmodule TheBandWeb.IssueDetailTest do
          %{conn: conn, cenario: c} do
       {:ok, _live, html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
 
-      assert html =~ "Tarefas cujo pai é épico"
-      assert html =~ "Tarefas sem user story"
+      assert html =~ "Tasks whose parent is an epic"
+      assert html =~ "Tasks with no user story"
     end
 
     test "repositório de outro tenant não abre", %{conn: conn, cenario: c} do
@@ -191,8 +191,8 @@ defmodule TheBandWeb.IssueDetailTest do
       assert {:error, {:live_redirect, %{to: "/trabalho", flash: flash}}} =
                live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
 
-      assert flash["error"] =~ "não encontrado"
-      refute flash["error"] =~ "permissão"
+      assert flash["error"] =~ "not found"
+      refute flash["error"] =~ "permission"
     end
   end
 
@@ -211,17 +211,17 @@ defmodule TheBandWeb.IssueDetailTest do
         TheBand.WorkItems.record_promotion(t, %{
           collected_issue_id: issue.id,
           derived_concept: "sro.intended_scrum_development_task",
-          divergence_reason: "classificada como tarefa e tem 2 partes coletadas",
+          divergence_reason: "classified as a task, and it has 2 collected parts",
           rule_id: "github.issue_structure_routing",
           rule_version: 1
         })
 
       {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{issue.id}")
 
-      assert html =~ "O rótulo e a estrutura discordam"
-      assert html =~ "tem 2 partes coletadas"
+      assert html =~ "Label and structure disagree"
+      assert html =~ "2 collected parts"
 
-      assert html =~ "O conceito foi mantido", """
+      assert html =~ "The concept was kept", """
       A tela precisa dizer que nada foi corrigido. Sem isso, quem lê supõe que a
       plataforma ajustou o conceito — e a plataforma não decide por quem escreveu a issue.
       """

@@ -45,7 +45,7 @@ defmodule TheBand.WorkItems.Axioms do
   def rule07(_conceito, _conceito_do_pai), do: :ok
 
   @doc """
-  O texto do aviso, nomeando o axioma.
+  O texto do aviso, nomeando o axioma. **Vai para a tela**, e por isso é em inglês.
 
   Nomear `sro.rule07` não é detalhe técnico: é o que permite achar o axioma na base de
   conhecimento e conferir a formulação em vez de acreditar na tela.
@@ -53,11 +53,11 @@ defmodule TheBand.WorkItems.Axioms do
   @spec explicacao(:task_parent_is_epic | :task_without_parent) :: String.t()
   def explicacao(:task_parent_is_epic),
     do:
-      "sro.rule07: uma tarefa atende a uma user story atômica, e o pai desta é um épico. " <>
-        "A tarefa continua promovida — o inválido é o vínculo."
+      "sro.rule07: a task attends an atomic user story, and this one's parent is an epic. " <>
+        "The task is still promoted — the link is what is invalid, not the issue."
 
   def explicacao(:task_without_parent),
     do:
-      "sro.rule07: uma tarefa atende a uma user story atômica, e esta não tem pai. " <>
-        "A tarefa continua promovida — falta o vínculo, não a issue."
+      "sro.rule07: a task attends an atomic user story, and this one has no parent. " <>
+        "The task is still promoted — the link is missing, not the issue."
 end

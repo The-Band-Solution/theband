@@ -173,8 +173,8 @@ defmodule TheBand.Mapping.StructureTest do
       tarefa com partes: `sro.rule07` proíbe tarefa ATENDER épico, que é outra relação.
       """
 
-      assert linha.decisao.divergence =~ "tem 2 partes coletadas"
-      assert linha.decisao.divergence =~ "não é modelada"
+      assert linha.decisao.divergence =~ "2 collected parts"
+      assert linha.decisao.divergence =~ "not modelled by the SRO"
     end
 
     test "user story sem partes mantém o conceito e ganha divergência",
@@ -195,7 +195,7 @@ defmodule TheBand.Mapping.StructureTest do
       linha = conceito(t, org, c.issues[203].pai.id)
 
       assert linha.decisao.derived == @atomica
-      assert linha.decisao.divergence =~ "ainda não decomposta"
+      assert linha.decisao.divergence =~ "nobody decomposed"
     end
 
     test "quando rótulo e estrutura concordam, não há divergência",

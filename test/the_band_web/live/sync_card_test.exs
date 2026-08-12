@@ -49,9 +49,9 @@ defmodule TheBandWeb.SyncCardTest do
 
       # Pessoas e equipes precisam mostrar o que foi coletado. Antes da correção, as duas
       # apareciam pendentes com zero.
-      assert html =~ "pessoas"
+      assert html =~ "people"
       assert html =~ ">67<"
-      assert html =~ "equipes"
+      assert html =~ "teams"
       assert html =~ ">8<"
     end
 
@@ -63,7 +63,7 @@ defmodule TheBandWeb.SyncCardTest do
 
       {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
 
-      assert html =~ "vínculos de equipe"
+      assert html =~ "team links"
       assert html =~ ">11<"
 
       # `String.starts_with?` puro casaria `github.team_member` dentro de `github.team`, e
@@ -89,19 +89,19 @@ defmodule TheBandWeb.SyncCardTest do
     test "os três grupos existem, e cada um responde uma pergunta", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
 
-      assert html =~ "o que a execução fez"
-      assert html =~ "o trabalho que ela trouxe"
-      assert html =~ "o que ficou sem resposta"
+      assert html =~ "what the run did"
+      assert html =~ "the work it brought"
+      assert html =~ "what went unanswered"
     end
 
     test "a explicação da lacuna fica junto do número que ela explica", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
 
       [grupo] =
-        Regex.scan(~r{o que ficou sem resposta.*?</div>\s*</div>}s, html) |> Enum.map(&hd/1)
+        Regex.scan(~r{what went unanswered.*?</div>\s*</div>}s, html) |> Enum.map(&hd/1)
 
-      assert grupo =~ "vínculos sem papel"
-      assert grupo =~ "Lacuna de conhecimento, não erro"
+      assert grupo =~ "links with no role"
+      assert grupo =~ "A knowledge gap, not an error"
     end
   end
 end

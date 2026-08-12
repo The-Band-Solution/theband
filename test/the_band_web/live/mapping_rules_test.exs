@@ -37,11 +37,11 @@ defmodule TheBandWeb.MappingRulesTest do
     test "o acesso parte da organização que produziu a lacuna", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/sincronizacoes")
 
-      assert html =~ "regras de mapeamento"
+      assert html =~ "Mapping rules"
 
       # Um clique a partir do cartão da organização — FR-052.
       assert live
-             |> element("button", "regras de mapeamento")
+             |> element("button", "Mapping rules")
              |> render_click() =~ "Regras de mapeamento"
     end
 
@@ -52,7 +52,7 @@ defmodule TheBandWeb.MappingRulesTest do
       assert html =~ "Regras de mapeamento"
       assert html =~ "O que esta organização declarou"
       # E a tela hospedeira continua respondendo a pergunta dela.
-      assert html =~ "Execuções"
+      assert html =~ "Runs"
     end
   end
 
@@ -91,7 +91,7 @@ defmodule TheBandWeb.MappingRulesTest do
     test "cria a regra com a pessoa como autora, e enfileira o recálculo",
          %{conn: conn, tenant: t, user: u, cenario: c} do
       {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      live |> element("button", "Mapping rules") |> render_click()
 
       chave =
         t
@@ -115,7 +115,7 @@ defmodule TheBandWeb.MappingRulesTest do
     test "mostra quantas casam e quantas mudariam, e são números diferentes",
          %{conn: conn} do
       {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      live |> element("button", "Mapping rules") |> render_click()
 
       html =
         live
@@ -136,7 +136,7 @@ defmodule TheBandWeb.MappingRulesTest do
     test "expressão que casa vazio é recusada com a razão, e nada é gravado",
          %{conn: conn, tenant: t, cenario: c} do
       {:ok, live, _} = live(conn, ~p"/sincronizacoes")
-      live |> element("button", "regras de mapeamento") |> render_click()
+      live |> element("button", "Mapping rules") |> render_click()
 
       html =
         live
@@ -159,6 +159,6 @@ defmodule TheBandWeb.MappingRulesTest do
   # FR-052 pede.
   defp abrir(conn) do
     {:ok, live, _html} = live(conn, ~p"/sincronizacoes")
-    live |> element("button", "regras de mapeamento") |> render_click()
+    live |> element("button", "Mapping rules") |> render_click()
   end
 end

@@ -61,7 +61,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
       {:error, :not_found} ->
         {:ok,
          socket
-         |> put_flash(:error, "Issue não encontrada.")
+         |> put_flash(:error, "Issue not found.")
          |> push_navigate(to: ~p"/trabalho")}
     end
   end
@@ -72,165 +72,156 @@ defmodule TheBandWeb.WorkItemLive.Show do
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
       <.header>
         <span class="font-mono opacity-60">#{@issue.number}</span> {@issue.title}
-        <:subtitle>
-          {@repositorio_nome} · {@organizacao} · {estado(@issue)}
-        </:subtitle>
+        <:subtitle>{@repositorio_nome} · {@organizacao} · {estado(@issue)}</:subtitle>
         <:actions>
           <.link navigate={~p"/trabalho/repositorios/#{@issue.observed_repository_id}"}>
-            <.button class="btn-outline btn-sm">issues do repositório</.button>
+            <.button class="btn-outline btn-sm">Repository issues</.button>
           </.link>
           <a :if={@url_origem} href={@url_origem} target="_blank" rel="noopener">
-            <.button class="btn-outline btn-sm">ver na origem</.button>
+            <.button class="btn-outline btn-sm">View at source</.button>
           </a>
         </:actions>
       </.header>
 
-      <div :if={@issue.no_longer_observed_at} class="alert mt-6 block">
-        <div class="font-semibold">Esta issue não apareceu na última coleta.</div>
-        <p class="text-sm opacity-80">
-          Marcada em {data(@issue.no_longer_observed_at)}. O registro permanece: ausência
-          marca, nunca apaga.
-        </p>
-      </div>
+      <.notice
+        :if={@issue.no_longer_observed_at}
+        kind={:gap}
+        title="This issue did not show up in the last collection."
+      >
+        Marked on {data(@issue.no_longer_observed_at)}. The record stays: absence marks, it never
+        deletes.
+      </.notice>
 
-      <%!-- A contagem que a origem declara **não** aparece ao lado das duas relações, e
-            a razão é o SC-004: ela é exatamente a soma delas neste caso, e um leitor
-            veria "39 partes" ao lado de 9 e 30 e concluiria que composição e atendimento
-            são a mesma coisa contada duas vezes.
+      <%!-- The count the source declares does NOT sit beside the two relations, and the
+            reason is SC-004: here it is exactly their sum, and a reader would see "39 parts"
+            next to 9 and 30 and conclude the two sections count the same thing twice.
 
-            O que aparece é o que a soma esconderia: parte declarada que a plataforma
-            **não tem**. Essa é lacuna de coleta, e no caso normal não imprime nada. --%>
-      <div :if={@partes_faltando > 0} class="alert alert-warning mt-6 block">
-        <div class="font-semibold">A origem declara partes que a plataforma não tem.</div>
-        <p class="text-sm">
-          {@partes_faltando} de {@issue.sub_issue_count} não foram coletadas — parte em
-          repositório fora do escopo observado, ou coleta que não a alcançou. As seções
-          abaixo mostram só o que existe aqui.
-        </p>
-      </div>
+            What does show up is what the sum would hide: a declared part the platform does
+            not have. In the normal case it prints nothing. --%>
+      <.notice
+        :if={@partes_faltando > 0}
+        kind={:gap}
+        title="The source declares parts the platform does not have."
+      >
+        {@partes_faltando} of {@issue.sub_issue_count} were not collected — a part in a repository
+        outside the observed scope, or a collection that did not reach it. The sections below show
+        only what exists here.
+      </.notice>
 
-      <%!-- O aviso do axioma vem antes de tudo, porque muda como se lê o resto. --%>
-      <div :if={@violacao} class="alert alert-warning mt-6 block">
-        <div class="font-semibold">Vínculo em desacordo com a ontologia.</div>
-        <p class="text-sm">{WorkItems.rule07_explanation(@violacao)}</p>
-      </div>
+      <%!-- The axiom warning comes before everything, because it changes how the rest reads. --%>
+      <.notice :if={@violacao} kind={:divergence} title="Link at odds with the ontology.">
+        {WorkItems.rule07_explanation(@violacao)}
+      </.notice>
 
-      <%!-- A divergência entre o rótulo e a estrutura é **alerta**, e não nota de rodapé:
-            ela muda como se lê o conceito logo abaixo. E o conceito foi **mantido** — a
-            plataforma não corrige em silêncio o que o time declarou. --%>
-      <div :if={@issue.divergence_reason} class="alert alert-warning mt-6 block">
-        <div class="font-semibold">
-          {ConceptLabel.divergencia(@issue.divergence_kind) || "O rótulo e a estrutura discordam"}
-        </div>
-        <p class="text-sm">{@issue.divergence_reason}</p>
-        <%!-- As duas frases dizem coisas opostas, e por isso o tipo importa: numa a
-              plataforma **mudou** o conceito por axioma, na outra ela o **manteve** de
-              propósito. Um texto só para os dois casos faria alguém supor a correção onde
-              ela não houve. --%>
-        <p
-          :if={ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
-          class="text-xs opacity-80 mt-1"
-        >
-          O conceito foi decidido pela estrutura: um axioma da SRO contradiz o rótulo, e o
-          axioma vence.
+      <.notice
+        :if={@issue.divergence_reason}
+        kind={:divergence}
+        title={ConceptLabel.divergencia(@issue.divergence_kind) || "Label and structure disagree"}
+      >
+        {@issue.divergence_reason}
+        <%!-- The two sentences say opposite things, which is why the kind matters: in one the
+              platform CHANGED the concept by axiom, in the other it KEPT it on purpose. One
+              text for both cases would let someone assume a correction that never happened. --%>
+        <p :if={ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)} class="mt-1 text-xs">
+          The concept was decided by the structure: an SRO axiom contradicts the label, and the
+          axiom wins.
         </p>
         <p
           :if={not ConceptLabel.divergencia_mudou_conceito?(@issue.divergence_kind)}
-          class="text-xs opacity-80 mt-1"
+          class="mt-1 text-xs"
         >
-          O conceito foi mantido. Não é erro da plataforma: é sinal sobre o processo do
-          time — e corrigi-lo aqui seria a plataforma decidir por quem escreveu a issue.
+          The concept was kept. This is not a platform error — it is a signal about the team's
+          process, and correcting it here would mean deciding for whoever wrote the issue.
         </p>
-      </div>
+      </.notice>
 
-      <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="lg:col-span-2 space-y-6">
+      <div class="grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-2">
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">Descrição</h3>
-              <%!-- `nil` é "nunca coletado"; `""` é "a origem não tem corpo". Um texto
-                    só para os dois faria alguém concluir que a issue está vazia quando
-                    o que falta é reobservar. --%>
-              <p :if={is_nil(@issue.body)} class="text-sm opacity-70">
-                Corpo não coletado. Esta issue foi observada antes de a plataforma passar
-                a pedir o corpo à origem, e o valor aparecerá na próxima coleta desta
-                organização.
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Description</h3>
+              <%!-- `nil` is "never collected"; `""` is "the source has no body". One text for
+                    both would let someone conclude the issue is empty when what is missing is
+                    a re-observation. --%>
+              <p :if={is_nil(@issue.body)} class="text-sm text-base-content/70">
+                Body not collected. This issue was observed before the platform started asking the
+                source for the body, and the value will appear on this organisation's next
+                collection.
               </p>
-              <p :if={@issue.body == ""} class="text-sm opacity-70">
-                A issue não tem descrição na origem.
+              <p :if={@issue.body == ""} class="text-sm text-base-content/70">
+                The issue has no description at the source.
               </p>
-              <p :if={@issue.body not in [nil, ""]} class="text-sm whitespace-pre-wrap">
+              <p :if={@issue.body not in [nil, ""]} class="whitespace-pre-wrap text-sm">
                 {@issue.body}
               </p>
             </div>
           </div>
 
-          <%!-- Composição. Seção própria, com o nome da relação — FR-015. --%>
+          <%!-- Composition. Its own section, with the relation named — FR-015. --%>
           <div class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
-                Composição <span class="opacity-60">{length(@composicao)}</span>
+                Composition <span class="opacity-60">{length(@composicao)}</span>
               </h3>
-              <p class="text-xs opacity-70">
-                <span class="font-mono">sro.epic_composed_of_user_story</span> — as user
-                stories que <strong>compõem</strong> esta issue.
+              <p class="text-xs text-base-content/70">
+                <span class="font-mono">sro.epic_composed_of_user_story</span>
+                — the user stories that <strong>compose</strong>
+                this issue.
               </p>
-              <p :if={@composicao == []} class="text-sm opacity-70 mt-1">
-                Nenhuma. {sem_composicao(@issue)}
+              <p :if={@composicao == []} class="text-sm text-base-content/70">
+                None. {sem_composicao(@issue)}
               </p>
               <.lista_de_issues :if={@composicao != []} issues={@composicao} />
             </div>
           </div>
 
-          <%!-- Atendimento. Outra seção, outra contagem, nunca somadas — FR-016. --%>
+          <%!-- Attendance. Another section, another count, never added — FR-016. --%>
           <div class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
-                Atendimento <span class="opacity-60">{length(@atendimento)}</span>
+                Attendance <span class="opacity-60">{length(@atendimento)}</span>
               </h3>
-              <p class="text-xs opacity-70">
+              <p class="text-xs text-base-content/70">
                 <span class="font-mono">sro.intended_task_planned_to_meet_user_story</span>
-                — as tarefas que <strong>atendem</strong>
-                a esta issue. Elas não a compõem,
-                e é por isso que esta contagem nunca é somada à de cima.
+                — the tasks that <strong>attend</strong>
+                this issue. They do not compose it, and
+                that is why this count is never added to the one above.
               </p>
-              <p :if={@atendimento == []} class="text-sm opacity-70 mt-1">
-                Nenhuma tarefa atende a esta issue.
+              <p :if={@atendimento == []} class="text-sm text-base-content/70">
+                No task attends this issue.
               </p>
               <.lista_de_issues :if={@atendimento != []} issues={@atendimento} />
             </div>
           </div>
 
           <div :if={@sem_promocao != []} class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
-                Partes não promovidas <span class="opacity-60">{length(@sem_promocao)}</span>
+                Parts with no concept <span class="opacity-60">{length(@sem_promocao)}</span>
               </h3>
-              <p class="text-xs opacity-70">
-                A origem declara a relação e a plataforma não decidiu o conceito destas
-                partes. Elas estão coletadas: o que falta é regra de mapeamento.
+              <p class="text-xs text-base-content/70">
+                The source declares the relation and the platform has not decided what these parts
+                are. They are collected: what is missing is a mapping rule.
               </p>
               <.lista_de_issues issues={@sem_promocao} />
             </div>
           </div>
 
           <div :if={@recusados != []} class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
-                Vínculos recusados <span class="opacity-60">{length(@recusados)}</span>
+                Refused links <span class="opacity-60">{length(@recusados)}</span>
               </h3>
-              <p class="text-xs opacity-70">
-                Recusados na coleta, e registrados. As duas issues envolvidas continuam
-                coletadas: recusa-se o vínculo, nunca a issue.
+              <p class="text-xs text-base-content/70">
+                Refused during collection, and recorded. Both issues remain collected: the link is
+                refused, never the issue.
               </p>
-              <ul class="text-sm mt-2 space-y-2">
+              <ul class="mt-1 space-y-2 text-sm">
                 <li :for={r <- @recusados}>
                   {ConceptLabel.recusa(r.reason)}
-                  <div :if={r.cycle_path} class="text-xs font-mono opacity-70">
-                    {r.cycle_path}
-                  </div>
+                  <div :if={r.cycle_path} class="font-mono text-xs opacity-70">{r.cycle_path}</div>
                   <div :if={r.child_external_id} class="text-xs opacity-70">
-                    parte fora do escopo: {r.child_external_id}
+                    part outside the observed scope: {r.child_external_id}
                   </div>
                 </li>
               </ul>
@@ -240,131 +231,122 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
         <div class="space-y-6">
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">Promoção</h3>
-              <dl class="text-sm space-y-1">
-                <.campo rotulo="conceito">
-                  <span :if={@issue.derived_concept}>{ConceptLabel.rotulo(@issue.derived_concept)}</span>
-                  <span :if={is_nil(@issue.derived_concept)} class="opacity-70">
-                    {ConceptLabel.indefinida(@issue.skip_reason, @issue.skip_detail)}
-                  </span>
-                </.campo>
-                <.campo rotulo="classificação">
-                  {classificacao(@issue)}
-                </.campo>
-                <.campo rotulo="tipo na origem">{@issue.issue_type || "—"}</.campo>
-                <.campo rotulo="regra">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Promotion</h3>
+              <dl>
+                <.field label="concept">
+                  <.evidence
+                    concept={@issue.derived_concept}
+                    source={@issue.evidence_source}
+                    confidence={@issue.confidence}
+                    skip_reason={@issue.skip_reason}
+                    skip_detail={@issue.skip_detail}
+                  />
+                </.field>
+                <.field label="evidence">{ConceptLabel.fonte(@issue.evidence_source)}</.field>
+                <.field label="classification">{classificacao(@issue)}</.field>
+                <.field label="type at source">{@issue.issue_type || "none"}</.field>
+                <.field label="rule">
                   <span class="font-mono text-xs">{@issue.rule_id || "—"}</span>
                   <span :if={@issue.rule_version} class="opacity-60">v{@issue.rule_version}</span>
-                </.campo>
-                <.campo :if={@issue.divergence_reason} rotulo="divergência">
-                  <span class="text-warning">{@issue.divergence_reason}</span>
-                </.campo>
+                </.field>
               </dl>
-              <p :if={@issue.divergence_reason} class="text-xs opacity-70 mt-1">
-                Não é erro da plataforma: a estrutura vence o rótulo, e a divergência é
-                sinal sobre o processo do time.
-              </p>
             </div>
           </div>
 
           <div :if={@pai} class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-1 p-4 sm:p-5">
               <h3 class="font-semibold">{rotulo_do_pai(@issue)}</h3>
-              <.link
-                navigate={~p"/trabalho/issues/#{@pai.id}"}
-                class="link link-hover text-sm"
-              >
+              <.link navigate={~p"/trabalho/issues/#{@pai.id}"} class="link link-hover text-sm">
                 <span class="font-mono">#{@pai.number}</span> {@pai.title}
               </.link>
               <div class="text-xs opacity-70">
-                {ConceptLabel.rotulo(@pai.derived_concept) || "não promovida"}
+                {ConceptLabel.rotulo(@pai.derived_concept) || "no concept"}
               </div>
             </div>
           </div>
 
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">Como a origem descreve</h3>
-              <dl class="text-sm space-y-1">
-                <.campo rotulo="autor">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">As the source describes it</h3>
+              <dl>
+                <.field label="author">
                   {@autor_nome || @issue.author_login || "—"}
-                  <span :if={@autor_nome && @issue.author_login} class="opacity-60 text-xs">
-                    {@issue.author_login}
-                  </span>
-                  <%!-- Login sem pessoa ligada é declaração, não falha: a pessoa não
-                        foi coletada, e criá-la a partir da issue produziria registro
-                        sem proveniência. --%>
+                  <%!-- A login with no linked person is a declaration, not a failure: the
+                        person was not collected, and creating them from the issue would
+                        produce a record with no provenance. --%>
                   <div
                     :if={@issue.author_login && is_nil(@issue.author_person_id)}
                     class="text-xs opacity-60"
                   >
-                    pessoa não coletada
+                    person not collected
                   </div>
-                </.campo>
-                <.campo rotulo="designados">
-                  <span :if={@issue.assignees == []} class="opacity-70">ninguém designado</span>
+                </.field>
+                <.field label="assignees">
+                  <.absent :if={@issue.assignees == []} reason="nobody assigned" />
                   <ul :if={@issue.assignees != []} class="space-y-0.5">
                     <li :for={a <- @issue.assignees}>
                       {@nomes[a.person_id] || a.login}
                       <span :if={is_nil(a.person_id)} class="text-xs opacity-60">
-                        (pessoa não coletada)
+                        (person not collected)
                       </span>
                     </li>
                   </ul>
-                </.campo>
-                <.campo rotulo="rótulos">
-                  <span :if={@issue.labels == []} class="opacity-70">nenhum</span>
+                </.field>
+                <.field label="labels">
+                  <.absent :if={@issue.labels == []} reason="none" />
                   <span :for={l <- @issue.labels} class="badge badge-xs badge-ghost mr-1">
                     {l.name}
                   </span>
-                </.campo>
-                <.campo rotulo="marco">{@issue.milestone_title || "fora de marco"}</.campo>
-                <.campo rotulo="quadros">
-                  {if @issue.project_titles == [],
-                    do: "fora de quadro",
-                    else: Enum.join(@issue.project_titles, ", ")}
-                </.campo>
-                <.campo rotulo="comentários">{@issue.comment_count}</.campo>
-                <.campo rotulo="reações">{@issue.reaction_count}</.campo>
+                </.field>
+                <.field label="milestone">
+                  <.absent :if={is_nil(@issue.milestone_title)} reason="not in a milestone" />
+                  <span :if={@issue.milestone_title}>{@issue.milestone_title}</span>
+                </.field>
+                <.field label="boards">
+                  <.absent :if={@issue.project_titles == []} reason="not on a board" />
+                  <span :if={@issue.project_titles != []}>
+                    {Enum.join(@issue.project_titles, ", ")}
+                  </span>
+                </.field>
+                <.field label="comments">{@issue.comment_count}</.field>
+                <.field label="reactions">{@issue.reaction_count}</.field>
               </dl>
-              <p class="text-xs opacity-60 mt-2">
-                A contagem de comentários é coletada; o conteúdo não. Comentário é
-                entidade própria, e coletá-lo multiplicaria o consumo da origem por issue.
+              <p class="mt-1 text-xs opacity-60">
+                The comment count is collected; the content is not. A comment is an entity of its
+                own, and collecting them would multiply what the source is asked for per issue.
               </p>
             </div>
           </div>
 
           <div class="card bg-base-200">
-            <div class="card-body">
-              <h3 class="font-semibold">Datas</h3>
-              <dl class="text-sm space-y-1">
-                <.campo rotulo="criada na origem">{data(@issue.external_created_at)}</.campo>
-                <.campo rotulo="atualizada na origem">{data(@issue.external_updated_at)}</.campo>
-                <.campo rotulo="fechada na origem">
-                  {data(@issue.external_closed_at) || "aberta"}
-                </.campo>
-                <.campo rotulo="primeira coleta">{data(@issue.collected_at)}</.campo>
-                <.campo rotulo="última observação">{data(@issue.last_observed_at)}</.campo>
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Dates</h3>
+              <dl>
+                <.field label="created at source">{data(@issue.external_created_at) || "—"}</.field>
+                <.field label="updated at source">{data(@issue.external_updated_at) || "—"}</.field>
+                <.field label="closed at source">{data(@issue.external_closed_at) || "open"}</.field>
+                <.field label="first collected">{data(@issue.collected_at)}</.field>
+                <.field label="last observed">{data(@issue.last_observed_at)}</.field>
               </dl>
             </div>
           </div>
 
           <div class="card bg-base-200">
-            <div class="card-body">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
-                Histórico de promoção <span class="opacity-60">{length(@historico)}</span>
+                Promotion history <span class="opacity-60">{length(@historico)}</span>
               </h3>
-              <p class="text-xs opacity-70">
-                Append-only: cada decisão é uma linha, e a vigente é a última.
+              <p class="text-xs text-base-content/70">
+                Append-only: every decision is a row, and the current one is the last.
               </p>
-              <ol class="text-sm mt-2 space-y-2">
+              <ol class="mt-1 space-y-2 text-sm">
                 <li :for={h <- @historico}>
                   <span class="font-medium">
                     {ConceptLabel.rotulo(h.derived_concept) ||
                       ConceptLabel.indefinida(h.skip_reason, h.skip_detail)}
                   </span>
-                  <span :if={h.current} class="badge badge-xs badge-primary ml-1">vigente</span>
+                  <span :if={h.current} class="badge badge-xs badge-primary ml-1">current</span>
                   <div class="text-xs opacity-70">
                     {data(h.promoted_at)} · <span class="font-mono">{h.rule_id}</span>
                     <span :if={h.rule_version}>v{h.rule_version}</span>
@@ -376,18 +358,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
         </div>
       </div>
     </Layouts.app>
-    """
-  end
-
-  attr :rotulo, :string, required: true
-  slot :inner_block, required: true
-
-  defp campo(assigns) do
-    ~H"""
-    <div class="flex justify-between gap-3">
-      <dt class="opacity-60 shrink-0">{@rotulo}</dt>
-      <dd class="text-right">{render_slot(@inner_block)}</dd>
-    </div>
     """
   end
 
@@ -483,7 +453,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
   end
 
   defp onde(_tenant, nil, _issue),
-    do: %{repositorio_nome: "repositório não encontrado", organizacao: "—", url_origem: nil}
+    do: %{repositorio_nome: "repository not found", organizacao: "—", url_origem: nil}
 
   defp onde(tenant, repositorio, issue) do
     organizacao =
@@ -501,36 +471,35 @@ defmodule TheBandWeb.WorkItemLive.Show do
   end
 
   defp estado(%{state: "CLOSED"} = issue),
-    do: "fechada#{motivo_do_fechamento(issue.state_reason)}"
+    do: "closed#{motivo_do_fechamento(issue.state_reason)}"
 
   defp estado(%{state: estado}), do: String.downcase(estado)
 
   # `COMPLETED` e `NOT_PLANNED` são fechamentos diferentes, e a diferença é do time.
-  defp motivo_do_fechamento("COMPLETED"), do: " · concluída"
-  defp motivo_do_fechamento("NOT_PLANNED"), do: " · não planejada"
+  defp motivo_do_fechamento("COMPLETED"), do: " · completed"
+  defp motivo_do_fechamento("NOT_PLANNED"), do: " · not planned"
   defp motivo_do_fechamento(nil), do: ""
   defp motivo_do_fechamento(outro), do: " · #{String.downcase(outro)}"
 
-  defp classificacao(%{classification: :epic}), do: "épico — tem partes que são user stories"
+  defp classificacao(%{classification: :epic}), do: "epic — it has parts that are user stories"
 
   defp classificacao(%{classification: :atomic_user_story}),
-    do: "atômica — nenhuma parte é user story"
+    do: "atomic — no part is a user story"
 
   # Ausência de decomposição é declarada, e o texto muda com o conceito: um épico sem
   # partes é sinal; uma tarefa sem partes é o normal.
   defp sem_composicao(%{derived_concept: "sro.epic"}),
-    do: "Um épico sem partes coletadas é sinal de decomposição que não chegou à origem."
+    do: "An epic with no collected parts signals a decomposition that never reached the source."
 
   defp sem_composicao(%{sub_issue_count: n}) when n > 0,
-    do: "A origem declara #{n} partes, e nenhuma foi promovida a user story."
+    do: "The source declares #{n} parts, and none was promoted to a user story."
 
-  defp sem_composicao(_), do: "A origem não declara partes."
+  defp sem_composicao(_), do: "The source declares no parts."
 
-  defp rotulo_do_pai(%{derived_concept: "sro.intended_scrum_development_task"}),
-    do: "Atende a"
+  defp rotulo_do_pai(%{derived_concept: "sro.intended_scrum_development_task"}), do: "Attends"
 
-  defp rotulo_do_pai(_), do: "Faz parte de"
+  defp rotulo_do_pai(_), do: "Part of"
 
   defp data(nil), do: nil
-  defp data(%DateTime{} = dt), do: Calendar.strftime(dt, "%d/%m/%Y %H:%M")
+  defp data(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
 end
