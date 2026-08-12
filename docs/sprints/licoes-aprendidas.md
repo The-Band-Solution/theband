@@ -1113,3 +1113,60 @@ perguntar **o que a asserção significava** antes de mudar o número. Se a perg
 deixou de fazer sentido, a resposta é uma pergunta nova — não um valor novo.
 
 **Estado**: aberta. **Tipo**: processo.
+
+---
+
+## L32 — Texto que afirma o que a plataforma não observou é o mesmo defeito, na direção oposta
+
+**Onde**: Sprint 006 — a marca de trabalho no repositório.
+
+**O que aconteceu.** A feature existe para impedir que ausência apareça como zero. O terceiro
+estado da marca — "não se sabe" — recebeu o texto `not collected yet`, e ele **afirma** que a
+coleta não ocorreu.
+
+Medido no banco depois da migração: **94 repositórios com `issues_collected_at` nulo, e a coleta
+visitou 61 deles** e não achou nada. `nil` significa ausência de **registro**, não ausência de
+coleta. A tela estaria afirmando sobre 61 repositórios algo que a plataforma não observou.
+
+**Por que aconteceu.** Toda a atenção do desenho foi para uma direção — não deixar ausência
+parecer quantidade — e a frase escolhida para nomear a ausência afirmava um fato na direção
+contrária. `no collection recorded` nomeia o que existe: a ausência do registro.
+
+**Por que passou perto de escapar.** Nenhum teste reprovaria: o texto é diferente do texto do
+estado vazio, que é o que os testes exigiam. A distinção que faltava não era entre dois textos,
+era entre **o que o texto afirma** e o que a plataforma tem como observado.
+
+**O que fazer diferente.** Para cada frase que a interface exibe sobre ausência, perguntar: *isto
+afirma um fato, e a plataforma observou esse fato?* "Não coletado" afirma; "sem registro de
+coleta" descreve o que existe. A diferença é a mesma que separa `declared_type` de `structure` na
+evidência.
+
+**Estado**: aberta. **Tipo**: técnica.
+
+---
+
+## L33 — A pergunta que pega o defeito de migração é "o que a tela diz no dia seguinte"
+
+**Onde**: Sprint 006 — achado A1 da análise, antes de existir código.
+
+**O que aconteceu.** A marca decidia pela data de coleta antes da contagem. Cada peça funcionava:
+a consulta contava certo, a coluna gravava certo, a tela lia as duas. E o resultado, no instante
+seguinte à migração, seria a plataforma dizendo `no collection recorded` sobre **41 repositórios**
+de que ela tem issues coletadas — um deles com 2514.
+
+Nenhum teste de unidade tem esse instante como cenário: o cenário de teste cria a data porque o
+teste precisa dela.
+
+**Por que aconteceu.** Migração que acrescenta coluna anulável deixa **todas** as linhas
+existentes nulas, e o código novo é escrito olhando o estado que ele vai produzir — não o estado
+que vai encontrar.
+
+**O que fazer diferente.** Ao acrescentar coluna que a interface lê, perguntar antes de escrever a
+leitura: *quantas linhas existentes terão `nil`, e o que a tela dirá sobre elas?* Se a resposta
+for uma afirmação falsa sobre parte dos dados, a ordem de decisão está errada — e o teste que
+prova isso é o que dá dado sem a coluna preenchida.
+
+Foi `/speckit-analyze` que fez a pergunta, e é o argumento concreto para a fase existir: ela
+examina o desenho contra o estado do mundo, e não contra o cenário do teste.
+
+**Estado**: aberta. **Tipo**: processo.

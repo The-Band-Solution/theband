@@ -61,8 +61,8 @@ atômica.
 
 | # | User story | Épico | Issue | Priority | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| US1 | Achar onde há trabalho, sem ler número | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#186](https://github.com/The-Band-Solution/theband/issues/186) | P1 | 17 | a fazer |
-| US2 | Ir do repositório para as issues dele | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#187](https://github.com/The-Band-Solution/theband/issues/187) | P1 | 1 | a fazer |
+| US1 | Achar onde há trabalho, sem ler número | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#186](https://github.com/The-Band-Solution/theband/issues/186) | P1 | 17 | em revisão |
+| US2 | Ir do repositório para as issues dele | [#185](https://github.com/The-Band-Solution/theband/issues/185) | [#187](https://github.com/The-Band-Solution/theband/issues/187) | P1 | 1 | em revisão |
 
 `Priority` é a *importance* da SRO — valor para a organização. `Estimate` é a *complexity* —
 dificuldade para o time. Campo em branco significa **desconhecido**, nunca zero.
@@ -79,13 +79,13 @@ que a própria feature 006 passou a mostrar.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Contar issues por repositório numa consulta | US1 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | 3 | F1 | a fazer |
-| T002 | Trocar as 135 consultas por uma | US1 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | 2 | F1 | a fazer |
-| T003 | Registrar quando as issues foram coletadas | US1 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | 2 | F2 | a fazer |
-| T004 | Gravar a data no fim da fase de issues | US1 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | 3 | F2 | a fazer |
-| T005 | Exibir a marca com três canais | US1 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | 5 | F3 | a fazer |
-| T006 | Dizer que houve trabalho e não há vigente | US1 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | 2 | F3 | a fazer |
-| T007 | Manter todo repositório clicável | US2 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | 1 | F3 | a fazer |
+| T001 | Contar issues por repositório numa consulta | US1 | [#188](https://github.com/The-Band-Solution/theband/issues/188) | 3 | F1 | em revisão |
+| T002 | Trocar as 135 consultas por uma | US1 | [#189](https://github.com/The-Band-Solution/theband/issues/189) | 2 | F1 | em revisão |
+| T003 | Registrar quando as issues foram coletadas | US1 | [#190](https://github.com/The-Band-Solution/theband/issues/190) | 2 | F2 | em revisão |
+| T004 | Gravar a data no fim da fase de issues | US1 | [#191](https://github.com/The-Band-Solution/theband/issues/191) | 3 | F2 | em revisão |
+| T005 | Exibir a marca com três canais | US1 | [#192](https://github.com/The-Band-Solution/theband/issues/192) | 5 | F3 | em revisão |
+| T006 | Dizer que houve trabalho e não há vigente | US1 | [#193](https://github.com/The-Band-Solution/theband/issues/193) | 2 | F3 | em revisão |
+| T007 | Manter todo repositório clicável | US2 | [#194](https://github.com/The-Band-Solution/theband/issues/194) | 1 | F3 | em revisão |
 
 Tarefa não recebe `Priority`: herda a da user story que atende. Duas fontes divergiriam, e a
 divergência não teria como ser resolvida.
