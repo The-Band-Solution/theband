@@ -1325,3 +1325,211 @@ montada, não à largura da coluna. É o que a L05 já havia concluído, e o que
 **quando** a dívida cobra.
 
 **Estado**: aberta. **Tipo**: técnica.
+
+---
+
+## L38 — O custo de uma tela se mede pela diferença e pela constância, nunca pelo total
+
+**Origem**: Sprint 009 · **Tipo**: técnica
+
+**O que aconteceu.** O plano da feature 010 declarava oito consultas para a página da pessoa, e o
+teste asseriu oito. Reprovou: a página faz **24**. Nenhuma das duas medidas estava errada — 16 são
+framework e autenticação, em **dois** renders de `live/2`.
+
+**Por que aconteceu.** "Quantas consultas a página faz" e "quantas consultas a página **acrescenta**"
+são perguntas diferentes, e o plano respondia a segunda enquanto o teste media a primeira.
+
+**O que fazer diferente.** Duas asserções, e as duas precisam existir:
+
+1. a **diferença** contra uma tela de baseline, dividida pelo número de renders;
+2. a **constância**: uma página com pouco dado e uma com muito medem **igual**.
+
+A segunda é a que pega o defeito real — consulta por linha —, e a primeira é a que impede o número de
+crescer sem decisão. **"Um número que não cresce" não é asserção**: passa com 8 e passa com 80.
+
+**Aplicada em**: Sprint 010 — e ali ela cobrou duas vezes. O teste de custo comparava a mesma página
+com ela mesma (**L41**), e uma mensagem de telemetria atrasada entrou na contagem seguinte (**L42**).
+
+**Estado**: aberta.
+
+---
+
+## L39 — Um `join` num escopo compartilhado desloca os bindings de quem compõe sobre ele
+
+**Origem**: Sprint 009 · **Tipo**: técnica
+
+**O que aconteceu.** `escopo/2` em `WorkItems.Queries` ganhou filtro por pessoa, escrito como `join`
+em `issue_assignees`. `list_issues/2` compõe sobre esse escopo com um `join` próprio e um `select` por
+**posição** — `[i, p]`. O binding `p`, que era a promoção, passou a ser a designação.
+
+```
+field derived_concept in select does not exist in schema IssueAssignee
+```
+
+**Por que aconteceu.** `select` por posição amarra o código à **ordem** dos joins, e um `join`
+acrescentado a montante muda essa ordem sem tocar em quem consome.
+
+**O que fazer diferente.** Filtro em função compartilhada usa **subconsulta**, não `join`:
+
+```elixir
+where(query, [i], i.id in subquery(designadas))
+```
+
+Subconsulta não cria binding, e por isso não desloca nada. E quando o `join` for inevitável, o
+`select` passa a nomear os bindings em vez de contá-los.
+
+**Aplicada em**: Sprint 010 — `list_parents/2` nasceu com `select` nomeando os campos, e o filtro por
+repositório continua sendo `where`.
+
+**Estado**: aberta.
+
+---
+
+## L40 — Duas grandezas com nomes parecidos, e o complemento derivado da errada
+
+**Origem**: Sprint 010 · **Tipo**: processo
+
+**O que aconteceu.** A spec da feature 011 abriu com a medida: *"4 529 issues vigentes, **1 666 com
+pai**, 2 863 sem"*. As três estavam erradas em conjunto: **1 666 é a contagem de vínculos**, as issues
+com pai são **1 630**, e as sem pai são **2 899**.
+
+O erro sobreviveu porque a soma **fechava**: 1 666 + 2 863 = 4 529. Fechava porque o segundo número
+foi **derivado** do primeiro por subtração, e não medido.
+
+**Por que aconteceu.** A consulta contava linhas de `decomposition_links`, e a frase falava de issues.
+A diferença — **36** — era exatamente o caso de borda que a feature existe para tratar: as issues com
+mais de um pai.
+
+**O que fazer diferente.** Duas regras, e a segunda é a que pega este caso:
+
+1. **medir os dois lados**, nunca derivar o complemento por subtração — o total conferir não prova
+   que as partes estejam certas;
+2. quando duas grandezas se relacionam por multiplicidade — issue e vínculo, pessoa e designação —,
+   **medir as duas e conferir a diferença**. Se a diferença for zero e não devia ser, ou o inverso, o
+   nome de uma delas está errado.
+
+**Aplicada em**: Sprint 010 — corrigido antes do plano, e a diferença de 36 virou verificação.
+
+**Estado**: aberta.
+
+---
+
+## L41 — Teste que compara uma coisa com ela mesma passa sempre
+
+**Origem**: Sprint 010 · **Tipo**: técnica
+
+**O que aconteceu.** O teste de custo da coluna asseria a **constância** assim:
+
+```elixir
+poucas = contar_consultas(fn -> abrir(ctx) end)
+grande = repositorio_grande(ctx)          # devolvia o MESMO repositório
+muitas = contar_consultas(fn -> live(ctx.conn, ~p"/work/repositories/#{grande}") end)
+assert poucas == muitas
+```
+
+`repositorio_grande/1` devolvia `ctx.cenario.observed_repository_id` — a mesma página que `abrir/1`
+já abria. A igualdade era garantida, e o teste passou **medindo nada**.
+
+**Por que aconteceu.** O ajudante foi escrito como atalho — "a página grande já existe, é o cenário" —
+e o nome dele, `repositorio_grande`, descrevia a intenção em vez do que ele fazia. Ler o teste depois
+dá a impressão de que duas páginas diferentes foram comparadas.
+
+**O que fazer diferente.** Em teste de **invariância** — constância, idempotência, determinismo —,
+conferir que os dois lados são de fato **diferentes** antes de asserir que o resultado é igual. Uma
+forma barata: se trocar a asserção por `refute` o teste deve **reprovar**. Se ele passa nos dois, não
+mede.
+
+E o cheiro: ajudante cujo nome promete variação e cujo corpo devolve uma constante.
+
+**Estado**: aberta.
+
+---
+
+## L42 — Mensagem atrasada de telemetria entra na contagem seguinte
+
+**Origem**: Sprint 010 · **Tipo**: técnica
+
+**O que aconteceu.** Medindo o custo da página três vezes em sequência — vazia, pequena, grande —, a
+terceira medição devolveu **22** consultas numa página que faz **20**. O rastro completo, feito
+depois, mostrou 10 por render nas duas páginas.
+
+O contador anexa um handler de `[:the_band, :repo, :query]` que faz `send` ao processo do teste, e
+depois drena a caixa com `after 0`. As duas mensagens excedentes eram da **medição anterior**,
+chegadas depois de o `detach` acontecer.
+
+**Por que é pior do que parece.** Eu quase escrevi uma explicação para o 22 — uma consulta condicional
+que só apareceria com mais dado. **Explicar um número instável é a L36 outra vez**: o elo entre duas
+medidas é hipótese, não conclusão. A diferença é que aqui uma das medidas simplesmente não era medida.
+
+**O que fazer diferente.** Contador por telemetria **esvazia a caixa antes de anexar**, e o número
+tem de repetir entre execuções antes de qualquer explicação. Se ele varia, o instrumento está errado —
+e um instrumento errado não se interpreta.
+
+**Estado**: aberta.
+
+---
+
+## L43 — Quando o axioma responde a pergunta errada, a correção é a precondição, não um filtro na resposta
+
+**Origem**: Sprint 010 · **Tipo**: técnica
+
+**O que aconteceu.** A coluna `part of` precisa dizer qual relação o vínculo é, e a decisão da
+violação é de `Axioms.rule07/2` — reusá-lo é requisito, para a coluna não discordar do painel da mesma
+tela.
+
+Mas `rule07(tarefa, nil)` devolve `{:violation, :task_without_parent}`: em `rule07/2`, `nil` no
+conceito do pai significa **não tem pai**. Chamá-lo para toda linha encheria **2 091 das 2 899**
+células de aviso, afogando as **293** que são o caso interessante — e a suíte passaria, porque cada
+peça funciona.
+
+**Por que aconteceu.** O mesmo `nil` significa duas coisas: "não tem pai" no axioma, e "o pai existe e
+não foi promovido" na coluna. É a **L34** — a mesma palavra para duas coisas — aparecendo num valor em
+vez de num nome.
+
+**O que fazer diferente.** Duas coisas, e a segunda é a lição:
+
+1. tratar o `nil` ambíguo **antes** de chamar o axioma, numa cláusula própria;
+2. quando a resposta do axioma não serve, **restringir a chamada**, não filtrar o resultado. A função
+   nova declara a precondição — *há pai* — e o caso de fora dela nem chega ao axioma. Filtrar a
+   resposta seria uma segunda decisão sobre o mesmo fato, que é exatamente o que reusar o axioma
+   existia para evitar.
+
+**Estado**: aberta.
+
+---
+
+## L44 — Sprint que fecha sem review deixa a lição rascunhada, e a próxima feature a cita como se existisse
+
+**Origem**: Sprint 009, achada no Sprint 010 · **Tipo**: processo
+
+**O que aconteceu.** O sprint 009 foi entregue e mergeado — PR #247, treze issues fechadas — **sem
+`sprint-review.md`, sem `aceitacao.md` e sem lições consolidadas**. As lições **L38** e **L39** ficaram
+rascunhadas na mensagem de commit da feature e nunca chegaram ao registro acumulado.
+
+A ausência só apareceu quando o **sprint 010** as citou na tabela de "lições aplicadas", como
+restrição. Elas foram aplicadas de fato — o `select` nomeado e a medida por diferença estão no
+código —, mas **não existiam no documento que existe para ser lido ao abrir o sprint**.
+
+**Por que aconteceu.** O merge encerra a sensação de conclusão. As três peças do fechamento — review,
+aceitação, lições — vêm **depois** dele, e nada falha quando são omitidas: os gates passam, as issues
+fecham, o PR mergeia.
+
+**É o padrão do sucesso silencioso**, aplicado ao processo em vez ao código: ausência de erro lida
+como trabalho concluído.
+
+**O que fazer diferente.** O sprint só está fechado quando os **três** documentos existem, e a
+conferência é mecânica:
+
+```bash
+ls docs/sprints/<n>-*/          # sprint-backlog.md e sprint-review.md
+ls specs/<feature>/aceitacao.md # a aceitação, do sprint 006 em diante
+```
+
+**E a aceitação mora em dois lugares**, o que atrasou notar a falta: até o sprint 005 ela ficava em
+`docs/sprints/<n>/aceitacao.md`, e do 006 em diante em `specs/<feature>/aceitacao.md`, junto da spec
+que ela avalia. Procurar num só lugar dá falso negativo nos dois sentidos.
+
+**Abrir um sprint novo confere o anterior** — e citar uma lição obriga a achá-la no arquivo, não na
+memória.
+
+**Estado**: aberta.

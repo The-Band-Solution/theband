@@ -647,6 +647,60 @@ defmodule TheBand.WorkItems.Queries do
   end
 
   @doc """
+  Os pais de **um conjunto** de issues, numa consulta, agrupados por filha.
+
+  ## Por que não é `fetch_parent/2` num `Enum.map`
+
+  A lista do repositório mostra 50 issues por página, e o repositório maior desta organização tem
+  2 514. Uma consulta por linha seriam 50 por render — o defeito que a feature 007 pagou com 135.
+
+  ## Devolve **todos** os pais, e é aí que ela difere da que já existia
+
+  **36** issues têm mais de um pai vigente. `fetch_parent/2` responde com `limit: 1` **sem
+  `order_by`**: escolhe um em silêncio, e a escolha pode mudar entre execuções. Aqui a lista vem
+  inteira, com ordem `number` e depois `id` — o desempate não é enfeite, porque `number` repete
+  entre repositórios e **57** vínculos têm pai em outro.
+
+  ## Vínculo ausente vem, marcado
+
+  `no_longer_observed_at` viaja no resultado. Ausência é marcada, nunca removida — e quem chama
+  precisa saber que "mais de um pai" conta só os **vigentes**: um pai vigente mais um vínculo que
+  acabou é **um** pai, não dois.
+
+  ## A fronteira não é cruzada
+
+  Devolve `observed_repository_id`, **não** o nome do repositório. O nome é de CMPO, e juntar a
+  tabela dele aqui quebraria a ADR 0003.
+
+  Issue sem pai **não** aparece no mapa — quem chama nomeia a ausência, e `Map.get/3` com `[]` é
+  o acesso certo.
+  """
+  @spec list_parents(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => [map()]}
+  def list_parents(%Tenant{}, []), do: %{}
+
+  def list_parents(%Tenant{id: tenant_id}, issue_ids) when is_list(issue_ids) do
+    from(l in DecompositionLink,
+      join: c in CollectedIssue,
+      on: c.id == l.parent_issue_id,
+      left_join: p in subquery(promocoes_vigentes(tenant_id)),
+      on: p.collected_issue_id == c.id,
+      where: l.tenant_id == ^tenant_id and l.child_issue_id in ^issue_ids,
+      order_by: [asc: c.number, asc: c.id],
+      select: %{
+        child_issue_id: l.child_issue_id,
+        id: c.id,
+        number: c.number,
+        title: c.title,
+        observed_repository_id: c.observed_repository_id,
+        derived_concept: p.derived_concept,
+        no_longer_observed_at: l.no_longer_observed_at
+      }
+    )
+    |> Repo.all()
+    |> Enum.group_by(& &1.child_issue_id)
+  end
+
+  @doc """
   As duas formas de violar `sro.rule07`, **separadas** — e nenhuma delas despromove nada.
 
   A decisão é de `TheBand.WorkItems.Axioms.rule07/2`, a mesma função que a tela de detalhe

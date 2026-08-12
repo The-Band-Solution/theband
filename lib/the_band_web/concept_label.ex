@@ -60,9 +60,41 @@ defmodule TheBandWeb.ConceptLabel do
     "out_of_scope" => "part outside the observed scope"
   }
 
+  # **Seis textos, e nenhum deles é cor.** A lista do repositório mostra a relação em 4 529
+  # linhas, e quem não distingue cor precisa distinguir os casos — WCAG 1.4.1, e a gramática da
+  # evidência é normativa em `docs/design-system.md`.
+  #
+  # O texto da violação é **curto** de propósito: a formulação inteira do axioma está em
+  # `Axioms.explicacao/1`, que o detalhe da issue mostra. Numa célula de tabela, duas linhas de
+  # explicação em 293 linhas afogariam a própria lista.
+  @relacoes %{
+    atendimento: "attends",
+    composicao: "composes",
+    violacao: "attends — and this parent is an epic, which violates sro.rule07",
+    nao_nomeada: "part of — the ontology network does not name this relation",
+    pai_sem_conceito: "part of — the parent has no concept",
+    filha_sem_conceito: "part of — this issue has no concept, so the relation is undecided"
+  }
+
   @doc "Os conceitos na ordem em que as telas os apresentam."
   @spec conceitos() :: [{String.t(), String.t()}]
   def conceitos, do: @conceitos
+
+  @doc """
+  O texto da relação de decomposição, como a lista de issues a mostra.
+
+  A decisão de **qual** relação é vem de `TheBand.WorkItems.Axioms.relacao/2`; aqui só o texto.
+  """
+  @spec relacao(
+          :atendimento
+          | :composicao
+          | :nao_nomeada
+          | :filha_sem_conceito
+          | :pai_sem_conceito
+          | {:violacao, atom()}
+        ) :: String.t()
+  def relacao({:violacao, _forma}), do: @relacoes.violacao
+  def relacao(relacao) when is_atom(relacao), do: Map.fetch!(@relacoes, relacao)
 
   @doc "O rótulo do conceito, ou o próprio identificador quando não há tradução."
   @spec rotulo(String.t() | nil) :: String.t() | nil
