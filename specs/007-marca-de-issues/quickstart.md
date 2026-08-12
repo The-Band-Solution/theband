@@ -120,11 +120,11 @@ muda sozinha.
 
 ---
 
-## Os nove gates
+## Os dez gates
 
 ```bash
 mix gates
 ```
 
-**Esperado**: `9 gates verdes`, e código de saída zero. Conferir pelo texto não basta — o
+**Esperado**: `10 gates verdes`, e código de saída zero. Conferir pelo texto não basta — o
 validador Python avisa que pulou e sai diferente de zero, e foi a L23.

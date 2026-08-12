@@ -14,9 +14,24 @@ defmodule TheBandWeb.DesignTokensTest do
   @fonte "assets/css/app.css"
   @compilado "priv/static/assets/css/app.css"
 
-  setup_all do
-    # O build roda no gate de assets; aqui só é exigido que ele já tenha rodado.
-    if File.exists?(@compilado), do: :ok, else: {:skip, "assets não compilados"}
+  # `setup_all` devolvendo `{:skip, _}` **não é retorno válido**, e o efeito foi pior que o
+  # teste falhar: o módulo inteiro foi invalidado no CI, com a mensagem "failure on setup_all
+  # callback". Passava aqui porque eu já tinha o build.
+  #
+  # Agora o gate compila os assets antes dos testes, e a ausência do arquivo é uma falha com
+  # a instrução do que rodar.
+
+  defp compilado! do
+    unless File.exists?(@compilado) do
+      flunk("""
+      O CSS compilado não existe em #{@compilado}.
+
+      Rode `mix assets.build`. O gate de testes já o faz — se você chegou aqui, ou rodou
+      `mix test` direto, ou o passo de assets saiu do `mix gates`.
+      """)
+    end
+
+    File.read!(@compilado)
   end
 
   describe "a paleta" do
@@ -48,7 +63,7 @@ defmodule TheBandWeb.DesignTokensTest do
     end
 
     test "o verdete chega ao CSS compilado" do
-      compilado = File.read!(@compilado)
+      compilado = compilado!()
 
       assert compilado =~ "#1f6f68" or compilado =~ "#5cbcb2", """
       A paleta está no fonte e não no build. O Tailwind poda o que não encontra no markup —

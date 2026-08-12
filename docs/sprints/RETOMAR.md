@@ -165,7 +165,9 @@ correção. **As 480 linhas corrigem-se na próxima coleta** — nenhum reparo r
 
 ## Onde parou — interface em inglês, acessível e mobile-first
 
-Branch **`007-interface-em-ingles`**, empurrada, 9 gates verdes, 341 testes. **Sem PR ainda.**
+Branch **`007-interface-em-ingles`**, empurrada, PR [#184](https://github.com/The-Band-Solution/theband/pull/184) aberto, **10 gates verdes** e 354 testes.
+
+O décimo gate é `assets`, e ele nasceu de um CI vermelho: o teste dos tokens do design system mede o CSS **compilado**, e sem build ele não tinha o que medir. Passava na máquina de quem já tinha buildado — a L24 outra vez.
 
 ### O que motivou
 

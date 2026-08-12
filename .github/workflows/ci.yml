@@ -60,7 +60,7 @@ jobs:
       - run: mix deps.get
 
       # ------------------------------------------------------------------------
-      # Os nove gates da constituição, princípio VII. Nenhum é opcional, e nenhum
+      # Os dez gates da constituição, princípio VII. Nenhum é opcional, e nenhum
       # pode ser desabilitado para o pipeline passar.
       # Um passo, e a definição dos gates vive em `mix gates`.
       #
@@ -76,5 +76,5 @@ jobs:
       # O que se perde: a granularidade por passo na interface do GitHub. O que se
       # ganha: não existir um segundo lugar onde a lista pode ficar desatualizada.
       # ------------------------------------------------------------------------
-      - name: nove quality gates
+      - name: dez quality gates
         run: mix gates
