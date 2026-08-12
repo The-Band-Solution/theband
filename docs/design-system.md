@@ -25,7 +25,15 @@ Este documento é normativo: o que está aqui vale para toda tela nova.
 | música | informação: o conceito, a medida, a resposta | *promoted to*, as contagens, as divergências |
 | público | a organização que decide | toda tela é escopada por organização |
 
-A tagline é `notes into music`. Cinco palavras, sem explicação — quem pergunta recebe o rodapé.
+A tagline é `notes into music you can decide on`. Sete palavras, sem explicação — quem pergunta
+recebe o rodapé.
+
+Ela tem três movimentos, e nenhum deles é decorativo: **nota** é o dado como a origem entregou,
+**música** é o que emerge quando as notas são harmonizadas contra as ontologias, e **decide on** é o
+público da tabela acima — a organização. Uma nota sozinha não sustenta decisão nenhuma.
+
+A versão anterior era `notes into music`, e parava no meio: transformar dado em informação é o que
+todo pipeline promete.
 
 E a metáfora dá o argumento central: **um músico que improvisa não está errado, mas quem ouve
 precisa saber que aquilo não estava escrito.** É a distinção entre observado e derivado.

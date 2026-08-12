@@ -44,13 +44,17 @@ defmodule TheBandWeb.Layouts do
 
           A tagline vem do rodapé da tese: cada serviço é um músico tocando um instrumento —
           uma ontologia —, e juntos produzem música (informação) a partir de notas (os dados
-          das aplicações). É o que distingue isto de um ETL: notas não são música. --%>
+          das aplicações). É o que distingue isto de um ETL: notas não são música.
+
+          E ela termina em `you can decide on` porque a música não é o fim: o público da
+          metáfora é a organização que decide. Uma nota sozinha não sustenta decisão
+          nenhuma — é isso que a combinação produz. --%>
     <header class="border-b border-base-300 px-4 py-2 sm:px-6 sm:py-0 lg:px-8">
       <div class="flex flex-col gap-2 sm:h-16 sm:flex-row sm:items-center sm:gap-4">
         <a href="/" class="flex items-baseline gap-2 font-semibold">
           The Band
           <span class="hidden text-xs font-normal text-base-content/60 sm:inline">
-            notes into music
+            notes into music you can decide on
           </span>
         </a>
       </div>
