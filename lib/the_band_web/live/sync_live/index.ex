@@ -379,6 +379,11 @@ defmodule TheBandWeb.SyncLive.Index do
               <.field label="created">{sync.records_created}</.field>
               <.field label="updated">{sync.records_updated}</.field>
               <.field label="skipped">{sync.records_skipped}</.field>
+              <%!-- Só aparece quando há: um "0 unreachable" em toda execução treinaria quem lê
+                    a ignorar a linha, e é justamente a linha que importa quando não é zero. --%>
+              <.field :if={sync.repositories_unreachable > 0} label="unreachable repositories">
+                {sync.repositories_unreachable}
+              </.field>
             </dl>
           </div>
 

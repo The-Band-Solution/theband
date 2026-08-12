@@ -25,6 +25,11 @@ defmodule TheBand.Ingestion.Sync do
     field :records_created, :integer, default: 0
     field :records_updated, :integer, default: 0
     field :records_skipped, :integer, default: 0
+
+    # Quantos repositórios a execução não alcançou. Zero é **fato**, e não ausência: uma coleta
+    # que alcançou cada um dos repositórios deixou de alcançar zero deles. É a exceção declarada
+    # à regra do projeto, e o risco é o inverso — zero por esquecimento afirma sucesso.
+    field :repositories_unreachable, :integer, default: 0
     field :skip_reasons, :map, default: %{}
     field :memberships_pending_role, :integer, default: 0
 
@@ -52,6 +57,7 @@ defmodule TheBand.Ingestion.Sync do
       :records_created,
       :records_updated,
       :records_skipped,
+      :repositories_unreachable,
       :skip_reasons,
       :memberships_pending_role,
       :error_reason,

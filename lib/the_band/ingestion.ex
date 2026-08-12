@@ -236,7 +236,10 @@ defmodule TheBand.Ingestion do
   end
 
   @doc "Acumula o resultado de uma escrita no relatório da sincronização (FR-028)."
-  @spec tally(Sync.t(), :created | :updated | :unchanged | {:skipped, String.t()}) ::
+  @spec tally(
+          Sync.t(),
+          :created | :updated | :unchanged | :repository_unreachable | {:skipped, String.t()}
+        ) ::
           {:ok, Sync.t()} | {:error, Ecto.Changeset.t()}
   def tally(%Sync{} = sync, outcome) do
     attrs =
@@ -255,6 +258,15 @@ defmodule TheBand.Ingestion do
 
         :unchanged ->
           %{records_collected: sync.records_collected + 1}
+
+        # Conta **repositório**, e por isso não passa por `records_*`: aqueles contam registros,
+        # e somar 39 repositórios ali faria a soma que a tela exibe mentir.
+        #
+        # Incrementado **a cada falha**, nunca no fim da fase: coleta interrompida antes do fim
+        # ficaria com zero, e zero afirma que tudo foi alcançado. É a mesma regra do checkpoint —
+        # registrar depois de processar, por item.
+        :repository_unreachable ->
+          %{repositories_unreachable: sync.repositories_unreachable + 1}
 
         {:skipped, reason} ->
           %{
@@ -393,11 +405,6 @@ defmodule TheBand.Ingestion do
   end
 
   @doc """
-  Se a tela deve **oferecer** a ação de encerrar.
-
-  Consulta de exibição, e não a decisão: quem decide é `interrupt_sync/3`, que reconfere.
-  """
-  @doc """
   Se o que sustenta esta execução é um trabalho **em execução** que a plataforma não pode
   verificar.
 
@@ -409,6 +416,11 @@ defmodule TheBand.Ingestion do
     Repo.exists?(from j in trabalhos(sync_id), where: j.state == "executing")
   end
 
+  @doc """
+  Se a tela deve **oferecer** a ação de encerrar.
+
+  Consulta de exibição, e não a decisão: quem decide é `interrupt_sync/3`, que reconfere.
+  """
   @spec interruptible?(Sync.t()) :: boolean()
   def interruptible?(%Sync{status: "running"} = sync), do: not vai_executar?(sync)
   def interruptible?(%Sync{}), do: false
