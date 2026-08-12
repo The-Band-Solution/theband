@@ -1235,3 +1235,73 @@ E o corolário: quando uma lição declara uma cura — "a cura é a própria co
 caminho da cura é **alcançável**. Cura que pressupõe um passo que o filtro impede não é cura.
 
 **Estado**: aberta. **Tipo**: processo.
+
+---
+
+## L36 — Gate que compila incrementalmente não vê aviso em arquivo que não recompilou
+
+**Onde**: Sprint 008 — ao implementar a feature 009, a compilação reprovou por um aviso que já
+estava em `main`.
+
+**O que aconteceu.** Um `@doc` órfão entrou em `main` no commit da feature 008: ao inserir uma função
+entre um `@doc` e o `def` que ele documentava, a documentação passou a valer para a função errada e a
+seguinte perdeu a dela.
+
+Os dez gates passaram. O CI passou. E numa compilação limpa:
+
+```
+$ git stash && rm -rf _build/dev/lib/the_band && mix compile --warnings-as-errors
+main limpo: código de saída 1
+redefining @doc attribute previously set at line 395
+```
+
+**Por que aconteceu.** O gate de compilação é incremental: ele não emite aviso de arquivo que não
+recompilou. E o CI guarda `_build` em cache com chave baseada só em `mix.lock` — enquanto as
+dependências não mudam, o `_build` do app volta do cache, e o CI **herda a mesma cegueira** do
+ambiente local.
+
+**Por que importa mais que este aviso.** O aviso em si é inofensivo. O que não é: **qualquer** aviso
+num arquivo não recompilado passa — inclusive variável não usada onde deveria haver uso, cláusula
+inalcançável, ou função deprecada. O `--warnings-as-errors` existe exatamente para esses, e estava
+cego.
+
+**É a L24 numa forma nova**: *caminho que só roda no ambiente limpo não é testado por quem já tem o
+ambiente*. Ali era o `.venv` do validador Python; aqui é o `_build`.
+
+**O que fazer diferente.** O gate de compilação precisa forçar a recompilação do **app** — não das
+dependências —, para que `mix gates` continue sendo a definição única e o CI herde o comportamento.
+Excluir `_build` do cache do CI corrigiria só o CI, e deixaria o ambiente local cego.
+
+E o corolário: **quando um gate depende de estado acumulado, ele mede o acúmulo, não o código.**
+
+**Estado**: aberta, com correção pendente em #229. **Tipo**: processo.
+
+---
+
+## L37 — A coluna estreita só cai quando a escrita fica frequente
+
+**Onde**: Sprint 008 — achado da análise, antes do código.
+
+**O que aconteceu.** `inaccessible_reason` é `varchar(255)`. O maior motivo gravado tinha **181**
+caracteres, e o motivo da falha interna da origem — com o prefixo que a plataforma acrescenta — dá
+**~228**. Vinte e sete caracteres de folga, num texto que a origem controla e que carrega um
+identificador de incidente de tamanho variável.
+
+Sem `validate_length` no changeset, o valor longo vai ao banco e **levanta**. E o tratamento de erro
+da coleta cobre changeset inválido, não exceção do driver: a fase cairia, e o erro no log seria do
+banco em vez da origem.
+
+**Por que ninguém tinha visto.** A coluna era escrita **uma vez por repositório**, e só quando ele
+falhava de forma permanente. Trinta e nove escritas em dois dias, todas abaixo do limite. A feature
+009 mudou isso: com a coleta tentando de novo a cada execução, o campo passa a ser escrito **a cada
+coleta que falhar**.
+
+**O padrão, e é o que interessa:** um limite estreito não cai por ser estreito — cai quando a
+**frequência de escrita** aumenta. A feature não introduziu o defeito; ela mudou a exposição a ele.
+
+**O que fazer diferente.** Ao mudar a frequência com que um campo é escrito, conferir o limite dele.
+E, para campo de **diagnóstico**, não haver limite: a truncagem pertence à borda, onde a mensagem é
+montada, não à largura da coluna. É o que a L05 já havia concluído, e o que esta lição acrescenta é
+**quando** a dívida cobra.
+
+**Estado**: aberta. **Tipo**: técnica.
