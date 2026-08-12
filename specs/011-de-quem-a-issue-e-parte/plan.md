@@ -91,7 +91,7 @@ Spec, checklist e pesquisa commitados antes deste plano. **Nada implementado.** 
 `mix gates` é a definição única dos dez, e o veredito é o código de saída desde a #229. PR com
 revisor pedido e conferido por `requested_reviewers`.
 
-### VIII. Desenho que o problema justifica — **dois padrões introduzidos, cinco recusados**
+### VIII. Desenho que o problema justifica — **dois padrões introduzidos, seis recusados**
 
 As três perguntas de cada um estão na seção seguinte.
 
@@ -206,16 +206,20 @@ a mesma palavra significando duas coisas — aplicada antes de doer.
 
 | # | O que |
 |---|---|
-| 3 | a coluna, com as quatro relações, o pai navegável e a ausência nomeada |
-| 4 | o repositório do pai, quando difere — `CMPO.list_observed/2` virando mapa |
-| 5 | mais de um pai dito, com ordem estável |
+| 3 | a coluna: pai navegável, **conceito do pai**, e a ausência nomeada |
+| 4 | as quatro relações, com texto próprio cada uma |
+| 5 | o repositório do pai, quando difere — `CMPO.list_observed/2` virando mapa |
+| 6 | mais de um pai dito, com ordem estável |
 
-### F3 — o que o dado ainda não tem
+### F3 — o que o dado ainda não tem, e o custo
 
 | # | O que |
 |---|---|
-| 6 | vínculo ausente tracejado, com a data — **zero** casos hoje, o teste monta |
-| 7 | pai sem conceito — **zero** casos hoje, o teste monta |
+| 7 | vínculo ausente tracejado, com a data — **zero** casos hoje, o teste monta |
+| 8 | pai sem conceito — **zero** casos hoje, o teste monta |
+| 9 | o custo do render medido: a diferença e a constância |
+
+**Nove tarefas**, detalhadas em [tasks.md](tasks.md).
 
 **F1 sem F2 não é entregável.** Consulta sem consumidor visível não é funcionalidade entregue — é a
 **L21**, e por isso as três fases estão no mesmo sprint.

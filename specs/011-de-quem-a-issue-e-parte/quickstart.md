@@ -1,6 +1,6 @@
 # Quickstart — verificar a feature 011
 
-Onze verificações. As que dizem **no dado real** exigem o banco de desenvolvimento com a coleta já
+Doze verificações. As que dizem **no dado real** exigem o banco de desenvolvimento com a coleta já
 feita; as outras rodam pela suíte.
 
 ```bash
@@ -126,7 +126,15 @@ issues com uma de 50.
 **Por que assim**: "um número que não cresce" não é asserção — é a **L38**, e a feature 010 pagou por
 ela com um teste que esperava 8 numa tela que faz 24.
 
-## V11 — 360 px, e olhado
+## V11 — a cor removida, e os casos ainda distinguíveis
+
+**Como**: com o CSS de cor desligado — ou lendo o HTML sem classe de cor —, comparar as quatro
+relações.
+
+**Esperado**: as quatro continuam distinguíveis por **texto**. **SC-009**, e é a gramática da
+evidência: `docs/design-system.md` exige texto e rótulo de leitor de tela, cor nunca sozinha.
+
+## V12 — 360 px, e olhado
 
 **Como**: abrir a tela em 360 px de largura, **no navegador**.
 
