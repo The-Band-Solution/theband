@@ -75,7 +75,7 @@ Detalhadas em [013/tasks.md](../../specs/013-pagina-da-pessoa-mais-rapida/tasks.
 
 | # | Tarefa | Atende | Estimate | Fase | Estado |
 |---|---|---|---|---|---|
-| T001 | Contar os empates que existem hoje | US1 | 1 | F1 | **feita** — zero |
+| T001 | Contar os empates que existem hoje | US1 | 1 | F1 | **feita** — zero, e `inserted_at` é de microssegundo |
 | T002 | Fixar a vigência e o desempate em teste | US1 | 3 | F1 | a fazer |
 | T003 | Registrar o retrato de cada tela afetada | US3 | 3 | F1 | a fazer |
 | T004 | Resolver a promoção vigente por issue exibida | US1 | 8 | F2 | a fazer |

@@ -19,9 +19,8 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
 
 - **Pronta quando**: nada além do repositório e do banco de desenvolvimento.
 - **Descrição**: consulta que conta quantas issues têm **duas ou mais** promoções com o **mesmo**
-  `inserted_at` — `inserted_at` é `utc_datetime`, de segundo inteiro, e o `DISTINCT ON` de hoje não
-  tem desempate. O número entra na pesquisa, seção D4. **Se for zero, o desempate entra assim
-  mesmo**: ele é barato, e a ausência dele é silenciosa.
+  `inserted_at`. O número entra na pesquisa, seção D4. **Se for zero, o desempate entra assim
+  mesmo**: custa nada, e tira a ordem da dependência da precisão do carimbo.
 - **Feita quando**: o número está medido e registrado em `research.md`; e está escrito se ele é zero
   ou não.
 - **Teste**: a própria consulta SQL, com a saída colada na pesquisa — é medida, não asserção.
@@ -31,12 +30,13 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
 - **Pronta quando**: o contrato existe em `contracts/promocao-vigente.md`; T001 medida.
 - **Descrição**: `test/the_band/work_items/promocao_vigente_test.exs`, **escrito contra o
   comportamento atual** — a promoção vigente é a mais recente, issue sem promoção aparece sem
-  conceito, e o escopo é por tenant. Mais o caso que hoje **falha**: duas promoções no mesmo segundo
-  devem devolver sempre a mesma, e a de `id` maior. FR-003, FR-004, FR-006, FR-007.
-- **Feita quando**: os casos de vigência passam **antes** da reescrita; e o caso do empate falha,
-  documentando o defeito que a F2 corrige.
+  conceito, e o escopo é por tenant. Mais o caso do empate, **montado à mão** — duas promoções com o
+  mesmo `inserted_at`, o que a coleta não produz —, exigindo sempre a mesma resposta, a de `id`
+  maior. FR-003, FR-004, FR-006, FR-007.
+- **Feita quando**: os casos de vigência passam **antes** da reescrita; e o caso do empate está
+  escrito, documentando o comportamento que a F2 garante.
 - **Teste**: o próprio arquivo. O caso do empate entra com `@tag :pending` até a F2, e a etiqueta sai
-  no mesmo commit que a corrige — nunca antes.
+  no mesmo commit que o garante — nunca antes.
 
 ### T003 [P] Registrar o retrato de cada tela afetada
 
@@ -83,8 +83,8 @@ tempo melhor, e este seria silencioso: a tela continuaria abrindo.
   fica verde.
 - **Teste**: `test/the_band/work_items/promocao_vigente_test.exs` — três coisas, e a primeira é a que
   a análise achou: **uma issue sem promoção nenhuma não pode aparecer** nas consultas que hoje usam
-  `inner`, e **precisa** aparecer nas que usam `left`; o caso do empate; e a contagem de linhas do
-  `select` de cada consulta afetada, comparada com a de hoje.
+  `inner`, e **precisa** aparecer nas que usam `left`; o caso do empate montado à mão; e a contagem
+  de linhas do `select` de cada consulta afetada, comparada com a de hoje.
 
 ### T005 Indexar a designação pela pessoa
 

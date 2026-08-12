@@ -217,8 +217,8 @@ que existe em dezesseis.
 - **FR-002**: A consulta que lista as issues designadas a uma pessoa MUST usar acesso por índice,
   sem varredura sequencial das designações.
 - **FR-003**: O conceito exibido MUST continuar sendo o da promoção **mais recente** de cada issue.
-- **FR-004**: O desempate entre promoções da mesma issue MUST ser determinístico — a mesma tela
-  desenhada duas vezes mostra o mesmo conceito.
+- **FR-004**: O desempate entre promoções da mesma issue MUST ser determinístico, **sem depender da
+  precisão do carimbo de tempo** — hoje ela é de microssegundo, e o empate medido é zero.
 - **FR-005**: Nenhuma linha de `issue_promotions` MUST ser apagada — o histórico é proveniência.
 - **FR-006**: Issue sem promoção MUST continuar aparecendo, e a ausência de conceito MUST ser dita,
   nunca preenchida.

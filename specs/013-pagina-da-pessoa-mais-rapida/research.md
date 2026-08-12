@@ -122,17 +122,20 @@ plano.
 
 ---
 
-## D4 — Um defeito de correção que a medida achou de lado
+## D4 — O desempate, e um erro meu que o código já contradizia
 
-`DISTINCT ON (collected_issue_id) … ORDER BY collected_issue_id, inserted_at DESC` **não tem
-desempate**. Duas promoções da mesma issue com o mesmo `inserted_at` — que é `utc_datetime`, de
-segundo inteiro — devolvem uma arbitrária, e a escolha pode mudar entre execuções.
+`DISTINCT ON (collected_issue_id) … ORDER BY collected_issue_id, inserted_at DESC` não tem
+desempate explícito.
 
-**É a família da L20 e da #261**, agora no conceito exibido: a mesma tela desenhada duas vezes pode
-dizer conceitos diferentes.
+**Eu escrevi que isso era defeito, alegando que `inserted_at` tinha precisão de segundo. É falso.**
+O schema declara `timestamps(type: :utc_datetime_usec)`, a coluna tem precisão **6** no banco, e a
+docstring de `list_issues/2` já dizia, por extenso: *"`inserted_at` em microssegundo desempata, e é a
+L20 aplicada aqui"*. Afirmei o contrário de um fato que o código documentava.
 
-**Decisão**: a resolução nova ordena por `inserted_at DESC, id DESC`. O desempate não é enfeite —
-é o que torna a FR-004 verificável.
+**O que sobra, depois da correção**: com microssegundo, empate exige duas escritas no mesmo
+microssegundo — e a medida de hoje dá **zero**. O desempate por `id` entra como **seguro barato**, e
+não como correção de defeito: ele custa nada e torna a FR-004 verificável sem depender da precisão
+do relógio continuar sendo essa.
 
 **Quantas issues estão nessa situação hoje — medido (T001)**:
 

@@ -23,7 +23,7 @@ A promoção vigente de uma issue passa a ser resolvida **por issue exibida**, e
 | como resolver a vigente | `LATERAL` com `LIMIT 1` por issue, sobre o índice que já existe | materializar viola a **ADR 0004 D7**; booleano é antipadrão declarado |
 | onde corrigir | na função que as **16** consultas usam | corrigir na página deixaria a causa de pé em quinze lugares |
 | o índice novo | `issue_assignees (person_id, no_longer_observed_at)` | sem ele, achar as issues da pessoa continua lendo 4 232 para devolver 350 |
-| o desempate | `inserted_at DESC, id DESC` | sem ele, a mesma tela pode dizer conceitos diferentes — família da L20 |
+| o desempate | `inserted_at DESC, id DESC` | seguro barato: hoje o empate é impossível na prática — microssegundo, zero casos —, e a ordem deixa de depender disso |
 | como verificar | conteúdo **idêntico**, tela por tela, mais medida por diferença e constância | "ficou mais rápido" sem conferir o conteúdo é otimização que muda a resposta |
 
 ## Technical Context
@@ -56,8 +56,8 @@ Nada toca a origem.
 **O histórico não é tocado**: 44 289 promoções continuam lá, e a FR-005 e a SC-007 exigem que a
 contagem depois seja maior ou igual. A mudança é de **leitura**.
 
-**E há um ganho de proveniência**: o desempate determinístico (D4) faz a plataforma responder sempre
-a **mesma** vigente para a mesma issue. Hoje, com empate de segundo, ela pode responder duas coisas.
+**O desempate (D4) entra como seguro**, não como correção: com `inserted_at` em microssegundo o
+empate é impossível na prática, e a medida dá zero.
 
 ### IV. Semântica declarada em YAML versionado — **não se aplica**
 
@@ -115,8 +115,12 @@ fase de tarefas.
 
 ### P3 — O desempate determinístico
 
-**Não é otimização; é correção.** Custa nada, e a ausência dele é silenciosa: hoje duas promoções no
-mesmo segundo devolvem uma arbitrária.
+**Não é correção de defeito, e eu cheguei a escrever que era.** `inserted_at` é
+`utc_datetime_usec` — a docstring de `list_issues/2` já dizia isso, e eu afirmei o contrário sem
+conferir. Com microssegundo, o empate exige duas escritas no mesmo microssegundo, e a medida dá zero.
+
+Entra como **seguro barato**: custa nada, e tira a ordem da dependência de o carimbo continuar tendo
+essa precisão.
 
 ### P4 — O que foi recusado, e por quê
 
