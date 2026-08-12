@@ -160,6 +160,8 @@ nunca a soma deles.
 - **FR-007**: Cada equipe DEVE dizer **de qual organização** é.
 - **FR-008**: A página DEVE mostrar, **separadas**, as issues em que a pessoa foi **designada** e as
   que ela **abriu**.
+- **FR-008a**: Issue que **deixou de ser observada** NÃO DEVE contar, mesmo que a designação
+  continue vigente. A pessoa não trabalha no que a plataforma não observa mais.
 - **FR-009**: A página NÃO DEVE exibir a **soma** das duas — o número que junta designação com
   autoria não corresponde a nada.
 - **FR-010**: Os repositórios em que a pessoa trabalhou DEVEM ser apresentados como **derivados**,
@@ -199,8 +201,10 @@ nunca a soma deles.
 - **SC-006**: Cada equipe listada diz de qual organização é.
 - **SC-007**: Os repositórios aparecem marcados como derivados, com a evidência nomeada.
 - **SC-008**: Uma pessoa sem designação e sem autoria tem as duas ausências **nomeadas**.
-- **SC-009**: Desenhar a página faz um número de consultas que **não cresce** com a quantidade de
-  issues, equipes ou repositórios da pessoa.
+- **SC-009**: Desenhar a página faz **oito** consultas, e o número **não muda** com a quantidade de
+  issues, equipes ou repositórios da pessoa. O número é **asserido**, não estimado.
+- **SC-009a**: A soma das autorias sobre todas as pessoas fecha com o total de issues vigentes que
+  têm autor — **4 241** no dado real. As 288 sem autor não são atribuídas a ninguém.
 - **SC-010**: Os estados permanecem distinguíveis com a cor removida.
 - **SC-011**: A página é legível e navegável em 360 px.
 - **SC-012**: Um tenant não alcança pessoa de outro, e a mensagem não confirma existência.

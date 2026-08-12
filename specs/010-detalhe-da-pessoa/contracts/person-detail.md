@@ -38,24 +38,53 @@ não em texto fixo:
 
 | promovida? | papéis | a tela diz |
 |---|---:|---|
-| sim | — | o vínculo existe |
-| não | **0** | não promovida **porque** não há papel cadastrado |
-| não | > 0 | não promovida — e a causa **não** é a ausência de papel |
+| sim | — | o vínculo existe, com o papel |
+| não | **0** | não promovida **porque nenhum papel foi cadastrado** — promover é impossível para qualquer pessoa |
+| não | > 0 | não promovida **porque ninguém alocou papel a esta pessoa nesta equipe** — a #100 |
 
-A terceira linha é impossível hoje — são zero papéis — e vai existir. Um texto fixo daria a explicação
-errada com convicção no dia em que ela mudar.
+**Medido**: `eo_organizational_roles` tem só `code` e `name` — catálogo do tenant, sem pessoa nem
+equipe —, e `eo_team_memberships.organizational_role_id` é **NOT NULL**. Por isso a contagem responde
+*"é possível promover alguém?"*, e a ausência de linha em `eo_team_memberships` responde *"e esta
+pessoa?"*. As duas juntas dão os três casos, **todos verificáveis**.
+
+A terceira linha é impossível hoje e vai existir. Um texto fixo daria a explicação errada com
+convicção no dia em que ela mudar.
 
 ---
 
 ## `TheBand.WorkItems`
 
+### Os dois `no_longer_observed_at`, e qual manda
+
+**A issue manda.** Há duas marcas de ausência em jogo — uma em `collected_issues`, outra em
+`issue_assignees` —, e a regra é:
+
+| issue | designação | conta? |
+|---|---|---|
+| vigente | vigente | **sim** |
+| vigente | ausente | não — a pessoa deixou de ser designada |
+| **ausente** | vigente | **não** — e é o caso que a análise achou sem definição |
+| ausente | ausente | não |
+
+**A pessoa não trabalha no que a plataforma não observa mais.** Uma designação vigente numa issue
+ausente é resíduo: a issue saiu da observação, e a designação não foi marcada porque a marca é por
+repositório coletado. Contá-la faria a página afirmar trabalho sobre algo que não está mais lá.
+
+A primeira versão deste contrato dizia "issues vigentes" para as duas contagens **sem** dizer o que
+acontece nesse cruzamento — e a implementação teria escolhido em silêncio.
+
 ### `count_assigned_to(tenant, person_id) :: non_neg_integer()`
 
-Em quantas issues **vigentes** a pessoa está designada.
+Em quantas issues **vigentes** a pessoa está designada, com **designação vigente**.
 
 ### `count_authored_by(tenant, person_id) :: non_neg_integer()`
 
 Quantas issues **vigentes** a pessoa abriu.
+
+**A invariante que fecha**: a soma de `count_authored_by/2` sobre todas as pessoas do tenant tem de
+dar o número de issues vigentes com autor — **4 241** no dado real de 2026-08-12. As 288 sem autor
+não pertencem a pessoa nenhuma, e a soma é o que prova que elas não foram atribuídas a alguém por
+engano.
 
 **São duas funções, e não uma com parâmetro de papel.** O nome é onde a distinção sobrevive: uma
 `count_issues_of_person/2` obrigaria quem chama a explicar qual sentido queria, e quem lê a descobrir.
@@ -70,6 +99,14 @@ sustenta o vínculo:
 ```text
 %{observed_repository_id: _, assigned: non_neg_integer(), authored: non_neg_integer()}
 ```
+
+**Ela não devolve o nome do repositório, e é de propósito.** O nome é de **CMPO**, e `WorkItems`
+juntar `cmpo_source_repositories` quebraria a fronteira que o princípio IX protege.
+
+Quem chama resolve o nome com **uma** consulta — `CMPO.list_observed/1`, virando mapa de
+identificador para nome e organização, exatamente como o `onde/2` da feature 007. **Uma consulta por
+repositório aqui violaria FR-016**, e é o defeito que a análise apontou: sem isto escrito, a
+implementação descobriria o dado faltando e resolveria por linha.
 
 **Duas contagens por repositório, nunca uma soma.** E o vínculo pessoa-repositório é **derivado**: a
 origem nunca o declarou, e a tela precisa dizer isso (FR-010).

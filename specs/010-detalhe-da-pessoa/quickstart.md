@@ -1,6 +1,6 @@
 # Quickstart — Feature 010: o detalhe da pessoa
 
-Nove verificações. Os números vêm do banco de desenvolvimento, medidos em 2026-08-12: **75 pessoas,
+Dez verificações. Os números vêm do banco de desenvolvimento, medidos em 2026-08-12: **75 pessoas,
 12 equipes, 88 evidências de vínculo, 0 vínculos, 0 papéis, 4 232 designações, 4 241 autorias, 288
 issues sem autor**.
 
@@ -108,19 +108,32 @@ Hoje **não existe** pessoa sem nada: as 75 têm evidência de equipe. O teste m
 
 ---
 
-## V8 — A página não consulta por linha
-
-Com o log do servidor, ao abrir a página de uma pessoa com muitas issues:
+## V8 — A página faz OITO consultas, e o número é asserido
 
 ```bash
-grep -c "SELECT" /tmp/the_band_server.log
+mix test test/the_band_web/live/person_detail_test.exs -o "consultas"
 ```
 
-**Esperado**: um número que **não cresce** com a quantidade de issues, equipes ou repositórios da
-pessoa — é o SC-009.
+**Esperado**: **oito** — e não "um número que não cresce", que era o que este quickstart dizia antes da
+análise. Frase assim não é asserção: passa com 8 e passa com 80.
 
-**Falha típica**: uma consulta por repositório para contar as issues dele. A feature 007 nasceu com 135
-consultas por render exatamente assim.
+| # | consulta |
+|---:|---|
+| 1 | a pessoa |
+| 2 | as organizações dela |
+| 3 | as equipes que a origem declara |
+| 4 | quantos papéis o tenant cadastrou |
+| 5 | em quantas issues foi designada |
+| 6 | quantas issues abriu |
+| 7 | os repositórios, agrupados |
+| 8 | **o nome dos repositórios**, de CMPO |
+
+**Falha típica**: uma consulta por repositório para descobrir o nome. A oitava existe **para evitar
+isso** — a feature 007 nasceu com 135 consultas por render exatamente assim, e o achado A1 desta
+análise foi que o nome do repositório não estava em lugar nenhum.
+
+**E o teste vale mais que o número**: rodar a mesma verificação com uma pessoa de **duas** issues e com
+uma de **duzentas** tem de dar o mesmo oito.
 
 ---
 
@@ -133,6 +146,29 @@ evidência continuam legíveis.
 
 **E a verificação que remove a cor**: com as classes de cor retiradas, observado, derivado e ausente
 continuam distinguíveis por forma e texto.
+
+---
+
+## V10 — A soma das autorias fecha com o total
+
+```bash
+docker exec -e PGPASSWORD=postgres the_band_postgres psql -U postgres -d the_band_dev -tAc "
+select
+  (select count(*) from collected_issues
+    where author_person_id is not null and no_longer_observed_at is null) as com_autor,
+  (select count(*) from collected_issues
+    where author_person_id is null and no_longer_observed_at is null) as sem_autor;"
+```
+
+**Esperado**: `4241 | 288`.
+
+E a invariante: **a soma de `count_authored_by/2` sobre todas as pessoas do tenant tem de dar 4 241**.
+
+**O que ela prova**: que as **288 sem autor** não foram atribuídas a ninguém por engano. A spec afirma
+que elas não aparecem em página de pessoa nenhuma, e antes da análise essa afirmação **não tinha
+verificação** — era o achado A5.
+
+**Falha típica**: contar autoria sem filtrar issue ausente, e a soma passar de 4 241.
 
 ---
 

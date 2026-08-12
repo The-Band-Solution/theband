@@ -34,7 +34,7 @@ plataforma **não** promoveu, e **por quê** — e o "por quê" vem do dado, nã
 | Framework | Phoenix 1.8.9 + LiveView |
 | Persistência | Ecto + PostgreSQL 17 |
 | Escala | 75 pessoas, 12 equipes, 4 521 issues, 4 232 designações |
-| Fronteiras cruzadas | **EO** (pessoa, equipe) e **WorkItems** (issue, designação) |
+| Fronteiras cruzadas | **EO** (pessoa, equipe), **WorkItems** (issue, designação) e **CMPO** (nome do repositório) |
 
 ---
 
@@ -81,9 +81,21 @@ Ver abaixo. **Nenhum módulo novo**, e a composição segue precedente já em us
 
 ### IX. Ontologias modulares e autônomas — **conforme, e é o princípio que mais decidiu**
 
-A página cruza EO e WorkItems, e **nenhuma das duas lê a tabela da outra**. Cada uma responde pela sua
-fronteira; a composição acontece na borda de apresentação — que é o precedente de
-`repository_live/show.ex`, onde três fronteiras já são compostas.
+A página cruza **três** fronteiras: **EO** (pessoa, equipe), **WorkItems** (issue, designação) e
+**CMPO** (o nome do repositório e de qual organização ele é).
+
+**A terceira só apareceu na análise**, e a versão anterior deste plano dizia "duas". O motivo é
+concreto: `repositories_of_person/2` devolve identificador e contagens, e nada nessa resposta diz o
+**nome** do repositório — a tela precisa dele, e `WorkItems` **não pode** juntar
+`cmpo_source_repositories`, porque a fronteira é o que este princípio protege.
+
+**Nenhuma das três lê a tabela da outra.** Cada uma responde pela sua, e a composição acontece na
+borda de apresentação — que é o precedente de `repository_live/show.ex`, onde três fronteiras já são
+compostas.
+
+**E o nome vem de uma consulta só**: `CMPO.list_observed/1` uma vez, virando mapa de identificador
+para nome e organização — exatamente o `onde/2` da feature 007. Consultar por repositório aqui
+violaria FR-016.
 
 **A alternativa que o princípio recusa**: um módulo que devolvesse a página montada. Ele conheceria as
 duas ontologias e seria o lugar onde a fronteira se dissolve.
@@ -110,11 +122,18 @@ lê a descobrir o sentido. É a L34 aplicada antes de doer.
 
 ### P2 — Um componente privado para a origem da relação
 
-**Qual problema concreto resolve?** Três lugares da mesma tela precisam dizer se a relação é
-observada, derivada ou ausente — equipe, repositório e vínculo que saiu.
+**Qual problema concreto resolve?** **Dois** lugares da mesma tela precisam dizer se a relação é
+observada, derivada ou ausente: a lista de **equipes** e a lista de **repositórios**.
 
-**O problema existe agora?** Sim, **três** usos na mesma tela. O critério do projeto é o segundo
-chamador, e a feature 007 recusou componente para **um**.
+**A análise corrigiu a contagem**: a versão anterior dizia três, somando "vínculo ausente" como uso
+próprio. Ele **não é**: equipe e vínculo ausente são a **mesma lista**, e a linha muda de forma
+conforme `no_longer_observed_at`.
+
+**O problema existe agora?** Sim, **dois** usos — que é exatamente o limiar do projeto. A feature 007
+recusou componente para **um** chamador.
+
+**Fica no limiar, e isso está declarado**: se uma das duas listas sair da tela, o componente sai com
+ela e volta a ser markup no lugar de uso.
 
 **O que fica pior?** Um componente a mais para manter, e a tentação de promovê-lo cedo a
 `TheBandWeb.UI`. Mitigação: ele é **privado do LiveView**, e o critério de promoção está escrito em R5
@@ -190,7 +209,7 @@ funcionalidade entregue — é a L21, e por isso as três fases estão no mesmo 
 | **exibir a soma de designação com autoria** | FR-009; o teste procura o número proibido, como o `refute html =~ ">39<"` da feature 006 |
 | a explicação da não promoção envelhecer | o motivo vem do dado, com o caso "há papéis e ainda não promoveu" previsto — R4 |
 | ler nível de acesso como papel Scrum | FR-004; nenhum texto da tela usa a palavra papel para `MAINTAINER` |
-| consultar por linha | quatro consultas com escopo de pessoa, agrupadas ou paginadas — FR-016 |
+| consultar por linha | **oito** consultas, todas agrupadas ou paginadas, e o número é **asserido** no teste — FR-016 |
 | vínculo ausente desaparecer da tela | FR-006 exige com data; o teste marca a evidência como não mais observada e exige que apareça |
 | a tela crescer para pessoa com centenas de issues | lista paginada, com o total no cabeçalho |
 
@@ -202,7 +221,7 @@ funcionalidade entregue — é a L21, e por isso as três fases estão no mesmo 
 |---|---|---|
 | duas opções novas em `escopo/2` | a função cresce | os nomes carregam a distinção que a spec exige |
 | um componente privado | mais um lugar para olhar | três usos na mesma tela |
-| quatro consultas por render | quatro em vez de uma | juntá-las produziria o número proibido |
+| **oito** consultas por render | oito em vez de uma | juntá-las produziria o número proibido, e o nome do repositório exige a terceira fronteira |
 | uma consulta de contagem de papéis | uma a mais, barata | é o que impede a explicação de envelhecer |
 
 ---

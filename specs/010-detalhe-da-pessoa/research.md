@@ -33,15 +33,25 @@ tabela de trabalho é a fronteira quebrada por conveniência, e a ADR 0003 exist
 
 ## R2 — As consultas, e como não crescer com o dado
 
-**Decisão**: **quatro consultas com escopo de pessoa**, todas agrupadas ou paginadas, e nenhuma por
-linha:
+**Decisão**: **oito consultas**, todas agrupadas ou paginadas, e nenhuma por linha:
 
-| pergunta | onde vive | forma |
-|---|---|---|
-| em quantas issues foi designada | `WorkItems` | contagem |
-| quantas issues abriu | `WorkItems` | contagem |
-| em quais repositórios aparece | `WorkItems` | agrupada por repositório, com a evidência |
-| em que equipes a origem a declara | `EO` | uma consulta, com a organização de cada equipe |
+| # | pergunta | onde vive | forma |
+|---:|---|---|---|
+| 1 | quem é esta pessoa | `EO` | busca por identificador |
+| 2 | em que organizações ela está | `EO` | uma consulta |
+| 3 | em que equipes a origem a declara | `EO` | uma consulta, com a organização de cada equipe |
+| 4 | quantos papéis o tenant cadastrou | `EO` | contagem |
+| 5 | em quantas issues foi designada | `WorkItems` | contagem |
+| 6 | quantas issues abriu | `WorkItems` | contagem |
+| 7 | em quais repositórios aparece | `WorkItems` | agrupada por repositório |
+| 8 | **o nome de cada repositório** | `CMPO` | uma consulta, virando mapa |
+
+**O número é oito, e a primeira versão desta pesquisa dizia quatro.** A análise contou o que as
+tarefas produzem: faltavam a busca da pessoa, as organizações dela, a contagem de papéis, e — a que
+mais importa — **o nome do repositório**, que exige a terceira fronteira.
+
+**O oito é aserido, não estimado**: o teste conta as consultas de uma renderização e exige o número.
+"Um número que não cresce" não é asserção, e era o que o quickstart dizia.
 
 **Razão**: FR-016 proíbe consultar por linha, e a feature 007 mostrou o custo de não decidir — 135
 consultas por render, que nasceram sem ninguém escolher.
@@ -90,14 +100,21 @@ vínculos, zero papéis**.
 em que alguém cadastrar papel e as evidências forem promovidas. A tela ficaria afirmando uma causa que
 deixou de existir, e ninguém notaria — porque a frase continuaria plausível.
 
+**Medido, e afia o terceiro caso**: `eo_organizational_roles` tem **só** `code` e `name` — é catálogo
+do tenant, sem pessoa nem equipe. E `eo_team_memberships.organizational_role_id` é **NOT NULL**.
+
+Então contar papéis responde *"é possível promover alguém?"*, e **não** *"por que esta pessoa não foi
+promovida?"*. As duas perguntas juntas dão os três casos, e todos são **verificáveis**:
+
 | o que o dado diz | o que a tela diz |
 |---|---|
 | evidência promovida | o vínculo existe, com o papel |
-| não promovida, **e zero papéis** no tenant | não promovida **porque** não há papel cadastrado |
-| não promovida, **com** papéis cadastrados | não promovida — e a causa **não** é a ausência de papel |
+| não promovida, **e zero papéis** no tenant | não promovida **porque nenhum papel foi cadastrado** — e promover é impossível para qualquer pessoa |
+| não promovida, **com** papéis cadastrados | não promovida **porque ninguém alocou papel a esta pessoa nesta equipe** — que é a #100 |
 
-A terceira linha é a que justifica consultar em vez de fixar: ela é impossível hoje e vai existir, e
-uma tela que não a preveja vai dar a explicação errada com convicção.
+A terceira linha é impossível hoje e vai existir. A primeira versão desta pesquisa dizia apenas *"a
+causa não é a ausência de papel"* — frase plausível e sem conteúdo, e a análise a recusou. A causa
+**é** verificável: ausência de linha em `eo_team_memberships` para aquela pessoa e equipe.
 
 **Custo**: uma consulta a mais, de contagem. Barata, e é o que impede a frase de envelhecer.
 
@@ -119,9 +136,15 @@ decisão semântica, com confiança. Aqui a pergunta é *"de onde veio esta rela
 componente faria a mesma forma responder duas perguntas, e a gramática perderia precisão no lugar em
 que ela **é** o produto.
 
-**Decisão sobre componente**: um componente **privado do LiveView**, porque há **três** usos na mesma
-tela — equipe, repositório e vínculo ausente. A feature 007 recusou componente para **um** chamador; o
-critério do projeto é o segundo, e aqui há três.
+**Decisão sobre componente**: um componente **privado do LiveView**, porque há **dois** usos na mesma
+tela — a lista de **equipes** e a de **repositórios**.
+
+**A análise corrigiu a contagem**: eu havia escrito três, somando "vínculo ausente" como uso próprio.
+Ele não é — equipe e vínculo ausente são a **mesma lista**, e a linha muda de forma conforme
+`no_longer_observed_at`.
+
+Dois é exactamente o limiar do projeto: a feature 007 recusou componente para **um** chamador. **Fica
+no limiar de propósito**, e se uma das duas listas sair da tela, o componente sai com ela.
 
 **Quando ele sobe para `TheBandWeb.UI`**: no segundo **consumidor fora desta tela**. Enquanto for uma
 tela só, ele mora nela, e o critério de promoção é este parágrafo.
