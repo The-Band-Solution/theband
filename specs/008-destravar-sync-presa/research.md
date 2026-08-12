@@ -1,7 +1,13 @@
 # Pesquisa — Feature 008: destravar a sincronização presa
 
-Seis questões. Duas delas foram respondidas **lendo a fonte da dependência**, e não supondo — e
-uma dessas leituras mudou o desenho.
+Seis questões. Três foram respondidas **lendo a fonte da dependência**, e não supondo — e duas
+dessas leituras **mudaram o desenho**, uma delas depois da análise.
+
+| Questão | O que a leitura da fonte mudou |
+|---|---|
+| R1 | o resgate automático **saiu**: ele não verifica nada além do tempo, e resgataria coleta viva |
+| R2 | virou a **carência** da execução recém-aberta, porque o resgate não existe mais |
+| R3 | os estados ativos são **cinco**, não quatro: faltava `suspended` |
 
 ---
 
@@ -29,48 +35,74 @@ onde a coleta duplicada trouxe 32 registros em vez de 16 e o número pareceu pla
 | `executing` com tentativas **esgotadas** | marca `discarded` | **sim** — ninguém encerra o sync |
 | `discarded` por falha | nada, não é do escopo dele | **sim** |
 
-**Decisão**: configurar o Lifeline **e** a reconciliação. O Lifeline cobre o caso em que retomar é
-possível — FR-010 —, e a reconciliação cobre os dois casos em que o job termina sem que nada
-encerre o registro.
+### A decisão mudou depois da análise: **o Lifeline não entra**
 
-**Isto responde a pergunta que o pedido fez**: não, o Lifeline **não** resolve sozinho. Ele resolve
-o melhor caso, e cria um caso novo — o `discarded` por esgotamento, que antes dele não existia
-porque o job ficava `executing` para sempre.
+A primeira decisão era configurá-lo com `rescue_after` de 60 minutos e administrar o risco pelo
+valor do tempo. A análise pediu para conferir se existe proteção **além** do tempo, e a resposta
+está na implementação do resgate — `deps/oban/lib/oban/engines/basic.ex:189`:
 
----
-
-## R2 — Quanto tempo até considerar um job órfão (FR-011)
-
-**Decisão**: **60 minutos**, que é o padrão do plugin. E o padrão fica **explícito na
-configuração**, não implícito.
-
-**Razão, medida no banco:**
-
-```sql
-select status, count(*), max(finished_at - started_at) as mais_longa
-  from syncs where finished_at is not null group by status;
-
- failed      | 2  | 00:01:34
- completed   | 28 | 00:16:25
- interrupted | 2  | 01:28:56   ← as duas presas, com 0 registros coletados
+```elixir
+base = where([j], j.state == "executing" and j.attempted_at < ^cut)
+rescue_query  = where(base, [j], j.attempt <  j.max_attempts)   # → "available"
+discard_query = where(base, [j], j.attempt >= j.max_attempts)   # → "discarded"
 ```
 
-A execução **legítima** mais longa levou **16 min 25 s** e coletou 3 641 registros. Sessenta
-minutos são **3,7×** isso.
+**Não há verificação alguma de nó vivo, de heartbeat, de dono do trabalho.** Um `UPDATE` por
+`attempted_at`, e nada mais. `attempted_at` marca o **início da tentativa** — então uma coleta que
+leve mais que `rescue_after` numa tentativa única é resgatada **enquanto roda**.
 
-**Por que não 5 minutos**, que a documentação sugere como "mais agressivo": resgataria a coleta de
-16 minutos no meio, e ela rodaria duas vezes. O custo do erro é assimétrico — esperar 60 minutos
-atrasa o destravamento; resgatar cedo **duplica coleta**, e a L02 mostra que o número duplicado
-passa por correto.
+Sessenta minutos são 3,7× a coleta mais longa de hoje. Mas a coleta cresce com o número de
+repositórios — 135 agora —, e no dia em que passar de 60 minutos a plataforma passa a ter duas
+execuções da mesma coleta ao mesmo tempo. **Sem aviso**, porque cada uma funciona.
 
-**Por que declarar o valor mesmo sendo o padrão**: um padrão que ninguém escreveu é um padrão que
-ninguém revisa. Quando a coleta mais longa passar de 60 minutos — e ela cresce com o número de
-repositórios —, o valor precisa estar visível para ser aumentado.
+É a L02, e ela já aconteceu: 32 registros coletados em vez de 16, e o número pareceu plausível.
 
-**Critério de revisão, escrito aqui de propósito**: se alguma execução `completed` passar de
-**30 minutos**, `rescue_after` precisa subir. Metade da margem gasta é o gatilho.
+**Decisão**: **não configurar o Lifeline.** A reconciliação encerra a execução órfã com o motivo, e
+quem administra inicia uma coleta nova — que recoleta desde o começo **sem duplicar linha**, porque
+a gravação é por chave natural.
+
+| | com Lifeline | sem Lifeline |
+|---|---|---|
+| trabalho já feito | retomado pelos cursores | **recoletado** |
+| custo | nenhum | consulta repetida à origem, ~16 min no pior caso medido |
+| risco de execução dupla | **existe**, e cresce com a coleta | **não existe** |
+
+**A troca é deliberada: menos capacidade, e nenhum caminho para número duplicado.** Administrar
+risco por constante de tempo é exatamente o que a L02 diz para não fazer, e a constante aqui
+envelhece com o crescimento do dado.
+
+**Recusado: proteger o resgate com claim do sync pelo trabalho.** Resolveria — o trabalho reclamaria
+a execução ao começar, e o resgatado veria a reclamação viva e desistiria. Mas é desenho novo,
+maior que a feature, para recuperar 16 minutos de coleta. `DynamicLifeline`, que faz isso de fato,
+é do Oban Pro.
 
 ---
+
+## R2 — A carência da execução recém-aberta (FR-011)
+
+**Decisão**: **um minuto**. Execução aberta há menos de um minuto **não** é candidata a
+reconciliação, mesmo sem trabalho ativo.
+
+**Por que existe**: abrir a execução e criar o trabalho são **duas operações separadas** —
+`Repo.insert()` e depois `Oban.insert()`. No intervalo entre elas o registro está `running` e não há
+trabalho, o que é exatamente a assinatura de "presa". Sem carência, a verificação automática
+encerraria uma coleta que acabou de começar.
+
+**Por que um minuto**: o intervalo real é de milissegundos. Um minuto é margem de três ordens de
+grandeza, e o custo de errar para o lado da paciência é o destravamento sair um minuto depois — o
+que ninguém percebe, dado que a verificação roda a cada cinco.
+
+**A carência não é a defesa principal**, e isso importa: se a criação do trabalho **falhar**, a
+execução é encerrada **na hora**, com o motivo (FR-011a). A carência cobre a corrida; o resultado
+conferido cobre a falha. Confundir os dois deixaria a execução presa até a carência passar, e aí
+encerrada com o motivo errado — "o processo não existe mais", quando ele nunca existiu.
+
+**Recusado: transação envolvendo a inserção do registro e a do trabalho.** Poria a fila dentro da
+transação do domínio, e um `Oban.insert` lento seguraria a transação do sync. O que resolve é
+conferir o resultado — que hoje é **descartado**, e é o achado A4 da análise.
+
+**Recusado: carência longa, de cinco ou dez minutos.** Atrasaria o destravamento pelo tempo todo
+para cobrir uma corrida de milissegundos.
 
 ## R3 — Como ligar um sync ao trabalho que o executa
 
@@ -103,6 +135,24 @@ coluna vira o caminho certo — porque aí a ligação deixou de existir no dado
 
 **Recusado: decidir por idade do sync sozinha.** Um sync de 20 minutos pode ser coleta viva de
 3 641 registros ou coleta morta. Idade não distingue, e FR-005 exige distinguir.
+
+### Os estados que contam como vivo, e o que a análise corrigiu
+
+`Oban.Job.states/0` — `deps/oban/lib/oban/job.ex:416` — tem **oito**:
+
+```
+suspended scheduled available executing retryable completed discarded cancelled
+```
+
+A primeira versão desta pesquisa listou **quatro** como ativos: `available`, `scheduled`,
+`executing`, `retryable`. **Faltava `suspended`**, que significa trabalho pausado — vai executar. A
+reconciliação teria encerrado execução viva por causa de uma lista escrita de memória.
+
+**Ativo é**: `suspended`, `scheduled`, `available`, `executing`, `retryable` — os cinco.
+**Não ativo**: `completed`, `discarded`, `cancelled`.
+
+A lista vem de `Oban.Job.states/0` menos os três terminais, e o teste **compara com a função** em
+vez de repetir a lista: assim uma versão nova do Oban que acrescente estado não passa em silêncio.
 
 **Sobre o custo da consulta**: `oban_jobs` é podado em 7 dias pelo Pruner já configurado — hoje tem
 **41 linhas**. Varredura pequena, e nenhum índice novo. Se a tabela crescer, o índice sobre

@@ -16,10 +16,23 @@ que encerrou — lista vazia é o caso normal.
 Atravessa tenants **de propósito**: é manutenção da plataforma, e nenhum dado de um tenant chega a
 outro. Está declarado no Constitution Check do plano para não parecer descuido.
 
-**Uma execução é considerada presa quando não existe trabalho em `available`, `scheduled`,
-`executing` ou `retryable` com aquele `sync_id` nos args.** Idade **não** entra na decisão: uma
-coleta de 16 minutos é indistinguível de uma coleta morta pela idade, e FR-005 proíbe encerrar
-coleta viva.
+**Uma execução é considerada presa quando não existe trabalho ativo com aquele `sync_id` nos args,
+e ela foi aberta há mais de um minuto.**
+
+**Trabalho ativo são cinco estados** — `Oban.Job.states/0` menos os três terminais:
+
+| Ativo | Não ativo |
+|---|---|
+| `suspended`, `scheduled`, `available`, `executing`, `retryable` | `completed`, `discarded`, `cancelled` |
+
+A lista é derivada da função, **nunca copiada**: uma versão nova do Oban que acrescente estado
+entraria em silêncio numa lista literal. A primeira versão deste contrato listava quatro e omitia
+`suspended` — trabalho pausado, que vai executar —, e a reconciliação teria encerrado coleta viva.
+
+**Idade não decide encerrar.** Ela só **impede**: execução aberta há menos de um minuto não é
+candidata, porque abrir o registro e criar o trabalho são operações separadas e no intervalo a
+execução tem a assinatura exata de "presa" (FR-011). Uma coleta de 16 minutos é indistinguível de
+uma coleta morta pela idade, e FR-005 proíbe encerrar coleta viva.
 
 O motivo depende da causa:
 
@@ -73,19 +86,35 @@ morrer e a ferramenta voltar a aceitar coleta.
 
 ---
 
+## `TheBand.Ingestion.start_sync/3` — ampliada
+
+O resultado da criação do trabalho passa a ser **conferido**. Hoje ele é descartado, e é um caminho
+de travamento que ninguém veria: registro aberto, criação falha, e a execução fica `running` sem
+nada para executá-la.
+
+| Devolve | Quando |
+|---|---|
+| `{:ok, sync}` | registro aberto **e** trabalho criado |
+| `{:error, :enqueue_failed}` | o registro foi aberto e o trabalho não pôde ser criado — a execução é **encerrada na hora**, com o motivo, e não deixada para a reconciliação |
+
+Encerrar na hora e não esperar a reconciliação tem razão: o motivo seria errado. "O processo que a
+executava não existe mais" afirma que houve processo — e aqui ele **nunca existiu**.
+
+---
+
 ## Configuração da fila
 
 ```text
-Oban.Plugins.Lifeline  rescue_after: 60 minutos
-Oban.Plugins.Cron      */5 * * * *  → ReconcileStuckSyncs
+Oban.Plugins.Cron   */5 * * * *  → ReconcileStuckSyncs
 ```
 
-**O `rescue_after` fica escrito mesmo sendo o padrão.** Um padrão que ninguém escreveu é um padrão
-que ninguém revisa — e este precisa subir quando a coleta mais longa crescer. Hoje ele é 3,7× a
-execução legítima mais longa medida: 16 min 25 s.
+**Sem `Oban.Plugins.Lifeline`, e a razão está medida em R1.** O resgate dele é
+`state == "executing" and attempted_at < cut`, sem verificação de processo vivo. A constante de
+tempo envelhece com o crescimento da coleta, e no dia em que a coleta passar dela existem duas
+execuções da mesma coleta — sem aviso, porque cada uma funciona.
 
-**Resgatar é voltar a executar**, e é o que se quer: o trabalho retoma pelos cursores já gravados,
-sem recoletar — FR-010. Só é seguro porque a coleta é idempotente por desenho.
+**Órfão é encerrado, não retomado.** A coleta nova recoleta desde o começo, e isso não duplica linha
+porque a gravação é por chave natural. Custa consulta repetida à origem; não custa número errado.
 
 ---
 
@@ -97,4 +126,5 @@ sem recoletar — FR-010. Só é seguro porque a coleta é idempotente por desen
 | `cancel_sync/3` | cancelar coleta **viva** é outra pergunta, e está fora do escopo |
 | `retry_sync/2` | quem decide tentar de novo é quem administra; automatizar esconderia falha permanente |
 | estado `stuck` | `interrupted` serve; a distinção vive no motivo e no autor |
-| handler de telemetria | não veria o descarte feito pelo Lifeline — R4 |
+| handler de telemetria | não veria o trabalho que morreu com o nó, porque nenhum evento é emitido — R4 |
+| resgate automático de trabalho órfão | decide por tempo, sem saber se o processo vive — R1 |

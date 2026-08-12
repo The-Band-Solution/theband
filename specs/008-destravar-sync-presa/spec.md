@@ -131,14 +131,21 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
 
 1. **Trabalho descartado enquanto ninguém olha a tela.** O bloqueio precisa sair sem depender de
    alguém abrir a interface.
-2. **Trabalho órfão que volta a executar.** A coleta rodou metade; retomar precisa continuar de
-   onde parou, e não recomeçar do zero — os cursores por entidade já existem.
+2. **Trabalho órfão, e o que acontece com o que ele já coletou.** A coleta rodou metade. A
+   execução é encerrada, e a coleta nova recoleta desde o começo — sem duplicar linha, porque a
+   gravação é por chave natural. O custo é consulta repetida à origem; o ganho é não existir
+   caminho para duas execuções da mesma coleta ao mesmo tempo.
 3. **Dois caminhos encerrando o mesmo registro ao mesmo tempo** — a verificação automática e a ação
    humana, no mesmo instante.
 4. **Registro `running` cujo trabalho nunca existiu** — enfileirado em fila não configurada, ou
    com módulo que não existe. Dois dos cinco descartes são exatamente isto.
 5. **Execução legítima e longa.** Uma coleta de 4 474 issues leva minutos; declarar presa uma
    coleta viva é o defeito oposto, e é pior.
+6. **Execução aberta e trabalho ainda não criado.** Entre abrir o registro e o trabalho existir há
+   um intervalo, e nele a execução parece presa sem estar.
+7. **Trabalho que não consegue nascer.** Se a criação do trabalho falhar depois de o registro ser
+   aberto, ele fica `running` sem nada para executá-lo — o mesmo travamento da issue, por outra
+   porta.
 
 ---
 
@@ -156,7 +163,8 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
 - **FR-004**: Encerrar NÃO DEVE apagar nada: checkpoints, contagens, payloads e o próprio registro
   continuam. Muda o estado e o motivo.
 - **FR-005**: Uma execução cujo trabalho **está vivo** NÃO DEVE ser encerrada por verificação
-  automática.
+  automática. "Vivo" DEVE incluir **todo** estado que significa "vai executar" — e a lista completa
+  vem da fila, não da memória de quem escreve o código.
 - **FR-006**: O bloqueio DEVE sair **sem depender de alguém abrir a tela** — a plataforma percebe
   quando o trabalho termina mal.
 - **FR-007**: A decisão de encerrar DEVE ter **um caminho só**, usado por todos os gatilhos: dois
@@ -166,16 +174,24 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
 - **FR-009**: O encerramento **por decisão humana** DEVE registrar **quem** decidiu. O
   encerramento pela plataforma DEVE deixar o autor **ausente** — e ausente significa "não foi
   pessoa", nunca um autor inventado.
-- **FR-010**: Trabalho órfão de nó morto DEVE **voltar a executar**, retomando pelos cursores já
-  gravados, em vez de ser descartado — o trabalho já feito não se repete.
-- **FR-011**: O tempo até considerar um trabalho órfão DEVE ser maior que a execução legítima mais
-  longa observada, e o valor escolhido DEVE estar declarado.
+- **FR-010**: Trabalho órfão **NÃO DEVE ser resgatado para executar de novo**. A plataforma
+  encerra a execução, e uma coleta nova recoleta — o que é seguro porque a gravação é por chave
+  natural. Resgatar por tempo é o único mecanismo disponível, e ele **não sabe se o processo
+  morreu**: resgataria coleta viva, que rodaria duas vezes.
+- **FR-011**: A execução **recém-aberta** NÃO DEVE ser considerada presa. Existe um intervalo entre
+  abrir o registro e o trabalho existir, e encerrar nesse intervalo derrubaria coleta que acabou de
+  começar. O intervalo de carência DEVE estar declarado.
+- **FR-011a**: Se **não for possível criar o trabalho** depois de abrir o registro, a execução DEVE
+  ser encerrada na hora, com o motivo — e não deixada `running` esperando reconciliação.
 - **FR-012**: A lista de execuções DEVE dizer o estado e o motivo em **texto**, e o estado NÃO DEVE
   ser carregado só por cor.
 - **FR-013**: Nenhuma tela DEVE exibir execução de outro tenant, e a ação sobre execução de outro
   tenant DEVE responder **não encontrado**, nunca "sem permissão".
 - **FR-014**: Encerrar uma execução já encerrada NÃO DEVE mudar o motivo nem o autor originais.
 - **FR-015**: O escopo é a tela de sincronizações. Nenhuma outra tela recebe a ação.
+- **FR-016**: A verificação automática DEVE alcançar **todos os tenants**, e isso é manutenção da
+  plataforma — não consulta de tenant. Nenhum dado de um tenant DEVE aparecer para outro, e a ação
+  **por pessoa** continua restrita ao tenant de quem a faz (FR-013).
 
 ### Key Entities
 
@@ -203,7 +219,12 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
   provar vivas.
 - **SC-007**: Execução encerrada por pessoa tem autor; encerrada pela plataforma tem autor
   **ausente**, e a tela diz qual dos dois foi.
-- **SC-008**: Trabalho órfão retomado **não recoleta** o que já havia coletado.
+- **SC-008**: Depois de uma execução encerrada por abandono, a coleta nova **não duplica linha**:
+  a contagem de registros no banco é a mesma de antes mais o que a origem passou a ter.
+- **SC-008a**: A recusa acontece **na decisão**, não no botão: a requisição direta para encerrar uma
+  execução com trabalho vivo é **recusada**, mesmo sem botão na tela.
+- **SC-008b**: Execução aberta há menos que a carência declarada **não** é encerrada pela
+  verificação automática.
 - **SC-009**: O estado e o motivo são legíveis com a cor removida, e anunciados por leitor de tela.
 - **SC-010**: Um tenant não alcança execução de outro, e a mensagem não confirma existência.
 - **SC-011**: Encerrar duas vezes não altera o primeiro motivo nem o primeiro autor.
@@ -220,8 +241,10 @@ trabalho está vivo, e o registro guarda **quem** decidiu.
   tela e a ação humana chamam **a mesma** decisão. Três implementações da mesma regra é o defeito
   que este projeto já pagou em `classification/2`, na prévia contra o recálculo, e na coleta contra
   o recálculo.
-- **Retomar é seguro porque a coleta é idempotente.** Cursores por entidade e chave natural na
-  gravação já existem; retomar é o comportamento que o desenho da coleta pressupõe.
+- **Recoletar é seguro; retomar é que não era.** A gravação por chave natural garante que
+  recoletar não duplique linha. Retomar exigiria resgatar o trabalho, e o único resgate disponível
+  decide **por tempo**, sem saber se o processo morreu — o que resgataria coleta viva. A troca está
+  registrada em R1: menos capacidade, e nenhum caminho para execução dupla.
 - **A tela não vira monitor de fila.** Ela mostra execuções de coleta. O estado do trabalho é
   consultado para decidir, e não exibido como painel de infraestrutura.
 

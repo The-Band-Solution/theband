@@ -20,19 +20,27 @@ Medido: **2 execuções já foram destravadas por SQL**, há **1 trabalho execut
 num nó que não existe mais, e **5 descartados** — dois deles por um módulo que não existe no
 repositório.
 
-## O que este plano descobriu lendo a dependência
+## O que este plano descobriu lendo a dependência, e o que a análise corrigiu depois
 
-**O Lifeline não resolve sozinho, e cria um caso novo.** A leitura da fonte — não da intenção do
-nome — mostrou que ele resgata por **tempo puro**, sem saber se o nó morreu, e que job com
-tentativas esgotadas ele marca `discarded` em vez de resgatar.
+Três leituras de fonte, e duas mudaram o desenho:
 
 | Antes de ler | Depois de ler |
 |---|---|
-| "o Lifeline resgata órfão, e o sync nunca fica preso" | resgata **só** quem tem tentativa restante; esgotado vira `discarded`, e aí ninguém encerra o sync |
-| "handler de telemetria pega o descarte" | o Lifeline muda linha **em SQL** e emite telemetria de *plugin* — o handler de evento de job **nunca veria** esse descarte |
+| "o resgate automático cuida do órfão" | ele resgata por **tempo puro** — `state == "executing" and attempted_at < cut`, e **nada mais**. Nenhuma verificação de nó vivo. Resgataria coleta viva, e ela rodaria duas vezes |
+| "handler de telemetria pega o descarte" | o resgate muda linha **em SQL** e emite telemetria de *plugin* — o handler de evento de job **nunca veria** esse descarte |
+| "quatro estados significam trabalho ativo" | são **cinco**: `Oban.Job.states/0` tem oito, e faltava `suspended`, que significa trabalho pausado — vai executar |
 
-As duas descobertas mudaram o desenho: entram **três** peças em vez de uma, e a que parecia óbvia —
-telemetria — está recusada.
+**A análise mudou a decisão central desta feature.** A versão anterior configurava o resgate com
+`rescue_after` de 60 minutos e administrava o risco pelo valor do tempo. A pergunta *"existe
+proteção além do tempo?"* tem resposta na implementação: **não existe**. E a constante envelhece com
+o crescimento da coleta — 135 repositórios hoje, e a coleta mais longa já em 16 min 25 s.
+
+**O resgate saiu.** A plataforma encerra a execução órfã, e a coleta nova recoleta — seguro porque a
+gravação é por chave natural. Menos capacidade, e **nenhum caminho** para execução dupla.
+
+**E a análise achou um terceiro caminho de travamento** que ninguém tinha visto: abrir a execução e
+criar o trabalho são operações separadas, e **o resultado da criação é descartado**. Se ela falhar,
+o registro fica `running` sem nada para executá-lo.
 
 ## Technical Context
 
@@ -65,9 +73,9 @@ justamente por isso.
 O motivo e o autor **são** proveniência do encerramento: quem decidiu, e por quê. E FR-014 exige
 idempotência explícita — encerrar duas vezes não altera o primeiro motivo nem o primeiro autor.
 
-A retomada do trabalho resgatado depende da idempotência que já existe: cursor por entidade em
-`sync_checkpoints`, chave natural na gravação. **Se essa idempotência não valesse, FR-010 seria
-impossível** — e é por isso que resgatar é seguro aqui e não seria em qualquer sistema.
+**Recoletar** depende da idempotência que já existe: chave natural na gravação, upsert. Se ela não
+valesse, encerrar a execução órfã obrigaria a limpar o que ela coletou — e limpar é o que a
+plataforma não faz.
 
 ### IV. Semântica declarada em YAML versionado — **não se aplica**
 
@@ -112,31 +120,35 @@ antecipação. `Ingestion` é um módulo só neste projeto, diferente de `WorkIt
 
 ## Registro dos padrões introduzidos (princípio VIII)
 
-### P1 — `Oban.Plugins.Lifeline`, com `rescue_after` explícito
+### P1 — A carência da execução recém-aberta, e o resultado da criação conferido
 
-**Qual problema concreto resolve?** Trabalho travado em `executing` num nó morto. Há **um** assim,
-desde 2026-08-09, e nada o move.
+**Qual problema concreto resolve?** Dois: a corrida entre abrir o registro e o trabalho existir — no
+intervalo, a execução tem a assinatura exata de "presa" —, e a criação de trabalho que **falha** sem
+ninguém conferir, deixando o registro `running` para sempre.
 
-**O problema existe agora?** Sim, e já custou dois destravamentos manuais.
+**O problema existe agora?** A corrida, sim, em toda abertura de coleta. A falha na criação é
+caminho aberto: o resultado é descartado hoje, então se já aconteceu, ninguém saberia.
 
-**O que fica pior?** O plugin resgata **por tempo puro**, sem saber se o nó morreu — e a própria
-documentação avisa que pode duplicar execução. Com `rescue_after` curto, uma coleta viva de 16
-minutos rodaria duas vezes, que é a L02: números duplicados passam por corretos.
-
-Mitigação: **60 minutos**, 3,7× a execução legítima mais longa medida, com o valor **escrito** na
-configuração e um gatilho de revisão declarado em R2 — se alguma execução passar de 30 minutos, o
-valor sobe.
+**O que fica pior?** Uma constante de tempo a mais — um minuto —, e constante de tempo é o que
+envelhece. Mitigação: ela cobre uma corrida de **milissegundos**, com três ordens de grandeza de
+margem, e não cobre falha nenhuma: falha na criação encerra **na hora**, com motivo próprio.
 
 ### P2 — `Oban.Plugins.Cron` e um trabalho periódico de reconciliação
 
 **Qual problema concreto resolve?** FR-006: o bloqueio precisa sair sem ninguém abrir a tela. E
-cobre o caso que a telemetria não cobriria — o job que o **Lifeline** descartou por SQL.
+cobre o caso que a telemetria não cobriria — o trabalho que morreu com o nó, sem emitir evento
+nenhum.
 
 **O problema existe agora?** Sim: os 5 descartados nunca encerraram os registros deles.
 
 **O que fica pior?** Um trabalho a mais rodando a cada 5 minutos, para sempre, mesmo quando não há
 nada preso — e uma configuração de agendamento que ninguém lê até quebrar. O custo é consulta
 pequena numa tabela de 41 linhas.
+
+E um custo que a análise nomeou: ele **compete por slot** na fila `ingestion`, que tem concorrência
+5. Com cinco coletas em andamento, a reconciliação espera — o destravamento atrasa, e não deixa de
+acontecer. Aceito: fila própria para um trabalho de 5 em 5 minutos é desenho por antecipação, e o
+gatilho de revisão é a fila passar a ter espera observável.
 
 Mitigação: o trabalho é **idempotente e silencioso quando não acha nada** — nenhum log de
 "reconciliei 0", que é ruído que treina a pessoa a ignorar o log.
@@ -166,7 +178,9 @@ mitigação é a tela: ela diz **"the platform"** por extenso, nunca `—`.
 
 | Recusado | Por quê |
 |---|---|
-| **handler de telemetria de job** | não veria o descarte feito pelo Lifeline, que muda linha em SQL e emite telemetria de *plugin*; e handler não registrado é sucesso silencioso — L22/L23/L26 |
+| **`Oban.Plugins.Lifeline`** | resgata por tempo puro, **sem verificar se o processo vive** — `basic.ex:189`. A constante envelhece com o crescimento da coleta, e no dia em que a coleta passar dela há duas execuções da mesma coleta sem aviso. É a L02, e administrar isso por constante é o que ela proíbe |
+| claim do sync pelo trabalho, para proteger o resgate | resolveria de verdade, e é desenho maior que a feature — para recuperar 16 minutos de coleta. `DynamicLifeline`, que faz isso, é do Oban Pro |
+| **handler de telemetria de job** | não veria o descarte feito por plugin, que muda linha em SQL e emite telemetria de *plugin*; e handler não registrado é sucesso silencioso — L22/L23/L26 |
 | coluna `oban_job_id` no sync | identificador de fila dentro do domínio, e contradiz a decisão já escrita em `enqueue/3` — R3 |
 | decidir por idade do sync | não distingue coleta viva de coleta morta, e FR-005 proíbe encerrar coleta viva |
 | status novo — `stuck`, `abandoned` | `interrupted` já significa "não terminou e não vai terminar"; o que faltava era motivo e autor |
@@ -190,7 +204,7 @@ specs/008-destravar-sync-presa/
 ```
 
 ```text
-config/config.exs                          + Lifeline e Cron, com os valores explícitos
+config/config.exs                          + Cron, com o intervalo explícito
 lib/the_band/ingestion.ex                  + a decisão, e o motivo por causa
 lib/the_band/ingestion/sync.ex             + interrupted_by_user_id no cast
 lib/the_band/jobs/reconcile_stuck_syncs.ex + o trabalho periódico
@@ -211,9 +225,9 @@ vezes, que é o que FR-007 proíbe.
 Entregável sozinha? **Não visível**, e é a exceção declarada: a função sem gatilho não destrava
 nada. É a razão de F2 vir no mesmo sprint — a L21 proíbe entregar função pública sem consumidor.
 
-### F2 — Os gatilhos automáticos
+### F2 — O gatilho automático
 
-`Lifeline` e `Cron` na configuração, e o trabalho periódico chamando a decisão de F1.
+`Cron` na configuração, e o trabalho periódico chamando a decisão de F1. **Sem `Lifeline`** — R1.
 
 **Aqui o bloqueio sai sozinho**, e é o valor central da feature — SC-001 e SC-002 passam a valer.
 
@@ -229,7 +243,10 @@ Reconciliar ao carregar, a ação de encerrar com confirmação, e **quem encerr
 
 | Risco | Mitigação |
 |---|---|
-| **resgatar coleta viva e duplicar registros** | `rescue_after` de 60 min, 3,7× a mais longa medida; gatilho de revisão em 30 min declarado em R2 |
+| **resgatar coleta viva e duplicar registros** | **eliminado**: o resgate automático não entra. Órfão é encerrado, e a coleta nova recoleta com upsert |
+| encerrar coleta que acabou de começar | carência de 1 minuto, três ordens de grandeza acima da corrida real |
+| trabalho que não nasce e ninguém confere | o resultado da criação passa a ser conferido, e a falha encerra na hora com motivo próprio |
+| lista de estados ativos escrita de memória | o teste compara com `Oban.Job.states/0`, e não com uma lista copiada |
 | encerrar sync de coleta viva | a decisão exige **ausência de trabalho ativo**, nunca idade; teste com job `executing` de verdade |
 | a ligação por args se perder em silêncio | os args são escritos no mesmo módulo que os lê; o contrato exige a chave, e o teste falha sem ela |
 | ler nulo de autor como "não se sabe" | a tela escreve **"the platform"** por extenso; SC-007 exige distinguir |
@@ -242,7 +259,8 @@ Reconciliar ao carregar, a ação de encerrar com confirmação, e **quem encerr
 
 | Item | Custo | Aceito porque |
 |---|---|---|
-| dois plugins de fila | duas configurações que ninguém lê até quebrar | os dois casos medidos — órfão e descartado — não têm outra cura |
+| um plugin de fila (`Cron`) | uma configuração que ninguém lê até quebrar | é o único gatilho que vê **estado** em vez de evento |
+| recoletar em vez de retomar | ~16 min de consulta repetida à origem, no pior caso medido | é o preço de **não** ter caminho para execução dupla |
 | trabalho periódico a cada 5 min | consulta pequena, para sempre | é o único gatilho que vê **estado** em vez de evento, e sobrevive a reinício |
 | `Ingestion` conhece a forma dos args | acoplamento à fila | a alternativa punha identificador de fila no domínio; critério de reversão escrito em R3 |
 | coluna anulável de autor | um nulo a mais para interpretar | sem ela, decisão humana e automática ficam indistinguíveis |
@@ -251,10 +269,15 @@ Reconciliar ao carregar, a ação de encerrar com confirmação, e **quem encerr
 
 ## Reavaliação da constituição, pós-desenho
 
-Dez princípios: oito conformes, dois não aplicáveis (IV e IX). Quatro padrões introduzidos, seis
-recusados.
+Dez princípios: oito conformes, dois não aplicáveis (IV e IX). **Três** padrões introduzidos, **oito**
+recusados — o resgate automático entre eles, depois de a análise mostrar que ele não verifica nada
+além do tempo.
 
-O princípio III é o que sustenta a feature inteira: **retomar só é seguro porque a coleta é
-idempotente**, e o motivo com o autor é proveniência do encerramento. O princípio VIII produziu a
-recusa mais valiosa — a telemetria, que parecia o caminho óbvio e não veria o caso que o próprio
-Lifeline cria.
+O princípio III é o que sustenta a feature: o motivo com o autor é proveniência do encerramento, e
+**recoletar só é seguro porque a gravação é por chave natural**.
+
+O princípio VIII produziu as duas recusas mais valiosas, e as duas pareciam o caminho óbvio: a
+telemetria, que não veria o descarte feito em SQL; e o **resgate automático**, que a primeira versão
+deste plano tinha aceito com uma constante de tempo por mitigação. A pergunta *"o que fica pior?"*
+não tinha resposta honesta ali — o que fica pior é a plataforma coletar duas vezes, e o número
+duplicado passar por correto.

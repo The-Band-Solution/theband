@@ -42,7 +42,7 @@ repositório já decidiu:
 | estado novo | **não** — `interrupted` já significa "não terminou e não vai terminar" | o estado existe e a `finish/3` já o aceita |
 | autor | registrado quando é pessoa, **ausente** quando é a plataforma — FR-009 | decisão tem autor, como `excluded_by_user_id`; e ausente é informação |
 | apagar | nada é apagado — FR-004 | regra da plataforma: nunca se apaga dado |
-| órfão | **volta a executar** e retoma pelos cursores — FR-010 | a coleta é idempotente por desenho, com checkpoint por entidade |
+| órfão | **é encerrado**, e a coleta nova recoleta — FR-010 | a análise mostrou que o único resgate disponível decide por tempo, sem saber se o processo vive |
 | escopo | ação só onde a plataforma não prova o trabalho vivo — FR-005, FR-008 | encerrar coleta viva é pior que o problema |
 
 **O defeito oposto entrou como requisito.** FR-005 e o caso de borda 5 existem porque a correção
@@ -56,9 +56,41 @@ tela diga qual dos dois foi.
 **O que ficou fora está fora por decisão, não por esquecimento.** Cancelar coleta em andamento é
 outra pergunta; painel de fila é outra tela; repetição automática esconderia falha permanente.
 
+## O que a análise mudou depois, e é o achado que importa
+
+`/speckit-analyze` rodou antes do código e **derrubou uma decisão do plano**. A pergunta foi: *existe
+proteção além do valor do tempo?* A resposta está na implementação do resgate —
+`deps/oban/lib/oban/engines/basic.ex:189`:
+
+```elixir
+where([j], j.state == "executing" and j.attempted_at < ^cut)
+```
+
+**Nada além do tempo.** Nenhuma verificação de nó vivo, de heartbeat, de dono. Sessenta minutos são
+3,7× a coleta mais longa de hoje, e a coleta cresce com o número de repositórios — no dia em que
+passar, existem duas execuções da mesma coleta, e cada uma funciona. É a L02.
+
+**O resgate saiu**, e com ele FR-010 e FR-011 mudaram de sentido: órfão é encerrado, e a coleta nova
+recoleta sem duplicar linha. Menos capacidade, e nenhum caminho para número duplicado.
+
+**Mais três correções da mesma análise:**
+
+| # | O que estava errado | O que passou a valer |
+|---|---|---|
+| A3 | os estados ativos eram **quatro**; `Oban.Job.states/0` tem oito e faltava `suspended` | cinco estados, derivados da função — o teste falha se o Oban acrescentar estado |
+| A4 | **terceiro caminho de travamento**: abrir o registro e criar o trabalho são operações separadas, e o resultado da criação é **descartado** | FR-011a — falha na criação encerra na hora, com motivo próprio; e carência de 1 min para a corrida |
+| A5, A6 | a reconferência de `interrupt_sync/3` sem critério; o alcance entre tenants declarado só no plano | SC-008a, SC-008b e FR-016 |
+
+**O A4 é o que mais assusta**: ele não está nos 5 descartados nem no órfão medido, porque **ninguém
+saberia se já aconteceu** — o retorno vai para o vazio. Foi achado lendo a abertura da execução, e
+não medindo o banco.
+
 ## Notes
 
 Nenhum item incompleto.
+
+**Dezessete requisitos, treze critérios.** Cresceu em relação à primeira versão — 15 e 11 —, e o
+acréscimo veio todo da análise.
 
 **O peso desta spec vem de medida, não de hipótese.** Duas execuções já foram destravadas por SQL,
 e o procedimento está registrado em `docs/sprints/RETOMAR.md`. Há um trabalho executando desde

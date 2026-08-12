@@ -1,11 +1,12 @@
 # Quickstart — Feature 008: destravar a sincronização presa
 
-Oito verificações. Os números vêm do banco de desenvolvimento, medidos em 2026-08-12: **32
+Nove verificações. Os números vêm do banco de desenvolvimento, medidos em 2026-08-12: **32
 execuções — 28 concluídas, 2 com falha, 2 interrompidas à mão —, 5 trabalhos descartados e 1
 executando desde 2026-08-09** num nó que não existe mais.
 
-A execução legítima mais longa levou **16 min 25 s** e coletou 3 641 registros. É desse número que
-sai o `rescue_after`.
+A execução legítima mais longa levou **16 min 25 s** e coletou 3 641 registros. É o número que
+**derrubou** o resgate automático: administrar risco de execução dupla por constante de tempo
+envelhece com o crescimento da coleta — R1.
 
 ## Pré-requisitos
 
@@ -128,31 +129,66 @@ encerramento. **A tela não é a defesa; a decisão reconfere** — SC-006.
 
 ---
 
-## V8 — O trabalho órfão retoma, e não recoleta
+## V8 — A coleta nova não duplica linha
 
 ```bash
-mix test test/the_band/ingestion/reconcile_stuck_syncs_test.exs -o "retoma"
+mix test test/the_band/ingestion/reconcile_stuck_syncs_test.exs -o "recoleta"
 ```
 
-**Esperado**: trabalho resgatado continua pelos cursores gravados em `sync_checkpoints`, e o número
-de registros **não dobra**.
-
-**Falha típica**: recomeçar do zero, e os contadores da execução somarem duas vezes. É a L02 — a
-coleta duplicada trouxe 32 registros em vez de 16, e o número pareceu plausível.
-
----
-
-## O `rescue_after`, conferido contra o dado
+E no dado real, com a contagem antes e depois de encerrar uma execução e coletar de novo:
 
 ```bash
 docker exec -e PGPASSWORD=postgres the_band_postgres psql -U postgres -d the_band_dev -tAc "
-select max(finished_at - started_at) from syncs where status = 'completed';"
+select count(*) from collected_issues;"
 ```
 
-**Esperado hoje**: `00:16:25`. O `rescue_after` é 60 minutos — 3,7× isso.
+**Esperado**: o número **não dobra**. A execução órfã é encerrada e a coleta nova recoleta desde o
+começo; a gravação é por chave natural, então cada issue continua sendo uma linha.
 
-**O gatilho de revisão está em R2**: quando alguma execução `completed` passar de **30 minutos**, o
-valor precisa subir. Metade da margem gasta é o aviso, e resgatar coleta viva duplica registro.
+**Por que recoletar em vez de retomar**: retomar exigiria resgatar o trabalho, e o único resgate
+disponível decide **por tempo** — `state == "executing" and attempted_at < cut`, sem verificar se o
+processo vive. Ele resgataria coleta viva, e ela rodaria duas vezes. É a L02, onde 32 registros
+apareceram no lugar de 16 e o número pareceu plausível. Está em R1.
+
+---
+
+## V9 — Trabalho pausado conta como vivo
+
+```bash
+mix test test/the_band/ingestion/reconcile_stuck_syncs_test.exs -o "estados"
+```
+
+**Esperado**: os **cinco** estados ativos — `suspended`, `scheduled`, `available`, `executing`,
+`retryable` — impedem o encerramento, e o teste **compara com `Oban.Job.states/0`** em vez de repetir
+a lista.
+
+**Falha típica**: listar quatro e esquecer `suspended`, que é trabalho pausado — vai executar. A
+primeira versão desta feature fazia exatamente isso, e a reconciliação teria encerrado coleta viva.
+
+---
+
+## A carência, e o trabalho que não nasce
+
+```bash
+mix test test/the_band/ingestion/enqueue_failure_test.exs
+```
+
+**Esperado**: com a criação do trabalho falhando, **nenhuma** execução fica `running` — ela é
+encerrada na hora, com motivo próprio. A asserção que importa é a **ausência de `running`**, e não o
+valor devolvido.
+
+E a carência, conferida pelo outro lado:
+
+```bash
+mix test test/the_band/ingestion/reconcile_stuck_syncs_test.exs -o "carência"
+```
+
+**Esperado**: execução aberta há 10 segundos, sem trabalho, **continua** `running`. É a corrida entre
+abrir o registro e criar o trabalho — milissegundos na prática, com um minuto de margem.
+
+**O que NÃO pode**: a carência ser usada como defesa da falha. Trabalho que não nasce é encerrado
+**na hora**; esperar a carência daria o motivo errado — "o processo que a executava não existe mais"
+afirma que houve processo, e aqui ele nunca existiu.
 
 ---
 
