@@ -27,12 +27,15 @@ defmodule TheBand.Mapping.PreviewTest do
   describe "a prévia" do
     test "distingue quantas casa de quantas mudariam", %{tenant: t, org: org} do
       # O cenário tem issues tipo `Spike` e sem tipo, e nenhuma promovida por regra.
+      # O conceito de destino é **defeito**, e não tarefa: a etapa estrutural já classifica
+      # a folha como tarefa, e uma regra que concorda com a estrutura não muda nada. Isso
+      # não é falha da regra — é o que `would_change` existe para dizer.
       assert {:ok, previa} =
                Mapping.preview(t, org, %{
                  where: "declared_type",
                  how: "equals",
                  pattern: "Spike",
-                 target_concept: @tarefa
+                 target_concept: "osdef.defect"
                })
 
       assert previa.matched >= 1
@@ -54,7 +57,12 @@ defmodule TheBand.Mapping.PreviewTest do
                })
 
       assert previa.matched == 0
-      assert previa.would_change == 0
+
+      assert previa.would_change == 0, """
+      Regra que não casa nada não muda nada — mesmo que o recálculo, ao rodar, vá mudar
+      outras issues pela etapa estrutural. Atribuir essas mudanças à regra faria a prévia
+      culpar a regra errada.
+      """
     end
 
     test "recusa o padrão inválido antes de contar qualquer coisa", %{tenant: t, org: org} do
@@ -75,24 +83,25 @@ defmodule TheBand.Mapping.PreviewTest do
         where: "declared_type",
         how: "equals",
         pattern: "Spike",
-        target_concept: @tarefa
+        target_concept: "osdef.defect"
       }
 
       {:ok, previa} = Mapping.preview(t, org, attrs)
       {:ok, _regra} = Mapping.create_rule(t, org, attrs, u.id)
       {:ok, efeito} = Mapping.recompute(t, org)
 
-      assert efeito.concept_changed == previa.would_change, """
-      A prévia disse que #{previa.would_change} issues mudariam de conceito e o recálculo
-      mudou #{efeito.concept_changed}.
+      assert efeito.written == previa.rows_to_write, """
+      A prévia disse que #{previa.rows_to_write} linhas seriam gravadas e o recálculo
+      gravou #{efeito.written}.
 
       É o SC-007. Prévia e efeito por caminhos diferentes faz alguém aprovar uma regra
       vendo um número e reclassificar outro.
       """
 
-      assert efeito.written == previa.rows_to_write, """
-      Os dois números são diferentes de propósito — linha gravada inclui mudança de
-      **proveniência** sem mudança de conceito —, e os dois têm de bater.
+      assert previa.would_change > 0, """
+      `would_change` mede o efeito **da regra** — com ela contra sem ela —, e não o do
+      recálculo. Comparar com o que está gravado atribuiria à regra tudo o que a etapa
+      estrutural decide, e ela decidiria de todo modo.
       """
     end
   end

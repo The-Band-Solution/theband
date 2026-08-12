@@ -1,0 +1,78 @@
+derivation_rule:
+  id: github.issue_structure_routing
+  version: 1
+  provider: github
+  status: active
+  confidence: low
+
+  name:
+    pt-BR: "Classificação por estrutura de decomposição"
+
+  description:
+    pt-BR: >
+      Classifica uma issue pela **posição dela no grafo de decomposição**, quando nem o tipo
+      declarado nem a regra de título da organização decidiram.
+
+      A regra é a que a pessoa mantenedora enunciou: um épico tem uma ou mais user stories
+      apontando para ele, e uma user story tem uma ou mais tarefas. A folha — a issue que não
+      é pai de ninguém — é tarefa.
+
+      **É a evidência mais fraca das três**, e por isso vem por último e grava confiança
+      `low`. A razão é concreta: uma folha pode ser uma tarefa, e pode ser uma user story que
+      ninguém decompôs. A estrutura não distingue as duas, e afirmar que distingue seria
+      inventar conhecimento.
+
+  precedence_rationale:
+    pt-BR: >
+      Tipo declarado vence tudo: alguém tipou a issue na ferramenta, e isso é campo, não
+      convenção. A regra de título vem depois: é convenção que a organização **declarou**.
+
+      A estrutura vem por último porque não é declaração de ninguém — é consequência de como
+      as issues foram ligadas, e a ligação pode simplesmente não ter sido feita.
+
+      Nenhuma das três contradiz axioma: `sro.rule05` continua exigindo partes para haver
+      épico, e a estrutura é justamente o que fornece essa evidência.
+
+  classification:
+    - when: { has_children: false }
+      concept: sro.intended_scrum_development_task
+      note:
+        pt-BR: >
+          Folha. **Este é o caso que mais erra**, e o erro é conhecido: user story que ninguém
+          decompôs é folha, e vira tarefa aqui. Por isso a confiança é `low` — e por isso o
+          tipo declarado, quando existe, vence.
+
+    - when: { children_are_all_tasks: true }
+      concept: sro.atomic_user_story
+      note:
+        pt-BR: >
+          Todas as partes são tarefas. Tarefa **atende** user story
+          (`sro.intended_task_planned_to_meet_user_story`), não a compõe — logo a issue é
+          atômica, e não épico. É a distinção que `sro.rule07` preserva.
+
+    - when: { has_user_story_children: true }
+      concept: sro.epic
+      note:
+        pt-BR: >
+          Ao menos uma parte é user story ou épico. A composição é o que torna épico
+          (`sro.epic_composed_of_user_story`), e é o próprio `sro.rule05`.
+
+          Épico dentro de épico continua épico: a decomposição pode ter mais de dois níveis, e
+          nada na SRO limita a profundidade.
+
+  limits:
+    max_depth: 10
+    note:
+      pt-BR: >
+        A resolução é de baixo para cima, e o limite existe para o caso patológico de o grafo
+        já estar cíclico no banco — inserido por script ou por versão anterior à recusa de
+        ciclo. Sem ele, a subida não terminaria.
+
+        Ciclo é recusado na coleta (`sro.rule04`), e o vínculo recusado fica registrado.
+
+  provenance:
+    source_type: project_decision
+    reference: >
+      Feature 005; regra enunciada pela pessoa mantenedora em 2026-08-12 — "se uma issue não é
+      pai de ninguém ela é uma task; um épico possui uma ou mais US e uma US possui uma ou
+      mais tasks"

@@ -13,13 +13,40 @@ defmodule TheBand.Mapping.Decision do
   A classificação épico/atômica depende das partes, e decidir sem elas daria atômica para
   tudo. O grafo vem numa consulta e a decisão é em memória — uma consulta por issue seriam
   4471 idas ao banco.
+
+  ## A terceira etapa: a estrutura
+
+  Depois do tipo declarado e da regra de título, o que sobra é classificado pela **posição
+  no grafo de decomposição**:
+
+      folha                       → tarefa
+      só tem partes que são tarefas → user story atômica
+      tem parte que é user story    → épico
+
+  É a regra que a pessoa mantenedora enunciou, e está declarada em
+  `rules/github_issue_structure_routing.yaml`.
+
+  **É a evidência mais fraca, e vem por último por isso.** Uma folha pode ser uma tarefa, e
+  pode ser uma user story que ninguém decompôs — a estrutura não distingue as duas. Grava
+  confiança `low`, e qualquer tipo declarado a vence.
+
+  A resolução é de baixo para cima e **memoizada**: o conceito de um pai depende do dos
+  filhos, e sem memória a mesma subárvore seria recalculada por ramo.
   """
 
   alias TheBand.Mapping
+  alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems
 
   @tenant_rule "github.issue_type_routing.the_band_solution"
+  @regra_estrutural "github.issue_structure_routing"
+  @tarefa "sro.intended_scrum_development_task"
+  @atomica "sro.atomic_user_story"
+  @epico "sro.epic"
+  # O limite existe para o caso patológico de o grafo já estar cíclico no banco — inserido
+  # por script ou por versão anterior à recusa de ciclo. Sem ele, a subida não terminaria.
+  @profundidade_maxima 10
 
   @typedoc "O que a decisão produziu para uma issue."
   @type resultado :: %{issue: map(), decisao: map()}
@@ -35,20 +62,128 @@ defmodule TheBand.Mapping.Decision do
     issues = Mapping.issues_for_decision(tenant, organization_id)
     tipos = tipos_das_partes(tenant, issues)
 
-    Enum.map(issues, fn issue ->
-      decisao =
-        WorkItems.decide(
-          %{
-            issue_type: issue.issue_type,
-            title: issue.title,
-            sub_issue_types: Map.get(tipos, issue.id, [])
-          },
-          tenant_rule_id: @tenant_rule,
-          organization_rules: regras
-        )
+    declaradas =
+      Enum.map(issues, fn issue ->
+        decisao =
+          WorkItems.decide(
+            %{
+              issue_type: issue.issue_type,
+              title: issue.title,
+              sub_issue_types: Map.get(tipos, issue.id, [])
+            },
+            tenant_rule_id: @tenant_rule,
+            organization_rules: regras
+          )
 
-      %{issue: issue, decisao: decisao}
-    end)
+        %{issue: issue, decisao: decisao}
+      end)
+
+    completar_por_estrutura(tenant, declaradas)
+  end
+
+  @doc """
+  Preenche, **pela estrutura**, o que as duas primeiras etapas não decidiram.
+
+  Só toca em issue sem conceito: a estrutura é a evidência mais fraca, e sobrescrever com
+  ela um tipo que alguém declarou na ferramenta seria inverter a precedência.
+  """
+  @spec completar_por_estrutura(Tenant.t(), [resultado()]) :: [resultado()]
+  def completar_por_estrutura(%Tenant{} = tenant, resultados) do
+    filhos =
+      tenant
+      |> WorkItems.list_links()
+      |> Enum.group_by(& &1.parent_issue_id, & &1.child_issue_id)
+
+    presentes = MapSet.new(resultados, & &1.issue.id)
+    ja_decidido = Map.new(resultados, &{&1.issue.id, &1.decisao.derived})
+    versao = versao_da_regra()
+
+    {finais, _memoria} =
+      Enum.map_reduce(resultados, %{}, fn %{issue: issue, decisao: decisao} = linha, memoria ->
+        if decisao.derived do
+          {linha, memoria}
+        else
+          {conceito, memoria} =
+            por_estrutura(issue.id, filhos, presentes, ja_decidido, memoria, 0)
+
+          {%{linha | decisao: estrutural(decisao, conceito, versao)}, memoria}
+        end
+      end)
+
+    finais
+  end
+
+  # De baixo para cima, com memória: o conceito do pai depende do dos filhos, e sem memória
+  # a mesma subárvore seria recalculada uma vez por ramo que a alcança.
+  defp por_estrutura(_id, _filhos, _presentes, _decidido, memoria, @profundidade_maxima),
+    do: {@tarefa, memoria}
+
+  defp por_estrutura(id, filhos, presentes, decidido, memoria, nivel) do
+    case Map.fetch(memoria, id) do
+      {:ok, conceito} -> {conceito, memoria}
+      :error -> calcular(id, filhos, presentes, decidido, memoria, nivel)
+    end
+  end
+
+  defp calcular(id, filhos, presentes, decidido, memoria, nivel) do
+    # Parte fora do escopo observado tem vínculo e não tem issue aqui. Contá-la como filha
+    # faria a issue virar épico por causa de algo que a plataforma não tem.
+    partes =
+      filhos
+      |> Map.get(id, [])
+      |> Enum.filter(&MapSet.member?(presentes, &1))
+
+    {conceito, memoria} =
+      case partes do
+        [] -> {@tarefa, memoria}
+        _ -> conceito_das_partes(partes, filhos, presentes, decidido, memoria, nivel)
+      end
+
+    {conceito, Map.put(memoria, id, conceito)}
+  end
+
+  defp conceito_das_partes(partes, filhos, presentes, decidido, memoria, nivel) do
+    {conceitos, memoria} =
+      Enum.map_reduce(partes, memoria, fn parte, acc ->
+        conceito_da_parte(parte, filhos, presentes, decidido, acc, nivel)
+      end)
+
+    {se_compoe(conceitos), memoria}
+  end
+
+  defp conceito_da_parte(parte, filhos, presentes, decidido, memoria, nivel) do
+    case Map.get(decidido, parte) do
+      nil -> por_estrutura(parte, filhos, presentes, decidido, memoria, nivel + 1)
+      ja_decidido -> {ja_decidido, memoria}
+    end
+  end
+
+  # Tarefa **atende**, não compõe. Uma issue cujas partes são todas tarefas é atômica; basta
+  # uma parte ser user story ou épico para ela ser épico — é o `sro.rule05`.
+  defp se_compoe(conceitos) do
+    if Enum.any?(conceitos, &(&1 in [@atomica, @epico])), do: @epico, else: @atomica
+  end
+
+  defp estrutural(base, conceito, versao) do
+    %{
+      base
+      | derived: conceito,
+        declared: nil,
+        divergence: nil,
+        skip_reason: nil,
+        skip_detail: nil,
+        rule_id: @regra_estrutural,
+        rule_version: versao,
+        evidence_source: "structure",
+        confidence: "low"
+    }
+  end
+
+  defp versao_da_regra do
+    case KnowledgeBase.rule(@regra_estrutural) do
+      {:ok, regra} -> regra["version"]
+      :error -> 1
+    end
   end
 
   @doc """
