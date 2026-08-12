@@ -31,37 +31,43 @@
 
 ## O que a validação achou, e entrou na spec
 
-**O pedido literal apagaria três estados.** "Símbolo nos repositórios que possuem issues" é
-binário; a plataforma distingue quatro. O achado que decidiu: **38 repositórios inacessíveis têm
-897 issues** — um símbolo binário os colocaria do lado errado dos dois, porque eles têm trabalho
-**e** não estão sendo olhados. FR-001 e FR-007 nasceram disso.
+**O pedido é o escopo, e a primeira versão desta spec esqueceu isso.** Ela inventou quatro estados
+para a marca; a informação que eu queria carregar — repositório inacessível — **já está na coluna
+`state`**, ao lado. FR-004 fixa isso: a marca não repete o que está do lado.
 
-**Zero e desconhecido não são a mesma coisa**, e a spec teve de dizer qual. FR-004 e FR-005
-separam "coletado e vazio" de "nunca coletado" — a mesma distinção que o corpo da issue já
-carrega, e que já custou um defeito nesta base.
+**Zero e desconhecido não são a mesma coisa**, e essa distinção sobreviveu ao corte porque não é
+excesso: 61 dos 135 repositórios têm zero issues, e hoje não há como dizer quais nunca foram
+consultados. FR-005 exige a diferença, e é a única coisa nesta feature que a plataforma ainda não
+sabe.
 
 **A navegação pedida já existe.** A spec diz isso em vez de reespecificar: o nome do repositório
-já é link. O que a feature garante é que **os vazios continuem clicáveis** (FR-009), porque a
-tela deles explica *por que* estão vazios — e é isso que alguém procura ao clicar num vazio.
+já é link. O que a feature garante é que **os vazios continuem clicáveis** (FR-007) — a tela deles
+explica *por que* estão vazios, e é isso que alguém procura ao clicar num vazio.
 
-**O custo de consulta entrou como requisito.** A tela já faz uma consulta de contagem por
-repositório — 135 delas. FR-013 e FR-014 impedem que a marca dobre isso: um número, dois
-consumidores.
+**O custo de consulta entrou como requisito.** A tela já faz 135 consultas de contagem, uma por
+repositório. FR-010 e FR-011 impedem que a marca dobre isso: um número, dois consumidores — e a
+pesquisa mostrou que agrupar leva de 135 para **1**.
 
-**Ordenação virou filtro.** Ordenar por contagem por padrão faria quem sabe que o repositório
-está na letra M perdê-lo. FR-019 fixa a ordem, e a US4 oferece o filtro — que **diz quantos
-omitiu** (FR-018), porque esconder sem dizer quanto foi escondido faz alguém concluir que a
-lista é tudo.
-
-**O escopo foi fechado explicitamente.** FR-022 tira a tela de sincronização: lá o repositório é
+**O escopo foi fechado explicitamente.** FR-013 tira a tela de sincronização: lá o repositório é
 fase de execução, e a pergunta é "a coleta está funcionando", não "onde há trabalho". Escopo
 implícito é o que faz feature crescer sem ninguém decidir.
 
 ## Notes
 
-Nenhum item incompleto. A spec está pronta para `/speckit-plan`.
+Nenhum item incompleto.
 
-A numeração do diretório é `007`, e a **branch** em andamento também se chama
-`007-interface-em-ingles` — são coisas diferentes: a branch carrega a interface em inglês e o
-design system, que esta spec **usa** como dependência. O plano precisa nomear a branch desta
-feature de forma a não colidir.
+**A spec foi cortada depois da primeira validação.** A versão inicial tinha 22 FR e quatro
+estados na marca; a pessoa mantenedora recusou — *"como assim apagar os estados? só pedi para
+colocar um símbolo"* — e estava certa. Ficaram 13 FR e dois estados, mais o "não se sabe" que o
+FR-005 exige.
+
+A regra que ficou disso: **quando a spec cresce além do pedido, a pergunta é se a informação nova
+já existe em outro lugar da tela.** Aqui existia — a coluna `state` já diz `unreachable`,
+`excluded` e `archived`.
+
+O plano está escrito, e é pequeno de propósito: um padrão introduzido, cinco recusados.
+
+A numeração do diretório é `007`, e a branch em andamento também se chama
+`007-interface-em-ingles` — são coisas diferentes. O plano resolveu em R5: a branch desta feature
+é **`008-marca-de-issues`**, porque reusar o número faria duas branches indistinguíveis, e
+renumerar o diretório faria a spec mentir sobre a ordem em que foi escrita.
