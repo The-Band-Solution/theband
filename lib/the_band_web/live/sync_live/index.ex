@@ -265,66 +265,98 @@ defmodule TheBandWeb.SyncLive.Index do
               `issues.totalCount`, guardados no checkpoint. Onde ela não informa, a barra
               mostra a CONTAGEM e o estado da fase: inventar o denominador produziria
               número que parece informação e não é. --%>
-        <div :if={sync.status in ["running", "completed"]} class="space-y-1">
-          <div :if={progresso(sync)} class="flex items-center gap-2">
+        <%!-- Percentual quando a origem informa o total — `repositories.totalCount` e
+              `issues.totalCount`, guardados no checkpoint. Onde ela não informa, a linha
+              mostra a CONTAGEM: inventar o denominador produziria número que parece
+              informação e não é. --%>
+        <div :if={sync.status in ["running", "completed"]} class="space-y-3">
+          <div :if={progresso(sync)} class="flex items-center gap-3">
             <progress
               class="progress progress-success flex-1"
               value={progresso(sync).feitos}
               max={progresso(sync).total}
             ></progress>
-            <span class="text-sm font-mono">{progresso(sync).percentual}%</span>
-            <span class="text-xs opacity-70">
+            <span class="text-sm font-mono w-12 text-right">{progresso(sync).percentual}%</span>
+            <span class="text-xs opacity-70 w-28 text-right">
               {progresso(sync).feitos} de {progresso(sync).total}
             </span>
           </div>
 
-          <div class="flex gap-1">
-            <div
-              :for={{fase, rotulo, n} <- fases(sync)}
-              class={[
-                "flex-1 h-2 rounded",
-                estado_fase(fase, sync, @fase) == :feita && "bg-success",
-                estado_fase(fase, sync, @fase) == :em_curso && "bg-info animate-pulse",
-                estado_fase(fase, sync, @fase) == :pendente && "bg-base-300"
-              ]}
-              title={"#{rotulo}: #{n}"}
-            >
+          <%!-- Uma fase por linha, e a razão não é estética: lado a lado, as seis barras
+                tinham a mesma largura e pareciam comparar 1 organização com 4474
+                promoções. Não comparam — cada barra é o progresso **daquela** fase, e
+                empilhar deixa isso legível.
+
+                Os rótulos também deixam de brigar: `flex-1` os espalhava e o número
+                acabava sob a barra vizinha. --%>
+          <div class="space-y-1">
+            <div :for={fase <- fases(sync)} class="flex items-center gap-3 text-xs">
+              <span class="w-40 shrink-0 opacity-70">{fase.rotulo}</span>
+              <div class="flex-1 h-2 rounded bg-base-300 overflow-hidden">
+                <div
+                  class={[
+                    "h-full rounded",
+                    estado_fase(fase.id, sync, @fase) == :feita && "bg-success",
+                    estado_fase(fase.id, sync, @fase) == :em_curso && "bg-info animate-pulse",
+                    estado_fase(fase.id, sync, @fase) == :pendente && "bg-base-300"
+                  ]}
+                  style={"width: #{largura(fase, estado_fase(fase.id, sync, @fase))}%"}
+                >
+                </div>
+              </div>
+              <span class="w-28 shrink-0 text-right font-mono">{contagem(fase)}</span>
             </div>
           </div>
-          <div class="flex justify-between text-xs opacity-70">
-            <span :for={{_f, rotulo, n} <- fases(sync)} class="flex-1">
-              {rotulo}{if n > 0, do: " #{n}"}
-            </span>
-          </div>
+
           <div :if={sync.status == "running" && @fase} class="text-xs">
             coletando agora: <span class="font-mono">{legivel(@fase)}</span>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
-          <div><span class="opacity-60">coletados</span> <b>{sync.records_collected}</b></div>
-          <div><span class="opacity-60">criados</span> <b>{sync.records_created}</b></div>
-          <div><span class="opacity-60">atualizados</span> <b>{sync.records_updated}</b></div>
-          <div><span class="opacity-60">ignorados</span> <b>{sync.records_skipped}</b></div>
+        <%!-- Três grupos, e a separação é o ponto: os números vinham numa fileira só e
+              respondiam perguntas diferentes. "coletados 3641" é da execução, "issues
+              3383" é do trabalho trazido, e "pendentes de papel 88" não é nem uma coisa
+              nem outra — é lacuna. Lê-los na mesma linha convida a somá-los. --%>
+        <div class="grid gap-4 sm:grid-cols-3 border-t border-base-300 pt-3">
           <div>
-            <span class="opacity-60">pendentes de papel</span>
-            <b>{sync.memberships_pending_role}</b>
+            <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
+              o que a execução fez
+            </div>
+            <dl class="mt-1 text-sm space-y-0.5">
+              <.linha rotulo="registros coletados" valor={sync.records_collected} />
+              <.linha rotulo="criados" valor={sync.records_created} />
+              <.linha rotulo="atualizados" valor={sync.records_updated} />
+              <.linha rotulo="ignorados" valor={sync.records_skipped} />
+            </dl>
           </div>
-        </div>
 
-        <%!-- O que a coleta trouxe de trabalho. Vem da mesma sincronização — não há
-              coleta separada de issues —, e por isso aparece na mesma linha em vez de
-              numa tela que ninguém saberia quando foi atualizada. --%>
-        <div class="flex flex-wrap gap-4 text-sm border-t border-base-300 pt-2">
           <div>
-            <span class="opacity-60">repositórios nesta coleta</span>
-            <b>{work_summary(sync).repositorios}</b>
+            <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
+              o trabalho que ela trouxe
+            </div>
+            <dl class="mt-1 text-sm space-y-0.5">
+              <.linha rotulo="repositórios" valor={work_summary(sync).repositorios} />
+              <.linha rotulo="issues" valor={work_summary(sync).issues} />
+            </dl>
+            <.link navigate={~p"/trabalho"} class="link link-hover text-sm">
+              ver o trabalho →
+            </.link>
           </div>
+
           <div>
-            <span class="opacity-60">issues nesta coleta</span>
-            <b>{work_summary(sync).issues}</b>
+            <div class="text-xs font-semibold opacity-60 uppercase tracking-wide">
+              o que ficou sem resposta
+            </div>
+            <dl class="mt-1 text-sm space-y-0.5">
+              <.linha rotulo="vínculos sem papel" valor={sync.memberships_pending_role} />
+            </dl>
+            <%!-- A explicação fica **junto** do número que ela explica. Solta no rodapé do
+                  cartão, ela era lida como observação geral sobre a coleta. --%>
+            <p class="text-xs opacity-60 mt-1">
+              Lacuna de conhecimento, não erro: mede quanto da estrutura organizacional o
+              sistema ainda não conhece.
+            </p>
           </div>
-          <.link navigate={~p"/trabalho"} class="link link-hover">ver o trabalho →</.link>
         </div>
 
         <div :if={map_size(sync.skip_reasons) > 0} class="text-xs opacity-70">
@@ -333,11 +365,6 @@ defmodule TheBandWeb.SyncLive.Index do
         </div>
 
         <div :if={sync.error_reason} class="text-sm text-error">{sync.error_reason}</div>
-
-        <div class="text-xs opacity-60">
-          O número de vínculos pendentes de papel é lacuna de conhecimento, não erro:
-          mede quanto da estrutura organizacional o sistema ainda não conhece.
-        </div>
 
         <table :if={sync.status != "running"} class="table table-xs">
           <thead>
@@ -399,10 +426,18 @@ defmodule TheBandWeb.SyncLive.Index do
 
   # As seis fases de uma sincronização, na ordem em que ocorrem. As contagens vêm dos
   # checkpoints, que são gravados **depois** de cada página ser processada.
+  # As chaves são as que a coleta **grava** no checkpoint, e isso precisou ser conferido:
+  # a lista anterior dizia `github.organization_members` e `github.teams`, e a ingestão
+  # grava `github.user` e `github.team`. As duas fases apareciam eternamente pendentes com
+  # contagem zero — sobre 67 pessoas e 8 equipes que tinham sido coletadas.
+  #
+  # Era ausência virando zero na tela: "não coletou" e "coletou e não achou nada" liam-se
+  # igual, e o primeiro estava errado.
   @fases [
     {"github.organization", "organização"},
-    {"github.organization_members", "pessoas"},
-    {"github.teams", "equipes"},
+    {"github.user", "pessoas"},
+    {"github.team", "equipes"},
+    {"github.team_member", "vínculos de equipe"},
     {"github.repository", "repositórios"},
     {"github.issue", "issues"},
     {"promocao", "promoção"}
@@ -430,15 +465,82 @@ defmodule TheBandWeb.SyncLive.Index do
     end
   end
 
-  defp fases(sync) do
-    contagens = Map.new(checkpoints(sync), &{&1.entity_type, &1.record_count})
-    for {fase, rotulo} <- @fases, do: {fase, rotulo, Map.get(contagens, fase, 0)}
+  # Uma fase pode ter vários checkpoints — `github.team_member:dados`,
+  # `github.team_member:ia` e assim por diante. A soma é por prefixo com dois-pontos, e
+  # **não** por `String.starts_with?` puro: este casaria `github.team_member` dentro de
+  # `github.team`, e a contagem de equipes passaria a incluir vínculos.
+  #
+  # `registros` é `nil` quando a fase **não tem checkpoint nenhum** — não executada — e é
+  # zero quando executou e não achou nada. Colapsar os dois em zero foi o defeito que esta
+  # tela tinha.
+  attr :rotulo, :string, required: true
+  attr :valor, :any, required: true
+
+  defp linha(assigns) do
+    ~H"""
+    <div class="flex justify-between gap-2">
+      <dt class="opacity-60">{@rotulo}</dt>
+      <dd class="font-mono">{@valor}</dd>
+    </div>
+    """
   end
+
+  # A largura é o progresso **da própria fase**, nunca a proporção entre fases: comparar
+  # 1 organização com 4474 promoções não significa nada, e uma barra que insinuasse essa
+  # comparação estaria mentindo.
+  #
+  # Sem total da origem, a barra é cheia quando a fase terminou e vazia quando não
+  # começou — é estado, e o número ao lado é a informação.
+  defp largura(%{registros: nil}, _estado), do: 0
+
+  defp largura(%{registros: feitos, esperado: total}, _estado)
+       when is_integer(total) and total > 0,
+       do: min(round(feitos / total * 100), 100)
+
+  defp largura(_fase, :pendente), do: 0
+  defp largura(_fase, _estado), do: 100
+
+  # `nil` é "esta fase não executou"; zero é "executou e não achou nada". A tela diz
+  # coisas diferentes para os dois, e é a mesma distinção que o corpo da issue carrega.
+  defp contagem(%{registros: nil}), do: "—"
+
+  defp contagem(%{registros: feitos, esperado: total}) when is_integer(total) and total > 0,
+    do: "#{feitos} de #{total}"
+
+  defp contagem(%{registros: feitos}), do: to_string(feitos)
+
+  defp fases(sync) do
+    todos = checkpoints(sync)
+
+    for {fase, rotulo} <- @fases do
+      da_fase = Enum.filter(todos, &pertence?(&1.entity_type, fase))
+
+      registros =
+        case da_fase do
+          [] -> nil
+          cps -> Enum.sum(Enum.map(cps, & &1.record_count))
+        end
+
+      esperado =
+        da_fase
+        |> Enum.map(& &1.expected_count)
+        |> Enum.reject(&is_nil/1)
+        |> case do
+          [] -> nil
+          totais -> Enum.sum(totais)
+        end
+
+      %{id: fase, rotulo: rotulo, registros: registros, esperado: esperado}
+    end
+  end
+
+  defp pertence?(entity_type, fase),
+    do: entity_type == fase or String.starts_with?(entity_type, fase <> ":")
 
   # Três estados, e nenhum é percentual: a fase tem registro (feita), é a que a última
   # mensagem nomeou (em curso), ou não começou.
   defp estado_fase(fase, sync, atual) do
-    tem_registro = Enum.any?(checkpoints(sync), &(&1.entity_type == fase))
+    tem_registro = Enum.any?(checkpoints(sync), &pertence?(&1.entity_type, fase))
     em_curso = sync.status == "running" and atual != nil and String.starts_with?(atual, fase)
 
     cond do
