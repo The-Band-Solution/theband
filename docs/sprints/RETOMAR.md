@@ -163,6 +163,45 @@ distinção entre "nunca pedido" e "a origem não tem descrição". A suíte est
 só apareceu ao conferir o número **contra a API**. Corrigido, com teste que falha sem a
 correção. **As 480 linhas corrigem-se na próxima coleta** — nenhum reparo retroativo.
 
+## Onde parou — interface em inglês, acessível e mobile-first
+
+Branch **`007-interface-em-ingles`**, empurrada, 9 gates verdes, 341 testes. **Sem PR ainda.**
+
+### O que motivou
+
+Três pedidos que são uma mudança só — plataforma em inglês, WCAG 2.0 com daltonismo, e
+mobile-first — mais o significado do nome, que a pessoa mantenedora forneceu do rodapé da
+tese e que **não estava em lugar nenhum do repositório**. Está agora no `README.md`, seção
+"De onde vem o nome".
+
+### Feito
+
+| peça | onde |
+|---|---|
+| gramática da evidência em CSS | `assets/css/app.css` — sólido, hachurado, tracejado, foco, alvo de toque, movimento |
+| componentes do produto | `lib/the_band_web/ui.ex` — evidence, absent, metric, field, notice, empty, phase |
+| vocabulário em inglês | `lib/the_band_web/concept_label.ex` |
+| layout e navegação | rola no telefone, vira barra em `sm:`; tagline `notes into music` |
+| telas | trabalho, detalhe da issue, repositório, sincronização |
+
+### Falta
+
+1. **Componente de regras de mapeamento** (`sync_live/mapping_rules.ex`) — ainda em pt-BR;
+2. **Telas menores**: pessoas, equipes, ferramentas, entrada — pouca prosa, quase mecânico;
+3. **`core_components.ex`** — mensagens de erro de formulário e rótulos genéricos;
+4. **Documentar o design system** em `docs/` e registrá-lo no `AGENTS.md` para ser aplicado
+   por padrão — **pedido explícito, ainda não feito**;
+5. **Spec Kit da feature 007** — a pessoa mantenedora pediu que a mudança passasse pelo
+   ciclo, e a implementação começou antes. É a **L27 acontecendo de novo**, e desta vez
+   ela foi apontada durante, não depois.
+
+### A regra que a tradução seguiu
+
+A **interface** fala inglês; **código, comentários e documentação** continuam em português.
+Frase que vai para a tela é em inglês mesmo nascendo no domínio — `Axioms.explicacao/1`,
+os motivos de divergência de `Routing` e `Decision` —, e cada uma tem comentário dizendo
+isso, para ninguém traduzir de volta por engano.
+
 ## Documentos que valem ler antes de mexer
 
 | Documento | Para quê |
