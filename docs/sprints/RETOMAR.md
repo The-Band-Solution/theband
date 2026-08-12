@@ -183,7 +183,7 @@ tese e que **não estava em lugar nenhum do repositório**. Está agora no `READ
 | gramática da evidência em CSS | `assets/css/app.css` — sólido, hachurado, tracejado, foco, alvo de toque, movimento |
 | componentes do produto | `lib/the_band_web/ui.ex` — evidence, absent, metric, field, notice, empty, phase |
 | vocabulário em inglês | `lib/the_band_web/concept_label.ex` |
-| layout e navegação | rola no telefone, vira barra em `sm:`; tagline `notes into music you can decide on` |
+| layout e navegação | rola no telefone, vira barra em `sm:`; tagline `Orchestrating data into information organisations can act on` |
 | telas | trabalho, detalhe da issue, repositório, sincronização |
 
 ### Falta
