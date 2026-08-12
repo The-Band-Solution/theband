@@ -102,19 +102,20 @@ conceito a partir do nome do rótulo voltaria, e é o antipadrão do princípio 
 
 ---
 
-## Substituição apaga, e é decisão declarada
+## Substituição **marca**, e a decisão anterior foi revertida
 
-`replace_assignees/3` e `replace_labels/3` removem as linhas que a origem não traz mais.
+`replace_assignees/3` e `replace_labels/3` **marcam** com `no_longer_observed_at` o que a
+origem não traz mais. A linha permanece.
 
-Isso **contraria** a regra geral do projeto — "ausência marca, nunca apaga" —, e a razão está
-em R3: a regra existe para entidades observadas, e designação é atributo do agora. A tela
-responde *"quem está nisto"*, não *"quem já esteve"*.
+A decisão original era apagar, com a justificativa de que designação é atributo do agora. Foi
+**revertida em 2026-08-12**, quando a pessoa mantenedora enunciou a regra da plataforma: nunca
+se apaga dados. O critério de reversão estava escrito, e foi atendido.
 
-O histórico não se perde: cada coleta preserva o payload bruto em `raw_payloads`, e "quem
-estava designado em tal data" é reconstruível a partir dele.
+A tela continua respondendo *"quem está nisto agora"* — ela filtra por vigência. O que mudou é
+que *"quem já esteve"* passou a ser respondível por consulta, e não por arqueologia de payload.
 
-**Critério de reversão**: se aparecer pergunta recorrente sobre histórico de designação, a
-resposta é acrescentar `no_longer_observed_at` aqui — não continuar reconstruindo por payload.
+Designado que **volta** a aparecer tem a marca limpa: quem devolve vigência é a coleta, como em
+toda a plataforma.
 
 ---
 

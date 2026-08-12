@@ -301,10 +301,14 @@ defmodule TheBand.WorkItems.Queries do
     end
   end
 
+  # Vigentes na tela. O designado que saiu continua no banco — nunca se apaga dados — e a
+  # tela mostra quem está nisto agora, que é a pergunta que ela responde.
   defp assignees(tenant_id, issue_id) do
     Repo.all(
       from a in IssueAssignee,
-        where: a.tenant_id == ^tenant_id and a.collected_issue_id == ^issue_id,
+        where:
+          a.tenant_id == ^tenant_id and a.collected_issue_id == ^issue_id and
+            is_nil(a.no_longer_observed_at),
         order_by: [asc: a.login],
         select: %{login: a.login, person_id: a.person_id}
     )
@@ -313,7 +317,9 @@ defmodule TheBand.WorkItems.Queries do
   defp labels(tenant_id, issue_id) do
     Repo.all(
       from l in IssueLabel,
-        where: l.tenant_id == ^tenant_id and l.collected_issue_id == ^issue_id,
+        where:
+          l.tenant_id == ^tenant_id and l.collected_issue_id == ^issue_id and
+            is_nil(l.no_longer_observed_at),
         order_by: [asc: l.name],
         select: %{name: l.name, color: l.color}
     )
