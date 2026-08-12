@@ -14,13 +14,26 @@ issues, 75 pessoas, 44 289 promoções:
 
 | Tela | Tempo | Consultas |
 |---|---:|---:|
-| `/people` — a lista | **25 ms** | 9 |
-| `/people/:id` — o detalhe | **85 ms** | 13 |
-| `/work` — a lista de trabalho | **322 ms** | 15 |
+| `/people` — a lista | 25 ms | 9 |
+| `/people/:id` — o detalhe | **0,09 s a 6,12 s** | 13 |
+| `/work` — a lista de trabalho | 322 ms | 15 |
 
-**A tela de pessoas não é a mais lenta, e a causa dela é a mesma da que é.** A lista de pessoas
-responde em 25 ms; o detalhe em 85 ms; e `/work`, que ninguém mencionou, em **322 ms** — treze vezes
-a lista de pessoas.
+**O detalhe da pessoa varia setenta vezes conforme a pessoa**, e a primeira medida desta spec pegou
+justamente a exceção rápida. As oito pessoas com mais trabalho, medidas na aplicação em execução:
+
+| pessoa | issues designadas | tempo |
+|---|---:|---:|
+| tadeuaugustovs | 288 | **6,12 s** |
+| MateusLannes | 276 | **5,51 s** |
+| joaomrpimentel | 221 | **4,55 s** |
+| marcelasfl | 191 | **4,53 s** |
+| Ilhe8l | 201 | **4,08 s** |
+| LuizRojas | 177 | **3,85 s** |
+| luanotoni | 173 | **3,58 s** |
+| **vinicius-je** | **350** | **0,09 s** |
+
+**A pessoa com mais trabalho é a mais rápida.** O custo não é proporcional ao que a página mostra —
+é a marca de que ele não vem da página.
 
 **Otimizar só a tela pedida deixaria a causa de pé.** Esta spec trata a causa, e a tela da pessoa é
 onde ela foi encontrada e é onde a melhoria será verificada.
@@ -31,20 +44,49 @@ onde ela foi encontrada e é onde a melhoria será verificada.
 
 ### A consulta que domina, e o que ela faz
 
-A consulta mais cara do detalhe da pessoa leva **60 ms dos 85**. O plano de execução diz por quê:
+Uma única consulta responde por **6 326 dos 6 876 ms** da pior página. O plano de execução diz por
+quê:
 
 ```text
-Seq Scan on issue_promotions   (44 289 linhas)          8,8 ms
-  → Sort (3 822 kB em memória)                         33,1 ms
+Seq Scan on issue_promotions   (44 289 linhas)
+  → Incremental Sort — Full-sort Groups: 53 555
     → Unique  (4 512 linhas)
-      → Merge Left Join com 350 issues da pessoa
+      → Merge Left Join com as 288 issues da pessoa
         → Limit 25
-Execution Time: 41,5 ms
+Execution Time: 6 326 ms
 ```
 
 **Quatro mil e quinhentas linhas são calculadas para decorar vinte e cinco.** A subconsulta que
 decide "qual é a promoção vigente de cada issue" é feita **para o tenant inteiro**, sem relação com
 a pessoa que está na tela, e depois cruzada com as issues dela.
+
+### E o que multiplica o custo são as colunas
+
+A subconsulta arrasta **as 18 colunas** da promoção, inclusive textos como `skip_detail` e
+`divergence_reason`. Medido com o mesmo dado, mudando só a projeção:
+
+| O que a subconsulta carrega | Tempo |
+|---|---:|
+| duas colunas | **35 ms** — uma ordenação de 3,8 MB |
+| as dezoito | **2 271 ms** — `Full-sort Groups: 53 555` |
+| as dezoito, na pior pessoa | **6 326 ms** |
+
+**É a mesma consulta.** O que muda é quanto ela carrega por linha ordenada — e é por isso que o
+planejador escolhe caminhos diferentes para pessoas diferentes, produzindo 0,09 s para uma e 6,12 s
+para outra.
+
+### Paginar mais não é a saída, e isso foi medido
+
+A página **já** pagina — `LIMIT 25`. A varredura acontece **antes** do limite:
+
+| Tamanho da página | Tempo |
+|---|---:|
+| `LIMIT 5` | 6 300 ms |
+| `LIMIT 25` — o de hoje | 6 326 ms |
+| `LIMIT 100` | 6 648 ms |
+| a segunda página | 6,07 s — igual à primeira |
+
+**Buscar 5 em vez de 100 economiza 0,5%.** Carregar de 100 em 100 pagaria a varredura a cada lote.
 
 | | |
 |---|---:|
@@ -54,8 +96,8 @@ a pessoa que está na tela, e depois cruzada com as issues dela.
 | issues que a tela mostra por vez | **25** |
 
 **As 9,8 promoções por issue crescem a cada coleta.** A tabela é histórico: cada execução acrescenta
-a decisão daquele momento. A varredura de hoje custa 33 ms; ela cresce com o histórico, não com o
-que a tela mostra.
+a decisão daquele momento. A varredura cresce com o histórico, **não** com o que a tela mostra — e
+já custa segundos.
 
 ### O segundo achado, e ele é de índice
 
@@ -198,10 +240,15 @@ que existe em dezesseis.
 
 ### Measurable Outcomes
 
-- **SC-001**: O detalhe da pessoa responde em **menos de 40 ms** — hoje são **85 ms**, medidos cinco
-  vezes com variação menor que 10%.
+- **SC-001**: O detalhe da pessoa responde em **menos de 200 ms para qualquer pessoa** — hoje vai de
+  0,09 s a **6,12 s** conforme quem é, medido nas oito com mais trabalho.
+- **SC-001b**: A diferença entre a pessoa mais rápida e a mais lenta cai de **setenta vezes** para
+  menos de **três** — o tempo passa a depender do que a página mostra, e não de qual caminho o
+  planejador escolheu.
 - **SC-002**: A consulta dominante da página deixa de ler **44 289** linhas de promoção; passa a ler,
   no máximo, o número de issues que a página exibe — **25**.
+- **SC-002b**: `LIMIT 100` passa a custar menos que `LIMIT 25` custa hoje. Hoje os dois custam o
+  mesmo — 6 648 contra 6 326 ms —, que é a prova de que o custo não é da página.
 - **SC-003**: O plano de execução das issues de uma pessoa **não contém** varredura sequencial de
   designações, e para de descartar **3 882** linhas por filtro.
 - **SC-004**: A lista de trabalho `/work` responde em **menos de 200 ms** — hoje são **322 ms**.
@@ -217,6 +264,9 @@ que existe em dezesseis.
 
 - **A medida vale para este banco de desenvolvimento**, com 4 529 issues e 44 289 promoções. Em
   bancos maiores a diferença aumenta, e é isso que a SC-006 mede.
+- **A primeira versão desta spec dizia 85 ms**, medidos numa pessoa só. Era a exceção rápida: a
+  pessoa mantenedora apontou uma página de **2 s**, e a medida das oito maiores achou até **6,12 s**.
+  Uma medida por caso não descreve uma tela cujo custo depende do caminho do planejador.
 - Os tempos foram medidos pelo **render HTTP inicial**. O LiveView conectado repete o `mount`, então
   o custo real por visita é aproximadamente o dobro — a **L38** já registrou isso, e a comparação
   antes/depois usa a mesma forma de medir dos dois lados.
