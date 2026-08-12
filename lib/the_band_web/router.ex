@@ -32,6 +32,7 @@ defmodule TheBandWeb.Router do
 
     live_session :autenticado, on_mount: {TheBandWeb.Live.Hooks, :current_scope} do
       live "/people", PeopleLive.Index, :index
+      live "/people/:id", PeopleLive.Show, :show
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
       live "/syncs", SyncLive.Index, :index

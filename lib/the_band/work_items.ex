@@ -44,6 +44,9 @@ defmodule TheBand.WorkItems do
   defdelegate count_collected(tenant, opts \\ []), to: Queries
   defdelegate count_collected_by_repository(tenant, repository_ids), to: Queries
   defdelegate repositories_with_absent_issues(tenant, repository_ids), to: Queries
+  defdelegate count_assigned_to(tenant, person_id), to: Queries
+  defdelegate count_authored_by(tenant, person_id), to: Queries
+  defdelegate repositories_of_person(tenant, person_id), to: Queries
   defdelegate list_issues(tenant, opts \\ []), to: Queries
   defdelegate count_by_promotion(tenant, opts \\ []), to: Queries
   defdelegate count_gaps_by_reason(tenant, opts \\ []), to: Queries

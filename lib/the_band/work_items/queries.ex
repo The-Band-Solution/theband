@@ -98,6 +98,109 @@ defmodule TheBand.WorkItems.Queries do
   end
 
   @doc """
+  Em quantas issues **vigentes** a pessoa está designada, com designação **vigente**.
+
+  ## A issue manda sobre a designação
+
+  Há duas marcas de ausência em jogo, e o cruzamento delas precisava de regra:
+
+  | issue | designação | conta? |
+  |---|---|---|
+  | vigente | vigente | **sim** |
+  | vigente | ausente | não — deixou de ser designada |
+  | **ausente** | vigente | **não** |
+  | ausente | ausente | não |
+
+  A terceira linha é a que a análise achou sem definição. **A pessoa não trabalha no que a
+  plataforma não observa mais**: designação vigente numa issue ausente é resíduo, porque a marca
+  de ausência é por repositório coletado e não desce para a designação.
+
+  ## Por que não existe uma função só, com parâmetro de papel
+
+  `count_issues_of_person/2` obrigaria quem chama a explicar qual sentido queria, e quem lê a
+  descobrir. **A soma das duas é proibida na tela** — FR-009 —, e nenhuma função aqui a produz.
+  """
+  @spec count_assigned_to(Tenant.t(), Ecto.UUID.t()) :: non_neg_integer()
+  def count_assigned_to(%Tenant{id: tenant_id}, person_id) do
+    Repo.one(
+      from a in IssueAssignee,
+        join: i in CollectedIssue,
+        on: i.id == a.collected_issue_id,
+        where:
+          a.tenant_id == ^tenant_id and a.person_id == ^person_id and
+            is_nil(a.no_longer_observed_at) and is_nil(i.no_longer_observed_at),
+        select: count(a.id)
+    )
+  end
+
+  @doc """
+  Quantas issues **vigentes** a pessoa abriu.
+
+  A soma disto sobre todas as pessoas do tenant fecha com o total de issues vigentes que têm
+  autor — **4 241** no dado real de 2026-08-12. As **288** sem autor não pertencem a pessoa
+  nenhuma, e a invariante é o que prova que elas não foram atribuídas a alguém por engano.
+  """
+  @spec count_authored_by(Tenant.t(), Ecto.UUID.t()) :: non_neg_integer()
+  def count_authored_by(%Tenant{id: tenant_id}, person_id) do
+    Repo.one(
+      from i in CollectedIssue,
+        where:
+          i.tenant_id == ^tenant_id and i.author_person_id == ^person_id and
+            is_nil(i.no_longer_observed_at),
+        select: count(i.id)
+    )
+  end
+
+  @doc """
+  Em quais repositórios a pessoa aparece, e **por qual evidência**.
+
+  Uma consulta agrupada, com as **duas** contagens por repositório — designadas e abertas por ela
+  — e **nunca a soma**.
+
+  **Não devolve o nome do repositório**, e é de propósito: o nome é de CMPO, e juntar
+  `cmpo_source_repositories` aqui quebraria a fronteira que o princípio IX protege. Quem chama
+  resolve com **uma** consulta a `CMPO.list_observed/1`, virando mapa — consultar por repositório
+  seria o defeito que a feature 007 pagou com 135 consultas por render.
+
+  O vínculo pessoa-repositório é **derivado**: a origem nunca o declarou, e a tela precisa dizer
+  isso.
+  """
+  @spec repositories_of_person(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def repositories_of_person(%Tenant{id: tenant_id}, person_id) do
+    designadas =
+      from i in CollectedIssue,
+        join: a in IssueAssignee,
+        on: a.collected_issue_id == i.id,
+        where:
+          i.tenant_id == ^tenant_id and a.person_id == ^person_id and
+            is_nil(a.no_longer_observed_at) and is_nil(i.no_longer_observed_at),
+        group_by: i.observed_repository_id,
+        select: %{repo: i.observed_repository_id, assigned: count(i.id), authored: 0}
+
+    abertas =
+      from i in CollectedIssue,
+        where:
+          i.tenant_id == ^tenant_id and i.author_person_id == ^person_id and
+            is_nil(i.no_longer_observed_at),
+        group_by: i.observed_repository_id,
+        select: %{repo: i.observed_repository_id, assigned: 0, authored: count(i.id)}
+
+    # Uma consulta, com as duas contagens somadas **por papel** e nunca entre papéis: o `union
+    # all` junta as linhas, e o agrupamento de fora soma cada coluna separadamente.
+    from(linha in subquery(union_all(designadas, ^abertas)),
+      group_by: linha.repo,
+      # `type(..., :integer)` porque `sum/1` devolve `Decimal`, e a tela compararia número com
+      # struct sem perceber. O teste pegou: `left: Decimal.new("1")`, `right: 1`.
+      select: %{
+        observed_repository_id: linha.repo,
+        assigned: type(sum(linha.assigned), :integer),
+        authored: type(sum(linha.authored), :integer)
+      }
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Issues com a promoção vigente de cada uma.
 
   A promoção vigente é a **última** — `inserted_at` em microssegundo desempata, e é a
@@ -623,11 +726,35 @@ defmodule TheBand.WorkItems.Queries do
   defp escopo(%Tenant{id: tenant_id}, opts) do
     query = from i in CollectedIssue, where: i.tenant_id == ^tenant_id
 
-    case Keyword.get(opts, :observed_repository_id) do
-      nil -> query
-      id -> where(query, [i], i.observed_repository_id == ^id)
-    end
+    query
+    |> por_repositorio(Keyword.get(opts, :observed_repository_id))
+    |> por_designacao(Keyword.get(opts, :assigned_to))
+    |> por_autoria(Keyword.get(opts, :authored_by))
   end
+
+  defp por_repositorio(query, nil), do: query
+  defp por_repositorio(query, id), do: where(query, [i], i.observed_repository_id == ^id)
+
+  # **Duas opções, e nunca uma `person_id`**: "as issues da pessoa" são três conjuntos — as que
+  # ela foi designada, as que ela abriu, e a união —, e a união é a que não corresponde a nada.
+  # O nome da opção é onde a distinção sobrevive, e é a L34 aplicada antes de doer.
+  defp por_designacao(query, nil), do: query
+
+  # **Subconsulta, e não `join`**: `list_issues/2` compõe sobre este escopo com um `join` próprio e
+  # um `select` por posição — `[i, p]`. Um `join` aqui deslocaria os bindings, e o `select` passaria
+  # a ler campo de designação onde espera promoção. O teste pegou isso, e a mensagem era
+  # `field derived_concept in select does not exist in schema IssueAssignee`.
+  defp por_designacao(query, person_id) do
+    designadas =
+      from a in IssueAssignee,
+        where: a.person_id == ^person_id and is_nil(a.no_longer_observed_at),
+        select: a.collected_issue_id
+
+    where(query, [i], i.id in subquery(designadas))
+  end
+
+  defp por_autoria(query, nil), do: query
+  defp por_autoria(query, person_id), do: where(query, [i], i.author_person_id == ^person_id)
 
   defp vigentes(%Tenant{id: tenant_id}), do: promocoes_vigentes(tenant_id)
 

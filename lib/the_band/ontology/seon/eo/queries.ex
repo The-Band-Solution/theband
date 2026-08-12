@@ -15,6 +15,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
+  alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
@@ -502,5 +503,90 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     query
     |> then(fn q -> if opts[:limit], do: limit(q, ^opts[:limit]), else: q end)
     |> then(fn q -> if opts[:offset], do: offset(q, ^opts[:offset]), else: q end)
+  end
+
+  @doc """
+  A pessoa, por identificador **interno**.
+
+  Login não serve: é da origem, muda quando a pessoa o troca, e não é único entre instâncias —
+  a L25. Pessoa de outro tenant devolve `:not_found`, nunca "sem permissão": confirmar
+  existência já é vazamento.
+  """
+  @spec fetch_person(Tenant.t(), Ecto.UUID.t()) :: {:ok, map()} | {:error, :not_found}
+  def fetch_person(%Tenant{id: tenant_id}, person_id) do
+    consulta =
+      from p in Person,
+        where: p.tenant_id == ^tenant_id and p.id == ^person_id,
+        select: %{
+          id: p.id,
+          name: p.name,
+          login: p.login,
+          account_type: p.account_type,
+          source_system: p.source_system,
+          source_instance: p.source_instance,
+          external_id: p.external_id,
+          collected_at: p.collected_at,
+          last_observed_at: p.last_observed_at,
+          no_longer_observed_at: p.no_longer_observed_at
+        }
+
+    case Repo.one(consulta) do
+      nil -> {:error, :not_found}
+      pessoa -> {:ok, pessoa}
+    end
+  end
+
+  @doc """
+  As equipes que **a origem declara** para a pessoa, numa consulta.
+
+  O que ela devolve é **evidência**, não vínculo: `promoted?` diz se a plataforma promoveu, e
+  no dado real de 2026-08-12 são 88 evidências e **zero** promoções.
+
+  `platform_access_level` é dado **da ferramenta** — `MEMBER`, `MAINTAINER`. **Não é papel**, e
+  nenhum campo aqui se chama `role` de propósito: derivar papel de permissão seria mapear por
+  semelhança de nome, o que contamina toda medida derivada.
+
+  `no_longer_observed_at` preenchido significa que **houve** vínculo e ele não está presente —
+  diferente de nunca ter havido, e a tela precisa mostrar os dois de formas diferentes.
+  """
+  @spec list_person_teams(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_person_teams(%Tenant{id: tenant_id}, person_id) do
+    Repo.all(
+      from e in TeamMembershipEvidence,
+        join: t in Team,
+        on: t.id == e.team_id,
+        left_join: o in Organization,
+        on: o.id == t.organization_id,
+        where: e.tenant_id == ^tenant_id and e.person_id == ^person_id,
+        order_by: [asc: t.name],
+        select: %{
+          team_id: t.id,
+          team_name: t.name,
+          organization_login: o.login,
+          platform_access_level: e.platform_access_level,
+          observed_at: e.observed_at,
+          last_observed_at: e.last_observed_at,
+          no_longer_observed_at: e.no_longer_observed_at,
+          promoted?: not is_nil(e.promoted_membership_id)
+        }
+    )
+  end
+
+  @doc """
+  Quantos papéis o tenant cadastrou.
+
+  Existe para a tela **explicar** a não promoção com base no dado, e não em texto fixo. A
+  distinção que ela sustenta:
+
+    * **zero papéis** — promover é impossível para qualquer pessoa, e a causa é essa;
+    * **com papéis**, e a evidência não promovida — a causa é que ninguém alocou papel àquela
+      pessoa naquela equipe, que é outra feature.
+
+  Um texto fixo dizendo "nenhum papel foi cadastrado" passaria a mentir no dia em que alguém
+  cadastrasse papel, e ninguém notaria: a frase continuaria plausível.
+  """
+  @spec count_roles(Tenant.t()) :: non_neg_integer()
+  def count_roles(%Tenant{id: tenant_id}) do
+    Repo.one(from r in OrganizationalRole, where: r.tenant_id == ^tenant_id, select: count(r.id))
   end
 end
