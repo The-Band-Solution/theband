@@ -112,3 +112,12 @@ errado.
 
 Quatro dos sete critérios de sucesso seguem **declarados como pendentes**. O código está na `main`;
 o efeito dele no dado, não foi observado.
+
+### A reincidência, achada pela pessoa mantenedora
+
+A pergunta foi *"olhe a lista de issues, por que estão abertas ainda?"*, e a lista respondeu: a
+**#246** — o pedido que originou a feature 011 — estava aberta desde o merge do PR #264, pelo mesmo
+motivo da #263. **Dois PRs, o mesmo mecanismo.**
+
+Fechada com a evidência. E a conferência que a achou virou parte da L48: **a lista de issues abertas
+é a conferência**, e ela vale ao fechar o sprint — não só a issue que se lembra de olhar.
