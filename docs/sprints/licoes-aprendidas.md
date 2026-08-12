@@ -1631,6 +1631,11 @@ entre repositórios, **coletar duas vezes** — uma coleta só não produz o est
 **O que aconteceu.** O PR [#278](https://github.com/The-Band-Solution/theband/pull/278) abriu com
 **"Fecha #263"** na primeira linha do corpo. O PR foi incorporado, e a **#263 continuou aberta**.
 
+**E não foi a primeira vez.** A conferência da lista de issues abertas — feita pela pessoa
+mantenedora, perguntando *"por que estas ainda estão abertas?"* — achou a **#246** aberta desde o
+merge do PR [#264](https://github.com/The-Band-Solution/theband/pull/264), que dizia **"Fecha
+#246"**. Dois PRs, o mesmo mecanismo, e nenhum dos dois avisou.
+
 O GitHub só reconhece as palavras em inglês — `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`,
 `resolve`, `resolves`, `resolved`. "Fecha" vira texto comum: cria a referência cruzada, que **parece**
 o vínculo funcionando, e não fecha nada.
@@ -1656,6 +1661,14 @@ gh issue view <n> --json state --jq .state   # CLOSED, ou fecha na mão
 
 **Vale também para a segunda armadilha do mesmo mecanismo**: a palavra só fecha quando o PR entra na
 branch **padrão**. PR empilhado, cuja base é outra branch, não fecha issue nenhuma ao ser incorporado
-— e este PR era empilhado.
+— e o #278 era empilhado. O #264 **não** era, e mesmo assim não fechou: ali a causa foi só o idioma.
+
+**E a conferência que achou a reincidência não foi minha**: foi a pessoa mantenedora olhando a lista
+de issues abertas. Duas issues entregues ficaram abertas por dias sem que nada indicasse. **A lista
+de issues abertas é a conferência**, e ela vale ao fechar o sprint:
+
+```bash
+gh issue list --state open --limit 100   # alguma delas já foi entregue?
+```
 
 **Estado**: aberta.
