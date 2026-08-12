@@ -9,16 +9,16 @@ defmodule TheBandWeb.SessionController do
         conn
         |> put_session(:user_id, user.id)
         |> configure_session(renew: true)
-        |> redirect(to: ~p"/pessoas")
+        |> redirect(to: ~p"/people")
 
       {:error, :not_found} ->
-        conn |> put_flash(:error, "Usuário não encontrado.") |> redirect(to: ~p"/entrar")
+        conn |> put_flash(:error, "Usuário não encontrado.") |> redirect(to: ~p"/sign-in")
     end
   end
 
   def delete(conn, _params) do
     conn
     |> configure_session(drop: true)
-    |> redirect(to: ~p"/entrar")
+    |> redirect(to: ~p"/sign-in")
   end
 end

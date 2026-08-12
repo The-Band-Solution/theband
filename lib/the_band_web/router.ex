@@ -21,9 +21,9 @@ defmodule TheBandWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    live "/entrar", SessionLive.New, :new
-    post "/sessao", SessionController, :create
-    delete "/sessao", SessionController, :delete
+    live "/sign-in", SessionLive.New, :new
+    post "/session", SessionController, :create
+    delete "/session", SessionController, :delete
   end
 
   # Consulta — qualquer pessoa autenticada, sempre restrita ao próprio tenant.
@@ -31,13 +31,13 @@ defmodule TheBandWeb.Router do
     pipe_through [:browser, :require_user]
 
     live_session :autenticado, on_mount: {TheBandWeb.Live.Hooks, :current_scope} do
-      live "/pessoas", PeopleLive.Index, :index
-      live "/equipes", TeamsLive.Index, :index
-      live "/equipes/:id", TeamsLive.Show, :show
-      live "/sincronizacoes", SyncLive.Index, :index
-      live "/trabalho", WorkItemLive.Index, :index
-      live "/trabalho/issues/:id", WorkItemLive.Show, :show
-      live "/trabalho/repositorios/:id", RepositoryLive.Show, :show
+      live "/people", PeopleLive.Index, :index
+      live "/teams", TeamsLive.Index, :index
+      live "/teams/:id", TeamsLive.Show, :show
+      live "/syncs", SyncLive.Index, :index
+      live "/work", WorkItemLive.Index, :index
+      live "/work/issues/:id", WorkItemLive.Show, :show
+      live "/work/repositories/:id", RepositoryLive.Show, :show
     end
   end
 
@@ -46,7 +46,7 @@ defmodule TheBandWeb.Router do
     pipe_through [:browser, :require_user, :require_admin]
 
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
-      live "/ferramentas", SourceLive.Index, :index
+      live "/tools", SourceLive.Index, :index
     end
   end
 

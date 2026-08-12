@@ -1,6 +1,6 @@
 defmodule TheBandWeb.SyncCardTest do
   @moduledoc """
-  O cartão de execução em `/sincronizacoes` (reorganização pedida em 2026-08-11).
+  O cartão de execução em `/syncs` (reorganização pedida em 2026-08-11).
 
   O teste que mais importa aqui é o das **chaves das fases**. A lista de fases da tela e
   as chaves que a coleta grava no checkpoint são dois lugares, e elas divergiram: a tela
@@ -45,7 +45,7 @@ defmodule TheBandWeb.SyncCardTest do
         Ingestion.checkpoint_page(sync, entidade, nil, quantos)
       end
 
-      {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, _live, html} = live(conn, ~p"/syncs")
 
       # Pessoas e equipes precisam mostrar o que foi coletado. Antes da correção, as duas
       # apareciam pendentes com zero.
@@ -61,7 +61,7 @@ defmodule TheBandWeb.SyncCardTest do
       Ingestion.checkpoint_page(sync, "github.team_member:dados", nil, 4)
       Ingestion.checkpoint_page(sync, "github.team_member:ia", nil, 7)
 
-      {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, _live, html} = live(conn, ~p"/syncs")
 
       assert html =~ "team links"
       assert html =~ ">11<"
@@ -76,7 +76,7 @@ defmodule TheBandWeb.SyncCardTest do
       Ingestion.checkpoint_page(sync, "github.organization", nil, 1)
       Ingestion.checkpoint_page(sync, "github.user", nil, 0)
 
-      {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, _live, html} = live(conn, ~p"/syncs")
 
       # "não executou" e "executou e não achou nada" são coisas diferentes, e a tela diz
       # coisas diferentes para as duas.
@@ -87,7 +87,7 @@ defmodule TheBandWeb.SyncCardTest do
 
   describe "a organização dos números" do
     test "os três grupos existem, e cada um responde uma pergunta", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, _live, html} = live(conn, ~p"/syncs")
 
       assert html =~ "what the run did"
       assert html =~ "the work it brought"
@@ -95,7 +95,7 @@ defmodule TheBandWeb.SyncCardTest do
     end
 
     test "a explicação da lacuna fica junto do número que ela explica", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, _live, html} = live(conn, ~p"/syncs")
 
       [grupo] =
         Regex.scan(~r{what went unanswered.*?</div>\s*</div>}s, html) |> Enum.map(&hd/1)

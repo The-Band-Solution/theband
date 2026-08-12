@@ -1,6 +1,6 @@
 defmodule TheBandWeb.WorkItemLive.Index do
   @moduledoc """
-  `/trabalho` — as issues coletadas, o que elas são, e **o que não foi classificado**.
+  `/work` — as issues coletadas, o que elas são, e **o que não foi classificado**.
 
   ## As três seções somam o total, sempre
 
@@ -204,7 +204,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
                         lives in there. --%>
                   <td data-label="repository">
                     <.link
-                      navigate={~p"/trabalho/repositorios/#{r.observed_repository_id}"}
+                      navigate={~p"/work/repositories/#{r.observed_repository_id}"}
                       class="link link-hover"
                     >
                       {r.name}
@@ -254,12 +254,12 @@ defmodule TheBandWeb.WorkItemLive.Index do
                   </td>
                   <td data-label="repository" class="text-xs">{origem(@onde, i).repositorio}</td>
                   <td data-label="#" class="text-right tabular">
-                    <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
                       {i.number}
                     </.link>
                   </td>
                   <td data-label="title" class="max-w-sm sm:truncate">
-                    <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
                       {i.title}
                     </.link>
                   </td>

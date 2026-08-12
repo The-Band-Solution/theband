@@ -25,20 +25,20 @@ defmodule TheBandWeb.IssueDetailTest do
   describe "chegar ao detalhe" do
     test "o título da issue na listagem leva ao detalhe dela",
          %{conn: conn, cenario: c} do
-      {:ok, live, _html} = live(conn, ~p"/trabalho")
+      {:ok, live, _html} = live(conn, ~p"/work")
 
       assert live
-             |> element("a[href='/trabalho/issues/#{c.issues[1].pai.id}']")
+             |> element("a[href='/work/issues/#{c.issues[1].pai.id}']")
              |> has_element?(),
              "o número e o título da issue precisam ser navegáveis a partir de /trabalho"
     end
 
     test "o nome do repositório leva às issues dele, não à origem",
          %{conn: conn, cenario: c} do
-      {:ok, live, _html} = live(conn, ~p"/trabalho")
+      {:ok, live, _html} = live(conn, ~p"/work")
 
       assert live
-             |> element("a[href='/trabalho/repositorios/#{c.observed_repository_id}']")
+             |> element("a[href='/work/repositories/#{c.observed_repository_id}']")
              |> has_element?()
     end
   end
@@ -46,7 +46,7 @@ defmodule TheBandWeb.IssueDetailTest do
   describe "composição e atendimento na tela do épico" do
     test "mostra 9 e 30 em seções separadas, e nunca 39",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[1].pai.id}")
 
       assert html =~ "Composition"
       assert html =~ "Attendance"
@@ -61,7 +61,7 @@ defmodule TheBandWeb.IssueDetailTest do
 
     test "a user story com nove tarefas aparece como atômica",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[3].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[3].pai.id}")
 
       assert html =~ "atomic"
       assert html =~ "None."
@@ -75,7 +75,7 @@ defmodule TheBandWeb.IssueDetailTest do
       violacao =
         tenant |> WorkItems.rule07_violations() |> Map.fetch!(:task_parent_is_epic) |> hd()
 
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{violacao.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{violacao.id}")
 
       assert html =~ "sro.rule07"
       assert html =~ "the link is what is invalid"
@@ -85,7 +85,7 @@ defmodule TheBandWeb.IssueDetailTest do
 
     test "a tarefa sem pai traz o mesmo axioma com outro texto",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[201].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[201].pai.id}")
 
       assert html =~ "sro.rule07"
       assert html =~ "has no parent"
@@ -95,7 +95,7 @@ defmodule TheBandWeb.IssueDetailTest do
   describe "campo ausente" do
     test "corpo nunca coletado é declarado como não coletado, não como vazio",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[1].pai.id}")
 
       assert html =~ "Body not collected"
       refute html =~ "no description at the source"
@@ -103,7 +103,7 @@ defmodule TheBandWeb.IssueDetailTest do
 
     test "ausência de designado e de marco aparece nomeada",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[1].pai.id}")
 
       assert html =~ "nobody assigned"
       assert html =~ "not in a milestone"
@@ -123,7 +123,7 @@ defmodule TheBandWeb.IssueDetailTest do
           rule_version: 2
         })
 
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{issue.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{issue.id}")
 
       assert html =~ "Promotion history"
       assert html =~ "current"
@@ -137,8 +137,8 @@ defmodule TheBandWeb.IssueDetailTest do
       {_outro_tenant, outro_user} = tenant_with_admin()
       conn = log_in(conn, outro_user)
 
-      assert {:error, {:live_redirect, %{to: "/trabalho", flash: flash}}} =
-               live(conn, ~p"/trabalho/issues/#{c.issues[1].pai.id}")
+      assert {:error, {:live_redirect, %{to: "/work", flash: flash}}} =
+               live(conn, ~p"/work/issues/#{c.issues[1].pai.id}")
 
       assert flash["error"] =~ "not found"
       refute flash["error"] =~ "permission"
@@ -148,7 +148,7 @@ defmodule TheBandWeb.IssueDetailTest do
   describe "a tela do repositório" do
     test "lista as issues e a contagem do cabeçalho soma o total",
          %{conn: conn, tenant: tenant, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      {:ok, _live, html} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
       assert html =~ "theband"
       assert html =~ "By concept"
@@ -160,15 +160,15 @@ defmodule TheBandWeb.IssueDetailTest do
 
     test "as issues do repositório são navegáveis pelo título",
          %{conn: conn, cenario: c} do
-      {:ok, live, _html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      {:ok, live, _html} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
-      assert live |> element("a[href='/trabalho/issues/#{c.issues[1].pai.id}']") |> has_element?()
+      assert live |> element("a[href='/work/issues/#{c.issues[1].pai.id}']") |> has_element?()
     end
 
     test "a paginação é estável entre duas leituras da mesma página",
          %{conn: conn, cenario: c} do
-      {:ok, _live, primeira} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
-      {:ok, _live, segunda} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      {:ok, _live, primeira} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
+      {:ok, _live, segunda} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
       assert numeros(primeira) == numeros(segunda), """
       A ordem mudou entre duas leituras. Sem ordem estável, uma issue aparece em duas
@@ -178,7 +178,7 @@ defmodule TheBandWeb.IssueDetailTest do
 
     test "os avisos do axioma aparecem no repositório, separados por forma",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      {:ok, _live, html} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
       assert html =~ "Tasks whose parent is an epic"
       assert html =~ "Tasks with no user story"
@@ -188,8 +188,8 @@ defmodule TheBandWeb.IssueDetailTest do
       {_outro_tenant, outro_user} = tenant_with_admin()
       conn = log_in(conn, outro_user)
 
-      assert {:error, {:live_redirect, %{to: "/trabalho", flash: flash}}} =
-               live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      assert {:error, {:live_redirect, %{to: "/work", flash: flash}}} =
+               live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
       assert flash["error"] =~ "not found"
       refute flash["error"] =~ "permission"
@@ -197,7 +197,7 @@ defmodule TheBandWeb.IssueDetailTest do
   end
 
   defp numeros(html) do
-    Regex.scan(~r{/trabalho/issues/([0-9a-f-]+)}, html) |> Enum.map(&List.last/1)
+    Regex.scan(~r{/work/issues/([0-9a-f-]+)}, html) |> Enum.map(&List.last/1)
   end
 
   describe "o alerta de discordância" do
@@ -216,7 +216,7 @@ defmodule TheBandWeb.IssueDetailTest do
           rule_version: 1
         })
 
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{issue.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{issue.id}")
 
       assert html =~ "Label and structure disagree"
       assert html =~ "2 collected parts"

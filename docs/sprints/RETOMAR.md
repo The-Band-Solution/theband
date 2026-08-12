@@ -42,7 +42,7 @@ organização 1 │ pessoas │ equipes │ repositórios 14 │ issues 194 │ 
 
 Onde a origem não informa total, a barra **não aparece** — a fase mostra contagem e estado.
 
-Hoje a tela `/sincronizacoes` mostra **seis fases** com contagem, e não percentual — e o
+Hoje a tela `/syncs` mostra **seis fases** com contagem, e não percentual — e o
 comentário no código explica por quê: a paginação é por cursor, e a plataforma não sabe
 quantas páginas existem antes de pedir a última.
 
@@ -132,7 +132,7 @@ mix gates                                             # os nove
 ```
 
 **A chave original do banco de desenvolvimento não existe mais.** O PAT cifrado com ela é
-ilegível; o caminho é encerrar e retomar a observação com token novo, em `/ferramentas`. Ver
+ilegível; o caminho é encerrar e retomar a observação com token novo, em `/tools`. Ver
 [deployment.md](../deployment.md).
 
 **Para enfileirar coleta sem a chave**: `mix run --no-start` sobe só o Repo, e o servidor no

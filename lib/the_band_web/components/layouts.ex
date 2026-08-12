@@ -63,14 +63,14 @@ defmodule TheBandWeb.Layouts do
                 quem (pessoas), com quem (equipes), sobre o quê (trabalho). Depois vêm as
                 telas de operação — sincronizações e ferramentas —, separadas por borda,
                 porque respondem "a plataforma está funcionando" e não "o que ela sabe". --%>
-          <li><.link navigate={~p"/pessoas"} class="btn btn-ghost btn-sm">People</.link></li>
-          <li><.link navigate={~p"/equipes"} class="btn btn-ghost btn-sm">Teams</.link></li>
-          <li><.link navigate={~p"/trabalho"} class="btn btn-ghost btn-sm">Work</.link></li>
+          <li><.link navigate={~p"/people"} class="btn btn-ghost btn-sm">People</.link></li>
+          <li><.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">Teams</.link></li>
+          <li><.link navigate={~p"/work"} class="btn btn-ghost btn-sm">Work</.link></li>
           <li class="border-l border-base-300 pl-2">
-            <.link navigate={~p"/sincronizacoes"} class="btn btn-ghost btn-sm">Syncs</.link>
+            <.link navigate={~p"/syncs"} class="btn btn-ghost btn-sm">Syncs</.link>
           </li>
           <li :if={@current_user && @current_user.role == "admin"}>
-            <.link navigate={~p"/ferramentas"} class="btn btn-ghost btn-sm">Tools</.link>
+            <.link navigate={~p"/tools"} class="btn btn-ghost btn-sm">Tools</.link>
           </li>
           <li class="ml-auto hidden border-l border-base-300 pl-3 lg:block">
             <span class="text-xs opacity-70">
@@ -78,7 +78,7 @@ defmodule TheBandWeb.Layouts do
             </span>
           </li>
           <li>
-            <.link href={~p"/sessao"} method="delete" class="btn btn-ghost btn-xs">Sign out</.link>
+            <.link href={~p"/session"} method="delete" class="btn btn-ghost btn-xs">Sign out</.link>
           </li>
           <li><.theme_toggle /></li>
         </ul>

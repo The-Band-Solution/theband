@@ -1,6 +1,6 @@
 defmodule TheBandWeb.SourceLive.Index do
   @moduledoc """
-  `/ferramentas` — conectar e listar ferramentas (US1).
+  `/tools` — conectar e listar ferramentas (US1).
 
   Só perfil `admin`. A credencial é validada contra a ferramenta **antes** de
   qualquer gravação; quando a validação falha, a tela diz o que faltou e nada é

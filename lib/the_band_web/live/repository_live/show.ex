@@ -1,6 +1,6 @@
 defmodule TheBandWeb.RepositoryLive.Show do
   @moduledoc """
-  `/trabalho/repositorios/:id` — um repositório e as issues dele.
+  `/work/repositories/:id` — um repositório e as issues dele.
 
   ## Uma coisa, e ela é "este repositório"
 
@@ -48,7 +48,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
         {:ok,
          socket
          |> put_flash(:error, "Repository not found.")
-         |> push_navigate(to: ~p"/trabalho")}
+         |> push_navigate(to: ~p"/work")}
 
       {:ok, repositorio} ->
         {:ok,
@@ -74,7 +74,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
           )}
         </:subtitle>
         <:actions>
-          <.link navigate={~p"/trabalho"}>
+          <.link navigate={~p"/work"}>
             <.button class="btn-outline btn-sm">All issues</.button>
           </.link>
           <a :if={@repositorio.url} href={@repositorio.url} target="_blank" rel="noopener">
@@ -216,7 +216,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
               <tr :for={i <- @issues}>
                 <td data-label="#" class="text-right font-mono">{i.number}</td>
                 <td data-label="title" class="max-w-md">
-                  <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+                  <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
                     {i.title}
                   </.link>
                   <div :if={i.no_longer_observed_at} class="text-xs opacity-60">
@@ -280,7 +280,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
     ~H"""
     <ul class="text-sm mt-1 space-y-1">
       <li :for={i <- @issues}>
-        <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+        <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
           <span class="font-mono">#{i.number}</span> {i.title}
         </.link>
       </li>

@@ -46,7 +46,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
     if conn.assigns[:current_user] do
       conn
     else
-      conn |> redirect(to: "/entrar") |> halt()
+      conn |> redirect(to: "/sign-in") |> halt()
     end
   end
 
@@ -64,7 +64,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
         :error,
         "Apenas administradores da organização podem fazer isso."
       )
-      |> redirect(to: "/pessoas")
+      |> redirect(to: "/people")
       |> halt()
     end
   end

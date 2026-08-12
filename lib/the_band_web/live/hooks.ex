@@ -21,7 +21,7 @@ defmodule TheBandWeb.Live.Hooks do
          |> assign(:current_tenant, user.tenant)}
 
       _ ->
-        {:halt, redirect(socket, to: "/entrar")}
+        {:halt, redirect(socket, to: "/sign-in")}
     end
   end
 
@@ -34,7 +34,7 @@ defmodule TheBandWeb.Live.Hooks do
           {:halt,
            socket
            |> put_flash(:error, "Apenas administradores da organização podem fazer isso.")
-           |> redirect(to: "/pessoas")}
+           |> redirect(to: "/people")}
         end
 
       halted ->

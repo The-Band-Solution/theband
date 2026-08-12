@@ -1,6 +1,6 @@
 defmodule TheBandWeb.PeopleLive.Index do
   @moduledoc """
-  `/pessoas` — as pessoas que a plataforma conhece (US3).
+  `/people` — as pessoas que a plataforma conhece (US3).
 
   Cada registro exibe origem, identificador na ferramenta e data de coleta
   (FR-026, SC-004). A contagem do cabeçalho usa **as mesmas** `opts` da listagem:

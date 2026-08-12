@@ -37,7 +37,7 @@ defmodule TheBandWeb.SessionLive.New do
       </div>
 
       <div class="grid gap-3 sm:grid-cols-2">
-        <form :for={user <- @users} action={~p"/sessao"} method="post">
+        <form :for={user <- @users} action={~p"/session"} method="post">
           <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
           <input type="hidden" name="user_id" value={user.id} />
           <button class="card w-full bg-base-200 hover:bg-base-300 text-left p-4 cursor-pointer">

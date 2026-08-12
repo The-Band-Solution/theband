@@ -31,11 +31,11 @@ defmodule TheBandWeb.MappingRulesTest do
       assert Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/mapeamento", "host") == :error
 
       assert %{plug: _} =
-               Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/sincronizacoes", "host")
+               Phoenix.Router.route_info(TheBandWeb.Router, "GET", "/syncs", "host")
     end
 
     test "o acesso parte da organização que produziu a lacuna", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/sincronizacoes")
+      {:ok, live, html} = live(conn, ~p"/syncs")
 
       assert html =~ "Mapping rules"
 
@@ -90,7 +90,7 @@ defmodule TheBandWeb.MappingRulesTest do
   describe "ativar uma proposta" do
     test "cria a regra com a pessoa como autora, e enfileira o recálculo",
          %{conn: conn, tenant: t, user: u, cenario: c} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
+      {:ok, live, _} = live(conn, ~p"/syncs")
       live |> element("button", "Mapping rules") |> render_click()
 
       chave =
@@ -116,7 +116,7 @@ defmodule TheBandWeb.MappingRulesTest do
   describe "a prévia antes de gravar" do
     test "mostra quantas casam e quantas mudariam, e são números diferentes",
          %{conn: conn} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
+      {:ok, live, _} = live(conn, ~p"/syncs")
       live |> element("button", "Mapping rules") |> render_click()
 
       html =
@@ -137,7 +137,7 @@ defmodule TheBandWeb.MappingRulesTest do
 
     test "expressão que casa vazio é recusada com a razão, e nada é gravado",
          %{conn: conn, tenant: t, cenario: c} do
-      {:ok, live, _} = live(conn, ~p"/sincronizacoes")
+      {:ok, live, _} = live(conn, ~p"/syncs")
       live |> element("button", "Mapping rules") |> render_click()
 
       html =
@@ -160,7 +160,7 @@ defmodule TheBandWeb.MappingRulesTest do
   # Abre o componente a partir do cartão da organização — é o único caminho, e é o que
   # FR-052 pede.
   defp abrir(conn) do
-    {:ok, live, _html} = live(conn, ~p"/sincronizacoes")
+    {:ok, live, _html} = live(conn, ~p"/syncs")
     live |> element("button", "Mapping rules") |> render_click()
   end
 end

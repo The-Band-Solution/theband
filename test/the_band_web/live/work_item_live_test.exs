@@ -1,6 +1,6 @@
 defmodule TheBandWeb.WorkItemLiveTest do
   @moduledoc """
-  A tela `/trabalho`, com a forma do dado real (T028).
+  A tela `/work`, com a forma do dado real (T028).
 
   O cenário vem de `TheBand.WorkItemsFixtures.cenario_real/2`, medido pela API em
   2026-08-11 — inclui as três `Feature` com sub-issues que **não** são épicos.
@@ -22,12 +22,12 @@ defmodule TheBandWeb.WorkItemLiveTest do
 
   describe "a tabela de repositórios" do
     test "traz a organização de cada repositório", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       # A linha do repositório é a que tem link para o detalhe **do repositório** — a da
-      # issue aponta para `/trabalho/issues/`. Casar pelo texto "theband" pegaria as duas.
+      # issue aponta para `/work/issues/`. Casar pelo texto "theband" pegaria as duas.
       [linha] =
-        Regex.scan(~r{<tr>(?:(?!</tr>).)*?/trabalho/repositorios/(?:(?!</tr>).)*?</tr>}s, html)
+        Regex.scan(~r{<tr>(?:(?!</tr>).)*?/work/repositories/(?:(?!</tr>).)*?</tr>}s, html)
         |> Enum.map(&hd/1)
 
       assert linha =~ "The-Band-Solution", """
@@ -40,7 +40,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     end
 
     test "o cabeçalho declara a coluna", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       assert html =~ "<th>organisation</th>"
     end
@@ -61,7 +61,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     end
 
     test "a tela não mostra o aviso de desvio quando a soma fecha", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       refute html =~ "The counts do not add up"
     end
@@ -100,7 +100,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "Spike é contado, e o nome aparece na tela", %{conn: conn, tenant: tenant} do
       assert WorkItems.unknown_types(tenant) == [{"Spike", 1}]
 
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       assert html =~ "unknown type"
 
@@ -114,7 +114,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "issue sem tipo aparece como lacuna própria", %{conn: conn, tenant: tenant} do
       assert WorkItems.count_gaps_by_reason(tenant)["type_absent"] == 1
 
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
       assert html =~ "no type at the source"
     end
 
@@ -140,7 +140,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     end
 
     test "a tela diz isso em vez de deixar a seção vazia", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       assert html =~ "Label and structure agree on every issue"
     end
@@ -148,7 +148,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
 
   describe "a tela mostra o repositório com o que o git fornece" do
     test "nome, linguagem e ramo padrão", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       assert html =~ "theband"
       assert html =~ "Elixir"
@@ -156,7 +156,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     end
 
     test "nenhuma ação de coleta nesta tela", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       # O mesmo botão de Sincronizações traz tudo. Um segundo lugar para disparar a
       # mesma coleta produziria duas leituras de "quando isto foi atualizado", e a
@@ -168,7 +168,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
 
   describe "o que a tela NÃO mostra" do
     test "nenhuma soma de épicos com atômicas", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       # Somar os dois seria contagem dupla: tarefa se liga a atômica, e escopo se conta
       # na folha.
@@ -176,7 +176,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     end
 
     test "nenhum percentual de cobertura", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       refute html =~ "cobertura"
       refute html =~ "% promoted"
@@ -189,7 +189,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
 
       assert WorkItems.count_collected(outro) == 0
 
-      {:ok, _live, html} = live(log_in(conn, usuario), ~p"/trabalho")
+      {:ok, _live, html} = live(log_in(conn, usuario), ~p"/work")
       assert html =~ "No issue collection has run yet"
     end
   end

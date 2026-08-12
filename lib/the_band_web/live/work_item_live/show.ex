@@ -1,6 +1,6 @@
 defmodule TheBandWeb.WorkItemLive.Show do
   @moduledoc """
-  `/trabalho/issues/:id` — uma issue: o que a origem disse, e o que a plataforma decidiu.
+  `/work/issues/:id` — uma issue: o que a origem disse, e o que a plataforma decidiu.
 
   ## Uma coisa, e ela é "esta issue"
 
@@ -62,7 +62,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
         {:ok,
          socket
          |> put_flash(:error, "Issue not found.")
-         |> push_navigate(to: ~p"/trabalho")}
+         |> push_navigate(to: ~p"/work")}
     end
   end
 
@@ -74,7 +74,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
         <span class="font-mono opacity-60">#{@issue.number}</span> {@issue.title}
         <:subtitle>{@repositorio_nome} · {@organizacao} · {estado(@issue)}</:subtitle>
         <:actions>
-          <.link navigate={~p"/trabalho/repositorios/#{@issue.observed_repository_id}"}>
+          <.link navigate={~p"/work/repositories/#{@issue.observed_repository_id}"}>
             <.button class="btn-outline btn-sm">Repository issues</.button>
           </.link>
           <a :if={@url_origem} href={@url_origem} target="_blank" rel="noopener">
@@ -257,7 +257,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
           <div :if={@pai} class="card bg-base-200">
             <div class="card-body gap-1 p-4 sm:p-5">
               <h3 class="font-semibold">{rotulo_do_pai(@issue)}</h3>
-              <.link navigate={~p"/trabalho/issues/#{@pai.id}"} class="link link-hover text-sm">
+              <.link navigate={~p"/work/issues/#{@pai.id}"} class="link link-hover text-sm">
                 <span class="font-mono">#{@pai.number}</span> {@pai.title}
               </.link>
               <div class="text-xs opacity-70">
@@ -370,7 +370,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
         <tr :for={i <- @issues}>
           <td class="font-mono w-16">#{i.number}</td>
           <td>
-            <.link navigate={~p"/trabalho/issues/#{i.id}"} class="link link-hover">
+            <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
               {i.title}
             </.link>
           </td>

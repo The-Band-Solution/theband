@@ -1,6 +1,6 @@
 defmodule TheBandWeb.SyncLive.Index do
   @moduledoc """
-  `/sincronizacoes` — disparar e acompanhar a coleta (US2).
+  `/syncs` — disparar e acompanhar a coleta (US2).
 
   O progresso chega por PubSub. A pausa por rate limit aparece como estado
   próprio, com o horário de retomada: não é erro, e não deve se parecer com um.
@@ -136,8 +136,7 @@ defmodule TheBandWeb.SyncLive.Index do
 
       <div :if={@tools == []} class="alert">
         <p>
-          No tool connected. Connect one in
-          <.link navigate={~p"/ferramentas"} class="link">Tools</.link>
+          No tool connected. Connect one in <.link navigate={~p"/tools"} class="link">Tools</.link>
           before syncing.
         </p>
       </div>
@@ -337,7 +336,7 @@ defmodule TheBandWeb.SyncLive.Index do
               <.field label="repositories">{work_summary(sync).repositorios}</.field>
               <.field label="issues">{work_summary(sync).issues}</.field>
             </dl>
-            <.link navigate={~p"/trabalho"} class="link link-hover text-sm">
+            <.link navigate={~p"/work"} class="link link-hover text-sm">
               View the work →
             </.link>
           </div>

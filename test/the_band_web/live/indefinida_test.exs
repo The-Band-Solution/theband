@@ -43,21 +43,21 @@ defmodule TheBandWeb.IndefinidaTest do
 
   describe "nas telas" do
     test "a listagem de trabalho nomeia as indefinidas", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho")
+      {:ok, _live, html} = live(conn, ~p"/work")
 
       assert html =~ "undefined —"
       assert html =~ "type Spike has no rule"
     end
 
     test "o detalhe da issue sem conceito nomeia a lacuna", %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/issues/#{c.issues[202].pai.id}")
+      {:ok, _live, html} = live(conn, ~p"/work/issues/#{c.issues[202].pai.id}")
 
       assert html =~ "undefined —"
     end
 
     test "a tela do repositório nomeia as indefinidas na contagem",
          %{conn: conn, cenario: c} do
-      {:ok, _live, html} = live(conn, ~p"/trabalho/repositorios/#{c.observed_repository_id}")
+      {:ok, _live, html} = live(conn, ~p"/work/repositories/#{c.observed_repository_id}")
 
       assert html =~ "undefined —"
     end

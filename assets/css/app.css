@@ -19,33 +19,46 @@
 }
 
 /* daisyUI theme plugin.
-  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
-  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+  Os dois temas vêm do design system, e não do gerador: **verdete de instrumento** como
+  primária, neutros com viés para ela, e cor semântica separada da primária.
+
+  Por que verdete, e não o roxo que o Phoenix gera: a primária desta interface aparece na
+  marca de evidência, onde ela significa "a origem afirmou". Uma cor de alerta ali diria
+  que observar é urgente. Verdete é cor de instrumento medido.
+
+  Por que os neutros não são cinza puro: cinza puro lê como não escolhido. Estes puxam para
+  a primária, como papel de desenho técnico.
+
+  Contraste conferido nos dois temas: texto sobre fundo acima de 12:1, primária sobre fundo
+  acima de 4.5:1 — WCAG 1.4.3 nível AA. */
 @plugin "daisyui/packages/bundle/daisyui-theme" {
   name: "dark";
   default: false;
   prefersdark: true;
   color-scheme: "dark";
-  --color-base-100: oklch(30.33% 0.016 252.42);
-  --color-base-200: oklch(25.26% 0.014 253.1);
-  --color-base-300: oklch(20.15% 0.012 254.09);
-  --color-base-content: oklch(97.807% 0.029 256.847);
-  --color-primary: oklch(58% 0.233 277.117);
-  --color-primary-content: oklch(96% 0.018 272.314);
-  --color-secondary: oklch(58% 0.233 277.117);
-  --color-secondary-content: oklch(96% 0.018 272.314);
-  --color-accent: oklch(60% 0.25 292.717);
-  --color-accent-content: oklch(96% 0.016 293.756);
-  --color-neutral: oklch(37% 0.044 257.287);
-  --color-neutral-content: oklch(98% 0.003 247.858);
-  --color-info: oklch(58% 0.158 241.966);
-  --color-info-content: oklch(97% 0.013 236.62);
-  --color-success: oklch(60% 0.118 184.704);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
+  --color-base-100: #151b19;
+  --color-base-200: #0f1513;
+  --color-base-300: #2b3532;
+  --color-base-content: #e6ebe8;
+  --color-primary: #5cbcb2;
+  --color-primary-content: #08130f;
+  --color-secondary: #3f9e94;
+  --color-secondary-content: #08130f;
+  --color-accent: #5cbcb2;
+  --color-accent-content: #08130f;
+  --color-neutral: #2b3532;
+  --color-neutral-content: #e6ebe8;
+  --color-info: #7fb4d6;
+  --color-info-content: #08131a;
+  /* `success` é o verdete: na marca de evidência ele significa "a origem afirmou". */
+  --color-success: #5cbcb2;
+  --color-success-content: #08130f;
+  /* Âmbar: divergência entre rótulo e estrutura. Não é erro do sistema. */
+  --color-warning: #d9a441;
+  --color-warning-content: #1a1305;
+  /* Barro: vínculo recusado. Também não é erro do sistema — é fato sobre o dado. */
+  --color-error: #e08574;
+  --color-error-content: #1f0b07;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -61,26 +74,26 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0 0);
-  --color-base-200: oklch(96% 0.001 286.375);
-  --color-base-300: oklch(92% 0.004 286.32);
-  --color-base-content: oklch(21% 0.006 285.885);
-  --color-primary: oklch(70% 0.213 47.604);
-  --color-primary-content: oklch(98% 0.016 73.684);
-  --color-secondary: oklch(55% 0.027 264.364);
-  --color-secondary-content: oklch(98% 0.002 247.839);
-  --color-accent: oklch(0% 0 0);
-  --color-accent-content: oklch(100% 0 0);
-  --color-neutral: oklch(44% 0.017 285.786);
-  --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(62% 0.214 259.815);
-  --color-info-content: oklch(97% 0.014 254.604);
-  --color-success: oklch(70% 0.14 182.503);
-  --color-success-content: oklch(98% 0.014 180.72);
-  --color-warning: oklch(66% 0.179 58.318);
-  --color-warning-content: oklch(98% 0.022 95.277);
-  --color-error: oklch(58% 0.253 17.585);
-  --color-error-content: oklch(96% 0.015 12.422);
+  --color-base-100: #f7f8f7;
+  --color-base-200: #eef0ee;
+  --color-base-300: #d7dcd8;
+  --color-base-content: #101614;
+  --color-primary: #1f6f68;
+  --color-primary-content: #f4f6f4;
+  --color-secondary: #14504a;
+  --color-secondary-content: #f4f6f4;
+  --color-accent: #1f6f68;
+  --color-accent-content: #f4f6f4;
+  --color-neutral: #2b3532;
+  --color-neutral-content: #f4f6f4;
+  --color-info: #23566f;
+  --color-info-content: #f4f6f4;
+  --color-success: #1f6f68;
+  --color-success-content: #f4f6f4;
+  --color-warning: #8a5a0c;
+  --color-warning-content: #fdf8ef;
+  --color-error: #8c3327;
+  --color-error-content: #fdf4f2;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
@@ -103,6 +116,52 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TIPOGRAFIA — três vozes, e cada uma tem um trabalho
+
+   | voz | onde |
+   |---|---|
+   | grotesca, peso alto | título de tela e número que decide |
+   | serifada | o que precisa ser **lido**: divergência, recusa, axioma |
+   | monoespaçada | identificador, contagem alinhada, chave de regra |
+
+   Nenhuma é webfont: a CSP não é o problema aqui, o peso é. Uma família de 40 KB
+   por peso, em três pesos, para uma ferramenta interna que abre dezenas de vezes
+   por dia — a pilha do sistema entrega a mesma hierarquia sem custo de rede.
+
+   `--font-*` são as variáveis que o Tailwind expõe como `font-sans`, `font-serif`
+   e `font-mono`, então quem escrever markup usa utilitário e não classe própria.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@layer base {
+  /* O corpo é serifado: esta interface explica muito — por que uma issue divergiu, o
+     que a plataforma manteve, de quem é a ausência. Prosa longa em grotesca cansa. */
+  body {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  /* Título e número em grotesca com entrelinha curta: eles são escaneados, não lidos. */
+  h1, h2, h3, h4, .stat-value {
+    font-family: var(--font-sans);
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Rótulo de coluna e de campo: caixa alta pede espaçamento, senão vira bloco. */
+  th {
+    letter-spacing: 0.06em;
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────────────────
    O QUE FICA AQUI, E POR QUE NÃO É UTILITÁRIO

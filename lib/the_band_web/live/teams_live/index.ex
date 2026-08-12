@@ -1,6 +1,6 @@
 defmodule TheBandWeb.TeamsLive.Index do
   @moduledoc """
-  `/equipes` — as equipes que a plataforma conhece (US3).
+  `/teams` — as equipes que a plataforma conhece (US3).
 
   Exibe também quantos vínculos ainda estão sem papel organizacional atribuído.
   É lacuna de conhecimento, não erro, e a tela a apresenta como número — não como
@@ -85,7 +85,7 @@ defmodule TheBandWeb.TeamsLive.Index do
             <td class="font-mono text-xs">{team.external_id}</td>
             <td class="text-xs">{team.collected_at}</td>
             <td>
-              <.link navigate={~p"/equipes/#{team.id}"} class="btn btn-xs btn-ghost">
+              <.link navigate={~p"/teams/#{team.id}"} class="btn btn-xs btn-ghost">
                 integrantes
               </.link>
             </td>

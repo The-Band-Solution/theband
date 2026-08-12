@@ -73,7 +73,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "exibe origem, identificador externo e data de coleta (SC-004)", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       assert html =~ "Ana Souza"
       assert html =~ "github"
@@ -82,7 +82,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "a contagem do cabeçalho não inclui automação", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       # Duas contas conhecidas, uma pessoa: o cabeçalho conta pessoas, e a
       # automação aparece contada à parte.
@@ -94,7 +94,7 @@ defmodule TheBandWeb.ScreensTest do
     test "estado vazio explica a causa em vez de só dizer que está vazio" do
       {_tenant, user} = tenant_with_admin("vazio")
 
-      {:ok, _live, html} = live(log_in(build_conn(), user), ~p"/pessoas")
+      {:ok, _live, html} = live(log_in(build_conn(), user), ~p"/people")
 
       assert html =~ "No sync has brought people yet"
     end
@@ -108,7 +108,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "lista equipes com proveniência e conta pendentes de papel", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/equipes")
+      {:ok, _live, html} = live(conn, ~p"/teams")
 
       assert html =~ "Core"
       assert html =~ "organizational_team"
@@ -135,7 +135,7 @@ defmodule TheBandWeb.ScreensTest do
           observed_at: DateTime.utc_now(:second)
         })
 
-      {:ok, _live, html} = live(conn, ~p"/equipes/#{equipe.id}")
+      {:ok, _live, html} = live(conn, ~p"/teams/#{equipe.id}")
 
       assert html =~ "acesso na plataforma"
       assert html =~ "MAINTAINER"
@@ -151,7 +151,7 @@ defmodule TheBandWeb.ScreensTest do
       {tenant, user} = tenant_with_admin()
       conectar_ferramenta(tenant)
 
-      {:ok, _live, html} = live(log_in(conn, user), ~p"/ferramentas")
+      {:ok, _live, html} = live(log_in(conn, user), ~p"/tools")
 
       refute html =~ @segredo
       assert html =~ ToolCredential.last_four(@segredo)
@@ -164,8 +164,8 @@ defmodule TheBandWeb.ScreensTest do
       {:ok, member} =
         Tenants.create_user(tenant, %{"email" => "member@example.test", "role" => "member"})
 
-      assert {:error, {:redirect, %{to: "/pessoas"}}} =
-               live(log_in(conn, member), ~p"/ferramentas")
+      assert {:error, {:redirect, %{to: "/people"}}} =
+               live(log_in(conn, member), ~p"/tools")
     end
   end
 
@@ -177,22 +177,22 @@ defmodule TheBandWeb.ScreensTest do
       equipe_do_um = povoar(um)
       conectar_ferramenta(um)
 
-      {:ok, _live, html} = live(log_in(conn, usuario_outro), ~p"/pessoas")
+      {:ok, _live, html} = live(log_in(conn, usuario_outro), ~p"/people")
       refute html =~ "Ana Souza"
       assert html =~ "No sync has brought people yet"
 
-      {:ok, _live, html} = live(log_in(build_conn(), usuario_outro), ~p"/equipes")
+      {:ok, _live, html} = live(log_in(build_conn(), usuario_outro), ~p"/teams")
       refute html =~ "Core"
 
-      {:ok, _live, html} = live(log_in(build_conn(), usuario_outro), ~p"/ferramentas")
+      {:ok, _live, html} = live(log_in(build_conn(), usuario_outro), ~p"/tools")
       refute html =~ "acme"
 
       # O id da equipe do outro tenant não devolve o registro: devolve redirect.
-      assert {:error, {:live_redirect, %{to: "/equipes"}}} =
-               live(log_in(build_conn(), usuario_outro), ~p"/equipes/#{equipe_do_um.id}")
+      assert {:error, {:live_redirect, %{to: "/teams"}}} =
+               live(log_in(build_conn(), usuario_outro), ~p"/teams/#{equipe_do_um.id}")
 
       # E a organização dona continua enxergando o que é dela.
-      {:ok, _live, html} = live(log_in(build_conn(), usuario_um), ~p"/pessoas")
+      {:ok, _live, html} = live(log_in(build_conn(), usuario_um), ~p"/people")
       assert html =~ "Ana Souza"
 
       assert EO.count_people(outro) == 0
@@ -201,7 +201,7 @@ defmodule TheBandWeb.ScreensTest do
 
   describe "sem sessão" do
     test "a interface leva para a entrada", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/entrar"}}} = live(conn, ~p"/pessoas")
+      assert {:error, {:redirect, %{to: "/sign-in"}}} = live(conn, ~p"/people")
     end
   end
 
@@ -252,7 +252,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "/pessoas mostra as organizações de cada pessoa", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       assert html =~ "organisations"
       assert html =~ "alfa"
@@ -260,7 +260,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "a pessoa em duas organizações aparece uma vez, com as duas", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       # Uma linha, não duas: a distinção é por pessoa, não por vínculo. Duas linhas
       # fariam a contagem do cabeçalho discordar da listagem, que é o defeito que
@@ -272,7 +272,7 @@ defmodule TheBandWeb.ScreensTest do
     test "quem não está em equipe alguma aparece, dizendo por que não tem organização", %{
       conn: conn
     } do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       # Aparecer é o ponto: some da lista faria parecer que a pessoa não foi
       # coletada. O que falta é o vínculo, e a tela diz isso.
@@ -281,7 +281,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "a tela avisa que a soma por organização é maior que o total", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/pessoas")
+      {:ok, _live, html} = live(conn, ~p"/people")
 
       # Sem este aviso, o primeiro a somar as contagens por organização conclui que
       # há defeito onde há sobreposição correta.
@@ -289,7 +289,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "/equipes mostra a organização de cada equipe", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/equipes")
+      {:ok, _live, html} = live(conn, ~p"/teams")
 
       assert html =~ "organização"
       assert html =~ "alfa"
@@ -297,7 +297,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "nenhuma equipe aparece sem organização", %{conn: conn, tenant: tenant} do
-      {:ok, _live, _html} = live(conn, ~p"/equipes")
+      {:ok, _live, _html} = live(conn, ~p"/teams")
 
       # A restrição do banco garante isto para equipe organizacional; o teste guarda
       # a tela contra o caso de alguém passar a exibir equipe de projeto sem dizer
@@ -317,7 +317,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "o selo aparece sempre que a equipe aparece", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/equipes")
+      {:ok, _live, html} = live(conn, ~p"/teams")
 
       # Selo visível, não nota de rodapé: esconder é pior que marcar, porque quem não
       # vê a equipe não explica por que a contagem de pessoas não fecha.
@@ -326,7 +326,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "a contagem separa observadas de derivadas", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/equipes")
+      {:ok, _live, html} = live(conn, ~p"/teams")
 
       assert html =~ "1 derivada"
       assert html =~ "1 na origem"
@@ -336,7 +336,7 @@ defmodule TheBandWeb.ScreensTest do
       conn: conn,
       tenant: tenant
     } do
-      {:ok, _live, _html} = live(conn, ~p"/equipes")
+      {:ok, _live, _html} = live(conn, ~p"/teams")
 
       # A origem tem 1 time; a plataforma mostra 2 equipes, e diz por quê.
       assert EO.count_teams(tenant) == 2
@@ -382,7 +382,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "o impacto aparece antes de confirmar, e nomeia quem permanece", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
 
       html = live |> element("button", "encerrar observação") |> render_click()
 
@@ -395,7 +395,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "confirmação errada não encerra", %{conn: conn, tool: tool} do
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
       live |> element("button", "encerrar observação") |> render_click()
 
       html =
@@ -411,7 +411,7 @@ defmodule TheBandWeb.ScreensTest do
       conn: conn,
       tool: tool
     } do
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
       live |> element("button", "encerrar observação") |> render_click()
 
       html =
@@ -426,7 +426,7 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "o segredo não aparece em nenhum momento do fluxo (SC-011)", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/ferramentas")
+      {:ok, live, html} = live(conn, ~p"/tools")
       refute html =~ @segredo
 
       html = live |> element("button", "encerrar observação") |> render_click()
@@ -455,14 +455,14 @@ defmodule TheBandWeb.ScreensTest do
     end
 
     test "o botão de retomar aparece só na encerrada", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/ferramentas")
+      {:ok, _live, html} = live(conn, ~p"/tools")
 
       assert html =~ "retomar observação"
       refute html =~ "encerrar observação"
     end
 
     test "o formulário diz que a coleta é que devolve vigência", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
 
       html = live |> element("button", "retomar observação") |> render_click()
 
@@ -476,7 +476,7 @@ defmodule TheBandWeb.ScreensTest do
         {:ok, %{status: 401, body: %{}, headers: %{}}}
       end)
 
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
       live |> element("button", "retomar observação") |> render_click()
 
       html =
@@ -497,7 +497,7 @@ defmodule TheBandWeb.ScreensTest do
          %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
       end)
 
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
       live |> element("button", "retomar observação") |> render_click()
 
       html =
@@ -519,7 +519,7 @@ defmodule TheBandWeb.ScreensTest do
          %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
       end)
 
-      {:ok, live, _html} = live(conn, ~p"/ferramentas")
+      {:ok, live, _html} = live(conn, ~p"/tools")
       live |> element("button", "retomar observação") |> render_click()
 
       html =
@@ -546,7 +546,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _} = Sources.resume_observation(tenant, tool, %{"secret" => "ghp_nova"})
 
-      {:ok, live, html} = live(conn, ~p"/ferramentas")
+      {:ok, live, html} = live(conn, ~p"/tools")
 
       # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
       refute html =~ "observation ended"
@@ -562,7 +562,7 @@ defmodule TheBandWeb.ScreensTest do
       {tenant, user} = tenant_with_admin()
       conectar_ferramenta(tenant)
 
-      {:ok, _live, html} = live(log_in(conn, user), ~p"/ferramentas")
+      {:ok, _live, html} = live(log_in(conn, user), ~p"/tools")
 
       refute html =~ "histórico de observação"
     end
