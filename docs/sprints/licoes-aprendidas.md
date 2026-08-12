@@ -1621,3 +1621,41 @@ ninguém percebe, porque a recusa é registrada em silêncio.
 entre repositórios, **coletar duas vezes** — uma coleta só não produz o estado.
 
 **Estado**: aberta.
+
+---
+
+## L48 — Palavra de fechamento em português não fecha a issue, e nada avisa
+
+**Origem**: Sprint 011 · **Tipo**: processo
+
+**O que aconteceu.** O PR [#278](https://github.com/The-Band-Solution/theband/pull/278) abriu com
+**"Fecha #263"** na primeira linha do corpo. O PR foi incorporado, e a **#263 continuou aberta**.
+
+O GitHub só reconhece as palavras em inglês — `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`,
+`resolve`, `resolves`, `resolved`. "Fecha" vira texto comum: cria a referência cruzada, que **parece**
+o vínculo funcionando, e não fecha nada.
+
+**Por que aconteceu.** Os documentos deste repositório são em português, e a frase saiu no idioma do
+resto. E o sinal de que deu certo é indistinguível do sinal de que deu errado: a issue aparece
+mencionada no PR nos dois casos.
+
+**É o padrão do sucesso silencioso outra vez** — nenhum erro, e a issue fica aberta parecendo
+trabalho não feito.
+
+**O que fazer diferente.** A palavra de fechamento é **em inglês**, mesmo no corpo em português:
+
+```text
+Closes #263.
+```
+
+E a conferência é uma linha, depois do merge:
+
+```bash
+gh issue view <n> --json state --jq .state   # CLOSED, ou fecha na mão
+```
+
+**Vale também para a segunda armadilha do mesmo mecanismo**: a palavra só fecha quando o PR entra na
+branch **padrão**. PR empilhado, cuja base é outra branch, não fecha issue nenhuma ao ser incorporado
+— e este PR era empilhado.
+
+**Estado**: aberta.
