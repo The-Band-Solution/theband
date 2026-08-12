@@ -46,6 +46,7 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         excluded_at: o.excluded_at,
         inaccessible_since: o.inaccessible_since,
         inaccessible_reason: o.inaccessible_reason,
+        issues_collected_at: o.issues_collected_at,
         external_id: c.external_id,
         external_created_at: r.external_created_at,
         collected_at: c.collected_at,

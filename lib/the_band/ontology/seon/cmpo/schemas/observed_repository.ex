@@ -25,6 +25,11 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     field :inaccessible_since, :utc_datetime
     field :inaccessible_reason, :string
 
+    # Registra que a fase de issues rodou para este repositório. `nil` significa "nunca
+    # passou por coleta de issues" — e é a diferença entre "olhei e não achei" e "não sei",
+    # que a tela precisa para não mostrar `0` nos dois casos.
+    field :issues_collected_at, :utc_datetime
+
     timestamps(type: :utc_datetime)
   end
 
@@ -38,7 +43,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
       :excluded_at,
       :excluded_by_user_id,
       :inaccessible_since,
-      :inaccessible_reason
+      :inaccessible_reason,
+      :issues_collected_at
     ])
     |> validate_required([:tenant_id, :connected_tool_id, :source_repository_id])
     |> unique_constraint([:connected_tool_id, :source_repository_id])

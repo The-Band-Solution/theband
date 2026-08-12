@@ -190,6 +190,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
                   <th>repository</th>
                   <th>language</th>
                   <th>branch</th>
+                  <th>work</th>
                   <th class="text-right">issues</th>
                   <th>state</th>
                 </tr>
@@ -215,6 +216,31 @@ defmodule TheBandWeb.WorkItemLive.Index do
                   </td>
                   <td data-label="branch" class="font-mono text-xs opacity-70">
                     {r.default_branch || "—"}
+                  </td>
+                  <%!-- The mark answers one question — is there work here? — and never
+                        repeats what the `state` column says beside it. Three channels:
+                        shape, text, and a screen-reader label. Colour is not a channel
+                        (WCAG 1.4.1). --%>
+                  <td data-label="work">
+                    <span class="inline-flex items-center gap-1.5 text-sm">
+                      <span
+                        class={[
+                          "size-2.5 shrink-0 rounded-[1px]",
+                          marca(r, @por_repositorio) == :cheia && "bg-current text-success",
+                          marca(r, @por_repositorio) == :vazia &&
+                            "border border-current text-base-content/50",
+                          marca(r, @por_repositorio) == :desconhecida &&
+                            "border border-dashed border-current text-base-content/40"
+                        ]}
+                        aria-hidden="true"
+                      ></span>
+                      <span class={marca(r, @por_repositorio) == :cheia || "text-base-content/60"}>
+                        {marca_texto(r, @por_repositorio, @com_ausentes)}
+                      </span>
+                      <span class="sr-only">
+                        {marca_rotulo(r, @por_repositorio, @com_ausentes)}
+                      </span>
+                    </span>
                   </td>
                   <td data-label="issues" class="text-right tabular">
                     {@por_repositorio[r.observed_repository_id] || 0}
@@ -351,6 +377,11 @@ defmodule TheBandWeb.WorkItemLive.Index do
       repositorios: repositorios,
       repos_observados: length(repositorios),
       por_repositorio: por_repositorio(tenant, repositorios),
+      com_ausentes:
+        WorkItems.repositories_with_absent_issues(
+          tenant,
+          Enum.map(repositorios, & &1.observed_repository_id)
+        ),
       conceitos: ConceptLabel.conceitos()
     )
   end
@@ -389,11 +420,19 @@ defmodule TheBandWeb.WorkItemLive.Index do
   defp ultima_pagina(0, _por_pagina), do: 1
   defp ultima_pagina(total, por_pagina), do: ceil(total / por_pagina)
 
+  # Uma consulta agrupada, não uma por repositório: com 135 observados eram 135 consultas
+  # para desenhar a tela, e a marca de trabalho precisa do mesmo número — ler de novo
+  # faria 270. A contagem passa a ser de issues **vigentes**, e a mudança de significado
+  # está declarada em R3 da pesquisa: a coluna e a marca leem o mesmo mapa, que é o que
+  # FR-010 exige.
+  #
+  # O mapa **não** tem chave para repositório sem issue. Quem lê usa `|| 0` no markup, e o
+  # zero ali significa "nenhuma issue vigente"; "não se sabe" vem de `issues_collected_at`.
   defp por_repositorio(tenant, repositorios) do
-    Map.new(repositorios, fn r ->
-      {r.observed_repository_id,
-       WorkItems.count_collected(tenant, observed_repository_id: r.observed_repository_id)}
-    end)
+    WorkItems.count_collected_by_repository(
+      tenant,
+      Enum.map(repositorios, & &1.observed_repository_id)
+    )
   end
 
   defp soma(mapa), do: mapa |> Map.values() |> Enum.sum()
@@ -421,6 +460,68 @@ defmodule TheBandWeb.WorkItemLive.Index do
     do:
       "#{n} repositories were observed and none has issues. That is different from not " <>
         "having collected: the collection ran, and the result is empty."
+
+  # A ordem é **a contagem primeiro**, e errá-la faz a tela mentir sobre 41 repositórios.
+  #
+  # Depois da migração todos os 135 observados têm `issues_collected_at` nulo, porque
+  # nenhuma coleta anterior registrou a data — e 41 deles têm issues dentro, um com 2514.
+  # Decidir pela data antes da contagem diria `not collected yet` sobre eles: a plataforma
+  # afirmando que nunca olhou um repositório de que ela tem 2514 issues coletadas.
+  #
+  # A data só decide quando a contagem é zero. Foi o achado A1 da análise, e é FR-005a.
+  defp marca(repositorio, contagens) do
+    cond do
+      contagem(repositorio, contagens) > 0 -> :cheia
+      repositorio.issues_collected_at -> :vazia
+      true -> :desconhecida
+    end
+  end
+
+  # O quarto texto, que não é um quarto estado da marca: houve trabalho e ele não está
+  # vigente. "no issues" ali afirmaria que nunca existiu, e apagaria o fato de que existiu
+  # — a mesma distinção que `no_longer_observed_at` carrega no banco.
+  defp marca_texto(repositorio, contagens, com_ausentes) do
+    case marca(repositorio, contagens) do
+      :cheia ->
+        "#{contagem(repositorio, contagens)} #{plural(contagem(repositorio, contagens), "issue")}"
+
+      :vazia ->
+        if teve_trabalho?(repositorio, com_ausentes),
+          do: "no current work",
+          else: "collected, no issues"
+
+      # "not collected yet" **afirmaria** que a coleta não ocorreu, e a plataforma não sabe
+      # isso: `nil` significa que não há registro. Medido no dado real logo depois da
+      # migração — 94 repositórios com a data nula, e 61 deles a coleta de fato visitou e
+      # não achou nada. Dizer "não coletado" sobre eles seria a tela afirmando o que ela
+      # não observou, que é o defeito oposto ao que a marca existe para evitar.
+      :desconhecida ->
+        "no collection recorded"
+    end
+  end
+
+  # O rótulo do leitor de tela diz o estado **por extenso**, e não repete o texto visível:
+  # quem ouve não tem a forma nem a coluna ao lado para completar o sentido.
+  defp marca_rotulo(repositorio, contagens, com_ausentes) do
+    case marca(repositorio, contagens) do
+      :cheia ->
+        "has collected work"
+
+      :vazia ->
+        if teve_trabalho?(repositorio, com_ausentes),
+          do: "no current work: issues were collected before and none of them is present now",
+          else: "no work: issues were collected and none were found"
+
+      :desconhecida ->
+        "unknown: there is no record of an issue collection for this repository"
+    end
+  end
+
+  defp teve_trabalho?(repositorio, com_ausentes),
+    do: MapSet.member?(com_ausentes, repositorio.observed_repository_id)
+
+  defp contagem(repositorio, contagens),
+    do: Map.get(contagens, repositorio.observed_repository_id, 0)
 
   defp situacao(%{excluded_at: at}) when not is_nil(at), do: "excluded by the tenant"
 

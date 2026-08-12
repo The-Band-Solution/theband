@@ -17,8 +17,8 @@
 - [x] Requisitos testáveis e sem ambiguidade
 - [x] Critérios de sucesso mensuráveis
 - [x] Critérios de sucesso independentes de tecnologia
-- [x] Cenários de aceitação definidos para as quatro user stories
-- [x] Casos de borda identificados — oito
+- [x] Cenários de aceitação definidos para as duas user stories
+- [x] Casos de borda identificados — cinco, e o quarto está declarado fora do escopo
 - [x] Escopo delimitado, com o que fica fora e por quê
 - [x] Dependências e premissas declaradas
 
@@ -34,6 +34,12 @@
 **O pedido é o escopo, e a primeira versão desta spec esqueceu isso.** Ela inventou quatro estados
 para a marca; a informação que eu queria carregar — repositório inacessível — **já está na coluna
 `state`**, ao lado. FR-004 fixa isso: a marca não repete o que está do lado.
+
+**A análise achou um defeito crítico no desenho, e ele entrou como requisito.** `/speckit-analyze`
+rodou antes do código: a marca decidia pela data de coleta antes da contagem, e depois da migração
+**todos** os 135 repositórios têm data nula — então a tela diria `no collection recorded` sobre os 41
+que têm issues dentro, um deles com 2 514. FR-005a fixa a ordem: **contagem primeiro**, e a data só
+decide quando a contagem é zero. Verificado por V9, medido no dado real.
 
 **Zero e desconhecido não são a mesma coisa**, e essa distinção sobreviveu ao corte porque não é
 excesso: 61 dos 135 repositórios têm zero issues, e hoje não há como dizer quais nunca foram
@@ -54,12 +60,13 @@ implícito é o que faz feature crescer sem ninguém decidir.
 
 ## Notes
 
-Nenhum item incompleto.
+Nenhum item incompleto. A análise foi rodada e as seis correções estão aplicadas nos artefatos;
+o registro do que mudou está em [plan.md](../plan.md), seção "O que a análise mudou neste plano".
 
 **A spec foi cortada depois da primeira validação.** A versão inicial tinha 22 FR e quatro
 estados na marca; a pessoa mantenedora recusou — *"como assim apagar os estados? só pedi para
 colocar um símbolo"* — e estava certa. Ficaram 13 FR e dois estados, mais o "não se sabe" que o
-FR-005 exige.
+FR-005 exige — e a análise acrescentou FR-005a, fechando em **14 FR e 11 SC**.
 
 A regra que ficou disso: **quando a spec cresce além do pedido, a pergunta é se a informação nova
 já existe em outro lugar da tela.** Aqui existia — a coluna `state` já diz `unreachable`,

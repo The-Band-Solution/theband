@@ -10,9 +10,14 @@ isto — 22 requisitos para um símbolo —, e vinte tarefas repetiriam o erro n
 
 Ordem: F1 → F2 → F3, e é dependência.
 
-**MVP**: F1 e F3. Com as duas, a marca distingue "tem trabalho" de "não tem" — que é o pedido
-literal. F2 acrescenta o terceiro estado, e sem ela a marca mostraria "vazio" onde o certo é "não
-se sabe".
+**MVP**: F1, F2 e F3 — as três.
+
+A análise mostrou que F1+F3 **produz tela desonesta**: sem a coluna de F2 a marca não tem como
+dizer "não se sabe", e diria `collected, no issues` sobre repositório que a plataforma nunca
+consultou. Afirmar coleta que não houve é pior que não ter a marca.
+
+**F1 continua entregável sozinha** — 135 consultas viram 1, sem mudança visível. É o único corte
+que produz estado honesto.
 
 ---
 
@@ -75,10 +80,17 @@ defeito que a feature existe para não ter.
     outros — e aí a marca **mente sobre coleta**, que é pior que não saber. Repositório excluído
     ou inacessível **não** recebe a data, porque não foi consultado: a ausência dela é a
     informação (FR-005, contrato)
+    **`{:error, :not_found}` não interrompe a coleta.** Um repositório excluído da observação
+    **no meio** da execução deixa de existir para `fetch_observed/2`, e casar só `{:ok, _}`
+    derrubaria a fase com `MatchError` — o mesmo defeito que matou o LiveView na feature 003.
+    O erro é registrado em log e a coleta segue: a data ausente é exatamente o que se quer
+    para um repositório que saiu da observação
   - **Feita quando**: depois de uma coleta, todo repositório coletado tem a data e nenhum
-    excluído ou inacessível tem; a data e o checkpoint da fase andam juntos
+    excluído ou inacessível tem; a data e o checkpoint da fase andam juntos; um repositório
+    excluído no meio da execução **não** interrompe a fase
   - **Teste**: teste de ingestão conferindo que o repositório coletado tem `issues_collected_at`
-    e o inacessível **não** — a asserção que importa é a segunda
+    e o inacessível **não** — a asserção que importa é a segunda. E um caso que exclui o
+    repositório antes de marcar, exigindo que a fase **conclua** em vez de levantar
 
 ---
 
@@ -90,14 +102,29 @@ defeito que a feature existe para não ter.
     `lib/the_band_web/live/work_item_live/index.ex`, com um helper privado para o texto.
     **Nenhum componente novo** — há um chamador só, e a tabela e o cartão do telefone são o mesmo
     HTML (R1). Três estados, três canais: forma preenchida/vazia/tracejada, texto
-    `N issues`/`collected, no issues`/`not collected yet`, e rótulo acessível por extenso.
+    `N issues`/`collected, no issues`/`no collection recorded`, e rótulo acessível por extenso.
     **Cor não conta como canal** — WCAG 1.4.1, e é regra do design system. Os utilitários de
-    forma são os mesmos de `<.evidence>`, e o padrão vem do `docs/design-system.md`
+    forma são os mesmos de `<.evidence>`, e o padrão vem do `docs/design-system.md`.
+
+    **A ordem de decisão é a contagem primeiro, e errá-la faz a tela mentir sobre 41
+    repositórios.** Depois da migração de T003 todos os 135 têm `issues_collected_at` nulo,
+    porque nenhuma coleta anterior a registrou — e 41 deles têm issues vigentes. Decidir pela
+    data primeiro diria `no collection recorded` sobre um repositório com 2 514 issues dentro:
+
+    ```
+    contagem > 0                    → cheia,       "N issues"
+    contagem 0 e data presente      → vazia,       "collected, no issues"
+    contagem 0 e data nula          → tracejada,   "no collection recorded"
+    ```
+
+    A data só decide quando a contagem é zero. **Nunca antes disso**
   - **Feita quando**: os três estados aparecem na lista; com a cor removida, continuam
-    distinguíveis; cada marca é anunciada por leitor de tela
-  - **Teste**: `test/the_band_web/live/work_mark_test.exs` — o teste que importa é o que **remove
-    a cor** e ainda distingue os três, e o que exige textos **diferentes** para vazio e
-    desconhecido
+    distinguíveis; cada marca é anunciada por leitor de tela; **repositório com issues e sem
+    `issues_collected_at` aparece como tendo trabalho**, e não como "não coletado"
+  - **Teste**: `test/the_band_web/live/work_mark_test.exs` — três testes que importam: o que
+    **remove a cor** e ainda distingue os três; o que exige textos **diferentes** para vazio e
+    desconhecido; e o que dá a um repositório issues **sem** a data e exige `N issues` — este
+    último é o que impede a tela de mentir sobre os 41
 
 - [ ] T006 Dizer que houve trabalho e não há vigente
   - **Pronta quando**: T005 concluída
@@ -113,7 +140,7 @@ defeito que a feature existe para não ter.
 - [ ] T007 Manter todo repositório clicável
   - **Pronta quando**: T005 concluída
   - **Descrição**: conferir que os 135 repositórios continuam com link para
-    `/work/repositories/:id`, **inclusive os 61 vazios** — a tela deles explica por que estão
+    `/work/repositories/:id`, **inclusive os 94 sem issue** — a tela deles explica por que estão
     vazios, e é isso que alguém procura ao clicar num vazio (FR-007). O alvo de toque no telefone
     vem do design system e já existe; a tarefa é não quebrá-lo
   - **Feita quando**: toda linha da lista tem link, e a marca não substitui o link nem o cobre
@@ -145,25 +172,26 @@ T003 e T004 podem ir em paralelo com T005 até o ponto em que o terceiro estado 
 | FR-001 a FR-003 (a marca e os três canais) | T005 |
 | FR-004 (não repetir a coluna `state`) | T005 |
 | FR-005 (desconhecido ≠ zero) | T003, T004, T005 |
+| FR-005a (contagem primeiro) | T005 — e é o achado A1 da análise |
 | FR-006 (tabela e cartão) | T005 |
 | FR-007 a FR-009 (navegação e toque) | T007 |
 | FR-010, FR-011 (um número, sem mais consultas) | T001, T002 |
 | FR-012 (isolamento entre tenants) | T001 |
 | FR-013 (escopo é `/work`) | T005 — e a ausência de tarefa para a tela de sincronização |
 
-**13 de 13 requisitos com tarefa.** SC-001 a SC-009 verificados por V1 a V8 do
-[quickstart](quickstart.md).
+**14 de 14 requisitos com tarefa.** SC-001 a SC-011 verificados por V1 a V9 do
+[quickstart](quickstart.md) — V9 é o que a análise acrescentou, e mede os 41 repositórios no dado
+real.
 
 ## Estratégia de entrega
 
 **F1 primeiro, e ela é entregável sozinha**: 135 consultas viram 1, e a tela fica mais rápida sem
 nenhuma mudança visível. Se a feature parar aqui, o ganho permanece.
 
-**F1 + F3 é o MVP**: a marca com dois estados — tem e não tem — é o pedido literal.
-
-**F2 fecha o terceiro estado.** Sem ela, 61 repositórios apareceriam como "coletado e vazio"
-quando a plataforma não sabe se olhou. É o único ponto da feature onde omitir produz afirmação
-falsa, e por isso F2 não é opcional para declarar a feature completa.
+**F1+F2+F3 é o MVP, e a análise corrigiu isto.** A versão anterior dizia F1+F3, e estava errada:
+sem a coluna de F2 a marca diria `collected, no issues` sobre 94 repositórios de que não há
+registro de coleta. É o único ponto da feature onde omitir produz **afirmação falsa**, e afirmação
+falsa não é MVP — é defeito com menos código.
 
 ## Fora do escopo, e ficou de fora
 
@@ -172,4 +200,5 @@ falsa, e por isso F2 não é opcional para declarar a feature completa.
 | a marca dizer o estado de observação | a coluna `state` já diz — FR-004 |
 | marca na tela de sincronização | lá o repositório é fase de execução — FR-013 |
 | ordenar ou filtrar a lista | não foi pedido |
+| contagem que muda com a tela aberta | a tela não é ao vivo; recarregar resolve, e assinar mudança de contagem seria desenho que o problema não pede — caso de borda 4 |
 | componente `<.work_mark>` | um chamador só; o segundo justifica — R1 |

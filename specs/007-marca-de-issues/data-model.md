@@ -70,6 +70,17 @@ Isso é correto: a plataforma não olhou.
 Hoje a tela faz **135 consultas** (uma por repositório) e a marca precisaria do mesmo número. A
 agrupada faz **1**, e a coluna e a marca leem o mesmo mapa — que é o que FR-010 exige.
 
-A contagem é de issues **vigentes**: `no_longer_observed_at` nulo. Repositório que só tem issues
-ausentes aparece com **"no current work"**, não "no issues" — houve trabalho, e ele não está
-presente.
+A contagem é de issues **vigentes**: `no_longer_observed_at` nulo.
+
+E daí sai o **quarto texto**, que não é um quarto estado da marca:
+
+| contagem vigente | houve issue alguma vez | texto |
+|---|---|---|
+| > 0 | — | `N issues` |
+| 0 | **sim**, todas ausentes | `no current work` |
+| 0 | não, e a coleta rodou | `collected, no issues` |
+| 0 | não, e a coleta nunca rodou | `no collection recorded` |
+
+`no current work` afirma que **houve** trabalho e ele não está presente. Dizer "no issues" ali
+apagaria o fato de que existiram — e é a mesma distinção que `no_longer_observed_at` carrega em
+`collected_issues`, `issue_assignees` e `issue_labels`.

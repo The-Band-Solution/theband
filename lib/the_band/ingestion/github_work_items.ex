@@ -161,7 +161,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       {:ok, nodes, total} ->
         # Alcançou: se estava marcado como inacessível, a marca sai. A cura é a própria
         # coleta — ninguém precisa lembrar de destravar.
-        {:ok, _} = CMPO.clear_inaccessible(ctx.tenant, observado_id)
+        #
+        # Tolerante a `:not_found` pelo mesmo motivo que a marcação abaixo: o repositório
+        # pode sair da observação **durante** a fase, e um `{:ok, _} =` aqui derrubava a
+        # coleta inteira por causa de um. Foi um teste desta feature que achou.
+        registrar_ou_seguir(CMPO.clear_inaccessible(ctx.tenant, observado_id), repo.name)
 
         gravadas = Enum.map(nodes, &gravar_issue(ctx, observado_id, &1))
         vincular(ctx, nodes)
@@ -169,6 +173,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # O esperado de issues é a SOMA dos repositórios, e cada chamada acrescenta o
         # total daquele. Guardar só o do primeiro faria a barra passar de 100%.
         Ingestion.checkpoint_page(ctx.sync, "github.issue", nil, length(nodes), total)
+
+        # A data vai no **mesmo ponto** que o checkpoint da fase, e é de propósito: dois
+        # pontos diferentes é como a data fica gravada para uns repositórios e não para
+        # outros — e aí a tela afirma coleta que não houve, que é pior que não saber.
+        marcar_issues_coletadas(ctx, observado_id, repo.name)
 
         # A tela recebe o nome do repositório: "coletando issues" sem dizer de qual, numa
         # organização de 121 repositórios, não informa nada.
@@ -204,6 +213,31 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
         %{repositorio: repo.name, coletadas: 0}
     end
+  end
+
+  defp marcar_issues_coletadas(ctx, observado_id, nome) do
+    ctx.tenant
+    |> CMPO.mark_issues_collected(observado_id, DateTime.utc_now(:second))
+    |> registrar_ou_seguir(nome)
+  end
+
+  # `:not_found` significa que o repositório saiu da observação **no meio** da execução —
+  # alguém o excluiu enquanto a fase rodava. Casar só `{:ok, _}` derrubava a fase inteira
+  # com `MatchError` por causa de um repositório, e a data ausente é exatamente o que se
+  # quer para quem saiu da observação: a plataforma não tem mais o que dizer sobre ele.
+  #
+  # Isto **não** é fallback silencioso: o log nomeia o repositório, e nenhuma decisão
+  # posterior lê a data como se ela existisse.
+  defp registrar_ou_seguir({:ok, _}, _nome), do: :ok
+
+  defp registrar_ou_seguir({:error, :not_found}, nome) do
+    Logger.warning("#{nome} saiu da observação durante a coleta — nada a registrar sobre ele")
+    :ok
+  end
+
+  defp registrar_ou_seguir({:error, %Ecto.Changeset{} = changeset}, nome) do
+    Logger.warning("não foi possível atualizar #{nome}: #{inspect(changeset.errors)}")
+    :ok
   end
 
   defp gravar_issue(ctx, observado_id, node) do
