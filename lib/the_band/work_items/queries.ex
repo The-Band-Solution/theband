@@ -63,8 +63,14 @@ defmodule TheBand.WorkItems.Queries do
       derived_concept: p.derived_concept,
       declared_concept: p.declared_concept,
       divergence_reason: p.divergence_reason,
+      divergence_kind: p.divergence_kind,
       skip_reason: p.skip_reason,
-      skip_detail: p.skip_detail
+      skip_detail: p.skip_detail,
+      # A proveniência viaja com a issue porque a tela a mostra em toda linha: sem ela, a
+      # listagem trataria decisão por campo declarado e inferência sobre texto livre como a
+      # mesma coisa — que é o que o princípio III proíbe.
+      evidence_source: p.evidence_source,
+      confidence: p.confidence
     })
     |> Repo.all()
   end

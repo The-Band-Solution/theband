@@ -38,41 +38,54 @@ defmodule TheBandWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-300">
-      <div class="flex-1">
-        <a href="/" class="flex items-center gap-2 font-semibold">
-          The Band <span class="badge badge-sm badge-ghost">integração semântica</span>
+    <%!-- Mobile-first: a navegação empilha e rola horizontalmente no telefone, e só vira
+          barra a partir de `sm:`. O caminho inverso — desenhar para a mesa e quebrar para
+          baixo — produz o menu que corta no meio em 360px.
+
+          A tagline vem do rodapé da tese: cada serviço é um músico tocando um instrumento —
+          uma ontologia —, e juntos produzem música (informação) a partir de notas (os dados
+          das aplicações). É o que distingue isto de um ETL: notas não são música. --%>
+    <header class="border-b border-base-300 px-4 py-2 sm:px-6 sm:py-0 lg:px-8">
+      <div class="flex flex-col gap-2 sm:h-16 sm:flex-row sm:items-center sm:gap-4">
+        <a href="/" class="flex items-baseline gap-2 font-semibold">
+          The Band
+          <span class="hidden text-xs font-normal text-base-content/60 sm:inline">
+            notes into music
+          </span>
         </a>
       </div>
-      <div :if={@current_tenant} class="flex-none">
-        <ul class="flex px-1 space-x-1 items-center">
+      <div
+        :if={@current_tenant}
+        class="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0"
+      >
+        <ul class="flex items-center gap-1 whitespace-nowrap">
           <%!-- A ordem segue o que a plataforma observa, do agente para o trabalho:
                 quem (pessoas), com quem (equipes), sobre o quê (trabalho). Depois vêm as
                 telas de operação — sincronizações e ferramentas —, separadas por borda,
                 porque respondem "a plataforma está funcionando" e não "o que ela sabe". --%>
-          <li><.link navigate={~p"/pessoas"} class="btn btn-ghost btn-sm">Pessoas</.link></li>
-          <li><.link navigate={~p"/equipes"} class="btn btn-ghost btn-sm">Equipes</.link></li>
-          <li><.link navigate={~p"/trabalho"} class="btn btn-ghost btn-sm">Trabalho</.link></li>
-          <li class="pl-2 border-l border-base-300">
-            <.link navigate={~p"/sincronizacoes"} class="btn btn-ghost btn-sm">Sincronizações</.link>
+          <li><.link navigate={~p"/pessoas"} class="btn btn-ghost btn-sm">People</.link></li>
+          <li><.link navigate={~p"/equipes"} class="btn btn-ghost btn-sm">Teams</.link></li>
+          <li><.link navigate={~p"/trabalho"} class="btn btn-ghost btn-sm">Work</.link></li>
+          <li class="border-l border-base-300 pl-2">
+            <.link navigate={~p"/sincronizacoes"} class="btn btn-ghost btn-sm">Syncs</.link>
           </li>
           <li :if={@current_user && @current_user.role == "admin"}>
-            <.link navigate={~p"/ferramentas"} class="btn btn-ghost btn-sm">Ferramentas</.link>
+            <.link navigate={~p"/ferramentas"} class="btn btn-ghost btn-sm">Tools</.link>
           </li>
-          <li class="pl-3 border-l border-base-300">
+          <li class="ml-auto hidden border-l border-base-300 pl-3 lg:block">
             <span class="text-xs opacity-70">
               {@current_tenant.name} · {@current_user.email}
             </span>
           </li>
           <li>
-            <.link href={~p"/sessao"} method="delete" class="btn btn-ghost btn-xs">sair</.link>
+            <.link href={~p"/sessao"} method="delete" class="btn btn-ghost btn-xs">Sign out</.link>
           </li>
           <li><.theme_toggle /></li>
         </ul>
       </div>
     </header>
 
-    <main class="px-4 py-8 sm:px-6 lg:px-8">
+    <main class="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <div class="mx-auto max-w-6xl space-y-6">
         {render_slot(@inner_block)}
       </div>
@@ -94,7 +107,7 @@ defmodule TheBandWeb.Layouts do
       <.flash
         id="client-error"
         kind={:error}
-        title="Sem conexão com o servidor"
+        title="No connection to the server"
         phx-disconnected={
           show(".phx-client-error #client-error")
           |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
@@ -102,14 +115,14 @@ defmodule TheBandWeb.Layouts do
         phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Tentando reconectar
+        Trying to reconnect
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
 
       <.flash
         id="server-error"
         kind={:error}
-        title="Algo deu errado"
+        title="Something went wrong"
         phx-disconnected={
           show(".phx-server-error #server-error")
           |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
@@ -117,7 +130,7 @@ defmodule TheBandWeb.Layouts do
         phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
         hidden
       >
-        Tentando reconectar
+        Trying to reconnect
         <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
       </.flash>
     </div>

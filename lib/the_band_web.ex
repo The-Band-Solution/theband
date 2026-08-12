@@ -86,6 +86,8 @@ defmodule TheBandWeb do
       import Phoenix.HTML
       # Core UI components
       import TheBandWeb.CoreComponents
+      # Vocabulário do produto: evidência, lacuna, medida — ver `TheBandWeb.UI`
+      import TheBandWeb.UI
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

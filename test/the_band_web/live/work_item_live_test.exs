@@ -42,7 +42,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "o cabeçalho declara a coluna", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
-      assert html =~ "<th>organização</th>"
+      assert html =~ "<th>organisation</th>"
     end
   end
 
@@ -63,7 +63,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "a tela não mostra o aviso de desvio quando a soma fecha", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
-      refute html =~ "As contagens não somam"
+      refute html =~ "The counts do not add up"
     end
   end
 
@@ -102,7 +102,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
 
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
-      assert html =~ "tipo desconhecido"
+      assert html =~ "unknown type"
 
       assert html =~ "Spike (1)", """
       A tela não mostrou o nome do tipo desconhecido.
@@ -115,7 +115,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
       assert WorkItems.count_gaps_by_reason(tenant)["type_absent"] == 1
 
       {:ok, _live, html} = live(conn, ~p"/trabalho")
-      assert html =~ "sem tipo na origem"
+      assert html =~ "no type at the source"
     end
 
     test "nenhuma issue de tipo desconhecido aparece promovida", %{tenant: tenant} do
@@ -142,7 +142,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
     test "a tela diz isso em vez de deixar a seção vazia", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
-      assert html =~ "tipo declarado e a estrutura concordam"
+      assert html =~ "Label and structure agree on every issue"
     end
   end
 
@@ -179,7 +179,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
       {:ok, _live, html} = live(conn, ~p"/trabalho")
 
       refute html =~ "cobertura"
-      refute html =~ "% promovid"
+      refute html =~ "% promoted"
     end
   end
 
@@ -190,7 +190,7 @@ defmodule TheBandWeb.WorkItemLiveTest do
       assert WorkItems.count_collected(outro) == 0
 
       {:ok, _live, html} = live(log_in(conn, usuario), ~p"/trabalho")
-      assert html =~ "Nenhuma coleta de issues ocorreu ainda"
+      assert html =~ "No issue collection has run yet"
     end
   end
 end

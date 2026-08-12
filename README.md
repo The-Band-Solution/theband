@@ -7,6 +7,32 @@ GitLab, Azure DevOps, Jira, Sonar, CI/CD, monitoramento —, harmoniza esses dad
 ontologias de referência, preserva a proveniência de cada registro e entrega informação
 rastreável para análise e tomada de decisão.
 
+## De onde vem o nome
+
+> Cada serviço da arquitetura é um **músico** que toca um **instrumento** — uma ontologia,
+> com seus conceitos, relações e regras. Juntos, os músicos produzem **música** — informação —
+> a partir de **notas** — os dados das aplicações — para satisfazer um **público**: a
+> organização.
+>
+> — rodapé da tese, Paulo Sérgio dos Santos Júnior (UFES, 2023)
+
+A metáfora não é decorativa: ela nomeia a diferença entre este sistema e um ETL. Notas não são
+música. Os dados do GitHub, do Jira e do Sonar são notas — e só viram informação quando alguém
+os toca segundo uma partitura comum, que aqui é a rede de ontologias.
+
+E ela explica por que a plataforma insiste em distinguir **observado** de **derivado**: um
+músico que improvisa não está errado, mas quem ouve precisa saber que aquilo não estava escrito.
+
+| na metáfora | na plataforma |
+|---|---|
+| músico | serviço baseado em ontologia |
+| instrumento | ontologia — conceitos, relações e regras |
+| nota | dado da aplicação, como a origem o entregou |
+| música | informação: o conceito, a medida, a resposta |
+| público | a organização que decide com aquilo |
+
+---
+
 Base científica: tese de doutorado de **Paulo Sérgio dos Santos Júnior** (UFES, 2023),
 *From Continuous Software Engineering Reference Ontologies to the Integration of Data
 for Data-Driven Software Development*, orientada por Monalessa Perini Barcellos e

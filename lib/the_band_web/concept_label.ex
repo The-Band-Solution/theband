@@ -1,82 +1,63 @@
 defmodule TheBandWeb.ConceptLabel do
   @moduledoc """
-  Como o identificador de um conceito e o motivo de uma lacuna aparecem para quem lê.
+  Como o identificador de um conceito, uma lacuna, uma recusa e uma divergência aparecem na
+  tela — **em inglês**.
 
-  Existe porque três telas mostram os mesmos conceitos — trabalho, detalhe da issue e
-  repositório. Com a lista repetida em cada uma, `sro.epic` viraria "épico" numa tela e
-  "epic" na outra, e quem lê concluiria serem coisas diferentes.
+  Existe porque as telas mostram os mesmos conceitos, e com a lista repetida em cada uma
+  `sro.epic` viraria "epic" numa e "Epic" na outra; quem lê concluiria serem coisas
+  diferentes.
+
+  ## A interface fala inglês; o código e a documentação falam português
+
+  Decisão deliberada, declarada no `AGENTS.md`: o público da interface não é o público do
+  código. Misturar os dois exigiria traduzir a constituição — reescrita que ninguém pediu.
 
   ## O que este módulo não faz
 
-  **Não decide conceito.** Traduzir é exibição; decidir é `TheBand.WorkItems.Routing`.
-  Uma função aqui que inferisse conceito a partir do texto seria a inferência por
-  semelhança de nome que o princípio I proíbe, escondida na camada de apresentação.
+  **Não decide conceito.** Traduzir é exibição; decidir é `TheBand.WorkItems.Routing`. Uma
+  função aqui que inferisse conceito a partir do texto seria a inferência por semelhança de
+  nome que o princípio I proíbe, escondida na camada de apresentação.
 
   Identificador sem tradução é devolvido **como está** — nunca vazio. Um conceito novo na
-  base de conhecimento aparece com o identificador técnico até alguém traduzi-lo, e isso
-  é melhor que desaparecer da tela.
+  base aparece com o identificador técnico até alguém traduzi-lo, e isso é melhor que
+  desaparecer da tela.
   """
 
   @conceitos [
-    {"sro.epic", "épico"},
-    {"sro.atomic_user_story", "user story atômica"},
-    {"sro.intended_scrum_development_task", "tarefa pretendida"},
-    {"osdef.defect", "defeito"}
+    {"sro.epic", "epic"},
+    {"sro.atomic_user_story", "atomic user story"},
+    {"sro.intended_scrum_development_task", "intended task"},
+    {"osdef.defect", "defect"}
   ]
 
-  @doc """
-  Como uma issue **sem conceito** aparece: `indefinida`, com o motivo ao lado.
-
-  ## Por que não é um conceito da ontologia
-
-  `indefinida` **não existe** na base de conhecimento, e não deve existir. Ela não é uma
-  coisa que a issue é — é o estado de a plataforma ainda não saber o que ela é. Criar
-  `sro.undefined` faria a ausência de conhecimento virar conhecimento: as issues entrariam
-  em contagens de conceito, e "3360 indefinidas" seria lido como um tipo de trabalho que o
-  time faz.
-
-  É a distinção entre lacuna e fato, e a plataforma existe para preservá-la.
-
-  ## Por que então nomear
-
-  Porque sem nome elas aparecem como um traço e somem da leitura. Nomear a lacuna é o que
-  permite alguém agir sobre ela — e a ação é a tela de regras de mapeamento, não uma
-  promoção inventada.
-  """
-  @spec indefinida(String.t() | nil, String.t() | nil) :: String.t()
-  def indefinida(motivo, detalhe) do
-    caso =
-      case {motivo, detalhe} do
-        {"type_unknown", nil} -> "tipo desconhecido"
-        {"type_unknown", tipo} -> "tipo #{tipo} sem regra"
-        {"type_absent", _} -> "sem tipo na origem"
-        {nil, _} -> "sem promoção registrada"
-        {outro, _} -> motivo(outro)
-      end
-
-    "indefinida — #{caso}"
-  end
-
   @motivos %{
-    "type_absent" => "sem tipo na origem",
-    "type_unknown" => "tipo desconhecido",
-    "sub_issues_unavailable" => "sub-issues indisponíveis"
+    "type_absent" => "no type at the source",
+    "type_unknown" => "unknown type",
+    "sub_issues_unavailable" => "sub-issues unavailable"
   }
 
-  # O tipo diz **o que** aconteceu; a frase gravada diz o caso concreto. Os dois primeiros
-  # são axioma aplicado — a plataforma mudou o conceito. Os dois seguintes são sinal: o
-  # conceito foi mantido, e a divergência existe para ser vista, não para ser corrigida.
+  @fontes %{
+    "declared_type" => "declared type",
+    "title" => "title pattern",
+    "structure" => "decomposition structure"
+  }
+
+  @confiancas %{"high" => "high", "medium" => "medium", "low" => "low"}
+
+  # Os dois primeiros são **axioma aplicado** — a plataforma mudou o conceito e diz por quê.
+  # Os dois seguintes são **sinal**: o conceito foi mantido, porque nenhum axioma proíbe o
+  # caso. A diferença é o que o tipo torna consultável, e a frase sozinha escondia.
   @divergencias %{
-    "epic_without_parts" => "rótulo dizia épico, e não há partes",
-    "composition_makes_epic" => "a composição torna épico",
-    "task_with_parts" => "tarefa com partes coletadas",
-    "user_story_without_parts" => "user story sem partes nem tarefas",
-    "label_vs_structure" => "rótulo e estrutura discordam"
+    "epic_without_parts" => "labelled epic, and it has no parts",
+    "composition_makes_epic" => "composition makes it an epic",
+    "task_with_parts" => "task with collected parts",
+    "user_story_without_parts" => "user story with no parts or tasks",
+    "label_vs_structure" => "label and structure disagree"
   }
 
   @recusas %{
-    "cycle" => "ciclo de decomposição",
-    "out_of_scope" => "parte fora do escopo observado"
+    "cycle" => "decomposition cycle",
+    "out_of_scope" => "part outside the observed scope"
   }
 
   @doc "Os conceitos na ordem em que as telas os apresentam."
@@ -91,17 +72,58 @@ defmodule TheBandWeb.ConceptLabel do
     Enum.find_value(@conceitos, conceito, fn {id, rotulo} -> id == conceito && rotulo end)
   end
 
-  @doc "O motivo da lacuna em português, ou o próprio motivo quando não há tradução."
+  @doc "O motivo da lacuna, por extenso."
   @spec motivo(String.t() | nil) :: String.t() | nil
   def motivo(nil), do: nil
   def motivo(motivo), do: Map.get(@motivos, motivo, motivo)
 
   @doc """
-  O tipo da divergência em português.
+  Como uma issue **sem conceito** aparece: `undefined`, com o motivo ao lado.
 
-  Devolve o próprio identificador quando não há tradução: um tipo novo aparece como está
-  até alguém traduzi-lo, e isso é melhor que desaparecer da tela.
+  ## Por que não é um conceito da ontologia
+
+  `undefined` **não existe** na base de conhecimento, e não deve existir. Ela não é uma coisa
+  que a issue é — é o estado de a plataforma ainda não saber o que ela é. Criar
+  `sro.undefined` faria a ausência de conhecimento virar conhecimento: as issues entrariam em
+  contagens de conceito, e "3 451 undefined" seria lido como um tipo de trabalho que o time
+  faz.
+
+  ## Por que então nomear
+
+  Porque sem nome elas aparecem como um traço e somem da leitura. Nomear a lacuna é o que
+  permite alguém agir sobre ela — e a ação é a tela de regras de mapeamento, nunca uma
+  promoção inventada.
   """
+  @spec indefinida(String.t() | nil, String.t() | nil) :: String.t()
+  def indefinida(motivo, detalhe) do
+    caso =
+      case {motivo, detalhe} do
+        {"type_unknown", nil} -> "unknown type"
+        {"type_unknown", tipo} -> "type #{tipo} has no rule"
+        {"type_absent", _} -> "no type at the source"
+        {nil, _} -> "no promotion recorded"
+        {outro, _} -> motivo(outro)
+      end
+
+    "undefined — #{caso}"
+  end
+
+  @doc "De onde veio a evidência, por extenso."
+  @spec fonte(String.t() | nil) :: String.t()
+  def fonte(nil), do: "provenance not recorded"
+  def fonte(fonte), do: Map.get(@fontes, fonte, fonte)
+
+  @doc """
+  Quanto a plataforma confia na decisão — **nível, nunca número**.
+
+  Um número seria inventado, e viraria meta: alguém o otimizaria escrevendo regras mais
+  amplas, e a medida deixaria de medir.
+  """
+  @spec confianca(String.t() | nil) :: String.t() | nil
+  def confianca(nil), do: nil
+  def confianca(nivel), do: Map.get(@confiancas, nivel, nivel)
+
+  @doc "O tipo da divergência, por extenso."
   @spec divergencia(String.t() | nil) :: String.t() | nil
   def divergencia(nil), do: nil
   def divergencia(tipo), do: Map.get(@divergencias, tipo, tipo)
@@ -111,7 +133,7 @@ defmodule TheBandWeb.ConceptLabel do
   def divergencia_mudou_conceito?(tipo),
     do: tipo in ["epic_without_parts", "composition_makes_epic"]
 
-  @doc "O motivo da recusa de vínculo em português."
+  @doc "O motivo da recusa de vínculo, por extenso."
   @spec recusa(String.t() | nil) :: String.t() | nil
   def recusa(nil), do: nil
   def recusa(motivo), do: Map.get(@recusas, motivo, motivo)

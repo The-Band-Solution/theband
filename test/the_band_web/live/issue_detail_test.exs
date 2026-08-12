@@ -80,7 +80,7 @@ defmodule TheBandWeb.IssueDetailTest do
       assert html =~ "sro.rule07"
       assert html =~ "o inválido é o vínculo"
       # A issue continua promovida: o aviso não a esconde nem a despromove.
-      assert html =~ "tarefa pretendida"
+      assert html =~ "intended task"
     end
 
     test "a tarefa sem pai traz o mesmo axioma com outro texto",

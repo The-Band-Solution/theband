@@ -103,3 +103,158 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   A GRAMÁTICA DA EVIDÊNCIA — WCAG 2.0, critério 1.4.1
+
+   "Cor não é o único meio visual de transmitir informação." A plataforma
+   distingue observado de derivado o tempo todo, e a distinção precisa
+   sobreviver ao daltonismo, ao monocromático e à impressão.
+
+   Aqui o **preenchimento** carrega a proveniência, e a cor fica livre para
+   dizer outra coisa:
+
+     sólido     → observado: a origem afirmou
+     hachurado  → derivado: a plataforma concluiu
+     tracejado  → ausente: ninguém afirmou nada
+
+   Cada marca também carrega **texto**, sempre. O padrão é reforço, nunca o
+   único canal — quem usa leitor de tela recebe a mesma informação.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.evidence-solid {
+  background: currentColor;
+}
+
+.evidence-hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    currentColor 0 2px,
+    transparent 2px 4px
+  );
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+}
+
+.evidence-dashed {
+  background: transparent;
+  border: 1px dashed currentColor;
+}
+
+/* A mesma gramática em escala de barra. */
+.bar-solid { background: var(--color-success); }
+
+.bar-hatched {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-success) 0 3px,
+    color-mix(in oklch, var(--color-success) 30%, transparent) 3px 6px
+  );
+}
+
+.bar-dashed {
+  background: transparent;
+  border-top: 1px dashed currentColor;
+  border-bottom: 1px dashed currentColor;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   FOCO VISÍVEL — WCAG 2.4.7
+
+   O anel do navegador some sobre fundo escuro em vários temas. Este é
+   explícito, tem contraste contra as duas superfícies, e nunca é removido.
+   ───────────────────────────────────────────────────────────────────────── */
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ALVO DE TOQUE — WCAG 2.5.5 (AAA em 2.0, obrigatório em 2.2 nível AA)
+
+   44 px é o mínimo que um polegar acerta. Botões pequenos ganham a área sem
+   ganhar o tamanho visual: o pseudo-elemento estende a região clicável.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (pointer: coarse) {
+  .btn-xs, .btn-sm, .link {
+    position: relative;
+  }
+
+  .btn-xs::after, .btn-sm::after, .link::after {
+    content: "";
+    position: absolute;
+    inset: 50% 0 auto;
+    height: 44px;
+    width: 100%;
+    transform: translateY(-50%);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVIMENTO — WCAG 2.3.3
+
+   O pulso da fase em curso é informação, e some para quem pede menos
+   movimento: a fase continua distinguível pela cor E pelo texto de estado.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TABELA QUE VIRA LISTA — abaixo de 40rem
+
+   Seis colunas em 360 px não são utilizáveis com rolagem horizontal. Cada
+   linha vira um cartão, e o cabeçalho da coluna vem do atributo `data-label`.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  table.stacked thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  table.stacked tr {
+    display: block;
+    border: 1px solid var(--color-base-300);
+    border-radius: 0.25rem;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  table.stacked td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.2rem 0;
+    text-align: right;
+  }
+
+  table.stacked td::before {
+    content: attr(data-label);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+    text-align: left;
+    flex: none;
+  }
+
+  table.stacked td[data-label=""]::before { content: none; }
+}
+
+/* Números em coluna só alinham com fonte tabular. */
+.tabular { font-variant-numeric: tabular-nums; }
