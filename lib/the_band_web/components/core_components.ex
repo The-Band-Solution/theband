@@ -315,6 +315,156 @@ defmodule TheBandWeb.CoreComponents do
   end
 
   @doc """
+  O cabeçalho de uma coluna ordenável, e a caixa de busca — as duas peças que a tabela precisa.
+
+  ## Por que são duas funções, e não um componente de tabela inteiro
+
+  As sete tabelas desta plataforma mostram coisas diferentes: uma tem sete colunas, outra tem
+  quatro; uma agrupa por repositório, outra não. Um componente que desenhasse a tabela toda
+  obrigaria cada tela a descrever a sua no vocabulário dele — e o que varia entre elas é
+  justamente o que elas dizem.
+
+  O que **não** varia é o comportamento: clicar no cabeçalho ordena, digitar filtra, e a página
+  se escolhe por índice. É isso que vive aqui.
+
+  ## A direção não é só cor
+
+  A seta é texto — `↑` e `↓`. Quem não distingue cores continua sabendo por qual coluna a lista
+  está ordenada, e para que lado.
+  """
+  attr :campo, :atom, required: true
+  attr :rotulo, :string, required: true
+  attr :ordem, :any, required: true, doc: "{campo, direção} da ordem vigente"
+  attr :class, :string, default: nil
+  attr :rest, :global
+
+  def th_ordenavel(assigns) do
+    assigns =
+      assign(assigns,
+        ativa?: match?({campo, _} when campo == :erlang.map_get(:campo, assigns), assigns.ordem)
+      )
+
+    ~H"""
+    <th class={@class} {@rest}>
+      <button
+        type="button"
+        phx-click="ordenar"
+        phx-value-campo={@campo}
+        class="inline-flex items-center gap-1 hover:text-base-content cursor-pointer"
+      >
+        {@rotulo}
+        <span :if={@ativa?} aria-hidden="true" class="text-primary">
+          {if elem(@ordem, 1) == :asc, do: "↑", else: "↓"}
+        </span>
+        <span :if={@ativa?} class="sr-only">
+          ordenado {if elem(@ordem, 1) == :asc, do: "de forma crescente", else: "de forma decrescente"}
+        </span>
+      </button>
+    </th>
+    """
+  end
+
+  @doc """
+  A caixa de busca. **A tela declara onde ela procura**, e a declaração aparece para quem lê.
+
+  Uma busca que não diz onde procura faz quem não encontra concluir que o dado não existe.
+  """
+  attr :valor, :string, default: ""
+  attr :onde, :string, required: true, doc: "em quais colunas esta tela procura"
+
+  def busca(assigns) do
+    ~H"""
+    <form phx-change="buscar" phx-submit="buscar" class="flex flex-col gap-1">
+      <input
+        type="search"
+        name="q"
+        value={@valor}
+        placeholder={"buscar em #{@onde}"}
+        aria-label={"buscar em #{@onde}"}
+        phx-debounce="300"
+        class="input input-sm input-bordered w-full sm:w-80"
+      />
+    </form>
+    """
+  end
+
+  @doc """
+  A paginação numerada.
+
+  ## Por que reticências, e o que elas preservam
+
+  Com 4 529 issues e 50 por página são **91** índices — mais do que cabe e mais do que ajuda. O
+  encurtamento preserva a **primeira**, a **última** e as **vizinhas da atual**: são os saltos que
+  alguém realmente dá.
+
+  ## Uma página só não tem paginação
+
+  `/teams` tem 12 linhas. Mostrar o índice `1` sozinho é dizer que há para onde ir quando não há.
+  """
+  attr :pagina, :integer, required: true
+  attr :por_pagina, :integer, required: true
+  attr :total, :integer, required: true
+
+  def paginacao(assigns) do
+    paginas = max(1, ceil(assigns.total / assigns.por_pagina))
+    assigns = assign(assigns, paginas: paginas, indices: indices(assigns.pagina, paginas))
+
+    ~H"""
+    <nav :if={@paginas > 1} aria-label="Páginas" class="flex flex-wrap items-center gap-1">
+      <button
+        type="button"
+        class="btn btn-xs"
+        disabled={@pagina == 1}
+        phx-click="pagina"
+        phx-value-n={@pagina - 1}
+      >
+        anterior
+      </button>
+      <%= for indice <- @indices do %>
+        <span :if={indice == :reticencias} class="px-1 text-base-content/50">…</span>
+        <button
+          :if={indice != :reticencias}
+          type="button"
+          class={["btn btn-xs", indice == @pagina && "btn-primary"]}
+          aria-current={indice == @pagina && "page"}
+          phx-click="pagina"
+          phx-value-n={indice}
+        >
+          {indice}
+        </button>
+      <% end %>
+      <button
+        type="button"
+        class="btn btn-xs"
+        disabled={@pagina == @paginas}
+        phx-click="pagina"
+        phx-value-n={@pagina + 1}
+      >
+        próxima
+      </button>
+    </nav>
+    """
+  end
+
+  # Primeira, última, e as duas vizinhas da atual. O resto vira reticência — uma só, e nunca
+  # duas seguidas.
+  defp indices(atual, total) do
+    visiveis =
+      [1, total, atual - 1, atual, atual + 1]
+      |> Enum.filter(&(&1 >= 1 and &1 <= total))
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    visiveis
+    |> Enum.zip([nil | visiveis])
+    |> Enum.flat_map(fn
+      {n, nil} -> [n]
+      {n, anterior} when n - anterior > 1 -> [:reticencias, n]
+      {n, _} -> [n]
+    end)
+  end
+
+  @doc """
   A migalha de pão — onde a pessoa está, e como subir.
 
   Cada nível é `%{rotulo: texto, destino: rota | nil}`. **Destino `nil` é o lugar atual**, e não

@@ -41,7 +41,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Trabalho", repositorio: nil, pagina: 1)
+     |> assign(page_title: "Trabalho", repositorio: nil, pagina: 1, busca: "", ordem: nil)
      |> load()}
   end
 
@@ -54,6 +54,26 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   def handle_event("filtrar", %{"repositorio" => id}, socket),
     do: {:noreply, socket |> assign(repositorio: id, pagina: 1) |> load()}
+
+  # Buscar volta para a primeira página **sempre**. Ficar na página 12 de um resultado de duas
+  # mostraria uma tabela vazia com paginação afirmando que há mais.
+  def handle_event("buscar", %{"q" => q}, socket) do
+    {:noreply, socket |> assign(busca: q, pagina: 1) |> load()}
+  end
+
+  # Clicar de novo na mesma coluna inverte; clicar noutra recomeça crescente. É o que a pessoa
+  # espera, e é o que dispensa um segundo controle para escolher a direção.
+  def handle_event("ordenar", %{"campo" => campo}, socket) do
+    campo = String.to_existing_atom(campo)
+
+    ordem =
+      case socket.assigns.ordem do
+        {^campo, :asc} -> {campo, :desc}
+        _ -> {campo, :asc}
+      end
+
+    {:noreply, socket |> assign(ordem: ordem, pagina: 1) |> load()}
+  end
 
   def handle_event("pagina", %{"n" => n}, socket) do
     {:noreply, socket |> assign(pagina: String.to_integer(n)) |> load()}
@@ -274,12 +294,21 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </section>
 
         <section class="space-y-2">
-          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 class="font-semibold">Issues</h3>
+            <.busca valor={@busca} onde="título e número" />
             <span class="text-sm text-base-content/70">
-              {faixa(@pagina, @por_pagina, @coletadas)} of {@coletadas}
+              {faixa(@pagina, @por_pagina, @encontradas)} of {@encontradas}
+              <span :if={@busca != ""}>
+                found
+              </span>
             </span>
           </div>
+
+          <p :if={@busca != "" and @encontradas == 0} class="alert">
+            Nenhuma issue com “{@busca}” no título ou no número. A busca não alcança conceito nem
+            repositório — eles têm coluna própria.
+          </p>
 
           <div class="overflow-x-auto">
             <table class="table table-sm stacked">
@@ -287,11 +316,11 @@ defmodule TheBandWeb.WorkItemLive.Index do
                 <tr>
                   <th>organisation</th>
                   <th>repository</th>
-                  <th class="text-right">#</th>
-                  <th>title</th>
-                  <th>type at source</th>
+                  <.th_ordenavel campo={:number} rotulo="#" ordem={@ordem} class="text-right" />
+                  <.th_ordenavel campo={:title} rotulo="title" ordem={@ordem} />
+                  <.th_ordenavel campo={:issue_type} rotulo="type at source" ordem={@ordem} />
                   <th class="text-right">parts at source</th>
-                  <th>promoted to</th>
+                  <.th_ordenavel campo={:conceito} rotulo="promoted to" ordem={@ordem} />
                 </tr>
               </thead>
               <tbody>
@@ -336,27 +365,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
             </table>
           </div>
 
-          <nav class="flex items-center gap-2" aria-label="Pagination">
-            <button
-              class="btn btn-sm btn-outline"
-              disabled={@pagina == 1}
-              phx-click="pagina"
-              phx-value-n={@pagina - 1}
-            >
-              Previous
-            </button>
-            <span class="text-sm text-base-content/70">
-              page {@pagina} of {ultima_pagina(@coletadas, @por_pagina)}
-            </span>
-            <button
-              class="btn btn-sm btn-outline"
-              disabled={@pagina >= ultima_pagina(@coletadas, @por_pagina)}
-              phx-click="pagina"
-              phx-value-n={@pagina + 1}
-            >
-              Next
-            </button>
-          </nav>
+          <.paginacao pagina={@pagina} por_pagina={@por_pagina} total={@encontradas} />
         </section>
       </div>
     </Layouts.app>
@@ -367,7 +376,17 @@ defmodule TheBandWeb.WorkItemLive.Index do
     tenant = socket.assigns.current_tenant
     opts = filtro(socket.assigns.repositorio)
 
+    # **A busca entra na listagem e no total, e não nos painéis de cima.**
+    #
+    # Os painéis respondem "o que a plataforma sabe deste escopo" — 4 529 issues, 520 divergências.
+    # Filtrá-los pela busca faria os números mudarem enquanto alguém digita, e quem lesse
+    # concluiria que a plataforma esqueceu o resto.
+    #
+    # A listagem responde outra pergunta: "quais destas eu procuro". Só ela filtra.
+    da_lista = Keyword.merge(opts, search: socket.assigns.busca, order_by: socket.assigns.ordem)
+
     coletadas = WorkItems.count_collected(tenant, opts)
+    encontradas = WorkItems.count_collected(tenant, da_lista)
     promovidas = WorkItems.count_by_promotion(tenant, opts)
     lacunas = WorkItems.count_gaps_by_reason(tenant, opts)
     total_promovido = soma(promovidas)
@@ -386,10 +405,11 @@ defmodule TheBandWeb.WorkItemLive.Index do
       tipos_desconhecidos: WorkItems.unknown_types(tenant, opts),
       divergencias: WorkItems.list_divergences(tenant, opts),
       por_tipo: WorkItems.count_divergences_by_kind(tenant, opts),
+      encontradas: encontradas,
       issues:
         WorkItems.list_issues(
           tenant,
-          opts
+          da_lista
           |> Keyword.put(:limit, @por_pagina)
           |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
         ),
@@ -439,10 +459,6 @@ defmodule TheBandWeb.WorkItemLive.Index do
     "#{inicio}–#{min(pagina * por_pagina, total)}"
   end
 
-  defp ultima_pagina(0, _por_pagina), do: 1
-  defp ultima_pagina(total, por_pagina), do: ceil(total / por_pagina)
-
-  # Uma consulta agrupada, não uma por repositório: com 135 observados eram 135 consultas
   # para desenhar a tela, e a marca de trabalho precisa do mesmo número — ler de novo
   # faria 270. A contagem passa a ser de issues **vigentes**, e a mudança de significado
   # está declarada em R3 da pesquisa: a coluna e a marca leem o mesmo mapa, que é o que

@@ -53,7 +53,13 @@ defmodule TheBandWeb.RepositoryLive.Show do
       {:ok, repositorio} ->
         {:ok,
          socket
-         |> assign(page_title: repositorio.name, repositorio: repositorio, pagina: 1)
+         |> assign(
+           page_title: repositorio.name,
+           repositorio: repositorio,
+           pagina: 1,
+           busca: "",
+           ordem: nil
+         )
          |> carregar()}
     end
   end
@@ -61,6 +67,23 @@ defmodule TheBandWeb.RepositoryLive.Show do
   @impl true
   def handle_event("pagina", %{"n" => n}, socket),
     do: {:noreply, socket |> assign(pagina: String.to_integer(n)) |> carregar()}
+
+  # Buscar volta para a primeira página: ficar na 12 de um resultado de duas mostraria tabela
+  # vazia com paginação afirmando que há mais.
+  def handle_event("buscar", %{"q" => q}, socket),
+    do: {:noreply, socket |> assign(busca: q, pagina: 1) |> carregar()}
+
+  def handle_event("ordenar", %{"campo" => campo}, socket) do
+    campo = String.to_existing_atom(campo)
+
+    ordem =
+      case socket.assigns.ordem do
+        {^campo, :asc} -> {campo, :desc}
+        _ -> {campo, :asc}
+      end
+
+    {:noreply, socket |> assign(ordem: ordem, pagina: 1) |> carregar()}
+  end
 
   @impl true
   def render(assigns) do
@@ -202,18 +225,19 @@ defmodule TheBandWeb.RepositoryLive.Show do
       <div :if={@coletadas > 0} class="mt-6">
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-semibold">Issues</h3>
-          <span class="text-sm opacity-70">{faixa(@pagina, @coletadas)} of {@coletadas}</span>
+          <.busca valor={@busca} onde="título e número" />
+          <span class="text-sm opacity-70">{faixa(@pagina, @encontradas)} of {@encontradas}</span>
         </div>
         <div class="overflow-x-auto">
           <table class="table table-sm stacked">
             <thead>
               <tr>
-                <th class="text-right">#</th>
-                <th>title</th>
-                <th>type at source</th>
-                <th>state</th>
+                <.th_ordenavel campo={:number} rotulo="#" ordem={@ordem} class="text-right" />
+                <.th_ordenavel campo={:title} rotulo="title" ordem={@ordem} />
+                <.th_ordenavel campo={:issue_type} rotulo="type at source" ordem={@ordem} />
+                <.th_ordenavel campo={:state} rotulo="state" ordem={@ordem} />
                 <th class="text-right">parts at source</th>
-                <th>promoted to</th>
+                <.th_ordenavel campo={:conceito} rotulo="promoted to" ordem={@ordem} />
                 <th>part of</th>
               </tr>
             </thead>
@@ -256,27 +280,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
           </table>
         </div>
 
-        <nav class="mt-3 flex items-center gap-2" aria-label="Pagination">
-          <button
-            class="btn btn-sm btn-outline"
-            disabled={@pagina == 1}
-            phx-click="pagina"
-            phx-value-n={@pagina - 1}
-          >
-            Previous
-          </button>
-          <span class="text-sm opacity-70">
-            page {@pagina} of {ultima_pagina(@coletadas)}
-          </span>
-          <button
-            class="btn btn-sm btn-outline"
-            disabled={@pagina >= ultima_pagina(@coletadas)}
-            phx-click="pagina"
-            phx-value-n={@pagina + 1}
-          >
-            Next
-          </button>
-        </nav>
+        <.paginacao pagina={@pagina} por_pagina={@por_pagina} total={@encontradas} />
       </div>
     </Layouts.app>
     """
@@ -387,7 +391,12 @@ defmodule TheBandWeb.RepositoryLive.Show do
     tenant = socket.assigns.current_tenant
     opts = [observed_repository_id: socket.assigns.repositorio.observed_repository_id]
 
+    # Mesma separação da lista de trabalho: os painéis respondem o que o repositório tem, e a
+    # listagem responde quais destas eu procuro. Só a segunda filtra.
+    da_lista = Keyword.merge(opts, search: socket.assigns.busca, order_by: socket.assigns.ordem)
+
     coletadas = WorkItems.count_collected(tenant, opts)
+    encontradas = WorkItems.count_collected(tenant, da_lista)
     promovidas = WorkItems.count_by_promotion(tenant, opts)
     lacunas = WorkItems.count_gaps_by_reason(tenant, opts)
     total_promovido = soma(promovidas)
@@ -396,7 +405,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
     issues =
       WorkItems.list_issues(
         tenant,
-        opts
+        da_lista
         |> Keyword.put(:limit, @por_pagina)
         |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
       )
@@ -409,6 +418,11 @@ defmodule TheBandWeb.RepositoryLive.Show do
       total_promovido: total_promovido,
       total_lacuna: total_lacuna,
       desvio: coletadas - total_promovido - total_lacuna,
+      encontradas: encontradas,
+      # `@por_pagina` dentro do template é **assign**, não atributo de módulo — sem esta linha o
+      # render levanta `KeyError`. A página da pessoa já carrega o mesmo comentário, e o teste
+      # pegou de novo.
+      por_pagina: @por_pagina,
       # A mesma função que o detalhe da issue usa, aqui em lote.
       violacoes: WorkItems.rule07_violations(tenant, opts),
       issues: issues,
@@ -447,9 +461,6 @@ defmodule TheBandWeb.RepositoryLive.Show do
     inicio = (pagina - 1) * @por_pagina + 1
     "#{inicio}–#{min(pagina * @por_pagina, total)}"
   end
-
-  defp ultima_pagina(0), do: 1
-  defp ultima_pagina(total), do: ceil(total / @por_pagina)
 
   # Três vazios diferentes, e a diferença importa: um diz que a coleta ocorreu e não achou
   # nada; os outros dois dizem que a plataforma não olhou.
