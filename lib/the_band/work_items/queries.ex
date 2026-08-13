@@ -26,9 +26,20 @@ defmodule TheBand.WorkItems.Queries do
   alias TheBand.WorkItems.Schemas.IssuePromotion
   alias TheBand.WorkItems.Schemas.RefusedLink
 
+  @doc """
+  Quantas issues o escopo alcança — **com a mesma busca da listagem**.
+
+  O total e a lista precisam sair da mesma pergunta: um total que ignora a busca faria a paginação
+  numerada oferecer páginas vazias, e o número no rodapé desmentir o que está na tela.
+  """
   @spec count_collected(Tenant.t(), keyword()) :: non_neg_integer()
-  def count_collected(%Tenant{} = tenant, opts \\ []),
-    do: tenant |> escopo(opts) |> select([i], count(i.id)) |> Repo.one()
+  def count_collected(%Tenant{} = tenant, opts \\ []) do
+    tenant
+    |> escopo(opts)
+    |> por_texto(Keyword.get(opts, :search))
+    |> select([i], count(i.id))
+    |> Repo.one()
+  end
 
   @doc """
   Quantas issues **vigentes** cada repositório tem, numa consulta agrupada.
@@ -215,10 +226,8 @@ defmodule TheBand.WorkItems.Queries do
     tenant
     |> escopo(opts)
     |> join(:left_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
-    # Ordem estável, e é o que torna a paginação confiável: ordenar só por `number`
-    # daria páginas que se sobrepõem, porque o número repete entre repositórios — esta
-    # organização tem 121 deles, e vários `#1`.
-    |> order_by([i], asc: i.observed_repository_id, asc: i.number, asc: i.id)
+    |> por_texto(Keyword.get(opts, :search))
+    |> ordenar(Keyword.get(opts, :order_by))
     |> limit(^limite)
     |> offset(^deslocamento)
     |> select([i, p], %{
@@ -244,6 +253,44 @@ defmodule TheBand.WorkItems.Queries do
     })
     |> Repo.all()
   end
+
+  # A busca vai ao **banco**, e não à página já carregada.
+  #
+  # Buscar em memória filtraria as 25 linhas exibidas e pareceria busca: quem procurasse uma issue
+  # que está na página 40 receberia "nada encontrado" — e a tela não teria como saber que mentiu.
+  #
+  # `ilike` sem índice varre, e a medida diz que aqui isso custa **4,9 ms** sobre 4 529 linhas. Em
+  # base maior o certo é índice de trigrama, e o momento de decidir isso é quando a medida mudar —
+  # não agora, por previsão.
+  defp por_texto(query, nil), do: query
+  defp por_texto(query, ""), do: query
+
+  defp por_texto(query, texto) do
+    padrao = "%#{String.trim(texto)}%"
+    where(query, [i], ilike(i.title, ^padrao) or ilike(fragment("?::text", i.number), ^padrao))
+  end
+
+  # A ordem escolhida vem **antes** do desempate, e o desempate nunca sai.
+  #
+  # Ordenar só pela coluna escolhida daria páginas que se sobrepõem: `number` repete entre
+  # repositórios — esta organização tem 121 —, e `derived_concept` repete em 3 346 issues. Sem o
+  # desempate, a mesma issue aparece em duas páginas e outra não aparece em nenhuma, **sem erro**.
+  defp ordenar(query, nil), do: ordem_estavel(query)
+
+  defp ordenar(query, {:conceito, dir}) do
+    query
+    |> order_by([_i, p], [{^dir, p.derived_concept}])
+    |> ordem_estavel()
+  end
+
+  defp ordenar(query, {campo, dir}) when campo in [:number, :title, :state, :issue_type] do
+    query
+    |> order_by([i], [{^dir, field(i, ^campo)}])
+    |> ordem_estavel()
+  end
+
+  defp ordem_estavel(query),
+    do: order_by(query, [i], asc: i.observed_repository_id, asc: i.number, asc: i.id)
 
   @spec count_by_promotion(Tenant.t(), keyword()) :: %{String.t() => non_neg_integer()}
   def count_by_promotion(%Tenant{} = tenant, opts \\ []) do
