@@ -133,14 +133,15 @@ defmodule TheBandWeb.PeopleLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <.breadcrumb niveis={[
+        %{rotulo: "People", destino: ~p"/people"},
+        %{rotulo: @pessoa.name || @pessoa.login, destino: nil}
+      ]} />
       <.header>
         {@pessoa.name || @pessoa.login}
         <:subtitle>
           <span :if={@pessoa.login}>@{@pessoa.login} · </span>{@pessoa.account_type} · observed since {@pessoa.collected_at}
         </:subtitle>
-        <:actions>
-          <.link navigate={~p"/people"} class="btn btn-ghost btn-sm">back to people</.link>
-        </:actions>
       </.header>
 
       <div class="space-y-6">
