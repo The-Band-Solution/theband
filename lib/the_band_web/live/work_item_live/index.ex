@@ -34,49 +34,77 @@ defmodule TheBandWeb.WorkItemLive.Index do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
   alias TheBandWeb.ConceptLabel
+  alias TheBandWeb.EstadoDaTabela
 
-  @impl true
   @por_pagina 50
 
+  # As colunas que esta tabela ordena. É desta lista que sai o átomo — nunca do parâmetro.
+  @colunas [:number, :title, :issue_type, :state, :conceito]
+
+  @impl true
+
   def mount(_params, _session, socket) do
-    {:ok,
+    {:ok, assign(socket, page_title: "Trabalho")}
+  end
+
+  # **O estado da tabela vem do endereço, e não do socket.** Recarregar precisa devolver a
+  # mesma tela, e o link precisa levar quem recebe ao que quem mandou estava vendo — issue #292.
+  @impl true
+  def handle_params(params, _uri, socket) do
+    {estado, avisos} = EstadoDaTabela.ler(params, @colunas)
+
+    {:noreply,
      socket
-     |> assign(page_title: "Trabalho", repositorio: nil, pagina: 1, busca: "", ordem: nil)
+     |> assign(repositorio: repositorio(params))
+     |> assign(busca: estado.busca, ordem: estado.ordem, pagina: estado.pagina)
+     |> avisar(avisos)
      |> load()}
   end
+
+  defp repositorio(%{"repositorio" => id}) when id not in [nil, ""], do: id
+  defp repositorio(_), do: nil
+
+  # Parâmetro que não deu para ler é **dito**. Ignorar em silêncio faria a tela mostrar uma
+  # coisa enquanto o endereço diz outra, e quem mandou o link nunca saberia.
+  defp avisar(socket, []), do: socket
+  defp avisar(socket, avisos), do: put_flash(socket, :error, Enum.join(avisos, " "))
 
   @impl true
   # Trocar o filtro volta para a primeira página. Manter a página 4 ao filtrar um
   # repositório de 12 issues mostraria uma lista vazia, e quem lê concluiria que não há
   # issues em vez de que está fora do fim.
-  def handle_event("filtrar", %{"repositorio" => ""}, socket),
-    do: {:noreply, socket |> assign(repositorio: nil, pagina: 1) |> load()}
-
   def handle_event("filtrar", %{"repositorio" => id}, socket),
-    do: {:noreply, socket |> assign(repositorio: id, pagina: 1) |> load()}
+    do: {:noreply, push_patch(socket, to: caminho(socket, repositorio: id, pagina: 1))}
 
   # Buscar volta para a primeira página **sempre**. Ficar na página 12 de um resultado de duas
   # mostraria uma tabela vazia com paginação afirmando que há mais.
-  def handle_event("buscar", %{"q" => q}, socket) do
-    {:noreply, socket |> assign(busca: q, pagina: 1) |> load()}
-  end
+  def handle_event("buscar", %{"q" => q}, socket),
+    do: {:noreply, push_patch(socket, to: caminho(socket, busca: q, pagina: 1))}
 
-  # Clicar de novo na mesma coluna inverte; clicar noutra recomeça crescente. É o que a pessoa
-  # espera, e é o que dispensa um segundo controle para escolher a direção.
   def handle_event("ordenar", %{"campo" => campo}, socket) do
-    campo = String.to_existing_atom(campo)
+    ordem = EstadoDaTabela.proxima_ordem(socket.assigns.ordem, campo(campo))
 
-    ordem =
-      case socket.assigns.ordem do
-        {^campo, :asc} -> {campo, :desc}
-        _ -> {campo, :asc}
-      end
-
-    {:noreply, socket |> assign(ordem: ordem, pagina: 1) |> load()}
+    {:noreply, push_patch(socket, to: caminho(socket, ordem: ordem, pagina: 1))}
   end
 
-  def handle_event("pagina", %{"n" => n}, socket) do
-    {:noreply, socket |> assign(pagina: String.to_integer(n)) |> load()}
+  def handle_event("pagina", %{"n" => n}, socket),
+    do: {:noreply, push_patch(socket, to: caminho(socket, pagina: String.to_integer(n)))}
+
+  # O átomo vem da lista declarada, e nunca do texto que chegou do navegador.
+  defp campo(bruto), do: Enum.find(@colunas, &(Atom.to_string(&1) == bruto))
+
+  defp caminho(socket, mudancas) do
+    estado =
+      %{
+        busca: socket.assigns.busca,
+        ordem: socket.assigns.ordem,
+        pagina: socket.assigns.pagina
+      }
+      |> Map.merge(Map.new(Keyword.take(mudancas, [:busca, :ordem, :pagina])))
+
+    repositorio = Keyword.get(mudancas, :repositorio, socket.assigns.repositorio)
+
+    ~p"/work?#{EstadoDaTabela.para_query(estado, repositorio: repositorio)}"
   end
 
   @impl true

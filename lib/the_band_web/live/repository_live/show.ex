@@ -35,8 +35,12 @@ defmodule TheBandWeb.RepositoryLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
   alias TheBandWeb.ConceptLabel
+  alias TheBandWeb.EstadoDaTabela
 
   @por_pagina 50
+
+  # As colunas que esta tabela ordena. É desta lista que sai o átomo — nunca do parâmetro.
+  @colunas [:number, :title, :issue_type, :state, :conceito]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -47,42 +51,57 @@ defmodule TheBandWeb.RepositoryLive.Show do
       {:error, :not_found} ->
         {:ok,
          socket
+         |> assign(repositorio: nil)
          |> put_flash(:error, "Repository not found.")
          |> push_navigate(to: ~p"/work")}
 
       {:ok, repositorio} ->
-        {:ok,
-         socket
-         |> assign(
-           page_title: repositorio.name,
-           repositorio: repositorio,
-           pagina: 1,
-           busca: "",
-           ordem: nil
-         )
-         |> carregar()}
+        {:ok, assign(socket, page_title: repositorio.name, repositorio: repositorio)}
     end
   end
 
+  # O estado da tabela vem do endereço — recarregar devolve a mesma tela, e o link leva quem
+  # recebe ao que quem mandou estava vendo (issue #292).
+  @impl true
+  def handle_params(_params, _uri, %{assigns: %{repositorio: nil}} = socket),
+    do: {:noreply, socket}
+
+  def handle_params(params, _uri, socket) do
+    {estado, avisos} = EstadoDaTabela.ler(params, @colunas)
+
+    {:noreply,
+     socket
+     |> assign(busca: estado.busca, ordem: estado.ordem, pagina: estado.pagina)
+     |> avisar(avisos)
+     |> carregar()}
+  end
+
+  defp avisar(socket, []), do: socket
+  defp avisar(socket, avisos), do: put_flash(socket, :error, Enum.join(avisos, " "))
+
   @impl true
   def handle_event("pagina", %{"n" => n}, socket),
-    do: {:noreply, socket |> assign(pagina: String.to_integer(n)) |> carregar()}
+    do: {:noreply, push_patch(socket, to: caminho(socket, pagina: String.to_integer(n)))}
 
   # Buscar volta para a primeira página: ficar na 12 de um resultado de duas mostraria tabela
   # vazia com paginação afirmando que há mais.
   def handle_event("buscar", %{"q" => q}, socket),
-    do: {:noreply, socket |> assign(busca: q, pagina: 1) |> carregar()}
+    do: {:noreply, push_patch(socket, to: caminho(socket, busca: q, pagina: 1))}
 
   def handle_event("ordenar", %{"campo" => campo}, socket) do
-    campo = String.to_existing_atom(campo)
+    ordem = EstadoDaTabela.proxima_ordem(socket.assigns.ordem, campo(campo))
 
-    ordem =
-      case socket.assigns.ordem do
-        {^campo, :asc} -> {campo, :desc}
-        _ -> {campo, :asc}
-      end
+    {:noreply, push_patch(socket, to: caminho(socket, ordem: ordem, pagina: 1))}
+  end
 
-    {:noreply, socket |> assign(ordem: ordem, pagina: 1) |> carregar()}
+  defp campo(bruto), do: Enum.find(@colunas, &(Atom.to_string(&1) == bruto))
+
+  defp caminho(socket, mudancas) do
+    estado =
+      %{busca: socket.assigns.busca, ordem: socket.assigns.ordem, pagina: socket.assigns.pagina}
+      |> Map.merge(Map.new(mudancas))
+
+    ~p"/work/repositories/#{socket.assigns.repositorio.id}?#{EstadoDaTabela.para_query(estado)}"
   end
 
   @impl true
