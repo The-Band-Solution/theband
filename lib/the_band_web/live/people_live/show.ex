@@ -70,6 +70,17 @@ defmodule TheBandWeb.PeopleLive.Show do
       # render levanta `KeyError`. O teste pegou.
       por_pagina: @por_pagina,
       organizacoes: EO.list_person_organizations(tenant, pessoa.id),
+      # A organização derivada **do trabalho**, e ela responde outra pergunta.
+      #
+      # `list_person_organizations/2` sobe por equipe: pessoa → equipe → organização. Quem saiu da
+      # organização antes de a plataforma existir nunca esteve numa equipe, e apareceria com zero
+      # organizações — falso de outra maneira, porque ela trabalhou lá.
+      #
+      # A segunda cadeia é observada de ponta a ponta: pessoa → issue → repositório → organização.
+      # Nenhum elo é inferido. A tela exibe as duas **separadas**, porque "é membro" e "trabalhou"
+      # são afirmações diferentes, e somá-las faria "quem é da organização" responder com gente que
+      # ninguém admitiu.
+      organizacoes_por_trabalho: organizacoes_do_trabalho(tenant, repositorios, pessoa.id),
       equipes: EO.list_person_teams(tenant, pessoa.id),
       papeis: EO.count_roles(tenant),
       designadas: WorkItems.count_assigned_to(tenant, pessoa.id),
@@ -85,6 +96,31 @@ defmodule TheBandWeb.PeopleLive.Show do
           offset: (pagina - 1) * @por_pagina
         )
     )
+  end
+
+  # As organizações dos repositórios em que a pessoa trabalhou, **menos** aquelas em que ela já
+  # aparece por equipe: repetir a mesma organização nas duas listas faria quem lê somar.
+  defp organizacoes_do_trabalho(tenant, repositorios, person_id) do
+    por_equipe =
+      tenant
+      |> EO.list_person_organizations(person_id)
+      |> MapSet.new(& &1.id)
+
+    observados = Map.new(CMPO.list_observed(tenant), &{&1.observed_repository_id, &1})
+
+    repositorios
+    |> Enum.map(&Map.get(observados, &1.observed_repository_id))
+    |> Enum.reject(
+      &(is_nil(&1) or is_nil(&1.organization_id) or
+          MapSet.member?(por_equipe, &1.organization_id))
+    )
+    |> Enum.group_by(& &1.organization_id)
+    |> Enum.map(fn {organization_id, repos} ->
+      %{
+        organizacao: EO.fetch_organization!(tenant, organization_id),
+        repositorios: length(repos)
+      }
+    end)
   end
 
   defp nomes_de_repositorio(tenant) do
@@ -122,6 +158,20 @@ defmodule TheBandWeb.PeopleLive.Show do
               <.field label="last observed">{@pessoa.last_observed_at}</.field>
               <.field :if={@organizacoes != []} label="organisations">
                 {Enum.map_join(@organizacoes, ", ", & &1.login)}
+                <div class="text-xs opacity-60">observed through team membership</div>
+              </.field>
+              <%!-- Dito com a evidência, e sem a palavra "membro": a plataforma observou o trabalho,
+                    não o pertencimento. Quem saiu antes de ela começar a olhar nunca esteve numa
+                    equipe, e o trabalho ficou. --%>
+              <.field :if={@organizacoes_por_trabalho != []} label="worked at">
+                <div :for={o <- @organizacoes_por_trabalho}>
+                  {o.organizacao.login}
+                  <span class="text-xs opacity-60">
+                    derived from work in {o.repositorios} repositor{if o.repositorios == 1,
+                      do: "y",
+                      else: "ies"} — not a declared membership
+                  </span>
+                </div>
               </.field>
             </dl>
             <p :if={@pessoa.no_longer_observed_at} class="text-sm">
