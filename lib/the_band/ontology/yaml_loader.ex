@@ -95,25 +95,52 @@ defmodule TheBand.Ontology.YamlLoader do
       [top] when is_binary(top) ->
         {kind_from(top), id_from(data[top], relative)}
 
-      keys ->
-        top = Enum.find(keys, &(&1 in known_tops())) || "unknown"
+      _keys ->
+        # Duas chaves conhecidas no mesmo arquivo: vence a que **contém**, e conter é ter um
+        # mapa por valor. `cdro`, `ciro` e `sro` declaram `competency_questions:` dentro do
+        # próprio `ontology.yaml` — a ordem das chaves decidia o tipo, e as três viravam
+        # `unknown`, sumindo de todo filtro por `:ontology`. Eram 3 das 12 ontologias da base.
+        #
+        # O critério é o valor, não o nome: o arquivo de perguntas de competência também tem
+        # `ontology:`, só que apontando (`ontology: ciro`), e classificá-lo como ontologia
+        # inventaria uma décima terceira. Conteúdo é mapa ou lista; texto é ponteiro.
+        top = Enum.find(known_tops(), &conteudo?(data[&1])) || "unknown"
         {kind_from(top), id_from(data[top], relative)}
     end
   end
 
-  defp known_tops do
-    ~w(mapping derivation_rule measurement information_need module ontology
-       knowledge_base transformation competency_questions)
-  end
+  # O conjunto de tipos, em ordem de precedência: o que **contém** vem antes do que é contido.
+  # `ontology` e `module` têm campos irmãos da chave de topo, e alguns desses irmãos são tipos
+  # por direito próprio.
+  #
+  # A tabela é literal, e não `String.to_existing_atom`. O objetivo de `to_existing_atom` era
+  # certo — texto de arquivo não pode criar átomo — mas o efeito era pior do que o problema:
+  # a existência do átomo dependia de **qual módulo já tinha sido carregado**. Antes de
+  # `app.config`, `:ontology` não existia ainda, as 12 ontologias viravam `unknown`, o mapa de
+  # dependências saía vazio e a validação reprovava a base com 124 problemas inventados. Depois
+  # de `app.config`, a mesma base passava. Átomo literal existe assim que o módulo carrega, e o
+  # resultado deixa de depender da ordem de carga.
+  @tops [
+    {"ontology", :ontology},
+    {"module", :module},
+    {"mapping", :mapping},
+    {"derivation_rule", :derivation_rule},
+    {"measurement", :measurement},
+    {"information_need", :information_need},
+    {"knowledge_base", :knowledge_base},
+    {"transformation", :transformation},
+    {"competency_questions", :competency_questions}
+  ]
 
-  # `to_existing_atom`, e não `to_atom`: o conjunto de kinds é fechado e conhecido em
-  # compilação. Criar átomo a partir de texto de arquivo é a porta para exaustão da tabela de
-  # átomos — e, pior aqui, faz um YAML com erro de digitação virar um kind novo e silencioso
-  # em vez de falhar.
+  defp known_tops, do: Enum.map(@tops, &elem(&1, 0))
+
+  defp conteudo?(valor), do: is_map(valor) or (is_list(valor) and valor != [])
+
   defp kind_from(top) when is_binary(top) do
-    String.to_existing_atom(top)
-  rescue
-    ArgumentError -> :unknown
+    case List.keyfind(@tops, top, 0) do
+      {_, kind} -> kind
+      nil -> :unknown
+    end
   end
 
   defp kind_from(_), do: :unknown

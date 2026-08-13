@@ -16,6 +16,10 @@ defmodule Mix.Tasks.Knowledge.Validate do
 
   @impl Mix.Task
   def run(args) do
+    # Compilar **antes** de validar. `app.config` sozinho não compila: a task rodava contra os
+    # beams da última compilação, e passou horas reprovando a base por causa de um carregador
+    # já corrigido em disco. Gate que mede código velho é gate que mente nas duas direções.
+    Mix.Task.run("compile")
     Mix.Task.run("app.config")
     Application.ensure_all_started(:yaml_elixir)
 

@@ -118,7 +118,7 @@ coleta seguinte. Ninguém percebe — a recusa é silenciosa.
 
 ## O que continua valendo, e não muda
 
-- **`mix gates` é a definição única dos dez gates**, e o veredito é o código de saída;
+- **`mix gates` é a definição única dos treze gates**, e o veredito é o código de saída;
 - **nunca se apaga dado** — ausência é marcada, nunca removida. A feature 012 é essa frase virando
   código no nível do vínculo;
 - **a chave mestra e o token nunca entram no chat**, nem no repositório;

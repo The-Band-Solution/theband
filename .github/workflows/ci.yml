@@ -81,7 +81,7 @@ jobs:
           key: ${{ runner.os }}-assets-${{ hashFiles('config/config.exs') }}
 
       # ------------------------------------------------------------------------
-      # Os dez gates da constituição, princípio VII. Nenhum é opcional, e nenhum
+      # Os treze gates da constituição, princípio VII. Nenhum é opcional, e nenhum
       # pode ser desabilitado para o pipeline passar.
       # Um passo, e a definição dos gates vive em `mix gates`.
       #
