@@ -58,12 +58,16 @@ defmodule Mix.Tasks.Gates do
     # `mix deps.audit` **não** substitui: em 2026-08-13 ele dizia "No vulnerabilities found"
     # para a mesma dependência que este apontava. Bases de aviso diferentes.
     #
-    # **O Sobelow ficou de fora dos gates, de propósito.** Ele acha seis coisas hoje, e uma
-    # delas — CSP ausente — depende de mover o script de tema para fora do HTML, com efeito
-    # visual que precisa de olho humano. Gate que nasce vermelho é gate que alguém desliga na
-    # primeira semana. Ele entra como **relatório** em `mix qa.reports`, e a CSP tem issue
-    # própria. Vira gate quando estiver verde.
     {"auditoria de dependências", {:mix, ["hex.audit"]}},
+    # **Segurança, e ela nasce verde.** Os seis achados da primeira execução foram tratados um
+    # a um, e nenhum por desligar a verificação:
+    #
+    #   CSP ausente        corrigida — o script de tema saiu do HTML para `theme.js`
+    #   String.to_atom ×3  corrigido — `to_existing_atom`, que também faz YAML errado falhar
+    #   File.read! ×2      anotado com `@sobelow_skip` **na função**, com o motivo escrito
+    #
+    # `--skip` é o que faz as anotações valerem; sem ela, elas são comentário decorativo.
+    {"sobelow", {:mix, ["sobelow", "--exit", "low", "--skip"]}},
     {"dialyzer", {:mix, ["dialyzer"]}},
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já

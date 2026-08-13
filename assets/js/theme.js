@@ -1,0 +1,35 @@
+// O tema, decidido **antes da primeira pintura**.
+//
+// Estava embutido no `root.html.heex`, e saiu de lá por causa da Content-Security-Policy: com
+// `script-src 'self'`, script inline não executa — e a página abriria no tema errado até o
+// JavaScript principal carregar.
+//
+// **Sem `defer`, e é o ponto.** `app.js` é adiado de propósito, para não bloquear o render; este
+// precisa do contrário. Adiá-lo devolveria exatamente o piscar que ele existe para evitar.
+
+(() => {
+  const systemTheme = () => matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+
+  const setTheme = (theme) => {
+    if (theme === "system") {
+      localStorage.removeItem("phx:theme");
+      document.documentElement.setAttribute("data-theme", systemTheme());
+      document.documentElement.setAttribute("data-theme-source", "system");
+    } else {
+      localStorage.setItem("phx:theme", theme);
+      document.documentElement.setAttribute("data-theme", theme);
+      document.documentElement.setAttribute("data-theme-source", "user");
+    }
+  };
+  if (!document.documentElement.hasAttribute("data-theme")) {
+    setTheme(localStorage.getItem("phx:theme") || "system");
+  }
+  window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
+  window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    if (document.documentElement.getAttribute("data-theme-source") === "system") {
+      document.documentElement.setAttribute("data-theme", systemTheme());
+    }
+  });
+})();

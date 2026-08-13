@@ -30,7 +30,7 @@ identity:
 attributes:
   name:       { source_path: name }
   slug:       { source_path: slug }
-  created_at: { source_path: createdAt }
+  external_created_at: { source_path: createdAt }
 relations:
   organization:
     source_path: organization.id

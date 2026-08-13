@@ -137,6 +137,12 @@ jobs:
 
       - run: mix deps.get
 
+      # A suíte lê o CSS compilado — há teste que confere se a paleta chega ao arquivo final.
+      # Sem este passo, `mix qa.reports` roda os testes sem os assets e reprova um teste que
+      # passa no trabalho de gates, que constrói. Aconteceu na primeira execução deste CI.
+      - name: Construir assets
+        run: mix assets.build
+
       - name: Relatórios que o Sonar importa
         run: mix qa.reports
 

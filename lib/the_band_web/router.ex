@@ -9,7 +9,34 @@ defmodule TheBandWeb.Router do
     plug :fetch_live_flash
     plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
     plug :protect_from_forgery
-    plug :put_secure_browser_headers
+    # ------------------------------------------------------------------------
+    # Content-Security-Policy — achado `Config.CSP` do Sobelow, issue #288.
+    #
+    # Cada diretiva está aqui porque algo concreto precisa dela, e não por lista copiada:
+    #
+    #   script-src 'self'     o tema saiu do HTML para `theme.js` por causa desta linha
+    #   style-src  'unsafe-inline'  o LiveView escreve `style` inline em transição; sem isso,
+    #                               animação e `phx-click-away` param de funcionar
+    #   connect-src ws: wss:  é por onde o socket do LiveView vive
+    #   img-src data:         ícones embutidos como data URI
+    #   frame-ancestors 'none'  esta aplicação nunca é enquadrada
+    #
+    # **`'unsafe-inline'` em `style-src` é concessão declarada**, não descuido: removê-la
+    # exige `'unsafe-hashes'` com hash por atributo, que o LiveView gera em tempo de execução.
+    # ------------------------------------------------------------------------
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" =>
+        "default-src 'self'; " <>
+          "script-src 'self'; " <>
+          "style-src 'self' 'unsafe-inline'; " <>
+          "img-src 'self' data:; " <>
+          "font-src 'self' data:; " <>
+          "connect-src 'self' ws: wss:; " <>
+          "base-uri 'self'; " <>
+          "form-action 'self'; " <>
+          "frame-ancestors 'none'"
+    }
+
     plug TheBandWeb.Plugs.CurrentScope
   end
 

@@ -106,7 +106,16 @@ defmodule TheBand.Ontology.YamlLoader do
        knowledge_base transformation competency_questions)
   end
 
-  defp kind_from(top) when is_binary(top), do: String.to_atom(top)
+  # `to_existing_atom`, e não `to_atom`: o conjunto de kinds é fechado e conhecido em
+  # compilação. Criar átomo a partir de texto de arquivo é a porta para exaustão da tabela de
+  # átomos — e, pior aqui, faz um YAML com erro de digitação virar um kind novo e silencioso
+  # em vez de falhar.
+  defp kind_from(top) when is_binary(top) do
+    String.to_existing_atom(top)
+  rescue
+    ArgumentError -> :unknown
+  end
+
   defp kind_from(_), do: :unknown
 
   defp id_from(%{"id" => id}, _relative) when is_binary(id), do: id
