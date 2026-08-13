@@ -254,17 +254,16 @@ defmodule TheBandWeb.SourceLive.Index do
               <span :if={@ended[tool.id]} class="badge badge-ghost">
                 observation ended
               </span>
-              <%!-- A situação vem de `Sources.situacao/1`, e não de coluna: ela era um terceiro
-                    lugar guardando o mesmo fato, e discordava dos eventos — issue #178. --%>
               <span
                 :if={!@ended[tool.id]}
                 class={[
                   "badge",
-                  @situacao[tool.id] == :active && "badge-success",
-                  @situacao[tool.id] == :needs_attention && "badge-warning"
+                  tool.status == "active" && "badge-success",
+                  tool.status == "needs_attention" && "badge-warning",
+                  tool.status == "disabled" && "badge-ghost"
                 ]}
               >
-                {status_label(@situacao[tool.id])}
+                {status_label(tool.status)}
               </span>
             </div>
             <div class="text-sm opacity-70">{tool.instance_url}</div>
@@ -415,7 +414,7 @@ defmodule TheBandWeb.SourceLive.Index do
           </form>
         </div>
 
-        <div :if={@situacao[tool.id] == :needs_attention} class="alert alert-warning text-sm">
+        <div :if={tool.status == "needs_attention"} class="alert alert-warning text-sm">
           <div>
             <span class="font-semibold">Precisa de atenção desde {tool.needs_attention_since}.</span>
             <div>{tool.needs_attention_reason}</div>
@@ -479,7 +478,6 @@ defmodule TheBandWeb.SourceLive.Index do
     # usa. Dois caminhos discordariam, e a tela mostraria como encerrado o que a
     # plataforma continua coletando.
     |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
-    |> assign(situacao: Map.new(tools, &{&1.id, Sources.situacao(&1)}))
     |> assign(history: Map.new(tools, &{&1.id, Sources.observation_history(tenant, &1)}))
     |> assign_new(:ending, fn -> nil end)
     |> assign_new(:resuming, fn -> nil end)
@@ -488,11 +486,9 @@ defmodule TheBandWeb.SourceLive.Index do
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)
 
-  # Três respostas, e `disabled` não é uma delas: nenhuma linha do código a escrevia, e um estado
-  # que nunca acontece é um estado que quem lê precisa considerar à toa.
-  defp status_label(:active), do: "ativa"
-  defp status_label(:needs_attention), do: "precisa de atenção"
-  defp status_label(:ended), do: "observação encerrada"
+  defp status_label("active"), do: "ativa"
+  defp status_label("needs_attention"), do: "precisa de atenção"
+  defp status_label("disabled"), do: "desativada"
 
   defp errors(changeset) do
     changeset

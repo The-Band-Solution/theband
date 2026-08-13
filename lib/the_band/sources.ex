@@ -98,39 +98,6 @@ defmodule TheBand.Sources do
   end
 
   @doc """
-  A situação da ferramenta, **derivada** — issue #178.
-
-  ## Por que a coluna saiu
-
-  `connected_tools.status` materializava o que os eventos já dizem, contra a ADR 0004 D7 — e
-  **discordava deles**. Medido em 2026-08-13: `ifesserra-lab` tem cinco eventos de observação, o
-  último `ended`, e a coluna dizia `active`. `end_observation/3` grava o evento, destrói as
-  credenciais e marca a organização — e nunca tocou nela.
-
-  **A tela não chegou a mentir**, e é por isso que ninguém notou: ela já derivava o encerramento
-  por `observation_ended?/1` e só lia a coluna no resto. A coluna era um terceiro lugar guardando o
-  mesmo fato, esperando alguém confiar nela.
-
-  ## A ordem das três respostas
-
-  1. **encerrada** vence tudo — quem encerrou não precisa de atenção, precisa retomar;
-  2. **precisa de atenção** sai de `needs_attention_since`, que é fato datado — a coluna registra
-     **quando** se notou, e a situação vem dela;
-  3. **ativa** é o resto.
-
-  `disabled` sai do vocabulário: **nenhuma linha do código o escrevia**. Estado que nunca acontece é
-  estado que quem lê precisa considerar à toa.
-  """
-  @spec situacao(ConnectedTool.t()) :: :ended | :needs_attention | :active
-  def situacao(%ConnectedTool{} = tool) do
-    cond do
-      observation_ended?(tool) -> :ended
-      not is_nil(tool.needs_attention_since) -> :needs_attention
-      true -> :active
-    end
-  end
-
-  @doc """
   Quando a observação foi encerrada, ou `nil` se estiver vigente.
 
   Existe para a tela, que precisa dizer **desde quando** — e usa a mesma leitura do
@@ -378,6 +345,7 @@ defmodule TheBand.Sources do
   def mark_needs_attention(%ConnectedTool{} = tool, reason) do
     tool
     |> ConnectedTool.changeset(%{
+      status: "needs_attention",
       needs_attention_since: DateTime.utc_now(:second),
       needs_attention_reason: reason
     })
@@ -389,6 +357,7 @@ defmodule TheBand.Sources do
   def clear_needs_attention(%ConnectedTool{} = tool) do
     tool
     |> ConnectedTool.changeset(%{
+      status: "active",
       needs_attention_since: nil,
       needs_attention_reason: nil
     })

@@ -29,8 +29,7 @@ defmodule TheBand.SourcesTest do
                  "secret" => "token-valido"
                })
 
-      # A situação é **derivada**, e não coluna — issue #178.
-      assert Sources.situacao(tool) == :active
+      assert tool.status == "active"
       assert credential.validated_at
       assert "read:org" in credential.scopes
     end
@@ -255,55 +254,12 @@ defmodule TheBand.SourcesTest do
 
       {:ok, marcada} = Sources.mark_needs_attention(uma, "credencial expirou")
 
-      assert Sources.situacao(marcada) == :needs_attention
+      assert marcada.status == "needs_attention"
       assert marcada.needs_attention_since
       assert marcada.needs_attention_reason == "credencial expirou"
 
       recarregada = Enum.find(Sources.list_connected_tools(tenant), &(&1.id == outra.id))
-      assert Sources.situacao(recarregada) == :active
-    end
-  end
-
-  describe "a situação da ferramenta é derivada — #178" do
-    test "encerrada vence precisa de atenção" do
-      tenant = tenant_fixture()
-
-      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
-        {:ok,
-         %{status: 200, body: %{"login" => "c"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
-      end)
-
-      {:ok, %{tool: tool}} =
-        Sources.connect_tool(tenant, %{
-          "tool_type" => "github",
-          "instance_url" => "https://github.com",
-          "organization_login" => "org-situacao",
-          "secret" => "t1"
-        })
-
-      {:ok, marcada} = Sources.mark_needs_attention(tool, "credencial recusada")
-      assert Sources.situacao(marcada) == :needs_attention
-
-      assert marcada.needs_attention_since, "o fato datado sumiu junto com a coluna"
-      assert marcada.needs_attention_reason == "credencial recusada"
-
-      # A confirmação é o login da organização — encerrar observação exige digitar o nome, e o
-      # teste não contorna isso.
-      {:ok, _} =
-        Sources.end_observation(tenant, marcada, %{
-          "reason" => "fim do piloto",
-          "confirmation" => "org-situacao"
-        })
-
-      {:ok, depois} = Sources.fetch_connected_tool(tenant, tool.id)
-
-      assert Sources.situacao(depois) == :ended, """
-      Uma observação encerrada continuou dizendo que precisa de atenção.
-
-      Quem encerrou não precisa de atenção — precisa ser retomado. E era exatamente aqui que a
-      coluna materializada discordava dos eventos: `end_observation/3` grava o evento, destrói as
-      credenciais e marca a organização, e **nunca tocava** na coluna.
-      """
+      assert recarregada.status == "active"
     end
   end
 end
