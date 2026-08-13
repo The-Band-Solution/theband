@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # **Toda branch, e não só a `main`.** A análise existe para pegar o que entra enquanto ainda
+  # é barato mudar — esperar o PR é esperar a decisão já estar tomada.
   push:
-    branches: [main]
   pull_request:
 
 env:
@@ -78,3 +79,75 @@ jobs:
       # ------------------------------------------------------------------------
       - name: dez quality gates
         run: mix gates
+
+  # --------------------------------------------------------------------------
+  # A análise externa, e ela **não** é o décimo primeiro gate.
+  #
+  # Os gates decidem se o código entra e vivem em `mix gates`, que roda offline. Este
+  # trabalho depende de rede e de um token que não está no repositório: transformá-lo em
+  # gate faria indisponibilidade de terceiro reprovar código correto.
+  #
+  # `continue-on-error` é de propósito, e é a razão pela qual ele não bloqueia. O que ele
+  # **não** faz é esconder: o passo de conferência abaixo falha quando os relatórios não
+  # existem, porque painel que mostra 0% sem dizer que não achou o arquivo afirma qualidade
+  # que ninguém mediu.
+  # --------------------------------------------------------------------------
+  sonarcloud:
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    # Sem o token, o passo falharia em toda execução de quem abrir um fork — e o vermelho
+    # constante treina a ignorar. Ausência de segredo é ausência de análise, declarada.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: the_band_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # O Sonar precisa do histórico para atribuir cada linha a um commit — sem ele,
+          # "código novo" vira "todo o código", e o painel cobra dívida antiga como se
+          # tivesse nascido agora.
+          fetch-depth: 0
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.2"
+          otp-version: "29"
+
+      - name: Cache de dependências
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+
+      - run: mix deps.get
+
+      - name: Relatórios que o Sonar importa
+        run: mix qa.reports
+
+      - name: Conferir que os relatórios existem
+        run: |
+          test -s cover/excoveralls.xml || { echo "cobertura ausente — o painel mostraria 0%"; exit 1; }
+          test -s cover/credo.json || { echo "achados do Credo ausentes"; exit 1; }
+
+      - name: SonarCloud
+        continue-on-error: true
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io

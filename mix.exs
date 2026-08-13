@@ -8,6 +8,8 @@ defmodule TheBand.MixProject do
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.xml": :test, "coveralls.html": :test],
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
@@ -43,6 +45,11 @@ defmodule TheBand.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # Cobertura em formato que ferramenta externa lê. O `mix test --cover` embutido produz
+      # HTML para olho humano, e nenhum relatório que o SonarCloud saiba importar — e sem
+      # relatório o painel mostraria "0% de cobertura" para 31 mil linhas de Elixir, que é pior
+      # que não mostrar nada.
+      {:excoveralls, "~> 0.18", only: :test},
       {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
