@@ -60,8 +60,20 @@ defmodule TheBandWeb.TeamsLive.Show do
         <tbody>
           <tr :for={member <- @members} class={member.no_longer_observed_at && "opacity-50"}>
             <td>
-              <div class="font-medium">{member.person.name}</div>
-              <div :if={member.person.login} class="text-xs opacity-60">@{member.person.login}</div>
+              <%!-- Nome e login levam ao **mesmo** lugar: são duas grafias da mesma pessoa, e
+                    obrigar quem lê a descobrir qual das duas é clicável seria pedir que ele
+                    adivinhe. A participação pode ter acabado; a pessoa continua existindo. --%>
+              <.link
+                navigate={~p"/people/#{member.person.id}"}
+                class="link link-hover font-medium underline decoration-dotted"
+              >
+                {member.person.name}
+              </.link>
+              <div :if={member.person.login} class="text-xs opacity-60">
+                <.link navigate={~p"/people/#{member.person.id}"} class="link link-hover">
+                  @{member.person.login}
+                </.link>
+              </div>
               <div :if={member.no_longer_observed_at} class="text-xs opacity-60">
                 não mais observada desde {member.no_longer_observed_at}
               </div>
