@@ -19,15 +19,31 @@ Sete tarefas em quatro fases. Sem migração, sem YAML novo.
 
 ### T002 Registrar quem escreveu, pelo caminho que já existe
 - **Pronta quando**: T001 feita.
-- **Descrição**: em `coletar_issues/2`, antes de gravar as issues, resolver os autores e designados
-  dos nós: guardar o payload como `github.user` com `RawData.store/1`, aplicar
-  `Mapper.apply_mapping("github.user.to.eo.person", node)` e `Mapper.complete/3`, e gravar com
-  `EO.upsert_person_from_source/2`. **É o mesmo caminho de `sync_github_eo`** — um segundo caminho de
-  escrita discordaria do primeiro. FR-002, FR-003, FR-005.
-- **Feita quando**: uma coleta cujo autor não é membro cria a pessoa com `external_id` da origem; o
-  mapa `ctx.pessoas` passa a resolvê-la; e a issue grava `author_person_id`.
+- **Descrição**: em `coletar_issues/2`, **antes** de gravar as issues do repositório, resolver os
+  autores **e os designados** dos nós daquela página: guardar o payload como `github.user` com
+  `RawData.store/1`, aplicar `Mapper.apply_mapping("github.user.to.eo.person", node)` e
+  `Mapper.complete/3`, e gravar com `EO.upsert_person_from_source/2`. **É o mesmo caminho de
+  `sync_github_eo`** — um segundo caminho de escrita discordaria do primeiro. FR-002, FR-003, FR-005.
+
+  **Duas armadilhas de ordem, e as duas são da análise:**
+
+  | Armadilha | Por que quebra |
+  |---|---|
+  | `ctx.pessoas` é montado **uma vez**, antes de todos os repositórios | a pessoa criada ao coletar o repositório #3 **não estaria no mapa** ao coletar o #4, e as issues dela ficariam sem vínculo até a coleta seguinte — sem erro nenhum |
+  | `gravar_issue/3` lê `ctx.pessoas[login]` na **mesma passada** | registrar a pessoa depois de gravar a issue deixa `author_person_id` nulo mesmo com a pessoa existindo |
+
+  Por isso: as pessoas do lote nascem **antes** das issues do lote, e o mapa é **reaproveitado
+  acrescido** — nunca relido por issue, que seriam 4 529 consultas.
+
+  **E vale para designado também**: `replace_assignees/3` grava `person_id` vindo do mesmo mapa —
+  A3 da análise.
+- **Feita quando**: uma coleta cujo autor não é membro cria a pessoa com `external_id` da origem; a
+  issue grava `author_person_id` **na mesma execução**; a designação grava `person_id`; e um
+  repositório coletado **depois** do que criou a pessoa também resolve o vínculo.
 - **Teste**: `test/the_band/ingestion/autor_observado_test.exs` — coleta com autor externo, e a
-  asserção é que a pessoa existe **com `external_id`**, não só que existe.
+  asserção é que a pessoa existe **com `external_id`**, não só que existe. Mais o caso da ordem:
+  **dois** repositórios na mesma execução, o autor aparecendo primeiro no segundo, exigindo vínculo
+  nos dois.
 
 ### T003 [P] Recusar o que não é pessoa
 - **Pronta quando**: T002 feita.
