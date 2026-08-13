@@ -97,7 +97,7 @@ jobs:
       # O que se perde: a granularidade por passo na interface do GitHub. O que se
       # ganha: não existir um segundo lugar onde a lista pode ficar desatualizada.
       # ------------------------------------------------------------------------
-      - name: dez quality gates
+      - name: treze quality gates
         run: mix gates
 
   # --------------------------------------------------------------------------
