@@ -346,7 +346,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert sync.error_reason =~ "credencial recusada"
 
       {:ok, tool} = TheBand.Sources.fetch_connected_tool(tenant, tool.id)
-      assert tool.status == "needs_attention"
+      # A situação é derivada do fato datado, e não de coluna — issue #178.
+      assert TheBand.Sources.situacao(tool) == :needs_attention
       assert tool.needs_attention_since
     end
   end
