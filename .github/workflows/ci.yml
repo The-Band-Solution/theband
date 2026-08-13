@@ -191,6 +191,28 @@ jobs:
           test -s cover/excoveralls.xml || { echo "cobertura ausente — o painel mostraria 0%"; exit 1; }
           test -s cover/credo.json || { echo "achados do Credo ausentes"; exit 1; }
 
+      # ------------------------------------------------------------------------
+      # **Segredo ausente é erro de configuração, e não indisponibilidade de terceiro.**
+      #
+      # A primeira versão deste trabalho não distinguia os dois: com `SONAR_TOKEN` vazio, o
+      # scanner falhava, o `continue-on-error` engolia, e o trabalho ficava **verde com zero
+      # análises no painel**. Foi assim que aconteceu — o próprio agente de QA existe para
+      # caçar esse padrão, e ele apareceu no código que o criou.
+      #
+      # A distinção é a mesma que o produto faz desde a feature 009: falha transitória não é
+      # tratada como permanente, e ausência de configuração não é tratada como falha de rede.
+      # ------------------------------------------------------------------------
+      - name: Conferir que o segredo existe
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN não está cadastrado — a análise não aconteceu, e nenhum painel foi atualizado."
+            echo "Cadastre em Settings → Secrets and variables → Actions, ou:"
+            echo "  gh secret set SONAR_TOKEN -R The-Band-Solution/theband"
+            exit 1
+          fi
+
       - name: SonarCloud
         continue-on-error: true
         uses: SonarSource/sonarqube-scan-action@v5

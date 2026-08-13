@@ -86,16 +86,24 @@ mix qa.reports    # gera cover/excoveralls.xml e cover/credo.json
 
 ### O que você confere, sempre
 
-1. **Que o relatório existe.** O Sonar avisa e segue quando o arquivo falta — e o painel
+1. **Que a análise aconteceu.** O passo do scanner é `continue-on-error`, e sem cuidado isso
+   faz o trabalho ficar **verde com zero análises no painel** — foi o que aconteceu na primeira
+   execução, com `SONAR_TOKEN` vazio. Segredo ausente é **erro de configuração** e reprova; o
+   scanner caindo por rede é indisponibilidade e não reprova. Confira no painel, não no CI:
+
+   ```bash
+   curl -s "https://sonarcloud.io/api/project_analyses/search?project=<chave>&ps=1"
+   ```
+2. **Que o relatório existe.** O Sonar avisa e segue quando o arquivo falta — e o painel
    mostra 0% sem dizer que não achou nada. O CI falha explicitamente nesse caso, e essa
    verificação não pode ser removida;
-2. **Que os caminhos casam.** O excoveralls escreve `/lib/…` com barra inicial, e o Sonar
+3. **Que os caminhos casam.** O excoveralls escreve `/lib/…` com barra inicial, e o Sonar
    resolve relativo à raiz. Com a barra, nenhum arquivo casa e a cobertura vira zero —
    silenciosamente. `mix qa.reports` corrige, e quem mexer nele confere de novo;
-3. **Que o conversor vê achado.** Zero achados do Credo é o estado normal desta base,
+4. **Que o conversor vê achado.** Zero achados do Credo é o estado normal desta base,
    porque os gates são verdes — e é indistinguível de conversor quebrado. A prova é
    introduzir um defeito de mentira, rodar, e conferir que ele aparece;
-4. **Que a análise não virou obrigação disfarçada.** Se alguém propuser bloquear merge pelo
+5. **Que a análise não virou obrigação disfarçada.** Se alguém propuser bloquear merge pelo
    Sonar, a conversa é sobre mover o critério para `mix gates`, não sobre confiar num
    serviço externo.
 
