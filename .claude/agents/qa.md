@@ -107,13 +107,29 @@ mix qa.reports    # gera cover/excoveralls.xml e cover/credo.json
    Sonar, a conversa é sobre mover o critério para `mix gates`, não sobre confiar num
    serviço externo.
 
+### O limite desta ferramenta aqui, medido
+
+**O Sonar indexa apenas o que sabe ler.** Medido no PR #290: `ncloc_language_distribution = js=24`
+— vinte e quatro linhas, todas JavaScript, num repositório de 31 312 linhas de Elixir.
+
+A importação de cobertura declara 821 linhas cobríveis, e elas apontam para arquivos que o Sonar
+**não indexou**. O resultado é um `new_coverage = 0%` que reprovou o quality gate **medindo a única
+coisa que ele enxerga**, que é a menos importante.
+
+Duas consequências para quem cuidar disso:
+
+1. **cobertura no painel não julga o Elixir** — quem julga são os doze gates, offline;
+2. **quality gate exigindo cobertura de código novo reprova sempre**, e vermelho constante treina a
+   ignorar. A condição foi desligada no painel, e essa decisão é de produto — não se resolve por
+   configuração no repositório.
+
 ### O que precisa de pessoa, e você nunca faz sozinho
 
 | O que | Por quê |
 |---|---|
 | criar a organização e o projeto no SonarCloud | é conta de terceiro |
 | cadastrar o secret `SONAR_TOKEN` | **segredo não entra no chat nem no repositório** |
-| decidir o quality gate do painel | é decisão de produto sobre tolerância a dívida |
+| decidir o quality gate do painel | é decisão de produto sobre tolerância a dívida — e a condição de cobertura de código novo foi **desligada** porque media JavaScript num projeto Elixir |
 
 Sem o token, o passo não roda. **Declare a lacuna** — nunca marque como configurado.
 
