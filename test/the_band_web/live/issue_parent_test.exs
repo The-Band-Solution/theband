@@ -260,9 +260,15 @@ defmodule TheBandWeb.IssueParentTest do
       # o nome do repositório do pai.
       #
       # "Um número que não cresce" passa com 12 e passa com 120: por isso o teto é asserido.
-      assert muitas == 12, """
-      A página faz #{muitas} consultas por render, e o plano declara **doze** — dez que ela já fazia
-      mais duas da coluna. Um número diferente significa consulta nova sem decisão registrada.
+      assert muitas == 13, """
+      A página faz #{muitas} consultas por render, e o plano declara **treze** — dez que ela já
+      fazia, duas da coluna `part of`, e uma da feature 017: o total **que acompanha a busca**.
+
+      A décima terceira é decisão registrada, não descuido: sem ela a paginação numerada ofereceria
+      páginas vazias durante uma busca, porque o total viria do escopo inteiro. Custa 4,9 ms
+      medidos.
+
+      Um número diferente de treze significa consulta nova **sem** decisão registrada.
       """
     end
   end
