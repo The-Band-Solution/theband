@@ -33,15 +33,14 @@ defmodule TheBandWeb.TeamsLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
-      <.breadcrumb niveis={[
-        %{rotulo: "Teams", destino: ~p"/teams"},
-        %{rotulo: @team.name, destino: nil}
-      ]} />
       <.header>
         {@team.name}
         <:subtitle>
           {length(@members)} {if length(@members) == 1, do: "integrante", else: "integrantes"} · {@pending_role} sem papel organizacional atribuído
         </:subtitle>
+        <:actions>
+          <.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">voltar</.link>
+        </:actions>
       </.header>
 
       <div :if={@members == []} class="alert">
