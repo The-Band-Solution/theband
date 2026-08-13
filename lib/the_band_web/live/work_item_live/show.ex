@@ -74,6 +74,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <.breadcrumb niveis={@caminho} />
       <.header>
         <span class="font-mono opacity-60">#{@issue.number}</span> {@issue.title}
         <:subtitle>{@repositorio_nome} · {@organizacao} · {estado(@issue)}</:subtitle>
