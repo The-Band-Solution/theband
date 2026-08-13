@@ -315,6 +315,61 @@ defmodule TheBandWeb.CoreComponents do
   end
 
   @doc """
+  A migalha de pão — onde a pessoa está, e como subir.
+
+  Cada nível é `%{rotulo: texto, destino: rota | nil}`. **Destino `nil` é o lugar atual**, e não
+  vira ligação: quem já está ali não precisa de um clique que recarrega a mesma tela.
+
+  ## Por que a tela declara a lista, e não um "de onde vim"
+
+  O caminho da issue depende do percurso: quem chegou pela lista do repositório veio de outro lugar
+  que quem chegou pela lista de trabalho. Deixar o componente adivinhar faria a migalha **mentir**
+  sobre um caminho que ninguém percorreu — então quem sabe declara.
+
+  ## O que ela substituiu
+
+  Três telas resolviam isso de três jeitos, e uma delas com um botão `voltar` **em português**, no
+  meio de uma interface em inglês.
+
+  ## Nível sem destino existe, e é de propósito
+
+  Organização aparece no caminho de quase tudo e **não tem página**. Ela entra como texto, nunca
+  como ligação — é a mesma regra da feature 014: ligação que não leva a lugar nenhum promete.
+  """
+  attr :niveis, :list, required: true
+  attr :rotulo, :string, default: "Você está em"
+
+  def breadcrumb(assigns) do
+    ~H"""
+    <nav aria-label={@rotulo} class="pb-2 text-sm">
+      <ol class="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-base-content/70">
+        <li :for={{nivel, i} <- Enum.with_index(@niveis)} class="flex items-center gap-1 min-w-0">
+          <%!-- O separador é do CSS, e não do rótulo: texto dentro do rótulo entraria na leitura
+                do leitor de tela como se fosse parte do nome do lugar. --%>
+          <span :if={i > 0} aria-hidden="true" class="text-base-content/40">/</span>
+          <.link
+            :if={nivel.destino}
+            navigate={nivel.destino}
+            class="link link-hover underline decoration-dotted"
+          >
+            {nivel.rotulo}
+          </.link>
+          <%!-- O último nível **encurta**, e os primeiros não. Em 360 px o caminho não cabe, e
+                cortar o começo tiraria justamente o que orienta quem se perdeu. --%>
+          <span
+            :if={is_nil(nivel.destino)}
+            aria-current="page"
+            class="truncate max-w-[14rem] sm:max-w-none text-base-content"
+          >
+            {nivel.rotulo}
+          </span>
+        </li>
+      </ol>
+    </nav>
+    """
+  end
+
+  @doc """
   Renders a header with title.
   """
   slot :inner_block, required: true

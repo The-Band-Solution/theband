@@ -56,7 +56,11 @@ defmodule TheBandWeb.WorkItemLive.Show do
     # "sem permissão" confirmaria que o recurso existe.
     case WorkItems.fetch_issue(tenant, id) do
       {:ok, issue} ->
-        {:ok, socket |> assign(page_title: "##{issue.number}") |> carregar(issue)}
+        {:ok,
+         socket
+         |> assign(page_title: "##{issue.number}")
+         |> carregar(issue)
+         |> assign_caminho(issue)}
 
       {:error, :not_found} ->
         {:ok,
@@ -70,6 +74,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <.breadcrumb niveis={@caminho} />
       <.header>
         <span class="font-mono opacity-60">#{@issue.number}</span> {@issue.title}
         <:subtitle>{@repositorio_nome} · {@organizacao} · {estado(@issue)}</:subtitle>
@@ -469,6 +474,44 @@ defmodule TheBandWeb.WorkItemLive.Show do
       |> Enum.uniq()
 
     EO.people_names(tenant, ids)
+  end
+
+  # **O caminho depende de onde a pessoa veio, e o padrão é o estrutural.**
+  #
+  # A issue pertence a um repositório **e** aparece na lista de trabalho. Quem chegou pela lista do
+  # repositório veio de outro lugar que quem chegou por `/work` — e uma migalha fixa diria um
+  # caminho que ninguém percorreu.
+  #
+  # Sem percurso — endereço colado, ou recarregar —, vale o **estrutural**: o repositório é o dono
+  # da issue, e é a resposta verdadeira quando não se sabe a outra.
+  defp assign_caminho(socket, issue) do
+    veio_do_repositorio? =
+      case get_connect_params(socket)["referrer"] || socket.assigns[:referrer] do
+        url when is_binary(url) -> String.contains?(url, "/work/repositories/")
+        _ -> false
+      end
+
+    niveis =
+      [%{rotulo: "Work", destino: ~p"/work"}] ++
+        caminho_do_repositorio(socket, issue, veio_do_repositorio?) ++
+        [%{rotulo: "##{issue.number}", destino: nil}]
+
+    assign(socket, caminho: niveis)
+  end
+
+  # O repositório entra no caminho **sempre que se sabe qual é** — vindo dele ou não. É o que a
+  # spec chama de caminho estrutural, e é o padrão quando não há percurso.
+  defp caminho_do_repositorio(socket, issue, _veio?) do
+    case socket.assigns[:repositorio_nome] do
+      nil ->
+        []
+
+      "repository not found" ->
+        []
+
+      nome ->
+        [%{rotulo: nome, destino: ~p"/work/repositories/#{issue.observed_repository_id}"}]
+    end
   end
 
   defp onde(_tenant, nil, _issue),
