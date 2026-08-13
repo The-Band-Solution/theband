@@ -61,6 +61,26 @@ jobs:
       - run: mix deps.get
 
       # ------------------------------------------------------------------------
+      # O binário do Tailwind e do esbuild, cacheados **pela versão deles** — issue #232.
+      #
+      # O cache acima é chaveado por `mix.lock`, e é o certo para as dependências. Mas o
+      # binário do Tailwind não tem nada a ver com `mix.lock`: mudar uma dependência Elixir
+      # invalida o cache e força baixar o binário de novo — e uma falha de rede de um instante
+      # reprova a execução inteira, inclusive os gates que já tinham passado.
+      #
+      # A chave é a versão declarada em `config/config.exs`. **Repetir a tentativa foi recusado
+      # na issue**: mascararia a diferença entre rede instável e origem indisponível, que é
+      # justamente a distinção que o produto passou a fazer na feature 009.
+      # ------------------------------------------------------------------------
+      - name: Cache dos binários de assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build/tailwind-*
+            _build/esbuild-*
+          key: ${{ runner.os }}-assets-${{ hashFiles('config/config.exs') }}
+
+      # ------------------------------------------------------------------------
       # Os dez gates da constituição, princípio VII. Nenhum é opcional, e nenhum
       # pode ser desabilitado para o pipeline passar.
       # Um passo, e a definição dos gates vive em `mix gates`.
@@ -136,6 +156,26 @@ jobs:
           restore-keys: ${{ runner.os }}-mix-
 
       - run: mix deps.get
+
+      # ------------------------------------------------------------------------
+      # O binário do Tailwind e do esbuild, cacheados **pela versão deles** — issue #232.
+      #
+      # O cache acima é chaveado por `mix.lock`, e é o certo para as dependências. Mas o
+      # binário do Tailwind não tem nada a ver com `mix.lock`: mudar uma dependência Elixir
+      # invalida o cache e força baixar o binário de novo — e uma falha de rede de um instante
+      # reprova a execução inteira, inclusive os gates que já tinham passado.
+      #
+      # A chave é a versão declarada em `config/config.exs`. **Repetir a tentativa foi recusado
+      # na issue**: mascararia a diferença entre rede instável e origem indisponível, que é
+      # justamente a distinção que o produto passou a fazer na feature 009.
+      # ------------------------------------------------------------------------
+      - name: Cache dos binários de assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build/tailwind-*
+            _build/esbuild-*
+          key: ${{ runner.os }}-assets-${{ hashFiles('config/config.exs') }}
 
       # A suíte lê o CSS compilado — há teste que confere se a paleta chega ao arquivo final.
       # Sem este passo, `mix qa.reports` roda os testes sem os assets e reprova um teste que

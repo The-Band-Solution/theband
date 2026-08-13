@@ -72,6 +72,10 @@ defmodule Mix.Tasks.Gates do
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já
     # rodadas em dev. O CI roda o job inteiro em test; aqui o isolamento é do gate.
+    # O binário do Tailwind é cacheado no CI **pela versão dele**, e não por `mix.lock` —
+    # issue #232. Mudar dependência Elixir não pode obrigar a baixar binário de novo, porque
+    # falha de rede de um instante reprovava a execução inteira.
+    #
     # Os assets são compilados **antes** dos testes porque o teste dos tokens do design
     # system mede o CSS **compilado** — "apliquei a paleta" é afirmação sobre o build, e o
     # Tailwind poda o que não encontra no markup.
