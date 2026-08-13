@@ -420,8 +420,12 @@ defmodule TheBandWeb.IssueParentTest do
       # As tabelas do Oban ficam de fora: o handler é global, e o `Oban.Stager` consulta
       # `oban_jobs` a cada segundo. Um tick dentro da janela vira consulta atribuída à
       # tela — e o teste reprova com o código certo, em máquina carregada. É a L42.
+      # A `source` não basta: o Oban consulta por SQL cru, e aí ela vem nula enquanto o texto
+      # da consulta diz `oban_jobs`. Sob cobertura a janela alarga, o tick cai dentro dela, e o
+      # teste reprova por uma consulta que a tela não fez.
       if String.starts_with?(query, "SELECT") and
-           to_string(meta[:source]) not in ~w(oban_jobs oban_peers schema_migrations),
+           to_string(meta[:source]) not in ~w(oban_jobs oban_peers schema_migrations) and
+           not String.contains?(query, "oban_"),
          do: send(pai, {ref, :consulta})
     end
 

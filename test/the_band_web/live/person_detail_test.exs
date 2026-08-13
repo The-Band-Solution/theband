@@ -256,9 +256,14 @@ defmodule TheBandWeb.PersonDetailTest do
     # carregada e não na minha. É a L42: mensagem que chega fora de hora entra na contagem errada.
     ignoradas = ~w(oban_jobs oban_peers schema_migrations)
 
+    # A `source` não basta: o Oban consulta por SQL cru, e aí ela vem nula enquanto o texto da
+    # consulta diz `oban_jobs`. Sob cobertura a janela alarga, o tick cai dentro dela, e o teste
+    # reprova por uma consulta que a tela não fez — foi o que derrubou o job de cobertura no PR
+    # #297, com 30 contra 31.
     handler = fn _event, _measures, %{query: query} = meta, _config ->
-      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas,
-        do: send(pai, {ref, :consulta})
+      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas and
+           not String.contains?(query, "oban_"),
+         do: send(pai, {ref, :consulta})
     end
 
     :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
