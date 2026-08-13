@@ -1749,3 +1749,63 @@ mudou. Se a conclusão tivesse sido "precisamos migrar a coluna", teria custado 
 memória do padrão não é.
 
 **Estado**: aberta.
+
+---
+
+## L52 — Continuidade de conversa não é continuidade de branch
+
+**Origem**: Sprint 013 · **Tipo**: processo
+
+**O que aconteceu.** As features 014 e 015 nasceram da mesma conversa: medir a 014 revelou os 288
+logins sem pessoa, e a decisão de criá-los virou a 015. **Implementei as duas na mesma branch**, e o
+PR nasceu com os dois diffs — contra o `AGENTS.md` §17, e contra o que o **meu próprio sprint
+backlog** dizia duas seções acima: *"dois PRs, um sprint"*.
+
+**Por que aconteceu.** A segunda feature era consequência direta da primeira, e a sensação de
+continuidade — mesma conversa, mesma medida, mesmo assunto — se estendeu ao branch sem decisão
+consciente. **Escrever a regra no backlog não impediu de quebrá-la**: ela foi lida na abertura e não
+na hora de commitar.
+
+**O custo real**: navegação e ingestão têm critérios de revisão diferentes. Quem revisasse o #284
+teria de trocar de critério no meio do diff — e é exatamente isso que a regra existe para evitar.
+
+**O que fazer diferente.** A pergunta é no **primeiro commit de código**, não na abertura do sprint:
+
+```bash
+git log --oneline main..HEAD    # os commits de código são todos da mesma feature?
+```
+
+Se a resposta for não, a branch nova nasce **antes** do commit, não depois. Corrigir depois custou
+duas branches por cherry-pick e um PR fechado.
+
+**Estado**: aberta.
+
+---
+
+## L53 — O teto de um teste de custo vem da medida dos dois lados
+
+**Origem**: Sprint 013 · **Tipo**: técnica
+
+**O que aconteceu.** Escrevi um teste garantindo que ligar nomes não acrescenta consulta, com o teto
+`assert consultas <= 30`. **Reprovou com o código certo**: a tela fazia 38. O reflexo seria subir o
+número até passar — e um `<= 300` passaria com o defeito que o teste existe para pegar.
+
+Medi os dois lados: **39 antes** da feature, **38 depois**. O teto virou 39.
+
+**Por que aconteceu.** O número saiu de estimativa — "uma tela dessas deve fazer umas 30" — e não de
+medida. Um teto estimado erra nos dois sentidos, e os dois são ruins: reprova o certo, ou aprova o
+errado.
+
+**O que fazer diferente.** Teste de custo com teto numérico exige **medir o antes**, e o comentário
+guarda os dois números:
+
+```elixir
+# 39 antes da feature, 38 depois. Um teto de 30 reprova o código certo;
+# um de 300 passa com o defeito.
+assert consultas <= 39
+```
+
+Vale para consulta, tempo, linhas lidas e memória — e é irmã da **L50**, que exige provar que a
+medida não é zero.
+
+**Estado**: aberta.
