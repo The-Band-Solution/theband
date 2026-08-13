@@ -73,6 +73,22 @@ defmodule TheBand.SemanticIntegration.Mapper do
     |> Map.put(:account_type, account_type(node))
   end
 
+  # O nome do atributo vem do YAML de mapeamento e vira chave de changeset — ou seja, campo de
+  # schema, definido em **compilação**. `to_existing_atom` aproveita isso duas vezes: fecha a
+  # porta para exaustão de átomos, e faz um `source_path` com nome errado falhar em vez de
+  # produzir uma chave que nenhum changeset aceita e que some no `cast`.
+  defp atomo_de_campo(nome) do
+    String.to_existing_atom(nome)
+  rescue
+    ArgumentError ->
+      # `reraise`, e não `raise`: preserva a pilha original, que é o que diz **qual mapeamento**
+      # estava sendo aplicado quando o nome não existia.
+      reraise ArgumentError.exception(
+                "o mapeamento declara o atributo \"#{nome}\", que não existe em nenhum schema"
+              ),
+              __STACKTRACE__
+  end
+
   @doc "Classifica a conta a partir do `__typename` e do sufixo do login."
   @spec account_type(map()) :: String.t()
   def account_type(%{"__typename" => "Bot"}), do: "bot"
@@ -152,7 +168,7 @@ defmodule TheBand.SemanticIntegration.Mapper do
       |> Enum.reduce(%{}, fn {name, spec}, acc ->
         case dig(node, spec["source_path"]) do
           nil -> acc
-          value -> Map.put(acc, String.to_atom(name), value)
+          value -> Map.put(acc, atomo_de_campo(name), value)
         end
       end)
 
@@ -162,7 +178,7 @@ defmodule TheBand.SemanticIntegration.Mapper do
       |> Enum.reduce(%{}, fn {name, spec}, acc ->
         case dig(node, spec["source_path"]) do
           nil -> acc
-          value -> Map.put(acc, String.to_atom(name <> "_external_id"), value)
+          value -> Map.put(acc, atomo_de_campo(name <> "_external_id"), value)
         end
       end)
 

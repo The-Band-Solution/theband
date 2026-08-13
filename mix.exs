@@ -8,6 +8,8 @@ defmodule TheBand.MixProject do
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.xml": :test, "coveralls.html": :test],
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
@@ -43,6 +45,11 @@ defmodule TheBand.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # Cobertura em formato que ferramenta externa lê. O `mix test --cover` embutido produz
+      # HTML para olho humano, e nenhum relatório que o SonarCloud saiba importar — e sem
+      # relatório o painel mostraria "0% de cobertura" para 31 mil linhas de Elixir, que é pior
+      # que não mostrar nada.
+      {:excoveralls, "~> 0.18", only: :test},
       {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
@@ -84,6 +91,12 @@ defmodule TheBand.MixProject do
       {:cloak_ecto, "~> 1.3"},
       {:mox, "~> 1.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      # Segurança de Phoenix — XSS, CSRF, injeção, configuração insegura. Nenhuma ferramenta
+      # aqui olhava isso, e esta é uma aplicação multitenant que cifra credencial em repouso.
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      # Dependência com CVE conhecida. Antes disso, só aparecia quando alguém lembrava de
+      # rodar `mix hex.audit` à mão — foi assim que a CVE do LiveView apareceu, por acaso.
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end

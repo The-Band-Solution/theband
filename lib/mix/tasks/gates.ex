@@ -51,10 +51,31 @@ defmodule Mix.Tasks.Gates do
     {"format", {:mix, ["format", "--check-formatted"]}},
     {"compile", {:mix, ["compile", "--warnings-as-errors"]}},
     {"credo", {:mix, ["credo", "--strict"]}},
+    # A CVE do `phoenix_live_view 1.2.8` só apareceu porque alguém rodou `mix hex.audit` à
+    # mão. Como gate, ela aparece sozinha — e o repositório está limpo hoje, então o gate
+    # nasce **verde**, e o que ele impede é a regressão.
+    #
+    # `mix deps.audit` **não** substitui: em 2026-08-13 ele dizia "No vulnerabilities found"
+    # para a mesma dependência que este apontava. Bases de aviso diferentes.
+    #
+    {"auditoria de dependências", {:mix, ["hex.audit"]}},
+    # **Segurança, e ela nasce verde.** Os seis achados da primeira execução foram tratados um
+    # a um, e nenhum por desligar a verificação:
+    #
+    #   CSP ausente        corrigida — o script de tema saiu do HTML para `theme.js`
+    #   String.to_atom ×3  corrigido — `to_existing_atom`, que também faz YAML errado falhar
+    #   File.read! ×2      anotado com `@sobelow_skip` **na função**, com o motivo escrito
+    #
+    # `--skip` é o que faz as anotações valerem; sem ela, elas são comentário decorativo.
+    {"sobelow", {:mix, ["sobelow", "--exit", "low", "--skip"]}},
     {"dialyzer", {:mix, ["dialyzer"]}},
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já
     # rodadas em dev. O CI roda o job inteiro em test; aqui o isolamento é do gate.
+    # O binário do Tailwind é cacheado no CI **pela versão dele**, e não por `mix.lock` —
+    # issue #232. Mudar dependência Elixir não pode obrigar a baixar binário de novo, porque
+    # falha de rede de um instante reprovava a execução inteira.
+    #
     # Os assets são compilados **antes** dos testes porque o teste dos tokens do design
     # system mede o CSS **compilado** — "apliquei a paleta" é afirmação sobre o build, e o
     # Tailwind poda o que não encontra no markup.

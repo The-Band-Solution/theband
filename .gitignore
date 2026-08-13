@@ -53,3 +53,4 @@ npm-debug.log
 # Python (scripts de validação e geração)
 .venv/
 __pycache__/
+cover/

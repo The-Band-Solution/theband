@@ -22,6 +22,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   use Oban.Worker, queue: :ingestion, max_attempts: 5, unique: [period: 300, fields: [:args]]
 
+  # O atributo precisa ser registrado, ou o compilador o trata como esquecido e reprova em
+  # `--warnings-as-errors`. `accumulate: true` porque ele é declarado por função.
+  Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
+
   require Logger
 
   alias TheBand.Ingestion
@@ -397,6 +401,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     Client.graphql(ctx.tool.instance_url, ctx.token, read_query(name), variables)
   end
 
+  # O caminho é montado a partir de literal do próprio código — `"issues"`, `"repositories"` —,
+  # e nunca de entrada externa. A anotação nomeia o achado em vez de desligar a verificação, e
+  # deixa de valer no dia em que alguém passar valor vindo de fora.
+  @sobelow_skip ["Traversal.FileModule"]
   defp read_query(name) do
     :the_band
     |> :code.priv_dir()

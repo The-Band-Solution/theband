@@ -757,7 +757,7 @@ Cada agente tem escopo. Quem implementa não valida sozinho.
 | Elixir/Phoenix Developer | implementação, testes, migrações, documentação, commits. **Não aprova o próprio PR.** |
 | Data Integration | Req, GraphQL, YAMLs de conector, paginação, rate limit, checkpoints, Oban, idempotência, proveniência |
 | Knowledge Base | schemas YAML, validação, versionamento, compilação, cache, diff semântico, integridade |
-| QA | estratégia de testes, cenários de erro, regressão, testes conceituais, convergência |
+| QA | estratégia de testes, cenários de erro, regressão, testes conceituais, convergência, **e a medida de qualidade** — cobertura, Credo, Sobelow, auditoria de dependências. Definido em `.claude/agents/qa.md` |
 | Reviewer | revisar código, arquitetura, semântica, YAMLs, testes, segurança, documentação |
 | DevOps | CI, containers, releases, ambientes, migrações, observabilidade |
 | Security | autenticação, autorização, tokens, permissões, logs, dependências, dados sensíveis |
