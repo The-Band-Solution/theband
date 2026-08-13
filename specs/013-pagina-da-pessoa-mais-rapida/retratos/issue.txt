@@ -1,0 +1,112 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+#1
+Integrador SIGFAPES
+leds-conectafapes-edite · leds-conectafapes · open
+Repository issues
+View at source
+Link at odds with the ontology.
+sro.rule07: a task attends an atomic user story, and this one has no parent. The task is still promoted — the link is missing, not the issue.
+Description
+The issue has no description at the source.
+Composition
+0
+sro.epic_composed_of_user_story
+— the user stories that
+compose
+this issue.
+None. The source declares no parts.
+Attendance
+0
+sro.intended_task_planned_to_meet_user_story
+— the tasks that
+attend
+this issue. They do not compose it, and
+that is why this count is never added to the one above.
+No task attends this issue.
+Promotion
+concept
+intended task
+low
+evidence
+decomposition structure
+classification
+atomic — no part is a user story
+type at source
+none
+rule
+github.issue_structure_routing
+v1
+As the source describes it
+author
+diogoanb-dev
+assignees
+nobody assigned
+labels
+none
+milestone
+not in a milestone
+boards
+not on a board
+comments
+0
+reactions
+0
+The comment count is collected; the content is not. A comment is an entity of its
+own, and collecting them would multiply what the source is asked for per issue.
+Dates
+created at source
+2025-05-29 18:34
+updated at source
+2025-05-29 18:34
+closed at source
+open
+first collected
+2026-08-11 15:12
+last observed
+2026-08-12 17:34
+Promotion history
+10
+Append-only: every decision is a row, and the current one is the last.
+undefined — no type at the source
+2026-08-11 15:13 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-11 16:25 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-11 17:53 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-11 17:55 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-11 19:15 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-11 23:57 ·
+github.issue_type_routing
+v1
+undefined — no type at the source
+2026-08-12 01:26 ·
+github.issue_type_routing
+v1
+intended task
+2026-08-12 02:08 ·
+github.issue_structure_routing
+v1
+undefined — no type at the source
+2026-08-12 10:18 ·
+github.issue_type_routing
+v1
+intended task
+current
+2026-08-12 10:25 ·
+github.issue_structure_routing
+v1

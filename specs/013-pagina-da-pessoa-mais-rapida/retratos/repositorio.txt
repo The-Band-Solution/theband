@@ -1,0 +1,18 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+atomic user story | 4
+intended task | 7
+total | 11
+# | title | type at source | state | parts at source | promoted to | part of
+1 | Fix DetachedInstanceError in demo script and library entities via eager loading | none | closed | 0 | intended task low | not part of anything
+2 | Improve demonstration script output readability | none | closed | 0 | intended task low | not part of anything
+3 | [Epic] Stable Distribution and Lifecycle Management | none | closed | 0 | atomic user story low | #1 Coleta de pessoas e equipes do GitHub para a Enterprise Ontology in The-Band-Solution/theband epic composes observed: the source declares this issue is part of that one
+4 | [US] Automated CI/CD Pipeline for Library Publishing | none | closed | 0 | atomic user story low | #1 Coleta de pessoas e equipes do GitHub para a Enterprise Ontology in The-Band-Solution/theband epic composes observed: the source declares this issue is part of that one
+5 | [US] Comprehensive Installation Documentation (GitHub Distribution) | none | closed | 0 | intended task low | not part of anything
+6 | [US] Integrate libbase for architectural core components | Feature | closed | 0 | atomic user story user story with no parts or tasks | not part of anything
+7 | Refactor `eo_lib` to use `libbase` as core dependency | Task | closed | 0 | intended task | not part of anything
+14 | refactor: Project to Initiative and add InitiativeType | Feature | closed | 0 | atomic user story user story with no parts or tasks | not part of anything
+29 | feat: Organization and Organizational Unit Management | none | closed | 0 | intended task low | not part of anything
+30 | bugfix: fix 404 error on GitHub Packages upload | none | closed | 0 | intended task low | #1 Coleta de pessoas e equipes do GitHub para a Enterprise Ontology in The-Band-Solution/theband epic attends — and this parent is an epic, which violates sro.rule07 observed: the source declares this issue is part of that one
+31 | Feature: Implement Database Indexing for Entities | none | open | 0 | intended task low | not part of anything

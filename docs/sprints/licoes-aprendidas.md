@@ -1672,3 +1672,80 @@ gh issue list --state open --limit 100   # alguma delas já foi entregue?
 ```
 
 **Estado**: aberta.
+
+---
+
+## L49 — Uma medida não descreve uma tela cujo custo depende do plano de execução
+
+**Origem**: Sprint 012 · **Tipo**: técnica
+
+**O que aconteceu.** Medi o detalhe da pessoa numa pessoa só — **85 ms** — e escrevi a spec inteira
+com esse número. A pessoa mantenedora apontou uma página que levava **2 s**. As oito pessoas com mais
+trabalho mediram entre **3,5 e 6,12 s**, e a que eu havia medido era a **mais rápida de todas** —
+com mais issues designadas que qualquer outra.
+
+**Por que aconteceu.** A consulta tinha uma subconsulta sobre todas as promoções do tenant, e o
+Postgres a executava por estratégias diferentes conforme o que estimava: uma ordenação única em um
+caso, **163 451 ordenações em grupo** em outro. O tempo não dependia do tamanho da pessoa; dependia
+do caminho escolhido.
+
+**É a L30 num terreno novo.** Lá era conferir o número contra a origem; aqui é que **uma amostra não
+descreve uma distribuição** quando a variável escondida é o plano de execução.
+
+**O que fazer diferente.** Ao medir tela, medir **a cauda**: os casos com mais dado, e pelo menos
+cinco deles. E quando dois casos parecidos derem tempos muito diferentes, isso **é** o achado —
+não ruído a ser descartado.
+
+**Estado**: aberta.
+
+---
+
+## L50 — Teste que compara duas medidas precisa provar que mediu alguma coisa
+
+**Origem**: Sprint 012 · **Tipo**: técnica
+
+**O que aconteceu.** O teste que garante que o custo não cresce com o histórico comparava linhas
+lidas antes e depois de dobrar as promoções. **Passou na primeira execução — medindo zero.** A
+expressão que extraía o número do plano procurava `"Relation Name"` antes de `"Actual Rows"`, e o
+JSON do Postgres traz as chaves em **ordem alfabética**: nunca casava.
+
+`0 <= 0 × 1,5` é verdadeiro. O teste teria vigiado a regressão para sempre sem nunca olhar.
+
+**Por que aconteceu.** A asserção era sobre a **relação** entre duas medidas, e relação entre dois
+zeros é sempre satisfeita. O caso de teste tinha a forma certa e o conteúdo vazio.
+
+**O que fazer diferente.** Todo teste que compara medidas carrega uma **guarda de que a medida
+existe**:
+
+```elixir
+assert simples > 0, "a medida deu zero — o que passou não foi a garantia"
+```
+
+É a mesma família da L22 e da L41: comparação que não sabe dizer se algum dos lados aconteceu.
+
+**Estado**: aberta.
+
+---
+
+## L51 — Afirmar sobre o schema sem conferir contradiz a documentação que já está no código
+
+**Origem**: Sprint 012 · **Tipo**: processo
+
+**O que aconteceu.** Escrevi em **quatro documentos** que `inserted_at` tinha precisão de segundo, e
+construí sobre isso um "defeito de correção": promoções empatadas devolveriam conceito arbitrário.
+
+O schema declara `timestamps(type: :utc_datetime_usec)`, a coluna tem precisão **6** no banco, e a
+docstring de `list_issues/2` já dizia, por extenso, *"`inserted_at` em microssegundo desempata"*.
+
+**Por que aconteceu.** Reconheci um padrão — `utc_datetime` de segundo é o default do projeto em
+outras tabelas — e apliquei sem conferir **nesta**. O padrão era verdadeiro em três tabelas vizinhas
+e falso na que importava.
+
+**E o custo foi baixo só por acaso**: o desempate continuou entrando como seguro, e nada no plano
+mudou. Se a conclusão tivesse sido "precisamos migrar a coluna", teria custado um sprint.
+
+**O que fazer diferente.** Antes de escrever uma característica do schema numa spec, **ler o schema**
+— e, quando houver docstring sobre o assunto, ler antes de contradizê-la. O código é a origem; a
+memória do padrão não é.
+
+**Estado**: aberta.

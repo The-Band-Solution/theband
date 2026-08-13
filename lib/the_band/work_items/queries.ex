@@ -214,7 +214,7 @@ defmodule TheBand.WorkItems.Queries do
 
     tenant
     |> escopo(opts)
-    |> join(:left, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:left_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     # Ordem estável, e é o que torna a paginação confiável: ordenar só por `number`
     # daria páginas que se sobrepõem, porque o número repete entre repositórios — esta
     # organização tem 121 deles, e vários `#1`.
@@ -249,7 +249,7 @@ defmodule TheBand.WorkItems.Queries do
   def count_by_promotion(%Tenant{} = tenant, opts \\ []) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], not is_nil(p.derived_concept))
     |> group_by([_i, p], p.derived_concept)
     |> select([_i, p], {p.derived_concept, count(p.collected_issue_id)})
@@ -268,7 +268,7 @@ defmodule TheBand.WorkItems.Queries do
   def count_divergences_by_kind(%Tenant{} = tenant, opts \\ []) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], not is_nil(p.divergence_kind))
     |> group_by([_i, p], p.divergence_kind)
     |> select([_i, p], {p.divergence_kind, count(p.collected_issue_id)})
@@ -280,7 +280,7 @@ defmodule TheBand.WorkItems.Queries do
   def count_gaps_by_reason(%Tenant{} = tenant, opts \\ []) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], not is_nil(p.skip_reason))
     |> group_by([_i, p], p.skip_reason)
     |> select([_i, p], {p.skip_reason, count(p.collected_issue_id)})
@@ -298,7 +298,7 @@ defmodule TheBand.WorkItems.Queries do
   def unknown_types(%Tenant{} = tenant, opts \\ []) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], p.skip_reason == "type_unknown" and not is_nil(p.skip_detail))
     |> group_by([_i, p], p.skip_detail)
     |> select([_i, p], {p.skip_detail, count(p.collected_issue_id)})
@@ -316,7 +316,7 @@ defmodule TheBand.WorkItems.Queries do
   def list_divergences(%Tenant{} = tenant, opts \\ []) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], not is_nil(p.divergence_reason))
     |> order_by([i], asc: i.number)
     |> select([i, p], %{
@@ -344,9 +344,10 @@ defmodule TheBand.WorkItems.Queries do
       Repo.one(
         from l in DecompositionLink,
           join: c in CollectedIssue,
+          as: :issue,
           on: c.id == l.child_issue_id,
-          join: p in subquery(promocoes_vigentes(tenant_id)),
-          on: p.collected_issue_id == c.id,
+          inner_lateral_join: p in subquery(vigente_da_issue(tenant_id)),
+          on: true,
           where:
             l.tenant_id == ^tenant_id and l.parent_issue_id == ^collected_issue_id and
               is_nil(l.no_longer_observed_at) and
@@ -418,8 +419,9 @@ defmodule TheBand.WorkItems.Queries do
   def fetch_issue(%Tenant{id: tenant_id} = tenant, id) do
     consulta =
       from i in CollectedIssue,
-        left_join: p in subquery(promocoes_vigentes(tenant_id)),
-        on: p.collected_issue_id == i.id,
+        as: :issue,
+        left_lateral_join: p in subquery(vigente_da_issue(tenant_id)),
+        on: true,
         where: i.tenant_id == ^tenant_id and i.id == ^id,
         select: %{
           id: i.id,
@@ -506,8 +508,7 @@ defmodule TheBand.WorkItems.Queries do
 
   def current_promotions(%Tenant{id: tenant_id}, issue_ids) do
     Repo.all(
-      from p in subquery(promocoes_vigentes(tenant_id)),
-        where: p.collected_issue_id in ^issue_ids,
+      from p in subquery(promocoes_vigentes(tenant_id, issue_ids)),
         select: %{
           collected_issue_id: p.collected_issue_id,
           derived_concept: p.derived_concept,
@@ -584,9 +585,10 @@ defmodule TheBand.WorkItems.Queries do
   defp partes(%Tenant{id: tenant_id}, issue_id, filtro) do
     from(l in DecompositionLink,
       join: c in CollectedIssue,
+      as: :issue,
       on: c.id == l.child_issue_id,
-      left_join: p in subquery(promocoes_vigentes(tenant_id)),
-      on: p.collected_issue_id == c.id,
+      left_lateral_join: p in subquery(vigente_da_issue(tenant_id)),
+      on: true,
       where:
         l.tenant_id == ^tenant_id and l.parent_issue_id == ^issue_id and
           is_nil(l.no_longer_observed_at),
@@ -629,9 +631,10 @@ defmodule TheBand.WorkItems.Queries do
     Repo.one(
       from l in DecompositionLink,
         join: c in CollectedIssue,
+        as: :issue,
         on: c.id == l.parent_issue_id,
-        left_join: p in subquery(promocoes_vigentes(tenant_id)),
-        on: p.collected_issue_id == c.id,
+        left_lateral_join: p in subquery(vigente_da_issue(tenant_id)),
+        on: true,
         where:
           l.tenant_id == ^tenant_id and l.child_issue_id == ^issue_id and
             is_nil(l.no_longer_observed_at),
@@ -681,9 +684,10 @@ defmodule TheBand.WorkItems.Queries do
   def list_parents(%Tenant{id: tenant_id}, issue_ids) when is_list(issue_ids) do
     from(l in DecompositionLink,
       join: c in CollectedIssue,
+      as: :issue,
       on: c.id == l.parent_issue_id,
-      left_join: p in subquery(promocoes_vigentes(tenant_id)),
-      on: p.collected_issue_id == c.id,
+      left_lateral_join: p in subquery(vigente_da_issue(tenant_id)),
+      on: true,
       where: l.tenant_id == ^tenant_id and l.child_issue_id in ^issue_ids,
       order_by: [asc: c.number, asc: c.id],
       select: %{
@@ -730,14 +734,16 @@ defmodule TheBand.WorkItems.Queries do
   defp tarefas_com_pai(%Tenant{} = tenant, opts) do
     tenant
     |> escopo(opts)
-    |> join(:inner, [i], p in subquery(vigentes(tenant)), on: p.collected_issue_id == i.id)
+    |> join(:inner_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
     |> where([_i, p], p.derived_concept == ^@conceito_tarefa)
     |> join(:left, [i, _p], l in DecompositionLink,
+      as: :vinculo,
       on: l.child_issue_id == i.id and is_nil(l.no_longer_observed_at)
     )
-    |> join(:left, [_i, _p, l], pp in subquery(vigentes(tenant)),
-      on: pp.collected_issue_id == l.parent_issue_id
-    )
+    # A vigente **do pai**, e por isso a lateral aponta para o vínculo, não para a issue da linha.
+    # O binding nomeado é o que torna isso legível — e é a L39: contar posição aqui, com quatro
+    # bindings em jogo, é como o `select` passa a ler o campo errado sem nada falhar.
+    |> join(:left_lateral, [_i, _p, l], pp in subquery(vigente_do_pai(tenant.id)), on: true)
     |> order_by([i], asc: i.number)
     |> select([i, p, l, pp], %{
       id: i.id,
@@ -778,7 +784,9 @@ defmodule TheBand.WorkItems.Queries do
   # ------------------------------------------------------------------- privados
 
   defp escopo(%Tenant{id: tenant_id}, opts) do
-    query = from i in CollectedIssue, where: i.tenant_id == ^tenant_id
+    # `as: :issue` é o que permite `parent_as(:issue)` na junção lateral. Nomear o binding zero não
+    # desloca nada — quem compõe por cima continua enxergando a issue na mesma posição.
+    query = from i in CollectedIssue, as: :issue, where: i.tenant_id == ^tenant_id
 
     query
     |> por_repositorio(Keyword.get(opts, :observed_repository_id))
@@ -810,14 +818,57 @@ defmodule TheBand.WorkItems.Queries do
   defp por_autoria(query, nil), do: query
   defp por_autoria(query, person_id), do: where(query, [i], i.author_person_id == ^person_id)
 
-  defp vigentes(%Tenant{id: tenant_id}), do: promocoes_vigentes(tenant_id)
-
-  # A vigente é a última por `inserted_at`. `distinct` com `order_by` desc devolve uma
-  # linha por issue, e é a mais recente.
-  defp promocoes_vigentes(tenant_id) do
+  @doc false
+  # A promoção vigente **da issue que está sendo lida**, resolvida por junção lateral.
+  #
+  # ## Por que não é mais uma subconsulta única
+  #
+  # A versão anterior calculava a vigente de **todas** as issues do tenant e cruzava o resultado
+  # com as que a tela mostra. Medido em 2026-08-12, no dado real: 44 289 promoções varridas para
+  # decorar 25 linhas — e o custo não vinha da página, vinha do histórico.
+  #
+  # A mesma consulta custava **0,09 s para uma pessoa e 6,12 s para outra**, porque o planejador
+  # escolhia estratégias diferentes: uma ordenação só, ou dezenas de milhares de ordenações em
+  # grupo. Uma tela cujo tempo depende dessa escolha não é sintonizável.
+  #
+  # Resolvida por issue, com `limit: 1` sobre o índice `(collected_issue_id, inserted_at)` que já
+  # existia: **6 326 ms → 3,2 ms**, sem varredura no plano.
+  #
+  # ## O desempate por `id`
+  #
+  # `inserted_at` é `utc_datetime_usec`, e a medida no dado real dá **zero** empates. O desempate
+  # entra como seguro barato: tira a ordem da dependência de o carimbo continuar tendo essa
+  # precisão.
+  #
+  # ## `parent_as(:issue)` exige o binding nomeado
+  #
+  # Quem compõe sobre `escopo/2` recebe `as: :issue` no binding zero. Nomear em vez de contar
+  # posição é a **L39**: um `join` novo desloca os bindings posicionais de quem compõe por cima, e
+  # o `select` passa a ler o campo errado sem que nada falhe.
+  defp vigente_da_issue(tenant_id) do
     from p in IssuePromotion,
-      where: p.tenant_id == ^tenant_id,
+      where: p.tenant_id == ^tenant_id and p.collected_issue_id == parent_as(:issue).id,
+      order_by: [desc: p.inserted_at, desc: p.id],
+      limit: 1
+  end
+
+  # A mesma resolução, olhando o **pai** do vínculo em vez da issue da linha.
+  defp vigente_do_pai(tenant_id) do
+    from p in IssuePromotion,
+      where:
+        p.tenant_id == ^tenant_id and
+          p.collected_issue_id == parent_as(:vinculo).parent_issue_id,
+      order_by: [desc: p.inserted_at, desc: p.id],
+      limit: 1
+  end
+
+  # As vigentes de um conjunto **conhecido** de issues. Não decora linha nenhuma: quem chama já
+  # tem os ids e quer comparar em lote. Aqui a lateral não se aplica — o que se corrige é o
+  # alcance, restringindo a subconsulta aos ids recebidos em vez de varrer o tenant.
+  defp promocoes_vigentes(tenant_id, issue_ids) do
+    from p in IssuePromotion,
+      where: p.tenant_id == ^tenant_id and p.collected_issue_id in ^issue_ids,
       distinct: p.collected_issue_id,
-      order_by: [asc: p.collected_issue_id, desc: p.inserted_at]
+      order_by: [asc: p.collected_issue_id, desc: p.inserted_at, desc: p.id]
   end
 end

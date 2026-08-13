@@ -189,12 +189,27 @@ defmodule TheBand.Mapping.Queries do
   end
 
   # A vigente é a última por `inserted_at` — a L20 vale aqui como em todo lugar que lê
-  # "a última".
+  # "a última". O desempate por `id` é o mesmo de `WorkItems.Queries`: com `utc_datetime_usec` o
+  # empate é impossível na prática, e a ordem deixa de depender disso.
+  #
+  # ## Esta é a **segunda** definição da mesma decisão, e ela fica declarada
+  #
+  # A primeira vive em `WorkItems.Queries`. Duas definições para a mesma pergunta discordam no dia
+  # em que uma é corrigida — e foi o que quase aconteceu na feature 013: a de lá virou resolução
+  # lateral por issue, e esta continuaria varrendo o tenant com outra ordem.
+  #
+  # **Reusar exigiria expor a subconsulta pela fronteira pública de WorkItems**, e função que
+  # devolve `Ecto.Query` é o que a ADR 0003 proíbe: quem recebe compõe por cima e contorna o filtro
+  # de tenant. Entre furar a fronteira e duplicar quinze linhas, duplica-se — **e se registra**.
+  #
+  # A forma aqui continua sendo `DISTINCT ON` porque a pergunta é outra: este módulo **agrega** as
+  # promoções de uma organização inteira, e não decora as linhas que uma tela exibe. Lateral por
+  # linha só ganha quando há poucas linhas para decorar.
   defp promocoes_vigentes(tenant_id) do
     from p in IssuePromotion,
       where: p.tenant_id == ^tenant_id,
       distinct: p.collected_issue_id,
-      order_by: [asc: p.collected_issue_id, desc: p.inserted_at]
+      order_by: [asc: p.collected_issue_id, desc: p.inserted_at, desc: p.id]
   end
 
   @doc """
