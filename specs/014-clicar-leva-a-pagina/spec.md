@@ -61,8 +61,22 @@ Criar `sofialctv` — 64 issues, nenhuma pessoa coletada — produziria um regis
 é "apareceu como autora": sem quando foi observada, sem tipo de conta, sem organização.
 
 **A saída fácil é a errada duas vezes.** Ligar todos os nomes por uniformidade produz cliques que não
-levam a lugar nenhum; "resolver" criando as pessoas faz a plataforma afirmar **90** pessoas onde
-observou **75**.
+levam a lugar nenhum; criar as pessoas **a partir do login** faz a plataforma afirmar identidade que
+a origem nunca declarou.
+
+### E a pessoa mantenedora decidiu criá-las — pelo caminho que observa
+
+Decisão de 2026-08-13: **essas pessoas devem existir**. E o caminho escolhido não é deduzir do
+login, é **pedir o identificador à origem** — a consulta hoje traz só `author { login }`, e alargá-la
+faz a pessoa nascer de observação, com a mesma proveniência das 75.
+
+Isso é [**#283**](https://github.com/The-Band-Solution/theband/issues/283), feature de ingestão, e é
+**outra feature**: misturar coleta com navegação daria dois critérios de revisão ao mesmo PR.
+
+**O que isso muda nesta spec, e o que não muda.** Não muda nada nos requisitos: nome com pessoa
+coletada vira ligação, nome sem pessoa continua texto. O que muda é **quantos** caem de cada lado —
+depois da #283 e de uma coleta, os 288 passam para o lado que tem destino. **A regra é a mesma; a
+população é que se move.**
 
 ---
 
