@@ -51,6 +51,19 @@ defmodule Mix.Tasks.Gates do
     {"format", {:mix, ["format", "--check-formatted"]}},
     {"compile", {:mix, ["compile", "--warnings-as-errors"]}},
     {"credo", {:mix, ["credo", "--strict"]}},
+    # A CVE do `phoenix_live_view 1.2.8` só apareceu porque alguém rodou `mix hex.audit` à
+    # mão. Como gate, ela aparece sozinha — e o repositório está limpo hoje, então o gate
+    # nasce **verde**, e o que ele impede é a regressão.
+    #
+    # `mix deps.audit` **não** substitui: em 2026-08-13 ele dizia "No vulnerabilities found"
+    # para a mesma dependência que este apontava. Bases de aviso diferentes.
+    #
+    # **O Sobelow ficou de fora dos gates, de propósito.** Ele acha seis coisas hoje, e uma
+    # delas — CSP ausente — depende de mover o script de tema para fora do HTML, com efeito
+    # visual que precisa de olho humano. Gate que nasce vermelho é gate que alguém desliga na
+    # primeira semana. Ele entra como **relatório** em `mix qa.reports`, e a CSP tem issue
+    # própria. Vira gate quando estiver verde.
+    {"auditoria de dependências", {:mix, ["hex.audit"]}},
     {"dialyzer", {:mix, ["dialyzer"]}},
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já

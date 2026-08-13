@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Qa.Reports do
-  @shortdoc "Gera os relatórios que a análise externa importa: cobertura e achados do Credo"
+  @shortdoc "Gera os relatórios que a análise externa importa: cobertura, Credo, Sobelow e CVEs"
 
   @moduledoc """
   Os relatórios que o SonarCloud importa, num comando.
@@ -23,7 +23,19 @@ defmodule Mix.Tasks.Qa.Reports do
   | Relatório | De onde vem | O que o Sonar faz com ele |
   |---|---|---|
   | `cover/excoveralls.xml` | `mix coveralls.xml` | cobertura por linha |
-  | `cover/credo.json` | `mix credo --format json`, convertido aqui | achados como *external issues* |
+  | `cover/credo.json` | `mix credo`, `mix sobelow` e `mix hex.audit`, convertidos aqui | achados como *external issues* |
+
+  ## As três origens de achado, e por que são três
+
+  | Origem | O que só ela vê |
+  |---|---|
+  | **Credo** | estilo, complexidade, refatoração |
+  | **Sobelow** | segurança de Phoenix — CSP ausente, travessia de diretório, `String.to_atom` |
+  | **`mix hex.audit`** | dependência com CVE |
+
+  **E `mix deps.audit` não substitui `mix hex.audit`**: medido em 2026-08-13, o primeiro dizia
+  *"No vulnerabilities found"* enquanto o segundo apontava `EEF-CVE-2026-64941` no
+  `phoenix_live_view 1.2.8`. Bases de aviso diferentes, e confiar em uma só teria escondido.
 
   ## O que este comando NÃO faz
 
@@ -51,6 +63,10 @@ defmodule Mix.Tasks.Qa.Reports do
   }
 
   @saida "cover/credo.json"
+
+  # A severidade do Sobelow vem do próprio relatório — `high`, `medium`, `low` —, e é
+  # traduzida sem interpretação.
+  @severidade_sobelow %{"high" => "CRITICAL", "medium" => "MAJOR", "low" => "MINOR"}
 
   @impl Mix.Task
   def run(_args) do
@@ -84,19 +100,92 @@ defmodule Mix.Tasks.Qa.Reports do
   end
 
   defp achados do
-    Mix.shell().info("→ achados do Credo")
+    Mix.shell().info("→ achados: Credo, Sobelow e auditoria de dependências")
 
     {saida, _codigo} =
       System.cmd("mix", ["credo", "--strict", "--format", "json"], env: [{"MIX_ENV", "test"}])
 
-    issues =
+    do_credo =
       saida
       |> extrair_json()
       |> Map.get("issues", [])
       |> Enum.map(&traduzir/1)
 
+    # As três em variável, e não chamadas de novo na mensagem: cada uma dispara um processo
+    # externo, e a primeira versão deste código rodava o Sobelow duas vezes só para contar.
+    do_sobelow = sobelow()
+    de_dependencia = dependencias()
+    issues = do_credo ++ do_sobelow ++ de_dependencia
+
     File.write!(@saida, JSON.encode!(%{"issues" => issues}))
-    Mix.shell().info("  #{@saida} — #{length(issues)} achado(s)")
+
+    Mix.shell().info(
+      "  #{@saida} — #{length(issues)} achado(s): " <>
+        "#{length(do_credo)} do Credo, #{length(do_sobelow)} do Sobelow, " <>
+        "#{length(de_dependencia)} de dependência"
+    )
+  end
+
+  defp sobelow do
+    {saida, _codigo} =
+      System.cmd("mix", ["sobelow", "--format", "json", "--skip"], env: [{"MIX_ENV", "test"}])
+
+    case Regex.run(~r/\{.*\}/s, saida) do
+      [json] ->
+        json
+        |> JSON.decode!()
+        |> Map.get("findings", %{})
+        |> Enum.flat_map(fn {chave, achados} ->
+          nivel = chave |> String.replace("_confidence", "") |> String.downcase()
+          Enum.map(achados, &traduzir_sobelow(&1, nivel))
+        end)
+
+      nil ->
+        Mix.shell().error(
+          "  aviso: não achei JSON na saída do Sobelow — a segurança ficou de fora"
+        )
+
+        []
+    end
+  end
+
+  # `mix hex.audit` não tem saída em JSON, e o que interessa dele é binário: há aviso ou não
+  # há. Um achado por linha, com o texto da própria ferramenta — inventar estrutura aqui seria
+  # reescrever o que ela já diz.
+  defp dependencias do
+    {saida, codigo} = System.cmd("mix", ["hex.audit"], env: [{"MIX_ENV", "test"}])
+
+    if codigo == 0 do
+      []
+    else
+      [
+        %{
+          "engineId" => "hex.audit",
+          "ruleId" => "dependency-advisory",
+          "severity" => "CRITICAL",
+          "type" => "VULNERABILITY",
+          "primaryLocation" => %{
+            "message" => "dependência com aviso de segurança:\n" <> String.trim(saida),
+            "filePath" => "mix.lock",
+            "textRange" => %{"startLine" => 1}
+          }
+        }
+      ]
+    end
+  end
+
+  defp traduzir_sobelow(achado, nivel) do
+    %{
+      "engineId" => "sobelow",
+      "ruleId" => achado["type"] || "sobelow",
+      "severity" => Map.get(@severidade_sobelow, nivel, "MAJOR"),
+      "type" => "VULNERABILITY",
+      "primaryLocation" => %{
+        "message" => achado["type"] || "achado do Sobelow",
+        "filePath" => achado["file"] || "mix.exs",
+        "textRange" => %{"startLine" => achado["line"] || 1}
+      }
+    }
   end
 
   # O Credo imprime o JSON depois de linhas de aviso quando há configuração a comentar. Casar

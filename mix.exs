@@ -91,6 +91,12 @@ defmodule TheBand.MixProject do
       {:cloak_ecto, "~> 1.3"},
       {:mox, "~> 1.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      # Segurança de Phoenix — XSS, CSRF, injeção, configuração insegura. Nenhuma ferramenta
+      # aqui olhava isso, e esta é uma aplicação multitenant que cifra credencial em repouso.
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      # Dependência com CVE conhecida. Antes disso, só aparecia quando alguém lembrava de
+      # rodar `mix hex.audit` à mão — foi assim que a CVE do LiveView apareceu, por acaso.
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
