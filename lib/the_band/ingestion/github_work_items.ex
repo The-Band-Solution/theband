@@ -51,6 +51,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
+  alias TheBand.SemanticIntegration.Mapper
   alias TheBand.WorkItems
 
   @page_size 50
@@ -74,7 +75,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
     with {:ok, organization} <- organizacao(ctx),
          {:ok, repositorios} <- coletar_repositorios(ctx, organization) do
-      resultado = Enum.map(repositorios, &coletar_issues(ctx, &1))
+      # **O `ctx` é fiado, e não fixo.** O mapa login → pessoa nasce antes do primeiro repositório,
+      # e a coleta passou a criar pessoas: sem fiar, quem nascesse no repositório 3 não existiria no
+      # mapa ao coletar o 4, e as issues dela ficariam sem vínculo até a coleta seguinte — em alguns
+      # repositórios sim, em outros não, na mesma execução e sem erro nenhum.
+      {resultado, _ctx} = Enum.map_reduce(repositorios, ctx, &coletar_issues(&2, &1))
 
       # **Depois de todas as marcas de ausência**, e isso é carga: a classificação conta só
       # vínculos vigentes, e promover antes de marcar afirmaria épico por parte largada.
@@ -169,6 +174,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
     case paginar(ctx, "issues", %{owner: owner, name: name}) do
       {:ok, nodes, total} ->
+        # **Antes de gravar as issues**, e não depois: `gravar_issue/3` lê `ctx.pessoas[login]` na
+        # mesma passada, e registrar a pessoa depois deixaria `author_person_id` nulo com a pessoa
+        # já existindo.
+        ctx = observar_quem_trabalhou(ctx, nodes)
+
         # Alcançou: se estava marcado como inacessível, a marca sai. A cura é a própria
         # coleta — ninguém precisa lembrar de destravar.
         #
@@ -205,12 +215,12 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # mesma execução.
         ausentes = marcar_vinculos_ausentes(ctx, observado_id, repo.name)
 
-        %{
-          repositorio: repo.name,
-          coletadas: length(gravadas),
-          alcancado: true,
-          vinculos_ausentes: ausentes
-        }
+        {%{
+           repositorio: repo.name,
+           coletadas: length(gravadas),
+           alcancado: true,
+           vinculos_ausentes: ausentes
+         }, ctx}
 
       {:error, reason} ->
         # Falha **transitória** não marca nada: marcar tira o repositório de
@@ -236,7 +246,91 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # interrompido afirmaria que tudo foi alcançado.
         ctx.sync |> Ingestion.reload() |> Ingestion.tally(:repository_unreachable)
 
-        %{repositorio: repo.name, coletadas: 0, alcancado: false, vinculos_ausentes: 0}
+        {%{repositorio: repo.name, coletadas: 0, alcancado: false, vinculos_ausentes: 0}, ctx}
+    end
+  end
+
+  # ------------------------------------------------------- quem escreveu e quem recebeu
+
+  @doc false
+  # Registra como pessoa quem a origem nomeia como autor ou designado, e devolve o `ctx` com o
+  # mapa acrescido.
+  #
+  # ## Por que a coleta de issues cria pessoa
+  #
+  # A ingestão de EO traz **membros** da organização. Quem saiu antes de a plataforma começar a
+  # olhar nunca entra por lá — e o trabalho dela fica. Medido em 2026-08-13: **288** aparições sem
+  # pessoa, em **15** logins; `sofialctv` escreveu 64 issues e nunca esteve em `eo_people`.
+  #
+  # ## É o mesmo mapeamento, e o mesmo caminho de escrita
+  #
+  # `github.user.to.eo.person` já existe e já diz que "uma conta de usuário do GitHub identifica um
+  # agente que atuou no repositório". O que muda é de onde o nó vem: da issue, e não da lista de
+  # membros. Um segundo caminho de escrita discordaria do primeiro no dia em que um mudasse.
+  #
+  # ## Bot não é pessoa
+  #
+  # A classificação é `Mapper.account_type/1` — **chamada**, nunca reimplementada. Ela já distingue
+  # `Bot`, `App` e o sufixo `[bot]`, e o mapeamento declara a limitação.
+  #
+  # ## Isto **não** diz que a pessoa é membro
+  #
+  # Nenhuma evidência de participação em equipe é criada aqui. "Quem é da organização" continua
+  # sendo respondido por evidência de equipe; o que esta função sustenta é "quem trabalhou".
+  defp observar_quem_trabalhou(ctx, nodes) do
+    nodes
+    |> Enum.flat_map(&contas_do_no/1)
+    |> Enum.uniq_by(& &1["id"])
+    |> Enum.reject(&Map.has_key?(ctx.pessoas, &1["login"]))
+    |> Enum.reduce(ctx, fn conta, ctx ->
+      case gravar_pessoa(ctx, conta) do
+        {:ok, pessoa} -> %{ctx | pessoas: Map.put(ctx.pessoas, pessoa.login, pessoa.id)}
+        :ignora -> ctx
+      end
+    end)
+  end
+
+  # Só contas com identidade: o nó de um autor apagado na origem vem sem `id`, e criar pessoa a
+  # partir do login seria chavear identidade por string que o GitHub deixa renomear — a L25.
+  defp contas_do_no(node) do
+    designados = get_in(node, ["assignees", "nodes"]) || []
+
+    [node["author"] | designados]
+    |> Enum.filter(&(is_map(&1) and is_binary(&1["id"]) and is_binary(&1["login"])))
+  end
+
+  defp gravar_pessoa(ctx, conta) do
+    if Mapper.account_type(conta) == "person" do
+      now = DateTime.utc_now(:second)
+
+      RawData.store(%{
+        tenant_id: ctx.tenant.id,
+        sync_id: ctx.sync.id,
+        raw_entity_type: "github.user",
+        external_id: conta["id"],
+        payload: conta,
+        mapping_id: "github.user.to.eo.person",
+        mapping_version: Mapper.version("github.user.to.eo.person"),
+        source_system: "github",
+        source_instance: ctx.tool.instance_url,
+        collected_at: now
+      })
+
+      with {:ok, mapped} <- Mapper.apply_mapping("github.user.to.eo.person", conta) do
+        mapped
+        |> Map.merge(%{
+          source_system: "github",
+          source_instance: ctx.tool.instance_url,
+          external_id: conta["id"],
+          collected_at: now,
+          last_observed_at: now,
+          no_longer_observed_at: nil
+        })
+        |> Mapper.complete("github.user", conta)
+        |> then(&EO.upsert_person_from_source(ctx.tenant, &1))
+      end
+    else
+      :ignora
     end
   end
 

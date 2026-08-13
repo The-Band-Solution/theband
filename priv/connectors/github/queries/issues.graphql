@@ -27,8 +27,11 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $after: String) {
         createdAt
         updatedAt
         closedAt
-        author { login }
-        assignees(first: 10) { nodes { login } }
+        # `__typename` e `id` não são enfeite: o primeiro é o que distingue Bot e App de pessoa,
+        # e o segundo é a identidade. Sem eles, criar a pessoa chavearia por login — string que o
+        # GitHub deixa renomear, e que o dono seguinte pode reusar.
+        author { __typename login ... on User { id name } }
+        assignees(first: 10) { nodes { __typename id login name } }
         labels(first: 20) { nodes { name color } }
         milestone { title }
         projectItems: projectItems(first: 10) { nodes { project { title } } }
