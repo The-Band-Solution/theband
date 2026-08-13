@@ -250,8 +250,15 @@ defmodule TheBandWeb.PersonDetailTest do
     ref = make_ref()
     pai = self()
 
-    handler = fn _event, _measures, %{query: query}, _config ->
-      if String.starts_with?(query, "SELECT"), do: send(pai, {ref, :consulta})
+    # **As tabelas do Oban ficam de fora, e não é detalhe.** O handler é global: conta toda consulta
+    # do BEAM, e o `Oban.Stager` consulta `oban_jobs` a cada segundo. Um tick dentro da janela vira
+    # uma consulta a mais atribuída à página — e o teste reprova com o código certo, em máquina
+    # carregada e não na minha. É a L42: mensagem que chega fora de hora entra na contagem errada.
+    ignoradas = ~w(oban_jobs oban_peers schema_migrations)
+
+    handler = fn _event, _measures, %{query: query} = meta, _config ->
+      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas,
+        do: send(pai, {ref, :consulta})
     end
 
     :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)

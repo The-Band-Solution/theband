@@ -410,8 +410,13 @@ defmodule TheBandWeb.IssueParentTest do
     pai = self()
     esvaziar()
 
-    handler = fn _evento, _medidas, %{query: query}, _config ->
-      if String.starts_with?(query, "SELECT"), do: send(pai, {ref, :consulta})
+    handler = fn _evento, _medidas, %{query: query} = meta, _config ->
+      # As tabelas do Oban ficam de fora: o handler é global, e o `Oban.Stager` consulta
+      # `oban_jobs` a cada segundo. Um tick dentro da janela vira consulta atribuída à
+      # tela — e o teste reprova com o código certo, em máquina carregada. É a L42.
+      if String.starts_with?(query, "SELECT") and
+           to_string(meta[:source]) not in ~w(oban_jobs oban_peers schema_migrations),
+         do: send(pai, {ref, :consulta})
     end
 
     :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
