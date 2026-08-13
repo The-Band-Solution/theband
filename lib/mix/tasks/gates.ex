@@ -41,6 +41,8 @@ defmodule Mix.Tasks.Gates do
 
   use Mix.Task
 
+  alias TheBand.Ontology.KnowledgeBase
+
   @requirements []
 
   @venv ".venv"
@@ -230,7 +232,7 @@ defmodule Mix.Tasks.Gates do
     File.cp_r!("priv/knowledge_base", base)
     if conteudo, do: File.write!(Path.join(base, "injetado.yaml"), conteudo)
 
-    elixir_aprova? = match?({:ok, _}, TheBand.Ontology.KnowledgeBase.load(base))
+    elixir_aprova? = match?({:ok, _}, KnowledgeBase.load(base))
 
     {saida, code} =
       System.cmd(python, ["scripts/validate_knowledge_base.py", "--kb", base],
