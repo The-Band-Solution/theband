@@ -1,0 +1,39 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+team | organisation | access at the tool | relation
+IA | leds-conectafapes | MEMBER | declared at the source, not promoted observed: the source declares this relation
+repository | assigned | opened | relation
+agentes-planning | 5 | 0 | derived from assignments derived: the platform inferred this relation from collected work
+leds-conectafapes-infra | 2 | 0 | derived from assignments derived: the platform inferred this relation from collected work
+agentes-project | 132 | 80 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+leds-agentes-Oraculo | 4 | 0 | derived from assignments derived: the platform inferred this relation from collected work
+produtos-internos-project | 142 | 36 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+conectafapes-project | 2 | 1 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+edite-project | 1 | 0 | derived from assignments derived: the platform inferred this relation from collected work
+# | title | state
+2 | [TASK] Desativar/corrigir o GitHub Issues Bot (generate-report.yml) - falha 100% por cota do Gemini | open
+3 | [TASK] Migrar workflows utilitários templados (generate-new-tag, notify-discord-version) de ubuntu-latest para self-hosted | closed
+4 | [TASK] Atualizar template de workflows para usar self-hosted por padrão em novos repositórios | open
+5 | [TASK] Auditar concorrência de builds Docker em runners self-hosted (replicar fix do leds-agentes-Oraculo) | open
+6 | [TASK] Publicar diretrizes de uso de runners (self-hosted x GitHub-hosted) para novos projetos | open
+39 | chore(infra): remove workflow de topologia com GitHub Pages | closed
+40 | feat(infra): injeta ORACULO_MCP_SHARED_SECRET nos deployments do Oráculo (US-DT-23a) | closed
+57 | [TASK] Pesquisa Técnica sobre o N8N | closed
+61 | [TASK] Teste Inicial com Perguntas Simples ao Rodrigo | closed
+63 | [TASK] Análise de Viabilidade de Respostas por Áudio | closed
+66 | [TASK] Análise e Testes de Segurança com Prompt Injection | closed
+71 | [TASK] Ajuste da Função para Leitura de Imagens via Base64 | closed
+176 | Validar se o item está previsto no edital | closed
+178 | Função de extração de texto de arquivos | closed
+180 | Teste a partir das Notas Fiscais e Orçamentos | closed
+182 | Validar cotação dos orçamentos | closed
+205 | [TASK] Prestação de Contas (Valida) — Passagens e Despesas | closed
+216 | [TASK] Validar finalidade e ontologia dos campos &#39;valor pago&#39; e &#39;valor agendado&#39; | closed
+218 | [TASK] Integrar bases em servidores distintos utilizando rastreabilidade via DBT | closed
+219 | [TASK] Realizar reunião de validação da modelagem do &#39;valor bônus&#39; | open
+220 | [TASK] Refinar manualmente user stories geradas pela IA | closed
+222 | [TASK] Alimentar IA com documentação do projeto | closed
+227 | [TASK] Garantir versionamento seguro e fluxo de merge validado | closed
+229 | [TASK] Subir código em nova branch do Valida no GitHub | closed
+230 | [TASK] Agendar reunião com Letícia para alinhamento do projeto Valida | closed

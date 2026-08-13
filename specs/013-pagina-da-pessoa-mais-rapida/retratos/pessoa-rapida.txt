@@ -1,0 +1,38 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+team | organisation | access at the tool | relation
+PLATAFORMA | leds-conectafapes | MEMBER | declared at the source, not promoted observed: the source declares this relation
+SQUAD GREEN | leds-conectafapes | MEMBER | declared at the source, not promoted observed: the source declares this relation
+repository | assigned | opened | relation
+leds-conectafapes-backend-pagamento-bolsistas | 5 | 7 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+leds-conectafapes-backend-admin | 0 | 1 | derived from authorship derived: the platform inferred this relation from collected work
+leds-conectafapes-portal-fapes | 0 | 1 | derived from authorship derived: the platform inferred this relation from collected work
+plataformas-project | 1 | 0 | derived from assignments derived: the platform inferred this relation from collected work
+conectafapes-project | 344 | 600 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+# | title | state
+54 | Criar entidade contratante | closed
+69 | Gerar Body do Arquivo de Remessa | closed
+72 | Controlar acesso via role | closed
+74 | Criar service para gerar remessa | closed
+127 | [Test] - Gerar Folha | closed
+294 | [Devops] Atualização do gateway para suportar sessão baseada em cookies | closed
+45 | Gerar Trails do arquivo de Remessa | closed
+48 | Conferência das remessas geradas | closed
+98 | [TASK] [OPTIMIZATION] - Otimizar Rotas do Módulo de Pagamento | closed
+103 | [TASK] Processar Arquivo de Retorno de Pagamento | closed
+160 | [TEST] - Teste GenerateDetailsService | closed
+163 | [REFACTOR] - Refatorar o Serviço de Processar Remessa de Pagamento | closed
+175 | [FEATURE] - Desenvolver Biblioteca de Commons | closed
+176 | [TASK] - Gerenciar Biblioteca Commons | closed
+178 | [FEATURE] - Persistências dos arquivos de remessa no MinIO | closed
+237 | [TASK] - Organizar Estrutura do Backend | closed
+286 | [TASK] - Atualizar Cotas de Pagamento | closed
+290 | [FEATURE] - Adicionar Novos Atributos na Entidade Remessa | closed
+296 | [TASK] Resolver Conflitos de Entidades no Banco de Dados | closed
+302 | [TASK] Mover novo servidor para a TI | closed
+318 | [FIX] - Alterar Tipos de Atributos em Dados Bancários | closed
+320 | [FIX] - Alterar Tipo de Atributo na Entidade Banco | closed
+321 | [FIX] - Alterar Tipo para Atributos da Entidade Contratante | closed
+356 | [TASK] - Release do frontend - Módulo Pagamento Bolsista | closed
+357 | [TASK] - Release do backend - Módulo Pagamento Bolsista | closed

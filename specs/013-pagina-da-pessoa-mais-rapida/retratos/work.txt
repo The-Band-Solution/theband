@@ -1,0 +1,190 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+organisation | repository | language | branch | work | issues | state
+The-Band-Solution | .github | not declared | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | AgentES | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | ResearchDomain | Python | main | 19 issues has collected work | 19 | observed
+leds-conectafapes | academy | JavaScript | develop | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | agentes-edite-controlpanel | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | agentes-edite-frontend | Vue | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | agentes-edite-infraestrutura | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | agentes-planning | not declared | main | 13 issues has collected work | 13 | observed
+leds-conectafapes | agentes-project | not declared | develop | 526 issues has collected work | 526 | observed
+leds-conectafapes | atlantis-poc | HCL | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | autherix | C# | develop | 27 issues has collected work | 27 | observed
+leds-conectafapes | autherix-sdk | C# | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | banestes | TypeScript | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | conectafapes | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | conectafapes-discovery-project | not declared | main | 29 issues has collected work | 29 | observed
+leds-conectafapes | conectafapes-helm | Go Template | conectafapes-prodest-prod | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | conectafapes-project | TypeScript | main | 2520 issues has collected work | 2520 | observed
+leds-conectafapes | conectafapes-sot | HTML | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | dados_planning | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | devops-planning | not declared | main | 5 issues has collected work | 5 | observed
+leds-conectafapes | docker-atlantis | Dockerfile | master | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | edite-project | Python | develop | 20 issues has collected work | 20 | observed
+leds-conectafapes | edite-sot | HTML | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | eo_lib | Python | main | 11 issues has collected work | 11 | observed
+The-Band-Solution | extract-load-eo | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | github-issues-automation | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | importacao-conecta | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | infrastructure | Makefile | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | integracao-conecta-airflow | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-agentes-Oraculo | Python | develop | 5 issues has collected work | 5 | observed
+leds-conectafapes | leds-agentes-documentation | MDX | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-agentes-oraculo-docs | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-agentes-oraculo-frontend | Python | main | 10 issues has collected work | 10 | observed
+leds-conectafapes | leds-agentes-oraculo-platformcomponents | Python | main | 9 issues has collected work | 9 | observed
+leds-conectafapes | leds-agentes-portaladmin | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-agentes-validaAI | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-atlantis | HCL | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-atlantis-aws | HCL | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-RequirementsAI | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-airflow | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-airflow-3.0 | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-api-gateway | C# | develop | 1 issue has collected work | 1 | observed
+leds-conectafapes | leds-conectafapes-api-tuple | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-auth-ads | C# | develop | 37 issues has collected work | 37 | observed
+leds-conectafapes | leds-conectafapes-auth-sot | Makefile | develop | 12 issues has collected work | 12 | observed
+leds-conectafapes | leds-conectafapes-authentication | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-autherix | Vue | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-authz-base | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-backend-admin | C# | develop | 7 issues has collected work | 7 | observed
+leds-conectafapes | leds-conectafapes-backend-dashboard | C# | develop | 12 issues has collected work | 12 | observed
+leds-conectafapes | leds-conectafapes-backend-pagamento-bolsistas | C# | develop | 10 issues has collected work | 10 | observed
+leds-conectafapes | leds-conectafapes-backend-portal-fapes | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | leds-conectafapes-bi | Python | develop | 57 issues has collected work | 57 | observed
+leds-conectafapes | leds-conectafapes-biblioteca-componentes | TypeScript | develop | 1 issue has collected work | 1 | observed
+leds-conectafapes | leds-conectafapes-bot-whatsapp | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-database-scripts | TSQL | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-documentation | Python | main | 1 issue has collected work | 1 | archived at the source
+leds-conectafapes | leds-conectafapes-dynamic-forms | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-edite | Python | develop | 2 issues has collected work | 2 | observed
+leds-conectafapes | leds-conectafapes-extrator-bancario | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-fronted-holdingpage | CSS | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-frontend | not declared | — | 32 issues has collected work | 32 | observed
+leds-conectafapes | leds-conectafapes-frontend-admin | Vue | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-frontend-backoffice | TypeScript | develop | 6 issues has collected work | 6 | observed
+leds-conectafapes | leds-conectafapes-frontend-mockend | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-frontend-muttley | Vue | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-frontend-portal-fapes | Vue | develop | 2 issues has collected work | 2 | observed
+leds-conectafapes | leds-conectafapes-frontoffice-backend | C# | develop | 6 issues has collected work | 6 | observed
+leds-conectafapes | leds-conectafapes-frontoffice-frontend | TypeScript | develop | 20 issues has collected work | 20 | observed
+leds-conectafapes | leds-conectafapes-healthcheck | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-helm-prodest | Go Template | conectafapes-prodest-prod | 1 issue has collected work | 1 | observed
+leds-conectafapes | leds-conectafapes-importacao-app-smith | JavaScript | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-importacao-validacao-spark | Jupyter Notebook | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-infra | Python | develop | 2 issues has collected work | 2 | observed
+leds-conectafapes | leds-conectafapes-infra-compose | Shell | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-integracao-conecta-datalake | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-job-importacao | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-jwt-generator | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-libs | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-local | TSQL | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-management-dashboard | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-notifications | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-observabilidade-exemplo | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-openFGA | Shell | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-oraculo | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-otel | TypeScript | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-otto | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-pip-muttley | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-portal-fapes | C# | develop | 16 issues has collected work | 16 | observed
+leds-conectafapes | leds-conectafapes-prestacao-de-contas | C# | develop | 11 issues has collected work | 11 | observed
+leds-conectafapes | leds-conectafapes-rodrigo | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-sdlc | not declared | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-servicedesk | HTML | develop | 8 issues has collected work | 8 | observed
+leds-conectafapes | leds-conectafapes-servicedesk-base | Makefile | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-servicedesk-sot | Makefile | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-templater-editais | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-tests-automated | TypeScript | develop | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | leds-conectafapes-tuple-mgmt | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-validaPrestacaoContas | HTML | master | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-conectafapes-validation-tests | RobotFramework | develop | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | leds-conectafapes-values-gitops | not declared | main | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | leds-devops-planning | HTML | main | collected, no issues no work: issues were collected and none were found | 0 | archived at the source
+leds-conectafapes | leds-modular-frontend-template | TypeScript | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-plataforma-devex-sot | Makefile | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-plataforma-docs | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-plataforma-helms | Go Template | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-plataforma-learn | HTML | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-status-page | CSS | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | leds-workstage | TypeScript | development | 1 issue has collected work | 1 | observed
+leds-conectafapes | leds_conectafapes_backend_muttley | C# | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | lib-template | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | libbase | Python | main | 19 issues has collected work | 19 | observed
+leds-conectafapes | mvp-geracao-editais | TypeScript | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | n8n | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | n8n-na-pratica | Python | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | oraculo-project | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | plataformas-project | not declared | develop | 647 issues has collected work | 647 | observed
+leds-conectafapes | processo-leds-sdlc | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | produtos-internos-project | not declared | develop | 232 issues has collected work | 232 | observed
+leds-conectafapes | profana | HCL | master | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | project-management-system-toy | TypeScript | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | reportfy | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | sot-template | Makefile | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | test-ai-langchain | JavaScript | master | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | teste-template | C# | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | theband | Elixir | main | 179 issues has collected work | 179 | observed
+The-Band-Solution | theband-backend | Python | main | 2 issues has collected work | 2 | unreachable since 12 Aug the tool refused the query: Something went wrong while executing your query on 2…
+The-Band-Solution | theband-frontend | Vue | main | 3 issues has collected work | 3 | observed
+The-Band-Solution | theband-site | HTML | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | valida-project | not declared | develop | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | valida-sot | Python | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+leds-conectafapes | workshop-whatsapp-agents | Jupyter Notebook | master | collected, no issues no work: issues were collected and none were found | 0 | observed
+The-Band-Solution | zeppelin-backend | Python | main | 3 issues has collected work | 3 | observed
+The-Band-Solution | zeppelin-frontend | Vue | main | 5 issues has collected work | 5 | observed
+The-Band-Solution | zeppelin-site | Astro | main | collected, no issues no work: issues were collected and none were found | 0 | observed
+organisation | repository | # | title | type at source | parts at source | promoted to
+leds-conectafapes | agentes-planning | 2 | [TASK] Desativar/corrigir o GitHub Issues Bot (generate-report.yml) - falha 100% por cota do Gemini | Bug | 0 | defect
+leds-conectafapes | agentes-planning | 3 | [TASK] Migrar workflows utilitários templados (generate-new-tag, notify-discord-version) de ubuntu-latest para self-hosted | Chore | 0 | intended task low
+leds-conectafapes | agentes-planning | 4 | [TASK] Atualizar template de workflows para usar self-hosted por padrão em novos repositórios | Chore | 0 | intended task low
+leds-conectafapes | agentes-planning | 5 | [TASK] Auditar concorrência de builds Docker em runners self-hosted (replicar fix do leds-agentes-Oraculo) | Chore | 0 | intended task low
+leds-conectafapes | agentes-planning | 6 | [TASK] Publicar diretrizes de uso de runners (self-hosted x GitHub-hosted) para novos projetos | Chore | 0 | intended task low
+leds-conectafapes | agentes-planning | 7 | Feature: Complete oraculo_events Library | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 8 | [E2E] E2E-004: Consumer Group Behavior Validation | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 9 | Implement Redis Event Streams | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 10 | Enhance UI with Step-by-Step Feedback | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 11 | Implement Chat History Persistence | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 12 | [E2E] Setup E2E Test Infrastructure - Frontend | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 13 | [E2E] E2E-002: Frontend Invoke/Response Flow Validation | none | 0 | intended task low
+leds-conectafapes | agentes-planning | 14 | [E2E] E2E-003: Timeout and Error Handling Validation | none | 0 | intended task low
+leds-conectafapes | leds-conectafapes-infra | 39 | chore(infra): remove workflow de topologia com GitHub Pages | none | 0 | intended task low
+leds-conectafapes | leds-conectafapes-infra | 40 | feat(infra): injeta ORACULO_MCP_SHARED_SECRET nos deployments do Oráculo (US-DT-23a) | none | 0 | intended task low
+leds-conectafapes | agentes-project | 1 | [FEATURE] Convesar com o BOT usando audio | Feature | 1 | atomic user story
+leds-conectafapes | agentes-project | 2 | [TASK] Subir uma aplicação de VOz no servidor do leds | none | 0 | intended task low
+leds-conectafapes | agentes-project | 3 | [TASK] Subir o N8N para o servidor interno do LEDS | none | 0 | intended task low
+leds-conectafapes | agentes-project | 4 | [TASK] Implementar lógica de match case para classificação de mensagens de usuários | none | 0 | intended task low
+leds-conectafapes | agentes-project | 5 | [TASK] Salvar mensagens de usuários no Postgres e enviar tutorial na primeira interação | none | 0 | intended task low
+leds-conectafapes | agentes-project | 6 | [TASK] Utilizar OpenAI Playground para criação de embeddings com file search | none | 0 | intended task low
+leds-conectafapes | agentes-project | 7 | [TASK] Melhorar prompt para prevenir prompt injection e garantir segurança nas conversas | none | 0 | intended task low
+leds-conectafapes | agentes-project | 8 | [TASK] Criar embeddings via API do Google Drive e salvar no banco Supabase (Postgres) | none | 0 | intended task low
+leds-conectafapes | agentes-project | 9 | [TASK] Integração de agentes com WhatsApp e LLMs para respostas automáticas via RAG | none | 0 | intended task low
+leds-conectafapes | agentes-project | 10 | [FEATURE] Permitir envio de mensagens por áudio e conversão para texto com resposta via IA | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 11 | [FEATURE] Implementar filtro anti-spam para limitar envio de mensagens consecutivas | Feature | 1 | atomic user story
+leds-conectafapes | agentes-project | 12 | [FEATURE] Responder questões sobre editais via texto. | none | 5 | atomic user story low
+leds-conectafapes | agentes-project | 13 | [FEATURE] Reponder questões de editais via audio. | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 14 | [FEATURE] Responder questões sobre editais via audio | Feature | 1 | atomic user story
+leds-conectafapes | agentes-project | 15 | [TASK] Estudar os LLMS de audio para verificar a viabilidade | none | 0 | intended task low
+leds-conectafapes | agentes-project | 16 | [TASK] Cria a versão inicial da documentação da arquitetura do bot | none | 0 | intended task low
+leds-conectafapes | agentes-project | 17 | [FEATURE] Responder sobre o RODs por meio de texto | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 18 | [FEATURE] Responder sobre questões dos RODs por meio de audio | Feature | 1 | atomic user story
+leds-conectafapes | agentes-project | 19 | [FEATURE] Reponder questões sobre o ROD por meio de imagem | Feature | 1 | atomic user story
+leds-conectafapes | agentes-project | 20 | [TASK]Estudar como a LLM responder questões em texto recebendo um audio. | none | 0 | intended task low
+leds-conectafapes | agentes-project | 21 | [TASK] Estudar como a LLM vai responder a questões dos RODs por meio de imagem | none | 0 | intended task low
+leds-conectafapes | agentes-project | 22 | [FEATURE] POC leitura dos RODs | Feature | 7 | epic composition makes it an epic
+leds-conectafapes | agentes-project | 23 | [FEATURE] Criar Wokflow de extração de pdf | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 24 | [FEATURE] Criar workflow de extração de imagens | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 25 | [FEATURE] Criação de uma interface usando OpenWebUI | Feature | 0 | atomic user story user story with no parts or tasks
+leds-conectafapes | agentes-project | 26 | [TASK] Integração do OpenTelemetry ao workflow | none | 0 | intended task low
+leds-conectafapes | agentes-project | 27 | [TASK] Configurar número do LEDS no Meta | none | 0 | intended task low
+leds-conectafapes | agentes-project | 28 | [TASK] Ajuste da Chatbot Raul para Recebimento e Armazenamento de Feedbacks | none | 0 | intended task low
+leds-conectafapes | agentes-project | 29 | [TASK] Correções no Chatbot Raul e Testes de Modelos OpenAI | none | 0 | intended task low
+leds-conectafapes | agentes-project | 30 | [TASK] Estudo sobre Prompt Injection e Aplicações na Chatbot Raul | none | 0 | intended task low
+leds-conectafapes | agentes-project | 31 | [FEATURE] Interface Open WebUI funcional para extração de PDFs | Feature | 2 | atomic user story
+leds-conectafapes | agentes-project | 32 | [FEATURE] Interface Open WebUI funcional para extração imagens | Feature | 2 | atomic user story
+leds-conectafapes | agentes-project | 33 | [TASK] Localização do texto extraído de um PDF no Open WebUI | none | 0 | intended task low
+leds-conectafapes | agentes-project | 34 | [TASK] Localização da imagem recebida e serializada no Open WebUI | none | 0 | intended task low
+leds-conectafapes | agentes-project | 35 | [TASK] Criação da requisição ao n8n com o texto de PDF extraído para uma resposta | none | 0 | intended task low

@@ -1,0 +1,40 @@
+# retrato — texto das células, na ordem em que aparecem
+# removidos: comentários HTML, <script> (csrf), atributos e espaços redundantes
+
+team | organisation | access at the tool | relation
+PLATAFORMA | leds-conectafapes | MEMBER | declared at the source, not promoted observed: the source declares this relation
+repository | assigned | opened | relation
+agentes-planning | 5 | 13 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+leds-conectafapes-infra | 2 | 2 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+agentes-project | 94 | 49 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+devops-planning | 0 | 5 | derived from authorship derived: the platform inferred this relation from collected work
+leds-agentes-Oraculo | 5 | 5 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+produtos-internos-project | 25 | 27 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+leds-workstage | 1 | 1 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+plataformas-project | 45 | 31 | derived from assignments and authorship derived: the platform inferred this relation from collected work
+# | title | state
+2 | [TASK] Desativar/corrigir o GitHub Issues Bot (generate-report.yml) - falha 100% por cota do Gemini | open
+3 | [TASK] Migrar workflows utilitários templados (generate-new-tag, notify-discord-version) de ubuntu-latest para self-hosted | closed
+4 | [TASK] Atualizar template de workflows para usar self-hosted por padrão em novos repositórios | open
+5 | [TASK] Auditar concorrência de builds Docker em runners self-hosted (replicar fix do leds-agentes-Oraculo) | open
+6 | [TASK] Publicar diretrizes de uso de runners (self-hosted x GitHub-hosted) para novos projetos | open
+39 | chore(infra): remove workflow de topologia com GitHub Pages | closed
+40 | feat(infra): injeta ORACULO_MCP_SHARED_SECRET nos deployments do Oráculo (US-DT-23a) | closed
+223 | [TASK] Desenvolver interface amigável para o Oráculo (Chat Estratégico) | closed
+226 | [TASK] Executar testes de segurança no Oráculo | closed
+228 | [TASK] Configurar infraestrutura do Oráculo (AWS ou interna) | closed
+236 | [TASK] Análise de Vulnerabilidades - Oráculo | closed
+238 | [TASK] Deploy Estável para Testes - Oráculo | closed
+269 | [TASK] Deploy Oráculo no Kube | closed
+270 | [TASK] Criação das databases/schemas mssql para o oraculo | closed
+271 | [TASK] Popular os bancos OLAP e OLTP com os scripts corretos | closed
+272 | [TASK] Realizar merge dos novos arquivos de migração em vue.js | closed
+273 | [TASK] Teste de Estresse e Avaliação de Qualidade do Oráculo | closed
+275 | [TASK] Alinhar tecnologias e serviços de infraestrutura com Guilherme | closed
+278 | [TASK] Provisionar e configurar infraestrutura identificada | closed
+286 | [TASK] Automação do Deploy via Pipeline | closed
+306 | [TASK] Realizar merge das modificações feitas para o repositório principal consolidando as mudanças | closed
+307 | [Análise] Exposição de credencias na requisição enviada para o login | closed
+315 | [TASK] Configurar frontend e rotas do Acesso Cidadão | closed
+316 | [TASK] Subir e testar o autenticador do Acesso Cidadão | closed
+317 | [TASK] Liberar o acesso pelo gov no fluxo de Acesso Cidadão | closed
