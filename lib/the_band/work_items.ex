@@ -73,6 +73,7 @@ defmodule TheBand.WorkItems do
   defdelegate list_composition(tenant, collected_issue_id), to: Queries
   defdelegate list_attendance(tenant, collected_issue_id), to: Queries
   defdelegate list_unpromoted_parts(tenant, collected_issue_id), to: Queries
+  defdelegate list_unnamed_relation_parts(tenant, collected_issue_id), to: Queries
   defdelegate fetch_parent(tenant, collected_issue_id), to: Queries
   defdelegate list_parents(tenant, issue_ids), to: Queries
   defdelegate rule07_violations(tenant, opts \\ []), to: Queries
