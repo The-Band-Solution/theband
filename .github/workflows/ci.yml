@@ -101,23 +101,24 @@ jobs:
         run: mix gates
 
   # --------------------------------------------------------------------------
-  # A análise externa, e ela **não** é o décimo primeiro gate.
+  # A cobertura, publicada como artefato da execução.
   #
-  # Os gates decidem se o código entra e vivem em `mix gates`, que roda offline. Este
-  # trabalho depende de rede e de um token que não está no repositório: transformá-lo em
-  # gate faria indisponibilidade de terceiro reprovar código correto.
+  # **Aqui estava o SonarCloud, e ele saiu.** Medido no PR #290: ele indexou
+  # `ncloc_language_distribution = js=24` — vinte e quatro linhas, todas JavaScript, num
+  # repositório de 31 312 linhas de Elixir. Não há analisador de Elixir, e a cobertura
+  # importada apontava para arquivos que ele não conhece.
   #
-  # `continue-on-error` é de propósito, e é a razão pela qual ele não bloqueia. O que ele
-  # **não** faz é esconder: o passo de conferência abaixo falha quando os relatórios não
-  # existem, porque painel que mostra 0% sem dizer que não achou o arquivo afirma qualidade
-  # que ninguém mediu.
+  # O quality gate reprovava por `new_coverage = 0%` medindo o único arquivo que enxergava —
+  # o script de tema, que existe por causa da CSP e é conferido por olho humano. Desligar
+  # aquela condição exige plano pago; manter o vermelho treinaria a ignorar, que é o defeito
+  # da issue #232.
+  #
+  # O que sobra é o que valia desde o começo: o número medido, guardado por execução. Sem
+  # painel de tendência — e **isso está declarado** em vez de fingido.
   # --------------------------------------------------------------------------
-  sonarcloud:
+  cobertura:
     runs-on: ubuntu-latest
     needs: quality-gates
-    # Sem o token, o passo falharia em toda execução de quem abrir um fork — e o vermelho
-    # constante treina a ignorar. Ausência de segredo é ausência de análise, declarada.
-    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
     services:
       postgres:
@@ -135,11 +136,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          # O Sonar precisa do histórico para atribuir cada linha a um commit — sem ele,
-          # "código novo" vira "todo o código", e o painel cobra dívida antiga como se
-          # tivesse nascido agora.
-          fetch-depth: 0
 
       - uses: erlef/setup-beam@v1
         with:
@@ -155,20 +151,6 @@ jobs:
           key: ${{ runner.os }}-mix-${{ hashFiles('mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-
 
-      - run: mix deps.get
-
-      # ------------------------------------------------------------------------
-      # O binário do Tailwind e do esbuild, cacheados **pela versão deles** — issue #232.
-      #
-      # O cache acima é chaveado por `mix.lock`, e é o certo para as dependências. Mas o
-      # binário do Tailwind não tem nada a ver com `mix.lock`: mudar uma dependência Elixir
-      # invalida o cache e força baixar o binário de novo — e uma falha de rede de um instante
-      # reprova a execução inteira, inclusive os gates que já tinham passado.
-      #
-      # A chave é a versão declarada em `config/config.exs`. **Repetir a tentativa foi recusado
-      # na issue**: mascararia a diferença entre rede instável e origem indisponível, que é
-      # justamente a distinção que o produto passou a fazer na feature 009.
-      # ------------------------------------------------------------------------
       - name: Cache dos binários de assets
         uses: actions/cache@v4
         with:
@@ -177,49 +159,20 @@ jobs:
             _build/esbuild-*
           key: ${{ runner.os }}-assets-${{ hashFiles('config/config.exs') }}
 
+      - run: mix deps.get
+
       # A suíte lê o CSS compilado — há teste que confere se a paleta chega ao arquivo final.
-      # Sem este passo, `mix qa.reports` roda os testes sem os assets e reprova um teste que
-      # passa no trabalho de gates, que constrói. Aconteceu na primeira execução deste CI.
       - name: Construir assets
         run: mix assets.build
 
-      - name: Relatórios que o Sonar importa
+      - name: Medir a cobertura
         run: mix qa.reports
 
-      - name: Conferir que os relatórios existem
-        run: |
-          test -s cover/excoveralls.xml || { echo "cobertura ausente — o painel mostraria 0%"; exit 1; }
-          test -s cover/credo.json || { echo "achados do Credo ausentes"; exit 1; }
+      - name: Conferir que a medida existe
+        run: test -s cover/excoveralls.xml || { echo "cobertura ausente — a medida não aconteceu"; exit 1; }
 
-      # ------------------------------------------------------------------------
-      # **Segredo ausente é erro de configuração, e não indisponibilidade de terceiro.**
-      #
-      # A primeira versão deste trabalho não distinguia os dois: com `SONAR_TOKEN` vazio, o
-      # scanner falhava, o `continue-on-error` engolia, e o trabalho ficava **verde com zero
-      # análises no painel**. Foi assim que aconteceu — o próprio agente de QA existe para
-      # caçar esse padrão, e ele apareceu no código que o criou.
-      #
-      # A distinção é a mesma que o produto faz desde a feature 009: falha transitória não é
-      # tratada como permanente, e ausência de configuração não é tratada como falha de rede.
-      # ------------------------------------------------------------------------
-      - name: Conferir que o segredo existe
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::SONAR_TOKEN não está cadastrado — a análise não aconteceu, e nenhum painel foi atualizado."
-            echo "Cadastre em Settings → Secrets and variables → Actions, ou:"
-            echo "  gh secret set SONAR_TOKEN -R The-Band-Solution/theband"
-            exit 1
-          fi
-
-      # **v6, e não v5.** A v5 imprime, na própria execução: *"This version of the SonarQube
-      # Scanner GitHub Action is no longer supported and contains a security vulnerability"* — e
-      # **não executa análise nenhuma**. O trabalho ficava verde, o painel ficava com zero
-      # análises, e a única pista era esse aviso no meio do log.
-      - name: SonarCloud
-        continue-on-error: true
-        uses: SonarSource/sonarqube-scan-action@v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: cover/
+          retention-days: 30

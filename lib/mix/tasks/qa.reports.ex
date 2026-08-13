@@ -1,29 +1,32 @@
 defmodule Mix.Tasks.Qa.Reports do
-  @shortdoc "Gera os relatórios que a análise externa importa: cobertura, Credo, Sobelow e CVEs"
+  @shortdoc "Mede a cobertura e junta os achados de Credo, Sobelow e auditoria de dependências"
 
   @moduledoc """
-  Os relatórios que o SonarCloud importa, num comando.
+  A medida de qualidade que sobrevive a cada execução.
 
       mix qa.reports
 
-  ## Por que importar, e não deixar o Sonar analisar
+  ## O SonarCloud saiu, e vale saber por quê
 
-  **O SonarCloud não analisa Elixir.** Não há analisador oficial, e plugin de
-  comunidade não roda no serviço hospedado. Este repositório tem **31 312** linhas de
-  Elixir contra 1 388 de Python e 9 631 de JavaScript — dos quais quase tudo é
-  `assets/vendor`.
+  Esta task nasceu para alimentá-lo. **Ele não analisa Elixir** — não há analisador oficial,
+  e plugin de comunidade não roda no serviço hospedado. Medido no PR #290:
+  `ncloc_language_distribution = js=24`, vinte e quatro linhas indexadas, todas JavaScript,
+  num repositório de **31 312** linhas de Elixir.
 
-  Sem importação, o painel analisaria menos de 5% do que a plataforma é, e mostraria
-  um selo verde por isso. **Um painel que aprova o que não olhou é pior que painel
-  nenhum**: ele produz confiança sem cobertura, que é o defeito que esta base chama de
-  sucesso silencioso.
+  A cobertura importada apontava para arquivos que ele não conhecia, e o quality gate
+  reprovava por `new_coverage = 0%` medindo o único arquivo que enxergava — o script de tema,
+  que existe por causa da CSP. Desligar aquela condição exige plano pago.
 
-  Então o Elixir entra pelos dois formatos genéricos que o Sonar aceita:
+  **O que sobrou é o que valia desde o começo**: os números, medidos e guardados. O CI publica
+  `cover/` como artefato de cada execução; não há painel de tendência, e **isso está declarado**
+  em vez de fingido.
 
-  | Relatório | De onde vem | O que o Sonar faz com ele |
-  |---|---|---|
-  | `cover/excoveralls.xml` | `mix coveralls.xml` | cobertura por linha |
-  | `cover/credo.json` | `mix credo`, `mix sobelow` e `mix hex.audit`, convertidos aqui | achados como *external issues* |
+  ## O que ela produz
+
+  | Arquivo | Conteúdo |
+  |---|---|
+  | `cover/excoveralls.xml` | cobertura por linha — **80,1%** na medida de 2026-08-13 |
+  | `cover/credo.json` | achados de Credo, Sobelow e auditoria de dependências, num arquivo só |
 
   ## As três origens de achado, e por que são três
 
@@ -39,17 +42,9 @@ defmodule Mix.Tasks.Qa.Reports do
 
   ## O que este comando NÃO faz
 
-  **Não substitui `mix gates`**, e não é um décimo primeiro gate. Os gates decidem se
-  o código entra; o Sonar mede tendência ao longo do tempo. Um gate que depende de
-  rede e de token é um gate que reprova por indisponibilidade — e a constituição já
-  proíbe enfraquecer gate por conveniência, o que vale também para fortalecê-lo com
-  algo que ninguém controla.
-
-  ## Severidade, e por que ela não é inventada aqui
-
-  O mapa abaixo traduz a categoria do Credo para o vocabulário do Sonar. Ele é
-  **declarado**, e não derivado de heurística de nome: quem discordar muda uma linha e
-  vê o efeito, em vez de descobrir a regra lendo código.
+  **Não substitui `mix gates`.** Credo, Sobelow e a auditoria **já são gates** — reprovam e
+  bloqueiam. Aqui eles são reunidos num relatório para que o número tenha história; o veredito
+  continua sendo o código de saída dos doze.
   """
 
   use Mix.Task
