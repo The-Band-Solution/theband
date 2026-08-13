@@ -207,6 +207,10 @@ sim.
 - **FR-009**: A coleta MUST ser idempotente: repetir não duplica pessoa nem reescreve proveniência.
 - **FR-010**: Login que a origem não resolve MUST continuar sem pessoa, com a razão exibida.
 - **FR-011**: Nenhuma pessoa MUST ser apagada — as 4 marcadas como ausentes continuam como estão.
+- **FR-012**: A pessoa criada durante a execução MUST ser resolvível **na mesma execução** — pelas
+  issues do repositório em que apareceu **e** pelas dos repositórios coletados depois.
+- **FR-013**: A designação MUST gravar `person_id` para quem passou a existir, pela mesma regra do
+  autor.
 
 ### Key Entities
 
@@ -228,6 +232,9 @@ sim.
   entra em equipe por ter escrito issue.
 - **SC-004**: Cada pessoa criada tem `external_id` da origem, e nenhuma tem identidade por login.
 - **SC-005**: Duas coletas seguidas sem mudança na origem criam **zero** pessoas na segunda.
+- **SC-005b**: Numa execução com dois repositórios, a pessoa que aparece no primeiro é resolvida
+  também no segundo — **zero** issues com `author_login` preenchido e `author_person_id` nulo para
+  autor que a execução observou.
 - **SC-006**: A página de uma pessoa observada só pelo trabalho mostra a organização **e** a
   evidência — 64 issues em 5 repositórios, no caso de `sofialctv`.
 - **SC-007**: Nenhuma pessoa some: a contagem depois é **maior ou igual** a 75.
