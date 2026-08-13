@@ -213,9 +213,13 @@ jobs:
             exit 1
           fi
 
+      # **v6, e não v5.** A v5 imprime, na própria execução: *"This version of the SonarQube
+      # Scanner GitHub Action is no longer supported and contains a security vulnerability"* — e
+      # **não executa análise nenhuma**. O trabalho ficava verde, o painel ficava com zero
+      # análises, e a única pista era esse aviso no meio do log.
       - name: SonarCloud
         continue-on-error: true
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

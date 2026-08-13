@@ -66,6 +66,10 @@ defmodule TheBandWeb.RepositoryLive.Show do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <.breadcrumb niveis={[
+        %{rotulo: "Work", destino: ~p"/work"},
+        %{rotulo: @repositorio.name, destino: nil}
+      ]} />
       <.header>
         {@repositorio.name}
         <:subtitle>
