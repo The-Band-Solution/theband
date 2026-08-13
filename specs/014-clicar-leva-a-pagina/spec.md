@@ -39,15 +39,30 @@ o **nome de uma pessoa** exibido como texto onde ela tem página.
 
 ### E quantos nomes **não** podem virar ligação
 
-| Caso | Quantos | Por quê |
-|---|---:|---|
-| autor com login e **sem** pessoa coletada | **286** | a pessoa não foi observada; a tela já diz *"person not collected"* |
-| designado sem pessoa coletada | **2** | idem |
-| organização, na lista de pessoas e nas sincronizações | — | **não existe página de organização** |
+| Caso | Casos | Logins distintos | Por quê |
+|---|---:|---:|---|
+| autor com login e **sem** pessoa coletada | 286 | **14** | a pessoa não foi observada; a tela já diz *"person not collected"* |
+| designado sem pessoa coletada | 2 | **1** | idem |
+| organização, na lista de pessoas e nas sincronizações | — | — | **não existe página de organização** |
 
-**Esses 288 são o coração da feature, não a exceção.** Transformar login em ligação sem destino
-produziria um clique que não leva a lugar nenhum — e a tela hoje **declara** a ausência em vez de
-escondê-la. A feature não pode desfazer essa declaração para ganhar uniformidade.
+**Quinze pessoas, 288 aparições — e é o coração da feature, não a exceção.**
+
+A plataforma coleta pessoas de **duas** fontes: a coleta de EO traz os **75** membros da organização
+e das equipes, com proveniência; a coleta de issues traz o `author_login`, que é **texto escrito pelo
+GitHub**, não pessoa. Quando os dois se encontram, há destino. Quando não — alguém que saiu da
+organização, nunca entrou, ou contribuiu de fora —, sobra o login.
+
+E a plataforma **não cria a pessoa a partir da issue**, o que já está escrito no código:
+
+> *"A login with no linked person is a declaration, not a failure: the person was not collected, and
+> creating them from the issue would produce a record with no provenance."*
+
+Criar `sofialctv` — 64 issues, nenhuma pessoa coletada — produziria um registro cuja única evidência
+é "apareceu como autora": sem quando foi observada, sem tipo de conta, sem organização.
+
+**A saída fácil é a errada duas vezes.** Ligar todos os nomes por uniformidade produz cliques que não
+levam a lugar nenhum; "resolver" criando as pessoas faz a plataforma afirmar **90** pessoas onde
+observou **75**.
 
 ---
 
@@ -163,8 +178,10 @@ pessoas não produzem nenhuma ligação.
 - **SC-001**: No detalhe de uma issue, **todo** autor e designado com pessoa coletada leva à página
   dela — hoje são **8 470** nomes sem saída.
 - **SC-002**: No detalhe de uma equipe, todo membro leva à página dele.
-- **SC-003**: Os **288** logins sem pessoa coletada continuam **sem** ligação, e a frase que explica
-  continua na tela.
+- **SC-003**: As **288** aparições sem pessoa coletada — **15** logins distintos — continuam **sem**
+  ligação, e a frase que explica continua na tela.
+- **SC-003b**: A contagem de pessoas em `eo_people` **não muda**: continuam **75**. Nenhuma pessoa é
+  criada para dar destino a um nome.
 - **SC-004**: Nenhum nome de organização vira ligação.
 - **SC-005**: Uma varredura das telas afetadas encontra **zero** ligações apontando para rota que
   não responde.
@@ -177,7 +194,7 @@ pessoas não produzem nenhuma ligação.
 ## Assumptions
 
 - **A medida é de 2026-08-13**, e os números vêm do banco de desenvolvimento: 4 229 designações e
-  4 241 autorias com pessoa coletada, 288 sem.
+  4 241 autorias com pessoa coletada; 288 aparições sem, concentradas em **15** logins.
 - **A lista de trabalho, a lista de pessoas, o detalhe da pessoa e a lista do repositório já ligam
   o que precisam** — a feature não os toca, e o teste confere que continuam ligando.
 - **Organização não ganha página nesta feature.** Criar a rota é decisão de produto, e transformaria
