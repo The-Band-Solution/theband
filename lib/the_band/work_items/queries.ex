@@ -629,6 +629,29 @@ defmodule TheBand.WorkItems.Queries do
   def list_unpromoted_parts(%Tenant{} = tenant, issue_id),
     do: partes(tenant, issue_id, :none)
 
+  @doc """
+  As partes promovidas a um conceito **cuja relação com o pai a rede de ontologias não nomeia**.
+
+  ## O buraco que esta função fecha — issue #262
+
+  As três listas acima cobrem composição — épico e user story —, atendimento — tarefa — e a
+  ausência de conceito. **Uma filha promovida a `osdef.defect` não cai em nenhuma das três**, e
+  desaparecia do detalhe do pai: **33 vínculos** no dado real de 2026-08-12.
+
+  Não produzia erro. Produzia uma tela que parecia completa, com a soma das três batendo com o
+  que ela mesma mostrava.
+
+  ## Por que não basta alargar "sem promoção"
+
+  Alargar `is_nil` para "qualquer coisa fora das duas listas" juntaria dois fatos diferentes:
+  *"a plataforma não classificou esta parte"* e *"classificou, e a relação não tem nome na rede"*.
+  A feature 011 separou exatamente isso na coluna `part of`, e juntar aqui desfaria a distinção
+  na tela vizinha.
+  """
+  @spec list_unnamed_relation_parts(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_unnamed_relation_parts(%Tenant{} = tenant, issue_id),
+    do: partes(tenant, issue_id, {:fora, [@conceito_tarefa | @conceitos_user_story]})
+
   defp partes(%Tenant{id: tenant_id}, issue_id, filtro) do
     from(l in DecompositionLink,
       join: c in CollectedIssue,
@@ -667,6 +690,16 @@ defmodule TheBand.WorkItems.Queries do
   defp filtrar_conceito(query, :none),
     do: where(query, [_l, _c, p], is_nil(p.derived_concept))
 
+  # Promovida, e fora das relações que a rede nomeia. `not is_nil` é o que separa este caso do
+  # `:none` — sem ele, as duas listas mostrariam as mesmas linhas.
+  defp filtrar_conceito(query, {:fora, conceitos}),
+    do:
+      where(
+        query,
+        [_l, _c, p],
+        not is_nil(p.derived_concept) and p.derived_concept not in ^conceitos
+      )
+
   @doc """
   O pai vigente da issue, com o conceito dele — `nil` quando não tem pai.
 
@@ -685,6 +718,13 @@ defmodule TheBand.WorkItems.Queries do
         where:
           l.tenant_id == ^tenant_id and l.child_issue_id == ^issue_id and
             is_nil(l.no_longer_observed_at),
+        # **Ordem antes do limite — issue #261.** Sem ela, `limit: 1` devolvia um pai arbitrário
+        # para as **36** issues com mais de um, e a escolha podia mudar entre execuções: a mesma
+        # tela dizia coisas diferentes, sem erro.
+        #
+        # O desempate por `id` não é enfeite: `number` repete entre repositórios, e 57 vínculos
+        # têm o pai em outro.
+        order_by: [asc: c.number, asc: c.id],
         limit: 1,
         select: %{
           id: c.id,

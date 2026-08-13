@@ -212,6 +212,26 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </div>
           </div>
 
+          <%!-- A quarta lista, e ela existe porque as três não cobriam tudo — issue #262.
+                Filha promovida a defeito não é composição nem atendimento, e não é "sem
+                conceito": a plataforma decidiu o que ela é, e a rede de ontologias é que não
+                nomeia essa relação. Eram 33 vínculos invisíveis, e nada falhava. --%>
+          <div :if={@relacao_sem_nome != []} class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">
+                Parts the ontology does not name
+                <span class="opacity-60">{length(@relacao_sem_nome)}</span>
+              </h3>
+              <p class="text-xs text-base-content/70">
+                The platform decided what these parts are, and the ontology network does not name
+                the relation between that concept and this one. They are neither composition nor
+                attendance — and inventing a name for the relation would be inference by
+                resemblance.
+              </p>
+              <.lista_de_issues issues={@relacao_sem_nome} />
+            </div>
+          </div>
+
           <div :if={@recusados != []} class="card bg-base-200">
             <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
@@ -417,6 +437,18 @@ defmodule TheBandWeb.WorkItemLive.Show do
     repositorio = repositorio(tenant, issue.observed_repository_id)
     nomes = nomes(tenant, issue)
 
+    # **As quatro listas, uma vez cada.** `partes_faltando/2` as consultava de novo para contar —
+    # três consultas repetidas por render, e a quarta lista teria virado a sétima. Contar o que já
+    # está em memória responde a mesma pergunta sem voltar ao banco.
+    composicao = WorkItems.list_composition(tenant, issue.id)
+    atendimento = WorkItems.list_attendance(tenant, issue.id)
+    sem_promocao = WorkItems.list_unpromoted_parts(tenant, issue.id)
+    relacao_sem_nome = WorkItems.list_unnamed_relation_parts(tenant, issue.id)
+
+    presentes =
+      length(composicao) + length(atendimento) + length(sem_promocao) +
+        length(relacao_sem_nome)
+
     socket
     |> assign(
       issue: issue,
@@ -424,12 +456,13 @@ defmodule TheBandWeb.WorkItemLive.Show do
       # A verificação do axioma é a **mesma função** que a tela do repositório usa em
       # lote. Dois caminhos discordariam, e uma tela avisaria o que a outra nega.
       violacao: violacao(issue, pai),
-      composicao: WorkItems.list_composition(tenant, issue.id),
-      atendimento: WorkItems.list_attendance(tenant, issue.id),
-      sem_promocao: WorkItems.list_unpromoted_parts(tenant, issue.id),
+      composicao: composicao,
+      atendimento: atendimento,
+      sem_promocao: sem_promocao,
+      relacao_sem_nome: relacao_sem_nome,
       recusados: WorkItems.list_refused_for(tenant, issue.id),
       historico: WorkItems.promotion_history(tenant, issue.id),
-      partes_faltando: partes_faltando(tenant, issue),
+      partes_faltando: max(issue.sub_issue_count - presentes, 0),
       nomes: nomes,
       autor_nome: nomes[issue.author_person_id]
     )
@@ -444,18 +477,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
       {:ok, repositorio} -> repositorio
       {:error, :not_found} -> nil
     end
-  end
-
-  # Declaradas menos as que existem aqui, em qualquer das três listas. Nunca negativo: a
-  # origem pode declarar menos do que a plataforma vinculou quando a contagem dela e as
-  # sub-issues vêm de páginas diferentes.
-  defp partes_faltando(tenant, issue) do
-    presentes =
-      length(WorkItems.list_composition(tenant, issue.id)) +
-        length(WorkItems.list_attendance(tenant, issue.id)) +
-        length(WorkItems.list_unpromoted_parts(tenant, issue.id))
-
-    max(issue.sub_issue_count - presentes, 0)
   end
 
   defp violacao(issue, pai) do
