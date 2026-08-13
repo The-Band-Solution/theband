@@ -271,7 +271,19 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <h3 class="font-semibold">As the source describes it</h3>
               <dl>
                 <.field label="author">
-                  {@autor_nome || @issue.author_login || "—"}
+                  <%!-- A ligação é **condicional**, e é o que separa esta feature de um defeito:
+                        são 288 aparições cujo login a plataforma nunca coletou como pessoa, e um
+                        `<.link>` incondicional produziria clique que promete e não entrega. --%>
+                  <.link
+                    :if={@issue.author_person_id}
+                    navigate={~p"/people/#{@issue.author_person_id}"}
+                    class="link link-hover underline decoration-dotted"
+                  >
+                    {@autor_nome || @issue.author_login}
+                  </.link>
+                  <span :if={is_nil(@issue.author_person_id)}>
+                    {@autor_nome || @issue.author_login || "—"}
+                  </span>
                   <%!-- A login with no linked person is a declaration, not a failure: the
                         person was not collected, and creating them from the issue would
                         produce a record with no provenance. --%>
@@ -286,7 +298,14 @@ defmodule TheBandWeb.WorkItemLive.Show do
                   <.absent :if={@issue.assignees == []} reason="nobody assigned" />
                   <ul :if={@issue.assignees != []} class="space-y-0.5">
                     <li :for={a <- @issue.assignees}>
-                      {@nomes[a.person_id] || a.login}
+                      <.link
+                        :if={a.person_id}
+                        navigate={~p"/people/#{a.person_id}"}
+                        class="link link-hover underline decoration-dotted"
+                      >
+                        {@nomes[a.person_id] || a.login}
+                      </.link>
+                      <span :if={is_nil(a.person_id)}>{a.login}</span>
                       <span :if={is_nil(a.person_id)} class="text-xs opacity-60">
                         (person not collected)
                       </span>
