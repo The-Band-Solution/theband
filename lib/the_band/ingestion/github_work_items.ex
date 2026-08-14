@@ -118,7 +118,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         Enum.map(nodes, fn node ->
           {:ok, repo} = gravar_repositorio(ctx, organization, node)
           {:ok, observado} = CMPO.observe_repository(ctx.tenant, ctx.tool.id, repo.id)
-          ctx.sync |> Ingestion.reload() |> Ingestion.tally(:unchanged)
+          ctx.sync |> Ingestion.reload() |> Ingestion.tally(observado.outcome || :unchanged)
           %{repo: repo, observed_repository_id: observado.id, node: node}
         end)
 
@@ -217,7 +217,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # **Depois de `vincular/2`, nunca antes.** Antes marcaria todos os vínculos e a
         # renovação limparia parte, deixando dois estados para o mesmo fato dentro da
         # mesma execução.
-        ausentes = marcar_vinculos_ausentes(ctx, observado_id, repo.name)
+        ausentes = marcar_vinculos_ausentes(ctx, Enum.map(gravadas, & &1.id), repo.name)
 
         {%{
            repositorio: repo.name,
@@ -346,11 +346,16 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # **Silêncio quando é zero**, pela mesma razão que a tela esconde "0 unreachable": a
   # linha que aparece em toda execução treina quem lê a ignorá-la, e é justamente a linha
   # que importa quando não é zero.
-  defp marcar_vinculos_ausentes(ctx, observado_id, nome) do
+  #
+  # **Recebe os pais percorridos, e não o repositório.** Enquanto a coleta era completa os dois
+  # davam no mesmo; na incremental da feature 020, o repositório marcaria os vínculos de todos
+  # os pais que não foram relidos. É a L19 no nível do vínculo — ver a documentação de
+  # `mark_decomposition_links_no_longer_observed/3`.
+  defp marcar_vinculos_ausentes(ctx, pais_percorridos, nome) do
     {:ok, count} =
       WorkItems.mark_decomposition_links_no_longer_observed(
         ctx.tenant,
-        observado_id,
+        pais_percorridos,
         ctx.started_at
       )
 
@@ -405,8 +410,6 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       collected_at: now
     })
 
-    ctx.sync |> Ingestion.reload() |> Ingestion.tally(:unchanged)
-
     {:ok, issue} =
       WorkItems.record_collected_issue(ctx.tenant, %{
         observed_repository_id: observado_id,
@@ -434,6 +437,13 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         comment_count: get_in(node, ["comments", "totalCount"]) || 0,
         reaction_count: get_in(node, ["reactions", "totalCount"]) || 0
       })
+
+    # A contagem vem do que a escrita **fez**, e não de `:unchanged` fixo.
+    #
+    # Até 2026-08-14 esta linha dizia `tally(:unchanged)` para toda issue, e por isso
+    # `records_created` e `records_updated` eram zero nas 38 execuções do banco. A tela mostrava
+    # `4553 / 0 / 0 / 0` e estava exibindo fielmente o que fora gravado — FR-001, FR-004.
+    ctx.sync |> Ingestion.reload() |> Ingestion.tally(issue.outcome || :unchanged)
 
     designados =
       for %{"login" => login} <- get_in(node, ["assignees", "nodes"]) || [],

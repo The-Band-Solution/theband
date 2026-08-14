@@ -42,7 +42,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       assert {:ok, 1} =
                WorkItems.mark_decomposition_links_no_longer_observed(
                  ctx.tenant,
-                 ctx.cenario.observed_repository_id,
+                 [pai.id],
                  corte()
                )
 
@@ -68,7 +68,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, marcados} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           corte()
         )
 
@@ -85,7 +85,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, 1} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           corte
         )
 
@@ -103,26 +103,27 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
   end
 
   describe "o escopo" do
-    test "não alcança o vínculo cujo pai está em outro repositório", ctx do
+    test "não alcança o vínculo de um pai que não foi percorrido", ctx do
       %{pai: pai, partes: [parte | _]} = ctx.cenario.issues[3]
       vinculo = vinculo(pai, parte)
       recuar(vinculo, minutos: 30)
 
-      outro = repositorio_observado(ctx.tenant, ctx.cenario, "outro-repo")
+      %{pai: outro_pai} = ctx.cenario.issues[4]
 
       assert {:ok, 0} =
                WorkItems.mark_decomposition_links_no_longer_observed(
                  ctx.tenant,
-                 outro,
+                 [outro_pai.id],
                  corte()
                )
 
       refute recarregar(vinculo).no_longer_observed_at, """
-      Coletar um repositório marcou vínculo declarado por outro.
+      Um pai que a coleta não releu teve o vínculo marcado.
 
-      Quem declara a decomposição é o **pai** — as partes vêm dentro dele. São 57 os
-      vínculos cuja filha está em outro repositório, e escopar pela filha os marcaria toda
-      vez que o repositório dela fosse coletado sem o do pai.
+      Quem declara a decomposição é o **pai** — as partes vêm dentro dele —, e "não
+      apareceu" só significa algo em relação ao que foi olhado. Enquanto o escopo era o
+      repositório, uma coleta incremental que relesse uma issue marcaria os vínculos de
+      todos os pais que ela não releu.
       """
     end
 
@@ -139,7 +140,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       assert {:ok, 1} =
                WorkItems.mark_decomposition_links_no_longer_observed(
                  ctx.tenant,
-                 ctx.cenario.observed_repository_id,
+                 [pai.id],
                  corte()
                )
 
@@ -161,7 +162,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, primeira} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           corte()
         )
 
@@ -171,7 +172,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       assert {:ok, 0} =
                WorkItems.mark_decomposition_links_no_longer_observed(
                  ctx.tenant,
-                 ctx.cenario.observed_repository_id,
+                 [pai.id],
                  corte()
                )
 
@@ -191,7 +192,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, 1} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           corte()
         )
 
@@ -203,7 +204,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, _outros} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           DateTime.add(agora(), 60, :second)
         )
 
@@ -227,7 +228,7 @@ defmodule TheBand.WorkItems.DecompositionAbsenceTest do
       {:ok, 1} =
         WorkItems.mark_decomposition_links_no_longer_observed(
           ctx.tenant,
-          ctx.cenario.observed_repository_id,
+          [pai.id],
           corte()
         )
 

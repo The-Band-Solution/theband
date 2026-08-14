@@ -44,7 +44,7 @@ defmodule TheBand.WorkItems do
 
   defdelegate mark_decomposition_links_no_longer_observed(
                 tenant,
-                observed_repository_id,
+                parent_issue_ids,
                 desde
               ),
               to: Commands

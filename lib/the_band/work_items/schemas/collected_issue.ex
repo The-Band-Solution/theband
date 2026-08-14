@@ -57,6 +57,13 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     field :last_observed_at, :utc_datetime
     field :no_longer_observed_at, :utc_datetime
 
+    # O que a escrita **fez** — criou, atualizou, ou não mexeu.
+    #
+    # Virtual, e no mesmo formato que `EO.Schemas.Person` já usa: quem grava sabe o que
+    # aconteceu, e sem este campo a informação morria na linha seguinte. Era o que fazia
+    # `records_created` e `records_updated` ficarem zerados nas 38 execuções do banco.
+    field :outcome, Ecto.Enum, values: [:created, :updated, :unchanged], virtual: true
+
     timestamps(type: :utc_datetime)
   end
 
