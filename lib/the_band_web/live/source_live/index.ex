@@ -17,7 +17,13 @@ defmodule TheBandWeb.SourceLive.Index do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Tools", form_open: false, renaming: nil)
+     |> assign(
+       page_title: "Tools",
+       form_open: false,
+       renaming: nil,
+       adding: nil,
+       correcting: nil
+     )
      |> load_tools()}
   end
 
@@ -70,6 +76,91 @@ defmodule TheBandWeb.SourceLive.Index do
 
     {:noreply, load_tools(socket)}
   end
+
+  # Trocar o token de uma ferramenta **em observação**, sem encerrar nada.
+  #
+  # `Sources.add_credential/3` existia desde a feature 001 e a tela nunca a chamava: o único
+  # campo de credencial nova vivia dentro do fluxo de retomada, que exige ter encerrado
+  # antes. Quem só queria trocar um token expirado era empurrado a encerrar a observação —
+  # e encerrar marca equipes, vínculos e pessoas como não mais observados. O caminho barato
+  # existia no domínio e não tinha porta.
+  def handle_event("add_credential", %{"tool_id" => tool_id} = params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
+         {:ok, credential} <- Sources.add_credential(tenant, tool, params) do
+      {:noreply,
+       socket
+       |> put_flash(
+         :info,
+         "Credential #{credential.label} added and validated. " <>
+           "Nothing was ended, and no data was marked."
+       )
+       |> assign(adding: nil)
+       |> load_tools()}
+    else
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
+
+      {:error, :unauthorized} ->
+        {:noreply,
+         put_flash(socket, :error, "The tool refused the credential. Nothing was saved.")}
+
+      {:error, {:missing_scopes, escopos}} ->
+        {:noreply,
+         put_flash(socket, :error, "The credential lacks scopes: #{Enum.join(escopos, ", ")}.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+
+      {:error, reason} ->
+        {:noreply,
+         put_flash(socket, :error, "Failed to validate the credential: #{inspect(reason)}")}
+    end
+  end
+
+  def handle_event("ask_correct", %{"id" => id}, socket),
+    do: {:noreply, assign(socket, correcting: id)}
+
+  def handle_event("cancel_correct", _params, socket),
+    do: {:noreply, assign(socket, correcting: nil)}
+
+  def handle_event("correct_identity", %{"tool_id" => id} = params, socket) do
+    case Sources.correct_identity(socket.assigns.current_tenant, id, params) do
+      {:ok, tool} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Registration corrected to #{tool.organization_login}.")
+         |> assign(correcting: nil)
+         |> load_tools()}
+
+      # A janela pode ter fechado entre a tela ter sido carregada e o clique: uma coleta
+      # que terminou no meio. A recusa vem do domínio, e não da ausência do botão.
+      {:error, :already_observed} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :error,
+           "This tool has already collected data. Correcting the registration is no longer " <>
+             "possible — another organization is another tool. End the observation and " <>
+             "connect the other one."
+         )
+         |> assign(correcting: nil)
+         |> load_tools()}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+    end
+  end
+
+  def handle_event("ask_add_credential", %{"id" => id}, socket),
+    do: {:noreply, assign(socket, adding: id)}
+
+  def handle_event("cancel_add_credential", _params, socket),
+    do: {:noreply, assign(socket, adding: nil)}
 
   # Renomear abre um campo na própria linha, e não uma tela: o rótulo é o único campo
   # editável de uma credencial, e uma tela inteira para um campo faria parecer que há mais.
@@ -334,6 +425,50 @@ defmodule TheBandWeb.SourceLive.Index do
             </div>
             <div class="text-sm opacity-70">{tool.instance_url}</div>
             <div class="text-sm opacity-70">organização observada: {tool.organization_login}</div>
+
+            <button
+              :if={@editavel[tool.id] and @correcting != tool.id}
+              class="btn btn-xs btn-ghost mt-1"
+              phx-click="ask_correct"
+              phx-value-id={tool.id}
+            >
+              corrigir cadastro
+            </button>
+
+            <form
+              :if={@correcting == tool.id}
+              id={"correct-#{tool.id}"}
+              phx-submit="correct_identity"
+              class="mt-2 flex flex-wrap gap-2 items-end p-3 rounded bg-base-200"
+            >
+              <input type="hidden" name="tool_id" value={tool.id} />
+              <label class="form-control">
+                <span class="label-text text-xs">Instância</span>
+                <input
+                  name="instance_url"
+                  value={tool.instance_url}
+                  class="input input-bordered input-sm"
+                />
+              </label>
+              <label class="form-control">
+                <span class="label-text text-xs">Organização</span>
+                <input
+                  name="organization_login"
+                  value={tool.organization_login}
+                  class="input input-bordered input-sm"
+                />
+              </label>
+              <.button type="submit" variant="primary">Corrigir</.button>
+              <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_correct">
+                cancelar
+              </button>
+              <p class="basis-full text-xs opacity-70">
+                Esta ferramenta <strong>ainda não coletou nada</strong> — por isso o cadastro pode
+                ser corrigido. Depois da primeira sincronização isto deixa de existir: outra
+                organização passa a ser outra ferramenta, porque o dado já coletado apontaria
+                para uma origem que não o produziu.
+              </p>
+            </form>
           </div>
 
           <div class="text-right text-sm opacity-70">
@@ -495,7 +630,54 @@ defmodule TheBandWeb.SourceLive.Index do
         </div>
 
         <div>
-          <div class="text-sm font-semibold mb-2">Credentials</div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-sm font-semibold">Credentials</div>
+            <button
+              :if={@situacao[tool.id] != :ended and @adding != tool.id}
+              class="btn btn-xs btn-outline"
+              phx-click="ask_add_credential"
+              phx-value-id={tool.id}
+            >
+              trocar o token
+            </button>
+          </div>
+
+          <form
+            :if={@adding == tool.id}
+            id={"add-credential-#{tool.id}"}
+            phx-submit="add_credential"
+            class="flex flex-wrap gap-2 items-end mb-3 p-3 rounded bg-base-200"
+          >
+            <input type="hidden" name="tool_id" value={tool.id} />
+            <label class="form-control">
+              <span class="label-text text-xs">Token novo</span>
+              <input
+                name="secret"
+                type="password"
+                class="input input-bordered input-sm"
+                autocomplete="off"
+                placeholder="ghp_..."
+              />
+            </label>
+            <label class="form-control">
+              <span class="label-text text-xs">Rótulo</span>
+              <input
+                name="label"
+                class="input input-bordered input-sm"
+                placeholder="credencial nova"
+              />
+            </label>
+            <.button type="submit" variant="primary">Validar e acrescentar</.button>
+            <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_add_credential">
+              cancelar
+            </button>
+            <p class="basis-full text-xs opacity-70">
+              O token é validado contra a origem <strong>antes</strong> de ser gravado, e a
+              credencial anterior continua onde está — desative-a ou remova-a depois de conferir
+              que a nova funciona. <strong>Nada é encerrado, e nenhum dado é marcado.</strong>
+            </p>
+          </form>
+
           <table class="table table-sm stacked">
             <thead>
               <tr>
@@ -575,12 +757,15 @@ defmodule TheBandWeb.SourceLive.Index do
             Os quatro caracteres finais existem só para distinguir uma credencial da outra.
           </p>
           <p class="text-xs opacity-60 mt-2">
-            O rótulo é o único campo editável de uma ferramenta conectada. O tipo, a instância e
-            a organização não são editáveis porque <span class="font-semibold">são a identidade dela</span>:
-            outra organização é outra ferramenta, e trocar a organização faria os registros já
-            coletados apontarem para uma origem que não os produziu. Para parar de observar esta
-            organização, o caminho é <span class="font-semibold">encerrar a observação</span> — o
-            dado coletado continua consultável, marcado como não mais observado.
+            A instância e a organização são <span class="font-semibold">a identidade da ferramenta</span>,
+            e só podem ser corrigidas <span class="font-semibold">enquanto ela não coletou nada</span>
+            —
+            erro de cadastro se conserta, origem de dado já coletado não. Depois da primeira
+            sincronização, o que se troca é o token: a credencial nova entra ao lado da antiga,
+            e nada é encerrado nem marcado. Para parar de observar esta organização, o caminho é
+            <span class="font-semibold">encerrar a observação</span>
+            — o dado coletado continua
+            consultável, marcado como não mais observado.
           </p>
         </div>
       </div>
@@ -599,6 +784,10 @@ defmodule TheBandWeb.SourceLive.Index do
     # plataforma continua coletando.
     |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
     |> assign(situacao: Map.new(tools, &{&1.id, Sources.situacao(&1)}))
+    # Corrigir o cadastro só existe enquanto nada foi coletado. Fica no assign, e não no
+    # markup, porque é uma medida — três consultas por ferramenta — e a tela não decide
+    # por conta própria quando a janela fechou.
+    |> assign(editavel: Map.new(tools, &{&1.id, Sources.identity_editable?(tenant, &1)}))
     |> assign(history: Map.new(tools, &{&1.id, Sources.observation_history(tenant, &1)}))
     |> assign_new(:ending, fn -> nil end)
     |> assign_new(:resuming, fn -> nil end)
