@@ -50,6 +50,28 @@ defmodule TheBandWeb.TabelaEmTodasAsTelasTest do
     %{conn: log_in(conn, user), tenant: tenant, pessoa: pessoa}
   end
 
+  # Os parâmetros do endereço para onde a tela navegou, como mapa.
+  #
+  # Mapa, e não texto: a ordem em que a query string sai é detalhe de codificação, e um teste
+  # que a fixa reprova por mudança que não muda o que a tela faz.
+  defp parametros(live) do
+    assert_patch(live)
+    |> URI.parse()
+    |> Map.get(:query)
+    |> URI.decode_query()
+  end
+
+  # Os números da coluna `#`, na ordem em que a tela os desenhou.
+  #
+  # **Não** `:binary.match/2` sobre o HTML inteiro: "30" aparece dentro de UUID e de data, e a
+  # posição encontrada dependia do identificador sorteado — o teste passava ou falhava por
+  # sorte, e era exatamente a L46 escrita de novo. Aqui a extração é da célula.
+  defp numeros(html) do
+    ~r{data-label="#"[^>]*>\s*(\d+)\s*<}
+    |> Regex.scan(html)
+    |> Enum.map(fn [_, n] -> String.to_integer(n) end)
+  end
+
   describe "a página da pessoa passou a buscar, ordenar e paginar" do
     test "o endereço com busca já abre buscado", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?q=agulha")
@@ -63,12 +85,14 @@ defmodule TheBandWeb.TabelaEmTodasAsTelasTest do
     end
 
     test "o endereço com ordenação já abre ordenado", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?ordem=number&dir=desc")
+      {:ok, _live, crescente} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?ordem=number&dir=asc")
 
-      posicao_30 = :binary.match(html, "30") |> elem(0)
-      posicao_10 = :binary.match(html, "10") |> elem(0)
+      {:ok, _live, decrescente} =
+        live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?ordem=number&dir=desc")
 
-      assert posicao_30 < posicao_10, """
+      assert numeros(crescente) == [10, 20, 30]
+
+      assert numeros(decrescente) == [30, 20, 10], """
       `dir=desc` tem de inverter a ordem no HTML, e não só no parâmetro. Uma tela que aceita o
       parâmetro e ordena igual é pior que uma que recusa: quem mandou o link acredita que a
       outra pessoa vê o que ele pediu.
@@ -108,6 +132,42 @@ defmodule TheBandWeb.TabelaEmTodasAsTelasTest do
       Paginar sobre o total afirmaria páginas que a busca não tem. A contagem da faixa vem da
       busca vigente; o número do cartão, que diz quantas issues a pessoa tem, não muda.
       """
+    end
+  end
+
+  describe "as listas de pessoas e equipes seguem a mesma regra" do
+    test "/people abre buscado pelo endereço", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/people?q=alvo")
+
+      assert html =~ "Alvo"
+      assert html =~ "search in name and login"
+    end
+
+    test "/people ordena por clique na coluna", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/people")
+
+      ordenado = live |> element("th button[phx-value-campo=name]") |> render_click()
+
+      assert ordenado =~ "↑"
+      assert parametros(live) == %{"ordem" => "name", "dir" => "asc"}
+    end
+
+    test "/teams abre buscado pelo endereço, e a tela não cai com parâmetro inválido", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams?q=nada&ordem=inexistente&pagina=abc")
+
+      assert html =~ "search in name and slug", "a tela precisa continuar de pé"
+    end
+
+    test "/teams/:id ordena os integrantes por clique", ctx do
+      organizacao = organization_fixture(ctx.tenant, "acme")
+      equipe = team_fixture(ctx.tenant, "T_a", %{organization: organizacao})
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{equipe.id}")
+
+      ordenado = live |> element("th button[phx-value-campo=name]") |> render_click()
+
+      assert ordenado =~ "↑"
+      assert parametros(live) == %{"ordem" => "name", "dir" => "asc"}
     end
   end
 end

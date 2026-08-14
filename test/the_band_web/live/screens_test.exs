@@ -113,7 +113,7 @@ defmodule TheBandWeb.ScreensTest do
       assert html =~ "Core"
       assert html =~ "organizational_team"
       assert html =~ "T_1"
-      assert html =~ "pendente"
+      assert html =~ "pending"
     end
 
     test "a tela de integrantes rotula o nível como acesso, nunca como papel", %{
@@ -137,7 +137,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(conn, ~p"/teams/#{equipe.id}")
 
-      assert html =~ "acesso na plataforma"
+      assert html =~ "access at the platform"
       assert html =~ "MAINTAINER"
       assert html =~ "papel organizacional"
       # O rótulo é parte do contrato: chamar o nível de "cargo" na tela desfaria
@@ -291,7 +291,7 @@ defmodule TheBandWeb.ScreensTest do
     test "/equipes mostra a organização de cada equipe", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/teams")
 
-      assert html =~ "organização"
+      assert html =~ "organisation"
       assert html =~ "alfa"
       assert html =~ "beta"
     end
@@ -321,15 +321,15 @@ defmodule TheBandWeb.ScreensTest do
 
       # Selo visível, não nota de rodapé: esconder é pior que marcar, porque quem não
       # vê a equipe não explica por que a contagem de pessoas não fecha.
-      assert html =~ "derivada"
-      assert html =~ "não existe na ferramenta de origem"
+      assert html =~ "derived"
+      assert html =~ "does not exist at the source tool"
     end
 
     test "a contagem separa observadas de derivadas", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/teams")
 
-      assert html =~ "1 derivada"
-      assert html =~ "1 na origem"
+      assert html =~ "1 derived"
+      assert html =~ "1 at the source"
     end
 
     test "descontadas as derivadas, a contagem bate com a origem", %{

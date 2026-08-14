@@ -58,7 +58,7 @@ defmodule TheBandWeb.TabelaTest do
       vazio =
         live |> form("form[phx-change=buscar]", %{"q" => "zzzznaoexiste"}) |> render_change()
 
-      assert vazio =~ "Nenhuma issue com"
+      assert vazio =~ "No issue with"
       assert vazio =~ "zzzznaoexiste"
     end
 

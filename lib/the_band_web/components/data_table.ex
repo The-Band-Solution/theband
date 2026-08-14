@@ -101,8 +101,13 @@ defmodule TheBandWeb.Components.DataTable do
             </tr>
           </thead>
           <tbody>
+            <%!-- `data-label` não é enfeite: é o que a classe `stacked` usa para escrever o nome
+                  da coluna ao lado do valor quando a tabela vira lista, em tela estreita. Sem
+                  ele, 360 px mostra uma coluna de valores sem dizer de quê. --%>
             <tr :for={row <- @rows}>
-              <td :for={col <- @col} class={col[:class]}>{render_slot(col, row)}</td>
+              <td :for={col <- @col} data-label={col[:label]} class={col[:class]}>
+                {render_slot(col, row)}
+              </td>
             </tr>
             <%!-- A linha vazia é uma linha da tabela, e não um parágrafo depois dela: fora da
                   tabela, o cabeçalho fica sozinho afirmando colunas de nada. --%>

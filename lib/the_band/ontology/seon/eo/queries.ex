@@ -29,7 +29,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   def list_people(tenant, opts \\ []) do
     Person
     |> scope(tenant, opts)
-    |> order_by([p], asc: p.name)
+    |> ordenar(opts[:order_by], [:name, :login, :account_type, :source_system, :collected_at])
     |> paginate(opts)
     |> Repo.all()
   end
@@ -84,7 +84,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   def list_teams(tenant, opts \\ []) do
     Team
     |> scope(tenant, opts)
-    |> order_by([t], asc: t.name)
+    |> ordenar(opts[:order_by], [:name, :slug, :source_system, :collected_at])
     |> paginate(opts)
     |> Repo.all()
   end
@@ -110,7 +110,6 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         join: p in Person,
         on: p.id == e.person_id,
         where: e.tenant_id == ^tenant_id and e.team_id == ^team_id,
-        order_by: [asc: p.name],
         select: %{
           person: p,
           platform_access_level: e.platform_access_level,
@@ -120,11 +119,60 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
           pending_role: is_nil(e.promoted_membership_id)
         }
 
-    query =
-      if include_absent?, do: query, else: where(query, [e], is_nil(e.no_longer_observed_at))
-
-    Repo.all(query)
+    query
+    |> then(fn q ->
+      if include_absent?, do: q, else: where(q, [e], is_nil(e.no_longer_observed_at))
+    end)
+    |> busca_por_pessoa(opts[:search])
+    |> ordenar_integrantes(opts[:order_by])
+    |> paginate(opts)
+    |> Repo.all()
   end
+
+  @doc """
+  Quantos integrantes a equipe tem, **com as mesmas opts** da listagem.
+
+  A contagem e a listagem compartilham filtro porque um cabeçalho dizendo 64 sobre uma lista
+  de 10 é o defeito que este módulo inteiro se organiza para não ter.
+  """
+  @spec count_team_members(Tenant.t(), Ecto.UUID.t(), keyword()) :: non_neg_integer()
+  def count_team_members(%Tenant{id: tenant_id}, team_id, opts \\ []) do
+    include_absent? = Keyword.get(opts, :include_no_longer_observed, true)
+
+    from(e in TeamMembershipEvidence,
+      join: p in Person,
+      on: p.id == e.person_id,
+      where: e.tenant_id == ^tenant_id and e.team_id == ^team_id
+    )
+    |> then(fn q ->
+      if include_absent?, do: q, else: where(q, [e], is_nil(e.no_longer_observed_at))
+    end)
+    |> busca_por_pessoa(opts[:search])
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp busca_por_pessoa(query, termo) when termo in [nil, ""], do: query
+
+  defp busca_por_pessoa(query, termo) do
+    like = "%#{termo}%"
+    where(query, [_e, p], ilike(p.name, ^like) or ilike(p.login, ^like))
+  end
+
+  # A ordenação atravessa duas tabelas: nome e login são da pessoa, o nível de acesso e as
+  # datas são da evidência. Por isso a lista permitida não é uma só — cada campo sabe de onde
+  # sai, e o que não estiver aqui cai no padrão.
+  defp ordenar_integrantes(query, {:name, dir}), do: order_by(query, [_e, p], [{^dir, p.name}])
+
+  defp ordenar_integrantes(query, {:platform_access_level, dir}),
+    do: order_by(query, [e, p], [{^dir, e.platform_access_level}, asc: p.name])
+
+  defp ordenar_integrantes(query, {:observed_at, dir}),
+    do: order_by(query, [e, p], [{^dir, e.observed_at}, asc: p.name])
+
+  defp ordenar_integrantes(query, {:last_observed_at, dir}),
+    do: order_by(query, [e, p], [{^dir, e.last_observed_at}, asc: p.name])
+
+  defp ordenar_integrantes(query, _outra), do: order_by(query, [_e, p], asc: p.name)
 
   # --------------------------------------------------------------- organizações
 
@@ -491,6 +539,14 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   defp filter_search(query, nil), do: query
   defp filter_search(query, ""), do: query
 
+  # **A segunda coluna depende do schema.** Pessoa tem `login`; equipe tem `slug`, e não tem
+  # `login` — a versão única quebrava com `column e0.login does not exist` no dia em que
+  # alguém passasse busca para equipes. Ficou latente enquanto ninguém passava.
+  defp filter_search(%Ecto.Query{from: %{source: {_, Team}}} = query, term) do
+    like = "%#{term}%"
+    where(query, [r], ilike(r.name, ^like) or ilike(r.slug, ^like))
+  end
+
   defp filter_search(query, term) do
     like = "%#{term}%"
     where(query, [r], ilike(r.name, ^like) or ilike(r.login, ^like))
@@ -498,6 +554,26 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
 
   defp filter_observed(query, true), do: where(query, [r], is_nil(r.no_longer_observed_at))
   defp filter_observed(query, _), do: query
+
+  # A ordenação que a tela pediu, **conferida contra a lista de colunas permitidas**.
+  #
+  # A conferência não é zelo: `order_by` recebe átomo, e um átomo vindo do parâmetro
+  # ordenaria por coluna que a tela não declarou — ou por nenhuma, silenciosamente. Coluna
+  # fora da lista cai no padrão, que é o nome, e a tela já avisou quem pediu (feature 019).
+  #
+  # O desempate por `id` existe porque paginar sobre ordem não determinística repete e some
+  # com linhas entre páginas: dois nomes iguais mudam de lado a cada consulta.
+  defp ordenar(query, nil, _permitidas), do: order_by(query, [r], asc: r.name, asc: r.id)
+
+  defp ordenar(query, {campo, direcao}, permitidas) when direcao in [:asc, :desc] do
+    if campo in permitidas do
+      order_by(query, [r], [{^direcao, field(r, ^campo)}, asc: r.id])
+    else
+      order_by(query, [r], asc: r.name, asc: r.id)
+    end
+  end
+
+  defp ordenar(query, _outra, _permitidas), do: order_by(query, [r], asc: r.name, asc: r.id)
 
   defp paginate(query, opts) do
     query

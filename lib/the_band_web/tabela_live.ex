@@ -76,10 +76,17 @@ defmodule TheBandWeb.TabelaLive do
   ordem sozinho parece endereço diferente para quem compara dois links.
   """
   def query(socket, id, mudancas, extra \\ []) do
-    socket.assigns.tabelas
-    |> Enum.sort_by(fn {chave, _} -> chave end)
-    |> Enum.flat_map(&EstadoDaTabela.para_query(com_mudancas(&1, id, mudancas)))
-    |> then(&(Enum.map(extra, fn {k, v} -> {to_string(k), v} end) ++ &1))
+    tabelas =
+      socket.assigns.tabelas
+      |> Enum.sort_by(fn {chave, _} -> chave end)
+      |> Enum.flat_map(&EstadoDaTabela.para_query(com_mudancas(&1, id, mudancas)))
+
+    # O `extra` passa pelo mesmo corte que o resto: filtro vazio vira `?repositorio=` no
+    # endereço, que sugere uma escolha que ninguém fez. É a FR-005 da feature 019.
+    extra
+    |> Enum.map(fn {k, v} -> {to_string(k), v} end)
+    |> Enum.reject(fn {_k, v} -> v in [nil, ""] end)
+    |> Kernel.++(tabelas)
   end
 
   defp com_mudancas({id, estado}, id, mudancas), do: Map.merge(estado, Map.new(mudancas))
