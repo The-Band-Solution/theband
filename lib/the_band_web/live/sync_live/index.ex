@@ -384,6 +384,16 @@ defmodule TheBandWeb.SyncLive.Index do
               <.field :if={sync.repositories_unreachable > 0} label="unreachable repositories">
                 {sync.repositories_unreachable}
               </.field>
+              <%!-- Pular em silêncio é indistinguível de percorrer e não achar nada, e as duas
+                    dizem coisas opostas sobre a origem. O rótulo diz o **motivo**, e não só o
+                    número: "sem push desde a última revisão" é o que permite a quem lê decidir
+                    se aquilo faz sentido. --%>
+              <.field
+                :if={sync.repositories_skipped > 0}
+                label="repositories with no push since the last review"
+              >
+                {sync.repositories_skipped}
+              </.field>
             </dl>
           </div>
 

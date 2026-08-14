@@ -238,7 +238,12 @@ defmodule TheBand.Ingestion do
   @doc "Acumula o resultado de uma escrita no relatório da sincronização (FR-028)."
   @spec tally(
           Sync.t(),
-          :created | :updated | :unchanged | :repository_unreachable | {:skipped, String.t()}
+          :created
+          | :updated
+          | :unchanged
+          | :repository_unreachable
+          | :repository_skipped
+          | {:skipped, String.t()}
         ) ::
           {:ok, Sync.t()} | {:error, Ecto.Changeset.t()}
   def tally(%Sync{} = sync, outcome) do
@@ -267,6 +272,15 @@ defmodule TheBand.Ingestion do
         # registrar depois de processar, por item.
         :repository_unreachable ->
           %{repositories_unreachable: sync.repositories_unreachable + 1}
+
+        # Conta **repositório**, e pelo mesmo motivo do de cima não passa por `records_*`:
+        # aqueles contam registros, e somar repositórios ali faria a soma que a tela exibe
+        # mentir.
+        #
+        # Incrementado a cada pulo, e não no fim da fase: coleta interrompida no meio ficaria
+        # com zero, e zero afirma que tudo foi percorrido.
+        :repository_skipped ->
+          %{repositories_skipped: sync.repositories_skipped + 1}
 
         {:skipped, reason} ->
           %{
