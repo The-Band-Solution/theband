@@ -245,8 +245,9 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
     ignoradas = ~w(oban_jobs oban_peers schema_migrations)
 
     handler = fn _evento, _medidas, %{query: query} = meta, _config ->
-      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas,
-        do: send(pai, {ref, :consulta})
+      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas and
+           not String.contains?(query, "oban_"),
+         do: send(pai, {ref, :consulta})
     end
 
     :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
