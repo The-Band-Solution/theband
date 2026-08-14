@@ -1809,3 +1809,117 @@ Vale para consulta, tempo, linhas lidas e memória — e é irmã da **L50**, qu
 medida não é zero.
 
 **Estado**: aberta.
+
+## L54 — Átomo criado sob demanda faz o resultado depender da ordem de carga
+
+**Origem**: Sprint 014 · **Tipo**: técnica
+
+**O que aconteceu.** O carregador da base classificava o tipo de cada artefato com
+`String.to_existing_atom(chave_de_topo)`, com `rescue ArgumentError -> :unknown`. A intenção era
+certa: texto vindo de arquivo não pode criar átomo.
+
+O efeito era outro. A existência do átomo dependia de **qual módulo já tinha sido carregado**.
+Antes de `Mix.Task.run("app.config")`, `:ontology` ainda não existia — as 12 ontologias viravam
+`:unknown`, o mapa de dependências saía vazio, e a validação reprovava a base com **124 problemas
+inventados**, todos em ontologias que declaram a dependência ali no arquivo. Depois de
+`app.config`, a mesma base passava.
+
+Perdi horas perseguindo o defeito na base, porque a chamada direta ao validador aprovava e a Mix
+task reprovava — com o mesmo código, sobre os mesmos arquivos.
+
+**Por que aconteceu.** `to_existing_atom` transforma uma pergunta sobre o **dado** ("este tipo é
+conhecido?") numa pergunta sobre o **estado da máquina virtual** ("este átomo já foi criado?"). As
+duas coincidem quase sempre, e divergem exatamente quando o código roda cedo.
+
+**O que fazer diferente.** Conjunto fechado e conhecido em compilação vira **tabela literal**:
+
+```elixir
+@tops [{"ontology", :ontology}, {"module", :module}, ...]
+
+defp kind_from(top) do
+  case List.keyfind(@tops, top, 0) do
+    {_, kind} -> kind
+    nil -> :unknown
+  end
+end
+```
+
+O átomo existe assim que o módulo carrega, e o resultado deixa de depender da ordem. Vale para todo
+mapeamento texto → átomo sobre conjunto fechado: tipo de artefato, coluna ordenável, papel.
+
+**Estado**: aberta.
+
+## L55 — Task que não compila valida o build anterior
+
+**Origem**: Sprint 014 · **Tipo**: processo
+
+**O que aconteceu.** `mix knowledge.validate` chamava `Mix.Task.run("app.config")` e nada mais.
+`app.config` **não compila**. A task rodava contra os beams da compilação anterior, então uma
+correção no validador não aparecia — e eu depurava um defeito já corrigido em disco, com a chamada
+direta ao módulo aprovando e a task reprovando.
+
+**Por que aconteceu.** `mix run`, `mix test` e `mix compile` compilam sozinhos, e a gente
+generaliza que "task Mix compila". Não é verdade: quem compila é a dependência declarada, e
+`app.config` não a tem.
+
+**O que fazer diferente.** Toda Mix task que **mede** o código — gate, validador, relatório —
+começa por `Mix.Task.run("compile")`. Gate que mede código velho mente nas duas direções: aprova o
+que já quebrou, e reprova o que já foi corrigido.
+
+**Estado**: aberta.
+
+## L56 — Filtrar telemetria pela `source` não alcança quem consulta por SQL cru
+
+**Origem**: Sprint 014 · **Tipo**: técnica
+
+**O que aconteceu.** Os contadores de consulta excluíam as tabelas do Oban por `meta[:source]` —
+correção da L42. O job de cobertura reprovou mesmo assim: 30 consultas com poucas issues e 31 com
+muitas, numa tela que a branch não tocava.
+
+O Oban consulta por **SQL cru**. Aí `meta[:source]` vem nula, enquanto o texto da consulta diz
+`oban_jobs`. Sob cobertura a execução alarga, o tick do `Oban.Stager` cai dentro da janela, e a
+consulta entra na conta da tela.
+
+**Por que aconteceu.** A primeira correção fechou o caminho que eu tinha visto — consulta via
+schema — e assumiu que era o único. `source` é preenchida pelo Ecto quando há schema; sem schema,
+não há o que preencher.
+
+**O que fazer diferente.** Filtro de telemetria de consulta olha **os dois**: a `source` e o texto.
+
+```elixir
+String.starts_with?(query, "SELECT") and
+  to_string(meta[:source]) not in ignoradas and
+  not String.contains?(query, "oban_")
+```
+
+E a lição atrás da lição: **teste que reprova sob cobertura e passa fora dela não é intermitente
+por acaso** — a cobertura muda o tempo, e o que muda com o tempo é a janela de quem mede.
+
+**Estado**: aberta.
+
+## L57 — Verificação que filtra um tipo que ninguém produz nunca roda
+
+**Origem**: Sprint 014 · **Tipo**: técnica
+
+**O que aconteceu.** `perguntas_de_competencia/2` filtrava `kind == :competency_questions`, e
+**nenhum** artefato da base tinha esse tipo — o carregador os classificava como `:unknown`. A
+verificação existia, era chamada, percorria uma lista vazia e devolvia zero problemas. Verde.
+
+Só apareceu porque a correção do carregador passou a produzir o tipo, e aí a verificação começou a
+rodar de fato.
+
+**Por que aconteceu.** É o sucesso silencioso na forma mais difícil de ver: não há erro, não há
+aviso, e a função **está** no caminho de execução. O que falta é o dado, e a ausência de dado é
+indistinguível de ausência de problema.
+
+**O que fazer diferente.** Verificação que filtra por tipo carrega um teste que **prova que o
+filtro acha alguém**:
+
+```elixir
+assert perguntas != [], "nenhum arquivo de perguntas de competência foi reconhecido"
+```
+
+Vale para toda a família: `Enum.filter` por tipo, `where` por categoria, consulta por
+discriminador. Se o conjunto filtrado puder ser vazio por engano, o teste afirma que não é.
+
+**Estado**: aberta.
