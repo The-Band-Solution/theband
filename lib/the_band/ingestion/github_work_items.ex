@@ -95,6 +95,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
          repositories: length(repositorios),
          issues: Enum.sum(Enum.map(resultado, & &1.coletadas)),
          unreachable: Enum.count(resultado, &(&1.alcancado == false)),
+         # Quantos foram pulados, e **por qual motivo** — FR-007. Pular em silêncio é
+         # indistinguível de percorrer e não achar nada, e as duas coisas dizem coisas
+         # opostas sobre a origem.
+         skipped:
+           Enum.frequencies_by(Enum.filter(resultado, &Map.has_key?(&1, :pulado)), & &1.pulado),
          decomposition_links_absent: Enum.sum(Enum.map(resultado, & &1.vinculos_ausentes))
        }}
     end
@@ -119,7 +124,10 @@ defmodule TheBand.Ingestion.GithubWorkItems do
           {:ok, repo} = gravar_repositorio(ctx, organization, node)
           {:ok, observado} = CMPO.observe_repository(ctx.tenant, ctx.tool.id, repo.id)
           ctx.sync |> Ingestion.reload() |> Ingestion.tally(observado.outcome || :unchanged)
-          %{repo: repo, observed_repository_id: observado.id, node: node}
+          # O registro observado vai junto: é dele que sai `issues_collected_at`, que decide
+          # se o repositório é percorrido. Reconsultá-lo por repositório faria 121 consultas
+          # para decidir 121 pulos.
+          %{repo: repo, observed_repository_id: observado.id, observado: observado, node: node}
         end)
 
       # Checkpoint **depois** de processar, nunca antes — e é o que a tela lê para dizer
@@ -173,7 +181,68 @@ defmodule TheBand.Ingestion.GithubWorkItems do
 
   # ------------------------------------------------------------------------ issues
 
-  defp coletar_issues(ctx, %{repo: repo, observed_repository_id: observado_id, node: node}) do
+  @doc false
+  # O repositório é percorrido, ou pulado com motivo — FR-005, FR-006, contrato seção 3.
+  #
+  # A comparação é entre o **último push na origem** e a **última revisão completa** das issues
+  # daquele repositório. Se ninguém empurrou nada desde que a plataforma leu, nada pode ter
+  # mudado, e a consulta é gasto sem retorno: medido em 2026-08-14, **106 dos 121**
+  # repositórios da `leds-conectafapes` estavam nessa situação.
+  #
+  # **Data ausente responde `:sim`, nas duas pontas.** Repositório nunca revisto tem de ser
+  # percorrido, e origem que não informou push não autoriza concluir que não houve — ausência
+  # de data não é ausência de mudança, que é a L47.
+  #
+  # **O falso positivo é aceito e o falso negativo não.** Um commit que não mexe em issue muda
+  # o `pushedAt` e faz o repositório ser lido à toa: custa uma consulta. O contrário custaria
+  # dado que não chega.
+  def percorrer?(%{last_pushed_at: nil}, _observado), do: :sim
+  def percorrer?(_source, %{issues_collected_at: nil}), do: :sim
+
+  def percorrer?(%{last_pushed_at: push}, %{issues_collected_at: revisao}) do
+    if DateTime.compare(push, revisao) == :lt,
+      do: {:nao, :sem_push_desde_a_revisao},
+      else: :sim
+  end
+
+  defp coletar_issues(ctx, %{
+         repo: repo,
+         observed_repository_id: observado_id,
+         observado: observado,
+         node: node
+       }) do
+    case percorrer?(repo, observado) do
+      {:nao, motivo} -> pular(ctx, repo, observado_id, motivo)
+      :sim -> percorrer_issues(ctx, repo, observado_id, node)
+    end
+  end
+
+  # Pular **não** marca nada, e é a garantia mais importante desta fase.
+  #
+  # Um repositório não percorrido é um repositório não olhado, e "não apareceu" só significa
+  # algo em relação ao que foi olhado — L19. Chamar `marcar_vinculos_ausentes/3` aqui, mesmo
+  # com lista vazia, seria pedir para o próximo leitor duvidar; não chamar é a regra.
+  #
+  # `issues_collected_at` também não é gravado: ele diz **quando foi percorrido por inteiro**,
+  # e nada foi percorrido — FR-008, FR-010.
+  defp pular(ctx, repo, _observado_id, motivo) do
+    ctx.sync |> Ingestion.reload() |> Ingestion.tally(:repository_skipped)
+
+    Ingestion.broadcast(
+      ctx.tenant.id,
+      {:sync_progress, ctx.sync.id, "github.issue:#{repo.name}"}
+    )
+
+    {%{
+       repositorio: repo.name,
+       coletadas: 0,
+       alcancado: true,
+       pulado: motivo,
+       vinculos_ausentes: 0
+     }, ctx}
+  end
+
+  defp percorrer_issues(ctx, repo, observado_id, node) do
     [owner, name] = String.split(node["nameWithOwner"], "/", parts: 2)
 
     case paginar(ctx, "issues", %{owner: owner, name: name}) do

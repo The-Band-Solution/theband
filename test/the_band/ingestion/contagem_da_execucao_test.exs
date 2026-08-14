@@ -216,7 +216,12 @@ defmodule TheBand.Ingestion.ContagemDaExecucaoTest do
                 "defaultBranchRef" => %{"name" => "main"},
                 "archivedAt" => nil,
                 "createdAt" => "2026-01-01T00:00:00Z",
-                "pushedAt" => "2026-08-01T00:00:00Z"
+                # Push no futuro para o repositório ser **sempre** percorrido: a partir da feature
+                # 020, um `pushedAt` anterior à última revisão faz a coleta pular o repositório — e
+                # estes casos coletam duas vezes de propósito, para medir marca e contagem.
+                #
+                # O pulo tem teste próprio em `pular_sem_atividade_test.exs`.
+                "pushedAt" => "2030-01-01T00:00:00Z"
               }
             ]
           }
