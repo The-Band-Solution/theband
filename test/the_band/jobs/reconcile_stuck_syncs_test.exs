@@ -56,7 +56,7 @@ defmodule TheBand.Jobs.ReconcileStuckSyncsTest do
 
   describe "a configuração" do
     test "o worker está numa fila configurada" do
-      filas = Keyword.keys(Application.get_env(:the_band, Oban)[:queues])
+      filas = Keyword.keys(oban_declarado()[:queues])
 
       assert ReconcileStuckSyncs.__opts__()[:queue] in filas, """
       O worker está na fila #{inspect(ReconcileStuckSyncs.__opts__()[:queue])}, e as filas
@@ -68,7 +68,7 @@ defmodule TheBand.Jobs.ReconcileStuckSyncsTest do
     end
 
     test "o Cron agenda a reconciliação" do
-      plugins = Application.get_env(:the_band, Oban)[:plugins]
+      plugins = oban_declarado()[:plugins]
 
       crontab =
         Enum.find_value(plugins, fn
@@ -88,7 +88,7 @@ defmodule TheBand.Jobs.ReconcileStuckSyncsTest do
     end
 
     test "o Lifeline NÃO está nos plugins" do
-      plugins = Application.get_env(:the_band, Oban)[:plugins]
+      plugins = oban_declarado()[:plugins]
 
       nomes =
         Enum.map(plugins, fn
@@ -112,5 +112,20 @@ defmodule TheBand.Jobs.ReconcileStuckSyncsTest do
       claim do sync — desenho novo, declarado como recusado em research.md R1.
       """
     end
+  end
+
+  # A configuração **declarada**, e não a do ambiente em que o teste roda.
+  #
+  # `Application.get_env/2` devolveria o valor de teste, onde fila, plugins e peer estão
+  # desligados — e as três asserções abaixo passariam a afirmar sobre o desligamento em vez de
+  # sobre a decisão. O que elas guardam é a decisão: worker em fila inexistente fica
+  # `available` para sempre, e o `Lifeline` fora dos plugins é medida da spec 008.
+  #
+  # Ler `config.exs` faz a asserção valer independentemente do ambiente — que é o que ela
+  # sempre quis dizer, e só era verdade por acidente enquanto o teste herdava a configuração.
+  defp oban_declarado do
+    "config/config.exs"
+    |> Config.Reader.read!(env: :prod)
+    |> get_in([:the_band, Oban])
   end
 end
