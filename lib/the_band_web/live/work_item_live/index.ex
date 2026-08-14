@@ -30,16 +30,22 @@ defmodule TheBandWeb.WorkItemLive.Index do
 
   use TheBandWeb, :live_view
 
+  import TheBandWeb.Components.DataTable
+
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
   alias TheBandWeb.ConceptLabel
-  alias TheBandWeb.EstadoDaTabela
+  alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
 
-  # As colunas que esta tabela ordena. É desta lista que sai o átomo — nunca do parâmetro.
-  @colunas [:number, :title, :issue_type, :state, :conceito]
+  # As tabelas desta tela: `{id, colunas ordenáveis, prefixo do parâmetro}`. É desta lista que
+  # sai o átomo — nunca do parâmetro.
+  #
+  # A tabela de repositórios inacessíveis fica de fora: são **poucas linhas de exceção**, e a
+  # ordem delas é a do problema, não a de uma coluna qualquer.
+  @tabelas [{"issues", [:number, :title, :issue_type, :state, :conceito], nil}]
 
   @impl true
 
@@ -51,60 +57,30 @@ defmodule TheBandWeb.WorkItemLive.Index do
   # mesma tela, e o link precisa levar quem recebe ao que quem mandou estava vendo — issue #292.
   @impl true
   def handle_params(params, _uri, socket) do
-    {estado, avisos} = EstadoDaTabela.ler(params, @colunas)
-
     {:noreply,
      socket
      |> assign(repositorio: repositorio(params))
-     |> assign(busca: estado.busca, ordem: estado.ordem, pagina: estado.pagina)
-     |> avisar(avisos)
+     |> Tabela.aplicar(params, @tabelas)
      |> load()}
   end
 
   defp repositorio(%{"repositorio" => id}) when id not in [nil, ""], do: id
   defp repositorio(_), do: nil
 
-  # Parâmetro que não deu para ler é **dito**. Ignorar em silêncio faria a tela mostrar uma
-  # coisa enquanto o endereço diz outra, e quem mandou o link nunca saberia.
-  defp avisar(socket, []), do: socket
-  defp avisar(socket, avisos), do: put_flash(socket, :error, Enum.join(avisos, " "))
-
   @impl true
   # Trocar o filtro volta para a primeira página. Manter a página 4 ao filtrar um
   # repositório de 12 issues mostraria uma lista vazia, e quem lê concluiria que não há
   # issues em vez de que está fora do fim.
   def handle_event("filtrar", %{"repositorio" => id}, socket),
-    do: {:noreply, push_patch(socket, to: caminho(socket, repositorio: id, pagina: 1))}
+    do: {:noreply, push_patch(socket, to: caminho(socket, "issues", repositorio: id, pagina: 1))}
 
-  # Buscar volta para a primeira página **sempre**. Ficar na página 12 de um resultado de duas
-  # mostraria uma tabela vazia com paginação afirmando que há mais.
-  def handle_event("buscar", %{"q" => q}, socket),
-    do: {:noreply, push_patch(socket, to: caminho(socket, busca: q, pagina: 1))}
+  def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
+  def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
+  def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
-  def handle_event("ordenar", %{"campo" => campo}, socket) do
-    ordem = EstadoDaTabela.proxima_ordem(socket.assigns.ordem, campo(campo))
-
-    {:noreply, push_patch(socket, to: caminho(socket, ordem: ordem, pagina: 1))}
-  end
-
-  def handle_event("pagina", %{"n" => n}, socket),
-    do: {:noreply, push_patch(socket, to: caminho(socket, pagina: String.to_integer(n)))}
-
-  # O átomo vem da lista declarada, e nunca do texto que chegou do navegador.
-  defp campo(bruto), do: Enum.find(@colunas, &(Atom.to_string(&1) == bruto))
-
-  defp caminho(socket, mudancas) do
-    estado =
-      %{
-        busca: socket.assigns.busca,
-        ordem: socket.assigns.ordem,
-        pagina: socket.assigns.pagina
-      }
-      |> Map.merge(Map.new(Keyword.take(mudancas, [:busca, :ordem, :pagina])))
-
+  defp caminho(socket, id, mudancas) do
     repositorio = Keyword.get(mudancas, :repositorio, socket.assigns.repositorio)
-
-    ~p"/work?#{EstadoDaTabela.para_query(estado, repositorio: repositorio)}"
+    ~p"/work?#{Tabela.query(socket, id, mudancas, repositorio: repositorio)}"
   end
 
   @impl true
@@ -322,78 +298,52 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </section>
 
         <section class="space-y-2">
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 class="font-semibold">Issues</h3>
-            <.busca valor={@busca} onde="título e número" />
-            <span class="text-sm text-base-content/70">
-              {faixa(@pagina, @por_pagina, @encontradas)} of {@encontradas}
-              <span :if={@busca != ""}>
-                found
-              </span>
-            </span>
-          </div>
+          <h3 class="font-semibold">Issues</h3>
 
-          <p :if={@busca != "" and @encontradas == 0} class="alert">
-            Nenhuma issue com “{@busca}” no título ou no número. A busca não alcança conceito nem
-            repositório — eles têm coluna própria.
+          <p :if={@tabelas["issues"].busca != "" and @encontradas == 0} class="alert">
+            No issue with “{@tabelas["issues"].busca}” in the title or number. The search does not
+            reach concept or repository — those have columns of their own.
           </p>
 
-          <div class="overflow-x-auto">
-            <table class="table table-sm stacked">
-              <thead>
-                <tr>
-                  <th>organisation</th>
-                  <th>repository</th>
-                  <.th_ordenavel campo={:number} rotulo="#" ordem={@ordem} class="text-right" />
-                  <.th_ordenavel campo={:title} rotulo="title" ordem={@ordem} />
-                  <.th_ordenavel campo={:issue_type} rotulo="type at source" ordem={@ordem} />
-                  <th class="text-right">parts at source</th>
-                  <.th_ordenavel campo={:conceito} rotulo="promoted to" ordem={@ordem} />
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={i <- @issues}>
-                  <td data-label="organisation" class="text-xs opacity-70">
-                    {origem(@onde, i).organizacao}
-                  </td>
-                  <td data-label="repository" class="text-xs">{origem(@onde, i).repositorio}</td>
-                  <td data-label="#" class="text-right tabular">
-                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
-                      {i.number}
-                    </.link>
-                  </td>
-                  <td data-label="title" class="max-w-sm sm:truncate">
-                    <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
-                      {i.title}
-                    </.link>
-                  </td>
-                  <td data-label="type at source">
-                    <span :if={i.issue_type} class="badge badge-xs badge-ghost">
-                      {i.issue_type}
-                    </span>
-                    <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">none</span>
-                  </td>
-                  <td data-label="parts at source" class="text-right tabular text-xs">
-                    {i.sub_issue_count}
-                  </td>
-                  <td data-label="promoted to">
-                    <.evidence
-                      concept={i.derived_concept}
-                      source={i.evidence_source}
-                      confidence={i.confidence}
-                      skip_reason={i.skip_reason}
-                      skip_detail={i.skip_detail}
-                    />
-                    <div :if={i.divergence_kind} class="text-xs text-warning">
-                      {ConceptLabel.divergencia(i.divergence_kind)}
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <.paginacao pagina={@pagina} por_pagina={@por_pagina} total={@encontradas} />
+          <.data_table
+            id="issues"
+            rows={@issues}
+            estado={@tabelas["issues"]}
+            por_pagina={@por_pagina}
+            total={@encontradas}
+            onde="title and number"
+            vazio="No issue matches this search."
+          >
+            <:col :let={i} label="organisation" class="text-xs opacity-70">
+              {origem(@onde, i).organizacao}
+            </:col>
+            <:col :let={i} label="repository" class="text-xs">{origem(@onde, i).repositorio}</:col>
+            <:col :let={i} field={:number} label="#" class="text-right tabular">
+              <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">{i.number}</.link>
+            </:col>
+            <:col :let={i} field={:title} label="title" class="max-w-sm sm:truncate">
+              <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">{i.title}</.link>
+            </:col>
+            <:col :let={i} field={:issue_type} label="type at source">
+              <span :if={i.issue_type} class="badge badge-xs badge-ghost">{i.issue_type}</span>
+              <span :if={is_nil(i.issue_type)} class="text-xs opacity-60">none</span>
+            </:col>
+            <:col :let={i} label="parts at source" class="text-right tabular text-xs">
+              {i.sub_issue_count}
+            </:col>
+            <:col :let={i} field={:conceito} label="promoted to">
+              <.evidence
+                concept={i.derived_concept}
+                source={i.evidence_source}
+                confidence={i.confidence}
+                skip_reason={i.skip_reason}
+                skip_detail={i.skip_detail}
+              />
+              <div :if={i.divergence_kind} class="text-xs text-warning">
+                {ConceptLabel.divergencia(i.divergence_kind)}
+              </div>
+            </:col>
+          </.data_table>
         </section>
       </div>
     </Layouts.app>
@@ -411,7 +361,8 @@ defmodule TheBandWeb.WorkItemLive.Index do
     # concluiria que a plataforma esqueceu o resto.
     #
     # A listagem responde outra pergunta: "quais destas eu procuro". Só ela filtra.
-    da_lista = Keyword.merge(opts, search: socket.assigns.busca, order_by: socket.assigns.ordem)
+    estado = socket.assigns.tabelas["issues"]
+    da_lista = Keyword.merge(opts, search: estado.busca, order_by: estado.ordem)
 
     coletadas = WorkItems.count_collected(tenant, opts)
     encontradas = WorkItems.count_collected(tenant, da_lista)
@@ -439,7 +390,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
           tenant,
           da_lista
           |> Keyword.put(:limit, @por_pagina)
-          |> Keyword.put(:offset, (socket.assigns.pagina - 1) * @por_pagina)
+          |> Keyword.put(:offset, (estado.pagina - 1) * @por_pagina)
         ),
       por_pagina: @por_pagina,
       onde: onde(tenant, repositorios),
@@ -479,13 +430,6 @@ defmodule TheBandWeb.WorkItemLive.Index do
   # nome diferente do que a linha da issue mostra, para a mesma organização.
   defp organizacao(onde, repositorio),
     do: Map.get(onde, repositorio.observed_repository_id, %{organizacao: "—"}).organizacao
-
-  defp faixa(_pagina, _por_pagina, 0), do: "0"
-
-  defp faixa(pagina, por_pagina, total) do
-    inicio = (pagina - 1) * por_pagina + 1
-    "#{inicio}–#{min(pagina * por_pagina, total)}"
-  end
 
   # para desenhar a tela, e a marca de trabalho precisa do mesmo número — ler de novo
   # faria 270. A contagem passa a ser de issues **vigentes**, e a mudança de significado

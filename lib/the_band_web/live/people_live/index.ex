@@ -10,22 +10,52 @@ defmodule TheBandWeb.PeopleLive.Index do
 
   use TheBandWeb, :live_view
 
+  import TheBandWeb.Components.DataTable
+
   alias TheBand.Ontology.SEON.EO
+  alias TheBandWeb.TabelaLive, as: Tabela
+
+  @por_pagina 50
+
+  # As colunas por onde esta tela ordena. Organizações fica de fora: ela vem de outra consulta,
+  # e ordenar por uma coluna que a consulta não trouxe pareceria ordenação sem ser.
+  @tabelas [{"people", [:name, :account_type, :source_system, :collected_at], nil}]
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "People", search: "", show_automation: true) |> load()}
+    {:ok, assign(socket, page_title: "People")}
+  end
+
+  # O estado vem do endereço, e não do socket: recarregar precisa devolver a mesma tela, e o
+  # link precisa levar quem recebe ao que quem mandou estava vendo.
+  @impl true
+  def handle_params(params, _uri, socket) do
+    {:noreply,
+     socket
+     |> assign(show_automation: params["automacao"] != "nao")
+     |> Tabela.aplicar(params, @tabelas)
+     |> load()}
   end
 
   @impl true
-  def handle_event("filter", params, socket) do
+  def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
+  def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
+  def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
+
+  # Mostrar ou não as contas de automação é filtro da tela, e vive no endereço junto do resto:
+  # um link que esconde robôs precisa continuar escondendo para quem o recebe.
+  def handle_event("filtrar", params, socket) do
+    automacao = if params["show_automation"] == "true", do: nil, else: "nao"
+
     {:noreply,
-     socket
-     |> assign(
-       search: params["search"] || "",
-       show_automation: params["show_automation"] == "true"
-     )
-     |> load()}
+     push_patch(socket,
+       to: ~p"/people?#{Tabela.query(socket, "people", [pagina: 1], automacao: automacao)}"
+     )}
+  end
+
+  defp caminho(socket, id, mudancas) do
+    automacao = if socket.assigns.show_automation, do: nil, else: "nao"
+    ~p"/people?#{Tabela.query(socket, id, mudancas, automacao: automacao)}"
   end
 
   @impl true
@@ -46,19 +76,12 @@ defmodule TheBandWeb.PeopleLive.Index do
 
       <form
         id="filtro-pessoas"
-        phx-change="filter"
+        phx-change="filtrar"
         class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
       >
-        <label class="form-control">
-          <span class="label-text">Search</span>
-          <input
-            name="search"
-            value={@search}
-            class="input input-bordered input-sm"
-            placeholder="name or login"
-            phx-debounce="300"
-          />
-        </label>
+        <%!-- A busca saiu daqui e passou a ser a da tabela: duas caixas procurando a mesma
+              coisa faziam quem lê escolher em qual digitar. O que sobra é o filtro que a
+              tabela não tem — as contas de automação. --%>
         <label class="label cursor-pointer gap-2">
           <input
             type="checkbox"
@@ -71,65 +94,55 @@ defmodule TheBandWeb.PeopleLive.Index do
         </label>
       </form>
 
-      <div :if={@rows == []} class="alert">
-        <p>{empty_message(@search, @has_any)}</p>
-      </div>
-
-      <div :if={@rows != []} class="overflow-x-auto">
-        <table class="table table-sm stacked">
-          <thead>
-            <tr>
-              <th>name</th>
-              <th>account type</th>
-              <th>organisations</th>
-              <th>source</th>
-              <th>identifier at source</th>
-              <th>collected at</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :for={person <- @rows} class={person.no_longer_observed_at && "opacity-50"}>
-              <%!-- O nome abre o detalhe **dentro da plataforma**, não na origem: o que interessa
-                    ao clicar é o que foi coletado, e o link para a origem vive lá dentro. --%>
-              <td data-label="name">
-                <div class="font-medium">
-                  <.link navigate={~p"/people/#{person.id}"} class="link link-hover">
-                    {person.name || person.login}
-                  </.link>
-                </div>
-                <div :if={person.login} class="text-xs opacity-60">@{person.login}</div>
-                <div :if={person.no_longer_observed_at} class="text-xs opacity-60">
-                  no longer observed since {person.no_longer_observed_at}
-                </div>
-              </td>
-              <td data-label="account type">
-                <span class={["badge badge-sm", person.account_type != "person" && "badge-ghost"]}>
-                  {person.account_type}
-                </span>
-              </td>
-              <td data-label="organisations" class="text-xs">
-                <% orgs = Map.get(@organizations_by_person, person.id, []) %>
-                <%!-- Quem não está em equipe alguma aparece **sem** organização, e a frase diz
-                    isso: o vínculo pessoa→organização não existe na origem, ele vem das
-                    equipes. Um traço aqui esconderia a razão. --%>
-                <.absent :if={orgs == []} reason="no team — organisation unknown" />
-                <div :for={org <- orgs}>{org.login}</div>
-                <div :if={length(orgs) > 1} class="badge badge-sm badge-outline mt-1">
-                  in {length(orgs)} organisations
-                </div>
-              </td>
-              <td data-label="source" class="text-xs">
-                {person.source_system}
-                <div class="opacity-60">{person.source_instance}</div>
-              </td>
-              <td data-label="identifier at source" class="font-mono text-xs">
-                {person.external_id}
-              </td>
-              <td data-label="collected at" class="text-xs">{person.collected_at}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <.data_table
+        id="people"
+        rows={@rows}
+        estado={@tabelas["people"]}
+        por_pagina={@por_pagina}
+        total={@encontradas}
+        onde="name and login"
+        vazio={empty_message(@tabelas["people"].busca, @has_any)}
+      >
+        <:col :let={person} field={:name} label="name">
+          <%!-- O nome abre o detalhe **dentro da plataforma**, não na origem: o que interessa
+                ao clicar é o que foi coletado, e o link para a origem vive lá dentro. --%>
+          <div class="font-medium">
+            <.link navigate={~p"/people/#{person.id}"} class="link link-hover">
+              {person.name || person.login}
+            </.link>
+          </div>
+          <div :if={person.login} class="text-xs opacity-60">@{person.login}</div>
+          <div :if={person.no_longer_observed_at} class="text-xs opacity-60">
+            no longer observed since {person.no_longer_observed_at}
+          </div>
+        </:col>
+        <:col :let={person} field={:account_type} label="account type">
+          <span class={["badge badge-sm", person.account_type != "person" && "badge-ghost"]}>
+            {person.account_type}
+          </span>
+        </:col>
+        <:col :let={person} label="organisations" class="text-xs">
+          <% orgs = Map.get(@organizations_by_person, person.id, []) %>
+          <%!-- Quem não está em equipe alguma aparece **sem** organização, e a frase diz isso: o
+                vínculo pessoa→organização não existe na origem, ele vem das equipes. Um traço
+                aqui esconderia a razão. --%>
+          <.absent :if={orgs == []} reason="no team — organisation unknown" />
+          <div :for={org <- orgs}>{org.login}</div>
+          <div :if={length(orgs) > 1} class="badge badge-sm badge-outline mt-1">
+            in {length(orgs)} organisations
+          </div>
+        </:col>
+        <:col :let={person} field={:source_system} label="source" class="text-xs">
+          {person.source_system}
+          <div class="opacity-60">{person.source_instance}</div>
+        </:col>
+        <:col :let={person} label="identifier at source" class="font-mono text-xs">
+          {person.external_id}
+        </:col>
+        <:col :let={person} field={:collected_at} label="collected at" class="text-xs">
+          {person.collected_at}
+        </:col>
+      </.data_table>
 
       <p class="text-xs opacity-60">
         A person's organisation comes from their teams: there is no direct link between person and
@@ -151,17 +164,26 @@ defmodule TheBandWeb.PeopleLive.Index do
   # impede as duas de divergirem quando um filtro novo for acrescentado.
   defp load(socket) do
     tenant = socket.assigns.current_tenant
+    estado = socket.assigns.tabelas["people"]
 
     opts =
-      [search: socket.assigns.search]
+      [search: estado.busca]
       |> then(fn opts ->
         if socket.assigns.show_automation, do: opts, else: [{:account_type, "person"} | opts]
       end)
 
-    rows = EO.list_people(tenant, opts)
+    rows =
+      EO.list_people(
+        tenant,
+        opts ++
+          [order_by: estado.ordem, limit: @por_pagina, offset: (estado.pagina - 1) * @por_pagina]
+      )
 
     socket
-    |> assign(rows: rows)
+    |> assign(rows: rows, por_pagina: @por_pagina)
+    # A contagem da paginação é a da busca vigente — paginar sobre o total afirmaria páginas
+    # que o filtro não tem.
+    |> assign(encontradas: EO.count_people(tenant, opts))
     # Um mapa para todas as linhas, e não uma consulta por linha: a tela desenha 72
     # pessoas hoje, e uma consulta por pessoa cresceria com a coleta.
     |> assign(

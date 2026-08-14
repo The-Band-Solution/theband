@@ -10,7 +10,9 @@ defmodule TheBand.Sources do
 
   import Ecto.Query
 
+  alias TheBand.Ingestion.Sync
   alias TheBand.Integrations.GitHub.Client
+  alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
   alias TheBand.Sources.ConnectedTool
@@ -415,6 +417,60 @@ defmodule TheBand.Sources do
       tenant_id
       |> credential_changeset(tool.id, attrs, scopes)
       |> Repo.insert()
+    end
+  end
+
+  @doc """
+  A ferramenta ainda pode ter a identidade corrigida?
+
+  Tipo, instância e organização são a identidade de uma ferramenta conectada, e a feature
+  001 recusou editá-los **com um motivo**: os registros cuja proveniência aponta para ela
+  ficariam órfãos, e a mesma linha passaria a afirmar duas origens ao longo do tempo.
+
+  O motivo não vale quando não há registro algum. Uma ferramenta recém-cadastrada com a
+  organização digitada errada não tem proveniência para órfã, e obrigar quem errou a
+  encerrar a observação — que marca equipes, vínculos e pessoas — cobra por um dado que
+  não existe.
+
+  **A janela fecha na primeira coleta**, e o teto é medido, não presumido: qualquer
+  sincronização registrada, qualquer repositório observado, ou qualquer impacto na
+  organização fecha a edição para sempre. Depois disso, outra organização é outra
+  ferramenta, e a recusa da feature 001 volta a valer inteira.
+  """
+  @spec identity_editable?(Tenant.t(), ConnectedTool.t()) :: boolean()
+  def identity_editable?(%Tenant{} = tenant, %ConnectedTool{} = tool) do
+    impacto = observation_impact(tenant, tool)
+
+    is_nil(tool.last_sync_at) and
+      Repo.aggregate(from(s in Sync, where: s.connected_tool_id == ^tool.id), :count) == 0 and
+      Repo.aggregate(
+        from(r in ObservedRepository, where: r.connected_tool_id == ^tool.id),
+        :count
+      ) == 0 and
+      Enum.all?(Map.values(impacto), &(&1 == 0))
+  end
+
+  @doc """
+  Corrige a identidade de uma ferramenta que ainda não coletou nada (erro de cadastro).
+
+  Devolve `{:error, :already_observed}` quando a janela fechou. A recusa é o requisito,
+  não um efeito colateral: quem tenta corrigir depois da primeira coleta está pedindo
+  outra coisa — trocar a origem de dado já coletado —, e essa continua sendo encerrar
+  uma observação e conectar outra.
+  """
+  @spec correct_identity(Tenant.t(), Ecto.UUID.t(), map()) ::
+          {:ok, ConnectedTool.t()}
+          | {:error, :not_found | :already_observed | Ecto.Changeset.t()}
+  def correct_identity(%Tenant{} = tenant, tool_id, attrs) do
+    with {:ok, tool} <- fetch_connected_tool(tenant, tool_id),
+         true <- identity_editable?(tenant, tool) or {:error, :already_observed} do
+      tool
+      |> ConnectedTool.changeset(%{
+        tool_type: field(attrs, "tool_type") || tool.tool_type,
+        instance_url: field(attrs, "instance_url") || tool.instance_url,
+        organization_login: field(attrs, "organization_login") || tool.organization_login
+      })
+      |> Repo.update()
     end
   end
 

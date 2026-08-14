@@ -113,7 +113,7 @@ defmodule TheBandWeb.ScreensTest do
       assert html =~ "Core"
       assert html =~ "organizational_team"
       assert html =~ "T_1"
-      assert html =~ "pendente"
+      assert html =~ "pending"
     end
 
     test "a tela de integrantes rotula o nível como acesso, nunca como papel", %{
@@ -137,7 +137,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(conn, ~p"/teams/#{equipe.id}")
 
-      assert html =~ "acesso na plataforma"
+      assert html =~ "access at the platform"
       assert html =~ "MAINTAINER"
       assert html =~ "papel organizacional"
       # O rótulo é parte do contrato: chamar o nível de "cargo" na tela desfaria
@@ -291,7 +291,7 @@ defmodule TheBandWeb.ScreensTest do
     test "/equipes mostra a organização de cada equipe", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/teams")
 
-      assert html =~ "organização"
+      assert html =~ "organisation"
       assert html =~ "alfa"
       assert html =~ "beta"
     end
@@ -321,15 +321,15 @@ defmodule TheBandWeb.ScreensTest do
 
       # Selo visível, não nota de rodapé: esconder é pior que marcar, porque quem não
       # vê a equipe não explica por que a contagem de pessoas não fecha.
-      assert html =~ "derivada"
-      assert html =~ "não existe na ferramenta de origem"
+      assert html =~ "derived"
+      assert html =~ "does not exist at the source tool"
     end
 
     test "a contagem separa observadas de derivadas", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/teams")
 
-      assert html =~ "1 derivada"
-      assert html =~ "1 na origem"
+      assert html =~ "1 derived"
+      assert html =~ "1 at the source"
     end
 
     test "descontadas as derivadas, a contagem bate com a origem", %{
@@ -384,19 +384,19 @@ defmodule TheBandWeb.ScreensTest do
     test "o impacto aparece antes de confirmar, e nomeia quem permanece", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/tools")
 
-      html = live |> element("button", "encerrar observação") |> render_click()
+      html = live |> element("button", "end observation") |> render_click()
 
       assert html =~ "End observation"
       assert html =~ "Remain current"
       # O nome, e não um contador: "1 pessoa permanece" não deixa reconhecer quem é.
       assert html =~ "Sobreposta"
       assert html =~ "Will NOT be deleted"
-      assert html =~ "Para confirmar, digite"
+      assert html =~ "To confirm, type"
     end
 
     test "confirmação errada não encerra", %{conn: conn, tool: tool} do
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "encerrar observação") |> render_click()
+      live |> element("button", "end observation") |> render_click()
 
       html =
         live
@@ -412,7 +412,7 @@ defmodule TheBandWeb.ScreensTest do
       tool: tool
     } do
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "encerrar observação") |> render_click()
+      live |> element("button", "end observation") |> render_click()
 
       html =
         live
@@ -429,7 +429,7 @@ defmodule TheBandWeb.ScreensTest do
       {:ok, live, html} = live(conn, ~p"/tools")
       refute html =~ @segredo
 
-      html = live |> element("button", "encerrar observação") |> render_click()
+      html = live |> element("button", "end observation") |> render_click()
       refute html =~ @segredo
 
       html =
@@ -457,16 +457,16 @@ defmodule TheBandWeb.ScreensTest do
     test "o botão de retomar aparece só na encerrada", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/tools")
 
-      assert html =~ "retomar observação"
-      refute html =~ "encerrar observação"
+      assert html =~ "resume observation"
+      refute html =~ "end observation"
     end
 
     test "o formulário diz que a coleta é que devolve vigência", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/tools")
 
-      html = live |> element("button", "retomar observação") |> render_click()
+      html = live |> element("button", "resume observation") |> render_click()
 
-      assert html =~ "credencial anterior foi destruída"
+      assert html =~ "previous credential was destroyed"
       # A frase existe para impedir o mal-entendido: retomar não ressuscita nada por si.
       assert html =~ "do not become current again now"
     end
@@ -477,7 +477,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -498,7 +498,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -509,7 +509,7 @@ defmodule TheBandWeb.ScreensTest do
         |> render_submit()
 
       assert html =~ "resumed"
-      assert html =~ "só os que a origem ainda mostrar"
+      assert html =~ "only those the source still shows"
       refute Sources.observation_ended?(tool)
     end
 
@@ -520,7 +520,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -550,9 +550,9 @@ defmodule TheBandWeb.ScreensTest do
 
       # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
       refute html =~ "observation ended"
-      assert html =~ "histórico de observação (2)"
+      assert html =~ "observation history (2)"
 
-      aberto = live |> element("button", "histórico de observação") |> render_click()
+      aberto = live |> element("button", "observation history") |> render_click()
 
       assert aberto =~ "ended"
       assert aberto =~ "resumed"
@@ -564,7 +564,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(log_in(conn, user), ~p"/tools")
 
-      refute html =~ "histórico de observação"
+      refute html =~ "observation history"
     end
   end
 end

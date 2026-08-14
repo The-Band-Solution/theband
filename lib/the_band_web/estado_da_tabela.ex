@@ -36,15 +36,22 @@ defmodule TheBandWeb.EstadoDaTabela do
 
   Devolve `{estado, avisos}`, com `avisos` vazio quando tudo foi entendido.
   """
-  @spec ler(map(), [atom()]) :: {estado(), [String.t()]}
-  def ler(params, campos) do
-    {ordem, aviso_ordem} = ordem(params, campos)
-    {pagina, aviso_pagina} = pagina(params)
+  @spec ler(map(), [atom()], String.t() | nil) :: {estado(), [String.t()]}
+  def ler(params, campos, prefixo \\ nil) do
+    {ordem, aviso_ordem} = ordem(params, campos, prefixo)
+    {pagina, aviso_pagina} = pagina(params, prefixo)
 
-    estado = %{busca: busca(params), ordem: ordem, pagina: pagina}
+    estado = %{busca: busca(params, prefixo), ordem: ordem, pagina: pagina}
 
     {estado, Enum.reject([aviso_ordem, aviso_pagina], &is_nil/1)}
   end
+
+  # O nome do parâmetro no endereço. Sem prefixo é `q`, `ordem`, `dir`, `pagina` — o endereço
+  # que a feature 019 entregou, e que não pode mudar. Com prefixo é `<prefixo>_q`, e ele
+  # existe porque quatro telas têm mais de uma tabela: dois `?q=` no mesmo endereço não dizem
+  # de qual tabela cada um é.
+  defp chave(nome, nil), do: nome
+  defp chave(nome, prefixo), do: "#{prefixo}_#{nome}"
 
   @doc """
   Monta a query string a partir do estado, omitindo o que está no padrão.
@@ -52,19 +59,31 @@ defmodule TheBandWeb.EstadoDaTabela do
   Omitir o padrão é o que mantém `/work` como `/work` enquanto ninguém buscou nem ordenou —
   um endereço cheio de `?q=&ordem=&pagina=1` sugere que alguém escolheu aquilo.
   """
-  @spec para_query(estado(), keyword()) :: keyword()
+  @spec para_query(estado(), keyword()) :: [{String.t(), term()}]
   def para_query(estado, extra \\ []) do
+    prefixo = Map.get(estado, :prefixo)
+
     # A ordem dos parâmetros é fixa — o que a tela filtra primeiro aparece primeiro. Endereço
     # que muda de ordem sozinho parece endereço diferente para quem compara dois links.
-    (extra ++
-       [q: estado.busca] ++ ordem_em_query(estado.ordem) ++ [pagina: estado.pagina])
-    |> Keyword.reject(fn {chave, valor} ->
-      valor in [nil, ""] or (chave == :pagina and valor == 1)
+    (Enum.map(extra, fn {k, v} -> {to_string(k), v} end) ++
+       [{chave_de_query("q", prefixo), estado.busca}] ++
+       ordem_em_query(estado.ordem, prefixo) ++
+       [{chave_de_query("pagina", prefixo), estado.pagina}])
+    |> Enum.reject(fn {chave, valor} ->
+      valor in [nil, ""] or (chave == chave_de_query("pagina", prefixo) and valor == 1)
     end)
   end
 
-  defp ordem_em_query(nil), do: []
-  defp ordem_em_query({campo, dir}), do: [ordem: campo, dir: dir]
+  # **Chave de texto, e não átomo.** `String.to_atom` sobre nome composto criaria átomo a
+  # partir de configuração de tela, e é a construção que o Sobelow já reprovou aqui uma vez.
+  # `Plug.Conn.Query` codifica chave de texto igual.
+  defp chave_de_query(nome, nil), do: nome
+  defp chave_de_query(nome, prefixo), do: "#{prefixo}_#{nome}"
+
+  defp ordem_em_query(nil, _prefixo), do: []
+
+  defp ordem_em_query({campo, dir}, prefixo),
+    do: [{chave_de_query("ordem", prefixo), campo}, {chave_de_query("dir", prefixo), dir}]
 
   @doc """
   A ordem seguinte ao clicar numa coluna.
@@ -76,13 +95,13 @@ defmodule TheBandWeb.EstadoDaTabela do
   def proxima_ordem({campo, :asc}, campo), do: {campo, :desc}
   def proxima_ordem(_atual, campo), do: {campo, :asc}
 
-  defp busca(params) do
-    params |> Map.get("q", "") |> to_string() |> String.trim()
+  defp busca(params, prefixo) do
+    params |> Map.get(chave("q", prefixo), "") |> to_string() |> String.trim()
   end
 
-  defp ordem(params, campos) do
-    bruto = Map.get(params, "ordem")
-    dir = Map.get(params, "dir", "asc")
+  defp ordem(params, campos, prefixo) do
+    bruto = Map.get(params, chave("ordem", prefixo))
+    dir = Map.get(params, chave("dir", prefixo), "asc")
     permitidos = Enum.map(campos, &Atom.to_string/1)
 
     cond do
@@ -109,8 +128,8 @@ defmodule TheBandWeb.EstadoDaTabela do
   # é deixar quem manda a URL criar átomo, que é vazamento de memória por requisição.
   defp campo(bruto, campos), do: Enum.find(campos, &(Atom.to_string(&1) == bruto))
 
-  defp pagina(params) do
-    case Map.get(params, "pagina") do
+  defp pagina(params, prefixo) do
+    case Map.get(params, chave("pagina", prefixo)) do
       nil ->
         {1, nil}
 

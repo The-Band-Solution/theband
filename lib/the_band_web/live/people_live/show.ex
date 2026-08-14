@@ -30,11 +30,24 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   use TheBandWeb, :live_view
 
+  import TheBandWeb.Components.DataTable
+
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
+  alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 25
+
+  # As tabelas desta tela: `{id, colunas ordenáveis, prefixo do parâmetro}`.
+  #
+  # A lista de colunas é declarada, e o átomo do parâmetro sai **dela** — nunca do texto
+  # recebido, que aceitaria qualquer átomo já existente.
+  #
+  # O prefixo `nil` é o da tabela principal: ela usa `q`, `ordem`, `dir` e `pagina`, que é o
+  # endereço da feature 019. A tabela de repositórios, quando for convertida, entra aqui com
+  # prefixo próprio.
+  @tabelas [{"issues", [:number, :title, :state], nil}]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -47,19 +60,32 @@ defmodule TheBandWeb.PeopleLive.Show do
         {:ok, socket |> put_flash(:error, "Person not found.") |> push_navigate(to: ~p"/people")}
 
       {:ok, pessoa} ->
-        {:ok, socket |> assign(pessoa: pessoa, page_title: pessoa.name || pessoa.login) |> load()}
+        {:ok, assign(socket, pessoa: pessoa, page_title: pessoa.name || pessoa.login)}
     end
   end
 
+  # O estado da tabela mora no endereço — feature 019. A carga acontece aqui, e não no
+  # `mount`, porque buscar e ordenar chegam por `push_patch`: no `mount` elas nunca seriam
+  # relidas, e a tela mostraria o resultado da primeira visita para sempre.
   @impl true
-  def handle_event("pagina", %{"n" => n}, socket) do
-    {:noreply, socket |> assign(pagina: String.to_integer(n)) |> load()}
+  def handle_params(params, _uri, socket) do
+    {:noreply, socket |> Tabela.aplicar(params, @tabelas) |> load()}
+  end
+
+  @impl true
+  def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
+  def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
+  def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
+
+  defp caminho(socket, id, mudancas) do
+    ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, id, mudancas)}"
   end
 
   defp load(socket) do
     tenant = socket.assigns.current_tenant
     pessoa = socket.assigns.pessoa
-    pagina = socket.assigns[:pagina] || 1
+    estado = socket.assigns.tabelas["issues"]
+    pagina = estado.pagina
 
     repositorios = WorkItems.repositories_of_person(tenant, pessoa.id)
 
@@ -83,7 +109,13 @@ defmodule TheBandWeb.PeopleLive.Show do
       organizacoes_por_trabalho: organizacoes_do_trabalho(tenant, repositorios, pessoa.id),
       equipes: EO.list_person_teams(tenant, pessoa.id),
       papeis: EO.count_roles(tenant),
+      # **Duas contagens, e elas respondem coisas diferentes.** `designadas` é quantas issues
+      # a pessoa tem — o número do cartão, que não muda quando alguém busca. `encontradas` é
+      # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
+      # afirmaria páginas que a busca não tem.
       designadas: WorkItems.count_assigned_to(tenant, pessoa.id),
+      encontradas:
+        WorkItems.count_collected(tenant, assigned_to: pessoa.id, search: estado.busca),
       abertas: WorkItems.count_authored_by(tenant, pessoa.id),
       repositorios: repositorios,
       # Uma consulta, virando mapa: é o mesmo `onde/2` da feature 007. O nome do repositório é de
@@ -92,6 +124,8 @@ defmodule TheBandWeb.PeopleLive.Show do
       issues:
         WorkItems.list_issues(tenant,
           assigned_to: pessoa.id,
+          search: estado.busca,
+          order_by: estado.ordem,
           limit: @por_pagina,
           offset: (pagina - 1) * @por_pagina
         )
@@ -290,56 +324,31 @@ defmodule TheBandWeb.PeopleLive.Show do
             </table>
           </div>
 
-          <div :if={@issues != []} class="space-y-2">
-            <div class="flex items-center justify-between">
-              <h4 class="text-sm font-medium">Issues assigned to this person</h4>
-              <span class="text-sm text-base-content/70">
-                {faixa(@pagina, @designadas)} of {@designadas}
-              </span>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="table table-xs stacked">
-                <thead>
-                  <tr>
-                    <th class="text-right">#</th>
-                    <th>title</th>
-                    <th>state</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr :for={issue <- @issues}>
-                    <td data-label="#" class="text-right tabular">{issue.number}</td>
-                    <td data-label="title">
-                      <.link navigate={~p"/work/issues/#{issue.id}"} class="link link-hover">
-                        {issue.title}
-                      </.link>
-                    </td>
-                    <td data-label="state" class="text-xs opacity-70">
-                      {String.downcase(issue.state || "")}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <nav :if={@designadas > @por_pagina} class="flex items-center gap-2">
-              <button
-                class="btn btn-sm btn-outline"
-                disabled={@pagina <= 1}
-                phx-click="pagina"
-                phx-value-n={@pagina - 1}
-              >
-                Previous
-              </button>
-              <span class="text-sm text-base-content/70">page {@pagina}</span>
-              <button
-                class="btn btn-sm btn-outline"
-                disabled={@pagina * @por_pagina >= @designadas}
-                phx-click="pagina"
-                phx-value-n={@pagina + 1}
-              >
-                Next
-              </button>
-            </nav>
+          <div :if={@designadas > 0} class="space-y-2">
+            <h4 class="text-sm font-medium">Issues assigned to this person</h4>
+
+            <.data_table
+              id="issues"
+              rows={@issues}
+              estado={@tabelas["issues"]}
+              por_pagina={@por_pagina}
+              total={@encontradas}
+              onde="title and number"
+              class="table table-xs stacked"
+              vazio="No issue matches this search."
+            >
+              <:col :let={issue} field={:number} label="#" class="text-right tabular">
+                {issue.number}
+              </:col>
+              <:col :let={issue} field={:title} label="title">
+                <.link navigate={~p"/work/issues/#{issue.id}"} class="link link-hover">
+                  {issue.title}
+                </.link>
+              </:col>
+              <:col :let={issue} field={:state} label="state" class="text-xs opacity-70">
+                {String.downcase(issue.state || "")}
+              </:col>
+            </.data_table>
           </div>
         </section>
       </div>
@@ -427,10 +436,5 @@ defmodule TheBandWeb.PeopleLive.Show do
       nil -> "repository no longer observed"
       %{name: name} -> name
     end
-  end
-
-  defp faixa(pagina, total) do
-    inicio = (pagina - 1) * @por_pagina + 1
-    "#{inicio}–#{min(pagina * @por_pagina, total)}"
   end
 end

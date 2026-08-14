@@ -141,6 +141,74 @@ defmodule TheBand.EditarCredenciaisTest do
     end
   end
 
+  describe "corrigir o cadastro enquanto nada foi coletado" do
+    test "ferramenta recém-cadastrada é corrigível" do
+      tenant = tenant_fixture()
+      {tool, _} = conecta(tenant, "acme-errado", "token-um")
+
+      assert Sources.identity_editable?(tenant, tool)
+
+      assert {:ok, corrigida} =
+               Sources.correct_identity(tenant, tool.id, %{"organization_login" => "acme"})
+
+      assert corrigida.organization_login == "acme"
+      # A credencial não é tocada: corrigir o cadastro não é reconectar.
+      assert {:ok, "token-um"} = Sources.fetch_secret(Sources.active_credential(tool))
+    end
+
+    test "o campo não informado permanece" do
+      tenant = tenant_fixture()
+      {tool, _} = conecta(tenant, "acme", "token-um")
+
+      assert {:ok, corrigida} =
+               Sources.correct_identity(tenant, tool.id, %{"organization_login" => "outra"})
+
+      assert corrigida.instance_url == "https://github.com"
+      assert corrigida.tool_type == "github"
+    end
+
+    test "uma sincronização registrada fecha a janela" do
+      tenant = tenant_fixture()
+      {tool, _} = conecta(tenant, "acme", "token-um")
+
+      {:ok, _sync} = TheBand.Ingestion.start_sync(tenant, tool)
+
+      refute Sources.identity_editable?(tenant, tool)
+
+      assert {:error, :already_observed} =
+               Sources.correct_identity(tenant, tool.id, %{"organization_login" => "tarde-demais"})
+
+      {:ok, intacta} = Sources.fetch_connected_tool(tenant, tool.id)
+      assert intacta.organization_login == "acme"
+    end
+
+    test "dado da organização fecha a janela, mesmo sem sincronização registrada" do
+      tenant = tenant_fixture()
+      {tool, _} = conecta(tenant, "acme", "token-um")
+
+      organizacao = organization_fixture(tenant, "acme")
+      _equipe = team_fixture(tenant, "T_a", %{organization: organizacao})
+
+      refute Sources.identity_editable?(tenant, tool), """
+      A medida não pode depender só de `syncs`: dado gravado por outro caminho — importação,
+      coleta anterior de uma ferramenta que foi removida — também deixa proveniência para
+      órfã. O teto é o dado, não o registro da execução.
+      """
+
+      assert {:error, :already_observed} =
+               Sources.correct_identity(tenant, tool.id, %{"organization_login" => "outra"})
+    end
+
+    test "ferramenta de outro tenant é não encontrada" do
+      dono = tenant_fixture()
+      outro = tenant_fixture()
+      {tool, _} = conecta(dono, "acme", "token-um")
+
+      assert {:error, :not_found} =
+               Sources.correct_identity(outro, tool.id, %{"organization_login" => "invadida"})
+    end
+  end
+
   describe "limpar o estado de atenção (FR-018)" do
     test "a ferramenta volta a ser ativa" do
       tenant = tenant_fixture()
