@@ -33,3 +33,42 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# ---------------------------------------------------------------------------
+# Oban em modo de teste — filas, plugins e peer desligados.
+#
+# ## O que acontecia sem isto
+#
+# O `Oban.Peer` e o `Oban.Plugins.Cron` sobem processos que consultam o banco por
+# conta própria, fora do processo dono da conexão do sandbox. Cada consulta morre
+# com `DBConnection.OwnershipError`, o supervisor reinicia, e o ciclo recomeça.
+#
+# Quando a intensidade de reinício estoura, quem reinicia é o supervisor da
+# aplicação — e ele leva junto o `TheBand.Ontology.KnowledgeBase`, que é **dono da
+# tabela ETS** da base de conhecimento. A tabela some com o processo, e todo teste
+# seguinte falha com
+#
+#     the table identifier does not refer to an existing ETS table
+#
+# Medido em 2026-08-14, no PR #306: **197 testes** falharam assim numa execução, e
+# a mesma árvore passou na execução do push, quinze segundos antes. É a L56 — a
+# cobertura muda o tempo, e o que muda com o tempo é a janela de quem mede.
+#
+# ## Por que isto não enfraquece a suíte
+#
+# Nenhum teste depende de o Oban **executar** trabalho. Eles inserem `%Oban.Job{}`
+# direto para montar estado, leem `Repo.all(Oban.Job)` para conferir que a coleta
+# foi enfileirada, ou chamam `perform/1` na mão. `testing: :manual` mantém o
+# `Oban.insert/1` gravando a linha — que é o que essas asserções leem — e desliga
+# só quem executa.
+# ---------------------------------------------------------------------------
+# `testing: :manual` seria o modo documentado, e ele **não** serve aqui: ele faz o Oban
+# conferir a versão da migração na subida, e o repositório está em `version: 12` com a
+# biblioteca exigindo 14. Essa é dívida separada, com efeito em produção, e não se resolve
+# de carona num conserto de CI.
+#
+# Desligar fila, plugins e peer chega ao mesmo lugar pelo caminho que não mexe em migração.
+config :the_band, Oban,
+  queues: false,
+  plugins: false,
+  peer: false
