@@ -458,7 +458,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
 
   defp vazio_texto(%{inaccessible_since: _}),
     do:
-      "A coleta perdeu alcance antes de listar issues. Ausência de acesso não é ausência de dado."
+      "The collection lost reach before listing issues. Absence of access is not absence of data."
 
   defp vazio_texto(_),
     do: "The collection ran and the result is empty — different from not having collected."

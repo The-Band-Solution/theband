@@ -37,7 +37,7 @@ defmodule TheBandWeb.MigalhaTest do
       for {rota, primeiro} <- rotas do
         {:ok, _live, html} = live(ctx.conn, rota)
 
-        assert html =~ ~s(aria-label="Você está em"), """
+        assert html =~ ~s(aria-label="You are in"), """
         #{rota} não tem migalha.
 
         Tela de detalhe sem caminho abre, funciona, e só não diz onde está — e nada avisa.
@@ -51,7 +51,7 @@ defmodule TheBandWeb.MigalhaTest do
       for rota <- [~p"/people", ~p"/teams", ~p"/work", ~p"/syncs"] do
         {:ok, _live, html} = live(ctx.conn, rota)
 
-        refute html =~ ~s(aria-label="Você está em"), """
+        refute html =~ ~s(aria-label="You are in"), """
         #{rota} ganhou migalha, e não há nível acima dela.
 
         Migalha de um nível só é decoração: ela diz onde a pessoa está sem oferecer para onde ir.
@@ -90,7 +90,7 @@ defmodule TheBandWeb.MigalhaTest do
       mesma necessidade de três jeitos, e a migalha existe para que passe a haver um.
       """
 
-      assert html =~ ~s(aria-label="Você está em")
+      assert html =~ ~s(aria-label="You are in")
     end
 
     test "o back to people saiu do detalhe da pessoa", ctx do

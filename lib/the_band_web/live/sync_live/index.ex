@@ -222,8 +222,8 @@ defmodule TheBandWeb.SyncLive.Index do
           class="alert alert-warning text-sm"
         >
           <p>
-            Não há dado coletado para reprocessar. Rode uma sincronização primeiro — o
-            reprocessamento trabalha sobre o payload preservado, e ainda não existe nenhum.
+            There is no collected data to reprocess. Run a sync first — reprocessing works over
+            the preserved payload, and none exists yet.
           </p>
         </div>
 

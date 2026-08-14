@@ -500,7 +500,7 @@ defmodule TheBandWeb.CoreComponents do
   como ligação — é a mesma regra da feature 014: ligação que não leva a lugar nenhum promete.
   """
   attr :niveis, :list, required: true
-  attr :rotulo, :string, default: "Você está em"
+  attr :rotulo, :string, default: "You are in"
 
   def breadcrumb(assigns) do
     ~H"""
