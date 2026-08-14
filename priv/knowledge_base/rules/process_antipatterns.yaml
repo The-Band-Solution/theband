@@ -121,6 +121,81 @@ derivation_rule:
       enforcement: detection
       severity: informativo
 
+  structural_antipatterns_rationale:
+    pt-BR: >
+      Os quatro acima são sobre **uma issue**: ela foi designada, fechada, movida. Os dois
+      abaixo são sobre o **quadro**, e a diferença importa: um antipadrão de instância afeta
+      uma issue, e um de estrutura impede a medida de **todas** as issues daquele quadro.
+
+      Eles não se detectam olhando issue por issue. Detectam-se olhando o conjunto de estados
+      que o quadro usa.
+
+  structural_antipatterns:
+    - id: process.ap05.board_without_in_progress
+      name:
+        pt-BR: "Quadro sem estado de trabalho em andamento"
+      statement:
+        pt-BR: >
+          Nenhum dos estados do quadro significa "alguém está trabalhando nisto". O trabalho
+          acontece **entre** dois estados, e o quadro não o representa.
+      measured:
+        pt-BR: >
+          Medido em 2026-08-14, em 200 issues do quadro da `The-Band-Solution`:
+
+              Done 182 · Backlog 92 · In review 55 · Ready 28
+
+          O fluxo é `Backlog → Ready → In review → Done`. `Ready` é antes de pegar; `In review`
+          é depois de fazer. **O fazer não tem estado.**
+
+          E não é limitação da ferramenta: o quadro da `leds-conectafapes`, medido no mesmo
+          dia, tem `In Progress`, `In Validation` e `Homologation`. Um quadro consegue
+          expressar; o outro não.
+      formal: >
+        ∀ b: Board
+          (¬∃s (state_of(b, s) ∧ means_in_progress(s))) → BoardWithoutInProgress(b)
+      consequence:
+        pt-BR: >
+          **O cycle time é impossível para toda issue deste quadro**, e não para algumas. Não
+          há instante que marque o começo, porque não há estado que o represente.
+
+          E o WIP não existe: contar o que está em `Ready` conta quem ainda não pegou; contar
+          `In review` conta quem já terminou. Nenhum dos dois é trabalho em andamento.
+      concepts: [spo.performed_project_activity]
+      enforcement: detection
+      severity: estrutural
+
+    - id: process.ap06.states_that_duplicate_meaning
+      name:
+        pt-BR: "Dois estados para o mesmo significado"
+      statement:
+        pt-BR: >
+          O quadro tem estados distintos que significam a mesma coisa. As issues se dividem
+          entre eles, e qualquer contagem por estado sai partida.
+      measured:
+        pt-BR: >
+          Medido em 2026-08-14, no quadro da `leds-conectafapes`: **`To Do` e `Todo`
+          coexistem**, com issues nos dois.
+      formal: >
+        ∀ b: Board, s1: State, s2: State
+          (state_of(b, s1) ∧ state_of(b, s2) ∧ s1 ≠ s2 ∧ same_meaning(s1, s2))
+          → StatesThatDuplicateMeaning(b)
+      consequence:
+        pt-BR: >
+          Toda medida por estado fica errada, e **errada para menos**: quem contar `To Do`
+          encontra metade do que existe, e o número parece plausível.
+
+          É a mesma família do desvio que a plataforma já reporta nas issues — dois caminhos
+          para o mesmo fato, discordando em silêncio.
+      concepts: [spo.performed_project_activity]
+      enforcement: detection
+      severity: estrutural
+      note:
+        pt-BR: >
+          **A plataforma não decide que dois nomes têm o mesmo significado.** Ela mostra os
+          estados observados com a frequência, e alguém confirma — pela mesma razão de a
+          alocação de papel ser declaração humana. `Refinamento` e `Pronto para
+          desenvolvimento` podem ser etapas distintas de verdade.
+
   limits:
     pt-BR: >
       **Toda regra aqui depende da movimentação ser observada**, e ela vive no quadro do

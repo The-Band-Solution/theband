@@ -102,7 +102,7 @@ três, em ordem, com autor e data.
 
 ---
 
-### User Story 2 - A plataforma diz o que ela não sabe derivar (Priority: P1)
+### User Story 2 - A plataforma diz o que ela não sabe derivar, e por quê (Priority: P1)
 
 Quem procura cycle time descobre que ele **depende de uma decisão que ninguém tomou** — e a tela
 diz qual é.
@@ -124,6 +124,11 @@ eventos e diz que o cycle time não pode ser calculado, nomeando o que falta.
 3. **Dado** que a plataforma não sabe, **quando** alguém pede a medida, **então** ela **não**
    devolve o lead time no lugar: são medidas diferentes, e trocá-las silenciosamente é pior que
    não responder.
+4. **Dado** um quadro cujos estados não incluem nenhum que signifique "em andamento", **quando**
+   alguém abre a tela do processo, **então** a plataforma **sinaliza o antipadrão estrutural** e
+   diz que a medida é impossível para todas as issues daquele quadro — não para algumas.
+5. **Dado** um quadro que **tem** estado de andamento, **quando** a mesma tela abre, **então**
+   nada é sinalizado.
 
 ---
 
@@ -189,6 +194,11 @@ alguma.
 - **FR-009**: A plataforma MUST NOT apresentar lead time onde cycle time foi pedido.
 - **FR-010**: A tela MUST mostrar os tipos de evento observados e sua frequência — é o que
   permite a decisão da FR-007.
+- **FR-010a**: A tela MUST mostrar os **estados de quadro** observados e sua frequência, por
+  quadro — é o que torna visível o antipadrão estrutural `process.ap05`.
+- **FR-010b**: Quando nenhum estado do quadro significa "em andamento", a plataforma MUST
+  **sinalizar** — e a mensagem MUST dizer a consequência: o cycle time é impossível para **toda**
+  issue daquele quadro, e não para algumas.
 
 ### O custo
 
@@ -214,6 +224,10 @@ alguma.
   exibe cycle time — e diz qual decisão falta.
 - **SC-005**: Uma segunda coleta sem atividade na origem faz **zero** pedidos de timeline.
 - **SC-006**: A tela lista os tipos de evento observados com a contagem de cada um.
+- **SC-007**: Sobre o quadro medido em 2026-08-14 — `Backlog`, `Ready`, `In review`, `Done` —, a
+  plataforma **sinaliza** o antipadrão estrutural e diz que o cycle time é impossível ali.
+- **SC-008**: Sobre um quadro que **tem** estado de andamento, a plataforma **não** sinaliza. Um
+  aviso que aparece sempre treina quem lê a ignorá-lo.
 
 ---
 

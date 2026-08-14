@@ -3,7 +3,7 @@
 **Spec**: [spec.md](spec.md) · **Plano**: [plan.md](plan.md) · **Pesquisa**: [research.md](research.md)
 **Contrato**: [contracts/atividade-executada.md](contracts/atividade-executada.md) · **Modelo**: [data-model.md](data-model.md)
 
-Doze tarefas em quatro fases. Cada uma tem teste, e nenhum deles é `mix test` sozinho.
+Treze tarefas em quatro fases. Cada uma tem teste, e nenhum deles é `mix test` sozinho.
 
 **A fase 0 já foi feita**, em 2026-08-14, contra a API real — e o que ela achou mudou o escopo:
 `ProjectV2ItemStatusChangedEvent` **está** na timeline da issue, com estado anterior, novo e
@@ -186,6 +186,21 @@ feature.
   afirma que zero detectados com zero movimentação coletada é dito como "não olhei"**, e não como
   "processo saudável". É o limite escrito no próprio YAML, e a L57.
 
+### T013 Sinalizar o antipadrão estrutural do quadro
+
+- **Pronta quando**: T011 concluída — a tela já mostra os estados observados por quadro.
+- **Descrição**: quando nenhum estado do quadro significa "em andamento", a plataforma sinaliza
+  `process.ap05` e diz a **consequência**: o cycle time é impossível para **toda** issue daquele
+  quadro — FR-010b. E sinaliza `process.ap06` quando dois estados parecem duplicar significado,
+  **sem decidir** que duplicam: mostra e alguém confirma, como na alocação de papel.
+  Medido em 2026-08-14: o quadro da `The-Band-Solution` não tem estado de andamento; o da
+  `leds-conectafapes` tem `In Progress`, e também tem `To Do` **e** `Todo`.
+- **Feita quando**: o quadro sem estado de andamento é sinalizado, com a consequência escrita; o
+  quadro que tem estado de andamento **não** é sinalizado.
+- **Teste**: `test/the_band/mapping/antipadroes_test.exs` — e o caso que importa é o **negativo**:
+  um quadro com `In Progress` não sinaliza. Aviso que aparece sempre treina quem lê a ignorá-lo,
+  e é justamente o aviso que importa quando aparece.
+
 ---
 
 ## Dependências
@@ -195,6 +210,7 @@ T001 ─► T002 ─┬─► T003 ─┬─► T004 ─────────
               │         ├─► T005 ─► T006 ─┬─► T008
               │         │         └─► T007 │
               │         │                  ├─► T009 ─► T010 ─► T012
+              │         │                  │                     └─► T013
               │         │                  └─► T011 ◄─────────┘
 ```
 
@@ -211,7 +227,7 @@ movimentação.
 
 ## Validação de formato
 
-Doze tarefas, todas com título curto e as quatro seções. Nenhum `Feita quando` repete o título, e
+Treze tarefas, todas com título curto e as quatro seções. Nenhum `Feita quando` repete o título, e
 nenhum `Teste` é `mix test` sozinho.
 
 **Quatro tarefas provam uma ausência, uma soma ou uma igualdade** — T002, T006, T007 e T010. É
