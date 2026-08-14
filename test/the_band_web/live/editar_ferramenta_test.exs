@@ -58,7 +58,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
       {:ok, live, html} = live(ctx.conn, ~p"/tools")
       refute html =~ @segredo
 
-      html = live |> element("button", "renomear") |> render_click()
+      html = live |> element("button", "rename") |> render_click()
       refute html =~ @segredo
 
       html =
@@ -74,7 +74,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
 
     test "rótulo em branco é dito, e o anterior permanece", ctx do
       {:ok, live, _html} = live(ctx.conn, ~p"/tools")
-      live |> element("button", "renomear") |> render_click()
+      live |> element("button", "rename") |> render_click()
 
       html =
         live
@@ -100,7 +100,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
 
       {:ok, live, _html} = live(ctx.conn, ~p"/tools")
 
-      live |> element("button", "trocar o token") |> render_click()
+      live |> element("button", "replace the token") |> render_click()
 
       html =
         live
@@ -134,7 +134,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
       end)
 
       {:ok, live, _html} = live(ctx.conn, ~p"/tools")
-      live |> element("button", "trocar o token") |> render_click()
+      live |> element("button", "replace the token") |> render_click()
 
       html =
         live
@@ -152,7 +152,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
     test "a última ativa é recusada, e a tela nomeia encerrar como o caminho", ctx do
       {:ok, live, _html} = live(ctx.conn, ~p"/tools")
 
-      html = live |> element("button", "remover") |> render_click()
+      html = live |> element("button", "remove") |> render_click()
 
       assert html =~ "only active credential"
       assert html =~ "end the observation"
@@ -185,7 +185,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
     test "o botão só existe quando há atenção, e limpá-lo devolve a ferramenta a ativa", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/tools")
 
-      refute html =~ "limpar o estado de atenção", """
+      refute html =~ "clear the attention state", """
       Botão que aparece sempre não distingue a ferramenta que precisa de atenção da que não
       precisa — e a distinção é o que a FR-022 exige da tela.
       """
@@ -193,10 +193,10 @@ defmodule TheBandWeb.EditarFerramentaTest do
       {:ok, _} = Sources.mark_needs_attention(ctx.tool, "credencial ilegível")
 
       {:ok, live, html} = live(ctx.conn, ~p"/tools")
-      assert html =~ "limpar o estado de atenção"
+      assert html =~ "clear the attention state"
       assert html =~ "credencial ilegível"
 
-      html = live |> element("button", "limpar o estado de atenção") |> render_click()
+      html = live |> element("button", "clear the attention state") |> render_click()
 
       assert html =~ "Attention state cleared"
 
@@ -208,9 +208,9 @@ defmodule TheBandWeb.EditarFerramentaTest do
   describe "corrigir o cadastro pela tela" do
     test "a ferramenta que não coletou nada pode ser corrigida", ctx do
       {:ok, live, html} = live(ctx.conn, ~p"/tools")
-      assert html =~ "corrigir cadastro"
+      assert html =~ "fix registration"
 
-      live |> element("button", "corrigir cadastro") |> render_click()
+      live |> element("button", "fix registration") |> render_click()
 
       html =
         live
@@ -228,7 +228,7 @@ defmodule TheBandWeb.EditarFerramentaTest do
 
       {:ok, _live, html} = live(ctx.conn, ~p"/tools")
 
-      refute html =~ "corrigir cadastro", """
+      refute html =~ "fix registration", """
       A janela fecha na primeira coleta. Botão que continua aparecendo depois disso promete
       uma correção que o domínio recusa — e a promessa quebrada é pior que a ausência.
       """
@@ -244,13 +244,13 @@ defmodule TheBandWeb.EditarFerramentaTest do
     test "a regra está escrita onde alguém procuraria editar", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/tools")
 
-      assert html =~ "a identidade da ferramenta", """
+      assert html =~ "the identity of the tool", """
       A FR-020 exige a explicação **no lugar onde alguém procuraria editar** — não numa
       documentação que quem está na tela não vai abrir.
       """
 
-      assert html =~ "enquanto ela não coletou nada"
-      assert html =~ "encerrar a observação"
+      assert html =~ "while it has not collected anything"
+      assert html =~ "end the observation"
     end
   end
 end

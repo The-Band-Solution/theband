@@ -54,7 +54,7 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "A credencial é válida mas não tem os escopos necessários: #{Enum.join(missing, ", ")}. " <>
+           "The credential is valid but lacks the required scopes: #{Enum.join(missing, ", ")}. " <>
              "Without them the collection would return zero teams, which is worse than failing. Nothing was saved."
          )}
 
@@ -284,7 +284,7 @@ defmodule TheBandWeb.SourceLive.Index do
          :info,
          "Observation of #{tool.organization_login} resumed. " <>
            "The marked records become current again on the next collection, " <>
-           "e só os que a origem ainda mostrar."
+           "and only those the source still shows."
        )
        |> load_tools()}
     else
@@ -296,7 +296,7 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "A credencial não tem os escopos: #{Enum.join(faltando, ", ")}"
+           "The credential lacks the scopes: #{Enum.join(faltando, ", ")}"
          )}
 
       {:error, :not_found} ->
@@ -322,8 +322,8 @@ defmodule TheBandWeb.SourceLive.Index do
        |> put_flash(
          :info,
          "Observation of #{tool.organization_login} ended. " <>
-           "#{resultado.marked.people} pessoa(s), #{resultado.marked.teams} equipe(s) e " <>
-           "#{resultado.marked.links} vínculo(s) marcados. " <>
+           "#{resultado.marked.people} person(s), #{resultado.marked.teams} team(s) and " <>
+           "#{resultado.marked.links} link(s) marked. " <>
            "#{resultado.credentials_destroyed} credential(s) destroyed. Nothing was deleted."
        )
        |> load_tools()}
@@ -343,7 +343,7 @@ defmodule TheBandWeb.SourceLive.Index do
       <.header>
         Ferramentas conectadas
         <:subtitle>
-          Quais ferramentas esta organização usa, e com quais contas de serviço.
+          Which tools this organisation uses, and with which service accounts.
         </:subtitle>
         <:actions>
           <.button phx-click="toggle_form">
@@ -353,7 +353,7 @@ defmodule TheBandWeb.SourceLive.Index do
       </.header>
 
       <div :if={@form_open} class="card bg-base-200 p-6">
-        <form id="conectar-ferramenta" phx-submit="connect" class="space-y-4">
+        <form id="connect-tool" phx-submit="connect" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="form-control">
               <span class="label-text">Tool type</span>
@@ -368,18 +368,18 @@ defmodule TheBandWeb.SourceLive.Index do
                 name="instance_url"
                 value="https://github.com"
                 class="input input-bordered"
-                placeholder="https://github.com ou a instalação própria"
+                placeholder="https://github.com or your own installation"
               />
             </label>
 
             <label class="form-control">
               <span class="label-text">Organisation to observe</span>
-              <input name="organization_login" class="input input-bordered" placeholder="minha-org" />
+              <input name="organization_login" class="input input-bordered" placeholder="my-org" />
             </label>
 
             <label class="form-control">
               <span class="label-text">Credential label</span>
-              <input name="label" class="input input-bordered" placeholder="conta de serviço" />
+              <input name="label" class="input input-bordered" placeholder="service account" />
             </label>
           </div>
 
@@ -387,7 +387,7 @@ defmodule TheBandWeb.SourceLive.Index do
             <span class="label-text">Credential</span>
             <input type="password" name="secret" class="input input-bordered" autocomplete="off" />
             <span class="label-text-alt opacity-70">
-              Validada contra a ferramenta antes de ser gravada. Depois disso não é mais exibida.
+              Validated against the tool before being written. After that it is never shown again.
             </span>
           </label>
 
@@ -396,7 +396,7 @@ defmodule TheBandWeb.SourceLive.Index do
       </div>
 
       <div :if={@tools == []} class="alert">
-        <p>Nenhuma ferramenta conectada ainda. Conecte uma para que a plataforma possa coletar.</p>
+        <p>No tool connected yet. Connect one so the platform can collect.</p>
       </div>
 
       <div :for={tool <- @tools} class="card bg-base-200 p-6 space-y-4">
@@ -424,7 +424,7 @@ defmodule TheBandWeb.SourceLive.Index do
               </span>
             </div>
             <div class="text-sm opacity-70">{tool.instance_url}</div>
-            <div class="text-sm opacity-70">organização observada: {tool.organization_login}</div>
+            <div class="text-sm opacity-70">observed organisation: {tool.organization_login}</div>
 
             <button
               :if={@editavel[tool.id] and @correcting != tool.id}
@@ -432,7 +432,7 @@ defmodule TheBandWeb.SourceLive.Index do
               phx-click="ask_correct"
               phx-value-id={tool.id}
             >
-              corrigir cadastro
+              fix registration
             </button>
 
             <form
@@ -443,7 +443,7 @@ defmodule TheBandWeb.SourceLive.Index do
             >
               <input type="hidden" name="tool_id" value={tool.id} />
               <label class="form-control">
-                <span class="label-text text-xs">Instância</span>
+                <span class="label-text text-xs">Instance</span>
                 <input
                   name="instance_url"
                   value={tool.instance_url}
@@ -451,28 +451,28 @@ defmodule TheBandWeb.SourceLive.Index do
                 />
               </label>
               <label class="form-control">
-                <span class="label-text text-xs">Organização</span>
+                <span class="label-text text-xs">Organisation</span>
                 <input
                   name="organization_login"
                   value={tool.organization_login}
                   class="input input-bordered input-sm"
                 />
               </label>
-              <.button type="submit" variant="primary">Corrigir</.button>
+              <.button type="submit" variant="primary">Fix registration</.button>
               <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_correct">
-                cancelar
+                cancel
               </button>
               <p class="basis-full text-xs opacity-70">
-                Esta ferramenta <strong>ainda não coletou nada</strong> — por isso o cadastro pode
-                ser corrigido. Depois da primeira sincronização isto deixa de existir: outra
-                organização passa a ser outra ferramenta, porque o dado já coletado apontaria
-                para uma origem que não o produziu.
+                This tool <strong>has not collected anything yet</strong>, which is why the
+                registration can still be fixed. After the first sync this stops existing:
+                another organisation becomes another tool, because data already collected
+                would point at a source that did not produce it.
               </p>
             </form>
           </div>
 
           <div class="text-right text-sm opacity-70">
-            <div :if={tool.last_sync_at}>última coleta: {tool.last_sync_at}</div>
+            <div :if={tool.last_sync_at}>last collection: {tool.last_sync_at}</div>
             <div :if={is_nil(tool.last_sync_at)}>never synced</div>
             <div :if={@ended[tool.id]} class="text-xs">
               ended at {@ended[tool.id]}
@@ -483,7 +483,7 @@ defmodule TheBandWeb.SourceLive.Index do
               phx-click="ask_end"
               phx-value-id={tool.id}
             >
-              encerrar observação
+              end observation
             </button>
             <button
               :if={@ended[tool.id]}
@@ -491,7 +491,7 @@ defmodule TheBandWeb.SourceLive.Index do
               phx-click="ask_resume"
               phx-value-id={tool.id}
             >
-              retomar observação
+              resume observation
             </button>
           </div>
         </div>
@@ -501,7 +501,7 @@ defmodule TheBandWeb.SourceLive.Index do
               que aconteceu — e é append-only, então nunca encolhe. --%>
         <div :if={@history[tool.id] != []} class="mt-3">
           <button class="link link-hover text-xs" phx-click="toggle_history" phx-value-id={tool.id}>
-            histórico de observação ({length(@history[tool.id])})
+            observation history ({length(@history[tool.id])})
           </button>
 
           <ul :if={tool.id in @open_history} class="mt-2 text-xs space-y-1">
@@ -521,18 +521,18 @@ defmodule TheBandWeb.SourceLive.Index do
 
         <div :if={@resuming && @resuming.id == tool.id} class="alert block text-sm">
           <div class="font-semibold mb-2">
-            Retomar a observação de {tool.organization_login}
+            Resume the observation of {tool.organization_login}
           </div>
 
           <p class="mb-2 opacity-80">
-            A credencial anterior foi destruída no encerramento, então é preciso informar
-            uma nova. Ela é validada contra a origem antes de qualquer coisa ser gravada.
+            The previous credential was destroyed when the observation ended, so a new one is
+            required. It is validated against the source before anything is written.
           </p>
 
           <p class="mb-3 opacity-80">
-            Os registros marcados <strong>do not become current again now</strong>: só a
-            coleta seguinte pode dizer se a origem ainda os mostra. Desmarcar aqui
-            afirmaria uma observação que não aconteceu.
+            The marked records <strong>do not become current again now</strong>: only the next
+            collection can say whether the source still shows them. Unmarking here would assert
+            an observation that did not happen.
           </p>
 
           <form phx-submit="resume_observation" class="flex flex-wrap gap-2 items-end">
@@ -548,23 +548,23 @@ defmodule TheBandWeb.SourceLive.Index do
               />
             </label>
             <label class="form-control">
-              <span class="label-text text-xs">Rótulo</span>
+              <span class="label-text text-xs">Label</span>
               <input
                 name="label"
                 class="input input-bordered input-sm"
-                placeholder="credencial principal"
+                placeholder="main credential"
               />
             </label>
             <.button type="submit" variant="primary">Validate and resume</.button>
             <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_resume">
-              cancelar
+              cancel
             </button>
           </form>
         </div>
 
         <div :if={@ending && @ending.tool.id == tool.id} class="alert alert-error text-sm block">
           <div class="font-semibold mb-2">
-            Encerrar a observação de {tool.organization_login}
+            End the observation of {tool.organization_login}
           </div>
 
           <div class="mb-2">
@@ -572,16 +572,16 @@ defmodule TheBandWeb.SourceLive.Index do
             <div class="font-mono">
               {@ending.impact.teams} equipe(s) — {@ending.impact.derived_teams} derivada(s) pela plataforma
             </div>
-            <div class="font-mono">{@ending.impact.evidence_links} vínculo(s)</div>
+            <div class="font-mono">{@ending.impact.evidence_links} link(s)</div>
             <div class="font-mono">
-              {@ending.impact.people_exclusive} pessoa(s) conhecida(s) só por esta organização
+              {@ending.impact.people_exclusive} person(s) known only through this organisation
             </div>
           </div>
 
           <div :if={@ending.impact.people_shared > 0} class="mb-2">
             <div class="opacity-80">Remain current:</div>
             <div class="font-mono">
-              {@ending.impact.people_shared} pessoa(s) — também observada(s) em outra organização
+              {@ending.impact.people_shared} person(s) — also observed in another organisation
             </div>
             <div :for={p <- @ending.shared_names} class="font-mono text-xs opacity-80">
               {p}
@@ -596,7 +596,7 @@ defmodule TheBandWeb.SourceLive.Index do
           <div class="mb-3">
             <div class="opacity-80 font-semibold">Will NOT be deleted:</div>
             <div class="font-mono">
-              {@ending.impact.preserved_payloads} payload(s) preservado(s), nem pessoa, equipe ou vínculo algum
+              {@ending.impact.preserved_payloads} preserved payload(s), nor any person, team or link
             </div>
           </div>
 
@@ -604,27 +604,27 @@ defmodule TheBandWeb.SourceLive.Index do
             <input type="hidden" name="tool_id" value={tool.id} />
             <label class="form-control">
               <span class="label-text text-xs">
-                Para confirmar, digite: <strong>{tool.organization_login}</strong>
+                To confirm, type: <strong>{tool.organization_login}</strong>
               </span>
               <input name="confirmation" class="input input-bordered input-sm" autocomplete="off" />
             </label>
             <.button type="submit" variant="primary">End observation</.button>
             <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_end">
-              cancelar
+              cancel
             </button>
           </form>
         </div>
 
         <div :if={@situacao[tool.id] == :needs_attention} class="alert alert-warning text-sm">
           <div>
-            <span class="font-semibold">Precisa de atenção desde {tool.needs_attention_since}.</span>
+            <span class="font-semibold">Needs attention since {tool.needs_attention_since}.</span>
             <div>{tool.needs_attention_reason}</div>
             <button
               class="btn btn-xs btn-outline mt-2"
               phx-click="clear_attention"
               phx-value-id={tool.id}
             >
-              limpar o estado de atenção
+              clear the attention state
             </button>
           </div>
         </div>
@@ -638,7 +638,7 @@ defmodule TheBandWeb.SourceLive.Index do
               phx-click="ask_add_credential"
               phx-value-id={tool.id}
             >
-              trocar o token
+              replace the token
             </button>
           </div>
 
@@ -650,7 +650,7 @@ defmodule TheBandWeb.SourceLive.Index do
           >
             <input type="hidden" name="tool_id" value={tool.id} />
             <label class="form-control">
-              <span class="label-text text-xs">Token novo</span>
+              <span class="label-text text-xs">New token</span>
               <input
                 name="secret"
                 type="password"
@@ -660,32 +660,33 @@ defmodule TheBandWeb.SourceLive.Index do
               />
             </label>
             <label class="form-control">
-              <span class="label-text text-xs">Rótulo</span>
+              <span class="label-text text-xs">Label</span>
               <input
                 name="label"
                 class="input input-bordered input-sm"
-                placeholder="credencial nova"
+                placeholder="new credential"
               />
             </label>
-            <.button type="submit" variant="primary">Validar e acrescentar</.button>
+            <.button type="submit" variant="primary">Validate and add</.button>
             <button type="button" class="btn btn-sm btn-ghost" phx-click="cancel_add_credential">
-              cancelar
+              cancel
             </button>
             <p class="basis-full text-xs opacity-70">
-              O token é validado contra a origem <strong>antes</strong> de ser gravado, e a
-              credencial anterior continua onde está — desative-a ou remova-a depois de conferir
-              que a nova funciona. <strong>Nada é encerrado, e nenhum dado é marcado.</strong>
+              The token is validated against the source <strong>before</strong> anything is
+              written, and the previous credential stays where it is — deactivate or remove it
+              once you have confirmed the new one works.
+              <strong>Nothing is ended, and no data is marked.</strong>
             </p>
           </form>
 
           <table class="table table-sm stacked">
             <thead>
               <tr>
-                <th>rótulo</th>
+                <th>label</th>
                 <th>credential</th>
                 <th>scopes</th>
                 <th>validated at</th>
-                <th>estado</th>
+                <th>state</th>
                 <th></th>
               </tr>
             </thead>
@@ -708,9 +709,9 @@ defmodule TheBandWeb.SourceLive.Index do
                       class="input input-xs input-bordered w-40"
                       autofocus
                     />
-                    <button type="submit" class="btn btn-xs btn-primary">salvar</button>
+                    <button type="submit" class="btn btn-xs btn-primary">save</button>
                     <button type="button" class="btn btn-xs btn-ghost" phx-click="cancel_rename">
-                      cancelar
+                      cancel
                     </button>
                   </form>
                   <span :if={@renaming != credential.id}>{credential.label}</span>
@@ -720,7 +721,7 @@ defmodule TheBandWeb.SourceLive.Index do
                 <td class="text-xs">{credential.validated_at}</td>
                 <td>
                   <span class={["badge badge-sm", credential.active && "badge-success"]}>
-                    {if credential.active, do: "ativa", else: "inativa"}
+                    {if credential.active, do: "active", else: "inactive"}
                   </span>
                 </td>
                 <td class="flex flex-wrap gap-1">
@@ -730,7 +731,7 @@ defmodule TheBandWeb.SourceLive.Index do
                     phx-value-id={credential.id}
                     phx-value-active={to_string(!credential.active)}
                   >
-                    {if credential.active, do: "desativar", else: "ativar"}
+                    {if credential.active, do: "deactivate", else: "activate"}
                   </button>
                   <button
                     :if={@renaming != credential.id}
@@ -738,34 +739,33 @@ defmodule TheBandWeb.SourceLive.Index do
                     phx-click="edit_credential"
                     phx-value-id={credential.id}
                   >
-                    renomear
+                    rename
                   </button>
                   <button
                     class="btn btn-xs btn-ghost text-error"
                     phx-click="destroy_credential"
                     phx-value-id={credential.id}
-                    data-confirm="Destruir esta credencial? O segredo deixa de existir, e isso não se desfaz."
+                    data-confirm="Destroy this credential? The secret stops existing, and this cannot be undone."
                   >
-                    remover
+                    remove
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
           <p class="text-xs opacity-60 mt-2">
-            A credencial é cifrada em repouso e nunca é exibida em forma utilizável.
-            Os quatro caracteres finais existem só para distinguir uma credencial da outra.
+            The credential is encrypted at rest and is never shown in usable form. The last four
+            characters exist only to tell one credential from another.
           </p>
           <p class="text-xs opacity-60 mt-2">
-            A instância e a organização são <span class="font-semibold">a identidade da ferramenta</span>,
-            e só podem ser corrigidas <span class="font-semibold">enquanto ela não coletou nada</span>
-            —
-            erro de cadastro se conserta, origem de dado já coletado não. Depois da primeira
-            sincronização, o que se troca é o token: a credencial nova entra ao lado da antiga,
-            e nada é encerrado nem marcado. Para parar de observar esta organização, o caminho é
-            <span class="font-semibold">encerrar a observação</span>
-            — o dado coletado continua
-            consultável, marcado como não mais observado.
+            The instance and the organisation are
+            <span class="font-semibold">the identity of the tool</span>, and can only be fixed
+            <span class="font-semibold">while it has not collected anything</span>
+            — a registration mistake is fixable, the source of already collected data is not.
+            After the first sync, what you replace is the token: the new credential joins the old
+            one, and nothing is ended or marked. To stop observing this organisation, the way is
+            <span class="font-semibold">end the observation</span>
+            — the collected data stays queryable, marked as no longer observed.
           </p>
         </div>
       </div>
@@ -798,9 +798,9 @@ defmodule TheBandWeb.SourceLive.Index do
 
   # Três respostas, e `disabled` não é uma delas: nenhuma linha do código a escrevia, e um estado
   # que nunca acontece é um estado que quem lê precisa considerar à toa.
-  defp status_label(:active), do: "ativa"
-  defp status_label(:needs_attention), do: "precisa de atenção"
-  defp status_label(:ended), do: "observação encerrada"
+  defp status_label(:active), do: "active"
+  defp status_label(:needs_attention), do: "needs attention"
+  defp status_label(:ended), do: "observation ended"
 
   defp errors(changeset) do
     changeset

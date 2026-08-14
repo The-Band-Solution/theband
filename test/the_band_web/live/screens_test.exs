@@ -384,19 +384,19 @@ defmodule TheBandWeb.ScreensTest do
     test "o impacto aparece antes de confirmar, e nomeia quem permanece", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/tools")
 
-      html = live |> element("button", "encerrar observação") |> render_click()
+      html = live |> element("button", "end observation") |> render_click()
 
       assert html =~ "End observation"
       assert html =~ "Remain current"
       # O nome, e não um contador: "1 pessoa permanece" não deixa reconhecer quem é.
       assert html =~ "Sobreposta"
       assert html =~ "Will NOT be deleted"
-      assert html =~ "Para confirmar, digite"
+      assert html =~ "To confirm, type"
     end
 
     test "confirmação errada não encerra", %{conn: conn, tool: tool} do
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "encerrar observação") |> render_click()
+      live |> element("button", "end observation") |> render_click()
 
       html =
         live
@@ -412,7 +412,7 @@ defmodule TheBandWeb.ScreensTest do
       tool: tool
     } do
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "encerrar observação") |> render_click()
+      live |> element("button", "end observation") |> render_click()
 
       html =
         live
@@ -429,7 +429,7 @@ defmodule TheBandWeb.ScreensTest do
       {:ok, live, html} = live(conn, ~p"/tools")
       refute html =~ @segredo
 
-      html = live |> element("button", "encerrar observação") |> render_click()
+      html = live |> element("button", "end observation") |> render_click()
       refute html =~ @segredo
 
       html =
@@ -457,16 +457,16 @@ defmodule TheBandWeb.ScreensTest do
     test "o botão de retomar aparece só na encerrada", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/tools")
 
-      assert html =~ "retomar observação"
-      refute html =~ "encerrar observação"
+      assert html =~ "resume observation"
+      refute html =~ "end observation"
     end
 
     test "o formulário diz que a coleta é que devolve vigência", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/tools")
 
-      html = live |> element("button", "retomar observação") |> render_click()
+      html = live |> element("button", "resume observation") |> render_click()
 
-      assert html =~ "credencial anterior foi destruída"
+      assert html =~ "previous credential was destroyed"
       # A frase existe para impedir o mal-entendido: retomar não ressuscita nada por si.
       assert html =~ "do not become current again now"
     end
@@ -477,7 +477,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -498,7 +498,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -509,7 +509,7 @@ defmodule TheBandWeb.ScreensTest do
         |> render_submit()
 
       assert html =~ "resumed"
-      assert html =~ "só os que a origem ainda mostrar"
+      assert html =~ "only those the source still shows"
       refute Sources.observation_ended?(tool)
     end
 
@@ -520,7 +520,7 @@ defmodule TheBandWeb.ScreensTest do
       end)
 
       {:ok, live, _html} = live(conn, ~p"/tools")
-      live |> element("button", "retomar observação") |> render_click()
+      live |> element("button", "resume observation") |> render_click()
 
       html =
         live
@@ -550,9 +550,9 @@ defmodule TheBandWeb.ScreensTest do
 
       # A ferramenta voltou a parecer ativa — é o histórico que preserva o que houve.
       refute html =~ "observation ended"
-      assert html =~ "histórico de observação (2)"
+      assert html =~ "observation history (2)"
 
-      aberto = live |> element("button", "histórico de observação") |> render_click()
+      aberto = live |> element("button", "observation history") |> render_click()
 
       assert aberto =~ "ended"
       assert aberto =~ "resumed"
@@ -564,7 +564,7 @@ defmodule TheBandWeb.ScreensTest do
 
       {:ok, _live, html} = live(log_in(conn, user), ~p"/tools")
 
-      refute html =~ "histórico de observação"
+      refute html =~ "observation history"
     end
   end
 end
