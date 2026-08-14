@@ -31,7 +31,7 @@ defmodule TheBandWeb.SessionLive.New do
         <div>
           <p class="font-semibold">No organisation registered yet.</p>
           <p class="text-sm">
-            Rode <code>mix run priv/repo/seeds.exs</code> para criar as organizações de exemplo.
+            Run <code>mix run priv/repo/seeds.exs</code> to create the example organisations.
           </p>
         </div>
       </div>
@@ -53,8 +53,8 @@ defmodule TheBandWeb.SessionLive.New do
       </div>
 
       <p class="text-xs opacity-60">
-        Autenticação com senha não faz parte desta entrega e está registrada como lacuna.
-        O isolamento entre organizações, esse sim, está implementado e testado.
+        Password authentication is not part of this delivery and is recorded as a gap. The
+        isolation between organisations, that one is implemented and tested.
       </p>
     </Layouts.app>
     """

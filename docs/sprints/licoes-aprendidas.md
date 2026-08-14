@@ -1923,3 +1923,51 @@ Vale para toda a família: `Enum.filter` por tipo, `where` por categoria, consul
 discriminador. Se o conjunto filtrado puder ser vazio por engano, o teste afirma que não é.
 
 **Estado**: aberta.
+
+## L58 — PR empilhado incorporado depois da base não chega a lugar nenhum
+
+**Origem**: Sprint 015 · **Tipo**: processo
+
+**O que aconteceu.** Três PRs empilhados, e a ordem de incorporação foi esta:
+
+```
+03:25:48  #302 → 034-editar-credenciais ... ✓ verde
+03:26:03  #301 → main                    ... ✓ verde   (leva a 033, que leva a 034)
+04:50:35  #303 → 034-editar-credenciais  ... ✓ verde
+```
+
+Os três merges ficaram verdes. **O conteúdo do #303 não chegou à `main`**, porque às 04:50 a
+`034` já não era caminho para lugar nenhum: ela tinha sido incorporada à `033` às 03:25, e a
+`033` à `main` quinze segundos depois.
+
+Quatro commits ficaram órfãos — `data_table.ex` e `tabela_live.ex` sequer existiam na `main`.
+E não eram só os do #303: os dois últimos commits do #302, empurrados **depois** que ele foi
+incorporado, seguiram o mesmo caminho para lugar nenhum.
+
+**Por que aconteceu.** Merge de PR empilhado não confere se a base ainda desagua. O GitHub
+tem o que precisa para avisar — ele sabe que a `034` já foi incorporada — e não avisa: para
+ele, incorporar numa branch existente é operação válida, e é mesmo.
+
+O sinal também é enganoso na direção errada: **o PR fica verde**. Verde ali significa "este
+diff se aplica sobre esta base", e não "este código vai para a `main`".
+
+**O que fazer diferente.** Duas coisas, e a segunda é a que pega:
+
+1. **incorporar o empilhado antes da base**, ou reapontá-lo para a `main` depois de a base
+   ter ido;
+2. **conferir o commit na `main`, e não o PR verde**:
+
+```bash
+git fetch origin
+git branch -r --contains <sha> | grep origin/main   # vazio = não chegou
+```
+
+É a L48 aplicada a **conteúdo** em vez de a palavra de fechamento. A L48 nasceu de `Fecha #281`
+não fechar a issue; esta nasce de um merge não incorporar o código. As duas têm a mesma forma:
+a operação foi feita, o efeito não aconteceu, e nada disse.
+
+**E é a L45 pela outra ponta.** A L45 diz que sprint novo tirado da `main` não enxerga o fecho
+do anterior enquanto o PR está aberto — o trabalho existe e a `main` não o vê. Aqui o PR foi
+incorporado e a `main` continua sem ver: mesmo sintoma, causa oposta.
+
+**Estado**: aberta.
