@@ -44,31 +44,55 @@ tabela**. Três consequências no desenho:
 
 ---
 
-## R2 — A movimentação no quadro **não** está na timeline da issue
+## R2 — A movimentação no quadro **está** na timeline da issue
 
-**Decisão**: a feature coleta a timeline da issue. A movimentação no Projects v2 **fica de fora**,
-e a dependência é declarada.
+**Decisão**: a feature coleta a timeline da issue, **e a movimentação vem junto**. A suposição
+inicial — de que ela viveria na API do Projects v2 — foi medida e refutada.
 
-**Fundamento**: a timeline de uma issue no GitHub traz `assigned`, `unassigned`, `labeled`,
-`unlabeled`, `closed`, `reopened`, `renamed`, `cross-referenced`, `mentioned`. A mudança de
-coluna num quadro do **Projects v2** vive na API do projeto — é a issue
-[#181](https://github.com/The-Band-Solution/theband/issues/181).
+**MEDIDO em 2026-08-14**, contra a API real, com a chave mestra da pessoa mantenedora. A
+suposição estava **errada**, e a correção muda o tamanho da feature.
 
-> **NÃO MEDIDO AQUI.** Confirmar exige a chave mestra e é **uma** consulta. É a primeira tarefa
-> do plano, pelo mesmo motivo da feature 020: construir sobre suposição de API é a **L23**.
+`ProjectV2ItemStatusChangedEvent` **está na timeline da issue**, e traz tudo o que os
+antipadrões precisam:
 
-**A consequência, e ela precisa estar na tela.** As quatro máximas de antipadrão dependem da
-movimentação. Com esta feature sozinha, a detecção devolve **zero** — e o
-`process_antipatterns.yaml` já diz que zero ali não significa processo saudável.
+```
+ProjectV2ItemStatusChangedEvent em 2026-08-12T20:54:47Z por paulossjunior
+   "" -> "Backlog"
+ProjectV2ItemStatusChangedEvent em 2026-08-14T13:01:06Z por github-project-automation
+   "Backlog" -> "Done"
+```
 
-**Por que a feature vale assim mesmo:**
+Instante, `previousStatus → status`, e o autor. **A dependência da
+[#181](https://github.com/The-Band-Solution/theband/issues/181) cai**: os quatro antipadrões
+funcionam nesta feature.
 
-| O que ela entrega sem a #181 |
-|---|
-| a primeira materialização de `spo.performed_project_activity`, com a forma que as irmãs herdam |
-| quem designou, quem fechou, quem reabriu — com autor e instante |
-| a base do `ap03` (designada e nunca iniciada), que só precisa da ausência de movimentação |
-| os tipos de evento observados e a frequência de cada um — o que permite decidir |
+### O quadro real, medido em 200 issues
+
+```
+187 de 200 issues têm alguma movimentação
+Done 182 · Backlog 92 · In review 55 · Ready 28
+quem move: paulossjunior 197 · github-project-automation 160
+```
+
+**Não existe coluna "Em andamento".** O fluxo observado é `Backlog → Ready → In review → Done`,
+e nenhum nome diz "começou".
+
+Isso **não invalida a regra declarada** — a movimentação continua sendo o sinal de início. O que
+ela mostra é que **qual movimentação** marca o começo é decisão que só quem conhece o quadro
+pode tomar: `Ready` significa pronto para pegar, ou já pego?
+
+É exatamente o que a FR-010 existe para permitir: a tela mostra os estados observados com a
+frequência, e alguém decide.
+
+### E quase metade das movimentações é de robô
+
+`github-project-automation` fez **160** das 357. Duas consequências:
+
+- **`performer_id` anulável não é caso raro** — a ontologia já previa, e o dado confirma;
+- **movimentação automática não é o mesmo sinal que movimentação humana.** Um cartão que o robô
+  moveu para `Done` ao fechar a issue não diz que alguém trabalhou nela: diz que a issue fechou.
+  A detecção de antipadrão precisa distinguir os dois, e o `ap02` — movida depois de fechada —
+  é justamente esse caso.
 
 ---
 
@@ -131,13 +155,19 @@ escritos. Esta feature entrega o **dado** que ele consome.
 
 ---
 
-## O que fica pendente de medida
+## O que foi medido, e o que mudou
 
-| # | O que verificar | Como | Bloqueia |
-|---|---|---|---|
-| 1 | `timelineItems` vem na mesma consulta da issue | uma consulta com a chave mestra | o custo, e a US3 |
-| 2 | quais tipos de evento a origem devolve, e em que volume | a mesma consulta, contando | o mapeamento, e o teto da tabela |
-| 3 | movimentação de Projects v2 aparece na timeline da issue | a mesma consulta, procurando | a dependência da #181 |
+**As três foram respondidas em 2026-08-14**, contra a API real:
 
-As três são **uma tarefa**, e nenhuma linha é escrita antes dela. Se a terceira responder "sim",
-a dependência da #181 cai e os antipadrões funcionam nesta feature.
+| # | Pergunta | Resposta |
+|---|---|---|
+| 1 | `timelineItems` vem na mesma consulta da issue | **sim** — e aceita `itemTypes:` para filtrar |
+| 2 | quais tipos, e em que volume | **8 tipos** nas issues medidas; máximo de **18 itens** numa issue |
+| 3 | movimentação de Projects v2 aparece ali | **sim** — `ProjectV2ItemStatusChangedEvent`, com estado anterior, novo e autor |
+
+Os tipos observados: `CrossReferencedEvent`, `SubIssueAddedEvent`,
+`ProjectV2ItemStatusChangedEvent`, `AddedToProjectV2Event`, `ClosedEvent`, `IssueComment`,
+`IssueTypeAddedEvent`, `LabeledEvent`, `ParentIssueAddedEvent`.
+
+**Nada pendente.** A fase 0 do plano está cumprida, e o que ela achou mudou duas decisões: a
+dependência da #181 caiu, e a distinção entre movimentação humana e automática entrou.

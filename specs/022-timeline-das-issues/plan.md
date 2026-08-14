@@ -25,8 +25,9 @@ execuções de teste, cerimônias e implantações.
 - nenhum evento recebido pode ser descartado;
 - a plataforma não deriva cycle time sem regra declarada.
 
-**NEEDS CLARIFICATION — resolvido antes do código, não antes do planejamento**: as três
-verificações contra a API real, em [research.md](./research.md#o-que-fica-pendente-de-medida).
+**Nenhum NEEDS CLARIFICATION.** As três verificações contra a API real foram **feitas em
+2026-08-14**, e o que elas acharam mudou duas decisões — ver
+[research.md](./research.md#o-que-foi-medido-e-o-que-mudou).
 
 ## Constitution Check
 
@@ -65,13 +66,15 @@ percorrendo lista vazia e devolvendo verde.
 
 ## Fases
 
-### Fase 0 — verificar a origem *(bloqueia tudo)*
+### Fase 0 — verificar a origem *(FEITA em 2026-08-14)*
 
-Três perguntas, uma consulta: `timelineItems` vem junto da issue? Quais tipos, em que volume? A
-movimentação de Projects v2 aparece ali?
+As três perguntas foram respondidas contra a API real, e a terceira **mudou o escopo**:
+`ProjectV2ItemStatusChangedEvent` está na timeline da issue, com estado anterior, novo e autor.
 
-**A terceira pode mudar o escopo da feature.** Se aparecer, os quatro antipadrões funcionam aqui,
-e a dependência da #181 cai.
+**A dependência da #181 caiu.** Os quatro antipadrões funcionam nesta feature.
+
+E o quadro real trouxe duas coisas que o plano não previa: **não existe coluna "Em andamento"** —
+o fluxo é `Backlog → Ready → In review → Done` —, e **160 das 357 movimentações são de robô**.
 
 ### Fase 1 — a atividade executada *(US1, P1)*
 
@@ -85,8 +88,9 @@ pedida.
 
 ### Fase 3 — a plataforma diz o que não sabe *(US2, P1)*
 
-A tela mostra os tipos observados com a frequência, e diz que cycle time depende de uma regra —
-que já está declarada, mas cuja **fonte de movimentação** ainda não é coletada.
+A tela mostra os tipos **e os estados** observados com a frequência, e diz que cycle time depende
+de saber **qual movimentação marca o começo** — decisão que a medida tornou concreta: entre
+`Ready` e `In review`, só quem conhece o quadro sabe qual significa "peguei".
 
 **Esta fase é o teto da feature.** Sem ela, a plataforma teria dado novo e continuaria em
 silêncio sobre o que não consegue medir.
@@ -108,6 +112,11 @@ silêncio sobre o que não consegue medir.
 plano baseado em previsão, e a previsão está na ontologia — não em mim. O custo está nomeado: uma
 junção a mais, e um esquema que a primeira origem não usa por inteiro.
 
-**A dependência da #181 pode cair na fase 0.** Se a movimentação aparecer na timeline da issue,
-os antipadrões funcionam nesta feature — e o plano muda de tamanho. É por isso que a verificação
-vem antes, e não depois.
+**A dependência da #181 caiu, e a verificação valeu o que custou.** A suposição inicial estava
+errada: a movimentação vem na timeline da issue. Uma consulta antes do código evitou uma feature
+inteira desenhada em torno de uma dependência que não existia — é a **L23** dando lucro em vez de
+cobrar.
+
+**E ela trouxe o que ninguém tinha perguntado**: quase metade das movimentações é de automação.
+Um cartão que o robô moveu para `Done` ao fechar a issue não diz que alguém trabalhou nela — e a
+detecção precisa distinguir isso. Entrou no `research.md` R2.
