@@ -48,7 +48,7 @@ defmodule TheBandWeb.TabelaTest do
     test "diz onde procura, e o que fazer quando não acha", ctx do
       {:ok, live, html} = live(ctx.conn, ~p"/work")
 
-      assert html =~ "buscar em título e número", """
+      assert html =~ "search in title and number", """
       A tela não diz onde a busca procura.
 
       Quem não encontra conclui que o dado não existe — quando talvez tenha procurado na coluna
@@ -84,7 +84,7 @@ defmodule TheBandWeb.TabelaTest do
       ordenado = live |> element("th button[phx-value-campo=title]") |> render_click()
 
       assert ordenado =~ "↑", "a direção não aparece como texto"
-      assert ordenado =~ "ordenado de forma crescente"
+      assert ordenado =~ "sorted ascending"
 
       invertido = live |> element("th button[phx-value-campo=title]") |> render_click()
       assert invertido =~ "↓"
@@ -108,7 +108,7 @@ defmodule TheBandWeb.TabelaTest do
 
       {:ok, _live, html} = live(ctx.conn, ~p"/work")
 
-      assert html =~ ~s(aria-label="Páginas")
+      assert html =~ ~s(aria-label="Pages")
       assert html =~ ~s(phx-value-n="2")
       assert html =~ ~s(aria-current="page")
     end
@@ -116,7 +116,7 @@ defmodule TheBandWeb.TabelaTest do
     test "uma página só não tem paginação", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams")
 
-      refute html =~ ~s(aria-label="Páginas"), """
+      refute html =~ ~s(aria-label="Pages"), """
       Uma tabela de uma página só ganhou paginação.
 
       Mostrar o índice `1` sozinho é dizer que há para onde ir quando não há.

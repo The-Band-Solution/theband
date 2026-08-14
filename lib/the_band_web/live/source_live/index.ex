@@ -672,7 +672,8 @@ defmodule TheBandWeb.SourceLive.Index do
               cancel
             </button>
             <p class="basis-full text-xs opacity-70">
-              The token is validated against the source <strong>before</strong> anything is
+              The token is validated against the source <strong>before</strong>
+              anything is
               written, and the previous credential stays where it is — deactivate or remove it
               once you have confirmed the new one works.
               <strong>Nothing is ended, and no data is marked.</strong>
@@ -758,8 +759,7 @@ defmodule TheBandWeb.SourceLive.Index do
             characters exist only to tell one credential from another.
           </p>
           <p class="text-xs opacity-60 mt-2">
-            The instance and the organisation are
-            <span class="font-semibold">the identity of the tool</span>, and can only be fixed
+            The instance and the organisation are <span class="font-semibold">the identity of the tool</span>, and can only be fixed
             <span class="font-semibold">while it has not collected anything</span>
             — a registration mistake is fixable, the source of already collected data is not.
             After the first sync, what you replace is the token: the new credential joins the old

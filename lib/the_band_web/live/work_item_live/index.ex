@@ -324,7 +324,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
         <section class="space-y-2">
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 class="font-semibold">Issues</h3>
-            <.busca valor={@busca} onde="título e número" />
+            <.busca valor={@busca} onde="title and number" />
             <span class="text-sm text-base-content/70">
               {faixa(@pagina, @por_pagina, @encontradas)} of {@encontradas}
               <span :if={@busca != ""}>

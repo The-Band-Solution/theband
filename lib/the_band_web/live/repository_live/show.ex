@@ -244,7 +244,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
       <div :if={@coletadas > 0} class="mt-6">
         <div class="flex items-center justify-between mb-2">
           <h3 class="font-semibold">Issues</h3>
-          <.busca valor={@busca} onde="título e número" />
+          <.busca valor={@busca} onde="title and number" />
           <span class="text-sm opacity-70">{faixa(@pagina, @encontradas)} of {@encontradas}</span>
         </div>
         <div class="overflow-x-auto">

@@ -335,6 +335,7 @@ defmodule TheBandWeb.CoreComponents do
   attr :campo, :atom, required: true
   attr :rotulo, :string, required: true
   attr :ordem, :any, required: true, doc: "{campo, direção} da ordem vigente"
+  attr :tabela, :string, default: nil, doc: "id da tabela — telas com duas precisam distinguir"
   attr :class, :string, default: nil
   attr :rest, :global
 
@@ -350,6 +351,7 @@ defmodule TheBandWeb.CoreComponents do
         type="button"
         phx-click="ordenar"
         phx-value-campo={@campo}
+        phx-value-tabela={@tabela}
         class="inline-flex items-center gap-1 hover:text-base-content cursor-pointer"
       >
         {@rotulo}
@@ -357,7 +359,7 @@ defmodule TheBandWeb.CoreComponents do
           {if elem(@ordem, 1) == :asc, do: "↑", else: "↓"}
         </span>
         <span :if={@ativa?} class="sr-only">
-          ordenado {if elem(@ordem, 1) == :asc, do: "de forma crescente", else: "de forma decrescente"}
+          sorted {if elem(@ordem, 1) == :asc, do: "ascending", else: "descending"}
         </span>
       </button>
     </th>
@@ -371,16 +373,23 @@ defmodule TheBandWeb.CoreComponents do
   """
   attr :valor, :string, default: ""
   attr :onde, :string, required: true, doc: "em quais colunas esta tela procura"
+  attr :tabela, :string, default: nil, doc: "id da tabela — telas com duas precisam distinguir"
 
   def busca(assigns) do
     ~H"""
-    <form phx-change="buscar" phx-submit="buscar" class="flex flex-col gap-1">
+    <form
+      id={@tabela && "busca-#{@tabela}"}
+      phx-change="buscar"
+      phx-submit="buscar"
+      class="flex flex-col gap-1"
+    >
+      <input :if={@tabela} type="hidden" name="tabela" value={@tabela} />
       <input
         type="search"
         name="q"
         value={@valor}
-        placeholder={"buscar em #{@onde}"}
-        aria-label={"buscar em #{@onde}"}
+        placeholder={"search in #{@onde}"}
+        aria-label={"search in #{@onde}"}
         phx-debounce="300"
         class="input input-sm input-bordered w-full sm:w-80"
       />
@@ -404,21 +413,23 @@ defmodule TheBandWeb.CoreComponents do
   attr :pagina, :integer, required: true
   attr :por_pagina, :integer, required: true
   attr :total, :integer, required: true
+  attr :tabela, :string, default: nil, doc: "id da tabela — telas com duas precisam distinguir"
 
   def paginacao(assigns) do
     paginas = max(1, ceil(assigns.total / assigns.por_pagina))
     assigns = assign(assigns, paginas: paginas, indices: indices(assigns.pagina, paginas))
 
     ~H"""
-    <nav :if={@paginas > 1} aria-label="Páginas" class="flex flex-wrap items-center gap-1">
+    <nav :if={@paginas > 1} aria-label="Pages" class="flex flex-wrap items-center gap-1">
       <button
         type="button"
         class="btn btn-xs"
         disabled={@pagina == 1}
         phx-click="pagina"
         phx-value-n={@pagina - 1}
+        phx-value-tabela={@tabela}
       >
-        anterior
+        previous
       </button>
       <%= for indice <- @indices do %>
         <span :if={indice == :reticencias} class="px-1 text-base-content/50">…</span>
@@ -429,6 +440,7 @@ defmodule TheBandWeb.CoreComponents do
           aria-current={indice == @pagina && "page"}
           phx-click="pagina"
           phx-value-n={indice}
+          phx-value-tabela={@tabela}
         >
           {indice}
         </button>
@@ -439,8 +451,9 @@ defmodule TheBandWeb.CoreComponents do
         disabled={@pagina == @paginas}
         phx-click="pagina"
         phx-value-n={@pagina + 1}
+        phx-value-tabela={@tabela}
       >
-        próxima
+        next
       </button>
     </nav>
     """
