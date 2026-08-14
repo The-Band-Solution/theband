@@ -51,10 +51,24 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
           | {:error,
              :no_movement_collected | :no_state_means_in_progress | :no_start_rule_declared}
   def cycle_time(%Tenant{} = tenant, issue_id) do
+    cycle_time(list_activities(tenant, "issue", issue_id))
+  end
+
+  @doc """
+  A mesma resposta, sobre atividades **já carregadas**.
+
+  Existe por medida, e não por gosto: a tela da issue precisa da sequência, do cycle
+  time e da detecção de antipadrão no mesmo render, e as três se respondem com a mesma
+  lista. Sem esta variante o render carregava as atividades três vezes, e o teste-guarda
+  da feature 007 pegou — 48 consultas contra 39.
+  """
+  @spec cycle_time([Activity.t()]) ::
+          {:ok, integer()}
+          | {:error,
+             :no_movement_collected | :no_state_means_in_progress | :no_start_rule_declared}
+  def cycle_time(atividades) when is_list(atividades) do
     movimentacoes =
-      tenant
-      |> list_activities("issue", issue_id)
-      |> Enum.filter(&(&1.activity_type == "ProjectV2ItemStatusChangedEvent"))
+      Enum.filter(atividades, &(&1.activity_type == "ProjectV2ItemStatusChangedEvent"))
 
     cond do
       movimentacoes == [] ->

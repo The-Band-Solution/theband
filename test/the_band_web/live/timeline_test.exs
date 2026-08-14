@@ -175,6 +175,45 @@ defmodule TheBandWeb.TimelineTest do
       assert html =~ "every issue on this board"
     end
 
+    test "sem movimentação, o bloco de processo diz que nada foi avaliado", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{ctx.issue.id}")
+
+      assert html =~ "nothing was evaluated"
+
+      assert html =~ "not the same as finding nothing", """
+      A tela disse "nada encontrado" onde a detecção disse "não olhei".
+
+      As duas frases produzem a mesma seção vazia e afirmam coisas opostas. É o limite
+      escrito no próprio `process_antipatterns.yaml`.
+      """
+    end
+
+    test "o antipadrão detectado aparece com a evidência, e sem julgar ninguém", ctx do
+      {:ok, _} =
+        TheBand.WorkItems.replace_assignees(ctx.tenant, ctx.issue.id, [
+          %{login: "alguem", person_id: nil}
+        ])
+
+      atividade(ctx.tenant, ctx.issue, %{
+        activity_type: "ProjectV2ItemStatusChangedEvent",
+        performer_login: "github-project-automation",
+        payload: %{"previousStatus" => "Backlog", "status" => "Done"}
+      })
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{ctx.issue.id}")
+
+      assert html =~ "Assigned and never started"
+      assert html =~ "process.ap03"
+
+      assert html =~ "not judgements about people", """
+      O achado apareceu sem a frase que o enquadra.
+
+      Sem ela, "designada e nunca iniciada" lê como acusação de quem está designado.
+      Quem fez a tarefa fez a tarefa; o que falta é o rastro, e o custo é a organização
+      perder a medida.
+      """
+    end
+
     test "nunca mostra lead time no lugar do cycle time", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{ctx.issue.id}")
 

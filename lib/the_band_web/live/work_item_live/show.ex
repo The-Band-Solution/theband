@@ -43,6 +43,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
@@ -420,6 +421,39 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
           <div class="card bg-base-200">
             <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Process</h3>
+              <p class="text-xs text-base-content/70">
+                <%!-- A frase existe porque um achado sem ela lê como acusação. O que falta
+                      é o rastro, e quem fez a tarefa fez a tarefa. --%>
+                These are not judgements about people. They say the record of the process is
+                incomplete — and the cost is that the organisation loses the measurement.
+              </p>
+
+              <p :if={@antipadroes == :nao_olhei} class="text-sm opacity-70">
+                <%!-- "Nenhum encontrado" e "não olhei" são frases diferentes, e usar a
+                      primeira para a segunda é o defeito que a L57 descreve. --%>
+                No board movement has been collected for this issue, so nothing was evaluated.
+                This is not the same as finding nothing.
+              </p>
+
+              <p :if={@antipadroes == []} class="text-sm opacity-70">
+                Nothing found. The issue was assigned, moved by a person, and the sequence holds
+                together.
+              </p>
+
+              <ul :if={is_list(@antipadroes) and @antipadroes != []} class="space-y-2 text-sm">
+                <li :for={a <- @antipadroes}>
+                  <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
+                  <div class="text-xs opacity-70">
+                    <span class="font-mono">{a.id}</span> · {a.evidence}
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">Cycle time</h3>
               <%!-- A tela NÃO mostra lead time aqui. São medidas diferentes — lead time
                     inclui o tempo em que ninguém tocou na issue —, e trocá-las em
@@ -462,6 +496,28 @@ defmodule TheBandWeb.WorkItemLive.Show do
     </Layouts.app>
     """
   end
+
+  # `:nao_olhei` sobrevive até a tela, e não vira lista vazia no caminho: achatá-lo aqui
+  # faria "não coletei movimentação" aparecer como "nada encontrado", que é o defeito que
+  # a própria detecção existe para não cometer.
+  defp antipadroes(issue, atividades) do
+    case Antipatterns.evaluate(issue, atividades) do
+      {:ok, achados} -> achados
+      {:nao_olhei, _motivo} -> :nao_olhei
+    end
+  end
+
+  defp titulo_do_antipadrao("process.ap01.closed_without_movement"),
+    do: "Closed without ever being moved"
+
+  defp titulo_do_antipadrao("process.ap02.moved_after_closing"),
+    do: "Moved after it was closed"
+
+  defp titulo_do_antipadrao("process.ap03.assigned_and_never_started"),
+    do: "Assigned and never started"
+
+  defp titulo_do_antipadrao("process.ap04.movement_without_assignee"),
+    do: "Moved with nobody assigned"
 
   defp movimentacao?(%{activity_type: "ProjectV2ItemStatusChangedEvent"}), do: true
   defp movimentacao?(_atividade), do: false
@@ -532,6 +588,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   defp carregar(socket, issue) do
     tenant = socket.assigns.current_tenant
+    atividades = SPO.list_activities(tenant, "issue", issue.id)
     pai = WorkItems.fetch_parent(tenant, issue.id)
     repositorio = repositorio(tenant, issue.observed_repository_id)
     nomes = nomes(tenant, issue)
@@ -564,8 +621,12 @@ defmodule TheBandWeb.WorkItemLive.Show do
       partes_faltando: max(issue.sub_issue_count - presentes, 0),
       nomes: nomes,
       autor_nome: nomes[issue.author_person_id],
-      timeline: SPO.list_activities(tenant, "issue", issue.id),
-      cycle_time: SPO.cycle_time(tenant, issue.id)
+      # **Uma consulta, três respostas.** A sequência, o cycle time e a detecção de
+      # antipadrão saem todos desta lista; carregá-la por consumidor fazia o render subir
+      # de 39 para 48 consultas, e o teste-guarda da feature 007 pegou.
+      timeline: atividades,
+      cycle_time: SPO.cycle_time(atividades),
+      antipadroes: antipadroes(issue, atividades)
     )
     |> assign(onde(tenant, repositorio, issue))
   end
