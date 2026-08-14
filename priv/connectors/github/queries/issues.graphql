@@ -6,7 +6,18 @@
 # `subIssues.totalCount` diz SE tem partes; `subIssues.nodes.issueType.name` diz DE QUE
 # TIPO elas são. As duas coisas são necessárias, e é a segunda que distingue épico de
 # atômica: partes que são tarefas ATENDEM a user story, não a compõem.
-query($owner: String!, $name: String!, $page_size: Int = 50, $after: String) {
+#
+# `timelineItems` traz a sequência do que aconteceu — feature 022. **Medido em
+# 2026-08-14**: vem na mesma consulta, aceita `itemTypes:` e custa 1 ponto para cinco
+# issues com cinquenta itens cada. O máximo observado numa issue foi 18.
+#
+# `IssueComment` fica DE FORA de propósito: é a #318, e o conceito dela é colaboração,
+# não atividade executada.
+#
+# `totalCount` não é enfeite: ele é o que permite a coleta perceber que a página não
+# cobriu a issue. Sem ele, truncar seria silencioso — e a soma bateria com o que chegou
+# em vez de bater com o que existe.
+query($owner: String!, $name: String!, $page_size: Int = 50, $timeline_size: Int = 100, $after: String) {
   rateLimit { cost remaining resetAt }
 
   repository(owner: $owner, name: $name) {
@@ -47,6 +58,48 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $after: String) {
             number
             issueType { id name }
             repository { id nameWithOwner }
+          }
+        }
+        timelineItems(first: $timeline_size, itemTypes: [
+          ASSIGNED_EVENT,
+          UNASSIGNED_EVENT,
+          CLOSED_EVENT,
+          REOPENED_EVENT,
+          LABELED_EVENT,
+          UNLABELED_EVENT,
+          PROJECT_V2_ITEM_STATUS_CHANGED_EVENT,
+          ADDED_TO_PROJECT_V2_EVENT,
+          CROSS_REFERENCED_EVENT,
+          SUB_ISSUE_ADDED_EVENT,
+          PARENT_ISSUE_ADDED_EVENT,
+          ISSUE_TYPE_ADDED_EVENT
+        ]) {
+          totalCount
+          pageInfo { hasNextPage }
+          nodes {
+            # `__typename` é a identidade do tipo, e é ele que vai para `activity_type`
+            # como a origem o nomeia — nunca traduzido.
+            __typename
+            ... on AssignedEvent { createdAt actor { login } assignee { ... on User { id login } } }
+            ... on UnassignedEvent { createdAt actor { login } }
+            ... on ClosedEvent { createdAt actor { login } }
+            ... on ReopenedEvent { createdAt actor { login } }
+            ... on LabeledEvent { createdAt actor { login } label { name } }
+            ... on UnlabeledEvent { createdAt actor { login } label { name } }
+            # `previousStatus` vem VAZIO na primeira transição, e não nulo — medido em
+            # 2026-08-14. Quem tratar só o nulo vai ler `""` como um estado chamado
+            # vazio.
+            ... on ProjectV2ItemStatusChangedEvent {
+              createdAt
+              actor { login }
+              previousStatus
+              status
+            }
+            ... on AddedToProjectV2Event { createdAt actor { login } }
+            ... on CrossReferencedEvent { createdAt actor { login } }
+            ... on SubIssueAddedEvent { createdAt actor { login } }
+            ... on ParentIssueAddedEvent { createdAt actor { login } }
+            ... on IssueTypeAddedEvent { createdAt actor { login } }
           }
         }
       }

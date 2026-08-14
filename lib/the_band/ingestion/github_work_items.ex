@@ -54,6 +54,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   alias TheBand.Mapping
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.RawData
   alias TheBand.SemanticIntegration.Mapper
   alias TheBand.WorkItems
@@ -525,8 +526,73 @@ defmodule TheBand.Ingestion.GithubWorkItems do
     {:ok, _} = WorkItems.replace_assignees(ctx.tenant, issue.id, designados)
     {:ok, _} = WorkItems.replace_labels(ctx.tenant, issue.id, rotulos)
 
+    gravar_timeline(ctx, issue, node)
+
     issue
   end
+
+  # Cada item da timeline vira uma ocorrência de `spo.performed_project_activity` — a
+  # mesma tabela que commits e implantações vão usar, e por isso a ligação é
+  # `subject_type` + `subject_id`, e não uma chave para issue.
+  defp gravar_timeline(ctx, issue, node) do
+    itens = get_in(node, ["timelineItems", "nodes"]) || []
+    total = get_in(node, ["timelineItems", "totalCount"]) || 0
+
+    avisar_se_truncou(node, issue, length(itens), total)
+
+    Enum.each(itens, &gravar_atividade(ctx, issue, &1))
+  end
+
+  # A página não cobriu a issue: há eventos que a origem tem e a plataforma não pediu.
+  #
+  # Isto **precisa gritar**. Truncar em silêncio faria a soma da SC-003 bater — porque
+  # ela compara com o que chegou —, e a issue ficaria com metade da história sem que
+  # nada indicasse. É a L57 na forma mais cara: o número confere e está errado.
+  defp avisar_se_truncou(node, issue, recebidos, total) do
+    if get_in(node, ["timelineItems", "pageInfo", "hasNextPage"]) do
+      Logger.warning(
+        "timeline truncada na issue ##{issue.number}: #{recebidos} de #{total} itens. " <>
+          "A página não cobre esta issue, e o que falta não foi coletado."
+      )
+    end
+  end
+
+  defp gravar_atividade(ctx, issue, item) do
+    login = get_in(item, ["actor", "login"])
+
+    {:ok, _} =
+      SPO.record_activity(ctx.tenant, %{
+        # O tipo como a origem o nomeia. Traduzir esconderia o que ela disse, e o
+        # conjunto de tipos é do mundo — FR-005.
+        activity_type: item["__typename"],
+        # Nulo quando a rede não nomeia este tipo, e nulo aqui é INFORMAÇÃO: é o que
+        # diz o que falta mapear. Preencher com aproximação seria inventar.
+        concept_id: conceito_do_evento(item["__typename"]),
+        occurred_at: parse_datetime(item["createdAt"]),
+        subject_type: "issue",
+        subject_id: issue.id,
+        # Login não resolvido grava o login e deixa a pessoa nula — criar pessoa a
+        # partir de um ator de timeline seria criar sem proveniência, que é o que a
+        # plataforma recusa. 160 das 357 movimentações medidas são de robô.
+        performer_id: ctx.pessoas[login],
+        performer_login: login,
+        source_system: "github",
+        source_instance: ctx.tool.instance_url,
+        # A timeline do GitHub não dá identificador ao evento; o critério de identidade
+        # da ontologia prevê esse componente ausente, e o hash tem representação
+        # canônica para ele.
+        source_external_id: nil,
+        payload: item
+      })
+  end
+
+  # Só os tipos que a rede nomeia. O resto fica nulo de propósito — ver `gravar_atividade/3`.
+  defp conceito_do_evento(tipo)
+       when tipo in ~w(AssignedEvent UnassignedEvent ClosedEvent ReopenedEvent
+                       ProjectV2ItemStatusChangedEvent),
+       do: "spo.performed_project_activity"
+
+  defp conceito_do_evento(_tipo), do: nil
 
   # O quadro entra como **referência**: só o título. A coleta de quadros como entidade
   # ficou fora da feature 004 (F4), e inventá-la aqui criaria quadro sem proveniência.
