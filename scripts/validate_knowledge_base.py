@@ -36,6 +36,10 @@ SECRET_PATTERNS = [
 
 ID_RE = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
 
+# Os mesmos marcadores do validador Elixir (`YamlValidator.@secret_markers`). Divergir a
+# lista faria os dois validadores discordarem sobre o que é segredo.
+SECRET_MARKERS = ("ghp_", "github_pat_", "gho_", "xoxb-", "-----BEGIN")
+
 
 class KB:
     def __init__(self, root):
@@ -445,6 +449,20 @@ class KB:
             if isinstance(d, dict) and "module" in d and not d["module"].get("provenance"):
                 self.fail("provenance", f"módulo {d['module']['id']} sem proveniência", f)
 
+    def check_secrets(self):
+        """Nenhum segredo no YAML.
+
+        A base é lida no boot e vive versionada: um token colado aqui vaza para
+        todo mundo que der ``git clone``, e continua no histórico depois de
+        removido. A verificação nasceu no validador Elixir; existir só de um lado
+        significaria que o gate depende de qual dos dois rodou.
+        """
+        for f, d in self.files.items():
+            texto = str(d)
+            for marcador in SECRET_MARKERS:
+                if marcador in texto:
+                    self.fail("secret", f"possível segredo no YAML (marcador {marcador})", f)
+
     def run(self):
         """Executa todas as verificações; devolve o número de arquivos lidos."""
         count = self.load()
@@ -460,6 +478,7 @@ class KB:
         self.check_mappings()
         self.check_against_schemas()
         self.check_provenance()
+        self.check_secrets()
         return count
 
 

@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Gates do
-  @shortdoc "Roda os dez quality gates, na ordem do CI, abortando no primeiro que reprovar"
+  @shortdoc "Roda os treze quality gates, na ordem do CI, abortando no primeiro que reprovar"
 
   @moduledoc """
-  Os dez quality gates da constituição, num comando.
+  Os treze quality gates da constituição, num comando.
 
       mix gates
 
@@ -40,6 +40,8 @@ defmodule Mix.Tasks.Gates do
   """
 
   use Mix.Task
+
+  alias TheBand.Ontology.KnowledgeBase
 
   @requirements []
 
@@ -88,7 +90,10 @@ defmodule Mix.Tasks.Gates do
     {"knowledge.validate", {:mix, ["knowledge.validate"]}},
     {"knowledge.graph", {:mix, ["knowledge.graph"]}},
     {"validador Python", {:python, ["scripts/validate_knowledge_base.py"]}},
-    {"derivação reproduzível", {:fun, :derivation_is_reproducible}}
+    {"derivação reproduzível", {:fun, :derivation_is_reproducible}},
+    # Os dois validadores sobre a mesma base. Vem **depois** do gate do Python porque é ele
+    # quem provisiona o `.venv`.
+    {"validadores concordam", {:fun, :validators_agree}}
   ]
 
   @impl Mix.Task
@@ -130,7 +135,7 @@ defmodule Mix.Tasks.Gates do
   end
 
   # Aborta em vez de acumular: um gate reprovado invalida a leitura dos seguintes, e
-  # uma lista de nove falhas esconde qual delas é a causa.
+  # uma lista de doze falhas esconde qual delas é a causa.
   defp abort_if_failed(:ok, _name), do: :ok
   defp abort_if_failed({:error, nil}, name), do: Mix.raise("gate reprovou: #{name}")
 
@@ -143,7 +148,7 @@ defmodule Mix.Tasks.Gates do
   #
   # `mix compile --warnings-as-errors` **não levanta**: ele devolve `{:error, diagnostics}`.
   # Então o gate de compilação nunca reprovava por aviso — e um `@doc` órfão entrou em `main`
-  # com os dez gates verdes, o aviso impresso **três vezes** na saída, e código de saída zero.
+  # com os gates todos verdes, o aviso impresso **três vezes** na saída, e código de saída zero.
   #
   # É a L22 na própria definição dos gates: *gate conferido por texto não é gate*. O que ela
   # dizia sobre `| tail` vale aqui para o valor de retorno.
@@ -192,6 +197,73 @@ defmodule Mix.Tasks.Gates do
       end
     end)
   end
+
+  @doc """
+  Os dois validadores dão o mesmo veredito sobre a mesma base.
+
+  Duas implementações da mesma regra divergem no dia em que uma muda, e a divergência aparece
+  como aprovação de um lado — que é o modo silencioso de falhar. O gate injeta um erro que
+  **os dois** têm de achar, e confere que os dois reprovam; depois confere que os dois aprovam
+  a base íntegra.
+
+  Comparar a lista de problemas palavra por palavra não serviria: as mensagens são escritas em
+  cada linguagem, e igualá-las obrigaria a manter texto sincronizado sem ganho. O que precisa
+  bater é o **veredito**.
+  """
+  def validators_agree do
+    python = ensure_venv()
+
+    with :ok <- verdicts_match(python, :integra, nil),
+         :ok <- verdicts_match(python, :com_segredo, ~s(measurement:\n  id: v\n  t: "ghp_x")),
+         :ok <-
+           verdicts_match(
+             python,
+             :com_conceito_inexistente,
+             ~s(module:\n  id: x.mod\n  ontology: x\nconcepts:\n  - id: x.a\n    classification:\n      parent: x.nunca_existiu\n)
+           ) do
+      Mix.shell().info("   os dois validadores concordam nos três casos")
+      :ok
+    end
+  end
+
+  defp verdicts_match(python, caso, conteudo) do
+    base = Path.join(System.tmp_dir!(), "theband-gate-#{caso}")
+    File.rm_rf!(base)
+    File.cp_r!("priv/knowledge_base", base)
+    if conteudo, do: File.write!(Path.join(base, "injetado.yaml"), conteudo)
+
+    elixir_aprova? = match?({:ok, _}, KnowledgeBase.load(base))
+
+    {saida, code} =
+      System.cmd(python, ["scripts/validate_knowledge_base.py", "--kb", base],
+        stderr_to_stdout: true
+      )
+
+    File.rm_rf!(base)
+    python_aprova? = code == 0
+    esperado = caso == :integra
+
+    cond do
+      elixir_aprova? != python_aprova? ->
+        Mix.shell().error(saida)
+
+        {:error,
+         "os validadores discordam em #{caso}: Elixir #{veredito(elixir_aprova?)}, " <>
+           "Python #{veredito(python_aprova?)}"}
+
+      elixir_aprova? != esperado ->
+        Mix.shell().error(saida)
+
+        {:error,
+         "em #{caso} os dois deram #{veredito(elixir_aprova?)}, e o esperado era o oposto"}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp veredito(true), do: "aprovou"
+  defp veredito(false), do: "reprovou"
 
   defp derive_twice(python, script, ontology) do
     args = [script, "--ontology", ontology]
