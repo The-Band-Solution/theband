@@ -17,7 +17,7 @@ defmodule TheBandWeb.SourceLive.Index do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Tools", form_open: false)
+     |> assign(page_title: "Tools", form_open: false, renaming: nil)
      |> load_tools()}
   end
 
@@ -69,6 +69,71 @@ defmodule TheBandWeb.SourceLive.Index do
     end
 
     {:noreply, load_tools(socket)}
+  end
+
+  # Renomear abre um campo na própria linha, e não uma tela: o rótulo é o único campo
+  # editável de uma credencial, e uma tela inteira para um campo faria parecer que há mais.
+  def handle_event("edit_credential", %{"id" => id}, socket),
+    do: {:noreply, assign(socket, renaming: id)}
+
+  def handle_event("cancel_rename", _params, socket),
+    do: {:noreply, assign(socket, renaming: nil)}
+
+  def handle_event("rename_credential", %{"credential_id" => id, "label" => label}, socket) do
+    case Sources.rename_credential(socket.assigns.current_tenant, id, label) do
+      {:ok, credential} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Credential renamed to #{credential.label}.")
+         |> assign(renaming: nil)
+         |> load_tools()}
+
+      {:error, :blank_label} ->
+        {:noreply, put_flash(socket, :error, "The label cannot be empty.")}
+
+      {:error, :not_found} ->
+        {:noreply, socket |> put_flash(:error, "Credential not found.") |> assign(renaming: nil)}
+    end
+  end
+
+  def handle_event("destroy_credential", %{"id" => id}, socket) do
+    case Sources.destroy_credential(socket.assigns.current_tenant, id) do
+      {:ok, credential} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Credential #{credential.label} destroyed. The secret is gone.")
+         |> load_tools()}
+
+      # A recusa nomeia o caminho certo. Dizer só "não pode" deixaria quem quer parar de
+      # coletar sem saber como — e é justamente o que a pessoa estava tentando fazer.
+      {:error, :last_active_credential} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "This is the only active credential. To stop collecting, end the observation."
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Credential not found.")}
+    end
+  end
+
+  def handle_event("clear_attention", %{"id" => id}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    case Sources.fetch_connected_tool(tenant, id) do
+      {:ok, tool} ->
+        {:ok, _} = Sources.clear_needs_attention(tool)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Attention state cleared for #{tool.organization_login}.")
+         |> load_tools()}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
+    end
   end
 
   def handle_event("ask_end", %{"id" => id}, socket) do
@@ -419,6 +484,13 @@ defmodule TheBandWeb.SourceLive.Index do
           <div>
             <span class="font-semibold">Precisa de atenção desde {tool.needs_attention_since}.</span>
             <div>{tool.needs_attention_reason}</div>
+            <button
+              class="btn btn-xs btn-outline mt-2"
+              phx-click="clear_attention"
+              phx-value-id={tool.id}
+            >
+              limpar o estado de atenção
+            </button>
           </div>
         </div>
 
@@ -437,7 +509,30 @@ defmodule TheBandWeb.SourceLive.Index do
             </thead>
             <tbody>
               <tr :for={credential <- tool.credentials}>
-                <td>{credential.label}</td>
+                <td>
+                  <form
+                    :if={@renaming == credential.id}
+                    id={"rename-#{credential.id}"}
+                    phx-submit="rename_credential"
+                    class="flex items-center gap-1"
+                  >
+                    <%!-- `credential_id`, e não `id`: um input chamado `id` sobrescreve o id
+                    do próprio formulário, e o LiveView passa a perder a recuperação dele. --%>
+                    <input type="hidden" name="credential_id" value={credential.id} />
+                    <input
+                      type="text"
+                      name="label"
+                      value={credential.label}
+                      class="input input-xs input-bordered w-40"
+                      autofocus
+                    />
+                    <button type="submit" class="btn btn-xs btn-primary">salvar</button>
+                    <button type="button" class="btn btn-xs btn-ghost" phx-click="cancel_rename">
+                      cancelar
+                    </button>
+                  </form>
+                  <span :if={@renaming != credential.id}>{credential.label}</span>
+                </td>
                 <td class="font-mono text-xs">{ToolCredential.masked(credential)}</td>
                 <td class="text-xs">{Enum.join(credential.scopes, ", ")}</td>
                 <td class="text-xs">{credential.validated_at}</td>
@@ -446,7 +541,7 @@ defmodule TheBandWeb.SourceLive.Index do
                     {if credential.active, do: "ativa", else: "inativa"}
                   </span>
                 </td>
-                <td>
+                <td class="flex flex-wrap gap-1">
                   <button
                     class="btn btn-xs btn-ghost"
                     phx-click="toggle_credential"
@@ -455,6 +550,22 @@ defmodule TheBandWeb.SourceLive.Index do
                   >
                     {if credential.active, do: "desativar", else: "ativar"}
                   </button>
+                  <button
+                    :if={@renaming != credential.id}
+                    class="btn btn-xs btn-ghost"
+                    phx-click="edit_credential"
+                    phx-value-id={credential.id}
+                  >
+                    renomear
+                  </button>
+                  <button
+                    class="btn btn-xs btn-ghost text-error"
+                    phx-click="destroy_credential"
+                    phx-value-id={credential.id}
+                    data-confirm="Destruir esta credencial? O segredo deixa de existir, e isso não se desfaz."
+                  >
+                    remover
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -462,6 +573,14 @@ defmodule TheBandWeb.SourceLive.Index do
           <p class="text-xs opacity-60 mt-2">
             A credencial é cifrada em repouso e nunca é exibida em forma utilizável.
             Os quatro caracteres finais existem só para distinguir uma credencial da outra.
+          </p>
+          <p class="text-xs opacity-60 mt-2">
+            O rótulo é o único campo editável de uma ferramenta conectada. O tipo, a instância e
+            a organização não são editáveis porque <span class="font-semibold">são a identidade dela</span>:
+            outra organização é outra ferramenta, e trocar a organização faria os registros já
+            coletados apontarem para uma origem que não os produziu. Para parar de observar esta
+            organização, o caminho é <span class="font-semibold">encerrar a observação</span> — o
+            dado coletado continua consultável, marcado como não mais observado.
           </p>
         </div>
       </div>
