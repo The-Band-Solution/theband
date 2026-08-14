@@ -60,9 +60,11 @@ timelineItems(first: $page_size, itemTypes: [...]) {
 }
 ```
 
-> **Bloqueado pela fase 0.** Este contrato afirma que `timelineItems` vem na consulta da issue.
-> Está documentado no schema e **não foi medido aqui** — uma consulta resolve, e nada é
-> construído antes. É a **L23**.
+> **Medido em 2026-08-14**, contra a API real: `timelineItems` vem na consulta da issue e aceita
+> `itemTypes:`. E a medida refutou a suposição maior — `ProjectV2ItemStatusChangedEvent` **está**
+> na timeline, com estado anterior, novo e autor. A dependência da #181 caiu. É a **L23** dando
+> lucro: a consulta antes do código evitou uma feature desenhada em torno de dependência que não
+> existia.
 
 **Não é pedida** quando o repositório foi pulado pela feature 020, nem quando a issue não mudou
 — FR-011 e FR-012.
@@ -74,10 +76,19 @@ timelineItems(first: $page_size, itemTypes: [...]) {
         {:ok, Duration.t()} | {:error, :no_start_signal}
 ```
 
-`{:error, :no_start_signal}` quando não há evento de movimentação para a issue.
+`{:error, :no_start_signal}` quando não há movimentação que a regra reconheça como início.
 
 **E nunca lead time no lugar.** São medidas diferentes: lead time inclui o tempo em que ninguém
 tocou na issue, e trocá-las em silêncio faria a organização decidir sobre um número que responde
 outra pergunta — FR-009.
 
-A mensagem nomeia o que falta: a movimentação vem do Projects v2, que é a issue #181.
+**A mensagem nomeia o que falta, e são três coisas diferentes:**
+
+| Situação | O que falta |
+|---|---|
+| há movimentação, e nenhuma regra diz qual marca o início | a **declaração** — FR-007 recusa escolher sozinha |
+| o quadro não tem estado que signifique "em andamento" | o **estado no quadro**: `process.ap05`, e aí a medida é impossível para toda issue dele |
+| não há movimentação coletada | a **coleta** — e isso não é "processo saudável", é "não olhei" |
+
+Confundir as três é o defeito da **L57**. A primeira se resolve declarando, a segunda mexendo no
+quadro, e a terceira coletando — e nenhuma se resolve mostrando um número.
