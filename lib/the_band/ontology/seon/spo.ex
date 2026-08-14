@@ -39,4 +39,7 @@ defmodule TheBand.Ontology.SEON.SPO do
 
   defdelegate list_activities(tenant, subject_type, subject_id), to: Queries
   defdelegate count_activity_types(tenant), to: Queries
+  defdelegate count_board_states(tenant), to: Queries
+  defdelegate andamento?(estado), to: Queries
+  defdelegate cycle_time(tenant, issue_id), to: Queries
 end
