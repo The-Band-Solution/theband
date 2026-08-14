@@ -34,6 +34,9 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole do
     role
     |> cast(attrs, [:tenant_id, :internal_id, :record_version, :code, :name])
     |> validate_required([:tenant_id, :internal_id, :code, :name])
-    |> unique_constraint([:tenant_id, :code])
+    # **O erro cai em `:code`**, e não em `:tenant_id`. `unique_constraint/2` com lista põe a
+    # mensagem no primeiro campo, e ninguém digita o tenant: quem preenche o formulário
+    # preenche o código, e é lá que a mensagem precisa aparecer.
+    |> unique_constraint(:code, name: :eo_organizational_roles_tenant_id_code_index)
   end
 end

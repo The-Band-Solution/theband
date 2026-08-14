@@ -42,6 +42,22 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_person(tenant, person_id), to: Queries
   defdelegate list_person_teams(tenant, person_id), to: Queries
   defdelegate count_roles(tenant), to: Queries
+
+  # ------------------------------------------------------- papéis e alocação (feature 021)
+
+  defdelegate list_roles(tenant, opts \\ []), to: Queries
+  defdelegate fetch_role(tenant, role_id), to: Queries
+  defdelegate suggested_roles(), to: Queries
+  defdelegate count_memberships(tenant), to: Queries
+  defdelegate count_memberships_of_role(tenant, role_id), to: Queries
+  defdelegate fetch_membership(tenant, membership_id), to: Queries
+  defdelegate list_person_roles(tenant, person_id), to: Queries
+
+  defdelegate create_role(tenant, attrs), to: Commands
+  defdelegate rename_role(tenant, role_id, name), to: Commands
+  defdelegate delete_role(tenant, role_id), to: Commands
+  defdelegate allocate(tenant, attrs), to: Commands
+  defdelegate end_allocation(tenant, membership_id, quando), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries
   defdelegate count_people(tenant, opts \\ []), to: Queries
   defdelegate person_ids_by_login(tenant), to: Queries
