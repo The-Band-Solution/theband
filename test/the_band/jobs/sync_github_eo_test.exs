@@ -352,6 +352,44 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
     end
   end
 
+  describe "credencial ilegível — a chave mestra mudou" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "marca a ferramenta e interrompe, em vez de levantar", %{
+      tenant: tenant,
+      tool: tool,
+      sync: sync
+    } do
+      credential = TheBand.Sources.active_credential(tool)
+
+      # SQL cru: `update_all` passaria pelo tipo do campo, que cifraria o valor com a chave
+      # atual — e o caso montado assim seria legível, provando o contrário do que diz.
+      Repo.query!(
+        "update tool_credentials set secret = $1 where id = $2",
+        [
+          <<1, 16>> <> "AES.GCM.deadbeef" <> :crypto.strong_rand_bytes(60),
+          Ecto.UUID.dump!(credential.id)
+        ]
+      )
+
+      # Nenhuma chamada HTTP é esperada: a coleta nem começa. Se `perform` levantasse — que
+      # é o comportamento que este teste veda —, o `assert` abaixo nunca seria alcançado.
+      assert {:error, :unreadable_credential} = perform(tenant, sync)
+
+      sync = Ingestion.reload(sync)
+      assert sync.status == "interrupted"
+      assert sync.error_reason =~ "ilegível"
+
+      {:ok, tool} = TheBand.Sources.fetch_connected_tool(tenant, tool.id)
+      assert TheBand.Sources.situacao(tool) == :needs_attention
+      assert tool.needs_attention_reason =~ "chave mestra"
+    end
+  end
+
   defp reset_em(segundos) do
     DateTime.utc_now() |> DateTime.add(segundos, :second) |> DateTime.to_iso8601()
   end

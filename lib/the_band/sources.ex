@@ -17,6 +17,35 @@ defmodule TheBand.Sources do
   alias TheBand.Sources.ObservationEvent
   alias TheBand.Sources.ToolCredential
   alias TheBand.Tenants.Tenant
+  alias TheBand.Vault
+
+  # Tudo de uma credencial **menos** o segredo.
+  #
+  # As telas mostram rótulo, últimos quatro, escopos e situação — o segredo não aparece em
+  # nenhuma delas, e carregá-lo cobra uma decifragem por linha para jogá-la fora em seguida.
+  #
+  # O motivo forte, porém, é outro: quando a chave que cifrou a credencial não existe mais,
+  # o `Ecto.Type` **levanta** ao carregar, e a tela inteira morre. Foi o que aconteceu em
+  # 2026-08-13 — `/tools` e `/syncs` caíram juntas, e a tela que oferece o conserto era uma
+  # delas. Quem não precisa do segredo não o carrega, e passa a ser imune a isso.
+  defp credenciais_sem_segredo do
+    from c in ToolCredential,
+      select:
+        struct(c, [
+          :id,
+          :tenant_id,
+          :connected_tool_id,
+          :label,
+          :last_four,
+          :active,
+          :validated_at,
+          :scopes,
+          :last_failure_at,
+          :last_failure_reason,
+          :inserted_at,
+          :updated_at
+        ])
+  end
 
   # ---------------------------------------------------------------------- leitura
 
@@ -26,7 +55,7 @@ defmodule TheBand.Sources do
       from t in ConnectedTool,
         where: t.tenant_id == ^tenant_id,
         order_by: [asc: t.tool_type, asc: t.instance_url],
-        preload: [:credentials]
+        preload: [credentials: ^credenciais_sem_segredo()]
     )
   end
 
@@ -36,7 +65,7 @@ defmodule TheBand.Sources do
     query =
       from t in ConnectedTool,
         where: t.tenant_id == ^tenant_id and t.id == ^id,
-        preload: [:credentials]
+        preload: [credentials: ^credenciais_sem_segredo()]
 
     case Repo.one(query) do
       # FR-027 — id de outro tenant devolve :not_found, nunca o registro.
@@ -62,11 +91,39 @@ defmodule TheBand.Sources do
   @spec active_credential(ConnectedTool.t()) :: ToolCredential.t() | nil
   def active_credential(%ConnectedTool{id: tool_id}) do
     Repo.one(
-      from c in ToolCredential,
+      from c in credenciais_sem_segredo(),
         where: c.connected_tool_id == ^tool_id and c.active == true,
         order_by: [desc: c.validated_at, desc: c.inserted_at, asc: c.id],
         limit: 1
     )
+  end
+
+  @doc """
+  O segredo de uma credencial, decifrado — ou a declaração de que não dá para lê-lo.
+
+  Escolher uma credencial e **abrir** a credencial são coisas diferentes, e passaram a ser
+  chamadas separadamente: a escolha acontece em toda tela, e a abertura só na coleta.
+
+  `{:error, :unreadable}` é o caso em que o valor está lá, íntegro, e a chave que o cifrou
+  não existe mais. Não é erro transitório e não adianta repetir: a credencial precisa ser
+  substituída. Quem chama transforma isso em *precisa de atenção* — nunca em exceção, que
+  foi como este caso se apresentou da primeira vez.
+  """
+  @spec fetch_secret(ToolCredential.t()) :: {:ok, binary()} | {:error, :unreadable}
+  def fetch_secret(%ToolCredential{id: id}) do
+    # `type(c.secret, :binary)` carrega o texto cifrado **sem** passar pelo tipo que decifra.
+    # É o que permite tratar a falha como valor de retorno em vez de exceção.
+    cifrado =
+      Repo.one(
+        from c in ToolCredential,
+          where: c.id == ^id,
+          select: type(c.secret, :binary)
+      )
+
+    case cifrado && Vault.decrypt(cifrado) do
+      {:ok, segredo} -> {:ok, segredo}
+      _ -> {:error, :unreadable}
+    end
   end
 
   # ------------------------------------------------------ ciclo de observação
@@ -361,10 +418,28 @@ defmodule TheBand.Sources do
     end
   end
 
+  @doc """
+  Liga ou desliga uma credencial.
+
+  **Escrita direta na coluna, e não `changeset` mais `Repo.update`.** O changeset exige o
+  segredo, e as credenciais que chegam aqui vêm da tela ou de `active_credential/1` — que
+  não o carregam. Por ele, ligar uma credencial exigiria decifrá-la, e uma credencial
+  ilegível não poderia sequer ser desligada: justo a que alguém quer desligar.
+
+  Uma coluna que não é `secret` não tem por que depender dele.
+  """
   @spec set_credential_active(ToolCredential.t(), boolean()) ::
-          {:ok, ToolCredential.t()} | {:error, Ecto.Changeset.t()}
-  def set_credential_active(%ToolCredential{} = credential, active?) do
-    credential |> ToolCredential.changeset(%{active: active?}) |> Repo.update()
+          {:ok, ToolCredential.t()} | {:error, :not_found}
+  def set_credential_active(%ToolCredential{id: id} = credential, active?) do
+    agora = DateTime.utc_now(:second)
+
+    case Repo.update_all(
+           from(c in ToolCredential, where: c.id == ^id),
+           set: [active: active?, updated_at: agora]
+         ) do
+      {1, _} -> {:ok, %{credential | active: active?, updated_at: agora}}
+      {0, _} -> {:error, :not_found}
+    end
   end
 
   @doc """

@@ -47,7 +47,12 @@ defmodule TheBand.Jobs.SyncGitHubEO do
          {:ok, sync} <- Ingestion.fetch_sync(tenant, sync_id),
          {:ok, tool} <- Sources.fetch_connected_tool(tenant, sync.connected_tool_id),
          %ToolCredential{} = credential <- Sources.active_credential(tool) do
-      run(tenant, sync, tool, credential)
+      # Fora do `with` de propósito: o ramo de erro precisa da `tool` para marcá-la, e o
+      # `else` de um `with` não enxerga as variáveis ligadas nas cláusulas anteriores.
+      case Sources.fetch_secret(credential) do
+        {:ok, token} -> run(tenant, sync, tool, token)
+        {:error, :unreadable} -> credencial_ilegivel(tenant, sync, tool)
+      end
     else
       nil ->
         {:error, :no_active_credential}
@@ -57,14 +62,35 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     end
   end
 
-  defp run(tenant, sync, tool, credential) do
+  # A credencial está gravada e íntegra, e a chave que a cifrou não existe mais. É estado
+  # permanente: repetir não conserta, e por isso não vira retentativa nem exceção. Vira
+  # *precisa de atenção*, que nomeia a única coisa que resolve — cadastrar outra credencial.
+  #
+  # Antes desta função o caso se apresentava como `ArgumentError` ao carregar o campo, e
+  # derrubava as telas `/tools` e `/syncs` — inclusive a que oferece o conserto.
+  defp credencial_ilegivel(tenant, sync, tool) do
+    Sources.mark_needs_attention(
+      tool,
+      "credencial ilegível — a chave mestra mudou desde que ela foi gravada. " <>
+        "Cadastre uma credencial nova; a anterior não é recuperável."
+    )
+
+    sync
+    |> Ingestion.reload()
+    |> Ingestion.finish(:interrupted, error_reason: "credencial ilegível — chave mestra trocada")
+
+    Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+    {:error, :unreadable_credential}
+  end
+
+  defp run(tenant, sync, tool, token) do
     started_at = sync.started_at
 
     ctx = %{
       tenant: tenant,
       sync: sync,
       tool: tool,
-      token: credential.secret,
+      token: token,
       org: tool.organization_login
     }
 
