@@ -1,0 +1,141 @@
+derivation_rule:
+  id: process.antipatterns
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Antipadrões do processo executado"
+
+  description:
+    pt-BR: >
+      As máximas que descrevem a distância entre o processo **declarado** e o **executado**.
+
+      A plataforma observa a timeline de cada issue — quem designou, quem moveu, quem fechou —
+      e compara com o que o processo pressupõe. Quando a sequência observada contradiz a
+      pressuposta, isso é registrado como antipadrão.
+
+      **A regra de início é a movimentação.** Um trabalho começa quando alguém o move no
+      quadro; antes disso ele está designado, e designado não é começado. É a decisão da
+      pessoa mantenedora em 2026-08-14, e ela é declaração — a plataforma recusa escolher
+      sozinha qual evento marca o início (feature 022, FR-007).
+
+  rationale:
+    pt-BR: >
+      Sem esta declaração, a plataforma tem `created` e `closed` e nada entre os dois: não há
+      cycle time, não há WIP verdadeiro, e as 1642 issues abertas com designado incluem quem
+      foi designado meses atrás e nunca começou.
+
+      Com ela, a plataforma passa a saber duas coisas — e a segunda é a que importa mais.
+      Sabe medir o que foi movido; e sabe **dizer o que não consegue medir, e por quê**.
+
+  what_this_is_not:
+    pt-BR: >
+      **Não é avaliação de pessoa.** Um antipadrão diz que o registro do processo está
+      incompleto, não que alguém trabalhou mal. Quem fez a tarefa e não moveu o cartão fez a
+      tarefa; o que falta é o rastro, e o custo disso é a organização perder a medida.
+
+      **Não é reprovação.** Estas regras têm `enforcement: detection`: a plataforma relata e
+      nunca recusa. Um axioma da tese diz o que o modelo não pode violar; um antipadrão diz o
+      que o mundo observado fez.
+
+      **E não é afirmação sobre intenção.** A plataforma não sabe por que o cartão não foi
+      movido — pode ter sido esquecimento, pode ser que o time não use o quadro. O que ela
+      afirma é o que observou.
+
+  antipatterns:
+    - id: process.ap01.closed_without_movement
+      name:
+        pt-BR: "Concluída sem ter sido movida"
+      statement:
+        pt-BR: >
+          A issue foi designada a alguém e fechada, e **nenhuma movimentação** aconteceu entre
+          as duas coisas. O trabalho foi feito; o quadro não soube.
+      formal: >
+        ∀ i: Issue, p: Person
+          (assigned(i, p) ∧ closed(i) ∧ ¬∃m (moved(i, m) ∧ occurred_between(m, assigned(i,p), closed(i))))
+          → ClosedWithoutMovement(i)
+      consequence:
+        pt-BR: >
+          **O cycle time desta issue não pode ser calculado**, e é a consequência que importa —
+          não a violação em si. A plataforma não sabe quando o trabalho começou, e qualquer
+          número que ela mostrasse seria inventado.
+      concepts: [spo.performed_project_activity, sro.intended_scrum_development_task]
+      enforcement: detection
+      severity: informativo
+
+    - id: process.ap02.moved_after_closing
+      name:
+        pt-BR: "Movida depois de concluída"
+      statement:
+        pt-BR: >
+          A movimentação para "em andamento" aconteceu **depois** do fechamento. O registro foi
+          feito ao final, para acertar o quadro.
+      formal: >
+        ∀ i: Issue, m: Movement
+          (moved_to_in_progress(i, m) ∧ closed(i) ∧ occurred_after(m, closed(i)))
+          → MovedAfterClosing(i)
+      consequence:
+        pt-BR: >
+          O instante registrado como início é posterior ao fim, e o cycle time sairia negativo.
+          A plataforma **não corrige e não descarta**: registra o antipadrão e recusa a medida.
+      concepts: [spo.performed_project_activity]
+      enforcement: detection
+      severity: informativo
+
+    - id: process.ap03.assigned_and_never_started
+      name:
+        pt-BR: "Designada há muito tempo e nunca iniciada"
+      statement:
+        pt-BR: >
+          A issue está designada, aberta, e nunca foi movida. Ela conta como trabalho de alguém
+          sem nunca ter começado.
+      formal: >
+        ∀ i: Issue, p: Person
+          (assigned(i, p) ∧ open(i) ∧ ¬∃m moved(i, m)) → AssignedAndNeverStarted(i)
+      consequence:
+        pt-BR: >
+          É a diferença entre **designado** e **em progresso**, e ela é o que torna o WIP
+          verdadeiro possível. Contar as designadas como WIP infla a medida com trabalho que
+          ninguém começou.
+      concepts: [spo.performed_project_activity]
+      enforcement: detection
+      severity: informativo
+
+    - id: process.ap04.movement_without_assignee
+      name:
+        pt-BR: "Movida sem ninguém designado"
+      statement:
+        pt-BR: >
+          A issue foi movida para "em andamento" e não há pessoa designada a ela.
+      formal: >
+        ∀ i: Issue
+          (moved_to_in_progress(i) ∧ ¬∃p assigned(i, p)) → MovementWithoutAssignee(i)
+      consequence:
+        pt-BR: >
+          A atividade tem instante e **não tem executor**. O conceito prevê `performer_id`
+          anulável para automação, e aqui a ausência é outra coisa: alguém moveu, e a
+          plataforma não sabe quem trabalha nisso.
+      concepts: [spo.performed_project_activity, spo.is_in_charge_of]
+      enforcement: detection
+      severity: informativo
+
+  limits:
+    pt-BR: >
+      **Toda regra aqui depende da movimentação ser observada**, e ela vive no quadro do
+      Projects v2 — issue #181. Sem essa coleta, a plataforma detecta zero antipadrões, e isso
+      não significa que o processo está saudável: significa que ela não olhou.
+
+      Essa distinção **precisa aparecer na tela**. "Nenhum antipadrão encontrado" e "não há
+      dado de movimentação" são frases diferentes, e confundi-las é o defeito que a L57
+      descreve — verificação que percorre lista vazia e devolve verde.
+
+  provenance:
+    source_type: maintainer_decision
+    reference: "Decisão da pessoa mantenedora em 2026-08-14, na conversa que originou a feature 022"
+    note:
+      pt-BR: >
+        Estas máximas **não vêm da tese**, e por isso não estão em `sro_axioms.yaml`. Os
+        axiomas da SRO são verdades que o modelo preserva; estas são padrões que a organização
+        reconhece no processo dela, e outra organização pode reconhecer outros.
