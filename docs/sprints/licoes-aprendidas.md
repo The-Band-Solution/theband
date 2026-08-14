@@ -1971,3 +1971,64 @@ do anterior enquanto o PR está aberto — o trabalho existe e a `main` não o v
 incorporado e a `main` continua sem ver: mesmo sintoma, causa oposta.
 
 **Estado**: aberta.
+
+## L59 — O verde do CI dependia de quem disparou a execução
+
+**Origem**: Sprint 015 · **Tipo**: técnica
+
+**O que aconteceu.** O commit `090c9ea1` foi medido duas vezes pelo mesmo workflow, no mesmo
+minuto:
+
+```
+por push            cobertura 80,2%   ✓ passou   (122,7 s de teste)
+por pull_request    cobertura 23,4%   ✗ falhou   ( 14,0 s de teste)
+```
+
+A execução que falhou tinha **toda** a árvore `lib/the_band_web` em 0,0% — inclusive arquivos
+com teste de sobra. Não era queda de cobertura: era a suíte caindo, e a cobertura medindo o que
+sobrou.
+
+**A cadeia.** `config/test.exs` não sobrescrevia o Oban, então em teste subiam fila, `Cron`,
+`Pruner` e `Peer` de verdade. Eles consultam o banco por conta própria, fora do processo dono da
+conexão do sandbox, e cada consulta morre com `DBConnection.OwnershipError`. O supervisor
+reinicia, e o ciclo recomeça.
+
+Quando a intensidade de reinício estoura, quem reinicia é o supervisor da **aplicação** — e ele
+leva junto o `KnowledgeBase`, que é dono da tabela ETS da base de conhecimento:
+
+```
+** (ArgumentError) the table identifier does not refer to an existing ETS table
+   :ets.lookup(:the_band_knowledge_base, {:derivation_rule, ...})
+```
+
+**197 testes** falharam assim, todos pelo mesmo motivo, e nenhum deles tinha defeito.
+
+**Por que aconteceu.** Três coisas se somaram, e sozinha nenhuma teria derrubado:
+
+1. processo do Oban consultando o banco fora do dono da conexão — barulho tolerado havia meses,
+   com centenas de `OwnershipError` por execução local que ninguém lia;
+2. um GenServer **dono de tabela ETS** na árvore da aplicação — a tabela morre com o processo;
+3. a cobertura mudando o tempo, que é a **L56** de novo.
+
+A terceira é a que fez o defeito escolher execuções. As duas primeiras estavam lá o tempo todo.
+
+**O que fazer diferente.**
+
+**Barulho tolerado é defeito não medido.** Centenas de `OwnershipError` por execução eram lidas
+como ruído de teste. Eram um supervisor reiniciando em ciclo. Erro que aparece sempre e não
+derruba nada ainda não derrubou — não é o mesmo que não derrubar.
+
+**Estado guardado em processo tem o tempo de vida do processo.** Tabela ETS pertence a quem a
+criou. Se o dono está na árvore da aplicação, todo reinício de supervisor apaga a base de
+conhecimento — e o sintoma aparece longe, em qualquer teste que a leia.
+
+**Veredito que muda com o gatilho é veredito que não vale.** Se o PR tivesse sido incorporado
+pelo verde do push, o defeito seguiria escolhendo PRs ao acaso — e quem visse vermelho
+aprenderia a reexecutar sem ler, que é a mesma erosão descrita na issue #232.
+
+**E a nota do conserto**: `testing: :manual`, que é o modo documentado do Oban, **não serviu** —
+ele confere a versão da migração na subida, e o repositório está em `version: 12` com a
+biblioteca exigindo 14. Consertar o CI subindo migração de produção de carona teria trocado um
+defeito por um risco. A dívida ficou registrada, separada, no PR #308.
+
+**Estado**: aberta.
