@@ -1,4 +1,4 @@
-# Retomar — estado em 2026-08-14, depois da coleta e do conserto do CI
+# Retomar — estado em 2026-08-14, com as conferências de olho humano feitas
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
@@ -16,6 +16,9 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 | [#306](https://github.com/The-Band-Solution/theband/pull/306) | o português que sobrou · lição L58 |
 | [#307](https://github.com/The-Band-Solution/theband/pull/307) | **spec 020**, pronta para `/speckit-plan` |
 | [#308](https://github.com/The-Band-Solution/theband/pull/308) | o Oban derrubava a aplicação em teste |
+| [#309](https://github.com/The-Band-Solution/theband/pull/309) | lição L59, e este documento |
+| [#310](https://github.com/The-Band-Solution/theband/pull/310) | plano e tarefas da 020 |
+| [#311](https://github.com/The-Band-Solution/theband/pull/311) | fases 1 e 2 da 020 — contagem e marca escopada |
 
 A `main` está verde em `a32f17b9` — `quality-gates` e `cobertura`. A execução anterior tinha
 falhado pelo defeito que o #308 consertou.
@@ -47,22 +50,33 @@ atendimento 3965 · user story atômica 814 · defeito 194 · épico 58
 organizacional, e nenhum papel foi cadastrado — é a dupla #99 e #100, e continua sendo a P1 mais
 barata que não depende de chave nem de coleta.
 
-## O que precisa de você, e eu não consigo fazer
+## As conferências de olho humano — **feitas**
 
-**Três conferências, todas de olho humano, e agora com dado fresco.**
+**Aprovadas em 2026-08-14**, e é a primeira vez que a lista fecha. As issues
+[#277](https://github.com/The-Band-Solution/theband/issues/277) e
+[#265](https://github.com/The-Band-Solution/theband/issues/265) foram fechadas com a evidência.
 
-| Onde | O quê |
+| O quê | Resultado |
 |---|---|
-| `/people/<id>` de `vinicius-je` | **350 e 609, nunca 959** — a soma é proibida |
-| `/work/repositories/<id>` de `eo_lib` | as **29** issues dizendo, em texto, que a decomposição acabou |
-| qualquer tela em **360 px** | nona vez que este item aparece |
+| `/people/…` de `vinicius-je`: **351** designadas e **609** abertas, nunca somadas | ✅ |
+| `/work/repositories/…` de `theband`: **36** issues com `part of` dizendo em texto que o vínculo acabou | ✅ |
+| **360 px**: a tabela vira lista, com o nome da coluna ao lado de cada valor | ✅ |
 
-As duas primeiras fecham as issues [#277](https://github.com/The-Band-Solution/theband/issues/277)
-e [#265](https://github.com/The-Band-Solution/theband/issues/265).
+**O item de 360 px estava aberto havia nove sprints, e esta é a primeira vez que passa.** A razão
+é concreta: o componente de tabela do #303 emite `data-label`, que é o que a classe `stacked` usa
+em tela estreita. Antes disso, olhar reprovaria — e o item voltava para cá.
 
-**A de 360 px é a primeira com chance de aprovar.** O componente de tabela emite `data-label`, e
-é o que a classe `stacked` usa para escrever o nome da coluna ao lado do valor em tela estreita.
-Antes disso, olhar reprovaria.
+### A instrução anterior mandava olhar o repositório errado
+
+Ela dizia `eo_lib`, e os 29 de lá são vínculos cujo **pai** está naquele repositório. A tela
+mostra a marca na linha da **filha**, e as filhas estão espalhadas:
+
+```
+theband 36 · ResearchDomain 9 · libbase 4 · eo_lib 3
+```
+
+Quem seguisse a instrução veria três e concluiria que quase nada foi marcado. **O alvo é
+`theband`.**
 
 ## Duas decisões pendentes, e as duas são suas
 
@@ -81,7 +95,6 @@ plano de propósito.
 |---|---|---|
 | [#99](https://github.com/The-Band-Solution/theband/issues/99), [#100](https://github.com/The-Band-Solution/theband/issues/100), [#98](https://github.com/The-Band-Solution/theband/issues/98) | cadastrar papel e alocar pessoa a papel — **transformaria as 101 evidências em vínculos** | P1 |
 | **spec 020** | `/speckit-plan`, com três perguntas a responder — ver abaixo | P1 |
-| [#277](https://github.com/The-Band-Solution/theband/issues/277), [#265](https://github.com/The-Band-Solution/theband/issues/265) | as conferências acima | P1, e só você |
 | [#179](https://github.com/The-Band-Solution/theband/issues/179) | coletar comentários e timeline | P2 |
 | [#180](https://github.com/The-Band-Solution/theband/issues/180), [#181](https://github.com/The-Band-Solution/theband/issues/181) | quadros, campos e iterações do Projects v2 | P2 |
 | [#176](https://github.com/The-Band-Solution/theband/issues/176) | criar as iterações que faltam | decisão pendente desde o sprint 004 |
