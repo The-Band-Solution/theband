@@ -75,6 +75,10 @@ defmodule TheBandWeb.Router do
 
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
       live "/tools", SourceLive.Index, :index
+
+      # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
+      # declara o que a organização reconhece — FR-017, feature 021.
+      live "/roles", RolesLive.Index, :index
     end
   end
 

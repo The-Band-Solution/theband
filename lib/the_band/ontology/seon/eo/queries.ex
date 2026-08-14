@@ -14,10 +14,12 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
 
   import Ecto.Query
 
+  alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.RawData
   alias TheBand.Repo
@@ -664,5 +666,123 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   @spec count_roles(Tenant.t()) :: non_neg_integer()
   def count_roles(%Tenant{id: tenant_id}) do
     Repo.one(from r in OrganizationalRole, where: r.tenant_id == ^tenant_id, select: count(r.id))
+  end
+
+  # ------------------------------------------------------- papéis e alocação (feature 021)
+
+  @doc "Os papéis que este tenant reconhece, por nome."
+  @spec list_roles(Tenant.t(), keyword()) :: [OrganizationalRole.t()]
+  def list_roles(%Tenant{id: tenant_id}, _opts \\ []) do
+    Repo.all(from r in OrganizationalRole, where: r.tenant_id == ^tenant_id, order_by: r.name)
+  end
+
+  @doc "O papel daquele id. Id de outro tenant devolve `:not_found`, nunca o registro."
+  @spec fetch_role(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found}
+  def fetch_role(%Tenant{id: tenant_id}, role_id) do
+    case Repo.one(
+           from r in OrganizationalRole, where: r.tenant_id == ^tenant_id and r.id == ^role_id
+         ) do
+      nil -> {:error, :not_found}
+      papel -> {:ok, papel}
+    end
+  rescue
+    # Id que não é UUID vem da URL ou de formulário adulterado, e a resposta é a mesma: não
+    # encontrado. Levantar derrubaria a tela por dado de entrada.
+    Ecto.Query.CastError -> {:error, :not_found}
+  end
+
+  @doc "Quantos vínculos apontam para este papel — é o número que a recusa de remoção exibe."
+  @spec count_memberships_of_role(Tenant.t(), Ecto.UUID.t()) :: non_neg_integer()
+  def count_memberships_of_role(%Tenant{id: tenant_id}, role_id) do
+    Repo.aggregate(
+      from(m in TeamMembership,
+        where: m.tenant_id == ^tenant_id and m.organizational_role_id == ^role_id
+      ),
+      :count
+    )
+  end
+
+  @doc "O vínculo daquele id, com escopo de tenant."
+  @spec fetch_membership(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, TeamMembership.t()} | {:error, :not_found}
+  def fetch_membership(%Tenant{id: tenant_id}, membership_id) do
+    case Repo.one(
+           from m in TeamMembership, where: m.tenant_id == ^tenant_id and m.id == ^membership_id
+         ) do
+      nil -> {:error, :not_found}
+      vinculo -> {:ok, vinculo}
+    end
+  end
+
+  @doc """
+  Os papéis declarados de uma pessoa, com equipe, período e autor.
+
+  **Devolve o vigente e o encerrado.** Quem saiu do papel continua tendo desempenhado, e a tela
+  distingue os dois pela data — esconder o encerrado apagaria história.
+  """
+  @spec list_person_roles(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_person_roles(%Tenant{id: tenant_id}, person_id) do
+    Repo.all(
+      from m in TeamMembership,
+        join: r in OrganizationalRole,
+        on: r.id == m.organizational_role_id,
+        join: t in Team,
+        on: t.id == m.team_id,
+        left_join: u in "users",
+        on: u.id == m.declared_by_user_id,
+        where: m.tenant_id == ^tenant_id and m.person_id == ^person_id,
+        order_by: [desc: is_nil(m.ended_at), asc: r.name],
+        select: %{
+          id: m.id,
+          role_code: r.code,
+          role_name: r.name,
+          team_name: t.name,
+          team_id: t.id,
+          started_at: m.started_at,
+          ended_at: m.ended_at,
+          declared_by: u.email
+        }
+    )
+  end
+
+  @doc "Quantos vínculos existem no tenant — o número que sai de zero quando a feature funciona."
+  @spec count_memberships(Tenant.t()) :: non_neg_integer()
+  def count_memberships(%Tenant{id: tenant_id}) do
+    Repo.aggregate(from(m in TeamMembership, where: m.tenant_id == ^tenant_id), :count)
+  end
+
+  @doc """
+  Os papéis que a ontologia nomeia, como **sugestão de preenchimento** (FR-003).
+
+  Devolve lista e **não grava nada**. `eo.organizational_role` está definido como papel social
+  **reconhecido pela organização** — cadastrar automaticamente faria a plataforma reconhecer no
+  lugar dela, e produziria papéis que talvez nenhuma equipe use.
+
+  A leitura é da base de conhecimento pela API pública, e nunca por caminho de arquivo: a
+  semântica vive no YAML, e quem pergunta "quais papéis existem?" pergunta a ela (princípio IV
+  e IX).
+
+  O código sugerido é o sufixo do identificador — `sro.developer_role` vira `developer_role` —
+  porque o prefixo é da ontologia, e o catálogo é da organização.
+  """
+  @spec suggested_roles() :: [%{code: String.t(), name: String.t()}]
+  def suggested_roles do
+    :module
+    |> KnowledgeBase.list()
+    |> Enum.flat_map(&Map.get(&1, "concepts", []))
+    |> Enum.filter(&papel_de_scrum?/1)
+    |> Enum.map(fn conceito ->
+      %{
+        code: conceito |> Map.get("id") |> String.split(".") |> List.last(),
+        name: Map.get(conceito, "name")
+      }
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  # Os quatro que herdam de `sro.scrum_role` — e não o próprio, que é o pai abstrato.
+  defp papel_de_scrum?(conceito) do
+    get_in(conceito, ["classification", "parent"]) == "sro.scrum_role"
   end
 end

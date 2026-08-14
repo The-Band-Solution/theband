@@ -22,8 +22,10 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
 
   alias TheBand.Ontology.SEON.EO.Queries
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
+  alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
@@ -495,5 +497,202 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
       {k, v} when is_binary(k) -> {String.to_existing_atom(k), v}
       {k, v} -> {k, v}
     end)
+  end
+
+  # ------------------------------------------------------- papéis e alocação (feature 021)
+
+  @doc """
+  Cadastra um papel organizacional reconhecido pelo tenant (FR-001, FR-002).
+
+  **O código é a identidade**, e o índice único por `(tenant_id, code)` já existia. O mesmo
+  código em outro tenant é aceito: papel é reconhecimento de uma organização, e duas
+  organizações reconhecerem "developer" não é conflito.
+  """
+  @spec create_role(Tenant.t(), map()) ::
+          {:ok, OrganizationalRole.t()} | {:error, Ecto.Changeset.t()}
+  def create_role(%Tenant{id: tenant_id}, attrs) do
+    attrs = normalize(attrs)
+    codigo = attrs |> Map.get(:code) |> to_string() |> String.trim()
+
+    %OrganizationalRole{}
+    |> OrganizationalRole.changeset(%{
+      tenant_id: tenant_id,
+      code: codigo,
+      name: attrs[:name],
+      internal_id: papel_internal_id(tenant_id, codigo)
+    })
+    |> Repo.insert()
+  end
+
+  @doc """
+  Renomeia o papel, **sem tocar no código** (FR-004).
+
+  É pelo código que os vínculos referenciam o papel. Trocá-lo seria trocar a identidade, e a
+  renomeação é do rótulo.
+  """
+  @spec rename_role(Tenant.t(), Ecto.UUID.t(), String.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found | :blank_name}
+  def rename_role(%Tenant{} = tenant, role_id, name) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id),
+         {:ok, nome} <- nome_preenchido(name) do
+      {1, _} =
+        Repo.update_all(
+          from(r in OrganizationalRole, where: r.id == ^papel.id),
+          set: [name: nome, updated_at: DateTime.utc_now(:second)]
+        )
+
+      {:ok, %{papel | name: nome}}
+    end
+  end
+
+  @doc """
+  Remove um papel, e **recusa** quando há vínculo apontando para ele (FR-005).
+
+  A recusa devolve **quantos** são, e não só o erro: quem lê precisa saber o tamanho do que a
+  impede. É a mesma regra do impacto exibido antes de encerrar uma observação.
+  """
+  @spec delete_role(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found | {:in_use, pos_integer()}}
+  def delete_role(%Tenant{} = tenant, role_id) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id) do
+      case Queries.count_memberships_of_role(tenant, papel.id) do
+        0 ->
+          {:ok, _} = Repo.delete(papel)
+          {:ok, papel}
+
+        quantos ->
+          {:error, {:in_use, quantos}}
+      end
+    end
+  end
+
+  @doc """
+  Aloca uma pessoa a um papel dentro de uma equipe (FR-006, FR-007, FR-009).
+
+  ## O que ela recusa, e o que ela permite
+
+  `{:error, :already_allocated}` é a mesma pessoa, mesmo papel, mesma equipe, com período
+  vigente. **Dois papéis diferentes ao mesmo tempo são permitidos** — acumular Developer e
+  Scrum Master é comum em Scrum, e recusar produziria uma plataforma incapaz de descrever
+  times reais.
+
+  ## `started_at` ausente grava nulo
+
+  E nunca a data de hoje. Inventá-la afirmaria que a alocação começou agora, e o que se sabe é
+  que ninguém disse quando.
+
+  ## A evidência aponta para o vínculo
+
+  Quando `evidence_id` vem junto, `promoted_membership_id` passa a apontar — e a evidência
+  **continua existindo**, com tudo o que ela tinha.
+  """
+  @spec allocate(Tenant.t(), map()) ::
+          {:ok, TeamMembership.t()}
+          | {:error, :period_inverted | :already_allocated | Ecto.Changeset.t()}
+  def allocate(%Tenant{id: tenant_id} = tenant, attrs) do
+    attrs = normalize(attrs)
+
+    changeset =
+      TeamMembership.changeset(%TeamMembership{}, %{
+        tenant_id: tenant_id,
+        person_id: attrs[:person_id],
+        team_id: attrs[:team_id],
+        organizational_role_id: attrs[:organizational_role_id],
+        started_at: attrs[:started_at],
+        ended_at: attrs[:ended_at],
+        declared_by_user_id: attrs[:declared_by_user_id],
+        internal_id:
+          alocacao_internal_id(
+            tenant_id,
+            attrs[:person_id],
+            attrs[:team_id],
+            attrs[:organizational_role_id]
+          )
+      })
+
+    case Repo.insert(changeset) do
+      {:ok, vinculo} ->
+        apontar_evidencia(tenant, attrs[:evidence_id], vinculo.id)
+        {:ok, vinculo}
+
+      {:error, %Ecto.Changeset{errors: erros} = changeset} ->
+        cond do
+          Keyword.has_key?(erros, :ended_at) -> {:error, :period_inverted}
+          duplicata?(changeset) -> {:error, :already_allocated}
+          true -> {:error, changeset}
+        end
+    end
+  end
+
+  @doc """
+  Encerra a alocação gravando a data de fim (FR-010).
+
+  **Não apaga.** A pessoa desempenhou aquele papel, e isso continua verdade depois de ela sair.
+
+  Encerrar de novo devolve `{:error, :already_ended}` e **não reescreve** a data da primeira: a
+  segunda tentativa é engano de quem opera, e sobrescrever perderia quando de fato terminou.
+  """
+  @spec end_allocation(Tenant.t(), Ecto.UUID.t(), DateTime.t()) ::
+          {:ok, TeamMembership.t()} | {:error, :not_found | :already_ended}
+  def end_allocation(%Tenant{} = tenant, membership_id, quando) do
+    with {:ok, vinculo} <- Queries.fetch_membership(tenant, membership_id) do
+      if vinculo.ended_at do
+        {:error, :already_ended}
+      else
+        {1, _} =
+          Repo.update_all(
+            from(m in TeamMembership, where: m.id == ^vinculo.id),
+            set: [ended_at: quando, updated_at: DateTime.utc_now(:second)]
+          )
+
+        {:ok, %{vinculo | ended_at: quando}}
+      end
+    end
+  end
+
+  defp apontar_evidencia(_tenant, nil, _membership_id), do: :ok
+
+  defp apontar_evidencia(%Tenant{id: tenant_id}, evidence_id, membership_id) do
+    Repo.update_all(
+      from(e in TeamMembershipEvidence,
+        where: e.tenant_id == ^tenant_id and e.id == ^evidence_id
+      ),
+      set: [promoted_membership_id: membership_id, updated_at: DateTime.utc_now(:second)]
+    )
+
+    :ok
+  end
+
+  # A duplicata vem do índice parcial, e não de validação: só o banco sabe o que está vigente
+  # no instante da escrita.
+  defp duplicata?(%Ecto.Changeset{errors: erros}) do
+    Enum.any?(erros, fn {_campo, {_msg, opts}} ->
+      Keyword.get(opts, :constraint) == :unique
+    end)
+  end
+
+  defp nome_preenchido(nome) do
+    case String.trim(to_string(nome)) do
+      "" -> {:error, :blank_name}
+      trimmed -> {:ok, trimmed}
+    end
+  end
+
+  # Determinístico, como o dos observados — mas a chave é o que identifica o papel dentro do
+  # tenant, porque não há origem externa: o papel é declaração.
+  defp papel_internal_id(tenant_id, codigo) do
+    hash_de([tenant_id, "role", codigo])
+  end
+
+  defp alocacao_internal_id(tenant_id, person_id, team_id, role_id) do
+    hash_de([tenant_id, "membership", person_id, team_id, role_id])
+  end
+
+  defp hash_de(partes) do
+    partes
+    |> Enum.map_join("|", &to_string/1)
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
+    |> binary_part(0, 32)
   end
 end

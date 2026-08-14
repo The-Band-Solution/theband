@@ -109,6 +109,9 @@ defmodule TheBandWeb.PeopleLive.Show do
       organizacoes_por_trabalho: organizacoes_do_trabalho(tenant, repositorios, pessoa.id),
       equipes: EO.list_person_teams(tenant, pessoa.id),
       papeis: EO.count_roles(tenant),
+      # Os papéis **declarados** — vigentes e encerrados. Esconder o encerrado apagaria
+      # história: quem saiu do papel continua tendo desempenhado.
+      papeis_declarados: EO.list_person_roles(tenant, pessoa.id),
       # **Duas contagens, e elas respondem coisas diferentes.** `designadas` é quantas issues
       # a pessoa tem — o número do cartão, que não muda quando alguém busca. `encontradas` é
       # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
@@ -213,6 +216,63 @@ defmodule TheBandWeb.PeopleLive.Show do
               No longer observed since {@pessoa.no_longer_observed_at}. The platform saw this person
               before, and does not see them now.
             </p>
+          </div>
+        </section>
+
+        <%!-- **O papel declarado, e ele vem antes da participação observada de propósito.**
+
+              As duas coisas ficam separadas porque são de naturezas diferentes: o papel é
+              declaração humana, e nenhuma origem o fornece; a participação é observação. Uma
+              tela que mostrasse "Developer" sem dizer que alguém digitou aquilo transformaria
+              declaração em observação — e é o oposto do que a plataforma inteira defende.
+
+              A ordem — declarado primeiro — é porque é o que responde "o que esta pessoa faz",
+              e a participação responde "onde a origem a mostra". --%>
+        <section :if={@papeis_declarados != []} class="space-y-2">
+          <div>
+            <h3 class="font-semibold">Roles declared for this person</h3>
+            <p class="text-xs text-base-content/60">
+              Declared by someone in this organisation — no source provides organisational role.
+            </p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="table table-sm stacked">
+              <thead>
+                <tr>
+                  <th>role</th>
+                  <th>team</th>
+                  <th>from</th>
+                  <th>until</th>
+                  <th>declared by</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={papel <- @papeis_declarados} class={papel.ended_at && "opacity-60"}>
+                  <td data-label="role">
+                    <span class="font-medium">{papel.role_name}</span>
+                    <div class="text-xs opacity-60 font-mono">{papel.role_code}</div>
+                  </td>
+                  <td data-label="team" class="text-sm">{papel.team_name}</td>
+                  <%!-- Sem data não vira "hoje": ninguém disse quando, e inventar afirmaria
+                        que a alocação começou agora. --%>
+                  <td data-label="from" class="text-xs">
+                    <span :if={papel.started_at}>{papel.started_at}</span>
+                    <.absent :if={is_nil(papel.started_at)} reason="not stated" />
+                  </td>
+                  <td data-label="until" class="text-xs">
+                    <span :if={papel.ended_at}>{papel.ended_at}</span>
+                    <span :if={is_nil(papel.ended_at)} class="badge badge-sm badge-success">
+                      current
+                    </span>
+                  </td>
+                  <td data-label="declared by" class="text-xs opacity-70">
+                    <span :if={papel.declared_by}>{papel.declared_by}</span>
+                    <.absent :if={is_nil(papel.declared_by)} reason="author not recorded" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
