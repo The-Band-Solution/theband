@@ -163,6 +163,16 @@ derivation_rule:
       concepts: [spo.performed_project_activity]
       enforcement: detection
       severity: estrutural
+      remediation:
+        pt-BR: >
+          **A correção é no quadro, e não no código**: alguém acrescenta um estado que signifique
+          "em andamento". A plataforma não cria estado, e não deveria — o quadro é da organização.
+
+          **E ela vale só para frente.** O estado vira evento no instante em que alguém move um
+          cartão; issue que já passou pelo fluxo antigo não ganha movimentação retroativa. Depois
+          da correção, o antipadrão continua verdadeiro para o histórico e falso para o que vier —
+          e a tela **precisa dizer a partir de quando**, ou alguém vai concluir que a correção não
+          funcionou ao ver as issues antigas ainda sinalizadas.
 
     - id: process.ap06.states_that_duplicate_meaning
       name:
