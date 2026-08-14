@@ -30,6 +30,11 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     # que a tela precisa para não mostrar `0` nos dois casos.
     field :issues_collected_at, :utc_datetime
 
+    # O que a escrita fez — mesmo campo virtual que `CollectedIssue` e `EO.Schemas.Person`
+    # usam, e pelo mesmo motivo: sem ele a contagem da execução não distingue observar um
+    # repositório novo de revê-lo.
+    field :outcome, Ecto.Enum, values: [:created, :updated, :unchanged], virtual: true
+
     timestamps(type: :utc_datetime)
   end
 

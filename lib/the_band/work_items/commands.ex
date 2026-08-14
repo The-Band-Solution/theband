@@ -31,6 +31,9 @@ defmodule TheBand.WorkItems.Commands do
         external_id: attrs[:external_id]
       ) || %CollectedIssue{}
 
+    resultado =
+      if is_nil(base.id), do: :created, else: se_mudou(base, attrs)
+
     base
     |> CollectedIssue.changeset(
       attrs
@@ -41,7 +44,33 @@ defmodule TheBand.WorkItems.Commands do
       |> Map.put(:no_longer_observed_at, nil)
     )
     |> Repo.insert_or_update()
+    |> com_resultado(resultado)
   end
+
+  # Os campos que decidem se a origem mudou alguma coisa.
+  #
+  # **`last_observed_at` e `collected_at` ficam de fora de propósito**: a coleta os escreve em
+  # toda passada, e incluí-los faria toda issue parecer atualizada — que é o oposto do que
+  # `records_updated` existe para dizer.
+  #
+  # `no_longer_observed_at` também fica fora: limpá-lo é reobservar, e reobservar sem mudança
+  # de conteúdo não é atualização da origem. Quem quer saber que a marca saiu lê a marca.
+  @comparaveis ~w(number title state state_reason body author_login author_person_id
+                  milestone_title project_titles comment_count reaction_count issue_type
+                  issue_type_external_id external_parent_id sub_issue_count
+                  external_created_at external_updated_at external_closed_at)a
+
+  defp se_mudou(base, attrs) do
+    mudou? =
+      Enum.any?(@comparaveis, fn campo ->
+        Map.has_key?(attrs, campo) and Map.get(attrs, campo) != Map.get(base, campo)
+      end)
+
+    if mudou?, do: :updated, else: :unchanged
+  end
+
+  defp com_resultado({:ok, registro}, resultado), do: {:ok, %{registro | outcome: resultado}}
+  defp com_resultado(outro, _resultado), do: outro
 
   @doc """
   Substitui os designados da issue pelos informados — **marcando** o que saiu, nunca apagando.
@@ -310,32 +339,46 @@ defmodule TheBand.WorkItems.Commands do
 
   `is_nil(no_longer_observed_at)` no `WHERE`. O que se registra é **quando deixou de ser
   visto**, não quando se olhou de novo — e uma segunda coleta sem mudança devolve `{:ok, 0}`.
+
+  ## O escopo é o que foi olhado, e não o repositório
+
+  Até 2026-08-14 esta função recebia o `observed_repository_id` e marcava os vínculos de
+  **todos** os pais daquele repositório. Estava certa por acidente: só dizia a verdade
+  enquanto a coleta era completa.
+
+  Na coleta incremental da feature 020, reler 34 issues de um repositório com 4295 deixaria
+  os outros 4261 pais sem revisão — e todos os vínculos deles com `last_observed_at` anterior
+  ao corte. **A marca não pararia de funcionar: marcaria tudo.**
+
+  Recebendo os pais efetivamente percorridos, "não apareceu" volta a significar algo em
+  relação ao que foi olhado, que é a L19 — e a função passa a dizer, no tipo, o que sempre
+  quis dizer.
+
+  **Lista vazia devolve `{:ok, 0}`** e não marca nada: é o repositório pulado, e tratá-lo como
+  "nenhum pai apareceu, marque tudo" é o defeito que esta assinatura existe para impedir.
+
+  A troca é de assinatura, e não parâmetro opcional: o comportamento obtido por esquecimento
+  não pode ser o que marca 4261 vínculos falsos.
   """
   @spec mark_decomposition_links_no_longer_observed(
           Tenant.t(),
-          Ecto.UUID.t(),
+          [Ecto.UUID.t()],
           DateTime.t()
         ) :: {:ok, non_neg_integer()}
+  def mark_decomposition_links_no_longer_observed(%Tenant{}, [], _desde), do: {:ok, 0}
+
   def mark_decomposition_links_no_longer_observed(
         %Tenant{id: tenant_id},
-        observed_repository_id,
+        parent_issue_ids,
         desde
       )
-      when is_binary(observed_repository_id) do
-    pais =
-      from(i in CollectedIssue,
-        where:
-          i.tenant_id == ^tenant_id and
-            i.observed_repository_id == ^observed_repository_id,
-        select: i.id
-      )
-
+      when is_list(parent_issue_ids) do
     {count, _} =
       Repo.update_all(
         from(l in DecompositionLink,
           where:
             l.tenant_id == ^tenant_id and
-              l.parent_issue_id in subquery(pais) and
+              l.parent_issue_id in ^parent_issue_ids and
               l.last_observed_at < ^desde and
               is_nil(l.no_longer_observed_at)
         ),

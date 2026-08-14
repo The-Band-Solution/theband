@@ -110,9 +110,16 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
           source_repository_id: source_repository_id
         })
         |> Repo.insert()
+        |> case do
+          {:ok, observado} -> {:ok, %{observado | outcome: :created}}
+          erro -> erro
+        end
 
       existing ->
-        {:ok, existing}
+        # **`:unchanged`, e não `:updated`**: reobservar um repositório que já era observado não
+        # muda nada nele. Contar como atualização inflaria `records_updated` em toda coleta,
+        # com um número que não corresponde a mudança alguma na origem.
+        {:ok, %{existing | outcome: :unchanged}}
     end
   end
 
