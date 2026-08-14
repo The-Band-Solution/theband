@@ -419,6 +419,95 @@ defmodule TheBand.Sources do
   end
 
   @doc """
+  Renomeia o rótulo de uma credencial (FR-015).
+
+  **Só o rótulo.** Segredo, escopos e data de validação são o que a ferramenta disse sobre
+  aquela credencial quando ela foi validada — mudar o nome não muda nenhum deles, e deixar
+  o changeset tocá-los abriria a porta para renomear alterando o que a origem afirmou.
+  """
+  @spec rename_credential(Tenant.t(), Ecto.UUID.t(), String.t()) ::
+          {:ok, ToolCredential.t()} | {:error, :not_found | :blank_label}
+  def rename_credential(%Tenant{} = tenant, credential_id, label) do
+    with {:ok, credential} <- fetch_credential(tenant, credential_id),
+         {:ok, label} <- rotulo_preenchido(label) do
+      agora = DateTime.utc_now(:second)
+
+      {1, _} =
+        Repo.update_all(
+          from(c in ToolCredential, where: c.id == ^credential.id),
+          set: [label: label, updated_at: agora]
+        )
+
+      {:ok, %{credential | label: label, updated_at: agora}}
+    end
+  end
+
+  @doc """
+  Destrói uma credencial (FR-016), e recusa destruir a última ativa (FR-017).
+
+  Destruir é diferente de desativar: a desativada continua existindo cifrada, a destruída
+  não existe. É por isso que não há confirmação de "tem certeza" no domínio — a decisão de
+  perguntar é da interface, e a de apagar é de quem chamou.
+
+  A recusa da última ativa não é zelo excessivo. Sem ela, remover a única credencial faria
+  a ferramenta parar de coletar **sem** que ninguém tivesse encerrado a observação: a
+  plataforma continuaria dizendo que observa aquela organização, e não observaria. Encerrar
+  a observação é o caminho, e a mensagem o diz.
+  """
+  @spec destroy_credential(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, ToolCredential.t()} | {:error, :not_found | :last_active_credential}
+  def destroy_credential(%Tenant{} = tenant, credential_id) do
+    with {:ok, credential} <- fetch_credential(tenant, credential_id),
+         {:ok, tool} <- fetch_connected_tool(tenant, credential.connected_tool_id),
+         :ok <- permite_destruir(tool, credential) do
+      {1, _} = Repo.delete_all(from c in ToolCredential, where: c.id == ^credential.id)
+      {:ok, credential}
+    end
+  end
+
+  defp permite_destruir(tool, credential) do
+    outras_ativas =
+      Repo.aggregate(
+        from(c in ToolCredential,
+          where: c.connected_tool_id == ^tool.id and c.active == true and c.id != ^credential.id
+        ),
+        :count
+      )
+
+    cond do
+      # Observação encerrada não coleta, então ficar sem credencial não esconde nada.
+      observation_ended?(tool) -> :ok
+      not credential.active -> :ok
+      outras_ativas > 0 -> :ok
+      true -> {:error, :last_active_credential}
+    end
+  end
+
+  defp fetch_credential(%Tenant{id: tenant_id}, credential_id) do
+    # FR-025 — id de outro tenant é **não encontrado**, nunca "não autorizado": dizer que
+    # existe já é dizer algo sobre o outro tenant.
+    query =
+      from c in credenciais_sem_segredo(),
+        where: c.id == ^credential_id and c.tenant_id == ^tenant_id
+
+    case Repo.one(query) do
+      nil -> {:error, :not_found}
+      credential -> {:ok, credential}
+    end
+  rescue
+    # Id que não é UUID vem da URL ou de um formulário adulterado, e é a mesma resposta:
+    # não encontrado. Levantar aqui derrubaria a tela por dado de entrada.
+    Ecto.Query.CastError -> {:error, :not_found}
+  end
+
+  defp rotulo_preenchido(label) do
+    case String.trim(to_string(label)) do
+      "" -> {:error, :blank_label}
+      trimmed -> {:ok, trimmed}
+    end
+  end
+
+  @doc """
   Liga ou desliga uma credencial.
 
   **Escrita direta na coluna, e não `changeset` mais `Repo.update`.** O changeset exige o
