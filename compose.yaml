@@ -1,9 +1,16 @@
 services:
   postgres:
-    # research.md R1 fixou PostgreSQL 16; o ambiente de desenvolvimento já roda
-    # 17-alpine, e a diferença não afeta nada que a feature usa. Alinhado ao que
-    # existe em vez de recriar o container e arriscar o volume.
-    image: postgres:17-alpine
+    # research.md R1 fixou PostgreSQL 16, e **o volume é 16** — conferido em
+    # 2026-08-15 com `cat /var/lib/postgresql/data/PG_VERSION`.
+    #
+    # Esta linha já disse `17-alpine`, com um comentário afirmando que o ambiente
+    # rodava 17. O container só não tinha sido recriado desde então, e a mentira
+    # ficou latente: no primeiro `docker compose up` que o recriou, o Postgres
+    # recusou subir — *"data directory was initialized by PostgreSQL version 16"*.
+    #
+    # Subir a imagem exige `pg_upgrade` ou dump e restore. Trocar o número aqui
+    # não migra nada: só faz o servidor recusar o volume que já existe.
+    image: postgres:16-alpine
     container_name: the_band_postgres
     environment:
       POSTGRES_USER: postgres

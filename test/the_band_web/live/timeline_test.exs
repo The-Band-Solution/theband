@@ -214,6 +214,40 @@ defmodule TheBandWeb.TimelineTest do
       """
     end
 
+    test "issue que não passou por andamento não acusa o quadro", ctx do
+      # O defeito medido em 2026-08-15 na issue #1: ela foi `Backlog → Ready → In review
+      # → Done`, e a tela afirmava "This board has no state that means work in progress"
+      # — sobre um quadro que tem `In Progress` com 37 movimentações.
+      atividade(ctx.tenant, ctx.issue, %{
+        activity_type: "ProjectV2ItemStatusChangedEvent",
+        occurred_at: ~U[2026-08-10 09:00:00Z],
+        payload: %{"previousStatus" => "Ready", "status" => "Done"}
+      })
+
+      # Outra issue do mesmo quadro passou por andamento — é isso que torna o quadro
+      # capaz de expressar a medida.
+      outra = %{id: Ecto.UUID.generate()}
+
+      atividade(ctx.tenant, outra, %{
+        activity_type: "ProjectV2ItemStatusChangedEvent",
+        occurred_at: ~U[2026-08-11 09:00:00Z],
+        payload: %{"previousStatus" => "To Do", "status" => "In Progress"}
+      })
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{ctx.issue.id}")
+
+      refute html =~ "This board has no state", """
+      A tela afirmou sobre o QUADRO o que observou de UMA issue.
+
+      O quadro tem estado de andamento — outra issue passou por ele. Dizer que não tem,
+      porque esta issue não passou, é dizer do todo o que se viu da parte: plausível e
+      errado, que é exatamente o que esta feature existe para não fazer.
+      """
+
+      assert html =~ "This issue never reached a state"
+      assert html =~ "about this issue and not about the board"
+    end
+
     test "nunca mostra lead time no lugar do cycle time", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{ctx.issue.id}")
 

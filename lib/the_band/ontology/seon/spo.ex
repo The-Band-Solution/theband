@@ -41,6 +41,9 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate count_activity_types(tenant), to: Queries
   defdelegate count_board_states(tenant), to: Queries
   defdelegate andamento?(estado), to: Queries
-  defdelegate cycle_time(tenant, issue_id), to: Queries
-  defdelegate cycle_time(atividades), to: Queries
+  # Uma função, duas entradas: `(tenant, issue_id)` consulta, e
+  # `(atividades, estados_do_quadro)` responde sobre o que já foi carregado. A segunda
+  # existe porque a tela precisa das duas listas no mesmo render — sem ela o render
+  # subia de 36 para 48 consultas.
+  defdelegate cycle_time(tenant_ou_atividades, issue_id_ou_estados), to: Queries
 end
