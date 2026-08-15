@@ -194,6 +194,38 @@ defmodule TheBand.WorkItems.PersonWork do
   defp dias(%Decimal{} = d), do: Decimal.to_integer(Decimal.round(d, 0))
   defp dias(n) when is_number(n), do: trunc(n)
 
+  @doc """
+  As issues designadas à pessoa, com os designados vigentes de cada uma.
+
+  Os designados vêm junto porque a avaliação de antipadrão precisa deles, e buscá-los por
+  issue seria a segunda metade do N+1 que `detect_for_person/2` existe para evitar.
+  """
+  @spec issues_assigned_to(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def issues_assigned_to(%Tenant{id: tenant_id}, person_id) do
+    issues =
+      Repo.all(
+        from i in CollectedIssue,
+          join: a in IssueAssignee,
+          on: a.collected_issue_id == i.id,
+          where:
+            i.tenant_id == ^tenant_id and a.person_id == ^person_id and
+              is_nil(a.no_longer_observed_at) and is_nil(i.no_longer_observed_at),
+          select: %{id: i.id, number: i.number, external_closed_at: i.external_closed_at}
+      )
+
+    designados =
+      Repo.all(
+        from a in IssueAssignee,
+          where:
+            a.tenant_id == ^tenant_id and is_nil(a.no_longer_observed_at) and
+              a.collected_issue_id in ^Enum.map(issues, & &1.id),
+          select: {a.collected_issue_id, %{login: a.login, person_id: a.person_id}}
+      )
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+
+    Enum.map(issues, &Map.put(&1, :assignees, Map.get(designados, &1.id, [])))
+  end
+
   # ------------------------------------------------------------------------ privadas
 
   defp abertas(tenant_id, person_id) do

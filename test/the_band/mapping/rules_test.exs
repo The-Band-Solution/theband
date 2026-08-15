@@ -26,6 +26,14 @@ defmodule TheBand.Mapping.RulesTest do
       # A obrigatoriedade está no **tipo**: `create_rule/4`, e nenhuma aridade menor.
       # É o mesmo desenho de `mark_issues_no_longer_observed/3`, onde o escopo é
       # obrigatório porque esquecê-lo custou a L19.
+
+      # **`ensure_loaded!` antes, e não é detalhe.** `function_exported?/3` devolve `false`
+      # para módulo ainda não carregado — e aí o `refute` abaixo passa por vacuidade,
+      # inclusive se alguém criar o `create_rule/3` que ele existe para proibir. O `assert`
+      # falha no mesmo caso, então o teste alternava entre passar errado e falhar sem
+      # motivo, dependendo do que rodou antes dele.
+      Code.ensure_loaded!(Mapping)
+
       refute function_exported?(Mapping, :create_rule, 3)
       assert function_exported?(Mapping, :create_rule, 4)
     end

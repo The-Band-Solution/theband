@@ -17,8 +17,10 @@ defmodule TheBandWeb.PainelDaPessoaTest do
   import Phoenix.LiveViewTest
   import TheBand.WorkItemsFixtures
 
+  alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.Repo
   alias TheBand.WorkItems
 
@@ -175,6 +177,101 @@ defmodule TheBandWeb.PainelDaPessoaTest do
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
       refute html =~ "Lead time of completed issues"
+    end
+  end
+
+  describe "os antipadrões da pessoa" do
+    test "sem movimentação coletada, diz que não avaliou — e não que nada achou", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai, criada: ~U[2026-05-01 09:00:00Z])
+
+      resultado = Antipatterns.detect_for_person(ctx.tenant, ctx.pessoa.id)
+
+      assert resultado.avaliadas == 0
+      assert resultado.nao_avaliadas == 1
+      assert resultado.achados == []
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "nothing was evaluated", """
+      A tela disse "nada encontrado" onde a detecção disse "não olhei".
+
+      As duas produzem a mesma seção vazia e afirmam o oposto. Medido em 2026-08-15: para
+      quase toda pessoa, a maioria das issues cai no primeiro caso — então esta é a frase
+      que mais aparece, e a que mais engana se estiver errada.
+      """
+
+      assert html =~ "not the same as finding nothing"
+    end
+
+    test "com movimentação, o achado aparece contado e sem julgar ninguém", ctx do
+      issue = trabalhar(ctx, ctx.cenario.issues[1].pai, criada: ~U[2026-05-01 09:00:00Z])
+
+      {:ok, _} =
+        SPO.record_activity(ctx.tenant, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          occurred_at: ~U[2026-05-02 09:00:00Z],
+          subject_type: "issue",
+          subject_id: issue.id,
+          source_system: "github",
+          source_instance: "https://github.com",
+          performer_login: "github-project-automation",
+          payload: %{"previousStatus" => "Backlog", "status" => "Done"}
+        })
+
+      resultado = Antipatterns.detect_for_person(ctx.tenant, ctx.pessoa.id)
+
+      assert resultado.avaliadas == 1
+      assert resultado.nao_avaliadas == 0
+
+      assert Enum.any?(resultado.achados, &(&1.id == "process.ap03.assigned_and_never_started")),
+             """
+             A issue foi designada, está aberta, e só o robô a moveu — e o ap03 não apareceu.
+
+             Movimentação de automação não conta como início: um cartão que o robô moveu diz que a
+             issue mudou de estado, não que alguém trabalhou nela.
+             """
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Assigned and never started"
+
+      assert html =~ "not judgements about people", """
+      O achado apareceu sem a frase que o enquadra.
+
+      Sem ela, "designada e nunca iniciada" lê como acusação de quem está designado.
+      """
+    end
+
+    test "as duas contagens convivem, e a tela diz sobre quantas avaliou", ctx do
+      avaliada = trabalhar(ctx, ctx.cenario.issues[1].pai, criada: ~U[2026-05-01 09:00:00Z])
+      trabalhar(ctx, hd(ctx.cenario.issues[1].partes), criada: ~U[2026-05-01 09:00:00Z])
+
+      {:ok, _} =
+        SPO.record_activity(ctx.tenant, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          occurred_at: ~U[2026-05-02 09:00:00Z],
+          subject_type: "issue",
+          subject_id: avaliada.id,
+          source_system: "github",
+          source_instance: "https://github.com",
+          performer_login: "alguem",
+          payload: %{"previousStatus" => "Backlog", "status" => "Done"}
+        })
+
+      resultado = Antipatterns.detect_for_person(ctx.tenant, ctx.pessoa.id)
+
+      assert resultado.avaliadas == 1
+
+      assert resultado.nao_avaliadas == 1, """
+      A cobertura parcial foi achatada numa contagem só.
+
+      Somar avaliadas e não avaliadas e mostrar "0 antipadrões em 2 issues" afirmaria saúde
+      de processo sobre uma issue que ninguém olhou.
+      """
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+      # Trecho contíguo: o HEEx quebra o parágrafo, e a frase inteira nunca aparece junta.
+      assert html =~ "collected movement and were not evaluated"
     end
   end
 

@@ -29,6 +29,31 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
   end
 
   @doc """
+  As atividades de **várias** entidades de uma vez, agrupadas por entidade.
+
+  Existe porque avaliar antipadrão de 152 issues chamando `list_activities/3` uma vez por
+  issue é o N+1 clássico. Aqui é uma consulta, e o agrupamento acontece em memória.
+
+  Entidade sem atividade **não aparece no mapa** — e quem chama precisa distinguir isso de
+  "avaliei e não achei nada". A chave ausente é a informação.
+  """
+  @spec list_activities_by_subject(Tenant.t(), String.t(), [Ecto.UUID.t()]) ::
+          %{Ecto.UUID.t() => [Activity.t()]}
+  def list_activities_by_subject(%Tenant{}, _subject_type, []), do: %{}
+
+  def list_activities_by_subject(%Tenant{id: tenant_id}, subject_type, subject_ids) do
+    Repo.all(
+      from a in Activity,
+        where:
+          a.tenant_id == ^tenant_id and
+            a.subject_type == ^subject_type and
+            a.subject_id in ^subject_ids,
+        order_by: [asc: a.occurred_at, asc: a.id]
+    )
+    |> Enum.group_by(& &1.subject_id)
+  end
+
+  @doc """
   O tempo entre o início do trabalho e o fim — ou a razão de não haver medida.
 
   **Nunca devolve lead time no lugar.** São medidas diferentes: o lead time inclui o

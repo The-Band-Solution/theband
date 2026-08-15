@@ -86,6 +86,50 @@ defmodule TheBand.Mapping.Antipatterns do
     end
   end
 
+  @doc """
+  Os antipadrões nas issues designadas a uma pessoa, contados por máxima.
+
+  **Duas consultas, e não uma por issue.** Avaliar 152 issues chamando `detect/2` para cada
+  uma seria o N+1 que a feature 007 deste projeto pagou com 135 consultas por render.
+
+  O retorno separa três números que dizem coisas diferentes, e achatá-los seria a L57:
+
+    * `avaliadas` — issues com movimentação coletada, onde as máximas puderam rodar;
+    * `nao_avaliadas` — issues **sem** movimentação coletada. Não é "nada encontrado": é
+      "não olhei", e medido em 2026-08-15 essa é a maioria em quase toda pessoa;
+    * `achados` — a contagem por máxima, só sobre as avaliadas.
+
+  Uma tela que somasse `avaliadas + nao_avaliadas` e mostrasse "0 antipadrões em 152 issues"
+  estaria afirmando saúde de processo sobre issues que ninguém olhou.
+  """
+  @spec detect_for_person(Tenant.t(), Ecto.UUID.t()) :: %{
+          avaliadas: non_neg_integer(),
+          nao_avaliadas: non_neg_integer(),
+          achados: [%{id: String.t(), count: pos_integer()}]
+        }
+  def detect_for_person(%Tenant{} = tenant, person_id) do
+    issues = WorkItems.issues_assigned_to(tenant, person_id)
+    por_issue = SPO.list_activities_by_subject(tenant, "issue", Enum.map(issues, & &1.id))
+
+    {avaliadas, nao_avaliadas, achados} =
+      Enum.reduce(issues, {0, 0, []}, fn issue, {ok, nao, acc} ->
+        case evaluate(issue, Map.get(por_issue, issue.id, [])) do
+          {:ok, encontrados} -> {ok + 1, nao, acc ++ encontrados}
+          {:nao_olhei, _motivo} -> {ok, nao + 1, acc}
+        end
+      end)
+
+    %{
+      avaliadas: avaliadas,
+      nao_avaliadas: nao_avaliadas,
+      achados:
+        achados
+        |> Enum.frequencies_by(& &1.id)
+        |> Enum.map(fn {id, n} -> %{id: id, count: n} end)
+        |> Enum.sort_by(& &1.count, :desc)
+    }
+  end
+
   # Os designados vêm de `fetch_issue/2`, que já traz os **vigentes** — quem saiu
   # continua no banco e não conta como "está nisto agora". Criar leitura própria daria
   # dois caminhos para o mesmo fato, e eles discordariam no dia em que um mudasse.

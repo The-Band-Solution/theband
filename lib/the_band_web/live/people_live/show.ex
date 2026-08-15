@@ -32,6 +32,7 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
@@ -130,6 +131,7 @@ defmodule TheBandWeb.PeopleLive.Show do
       meses: WorkItems.closed_by_month(tenant, pessoa.id),
       idades: WorkItems.open_age_buckets(tenant, pessoa.id),
       lead_time: WorkItems.lead_time(tenant, pessoa.id),
+      antipadroes: Antipatterns.detect_for_person(tenant, pessoa.id),
       encontradas:
         WorkItems.count_collected(tenant, assigned_to: pessoa.id, search: estado.busca),
       abertas: WorkItems.count_authored_by(tenant, pessoa.id),
@@ -150,6 +152,18 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   # As organizações dos repositórios em que a pessoa trabalhou, **menos** aquelas em que ela já
   # aparece por equipe: repetir a mesma organização nas duas listas faria quem lê somar.
+  defp titulo_do_antipadrao("process.ap01.closed_without_movement"),
+    do: "Closed without ever being moved"
+
+  defp titulo_do_antipadrao("process.ap02.moved_after_closing"),
+    do: "Moved after it was closed"
+
+  defp titulo_do_antipadrao("process.ap03.assigned_and_never_started"),
+    do: "Assigned and never started"
+
+  defp titulo_do_antipadrao("process.ap04.movement_without_assignee"),
+    do: "Moved with nobody assigned"
+
   defp organizacoes_do_trabalho(tenant, repositorios, person_id) do
     por_equipe =
       tenant
@@ -400,6 +414,52 @@ defmodule TheBandWeb.PeopleLive.Show do
                   others count the past, this one shows what is sitting still now.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h4 class="text-sm font-medium">Process anti-patterns</h4>
+              <%!-- A frase vem ANTES dos achados, e não depois: sem ela, "assigned and never
+                    started" lê como acusação de quem está designado. --%>
+              <p class="text-xs text-base-content/60">
+                These are not judgements about people. They say the record of the process is
+                incomplete — and the cost is that the organisation loses the measurement.
+              </p>
+
+              <%!-- "Não avaliado" e "nada encontrado" produzem a mesma seção vazia e afirmam
+                    o oposto. Medido em 2026-08-15: para quase toda pessoa, a maioria das
+                    issues cai no primeiro caso. --%>
+              <p
+                :if={@antipadroes.avaliadas == 0 and @antipadroes.nao_avaliadas > 0}
+                class="text-sm text-base-content/70"
+              >
+                None of this person's {@antipadroes.nao_avaliadas} issues has collected board
+                movement, so nothing was evaluated. That is not the same as finding nothing.
+              </p>
+
+              <p
+                :if={@antipadroes.avaliadas > 0 and @antipadroes.achados == []}
+                class="text-sm text-base-content/70"
+              >
+                Nothing found in the {@antipadroes.avaliadas} issues that could be evaluated.
+              </p>
+
+              <ul :if={@antipadroes.achados != []} class="space-y-1 text-sm">
+                <li :for={a <- @antipadroes.achados}>
+                  <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
+                  <span class="opacity-70">· {a.count}</span>
+                  <div class="font-mono text-xs opacity-60">{a.id}</div>
+                </li>
+              </ul>
+
+              <p
+                :if={@antipadroes.avaliadas > 0 and @antipadroes.nao_avaliadas > 0}
+                class="text-xs text-base-content/60"
+              >
+                Evaluated over {@antipadroes.avaliadas} issues; {@antipadroes.nao_avaliadas} had no
+                collected movement and were not evaluated.
+              </p>
             </div>
           </div>
 

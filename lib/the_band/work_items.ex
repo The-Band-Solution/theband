@@ -66,6 +66,7 @@ defmodule TheBand.WorkItems do
   defdelegate closed_by_month(tenant, person_id), to: PersonWork
   defdelegate open_age_buckets(tenant, person_id), to: PersonWork
   defdelegate lead_time(tenant, person_id), to: PersonWork
+  defdelegate issues_assigned_to(tenant, person_id), to: PersonWork
   defdelegate list_issues(tenant, opts \\ []), to: Queries
   defdelegate count_by_promotion(tenant, opts \\ []), to: Queries
   defdelegate count_gaps_by_reason(tenant, opts \\ []), to: Queries
