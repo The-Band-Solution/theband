@@ -32,15 +32,20 @@ campos de iteração, outra pela associação das issues.
 Sprint 40 no DevOps, Sprint 38 na Conecta Fapes. **Não é configuração abandonada** — são anos de
 iterações fechadas, com data de início e duração.
 
-### O nome do campo não diz o que ele é
+### O nome do campo não decide, e a decisão foi tomada
 
 `Sprint` e `Iteration` nomeiam a mesma coisa: The Band chama de `Iteration` o que a Conecta Fapes
-chama de `Sprint`. E `Quarter`, também campo de iteração, **não é sprint** — é caixa de tempo de
-outra granularidade.
+chama de `Sprint`. Escolher pelo nome erraria em quem usou `Iteration`; escolher pela duração
+inventaria um limiar que o dado desautoriza — há `Sprint 10` com **3 dias** e `Quarter 1` com
+**61**, em campos configurados para 14 e 90.
 
-Escolher pelo nome erra em quem chamou de `Iteration`. Escolher pela duração inventa um limiar —
-e o dado desautoriza qualquer limiar: há `Sprint 10` com **3 dias** e `Quarter 1` com **61**,
-ambos em campos configurados para 14 e 90.
+**Decisão da pessoa mantenedora em 2026-08-15: todo campo de iteração vira sprint**, qualquer que
+seja o nome. Sem declaração, sem classificação.
+
+**A consequência está aceita e escrita**: no DevOps, `Quarter` de 90 dias vira sprint ao lado de
+`Sprint` de 14, e a mesma issue pertence aos dois. Qualquer contagem *por sprint* soma essa issue
+duas vezes — e é por isso que a SC-008 exige que a plataforma **diga** que ela está em dois, em
+vez de escolher um e parecer coerente.
 
 ### `Quarter` carrega trabalho de verdade — e às vezes mais que `Sprint`
 
@@ -155,28 +160,6 @@ tudo".
 
 ---
 
-### User Story 4 - Declarar qual campo é o sprint (Priority: P2)
-
-Quem conhece o quadro declara qual dos campos de iteração materializa `sro.sprint`.
-
-**Por que é P2, e por que existe**: a plataforma **não pode** decidir sozinha. `Iteration` é
-sprint, `Quarter` não é, e os dois são campos de iteração. Escolher pelo nome ou pela duração
-produziria uma classificação plausível e errada — no Produtos Internos, a declaração legítima pode
-apontar para `Quarter`, e aí o sprint daquele time dura 90 dias, que é a verdade do quadro dele.
-
-**Cenários de aceitação**
-
-1. **Dado** um quadro com dois campos de iteração e nenhuma declaração, **quando** alguém pede o
-   sprint, **então** a plataforma diz que **não sabe qual dos dois é**, e lista os candidatos.
-2. **Dado** uma declaração, **quando** ela é gravada, **então** ela tem autor e data — decisão tem
-   autor.
-3. **Dado** um campo de iteração **não** declarado como sprint, **quando** a coleta roda, **então**
-   ele continua registrado como caixa de tempo.
-4. **Dado** que a declaração muda, **quando** ela é regravada, **então** **nada é recoletado** — a
-   caixa de tempo é dado, e a classificação é leitura.
-
----
-
 ### Edge Cases
 
 - **Quadro com dois campos de iteração.** Medido em 4 quadros. Os dois são coletados.
@@ -214,12 +197,12 @@ apontar para `Quarter`, e aí o sprint daquele time dura 90 dias, que é a verda
 - **FR-010**: "O quadro não usa caixas de tempo" e "todas as issues estão fora delas" MUST ser
   distinguíveis.
 
-### A declaração
+### O que é sprint
 
-- **FR-011**: A plataforma MUST NOT escolher sozinha qual campo de iteração é o sprint.
-- **FR-012**: Sem declaração, a plataforma MUST dizer que não sabe e MUST listar os candidatos.
-- **FR-013**: A declaração MUST ter autor e data.
-- **FR-014**: Mudar a declaração MUST NOT exigir recoleta.
+- **FR-011**: **Todo campo de iteração MUST virar `sro.sprint`, qualquer que seja o nome dele.**
+  Decisão da pessoa mantenedora em 2026-08-15. `Sprint`, `Iteration` e `Quarter` entram todos.
+- **FR-012**: O nome do campo MUST ser preservado como a origem o declara — é o que permite
+  distinguir depois, se alguém quiser.
 
 ### O custo
 
@@ -239,8 +222,10 @@ apontar para `Quarter`, e aí o sprint daquele time dura 90 dias, que é a verda
 - **SC-005**: Sobre o Produtos Internos, `Quarter` aparece com 15 issues e `Sprint` com 3 — e
   nenhum dos dois é descartado.
 - **SC-006**: Duas coletas seguidas produzem o mesmo número de iterações e de vínculos.
-- **SC-007**: Num quadro com dois campos e sem declaração, a plataforma **não** afirma qual é o
-  sprint, e lista os dois.
+- **SC-007**: Num quadro com dois campos de iteração, **ambos** produzem sprints, e o nome do
+  campo de origem está gravado em cada um.
+- **SC-008**: Uma issue do DevOps associada ao `Sprint` e ao `Quarter` pertence a **dois** sprints,
+  e a plataforma diz isso em vez de escolher um.
 
 ---
 
