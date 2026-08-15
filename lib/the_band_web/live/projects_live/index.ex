@@ -23,11 +23,25 @@ defmodule TheBandWeb.ProjectsLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ontology.SEON.CMPO
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(page_title: "Projects", form_aberto: false, erro: nil) |> load()}
+    {:ok,
+     socket
+     |> assign(
+       page_title: "Projects",
+       form_aberto: false,
+       erro: nil,
+       # Um seletor por vez: qual projeto está escolhendo repositórios, o que foi
+       # digitado na busca, e o que está marcado. Um estado por projeto multiplicaria
+       # a complexidade sem ninguém precisar de dois abertos ao mesmo tempo.
+       picker: nil,
+       busca: "",
+       marcados: MapSet.new()
+     )
+     |> load()}
   end
 
   @impl true
@@ -53,9 +67,47 @@ defmodule TheBandWeb.ProjectsLive.Index do
     end
   end
 
-  def handle_event("associar", %{"project_id" => pid, "repository_id" => rid}, socket) do
-    SPO.link_repository(socket.assigns.current_tenant, pid, rid, socket.assigns.current_user.id)
-    {:noreply, load(socket)}
+  def handle_event("abrir_picker", %{"project_id" => pid}, socket),
+    do: {:noreply, assign(socket, picker: pid, busca: "", marcados: MapSet.new(), erro: nil)}
+
+  def handle_event("fechar_picker", _params, socket),
+    do: {:noreply, assign(socket, picker: nil, busca: "", marcados: MapSet.new())}
+
+  def handle_event("buscar_repo", %{"busca" => termo}, socket),
+    do: {:noreply, assign(socket, busca: termo)}
+
+  def handle_event("alternar", %{"repository_id" => rid}, socket) do
+    marcados = socket.assigns.marcados
+
+    {:noreply,
+     assign(socket,
+       marcados:
+         if(MapSet.member?(marcados, rid),
+           do: MapSet.delete(marcados, rid),
+           else: MapSet.put(marcados, rid)
+         )
+     )}
+  end
+
+  @doc false
+  def handle_event("marcar_visiveis", %{"project_id" => pid}, socket) do
+    visiveis = socket.assigns |> disponiveis(pid) |> Enum.map(& &1.observed_repository_id)
+
+    {:noreply,
+     assign(socket, marcados: MapSet.union(socket.assigns.marcados, MapSet.new(visiveis)))}
+  end
+
+  def handle_event("associar_marcados", %{"project_id" => pid}, socket) do
+    tenant = socket.assigns.current_tenant
+    autor = socket.assigns.current_user.id
+
+    # **Vários de uma vez**, e é o pedido: com 160 repositórios observados, associar um
+    # por vez fecharia o seletor a cada escolha.
+    for rid <- socket.assigns.marcados do
+      SPO.link_repository(tenant, pid, rid, autor)
+    end
+
+    {:noreply, socket |> assign(picker: nil, busca: "", marcados: MapSet.new()) |> load()}
   end
 
   def handle_event("desassociar", %{"link_id" => id}, socket) do
@@ -95,19 +147,53 @@ defmodule TheBandWeb.ProjectsLive.Index do
 
     observados = CMPO.list_observed(tenant)
     nomes_de_repo = Map.new(observados, &{&1.observed_repository_id, &1.name})
+    nomes_de_org = Map.new(EO.list_organizations(tenant), &{&1.id, &1.login})
+
+    com_dados =
+      Enum.map(projetos, fn p ->
+        Map.merge(p, %{
+          parent_name: p.parent_id && nomes[p.parent_id],
+          repositorios: SPO.list_project_repositories(tenant, p.id),
+          contagem: SPO.count_project_issues(tenant, p.id)
+        })
+      end)
 
     assign(socket,
-      projetos:
-        Enum.map(projetos, fn p ->
-          Map.merge(p, %{
-            parent_name: p.parent_id && nomes[p.parent_id],
-            repositorios: SPO.list_project_repositories(tenant, p.id),
-            contagem: SPO.count_project_issues(tenant, p.id)
-          })
-        end),
+      projetos: com_dados,
       nomes_de_repo: nomes_de_repo,
-      observados: observados
+      nomes_de_org: nomes_de_org,
+      observados: observados,
+      ja_associados:
+        Map.new(com_dados, fn p ->
+          {p.id, MapSet.new(p.repositorios, & &1.observed_repository_id)}
+        end)
     )
+  end
+
+  @doc false
+  # Os que **ainda não** estão no projeto, filtrados pela busca. Excluir os já
+  # associados evita a lista oferecer o que não faz nada — e é a diferença entre uma
+  # lista de 160 e uma de 160 com quatro inúteis no meio.
+  def disponiveis(assigns, project_id) do
+    ja = assigns.ja_associados[project_id] || MapSet.new()
+    termo = String.downcase(String.trim(assigns.busca))
+
+    assigns.observados
+    |> Enum.reject(&MapSet.member?(ja, &1.observed_repository_id))
+    |> Enum.filter(fn r ->
+      termo == "" or String.contains?(String.downcase(r.qualified_name || r.name), termo)
+    end)
+  end
+
+  # Agrupa por organização, porque quem procura repositório pensa por organização —
+  # e com 160 numa lista plana ninguém acha nada.
+  defp por_organizacao(repos, nomes_de_org) do
+    repos
+    |> Enum.group_by(& &1.organization_id)
+    |> Enum.map(fn {org_id, lista} ->
+      {nomes_de_org[org_id] || "sem organização", Enum.sort_by(lista, & &1.name)}
+    end)
+    |> Enum.sort_by(&elem(&1, 0))
   end
 
   defp data(""), do: nil
@@ -225,23 +311,88 @@ defmodule TheBandWeb.ProjectsLive.Index do
                 </li>
               </ul>
 
-              <%!-- `id` por projeto: sem ele o LiveView avisa que não consegue recuperar
-                    o formulário, e dois formulários iguais na mesma página ficam
-                    indistinguíveis para quem os aciona. --%>
-              <form
-                id={"associar-#{p.id}"}
-                phx-submit="associar"
-                class="mt-2 flex flex-wrap gap-2"
+              <.button
+                :if={@picker != p.id}
+                phx-click="abrir_picker"
+                phx-value-project_id={p.id}
+                class="btn-outline btn-sm mt-2"
               >
-                <input type="hidden" name="project_id" value={p.id} />
-                <select name="repository_id" class="select select-sm select-bordered">
-                  <option value="">choose a repository…</option>
-                  <option :for={o <- @observados} value={o.observed_repository_id}>
-                    {o.name}
-                  </option>
-                </select>
-                <.button type="submit" class="btn-outline btn-sm">Associate</.button>
-              </form>
+                Associate repositories
+              </.button>
+
+              <%!-- O seletor: busca, agrupamento por organização e escolha múltipla.
+                    Com 160 repositórios observados, um `<select>` simples obrigaria a
+                    rolar a lista inteira e a reabrir o formulário a cada escolha. --%>
+              <div :if={@picker == p.id} class="mt-2 rounded-lg border border-base-300 p-3">
+                <form id={"buscar-#{p.id}"} phx-change="buscar_repo" class="flex gap-2">
+                  <input
+                    name="busca"
+                    value={@busca}
+                    placeholder="search by name or organisation…"
+                    autocomplete="off"
+                    phx-debounce="150"
+                    class="input input-sm input-bordered w-full"
+                  />
+                </form>
+
+                <% disponiveis = disponiveis(assigns, p.id) %>
+
+                <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-base-content/70">
+                  <span>{length(disponiveis)} available</span>
+                  <span :if={MapSet.size(@marcados) > 0} class="font-medium text-base-content">
+                    {MapSet.size(@marcados)} selected
+                  </span>
+                  <button
+                    :if={disponiveis != []}
+                    phx-click="marcar_visiveis"
+                    phx-value-project_id={p.id}
+                    class="link link-hover"
+                  >
+                    select all shown
+                  </button>
+                </div>
+
+                <p :if={disponiveis == []} class="mt-2 text-sm opacity-70">
+                  <%!-- "Nada encontrado" e "tudo já associado" são coisas diferentes, e
+                        a frase precisa dizer qual das duas é. --%>
+                  {if @busca == "",
+                    do: "Every observed repository is already associated with this project.",
+                    else: "No repository matches this search."}
+                </p>
+
+                <div class="mt-2 max-h-72 space-y-3 overflow-y-auto">
+                  <div :for={{org, repos} <- por_organizacao(disponiveis, @nomes_de_org)}>
+                    <div class="text-xs font-semibold uppercase tracking-wide opacity-60">
+                      {org} <span class="font-normal opacity-70">{length(repos)}</span>
+                    </div>
+                    <label
+                      :for={r <- repos}
+                      class="flex cursor-pointer items-center gap-2 py-0.5 text-sm hover:bg-base-300"
+                    >
+                      <input
+                        type="checkbox"
+                        class="checkbox checkbox-xs"
+                        checked={MapSet.member?(@marcados, r.observed_repository_id)}
+                        phx-click="alternar"
+                        phx-value-repository_id={r.observed_repository_id}
+                      />
+                      <span class="font-mono text-xs">{r.name}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex gap-2">
+                  <.button
+                    phx-click="associar_marcados"
+                    phx-value-project_id={p.id}
+                    disabled={MapSet.size(@marcados) == 0}
+                    class="btn-primary btn-sm"
+                  >
+                    Associate {MapSet.size(@marcados)}
+                  </.button>
+                  <.button phx-click="fechar_picker" class="btn-ghost btn-sm">Cancel</.button>
+                </div>
+              </div>
             </div>
 
             <div>
