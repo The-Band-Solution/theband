@@ -49,6 +49,42 @@ concepts:
     attributes:
       - { name: start_date, type: datetime, required: false }
       - { name: end_date, type: datetime, required: false }
+    identity_criterion:
+      form: external
+      components:
+        - tenant_id
+        - source_system
+        - source_instance
+        - source_external_id
+      nullable_components: []
+      inherited_by_subtypes: true
+      note: >
+        Forma external, e não composite_hash — diferente de
+        spo.performed_project_activity, cuja origem não dá identificador ao evento
+        de timeline. A iteração do Projects v2 tem identificador próprio, e usá-lo é
+        o que protege a identidade das edições que a origem permite.
+
+        title, start_date e duration são EDITÁVEIS: alguém renomeia "Sprint 38",
+        corrige a data de início, ajusta a duração. Um hash sobre eles trocaria a
+        identidade a cada correção, e a coleta seguinte criaria uma caixa órfã ao
+        lado da antiga em vez de reconhecer a mesma.
+
+        end_date fica fora por dois motivos que se somam: a origem não o fornece —
+        ele é derivado de início mais duração — e incluí-lo repetiria o defeito que
+        a nota de spo.performed_project_activity já descreve, de o hash mudar quando
+        a atividade encerra.
+
+        Verificado contra a API em 2026-08-15: a iteração tem `id` próprio — o
+        `Sprint 40` do quadro DevOps é `d8d2574c`. A suposição foi conferida antes de
+        a coleta ser escrita, e não depois.
+
+        O id é curto e **local ao campo**, e não um identificador global: o
+        source_external_id compõe campo e iteração, senão dois campos do mesmo quadro
+        podem colidir.
+
+        Este critério é decisão da plataforma, tomada em 2026-08-15 na feature 024:
+        a tese descreve o conceito de Sprint sem dizer como identificá-lo numa
+        ferramenta.
 
   - id: sro.ceremony
     name: Ceremony

@@ -29,6 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.GithubSprints
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -147,11 +148,28 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   defp coletar_trabalho(ctx) do
     case GithubWorkItems.collect(ctx) do
       {:ok, resumo} ->
-        resumo
+        Map.merge(resumo, coletar_caixas_de_tempo(ctx))
 
       {:error, reason} ->
         Logger.warning("coleta de repositórios e issues falhou: #{inspect(reason)}")
         %{repositories: 0, issues: 0, error: reason}
+    end
+  end
+
+  # **Depois das issues**, e a ordem é dependência de dado: o vínculo entre issue e
+  # caixa de tempo precisa da issue gravada, e ela vem da fase anterior.
+  #
+  # Falhar aqui não derruba o que já foi coletado, pelo mesmo motivo da fase de
+  # trabalho: repositórios e issues já estão no banco, e perdê-los por causa de uma
+  # falha nos quadros seria pior que registrar a falha.
+  defp coletar_caixas_de_tempo(ctx) do
+    case GithubSprints.collect(ctx) do
+      {:ok, resumo} ->
+        resumo
+
+      {:error, reason} ->
+        Logger.warning("coleta de caixas de tempo falhou: #{inspect(reason)}")
+        %{sprints: 0, links: 0, sprints_error: reason}
     end
   end
 

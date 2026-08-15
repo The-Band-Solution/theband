@@ -1,0 +1,48 @@
+# As caixas de tempo declaradas pelos quadros da organização — feature 024.
+#
+# **Medido em 2026-08-15**: 11 de 26 quadros têm campo de iteração, 15 campos no total,
+# e esta consulta custou **1 ponto** de cota para os 26.
+#
+# `iterations` e `completedIterations` vêm os dois: a origem separa em curso de
+# concluída, e pedir só um perderia metade da história. O DevOps tem 32 concluídas.
+#
+# A duração vem **por iteração**, e não só na configuração do campo. É de propósito:
+# `Sprint 10` tem 3 dias num campo configurado para 14, e gravar a do campo faria a
+# série mentir sobre o período coberto.
+query($organization: String!) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    projectsV2(first: 20) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        number
+        title
+        fields(first: 30) {
+          nodes {
+            __typename
+            # Só o campo de iteração interessa aqui. Os outros tipos de campo vêm no
+            # `nodes` e são ignorados — pedir `itemTypes` não existe para `fields`.
+            # **Verificado em 2026-08-15**: a iteração TEM `id` próprio — `d8d2574c` para
+            # o `Sprint 40`. É isso que sustenta a identidade externa em vez de hash de
+            # atributos, e por isso foi conferido antes de escrever a coleta.
+            #
+            # Mas o id é curto e **local ao campo**, e não um node ID global. O
+            # `source_external_id` precisa ser o par `campo:iteração`, senão dois campos
+            # do mesmo quadro podem colidir.
+            ... on ProjectV2IterationField {
+              id
+              name
+              configuration {
+                duration
+                iterations { id title startDate duration }
+                completedIterations { id title startDate duration }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

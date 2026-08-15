@@ -1,0 +1,36 @@
+# Os itens de um quadro, com os valores de campo de iteração — feature 024.
+#
+# **Segunda passada**, e ela depende da primeira: o vínculo precisa do `sprint_id`, que
+# só existe depois de a caixa estar gravada.
+#
+# Medido em 2026-08-15: o DevOps tem 677 itens, sete páginas de 100. Dos 26 quadros, só
+# os 11 com campo de iteração chegam aqui — os outros não têm o que associar, e
+# consultá-los seria gasto sem resposta.
+query($organization: String!, $number: Int!, $page_size: Int = 100, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    projectV2(number: $number) {
+      items(first: $page_size, after: $after) {
+        totalCount
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          # Item que não é issue — rascunho do próprio Projects, ou pull request — vem
+          # com `content` de outro tipo, e o `... on Issue` deixa o id nulo. Quem
+          # consome descarta, e **não** inventa issue.
+          content { ... on Issue { id } }
+          fieldValues(first: 20) {
+            nodes {
+              ... on ProjectV2ItemFieldIterationValue {
+                title
+                startDate
+                duration
+                field { ... on ProjectV2IterationField { name } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
