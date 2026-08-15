@@ -78,8 +78,11 @@ defmodule TheBand.Ontology.Continuum.SRO.Commands do
   execução nunca olhou, que é a **L19** — na feature 020 o mesmo descuido teria marcado
   4261 vínculos falsos.
 
-  Lista vazia devolve zero sem tocar em nada: um sprint sem issue observada nesta
-  execução pode ser um sprint que a coleta não percorreu.
+  **Lista vazia marca tudo**, e é deliberado: um sprint que foi percorrido e não tem
+  mais issue alguma é ausência real. Quem sabe se percorreu é quem chama — se a
+  consulta dos itens falhou, o chamador não deve chamar esta função.
+
+  A guarda no lugar errado esconderia o esvaziamento de um sprint para sempre.
   """
   @spec mark_issues_no_longer_in_sprint(
           Tenant.t(),
@@ -87,8 +90,6 @@ defmodule TheBand.Ontology.Continuum.SRO.Commands do
           [Ecto.UUID.t()],
           DateTime.t()
         ) :: {:ok, non_neg_integer()}
-  def mark_issues_no_longer_in_sprint(%Tenant{}, _sprint_id, [], _desde), do: {:ok, 0}
-
   def mark_issues_no_longer_in_sprint(%Tenant{id: tenant_id}, sprint_id, observadas, desde) do
     {quantos, _} =
       from(v in SprintIssue,

@@ -190,7 +190,7 @@ defmodule TheBand.Ontology.Continuum.SRO.SprintTest do
       assert length(SRO.list_sprint_issues(ctx.tenant, sprint.id)) == 1
     end
 
-    test "lista vazia de observadas não marca nada", ctx do
+    test "lista vazia marca tudo, porque o sprint esvaziou", ctx do
       {:ok, sprint} = SRO.record_sprint(ctx.tenant, caixa(ctx))
       issue = ctx.cenario.issues[1].pai
       {:ok, _} = SRO.place_issue_in_sprint(ctx.tenant, sprint.id, issue.id)
@@ -198,13 +198,19 @@ defmodule TheBand.Ontology.Continuum.SRO.SprintTest do
       {:ok, marcados} =
         SRO.mark_issues_no_longer_in_sprint(ctx.tenant, sprint.id, [], DateTime.utc_now(:second))
 
-      assert marcados == 0, """
-      Uma execução que não observou issue alguma marcou todas como ausentes.
+      assert marcados == 1, """
+      O sprint que foi percorrido e ficou sem issue alguma não teve os vínculos marcados.
 
-      Sprint sem issue observada nesta execução pode ser sprint que a coleta não
-      percorreu — é a L19, e na feature 020 o mesmo descuido teria marcado 4261
-      vínculos falsos.
+      Lista vazia aqui é ausência **real**, e não "não olhei". A guarda que devolvia
+      zero escondia o esvaziamento de um sprint para sempre.
+
+      **Quem sabe se percorreu é quem chama**: a coleta só chama esta função quando a
+      consulta dos itens voltou. Se ela falhar, o chamador não chama — e é lá que a
+      distinção mora, porque é lá que ela é conhecível.
       """
+
+      assert Repo.aggregate(SprintIssue, :count) == 1
+      assert SRO.list_sprint_issues(ctx.tenant, sprint.id) == []
     end
 
     test "a issue que volta ao sprint tem a marca limpa", ctx do

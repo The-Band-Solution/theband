@@ -163,6 +163,23 @@ defmodule TheBand.WorkItems.Queries do
   end
 
   @doc """
+  Mapa de `external_id` da origem para o id interno da issue.
+
+  Uma consulta para o tenant inteiro, e não uma por item de quadro: o DevOps tem 677
+  itens, e resolver um a um seria o N+1 que a feature 007 pagou com 135 consultas por
+  render.
+  """
+  @spec issue_ids_by_external_id(Tenant.t()) :: %{String.t() => Ecto.UUID.t()}
+  def issue_ids_by_external_id(%Tenant{id: tenant_id}) do
+    Repo.all(
+      from i in CollectedIssue,
+        where: i.tenant_id == ^tenant_id and not is_nil(i.external_id),
+        select: {i.external_id, i.id}
+    )
+    |> Map.new()
+  end
+
+  @doc """
   Em quais repositórios a pessoa aparece, e **por qual evidência**.
 
   Uma consulta agrupada, com as **duas** contagens por repositório — designadas e abertas por ela

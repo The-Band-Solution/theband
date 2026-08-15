@@ -58,6 +58,7 @@ defmodule TheBand.WorkItems do
   defdelegate count_assigned_to(tenant, person_id), to: Queries
   defdelegate count_authored_by(tenant, person_id), to: Queries
   defdelegate repositories_of_person(tenant, person_id), to: Queries
+  defdelegate issue_ids_by_external_id(tenant), to: Queries
 
   # O painel da pessoa (feature 023). Módulo próprio porque responde outra pergunta: as
   # leituras acima descrevem a issue, estas descrevem o trabalho de alguém ao longo do tempo.
