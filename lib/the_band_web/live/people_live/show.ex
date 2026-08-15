@@ -36,6 +36,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
+  alias TheBandWeb.WorkCharts
 
   @por_pagina 25
 
@@ -88,6 +89,7 @@ defmodule TheBandWeb.PeopleLive.Show do
     pagina = estado.pagina
 
     repositorios = WorkItems.repositories_of_person(tenant, pessoa.id)
+    cobertura = WorkItems.timeline_coverage(tenant, pessoa.id)
 
     socket
     |> assign(
@@ -117,6 +119,17 @@ defmodule TheBandWeb.PeopleLive.Show do
       # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
       # afirmaria páginas que a busca não tem.
       designadas: WorkItems.count_assigned_to(tenant, pessoa.id),
+      # O painel da pessoa — feature 023.
+      #
+      # `timeline_coverage/2` devolve o par de uma vez, e não em duas chamadas para pegar
+      # cada metade: ela já consulta duas vezes por dentro, e chamá-la duas vezes dobraria
+      # isso. O teste-guarda de custo desta tela conta consultas por render.
+      designadas_abertas: elem(cobertura, 1),
+      cobertura_observada: elem(cobertura, 0),
+      cobertura_total: elem(cobertura, 1),
+      meses: WorkItems.closed_by_month(tenant, pessoa.id),
+      idades: WorkItems.open_age_buckets(tenant, pessoa.id),
+      lead_time: WorkItems.lead_time(tenant, pessoa.id),
       encontradas:
         WorkItems.count_collected(tenant, assigned_to: pessoa.id, search: estado.busca),
       abertas: WorkItems.count_authored_by(tenant, pessoa.id),
@@ -331,6 +344,87 @@ defmodule TheBandWeb.PeopleLive.Show do
               issue não necessariamente trabalha nela. --%>
         <section class="space-y-2">
           <h3 class="font-semibold">Work</h3>
+
+          <%!-- A cobertura vem ANTES de qualquer número derivado, e não como rodapé.
+                Medido em 2026-08-15: 5 de 53 repositórios têm timeline. Uma pessoa com 152
+                issues abertas podia ter nenhuma observada — e mostrar "0 atividades" ali
+                diria que ela não trabalhou, quando concluiu 199 no histórico. --%>
+          <.notice
+            :if={@cobertura_total > 0 and @cobertura_observada < @cobertura_total}
+            kind={:gap}
+            title={
+              if @cobertura_observada == 0,
+                do: "The platform has not collected the timeline for any of this person's open work.",
+                else: "The timeline covers part of this person's open work."
+            }
+          >
+            <p>
+              {@cobertura_observada} of {@cobertura_total} open issues are in repositories whose
+              timeline was collected.
+            </p>
+            <p class="mt-1 text-xs">
+              <strong>The two charts below do not depend on this.</strong>
+              They come from the issue's own dates, which have full coverage. What is missing is the
+              sequence of movements — and that is what cycle time would need.
+            </p>
+          </.notice>
+
+          <div class="grid gap-4 lg:grid-cols-3">
+            <div class="card bg-base-200 lg:col-span-2">
+              <div class="card-body gap-2 p-4">
+                <h4 class="text-sm font-medium">
+                  Issues completed over time
+                  <span class="opacity-60">{@lead_time && @lead_time.count} in total</span>
+                </h4>
+                <p :if={@meses == []} class="text-xs text-base-content/60">
+                  This person has not closed any issue the platform has seen.
+                </p>
+                <WorkCharts.por_mes :if={@meses != []} serie={@meses} />
+                <p class="text-xs text-base-content/60">
+                  Counted by close date, from the issue itself — it does not depend on the timeline.
+                </p>
+              </div>
+            </div>
+
+            <div class="card bg-base-200">
+              <div class="card-body gap-2 p-4">
+                <h4 class="text-sm font-medium">
+                  Age of open work <span class="opacity-60">{@designadas_abertas} open</span>
+                </h4>
+                <p :if={@designadas_abertas == 0} class="text-xs text-base-content/60">
+                  Nothing assigned and open right now.
+                </p>
+                <WorkCharts.por_faixa :if={@designadas_abertas > 0} faixas={@idades} />
+                <p class="text-xs text-base-content/60">
+                  Days since the issue was created. The only forward-looking measure here — the
+                  others count the past, this one shows what is sitting still now.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div :if={@lead_time} class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h4 class="text-sm font-medium">Lead time of completed issues</h4>
+              <div class="flex flex-wrap gap-8">
+                <.metric label="median" value={"#{@lead_time.median}d"} sub="half closed faster" />
+                <.metric label="p85" value={"#{@lead_time.p85}d"} sub="the slow tail" />
+                <.metric label="issues" value={@lead_time.count} sub="closed and counted" />
+              </div>
+              <%!-- Lead time e cycle time NÃO são a mesma coisa, e a tela diz isso onde o
+                    número aparece — não numa nota de rodapé que ninguém lê. --%>
+              <p class="text-xs text-base-content/60">
+                <strong>This is lead time, not cycle time.</strong>
+                It counts from creation to close, including the time nobody touched the issue. Cycle
+                time needs to know when work started, and that decision has not been made — swapping
+                one for the other would have you decide on a number that answers a different question.
+              </p>
+              <p class="text-xs text-base-content/60">
+                Median and p85, never the mean: one issue sitting for 400 days moves the mean and
+                leaves the median where it is.
+              </p>
+            </div>
+          </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="card bg-base-200">

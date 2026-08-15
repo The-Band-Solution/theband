@@ -234,9 +234,18 @@ defmodule TheBandWeb.PersonDetailTest do
 
       acrescentadas = div(poucas - lista, 2)
 
-      assert acrescentadas <= 8, """
-      A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e o plano
-      declara **oito**.
+      # **A linha de base subiu de 8 para 12, e as quatro têm nome.**
+      #
+      # A feature 023 acrescentou quatro medidas à seção de trabalho, e cada uma é uma
+      # consulta: cobertura da timeline, concluídas por mês, idade do trabalho aberto e lead
+      # time. A cobertura devolve observadas e total **numa consulta só** — em duas ela seria
+      # a quinta.
+      #
+      # Subir o teto sem essa conta seria enfraquecer o gate. O que o mantém honesto é o
+      # número ser medido e cada acréscimo ser nomeado: 8 + 4, e nada sobrando.
+      assert acrescentadas <= 12, """
+      A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
+      linha de base medida é **doze** — oito da tela original mais quatro do painel.
 
       A conta: `live/2` faz dois renders, então a diferença total (#{poucas} − #{lista}) é dividida
       por dois. "Um número que não cresce" passa com 8 e passa com 80 — por isso o teto é asserido.
