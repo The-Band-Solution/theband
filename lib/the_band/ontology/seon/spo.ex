@@ -29,6 +29,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   """
 
   alias TheBand.Ontology.SEON.SPO.Commands
+  alias TheBand.Ontology.SEON.SPO.Projects
   alias TheBand.Ontology.SEON.SPO.Queries
 
   # ------------------------------------------------------------------- escritas
@@ -47,4 +48,21 @@ defmodule TheBand.Ontology.SEON.SPO do
   # existe porque a tela precisa das duas listas no mesmo render — sem ela o render
   # subia de 36 para 48 consultas.
   defdelegate cycle_time(tenant_ou_atividades, issue_id_ou_estados), to: Queries
+
+  # ------------------------------------------------------ o projeto (feature 025)
+  #
+  # Projeto é **declaração**, e não observação — por isso `create_project/3` exige autor
+  # e não existe caminho de coleta que o crie.
+
+  defdelegate create_project(tenant, attrs, actor_id), to: Projects
+  defdelegate set_parent(tenant, project_id, parent_id), to: Projects
+  defdelegate clear_parent(tenant, project_id), to: Projects
+  defdelegate link_repository(tenant, project_id, observed_repository_id, actor_id), to: Projects
+  defdelegate unlink_repository(tenant, vinculo_id, actor_id), to: Projects
+
+  defdelegate list_projects(tenant), to: Projects
+  defdelegate fetch_project(tenant, id), to: Projects
+  defdelegate list_project_repositories(tenant, project_id), to: Projects
+  defdelegate list_project_issues(tenant, project_id, opts \\ []), to: Projects
+  defdelegate count_project_issues(tenant, project_id), to: Projects
 end
