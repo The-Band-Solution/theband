@@ -143,19 +143,58 @@ defmodule TheBandWeb.ProjetosTest do
   end
 
   describe "os repositórios e as issues" do
-    test "associar traz as issues do repositório", ctx do
+    test "associar vários de uma vez traz as issues", ctx do
       p = projeto(ctx, "Conecta Fapes")
       {:ok, live, _html} = live(ctx.conn, ~p"/projects")
 
-      html =
-        live
-        |> form("#associar-#{p.id}", %{
-          "repository_id" => ctx.cenario.observed_repository_id
-        })
-        |> render_submit()
+      live |> element("button", "Associate repositories") |> render_click()
+
+      live
+      |> element("input[phx-value-repository_id='#{ctx.cenario.observed_repository_id}']")
+      |> render_click()
+
+      html = live |> element("button", "Associate 1") |> render_click()
 
       assert html =~ "issues from its own repositories"
       refute html =~ "No repository associated"
+    end
+
+    test "a busca filtra os repositórios", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, live, _html} = live(ctx.conn, ~p"/projects")
+      live |> element("button", "Associate repositories") |> render_click()
+
+      com_termo =
+        live |> form("#buscar-#{p.id}", %{"busca" => "nao-existe-isso"}) |> render_change()
+
+      assert com_termo =~ "No repository matches this search", """
+      A busca sem resultado não disse que foi a busca.
+
+      "Nada encontrado" e "tudo já associado" produzem a mesma lista vazia e pedem ações
+      diferentes: apagar o termo, ou nada.
+      """
+
+      refute com_termo =~ "theband"
+
+      sem_termo = live |> form("#buscar-#{p.id}", %{"busca" => "theband"}) |> render_change()
+      assert sem_termo =~ "theband"
+    end
+
+    test "o já associado sai da lista de disponíveis", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+
+      {:ok, _} =
+        SPO.link_repository(ctx.tenant, p.id, ctx.cenario.observed_repository_id, ctx.user.id)
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/projects")
+      html = live |> element("button", "Associate repositories") |> render_click()
+
+      assert html =~ "already associated with this project", """
+      A lista ofereceu um repositório que o projeto já tem.
+
+      Oferecer o que não faz nada é ruído, e com 160 repositórios o ruído é o que impede
+      achar o que falta.
+      """
     end
 
     test "projeto sem repositório diz que não alcança issue alguma", ctx do
