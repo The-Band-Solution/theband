@@ -124,7 +124,15 @@ defmodule TheBandWeb.ProcessLive.Index do
             <table :if={@estados != []} class="table table-sm mt-1">
               <tbody>
                 <tr :for={e <- @estados}>
-                  <td class="font-mono">{e.state}</td>
+                  <td class="font-mono">
+                    {e.state}
+                    <%!-- Caixa diferente é o MESMO estado, e a contagem já vem somada.
+                          Mostrar a variante é informação sobre o quadro: alguém digitou
+                          o estado à mão em algum momento. --%>
+                    <span :if={e.variants != []} class="ml-1 text-xs opacity-50">
+                      also written {Enum.join(e.variants, ", ")}
+                    </span>
+                  </td>
                   <td class="w-20 text-right opacity-70">{e.count}</td>
                 </tr>
               </tbody>

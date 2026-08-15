@@ -35,38 +35,39 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
   tempo em que ninguém tocou na issue, e trocá-las em silêncio faria a organização
   decidir sobre um número que responde outra pergunta — FR-009.
 
-  As três causas de `:no_start_signal` **não se resolvem no mesmo lugar**, e por isso
-  são valores distintos:
+  As causas **não se resolvem no mesmo lugar**, e por isso são valores distintos:
 
     * `:no_movement_collected` — a plataforma não olhou; resolve-se coletando;
-    * `:no_state_means_in_progress` — o quadro não tem estado de andamento, e aí a
-      medida é impossível para **toda** issue dele (`process.ap05`); resolve-se no quadro;
-    * `:no_start_rule_declared` — há movimentação e ninguém declarou qual marca o
-      início; resolve-se declarando, e a plataforma recusa escolher sozinha (FR-007).
+    * `:no_state_means_in_progress` — o **quadro** não tem estado de andamento, e aí a
+      medida é impossível para toda issue dele (`process.ap05`); resolve-se no quadro;
+    * `:issue_never_reached_in_progress` — o quadro tem o estado, e **esta** issue não
+      passou por ele: foi da espera direto para o fim;
+    * `:no_start_rule_declared` — há movimentação por estado de andamento e ninguém
+      declarou qual marca o início; a plataforma recusa escolher sozinha (FR-007).
 
-  Achatá-las numa só seria a L57: três lacunas diferentes com a mesma cara.
+  Achatá-las seria a L57: lacunas diferentes com a mesma cara. E a segunda contra a
+  terceira é a que mais engana — afirmar que o quadro não tem estado de andamento
+  porque **uma** issue não passou por um é dizer do todo o que se observou da parte.
+
+  Aceita `(tenant, issue_id)`, que consulta, ou `(atividades, estados_do_quadro)` já
+  carregados — a tela usa a segunda para não recarregar o que acabou de ler.
   """
   @spec cycle_time(Tenant.t(), Ecto.UUID.t()) ::
           {:ok, integer()}
           | {:error,
              :no_movement_collected | :no_state_means_in_progress | :no_start_rule_declared}
   def cycle_time(%Tenant{} = tenant, issue_id) do
-    cycle_time(list_activities(tenant, "issue", issue_id))
+    cycle_time(list_activities(tenant, "issue", issue_id), count_board_states(tenant))
   end
 
-  @doc """
-  A mesma resposta, sobre atividades **já carregadas**.
-
-  Existe por medida, e não por gosto: a tela da issue precisa da sequência, do cycle
-  time e da detecção de antipadrão no mesmo render, e as três se respondem com a mesma
-  lista. Sem esta variante o render carregava as atividades três vezes, e o teste-guarda
-  da feature 007 pegou — 48 consultas contra 39.
-  """
-  @spec cycle_time([Activity.t()]) ::
+  @spec cycle_time([Activity.t()], [%{state: String.t(), count: pos_integer()}]) ::
           {:ok, integer()}
           | {:error,
-             :no_movement_collected | :no_state_means_in_progress | :no_start_rule_declared}
-  def cycle_time(atividades) when is_list(atividades) do
+             :no_movement_collected
+             | :no_state_means_in_progress
+             | :issue_never_reached_in_progress
+             | :no_start_rule_declared}
+  def cycle_time(atividades, estados_do_quadro) when is_list(atividades) do
     movimentacoes =
       Enum.filter(atividades, &(&1.activity_type == "ProjectV2ItemStatusChangedEvent"))
 
@@ -74,8 +75,16 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
       movimentacoes == [] ->
         {:error, :no_movement_collected}
 
-      not Enum.any?(movimentacoes, &estado_de_andamento?/1) ->
+      # **A condição do quadro é avaliada com os estados do QUADRO**, e nunca com as
+      # movimentações desta issue. Uma issue que percorreu `Backlog → Ready → In review
+      # → Done` não passou por estado de andamento — e isso não autoriza afirmar que o
+      # quadro não tem um. Medido em 2026-08-15: a issue #1 é assim, e o quadro dela
+      # tem `In Progress` com 37 movimentações.
+      not Enum.any?(estados_do_quadro, &andamento?(&1.state)) ->
         {:error, :no_state_means_in_progress}
+
+      not Enum.any?(movimentacoes, &estado_de_andamento?/1) ->
+        {:error, :issue_never_reached_in_progress}
 
       true ->
         {:error, :no_start_rule_declared}
@@ -140,7 +149,9 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
   origem, e promovê-lo a coluna exigiria decidir o vocabulário — que é justamente a
   decisão que a plataforma recusa tomar sozinha.
   """
-  @spec count_board_states(Tenant.t()) :: [%{state: String.t(), count: pos_integer()}]
+  @spec count_board_states(Tenant.t()) :: [
+          %{state: String.t(), count: pos_integer(), variants: [String.t()]}
+        ]
   def count_board_states(%Tenant{id: tenant_id}) do
     Repo.all(
       from a in Activity,
@@ -154,9 +165,29 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
     # descartá-la aqui é correto, e é diferente de descartar o evento — ele já está
     # gravado inteiro.
     |> Enum.reject(&(is_nil(&1) or &1 == ""))
-    |> Enum.frequencies()
-    |> Enum.map(fn {estado, contagem} -> %{state: estado, count: contagem} end)
+    # **Caixa não é diferença de significado.** `In Progress` e `In progress` são o
+    # mesmo estado digitado de dois jeitos, e contá-los separado parte a medida: medido
+    # em 2026-08-15, quem contasse "em andamento" acharia 19 onde existem 37.
+    #
+    # Isto é diferente do `ap06`, que compara ignorando também separador: `To Do` e
+    # `Todo` continuam dois estados até alguém confirmar que são um, porque ali a
+    # diferença **pode** ser real.
+    |> Enum.group_by(&String.downcase/1)
+    |> Enum.map(fn {_chave, grafias} -> agrupar(grafias) end)
     |> Enum.sort_by(& &1.count, :desc)
+  end
+
+  # A grafia exibida é a mais frequente, e as outras ficam registradas: esconder que a
+  # origem escreve o mesmo estado de dois jeitos apagaria um problema real do quadro.
+  defp agrupar(grafias) do
+    por_grafia = Enum.frequencies(grafias)
+    {principal, _} = Enum.max_by(por_grafia, fn {_g, n} -> n end)
+
+    %{
+      state: principal,
+      count: length(grafias),
+      variants: por_grafia |> Map.keys() |> Enum.reject(&(&1 == principal)) |> Enum.sort()
+    }
   end
 
   @doc """

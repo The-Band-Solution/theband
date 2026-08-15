@@ -540,6 +540,9 @@ defmodule TheBandWeb.WorkItemLive.Show do
   defp falta({:error, :no_state_means_in_progress}),
     do: "This board has no state that means work in progress."
 
+  defp falta({:error, :issue_never_reached_in_progress}),
+    do: "This issue never reached a state that means work in progress."
+
   defp falta({:error, :no_start_rule_declared}),
     do: "Nobody has declared which movement marks the start of work."
 
@@ -553,6 +556,11 @@ defmodule TheBandWeb.WorkItemLive.Show do
       "This is a structural anti-pattern (process.ap05), and it makes cycle time impossible " <>
         "for every issue on this board — not just this one. It is fixed on the board, by " <>
         "adding a state that means work in progress, and only for issues moved after that."
+
+  defp como_resolver({:error, :issue_never_reached_in_progress}),
+    do:
+      "The board does have such a state, so this is about this issue and not about the board: " <>
+        "it went from waiting straight to finished, and no instant marks when the work began."
 
   defp como_resolver({:error, :no_start_rule_declared}),
     do:
@@ -589,6 +597,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
   defp carregar(socket, issue) do
     tenant = socket.assigns.current_tenant
     atividades = SPO.list_activities(tenant, "issue", issue.id)
+    # Os estados do QUADRO, e não os desta issue: a condição do `ap05` é sobre o quadro,
+    # e avaliá-la com as movimentações de uma issue afirmaria que o quadro não tem estado
+    # de andamento sempre que a issue não passou por um.
+    estados_do_quadro = SPO.count_board_states(tenant)
     pai = WorkItems.fetch_parent(tenant, issue.id)
     repositorio = repositorio(tenant, issue.observed_repository_id)
     nomes = nomes(tenant, issue)
@@ -625,7 +637,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
       # antipadrão saem todos desta lista; carregá-la por consumidor fazia o render subir
       # de 39 para 48 consultas, e o teste-guarda da feature 007 pegou.
       timeline: atividades,
-      cycle_time: SPO.cycle_time(atividades),
+      cycle_time: SPO.cycle_time(atividades, estados_do_quadro),
       antipadroes: antipadroes(issue, atividades)
     )
     |> assign(onde(tenant, repositorio, issue))

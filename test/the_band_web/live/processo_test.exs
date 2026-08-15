@@ -123,6 +123,43 @@ defmodule TheBandWeb.ProcessoTest do
     end
   end
 
+  describe "caixa diferente é o mesmo estado" do
+    test "In Progress e In progress somam numa linha só", ctx do
+      movimentacao(ctx.tenant, "", "In Progress", ~U[2026-08-10 09:00:00Z])
+      movimentacao(ctx.tenant, "", "In progress", ~U[2026-08-11 09:00:00Z])
+      movimentacao(ctx.tenant, "", "In Progress", ~U[2026-08-12 09:00:00Z])
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/process")
+
+      # Medido em 2026-08-15 no banco real: `In Progress` 19 e `In progress` 18. Quem
+      # contasse "em andamento" acharia 19 onde existem 37 — errado para menos, e
+      # plausível.
+      assert html =~ "also written", """
+      As duas grafias do mesmo estado não foram somadas.
+
+      Caixa não é diferença de significado. Contá-las separado parte a medida, e o
+      número menor parece razoável — que é o pior tipo de erro.
+      """
+
+      estados = SPO.count_board_states(ctx.tenant)
+      assert [%{state: "In Progress", count: 3, variants: ["In progress"]}] = estados
+    end
+
+    test "o quadro com In progress minúsculo não é acusado de ap05", ctx do
+      movimentacao(ctx.tenant, "", "Backlog", ~U[2026-08-10 09:00:00Z])
+      movimentacao(ctx.tenant, "Backlog", "In progress", ~U[2026-08-11 09:00:00Z])
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/process")
+
+      refute html =~ "process.ap05", """
+      O reconhecimento de "em andamento" falhou por causa da caixa.
+
+      A comparação é em minúsculo justamente para isto: a origem escreve o estado como
+      quem digitou escreveu, e a plataforma não pode depender disso.
+      """
+    end
+  end
+
   describe "os estados que podem duplicar significado" do
     test "To Do e Todo são apontados, sem a plataforma decidir", ctx do
       movimentacao(ctx.tenant, "", "To Do", ~U[2026-08-10 09:00:00Z])
