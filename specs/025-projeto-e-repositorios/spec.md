@@ -31,33 +31,50 @@ O que **não** existe, e a feature inteira depende:
 |---|---|
 | **`spo.simple_project`** | `phase` de `spo.project` — projeto que não é decomposto em outros |
 | **`spo.complex_project`** | `phase` de `spo.project` — projeto composto de outros |
-| **projeto complexo composto de projeto** | parte-todo, alvo `spo.project`, **recursiva** |
+| **projeto complexo composto de projeto** | parte-todo, alvo `spo.project`, **recursiva**, **um pai** |
 | **regra: hierarquia de projeto é acíclica** | espelho de `sro.rule04` |
 | **projeto agrupa repositório** | associação muitos-para-muitos, declarada por pessoa |
 
-### Simples e complexo são **fases**, e a distinção não é minha
+### Simples e complexo são fases, e o espelho é literal
 
-Decisão da pessoa mantenedora em 2026-08-15: *"um projeto complexo é composto por projetos
-simples"*. A rede já resolveu exatamente esta forma para user story, e o espelho é literal:
+Decisão da pessoa mantenedora em 2026-08-15. A rede já resolveu esta forma para user story:
 
 | SRO | Aqui |
 |---|---|
-| `sro.atomic_user_story` — *"user story que não é decomposta em outras"*, `phase` | `spo.simple_project` |
-| `sro.epic` — *"user story composta de outras"*, `phase` | `spo.complex_project` |
+| `sro.user_story` — `kind` | `spo.project` — `kind`, dá a identidade |
+| `sro.atomic_user_story` — *"não é decomposta em outras"*, `phase` | `spo.simple_project` |
+| `sro.epic` — *"composta de outras"*, `phase` | `spo.complex_project` |
 | `sro.epic_composed_of_user_story` — alvo é **user story**, logo recursiva | projeto composto de **projeto** |
 | `sro.rule04.epic_hierarchy_is_acyclic` | a mesma regra, para projeto |
 
-**`phase`, e não subkind, é o ponto.** A definição de `sro.epic` diz: *"ser épico não é rótulo
-atribuído, e sim consequência de ter partes — uma user story sem partes não é épico, ainda que a
-ferramenta a chame assim"*.
+**Fase é o que sustenta o comportamento pedido.** A definição de `sro.epic` diz: *"ser épico não
+é rótulo atribuído, e sim consequência de ter partes — uma user story sem partes não é épico,
+ainda que a ferramenta a chame assim"*.
 
-Vale igual: **ninguém cadastra um projeto complexo.** Cadastra-se um projeto, e ele **vira**
-complexo ao ganhar a primeira parte — e volta a simples se perdê-la.
+Vale igual, e foi assim que a pessoa mantenedora descreveu: **ninguém cadastra um projeto
+complexo.** Cadastra-se um projeto, e ele **vira** complexo ao ganhar a primeira parte, e volta
+a simples se perdê-la. O formulário não pergunta o tipo, porque antes das partes a pergunta não
+tem resposta.
 
-**A composição é recursiva**, e não de dois níveis: um projeto complexo pode conter outro
-complexo, em qualquer profundidade, exatamente como épico compõe épico. É o que permite
-`Conecta Fapes → Backend → Pagamentos`, e é o que torna o axioma acíclico **obrigatório** — sem
-ele a travessia até as issues não termina.
+Kind não serviria: kind é rígido e dá identidade, então um projeto que perdesse a última parte
+teria de **deixar de existir** para virar simples. Fase é anti-rígida, e é por isso que a
+transição preserva a identidade — mesmo projeto, mesmo id, mesma história.
+
+**Na materialização, um enumerado derivado.** Uma tabela para o kind, com um discriminador entre
+as duas fases — o mesmo padrão que `cmpo.source_repository` já usa. E o valor **sai da estrutura**,
+nunca da digitação: gravado à mão, ele divergiria no primeiro dia, e a plataforma já tem postura
+para esse caso na regra de roteamento — **estrutura vence a declaração**, com a divergência
+registrada em vez de silenciada.
+
+### Um pai, e o axioma continua obrigatório
+
+Decisão da pessoa mantenedora: **um subprojeto não pode ter dois pais.** Com a composição
+recursiva já decidida, a hierarquia é uma **árvore** — profundidade livre, um pai só — e cada
+issue conta **uma vez** no ancestral.
+
+**O axioma acíclico não fica dispensado por isso.** Um pai só não impede `A → B → C → A`: cada
+projeto teria exatamente um pai, e o ciclo existiria mesmo assim. Sem o axioma, a travessia até
+as issues não termina.
 
 **Isto não é detalhe de implementação.** Pelo princípio I da constituição, o domínio nasce das
 ontologias — uma tabela `projects` com `parent_id` inventado seria conceito entrando pela porta
@@ -193,10 +210,9 @@ repositórios dos dois, e que ele passou a constar como complexo.
    somá-las sem distinguir esconderia de onde o número veio.
 6. **Dado** uma tentativa de tornar um projeto parte de si mesmo, **direta ou indiretamente**,
    **quando** ela é feita, **então** a plataforma **recusa** e diz qual é o caminho do ciclo.
-7. **Dado** um projeto marcado como parte de dois pais diferentes, **quando** isso acontece,
-   **então** é aceito — a hierarquia é grafo acíclico, e não árvore. A contagem de issues do
-   ancestral diz **de qual caminho** cada issue veio, para a mesma issue sob dois pais não parecer
-   duas.
+7. **Dado** um projeto que já é parte de um pai, **quando** alguém tenta torná-lo parte de um
+   segundo, **então** a plataforma **recusa** e diz de quem ele já é parte. A hierarquia é
+   **árvore**: um pai só, e cada issue conta uma vez no ancestral.
 
 ---
 
@@ -250,6 +266,9 @@ repositórios dos dois, e que ele passou a constar como complexo.
   MUST NOT oferecer escolha de tipo no cadastro.
 - **FR-016**: A composição MUST ser recursiva: um projeto complexo MUST poder conter outro
   complexo, sem profundidade fixa.
+- **FR-016a**: Um projeto MUST ter **no máximo um** pai.
+- **FR-016b**: O discriminador entre simples e complexo MUST ser derivado de ter partes, e a
+  plataforma MUST NOT aceitá-lo como entrada.
 
 ### O que a plataforma recusa
 
@@ -309,10 +328,15 @@ repositórios dos dois, e que ele passou a constar como complexo.
 **Nenhum `[NEEDS CLARIFICATION]` em aberto.** A pergunta sobre profundidade foi decidida em
 2026-08-15: composição **recursiva**, espelhando `sro.epic_composed_of_user_story`.
 
-**A consequência aceita**: um subprojeto pode ter mais de um pai, e aí a mesma issue aparece em
-dois ancestrais. A US4 critério 7 exige que a tela diga **de qual caminho** cada issue veio —
-sem isso, a mesma issue sob dois pais pareceria duas, que é o defeito que a feature 023 já
-enfrentou com designação compartilhada.
+**Três decisões da pessoa mantenedora em 2026-08-15 fecharam o desenho**: composição recursiva,
+**um pai só** — logo uma árvore — e simples/complexo como **fases**, materializadas por um
+discriminador derivado da estrutura.
+
+A combinação é boa para as contagens: cada issue conta **uma vez** no ancestral, e o critério
+que exigiria dizer "de qual caminho" desapareceu.
+
+**Nada diverge da base.** O modelo espelha `sro.user_story` / `sro.epic` / `sro.atomic_user_story`
+exatamente como estão declarados hoje, inclusive nos estereótipos.
 
 **Decomposição**: as quatro user stories são atômicas — nenhuma tem partes, e cada uma tem
 critérios avaliáveis sobre um entregável. US1 a US3 formam a fatia vertical mínima: cadastro,
