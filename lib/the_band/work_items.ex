@@ -27,6 +27,7 @@ defmodule TheBand.WorkItems do
 
   alias TheBand.WorkItems.Axioms
   alias TheBand.WorkItems.Commands
+  alias TheBand.WorkItems.PersonWork
   alias TheBand.WorkItems.Queries
   alias TheBand.WorkItems.Routing
 
@@ -57,6 +58,15 @@ defmodule TheBand.WorkItems do
   defdelegate count_assigned_to(tenant, person_id), to: Queries
   defdelegate count_authored_by(tenant, person_id), to: Queries
   defdelegate repositories_of_person(tenant, person_id), to: Queries
+
+  # O painel da pessoa (feature 023). Módulo próprio porque responde outra pergunta: as
+  # leituras acima descrevem a issue, estas descrevem o trabalho de alguém ao longo do tempo.
+  defdelegate assigned_open_count(tenant, person_id), to: PersonWork
+  defdelegate timeline_coverage(tenant, person_id), to: PersonWork
+  defdelegate closed_by_month(tenant, person_id), to: PersonWork
+  defdelegate open_age_buckets(tenant, person_id), to: PersonWork
+  defdelegate lead_time(tenant, person_id), to: PersonWork
+  defdelegate issues_assigned_to(tenant, person_id), to: PersonWork
   defdelegate list_issues(tenant, opts \\ []), to: Queries
   defdelegate count_by_promotion(tenant, opts \\ []), to: Queries
   defdelegate count_gaps_by_reason(tenant, opts \\ []), to: Queries

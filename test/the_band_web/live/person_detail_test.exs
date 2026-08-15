@@ -234,9 +234,27 @@ defmodule TheBandWeb.PersonDetailTest do
 
       acrescentadas = div(poucas - lista, 2)
 
-      assert acrescentadas <= 8, """
-      A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e o plano
-      declara **oito**.
+      # **A linha de base subiu de 8 para 15, e as sete têm nome.**
+      #
+      # A feature 023 acrescentou o painel da pessoa, e cada medida é uma consulta:
+      #
+      #   1. cobertura da timeline — observadas e total **numa consulta só**;
+      #   2. concluídas por mês;
+      #   3. idade do trabalho aberto;
+      #   4. lead time;
+      #   5. as issues designadas, para a avaliação de antipadrão;
+      #   6. os designados delas, em lote;
+      #   7. as atividades delas, em lote.
+      #
+      # As três últimas são a US4, e o lote é o ponto: `detect/2` por issue seriam 152
+      # consultas numa pessoa real. **A asserção acima é a que prova isso** — `poucas ==
+      # muitas` depois de designar todas as partes.
+      #
+      # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
+      # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
+      assert acrescentadas <= 15, """
+      A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
+      linha de base medida é **quinze** — oito da tela original mais sete do painel.
 
       A conta: `live/2` faz dois renders, então a diferença total (#{poucas} − #{lista}) é dividida
       por dois. "Um número que não cresce" passa com 8 e passa com 80 — por isso o teto é asserido.

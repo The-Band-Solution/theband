@@ -38,6 +38,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   # -------------------------------------------------------------------- leituras
 
   defdelegate list_activities(tenant, subject_type, subject_id), to: Queries
+  defdelegate list_activities_by_subject(tenant, subject_type, subject_ids), to: Queries
   defdelegate count_activity_types(tenant), to: Queries
   defdelegate count_board_states(tenant), to: Queries
   defdelegate andamento?(estado), to: Queries
