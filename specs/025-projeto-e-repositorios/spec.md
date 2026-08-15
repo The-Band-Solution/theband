@@ -211,8 +211,15 @@ repositórios dos dois, e que ele passou a constar como complexo.
 6. **Dado** uma tentativa de tornar um projeto parte de si mesmo, **direta ou indiretamente**,
    **quando** ela é feita, **então** a plataforma **recusa** e diz qual é o caminho do ciclo.
 7. **Dado** um projeto que já é parte de um pai, **quando** alguém tenta torná-lo parte de um
-   segundo, **então** a plataforma **recusa** e diz de quem ele já é parte. A hierarquia é
-   **árvore**: um pai só, e cada issue conta uma vez no ancestral.
+   segundo **sem desfazer o primeiro**, **então** a plataforma **recusa** e diz de quem ele já é
+   parte. A hierarquia é **árvore**: um pai por vez, e cada issue conta uma vez no ancestral.
+8. **Dado** o mesmo projeto, **quando** alguém **desfaz** o vínculo com o pai atual e cria outro,
+   **então** os dois são aceitos: o antigo fica **marcado como encerrado**, com autor e data, e o
+   novo passa a valer.
+
+   *A restrição é ter dois pais **ao mesmo tempo**, e não ser imutável. Sem isso, errar o pai no
+   cadastro não teria conserto — apagar o projeto e refazer perderia os repositórios associados
+   e a história dele. É a mesma regra do vínculo com repositório, na US2 critério 3.*
 
 ---
 
@@ -224,6 +231,8 @@ repositórios dos dois, e que ele passou a constar como complexo.
   designação conta para cada pessoa, sem dividir.
 - **Hierarquia profunda.** Projeto → subprojeto → subprojeto. A travessia é recursiva, e o
   axioma acíclico é o que garante que ela termina.
+- **Projeto que muda de pai.** O vínculo antigo é encerrado e o novo criado; as issues param de
+  contar no ancestral antigo e passam a contar no novo, a partir do vínculo vigente.
 - **Projeto encerrado com repositórios ativos.** `ended_at` preenchido não encerra os vínculos:
   são fatos diferentes, e apagar um ao mexer no outro perderia história.
 - **Repositório excluído da observação pelo tenant.** É decisão do tenant e não do projeto; o
@@ -266,7 +275,10 @@ repositórios dos dois, e que ele passou a constar como complexo.
   MUST NOT oferecer escolha de tipo no cadastro.
 - **FR-016**: A composição MUST ser recursiva: um projeto complexo MUST poder conter outro
   complexo, sem profundidade fixa.
-- **FR-016a**: Um projeto MUST ter **no máximo um** pai.
+- **FR-016a**: Um projeto MUST ter **no máximo um pai vigente**, e a plataforma MUST recusar o
+  segundo enquanto o primeiro não for desfeito.
+- **FR-016c**: Desfazer o vínculo com o pai MUST marcá-lo como encerrado, com autor e data, e
+  MUST NOT apagá-lo — trocar de pai preserva os dois registros.
 - **FR-016b**: O discriminador entre simples e complexo MUST ser derivado de ter partes, e a
   plataforma MUST NOT aceitá-lo como entrada.
 
@@ -289,6 +301,10 @@ repositórios dos dois, e que ele passou a constar como complexo.
   **complexo**; ao perder a última volta a **simples** — sem ninguém alterar um campo de tipo.
 - **SC-004b**: `A → B → C`, com C tendo repositórios, faz as issues de C aparecerem em A — a
   travessia é recursiva.
+- **SC-004c**: Tentar dar um segundo pai a um projeto que já tem um é recusado, e a mensagem
+  nomeia o pai atual.
+- **SC-004d**: Desfazer o pai e criar outro deixa **dois** registros de vínculo — um encerrado,
+  um vigente —, e só o vigente conta na travessia.
 - **SC-005**: Um projeto sem repositório diz "nenhum repositório associado", e a tela **não**
   exibe uma lista vazia de issues.
 - **SC-006**: O mesmo repositório em dois projetos aparece nos dois, e a soma dos dois projetos é
