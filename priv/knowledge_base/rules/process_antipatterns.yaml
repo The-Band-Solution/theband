@@ -153,6 +153,37 @@ derivation_rule:
       formal: >
         ∀ b: Board
           (¬∃s (state_of(b, s) ∧ means_in_progress(s))) → BoardWithoutInProgress(b)
+      recognized_in_progress_states:
+        note:
+          pt-BR: >
+            O predicado `means_in_progress` precisa de algum modo de ser avaliado, e este é
+            ele: os nomes abaixo, comparados ignorando caixa, acento e separador.
+
+            **Isto não é a declaração da FR-007, e a diferença importa.** A FR-007 recusa
+            escolher **qual** movimentação marca o começo — `Ready` significa pronto para
+            pegar ou já pego? Só quem conhece o quadro sabe. Aqui a pergunta é mais fraca e
+            a plataforma consegue respondê-la: existe **algum** estado que plausivelmente
+            signifique trabalho acontecendo?
+
+            Reconhecer aqui não declara nada; **não** reconhecer é que afirma o `ap05`.
+
+            A lista é curta de propósito. Ela erra para o lado de sinalizar: um nome de
+            andamento fora dela produz um aviso falso, que alguém corrige acrescentando o
+            nome. O erro contrário — reconhecer o que não é andamento — silenciaria o
+            antipadrão, e ninguém procura o que não foi avisado.
+        values:
+          - "in progress"
+          - "in-progress"
+          - "doing"
+          - "wip"
+          - "work in progress"
+          - "started"
+          - "em andamento"
+          - "em progresso"
+          - "em desenvolvimento"
+          - "desenvolvendo"
+          - "executando"
+          - "fazendo"
       consequence:
         pt-BR: >
           **O cycle time é impossível para toda issue deste quadro**, e não para algumas. Não

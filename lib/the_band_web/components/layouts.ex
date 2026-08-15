@@ -76,6 +76,9 @@ defmodule TheBandWeb.Layouts do
           <li><.link navigate={~p"/people"} class="btn btn-ghost btn-sm">People</.link></li>
           <li><.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">Teams</.link></li>
           <li><.link navigate={~p"/work"} class="btn btn-ghost btn-sm">Work</.link></li>
+          <%!-- Fica do lado do conhecimento, e não da operação: responde "o que a
+                organização faz", e não "a plataforma está funcionando". --%>
+          <li><.link navigate={~p"/process"} class="btn btn-ghost btn-sm">Process</.link></li>
           <li class="border-l border-base-300 pl-2">
             <.link navigate={~p"/syncs"} class="btn btn-ghost btn-sm">Syncs</.link>
           </li>

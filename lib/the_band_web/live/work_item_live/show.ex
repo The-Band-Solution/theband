@@ -43,8 +43,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.WorkItems
   alias TheBandWeb.ConceptLabel
 
@@ -379,6 +381,96 @@ defmodule TheBandWeb.WorkItemLive.Show do
           <div class="card bg-base-200">
             <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">
+                Timeline <span class="opacity-60">{length(@timeline)}</span>
+              </h3>
+              <p class="text-xs text-base-content/70">
+                What happened, in the order it happened. The type is recorded as the source names
+                it — never translated.
+              </p>
+
+              <p :if={@timeline == []} class="text-sm opacity-70">
+                No activity collected for this issue yet. That is not the same as nothing having
+                happened.
+              </p>
+
+              <ol class="mt-1 space-y-2 text-sm">
+                <li :for={a <- @timeline}>
+                  <span class="font-mono text-xs">{a.activity_type}</span>
+                  <span :if={is_nil(a.concept_id)} class="badge badge-xs badge-ghost ml-1">
+                    unnamed by the network
+                  </span>
+                  <div class="text-xs opacity-70">
+                    {data(a.occurred_at)} · <span :if={a.performer_login}>{a.performer_login}</span>
+                    <%!-- Um evento sem executor humano é EXIBIDO dizendo isso, e nunca
+                          omitido: 160 das 357 movimentações medidas são de automação, e
+                          escondê-las contaria uma história falsa da issue. --%>
+                    <span :if={is_nil(a.performer_id) && a.performer_login} class="opacity-60">
+                      · not a known person
+                    </span>
+                    <span :if={is_nil(a.performer_login)} class="opacity-60">
+                      no human performer
+                    </span>
+                  </div>
+                  <div :if={movimentacao?(a)} class="text-xs opacity-70">
+                    {estado_anterior(a)} → <span class="font-medium">{a.payload["status"]}</span>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Process</h3>
+              <p class="text-xs text-base-content/70">
+                <%!-- A frase existe porque um achado sem ela lê como acusação. O que falta
+                      é o rastro, e quem fez a tarefa fez a tarefa. --%>
+                These are not judgements about people. They say the record of the process is
+                incomplete — and the cost is that the organisation loses the measurement.
+              </p>
+
+              <p :if={@antipadroes == :nao_olhei} class="text-sm opacity-70">
+                <%!-- "Nenhum encontrado" e "não olhei" são frases diferentes, e usar a
+                      primeira para a segunda é o defeito que a L57 descreve. --%>
+                No board movement has been collected for this issue, so nothing was evaluated.
+                This is not the same as finding nothing.
+              </p>
+
+              <p :if={@antipadroes == []} class="text-sm opacity-70">
+                Nothing found. The issue was assigned, moved by a person, and the sequence holds
+                together.
+              </p>
+
+              <ul :if={is_list(@antipadroes) and @antipadroes != []} class="space-y-2 text-sm">
+                <li :for={a <- @antipadroes}>
+                  <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
+                  <div class="text-xs opacity-70">
+                    <span class="font-mono">{a.id}</span> · {a.evidence}
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Cycle time</h3>
+              <%!-- A tela NÃO mostra lead time aqui. São medidas diferentes — lead time
+                    inclui o tempo em que ninguém tocou na issue —, e trocá-las em
+                    silêncio faria alguém decidir sobre um número que responde outra
+                    pergunta (FR-009). --%>
+              <p class="text-sm">
+                <span class="font-medium">Not available.</span> {falta(@cycle_time)}
+              </p>
+              <p class="text-xs text-base-content/70">
+                {como_resolver(@cycle_time)}
+              </p>
+            </div>
+          </div>
+
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">
                 Promotion history <span class="opacity-60">{length(@historico)}</span>
               </h3>
               <p class="text-xs text-base-content/70">
@@ -404,6 +496,69 @@ defmodule TheBandWeb.WorkItemLive.Show do
     </Layouts.app>
     """
   end
+
+  # `:nao_olhei` sobrevive até a tela, e não vira lista vazia no caminho: achatá-lo aqui
+  # faria "não coletei movimentação" aparecer como "nada encontrado", que é o defeito que
+  # a própria detecção existe para não cometer.
+  defp antipadroes(issue, atividades) do
+    case Antipatterns.evaluate(issue, atividades) do
+      {:ok, achados} -> achados
+      {:nao_olhei, _motivo} -> :nao_olhei
+    end
+  end
+
+  defp titulo_do_antipadrao("process.ap01.closed_without_movement"),
+    do: "Closed without ever being moved"
+
+  defp titulo_do_antipadrao("process.ap02.moved_after_closing"),
+    do: "Moved after it was closed"
+
+  defp titulo_do_antipadrao("process.ap03.assigned_and_never_started"),
+    do: "Assigned and never started"
+
+  defp titulo_do_antipadrao("process.ap04.movement_without_assignee"),
+    do: "Moved with nobody assigned"
+
+  defp movimentacao?(%{activity_type: "ProjectV2ItemStatusChangedEvent"}), do: true
+  defp movimentacao?(_atividade), do: false
+
+  # `previousStatus` vem VAZIO na primeira transição, e não nulo — medido em 2026-08-14.
+  # Os dois casos dizem a mesma coisa aqui: o cartão não estava em estado nenhum. Escrever
+  # isso é melhor que mostrar uma seta saindo do nada.
+  defp estado_anterior(%{payload: %{"previousStatus" => anterior}})
+       when is_binary(anterior) and anterior != "",
+       do: anterior
+
+  defp estado_anterior(_atividade), do: "no state"
+
+  # As três causas não se resolvem no mesmo lugar, e a tela diz qual é qual. Achatá-las
+  # numa frase só faria alguém tentar declarar uma regra para um quadro que não tem
+  # estado onde declará-la.
+  defp falta({:error, :no_movement_collected}),
+    do: "No board movement has been collected for this issue."
+
+  defp falta({:error, :no_state_means_in_progress}),
+    do: "This board has no state that means work in progress."
+
+  defp falta({:error, :no_start_rule_declared}),
+    do: "Nobody has declared which movement marks the start of work."
+
+  defp como_resolver({:error, :no_movement_collected}),
+    do:
+      "This is not the same as a healthy process — it means the platform has not looked. " <>
+        "Collect the timeline for this repository."
+
+  defp como_resolver({:error, :no_state_means_in_progress}),
+    do:
+      "This is a structural anti-pattern (process.ap05), and it makes cycle time impossible " <>
+        "for every issue on this board — not just this one. It is fixed on the board, by " <>
+        "adding a state that means work in progress, and only for issues moved after that."
+
+  defp como_resolver({:error, :no_start_rule_declared}),
+    do:
+      "The platform will not choose on its own: picking one would produce a plausible and " <>
+        "wrong number that nobody would question. Lead time is not shown in its place — it " <>
+        "answers a different question."
 
   attr :issues, :list, required: true
 
@@ -433,6 +588,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   defp carregar(socket, issue) do
     tenant = socket.assigns.current_tenant
+    atividades = SPO.list_activities(tenant, "issue", issue.id)
     pai = WorkItems.fetch_parent(tenant, issue.id)
     repositorio = repositorio(tenant, issue.observed_repository_id)
     nomes = nomes(tenant, issue)
@@ -464,7 +620,13 @@ defmodule TheBandWeb.WorkItemLive.Show do
       historico: WorkItems.promotion_history(tenant, issue.id),
       partes_faltando: max(issue.sub_issue_count - presentes, 0),
       nomes: nomes,
-      autor_nome: nomes[issue.author_person_id]
+      autor_nome: nomes[issue.author_person_id],
+      # **Uma consulta, três respostas.** A sequência, o cycle time e a detecção de
+      # antipadrão saem todos desta lista; carregá-la por consumidor fazia o render subir
+      # de 39 para 48 consultas, e o teste-guarda da feature 007 pegou.
+      timeline: atividades,
+      cycle_time: SPO.cycle_time(atividades),
+      antipadroes: antipadroes(issue, atividades)
     )
     |> assign(onde(tenant, repositorio, issue))
   end
