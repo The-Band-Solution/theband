@@ -1,7 +1,7 @@
 # Feature Specification: o projeto, seus subprojetos e os repositórios dele
 
 **Feature**: `025-projeto-e-repositorios` · **Criada em**: 2026-08-15
-**Estado**: rascunho — **bloqueada por dependência de ontologia**, ver abaixo
+**Estado**: pronta para `/speckit-plan` — a dependência de ontologia foi declarada em 2026-08-15
 **Papel que escreveu**: Product Owner
 **Origem**: decisão da pessoa mantenedora — *"um projeto pode ter subprojetos e vários
 repositórios; as issues dos repositórios são issues dos projetos; essa associação é manual"*.
@@ -33,7 +33,7 @@ O que **não** existe, e a feature inteira depende:
 | **`spo.complex_project`** | `phase` de `spo.project` — projeto composto de outros |
 | **projeto complexo composto de projeto** | parte-todo, alvo `spo.project`, **recursiva**, **um pai** |
 | **regra: hierarquia de projeto é acíclica** | espelho de `sro.rule04` |
-| **projeto agrupa repositório** | associação muitos-para-muitos, declarada por pessoa |
+| **repositório agrupado por projeto** | associação muitos-para-muitos, declarada por pessoa, **em CMPO** |
 
 ### Simples e complexo são fases, e o espelho é literal
 
@@ -83,6 +83,24 @@ de trás, com aparência de dado modelado.
 **E não é trabalho deste papel.** Definir conceito, relação e cardinalidade é de *Ontology &
 Semantic Integration*. Esta spec descreve o valor e os critérios; a declaração é pré-requisito
 e precisa acontecer antes da primeira migração.
+
+### ✅ Bloqueio resolvido em 2026-08-15
+
+As cinco declarações entraram na base, que passou de 97 para **98 artefatos** e continua válida:
+
+| Declarado | Onde |
+|---|---|
+| `spo.simple_project`, `spo.complex_project` | `spo/modules/projects_and_stakeholders.yaml` |
+| `spo.complex_project_composed_of_project` | idem — recursiva, cardinalidade de origem **one** |
+| `spo.rule01.project_hierarchy_is_acyclic` | `rules/spo_axioms.yaml` *(arquivo novo)* |
+| `spo.rule02.project_has_at_most_one_parent` | idem |
+| `cmpo.source_repository_grouped_by_project` | `cmpo/modules/configuration_management_process.yaml` |
+
+**A última mudou de lado, e o validador foi quem pegou.** Eu a declarei em SPO apontando para
+CMPO, e a base recusou: *"spo não declara dependência de cmpo"*. As dependências são
+`spo: [ufo, eo]` e `cmpo: [ufo, spo, sys_swo]` — **CMPO já depende de SPO**, então acrescentar o
+inverso criaria ciclo entre ontologias. A relação mora no módulo mais externo, que conhece os
+dois conceitos.
 
 ---
 

@@ -1,0 +1,66 @@
+rules:
+  - id: spo.rule01.project_hierarchy_is_acyclic
+    ontology: spo
+    name:
+      pt-BR: "A hierarquia de decomposição de projetos é acíclica"
+    statement:
+      pt-BR: >
+        Nenhum projeto pode ser parte de si mesmo, direta ou indiretamente. Como um
+        projeto complexo pode compor outro projeto complexo, a relação de composição
+        forma um grafo dirigido que precisa ser acíclico — caso contrário a travessia
+        do projeto até as issues dos repositórios dele não termina.
+
+        **Ter no máximo um pai não dispensa este axioma.** Numa cadeia A → B → C → A
+        cada projeto tem exatamente um pai, e o ciclo existe do mesmo jeito.
+    formal: >
+      ∀ p: Project ¬isPartOfPlus(p, p)
+      onde isPartOfPlus é o fecho transitivo de wasComposedOf
+    concepts: [spo.complex_project, spo.project]
+    enforcement: test_and_db_constraint
+    note: >
+      Verificar no comando de composição, antes de persistir, percorrendo os
+      ancestrais do pai proposto. Uma constraint de banco sozinha não alcança o
+      fecho transitivo, e o erro só apareceria quando alguém percorresse a árvore.
+
+      A mensagem de recusa nomeia o caminho do ciclo — `A → B → C → A` —, e não só
+      diz que há um: quem cadastrou precisa saber onde desfazer.
+    provenance:
+      source_type: project_decision
+      reference: >
+        Decisão da pessoa mantenedora em 2026-08-15, feature 025. Espelha
+        sro.rule04.epic_hierarchy_is_acyclic, que resolve o mesmo problema para a
+        decomposição de user stories.
+
+  - id: spo.rule02.project_has_at_most_one_parent
+    ontology: spo
+    name:
+      pt-BR: "Um projeto tem no máximo um pai vigente"
+    statement:
+      pt-BR: >
+        Um projeto é parte de, no máximo, um projeto complexo por vez. A hierarquia é
+        uma **árvore**, e não um grafo acíclico qualquer.
+
+        A consequência é sobre contagem: com um pai só, cada issue conta **uma vez**
+        no ancestral. Com dois pais, a mesma issue apareceria em duas somas e nenhuma
+        delas estaria errada isoladamente — o total é que passaria a depender do
+        caminho percorrido.
+
+        **A restrição é sobre simultaneidade, não sobre imutabilidade.** Trocar de pai
+        é permitido: encerra-se o vínculo vigente e cria-se outro. Sem isso, errar o
+        pai no cadastro não teria conserto, e refazer o projeto perderia os
+        repositórios associados e a história dele.
+    formal: >
+      ∀ p: Project, c1: ComplexProject, c2: ComplexProject
+      ((wasComposedOf(c1, p) ∧ current(c1, p) ∧ wasComposedOf(c2, p) ∧ current(c2, p))
+        → c1 = c2)
+    concepts: [spo.complex_project, spo.project]
+    enforcement: test_and_db_constraint
+    note: >
+      Índice único parcial sobre o projeto componente, restrito aos vínculos
+      vigentes — o encerrado precisa continuar existindo, porque ausência marca e
+      nunca apaga.
+
+      A mensagem de recusa nomeia o pai atual, e não só diz que já existe um.
+    provenance:
+      source_type: project_decision
+      reference: "Decisão da pessoa mantenedora em 2026-08-15, feature 025"

@@ -116,6 +116,33 @@ concepts:
     classification: { ufo_category: complex_action, ontouml_stereotype: subkind, parent: spo.performed_composite_activity }
 
 relations:
+  - id: cmpo.source_repository_grouped_by_project
+    name: is grouped by
+    label: { pt-BR: "é agrupado por", en: "is grouped by" }
+    source: cmpo.source_repository
+    target: spo.project
+    type: association
+    cardinality: { source: many, target: many }
+    semantics:
+      description: >
+        Associação **declarada por pessoa**, e nunca observada: a origem não diz a que
+        projeto um repositório pertence, e inferir isso de nome, organização ou padrão
+        de texto produziria agrupamento que ninguém decidiu.
+
+        Muitos-para-muitos porque um repositório pode servir a mais de um projeto — uma
+        biblioteca compartilhada é o caso comum.
+
+        A relação mora em CMPO, e não em SPO, porque **cmpo já depende de spo**: declará-la
+        do outro lado inverteria a hierarquia entre as ontologias e criaria um ciclo de
+        dependência. Quem conhece os dois conceitos é o módulo mais externo.
+
+        As issues do projeto são **derivadas desta relação**, e não guardadas na issue:
+        projeto → repositórios → issues. Uma referência a projeto na issue duplicaria o
+        fato, e as duas fontes discordariam quando um repositório mudasse de projeto.
+    provenance:
+      source_type: project_decision
+      reference: "Decisão da pessoa mantenedora em 2026-08-15, feature 025"
+
   - id: cmpo.process_composed_of_change_control
     name: composed of
     label: { pt-BR: "composto por" }
