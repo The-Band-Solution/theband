@@ -26,6 +26,40 @@ concepts:
       pt-BR: Projeto relacionado ao desenvolvimento ou manutenção de software.
     classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: spo.project }
 
+  # As duas fases de um projeto, espelhando sro.atomic_user_story e sro.epic.
+  #
+  # `phase`, e não subkind: ser complexo é consequência de ter partes, e um projeto que perde
+  # a última parte volta a ser simples. Kind é rígido e daria identidade — o projeto teria de
+  # deixar de existir para mudar, perdendo id e história.
+  - id: spo.simple_project
+    name: Simple Project
+    label: { pt-BR: "Projeto Simples", en: "Simple Project" }
+    definition:
+      pt-BR: Projeto que não é decomposto em outros projetos.
+    classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: spo.project }
+    examples: ["o projeto de um módulo com dois repositórios e nenhum subprojeto"]
+    provenance:
+      source_type: project_decision
+      reference: "Decisão da pessoa mantenedora em 2026-08-15, feature 025"
+
+  - id: spo.complex_project
+    name: Complex Project
+    label: { pt-BR: "Projeto Complexo", en: "Complex Project" }
+    definition:
+      pt-BR: >
+        Projeto composto de outros projetos. Como o projeto componente é ele próprio
+        um projeto, um projeto complexo pode ser parte de outro: a decomposição é
+        recursiva e não tem profundidade fixa. Ser complexo não é rótulo atribuído,
+        e sim consequência de ter partes — um projeto sem partes é simples, ainda que
+        alguém o tenha cadastrado pensando em decompô-lo.
+    classification: { ufo_category: social_object, ontouml_stereotype: phase, parent: spo.project }
+    constraints:
+      - spo.rule01.project_hierarchy_is_acyclic
+      - spo.rule02.project_has_at_most_one_parent
+    provenance:
+      source_type: project_decision
+      reference: "Decisão da pessoa mantenedora em 2026-08-15, feature 025"
+
   - id: spo.project_stakeholder
     name: Project Stakeholder
     label: { pt-BR: "Parte Interessada do Projeto", en: "Project Stakeholder" }
@@ -53,6 +87,29 @@ concepts:
     examples: ["a equipe de desenvolvimento do projeto"]
 
 relations:
+  - id: spo.complex_project_composed_of_project
+    name: was composed of
+    label: { pt-BR: "foi composto por", en: "was composed of" }
+    source: spo.complex_project
+    target: spo.project
+    type: part_whole
+    cardinality: { source: one, target: one_or_many }
+    semantics:
+      description: >
+        O destino é spo.project, e não spo.simple_project — e um projeto complexo é
+        um projeto. Logo a relação é recursiva: um projeto complexo pode ter outro
+        complexo como parte, em qualquer profundidade. Restringir o destino a
+        projetos simples fixaria a decomposição em dois níveis, e Conecta Fapes →
+        Backend → Pagamentos deixaria de ser expressável.
+
+        A cardinalidade da origem é **one**, e não many: um projeto tem no máximo um
+        pai vigente. A hierarquia é árvore, e é isso que faz cada issue contar uma
+        vez no ancestral. Trocar de pai é permitido — encerra o vínculo atual e cria
+        outro —, o que a cardinalidade proíbe é ter dois ao mesmo tempo.
+    provenance:
+      source_type: project_decision
+      reference: "Decisão da pessoa mantenedora em 2026-08-15, feature 025"
+
   - id: spo.stakeholder_interested_in_project
     name: is interested in
     label: { pt-BR: "tem interesse em" }
