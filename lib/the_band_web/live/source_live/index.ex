@@ -355,14 +355,14 @@ defmodule TheBandWeb.SourceLive.Index do
       <div :if={@form_open} class="card bg-base-200 p-6">
         <form id="connect-tool" phx-submit="connect" class="space-y-4">
           <div class="grid gap-4 sm:grid-cols-2">
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text">Tool type</span>
               <select name="tool_type" class="select select-bordered">
                 <option value="github">github</option>
               </select>
             </label>
 
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text">Instance</span>
               <input
                 name="instance_url"
@@ -372,18 +372,18 @@ defmodule TheBandWeb.SourceLive.Index do
               />
             </label>
 
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text">Organisation to observe</span>
               <input name="organization_login" class="input input-bordered" placeholder="my-org" />
             </label>
 
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text">Credential label</span>
               <input name="label" class="input input-bordered" placeholder="service account" />
             </label>
           </div>
 
-          <label class="form-control">
+          <label class="fieldset">
             <span class="label-text">Credential</span>
             <input type="password" name="secret" class="input input-bordered" autocomplete="off" />
             <span class="label-text-alt opacity-70">
@@ -442,7 +442,7 @@ defmodule TheBandWeb.SourceLive.Index do
               class="mt-2 flex flex-wrap gap-2 items-end p-3 rounded bg-base-200"
             >
               <input type="hidden" name="tool_id" value={tool.id} />
-              <label class="form-control">
+              <label class="fieldset">
                 <span class="label-text text-xs">Instance</span>
                 <input
                   name="instance_url"
@@ -450,7 +450,7 @@ defmodule TheBandWeb.SourceLive.Index do
                   class="input input-bordered input-sm"
                 />
               </label>
-              <label class="form-control">
+              <label class="fieldset">
                 <span class="label-text text-xs">Organisation</span>
                 <input
                   name="organization_login"
@@ -537,7 +537,7 @@ defmodule TheBandWeb.SourceLive.Index do
 
           <form phx-submit="resume_observation" class="flex flex-wrap gap-2 items-end">
             <input type="hidden" name="tool_id" value={tool.id} />
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text text-xs">New credential</span>
               <input
                 name="secret"
@@ -547,7 +547,7 @@ defmodule TheBandWeb.SourceLive.Index do
                 placeholder="ghp_..."
               />
             </label>
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text text-xs">Label</span>
               <input
                 name="label"
@@ -602,7 +602,7 @@ defmodule TheBandWeb.SourceLive.Index do
 
           <form phx-submit="end_observation" class="flex flex-wrap gap-2 items-end">
             <input type="hidden" name="tool_id" value={tool.id} />
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text text-xs">
                 To confirm, type: <strong>{tool.organization_login}</strong>
               </span>
@@ -649,7 +649,7 @@ defmodule TheBandWeb.SourceLive.Index do
             class="flex flex-wrap gap-2 items-end mb-3 p-3 rounded bg-base-200"
           >
             <input type="hidden" name="tool_id" value={tool.id} />
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text text-xs">New token</span>
               <input
                 name="secret"
@@ -659,7 +659,7 @@ defmodule TheBandWeb.SourceLive.Index do
                 placeholder="ghp_..."
               />
             </label>
-            <label class="form-control">
+            <label class="fieldset">
               <span class="label-text text-xs">Label</span>
               <input
                 name="label"

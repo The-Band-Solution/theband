@@ -159,11 +159,11 @@ defmodule TheBandWeb.RolesLive.Index do
         <div class="text-sm font-semibold">Register a role</div>
 
         <form phx-submit="create" class="flex flex-wrap gap-2 items-end">
-          <label class="form-control">
+          <label class="fieldset">
             <span class="label-text text-xs">Code</span>
             <input name="code" class="input input-bordered input-sm" placeholder="developer" />
           </label>
-          <label class="form-control">
+          <label class="fieldset">
             <span class="label-text text-xs">Name</span>
             <input name="name" class="input input-bordered input-sm" placeholder="Developer" />
           </label>
