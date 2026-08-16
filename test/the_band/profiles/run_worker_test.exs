@@ -258,6 +258,15 @@ defmodule TheBand.Profiles.RunWorkerTest do
   end
 
   describe "o material continua sendo o histórico inteiro" do
+    # Este teste reprovou no CI **com o produto certo**, e os dois defeitos eram dele.
+    #
+    # A fixture numerava o segundo lote de 1, colidindo com os `external_id` do primeiro: a
+    # coleta faz upsert, então em vez de 15 tarefas novas o teste **movia 15 antigas** para
+    # 2026, e o início do histórico andava de verdade. E localmente ninguém via, porque as
+    # duas gerações caíam no mesmo segundo, o índice único `[pessoa, generated_at]` recusava
+    # a segunda, e a asserção comparava o perfil um com ele mesmo — verde vazio. No CI, mais
+    # lento sob cobertura, a segunda geração cruzava o segundo, era gravada, e a comparação
+    # rodava de verdade contra o histórico reescrito.
     test "o recorte de duas gerações consecutivas não anda para frente", ctx do
       gera_ok()
       primeira = abrir(ctx.tenant, ctx.admin)
@@ -265,17 +274,30 @@ defmodule TheBand.Profiles.RunWorkerTest do
 
       {:ok, perfil_um} = EO.current_profile(ctx.tenant, ctx.pessoa.id)
 
-      # Trabalho novo o bastante para a regra de mudança deixar gerar de novo.
+      # Trabalho novo o bastante para a regra de mudança deixar gerar de novo — e `desde: 31`
+      # porque tarefa nova é tarefa que não existia, nunca uma antiga com data nova.
       pessoa_com_material(ctx.tenant, ctx.repo_id, "gerada",
         tarefas: 15,
-        base: ~U[2026-06-01 12:00:00Z]
+        base: ~U[2026-06-01 12:00:00Z],
+        desde: 31
       )
+
+      # `generated_at` tem resolução de segundo, e o índice único não admite duas gerações da
+      # mesma pessoa no mesmo segundo. Cruzar a fronteira é a condição para a segunda geração
+      # existir — sem isto, o teste passa comparando o perfil um com ele mesmo.
+      Process.sleep(1100)
 
       gera_ok()
       segunda = abrir(ctx.tenant, ctx.admin)
       executar(ctx.tenant, segunda)
 
+      # A geração aconteceu — a asserção de baixo não significa nada se a rodada pulou ou
+      # falhou e o "perfil dois" for o um de novo.
+      {:ok, fechada} = Runs.get(ctx.tenant, segunda.id)
+      assert Runs.summary(fechada).generated == 1
+
       {:ok, perfil_dois} = EO.current_profile(ctx.tenant, ctx.pessoa.id)
+      assert perfil_dois.id != perfil_um.id
 
       assert perfil_dois.period_from == perfil_um.period_from,
              """

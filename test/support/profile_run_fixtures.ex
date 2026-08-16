@@ -20,10 +20,19 @@ defmodule TheBand.ProfileRunFixtures do
     cred
   end
 
-  @doc "Uma pessoa com N tarefas concluídas com corpo, distribuídas no tempo."
+  @doc """
+  Uma pessoa com N tarefas concluídas com corpo, distribuídas no tempo.
+
+  `desde:` é o primeiro índice da numeração, e existe para a **segunda** chamada com o mesmo
+  login acrescentar tarefas em vez de reescrevê-las. O `external_id` é `I_<login>_<n>`, e a
+  coleta faz upsert por ele: uma segunda chamada começando de 1 não cria tarefas novas —
+  **move as antigas no tempo**, e o início do histórico anda junto. Foi exatamente assim que
+  o teste do recorte reprovou no CI com o produto certo.
+  """
   def pessoa_com_material(tenant, repo_id, login, opts \\ []) do
     quantas = Keyword.get(opts, :tarefas, 30)
     base = Keyword.get(opts, :base, ~U[2025-02-10 12:00:00Z])
+    desde = Keyword.get(opts, :desde, 1)
 
     {:ok, pessoa} =
       EO.upsert_person_from_source(tenant, %{
@@ -38,8 +47,8 @@ defmodule TheBand.ProfileRunFixtures do
         payload: %{"login" => login}
       })
 
-    for n <- 1..quantas do
-      fechada = DateTime.add(base, n * 15, :day)
+    for n <- desde..(desde + quantas - 1) do
+      fechada = DateTime.add(base, (n - desde + 1) * 15, :day)
 
       {:ok, issue} =
         WorkItems.record_collected_issue(tenant, %{
