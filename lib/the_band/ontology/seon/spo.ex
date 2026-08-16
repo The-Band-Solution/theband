@@ -64,6 +64,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate link_team(tenant, project_id, team_id, actor_id), to: Projects
   defdelegate unlink_team(tenant, vinculo_id, actor_id), to: Projects
   defdelegate list_project_teams(tenant, project_id), to: Projects
+  defdelegate list_team_projects(tenant, team_id), to: Projects
   defdelegate set_parent(tenant, project_id, parent_id), to: Projects
   defdelegate clear_parent(tenant, project_id), to: Projects
   defdelegate link_repository(tenant, project_id, observed_repository_id, actor_id), to: Projects

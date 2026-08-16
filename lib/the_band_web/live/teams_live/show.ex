@@ -12,6 +12,8 @@ defmodule TheBandWeb.TeamsLive.Show do
   import TheBandWeb.Components.DataTable
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Profiles
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -47,6 +49,36 @@ defmodule TheBandWeb.TeamsLive.Show do
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
+  def handle_event(
+        "associar_projeto",
+        %{"project_id" => pid},
+        %{assigns: %{current_user: %{role: "admin"}}} = socket
+      )
+      when pid != "" do
+    {:ok, _} =
+      SPO.link_team(
+        socket.assigns.current_tenant,
+        pid,
+        socket.assigns.team.id,
+        socket.assigns.current_user.id
+      )
+
+    {:noreply, carregar_projetos(socket)}
+  end
+
+  def handle_event("associar_projeto", _params, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "desassociar_projeto",
+        %{"link_id" => lid},
+        %{assigns: %{current_user: %{role: "admin"}}} = socket
+      ) do
+    {:ok, _} =
+      SPO.unlink_team(socket.assigns.current_tenant, lid, socket.assigns.current_user.id)
+
+    {:noreply, carregar_projetos(socket)}
+  end
+
   defp caminho(socket, id, mudancas),
     do: ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas)}"
 
@@ -74,6 +106,74 @@ defmodule TheBandWeb.TeamsLive.Show do
     )
     |> assign(encontradas: EO.count_team_members(tenant, team.id, opts))
     |> assign(pending_role: EO.count_evidence_pending_role(tenant, team_id: team.id))
+    |> carregar_competencias()
+  end
+
+  # Feature 029: a leitura de competências da equipe — contada dos perfis vigentes,
+  # nunca gerada. Carregada no load porque a evolução usa o mesmo histórico.
+  defp carregar_competencias(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    cobertura = Profiles.team_coverage(tenant, team.id)
+
+    socket
+    |> assign(cobertura: cobertura)
+    |> assign(resumo_equipe: Profiles.team_summary(cobertura))
+    |> assign(evolucao: Profiles.team_evolution(tenant, team.id))
+    |> carregar_projetos()
+  end
+
+  # Os projetos da equipe — o vínculo é o mesmo da feature 028, agora acessível dos dois
+  # lados: quem pensa "o projeto tem equipes" associa em /projects; quem pensa "a equipe
+  # trabalha em projetos" associa aqui. Uma tabela só; dois caminhos até ela.
+  defp carregar_projetos(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    vinculados = projetos_da_equipe(tenant, team.id)
+    ids = MapSet.new(vinculados, & &1.project_id)
+
+    socket
+    |> assign(projetos_da_equipe: vinculados)
+    |> assign(projetos_disponiveis: Enum.reject(SPO.list_projects(tenant), &(&1.id in ids)))
+  end
+
+  defp projetos_da_equipe(tenant, team_id), do: SPO.list_team_projects(tenant, team_id)
+
+  # As competências que a evolução acompanha: as do topo da cobertura de hoje.
+  defp series_de_evolucao(cobertura, evolucao) do
+    nomes = cobertura.competencias |> Enum.take(5) |> Enum.map(& &1.nome)
+
+    for nome <- nomes do
+      pontos = Enum.map(evolucao, &Map.get(&1.cobertura, nome, 0))
+      %{nome: nome, pontos: pontos, primeiro: List.first(pontos, 0), ultimo: List.last(pontos, 0)}
+    end
+  end
+
+  # As linhas da matriz: uma por pessoa com perfil, alfabética, com o mapa nome→tarefas.
+  defp pessoas_da_matriz(cobertura) do
+    cobertura.competencias
+    |> Enum.flat_map(fn c -> Enum.map(c.pessoas, &{&1, c.nome}) end)
+    |> Enum.group_by(fn {p, _} -> {p.person_id, p.name} end, fn {p, nome} -> {nome, p.tarefas} end)
+    |> Enum.map(fn {{pid, name}, pares} ->
+      %{person_id: pid, name: name, tarefas: Map.new(pares)}
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  # O polyline do sparkline: x distribuído, y invertido (0 embaixo), com margem.
+  defp sparkline(pontos) do
+    maximo = max(Enum.max(pontos, fn -> 1 end), 1)
+    n = length(pontos)
+
+    pontos
+    |> Enum.with_index()
+    |> Enum.map_join(" ", fn {v, i} ->
+      x = if n == 1, do: 100, else: 4 + i * (192 / (n - 1))
+      y = 23 - v / maximo * 18
+      "#{Float.round(x * 1.0, 1)},#{Float.round(y * 1.0, 1)}"
+    end)
   end
 
   @impl true
@@ -153,6 +253,183 @@ defmodule TheBandWeb.TeamsLive.Show do
           </p>
         </div>
       </div>
+
+      <%!-- Projetos da equipe — o vínculo da 028, acessível também deste lado. --%>
+      <section class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Projects</h3>
+        <p :if={@projetos_da_equipe == []} class="text-sm opacity-70">
+          This team is not associated with any project — "who works on this project" has no
+          answer through it yet.
+        </p>
+        <ul class="flex flex-wrap gap-2">
+          <li :for={pr <- @projetos_da_equipe} class="badge badge-outline gap-2">
+            <.link navigate={~p"/projects"} class="link link-hover">{pr.nome}</.link>
+            <button
+              :if={@current_user.role == "admin"}
+              phx-click="desassociar_projeto"
+              phx-value-link_id={pr.link_id}
+              class="cursor-pointer"
+            >
+              ×
+            </button>
+          </li>
+        </ul>
+        <form
+          :if={@current_user.role == "admin" and @projetos_disponiveis != []}
+          id="associar-projeto"
+          phx-change="associar_projeto"
+        >
+          <select name="project_id" class="select select-sm select-bordered">
+            <option value="">associate with a project…</option>
+            <option :for={p <- @projetos_disponiveis} value={p.id}>{p.name}</option>
+          </select>
+        </form>
+      </section>
+
+      <%!-- ============ Feature 029: competências da equipe ============
+            Tudo aqui é DERIVADO DE DERIVADO: contagem sobre perfis escritos por modelo.
+            A contagem é exata; o que ela conta é derivado — as duas verdades aparecem.
+            Sem ranking de pessoas (FR-006a): a matriz junta leituras individuais. --%>
+      <section class="mt-8 space-y-4">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-base font-semibold">Skills — read from what people did</h3>
+          <span class="badge badge-outline badge-warning gap-2 text-xs">
+            <span
+              class="inline-block h-3 w-3 rounded-sm border border-current"
+              style="background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px);"
+            ></span>
+            derived — counted over model-written profiles
+          </span>
+        </div>
+
+        <div :if={@cobertura.com_perfil == 0} class="card bg-base-200 p-6">
+          <.absent reason="No member of this team has a profile yet — there is nothing to count. Coverage appears after the first profiles are generated." />
+        </div>
+
+        <div :if={@cobertura.com_perfil > 0} class="grid gap-4 lg:grid-cols-2">
+          <div class="card bg-base-200 p-5">
+            <h4 class="mb-1 text-sm font-semibold">Coverage per skill</h4>
+            <p class="mb-3 text-xs opacity-70">
+              how many of the {@cobertura.membros} members demonstrate each one · current profiles
+            </p>
+            <div class="space-y-2">
+              <div
+                :for={c <- Enum.take(@cobertura.competencias, 8)}
+                class="grid grid-cols-[minmax(8rem,14rem)_1fr_max-content] items-center gap-3 text-sm"
+              >
+                <span class="truncate" title={c.nome}>{c.nome}</span>
+                <div class="h-3 rounded-sm bg-base-300">
+                  <div
+                    class="h-3 rounded-sm bg-primary"
+                    style={"width: #{round(c.total_pessoas / max(@cobertura.membros, 1) * 100)}%; min-width: 4px;"}
+                  >
+                  </div>
+                </div>
+                <span class="font-mono text-xs tabular-nums opacity-70">
+                  {c.total_pessoas}/{@cobertura.membros}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card bg-base-200 p-5">
+            <h4 class="mb-1 text-sm font-semibold">What this team demonstrates — computed</h4>
+            <p class="mb-3 text-xs opacity-70">
+              sentences assembled from the counts, never written by a model
+            </p>
+            <ul class="space-y-2 border-l-2 border-warning pl-3 text-sm">
+              <li :for={f <- @resumo_equipe}>{f.frase}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div :if={@cobertura.com_perfil > 0 and length(@evolucao) > 1} class="card bg-base-200 p-5">
+          <h4 class="mb-1 text-sm font-semibold">Evolution — coverage per profile generation</h4>
+          <p class="mb-3 text-xs opacity-70">
+            people with the skill in the profile current at each month with a generation ·
+            a skill leaving the series is <em>evidence not renewed</em>, never regression
+          </p>
+          <div class="space-y-2">
+            <div
+              :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
+              class="grid grid-cols-[minmax(8rem,14rem)_1fr_max-content] items-center gap-3 text-sm"
+            >
+              <span class="truncate" title={serie.nome}>{serie.nome}</span>
+              <svg
+                viewBox="0 0 200 26"
+                preserveAspectRatio="none"
+                class="h-6 w-full"
+                role="img"
+                aria-label={"#{serie.nome}: de #{serie.primeiro} para #{serie.ultimo} pessoas"}
+              >
+                <polyline
+                  points={sparkline(serie.pontos)}
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="text-primary"
+                />
+              </svg>
+              <span class="font-mono text-xs tabular-nums opacity-70">
+                {serie.primeiro} → {serie.ultimo}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div :if={@cobertura.com_perfil > 0} class="card bg-base-200 p-5">
+          <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
+          <p class="mb-3 text-xs opacity-70">
+            the cell is the count of <strong>completed tasks</strong> evidencing the skill —
+            delivery, never promise. People in alphabetical order; no ranking.
+          </p>
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>member</th>
+                  <th :for={c <- Enum.take(@cobertura.competencias, 6)} class="text-center">
+                    {c.nome}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={pessoa <- pessoas_da_matriz(@cobertura)}>
+                  <td>
+                    <.link
+                      navigate={~p"/people/#{pessoa.person_id}"}
+                      class="link link-hover font-medium"
+                    >
+                      {pessoa.name}
+                    </.link>
+                  </td>
+                  <td
+                    :for={c <- Enum.take(@cobertura.competencias, 6)}
+                    class="text-center font-mono tabular-nums"
+                  >
+                    <%= if t = pessoa.tarefas[c.nome] do %>
+                      <span class="badge badge-sm badge-primary badge-outline">{t}</span>
+                    <% else %>
+                      <span class="opacity-30">—</span>
+                    <% end %>
+                  </td>
+                </tr>
+                <tr :for={p <- @cobertura.sem_perfil} class="opacity-60">
+                  <td class="italic">{p.name}</td>
+                  <td colspan={min(length(@cobertura.competencias), 6)} class="text-xs italic">
+                    no profile yet — no row is not no skill
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <p :if={@cobertura.sem_perfil != [] and @cobertura.com_perfil > 0} class="text-xs opacity-70">
+          {length(@cobertura.sem_perfil)} of {@cobertura.membros} members have no profile yet —
+          coverage above is a floor, never a ceiling. Members come from source-declared evidence.
+        </p>
+      </section>
     </Layouts.app>
     """
   end

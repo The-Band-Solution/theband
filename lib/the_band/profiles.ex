@@ -30,6 +30,10 @@ defmodule TheBand.Profiles do
   de tenant faria toda aba recarregar quando qualquer perfil terminasse.
   """
   @spec subscribe(Tenant.t(), binary()) :: :ok | {:error, term()}
+  defdelegate team_coverage(tenant, team_id), to: TheBand.Profiles.TeamSkills, as: :coverage
+  defdelegate team_evolution(tenant, team_id), to: TheBand.Profiles.TeamSkills, as: :evolution
+  defdelegate team_summary(coverage), to: TheBand.Profiles.TeamSkills, as: :summary
+
   def subscribe(%Tenant{id: tenant_id}, person_id),
     do: Phoenix.PubSub.subscribe(TheBand.PubSub, topico(tenant_id, person_id))
 
