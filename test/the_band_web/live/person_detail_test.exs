@@ -308,55 +308,9 @@ defmodule TheBandWeb.PersonDetailTest do
   # ------------------------------------------------------------------------ apoio
 
   defp contar_consultas(fun) do
-    ref = make_ref()
-    pai = self()
-
-    # **As tabelas do Oban ficam de fora, e não é detalhe.** O handler é global: conta toda consulta
-    # do BEAM, e o `Oban.Stager` consulta `oban_jobs` a cada segundo. Um tick dentro da janela vira
-    # uma consulta a mais atribuída à página — e o teste reprova com o código certo, em máquina
-    # carregada e não na minha. É a L42: mensagem que chega fora de hora entra na contagem errada.
-    ignoradas = ~w(oban_jobs oban_peers schema_migrations)
-
-    # A `source` não basta: o Oban consulta por SQL cru, e aí ela vem nula enquanto o texto da
-    # consulta diz `oban_jobs`. Sob cobertura a janela alarga, o tick cai dentro dela, e o teste
-    # reprova por uma consulta que a tela não fez — foi o que derrubou o job de cobertura no PR
-    # #297, com 30 contra 31.
-    handler = fn _event, _measures, %{query: query} = meta, _config ->
-      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas and
-           not String.contains?(query, "oban_"),
-         do: send(pai, {ref, :consulta, assinatura(query, meta)})
-    end
-
-    :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
-    {:ok, _live, _html} = fun.()
-    :telemetry.detach({__MODULE__, ref})
-
-    drenar(ref, [])
-  end
-
-  # **O guard devolve as consultas, e não só quantas.**
-  #
-  # Ele reprovou no CI em 2026-08-16 com `52 != 53`, e a mensagem não dizia qual era a
-  # 53ª — a mesma execução passou noutro job do mesmo commit. Um guard que reprova sem
-  # dizer o que viu obriga a adivinhar, e adivinhação em CI vira reexecutar até passar,
-  # que é o pior destino de um gate.
-  #
-  # A contagem continua sendo o número; a lista existe para a mensagem de falha.
-  defp drenar(ref, acc) do
-    receive do
-      {^ref, :consulta, assinatura} -> drenar(ref, [assinatura | acc])
-    after
-      0 -> Enum.reverse(acc)
-    end
-  end
-
-  # Assinatura curta e estável: a origem quando existe, senão as primeiras palavras do
-  # SQL. O texto inteiro tornaria a mensagem de falha ilegível.
-  defp assinatura(query, meta) do
-    case to_string(meta[:source]) do
-      "" -> query |> String.slice(0, 60) |> String.replace(~r/\s+/, " ")
-      origem -> origem
-    end
+    TheBand.ContadorDeConsultas.listar(fn ->
+      {:ok, _live, _html} = fun.()
+    end)
   end
 
   # A diferença entre duas medições, com o que entrou e o que saiu.

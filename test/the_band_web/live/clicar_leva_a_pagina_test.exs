@@ -239,30 +239,9 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
   end
 
   defp contar_consultas(fun) do
-    ref = make_ref()
-    pai = self()
-
-    ignoradas = ~w(oban_jobs oban_peers schema_migrations)
-
-    handler = fn _evento, _medidas, %{query: query} = meta, _config ->
-      if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas and
-           not String.contains?(query, "oban_"),
-         do: send(pai, {ref, :consulta})
-    end
-
-    :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
-    {:ok, _live, _html} = fun.()
-    :telemetry.detach({__MODULE__, ref})
-
-    drenar(ref, 0)
-  end
-
-  defp drenar(ref, n) do
-    receive do
-      {^ref, :consulta} -> drenar(ref, n + 1)
-    after
-      50 -> n
-    end
+    TheBand.ContadorDeConsultas.contar(fn ->
+      {:ok, _live, _html} = fun.()
+    end)
   end
 
   defp _unused, do: Repo
