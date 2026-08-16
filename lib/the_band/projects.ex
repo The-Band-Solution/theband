@@ -37,6 +37,7 @@ defmodule TheBand.Projects do
   defdelegate count_items(tenant, observed_project_id), to: Queries
   defdelegate importance_source(tenant, observed_project_id), to: Queries
   defdelegate field_mappings(tenant), to: Queries
+  defdelegate interpretation_for(mapeamentos, field_external_id, data_type), to: Queries
   defdelegate product_backlog(tenant, observed_project_id), to: Queries
   defdelegate sprint_backlog(tenant, sprint_id), to: Queries
 end

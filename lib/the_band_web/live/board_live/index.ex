@@ -145,7 +145,12 @@ defmodule TheBandWeb.BoardLive.Index do
                 <td data-label="name">{c.name}</td>
                 <td data-label="type" class="font-mono text-xs">{c.data_type}</td>
                 <td data-label="interpretation" class="text-xs">
-                  <%= if atributo = @detalhe.mapeamentos[c.field_external_id] do %>
+                  <%= if atributo =
+                        TheBand.Projects.interpretation_for(
+                          @detalhe.mapeamentos,
+                          c.field_external_id,
+                          c.data_type
+                        ) do %>
                     <span class="badge badge-sm badge-success">{atributo}</span>
                   <% else %>
                     <span class="opacity-60">not interpreted — stored raw</span>

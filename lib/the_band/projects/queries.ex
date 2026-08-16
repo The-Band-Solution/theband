@@ -129,7 +129,8 @@ defmodule TheBand.Projects.Queries do
     tenant
     |> list_field_definitions(observed_project_id)
     |> Enum.find(fn campo ->
-      mapeamentos[campo.field_external_id] == "sro.user_story.importance"
+      interpretation_for(mapeamentos, campo.field_external_id, campo.data_type) ==
+        "sro.user_story.importance"
     end)
     |> case do
       nil -> :not_declared
@@ -138,18 +139,48 @@ defmodule TheBand.Projects.Queries do
   end
 
   @doc """
-  O mapeamento campo→atributo declarado na base — `FR-024`, e é o que a #180 vai
-  preencher.
+  O mapeamento campo→atributo declarado na base — `FR-024`, issue #180.
 
-  A regra é `github.project_field_mapping`, com `values` de `field_external_id` para
-  atributo da ontologia. **Ausente devolve mapa vazio**, e vazio significa que todo
-  valor é gravado como não interpretado — o caso comum de hoje, nunca um erro.
+  A regra por tenant sobrescreve a global (`github.project_field_mapping.<slug>`), e a
+  global é vazia de propósito: o mapeamento é declaração, nunca inferência de nome.
+
+  Cada entrada é `field_external_id => %{"attribute" => a, "field_type" => t}` — o
+  `field_type` é a FR-046 em forma de dado: a coleta recusa interpretar quando o tipo do
+  campo não é o declarado. **Ausente devolve mapa vazio**: todo valor cru, não
+  interpretado — o caso comum, nunca um erro.
   """
-  @spec field_mappings(Tenant.t()) :: %{String.t() => String.t()}
-  def field_mappings(%Tenant{}) do
-    case KnowledgeBase.rule("github.project_field_mapping") do
-      {:ok, regra} -> get_in(regra, ["rules", "fields", "values"]) || %{}
+  @spec field_mappings(Tenant.t()) :: %{String.t() => map()}
+  def field_mappings(%Tenant{slug: slug}) do
+    tenant_rule = "github.project_field_mapping." <> String.replace(slug, "-", "_")
+
+    regra =
+      case KnowledgeBase.rule(tenant_rule) do
+        {:ok, r} -> {:ok, r}
+        :error -> KnowledgeBase.rule("github.project_field_mapping")
+      end
+
+    case regra do
+      {:ok, r} -> get_in(r, ["rules", "fields", "values"]) || %{}
       :error -> %{}
+    end
+  end
+
+  @doc """
+  O atributo que um campo interpreta — ou `nil`, com a FR-046 aplicada.
+
+  Devolve `nil` em três casos que a tela mostra igual (não interpretado) e o registro
+  distingue: sem mapeamento; mapeamento cujo `field_type` declarado difere do tipo real
+  do campo — mapear seleção única para atributo numérico é **recusado**, nunca honrado —;
+  ou entrada malformada.
+  """
+  @spec interpretation_for(%{String.t() => map()}, String.t(), String.t()) :: String.t() | nil
+  def interpretation_for(mapeamentos, field_external_id, data_type) do
+    case mapeamentos[field_external_id] do
+      %{"attribute" => atributo} = entrada ->
+        if entrada["field_type"] in [nil, data_type], do: atributo
+
+      _ ->
+        nil
     end
   end
 

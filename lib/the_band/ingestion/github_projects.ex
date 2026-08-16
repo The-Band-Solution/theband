@@ -261,8 +261,10 @@ defmodule TheBand.Ingestion.GithubProjects do
             project_item_id: gravado.id,
             project_field_definition_id: definicao.id,
             raw_value: bruto,
-            # Só com mapeamento declarado — nunca por semelhança de nome (FR-024).
-            interpreted_as: mapeamentos[campo_id],
+            # Só com mapeamento declarado (FR-024) — e a FR-046 mora na comparação de
+            # tipo: seleção única mapeada para atributo numérico fica crua, recusada.
+            interpreted_as:
+              Projects.interpretation_for(mapeamentos, campo_id, definicao.data_type),
             collected_at: ctx.started_at
           })
 

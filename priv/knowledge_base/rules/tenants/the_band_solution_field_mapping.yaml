@@ -1,0 +1,38 @@
+derivation_rule:
+  id: github.project_field_mapping.the_band_solution
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  overrides: github.project_field_mapping
+
+  name:
+    pt-BR: "Mapeamento de campos — organização The-Band-Solution"
+
+  description:
+    pt-BR: >
+      O único mapeamento que a documentação do próprio processo já sustenta: `Estimate`
+      carrega a complexity da SRO — está escrito na skill de sprint backlog deste
+      repositório, com a distinção que importa: importance é valor para a organização
+      (Product Owner decide), complexity é dificuldade para o time.
+
+      `Priority` NÃO entra: é seleção única com valores inventados (P0/P1/P2), e
+      importance é decimal com escala declarada — mapear seria afirmar uma escala que
+      ninguém declarou. A ausência de importância aparece na tela como limitação, e é
+      assim que deve ser.
+
+      O id é do campo `Estimate` do quadro nº 2, conferido no dado coletado em
+      2026-08-16. Zero itens têm o campo preenchido hoje: o mapeamento nasce declarado
+      e espera o dado — declarar não inventa valor.
+
+  provenance:
+    source_type: project_decision
+    reference: ".claude/skills/sprint-backlog/SKILL.md — Estimate carrega complexity"
+
+  rules:
+    fields:
+      values:
+        PVTF_lADODw6Ft84BLwWDzg7PAW8:
+          attribute: sro.user_story.complexity
+          field_type: NUMBER
