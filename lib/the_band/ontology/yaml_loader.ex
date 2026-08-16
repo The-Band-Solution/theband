@@ -129,7 +129,20 @@ defmodule TheBand.Ontology.YamlLoader do
     {"information_need", :information_need},
     {"knowledge_base", :knowledge_base},
     {"transformation", :transformation},
-    {"competency_questions", :competency_questions}
+    {"competency_questions", :competency_questions},
+    # **Axioma não é regra de derivação, e por isso tem tipo próprio** — issue #320.
+    #
+    # Os dois vivem sob `priv/knowledge_base/rules/`, e a semelhança do diretório escondeu a
+    # diferença: um axioma vem da tese e diz o que a rede **afirma ser verdade**; uma regra de
+    # derivação é decisão da plataforma sobre como derivar um valor. Classificá-los juntos
+    # faria `list(:derivation_rule)` devolver as duas coisas, e quem perguntasse "quais regras
+    # a plataforma decidiu" receberia sete axiomas da tese junto.
+    #
+    # Antes disto, `rules:` não era nenhum dos tipos conhecidos: os sete axiomas da SRO e os
+    # da SPO caíam em `:unknown`, passavam na validação, e **nenhuma consulta por tipo os
+    # alcançava**. É o inverso da L57 — lá uma verificação filtrava um tipo que ninguém
+    # produzia; aqui um tipo era produzido e ninguém conseguia filtrá-lo.
+    {"rules", :axiom}
   ]
 
   defp known_tops, do: Enum.map(@tops, &elem(&1, 0))
