@@ -39,7 +39,7 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.PersonProfile do
     field :requested_by_user_id, :binary_id
 
     field :model, :string
-    field :body, :string
+    field :content, :map
     field :citations_removed, :integer, default: 0
 
     field :tasks_closed, :integer
@@ -69,18 +69,44 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.PersonProfile do
       :generated_at,
       :requested_by_user_id,
       :model,
-      :body,
+      :content,
       :citations_removed | @recorte
     ])
-    |> validate_required([:tenant_id, :person_id, :generated_at, :model, :body])
-    |> update_change(:body, &String.trim/1)
-    |> validate_length(:body, min: 1, message: "resposta vazia é falha, e não perfil")
+    |> validate_required([:tenant_id, :person_id, :generated_at, :model, :content])
+    |> validar_conteudo()
     |> unique_constraint([:tenant_id, :person_id, :generated_at],
       name: :eo_person_profiles_momento_index
     )
-    |> check_constraint(:body,
-      name: :eo_person_profiles_body_nao_vazio,
-      message: "resposta vazia é falha, e não perfil"
+    |> check_constraint(:content,
+      name: :eo_person_profiles_conteudo_util,
+      message: "resposta sem habilidade alguma é falha, e não perfil"
     )
+  end
+
+  # As chaves que a tela lê. Faltar qualquer uma é resposta degenerada, e gravá-la produziria
+  # uma tela com buraco no lugar de uma seção — pior que não ter perfil, porque parece que
+  # a plataforma não teve o que dizer sobre aquela parte.
+  @obrigatorias ~w(habilidades resumo trajetoria destaques lacunas alocacao recomendacoes)
+
+  defp validar_conteudo(changeset) do
+    case get_change(changeset, :content) do
+      nil ->
+        changeset
+
+      conteudo ->
+        faltando = Enum.reject(@obrigatorias, &Map.has_key?(conteudo, &1))
+        habilidades = Map.get(conteudo, "habilidades", [])
+
+        cond do
+          faltando != [] ->
+            add_error(changeset, :content, "faltam chaves: #{Enum.join(faltando, ", ")}")
+
+          habilidades == [] ->
+            add_error(changeset, :content, "resposta sem habilidade alguma é falha, e não perfil")
+
+          true ->
+            changeset
+        end
+    end
   end
 end

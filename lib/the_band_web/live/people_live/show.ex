@@ -118,6 +118,13 @@ defmodule TheBandWeb.PeopleLive.Show do
     |> assign(
       perfil_pendente?: pendente?,
       perfil_possivel: possivel,
+      # **FR-016.** Sem isto um perfil de dezembro parece atual em junho, e quem lê decide
+      # com texto velho sem saber que é velho. Sai da diferença entre o recorte gravado e o
+      # que existe hoje — que é exatamente para isso que o recorte é coluna.
+      tarefas_novas: Profiles.tasks_since(tenant, pessoa.id, perfil),
+      # Só quando há perfil: sem ele a seção não é exibida, e a consulta seria custo por
+      # render sem consumidor.
+      perfil_paradas: if(perfil, do: Profiles.stale_open(tenant, pessoa.id), else: []),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
       # render levanta `KeyError`. O teste pegou.
@@ -621,9 +628,12 @@ defmodule TheBandWeb.PeopleLive.Show do
               </span>
             </h3>
 
-            <%!-- Estado 1: existe perfil. A proveniência vem ANTES do texto, porque quem lê
-                  precisa saber o que está lendo antes de acreditar nele. --%>
-            <div :if={@perfil} class="space-y-3">
+            <%!-- Estado 1: existe perfil.
+
+                  A proveniência vem ANTES do conteúdo, porque quem lê precisa saber o que
+                  está lendo antes de acreditar nele. E os números do recorte são
+                  **observados** — sólidos, distintos do texto derivado que descrevem. --%>
+            <div :if={@perfil} class="space-y-4">
               <dl class="grid gap-2 text-sm sm:grid-cols-2">
                 <.field label="model">
                   <span class="font-mono text-xs">{@perfil.model}</span>
@@ -632,20 +642,205 @@ defmodule TheBandWeb.PeopleLive.Show do
                 <.field label="input">
                   {@perfil.tasks_closed} completed · {@perfil.tasks_open} open · {@perfil.tasks_authored_by_other} described by someone else · {@perfil.tasks_shared} shared
                 </.field>
-                <%!-- Zero aqui é medição, e não ausência: "nada foi removido" é uma afirmação
-                      sobre a limpeza, e escondê-la deixaria a limpeza acontecendo calada. --%>
                 <.field label="citations removed from the summary">
                   {@perfil.citations_removed}
                 </.field>
               </dl>
 
-              <p class="text-xs text-base-content/60">
-                {@perfil.baseline_verdict}
-              </p>
+              <%!-- As habilidades: a única parte escaneável. Hachuradas como o resto do
+                    derivado, e não sólidas — quem passa os olhos precisa ver que são
+                    conclusão antes de ler. --%>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold tracking-wide text-warning uppercase">
+                  Demonstrated skills
+                </span>
+                <span
+                  :for={h <- @perfil.content["habilidades"]}
+                  class="rounded-full border border-dashed border-warning/70 bg-warning/5 px-3 py-1 text-sm text-warning"
+                >
+                  {h}
+                </span>
+              </div>
 
-              <article class="prose prose-sm max-w-none rounded-lg border border-dashed border-warning/60 bg-[repeating-linear-gradient(135deg,rgb(var(--color-warning)/0.06)_0_5px,transparent_5px_10px)] p-4 whitespace-pre-wrap">
-                {@perfil.body}
-              </article>
+              <div class="space-y-3 rounded-lg border border-dashed border-warning/60 bg-[repeating-linear-gradient(135deg,rgb(var(--color-warning)/0.06)_0_5px,transparent_5px_10px)] p-4">
+                <p :for={{_k, texto} <- resumo_em_ordem(@perfil)} class="text-sm leading-relaxed">
+                  {texto}
+                </p>
+              </div>
+
+              <%!-- A trajetória: três períodos de volume igual, e não de duração igual.
+                    Períodos de mesma duração comparariam quatro tarefas com noventa. --%>
+              <div class="space-y-3">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  How the work changed
+                </h4>
+                <div
+                  :for={p <- @perfil.content["trajetoria"]}
+                  class="grid gap-2 border-t border-base-300 pt-3 sm:grid-cols-[10rem_1fr]"
+                >
+                  <div class="text-xs text-base-content/60 tabular-nums">
+                    <span class="block font-semibold text-base-content">Period {p["periodo"]}</span>
+                    {p["meses"]}
+                  </div>
+                  <div class="space-y-1 text-sm">
+                    <div class="font-semibold">{p["titulo"]}</div>
+                    <p class="leading-relaxed">{p["texto"]}</p>
+                    <div
+                      :if={p["tarefas_citadas"] != []}
+                      class="font-mono text-xs text-base-content/60"
+                    >
+                      {Enum.join(p["tarefas_citadas"], " · ")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Destaques: o critério fica visível, senão "destaque" vira opinião. --%>
+              <div class="space-y-2">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  Where the evidence is strong
+                </h4>
+                <p class="text-xs text-base-content/60">
+                  Six tasks or more, present in at least two periods, with evidence in the most
+                  recent one — all three at once.
+                </p>
+                <div :for={d <- @perfil.content["destaques"]} class="border-t border-base-300 pt-2">
+                  <div class="text-sm font-semibold">{d["dominio"]}</div>
+                  <p class="text-sm text-base-content/80">{d["demonstrou"]}</p>
+                  <div class="mt-1 flex flex-wrap gap-3 text-xs text-base-content/60 tabular-nums">
+                    <span>{d["tarefas"]} tasks</span>
+                    <span>periods {Enum.join(d["periodos"], ", ")}</span>
+                    <span>latest {d["mais_recente"]}</span>
+                    <span :if={d["evidencia"] != []} class="font-mono">
+                      #{Enum.join(d["evidencia"], " #")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <%!-- Lacunas: cada uma diz **qual** das três formas é, porque as três pedem
+                    coisas diferentes. E vazio é resposta, não seção faltando: um relatório
+                    que sempre acha um ponto fraco não está lendo. --%>
+              <div class="space-y-2">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  Where it is thin, stale, or stuck
+                </h4>
+                <p class="text-xs text-base-content/60">
+                  A gap in <strong>what was recorded</strong>, not in what the person knows.
+                </p>
+                <div
+                  :for={l <- @perfil.content["lacunas"]}
+                  class="grid gap-1 border-t border-base-300 pt-2 sm:grid-cols-[6rem_1fr]"
+                >
+                  <span class="text-xs font-bold tracking-wide text-warning uppercase">
+                    {forma_em_ingles(l["forma"])}
+                  </span>
+                  <div class="text-sm">
+                    <span class="font-semibold">{l["onde"]}</span>
+                    <p class="text-base-content/80">{l["observado"]}</p>
+                  </div>
+                </div>
+                <.absent
+                  :if={@perfil.content["lacunas"] == []}
+                  reason="None of the three forms holds for this record — nothing thin, stale, or stuck was found."
+                />
+              </div>
+
+              <%!-- Tarefas paradas: a única parte que vira ação imediata. **Observada**, e
+                    por isso sólida — não passou pelo modelo. --%>
+              <div :if={@perfil_paradas != []} class="space-y-2">
+                <h4 class="text-xs font-semibold tracking-wide text-success uppercase">
+                  Open longer than 90 days
+                </h4>
+                <div
+                  :for={t <- @perfil_paradas}
+                  class="flex gap-3 border-t border-base-300 pt-2 text-sm"
+                >
+                  <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
+                    {t.dias_aberta}d
+                  </span>
+                  <span>{t.titulo}</span>
+                </div>
+              </div>
+
+              <%!-- O contrapeso, e é ele que dá crédito ao resto. --%>
+              <div class="rounded-lg bg-base-300/40 p-4 text-sm">
+                <h4 class="mb-1 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  What changed in the project, not in this person
+                </h4>
+                <p class="font-mono text-xs text-base-content/60">{@perfil.baseline_verdict}</p>
+                <p class="mt-2 leading-relaxed">{@perfil.content["do_time_nao_da_pessoa"]}</p>
+              </div>
+
+              <div :if={@perfil.content["alocacao"] != []} class="space-y-2">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  Where the evidence supports allocation
+                </h4>
+                <p class="text-xs text-base-content/60">
+                  Where evidence already exists — not where this person should go. That call
+                  belongs to whoever knows the demand.
+                </p>
+                <div
+                  :for={a <- @perfil.content["alocacao"]}
+                  class="border-t border-base-300 pt-2 text-sm"
+                >
+                  <span class="font-semibold">{a["dominio"]}</span>
+                  <span class="text-xs text-base-content/60 tabular-nums">
+                    · {a["tarefas"]} tasks, {a["de"]} to {a["ate"]}
+                  </span>
+                  <p class="text-base-content/80">{a["demonstrou"]}</p>
+                </div>
+              </div>
+
+              <div :if={@perfil.content["recomendacoes"] != []} class="space-y-1">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  What to do with this
+                </h4>
+                <ul class="list-disc space-y-1 pl-5 text-sm">
+                  <li :for={r <- @perfil.content["recomendacoes"]}>{r}</li>
+                </ul>
+              </div>
+
+              <%!-- Obrigatória: quem decide com base neste texto precisa saber o tamanho do
+                    que ele não viu. --%>
+              <div class="rounded-lg border border-dashed border-base-300 p-4 text-sm text-base-content/70">
+                <h4 class="mb-1 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  What this cannot say
+                </h4>
+                {@perfil.content["nao_alcanca"]}
+              </div>
+
+              <%!-- Regerar continua disponível **com perfil na tela**, e é a US4: um perfil
+                    de agosto e outro de dezembro contam algo que nenhum dos dois conta
+                    sozinho. A tabela é somente-acréscimo, então o anterior não se perde.
+
+                    A frase do egresso acompanha o botão aqui também: sai o mesmo texto de
+                    tarefas que saiu da primeira vez, e quem clica precisa saber disso no
+                    momento de clicar. --%>
+              <div class="flex flex-wrap items-center gap-3 border-t border-base-300 pt-3">
+                <button
+                  :if={not @perfil_pendente?}
+                  type="button"
+                  phx-click="gerar_perfil"
+                  class="btn btn-sm btn-outline"
+                >
+                  Generate again
+                </button>
+                <.absent
+                  :if={@perfil_pendente?}
+                  reason="A new profile was requested and is still running."
+                />
+                <span :if={not @perfil_pendente?} class="text-xs text-base-content/60">
+                  Sends the tasks' titles and descriptions to an external provider again.
+                  <span :if={@tarefas_novas > 0}>
+                    <strong>{@tarefas_novas}</strong> completed
+                    task{if @tarefas_novas == 1, do: "", else: "s"} closed since this one.
+                  </span>
+                  <span :if={@tarefas_novas == 0}>
+                    No task has closed since this one — the text would say the same.
+                  </span>
+                </span>
+              </div>
             </div>
 
             <%!-- Estado 2: pedido, e ainda não pronto. Distinto de "nunca gerado" porque quem
@@ -764,12 +959,32 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
-  # Só quando não há perfil. Devolve as duas respostas de uma vez porque as duas dependem da
-  # mesma condição, e separá-las em dois `if` faria alguém mexer numa e esquecer a outra.
-  defp estado_do_perfil(_tenant, _pessoa, %{} = _perfil_existente), do: {false, :ok}
-
+  # `pending?` vale nos dois casos: com perfil na tela o botão é "gerar de novo", e ele
+  # precisa sumir enquanto a geração nova roda. `check` só quando não há perfil — com perfil
+  # a recusa não é exibida, e pagar a consulta seria custo por render sem consumidor.
   defp estado_do_perfil(tenant, pessoa, nil),
     do: {Profiles.pending?(tenant, pessoa.id), Profiles.check(tenant, pessoa.id)}
+
+  defp estado_do_perfil(tenant, pessoa, %{}),
+    do: {Profiles.pending?(tenant, pessoa.id), :ok}
+
+  # A ordem dos três parágrafos do resumo é conteúdo: forças, evolução, atenção. Um mapa não
+  # tem ordem, e iterar sobre ele daria uma ordem qualquer — trocar atenção por forças mudaria
+  # o que a pessoa gestora lê primeiro.
+  defp resumo_em_ordem(%{content: %{"resumo" => r}}) do
+    for chave <- ~w(forcas evolucao atencao), texto = r[chave], texto not in [nil, ""] do
+      {chave, texto}
+    end
+  end
+
+  defp resumo_em_ordem(_perfil), do: []
+
+  # A interface fala inglês; o modelo escreve em português. Traduzir aqui, e não no schema,
+  # mantém o vocabulário da regra em uma língua só.
+  defp forma_em_ingles("rala"), do: "thin"
+  defp forma_em_ingles("envelhecida"), do: "stale"
+  defp forma_em_ingles("trava"), do: "stuck"
+  defp forma_em_ingles(outra), do: outra
 
   defp perfil_atual(tenant, person_id) do
     case EO.current_profile(tenant, person_id) do

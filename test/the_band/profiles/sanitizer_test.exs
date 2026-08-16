@@ -1,108 +1,92 @@
 defmodule TheBand.Profiles.SanitizerTest do
   @moduledoc """
-  A limpeza do resumo — feature 026, T007.
+  A limpeza dos três campos do resumo — feature 026, T007.
 
-  **Todo texto aqui é real.** Saiu do provedor nas rodadas de validação de 2026-08-15, e cada
-  caso é um defeito que aconteceu — inclusive os dois que a primeira versão da limpeza
-  produziu ao consertar o primeiro.
+  ## O que a saída estruturada consertou, e por que este arquivo encolheu
+
+  A versão anterior operava sobre **prosa**, e tinha de adivinhar onde o resumo terminava
+  procurando o primeiro subtítulo. Metade dos casos aqui eram defeitos dessa adivinhação:
+  o título contado como subtítulo, o conectivo órfão, o parêntese pela metade.
+
+  Em 2026-08-16 a adivinhação falhou de vez — o modelo respondeu sem subtítulo algum, a
+  limpeza tratou os 6651 caracteres como resumo e apagou **dezenove** citações, a evidência
+  inteira, em silêncio.
+
+  Com o schema, os três campos são endereçáveis. Os casos que sobraram são sobre o texto,
+  e não sobre a estrutura, porque a estrutura deixou de ser adivinhada.
   """
   use ExUnit.Case, async: true
 
   alias TheBand.Profiles.Sanitizer
 
+  defp com_resumo(forcas, evolucao \\ "sem citação", atencao \\ "sem citação") do
+    %{
+      "habilidades" => ["observabilidade"],
+      "resumo" => %{"forcas" => forcas, "evolucao" => evolucao, "atencao" => atencao},
+      "destaques" => [%{"dominio" => "observabilidade", "evidencia" => [199, 200]}]
+    }
+  end
+
   test "tira o grupo de citações entre parênteses" do
-    texto = """
-    ## AndreCoelhoS
-
-    Nas tarefas de autoria própria aparecem instrumentação e ajustes de coleta (#181, #349, #61, #102).
-
-    ## O trabalho
-
-    Aqui a citação fica (#403, #409).
-    """
-
-    {limpo, removidas} = Sanitizer.clean_summary(texto)
+    {limpo, removidas} =
+      Sanitizer.clean_summary(com_resumo("Instrumentou a coleta (#181, #349, #61)."))
 
     assert removidas == 1
-    refute limpo =~ "#181"
+    assert limpo["resumo"]["forcas"] == "Instrumentou a coleta."
+  end
 
-    assert limpo =~ "#403",
+  test "não toca na evidência dos destaques" do
+    {limpo, _} = Sanitizer.clean_summary(com_resumo("Instrumentou (#181)."))
+
+    assert limpo["destaques"] == [%{"dominio" => "observabilidade", "evidencia" => [199, 200]}],
            """
            A limpeza passou do resumo.
 
-           As seções seguintes existem justamente para carregar a evidência; tirá-la de lá
-           deixaria o texto inteiro sem lastro.
+           `destaques` e `lacunas` têm campo próprio para os números; é lá que a evidência
+           mora, e tirá-la deixaria o texto sem lastro. Na versão que operava sobre prosa
+           isto era um risco constante — aqui é impossível por construção, e o teste existe
+           para que continue sendo.
            """
   end
 
   test "tira a enumeração solta, junto do conectivo que a apresenta" do
-    texto = """
-    ## AndreCoelhoS
-
-    Há rotina de provisionar infraestrutura, com VMs, DNS e deploys, como #458, #459 e #449.
-
-    ## O trabalho
-    """
-
-    {limpo, removidas} = Sanitizer.clean_summary(texto)
+    {limpo, removidas} =
+      Sanitizer.clean_summary(com_resumo("Provisionou DNS e deploys, como #458, #459 e #449."))
 
     assert removidas >= 1
-    refute limpo =~ "#458"
+    refute limpo["resumo"]["forcas"] =~ "#458"
 
-    refute limpo =~ ~r/,\s*como\s*\./,
+    refute limpo["resumo"]["forcas"] =~ ~r/,\s*como\s*\./,
            """
            Sobrou frase terminando em conjunção: "… e deploys, como."
 
-           Foi exatamente o que a primeira versão da limpeza produziu. Tirar a citação e
-           deixar o conectivo troca um defeito por outro.
+           Foi o que a primeira versão da limpeza produziu. Tirar a citação e deixar o
+           conectivo troca um defeito por outro.
            """
   end
 
   test "não deixa parêntese começando com espaço" do
-    texto = """
-    ## AndreCoelhoS
+    {limpo, _} =
+      Sanitizer.clean_summary(
+        com_resumo("O registro recente (#199, no período 3) é de terceiros.")
+      )
 
-    O texto de lá diz mais sobre a distribuição do registro (#199, no resumo do período 3).
-
-    ## O trabalho
-    """
-
-    {limpo, _} = Sanitizer.clean_summary(texto)
-
-    refute limpo =~ "( ",
-           """
-           Sobrou "( no resumo do período 3)".
-
-           A citação saiu de dentro do parêntese e o resto ficou, com o espaço na frente.
-           """
+    refute limpo["resumo"]["forcas"] =~ "( ",
+           "a citação saiu de dentro do parêntese e o resto ficou, com o espaço na frente"
   end
 
-  test "o título não conta como subtítulo" do
-    texto = """
-    ## AndreCoelhoS
+  test "limpa os três campos, e conta o total" do
+    {limpo, removidas} =
+      Sanitizer.clean_summary(com_resumo("A (#1).", "B (#2).", "C (#3)."))
 
-    Um resumo com citação (#199).
-
-    ## O trabalho
-
-    Outra (#403).
-    """
-
-    {limpo, removidas} = Sanitizer.clean_summary(texto)
-
-    assert removidas == 1,
-           """
-           A limpeza não achou o resumo.
-
-           O título é ele próprio um `##`. Cortar na primeira ocorrência deixa o resumo vazio
-           e a limpeza sem efeito — **sem erro**, que é o pior jeito de não funcionar.
-           """
-
-    refute limpo =~ "#199"
-    assert limpo =~ "#403"
+    assert removidas == 3
+    assert limpo["resumo"]["forcas"] == "A."
+    assert limpo["resumo"]["evolucao"] == "B."
+    assert limpo["resumo"]["atencao"] == "C."
   end
 
-  test "texto sem subtítulo algum é devolvido inteiro" do
-    assert {"linha só", 0} = Sanitizer.clean_summary("linha só")
+  test "resumo ausente não é consertado em silêncio" do
+    conteudo = %{"habilidades" => ["x"]}
+    assert {^conteudo, 0} = Sanitizer.clean_summary(conteudo)
   end
 end

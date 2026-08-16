@@ -255,9 +255,18 @@ defmodule TheBandWeb.PersonDetailTest do
       #   8. o perfil vigente da pessoa — existe, ou não;
       #   9. quando **não** existe: há geração pendente, e há material para gerar.
       #
-      # A nona é duas perguntas numa consulta cada, e as duas só acontecem quando não há
-      # perfil: com perfil na tela, nem o botão nem a recusa aparecem, e pagá-las seria custo
-      # por render sem consumidor.
+      # A nona é duas perguntas numa consulta cada. `check` só acontece quando **não** há
+      # perfil — com perfil a recusa não é exibida, e pagá-la seria custo por render sem
+      # consumidor.
+      #
+      # **Há uma décima que este teste não mede, e dizê-lo é o que mantém a conta honesta.**
+      # `tasks_since/3` conta quantas tarefas fecharam desde o recorte gravado, e só roda
+      # quando existe perfil — a pessoa deste cenário não tem. Então o pior caso real é 18,
+      # não 17, e ele acontece na página de quem já tem perfil.
+      #
+      # Medir os dois cenários exigiria gerar um perfil aqui, o que traria a borda do
+      # provedor para dentro de um teste de custo de página. A troca é consciente: o que o
+      # guard protege é o número **não crescer com o dado**, e nenhuma das dez cresce.
       #
       # **A primeira versão desta seção custava três a mais, e este teste pegou.** A tela
       # chamava `Material.build/2` para decidir se mostrava um botão — quatro consultas, e

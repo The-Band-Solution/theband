@@ -48,6 +48,52 @@ defmodule TheBand.Profiles do
   end
 
   @doc """
+  Quantas tarefas concluíram **depois** do recorte que gerou o perfil exibido.
+
+  É a `FR-016`, e existe porque um perfil de dezembro parece atual em junho: quem lê decide
+  com texto velho sem saber que é velho. Sai da diferença entre `tasks_closed` gravado e o
+  que existe hoje — e é para isso que o recorte é coluna, e não JSON.
+
+  Sem perfil, zero: não há de que contar a distância.
+  """
+  @spec tasks_since(Tenant.t(), binary(), map() | nil) :: non_neg_integer()
+  def tasks_since(_tenant, _person_id, nil), do: 0
+
+  def tasks_since(%Tenant{id: tenant_id}, person_id, %{tasks_closed: gravadas}) do
+    import Ecto.Query
+
+    hoje =
+      from(i in "collected_issues",
+        join: a in "issue_assignees",
+        on: a.collected_issue_id == i.id and is_nil(a.no_longer_observed_at),
+        where:
+          i.tenant_id == type(^tenant_id, :binary_id) and
+            a.person_id == type(^person_id, :binary_id) and i.state == "CLOSED",
+        select: count(i.id)
+      )
+      |> TheBand.Repo.one()
+
+    max(hoje - gravadas, 0)
+  end
+
+  @doc """
+  As tarefas designadas e abertas há mais tempo que o limiar declarado.
+
+  **Observadas, e recalculadas a cada leitura.** Guardá-las no perfil faria uma tarefa que
+  fechou depois da geração continuar aparecendo como parada — a tela mostraria uma pendência
+  que já não existe, e quem lê agiria sobre ela.
+
+  O limiar vem de `profile.thresholds`, regra `stale_open_work`.
+  """
+  @spec stale_open(Tenant.t(), binary()) :: [map()]
+  def stale_open(%Tenant{} = tenant, person_id) do
+    tenant
+    |> Material.open_tasks(person_id)
+    |> Enum.filter(&(&1.dias_aberta > Material.stale_days()))
+    |> Enum.sort_by(& &1.dias_aberta, :desc)
+  end
+
+  @doc """
   Há geração pendente para esta pessoa?
 
   É o terceiro estado da tela — *pedido, ainda não pronto* —, e ele precisa ser distinguível

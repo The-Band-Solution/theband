@@ -26,13 +26,15 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
   end
 
   defp chamar(prompt, material, modelo, chave, opts) do
-    corpo = %{
-      model: modelo,
-      messages: [
-        %{role: "system", content: prompt},
-        %{role: "user", content: material}
-      ]
-    }
+    corpo =
+      %{
+        model: modelo,
+        messages: [
+          %{role: "system", content: prompt},
+          %{role: "user", content: material}
+        ]
+      }
+      |> talvez_estruturado(opts[:schema])
 
     Req.post(@url,
       json: corpo,
@@ -42,6 +44,15 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
     )
     |> interpretar(modelo, chave)
   end
+
+  # **Saída estruturada, quando há schema.** `strict: true` faz o provedor recusar responder
+  # fora do formato, em vez de responder em prosa e deixar quem consome adivinhar. Foi o que
+  # aconteceu antes de existir schema: o modelo largou os subtítulos, a limpeza tratou o
+  # documento inteiro como resumo, e apagou a evidência toda em silêncio.
+  defp talvez_estruturado(corpo, nil), do: corpo
+
+  defp talvez_estruturado(corpo, schema),
+    do: Map.put(corpo, :response_format, %{type: "json_schema", json_schema: schema})
 
   # Cada ramo termina em algo nomeado. Nenhum devolve silêncio.
   defp interpretar({:ok, %{status: 200, body: body}}, modelo, chave) do

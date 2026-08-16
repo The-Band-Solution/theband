@@ -26,13 +26,23 @@ defmodule TheBand.Profiles.Prompt do
 
   @doc "As instruções, lidas do arquivo."
   @spec instrucoes() :: String.t()
+  def instrucoes, do: ler("profiles/perfil.md")
+
+  @doc """
+  O schema da resposta, que o provedor recebe com `strict: true`.
+
+  **A estrutura passa a ser garantida, e não pedida.** Antes de existir, o modelo largou os
+  subtítulos numa geração e a limpeza do resumo apagou a evidência inteira — porque não havia
+  como saber onde o resumo terminava. Com schema, "sem seções" deixa de ser um estado
+  possível.
+  """
+  @spec schema() :: map()
+  def schema, do: "profiles/perfil_schema.json" |> ler() |> Jason.decode!()
+
+  # O caminho é literal nos dois chamadores — nada de entrada de usuário chega aqui, e é por
+  # isso que o aviso de travessia é dispensado. Mesma postura do coletor de consultas.
   @sobelow_skip ["Traversal.FileModule"]
-  def instrucoes do
-    :the_band
-    |> :code.priv_dir()
-    |> Path.join("profiles/perfil.md")
-    |> File.read!()
-  end
+  defp ler(caminho), do: :the_band |> :code.priv_dir() |> Path.join(caminho) |> File.read!()
 
   @doc """
   O material da pessoa, no formato que as instruções descrevem.

@@ -46,6 +46,67 @@ defmodule TheBandWeb.PerfilTest do
     }
   end
 
+  # Um conteúdo mínimo válido, na forma que o schema garante.
+  defp conteudo(extra \\ %{}) do
+    Map.merge(
+      %{
+        "habilidades" => ["observabilidade com OpenTelemetry", "automação com Helm"],
+        "resumo" => %{
+          "forcas" => "Trabalhou em observabilidade desde o começo do recorte.",
+          "evolucao" => "O eixo não mudou; o que mudou foi a amplitude.",
+          "atencao" => "A maior parte do registro recente foi escrita por outra pessoa."
+        },
+        "trajetoria" => [
+          %{
+            "periodo" => 1,
+            "meses" => "2025-04 a 2025-06",
+            "titulo" => "Começou em observabilidade",
+            "texto" => "Instrumentação e deploys.",
+            "tarefas_citadas" => ["Instrumentar OTel"]
+          },
+          %{
+            "periodo" => 2,
+            "meses" => "2025-06 a 2025-12",
+            "titulo" => "Expandiu para ambientes",
+            "texto" => "Kubernetes e DNS.",
+            "tarefas_citadas" => []
+          },
+          %{
+            "periodo" => 3,
+            "meses" => "2026-01 a 2026-08",
+            "titulo" => "Plataforma",
+            "texto" => "Helm, Vault e VPS.",
+            "tarefas_citadas" => []
+          }
+        ],
+        "destaques" => [
+          %{
+            "dominio" => "observabilidade com OpenTelemetry",
+            "demonstrou" => "instrumentou e operou a coleta",
+            "tarefas" => 10,
+            "periodos" => [1, 2, 3],
+            "mais_recente" => "2026-08",
+            "evidencia" => [181, 349]
+          }
+        ],
+        "lacunas" => [],
+        "do_time_nao_da_pessoa" => "O corpo das tarefas cresceu junto com o do projeto.",
+        "alocacao" => [
+          %{
+            "dominio" => "observabilidade",
+            "tarefas" => 10,
+            "de" => "2025-05",
+            "ate" => "2026-08",
+            "demonstrou" => "instrumentação e coleta"
+          }
+        ],
+        "recomendacoes" => ["Dar destino às tarefas paradas há mais de 90 dias."],
+        "nao_alcanca" => "Não alcança revisão de código nem mentoria."
+      },
+      extra
+    )
+  end
+
   defp gravar_perfil(ctx, attrs \\ %{}) do
     {:ok, perfil} =
       EO.record_profile(
@@ -55,7 +116,7 @@ defmodule TheBandWeb.PerfilTest do
             person_id: ctx.pessoa.id,
             generated_at: DateTime.utc_now(:second),
             model: "gpt-5.4-mini",
-            body: "## pessoa-de-teste\n\n**Habilidades principais:** observabilidade · Helm",
+            content: conteudo(),
             citations_removed: 7,
             tasks_closed: 97,
             tasks_open: 5,
@@ -117,13 +178,71 @@ defmodule TheBandWeb.PerfilTest do
 
     test "uma geração nova não apaga a anterior", ctx do
       antiga =
-        gravar_perfil(ctx, %{generated_at: ~U[2026-06-01 10:00:00Z], body: "perfil antigo"})
+        gravar_perfil(ctx, %{generated_at: ~U[2026-06-01 10:00:00Z]})
 
-      nova = gravar_perfil(ctx, %{generated_at: ~U[2026-08-15 10:00:00Z], body: "perfil novo"})
+      nova = gravar_perfil(ctx, %{generated_at: ~U[2026-08-15 10:00:00Z]})
 
       assert length(EO.list_profiles(ctx.tenant, ctx.pessoa.id)) == 2
       assert {:ok, ^nova} = EO.current_profile(ctx.tenant, ctx.pessoa.id)
       assert Enum.any?(EO.list_profiles(ctx.tenant, ctx.pessoa.id), &(&1.id == antiga.id))
+    end
+  end
+
+  describe "gerar de novo" do
+    test "o botão continua na tela depois de já existir perfil", ctx do
+      gravar_perfil(ctx)
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Generate again",
+             """
+             Com perfil na tela não há como pedir outro.
+
+             É a US4: um perfil de agosto e outro de dezembro contam algo que nenhum dos dois
+             conta sozinho, e a tabela é somente-acréscimo justamente para isso.
+             """
+
+      assert html =~ "external provider again",
+             "o egresso precisa ser dito também na regeração — sai o mesmo texto de novo"
+    end
+
+    test "o botão some enquanto a geração nova roda", ctx do
+      gravar_perfil(ctx)
+      {:ok, _job} = TheBand.Profiles.request(ctx.tenant, ctx.pessoa.id, ctx.user.id)
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      refute html =~ "Generate again", "dois pedidos iguais na fila gastariam duas chamadas"
+      assert html =~ "still running"
+    end
+
+    test "a tela diz quantas tarefas fecharam desde o perfil exibido", ctx do
+      gravar_perfil(ctx, %{tasks_closed: 27})
+      material_suficiente(ctx)
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "<strong>3</strong>",
+             """
+             A tela não disse que o perfil está atrasado em relação ao trabalho.
+
+             São 30 concluídas hoje contra 27 no recorte gravado. Sem esta contagem, um
+             perfil de dezembro parece atual em junho, e quem lê decide com texto velho sem
+             saber que é velho — FR-016.
+             """
+    end
+
+    test "sem tarefa nova, a tela diz que o texto sairia igual", ctx do
+      material_suficiente(ctx)
+      gravar_perfil(ctx, %{tasks_closed: 30})
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "would say the same",
+             """
+             A tela ofereceu regeração sem dizer que ela não mudaria nada.
+
+             Cada geração custa uma chamada, e oferecer sem avisar convida a gastar por nada.
+             """
     end
   end
 

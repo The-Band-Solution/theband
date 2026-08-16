@@ -10,7 +10,7 @@
 | `generated_at` | utc_datetime, não nulo | o vigente é o maior; não existe `updated_at` porque não existe atualização |
 | `requested_by_user_id` | uuid | geração é ato de alguém, e ato tem autor |
 | `model` | text, não nulo | qual modelo escreveu — muda a leitura do texto |
-| `body` | text, não nulo | o perfil. `check` de não-vazio: resposta vazia é falha, não perfil |
+| `content` | jsonb, não nulo | o perfil **estruturado** — habilidades, resumo, trajetória, destaques, lacunas. `check` de habilidade não vazia: resposta degenerada é falha, não perfil |
 | `citations_removed` | integer, não nulo, `default 0` | quantas citações a limpeza tirou do resumo. Zero é medição, não ausência |
 
 ### O recorte de entrada, em colunas
@@ -42,3 +42,19 @@ passou; uma issue apagada não deve apagar o perfil que a mencionou.
 - **linha de base** — é derivável de `collected_issues` numa consulta, e materializá-la criaria
   uma segunda fonte que divergiria na primeira coleta;
 - **períodos** — são recorte de leitura, não fato do mundo.
+
+## Por que `content` é jsonb, e não texto
+
+**Corrigido em 2026-08-16, durante a implementação.** A primeira versão guardava prosa, e o
+custo apareceu na primeira geração em que o modelo largou os subtítulos: a limpeza do resumo
+tratou o documento inteiro como resumo e apagou dezenove citações, em silêncio.
+
+Com o provedor respondendo num schema declarado e `strict: true`, a estrutura é garantida na
+origem. Três consequências:
+
+- **a tela renderiza cada parte com o componente certo** — habilidades como marcas, destaques
+  com o critério visível, lacunas classificadas por forma — em vez de despejar markdown;
+- **a limpeza do resumo endereça três campos**, e não um documento cuja estrutura precisa
+  adivinhar;
+- **faltar uma seção vira erro de changeset**, e não um buraco na tela que parece a
+  plataforma não ter tido o que dizer.

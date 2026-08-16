@@ -88,7 +88,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
 
   test "sucesso grava com a proveniência completa e com o veredito", ctx do
     expect(TheBand.LLMHTTPMock, :complete, fn instrucoes, material, _opts ->
-      assert instrucoes =~ "Habilidades principais"
+      assert instrucoes =~ "linha de base do projeto"
       assert material =~ "CRESCIMENTO DO TEXTO"
 
       assert material =~ "d aberta",
@@ -100,12 +100,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
              fecha em 30.
              """
 
-      {:ok,
-       %{
-         text: "## gerada\n\nUm resumo (#42).\n\n## O trabalho\n\nOutro (#43).",
-         model: "m1",
-         usage: %{}
-       }}
+      {:ok, %{text: Jason.encode!(resposta()), model: "m1", usage: %{}}}
     end)
 
     assert {:ok, perfil} = GenerateWorker.perform(job(ctx))
@@ -117,8 +112,65 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
     assert perfil.citations_removed == 1,
            "a limpeza do resumo precisa ser contada, e não acontecer calada"
 
-    refute perfil.body =~ "#42", "a citação do resumo continuou lá"
-    assert perfil.body =~ "#43", "a limpeza passou do resumo e comeu a evidência das seções"
+    refute perfil.content["resumo"]["forcas"] =~ "#42", "a citação do resumo continuou lá"
+
+    assert perfil.content["destaques"] |> hd() |> Map.get("evidencia") == [43],
+           """
+           A limpeza passou do resumo e comeu a evidência dos destaques.
+
+           `destaques` e `lacunas` têm campo próprio para os números; é lá que a evidência
+           mora, e tirá-la deixaria o texto sem lastro.
+           """
+  end
+
+  # O que o provedor devolve com `strict: true` — estrutura, e não prosa.
+  defp resposta do
+    %{
+      "habilidades" => ["observabilidade com OpenTelemetry"],
+      "resumo" => %{
+        "forcas" => "Instrumentou a coleta (#42).",
+        "evolucao" => "O eixo não mudou.",
+        "atencao" => "Registro recente é de terceiros."
+      },
+      "trajetoria" => [
+        %{
+          "periodo" => 1,
+          "meses" => "2025-02 a 2025-06",
+          "titulo" => "t1",
+          "texto" => "x",
+          "tarefas_citadas" => []
+        },
+        %{
+          "periodo" => 2,
+          "meses" => "2025-06 a 2025-11",
+          "titulo" => "t2",
+          "texto" => "y",
+          "tarefas_citadas" => []
+        },
+        %{
+          "periodo" => 3,
+          "meses" => "2025-11 a 2026-04",
+          "titulo" => "t3",
+          "texto" => "z",
+          "tarefas_citadas" => []
+        }
+      ],
+      "destaques" => [
+        %{
+          "dominio" => "observabilidade",
+          "demonstrou" => "coletou",
+          "tarefas" => 8,
+          "periodos" => [1, 2, 3],
+          "mais_recente" => "2026-04",
+          "evidencia" => [43]
+        }
+      ],
+      "lacunas" => [],
+      "do_time_nao_da_pessoa" => "o corpo cresceu com o projeto",
+      "alocacao" => [],
+      "recomendacoes" => [],
+      "nao_alcanca" => "não alcança revisão de código"
+    }
   end
 
   test "200 com texto vazio NÃO vira perfil", ctx do
@@ -142,7 +194,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
         person_id: ctx.pessoa.id,
         generated_at: ~U[2026-06-01 10:00:00Z],
         model: "m0",
-        body: "perfil anterior",
+        content: resposta(),
         tasks_closed: 10,
         tasks_open: 0,
         tasks_with_body: 10,

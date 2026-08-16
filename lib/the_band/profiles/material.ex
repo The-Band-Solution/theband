@@ -308,6 +308,14 @@ defmodule TheBand.Profiles.Material do
     end
   end
 
+  @doc "As tarefas abertas com designação vigente, com a idade de cada uma."
+  @spec open_tasks(Tenant.t(), binary()) :: [tarefa()]
+  def open_tasks(%Tenant{} = tenant, person_id), do: tarefas(tenant, person_id, "OPEN")
+
+  @doc "A idade a partir da qual uma tarefa aberta vira ação — `profile.thresholds`."
+  @spec stale_days() :: pos_integer()
+  def stale_days, do: limiares()["stale_open_work"]["values"]["stale_days"]
+
   # -- consultas ---------------------------------------------------------------
 
   defp tarefas(%Tenant{id: tenant_id}, person_id, estado) do

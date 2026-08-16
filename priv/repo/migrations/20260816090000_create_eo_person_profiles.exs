@@ -34,7 +34,17 @@ defmodule TheBand.Repo.Migrations.CreateEoPersonProfiles do
       add :requested_by_user_id, references(:users, type: :uuid, on_delete: :nilify_all)
 
       add :model, :string, null: false
-      add :body, :text, null: false
+
+      # **Estrutura, e não prosa.** O provedor responde num schema declarado, com
+      # `strict: true`, e o que se guarda é o objeto — habilidades, resumo, trajetória,
+      # destaques, lacunas.
+      #
+      # A primeira versão guardava texto corrido, e o custo apareceu na primeira geração em
+      # que o modelo largou os subtítulos: a limpeza do resumo tratou o documento inteiro
+      # como resumo e apagou dezenove citações, em silêncio. Com estrutura declarada, "sem
+      # seções" deixa de ser um estado possível — e a tela renderiza cada parte com o
+      # componente certo em vez de despejar markdown.
+      add :content, :map, null: false
 
       # Zero aqui é medição — "nada foi removido" —, e não ausência de medida.
       add :citations_removed, :integer, null: false, default: 0
@@ -53,9 +63,10 @@ defmodule TheBand.Repo.Migrations.CreateEoPersonProfiles do
     end
 
     # **Resposta vazia é falha, não perfil.** A constraint fecha o caminho no banco, e não só
-    # no changeset: um perfil vazio afirmaria nada com a autoridade de um perfil.
-    create constraint(:eo_person_profiles, :eo_person_profiles_body_nao_vazio,
-             check: "btrim(body) <> ''"
+    # no changeset: um perfil sem habilidade alguma afirmaria nada com a autoridade de um
+    # perfil, e é o que uma resposta degenerada produziria.
+    create constraint(:eo_person_profiles, :eo_person_profiles_conteudo_util,
+             check: "jsonb_array_length(content -> 'habilidades') > 0"
            )
 
     create unique_index(:eo_person_profiles, [:tenant_id, :person_id, :generated_at],
