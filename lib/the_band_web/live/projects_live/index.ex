@@ -39,7 +39,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
        # a complexidade sem ninguém precisar de dois abertos ao mesmo tempo.
        picker: nil,
        busca: "",
-       marcados: MapSet.new()
+       marcados: MapSet.new(),
+       # Feature 028: qual projeto está em edição, e o rascunho de equipe nova.
+       editando: nil,
+       nova_equipe: nil
      )
      |> load()}
   end
@@ -97,6 +100,131 @@ defmodule TheBandWeb.ProjectsLive.Index do
      assign(socket, marcados: MapSet.union(socket.assigns.marcados, MapSet.new(visiveis)))}
   end
 
+  # ------------------------------------------------------------ feature 028: gestão
+
+  def handle_event("abrir_edicao", %{"project_id" => pid}, socket),
+    do: {:noreply, assign(socket, editando: pid, erro: nil)}
+
+  def handle_event("fechar_edicao", _params, socket),
+    do: {:noreply, assign(socket, editando: nil)}
+
+  def handle_event("salvar_edicao", %{"project_id" => pid} = params, socket) do
+    caso =
+      SPO.update_project(
+        socket.assigns.current_tenant,
+        pid,
+        %{
+          name: params["name"],
+          started_on: vazio_e_nulo(params["started_on"]),
+          ended_on: vazio_e_nulo(params["ended_on"])
+        },
+        socket.assigns.current_user.id
+      )
+
+    case caso do
+      {:ok, _} ->
+        {:noreply, socket |> assign(editando: nil) |> load()}
+
+      {:error, %Ecto.Changeset{} = ch} ->
+        {:noreply, assign(socket, erro: primeira_mensagem(ch))}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Project not found.")}
+    end
+  end
+
+  def handle_event("remover_projeto", %{"project_id" => pid}, socket) do
+    caso =
+      SPO.remove_project(socket.assigns.current_tenant, pid, socket.assigns.current_user.id)
+
+    case caso do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "Project removed. The declaration stays on record; there is no undelete."
+         )
+         |> load()}
+
+      {:error, :has_parts} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "This project has parts. Move or remove the subprojects first — removing in " <>
+             "cascade would erase declarations nobody asked to erase."
+         )}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Project not found.")}
+    end
+  end
+
+  def handle_event(
+        "associar_organizacao",
+        %{"project_id" => pid, "organization_id" => oid},
+        socket
+      )
+      when oid != "" do
+    {:ok, _} =
+      SPO.link_organization(
+        socket.assigns.current_tenant,
+        pid,
+        oid,
+        socket.assigns.current_user.id
+      )
+
+    {:noreply, load(socket)}
+  end
+
+  def handle_event("associar_organizacao", _params, socket), do: {:noreply, socket}
+
+  def handle_event("desassociar_organizacao", %{"link_id" => lid}, socket) do
+    {:ok, _} =
+      SPO.unlink_organization(socket.assigns.current_tenant, lid, socket.assigns.current_user.id)
+
+    {:noreply, load(socket)}
+  end
+
+  def handle_event("associar_equipe", %{"project_id" => pid, "team_id" => tid}, socket)
+      when tid != "" do
+    {:ok, _} =
+      SPO.link_team(socket.assigns.current_tenant, pid, tid, socket.assigns.current_user.id)
+
+    {:noreply, load(socket)}
+  end
+
+  def handle_event("associar_equipe", _params, socket), do: {:noreply, socket}
+
+  def handle_event("desassociar_equipe", %{"link_id" => lid}, socket) do
+    {:ok, _} =
+      SPO.unlink_team(socket.assigns.current_tenant, lid, socket.assigns.current_user.id)
+
+    {:noreply, load(socket)}
+  end
+
+  def handle_event("abrir_nova_equipe", %{"project_id" => pid}, socket),
+    do: {:noreply, assign(socket, nova_equipe: pid)}
+
+  def handle_event("fechar_nova_equipe", _params, socket),
+    do: {:noreply, assign(socket, nova_equipe: nil)}
+
+  def handle_event("criar_equipe", %{"project_id" => pid, "name" => nome}, socket) do
+    tenant = socket.assigns.current_tenant
+    ator = socket.assigns.current_user.id
+
+    # Criar e associar são um gesto na tela e dois atos no domínio — a equipe existe por
+    # si, e o vínculo é o que a liga ao projeto (e o que justifica o tipo project_team).
+    with {:ok, equipe} <- EO.create_declared_team(tenant, nome, ator),
+         {:ok, _} <- SPO.link_team(tenant, pid, equipe.id, ator) do
+      {:noreply, socket |> assign(nova_equipe: nil) |> load()}
+    else
+      {:error, %Ecto.Changeset{} = ch} ->
+        {:noreply, assign(socket, erro: primeira_mensagem(ch))}
+    end
+  end
+
   def handle_event("associar_marcados", %{"project_id" => pid}, socket) do
     tenant = socket.assigns.current_tenant
     autor = socket.assigns.current_user.id
@@ -140,6 +268,9 @@ defmodule TheBandWeb.ProjectsLive.Index do
     end
   end
 
+  defp vazio_e_nulo(""), do: nil
+  defp vazio_e_nulo(v), do: v
+
   defp load(socket) do
     tenant = socket.assigns.current_tenant
     projetos = SPO.list_projects(tenant)
@@ -154,7 +285,11 @@ defmodule TheBandWeb.ProjectsLive.Index do
         Map.merge(p, %{
           parent_name: p.parent_id && nomes[p.parent_id],
           repositorios: SPO.list_project_repositories(tenant, p.id),
-          contagem: SPO.count_project_issues(tenant, p.id)
+          contagem: SPO.count_project_issues(tenant, p.id),
+          # Feature 028: as organizações filtram o seletor, e as equipes dizem quem
+          # trabalha — com a proveniência junto, porque declarada ≠ observada.
+          organizacoes: SPO.list_project_organizations(tenant, p.id),
+          equipes: SPO.list_project_teams(tenant, p.id)
         })
       end)
 
@@ -162,6 +297,8 @@ defmodule TheBandWeb.ProjectsLive.Index do
       projetos: com_dados,
       nomes_de_repo: nomes_de_repo,
       nomes_de_org: nomes_de_org,
+      organizacoes_do_tenant: EO.list_organizations(tenant),
+      equipes_do_tenant: EO.list_teams(tenant),
       observados: observados,
       ja_associados:
         Map.new(com_dados, fn p ->
@@ -177,12 +314,27 @@ defmodule TheBandWeb.ProjectsLive.Index do
   def disponiveis(assigns, project_id) do
     ja = assigns.ja_associados[project_id] || MapSet.new()
     termo = String.downcase(String.trim(assigns.busca))
+    orgs = orgs_do_projeto(assigns, project_id)
 
     assigns.observados
     |> Enum.reject(&MapSet.member?(ja, &1.observed_repository_id))
+    # FR-005: com organização associada, o seletor oferece só o que ela alcança. Sem
+    # associação, tudo — compatível com os projetos existentes, e a tela diz qual caso é.
     |> Enum.filter(fn r ->
-      termo == "" or String.contains?(String.downcase(r.qualified_name || r.name), termo)
+      (orgs == nil or MapSet.member?(orgs, r.organization_id)) and
+        (termo == "" or String.contains?(String.downcase(r.qualified_name || r.name), termo))
     end)
+  end
+
+  @doc false
+  # `nil` = sem associação (sem filtro); MapSet = filtra. A distinção importa: um MapSet
+  # vazio filtraria TUDO, e "nenhuma organização associada" não pode significar isso.
+  def orgs_do_projeto(assigns, project_id) do
+    case Enum.find(assigns.projetos, &(&1.id == project_id)) do
+      %{organizacoes: []} -> nil
+      %{organizacoes: orgs} -> MapSet.new(orgs, & &1.organization_id)
+      nil -> nil
+    end
   end
 
   # Agrupa por organização, porque quem procura repositório pensa por organização —
@@ -276,10 +428,65 @@ defmodule TheBandWeb.ProjectsLive.Index do
                   part of {p.parent_name}
                 </span>
               </h3>
-              <div class="text-xs opacity-70">
-                {periodo(p)}
+              <div class="flex items-center gap-2">
+                <span class="text-xs opacity-70">{periodo(p)}</span>
+                <%!-- Feature 028: editar e remover são de admin, e remover é MARCA —
+                      a frase do confirm diz o efeito antes do clique. --%>
+                <button
+                  :if={@current_user.role == "admin" && @editando != p.id}
+                  phx-click="abrir_edicao"
+                  phx-value-project_id={p.id}
+                  class="btn btn-ghost btn-xs"
+                >
+                  edit
+                </button>
+                <button
+                  :if={@current_user.role == "admin"}
+                  phx-click="remover_projeto"
+                  phx-value-project_id={p.id}
+                  class="btn btn-ghost btn-xs text-error"
+                  data-confirm={"Remove the project \"#{p.name}\"? The declaration stays on record — there is no undelete. A project with parts is refused."}
+                >
+                  remove
+                </button>
               </div>
             </div>
+
+            <form
+              :if={@editando == p.id}
+              id={"editar-#{p.id}"}
+              phx-submit="salvar_edicao"
+              class="flex flex-wrap items-end gap-3 rounded-lg border border-base-300 p-3"
+            >
+              <input type="hidden" name="project_id" value={p.id} />
+              <label class="flex flex-col gap-1 text-xs">
+                name
+                <input name="name" value={p.name} required class="input input-sm input-bordered" />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                started on
+                <input
+                  type="date"
+                  name="started_on"
+                  value={p.started_on}
+                  class="input input-sm input-bordered"
+                />
+              </label>
+              <label class="flex flex-col gap-1 text-xs">
+                ended on
+                <input
+                  type="date"
+                  name="ended_on"
+                  value={p.ended_on}
+                  class="input input-sm input-bordered"
+                />
+              </label>
+              <.button class="btn-sm">Save</.button>
+              <button type="button" phx-click="fechar_edicao" class="btn btn-ghost btn-sm">
+                cancel
+              </button>
+              <p :if={@erro} class="w-full text-sm text-error">{@erro}</p>
+            </form>
 
             <%!-- **As duas contagens não somam.** "Veio de repositório meu" e "veio de
                   subprojeto" são fatos diferentes, e um total esconderia de onde o
@@ -293,6 +500,115 @@ defmodule TheBandWeb.ProjectsLive.Index do
                 <strong class="tabular">{p.contagem.subproject}</strong>
                 <span class="opacity-70">from subprojects</span>
               </span>
+            </div>
+
+            <div>
+              <h4 class="text-xs uppercase tracking-wide opacity-60">Organisations</h4>
+              <%!-- FR-004/FR-005: a organização associada FILTRA o seletor de
+                    repositórios. Sem associação, o seletor oferece tudo — e diz isso. --%>
+              <p :if={p.organizacoes == []} class="mt-1 text-sm opacity-70">
+                No organisation associated — the repository picker offers everything.
+              </p>
+              <ul class="mt-1 flex flex-wrap gap-2">
+                <li :for={o <- p.organizacoes} class="badge badge-outline gap-2">
+                  <span class="font-mono text-xs">{o.login}</span>
+                  <button
+                    :if={@current_user.role == "admin"}
+                    phx-click="desassociar_organizacao"
+                    phx-value-link_id={o.id}
+                    class="cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </li>
+              </ul>
+              <form
+                :if={@current_user.role == "admin"}
+                id={"org-#{p.id}"}
+                phx-change="associar_organizacao"
+                class="mt-2"
+              >
+                <input type="hidden" name="project_id" value={p.id} />
+                <select name="organization_id" class="select select-sm select-bordered">
+                  <option value="">associate an organisation…</option>
+                  <option
+                    :for={org <- @organizacoes_do_tenant}
+                    :if={org.id not in Enum.map(p.organizacoes, & &1.organization_id)}
+                    value={org.id}
+                  >
+                    {org.login}
+                  </option>
+                </select>
+              </form>
+            </div>
+
+            <div>
+              <h4 class="text-xs uppercase tracking-wide opacity-60">Teams</h4>
+              <%!-- FR-008: declarada e observada são proveniências diferentes, e a marca
+                    diz qual é. FR-009: a equipe declarada nasce vazia — membro exige
+                    papel organizacional (#99/#100), e a tela não esconde isso. --%>
+              <p :if={p.equipes == []} class="mt-1 text-sm opacity-70">
+                No team associated — "who works on this project" has no answer yet.
+              </p>
+              <ul class="mt-1 flex flex-wrap gap-2">
+                <li :for={e <- p.equipes} class="badge badge-outline gap-2">
+                  {e.name}
+                  <span :if={e.declared} class="badge badge-xs">declared</span>
+                  <span :if={!e.declared} class="badge badge-xs badge-ghost">observed</span>
+                  <button
+                    :if={@current_user.role == "admin"}
+                    phx-click="desassociar_equipe"
+                    phx-value-link_id={e.id}
+                    class="cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </li>
+              </ul>
+              <div :if={@current_user.role == "admin"} class="mt-2 flex flex-wrap items-center gap-2">
+                <form id={"equipe-#{p.id}"} phx-change="associar_equipe">
+                  <input type="hidden" name="project_id" value={p.id} />
+                  <select name="team_id" class="select select-sm select-bordered">
+                    <option value="">associate a team…</option>
+                    <option
+                      :for={t <- @equipes_do_tenant}
+                      :if={t.id not in Enum.map(p.equipes, & &1.team_id)}
+                      value={t.id}
+                    >
+                      {t.name}
+                    </option>
+                  </select>
+                </form>
+                <button
+                  :if={@nova_equipe != p.id}
+                  phx-click="abrir_nova_equipe"
+                  phx-value-project_id={p.id}
+                  class="btn btn-ghost btn-xs"
+                >
+                  create a team
+                </button>
+                <form
+                  :if={@nova_equipe == p.id}
+                  id={"nova-equipe-#{p.id}"}
+                  phx-submit="criar_equipe"
+                  class="flex items-center gap-2"
+                >
+                  <input type="hidden" name="project_id" value={p.id} />
+                  <input
+                    name="name"
+                    required
+                    placeholder="team name"
+                    class="input input-sm input-bordered"
+                  />
+                  <.button class="btn-sm">Create</.button>
+                  <button type="button" phx-click="fechar_nova_equipe" class="btn btn-ghost btn-sm">
+                    cancel
+                  </button>
+                </form>
+                <span :if={@nova_equipe == p.id} class="text-xs opacity-60">
+                  born declared and empty — membership needs an organisational role
+                </span>
+              </div>
             </div>
 
             <div>
@@ -339,6 +655,13 @@ defmodule TheBandWeb.ProjectsLive.Index do
 
                 <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-base-content/70">
                   <span>{length(disponiveis)} available</span>
+                  <%!-- SC-002: qual dos dois casos está acontecendo é dito, nunca deduzido. --%>
+                  <span :if={orgs_do_projeto(assigns, p.id)} class="badge badge-xs badge-outline">
+                    filtered by the project's organisations
+                  </span>
+                  <span :if={!orgs_do_projeto(assigns, p.id)} class="opacity-60">
+                    unfiltered — no organisation associated
+                  </span>
                   <span :if={MapSet.size(@marcados) > 0} class="font-medium text-base-content">
                     {MapSet.size(@marcados)} selected
                   </span>

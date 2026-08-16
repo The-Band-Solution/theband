@@ -33,6 +33,7 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate upsert_organization_from_source(tenant, attrs), to: Commands
   defdelegate upsert_person_from_source(tenant, attrs), to: Commands
   defdelegate upsert_team_from_source(tenant, attrs), to: Commands
+  defdelegate create_declared_team(tenant, name, actor_id), to: Commands
   defdelegate record_team_membership_evidence(tenant, attrs), to: Commands
 
   defdelegate mark_evidence_no_longer_observed(tenant, organization_id, collection_started_at),

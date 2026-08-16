@@ -23,7 +23,9 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.SPO.Schemas.Project
+  alias TheBand.Ontology.SEON.SPO.Schemas.ProjectOrganization
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectRepository
+  alias TheBand.Ontology.SEON.SPO.Schemas.ProjectTeam
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
@@ -139,6 +141,209 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
     end
   end
 
+  @doc """
+  Edita nome e período de um projeto declarado — feature 028, FR-001.
+
+  Não alcança `parent_id`: mover na hierarquia é `set_parent/3`, porque mover tem regra
+  própria (ciclo) e misturá-las faria a validação de ciclo rodar em edição de nome.
+  """
+  @spec update_project(Tenant.t(), Ecto.UUID.t(), map(), Ecto.UUID.t()) ::
+          {:ok, Project.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def update_project(%Tenant{id: tenant_id}, project_id, attrs, actor_id) do
+    case Repo.get_by(Project, id: project_id, tenant_id: tenant_id) do
+      nil ->
+        {:error, :not_found}
+
+      projeto ->
+        projeto
+        |> Project.changeset(
+          attrs
+          |> Map.new(fn {k, v} -> {to_string(k), v} end)
+          |> Map.take(["name", "started_on", "ended_on"])
+          |> Map.put("updated_by_user_id", actor_id)
+        )
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Remove um projeto declarado — **marca, nunca apaga** (FR-002).
+
+  `:has_parts` quando existem subprojetos vigentes (FR-003): as partes são movidas ou
+  removidas primeiro, porque remover em cascata apagaria declarações que ninguém pediu
+  para apagar. Não existe undelete — declarar de novo é criar de novo, com autor novo.
+  """
+  @spec remove_project(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, Project.t()} | {:error, :not_found | :has_parts}
+  def remove_project(%Tenant{id: tenant_id} = tenant, project_id, actor_id) do
+    partes =
+      Repo.one(
+        from p in Project,
+          where:
+            p.tenant_id == ^tenant_id and p.parent_id == ^project_id and is_nil(p.removed_at),
+          select: count(p.id)
+      )
+
+    case {Repo.get_by(Project, id: project_id, tenant_id: tenant_id), partes} do
+      {nil, _} ->
+        {:error, :not_found}
+
+      {_projeto, n} when n > 0 ->
+        {:error, :has_parts}
+
+      {projeto, 0} ->
+        _ = tenant
+
+        projeto
+        |> Project.changeset(%{
+          removed_at: DateTime.utc_now(:second),
+          removed_by_user_id: actor_id
+        })
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Associa uma organização observada ao projeto — feature 028, FR-004.
+
+  O mesmo desenho do vínculo com repositório: reassociar revive o vigente em vez de
+  duplicar, e o índice único parcial garante um vigente por par.
+  """
+  @spec link_organization(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectOrganization.t()} | {:error, Ecto.Changeset.t()}
+  def link_organization(%Tenant{id: tenant_id}, project_id, organization_id, actor_id) do
+    vigente =
+      Repo.one(
+        from v in ProjectOrganization,
+          where:
+            v.tenant_id == ^tenant_id and v.project_id == ^project_id and
+              v.organization_id == ^organization_id and is_nil(v.unlinked_at)
+      )
+
+    case vigente do
+      nil ->
+        %ProjectOrganization{}
+        |> ProjectOrganization.changeset(%{
+          tenant_id: tenant_id,
+          project_id: project_id,
+          organization_id: organization_id,
+          linked_by_user_id: actor_id,
+          linked_at: DateTime.utc_now(:second)
+        })
+        |> Repo.insert()
+
+      existente ->
+        {:ok, existente}
+    end
+  end
+
+  @doc "Desfaz o vínculo com uma organização — marca, nunca apaga."
+  @spec unlink_organization(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectOrganization.t()} | {:error, :not_found}
+  def unlink_organization(%Tenant{id: tenant_id}, vinculo_id, actor_id) do
+    case Repo.get_by(ProjectOrganization, id: vinculo_id, tenant_id: tenant_id) do
+      nil ->
+        {:error, :not_found}
+
+      vinculo ->
+        vinculo
+        |> ProjectOrganization.changeset(%{
+          unlinked_at: DateTime.utc_now(:second),
+          unlinked_by_user_id: actor_id
+        })
+        |> Repo.update()
+    end
+  end
+
+  @doc "As organizações vigentes de um projeto, com o vínculo junto."
+  @spec list_project_organizations(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_project_organizations(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectOrganization,
+        join: o in "eo_organizations",
+        on: o.id == v.organization_id,
+        where:
+          v.tenant_id == ^tenant_id and v.project_id == ^project_id and is_nil(v.unlinked_at),
+        order_by: [asc: o.login],
+        select: %{id: v.id, organization_id: v.organization_id, login: o.login, name: o.name}
+    )
+  end
+
+  @doc """
+  Associa uma equipe ao projeto — feature 028, FR-006.
+
+  A equipe pode ser observada ou declarada; o vínculo não distingue, e a tela distingue
+  pela proveniência da equipe.
+  """
+  @spec link_team(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectTeam.t()} | {:error, Ecto.Changeset.t()}
+  def link_team(%Tenant{id: tenant_id}, project_id, team_id, actor_id) do
+    vigente =
+      Repo.one(
+        from v in ProjectTeam,
+          where:
+            v.tenant_id == ^tenant_id and v.project_id == ^project_id and
+              v.team_id == ^team_id and is_nil(v.unlinked_at)
+      )
+
+    case vigente do
+      nil ->
+        %ProjectTeam{}
+        |> ProjectTeam.changeset(%{
+          tenant_id: tenant_id,
+          project_id: project_id,
+          team_id: team_id,
+          linked_by_user_id: actor_id,
+          linked_at: DateTime.utc_now(:second)
+        })
+        |> Repo.insert()
+
+      existente ->
+        {:ok, existente}
+    end
+  end
+
+  @doc "Desfaz o vínculo com uma equipe — marca, nunca apaga."
+  @spec unlink_team(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectTeam.t()} | {:error, :not_found}
+  def unlink_team(%Tenant{id: tenant_id}, vinculo_id, actor_id) do
+    case Repo.get_by(ProjectTeam, id: vinculo_id, tenant_id: tenant_id) do
+      nil ->
+        {:error, :not_found}
+
+      vinculo ->
+        vinculo
+        |> ProjectTeam.changeset(%{
+          unlinked_at: DateTime.utc_now(:second),
+          unlinked_by_user_id: actor_id
+        })
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  As equipes vigentes de um projeto, **com a proveniência junto** — a tela separa a
+  declarada da observada (FR-008), porque o produto existe para essa distinção.
+  """
+  @spec list_project_teams(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_project_teams(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: t in "eo_teams",
+        on: t.id == v.team_id,
+        where:
+          v.tenant_id == ^tenant_id and v.project_id == ^project_id and is_nil(v.unlinked_at),
+        order_by: [asc: t.name],
+        select: %{
+          id: v.id,
+          team_id: v.team_id,
+          name: t.name,
+          declared: t.source_instance == "declared",
+          source_system: t.source_system
+        }
+    )
+  end
+
   # ------------------------------------------------------------------------ leituras
 
   @doc """
@@ -150,7 +355,11 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   @spec list_projects(Tenant.t()) :: [Project.t()]
   def list_projects(%Tenant{id: tenant_id}) do
     projetos =
-      Repo.all(from p in Project, where: p.tenant_id == ^tenant_id, order_by: [asc: p.name])
+      Repo.all(
+        from p in Project,
+          where: p.tenant_id == ^tenant_id and is_nil(p.removed_at),
+          order_by: [asc: p.name]
+      )
 
     com_filho =
       Repo.all(

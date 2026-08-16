@@ -36,6 +36,9 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
     field :slug, :string
     field :organization_id, :binary_id
 
+    # A equipe declarada pela tela tem autor; a observada tem nil aqui — ausência real.
+    field :declared_by_user_id, :binary_id
+
     field :source_system, :string
     field :source_instance, :string
     field :external_id, :string
@@ -62,6 +65,7 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
       :name,
       :slug,
       :organization_id,
+      :declared_by_user_id,
       :source_system,
       :source_instance,
       :external_id,

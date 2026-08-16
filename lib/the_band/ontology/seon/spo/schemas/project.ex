@@ -34,6 +34,12 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.Project do
     field :declared_by_user_id, :binary_id
     field :parent_id, :binary_id
 
+    # O ciclo de vida da declaração — feature 028. Remover é marca, nunca apagamento:
+    # a declaração desfeita continua consultável, e não existe undelete.
+    field :updated_by_user_id, :binary_id
+    field :removed_at, :utc_datetime
+    field :removed_by_user_id, :binary_id
+
     # Derivada, e nunca gravada: sai de ter filhos. Virtual porque a tela precisa dela
     # junto do registro, e recalcular por linha seria consulta por item.
     field :phase, Ecto.Enum, values: [:simple, :complex], virtual: true, default: :simple
@@ -44,7 +50,17 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.Project do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(project, attrs) do
     project
-    |> cast(attrs, [:tenant_id, :name, :started_on, :ended_on, :declared_by_user_id, :parent_id])
+    |> cast(attrs, [
+      :tenant_id,
+      :name,
+      :started_on,
+      :ended_on,
+      :declared_by_user_id,
+      :parent_id,
+      :updated_by_user_id,
+      :removed_at,
+      :removed_by_user_id
+    ])
     |> validate_required([:tenant_id, :name])
     |> validate_length(:name, min: 1, max: 200)
     # **O erro cai em `:name`**, e não em `:tenant_id`: ninguém digita o tenant, e a

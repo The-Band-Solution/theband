@@ -56,6 +56,14 @@ defmodule TheBand.Ontology.SEON.SPO do
   # e não existe caminho de coleta que o crie.
 
   defdelegate create_project(tenant, attrs, actor_id), to: Projects
+  defdelegate update_project(tenant, project_id, attrs, actor_id), to: Projects
+  defdelegate remove_project(tenant, project_id, actor_id), to: Projects
+  defdelegate link_organization(tenant, project_id, organization_id, actor_id), to: Projects
+  defdelegate unlink_organization(tenant, vinculo_id, actor_id), to: Projects
+  defdelegate list_project_organizations(tenant, project_id), to: Projects
+  defdelegate link_team(tenant, project_id, team_id, actor_id), to: Projects
+  defdelegate unlink_team(tenant, vinculo_id, actor_id), to: Projects
+  defdelegate list_project_teams(tenant, project_id), to: Projects
   defdelegate set_parent(tenant, project_id, parent_id), to: Projects
   defdelegate clear_parent(tenant, project_id), to: Projects
   defdelegate link_repository(tenant, project_id, observed_repository_id, actor_id), to: Projects
