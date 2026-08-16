@@ -100,12 +100,16 @@ defmodule TheBand.Profiles.RegenerationTest do
     end
 
     test "sem material que passe nos pisos, o motivo é o material", ctx do
-      vazia =
+      # Com a regra da primeira geração (2026-08-16), pouco texto SEM perfil gera; o piso
+      # volta quando existe perfil anterior — é esse o caminho que este caso guarda.
+      rala =
         TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "rala",
           tarefas: 2
         )
 
-      assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, vazia, ctx.limiares)
+      perfil(ctx.tenant, rala, %{period_to: ~D[2020-01-01]})
+
+      assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, rala, ctx.limiares)
     end
 
     test "quem nunca teve perfil gera, sem passar pela regra de mudança", ctx do
@@ -153,7 +157,18 @@ defmodule TheBand.Profiles.RegenerationTest do
 
   describe "select/1" do
     test "devolve também quem será pulado, porque a contagem por motivo depende disso", ctx do
-      TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "rala", tarefas: 2)
+      {:ok, _} =
+        EO.upsert_person_from_source(ctx.tenant, %{
+          login: "sem-designacao",
+          name: "SEM",
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          source_endpoint: "/users/sem",
+          external_id: "U_sem",
+          collected_at: DateTime.utc_now(:second),
+          payload: %{}
+        })
 
       assert {:ok, vereditos} = Regeneration.select(ctx.tenant)
       assert length(vereditos) == 2
@@ -178,12 +193,23 @@ defmodule TheBand.Profiles.RegenerationTest do
     end
 
     test "os pulos de fato continuam: sem material e observação encerrada", ctx do
-      rala =
-        TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "rala",
-          tarefas: 2
-        )
+      # O pulo de material que sobrevive à primeira geração é o de quem não tem NADA
+      # designado — texto pouco já não pula (regra de 2026-08-16).
+      {:ok, sem_nada} =
+        EO.upsert_person_from_source(ctx.tenant, %{
+          login: "sem-designacao",
+          name: "SEM",
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          source_endpoint: "/users/sem",
+          external_id: "U_sem",
+          collected_at: DateTime.utc_now(:second),
+          payload: %{}
+        })
 
-      assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, rala, ctx.limiares, :todas)
+      assert {:skip, :no_material} =
+               Regeneration.due?(ctx.tenant, sem_nada, ctx.limiares, :todas)
 
       Repo.update_all(
         from(p in TheBand.Ontology.SEON.EO.Schemas.Person, where: p.id == ^ctx.pessoa.id),
@@ -256,6 +282,25 @@ defmodule TheBand.Profiles.RegenerationTest do
         Process.sleep(20)
         match?({:ok, _}, Regeneration.thresholds())
       end) || raise "a base de conhecimento não voltou depois do restart"
+    end
+  end
+
+  describe "a primeira geração pega tudo — decisão de 2026-08-16" do
+    test "sem perfil anterior, quem tem pouco texto GERA; com perfil, os pisos voltam", ctx do
+      # Duas tarefas só — muito abaixo do piso de 15. Sem perfil anterior: gera.
+      rala =
+        TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "rala",
+          tarefas: 2
+        )
+
+      assert :generate = Regeneration.due?(ctx.tenant, rala, ctx.limiares),
+             "a primeira geração foi barrada pelo piso — o piso protege a comparação, e não há o que comparar"
+
+      # Com perfil vigente, os pisos inteiros voltam: 2 tarefas é below_floor.
+      perfil(ctx.tenant, rala, %{period_to: ~D[2020-01-01]})
+
+      assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, rala, ctx.limiares),
+             "os pisos não voltaram na segunda geração"
     end
   end
 end

@@ -174,4 +174,50 @@ defmodule TheBand.Profiles.MaterialTest do
              """
     end
   end
+
+  describe "sem corpo, o título é o texto — decisão de 2026-08-16" do
+    test "período onde a maioria não tem corpo passa pela mediana do título", ctx do
+      # A forma real de MateusLannes: primeiro terço com menos da metade dos corpos.
+      # Antes, a mediana zero recusava o perfil inteiro; o título sempre existiu no
+      # material, e agora é medido como texto quando o corpo falta.
+      for n <- 1..18 do
+        tarefa(ctx,
+          numero: 700 + n,
+          fechada: DateTime.new!(~D[2025-03-01] |> Date.add(n * 20), ~T[12:00:00]),
+          corpo: if(n <= 6, do: "", else: String.duplicate("x", 300)),
+          login: "lannes"
+        )
+      end
+
+      assert {:ok, material} = Material.build(ctx.tenant, pessoa_de(ctx, "lannes").id)
+
+      refute Enum.any?(material.periodos, &(&1.corpo_mediano == 0)),
+             "a mediana zerou num período com títulos — a recusa voltaria para quem escreve título e não corpo"
+    end
+  end
+
+  defp pessoa_de(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(ctx.tenant, %{
+        login: login,
+        name: String.upcase(login),
+        account_type: "person",
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_endpoint: "/users/#{login}",
+        external_id: "U_#{login}",
+        collected_at: DateTime.utc_now(:second),
+        payload: %{"login" => login}
+      })
+
+    for issue <-
+          Repo.all(TheBand.WorkItems.Schemas.CollectedIssue) |> Enum.filter(&(&1.number >= 700)) do
+      {:ok, _} =
+        WorkItems.replace_assignees(ctx.tenant, issue.id, [
+          %{login: login, external_id: "U_#{login}", person_id: p.id}
+        ])
+    end
+
+    p
+  end
 end

@@ -40,7 +40,7 @@ defmodule TheBand.Profiles.GenerateWorker do
   @spec gerar(Tenants.Tenant.t(), binary(), binary() | nil) ::
           {:ok, map(), non_neg_integer() | nil} | {:error, term()}
   def gerar(tenant, person_id, user_id \\ nil) do
-    with {:ok, material} <- Material.build(tenant, person_id),
+    with {:ok, material} <- Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
          {:ok, resposta} <- chamar(tenant, material) do
       case gravar(tenant, material, resposta, user_id) do
         {:ok, perfil} -> {:ok, perfil, tokens_de_entrada(resposta)}
@@ -63,7 +63,8 @@ defmodule TheBand.Profiles.GenerateWorker do
     %{"tenant_id" => tenant_id, "person_id" => person_id} = args
 
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
-         {:ok, material} <- Material.build(tenant, person_id),
+         {:ok, material} <-
+           Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
          {:ok, resposta} <- chamar(tenant, material) do
       tenant
       |> gravar(material, resposta, args["requested_by_user_id"])
@@ -148,6 +149,15 @@ defmodule TheBand.Profiles.GenerateWorker do
       # provedor devolveria vazio de novo.
       {:error, changeset} ->
         {:cancel, {:invalid_profile, inspect(changeset.errors)}}
+    end
+  end
+
+  # Sem perfil anterior, a primeira geração pega tudo que tem texto — os pisos do
+  # material protegem a comparação temporal, e não há o que comparar ainda.
+  defp modo_do_material(tenant, person_id) do
+    case EO.current_profile(tenant, person_id) do
+      {:ok, _} -> :normal
+      {:error, :not_found} -> :primeira
     end
   end
 
