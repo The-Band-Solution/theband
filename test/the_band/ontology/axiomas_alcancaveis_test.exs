@@ -100,9 +100,10 @@ defmodule TheBand.Ontology.AxiomasAlcancaveisTest do
     # `sources/`, `glossary/` e `examples/` **não** são legítimos: são conhecimento, e
     # nenhuma consulta por tipo os alcança. Estão declarados aqui como **dívida**, e não
     # como decisão — a #320 cobriu os axiomas e parou neles.
+    # Só os JSON Schemas restam, e são o `:unknown` legítimo: `SchemaCheck` os alcança
+    # pelo caminho. `sources/`, `glossary/` e `examples/` saíram da lista na #365 — cada
+    # um ganhou o seu tipo, e a dívida que esta lista declarava foi paga.
     @unknown_esperado ~w(
-      examples/sro_espm_project.yaml
-      glossary/glossary.yaml
       schemas/common.schema.yaml
       schemas/competency-question.schema.yaml
       schemas/information-need.schema.yaml
@@ -111,11 +112,6 @@ defmodule TheBand.Ontology.AxiomasAlcancaveisTest do
       schemas/module.schema.yaml
       schemas/ontology.schema.yaml
       schemas/transformation.schema.yaml
-      sources/azure_devops.yaml
-      sources/github.yaml
-      sources/gitlab.yaml
-      sources/jira.yaml
-      sources/sonar.yaml
     )
 
     test "a lista de :unknown é a declarada — nem mais, nem menos", %{artifacts: artifacts} do

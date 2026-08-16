@@ -130,6 +130,13 @@ defmodule TheBand.Ontology.YamlLoader do
     {"knowledge_base", :knowledge_base},
     {"transformation", :transformation},
     {"competency_questions", :competency_questions},
+    # Os três tipos que a issue #365 tirou de `:unknown`. O AGENTS §8 já os listava entre
+    # o que a base representa; a base os tinha, e o carregador não os enxergava — a mesma
+    # forma da #320, nos vizinhos dela. `source` é a capacidade declarada de uma fonte
+    # externa; `glossary` e `examples` são leitura humana que agora responde a consulta.
+    {"source", :source},
+    {"glossary", :glossary},
+    {"examples", :examples},
     # **Axioma não é regra de derivação, e por isso tem tipo próprio** — issue #320.
     #
     # Os dois vivem sob `priv/knowledge_base/rules/`, e a semelhança do diretório escondeu a
