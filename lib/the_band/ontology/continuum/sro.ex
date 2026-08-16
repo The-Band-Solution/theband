@@ -51,5 +51,12 @@ defmodule TheBand.Ontology.Continuum.SRO do
 
   defdelegate list_sprints(tenant, opts \\ []), to: Queries
   defdelegate list_sprint_issues(tenant, sprint_id), to: Queries
+
+  # Os dois backlogs são conceitos da SRO — sro.product_backlog e sro.sprint_backlog —
+  # e a derivação vive na fronteira Projects, dona das tabelas de item e valor. A
+  # delegação atravessa módulo, nunca Repo: é a composição derivada da atribuição de
+  # iteração (FR-032b), exposta aqui com o nome do conceito.
+  defdelegate product_backlog(tenant, observed_project_id), to: TheBand.Projects.Queries
+  defdelegate sprint_backlog(tenant, sprint_id), to: TheBand.Projects.Queries
   defdelegate count_issues_outside_any_sprint(tenant, board_number), to: Queries
 end

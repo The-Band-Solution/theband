@@ -65,6 +65,8 @@ defmodule TheBandWeb.Router do
       live "/syncs", SyncLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index
+      live "/boards", BoardLive.Index, :index
+      live "/boards/:id", BoardLive.Index, :show
       live "/work", WorkItemLive.Index, :index
       live "/work/issues/:id", WorkItemLive.Show, :show
       live "/work/repositories/:id", RepositoryLive.Show, :show

@@ -35,6 +35,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   # ------------------------------------------------------------------- escritas
 
   defdelegate record_activity(tenant, attrs), to: Commands
+  defdelegate record_intended_process(tenant, attrs), to: Commands
 
   # -------------------------------------------------------------------- leituras
 

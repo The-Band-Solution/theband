@@ -764,3 +764,24 @@ tarefa** — 44 FR e 15 SC.
 **A C1 é a que valia a análise inteira.** Ela não apareceria em teste de unidade: cada
 peça funcionaria, e a tela mostraria zero divergências num dado real que tem seis. O
 defeito só apareceria quando alguém confiasse no número.
+
+## Fase F7 — Convergência (2026-08-16)
+
+A feature 024 entregou as iterações por outro caminho — `sro_sprints`, com
+`board_number`/`field_name` como colunas e 220 iterações vivas — e esta fase reconcilia o
+que a F4 especificou com o que existe. Nenhuma tarefa abaixo refaz o que a 024 provou:
+a promoção iteração-iniciada→sprint, a identidade `campo:iteração` e a idempotência ficam.
+Medido em 2026-08-16: 11 quadros deixam rastro (só os com campo de iteração), 2 nomes de
+campo gravados, e os valores dos demais campos chegam na resposta da API e são descartados.
+
+- [x] T047 Migrar e gravar a entidade de quadro `observed_projects` — sem promover a conceito algum — e ligar `sro_sprints` a ela preservando as 220 iterações existentes, per FR-020 (missing)
+- [x] T048 Coletar a definição dos campos configuráveis de cada quadro em `project_field_definitions`, com identidade pelo id da origem e nome junto, per FR-023, FR-027, FR-027a (missing)
+- [x] T049 Coletar os itens de cada quadro em `project_items`, ligando à issue coletada sem duplicá-la, per FR-021 (missing)
+- [x] T050 Registrar item-rascunho como item sem trabalho associado, em vez de descartá-lo no `... on Issue`, per FR-022 (contradicts)
+- [x] T051 Gravar o valor de cada campo em cada item em `item_field_values`, guardado como não interpretado quando sem mapeamento, per FR-023, FR-025 (missing)
+- [x] T052 Promover iteração futura a processo pretendido, e passá-la a sprint na coleta seguinte ao início — mesma identidade externa, registro novo, transição na coleta, per FR-030, FR-030a (missing)
+- [x] T053 Marcar o sprint removido da configuração do quadro com `no_longer_observed_at` — hoje só a junção issue↔sprint tem a marca, per FR-031 (partial)
+- [x] T054 Derivar product backlog (itens sem iteração) e sprint backlog (itens de iteração iniciada) da atribuição, nunca de coluna, e provar SC-009b — a soma dos dois é o total de itens, per FR-032, FR-032a, FR-032b (missing)
+- [x] T055 Declarar organização sem quadros como resposta distinta de falha, na coleta e no resumo, per FR-038, FR-040 (missing)
+- [x] T056 Alargar as consultas GraphQL para trazer quadros, campos, itens e valores — sem histórico de alterações, per FR-028, T030 (partial)
+- [x] T057 Tela de quadros e backlogs: os campos separados em interpretados e não interpretados, a ausência de importância declarada em vez de suprida, per T040, FR-047, FR-025 (missing)
