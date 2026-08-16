@@ -65,12 +65,23 @@ config :the_band, Oban,
   engine: Oban.Engines.Basic,
   # `perfis` com concorrência 1: a geração é sob demanda e cada chamada leva de 25 a 60
   # segundos. Paralelizar gastaria crédito em rajada sem ninguém esperando mais rápido.
-  queues: [ingestion: 5, transformation: 5, perfis: 1],
+  # `rodadas` é fila **própria**, e não uma vaga a mais em `perfis` — feature 027, T003. Uma
+  # rodada mensal percorre até 34 pessoas em sequência: de 15 a 35 minutos, medidos. Na fila
+  # `perfis`, que tem concorrência 1, ela deixaria toda geração pedida a mão esperando o mês.
+  queues: [ingestion: 5, transformation: 5, perfis: 1, rodadas: 1],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a
     # coleta morrer e a ferramenta voltar a aceitar coleta nova.
-    {Oban.Plugins.Cron, crontab: [{"*/5 * * * *", TheBand.Jobs.ReconcileStuckSyncs}]}
+    #
+    # E a rodada de perfis, no dia 1 às 03:00 — `FR-001a`. O momento é **um só**, no fuso do
+    # servidor: um momento por fuso faria a mesma rodada existir várias vezes, e a proibição
+    # de simultaneidade da `FR-003` deixaria de significar.
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"*/5 * * * *", TheBand.Jobs.ReconcileStuckSyncs},
+       {"0 3 1 * *", TheBand.Profiles.MonthlyWorker}
+     ]}
   ]
 
 # `Oban.Plugins.Lifeline` NÃO entra, e a razão está medida em

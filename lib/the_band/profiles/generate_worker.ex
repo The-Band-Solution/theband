@@ -26,6 +26,38 @@ defmodule TheBand.Profiles.GenerateWorker do
   alias TheBand.Profiles.{Material, Prompt, Sanitizer}
   alias TheBand.Tenants
 
+  @doc """
+  Gera o perfil de uma pessoa **em linha**, e devolve o consumo junto — feature 027, T014.
+
+  Existe porque a rodada mensal precisa gerar em sequência dentro do próprio job, gravando o
+  desfecho de cada pessoa antes de passar para a seguinte. Enfileirar um job por pessoa
+  impediria a `FR-016` de encerrar a rodada: encerrar viraria cancelamento de jobs já
+  enfileirados, que é um estado que a tela não sabe nomear.
+
+  Os tokens de entrada vêm do `usage` que o provedor devolve. `nil` quando o provedor não os
+  informou — nunca zero, que significaria "chamou e não consumiu".
+  """
+  @spec gerar(Tenants.Tenant.t(), binary(), binary() | nil) ::
+          {:ok, map(), non_neg_integer() | nil} | {:error, term()}
+  def gerar(tenant, person_id, user_id \\ nil) do
+    with {:ok, material} <- Material.build(tenant, person_id),
+         {:ok, resposta} <- chamar(tenant, material) do
+      case gravar(tenant, material, resposta, user_id) do
+        {:ok, perfil} -> {:ok, perfil, tokens_de_entrada(resposta)}
+        {:cancel, motivo} -> {:error, motivo}
+      end
+    end
+  end
+
+  # O provedor nomeia o campo de formas diferentes conforme a rota. Nenhum deles presente é
+  # ausência, e ausência é nula: um zero aqui entraria na soma da rodada como se a chamada
+  # não tivesse custado nada.
+  defp tokens_de_entrada(%{usage: usage}) when is_map(usage) do
+    usage["prompt_tokens"] || usage["input_tokens"]
+  end
+
+  defp tokens_de_entrada(_), do: nil
+
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do
     %{"tenant_id" => tenant_id, "person_id" => person_id} = args

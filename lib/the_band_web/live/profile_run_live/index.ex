@@ -1,0 +1,251 @@
+defmodule TheBandWeb.ProfileRunLive.Index do
+  @moduledoc """
+  `/profiles` — a geração automática dos perfis: se está ligada, e o que cada rodada fez.
+
+  Só perfil `admin`.
+
+  ## Tela própria, e não uma aba de outra
+
+  Três perguntas diferentes, três telas — princípio X. `/ai` responde *com que conta
+  trabalhamos*; `/syncs` responde *o que foi coletado*; esta responde *a geração automática
+  está funcionando*.
+
+  Juntar automação e credencial pareceria econômico e produziria o efeito errado: ligar a
+  automação e configurar a chave viram o mesmo gesto, quando um é decisão sobre pessoas e o
+  outro é decisão sobre dinheiro.
+
+  ## Uma rodada que não executou não é uma rodada sem gente
+
+  *"Nunca ligou"*, *"executou e não gerou ninguém"* e *"encerrou no meio"* são três fatos
+  diferentes, e a tela os diz com frases diferentes. Achatá-los faria a organização acreditar
+  que não há quem gerar quando, na verdade, ninguém ligou.
+  """
+
+  use TheBandWeb, :live_view
+
+  alias TheBand.Profiles.{Automation, Run, Runs}
+
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok, socket |> assign(page_title: "Profile generation") |> carregar()}
+  end
+
+  @impl true
+  def handle_event("enable", _params, socket) do
+    case Automation.enable(socket.assigns.current_tenant, socket.assigns.current_user) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Automatic generation is on. A first run started right away.")
+         |> carregar()}
+
+      {:error, :no_credential} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "This organisation has no provider key of its own. A run would have to spend the " <>
+             "installation's key, and that would put one organisation's usage on another's " <>
+             "bill. Save a key first."
+         )}
+
+      {:error, :already_enabled} ->
+        {:noreply, socket |> put_flash(:error, "It is already on.") |> carregar()}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not turn it on: #{inspect(motivo)}")}
+    end
+  end
+
+  def handle_event("disable", _params, socket) do
+    case Automation.disable(socket.assigns.current_tenant, socket.assigns.current_user) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "Automatic generation is off from the next run on. A run in progress is not " <>
+             "interrupted — half the people generated is a state no screen can name."
+         )
+         |> carregar()}
+
+      {:error, :not_enabled} ->
+        {:noreply, socket |> put_flash(:error, "It is already off.") |> carregar()}
+    end
+  end
+
+  def handle_event("run_now", _params, socket) do
+    tenant = socket.assigns.current_tenant
+
+    case Runs.start(tenant, trigger: :manual, requested_by: socket.assigns.current_user) do
+      {:ok, _run} ->
+        {:noreply, socket |> put_flash(:info, "Run started.") |> carregar()}
+
+      {:error, :already_running} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "A run is already in progress. Two at once would write two profiles from the same " <>
+             "material, and the table keeps both."
+         )}
+
+      {:error, :no_credential} ->
+        {:noreply, put_flash(socket, :error, "This organisation has no provider key of its own.")}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not start the run: #{inspect(motivo)}")}
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <.header>
+        Profile generation
+        <:subtitle>
+          Whether this organisation writes competence profiles on its own, and what each run did.
+        </:subtitle>
+        <:actions>
+          <.button :if={@estado == :never_enabled} phx-click="enable">Turn on</.button>
+          <.button :if={match?({:disabled, _}, @estado)} phx-click="enable">Turn on</.button>
+          <button
+            :if={match?({:enabled, _}, @estado)}
+            class="btn btn-outline btn-sm"
+            phx-click="disable"
+            data-confirm="Turn automatic generation off? It stops from the next run on; a run in progress finishes."
+          >
+            Turn off
+          </button>
+        </:actions>
+      </.header>
+
+      <div class="card bg-base-200 p-6 space-y-3">
+        <div class="text-sm font-semibold">State</div>
+
+        <div :if={match?({:enabled, _}, @estado)} class="space-y-1">
+          <span class="badge badge-success">on</span>
+          <p class="text-sm opacity-80">
+            Turned on by {autor(@estado)} on {quando(@estado)}. The round runs on the 1st of each
+            month at 03:00, and writes a new profile only for people whose work moved.
+          </p>
+        </div>
+
+        <div :if={match?({:disabled, _}, @estado)} class="space-y-1">
+          <span class="badge">off</span>
+          <p class="text-sm opacity-80">
+            Turned off by {autor(@estado)} on {quando(@estado)}. Nothing runs, and no profile is
+            written on its own.
+          </p>
+        </div>
+
+        <%!-- "Nunca ligou" é diferente de "desligada": a segunda tem autor, e a primeira é a
+              ausência de qualquer ato. A `FR-018a` existe para que subir a versão não escreva
+              sobre ninguém, e a tela precisa mostrar que foi isso que aconteceu. --%>
+        <div :if={@estado == :never_enabled}>
+          <.absent reason="Never turned on — no profile is written on its own in this organisation." />
+        </div>
+
+        <button
+          :if={match?({:enabled, _}, @estado)}
+          class="btn btn-xs btn-outline w-fit"
+          phx-click="run_now"
+        >
+          run now
+        </button>
+      </div>
+
+      <div class="card bg-base-200 p-6">
+        <div class="text-sm font-semibold mb-3">Runs</div>
+
+        <div :if={@rodadas == []}>
+          <.absent reason="No run yet — which is not the same as a run that generated nobody." />
+        </div>
+
+        <table :if={@rodadas != []} class="table table-sm stacked">
+          <thead>
+            <tr>
+              <th>started</th>
+              <th>state</th>
+              <th>origin</th>
+              <th>considered</th>
+              <th>generated</th>
+              <th>skipped</th>
+              <th>failed</th>
+              <th>input tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={run <- @rodadas}>
+              <td data-label="started" class="font-mono text-xs">{run.started_at}</td>
+              <td data-label="state">
+                <span class={[
+                  "badge badge-sm",
+                  run.outcome == "completed" && "badge-success",
+                  run.outcome == "ended_early" && "badge-error"
+                ]}>
+                  {estado_da_rodada(run)}
+                </span>
+                <div :if={run.ended_reason} class="text-xs opacity-70">{run.ended_reason}</div>
+              </td>
+              <%!-- A origem aparece **aqui**, e nunca na aba da pessoa: um perfil gerado pela
+                    rodada é igual a um pedido a mão, e quem lê não deve ter razão para
+                    confiar mais num do que no outro — `FR-015`. --%>
+              <td data-label="origin" class="text-xs">{origem(run)}</td>
+              <td data-label="considered" class="font-mono">{@resumos[run.id].considered}</td>
+              <td data-label="generated" class="font-mono">{@resumos[run.id].generated}</td>
+              <td data-label="skipped" class="text-xs">
+                <div>no material: {@resumos[run.id].skipped.no_material}</div>
+                <div>no new work: {@resumos[run.id].skipped.no_new_work}</div>
+                <div>observation ended: {@resumos[run.id].skipped.observation_ended}</div>
+              </td>
+              <td data-label="failed" class="font-mono">{@resumos[run.id].failed}</td>
+              <td data-label="input tokens" class="font-mono">
+                {@resumos[run.id].input_tokens}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="text-xs opacity-60 mt-3">
+          The three skip reasons are counted apart on purpose: <strong>no material</strong>
+          means the record does not sustain a profile, <strong>no new work</strong>
+          means the existing text still says what there is to say, and
+          <strong>observation ended</strong>
+          means the platform no longer watches that person. A single total would hide which one
+          needs action.
+        </p>
+        <p class="text-xs opacity-60 mt-2">
+          <strong>Failures are not a skip reason.</strong>
+          Skipping is the platform deciding not to write; failing is it having tried and not
+          managed to.
+        </p>
+      </div>
+    </Layouts.app>
+    """
+  end
+
+  defp carregar(socket) do
+    tenant = socket.assigns.current_tenant
+    rodadas = Runs.list(tenant)
+
+    socket
+    |> assign(estado: Automation.state(tenant))
+    |> assign(rodadas: rodadas)
+    |> assign(resumos: Map.new(rodadas, &{&1.id, Runs.summary(&1)}))
+  end
+
+  defp autor({_, %{by: nil}}), do: "somebody no longer registered"
+  defp autor({_, %{by: user}}), do: user.email
+
+  defp quando({_, %{at: at}}), do: at
+
+  defp estado_da_rodada(%Run{finished_at: nil}), do: "running"
+  defp estado_da_rodada(%Run{outcome: "completed"}), do: "completed"
+  defp estado_da_rodada(%Run{outcome: "ended_early"}), do: "ended early"
+  defp estado_da_rodada(%Run{}), do: "finished"
+
+  defp origem(%Run{trigger: "cron"}), do: "monthly"
+  defp origem(%Run{trigger: "manual"}), do: "asked for"
+end

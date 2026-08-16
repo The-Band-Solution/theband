@@ -83,6 +83,11 @@ defmodule TheBandWeb.Router do
       # a tela de ferramentas ofereceria sincronizar algo que não tem o que sincronizar.
       live "/ai", AILive.Index, :index
 
+      # A geração automática responde "isto está funcionando", e a credencial responde "com
+      # que conta trabalhamos". São perguntas diferentes, e o princípio X pede telas
+      # diferentes — `FR-024`.
+      live "/profiles", ProfileRunLive.Index, :index
+
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.
       live "/roles", RolesLive.Index, :index
