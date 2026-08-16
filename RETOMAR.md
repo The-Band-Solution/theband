@@ -1,8 +1,7 @@
-# Retomar — feature 026, o perfil de competências
+# Retomar — 2026-08-16
 
-**Estado**: implementada e empurrada, **PR #330** com 4 commits, `MERGEABLE`, gates com
-código de saída 0. Revisão pedida a `Adylla027` e `EduardoNFraiz`.
-**Branch**: `056-perfil-de-competencias`
+**Onde está**: branch `056-perfil-de-competencias`, **PR #330** com 4 commits, `MERGEABLE`,
+gates com código de saída 0. Revisão pedida a `Adylla027` e `EduardoNFraiz`.
 
 ## O primeiro comando ao voltar
 
@@ -16,31 +15,28 @@ Perfil real gravado no banco de desenvolvimento, gerado com a API de verdade:
 
 ---
 
-## As duas coisas pedidas em 2026-08-16, e ainda não feitas
+# O que fazer, na ordem
 
-### 1. A página não recarrega quando a geração termina
+## 1. A página não recarrega quando a geração termina — **defeito entregue**
 
-**É defeito do que já foi entregue.** A tela diz *"Requested. The model takes about a
-minute — reload to see it"* — a plataforma pedindo à pessoa que faça o trabalho dela. A
-geração leva de 25 a 60 segundos, e quem clicou fica atualizando à mão.
+A tela diz *"Requested. The model takes about a minute — reload to see it"*: a plataforma
+pedindo à pessoa que faça o trabalho dela. A geração leva de 25 a 60 segundos.
 
-O conserto é pequeno, e o projeto já tem o padrão: `TheBand.Ingestion` faz
-`Phoenix.PubSub.subscribe/broadcast` num tópico por tenant, e `RecomputePromotions` também.
+O projeto já tem o padrão: `TheBand.Ingestion` faz `Phoenix.PubSub.subscribe/broadcast` num
+tópico por tenant, e `RecomputePromotions` também.
 
-- `GenerateWorker` publica quando grava — e **também quando falha**, senão a tela fica
-  esperando para sempre um evento que não vem;
-- a aba assina no `mount`, e recarrega o perfil ao receber;
+- `GenerateWorker` publica ao gravar — **e também ao falhar**;
+- a aba assina no `mount` e recarrega o perfil ao receber;
 - o teste é o estado intermediário: pedir, mandar o evento, e afirmar que o perfil aparece
   **sem** um novo `live/2`.
 
-Cuidado com o de sempre: o ramo de falha precisa publicar. Um `subscribe` que só recebe
-sucesso transforma erro em espera infinita, e espera infinita é indistinguível de "ainda
-rodando" — é a mesma família da lição do sucesso silencioso.
+**O cuidado**: um `subscribe` que só recebe sucesso transforma erro em espera infinita, e
+espera infinita é indistinguível de "ainda rodando". Mesma família da lição que já reincidiu
+sete vezes aqui.
 
-### 2. Geração automática e periódica — a feature 027
+## 2. Feature 027 — geração automática e periódica
 
-**Proposta medida em 2026-08-16, não escrita como spec.** A recomendação é **cron próprio,
-não no sync**, e os números são a razão:
+Medida em 2026-08-16, **não escrita como spec**. Recomendação: **cron próprio, não no sync.**
 
 | medição | valor |
 |---|---|
@@ -51,63 +47,114 @@ não no sync**, e os números são a razão:
 | fecharam 1 a 9 | 14 |
 | **fecharam nenhuma** | **14** |
 
-Catorze das 34 não fecharam uma tarefa em 30 dias: o material é idêntico, e o texto novo
-diria o mesmo. O sync roda muito mais que uma vez por mês, então atrelar ali multiplica
-1,63M por coleta. E há a razão de conceito: **sync é coleta, perfil é interpretação** —
-acoplar faz toda observação custar dinheiro.
-
-**A regra proposta:**
+Catorze das 34 não fecharam uma tarefa em 30 dias: material idêntico, texto novo diria o
+mesmo. O sync roda muito mais que uma vez por mês. E a razão de conceito: **sync é coleta,
+perfil é interpretação** — acoplar faz toda observação custar dinheiro.
 
 ```
 regenera se  (tarefas_fechadas_hoje − tasks_closed_do_perfil) ≥ N
          ou  generated_at mais velho que M meses
 ```
 
-O recorte já está em coluna exatamente para isso — foi a `FR-016`. Com N=10, hoje rodariam
-**6 de 34**: ~290k tokens em vez de 1,63M. N e M em `profile.thresholds`, junto dos outros.
+O recorte já está em coluna para isso — `FR-016`. Com N=10 rodariam **6 de 34**: ~290k
+tokens em vez de 1,63M. N e M em `profile.thresholds`.
 
-**De graça, o gate resolve outra coisa**: a tabela é somente-acréscimo, e sem regra de
-mudança a geração automática a encheria de textos quase idênticos — o histórico, que existe
-para comparar agosto com dezembro, viraria ruído.
+**De graça**: a tabela é somente-acréscimo, e sem regra de mudança a geração automática a
+encheria de textos quase idênticos — o histórico viraria ruído.
 
-**O que precisa ser decidido antes de escrever a spec**: hoje a geração é ato de alguém.
-Automática, mais leitura aberta ao tenant (`FR-023`), mais sem contestação (`FR-024`),
-significa que **ninguém decide** — o texto passa a existir sobre todo mundo por padrão. Não
-é impeditivo, é decisão, e merece estar escrita como o resíduo das outras duas está.
+> **Decisão pendente antes da spec.** Hoje a geração é ato de alguém. Automática, mais
+> leitura aberta ao tenant (`FR-023`), mais sem contestação (`FR-024`), significa que
+> **ninguém decide** — o texto passa a existir sobre todo mundo por padrão. Não é
+> impeditivo; é decisão, e merece estar escrita como o resíduo das outras duas está.
+
+## 3. Issue #320 — axiomas SRO carregados como `unknown`
+
+`priv/knowledge_base/rules/sro_axioms.yaml` usa a chave de topo `rules:`, que **não é** um
+dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança.
+
+**Mordeu de novo em 2026-08-15**: escrevi `profile_thresholds.yaml` nessa forma e ela era
+ilegível por `KnowledgeBase.rule/1`. Contornei usando `derivation_rule:`, mas o `spo_axioms`
+e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mordida.
+
+## 4. As outras issues abertas — triagem pela metade
+
+| # | leitura |
+|---|---|
+| **181** | a feature 024 coleta iterações e campos. Conferir cobertura antes de fechar |
+| **180** | mapear campo de quadro para atributo da ontologia — a 024 grava `field_name` cru. **Trabalho de verdade** |
+| **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe. `82` (quem atravessa organizações) tem parte pronta na página da pessoa |
+| **176, 317, 318** | features novas, não pendências |
+
+## 5. A análise do Conecta Fapes — adiada por você em 2026-08-15
+
+Está inteira na memória, em `conecta-fapes-tem-dois-quadros.md`. O resumo do que espera
+decisão:
+
+- **qual quadro é o quadro do projeto** — hoje há dois. O `Conecta Fapes - Delivery` entregou
+  980 issues entre jun/2025 e abr/2026; o `Conecta Fapes` assume em junho de 2026. A troca
+  não está declarada em lugar nenhum, e lida só pelo quadro corrente a entrega do projeto
+  parece começar em abril de 2026 com 4 issues;
+- **o que fazer com 275 issues abertas fora do quadro** — 233 num quadro antigo, 42 sem
+  quadro algum;
+- **coletar timeline do `conectafapes-project`** — tem **zero** eventos de status, e é o que
+  destrava homologação e cycle time;
+- **se "done" é fechar a issue ou a coluna do quadro** — discordam em 11% onde dá para
+  comparar: 13 marcadas `Done` seguem abertas, 12 fechadas nunca saíram do `Backlog`.
+
+Painel com tudo: <https://claude.ai/code/artifact/170d05f0-c706-4232-ba47-9cad7bfae29b>
+
+## 6. Decisões antigas ainda abertas
+
+- **qual campo de data é o prazo**, por quadro. A sondagem achou 33 campos de data em 24
+  quadros, com **três significados em duas línguas** — `End date` é fim planejado ou fim
+  real? Sem essa declaração, "tarefas em atraso" não existe;
+- **`FR-012` da feature 023** — quem vê o painel de trabalho de quem. A 026 não herdou a
+  lacuna, decidiu a dela; a 023 segue aberta desde 2026-08-14;
+- **`FR-007` da feature 022** — qual movimentação marca o início. Sem ela não há throughput,
+  WIP verdadeiro nem cycle time pessoal.
 
 ---
 
-## Dois achados soltos, que não viraram tarefa
+# O que já está entregue
 
-- **48k tokens de material mediano**, o dobro do `AndreCoelhoS`. Quem tem 300 tarefas gera
-  material grande demais — vale um teto por período, com o que ficou de fora declarado.
-- **A `FR-024`** é o item que mais provavelmente volta como requisito, assim que alguém ler
-  o próprio perfil.
+## Feature 026 — perfil de competências (PR #330, esperando revisão)
 
----
-
-## O que a feature 026 entregou
-
-Uma aba na página da pessoa: habilidades como marcas, resumo em três parágrafos, trajetória
-em três períodos, destaques com o critério visível, lacunas classificadas por forma, e o
-contrapeso da linha de base.
+Aba na página da pessoa: habilidades como marcas, resumo em três parágrafos, trajetória em
+três períodos, destaques com o critério visível, lacunas classificadas por forma, tarefas
+paradas, e o contrapeso da linha de base.
 
 **A decisão de modelagem** está em `research.md` R1: nenhum conceito de competência entra na
 rede. Criar `eo.competence` faria a plataforma afirmar que a pessoa *tem* a habilidade — o
 que a spec recusa — e licenciaria "quem sabe X", pergunta que a evidência não sustenta.
 
-**O modelo responde em JSON Schema com `strict: true`**, e isso consertou três coisas que
-não eram o objetivo: o modelo tinha largado os subtítulos numa geração e a limpeza apagara
-dezenove citações em silêncio; a regra de não citar no resumo fora pedida quatro vezes e
-ignorada nas quatro; e a regra de devolver lacunas vazias passou a ser obedecida ao virar
-campo de array — o modelo devolveu `[]` em vez de inventar um ponto fraco.
+**Quatro recusas com quatro frases**, porque são quatro fatos: `:no_assignment`,
+`:below_floor`, `:period_too_thin`, `:no_text_to_compare`.
 
-## As issues abertas, triadas pela metade
+**O modelo responde em JSON Schema com `strict: true`.** Consertou três coisas que não eram
+o objetivo: o modelo largara os subtítulos numa geração e a limpeza apagara dezenove citações
+em silêncio; a regra de não citar no resumo fora pedida quatro vezes e ignorada; e a regra de
+devolver lacunas vazias passou a ser obedecida ao virar campo de array.
 
-| # | leitura |
-|---|---|
-| **320** | axiomas SRO como `unknown` — `rules:` não é tipo reconhecido pelo carregador. **Mordeu de novo em 2026-08-15**, ao escrever `profile_thresholds.yaml`. Pequena e isolada |
-| **181** | a feature 024 coleta iterações e campos. Falta conferir cobertura antes de fechar |
-| **180** | mapear campo de quadro para atributo da ontologia — a 024 grava `field_name` cru. **Trabalho de verdade** |
-| **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe |
-| **176, 317, 318** | features novas, não pendências |
+Protótipo da tela: <https://claude.ai/code/artifact/5240baae-c064-4d44-b3ee-aa2cb7e62a14>
+
+## Features anteriores, mergeadas
+
+- **022** timeline das issues e os quatro antipadrões, tela `/process`
+- **024** sprints do Projects v2 — 220 sprints, 2225 vínculos
+- **025** projeto, subprojetos e repositórios, com seletor de busca múltipla
+
+## Os scripts do scratchpad
+
+`gerar_perfis.exs` e `enviar_relatorios.exs` foram o protótipo do pipeline, e **estão
+superados** pela feature na aplicação. Servem só para rodar em lote fora da app; se a 027
+existir, podem sair.
+
+---
+
+# Duas coisas que valem lembrar ao mexer aqui
+
+- **`mix gates` nunca com `| tail` nem `| grep`** — o veredito é o código de saída;
+- **medir na origem antes de afirmar.** Três defeitos desta rodada apareceram assim: a spec
+  dizia que `costabeber` ficava abaixo do piso e não fica; o `check` da tela carregava o
+  material inteiro a cada render; e um `@type` declarava `String.t()` onde a função devolve
+  `nil`. Nenhum apareceu na suíte verde.
