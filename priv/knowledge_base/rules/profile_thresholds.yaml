@@ -116,3 +116,44 @@ derivation_rule:
           repassar, ou cancelar com motivo.
       values:
         stale_days: 90
+
+    regeneration:
+      name:
+        pt-BR: "Quanto trabalho novo justifica um texto novo, e quando um perfil envelhece"
+      statement:
+        pt-BR: >
+          A rodada mensal escreve um perfil novo quando a pessoa fechou **10 ou mais**
+          tarefas depois do fim do recorte do perfil vigente, **ou** quando o perfil vigente
+          foi gerado há mais de **3 meses**.
+
+          Os dois ramos existem porque alcançam gente diferente. O primeiro alcança quem
+          trabalhou muito e cujo texto ficou para trás; o segundo alcança quem trabalhou
+          pouco e cujo texto ficaria parado para sempre se só o primeiro valesse.
+      measured:
+        pt-BR: >
+          Medido em 2026-08-16, sobre 34 pessoas que passam nos pisos de evidência: **6**
+          fecharam 10 ou mais tarefas nos últimos 30 dias, 14 fecharam de 1 a 9, e **14 não
+          fecharam nenhuma**.
+
+          Para essas 14 o material de um mês para o outro é praticamente o mesmo, e um texto
+          novo diria a mesma coisa com outras palavras. Como a tabela de perfis é
+          somente-acréscimo, gerar para todo mundo todo mês encheria o histórico de textos
+          quase idênticos — e o valor de comparar duas datas morreria junto.
+
+          Com N=10, uma rodada geraria 6 das 34 em vez de 34.
+      note:
+        pt-BR: >
+          **Não há valor padrão no código.** Ausência ou valor inválido reprova a validação
+          da base, e a rodada não executa. Um padrão embutido faria a plataforma usar um
+          número que ninguém escolheu — e a decisão de sobre quem se escreve neste mês é
+          exatamente o tipo de decisão que não pode ser silenciosa.
+
+          A contagem parte do **fim do recorte** do perfil vigente, que é a última data que o
+          texto alcança. A idade parte da **data de geração**, que é a data que a tela exibe.
+          As duas datas existem e divergem; medir pela errada muda quem entra na rodada.
+      formal: >
+        regenera ⟺ tarefas_fechadas_após(period_to) ≥ min_new_closed_tasks
+                   ∨ meses_desde(generated_at) > max_profile_age_months
+      values:
+        min_new_closed_tasks: 10
+        max_profile_age_months: 3

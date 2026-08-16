@@ -86,6 +86,14 @@ defmodule TheBandWeb.Layouts do
           <li :if={@current_user && @current_user.role == "admin"}>
             <.link navigate={~p"/tools"} class="btn btn-ghost btn-sm">Tools</.link>
           </li>
+          <%!-- Ao lado de Tools porque as duas respondem "com que contas a plataforma
+                trabalha" — e separada dela porque uma coleta e a outra interpreta. --%>
+          <li :if={@current_user && @current_user.role == "admin"}>
+            <.link navigate={~p"/ai"} class="btn btn-ghost btn-sm">AI</.link>
+          </li>
+          <li :if={@current_user && @current_user.role == "admin"}>
+            <.link navigate={~p"/profiles"} class="btn btn-ghost btn-sm">Profiles</.link>
+          </li>
           <li class="ml-auto hidden border-l border-base-300 pl-3 lg:block">
             <span class="text-xs opacity-70">
               {@current_tenant.name} · {@current_user.email}
