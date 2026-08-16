@@ -22,6 +22,7 @@ defmodule TheBand.Profiles.RegenerationTest do
 
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.YamlLoader
   alias TheBand.Profiles.Regeneration
   alias TheBand.Repo
 
@@ -200,6 +201,54 @@ defmodule TheBand.Profiles.RegenerationTest do
 
       assert {:ok, vereditos} = Regeneration.select(ctx.tenant)
       assert [{_, {:skip, :no_new_work}}] = vereditos
+    end
+  end
+
+  describe "o limiar novo vale na rodada seguinte — T022, US3" do
+    # O teste percorre o caminho INTEIRO da FR-009: uma base com N diferente, o GenServer
+    # reiniciado sobre ela, e a seleção mudando — sem recompilar nada. Testar `due?/4` com
+    # dois mapas de limiares provaria menos: o risco não é a comparação, é alguém um dia
+    # mover a leitura para atributo de módulo, onde ela congela no build.
+    test "mudar N de 10 para 3 muda quem é selecionado, sem recompilar", ctx do
+      # Oito tarefas fechadas depois do recorte: abaixo de N=10, acima de N=3.
+      perfil(ctx.tenant, ctx.pessoa, %{period_to: ~D[2026-01-13]})
+
+      assert {:ok, [{_, {:skip, :no_new_work}}]} = Regeneration.select(ctx.tenant)
+
+      raiz = Path.join(System.tmp_dir!(), "kb_n3_#{System.unique_integer([:positive])}")
+      File.cp_r!(YamlLoader.root(), raiz)
+
+      limiar = Path.join(raiz, "rules/profile_thresholds.yaml")
+
+      File.write!(
+        limiar,
+        String.replace(File.read!(limiar), "min_new_closed_tasks: 10", "min_new_closed_tasks: 3")
+      )
+
+      original = Application.get_env(:the_band, KnowledgeBase)
+      Application.put_env(:the_band, KnowledgeBase, path: raiz)
+
+      on_exit(fn ->
+        Application.put_env(:the_band, KnowledgeBase, original || [])
+        GenServer.stop(KnowledgeBase)
+        File.rm_rf!(raiz)
+      end)
+
+      # O supervisor reergue o GenServer, e o init lê a raiz do Application env — que agora
+      # aponta para a base com N=3. É o mesmo caminho de um deploy.
+      GenServer.stop(KnowledgeBase)
+      aguardar_base()
+
+      assert {:ok, %{n: 3}} = Regeneration.thresholds()
+      assert {:ok, [{_, :generate}]} = Regeneration.select(ctx.tenant)
+    end
+
+    defp aguardar_base do
+      # O restart do supervisor é assíncrono; a base está de volta quando a consulta responde.
+      Enum.find(1..100, fn _ ->
+        Process.sleep(20)
+        match?({:ok, _}, Regeneration.thresholds())
+      end) || flunk("a base de conhecimento não voltou depois do restart")
     end
   end
 end

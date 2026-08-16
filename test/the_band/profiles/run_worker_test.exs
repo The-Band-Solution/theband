@@ -365,4 +365,52 @@ defmodule TheBand.Profiles.RunWorkerTest do
              """
     end
   end
+
+  describe "o registro operacional — T023" do
+    # FR-027 e FR-013: o log conta o que a rodada fez, e não carrega nem a chave nem o
+    # material — o material é texto de tarefas de pessoas reais, e a chave é dinheiro.
+    test "o log de uma rodada completa não contém a chave nem o material", ctx do
+      import ExUnit.CaptureLog
+
+      gera_ok()
+      run = abrir(ctx.tenant, ctx.admin)
+
+      log =
+        capture_log(fn ->
+          assert :ok = executar(ctx.tenant, run)
+        end)
+
+      # A chave gravada na credencial da organização, e o corpo que a fixture põe em toda
+      # tarefa — se qualquer um vazar para o log, é ele que este teste segura.
+      refute log =~ "sk-chave-de-teste", "a chave do provedor apareceu no log da rodada"
+      refute log =~ "contexto. contexto.", "o material enviado ao provedor apareceu no log"
+    end
+
+    test "a falha registrada no log e na coluna carrega a mensagem já redigida", ctx do
+      import ExUnit.CaptureLog
+
+      # O provedor às vezes ecoa a chave na mensagem de erro. Quem a tira é a **borda** —
+      # `req.ex` passa todo ramo de erro por `HTTP.redigir/2`, e isso tem teste próprio em
+      # `generate_worker_test`. O que ESTE caso guarda é o resto do caminho: a mensagem que
+      # a borda devolve atravessa o worker até o log e até `ended_reason` — que a tela
+      # exibe — sem ninguém reconstruir o texto cru no meio.
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
+        {:error, {:http, 401, "Incorrect API key «API_KEY»"}}
+      end)
+
+      run = abrir(ctx.tenant, ctx.admin)
+
+      log =
+        capture_log(fn ->
+          assert :ok = executar(ctx.tenant, run)
+        end)
+
+      assert log =~ "encerrada no meio"
+      refute log =~ "sk-chave-de-teste", "a chave apareceu no log do encerramento"
+
+      {:ok, fechada} = Runs.get(ctx.tenant, run.id)
+      assert fechada.ended_reason =~ "«API_KEY»"
+      refute fechada.ended_reason =~ "sk-chave-de-teste"
+    end
+  end
 end

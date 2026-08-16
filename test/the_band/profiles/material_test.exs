@@ -21,6 +21,7 @@ defmodule TheBand.Profiles.MaterialTest do
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles.Material
   alias TheBand.WorkItems
 
@@ -69,7 +70,7 @@ defmodule TheBand.Profiles.MaterialTest do
       # montava a URL com eles, e o primeiro clique em uma tarefa parada devolveu
       # `/work/issues/EC%D7%C2%EC…` — lixo. Defeito observado em 2026-08-16, no app rodando.
       {:ok, pessoa} =
-        TheBand.Ontology.SEON.EO.upsert_person_from_source(ctx.tenant, %{
+        EO.upsert_person_from_source(ctx.tenant, %{
           login: "parada",
           name: "PARADA",
           account_type: "person",

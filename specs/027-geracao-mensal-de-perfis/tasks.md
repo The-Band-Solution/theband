@@ -208,7 +208,7 @@ O commit `5cc4d68` entregou a credencial por organização — `FR-010` a `FR-01
 
 **Teste independente**: alterar o YAML e disparar a rodada muda o conjunto de pessoas geradas, sem recompilar.
 
-- [ ] T022 [US3] O limiar novo vale na rodada seguinte
+- [x] T022 [US3] O limiar novo vale na rodada seguinte
   - **Pronta quando**: T011 e T015 concluídas
   - **Descrição**: garantir que `Regeneration` lê os limiares **a cada rodada**, e não em atributo de módulo avaliado em compilação — `FR-009`, US3. Atributo de módulo congelaria o valor no build, e a mudança no YAML não teria efeito
   - **Feita quando**: mudar N de 10 para 3 entre duas rodadas muda quem é selecionado, sem recompilar
@@ -218,7 +218,7 @@ O commit `5cc4d68` entregou a credencial por organização — `FR-010` a `FR-01
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T023 Registro operacional sem chave e sem material
+- [x] T023 Registro operacional sem chave e sem material
   - **Pronta quando**: T015 concluída
   - **Descrição**: o log da rodada leva tenant, identificador, contagens e motivos — e **não** leva a chave nem o material enviado ao provedor. O material é texto de tarefas de pessoas reais — `FR-027`, `FR-013`
   - **Feita quando**: nenhuma linha de log da rodada contém a chave nem trecho do material
