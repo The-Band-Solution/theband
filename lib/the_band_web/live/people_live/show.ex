@@ -36,6 +36,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
+  alias TheBand.Profiles.Material
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
   alias TheBandWeb.WorkCharts
@@ -144,7 +145,7 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
       paradas: Profiles.stale_open(tenant, pessoa.id),
-      dias_parada: TheBand.Profiles.Material.stale_days(),
+      dias_parada: Material.stale_days(),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
       # render levanta `KeyError`. O teste pegou.
