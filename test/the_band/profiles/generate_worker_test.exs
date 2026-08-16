@@ -17,6 +17,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
   import TheBand.WorkItemsFixtures
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
+  alias TheBand.AI
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
@@ -228,6 +229,38 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
   end
 
   describe "a credencial" do
+    # Sem esta asserção, a tela `/ai` seria decoração: a chave estaria gravada, cifrada e
+    # conferida — e a geração continuaria pagando pela conta do processo.
+    test "gravada pela organização, é ela que a geração usa", ctx do
+      chave = "sk-a-chave-desta-organizacao-e-nao-do-processo"
+
+      expect(TheBand.LLMHTTPMock, :verify, fn _s, _o -> {:ok, ["gpt-5.4"]} end)
+
+      {:ok, _} = AI.put(ctx.tenant, %{"secret" => chave, "default_model" => "gpt-5.4"})
+
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, opts ->
+        assert opts[:key] == chave
+        assert opts[:model] == "gpt-5.4"
+        assert opts[:base_url] == "https://api.openai.com"
+
+        {:ok, %{text: Jason.encode!(resposta()), model: "gpt-5.4", usage: %{}}}
+      end)
+
+      assert {:ok, _perfil} = GenerateWorker.perform(job(ctx))
+    end
+
+    # Sem credencial gravada a lista vem vazia, e é isso que faz a borda cair no `API_KEY`
+    # do ambiente — que é como o desenvolvimento roda.
+    test "sem credencial da organização, nenhuma chave é imposta à borda", ctx do
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, opts ->
+        refute Keyword.has_key?(opts, :key)
+
+        {:ok, %{text: Jason.encode!(resposta()), model: "m1", usage: %{}}}
+      end)
+
+      assert {:ok, _perfil} = GenerateWorker.perform(job(ctx))
+    end
+
     test "não aparece na mensagem de erro devolvida pela borda" do
       chave = "sk-proj-segredo-que-nao-pode-circular"
 

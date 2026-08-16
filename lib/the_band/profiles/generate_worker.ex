@@ -19,6 +19,7 @@ defmodule TheBand.Profiles.GenerateWorker do
 
   require Logger
 
+  alias TheBand.AI
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
@@ -31,7 +32,7 @@ defmodule TheBand.Profiles.GenerateWorker do
 
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
          {:ok, material} <- Material.build(tenant, person_id),
-         {:ok, resposta} <- chamar(material) do
+         {:ok, resposta} <- chamar(tenant, material) do
       tenant
       |> gravar(material, resposta, args["requested_by_user_id"])
       |> anunciar(tenant_id, person_id)
@@ -62,8 +63,13 @@ defmodule TheBand.Profiles.GenerateWorker do
     resultado
   end
 
-  defp chamar(material) do
-    HTTP.impl().complete(Prompt.instrucoes(), Prompt.material(material), schema: Prompt.schema())
+  # A chave é a **do tenant**, quando há uma gravada — `AI.opcoes/1` é o único lugar que
+  # decide isso. Sem credencial gravada a lista vem vazia, e a borda cai no `API_KEY` do
+  # ambiente, que é como o desenvolvimento roda.
+  defp chamar(tenant, material) do
+    opcoes = [schema: Prompt.schema()] ++ AI.opcoes(tenant)
+
+    HTTP.impl().complete(Prompt.instrucoes(), Prompt.material(material), opcoes)
   end
 
   defp gravar(tenant, material, %{text: texto, model: modelo}, user_id) do

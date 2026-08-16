@@ -28,6 +28,31 @@ defmodule TheBand.Integrations.LLM.HTTP do
               | {:error, {:empty_response, String.t() | nil}}
               | {:error, term()}
 
+  @doc """
+  Confere uma chave contra o provedor, e devolve os modelos que ela alcança.
+
+  ## Por que não é `complete/3` com um prompt curto
+
+  Uma geração de teste custa tokens, demora, e responde sobre o **modelo**, não sobre a
+  chave: um modelo indisponível reprovaria uma chave boa. `/models` responde exatamente a
+  pergunta que a tela faz — esta chave é aceita, e o que ela alcança.
+
+  ## Três recusas, porque são três fatos
+
+  `:rejeitada` é o provedor dizendo não — a pessoa precisa de outra chave. `:indisponivel`
+  é a rede não ter chegado lá — a chave pode estar certa, e mandar alguém gerar outra seria
+  trabalho jogado fora. `:sem_modelos` é `200` com lista vazia: a chave é aceita e não
+  alcança nada, o que geraria falha só na primeira geração, longe de quem digitou.
+
+  Achatar as três em "falhou" reproduziria a L26 do projeto pelo avesso — desta vez a tela
+  afirmaria o que não sabe.
+  """
+  @callback verify(secret :: String.t(), opts :: keyword()) ::
+              {:ok, [String.t()]}
+              | {:error, {:rejeitada, String.t()}}
+              | {:error, {:indisponivel, String.t()}}
+              | {:error, {:sem_modelos, String.t()}}
+
   @doc "Implementação configurada. Em teste, o Mox."
   @spec impl() :: module()
   def impl, do: Application.get_env(:the_band, :llm_http_client, __MODULE__.Req)
