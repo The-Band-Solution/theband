@@ -49,11 +49,14 @@ Quem coordena abre a aba de uma pessoa com pouco registro e recebe uma recusa qu
 
 **Why this priority**: mesma prioridade da primeira, e pelo mesmo motivo que a plataforma existe. Um perfil sobre 41 descrições, das quais a maioria vazia, sai com a mesma confiança de um sobre 97 completas. Quem lê não tem como distinguir, e é justamente aí que o texto vira dano.
 
-**Independent Test**: com `costabeber` — 100 tarefas concluídas, 41 com corpo, mediana zero caracteres — abrir a aba e verificar que não há perfil, e que a mensagem traz os números.
+**Independent Test**: com `costabeber` — 100 tarefas concluídas, 41 com corpo, e mediana **zero** caracteres em dois dos três períodos — abrir a aba e verificar que não há perfil, e que a mensagem traz os números.
+
+**Correção registrada em 2026-08-15, durante a implementação.** A versão anterior desta spec dizia que `costabeber` ficava *abaixo do piso de evidência*. Ele não fica: 41 tarefas com corpo passam folgado dos 15. O que o material dele não tem é **texto suficiente para comparar** — a mediana é zero em dois períodos, e sem razão de crescimento a `FR-010` não pode ser cumprida. Daí a `FR-017a`.
 
 **Acceptance Scenarios**:
 
 1. **Given** uma pessoa com menos de 15 tarefas concluídas com descrição, **When** a aba é aberta, **Then** nenhum perfil é exibido, e a tela diz quantas tarefas com descrição existem e o que se pode dizer com elas.
+1a. **Given** uma pessoa com material acima do piso mas com corpo mediano zero em algum período, **When** a aba é aberta, **Then** nenhum perfil é exibido, e a mensagem diz que falta **texto para comparar** — que é diferente de faltar tarefa.
 2. **Given** uma pessoa cujo material se concentra num único período, **When** a aba é aberta, **Then** a tela recusa falar de **evolução**, e diz em qual período falta registro.
 3. **Given** uma recusa, **When** quem lê a examina, **Then** ela é atribuída ao **registro**, e não à pessoa — a frase não sugere que a pessoa produziu pouco.
 
@@ -130,6 +133,7 @@ Quem coordena, ou a própria pessoa, pede um perfil novo depois de meses de trab
 ### O piso de evidência
 
 - **FR-017**: A plataforma MUST recusar gerar perfil quando a pessoa tiver menos de 15 tarefas concluídas com descrição, e MUST recusar falar de **evolução** quando algum dos três períodos tiver menos de 5 tarefas.
+- **FR-017a**: A plataforma MUST recusar gerar perfil quando algum dos três períodos tiver **corpo mediano zero**. Sem corpo mediano não há razão de crescimento, e sem razão a comparação da `FR-010` não existe — o perfil sairia afirmando sobre a pessoa sem o contrapeso que torna a afirmação honesta.
 - **FR-018**: A recusa MUST dizer quantas tarefas com descrição existem, como se distribuem pelos períodos, e o que se pode afirmar com elas.
 - **FR-019**: A recusa MUST ser atribuída ao registro, e MUST NOT sugerir que a pessoa produziu pouco.
 
