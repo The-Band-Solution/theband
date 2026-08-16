@@ -46,6 +46,39 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   def upsert_person_from_source(tenant, attrs), do: upsert(Person, tenant, attrs)
 
   @doc """
+  Cria uma equipe **declarada** — feature 028, FR-007.
+
+  `type: "project_team"`, sem organização: o schema já documenta que o que justifica o
+  tipo é o vínculo com projeto, e a EO permite organização nula exatamente para ele.
+  Proveniência `the_band/declared` — a tela separa a declarada da observada, e a coleta
+  nunca a marca como ausente, porque ela não veio da origem.
+
+  **Nasce vazia** (FR-009): membro exige papel organizacional — é a dupla #99/#100.
+  """
+  @spec create_declared_team(Tenant.t(), String.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+  def create_declared_team(%Tenant{id: tenant_id}, name, actor_id) do
+    now = DateTime.utc_now(:second)
+    external_id = "declared_" <> Ecto.UUID.generate()
+
+    %Team{}
+    |> Team.from_source_changeset(%{
+      tenant_id: tenant_id,
+      internal_id: external_id,
+      type: "project_team",
+      name: name,
+      slug: nil,
+      declared_by_user_id: actor_id,
+      source_system: "the_band",
+      source_instance: "declared",
+      external_id: external_id,
+      collected_at: now,
+      last_observed_at: now
+    })
+    |> Repo.insert()
+  end
+
+  @doc """
   Grava a equipe, resolvendo a organização pelo identificador externo dela.
 
   `organization_external_id` chega do mapeamento, que o lê do payload. A resolução
@@ -61,6 +94,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   """
   @spec upsert_team_from_source(Tenant.t(), map()) ::
           {:ok, Team.t()} | {:error, Ecto.Changeset.t()}
+
   def upsert_team_from_source(tenant, attrs) do
     attrs = attrs |> normalize() |> resolve_organization(tenant)
     upsert(Team, tenant, attrs)
