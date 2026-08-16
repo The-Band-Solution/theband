@@ -217,12 +217,14 @@ defmodule TheBandWeb.PersonDetailTest do
       # A medida é a **diferença** contra a lista de pessoas, e não o total. Medido em 2026-08-12:
       # `live/2` na lista faz 16 consultas e na página faz 24 — e as 16 são framework e
       # autenticação, em dois renders. A diferença isola o custo **da página**.
-      lista = contar_consultas(fn -> live(ctx.conn, ~p"/people") end)
-      poucas = contar_consultas(fn -> live(ctx.conn, ~p"/people/#{ctx.pessoa.id}") end)
+      q_lista = contar_consultas(fn -> live(ctx.conn, ~p"/people") end)
+      q_poucas = contar_consultas(fn -> live(ctx.conn, ~p"/people/#{ctx.pessoa.id}") end)
 
       # Agora com muito mais trabalho: as partes das issues, todas designadas à mesma pessoa.
       Enum.each(partes(ctx.cenario), &designar(ctx.tenant, &1, ctx.pessoa))
-      muitas = contar_consultas(fn -> live(ctx.conn, ~p"/people/#{ctx.pessoa.id}") end)
+      q_muitas = contar_consultas(fn -> live(ctx.conn, ~p"/people/#{ctx.pessoa.id}") end)
+
+      {lista, poucas, muitas} = {length(q_lista), length(q_poucas), length(q_muitas)}
 
       assert poucas == muitas, """
       A página fez #{poucas} consultas com poucas issues e #{muitas} com muitas — ela consulta por
@@ -230,6 +232,10 @@ defmodule TheBandWeb.PersonDetailTest do
 
       É a asserção que mais importa das duas: é o defeito que a feature 007 pagou com 135 consultas
       por render, e o FR-016 existe por causa dele.
+
+      O que mudou entre as duas medições:
+
+      #{diferenca(q_poucas, q_muitas)}
       """
 
       acrescentadas = div(poucas - lista, 2)
@@ -250,11 +256,48 @@ defmodule TheBandWeb.PersonDetailTest do
       # consultas numa pessoa real. **A asserção acima é a que prova isso** — `poucas ==
       # muitas` depois de designar todas as partes.
       #
+      # **E de 15 para 18 na feature 026**, com as três nomeadas:
+      #
+      #   8. o perfil vigente da pessoa — existe, ou não;
+      #   9. quando **não** existe: há geração pendente, e há material para gerar;
+      #  10. as tarefas designadas e abertas há mais que o limiar.
+      #
+      # A décima vale **sempre**, e não só quando há perfil: a lista é sobre o trabalho da
+      # pessoa, e não sobre o perfil dela. Ela morava dentro do cartão do perfil, cercada de
+      # blocos hachurados, e é fato observado — misturava proveniência num produto que existe
+      # para separar as duas.
+      #
+      # Derivá-la da tabela de issues que a página já lista seria melhor, e **não dá**: a
+      # tabela é paginada, e a lista precisa do conjunto inteiro.
+      #
+      # A nona é duas perguntas numa consulta cada. `check` só acontece quando **não** há
+      # perfil — com perfil a recusa não é exibida, e pagá-la seria custo por render sem
+      # consumidor.
+      #
+      # **Há uma décima que este teste não mede, e dizê-lo é o que mantém a conta honesta.**
+      # `tasks_since/3` conta quantas tarefas fecharam desde o recorte gravado, e só roda
+      # quando existe perfil — a pessoa deste cenário não tem. Então o pior caso real é 18,
+      # não 17, e ele acontece na página de quem já tem perfil.
+      #
+      # Medir os dois cenários exigiria gerar um perfil aqui, o que traria a borda do
+      # provedor para dentro de um teste de custo de página. A troca é consciente: o que o
+      # guard protege é o número **não crescer com o dado**, e nenhuma das dez cresce.
+      #
+      # **A primeira versão desta seção custava três a mais, e este teste pegou.** A tela
+      # chamava `Material.build/2` para decidir se mostrava um botão — quatro consultas, e
+      # com elas o texto inteiro das tarefas, a cada render. Virou `Material.check/2`, que
+      # traz só o tamanho de cada corpo. A tentação era subir o teto; o defeito era da tela.
+      #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 15, """
+      assert acrescentadas <= 18, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **quinze** — oito da tela original mais sete do painel.
+      linha de base medida é **dezoito** — oito da tela original, sete do painel da 023, e
+      três do perfil da 026.
+
+      O que a página faz além da lista:
+
+      #{diferenca(q_lista, q_poucas)}
 
       A conta: `live/2` faz dois renders, então a diferença total (#{poucas} − #{lista}) é dividida
       por dois. "Um número que não cresce" passa com 8 e passa com 80 — por isso o teto é asserido.
@@ -281,22 +324,54 @@ defmodule TheBandWeb.PersonDetailTest do
     handler = fn _event, _measures, %{query: query} = meta, _config ->
       if String.starts_with?(query, "SELECT") and to_string(meta[:source]) not in ignoradas and
            not String.contains?(query, "oban_"),
-         do: send(pai, {ref, :consulta})
+         do: send(pai, {ref, :consulta, assinatura(query, meta)})
     end
 
     :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
     {:ok, _live, _html} = fun.()
     :telemetry.detach({__MODULE__, ref})
 
-    drenar(ref, 0)
+    drenar(ref, [])
   end
 
-  defp drenar(ref, n) do
+  # **O guard devolve as consultas, e não só quantas.**
+  #
+  # Ele reprovou no CI em 2026-08-16 com `52 != 53`, e a mensagem não dizia qual era a
+  # 53ª — a mesma execução passou noutro job do mesmo commit. Um guard que reprova sem
+  # dizer o que viu obriga a adivinhar, e adivinhação em CI vira reexecutar até passar,
+  # que é o pior destino de um gate.
+  #
+  # A contagem continua sendo o número; a lista existe para a mensagem de falha.
+  defp drenar(ref, acc) do
     receive do
-      {^ref, :consulta} -> drenar(ref, n + 1)
+      {^ref, :consulta, assinatura} -> drenar(ref, [assinatura | acc])
     after
-      0 -> n
+      0 -> Enum.reverse(acc)
     end
+  end
+
+  # Assinatura curta e estável: a origem quando existe, senão as primeiras palavras do
+  # SQL. O texto inteiro tornaria a mensagem de falha ilegível.
+  defp assinatura(query, meta) do
+    case to_string(meta[:source]) do
+      "" -> query |> String.slice(0, 60) |> String.replace(~r/\s+/, " ")
+      origem -> origem
+    end
+  end
+
+  # A diferença entre duas medições, com o que entrou e o que saiu.
+  defp diferenca(antes, depois) do
+    a = Enum.frequencies(antes)
+    d = Enum.frequencies(depois)
+
+    (Map.keys(a) ++ Map.keys(d))
+    |> Enum.uniq()
+    |> Enum.map(fn k -> {k, Map.get(d, k, 0) - Map.get(a, k, 0)} end)
+    |> Enum.reject(fn {_k, delta} -> delta == 0 end)
+    |> Enum.sort_by(fn {_k, delta} -> -abs(delta) end)
+    |> Enum.map_join("\n", fn {k, delta} ->
+      "  #{String.pad_leading("#{if delta > 0, do: "+", else: ""}#{delta}", 4)}  #{k}"
+    end)
   end
 
   defp issues(cenario) do

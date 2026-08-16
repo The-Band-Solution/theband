@@ -1,0 +1,37 @@
+information_need:
+  id: people.demonstrated_domains
+  name:
+    pt-BR: "Domínios técnicos demonstrados por uma pessoa, e como mudaram"
+    en: "Technical domains a person has demonstrated, and how they changed"
+  question:
+    pt-BR: >
+      Em que domínios técnicos há evidência registrada de atuação desta pessoa, desde
+      quando, e o que mudou entre o começo e o fim do período observado?
+  stakeholders: [engineering_manager, team_lead, developer]
+  decision_supported:
+    pt-BR: >
+      Decidir a quem oferecer uma tarefa, e em que frente apoiar o desenvolvimento de
+      alguém, a partir de onde a evidência já existe — e não de memória de quem
+      acompanhou de perto.
+
+      **O que esta necessidade explicitamente não responde**, e onde quem decide precisa
+      buscar em outro lugar: qualidade do trabalho entregue, confiabilidade como traço da
+      pessoa, esforço, e nível de senioridade. O escopo das tarefas atribuídas reflete o
+      nível que o time já presumia, então usá-lo para inferir nível é circular.
+
+      Ausência de um domínio é lacuna do registro, nunca lacuna de competência: em
+      2026-08-15, 1298 de 2949 descrições de tarefa concluída foram escritas por outra
+      pessoa que não quem executou, e 355 tarefas tinham dois ou mais designados.
+  required_concepts:
+    [eo.person, eo.team_member, spo.performed_project_activity, cmpo.source_repository]
+  required_relations: [eo.team_member_is_person]
+  candidate_measurements: []
+  provenance:
+    source_type: project_decision
+    year: 2026
+    note: >
+      Medido antes de declarar: o corpo mediano das descrições do tenant foi de 216
+      caracteres em 2025-01 para 1310 em 2026-06. Sem uma linha de base do projeto por
+      período, toda leitura individual conclui que a pessoa aprendeu a documentar — e
+      todas concluem isso no mesmo mês, o mês em que o time mudou de convenção. É por
+      isso que a comparação com a linha de base é parte da necessidade, e não refinamento.

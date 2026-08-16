@@ -1,0 +1,118 @@
+derivation_rule:
+  id: profile.thresholds
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Os limiares que decidem o que o perfil de uma pessoa pode afirmar"
+
+  description:
+    pt-BR: >
+      O perfil de competências é escrito por um modelo de linguagem a partir das descrições
+      das tarefas. Estes números decidem **sobre quem a plataforma aceita escrever**, **o que
+      conta como domínio de destaque**, e **quando uma mudança pode ser atribuída à pessoa**.
+
+      Moram aqui, e não em constante de módulo, porque cada um deles é uma decisão sobre o
+      que a plataforma afirma a respeito de gente. Mudá-los é decisão registrada, não ajuste.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    note: >
+      Todos medidos contra o banco real em 2026-08-15, antes de a feature existir.
+
+  rules:
+    evidence_floor:
+      name:
+        pt-BR: "Abaixo do piso, a plataforma recusa em vez de descrever"
+      statement:
+        pt-BR: >
+          Nenhum perfil é produzido para pessoa com menos de **15 tarefas concluídas com
+          descrição textual**, e nenhuma afirmação sobre **evolução** é produzida quando
+          algum dos três períodos tem menos de **5 tarefas**.
+
+          Um perfil escrito sobre pouco material sai com a mesma aparência de um escrito
+          sobre muito, e quem lê não tem como distinguir. É aí que o texto vira dano.
+      measured:
+        pt-BR: >
+          Medido em 2026-08-15: `costabeber` tem 100 tarefas concluídas, **41 com corpo**, e
+          mediana de **zero** caracteres. Um texto sobre isso descreveria o silêncio do
+          registro com a autoridade de uma observação.
+      formal: >
+        profile(p) permitido ⟺ |{t ∈ concluídas(p) : corpo(t) ≠ ∅}| ≥ 15
+        evolução(p) permitida ⟺ ∀ i ∈ {1,2,3}: |período_i(p)| ≥ 5
+      note:
+        pt-BR: >
+          A recusa é atribuída ao **registro**, e nunca à pessoa. "Há pouco material
+          registrado" e "esta pessoa produziu pouco" são frases diferentes, e só a primeira
+          é afirmável.
+      values:
+        tasks_with_body: 15
+        tasks_per_period: 5
+
+    highlight:
+      name:
+        pt-BR: "Destaque exige volume, permanência e atualidade ao mesmo tempo"
+      statement:
+        pt-BR: >
+          Um domínio só é apresentado como destaque quando atende às três condições juntas:
+          **seis tarefas ou mais**, presença em **pelo menos dois dos três períodos**, e
+          evidência **no período mais recente**.
+
+          Domínio que atende a duas das três vai para a seção de lacunas, e **qual das três
+          faltou é a informação**: pouca evidência, evidência que não se sustentou, e
+          evidência que envelheceu pedem coisas diferentes de quem lê.
+      formal: >
+        destaque(d, p) ⟺ |tarefas(d,p)| ≥ 6 ∧ |períodos(d,p)| ≥ 2 ∧ 3 ∈ períodos(d,p)
+      values:
+        min_tasks: 6
+        min_periods: 2
+        requires_recent_period: true
+
+    baseline_comparison:
+      name:
+        pt-BR: "Mudança só é da pessoa se sobreviver à linha de base do projeto"
+      statement:
+        pt-BR: >
+          Antes de afirmar que algo mudou na pessoa, a razão de crescimento dela é comparada
+          com a do projeto inteiro nos mesmos meses. Quando as duas razões diferem por menos
+          de **1,3×**, a mudança é da convenção do time, e a plataforma não a atribui à
+          pessoa.
+      measured:
+        pt-BR: >
+          O corpo mediano das descrições do tenant foi de **216 caracteres em 2025-01 para
+          1310 em 2026-06**. Sem esta comparação, toda leitura individual conclui que a
+          pessoa aprendeu a documentar — e todas concluem isso no mesmo mês.
+
+          `AndreCoelhoS` foi 469 → 833 (1,8×) contra 415 → 814 do projeto (2,0×). A diferença
+          entre as razões é 0,9×, dentro da faixa: mudança do time.
+      formal: >
+        mudança_da_pessoa ⟺ max(r_pessoa/r_projeto, r_projeto/r_pessoa) ≥ 1.3
+        onde r = corpo_mediano(período_3) / corpo_mediano(período_1)
+      note:
+        pt-BR: >
+          **A comparação é calculada pela plataforma e entregue pronta ao modelo**, nunca
+          pedida a ele. Na validação de 2026-08-15 o modelo recebeu a série `415, 428, 814` e
+          escreveu que ela ficara "perto de estável". É o dobro — e é justamente a conta que
+          decide se a afirmação é honesta.
+
+          Conta que decide requisito não se delega a quem só lê texto.
+      values:
+        ratio_threshold: 1.3
+
+    stale_open_work:
+      name:
+        pt-BR: "Tarefa aberta há mais de noventa dias é a única parte que vira ação"
+      statement:
+        pt-BR: >
+          Tarefas designadas e abertas há mais de **90 dias** são listadas com título e
+          idade. É a única parte do perfil que produz ação imediata; as demais informam.
+      note:
+        pt-BR: >
+          A listagem não afirma atraso nem culpa: a origem não registra prazo. O que se pode
+          dizer é que o item está aberto há esse tempo e precisa de destino — concluir,
+          repassar, ou cancelar com motivo.
+      values:
+        stale_days: 90

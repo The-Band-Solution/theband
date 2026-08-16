@@ -1,40 +1,434 @@
-# Retomar — feature 022, a timeline das issues
+# Retomar — 2026-08-16
 
-**Estado**: as 13 tarefas implementadas, PR aberta. **Branch**: `049-timeline-atividade`
+**Onde está**: branch `056-perfil-de-competencias`, **PR #330** com 4 commits, `MERGEABLE`,
+gates com código de saída 0. Revisão pedida a `Adylla027` e `EduardoNFraiz`.
 
 ## O primeiro comando ao voltar
 
 ```bash
-set -a && . ./.env && set +a      # a chave mestra mora aqui; mix run sobe a app e precisa dela
+set -a && . ./.env && set +a      # a chave mestra e a API_KEY moram aqui
+mix phx.server
 ```
 
-## O que depende de você
+Perfil real gravado no banco de desenvolvimento, gerado com a API de verdade:
+<http://localhost:4000/people/fe70e4e6-b845-46e2-a18a-5394f15f9a6d>
 
-1. **Acrescentar um estado de "em andamento" no quadro** — a plataforma não cria estado,
-   e não deveria: o quadro é da organização. Vale **só para frente**: issue que já
-   percorreu o fluxo antigo não ganha movimentação retroativa;
-2. **rodar uma coleta real** depois disso, e reavaliar em `/process`;
-3. **declarar qual movimentação marca "peguei"** — é feature própria, e só faz sentido
-   depois que o quadro tiver onde declarar.
+---
 
-## O que a feature entregou
+# O propósito, reafirmado em 2026-08-16
 
-| Fase | O que existe agora |
+> **Entender a pessoa pelas habilidades dela, que são materializadas pelas tarefas
+> executadas.** Um resumo das competências, **por meio das tarefas**.
+
+O verbo é da SRO, e não é enfeite: a tarefa executada produz o entregável, e o entregável
+materializa alguma coisa. **A tarefa é evidência; a competência é o que ela materializa.**
+
+Está no topo porque governa as decisões abaixo, e porque a feature nasceu de um enquadramento
+mais estreito — *"o que mudou ao longo do tempo"*. Evolução é **uma das dimensões** da
+competência, e não o assunto.
+
+## O formato-alvo, dado em 2026-08-16
+
+Sete seções, na ordem: **Visão Geral · Competências Técnicas · Soft Skills · Constância de
+Entrega · Confiabilidade · Áreas de Alocação Futura · Observações.**
+
+As competências técnicas vêm **agrupadas por área** — Back-end, Front-end, DevOps,
+Ferramentas — com o específico dentro de cada uma:
+
+> **Back-end:** experiência com .NET, incluindo criação de APIs, integração com sistemas de
+> autenticação (OpenFGA, Auth) e manipulação de dados.
+
+### Duas regras minhas que o formato contradiz, e como reconciliar
+
+**1. Eu proibi categoria ampla, e o exemplo usa exatamente elas.** Escrevi *"nunca backend,
+nunca DevOps"*. Estava certo sobre o **problema** — "backend" sozinho não diz nada — e errado
+sobre a **solução**: proibi o cabeçalho junto com o vazio.
+
+O exemplo resolve melhor: a área é **agrupamento**, e o específico mora dentro. Um leitor
+acha "DevOps" na varredura e lê ".NET, OpenFGA, Docker, AWS" logo abaixo. Cinco strings
+hiperespecíficas soltas não se varrem.
+
+**Reconciliação**: `area` como agrupamento, `competencias` dentro dela, e a proibição passa a
+valer só para o nível de baixo — nenhuma competência pode ser *"boas práticas"* ou
+*"resolução de problemas"*.
+
+**2. Eu recusei Soft Skills, e o exemplo mostra como fazê-lo honesto.** Meu argumento era que
+44% das descrições foram escritas por terceiros, então o texto não prova como a pessoa
+comunica. Continua verdade — mas o exemplo não afirma traço, **nomeia o tipo de tarefa**:
+
+> **Resolução de Problemas:** identificação e correção de erros, tanto no front-end (erros de
+> login, CORS) quanto no back-end (erros de compilação, problemas de URL).
+
+Isso é observável: são as tarefas de correção que ela executou. O que continua proibido é
+*"é proativo"*, *"é comprometido"* — traço sem tarefa que o mostre.
+
+**Reconciliação**: soft skill entra **com as tarefas que a evidenciam**, e a distinção de
+autoria continua valendo — colaboração sai de tarefas compartilhadas (contável), comunicação
+só do que a pessoa escreveu.
+
+**3. Liderança técnica agora tem lastro.** O exemplo pede em Áreas de Alocação, e eu não
+tinha como sustentar. Com o sinal do item 3 — tarefas abertas para outras pessoas, contável —
+passa a ter. Continua sendo "a evidência existe", e não um rótulo na pessoa.
+
+### O que o formato pede e a plataforma ainda não tem
+
+- **"O gráfico de Throughput indica cadência regular"** — a série mensal está no material, mas
+  a tela não tem o gráfico. Existe no protótipo de gestão, não na página da pessoa;
+- **"Prometido vs Realizado"** — precisa de compromisso registrado. A associação issue↔sprint
+  serve, e foi **removida do material** por cobrir de 6% a 95% conforme a pessoa. Reintroduzir
+  exige declarar a cobertura por pessoa, senão compara gente medida com gente não medida.
+
+## A consequência estrutural, e é a maior mudança pendente
+
+Hoje o JSON tem `habilidades` como **lista de rótulos soltos**, e as tarefas que as sustentam
+vivem numa seção **separada**, `destaques`. Quem lê a linha de habilidades não vê o que a
+materializa; quem lê os destaques vê evidência sem saber que competência ela sustenta.
+
+Se a competência é a unidade, **ela carrega as tarefas junto**. As duas seções viram uma:
+
+```jsonc
+competencias: [
+  {
+    nome: "observabilidade com OpenTelemetry e SigNoz",
+    o_que_faz_nela: "instrumentou aplicações, montou coletores e painéis",
+    tarefas: 14,
+    periodos: [1, 2, 3],
+    mais_recente: "2026-08",
+    // o que MATERIALIZA a competência — com título, não só número:
+    // um número não mostra o que foi feito, e quem lê não vai abrir a issue
+    evidencia: [
+      { numero: 199, titulo: "Spike: Autenticação Keycloak ↔ GitHub ↔ Signoz" },
+      { numero: 449, titulo: "Transferir Signoz para VPS" }
+    ]
+  }
+]
+```
+
+Aplicado ao formato-alvo, o schema fica:
+
+```jsonc
+{
+  visao_geral: "string",              // versátil em quê, taxa de conclusão, cadência
+  competencias: [{
+    area: "Back-end" | "Front-end" | "DevOps" | "Dados" | "Ferramentas" | …,
+    itens: [{
+      nome: "…",                      // específico: ".NET com APIs e OpenFGA"
+      o_que_faz_nela: "…",
+      tarefas: 14, periodos: [1,2,3], mais_recente: "2026-08",
+      evidencia: [{ numero: 199, titulo: "…" }]
+    }]
+  }],
+  soft_skills: [{
+    nome: "Resolução de problemas",   // nunca traço: nada de "é proativo"
+    como_aparece: "…",
+    evidencia: [{ numero: 412, titulo: "Corrigir erro de CORS no login" }]
+  }],
+  constancia: "…",                    // usa a série pessoa/projeto do material
+  confiabilidade: "…",                // taxa, e o que ela esconde
+  alocacao: [{ area: "…", porque: "…", evidencia: [ … ] }],
+  observacoes: [ "…" ],               // no máximo três, cada uma nascida do material
+  do_time_nao_da_pessoa: "…",         // o contrapeso, obrigatório
+  nao_alcanca: "…"                    // obrigatório
+}
+```
+
+`melhorar` deixa de ser seção própria e vira **`observacoes`**, como no exemplo — mas mantendo
+o enquadramento: lacuna do registro, nunca da pessoa.
+
+**A mudança que mais importa está no `evidencia`**: hoje é `[199, 449]`, só números. Com
+título, a tarefa aparece como o que ela é — a materialização da competência. Sem título,
+a evidência é uma promessa de que existe.
+
+E `melhorar` fica a mesma estrutura com evidência mais fraca: o mesmo objeto, com o que
+falta nomeado — rala, envelhecida, ou trabalho que demora.
+
+## O que isso decide, concretamente
+
+| decisão | direção |
 |---|---|
-| F1 | `spo_performed_project_activities` — a primeira materialização do conceito |
-| F2 | a timeline coletada, dentro da janela da 020, sem descartar nada |
-| F3 | a sequência na página da issue, o cycle time recusado, e `/process` |
-| F4 | os quatro antipadrões de instância, e os dois estruturais sinalizados |
+| a unidade do relatório | a **competência**, com as tarefas que a materializam dentro |
+| o papel no prompt | especialista em competências, não analista de série temporal |
+| a evidência | número **e título** — o título é o que mostra a materialização |
+| o que vem primeiro | as competências; a trajetória mostra como elas se formaram |
+| o que é "melhorar" | a mesma estrutura com evidência rala, envelhecida ou lenta — **do registro**, nunca da pessoa |
+| o que não entra | o que a tela já deriva sozinha, e o que o material não sustenta |
 
-## O que ficou fora, de propósito
+---
 
-- **varredura da organização inteira** — não há tela que responda "quais issues têm
-  antipadrão". A detecção roda ao abrir a issue. Varrer tem custo e desenho próprios;
-- **os comentários** — [#318](https://github.com/The-Band-Solution/theband/issues/318);
-- **calcular cycle time, WIP ou CFD** — dependem da declaração do item 3 acima.
+# O que fazer, na ordem
 
-## O que ficou medido pela metade
+## 1. A página não recarrega quando a geração termina — **defeito entregue**
 
-Sondei quatro repositórios e **dois voltaram `NOT_FOUND`** — pareei repositório com a
-organização errada. A comparação entre quadros se apoia em **dois**. O achado sobrevive
-(um tem estado de andamento, o outro não), mas não sustenta dizer quão comum é.
+A tela diz *"Requested. The model takes about a minute — reload to see it"*: a plataforma
+pedindo à pessoa que faça o trabalho dela. A geração leva de 25 a 60 segundos.
+
+O projeto já tem o padrão: `TheBand.Ingestion` faz `Phoenix.PubSub.subscribe/broadcast` num
+tópico por tenant, e `RecomputePromotions` também.
+
+- `GenerateWorker` publica ao gravar — **e também ao falhar**;
+- a aba assina no `mount` e recarrega o perfil ao receber;
+- o teste é o estado intermediário: pedir, mandar o evento, e afirmar que o perfil aparece
+  **sem** um novo `live/2`.
+
+**O cuidado**: um `subscribe` que só recebe sucesso transforma erro em espera infinita, e
+espera infinita é indistinguível de "ainda rodando". Mesma família da lição que já reincidiu
+sete vezes aqui.
+
+## 2. Feature 027 — geração automática e periódica
+
+Medida em 2026-08-16, **não escrita como spec**. Recomendação: **cron próprio, não no sync.**
+
+| medição | valor |
+|---|---|
+| pessoas que passam nos pisos | **34** de 41 |
+| material mediano por pessoa | 191k chars ≈ **48k tokens** |
+| rodada completa | **1,63M tokens** de entrada |
+| fecharam 10+ tarefas nos últimos 30 dias | **6** |
+| fecharam 1 a 9 | 14 |
+| **fecharam nenhuma** | **14** |
+
+Catorze das 34 não fecharam uma tarefa em 30 dias: material idêntico, texto novo diria o
+mesmo. O sync roda muito mais que uma vez por mês. E a razão de conceito: **sync é coleta,
+perfil é interpretação** — acoplar faz toda observação custar dinheiro.
+
+```
+regenera se  (tarefas_fechadas_hoje − tasks_closed_do_perfil) ≥ N
+         ou  generated_at mais velho que M meses
+```
+
+O recorte já está em coluna para isso — `FR-016`. Com N=10 rodariam **6 de 34**: ~290k
+tokens em vez de 1,63M. N e M em `profile.thresholds`.
+
+**De graça**: a tabela é somente-acréscimo, e sem regra de mudança a geração automática a
+encheria de textos quase idênticos — o histórico viraria ruído.
+
+> **Decisão pendente antes da spec.** Hoje a geração é ato de alguém. Automática, mais
+> leitura aberta ao tenant (`FR-023`), mais sem contestação (`FR-024`), significa que
+> **ninguém decide** — o texto passa a existir sobre todo mundo por padrão. Não é
+> impeditivo; é decisão, e merece estar escrita como o resíduo das outras duas está.
+
+## 3. Tarefas que a pessoa abre **para outras** — sinal novo, medido em 2026-08-16
+
+Pedido teu: quem abre tarefa para outra pessoa está fazendo algo que a contagem de tarefas
+designadas não mostra. **É contável, e não inferido**: `author_login` da pessoa com
+designado diferente dela.
+
+Medido no banco real:
+
+| login | abriu | para outros | % | pessoas distintas |
+|---|---|---|---|---|
+| paulossjunior | 1255 | 1191 | 95% | **28** |
+| vinicius-je | 715 | 375 | 52% | 15 |
+| marcelasfl | 409 | 283 | 69% | 9 |
+| fatasy | 264 | 252 | 95% | **21** |
+| joaomrpimentel | 347 | 146 | 42% | 17 |
+| sofialctv | 65 | 64 | 98% | 13 |
+
+**Pessoas distintas discrimina melhor que a contagem bruta.** Escrever 200 tarefas para uma
+pessoa e 60 para treze são coisas diferentes: a segunda atravessa o time.
+
+### O que falta, e é o ponto que você levantou depois
+
+**Hoje o modelo não vê essas tarefas.** O material é só o que foi *designado à pessoa* —
+concluídas e abertas. As que ela **abriu para outros** não entram: nem título, nem corpo. Ele
+não pode analisar o que não recebe.
+
+E a contagem sozinha não basta: quem escreve *"corrigir typo"* para outros e quem escreve
+*"Inception do SOT DevEx"* com contexto e critério aparecem **idênticos** numa contagem.
+Título e corpo é que separam distribuir trabalho de **decompor** trabalho.
+
+### Como eu faria
+
+1. **A contagem vai calculada**, como o veredito da linha de base — o modelo erra conta, já
+   provou. Por período: quantas abriu para outros, e para quantas pessoas distintas;
+2. **Uma amostra do texto** dessas tarefas entra no material, com teto — as mais recentes,
+   digamos vinte, com título e corpo truncado. O material mediano já é de 48k tokens, então
+   o teto não é economia, é necessidade;
+3. **Campo próprio no schema**, com a interpretação limitada ao que se sustenta.
+
+### O que **não** escrever
+
+`liderança` é conclusão, e a evidência não a sustenta sozinha. Abrir tarefa para outros
+também é papel de quem faz triagem, quem escreve requisito, quem coordena entrega, ou quem
+simplesmente é o único com permissão no repositório. O que é afirmável:
+
+> *"Escreveu N tarefas executadas por M pessoas diferentes entre <mês> e <mês>, e o texto
+> delas traz contexto e critério"* — ou não traz, que também é achado.
+
+Quem lê tira a conclusão. A plataforma não deve rotular pessoa.
+
+## 4. Tirar as tarefas abertas do prompt — **corta até 80% do material**
+
+Pedido teu em 2026-08-16, e a razão é dupla.
+
+**É duplicação.** A tela já lista as abertas há mais de 90 dias, a partir de dado observado e
+**recalculado a cada leitura** — `Profiles.stale_open/2`. O texto do modelo sobre elas
+envelhece; a lista não. Uma tarefa que fechou depois da geração some da lista e continua no
+texto.
+
+**E é caro.** Medido:
+
+| login | abertas | material | sem abertas | economia |
+|---|---|---|---|---|
+| ManoelRL | 103 | 134k | **27k** | **80%** |
+| lukevds | 66 | 96k | 32k | 66% |
+| vinicius-je | 152 | 320k | 129k | 60% |
+| marcelasfl | 103 | 193k | 79k | 59% |
+| GustavoACaetano | 60 | 141k | 60k | 57% |
+| tadeuaugustovs | 57 | 270k | 223k | 17% |
+
+**Isso refaz a conta da 027.** A rodada completa de 1,63M tokens cai muito, e o teto por
+período — o outro achado — pode nem ser necessário depois disto. Medir de novo antes de
+decidir o teto.
+
+### O que muda
+
+- sai a seção `TAREFAS EM ABERTO` do material;
+- fica **a contagem** em `COBERTURA`, que é uma linha e serve ao parágrafo de atenção;
+- a forma `trava` das lacunas **sobrevive, e melhora**: passa a olhar as concluídas que
+  demoraram muito acima da mediana da própria pessoa — o `Nd aberta` já está em cada tarefa
+  concluída. Deixa de ser "há coisa parada" (que a tela mostra) e vira "neste domínio o
+  trabalho demora", que a tela não mostra.
+
+### Onde a lista fica na tela
+
+Complemento teu: **derivada da listagem de tarefas, e posicionada depois dela.** Hoje o bloco
+`Open longer than 90 days` mora dentro do cartão do perfil, no meio do texto derivado — e é
+fato observado, não conclusão de modelo. Lugar errado por dois motivos:
+
+- **mistura proveniência**: está cercado de blocos hachurados, quando é sólido;
+- **repete a consulta**: a página já lista as issues da pessoa logo abaixo.
+
+Tirar do cartão do perfil e pôr **depois da tabela de issues**, derivado dela. A tabela é
+paginada, então conferir se dá para derivar do conjunto que a página já carrega ou se a
+consulta continua necessária — se continuar, ela é observada e barata, e o guard de consultas
+da página precisa ganhar a linha correspondente.
+
+## 5. O papel e a estrutura — a competência como unidade
+
+**Esta é a maior das nove, e as outras oito servem a ela.** A reestruturação do JSON está
+descrita no propósito, lá em cima: `habilidades` e `destaques` viram `competencias`, e a
+evidência passa a carregar título além do número.
+
+Reflexo na tela: as marcas de habilidade deixam de ser rótulos e passam a abrir para as
+tarefas que as materializam. O critério de destaque continua visível — é ele que impede
+"competência" de virar opinião.
+
+### O papel no prompt
+
+Pedido teu em 2026-08-16. Hoje o prompt abre com *"Você compara uma pessoa com ela mesma ao
+longo do tempo (…) e responde uma pergunta: o que mudou?"* — enquadramento de comparação
+temporal, não de competência.
+
+A feature virou sobre **habilidades**: a linha de habilidades é a primeira coisa da tela, os
+destaques têm critério próprio, e as lacunas são de evidência de competência. O papel tem de
+dizer isso.
+
+**O que trocar**: o enquadramento de abertura, e o peso relativo — **competência primeiro,
+evolução como uma das dimensões dela**. A pergunta que o papel responde deixa de ser *"o que
+mudou?"* e passa a ser *"em que esta pessoa é forte, e onde a evidência ainda não sustenta?"*.
+
+Reflexo no que a tela mostra primeiro: hoje o resumo abre por forças, o que já está certo —
+o que muda é o peso das seções seguintes e o critério de corte do que entra.
+
+**O que não perder** ao reescrever, porque cada um custou um defeito observado:
+
+- **não é avaliação de desempenho** — desempenho é a distância entre combinado e entregue, e
+  o combinado não está no material;
+- **não compara pessoas** — recebe uma por vez, sem a distribuição;
+- **a armadilha da linha de base** — o corpo mediano do projeto foi de 216 para 1310 chars, e
+  sem o contrapeso todo perfil conclui que a pessoa aprendeu a documentar;
+- **lacuna é do registro, não da pessoa** — não observar não é não saber;
+- **sem gênero, sem nível** — o escopo atribuído reflete o nível que o time já presumia.
+
+## 6. Issue #320 — axiomas SRO carregados como `unknown`
+
+`priv/knowledge_base/rules/sro_axioms.yaml` usa a chave de topo `rules:`, que **não é** um
+dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança.
+
+**Mordeu de novo em 2026-08-15**: escrevi `profile_thresholds.yaml` nessa forma e ela era
+ilegível por `KnowledgeBase.rule/1`. Contornei usando `derivation_rule:`, mas o `spo_axioms`
+e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mordida.
+
+## 7. As outras issues abertas — triagem pela metade
+
+| # | leitura |
+|---|---|
+| **181** | a feature 024 coleta iterações e campos. Conferir cobertura antes de fechar |
+| **180** | mapear campo de quadro para atributo da ontologia — a 024 grava `field_name` cru. **Trabalho de verdade** |
+| **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe. `82` (quem atravessa organizações) tem parte pronta na página da pessoa |
+| **176, 317, 318** | features novas, não pendências |
+
+## 8. A análise do Conecta Fapes — adiada por você em 2026-08-15
+
+Está inteira na memória, em `conecta-fapes-tem-dois-quadros.md`. O resumo do que espera
+decisão:
+
+- **qual quadro é o quadro do projeto** — hoje há dois. O `Conecta Fapes - Delivery` entregou
+  980 issues entre jun/2025 e abr/2026; o `Conecta Fapes` assume em junho de 2026. A troca
+  não está declarada em lugar nenhum, e lida só pelo quadro corrente a entrega do projeto
+  parece começar em abril de 2026 com 4 issues;
+- **o que fazer com 275 issues abertas fora do quadro** — 233 num quadro antigo, 42 sem
+  quadro algum;
+- **coletar timeline do `conectafapes-project`** — tem **zero** eventos de status, e é o que
+  destrava homologação e cycle time;
+- **se "done" é fechar a issue ou a coluna do quadro** — discordam em 11% onde dá para
+  comparar: 13 marcadas `Done` seguem abertas, 12 fechadas nunca saíram do `Backlog`.
+
+Painel com tudo: <https://claude.ai/code/artifact/170d05f0-c706-4232-ba47-9cad7bfae29b>
+
+## 9. Decisões antigas ainda abertas
+
+- **qual campo de data é o prazo**, por quadro. A sondagem achou 33 campos de data em 24
+  quadros, com **três significados em duas línguas** — `End date` é fim planejado ou fim
+  real? Sem essa declaração, "tarefas em atraso" não existe;
+- **`FR-012` da feature 023** — quem vê o painel de trabalho de quem. A 026 não herdou a
+  lacuna, decidiu a dela; a 023 segue aberta desde 2026-08-14;
+- **`FR-007` da feature 022** — qual movimentação marca o início. Sem ela não há throughput,
+  WIP verdadeiro nem cycle time pessoal.
+
+---
+
+# O que já está entregue
+
+## Feature 026 — perfil de competências (PR #330, esperando revisão)
+
+Aba na página da pessoa: habilidades como marcas, resumo em três parágrafos, trajetória em
+três períodos, destaques com o critério visível, lacunas classificadas por forma, tarefas
+paradas, e o contrapeso da linha de base.
+
+**A decisão de modelagem** está em `research.md` R1: nenhum conceito de competência entra na
+rede. Criar `eo.competence` faria a plataforma afirmar que a pessoa *tem* a habilidade — o
+que a spec recusa — e licenciaria "quem sabe X", pergunta que a evidência não sustenta.
+
+**Quatro recusas com quatro frases**, porque são quatro fatos: `:no_assignment`,
+`:below_floor`, `:period_too_thin`, `:no_text_to_compare`.
+
+**O modelo responde em JSON Schema com `strict: true`.** Consertou três coisas que não eram
+o objetivo: o modelo largara os subtítulos numa geração e a limpeza apagara dezenove citações
+em silêncio; a regra de não citar no resumo fora pedida quatro vezes e ignorada; e a regra de
+devolver lacunas vazias passou a ser obedecida ao virar campo de array.
+
+Protótipo da tela: <https://claude.ai/code/artifact/5240baae-c064-4d44-b3ee-aa2cb7e62a14>
+
+## Features anteriores, mergeadas
+
+- **022** timeline das issues e os quatro antipadrões, tela `/process`
+- **024** sprints do Projects v2 — 220 sprints, 2225 vínculos
+- **025** projeto, subprojetos e repositórios, com seletor de busca múltipla
+
+## Os scripts do scratchpad
+
+`gerar_perfis.exs` e `enviar_relatorios.exs` foram o protótipo do pipeline, e **estão
+superados** pela feature na aplicação. Servem só para rodar em lote fora da app; se a 027
+existir, podem sair.
+
+---
+
+# Duas coisas que valem lembrar ao mexer aqui
+
+- **`mix gates` nunca com `| tail` nem `| grep`** — o veredito é o código de saída;
+- **medir na origem antes de afirmar.** Três defeitos desta rodada apareceram assim: a spec
+  dizia que `costabeber` ficava abaixo do piso e não fica; o `check` da tela carregava o
+  material inteiro a cada render; e um `@type` declarava `String.t()` onde a função devolve
+  `nil`. Nenhum apareceu na suíte verde.
