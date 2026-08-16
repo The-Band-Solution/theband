@@ -1,30 +1,77 @@
-# Retomar — 2026-08-16, ao fim da rodada de fechamento
+# Retomar — 2026-08-16, fim do dia, sprint 017 no meio
 
-**Onde está**: três PRs abertos, os três com revisor pedido à equipe `the-band`, o pedido
-**conferido** — `reviewRequests` devolveu a equipe, e não lista vazia — e `Status = In
-review` gravado no board e conferido depois da escrita.
+**Onde está**: os quatro PRs do dia estão **mergeados** — #360, #361, #362 e #371, todos
+pela pessoa mantenedora, todos sem revisão independente (`pulls/<n>/reviews` vazio; o
+pedido à equipe existiu e foi conferido, e a lacuna segue declarada). O sprint 016 está
+fechado: 25 issues entregues e fechadas, rodada real medida (549k tokens, 6min35s,
+mediana 12,6k/pessoa — está na #356).
 
-| PR | O que é | Estado |
-|---|---|---|
-| [#360](https://github.com/The-Band-Solution/theband/pull/360) | feature 027 — a rodada mensal de perfis, 23 issues | 13 gates verdes, 917 testes |
-| [#361](https://github.com/The-Band-Solution/theband/pull/361) | o guarda de `:unknown` que faltava ao #359 | 13 gates verdes |
-| [#362](https://github.com/The-Band-Solution/theband/pull/362) | o fechamento do sprint 016, a triagem e a L60 | documentação |
+**O sprint 017 está ABERTO e no meio**, na branch `004-quadros-campos-e-backlogs`:
 
-Mergeados nesta rodada: [#330](https://github.com/The-Band-Solution/theband/pull/330) —
-perfil de competências — e [#359](https://github.com/The-Band-Solution/theband/pull/359) —
-os axiomas ganham tipo próprio, que fecha a issue #320.
+| Commit | O quê |
+|---|---|
+| `da019e5` | a convergência da F4 — 11 tarefas (T047–T057) apensadas ao tasks.md da 004 |
+| `46e17db` | o sprint-backlog 017 — 12 issues #373–#384 no board, hierarquia sob #107/#108 |
+| `02af0aa` | **WIP**: 5 migrações, 6 schemas, `TheBand.Projects.Commands`, `SPO.record_intended_process`, e a correção dos 26 |
 
-**A revisão independente continua sem acontecer.** O pedido existe e está conferido nos
-dois PRs; `pulls/<n>/reviews` está vazio nos dois. Pedido é condição necessária, e não
-suficiente — está declarado assim no review do sprint 016, e não marcado como cumprido.
+**A correção dos 26**: a 024 gravou toda iteração como sprint, inclusive as futuras —
+26 de 220 com início no futuro, violando FR-030/SC-009. A migração
+`20260816200400` as moveu para `spo_intended_project_processes` (mesma Application
+Reference) e removeu a afirmação errada. Depois dela: 0 futuros, 26 pretendidos, 194
+sprints reais. `down` é no-op de propósito.
+
+## O que falta no sprint 017, na ordem
+
+1. **`TheBand.Projects` (raiz com defdelegate)** e **`Projects.Queries`** — a fronteira
+   raiz `projects.ex` ainda não existe; só `commands.ex` está escrito;
+2. **`SRO.product_backlog/2` e `sprint_backlog/2`** — derivados da atribuição, e o teste
+   da SC-009b (product + sprints = total de itens);
+3. **T056** — alargar as consultas GraphQL (`project_iterations.graphql` pede só o campo
+   de iteração; `project_items.graphql` casa só valor de iteração e descarta o resto;
+   rascunho é descartado no `... on Issue`);
+4. **A coleta** — estender `github_sprints.ex` (ou módulo novo `github_projects.ex`) para:
+   gravar o quadro via `record_observed_project`, campos, itens (rascunho incluído),
+   valores, e rotear iterações por `Projects.record_iteration` — que decide sprint vs
+   pretendido e faz a transição. Backfillar `project_iterations` a partir das 194;
+5. **T055** — organização sem quadros como resposta declarada no resumo do sync;
+6. **T057** — a tela de quadros e backlogs (campos interpretados vs não, ausência de
+   importância declarada);
+7. **T058** — o controle de excluir repositório na página dele (backend pronto:
+   `CMPO.exclude_from_observation/3`);
+8. **Testes de tudo** + `mix gates` — **os gates completos NÃO rodaram** sobre o WIP;
+   compile limpo e 13 testes de sprint/ingestão verdes foi até onde deu;
+9. PR com revisor pedido à equipe `the-band` e conferido; review do sprint; lições.
+
+O contrato já existe e é o guia: `specs/004-issues-e-projetos/contracts/project-ingestion.md`
+— 215 linhas, com `record_iteration` devolvendo o destino, os dois backlogs por derivação,
+`importance_source/2` para a tela declarar ausência, e a lista do que a API **não** expõe.
 
 ## O primeiro comando ao voltar
 
 ```bash
+git checkout 004-quadros-campos-e-backlogs   # o sprint 017 está aqui, no meio
 docker compose up -d              # o Postgres mora aqui, e sem ele os gates reprovam
 set -a && . ./.env && set +a      # a chave mestra e a API_KEY moram aqui
+mix ecto.migrate                  # cinco migrações novas do sprint 017
 mix phx.server
 ```
+
+## As decisões que esperam pela pessoa mantenedora
+
+| # | decisão |
+|---|---|
+| [#356](https://github.com/The-Band-Solution/theband/issues/356) | N e M, agora com custo real: mediana 12,6k tokens/pessoa |
+| [#370](https://github.com/The-Band-Solution/theband/issues/370) | qual evento marca o início — a mais barata, destrava throughput/WIP/cycle time |
+| [#369](https://github.com/The-Band-Solution/theband/issues/369) | quem vê o painel de quem (FR-012 da 023) |
+| [#368](https://github.com/The-Band-Solution/theband/issues/368) | qual campo de data é prazo, por quadro |
+| [#367](https://github.com/The-Band-Solution/theband/issues/367) | o quadro do Conecta Fapes + 275 issues órfãs |
+| [#176](https://github.com/The-Band-Solution/theband/issues/176) | recriar iterations (L11: recria as existentes) ou medir por outro eixo |
+| [#358](https://github.com/The-Band-Solution/theband/issues/358) | percorrer o quickstart da 027 a mão |
+
+E antes de **hospedar** (a pergunta ficou feita): o login é um seletor sem senha — a
+própria tela declara. Exposto, qualquer pessoa entra como admin e gasta os tokens.
+Autenticação primeiro, ou Cloudflare Access na frente. Oracle Always Free é a opção
+gratuita que aguenta o cron mensal; Render/Railway free dormem e matam o disparo.
 
 E, para os gates, **nunca com pipe** — é a L60, aprendida nesta rodada:
 
