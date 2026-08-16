@@ -2032,3 +2032,56 @@ biblioteca exigindo 14. Consertar o CI subindo migração de produção de caron
 defeito por um risco. A dívida ficou registrada, separada, no PR #308.
 
 **Estado**: aberta.
+
+---
+
+## L60 — O pipe no `mix gates` devolve o código de saída do `tail`
+
+**Origem**: Sprint 016 · **Tipo**: processo
+
+**O que aconteceu.** A primeira execução dos gates desta sessão foi:
+
+```bash
+mix gates 2>&1 | tail -40; echo "EXIT=$?"
+```
+
+O relatório disse **código de saída 0**. Os gates tinham **reprovado**:
+
+```
+** (Mix) The database for TheBand.Repo couldn't be created: killed
+** (Mix) gate reprovou: testes — código de saída 1
+EXIT=0
+```
+
+O `$?` de um pipeline é o do **último** comando, e o último era o `tail` — que sempre sai
+com zero, porque ler quarenta linhas nunca falha. A causa real era o Docker fora do ar, e
+o Postgres recusando conexão em `localhost:5432`.
+
+**Por que isto é uma reincidência, e não um caso novo.** A regra já está escrita em três
+lugares: no `AGENTS.md` (seção 4, *"não desabilite check"*), na memória do projeto
+(*"`mix gates` é a definição única — nunca rodar gate com `| tail`"*), e nas próprias
+lições. Foi violada mesmo assim, na primeira execução, por um motivo banal: o pipe estava
+lá para **encurtar a saída**, e não para burlar o veredito.
+
+**É a mesma família da lição que mais reincide neste repositório** — ausência de erro lida
+como resultado. Aqui a ausência foi fabricada pelo próprio comando de leitura.
+
+**O que fazer diferente.**
+
+**Para encurtar a saída, redirecione para arquivo — nunca canalize.**
+
+```bash
+mix gates > /tmp/gates.log 2>&1; echo "EXIT=$?"   # o $? é do mix
+tail -40 /tmp/gates.log                            # a leitura vem depois, e é outra coisa
+```
+
+O redirecionamento preserva o código de saída porque não há segundo comando. A leitura da
+saída e a obtenção do veredito passam a ser dois atos separados, que é o que eles sempre
+foram.
+
+**A regra escrita não impediu.** O que impede é a forma do comando ser diferente: enquanto
+`| tail` for o jeito natural de encurtar, alguém vai usá-lo de novo. A alternativa acima
+precisa ser tão curta quanto, senão a regra continua dependendo de memória.
+
+**Estado**: aberta — a forma com redirecionamento não está no `AGENTS.md` ao lado da
+proibição, e proibir sem oferecer a substituta é o que fez esta reincidir.

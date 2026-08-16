@@ -1,13 +1,33 @@
-# Retomar — 2026-08-16
+# Retomar — 2026-08-16, ao fim da rodada de fechamento
 
-**Onde está**: branch `056-perfil-de-competencias`, **PR #330** com 4 commits, `MERGEABLE`,
-gates com código de saída 0. Revisão pedida a `Adylla027` e `EduardoNFraiz`.
+**Onde está**: dois PRs abertos, os dois com revisor pedido à equipe `the-band` e o pedido
+**conferido** — `reviewRequests` devolveu a equipe, e não lista vazia.
+
+| PR | O que é | Estado |
+|---|---|---|
+| [#360](https://github.com/The-Band-Solution/theband/pull/360) | feature 027 — a rodada mensal de perfis, 23 issues | 13 gates verdes, 917 testes |
+| [#361](https://github.com/The-Band-Solution/theband/pull/361) | o guarda de `:unknown` que faltava ao #359 | 13 gates verdes |
+
+Mergeados nesta rodada: [#330](https://github.com/The-Band-Solution/theband/pull/330) —
+perfil de competências — e [#359](https://github.com/The-Band-Solution/theband/pull/359) —
+os axiomas ganham tipo próprio, que fecha a issue #320.
+
+**A revisão independente continua sem acontecer.** O pedido existe e está conferido nos
+dois PRs; `pulls/<n>/reviews` está vazio nos dois. Pedido é condição necessária, e não
+suficiente — está declarado assim no review do sprint 016, e não marcado como cumprido.
 
 ## O primeiro comando ao voltar
 
 ```bash
+docker compose up -d              # o Postgres mora aqui, e sem ele os gates reprovam
 set -a && . ./.env && set +a      # a chave mestra e a API_KEY moram aqui
 mix phx.server
+```
+
+E, para os gates, **nunca com pipe** — é a L60, aprendida nesta rodada:
+
+```bash
+mix gates > /tmp/gates.log 2>&1; echo "EXIT=$?"
 ```
 
 Perfil real gravado no banco de desenvolvimento, gerado com a API de verdade:
@@ -157,7 +177,55 @@ falta nomeado — rala, envelhecida, ou trabalho que demora.
 
 # O que fazer, na ordem
 
-## 1. A página não recarrega quando a geração termina — **defeito entregue**
+> **Estado dos nove, conferido em 2026-08-16 contra o código e o banco.** Quatro saíram da
+> lista; dois são funcionalidade nova; três são decisão sua.
+>
+> | # | assunto | estado |
+> |---|---|---|
+> | 1 | página não recarrega | **entregue** — `Profiles.broadcast/3`, os dois desfechos |
+> | 2 | geração automática | **entregue**, no PR #360 |
+> | 3 | tarefas abertas para outros | funcionalidade nova, não iniciada |
+> | 4 | tirar as abertas do prompt | **entregue**, incluindo o lugar na tela |
+> | 5 | competência como unidade | funcionalidade nova, não iniciada — **a maior** |
+> | 6 | axiomas `unknown` | **entregue** no #359; o guarda contra a repetição, no #361 |
+> | 7 | triagem das issues | **feita** — cada issue recebeu comentário com a medição |
+> | 8 | Conecta Fapes | **decisão sua**, e uma parte nem é respondível hoje |
+> | 9 | decisões antigas | **decisão sua** |
+
+## As sete decisões que esperam por você
+
+Nenhuma delas é trabalho parado por falta de tempo: são escolhas que a plataforma não pode
+fazer sozinha, e três delas estão escritas nas próprias specs como recusa deliberada.
+
+| # | decisão | o que trava enquanto não vier |
+|---|---|---|
+| 1 | **medir o custo real de uma rodada** ([#356](https://github.com/The-Band-Solution/theband/issues/356)) | a `FR-021` exige a medição antes de N e M valerem. Exige chave real e de 15 a 35 minutos |
+| 2 | **percorrer o quickstart a mão** ([#358](https://github.com/The-Band-Solution/theband/issues/358)) | a suíte verde não substitui — três defeitos da rodada anterior só apareceram com a aplicação no ar |
+| 3 | **criar ou não as iterações que faltam** ([#176](https://github.com/The-Band-Solution/theband/issues/176)) | `flow.throughput` não separa os sprints 003, 004 e 005 |
+| 4 | **qual é o quadro do projeto no Conecta Fapes** | lida só pelo quadro corrente, a entrega parece começar em abril de 2026 com 4 issues |
+| 5 | **qual campo de data é o prazo**, por quadro | sem isso, "tarefas em atraso" não existe |
+| 6 | **`FR-012` da 023** — quem vê o painel de trabalho de quem | aberta desde 2026-08-14 |
+| 7 | **`FR-007` da 022** — qual movimentação marca o início | sem ela não há throughput, WIP verdadeiro nem cycle time pessoal |
+
+**Uma delas nem é respondível hoje.** A pergunta do Conecta Fapes *"done é fechar a issue ou
+a coluna do quadro?"* depende do campo `Status`, e a plataforma **não coleta campo de
+quadro** — é a issue [#181](https://github.com/The-Band-Solution/theband/issues/181), com a
+medição feita em 2026-08-16. Responder por fora, com consulta manual à API, é possível; a
+plataforma responder, não.
+
+## 1. A página não recarrega quando a geração termina — **ENTREGUE**
+
+`Profiles.subscribe/2` e `broadcast/3` por tenant e pessoa; `GenerateWorker` anuncia
+`:pronto` **e** `{:falhou, motivo}`; `people_live/show.ex:69` assina no `mount` e trata os
+dois. A frase da tela virou *"this page updates on its own"*.
+
+O cuidado que este item pedia foi respeitado: anunciar só o sucesso deixaria a tela
+esperando um evento que não vem, e espera infinita é indistinguível de "ainda rodando".
+
+<details>
+<summary>O texto original do item, preservado</summary>
+
+### A página não recarrega quando a geração termina — defeito entregue
 
 A tela diz *"Requested. The model takes about a minute — reload to see it"*: a plataforma
 pedindo à pessoa que faça o trabalho dela. A geração leva de 25 a 60 segundos.
@@ -174,7 +242,20 @@ tópico por tenant, e `RecomputePromotions` também.
 espera infinita é indistinguível de "ainda rodando". Mesma família da lição que já reincidiu
 sete vezes aqui.
 
-## 2. Feature 027 — geração automática e periódica
+</details>
+
+## 2. Feature 027 — geração automática e periódica — **ENTREGUE, no PR #360**
+
+As 23 issues #331 a #353, com as quatro decisões escritas no corpo do PR. Fica de fora, e
+com destino registrado: a **medição do custo real** ([#356](https://github.com/The-Band-Solution/theband/issues/356)),
+que a `FR-021` exige antes de N e M valerem, e o **quickstart percorrido a mão**
+([#358](https://github.com/The-Band-Solution/theband/issues/358)). Os dois dependem de
+chave real, e por isso são seus.
+
+<details>
+<summary>A medição que motivou a feature, preservada</summary>
+
+### Feature 027 — a medição de 2026-08-16
 
 Medida em 2026-08-16, **não escrita como spec**. Recomendação: **cron próprio, não no sync.**
 
@@ -207,7 +288,15 @@ encheria de textos quase idênticos — o histórico viraria ruído.
 > **ninguém decide** — o texto passa a existir sobre todo mundo por padrão. Não é
 > impeditivo; é decisão, e merece estar escrita como o resíduo das outras duas está.
 
+</details>
+
 ## 3. Tarefas que a pessoa abre **para outras** — sinal novo, medido em 2026-08-16
+
+> **Não iniciada.** Conferido em 2026-08-16: nenhuma ocorrência de contagem de autoria para
+> outros em `lib/the_band/profiles/`. O material só tem `autoria_propria`, que é outra
+> coisa — diz quem escreveu a tarefa **da própria pessoa**, e não para quem ela escreveu.
+>
+> É funcionalidade nova, e serve à número 5. As duas andam juntas.
 
 Pedido teu: quem abre tarefa para outra pessoa está fazendo algo que a contagem de tarefas
 designadas não mostra. **É contável, e não inferido**: `author_login` da pessoa com
@@ -257,7 +346,19 @@ simplesmente é o único com permissão no repositório. O que é afirmável:
 
 Quem lê tira a conclusão. A plataforma não deve rotular pessoa.
 
-## 4. Tirar as tarefas abertas do prompt — **corta até 80% do material**
+## 4. Tirar as tarefas abertas do prompt — **ENTREGUE, inteiro**
+
+As três partes: a seção saiu do material e a contagem ficou em `COBERTURA`
+(`prompt.ex:70`); a forma `trava` das lacunas foi reescrita e agora compara as concluídas
+contra a **mediana da própria pessoa** — *"40 dias é muito para quem fecha em 3 e normal
+para quem fecha em 30"*; e a lista da tela saiu do cartão do perfil e foi para **depois da
+tabela de issues** (`people_live/show.ex:632`), com o comentário explicando a proveniência
+misturada.
+
+<details>
+<summary>A medição que motivou, preservada</summary>
+
+### O corte de até 80% do material
 
 Pedido teu em 2026-08-16, e a razão é dupla.
 
@@ -304,7 +405,21 @@ paginada, então conferir se dá para derivar do conjunto que a página já carr
 consulta continua necessária — se continuar, ela é observada e barata, e o guard de consultas
 da página precisa ganhar a linha correspondente.
 
+</details>
+
 ## 5. O papel e a estrutura — a competência como unidade
+
+> **Não iniciada, e é a maior.** Conferido em 2026-08-16 contra
+> `priv/profiles/perfil_schema.json` e `priv/profiles/perfil.md`:
+>
+> - `habilidades` continua array de string solta, e `destaques` continua seção separada —
+>   não viraram `competencias`;
+> - `evidencia` é `{"items": {"type": "integer"}}` — **só número, sem título**, que o
+>   próprio texto abaixo chama de *"a mudança que mais importa"*;
+> - não existem `soft_skills`, `constancia`, `confiabilidade`; `recomendacoes` não virou
+>   `observacoes`;
+> - o papel ainda abre com *"o que mudou?"*, que é o enquadramento que este item manda
+>   trocar.
 
 **Esta é a maior das nove, e as outras oito servem a ela.** A reestruturação do JSON está
 descrita no propósito, lá em cima: `habilidades` e `destaques` viram `competencias`, e a
@@ -341,23 +456,33 @@ o que muda é o peso das seções seguintes e o critério de corte do que entra.
 - **lacuna é do registro, não da pessoa** — não observar não é não saber;
 - **sem gênero, sem nível** — o escopo atribuído reflete o nível que o time já presumia.
 
-## 6. Issue #320 — axiomas SRO carregados como `unknown`
+## 6. Issue #320 — axiomas SRO carregados como `unknown` — **ENTREGUE**
 
-`priv/knowledge_base/rules/sro_axioms.yaml` usa a chave de topo `rules:`, que **não é** um
-dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança.
+Corrigida no [#359](https://github.com/The-Band-Solution/theband/pull/359), já na `main`:
+os axiomas ganharam o tipo `:axiom`, e `KnowledgeBase.axioms/0` e `axiom/1` os devolvem um
+a um — nove, sete da SRO e dois da SPO.
 
-**Mordeu de novo em 2026-08-15**: escrevi `profile_thresholds.yaml` nessa forma e ela era
-ilegível por `KnowledgeBase.rule/1`. Contornei usando `derivation_rule:`, mas o `spo_axioms`
-e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mordida.
+**A terceira mordida ficou sem guarda**, e o [#361](https://github.com/The-Band-Solution/theband/pull/361)
+é esse guarda: fixa a lista dos **quinze** arquivos que ainda carregam como `:unknown` e
+reprova quando ela cresce. A lista separa os dez JSON Schemas — que são `:unknown`
+legítimo, porque `SchemaCheck` os alcança pelo caminho — dos **cinco de `sources/`,
+`glossary/` e `examples/`, que são conhecimento invisível**, e ficam declarados como
+dívida.
 
-## 7. As outras issues abertas — triagem pela metade
+## 7. As outras issues abertas — **triagem feita em 2026-08-16**
 
-| # | leitura |
-|---|---|
-| **181** | a feature 024 coleta iterações e campos. Conferir cobertura antes de fechar |
-| **180** | mapear campo de quadro para atributo da ontologia — a 024 grava `field_name` cru. **Trabalho de verdade** |
-| **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe. `82` (quem atravessa organizações) tem parte pronta na página da pessoa |
-| **176, 317, 318** | features novas, não pendências |
+Cada issue recebeu comentário com a medição, e não com leitura de código.
+
+| # | veredito | evidência |
+|---|---|---|
+| **82** | **fechada** | `EO.organizations_by_person/2` existe e a tela marca `in N organisations`. Medido: **2 de 88 pessoas** em mais de uma das 3 organizações |
+| **81** | aberta, **nada feito** | o único filtro de `/people` é `show_automation`. Não há seletor de organização em tela alguma |
+| **181** | aberta, **um terço feito** | 220 iterações gravadas; **11 quadros e 2 nomes de campo**. A própria consulta diz *"só o campo de iteração interessa aqui"*. Não há entidade de quadro: `board_number` é coluna de `sro_sprints`. Os outros **15 dos 26 quadros não existem** para a plataforma |
+| **180** | aberta, **bloqueada pela 181** | não há o que mapear: os 17 campos do quadro não são coletados |
+| **107** | aberta, **bloqueada pela 181** | idem |
+| **108** | aberta, e o achado é preciso | `CMPO.exclude_from_observation/3` existe e funciona; **os únicos chamadores são dois arquivos de teste**. Medido: **0 de 160 repositórios excluídos** — não por falta de vontade, por falta de caminho. É a fatia vertical cortada ao contrário |
+| **176** | **decisão sua**, não trabalho | criar as iterações **recria as existentes** (L11, custou reatribuir 96 itens); não criar deixa `flow.throughput` sem separar os sprints 003, 004 e 005 |
+| **317, 318** | funcionalidade nova | a **#179 fechou**, então o único bloqueio restante da 317 é a 181; a 318 está sem bloqueio |
 
 ## 8. A análise do Conecta Fapes — adiada por você em 2026-08-15
 
@@ -391,7 +516,7 @@ Painel com tudo: <https://claude.ai/code/artifact/170d05f0-c706-4232-ba47-9cad7b
 
 # O que já está entregue
 
-## Feature 026 — perfil de competências (PR #330, esperando revisão)
+## Feature 026 — perfil de competências (PR #330, **mergeado** em 2026-08-16)
 
 Aba na página da pessoa: habilidades como marcas, resumo em três parágrafos, trajetória em
 três períodos, destaques com o critério visível, lacunas classificadas por forma, tarefas
@@ -414,14 +539,18 @@ Protótipo da tela: <https://claude.ai/code/artifact/5240baae-c064-4d44-b3ee-aa2
 ## Features anteriores, mergeadas
 
 - **022** timeline das issues e os quatro antipadrões, tela `/process`
-- **024** sprints do Projects v2 — 220 sprints, 2225 vínculos
+- **024** sprints do Projects v2 — 220 sprints, 2225 vínculos. **Só as iterações**: quadros
+  e campos não são coletados, e é a issue #181
 - **025** projeto, subprojetos e repositórios, com seletor de busca múltipla
 
 ## Os scripts do scratchpad
 
 `gerar_perfis.exs` e `enviar_relatorios.exs` foram o protótipo do pipeline, e **estão
-superados** pela feature na aplicação. Servem só para rodar em lote fora da app; se a 027
-existir, podem sair.
+superados** pela feature na aplicação. Servem só para rodar em lote fora da app.
+
+**A condição para tirá-los foi cumprida**: a 027 existe, no PR #360. Podem sair assim que
+ele for incorporado — e vale conferir antes se o `enviar_relatorios.exs` faz alguma coisa
+que a aplicação ainda não faz, porque o envio não entrou na 027.
 
 ---
 
