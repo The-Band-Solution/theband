@@ -72,3 +72,7 @@ config :the_band, Oban,
   queues: false,
   plugins: false,
   peer: false
+
+# A segunda borda de I/O da plataforma. Mesma postura da primeira: é o único ponto que o
+# teste substitui, e nada abaixo dela é mockado.
+config :the_band, :llm_http_client, TheBand.LLMHTTPMock

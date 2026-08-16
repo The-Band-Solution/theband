@@ -39,10 +39,13 @@ defmodule TheBand.Profiles.Material do
           dias_aberta: integer() | nil
         }
 
+  # `de` e `ate` são anuláveis, e não por descuido: um período vazio não tem mês, e o tipo
+  # tem de dizer isso. O Dialyzer pegou a versão anterior, que declarava `String.t()` e
+  # deixava a cláusula `nil` inalcançável — contrato que mente é pior que contrato ausente.
   @type periodo :: %{
           indice: 1..3,
-          de: String.t(),
-          ate: String.t(),
+          de: String.t() | nil,
+          ate: String.t() | nil,
           tarefas: [tarefa()],
           corpo_mediano: non_neg_integer(),
           autoria_propria: non_neg_integer(),
@@ -50,10 +53,10 @@ defmodule TheBand.Profiles.Material do
         }
 
   @type t :: %{
-          login: String.t(),
+          login: String.t() | nil,
           person_id: binary(),
-          de: String.t(),
-          ate: String.t(),
+          de: String.t() | nil,
+          ate: String.t() | nil,
           concluidas: [tarefa()],
           abertas: [tarefa()],
           com_corpo: non_neg_integer(),
@@ -250,6 +253,61 @@ defmodule TheBand.Profiles.Material do
   defp fmt(nil), do: "—"
   defp fmt(r), do: "#{Float.round(r, 1)}×"
 
+  @doc """
+  Responde se **haveria** material, sem montar o material.
+
+  A tela chama isto a cada render, e `build/2` carrega todas as tarefas com corpo mais a
+  linha de base do tenant — quatro consultas e muito texto para decidir se um botão aparece.
+  Aqui vai **uma** consulta, e ela traz só o que os pisos precisam: a data de fechamento e o
+  **tamanho** de cada corpo, não o corpo.
+
+  Devolve os mesmos erros de `build/2`, com as mesmas formas, porque a tela usa a mesma
+  frase para os dois caminhos.
+  """
+  @spec check(Tenant.t(), binary()) :: :ok | {:error, term()}
+  def check(%Tenant{id: tenant_id}, person_id) do
+    tamanhos =
+      from(i in "collected_issues",
+        join: a in "issue_assignees",
+        on: a.collected_issue_id == i.id and is_nil(a.no_longer_observed_at),
+        where:
+          i.tenant_id == type(^tenant_id, :binary_id) and
+            a.person_id == type(^person_id, :binary_id),
+        order_by: [asc: coalesce(i.external_closed_at, i.external_created_at)],
+        select: {i.state, fragment("length(coalesce(?, ''))", i.body)}
+      )
+      |> Repo.all()
+
+    avaliar(tamanhos, limiares())
+  end
+
+  defp avaliar([], _limiares), do: {:error, :no_assignment}
+
+  defp avaliar(tamanhos, limiares) do
+    piso = limiares["evidence_floor"]["values"]["tasks_with_body"]
+    piso_periodo = limiares["evidence_floor"]["values"]["tasks_per_period"]
+
+    fechadas = for {"CLOSED", n} <- tamanhos, do: n
+    com_corpo = Enum.count(fechadas, &(&1 > 0))
+    grupos = tercis(fechadas)
+    contagens = Enum.map(grupos, &length/1)
+    medianas = Enum.map(grupos, &mediana/1)
+
+    cond do
+      com_corpo < piso ->
+        {:error, {:below_floor, %{com_corpo: com_corpo, piso: piso}}}
+
+      Enum.any?(contagens, &(&1 < piso_periodo)) ->
+        {:error, {:period_too_thin, %{contagens: contagens, piso: piso_periodo}}}
+
+      Enum.any?(medianas, &(&1 == 0)) ->
+        {:error, {:no_text_to_compare, %{medianas: medianas}}}
+
+      true ->
+        :ok
+    end
+  end
+
   # -- consultas ---------------------------------------------------------------
 
   defp tarefas(%Tenant{id: tenant_id}, person_id, estado) do
@@ -319,7 +377,8 @@ defmodule TheBand.Profiles.Material do
   defp ultimo_mes([]), do: nil
   defp ultimo_mes(tarefas), do: tarefas |> datas() |> List.last() |> mes()
 
-  defp datas(tarefas), do: tarefas |> Enum.map(& &1.data) |> Enum.reject(&is_nil/1) |> Enum.sort(Date)
+  defp datas(tarefas),
+    do: tarefas |> Enum.map(& &1.data) |> Enum.reject(&is_nil/1) |> Enum.sort(Date)
 
   defp mes(nil), do: nil
   defp mes(%Date{} = d), do: d |> Date.to_iso8601() |> String.slice(0, 7)

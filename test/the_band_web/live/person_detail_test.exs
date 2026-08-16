@@ -250,11 +250,26 @@ defmodule TheBandWeb.PersonDetailTest do
       # consultas numa pessoa real. **A asserção acima é a que prova isso** — `poucas ==
       # muitas` depois de designar todas as partes.
       #
+      # **E de 15 para 17 na feature 026**, com as duas nomeadas:
+      #
+      #   8. o perfil vigente da pessoa — existe, ou não;
+      #   9. quando **não** existe: há geração pendente, e há material para gerar.
+      #
+      # A nona é duas perguntas numa consulta cada, e as duas só acontecem quando não há
+      # perfil: com perfil na tela, nem o botão nem a recusa aparecem, e pagá-las seria custo
+      # por render sem consumidor.
+      #
+      # **A primeira versão desta seção custava três a mais, e este teste pegou.** A tela
+      # chamava `Material.build/2` para decidir se mostrava um botão — quatro consultas, e
+      # com elas o texto inteiro das tarefas, a cada render. Virou `Material.check/2`, que
+      # traz só o tamanho de cada corpo. A tentação era subir o teto; o defeito era da tela.
+      #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 15, """
+      assert acrescentadas <= 17, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **quinze** — oito da tela original mais sete do painel.
+      linha de base medida é **dezessete** — oito da tela original, sete do painel da 023, e
+      duas do perfil da 026.
 
       A conta: `live/2` faz dois renders, então a diferença total (#{poucas} − #{lista}) é dividida
       por dois. "Um número que não cresce" passa com 8 e passa com 80 — por isso o teto é asserido.

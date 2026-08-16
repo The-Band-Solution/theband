@@ -63,7 +63,9 @@ config :phoenix, :json_library, Jason
 config :the_band, Oban,
   repo: TheBand.Repo,
   engine: Oban.Engines.Basic,
-  queues: [ingestion: 5, transformation: 5],
+  # `perfis` com concorrência 1: a geração é sob demanda e cada chamada leva de 25 a 60
+  # segundos. Paralelizar gastaria crédito em rajada sem ninguém esperando mais rápido.
+  queues: [ingestion: 5, transformation: 5, perfis: 1],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a

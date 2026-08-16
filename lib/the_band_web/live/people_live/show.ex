@@ -35,6 +35,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Profiles
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
   alias TheBandWeb.WorkCharts
@@ -79,6 +80,24 @@ defmodule TheBandWeb.PeopleLive.Show do
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
+  def handle_event("gerar_perfil", _params, socket) do
+    tenant = socket.assigns.current_tenant
+    pessoa = socket.assigns.pessoa
+
+    case Profiles.request(tenant, pessoa.id, socket.assigns.current_user.id) do
+      {:ok, _job} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Profile requested. It takes about a minute.")
+         |> assign(perfil_pendente?: true)}
+
+      # Falha ao enfileirar é falha, e é dita. Silêncio aqui faria a pessoa clicar de novo
+      # sem saber que nada aconteceu.
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not request: #{inspect(motivo)}")}
+    end
+  end
+
   defp caminho(socket, id, mudancas) do
     ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, id, mudancas)}"
   end
@@ -92,13 +111,25 @@ defmodule TheBandWeb.PeopleLive.Show do
     repositorios = WorkItems.repositories_of_person(tenant, pessoa.id)
     cobertura = WorkItems.timeline_coverage(tenant, pessoa.id)
 
+    perfil = perfil_atual(tenant, pessoa.id)
+    {pendente?, possivel} = estado_do_perfil(tenant, pessoa, perfil)
+
     socket
     |> assign(
+      perfil_pendente?: pendente?,
+      perfil_possivel: possivel,
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
       # render levanta `KeyError`. O teste pegou.
       por_pagina: @por_pagina,
       organizacoes: EO.list_person_organizations(tenant, pessoa.id),
+      # **Os três estados do perfil, e eles são distinguíveis de propósito.** Nunca gerado,
+      # pedido e ainda não pronto, e o que existe. Achatá-los faria a tela dizer a mesma
+      # frase para situações que pedem coisas diferentes de quem lê.
+      #
+      # As duas consultas seguintes só acontecem **quando não há perfil**: com perfil na tela
+      # nem o botão nem a recusa aparecem, e pagá-las seria custo por render sem consumidor.
+      perfil: perfil,
       # A organização derivada **do trabalho**, e ela responde outra pergunta.
       #
       # `list_person_organizations/2` sobe por equipe: pessoa → equipe → organização. Quem saiu da
@@ -565,6 +596,87 @@ defmodule TheBandWeb.PeopleLive.Show do
             </.data_table>
           </div>
         </section>
+
+        <%!-- O perfil derivado.
+
+              **Hachurado e rotulado em texto**, conforme o design system: cor sozinha reprova
+              em WCAG 1.4.1 e, mais que isso, desfaz o produto — a plataforma existe para
+              separar o que observou do que concluiu.
+
+              `<.evidence>` não é reusado aqui de propósito. Aquele componente fala o
+              vocabulário de promoção de conceito — conceito, fonte, confiança —, e um texto
+              escrito por um modelo não tem nenhum dos três. Reusá-lo seria aplicar o padrão
+              fora do problema que o motivou. O que se reusa é a **regra**: preenchimento
+              hachurado, e rótulo em texto ao lado. --%>
+        <section class="card bg-base-200">
+          <div class="card-body gap-3 p-4 sm:p-5">
+            <h3 class="flex flex-wrap items-center gap-2 font-semibold">
+              Profile &amp; growth
+              <span class="inline-flex items-center gap-1.5 text-xs font-normal text-warning">
+                <span
+                  class="size-2.5 shrink-0 rounded-[1px] outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+                  aria-hidden="true"
+                ></span>
+                derived — written by a language model
+              </span>
+            </h3>
+
+            <%!-- Estado 1: existe perfil. A proveniência vem ANTES do texto, porque quem lê
+                  precisa saber o que está lendo antes de acreditar nele. --%>
+            <div :if={@perfil} class="space-y-3">
+              <dl class="grid gap-2 text-sm sm:grid-cols-2">
+                <.field label="model">
+                  <span class="font-mono text-xs">{@perfil.model}</span>
+                </.field>
+                <.field label="generated">{@perfil.generated_at}</.field>
+                <.field label="input">
+                  {@perfil.tasks_closed} completed · {@perfil.tasks_open} open · {@perfil.tasks_authored_by_other} described by someone else · {@perfil.tasks_shared} shared
+                </.field>
+                <%!-- Zero aqui é medição, e não ausência: "nada foi removido" é uma afirmação
+                      sobre a limpeza, e escondê-la deixaria a limpeza acontecendo calada. --%>
+                <.field label="citations removed from the summary">
+                  {@perfil.citations_removed}
+                </.field>
+              </dl>
+
+              <p class="text-xs text-base-content/60">
+                {@perfil.baseline_verdict}
+              </p>
+
+              <article class="prose prose-sm max-w-none rounded-lg border border-dashed border-warning/60 bg-[repeating-linear-gradient(135deg,rgb(var(--color-warning)/0.06)_0_5px,transparent_5px_10px)] p-4 whitespace-pre-wrap">
+                {@perfil.body}
+              </article>
+            </div>
+
+            <%!-- Estado 2: pedido, e ainda não pronto. Distinto de "nunca gerado" porque quem
+                  clicou precisa saber que o clique valeu. --%>
+            <div :if={is_nil(@perfil) and @perfil_pendente?}>
+              <.absent reason="Requested. The model takes about a minute — reload to see it." />
+            </div>
+
+            <%!-- Estado 3: nunca gerado, e há material. A frase do egresso acompanha o botão,
+                  e não o rodapé: quem decide precisa saber o que sai daqui no momento de
+                  decidir. --%>
+            <div
+              :if={is_nil(@perfil) and not @perfil_pendente? and @perfil_possivel == :ok}
+              class="space-y-3"
+            >
+              <p class="text-sm text-base-content/70">
+                No profile yet. Generating one sends the <strong>titles and descriptions</strong>
+                of this person's tasks to an external language-model provider.
+              </p>
+              <button type="button" phx-click="gerar_perfil" class="btn btn-sm btn-primary">
+                Generate profile
+              </button>
+            </div>
+
+            <%!-- Estado 4: não há material. Sem botão, e com os números — a recusa é do
+                  registro, nunca da pessoa. --%>
+            <div :if={is_nil(@perfil) and not @perfil_pendente? and @perfil_possivel != :ok}>
+              <.absent reason={recusa(elem(@perfil_possivel, 1))} />
+            </div>
+          </div>
+        </section>
       </div>
     </Layouts.app>
     """
@@ -651,4 +763,42 @@ defmodule TheBandWeb.PeopleLive.Show do
       %{name: name} -> name
     end
   end
+
+  # Só quando não há perfil. Devolve as duas respostas de uma vez porque as duas dependem da
+  # mesma condição, e separá-las em dois `if` faria alguém mexer numa e esquecer a outra.
+  defp estado_do_perfil(_tenant, _pessoa, %{} = _perfil_existente), do: {false, :ok}
+
+  defp estado_do_perfil(tenant, pessoa, nil),
+    do: {Profiles.pending?(tenant, pessoa.id), Profiles.check(tenant, pessoa.id)}
+
+  defp perfil_atual(tenant, person_id) do
+    case EO.current_profile(tenant, person_id) do
+      {:ok, perfil} -> perfil
+      {:error, :not_found} -> nil
+    end
+  end
+
+  # As quatro recusas têm quatro frases, porque são quatro fatos. E todas atribuem a falta ao
+  # **registro** — "há pouco material registrado" e "esta pessoa produziu pouco" são frases
+  # diferentes, e só a primeira é afirmável.
+  defp recusa({:below_floor, %{com_corpo: com, piso: piso}}),
+    do:
+      "Only #{com} completed tasks carry a written description, and #{piso} are needed. " <>
+        "This is a gap in what was recorded, not in what was done."
+
+  defp recusa({:period_too_thin, %{contagens: c, piso: piso}}),
+    do:
+      "The record splits into #{Enum.join(c, "/")} tasks across the three periods, and each " <>
+        "needs at least #{piso}. There is work here — there is not enough spread to speak of change."
+
+  defp recusa({:no_text_to_compare, %{medianas: m}}),
+    do:
+      "Median description length per period is #{Enum.join(m, ", ")} characters. Without text " <>
+        "there is no way to tell a change in this person from a change in how the team writes, " <>
+        "and a profile without that comparison would assert more than the record supports."
+
+  defp recusa(:no_assignment),
+    do: "No current assignment observed for this person, so there is nothing to read from."
+
+  defp recusa(outro), do: "Not available: #{inspect(outro)}"
 end

@@ -25,6 +25,7 @@ defmodule TheBand.Ontology.SEON.EO do
 
   alias TheBand.Ontology.SEON.EO.Commands
   alias TheBand.Ontology.SEON.EO.Constraints
+  alias TheBand.Ontology.SEON.EO.Profiles
   alias TheBand.Ontology.SEON.EO.Queries
 
   # ------------------------------------------------------------------- escritas
@@ -92,4 +93,13 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate derived_team_declares_itself(attrs), to: Constraints
   defdelegate derived_link_has_no_access_level(attrs), to: Constraints
   defdelegate countable_as_person?(attrs), to: Constraints
+
+  # -- perfis derivados — feature 026 -------------------------------------------
+  #
+  # O perfil **não é afirmação de competência**: é um texto sobre a pessoa, com quem o
+  # escreveu e sobre qual recorte. Ver research.md R1 da feature 026.
+
+  defdelegate record_profile(tenant, attrs), to: Profiles, as: :record
+  defdelegate current_profile(tenant, person_id), to: Profiles, as: :current
+  defdelegate list_profiles(tenant, person_id), to: Profiles, as: :list
 end

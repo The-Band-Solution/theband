@@ -25,8 +25,8 @@ defmodule TheBand.Profiles.Baseline do
 
   import Ecto.Query
 
-  alias TheBand.Tenants.Tenant
   alias TheBand.Repo
+  alias TheBand.Tenants.Tenant
 
   @type mes :: %{
           criadas: non_neg_integer(),
@@ -81,7 +81,8 @@ defmodule TheBand.Profiles.Baseline do
     }
   end
 
-  def fatia(_base, _de, _ate), do: %{criadas: 0, concluidas: 0, corpo_mediano: 0, pct_titulo_tipado: 0}
+  def fatia(_base, _de, _ate),
+    do: %{criadas: 0, concluidas: 0, corpo_mediano: 0, pct_titulo_tipado: 0}
 
   # -- as duas consultas -------------------------------------------------------
 
