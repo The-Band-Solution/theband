@@ -104,7 +104,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     assert html =~ "derived — counted over model-written profiles"
     assert html =~ "observabilidade"
     assert html =~ "1/2"
-    assert html =~ "no profile yet — no row is not no skill"
+    assert html =~ "no profile yet; no row is not no skill"
     assert html =~ "zeta"
     assert html =~ "completed tasks"
   end
@@ -146,5 +146,50 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     assert html2 =~ "not associated with any project"
     assert SPO.list_project_teams(ctx.tenant, projeto.id) == []
     assert SPO.list_team_projects(ctx.tenant, ctx.equipe.id) == []
+  end
+
+  test "sem sobreposição de domínios, TODO MUNDO aparece — lista por pessoa, não matriz", ctx do
+    # O caso do time IA (2026-08-16): domínios únicos por pessoa faziam as colunas da
+    # matriz pertencerem a quem tinha mais tarefas, e o resto virava travessão — a tela
+    # parecia dizer que só uma pessoa trabalhava.
+    ana = pessoa_com_perfil(ctx.tenant, "ana", [{"grafos com LangGraph", 9}])
+    tadeu = pessoa_com_perfil(ctx.tenant, "tadeu", [{"RAG com vectorstore", 40}])
+    membro(ctx.tenant, ctx.equipe, ana)
+    membro(ctx.tenant, ctx.equipe, tadeu)
+
+    {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+    assert html =~ "per person, because no domain repeats"
+    assert html =~ "grafos com LangGraph"
+    assert html =~ "RAG com vectorstore"
+
+    # ana aparece COM os domínios dela — mesmo tadeu tendo 4x mais tarefas.
+    assert html =~ "ana"
+    assert html =~ ">9<"
+  end
+
+  test "com sobreposição, a matriz de colunas volta", ctx do
+    ana = pessoa_com_perfil(ctx.tenant, "ana", [{"observabilidade", 5}])
+    bia = pessoa_com_perfil(ctx.tenant, "bia", [{"observabilidade", 7}])
+    membro(ctx.tenant, ctx.equipe, ana)
+    membro(ctx.tenant, ctx.equipe, bia)
+
+    {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+    assert html =~ "the cell is the count"
+    refute html =~ "per person, because no domain repeats"
+  end
+
+  test "os avisos de processo aparecem, e não-avaliado nunca vira saúde", ctx do
+    ana = pessoa_com_perfil(ctx.tenant, "ana", [])
+    membro(ctx.tenant, ctx.equipe, ana)
+
+    {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+    assert html =~ "Process warnings"
+
+    assert html =~ "not the same as finding nothing" or html =~ "Nothing found" or
+             html =~ "Antipatterns found",
+           "a seção não distingue não-avaliado de saudável"
   end
 end

@@ -11,6 +11,7 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
@@ -117,10 +118,17 @@ defmodule TheBandWeb.TeamsLive.Show do
 
     cobertura = Profiles.team_coverage(tenant, team.id)
 
+    membros_ids =
+      tenant
+      |> EO.list_team_members(team.id, include_no_longer_observed: false)
+      |> Enum.map(& &1.person.id)
+      |> Enum.uniq()
+
     socket
     |> assign(cobertura: cobertura)
     |> assign(resumo_equipe: Profiles.team_summary(cobertura))
     |> assign(evolucao: Profiles.team_evolution(tenant, team.id))
+    |> assign(antipadroes: Antipatterns.detect_for_team(tenant, membros_ids))
     |> carregar_projetos()
   end
 
@@ -150,6 +158,25 @@ defmodule TheBandWeb.TeamsLive.Show do
       %{nome: nome, pontos: pontos, primeiro: List.first(pontos, 0), ultimo: List.last(pontos, 0)}
     end
   end
+
+  defp titulo_do_antipadrao("process.ap01.closed_without_movement"),
+    do: "Closed without ever being moved"
+
+  defp titulo_do_antipadrao("process.ap02.moved_after_closing"),
+    do: "Moved after it was closed"
+
+  defp titulo_do_antipadrao("process.ap03.assigned_and_never_started"),
+    do: "Assigned and never started"
+
+  defp titulo_do_antipadrao("process.ap04.movement_without_assignee"),
+    do: "Moved with nobody assigned"
+
+  defp titulo_do_antipadrao(id), do: id
+
+  # A matriz só ganha colunas quando algum domínio alcança DUAS pessoas — antes disso,
+  # colunas de domínios únicos escondem todo mundo que não é dono delas.
+  defp matriz_agrega?(cobertura),
+    do: Enum.any?(cobertura.competencias, &(&1.total_pessoas >= 2))
 
   # As linhas da matriz: uma por pessoa com perfil, alfabética, com o mapa nome→tarefas.
   defp pessoas_da_matriz(cobertura) do
@@ -286,6 +313,51 @@ defmodule TheBandWeb.TeamsLive.Show do
         </form>
       </section>
 
+      <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora
+            em 2026-08-16: a tela da equipe ALERTA onde o processo range. As máximas vêm
+            da base de conhecimento; "não avaliado" e "nada encontrado" nunca se
+            confundem — afirmar saúde sobre issues que ninguém olhou seria o antipadrão
+            desta própria tela. --%>
+      <section class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Process warnings</h3>
+        <p class="text-sm opacity-70">
+          Antipatterns found in the issues assigned to this team's members. They are not
+          judgements about people — they say the record of the process is incomplete, and
+          the cost is that the organisation loses the measurement.
+        </p>
+
+        <p
+          :if={@antipadroes.avaliadas == 0 and @antipadroes.nao_avaliadas > 0}
+          class="text-sm opacity-70"
+        >
+          None of the {@antipadroes.nao_avaliadas} issues has collected board movement, so
+          nothing was evaluated — which is not the same as finding nothing.
+        </p>
+
+        <p
+          :if={@antipadroes.avaliadas > 0 and @antipadroes.achados == []}
+          class="text-sm opacity-70"
+        >
+          Nothing found in the {@antipadroes.avaliadas} issues that could be evaluated.
+        </p>
+
+        <ul :if={@antipadroes.achados != []} class="space-y-1 text-sm">
+          <li :for={a <- @antipadroes.achados} class="flex items-baseline gap-2">
+            <span class="badge badge-sm badge-warning">{a.count}</span>
+            <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
+            <span class="font-mono text-xs opacity-60">{a.id}</span>
+          </li>
+        </ul>
+
+        <p
+          :if={@antipadroes.avaliadas > 0 and @antipadroes.nao_avaliadas > 0}
+          class="text-xs opacity-60"
+        >
+          Evaluated over {@antipadroes.avaliadas} issues; {@antipadroes.nao_avaliadas} had
+          no collected movement and were not evaluated.
+        </p>
+      </section>
+
       <%!-- ============ Feature 029: competências da equipe ============
             Tudo aqui é DERIVADO DE DERIVADO: contagem sobre perfis escritos por modelo.
             A contagem é exata; o que ela conta é derivado — as duas verdades aparecem.
@@ -377,7 +449,44 @@ defmodule TheBandWeb.TeamsLive.Show do
           </div>
         </div>
 
-        <div :if={@cobertura.com_perfil > 0} class="card bg-base-200 p-5">
+        <%!-- A FORMA segue o dado: matriz só quando há sobreposição — colunas de domínios
+              únicos fazem quem não é dono delas virar travessão, e a tela parece dizer que
+              só uma pessoa trabalha (visto no time IA em 2026-08-16: todos com dezenas de
+              tarefas, e a matriz mostrando só o Tadeu). Sem sobreposição, lista por pessoa. --%>
+        <div
+          :if={@cobertura.com_perfil > 0 and not matriz_agrega?(@cobertura)}
+          class="card bg-base-200 p-5"
+        >
+          <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
+          <p class="mb-3 text-xs opacity-70">
+            per person, because no domain repeats across people yet — the count is
+            <strong>completed tasks</strong>
+            evidencing each skill. Alphabetical; no ranking.
+          </p>
+          <div class="space-y-3">
+            <div :for={pessoa <- pessoas_da_matriz(@cobertura)} class="text-sm">
+              <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover font-medium">
+                {pessoa.name}
+              </.link>
+              <span class="ml-2 inline-flex flex-wrap gap-1.5 align-middle">
+                <span
+                  :for={{nome, tarefas} <- Enum.sort_by(pessoa.tarefas, &elem(&1, 0))}
+                  class="badge badge-sm badge-primary badge-outline gap-1"
+                >
+                  {nome} <span class="font-mono tabular-nums">{tarefas}</span>
+                </span>
+              </span>
+            </div>
+            <div :for={p <- @cobertura.sem_perfil} class="text-sm italic opacity-60">
+              {p.name} — no profile yet; no row is not no skill
+            </div>
+          </div>
+        </div>
+
+        <div
+          :if={@cobertura.com_perfil > 0 and matriz_agrega?(@cobertura)}
+          class="card bg-base-200 p-5"
+        >
           <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
           <p class="mb-3 text-xs opacity-70">
             the cell is the count of <strong>completed tasks</strong> evidencing the skill —

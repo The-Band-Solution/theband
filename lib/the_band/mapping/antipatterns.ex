@@ -130,6 +130,47 @@ defmodule TheBand.Mapping.Antipatterns do
     }
   end
 
+  @doc """
+  Os antipadrões nas issues designadas aos MEMBROS de uma equipe — feature 029 (pedido
+  da pessoa mantenedora em sessão): a tela da equipe alerta onde o processo range.
+
+  A mesma máquina de `detect_for_person/2`, sobre o conjunto: issues deduplicadas (a
+  issue com dois membros designados conta uma vez), e o mesmo cuidado com o não-olhado —
+  `nao_avaliadas` separado, porque "0 antipadrões em 152 issues que ninguém olhou" seria
+  afirmar saúde sobre silêncio.
+  """
+  @spec detect_for_team(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          avaliadas: non_neg_integer(),
+          nao_avaliadas: non_neg_integer(),
+          achados: [%{id: String.t(), count: pos_integer()}]
+        }
+  def detect_for_team(%Tenant{} = tenant, person_ids) do
+    issues =
+      person_ids
+      |> Enum.flat_map(&WorkItems.issues_assigned_to(tenant, &1))
+      |> Enum.uniq_by(& &1.id)
+
+    por_issue = SPO.list_activities_by_subject(tenant, "issue", Enum.map(issues, & &1.id))
+
+    {avaliadas, nao_avaliadas, achados} =
+      Enum.reduce(issues, {0, 0, []}, fn issue, {ok, nao, acc} ->
+        case evaluate(issue, Map.get(por_issue, issue.id, [])) do
+          {:ok, encontrados} -> {ok + 1, nao, acc ++ encontrados}
+          {:nao_olhei, _motivo} -> {ok, nao + 1, acc}
+        end
+      end)
+
+    %{
+      avaliadas: avaliadas,
+      nao_avaliadas: nao_avaliadas,
+      achados:
+        achados
+        |> Enum.frequencies_by(& &1.id)
+        |> Enum.map(fn {id, n} -> %{id: id, count: n} end)
+        |> Enum.sort_by(& &1.count, :desc)
+    }
+  end
+
   # Os designados vêm de `fetch_issue/2`, que já traz os **vigentes** — quem saiu
   # continua no banco e não conta como "está nisto agora". Criar leitura própria daria
   # dois caminhos para o mesmo fato, e eles discordariam no dia em que um mudasse.
