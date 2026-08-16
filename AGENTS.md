@@ -121,6 +121,19 @@ mix knowledge.test
 
 Todos verdes. Sem exceção. Não desabilite check, não marque `@dialyzer` para silenciar, não apague teste para o pipeline passar.
 
+**O veredito é o código de saída, e o pipe o destrói.** `mix gates | tail` devolve o
+código de saída do `tail`, que é sempre zero — a reprovação vira aprovação sem ninguém
+mentir. Para encurtar a saída, **redirecione e leia depois**:
+
+```bash
+mix gates > /tmp/gates.log 2>&1; echo "EXIT=$?"   # o $? é do mix, porque não há segundo comando
+tail -40 /tmp/gates.log                            # ler a saída é outro ato, e vem depois
+```
+
+Isto está aqui, e não só na proibição, porque proibir `| tail` sem oferecer a substituta
+foi o que fez a L60 reincidir: enquanto o pipe for o jeito mais curto de encurtar, ele
+volta.
+
 ---
 
 ## 5. Estrutura do repositório
