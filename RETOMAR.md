@@ -67,7 +67,57 @@ encheria de textos quase idênticos — o histórico viraria ruído.
 > **ninguém decide** — o texto passa a existir sobre todo mundo por padrão. Não é
 > impeditivo; é decisão, e merece estar escrita como o resíduo das outras duas está.
 
-## 3. Issue #320 — axiomas SRO carregados como `unknown`
+## 3. Tarefas que a pessoa abre **para outras** — sinal novo, medido em 2026-08-16
+
+Pedido teu: quem abre tarefa para outra pessoa está fazendo algo que a contagem de tarefas
+designadas não mostra. **É contável, e não inferido**: `author_login` da pessoa com
+designado diferente dela.
+
+Medido no banco real:
+
+| login | abriu | para outros | % | pessoas distintas |
+|---|---|---|---|---|
+| paulossjunior | 1255 | 1191 | 95% | **28** |
+| vinicius-je | 715 | 375 | 52% | 15 |
+| marcelasfl | 409 | 283 | 69% | 9 |
+| fatasy | 264 | 252 | 95% | **21** |
+| joaomrpimentel | 347 | 146 | 42% | 17 |
+| sofialctv | 65 | 64 | 98% | 13 |
+
+**Pessoas distintas discrimina melhor que a contagem bruta.** Escrever 200 tarefas para uma
+pessoa e 60 para treze são coisas diferentes: a segunda atravessa o time.
+
+### O que falta, e é o ponto que você levantou depois
+
+**Hoje o modelo não vê essas tarefas.** O material é só o que foi *designado à pessoa* —
+concluídas e abertas. As que ela **abriu para outros** não entram: nem título, nem corpo. Ele
+não pode analisar o que não recebe.
+
+E a contagem sozinha não basta: quem escreve *"corrigir typo"* para outros e quem escreve
+*"Inception do SOT DevEx"* com contexto e critério aparecem **idênticos** numa contagem.
+Título e corpo é que separam distribuir trabalho de **decompor** trabalho.
+
+### Como eu faria
+
+1. **A contagem vai calculada**, como o veredito da linha de base — o modelo erra conta, já
+   provou. Por período: quantas abriu para outros, e para quantas pessoas distintas;
+2. **Uma amostra do texto** dessas tarefas entra no material, com teto — as mais recentes,
+   digamos vinte, com título e corpo truncado. O material mediano já é de 48k tokens, então
+   o teto não é economia, é necessidade;
+3. **Campo próprio no schema**, com a interpretação limitada ao que se sustenta.
+
+### O que **não** escrever
+
+`liderança` é conclusão, e a evidência não a sustenta sozinha. Abrir tarefa para outros
+também é papel de quem faz triagem, quem escreve requisito, quem coordena entrega, ou quem
+simplesmente é o único com permissão no repositório. O que é afirmável:
+
+> *"Escreveu N tarefas executadas por M pessoas diferentes entre <mês> e <mês>, e o texto
+> delas traz contexto e critério"* — ou não traz, que também é achado.
+
+Quem lê tira a conclusão. A plataforma não deve rotular pessoa.
+
+## 4. Issue #320 — axiomas SRO carregados como `unknown`
 
 `priv/knowledge_base/rules/sro_axioms.yaml` usa a chave de topo `rules:`, que **não é** um
 dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança.
@@ -76,7 +126,7 @@ dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança
 ilegível por `KnowledgeBase.rule/1`. Contornei usando `derivation_rule:`, mas o `spo_axioms`
 e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mordida.
 
-## 4. As outras issues abertas — triagem pela metade
+## 5. As outras issues abertas — triagem pela metade
 
 | # | leitura |
 |---|---|
@@ -85,7 +135,7 @@ e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mo
 | **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe. `82` (quem atravessa organizações) tem parte pronta na página da pessoa |
 | **176, 317, 318** | features novas, não pendências |
 
-## 5. A análise do Conecta Fapes — adiada por você em 2026-08-15
+## 6. A análise do Conecta Fapes — adiada por você em 2026-08-15
 
 Está inteira na memória, em `conecta-fapes-tem-dois-quadros.md`. O resumo do que espera
 decisão:
@@ -103,7 +153,7 @@ decisão:
 
 Painel com tudo: <https://claude.ai/code/artifact/170d05f0-c706-4232-ba47-9cad7bfae29b>
 
-## 6. Decisões antigas ainda abertas
+## 7. Decisões antigas ainda abertas
 
 - **qual campo de data é o prazo**, por quadro. A sondagem achou 33 campos de data em 24
   quadros, com **três significados em duas línguas** — `End date` é fim planejado ou fim
