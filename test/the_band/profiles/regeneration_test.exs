@@ -231,6 +231,11 @@ defmodule TheBand.Profiles.RegenerationTest do
       on_exit(fn ->
         Application.put_env(:the_band, KnowledgeBase, original || [])
         GenServer.stop(KnowledgeBase)
+        # **Esperar a base voltar é parte da limpeza.** Sem isto, o teste seguinte corre
+        # contra o restart do supervisor e encontra a ETS vazia — foi exatamente assim
+        # que seis testes de reprocessamento reprovaram no CI num gatilho e passaram no
+        # outro (a forma da L59: o veredito dependia do seed que ordenava os arquivos).
+        aguardar_base()
         File.rm_rf!(raiz)
       end)
 
@@ -244,11 +249,13 @@ defmodule TheBand.Profiles.RegenerationTest do
     end
 
     defp aguardar_base do
-      # O restart do supervisor é assíncrono; a base está de volta quando a consulta responde.
+      # O restart do supervisor é assíncrono; a base está de volta quando a consulta
+      # responde. `raise`, e não `flunk`: isto roda também em `on_exit`, fora do processo
+      # do teste.
       Enum.find(1..100, fn _ ->
         Process.sleep(20)
         match?({:ok, _}, Regeneration.thresholds())
-      end) || flunk("a base de conhecimento não voltou depois do restart")
+      end) || raise "a base de conhecimento não voltou depois do restart"
     end
   end
 end
