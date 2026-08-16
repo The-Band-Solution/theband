@@ -1,0 +1,38 @@
+derivation_rule:
+  id: github.project_field_mapping
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "Mapeamento de campo configurável de quadro para atributo da ontologia"
+
+  description:
+    pt-BR: >
+      Qual campo de um quadro do Projects v2 significa qual atributo da rede — issue #180,
+      FR-024 da feature 004.
+
+      A regra global é VAZIA de propósito: o mapeamento é declarado POR TENANT, em
+      sobrescrita (`github.project_field_mapping.<tenant>`), e NUNCA inferido do nome.
+      Um campo chamado `Priority` não é `importance` — importance é decimal com escala
+      declarada, Priority é seleção única cujos valores o tenant inventou. Converter por
+      semelhança de nome é o antipadrão de AGENTS §7.7.
+
+      A identidade de cada entrada é o `field_external_id` da origem (FR-027): renomear o
+      campo não desfaz o mapeamento, e o id é local ao quadro — dois quadros com campos
+      homônimos não colidem.
+
+      Cada entrada declara também o `field_type` que aceita. É a FR-046 em forma de dado:
+      mapear seleção única para atributo numérico é recusado, e a recusa acontece na
+      coleta — o valor fica cru, como não interpretado, e o desvio é registrado.
+
+  provenance:
+    source_type: project_decision
+    reference: "specs/004-issues-e-projetos/spec.md, FR-024 a FR-027 e FR-046"
+
+  rules:
+    fields:
+      description:
+        pt-BR: "field_external_id → {attribute, field_type}. Vazio no global."
+      values: {}
