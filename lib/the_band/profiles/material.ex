@@ -336,7 +336,11 @@ defmodule TheBand.Profiles.Material do
       select: %{
         # O id existe para a tela ligar a tarefa à página dela — o prompt não o usa, e um
         # UUID no material seria ruído que o modelo poderia citar.
-        id: i.id,
+        #
+        # O `type/2` é obrigatório: a consulta é schemaless, e sem ele o id vem como os
+        # dezesseis bytes crus — a URL montada com eles é lixo, e foi exatamente o defeito
+        # observado no primeiro clique (2026-08-16).
+        id: type(i.id, :binary_id),
         number: i.number,
         data: fragment("?::date", field(i, ^ordem)),
         titulo: i.title,
