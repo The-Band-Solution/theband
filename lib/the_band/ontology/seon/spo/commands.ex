@@ -3,6 +3,7 @@ defmodule TheBand.Ontology.SEON.SPO.Commands do
   Escritas de SPO. Implementação; a fronteira é `TheBand.Ontology.SEON.SPO`.
   """
 
+  alias TheBand.Ontology.SEON.SPO.Schemas.IntendedProjectProcess
   alias TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity, as: Activity
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
@@ -66,5 +67,35 @@ defmodule TheBand.Ontology.SEON.SPO.Commands do
       {k, v} when is_binary(k) -> {String.to_existing_atom(k), v}
       {k, v} -> {k, v}
     end)
+  end
+
+  @doc """
+  Grava um processo pretendido — `spo.specific_intended_project_process`, FR-030.
+
+  É a iteração futura do quadro: planejamento que não foi feito. Idempotente pela
+  Application Reference; reobservar limpa a marca de ausência.
+  """
+  @spec record_intended_process(Tenant.t(), map()) ::
+          {:ok, IntendedProjectProcess.t()} | {:error, Ecto.Changeset.t()}
+  def record_intended_process(%Tenant{id: tenant_id}, attrs) do
+    base =
+      Repo.get_by(IntendedProjectProcess,
+        tenant_id: tenant_id,
+        source_system: attrs[:source_system],
+        source_instance: attrs[:source_instance],
+        source_external_id: attrs[:source_external_id]
+      ) || %IntendedProjectProcess{}
+
+    agora = DateTime.utc_now(:second)
+
+    base
+    |> IntendedProjectProcess.changeset(
+      attrs
+      |> Map.put(:tenant_id, tenant_id)
+      |> Map.put(:collected_at, base.collected_at || attrs[:collected_at] || agora)
+      |> Map.put(:last_observed_at, agora)
+      |> Map.put(:no_longer_observed_at, nil)
+    )
+    |> Repo.insert_or_update()
   end
 end
