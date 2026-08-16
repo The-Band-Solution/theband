@@ -6,16 +6,30 @@ Quem entra na rodada, e — para quem não entra — **qual dos motivos**. Este 
 
 ---
 
-## `select/1`
+## `select/2`
 
 ```elixir
-@spec select(Tenant.t()) :: [
-        {Person.t(), :generate}
-        | {Person.t(), {:skip, :no_material | :no_new_work | :observation_ended}}
-      ]
+@spec select(Tenant.t(), :mudou | :todas) ::
+        {:ok,
+         [
+           {Person.t(), :generate}
+           | {Person.t(), {:skip, :no_material | :no_new_work | :observation_ended}}
+         ]}
+        | {:error, term()}
 ```
 
 A lista completa de pessoas **consideradas**, cada uma com o veredito. Inclui quem será pulado: a `FR-014` conta por motivo, e um `select` que devolvesse só quem gera não teria como alimentar a contagem.
+
+O segundo argumento é o **escopo**, e vem da emenda de 2026-08-16 à `FR-004`:
+
+- `:mudou` — a regra de mudança da `FR-006` decide. É o escopo da rodada **automática**;
+- `:todas` — todo mundo com material gera; `:no_new_work` deixa de existir como veredito.
+  É o escopo da rodada **manual**: pedir a mão já é a decisão de escrever. Os pulos que
+  sobram são de fato, não de critério — `:no_material` e `:observation_ended`.
+
+O que a API **não expõe**: um escopo "só quem eu escolher". Geração por pessoa avulsa já
+existe na página dela; a rodada é sobre a organização inteira, e uma lista de escolhidos
+criaria o terceiro caminho de geração.
 
 A ordem é estável e declarada — pessoas com mais tarefas novas primeiro. Se a rodada morrer no meio, terá gerado quem tinha mais o que dizer de novo.
 

@@ -85,3 +85,37 @@ Os nove números da `FR-014`, **derivados** das entradas por agregação — nun
 - **`delete/1` ou expurgo por idade.** `FR-017a`: os registros são somente-acréscimo. Uma rodada apagada leva junto a única resposta para *"por que o perfil desta pessoa parou em março"*;
 - **contadores incrementais** (`increment_generated/1` e afins). É a forma que diverge da realidade sob retentativa — ver `plan.md`, tabela do princípio VIII;
 - **`summary/1` cross-tenant.** Não há visão de instalação: cada organização vê a sua, e a soma entre organizações não é pergunta que a plataforma responde.
+
+---
+
+## `plan/2` *(emenda de 2026-08-16 — a barra de progresso)*
+
+```elixir
+@spec plan(Run.t(), non_neg_integer()) :: {:ok, Run.t()}
+```
+
+Grava em `people_selected` quantas pessoas esta rodada vai percorrer. É o **denominador** da
+barra de progresso; o numerador é a contagem de entradas, que já é derivada.
+
+Escrita pelo worker no momento em que a seleção acontece — nunca pela tela. Na retentativa é
+regravada como `entradas já feitas + restantes`, porque a elegibilidade pode ter mudado entre
+as tentativas e um plano velho mentiria o total.
+
+**Não é contador de desfecho.** Os nove números continuam saindo da agregação sobre as
+entradas; isto é o tamanho do plano, conhecido antes de qualquer desfecho existir. `nil` em
+rodadas antigas significa "não medido", e a tela mostra progresso indeterminado — nunca zero.
+
+---
+
+## `subscribe/1` *(emenda de 2026-08-16)*
+
+```elixir
+@spec subscribe(Tenant.t()) :: :ok | {:error, term()}
+```
+
+Assina o tópico de rodadas do tenant. A cada checkpoint gravado, plano definido, rodada
+aberta ou encerrada, quem assinou recebe `{:rodada, run_id}` — sem payload além do id, porque
+a tela recarrega do banco e duas fontes do mesmo fato divergiriam.
+
+O tópico é por tenant, como em `Profiles.subscribe/2`: uma organização não recebe o progresso
+da outra — `FR-017` vale também para o que trafega em PubSub.

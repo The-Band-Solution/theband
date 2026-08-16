@@ -21,6 +21,7 @@ defmodule TheBand.Profiles.MaterialTest do
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles.Material
   alias TheBand.WorkItems
 
@@ -61,6 +62,37 @@ defmodule TheBand.Profiles.MaterialTest do
       ])
 
     issue
+  end
+
+  describe "as tarefas abertas que a tela lista" do
+    test "o id vem como UUID legível, e não como os bytes crus", ctx do
+      # A consulta é schemaless, e sem `type/2` o id chega como dezesseis bytes. A tela
+      # montava a URL com eles, e o primeiro clique em uma tarefa parada devolveu
+      # `/work/issues/EC%D7%C2%EC…` — lixo. Defeito observado em 2026-08-16, no app rodando.
+      {:ok, pessoa} =
+        EO.upsert_person_from_source(ctx.tenant, %{
+          login: "parada",
+          name: "PARADA",
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          source_endpoint: "/users/parada",
+          external_id: "U_parada",
+          collected_at: DateTime.utc_now(:second),
+          payload: %{"login" => "parada"}
+        })
+
+      issue = tarefa(ctx, numero: 900, fechada: ~U[2025-06-01 12:00:00Z], estado: "OPEN")
+
+      {:ok, _} =
+        WorkItems.replace_assignees(ctx.tenant, issue.id, [
+          %{login: "parada", external_id: "U_parada", person_id: pessoa.id}
+        ])
+
+      assert [aberta] = Material.open_tasks(ctx.tenant, pessoa.id)
+      assert {:ok, _} = Ecto.UUID.cast(aberta.id)
+      assert aberta.id == issue.id
+    end
   end
 
   describe "as recusas" do

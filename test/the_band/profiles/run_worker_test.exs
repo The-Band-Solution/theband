@@ -215,6 +215,62 @@ defmodule TheBand.Profiles.RunWorkerTest do
     end
   end
 
+  describe "a rodada manual gera para todo mundo — emenda de 2026-08-16 à FR-004" do
+    test "quem o cron pularia por falta de trabalho novo gera na rodada a mão", ctx do
+      # Primeira rodada escreve o perfil; sem trabalho novo depois dela, o critério de
+      # mudança pularia a pessoa — e é exatamente quem a rodada a mão tem de alcançar.
+      gera_ok()
+      primeira = abrir(ctx.tenant, ctx.admin)
+      executar(ctx.tenant, primeira)
+
+      Process.sleep(1100)
+
+      gera_ok()
+      segunda = abrir(ctx.tenant, ctx.admin)
+      assert :ok = executar(ctx.tenant, segunda)
+
+      {:ok, fechada} = Runs.get(ctx.tenant, segunda.id)
+      resumo = Runs.summary(fechada)
+
+      assert resumo.generated == 1
+
+      assert resumo.skipped.no_new_work == 0,
+             "a regra de mudança valeu numa rodada pedida a mão — ela é só do cron"
+    end
+
+    test "o plano é gravado, e é o denominador da barra de progresso", ctx do
+      gera_ok()
+      run = abrir(ctx.tenant, ctx.admin)
+
+      assert run.people_selected == nil, "o plano só existe depois da seleção"
+
+      executar(ctx.tenant, run)
+
+      {:ok, fechada} = Runs.get(ctx.tenant, run.id)
+      assert fechada.people_selected == 1
+
+      assert Runs.summary(fechada).considered == fechada.people_selected,
+             "rodada completa: todo selecionado tem desfecho"
+    end
+
+    test "cada checkpoint avisa quem assina, e o aviso carrega só o id", ctx do
+      :ok = Runs.subscribe(ctx.tenant)
+
+      gera_ok()
+      run = abrir(ctx.tenant, ctx.admin)
+      run_id = run.id
+
+      executar(ctx.tenant, run)
+
+      # Abertura, plano, checkpoint e encerramento — pelo menos estes; a tela recarrega do
+      # banco a cada um, então receber "demais" é inofensivo e receber de menos é a barra
+      # parada.
+      assert_received {:rodada, ^run_id}
+      assert_received {:rodada, ^run_id}
+      assert_received {:rodada, ^run_id}
+    end
+  end
+
   describe "o isolamento entre organizações" do
     test "a rodada de uma não aparece na listagem da outra", ctx do
       {outro, _} = tenant_with_admin("outro")
@@ -307,6 +363,54 @@ defmodule TheBand.Profiles.RunWorkerTest do
              não o que entrou desde o perfil anterior — `FR-022`. Um texto escrito só sobre os
              últimos meses falaria de um recorte, não de uma trajetória.
              """
+    end
+  end
+
+  describe "o registro operacional — T023" do
+    # FR-027 e FR-013: o log conta o que a rodada fez, e não carrega nem a chave nem o
+    # material — o material é texto de tarefas de pessoas reais, e a chave é dinheiro.
+    test "o log de uma rodada completa não contém a chave nem o material", ctx do
+      import ExUnit.CaptureLog
+
+      gera_ok()
+      run = abrir(ctx.tenant, ctx.admin)
+
+      log =
+        capture_log(fn ->
+          assert :ok = executar(ctx.tenant, run)
+        end)
+
+      # A chave gravada na credencial da organização, e o corpo que a fixture põe em toda
+      # tarefa — se qualquer um vazar para o log, é ele que este teste segura.
+      refute log =~ "sk-chave-de-teste", "a chave do provedor apareceu no log da rodada"
+      refute log =~ "contexto. contexto.", "o material enviado ao provedor apareceu no log"
+    end
+
+    test "a falha registrada no log e na coluna carrega a mensagem já redigida", ctx do
+      import ExUnit.CaptureLog
+
+      # O provedor às vezes ecoa a chave na mensagem de erro. Quem a tira é a **borda** —
+      # `req.ex` passa todo ramo de erro por `HTTP.redigir/2`, e isso tem teste próprio em
+      # `generate_worker_test`. O que ESTE caso guarda é o resto do caminho: a mensagem que
+      # a borda devolve atravessa o worker até o log e até `ended_reason` — que a tela
+      # exibe — sem ninguém reconstruir o texto cru no meio.
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
+        {:error, {:http, 401, "Incorrect API key «API_KEY»"}}
+      end)
+
+      run = abrir(ctx.tenant, ctx.admin)
+
+      log =
+        capture_log(fn ->
+          assert :ok = executar(ctx.tenant, run)
+        end)
+
+      assert log =~ "encerrada no meio"
+      refute log =~ "sk-chave-de-teste", "a chave apareceu no log do encerramento"
+
+      {:ok, fechada} = Runs.get(ctx.tenant, run.id)
+      assert fechada.ended_reason =~ "«API_KEY»"
+      refute fechada.ended_reason =~ "sk-chave-de-teste"
     end
   end
 end

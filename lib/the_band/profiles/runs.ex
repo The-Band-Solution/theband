@@ -66,10 +66,53 @@ defmodule TheBand.Profiles.Runs do
     )
     |> Repo.insert()
     |> case do
-      {:ok, entry} -> {:ok, entry}
-      {:error, %{errors: erros} = changeset} -> classificar(erros, changeset)
+      {:ok, entry} ->
+        broadcast(run)
+        {:ok, entry}
+
+      {:error, %{errors: erros} = changeset} ->
+        classificar(erros, changeset)
     end
   end
+
+  @doc """
+  Grava quantas pessoas esta rodada vai percorrer — o denominador da barra de progresso.
+
+  Escrita pelo worker no momento da seleção, nunca pela tela. Na retentativa é regravada
+  como `entradas já feitas + restantes`, porque a elegibilidade pode mudar entre tentativas
+  e um plano velho mentiria o total.
+
+  **Não é contador de desfecho** — os nove números continuam derivados das entradas. Isto é
+  o tamanho do plano, conhecido antes de qualquer desfecho existir.
+  """
+  @spec plan(run(), non_neg_integer()) :: {:ok, run()}
+  def plan(%Run{} = run, total) when is_integer(total) and total >= 0 do
+    {:ok, atualizada} =
+      run
+      |> Ecto.Changeset.change(people_selected: total)
+      |> Repo.update()
+
+    broadcast(atualizada)
+    {:ok, atualizada}
+  end
+
+  @doc """
+  Assina o tópico de rodadas do tenant.
+
+  A cada checkpoint gravado, plano definido, rodada aberta ou encerrada chega
+  `{:rodada, run_id}` — só o id, porque a tela recarrega do banco e duas fontes do mesmo
+  fato divergiriam. O tópico é por tenant: uma organização não recebe o progresso da outra,
+  e a `FR-017` vale também para o que trafega em PubSub.
+  """
+  @spec subscribe(Tenant.t()) :: :ok | {:error, term()}
+  def subscribe(%Tenant{id: tenant_id}),
+    do: Phoenix.PubSub.subscribe(TheBand.PubSub, topico(tenant_id))
+
+  defp broadcast(%Run{} = run) do
+    Phoenix.PubSub.broadcast(TheBand.PubSub, topico(run.tenant_id), {:rodada, run.id})
+  end
+
+  defp topico(tenant_id), do: "profile_runs:#{tenant_id}"
 
   @doc """
   Fecha a rodada.
@@ -222,19 +265,27 @@ defmodule TheBand.Profiles.Runs do
 
   defp enfileirar(%Run{} = run) do
     case %{run_id: run.id, tenant_id: run.tenant_id} |> RunWorker.new() |> Oban.insert() do
-      {:ok, _job} -> {:ok, run}
-      erro -> erro
+      {:ok, _job} ->
+        broadcast(run)
+        {:ok, run}
+
+      erro ->
+        erro
     end
   end
 
   defp fechar(%Run{} = run, outcome, motivo) do
-    run
-    |> Run.changeset(%{
-      finished_at: DateTime.utc_now(:second),
-      outcome: outcome,
-      ended_reason: motivo
-    })
-    |> Repo.update()
+    resultado =
+      run
+      |> Run.changeset(%{
+        finished_at: DateTime.utc_now(:second),
+        outcome: outcome,
+        ended_reason: motivo
+      })
+      |> Repo.update()
+
+    with {:ok, fechada} <- resultado, do: broadcast(fechada)
+    resultado
   end
 
   defp classificar(erros, changeset) do
