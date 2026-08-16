@@ -122,34 +122,8 @@ defmodule TheBand.WorkItems.ParentsTest do
   # A mesma contagem por telemetria que `person_detail_test.exs` usa — e é a única forma honesta:
   # "um número que não cresce" passa com 1 e passa com 50.
   defp contar_consultas(fun) do
-    ref = make_ref()
-    pai = self()
-
-    handler = fn _evento, _medidas, %{query: query} = meta, _config ->
-      # As tabelas do Oban ficam de fora: o handler é global, e o `Oban.Stager` consulta
-      # `oban_jobs` a cada segundo. Um tick dentro da janela vira consulta atribuída à
-      # tela — e o teste reprova com o código certo, em máquina carregada. É a L42.
-      # A `source` não basta: o Oban consulta por SQL cru, e aí ela vem nula enquanto o texto
-      # da consulta diz `oban_jobs`. Sob cobertura a janela alarga, o tick cai dentro dela, e o
-      # teste reprova por uma consulta que a tela não fez.
-      if String.starts_with?(query, "SELECT") and
-           to_string(meta[:source]) not in ~w(oban_jobs oban_peers schema_migrations) and
-           not String.contains?(query, "oban_"),
-         do: send(pai, {ref, :consulta})
-    end
-
-    :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], handler, nil)
-    fun.()
-    :telemetry.detach({__MODULE__, ref})
-
-    contar(ref, 0)
-  end
-
-  defp contar(ref, total) do
-    receive do
-      {^ref, :consulta} -> contar(ref, total + 1)
-    after
-      0 -> total
-    end
+    TheBand.ContadorDeConsultas.contar(fn ->
+      fun.()
+    end)
   end
 end
