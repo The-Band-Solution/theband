@@ -27,6 +27,57 @@ Está no topo porque governa as decisões abaixo, e porque a feature nasceu de u
 mais estreito — *"o que mudou ao longo do tempo"*. Evolução é **uma das dimensões** da
 competência, e não o assunto.
 
+## O formato-alvo, dado em 2026-08-16
+
+Sete seções, na ordem: **Visão Geral · Competências Técnicas · Soft Skills · Constância de
+Entrega · Confiabilidade · Áreas de Alocação Futura · Observações.**
+
+As competências técnicas vêm **agrupadas por área** — Back-end, Front-end, DevOps,
+Ferramentas — com o específico dentro de cada uma:
+
+> **Back-end:** experiência com .NET, incluindo criação de APIs, integração com sistemas de
+> autenticação (OpenFGA, Auth) e manipulação de dados.
+
+### Duas regras minhas que o formato contradiz, e como reconciliar
+
+**1. Eu proibi categoria ampla, e o exemplo usa exatamente elas.** Escrevi *"nunca backend,
+nunca DevOps"*. Estava certo sobre o **problema** — "backend" sozinho não diz nada — e errado
+sobre a **solução**: proibi o cabeçalho junto com o vazio.
+
+O exemplo resolve melhor: a área é **agrupamento**, e o específico mora dentro. Um leitor
+acha "DevOps" na varredura e lê ".NET, OpenFGA, Docker, AWS" logo abaixo. Cinco strings
+hiperespecíficas soltas não se varrem.
+
+**Reconciliação**: `area` como agrupamento, `competencias` dentro dela, e a proibição passa a
+valer só para o nível de baixo — nenhuma competência pode ser *"boas práticas"* ou
+*"resolução de problemas"*.
+
+**2. Eu recusei Soft Skills, e o exemplo mostra como fazê-lo honesto.** Meu argumento era que
+44% das descrições foram escritas por terceiros, então o texto não prova como a pessoa
+comunica. Continua verdade — mas o exemplo não afirma traço, **nomeia o tipo de tarefa**:
+
+> **Resolução de Problemas:** identificação e correção de erros, tanto no front-end (erros de
+> login, CORS) quanto no back-end (erros de compilação, problemas de URL).
+
+Isso é observável: são as tarefas de correção que ela executou. O que continua proibido é
+*"é proativo"*, *"é comprometido"* — traço sem tarefa que o mostre.
+
+**Reconciliação**: soft skill entra **com as tarefas que a evidenciam**, e a distinção de
+autoria continua valendo — colaboração sai de tarefas compartilhadas (contável), comunicação
+só do que a pessoa escreveu.
+
+**3. Liderança técnica agora tem lastro.** O exemplo pede em Áreas de Alocação, e eu não
+tinha como sustentar. Com o sinal do item 3 — tarefas abertas para outras pessoas, contável —
+passa a ter. Continua sendo "a evidência existe", e não um rótulo na pessoa.
+
+### O que o formato pede e a plataforma ainda não tem
+
+- **"O gráfico de Throughput indica cadência regular"** — a série mensal está no material, mas
+  a tela não tem o gráfico. Existe no protótipo de gestão, não na página da pessoa;
+- **"Prometido vs Realizado"** — precisa de compromisso registrado. A associação issue↔sprint
+  serve, e foi **removida do material** por cobrir de 6% a 95% conforme a pessoa. Reintroduzir
+  exige declarar a cobertura por pessoa, senão compara gente medida com gente não medida.
+
 ## A consequência estrutural, e é a maior mudança pendente
 
 Hoje o JSON tem `habilidades` como **lista de rótulos soltos**, e as tarefas que as sustentam
@@ -52,6 +103,37 @@ competencias: [
   }
 ]
 ```
+
+Aplicado ao formato-alvo, o schema fica:
+
+```jsonc
+{
+  visao_geral: "string",              // versátil em quê, taxa de conclusão, cadência
+  competencias: [{
+    area: "Back-end" | "Front-end" | "DevOps" | "Dados" | "Ferramentas" | …,
+    itens: [{
+      nome: "…",                      // específico: ".NET com APIs e OpenFGA"
+      o_que_faz_nela: "…",
+      tarefas: 14, periodos: [1,2,3], mais_recente: "2026-08",
+      evidencia: [{ numero: 199, titulo: "…" }]
+    }]
+  }],
+  soft_skills: [{
+    nome: "Resolução de problemas",   // nunca traço: nada de "é proativo"
+    como_aparece: "…",
+    evidencia: [{ numero: 412, titulo: "Corrigir erro de CORS no login" }]
+  }],
+  constancia: "…",                    // usa a série pessoa/projeto do material
+  confiabilidade: "…",                // taxa, e o que ela esconde
+  alocacao: [{ area: "…", porque: "…", evidencia: [ … ] }],
+  observacoes: [ "…" ],               // no máximo três, cada uma nascida do material
+  do_time_nao_da_pessoa: "…",         // o contrapeso, obrigatório
+  nao_alcanca: "…"                    // obrigatório
+}
+```
+
+`melhorar` deixa de ser seção própria e vira **`observacoes`**, como no exemplo — mas mantendo
+o enquadramento: lacuna do registro, nunca da pessoa.
 
 **A mudança que mais importa está no `evidencia`**: hoje é `[199, 449]`, só números. Com
 título, a tarefa aparece como o que ela é — a materialização da competência. Sem título,
