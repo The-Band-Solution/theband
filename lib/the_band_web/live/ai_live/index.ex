@@ -168,7 +168,7 @@ defmodule TheBandWeb.AILive.Index do
 
       <div class="card bg-base-200 p-6">
         <form id="ai-credential" phx-submit="save" class="space-y-4">
-          <label class="form-control">
+          <label class="form-control flex flex-col gap-1">
             <span class="label-text">API key</span>
             <input
               type="password"
@@ -183,7 +183,7 @@ defmodule TheBandWeb.AILive.Index do
             </span>
           </label>
 
-          <label class="form-control">
+          <label class="form-control flex flex-col gap-1">
             <span class="label-text">Model (optional)</span>
             <input
               name="default_model"
