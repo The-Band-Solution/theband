@@ -150,6 +150,20 @@ decidir o teto.
   concluída. Deixa de ser "há coisa parada" (que a tela mostra) e vira "neste domínio o
   trabalho demora", que a tela não mostra.
 
+### Onde a lista fica na tela
+
+Complemento teu: **derivada da listagem de tarefas, e posicionada depois dela.** Hoje o bloco
+`Open longer than 90 days` mora dentro do cartão do perfil, no meio do texto derivado — e é
+fato observado, não conclusão de modelo. Lugar errado por dois motivos:
+
+- **mistura proveniência**: está cercado de blocos hachurados, quando é sólido;
+- **repete a consulta**: a página já lista as issues da pessoa logo abaixo.
+
+Tirar do cartão do perfil e pôr **depois da tabela de issues**, derivado dela. A tabela é
+paginada, então conferir se dá para derivar do conjunto que a página já carrega ou se a
+consulta continua necessária — se continuar, ela é observada e barata, e o guard de consultas
+da página precisa ganhar a linha correspondente.
+
 ## 5. O papel no prompt — especialista em competências
 
 Pedido teu em 2026-08-16. Hoje o prompt abre com *"Você compara uma pessoa com ela mesma ao
