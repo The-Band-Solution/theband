@@ -117,7 +117,63 @@ simplesmente é o único com permissão no repositório. O que é afirmável:
 
 Quem lê tira a conclusão. A plataforma não deve rotular pessoa.
 
-## 4. Issue #320 — axiomas SRO carregados como `unknown`
+## 4. Tirar as tarefas abertas do prompt — **corta até 80% do material**
+
+Pedido teu em 2026-08-16, e a razão é dupla.
+
+**É duplicação.** A tela já lista as abertas há mais de 90 dias, a partir de dado observado e
+**recalculado a cada leitura** — `Profiles.stale_open/2`. O texto do modelo sobre elas
+envelhece; a lista não. Uma tarefa que fechou depois da geração some da lista e continua no
+texto.
+
+**E é caro.** Medido:
+
+| login | abertas | material | sem abertas | economia |
+|---|---|---|---|---|
+| ManoelRL | 103 | 134k | **27k** | **80%** |
+| lukevds | 66 | 96k | 32k | 66% |
+| vinicius-je | 152 | 320k | 129k | 60% |
+| marcelasfl | 103 | 193k | 79k | 59% |
+| GustavoACaetano | 60 | 141k | 60k | 57% |
+| tadeuaugustovs | 57 | 270k | 223k | 17% |
+
+**Isso refaz a conta da 027.** A rodada completa de 1,63M tokens cai muito, e o teto por
+período — o outro achado — pode nem ser necessário depois disto. Medir de novo antes de
+decidir o teto.
+
+### O que muda
+
+- sai a seção `TAREFAS EM ABERTO` do material;
+- fica **a contagem** em `COBERTURA`, que é uma linha e serve ao parágrafo de atenção;
+- a forma `trava` das lacunas **sobrevive, e melhora**: passa a olhar as concluídas que
+  demoraram muito acima da mediana da própria pessoa — o `Nd aberta` já está em cada tarefa
+  concluída. Deixa de ser "há coisa parada" (que a tela mostra) e vira "neste domínio o
+  trabalho demora", que a tela não mostra.
+
+## 5. O papel no prompt — especialista em competências
+
+Pedido teu em 2026-08-16. Hoje o prompt abre com *"Você compara uma pessoa com ela mesma ao
+longo do tempo (…) e responde uma pergunta: o que mudou?"* — enquadramento de comparação
+temporal, não de competência.
+
+A feature virou sobre **habilidades**: a linha de habilidades é a primeira coisa da tela, os
+destaques têm critério próprio, e as lacunas são de evidência de competência. O papel tem de
+dizer isso.
+
+**O que trocar**: o enquadramento de abertura, e o peso relativo — competência primeiro,
+evolução como uma das dimensões dela.
+
+**O que não perder** ao reescrever, porque cada um custou um defeito observado:
+
+- **não é avaliação de desempenho** — desempenho é a distância entre combinado e entregue, e
+  o combinado não está no material;
+- **não compara pessoas** — recebe uma por vez, sem a distribuição;
+- **a armadilha da linha de base** — o corpo mediano do projeto foi de 216 para 1310 chars, e
+  sem o contrapeso todo perfil conclui que a pessoa aprendeu a documentar;
+- **lacuna é do registro, não da pessoa** — não observar não é não saber;
+- **sem gênero, sem nível** — o escopo atribuído reflete o nível que o time já presumia.
+
+## 6. Issue #320 — axiomas SRO carregados como `unknown`
 
 `priv/knowledge_base/rules/sro_axioms.yaml` usa a chave de topo `rules:`, que **não é** um
 dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança.
@@ -126,7 +182,7 @@ dos nove tipos que o carregador reconhece. Nenhuma consulta por tipo os alcança
 ilegível por `KnowledgeBase.rule/1`. Contornei usando `derivation_rule:`, mas o `spo_axioms`
 e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mordida.
 
-## 5. As outras issues abertas — triagem pela metade
+## 7. As outras issues abertas — triagem pela metade
 
 | # | leitura |
 |---|---|
@@ -135,7 +191,7 @@ e o `sro_axioms` seguem inalcançáveis. Pequena, isolada, e evita a terceira mo
 | **107, 108, 81, 82** | telas — cada uma precisa ser comparada com o que existe. `82` (quem atravessa organizações) tem parte pronta na página da pessoa |
 | **176, 317, 318** | features novas, não pendências |
 
-## 6. A análise do Conecta Fapes — adiada por você em 2026-08-15
+## 8. A análise do Conecta Fapes — adiada por você em 2026-08-15
 
 Está inteira na memória, em `conecta-fapes-tem-dois-quadros.md`. O resumo do que espera
 decisão:
@@ -153,7 +209,7 @@ decisão:
 
 Painel com tudo: <https://claude.ai/code/artifact/170d05f0-c706-4232-ba47-9cad7bfae29b>
 
-## 7. Decisões antigas ainda abertas
+## 9. Decisões antigas ainda abertas
 
 - **qual campo de data é o prazo**, por quadro. A sondagem achou 33 campos de data em 24
   quadros, com **três significados em duas línguas** — `End date` é fim planejado ou fim
