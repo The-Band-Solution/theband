@@ -63,8 +63,27 @@ defmodule TheBandWeb.PeopleLive.Show do
         {:ok, socket |> put_flash(:error, "Person not found.") |> push_navigate(to: ~p"/people")}
 
       {:ok, pessoa} ->
+        # Assina só quando conectado: no primeiro render, estático, o processo morre em
+        # seguida e a assinatura ficaria órfã.
+        if connected?(socket), do: Profiles.subscribe(tenant, pessoa.id)
+
         {:ok, assign(socket, pessoa: pessoa, page_title: pessoa.name || pessoa.login)}
     end
+  end
+
+  # **Os dois desfechos chegam aqui**, e é de propósito: anunciar só o sucesso deixaria a
+  # tela esperando para sempre um evento que não vem, e "esperando" é indistinguível de
+  # "ainda rodando" para quem olha.
+  @impl true
+  def handle_info({:perfil, :pronto, _person_id}, socket) do
+    {:noreply, socket |> put_flash(:info, "Profile ready.") |> load()}
+  end
+
+  def handle_info({:perfil, {:falhou, motivo}, _person_id}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:error, "Profile generation failed: #{falha(motivo)}")
+     |> load()}
   end
 
   # O estado da tabela mora no endereço — feature 019. A carga acontece aqui, e não no
@@ -122,9 +141,10 @@ defmodule TheBandWeb.PeopleLive.Show do
       # com texto velho sem saber que é velho. Sai da diferença entre o recorte gravado e o
       # que existe hoje — que é exatamente para isso que o recorte é coluna.
       tarefas_novas: Profiles.tasks_since(tenant, pessoa.id, perfil),
-      # Só quando há perfil: sem ele a seção não é exibida, e a consulta seria custo por
-      # render sem consumidor.
-      perfil_paradas: if(perfil, do: Profiles.stale_open(tenant, pessoa.id), else: []),
+      # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
+      # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
+      paradas: Profiles.stale_open(tenant, pessoa.id),
+      dias_parada: TheBand.Profiles.Material.stale_days(),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
       # render levanta `KeyError`. O teste pegou.
@@ -601,6 +621,28 @@ defmodule TheBandWeb.PeopleLive.Show do
                 {String.downcase(issue.state || "")}
               </:col>
             </.data_table>
+
+            <%!-- **Derivado da listagem, e depois dela.** Estava dentro do cartão do perfil,
+                  cercado de blocos hachurados — e é fato observado, não conclusão de modelo.
+                  Ali misturava proveniência num produto que existe para separar as duas.
+
+                  Fica sólido, e recalculado a cada leitura: uma tarefa que fechou depois da
+                  última geração some daqui, e continuaria num texto gravado. --%>
+            <div :if={@paradas != []} class="mt-4 border-t border-base-300 pt-3">
+              <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                Assigned and open longer than {@dias_parada} days
+              </h4>
+              <p class="mb-2 text-xs text-base-content/60">
+                The origin records no deadline, so this is not lateness — it is work that has
+                been open this long and needs a destination.
+              </p>
+              <div :for={t <- @paradas} class="flex gap-3 border-t border-base-300 py-1.5 text-sm">
+                <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
+                  {t.dias_aberta}d
+                </span>
+                <span>{t.titulo}</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -746,23 +788,6 @@ defmodule TheBandWeb.PeopleLive.Show do
                 />
               </div>
 
-              <%!-- Tarefas paradas: a única parte que vira ação imediata. **Observada**, e
-                    por isso sólida — não passou pelo modelo. --%>
-              <div :if={@perfil_paradas != []} class="space-y-2">
-                <h4 class="text-xs font-semibold tracking-wide text-success uppercase">
-                  Open longer than 90 days
-                </h4>
-                <div
-                  :for={t <- @perfil_paradas}
-                  class="flex gap-3 border-t border-base-300 pt-2 text-sm"
-                >
-                  <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
-                    {t.dias_aberta}d
-                  </span>
-                  <span>{t.titulo}</span>
-                </div>
-              </div>
-
               <%!-- O contrapeso, e é ele que dá crédito ao resto. --%>
               <div class="rounded-lg bg-base-300/40 p-4 text-sm">
                 <h4 class="mb-1 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
@@ -828,7 +853,7 @@ defmodule TheBandWeb.PeopleLive.Show do
                 </button>
                 <.absent
                   :if={@perfil_pendente?}
-                  reason="A new profile was requested and is still running."
+                  reason="A new profile was requested. It appears here on its own when it is done."
                 />
                 <span :if={not @perfil_pendente?} class="text-xs text-base-content/60">
                   Sends the tasks' titles and descriptions to an external provider again.
@@ -846,7 +871,7 @@ defmodule TheBandWeb.PeopleLive.Show do
             <%!-- Estado 2: pedido, e ainda não pronto. Distinto de "nunca gerado" porque quem
                   clicou precisa saber que o clique valeu. --%>
             <div :if={is_nil(@perfil) and @perfil_pendente?}>
-              <.absent reason="Requested. The model takes about a minute — reload to see it." />
+              <.absent reason="Requested. The model takes about a minute, and this page updates on its own." />
             </div>
 
             <%!-- Estado 3: nunca gerado, e há material. A frase do egresso acompanha o botão,
@@ -1016,4 +1041,14 @@ defmodule TheBandWeb.PeopleLive.Show do
     do: "No current assignment observed for this person, so there is nothing to read from."
 
   defp recusa(outro), do: "Not available: #{inspect(outro)}"
+
+  # A falha é nomeada, e não despejada. `inspect/1` de um erro do provedor pode trazer o
+  # corpo inteiro da resposta para dentro de um flash.
+  defp falha({:http, status, _msg}), do: "the provider answered #{status}"
+  defp falha({:empty_response, _}), do: "the provider returned no text"
+  defp falha({:network, _}), do: "the provider could not be reached"
+  defp falha(:missing_credential), do: "no provider credential is configured"
+  defp falha({:invalid_json, _}), do: "the provider answered outside the agreed format"
+  defp falha(outro) when is_atom(outro), do: to_string(outro)
+  defp falha(outro), do: recusa(outro)
 end

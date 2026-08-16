@@ -21,6 +21,7 @@ defmodule TheBand.Profiles.GenerateWorker do
 
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Profiles
   alias TheBand.Profiles.{Material, Prompt, Sanitizer}
   alias TheBand.Tenants
 
@@ -31,7 +32,9 @@ defmodule TheBand.Profiles.GenerateWorker do
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
          {:ok, material} <- Material.build(tenant, person_id),
          {:ok, resposta} <- chamar(material) do
-      gravar(tenant, material, resposta, args["requested_by_user_id"])
+      tenant
+      |> gravar(material, resposta, args["requested_by_user_id"])
+      |> anunciar(tenant_id, person_id)
     else
       # A recusa do material **não é falha do job**: é resposta, e a tela já sabe mostrá-la
       # a partir do próprio material. Repetir três vezes o que não vai mudar gastaria
@@ -41,8 +44,22 @@ defmodule TheBand.Profiles.GenerateWorker do
 
       {:error, motivo} when is_atom(motivo) or is_tuple(motivo) ->
         Logger.info("perfil não gerado para #{person_id}: #{inspect(motivo)}")
+        Profiles.broadcast(tenant_id, person_id, {:falhou, motivo})
         {:cancel, motivo}
     end
+  end
+
+  # **Anuncia os dois desfechos.** Anunciar só o sucesso deixaria a tela esperando para
+  # sempre um evento que não vem — e "esperando" é indistinguível de "ainda rodando" para
+  # quem olha.
+  defp anunciar({:ok, _perfil} = resultado, tenant_id, person_id) do
+    Profiles.broadcast(tenant_id, person_id, :pronto)
+    resultado
+  end
+
+  defp anunciar({:cancel, motivo} = resultado, tenant_id, person_id) do
+    Profiles.broadcast(tenant_id, person_id, {:falhou, motivo})
+    resultado
   end
 
   defp chamar(material) do

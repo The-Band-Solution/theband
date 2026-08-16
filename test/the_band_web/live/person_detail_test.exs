@@ -256,10 +256,19 @@ defmodule TheBandWeb.PersonDetailTest do
       # consultas numa pessoa real. **A asserção acima é a que prova isso** — `poucas ==
       # muitas` depois de designar todas as partes.
       #
-      # **E de 15 para 17 na feature 026**, com as duas nomeadas:
+      # **E de 15 para 18 na feature 026**, com as três nomeadas:
       #
       #   8. o perfil vigente da pessoa — existe, ou não;
-      #   9. quando **não** existe: há geração pendente, e há material para gerar.
+      #   9. quando **não** existe: há geração pendente, e há material para gerar;
+      #  10. as tarefas designadas e abertas há mais que o limiar.
+      #
+      # A décima vale **sempre**, e não só quando há perfil: a lista é sobre o trabalho da
+      # pessoa, e não sobre o perfil dela. Ela morava dentro do cartão do perfil, cercada de
+      # blocos hachurados, e é fato observado — misturava proveniência num produto que existe
+      # para separar as duas.
+      #
+      # Derivá-la da tabela de issues que a página já lista seria melhor, e **não dá**: a
+      # tabela é paginada, e a lista precisa do conjunto inteiro.
       #
       # A nona é duas perguntas numa consulta cada. `check` só acontece quando **não** há
       # perfil — com perfil a recusa não é exibida, e pagá-la seria custo por render sem
@@ -281,10 +290,10 @@ defmodule TheBandWeb.PersonDetailTest do
       #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 17, """
+      assert acrescentadas <= 18, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **dezessete** — oito da tela original, sete do painel da 023, e
-      duas do perfil da 026.
+      linha de base medida é **dezoito** — oito da tela original, sete do painel da 023, e
+      três do perfil da 026.
 
       O que a página faz além da lista:
 

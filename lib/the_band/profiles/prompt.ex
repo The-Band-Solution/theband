@@ -9,6 +9,17 @@ defmodule TheBand.Profiles.Prompt do
   é a `FR-008`, só `#<número>` de tarefa presente é a `FR-005`, comparar com a linha de base
   é a `FR-010`. Mudar o arquivo é mudar o que a tela afirma sobre pessoas.
 
+  ## As tarefas abertas não entram, e a razão é dupla
+
+  **É duplicação.** A tela lista as paradas há mais de 90 dias a partir de dado observado e
+  **recalculado a cada leitura**. O texto do modelo sobre elas envelhece; a lista não — uma
+  tarefa que fechou depois da geração some da lista e continuaria no texto.
+
+  **E é caro.** Medido em 2026-08-16: sem elas o material de `ManoelRL` cai de 134k para 27k
+  caracteres, e o de `vinicius-je` de 320k para 129k. Entre 57% e 80% para quem tem muitas.
+
+  A contagem fica em `COBERTURA`, que é uma linha e serve ao parágrafo de atenção.
+
   ## O veredito entra pronto
 
   O material traz a comparação já calculada. Ver `TheBand.Profiles.Material` para o porquê:
@@ -78,9 +89,6 @@ defmodule TheBand.Profiles.Prompt do
 
     TAREFAS CONCLUÍDAS
     #{Enum.map_join(m.periodos, "\n", &tarefas_do_periodo/1)}
-
-    TAREFAS EM ABERTO
-    #{abertas(m.abertas)}
     """
   end
 
@@ -99,19 +107,6 @@ defmodule TheBand.Profiles.Prompt do
 
       --- P#{p.indice} · ##{t.number} · fechada #{t.data} · #{t.dias_aberta}d aberta · #{t.repositorio} · tipo #{t.tipo}
           autoria: #{if t.autoria_propria, do: "própria", else: "de terceiro"} · designados: #{t.designados}
-          #{cortar(t.titulo, 200)}
-          #{cortar(t.corpo, @corpo_max)}\
-      """
-    end)
-  end
-
-  defp abertas([]), do: "  (nenhuma tarefa aberta com designação vigente)"
-
-  defp abertas(tarefas) do
-    Enum.map_join(tarefas, "\n", fn t ->
-      """
-
-      --- ABERTA · ##{t.number} · criada #{t.data} · há #{t.dias_aberta} dias · #{t.repositorio} · tipo #{t.tipo}
           #{cortar(t.titulo, 200)}
           #{cortar(t.corpo, @corpo_max)}\
       """

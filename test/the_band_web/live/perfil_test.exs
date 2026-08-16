@@ -212,7 +212,7 @@ defmodule TheBandWeb.PerfilTest do
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
 
       refute html =~ "Generate again", "dois pedidos iguais na fila gastariam duas chamadas"
-      assert html =~ "still running"
+      assert html =~ "appears here on its own"
     end
 
     test "a tela diz quantas tarefas fecharam desde o perfil exibido", ctx do
@@ -243,6 +243,57 @@ defmodule TheBandWeb.PerfilTest do
 
              Cada geração custa uma chamada, e oferecer sem avisar convida a gastar por nada.
              """
+    end
+  end
+
+  describe "a tela recarrega sozinha" do
+    test "o perfil aparece sem um novo live/2 quando a geração termina", ctx do
+      material_suficiente(ctx)
+      {:ok, live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+      refute html =~ "Demonstrated skills"
+
+      # O job termina **depois** de a tela estar aberta, que é o caso real.
+      gravar_perfil(ctx)
+      TheBand.Profiles.broadcast(ctx.tenant.id, ctx.pessoa.id, :pronto)
+
+      assert render(live) =~ "Demonstrated skills",
+             """
+             A tela não recarregou quando a geração terminou.
+
+             A geração leva de 25 a 60 segundos. Sem isto a tela manda "reload to see it" —
+             a plataforma pedindo à pessoa que faça o trabalho dela.
+             """
+    end
+
+    test "a falha também chega, e é nomeada", ctx do
+      material_suficiente(ctx)
+      {:ok, live, _html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      TheBand.Profiles.broadcast(ctx.tenant.id, ctx.pessoa.id, {:falhou, {:http, 429, "rate"}})
+
+      assert render(live) =~ "the provider answered 429",
+             """
+             A falha não chegou à tela.
+
+             Anunciar só o sucesso transforma erro em espera infinita, e espera infinita é
+             indistinguível de "ainda rodando" para quem olha. É a mesma família do defeito
+             que mais reincide neste repositório.
+             """
+    end
+
+    test "a mensagem de falha não despeja o corpo da resposta do provedor", ctx do
+      material_suficiente(ctx)
+      {:ok, live, _html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      TheBand.Profiles.broadcast(
+        ctx.tenant.id,
+        ctx.pessoa.id,
+        {:falhou, {:http, 500, "corpo enorme com detalhe interno do provedor"}}
+      )
+
+      html = render(live)
+      assert html =~ "the provider answered 500"
+      refute html =~ "detalhe interno do provedor"
     end
   end
 

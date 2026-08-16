@@ -4,24 +4,49 @@
   "schema": {
     "type": "object",
     "additionalProperties": false,
-    "required": ["habilidades", "resumo", "trajetoria", "destaques", "lacunas", "do_time_nao_da_pessoa", "alocacao", "recomendacoes", "nao_alcanca"],
+    "required": [
+      "habilidades",
+      "resumo",
+      "trajetoria",
+      "destaques",
+      "lacunas",
+      "do_time_nao_da_pessoa",
+      "alocacao",
+      "recomendacoes",
+      "nao_alcanca"
+    ],
     "properties": {
       "habilidades": {
         "type": "array",
         "minItems": 2,
         "maxItems": 5,
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Capacidade técnica nomeável em três a seis palavras, do jeito que apareceria numa busca por quem sabe fazer aquilo. Nunca ferramenta solta, nunca categoria como backend ou DevOps, nunca qualidade pessoal. Só entra o que passaria na barra de destaque: seis tarefas, dois períodos, presença no período recente. Se apenas duas passarem, liste duas."
       },
       "resumo": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["forcas", "evolucao", "atencao"],
+        "required": [
+          "forcas",
+          "evolucao",
+          "atencao"
+        ],
         "description": "Três parágrafos de texto corrido, sem NENHUM número de tarefa. Aqui quem lê decide se vale ler o resto; as seções seguintes carregam a evidência. Cite tarefa pelo título quando for indispensável.",
         "properties": {
-          "forcas": { "type": "string", "description": "O que cada habilidade significa na prática, dito pelo que a pessoa fez, com desde quando. Sem adjetivo de currículo." },
-          "evolucao": { "type": "string", "description": "De onde saiu, onde está, e se a mudança é dela ou do time. Se não mudou, esta é a frase: não mudou, e eis em que a estabilidade consiste." },
-          "atencao": { "type": "string", "description": "As lacunas no enquadramento honesto — lacuna do registro, não de competência — e o que está parado." }
+          "forcas": {
+            "type": "string",
+            "description": "O que cada habilidade significa na prática, dito pelo que a pessoa fez, com desde quando. Sem adjetivo de currículo."
+          },
+          "evolucao": {
+            "type": "string",
+            "description": "De onde saiu, onde está, e se a mudança é dela ou do time. Se não mudou, esta é a frase: não mudou, e eis em que a estabilidade consiste."
+          },
+          "atencao": {
+            "type": "string",
+            "description": "As lacunas no enquadramento honesto — lacuna do registro, não de competência — e o que está parado."
+          }
         }
       },
       "trajetoria": {
@@ -31,13 +56,38 @@
         "items": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["periodo", "meses", "titulo", "texto", "tarefas_citadas"],
+          "required": [
+            "periodo",
+            "meses",
+            "titulo",
+            "texto",
+            "tarefas_citadas"
+          ],
           "properties": {
-            "periodo": { "type": "integer", "description": "1, 2 ou 3" },
-            "meses": { "type": "string", "description": "AAAA-MM a AAAA-MM" },
-            "titulo": { "type": "string", "description": "Uma frase dizendo o que a pessoa estava fazendo ali." },
-            "texto": { "type": "string", "description": "Um parágrafo, contando a mudança como história e não como tabela." },
-            "tarefas_citadas": { "type": "array", "maxItems": 3, "items": { "type": "string" }, "description": "Dois ou três títulos de tarefa real deste período." }
+            "periodo": {
+              "type": "integer",
+              "description": "1, 2 ou 3"
+            },
+            "meses": {
+              "type": "string",
+              "description": "AAAA-MM a AAAA-MM"
+            },
+            "titulo": {
+              "type": "string",
+              "description": "Uma frase dizendo o que a pessoa estava fazendo ali."
+            },
+            "texto": {
+              "type": "string",
+              "description": "Um parágrafo, contando a mudança como história e não como tabela."
+            },
+            "tarefas_citadas": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "type": "string"
+              },
+              "description": "Dois ou três títulos de tarefa real deste período."
+            }
           }
         }
       },
@@ -46,14 +96,45 @@
         "items": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["dominio", "demonstrou", "tarefas", "periodos", "mais_recente", "evidencia"],
+          "required": [
+            "dominio",
+            "demonstrou",
+            "tarefas",
+            "periodos",
+            "mais_recente",
+            "evidencia"
+          ],
           "properties": {
-            "dominio": { "type": "string", "description": "Área técnica específica: observabilidade com OpenTelemetry, gestão de segredos com Vault. Nunca backend nem boas práticas." },
-            "demonstrou": { "type": "string", "description": "O que a pessoa demonstrou fazer nele." },
-            "tarefas": { "type": "integer" },
-            "periodos": { "type": "array", "items": { "type": "integer" }, "description": "Em quais dos três períodos aparece." },
-            "mais_recente": { "type": "string", "description": "AAAA-MM da evidência mais recente." },
-            "evidencia": { "type": "array", "maxItems": 3, "items": { "type": "integer" }, "description": "Números de tarefa presentes no material. No máximo três." }
+            "dominio": {
+              "type": "string",
+              "description": "Área técnica específica: observabilidade com OpenTelemetry, gestão de segredos com Vault. Nunca backend nem boas práticas."
+            },
+            "demonstrou": {
+              "type": "string",
+              "description": "O que a pessoa demonstrou fazer nele."
+            },
+            "tarefas": {
+              "type": "integer"
+            },
+            "periodos": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "description": "Em quais dos três períodos aparece."
+            },
+            "mais_recente": {
+              "type": "string",
+              "description": "AAAA-MM da evidência mais recente."
+            },
+            "evidencia": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "type": "integer"
+              },
+              "description": "Números de tarefa presentes no material. No máximo três."
+            }
           }
         },
         "description": "Só domínio com seis tarefas ou mais, em pelo menos dois períodos, com evidência no período recente. O resto vai para lacunas."
@@ -63,12 +144,36 @@
         "items": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["forma", "onde", "observado", "evidencia"],
+          "required": [
+            "forma",
+            "onde",
+            "observado",
+            "evidencia"
+          ],
           "properties": {
-            "forma": { "type": "string", "enum": ["rala", "envelhecida", "trava"], "description": "rala: 3 a 5 tarefas. envelhecida: ausente do período recente — escreva 'não observado desde AAAA-MM', nunca 'abandonou'. trava: fica aberta muito acima do tempo típico da própria pessoa." },
-            "onde": { "type": "string" },
-            "observado": { "type": "string", "description": "Lacuna do REGISTRO, não de competência: não observar não é não saber." },
-            "evidencia": { "type": "array", "maxItems": 3, "items": { "type": "integer" } }
+            "forma": {
+              "type": "string",
+              "enum": [
+                "rala",
+                "envelhecida",
+                "trava"
+              ],
+              "description": "rala: 3 a 5 tarefas. envelhecida: ausente do período recente — escreva 'não observado desde AAAA-MM', nunca 'abandonou'. trava: as tarefas CONCLUÍDAS deste domínio levaram muito mais dias para fechar que a mediana da própria pessoa — compare o campo 'Nd aberta' de cada tarefa contra a mediana dela, e não contra número absoluto: 40 dias é muito para quem fecha em 3 e normal para quem fecha em 30. Não fale de tarefas em aberto: elas não estão no material, e a tela já as lista."
+            },
+            "onde": {
+              "type": "string"
+            },
+            "observado": {
+              "type": "string",
+              "description": "Lacuna do REGISTRO, não de competência: não observar não é não saber."
+            },
+            "evidencia": {
+              "type": "array",
+              "maxItems": 3,
+              "items": {
+                "type": "integer"
+              }
+            }
           }
         },
         "description": "Quando nenhuma das três formas se sustentar, devolva lista vazia. Um relatório que sempre acha um ponto fraco não está lendo."
@@ -82,13 +187,29 @@
         "items": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["dominio", "tarefas", "de", "ate", "demonstrou"],
+          "required": [
+            "dominio",
+            "tarefas",
+            "de",
+            "ate",
+            "demonstrou"
+          ],
           "properties": {
-            "dominio": { "type": "string" },
-            "tarefas": { "type": "integer" },
-            "de": { "type": "string" },
-            "ate": { "type": "string" },
-            "demonstrou": { "type": "string" }
+            "dominio": {
+              "type": "string"
+            },
+            "tarefas": {
+              "type": "integer"
+            },
+            "de": {
+              "type": "string"
+            },
+            "ate": {
+              "type": "string"
+            },
+            "demonstrou": {
+              "type": "string"
+            }
           }
         },
         "description": "Só os domínios de destaque. Diz ONDE a evidência já existe — não recomenda cargo, função, liderança nem time."
@@ -96,7 +217,9 @@
       "recomendacoes": {
         "type": "array",
         "maxItems": 3,
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Cada uma nasce de algo deste material. Conselho genérico de carreira não vale."
       },
       "nao_alcanca": {

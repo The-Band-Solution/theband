@@ -21,6 +21,37 @@ defmodule TheBand.Profiles do
   alias TheBand.Profiles.{GenerateWorker, Material}
   alias TheBand.Tenants.Tenant
 
+  @topic "profiles"
+
+  @doc """
+  Assina as conclusões de geração de uma pessoa, para a tela recarregar sozinha.
+
+  O tópico é por **pessoa**, e não por tenant: a aba aberta é de uma pessoa só, e um tópico
+  de tenant faria toda aba recarregar quando qualquer perfil terminasse.
+  """
+  @spec subscribe(Tenant.t(), binary()) :: :ok | {:error, term()}
+  def subscribe(%Tenant{id: tenant_id}, person_id),
+    do: Phoenix.PubSub.subscribe(TheBand.PubSub, topico(tenant_id, person_id))
+
+  @doc """
+  Anuncia o fim de uma geração — **de qualquer desfecho**.
+
+  `{:perfil, :pronto, person_id}` e `{:perfil, {:falhou, motivo}, person_id}`. Os dois
+  existem porque anunciar só o sucesso transformaria falha em espera infinita, e espera
+  infinita é indistinguível de "ainda rodando" na tela. É a mesma família do defeito que
+  mais reincide neste repositório.
+  """
+  @spec broadcast(binary(), binary(), :pronto | {:falhou, term()}) :: :ok
+  def broadcast(tenant_id, person_id, desfecho),
+    do:
+      Phoenix.PubSub.broadcast(
+        TheBand.PubSub,
+        topico(tenant_id, person_id),
+        {:perfil, desfecho, person_id}
+      )
+
+  defp topico(tenant_id, person_id), do: "#{@topic}:#{tenant_id}:#{person_id}"
+
   @doc """
   Verifica se há material, sem montar o material e sem gastar chamada.
 
