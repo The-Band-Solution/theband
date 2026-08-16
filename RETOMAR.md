@@ -1,12 +1,14 @@
 # Retomar — 2026-08-16, ao fim da rodada de fechamento
 
-**Onde está**: dois PRs abertos, os dois com revisor pedido à equipe `the-band` e o pedido
-**conferido** — `reviewRequests` devolveu a equipe, e não lista vazia.
+**Onde está**: três PRs abertos, os três com revisor pedido à equipe `the-band`, o pedido
+**conferido** — `reviewRequests` devolveu a equipe, e não lista vazia — e `Status = In
+review` gravado no board e conferido depois da escrita.
 
 | PR | O que é | Estado |
 |---|---|---|
 | [#360](https://github.com/The-Band-Solution/theband/pull/360) | feature 027 — a rodada mensal de perfis, 23 issues | 13 gates verdes, 917 testes |
 | [#361](https://github.com/The-Band-Solution/theband/pull/361) | o guarda de `:unknown` que faltava ao #359 | 13 gates verdes |
+| [#362](https://github.com/The-Band-Solution/theband/pull/362) | o fechamento do sprint 016, a triagem e a L60 | documentação |
 
 Mergeados nesta rodada: [#330](https://github.com/The-Band-Solution/theband/pull/330) —
 perfil de competências — e [#359](https://github.com/The-Band-Solution/theband/pull/359) —
@@ -184,13 +186,13 @@ falta nomeado — rala, envelhecida, ou trabalho que demora.
 > |---|---|---|
 > | 1 | página não recarrega | **entregue** — `Profiles.broadcast/3`, os dois desfechos |
 > | 2 | geração automática | **entregue**, no PR #360 |
-> | 3 | tarefas abertas para outros | funcionalidade nova, não iniciada |
+> | 3 | tarefas abertas para outros | funcionalidade nova — [#364](https://github.com/The-Band-Solution/theband/issues/364) |
 > | 4 | tirar as abertas do prompt | **entregue**, incluindo o lugar na tela |
-> | 5 | competência como unidade | funcionalidade nova, não iniciada — **a maior** |
+> | 5 | competência como unidade | funcionalidade nova, **a maior** — [#363](https://github.com/The-Band-Solution/theband/issues/363) |
 > | 6 | axiomas `unknown` | **entregue** no #359; o guarda contra a repetição, no #361 |
 > | 7 | triagem das issues | **feita** — cada issue recebeu comentário com a medição |
-> | 8 | Conecta Fapes | **decisão sua**, e uma parte nem é respondível hoje |
-> | 9 | decisões antigas | **decisão sua** |
+> | 8 | Conecta Fapes | **decisão sua** — [#367](https://github.com/The-Band-Solution/theband/issues/367). Uma parte nem é respondível hoje |
+> | 9 | decisões antigas | **decisão sua** — [#368](https://github.com/The-Band-Solution/theband/issues/368), [#369](https://github.com/The-Band-Solution/theband/issues/369), [#370](https://github.com/The-Band-Solution/theband/issues/370) |
 
 ## As sete decisões que esperam por você
 
@@ -202,10 +204,10 @@ fazer sozinha, e três delas estão escritas nas próprias specs como recusa del
 | 1 | **medir o custo real de uma rodada** ([#356](https://github.com/The-Band-Solution/theband/issues/356)) | a `FR-021` exige a medição antes de N e M valerem. Exige chave real e de 15 a 35 minutos |
 | 2 | **percorrer o quickstart a mão** ([#358](https://github.com/The-Band-Solution/theband/issues/358)) | a suíte verde não substitui — três defeitos da rodada anterior só apareceram com a aplicação no ar |
 | 3 | **criar ou não as iterações que faltam** ([#176](https://github.com/The-Band-Solution/theband/issues/176)) | `flow.throughput` não separa os sprints 003, 004 e 005 |
-| 4 | **qual é o quadro do projeto no Conecta Fapes** | lida só pelo quadro corrente, a entrega parece começar em abril de 2026 com 4 issues |
-| 5 | **qual campo de data é o prazo**, por quadro | sem isso, "tarefas em atraso" não existe |
-| 6 | **`FR-012` da 023** — quem vê o painel de trabalho de quem | aberta desde 2026-08-14 |
-| 7 | **`FR-007` da 022** — qual movimentação marca o início | sem ela não há throughput, WIP verdadeiro nem cycle time pessoal |
+| 4 | **qual é o quadro do projeto no Conecta Fapes** ([#367](https://github.com/The-Band-Solution/theband/issues/367)) | lida só pelo quadro corrente, a entrega parece começar em abril de 2026 com 4 issues |
+| 5 | **qual campo de data é o prazo**, por quadro ([#368](https://github.com/The-Band-Solution/theband/issues/368)) | sem isso, "tarefas em atraso" não existe |
+| 6 | **`FR-012` da 023** — quem vê o painel de trabalho de quem ([#369](https://github.com/The-Band-Solution/theband/issues/369)) | aberta desde 2026-08-14 |
+| 7 | **`FR-007` da 022** — qual movimentação marca o início ([#370](https://github.com/The-Band-Solution/theband/issues/370)) | sem ela não há throughput, WIP verdadeiro nem cycle time pessoal |
 
 **Uma delas nem é respondível hoje.** A pergunta do Conecta Fapes *"done é fechar a issue ou
 a coluna do quadro?"* depende do campo `Status`, e a plataforma **não coleta campo de
@@ -296,7 +298,9 @@ encheria de textos quase idênticos — o histórico viraria ruído.
 > outros em `lib/the_band/profiles/`. O material só tem `autoria_propria`, que é outra
 > coisa — diz quem escreveu a tarefa **da própria pessoa**, e não para quem ela escreveu.
 >
-> É funcionalidade nova, e serve à número 5. As duas andam juntas.
+> É funcionalidade nova, e serve à número 5. As duas andam juntas, e estão no backlog:
+> [#364](https://github.com/The-Band-Solution/theband/issues/364) e
+> [#363](https://github.com/The-Band-Solution/theband/issues/363).
 
 Pedido teu: quem abre tarefa para outra pessoa está fazendo algo que a contagem de tarefas
 designadas não mostra. **É contável, e não inferido**: `author_login` da pessoa com
