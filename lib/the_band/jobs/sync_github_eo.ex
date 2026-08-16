@@ -29,7 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
-  alias TheBand.Ingestion.GithubSprints
+  alias TheBand.Ingestion.GithubProjects
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -163,13 +163,13 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # trabalho: repositórios e issues já estão no banco, e perdê-los por causa de uma
   # falha nos quadros seria pior que registrar a falha.
   defp coletar_caixas_de_tempo(ctx) do
-    case GithubSprints.collect(ctx) do
+    case GithubProjects.collect(ctx) do
       {:ok, resumo} ->
         resumo
 
       {:error, reason} ->
-        Logger.warning("coleta de caixas de tempo falhou: #{inspect(reason)}")
-        %{sprints: 0, links: 0, sprints_error: reason}
+        Logger.warning("coleta de quadros falhou: #{inspect(reason)}")
+        %{projects: 0, sprints: 0, links: 0, sprints_error: reason}
     end
   end
 

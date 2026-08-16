@@ -105,10 +105,15 @@ defmodule TheBandWeb.CoreComponents do
   def button(%{rest: rest} = assigns) do
     variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
 
+    # A base `btn` entra SEMPRE. Antes, quem passava `class` substituía a lista inteira
+    # — `class="btn-outline btn-sm"` sem `btn` renderiza como texto puro, e foi assim
+    # que "Associate repositories" e "New project" ficaram invisíveis de clicar
+    # (observado no app em 2026-08-16): a função existia, a affordance não.
     assigns =
-      assign_new(assigns, :class, fn ->
-        ["btn", Map.fetch!(variants, assigns[:variant])]
-      end)
+      case assigns[:class] do
+        nil -> assign(assigns, :class, ["btn", Map.fetch!(variants, assigns[:variant])])
+        class -> assign(assigns, :class, ["btn", class])
+      end
 
     if rest[:href] || rest[:navigate] || rest[:patch] do
       ~H"""

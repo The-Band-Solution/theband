@@ -79,6 +79,61 @@ defmodule TheBandWeb.RepositoryLive.Show do
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
+  # T058 (#384): a decisão de excluir existia inteira no domínio desde a 004 — e nenhuma
+  # tela a chamava. Zero de 160 repositórios excluídos por falta de caminho, não de
+  # vontade. O autor vai gravado, e recolocar em observação é ato separado.
+  def handle_event("excluir", _params, %{assigns: %{current_user: %{role: "admin"}}} = socket) do
+    caso =
+      CMPO.exclude_from_observation(
+        socket.assigns.current_tenant,
+        socket.assigns.repositorio.observed_repository_id,
+        socket.assigns.current_user.id
+      )
+
+    case caso do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "Excluded from observation. The next collection skips it; nothing is marked absent."
+         )
+         |> recarregar_repositorio()}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not exclude: #{inspect(motivo)}")}
+    end
+  end
+
+  def handle_event("incluir", _params, %{assigns: %{current_user: %{role: "admin"}}} = socket) do
+    caso =
+      CMPO.include_in_observation(
+        socket.assigns.current_tenant,
+        socket.assigns.repositorio.observed_repository_id
+      )
+
+    case caso do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Back under observation. The next collection brings it again.")
+         |> recarregar_repositorio()}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not include: #{inspect(motivo)}")}
+    end
+  end
+
+  defp recarregar_repositorio(socket) do
+    {:ok, repositorio} =
+      CMPO.fetch_observed(
+        socket.assigns.current_tenant,
+        socket.assigns.repositorio.observed_repository_id
+      )
+
+    assign(socket, repositorio: repositorio)
+  end
+
   defp caminho(socket, id, mudancas) do
     ~p"/work/repositories/#{socket.assigns.repositorio.id}?#{Tabela.query(socket, id, mudancas)}"
   end
@@ -105,6 +160,25 @@ defmodule TheBandWeb.RepositoryLive.Show do
           <a :if={@repositorio.url} href={@repositorio.url} target="_blank" rel="noopener">
             <.button class="btn-outline btn-sm">View at source</.button>
           </a>
+          <%!-- T058: só admin decide, o efeito é dito ANTES do clique, e o autor fica
+                gravado. Excluído não marca ausência — a plataforma parou de olhar, e isso
+                não é o dado ter sumido (FR-005). --%>
+          <button
+            :if={@current_user.role == "admin" && is_nil(@repositorio.excluded_at)}
+            class="btn btn-outline btn-sm btn-warning"
+            phx-click="excluir"
+            data-confirm="Exclude this repository from observation? The next collection skips it. Its issues stay readable and are NOT marked absent — the platform stops looking, which is different from the data being gone."
+          >
+            Exclude from observation
+          </button>
+          <button
+            :if={@current_user.role == "admin" && @repositorio.excluded_at}
+            class="btn btn-outline btn-sm"
+            phx-click="incluir"
+            data-confirm="Put this repository back under observation? The next collection brings it again."
+          >
+            Observe again
+          </button>
         </:actions>
       </.header>
 

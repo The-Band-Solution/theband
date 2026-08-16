@@ -156,6 +156,7 @@ defmodule TheBand.Projects.Commands do
   defp promover_a_sprint(tenant, attrs) do
     with {:ok, sprint} <-
            SRO.record_sprint(tenant, %{
+             connected_tool_id: attrs[:connected_tool_id],
              board_number: attrs[:board_number],
              board_title: attrs[:board_title],
              field_name: attrs[:field_name],
@@ -218,7 +219,7 @@ defmodule TheBand.Projects.Commands do
   defp transicionar_pretendido(%Tenant{id: tenant_id}, attrs) do
     from(p in "spo_intended_project_processes",
       where:
-        p.tenant_id == ^tenant_id and
+        p.tenant_id == type(^tenant_id, :binary_id) and
           p.source_external_id == ^attrs[:source_external_id] and
           p.source_system == ^attrs[:source_system] and
           is_nil(p.no_longer_observed_at)

@@ -61,18 +61,18 @@ stories por sub-issue — a hierarquia carrega o que o tipo não diz.
 
 | # | Tarefa | Atende | Issue | Estado |
 |---|---|---|---|---|
-| T047 | A entidade de quadro, sem promover | US2 | [#373](https://github.com/The-Band-Solution/theband/issues/373) | a fazer |
-| T048 | As definições dos campos configuráveis | US2 | [#374](https://github.com/The-Band-Solution/theband/issues/374) | a fazer |
-| T049 | Os itens de cada quadro, ligados às issues | US2 | [#375](https://github.com/The-Band-Solution/theband/issues/375) | a fazer |
-| T050 | O rascunho é registrado, não descartado | US2 | [#376](https://github.com/The-Band-Solution/theband/issues/376) | a fazer |
-| T051 | O valor de cada campo em cada item | US2 | [#377](https://github.com/The-Band-Solution/theband/issues/377) | a fazer |
-| T052 | Iteração futura vira processo pretendido | US2 | [#378](https://github.com/The-Band-Solution/theband/issues/378) | a fazer |
-| T053 | O sprint removido é marcado, nunca apagado | US2 | [#379](https://github.com/The-Band-Solution/theband/issues/379) | a fazer |
-| T054 | Os dois backlogs derivados, e a soma prova | US2 | [#380](https://github.com/The-Band-Solution/theband/issues/380) | a fazer |
-| T055 | Organização sem quadros é resposta | US2 | [#381](https://github.com/The-Band-Solution/theband/issues/381) | a fazer |
-| T056 | As consultas GraphQL alargadas | US2 | [#382](https://github.com/The-Band-Solution/theband/issues/382) | a fazer |
-| T057 | A tela de quadros e backlogs | US2 | [#383](https://github.com/The-Band-Solution/theband/issues/383) | a fazer |
-| T058 | O controle de excluir repositório na tela | US3 | [#384](https://github.com/The-Band-Solution/theband/issues/384) | a fazer |
+| T047 | A entidade de quadro, sem promover | US2 | [#373](https://github.com/The-Band-Solution/theband/issues/373) | feito |
+| T048 | As definições dos campos configuráveis | US2 | [#374](https://github.com/The-Band-Solution/theband/issues/374) | feito |
+| T049 | Os itens de cada quadro, ligados às issues | US2 | [#375](https://github.com/The-Band-Solution/theband/issues/375) | feito |
+| T050 | O rascunho é registrado, não descartado | US2 | [#376](https://github.com/The-Band-Solution/theband/issues/376) | feito |
+| T051 | O valor de cada campo em cada item | US2 | [#377](https://github.com/The-Band-Solution/theband/issues/377) | feito |
+| T052 | Iteração futura vira processo pretendido | US2 | [#378](https://github.com/The-Band-Solution/theband/issues/378) | feito |
+| T053 | O sprint removido é marcado, nunca apagado | US2 | [#379](https://github.com/The-Band-Solution/theband/issues/379) | feito |
+| T054 | Os dois backlogs derivados, e a soma prova | US2 | [#380](https://github.com/The-Band-Solution/theband/issues/380) | feito |
+| T055 | Organização sem quadros é resposta | US2 | [#381](https://github.com/The-Band-Solution/theband/issues/381) | feito |
+| T056 | As consultas GraphQL alargadas | US2 | [#382](https://github.com/The-Band-Solution/theband/issues/382) | feito |
+| T057 | A tela de quadros e backlogs | US2 | [#383](https://github.com/The-Band-Solution/theband/issues/383) | feito |
+| T058 | O controle de excluir repositório na tela | US3 | [#384](https://github.com/The-Band-Solution/theband/issues/384) | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende. `Estimate` fica em branco
 — desconhecido, nunca zero.

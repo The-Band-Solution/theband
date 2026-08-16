@@ -1,0 +1,43 @@
+# Os quadros da organização, com TODOS os campos — sprint 017, T056, FR-020 e FR-023.
+#
+# Alarga a consulta da 024, que pedia só `ProjectV2IterationField` e deixava 15 dos 26
+# quadros sem rastro. Aqui todo quadro entra — com ou sem iteração — e toda definição de
+# campo vem: nome, id, tipo, e as opções quando seleção única.
+#
+# A identidade do campo é o `id` da origem (FR-027): renomear não cria campo novo.
+query($organization: String!, $page_size: Int = 20, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    projectsV2(first: $page_size, after: $after) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        number
+        title
+        closed
+        fields(first: 50) {
+          nodes {
+            __typename
+            ... on ProjectV2FieldCommon {
+              id
+              name
+              dataType
+            }
+            ... on ProjectV2SingleSelectField {
+              options { id name }
+            }
+            ... on ProjectV2IterationField {
+              configuration {
+                duration
+                iterations { id title startDate duration }
+                completedIterations { id title startDate duration }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

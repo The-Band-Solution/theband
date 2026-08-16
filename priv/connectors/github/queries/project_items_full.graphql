@@ -1,0 +1,56 @@
+# Os itens de um quadro com TODOS os valores de campo — sprint 017, T056, FR-021 a FR-023.
+#
+# Alarga a consulta da 024, que casava só `ProjectV2ItemFieldIterationValue` e descartava
+# o resto da resposta. Aqui todo valor entra cru, e o rascunho é **registrado** (FR-022):
+# `DraftIssue` vem com título, em vez de virar `content` nulo e ser jogado fora.
+#
+# Sem histórico de alterações — a FR-028 o exclui por custo de consumo.
+query($organization: String!, $number: Int!, $page_size: Int = 100, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  organization(login: $organization) {
+    projectV2(number: $number) {
+      items(first: $page_size, after: $after) {
+        totalCount
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          id
+          content {
+            __typename
+            ... on Issue { id }
+            ... on DraftIssue { title }
+          }
+          fieldValues(first: 30) {
+            nodes {
+              __typename
+              ... on ProjectV2ItemFieldTextValue {
+                text
+                field { ... on ProjectV2FieldCommon { id name } }
+              }
+              ... on ProjectV2ItemFieldNumberValue {
+                number
+                field { ... on ProjectV2FieldCommon { id name } }
+              }
+              ... on ProjectV2ItemFieldDateValue {
+                date
+                field { ... on ProjectV2FieldCommon { id name } }
+              }
+              ... on ProjectV2ItemFieldSingleSelectValue {
+                name
+                optionId
+                field { ... on ProjectV2FieldCommon { id name } }
+              }
+              ... on ProjectV2ItemFieldIterationValue {
+                title
+                iterationId
+                startDate
+                duration
+                field { ... on ProjectV2FieldCommon { id name } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
