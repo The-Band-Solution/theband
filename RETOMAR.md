@@ -1,50 +1,28 @@
-# Retomar — 2026-08-16, fim do dia, sprint 017 no meio
+# Retomar — 2026-08-16, fim do dia
 
-**Onde está**: os quatro PRs do dia estão **mergeados** — #360, #361, #362 e #371, todos
-pela pessoa mantenedora, todos sem revisão independente (`pulls/<n>/reviews` vazio; o
-pedido à equipe existiu e foi conferido, e a lacuna segue declarada). O sprint 016 está
-fechado: 25 issues entregues e fechadas, rodada real medida (549k tokens, 6min35s,
-mediana 12,6k/pessoa — está na #356).
+**Onde está**: a lista foi finalizada. **Dez PRs mergeados no dia** (#360, #361, #362,
+#371, #388, #389, #390, #391, #392, #393), **50 issues fechadas**, sprints 016 e 017
+entregues e revisados, features 027 e 028 no ar, e as quatro dívidas pequenas pagas.
 
-**O sprint 017 está ABERTO e no meio**, na branch `004-quadros-campos-e-backlogs`:
+O que existe agora e não existia de manhã: a rodada mensal de perfis com barra de
+progresso e rodada-a-mão-para-todos; os quadros inteiros (entidade, 146 campos, itens,
+valores, backlogs derivados) com a tela /boards; o ciclo de vida do projeto declarado
+(editar, remover, organizações filtrando o seletor, equipes declaradas); o mapeamento
+campo→atributo declarado por tenant com a FR-046 em forma de dado; o contador de
+consultas com definição única; fontes/glossário/exemplos alcançáveis por tipo; e os
+dezesseis form-control mortos viraram fieldset.
 
-| Commit | O quê |
+## As 12 que restam
+
+| Fila | Issues |
 |---|---|
-| `da019e5` | a convergência da F4 — 11 tarefas (T047–T057) apensadas ao tasks.md da 004 |
-| `46e17db` | o sprint-backlog 017 — 12 issues #373–#384 no board, hierarquia sob #107/#108 |
-| `02af0aa` | **WIP**: 5 migrações, 6 schemas, `TheBand.Projects.Commands`, `SPO.record_intended_process`, e a correção dos 26 |
+| **Decisões da pessoa mantenedora** (7) | [#356](https://github.com/The-Band-Solution/theband/issues/356) N/M com custo real na mão · [#358](https://github.com/The-Band-Solution/theband/issues/358) quickstart a mão · [#367](https://github.com/The-Band-Solution/theband/issues/367) Conecta Fapes · [#368](https://github.com/The-Band-Solution/theband/issues/368) campo de prazo · [#369](https://github.com/The-Band-Solution/theband/issues/369) FR-012 · [#370](https://github.com/The-Band-Solution/theband/issues/370) FR-007 · [#176](https://github.com/The-Band-Solution/theband/issues/176) iterations |
+| **Feature média** | [#81](https://github.com/The-Band-Solution/theband/issues/81) — filtrar por organização nas telas (US2 da 002, cinco tarefas, teste de vazamento) |
+| **Funcionalidades grandes** | [#364](https://github.com/The-Band-Solution/theband/issues/364)→[#363](https://github.com/The-Band-Solution/theband/issues/363) competência como unidade · [#317](https://github.com/The-Band-Solution/theband/issues/317) sugerir papel · [#318](https://github.com/The-Band-Solution/theband/issues/318) comentários |
 
-**A correção dos 26**: a 024 gravou toda iteração como sprint, inclusive as futuras —
-26 de 220 com início no futuro, violando FR-030/SC-009. A migração
-`20260816200400` as moveu para `spo_intended_project_processes` (mesma Application
-Reference) e removeu a afirmação errada. Depois dela: 0 futuros, 26 pretendidos, 194
-sprints reais. `down` é no-op de propósito.
-
-## O que falta no sprint 017, na ordem
-
-1. **`TheBand.Projects` (raiz com defdelegate)** e **`Projects.Queries`** — a fronteira
-   raiz `projects.ex` ainda não existe; só `commands.ex` está escrito;
-2. **`SRO.product_backlog/2` e `sprint_backlog/2`** — derivados da atribuição, e o teste
-   da SC-009b (product + sprints = total de itens);
-3. **T056** — alargar as consultas GraphQL (`project_iterations.graphql` pede só o campo
-   de iteração; `project_items.graphql` casa só valor de iteração e descarta o resto;
-   rascunho é descartado no `... on Issue`);
-4. **A coleta** — estender `github_sprints.ex` (ou módulo novo `github_projects.ex`) para:
-   gravar o quadro via `record_observed_project`, campos, itens (rascunho incluído),
-   valores, e rotear iterações por `Projects.record_iteration` — que decide sprint vs
-   pretendido e faz a transição. Backfillar `project_iterations` a partir das 194;
-5. **T055** — organização sem quadros como resposta declarada no resumo do sync;
-6. **T057** — a tela de quadros e backlogs (campos interpretados vs não, ausência de
-   importância declarada);
-7. **T058** — o controle de excluir repositório na página dele (backend pronto:
-   `CMPO.exclude_from_observation/3`);
-8. **Testes de tudo** + `mix gates` — **os gates completos NÃO rodaram** sobre o WIP;
-   compile limpo e 13 testes de sprint/ingestão verdes foi até onde deu;
-9. PR com revisor pedido à equipe `the-band` e conferido; review do sprint; lições.
-
-O contrato já existe e é o guia: `specs/004-issues-e-projetos/contracts/project-ingestion.md`
-— 215 linhas, com `record_iteration` devolvendo o destino, os dois backlogs por derivação,
-`importance_source/2` para a tela declarar ausência, e a lista do que a API **não** expõe.
+**Antes de hospedar** (a pergunta ficou feita): o login é seletor sem senha — autenticação
+primeiro, ou Cloudflare Access na frente. Oracle Always Free é a gratuita que aguenta o
+cron; Render/Railway free dormem e matam o disparo.
 
 ## O primeiro comando ao voltar
 
