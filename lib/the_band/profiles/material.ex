@@ -334,6 +334,9 @@ defmodule TheBand.Profiles.Material do
           i.state == ^estado and not is_nil(field(i, ^ordem)),
       order_by: [asc: field(i, ^ordem)],
       select: %{
+        # O id existe para a tela ligar a tarefa à página dela — o prompt não o usa, e um
+        # UUID no material seria ruído que o modelo poderia citar.
+        id: i.id,
         number: i.number,
         data: fragment("?::date", field(i, ^ordem)),
         titulo: i.title,

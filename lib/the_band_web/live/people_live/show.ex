@@ -641,7 +641,9 @@ defmodule TheBandWeb.PeopleLive.Show do
                 <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
                   {t.dias_aberta}d
                 </span>
-                <span>{t.titulo}</span>
+                <.link navigate={~p"/work/issues/#{t.id}"} class="link link-hover">
+                  {t.titulo}
+                </.link>
               </div>
             </div>
           </div>

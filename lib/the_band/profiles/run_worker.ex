@@ -45,13 +45,18 @@ defmodule TheBand.Profiles.RunWorker do
   end
 
   defp executar(tenant, run) do
-    case Regeneration.select(tenant) do
+    case Regeneration.select(tenant, escopo(run)) do
       {:ok, vereditos} ->
         ja_feitas = Runs.recorded_person_ids(run)
 
-        vereditos
-        |> Enum.reject(fn {pessoa, _} -> MapSet.member?(ja_feitas, pessoa.id) end)
-        |> percorrer(tenant, run)
+        restantes =
+          Enum.reject(vereditos, fn {pessoa, _} -> MapSet.member?(ja_feitas, pessoa.id) end)
+
+        # O denominador da barra de progresso, regravado a cada tentativa: a elegibilidade
+        # pode mudar entre elas, e um plano velho mentiria o total.
+        {:ok, run} = Runs.plan(run, MapSet.size(ja_feitas) + length(restantes))
+
+        percorrer(restantes, tenant, run)
 
       # Limiar ausente ou inválido não deixa a rodada escolher por conta própria — `FR-009`.
       # Encerrar com o motivo é melhor que rodar com um número que ninguém definiu.
@@ -60,6 +65,12 @@ defmodule TheBand.Profiles.RunWorker do
         {:cancel, motivo}
     end
   end
+
+  # A rodada manual gera para todas as pessoas com material — emenda de 2026-08-16 à
+  # `FR-004`. Pedir a mão já é a decisão de escrever; a regra de mudança existe para a
+  # rodada que ninguém pediu.
+  defp escopo(%{trigger: "manual"}), do: :todas
+  defp escopo(_), do: :mudou
 
   defp percorrer([], _tenant, run) do
     {:ok, _} = Runs.finish(run, :completed)

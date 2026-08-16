@@ -111,7 +111,7 @@ defmodule TheBand.Profiles.Automation do
       tenant_id: tenant_id,
       event: evento,
       actor_user_id: ator_id,
-      occurred_at: DateTime.utc_now(:second)
+      occurred_at: DateTime.utc_now()
     })
     |> Repo.insert()
   end

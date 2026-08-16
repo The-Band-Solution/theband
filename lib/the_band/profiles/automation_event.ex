@@ -20,9 +20,11 @@ defmodule TheBand.Profiles.AutomationEvent do
     field :tenant_id, :binary_id
     field :event, :string
     field :actor_user_id, :binary_id
-    field :occurred_at, :utc_datetime
+    # Microssegundo, e não segundo: o estado é o último evento, e ligar e desligar no mesmo
+    # segundo empatariam — a ordem passaria a depender do plano da consulta.
+    field :occurred_at, :utc_datetime_usec
 
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   @doc """
