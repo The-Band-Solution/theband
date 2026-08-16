@@ -33,6 +33,38 @@ defmodule TheBand.Ontology.KnowledgeBase do
   @spec rule(String.t()) :: {:ok, map()} | :error
   def rule(id), do: fetch(:derivation_rule, id)
 
+  @doc """
+  Os axiomas da rede, um a um — issue #320.
+
+  `list(:axiom)` devolve **arquivos**, e cada arquivo carrega sete axiomas dentro de `rules`.
+  Quem pergunta pelos axiomas quer os axiomas, e não os dois arquivos que os contêm — por isso
+  esta função achata.
+
+  Sem ela, a `sro.rule07` só existia **escrita no código**: a semântica vivia no YAML e ninguém
+  conseguia perguntar a ela, que é o princípio IV cumprido pela metade.
+  """
+  @spec axioms() :: [map()]
+  def axioms do
+    :axiom
+    |> list()
+    |> Enum.flat_map(fn payload -> Map.get(payload, "rules", []) end)
+  end
+
+  @doc """
+  Um axioma pelo identificador declarado — `"sro.rule07..."`.
+
+  Devolve `:error` quando não existe, como as demais consultas por identificador. Casar por
+  prefixo seria conveniente e erraria: `sro.rule01` e `sro.rule01x` são identificadores
+  diferentes, e o prefixo devolveria o primeiro que aparecesse.
+  """
+  @spec axiom(String.t()) :: {:ok, map()} | :error
+  def axiom(id) do
+    case Enum.find(axioms(), &(Map.get(&1, "id") == id)) do
+      nil -> :error
+      axioma -> {:ok, axioma}
+    end
+  end
+
   @doc "Lista os artefatos de um tipo — `:mapping`, `:derivation_rule`, `:measurement`..."
   @spec list(atom()) :: [map()]
   def list(kind) do
