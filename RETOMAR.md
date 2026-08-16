@@ -15,6 +15,25 @@ Perfil real gravado no banco de desenvolvimento, gerado com a API de verdade:
 
 ---
 
+# O propósito, reafirmado em 2026-08-16
+
+**Entender as competências das pessoas: em que são fortes, e onde podem melhorar.**
+
+Está escrito aqui porque governa as decisões abaixo, e porque a feature nasceu de um
+enquadramento mais estreito — *"o que mudou ao longo do tempo"*. Evolução é **uma das
+dimensões** da competência, e não o assunto.
+
+O que isso decide, concretamente:
+
+| decisão | direção |
+|---|---|
+| o papel no prompt | especialista em competências, não analista de série temporal |
+| o que vem primeiro no texto | as habilidades e as forças; a trajetória as sustenta |
+| o que é "melhorar" | onde a evidência é rala, envelheceu, ou o trabalho demora — **do registro**, nunca da pessoa |
+| o que não entra | o que a tela já deriva sozinha, e o que o material não sustenta |
+
+---
+
 # O que fazer, na ordem
 
 ## 1. A página não recarrega quando a geração termina — **defeito entregue**
@@ -174,8 +193,12 @@ A feature virou sobre **habilidades**: a linha de habilidades é a primeira cois
 destaques têm critério próprio, e as lacunas são de evidência de competência. O papel tem de
 dizer isso.
 
-**O que trocar**: o enquadramento de abertura, e o peso relativo — competência primeiro,
-evolução como uma das dimensões dela.
+**O que trocar**: o enquadramento de abertura, e o peso relativo — **competência primeiro,
+evolução como uma das dimensões dela**. A pergunta que o papel responde deixa de ser *"o que
+mudou?"* e passa a ser *"em que esta pessoa é forte, e onde a evidência ainda não sustenta?"*.
+
+Reflexo no que a tela mostra primeiro: hoje o resumo abre por forças, o que já está certo —
+o que muda é o peso das seções seguintes e o critério de corte do que entra.
 
 **O que não perder** ao reescrever, porque cada um custou um defeito observado:
 
