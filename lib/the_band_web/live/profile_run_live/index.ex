@@ -27,8 +27,16 @@ defmodule TheBandWeb.ProfileRunLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket), do: Runs.subscribe(socket.assigns.current_tenant)
+
     {:ok, socket |> assign(page_title: "Profile generation") |> carregar()}
   end
+
+  # Cada checkpoint da rodada chega aqui, e a tela recarrega do banco — o progresso anda
+  # sozinho, sem ninguém apertar reload. Só o id trafega; duas fontes do mesmo fato
+  # divergiriam.
+  @impl true
+  def handle_info({:rodada, _run_id}, socket), do: {:noreply, carregar(socket)}
 
   @impl true
   def handle_event("enable", _params, socket) do
@@ -147,12 +155,16 @@ defmodule TheBandWeb.ProfileRunLive.Index do
           <.absent reason="Never turned on — no profile is written on its own in this organisation." />
         </div>
 
+        <%!-- A rodada a mão gera para TODO MUNDO com material — emenda de 2026-08-16 à
+              FR-004. O custo aparece antes do clique, porque uma rodada completa foi medida
+              em milhões de tokens de entrada: quem clica decide gastando, não descobrindo. --%>
         <button
           :if={match?({:enabled, _}, @estado)}
           class="btn btn-xs btn-outline w-fit"
           phx-click="run_now"
+          data-confirm="A run asked for by hand writes a new profile for EVERY person with material — the change rule only applies to the monthly run. This spends provider tokens for the whole organisation. Start it?"
         >
-          run now
+          run now — everyone
         </button>
       </div>
 
@@ -161,6 +173,33 @@ defmodule TheBandWeb.ProfileRunLive.Index do
 
         <div :if={@rodadas == []}>
           <.absent reason="No run yet — which is not the same as a run that generated nobody." />
+        </div>
+
+        <%!-- A barra só existe para a rodada aberta. O numerador é a contagem de entradas —
+              derivada, como os nove números —, e o denominador é o plano gravado na seleção.
+              Plano ainda nulo é "não sabemos o total": a barra fica indeterminada, nunca em
+              zero, porque zero diria "nada a fazer" onde a verdade é "selecionando". --%>
+        <div :for={run <- @rodadas} :if={run.finished_at == nil} class="mb-4 space-y-1">
+          <div class="flex items-center justify-between text-sm">
+            <span class="font-medium">Run in progress</span>
+            <span :if={run.people_selected} class="font-mono text-xs">
+              {@resumos[run.id].considered} of {run.people_selected} people
+            </span>
+            <span :if={is_nil(run.people_selected)} class="text-xs opacity-70">
+              selecting who enters…
+            </span>
+          </div>
+          <progress
+            :if={run.people_selected}
+            class="progress progress-primary w-full"
+            value={@resumos[run.id].considered}
+            max={run.people_selected}
+          ></progress>
+          <progress :if={is_nil(run.people_selected)} class="progress w-full"></progress>
+          <p class="text-xs opacity-60">
+            Each step is a person: generated, skipped or failed — the table below counts them
+            apart. A generation takes 25 to 60 seconds per person.
+          </p>
         </div>
 
         <table :if={@rodadas != []} class="table table-sm stacked">

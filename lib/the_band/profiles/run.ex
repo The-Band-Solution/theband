@@ -30,6 +30,11 @@ defmodule TheBand.Profiles.Run do
 
     field :credential_last_four, :string
 
+    # O denominador da barra de progresso: quantas pessoas a seleção decidiu percorrer.
+    # Escrito pelo worker no momento da seleção, e regravado na retentativa — nunca é
+    # contador de desfecho, que continua derivado das entradas. `nil` é "não medido".
+    field :people_selected, :integer
+
     timestamps(type: :utc_datetime)
   end
 

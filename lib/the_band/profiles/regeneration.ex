@@ -70,14 +70,23 @@ defmodule TheBand.Profiles.Regeneration do
 
   A ordem é declarada — mais tarefas novas primeiro. Se a rodada morrer no meio, terá gerado
   quem tinha mais o que dizer de novo.
+
+  ## O escopo, e por que ele existe — emenda de 2026-08-16 à `FR-004`
+
+  `:mudou` é a rodada automática: a regra de mudança da `FR-006` decide, porque texto que
+  ninguém pediu só se justifica quando o material mudou. `:todas` é a rodada manual: pedir a
+  mão **já é** a decisão de escrever, e a regra de mudança deixaria de fora exatamente quem a
+  pessoa administradora quer ver escrito. Os pulos que sobram em `:todas` são de fato, não de
+  critério — sem material e observação encerrada.
   """
-  @spec select(Tenant.t()) :: {:ok, [{Person.t(), veredito()}]} | {:error, term()}
-  def select(%Tenant{} = tenant) do
+  @spec select(Tenant.t(), :mudou | :todas) ::
+          {:ok, [{Person.t(), veredito()}]} | {:error, term()}
+  def select(%Tenant{} = tenant, escopo \\ :mudou) when escopo in [:mudou, :todas] do
     with {:ok, limiares} <- thresholds() do
       vereditos =
         tenant
         |> pessoas()
-        |> Enum.map(&{&1, due?(tenant, &1, limiares), novas(tenant, &1)})
+        |> Enum.map(&{&1, due?(tenant, &1, limiares, escopo), novas(tenant, &1)})
         |> Enum.sort_by(fn {_p, _v, novas} -> -novas end)
         |> Enum.map(fn {pessoa, veredito, _novas} -> {pessoa, veredito} end)
 
@@ -98,15 +107,21 @@ defmodule TheBand.Profiles.Regeneration do
   Os dois extremos dos passos 4 e 5 são diferentes de propósito: a contagem parte do fim do
   recorte, que é a última data que o texto alcança; a idade parte da data de geração, que é a
   data que a tela exibe.
+
+  Com escopo `:todas`, os passos 4 a 6 não existem: quem chegou ao passo 3 gera, com ou sem
+  perfil anterior. Os dois primeiros continuam valendo — são fato, não critério.
   """
-  @spec due?(Tenant.t(), Person.t(), limiares()) :: veredito()
-  def due?(%Tenant{} = tenant, %Person{} = pessoa, %{n: n, m_months: m}) do
+  @spec due?(Tenant.t(), Person.t(), limiares(), :mudou | :todas) :: veredito()
+  def due?(%Tenant{} = tenant, %Person{} = pessoa, %{n: n, m_months: m}, escopo \\ :mudou) do
     cond do
       pessoa.no_longer_observed_at != nil ->
         {:skip, :observation_ended}
 
       Material.check(tenant, pessoa.id) != :ok ->
         {:skip, :no_material}
+
+      escopo == :todas ->
+        :generate
 
       true ->
         case EOProfiles.current(tenant, pessoa.id) do

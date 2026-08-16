@@ -162,4 +162,44 @@ defmodule TheBand.Profiles.RegenerationTest do
       assert {:skip, :no_material} in motivos
     end
   end
+
+  describe "o escopo :todas — a rodada manual gera para todo mundo com material" do
+    # Emenda de 2026-08-16 à FR-004: pedir a mão já é a decisão de escrever, e a regra de
+    # mudança existe para a rodada que ninguém pediu.
+
+    test "quem seria pulado por falta de trabalho novo gera", ctx do
+      perfil(ctx.tenant, ctx.pessoa, %{period_to: ~D[2030-01-01]})
+
+      assert {:skip, :no_new_work} =
+               Regeneration.due?(ctx.tenant, ctx.pessoa, ctx.limiares, :mudou)
+
+      assert :generate = Regeneration.due?(ctx.tenant, ctx.pessoa, ctx.limiares, :todas)
+    end
+
+    test "os pulos de fato continuam: sem material e observação encerrada", ctx do
+      rala =
+        TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "rala",
+          tarefas: 2
+        )
+
+      assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, rala, ctx.limiares, :todas)
+
+      Repo.update_all(
+        from(p in TheBand.Ontology.SEON.EO.Schemas.Person, where: p.id == ^ctx.pessoa.id),
+        set: [no_longer_observed_at: DateTime.utc_now(:second)]
+      )
+
+      encerrada = Repo.get!(TheBand.Ontology.SEON.EO.Schemas.Person, ctx.pessoa.id)
+
+      assert {:skip, :observation_ended} =
+               Regeneration.due?(ctx.tenant, encerrada, ctx.limiares, :todas)
+    end
+
+    test "sem o argumento, o escopo é :mudou — o cron não muda de comportamento", ctx do
+      perfil(ctx.tenant, ctx.pessoa, %{period_to: ~D[2030-01-01]})
+
+      assert {:ok, vereditos} = Regeneration.select(ctx.tenant)
+      assert [{_, {:skip, :no_new_work}}] = vereditos
+    end
+  end
 end
