@@ -17,19 +17,58 @@ Perfil real gravado no banco de desenvolvimento, gerado com a API de verdade:
 
 # O propósito, reafirmado em 2026-08-16
 
-**Entender as competências das pessoas: em que são fortes, e onde podem melhorar.**
+> **Entender a pessoa pelas habilidades dela, que são materializadas pelas tarefas
+> executadas.** Um resumo das competências, **por meio das tarefas**.
 
-Está escrito aqui porque governa as decisões abaixo, e porque a feature nasceu de um
-enquadramento mais estreito — *"o que mudou ao longo do tempo"*. Evolução é **uma das
-dimensões** da competência, e não o assunto.
+O verbo é da SRO, e não é enfeite: a tarefa executada produz o entregável, e o entregável
+materializa alguma coisa. **A tarefa é evidência; a competência é o que ela materializa.**
 
-O que isso decide, concretamente:
+Está no topo porque governa as decisões abaixo, e porque a feature nasceu de um enquadramento
+mais estreito — *"o que mudou ao longo do tempo"*. Evolução é **uma das dimensões** da
+competência, e não o assunto.
+
+## A consequência estrutural, e é a maior mudança pendente
+
+Hoje o JSON tem `habilidades` como **lista de rótulos soltos**, e as tarefas que as sustentam
+vivem numa seção **separada**, `destaques`. Quem lê a linha de habilidades não vê o que a
+materializa; quem lê os destaques vê evidência sem saber que competência ela sustenta.
+
+Se a competência é a unidade, **ela carrega as tarefas junto**. As duas seções viram uma:
+
+```jsonc
+competencias: [
+  {
+    nome: "observabilidade com OpenTelemetry e SigNoz",
+    o_que_faz_nela: "instrumentou aplicações, montou coletores e painéis",
+    tarefas: 14,
+    periodos: [1, 2, 3],
+    mais_recente: "2026-08",
+    // o que MATERIALIZA a competência — com título, não só número:
+    // um número não mostra o que foi feito, e quem lê não vai abrir a issue
+    evidencia: [
+      { numero: 199, titulo: "Spike: Autenticação Keycloak ↔ GitHub ↔ Signoz" },
+      { numero: 449, titulo: "Transferir Signoz para VPS" }
+    ]
+  }
+]
+```
+
+**A mudança que mais importa está no `evidencia`**: hoje é `[199, 449]`, só números. Com
+título, a tarefa aparece como o que ela é — a materialização da competência. Sem título,
+a evidência é uma promessa de que existe.
+
+E `melhorar` fica a mesma estrutura com evidência mais fraca: o mesmo objeto, com o que
+falta nomeado — rala, envelhecida, ou trabalho que demora.
+
+## O que isso decide, concretamente
 
 | decisão | direção |
 |---|---|
+| a unidade do relatório | a **competência**, com as tarefas que a materializam dentro |
 | o papel no prompt | especialista em competências, não analista de série temporal |
-| o que vem primeiro no texto | as habilidades e as forças; a trajetória as sustenta |
-| o que é "melhorar" | onde a evidência é rala, envelheceu, ou o trabalho demora — **do registro**, nunca da pessoa |
+| a evidência | número **e título** — o título é o que mostra a materialização |
+| o que vem primeiro | as competências; a trajetória mostra como elas se formaram |
+| o que é "melhorar" | a mesma estrutura com evidência rala, envelhecida ou lenta — **do registro**, nunca da pessoa |
 | o que não entra | o que a tela já deriva sozinha, e o que o material não sustenta |
 
 ---
@@ -183,7 +222,17 @@ paginada, então conferir se dá para derivar do conjunto que a página já carr
 consulta continua necessária — se continuar, ela é observada e barata, e o guard de consultas
 da página precisa ganhar a linha correspondente.
 
-## 5. O papel no prompt — especialista em competências
+## 5. O papel e a estrutura — a competência como unidade
+
+**Esta é a maior das nove, e as outras oito servem a ela.** A reestruturação do JSON está
+descrita no propósito, lá em cima: `habilidades` e `destaques` viram `competencias`, e a
+evidência passa a carregar título além do número.
+
+Reflexo na tela: as marcas de habilidade deixam de ser rótulos e passam a abrir para as
+tarefas que as materializam. O critério de destaque continua visível — é ele que impede
+"competência" de virar opinião.
+
+### O papel no prompt
 
 Pedido teu em 2026-08-16. Hoje o prompt abre com *"Você compara uma pessoa com ela mesma ao
 longo do tempo (…) e responde uma pergunta: o que mudou?"* — enquadramento de comparação
