@@ -83,4 +83,66 @@ defmodule TheBand.Ontology.AxiomasAlcancaveisTest do
       assert :error = KnowledgeBase.axiom("sro.rule07")
     end
   end
+
+  describe "nenhum artefato novo some em silêncio" do
+    # **O teste acima trava o defeito; este trava a família dele.**
+    #
+    # Consertar os dois arquivos de axioma não impede o próximo arquivo de cair em
+    # `:unknown` exatamente do mesmo jeito — e não é hipótese: em 2026-08-15
+    # `profile_thresholds.yaml` nasceu com `rules:` e ficou ilegível por
+    # `KnowledgeBase.rule/1`, meses depois de os axiomas terem caído no mesmo buraco. A
+    # segunda mordida veio de a primeira nunca ter deixado guarda.
+    #
+    # Os JSON Schemas são o `:unknown` **legítimo**: não são artefatos de conhecimento, e
+    # `SchemaCheck` os alcança pelo caminho, com `Regex.run(~r{schemas/…})`. Tipá-los
+    # inventaria um tipo para arquivos que existem só para validar os outros.
+    #
+    # `sources/`, `glossary/` e `examples/` **não** são legítimos: são conhecimento, e
+    # nenhuma consulta por tipo os alcança. Estão declarados aqui como **dívida**, e não
+    # como decisão — a #320 cobriu os axiomas e parou neles.
+    @unknown_esperado ~w(
+      examples/sro_espm_project.yaml
+      glossary/glossary.yaml
+      schemas/common.schema.yaml
+      schemas/competency-question.schema.yaml
+      schemas/information-need.schema.yaml
+      schemas/mapping.schema.yaml
+      schemas/measurement.schema.yaml
+      schemas/module.schema.yaml
+      schemas/ontology.schema.yaml
+      schemas/transformation.schema.yaml
+      sources/azure_devops.yaml
+      sources/github.yaml
+      sources/gitlab.yaml
+      sources/jira.yaml
+      sources/sonar.yaml
+    )
+
+    test "a lista de :unknown é a declarada — nem mais, nem menos", %{artifacts: artifacts} do
+      atual =
+        artifacts |> Enum.filter(&(&1.kind == :unknown)) |> Enum.map(& &1.path) |> Enum.sort()
+
+      novos = atual -- @unknown_esperado
+      resolvidos = @unknown_esperado -- atual
+
+      assert novos == [],
+             """
+             Estes arquivos passaram a carregar como `:unknown`, e nenhuma consulta por tipo
+             os alcança:
+
+             #{Enum.map_join(novos, "\n", &"  #{&1}")}
+
+             A chave de topo tem de ser um dos tipos de `YamlLoader.@tops`. Se o arquivo é de
+             um tipo novo, acrescente o tipo lá — não o deixe em `:unknown`, que é onde os
+             axiomas ficaram invisíveis por duas features.
+             """
+
+      assert resolvidos == [],
+             """
+             Estes arquivos deixaram de ser `:unknown`, o que é bom — tire-os da lista:
+
+             #{Enum.map_join(resolvidos, "\n", &"  #{&1}")}
+             """
+    end
+  end
 end
