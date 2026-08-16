@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Band — dados de engenharia com proveniência</title>
+<meta name="description" content="The Band rege os dados das suas ferramentas — issues, commits, sprints, quadros — numa língua comum, até virarem informação em que a organização pode agir. Todo número diz de onde veio.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎼</text></svg>">
+</head>
+<body>
+<style>
+  :root {
+    --papel: #f1f4f2;
+    --tinta: #17211c;
+    --tinta-2: #45544d;
+    --verdete: #2c6b60;
+    --verdete-forte: #1d5a50;
+    --verdete-fundo: #e3ece8;
+    --latao: #96731f;
+    --pauta: #c9d4ce;
+    --cartao: #fafcfa;
+    --hachura: repeating-linear-gradient(135deg, transparent 0 4px, currentColor 4px 5px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papel: #101816;
+      --tinta: #dee8e2;
+      --tinta-2: #93a69d;
+      --verdete: #5fa294;
+      --verdete-forte: #7dbcae;
+      --verdete-fundo: #16241f;
+      --latao: #c9a24b;
+      --pauta: #26332d;
+      --cartao: #151f1b;
+    }
+  }
+  :root[data-theme="dark"] {
+    --papel: #101816;
+    --tinta: #dee8e2;
+    --tinta-2: #93a69d;
+    --verdete: #5fa294;
+    --verdete-forte: #7dbcae;
+    --verdete-fundo: #16241f;
+    --latao: #c9a24b;
+    --pauta: #26332d;
+    --cartao: #151f1b;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: Seravek, "Gill Sans Nova", "Gill Sans", Calibri, "Segoe UI", sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .serif { font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  .faixa { max-width: 66rem; margin: 0 auto; padding: 0 1.5rem; }
+  .texto { max-width: 42rem; }
+
+  /* idioma: um visível por vez */
+  [data-lang] { display: none; }
+  html[lang="pt-BR"] [data-lang="pt"], html[lang="en"] [data-lang="en"] { display: block; }
+
+  .troca-idioma {
+    position: fixed; top: 1rem; right: 1rem; z-index: 10;
+    display: flex; gap: 0; border: 1px solid var(--pauta); border-radius: 4px;
+    background: var(--cartao); overflow: hidden;
+  }
+  .troca-idioma button {
+    border: 0; background: none; color: var(--tinta-2); font: inherit; font-size: .85rem;
+    font-weight: 600; padding: .35rem .7rem; cursor: pointer;
+  }
+  .troca-idioma button[aria-pressed="true"] { background: var(--verdete); color: var(--papel); }
+  .troca-idioma button:focus-visible { outline: 3px solid var(--latao); outline-offset: -3px; }
+
+  .pauta {
+    height: 33px;
+    background: repeating-linear-gradient(to bottom, var(--pauta) 0 1px, transparent 1px 8px);
+    background-size: 100% 33px; background-repeat: no-repeat; margin: 0; border: 0;
+  }
+
+  header.hero { padding: 4.5rem 0 3.5rem; }
+  .assinatura { font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--verdete); font-weight: 600; }
+  h1 { font-size: clamp(2.6rem, 7vw, 4.6rem); line-height: 1.04; margin: .6rem 0 1.2rem; font-weight: 500; text-wrap: balance; letter-spacing: -.01em; }
+  h1 em { font-style: italic; color: var(--verdete); }
+  .tese { font-size: 1.25rem; color: var(--tinta-2); max-width: 36rem; text-wrap: balance; }
+
+  .compasso { position: relative; margin-top: 2.6rem; }
+  .nota {
+    position: absolute; width: 11px; height: 8.5px; border-radius: 50% / 42%;
+    background: var(--verdete); transform: rotate(-18deg);
+    animation: pousar .5s ease-out backwards;
+  }
+  .nota.derivada { background: none; color: var(--latao); border: 1px solid var(--latao); }
+  .nota.derivada::after { content:""; position:absolute; inset:0; border-radius:inherit; background: var(--hachura); opacity:.9; }
+  @keyframes pousar { from { translate: 0 -14px; opacity: 0; } to { translate: 0 0; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .nota { animation: none; } }
+
+  main section { padding: 3.4rem 0 3rem; }
+  h2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 500; line-height: 1.15; margin: 0 0 1rem; text-wrap: balance; }
+  h2 .num { color: var(--verdete); font-style: italic; margin-right: .5rem; }
+  p { margin: 0 0 1rem; }
+  .mudo { color: var(--tinta-2); }
+
+  .chip { display: inline-flex; align-items: center; gap: .45rem; padding: .28rem .7rem; border-radius: 3px; font-size: .85rem; font-weight: 600; }
+  .chip .q { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+  .chip.observado { background: var(--verdete-fundo); color: var(--verdete); }
+  .chip.observado .q { background: var(--verdete); }
+  .chip.derivado { border: 1px solid var(--latao); color: var(--latao); }
+  .chip.derivado .q { border: 1px solid var(--latao); background: var(--hachura); }
+  .chip.declarado { border: 1px dashed var(--tinta-2); color: var(--tinta-2); }
+  .chip.declarado .q { border: 1.5px dashed var(--tinta-2); }
+  .legenda { display: flex; flex-wrap: wrap; gap: .7rem; margin: 1.4rem 0; }
+
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
+  @media (max-width: 44rem) { .duas { grid-template-columns: 1fr; } }
+
+  blockquote { margin: 1.6rem 0; padding: 0 0 0 1.1rem; border-left: 3px solid var(--latao); font-size: 1.15rem; font-style: italic; color: var(--tinta-2); }
+
+  .movimentos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--pauta); border: 1px solid var(--pauta); margin-top: 1.8rem; }
+  @media (max-width: 44rem) { .movimentos { grid-template-columns: 1fr; } }
+  .movimento { background: var(--cartao); padding: 1.4rem 1.3rem 1.2rem; }
+  .movimento .romano { font-size: .8rem; letter-spacing: .14em; color: var(--verdete); font-weight: 700; }
+  .movimento h3 { margin: .35rem 0 .5rem; font-size: 1.15rem; font-weight: 600; }
+  .movimento p { font-size: .95rem; color: var(--tinta-2); margin: 0; }
+
+  .perguntas { list-style: none; margin: 1.6rem 0 0; padding: 0; }
+  .perguntas li { padding: 1rem 0; border-top: 1px solid var(--pauta); font-size: 1.18rem; text-wrap: balance; }
+  .perguntas li:last-child { border-bottom: 1px solid var(--pauta); }
+  .perguntas .resposta { display: block; font-size: .88rem; color: var(--verdete); margin-top: .2rem; font-style: normal; }
+
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.6rem; margin-top: 1.8rem; }
+  @media (max-width: 44rem) { .numeros { grid-template-columns: repeat(2, 1fr); } }
+  .numero .valor { font-size: 2.1rem; font-weight: 500; line-height: 1.1; }
+  .numero .rotulo { font-size: .85rem; color: var(--tinta-2); }
+
+  .recibo { background: var(--cartao); border: 1px solid var(--pauta); padding: 1.5rem 1.6rem; margin-top: 1.6rem; font-size: .95rem; max-width: 46rem; }
+  .recibo dt { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; color: var(--tinta-2); margin-top: .9rem; }
+  .recibo dt:first-child { margin-top: 0; }
+  .recibo dd { margin: .15rem 0 0; }
+
+  /* ---- gráficos ---- */
+  .grafico { background: var(--cartao); border: 1px solid var(--pauta); padding: 1.3rem 1.4rem 1.1rem; }
+  .grafico h4 { margin: 0 0 .15rem; font-size: 1rem; font-weight: 600; }
+  .grafico .sub { font-size: .8rem; color: var(--tinta-2); margin: 0 0 1rem; }
+  .barras { display: grid; grid-template-columns: max-content 1fr max-content; gap: .45rem .8rem; align-items: center; font-size: .88rem; }
+  .barras .rotulo { color: var(--tinta); }
+  .barras .valor { color: var(--tinta-2); font-size: .82rem; }
+  .trilho { height: 14px; background: var(--verdete-fundo); border-radius: 3px; position: relative; }
+  .barra { position: absolute; inset: 0 auto 0 0; background: var(--verdete); border-radius: 3px; min-width: 4px; transition: background .15s; }
+  .trilho:hover .barra { background: var(--verdete-forte); }
+  .graficos { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.6rem; }
+  @media (max-width: 48rem) { .graficos { grid-template-columns: 1fr; } }
+  details.tabela { margin-top: .9rem; font-size: .82rem; color: var(--tinta-2); }
+  details.tabela table { border-collapse: collapse; margin-top: .5rem; }
+  details.tabela td, details.tabela th { border: 1px solid var(--pauta); padding: .25rem .6rem; text-align: left; }
+  .nota-ilustrativa { font-size: .78rem; color: var(--tinta-2); margin-top: .8rem; font-style: italic; }
+
+  .coda { text-align: center; padding: 4rem 0 4.5rem; }
+  .coda h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  .botoes { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 1.8rem; }
+  .botao { display: inline-block; padding: .8rem 1.6rem; border-radius: 4px; font-weight: 600; text-decoration: none; font-size: 1rem; }
+  .botao:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--latao); outline-offset: 2px; }
+  .botao.cheio { background: var(--verdete); color: var(--papel); }
+  .botao.vazado { border: 1.5px solid var(--verdete); color: var(--verdete); }
+
+  footer { border-top: 1px solid var(--pauta); padding: 1.6rem 0 2.4rem; font-size: .85rem; color: var(--tinta-2); }
+  footer .faixa { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  a { color: var(--verdete); }
+</style>
+
+<div class="troca-idioma" role="group" aria-label="Idioma / Language">
+  <button id="btn-pt" aria-pressed="true" onclick="trocarIdioma('pt-BR')">PT</button>
+  <button id="btn-en" aria-pressed="false" onclick="trocarIdioma('en')">EN</button>
+</div>
+<script>
+  function trocarIdioma(lang) {
+    document.documentElement.lang = lang;
+    document.getElementById('btn-pt').setAttribute('aria-pressed', lang === 'pt-BR');
+    document.getElementById('btn-en').setAttribute('aria-pressed', lang === 'en');
+    try { localStorage.setItem('theband-lang', lang); } catch (e) {}
+  }
+  try { trocarIdioma(localStorage.getItem('theband-lang') || 'pt-BR'); } catch (e) { trocarIdioma('pt-BR'); }
+</script>
+
+<!-- ============================== PORTUGUÊS ============================== -->
+<div data-lang="pt">
+<header class="hero">
+  <div class="faixa">
+    <div class="assinatura">The Band · integração semântica de dados de engenharia</div>
+    <h1 class="serif">Notas não são <em>música.</em></h1>
+    <p class="tese">
+      Suas ferramentas produzem notas: issues, commits, sprints, quadros — cada uma no
+      seu vocabulário. O The Band as rege numa língua comum, até virarem
+      <strong>informação em que a organização pode agir</strong>.
+    </p>
+    <div class="compasso" aria-hidden="true">
+      <div class="pauta"></div>
+      <span class="nota" style="left:6%; top:2px; animation-delay:.05s"></span>
+      <span class="nota" style="left:16%; top:18px; animation-delay:.15s"></span>
+      <span class="nota derivada" style="left:27%; top:10px; animation-delay:.25s"></span>
+      <span class="nota" style="left:39%; top:25px; animation-delay:.35s"></span>
+      <span class="nota" style="left:52%; top:2px; animation-delay:.45s"></span>
+      <span class="nota derivada" style="left:63%; top:18px; animation-delay:.55s"></span>
+      <span class="nota" style="left:74%; top:10px; animation-delay:.65s"></span>
+      <span class="nota" style="left:88%; top:10px; animation-delay:.75s"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="faixa">
+      <div class="duas">
+        <div>
+          <h2 class="serif"><span class="num">I.</span>Todo painel responde “quanto”. Quase nenhum responde <em>“de onde veio?”</em></h2>
+        </div>
+        <div class="texto">
+          <p>
+            Os dados de engenharia moram espalhados — GitHub, quadros, planilhas, CI — e cada
+            ferramenta só enxerga a si mesma. Alguém copia números para um painel, o painel
+            envelhece, e a reunião discute um valor que ninguém consegue rastrear.
+          </p>
+          <blockquote class="serif">
+            A decisão mais cara não é a tomada com dado errado.
+            É a tomada com um dado que ninguém pode verificar.
+          </blockquote>
+          <p class="mudo">
+            Dashboards agregam. Data lakes acumulam. Nenhum dos dois sabe dizer o que um
+            número <em>significa</em> — nem o que ele esconde.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">II.</span>Três proveniências, nunca misturadas</h2>
+      <p class="texto">
+        A regra que atravessa o produto inteiro — do banco à tela: o que foi <strong>observado</strong>
+        na origem, o que a plataforma <strong>derivou</strong> por regra versionada, e o que uma pessoa
+        <strong>declarou</strong> são coisas diferentes, e aparecem diferentes. O derivado é sempre
+        hachurado e rotulado; a cor sozinha nunca carrega a distinção.
+      </p>
+      <div class="legenda">
+        <span class="chip observado"><span class="q"></span>observado na origem</span>
+        <span class="chip derivado"><span class="q"></span>derivado por regra — hachurado</span>
+        <span class="chip declarado"><span class="q"></span>declarado por alguém, com autor</span>
+      </div>
+      <div class="movimentos">
+        <div class="movimento">
+          <div class="romano">1º MOVIMENTO</div>
+          <h3>Coletar, com identidade</h3>
+          <p>Conectores leem as origens e gravam cada registro com a referência da aplicação —
+             sistema, instância, id externo. Renomear não cria entidade nova; sumir marca,
+             nunca apaga.</p>
+        </div>
+        <div class="movimento">
+          <div class="romano">2º MOVIMENTO</div>
+          <h3>Traduzir para uma língua comum</h3>
+          <p>“Sprint” no quadro, “iteration” na API e “ciclo” na planilha são a mesma coisa —
+             ou não são, e a diferença importa. O The Band traduz cada termo para um modelo
+             único do que as palavras significam, escrito e versionado. O dicionário por trás
+             é rigoroso — uma rede de <em>ontologias</em> de referência com 222 conceitos,
+             herdada da tese —, mas quem usa só precisa saber que ele existe e é auditável.</p>
+        </div>
+        <div class="movimento">
+          <div class="romano">3º MOVIMENTO</div>
+          <h3>Responder, com recibo</h3>
+          <p>Necessidades de informação viram medidas com fórmula declarada, limitações
+             escritas e interpretações incorretas possíveis nomeadas — antes de qualquer
+             número aparecer numa tela.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">III.</span>As perguntas que ele existe para responder</h2>
+      <ul class="perguntas serif">
+        <li>Quais projetos apresentam maior retrabalho?</li>
+        <li>Quais equipes têm maior cycle time?</li>
+        <li>Quem trabalha em quê — e o que as tarefas executadas dizem sobre as competências de cada pessoa, e da equipe inteira?</li>
+        <li>De qual fonte um indicador foi derivado, como foi calculado, e o que ele não alcança?
+          <em class="resposta">— esta última, todo número da plataforma responde sobre si mesmo.</em>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">IV.</span>A competência pelo que a pessoa <em>fez</em></h2>
+      <div class="duas">
+        <div class="texto">
+          <p>
+            A plataforma lê as tarefas que cada pessoa executou e escreve o perfil de
+            competências que elas materializam — <strong>a tarefa é a evidência; a
+            competência é o que ela demonstra</strong>. Alocada sobre o time inteiro, essa
+            leitura responde o que nenhum currículo responde: em que esta equipe é forte,
+            onde a evidência é rala, e quem já demonstrou o que o próximo projeto pede.
+          </p>
+          <ul class="mudo" style="padding-left:1.1rem;">
+            <li><strong>Não é avaliação de desempenho</strong> — desempenho é a distância entre combinado e entregue, e o combinado não está no material;</li>
+            <li><strong>não compara pessoas</strong> — cada perfil olha uma pessoa contra ela mesma, ao longo do tempo;</li>
+            <li><strong>lacuna é do registro, nunca da pessoa</strong> — não observar não é não saber.</li>
+          </ul>
+        </div>
+        <dl class="recibo mono" style="margin-top:0;">
+          <dt>o que afirma</dt>
+          <dd>“observabilidade com OpenTelemetry” — competência demonstrada</dd>
+          <dt>evidência</dt>
+          <dd>97 tarefas concluídas · 14 no domínio · períodos 1–3</dd>
+          <dt>proveniência</dt>
+          <dd>derivado — escrito por modelo de linguagem em 2026-08-16</dd>
+          <dt>o que não alcança</dt>
+          <dd>44% das descrições foram escritas por terceiros; lacuna é do registro, nunca da pessoa</dd>
+        </dl>
+      </div>
+
+      <div class="graficos">
+        <figure class="grafico" style="margin:0">
+          <h4>Uma pessoa: evidência por competência</h4>
+          <p class="sub">tarefas concluídas que demonstram cada domínio · contagem calculada, nunca estimada pelo modelo</p>
+          <div class="barras mono" role="img" aria-label="Barras: OpenTelemetry e SigNoz 14 tarefas; provisionamento de VPS 12; Kubernetes 9; Helm e Vault 7; DNS e rede 6.">
+            <span class="rotulo">OpenTelemetry · SigNoz</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">14</span>
+            <span class="rotulo">provisionamento de VPS</span><span class="trilho"><span class="barra" style="width:86%"></span></span><span class="valor">12</span>
+            <span class="rotulo">Kubernetes</span><span class="trilho"><span class="barra" style="width:64%"></span></span><span class="valor">9</span>
+            <span class="rotulo">Helm · Vault</span><span class="trilho"><span class="barra" style="width:50%"></span></span><span class="valor">7</span>
+            <span class="rotulo">DNS · rede</span><span class="trilho"><span class="barra" style="width:43%"></span></span><span class="valor">6</span>
+          </div>
+          <details class="tabela"><summary>ver como tabela</summary>
+            <table><tr><th>competência</th><th>tarefas</th></tr>
+              <tr><td>OpenTelemetry · SigNoz</td><td>14</td></tr><tr><td>provisionamento de VPS</td><td>12</td></tr>
+              <tr><td>Kubernetes</td><td>9</td></tr><tr><td>Helm · Vault</td><td>7</td></tr><tr><td>DNS · rede</td><td>6</td></tr></table>
+          </details>
+        </figure>
+        <figure class="grafico" style="margin:0">
+          <h4>A equipe: quantas pessoas já demonstraram</h4>
+          <p class="sub">cobertura de competência no time · onde a barra é curta, o próximo projeto tem risco</p>
+          <div class="barras mono" role="img" aria-label="Barras: observabilidade 4 pessoas; Kubernetes 3; provisionamento 3; Helm e Vault 2; Terraform 1.">
+            <span class="rotulo">observabilidade</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">4</span>
+            <span class="rotulo">Kubernetes</span><span class="trilho"><span class="barra" style="width:75%"></span></span><span class="valor">3</span>
+            <span class="rotulo">provisionamento</span><span class="trilho"><span class="barra" style="width:75%"></span></span><span class="valor">3</span>
+            <span class="rotulo">Helm · Vault</span><span class="trilho"><span class="barra" style="width:50%"></span></span><span class="valor">2</span>
+            <span class="rotulo">Terraform</span><span class="trilho"><span class="barra" style="width:25%"></span></span><span class="valor">1</span>
+          </div>
+          <details class="tabela"><summary>ver como tabela</summary>
+            <table><tr><th>competência</th><th>pessoas</th></tr>
+              <tr><td>observabilidade</td><td>4</td></tr><tr><td>Kubernetes</td><td>3</td></tr>
+              <tr><td>provisionamento</td><td>3</td></tr><tr><td>Helm · Vault</td><td>2</td></tr><tr><td>Terraform</td><td>1</td></tr></table>
+          </details>
+        </figure>
+      </div>
+      <p class="nota-ilustrativa">Números ilustrativos, na forma real dos perfis gerados pela plataforma. As contagens de evidência são sempre calculadas do dado observado — o modelo de linguagem escreve o texto, nunca os números.</p>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">V.</span>Medido em produção, não prometido</h2>
+      <p class="texto mudo">Uma instalação real, três organizações observadas:</p>
+      <div class="numeros mono">
+        <div class="numero"><div class="valor">5.031</div><div class="rotulo">issues coletadas e classificadas</div></div>
+        <div class="numero"><div class="valor">160</div><div class="rotulo">repositórios observados</div></div>
+        <div class="numero"><div class="valor">44.821</div><div class="rotulo">promoções semânticas, com confiança declarada</div></div>
+        <div class="numero"><div class="valor">194</div><div class="rotulo">sprints reais — e 29 planos que nunca viraram sprint, ditos como planos</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="coda">
+    <div class="faixa">
+      <h2 class="serif">Regência aberta.</h2>
+      <p class="texto mudo" style="margin: 0 auto;">
+        Elixir + Phoenix, PostgreSQL, base de conhecimento em YAML versionado.
+        Treze quality gates. Código aberto, da tese ao deploy.
+      </p>
+      <div class="botoes">
+        <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">Ver o repositório</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Começar pelo quickstart</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="faixa">
+    <span>The Band — do doutorado de Paulo Sérgio dos Santos Júnior (UFES) ao código.</span>
+    <span>Continuum + SEON sobre UFO · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
+  </div>
+</footer>
+</div>
+
+<!-- ============================== ENGLISH ============================== -->
+<div data-lang="en">
+<header class="hero">
+  <div class="faixa">
+    <div class="assinatura">The Band · semantic integration of engineering data</div>
+    <h1 class="serif">Notes are not <em>music.</em></h1>
+    <p class="tese">
+      Your tools produce notes: issues, commits, sprints, boards — each in its own
+      vocabulary. The Band conducts them into a common language, until they become
+      <strong>information your organisation can act on</strong>.
+    </p>
+    <div class="compasso" aria-hidden="true">
+      <div class="pauta"></div>
+      <span class="nota" style="left:6%; top:2px; animation-delay:.05s"></span>
+      <span class="nota" style="left:16%; top:18px; animation-delay:.15s"></span>
+      <span class="nota derivada" style="left:27%; top:10px; animation-delay:.25s"></span>
+      <span class="nota" style="left:39%; top:25px; animation-delay:.35s"></span>
+      <span class="nota" style="left:52%; top:2px; animation-delay:.45s"></span>
+      <span class="nota derivada" style="left:63%; top:18px; animation-delay:.55s"></span>
+      <span class="nota" style="left:74%; top:10px; animation-delay:.65s"></span>
+      <span class="nota" style="left:88%; top:10px; animation-delay:.75s"></span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="faixa">
+      <div class="duas">
+        <div>
+          <h2 class="serif"><span class="num">I.</span>Every dashboard answers “how much”. Almost none answers <em>“where did this come from?”</em></h2>
+        </div>
+        <div class="texto">
+          <p>
+            Engineering data lives scattered — GitHub, boards, spreadsheets, CI — and every
+            tool only sees itself. Someone copies numbers into a dashboard, the dashboard
+            ages, and the meeting debates a value nobody can trace.
+          </p>
+          <blockquote class="serif">
+            The most expensive decision is not the one made on wrong data.
+            It is the one made on data nobody can verify.
+          </blockquote>
+          <p class="mudo">
+            Dashboards aggregate. Data lakes accumulate. Neither can say what a number
+            <em>means</em> — or what it hides.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">II.</span>Three provenances, never blended</h2>
+      <p class="texto">
+        One rule runs through the whole product, from database to screen: what was
+        <strong>observed</strong> at the source, what the platform <strong>derived</strong> by a
+        versioned rule, and what a person <strong>declared</strong> are different things — and they
+        look different. Derived is always hatched and labeled; color alone never carries the
+        distinction.
+      </p>
+      <div class="legenda">
+        <span class="chip observado"><span class="q"></span>observed at the source</span>
+        <span class="chip derivado"><span class="q"></span>derived by rule — hatched</span>
+        <span class="chip declarado"><span class="q"></span>declared by someone, with an author</span>
+      </div>
+      <div class="movimentos">
+        <div class="movimento">
+          <div class="romano">1st MOVEMENT</div>
+          <h3>Collect, with identity</h3>
+          <p>Connectors read the sources and store every record with its application
+             reference — system, instance, external id. Renaming never creates a new entity;
+             disappearing marks, never deletes.</p>
+        </div>
+        <div class="movimento">
+          <div class="romano">2nd MOVEMENT</div>
+          <h3>Translate into a common language</h3>
+          <p>“Sprint” on the board, “iteration” in the API and “cycle” in the spreadsheet are
+             the same thing — or they are not, and the difference matters. The Band translates
+             every term into a single, written, versioned model of what the words mean. The
+             dictionary behind it is rigorous — a network of reference <em>ontologies</em>,
+             222 concepts, inherited from the thesis — but all you need to know is that it
+             exists and can be audited.</p>
+        </div>
+        <div class="movimento">
+          <div class="romano">3rd MOVEMENT</div>
+          <h3>Answer, with a receipt</h3>
+          <p>Information needs become measures with a declared formula, written limitations,
+             and named possible misreadings — before any number reaches a screen.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">III.</span>The questions it exists to answer</h2>
+      <ul class="perguntas serif">
+        <li>Which projects carry the most rework?</li>
+        <li>Which teams have the longest cycle time?</li>
+        <li>Who works on what — and what do the tasks they performed say about each person's skills, and the whole team's?</li>
+        <li>Which source did an indicator come from, how was it computed, and what does it not reach?
+          <em class="resposta">— this last one, every number on the platform answers about itself.</em>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">IV.</span>Skills read from what people <em>did</em></h2>
+      <div class="duas">
+        <div class="texto">
+          <p>
+            The platform reads the tasks each person performed and writes the competence
+            profile they materialise — <strong>the task is the evidence; the skill is what it
+            demonstrates</strong>. Laid over the whole team, that reading answers what no CV
+            can: where this team is strong, where the evidence runs thin, and who has already
+            demonstrated what the next project demands.
+          </p>
+          <ul class="mudo" style="padding-left:1.1rem;">
+            <li><strong>It is not performance review</strong> — performance is the distance between promised and delivered, and the promise is not in the material;</li>
+            <li><strong>it never compares people</strong> — each profile reads one person against themselves, over time;</li>
+            <li><strong>a gap belongs to the record, never to the person</strong> — unobserved is not unknown.</li>
+          </ul>
+        </div>
+        <dl class="recibo mono" style="margin-top:0;">
+          <dt>what it claims</dt>
+          <dd>“observability with OpenTelemetry” — demonstrated skill</dd>
+          <dt>evidence</dt>
+          <dd>97 completed tasks · 14 in the domain · periods 1–3</dd>
+          <dt>provenance</dt>
+          <dd>derived — written by a language model on 2026-08-16</dd>
+          <dt>what it does not reach</dt>
+          <dd>44% of task bodies were written by someone else; the gap belongs to the record, never to the person</dd>
+        </dl>
+      </div>
+
+      <div class="graficos">
+        <figure class="grafico" style="margin:0">
+          <h4>One person: evidence per skill</h4>
+          <p class="sub">completed tasks demonstrating each domain · counts are computed, never estimated by the model</p>
+          <div class="barras mono" role="img" aria-label="Bars: OpenTelemetry and SigNoz 14 tasks; VPS provisioning 12; Kubernetes 9; Helm and Vault 7; DNS and networking 6.">
+            <span class="rotulo">OpenTelemetry · SigNoz</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">14</span>
+            <span class="rotulo">VPS provisioning</span><span class="trilho"><span class="barra" style="width:86%"></span></span><span class="valor">12</span>
+            <span class="rotulo">Kubernetes</span><span class="trilho"><span class="barra" style="width:64%"></span></span><span class="valor">9</span>
+            <span class="rotulo">Helm · Vault</span><span class="trilho"><span class="barra" style="width:50%"></span></span><span class="valor">7</span>
+            <span class="rotulo">DNS · networking</span><span class="trilho"><span class="barra" style="width:43%"></span></span><span class="valor">6</span>
+          </div>
+          <details class="tabela"><summary>view as table</summary>
+            <table><tr><th>skill</th><th>tasks</th></tr>
+              <tr><td>OpenTelemetry · SigNoz</td><td>14</td></tr><tr><td>VPS provisioning</td><td>12</td></tr>
+              <tr><td>Kubernetes</td><td>9</td></tr><tr><td>Helm · Vault</td><td>7</td></tr><tr><td>DNS · networking</td><td>6</td></tr></table>
+          </details>
+        </figure>
+        <figure class="grafico" style="margin:0">
+          <h4>The team: how many people have demonstrated it</h4>
+          <p class="sub">skill coverage across the team · where the bar is short, the next project carries risk</p>
+          <div class="barras mono" role="img" aria-label="Bars: observability 4 people; Kubernetes 3; provisioning 3; Helm and Vault 2; Terraform 1.">
+            <span class="rotulo">observability</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">4</span>
+            <span class="rotulo">Kubernetes</span><span class="trilho"><span class="barra" style="width:75%"></span></span><span class="valor">3</span>
+            <span class="rotulo">provisioning</span><span class="trilho"><span class="barra" style="width:75%"></span></span><span class="valor">3</span>
+            <span class="rotulo">Helm · Vault</span><span class="trilho"><span class="barra" style="width:50%"></span></span><span class="valor">2</span>
+            <span class="rotulo">Terraform</span><span class="trilho"><span class="barra" style="width:25%"></span></span><span class="valor">1</span>
+          </div>
+          <details class="tabela"><summary>view as table</summary>
+            <table><tr><th>skill</th><th>people</th></tr>
+              <tr><td>observability</td><td>4</td></tr><tr><td>Kubernetes</td><td>3</td></tr>
+              <tr><td>provisioning</td><td>3</td></tr><tr><td>Helm · Vault</td><td>2</td></tr><tr><td>Terraform</td><td>1</td></tr></table>
+          </details>
+        </figure>
+      </div>
+      <p class="nota-ilustrativa">Illustrative numbers, in the exact shape of the profiles the platform generates. Evidence counts are always computed from observed data — the language model writes the prose, never the numbers.</p>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">V.</span>Measured in production, not promised</h2>
+      <p class="texto mudo">One real installation, three organisations observed:</p>
+      <div class="numeros mono">
+        <div class="numero"><div class="valor">5,031</div><div class="rotulo">issues collected and classified</div></div>
+        <div class="numero"><div class="valor">160</div><div class="rotulo">repositories under observation</div></div>
+        <div class="numero"><div class="valor">44,821</div><div class="rotulo">semantic promotions, each with declared confidence</div></div>
+        <div class="numero"><div class="valor">194</div><div class="rotulo">real sprints — and 29 plans that never became one, stated as plans</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="coda">
+    <div class="faixa">
+      <h2 class="serif">Open conducting.</h2>
+      <p class="texto mudo" style="margin: 0 auto;">
+        Elixir + Phoenix, PostgreSQL, a versioned YAML knowledge base.
+        Thirteen quality gates. Open source, from thesis to deploy.
+      </p>
+      <div class="botoes">
+        <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">View the repository</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Start with the quickstart</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="faixa">
+    <span>The Band — from Paulo Sérgio dos Santos Júnior's PhD (UFES) to running code.</span>
+    <span>Continuum + SEON on UFO · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
+  </div>
+</footer>
+</div>
+
+</body>
+</html>
