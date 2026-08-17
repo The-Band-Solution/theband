@@ -34,6 +34,10 @@ No merge, fecha #395 (closing keyword conferida: "Closes", em inglês).
 - #81 — filtro por organização nas telas.
 - #398 — organizar o report "why not everyone?" (agrupar por motivo, texto do
   motivo dito uma vez, contagem por grupo).
+- **#399 — PRIMEIRA COISA DE AMANHÃ**: regra pedida na saída — sem perfil e com
+  tarefa designada (mesmo pouca) → gera. Verificar no dado real por que o
+  report mostra below_floor com "0 tarefas com texto": se for gente sem perfil
+  com tarefa designada, a primeira geração está aplicando recorte que não devia.
 - Rodar a rodada de novo (botão "run now — everyone" em /profiles): os 13
   "geraria hoje" viram perfis com a regra nova. Esperado: ~47 gerados.
 - Sprint 018: escrever `sprint-review.md` e consolidar lições.
