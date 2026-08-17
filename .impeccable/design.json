@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-17T12:00:00Z",
+  "title": "Design System: The Band",
+  "extensions": {
+    "colorMeta": {
+      "verdete": {
+        "role": "primary",
+        "displayName": "Verdete de Instrumento",
+        "canonical": "#1f6f68",
+        "darkThemeValue": "#5cbcb2",
+        "tonalRamp": ["#0a2523", "#123c38", "#1f6f68", "#2f8a81", "#5cbcb2", "#8ed0c9", "#bfe5e0", "#e4f4f2"]
+      },
+      "verdete-deep": {
+        "role": "secondary",
+        "displayName": "Verdete Profundo",
+        "canonical": "#14504a",
+        "darkThemeValue": "#3f9e94",
+        "tonalRamp": ["#081f1c", "#0e3833", "#14504a", "#1f6f68", "#3f9e94", "#74c0b8", "#aeddd7", "#ddf1ee"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel",
+        "canonical": "#f7f8f7",
+        "darkThemeValue": "#151b19",
+        "tonalRamp": ["#101614", "#2b3532", "#55625d", "#8b968f", "#bcc4bf", "#d7dcd8", "#eef0ee", "#f7f8f7"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#101614",
+        "darkThemeValue": "#e6ebe8",
+        "tonalRamp": ["#101614", "#232b28", "#3a453f", "#5a665f", "#828e86", "#aeb8b1", "#d3dad5", "#eef1ef"]
+      },
+      "amber-divergence": {
+        "role": "tertiary",
+        "displayName": "Âmbar de Divergência",
+        "canonical": "#8a5a0c",
+        "darkThemeValue": "#d9a441",
+        "tonalRamp": ["#2a1c04", "#513608", "#8a5a0c", "#b47b1c", "#d9a441", "#e7c078", "#f2dcae", "#faf0da"]
+      },
+      "clay-refusal": {
+        "role": "tertiary",
+        "displayName": "Barro de Recusa",
+        "canonical": "#8c3327",
+        "darkThemeValue": "#e08574",
+        "tonalRamp": ["#2b0f0a", "#571f16", "#8c3327", "#b34e3d", "#e08574", "#ecab9e", "#f4cec6", "#fbeae6"]
+      },
+      "info-blue": {
+        "role": "tertiary",
+        "displayName": "Azul de Informação",
+        "canonical": "#23566f",
+        "darkThemeValue": "#7fb4d6",
+        "tonalRamp": ["#0a1c25", "#153648", "#23566f", "#3a7594", "#7fb4d6", "#a6cbe3", "#cde1ef", "#ebf3f9"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Grotesca do sistema", "purpose": "Título de tela e número que decide — escaneado, não lido." },
+      "body": { "displayName": "Serifa do sistema", "purpose": "O que precisa ser lido: divergência, recusa, axioma." },
+      "label": { "displayName": "Mono do sistema", "purpose": "Identificador, contagem alinhada, chave de regra." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "reduced-motion-net", "value": "@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms; transition-duration: 0.01ms } }", "purpose": "Rede de segurança global — protege inclusive animação de terceiros (WCAG 2.3.3)." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "40rem", "purpose": "Abaixo disso, table.stacked vira lista de cartões com data-label." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A ação principal da tela — verdete sólido, uma por tela.",
+      "html": "<button class=\"ds-btn-primary\">Turn on</button>",
+      "css": ".ds-btn-primary { background: #1f6f68; color: #f4f6f4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 650; font-size: 0.875rem; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; transition: background 0.2s; } .ds-btn-primary:hover { background: #14504a; } .ds-btn-primary:focus-visible { outline: 2px solid #1f6f68; outline-offset: 2px; }"
+    },
+    {
+      "name": "Soft Button",
+      "kind": "button",
+      "refersTo": "button-soft",
+      "description": "O botão padrão — verdete diluído sobre papel.",
+      "html": "<button class=\"ds-btn-soft\">run now — everyone</button>",
+      "css": ".ds-btn-soft { background: #e2edeb; color: #14504a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 650; font-size: 0.875rem; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; transition: background 0.2s; } .ds-btn-soft:hover { background: #cfe2df; } .ds-btn-soft:focus-visible { outline: 2px solid #1f6f68; outline-offset: 2px; }"
+    },
+    {
+      "name": "Evidence Marks",
+      "kind": "custom",
+      "description": "A gramática da evidência: sólido = observado, hachura = derivado, tracejado = ausente. Cor nunca sozinha — texto sempre junto.",
+      "html": "<div class=\"ds-evidence-row\"><span class=\"ds-ev\"><i class=\"ds-ev-solid\"></i> observed — declared at source</span><span class=\"ds-ev\"><i class=\"ds-ev-hatched\"></i> derived — from title convention</span><span class=\"ds-ev\"><i class=\"ds-ev-dashed\"></i> absent — no type at the source</span></div>",
+      "css": ".ds-evidence-row { display: flex; flex-direction: column; gap: 0.5rem; font-family: ui-serif, Georgia, serif; font-size: 0.875rem; color: #101614; } .ds-ev { display: inline-flex; align-items: center; gap: 0.5rem; } .ds-ev i { width: 14px; height: 14px; border-radius: 1px; flex: none; } .ds-ev-solid { background: #1f6f68; } .ds-ev-hatched { color: #1f6f68; outline: 1px solid currentColor; outline-offset: -1px; background: repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px); } .ds-ev-dashed { border: 1.5px dashed #55625d; }"
+    },
+    {
+      "name": "Named Absence",
+      "kind": "chip",
+      "description": "Ausência com dono — nunca travessão, célula vazia ou zero.",
+      "html": "<span class=\"ds-absent\">not collected — issue not re-observed</span>",
+      "css": ".ds-absent { font-family: ui-serif, Georgia, serif; font-style: italic; font-size: 0.8125rem; color: #55625d; border-bottom: 1.5px dashed #bcc4bf; padding-bottom: 1px; }"
+    },
+    {
+      "name": "Divergence Notice",
+      "kind": "card",
+      "description": "Fato sobre o dado, não erro do sistema — âmbar, com ícone além da cor.",
+      "html": "<div class=\"ds-notice\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><path d=\"M8 1L15 14H1L8 1Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/><path d=\"M8 6v4\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"8\" cy=\"12\" r=\"0.75\" fill=\"currentColor\"/></svg><span>the concept was kept; this is a signal about the team's process</span></div>",
+      "css": ".ds-notice { display: flex; align-items: flex-start; gap: 0.5rem; background: #faf0da; color: #8a5a0c; font-family: ui-serif, Georgia, serif; font-size: 0.875rem; line-height: 1.5; padding: 0.75rem 1rem; border-radius: 0.5rem; border-left: 3px solid #8a5a0c; } .ds-notice svg { flex: none; margin-top: 2px; }"
+    },
+    {
+      "name": "Deciding Metric",
+      "kind": "card",
+      "description": "Um número que decide, com a composição embaixo — grotesca no número, mono no detalhe.",
+      "html": "<div class=\"ds-metric\"><div class=\"ds-metric-label\">CONSIDERED</div><div class=\"ds-metric-value\">88</div><div class=\"ds-metric-detail\">34 generated · 54 skipped</div></div>",
+      "css": ".ds-metric { background: #eef0ee; border-radius: 0.5rem; padding: 1.25rem; display: inline-flex; flex-direction: column; gap: 0.25rem; min-width: 160px; } .ds-metric-label { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.7rem; letter-spacing: 0.06em; color: #55625d; } .ds-metric-value { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 650; font-size: 2rem; letter-spacing: -0.02em; line-height: 1.2; color: #101614; font-variant-numeric: tabular-nums; } .ds-metric-detail { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.75rem; color: #55625d; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "description": "Campo do daisyUI fieldset — canto 0.25rem, foco pelo anel global.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">PROVIDER KEY</span><input class=\"ds-field-input\" type=\"text\" placeholder=\"sk-...\"/></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 0.375rem; font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif; } .ds-field-label { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.7rem; letter-spacing: 0.06em; color: #55625d; } .ds-field-input { background: #f7f8f7; color: #101614; border: 1.5px solid #d7dcd8; border-radius: 0.25rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; font-family: inherit; } .ds-field-input:focus-visible { outline: 2px solid #1f6f68; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "A Partitura",
+    "overview": "A pauta que separa o que estava escrito do improviso. A interface existe para uma distinção só — observado versus derivado — e todo o sistema visual é essa distinção tornada material: preenchimento sólido é o que a origem afirmou, hachura é derivação declarada, tracejado é ausência nomeada. Um músico que improvisa não está errado, mas quem ouve precisa saber que aquilo não estava escrito. O suporte é papel de desenho técnico: neutros com viés para a primária, três vozes tipográficas do sistema operacional, superfícies planas separadas por camada tonal e borda fina. A primária é verdete de instrumento — cor de instrumento de medição calibrado, deliberadamente não-urgente.",
+    "keyCharacteristics": [
+      "O preenchimento carrega a proveniência: sólido / hachurado / tracejado, sempre com texto e title redundantes",
+      "Ausência é nomeada com dono — nunca travessão, célula vazia ou zero",
+      "Três vozes: grotesca escaneia, serifa lê, mono compara",
+      "Plano por doutrina: profundidade é camada tonal, nunca sombra",
+      "A interface fala inglês; código e documentação falam português"
+    ],
+    "rules": [
+      { "name": "The Calibrated Instrument Rule", "body": "Nenhuma cor de alerta na marca de evidência, e nenhum vermelho de erro na paleta: divergência é âmbar, recusa é barro, e ambas descrevem o dado — o sistema não falhou.", "section": "colors" },
+      { "name": "The No-Pure-Grey Rule", "body": "Todo neutro puxa para a primária. Cinza puro lê como não escolhido — o teste de tokens recusa o roxo e o laranja do gerador de volta.", "section": "colors" },
+      { "name": "The No-Webfont Rule", "body": "Nenhuma família baixada: a pilha do sistema entrega a hierarquia sem custo de rede.", "section": "typography" },
+      { "name": "The Tabular Numbers Rule", "body": "Número em coluna leva tabular-nums, sempre.", "section": "typography" },
+      { "name": "The Flat-By-Doctrine Rule", "body": "Se uma tela parece precisar de sombra, o problema é hierarquia tonal ou espaçamento — resolva lá.", "section": "elevation" },
+      { "name": "The Fill Carries Provenance Rule", "body": "A gramática sólido/hachurado/tracejado nunca aparece sem os outros dois canais: texto visível e title para leitor de tela.", "section": "colors" }
+    ],
+    "dos": [
+      "Do carregar a proveniência no preenchimento (sólido/hachurado/tracejado) com texto e title redundantes.",
+      "Do nomear toda ausência com dono: \"not collected — issue not re-observed\", nunca \"—\" nem zero.",
+      "Do usar tabular-nums em qualquer número em coluna.",
+      "Do empilhar tabelas largas com stacked + data-label abaixo de 40rem.",
+      "Do escrever frase de tela em inglês, mesmo nascendo no domínio — com comentário no código dizendo isso.",
+      "Do declarar recorte na própria tela quando uma lista é limitada."
+    ],
+    "donts": [
+      "Don't usar webfont — a pilha do sistema é compromisso.",
+      "Don't usar cinza puro, roxo ou laranja do gerador — o teste de tokens recusa.",
+      "Don't introduzir box-shadow — plano por doutrina; profundidade é camada tonal.",
+      "Don't remover ou substituir o anel de foco global de 2px.",
+      "Don't deixar cor ser o único canal de um estado — ícone ou texto sempre junto.",
+      "Don't escrever \"permission denied\" para recurso de outro tenant — é \"not found\"; dizer \"sem permissão\" confirma que o recurso existe.",
+      "Don't esconder seção vazia em silêncio — a ausência aparece nomeada, com o que a faria existir."
+    ]
+  }
+}
