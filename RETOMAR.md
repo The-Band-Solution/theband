@@ -32,6 +32,8 @@ No merge, fecha #395 (closing keyword conferida: "Closes", em inglês).
 - #397 — equipe formada por equipes (rollup como segundo modo de
   `TeamSkills.coverage`; depende do #396 mergeado).
 - #81 — filtro por organização nas telas.
+- #398 — organizar o report "why not everyone?" (agrupar por motivo, texto do
+  motivo dito uma vez, contagem por grupo).
 - Rodar a rodada de novo (botão "run now — everyone" em /profiles): os 13
   "geraria hoje" viram perfis com a regra nova. Esperado: ~47 gerados.
 - Sprint 018: escrever `sprint-review.md` e consolidar lições.
