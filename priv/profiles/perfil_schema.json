@@ -23,7 +23,7 @@
         "items": {
           "type": "string"
         },
-        "description": "Capacidade técnica nomeável em três a seis palavras, do jeito que apareceria numa busca por quem sabe fazer aquilo. Nunca ferramenta solta, nunca categoria como backend ou DevOps, nunca qualidade pessoal. Só entra o que passaria na barra de destaque: seis tarefas, dois períodos, presença no período recente. Se apenas duas passarem, liste duas."
+        "description": "In English. A nameable technical capability in three to six words, the way it would appear in a search for who knows how to do it. Never a bare tool, never a category like backend or DevOps, never a personal quality. Only what clears the highlight bar: six tasks, two periods, presence in the recent period. If only two clear it, list two."
       },
       "resumo": {
         "type": "object",
@@ -33,19 +33,19 @@
           "evolucao",
           "atencao"
         ],
-        "description": "Três parágrafos de texto corrido, sem NENHUM número de tarefa. Aqui quem lê decide se vale ler o resto; as seções seguintes carregam a evidência. Cite tarefa pelo título quando for indispensável.",
+        "description": "Three paragraphs of running text in English, with NO task numbers. This is where the reader decides whether the rest is worth reading; the following sections carry the evidence. Cite a task by title only when indispensable.",
         "properties": {
           "forcas": {
             "type": "string",
-            "description": "O que cada habilidade significa na prática, dito pelo que a pessoa fez, com desde quando. Sem adjetivo de currículo."
+            "description": "In English. What each skill means in practice, told through what the person did, and since when. No résumé adjectives."
           },
           "evolucao": {
             "type": "string",
-            "description": "De onde saiu, onde está, e se a mudança é dela ou do time. Se não mudou, esta é a frase: não mudou, e eis em que a estabilidade consiste."
+            "description": "In English. Where they started, where they are, and whether the change is theirs or the team's. If nothing changed, that is the sentence: nothing changed, and here is what the stability consists of."
           },
           "atencao": {
             "type": "string",
-            "description": "As lacunas no enquadramento honesto — lacuna do registro, não de competência — e o que está parado."
+            "description": "In English. The gaps in their honest framing — gaps of the record, not of competence — and what is sitting still."
           }
         }
       },
@@ -66,19 +66,19 @@
           "properties": {
             "periodo": {
               "type": "integer",
-              "description": "1, 2 ou 3"
+              "description": "1, 2 or 3"
             },
             "meses": {
               "type": "string",
-              "description": "AAAA-MM a AAAA-MM"
+              "description": "YYYY-MM to YYYY-MM"
             },
             "titulo": {
               "type": "string",
-              "description": "Uma frase dizendo o que a pessoa estava fazendo ali."
+              "description": "In English. One sentence saying what the person was doing there."
             },
             "texto": {
               "type": "string",
-              "description": "Um parágrafo, contando a mudança como história e não como tabela."
+              "description": "In English. One paragraph, telling the change as a story, not as a table."
             },
             "tarefas_citadas": {
               "type": "array",
@@ -86,7 +86,7 @@
               "items": {
                 "type": "string"
               },
-              "description": "Dois ou três títulos de tarefa real deste período."
+              "description": "Two or three real task titles from this period, kept in their original language — a title is a quote, and quotes are not translated."
             }
           }
         }
@@ -107,11 +107,11 @@
           "properties": {
             "dominio": {
               "type": "string",
-              "description": "Área técnica específica: observabilidade com OpenTelemetry, gestão de segredos com Vault. Nunca backend nem boas práticas."
+              "description": "In English. A specific technical area: observability with OpenTelemetry, secrets management with Vault. Never backend nor best practices."
             },
             "demonstrou": {
               "type": "string",
-              "description": "O que a pessoa demonstrou fazer nele."
+              "description": "In English. What the person demonstrated doing in it."
             },
             "tarefas": {
               "type": "integer"
@@ -121,11 +121,11 @@
               "items": {
                 "type": "integer"
               },
-              "description": "Em quais dos três períodos aparece."
+              "description": "Which of the three periods it appears in."
             },
             "mais_recente": {
               "type": "string",
-              "description": "AAAA-MM da evidência mais recente."
+              "description": "YYYY-MM of the most recent evidence."
             },
             "evidencia": {
               "type": "array",
@@ -133,11 +133,11 @@
               "items": {
                 "type": "integer"
               },
-              "description": "Números de tarefa presentes no material. No máximo três."
+              "description": "Task numbers present in the material. At most three."
             }
           }
         },
-        "description": "Só domínio com seis tarefas ou mais, em pelo menos dois períodos, com evidência no período recente. O resto vai para lacunas."
+        "description": "Only domains with six or more tasks, in at least two periods, with evidence in the recent period. Everything else goes to lacunas."
       },
       "lacunas": {
         "type": "array",
@@ -158,14 +158,14 @@
                 "envelhecida",
                 "trava"
               ],
-              "description": "rala: 3 a 5 tarefas. envelhecida: ausente do período recente — escreva 'não observado desde AAAA-MM', nunca 'abandonou'. trava: as tarefas CONCLUÍDAS deste domínio levaram muito mais dias para fechar que a mediana da própria pessoa — compare o campo 'Nd aberta' de cada tarefa contra a mediana dela, e não contra número absoluto: 40 dias é muito para quem fecha em 3 e normal para quem fecha em 30. Não fale de tarefas em aberto: elas não estão no material, e a tela já as lista."
+              "description": "In English. rala: 3 to 5 tasks. envelhecida: absent from the recent period — write 'not observed since YYYY-MM', never 'abandoned'. trava: the COMPLETED tasks name a blocker."
             },
             "onde": {
               "type": "string"
             },
             "observado": {
               "type": "string",
-              "description": "Lacuna do REGISTRO, não de competência: não observar não é não saber."
+              "description": "In English. A gap of the RECORD, not of competence: not observing is not not knowing."
             },
             "evidencia": {
               "type": "array",
@@ -176,11 +176,11 @@
             }
           }
         },
-        "description": "Quando nenhuma das três formas se sustentar, devolva lista vazia. Um relatório que sempre acha um ponto fraco não está lendo."
+        "description": "When none of the three forms holds, return an empty list. A report that always finds a weakness is not reading."
       },
       "do_time_nao_da_pessoa": {
         "type": "string",
-        "description": "O contrapeso da trajetória: o que mudou no material da pessoa E no projeto nos mesmos meses, e portanto NÃO foi atribuído a ela. Use o veredito que já vem calculado."
+        "description": "In English. The counterweight to the trajectory: what changed in the person's material AND in the project over the same months, and therefore was NOT attributed to them. Use the verdict already computed in the material."
       },
       "alocacao": {
         "type": "array",
@@ -212,7 +212,7 @@
             }
           }
         },
-        "description": "Só os domínios de destaque. Diz ONDE a evidência já existe — não recomenda cargo, função, liderança nem time."
+        "description": "In English. Only the highlighted domains. It says WHERE the evidence already exists — it does not recommend a role, a title, leadership or a team."
       },
       "recomendacoes": {
         "type": "array",
@@ -220,11 +220,11 @@
         "items": {
           "type": "string"
         },
-        "description": "Cada uma nasce de algo deste material. Conselho genérico de carreira não vale."
+        "description": "In English. Each one born from something in this material. Generic career advice does not count."
       },
       "nao_alcanca": {
         "type": "string",
-        "description": "Com os números do caso: quantas descrições escritas por terceiro, quantas compartilhadas, que períodos têm pouco registro. E o que não vira tarefa: revisão de código, mentoria, discussão de arquitetura."
+        "description": "In English, with the numbers of this case: how many descriptions were written by someone else, how many tasks are shared, which periods have thin records. And what never becomes a task: reviews, mentoring, conversations — the record does not reach them."
       }
     }
   }
