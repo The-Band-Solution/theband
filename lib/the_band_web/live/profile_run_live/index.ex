@@ -278,26 +278,45 @@ defmodule TheBandWeb.ProfileRunLive.Index do
               </tr>
               <tr :if={@report_run_id == run.id and @report != nil}>
                 <td colspan="9" class="painel bg-base-300/30 p-4">
-                  <p class="mb-2 text-xs opacity-70">
+                  <p class="mb-3 text-xs opacity-70">
                     Person by person, with the reason <strong>as of now</strong> — recomputed on
-                    read, like everything observed. Someone whose material changed since the run
-                    shows as "would generate today".
+                    read, like everything observed. Grouped by reason, in order of what to do
+                    next; alphabetical inside each group, never ranked.
                   </p>
-                  <div class="grid gap-1 sm:grid-cols-2">
-                    <div :for={p <- @report} class="flex items-baseline gap-2 text-sm">
-                      <span class={[
-                        "badge badge-xs shrink-0",
-                        p.motivo == :geraria_hoje && "badge-success",
-                        p.motivo == :no_assignment && "badge-warning",
-                        p.motivo not in [:geraria_hoje, :no_assignment] && "badge-ghost"
-                      ]}>
-                        {p.motivo}
-                      </span>
-                      <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover font-medium">
-                        {p.name}
-                      </.link>
-                      <span class="text-xs opacity-60">{p.detalhe}</span>
-                    </div>
+                  <div class="space-y-4">
+                    <section :for={grupo <- agrupar_report(@report)}>
+                      <h5 class="flex items-baseline gap-2 text-sm">
+                        <span class={[
+                          "badge badge-sm shrink-0",
+                          grupo.motivo == :geraria_hoje && "badge-success",
+                          grupo.motivo == :no_assignment && "badge-warning",
+                          grupo.motivo not in [:geraria_hoje, :no_assignment] && "badge-ghost"
+                        ]}>
+                          {grupo.motivo}
+                        </span>
+                        <span class="font-semibold">
+                          {length(grupo.pessoas)} {if length(grupo.pessoas) == 1,
+                            do: "person",
+                            else: "people"}
+                        </span>
+                      </h5>
+                      <p :if={grupo.detalhe_comum} class="mt-0.5 text-xs opacity-60">
+                        {grupo.detalhe_comum}
+                      </p>
+                      <div class="mt-1.5 grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+                        <div :for={p <- grupo.pessoas} class="text-sm">
+                          <.link
+                            navigate={~p"/people/#{p.person_id}"}
+                            class="link link-hover font-medium"
+                          >
+                            {p.name}
+                          </.link>
+                          <span :if={is_nil(grupo.detalhe_comum)} class="text-xs opacity-60">
+                            {p.detalhe}
+                          </span>
+                        </div>
+                      </div>
+                    </section>
                   </div>
                 </td>
               </tr>
@@ -349,6 +368,37 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   end
 
   defp milhar(outro), do: outro
+
+  # O report agrupado (#398): o mesmo texto de motivo repetido 24 vezes não é leitura,
+  # é despejo. Grupos em ordem de ACIONABILIDADE — geraria_hoje primeiro (a próxima
+  # rodada resolve), observation_ended por último (nada a fazer). Quando o detalhe é
+  # igual para o grupo inteiro, ele vira o subtítulo e sai das linhas; quando varia
+  # (below_floor tem contagens por pessoa), fica linha a linha.
+  @ordem_dos_motivos [
+    :geraria_hoje,
+    :below_floor,
+    :period_too_thin,
+    :no_text_to_compare,
+    :no_assignment,
+    :no_new_work,
+    :observation_ended
+  ]
+
+  defp agrupar_report(report) do
+    grupos = Enum.group_by(report, & &1.motivo)
+
+    for motivo <- @ordem_dos_motivos, pessoas = grupos[motivo], pessoas != [] do
+      detalhes = pessoas |> Enum.map(& &1.detalhe) |> Enum.uniq()
+
+      %{
+        motivo: motivo,
+        # Pelo NOME que a tela mostra, sem caixa — a consulta ordena por login, e o
+        # ASCII põe "Pedro" antes de "arthur", traindo a promessa de ordem alfabética.
+        pessoas: Enum.sort_by(pessoas, &String.downcase(&1.name)),
+        detalhe_comum: if(match?([_], detalhes), do: hd(detalhes))
+      }
+    end
+  end
 
   defp estado_da_rodada(%Run{finished_at: nil}), do: "running"
   defp estado_da_rodada(%Run{outcome: "completed"}), do: "completed"
