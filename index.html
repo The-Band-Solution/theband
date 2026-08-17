@@ -5,11 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Band — dados de engenharia com proveniência</title>
 <meta name="description" content="The Band rege os dados das suas ferramentas — issues, commits, sprints, quadros — numa língua comum, até virarem informação em que a organização pode agir. Todo número diz de onde veio.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="The Band — Notas não são música.">
+<meta property="og:description" content="Integração semântica de dados de engenharia: issues, commits, sprints e quadros regidos numa língua comum, com proveniência em cada número.">
+<meta property="og:url" content="https://the-band-solution.github.io/theband/">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎼</text></svg>">
 </head>
 <body>
 <style>
   :root {
+    color-scheme: light dark;
     --papel: #f1f4f2;
     --tinta: #17211c;
     --tinta-2: #45544d;
@@ -170,7 +177,9 @@
 
   footer { border-top: 1px solid var(--pauta); padding: 1.6rem 0 2.4rem; font-size: .85rem; color: var(--tinta-2); }
   footer .faixa { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  a { color: var(--verdete); }
+  a { color: var(--verdete); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  ::selection { background: var(--verdete); color: var(--papel); }
+  abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 </style>
 
 <div class="troca-idioma" role="group" aria-label="Idioma / Language">
@@ -178,8 +187,14 @@
   <button id="btn-en" aria-pressed="false" onclick="trocarIdioma('en')">EN</button>
 </div>
 <script>
+  var TITULOS = {
+    'pt-BR': 'The Band — dados de engenharia com proveniência',
+    'en': 'The Band — engineering data with provenance'
+  };
   function trocarIdioma(lang) {
+    if (!TITULOS[lang]) lang = 'pt-BR'; // valor guardado desconhecido nunca apaga a página
     document.documentElement.lang = lang;
+    document.title = TITULOS[lang];
     document.getElementById('btn-pt').setAttribute('aria-pressed', lang === 'pt-BR');
     document.getElementById('btn-en').setAttribute('aria-pressed', lang === 'en');
     try { localStorage.setItem('theband-lang', lang); } catch (e) {}
@@ -392,7 +407,7 @@
       </p>
       <div class="botoes">
         <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">Ver o repositório</a>
-        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Começar pelo quickstart</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Começar pelo README</a>
       </div>
     </div>
   </section>
@@ -401,7 +416,7 @@
 <footer>
   <div class="faixa">
     <span>The Band — do doutorado de Paulo Sérgio dos Santos Júnior (UFES) ao código.</span>
-    <span>Continuum + SEON sobre UFO · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
+    <span><abbr title="Continuum de ontologias de Engenharia de Software da tese">Continuum</abbr> + <abbr title="Software Engineering Ontology Network">SEON</abbr> sobre <abbr title="Unified Foundational Ontology">UFO</abbr> · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
   </div>
 </footer>
 </div>
@@ -612,7 +627,7 @@
       </p>
       <div class="botoes">
         <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">View the repository</a>
-        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Start with the quickstart</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Start with the README</a>
       </div>
     </div>
   </section>
@@ -621,7 +636,7 @@
 <footer>
   <div class="faixa">
     <span>The Band — from Paulo Sérgio dos Santos Júnior's PhD (UFES) to running code.</span>
-    <span>Continuum + SEON on UFO · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
+    <span><abbr title="The thesis' Software Engineering ontology continuum">Continuum</abbr> + <abbr title="Software Engineering Ontology Network">SEON</abbr> on <abbr title="Unified Foundational Ontology">UFO</abbr> · <a href="https://github.com/The-Band-Solution/theband">GitHub</a></span>
   </div>
 </footer>
 </div>
