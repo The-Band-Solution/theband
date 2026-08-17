@@ -386,10 +386,10 @@ defmodule TheBandWeb.TeamsLive.Show do
             </p>
             <div class="space-y-2">
               <div
-                :for={c <- Enum.take(@cobertura.competencias, 8)}
-                class="grid grid-cols-[minmax(8rem,14rem)_1fr_max-content] items-center gap-3 text-sm"
+                :for={c <- @cobertura.competencias}
+                class="grid grid-cols-[minmax(8rem,18rem)_1fr_max-content] items-center gap-3 text-sm"
               >
-                <span class="truncate" title={c.nome}>{c.nome}</span>
+                <span class="break-words">{c.nome}</span>
                 <div class="h-3 rounded-sm bg-base-300">
                   <div
                     class="h-3 rounded-sm bg-primary"
@@ -419,14 +419,15 @@ defmodule TheBandWeb.TeamsLive.Show do
           <h4 class="mb-1 text-sm font-semibold">Evolution — coverage per profile generation</h4>
           <p class="mb-3 text-xs opacity-70">
             people with the skill in the profile current at each month with a generation ·
-            a skill leaving the series is <em>evidence not renewed</em>, never regression
+            a skill leaving the series is <em>evidence not renewed</em>, never regression ·
+            the 5 widest-covered skills of today; the coverage list above has them all
           </p>
           <div class="space-y-2">
             <div
               :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
               class="grid grid-cols-[minmax(8rem,14rem)_1fr_max-content] items-center gap-3 text-sm"
             >
-              <span class="truncate" title={serie.nome}>{serie.nome}</span>
+              <span class="break-words">{serie.nome}</span>
               <svg
                 viewBox="0 0 200 26"
                 preserveAspectRatio="none"
@@ -497,7 +498,7 @@ defmodule TheBandWeb.TeamsLive.Show do
               <thead>
                 <tr>
                   <th>member</th>
-                  <th :for={c <- Enum.take(@cobertura.competencias, 6)} class="text-center">
+                  <th :for={c <- @cobertura.competencias} class="text-center">
                     {c.nome}
                   </th>
                 </tr>
@@ -513,7 +514,7 @@ defmodule TheBandWeb.TeamsLive.Show do
                     </.link>
                   </td>
                   <td
-                    :for={c <- Enum.take(@cobertura.competencias, 6)}
+                    :for={c <- @cobertura.competencias}
                     class="text-center font-mono tabular-nums"
                   >
                     <%= if t = pessoa.tarefas[c.nome] do %>
@@ -525,7 +526,7 @@ defmodule TheBandWeb.TeamsLive.Show do
                 </tr>
                 <tr :for={p <- @cobertura.sem_perfil} class="opacity-60">
                   <td class="italic">{p.name}</td>
-                  <td colspan={min(length(@cobertura.competencias), 6)} class="text-xs italic">
+                  <td colspan={length(@cobertura.competencias)} class="text-xs italic">
                     no profile yet — no row is not no skill
                   </td>
                 </tr>

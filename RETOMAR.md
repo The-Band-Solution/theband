@@ -42,6 +42,12 @@ No merge, fecha #395 (closing keyword conferida: "Closes", em inglês).
   (classificar na base, mapeamento YAML, esquema derivado). Antes do #401.
 - #401 — coletar o CI do GitHub (workflow/check runs), mesma restrição
   ontológica. Depois do #400.
+- #402 — o perfil de cada pessoa deve ser escrito em inglês (regra no schema,
+  nunca pedida em texto ao modelo; perfis existentes ficam, a próxima geração
+  uniformiza).
+- #403 — evolução das competências na equipe E na pessoa: hoje a da equipe se
+  esconde com um mês só (trocar por ausência nomeada + tendência ▲/—/nova) e a
+  da pessoa não existe (sparkline de tarefas-evidência por geração).
 - Rodar a rodada de novo (botão "run now — everyone" em /profiles): os 13
   "geraria hoje" viram perfis com a regra nova. Esperado: ~47 gerados.
 - Sprint 018: escrever `sprint-review.md` e consolidar lições.
