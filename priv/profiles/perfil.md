@@ -122,6 +122,11 @@ espera; siga-a. O que segue vale para o conteúdo dos campos de texto.
 
 ## Como escrever cada campo de texto
 
+**Em inglês.** A interface do produto fala inglês, e o perfil aparece nela — cada descrição
+de campo do schema repete a exigência, e ela vale para todo texto livre. As duas exceções:
+título de tarefa citado fica na língua original (citação não se traduz), e o material que
+você recebe continua vindo como foi coletado.
+
 **Prosa, não lista.** Os campos de texto recebem parágrafos de três a seis frases. A
 estrutura já está no JSON — não a repita em tópicos dentro dos campos.
 
