@@ -1,0 +1,41 @@
+# Os comentários das issues de um repositório — feature 030, cmo.comment.
+#
+# Incremental por `$since` (filterBy.since = issues ATUALIZADAS desde então): a primeira
+# passada vai sem $since e cobre tudo; as seguintes só visitam issue que mudou. Issue sem
+# comentário volta com `comments.totalCount: 0` e a ingestão a pula — 77% delas, medido
+# em 2026-08-14 (1.182 de 5.032 têm pelo menos um).
+#
+# `comments.totalCount` contra o que chegou é o que impede truncamento silencioso: o
+# máximo real numa issue é 16, e `$comment_size: 50` cobre com folga — mas quando deixar
+# de cobrir, a ingestão REGISTRA a issue truncada e não marca sumiço nela (marcar com
+# página incompleta afirmaria ausência que é só paginação).
+#
+# `author` pode vir nulo (conta apagada — o "ghost" do GitHub): o login fica nulo e o
+# comentário continua coletado; a regra dos designados já cobre login sem pessoa.
+query($owner: String!, $name: String!, $page_size: Int = 25, $comment_size: Int = 50, $after: String, $since: DateTime) {
+  rateLimit { cost remaining resetAt }
+
+  repository(owner: $owner, name: $name) {
+    id
+    issues(first: $page_size, after: $after, filterBy: {since: $since}, orderBy: {field: UPDATED_AT, direction: ASC}) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        number
+        comments(first: $comment_size) {
+          totalCount
+          nodes {
+            id
+            # bodyText e não body: texto plano, como no corpo da issue — o markdown cru
+            # renderizaria HTML da origem na tela.
+            bodyText
+            createdAt
+            lastEditedAt
+            author { __typename login ... on User { id } }
+          }
+        }
+      }
+    }
+  }
+}

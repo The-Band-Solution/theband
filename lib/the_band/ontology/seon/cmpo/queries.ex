@@ -47,6 +47,9 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         inaccessible_since: o.inaccessible_since,
         inaccessible_reason: o.inaccessible_reason,
         issues_collected_at: o.issues_collected_at,
+        # Feature 030: decide qual frase o vazio da discussão usa na tela — "não
+        # coletada" e "coletada e sem comentários" são fatos diferentes.
+        comments_collected_at: o.comments_collected_at,
         external_id: c.external_id,
         external_created_at: r.external_created_at,
         collected_at: c.collected_at,

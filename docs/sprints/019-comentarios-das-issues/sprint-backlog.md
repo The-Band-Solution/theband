@@ -54,17 +54,26 @@ pessoa mantenedora (criar iterations é mudança de configuração da organizaç
 | # | Tarefa | Atende | Issue | Estado |
 |---|---|---|---|---|
 | T000 | CMO + mapeamento, validados | decisão | — (feita na abertura) | feito |
-| T001 | migração | US1 | [#417](https://github.com/The-Band-Solution/theband/issues/417) | a fazer |
-| T002 | schema Ecto + upsert | US1 | [#418](https://github.com/The-Band-Solution/theband/issues/418) | a fazer |
-| T003 | consulta GraphQL | US1 | [#424](https://github.com/The-Band-Solution/theband/issues/424) | a fazer |
-| T004 | ingestão incremental | US1 | [#419](https://github.com/The-Band-Solution/theband/issues/419) | a fazer |
-| T005 | fase de sync | US1 | [#420](https://github.com/The-Band-Solution/theband/issues/420) | a fazer |
-| T006 | coleta real, totais contra a API | US1 | [#414](https://github.com/The-Band-Solution/theband/issues/414) | a fazer |
-| T007 | Discussions (leitura) | todas | [#421](https://github.com/The-Band-Solution/theband/issues/421) | a fazer |
-| T008 | discussão no detalhe da issue | US1 | [#415](https://github.com/The-Band-Solution/theband/issues/415) | a fazer |
-| T009 | anti-padrão com resolução tripla | US2 | [#416](https://github.com/The-Band-Solution/theband/issues/416) | a fazer |
-| T010 | participação na página da pessoa | US3 | [#422](https://github.com/The-Band-Solution/theband/issues/422) | a fazer |
-| T011 | verificação ao vivo | US2/US3 | [#423](https://github.com/The-Band-Solution/theband/issues/423) | a fazer |
+| T001 | migração | US1 | [#417](https://github.com/The-Band-Solution/theband/issues/417) | feito |
+| T002 | schema Ecto + upsert | US1 | [#418](https://github.com/The-Band-Solution/theband/issues/418) | feito |
+| T003 | consulta GraphQL | US1 | [#424](https://github.com/The-Band-Solution/theband/issues/424) | feito |
+| T004 | ingestão incremental | US1 | [#419](https://github.com/The-Band-Solution/theband/issues/419) | feito |
+| T005 | fase de sync | US1 | [#420](https://github.com/The-Band-Solution/theband/issues/420) | feito |
+| T006 | coleta real, totais contra a API | US1 | [#414](https://github.com/The-Band-Solution/theband/issues/414) | feito |
+| T007 | Discussions (leitura) | todas | [#421](https://github.com/The-Band-Solution/theband/issues/421) | feito |
+| T008 | discussão no detalhe da issue | US1 | [#415](https://github.com/The-Band-Solution/theband/issues/415) | feito |
+| T009 | anti-padrão com resolução tripla | US2 | [#416](https://github.com/The-Band-Solution/theband/issues/416) | feito |
+| T010 | participação na página da pessoa | US3 | [#422](https://github.com/The-Band-Solution/theband/issues/422) | feito |
+| T011 | verificação ao vivo | US2/US3 | [#423](https://github.com/The-Band-Solution/theband/issues/423) | feito |
+
+## Os critérios de sucesso, com a evidência
+
+| # | critério | evidência |
+|---|---|---|
+| SC-001 | coleta termina e bate com a origem | **2.013 comentários**, 5.116 issues visitadas, 160 repositórios, 0 truncado, 0 inalcançável, 259s. A issue 645 conferida contra a API viva: 3 comentários lá, 3 aqui, mesmos autores e instantes. A diferença com `comment_count` (2.008) é o campo ser do momento da coleta das issues — o coletado bate com a origem de **agora**. |
+| SC-002 | issue parada real rotulada | AndréCoelho: duas paradas de 419d como `silent` ("nobody has commented on it — decide whether it dies or comes back") e uma de 104d como `stale discussion` ("1 comment(s), none since 2026-05-18 — discussed, then left"). Antes, três linhas idênticas. |
+| SC-003 | no_assignment com participação | **7 das 24** pessoas sem designação alguma trabalham na conversa: `lucasbruno-devdog` com **72 atos em 50 discussões**, `dnribeiro` com 17 em 13, mais `0xdeadbad`, `oliverids`, `sofiasilv4`, `ogianpaneto`, `JoelHanerth`. Eram invisíveis na plataforma. |
+| SC-004 | número fixo de consultas | `last_act_for_issues/2`: 1 consulta para 8 issues. `for_issue/2`: 1 consulta com 1 ou com 20 comentários. O detalhe da issue passou de 39 para **40** consultas por render — uma fixa, e o teto do teste-guarda foi atualizado com a razão escrita. |
 
 ## Fora do escopo deste sprint
 
