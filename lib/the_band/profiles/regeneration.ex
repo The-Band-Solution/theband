@@ -112,22 +112,35 @@ defmodule TheBand.Profiles.Regeneration do
   perfil anterior. Os dois primeiros continuam valendo — são fato, não critério.
   """
   @spec due?(Tenant.t(), Person.t(), limiares(), :mudou | :todas) :: veredito()
-  def due?(%Tenant{} = tenant, %Person{} = pessoa, %{n: n, m_months: m}, escopo \\ :mudou) do
+  def due?(%Tenant{} = tenant, %Person{} = pessoa, limiares, escopo \\ :mudou) do
+    if pessoa.no_longer_observed_at != nil do
+      {:skip, :observation_ended}
+    else
+      decidir(tenant, pessoa, limiares, escopo)
+    end
+  end
+
+  # O perfil anterior decide o MODO do material antes de decidir a geração: a primeira
+  # vez pega tudo que tem texto (decisão de 2026-08-16 — os pisos protegem a comparação,
+  # e não há o que comparar); da segunda em diante, os pisos inteiros.
+  defp decidir(tenant, pessoa, %{n: n, m_months: m}, escopo) do
+    case EOProfiles.current(tenant, pessoa.id) do
+      {:error, :not_found} -> primeira_geracao(tenant, pessoa)
+      {:ok, perfil} -> geracao_seguinte(tenant, pessoa, perfil, n, m, escopo)
+    end
+  end
+
+  defp primeira_geracao(tenant, pessoa) do
+    if Material.check(tenant, pessoa.id, :primeira) == :ok,
+      do: :generate,
+      else: {:skip, :no_material}
+  end
+
+  defp geracao_seguinte(tenant, pessoa, perfil, n, m, escopo) do
     cond do
-      pessoa.no_longer_observed_at != nil ->
-        {:skip, :observation_ended}
-
-      Material.check(tenant, pessoa.id) != :ok ->
-        {:skip, :no_material}
-
-      escopo == :todas ->
-        :generate
-
-      true ->
-        case EOProfiles.current(tenant, pessoa.id) do
-          {:error, :not_found} -> :generate
-          {:ok, perfil} -> comparar(tenant, pessoa, perfil, n, m)
-        end
+      Material.check(tenant, pessoa.id) != :ok -> {:skip, :no_material}
+      escopo == :todas -> :generate
+      true -> comparar(tenant, pessoa, perfil, n, m)
     end
   end
 

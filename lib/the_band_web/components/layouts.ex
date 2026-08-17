@@ -66,7 +66,7 @@ defmodule TheBandWeb.Layouts do
       </div>
       <div
         :if={@current_tenant}
-        class="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0"
+        class="nav-rolavel -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0"
       >
         <ul class="flex items-center gap-1 whitespace-nowrap">
           <%!-- A ordem segue o que a plataforma observa, do agente para o trabalho:

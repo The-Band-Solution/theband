@@ -29,7 +29,11 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   def mount(_params, _session, socket) do
     if connected?(socket), do: Runs.subscribe(socket.assigns.current_tenant)
 
-    {:ok, socket |> assign(page_title: "Profile generation") |> carregar()}
+    {:ok,
+     socket
+     |> assign(page_title: "Profile generation")
+     |> assign(report: nil, report_run_id: nil)
+     |> carregar()}
   end
 
   # Cada checkpoint da rodada chega aqui, e a tela recarrega do banco — o progresso anda
@@ -38,7 +42,24 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   @impl true
   def handle_info({:rodada, _run_id}, socket), do: {:noreply, carregar(socket)}
 
+  # O report "por que não gerou para todos?" — calculado NO CLIQUE, nunca no mount:
+  # são até 50 checagens leves, e a resposta é do estado de agora.
   @impl true
+  def handle_event("abrir_report", %{"run_id" => run_id}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, run} <- Runs.get(tenant, run_id) do
+      {:noreply,
+       assign(socket,
+         report: Runs.skipped_with_reasons(tenant, run),
+         report_run_id: run_id
+       )}
+    end
+  end
+
+  def handle_event("fechar_report", _params, socket),
+    do: {:noreply, assign(socket, report: nil, report_run_id: nil)}
+
   def handle_event("enable", _params, socket) do
     case Automation.enable(socket.assigns.current_tenant, socket.assigns.current_user) do
       {:ok, _} ->
@@ -216,34 +237,71 @@ defmodule TheBandWeb.ProfileRunLive.Index do
             </tr>
           </thead>
           <tbody>
-            <tr :for={run <- @rodadas}>
-              <td data-label="started" class="font-mono text-xs">{run.started_at}</td>
-              <td data-label="state">
-                <span class={[
-                  "badge badge-sm",
-                  run.outcome == "completed" && "badge-success",
-                  run.outcome == "ended_early" && "badge-error"
-                ]}>
-                  {estado_da_rodada(run)}
-                </span>
-                <div :if={run.ended_reason} class="text-xs opacity-70">{run.ended_reason}</div>
-              </td>
-              <%!-- A origem aparece **aqui**, e nunca na aba da pessoa: um perfil gerado pela
+            <%= for run <- @rodadas do %>
+              <tr>
+                <td data-label="started" class="font-mono text-xs">{run.started_at}</td>
+                <td data-label="state">
+                  <span class={[
+                    "badge badge-sm",
+                    run.outcome == "completed" && "badge-success",
+                    run.outcome == "ended_early" && "badge-error"
+                  ]}>
+                    {estado_da_rodada(run)}
+                  </span>
+                  <div :if={run.ended_reason} class="text-xs opacity-70">{run.ended_reason}</div>
+                </td>
+                <%!-- A origem aparece **aqui**, e nunca na aba da pessoa: um perfil gerado pela
                     rodada é igual a um pedido a mão, e quem lê não deve ter razão para
                     confiar mais num do que no outro — `FR-015`. --%>
-              <td data-label="origin" class="text-xs">{origem(run)}</td>
-              <td data-label="considered" class="font-mono">{@resumos[run.id].considered}</td>
-              <td data-label="generated" class="font-mono">{@resumos[run.id].generated}</td>
-              <td data-label="skipped" class="text-xs">
-                <div>no material: {@resumos[run.id].skipped.no_material}</div>
-                <div>no new work: {@resumos[run.id].skipped.no_new_work}</div>
-                <div>observation ended: {@resumos[run.id].skipped.observation_ended}</div>
-              </td>
-              <td data-label="failed" class="font-mono">{@resumos[run.id].failed}</td>
-              <td data-label="input tokens" class="font-mono">
-                {@resumos[run.id].input_tokens}
-              </td>
-            </tr>
+                <td data-label="origin" class="text-xs">{origem(run)}</td>
+                <td data-label="considered" class="font-mono">{@resumos[run.id].considered}</td>
+                <td data-label="generated" class="font-mono">{@resumos[run.id].generated}</td>
+                <td data-label="skipped" class="text-xs">
+                  <div>no material: {@resumos[run.id].skipped.no_material}</div>
+                  <div>no new work: {@resumos[run.id].skipped.no_new_work}</div>
+                  <div>observation ended: {@resumos[run.id].skipped.observation_ended}</div>
+                </td>
+                <td data-label="failed" class="font-mono">{@resumos[run.id].failed}</td>
+                <td data-label="input tokens" class="font-mono">
+                  {milhar(@resumos[run.id].input_tokens)}
+                </td>
+                <td data-label="">
+                  <button
+                    :if={@resumos[run.id].considered > @resumos[run.id].generated}
+                    class="btn btn-ghost btn-xs"
+                    phx-click={if @report_run_id == run.id, do: "fechar_report", else: "abrir_report"}
+                    phx-value-run_id={run.id}
+                  >
+                    {if @report_run_id == run.id, do: "hide", else: "why not everyone?"}
+                  </button>
+                </td>
+              </tr>
+              <tr :if={@report_run_id == run.id and @report != nil}>
+                <td colspan="9" class="painel bg-base-300/30 p-4">
+                  <p class="mb-2 text-xs opacity-70">
+                    Person by person, with the reason <strong>as of now</strong> — recomputed on
+                    read, like everything observed. Someone whose material changed since the run
+                    shows as "would generate today".
+                  </p>
+                  <div class="grid gap-1 sm:grid-cols-2">
+                    <div :for={p <- @report} class="flex items-baseline gap-2 text-sm">
+                      <span class={[
+                        "badge badge-xs shrink-0",
+                        p.motivo == :geraria_hoje && "badge-success",
+                        p.motivo == :no_assignment && "badge-warning",
+                        p.motivo not in [:geraria_hoje, :no_assignment] && "badge-ghost"
+                      ]}>
+                        {p.motivo}
+                      </span>
+                      <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover font-medium">
+                        {p.name}
+                      </.link>
+                      <span class="text-xs opacity-60">{p.detalhe}</span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
           </tbody>
         </table>
 
@@ -278,7 +336,19 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   defp autor({_, %{by: nil}}), do: "somebody no longer registered"
   defp autor({_, %{by: user}}), do: user.email
 
-  defp quando({_, %{at: at}}), do: at
+  defp quando({_, %{at: at}}), do: DateTime.truncate(at, :second)
+
+  # 651338 lê como telefone; 651,338 lê como contagem. O separador segue a tela, em inglês.
+  defp milhar(n) when is_integer(n) do
+    n
+    |> Integer.to_charlist()
+    |> Enum.reverse()
+    |> Enum.chunk_every(3)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+
+  defp milhar(outro), do: outro
 
   defp estado_da_rodada(%Run{finished_at: nil}), do: "running"
   defp estado_da_rodada(%Run{outcome: "completed"}), do: "completed"

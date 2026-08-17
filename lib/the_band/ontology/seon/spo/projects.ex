@@ -322,6 +322,26 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   end
 
   @doc """
+  Os projetos vigentes de uma equipe — o mesmo vínculo, lido do lado da equipe.
+
+  Uma consulta só: é a tela da equipe que chama, e por-projeto seria o N+1 que a casa
+  já pagou uma vez (feature 007).
+  """
+  @spec list_team_projects(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_team_projects(%Tenant{id: tenant_id}, team_id) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: p in Project,
+        on: p.id == v.project_id,
+        where:
+          v.tenant_id == ^tenant_id and v.team_id == ^team_id and is_nil(v.unlinked_at) and
+            is_nil(p.removed_at),
+        order_by: [asc: p.name],
+        select: %{project_id: p.id, nome: p.name, link_id: v.id}
+    )
+  end
+
+  @doc """
   As equipes vigentes de um projeto, **com a proveniência junto** — a tela separa a
   declarada da observada (FR-008), porque o produto existe para essa distinção.
   """

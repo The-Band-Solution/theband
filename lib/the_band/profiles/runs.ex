@@ -15,7 +15,8 @@ defmodule TheBand.Profiles.Runs do
   import Ecto.Query
 
   alias TheBand.AI
-  alias TheBand.Profiles.{Automation, Run, RunEntry, RunWorker}
+  alias TheBand.Ontology.SEON.EO
+  alias TheBand.Profiles.{Automation, Material, Run, RunEntry, RunWorker}
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
 
@@ -123,6 +124,77 @@ defmodule TheBand.Profiles.Runs do
   @spec finish(run(), :completed | {:ended_early, String.t()}) :: {:ok, run()}
   def finish(%Run{} = run, :completed), do: fechar(run, "completed", nil)
   def finish(%Run{} = run, {:ended_early, motivo}), do: fechar(run, "ended_early", motivo)
+
+  @doc """
+  Quem a rodada NÃO gerou, pessoa a pessoa — o report da tela (pedido da pessoa
+  mantenedora em 2026-08-16: "por que não gerou para os 88?").
+
+  O motivo gravado na entrada é grosso (`no_material`); o motivo FINO — sem designação,
+  abaixo do piso, sem texto comparável — é **recalculado na leitura**, como as tarefas
+  paradas: responde pelo estado de agora, e uma pessoa que ganhou material desde a rodada
+  aparece como "geraria hoje" em vez de fingir que o motivo antigo ainda vale.
+  """
+  @spec skipped_with_reasons(Tenant.t(), run()) :: [
+          %{name: String.t(), person_id: Ecto.UUID.t(), motivo: atom(), detalhe: String.t()}
+        ]
+  def skipped_with_reasons(%Tenant{id: tenant_id} = tenant, %Run{id: run_id}) do
+    pulados =
+      Repo.all(
+        from e in RunEntry,
+          join: p in "eo_people",
+          on: p.id == e.person_id,
+          where:
+            e.tenant_id == ^tenant_id and e.profile_run_id == ^run_id and
+              e.outcome == "skipped",
+          order_by: [asc: p.login],
+          select: %{
+            person_id: type(e.person_id, :binary_id),
+            name: coalesce(p.name, p.login),
+            reason: e.reason
+          }
+      )
+
+    # Uma checagem leve por pessoa pulada, SÓ quando quem administra expande o report —
+    # nunca no mount. Com 50 puladas são 50 consultas de uma linha; o preço é pago no
+    # clique, e a resposta é do agora.
+    Enum.map(pulados, fn pulado ->
+      {motivo, detalhe} = motivo_fino(tenant, pulado)
+      %{person_id: pulado.person_id, name: pulado.name, motivo: motivo, detalhe: detalhe}
+    end)
+  end
+
+  defp motivo_fino(_tenant, %{reason: "observation_ended"}),
+    do: {:observation_ended, "a plataforma não observa mais esta pessoa"}
+
+  defp motivo_fino(_tenant, %{reason: "no_new_work"}),
+    do: {:no_new_work, "o texto vigente ainda diz o que há para dizer"}
+
+  defp motivo_fino(tenant, %{reason: "no_material", person_id: person_id}) do
+    modo =
+      case EO.current_profile(tenant, person_id) do
+        {:ok, _} -> :normal
+        _ -> :primeira
+      end
+
+    case Material.check(tenant, person_id, modo) do
+      :ok ->
+        {:geraria_hoje, "o material mudou desde a rodada — a próxima gera"}
+
+      {:error, :no_assignment} ->
+        {:no_assignment,
+         "nenhuma issue designada nos repositórios coletados — ou o trabalho está em " <>
+           "repositório não observado, ou chega por outro canal"}
+
+      {:error, {:below_floor, %{com_corpo: n, piso: piso}}} ->
+        {:below_floor, "#{n} tarefas com texto, piso de #{piso} — pouco registrado para afirmar"}
+
+      {:error, {:period_too_thin, _}} ->
+        {:period_too_thin, "períodos finos demais para comparar evolução"}
+
+      {:error, {:no_text_to_compare, _}} ->
+        {:no_text_to_compare, "um período inteiro sem texto — nada para comparar"}
+    end
+  end
 
   @doc "A rodada mais recente do tenant. `:never_ran` é resposta, e não lista vazia."
   @spec latest(Tenant.t()) :: {:ok, run()} | {:error, :never_ran}

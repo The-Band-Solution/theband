@@ -85,13 +85,13 @@ defmodule TheBand.Profiles.Material do
   Um `:error` genérico faria a tela dizer a mesma frase para os quatro, e cada um pede uma
   ação diferente — em especial o último, que aponta para o hábito do time e não para a pessoa.
   """
-  @spec build(Tenant.t(), binary()) ::
+  @spec build(Tenant.t(), binary(), :normal | :primeira) ::
           {:ok, t()}
           | {:error, :no_assignment}
           | {:error, {:below_floor, %{com_corpo: non_neg_integer(), piso: pos_integer()}}}
           | {:error, {:period_too_thin, %{contagens: [non_neg_integer()], piso: pos_integer()}}}
           | {:error, {:no_text_to_compare, %{medianas: [non_neg_integer()]}}}
-  def build(%Tenant{} = tenant, person_id) do
+  def build(%Tenant{} = tenant, person_id, modo \\ :normal) do
     concluidas = tarefas(tenant, person_id, "CLOSED")
     abertas = tarefas(tenant, person_id, "OPEN")
 
@@ -100,6 +100,11 @@ defmodule TheBand.Profiles.Material do
     piso_periodo = limiares["evidence_floor"]["values"]["tasks_per_period"]
     com_corpo = Enum.count(concluidas, &(String.trim(&1.corpo) != ""))
 
+    # O piso mede TEXTO suficiente, e título é texto — decisão de 2026-08-16: sem corpo,
+    # o título vale. `com_corpo` continua contando corpos reais (é a estatística que o
+    # perfil grava e a tela mostra); o piso conta o que dá para ler.
+    com_texto = Enum.count(concluidas, &(texto_da_tarefa(&1) > 0))
+
     grupos = tercis(concluidas)
     contagens = Enum.map(grupos, &length/1)
 
@@ -107,8 +112,16 @@ defmodule TheBand.Profiles.Material do
       concluidas == [] and abertas == [] ->
         {:error, :no_assignment}
 
-      com_corpo < piso ->
-        {:error, {:below_floor, %{com_corpo: com_corpo, piso: piso}}}
+      # **A primeira geração não tem o que comparar** — decisão da pessoa mantenedora em
+      # 2026-08-16: sem perfil anterior, pega-se tudo que existe, títulos e descrições.
+      # Os três pisos abaixo protegem a COMPARAÇÃO temporal (evolução entre períodos), e
+      # quem nunca teve perfil ainda não está comparando nada. Da segunda geração em
+      # diante eles voltam a valer inteiros.
+      modo == :primeira and com_texto > 0 ->
+        {:ok, montar(tenant, person_id, concluidas, abertas, grupos, com_corpo, limiares)}
+
+      com_texto < piso ->
+        {:error, {:below_floor, %{com_corpo: com_texto, piso: piso}}}
 
       Enum.any?(contagens, &(&1 < piso_periodo)) ->
         {:error, {:period_too_thin, %{contagens: contagens, piso: piso_periodo}}}
@@ -129,6 +142,13 @@ defmodule TheBand.Profiles.Material do
   # pessoa sem o contrapeso que torna a afirmação honesta.
   #
   # Recusar aqui é o oposto de degradar em silêncio.
+  defp texto_da_tarefa(%{corpo: corpo, titulo: titulo}) do
+    case String.length(corpo) do
+      0 -> String.length(titulo || "")
+      n -> n
+    end
+  end
+
   defp sem_texto?(%{periodos: periodos}) do
     medianas = Enum.map(periodos, & &1.corpo_mediano)
 
@@ -202,7 +222,13 @@ defmodule TheBand.Profiles.Material do
         de: de,
         ate: ate,
         tarefas: tarefas,
-        corpo_mediano: mediana(Enum.map(tarefas, &String.length(&1.corpo))),
+        # **Sem corpo, o título é o texto** — decisão da pessoa mantenedora em
+        # 2026-08-16. Antes, um período onde a maioria das tarefas não tinha corpo dava
+        # mediana zero e recusava o perfil inteiro por :no_text_to_compare — foi o caso
+        # real de MateusLannes: 246 fechadas, e o primeiro terço com 44% de corpo. O
+        # título sempre existe e sempre foi parte do material; medi-lo como texto quando
+        # o corpo falta é ler o que há, em vez de recusar pelo que falta.
+        corpo_mediano: mediana(Enum.map(tarefas, &texto_da_tarefa/1)),
         autoria_propria: Enum.count(tarefas, & &1.autoria_propria),
         base: Baseline.fatia(base, de, ate)
       }
@@ -264,8 +290,8 @@ defmodule TheBand.Profiles.Material do
   Devolve os mesmos erros de `build/2`, com as mesmas formas, porque a tela usa a mesma
   frase para os dois caminhos.
   """
-  @spec check(Tenant.t(), binary()) :: :ok | {:error, term()}
-  def check(%Tenant{id: tenant_id}, person_id) do
+  @spec check(Tenant.t(), binary(), :normal | :primeira) :: :ok | {:error, term()}
+  def check(%Tenant{id: tenant_id}, person_id, modo \\ :normal) do
     tamanhos =
       from(i in "collected_issues",
         join: a in "issue_assignees",
@@ -274,16 +300,23 @@ defmodule TheBand.Profiles.Material do
           i.tenant_id == type(^tenant_id, :binary_id) and
             a.person_id == type(^person_id, :binary_id),
         order_by: [asc: coalesce(i.external_closed_at, i.external_created_at)],
-        select: {i.state, fragment("length(coalesce(?, ''))", i.body)}
+        select:
+          {i.state,
+           fragment(
+             "case when length(coalesce(?, '')) > 0 then length(?) else length(coalesce(?, '')) end",
+             i.body,
+             i.body,
+             i.title
+           )}
       )
       |> Repo.all()
 
-    avaliar(tamanhos, limiares())
+    avaliar(tamanhos, limiares(), modo)
   end
 
-  defp avaliar([], _limiares), do: {:error, :no_assignment}
+  defp avaliar([], _limiares, _modo), do: {:error, :no_assignment}
 
-  defp avaliar(tamanhos, limiares) do
+  defp avaliar(tamanhos, limiares, modo) do
     piso = limiares["evidence_floor"]["values"]["tasks_with_body"]
     piso_periodo = limiares["evidence_floor"]["values"]["tasks_per_period"]
 
@@ -294,6 +327,11 @@ defmodule TheBand.Profiles.Material do
     medianas = Enum.map(grupos, &mediana/1)
 
     cond do
+      # A primeira geração pega tudo que tem texto — os pisos protegem a comparação, e
+      # quem nunca teve perfil não está comparando nada (decisão de 2026-08-16).
+      modo == :primeira and com_corpo > 0 ->
+        :ok
+
       com_corpo < piso ->
         {:error, {:below_floor, %{com_corpo: com_corpo, piso: piso}}}
 

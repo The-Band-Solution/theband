@@ -19,7 +19,8 @@ defmodule TheBandWeb.RodadaTest do
   import TheBand.ProfileRunFixtures
 
   alias TheBand.Ontology.KnowledgeBase
-  alias TheBand.Profiles.{Automation, Runs}
+  alias TheBand.Ontology.SEON.EO
+  alias TheBand.Profiles.{Automation, Runs, RunWorker}
   alias TheBand.Tenants
 
   setup :verify_on_exit!
@@ -133,6 +134,62 @@ defmodule TheBandWeb.RodadaTest do
 
       assert html =~ "Never turned on"
       refute html =~ run.id
+    end
+  end
+
+  describe "o report — por que não gerou para todos" do
+    test "pessoa a pessoa, com o motivo fino do AGORA", ctx do
+      tenant_com_credencial(ctx.tenant)
+      # Uma rodada com uma pulada por no_material (sem designação alguma).
+      {:ok, sem} =
+        EO.upsert_person_from_source(ctx.tenant, %{
+          login: "sem-designacao",
+          name: "Sem Designação",
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          source_endpoint: "/users/sem",
+          external_id: "U_sem",
+          collected_at: DateTime.utc_now(:second),
+          payload: %{}
+        })
+
+      Mox.expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
+        {:ok,
+         %{
+           text:
+             Jason.encode!(%{
+               "habilidades" => ["x"],
+               "resumo" => %{"forcas" => "f", "evolucao" => "e", "atencao" => "a"},
+               "trajetoria" => [],
+               "destaques" => [],
+               "lacunas" => [],
+               "alocacao" => [],
+               "recomendacoes" => [],
+               "do_time_nao_da_pessoa" => "t",
+               "nao_alcanca" => "n"
+             }),
+           model: "m1",
+           usage: %{"prompt_tokens" => 10}
+         }}
+      end)
+
+      {:ok, run} = Runs.start(ctx.tenant, trigger: :manual, requested_by: ctx.admin)
+
+      assert :ok =
+               RunWorker.perform(%Oban.Job{
+                 args: %{"tenant_id" => ctx.tenant.id, "run_id" => run.id}
+               })
+
+      {:ok, live, _} = live(ctx.conn, ~p"/profiles")
+
+      html = live |> element("button", "why not everyone?") |> render_click()
+
+      assert html =~ "Sem Designação"
+      assert html =~ "no_assignment"
+      assert html =~ "nenhuma issue designada", "o motivo fino não veio com a dica de ação"
+      assert html =~ "as of now"
+      _ = sem
     end
   end
 end
