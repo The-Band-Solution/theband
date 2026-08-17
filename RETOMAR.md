@@ -38,6 +38,10 @@ No merge, fecha #395 (closing keyword conferida: "Closes", em inglês).
   tarefa designada (mesmo pouca) → gera. Verificar no dado real por que o
   report mostra below_floor com "0 tarefas com texto": se for gente sem perfil
   com tarefa designada, a primeira geração está aplicando recorte que não devia.
+- #400 — coletar os comentários das issues, **usando os modelos da ontologia**
+  (classificar na base, mapeamento YAML, esquema derivado). Antes do #401.
+- #401 — coletar o CI do GitHub (workflow/check runs), mesma restrição
+  ontológica. Depois do #400.
 - Rodar a rodada de novo (botão "run now — everyone" em /profiles): os 13
   "geraria hoje" viram perfis com a regra nova. Esperado: ~47 gerados.
 - Sprint 018: escrever `sprint-review.md` e consolidar lições.
