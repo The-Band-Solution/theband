@@ -196,6 +196,26 @@ defmodule TheBand.Profiles.MaterialTest do
     end
   end
 
+  describe "primeira geração com designação só de abertas — #399, 2026-08-17" do
+    test "monta o material: alocação é resposta, e a limitação vai declarada", ctx do
+      # 13 de 88 pessoas na base real: nenhuma issue concluída, mas 1 a 19 designadas
+      # ABERTAS. O perfil "alocada em X, nada concluído observado ainda" responde quem
+      # trabalha em quê; pessoa invisível não responde nada.
+      pessoa =
+        TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "so-abertas",
+          tarefas: 3,
+          estado: "OPEN"
+        )
+
+      assert {:ok, material} = Material.build(ctx.tenant, pessoa.id, :primeira)
+      assert material.concluidas == []
+      assert length(material.abertas) == 3
+
+      # Da segunda geração em diante, os pisos voltam: sem concluída, não há material.
+      assert {:error, {:below_floor, _}} = Material.build(ctx.tenant, pessoa.id, :normal)
+    end
+  end
+
   describe "sem corpo, o título é o texto — decisão de 2026-08-16" do
     test "período onde a maioria não tem corpo passa pela mediana do título", ctx do
       # A forma real de MateusLannes: primeiro terço com menos da metade dos corpos.

@@ -117,7 +117,12 @@ defmodule TheBand.Profiles.Material do
       # Os três pisos abaixo protegem a COMPARAÇÃO temporal (evolução entre períodos), e
       # quem nunca teve perfil ainda não está comparando nada. Da segunda geração em
       # diante eles voltam a valer inteiros.
-      modo == :primeira and com_texto > 0 ->
+      #
+      # E vale com designação SÓ de issues abertas (#399, 2026-08-17): aberta é intenção,
+      # não evidência — mas "alocada em X, nada concluído observado" responde quem
+      # trabalha em quê, e pessoa invisível não responde nada. Eram 13 de 88 na base
+      # real, uma com 19 issues designadas. A limitação vai no próprio material.
+      modo == :primeira ->
         {:ok, montar(tenant, person_id, concluidas, abertas, grupos, com_corpo, limiares)}
 
       com_texto < piso ->
@@ -332,9 +337,13 @@ defmodule TheBand.Profiles.Material do
     medianas = Enum.map(grupos, &mediana/1)
 
     cond do
-      # A primeira geração pega tudo que tem texto — os pisos protegem a comparação, e
-      # quem nunca teve perfil não está comparando nada (decisão de 2026-08-16).
-      modo == :primeira and com_corpo > 0 ->
+      # A primeira geração gera para QUALQUER pessoa com designação — os pisos protegem
+      # a comparação, e quem nunca teve perfil não está comparando nada (2026-08-16).
+      # E designação só de issues ABERTAS também gera (#399, 2026-08-17): aberta é
+      # intenção, não evidência — mas um perfil que diz "alocada em X, nada concluído
+      # observado ainda" responde quem trabalha em quê; pessoa invisível não responde
+      # nada. A limitação vai declarada no material. Eram 13 de 88 na base real.
+      modo == :primeira ->
         :ok
 
       com_corpo < piso ->
