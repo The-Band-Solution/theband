@@ -257,6 +257,9 @@ defmodule TheBand.Profiles.Material do
         is_nil(rp) or is_nil(rj) ->
           "não calculável — algum período sem corpo medido"
 
+        rp == 0.0 or rj == 0.0 ->
+          "não calculável — um dos lados caiu a zero no período"
+
         rp / rj >= limiar ->
           "a pessoa cresceu ACIMA do projeto: a mudança é dela"
 
@@ -273,7 +276,9 @@ defmodule TheBand.Profiles.Material do
 
   defp razao(serie) do
     primeiro = List.first(serie)
-    if primeiro in [0, nil], do: nil, else: List.last(serie) / primeiro
+    # == e não ===: a mediana pode vir 0.0, e 0.0 === 0 é falso — foi a divisão por
+    # zero flutuante que derrubou a rodada de 2026-08-17 na pessoa 40 de 88.
+    if primeiro == nil or primeiro == 0, do: nil, else: List.last(serie) / primeiro
   end
 
   defp fmt(nil), do: "—"

@@ -106,7 +106,7 @@ defmodule TheBand.Profiles.RunWorker do
   end
 
   defp gerar(tenant, run, pessoa) do
-    case GenerateWorker.gerar(tenant, pessoa.id) do
+    case gerar_capturando(tenant, pessoa.id) do
       {:ok, perfil, tokens} ->
         {:ok, _} =
           Runs.record(run, pessoa.id, %{
@@ -126,6 +126,16 @@ defmodule TheBand.Profiles.RunWorker do
 
         if credencial?(motivo), do: {:encerra, texto(motivo)}, else: :continua
     end
+  end
+
+  # Uma exceção ao gerar para UMA pessoa é falha daquela pessoa — sem isto, o crash
+  # derruba o job inteiro e a rodada fica "running" para sempre, que foi exatamente o
+  # que a rodada de 2026-08-17 fez: três tentativas do Oban no mesmo ArithmeticError,
+  # job descartado, e a tela mentindo por sete horas. Sucesso silencioso, de novo.
+  defp gerar_capturando(tenant, person_id) do
+    GenerateWorker.gerar(tenant, person_id)
+  rescue
+    e -> {:error, Exception.format_banner(:error, e)}
   end
 
   # **Falha de credencial encerra; limite de taxa não.** A distinção não é preciosismo: com a

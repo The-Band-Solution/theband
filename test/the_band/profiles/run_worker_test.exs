@@ -152,6 +152,26 @@ defmodule TheBand.Profiles.RunWorkerTest do
              """
     end
 
+    test "exceção ao gerar é falha DAQUELA pessoa — a rodada nunca fica muda", ctx do
+      # A rodada real de 2026-08-17: um ArithmeticError no material derrubou o job três
+      # vezes, o Oban descartou, e a tela disse "running" por sete horas. A exceção tem
+      # que virar entrada "failed" com o motivo, e a rodada tem que FECHAR.
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
+        raise ArithmeticError, message: "bad argument in arithmetic expression"
+      end)
+
+      run = abrir(ctx.tenant, ctx.admin)
+      assert :ok = executar(ctx.tenant, run)
+
+      {:ok, fechada} = Runs.get(ctx.tenant, run.id)
+
+      assert fechada.outcome == "completed",
+             "a exceção derrubou a rodada inteira — era para ser falha de uma pessoa só"
+
+      resumo = Runs.summary(fechada)
+      assert resumo.failed == 1, "a falha sumiu do resumo — sucesso silencioso de novo"
+    end
+
     test "quem falhou volta na rodada seguinte", ctx do
       expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
         {:error, {:http, 429, "rate limited"}}
