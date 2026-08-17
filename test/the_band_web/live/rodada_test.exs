@@ -189,6 +189,16 @@ defmodule TheBandWeb.RodadaTest do
       assert html =~ "no_assignment"
       assert html =~ "nenhuma issue designada", "o motivo fino não veio com a dica de ação"
       assert html =~ "as of now"
+
+      # #398: agrupado por motivo, com contagem no cabeçalho e o texto comum dito UMA
+      # vez — repetido por pessoa não é leitura, é despejo.
+      assert html =~ "1 person"
+
+      repeticoes = length(String.split(html, "nenhuma issue designada")) - 1
+
+      assert repeticoes == 1,
+             "o texto do motivo apareceu #{repeticoes} vezes — era para ser subtítulo do grupo"
+
       _ = sem
     end
   end
