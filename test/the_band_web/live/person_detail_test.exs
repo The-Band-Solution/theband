@@ -288,12 +288,26 @@ defmodule TheBandWeb.PersonDetailTest do
       # com elas o texto inteiro das tarefas, a cada render. Virou `Material.check/2`, que
       # traz só o tamanho de cada corpo. A tentação era subir o teto; o defeito era da tela.
       #
+      # **E de 18 para 19 na feature 030**, com a décima primeira nomeada:
+      #
+      #  11. a participação em discussões — as issues em que a pessoa comentou, agregadas
+      #      por issue numa consulta só (`Discussions.participation_of/3`).
+      #
+      # Ela vale **sempre**, como a décima: é o trabalho que designação nenhuma registra,
+      # e sete das 24 pessoas sem designação do tenant real só aparecem por ela. Agregar
+      # por issue no banco é o que a mantém em uma: uma consulta por discussão seriam 50
+      # numa pessoa real.
+      #
+      # A classificação das paradas (silêncio × conversa antiga × recente) NÃO acrescenta:
+      # ela reusa `last_act_for_issues/2` para todas as paradas de uma vez, e a consulta
+      # de quais repositórios têm comentários coletados entra no mesmo par de renders.
+      #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 18, """
+      assert acrescentadas <= 19, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **dezoito** — oito da tela original, sete do painel da 023, e
-      três do perfil da 026.
+      linha de base medida é **dezenove** — oito da tela original, sete do painel da 023,
+      três do perfil da 026, e uma da participação em discussões da 030.
 
       O que a página faz além da lista:
 

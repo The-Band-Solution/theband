@@ -29,6 +29,9 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     # passou por coleta de issues" — e é a diferença entre "olhei e não achei" e "não sei",
     # que a tela precisa para não mostrar `0` nos dois casos.
     field :issues_collected_at, :utc_datetime
+    # Quando os comentários foram percorridos por inteiro — decide o incremental da
+    # coleta E qual frase o vazio da discussão usa na tela (feature 030).
+    field :comments_collected_at, :utc_datetime
 
     # O que a escrita fez — mesmo campo virtual que `CollectedIssue` e `EO.Schemas.Person`
     # usam, e pelo mesmo motivo: sem ele a contagem da execução não distingue observar um
@@ -49,7 +52,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
       :excluded_by_user_id,
       :inaccessible_since,
       :inaccessible_reason,
-      :issues_collected_at
+      :issues_collected_at,
+      :comments_collected_at
     ])
     |> validate_required([:tenant_id, :connected_tool_id, :source_repository_id])
     |> unique_constraint([:connected_tool_id, :source_repository_id])

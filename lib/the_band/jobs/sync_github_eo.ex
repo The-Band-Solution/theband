@@ -29,6 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.GithubIssueComments
   alias TheBand.Ingestion.GithubProjects
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Integrations.GitHub.Client
@@ -163,14 +164,30 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # trabalho: repositórios e issues já estão no banco, e perdê-los por causa de uma
   # falha nos quadros seria pior que registrar a falha.
   defp coletar_caixas_de_tempo(ctx) do
-    case GithubProjects.collect(ctx) do
-      {:ok, resumo} ->
-        resumo
+    resumo_quadros =
+      case GithubProjects.collect(ctx) do
+        {:ok, resumo} ->
+          resumo
 
-      {:error, reason} ->
-        Logger.warning("coleta de quadros falhou: #{inspect(reason)}")
-        %{projects: 0, sprints: 0, links: 0, sprints_error: reason}
-    end
+        {:error, reason} ->
+          Logger.warning("coleta de quadros falhou: #{inspect(reason)}")
+          %{projects: 0, sprints: 0, links: 0, sprints_error: reason}
+      end
+
+    Map.merge(resumo_quadros, coletar_comentarios(ctx))
+  end
+
+  # **Depois das issues**, pela mesma dependência de dado: o comentário aponta para a
+  # issue gravada. E lê as issues da BASE, não da memória da fase anterior (L47) —
+  # issue nova com comentário entra na mesma passada.
+  #
+  # Falhar aqui não derruba nada do que veio antes; sem checkpoint gravado, a próxima
+  # coleta percorre de novo (L29).
+  defp coletar_comentarios(ctx) do
+    # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com
+    # log) — por isso não há ramo de erro aqui.
+    {:ok, resumo} = GithubIssueComments.collect(ctx)
+    %{comments: resumo.comments, comment_issues: resumo.issues_visited}
   end
 
   # Falha transitória **não** encerra a sincronização. Marcá-la como falha levaria

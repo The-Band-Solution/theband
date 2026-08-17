@@ -1,0 +1,46 @@
+# A rede não tinha conceito para comentário — e a lacuna foi encontrada, não suposta.
+#
+# Investigado em 2026-08-14 (issue #318), nas oito ontologias então carregadas: nada em
+# SPO, SEON, SRO, CIRO, CDRO cobre comunicação sobre artefato. O mais próximo,
+# spo.information_item, foi examinado e recusado: item de informação é ARTEFATO do
+# processo — produzido para ser entregue ou consumido por atividade — e um comentário
+# não é produzido para entrega nem consumido por atividade: ele é comunicação SOBRE o
+# artefato. Achatar comentário em artefato faria "documento do projeto" de cada "isso
+# quebrou no staging?".
+#
+# A decisão de estender (2026-08-17, pessoa mantenedora, issue #400): comunicação vira
+# módulo próprio do continuum, fundado em UFO — como SRO, CIRO e CDRO já são. O ato de
+# comentar é um evento com participação de agente; o comentário é o objeto social que o
+# ato cria; a discussão é o coletivo dos comentários de um artefato; e a participação
+# na discussão é um RELATOR, nunca um booleano — quem afirmou, quando, com que
+# evidência (a regra da casa contra "comentou? sim").
+ontology:
+  id: cmo
+  name: Communication Ontology
+  acronym: CMO
+  version: 0.1.0
+  namespace: the_band.ontology.continuum.cmo
+  layer: domain
+  network: continuum
+  description:
+    pt-BR: >
+      Conceitualização da comunicação sobre artefatos do projeto: o ato de comentar,
+      o comentário que ele publica, a discussão que os comentários de um artefato
+      compõem, e a participação dos agentes nela. Existe para responder o que
+      execução nenhuma responde: quem destrava, quem revisa, quem responde — o
+      trabalho que acontece na conversa e não vira tarefa.
+dependencies: [ufo, eo, spo]
+modules:
+  - artifact_communication
+competency_questions:
+  - cmo_competency_questions
+provenance:
+  source_type: project_decision
+  reference: "Issues #318 (a lacuna, 2026-08-14) e #400 (a decisão, 2026-08-17)"
+  authors: ["Santos Júnior, P. S."]
+  year: 2026
+  note: >
+    Extensão do continuum da tese, não parte dela: a tese cobre execução (SPO/SRO) e
+    integração/entrega contínuas (CIRO/CDRO); comunicação sobre artefato é lacuna
+    documentada. Verbos no passado, como em todo o continuum: descreve-se o que
+    ocorreu, nunca intenção.

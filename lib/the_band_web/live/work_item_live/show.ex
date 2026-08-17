@@ -43,6 +43,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Communication.Discussions
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
@@ -452,6 +453,50 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </div>
           </div>
 
+          <%!-- A DISCUSSÃO — cmo.comment, observado na origem.
+                Os dois vazios são frases diferentes de propósito: "não coletada" e
+                "coletada e vazia" dizem coisas opostas sobre a origem, e usar a mesma
+                para as duas é o defeito da L57. --%>
+          <div class="card bg-base-200">
+            <div class="card-body gap-3 p-4">
+              <h3 class="card-title text-base">Discussion</h3>
+              <p class="text-xs text-base-content/70">
+                What was said on the issue at the source, in order — observed, never derived.
+                The work that happens in the conversation and never becomes a task lives here.
+              </p>
+
+              <p :if={not @discussao_coletada?} class="text-sm opacity-70">
+                No discussion has been collected for this repository yet. This is not the same
+                as the issue having no comments.
+              </p>
+
+              <p :if={@discussao_coletada? and @discussao == []} class="text-sm opacity-70">
+                Collected, and this issue has no comments.
+              </p>
+
+              <ol :if={@discussao != []} class="space-y-3">
+                <li :for={c <- @discussao} class="border-t border-base-300 pt-2 first:border-0">
+                  <div class="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <.link
+                      :if={c.author_person_id}
+                      navigate={~p"/people/#{c.author_person_id}"}
+                      class="link link-hover font-medium"
+                    >
+                      {@nomes[c.author_person_id] || c.author_login}
+                    </.link>
+                    <span :if={is_nil(c.author_person_id)} class="font-medium">
+                      {c.author_login || "author no longer at the source"}
+                      <span class="text-xs font-normal opacity-60">(person not collected)</span>
+                    </span>
+                    <span class="text-xs opacity-60 tabular-nums">{c.published_at}</span>
+                    <span :if={c.edited_at} class="text-xs opacity-60">edited</span>
+                  </div>
+                  <p class="mt-0.5 text-sm whitespace-pre-line text-base-content/80">{c.body}</p>
+                </li>
+              </ol>
+            </div>
+          </div>
+
           <div class="card bg-base-200">
             <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">Cycle time</h3>
@@ -603,7 +648,8 @@ defmodule TheBandWeb.WorkItemLive.Show do
     estados_do_quadro = SPO.count_board_states(tenant)
     pai = WorkItems.fetch_parent(tenant, issue.id)
     repositorio = repositorio(tenant, issue.observed_repository_id)
-    nomes = nomes(tenant, issue)
+    discussao = Discussions.for_issue(tenant, issue.id)
+    nomes = nomes(tenant, issue, discussao)
 
     # **As quatro listas, uma vez cada.** `partes_faltando/2` as consultava de novo para contar —
     # três consultas repetidas por render, e a quarta lista teria virado a sétima. Contar o que já
@@ -638,7 +684,12 @@ defmodule TheBandWeb.WorkItemLive.Show do
       # de 39 para 48 consultas, e o teste-guarda da feature 007 pegou.
       timeline: atividades,
       cycle_time: SPO.cycle_time(atividades, estados_do_quadro),
-      antipadroes: antipadroes(issue, atividades)
+      antipadroes: antipadroes(issue, atividades),
+      # A discussão (cmo.discussion): os comentários coletados desta issue. `coletada?`
+      # separa os dois vazios — "não passou a coleta" e "passou e não há conversa" são
+      # fatos diferentes, e usar a mesma frase para os dois é o defeito da L57.
+      discussao: discussao,
+      discussao_coletada?: discussao_coletada?(repositorio)
     )
     |> assign(onde(tenant, repositorio, issue))
   end
@@ -653,6 +704,12 @@ defmodule TheBandWeb.WorkItemLive.Show do
     end
   end
 
+  # `comments_collected_at` do repositório observado é o que distingue os dois vazios.
+  # Repositório que deixou de ser observado (nil) conta como não coletado: a issue
+  # continua consultável, mas nada se afirma sobre a conversa dela.
+  defp discussao_coletada?(nil), do: false
+  defp discussao_coletada?(repositorio), do: not is_nil(repositorio.comments_collected_at)
+
   defp violacao(issue, pai) do
     case WorkItems.rule07(issue.derived_concept, pai && pai.derived_concept) do
       :ok -> nil
@@ -662,9 +719,13 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   # O nome da pessoa vem pela API pública de EO: `WorkItems` guarda a **referência** e
   # não alcança `eo_people`. É a regra da fronteira do princípio IX em leitura.
-  defp nomes(tenant, issue) do
+  # Os autores da discussão entram na MESMA consulta de nomes: uma por render, e não uma
+  # por comentário — sem isto, o nome de quem comentou cairia para o login (a tela
+  # mostraria duas grafias da mesma pessoa em lugares diferentes).
+  defp nomes(tenant, issue, discussao) do
     ids =
       [issue.author_person_id | Enum.map(issue.assignees, & &1.person_id)]
+      |> Kernel.++(Enum.map(discussao, & &1.author_person_id))
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
 

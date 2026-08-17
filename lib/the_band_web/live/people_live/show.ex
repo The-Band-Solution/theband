@@ -30,8 +30,10 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   use TheBandWeb, :live_view
 
+  import Ecto.Query, only: [from: 2]
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Communication.Discussions
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
@@ -144,7 +146,8 @@ defmodule TheBandWeb.PeopleLive.Show do
       tarefas_novas: Profiles.tasks_since(tenant, pessoa.id, perfil),
       # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
-      paradas: Profiles.stale_open(tenant, pessoa.id),
+      paradas: paradas_com_discussao(tenant, Profiles.stale_open(tenant, pessoa.id)),
+      participacao: Discussions.participation_of(tenant, pessoa.id, limit: 20),
       dias_parada: Material.stale_days(),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
@@ -303,6 +306,46 @@ defmodule TheBandWeb.PeopleLive.Show do
               No longer observed since {@pessoa.no_longer_observed_at}. The platform saw this person
               before, and does not see them now.
             </p>
+          </div>
+
+          <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
+                observados, e por isso hachurada e rotulada. Responde o que designação
+                nenhuma responde: o trabalho que acontece na conversa. --%>
+          <div class="mt-4 border-t border-base-300 pt-3">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+              <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                Discussions they took part in
+              </h4>
+              <span class="badge badge-outline badge-sm gap-1 text-warning">
+                <span class="size-2.5 shrink-0 rounded-[1px] outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"></span>
+                derived — counted from collected comments
+              </span>
+            </div>
+            <p class="mb-2 text-xs text-base-content/60">
+              Commenting is <strong>not</strong>
+              a completed task, and this is not a skill claim: it is where the person
+              showed up in the conversation — including on issues never assigned to them.
+            </p>
+
+            <p :if={@participacao == []} class="text-xs text-base-content/60">
+              No comment by this person has been collected. Either they work through other
+              channels, or the discussion of their repositories has not been collected yet.
+            </p>
+
+            <div
+              :for={d <- @participacao}
+              class="flex flex-wrap items-baseline gap-x-3 border-t border-base-300 py-1.5 text-sm"
+            >
+              <span class="w-16 shrink-0 text-right font-mono text-xs opacity-70 tabular-nums">
+                {d.atos}×
+              </span>
+              <.link navigate={~p"/work/issues/#{d.issue_id}"} class="link link-hover">
+                {d.title}
+              </.link>
+              <span class="font-mono text-xs opacity-60 tabular-nums">
+                {Calendar.strftime(d.primeiro, "%Y-%m")} → {Calendar.strftime(d.ultimo, "%Y-%m")}
+              </span>
+            </div>
           </div>
         </section>
 
@@ -641,13 +684,32 @@ defmodule TheBandWeb.PeopleLive.Show do
                 The origin records no deadline, so this is not lateness — it is work that has
                 been open this long and needs a destination.
               </p>
-              <div :for={t <- @paradas} class="flex gap-3 border-t border-base-300 py-1.5 text-sm">
-                <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
-                  {t.dias_aberta}d
-                </span>
-                <.link navigate={~p"/work/issues/#{t.id}"} class="link link-hover">
-                  {t.titulo}
-                </.link>
+              <%!-- O sinal "parada" tem TRÊS diagnósticos, e eles pedem ações opostas
+                    (#400): sem conversa nenhuma é abandono silencioso; conversa antiga é
+                    abandono depois de discutir; conversa recente é trabalho vivo com
+                    registro desatualizado. Sem os comentários, os três eram a mesma
+                    linha. --%>
+              <div :for={t <- @paradas} class="border-t border-base-300 py-1.5 text-sm">
+                <div class="flex gap-3">
+                  <span class="w-16 shrink-0 text-right font-mono text-xs text-error tabular-nums">
+                    {t.dias_aberta}d
+                  </span>
+                  <.link navigate={~p"/work/issues/#{t.id}"} class="link link-hover">
+                    {t.titulo}
+                  </.link>
+                </div>
+                <div class="mt-0.5 flex flex-wrap items-baseline gap-2 pl-19 text-xs">
+                  <span class={[
+                    "badge badge-xs shrink-0",
+                    t.conversa == :recente && "badge-success",
+                    t.conversa == :antiga && "badge-warning",
+                    t.conversa == :silencio && "badge-ghost",
+                    t.conversa == :nao_coletada && "badge-ghost badge-outline"
+                  ]}>
+                    {rotulo_da_conversa(t.conversa)}
+                  </span>
+                  <span class="opacity-60">{frase_da_conversa(t)}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1064,6 +1126,70 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   # A interface fala inglês; o modelo escreve em português. Traduzir aqui, e não no schema,
   # mantém o vocabulário da regra em uma língua só.
+  # A resolução tripla do sinal "parada" (#400) — uma consulta para TODAS as paradas.
+  #
+  # `nao_coletada` existe porque ausência de discussão coletada não é ausência de
+  # discussão: quando a coleta de comentários nunca passou pelo repositório, a tela diz
+  # isso em vez de afirmar silêncio.
+  defp paradas_com_discussao(_tenant, []), do: []
+
+  defp paradas_com_discussao(tenant, paradas) do
+    ultimos = Discussions.last_act_for_issues(tenant, Enum.map(paradas, & &1.id))
+    corte = DateTime.add(DateTime.utc_now(:second), -Material.stale_days(), :day)
+    coletados = repositorios_com_comentarios(tenant, paradas)
+
+    Enum.map(paradas, fn t ->
+      Map.merge(t, classificar_conversa(ultimos[t.id], corte, MapSet.member?(coletados, t.id)))
+    end)
+  end
+
+  defp classificar_conversa(nil, _corte, false),
+    do: %{conversa: :nao_coletada, atos: 0, ultimo_ato: nil}
+
+  defp classificar_conversa(nil, _corte, true),
+    do: %{conversa: :silencio, atos: 0, ultimo_ato: nil}
+
+  defp classificar_conversa(%{atos: atos, ultimo: ultimo}, corte, _coletado) do
+    forma = if DateTime.compare(ultimo, corte) == :gt, do: :recente, else: :antiga
+    %{conversa: forma, atos: atos, ultimo_ato: ultimo}
+  end
+
+  # Quais dessas issues estão em repositório cuja coleta de comentários já passou.
+  defp repositorios_com_comentarios(tenant, paradas) do
+    ids = Enum.map(paradas, & &1.id)
+
+    TheBand.Repo.all(
+      from i in "collected_issues",
+        join: o in "observed_repositories",
+        on: o.id == i.observed_repository_id,
+        where:
+          i.tenant_id == type(^tenant.id, :binary_id) and
+            i.id in type(^ids, {:array, :binary_id}) and
+            not is_nil(o.comments_collected_at),
+        select: type(i.id, :binary_id)
+    )
+    |> MapSet.new()
+  end
+
+  defp rotulo_da_conversa(:recente), do: "active discussion"
+  defp rotulo_da_conversa(:antiga), do: "stale discussion"
+  defp rotulo_da_conversa(:silencio), do: "silent"
+  defp rotulo_da_conversa(:nao_coletada), do: "discussion not collected"
+
+  defp frase_da_conversa(%{conversa: :recente, atos: atos, ultimo_ato: ultimo}),
+    do:
+      "#{atos} comment(s), last on #{Calendar.strftime(ultimo, "%Y-%m-%d")} — the work is alive; the record is not"
+
+  defp frase_da_conversa(%{conversa: :antiga, atos: atos, ultimo_ato: ultimo}),
+    do:
+      "#{atos} comment(s), none since #{Calendar.strftime(ultimo, "%Y-%m-%d")} — discussed, then left"
+
+  defp frase_da_conversa(%{conversa: :silencio}),
+    do: "nobody has commented on it — decide whether it dies or comes back"
+
+  defp frase_da_conversa(%{conversa: :nao_coletada}),
+    do: "comments were never collected for this repository — silence here is not evidence"
+
   # A evolução por geração (#403): para os domínios do perfil VIGENTE, a contagem de
   # tarefas-evidência em cada geração da pessoa — a tabela somente-acréscimo é a série.
   # Domínio ausente numa geração antiga conta 0 ali: evidência ainda não nomeada, nunca
@@ -1071,8 +1197,6 @@ defmodule TheBandWeb.PeopleLive.Show do
   defp evolucao_do_perfil(_tenant, _person_id, nil), do: %{geracoes: [], series: []}
 
   defp evolucao_do_perfil(tenant, person_id, perfil) do
-    import Ecto.Query, only: [from: 2]
-
     historico =
       TheBand.Repo.all(
         from p in "eo_person_profiles",

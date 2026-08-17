@@ -126,14 +126,21 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
 
       # O identificador da pessoa já viaja nos dados que a tela carrega. Uma consulta por linha
       # para resolver o destino é o defeito que a feature 007 pagou com 135 por render.
-      # **O número veio da medida, não de escolha.** Antes da feature, a mesma tela fazia **39**
-      # consultas nos dois renders de `live/2`; depois, **38**. Um teto inventado — "menos que 30" —
-      # reprovaria com o código certo, e um "menos que 300" passaria com o defeito.
-      assert consultas <= 39, """
-      A tela passou a fazer #{consultas} consultas por render, contra 39 medidas antes da feature.
+      # **O número veio da medida, não de escolha.** Antes da feature 014, a mesma tela fazia
+      # **39** consultas nos dois renders de `live/2`; depois, **38**. Um teto inventado —
+      # "menos que 30" — reprovaria com o código certo, e um "menos que 300" passaria com o
+      # defeito.
+      #
+      # **40 desde a feature 030**: a discussão da issue custa UMA consulta fixa, que roda
+      # inclusive quando não há comentário nenhum (é ela que distingue "não coletada" de
+      # "coletada e vazia"). Os autores dos comentários entram na consulta de nomes que já
+      # existia — nunca uma por comentário, e `discussions_test.exs` mede isso.
+      assert consultas <= 40, """
+      A tela passou a fazer #{consultas} consultas por render, contra 40 medidas depois da
+      feature 030 (39 antes dela, 38 depois da 014).
 
-      Ligar um nome usa `person_id`, que já está carregado. Se o número subiu, a ligação está
-      resolvendo destino por linha — o defeito que a feature 007 pagou com 135 por render.
+      Ligar um nome usa `person_id`, que já está carregado. Se o número subiu, alguma coisa
+      está resolvendo por linha — o defeito que a feature 007 pagou com 135 por render.
       """
     end
   end

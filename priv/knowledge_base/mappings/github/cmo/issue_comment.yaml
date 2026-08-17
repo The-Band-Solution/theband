@@ -1,0 +1,86 @@
+# O comentário de issue vira cmo.comment — e NÃO spo.information_item.
+#
+# A alternativa foi examinada e recusada (#318, 2026-08-14): item de informação é
+# artefato do processo, produzido para entrega ou consumo por atividade; comentário é
+# comunicação SOBRE o artefato. A pessoa mantenedora decidiu estender o continuum com a
+# CMO (#400, 2026-08-17) em vez de achatar a distinção.
+#
+# O ato de comentar (cmo.commenting_act) e a participação (cmo.discussion_participation)
+# NÃO têm mapeamento próprio de propósito: a origem não os entrega — entrega o
+# comentário pronto. Os dois são DERIVADOS deste registro (o ato: um por comentário, no
+# createdAt dele; a participação: agregada por pessoa×discussão na leitura, nunca
+# armazenada como contador). Derivado carrega hachura e rótulo na tela, como sempre.
+mapping:
+  id: github.issue_comment.to.cmo.comment
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: issue_comment
+  api: graphql
+  schema_version: v4
+target:
+  ontology: cmo
+  concept: cmo.comment
+semantics:
+  equivalence: total
+  justification: >
+    Um IssueComment do GitHub é exatamente uma manifestação escrita, unicamente
+    identificada, publicada por um agente no fio de discussão de um artefato do
+    projeto — a definição de cmo.comment. A equivalência é total porque o conceito
+    foi criado reconhecendo esta classe de coisa, e não o contrário: a CMO nasceu da
+    lacuna que este dado expôs.
+identity:
+  external_id_path: id
+  natural_key: [repository.node_id, issue.number, id]
+attributes:
+  body:         { source_path: bodyText }
+  published_at: { source_path: createdAt }
+  edited_at:    { source_path: lastEditedAt }
+relations:
+  author:
+    source_path: author.id
+    target_ontology: eo
+    target_concept: eo.person
+    note: >
+      Autor sem pessoa coletada segue a regra dos designados: o login fica
+      registrado, e vínculo nunca é inventado — quem saiu da organização antes da
+      plataforma existir comenta como texto, não como link.
+  discussion_of:
+    source_path: issue.id
+    target_ontology: spo
+    target_concept: spo.artifact
+    note: >
+      O caminho vem do pai da consulta: os comentários são paginados por issue, e o
+      conector embute o id da issue em cada nó. A discussão (cmo.discussion) não é
+      gravada como entidade — ela É o conjunto dos comentários do artefato, e
+      materializá-la duplicaria o que a consulta responde.
+limitations:
+  - >
+    relations.author liga o comentário a eo.person como ATALHO materializado da
+    cadeia ontológica agente → ato de comentar → comentário
+    (cmo.agent_performed_commenting_act + cmo.commenting_act_published_comment):
+    a origem entrega o comentário com autor, não o ato — o ato é derivado deste
+    registro, um por comentário, no published_at.
+  - >
+    relations.discussion_of liga o comentário a spo.artifact como atalho da cadeia
+    comentário → discussão → artefato (cmo.comment_belonged_to_discussion +
+    cmo.discussion_was_about_artifact): a discussão não é gravada como entidade —
+    ela É o conjunto dos comentários do artefato.
+  - >
+    Edição e apagamento na origem: o GitHub entrega o corpo ATUAL e lastEditedAt,
+    não o histórico de versões — o que se afirma é "o texto como estava na coleta".
+    Comentário apagado na origem some da API; a marca no coletado é
+    no_longer_observed_at, nunca DELETE (marca, nunca apaga).
+  - >
+    Reações (👍 etc.) ficam fora desta versão: são outro ato comunicativo, mais
+    fraco, e entrariam como conceito próprio se um dia sustentarem decisão.
+  - >
+    Comentário de pull request review NÃO entra aqui: é outro fio (review thread),
+    com âncora em código, e exigiria conceito próprio — registrado como lacuna.
+  - >
+    bodyText é texto plano: formatação, menções e links do markdown são achatados.
+    Menção (@pessoa) como relação é derivação futura possível, não afirmada.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
