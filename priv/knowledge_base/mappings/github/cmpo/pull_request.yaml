@@ -59,17 +59,20 @@ relations:
     target_ontology: eo
     target_concept: eo.person
     note: >
-      Quem abriu a solicitação. NÃO é necessariamente o cmpo.change_implementer — a
-      autoria dos commits é que decide isso, e as duas coisas divergem em revisão
-      cruzada e em contribuição externa.
+      Materializa cmpo.stakeholder_submitted_change_request (participação no ato de
+      submeter) + cmpo.submission_produced_change_request. A pessoa entra pelo papel
+      spo.project_stakeholder — participar de atividade de projeto é o que faz dela
+      stakeholder. NÃO é necessariamente quem implementou: a autoria dos commits decide
+      isso, e as duas divergem em revisão cruzada e contribuição externa.
   integrated_by:
     source_path: mergedBy.id
     target_ontology: eo
     target_concept: eo.person
     note: >
-      Quem executou o merge. Materializa a participação em cmpo.checkin (o ato de
-      integrar), não em cmpo.change_request — e é por isso que vive num campo
-      separado de `requested_by`.
+      Materializa cmpo.stakeholder_performed_checkin (participação no ato de integrar)
+      + cmpo.checkin_integrated_change_request. Vive em campo separado de
+      `requested_by` porque pedir e integrar são atos distintos — a definição de
+      cmpo.change_request já dizia que o PR "não é o merge".
   attends_issues:
     source_path: closingIssuesReferences.nodes.id
     target_ontology: sro
@@ -79,40 +82,49 @@ relations:
       conta: é o que o GitHub reconheceu das closing keywords, e não o que o corpo do
       PR parece dizer. Medido em 2026-08-17 no PR #425: o corpo listava 14 issues em
       `Closes #411 #412 …` e o GitHub reconheceu **uma** — a palavra-chave vale para o
-      número imediatamente seguinte. O conceito de destino varia com o que a issue foi
-      promovida (user story, tarefa, defeito): o vínculo é com o item de escopo, e o
-      roteamento de issue já decidiu qual.
+      número imediatamente seguinte. Materializa
+      sro.change_request_attends_user_story / _development_task / _epic conforme o
+      roteamento de issue tiver decidido — uma relação por destino, como a SRO faz.
   source_branch_ref:
     source_path: headRefName
     target_ontology: cmpo
     target_concept: cmpo.source_branch
+    note: >
+      Papel da branch de origem no check-in. A CMPO não declara relação entre a
+      SOLICITAÇÃO e as branches (só cmpo.commit_sends_copy_to_target_branch, do ato) —
+      aqui os nomes ficam como atributos com o papel nomeado.
   target_branch_ref:
     source_path: baseRefName
     target_ontology: cmpo
     target_concept: cmpo.target_branch
+    note: >
+      Idem para a branch de destino. A limitação sobre a ausência dessa relação está
+      declarada abaixo, e nomeia cmpo.target_branch.
 limitations:
   - >
-    **A CMPO não declara relação entre cmpo.change_request e eo.person.** Ela tem
-    cmpo.change_implementer (o papel) e
-    cmpo.change_implementer_in_charge_of_accomplishment (papel → cmpo.change_accomplishment),
-    mas nada que ligue a SOLICITAÇÃO a quem a pediu ou a quem a integrou. Os campos
-    `requested_by` e `integrated_by` são vínculos que este mapeamento afirma **sem
-    relação ontológica declarada** — e dizer isso é o que impede a plataforma de
-    apresentá-los como se a rede os sustentasse. A lacuna vale para eo.person nos dois
-    papéis, e a decisão de declará-las na CMPO (rede externa, da SEON) é de quem mantém
-    o projeto, não deste mapeamento.
+    **As relações que faltavam foram declaradas** (2026-08-17, issue #426): o módulo
+    cmpo.change_traceability traz as participações (submeter, integrar, commitar) e o
+    módulo sro.scope_traceability traz o atendimento ao item de escopo. Antes disso este
+    mapeamento afirmava os vínculos sem lastro; agora cada um materializa relação
+    declarada, e a nota de cada campo diz qual.
   - >
-    **Nem entre cmpo.change_request e o item de escopo.** `attends_issues` liga o PR ao
-    que a issue foi promovida (sro.atomic_user_story, sro.scrum_development_task,
-    rsro.defect conforme o roteamento) e a CMPO não tem essa relação: gerência de
-    configuração e escopo são módulos que a rede não costura aqui. Mesma lacuna, mesma
-    decisão pendente — e é ela que o rastreio issue → PR → commit atravessa.
+    `requested_by` liga a solicitação a eo.person como ATALHO materializado da cadeia
+    declarada — spo.project_stakeholder → cmpo.change_request_submission (participação) →
+    cmpo.change_request (causação). Não há, e não deve haver, relação direta entre
+    cmpo.change_request e eo.person: participação é entre agente e EVENTO, e a
+    solicitação é objeto social. O atalho existe porque a origem entrega o PR com autor,
+    não o ato de submeter.
   - >
-    **Nem entre cmpo.change_request e as branches.** cmpo.source_branch e
-    cmpo.target_branch existem como papéis de cmpo.branch, e a única relação declarada é
-    cmpo.commit_sends_copy_to_target_branch (do ato de commitar, não da solicitação).
-    `source_branch_ref` e `target_branch_ref` ficam como atributos com alvo nomeado, sem
-    relação que os sustente.
+    `integrated_by` liga a solicitação a eo.person pelo mesmo tipo de atalho, sobre outra
+    cadeia — spo.project_stakeholder → cmpo.checkin (participação) → cmpo.change_request
+    (associação). Guardar os dois como atributos da solicitação é decisão de coleta, e a
+    derivação dos atos fica para quando algo os consumir.
+  - >
+    **Continua sem relação entre cmpo.change_request e as branches** (cmpo.source_branch,
+    cmpo.target_branch): a única declarada é cmpo.commit_sends_copy_to_target_branch, que
+    parte do ato de commitar e não da solicitação. Os dois nomes ficam como atributos com
+    o papel nomeado — não foi declarada porque nada na plataforma consome o vínculo, e
+    declarar relação sem consumidor é infraestrutura sem consumidor visível.
   - >
     **PR mergeado não é cmpo.change_request "concluída": o merge é outra coisa.** O ato
     de integrar é cmpo.checkin (composto de cmpo.commit_artifact_copy e, quando a

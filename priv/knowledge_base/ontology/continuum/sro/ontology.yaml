@@ -11,13 +11,14 @@ ontology:
       Conceitualização do desenvolvimento ágil com Scrum: eventos e cerimônias do
       processo, times e papéis, participação dos stakeholders, product e sprint
       backlog, e entregáveis produzidos.
-dependencies: [ufo, eo, spo, sys_swo, rsro]
+dependencies: [ufo, eo, spo, sys_swo, rsro, cmpo]
 modules:
   - scrum_process
   - scrum_stakeholders
   - scrum_stakeholder_participation
   - product_and_sprint_backlog
   - scrum_deliverables
+  - scope_traceability
 competency_questions:
   - sro_competency_questions
 provenance:

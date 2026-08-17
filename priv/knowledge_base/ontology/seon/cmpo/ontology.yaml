@@ -16,6 +16,7 @@ modules:
   - configuration_management_process
   - checkout
   - checkin
+  - change_traceability
 provenance:
   source_type: reference_ontology
   reference: "Tese, Seções 2.2.2.2 e 3.3.1 (Figuras 18, 32 e 33)"
@@ -24,3 +25,8 @@ provenance:
   note: >
     A versão original de CMPO é alinhada à filosofia do Subversion. A tese estendeu
     a ontologia para representar check-in e check-out como ocorrem no Git.
+
+    E o projeto The Band acrescentou uma terceira camada, o módulo change_traceability
+    (2026-08-17, issue #426): as participações que ligam stakeholders aos atos —
+    submeter, integrar, commitar. Elas faltavam, e a lacuna apareceu ao escrever o
+    mapeamento do Pull Request, antes de qualquer coleta.

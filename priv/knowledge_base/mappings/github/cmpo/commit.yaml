@@ -52,8 +52,9 @@ relations:
       **Plural, e isso é essencial.** `authors` (não `author`) traz os co-autores do
       trailer `Co-Authored-By` — no dado real do The Band, cada commit tem duas
       pessoas: quem escreveu e o agente. Coletar só `author` atribuiria a mudança a
-      uma pessoa quando o registro nomeia duas, e é a materialização de
-      cmpo.change_implementer que ficaria errada.
+      uma pessoa quando o registro nomeia duas. Materializa
+      cmpo.stakeholder_performed_commit, cuja cardinalidade de origem é `many`
+      exatamente por isso.
   sends_to_target_branch:
     source_path: repository.defaultBranchRef.name
     target_ontology: cmpo
@@ -67,9 +68,9 @@ relations:
     target_ontology: cmpo
     target_concept: cmpo.change_request
     note: >
-      `associatedPullRequests` é o elo commit → PR que a API entrega direto. É como o
-      rastreio commit → issue funciona **sem menção no texto**: commit → PR →
-      closingIssuesReferences → issue.
+      Materializa cmpo.commit_accomplished_change_request. É o elo do meio, e é como o
+      rastreio commit → issue funciona **sem depender de menção no texto**: commit → PR
+      → closingIssuesReferences → issue.
   mentions_issues:
     source_path: messageBody
     target_ontology: sro
@@ -87,22 +88,14 @@ derivation:
   fallback: skip
 limitations:
   - >
-    **A CMPO não declara relação entre cmpo.commit_artifact_copy e eo.person.** O papel
-    cmpo.change_implementer existe e liga-se a cmpo.change_accomplishment — não ao ato de
-    commitar. `implemented_by` afirma o vínculo com eo.person sem relação ontológica que
-    o sustente, e a lacuna é dita em vez de escondida. Declará-la na CMPO é decisão de
-    quem mantém o projeto: a CMPO é rede externa (SEON), e estendê-la não é o mesmo que
-    estender o continuum.
+    **As duas relações que faltavam foram declaradas** (issue #426): a participação
+    cmpo.stakeholder_performed_commit e a associação
+    cmpo.commit_accomplished_change_request, no módulo cmpo.change_traceability.
   - >
-    **Nem entre cmpo.commit_artifact_copy e cmpo.change_request.**
-    `part_of_change_request` usa `associatedPullRequests`, que a origem entrega direto, e
-    a CMPO liga cmpo.change_control a cmpo.change_accomplishment sem passar pelo ato de
-    commitar. É o elo do meio do rastreio (commit → PR → issue), e ele existe no dado
-    antes de existir na rede.
-  - >
-    **E nem com o item de escopo**: `mentions_issues` aponta para sro.atomic_user_story
-    (ou o que o roteamento tiver decidido) por padrão de texto, com confiança baixa e sem
-    relação declarada. É o elo mais fraco dos três, e o único derivado de texto livre.
+    `mentions_issues` aponta para sro.user_story (ou o destino que o roteamento tiver
+    decidido) por padrão de TEXTO, e continua sem relação própria: o caminho declarado é
+    commit → change_request → item de escopo, e a menção é atalho de confiança baixa.
+    Quando os dois discordam, a estrutura vence — com a divergência registrada.
   - >
     **O commit não sabe em qual branch está.** O mesmo `oid` existe em quantas branches
     o tiverem; a branch de destino pertence ao cmpo.checkin, não ao ato isolado. O

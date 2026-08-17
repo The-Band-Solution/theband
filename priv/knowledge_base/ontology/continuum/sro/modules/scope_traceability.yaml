@@ -1,0 +1,86 @@
+# O elo que fecha o rastreio: a solicitação de mudança atende o item de escopo.
+#
+# **Vive aqui, e não na CMPO, por direção de dependência.** A CMPO depende de
+# `[ufo, spo, sys_swo]` e não conhece SRO; declarar `change_request → user_story` lá
+# inverteria a direção da rede. A SRO é quem fala de escopo e passa a depender de CMPO —
+# é a mesma postura que a SPO registra sobre SysSwO ("as especializações que apontam para
+# conceitos de SysSwO vivem em SysSwO, e não aqui, para preservar a direção de
+# dependência").
+#
+# ## Uma relação por destino, e a razão é a mesma da SRO inteira
+#
+# Uma issue promovida não tem destino único: conforme o tipo, é user story, tarefa de
+# desenvolvimento ou defeito (regra `github.issue_type_routing`). O módulo declara uma
+# relação por destino, como o módulo de participação de stakeholders da SRO já faz —
+# `po_in_charge_of_planning_meeting`, `po_in_charge_of_review_meeting`, e não uma relação
+# genérica para "cerimônia".
+#
+# ## O que o rastreio inteiro atravessa, depois deste módulo
+#
+#   pessoa ──participou──> commit ──realizou──> change_request ──atende──> user story
+#      │                      │                      │
+#      └─ spo.project_stakeholder                    └─ cmpo.checkin integrou
+#
+# Cada seta é declarada: as quatro primeiras em `cmpo.change_traceability`, a última aqui.
+module:
+  id: sro.scope_traceability
+  ontology: sro
+  name: Scope Traceability
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Qual item de escopo uma solicitação de mudança atende. Fecha o rastreio que
+      começa na pessoa e passa pelo commit e pela solicitação, ligando trabalho de
+      gerência de configuração ao escopo que o motivou.
+  provenance:
+    source_type: project_decision
+    reference: "Issue #426; complementa cmpo.change_traceability"
+    year: 2026
+    note: >
+      Extensão do projeto The Band. A relação vive na SRO porque é ela que conhece os
+      itens de escopo; a CMPO não depende de SRO, e o contrário inverteria a rede.
+
+concepts: []
+
+relations:
+  - id: sro.change_request_attends_user_story
+    name: attended
+    label: { pt-BR: "atendeu", en: "attended" }
+    source: cmpo.change_request
+    target: sro.user_story
+    type: association
+    cardinality: { source: many, target: many }
+    semantics:
+      pt-BR: >
+        `many` nos dois lados: um PR pode atender várias user stories, e uma user story
+        pode ser atendida por vários PRs. O vínculo é o que a origem **reconheceu** —
+        no GitHub, `closingIssuesReferences` —, nunca o que o texto do PR parece dizer:
+        medido em 2026-08-17, um PR com quatorze issues listadas numa palavra-chave só
+        teve uma reconhecida, e as outras treze eram texto.
+
+  - id: sro.change_request_attends_development_task
+    name: attended
+    label: { pt-BR: "atendeu", en: "attended" }
+    source: cmpo.change_request
+    target: sro.performed_scrum_development_task
+    type: association
+    cardinality: { source: many, target: many }
+    semantics:
+      pt-BR: >
+        A tarefa **executada**, e não a pretendida: uma solicitação de mudança realiza
+        trabalho, e trabalho realizado é `performed`. Ligar à intenção diria que o PR
+        atendeu um plano, quando o que ele atendeu foi a execução dele.
+
+  - id: sro.change_request_attends_epic
+    name: attended
+    label: { pt-BR: "atendeu", en: "attended" }
+    source: cmpo.change_request
+    target: sro.epic
+    type: association
+    cardinality: { source: many, target: many }
+    semantics:
+      pt-BR: >
+        Existe porque acontece no dado real — PR fechando épico direto —, e registrar é
+        melhor que recusar: um épico fechado por um PR só é sinal de épico que nunca foi
+        decomposto, e o produto existe para mostrar esse tipo de divergência, não para
+        escondê-la atrás de um vínculo que o modelo se recusa a representar.

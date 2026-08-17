@@ -1,0 +1,146 @@
+# As relações que faltavam para o rastreio — quem pediu, quem integrou, quem fez.
+#
+# **Descoberto ao escrever o mapeamento, não ao implementar** (2026-08-17, issue #426): a
+# CMPO tinha os conceitos e não as relações. `cmpo.change_request`, `cmpo.checkin` e
+# `cmpo.commit_artifact_copy` existiam, e nada ligava nenhum deles a quem agiu — a única
+# participação declarada era `cmpo.change_implementer_in_charge_of_accomplishment`, que
+# aponta para a atividade abstrata de realizar mudanças, não para o PR nem para o commit.
+#
+# ## Por que participação exige ATIVIDADE, e o que isso obrigou a criar
+#
+# Em UFO, participação é relação entre agente e **evento**: objeto social não tem
+# participante. `cmpo.change_request` é objeto social (a solicitação), então "quem
+# solicitou" não participa dela — participa do **ato de submetê-la**. Esse ato não
+# existia, e é o único conceito que este módulo acrescenta:
+# `cmpo.change_request_submission`.
+#
+# Os outros dois atos já existiam e são reusados: `cmpo.checkin` (integrar) e
+# `cmpo.commit_artifact_copy` (commitar). Não criar duplicatas deles é o que mantém a
+# extensão mínima.
+#
+# ## O que fica FORA, e por quê
+#
+# A relação `change_request` → item de escopo (user story, tarefa, defeito) **não pode
+# viver aqui**: a CMPO depende de `[ufo, spo, sys_swo]` e não de SRO, e declarar a
+# relação neste módulo inverteria a direção de dependência da rede. Ela vive na SRO, que
+# é quem fala de escopo — a mesma postura que a SPO já registra sobre SysSwO ("as
+# especializações que apontam para conceitos de SysSwO vivem em SysSwO, e não aqui, para
+# preservar a direção de dependência").
+module:
+  id: cmpo.change_traceability
+  ontology: cmpo
+  name: Change Traceability
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Quem submeteu uma solicitação de mudança, quem a integrou e quem executou cada
+      commit — as participações que ligam stakeholders aos atos da gerência de
+      configuração, e as associações que ligam os atos à solicitação que os motivou.
+      Extensão do projeto The Band, não da CMPO publicada.
+  provenance:
+    source_type: project_decision
+    reference: "Issue #426; lacuna exposta ao escrever github.pull_request.to.cmpo.change_request"
+    year: 2026
+    note: >
+      A CMPO original é alinhada ao Subversion e a tese a estendeu para o Git
+      (branches, conflitos, commit). Esta é a terceira camada: as participações que o
+      rastreio issue → PR → commit → pessoa atravessa. Verbos no passado, como no
+      continuum, porque descrevem o que ocorreu.
+
+concepts:
+  - id: cmpo.change_request_submission
+    name: Change Request Submission
+    label: { pt-BR: "Submissão de Solicitação de Mudança", en: "Change Request Submission" }
+    definition:
+      pt-BR: >
+        Atividade executada simples que submete uma solicitação de mudança para
+        avaliação, produzindo a solicitação. Existe como conceito próprio porque
+        participação é relação entre agente e evento: sem o ato, "quem solicitou" não
+        teria onde se ancorar — a solicitação é objeto social, e objeto social não tem
+        participante.
+    classification: { ufo_category: action, ontouml_stereotype: kind, parent: spo.performed_simple_activity }
+    examples: ["abrir um Pull Request", "registrar uma solicitação de alteração no processo"]
+
+relations:
+  # ---- quem solicitou -------------------------------------------------------
+  - id: cmpo.stakeholder_submitted_change_request
+    name: submitted
+    label: { pt-BR: "submeteu", en: "submitted" }
+    source: spo.project_stakeholder
+    target: cmpo.change_request_submission
+    type: participation
+    cardinality: { source: one, target: many }
+    temporal: { type: event_relation }
+    semantics:
+      pt-BR: >
+        Especializa `spo.participates_in`: quem submete é stakeholder do projeto no
+        papel de solicitante, e participa do ato de submissão. O papel é o da SPO, e
+        não `eo.person` nua — é participando de atividade de projeto que a pessoa
+        assume o papel.
+
+  - id: cmpo.submission_produced_change_request
+    name: produced
+    label: { pt-BR: "produziu", en: "produced" }
+    source: cmpo.change_request_submission
+    target: cmpo.change_request
+    type: causation
+    cardinality: { source: one, target: one }
+
+  # ---- quem integrou --------------------------------------------------------
+  - id: cmpo.stakeholder_performed_checkin
+    name: performed
+    label: { pt-BR: "executou", en: "performed" }
+    source: spo.project_stakeholder
+    target: cmpo.checkin
+    type: participation
+    cardinality: { source: one, target: many }
+    temporal: { type: event_relation }
+    semantics:
+      pt-BR: >
+        Quem integrou. É participação no ATO de integrar (`cmpo.checkin`), nunca na
+        solicitação: aprovar e integrar são coisas diferentes de pedir, e a definição
+        de `cmpo.change_request` já dizia que o PR "não é o merge, nem a decisão de
+        aprovação".
+
+  - id: cmpo.checkin_integrated_change_request
+    name: integrated
+    label: { pt-BR: "integrou", en: "integrated" }
+    source: cmpo.checkin
+    target: cmpo.change_request
+    type: association
+    cardinality: { source: one, target: zero_or_one }
+    semantics:
+      pt-BR: >
+        `zero_or_one` no destino porque check-in sem solicitação existe e é comum:
+        commit direto na branch de destino não passa por PR. Exigir a solicitação
+        tornaria o modelo incapaz de representar o trabalho que ninguém revisou — que
+        é justamente o que uma medida de processo precisa enxergar.
+
+  # ---- quem fez o commit ----------------------------------------------------
+  - id: cmpo.stakeholder_performed_commit
+    name: performed
+    label: { pt-BR: "executou", en: "performed" }
+    source: spo.project_stakeholder
+    target: cmpo.commit_artifact_copy
+    type: participation
+    cardinality: { source: many, target: many }
+    temporal: { type: event_relation }
+    semantics:
+      pt-BR: >
+        `many` na origem, e a cardinalidade é o ponto: um commit pode ter mais de um
+        autor (o trailer `Co-Authored-By`), e no dado real do The Band **todo** commit
+        tem dois — quem escreveu e o agente. Cardinalidade `one` na origem faria o
+        modelo mentir sobre autoria compartilhada.
+
+  - id: cmpo.commit_accomplished_change_request
+    name: accomplished
+    label: { pt-BR: "realizou", en: "accomplished" }
+    source: cmpo.commit_artifact_copy
+    target: cmpo.change_request
+    type: association
+    cardinality: { source: many, target: zero_or_one }
+    semantics:
+      pt-BR: >
+        O elo do meio do rastreio: é por ele que se chega da pessoa ao escopo sem
+        depender de menção em texto. `zero_or_one` pelo mesmo motivo do check-in —
+        commit fora de solicitação existe, e é fato sobre o processo.
