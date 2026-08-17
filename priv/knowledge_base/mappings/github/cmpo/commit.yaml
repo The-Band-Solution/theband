@@ -1,42 +1,130 @@
+# O commit vira cmpo.commit_artifact_copy — a ATIVIDADE, não o objeto.
+#
+# É a decisão que carrega este mapeamento, e ela vem da ontologia: a CMPO define
+# `cmpo.commit_artifact_copy` como **atividade** que envia uma cópia de artefato sem
+# conflito para a branch de destino (ufo action). O que o Git chama de "commit" é
+# ambíguo entre o ato e o objeto resultante — e a rede desfaz a ambiguidade:
+#
+#   | o que é                       | conceito                  | UFO      |
+#   |-------------------------------|---------------------------|----------|
+#   | o ato de commitar             | cmpo.commit_artifact_copy | action   |
+#   | a cópia versionada do arquivo | cmpo.artifact_copy        | object   |
+#   | o conjunto num check-in       | cmpo.checkin              | complex_action |
+#
+# Este mapeamento cobre o ATO. A cópia de artefato exigiria o diff por arquivo (o
+# `files` da API), e nada a consome hoje — limitação declarada.
 mapping:
   id: github.commit.to.cmpo.commit_artifact_copy
   version: 1
   status: proposed
-source: { provider: github, entity: commit, api: graphql, schema_version: v4 }
-target: { ontology: cmpo, concept: cmpo.commit_artifact_copy }
+source:
+  provider: github
+  entity: commit
+  api: graphql
+  schema_version: v4
+target:
+  ontology: cmpo
+  concept: cmpo.commit_artifact_copy
 semantics:
-  equivalence: partial
+  equivalence: total
   justification: >
-    Um commit do GitHub registra o envio de uma cópia de artefato sem conflito para
-    uma branch de destino — a atividade Commit Artifact Copy de CMPO. O objeto
-    commit da API carrega tanto o evento quanto metadados da cópia resultante.
+    Um commit do Git é o ato que envia cópias de artefato para uma branch de destino,
+    com autor, instante e mensagem — a definição de cmpo.commit_artifact_copy, que é
+    atividade (ufo action) e não objeto. A equivalência é total para o ATO; a cópia de
+    artefato que ele produz é outro conceito, e está fora deste mapeamento.
 identity:
   external_id_path: oid
   natural_key: [repository.node_id, oid]
 attributes:
-  message:        { source_path: message }
-  committed_at:   { source_path: committedDate }
-  authored_at:    { source_path: authoredDate }
-  additions:      { source_path: additions }
-  deletions:      { source_path: deletions }
+  sha:              { source_path: oid }
+  message_headline: { source_path: messageHeadline }
+  message_body:     { source_path: messageBody }
+  committed_at:     { source_path: committedDate }
+  additions:        { source_path: additions }
+  deletions:        { source_path: deletions }
+  changed_files:    { source_path: changedFilesIfAvailable }
 relations:
-  author:
-    source_path: author.user.id
+  implemented_by:
+    source_path: authors.nodes.user.id
     target_ontology: eo
     target_concept: eo.person
-  branch:
-    source_path: repository.ref.name
+    note: >
+      **Plural, e isso é essencial.** `authors` (não `author`) traz os co-autores do
+      trailer `Co-Authored-By` — no dado real do The Band, cada commit tem duas
+      pessoas: quem escreveu e o agente. Coletar só `author` atribuiria a mudança a
+      uma pessoa quando o registro nomeia duas, e é a materialização de
+      cmpo.change_implementer que ficaria errada.
+  sends_to_target_branch:
+    source_path: repository.defaultBranchRef.name
     target_ontology: cmpo
-    target_concept: cmpo.branch
+    target_concept: cmpo.target_branch
+    note: >
+      A branch de destino é a do check-in, e o commit isolado não a carrega: o mesmo
+      commit pode estar em várias branches. O caminho aponta para a branch em que ele
+      foi observado, e a limitação abaixo diz o que isso significa.
+  part_of_change_request:
+    source_path: associatedPullRequests.nodes.id
+    target_ontology: cmpo
+    target_concept: cmpo.change_request
+    note: >
+      `associatedPullRequests` é o elo commit → PR que a API entrega direto. É como o
+      rastreio commit → issue funciona **sem menção no texto**: commit → PR →
+      closingIssuesReferences → issue.
+  mentions_issues:
+    source_path: messageBody
+    target_ontology: sro
+    target_concept: sro.atomic_user_story
+    note: >
+      Menção de issue na mensagem do commit (`#411`), extraída por padrão. Vínculo
+      **mais fraco** que o do PR, e a confiança precisa dizer isso: a mensagem é texto
+      livre, e `#411` pode ser referência a outro repositório ou a nada.
+derivation:
+  rule_id: github.commit_issue_mention
+  confidence: low
+  inputs: [messageBody, associatedPullRequests]
+  precedence: structure_over_declaration
+  on_divergence: flag_and_follow_precedence
+  fallback: skip
 limitations:
   - >
-    O autor do commit aponta para eo.person, e CMPO não declara relação entre cmpo.commit_artifact_copy e eo.person - autoria passaria por participação em atividade, que a ontologia ainda não modela. O vínculo é caminho de referência no payload, não relação materializável.
+    **A CMPO não declara relação entre cmpo.commit_artifact_copy e eo.person.** O papel
+    cmpo.change_implementer existe e liga-se a cmpo.change_accomplishment — não ao ato de
+    commitar. `implemented_by` afirma o vínculo com eo.person sem relação ontológica que
+    o sustente, e a lacuna é dita em vez de escondida. Declará-la na CMPO é decisão de
+    quem mantém o projeto: a CMPO é rede externa (SEON), e estendê-la não é o mesmo que
+    estender o continuum.
   - >
-    O commit aponta para cmpo.branch em geral, e a única relação declarada é cmpo.commit_sends_copy_to_target_branch, que sai para cmpo.target_branch. A promessa é mais ampla que a declaração e nada a materializa.
-  - Autor e committer podem ser pessoas diferentes; não colapsar os dois campos.
-  - Commits de merge não representam alteração de conteúdo por si sós.
-  - Rebase reescreve o oid; o mesmo trabalho pode aparecer com identidades distintas.
-  - Linhas adicionadas/removidas não medem esforço nem valor.
+    **Nem entre cmpo.commit_artifact_copy e cmpo.change_request.**
+    `part_of_change_request` usa `associatedPullRequests`, que a origem entrega direto, e
+    a CMPO liga cmpo.change_control a cmpo.change_accomplishment sem passar pelo ato de
+    commitar. É o elo do meio do rastreio (commit → PR → issue), e ele existe no dado
+    antes de existir na rede.
+  - >
+    **E nem com o item de escopo**: `mentions_issues` aponta para sro.atomic_user_story
+    (ou o que o roteamento tiver decidido) por padrão de texto, com confiança baixa e sem
+    relação declarada. É o elo mais fraco dos três, e o único derivado de texto livre.
+  - >
+    **O commit não sabe em qual branch está.** O mesmo `oid` existe em quantas branches
+    o tiverem; a branch de destino pertence ao cmpo.checkin, não ao ato isolado. O
+    campo grava a branch em que o commit foi OBSERVADO na coleta, e nada mais se
+    afirma.
+  - >
+    `cmpo.artifact_copy` (a cópia versionada de cada arquivo) NÃO é coletada: exigiria
+    o diff por arquivo em todo commit, e nada na plataforma o consome. Sem ela,
+    `cmpo.commit_sends_copy_to_target_branch` fica com o alvo declarado e a cópia
+    ausente — dito, não silenciado.
+  - >
+    `cmpo.checkin` (o ato composto que inclui verificação de conflito, resolução e
+    remoção de branch) não é derivável de commits isolados: precisaria do PR e do
+    evento de merge juntos. Fica para quando o consumidor existir.
+  - >
+    Commit de autor sem conta no GitHub (`user: null`, comum em commits antigos e
+    importados) fica com nome e e-mail preservados e sem vínculo com pessoa — a mesma
+    regra dos designados e dos comentários. E-mail é dado pessoal: não vai para tela.
+  - >
+    Menção de issue por padrão de texto tem confiança BAIXA e nunca substitui o
+    caminho commit → PR → issue. Quando os dois discordam, a estrutura vence, com a
+    divergência registrada.
 provenance:
   preserve_raw_payload: true
-  required_fields: [source_system, source_instance, external_id, collected_at]
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
