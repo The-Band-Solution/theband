@@ -155,6 +155,27 @@ defmodule TheBand.Profiles.MaterialTest do
       assert Material.veredito(periodos, 1.3) =~ "ACIMA"
     end
 
+    test "mediana 0.0 flutuante não estoura — a rodada de 2026-08-17 caiu aqui" do
+      # O guard antigo era `primeiro in [0, nil]`, que compila para === e deixa 0.0
+      # passar: a divisão por zero FLUTUANTE derrubou o job do Oban três vezes na
+      # pessoa 40 de 88 (FeLiXp90), e a rodada ficou "running" por sete horas.
+      periodos = [
+        %{corpo_mediano: 0.0, base: %{corpo_mediano: 400}},
+        %{corpo_mediano: 80.0, base: %{corpo_mediano: 420}}
+      ]
+
+      assert Material.veredito(periodos, 1.3) =~ "não calculável"
+
+      # E razão que CAI a zero também não divide: 400 → 0.0 dá razão 0.0, e o lado
+      # da pessoa dividiria por ela.
+      caindo = [
+        %{corpo_mediano: 100, base: %{corpo_mediano: 400}},
+        %{corpo_mediano: 200, base: %{corpo_mediano: 0.0}}
+      ]
+
+      assert Material.veredito(caindo, 1.3) =~ "não calculável"
+    end
+
     test "período sem corpo não vira razão inventada" do
       periodos = [
         %{corpo_mediano: 0, base: %{corpo_mediano: 400}},
