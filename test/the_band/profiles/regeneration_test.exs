@@ -302,5 +302,22 @@ defmodule TheBand.Profiles.RegenerationTest do
       assert {:skip, :no_material} = Regeneration.due?(ctx.tenant, rala, ctx.limiares),
              "os pisos não voltaram na segunda geração"
     end
+
+    test "designação só de issues ABERTAS também gera a primeira vez — #399", ctx do
+      so_abertas =
+        TheBand.ProfileRunFixtures.pessoa_com_material(ctx.tenant, ctx.repo_id, "so-abertas",
+          tarefas: 2,
+          estado: "OPEN"
+        )
+
+      assert :generate = Regeneration.due?(ctx.tenant, so_abertas, ctx.limiares),
+             """
+             A pessoa com issues designadas e nenhuma concluída ficou invisível.
+
+             Eram 13 de 88 na base real em 2026-08-17 — uma com 19 issues designadas —
+             aparecendo como below_floor com "0 tarefas com texto". Aberta é intenção,
+             não evidência; mas alocação é resposta, e a limitação vai no material.
+             """
+    end
   end
 end

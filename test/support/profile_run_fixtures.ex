@@ -33,6 +33,7 @@ defmodule TheBand.ProfileRunFixtures do
     quantas = Keyword.get(opts, :tarefas, 30)
     base = Keyword.get(opts, :base, ~U[2025-02-10 12:00:00Z])
     desde = Keyword.get(opts, :desde, 1)
+    estado = Keyword.get(opts, :estado, "CLOSED")
 
     {:ok, pessoa} =
       EO.upsert_person_from_source(tenant, %{
@@ -56,10 +57,10 @@ defmodule TheBand.ProfileRunFixtures do
           number: :erlang.unique_integer([:positive]),
           title: "tarefa #{login} ##{n}",
           body: String.duplicate("contexto. ", 30),
-          state: "CLOSED",
+          state: estado,
           author_login: login,
           external_created_at: DateTime.add(fechada, -4, :day),
-          external_closed_at: fechada,
+          external_closed_at: if(estado == "CLOSED", do: fechada),
           source_system: "github",
           source_instance: "https://github.com",
           external_id: "I_#{login}_#{n}"
