@@ -188,6 +188,67 @@ defmodule TheBandWeb.PerfilTest do
     end
   end
 
+  describe "a evolução por geração — #403" do
+    test "com uma geração só, a ausência é nomeada — nunca seção escondida", ctx do
+      gravar_perfil(ctx, %{generated_at: ~U[2026-08-15 10:00:00Z]})
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "One generation so far (2026-08)",
+             "uma geração só virou seção sumida — a ausência tem que ser nomeada"
+
+      refute html =~ "never regression"
+    end
+
+    test "com duas gerações, a série aparece com a tendência e a marca de novo", ctx do
+      # A primeira geração tinha observabilidade com 4; a vigente tem 10, e um domínio
+      # que não existia (deploy) — que deve sair 0 → N com a marca "new".
+      conteudo_antigo =
+        Map.put(conteudo(), "destaques", [
+          %{
+            "dominio" => "observabilidade",
+            "demonstrou" => "x",
+            "tarefas" => 4,
+            "periodos" => [1],
+            "mais_recente" => "2026-05",
+            "evidencia" => [1]
+          }
+        ])
+
+      conteudo_novo =
+        Map.put(conteudo(), "destaques", [
+          %{
+            "dominio" => "observabilidade",
+            "demonstrou" => "x",
+            "tarefas" => 10,
+            "periodos" => [1, 2],
+            "mais_recente" => "2026-08",
+            "evidencia" => [1]
+          },
+          %{
+            "dominio" => "deploy",
+            "demonstrou" => "y",
+            "tarefas" => 7,
+            "periodos" => [2],
+            "mais_recente" => "2026-08",
+            "evidencia" => [2]
+          }
+        ])
+
+      gravar_perfil(ctx, %{generated_at: ~U[2026-06-01 10:00:00Z], content: conteudo_antigo})
+      gravar_perfil(ctx, %{generated_at: ~U[2026-08-15 10:00:00Z], content: conteudo_novo})
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "4 → 10 ▲", "a série do domínio existente não mostrou a tendência"
+      assert html =~ "0 → 7 ▲", "domínio novo não saiu de zero"
+      assert html =~ "new", "a marca de domínio novo sumiu"
+
+      assert html =~ "never regression",
+             "a frase que impede ler ausência antiga como regressão sumiu"
+    end
+  end
+
   describe "gerar de novo" do
     test "o botão continua na tela depois de já existir perfil", ctx do
       gravar_perfil(ctx)

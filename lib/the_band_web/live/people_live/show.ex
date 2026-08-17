@@ -158,6 +158,7 @@ defmodule TheBandWeb.PeopleLive.Show do
       # As duas consultas seguintes só acontecem **quando não há perfil**: com perfil na tela
       # nem o botão nem a recusa aparecem, e pagá-las seria custo por render sem consumidor.
       perfil: perfil,
+      evolucao_do_perfil: evolucao_do_perfil(tenant, pessoa.id, perfil),
       # A organização derivada **do trabalho**, e ela responde outra pergunta.
       #
       # `list_person_organizations/2` sobe por equipe: pessoa → equipe → organização. Quem saiu da
@@ -766,6 +767,57 @@ defmodule TheBandWeb.PeopleLive.Show do
                 </div>
               </div>
 
+              <%!-- Evolução por geração (#403): a tabela de perfis é somente-acréscimo, e
+                    é ela que responde "as tarefas-evidência de cada domínio cresceram entre
+                    perfis?". Uma geração só não é série — a ausência é nomeada, nunca
+                    escondida. --%>
+              <div class="space-y-2">
+                <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                  Evolution — task evidence per profile generation
+                </h4>
+                <p
+                  :if={length(@evolucao_do_perfil.geracoes) <= 1}
+                  class="text-xs text-base-content/60"
+                >
+                  One generation so far ({List.first(@evolucao_do_perfil.geracoes)}) — evolution
+                  appears from the second on. The monthly round writes it by itself.
+                </p>
+                <div :if={length(@evolucao_do_perfil.geracoes) > 1} class="space-y-1">
+                  <div
+                    :for={serie <- @evolucao_do_perfil.series}
+                    class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,16rem)_1fr_max-content]"
+                  >
+                    <span class="col-span-2 break-words sm:col-span-1">{serie.nome}</span>
+                    <svg
+                      viewBox="0 0 200 26"
+                      preserveAspectRatio="none"
+                      class="h-5 w-full"
+                      role="img"
+                      aria-label={"#{serie.nome}: from #{serie.primeiro} to #{serie.ultimo} evidence tasks"}
+                    >
+                      <polyline
+                        points={pontos_da_serie(serie.pontos)}
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        class="text-primary"
+                      />
+                    </svg>
+                    <span class="font-mono text-xs tabular-nums opacity-70">
+                      {serie.primeiro} → {serie.ultimo} {tendencia_da_serie(serie)}<span
+                        :if={serie.primeiro == 0 and serie.ultimo > 0}
+                        class="text-success"
+                      > new</span>
+                    </span>
+                  </div>
+                  <p class="text-xs text-base-content/60">
+                    the domains of the current profile, across {length(@evolucao_do_perfil.geracoes)} generations ·
+                    a domain absent from an older profile counts 0 there — evidence not yet
+                    named, never regression
+                  </p>
+                </div>
+              </div>
+
               <%!-- Lacunas: cada uma diz **qual** das três formas é, porque as três pedem
                     coisas diferentes. E vazio é resposta, não seção faltando: um relatório
                     que sempre acha um ponto fraco não está lendo. --%>
@@ -1012,6 +1064,71 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   # A interface fala inglês; o modelo escreve em português. Traduzir aqui, e não no schema,
   # mantém o vocabulário da regra em uma língua só.
+  # A evolução por geração (#403): para os domínios do perfil VIGENTE, a contagem de
+  # tarefas-evidência em cada geração da pessoa — a tabela somente-acréscimo é a série.
+  # Domínio ausente numa geração antiga conta 0 ali: evidência ainda não nomeada, nunca
+  # regressão. Sem perfil, nem consulta: o consumidor é a seção, e ela não renderiza.
+  defp evolucao_do_perfil(_tenant, _person_id, nil), do: %{geracoes: [], series: []}
+
+  defp evolucao_do_perfil(tenant, person_id, perfil) do
+    import Ecto.Query, only: [from: 2]
+
+    historico =
+      TheBand.Repo.all(
+        from p in "eo_person_profiles",
+          where:
+            p.tenant_id == type(^tenant.id, :binary_id) and
+              p.person_id == type(^person_id, :binary_id),
+          order_by: [asc: p.generated_at],
+          select: %{generated_at: p.generated_at, content: p.content}
+      )
+
+    geracoes = Enum.map(historico, &mes_da_geracao(&1.generated_at))
+
+    contagens =
+      Enum.map(historico, fn g ->
+        Map.new(g.content["destaques"] || [], fn d -> {d["dominio"], d["tarefas"] || 0} end)
+      end)
+
+    series =
+      for d <- perfil.content["destaques"] || [] do
+        pontos = Enum.map(contagens, &Map.get(&1, d["dominio"], 0))
+
+        %{
+          nome: d["dominio"],
+          pontos: pontos,
+          primeiro: List.first(pontos, 0),
+          ultimo: List.last(pontos, 0)
+        }
+      end
+
+    %{geracoes: geracoes, series: series}
+  end
+
+  defp mes_da_geracao(%NaiveDateTime{} = dt),
+    do: dt |> NaiveDateTime.to_date() |> Date.to_string() |> String.slice(0, 7)
+
+  defp mes_da_geracao(%DateTime{} = dt),
+    do: dt |> DateTime.to_date() |> Date.to_string() |> String.slice(0, 7)
+
+  defp tendencia_da_serie(%{primeiro: p, ultimo: u}) when u > p, do: "▲"
+  defp tendencia_da_serie(%{primeiro: p, ultimo: u}) when u < p, do: "▼"
+  defp tendencia_da_serie(_), do: "—"
+
+  # A polilinha da sparkline: x distribuído, y invertido (SVG cresce para baixo).
+  defp pontos_da_serie(pontos) do
+    maximo = max(Enum.max(pontos, fn -> 1 end), 1)
+    n = max(length(pontos) - 1, 1)
+
+    pontos
+    |> Enum.with_index()
+    |> Enum.map_join(" ", fn {v, i} ->
+      x = Float.round(i * 200 / n, 1)
+      y = Float.round(23 - v / maximo * 20, 1)
+      "#{x},#{y}"
+    end)
+  end
+
   defp forma_em_ingles("rala"), do: "thin"
   defp forma_em_ingles("envelhecida"), do: "stale"
   defp forma_em_ingles("trava"), do: "stuck"

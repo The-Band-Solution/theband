@@ -180,6 +180,22 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     refute html =~ "per person, because no domain repeats"
   end
 
+  test "evolução com um mês só é ausência nomeada — nunca seção sumida (#403)", ctx do
+    # Era o estado da base real em 2026-08-17: primeira rodada em agosto, e a seção
+    # inteira escondida — como se evolução não existisse como leitura.
+    ana = pessoa_com_perfil(ctx.tenant, "ana", [{"observabilidade", 5}])
+    membro(ctx.tenant, ctx.equipe, ana)
+
+    {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+    assert html =~ "Evolution — coverage per profile generation"
+
+    assert html =~ "single month",
+           "a seção sumiu em vez de nomear a ausência — um mês só não é série, mas é fato"
+
+    assert html =~ "from the second generation month on"
+  end
+
   test "os avisos de processo aparecem, e não-avaliado nunca vira saúde", ctx do
     ana = pessoa_com_perfil(ctx.tenant, "ana", [])
     membro(ctx.tenant, ctx.equipe, ana)

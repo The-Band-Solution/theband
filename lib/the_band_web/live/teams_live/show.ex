@@ -149,6 +149,12 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   defp projetos_da_equipe(tenant, team_id), do: SPO.list_team_projects(tenant, team_id)
 
+  # A seta diz a direção sem obrigar a comparar os dois números — e igual é travessão,
+  # nunca seta para não sugerir movimento que não houve (#403, mockup da proposta 029).
+  defp tendencia(%{primeiro: p, ultimo: u}) when u > p, do: "▲"
+  defp tendencia(%{primeiro: p, ultimo: u}) when u < p, do: "▼"
+  defp tendencia(_), do: "—"
+
   # As competências que a evolução acompanha: as do topo da cobertura de hoje.
   defp series_de_evolucao(cobertura, evolucao) do
     nomes = cobertura.competencias |> Enum.take(5) |> Enum.map(& &1.nome)
@@ -418,14 +424,21 @@ defmodule TheBandWeb.TeamsLive.Show do
           </div>
         </div>
 
-        <div :if={@cobertura.com_perfil > 0 and length(@evolucao) > 1} class="card bg-base-200 p-5">
+        <div :if={@cobertura.com_perfil > 0} class="card bg-base-200 p-5">
           <h4 class="mb-1 text-sm font-semibold">Evolution — coverage per profile generation</h4>
-          <p class="mb-3 text-xs opacity-70">
+          <%!-- Um mês só de geração não é série — mas esconder a seção afirmaria que a
+                evolução não existe como leitura. A ausência é nomeada, com o que a faria
+                aparecer (#403; era o estado da base real em 2026-08-17). --%>
+          <p :if={length(@evolucao) <= 1} class="text-sm opacity-70">
+            All current profiles were generated within a single month — evolution appears
+            from the second generation month on. The monthly round writes it by itself.
+          </p>
+          <p :if={length(@evolucao) > 1} class="mb-3 text-xs opacity-70">
             people with the skill in the profile current at each month with a generation ·
             a skill leaving the series is <em>evidence not renewed</em>, never regression ·
             the 5 widest-covered skills of today; the coverage list above has them all
           </p>
-          <div class="space-y-2">
+          <div :if={length(@evolucao) > 1} class="space-y-2">
             <div
               :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
               class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,14rem)_1fr_max-content]"
@@ -447,7 +460,10 @@ defmodule TheBandWeb.TeamsLive.Show do
                 />
               </svg>
               <span class="font-mono text-xs tabular-nums opacity-70">
-                {serie.primeiro} → {serie.ultimo}
+                {serie.primeiro} → {serie.ultimo} {tendencia(serie)}<span
+                  :if={serie.primeiro == 0 and serie.ultimo > 0}
+                  class="text-success"
+                > new</span>
               </span>
             </div>
           </div>
