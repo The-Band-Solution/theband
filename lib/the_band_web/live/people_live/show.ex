@@ -443,7 +443,10 @@ defmodule TheBandWeb.PeopleLive.Show do
           </.notice>
 
           <div class="grid gap-4 lg:grid-cols-3">
-            <div class="card bg-base-200 lg:col-span-2">
+            <%!-- min-w-0: item de grid não encolhe abaixo do conteúdo por padrão, e o SVG de
+                  largura fixa arrastava a página inteira para 608px no telefone (visto em
+                  2026-08-17). Com min-w-0, quem rola é o overflow-x-auto do gráfico. --%>
+            <div class="card min-w-0 bg-base-200 lg:col-span-2">
               <div class="card-body gap-2 p-4">
                 <h4 class="text-sm font-medium">
                   Issues completed over time
@@ -459,7 +462,7 @@ defmodule TheBandWeb.PeopleLive.Show do
               </div>
             </div>
 
-            <div class="card bg-base-200">
+            <div class="card min-w-0 bg-base-200">
               <div class="card-body gap-2 p-4">
                 <h4 class="text-sm font-medium">
                   Age of open work <span class="opacity-60">{@designadas_abertas} open</span>

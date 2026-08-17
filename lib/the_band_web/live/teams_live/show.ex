@@ -387,9 +387,12 @@ defmodule TheBandWeb.TeamsLive.Show do
             <div class="space-y-2">
               <div
                 :for={c <- @cobertura.competencias}
-                class="grid grid-cols-[minmax(8rem,18rem)_1fr_max-content] items-center gap-3 text-sm"
+                class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,18rem)_1fr_max-content]"
               >
-                <span class="break-words">{c.nome}</span>
+                <%!-- No telefone o rótulo ocupa a linha inteira e a barra vem embaixo:
+                      rótulo de até 18rem em 390px deixava a barra com ~40px — lasca,
+                      não medida (visto em 2026-08-17). --%>
+                <span class="col-span-2 break-words sm:col-span-1">{c.nome}</span>
                 <div class="h-3 rounded-sm bg-base-300">
                   <div
                     class="h-3 rounded-sm bg-primary"
@@ -425,9 +428,9 @@ defmodule TheBandWeb.TeamsLive.Show do
           <div class="space-y-2">
             <div
               :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
-              class="grid grid-cols-[minmax(8rem,14rem)_1fr_max-content] items-center gap-3 text-sm"
+              class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,14rem)_1fr_max-content]"
             >
-              <span class="break-words">{serie.nome}</span>
+              <span class="col-span-2 break-words sm:col-span-1">{serie.nome}</span>
               <svg
                 viewBox="0 0 200 26"
                 preserveAspectRatio="none"

@@ -263,7 +263,7 @@ defmodule TheBandWeb.ProfileRunLive.Index do
                 </td>
                 <td data-label="failed" class="font-mono">{@resumos[run.id].failed}</td>
                 <td data-label="input tokens" class="font-mono">
-                  {@resumos[run.id].input_tokens}
+                  {milhar(@resumos[run.id].input_tokens)}
                 </td>
                 <td data-label="">
                   <button
@@ -277,7 +277,7 @@ defmodule TheBandWeb.ProfileRunLive.Index do
                 </td>
               </tr>
               <tr :if={@report_run_id == run.id and @report != nil}>
-                <td colspan="9" class="bg-base-300/30 p-4">
+                <td colspan="9" class="painel bg-base-300/30 p-4">
                   <p class="mb-2 text-xs opacity-70">
                     Person by person, with the reason <strong>as of now</strong> — recomputed on
                     read, like everything observed. Someone whose material changed since the run
@@ -336,7 +336,19 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   defp autor({_, %{by: nil}}), do: "somebody no longer registered"
   defp autor({_, %{by: user}}), do: user.email
 
-  defp quando({_, %{at: at}}), do: at
+  defp quando({_, %{at: at}}), do: DateTime.truncate(at, :second)
+
+  # 651338 lê como telefone; 651,338 lê como contagem. O separador segue a tela, em inglês.
+  defp milhar(n) when is_integer(n) do
+    n
+    |> Integer.to_charlist()
+    |> Enum.reverse()
+    |> Enum.chunk_every(3)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+
+  defp milhar(outro), do: outro
 
   defp estado_da_rodada(%Run{finished_at: nil}), do: "running"
   defp estado_da_rodada(%Run{outcome: "completed"}), do: "completed"

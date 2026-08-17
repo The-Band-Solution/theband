@@ -280,4 +280,24 @@
   }
 
   table.stacked td[data-label=""]::before { content: none; }
+
+  /* Um painel que ocupa a linha inteira (colspan) não é par rótulo-valor: o flex da
+     regra acima espremia o report da rodada numa coluna de 60px. Bloco, texto à
+     esquerda — o conteúdo dele já é responsivo por conta própria. */
+  table.stacked td.painel { display: block; text-align: left; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   NAVEGAÇÃO QUE ROLA — a pista de que existe mais
+
+   Por que não é utilitário: mask-image com gradiente não tem classe pronta, e
+   sem o esmaecimento a rolagem é invisível — "Boards" termina exatamente na
+   borda e as cinco áreas seguintes parecem não existir (visto em 390px,
+   2026-08-17). O esmaecimento só aparece enquanto há conteúdo à direita.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 40rem) {
+  .nav-rolavel {
+    mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+  }
 }
