@@ -1,65 +1,41 @@
-# Retomar — 2026-08-16 (noite)
+# Retomar — 2026-08-17 (tarde)
 
-## Onde parou
+## A ação pendente de VOCÊ: mergear a onda de PRs
 
-Árvore limpa, branch `029-competencias-da-equipe`, tudo commitado e empurrado.
-**CI verde no `b512dcf`** (quality-gates + cobertura).
+Ordem sugerida (o GitHub reaponta as bases sozinho):
 
-## A única ação pendente de VOCÊ
+| PR | O quê | Base |
+|---|---|---|
+| **#406** | fix: mediana 0.0 não derruba a rodada; exceção vira falha da pessoa | main — **primeiro** |
+| **#407** | #399: primeira geração gera com designação, mesmo só de abertas (47→60 elegíveis) | empilhado no #406 |
+| **#409** | #402: perfil em inglês, regra no schema (provado: FeLiXp90 em inglês) | empilhado no #406 |
+| **#408** | #398: report agrupado por motivo, texto dito uma vez | main |
+| **#410** | #403: evolução nas duas páginas; um mês só é ausência nomeada | main |
+| **#405** | skill Impeccable vendorizada (301 arquivos) | main |
 
-**Mergear o PR #396** — https://github.com/The-Band-Solution/theband/pull/396
+Já mergeados hoje: #396 (feature 029 + report + polish do piloto), #404 (PRODUCT.md + DESIGN.md). #395, #398, #399, #402, #403 fecham com os merges — **conferir depois** (regra da casa).
 
-O PR acumula, tudo verde e verificado ao vivo:
+## Depois dos merges
 
-1. **Feature 029 completa** — competências da equipe na tela do time: barras de
-   cobertura, resumo calculado, evolução por sparkline, matriz adaptativa
-   (lista por pessoa quando nenhum domínio repete — o caso do time IA).
-2. **Associação equipe↔projeto pelos dois lados** (tela do time e do projeto).
-3. **Avisos de processo na tela do time** (anti-padrões; não-avaliado nunca
-   vira saúde).
-4. **Regra do título** — issue sem corpo usa o título como texto.
-5. **Regra da primeira geração** — sem perfil anterior, pega TUDO que tem
-   texto; pisos só valem da 2ª geração em diante. Censo real: 30 → 47 elegíveis.
-6. **Report "why not everyone?"** em /profiles — pessoa a pessoa, motivo fino
-   recalculado na leitura. Base real: 24 no_assignment, 13 below_floor,
-   13 geraria_hoje, 4 observation_ended (+34 geradas = 88).
+- **Apagar a branch remota `029-competencias-da-equipe`** — recriada por engano por um push meu depois do merge do #396; o conteúdo está no #406.
+- **Clicar "run now — everyone"** em /profiles: com as regras novas, esperado ~60 gerados de 88, todos em inglês. A rodada de 00:09 que travou está encerrada como ended_early (crash de mediana 0.0 — consertado e testado); os 34 perfis dela ficam.
+- A landing polida e **mobile-first** já está publicada (gh-pages, sem PR).
 
-No merge, fecha #395 (closing keyword conferida: "Closes", em inglês).
-**Depois do merge, conferir se #395 fechou de fato** — regra da casa.
+## Próximo trabalho (nesta ordem)
 
-## Depois do merge
-
-- #397 — equipe formada por equipes (rollup como segundo modo de
-  `TeamSkills.coverage`; depende do #396 mergeado).
-- #81 — filtro por organização nas telas.
-- #398 — organizar o report "why not everyone?" (agrupar por motivo, texto do
-  motivo dito uma vez, contagem por grupo).
-- **#399 — PRIMEIRA COISA DE AMANHÃ**: regra pedida na saída — sem perfil e com
-  tarefa designada (mesmo pouca) → gera. Verificar no dado real por que o
-  report mostra below_floor com "0 tarefas com texto": se for gente sem perfil
-  com tarefa designada, a primeira geração está aplicando recorte que não devia.
-- #400 — coletar os comentários das issues, **usando os modelos da ontologia**
-  (classificar na base, mapeamento YAML, esquema derivado). Antes do #401.
-- #401 — coletar o CI do GitHub (workflow/check runs), mesma restrição
-  ontológica. Depois do #400.
-- #402 — o perfil de cada pessoa deve ser escrito em inglês (regra no schema,
-  nunca pedida em texto ao modelo; perfis existentes ficam, a próxima geração
-  uniformiza).
-- #403 — evolução das competências na equipe E na pessoa: hoje a da equipe se
-  esconde com um mês só (trocar por ausência nomeada + tendência ▲/—/nova) e a
-  da pessoa não existe (sparkline de tarefas-evidência por geração).
-- Rodar a rodada de novo (botão "run now — everyone" em /profiles): os 13
-  "geraria hoje" viram perfis com a regra nova. Esperado: ~47 gerados.
-- Sprint 018: escrever `sprint-review.md` e consolidar lições.
+1. **#400 — coletar comentários das issues**, usando os modelos da ontologia (classificar na base, mapeamento YAML, esquema derivado, vertical slice). Ciclo Spec Kit completo.
+2. **#401 — coletar CI do GitHub** (workflow/check runs), mesma restrição. Depois do #400.
+3. **Sprint 018: sprint-review.md** e consolidar lições (o crash da rodada é a oitava ocorrência do sucesso silencioso — já registrada na memória).
+4. #397 — equipe formada por equipes (rollup em `TeamSkills.coverage`).
+5. #81 — filtro por organização nas telas.
 
 ## Decisões suas em aberto (backlog)
 
-#356 (pisos N/M), #358 (quickstart), #367 (Conecta Fapes), #368 (prazo),
-#369 (FR-012), #370 (FR-007), #176 (iterações), #363/#364 (competência como
-unidade — adiado por você).
+#356 (pisos N/M), #358 (quickstart — o botão da landing diz README até existir),
+#367 (Conecta Fapes), #368 (prazo), #369 (FR-012), #370 (FR-007), #176 (iterações),
+#363/#364 (competência como unidade — adiado por você).
 
 ## Achado de gestão (não é código)
 
-24 pessoas sem NENHUMA issue designada nos repositórios coletados — ou o
-trabalho está em repositório não observado, ou chega por outro canal. O report
-na tela agora nomeia cada uma.
+24 pessoas sem NENHUMA issue designada nos repositórios coletados. O report em
+/profiles nomeia cada uma, agora agrupadas com contagem no cabeçalho.
