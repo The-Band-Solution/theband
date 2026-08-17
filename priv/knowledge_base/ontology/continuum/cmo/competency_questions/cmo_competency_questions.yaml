@@ -1,0 +1,42 @@
+ontology: cmo
+provenance:
+  source_type: project_decision
+  reference: "Issue #400 — cada pergunta amarra uma decisão que a plataforma sustenta"
+  year: 2026
+
+competency_questions:
+  - id: cmo.cq01
+    question:
+      pt-BR: Quem participou da discussão de um artefato, quantas vezes, de quando a quando?
+      en: Who participated in an artifact's discussion, how many times, from when to when?
+    concepts: [cmo.discussion_participation, cmo.discussion, cmo.commenting_act]
+    relations: [cmo.participation_mediated_agent, cmo.participation_mediated_discussion, cmo.participation_derived_from_acts]
+    expected_query_type: list
+
+  - id: cmo.cq02
+    question:
+      pt-BR: >
+        De quais discussões um agente participou num período — inclusive as de
+        artefatos que nunca lhe foram designados?
+      en: Which discussions did an agent take part in over a period — including on artifacts never assigned to them?
+    concepts: [cmo.discussion_participation, cmo.commenting_act]
+    relations: [cmo.agent_performed_commenting_act, cmo.commenting_act_commented_on_artifact]
+    expected_query_type: list
+
+  - id: cmo.cq03
+    question:
+      pt-BR: >
+        Um artefato parado tem discussão recente? (Parado em silêncio e parado com
+        conversa ativa pedem ações opostas.)
+      en: Does a stalled artifact have recent discussion? (Silently stalled and stalled-but-debated demand opposite actions.)
+    concepts: [cmo.discussion, cmo.commenting_act]
+    relations: [cmo.discussion_was_about_artifact, cmo.commenting_act_commented_on_artifact]
+    expected_query_type: boolean
+
+  - id: cmo.cq04
+    question:
+      pt-BR: Quando ocorreu o último ato de comentar sobre um artefato, e de quem foi?
+      en: When did the last commenting act on an artifact occur, and whose was it?
+    concepts: [cmo.commenting_act]
+    relations: [cmo.agent_performed_commenting_act, cmo.commenting_act_commented_on_artifact]
+    expected_query_type: single

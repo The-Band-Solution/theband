@@ -1,0 +1,132 @@
+module:
+  id: cmo.artifact_communication
+  ontology: cmo
+  name: Artifact Communication
+  version: 0.1.0
+  description:
+    pt-BR: >
+      O ato de comentar um artefato do projeto, o comentário publicado, a discussão
+      que os comentários compõem e a participação dos agentes nela. A cadeia é
+      deliberada: participação é relação entre agente e EVENTO — artefato não tem
+      participante. É o ato, e não o texto, que dá lugar ontológico para "quem
+      participou".
+  provenance:
+    source_type: project_decision
+    reference: "Issue #400; a lacuna está documentada na #318"
+    year: 2026
+
+concepts:
+  - id: cmo.commenting_act
+    name: Commenting Act
+    label: { pt-BR: "Ato de Comentar", en: "Commenting Act" }
+    definition:
+      pt-BR: >
+        Ato comunicativo de um agente sobre um artefato do projeto, que publica um
+        comentário no fio de discussão desse artefato. É evento: acontece num
+        instante, tem autor, e não muda depois de ocorrido.
+    classification: { ufo_category: action, ontouml_stereotype: kind }
+    examples: ["responder uma dúvida numa issue", "registrar um bloqueio no fio"]
+
+  - id: cmo.comment
+    name: Comment
+    label: { pt-BR: "Comentário", en: "Comment" }
+    definition:
+      pt-BR: >
+        Manifestação escrita, unicamente identificada, publicada por um ato de
+        comentar no fio de discussão de um artefato. NÃO é artefato do processo
+        (spo.artifact): não é produzido para ser entregue nem consumido por
+        atividade — é comunicação sobre o artefato. A distinção é a razão de este
+        módulo existir (#318).
+    classification: { ufo_category: social_object, ontouml_stereotype: kind }
+    examples: ["'isso quebrou no staging?'", "'bloqueado pela credencial do tenant'"]
+
+  - id: cmo.discussion
+    name: Discussion
+    label: { pt-BR: "Discussão", en: "Discussion" }
+    definition:
+      pt-BR: >
+        O coletivo dos comentários publicados sobre um mesmo artefato. Existe a
+        partir do primeiro comentário; artefato sem comentário não tem discussão —
+        e "sem discussão" é fato distinto de "discussão não coletada", como sempre.
+    classification: { ufo_category: collective, ontouml_stereotype: kind }
+
+  - id: cmo.discussion_participation
+    name: Discussion Participation
+    label: { pt-BR: "Participação na Discussão", en: "Discussion Participation" }
+    definition:
+      pt-BR: >
+        Relator que conecta um agente à discussão de um artefato, fundado nos atos
+        de comentar dele ali. Nunca um booleano: a participação desce até os
+        comentários que a evidenciam — quantos, de quando a quando. É o conceito
+        que permite afirmar colaboração sem fingir que ela é tarefa executada.
+    classification: { ufo_category: relator, ontouml_stereotype: relator }
+
+relations:
+  - id: cmo.agent_performed_commenting_act
+    name: performed
+    label: { pt-BR: "executou" }
+    source: ufo.agent
+    target: cmo.commenting_act
+    type: participation
+    cardinality: { source: one, target: many }
+    temporal: { type: event_relation }
+
+  - id: cmo.commenting_act_published_comment
+    name: published
+    label: { pt-BR: "publicou" }
+    source: cmo.commenting_act
+    target: cmo.comment
+    type: causation
+    cardinality: { source: one, target: one }
+
+  - id: cmo.commenting_act_commented_on_artifact
+    name: commented on
+    label: { pt-BR: "comentou sobre" }
+    source: cmo.commenting_act
+    target: spo.artifact
+    type: association
+    cardinality: { source: many, target: one }
+
+  - id: cmo.comment_belonged_to_discussion
+    name: belonged to
+    label: { pt-BR: "pertenceu a" }
+    source: cmo.comment
+    target: cmo.discussion
+    type: part_whole
+    cardinality: { source: many, target: one }
+
+  - id: cmo.discussion_was_about_artifact
+    name: was about
+    label: { pt-BR: "foi sobre" }
+    source: cmo.discussion
+    target: spo.artifact
+    type: association
+    cardinality: { source: one, target: one }
+
+  - id: cmo.participation_mediated_agent
+    name: mediated
+    label: { pt-BR: "mediou" }
+    source: cmo.discussion_participation
+    target: ufo.agent
+    type: materialization
+    cardinality: { source: many, target: one }
+
+  - id: cmo.participation_mediated_discussion
+    name: mediated
+    label: { pt-BR: "mediou" }
+    source: cmo.discussion_participation
+    target: cmo.discussion
+    type: materialization
+    cardinality: { source: many, target: one }
+
+  - id: cmo.participation_derived_from_acts
+    name: was derived from
+    label: { pt-BR: "derivou de" }
+    source: cmo.discussion_participation
+    target: cmo.commenting_act
+    type: derivation
+    cardinality: { source: one, target: one_or_many }
+    semantics:
+      pt-BR: >
+        A participação é sempre DERIVADA dos atos observados — nunca declarada por
+        si. Na tela, carrega hachura e rótulo, como todo derivado.

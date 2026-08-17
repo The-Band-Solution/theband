@@ -23,7 +23,7 @@ knowledge_base:
 layers:
   foundational: [ufo]
   core: [eo, spo, sys_swo]
-  domain: [rsro, cmpo, roost, qapo, osdef, sro, ciro, cdro]
+  domain: [rsro, cmpo, roost, qapo, osdef, sro, ciro, cdro, cmo]
 
 networks:
   seon:
@@ -32,7 +32,7 @@ networks:
   continuum:
     description: Continuous Software Engineering Ontology (sub)Network
     parent_network: seon
-    ontologies: [sro, ciro, cdro]
+    ontologies: [sro, ciro, cdro, cmo]
 
 ontologies:
   - { id: ufo,     layer: foundational, path: ontology/ufo }
@@ -47,6 +47,7 @@ ontologies:
   - { id: sro,     layer: domain,       path: ontology/continuum/sro }
   - { id: ciro,    layer: domain,       path: ontology/continuum/ciro }
   - { id: cdro,    layer: domain,       path: ontology/continuum/cdro }
+  - { id: cmo,     layer: domain,       path: ontology/continuum/cmo }
 
 validation:
   strict: true
