@@ -209,6 +209,77 @@ defmodule TheBand.ChangesTest do
     """
   end
 
+  describe "a busca lê a forma do que foi digitado" do
+    test "sete hexadecimais são SHA; menos que isso, não", _ctx do
+      assert {:sha, "17e4f16"} = Changes.interpretar_busca("17e4f16")
+      assert {:sha, "17e4f16d21a3"} = Changes.interpretar_busca("17E4F16D21A3")
+
+      # Seis caracteres viram palavra: a chance de colidir com número ou termo é alta
+      # demais para a plataforma decidir sozinha.
+      assert {:palavras, ["abc123"]} = Changes.interpretar_busca("abc123")
+    end
+
+    test "número, pessoa e palavras têm formas próprias", _ctx do
+      assert {:numero, 427} = Changes.interpretar_busca("#427")
+      assert {:numero, 427} = Changes.interpretar_busca("427")
+      assert {:pessoa, "ana"} = Changes.interpretar_busca("@ana")
+      assert {:palavras, ["rastreio", "commit"]} = Changes.interpretar_busca("rastreio commit")
+      assert {:vazia, nil} = Changes.interpretar_busca("   ")
+    end
+
+    test "duas palavras ESTREITAM, nunca alargam", ctx do
+      solicitacao(ctx, 20, %{title: "rastreio das mudanças declaradas"})
+      solicitacao(ctx, 21, %{title: "rastreio de outra coisa"})
+
+      assert Changes.count(ctx.tenant, search: "rastreio") == 2
+
+      assert Changes.count(ctx.tenant, search: "rastreio declaradas") == 1, """
+      Duas palavras devolveram mais resultados, ou os mesmos.
+
+      Quem digita a segunda palavra está estreitando. `OU` devolveria MAIS a cada palavra
+      digitada — o contrário do que quem busca espera.
+      """
+    end
+
+    test "SHA na lista de solicitações acha a que CARREGA o commit", ctx do
+      ana = pessoa(ctx.tenant, "ana")
+      cr = solicitacao(ctx, 22)
+
+      commit(ctx, cr, "abcdef1234567", [
+        %{author_login: "ana", author_person_id: ana.id, is_primary: true}
+      ])
+
+      assert [encontrada] = Changes.list(ctx.tenant, search: "abcdef1")
+
+      assert encontrada.number == 22, """
+      A busca por SHA devolveu vazio na lista de solicitações.
+
+      Vazio aqui diria que o commit não existe, quando ele só não é uma solicitação — e a
+      pergunta de quem cola um SHA é "de onde veio isto?".
+      """
+    end
+
+    test "a busca por pessoa nos commits inclui quem é CO-autor", ctx do
+      ana = pessoa(ctx.tenant, "ana")
+      agente = pessoa(ctx.tenant, "agente")
+      cr = solicitacao(ctx, 23)
+
+      commit(ctx, cr, "sha-co", [
+        %{author_login: "ana", author_person_id: ana.id, is_primary: true},
+        %{author_login: "agente", author_person_id: agente.id, is_primary: false}
+      ])
+
+      assert Changes.count_commits(ctx.tenant, search: "@agente") == 1, """
+      Quem é co-autor não foi encontrado pela busca.
+
+      É o mesmo defeito de somar autoria numa coluna: a participação existe, e a busca
+      precisa alcançá-la.
+      """
+
+      assert Changes.count_commits(ctx.tenant, person_id: agente.id) == 1
+    end
+  end
+
   test "solicitação de outro tenant devolve not_found, nunca o registro", ctx do
     cr = solicitacao(ctx, 6)
     {outro_tenant, _} = tenant_with_admin()

@@ -454,6 +454,83 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </div>
           </div>
 
+          <%!-- A LINHA DO TEMPO — issue, solicitações e commits no mesmo eixo.
+                Nenhuma marca é interpolada: cada uma é um instante que a origem
+                entregou. O que a lista não responde e esta seção responde é QUANTO
+                TEMPO — e onde o trabalho parou. --%>
+          <div :if={@linha_do_tempo.solicitacoes != []} class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h3 class="card-title text-base">How long it took</h3>
+              <p class="text-xs text-base-content/70">
+                The issue, the change requests that attend it, and their commits on one axis —
+                each mark is an instant the source recorded, never interpolated between them.
+              </p>
+
+              <div class="mt-1 space-y-3">
+                <div>
+                  <div class="flex flex-wrap items-baseline gap-2 text-sm">
+                    <span class="font-mono text-xs opacity-60 uppercase">issue</span>
+                    <span class="font-medium">#{@issue.number}</span>
+                    <span class="text-xs opacity-60">
+                      {duracao_em_texto(@issue.external_created_at, @issue.external_closed_at)}
+                    </span>
+                  </div>
+                  <div class="relative mt-1 h-3 rounded-sm bg-base-300">
+                    <div
+                      class="absolute inset-y-0 rounded-sm bg-primary"
+                      style={
+                        faixa(@linha_do_tempo, @issue.external_created_at, @issue.external_closed_at)
+                      }
+                    >
+                    </div>
+                  </div>
+                </div>
+
+                <div :for={s <- @linha_do_tempo.solicitacoes}>
+                  <div class="flex flex-wrap items-baseline gap-2 text-sm">
+                    <span class="font-mono text-xs opacity-60 uppercase">request</span>
+                    <.link navigate={~p"/work/changes/#{s.id}"} class="link link-hover font-medium">
+                      #{s.number}
+                    </.link>
+                    <span class="text-xs opacity-60">
+                      {duracao_em_texto(s.created_at, s.merged_at)}
+                    </span>
+                  </div>
+                  <div class="relative mt-1 h-3 rounded-sm bg-base-300">
+                    <div
+                      class={[
+                        "absolute inset-y-0 rounded-sm",
+                        if(s.merged_at,
+                          do: "bg-primary",
+                          else: "border-2 border-dashed border-primary"
+                        )
+                      ]}
+                      style={faixa(@linha_do_tempo, s.created_at, s.merged_at)}
+                    >
+                    </div>
+                    <%!-- Cada commit é um ponto no eixo. Fora do intervalo da solicitação
+                          acontece (cherry-pick, rebase) e aparece fora — alinhar seria
+                          desenhar bonito às custas do fato. --%>
+                    <span
+                      :for={c <- commits_da(@linha_do_tempo, s.id)}
+                      class="absolute top-1/2 size-2 -translate-y-1/2 rounded-full bg-primary outline-2 outline-base-200"
+                      style={ponto(@linha_do_tempo, c.committed_at)}
+                      title={"#{String.slice(c.sha, 0, 8)} · #{c.headline}"}
+                    ></span>
+                  </div>
+                </div>
+              </div>
+
+              <%!-- O VÃO é a leitura: o tempo entre a issue abrir e a primeira mudança
+                    aparecer não tem registro nenhum, e é o que a lista esconde. --%>
+              <p :if={@linha_do_tempo.vao_ate_primeira} class="mt-1 text-xs text-base-content/70">
+                <strong>{vao_em_texto(@linha_do_tempo.vao_ate_primeira)}</strong>
+                between the issue being opened and the first change request — no change is
+                recorded in that stretch.
+              </p>
+            </div>
+          </div>
+
           <%!-- AS SOLICITAÇÕES DE MUDANÇA que atendem esta issue — cmpo.change_request.
                 O vínculo é o que a ORIGEM reconheceu das closing keywords; menção no
                 texto não entra, porque mencionar e atender são coisas diferentes. --%>
@@ -748,6 +825,9 @@ defmodule TheBandWeb.WorkItemLive.Show do
       discussao_coletada?: discussao_coletada?(repositorio),
       # As solicitações que atendem esta issue — o rastro do escopo para a mudança.
       mudancas: mudancas,
+      # A linha do tempo: issue, solicitações e commits no mesmo eixo. Só é montada
+      # quando há solicitação — sem ela não há linha, e a seção diz isso.
+      linha_do_tempo: Changes.timeline_of_issue(tenant, issue, mudancas),
       mudancas_coletadas?: mudancas_coletadas?(repositorio)
     )
     |> assign(onde(tenant, repositorio, issue))
@@ -768,6 +848,66 @@ defmodule TheBandWeb.WorkItemLive.Show do
   # continua consultável, mas nada se afirma sobre a conversa dela.
   defp discussao_coletada?(nil), do: false
   defp discussao_coletada?(repositorio), do: not is_nil(repositorio.comments_collected_at)
+
+  # A posição no eixo é proporcional ao intervalo total observado. Sem `ate` (nada
+  # fechado ainda) a faixa vai até o fim: o trabalho segue aberto, e é isso que se vê.
+  defp faixa(%{de: nil}, _inicio, _fim), do: "left: 0; right: 0;"
+
+  defp faixa(linha, inicio, fim) do
+    total = max(DateTime.diff(linha.ate, linha.de, :second), 1)
+    esquerda = posicao(linha, inicio, total)
+    direita = if fim, do: posicao(linha, fim, total), else: 100.0
+
+    "left: #{esquerda}%; width: #{max(direita - esquerda, 0.8)}%;"
+  end
+
+  defp ponto(%{de: nil}, _quando), do: "left: 0;"
+
+  defp ponto(linha, quando) do
+    total = max(DateTime.diff(linha.ate, linha.de, :second), 1)
+    "left: calc(#{posicao(linha, quando, total)}% - 4px);"
+  end
+
+  defp posicao(_linha, nil, _total), do: 0.0
+
+  defp posicao(linha, instante, total) do
+    instante =
+      if match?(%NaiveDateTime{}, instante),
+        do: DateTime.from_naive!(instante, "Etc/UTC"),
+        else: instante
+
+    Float.round(DateTime.diff(instante, linha.de, :second) / total * 100, 2)
+  end
+
+  defp commits_da(linha, solicitacao_id),
+    do: Enum.filter(linha.commits, &(&1.change_request_id == solicitacao_id))
+
+  defp duracao_em_texto(nil, _fim), do: ""
+
+  defp duracao_em_texto(inicio, nil) do
+    inicio =
+      if match?(%NaiveDateTime{}, inicio),
+        do: DateTime.from_naive!(inicio, "Etc/UTC"),
+        else: inicio
+
+    "open for #{vao_em_texto(DateTime.diff(DateTime.utc_now(:second), inicio, :second))}"
+  end
+
+  defp duracao_em_texto(inicio, fim) do
+    inicio =
+      if match?(%NaiveDateTime{}, inicio),
+        do: DateTime.from_naive!(inicio, "Etc/UTC"),
+        else: inicio
+
+    fim = if match?(%NaiveDateTime{}, fim), do: DateTime.from_naive!(fim, "Etc/UTC"), else: fim
+    vao_em_texto(DateTime.diff(fim, inicio, :second))
+  end
+
+  # Segundos viram a maior unidade que ainda diz algo — "4 dias" informa, "351.847
+  # segundos" faz quem lê dividir de cabeça.
+  defp vao_em_texto(segundos) when segundos < 3600, do: "#{div(segundos, 60)} min"
+  defp vao_em_texto(segundos) when segundos < 86_400, do: "#{div(segundos, 3600)} h"
+  defp vao_em_texto(segundos), do: "#{div(segundos, 86_400)} d"
 
   defp mudancas_coletadas?(nil), do: false
   defp mudancas_coletadas?(repositorio), do: not is_nil(repositorio.changes_collected_at)
