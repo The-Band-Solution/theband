@@ -75,9 +75,9 @@ defmodule TheBandWeb.ChangeLive.File do
 
         <p :if={@copias == []} class="alert">
           No version of <span class="font-mono">{@caminho}</span> was collected.
-          Files are collected for commits of change requests that close an issue — a file
-          touched only outside that path is <strong>not here yet</strong>, which is different
-          from never having changed.
+          The first pass over every commit may still be running — <strong>not collected
+          yet</strong> is different from never having changed, and the path has to match
+          exactly.
         </p>
 
         <div :if={@copias != []} class="grid gap-4 lg:grid-cols-3">

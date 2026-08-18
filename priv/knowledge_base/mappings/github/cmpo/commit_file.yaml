@@ -61,11 +61,13 @@ limitations:
     registra que o arquivo mudou e quanto; o código vive no repositório. Guardar o diff
     faria dela um espelho de código, e nada no produto consome isso.
   - >
-    **Arquivo de commit sem issue não é coletado** — decisão de escopo medida em
-    2026-08-18: são 16.416 commits e o rate limit é de 5.000 requisições por hora, mas
-    só 3.558 commits pertencem a solicitações com vínculo a issue, que é onde a pergunta
-    "por qual issue este arquivo mudou" tem resposta. Os demais ficam com a contagem
-    (`changed_files`) e a ausência declarada na tela — nunca com zero.
+    **A coleta percorre TODOS os commits, e a limitação que existia era nossa.** A
+    primeira versão coletava só dos commits de solicitações com vínculo a issue — 3.558
+    de 16.416 — por causa do rate limit, e a tela ia declarar "não coletado" para o
+    resto. A REST entrega os arquivos de qualquer commit: o que faltava era esperar a
+    janela. Agora a coleta pausa até ela reabrir, e o checkpoint por commit faz cada
+    execução continuar de onde a anterior parou. Enquanto a primeira passada não termina,
+    o que falta aparece como NÃO COLETADO — nunca como ausência de mudança.
   - >
     **Renomeação é delete+add no Git**, e a CMPO trata cópia de artefato, não identidade
     de arquivo. `previous_filename` é preservado quando a origem o informa, mas a
