@@ -49,14 +49,22 @@ coletados, e a de arquivos marca por commit.
 
 ## Os seis PRs abertos, e um problema que atinge todos
 
-| PR | base | fecha issue? |
-|---|---|---|
-| #430 | main | **não tem keyword** |
-| #431 | main | **não tem keyword** |
-| #432 | main | sim, #428 |
-| #433 | 033-… | `Closes #429` mas **não vincula** |
-| #434 | 035-… | **não tem keyword** |
-| #435 | 036-… | `Closes #401` mas **não vincula** |
+| PR | base | estado | fecha issue? |
+|---|---|---|---|
+| ~~#430~~ | main | **MERGEADO** | não tinha keyword — #395/#396 seguem abertas |
+| #431 | main | conflito **resolvido**, mergeable | **não tem keyword** |
+| #432 | main | aberto | sim, #428 |
+| #433 | 033-… | aberto | `Closes #429` mas **não vincula** |
+| #434 | 035-… | aberto | **não tem keyword** |
+| #435 | 036-… | aberto | `Closes #401` mas **não vincula** |
+
+**O #430 foi mergeado por squash**, e foi isso que gerou o conflito do #431: o git passou
+a ver `changes.ex` e `changes_test.exs` como criados dos dois lados. Resolvido conferindo
+que a versão da branch é superconjunto estrita — nada existia só no main.
+
+À medida que a pilha for mergeando, os PRs de cima vão repetir esse conflito. A conferência
+é sempre a mesma: `diff` entre a versão do main e a da branch, e só aceitar "ficar com a
+minha" quando o lado do main não tiver nada exclusivo.
 
 **Descoberto hoje**: closing keyword do GitHub **só cria vínculo quando a base é a
 branch padrão**. PR empilhado nunca fecha issue, mesmo com a sintaxe certa. É o terceiro
