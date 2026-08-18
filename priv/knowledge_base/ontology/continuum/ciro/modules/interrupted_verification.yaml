@@ -1,0 +1,81 @@
+# As fases que faltavam: o processo que NÃO chegou a decidir.
+#
+# **Descoberto ao desenhar a tela do CI** (2026-08-18, issue #401), e decidido pela pessoa
+# mantenedora: a CIRO tinha duas fases por resultado — bem-sucedido e malsucedido — e o
+# dado real tem mais estados. Um processo de CI pode terminar sem ter integrado E sem ter
+# encontrado problema: alguém cancelou, a condição do workflow não se cumpriu, o tempo
+# esgotou.
+#
+# ## Por que isso não é malsucedido
+#
+# A definição de `ciro.unsuccessful_continuous_integration_process` é explícita: "processo
+# que não integrou o código candidato, **devido a problema em algum de seus processos ou
+# atividades**". Cancelar não é problema em componente — é decisão de quem opera. Somar os
+# dois **inflaria a taxa de quebra com decisões humanas**, e a medida deixaria de dizer o
+# que o time precisa saber: com que frequência o código quebra.
+#
+# ## Por que também não é "sem fase"
+#
+# Deixá-los sem fase foi a primeira proposta, e ela escondia informação: "cancelado" e "não
+# executado por condição" são fatos sobre o processo, e um processo terminado sem fase seria
+# indistinguível de um em andamento. Agora cada estado tem nome.
+#
+# O que continua SEM fase é só o processo em andamento — porque ele ainda não terminou, e
+# atribuir fase a ele afirmaria resultado que não existe.
+module:
+  id: ciro.interrupted_verification
+  ontology: ciro
+  name: Interrupted Verification
+  version: 1.0.0
+  description:
+    pt-BR: >
+      As fases do processo de CI que terminou sem decidir sobre a integração: interrompido
+      por decisão de quem opera, não executado por condição não cumprida, ou encerrado por
+      esgotamento de tempo. Nenhuma delas é malsucedida — a definição de malsucedido exige
+      problema em componente.
+  provenance:
+    source_type: project_decision
+    reference: "Issue #401; decidido ao desenhar a tela de verificação contínua"
+    year: 2026
+    note: >
+      Extensão do projeto The Band à CIRO da tese. As duas fases originais
+      (bem-sucedido, malsucedido) cobrem o processo que DECIDIU; estas cobrem o que
+      terminou sem decidir, e a distinção é o que mantém a taxa de quebra honesta.
+
+concepts:
+  - id: ciro.interrupted_continuous_integration_process
+    name: Interrupted Continuous Integration Process
+    label: { pt-BR: "Processo de CI Interrompido", en: "Interrupted Continuous Integration Process" }
+    definition:
+      pt-BR: >
+        Processo de CI encerrado por decisão de um stakeholder antes de concluir a
+        verificação. Não integrou o código candidato e **não encontrou problema nele** —
+        a decisão de parar é externa ao código. Contá-lo como malsucedido atribuiria ao
+        código uma falha que foi escolha de quem opera.
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
+    examples: ["execução cancelada porque um commit mais novo a tornou obsoleta", "cancelamento manual"]
+
+  - id: ciro.unperformed_continuous_integration_process
+    name: Unperformed Continuous Integration Process
+    label: { pt-BR: "Processo de CI Não Executado", en: "Unperformed Continuous Integration Process" }
+    definition:
+      pt-BR: >
+        Processo de CI que foi disparado e **não executou**, porque a condição declarada
+        para sua execução não se cumpriu. Nada foi verificado — e é diferente de nunca ter
+        sido disparado: o gatilho ocorreu, e é isso que esta fase registra.
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
+    examples: ["job pulado porque o anterior falhou", "condição `if` do workflow não satisfeita"]
+
+  - id: ciro.expired_continuous_integration_process
+    name: Expired Continuous Integration Process
+    label: { pt-BR: "Processo de CI Expirado", en: "Expired Continuous Integration Process" }
+    definition:
+      pt-BR: >
+        Processo de CI encerrado por esgotamento do tempo declarado, sem concluir a
+        verificação. **É o mais ambíguo dos três e tem fase própria por isso**: pode ser
+        problema no código (laço infinito, teste que trava) ou limite mal dimensionado —
+        e a plataforma não sabe qual. Fase separada é o que permite contá-lo à parte em
+        vez de escolher um lado.
+    classification: { ufo_category: phase, ontouml_stereotype: phase, parent: ciro.continuous_integration_process }
+
+relations: []

@@ -1,0 +1,141 @@
+derivation_rule:
+  id: ci.antipatterns
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  provenance:
+    source_type: project_decision
+    reference: "Issue #401; decidido pela pessoa mantenedora em 2026-08-18 ao rever o protótipo do CI"
+    year: 2026
+    note:
+      pt-BR: >
+        Estas máximas **não vêm da tese**. A CIRO descreve o processo de CI; estas
+        descrevem o que a escrita do workflow faz com a capacidade de medi-lo. São
+        padrões que esta organização reconhece, e outra pode reconhecer outros — mesma
+        postura de `process.antipatterns`.
+
+  name:
+    pt-BR: "Antipadrões da verificação contínua"
+
+  description:
+    pt-BR: >
+      As máximas que descrevem quando o **script do workflow** impede a plataforma de
+      medir o que o processo de CI faz.
+
+      A CIRO diz que o processo de CI é composto por build, teste, inspeção e feedback.
+      Quando o script empacota vários deles num job só, a origem passa a informar um
+      resultado onde havia três — e "quebrou" deixa de dizer **o que** quebrou.
+
+  rationale:
+    pt-BR: >
+      Sem estas máximas, a plataforma coleta o CI e mede só a taxa de quebra. Com elas,
+      ela responde **por que a medida é grossa**: não porque falta coleta, mas porque o
+      script agrupou etapas que a ontologia distingue.
+
+      É a mesma natureza dos antipadrões de processo: o registro está incompleto, e o
+      custo é a organização perder a medida.
+
+  what_this_is_not:
+    pt-BR: >
+      **Não é avaliação de quem escreveu o workflow.** Agrupar etapas num job é escolha
+      legítima — economiza tempo de setup e cache. A máxima diz o que essa escolha custa
+      em capacidade de medição, não que ela esteja errada.
+
+      **Não é reprovação.** `enforcement: detection`: a plataforma relata e nunca recusa.
+
+  inputs:
+    - workflow_job.name
+    - workflow_job.steps
+    - workflow_run.conclusion
+
+  antipatterns:
+    - id: ci.ap01.monolithic_job
+      name:
+        pt-BR: "Job que faz build, teste e inspeção de uma vez"
+      statement:
+        pt-BR: >
+          Um único job materializa mais de um dos processos componentes que a CIRO
+          distingue — build, teste, inspeção. O script agrupou etapas, e a origem informa
+          **um** resultado onde havia vários.
+
+          Medido neste repositório em 2026-08-18: o job `quality-gates` roda formatação,
+          Credo, Sobelow, Dialyzer **e** os testes numa etapa só.
+      formal: >
+        ∀ j: WorkflowJob
+          (|{c : c ∈ {build, test, inspection} ∧ materializes(j, c)}| > 1)
+          → MonolithicJob(j)
+      consequence:
+        pt-BR: >
+          **"Quebrou" deixa de dizer o que quebrou.** A plataforma sabe que o job falhou e
+          não sabe se falhou o teste ou a inspeção — e são coisas com respostas
+          diferentes: teste vermelho é código, inspeção vermelha é convenção.
+
+          E as medidas por componente ficam impossíveis: não há "tempo de build" nem
+          "taxa de quebra de teste" quando os três vivem no mesmo job.
+      concepts:
+        [ciro.continuous_build_process, ciro.continuous_test_process, ciro.continuous_inspection_process]
+      enforcement: detection
+      severity: estrutural
+      note:
+        pt-BR: >
+          A plataforma **não decide** que um job é monolítico a partir do nome: decide a
+          partir das ETAPAS reconhecidas nele, e a confiança da classificação é baixa
+          (regra `github.ci_job_routing`). Job cujas etapas não se reconhecem **não** é
+          reportado — ausência de reconhecimento não é evidência de agrupamento.
+
+    - id: ci.ap02.unnamed_components
+      name:
+        pt-BR: "Job cujas etapas não dizem o que fazem"
+      statement:
+        pt-BR: >
+          Nenhuma etapa do job permite reconhecer qual processo componente ela executa. O
+          job é coletado e fica **sem classificação** — que é ausência nomeada, nunca
+          "build por padrão".
+      formal: >
+        ∀ j: WorkflowJob
+          (¬∃c (c ∈ {build, test, inspection} ∧ materializes(j, c)))
+          → UnnamedComponents(j)
+      consequence:
+        pt-BR: >
+          A verificação existe e a plataforma não sabe o que ela verifica. Chutar um
+          componente produziria medida inventada — e é por isso que a regra de roteamento
+          tem `fallback: skip` em vez de um padrão.
+      concepts: [ciro.continuous_integration_process]
+      enforcement: detection
+      severity: informativa
+
+    - id: ci.ap03.integrated_with_red_verification
+      name:
+        pt-BR: "Integrado com verificação vermelha"
+      statement:
+        pt-BR: >
+          Uma solicitação de mudança foi **integrada** e algum commit dela tem processo de
+          CI malsucedido. O código entrou na branch de destino com verificação reprovada.
+      formal: >
+        ∀ cr: ChangeRequest, c: Commit, p: ContinuousIntegrationProcess
+          (integrated(cr) ∧ accomplished(c, cr) ∧ verified(p, c) ∧ Unsuccessful(p))
+          → IntegratedWithRedVerification(cr)
+      consequence:
+        pt-BR: >
+          A verificação deixou de ser porta e passou a ser relatório. Se acontece com
+          frequência, a taxa de quebra do CI mede algo que ninguém usa para decidir.
+      concepts: [cmpo.change_request, ciro.unsuccessful_continuous_integration_process]
+      enforcement: detection
+      severity: estrutural
+      note:
+        pt-BR: >
+          **Só conta processo MALSUCEDIDO**, e a distinção é o motivo das três fases novas
+          (`ciro.interrupted_verification`): integrar com verificação **cancelada** ou
+          **não executada** é outra história — pode ser reexecução, pode ser condição de
+          workflow — e contá-la aqui produziria alarme falso.
+
+          E `run_attempt` importa: passar na terceira tentativa é sucesso, não falha. A
+          máxima olha a tentativa vigente.
+
+  limits:
+    pt-BR: >
+      Tudo aqui depende da coleta do CI, que é a issue #401. Sem ela a plataforma detecta
+      zero — e **zero não significa saudável, significa que ela não olhou**. A tela precisa
+      dizer qual dos dois é o caso, como já faz com os antipadrões de processo.
