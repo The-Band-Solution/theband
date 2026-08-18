@@ -1,49 +1,154 @@
+# O Pull Request vira cmpo.change_request — e a definição da ontologia já dizia isso.
+#
+# `cmpo.change_request` está escrito na CMPO como "solicitação formal para avaliar e
+# potencialmente integrar alterações em itens de configuração", com a frase explícita:
+# **"Um Pull Request é uma solicitação de mudança — não é o merge, nem a decisão de
+# aprovação."** Não há lacuna aqui, e não há o que estender: o mapeamento é
+# reconhecimento.
+#
+# A distinção que a frase protege é a que este mapeamento respeita:
+#
+#   | o que é                    | conceito                        |
+#   |----------------------------|---------------------------------|
+#   | o PR aberto (a solicitação)| cmpo.change_request             |
+#   | o merge (o ato de integrar)| cmpo.checkin                    |
+#   | o fechamento aprovado      | cmpo.change_request_closing     |
+#   | quem implementou           | cmpo.change_implementer         |
+#
+# Achatar os quatro num só registro ("PR mergeado") apagaria a pergunta que o processo
+# de gerência de configuração existe para responder: **quem pediu, quem avaliou, quem
+# integrou** são papéis distintos, e no dado real do The Band eles coincidem numa pessoa
+# só — o que é um achado sobre o processo, não uma propriedade do modelo.
 mapping:
   id: github.pull_request.to.cmpo.change_request
   version: 1
   status: proposed
-source: { provider: github, entity: pull_request, api: graphql, schema_version: v4 }
-target: { ontology: cmpo, concept: cmpo.change_request }
+source:
+  provider: github
+  entity: pull_request
+  api: graphql
+  schema_version: v4
+target:
+  ontology: cmpo
+  concept: cmpo.change_request
 semantics:
-  equivalence: partial
+  equivalence: total
   justification: >
-    Um Pull Request representa uma solicitação para avaliar e potencialmente
-    integrar alterações presentes em uma branch de origem. Não é equivalente ao
-    merge, nem à decisão de aprovação, nem à atividade de check-in. Cada um desses
-    é evento distinto e possui mapeamento próprio.
+    Um Pull Request é a solicitação formal de que alterações em cópias de artefato sob
+    controle de versão sejam avaliadas e integradas a uma branch de destino — a
+    definição literal de cmpo.change_request, que cita o Pull Request como o exemplo.
+    A equivalência é total porque o conceito foi escrito reconhecendo esta classe de
+    coisa.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, number]
 attributes:
-  title:       { source_path: title }
-  description: { source_path: body }
-  opened_at:   { source_path: createdAt }
-  closed_at:   { source_path: closedAt }
-  merged_at:   { source_path: mergedAt }
+  number:          { source_path: number }
+  title:           { source_path: title }
+  body:            { source_path: bodyText }
+  state:           { source_path: state }
+  opened_at:       { source_path: createdAt }
+  merged_at:       { source_path: mergedAt }
+  closed_at:       { source_path: closedAt }
+  source_branch:   { source_path: headRefName }
+  target_branch:   { source_path: baseRefName }
+  changed_files:   { source_path: changedFiles }
 relations:
-  author:
+  requested_by:
     source_path: author.id
     target_ontology: eo
     target_concept: eo.person
-  source_branch:
+    note: >
+      Materializa cmpo.stakeholder_submitted_change_request (participação no ato de
+      submeter) + cmpo.submission_produced_change_request. A pessoa entra pelo papel
+      spo.project_stakeholder — participar de atividade de projeto é o que faz dela
+      stakeholder. NÃO é necessariamente quem implementou: a autoria dos commits decide
+      isso, e as duas divergem em revisão cruzada e contribuição externa.
+  integrated_by:
+    source_path: mergedBy.id
+    target_ontology: eo
+    target_concept: eo.person
+    note: >
+      Materializa cmpo.stakeholder_performed_checkin (participação no ato de integrar)
+      + cmpo.checkin_integrated_change_request. Vive em campo separado de
+      `requested_by` porque pedir e integrar são atos distintos — a definição de
+      cmpo.change_request já dizia que o PR "não é o merge".
+  attends_issues:
+    source_path: closingIssuesReferences.nodes.id
+    target_ontology: sro
+    target_concept: sro.atomic_user_story
+    note: >
+      **O vínculo declarado, e ele é frágil na origem.** Só `closingIssuesReferences`
+      conta: é o que o GitHub reconheceu das closing keywords, e não o que o corpo do
+      PR parece dizer. Medido em 2026-08-17 no PR #425: o corpo listava 14 issues em
+      `Closes #411 #412 …` e o GitHub reconheceu **uma** — a palavra-chave vale para o
+      número imediatamente seguinte. Materializa
+      sro.change_request_attends_user_story / _development_task / _epic conforme o
+      roteamento de issue tiver decidido — uma relação por destino, como a SRO faz.
+  source_branch_ref:
     source_path: headRefName
     target_ontology: cmpo
     target_concept: cmpo.source_branch
-  target_branch:
+    note: >
+      Papel da branch de origem no check-in. A CMPO não declara relação entre a
+      SOLICITAÇÃO e as branches (só cmpo.commit_sends_copy_to_target_branch, do ato) —
+      aqui os nomes ficam como atributos com o papel nomeado.
+  target_branch_ref:
     source_path: baseRefName
     target_ontology: cmpo
     target_concept: cmpo.target_branch
+    note: >
+      Idem para a branch de destino. A limitação sobre a ausência dessa relação está
+      declarada abaixo, e nomeia cmpo.target_branch.
 limitations:
   - >
-    O autor da solicitação aponta para eo.person, e CMPO não declara relação entre cmpo.change_request e eo.person - autoria passaria por participação em atividade, ainda não modelada.
+    **As relações que faltavam foram declaradas** (2026-08-17, issue #426): o módulo
+    cmpo.change_traceability traz as participações (submeter, integrar, commitar) e o
+    módulo sro.scope_traceability traz o atendimento ao item de escopo. Antes disso este
+    mapeamento afirmava os vínculos sem lastro; agora cada um materializa relação
+    declarada, e a nota de cada campo diz qual.
   - >
-    A branch de origem aponta para cmpo.source_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.source_branch. Nada materializa o vínculo.
+    `requested_by` liga a solicitação a eo.person como ATALHO materializado da cadeia
+    declarada — spo.project_stakeholder → cmpo.change_request_submission (participação) →
+    cmpo.change_request (causação). Não há, e não deve haver, relação direta entre
+    cmpo.change_request e eo.person: participação é entre agente e EVENTO, e a
+    solicitação é objeto social. O atalho existe porque a origem entrega o PR com autor,
+    não o ato de submeter.
   - >
-    A branch de destino aponta para cmpo.target_branch, e CMPO não declara relação entre cmpo.change_request e cmpo.target_branch. Nada materializa o vínculo.
-  - O Pull Request não é equivalente ao merge; mergedAt indica que um merge ocorreu, mas o merge é outro evento.
-  - Reviews e decisões de aprovação são processadas separadamente (ver github.review).
-  - Um PR fechado sem merge não representa mudança integrada.
-  - Autoria da solicitação não implica autoria dos commits.
+    `integrated_by` liga a solicitação a eo.person pelo mesmo tipo de atalho, sobre outra
+    cadeia — spo.project_stakeholder → cmpo.checkin (participação) → cmpo.change_request
+    (associação). Guardar os dois como atributos da solicitação é decisão de coleta, e a
+    derivação dos atos fica para quando algo os consumir.
+  - >
+    **Continua sem relação entre cmpo.change_request e as branches** (cmpo.source_branch,
+    cmpo.target_branch): a única declarada é cmpo.commit_sends_copy_to_target_branch, que
+    parte do ato de commitar e não da solicitação. Os dois nomes ficam como atributos com
+    o papel nomeado — não foi declarada porque nada na plataforma consome o vínculo, e
+    declarar relação sem consumidor é infraestrutura sem consumidor visível.
+  - >
+    **PR mergeado não é cmpo.change_request "concluída": o merge é outra coisa.** O ato
+    de integrar é cmpo.checkin (composto de cmpo.commit_artifact_copy e, quando a
+    branch é apagada, cmpo.delete_branch), e o fechamento aprovado é
+    cmpo.change_request_closing. Este mapeamento grava `merged_at` e `integrated_by`
+    como atributos da solicitação, e a derivação dos dois atos fica para quando algo
+    os consumir — declarar isso é o que impede tratar "mergeado" como propriedade do
+    pedido.
+  - >
+    Revisões (approvals, change requests, review threads) NÃO entram: são
+    `cmpo.change_control` em outra atividade, e review thread tem âncora em código —
+    a mesma lacuna já declarada no mapeamento de comentário.
+  - >
+    Conflito (cmpo.conflict, cmpo.artifact_copy_with_conflict) não é coletável pela
+    API de PR: o GitHub expõe `mergeable`, que é o estado de AGORA, não o histórico de
+    conflitos resolvidos. Afirmar cmpo.resolve_conflict a partir dele seria inventar.
+  - >
+    `closingIssuesReferences` só existe no GraphQL. A API REST de PR não traz o
+    vínculo com issue — quem coletar por REST fica sem o elo, e a ausência precisa ser
+    dita em vez de virar "PR sem issue".
+  - >
+    Menção de issue no corpo sem closing keyword (`Refs #318`) é vínculo mais fraco e
+    fica FORA: promovê-lo ao mesmo conceito faria "mencionou" e "atende" a mesma
+    coisa. Se um dia sustentar decisão, é conceito próprio.
 provenance:
   preserve_raw_payload: true
-  required_fields: [source_system, source_instance, external_id, collected_at]
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

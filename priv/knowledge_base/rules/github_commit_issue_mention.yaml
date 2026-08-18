@@ -1,0 +1,86 @@
+derivation_rule:
+  id: github.commit_issue_mention
+  version: 1
+  provider: github
+  status: proposed
+  confidence: low
+
+  provenance:
+    source_type: project_decision
+    reference: "Issue #426; complementa github.pull_request.to.cmpo.change_request"
+    year: 2026
+    note: >
+      Nasceu do mapeamento do commit, que citava a regra antes de ela existir — o
+      validador Python pegou. A decisão que ela carrega é qual das duas rotas do
+      rastreio vence quando as duas existem.
+
+  name:
+    pt-BR: "Menção de issue na mensagem do commit"
+  description:
+    pt-BR: >
+      Decide se uma mensagem de commit menciona um item de escopo, e com que força.
+
+      É a rota FRACA do rastreio, e existe porque a forte nem sempre está lá: o
+      caminho declarado é commit → solicitação de mudança → item de escopo
+      (`cmpo.commit_accomplished_change_request` + `sro.change_request_attends_*`),
+      e ele depende de o commit pertencer a um PR com closing keyword reconhecida.
+      Commit direto na branch, ou PR sem keyword, deixa o escopo sem elo — e aí a
+      menção em texto é tudo o que existe.
+
+      Tratar as duas rotas como equivalentes seria o erro: `#411` numa mensagem é
+      texto livre, pode apontar para outro repositório, para um pull request, ou
+      para nada. Por isso a confiança é baixa e a estrutura vence na divergência.
+
+  inputs:
+    - messageBody
+    - messageHeadline
+    - associatedPullRequests
+
+  availability:
+    note: >
+      `associatedPullRequests` exige GraphQL; quem coletar por REST fica só com o
+      texto, e a ausência da rota forte precisa ser dita em vez de virar "commit sem
+      escopo".
+    required_api_fields: [messageBody, associatedPullRequests]
+
+  # ---------------------------------------------------------------------------
+  # A ordem importa: a rota estrutural é tentada primeiro, e a menção só decide
+  # quando ela não existe.
+  # ---------------------------------------------------------------------------
+  rules:
+    - id: github.commit_issue_mention.r01
+      when: "associatedPullRequests não é vazio"
+      then: >
+        O elo com o escopo vem do PR (cmpo.commit_accomplished_change_request +
+        sro.change_request_attends_*). A menção em texto NÃO é usada, mesmo quando
+        presente.
+      confidence: high
+
+    - id: github.commit_issue_mention.r02
+      when: "associatedPullRequests é vazio e a mensagem casa /#\\d+/"
+      then: >
+        Registra menção ao item de escapo correspondente ao número, no MESMO
+        repositório do commit — número de issue não identifica entre repositórios
+        (é a L25), e a menção não carrega o repositório.
+      confidence: low
+
+    - id: github.commit_issue_mention.r03
+      when: "associatedPullRequests é vazio e a mensagem não casa /#\\d+/"
+      then: "Nenhum elo com escopo. É ausência observada, e não falha."
+      confidence: high
+
+  divergence:
+    pt-BR: >
+      Quando a rota estrutural e a menção discordam — o commit pertence ao PR #425,
+      que atende a issue #411, e a mensagem cita `#318` — **a estrutura vence** e a
+      divergência é registrada. Foi o caso real dos commits da feature 030, cujas
+      mensagens citam as issues que motivaram o trabalho (`Refs #318 #400`) e não a
+      que o PR fecha.
+
+  limitations:
+    pt-BR: >
+      Menção com prefixo de repositório (`org/repo#123`) e URL completa de issue não
+      são reconhecidas nesta versão: exigiriam resolver o repositório citado, e a
+      rota forte já cobre o caso comum. `Refs #N` e `See #N` são menções, nunca
+      atendimento — a diferença entre citar e atender é a mesma que existe entre
+      mencionar e fechar.
