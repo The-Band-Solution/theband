@@ -215,12 +215,12 @@ defmodule TheBand.Ingestion.GithubVerifications do
     }
   end
 
+  # Soma pelas CHAVES DE `zero()`, e não por uma lista escrita à mão: a versão escrita à
+  # mão esqueceu `sem_jobs` quando ele foi acrescentado, e o guarda do checkpoint passou a
+  # quebrar em qualquer repositório com execução — sem nenhum teste notar, porque a fase
+  # só é alcançada com repositório observado.
   defp somar(a, b) do
-    %{
-      jobs: a.jobs + b.jobs,
-      monoliticos: a.monoliticos + b.monoliticos,
-      sem_nome: a.sem_nome + b.sem_nome
-    }
+    Map.new(zero(), fn {chave, _} -> {chave, Map.fetch!(a, chave) + Map.fetch!(b, chave)} end)
   end
 
   # A execução em andamento não tem fim, e `updated_at` não é fim — é a última mexida.

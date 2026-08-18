@@ -14,9 +14,11 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
   alias TheBand.Ingestion
   alias TheBand.Ingestion.Sync
   alias TheBand.Jobs.SyncGitHubEO
+  alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ToolCredential
+  alias TheBand.Verification
 
   setup :verify_on_exit!
 
@@ -182,6 +184,152 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert sync.records_created == 3
       assert sync.memberships_pending_role == 1
     end
+  end
+
+  describe "as fases que dependem de repositório observado" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "a verificação contínua É fase da sincronização", ctx do
+      # O teste existe por causa de um defeito real: a coleta de arquivos tinha um
+      # moduledoc dizendo "a fase de sincronização usa", e a fase nunca tinha sido
+      # ligada. Nenhum teste pegava, porque sem repositório observado as fases não
+      # chegam a fazer requisição.
+      repo = repositorio_observado(ctx.tenant, ctx.tool)
+
+      # Caminho feliz e vazio no GraphQL: o que importa aqui é a sincronização CHEGAR
+      # à fase do CI, que é REST.
+      responder(fn query, _vars ->
+        base = %{"rateLimit" => @rate_limit_folgado}
+
+        cond do
+          String.contains?(query, "membersWithRole") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "membersWithRole" => pagina([], false, nil)
+            })
+
+          String.contains?(query, "teams(") ->
+            Map.put(base, "organization", %{"id" => "O_1", "teams" => pagina([], false, nil)})
+
+          String.contains?(query, "pullRequests") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "pullRequests" => Map.put(pagina([], false, nil), "totalCount", 0)
+            })
+
+          String.contains?(query, "issues(") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "issues" => Map.put(pagina([], false, nil), "totalCount", 0)
+            })
+
+          String.contains?(query, "repositories(") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "repositories" => pagina([], false, nil)
+            })
+
+          true ->
+            Map.put(base, "organization", org_node())
+        end
+      end)
+
+      # A borda REST, que é por onde o CI vem — o GraphQL não expõe workflow run.
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        cond do
+          String.contains?(url, "/actions/runs/") ->
+            {:ok,
+             %{status: 200, body: %{"total_count" => 1, "jobs" => [job_de_ci()]}, headers: %{}}}
+
+          String.contains?(url, "/actions/runs") ->
+            {:ok,
+             %{
+               status: 200,
+               body: %{"total_count" => 1, "workflow_runs" => [run_de_ci()]},
+               headers: %{}
+             }}
+
+          true ->
+            {:ok, %{status: 200, body: %{"files" => []}, headers: %{}}}
+        end
+      end)
+
+      perform(ctx.tenant, ctx.sync)
+
+      # A execução chegou ao banco pela sincronização, e não por uma chamada direta.
+      assert [execucao] = Verification.list(ctx.tenant)
+      assert execucao.workflow_name == "quality-gates"
+      assert execucao.phase == "ciro.successful_continuous_integration_process"
+      # E o tipo foi derivado do job, não assumido pela entidade de origem.
+      assert execucao.process_kinds == ["ciro.continuous_integration_process"]
+
+      assert [%{components: ["ciro.continuous_inspection_process"]}] =
+               Verification.components_of(ctx.tenant, execucao.id)
+
+      # O repositório ficou marcado como percorrido: os jobs vieram todos.
+      assert [%{collected_at: %NaiveDateTime{}}] =
+               Enum.filter(Verification.repositories(ctx.tenant), &(&1.id == repo))
+    end
+  end
+
+  defp repositorio_observado(tenant, tool) do
+    {:ok, org} =
+      EO.upsert_organization_from_source(tenant, %{
+        login: "acme",
+        name: "Acme",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "O_1",
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    {:ok, repo} =
+      CMPO.upsert_source_repository_from_source(tenant, %{
+        organization_id: org.id,
+        name: "theband",
+        qualified_name: "acme/theband",
+        url: "https://github.com/acme/theband",
+        default_branch: "main",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "R_1",
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    {:ok, observado} = CMPO.observe_repository(tenant, tool.id, repo.id)
+    observado.id
+  end
+
+  defp run_de_ci do
+    %{
+      "id" => 991,
+      "name" => "quality-gates",
+      "head_sha" => "abc1234",
+      "head_branch" => "main",
+      "event" => "push",
+      "status" => "completed",
+      "conclusion" => "success",
+      "run_attempt" => 1,
+      "run_started_at" => "2026-08-18T10:00:00Z",
+      "updated_at" => "2026-08-18T10:05:00Z",
+      "actor" => %{"login" => "ana"}
+    }
+  end
+
+  defp job_de_ci do
+    %{
+      "id" => 1991,
+      "name" => "gates",
+      "status" => "completed",
+      "conclusion" => "success",
+      "started_at" => "2026-08-18T10:00:10Z",
+      "completed_at" => "2026-08-18T10:04:50Z",
+      "steps" => [%{"name" => "mix credo --strict"}]
+    }
   end
 
   describe "rate limit (FR-016, SC-009)" do
