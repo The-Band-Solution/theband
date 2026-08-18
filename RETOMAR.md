@@ -10,6 +10,7 @@ Todos com revisor conferido e gates 13/13 verdes.
 | 1 | **#430** | coleta das mudanças: 5.035 solicitações, 16.416 commits, 1.078 vínculos com issues |
 | 2 | **#431** | lista `/work/changes`, busca que lê a forma, commits da pessoa, linha do tempo |
 | 3 | **#433** | arquivos da mudança + página `/work/files` — quem mexeu e por qual issue |
+| 4 | **#434** | as três fases do CI que faltavam na CIRO + os três antipadrões do workflow |
 | — | **#432** | IA vira aba de Tools, Profiles vira aba de Sync (independente; fecha #428) |
 
 **Conferir issues depois de cada merge**: `Closes` com várias issues numa keyword só fecha
@@ -38,12 +39,19 @@ Três telas para o CI, com dados reais deste repositório. As decisões que ele 
 - **integrado com verificação vermelha** é anti-padrão que só aparece porque CI e rastreio
   estão no mesmo rastro. O PR #427 tem um commit que nunca passou.
 
+**As duas decisões que você tomou revendo o protótipo já estão na base (#434)**: as três
+fases (cancelado/pulado/expirado deixaram de ser "sem fase" e ganharam nome) e os três
+antipadrões do workflow.
+
 O outro protótipo, já implementado: **Rastro da Mudança** —
 https://claude.ai/code/artifact/d5f1ef0e-a9ed-4891-8631-b5384db28a97
 
 ## Próximo trabalho
 
-1. **#401 — coletar o CI** (mapeamento escrito, protótipo acima, falta implementar).
+1. **#401 — coletar o CI**. Agora o modelo está completo: mapeamentos de run e job, as três
+   fases de `ciro.interrupted_verification`, os três antipadrões de `ci.antipatterns` e a
+   regra `github.ci_job_routing` — tudo no #434. **Falta só a coleta e as telas**, e o
+   protótipo acima já as desenha.
 2. **Review dos sprints 018, 019 e 020** + consolidar lições. Cinco desta sessão:
    - crash da mediana `0.0` deixou a rodada muda por 7h (oitava do sucesso silencioso);
    - `Closes #A #B #C` fecha só a primeira (segunda da L48);
