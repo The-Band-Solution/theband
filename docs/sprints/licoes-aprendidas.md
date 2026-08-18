@@ -2085,3 +2085,74 @@ precisa ser tão curta quanto, senão a regra continua dependendo de memória.
 
 **Estado**: aberta — a forma com redirecionamento não está no `AGENTS.md` ao lado da
 proibição, e proibir sem oferecer a substituta é o que fez esta reincidir.
+
+---
+
+## L61 — Uma limitação declarada no mapeamento não vira restrição no código sozinha
+
+**Origem**: Sprint 021 (feature 037) · **Tipo**: conhecimento
+
+**O que aconteceu.** O mapeamento `github.workflow_run.to.ciro.continuous_integration_process`
+dizia, desde a versão 1, na sua própria seção `limitations`:
+
+> Nem todo workflow é integração contínua; workflows de release mapeiam para CDRO.
+
+Implementei a coleta mapeando **toda** execução do Actions para
+`ciro.continuous_integration_process`. Só ao medir contra o dado real o problema apareceu: das
+1.051 execuções coletadas, as cinco mais frequentes são `Sync to GitLab` (264),
+`Deploy Docs to GitHub Pages` (247), `Deploy Backoffice and Front-office` (235),
+`Sprint Rollover` (109) e `Release ConectaFapes` (90). **Nenhuma integra código.**
+
+**Por que aconteceu.** Li o mapeamento pelas seções `target`, `attributes` e `relations` — as
+que dizem o que construir. `limitations` foi lida como documentação do que a plataforma não
+conseguiria fazer, e não como **especificação de um caminho que o código precisa ter**. A
+distinção não existe no formato: as duas coisas moram na mesma lista.
+
+O custo teria sido uma medida de verificação contínua envenenada por execuções que nada
+verificam — e ninguém a questionaria, porque o número teria a mesma aparência do número certo.
+
+**O que fazer diferente.** Ao implementar um mapeamento, ler `limitations` **antes** de
+`attributes`, e classificar cada item em dois montes: o que a plataforma não pode saber (vira
+frase de ausência na tela) e o que a plataforma **precisa distinguir** (vira ramo no código).
+O segundo monte é requisito, não nota de rodapé.
+
+E quando um item do segundo monte for atendido, marcá-lo `RESOLVIDA na versão N` no próprio
+arquivo — foi o que a versão 2 deste mapeamento passou a fazer.
+
+**Estado**: aberta.
+
+---
+
+## L62 — Somar contadores por lista escrita à mão apaga a chave nova em silêncio
+
+**Origem**: Sprint 021 (feature 037) · **Tipo**: técnica
+
+**O que aconteceu.** A fase de coleta do CI acumula um resumo somando mapas com
+`%{jobs: a.jobs + b.jobs, monoliticos: ..., sem_nome: ...}`. Ao acrescentar a chave
+`sem_jobs` — que é o que decide se o checkpoint do repositório avança —, `somar/2` **não foi
+atualizada**. O resultado: `marcar_se_completo/3` sem cláusula correspondente, e a fase
+derrubaria qualquer sincronização de repositório com pelo menos uma execução.
+
+Passou por `mix gates` inteiro, com 1.038 testes verdes, e foi para o PR.
+
+**Por que aconteceu.** Duas causas somadas. A soma repetia a lista de chaves num segundo lugar,
+e nada ligava os dois. E **a fase nunca era exercitada**: sem repositório observado, a lista de
+repositórios é vazia e nenhuma requisição acontece — o teste da sincronização completa passava
+por ela sem tocá-la. É a mesma sombra em que a coleta de arquivos ficou **desligada** com o
+moduledoc afirmando que estava ligada.
+
+**O que fazer diferente.** Duas coisas, e a segunda é a que pega a família inteira:
+
+```elixir
+# a soma deriva as chaves do zero, e não as repete
+defp somar(a, b) do
+  Map.new(zero(), fn {chave, _} -> {chave, Map.fetch!(a, chave) + Map.fetch!(b, chave)} end)
+end
+```
+
+E: **toda fase que só roda com uma pré-condição de dado precisa de um teste que crie essa
+pré-condição.** A pergunta ao terminar uma fase nova é "que linha do banco faz esta fase
+existir?", e o teste começa criando essa linha. Sem isso, a suíte verde só prova que a fase
+não foi visitada.
+
+**Estado**: aberta.
