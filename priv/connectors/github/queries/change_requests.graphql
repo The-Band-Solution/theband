@@ -1,0 +1,78 @@
+# As solicitações de mudança de um repositório, com os commits de cada uma — feature 032.
+#
+# **Uma consulta, dois níveis**, e a razão é volume: medido em 2026-08-18, quatro
+# repositórios do piloto somam 822 PRs e 1.202 commits, e a organização tem 121. Coletar
+# commits ATRAVÉS do PR mantém o rastro e evita percorrer a história inteira de cada
+# repositório. O preço é que commit fora de PR não é alcançado — limitação declarada.
+#
+# `pullRequests` NÃO aceita filtro por data, ao contrário de `issues`. O incremental é
+# feito parando cedo: a ordenação é UPDATED_AT decrescente, e a ingestão encerra a
+# paginação no primeiro PR mais antigo que o checkpoint do repositório.
+#
+# `closingIssuesReferences` é o vínculo com escopo, e é o que a ORIGEM reconheceu — não o
+# que o corpo do PR parece dizer. Medido em 2026-08-17: um PR com quatorze issues em
+# `Closes #411 #412 …` teve UMA reconhecida.
+#
+# `authors` no plural, e é essencial: todo commit deste repositório tem dois autores (o
+# trailer Co-Authored-By). `author` no singular atribuiria a mudança a uma pessoa quando o
+# registro nomeia duas.
+#
+# Os dois `totalCount` existem para truncamento nunca ser silencioso.
+query($owner: String!, $name: String!, $page_size: Int = 25, $commit_size: Int = 50, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  repository(owner: $owner, name: $name) {
+    id
+    pullRequests(first: $page_size, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        number
+        title
+        # bodyText e não body: texto plano, como no corpo da issue e do comentário.
+        bodyText
+        state
+        createdAt
+        updatedAt
+        mergedAt
+        closedAt
+        changedFiles
+        headRefName
+        baseRefName
+        author { __typename login ... on User { id } }
+        mergedBy { __typename login ... on User { id } }
+
+        closingIssuesReferences(first: 20) {
+          totalCount
+          nodes { id number }
+        }
+
+        commits(first: $commit_size) {
+          totalCount
+          # O cursor existe para a paginação dos truncados: sem ele, "não coletado" seria
+          # limitação nossa em vez de fato sobre a origem.
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            commit {
+              oid
+              messageHeadline
+              messageBody
+              committedDate
+              additions
+              deletions
+              changedFilesIfAvailable
+              authors(first: 10) {
+                nodes {
+                  name
+                  email
+                  user { login id }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

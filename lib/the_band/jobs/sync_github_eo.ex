@@ -29,6 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.GithubChangeRequests
   alias TheBand.Ingestion.GithubIssueComments
   alias TheBand.Ingestion.GithubProjects
   alias TheBand.Ingestion.GithubWorkItems
@@ -187,7 +188,26 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com
     # log) — por isso não há ramo de erro aqui.
     {:ok, resumo} = GithubIssueComments.collect(ctx)
-    %{comments: resumo.comments, comment_issues: resumo.issues_visited}
+
+    Map.merge(
+      %{comments: resumo.comments, comment_issues: resumo.issues_visited},
+      coletar_mudancas(ctx)
+    )
+  end
+
+  # **Depois das issues**, e pela mesma dependência de dado: o vínculo entre solicitação
+  # e issue precisa da issue gravada. Lê da BASE, não da memória da fase anterior (L47).
+  #
+  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) —
+  # por isso não há ramo de erro aqui.
+  defp coletar_mudancas(ctx) do
+    {:ok, resumo} = GithubChangeRequests.collect(ctx)
+
+    %{
+      change_requests: resumo.change_requests,
+      commits: resumo.commits,
+      attended_issues: resumo.attended_issues
+    }
   end
 
   # Falha transitória **não** encerra a sincronização. Marcá-la como falha levaria

@@ -1,0 +1,35 @@
+# Os commits restantes de uma solicitação que passou da primeira página — feature 032.
+#
+# **Existe porque "não coletado" era limitação minha, não da origem.** A consulta
+# principal traz os primeiros cinquenta commits de cada PR; medido na primeira coleta
+# real (2026-08-18), 509 das 5.032 solicitações têm mais que isso. Declarar como
+# limitação seria aceitar um buraco que a API permite fechar — então ela é paginada.
+#
+# Chamada apenas para os PRs truncados: os demais já vieram completos, e uma consulta por
+# PR seria o defeito das 135 por render numa roupa nova.
+query($owner: String!, $name: String!, $number: Int!, $commit_size: Int = 100, $after: String!) {
+  rateLimit { cost remaining resetAt }
+
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      commits(first: $commit_size, after: $after) {
+        totalCount
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          commit {
+            oid
+            messageHeadline
+            messageBody
+            committedDate
+            additions
+            deletions
+            changedFilesIfAvailable
+            authors(first: 10) {
+              nodes { name email user { login id } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

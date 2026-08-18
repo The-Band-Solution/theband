@@ -189,7 +189,7 @@ defmodule TheBandWeb.DiscussaoTest do
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
 
-      assert html =~ "silent", "a parada sem conversa não foi rotulada"
+      assert html =~ "never discussed", "a parada sem conversa não foi rotulada"
       assert html =~ "decide whether it dies or comes back"
 
       assert html =~ "stale discussion", "a parada com conversa antiga não foi rotulada"

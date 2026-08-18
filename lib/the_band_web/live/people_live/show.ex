@@ -33,6 +33,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   import Ecto.Query, only: [from: 2]
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Changes
   alias TheBand.Communication.Discussions
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
@@ -148,6 +149,9 @@ defmodule TheBandWeb.PeopleLive.Show do
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
       paradas: paradas_com_discussao(tenant, Profiles.stale_open(tenant, pessoa.id)),
       participacao: Discussions.participation_of(tenant, pessoa.id, limit: 20),
+      # O que a pessoa MUDOU — três leituras nunca somadas, porque abrir, integrar e
+      # commitar são atos distintos, com participações distintas na ontologia.
+      mudancas: Changes.by_person(tenant, pessoa.id, limit: 10),
       dias_parada: Material.stale_days(),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
@@ -306,6 +310,74 @@ defmodule TheBandWeb.PeopleLive.Show do
               No longer observed since {@pessoa.no_longer_observed_at}. The platform saw this person
               before, and does not see them now.
             </p>
+          </div>
+
+          <%!-- O QUE A PESSOA MUDOU — cmpo.change_request e cmpo.commit_artifact_copy.
+                As três leituras ficam SEPARADAS porque a rede as separa: submeter,
+                integrar e executar são participações diferentes. Somá-las produziria um
+                número de "contribuições" que não corresponde a nada. --%>
+          <div class="mt-4 border-t border-base-300 pt-3">
+            <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+              Changes
+            </h4>
+            <p class="mb-2 text-xs text-base-content/60">
+              Asking for a change, integrating it and committing are different acts — kept
+              apart here because the network keeps them apart.
+            </p>
+
+            <p
+              :if={@mudancas.abertas == [] and @mudancas.integradas == [] and @mudancas.commits == []}
+              class="text-xs text-base-content/60"
+            >
+              No change request or commit collected for this person. Either the work goes
+              through other channels, or the repositories they touch have not been collected.
+            </p>
+
+            <div :if={@mudancas.abertas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Opened</h5>
+              <div
+                :for={m <- @mudancas.abertas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
+              </div>
+            </div>
+
+            <div :if={@mudancas.integradas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Integrated</h5>
+              <div
+                :for={m <- @mudancas.integradas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+              </div>
+            </div>
+
+            <div :if={@mudancas.commits != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Committed</h5>
+              <div
+                :for={c <- @mudancas.commits}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <span class="font-mono text-xs opacity-60">{String.slice(c.sha, 0, 8)}</span>
+                <span :if={is_nil(c.change_request_id)}>{c.headline}</span>
+                <.link
+                  :if={c.change_request_id}
+                  navigate={~p"/work/changes/#{c.change_request_id}"}
+                  class="link link-hover"
+                >
+                  {c.headline}
+                </.link>
+                <%!-- Co-autoria dita: a pessoa participou da mudança sem ser a autora
+                      que o Git registra, e apresentar as duas iguais apagaria o fato. --%>
+                <span :if={not c.is_primary} class="badge badge-ghost badge-xs">co-author</span>
+              </div>
+            </div>
           </div>
 
           <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
@@ -684,6 +756,37 @@ defmodule TheBandWeb.PeopleLive.Show do
                 The origin records no deadline, so this is not lateness — it is work that has
                 been open this long and needs a destination.
               </p>
+
+              <%!-- A LEGENDA existe porque os quatro rótulos decidem AÇÕES OPOSTAS, e um
+                    rótulo que só quem escreveu entende não informa ninguém. Pedida pela
+                    pessoa mantenedora em 2026-08-17, depois de perguntar o que era um
+                    deles — a pergunta foi a evidência de que a tela devia explicar. --%>
+              <dl class="mb-3 grid gap-x-3 gap-y-1 text-xs sm:grid-cols-[max-content_1fr]">
+                <dt><span class="badge badge-ghost badge-xs">never discussed</span></dt>
+                <dd class="text-base-content/70">
+                  nobody ever commented — stalled in silence, and somebody has to decide
+                  whether it dies or comes back
+                </dd>
+                <dt><span class="badge badge-ghost badge-xs">stale discussion</span></dt>
+                <dd class="text-base-content/70">
+                  it was discussed, then left — the conversation stopped before the work did
+                </dd>
+                <dt><span class="badge badge-success badge-xs">active discussion</span></dt>
+                <dd class="text-base-content/70">
+                  somebody commented recently — the work is probably alive and the
+                  <strong>record</strong>
+                  is what is out of date
+                </dd>
+                <dt>
+                  <span class="badge badge-ghost badge-outline badge-xs">
+                    discussion not collected
+                  </span>
+                </dt>
+                <dd class="text-base-content/70">
+                  comments were never collected for this repository — nothing is claimed here,
+                  and silence is not evidence
+                </dd>
+              </dl>
               <%!-- O sinal "parada" tem TRÊS diagnósticos, e eles pedem ações opostas
                     (#400): sem conversa nenhuma é abandono silencioso; conversa antiga é
                     abandono depois de discutir; conversa recente é trabalho vivo com
@@ -1171,9 +1274,14 @@ defmodule TheBandWeb.PeopleLive.Show do
     |> MapSet.new()
   end
 
+  # Os quatro rótulos falam da MESMA coisa — a discussão —, e é isso que os torna
+  # comparáveis de relance. `silent` foi o primeiro nome de :silencio e saiu porque a
+  # pessoa mantenedora precisou perguntar o que era (2026-08-17): quem lê pensa em
+  # notificação silenciada, e o fato é "ninguém comentou". Rótulo que precisa da frase
+  # ao lado para ser entendido não está fazendo o trabalho dele.
   defp rotulo_da_conversa(:recente), do: "active discussion"
   defp rotulo_da_conversa(:antiga), do: "stale discussion"
-  defp rotulo_da_conversa(:silencio), do: "silent"
+  defp rotulo_da_conversa(:silencio), do: "never discussed"
   defp rotulo_da_conversa(:nao_coletada), do: "discussion not collected"
 
   defp frase_da_conversa(%{conversa: :recente, atos: atos, ultimo_ato: ultimo}),
