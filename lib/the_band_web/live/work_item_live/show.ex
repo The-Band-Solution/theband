@@ -43,6 +43,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Changes
   alias TheBand.Communication.Discussions
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.CMPO
@@ -453,6 +454,60 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </div>
           </div>
 
+          <%!-- AS SOLICITAÇÕES DE MUDANÇA que atendem esta issue — cmpo.change_request.
+                O vínculo é o que a ORIGEM reconheceu das closing keywords; menção no
+                texto não entra, porque mencionar e atender são coisas diferentes. --%>
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h3 class="card-title text-base">Change requests</h3>
+              <p class="text-xs text-base-content/70">
+                The pull requests the source recognised as closing this issue — who asked
+                for the change, and who integrated it.
+              </p>
+
+              <p :if={not @mudancas_coletadas?} class="text-sm opacity-70">
+                No change request has been collected for this repository yet. This is not
+                the same as no pull request attending this issue.
+              </p>
+
+              <p :if={@mudancas_coletadas? and @mudancas == []} class="text-sm opacity-70">
+                Collected, and no change request closes this issue. Work may still exist —
+                a closing keyword the source did not recognise looks exactly like this.
+              </p>
+
+              <div :for={m <- @mudancas} class="border-t border-base-300 pt-2 text-sm">
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover font-medium">
+                  #{m.number} {m.title}
+                </.link>
+                <div class="mt-0.5 flex flex-wrap items-baseline gap-x-3 text-xs opacity-70">
+                  <span class="badge badge-ghost badge-xs">{String.downcase(m.state || "")}</span>
+                  <span>
+                    opened by
+                    <.link
+                      :if={m.author_person_id}
+                      navigate={~p"/people/#{m.author_person_id}"}
+                      class="link link-hover"
+                    >
+                      {@nomes[m.author_person_id] || m.author_login}
+                    </.link>
+                    <span :if={is_nil(m.author_person_id)}>{m.author_login || "unknown"}</span>
+                  </span>
+                  <span :if={m.merged_by_login}>
+                    integrated by
+                    <.link
+                      :if={m.merged_by_person_id}
+                      navigate={~p"/people/#{m.merged_by_person_id}"}
+                      class="link link-hover"
+                    >
+                      {@nomes[m.merged_by_person_id] || m.merged_by_login}
+                    </.link>
+                    <span :if={is_nil(m.merged_by_person_id)}>{m.merged_by_login}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <%!-- A DISCUSSÃO — cmo.comment, observado na origem.
                 Os dois vazios são frases diferentes de propósito: "não coletada" e
                 "coletada e vazia" dizem coisas opostas sobre a origem, e usar a mesma
@@ -649,7 +704,8 @@ defmodule TheBandWeb.WorkItemLive.Show do
     pai = WorkItems.fetch_parent(tenant, issue.id)
     repositorio = repositorio(tenant, issue.observed_repository_id)
     discussao = Discussions.for_issue(tenant, issue.id)
-    nomes = nomes(tenant, issue, discussao)
+    mudancas = Changes.for_issue(tenant, issue.id)
+    nomes = nomes(tenant, issue, discussao, mudancas)
 
     # **As quatro listas, uma vez cada.** `partes_faltando/2` as consultava de novo para contar —
     # três consultas repetidas por render, e a quarta lista teria virado a sétima. Contar o que já
@@ -689,7 +745,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
       # separa os dois vazios — "não passou a coleta" e "passou e não há conversa" são
       # fatos diferentes, e usar a mesma frase para os dois é o defeito da L57.
       discussao: discussao,
-      discussao_coletada?: discussao_coletada?(repositorio)
+      discussao_coletada?: discussao_coletada?(repositorio),
+      # As solicitações que atendem esta issue — o rastro do escopo para a mudança.
+      mudancas: mudancas,
+      mudancas_coletadas?: mudancas_coletadas?(repositorio)
     )
     |> assign(onde(tenant, repositorio, issue))
   end
@@ -710,6 +769,9 @@ defmodule TheBandWeb.WorkItemLive.Show do
   defp discussao_coletada?(nil), do: false
   defp discussao_coletada?(repositorio), do: not is_nil(repositorio.comments_collected_at)
 
+  defp mudancas_coletadas?(nil), do: false
+  defp mudancas_coletadas?(repositorio), do: not is_nil(repositorio.changes_collected_at)
+
   defp violacao(issue, pai) do
     case WorkItems.rule07(issue.derived_concept, pai && pai.derived_concept) do
       :ok -> nil
@@ -722,10 +784,11 @@ defmodule TheBandWeb.WorkItemLive.Show do
   # Os autores da discussão entram na MESMA consulta de nomes: uma por render, e não uma
   # por comentário — sem isto, o nome de quem comentou cairia para o login (a tela
   # mostraria duas grafias da mesma pessoa em lugares diferentes).
-  defp nomes(tenant, issue, discussao) do
+  defp nomes(tenant, issue, discussao, mudancas) do
     ids =
       [issue.author_person_id | Enum.map(issue.assignees, & &1.person_id)]
       |> Kernel.++(Enum.map(discussao, & &1.author_person_id))
+      |> Kernel.++(Enum.flat_map(mudancas, &[&1.author_person_id, &1.merged_by_person_id]))
       |> Enum.reject(&is_nil/1)
       |> Enum.uniq()
 

@@ -135,9 +135,15 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
       # inclusive quando não há comentário nenhum (é ela que distingue "não coletada" de
       # "coletada e vazia"). Os autores dos comentários entram na consulta de nomes que já
       # existia — nunca uma por comentário, e `discussions_test.exs` mede isso.
-      assert consultas <= 40, """
-      A tela passou a fazer #{consultas} consultas por render, contra 40 medidas depois da
-      feature 030 (39 antes dela, 38 depois da 014).
+      #
+      # **42 desde a feature 032**, e as duas têm nome. `Changes.for_issue/2` traz as
+      # solicitações que atendem a issue (uma, fixa, com join — nunca uma por PR), e a
+      # consulta do repositório observado passou a ser feita porque a seção precisa de
+      # `changes_collected_at` para distinguir "não coletada" de "nenhuma atende". Os
+      # autores e integradores entram na consulta de nomes que já existia.
+      assert consultas <= 42, """
+      A tela passou a fazer #{consultas} consultas por render, contra 42 medidas depois da
+      feature 032 (40 na 030, 39 antes dela, 38 depois da 014).
 
       Ligar um nome usa `person_id`, que já está carregado. Se o número subiu, alguma coisa
       está resolvendo por linha — o defeito que a feature 007 pagou com 135 por render.

@@ -302,12 +302,25 @@ defmodule TheBandWeb.PersonDetailTest do
       # ela reusa `last_act_for_issues/2` para todas as paradas de uma vez, e a consulta
       # de quais repositórios têm comentários coletados entra no mesmo par de renders.
       #
+      # **E de 19 para 22 na feature 032**, com as três nomeadas — e elas são três porque
+      # a ontologia separa três atos:
+      #
+      #  12. as solicitações que a pessoa ABRIU (cmpo.stakeholder_submitted_change_request);
+      #  13. as que ela INTEGROU (cmpo.stakeholder_performed_checkin);
+      #  14. os commits que ela EXECUTOU (cmpo.stakeholder_performed_commit), incluindo
+      #      aqueles em que é co-autora.
+      #
+      # Uma consulta só, com `union`, juntaria o que a rede separa: submeter, integrar e
+      # commitar são participações distintas, e a tela as mostra distintas. O custo de
+      # três é o preço de não achatar — e nenhuma delas cresce com o dado.
+      #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 19, """
+      assert acrescentadas <= 22, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **dezenove** — oito da tela original, sete do painel da 023,
-      três do perfil da 026, e uma da participação em discussões da 030.
+      linha de base medida é **vinte e duas** — oito da tela original, sete do painel da 023,
+      três do perfil da 026, uma da participação em discussões da 030, e três das mudanças
+      da 032 (abriu, integrou, commitou — a rede separa os três atos).
 
       O que a página faz além da lista:
 

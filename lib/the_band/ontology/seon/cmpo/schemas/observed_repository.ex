@@ -32,6 +32,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     # Quando os comentários foram percorridos por inteiro — decide o incremental da
     # coleta E qual frase o vazio da discussão usa na tela (feature 030).
     field :comments_collected_at, :utc_datetime
+    # Feature 032: quando as solicitações de mudança foram percorridas por inteiro.
+    field :changes_collected_at, :utc_datetime
 
     # O que a escrita fez — mesmo campo virtual que `CollectedIssue` e `EO.Schemas.Person`
     # usam, e pelo mesmo motivo: sem ele a contagem da execução não distingue observar um
@@ -53,7 +55,8 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
       :inaccessible_since,
       :inaccessible_reason,
       :issues_collected_at,
-      :comments_collected_at
+      :comments_collected_at,
+      :changes_collected_at
     ])
     |> validate_required([:tenant_id, :connected_tool_id, :source_repository_id])
     |> unique_constraint([:connected_tool_id, :source_repository_id])

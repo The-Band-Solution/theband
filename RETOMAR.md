@@ -52,6 +52,14 @@ Você pediu que os rótulos se expliquem na tela. Feito, e falta commitar:
   chaves de regra, opacas para quem abre a tela) — com o detalhe só onde acrescenta, porque
   um teste conta as repetições.
 
+## Pedidos seus registrados hoje (não esquecer)
+
+| # | o quê |
+|---|---|
+| **#428** | **`/ai` vai para Tools** (é configuração de ferramenta) e **`/profiles` vai para Sync** (é sincronização — a plataforma gerando sozinha). Sync passa a concentrar TODA sincronização. |
+| #429 | mapear os arquivos que cada commit modificou — é `cmpo.artifact_copy`, e fecha a relação `commit_sends_copy_to_target_branch` que hoje aponta para o alvo sem a cópia |
+| T012–T015 | a lista de solicitações, a busca (por SHA, #número, @pessoa e **palavras-chave**), a lista de commits da pessoa, e a linha do tempo issue→PR→commits — mockup aprovado |
+
 ## Próximo trabalho
 
 1. **Coletar PR + commits** (feature 031 propriamente): migração, ingestão, e a tela do
