@@ -63,15 +63,67 @@ defmodule TheBand.Integrations.GitHub.Client do
   def commit_files(instance_url, token, repositorio, sha) do
     url = api_base(instance_url) <> "/repos/#{repositorio}/commits/#{sha}"
 
-    url |> HTTP.impl().get(token) |> resposta_de_arquivos()
+    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+      {:ok, body["files"] || []}
+    end
   end
 
-  defp resposta_de_arquivos({:ok, %{status: 200, body: body}}), do: {:ok, body["files"] || []}
+  @doc """
+  As execuções de verificação de um repositório — REST, e também sem alternativa.
+
+  O GraphQL do GitHub expõe `CheckSuite` e `CheckRun`, que são a camada de *checks*; o
+  **workflow run** do Actions — com `event`, `run_attempt` e `conclusion` — só existe na
+  REST. Como `event` é o que decide o subtipo da CIRO e `conclusion` decide a fase,
+  coletar pelo GraphQL perderia justamente os dois eixos que o modelo separa.
+
+  `created` aceita o filtro `>=AAAA-MM-DD`, e é o incremental: ao contrário de
+  `pullRequests`, aqui a origem filtra por data e não é preciso parar cedo na paginação.
+  """
+  @spec workflow_runs(String.t(), String.t(), String.t(), keyword()) ::
+          {:ok, %{total: integer(), runs: [map()]}} | {:error, term()}
+  def workflow_runs(instance_url, token, repositorio, opcoes \\ []) do
+    pagina = Keyword.get(opcoes, :page, 1)
+    por_pagina = Keyword.get(opcoes, :per_page, 100)
+    desde = Keyword.get(opcoes, :since)
+
+    consulta =
+      [{"per_page", por_pagina}, {"page", pagina}]
+      |> then(fn q ->
+        if desde, do: q ++ [{"created", ">=" <> Date.to_iso8601(desde)}], else: q
+      end)
+      |> URI.encode_query()
+
+    url = api_base(instance_url) <> "/repos/#{repositorio}/actions/runs?" <> consulta
+
+    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+      {:ok, %{total: body["total_count"] || 0, runs: body["workflow_runs"] || []}}
+    end
+  end
+
+  @doc """
+  Os jobs de uma execução — os processos componentes que ela materializou.
+
+  `filter=latest` é deliberado: numa reexecução, o que interessa é a tentativa vigente.
+  Trazer todas faria o mesmo job aparecer duas vezes e a contagem de componentes mentir.
+  """
+  @spec run_jobs(String.t(), String.t(), String.t(), integer()) ::
+          {:ok, %{total: integer(), jobs: [map()]}} | {:error, term()}
+  def run_jobs(instance_url, token, repositorio, run_id) do
+    url =
+      api_base(instance_url) <>
+        "/repos/#{repositorio}/actions/runs/#{run_id}/jobs?per_page=100&filter=latest"
+
+    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+      {:ok, %{total: body["total_count"] || 0, jobs: body["jobs"] || []}}
+    end
+  end
+
+  defp resposta_rest({:ok, %{status: 200, body: body}}), do: {:ok, body}
 
   # **403 com a janela zerada é rate limit, não credencial recusada.** O GitHub usa o
   # mesmo status para as duas coisas, e `x-ratelimit-remaining: 0` é o que distingue.
   # Tratar como credencial faria a coleta parar e marcar a ferramenta por engano.
-  defp resposta_de_arquivos({:ok, %{status: status, headers: headers}})
+  defp resposta_rest({:ok, %{status: status, headers: headers}})
        when status in [403, 429] do
     if esgotou_janela?(headers) do
       {:error, {:rate_limited, reset_de(headers)}}
@@ -80,15 +132,15 @@ defmodule TheBand.Integrations.GitHub.Client do
     end
   end
 
-  defp resposta_de_arquivos({:ok, %{status: 401}}), do: {:error, :unauthorized}
+  defp resposta_rest({:ok, %{status: 401}}), do: {:error, :unauthorized}
 
   # 404 num commit que a plataforma já coletou significa que ele saiu da origem —
   # force-push reescreve história. É fato sobre o repositório, não falha da coleta.
-  defp resposta_de_arquivos({:ok, %{status: 404}}), do: {:error, :not_found_at_source}
+  defp resposta_rest({:ok, %{status: 404}}), do: {:error, :not_found_at_source}
 
-  defp resposta_de_arquivos({:ok, %{status: status}}), do: {:error, {:unexpected_status, status}}
-  defp resposta_de_arquivos({:error, %{reason: reason}}), do: {:error, {:transport, reason}}
-  defp resposta_de_arquivos({:error, reason}), do: {:error, {:transport, reason}}
+  defp resposta_rest({:ok, %{status: status}}), do: {:error, {:unexpected_status, status}}
+  defp resposta_rest({:error, %{reason: reason}}), do: {:error, {:transport, reason}}
+  defp resposta_rest({:error, reason}), do: {:error, {:transport, reason}}
 
   @doc """
   Executa uma consulta GraphQL.

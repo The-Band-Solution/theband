@@ -1,16 +1,23 @@
 mapping:
   id: github.workflow_run.to.ciro.continuous_integration_process
-  version: 1
+  version: 2
   status: proposed
 source: { provider: github, entity: workflow_run, api: rest, schema_version: "2022-11-28" }
 target: { ontology: ciro, concept: ciro.continuous_integration_process }
 semantics:
   equivalence: partial
   justification: >
-    Uma execução de workflow do GitHub Actions é uma ocorrência automatizada de
-    processo de integração contínua. O subtipo depende do gatilho: push/pull_request
-    mapeiam para o processo disparado por check-in, schedule para o agendado, e
-    workflow_dispatch para o sob demanda.
+    Uma execução de workflow do GitHub Actions **pode ser** uma ocorrência automatizada de
+    processo de integração contínua — e a versão 1 deste mapeamento afirmava que sempre é.
+    O dado desmentiu: das 1.051 execuções coletadas em 2026-08-18, 399 não são nem
+    verificação nem implantação (`Sync to GitLab`, `Sprint Rollover`, `Card de promoção`).
+
+    O tipo é **derivado dos componentes dos jobs**, nunca assumido pela entidade de
+    origem. Sem componente reconhecido, a execução fica sem tipo — a rede não tem conceito
+    para automação de quadro, e dizê-lo é mais honesto que forçá-la num de verificação.
+
+    O gatilho decide o SUBTIPO (check-in, agendado, sob demanda) e é eixo independente do
+    tipo e da fase.
 identity:
   external_id_path: id
   natural_key: [repository.node_id, id]
@@ -18,7 +25,8 @@ attributes:
   started_at:  { source_path: run_started_at }
   ended_at:    { source_path: updated_at }
   status:      { source_path: status }
-  conclusion:  { source_path: conclusion, transform: "success -> successful; failure|timed_out -> unsuccessful" }
+  conclusion:  { source_path: conclusion, transform: "success -> successful; failure -> unsuccessful; cancelled -> interrupted; skipped -> unperformed; timed_out -> expired" }
+  process_kinds: { derived_from: "componentes dos jobs", transform: "regra github.ci_job_routing, seção process_kind" }
   trigger:     { source_path: event }
 relations:
   repository:
@@ -32,10 +40,21 @@ relations:
 limitations:
   - >
     A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.
-  - Nem todo workflow é integração contínua; workflows de release mapeiam para CDRO.
-  - conclusion "cancelled" e "skipped" não são insucesso do processo; classificar separadamente.
+  - >
+    RESOLVIDA na versão 2 — "nem todo workflow é integração contínua": o tipo passou a ser
+    derivado dos componentes, e `cdro.continuous_deployment_process` é um dos resultados.
+    A limitação estava declarada aqui desde a versão 1 e o código a ignorava; foi o dado
+    real que a cobrou.
+  - >
+    RESOLVIDA na versão 2 — "cancelled e skipped não são insucesso": viraram
+    `ciro.interrupted_*` e `ciro.unperformed_*`, e `timed_out` virou `ciro.expired_*`.
+  - >
+    A execução sem componente reconhecido fica **sem tipo**. Isso é ausência nomeada, não
+    falha de coleta — e a tela nunca as escreve com a mesma frase.
   - updated_at aproxima o término, mas não é o instante exato de fim.
-  - Um job dentro do run pode ser build, teste ou inspeção; a distinção exige mapear check_run.
+  - >
+    RESOLVIDA na versão 2 — o job vem da rota `/actions/runs/{id}/jobs`, com as etapas, e
+    `github.ci_job_routing` o classifica. Não exigiu `check_run`.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

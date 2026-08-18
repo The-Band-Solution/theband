@@ -17,6 +17,7 @@ defmodule TheBandWeb.ChangeLive.Show do
 
   alias TheBand.Changes
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Verification
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -31,6 +32,7 @@ defmodule TheBandWeb.ChangeLive.Show do
          socket
          |> assign(page_title: "##{solicitacao.number}")
          |> assign(solicitacao: solicitacao, commits: commits, issues: issues)
+         |> assign(verificacoes: Verification.for_change_request(tenant, solicitacao.id))
          |> assign(nomes: nomes(tenant, solicitacao, commits))}
 
       # Id de outro tenant devolve "não encontrada", nunca "sem permissão": dizer "sem
@@ -200,9 +202,62 @@ defmodule TheBandWeb.ChangeLive.Show do
               </div>
             </div>
           </div>
+
+          <%!-- A verificação fecha o rastro: issue → solicitação → commit → o que a
+                máquina disse sobre esse commit. O elo é o SHA, e não uma tabela de
+                vínculo — o identificador já é o vínculo, e guardá-lo de novo seria
+                inventar um lugar onde os dois podem divergir. --%>
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h3 class="card-title text-base">What the checks said</h3>
+
+              <p :if={@verificacoes == []} class="text-sm opacity-70">
+                No collected run verified these commits. That may mean the repository has
+                no continuous verification, or that it was not swept yet — <.link
+                  navigate={~p"/work/verifications"}
+                  class="link"
+                >
+                  the verification page separates the two
+                </.link>.
+              </p>
+
+              <div :for={v <- @verificacoes} class="border-t border-base-300 pt-1.5 text-sm">
+                <.link navigate={~p"/work/verifications/#{v.id}"} class="link link-hover">
+                  {v.workflow_name || "unnamed workflow"}
+                </.link>
+                <span class="ml-1 font-mono text-xs opacity-60">
+                  {String.slice(v.head_sha || "", 0, 7)}
+                </span>
+                <span class={["badge badge-xs ml-1", cor_da_fase(v.phase)]}>
+                  {rotulo_da_fase(v.phase, v.run_status)}
+                </span>
+                <%!-- Passar na terceira tentativa é sucesso, e esconder o número faria
+                      parecer de primeira. --%>
+                <span :if={v.attempt > 1} class="ml-1 text-xs opacity-60">
+                  attempt {v.attempt}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Layouts.app>
     """
   end
+
+  # Interrompida e não executada NÃO são erro: cancelar é decisão humana, e pintá-las de
+  # vermelho ao lado de uma solicitação integrada acusaria o que ninguém quebrou.
+  defp cor_da_fase("ciro.successful_continuous_integration_process"), do: "badge-success"
+  defp cor_da_fase("ciro.unsuccessful_continuous_integration_process"), do: "badge-error"
+  defp cor_da_fase("ciro.interrupted_continuous_integration_process"), do: "badge-warning"
+  defp cor_da_fase("ciro.expired_continuous_integration_process"), do: "badge-warning"
+  defp cor_da_fase(_outra), do: "badge-ghost"
+
+  defp rotulo_da_fase("ciro.successful_continuous_integration_process", _), do: "passed"
+  defp rotulo_da_fase("ciro.unsuccessful_continuous_integration_process", _), do: "failed"
+  defp rotulo_da_fase("ciro.interrupted_continuous_integration_process", _), do: "cancelled"
+  defp rotulo_da_fase("ciro.unperformed_continuous_integration_process", _), do: "skipped"
+  defp rotulo_da_fase("ciro.expired_continuous_integration_process", _), do: "timed out"
+  defp rotulo_da_fase(nil, "completed"), do: "phase undecided"
+  defp rotulo_da_fase(nil, _), do: "running"
 end
