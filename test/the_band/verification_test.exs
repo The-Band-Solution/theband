@@ -18,6 +18,7 @@ defmodule TheBand.VerificationTest do
   import TheBand.WorkItemsFixtures
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
+  alias TheBand.ContadorDeConsultas
   alias TheBand.Verification
   alias TheBand.Verification.{Classification, Commands}
 
@@ -247,6 +248,47 @@ defmodule TheBand.VerificationTest do
 
       assert [%{job_name: "Deploy backoffice", occurrences: 3}] =
                Verification.monolithic_jobs(ctx.tenant)
+    end
+  end
+
+  describe "o custo" do
+    test "a lista custa o mesmo com uma execução e com vinte", ctx do
+      v = execucao(ctx.tenant, ctx.repo_id, %{})
+      job(ctx.tenant, v, %{})
+      uma = ContadorDeConsultas.contar(fn -> Verification.list(ctx.tenant) end)
+
+      for _ <- 1..19 do
+        outra = execucao(ctx.tenant, ctx.repo_id, %{})
+        job(ctx.tenant, outra, %{})
+      end
+
+      vinte = ContadorDeConsultas.contar(fn -> Verification.list(ctx.tenant) end)
+
+      # A contagem de jobs é subconsulta na mesma consulta, não uma por linha — o defeito
+      # da feature 007 (135 consultas por render) nasceu exatamente assim.
+      assert vinte == uma
+    end
+
+    test "o detalhe custa duas consultas, com um job ou com vinte", ctx do
+      v = execucao(ctx.tenant, ctx.repo_id, %{})
+      job(ctx.tenant, v, %{})
+
+      um =
+        ContadorDeConsultas.contar(fn ->
+          Verification.get(ctx.tenant, v.id)
+          Verification.components_of(ctx.tenant, v.id)
+        end)
+
+      for _ <- 1..19, do: job(ctx.tenant, v, %{})
+
+      vinte =
+        ContadorDeConsultas.contar(fn ->
+          Verification.get(ctx.tenant, v.id)
+          Verification.components_of(ctx.tenant, v.id)
+        end)
+
+      assert um == 2
+      assert vinte == 2
     end
   end
 
