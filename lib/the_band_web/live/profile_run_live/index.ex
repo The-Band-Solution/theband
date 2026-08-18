@@ -300,7 +300,17 @@ defmodule TheBandWeb.ProfileRunLive.Index do
                             else: "people"}
                         </span>
                       </h5>
-                      <p :if={grupo.detalhe_comum} class="mt-0.5 text-xs opacity-60">
+                      <%!-- A frase de significado explica o motivo; o detalhe só entra
+                            quando ACRESCENTA (below_floor traz as contagens). Mostrar os
+                            dois quando dizem a mesma coisa é despejo, e um teste conta as
+                            repetições para impedir. --%>
+                      <p class="mt-0.5 text-xs opacity-70">
+                        {significado_do_motivo(grupo.motivo)}
+                      </p>
+                      <p
+                        :if={grupo.detalhe_comum && grupo.motivo == :below_floor}
+                        class="mt-0.5 text-xs opacity-60"
+                      >
                         {grupo.detalhe_comum}
                       </p>
                       <div class="mt-1.5 grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -383,6 +393,35 @@ defmodule TheBandWeb.ProfileRunLive.Index do
     :no_new_work,
     :observation_ended
   ]
+
+  # O identificador do motivo é chave de regra — legível para quem conhece a base, opaco
+  # para quem abre a tela. A frase diz o que ele SIGNIFICA e o que fazer com ele; sem
+  # ela, `below_floor` obriga quem lê a adivinhar (pedido em 2026-08-17, depois de a
+  # pessoa mantenedora perguntar o que era um rótulo equivalente na outra tela).
+  defp significado_do_motivo(:geraria_hoje),
+    do: "o material mudou depois desta rodada — a próxima escreve o perfil, sem nada a fazer"
+
+  defp significado_do_motivo(:below_floor),
+    do:
+      "há trabalho registrado, mas pouco texto para afirmar competência — o piso protege " <>
+        "a comparação, e a saída é registrar mais, não baixar o piso"
+
+  defp significado_do_motivo(:period_too_thin),
+    do: "algum dos três períodos tem tarefas de menos para comparar a evolução"
+
+  defp significado_do_motivo(:no_text_to_compare),
+    do: "as tarefas existem e não trazem texto que sustente a comparação entre períodos"
+
+  defp significado_do_motivo(:no_assignment),
+    do:
+      "nenhuma issue designada nos repositórios coletados — é achado de gestão, não de " <>
+        "código: ou o trabalho está em repositório não observado, ou chega por outro canal"
+
+  defp significado_do_motivo(:no_new_work),
+    do: "o perfil vigente ainda diz o que há para dizer — nada mudou desde ele"
+
+  defp significado_do_motivo(:observation_ended),
+    do: "a plataforma não observa mais estas pessoas, e o perfil delas fica como estava"
 
   defp agrupar_report(report) do
     grupos = Enum.group_by(report, & &1.motivo)

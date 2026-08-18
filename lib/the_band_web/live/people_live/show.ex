@@ -684,6 +684,37 @@ defmodule TheBandWeb.PeopleLive.Show do
                 The origin records no deadline, so this is not lateness — it is work that has
                 been open this long and needs a destination.
               </p>
+
+              <%!-- A LEGENDA existe porque os quatro rótulos decidem AÇÕES OPOSTAS, e um
+                    rótulo que só quem escreveu entende não informa ninguém. Pedida pela
+                    pessoa mantenedora em 2026-08-17, depois de perguntar o que era um
+                    deles — a pergunta foi a evidência de que a tela devia explicar. --%>
+              <dl class="mb-3 grid gap-x-3 gap-y-1 text-xs sm:grid-cols-[max-content_1fr]">
+                <dt><span class="badge badge-ghost badge-xs">never discussed</span></dt>
+                <dd class="text-base-content/70">
+                  nobody ever commented — stalled in silence, and somebody has to decide
+                  whether it dies or comes back
+                </dd>
+                <dt><span class="badge badge-ghost badge-xs">stale discussion</span></dt>
+                <dd class="text-base-content/70">
+                  it was discussed, then left — the conversation stopped before the work did
+                </dd>
+                <dt><span class="badge badge-success badge-xs">active discussion</span></dt>
+                <dd class="text-base-content/70">
+                  somebody commented recently — the work is probably alive and the
+                  <strong>record</strong>
+                  is what is out of date
+                </dd>
+                <dt>
+                  <span class="badge badge-ghost badge-outline badge-xs">
+                    discussion not collected
+                  </span>
+                </dt>
+                <dd class="text-base-content/70">
+                  comments were never collected for this repository — nothing is claimed here,
+                  and silence is not evidence
+                </dd>
+              </dl>
               <%!-- O sinal "parada" tem TRÊS diagnósticos, e eles pedem ações opostas
                     (#400): sem conversa nenhuma é abandono silencioso; conversa antiga é
                     abandono depois de discutir; conversa recente é trabalho vivo com
@@ -1171,9 +1202,14 @@ defmodule TheBandWeb.PeopleLive.Show do
     |> MapSet.new()
   end
 
+  # Os quatro rótulos falam da MESMA coisa — a discussão —, e é isso que os torna
+  # comparáveis de relance. `silent` foi o primeiro nome de :silencio e saiu porque a
+  # pessoa mantenedora precisou perguntar o que era (2026-08-17): quem lê pensa em
+  # notificação silenciada, e o fato é "ninguém comentou". Rótulo que precisa da frase
+  # ao lado para ser entendido não está fazendo o trabalho dele.
   defp rotulo_da_conversa(:recente), do: "active discussion"
   defp rotulo_da_conversa(:antiga), do: "stale discussion"
-  defp rotulo_da_conversa(:silencio), do: "silent"
+  defp rotulo_da_conversa(:silencio), do: "never discussed"
   defp rotulo_da_conversa(:nao_coletada), do: "discussion not collected"
 
   defp frase_da_conversa(%{conversa: :recente, atos: atos, ultimo_ato: ultimo}),
