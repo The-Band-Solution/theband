@@ -85,14 +85,21 @@ defmodule TheBandWeb.Router do
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
       live "/tools", SourceLive.Index, :index
 
-      # Separada de `/tools` de propósito: as ferramentas conectadas são **fontes de
-      # observação**, e um provedor de modelo interpreta o que já foi observado. Junto,
-      # a tela de ferramentas ofereceria sincronizar algo que não tem o que sincronizar.
+      # **Aba de `/tools` desde 2026-08-18 (#428), e a decisão anterior fica registrada
+      # em vez de apagada.** Ela dizia: "as ferramentas conectadas são fontes de
+      # observação, e um provedor de modelo interpreta o que já foi observado; junto, a
+      # tela de ferramentas ofereceria sincronizar algo que não tem o que sincronizar".
+      #
+      # A razão continua verdadeira — e é por isso que as telas seguem SEPARADAS. O que
+      # mudou foi só onde se acha: quem procura "com que conta a plataforma trabalha"
+      # não precisa saber que existe um endereço próprio.
       live "/ai", AILive.Index, :index
 
-      # A geração automática responde "isto está funcionando", e a credencial responde "com
-      # que conta trabalhamos". São perguntas diferentes, e o princípio X pede telas
-      # diferentes — `FR-024`.
+      # **Aba de `/syncs` desde 2026-08-18 (#428).** A razão da separação continua de pé
+      # — a geração responde "isto está funcionando" e a credencial responde "com que
+      # conta trabalhamos", e o princípio X pede telas diferentes (`FR-024`). Elas
+      # continuam diferentes; Sync passou a concentrar o que a plataforma faz sozinha,
+      # e a coleta traz de FORA enquanto a geração ESCREVE — vizinhas, nunca a mesma.
       live "/profiles", ProfileRunLive.Index, :index
 
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
