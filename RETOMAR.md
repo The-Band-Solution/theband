@@ -1,88 +1,54 @@
-# Retomar — 2026-08-17 (noite)
+# Retomar — 2026-08-18
 
-## Pendente de VOCÊ
+## Pendente de VOCÊ: mergear a cadeia, nesta ordem
 
-**Mergear o PR #427** — https://github.com/The-Band-Solution/theband/pull/427 (verde,
-revisor conferido). As cinco relações do rastreio declaradas na rede + os mapeamentos de
-PR, commit e CI. Fecha a #426.
+Os PRs são **empilhados** — o GitHub reaponta a base sozinho conforme você mergeia.
 
-Já mergeados hoje: #396, #404, #405, #406, #407, #408, #409, #410 e **#425** (feature 030
-— comentários das issues).
+| ordem | PR | o quê |
+|---|---|---|
+| 1 | **#430** | a coleta das mudanças: 5.035 solicitações, 16.416 commits, 1.078 vínculos, na mesma sincronização |
+| 2 | **#431** | a lista `/work/changes`, a busca que lê a forma, os commits da pessoa, a linha do tempo |
+| 3 | **#433** | os arquivos da mudança e a página `/work/files` — quem mexeu, e por qual issue |
+| — | **#432** | IA em Tools, Profiles em Sync (independente dos três acima; fecha #428) |
 
-**Conferir issues depois de todo merge.** Aconteceu de novo hoje: o corpo do #425 dizia
-`Closes #411 #412 …` com 14 issues numa palavra-chave só, e o GitHub fechou **apenas a
-#411**. Cada issue precisa da própria keyword (`Closes #411, Closes #412, …`). Fechei as 13
-à mão. Antes de mergear, conferir com:
-`gh api graphql -f query='{repository(owner:"The-Band-Solution",name:"theband"){pullRequest(number:N){closingIssuesReferences(first:30){totalCount}}}}'`
+Todos com revisor conferido e gates 13/13. **Conferir as issues depois de cada merge** —
+`Closes` com várias issues numa keyword só fecha a primeira (aconteceu no #425).
 
-## Onde a sessão parou
+## O que a sessão entregou
 
-Branch `031-rastreio-issue-pr-commit`. Há **legendas de rótulo não commitadas** (ver
-abaixo) — os gates estavam rodando quando você desligou; conferir antes de commitar.
+**Feature 030** (mergeada) — a conversa das issues: 2.013 comentários, o report da rodada
+agrupado, os rótulos que se explicam na tela.
 
-### O que existe de MODELO, sem coleta nenhuma
+**Feature 031** (mergeada) — as relações do rastreio declaradas na CMPO e na SRO, com um
+conceito novo (`change_request_submission`) porque participação exige evento.
 
-Isto responde "em qual tela vejo commits e PR?": **em nenhuma, ainda.** Nenhuma tabela de
-commit, PR, change_request ou workflow existe no banco — conferido. Hoje foi escrito só o
-contrato:
+**Features 032, 033, 035** (nos PRs acima) — a coleta das mudanças, as telas de navegação
+e os arquivos. O rastreio completo: **arquivo → commit → pessoa → solicitação → issue**.
 
-- **`cmpo/modules/change_traceability.yaml`** (módulo novo na CMPO, que a tese já havia
-  estendido): stakeholder→submissão→solicitação, stakeholder→checkin→solicitação,
-  stakeholder→commit→solicitação. Seis relações, um conceito novo
-  (`cmpo.change_request_submission` — participação exige evento, e solicitação é objeto
-  social).
-- **`sro/modules/scope_traceability.yaml`** (módulo novo na SRO, com `cmpo` nas deps):
-  solicitação→user story / performed task / epic.
-- Mapeamentos: `github.pull_request`, `github.commit`, `github.workflow_run`,
-  `github.workflow_job`, e a regra `github.commit_issue_mention`.
-- 4 testes que impedem a cadeia de ser desfeita em silêncio.
-
-**Nenhuma ontologia nova foi criada** — só módulos dentro das que existem.
-
-### Legendas de rótulo (não commitado)
-
-Você pediu que os rótulos se expliquem na tela. Feito, e falta commitar:
-
-- `silent` virou **`never discussed`** — você perguntou o que era, e rótulo que precisa da
-  frase ao lado falhou. Os quatro agora falam da mesma coisa: never discussed / stale
-  discussion / active discussion / discussion not collected.
-- **Legenda dos quatro estados** na seção de paradas da página da pessoa, dizendo o que
-  cada um significa e o que fazer.
-- **Frase de significado por grupo** no report da rodada (`below_floor`, `no_assignment` são
-  chaves de regra, opacas para quem abre a tela) — com o detalhe só onde acrescenta, porque
-  um teste conta as repetições.
-
-## Pedidos seus registrados hoje (não esquecer)
-
-| # | o quê |
-|---|---|
-| **#428** | **`/ai` vai para Tools** (é configuração de ferramenta) e **`/profiles` vai para Sync** (é sincronização — a plataforma gerando sozinha). Sync passa a concentrar TODA sincronização. |
-| #429 | mapear os arquivos que cada commit modificou — é `cmpo.artifact_copy`, e fecha a relação `commit_sends_copy_to_target_branch` que hoje aponta para o alvo sem a cópia |
-| T012–T015 | a lista de solicitações, a busca (por SHA, #número, @pessoa e **palavras-chave**), a lista de commits da pessoa, e a linha do tempo issue→PR→commits — mockup aprovado |
+**Feature 034** (#432) — Sync concentra o que roda sozinho; IA é aba de Tools.
 
 ## Próximo trabalho
 
-1. **Coletar PR + commits** (feature 031 propriamente): migração, ingestão, e a tela do
-   rastreio — issue mostrando os PRs que a atendem, PR mostrando commits e quem fez. O
-   modelo está pronto; falta tudo o resto.
-2. **#401 — coletar o CI** (workflow runs/jobs). Mapeamento já escrito; a CIRO já tinha os
-   três gatilhos e as fases por resultado.
-3. **Review dos sprints 018 e 019** + lições. Duas desta sessão:
-   - o crash da mediana 0.0 que deixou a rodada muda por 7h (oitava ocorrência do sucesso
-     silencioso — já na memória);
-   - `Closes` com várias issues numa keyword só (segunda ocorrência da mesma família da
-     L48 — já na memória).
-4. **Polish da discussão**: ela está na coluna estreita, e comentário longo estica o cartão
-   a 12 mil pixels. Conversa é conteúdo, não metadado — merece a coluna larga.
-5. #397 (equipe de equipes), #81 (filtro por organização).
+1. **#401 — coletar o CI do GitHub** (workflow runs e jobs). O mapeamento já está escrito
+   e a CIRO já tinha os três gatilhos e as fases por resultado. É a última fonte grande.
+2. **Review dos sprints 018, 019 e 020** + consolidar lições. Cinco desta sessão:
+   - o crash da mediana `0.0` que deixou a rodada muda por 7h (oitava do sucesso silencioso);
+   - `Closes` com várias issues numa keyword só (segunda da L48);
+   - marcar por timestamp falha no mesmo segundo (L46 reincidindo — corrigido para
+     marcar por conjunto observado);
+   - **contador armazenado mente quando nasce depois do dado** (a coluna de commits
+     mostrava zero; virou derivada das entradas);
+   - **"não coletado" era limitação nossa, não da origem** (509 PRs truncados: a API
+     paginava, e eu não).
+3. #397 (equipe de equipes), #81 (filtro por organização), #363/#364 (competência como
+   unidade).
 
 ## Decisões suas em aberto
 
 #356 (pisos N/M), #358 (quickstart — o botão da landing diz README até existir), #367,
-#368, #369, #370, #176, #363/#364.
+#368, #369, #370, #176.
 
-## Rodada de perfis
+## A rodada de perfis
 
-A rodada de 00:09 travou por um crash (consertado no #406, mergeado). Encerrada como
-`ended_early`. **Clicar "run now — everyone"** em /profiles gera com as regras novas:
-esperado ~60 de 88, em inglês. ~750k tokens.
+Encerrada como `ended_early` pelo crash (consertado). **Clicar "run now — everyone"** na
+aba Profile generation gera com as regras novas: esperado ~60 de 88, em inglês.
