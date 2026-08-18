@@ -56,6 +56,11 @@ defmodule TheBand.Ingestion.GithubVerifications do
        monolithic_jobs: Enum.sum(Enum.map(resultados, & &1.monoliticos)),
        unnamed_components: Enum.sum(Enum.map(resultados, & &1.sem_nome)),
        without_ci: Enum.count(resultados, &(&1.estado == :sem_ci)),
+       # Separado de `unreachable` porque as duas frases são diferentes: janela esgotada
+       # é "volte daqui a pouco", e inalcançável é "algo está errado com este
+       # repositório". Somá-las fez 160 repositórios saudáveis parecerem quebrados na
+       # primeira medição, em 2026-08-18.
+       rate_limited: Enum.count(resultados, &(&1.estado == :sem_janela)),
        unreachable: Enum.count(resultados, &(&1.estado == :inalcancavel))
      }}
   end

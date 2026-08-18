@@ -249,7 +249,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       verifications: resumo.verifications,
       verification_components: resumo.components,
       monolithic_jobs: resumo.monolithic_jobs,
-      repositories_without_ci: resumo.without_ci
+      repositories_without_ci: resumo.without_ci,
+      # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
+      # trabalho, e a diferença entre "volte depois" e "algo quebrou".
+      verifications_rate_limited: resumo.rate_limited
     }
   end
 
