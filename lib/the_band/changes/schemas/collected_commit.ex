@@ -37,6 +37,10 @@ defmodule TheBand.Changes.Schemas.CollectedCommit do
     field :external_id, :string
     field :raw_payload, :map
 
+    # Quando os arquivos deste commit foram percorridos. `nil` significa NÃO COLETADO,
+    # que é diferente de "commit sem arquivo" — e a tela precisa da distinção.
+    field :files_collected_at, :utc_datetime
+
     field :collected_at, :utc_datetime
     field :last_observed_at, :utc_datetime
     field :no_longer_observed_at, :utc_datetime
@@ -46,7 +50,7 @@ defmodule TheBand.Changes.Schemas.CollectedCommit do
 
   @campos ~w(tenant_id observed_repository_id change_request_id sha message_headline
              message_body additions deletions changed_files external_committed_at
-             source_system source_instance external_id raw_payload collected_at
+             source_system source_instance external_id raw_payload files_collected_at collected_at
              last_observed_at no_longer_observed_at)a
 
   def changeset(commit, attrs) do

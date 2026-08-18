@@ -72,6 +72,9 @@ defmodule TheBandWeb.Router do
       # A solicitação de mudança (cmpo.change_request) — feature 032. Vive sob /work
       # porque é trabalho, e não sob /projects: o PR realiza mudança, não é empreendimento.
       live "/people/:id/commits", ChangeLive.Commits, :index
+      # O caminho vem na query string, e não no path: caminho de arquivo tem barras, e
+      # um `:path` no roteador não casaria `lib/the_band/changes.ex`.
+      live "/work/files", ChangeLive.File, :index
       live "/work/changes", ChangeLive.Index, :index
       live "/work/changes/:id", ChangeLive.Show, :show
       live "/work/repositories/:id", RepositoryLive.Show, :show

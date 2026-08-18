@@ -51,6 +51,42 @@ defmodule TheBand.Integrations.GitHub.Client do
   end
 
   @doc """
+  Busca os arquivos de um commit — **REST, e não GraphQL**.
+
+  Medido em 2026-08-18: o GraphQL expõe `changedFilesIfAvailable` (a contagem) e a
+  `tree` (a árvore inteira do repositório naquele commit), mas **não o diff**. A lista de
+  arquivos alterados só existe na REST, e é uma requisição por commit — o que decidiu o
+  escopo da coleta (issue #429).
+  """
+  @spec commit_files(String.t(), String.t(), String.t(), String.t()) ::
+          {:ok, [map()]} | {:error, term()}
+  def commit_files(instance_url, token, repositorio, sha) do
+    url = api_base(instance_url) <> "/repos/#{repositorio}/commits/#{sha}"
+
+    case HTTP.impl().get(url, token) do
+      {:ok, %{status: 200, body: body}} ->
+        {:ok, body["files"] || []}
+
+      {:ok, %{status: status}} when status in [401, 403] ->
+        {:error, :unauthorized}
+
+      # 404 num commit que a plataforma já coletou significa que ele saiu da origem —
+      # force-push reescreve história. É fato sobre o repositório, não falha da coleta.
+      {:ok, %{status: 404}} ->
+        {:error, :not_found_at_source}
+
+      {:ok, %{status: status}} ->
+        {:error, {:unexpected_status, status}}
+
+      {:error, %{reason: reason}} ->
+        {:error, {:transport, reason}}
+
+      {:error, reason} ->
+        {:error, {:transport, reason}}
+    end
+  end
+
+  @doc """
   Executa uma consulta GraphQL.
 
   Devolve também a informação de rate limit, para que quem pagina possa pausar

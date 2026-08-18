@@ -132,6 +132,21 @@ relations:
         tem dois — quem escreveu e o agente. Cardinalidade `one` na origem faria o
         modelo mentir sobre autoria compartilhada.
 
+  # ---- o commit e as cópias que ele produziu ---------------------------------
+  - id: cmpo.commit_produced_artifact_copy
+    name: produced
+    label: { pt-BR: "produziu", en: "produced" }
+    source: cmpo.commit_artifact_copy
+    target: cmpo.artifact_copy
+    type: causation
+    cardinality: { source: one, target: one_or_many }
+    semantics:
+      pt-BR: >
+        O ato de commitar produz uma cópia por arquivo tocado — e a CMPO já tinha
+        `cmpo.commit_sends_copy_to_target_branch`, que dizia para ONDE a cópia vai sem
+        dizer de onde ela vem. Esta relação fecha o par: o mesmo arquivo em dois commits
+        são duas cópias, e é a sequência delas que responde "quem mexeu neste arquivo".
+
   - id: cmpo.commit_accomplished_change_request
     name: accomplished
     label: { pt-BR: "realizou", en: "accomplished" }

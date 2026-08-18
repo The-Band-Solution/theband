@@ -255,6 +255,126 @@ defmodule TheBand.Changes do
   end
 
   @doc """
+  Os arquivos que um commit tocou. Lista vazia com `files_collected_at` nulo significa
+  **não coletado** — quem chama decide a frase, e as duas não são a mesma.
+  """
+  @spec files_of_commit(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def files_of_commit(%Tenant{id: tenant_id}, commit_id) do
+    Repo.all(
+      from f in "commit_files",
+        where:
+          f.tenant_id == type(^tenant_id, :binary_id) and
+            f.collected_commit_id == type(^commit_id, :binary_id) and
+            is_nil(f.no_longer_observed_at),
+        order_by: [asc: f.path],
+        select: %{
+          path: f.path,
+          change: f.change,
+          additions: f.additions,
+          deletions: f.deletions,
+          previous_path: f.previous_path
+        }
+    )
+  end
+
+  @doc """
+  **A pergunta que os arquivos destravam**: quem mexeu neste arquivo, e por qual issue.
+
+  Devolve cada cópia do arquivo — uma por commit que o tocou — com o commit, a
+  solicitação, a issue e as pessoas. Uma consulta para o histórico, uma para as pessoas.
+  """
+  @spec history_of_path(Tenant.t(), String.t(), keyword()) :: [map()]
+  def history_of_path(%Tenant{id: tenant_id}, caminho, opts \\ []) do
+    limite = Keyword.get(opts, :limit, 100)
+
+    copias =
+      Repo.all(
+        from f in "commit_files",
+          join: c in "collected_commits",
+          on: c.id == f.collected_commit_id,
+          left_join: cr in "collected_change_requests",
+          on: cr.id == c.change_request_id,
+          where:
+            f.tenant_id == type(^tenant_id, :binary_id) and f.path == ^caminho and
+              is_nil(f.no_longer_observed_at) and is_nil(c.no_longer_observed_at),
+          order_by: [desc: c.external_committed_at],
+          limit: ^limite,
+          select: %{
+            commit_id: type(c.id, :binary_id),
+            sha: c.sha,
+            headline: c.message_headline,
+            committed_at: c.external_committed_at,
+            change: f.change,
+            additions: f.additions,
+            deletions: f.deletions,
+            change_request_id: type(cr.id, :binary_id),
+            change_request_number: cr.number,
+            change_request_title: cr.title
+          }
+      )
+      |> Enum.map(&normalizar/1)
+
+    autores = autores_de(tenant_id, Enum.map(copias, & &1.commit_id))
+    issues = issues_de(tenant_id, Enum.map(copias, & &1.change_request_id))
+
+    Enum.map(copias, fn copia ->
+      copia
+      |> Map.put(:autores, Map.get(autores, copia.commit_id, []))
+      |> Map.put(:issues, Map.get(issues, copia.change_request_id, []))
+    end)
+  end
+
+  @doc """
+  Quantas pessoas distintas tocaram um arquivo — a leitura de concentração de
+  conhecimento. **Derivada**, e a tela precisa dizer isso.
+  """
+  @spec people_who_touched(Tenant.t(), String.t()) :: [map()]
+  def people_who_touched(%Tenant{id: tenant_id}, caminho) do
+    Repo.all(
+      from f in "commit_files",
+        join: a in "commit_authors",
+        on: a.collected_commit_id == f.collected_commit_id,
+        where:
+          f.tenant_id == type(^tenant_id, :binary_id) and f.path == ^caminho and
+            is_nil(f.no_longer_observed_at) and is_nil(a.no_longer_observed_at),
+        group_by: [a.author_login, a.author_person_id],
+        order_by: [desc: count(f.id)],
+        select: %{
+          login: a.author_login,
+          person_id: type(a.author_person_id, :binary_id),
+          copias: count(f.id)
+        }
+    )
+  end
+
+  defp issues_de(_tenant_id, []), do: %{}
+
+  defp issues_de(tenant_id, change_ids) do
+    change_ids = Enum.reject(change_ids, &is_nil/1)
+
+    if change_ids == [] do
+      %{}
+    else
+      Repo.all(
+        from v in "change_request_issues",
+          join: i in "collected_issues",
+          on: i.id == v.collected_issue_id,
+          where:
+            v.tenant_id == type(^tenant_id, :binary_id) and
+              v.collected_change_request_id in type(^change_ids, {:array, :binary_id}) and
+              is_nil(v.no_longer_observed_at),
+          select: %{
+            change_request_id: type(v.collected_change_request_id, :binary_id),
+            id: type(i.id, :binary_id),
+            number: i.number,
+            title: i.title
+          }
+      )
+      |> Enum.group_by(& &1.change_request_id)
+    end
+  end
+
+  @doc """
   A linha do tempo de uma issue: ela, as solicitações que a atendem e os commits delas,
   todos com os instantes que a origem entregou.
 

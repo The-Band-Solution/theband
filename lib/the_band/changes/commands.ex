@@ -12,7 +12,8 @@ defmodule TheBand.Changes.Commands do
     ChangeRequestIssue,
     CollectedChangeRequest,
     CollectedCommit,
-    CommitAuthor
+    CommitAuthor,
+    CommitFile
   }
 
   alias TheBand.Repo
@@ -128,6 +129,76 @@ defmodule TheBand.Changes.Commands do
     )
 
     :ok
+  end
+
+  @doc """
+  Grava os arquivos de um commit e marca o commit como percorrido.
+
+  Substitui o conjunto: arquivo que a origem não trouxe de volta é marcado, nunca
+  apagado. E `files_collected_at` no commit distingue "não coletado" de "commit sem
+  arquivo" — as duas coisas não são a mesma frase na tela.
+  """
+  @spec replace_commit_files(Tenant.t(), Ecto.UUID.t(), [map()]) :: :ok
+  def replace_commit_files(%Tenant{id: tenant_id}, commit_id, arquivos) do
+    now = DateTime.utc_now(:second)
+
+    Enum.each(arquivos, &gravar_arquivo(tenant_id, commit_id, &1, now))
+    marcar_arquivos_sumidos(tenant_id, commit_id, Enum.map(arquivos, & &1.path), now)
+
+    Repo.update_all(
+      from(c in CollectedCommit, where: c.tenant_id == ^tenant_id and c.id == ^commit_id),
+      set: [files_collected_at: now]
+    )
+
+    :ok
+  end
+
+  defp gravar_arquivo(tenant_id, commit_id, arquivo, now) do
+    base =
+      Repo.one(
+        from f in CommitFile,
+          where:
+            f.tenant_id == ^tenant_id and f.collected_commit_id == ^commit_id and
+              f.path == ^arquivo.path,
+          limit: 1
+      ) || %CommitFile{}
+
+    {:ok, _} =
+      base
+      |> CommitFile.changeset(
+        arquivo
+        |> Map.put(:tenant_id, tenant_id)
+        |> Map.put(:collected_commit_id, commit_id)
+        |> Map.put(:collected_at, base.collected_at || now)
+        |> Map.put(:last_observed_at, now)
+        |> Map.put(:no_longer_observed_at, nil)
+      )
+      |> Repo.insert_or_update()
+  end
+
+  # Marca por CONJUNTO observado, nunca por timestamp: comparar `last_observed_at < now`
+  # falha quando as duas gravações caem no mesmo segundo — foi o defeito que um teste
+  # pegou na 032, e a lição vale aqui de saída.
+  defp marcar_arquivos_sumidos(tenant_id, commit_id, [], now) do
+    Repo.update_all(
+      from(f in CommitFile,
+        where:
+          f.tenant_id == ^tenant_id and f.collected_commit_id == ^commit_id and
+            is_nil(f.no_longer_observed_at)
+      ),
+      set: [no_longer_observed_at: now]
+    )
+  end
+
+  defp marcar_arquivos_sumidos(tenant_id, commit_id, caminhos, now) do
+    Repo.update_all(
+      from(f in CommitFile,
+        where:
+          f.tenant_id == ^tenant_id and f.collected_commit_id == ^commit_id and
+            is_nil(f.no_longer_observed_at) and f.path not in ^caminhos
+      ),
+      set: [no_longer_observed_at: now]
+    )
   end
 
   @doc """
