@@ -81,9 +81,13 @@ defmodule TheBandWeb.VerificationLive.Show do
                   valor não veio da origem, e sim de uma regra que pode ser revista. --%>
             <span class="badge badge-outline badge-warning badge-xs ml-1">derived</span>
           </h2>
-          <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+          <%!-- Empilhado no telefone, duas colunas a partir de `sm:`: os identificadores
+                do continuum têm 45 caracteres em mono, e duas colunas de 175px os
+                estouravam para fora do cartão — 533px de documento num viewport de 390,
+                medido em 2026-08-18. --%>
+          <dl class="grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_1fr]">
             <dt class="font-mono opacity-60">phase</dt>
-            <dd>
+            <dd class="min-w-0 break-all">
               <span :if={@execucao.phase} class="font-mono">{@execucao.phase}</span>
               <span :if={is_nil(@execucao.phase)} class="italic opacity-60">
                 {if @execucao.run_status == "completed",
@@ -92,7 +96,7 @@ defmodule TheBandWeb.VerificationLive.Show do
               </span>
             </dd>
             <dt class="font-mono opacity-60">is a</dt>
-            <dd>
+            <dd class="min-w-0 break-all">
               <span :for={t <- @execucao.process_kinds} class="mr-1 block font-mono">{t}</span>
               <span :if={@execucao.process_kinds == []} class="italic opacity-60">
                 neither verification nor deployment — the network has no concept for it
