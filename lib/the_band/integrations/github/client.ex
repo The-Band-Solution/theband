@@ -51,6 +51,46 @@ defmodule TheBand.Integrations.GitHub.Client do
   end
 
   @doc """
+  Busca os arquivos de um commit — **REST, e não GraphQL**.
+
+  Medido em 2026-08-18: o GraphQL expõe `changedFilesIfAvailable` (a contagem) e a
+  `tree` (a árvore inteira do repositório naquele commit), mas **não o diff**. A lista de
+  arquivos alterados só existe na REST, e é uma requisição por commit — o que decidiu o
+  escopo da coleta (issue #429).
+  """
+  @spec commit_files(String.t(), String.t(), String.t(), String.t()) ::
+          {:ok, [map()]} | {:error, term()}
+  def commit_files(instance_url, token, repositorio, sha) do
+    url = api_base(instance_url) <> "/repos/#{repositorio}/commits/#{sha}"
+
+    url |> HTTP.impl().get(token) |> resposta_de_arquivos()
+  end
+
+  defp resposta_de_arquivos({:ok, %{status: 200, body: body}}), do: {:ok, body["files"] || []}
+
+  # **403 com a janela zerada é rate limit, não credencial recusada.** O GitHub usa o
+  # mesmo status para as duas coisas, e `x-ratelimit-remaining: 0` é o que distingue.
+  # Tratar como credencial faria a coleta parar e marcar a ferramenta por engano.
+  defp resposta_de_arquivos({:ok, %{status: status, headers: headers}})
+       when status in [403, 429] do
+    if esgotou_janela?(headers) do
+      {:error, {:rate_limited, reset_de(headers)}}
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  defp resposta_de_arquivos({:ok, %{status: 401}}), do: {:error, :unauthorized}
+
+  # 404 num commit que a plataforma já coletou significa que ele saiu da origem —
+  # force-push reescreve história. É fato sobre o repositório, não falha da coleta.
+  defp resposta_de_arquivos({:ok, %{status: 404}}), do: {:error, :not_found_at_source}
+
+  defp resposta_de_arquivos({:ok, %{status: status}}), do: {:error, {:unexpected_status, status}}
+  defp resposta_de_arquivos({:error, %{reason: reason}}), do: {:error, {:transport, reason}}
+  defp resposta_de_arquivos({:error, reason}), do: {:error, {:transport, reason}}
+
+  @doc """
   Executa uma consulta GraphQL.
 
   Devolve também a informação de rate limit, para que quem pagina possa pausar
@@ -239,4 +279,40 @@ defmodule TheBand.Integrations.GitHub.Client do
   defp split_scopes(value) do
     value |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
   end
+
+  defp esgotou_janela?(headers) do
+    cabecalho(headers, "x-ratelimit-remaining") == "0"
+  end
+
+  defp reset_de(headers) do
+    case cabecalho(headers, "x-ratelimit-reset") do
+      nil ->
+        # Sem o cabeçalho, uma janela inteira é o palpite seguro: o GitHub as conta por
+        # hora, e chutar menos faria a espera não resolver nada.
+        DateTime.add(DateTime.utc_now(), 3600, :second)
+
+      valor ->
+        case Integer.parse(valor) do
+          {epoch, _} -> DateTime.from_unix!(epoch)
+          :error -> DateTime.add(DateTime.utc_now(), 3600, :second)
+        end
+    end
+  end
+
+  defp cabecalho(headers, nome) when is_map(headers) do
+    case Map.get(headers, nome) do
+      [valor | _] -> valor
+      valor when is_binary(valor) -> valor
+      _ -> nil
+    end
+  end
+
+  defp cabecalho(headers, nome) when is_list(headers) do
+    Enum.find_value(headers, fn
+      {chave, valor} -> if String.downcase(to_string(chave)) == nome, do: to_string(valor)
+      _ -> nil
+    end)
+  end
+
+  defp cabecalho(_headers, _nome), do: nil
 end

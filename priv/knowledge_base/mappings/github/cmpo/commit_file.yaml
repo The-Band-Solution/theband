@@ -1,0 +1,81 @@
+# O arquivo que um commit tocou vira cmpo.artifact_copy — e a CMPO já tinha o conceito.
+#
+# `cmpo.artifact_copy` é "cópia de um artefato sob controle de versão", e a relação
+# `cmpo.commit_sends_copy_to_target_branch` existia apontando para a branch de destino
+# **sem a cópia**. Este mapeamento fecha essa relação: agora há a cópia.
+#
+# ## A pergunta que isto destrava
+#
+# **"Quem mexeu neste arquivo, e por qual issue?"** A cadeia fica completa:
+# arquivo → commit → solicitação → issue → pessoa. Cada elo é relação declarada.
+#
+# ## De onde vem, e por que não é GraphQL
+#
+# Medido em 2026-08-18: o GraphQL expõe `changedFilesIfAvailable` (a contagem) e a
+# `tree` (a árvore inteira do repositório naquele commit), mas **não o diff**. Os
+# arquivos alterados vêm da REST — uma requisição por commit.
+mapping:
+  id: github.commit_file.to.cmpo.artifact_copy
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: commit_file
+  api: rest
+  schema_version: "2022-11-28"
+target:
+  ontology: cmpo
+  concept: cmpo.artifact_copy
+semantics:
+  equivalence: partial
+  justification: >
+    Um arquivo alterado por um commit é a cópia daquele artefato na versão que o commit
+    produziu — a definição de cmpo.artifact_copy. A equivalência é PARCIAL, e a palavra
+    é escolhida: a plataforma guarda QUE arquivo mudou e quantas linhas, nunca o
+    CONTEÚDO da cópia. A cópia existe no repositório; aqui existe o registro de que ela
+    passou a existir.
+identity:
+  # O par [commit, caminho] identifica a cópia: o mesmo arquivo em dois commits são duas
+  # cópias, e é justamente a sequência delas que responde "quem mexeu neste arquivo".
+  external_id_path: filename
+  natural_key: [commit.oid, filename]
+attributes:
+  path:      { source_path: filename }
+  # added | modified | removed | renamed — cru, como a origem entrega.
+  change:    { source_path: status }
+  additions: { source_path: additions }
+  deletions: { source_path: deletions }
+  previous_path: { source_path: previous_filename }
+relations:
+  sent_by_commit:
+    source_path: commit.oid
+    target_ontology: cmpo
+    target_concept: cmpo.commit_artifact_copy
+    note: >
+      Materializa cmpo.commit_produced_artifact_copy (declarada em 2026-08-18 no módulo
+      cmpo.change_traceability). Com ela, cmpo.commit_sends_copy_to_target_branch deixa
+      de ter o alvo declarado e a cópia ausente.
+limitations:
+  - >
+    **O conteúdo não é coletado, e isso é postura, não limitação técnica.** A plataforma
+    registra que o arquivo mudou e quanto; o código vive no repositório. Guardar o diff
+    faria dela um espelho de código, e nada no produto consome isso.
+  - >
+    **A coleta percorre TODOS os commits, e a limitação que existia era nossa.** A
+    primeira versão coletava só dos commits de solicitações com vínculo a issue — 3.558
+    de 16.416 — por causa do rate limit, e a tela ia declarar "não coletado" para o
+    resto. A REST entrega os arquivos de qualquer commit: o que faltava era esperar a
+    janela. Agora a coleta pausa até ela reabrir, e o checkpoint por commit faz cada
+    execução continuar de onde a anterior parou. Enquanto a primeira passada não termina,
+    o que falta aparece como NÃO COLETADO — nunca como ausência de mudança.
+  - >
+    **Renomeação é delete+add no Git**, e a CMPO trata cópia de artefato, não identidade
+    de arquivo. `previous_filename` é preservado quando a origem o informa, mas a
+    plataforma NÃO afirma que as duas cópias são do mesmo artefato: afirmar exigiria
+    decidir identidade a partir de heurística de similaridade.
+  - >
+    `status: removed` registra que a cópia deixou de existir naquele commit — e o
+    registro fica, como toda marca desta casa. Arquivo apagado é fato sobre a mudança.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]
