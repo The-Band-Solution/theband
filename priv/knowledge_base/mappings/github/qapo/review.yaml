@@ -1,6 +1,6 @@
 mapping:
   id: github.pull_request_review.to.qapo.artifact_evaluation
-  version: 1
+  version: 2
   status: proposed
 source: { provider: github, entity: pull_request_review, api: graphql, schema_version: v4 }
 target: { ontology: qapo, concept: qapo.artifact_evaluation }
@@ -17,7 +17,8 @@ identity:
 attributes:
   state:        { source_path: state }
   submitted_at: { source_path: submittedAt }
-  body:         { source_path: body }
+  body:         { source_path: bodyText }
+  author_type:  { source_path: author.__typename }
 relations:
   reviewer:
     source_path: author.id
@@ -29,10 +30,28 @@ relations:
     target_concept: cmpo.change_request
 limitations:
   - >
-    O revisor aponta para eo.person, e QAPO não declara relação entre qapo.artifact_evaluation e eo.person - a participação de agente em avaliação ainda não é modelada.
-  - Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
-  - Reviews automáticas (bots) devem ser classificadas separadamente das humanas.
-  - Um comentário isolado não é uma review; usar apenas eventos de review submetida.
+    RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada":
+    o módulo de projeto `qapo.evaluation_participation` declara
+    `qapo.stakeholder_performed_artifact_evaluation` e `qapo.artifact_evaluation_evaluates`.
+    A relação aponta para `spo.project_stakeholder` e para o papel `qapo.evaluated_artifact`,
+    e não para `eo.person` nem para `cmpo.change_request` — é o que a mantém dentro das
+    dependências declaradas da QAPO (`[ufo, spo]`), sem inverter a rede.
+  - >
+    Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
+    O `state` é preservado CRU e nenhuma coluna afirma conformidade.
+  - >
+    RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente":
+    `author_type` guarda o `__typename` da origem, e toda contagem separa `User` de `Bot`.
+    Sem isso a medida de tempo até a primeira revisão mediria o robô.
+  - >
+    RESOLVIDA na versão 2 — "um comentário isolado não é uma review": a coleta usa a conexão
+    `reviews`, e não `reviewThreads`. Só evento de review submetida entra.
+  - >
+    Review em rascunho (`PENDING`) vem sem `submittedAt`. É gravada com nulo — existe e não
+    foi submetida —, e a medida de tempo até a primeira revisão a exclui.
+  - >
+    `reviews.totalCount` é comparado com o que chegou, e o total fica em
+    `collected_change_requests.reviews_total`: truncamento nunca é silencioso.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

@@ -2207,3 +2207,154 @@ aparência do número certo. É a mesma família de
 [[padrao-largo-inventa-mais]]: o erro caro é o que se parece com medida.
 
 **Estado**: aberta — o conserto ainda não foi feito.
+
+---
+
+## L64 — Denominador que inclui o caso impossível esconde o sinal
+
+**Origem**: Sprint 021 (issue #440) · **Tipo**: técnica
+
+**O que aconteceu, duas vezes no mesmo dia.**
+
+Primeiro: um painel dizia "no issue recognised: 4.177" — 83% das solicitações. Amostrei
+três, duas eram falha da coleta, e anunciei que o número estava errado. Medido depois do
+conserto: 4.168 eram fato real e 9 eram lacuna nossa. A amostra de três não media 5.035.
+
+Depois, no levantamento do #440, ao avaliar dois campos do payload da execução de CI:
+
+| campo | como eu apresentei | o denominador certo |
+|---|---|---|
+| `pull_requests` | 3 de 1.052 execuções — 0,3%, "não vale" | 3 de **33** execuções disparadas por PR — **9%** |
+| `triggering_actor` | difere em 1 de 1.052 — "não vale" | difere em 1 de **3** reexecuções — **33%** |
+
+**Por que aconteceu.** Nos dois casos o denominador incluiu registros onde o campo **não
+pode existir**. Execução disparada por `push` não tem pull request associado; primeira
+tentativa não tem ator de reexecução diferente do ator original — é a mesma pessoa, por
+definição. Somar esses casos ao denominador dilui o sinal até ele desaparecer.
+
+E a pessoa mantenedora pegou as duas vezes, pelo volume. Na segunda, citando de volta o meu
+próprio texto.
+
+**O que fazer diferente.** Antes de calcular uma proporção, responder: **em quantos
+registros esse campo poderia estar preenchido?** Esse é o denominador. Se a resposta exige
+um filtro, o filtro é parte da medida e vai declarado junto com ela.
+
+E o corolário, que vale para toda medida desta plataforma: quando o denominador correto é
+pequeno — 33, ou 3 —, a conclusão honesta é **"amostra pequena, não sei"**, e não uma
+porcentagem. Três reexecuções não decidem se vale guardar `triggering_actor`.
+
+**A raiz comum com [[padrao-largo-inventa-mais]]**: o erro caro é o que se parece com
+medida. Uma porcentagem com denominador errado tem exatamente a mesma aparência de uma
+correta.
+
+**Estado**: aberta.
+
+---
+
+## L65 — Coleta que a rede já especificou custa a fração de uma que não
+
+**Origem**: Sprint 021 (issue #440) · **Tipo**: processo
+
+**O que aconteceu.** O levantamento do #440 encontrou três mapeamentos declarados sem
+nenhuma linha no banco: review, branch e deployment. Implementar os dois primeiros levou
+uma sessão, e o motivo é que **quase nada precisou ser decidido**:
+
+| peça | review | branch |
+|---|---|---|
+| conceito alvo | declarado | declarado |
+| atributos e caminhos na origem | declarados | declarado (um) |
+| relações | declaradas no mapeamento | declaradas |
+| necessidade de informação | declarada | — |
+| medida | declarada, com insumos | — |
+| limitações | quatro, todas acionáveis | duas |
+
+O trabalho foi **traduzir o que já estava escrito** para migração, esquema, consulta e
+tela. Nenhuma reunião, nenhuma escolha de recorte, nenhuma dúvida sobre o que o número
+significa.
+
+**A comparação que fecha o argumento.** No mesmo dia, a terceira — deployment — não avançou
+nem um passo, porque a fonte estava errada: a API do GitHub tem 2 registros onde os jobs de
+CI já produzem 1.361. Ela virou a issue #442, com quatro decisões pendentes, e a decisão da
+pessoa mantenedora de usar o ArgoCD. **Uma coleta cuja fonte ainda não foi decidida custa
+ordens de magnitude mais que uma cuja ontologia já foi.**
+
+**Por que aconteceu, e o que isso ensina sobre a ordem do trabalho.** O mapeamento
+escrito na frente do código não é documentação: é a parte cara do trabalho já feita. As
+quatro limitações da review viraram quatro decisões de esquema em minutos —
+`author_type` para separar bot, `state` cru para não afirmar conformidade, `reviews` em vez
+de `reviewThreads`, e `submitted_at` nulo para rascunho. Nenhuma delas eu teria pensado
+sozinho na hora de escrever a migração.
+
+**O que fazer diferente.** Antes de propor coleta nova, varrer os mapeamentos declarados e
+perguntar **quais já estão especificados e sem dado**. Essa lista é o backlog mais barato
+que existe, e ela não aparece em nenhuma tela — só lendo os YAML.
+
+O comando que a produz:
+
+```bash
+# para cada mapeamento, existe tabela com dado?
+for f in $(find priv/knowledge_base/mappings -name "*.yaml"); do
+  grep -m1 "  id: " "$f"
+done
+```
+
+E o corolário: **limitação declarada no mapeamento vale mais que requisito escrito depois**,
+porque foi escrita por quem estava olhando a ontologia, não a tela. É [[L61]] pelo lado
+positivo.
+
+**Estado**: aberta.
+
+---
+
+## L66 — Script que monta o contexto à mão esconde o contrato que o job real quebra
+
+**Origem**: Sprint 021 · **Tipo**: técnica
+
+**O que aconteceu.** A sincronização agendada morria em **todos os três tenants**, nas cinco
+tentativas do Oban, com `KeyError key :started_at not found`. Ficava `interrupted`, e já
+acontecia desde **2026-08-17** — dias antes de alguém notar. A pessoa mantenedora perguntou
+por que dois tenants tinham dado erro; eram três.
+
+A causa é uma linha em `SyncGitHubEO.run/4`:
+
+```elixir
+started_at = sync.started_at        # variável local
+
+ctx = %{tenant: tenant, sync: sync, tool: tool, token: token, org: tool.organization_login}
+#      ^ sem `started_at`, e nove pontos de ingestão leem `ctx.started_at`
+```
+
+**Por que ninguém viu.** Duas causas somadas, e a segunda é a lição:
+
+1. O caminho que lê a chave só roda **quando há dado para marcar** — a marca de ausência de
+   issue e de iteração. Com fixture vazia, nada precisa de marca e a linha nunca é
+   alcançada. É a [[L62]] outra vez.
+
+2. **Toda coleta manual desta sessão montou o `ctx` à mão**, e sempre com `started_at`:
+
+   ```elixir
+   ctx = %{tenant: tenant, tool: tool, token: token, started_at: DateTime.utc_now(:second)}
+   ```
+
+   Rodei a coleta de mudanças, de CI, de branches e de reviews contra o dado real, todas com
+   sucesso — e nenhuma passou pelo `ctx` que o job constrói. O script satisfazia o contrato
+   que o job violava, e por isso a evidência de "funciona contra o dado real" era falsa
+   justamente onde importava.
+
+**O que fazer diferente.** Script de coleta avulsa **não monta o contexto**: chama a mesma
+função que o job chama, ou pede o contexto a ela. Quando isso não é possível, o script
+declara no topo que o contexto é sintético — e o resultado dele não conta como evidência de
+que o job funciona.
+
+A pergunta que fecha: *este script prova que o caminho de produção funciona, ou só que a
+função funciona com o contexto que eu escolhi?*
+
+**E a tentativa de teste que não provou nada.** Escrevi um teste que devolve uma issue pela
+borda simulada para forçar a marca de ausência. Ele passou. **Removi a correção de propósito
+e ele continuou passando** — a issue não chegava a ser gravada, e o caminho nunca rodava.
+Sem essa verificação eu teria anunciado uma garantia inexistente.
+
+*Todo teste escrito para pegar um defeito específico precisa ser rodado contra o código
+defeituoso.* Se ele passa nos dois, não é teste do defeito — é teste de outra coisa.
+
+**Estado**: aberta.

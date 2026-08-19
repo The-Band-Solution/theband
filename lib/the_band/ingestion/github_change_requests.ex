@@ -28,6 +28,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   alias TheBand.Changes.Commands
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Quality.Commands, as: QualityCommands
   alias TheBand.Repo
 
   import Ecto.Query
@@ -53,6 +54,11 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
        change_requests: soma(resultados, :solicitacoes),
        commits: soma(resultados, :commits),
        attended_issues: soma(resultados, :atendidas),
+       # A avaliação de artefato — `qapo.artifact_evaluation`. Bot separado de pessoa
+       # porque o mapeamento manda: contar revisão automática como humana faria a medida
+       # de tempo até a primeira revisão medir o robô.
+       artifact_evaluations: soma(resultados, :avaliacoes),
+       bot_evaluations: soma(resultados, :avaliacoes_de_bot),
        # **Nunca zero disfarçando "acabou".** É quanto a origem reconheceu e a plataforma
        # não conseguiu resolver porque a issue ainda não foi coletada — o número que a
        # versão anterior descartava em silêncio (issue #438).
@@ -96,14 +102,32 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
 
       {:error, motivo} ->
         Logger.warning("mudanças de #{repo.qualified_name} não coletadas: #{inspect(motivo)}")
-        %{alcancado: false, solicitacoes: 0, commits: 0, atendidas: 0, pendentes: 0, truncadas: 0}
+
+        %{
+          alcancado: false,
+          solicitacoes: 0,
+          commits: 0,
+          atendidas: 0,
+          pendentes: 0,
+          avaliacoes: 0,
+          avaliacoes_de_bot: 0,
+          truncadas: 0
+        }
     end
   end
 
   defp gravar(ctx, repo_id, solicitacoes) do
     Enum.reduce(
       solicitacoes,
-      %{solicitacoes: 0, commits: 0, atendidas: 0, pendentes: 0, truncadas: 0},
+      %{
+        solicitacoes: 0,
+        commits: 0,
+        atendidas: 0,
+        pendentes: 0,
+        avaliacoes: 0,
+        avaliacoes_de_bot: 0,
+        truncadas: 0
+      },
       fn node, acc ->
         somar(acc, gravar_solicitacao(ctx, repo_id, node))
       end
@@ -139,6 +163,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
       })
 
     atendidas = vincular_issues(ctx, solicitacao.id, node)
+    avaliacoes = gravar_avaliacoes(ctx, solicitacao.id, node)
     :ok = Commands.record_attended_provenance(ctx.tenant, solicitacao.id, atendidas)
     {commits, truncado} = gravar_commits(ctx, repo_id, solicitacao.id, node)
 
@@ -146,10 +171,62 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
       solicitacoes: 1,
       commits: commits,
       atendidas: atendidas.resolvidas,
+      avaliacoes: avaliacoes.gravadas,
+      avaliacoes_de_bot: avaliacoes.de_bot,
       # Nunca zero disfarçando "acabou": é o que diz que há vínculo esperando issue.
       pendentes: length(atendidas.pendentes),
       truncadas: truncado
     }
+  end
+
+  # As avaliações de artefato — `qapo.artifact_evaluation`, issue #440.
+  #
+  # Vêm na mesma consulta dos Pull Requests, sem requisição extra. O mapeamento estava
+  # escrito desde a versão 1 e nunca havia sido coletado.
+  #
+  # **Só review submetida entra.** A limitação do mapeamento é explícita: "um comentário
+  # isolado não é uma review". Rascunho vem sem `submittedAt` e é gravado com nulo — ele
+  # existe, e a medida de tempo até a primeira revisão o exclui.
+  defp gravar_avaliacoes(ctx, solicitacao_id, node) do
+    reviews = get_in(node, ["reviews", "nodes"]) || []
+    total = get_in(node, ["reviews", "totalCount"]) || length(reviews)
+
+    :ok = QualityCommands.record_reviews_total(ctx.tenant, solicitacao_id, total)
+
+    Enum.each(reviews, &gravar_avaliacao(ctx, solicitacao_id, &1))
+
+    # Marcar só com a página COMPLETA: com página parcial, marcar afirmaria ausência que é
+    # só paginação — a mesma regra dos comentários.
+    if length(reviews) >= total do
+      QualityCommands.mark_unobserved(ctx.tenant, solicitacao_id, Enum.map(reviews, & &1["id"]))
+    end
+
+    %{
+      gravadas: length(reviews),
+      de_bot: Enum.count(reviews, &(get_in(&1, ["author", "__typename"]) != "User"))
+    }
+  end
+
+  defp gravar_avaliacao(ctx, solicitacao_id, review) do
+    login = get_in(review, ["author", "login"])
+
+    {:ok, _} =
+      QualityCommands.record_evaluation(ctx.tenant, %{
+        collected_change_request_id: solicitacao_id,
+        # Cru: APPROVED, CHANGES_REQUESTED, COMMENTED, DISMISSED, PENDING. Nenhuma coluna
+        # afirma "conforme", porque aprovar é ausência de bloqueio e não de ressalva.
+        state: review["state"],
+        body: review["bodyText"],
+        external_submitted_at: data(review["submittedAt"]),
+        author_login: login,
+        author_type: get_in(review, ["author", "__typename"]),
+        # Bot não tem pessoa, e forçar uma inventaria participação. `nil` é a resposta.
+        author_person_id: ctx.pessoas[login],
+        source_system: "github",
+        source_instance: ctx.tool.instance_url,
+        external_id: review["id"],
+        raw_payload: review
+      })
   end
 
   # O vínculo é o que a ORIGEM reconheceu — `closingIssuesReferences`, nunca o texto.

@@ -1,0 +1,40 @@
+# As linhas de desenvolvimento vivas de um repositório — feature 039, `cmpo.branch`.
+#
+# `refPrefix: "refs/heads/"` é o filtro que a limitação do mapeamento pede: **tag também é
+# ref e não é branch**. Sem ele a coleta misturaria as duas.
+#
+# `target` é o commit na ponta, e `committedDate` é o que separa branch em uso de branch
+# esquecida. Sem a data, "existe" não diz nada sobre atividade — e a pergunta que esta
+# coleta responde é justamente "que linha está parada".
+#
+# `branchProtectionRule` só vem com escopo de administração. Quando falta, o campo chega
+# nulo — e nulo é "não sabemos", nunca "não protegida". A ingestão trata assim.
+#
+# Ordenado por commit mais recente: se a paginação for interrompida, o que fica de fora é o
+# mais antigo, que é o menos consultado.
+query($owner: String!, $name: String!, $page_size: Int = 100, $after: String) {
+  rateLimit { cost remaining resetAt }
+
+  repository(owner: $owner, name: $name) {
+    id
+    defaultBranchRef { name }
+
+    refs(refPrefix: "refs/heads/", first: $page_size, after: $after,
+         orderBy: {field: TAG_COMMIT_DATE, direction: DESC}) {
+      totalCount
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id
+        name
+        branchProtectionRule { id }
+        target {
+          __typename
+          ... on Commit {
+            oid
+            committedDate
+          }
+        }
+      }
+    }
+  }
+}

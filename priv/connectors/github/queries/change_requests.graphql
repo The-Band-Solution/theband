@@ -18,7 +18,7 @@
 # registro nomeia duas.
 #
 # Os dois `totalCount` existem para truncamento nunca ser silencioso.
-query($owner: String!, $name: String!, $page_size: Int = 25, $commit_size: Int = 50, $after: String) {
+query($owner: String!, $name: String!, $page_size: Int = 25, $commit_size: Int = 50, $review_size: Int = 30, $after: String) {
   rateLimit { cost remaining resetAt }
 
   repository(owner: $owner, name: $name) {
@@ -46,6 +46,33 @@ query($owner: String!, $name: String!, $page_size: Int = 25, $commit_size: Int =
         closingIssuesReferences(first: 20) {
           totalCount
           nodes { id number }
+        }
+
+        # As reviews vêm AQUI e não em consulta própria: o mapeamento
+        # `github.pull_request_review.to.qapo.artifact_evaluation` estava escrito desde a
+        # versão 1 e nunca foi coletado, e trazê-las junto custa zero requisição a mais.
+        #
+        # `reviews` e não `reviewThreads`: a limitação do mapeamento é explícita — "um
+        # comentário isolado não é uma review; usar apenas eventos de review submetida".
+        # Thread traz comentário solto, e contá-lo inflaria a contagem de avaliações.
+        #
+        # `submittedAt` é o instante que a medida `review_time_to_first_review_duration`
+        # pede. `state` distingue APPROVED de CHANGES_REQUESTED — e a limitação diz que
+        # aprovar não é ausência de não conformidade, apenas ausência de bloqueio.
+        #
+        # `author.__typename` existe para separar bot de pessoa: a outra limitação do
+        # mapeamento manda classificá-las separadamente, e sem o tipo a plataforma
+        # contaria revisão automática como revisão humana.
+        reviews(first: $review_size) {
+          totalCount
+          pageInfo { hasNextPage endCursor }
+          nodes {
+            id
+            state
+            submittedAt
+            bodyText
+            author { __typename login ... on User { id } }
+          }
         }
 
         commits(first: $commit_size) {

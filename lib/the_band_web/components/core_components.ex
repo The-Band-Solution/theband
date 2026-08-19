@@ -576,8 +576,17 @@ defmodule TheBandWeb.CoreComponents do
 
   def header(assigns) do
     ~H"""
-    <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
-      <div>
+    <%!-- Empilha no telefone e volta a ficar lado a lado a partir de `sm:`. O `flex` numa
+          linha só com `flex-none` nas ações levava a página a rolar de lado sempre que os
+          botões não cabiam: medido em 2026-08-19, a tela de repositório dava 495px de
+          documento num viewport de 390, com três botões no cabeçalho.
+
+          E `flex-wrap` nas ações porque três botões não cabem em 390px nem sozinhos. --%>
+    <header class={[
+      @actions != [] && "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+      "pb-4"
+    ]}>
+      <div class="min-w-0">
         <h1 class="text-lg font-semibold leading-8">
           {render_slot(@inner_block)}
         </h1>
@@ -585,7 +594,7 @@ defmodule TheBandWeb.CoreComponents do
           {render_slot(@subtitle)}
         </p>
       </div>
-      <div class="flex-none">{render_slot(@actions)}</div>
+      <div class="flex flex-wrap gap-2 sm:flex-none">{render_slot(@actions)}</div>
     </header>
     """
   end

@@ -34,6 +34,13 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     field :comments_collected_at, :utc_datetime
     # Feature 032: quando as solicitações de mudança foram percorridas por inteiro.
     field :changes_collected_at, :utc_datetime
+    # Feature 037 e 039. A lição das colunas novas: coluna que existe no banco e não no
+    # schema derruba a tela com `KeyError` — aconteceu duas vezes, com
+    # `comments_collected_at` e `changes_collected_at`.
+    field :verifications_collected_at, :utc_datetime
+    field :branches_collected_at, :utc_datetime
+    # O total da ORIGEM, comparado com o coletado para revelar truncamento.
+    field :branches_total, :integer
 
     # O que a escrita fez — mesmo campo virtual que `CollectedIssue` e `EO.Schemas.Person`
     # usam, e pelo mesmo motivo: sem ele a contagem da execução não distingue observar um
@@ -56,7 +63,10 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
       :inaccessible_reason,
       :issues_collected_at,
       :comments_collected_at,
-      :changes_collected_at
+      :changes_collected_at,
+      :verifications_collected_at,
+      :branches_collected_at,
+      :branches_total
     ])
     |> validate_required([:tenant_id, :connected_tool_id, :source_repository_id])
     |> unique_constraint([:connected_tool_id, :source_repository_id])

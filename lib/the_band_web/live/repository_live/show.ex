@@ -33,6 +33,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
 
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Configuration
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
@@ -60,7 +61,19 @@ defmodule TheBandWeb.RepositoryLive.Show do
          |> push_navigate(to: ~p"/work")}
 
       {:ok, repositorio} ->
-        {:ok, assign(socket, page_title: repositorio.name, repositorio: repositorio)}
+        {:ok,
+         socket
+         |> assign(page_title: repositorio.name, repositorio: repositorio)
+         # `observed_repository_id`, e não `id`: a estrutura que a consulta devolve junta
+         # repositório-fonte com observação, e não tem chave `id` — foi um `KeyError` na
+         # tela, pego rodando o app e não pelos testes.
+         |> assign(
+           branches: Configuration.branches_of(tenant, repositorio.observed_repository_id)
+         )
+         |> assign(
+           resumo_de_branches:
+             Configuration.resumo_do_repositorio(tenant, repositorio.observed_repository_id)
+         )}
     end
   end
 
@@ -340,6 +353,95 @@ defmodule TheBandWeb.RepositoryLive.Show do
           </:col>
         </.data_table>
       </div>
+
+      <%!-- AS LINHAS DE DESENVOLVIMENTO — `cmpo.branch`. O mapeamento existia desde a
+            versão 1 e nunca havia sido coletado (issue #440).
+
+            A tela responde o PRESENTE, e diz isso: branch mergeada é apagada na origem, e o
+            histórico dela vive no `source_branch` das solicitações. Medido em 2026-08-19:
+            2.468 nomes citados pelas solicitações contra 815 branches vivas — 85% dos nomes
+            não têm entidade, porque a linha deixou de existir.
+
+            E nenhum rótulo diz "abandonada": a plataforma sabe quando foi o último commit e
+            não sabe se alguém pretende voltar. Diz os dias, e quem lê decide. --%>
+      <section>
+        <h2 class="mb-1 text-sm font-semibold">Development lines</h2>
+        <p class="mb-3 text-xs opacity-70">
+          The branches that <strong>exist now</strong>. A merged branch is deleted at the
+          source — the lines a change request passed through live in its record, not here.
+        </p>
+
+        <p :if={is_nil(@repositorio.branches_collected_at)} class="alert">
+          <strong>Branches were not collected for this repository yet.</strong>
+          This is absence of collection, not absence of branches.
+        </p>
+
+        <div :if={@repositorio.branches_collected_at} class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="rounded-lg border border-base-300 px-3 py-2">
+            <span class="block font-mono text-xl tabular-nums">{@resumo_de_branches.vivas}</span>
+            <span class="text-xs opacity-70">open now</span>
+          </div>
+          <div class="rounded-lg border border-base-300 px-3 py-2">
+            <span class="block font-mono text-xl tabular-nums">{@resumo_de_branches.protegidas}</span>
+            <span class="text-xs opacity-70">protected</span>
+          </div>
+          <%!-- O corte vai DECLARADO no rótulo: corte escondido faz quem lê achar que é
+                propriedade do dado, e não escolha de quem mediu. --%>
+          <div class="rounded-lg border border-base-300 px-3 py-2">
+            <span class="block font-mono text-xl tabular-nums text-warning">
+              {@resumo_de_branches.paradas}
+            </span>
+            <span class="text-xs opacity-70">no commit in 90 days</span>
+          </div>
+          <div class="rounded-lg border border-base-300 px-3 py-2">
+            <span class="block font-mono text-xl tabular-nums">
+              {@repositorio.branches_total || "—"}
+            </span>
+            <span class="text-xs opacity-70">the source reports</span>
+          </div>
+        </div>
+
+        <div :if={@branches != []} class="mt-3 overflow-x-auto">
+          <table class="table stacked table-sm">
+            <thead>
+              <tr>
+                <th>branch</th>
+                <th>head</th>
+                <th>last commit</th>
+                <th>policy</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={b <- @branches}>
+                <%!-- `break-all` porque nome de branch é uma palavra só e pode ter 70
+                      caracteres: `features/apqi-task-backend-notificar-bolsistas-…` levou o
+                      documento a 551px num viewport de 390, medido no navegador. --%>
+                <td data-label="branch" class="min-w-0 font-medium break-all">
+                  {b.name}
+                  <span :if={b.is_default} class="badge badge-ghost badge-xs ml-1">default</span>
+                </td>
+                <td data-label="head" class="font-mono text-xs">
+                  {String.slice(b.head_sha || "", 0, 7)}
+                </td>
+                <td data-label="last commit" class="text-xs">
+                  <span :if={b.head_committed_at}>{b.head_committed_at}</span>
+                  <%!-- Sem data é a origem que não soube datar, nunca zero dias. --%>
+                  <span :if={is_nil(b.head_committed_at)} class="italic opacity-60">
+                    the source gave no date
+                  </span>
+                  <span :if={b.dias_sem_commit && b.dias_sem_commit > 90} class="ml-1 text-warning">
+                    {b.dias_sem_commit}d
+                  </span>
+                </td>
+                <td data-label="policy" class="text-xs">
+                  <span :if={b.is_protected} class="badge badge-outline badge-xs">protected</span>
+                  <span :if={not b.is_protected} class="opacity-60">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </Layouts.app>
     """
   end

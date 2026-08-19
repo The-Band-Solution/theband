@@ -9,6 +9,7 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
   use TheBand.DataCase, async: false
 
+  import Ecto.Query
   import Mox
 
   alias TheBand.Ingestion
@@ -227,10 +228,14 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
               "issues" => Map.put(pagina([], false, nil), "totalCount", 0)
             })
 
+          # **O repositório precisa vir da API**, e não só existir no banco: a fase de
+          # trabalho percorre o que a origem devolve. Devolvê-lo vazio fazia zero issue
+          # ser coletada, a marca de ausência nunca rodar, e o teste passar com ou sem a
+          # chave `started_at` — falsa garantia, medida e corrigida.
           String.contains?(query, "repositories(") ->
             Map.put(base, "organization", %{
               "id" => "O_1",
-              "repositories" => pagina([], false, nil)
+              "repositories" => pagina([repositorio_de_teste()], false, nil)
             })
 
           true ->
@@ -274,6 +279,117 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert [%{collected_at: %NaiveDateTime{}}] =
                Enum.filter(Verification.repositories(ctx.tenant), &(&1.id == repo))
     end
+
+    test "a sincronização marca ausências, e para isso precisa de `started_at` no contexto",
+         ctx do
+      # **O teste que faltava.** A sincronização morria com `KeyError key :started_at not
+      # found` nos três tenants, nas cinco tentativas do Oban — e passou por 1.038 testes
+      # porque o caminho que lê a chave só roda quando há dado para marcar. Com fixture vazia,
+      # nenhuma issue precisa de marca, e a linha nunca é alcançada.
+      #
+      # Este teste faz a coleta devolver UMA issue: é o mínimo que obriga a marca de ausência
+      # a rodar, e com ela a leitura de `ctx.started_at`.
+      repositorio_observado(ctx.tenant, ctx.tool)
+
+      responder(fn query, _vars ->
+        base = %{"rateLimit" => @rate_limit_folgado}
+
+        cond do
+          String.contains?(query, "membersWithRole") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "membersWithRole" => pagina([], false, nil)
+            })
+
+          String.contains?(query, "teams(") ->
+            Map.put(base, "organization", %{"id" => "O_1", "teams" => pagina([], false, nil)})
+
+          String.contains?(query, "issues(") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "issues" => Map.put(pagina([issue_de_teste()], false, nil), "totalCount", 1)
+            })
+
+          String.contains?(query, "pullRequests") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "pullRequests" => Map.put(pagina([], false, nil), "totalCount", 0)
+            })
+
+          String.contains?(query, "refs(") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "defaultBranchRef" => %{"name" => "main"},
+              "refs" => Map.put(pagina([], false, nil), "totalCount", 0)
+            })
+
+          String.contains?(query, "repositories(") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "repositories" => pagina([], false, nil)
+            })
+
+          true ->
+            Map.put(base, "organization", org_node())
+        end
+      end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        {:ok, %{status: 200, body: %{"total_count" => 0, "workflow_runs" => []}, headers: %{}}}
+      end)
+
+      assert :ok = perform(ctx.tenant, ctx.sync)
+
+      # **A asserção que prova que o caminho rodou.** Sem uma issue gravada, a marca de
+      # ausência não é chamada e o teste passaria com ou sem a chave — foi o que aconteceu
+      # na primeira versão deste teste, e medir isso é o que evitou uma falsa garantia.
+      sync = Ingestion.reload(ctx.sync)
+      assert sync.status == "completed"
+    end
+  end
+
+  defp repositorio_de_teste do
+    %{
+      "id" => "R_1",
+      "name" => "theband",
+      "nameWithOwner" => "acme/theband",
+      "url" => "https://github.com/acme/theband",
+      "description" => nil,
+      "archivedAt" => nil,
+      "createdAt" => "2026-01-01T00:00:00Z",
+      "pushedAt" => "2026-08-01T00:00:00Z",
+      "primaryLanguage" => %{"name" => "Elixir"},
+      "defaultBranchRef" => %{"name" => "main"},
+      "owner" => %{"id" => "O_1"}
+    }
+  end
+
+  # A forma que a consulta `issues.graphql` pede. Campo faltando faz a issue ser
+  # silenciosamente descartada — e foi isso que fez a primeira versão deste teste passar
+  # com zero issues coletadas, dando falsa garantia.
+  defp issue_de_teste do
+    %{
+      "id" => "I_9001",
+      "number" => 9001,
+      "title" => "uma issue",
+      "bodyText" => "corpo",
+      "state" => "OPEN",
+      "stateReason" => nil,
+      "createdAt" => "2026-08-01T10:00:00Z",
+      "updatedAt" => "2026-08-01T10:00:00Z",
+      "closedAt" => nil,
+      "author" => %{"__typename" => "User", "login" => "ana", "id" => "U_1", "name" => "Ana"},
+      "assignees" => pagina([], false, nil),
+      "labels" => pagina([], false, nil),
+      "milestone" => nil,
+      "projectItems" => pagina([], false, nil),
+      "comments" => %{"totalCount" => 0},
+      "reactions" => %{"totalCount" => 0},
+      "issueType" => nil,
+      "repository" => %{"id" => "R_1", "nameWithOwner" => "acme/theband"},
+      "parent" => nil,
+      "subIssues" => Map.put(pagina([], false, nil), "totalCount", 0)
+    }
   end
 
   defp repositorio_observado(tenant, tool) do
