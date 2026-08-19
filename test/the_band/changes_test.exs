@@ -13,11 +13,13 @@ defmodule TheBand.ChangesTest do
   """
   use TheBand.DataCase, async: false
 
+  import Ecto.Query
   import TheBand.WorkItemsFixtures
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
   alias TheBand.Changes
   alias TheBand.Changes.Commands
+  alias TheBand.ContadorDeConsultas
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
 
@@ -286,5 +288,119 @@ defmodule TheBand.ChangesTest do
 
     assert {:error, :not_found} = Changes.get(outro_tenant, cr.id)
     assert {:ok, _} = Changes.get(ctx.tenant, cr.id)
+  end
+
+  describe "o resumo das telas" do
+    test "as quatro frases sobre escopo nunca são somadas", ctx do
+      # Somá-las foi o defeito #438: um quadro só, com 4.177, que juntava fato sobre o
+      # processo (a origem não reconheceu issue) com lacuna nossa (a issue não foi
+      # coletada). Medido depois de separar: 4.168 e 9 — o primeiro era quase todo o
+      # número, e a amostra de três que eu tirei não media nada.
+      pr_com = pr_de_teste(ctx, 9001)
+      %{pai: issue} = ctx.cenario.issues |> Map.values() |> List.first()
+
+      :ok = Commands.replace_attended_issues(ctx.tenant, pr_com.id, [issue.id])
+
+      :ok =
+        Commands.record_attended_provenance(ctx.tenant, pr_com.id, %{total: 1, pendentes: []})
+
+      pr_sem = pr_de_teste(ctx, 9002)
+      :ok = Commands.record_attended_provenance(ctx.tenant, pr_sem.id, %{total: 0, pendentes: []})
+
+      pr_pendente = pr_de_teste(ctx, 9003)
+
+      :ok =
+        Commands.record_attended_provenance(ctx.tenant, pr_pendente.id, %{
+          total: 1,
+          pendentes: ["I_nao_coletada"]
+        })
+
+      # E uma que nunca foi medida: nulo é desconhecido, nunca zero.
+      pr_de_teste(ctx, 9004)
+
+      resumo = Changes.resumo(ctx.tenant)
+
+      assert resumo[:com_escopo] == 1
+      assert resumo[:sem_escopo] == 1
+      assert resumo[:escopo_pendente] == 1
+      assert resumo[:nao_sabemos] == 1
+    end
+
+    test "o pendente é resolvido quando a issue chega, sem tocar na origem", ctx do
+      %{pai: issue} = ctx.cenario.issues |> Map.values() |> List.first()
+      externo = external_id_da_issue(ctx.tenant, issue.id)
+      pr = pr_de_teste(ctx, 9101)
+
+      :ok =
+        Commands.record_attended_provenance(ctx.tenant, pr.id, %{total: 1, pendentes: [externo]})
+
+      assert Changes.resumo(ctx.tenant)[:escopo_pendente] == 1
+
+      {:ok, r} = Commands.reconcile_attended_issues(ctx.tenant)
+
+      assert r.resolved == 1
+      assert r.still_pending == 0
+      # O vínculo passou a existir, e o quadro mudou de coluna.
+      assert [%{id: _}] = Changes.attended_issues(ctx.tenant, pr.id)
+      assert Changes.resumo(ctx.tenant)[:com_escopo] == 1
+    end
+
+    test "a reconciliação não apaga vínculo que já existia", ctx do
+      # `replace_attended_issues` marca o que não está na lista; a reconciliação conhece
+      # só os pendentes que chegaram, e usá-la aqui destruiria o resto.
+      [%{pai: i1}, %{pai: i2}] = ctx.cenario.issues |> Map.values() |> Enum.take(2)
+      pr = pr_de_teste(ctx, 9102)
+
+      :ok = Commands.replace_attended_issues(ctx.tenant, pr.id, [i1.id])
+
+      :ok =
+        Commands.record_attended_provenance(ctx.tenant, pr.id, %{
+          total: 2,
+          pendentes: [external_id_da_issue(ctx.tenant, i2.id)]
+        })
+
+      {:ok, _} = Commands.reconcile_attended_issues(ctx.tenant)
+
+      assert length(Changes.attended_issues(ctx.tenant, pr.id)) == 2
+    end
+
+    test "o resumo de arquivos conta caminhos e cópias separados", ctx do
+      resumo = Changes.resumo_de_arquivos(ctx.tenant)
+
+      # Caminhos é "quantos arquivos a plataforma conhece"; cópias é quantas vezes foram
+      # tocados. Confundi-los faria a tela dizer que há 87 mil arquivos onde há 17 mil.
+      assert Map.has_key?(resumo, :caminhos)
+      assert Map.has_key?(resumo, :copias)
+      assert Map.has_key?(resumo, :commits)
+    end
+
+    test "cada resumo custa uma consulta, e não uma por linha", ctx do
+      um = ContadorDeConsultas.contar(fn -> Changes.resumo_de_arquivos(ctx.tenant) end)
+      assert um == 1
+    end
+  end
+
+  defp pr_de_teste(ctx, numero) do
+    {:ok, pr} =
+      Commands.record_change_request(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        number: numero,
+        title: "solicitação #{numero}",
+        state: "MERGED",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_#{numero}"
+      })
+
+    pr
+  end
+
+  defp external_id_da_issue(tenant, issue_id) do
+    TheBand.Repo.one!(
+      from i in "collected_issues",
+        where:
+          i.tenant_id == type(^tenant.id, :binary_id) and i.id == type(^issue_id, :binary_id),
+        select: i.external_id
+    )
   end
 end

@@ -219,6 +219,109 @@ defmodule TheBand.Changes do
   end
 
   @doc """
+  O painel das solicitações — **duas consultas**, e as duas medem coisas diferentes.
+
+  Fechada sem integrar é linha própria, e não some dentro de "fechada": é trabalho que
+  foi pedido, revisado e **descartado**, e somá-lo às integradas apagaria o único número
+  que mede desperdício de revisão.
+
+  ## As três frases sobre escopo, que nunca são a mesma
+
+  A primeira versão deste resumo tinha uma chave `:sem_issue` que valia 4.177 — 83% das
+  solicitações — e o rótulo dizia "no issue recognised". **Estava errado**, e a pessoa
+  mantenedora pegou pelo volume: conferidos contra a origem, dois de três amostrados
+  fechavam issue sim (issue #438). Três situações estavam somadas numa:
+
+    * `:sem_escopo` — **a origem não reconheceu nenhuma issue.** Fato sobre o processo:
+      mudança fora de escopo declarado existe e é comum;
+    * `:escopo_pendente` — **a origem reconheceu e a plataforma não resolveu**, porque a
+      issue ainda não foi coletada. Falha nossa, e nada a ver com o processo;
+    * `:nao_sabemos` — solicitações coletadas antes de haver `attended_issues_total`. Nulo
+      é desconhecido, nunca zero.
+  """
+  @spec resumo(Tenant.t()) :: map()
+  def resumo(%Tenant{id: tenant_id}) do
+    por_estado =
+      Repo.all(
+        from c in "collected_change_requests",
+          where: c.tenant_id == type(^tenant_id, :binary_id) and is_nil(c.no_longer_observed_at),
+          group_by: c.state,
+          select: {c.state, count(c.id)}
+      )
+      |> Map.new()
+
+    Map.merge(por_estado, escopo(tenant_id))
+  end
+
+  # Uma consulta para as três frases. O `CASE` é o que impede somá-las: cada solicitação
+  # cai em exatamente um dos três, e o total fecha com o número de solicitações.
+  defp escopo(tenant_id) do
+    linhas =
+      Repo.all(
+        from c in "collected_change_requests",
+          where: c.tenant_id == type(^tenant_id, :binary_id) and is_nil(c.no_longer_observed_at),
+          group_by:
+            fragment(
+              """
+              CASE
+                WHEN ? IS NULL THEN 'nao_sabemos'
+                WHEN array_length(?, 1) > 0 THEN 'escopo_pendente'
+                WHEN ? = 0 THEN 'sem_escopo'
+                ELSE 'com_escopo'
+              END
+              """,
+              c.attended_issues_total,
+              c.attended_issues_unresolved,
+              c.attended_issues_total
+            ),
+          select:
+            {fragment(
+               """
+               CASE
+                 WHEN ? IS NULL THEN 'nao_sabemos'
+                 WHEN array_length(?, 1) > 0 THEN 'escopo_pendente'
+                 WHEN ? = 0 THEN 'sem_escopo'
+                 ELSE 'com_escopo'
+               END
+               """,
+               c.attended_issues_total,
+               c.attended_issues_unresolved,
+               c.attended_issues_total
+             ), count(c.id)}
+      )
+
+    Map.new(linhas, fn {chave, quantos} -> {atomo_de_escopo(chave), quantos} end)
+  end
+
+  # Literais neste módulo, e não `String.to_existing_atom/1`: o átomo só existe se algum
+  # módulo que o menciona já tiver sido carregado, e os que mencionavam estes eram os da
+  # tela. Rodar a mesma função num script quebrava com "not an already existing atom".
+  defp atomo_de_escopo("com_escopo"), do: :com_escopo
+  defp atomo_de_escopo("sem_escopo"), do: :sem_escopo
+  defp atomo_de_escopo("escopo_pendente"), do: :escopo_pendente
+  defp atomo_de_escopo("nao_sabemos"), do: :nao_sabemos
+
+  @doc """
+  O painel dos arquivos — **uma consulta**.
+
+  `caminhos` é a pergunta da tela ("quantos arquivos a plataforma conhece"), e `copias`
+  é quantas vezes eles foram tocados. Os dois juntos dizem a média de mexidas por
+  arquivo sem que ninguém precise dividir de cabeça.
+  """
+  @spec resumo_de_arquivos(Tenant.t()) :: map()
+  def resumo_de_arquivos(%Tenant{id: tenant_id}) do
+    Repo.one(
+      from f in "commit_files",
+        where: f.tenant_id == type(^tenant_id, :binary_id) and is_nil(f.no_longer_observed_at),
+        select: %{
+          copias: count(f.id),
+          caminhos: count(f.path, :distinct),
+          commits: count(f.collected_commit_id, :distinct)
+        }
+    ) || %{copias: 0, caminhos: 0, commits: 0}
+  end
+
+  @doc """
   Os commits, com busca e paginação. Aceita `person_id` para escopar a uma pessoa —
   incluindo os commits em que ela é **co-autora**.
   """
