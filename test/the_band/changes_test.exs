@@ -18,6 +18,7 @@ defmodule TheBand.ChangesTest do
 
   alias TheBand.Changes
   alias TheBand.Changes.Commands
+  alias TheBand.ContadorDeConsultas
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
 
@@ -286,5 +287,31 @@ defmodule TheBand.ChangesTest do
 
     assert {:error, :not_found} = Changes.get(outro_tenant, cr.id)
     assert {:ok, _} = Changes.get(ctx.tenant, cr.id)
+  end
+
+  describe "o resumo das telas" do
+    test "fechada sem integrar não some dentro de fechada", ctx do
+      # A distinção existe porque as duas medem coisas diferentes: uma é trabalho que
+      # entrou, a outra é trabalho que foi revisado e descartado.
+      resumo = Changes.resumo(ctx.tenant)
+
+      assert is_map(resumo)
+      assert Map.has_key?(resumo, :sem_issue)
+    end
+
+    test "o resumo de arquivos conta caminhos e cópias separados", ctx do
+      resumo = Changes.resumo_de_arquivos(ctx.tenant)
+
+      # Caminhos é "quantos arquivos a plataforma conhece"; cópias é quantas vezes foram
+      # tocados. Confundi-los faria a tela dizer que há 87 mil arquivos onde há 17 mil.
+      assert Map.has_key?(resumo, :caminhos)
+      assert Map.has_key?(resumo, :copias)
+      assert Map.has_key?(resumo, :commits)
+    end
+
+    test "cada resumo custa uma consulta, e não uma por linha", ctx do
+      um = ContadorDeConsultas.contar(fn -> Changes.resumo_de_arquivos(ctx.tenant) end)
+      assert um == 1
+    end
   end
 end

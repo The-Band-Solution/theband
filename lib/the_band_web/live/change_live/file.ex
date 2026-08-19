@@ -16,7 +16,12 @@ defmodule TheBandWeb.ChangeLive.File do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "File history", caminho: nil, copias: [], pessoas: [])}
+    # O resumo é do tenant inteiro e não muda com a busca: uma consulta no mount, e
+    # nenhuma por render.
+    {:ok,
+     socket
+     |> assign(page_title: "File history", caminho: nil, copias: [], pessoas: [])
+     |> assign(resumo: Changes.resumo_de_arquivos(socket.assigns.current_tenant))}
   end
 
   @impl true
@@ -61,6 +66,25 @@ defmodule TheBandWeb.ChangeLive.File do
           Who changed a file, and for which issue — each row is one version the source recorded
         </:subtitle>
       </.header>
+
+      <%!-- O painel diz o tamanho do que a plataforma conhece ANTES de alguém procurar:
+            sem ele, uma busca sem resultado é indistinguível de coleta que não rodou.
+            `commits` é o denominador honesto — são 8.194 dos 16.416 commits, e o resto
+            **não foi coletado**, que é diferente de não ter tocado arquivo nenhum. --%>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="rounded-lg border border-base-300 px-3 py-2">
+          <span class="block font-mono text-xl tabular-nums">{@resumo.caminhos}</span>
+          <span class="text-xs opacity-70">file paths known</span>
+        </div>
+        <div class="rounded-lg border border-base-300 px-3 py-2">
+          <span class="block font-mono text-xl tabular-nums">{@resumo.copias}</span>
+          <span class="text-xs opacity-70">versions recorded</span>
+        </div>
+        <div class="rounded-lg border border-base-300 px-3 py-2">
+          <span class="block font-mono text-xl tabular-nums">{@resumo.commits}</span>
+          <span class="text-xs opacity-70">commits swept for files</span>
+        </div>
+      </div>
 
       <.busca valor={@caminho || ""} onde="the exact file path" tabela="files" />
 

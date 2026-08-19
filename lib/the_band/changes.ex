@@ -219,6 +219,71 @@ defmodule TheBand.Changes do
   end
 
   @doc """
+  O painel das solicitações — **uma consulta**, agrupada por estado.
+
+  Fechada sem integrar é linha própria, e não some dentro de "fechada": é trabalho que
+  foi pedido, revisado e **descartado**, e somá-lo às integradas apagaria o único número
+  que mede desperdício de revisão.
+
+  As chaves são as da origem (`OPEN`, `MERGED`, `CLOSED`), mais `:sem_issue` — que não é
+  estado, é a contagem de solicitações sem vínculo com escopo reconhecido.
+  """
+  @spec resumo(Tenant.t()) :: map()
+  def resumo(%Tenant{id: tenant_id}) do
+    por_estado =
+      Repo.all(
+        from c in "collected_change_requests",
+          where: c.tenant_id == type(^tenant_id, :binary_id) and is_nil(c.no_longer_observed_at),
+          group_by: c.state,
+          select: {c.state, count(c.id)}
+      )
+      |> Map.new()
+
+    Map.put(por_estado, :sem_issue, sem_vinculo_de_escopo(tenant_id))
+  end
+
+  # Solicitação que a origem não reconheceu fechando issue nenhuma. **Não é defeito**:
+  # mudança fora de escopo declarado existe e é comum. É medida de quanto do trabalho
+  # não tem rastro até o que foi pedido.
+  defp sem_vinculo_de_escopo(tenant_id) do
+    sem_vinculo =
+      from v in "change_request_issues",
+        where:
+          parent_as(:cr).id == v.collected_change_request_id and
+            is_nil(v.no_longer_observed_at),
+        select: 1
+
+    Repo.one(
+      from c in "collected_change_requests",
+        as: :cr,
+        where:
+          c.tenant_id == type(^tenant_id, :binary_id) and is_nil(c.no_longer_observed_at) and
+            not exists(subquery(sem_vinculo)),
+        select: count(c.id)
+    ) || 0
+  end
+
+  @doc """
+  O painel dos arquivos — **uma consulta**.
+
+  `caminhos` é a pergunta da tela ("quantos arquivos a plataforma conhece"), e `copias`
+  é quantas vezes eles foram tocados. Os dois juntos dizem a média de mexidas por
+  arquivo sem que ninguém precise dividir de cabeça.
+  """
+  @spec resumo_de_arquivos(Tenant.t()) :: map()
+  def resumo_de_arquivos(%Tenant{id: tenant_id}) do
+    Repo.one(
+      from f in "commit_files",
+        where: f.tenant_id == type(^tenant_id, :binary_id) and is_nil(f.no_longer_observed_at),
+        select: %{
+          copias: count(f.id),
+          caminhos: count(f.path, :distinct),
+          commits: count(f.collected_commit_id, :distinct)
+        }
+    ) || %{copias: 0, caminhos: 0, commits: 0}
+  end
+
+  @doc """
   Os commits, com busca e paginação. Aceita `person_id` para escopar a uma pessoa —
   incluindo os commits em que ela é **co-autora**.
   """

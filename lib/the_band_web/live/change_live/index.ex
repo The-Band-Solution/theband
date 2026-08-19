@@ -52,6 +52,7 @@ defmodule TheBandWeb.ChangeLive.Index do
     |> assign(solicitacoes: Changes.list(tenant, opts))
     |> assign(encontradas: Changes.count(tenant, search: estado.busca))
     |> assign(forma: elem(Changes.interpretar_busca(estado.busca || ""), 0))
+    |> assign(resumo: Changes.resumo(tenant))
   end
 
   @impl true
@@ -64,6 +65,23 @@ defmodule TheBandWeb.ChangeLive.Index do
           What was asked to change, who asked, and who integrated it — {@encontradas} found
         </:subtitle>
       </.header>
+
+      <%!-- O PAINEL, e a razão de cada quadro estar aqui. "Fechada sem integrar" não some
+            dentro de "fechada": é trabalho pedido, revisado e descartado, e somá-lo às
+            integradas apagaria o único número que mede desperdício de revisão.
+
+            "Sem issue" não é estado nem defeito — é quanto do trabalho não tem rastro até
+            o que foi pedido. Medido em 2026-08-19: 4.177 de 5.035, ou 83%. Escondê-lo
+            faria o rastreio parecer completo. --%>
+      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div
+          :for={{rotulo, valor, cor} <- quadros(@resumo)}
+          class="rounded-lg border border-base-300 px-3 py-2"
+        >
+          <span class={["block font-mono text-xl tabular-nums", cor]}>{valor}</span>
+          <span class="text-xs opacity-70">{rotulo}</span>
+        </div>
+      </div>
 
       <%!-- O componente da casa já carrega a regra: a tela DECLARA onde procura, porque
             busca que não diz onde faz quem não encontra concluir que o dado não existe. --%>
@@ -151,6 +169,17 @@ defmodule TheBandWeb.ChangeLive.Index do
       />
     </Layouts.app>
     """
+  end
+
+  # A ordem conta o ciclo: o que entrou, o que foi descartado, o que ainda está aberto, e
+  # quanto disso tudo não tem escopo. O último é o único que não é estado.
+  defp quadros(resumo) do
+    [
+      {"merged", Map.get(resumo, "MERGED", 0), ""},
+      {"closed without merging", Map.get(resumo, "CLOSED", 0), "text-warning"},
+      {"still open", Map.get(resumo, "OPEN", 0), ""},
+      {"no issue recognised", Map.get(resumo, :sem_issue, 0), "text-warning"}
+    ]
   end
 
   defp truncado?(%{commits_total: total, commits_collected: coletados})

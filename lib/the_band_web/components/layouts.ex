@@ -64,9 +64,13 @@ defmodule TheBandWeb.Layouts do
           </span>
         </a>
       </div>
+      <%!-- A rolagem vale em QUALQUER largura, e não só no telefone. Com treze itens a
+            barra passou de 1.280px e o `sm:overflow-visible` deixava a PÁGINA rolar de
+            lado — medido em 2026-08-19: documento de 1.430px num viewport de 1.280. O
+            conteúdo largo rola dentro do próprio contêiner; o corpo da página, nunca. --%>
       <div
         :if={@current_tenant}
-        class="nav-rolavel -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:overflow-visible sm:px-0 sm:pb-0"
+        class="nav-rolavel -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0"
       >
         <ul class="flex items-center gap-1 whitespace-nowrap">
           <%!-- A ordem segue o que a plataforma observa, do agente para o trabalho:
@@ -76,6 +80,26 @@ defmodule TheBandWeb.Layouts do
           <li><.link navigate={~p"/people"} class="btn btn-ghost btn-sm">People</.link></li>
           <li><.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">Teams</.link></li>
           <li><.link navigate={~p"/work"} class="btn btn-ghost btn-sm">Work</.link></li>
+          <%!-- Os três continuam a frase que a ordem já contava: o que foi pedido (Work), o
+                que respondeu (Changes), o que a resposta tocou (Files), e o que a máquina
+                disse sobre ela (Checks). Por isso ficam AQUI e não no fim — depois de
+                `Process` eles se separariam do trabalho que descrevem, e a ordem deixaria
+                de contar nada.
+
+                Existem porque as telas existiam e ninguém as achava: 5.035 solicitações,
+                87.719 versões de arquivo e 1.051 execuções alcançáveis só digitando a URL.
+                Quem mantém o projeto perguntou onde elas estavam — se essa pessoa não acha,
+                ninguém acha. --%>
+          <li><.link navigate={~p"/work/changes"} class="btn btn-ghost btn-sm">Changes</.link></li>
+          <li><.link navigate={~p"/work/files"} class="btn btn-ghost btn-sm">Files</.link></li>
+          <%!-- `Checks`, e nunca `CI`: das 1.051 execuções coletadas, 399 não são integração
+                contínua nenhuma — são espelhamento, virada de sprint e automação de quadro —
+                e outras 107 são só implantação. Um menu `CI` prometeria uma coisa e
+                entregaria outra, que é a mesma família de erro que o mapeamento cometeu e o
+                dado desmentiu (L61). --%>
+          <li>
+            <.link navigate={~p"/work/verifications"} class="btn btn-ghost btn-sm">Checks</.link>
+          </li>
           <%!-- Fica do lado do conhecimento, e não da operação: responde "o que a
                 organização faz", e não "a plataforma está funcionando". --%>
           <li><.link navigate={~p"/projects"} class="btn btn-ghost btn-sm">Projects</.link></li>
