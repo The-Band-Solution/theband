@@ -1,0 +1,94 @@
+derivation_rule:
+  id: github.ci_job_routing
+  version: 1
+  provider: github
+  status: proposed
+  confidence: low
+
+  provenance:
+    source_type: project_decision
+    reference: "Issue #401; a regra que o mapeamento do job cita"
+    year: 2026
+    note:
+      pt-BR: >
+        A confiança é BAIXA por natureza, e isso não é defeito da regra: o GitHub não
+        declara qual processo componente um job executa, e o nome é convenção de quem
+        escreveu o workflow.
+
+  name:
+    pt-BR: "Roteamento de job do GitHub Actions por componente do CI"
+
+  description:
+    pt-BR: >
+      Decide qual processo componente da CIRO um job materializa — build, teste ou
+      inspeção — a partir do nome e das etapas.
+
+      **Um job pode materializar mais de um**, e a regra devolve TODOS os reconhecidos.
+      Escolher um e descartar os outros faria a plataforma afirmar que o job só testa
+      quando ele também inspeciona.
+
+  rationale:
+    pt-BR: >
+      Sem esta regra, o CI coletado responde só "passou ou quebrou". Com ela, responde
+      **o que** passou ou quebrou — e teste vermelho tem resposta diferente de inspeção
+      vermelha: um é código, o outro é convenção.
+
+  inputs:
+    - name
+    - steps
+
+  availability:
+    note: >
+      As etapas (`steps`) só vêm na consulta de jobs, não na de execuções. Sem elas a
+      regra decide só pelo nome, e a confiança cai mais ainda — o que a classificação
+      registra.
+    required_api_fields: [name, steps]
+
+  rules:
+    - id: github.ci_job_routing.r01
+      when: "nome ou etapa casa /build|compile|assets|docker|image/"
+      then: "materializa ciro.continuous_build_process"
+      confidence: low
+
+    - id: github.ci_job_routing.r02
+      when: "nome ou etapa casa /test|spec|cobertura|coverage|e2e/"
+      then: "materializa ciro.continuous_test_process"
+      confidence: low
+
+    - id: github.ci_job_routing.r03
+      when: "nome ou etapa casa /lint|format|credo|sobelow|dialyzer|audit|gates|inspect/"
+      then: "materializa ciro.continuous_inspection_process"
+      confidence: low
+
+    - id: github.ci_job_routing.r04
+      when: "mais de uma das três acima casa"
+      then: >
+        Materializa TODAS as reconhecidas, e o job é reportado como
+        `ci.ap01.monolithic_job` — o agrupamento é fato sobre o script, e o custo dele é
+        a plataforma não saber o que quebrou.
+      confidence: medium
+
+    - id: github.ci_job_routing.r05
+      when: "nenhuma casa"
+      then: >
+        **Sem classificação.** Nunca build por padrão: o job fica coletado, a fase vem do
+        resultado, e o componente aparece como ausência nomeada
+        (`ci.ap02.unnamed_components`).
+      confidence: high
+
+  divergence:
+    pt-BR: >
+      Quando o NOME sugere um componente e as ETAPAS sugerem outro, a estrutura vence —
+      `precedence: structure_over_declaration`. Um job chamado `test` cujas etapas só
+      rodam lint é inspeção, e a divergência fica registrada: ela costuma indicar que o
+      job cresceu além do nome.
+
+  limitations:
+    pt-BR: >
+      Os padrões são de língua inglesa e do vocabulário deste ecossistema (`credo`,
+      `dialyzer`, `sobelow` são Elixir). Outra organização com nomes em português ou outra
+      pilha precisa de outros padrões — e é por isso que isto é regra versionada na base,
+      e não código.
+
+      `ciro.continuous_feedback_activity` NÃO é roteada: feedback no GitHub Actions é
+      notificação, e a plataforma não coleta notificação.

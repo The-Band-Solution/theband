@@ -1,0 +1,86 @@
+# O job vira um dos processos componentes do CI — e QUAL deles é derivação, não declaração.
+#
+# A CIRO diz que o processo de CI é composto por build, teste, inspeção e feedback
+# (`ciro.ci_composed_of_build` / `_test` / `_inspection` / `_feedback`). O GitHub **não
+# declara** a qual deles um job pertence: entrega o nome que quem escreveu o workflow deu.
+# A classificação é regra versionada, com a confiança dita e a divergência registrada — o
+# mesmo desenho do roteamento de tipo de issue.
+mapping:
+  id: github.workflow_job.to.ciro.ci_component_process
+  version: 1
+  status: proposed
+source:
+  provider: github
+  entity: workflow_job
+  api: rest
+  schema_version: "2022-11-28"
+  selector:
+    field: name
+    rule_ref: github.ci_job_routing
+    values: ["build", "test", "lint", "inspect", "coverage", "deploy"]
+derivation:
+  rule_id: github.ci_job_routing
+  confidence: low
+  inputs: [name, steps]
+  precedence: structure_over_declaration
+  on_divergence: flag_and_follow_precedence
+  fallback: skip
+target:
+  ontology: ciro
+  concept: ciro.continuous_build_process
+semantics:
+  equivalence: partial
+  justification: >
+    Um job é um processo automatizado com participação do servidor de CI, executado como
+    parte do processo de CI — a forma dos três componentes da CIRO. A equivalência é
+    PARCIAL, e a palavra é escolhida: qual dos três um job é depende de regra sobre o nome
+    e as etapas, e um job pode materializar mais de um. O `target.concept` acima é o padrão
+    da regra; a classificação real vai no registro, com a confiança.
+identity:
+  external_id_path: id
+  natural_key: [run_id, name]
+attributes:
+  job_name:   { source_path: name }
+  conclusion: { source_path: conclusion }
+  started_at: { source_path: started_at }
+  finished_at: { source_path: completed_at }
+  step_names: { source_path: steps, transform: names_only }
+relations:
+  part_of_ci_process:
+    source_path: run_id
+    target_ontology: ciro
+    target_concept: ciro.continuous_integration_process
+    note: >
+      Materializa ciro.ci_composed_of_build / _test / _inspection conforme a regra
+      classificar — a relação de composição é a mesma, o componente muda.
+limitations:
+  - >
+    **A granularidade da origem é mais grossa que a da ontologia, e isso virou
+    antipadrão** (`ci.ap01.monolithic_job`, decidido em 2026-08-18). A CIRO distingue
+    build, teste e inspeção; um job do GitHub pode ser os três — o `quality-gates` deste
+    repositório roda formatação, Credo, Sobelow, Dialyzer e os testes numa etapa só. A
+    classificação registra TODOS os componentes reconhecidos, nunca escolhe um; e o
+    agrupamento é REPORTADO, porque o custo dele é "quebrou" deixar de dizer o quê.
+  - >
+    A confiança é `low` de propósito: o nome do job é convenção de quem escreveu o
+    workflow, não tipo declarado. Nome irreconhecível NÃO vira build por padrão — o job
+    fica coletado sem classificação, e isso também é antipadrão nomeado
+    (`ci.ap02.unnamed_components`): a verificação existe e a plataforma não sabe o que ela
+    verifica.
+  - >
+    As fases do job seguem as do processo, incluindo as três de
+    `ciro.interrupted_verification`: job `skipped` é
+    ciro.unperformed_continuous_integration_process, e é comum — pular porque o anterior
+    falhou é fato sobre o processo, não sobre a qualidade do código.
+  - >
+    ciro.build_problem e ciro.ci_test_result exigem os logs, que não são coletados aqui —
+    job que falhou é malsucedido sem o problema descrito, e a tela diz isso em vez de
+    inventar a causa.
+  - >
+    Etapas (steps) NÃO são mapeadas para
+    ciro.build_composed_of_code_checkout / _environment_creation / _candidate_code_building,
+    embora a CIRO os tenha: a correspondência exigiria reconhecer semanticamente cada
+    etapa, e nada consome isso hoje. Os nomes ficam preservados para quando consumir.
+provenance:
+  preserve_raw_payload: true
+  required_fields: [source_system, source_instance, external_id, collected_at, schema_version]

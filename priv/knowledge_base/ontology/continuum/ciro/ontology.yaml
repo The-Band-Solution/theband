@@ -17,6 +17,7 @@ modules:
   - continuous_build_process
   - continuous_test_process
   - continuous_inspection_process
+  - interrupted_verification
 competency_questions:
   - ciro_competency_questions
 provenance:
