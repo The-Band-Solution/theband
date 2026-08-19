@@ -93,6 +93,13 @@ defmodule TheBandWeb.AILive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <%!-- Reunidas na navegação (#428): quem procura "com que conta a plataforma
+            trabalha" acha aqui, sem precisar saber que existe um endereço /ai. As telas
+            continuam separadas — cada uma faz uma coisa. --%>
+      <.abas abas={[
+        %{rotulo: "Connected tools", destino: ~p"/tools", atual?: false},
+        %{rotulo: "AI provider", destino: ~p"/ai", atual?: true}
+      ]} />
       <.header>
         Language model provider
         <:subtitle>
