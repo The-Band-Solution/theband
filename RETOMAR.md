@@ -74,7 +74,21 @@ Competem pela mesma janela de 5.000 req/h — rodar **uma de cada vez**. Scripts
 - **#436** — os três menus (em implementação)
 - **#437** — páginas de erro 404, 403 e 500
 - **#438** — o vínculo PR→issue que descarta em silêncio (lição L63)
+- **#439** — rastrear código com defeito por pessoa, pelo rastro PR → commit → CI
 
-## Pedido em aberto da pessoa mantenedora
+## Pedidos em aberto da pessoa mantenedora
 
-Propor **outras métricas** a partir das necessidades de informação das ontologias.
+1. Propor **outras métricas** a partir das necessidades de informação das ontologias.
+2. **#439** — rastrear quem sobe código com defeito. O rastro já fecha: a 037 ligou o CI ao
+   commit pelo `head_sha`, e a máxima `ci.ap03.integrated_with_red_verification` já
+   descreve o fato.
+
+   **A armadilha, escrita antes de implementar:** CI vermelho num ramo de proposta é o
+   processo **funcionando** — a verificação pegou o problema antes de integrar. Contar isso
+   como defeito premiaria quem desenvolve local e empurra uma vez, e puniria quem usa o CI
+   como rede. A medida que se sustenta é **o que integrou vermelho**, não o que ficou
+   vermelho.
+
+   E **1.203 dos 16.416 commits têm mais de um autor**: atribuir a "o" autor é impossível
+   em 7% deles. Denominador é obrigatório — "3 integrações vermelhas" sem "em 200
+   solicitações" é o jeito mais rápido de produzir injustiça com dado correto.
