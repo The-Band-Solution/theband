@@ -30,8 +30,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   alias TheBand.Ingestion
   alias TheBand.Ingestion.GithubChangeRequests
+  alias TheBand.Ingestion.GithubCommitFiles
   alias TheBand.Ingestion.GithubIssueComments
   alias TheBand.Ingestion.GithubProjects
+  alias TheBand.Ingestion.GithubVerifications
   alias TheBand.Ingestion.GithubWorkItems
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -203,10 +205,54 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   defp coletar_mudancas(ctx) do
     {:ok, resumo} = GithubChangeRequests.collect(ctx)
 
+    Map.merge(
+      %{
+        change_requests: resumo.change_requests,
+        commits: resumo.commits,
+        attended_issues: resumo.attended_issues
+      },
+      coletar_arquivos(ctx)
+    )
+  end
+
+  # **Depois dos commits**, e por dependência de dado: o arquivo pende de um commit
+  # gravado, e o pendente é lido da BASE (L47).
+  #
+  # `limit` e `wait_for_rate_limit: false` são a diferença desta fase para a coleta
+  # avulsa: são 5.000 requisições por hora e uma por commit, e uma sincronização que
+  # dorme esperando a janela reabrir pareceria travada — o Oban a mataria por tempo
+  # antes de ela terminar. A fatia por passada avança o checkpoint e a próxima
+  # sincronização continua de onde esta parou; a coleta avulsa, sem limite, percorre
+  # tudo esperando a janela.
+  @fatia_de_arquivos 500
+
+  defp coletar_arquivos(ctx) do
+    {:ok, resumo} =
+      GithubCommitFiles.collect(ctx, limit: @fatia_de_arquivos, wait_for_rate_limit: false)
+
+    Map.merge(
+      %{commit_files: resumo.files, file_commits: resumo.commits_visited},
+      coletar_verificacoes(ctx)
+    )
+  end
+
+  # A verificação contínua não depende das fases anteriores — pende só do repositório
+  # observado. Fica por último porque é a mais cara por repositório (uma requisição por
+  # execução para trazer os jobs), e falhar aqui não pode custar o que já foi coletado.
+  #
+  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) —
+  # por isso não há ramo de erro aqui.
+  defp coletar_verificacoes(ctx) do
+    {:ok, resumo} = GithubVerifications.collect(ctx)
+
     %{
-      change_requests: resumo.change_requests,
-      commits: resumo.commits,
-      attended_issues: resumo.attended_issues
+      verifications: resumo.verifications,
+      verification_components: resumo.components,
+      monolithic_jobs: resumo.monolithic_jobs,
+      repositories_without_ci: resumo.without_ci,
+      # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
+      # trabalho, e a diferença entre "volte depois" e "algo quebrou".
+      verifications_rate_limited: resumo.rate_limited
     }
   end
 

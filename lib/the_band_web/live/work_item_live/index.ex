@@ -98,6 +98,18 @@ defmodule TheBandWeb.WorkItemLive.Index do
         </:subtitle>
       </.header>
 
+      <%!-- As três leituras do mesmo trabalho, e a ordem é a do fluxo: o que foi pedido,
+            o que mudou por causa disso, e o que a máquina verificou. Sem esta linha, as
+            duas últimas só eram alcançáveis por links internos — dado coletado que
+            ninguém encontra é dado que não existe para quem usa. --%>
+      <nav class="flex flex-wrap gap-2 text-sm">
+        <.link navigate={~p"/work/changes"} class="btn btn-ghost btn-sm">Change requests</.link>
+        <.link navigate={~p"/work/verifications"} class="btn btn-ghost btn-sm">
+          Continuous verification
+        </.link>
+        <.link navigate={~p"/work/files"} class="btn btn-ghost btn-sm">Files</.link>
+      </nav>
+
       <%!-- No collect action here, and that is a decision. The Syncs button brings
             everything — people, teams, repositories and issues, in one run. A second place
             to trigger it would produce two readings of "when was this updated", and the

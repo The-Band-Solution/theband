@@ -1,78 +1,94 @@
-# Retomar — 2026-08-18 (noite)
+# Retomar — 2026-08-19
 
-## Pendente de VOCÊ: mergear quatro PRs
+## Estado dos PRs
 
-Os três primeiros são **empilhados** — o GitHub reaponta a base sozinho conforme mergeia.
-Todos com revisor conferido e gates 13/13 verdes.
+Mergeados hoje: **#430, #431, #432, #433, #434**. Issues #428 e #429 fecharam sozinhas.
 
-| ordem | PR | o quê |
+| PR | branch | estado |
 |---|---|---|
-| 1 | **#430** | coleta das mudanças: 5.035 solicitações, 16.416 commits, 1.078 vínculos com issues |
-| 2 | **#431** | lista `/work/changes`, busca que lê a forma, commits da pessoa, linha do tempo |
-| 3 | **#433** | arquivos da mudança + página `/work/files` — quem mexeu e por qual issue |
-| 4 | **#434** | as três fases do CI que faltavam na CIRO + os três antipadrões do workflow |
-| — | **#432** | IA vira aba de Tools, Profiles vira aba de Sync (independente; fecha #428) |
+| **#435** | `037-coleta-do-ci` | conflito com o main resolvido, aguardando CI |
+| **#436→** | `038-menus-do-rastro` | menus e mini-painéis, ainda sem PR |
 
-**Conferir issues depois de cada merge**: `Closes` com várias issues numa keyword só fecha
-apenas a primeira (aconteceu no #425, e as treze restantes foram fechadas à mão).
+## O que a 037 entregou
 
-## Coleta rodando em background
+A coleta do CI, duas telas (`/work/verifications` e o detalhe) e a seção de verificação
+na página da mudança.
 
-Os arquivos de commit (`cmpo.artifact_copy`) estão sendo coletados de **todos** os 16.416
-commits. Ela pausa nas janelas de rate limit e retoma sozinha; o checkpoint por commit
-(`files_collected_at`) faz cada execução continuar de onde parou. **Se o processo morrer,
-basta rodar de novo** — nada se perde.
+**O achado que reorientou a feature:** toda execução do Actions estava sendo mapeada para
+`ciro.continuous_integration_process`. Das 1.051 coletadas, 399 não são integração
+contínua nenhuma — `Sync to GitLab`, `Sprint Rollover`, `Card de promoção`. O tipo passou
+a ser derivado dos jobs, e "a rede não tem conceito para isto" é resposta, não lacuna.
 
-## Protótipo esperando sua opinião
+## O que a 038 entrega
 
-**Verificação Contínua (#401)** — https://claude.ai/code/artifact/98a56a7a-9fa9-4d92-8afa-0ae043acfb5a
+Três menus na barra — `Changes`, `Files`, `Checks` — porque 5.035 solicitações, 87.719
+versões de arquivo e 1.051 execuções só eram alcançáveis digitando a URL.
 
-Três telas para o CI, com dados reais deste repositório. As decisões que ele propõe:
+Mais mini-painéis em `/work/changes` e `/work/files`.
 
-- **cancelado não é malsucedido** — a CIRO define malsucedido como "não integrou por
-  problema em componente", e cancelar não é falhar. `cancelled`, `skipped` e `timed_out`
-  ficam sem fase;
-- **"em andamento" não tem fase** — processo que não terminou não é nem bem nem
-  malsucedido;
-- **um job pode ser build, teste E inspeção** (o `quality-gates` deste repo é os três) — a
-  classificação registra todos, nunca escolhe um;
-- **integrado com verificação vermelha** é anti-padrão que só aparece porque CI e rastreio
-  estão no mesmo rastro. O PR #427 tem um commit que nunca passou.
+## ⚠ O defeito aberto — issue [#438](https://github.com/The-Band-Solution/theband/issues/438)
 
-**As duas decisões que você tomou revendo o protótipo já estão na base (#434)**: as três
-fases (cancelado/pulado/expirado deixaram de ser "sem fase" e ganharam nome) e os três
-antipadrões do workflow.
+O painel de `/work/changes` mostrava **"no issue recognised: 4.177"** — 83% das
+solicitações. A pessoa mantenedora desconfiou do volume, e estava certa.
 
-O outro protótipo, já implementado: **Rastro da Mudança** —
-https://claude.ai/code/artifact/d5f1ef0e-a9ed-4891-8631-b5384db28a97
+Conferido contra a origem em 2026-08-19, três PRs sem vínculo no banco:
 
-## Próximo trabalho
+| PR | a origem diz | o banco diz |
+|---|---|---|
+| `The-Band-Solution/theband#427` | fecha #426 | nenhum vínculo |
+| `leds-conectafapes/…-otto#127` | fecha #675 | nenhum vínculo |
+| `…prestacao-de-contas#133` | fecha nada | nenhum vínculo |
 
-1. **#401 — coletar o CI**. Agora o modelo está completo: mapeamentos de run e job, as três
-   fases de `ciro.interrupted_verification`, os três antipadrões de `ci.antipatterns` e a
-   regra `github.ci_job_routing` — tudo no #434. **Falta só a coleta e as telas**, e o
-   protótipo acima já as desenha.
-2. **Review dos sprints 018, 019 e 020** + consolidar lições. Cinco desta sessão:
-   - crash da mediana `0.0` deixou a rodada muda por 7h (oitava do sucesso silencioso);
-   - `Closes #A #B #C` fecha só a primeira (segunda da L48);
-   - marcar por timestamp falha no mesmo segundo (L46 reincidindo → marcar por conjunto);
-   - **contador armazenado mente quando nasce depois do dado** (a coluna de commits
-     mostrava zero; virou derivada das entradas);
-   - **"não coletado" era limitação nossa, não da origem** — duas vezes: os 509 PRs
-     truncados e o escopo dos arquivos. Nas duas, o certo foi remover a limitação.
-     E ao removê-la apareceu um defeito que não existia ainda: o GitHub usa **403 tanto
-     para credencial recusada quanto para rate limit**, e tratar igual marcaria a
-     ferramenta como problemática por engano.
-3. #397 (equipe de equipes), #81 (filtro por organização), #363/#364 (competência como
-   unidade).
+**Dois de três são falha nossa, não fato sobre o processo.** A causa está em
+`GithubChangeRequests.vincular_issues/3`: o vínculo só é gravado quando a issue
+referenciada **já está em `collected_issues`**. Quando não está, o vínculo é descartado
+**em silêncio** — `map_size(ids)` conta só o que casou, e nada registra que a origem dizia
+mais.
 
-## Decisões suas em aberto
+É a família do sucesso silencioso, de novo.
 
-#356 (pisos N/M), #358 (quickstart — o botão da landing diz README até existir), #367,
-#368, #369, #370, #176.
+### O conserto
 
-## A rodada de perfis
+1. Guardar `attended_issues_total` (o que a origem disse) na solicitação, como já se faz
+   com `commits_total`. Sem isso a plataforma não consegue nem medir o buraco.
+2. O painel deixa de dizer "no issue recognised" — que é afirmação sobre o processo — e
+   passa a separar "a origem não reconheceu nenhuma" de "a origem reconheceu e a issue não
+   foi coletada".
+3. Investigar por que a issue #426 do próprio `theband` não está coletada, se ela deveria.
 
-Encerrada como `ended_early` pelo crash (consertado e testado). **Clicar "run now —
-everyone"** na aba Profile generation gera com as regras novas: esperado ~60 de 88, em
-inglês. ~750k tokens.
+**Enquanto isso o quadro não pode ir para produção com esse rótulo** — é o primeiro
+item de amanhã.
+
+## Coletas paradas
+
+| coleta | onde parou |
+|---|---|
+| arquivos dos commits | 8.194 de 16.416 |
+| verificações do CI | 4 de 160 repositórios |
+
+Competem pela mesma janela de 5.000 req/h — rodar **uma de cada vez**. Scripts em
+`coleta_ci.exs` e `coleta_arquivos.exs`.
+
+## Backlog registrado hoje
+
+- **#436** — os três menus (em implementação)
+- **#437** — páginas de erro 404, 403 e 500
+- **#438** — o vínculo PR→issue que descarta em silêncio (lição L63)
+- **#439** — rastrear código com defeito por pessoa, pelo rastro PR → commit → CI
+
+## Pedidos em aberto da pessoa mantenedora
+
+1. Propor **outras métricas** a partir das necessidades de informação das ontologias.
+2. **#439** — rastrear quem sobe código com defeito. O rastro já fecha: a 037 ligou o CI ao
+   commit pelo `head_sha`, e a máxima `ci.ap03.integrated_with_red_verification` já
+   descreve o fato.
+
+   **A armadilha, escrita antes de implementar:** CI vermelho num ramo de proposta é o
+   processo **funcionando** — a verificação pegou o problema antes de integrar. Contar isso
+   como defeito premiaria quem desenvolve local e empurra uma vez, e puniria quem usa o CI
+   como rede. A medida que se sustenta é **o que integrou vermelho**, não o que ficou
+   vermelho.
+
+   E **1.203 dos 16.416 commits têm mais de um autor**: atribuir a "o" autor é impossível
+   em 7% deles. Denominador é obrigatório — "3 integrações vermelhas" sem "em 200
+   solicitações" é o jeito mais rápido de produzir injustiça com dado correto.

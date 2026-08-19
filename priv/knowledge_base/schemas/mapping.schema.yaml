@@ -121,6 +121,14 @@ properties:
         source_path: { type: string }
         transform:   { type: string }
         default:     {}
+        # Para o atributo que NÃO vem do payload: o valor é derivado por uma regra da
+        # base, e `source_path` não existe para ele. Sem este campo a explicação teria de
+        # ir para `limitations`, onde descreveria como limitação algo que é derivação
+        # deliberada — o mesmo motivo do `note` das relações, logo abaixo.
+        #
+        # Quem usa isto assume o resto da regra da casa: valor derivado é rotulado como
+        # derivado na tela, nunca apresentado como se a origem o tivesse dito.
+        derived_from: { type: string }
   relations:
     type: object
     additionalProperties:

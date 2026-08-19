@@ -53,18 +53,26 @@ derivation_rule:
   antipatterns:
     - id: ci.ap01.monolithic_job
       name:
-        pt-BR: "Job que faz build, teste e inspeção de uma vez"
+        pt-BR: "Job que faz mais de um processo de uma vez"
       statement:
         pt-BR: >
-          Um único job materializa mais de um dos processos componentes que a CIRO
-          distingue — build, teste, inspeção. O script agrupou etapas, e a origem informa
+          Um único job materializa mais de um processo do continuum — build, teste,
+          inspeção, entrega ou implantação. O script agrupou etapas, e a origem informa
           **um** resultado onde havia vários.
 
           Medido neste repositório em 2026-08-18: o job `quality-gates` roda formatação,
           Credo, Sobelow, Dialyzer **e** os testes numa etapa só.
+
+          E medido no dado coletado, no mesmo dia: **502 jobs** chamados
+          `Deploy backoffice` e `Deploy front-office` têm as etapas
+          `Build production bundle` **e** `Deploy to Vercel production` juntas.
+
+          A primeira versão desta máxima contava só processos da CIRO, e teria deixado os
+          502 de fora por serem CIRO com CDRO. O dado mostrou que a perda é a mesma: com
+          um único `conclusion`, ninguém sabe se quebrou o empacotamento ou a publicação.
       formal: >
         ∀ j: WorkflowJob
-          (|{c : c ∈ {build, test, inspection} ∧ materializes(j, c)}| > 1)
+          (|{c : c ∈ ContinuumProcess ∧ materializes(j, c)}| > 1)
           → MonolithicJob(j)
       consequence:
         pt-BR: >
@@ -75,7 +83,8 @@ derivation_rule:
           E as medidas por componente ficam impossíveis: não há "tempo de build" nem
           "taxa de quebra de teste" quando os três vivem no mesmo job.
       concepts:
-        [ciro.continuous_build_process, ciro.continuous_test_process, ciro.continuous_inspection_process]
+        [ciro.continuous_build_process, ciro.continuous_test_process,
+         ciro.continuous_inspection_process, cdro.delivery_activity, cdro.deployment_activity]
       enforcement: detection
       severity: estrutural
       note:
@@ -93,9 +102,16 @@ derivation_rule:
           Nenhuma etapa do job permite reconhecer qual processo componente ela executa. O
           job é coletado e fica **sem classificação** — que é ausência nomeada, nunca
           "build por padrão".
+
+          **Só vale dentro de execução que é integração contínua**, e essa restrição veio
+          do dado. Sem ela, a máxima disparava em 751 dos 1.530 jobs coletados em
+          2026-08-18 — `sync`, `deploy`, `rollover`, `release`, `sincronizar-card`. Não
+          era job mal escrito: era execução que **não é CI**, e reportá-la aqui produziria
+          751 defeitos falsos. Com a restrição, dispara em zero.
       formal: >
-        ∀ j: WorkflowJob
-          (¬∃c (c ∈ {build, test, inspection} ∧ materializes(j, c)))
+        ∀ j: WorkflowJob, r: WorkflowRun
+          (partOf(j, r) ∧ ContinuousIntegrationProcess(r)
+           ∧ ¬∃c (c ∈ {build, test, inspection} ∧ materializes(j, c)))
           → UnnamedComponents(j)
       consequence:
         pt-BR: >

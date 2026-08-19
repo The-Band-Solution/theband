@@ -75,6 +75,8 @@ defmodule TheBandWeb.Router do
       # O caminho vem na query string, e não no path: caminho de arquivo tem barras, e
       # um `:path` no roteador não casaria `lib/the_band/changes.ex`.
       live "/work/files", ChangeLive.File, :index
+      live "/work/verifications", VerificationLive.Index, :index
+      live "/work/verifications/:id", VerificationLive.Show, :show
       live "/work/changes", ChangeLive.Index, :index
       live "/work/changes/:id", ChangeLive.Show, :show
       live "/work/repositories/:id", RepositoryLive.Show, :show

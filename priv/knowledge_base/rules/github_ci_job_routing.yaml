@@ -60,8 +60,18 @@ derivation_rule:
       then: "materializa ciro.continuous_inspection_process"
       confidence: low
 
+    - id: github.ci_job_routing.r04a
+      when: "nome ou etapa casa /deploy|implanta|rollout|helm|kubectl|argocd/"
+      then: "materializa cdro.deployment_activity — CDRO, e NÃO um componente da CIRO"
+      confidence: low
+
+    - id: github.ci_job_routing.r04b
+      when: "nome ou etapa casa /release|publish|delivery|entrega/"
+      then: "materializa cdro.delivery_activity"
+      confidence: low
+
     - id: github.ci_job_routing.r04
-      when: "mais de uma das três acima casa"
+      when: "mais de uma das anteriores casa"
       then: >
         Materializa TODAS as reconhecidas, e o job é reportado como
         `ci.ap01.monolithic_job` — o agrupamento é fato sobre o script, e o custo dele é
@@ -75,6 +85,39 @@ derivation_rule:
         resultado, e o componente aparece como ausência nomeada
         (`ci.ap02.unnamed_components`).
       confidence: high
+
+  narrowness:
+    pt-BR: >
+      **Padrão largo demais não coleta mais: inventa mais.** Medido em 2026-08-18, duas
+      correções vieram do dado e não do desenho:
+
+      `artifact` estava em r04b e casava com a etapa `Upload Pages artifact` de um job de
+      build — 238 entregas contínuas que não existem. Subir artefato para o job seguinte é
+      o build entregando a si mesmo. Removido.
+
+      `package` estava em r01 e casava com `Install npm packages`, que é preparo e não
+      construção. Removido pelo mesmo motivo.
+
+      A regra prefere reconhecer de menos: o não reconhecido vira ausência nomeada, que a
+      tela mostra e alguém corrige. O reconhecido errado vira medida, e ninguém a
+      questiona.
+
+  process_kind:
+    pt-BR: >
+      O TIPO da execução é derivado dos componentes dos seus jobs, e não do fluxo:
+
+        * algum componente da CIRO → `ciro.continuous_integration_process`
+        * algum da CDRO → `cdro.continuous_deployment_process`
+        * nenhum → **a rede não tem conceito**, e a lista fica vazia
+
+      As duas primeiras não são exclusivas: o fluxo do GitHub Pages tem um job `build` e
+      um `deploy`, e a execução é as duas coisas.
+
+      Isto substitui a suposição da primeira versão, de que toda execução do Actions é
+      integração contínua. Medido em 2026-08-18 nas 1.051 execuções coletadas: **399 não
+      são nem verificação nem implantação** — `Sync to GitLab` (264), `Sprint Rollover`
+      (109), `Card de promoção` (19). São automação de quadro e espelhamento, e chamá-las
+      de CI envenenaria toda medida de verificação com execuções que nada verificam.
 
   divergence:
     pt-BR: >
