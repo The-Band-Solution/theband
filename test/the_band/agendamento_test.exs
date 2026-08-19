@@ -107,6 +107,20 @@ defmodule TheBand.AgendamentoTest do
       assert {:ok, %{enqueued: 1}} = Ingestion.enqueue_due_syncs()
     end
 
+    test "coleta de OUTRA ferramenta do mesmo tenant também adia — issue #446", ctx do
+      # As três coletas de um tenant compartilham a janela de rate limit da conta e o pool de
+      # conexões do banco. A guarda por ferramenta não vê nenhum dos dois, e foi o que
+      # aconteceu quando a pessoa mantenedora sincronizou as três organizações de uma vez.
+      outra = ferramenta(ctx.tenant, "outra-org")
+      com_intervalo(outra, 15, DateTime.add(DateTime.utc_now(:second), -60, :minute))
+
+      # Uma coleta em andamento na PRIMEIRA ferramenta...
+      coleta(ctx, "running", DateTime.utc_now(:second))
+
+      # ...adia a segunda, mesmo sendo outra organização.
+      assert {:ok, %{enqueued: 0, skipped_running: 1}} = Ingestion.enqueue_due_syncs()
+    end
+
     test "coleta em andamento não é reenfileirada", ctx do
       # A guarda que impede o defeito da L02: coleta que leva mais que o intervalo rodaria
       # duas vezes, e o número dobrado pareceria plausível.

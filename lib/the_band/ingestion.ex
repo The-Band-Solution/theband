@@ -461,8 +461,24 @@ defmodule TheBand.Ingestion do
     )
   end
 
-  defp coleta_em_andamento?(%ConnectedTool{id: tool_id}) do
-    Repo.exists?(from s in Sync, where: s.connected_tool_id == ^tool_id and s.status == "running")
+  # **Por TENANT, e não por ferramenta** — issue #446.
+  #
+  # A guarda por ferramenta impedia a mesma organização de coletar duas vezes, e era o
+  # suficiente enquanto cada coleta percorria só os repositórios dela. Mas as três coletas de
+  # um tenant compartilham duas coisas que a ferramenta não sabe:
+  #
+  #   * **a janela de rate limit**, que é da conta do GitHub e não da organização;
+  #   * **o pool de conexões do banco**, que já esgotou em `too many clients already` com
+  #     duas cargas concorrentes.
+  #
+  # Serializar custa tempo de parede — um tenant com três organizações leva três ciclos em
+  # vez de um. Num intervalo de seis horas isso não é custo; num pico de rate limit, o
+  # contrário é.
+  #
+  # Vale **só para o agendador**. O botão na tela continua por ferramenta: uma pessoa
+  # clicando três vezes está decidindo, e recusar a decisão dela seria surpresa.
+  defp coleta_em_andamento?(%ConnectedTool{tenant_id: tenant_id}) do
+    Repo.exists?(from s in Sync, where: s.tenant_id == ^tenant_id and s.status == "running")
   end
 
   defp enfileirar(%ConnectedTool{tenant_id: tenant_id} = tool) do

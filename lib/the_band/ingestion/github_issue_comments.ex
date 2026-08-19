@@ -41,7 +41,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   @spec collect(map()) :: {:ok, map()}
   def collect(ctx) do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
-    repositorios = repositorios_observados(ctx.tenant.id)
+    repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
     resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
 
@@ -56,14 +56,28 @@ defmodule TheBand.Ingestion.GithubIssueComments do
      }}
   end
 
-  defp repositorios_observados(tenant_id) do
+  # **Filtra pela FERRAMENTA, não só pelo tenant** — issue #446.
+  #
+  # Um tenant pode ter mais de uma organização conectada, e o dado sempre soube de quem é
+  # cada repositório: `observed_repositories.connected_tool_id` é gravado por
+  # `GithubWorkItems` na hora de observar. As fases seguintes ignoravam a coluna e
+  # percorriam o tenant inteiro.
+  #
+  # Medido em 2026-08-19: 3 ferramentas com 121, 25 e 14 repositórios: sincronizar as três
+  # percorria 480 em vez de 160, concorrentemente, **e cada uma usava a própria credencial
+  # para repositórios das outras duas**. Onde a credencial errada recebia 404, a fase
+  # marcava o repositório como percorrido e vazio — ausência de ACESSO lida como ausência
+  # de dado, que é a confusão que a casa mais combate.
+  defp repositorios_observados(tenant_id, tool_id) do
     # owner/name vêm do repositório-fonte (qualified_name = "owner/name"); a marca de
     # exclusão da observação é excluded_at — exclusão é decisão de quem administra.
     Repo.all(
       from r in "observed_repositories",
         join: f in "cmpo_source_repositories",
         on: f.id == r.source_repository_id,
-        where: r.tenant_id == type(^tenant_id, :binary_id) and is_nil(r.excluded_at),
+        where:
+          r.tenant_id == type(^tenant_id, :binary_id) and
+            r.connected_tool_id == type(^tool_id, :binary_id) and is_nil(r.excluded_at),
         select: %{
           id: type(r.id, :binary_id),
           qualified_name: f.qualified_name,
