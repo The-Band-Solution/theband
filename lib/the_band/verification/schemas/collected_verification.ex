@@ -20,6 +20,10 @@ defmodule TheBand.Verification.Schemas.CollectedVerification do
     field :observed_repository_id, :binary_id
 
     field :workflow_name, :string
+    # O arquivo que define o workflow — issue #440. Serve para o antipadrão `ci.ap01` apontar o
+    # que corrigir em vez do nome do job, que é proxy: dois repositórios com um job `build`
+    # viram a mesma linha.
+    field :workflow_path, :string
     field :head_sha, :string
     field :head_branch, :string
 
@@ -51,7 +55,7 @@ defmodule TheBand.Verification.Schemas.CollectedVerification do
     timestamps(type: :utc_datetime)
   end
 
-  @campos ~w(tenant_id observed_repository_id workflow_name head_sha head_branch
+  @campos ~w(tenant_id observed_repository_id workflow_name workflow_path head_sha head_branch
              trigger_event run_status conclusion phase process_kinds attempt external_started_at
              external_finished_at actor_login actor_person_id source_system
              source_instance external_id raw_payload collected_at last_observed_at

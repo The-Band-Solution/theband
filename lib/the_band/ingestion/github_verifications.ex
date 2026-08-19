@@ -185,6 +185,7 @@ defmodule TheBand.Ingestion.GithubVerifications do
       Commands.record_verification(ctx.tenant, %{
         observed_repository_id: repo.id,
         workflow_name: run["name"],
+        workflow_path: run["path"],
         head_sha: run["head_sha"],
         head_branch: run["head_branch"],
         # Crus, como a origem entrega — a tradução fica ao lado, nunca no lugar.

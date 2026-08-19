@@ -75,6 +75,47 @@ query($owner: String!, $name: String!, $page_size: Int = 25, $commit_size: Int =
           }
         }
 
+        # O ESTADO DA VERIFICAÇÃO DO COMMIT QUE ENTROU — a pergunta da máxima `ci.ap03`.
+        #
+        # `commits(last: 1)` é a ponta do ramo no momento do merge, e é ela que interessa: a
+        # máxima fala de "integrado com verificação vermelha", e o que foi integrado é a ponta,
+        # não todos os commits que passaram pelo ramo.
+        #
+        # `statusCheckRollup` é campo do **commit**, não do PR, e agrega as duas camadas que a
+        # coleta de `workflow_run` não alcança: os `check_run` da API de Checks e os `status` da
+        # API antiga, postos por serviço externo.
+        #
+        # **Por que isto responde o que o casamento por SHA não respondia:** a execução coletada
+        # tem `head_sha` = ponta do ramo NAQUELE instante. Ramo que recebeu mais commits depois
+        # deixa aquela execução apontando para um SHA que não é mais a ponta — e o casamento só
+        # acha execução para os commits que foram ponta em algum push. Medido em 2026-08-19: 98
+        # das 415 solicitações de uma pessoa caíam nesse buraco, e eu as chamava de
+        # "não dá para saber".
+        #
+        # E `state` nulo com zero contextos **não é desconhecimento**: é nenhum check ter
+        # rodado, que é fato sobre o processo. Conferido em `ifesserra-lab/egressos#18`.
+        pontaVerificada: commits(last: 1) {
+          nodes {
+            commit {
+              oid
+              statusCheckRollup {
+                state
+                contexts(first: 20) {
+                  totalCount
+                  nodes {
+                    __typename
+                    # `CheckRun` vem do Actions e de apps; `StatusContext` da API antiga. Os dois
+                    # nomeiam a verificação de formas diferentes, e guardar o `__typename` é o
+                    # que permite dizer de qual camada o resultado veio.
+                    ... on CheckRun { name conclusion status }
+                    ... on StatusContext { context state }
+                  }
+                }
+              }
+            }
+          }
+        }
+
         commits(first: $commit_size) {
           totalCount
           # O cursor existe para a paginação dos truncados: sem ele, "não coletado" seria
