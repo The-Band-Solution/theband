@@ -1,79 +1,80 @@
-# Retomar
+# Retomar — 2026-08-19
 
-Última sessão: 2026-08-18, noite. Branch `037-coleta-do-ci`.
+## Estado dos PRs
 
-## O que acabou de ser feito — feature 037, o CI (#401)
+Mergeados hoje: **#430, #431, #432, #433, #434**. Issues #428 e #429 fecharam sozinhas.
 
-PR **#435** aberto (base `036-fases-e-antipadrao-do-ci`), 13 gates verdes, 1.038 testes
-mais 26 novos. Dois commits: a feature e a correção do rate limit.
-
-**O achado que reorientou a feature.** A primeira versão mapeava toda execução do
-Actions para `ciro.continuous_integration_process`. O dado real desmentiu: das 1.051
-execuções do primeiro repositório, as cinco mais frequentes são `Sync to GitLab` (264),
-`Deploy Docs to GitHub Pages` (247), `Deploy Backoffice and Front-office` (235),
-`Sprint Rollover` (109) e `Release ConectaFapes` (90) — **nenhuma integra código**.
-
-O tipo passou a ser derivado dos componentes dos jobs: CIRO, CDRO, ou **vazio** quando
-não há nenhum (399 execuções, que a tela nomeia em vez de esconder). A limitação estava
-escrita no mapeamento desde a versão 1 e o código a ignorava.
-
-**As três fases de ontem se confirmaram**: 55 falhas e 54 cancelamentos. Contar
-cancelado como falha levaria a taxa de quebra de 5,2% para 10,4%.
-
-**Dois padrões saíram por inventarem**: `artifact` casava com `Upload Pages artifact` e
-produzia 238 entregas inexistentes; `package` casava com `Install npm packages`. Virou
-memória: [padrao-largo-inventa-mais].
-
-**`ci.ap02` estreitou** (751 defeitos falsos → 0, só vale dentro de execução de CI) e
-**`ci.ap01` alargou** (502 jobs `Deploy backoffice` fazem build e deploy no mesmo job).
-
-## Estado das coletas — as duas estão PARADAS
-
-| coleta | onde parou | como retomar |
+| PR | branch | estado |
 |---|---|---|
-| arquivos dos commits | 8.438 de 16.416 | `mix run <scratchpad>/coleta_arquivos.exs` |
-| verificações do CI | 4 de 160 repositórios | `mix run <scratchpad>/coleta_ci.exs` |
+| **#435** | `037-coleta-do-ci` | conflito com o main resolvido, aguardando CI |
+| **#436→** | `038-menus-do-rastro` | menus e mini-painéis, ainda sem PR |
 
-**As duas competem pela mesma janela de 5.000 req/h**, e rodar juntas esgota tudo. A do
-CI faz uma requisição por execução (para os jobs); a de arquivos, uma por commit.
-Rodar **uma de cada vez**.
+## O que a 037 entregou
 
-Nenhum checkpoint ficou sujo: a coleta do CI só marca o repositório com os jobs todos
-coletados, e a de arquivos marca por commit.
+A coleta do CI, duas telas (`/work/verifications` e o detalhe) e a seção de verificação
+na página da mudança.
 
-## Falta na 037
+**O achado que reorientou a feature:** toda execução do Actions estava sendo mapeada para
+`ciro.continuous_integration_process`. Das 1.051 coletadas, 399 não são integração
+contínua nenhuma — `Sync to GitLab`, `Sprint Rollover`, `Card de promoção`. O tipo passou
+a ser derivado dos jobs, e "a rede não tem conceito para isto" é resposta, não lacuna.
 
-- rodar as duas coletas até o fim, uma de cada vez;
-- capturar as telas `/work/verifications` e `/work/verifications/:id` com dado real;
-- sprint backlog e review da 037.
+## O que a 038 entrega
 
-## Os seis PRs abertos, e um problema que atinge todos
+Três menus na barra — `Changes`, `Files`, `Checks` — porque 5.035 solicitações, 87.719
+versões de arquivo e 1.051 execuções só eram alcançáveis digitando a URL.
 
-| PR | base | estado | fecha issue? |
-|---|---|---|---|
-| ~~#430~~ | main | **MERGEADO** | não tinha keyword — #395/#396 seguem abertas |
-| #431 | main | conflito **resolvido**, mergeable | **não tem keyword** |
-| #432 | main | aberto | sim, #428 |
-| #433 | 033-… | aberto | `Closes #429` mas **não vincula** |
-| #434 | 035-… | aberto | **não tem keyword** |
-| #435 | 036-… | aberto | `Closes #401` mas **não vincula** |
+Mais mini-painéis em `/work/changes` e `/work/files`.
 
-**O #430 foi mergeado por squash**, e foi isso que gerou o conflito do #431: o git passou
-a ver `changes.ex` e `changes_test.exs` como criados dos dois lados. Resolvido conferindo
-que a versão da branch é superconjunto estrita — nada existia só no main.
+## ⚠ O defeito aberto — issue [#438](https://github.com/The-Band-Solution/theband/issues/438)
 
-À medida que a pilha for mergeando, os PRs de cima vão repetir esse conflito. A conferência
-é sempre a mesma: `diff` entre a versão do main e a da branch, e só aceitar "ficar com a
-minha" quando o lado do main não tiver nada exclusivo.
+O painel de `/work/changes` mostrava **"no issue recognised: 4.177"** — 83% das
+solicitações. A pessoa mantenedora desconfiou do volume, e estava certa.
 
-**Descoberto hoje**: closing keyword do GitHub **só cria vínculo quando a base é a
-branch padrão**. PR empilhado nunca fecha issue, mesmo com a sintaxe certa. É o terceiro
-jeito de essa promessa falhar em silêncio — memória [fecha-em-portugues-nao-fecha-issue]
-atualizada.
+Conferido contra a origem em 2026-08-19, três PRs sem vínculo no banco:
 
-Ao mergear a cadeia, **fechar #395, #396, #401, #427, #429 à mão** e conferir com
-`gh issue view`.
+| PR | a origem diz | o banco diz |
+|---|---|---|
+| `The-Band-Solution/theband#427` | fecha #426 | nenhum vínculo |
+| `leds-conectafapes/…-otto#127` | fecha #675 | nenhum vínculo |
+| `…prestacao-de-contas#133` | fecha nada | nenhum vínculo |
 
-## Ordem sugerida dos merges
+**Dois de três são falha nossa, não fato sobre o processo.** A causa está em
+`GithubChangeRequests.vincular_issues/3`: o vínculo só é gravado quando a issue
+referenciada **já está em `collected_issues`**. Quando não está, o vínculo é descartado
+**em silêncio** — `map_size(ids)` conta só o que casou, e nada registra que a origem dizia
+mais.
 
-`#430` → `#431` → `#433` → `#434` → `#435`, e `#432` a qualquer momento (independente).
+É a família do sucesso silencioso, de novo.
+
+### O conserto
+
+1. Guardar `attended_issues_total` (o que a origem disse) na solicitação, como já se faz
+   com `commits_total`. Sem isso a plataforma não consegue nem medir o buraco.
+2. O painel deixa de dizer "no issue recognised" — que é afirmação sobre o processo — e
+   passa a separar "a origem não reconheceu nenhuma" de "a origem reconheceu e a issue não
+   foi coletada".
+3. Investigar por que a issue #426 do próprio `theband` não está coletada, se ela deveria.
+
+**Enquanto isso o quadro não pode ir para produção com esse rótulo** — é o primeiro
+item de amanhã.
+
+## Coletas paradas
+
+| coleta | onde parou |
+|---|---|
+| arquivos dos commits | 8.194 de 16.416 |
+| verificações do CI | 4 de 160 repositórios |
+
+Competem pela mesma janela de 5.000 req/h — rodar **uma de cada vez**. Scripts em
+`coleta_ci.exs` e `coleta_arquivos.exs`.
+
+## Backlog registrado hoje
+
+- **#436** — os três menus (em implementação)
+- **#437** — páginas de erro 404, 403 e 500
+- **#438** — o vínculo PR→issue que descarta em silêncio (lição L63)
+
+## Pedido em aberto da pessoa mantenedora
+
+Propor **outras métricas** a partir das necessidades de informação das ontologias.

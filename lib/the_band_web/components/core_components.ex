@@ -403,6 +403,36 @@ defmodule TheBandWeb.CoreComponents do
   end
 
   @doc """
+  As abas de uma área — telas irmãs que respondem perguntas vizinhas.
+
+  **Reúne na navegação sem fundir as telas.** Cada uma continua fazendo uma coisa
+  (constituição, princípio X); o que muda é quem procura achar sem saber o endereço de
+  cor. A aba atual não é link: link para onde já se está é clique que não leva a lugar
+  nenhum.
+  """
+  attr :abas, :list, required: true, doc: "lista de %{rotulo:, destino:, atual?:}"
+
+  def abas(assigns) do
+    ~H"""
+    <nav class="mb-4 flex flex-wrap gap-1 border-b border-base-300" aria-label="areas">
+      <span
+        :for={aba <- @abas}
+        class={[
+          "-mb-px border-b-2 px-3 py-1.5 text-sm",
+          aba.atual? && "border-primary font-medium text-primary",
+          !aba.atual? && "border-transparent"
+        ]}
+      >
+        <span :if={aba.atual?} aria-current="page">{aba.rotulo}</span>
+        <.link :if={!aba.atual?} navigate={aba.destino} class="link link-hover opacity-70">
+          {aba.rotulo}
+        </.link>
+      </span>
+    </nav>
+    """
+  end
+
+  @doc """
   A paginação numerada.
 
   ## Por que reticências, e o que elas preservam

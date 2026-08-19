@@ -2156,3 +2156,54 @@ existir?", e o teste começa criando essa linha. Sem isso, a suíte verde só pr
 não foi visitada.
 
 **Estado**: aberta.
+
+---
+
+## L63 — Vínculo que só grava o que casou apaga o que a origem disse
+
+**Origem**: Sprint 021 (feature 038) · **Tipo**: técnica
+
+**O que aconteceu.** Um painel novo em `/work/changes` mostrou **"no issue recognised:
+4.177"** — 83% das 5.035 solicitações sem vínculo com escopo. A pessoa mantenedora
+desconfiou do volume e mandou conferir. Três solicitações amostradas contra a origem:
+
+| PR | a origem diz | o banco diz |
+|---|---|---|
+| `The-Band-Solution/theband#427` | fecha #426 | nenhum vínculo |
+| `leds-conectafapes/…-otto#127` | fecha #675 | nenhum vínculo |
+| `…prestacao-de-contas#133` | fecha nada | nenhum vínculo |
+
+**Dois de três eram falha da coleta**, não fato sobre o processo.
+
+**Por que aconteceu.** `GithubChangeRequests.vincular_issues/3` traduz os
+`closingIssuesReferences` da origem para ids internos, e só grava o que **já existe** em
+`collected_issues`:
+
+```elixir
+externos = Enum.map(get_in(node, ["closingIssuesReferences", "nodes"]) || [], & &1["id"])
+ids = issue_ids_por_external(ctx.tenant.id, externos)   # casa só com o já coletado
+:ok = Commands.replace_attended_issues(ctx.tenant, solicitacao_id, Map.values(ids))
+map_size(ids)                                            # conta só o que casou
+```
+
+Quando a issue não está no banco, o vínculo é descartado **sem registro**. A função devolve
+`map_size(ids)` — o que casou —, e nunca `length(externos)` — o que a origem disse. A
+diferença entre os dois é exatamente o buraco, e ela não é gravada em lugar nenhum.
+
+O padrão é o do `commits_total`, que a mesma feature acertou: o total da origem fica na
+coluna, e a tela compara com o coletado para revelar truncamento. Aqui não ficou.
+
+**O que fazer diferente.** Toda tradução de referência externa para id interno **grava os
+dois números**: quantos a origem citou, e quantos a plataforma resolveu. A regra em uma
+frase: *se a função descarta alguma coisa, o quanto ela descartou é dado, não detalhe de
+implementação.*
+
+E a asserção que pega isto num teste: montar um PR cuja `closingIssuesReferences` cite uma
+issue **não coletada**, e exigir que o total da origem apareça no registro.
+
+**O custo evitado.** O painel teria publicado "83% do trabalho sem rastro até o escopo"
+como medida do processo da organização. Ninguém questionaria — o número tem a mesma
+aparência do número certo. É a mesma família de
+[[padrao-largo-inventa-mais]]: o erro caro é o que se parece com medida.
+
+**Estado**: aberta — o conserto ainda não foi feito.
