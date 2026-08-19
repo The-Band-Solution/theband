@@ -2358,3 +2358,52 @@ Sem essa verificação eu teria anunciado uma garantia inexistente.
 defeituoso.* Se ele passa nos dois, não é teste do defeito — é teste de outra coisa.
 
 **Estado**: aberta.
+
+---
+
+## L67 — Duas medidas do mesmo nome: comparar os totais esconde que são fenômenos diferentes
+
+**Tipo**: técnica · **Origem**: feature 041 (issue #439) · **Estado**: aberta
+
+**O que aconteceu.** Troquei a medida de "solicitação integrada com verificação
+vermelha" do casamento por `head_sha` para o `statusCheckRollup` da ponta, e
+justifiquei a troca comparando os **totais**: "o casamento achava 284, o rollup
+acha 349 — 23% mais". Escrevi isso em quatro lugares: dois `@moduledoc`, um
+comentário de consulta e um comentário de coluna.
+
+Medido no banco depois: o casamento acha **296**, o rollup acha **221**. O rollup
+acha **menos**. A afirmação estava invertida, e ela era o argumento inteiro da
+troca.
+
+**Por que aconteceu.** Comparei dois números de uma linha. A pergunta que não fiz
+foi *quais* solicitações cada um acha — e a resposta muda tudo:
+
+    nos dois         82
+    só o casamento  214
+    só o rollup     139
+    união           435
+
+Sobreposição de 82 em 435. **Não são duas precisões do mesmo fenômeno; são
+fenômenos diferentes.** Das 214 que só o casamento acha, 186 estão verdes na
+ponta: a vermelha estava num commit intermediário e foi consertada antes do
+merge. O casamento supercontava — e supercontava exatamente o caso que o
+`@moduledoc` da tela declara recusar contar ("vermelho num ramo de proposta é o
+processo funcionando").
+
+Ou seja: a troca estava certa, e por um motivo **melhor** do que o que eu
+escrevi. Mas eu tinha escrito o motivo errado, com um número invertido, e ele já
+estava em código revisado.
+
+**O que fazer diferente.** Ao substituir uma medida por outra, nunca justificar
+pela diferença dos totais. Medir a **sobreposição** — nos dois, só em A, só em B,
+união — e olhar uma amostra do que só o antigo acha. Se a sobreposição for
+pequena, os dois não medem a mesma coisa, e o total de cada um não é comparável.
+
+E o corolário sobre convivência: medida antiga substituída se **remove**, não se
+deixa ao lado. `integrated_with_red/2` ficou com `@spec`, `@doc` de 25 linhas e
+nenhum chamador — código morto cujo `@doc` convenceria quem fosse ligá-lo de que
+estava certo.
+
+**Relação com L64.** A L64 é sobre denominador que inclui o caso impossível; esta
+é sobre numerador que inclui o caso oposto ao que se quer medir. As duas nascem
+de aceitar a contagem sem olhar o que ela contou.
