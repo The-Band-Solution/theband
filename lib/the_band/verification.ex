@@ -319,147 +319,6 @@ defmodule TheBand.Verification do
   defp atomo_da_ponta("nao_medido"), do: :nao_medido
 
   @doc """
-  Por que uma solicitação integrada **não é verificável** — a decomposição do "não dá para
-  saber", issue #439.
-
-  ## O que "verificação coletada" quer dizer
-
-  Existe, no banco, uma execução de integração contínua cujo `head_sha` é igual ao SHA de
-  algum commit daquela solicitação. Só isso — e é por isso que a ausência dela tem **quatro**
-  causas diferentes, que nada tem a ver uma com a outra.
-
-  Medido em 2026-08-19: **1.854 de 4.805** solicitações integradas são verificáveis. As outras
-  2.951 se dividem assim:
-
-  | motivo | quantas | de quem é |
-  |---|---:|---|
-  | verificável | 1.854 | — |
-  | **integrada antes da execução mais antiga que a origem guarda** | **1.838** | **da origem** — retenção |
-  | tem CI, está na janela, e nenhum commit casou | 777 | **não sei**, e é o que fica dito |
-  | repositório sem CI nenhum | 285 | **da organização** — não há o que coletar |
-  | repositório não percorrido | **51** | **nossa** |
-
-  A soma fecha em 4.805, e isso não é detalhe: a primeira versão usava um contador por motivo e
-  as categorias se sobrepunham — atribuía **678** à nossa lacuna quando são **51**. Os 627 de
-  diferença eram registro que o GitHub já apagou, e a sobreposição escondia isso.
-
-  ## A causa que eu não havia considerado, e ela muda o que a tela pode afirmar
-
-  **O GitHub não guarda execução para sempre.** A execução mais antiga coletável é de
-  2025-07-03; a solicitação integrada mais antiga é de 2024-08-26. Para as 959 do meio, "não
-  verificável" não é falha nossa nem fato sobre o processo: **é o registro ter expirado na
-  origem**.
-
-  Sem essa separação, a tela diria "não coletado" para trabalho cujo registro o GitHub
-  apagou — e alguém iria procurar uma coleta que nunca poderia existir.
-
-  ## E o vínculo é pelo SHA da PONTA
-
-  Uma execução tem `head_sha` = o commit que estava na ponta do ramo quando ela rodou. Uma
-  solicitação com dez commits casa só nos que foram ponta em algum push. Ramo rebaseado depois
-  troca os SHAs, e nenhum casa mais — é parte do resto que fica sem explicação.
-  """
-  @spec cobertura(Tenant.t()) :: map()
-  def cobertura(%Tenant{id: tenant_id}) do
-    # **Um `CASE`, e não cinco contadores independentes** — e a razão é aritmética: a primeira
-    # versão usava `filter` separado por motivo, e os números não fechavam. Sobravam 150 e
-    # faltavam 44, porque as categorias se sobrepunham.
-    #
-    # A sobreposição vinha do próprio guarda de checkpoint desta feature: o repositório só é
-    # marcado como percorrido quando **todos** os jobs foram coletados, então existe repositório
-    # com execução no banco e `verifications_collected_at` nulo. "Não percorrido" e
-    # "verificável" não eram exclusivos.
-    #
-    # A ordem das cláusulas é a da precedência, e é deliberada: **verificável vence tudo**. Se a
-    # execução está no banco, o resto do porquê não interessa.
-    linhas =
-      Repo.all(
-        from c in "collected_change_requests",
-          join: r in "observed_repositories",
-          on: r.id == c.observed_repository_id,
-          left_join: cob in subquery(cobertura_do_repositorio(tenant_id)),
-          on: cob.observed_repository_id == r.id,
-          where:
-            c.tenant_id == type(^tenant_id, :binary_id) and c.state == "MERGED" and
-              is_nil(c.no_longer_observed_at),
-          group_by:
-            fragment(
-              """
-              CASE
-                WHEN EXISTS (
-                  SELECT 1 FROM collected_commits co
-                  JOIN collected_verifications v
-                    ON v.head_sha = co.sha AND v.tenant_id = co.tenant_id
-                  WHERE co.change_request_id = ?
-                    AND 'ciro.continuous_integration_process' = ANY(v.process_kinds)
-                    AND v.no_longer_observed_at IS NULL
-                ) THEN 'verificavel'
-                WHEN ? IS NOT NULL AND ? < ? THEN 'expirada_na_origem'
-                WHEN ? IS NULL THEN 'nao_percorrido'
-                WHEN COALESCE(?, 0) = 0 THEN 'sem_ci'
-                ELSE 'nao_casou'
-              END
-              """,
-              c.id,
-              cob.mais_antiga,
-              c.external_merged_at,
-              cob.mais_antiga,
-              r.verifications_collected_at,
-              cob.execucoes_de_ci
-            ),
-          select:
-            {fragment(
-               """
-               CASE
-                 WHEN EXISTS (
-                   SELECT 1 FROM collected_commits co
-                   JOIN collected_verifications v
-                     ON v.head_sha = co.sha AND v.tenant_id = co.tenant_id
-                   WHERE co.change_request_id = ?
-                     AND 'ciro.continuous_integration_process' = ANY(v.process_kinds)
-                     AND v.no_longer_observed_at IS NULL
-                 ) THEN 'verificavel'
-                 WHEN ? IS NOT NULL AND ? < ? THEN 'expirada_na_origem'
-                 WHEN ? IS NULL THEN 'nao_percorrido'
-                 WHEN COALESCE(?, 0) = 0 THEN 'sem_ci'
-                 ELSE 'nao_casou'
-               END
-               """,
-               c.id,
-               cob.mais_antiga,
-               c.external_merged_at,
-               cob.mais_antiga,
-               r.verifications_collected_at,
-               cob.execucoes_de_ci
-             ), count(c.id)}
-      )
-
-    Map.new(linhas, fn {chave, quantas} -> {atomo_do_motivo(chave), quantas} end)
-  end
-
-  # Literais neste módulo, e não `String.to_existing_atom/1`: o átomo só existe se algum módulo
-  # que o menciona já tiver sido carregado, e num script os da tela não estão — foi o defeito
-  # que a mesma técnica causou em `Changes.escopo/1`.
-  defp atomo_do_motivo("verificavel"), do: :verificavel
-  defp atomo_do_motivo("expirada_na_origem"), do: :expirada_na_origem
-  defp atomo_do_motivo("nao_percorrido"), do: :nao_percorrido
-  defp atomo_do_motivo("sem_ci"), do: :sem_ci
-  defp atomo_do_motivo("nao_casou"), do: :nao_casou
-
-  defp cobertura_do_repositorio(tenant_id) do
-    from v in "collected_verifications",
-      where:
-        v.tenant_id == type(^tenant_id, :binary_id) and is_nil(v.no_longer_observed_at) and
-          fragment("? = ANY(?)", "ciro.continuous_integration_process", v.process_kinds),
-      group_by: v.observed_repository_id,
-      select: %{
-        observed_repository_id: v.observed_repository_id,
-        execucoes_de_ci: count(v.id),
-        mais_antiga: min(v.external_started_at)
-      }
-  end
-
-  @doc """
   Por pessoa: quantas solicitações integrou, quantas eram **verificáveis**, e quantas
   entraram vermelhas — issue #439.
 
@@ -484,42 +343,7 @@ defmodule TheBand.Verification do
   """
   @spec red_by_person(Tenant.t()) :: [map()]
   def red_by_person(%Tenant{id: tenant_id}) do
-    Repo.all(
-      from c in "collected_change_requests",
-        left_join: v in subquery(verificacao_por_solicitacao(tenant_id)),
-        on: v.change_request_id == c.id,
-        where:
-          c.tenant_id == type(^tenant_id, :binary_id) and c.state == "MERGED" and
-            is_nil(c.no_longer_observed_at) and not is_nil(c.author_person_id),
-        group_by: [c.author_person_id, c.author_login],
-        having: count(c.id) > 0,
-        # `desc_nulls_last`, e não `desc`: em Postgres o `DESC` põe NULL **primeiro**, então a
-        # lista começava por quem não tem verificação nenhuma — e a tela sugeria que a medida
-        # estava vazia quando havia 43 pessoas com base, 1.854 solicitações verificáveis e 664
-        # verificações vermelhas. Medido em 2026-08-19.
-        order_by: [
-          desc_nulls_last: fragment("count(?) filter (where ? > 0)", c.id, v.vermelhas),
-          desc: count(c.id)
-        ],
-        select: %{
-          person_id: type(c.author_person_id, :binary_id),
-          login: c.author_login,
-          merged: count(c.id),
-          # Verificável é o que tem execução COLETADA. A diferença para `merged` é "não dá
-          # para saber", e a tela precisa dizê-lo com essas palavras.
-          verified: fragment("count(?) filter (where ? > 0)", c.id, v.execucoes),
-          # **Conta SOLICITAÇÕES com pelo menos uma vermelha, não execuções vermelhas.** A
-          # primeira versão somava `v.vermelhas`, que conta execuções — e dividir execuções
-          # por solicitações produziu taxas de 462%, medido em 2026-08-19. Uma solicitação
-          # pode ter dez execuções vermelhas, e ela continua sendo **uma** que entrou
-          # vermelha.
-          #
-          # É a L64 em forma nova: ali o denominador incluía o caso impossível; aqui
-          # numerador e denominador estavam em unidades diferentes. Nos dois casos a
-          # porcentagem tem a mesma aparência da correta.
-          red: fragment("count(?) filter (where ? > 0)", c.id, v.vermelhas)
-        }
-    )
+    por_participacao(tenant_id, :autor)
   end
 
   @doc """
@@ -534,61 +358,74 @@ defmodule TheBand.Verification do
   Somar os dois papéis num número só apontaria para a pessoa errada — quem propôs pode ter
   aberto a solicitação com o CI vermelho de propósito, para pedir ajuda; quem integrou decidiu
   que entrava assim.
-
-  No dado real do The Band as duas listas coincidem quase sempre numa pessoa só, e **isso é um
-  achado sobre o processo**, não uma propriedade do modelo: mostrar as duas é o que permite ver
-  que ninguém revisou.
   """
   @spec red_by_integrator(Tenant.t()) :: [map()]
   def red_by_integrator(%Tenant{id: tenant_id}) do
+    por_participacao(tenant_id, :integrador)
+  end
+
+  # **Mede pelo estado da PONTA, e não pelo casamento por `head_sha`** — issue #439.
+  #
+  # O casamento por SHA achava 284 solicitações integradas vermelhas; o `statusCheckRollup` da
+  # ponta acha 349 — 23% mais, porque alcança os `check_run` da API de Checks e os `status` da
+  # API antiga, que a coleta de `workflow_run` não vê.
+  #
+  # E ele responde o que o casamento não respondia: das 4.734 medidas, **2.038 entraram sem
+  # check nenhum**. Pelo caminho antigo, essas apareciam como "não dá para saber".
+  #
+  # As duas participações compartilham a consulta porque só o campo do agrupamento difere.
+  # Duplicá-la faria as duas divergirem no dia em que uma coluna mudasse.
+  defp por_participacao(tenant_id, papel) do
+    {campo_id, campo_login} =
+      case papel do
+        :autor -> {:author_person_id, :author_login}
+        :integrador -> {:merged_by_person_id, :merged_by_login}
+      end
+
     Repo.all(
       from c in "collected_change_requests",
-        left_join: v in subquery(verificacao_por_solicitacao(tenant_id)),
-        on: v.change_request_id == c.id,
         where:
           c.tenant_id == type(^tenant_id, :binary_id) and c.state == "MERGED" and
-            is_nil(c.no_longer_observed_at) and not is_nil(c.merged_by_person_id),
-        group_by: [c.merged_by_person_id, c.merged_by_login],
+            is_nil(c.no_longer_observed_at) and not is_nil(field(c, ^campo_id)),
+        group_by: [field(c, ^campo_id), field(c, ^campo_login)],
         order_by: [
-          desc_nulls_last: fragment("count(?) filter (where ? > 0)", c.id, v.vermelhas),
+          desc_nulls_last:
+            fragment(
+              "count(?) filter (where ? in ('FAILURE','ERROR'))",
+              c.id,
+              c.merged_check_state
+            ),
           desc: count(c.id)
         ],
         select: %{
-          person_id: type(c.merged_by_person_id, :binary_id),
-          login: c.merged_by_login,
+          person_id: type(field(c, ^campo_id), :binary_id),
+          login: field(c, ^campo_login),
           merged: count(c.id),
-          verified: fragment("count(?) filter (where ? > 0)", c.id, v.execucoes),
-          red: fragment("count(?) filter (where ? > 0)", c.id, v.vermelhas)
+          # Verificável é a ponta ter tido check. `contexts > 0` e não `state is not null`: um
+          # estado `PENDING` com contextos é verificação em curso, e ela existiu.
+          verified:
+            fragment("count(?) filter (where coalesce(?, 0) > 0)", c.id, c.merged_check_contexts),
+          # **Entrou sem verificação nenhuma** — 2.038 no dado real, 43% do medido. Pelo caminho
+          # antigo isso era indistinguível de "não conseguimos medir", e são coisas opostas: a
+          # primeira é achado sobre o processo, a segunda é lacuna nossa.
+          no_check:
+            fragment(
+              "count(?) filter (where ? is null and ? = 0)",
+              c.id,
+              c.merged_check_state,
+              c.merged_check_contexts
+            ),
+          # Coletada antes de a plataforma pedir o campo. Nulo é desconhecido, nunca zero.
+          not_measured:
+            fragment("count(?) filter (where ? is null)", c.id, c.merged_check_contexts),
+          red:
+            fragment(
+              "count(?) filter (where ? in ('FAILURE','ERROR'))",
+              c.id,
+              c.merged_check_state
+            )
         }
     )
-  end
-
-  # Uma linha por solicitação, com quantas execuções de INTEGRAÇÃO CONTÍNUA foram coletadas
-  # e quantas falharam. Sem o filtro por tipo, um fluxo de automação de quadro quebrado
-  # entraria na conta — foi o que o dado real mostrou na primeira medição.
-  # Subconsulta e não junção direta: sem ela, a contagem de solicitações multiplicaria pelo
-  # número de commits, e "merged" mediria commits com nome de solicitação.
-  defp verificacao_por_solicitacao(tenant_id) do
-    from c in "collected_change_requests",
-      join: co in "collected_commits",
-      on: co.change_request_id == c.id and is_nil(co.no_longer_observed_at),
-      join: v in "collected_verifications",
-      on: v.head_sha == co.sha and v.tenant_id == co.tenant_id,
-      where:
-        c.tenant_id == type(^tenant_id, :binary_id) and is_nil(v.no_longer_observed_at) and
-          fragment("? = ANY(?)", "ciro.continuous_integration_process", v.process_kinds),
-      group_by: c.id,
-      select: %{
-        change_request_id: c.id,
-        execucoes: count(v.id, :distinct),
-        vermelhas:
-          fragment(
-            "count(distinct ?) filter (where ? = ?)",
-            v.id,
-            v.phase,
-            "ciro.unsuccessful_continuous_integration_process"
-          )
-      }
   end
 
   @doc """

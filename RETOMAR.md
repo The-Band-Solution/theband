@@ -1,94 +1,99 @@
-# Retomar — 2026-08-19
+# Retomar — 2026-08-19, fim do dia
 
-## Estado dos PRs
+## O que foi mergeado hoje
 
-Mergeados hoje: **#430, #431, #432, #433, #434**. Issues #428 e #429 fecharam sozinhas.
+**#430, #431, #432, #433, #434, #435, #441, #444, #445, #447, #448.**
+Issues fechadas: **#395, #401, #428, #429, #436, #437, #438, #440, #443, #446**.
 
-| PR | branch | estado |
-|---|---|---|
-| **#435** | `037-coleta-do-ci` | conflito com o main resolvido, aguardando CI |
-| **#436→** | `038-menus-do-rastro` | menus e mini-painéis, ainda sem PR |
+## O único PR aberto
 
-## O que a 037 entregou
+**[#449](https://github.com/The-Band-Solution/theband/pull/449)** — `041-rastro-do-defeito`,
+fecha **#439**.
 
-A coleta do CI, duas telas (`/work/verifications` e o detalhe) e a seção de verificação
-na página da mudança.
+⚠ **O corpo do PR está com números errados.** Ele foi escrito quando eu media pelo casamento
+por `head_sha`; depois troquei para o `statusCheckRollup` da ponta, e os números mudaram:
 
-**O achado que reorientou a feature:** toda execução do Actions estava sendo mapeada para
-`ciro.continuous_integration_process`. Das 1.051 coletadas, 399 não são integração
-contínua nenhuma — `Sync to GitLab`, `Sprint Rollover`, `Card de promoção`. O tipo passou
-a ser derivado dos jobs, e "a rede não tem conceito para isto" é resposta, não lacuna.
+| | no corpo do PR | correto |
+|---|---:|---:|
+| integradas vermelhas | 349 | **221** |
+| entraram sem check | 2.038 | **1.705** |
+| verde | 2.345 | **2.129** |
+| não medidas | — | **763** |
 
-## O que a 038 entrega
+**Atualizar o corpo antes de mergear.**
 
-Três menus na barra — `Changes`, `Files`, `Checks` — porque 5.035 solicitações, 87.719
-versões de arquivo e 1.051 execuções só eram alcançáveis digitando a URL.
+## O que a 041 mudou de fundamental
 
-Mais mini-painéis em `/work/changes` e `/work/files`.
+A pergunta *"tem como saber se o CI funcionou?"* expôs que eu tinha declarado limitação sem
+esgotar a origem. O `statusCheckRollup` é campo do **commit** e cobre duas camadas que a
+coleta de `workflow_run` não vê — os `check_run` da API de Checks e os `status` da API antiga.
 
-## ⚠ O defeito aberto — issue [#438](https://github.com/The-Band-Solution/theband/issues/438)
+Consequência: **1.705 solicitações entraram sem verificação nenhuma**. Pelo caminho antigo
+isso aparecia como "não dá para saber", junto com lacuna de coleta.
 
-O painel de `/work/changes` mostrava **"no issue recognised: 4.177"** — 83% das
-solicitações. A pessoa mantenedora desconfiou do volume, e estava certa.
+## Próximos passos, na ordem que eu recomendaria
 
-Conferido contra a origem em 2026-08-19, três PRs sem vínculo no banco:
+### 1. Recoletar as 763 não medidas
 
-| PR | a origem diz | o banco diz |
-|---|---|---|
-| `The-Band-Solution/theband#427` | fecha #426 | nenhum vínculo |
-| `leds-conectafapes/…-otto#127` | fecha #675 | nenhum vínculo |
-| `…prestacao-de-contas#133` | fecha nada | nenhum vínculo |
+São solicitações coletadas antes de eu pedir `statusCheckRollup`. A recoleta usa
+`recoleta_rollup.exs` no scratchpad, e roda **uma ferramenta de cada vez** — as três
+compartilham a janela de rate limit (issue #446).
 
-**Dois de três são falha nossa, não fato sobre o processo.** A causa está em
-`GithubChangeRequests.vincular_issues/3`: o vínculo só é gravado quando a issue
-referenciada **já está em `collected_issues`**. Quando não está, o vínculo é descartado
-**em silêncio** — `map_size(ids)` conta só o que casou, e nada registra que a origem dizia
-mais.
+### 2. Despachar as cinco decisões que só você pode tomar
 
-É a família do sucesso silencioso, de novo.
+**#367, #368, #369, #370, #397.** Cada uma bloqueia uma feature, e nenhuma é implementação.
+Vale um bloco de meia hora.
 
-### O conserto
+### 3. Fechar duplicatas do backlog
 
-1. Guardar `attended_issues_total` (o que a origem disse) na solicitação, como já se faz
-   com `commits_total`. Sem isso a plataforma não consegue nem medir o buraco.
-2. O painel deixa de dizer "no issue recognised" — que é afirmação sobre o processo — e
-   passa a separar "a origem não reconheceu nenhuma" de "a origem reconheceu e a issue não
-   foi coletada".
-3. Investigar por que a issue #426 do próprio `theband` não está coletada, se ela deveria.
+**#400 e #318 são a mesma issue** — "Coletar os comentários das issues" — e **as duas já
+foram implementadas** na feature 030. Fechar as duas.
 
-**Enquanto isso o quadro não pode ir para produção com esse rótulo** — é o primeiro
-item de amanhã.
+**#317** ("Sugerir papel a partir de evidência") precisa ser conferido: pode ter sido feito.
 
-## Coletas paradas
+### 4. O ArgoCD — #442
 
-| coleta | onde parou |
+Quatro decisões antes de qualquer código: qual API, como a ferramenta entra em
+`connected_tools` (será o primeiro tipo que não é forja de código), onde o `Application`
+encontra o repositório observado, e se *drift* vira conceito novo — a CDRO não tem "estado
+divergente".
+
+### 5. O resto do #440, que ficou
+
+O levantamento encontrou **três** mapeamentos sem dado. Dois foram implementados (review e
+branch); o terceiro virou o #442. Mas ficaram itens de custo zero:
+
+- **2.137 labels já coletados** e nunca interpretados — falta decidir o conceito
+- **`workflow_run.path`** — 13 definições de workflow explicam 15.375 execuções, e faria
+  `ci.ap01` apontar o arquivo em vez do nome do job
+- **`flow_work_in_progress`** — necessidade declarada, sem resposta possível hoje: exige
+  histórico de transição de estado do quadro, que a rede ainda não modela
+
+## Lições registradas hoje
+
+**L61** a **L66**, e as três que mais custaram:
+
+- **L64** — denominador que inclui o caso impossível esconde o sinal. Aconteceu **três
+  vezes**: os 83% de amostra de três, os `pull_requests` de 3 em 1.052, e a taxa de 462% com
+  unidades diferentes.
+- **L66** — script que monta o contexto à mão esconde o contrato que o job real quebra. Foi
+  o que deixou o `KeyError :started_at` invisível por duas semanas.
+- **Sem número ainda**: *todo teste escrito para pegar um defeito precisa ser rodado contra o
+  código defeituoso, no estado exato do defeito.* Aconteceu duas vezes — o teste do
+  `started_at` passava com e sem a correção, e o da paginação só reprovava com **os dois**
+  ausentes.
+
+## Coletas
+
+| coleta | estado |
 |---|---|
-| arquivos dos commits | 8.194 de 16.416 |
-| verificações do CI | 4 de 160 repositórios |
+| CI (verificações) | **completa** — 151 de 160 repositórios, 15.375 execuções |
+| arquivos dos commits | 8.194 de 16.416 — parada |
+| `statusCheckRollup` | 4.819 de 5.556 — 763 faltando |
 
-Competem pela mesma janela de 5.000 req/h — rodar **uma de cada vez**. Scripts em
-`coleta_ci.exs` e `coleta_arquivos.exs`.
+Rodar **uma de cada vez**: as três ferramentas compartilham a janela de 5.000 req/h.
 
-## Backlog registrado hoje
+## Um stash que não é meu
 
-- **#436** — os três menus (em implementação)
-- **#437** — páginas de erro 404, 403 e 500
-- **#438** — o vínculo PR→issue que descarta em silêncio (lição L63)
-- **#439** — rastrear código com defeito por pessoa, pelo rastro PR → commit → CI
-
-## Pedidos em aberto da pessoa mantenedora
-
-1. Propor **outras métricas** a partir das necessidades de informação das ontologias.
-2. **#439** — rastrear quem sobe código com defeito. O rastro já fecha: a 037 ligou o CI ao
-   commit pelo `head_sha`, e a máxima `ci.ap03.integrated_with_red_verification` já
-   descreve o fato.
-
-   **A armadilha, escrita antes de implementar:** CI vermelho num ramo de proposta é o
-   processo **funcionando** — a verificação pegou o problema antes de integrar. Contar isso
-   como defeito premiaria quem desenvolve local e empurra uma vez, e puniria quem usa o CI
-   como rede. A medida que se sustenta é **o que integrou vermelho**, não o que ficou
-   vermelho.
-
-   E **1.203 dos 16.416 commits têm mais de um autor**: atribuir a "o" autor é impossível
-   em 7% deles. Denominador é obrigatório — "3 integrações vermelhas" sem "em 200
-   solicitações" é o jeito mais rápido de produzir injustiça com dado correto.
+`stash@{1}` — `fix/320-axiomas-alcancaveis: meu refactor de axioms sobre o #359 ja mergeado`.
+De outra sessão. Não toquei.

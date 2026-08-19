@@ -79,7 +79,7 @@ defmodule TheBandWeb.VerificationLive.Index do
         )
     )
     |> assign(repositorios: Verification.repositories(tenant))
-    |> assign(cobertura: Verification.cobertura(tenant))
+    |> assign(cobertura: Verification.cobertura_pela_ponta(tenant))
     |> assign(organizacoes: Verification.by_organization(tenant))
     |> assign(top_repositorios: Verification.by_repository(tenant, limit: 12))
   end
@@ -264,13 +264,14 @@ defmodule TheBandWeb.VerificationLive.Index do
             quando são 51. --%>
       <section class="rounded-lg border border-base-300 p-3">
         <h2 class="mb-1 text-sm font-semibold">
-          What can be checked at all
+          What the check said about what went in
           <span class="badge badge-outline badge-warning badge-xs ml-1">derived</span>
         </h2>
         <p class="mb-2 text-xs opacity-70">
-          A merged change request is <strong>verifiable</strong> when some commit of it is the
-          head of a collected continuous-integration run. When it is not, the reason matters —
-          and only one of these is ours.
+          The state of the <strong>tip commit that was merged</strong>, from
+          <span class="font-mono">statusCheckRollup</span>
+          — which covers the Checks API and the older Status API, not only Actions runs. Only
+          the last of these is a gap in our collection.
         </p>
 
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -284,15 +285,17 @@ defmodule TheBandWeb.VerificationLive.Index do
           </div>
         </div>
 
-        <%!-- A frase da retenção é a que mais faltava: sem ela, alguém procura uma coleta que
-              nunca poderia existir. --%>
+        <%!-- A frase que o caminho antigo não podia dizer: pelo casamento por `head_sha`,
+              entrar sem verificação era indistinguível de não conseguirmos medir — e são coisas
+              opostas. --%>
         <p
-          :if={@cobertura[:expirada_na_origem] && @cobertura[:expirada_na_origem] > 0}
+          :if={@cobertura[:sem_check] && @cobertura[:sem_check] > 0}
           class="mt-2 text-xs opacity-70"
         >
-          <strong>{@cobertura[:expirada_na_origem]}</strong> were merged before the oldest run
-          the source still keeps. That is <strong>not</strong> a gap in collection — GitHub
-          discarded those runs, and no sweep can bring them back.
+          <strong>{@cobertura[:sem_check]}</strong>
+          were merged with <strong>no check at all</strong>
+          on the tip commit. That is not a gap in collection — nothing ran, and that is a
+          finding about the process.
         </p>
       </section>
 
@@ -435,18 +438,23 @@ defmodule TheBandWeb.VerificationLive.Index do
   # não sabemos, o que a organização não verifica, e o que falta a nós. Só o último é acionável
   # por quem mantém a plataforma, e ele vem por último de propósito — pôr a lacuna nossa em
   # primeiro sugeriria que ela é a maior, e são 51 de 4.805.
+  # A ordem conta a história: o que passou, o que **entrou sem verificação nenhuma**, o que
+  # entrou vermelho, o que estava em curso, e o que não medimos. Só o último é acionável por
+  # quem mantém a plataforma, e vem por último de propósito.
+  #
+  # `no check at all` é o quadro que o caminho antigo não tinha: pelo casamento por `head_sha`,
+  # essas apareciam como "não dá para saber". São 2.038 no dado real — 43% do medido.
   defp quadros_de_cobertura(cobertura) do
     [
-      {"verifiable", cobertura[:verificavel] || 0, "",
-       "some commit of the request is the head of a collected CI run"},
-      {"source no longer keeps it", cobertura[:expirada_na_origem] || 0, "opacity-60",
-       "merged before the oldest run GitHub still retains — no sweep can recover these"},
-      {"no commit matched", cobertura[:nao_casou] || 0, "opacity-60",
-       "the repository has CI and the request is within the window, and still no commit matched a run — we do not know why"},
-      {"repository has no CI", cobertura[:sem_ci] || 0, "",
-       "swept, and the repository runs no continuous integration at all — a fact about the organisation"},
-      {"not swept yet", cobertura[:nao_percorrido] || 0, "text-warning",
-       "our own gap: the repository was never swept for verification"}
+      {"green", cobertura[:verde] || 0, "", "the tip that was merged had a successful check"},
+      {"no check at all", cobertura[:sem_check] || 0, "text-warning",
+       "no check ran on the commit that was merged — a fact about the process, not a gap in collection"},
+      {"red", cobertura[:vermelha] || 0, "text-warning",
+       "the tip that was merged had a failed check — this is the ci.ap03 maxim"},
+      {"still running", cobertura[:em_curso] || 0, "opacity-60",
+       "pending or expected: the check had not decided, and counting it either way would assert a result that did not happen"},
+      {"not measured", cobertura[:nao_medido] || 0, "opacity-60",
+       "collected before the platform asked the source for the check state — unknown, never zero"}
     ]
   end
 

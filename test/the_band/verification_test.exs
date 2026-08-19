@@ -18,7 +18,9 @@ defmodule TheBand.VerificationTest do
   import TheBand.WorkItemsFixtures
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
+  alias TheBand.Changes.Commands, as: ChangeCommands
   alias TheBand.ContadorDeConsultas
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Verification
   alias TheBand.Verification.{Classification, Commands}
 
@@ -292,6 +294,121 @@ defmodule TheBand.VerificationTest do
     end
   end
 
+  describe "o estado da ponta que entrou" do
+    # `statusCheckRollup` da ponta, e não o casamento por `head_sha` — issue #439. O casamento
+    # achava 284 vermelhas; a ponta acha 221 das INTEGRADAS, e responde 1.705 que entraram sem
+    # check nenhum, que o outro caminho chamava de "não dá para saber".
+    # As pessoas precisam existir: `red_by_person` exige `author_person_id` não nulo, porque a
+    # participação é de pessoa e não de string — login o GitHub deixa renomear.
+    defp pessoa(tenant, login) do
+      {:ok, p} =
+        EO.upsert_person_from_source(tenant, %{
+          login: login,
+          name: login,
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "U_#{login}",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      p
+    end
+
+    defp solicitacao_com_ponta(ctx, numero, attrs) do
+      ana = pessoa(ctx.tenant, "ana")
+      bia = pessoa(ctx.tenant, "bia")
+
+      {:ok, pr} =
+        ChangeCommands.record_change_request(
+          ctx.tenant,
+          Map.merge(
+            %{
+              observed_repository_id: ctx.repo_id,
+              number: numero,
+              title: "solicitação #{numero}",
+              state: "MERGED",
+              author_login: "ana",
+              author_person_id: ana.id,
+              merged_by_login: "bia",
+              merged_by_person_id: bia.id,
+              source_system: "github",
+              source_instance: "https://github.com",
+              external_id: "PR_ponta_#{numero}"
+            },
+            attrs
+          )
+        )
+
+      pr
+    end
+
+    test "as quatro respostas são distintas, e nenhuma é 'não sei' disfarçada", ctx do
+      solicitacao_com_ponta(ctx, 1, %{merged_check_state: "SUCCESS", merged_check_contexts: 3})
+      solicitacao_com_ponta(ctx, 2, %{merged_check_state: "FAILURE", merged_check_contexts: 2})
+      # Nulo COM zero contextos é nenhum check ter rodado — fato sobre o processo.
+      solicitacao_com_ponta(ctx, 3, %{merged_check_state: nil, merged_check_contexts: 0})
+      # Nulo SEM contagem é não medimos ainda.
+      solicitacao_com_ponta(ctx, 4, %{merged_check_state: nil, merged_check_contexts: nil})
+      solicitacao_com_ponta(ctx, 5, %{merged_check_state: "PENDING", merged_check_contexts: 1})
+
+      c = Verification.cobertura_pela_ponta(ctx.tenant)
+
+      assert c[:verde] == 1
+      assert c[:vermelha] == 1
+      assert c[:sem_check] == 1
+      assert c[:nao_medido] == 1
+
+      # `PENDING` não é verde nem vermelho: contá-lo de um lado afirmaria resultado que não houve.
+      assert c[:em_curso] == 1
+    end
+
+    test "ERROR conta como vermelho, junto com FAILURE", ctx do
+      solicitacao_com_ponta(ctx, 10, %{merged_check_state: "ERROR", merged_check_contexts: 1})
+
+      assert Verification.cobertura_pela_ponta(ctx.tenant)[:vermelha] == 1
+    end
+
+    test "por pessoa separa quem teve check de quem não teve", ctx do
+      solicitacao_com_ponta(ctx, 20, %{merged_check_state: "FAILURE", merged_check_contexts: 2})
+      solicitacao_com_ponta(ctx, 21, %{merged_check_state: nil, merged_check_contexts: 0})
+      solicitacao_com_ponta(ctx, 22, %{merged_check_state: nil, merged_check_contexts: nil})
+
+      assert [p] = Verification.red_by_person(ctx.tenant)
+
+      assert p.merged == 3
+      assert p.verified == 1
+      # A coluna que o caminho antigo não tinha: entrar sem verificação é achado, não lacuna.
+      assert p.no_check == 1
+      assert p.not_measured == 1
+      assert p.red == 1
+    end
+
+    test "as duas participações são medidas separadas", ctx do
+      solicitacao_com_ponta(ctx, 30, %{merged_check_state: "FAILURE", merged_check_contexts: 1})
+
+      assert [autor] = Verification.red_by_person(ctx.tenant)
+      assert [integrador] = Verification.red_by_integrator(ctx.tenant)
+
+      # Mesma solicitação, dois papéis, duas listas — somá-las apontaria para a pessoa errada.
+      assert autor.login == "ana"
+      assert integrador.login == "bia"
+      assert autor.red == 1 and integrador.red == 1
+    end
+
+    test "solicitação não integrada não entra", ctx do
+      solicitacao_com_ponta(ctx, 40, %{
+        state: "OPEN",
+        merged_check_state: "FAILURE",
+        merged_check_contexts: 1
+      })
+
+      # A máxima fala de INTEGRADO com verificação vermelha. Vermelho num ramo aberto é o
+      # processo funcionando.
+      assert Verification.cobertura_pela_ponta(ctx.tenant) == %{}
+      assert Verification.red_by_person(ctx.tenant) == []
+    end
+  end
+
   describe "a decomposição por organização e repositório" do
     test "conta repositório sem CI separado, e ele não some no total", ctx do
       # É o achado que uma taxa agregada esconderia: 78 dos 121 repositórios da maior
@@ -384,7 +501,7 @@ defmodule TheBand.VerificationTest do
 
   defp solicitacao_com_commit(tenant, repo_id) do
     {:ok, cr} =
-      TheBand.Changes.Commands.record_change_request(tenant, %{
+      ChangeCommands.record_change_request(tenant, %{
         observed_repository_id: repo_id,
         number: 1,
         title: "uma mudança",

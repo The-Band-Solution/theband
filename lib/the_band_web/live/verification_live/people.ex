@@ -24,15 +24,21 @@ defmodule TheBandWeb.VerificationLive.People do
   Quem propôs pode ter aberto a solicitação com o CI vermelho de propósito, para pedir ajuda.
   Quem integrou decidiu que entrava assim.
 
-  ## O denominador é o que impede a injustiça, e ele fica na tela
+  ## Mede pelo estado da PONTA, não pelo casamento por `head_sha`
 
-  `verifiable` é sempre menor que `merged`, e a diferença é **"não dá para saber"** — nunca
-  "estava tudo bem". Medido em 2026-08-19: de 4.805 solicitações integradas, só 1.854 são
-  verificáveis, e o maior motivo (1.838) é o GitHub não guardar execução tão antiga.
+  O casamento por SHA achava 284 solicitações integradas vermelhas; o `statusCheckRollup` da
+  ponta acha **349** — 23% mais, porque alcança os `check_run` da API de Checks e os `status` da
+  API antiga, que a coleta de `workflow_run` não vê.
 
-  Uma taxa calculada sobre `merged` faria quem trabalha em repositório sem CI, ou quem
-  trabalhava antes da janela de retenção, aparecer impecável. Seria medida inventada com dado
-  correto.
+  E responde o que o casamento não respondia: das 4.734 medidas, **2.038 entraram sem check
+  nenhum**. Pelo caminho antigo essas apareciam como "não dá para saber", e são coisa oposta —
+  achado sobre o processo, não lacuna nossa.
+
+  ## `no check` tem coluna própria, e o motivo é o que ela evita
+
+  Uma taxa calculada sobre `merged` faria quem trabalha em repositório sem CI aparecer
+  impecável. E juntar "entrou sem verificação" com "não medimos" faria a organização parecer
+  medida onde ela não é verificada — que é pior, porque ninguém procuraria o problema.
 
   ## Base pequena não recebe taxa
 
@@ -58,7 +64,7 @@ defmodule TheBandWeb.VerificationLive.People do
      |> assign(page_title: "Who merged red")
      |> assign(minimo_para_taxa: @minimo_para_taxa)
      |> assign(papel: "author")
-     |> assign(cobertura: Verification.cobertura(tenant))
+     |> assign(cobertura: Verification.cobertura_pela_ponta(tenant))
      |> assign(autores: Verification.red_by_person(tenant))
      |> assign(integradores: Verification.red_by_integrator(tenant))}
   end
@@ -94,13 +100,16 @@ defmodule TheBandWeb.VerificationLive.People do
           red: the check became a report instead of a gate.
         </p>
         <p class="mt-2">
-          <strong>{@cobertura[:verificavel] || 0}</strong>
-          of <strong>{total_integradas(@cobertura)}</strong>
-          merged requests are verifiable at all.
+          Of <strong>{total_integradas(@cobertura)}</strong>
+          merged requests, <strong>{@cobertura[:sem_check] || 0}</strong>
+          went in with <strong>no check at all</strong>
+          and <strong>{@cobertura[:vermelha] || 0}</strong>
+          went in red.
           <.link navigate={~p"/work/verifications"} class="link">
-            The verification page breaks down why
+            The verification page breaks it down
           </.link>
-          — and only {@cobertura[:nao_percorrido] || 0} of them are a gap in our collection.
+          — only {@cobertura[:nao_medido] || 0} were collected before the platform asked the
+          source for the check state.
         </p>
       </div>
 
@@ -132,7 +141,8 @@ defmodule TheBandWeb.VerificationLive.People do
             <tr>
               <th>person</th>
               <th>merged</th>
-              <th>verifiable</th>
+              <th>had a check</th>
+              <th>no check</th>
               <th>went in red</th>
               <th>rate</th>
             </tr>
@@ -150,15 +160,21 @@ defmodule TheBandWeb.VerificationLive.People do
                 <span :if={is_nil(p.person_id)}>{p.login || "—"}</span>
               </td>
               <td data-label="merged" class="font-mono text-xs tabular-nums">{p.merged}</td>
-              <td data-label="verifiable" class="font-mono text-xs tabular-nums">
-                {p.verified}
-                <%!-- A diferença é "não dá para saber", e a tela diz isso em vez de deixar o
-                      leitor supor que o resto passou. --%>
-                <span :if={p.merged > p.verified} class="ml-1 opacity-60 italic">
-                  ({p.merged - p.verified} unknown)
+              <td data-label="had a check" class="font-mono text-xs tabular-nums">{p.verified}</td>
+              <%!-- A coluna que o caminho antigo não tinha. Pelo casamento por `head_sha`, estas
+                    apareciam como "não dá para saber" — e entrar sem verificação é achado sobre
+                    o processo, não lacuna nossa. --%>
+              <td data-label="no check" class="font-mono text-xs tabular-nums text-warning">
+                {p.no_check}
+              </td>
+              <td data-label="went in red" class="font-mono text-xs tabular-nums text-warning">
+                {p.red}
+                <%!-- "Não medido" fica ao lado do vermelho porque é o que impede a taxa de ser
+                      lida como completa. --%>
+                <span :if={p.not_measured > 0} class="ml-1 opacity-60 italic">
+                  ({p.not_measured} not measured)
                 </span>
               </td>
-              <td data-label="went in red" class="font-mono text-xs tabular-nums">{p.red}</td>
               <td data-label="rate" class="text-xs">
                 <span :if={taxa(p)} class="font-mono tabular-nums">{taxa(p)}</span>
                 <%!-- Base pequena não recebe taxa: três de quatro é 75% e não significa nada. --%>
