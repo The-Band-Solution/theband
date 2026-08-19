@@ -16,6 +16,7 @@
 | **Origem** | Tese, Seções 2.2.2.2 e 3.3.1 (Figuras 18, 32 e 33) |
 
 > **Nota.** A versão original de CMPO é alinhada à filosofia do Subversion. A tese estendeu a ontologia para representar check-in e check-out como ocorrem no Git.
+E o projeto The Band acrescentou uma terceira camada, o módulo change_traceability (2026-08-17, issue #426): as participações que ligam stakeholders aos atos — submeter, integrar, commitar. Elas faltavam, e a lacuna apareceu ao escrever o mapeamento do Pull Request, antes de qualquer coleta.
 
 
 ## Módulos
@@ -23,6 +24,7 @@
 - **[Configuration Management Process](#configuration-management-process)** — conceitos e relações do módulo.
 - **[Checkout (Git-aligned)](#checkout)** — Extensão do CMPO desenvolvida na tese para representar checkout como ocorre no Git: criação e troca de branch, e checkout de artefato.
 - **[Check-in (Git-aligned)](#checkin)** — Extensão do CMPO desenvolvida na tese para representar check-in no Git: verificação e resolução de conflitos, commit de cópia de artefato e remoção de branch. Branch de origem e destino são papéis, não tipos de branch.
+- **[Change Traceability](#change-traceability)** — Quem submeteu uma solicitação de mudança, quem a integrou e quem executou cada commit — as participações que ligam stakeholders aos atos da gerência de configuração, e as associações que ligam os atos à solicitação que os motivou. Extensão do projeto The Band, não da CMPO publicada.
 
 ---
 
@@ -67,6 +69,18 @@ Exemplos: *cópia de um código-fonte*; *cópia de um script de banco*
 Cópia carregada de sistema de software cujo propósito é tratar as mudanças de cópias de artefato.
 
 <sub>categoria UFO: `disposition` · especializa `sys_swo.loaded_software_system_copy`</sub>
+
+| Atributo | Tipo | Obrigatório |
+|---|---|---|
+| `name` | string | sim |
+| `qualified_name` | string | sim |
+| `url` | string | sim |
+| `description` | text | não |
+| `primary_language` | string | não |
+| `default_branch` | string | não |
+| `archived_at` | datetime | não |
+| `external_created_at` | datetime | não |
+| `last_pushed_at` | datetime | não |
 
 Exemplos: *uma instância do GitLab*; *um repositório no GitHub*
 
@@ -130,11 +144,16 @@ Atividade executada composta que estabelece uma linha de base.
 
 | Relação | Origem | Destino | Cardinalidade | Tipo |
 |---|---|---|---|---|
+| `is grouped by` | `cmpo.source_repository` | `spo.project` | many → many | association |
 | `composed of` | `cmpo.configuration_management_process` | `cmpo.change_control` | one → one_or_many | part_whole |
 | `composed of` | `cmpo.change_control` | `cmpo.change_accomplishment` | one → one_or_many | part_whole |
 | `is in charge of` | `cmpo.change_implementer` | `cmpo.change_accomplishment` | many → many | participation |
 | `packages` | `cmpo.baseline` | `cmpo.configuration_item` | one → one_or_many | part_whole |
 
+- **`cmpo.source_repository_grouped_by_project`** — Associação **declarada por pessoa**, e nunca observada: a origem não diz a que projeto um repositório pertence, e inferir isso de nome, organização ou padrão de texto produziria agrupamento que ninguém decidiu.
+Muitos-para-muitos porque um repositório pode servir a mais de um projeto — uma biblioteca compartilhada é o caso comum.
+A relação mora em CMPO, e não em SPO, porque **cmpo já depende de spo**: declará-la do outro lado inverteria a hierarquia entre as ontologias e criaria um ciclo de dependência. Quem conhece os dois conceitos é o módulo mais externo.
+As issues do projeto são **derivadas desta relação**, e não guardadas na issue: projeto → repositórios → issues. Uma referência a projeto na issue duplicaria o fato, e as duas fontes discordariam quando um repositório mudasse de projeto.
 
 
 ---
@@ -308,6 +327,42 @@ Atividade que remove uma branch de origem em um repositório de código.
 | `composed of` | `cmpo.checkin` | `cmpo.commit_artifact_copy` | one → many | part_whole |
 | `composed of` | `cmpo.checkin` | `cmpo.delete_branch` | one → many | part_whole |
 | `sends to` | `cmpo.commit_artifact_copy` | `cmpo.target_branch` | many → one | association |
+
+
+
+---
+
+## Change Traceability
+
+<a id="change-traceability"></a>
+
+Quem submeteu uma solicitação de mudança, quem a integrou e quem executou cada commit — as participações que ligam stakeholders aos atos da gerência de configuração, e as associações que ligam os atos à solicitação que os motivou. Extensão do projeto The Band, não da CMPO publicada.
+
+*Fonte: Issue #426; lacuna exposta ao escrever github.pull_request.to.cmpo.change_request*
+
+### Conceitos
+
+#### `cmpo.change_request_submission` — Change Request Submission
+
+*Submissão de Solicitação de Mudança*
+
+Atividade executada simples que submete uma solicitação de mudança para avaliação, produzindo a solicitação. Existe como conceito próprio porque participação é relação entre agente e evento: sem o ato, "quem solicitou" não teria onde se ancorar — a solicitação é objeto social, e objeto social não tem participante.
+
+<sub>categoria UFO: `action` · especializa `spo.performed_simple_activity`</sub>
+
+Exemplos: *abrir um Pull Request*; *registrar uma solicitação de alteração no processo*
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `submitted` | `spo.project_stakeholder` | `cmpo.change_request_submission` | one → many | participation |
+| `produced` | `cmpo.change_request_submission` | `cmpo.change_request` | one → one | causation |
+| `performed` | `spo.project_stakeholder` | `cmpo.checkin` | one → many | participation |
+| `integrated` | `cmpo.checkin` | `cmpo.change_request` | one → zero_or_one | association |
+| `performed` | `spo.project_stakeholder` | `cmpo.commit_artifact_copy` | many → many | participation |
+| `produced` | `cmpo.commit_artifact_copy` | `cmpo.artifact_copy` | one → one_or_many | causation |
+| `accomplished` | `cmpo.commit_artifact_copy` | `cmpo.change_request` | many → zero_or_one | association |
 
 
 

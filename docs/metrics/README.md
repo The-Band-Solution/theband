@@ -43,6 +43,20 @@ Nenhuma medida existe sem uma necessidade de informação declarada, e nenhum da
 
 **Medidas candidatas.** `flow.wip.count`
 
+### `people.demonstrated_domains` — Domínios técnicos demonstrados por uma pessoa, e como mudaram
+
+**Pergunta.** Em que domínios técnicos há evidência registrada de atuação desta pessoa, desde quando, e o que mudou entre o começo e o fim do período observado?
+
+**Decisão apoiada.** Decidir a quem oferecer uma tarefa, e em que frente apoiar o desenvolvimento de alguém, a partir de onde a evidência já existe — e não de memória de quem acompanhou de perto.
+**O que esta necessidade explicitamente não responde**, e onde quem decide precisa buscar em outro lugar: qualidade do trabalho entregue, confiabilidade como traço da pessoa, esforço, e nível de senioridade. O escopo das tarefas atribuídas reflete o nível que o time já presumia, então usá-lo para inferir nível é circular.
+Ausência de um domínio é lacuna do registro, nunca lacuna de competência: em 2026-08-15, 1298 de 2949 descrições de tarefa concluída foram escritas por outra pessoa que não quem executou, e 355 tarefas tinham dois ou mais designados.
+
+**Stakeholders.** engineering_manager, team_lead, developer
+
+**Conceitos necessários.** `eo.person`, `eo.team_member`, `spo.performed_project_activity`, `cmpo.source_repository`
+
+**Medidas candidatas.** 
+
 ### `review.time_to_first_review` — Tempo até a primeira revisão
 
 **Pergunta.** Quanto tempo uma solicitação de mudança aguarda até receber a primeira revisão?

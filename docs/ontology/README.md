@@ -5,7 +5,7 @@
 
 Documentação gerada a partir de `priv/knowledge_base/`. A base YAML é a fonte da verdade; esta página é derivada dela.
 
-**12 ontologias · 220 conceitos · 144 relações · 69 perguntas de competência**
+**13 ontologias · 230 conceitos · 167 relações · 73 perguntas de competência**
 
 ## Arquitetura
 
@@ -13,6 +13,7 @@ Documentação gerada a partir de `priv/knowledge_base/`. A base YAML é a fonte
 graph TD
   cdro["CDRO<br/><small>Continuous Deployment Reference Ontology</small>"]
   ciro["CIRO<br/><small>Continuous Integration Reference Ontology</small>"]
+  cmo["CMO<br/><small>Communication Ontology</small>"]
   cmpo["CMPO<br/><small>Configuration Management Process Ontology</small>"]
   eo["EO<br/><small>Enterprise Ontology</small>"]
   osdef["OSDEF<br/><small>Reference Ontology of Software Defects, Errors and Failures</small>"]
@@ -34,6 +35,9 @@ graph TD
   ciro --> roost
   ciro --> qapo
   ciro --> osdef
+  cmo --> ufo
+  cmo --> eo
+  cmo --> spo
   cmpo --> ufo
   cmpo --> spo
   cmpo --> sys_swo
@@ -56,6 +60,7 @@ graph TD
   sro --> spo
   sro --> sys_swo
   sro --> rsro
+  sro --> cmpo
   sys_swo --> ufo
   sys_swo --> spo
 ```
@@ -68,16 +73,17 @@ Cada seta significa *reusa conceitos de*. A direção vai sempre do módulo mais
 |---|---|---|---|---:|---:|---:|
 | [UFO](ufo.md) — Unified Foundational Ontology | Fundacional | UFO | — | 12 | 3 | 0 |
 | [EO](eo.md) — Enterprise Ontology | Core | SEON | `ufo` | 10 | 8 | 5 |
-| [SPO](spo.md) — Software Process Ontology | Core | SEON | `ufo`, `eo` | 21 | 12 | 0 |
+| [SPO](spo.md) — Software Process Ontology | Core | SEON | `ufo`, `eo` | 23 | 13 | 0 |
 | [SysSwO](sys_swo.md) — System and Software Ontology | Core | SEON | `ufo`, `spo` | 11 | 6 | 0 |
 | [CDRO](cdro.md) — Continuous Deployment Reference Ontology | Domínio | Continuum | `ufo`, `spo`, `sys_swo`, `ciro` | 17 | 10 | 13 |
-| [CIRO](ciro.md) — Continuous Integration Reference Ontology | Domínio | Continuum | `ufo`, `spo`, `sys_swo`, `cmpo`, `roost`, `qapo`, `osdef` | 47 | 30 | 14 |
-| [CMPO](cmpo.md) — Configuration Management Process Ontology | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 26 | 13 | 0 |
+| [CIRO](ciro.md) — Continuous Integration Reference Ontology | Domínio | Continuum | `ufo`, `spo`, `sys_swo`, `cmpo`, `roost`, `qapo`, `osdef` | 50 | 30 | 14 |
+| [CMO](cmo.md) — Communication Ontology | Domínio | Continuum | `ufo`, `eo`, `spo` | 4 | 8 | 4 |
+| [CMPO](cmpo.md) — Configuration Management Process Ontology | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 27 | 21 | 0 |
 | [OSDEF](osdef.md) — Reference Ontology of Software Defects, Errors and Failures | Domínio | SEON | `ufo`, `spo`, `sys_swo`, `roost` | 6 | 5 | 0 |
-| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domínio | SEON | `ufo`, `spo` | 8 | 6 | 0 |
+| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domínio | SEON | `ufo`, `spo` | 8 | 9 | 0 |
 | [ROoST](roost.md) — Reference Ontology on Software Testing | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 14 | 6 | 0 |
 | [RSRO](rsro.md) — Reference Software Requirements Ontology | Domínio | SEON | `ufo`, `spo` | 5 | 2 | 0 |
-| [SRO](sro.md) — Scrum Reference Ontology | Domínio | Continuum | `ufo`, `eo`, `spo`, `sys_swo`, `rsro` | 43 | 43 | 37 |
+| [SRO](sro.md) — Scrum Reference Ontology | Domínio | Continuum | `ufo`, `eo`, `spo`, `sys_swo`, `rsro`, `cmpo` | 43 | 46 | 37 |
 
 ## Distinções que o modelo preserva
 

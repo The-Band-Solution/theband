@@ -21,6 +21,7 @@
 - **[Continuous Build Process](#continuous-build-process)** — Atividades, recursos e artefatos do build automatizado. Código candidato é o conceito-chave: reúne o código sob integração (novo ou alterado) e o código já integrado em processos anteriores.
 - **[Continuous Test Process](#continuous-test-process)** — Teste automatizado no contexto de CI. O código candidato assume o papel de código a ser testado; o resultado de teste de CI pode descrever faults, e é isso — não a ausência de log — que caracteriza um processo malsucedido.
 - **[Continuous Inspection Process](#continuous-inspection-process)** — Inspeção automatizada da aderência do código candidato a critérios de qualidade. O resultado é não conformidade (QAPO), não defeito (OSDEF): transformar uma na outra é decisão explícita, nunca automática.
+- **[Interrupted Verification](#interrupted-verification)** — As fases do processo de CI que terminou sem decidir sobre a integração: interrompido por decisão de quem opera, não executado por condição não cumprida, ou encerrado por esgotamento de tempo. Nenhuma delas é malsucedida — a definição de malsucedido exige problema em componente.
 
 ---
 
@@ -517,6 +518,47 @@ Processo de inspeção contínua em que ao menos uma não conformidade foi ident
 | `produced` | `ciro.automated_adherence_inspection` | `ciro.ci_evaluation_report` | one → one | association |
 | `registered` | `ciro.automated_artifact_inspection` | `qapo.noncompliance_register` | one → many | association |
 
+
+
+---
+
+## Interrupted Verification
+
+<a id="interrupted-verification"></a>
+
+As fases do processo de CI que terminou sem decidir sobre a integração: interrompido por decisão de quem opera, não executado por condição não cumprida, ou encerrado por esgotamento de tempo. Nenhuma delas é malsucedida — a definição de malsucedido exige problema em componente.
+
+*Fonte: Issue #401; decidido ao desenhar a tela de verificação contínua*
+
+### Conceitos
+
+#### `ciro.interrupted_continuous_integration_process` — Interrupted Continuous Integration Process
+
+*Processo de CI Interrompido*
+
+Processo de CI encerrado por decisão de um stakeholder antes de concluir a verificação. Não integrou o código candidato e **não encontrou problema nele** — a decisão de parar é externa ao código. Contá-lo como malsucedido atribuiria ao código uma falha que foi escolha de quem opera.
+
+<sub>categoria UFO: `phase` · especializa `ciro.continuous_integration_process`</sub>
+
+Exemplos: *execução cancelada porque um commit mais novo a tornou obsoleta*; *cancelamento manual*
+
+#### `ciro.unperformed_continuous_integration_process` — Unperformed Continuous Integration Process
+
+*Processo de CI Não Executado*
+
+Processo de CI que foi disparado e **não executou**, porque a condição declarada para sua execução não se cumpriu. Nada foi verificado — e é diferente de nunca ter sido disparado: o gatilho ocorreu, e é isso que esta fase registra.
+
+<sub>categoria UFO: `phase` · especializa `ciro.continuous_integration_process`</sub>
+
+Exemplos: *job pulado porque o anterior falhou*; *condição `if` do workflow não satisfeita*
+
+#### `ciro.expired_continuous_integration_process` — Expired Continuous Integration Process
+
+*Processo de CI Expirado*
+
+Processo de CI encerrado por esgotamento do tempo declarado, sem concluir a verificação. **É o mais ambíguo dos três e tem fase própria por isso**: pode ser problema no código (laço infinito, teste que trava) ou limite mal dimensionado — e a plataforma não sabe qual. Fase separada é o que permite contá-lo à parte em vez de escolher um lado.
+
+<sub>categoria UFO: `phase` · especializa `ciro.continuous_integration_process`</sub>
 
 
 ---
