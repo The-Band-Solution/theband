@@ -96,7 +96,18 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       sync: sync,
       tool: tool,
       token: token,
-      org: tool.organization_login
+      org: tool.organization_login,
+      # **O instante de referência das marcas de ausência**, e ele TEM de estar no `ctx`.
+      # `GithubWorkItems` marca a issue e o vínculo de decomposição que sumiram, e
+      # `GithubProjects` marca a iteração ausente — nove pontos leem `ctx.started_at`. Sem a
+      # chave, toda sincronização agendada morria com `KeyError`, nos três tenants, nas
+      # cinco tentativas do Oban, desde 2026-08-17.
+      #
+      # Passou por 1.038 testes porque o caminho que lê a chave **só roda quando há dado
+      # para marcar**: com fixture vazia, nenhuma issue precisa de marca e a linha nunca é
+      # alcançada (L62). E os scripts de coleta avulsa montavam o `ctx` à mão, sempre com a
+      # chave — satisfaziam o contrato que o job violava (L66).
+      started_at: started_at
     }
 
     # A coleta devolve **qual organização observou**, e não só que terminou. É o que a

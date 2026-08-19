@@ -357,6 +357,9 @@ defmodule TheBand.Ingestion do
   # operações, e no intervalo a execução tem a assinatura exata de "presa" — `running` e sem
   # trabalho. O intervalo real é de milissegundos; um minuto é margem de três ordens de
   # grandeza. Falha na criação **não** espera a carência: `start_sync/3` encerra na hora.
+  # Falha isolada não é sinal; repetida é. Três é o número que a tela declara.
+  @falhas_para_avisar 3
+
   @carencia_segundos 60
 
   @doc """
@@ -396,6 +399,206 @@ defmodule TheBand.Ingestion do
       end)
 
     {:ok, encerradas}
+  end
+
+  @doc """
+  Enfileira a coleta das ferramentas **vencidas** — issue #443.
+
+  ## Por que estado, e não uma entrada por ferramenta no cron
+
+  A sincronização nunca foi agendada: o `crontab` tinha o reconciliador e a rodada mensal, e
+  o único disparo era o botão na tela. Medido em 2026-08-19, os dois maiores tenants estavam
+  há **cinco dias** sem coleta completa — e, sem periodicidade, ninguém esperava que
+  houvesse.
+
+  Uma entrada por ferramenta no `crontab` cresceria com o número de tenants e exigiria
+  implantar para mudar o ritmo, que é decisão de quem administra. Este trabalho olha
+  **estado**: quem tem intervalo, e quando rodou por último. É o mesmo motivo que
+  `ReconcileStuckSyncs` documenta — estado sobrevive a reinício e a nó que morre sem avisar.
+
+  ## O que impede coleta em cima de coleta
+
+  Três guardas, e cada uma cobre um caso que as outras não:
+
+    * `sync_interval_minutes` nulo → **manual**, não entra;
+    * já existe coleta `running` para a ferramenta → não enfileira. Sem isto, uma coleta que
+      leva mais que o intervalo seria disparada de novo, e a plataforma coletaria duas vezes
+      o mesmo — é a L02, onde 32 registros apareceram no lugar de 16 e o número pareceu
+      plausível;
+    * `start_sync/3` recusa observação encerrada e credencial ausente, e é a mesma função
+      que a tela chama. Dois caminhos discordariam.
+
+  ## A ferramenta que falha repetidamente CONTINUA sendo tentada
+
+  Marcar como precisando de atenção é aviso, não bloqueio. Parar de tentar transformaria uma
+  falha transitória em permanente, e a plataforma deixaria de coletar sem que ninguém
+  tivesse decidido isso.
+  """
+  @spec enqueue_due_syncs() :: {:ok, %{enqueued: integer(), skipped_running: integer()}}
+  def enqueue_due_syncs do
+    vencidas()
+    |> Enum.reduce({:ok, %{enqueued: 0, skipped_running: 0}}, fn tool, {:ok, acc} ->
+      if coleta_em_andamento?(tool) do
+        {:ok, %{acc | skipped_running: acc.skipped_running + 1}}
+      else
+        {:ok, %{acc | enqueued: acc.enqueued + enfileirar(tool)}}
+      end
+    end)
+  end
+
+  # Vencida é: tem intervalo, e nunca rodou ou rodou antes do corte. `is_nil(last_sync_at)`
+  # entra porque ferramenta recém-configurada precisa da primeira coleta — esperar um
+  # intervalo inteiro faria "a cada 6 horas" significar "em 6 horas".
+  defp vencidas do
+    Repo.all(
+      from t in ConnectedTool,
+        where:
+          not is_nil(t.sync_interval_minutes) and
+            (is_nil(t.last_sync_at) or
+               t.last_sync_at <=
+                 ago(t.sync_interval_minutes, "minute")),
+        order_by: [asc_nulls_first: t.last_sync_at]
+    )
+  end
+
+  defp coleta_em_andamento?(%ConnectedTool{id: tool_id}) do
+    Repo.exists?(from s in Sync, where: s.connected_tool_id == ^tool_id and s.status == "running")
+  end
+
+  defp enfileirar(%ConnectedTool{tenant_id: tenant_id} = tool) do
+    with {:ok, tenant} <- TheBand.Tenants.fetch(tenant_id),
+         {:ok, _sync} <- start_sync(tenant, tool) do
+      Logger.info(
+        "coleta automática enfileirada para #{tool.organization_login} " <>
+          "(intervalo de #{tool.sync_interval_minutes} min, última em #{inspect(tool.last_sync_at)})"
+      )
+
+      1
+    else
+      # Recusa esperada — observação encerrada, credencial ausente, coleta já em andamento.
+      # Não é falha do agendador, e virar erro faria o trabalho periódico parecer quebrado a
+      # cada cinco minutos. `debug` e não `warning` pelo mesmo motivo: ferramenta em manual
+      # com observação encerrada é estado normal, e avisar sobre ele todo ciclo afogaria o
+      # aviso que importa.
+      {:error, motivo} ->
+        Logger.debug(
+          "coleta automática de #{tool.organization_login} não enfileirada: #{inspect(motivo)}"
+        )
+
+        0
+    end
+  end
+
+  @doc """
+  Descreve quando a próxima coleta automática acontece — a frase que a tela mostra.
+
+  Devolve `:manual` quando não há intervalo, `:vencida` quando já passou da hora, ou
+  `{:em, segundos}`. Três respostas e não uma string porque a tela decide o rótulo; devolver
+  texto daqui espalharia vocabulário de interface pelo contexto.
+  """
+  @spec proxima_coleta(ConnectedTool.t()) :: :manual | :vencida | {:em, integer()}
+  def proxima_coleta(%ConnectedTool{sync_interval_minutes: nil}), do: :manual
+  def proxima_coleta(%ConnectedTool{last_sync_at: nil}), do: :vencida
+
+  def proxima_coleta(%ConnectedTool{} = tool) do
+    proxima = DateTime.add(tool.last_sync_at, tool.sync_interval_minutes * 60, :second)
+    restam = DateTime.diff(proxima, DateTime.utc_now(:second))
+
+    if restam <= 0, do: :vencida, else: {:em, restam}
+  end
+
+  @doc """
+  Marca as ferramentas cuja coleta falha repetidamente — issue #443.
+
+  ## Por que isto existe
+
+  A sincronização agendada morreu em **três tenants por duas semanas** com o mesmo
+  `KeyError`, e nada avisou. O registro ficava `interrupted`, o Oban desistia depois de
+  cinco tentativas, e a única maneira de descobrir era abrir a tabela `syncs`.
+
+  Falha isolada não é sinal — rede cai, a origem devolve 502, o nó reinicia. **Falha
+  repetida é.** O que distingue as duas é a contagem, e é ela que este trabalho olha.
+
+  ## O limiar é declarado, não escondido
+
+  #{@falhas_para_avisar} coletas consecutivas sem completar. O número aparece na tela junto
+  com o aviso: limiar escondido faz quem lê achar que é propriedade do dado, e não escolha
+  de quem mediu.
+
+  ## O que conta como falha, e o que não
+
+  `failed` e `interrupted` contam. `running` **não** interrompe a sequência nem conta: a
+  coleta em andamento ainda não decidiu nada, e tratá-la como sucesso limparia o aviso de
+  quem está falhando agora.
+
+  ## Coleta que completa limpa o aviso
+
+  Uma sincronização completa é evidência de que a ferramenta responde e a credencial vale —
+  qualquer motivo de atenção anterior descreve um estado que deixou de valer.
+  """
+  @spec flag_tools_failing_repeatedly() :: {:ok, %{flagged: integer(), cleared: integer()}}
+  def flag_tools_failing_repeatedly do
+    Repo.all(from t in ConnectedTool, order_by: t.id)
+    |> Enum.reduce({:ok, %{flagged: 0, cleared: 0}}, fn tool, {:ok, acc} ->
+      case avaliar_sequencia(tool) do
+        {:falhando, quantas, motivo} ->
+          {:ok, _} = Sources.mark_needs_attention(tool, frase_de_falha(quantas, motivo))
+          {:ok, %{acc | flagged: acc.flagged + 1}}
+
+        :saudavel ->
+          {:ok, %{acc | cleared: acc.cleared + limpar_se_marcada(tool)}}
+
+        :sem_dado ->
+          {:ok, acc}
+      end
+    end)
+  end
+
+  # As últimas coletas DECIDIDAS da ferramenta, da mais recente para a mais antiga. A em
+  # andamento é ignorada: ela ainda não decidiu, e contá-la de um lado ou de outro seria
+  # afirmar resultado que não existe.
+  defp avaliar_sequencia(%ConnectedTool{id: tool_id}) do
+    decididas =
+      Repo.all(
+        from s in Sync,
+          where: s.connected_tool_id == ^tool_id and s.status != "running",
+          order_by: [desc: s.started_at],
+          limit: @falhas_para_avisar,
+          select: %{status: s.status, error_reason: s.error_reason}
+      )
+
+    consecutivas = Enum.take_while(decididas, &(&1.status in ["failed", "interrupted"]))
+
+    cond do
+      decididas == [] -> :sem_dado
+      length(consecutivas) >= @falhas_para_avisar -> falhando(consecutivas)
+      true -> :saudavel
+    end
+  end
+
+  defp falhando(consecutivas) do
+    motivo = Enum.find_value(consecutivas, &(&1.error_reason not in [nil, ""] && &1.error_reason))
+    {:falhando, length(consecutivas), motivo}
+  end
+
+  # A frase que a pessoa lê. Diz **quantas**, **o limiar** e **o motivo da origem** — sem os
+  # três, o aviso obriga a ir ao banco para saber o que fazer, que é o problema que ele
+  # existe para resolver.
+  defp frase_de_falha(quantas, nil) do
+    "#{quantas} coletas seguidas não completaram (o aviso aparece a partir de " <>
+      "#{@falhas_para_avisar}). Nenhuma delas registrou motivo — verifique o log da coleta."
+  end
+
+  defp frase_de_falha(quantas, motivo) do
+    "#{quantas} coletas seguidas não completaram (o aviso aparece a partir de " <>
+      "#{@falhas_para_avisar}). A última falha disse: #{motivo}"
+  end
+
+  defp limpar_se_marcada(%ConnectedTool{needs_attention_since: nil}), do: 0
+
+  defp limpar_se_marcada(tool) do
+    {:ok, _} = Sources.clear_needs_attention(tool)
+    1
   end
 
   @doc """

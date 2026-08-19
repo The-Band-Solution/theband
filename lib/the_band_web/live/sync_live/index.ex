@@ -42,6 +42,28 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply, assign(socket, mapeamento: nil)}
   end
 
+  # O intervalo é decisão de quem administra o tenant, e muda sem implantar. String vazia é
+  # **manual** — e é diferente de zero: zero seria "a cada zero minutos", que não existe.
+  def handle_event("mudar_intervalo", %{"tool_id" => tool_id, "minutos" => minutos}, socket) do
+    tenant = socket.assigns.current_tenant
+
+    with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
+         {:ok, atualizada} <- Sources.set_sync_interval(tool, minutos) do
+      {:noreply,
+       socket
+       |> put_flash(:info, frase_da_mudanca(atualizada))
+       |> load()}
+    else
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Tool not found.")}
+
+      # A mensagem vem do changeset, e não de um texto genérico: quem digitou 5 precisa saber
+      # que o mínimo é 15, e por quê.
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, put_flash(socket, :error, primeira_mensagem(changeset))}
+    end
+  end
+
   def handle_event("sync", %{"tool_id" => tool_id}, socket) do
     tenant = socket.assigns.current_tenant
 
@@ -191,11 +213,63 @@ defmodule TheBandWeb.SyncLive.Index do
             <div class="text-xs opacity-70 mt-1">
               people, teams, repositories and issues — in one run
             </div>
+
+            <%!-- QUANDO A PRÓXIMA ACONTECE, e é a mensagem que faltava. Sem periodicidade
+                  ninguém esperava coleta, e "não coletou" era indistinguível de "ninguém
+                  clicou": os dois maiores tenants ficaram cinco dias sem coleta completa e
+                  nada avisou (#443).
+
+                  As três frases são diferentes de propósito. "Manual" não é intervalo zero;
+                  "vencida" não é atrasada por defeito — o agendador roda a cada cinco
+                  minutos, e vencida quer dizer que ela entra no próximo ciclo. --%>
+            <div class="mt-2 text-xs">
+              <span class="opacity-70">automatic:</span>
+              <span :if={tool.sync_interval_minutes} class="font-medium">
+                every {intervalo_em_texto(tool.sync_interval_minutes)}
+              </span>
+              <span :if={is_nil(tool.sync_interval_minutes)} class="italic opacity-60">
+                off — only when you press Sync
+              </span>
+              <span :if={tool.sync_interval_minutes} class="block opacity-70">
+                {frase_da_proxima(tool)}
+              </span>
+            </div>
+
+            <%!-- O AVISO DE FALHA REPETIDA. Diz quantas, o limiar e o motivo da origem —
+                  sem os três, quem lê tem de ir ao banco para saber o que fazer, que é o
+                  problema que o aviso existe para resolver. --%>
+            <div
+              :if={tool.needs_attention_since}
+              class="alert alert-warning mt-2 block p-2 text-xs"
+            >
+              <span class="font-semibold">Needs attention since {tool.needs_attention_since}</span>
+              <span class="mt-0.5 block">{tool.needs_attention_reason}</span>
+              <span class="mt-1 block opacity-80">
+                The platform keeps trying — this is a warning, not a stop.
+              </span>
+            </div>
           </div>
           <div class="flex flex-col gap-2 items-end">
             <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
               {if running?(@syncs, tool), do: "running", else: "Sync"}
             </.button>
+
+            <%!-- O intervalo é decisão de quem administra, e muda sem implantar. As opções
+                  começam em 15 min porque a coleta mais longa medida leva 16 min 25 s: menos
+                  que isso empilharia coleta sobre coleta até esgotar a janela de rate limit. --%>
+            <form phx-change="mudar_intervalo" class="flex items-center gap-1">
+              <input type="hidden" name="tool_id" value={tool.id} />
+              <select name="minutos" class="select select-bordered select-xs w-32">
+                <option value="" selected={is_nil(tool.sync_interval_minutes)}>manual</option>
+                <option
+                  :for={{rotulo, minutos} <- intervalos()}
+                  value={minutos}
+                  selected={tool.sync_interval_minutes == minutos}
+                >
+                  every {rotulo}
+                </option>
+              </select>
+            </form>
             <%!-- A lacuna nasce da coleta, e o acesso parte da organização que a produziu. --%>
             <.button
               phx-click="abrir_mapeamento"
@@ -631,6 +705,57 @@ defmodule TheBandWeb.SyncLive.Index do
   defp legivel(fase) do
     Enum.find_value(@fases, fase, fn {id, rotulo} -> id == fase && rotulo end)
   end
+
+  defp frase_da_mudanca(%{sync_interval_minutes: nil} = tool),
+    do:
+      "Automatic sync is off for #{tool.organization_login}. It will only run when you press Sync."
+
+  defp frase_da_mudanca(tool),
+    do:
+      "#{tool.organization_login} will sync every #{intervalo_em_texto(tool.sync_interval_minutes)}."
+
+  defp primeira_mensagem(changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Enum.flat_map(fn {_campo, msgs} -> msgs end)
+    |> List.first() || "Could not save the interval."
+  end
+
+  # As opções que a tela oferece. O dado guarda MINUTOS, não um rótulo: acrescentar "a cada
+  # 2 horas" depois não deve exigir migração.
+  defp intervalos do
+    [
+      {"15 minutes", 15},
+      {"hour", 60},
+      {"6 hours", 360},
+      {"12 hours", 720},
+      {"day", 1440},
+      {"week", 10_080}
+    ]
+  end
+
+  defp intervalo_em_texto(minutos) do
+    case Enum.find(intervalos(), fn {_r, m} -> m == minutos end) do
+      {rotulo, _} -> rotulo
+      # Valor fora das opções continua sendo mostrado: alguém pode tê-lo posto pela API, e
+      # esconder faria a tela mentir sobre o que está configurado.
+      nil -> "#{minutos} minutes"
+    end
+  end
+
+  # As três frases da próxima coleta. "Vencida" não é atraso por defeito: o agendador roda a
+  # cada cinco minutos, e vencida significa que ela entra no próximo ciclo.
+  defp frase_da_proxima(tool) do
+    case Ingestion.proxima_coleta(tool) do
+      :manual -> ""
+      :vencida -> "due now — it starts within five minutes"
+      {:em, segundos} -> "next in #{espera_em_texto(segundos)}"
+    end
+  end
+
+  defp espera_em_texto(segundos) when segundos < 3600, do: "#{div(segundos, 60)} min"
+  defp espera_em_texto(segundos) when segundos < 86_400, do: "#{div(segundos, 3600)} h"
+  defp espera_em_texto(segundos), do: "#{div(segundos, 86_400)} d"
 
   defp running?(syncs, tool) do
     Enum.any?(syncs, &(&1.connected_tool_id == tool.id and &1.status == "running"))

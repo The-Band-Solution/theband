@@ -80,6 +80,15 @@ config :the_band, Oban,
     {Oban.Plugins.Cron,
      crontab: [
        {"*/5 * * * *", TheBand.Jobs.ReconcileStuckSyncs},
+       # O agendador olha ESTADO — qual ferramenta tem intervalo e está vencida —, e por isso
+       # uma entrada só serve a todos os tenants. Uma entrada por ferramenta cresceria com o
+       # número de organizações e exigiria implantar para mudar o ritmo, que é decisão de quem
+       # administra o tenant, não de quem implanta.
+       #
+       # A cada cinco minutos porque é a resolução do intervalo mais curto que a plataforma
+       # aceita (15 min): verificar com menos frequência faria "a cada 15 minutos" significar
+       # outra coisa.
+       {"*/5 * * * *", TheBand.Jobs.ScheduleDueSyncs},
        {"0 3 1 * *", TheBand.Profiles.MonthlyWorker}
      ]}
   ]

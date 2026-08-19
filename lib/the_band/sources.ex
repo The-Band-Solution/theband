@@ -615,6 +615,23 @@ defmodule TheBand.Sources do
     |> Repo.update()
   end
 
+  @doc """
+  Define o intervalo da coleta automática — issue #443.
+
+  Aceita minutos em inteiro ou string, e **string vazia significa manual**. Vazio e zero são
+  coisas diferentes: zero seria "a cada zero minutos", que não existe, e aceitá-lo criaria um
+  estado que o agendador não sabe ler.
+  """
+  @spec set_sync_interval(ConnectedTool.t(), integer() | String.t() | nil) ::
+          {:ok, ConnectedTool.t()} | {:error, Ecto.Changeset.t()}
+  def set_sync_interval(%ConnectedTool{} = tool, minutos) when minutos in [nil, ""] do
+    tool |> ConnectedTool.changeset(%{sync_interval_minutes: nil}) |> Repo.update()
+  end
+
+  def set_sync_interval(%ConnectedTool{} = tool, minutos) do
+    tool |> ConnectedTool.changeset(%{sync_interval_minutes: minutos}) |> Repo.update()
+  end
+
   @spec touch_last_sync(ConnectedTool.t()) ::
           {:ok, ConnectedTool.t()} | {:error, Ecto.Changeset.t()}
   def touch_last_sync(%ConnectedTool{} = tool) do
