@@ -36,7 +36,7 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
   def collect(ctx, opts \\ []) do
     limite = Keyword.get(opts, :limit)
     esperar? = Keyword.get(opts, :wait_for_rate_limit, true)
-    pendentes = commits_pendentes(ctx.tenant.id, limite)
+    pendentes = commits_pendentes(ctx.tenant.id, ctx.tool.id, limite)
 
     resultados = Enum.map(pendentes, &coletar_commit(ctx, &1, esperar?))
 
@@ -55,7 +55,14 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
   # Cada commit ainda não percorrido — sem filtro por vínculo com issue. A ordem é
   # do mais recente: se a execução for interrompida, o que ficou de fora é o mais antigo,
   # que é o menos consultado.
-  defp commits_pendentes(tenant_id, limite) do
+  # **Filtra pela FERRAMENTA** — issue #446. Aqui a junção já passa por
+  # `observed_repositories`, e faltava só usar a coluna que ela traz.
+  #
+  # O caso desta fase é o mais direto de todos: ela chama a REST com
+  # `ctx.tool.instance_url` e `ctx.token` para o `qualified_name` do repositório. Sem o
+  # filtro, a credencial de uma organização pedia o commit de outra — e o 404 resultante
+  # marcava o commit como percorrido sem arquivo nenhum.
+  defp commits_pendentes(tenant_id, tool_id, limite) do
     consulta =
       from c in "collected_commits",
         join: o in "observed_repositories",
@@ -64,6 +71,7 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
         on: f.id == o.source_repository_id,
         where:
           c.tenant_id == type(^tenant_id, :binary_id) and
+            o.connected_tool_id == type(^tool_id, :binary_id) and
             is_nil(c.no_longer_observed_at) and is_nil(c.files_collected_at),
         order_by: [desc: c.external_committed_at],
         select: %{
