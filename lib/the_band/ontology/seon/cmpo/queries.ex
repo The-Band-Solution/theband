@@ -53,6 +53,12 @@ defmodule TheBand.Ontology.SEON.CMPO.Queries do
         # Feature 032: mesma razão do campo acima — decide "não coletada" × "coletada e
         # nenhuma solicitação atende esta issue".
         changes_collected_at: o.changes_collected_at,
+        # Feature 037 e 039: mesma razão dos dois acima. O da branch decide a frase do
+        # vazio na seção de linhas de desenvolvimento — "não coletadas" nunca é "não há".
+        verifications_collected_at: o.verifications_collected_at,
+        branches_collected_at: o.branches_collected_at,
+        # O total da ORIGEM: comparado com as vivas, revela truncamento.
+        branches_total: o.branches_total,
         external_id: c.external_id,
         external_created_at: r.external_created_at,
         collected_at: c.collected_at,

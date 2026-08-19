@@ -13,6 +13,9 @@ ontology:
 dependencies: [ufo, spo]
 modules:
   - quality_assurance_process
+  # Extensão do projeto: as duas relações que a QAPO publicada deixa implícitas — quem
+  # avaliou e o que foi avaliado. Ver o cabeçalho do módulo.
+  - evaluation_participation
 provenance:
   source_type: reference_ontology
   reference: "Tese, Seção 2.2.2.4, Figura 20"

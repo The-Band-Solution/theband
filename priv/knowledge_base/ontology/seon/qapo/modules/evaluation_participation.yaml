@@ -1,0 +1,113 @@
+# As relações que faltavam para a avaliação de artefato — quem avaliou, e o que foi avaliado.
+#
+# **Descoberto ao implementar o mapeamento, e o mapeamento já avisava** (2026-08-19, issue
+# #440). A seção `limitations` de `github.pull_request_review.to.qapo.artifact_evaluation`
+# dizia, desde a versão 1:
+#
+#   "O revisor aponta para eo.person, e QAPO não declara relação entre
+#    qapo.artifact_evaluation e eo.person — a participação de agente em avaliação ainda
+#    não é modelada."
+#
+# É a lição L61 pela segunda vez: limitação declarada no mapeamento é requisito, não nota
+# de rodapé. Desta vez foi lida antes de escrever código.
+#
+# ## Duas relações, e nenhuma exige mexer na direção de dependência
+#
+# A QAPO depende de `[ufo, spo]` e **não** de CMPO. Declarar aqui uma relação para
+# `cmpo.change_request` inverteria a rede — e não é necessário:
+#
+#   cmpo.change_request → spo.information_item → spo.artifact
+#
+# e `qapo.evaluated_artifact` já é declarado como **papel de `spo.artifact`**. A relação
+# aponta para o papel, e a solicitação de mudança o assume por ser artefato. O vínculo
+# concreto com o Pull Request é instância, não relação nova.
+#
+# ## Por que participação é legítima aqui
+#
+# Em UFO, participação é relação entre agente e **evento**; objeto social não tem
+# participante. `qapo.artifact_evaluation` é classificada `ufo_category: action`, com
+# `parent: spo.performed_project_activity` — é evento, e a participação se ancora nela sem
+# precisar inventar um ato intermediário.
+#
+# Foi o que a CMPO obrigou a fazer no caso da solicitação de mudança, que é objeto social:
+# lá foi preciso criar `cmpo.change_request_submission`. Aqui não.
+module:
+  id: qapo.evaluation_participation
+  ontology: qapo
+  name: Evaluation Participation
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as duas
+      relações que a QAPO publicada deixa implícitas e que o rastreio de revisão
+      atravessa. Extensão do projeto The Band, não da QAPO publicada.
+  provenance:
+    source_type: project_decision
+    reference: "Issue #440; lacuna declarada em github.pull_request_review.to.qapo.artifact_evaluation"
+    year: 2026
+    note: >
+      A QAPO da tese descreve a avaliação, o papel do artefato avaliado, o critério e o
+      registro de não conformidade — e não declara quem avalia nem o que é avaliado. As
+      duas relações são o mínimo para instanciar uma review de Pull Request sem prometer
+      vínculo que a rede não sustenta.
+
+relations:
+  # ---- quem avaliou ---------------------------------------------------------
+  - id: qapo.stakeholder_performed_artifact_evaluation
+    name: performed
+    label: { pt-BR: "executou", en: "performed" }
+    source: spo.project_stakeholder
+    target: qapo.artifact_evaluation
+    type: participation
+    cardinality: { source: one, target: many }
+    temporal: { type: event_relation }
+    semantics:
+      pt-BR: >
+        Especializa `spo.participates_in`: quem avalia é stakeholder do projeto no papel de
+        avaliador, e participa do ato de avaliar. O papel é o da SPO, e não `eo.person` nua
+        — é participando de atividade de projeto que a pessoa assume o papel, e é a mesma
+        postura de `cmpo.stakeholder_submitted_change_request`.
+
+        `one` na origem, ao contrário do commit: uma review tem um autor, e o
+        `Co-Authored-By` não existe em revisão. Revisão de par a par é registrada como duas
+        avaliações, não como uma com dois avaliadores.
+
+  # ---- o que foi avaliado ---------------------------------------------------
+  - id: qapo.artifact_evaluation_evaluates
+    name: evaluates
+    label: { pt-BR: "avalia", en: "evaluates" }
+    source: qapo.artifact_evaluation
+    target: qapo.evaluated_artifact
+    type: association
+    cardinality: { source: many, target: one }
+    semantics:
+      pt-BR: >
+        A QAPO declarava o papel `qapo.evaluated_artifact` — "papel assumido por um artefato
+        quando é alvo de uma avaliação" — e nenhuma relação o ligava à avaliação. Sem ela o
+        papel existia sem quem o atribuísse.
+
+        Aponta para o **papel**, e não para um tipo concreto de artefato. É o que permite
+        instanciar tanto a revisão de uma solicitação de mudança (`cmpo.change_request`,
+        que é `spo.information_item` e portanto `spo.artifact`) quanto a de qualquer outro
+        artefato, sem que a QAPO passe a depender da CMPO.
+
+        `many` na origem porque o mesmo artefato é avaliado muitas vezes: cada rodada de
+        revisão é uma avaliação própria, e colapsá-las apagaria quantas foram necessárias.
+
+  # ---- a não conformidade que a avaliação identifica -------------------------
+  - id: qapo.artifact_evaluation_identified_noncompliance
+    name: identified
+    label: { pt-BR: "identificou", en: "identified" }
+    source: qapo.artifact_evaluation
+    target: qapo.noncompliance_identification
+    type: causation
+    cardinality: { source: one, target: many }
+    semantics:
+      pt-BR: >
+        `many` no destino — que no vocabulário do esquema **inclui zero** —, e o zero é o
+        ponto: **aprovação não é ausência de não conformidade, é ausência de bloqueio**. A
+        limitação está declarada no mapeamento e vale aqui: uma avaliação que aprova pode ter
+        identificado ressalvas, e uma que pede mudanças identificou pelo menos uma.
+
+        `one_or_many` faria o modelo afirmar que toda revisão encontra problema, o que é
+        falso.

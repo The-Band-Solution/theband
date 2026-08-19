@@ -29,6 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.GithubBranches
   alias TheBand.Ingestion.GithubChangeRequests
   alias TheBand.Ingestion.GithubCommitFiles
   alias TheBand.Ingestion.GithubIssueComments
@@ -256,14 +257,39 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   defp coletar_verificacoes(ctx) do
     {:ok, resumo} = GithubVerifications.collect(ctx)
 
+    Map.merge(
+      %{
+        verifications: resumo.verifications,
+        verification_components: resumo.components,
+        monolithic_jobs: resumo.monolithic_jobs,
+        repositories_without_ci: resumo.without_ci,
+        # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
+        # trabalho, e a diferença entre "volte depois" e "algo quebrou".
+        verifications_rate_limited: resumo.rate_limited
+      },
+      coletar_branches(ctx)
+    )
+  end
+
+  # **Não é incremental, e por isso fica no fim.** A pergunta é "que branches existem
+  # agora", e responder exige o conjunto inteiro para saber o que deixou de existir — filtro
+  # por data traria só as novas, e branch apagada nunca seria marcada.
+  #
+  # O custo é uma consulta por repositório, medido: 6, 63 e 47 branches nos repositórios do
+  # piloto, todas numa página de 100.
+  #
+  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) — por
+  # isso não há ramo de erro aqui.
+  defp coletar_branches(ctx) do
+    {:ok, resumo} = GithubBranches.collect(ctx)
+
     %{
-      verifications: resumo.verifications,
-      verification_components: resumo.components,
-      monolithic_jobs: resumo.monolithic_jobs,
-      repositories_without_ci: resumo.without_ci,
-      # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
-      # trabalho, e a diferença entre "volte depois" e "algo quebrou".
-      verifications_rate_limited: resumo.rate_limited
+      branches: resumo.branches,
+      protected_branches: resumo.protected,
+      # "Não soubemos dizer" nunca vira "não protegida": sem escopo de administração o campo
+      # não vem da origem, e este contador é o que impede a leitura errada.
+      branch_protection_unknown: resumo.protection_unknown,
+      branches_gone: resumo.marked_unobserved
     }
   end
 

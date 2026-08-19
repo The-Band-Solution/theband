@@ -238,7 +238,7 @@ defmodule TheBandWeb.IssueParentTest do
   end
 
   describe "o custo do render" do
-    test "doze consultas por render, e o número não cresce com o dado", ctx do
+    test "quinze consultas por render, e o número não cresce com o dado", ctx do
       # **A constância é a asserção que mais importa**, e ela precisa de duas páginas **diferentes**:
       # comparar a mesma página com ela mesma daria igualdade sempre, e o teste passaria sem medir
       # nada. Duas issues com vínculo contra cinquenta.
@@ -260,15 +260,23 @@ defmodule TheBandWeb.IssueParentTest do
       # o nome do repositório do pai.
       #
       # "Um número que não cresce" passa com 12 e passa com 120: por isso o teto é asserido.
-      assert muitas == 13, """
-      A página faz #{muitas} consultas por render, e o plano declara **treze** — dez que ela já
-      fazia, duas da coluna `part of`, e uma da feature 017: o total **que acompanha a busca**.
+      assert muitas == 15, """
+      A página faz #{muitas} consultas por render, e o plano declara **quinze**:
 
-      A décima terceira é decisão registrada, não descuido: sem ela a paginação numerada ofereceria
-      páginas vazias durante uma busca, porque o total viria do escopo inteiro. Custa 4,9 ms
-      medidos.
+        * dez que ela já fazia;
+        * duas da coluna `part of`;
+        * uma da feature 017 — o total **que acompanha a busca**. Sem ela a paginação numerada
+          ofereceria páginas vazias durante uma busca, porque o total viria do escopo inteiro;
+        * **duas da feature 039**, a seção de linhas de desenvolvimento: `branches_of/2` e
+          `resumo_do_repositorio/2`. São duas e não uma porque medem coisas diferentes — a
+          lista responde "quais existem" e o resumo responde "quantas, quantas protegidas,
+          quantas paradas". Derivar o resumo da lista em Elixir daria o mesmo número de
+          consultas e obrigaria a tela a repetir a conta do corte de 90 dias.
 
-      Um número diferente de treze significa consulta nova **sem** decisão registrada.
+      Nenhuma das duas cresce com o dado, e é isso que a asserção acima prova: 2 issues e 50
+      issues custam o mesmo.
+
+      Um número diferente de quinze significa consulta nova **sem** decisão registrada.
       """
     end
   end

@@ -1,6 +1,6 @@
 mapping:
   id: github.ref.to.cmpo.branch
-  version: 1
+  version: 2
   status: proposed
 source: { provider: github, entity: ref, api: graphql, schema_version: v4 }
 target: { ontology: cmpo, concept: cmpo.branch }
@@ -14,10 +14,34 @@ identity:
   external_id_path: id
   natural_key: [repository.node_id, name]
 attributes:
-  name: { source_path: name }
+  name:              { source_path: name }
+  head_sha:          { source_path: target.oid }
+  head_committed_at: { source_path: target.committedDate }
+  is_default:        { derived_from: "comparação com repository.defaultBranchRef.name" }
+  is_protected:      { source_path: branchProtectionRule, transform: "presente -> true; nulo -> false, com a divergência registrada" }
 limitations:
-  - Tags também são refs, mas não são branches; filtrar por refs/heads.
-  - Branch protegida ou default é configuração da ferramenta, não distinção ontológica.
+  - >
+    RESOLVIDA na versão 2 — "tags também são refs": a consulta usa
+    `refPrefix: "refs/heads/"`, e tag não entra.
+  - >
+    Branch protegida ou default é configuração da ferramenta, não distinção ontológica. As
+    duas são guardadas porque descrevem POLÍTICA, e política é o que se compara com o que de
+    fato aconteceu — não porque criem subtipos de branch.
+  - >
+    `branchProtectionRule` exige escopo de administração. Sem ele o campo não vem, e a coleta
+    grava `false` **contando separadamente** em `branch_protection_unknown`: "não soubemos
+    dizer" nunca vira "não protegida".
+  - >
+    **Esta coleta não é incremental**, ao contrário das demais. A pergunta é "que branches
+    existem agora", e responder exige o conjunto inteiro para saber o que deixou de existir.
+  - >
+    Branch mergeada é APAGADA na origem, e o histórico dela não está aqui: está no
+    `source_branch` das solicitações de mudança. Medido em 2026-08-19, 2.461 nomes de branch
+    de origem distintos contra 6, 63 e 47 branches vivas nos repositórios do piloto. A
+    solicitação aponta para um nome que pode não ter entidade, e a tela precisa dizer isso.
+  - >
+    Branch que sumiu é MARCADA, nunca removida: ela existiu, e o check-in que aconteceu nela
+    continua sendo fato sobre o processo.
 provenance:
   preserve_raw_payload: true
   required_fields: [source_system, source_instance, external_id, collected_at]

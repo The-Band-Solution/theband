@@ -80,6 +80,9 @@ defmodule TheBand.Changes do
           target_branch: c.target_branch,
           changed_files: c.changed_files,
           commits_total: c.commits_total,
+          # O total da ORIGEM. Nulo é "não medido" — a tela precisa distinguir isso de
+          # "nenhuma review", e as duas frases nunca são a mesma.
+          reviews_total: c.reviews_total,
           commits_collected: c.commits_collected
         }
 

@@ -17,6 +17,7 @@ defmodule TheBandWeb.ChangeLive.Show do
 
   alias TheBand.Changes
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Quality
   alias TheBand.Verification
 
   @impl true
@@ -33,6 +34,7 @@ defmodule TheBandWeb.ChangeLive.Show do
          |> assign(page_title: "##{solicitacao.number}")
          |> assign(solicitacao: solicitacao, commits: commits, issues: issues)
          |> assign(verificacoes: Verification.for_change_request(tenant, solicitacao.id))
+         |> assign(avaliacoes: Quality.for_change_request(tenant, solicitacao.id))
          |> assign(nomes: nomes(tenant, solicitacao, commits))}
 
       # Id de outro tenant devolve "não encontrada", nunca "sem permissão": dizer "sem
@@ -203,6 +205,65 @@ defmodule TheBandWeb.ChangeLive.Show do
             </div>
           </div>
 
+          <%!-- A AVALIAÇÃO DE ARTEFATO — `qapo.artifact_evaluation`. O mapeamento existia
+                desde a versão 1 e nunca havia sido coletado (issue #440).
+
+                Bot é separado de pessoa porque a limitação do mapeamento manda, e o motivo
+                é a medida: se a primeira "revisão" foi um robô, o tempo até a primeira
+                revisão humana continua correndo.
+
+                E nenhum rótulo diz "conforme": aprovar é ausência de bloqueio, não ausência
+                de ressalva — está na definição da QAPO e na limitação do mapeamento. --%>
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4">
+              <h3 class="card-title text-base">Who reviewed it</h3>
+              <p class="text-xs text-base-content/70">
+                Submitted reviews, in order. <strong>Approving is absence of a block</strong>,
+                not absence of remarks — the state is what the source said, nothing more.
+              </p>
+
+              <p
+                :if={@avaliacoes == [] and @solicitacao.reviews_total == 0}
+                class="text-sm opacity-70"
+              >
+                <strong>Nobody reviewed this request.</strong> The source reports zero
+                submitted reviews — this is absence of review, not absence of collection.
+              </p>
+
+              <%!-- As duas frases do vazio são diferentes, e confundi-las é o defeito que a
+                    casa mais reincide. --%>
+              <p
+                :if={@avaliacoes == [] and @solicitacao.reviews_total != 0}
+                class="text-sm opacity-70"
+              >
+                {frase_de_avaliacao_vazia(@solicitacao.reviews_total)}
+              </p>
+
+              <div :for={a <- @avaliacoes} class="border-t border-base-300 pt-1.5 text-sm">
+                <span class={["badge badge-sm", cor_do_estado(a.state)]}>
+                  {rotulo_do_estado(a.state)}
+                </span>
+                <.link
+                  :if={a.author_person_id}
+                  navigate={~p"/people/#{a.author_person_id}"}
+                  class="link link-hover ml-1"
+                >
+                  {a.author_login}
+                </.link>
+                <span :if={is_nil(a.author_person_id)} class="ml-1">{a.author_login || "—"}</span>
+                <%!-- O robô ganha rótulo: sem ele, uma aprovação automática parece revisão
+                      de par, e é o que a medida precisa distinguir. --%>
+                <span :if={a.author_type not in [nil, "User"]} class="badge badge-ghost badge-xs ml-1">
+                  {String.downcase(a.author_type)}
+                </span>
+                <span :if={a.submitted_at} class="ml-1 text-xs opacity-60">{a.submitted_at}</span>
+                <span :if={is_nil(a.submitted_at)} class="ml-1 text-xs italic opacity-60">
+                  not submitted — still a draft
+                </span>
+              </div>
+            </div>
+          </div>
+
           <%!-- A verificação fecha o rastro: issue → solicitação → commit → o que a
                 máquina disse sobre esse commit. O elo é o SHA, e não uma tabela de
                 vínculo — o identificador já é o vínculo, e guardá-lo de novo seria
@@ -244,6 +305,29 @@ defmodule TheBandWeb.ChangeLive.Show do
     </Layouts.app>
     """
   end
+
+  # A frase precisa dizer QUAL das duas ausências é. `reviews_total` nulo é solicitação
+  # coletada antes de a plataforma guardar o total da origem — desconhecido, nunca zero.
+  defp frase_de_avaliacao_vazia(nil),
+    do:
+      "This request was collected before the platform recorded reviews. Whether it was reviewed is unknown — not zero."
+
+  defp frase_de_avaliacao_vazia(total),
+    do:
+      "The source reports #{total} #{if total == 1, do: "review", else: "reviews"}, and none was collected. This is a gap in collection, not in the process."
+
+  # Nenhum estado é pintado de verde-conformidade: `APPROVED` é ausência de bloqueio.
+  defp cor_do_estado("APPROVED"), do: "badge-success badge-outline"
+  defp cor_do_estado("CHANGES_REQUESTED"), do: "badge-warning"
+  defp cor_do_estado("DISMISSED"), do: "badge-ghost"
+  defp cor_do_estado(_outro), do: "badge-ghost"
+
+  defp rotulo_do_estado("APPROVED"), do: "approved"
+  defp rotulo_do_estado("CHANGES_REQUESTED"), do: "changes requested"
+  defp rotulo_do_estado("COMMENTED"), do: "commented"
+  defp rotulo_do_estado("DISMISSED"), do: "dismissed"
+  defp rotulo_do_estado("PENDING"), do: "draft"
+  defp rotulo_do_estado(outro), do: String.downcase(outro || "unknown")
 
   # Interrompida e não executada NÃO são erro: cancelar é decisão humana, e pintá-las de
   # vermelho ao lado de uma solicitação integrada acusaria o que ninguém quebrou.
