@@ -174,77 +174,30 @@ defmodule TheBand.Verification do
   end
 
   @doc """
-  As solicitações **integradas** com verificação malsucedida — `ci.ap03`, issue #439.
-
-  ## Por que "integrada", e não "vermelha"
-
-  CI vermelho num ramo de proposta é o processo **funcionando**: a verificação pegou o
-  problema antes de integrar, que é para isso que ela existe. Contar isso como defeito
-  produziria a medida ao contrário — quem empurra cedo e usa o CI como rede acumularia
-  vermelhos, e quem desenvolve local e empurra uma vez apareceria impecável.
-
-  O que esta função conta é a verificação que **deixou de ser porta e virou relatório**.
-
-  Só a fase malsucedida entra. Cancelada e não executada são decisões humanas ou condições
-  de workflow, e contá-las produziria alarme falso — é o motivo das três fases próprias.
-
-  ## E só execução que É integração contínua
-
-  A primeira versão desta consulta não filtrava por tipo, e o dado real derrubou na hora:
-  os três "vermelhos" encontrados eram os fluxos `Card de promoção → Project 43` e
-  `Promoção → Project 43` — **automação de quadro**, que nada verifica. Um script de
-  rollover quebrado faria a pessoa parecer que sobe código com defeito.
-
-  É a mesma armadilha que `process_kinds` existe para fechar, e ela pegou a própria medida
-  que a usaria.
-  """
-  @spec integrated_with_red(Tenant.t(), keyword()) :: [map()]
-  def integrated_with_red(%Tenant{id: tenant_id}, opts \\ []) do
-    Repo.all(
-      from c in "collected_change_requests",
-        join: co in "collected_commits",
-        on: co.change_request_id == c.id,
-        join: v in "collected_verifications",
-        on: v.head_sha == co.sha and v.tenant_id == co.tenant_id,
-        where:
-          c.tenant_id == type(^tenant_id, :binary_id) and c.state == "MERGED" and
-            is_nil(c.no_longer_observed_at) and is_nil(co.no_longer_observed_at) and
-            is_nil(v.no_longer_observed_at) and
-            v.phase == "ciro.unsuccessful_continuous_integration_process" and
-            fragment("? = ANY(?)", "ciro.continuous_integration_process", v.process_kinds),
-        distinct: c.id,
-        order_by: [desc: c.external_merged_at],
-        limit: ^Keyword.get(opts, :limit, 50),
-        select: %{
-          id: type(c.id, :binary_id),
-          number: c.number,
-          title: c.title,
-          merged_at: c.external_merged_at,
-          author_login: c.author_login,
-          author_person_id: type(c.author_person_id, :binary_id),
-          merged_by_login: c.merged_by_login,
-          merged_by_person_id: type(c.merged_by_person_id, :binary_id),
-          sha: co.sha,
-          workflow_name: v.workflow_name,
-          attempt: v.attempt
-        }
-    )
-  end
-
-  @doc """
   A cobertura pelo **estado da ponta** — `statusCheckRollup`, issue #439.
 
-  ## Por que esta função existe ao lado de `cobertura/1`
+  ## Por que ela substituiu o casamento por `head_sha`, e não convive com ele
 
-  `cobertura/1` mede o que o casamento por `head_sha` alcança, e ele alcança pouco: a execução
-  coletada aponta para a ponta do ramo **naquele instante**, então só casa nos commits que foram
-  ponta em algum push. Medido em 2026-08-19, para uma pessoa com 415 solicitações integradas:
-  **98** caíam nesse buraco e a tela as chamava de "não dá para saber".
+  O casamento por SHA errava nas duas direções, e a segunda é a que condena.
 
-  A pessoa mantenedora perguntou se realmente não havia como saber. Não havia com o que eu tinha
-  coletado; **há com o que a origem oferece**. `statusCheckRollup` é campo do commit e agrega os
-  `check_run` da API de Checks e os `status` da API antiga — as duas camadas que a coleta de
-  `workflow_run` não alcança.
+  **Deixava passar**: a execução coletada aponta para a ponta do ramo **naquele instante**, então
+  só casa nos commits que foram ponta em algum push. Medido em 2026-08-19, para uma pessoa com
+  415 solicitações integradas: **98** caíam nesse buraco e a tela as chamava de "não dá para
+  saber". A pessoa mantenedora perguntou se realmente não havia como saber. Não havia com o que
+  eu tinha coletado; **há com o que a origem oferece**.
+
+  **E supercontava**: qualquer execução vermelha em *qualquer* commit do PR marcava a solicitação
+  como integrada vermelha, inclusive a vermelha consertada antes do merge. Das 214 vermelhas que
+  só ele achava, **186 estão verdes na ponta** — conferido no `#13`, 33 commits, três vermelhas
+  no meio, ponta verde com 2 contextos. Contar isso é a medida ao contrário, e é exatamente o que
+  a tela declara recusar.
+
+  Por isso as duas não convivem: a antiga foi **removida**, e não deixada ao lado como segunda
+  opinião. Duas medidas com sobreposição de 82 em 435 não são precisões diferentes do mesmo
+  fenômeno — são fenômenos diferentes, e manter as duas convidaria a somá-las.
+
+  `statusCheckRollup` é campo do commit e agrega os `check_run` da API de Checks e os `status` da
+  API antiga — as duas camadas que a coleta de `workflow_run` não alcança.
 
   ## As quatro respostas, e nenhuma é "não sei" disfarçada
 
@@ -366,11 +319,14 @@ defmodule TheBand.Verification do
 
   # **Mede pelo estado da PONTA, e não pelo casamento por `head_sha`** — issue #439.
   #
-  # O casamento por SHA achava 284 solicitações integradas vermelhas; o `statusCheckRollup` da
-  # ponta acha 349 — 23% mais, porque alcança os `check_run` da API de Checks e os `status` da
-  # API antiga, que a coleta de `workflow_run` não vê.
+  # Os dois caminhos não medem a mesma coisa. Medido em 2026-08-19, sobre 4.819 integradas: o
+  # casamento por SHA acha 296 vermelhas, o rollup acha 221, e só 82 estão nos dois.
   #
-  # E ele responde o que o casamento não respondia: das 4.734 medidas, **2.038 entraram sem
+  # **O casamento superconta.** Das 214 que só ele acha, 186 estão VERDES na ponta — a vermelha
+  # estava num commit intermediário e o PR foi consertado antes de entrar. As 139 que só o rollup
+  # acha são o que `workflow_run` não alcança: `check_run` e `status`.
+  #
+  # E ele responde o que o casamento não respondia: das 4.056 medidas, **1.705 entraram sem
   # check nenhum**. Pelo caminho antigo, essas apareciam como "não dá para saber".
   #
   # As duas participações compartilham a consulta porque só o campo do agrupamento difere.
@@ -405,7 +361,7 @@ defmodule TheBand.Verification do
           # estado `PENDING` com contextos é verificação em curso, e ela existiu.
           verified:
             fragment("count(?) filter (where coalesce(?, 0) > 0)", c.id, c.merged_check_contexts),
-          # **Entrou sem verificação nenhuma** — 2.038 no dado real, 43% do medido. Pelo caminho
+          # **Entrou sem verificação nenhuma** — 1.705 no dado real, 42% do medido. Pelo caminho
           # antigo isso era indistinguível de "não conseguimos medir", e são coisas opostas: a
           # primeira é achado sobre o processo, a segunda é lacuna nossa.
           no_check:

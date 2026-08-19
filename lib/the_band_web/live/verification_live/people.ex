@@ -26,13 +26,29 @@ defmodule TheBandWeb.VerificationLive.People do
 
   ## Mede pelo estado da PONTA, não pelo casamento por `head_sha`
 
-  O casamento por SHA achava 284 solicitações integradas vermelhas; o `statusCheckRollup` da
-  ponta acha **349** — 23% mais, porque alcança os `check_run` da API de Checks e os `status` da
-  API antiga, que a coleta de `workflow_run` não vê.
+  Os dois caminhos não medem a mesma coisa, e a sobreposição entre eles é pequena. Medido em
+  2026-08-19, sobre 4.819 solicitações integradas:
 
-  E responde o que o casamento não respondia: das 4.734 medidas, **2.038 entraram sem check
-  nenhum**. Pelo caminho antigo essas apareciam como "não dá para saber", e são coisa oposta —
-  achado sobre o processo, não lacuna nossa.
+      casamento por head_sha    296 vermelhas
+      statusCheckRollup         221 vermelhas
+      nos dois                   82
+      união                     435
+
+  **O casamento por SHA superconta, e superconta exatamente o que esta tela recusa.** Das 214
+  que só ele acha, **186 estão VERDES na ponta**: a vermelha estava num commit intermediário, e
+  o PR foi consertado antes de entrar. Conferido no `#13` — 33 commits, três execuções vermelhas
+  no meio, ponta verde com 2 contextos. Isso é o processo funcionando, e contá-lo produziria a
+  medida ao contrário.
+
+  As 139 que só o rollup acha são o que o `workflow_run` não alcança: os `check_run` da API de
+  Checks e os `status` da API antiga.
+
+  E o rollup responde o que o casamento não respondia: das 4.056 medidas, **1.705 entraram sem
+  check nenhum**. Pelo caminho antigo essas apareciam como "não dá para saber", e são coisa
+  oposta — achado sobre o processo, não lacuna nossa.
+
+  **763 ainda não foram medidas**, então as 221 vão crescer. O que não muda com elas é o achado
+  das 186: ele não depende de quantas faltam.
 
   ## `no check` tem coluna própria, e o motivo é o que ela evita
 

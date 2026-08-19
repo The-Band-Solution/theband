@@ -14,6 +14,11 @@ defmodule TheBand.Repo.Migrations.AddMergedCheckState do
   não havia como saber — e não havia, com o que eu tinha coletado. Com o que a origem oferece,
   há.
 
+  E o buraco não era o único defeito do casamento por SHA: ele também **supercontava**. Medido
+  depois desta migração, das 214 vermelhas que só ele acha, 186 estão verdes na ponta — a
+  vermelha estava num commit intermediário, consertado antes do merge. Ver
+  `docs/integrations/verificacao-continua.md`.
+
   ## `statusCheckRollup` é campo do COMMIT, e agrega o que faltava
 
   Ele soma as duas camadas que a coleta de `workflow_run` não alcança:
