@@ -88,7 +88,21 @@ defmodule TheBandWeb.MenusDoRastroTest do
       assert html =~ "merged"
       assert html =~ "closed without merging"
       assert html =~ "still open"
-      assert html =~ "no issue recognised"
+    end
+
+    test "o escopo aparece com as quatro frases separadas, e nenhuma diz pela outra", ctx do
+      # Somá-las foi o defeito #438. "Attends none" é fato sobre o processo; "issue not
+      # collected yet" é lacuna nossa; "not measured" é desconhecido. Um rótulo só faria
+      # a plataforma acusar a organização pelo que ela mesma não coletou.
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/changes")
+
+      assert html =~ "attends an issue"
+      assert html =~ "attends none"
+      assert html =~ "issue not collected yet"
+      assert html =~ "not measured"
+
+      # E nunca o rótulo que somava as três.
+      refute html =~ "no issue recognised"
     end
 
     test "a tela de arquivos diz quantos commits foram percorridos", ctx do

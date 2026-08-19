@@ -53,6 +53,10 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
        change_requests: soma(resultados, :solicitacoes),
        commits: soma(resultados, :commits),
        attended_issues: soma(resultados, :atendidas),
+       # **Nunca zero disfarçando "acabou".** É quanto a origem reconheceu e a plataforma
+       # não conseguiu resolver porque a issue ainda não foi coletada — o número que a
+       # versão anterior descartava em silêncio (issue #438).
+       attended_issues_pending: soma(resultados, :pendentes),
        truncated: soma(resultados, :truncadas),
        unreachable: Enum.count(resultados, &(&1.alcancado == false))
      }}
@@ -92,14 +96,14 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
 
       {:error, motivo} ->
         Logger.warning("mudanças de #{repo.qualified_name} não coletadas: #{inspect(motivo)}")
-        %{alcancado: false, solicitacoes: 0, commits: 0, atendidas: 0, truncadas: 0}
+        %{alcancado: false, solicitacoes: 0, commits: 0, atendidas: 0, pendentes: 0, truncadas: 0}
     end
   end
 
   defp gravar(ctx, repo_id, solicitacoes) do
     Enum.reduce(
       solicitacoes,
-      %{solicitacoes: 0, commits: 0, atendidas: 0, truncadas: 0},
+      %{solicitacoes: 0, commits: 0, atendidas: 0, pendentes: 0, truncadas: 0},
       fn node, acc ->
         somar(acc, gravar_solicitacao(ctx, repo_id, node))
       end
@@ -135,18 +139,43 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
       })
 
     atendidas = vincular_issues(ctx, solicitacao.id, node)
+    :ok = Commands.record_attended_provenance(ctx.tenant, solicitacao.id, atendidas)
     {commits, truncado} = gravar_commits(ctx, repo_id, solicitacao.id, node)
 
-    %{solicitacoes: 1, commits: commits, atendidas: atendidas, truncadas: truncado}
+    %{
+      solicitacoes: 1,
+      commits: commits,
+      atendidas: atendidas.resolvidas,
+      # Nunca zero disfarçando "acabou": é o que diz que há vínculo esperando issue.
+      pendentes: length(atendidas.pendentes),
+      truncadas: truncado
+    }
   end
 
   # O vínculo é o que a ORIGEM reconheceu — `closingIssuesReferences`, nunca o texto.
+  #
+  # **O que não resolve fica registrado, e isso é o conserto da issue #438.** A versão
+  # anterior gravava só o que casou com uma issue já coletada e devolvia `map_size(ids)` —
+  # o que casou, nunca o que a origem disse. A diferença entre os dois é o buraco, e ela
+  # não ia para lugar nenhum: um painel chegou a mostrar "83% das solicitações sem issue"
+  # quando dois de cada três amostrados fechavam issue sim.
+  #
+  # A causa é de ordem, não de modelo: a coleta de issues fica atrás da de solicitações, e
+  # a solicitação já mergeada não volta a ser percorrida. Guardar os identificadores
+  # externos pendentes é o que permite resolvê-los depois **sem tocar na API**.
   defp vincular_issues(ctx, solicitacao_id, node) do
     externos = Enum.map(get_in(node, ["closingIssuesReferences", "nodes"]) || [], & &1["id"])
     ids = issue_ids_por_external(ctx.tenant.id, externos)
 
     :ok = Commands.replace_attended_issues(ctx.tenant, solicitacao_id, Map.values(ids))
-    map_size(ids)
+
+    %{
+      resolvidas: map_size(ids),
+      # O total da ORIGEM, e não o tamanho da lista que chegou: `closingIssuesReferences`
+      # pagina, e `totalCount` é o único número que revela truncamento da própria consulta.
+      total: get_in(node, ["closingIssuesReferences", "totalCount"]) || length(externos),
+      pendentes: Enum.reject(externos, &Map.has_key?(ids, &1))
+    }
   end
 
   defp gravar_commits(ctx, repo_id, solicitacao_id, node) do

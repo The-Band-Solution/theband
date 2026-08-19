@@ -66,20 +66,46 @@ defmodule TheBandWeb.ChangeLive.Index do
         </:subtitle>
       </.header>
 
-      <%!-- O PAINEL, e a razão de cada quadro estar aqui. "Fechada sem integrar" não some
-            dentro de "fechada": é trabalho pedido, revisado e descartado, e somá-lo às
-            integradas apagaria o único número que mede desperdício de revisão.
-
-            "Sem issue" não é estado nem defeito — é quanto do trabalho não tem rastro até
-            o que foi pedido. Medido em 2026-08-19: 4.177 de 5.035, ou 83%. Escondê-lo
-            faria o rastreio parecer completo. --%>
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <%!-- O PAINEL. "Fechada sem integrar" não some dentro de "fechada": é trabalho
+            pedido, revisado e descartado, e somá-lo às integradas apagaria o único número
+            que mede desperdício de revisão. --%>
+      <div class="grid grid-cols-3 gap-2">
         <div
           :for={{rotulo, valor, cor} <- quadros(@resumo)}
           class="rounded-lg border border-base-300 px-3 py-2"
         >
           <span class={["block font-mono text-xl tabular-nums", cor]}>{valor}</span>
           <span class="text-xs opacity-70">{rotulo}</span>
+        </div>
+      </div>
+
+      <%!-- O ESCOPO, em painel próprio e com as frases separadas.
+
+            A primeira versão tinha um quadro só, "no issue recognised", com 4.177 — 83%
+            das solicitações. **Estava errado**, e quem mantém o projeto pegou pelo volume:
+            conferidos contra a origem, dois de três amostrados fechavam issue sim. O
+            número somava falha nossa com fato sobre o processo (issue #438).
+
+            Agora são quatro, e a diferença entre eles é a diferença entre acusar a
+            organização e admitir a própria lacuna. --%>
+      <div class="rounded-lg border border-base-300 p-3">
+        <h2 class="mb-1 text-sm font-semibold">
+          Link to what was asked
+          <span class="badge badge-outline badge-warning badge-xs ml-1">derived</span>
+        </h2>
+        <p class="mb-2 text-xs opacity-70">
+          What the source recognised from the closing keywords — and, separately, what it
+          recognised that we have not resolved yet.
+        </p>
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div
+            :for={{rotulo, valor, cor, dica} <- quadros_de_escopo(@resumo)}
+            class="min-w-0"
+            title={dica}
+          >
+            <span class={["block font-mono text-lg tabular-nums", cor]}>{valor}</span>
+            <span class="text-xs opacity-70">{rotulo}</span>
+          </div>
         </div>
       </div>
 
@@ -171,14 +197,27 @@ defmodule TheBandWeb.ChangeLive.Index do
     """
   end
 
-  # A ordem conta o ciclo: o que entrou, o que foi descartado, o que ainda está aberto, e
-  # quanto disso tudo não tem escopo. O último é o único que não é estado.
+  # A ordem conta o ciclo: o que entrou, o que foi descartado, o que ainda está aberto.
   defp quadros(resumo) do
     [
       {"merged", Map.get(resumo, "MERGED", 0), ""},
       {"closed without merging", Map.get(resumo, "CLOSED", 0), "text-warning"},
-      {"still open", Map.get(resumo, "OPEN", 0), ""},
-      {"no issue recognised", Map.get(resumo, :sem_issue, 0), "text-warning"}
+      {"still open", Map.get(resumo, "OPEN", 0), ""}
+    ]
+  end
+
+  # As três frases sobre escopo, mais a que é a NOSSA lacuna. Nenhuma soma com outra — foi
+  # somá-las que produziu a medida errada de 83%.
+  defp quadros_de_escopo(resumo) do
+    [
+      {"attends an issue", Map.get(resumo, :com_escopo, 0), "",
+       "the source recognised a closing issue and we resolved it"},
+      {"attends none", Map.get(resumo, :sem_escopo, 0), "",
+       "the source recognised no closing issue — a change outside declared scope, common and not a fault"},
+      {"issue not collected yet", Map.get(resumo, :escopo_pendente, 0), "text-warning",
+       "the source recognised an issue we have not collected — our gap, not the organisation's"},
+      {"not measured", Map.get(resumo, :nao_sabemos, 0), "opacity-60",
+       "collected before the platform recorded what the source said — unknown, never zero"}
     ]
   end
 

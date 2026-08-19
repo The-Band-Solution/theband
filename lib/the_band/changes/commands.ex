@@ -202,6 +202,146 @@ defmodule TheBand.Changes.Commands do
   end
 
   @doc """
+  Preenche a proveniência das issues atendidas a partir do payload preservado — **local**.
+
+  As colunas nasceram na migração de 2026-08-19 e vieram nulas: as 5.035 solicitações já
+  coletadas não tinham como saber o que a origem havia dito. Recoletá-las custaria milhares
+  de chamadas.
+
+  **Não precisou.** `raw_payload` guarda o nó inteiro, `closingIssuesReferences` incluído —
+  e é exatamente para isto que `preserve_raw_payload: true` existe no mapeamento. O
+  backfill lê de lá, resolve o que casa com issue já coletada, e deixa o resto em
+  `attended_issues_unresolved` para a reconciliação pegar depois.
+
+  Devolve o que mudou. Roda uma vez; depois disso a coleta grava sozinha.
+  """
+  @spec backfill_attended_provenance(Tenant.t()) ::
+          {:ok, %{visited: integer(), linked: integer(), pending: integer()}}
+  def backfill_attended_provenance(%Tenant{id: tenant_id} = tenant) do
+    solicitacoes =
+      Repo.all(
+        from c in "collected_change_requests",
+          where:
+            c.tenant_id == type(^tenant_id, :binary_id) and
+              is_nil(c.no_longer_observed_at) and is_nil(c.attended_issues_total),
+          select: %{id: type(c.id, :binary_id), payload: c.raw_payload}
+      )
+
+    Enum.reduce(solicitacoes, {:ok, %{visited: 0, linked: 0, pending: 0}}, fn cr, {:ok, acc} ->
+      referencias = get_in(cr.payload, ["closingIssuesReferences"]) || %{}
+      externos = Enum.map(referencias["nodes"] || [], & &1["id"])
+      # `totalCount` e não `length(nodes)`: a conexão pagina, e só o total revela
+      # truncamento da própria consulta.
+      total = referencias["totalCount"] || length(externos)
+      mapa = ids_de_issues(externos, tenant_id)
+      pendentes = Enum.reject(externos, &Map.has_key?(mapa, &1))
+      agora = DateTime.utc_now(:second)
+
+      Enum.each(Map.values(mapa), &upsert_vinculo(tenant_id, cr.id, &1, agora))
+
+      :ok = record_attended_provenance(tenant, cr.id, %{total: total, pendentes: pendentes})
+
+      {:ok,
+       %{
+         visited: acc.visited + 1,
+         linked: acc.linked + map_size(mapa),
+         pending: acc.pending + length(pendentes)
+       }}
+    end)
+  end
+
+  @doc """
+  Resolve os vínculos pendentes — **local, sem tocar na API**.
+
+  A pendência existe porque a coleta de issues fica atrás da de solicitações, e a
+  solicitação já mergeada não volta a ser percorrida. Sem esta função o vínculo nunca
+  apareceria, mesmo depois da issue chegar ao banco.
+
+  Devolve quantos vínculos passaram a existir. Zero significa que nenhuma das issues
+  pendentes chegou ainda — é resposta, não falha.
+  """
+  @spec reconcile_attended_issues(Tenant.t()) ::
+          {:ok, %{resolved: integer(), still_pending: integer()}}
+  def reconcile_attended_issues(%Tenant{id: tenant_id}) do
+    pendentes =
+      Repo.all(
+        from c in "collected_change_requests",
+          where:
+            c.tenant_id == type(^tenant_id, :binary_id) and
+              is_nil(c.no_longer_observed_at) and
+              fragment("array_length(?, 1) > 0", c.attended_issues_unresolved),
+          select: %{
+            id: type(c.id, :binary_id),
+            unresolved: c.attended_issues_unresolved
+          }
+      )
+
+    # Uma consulta para TODOS os externos pendentes, e não uma por solicitação: são
+    # milhares de solicitações, e consultar por linha seria o defeito da feature 007.
+    mapa =
+      pendentes
+      |> Enum.flat_map(& &1.unresolved)
+      |> Enum.uniq()
+      |> ids_de_issues(tenant_id)
+
+    Enum.reduce(pendentes, {:ok, %{resolved: 0, still_pending: 0}}, fn cr, {:ok, acc} ->
+      {chegaram, faltam} = Enum.split_with(cr.unresolved, &Map.has_key?(mapa, &1))
+      novos = Enum.map(chegaram, &mapa[&1])
+
+      agora = DateTime.utc_now(:second)
+      Enum.each(novos, &upsert_vinculo(tenant_id, cr.id, &1, agora))
+
+      # A lista pendente encolhe para o que ainda falta — nunca é zerada por otimismo.
+      Repo.update_all(
+        from(c in "collected_change_requests", where: c.id == type(^cr.id, :binary_id)),
+        set: [attended_issues_unresolved: faltam]
+      )
+
+      {:ok,
+       %{
+         resolved: acc.resolved + length(novos),
+         still_pending: acc.still_pending + length(faltam)
+       }}
+    end)
+  end
+
+  defp ids_de_issues([], _tenant_id), do: %{}
+
+  defp ids_de_issues(externos, tenant_id) do
+    Repo.all(
+      from i in "collected_issues",
+        where: i.tenant_id == type(^tenant_id, :binary_id) and i.external_id in ^externos,
+        select: {i.external_id, type(i.id, :binary_id)}
+    )
+    |> Map.new()
+  end
+
+  @doc """
+  Grava a proveniência das issues atendidas — o que a origem disse, e o que não resolveu.
+
+  Separado de `replace_attended_issues/3` de propósito: aquela grava o **vínculo**, esta
+  grava o **que faltou do vínculo**. Juntar as duas faria a segunda parecer detalhe de
+  implementação da primeira, e foi exatamente por ser detalhe que o buraco ficou invisível
+  (issue #438).
+  """
+  @spec record_attended_provenance(Tenant.t(), Ecto.UUID.t(), map()) :: :ok
+  def record_attended_provenance(%Tenant{id: tenant_id}, change_request_id, %{
+        total: total,
+        pendentes: pendentes
+      }) do
+    Repo.update_all(
+      from(c in "collected_change_requests",
+        where:
+          c.tenant_id == type(^tenant_id, :binary_id) and
+            c.id == type(^change_request_id, :binary_id)
+      ),
+      set: [attended_issues_total: total, attended_issues_unresolved: pendentes]
+    )
+
+    :ok
+  end
+
+  @doc """
   Substitui os vínculos com issues pelo conjunto reconhecido agora.
 
   A origem é sempre `closing_reference`: é o que o GitHub reconheceu das closing
@@ -212,29 +352,34 @@ defmodule TheBand.Changes.Commands do
   def replace_attended_issues(%Tenant{id: tenant_id}, change_request_id, issue_ids) do
     now = DateTime.utc_now(:second)
 
-    Enum.each(issue_ids, fn issue_id ->
-      base =
-        Repo.get_by(ChangeRequestIssue,
-          tenant_id: tenant_id,
-          collected_change_request_id: change_request_id,
-          collected_issue_id: issue_id
-        ) || %ChangeRequestIssue{}
-
-      {:ok, _} =
-        base
-        |> ChangeRequestIssue.changeset(%{
-          tenant_id: tenant_id,
-          collected_change_request_id: change_request_id,
-          collected_issue_id: issue_id,
-          source: "closing_reference",
-          collected_at: base.collected_at || now,
-          last_observed_at: now,
-          no_longer_observed_at: nil
-        })
-        |> Repo.insert_or_update()
-    end)
+    Enum.each(issue_ids, &upsert_vinculo(tenant_id, change_request_id, &1, now))
 
     marcar_vinculos_sumidos(tenant_id, change_request_id, issue_ids, now)
+  end
+
+  # Um vínculo, sem marcar nada. **A reconciliação depende de ser ACRESCENTAR e não
+  # SUBSTITUIR**: ela conhece só os pendentes que chegaram, e usar `replace_*` marcaria
+  # como sumidos os vínculos que já existiam e não estavam na lista.
+  defp upsert_vinculo(tenant_id, change_request_id, issue_id, now) do
+    base =
+      Repo.get_by(ChangeRequestIssue,
+        tenant_id: tenant_id,
+        collected_change_request_id: change_request_id,
+        collected_issue_id: issue_id
+      ) || %ChangeRequestIssue{}
+
+    {:ok, _} =
+      base
+      |> ChangeRequestIssue.changeset(%{
+        tenant_id: tenant_id,
+        collected_change_request_id: change_request_id,
+        collected_issue_id: issue_id,
+        source: "closing_reference",
+        collected_at: base.collected_at || now,
+        last_observed_at: now,
+        no_longer_observed_at: nil
+      })
+      |> Repo.insert_or_update()
   end
 
   # Mesma razão dos autores: o conjunto observado decide, nunca o timestamp.
