@@ -439,16 +439,26 @@ defmodule TheBand.Verification do
   def monolithic_jobs(%Tenant{id: tenant_id}) do
     Repo.all(
       from c in "verification_components",
+        join: v in "collected_verifications",
+        on: v.id == c.collected_verification_id,
         where:
           c.tenant_id == type(^tenant_id, :binary_id) and
             is_nil(c.no_longer_observed_at) and
             fragment("array_length(?, 1) > 1", c.components),
-        group_by: [c.job_name, c.components],
+        # **Pelo ARQUIVO, não só pelo nome do job** — issue #440. O antipadrão é propriedade do
+        # script, e o nome do job é proxy: dois repositórios com um job chamado `build` viravam a
+        # mesma linha, e a máxima não dizia o que corrigir.
+        #
+        # `workflow_path` sai de `workflow_run.path`, que já estava no payload preservado de todas
+        # as 15.375 execuções: 104 definições distintas explicam o corpus inteiro.
+        group_by: [v.workflow_path, c.job_name, c.components],
         order_by: [desc: count(c.id)],
         select: %{
+          workflow_path: v.workflow_path,
           job_name: c.job_name,
           components: c.components,
-          occurrences: count(c.id)
+          occurrences: count(c.id),
+          repositorios: count(v.observed_repository_id, :distinct)
         }
     )
   end
