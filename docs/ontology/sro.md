@@ -12,7 +12,7 @@
 | **Camada** | Domínio |
 | **Rede** | Continuum |
 | **Namespace** | `the_band.ontology.continuum.sro` |
-| **Depende de** | [ufo](ufo.md), [eo](eo.md), [spo](spo.md), [sys_swo](sys_swo.md), [rsro](rsro.md) |
+| **Depende de** | [ufo](ufo.md), [eo](eo.md), [spo](spo.md), [sys_swo](sys_swo.md), [rsro](rsro.md), [cmpo](cmpo.md) |
 | **Origem** | Tese, Seção 3.2 (Figuras 25 a 30) |
 
 > **Nota.** Os verbos das relações estão no passado: Continuum descreve eventos que já ocorreram nos projetos, não intenções.
@@ -25,6 +25,7 @@
 - **[Scrum Stakeholder Participation](#scrum-stakeholder-participation)** — Quem foi responsável e quem participou de cada processo e cerimônia do projeto Scrum. Baseia-se nas relações "is in charge of" e "participates in" de SPO — distinguir as duas é o que permite medir responsabilidade real, e não apenas presença.
 - **[Product and Sprint Backlog](#product-and-sprint-backlog)** — Requisitos estabelecidos no projeto Scrum e as tarefas planejadas para materializá-los. A tarefa pretendida (intended) e a executada (performed) são conceitos distintos ligados por causação — é isso que permite medir aderência entre planejado e realizado.
 - **[Scrum Deliverables](#scrum-deliverables)** — Resultados produzidos no projeto Scrum. Entregável aceito e não aceito são fases distintas do entregável, e a tarefa que produziu apenas entregáveis aceitos é distinguida da que produziu algum não aceito — é assim que se mede retrabalho sem inventar heurística.
+- **[Scope Traceability](#scope-traceability)** — Qual item de escopo uma solicitação de mudança atende. Fecha o rastreio que começa na pessoa e passa pelo commit e pela solicitação, ligando trabalho de gerência de configuração ao escopo que o motivou.
 
 ---
 
@@ -530,6 +531,26 @@ Produto de software formado pelo conjunto dos entregáveis de sprint produzidos 
 | `was composed of` | `sro.sprint_deliverable` | `sro.accepted_deliverable` | one → one_or_many | part_whole |
 | `was composed of` | `sro.scrum_project_deliverable` | `sro.sprint_deliverable` | one → one_or_many | part_whole |
 | `created` | `sro.scrum_process` | `sro.scrum_project_deliverable` | one → one | association |
+
+
+
+---
+
+## Scope Traceability
+
+<a id="scope-traceability"></a>
+
+Qual item de escopo uma solicitação de mudança atende. Fecha o rastreio que começa na pessoa e passa pelo commit e pela solicitação, ligando trabalho de gerência de configuração ao escopo que o motivou.
+
+*Fonte: Issue #426; complementa cmpo.change_traceability*
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `attended` | `cmpo.change_request` | `sro.user_story` | many → many | association |
+| `attended` | `cmpo.change_request` | `sro.performed_scrum_development_task` | many → many | association |
+| `attended` | `cmpo.change_request` | `sro.epic` | many → many | association |
 
 
 

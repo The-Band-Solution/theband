@@ -27,6 +27,8 @@ for Data-Driven Software Development*.
 | Entender as extensões ao método de transformação | [Pesquisa](research/extensions-to-one-table-per-kind.md) |
 | Saber o que construir e em que ordem | [Backlog](backlog/README.md) |
 | Começar pela integração com GitHub | [Backlog GitHub → SRO](backlog/github-to-sro.md) |
+| Entender como o CI coletado vira conceito | [Verificação contínua](integrations/verificacao-continua.md) |
+| Ler o que os sprints ensinaram | [Lições aprendidas](sprints/licoes-aprendidas.md) |
 | Contribuir com código | [AGENTS.md](../AGENTS.md) na raiz |
 | Abrir ou fechar um sprint | [skill sprint-backlog](../.claude/skills/sprint-backlog/SKILL.md) |
 
@@ -41,6 +43,7 @@ docs/
 ├── integrations/     fontes externas e mapeamentos — GERADO
 ├── metrics/          necessidades de informação e medidas — GERADO
 ├── processes/        processo de trabalho por feature
+├── sprints/          backlogs, reviews e o registro acumulado de lições
 ├── backlog/          o que construir e em que ordem
 ├── rfc/              propostas abertas a comentário
 ├── research/         extensões ao método, com vistas a publicação
@@ -60,8 +63,13 @@ python3 scripts/validate_knowledge_base.py   # a base precisa estar válida ante
 python3 scripts/generate_docs.py
 ```
 
-Quando o projeto Elixir existir, esses scripts serão substituídos pelas Mix tasks
-`mix knowledge.validate` e `mix knowledge.docs`, com o mesmo contrato.
+As Mix tasks equivalentes já existem, e são o que os gates chamam — `mix knowledge.validate`
+e `mix knowledge.graph`. Os scripts continuam servindo para uso pontual fora do projeto
+Elixir.
+
+**Regenerar não é opcional.** Alterar a base sem regenerar deixa a documentação afirmando
+um modelo que o sistema não carrega mais — e foi o que aconteceu por nove features: a
+página dizia 12 ontologias quando a base já tinha 13.
 
 ---
 
@@ -69,11 +77,11 @@ Quando o projeto Elixir existir, esses scripts serão substituídos pelas Mix ta
 
 | Área | Estado |
 |---|---|
-| Base de conhecimento (UFO + SEON + Continuum) | 12 ontologias, 219 conceitos, 141 relações, 64 perguntas de competência |
-| Mapeamentos semânticos | GitHub: 13 mapeamentos (4 derivados por tipo de issue), status *proposed* |
-| Necessidades de informação e medidas | 3 e 3, como exemplos de referência |
-| Aplicação Phoenix | não iniciada — feature `001 Fundação Phoenix e governança` |
-| Conectores executáveis | não iniciados — feature `025 Motor declarativo GraphQL/YAML` |
+| Base de conhecimento (UFO + SEON + Continuum) | 13 ontologias, 230 conceitos, 167 relações, 73 perguntas de competência |
+| Mapeamentos semânticos | GitHub: 22 mapeamentos (4 derivados por tipo de issue), status *proposed* |
+| Necessidades de informação e medidas | 6 e 5 |
+| Aplicação Phoenix | em produção interna — multitenant, 23 rotas LiveView, 116 arquivos de teste |
+| Conectores executáveis | GitHub, declarativo em GraphQL + YAML |
 
 O roadmap completo está em [AGENTS.md](../AGENTS.md), seção 19.
 

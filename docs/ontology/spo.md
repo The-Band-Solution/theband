@@ -53,6 +53,24 @@ Projeto relacionado ao desenvolvimento ou manutenção de software.
 
 <sub>categoria UFO: `social_object` · especializa `spo.project`</sub>
 
+#### `spo.simple_project` — Simple Project
+
+*Projeto Simples*
+
+Projeto que não é decomposto em outros projetos.
+
+<sub>categoria UFO: `social_object` · especializa `spo.project`</sub>
+
+Exemplos: *o projeto de um módulo com dois repositórios e nenhum subprojeto*
+
+#### `spo.complex_project` — Complex Project
+
+*Projeto Complexo*
+
+Projeto composto de outros projetos. Como o projeto componente é ele próprio um projeto, um projeto complexo pode ser parte de outro: a decomposição é recursiva e não tem profundidade fixa. Ser complexo não é rótulo atribuído, e sim consequência de ter partes — um projeto sem partes é simples, ainda que alguém o tenha cadastrado pensando em decompô-lo.
+
+<sub>categoria UFO: `social_object` · especializa `spo.project`</sub>
+
 #### `spo.project_stakeholder` — Project Stakeholder
 
 *Parte Interessada do Projeto*
@@ -85,8 +103,11 @@ Exemplos: *a equipe de desenvolvimento do projeto*
 
 | Relação | Origem | Destino | Cardinalidade | Tipo |
 |---|---|---|---|---|
+| `was composed of` | `spo.complex_project` | `spo.project` | one → one_or_many | part_whole |
 | `is interested in` | `spo.project_stakeholder` | `spo.software_project` | many → many | association |
 
+- **`spo.complex_project_composed_of_project`** — O destino é spo.project, e não spo.simple_project — e um projeto complexo é um projeto. Logo a relação é recursiva: um projeto complexo pode ter outro complexo como parte, em qualquer profundidade. Restringir o destino a projetos simples fixaria a decomposição em dois níveis, e Conecta Fapes → Backend → Pagamentos deixaria de ser expressável.
+A cardinalidade da origem é **one**, e não many: um projeto tem no máximo um pai vigente. A hierarquia é árvore, e é isso que faz cada issue contar uma vez no ancestral. Trocar de pai é permitido — encerra o vínculo atual e cria outro —, o que a cardinalidade proíbe é ter dois ao mesmo tempo.
 
 
 ---

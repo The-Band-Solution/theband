@@ -3,7 +3,7 @@
 
 # Índice de conceitos
 
-220 conceitos na rede, em ordem alfabética de identificador.
+230 conceitos na rede, em ordem alfabética de identificador.
 
 | Id | Conceito | pt-BR | Ontologia | Categoria UFO |
 |---|---|---|---|---|
@@ -53,10 +53,12 @@
 | `ciro.continuous_integration_process` | Continuous Integration Process | Processo de Integração Contínua | [ciro](ciro.md) | `complex_action` |
 | `ciro.continuous_integration_server` | Continuous Integration Server | Servidor de Integração Contínua | [ciro](ciro.md) | `disposition` |
 | `ciro.continuous_test_process` | Continuous Test Process | Processo de Teste Contínuo | [ciro](ciro.md) | `complex_action` |
+| `ciro.expired_continuous_integration_process` | Expired Continuous Integration Process | Processo de CI Expirado | [ciro](ciro.md) | `phase` |
 | `ciro.inspection_environment_creation` | Inspection Environment Creation | Criação do Ambiente de Inspeção | [ciro](ciro.md) | `action` |
 | `ciro.inspection_hardware_resource` | Inspection Hardware Resource | Recurso de Hardware de Inspeção | [ciro](ciro.md) | `role` |
 | `ciro.inspection_software_resource` | Inspection Software Resource | Recurso de Software de Inspeção | [ciro](ciro.md) | `role` |
 | `ciro.integrated_code` | Integrated Code | Código Integrado | [ciro](ciro.md) | `role` |
+| `ciro.interrupted_continuous_integration_process` | Interrupted Continuous Integration Process | Processo de CI Interrompido | [ciro](ciro.md) | `phase` |
 | `ciro.on_demand_continuous_integration_process` | On-Demand Continuous Integration Process | Processo de CI Sob Demanda | [ciro](ciro.md) | `complex_action` |
 | `ciro.quality_assurance_criterion_code` | Quality Assurance Criterion Code | Código de Critério de Qualidade | [ciro](ciro.md) | `object` |
 | `ciro.scheduled_continuous_integration_process` | Scheduled Continuous Integration Process | Processo de CI Agendado | [ciro](ciro.md) | `complex_action` |
@@ -67,10 +69,15 @@
 | `ciro.successful_continuous_integration_process` | Successful Continuous Integration Process | Processo de CI Bem-Sucedido | [ciro](ciro.md) | `phase` |
 | `ciro.successful_continuous_test_process` | Successful Continuous Test Process | Processo de Teste Contínuo Bem-Sucedido | [ciro](ciro.md) | `phase` |
 | `ciro.test_code_copy` | Test Code Copy | Cópia de Código de Teste | [ciro](ciro.md) | `object` |
+| `ciro.unperformed_continuous_integration_process` | Unperformed Continuous Integration Process | Processo de CI Não Executado | [ciro](ciro.md) | `phase` |
 | `ciro.unsuccessful_continuous_build_process` | Unsuccessful Continuous Build Process | Processo de Build Malsucedido | [ciro](ciro.md) | `phase` |
 | `ciro.unsuccessful_continuous_inspection_process` | Unsuccessful Continuous Inspection Process | Processo de Inspeção Malsucedido | [ciro](ciro.md) | `phase` |
 | `ciro.unsuccessful_continuous_integration_process` | Unsuccessful Continuous Integration Process | Processo de CI Malsucedido | [ciro](ciro.md) | `phase` |
 | `ciro.unsuccessful_continuous_test_process` | Unsuccessful Continuous Test Process | Processo de Teste Contínuo Malsucedido | [ciro](ciro.md) | `phase` |
+| `cmo.comment` | Comment | Comentário | [cmo](cmo.md) | `social_object` |
+| `cmo.commenting_act` | Commenting Act | Ato de Comentar | [cmo](cmo.md) | `action` |
+| `cmo.discussion` | Discussion | Discussão | [cmo](cmo.md) | `collective` |
+| `cmo.discussion_participation` | Discussion Participation | Participação na Discussão | [cmo](cmo.md) | `relator` |
 | `cmpo.artifact_checkout` | Artifact Checkout | Checkout de Artefato | [cmpo](cmpo.md) | `action` |
 | `cmpo.artifact_copy` | Artifact Copy | Cópia de Artefato | [cmpo](cmpo.md) | `object` |
 | `cmpo.artifact_copy_with_conflict` | Artifact Copy With Conflict | Cópia de Artefato com Conflito | [cmpo](cmpo.md) | `phase` |
@@ -85,6 +92,7 @@
 | `cmpo.change_implementer` | Change Implementer | Implementador da Mudança | [cmpo](cmpo.md) | `role` |
 | `cmpo.change_request` | Change Request | Solicitação de Mudança | [cmpo](cmpo.md) | `social_object` |
 | `cmpo.change_request_closing` | Change Request Closing | Fechamento da Solicitação de Mudança | [cmpo](cmpo.md) | `action` |
+| `cmpo.change_request_submission` | Change Request Submission | Submissão de Solicitação de Mudança | [cmpo](cmpo.md) | `action` |
 | `cmpo.check_conflict` | Check Conflict | Verificação de Conflito | [cmpo](cmpo.md) | `action` |
 | `cmpo.checkin` | Check-in | Check-in | [cmpo](cmpo.md) | `complex_action` |
 | `cmpo.checkout` | Checkout | Checkout | [cmpo](cmpo.md) | `complex_action` |
@@ -141,6 +149,7 @@
 | `rsro.requirements_artifact` | Requirements Artifact | Artefato de Requisitos | [rsro](rsro.md) | `social_object` |
 | `rsro.requirements_document` | Requirements Document | Documento de Requisitos | [rsro](rsro.md) | `social_object` |
 | `spo.artifact` | Artifact | Artefato | [spo](spo.md) | `object` |
+| `spo.complex_project` | Complex Project | Projeto Complexo | [spo](spo.md) | `social_object` |
 | `spo.document` | Document | Documento | [spo](spo.md) | `social_object` |
 | `spo.general_intended_project_process` | General Intended Project Process | Processo Pretendido Geral | [spo](spo.md) | `intention` |
 | `spo.general_performed_project_process` | General Performed Project Process | Processo Executado Geral | [spo](spo.md) | `complex_action` |
@@ -156,6 +165,7 @@
 | `spo.project_stakeholder` | Project Stakeholder | Parte Interessada do Projeto | [spo](spo.md) | `role` |
 | `spo.project_team_stakeholder` | Project Team Stakeholder | Parte Interessada Equipe | [spo](spo.md) | `role` |
 | `spo.resource` | Resource | Recurso | [spo](spo.md) | `role` |
+| `spo.simple_project` | Simple Project | Projeto Simples | [spo](spo.md) | `social_object` |
 | `spo.software_project` | Software Project | Projeto de Software | [spo](spo.md) | `social_object` |
 | `spo.specific_intended_project_process` | Specific Intended Project Process | Processo Pretendido Específico | [spo](spo.md) | `intention` |
 | `spo.specific_performed_project_composite_process` | Specific Performed Project Composite Process | Processo Executado Específico Composto | [spo](spo.md) | `complex_action` |

@@ -18,6 +18,7 @@
 ## Módulos
 
 - **[Quality Assurance Process](#quality-assurance-process)** — Uma não conformidade é o registro de desvio em relação a um requisito aplicável. Não é automaticamente um defeito: transformar code smell em defeito é decisão de engenharia, e deve ser explícita.
+- **[Evaluation Participation](#evaluation-participation)** — Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as duas relações que a QAPO publicada deixa implícitas e que o rastreio de revisão atravessa. Extensão do projeto The Band, não da QAPO publicada.
 
 ---
 
@@ -109,6 +110,26 @@ Documento que descreve os resultados da avaliação e as questões identificadas
 | `creates` | `qapo.adherence_evaluation` | `qapo.evaluation_report` | one → one | association |
 | `registers` | `qapo.noncompliance_identification` | `qapo.noncompliance_register` | one → one_or_many | association |
 | `uses` | `qapo.artifact_evaluation` | `qapo.quality_criterion` | many → one_or_many | association |
+
+
+
+---
+
+## Evaluation Participation
+
+<a id="evaluation-participation"></a>
+
+Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as duas relações que a QAPO publicada deixa implícitas e que o rastreio de revisão atravessa. Extensão do projeto The Band, não da QAPO publicada.
+
+*Fonte: Issue #440; lacuna declarada em github.pull_request_review.to.qapo.artifact_evaluation*
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `performed` | `spo.project_stakeholder` | `qapo.artifact_evaluation` | one → many | participation |
+| `evaluates` | `qapo.artifact_evaluation` | `qapo.evaluated_artifact` | many → one | association |
+| `identified` | `qapo.artifact_evaluation` | `qapo.noncompliance_identification` | one → many | causation |
 
 
 

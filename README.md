@@ -55,10 +55,24 @@ o sustentam"*.
 
 ## Perguntas que o sistema existe para responder
 
-- Quais projetos apresentam maior retrabalho? Quais equipes têm maior cycle time?
-- Quais Pull Requests aguardam mais tempo por revisão?
-- Quais componentes concentram mais defeitos? Quais commits estão ligados a falhas de build?
-- De qual fonte um indicador foi derivado? Como a medida foi calculada?
+| Pergunta | Onde ela é respondida |
+|---|---|
+| Quais projetos apresentam maior retrabalho? Quais equipes têm maior cycle time? | `/process` · `/teams/:id` |
+| Quais Pull Requests aguardam mais tempo por revisão? | `/work/changes` |
+| Quais componentes concentram mais defeitos? | `/work/repositories/:id` |
+| **O que** quebrou no CI — build, teste ou inspeção? | `/work/verifications` |
+| Quem integrou código que entrou com verificação vermelha? | `/work/verifications/people` |
+| De qual fonte um indicador foi derivado? Como a medida foi calculada? | toda tela, no rótulo de proveniência |
+
+A quarta linha é a que distingue a plataforma de um painel de CI: "passou ou quebrou" é
+o que qualquer ferramenta responde. **O que** passou ou quebrou exige o modelo — teste
+vermelho tem resposta diferente de inspeção vermelha, porque um é código e o outro é
+convenção.
+
+E a quinta linha só existe porque a distinção entre *entrou sem verificação* e *não
+medimos* está no esquema, em duas colunas separadas. Com uma coluna só, a organização
+apareceria medida onde não é verificada — que é pior do que não ter o número, porque
+ninguém procuraria o problema.
 
 ## O que The Band não é
 
@@ -71,15 +85,34 @@ modelos de dados das ferramentas. Um chatbot ligado direto ao banco.
 
 | Área | Estado |
 |---|---|
-| Base de conhecimento (UFO + SEON + Continuum) | **12 ontologias, 219 conceitos, 141 relações, 64 perguntas de competência** |
-| Mapeamentos semânticos | GitHub: 13 mapeamentos, status *proposed* |
-| Necessidades de informação e medidas | 3 e 3, como referência |
-| Documentação | arquitetura, ontologias, mapeamentos, métricas, ADRs, processo |
-| Aplicação Phoenix | **não iniciada** — feature `001 Fundação Phoenix e governança` |
-| Conectores executáveis | **não iniciados** — feature `025 Motor declarativo GraphQL/YAML` |
+| Base de conhecimento (UFO + SEON + Continuum) | **13 ontologias, 230 conceitos, 167 relações, 73 perguntas de competência** |
+| Mapeamentos semânticos | GitHub: **22 mapeamentos**, status *proposed* |
+| Necessidades de informação e medidas | 6 e 5 |
+| Aplicação Phoenix | **em produção interna** — multitenant, 23 rotas LiveView, 116 arquivos de teste |
+| Conectores executáveis | **GitHub**, declarativo em GraphQL + YAML |
+| Documentação | arquitetura, ontologias, mapeamentos, métricas, ADRs, processo, sprints |
 
-O modelo conceitual está completo e validado. O código da aplicação ainda não começou —
-por decisão de processo: o modelo vem antes.
+O modelo veio antes, e continua vindo: nenhum dado entra no domínio sem mapeamento
+declarado. O que mudou é que agora há uma instalação real medindo três organizações — e
+os números dela estão na [landing page](https://the-band-solution.github.io/theband/),
+com a data em que foram conferidos.
+
+### O que a plataforma já coleta e modela
+
+| Dado do GitHub | Conceito da rede | Onde aparece |
+|---|---|---|
+| issues, com o tipo declarado e a estrutura de sub-issues | `sro.user_story` · `sro.epic` · `osdef.defect` | `/work/issues/:id` |
+| sprints, e os planos que nunca viraram sprint | `sro.sprint` | `/process` |
+| quadros, campos e valores do Projects v2 | `sro.sprint_backlog` | `/boards` |
+| commits, com **todos** os autores de cada um | `cmpo.commit_artifact_copy` | `/people/:id/commits` |
+| versões de arquivo por commit | `spo.artifact` | `/work/files` |
+| pull requests, revisões e branches | `cmpo.change_request` · `qapo.artifact_evaluation` | `/work/changes` |
+| execuções de CI, com a fase que o resultado decide | `ciro.*` · `cdro.*` | `/work/verifications` |
+| pessoas, equipes e papéis | `eo.*` | `/people` · `/teams` · `/roles` |
+
+Cada linha tem mapeamento em `priv/knowledge_base/mappings/github/`, com grau de
+equivalência, justificativa e **limitações declaradas** — e é a limitação que costuma
+virar a próxima feature.
 
 ---
 
@@ -87,11 +120,22 @@ por decisão de processo: o modelo vem antes.
 
 ```text
 AGENTS.md                instruções normativas para agentes de codificação
-docs/                    documentação — comece por docs/README.md
+lib/the_band/            domínio — contextos, ingestão, promoção semântica, jobs
+lib/the_band_web/        LiveViews, componentes, páginas de erro
 priv/knowledge_base/     base de conhecimento em YAML (fonte da verdade do modelo)
+priv/connectors/         consultas GraphQL e declarações YAML dos conectores
+priv/repo/migrations/    esquema, com o porquê de cada coluna no @moduledoc
+test/                    116 arquivos de teste
+docs/                    documentação — comece por docs/README.md
+docs/sprints/            backlogs, reviews e o registro acumulado de lições
 scripts/                 validação da base e geração de docs
+specs/                   32 features, no formato do GitHub Spec Kit
 .specify/                GitHub Spec Kit
 ```
+
+A migração carrega o **porquê** da coluna no `@moduledoc`, não só o `add`. Coluna cujo
+motivo não está escrito em algum lugar volta como pergunta seis meses depois — e a
+resposta já não está na cabeça de ninguém.
 
 ## Documentação
 
@@ -102,9 +146,12 @@ scripts/                 validação da base e geração de docs
 | Rede de ontologias | [docs/ontology/README.md](docs/ontology/README.md) |
 | Índice de conceitos | [docs/ontology/concept-index.md](docs/ontology/concept-index.md) |
 | Mapeamentos semânticos | [docs/integrations/mappings.md](docs/integrations/mappings.md) |
+| Como o CI coletado vira conceito | [docs/integrations/verificacao-continua.md](docs/integrations/verificacao-continua.md) |
 | Necessidades de informação e medidas | [docs/metrics/README.md](docs/metrics/README.md) |
 | Decisões arquiteturais | [docs/adr/README.md](docs/adr/README.md) |
 | Processo por feature | [docs/processes/feature-workflow.md](docs/processes/feature-workflow.md) |
+| Lições acumuladas dos sprints | [docs/sprints/licoes-aprendidas.md](docs/sprints/licoes-aprendidas.md) |
+| Design system das telas | [docs/design-system.md](docs/design-system.md) |
 | Sprint Backlog (skill) | [.claude/skills/sprint-backlog/SKILL.md](.claude/skills/sprint-backlog/SKILL.md) |
 
 ## Base de conhecimento
@@ -114,13 +161,21 @@ versionado, validado e revisado — ver
 [ADR 0002](docs/adr/0002-yaml-como-base-de-conhecimento.md).
 
 ```bash
-mix gates                       # os nove, na ordem do CI, abortando no primeiro
+mix gates                       # os treze, na ordem do CI, abortando no primeiro
 mix gates --list                # os nomes, sem rodar
 mix gates --from testes         # retoma de um gate, sem repetir o que passou
 ```
 
 `mix gates` é a **única definição** dos gates: o CI chama a mesma task, então não
-existe uma segunda lista para ficar desatualizada. Ela provisiona `.venv` na
+existe uma segunda lista para ficar desatualizada. **O veredicto é o código de saída**, e
+nunca a última linha da saída — a forma correta de ler é
+
+```bash
+mix gates > /tmp/gates.log 2>&1; ec=$?; tail -30 /tmp/gates.log; exit $ec
+```
+
+porque `mix gates | tail` descarta o código de saída do `mix` e devolve o do `tail`, que
+é sempre zero. Ela provisiona `.venv` na
 primeira execução — sem ele o validador Python **não valida a forma** dos YAML,
 avisa que pulou, e sai diferente de zero. Quem lê a saída com `| tail` vê o aviso
 como nota de ambiente e conclui que passou. Foi o que aconteceu dez vezes até o CI
@@ -155,13 +210,18 @@ Os scripts avulsos continuam existindo para uso pontual:
 As páginas em `docs/ontology/`, `docs/integrations/mappings.md` e `docs/metrics/` são
 **geradas** e não devem ser editadas à mão.
 
-Quando a aplicação Elixir existir, esses scripts dão lugar a `mix knowledge.validate` e
-`mix knowledge.docs`, com o mesmo contrato.
+As tasks Mix equivalentes já existem, e são o que os gates chamam:
 
-## Stack prevista
+```bash
+mix knowledge.validate          # valida a base, com o mesmo contrato do script
+mix knowledge.graph             # gera o grafo da rede
+mix qa.reports                  # cobertura, Credo, Sobelow e auditoria de dependências
+```
+
+## Stack
 
 Elixir · Phoenix · LiveView · Ecto · PostgreSQL · Oban · Req · ExUnit · Mox · Credo ·
-Dialyzer · Docker Compose · Phoenix Releases
+Dialyzer · Sobelow · Docker Compose · Phoenix Releases
 
 Monólito modular multitenant. Sem microserviços, broker externo, banco de grafos ou
 frontend separado na fundação — ver [ADR 0001](docs/adr/0001-monolito-modular-elixir.md).
