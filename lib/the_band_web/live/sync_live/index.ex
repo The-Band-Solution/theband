@@ -149,6 +149,13 @@ defmodule TheBandWeb.SyncLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+      <%!-- Sync concentra o que a plataforma faz sozinha (#428): a coleta traz de FORA,
+            a geração de perfis é o que ela ESCREVE. Vizinhas e distintas — reunir não
+            pode achatar a diferença. --%>
+      <.abas abas={[
+        %{rotulo: "Collection", destino: ~p"/syncs", atual?: true},
+        %{rotulo: "Profile generation", destino: ~p"/profiles", atual?: false}
+      ]} />
       <.header>
         Syncs
         <:subtitle>Bring in from the tool what the platform comes to know.</:subtitle>
