@@ -114,6 +114,10 @@ defmodule TheBandWeb.Router do
   end
 
   if Application.compile_env(:the_band, :dev_routes) do
+    # Só em desenvolvimento: ver a página de 403 e a de 500 sem provocar erro real. A de 404
+    # aparece sozinha em qualquer caminho inexistente.
+    get "/dev/erro/:codigo", TheBandWeb.PageController, :erro_de_exemplo
+
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do

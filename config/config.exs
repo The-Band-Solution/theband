@@ -17,7 +17,13 @@ config :the_band, TheBandWeb.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
     formats: [html: TheBandWeb.ErrorHTML, json: TheBandWeb.ErrorJSON],
-    layout: false
+    # O layout RAIZ, e não `false` — issue #437. Sem ele a página de erro chega sem `<head>`,
+    # logo sem folha de estilo: o conteúdo estava certo e a tela saía crua.
+    #
+    # É o raiz e não o `app`: o `app` depende de `current_tenant` e `current_user`, e numa
+    # página de erro esses assigns podem não existir. O raiz depende só de `@inner_content` —
+    # conferido — então a página de erro não tem como dar erro por assign faltando.
+    layout: {TheBandWeb.Layouts, :root}
   ],
   pubsub_server: TheBand.PubSub,
   live_view: [signing_salt: "G2b/MAn9"]
