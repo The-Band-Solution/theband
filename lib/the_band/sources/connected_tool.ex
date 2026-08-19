@@ -30,6 +30,10 @@ defmodule TheBand.Sources.ConnectedTool do
     field :needs_attention_since, :utc_datetime
     field :needs_attention_reason, :string
     field :last_sync_at, :utc_datetime
+    # Em minutos. **Nulo é manual** — ferramenta sem intervalo não é sincronizada
+    # automaticamente, e esse é o padrão de propósito: ligar coleta automática em toda
+    # ferramenta já cadastrada gastaria a janela de rate limit sem ninguém pedir.
+    field :sync_interval_minutes, :integer
 
     has_many :credentials, TheBand.Sources.ToolCredential, foreign_key: :connected_tool_id
 
@@ -46,9 +50,19 @@ defmodule TheBand.Sources.ConnectedTool do
       :organization_login,
       :needs_attention_since,
       :needs_attention_reason,
-      :last_sync_at
+      :last_sync_at,
+      :sync_interval_minutes
     ])
     |> validate_required([:tenant_id, :tool_type, :instance_url])
+    # Menos de 15 minutos não é ritmo, é rajada: a coleta mais longa medida leva 16 min 25 s,
+    # e um intervalo menor que ela empilharia coletas sobre coletas até esgotar a janela de
+    # rate limit. O teto de uma semana existe para que "automático" continue significando
+    # algo — acima disso, manual é mais honesto.
+    |> validate_number(:sync_interval_minutes,
+      greater_than_or_equal_to: 15,
+      less_than_or_equal_to: 10_080,
+      message: "o intervalo vai de 15 minutos a uma semana"
+    )
     |> validate_github_organization()
     |> validate_inclusion(:tool_type, @tool_types)
     |> unique_constraint([:tenant_id, :tool_type, :instance_url, :organization_login],
