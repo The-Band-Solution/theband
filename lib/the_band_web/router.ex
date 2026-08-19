@@ -76,6 +76,8 @@ defmodule TheBandWeb.Router do
       # um `:path` no roteador não casaria `lib/the_band/changes.ex`.
       live "/work/files", ChangeLive.File, :index
       live "/work/verifications", VerificationLive.Index, :index
+      # ANTES da rota com `:id`, ou "people" seria lido como identificador.
+      live "/work/verifications/people", VerificationLive.People, :index
       live "/work/verifications/:id", VerificationLive.Show, :show
       live "/work/changes", ChangeLive.Index, :index
       live "/work/changes/:id", ChangeLive.Show, :show

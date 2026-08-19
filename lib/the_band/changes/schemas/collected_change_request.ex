@@ -32,6 +32,13 @@ defmodule TheBand.Changes.Schemas.CollectedChangeRequest do
     # mais commits do que a página traz, e "cinquenta" e "os cinquenta primeiros de
     # duzentos" afirmam coisas diferentes.
     field :commits_total, :integer
+    # O estado da verificação do commit que ENTROU — issue #439. Cru, como a origem entrega:
+    # `SUCCESS`, `FAILURE`, `PENDING`, `ERROR`, `EXPECTED`. A tradução para fase da CIRO fica na
+    # leitura.
+    field :merged_head_sha, :string
+    field :merged_check_state, :string
+    # Zero com estado nulo = nenhum check rodou. Nulo aqui = não medimos ainda.
+    field :merged_check_contexts, :integer
     field :commits_collected, :integer
 
     field :author_login, :string
@@ -56,7 +63,8 @@ defmodule TheBand.Changes.Schemas.CollectedChangeRequest do
   end
 
   @campos ~w(tenant_id observed_repository_id number title body state source_branch
-             target_branch changed_files commits_total commits_collected author_login author_person_id merged_by_login
+             target_branch changed_files commits_total commits_collected merged_head_sha
+             merged_check_state merged_check_contexts author_login author_person_id merged_by_login
              merged_by_person_id external_created_at external_merged_at external_closed_at
              source_system source_instance external_id raw_payload collected_at
              last_observed_at no_longer_observed_at)a

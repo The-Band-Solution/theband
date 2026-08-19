@@ -162,6 +162,16 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
         target_branch: node["baseRefName"],
         changed_files: node["changedFiles"],
         commits_total: get_in(node, ["commits", "totalCount"]),
+        # O estado da verificação da PONTA — a pergunta da `ci.ap03`, issue #439. Vem na mesma
+        # consulta, sem requisição extra, e responde o que o casamento por `head_sha` não
+        # respondia: aquele casamento só acha execução para os commits que foram ponta em algum
+        # push, e a ponta final é a que foi integrada.
+        merged_head_sha:
+          get_in(node, ["pontaVerificada", "nodes", Access.at(0), "commit", "oid"]),
+        merged_check_state: rollup(node)["state"],
+        # Zero com estado nulo é **nenhum check rodou**, que é fato sobre o processo. Sem esta
+        # contagem, isso seria indistinguível de "não medimos".
+        merged_check_contexts: get_in(rollup(node), ["contexts", "totalCount"]) || 0,
         commits_collected: length(commits_nodes),
         author_login: get_in(node, ["author", "login"]),
         author_person_id: ctx.pessoas[get_in(node, ["author", "login"])],
@@ -191,6 +201,13 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
       pendentes: length(atendidas.pendentes),
       truncadas: truncado
     }
+  end
+
+  # O `statusCheckRollup` da ponta, ou mapa vazio. Nulo da origem significa que nenhum check
+  # rodou naquele commit — e devolver `%{}` deixa `state` nulo e `totalCount` zero, que é
+  # exatamente a distinção que as duas colunas guardam.
+  defp rollup(node) do
+    get_in(node, ["pontaVerificada", "nodes", Access.at(0), "commit", "statusCheckRollup"]) || %{}
   end
 
   # As avaliações de artefato — `qapo.artifact_evaluation`, issue #440.

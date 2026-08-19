@@ -16,6 +16,9 @@ defmodule TheBandWeb.VerificacaoTest do
   import Phoenix.LiveViewTest
   import TheBand.WorkItemsFixtures
 
+  # O mesmo tamanho de página da tela: a paginação só é renderizada acima dele.
+  @por_pagina_da_tela 50
+
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Verification.Commands
 
@@ -142,6 +145,51 @@ defmodule TheBandWeb.VerificacaoTest do
 
     assert flash["error"] =~ "not found"
     refute flash["error"] =~ "permission"
+  end
+
+  describe "organização e repositório na tela" do
+    test "a lista por organização aparece com repositórios sem CI contados", ctx do
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: [], workflow_name: "Sync to GitLab"})
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/verifications")
+
+      assert html =~ "By organisation"
+      # A coluna que a taxa agregada esconderia.
+      assert html =~ "repos with no CI"
+    end
+
+    test "o repositório mostra total e a parte que é CI, separadas", ctx do
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: ["ciro.continuous_integration_process"]})
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: [], workflow_name: "Rollover"})
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/verifications")
+
+      assert html =~ "Repositories with runs"
+      assert html =~ "of which CI"
+    end
+
+    test "a PAGINAÇÃO sobrevive ao filtro de organização", ctx do
+      # **É o teste que faltava.** O componente recebia `@org` sem o atributo declarado, e a
+      # página morria com `KeyError` — só apareceu ao abrir no navegador, porque nenhum teste
+      # tocava aquele caminho. E ele só é renderizado quando há mais registros que uma página.
+      for i <- 1..(@por_pagina_da_tela + 1) do
+        execucao(ctx.tenant, ctx.repo_id, %{
+          workflow_name: "execução #{i}",
+          phase: "ciro.successful_continuous_integration_process"
+        })
+      end
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/verifications")
+
+      assert html =~ "next"
+
+      # E com o filtro ligado, que é a combinação que quebrava.
+      [org] = TheBand.Verification.by_organization(ctx.tenant)
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/verifications?organization_id=#{org.id}")
+
+      assert html =~ "next"
+      assert html =~ "Clear the organisation filter"
+    end
   end
 
   test "a tela de trabalho leva às verificações", ctx do

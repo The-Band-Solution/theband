@@ -292,6 +292,66 @@ defmodule TheBand.VerificationTest do
     end
   end
 
+  describe "a decomposição por organização e repositório" do
+    test "conta repositório sem CI separado, e ele não some no total", ctx do
+      # É o achado que uma taxa agregada esconderia: 78 dos 121 repositórios da maior
+      # organização do piloto não têm CI nenhum, e repositório sem execução não aparece em
+      # nenhuma contagem de execução.
+      execucao(ctx.tenant, ctx.repo_id, %{
+        process_kinds: ["ciro.continuous_integration_process"],
+        phase: "ciro.successful_continuous_integration_process"
+      })
+
+      assert [org] = Verification.by_organization(ctx.tenant)
+      assert org.execucoes == 1
+      assert org.bem_sucedidas == 1
+      # O cenário observa um repositório só, e ele TEM CI agora.
+      assert org.repos_sem_ci == 0
+    end
+
+    test "execução que não é CI não faz o repositório contar como tendo CI", ctx do
+      # `Sync to GitLab` e `Sprint Rollover` são execuções, e não verificam nada. Contá-las
+      # faria o repositório parecer verificado.
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: [], workflow_name: "Sync to GitLab"})
+
+      assert [org] = Verification.by_organization(ctx.tenant)
+      assert org.execucoes == 1
+      assert org.repos_sem_ci == 1
+    end
+
+    test "o repositório separa o total de execuções do que é CI", ctx do
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: ["ciro.continuous_integration_process"]})
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: ["cdro.continuous_deployment_process"]})
+      execucao(ctx.tenant, ctx.repo_id, %{process_kinds: []})
+
+      assert [r] = Verification.by_repository(ctx.tenant)
+      # Sem as duas colunas, "3 execuções" pareceria 3 verificações.
+      assert r.execucoes == 3
+      assert r.de_ci == 1
+    end
+
+    test "repositório sem execução nenhuma não aparece na lista", ctx do
+      # `having: count > 0`. Listar os 160 observados com zero em tudo afogaria os que têm
+      # volume — e o estado da coleta por repositório tem tela própria.
+      assert Verification.by_repository(ctx.tenant) == []
+    end
+
+    test "filtrar por organização restringe a lista e o painel de fases", ctx do
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.successful_continuous_integration_process"
+      })
+
+      [org] = Verification.by_organization(ctx.tenant)
+
+      assert Verification.count(ctx.tenant, organization_id: org.id) == 1
+      assert Verification.by_phase(ctx.tenant, organization_id: org.id) |> map_size() == 1
+
+      # Organização de outro tenant não devolve nada — e "nada", não erro de permissão.
+      {outro, _} = tenant_with_admin()
+      assert Verification.count(outro, organization_id: org.id) == 0
+    end
+  end
+
   describe "o rastro até a solicitação" do
     test "o elo é o SHA do commit, sem tabela de vínculo", ctx do
       %{change_request_id: cr_id, sha: sha} = solicitacao_com_commit(ctx.tenant, ctx.repo_id)
