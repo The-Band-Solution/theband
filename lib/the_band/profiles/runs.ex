@@ -226,7 +226,7 @@ defmodule TheBand.Profiles.Runs do
   end
 
   @doc """
-  Os nove números da `FR-014`, derivados das entradas.
+  Os dez números da `FR-014`, derivados das entradas.
 
   Os motivos vêm nomeados um a um: um total de pulados agregaria o que a `FR-014` manda
   separar, e é o "não elegível" que ela proíbe.
@@ -240,7 +240,8 @@ defmodule TheBand.Profiles.Runs do
             observation_ended: non_neg_integer()
           },
           failed: non_neg_integer(),
-          input_tokens: non_neg_integer()
+          input_tokens: non_neg_integer(),
+          output_tokens: non_neg_integer()
         }
   def summary(%Run{id: run_id}) do
     por_desfecho =
@@ -248,7 +249,9 @@ defmodule TheBand.Profiles.Runs do
         from e in RunEntry,
           where: e.profile_run_id == ^run_id,
           group_by: [e.outcome, e.reason],
-          select: {e.outcome, e.reason, count(e.id), coalesce(sum(e.input_tokens), 0)}
+          select:
+            {e.outcome, e.reason, count(e.id), coalesce(sum(e.input_tokens), 0),
+             coalesce(sum(e.output_tokens), 0)}
       )
 
     contar = fn desfecho ->
@@ -262,7 +265,7 @@ defmodule TheBand.Profiles.Runs do
       Map.new(RunEntry.reasons(), fn motivo ->
         total =
           por_desfecho
-          |> Enum.filter(fn {o, r, _, _} -> o == "skipped" and r == motivo end)
+          |> Enum.filter(fn {o, r, _, _, _} -> o == "skipped" and r == motivo end)
           |> Enum.map(&elem(&1, 2))
           |> Enum.sum()
 
@@ -274,7 +277,10 @@ defmodule TheBand.Profiles.Runs do
       generated: contar.("generated"),
       skipped: pulados,
       failed: contar.("failed"),
-      input_tokens: por_desfecho |> Enum.map(&elem(&1, 3)) |> Enum.sum()
+      # **Os dois, separados, nunca somados.** Somá-los daria um número que não serve para
+      # calcular nada: as taxas diferem, e a saída é a mais caro. Issue #454.
+      input_tokens: por_desfecho |> Enum.map(&elem(&1, 3)) |> Enum.sum(),
+      output_tokens: por_desfecho |> Enum.map(&elem(&1, 4)) |> Enum.sum()
     }
   end
 
