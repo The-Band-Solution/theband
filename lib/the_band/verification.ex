@@ -187,13 +187,13 @@ defmodule TheBand.Verification do
   eu tinha coletado; **há com o que a origem oferece**.
 
   **E supercontava**: qualquer execução vermelha em *qualquer* commit do PR marcava a solicitação
-  como integrada vermelha, inclusive a vermelha consertada antes do merge. Das 214 vermelhas que
-  só ele achava, **186 estão verdes na ponta** — conferido no `#13`, 33 commits, três vermelhas
+  como integrada vermelha, inclusive a vermelha consertada antes do merge. Das 208 vermelhas que
+  só ele achava, **198 estão verdes na ponta** — conferido no `#13`, 33 commits, três vermelhas
   no meio, ponta verde com 2 contextos. Contar isso é a medida ao contrário, e é exatamente o que
   a tela declara recusar.
 
   Por isso as duas não convivem: a antiga foi **removida**, e não deixada ao lado como segunda
-  opinião. Duas medidas com sobreposição de 82 em 435 não são precisões diferentes do mesmo
+  opinião. Duas medidas com sobreposição de 115 em 469 não são precisões diferentes do mesmo
   fenômeno — são fenômenos diferentes, e manter as duas convidaria a somá-las.
 
   `statusCheckRollup` é campo do commit e agrega os `check_run` da API de Checks e os `status` da
@@ -320,13 +320,13 @@ defmodule TheBand.Verification do
   # **Mede pelo estado da PONTA, e não pelo casamento por `head_sha`** — issue #439.
   #
   # Os dois caminhos não medem a mesma coisa. Medido em 2026-08-19, sobre 4.819 integradas: o
-  # casamento por SHA acha 296 vermelhas, o rollup acha 221, e só 82 estão nos dois.
+  # casamento por SHA acha 323 vermelhas, o rollup acha 261, e só 115 estão nos dois.
   #
-  # **O casamento superconta.** Das 214 que só ele acha, 186 estão VERDES na ponta — a vermelha
+  # **O casamento superconta.** Das 208 que só ele acha, 198 estão VERDES na ponta — a vermelha
   # estava num commit intermediário e o PR foi consertado antes de entrar. As 139 que só o rollup
   # acha são o que `workflow_run` não alcança: `check_run` e `status`.
   #
-  # E ele responde o que o casamento não respondia: das 4.056 medidas, **1.705 entraram sem
+  # E ele responde o que o casamento não respondia: das 4.878, **2.024 entraram sem
   # check nenhum**. Pelo caminho antigo, essas apareciam como "não dá para saber".
   #
   # As duas participações compartilham a consulta porque só o campo do agrupamento difere.
@@ -361,7 +361,7 @@ defmodule TheBand.Verification do
           # estado `PENDING` com contextos é verificação em curso, e ela existiu.
           verified:
             fragment("count(?) filter (where coalesce(?, 0) > 0)", c.id, c.merged_check_contexts),
-          # **Entrou sem verificação nenhuma** — 1.705 no dado real, 42% do medido. Pelo caminho
+          # **Entrou sem verificação nenhuma** — 2.024 no dado real, 41% do total. Pelo caminho
           # antigo isso era indistinguível de "não conseguimos medir", e são coisas opostas: a
           # primeira é achado sobre o processo, a segunda é lacuna nossa.
           no_check:

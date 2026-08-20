@@ -34,6 +34,7 @@ defmodule TheBand.Mapping do
   alias TheBand.Mapping.Catalog
   alias TheBand.Mapping.Commands
   alias TheBand.Mapping.Decision
+  alias TheBand.Mapping.Notifications
   alias TheBand.Mapping.PatternValidator
   alias TheBand.Mapping.Queries
 
@@ -55,6 +56,9 @@ defmodule TheBand.Mapping do
   defdelegate activate_all_proposals(tenant, organization_id, actor_id), to: Commands
   defdelegate preview(tenant, organization_id, attrs), to: Commands
   defdelegate recompute(tenant, organization_id), to: Commands
+
+  defdelegate subscribe(tenant), to: Notifications
+  defdelegate broadcast(tenant_id, message), to: Notifications
 
   # ------------------------------------------------------------------- leituras
 

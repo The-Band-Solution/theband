@@ -15,7 +15,7 @@ defmodule TheBand.Repo.Migrations.AddMergedCheckState do
   há.
 
   E o buraco não era o único defeito do casamento por SHA: ele também **supercontava**. Medido
-  depois desta migração, das 214 vermelhas que só ele acha, 186 estão verdes na ponta — a
+  depois desta migração, das 208 vermelhas que só ele acha, 198 estão verdes na ponta — a
   vermelha estava num commit intermediário, consertado antes do merge. Ver
   `docs/integrations/verificacao-continua.md`.
 

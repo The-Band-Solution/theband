@@ -8,8 +8,10 @@ defmodule TheBand.Mapping.PreviewTest do
   """
   use TheBand.DataCase, async: false
 
+  import ExUnit.CaptureLog
   import TheBand.WorkItemsFixtures
 
+  alias TheBand.Jobs.RecomputePromotions
   alias TheBand.Mapping
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.WorkItems
@@ -222,6 +224,64 @@ defmodule TheBand.Mapping.PreviewTest do
 
       assert job.worker == "TheBand.Jobs.RecomputePromotions"
       assert job.state in ["available", "scheduled"]
+    end
+
+    test "executa e avisa a tela com os DOIS números", %{tenant: t, org: org, user: u} do
+      Mapping.subscribe(t)
+
+      {:ok, _} =
+        Mapping.create_rule(
+          t,
+          org,
+          %{where: "declared_type", how: "equals", pattern: "Spike", target_concept: @tarefa},
+          u.id
+        )
+
+      [job] = TheBand.Repo.all(Oban.Job)
+
+      # **Executa de verdade, e com o log ligado.** O teste anterior só conferia o
+      # enfileiramento, e por isso o job estourava `Protocol.UndefinedError` na interpolação
+      # do resultado sem nenhum teste reprovar: `Mapping.recompute/2` devolve mapa, e o job
+      # tratava como inteiro. O trabalho era feito três vezes e o job terminava `discarded`.
+      #
+      # Elevar o nível não é adorno, e a opção `:level` do `capture_log` **não serve**: ela
+      # filtra o que é capturado, não o que o Logger emite. `config :logger, level: :warning`
+      # no teste faz `Logger.info/1` não avaliar o argumento — a macro sai antes de
+      # interpolar. Sem `Logger.configure/1`, um defeito dentro da interpolação de um
+      # `Logger.info` é invisível a teste **por configuração**, e este era.
+      nivel = Logger.level()
+      Logger.configure(level: :info)
+      on_exit(fn -> Logger.configure(level: nivel) end)
+
+      log =
+        capture_log(fn ->
+          assert :ok = RecomputePromotions.perform(%Oban.Job{args: job.args})
+        end)
+
+      assert log =~ "linhas gravadas", """
+      A frase do log nomeia o que cada número é. `#{inspect(log)}` não a contém — se ela
+      mudar, mude aqui também, mas não deixe passar mapa interpolado como se fosse inteiro.
+      """
+
+      assert_received {:promotions_recomputed, ^org, resultado}
+
+      assert %{written: _, concept_changed: _} = resultado, """
+      O aviso carrega os dois números, e eles são diferentes: `written` inclui a issue que
+      manteve o conceito e mudou de proveniência. Mandar um número só faria a tela dizer
+      que N issues mudaram de significado quando não mudaram.
+      """
+    end
+
+    test "o aviso vai para tópico que a tela assina", %{tenant: t, org: org} do
+      # O job emitia em `"tenant:<id>"`, que ninguém assinava — e o `handle_info` genérico
+      # da tela engolia a mensagem sem sinal nenhum. Emitir para tópico sem assinante é o
+      # mesmo que não emitir, com a agravante de parecer resolvido no código.
+      Mapping.subscribe(t)
+      Mapping.broadcast(t.id, {:promotions_recomputed, org, %{written: 1, concept_changed: 1}})
+
+      assert_received {:promotions_recomputed, ^org, %{written: 1, concept_changed: 1}}
+
+      refute_received _qualquer_outra
     end
   end
 end

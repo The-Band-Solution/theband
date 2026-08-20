@@ -2375,6 +2375,10 @@ Medido no banco depois: o casamento acha **296**, o rollup acha **221**. O rollu
 acha **menos**. A afirmação estava invertida, e ela era o argumento inteiro da
 troca.
 
+*(Números finais, com a recoleta concluída em 2026-08-20: casamento **323**, rollup
+**261**, nos dois **115**, união **469**. O sinal não mudou; ver a L70 sobre por que
+os números do meio do caminho não deviam ter sido escritos como definitivos.)*
+
 **Por que aconteceu.** Comparei dois números de uma linha. A pergunta que não fiz
 foi *quais* solicitações cada um acha — e a resposta muda tudo:
 
@@ -2407,3 +2411,123 @@ estava certo.
 **Relação com L64.** A L64 é sobre denominador que inclui o caso impossível; esta
 é sobre numerador que inclui o caso oposto ao que se quer medir. As duas nascem
 de aceitar a contagem sem olhar o que ela contou.
+
+---
+
+## L68 — Corte incremental exclui para sempre o registro antigo quando a consulta ganha campo
+
+**Tipo**: técnica · **Origem**: feature 041 (issue #439) · **Estado**: aberta
+
+**O que aconteceu.** A feature 041 acrescentou `statusCheckRollup` à consulta de
+solicitações de mudança. Duas semanas depois, **763 solicitações integradas em 10
+repositórios** continuavam sem o campo — e não por falha: `GithubChangeRequests.collect/1`
+para de paginar quando alcança `observed_repositories.changes_collected_at`, e esses
+repositórios já constavam como coletados.
+
+A assinatura é inconfundível: nos dez repositórios a fração sem o campo era **100%**.
+Repositório inteiro sem o campo é repositório não tocado desde que o campo existe.
+
+**Por que aconteceu.** O corte incremental é certo para dado que não muda, e é o que evita
+repaginar o histórico a cada coleta. Mas ele responde "já coletei este registro", e a
+pergunta que a mudança de consulta faz é outra: "já coletei este registro **com esta
+consulta**?". As duas coincidem até alguém acrescentar campo.
+
+**O que fazer diferente.** Toda vez que a consulta de uma fase ganha campo, a mesma
+mudança precisa responder o que acontece com o já coletado. Três saídas, e a escolha é
+explícita:
+
+  * o campo só interessa daqui para frente — declarar isso, e a tela distinguir
+    "não medido" de "medido e vazio", que é o que estas colunas já fazem;
+  * reabrir o corte dos repositórios afetados — `mix the_band.recollect_changes`;
+  * um backfill dirigido, se a recoleta inteira for caro demais.
+
+O que **não** serve é deixar implícito: o número fica errado, a tela chama de "não dá para
+saber", e ninguém liga a lacuna à mudança que a criou.
+
+**A correção estrutural fica em aberto.** Nada no código impede que isso volte na próxima
+feature que acrescentar campo. Um marcador de versão da consulta por repositório
+invalidaria o corte automaticamente — é decisão de desenho, e está registrada como issue.
+
+---
+
+## L69 — Defeito dentro de `Logger.info` é invisível a teste, por configuração
+
+**Tipo**: técnica · **Origem**: feature 041 · **Estado**: aberta
+
+**O que aconteceu.** `Jobs.RecomputePromotions` interpolava o retorno de
+`Mapping.recompute/2` numa string de log. O retorno é `%{written:, concept_changed:}`, e a
+interpolação estourava `Protocol.UndefinedError` **depois** de o recálculo já ter
+acontecido: o trabalho era feito três vezes e o job terminava `discarded`.
+
+Escrevi o teste, ele reprovou — e reprovou **pelo motivo errado**, no `assert_received` do
+broadcast. Ao restaurar só a metade do log, o teste passou.
+
+**Por que aconteceu.** `config :logger, level: :warning` em `config/test.exs`. `Logger.info/1`
+é macro: com o nível desligado ela sai **antes de avaliar o argumento**. A interpolação
+nunca roda, então o defeito não existe no ambiente de teste.
+
+E `capture_log([level: :info], fn -> ... end)` **não resolve** — a opção filtra o que é
+capturado, não o que o Logger emite. O log volta vazio e a asserção falha por outro motivo,
+que é fácil confundir com "a frase mudou".
+
+**O que fazer diferente.** Teste que precisa exercitar o conteúdo de um `Logger.info` ou
+`Logger.debug` eleva o nível de verdade:
+
+```elixir
+nivel = Logger.level()
+Logger.configure(level: :info)
+on_exit(fn -> Logger.configure(level: nivel) end)
+
+log = capture_log(fn -> assert :ok = Worker.perform(job) end)
+assert log =~ "o que a frase promete"
+```
+
+E a regra mais larga: **não colocar em interpolação de log nada que possa levantar.** O log
+é o lugar do código onde a falha é mais silenciosa — no teste ele não avalia, e em produção
+ele derruba o trabalho já feito.
+
+**Relação com o padrão do sucesso silencioso.** É o mesmo defeito de sempre, num lugar
+novo: ausência de sinal lida como ausência de problema. Aqui a ausência era da própria
+avaliação.
+
+---
+
+## L70 — Número medido no meio de um backfill parece final e não é
+
+**Tipo**: processo · **Origem**: feature 041, recoleta das 763 · **Estado**: aberta
+
+**O que aconteceu.** A L67 conta que eu tinha escrito "2.038 solicitações entraram sem
+check, de 4.734 medidas", medi o banco, achei **1.705** de 4.056, e **corrigi** o número em
+quatro lugares — inclusive na landing page publicada.
+
+Com a recoleta concluída, o número verdadeiro é **2.024** de 4.878.
+
+Ou seja: o valor original estava a 14 de distância do certo, e a minha "correção" o afastou
+para 319 de distância. Corrigi na direção errada, com confiança, e publiquei.
+
+**Por que aconteceu.** Havia 763 solicitações sem o campo medido, e eu sabia disso — a
+própria frase que escrevi dizia "só 763 foram coletadas antes de a plataforma pedir o
+campo". Mas usei como **denominador** o total já medido, e reportei a contagem parcial como
+se fosse o fenômeno.
+
+Um número medido enquanto um backfill roda tem duas propriedades ruins ao mesmo tempo: ele
+é preciso (a consulta está certa) e é provisório (a população não está completa). A precisão
+faz ele parecer confiável.
+
+**O que fazer diferente.** Antes de escrever qualquer contagem em `@moduledoc`, tela, PR ou
+página publicada, checar se existe backfill pendente **daquela coluna**:
+
+```elixir
+Repo.aggregate(from(c in tabela, where: is_nil(c.coluna)), :count, :id)
+```
+
+Se for maior que zero, uma de duas: esperar, ou rotular o número como parcial e dizer quanto
+falta. O que não serve é reportar a contagem sobre o que já foi medido — que é exatamente o
+"denominador que exclui o caso pendente", primo da L64.
+
+E o corolário sobre correção: **corrigir um número exige a mesma prova que publicá-lo.** Eu
+tratei "medi agora" como suficiente para derrubar um valor anterior, e "agora" era o meio de
+uma recoleta.
+
+**Relação com a L68.** A L68 é a causa da população incompleta — o corte incremental
+excluindo o registro antigo. Esta é o que fazer enquanto a lacuna existe.
