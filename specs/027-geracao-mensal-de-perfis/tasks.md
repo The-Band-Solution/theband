@@ -224,7 +224,9 @@ O commit `5cc4d68` entregou a credencial por organização — `FR-010` a `FR-01
   - **Feita quando**: nenhuma linha de log da rodada contém a chave nem trecho do material
   - **Teste**: caso capturando o log de uma rodada completa e afirmando ausência das duas coisas
 
-- [ ] T024 Medir o custo real de uma rodada
+- [ ] T024 Medir o custo real de uma rodada — **bloqueada** pela [#454](https://github.com/The-Band-Solution/theband/issues/454)
+  - **Bloqueio descoberto em 2026-08-20**: `FR-014` grava tokens de **entrada**, `FR-021` pede **custo**. O número de saída chega no mesmo mapa `usage` e é descartado em `GenerateWorker.tokens_de_entrada/1`. Rodar uma rodada nova não destrava — ela gravaria de novo só metade da conta
+  - **Duração já medida**, e não precisa de rodada nova: ~10,6 s por pessoa gerada (59 pessoas em 10 min 25 s)
   - **Pronta quando**: T015 e T017 concluídas; credencial real disponível
   - **Descrição**: executar uma rodada completa contra o provedor de verdade e anotar tokens de entrada e duração — `FR-021`. É medição, não estimativa: os 1,63 milhão de tokens são de antes de as tarefas em aberto saírem do material, e a `SC-002` depende deste número
   - **Feita quando**: o número medido está registrado na spec, e `SC-002` foi confirmado ou corrigido junto com N
@@ -236,7 +238,8 @@ O commit `5cc4d68` entregou a credencial por organização — `FR-010` a `FR-01
   - **Feita quando**: `mix gates` sai com código 0
   - **Teste**: a saída completa do comando, com o código de saída impresso
 
-- [ ] T026 Percorrer o quickstart a mão
+- [~] T026 Percorrer o quickstart a mão — **parcial**, ver [percurso-t026.md](./percurso-t026.md)
+  - **Estado em 2026-08-20**: 1 passo observado, 1 derivado do registro, 4 não alcançados (3 exigem rodada contra o provedor, 1 exige revogar chave). **Três divergências viraram correção de spec** — a maior é o passo 5, que esperava `no_new_work` em rodada manual e está errado desde dez minutos depois de ser escrito
   - **Pronta quando**: T025 concluída
   - **Descrição**: os sete passos de [quickstart.md](./quickstart.md), incluindo os dois que nenhuma suíte cobre — revogar a chave no meio da rodada, e desligar durante uma execução
   - **Feita quando**: os sete passos produziram o esperado, e o que divergiu virou defeito registrado ou correção de spec
