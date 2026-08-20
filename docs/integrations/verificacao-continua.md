@@ -147,27 +147,30 @@ A consulta pede `commits(last: 1)` do pull request — a ponta no merge. É ela 
 interessa, porque a máxima `ci.ap03` fala de **integrado** com vermelho, e o que foi
 integrado é a ponta.
 
-Medido em 2026-08-19, sobre 4.819 solicitações integradas:
+Medido em 2026-08-20 sobre as **4.878 solicitações integradas, todas medidas** — nenhuma
+pendente, o que importa porque a versão anterior desta página comparava com 763 ainda por
+medir:
 
 | | vermelhas |
 |---|---|
-| casamento por `head_sha` | 296 |
-| `statusCheckRollup` da ponta | 221 |
-| **nos dois** | **82** |
-| união | 435 |
+| casamento por `head_sha` | 323 |
+| `statusCheckRollup` da ponta | 261 |
+| **nos dois** | **115** |
+| união | 469 |
 
-A sobreposição de 82 em 435 é o número que diz tudo: **não são duas medidas do mesmo
+A sobreposição de 115 em 469 é o número que diz tudo: **não são duas medidas do mesmo
 fenômeno com precisões diferentes — são dois fenômenos.**
 
-Das 214 que só o casamento acha, **186 estão verdes na ponta**. Conferido no `#13`: 33
+Das 208 que só o casamento acha, **198 estão verdes na ponta**. Conferido no `#13`: 33
 commits, três execuções vermelhas no meio, ponta verde com 2 contextos. O casamento
 chamava isso de integração vermelha.
 
-Das 139 que só o rollup acha, a causa é a camada: `check_run` e `status` não aparecem em
-`workflow_run`.
+Outras 10 dessas 208 **não tiveram check nenhum** na ponta. O casamento achava vermelho no
+meio e a ponta entrou sem verificação — as duas coisas são verdade, e só a segunda descreve
+o que foi integrado.
 
-**763 ainda não foram medidas**, então as 221 vão crescer. O que não muda com elas é o
-achado das 186 — ele não depende de quantas faltam.
+Das 146 que só o rollup acha, a causa é a camada: `check_run` e `status` não aparecem em
+`workflow_run`.
 
 ### Duas colunas, porque nulo não é desconhecimento
 
@@ -182,8 +185,8 @@ merged_check_contexts = nil                              →  não medimos ainda
 Com uma coluna só, *"não coletamos"* e *"não havia o que coletar"* ficariam com o mesmo
 nulo — que é exatamente a confusão que esta casa mais combate.
 
-E a distinção não é acadêmica: **1.705** das 4.056 solicitações medidas entraram sem check
-nenhum — 42%. Pelo caminho antigo apareciam como "não dá para saber". São a coisa oposta —
+E a distinção não é acadêmica: **2.024** das 4.878 solicitações integradas entraram sem check
+nenhum — 41%. Pelo caminho antigo apareciam como "não dá para saber". São a coisa oposta —
 **achado sobre o processo**, não lacuna nossa. A organização apareceria medida onde não é
 verificada, que é pior do que não ter o número, porque ninguém procuraria o problema.
 

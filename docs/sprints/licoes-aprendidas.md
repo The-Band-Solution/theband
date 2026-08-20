@@ -2375,6 +2375,10 @@ Medido no banco depois: o casamento acha **296**, o rollup acha **221**. O rollu
 acha **menos**. A afirmação estava invertida, e ela era o argumento inteiro da
 troca.
 
+*(Números finais, com a recoleta concluída em 2026-08-20: casamento **323**, rollup
+**261**, nos dois **115**, união **469**. O sinal não mudou; ver a L70 sobre por que
+os números do meio do caminho não deviam ter sido escritos como definitivos.)*
+
 **Por que aconteceu.** Comparei dois números de uma linha. A pergunta que não fiz
 foi *quais* solicitações cada um acha — e a resposta muda tudo:
 
@@ -2485,3 +2489,45 @@ ele derruba o trabalho já feito.
 **Relação com o padrão do sucesso silencioso.** É o mesmo defeito de sempre, num lugar
 novo: ausência de sinal lida como ausência de problema. Aqui a ausência era da própria
 avaliação.
+
+---
+
+## L70 — Número medido no meio de um backfill parece final e não é
+
+**Tipo**: processo · **Origem**: feature 041, recoleta das 763 · **Estado**: aberta
+
+**O que aconteceu.** A L67 conta que eu tinha escrito "2.038 solicitações entraram sem
+check, de 4.734 medidas", medi o banco, achei **1.705** de 4.056, e **corrigi** o número em
+quatro lugares — inclusive na landing page publicada.
+
+Com a recoleta concluída, o número verdadeiro é **2.024** de 4.878.
+
+Ou seja: o valor original estava a 14 de distância do certo, e a minha "correção" o afastou
+para 319 de distância. Corrigi na direção errada, com confiança, e publiquei.
+
+**Por que aconteceu.** Havia 763 solicitações sem o campo medido, e eu sabia disso — a
+própria frase que escrevi dizia "só 763 foram coletadas antes de a plataforma pedir o
+campo". Mas usei como **denominador** o total já medido, e reportei a contagem parcial como
+se fosse o fenômeno.
+
+Um número medido enquanto um backfill roda tem duas propriedades ruins ao mesmo tempo: ele
+é preciso (a consulta está certa) e é provisório (a população não está completa). A precisão
+faz ele parecer confiável.
+
+**O que fazer diferente.** Antes de escrever qualquer contagem em `@moduledoc`, tela, PR ou
+página publicada, checar se existe backfill pendente **daquela coluna**:
+
+```elixir
+Repo.aggregate(from(c in tabela, where: is_nil(c.coluna)), :count, :id)
+```
+
+Se for maior que zero, uma de duas: esperar, ou rotular o número como parcial e dizer quanto
+falta. O que não serve é reportar a contagem sobre o que já foi medido — que é exatamente o
+"denominador que exclui o caso pendente", primo da L64.
+
+E o corolário sobre correção: **corrigir um número exige a mesma prova que publicá-lo.** Eu
+tratei "medi agora" como suficiente para derrubar um valor anterior, e "agora" era o meio de
+uma recoleta.
+
+**Relação com a L68.** A L68 é a causa da população incompleta — o corte incremental
+excluindo o registro antigo. Esta é o que fazer enquanto a lacuna existe.

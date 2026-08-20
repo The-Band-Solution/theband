@@ -1,35 +1,50 @@
-# Retomar — 2026-08-20, início da madrugada
+# Retomar — 2026-08-20
 
-## Primeira coisa ao voltar: conferir se a recoleta terminou
+## A recoleta terminou. Nada pendente.
 
-```bash
-set -a; . ./.env; set +a
-MIX_ENV=dev mix the_band.recollect_changes      # somente leitura, sem --apply
+```
+verde       2.592
+vermelha      261
+sem check   2.024
+não medido      0     ← era 763
+            -----
+total       4.878 solicitações integradas
 ```
 
-Ela lista quantas solicitações integradas ainda estão sem `statusCheckRollup` medido.
+O observador fechou às 22:13 com `FALTAM=0`. Das 763 que estavam sem medir: **463 viraram
+verde, 319 sem check, 40 vermelhas** — e mais 59 solicitações novas apareceram na recoleta
+completa do repositório.
 
-**Estava caindo quando parei** — 454, todas no repositório
-`leds-conectafapes/leds-conectafapes-backend-pagamento-bolsistas`. Começou em 763.
+## O que isso obrigou a consertar, e já está feito
 
-| momento | faltando |
-|---|---:|
-| ao abrir a pendência | 763 |
-| ifesserra-lab concluído (9 repos) | 650 |
-| — | 517 |
-| última medida | **454** |
+Os números publicados estavam medidos **no meio** da recoleta. Corrigidos em:
 
-O job `#1088` estava `executing`, a coleta em `running` com 3.136 registros, e o número caía
-a cada medição. A expectativa é que tenha chegado a **0** durante a noite.
+| onde | de | para |
+|---|---|---|
+| `people.ex`, `verification.ex`, `index.ex` | 296/221, 82 em 435, 214/186 | **323/261, 115 em 469, 208/198** |
+| a mesma coisa, sem check | 1.705 de 4.056 | **2.024 de 4.878** (41%) |
+| `docs/integrations/verificacao-continua.md` | idem | idem |
+| migração `..070000_add_merged_check_state` | 214/186 | **208/198** |
+| a landing page (`gh-pages` `0e749d7`) | oito números | remedidos |
 
-Se a saída disser **0 repositórios**, a pendência fechou — e vale reconferir
-`/work/verifications/people`, porque as **221** vermelhas medidas pela ponta devem ter
-crescido. Vale também recontar as **1.705** que entraram sem check: é o número que está
-publicado no site, e se ele mudar o site precisa acompanhar.
+**O achado sobrevive intacto, e agora sem ressalva.** Das 208 vermelhas que só o casamento
+por SHA acha, **198 estão verdes na ponta** — e outras 10 entraram **sem check nenhum**. Zero
+pendentes, então não há mais "as 221 vão crescer".
 
-Se ainda houver faltando **e nenhum sync `running`**, o nó morreu no meio: rode
-`mix the_band.recollect_changes --apply` de novo e aperte **Sync** em `/syncs`. O corte já
-está zerado, então a recoleta continua de onde parou.
+## A lição que custou mais: L70
+
+Eu tinha escrito 2.038 sem check. Medi, achei 1.705, e **corrigi em quatro lugares mais a
+página publicada**. O certo é 2.024.
+
+O valor original estava a 14 do certo. A minha correção o afastou para 319.
+
+Causa: usei como denominador o total já medido, sabendo que havia 763 sem medir — a própria
+frase que escrevi dizia isso. Número medido durante backfill é **preciso e provisório ao
+mesmo tempo**, e a precisão faz ele parecer confiável.
+
+Regra que sai: antes de escrever contagem em `@moduledoc`, tela, PR ou página, checar
+`is_nil(coluna)` daquela coluna. Se for maior que zero: esperar, ou rotular como parcial e
+dizer quanto falta. E **corrigir um número exige a mesma prova que publicá-lo.**
 
 ---
 
@@ -58,14 +73,14 @@ Eu tinha escrito, em quatro lugares, que o `statusCheckRollup` acha **mais** ver
 casamento por `head_sha` — "349 contra 284, 23% mais". O banco diz o contrário:
 
 ```
-casamento por head_sha    296 vermelhas
-statusCheckRollup         221 vermelhas
-nos dois                   82
-união                     435
+casamento por head_sha    323 vermelhas
+statusCheckRollup         261 vermelhas
+nos dois                  115
+união                     469
 ```
 
-Sobreposição de 82 em 435: **não são duas precisões do mesmo fenômeno, são dois
-fenômenos.** Das 214 que só o casamento acha, **186 estão verdes na ponta** — a vermelha
+Sobreposição de 115 em 469: **não são duas precisões do mesmo fenômeno, são dois
+fenômenos.** Das 208 que só o casamento acha, **198 estão verdes na ponta** — a vermelha
 estava num commit intermediário, consertada antes do merge. Conferido no `#13`: 33 commits,
 três vermelhas no meio, ponta verde com 2 contextos.
 
@@ -95,8 +110,8 @@ Também cancelei o job `#5`, órfão em `executing` desde 2026-08-09 — **sem**
 ### O site
 
 [the-band-solution.github.io/theband](https://the-band-solution.github.io/theband/) —
-`gh-pages`, commit `525f07c`. Quatro números atualizados, quatro novos, e a frase sobre as
-**1.705** que entraram sem verificação nenhuma.
+`gh-pages`, commit `0e749d7`. Oito números remedidos com a recoleta concluída, e a frase
+sobre as **2.024** que entraram sem verificação nenhuma.
 
 ### A documentação
 

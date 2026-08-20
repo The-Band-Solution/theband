@@ -443,7 +443,7 @@ defmodule TheBandWeb.VerificationLive.Index do
   # quem mantém a plataforma, e vem por último de propósito.
   #
   # `no check at all` é o quadro que o caminho antigo não tinha: pelo casamento por `head_sha`,
-  # essas apareciam como "não dá para saber". São 1.705 no dado real — 42% do medido.
+  # essas apareciam como "não dá para saber". São 2.024 no dado real — 41% do total.
   defp quadros_de_cobertura(cobertura) do
     [
       {"green", cobertura[:verde] || 0, "", "the tip that was merged had a successful check"},
