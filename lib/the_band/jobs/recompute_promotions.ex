@@ -22,6 +22,17 @@ defmodule TheBand.Jobs.RecomputePromotions do
 
   **Nenhuma requisição à origem acontece aqui.** Os payloads estão preservados desde a
   feature 004, e a promoção é recalculável a partir do que já está no banco.
+
+  ## Os dois números são diferentes, e o job informa os dois
+
+  `Mapping.recompute/2` devolve `%{written:, concept_changed:}`. Uma issue pode manter o
+  conceito e mudar a **proveniência** — passar a ser decidida pela regra da organização em
+  vez da global. Isso é linha gravada e não é mudança de conceito.
+
+  Este job interpolava o mapa numa string como se fosse um inteiro, e estourava
+  `Protocol.UndefinedError` **depois** de o recálculo já ter acontecido. Resultado: o
+  trabalho era feito três vezes, o job terminava `discarded`, e a tela não recebia nada.
+  Nenhum teste pegou porque nenhum exercitava o job com o contrato atual.
   """
 
   use Oban.Worker, queue: :transformation, max_attempts: 3, unique: [period: 30, fields: [:args]]
@@ -34,15 +45,15 @@ defmodule TheBand.Jobs.RecomputePromotions do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"tenant_id" => tenant_id, "organization_id" => org_id}}) do
     with {:ok, tenant} <- Tenants.fetch(tenant_id) do
-      {:ok, mudadas} = Mapping.recompute(tenant, org_id)
+      {:ok, %{written: escritas, concept_changed: conceito} = resultado} =
+        Mapping.recompute(tenant, org_id)
 
-      Logger.info("recálculo concluído: #{mudadas} promoções novas na organização #{org_id}")
-
-      Phoenix.PubSub.broadcast(
-        TheBand.PubSub,
-        "tenant:#{tenant_id}",
-        {:promotions_recomputed, org_id, mudadas}
+      Logger.info(
+        "recálculo concluído na organização #{org_id}: " <>
+          "#{escritas} linhas gravadas, #{conceito} issues mudaram de conceito"
       )
+
+      Mapping.broadcast(tenant_id, {:promotions_recomputed, org_id, resultado})
 
       :ok
     end

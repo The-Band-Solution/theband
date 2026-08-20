@@ -10,13 +10,20 @@ defmodule TheBandWeb.SyncLive.Index do
 
   alias TheBand.Ingestion
   alias TheBand.Jobs.ReprocessMappings
+  alias TheBand.Mapping
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Sources
   alias TheBand.Tenants
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: Ingestion.subscribe(socket.assigns.current_tenant)
+    if connected?(socket) do
+      Ingestion.subscribe(socket.assigns.current_tenant)
+      # Dois tópicos porque são dois assuntos: coletar e transformar. O recálculo de
+      # promoção é assíncrono, então a tela recarrega antes de ele acontecer — sem este
+      # aviso a regra aparece e o número não muda.
+      Mapping.subscribe(socket.assigns.current_tenant)
+    end
 
     {:ok,
      socket
@@ -25,7 +32,10 @@ defmodule TheBandWeb.SyncLive.Index do
        fase: nil,
        paused: nil,
        reprocess: nil,
-       mapeamento: nil
+       mapeamento: nil,
+       # Muda a cada recálculo concluído, e é o que faz o componente de regras recarregar:
+       # `update/2` só roda quando algum assign dele muda.
+       recalculo: 0
      )
      |> load()}
   end
@@ -163,6 +173,18 @@ defmodule TheBandWeb.SyncLive.Index do
   # dono do `@flash`. Precisa vir **antes** da cláusula que ignora o resto.
   def handle_info({:mapping_flash, tipo, mensagem}, socket) do
     {:noreply, put_flash(socket, tipo, mensagem)}
+  end
+
+  # **Os dois números vão para a tela, e são diferentes.** `written` conta linha gravada,
+  # e inclui a issue que manteve o conceito e mudou de proveniência — passou a ser decidida
+  # pela regra da organização em vez da global. Dizer só "N promoções novas" faria quem lê
+  # concluir que N issues mudaram de significado.
+  def handle_info({:promotions_recomputed, _org_id, resultado}, socket) do
+    {:noreply,
+     socket
+     |> put_flash(:info, frase_do_recalculo(resultado))
+     |> update(:recalculo, &(&1 + 1))
+     |> load()}
   end
 
   def handle_info(_message, socket), do: {:noreply, socket}
@@ -340,6 +362,7 @@ defmodule TheBandWeb.SyncLive.Index do
         actor_id={@current_user.id}
         organization_id={organizacao_do_mapeamento(@tools, @mapeamento).id}
         organization_login={organizacao_do_mapeamento(@tools, @mapeamento).login}
+        recalculo={@recalculo}
       />
 
       <.header>Runs</.header>
@@ -705,6 +728,25 @@ defmodule TheBandWeb.SyncLive.Index do
   defp legivel(fase) do
     Enum.find_value(@fases, fase, fn {id, rotulo} -> id == fase && rotulo end)
   end
+
+  # Zero e zero não é falha: `Mapping.recompute/2` é idempotente, e recalcular sobre o
+  # mesmo estado devolve zero nos dois. A frase diz isso, em vez de deixar a tela silenciar
+  # e quem lê achar que nada rodou.
+  defp frase_do_recalculo(%{written: 0, concept_changed: 0}),
+    do: "Rules recomputed. Nothing changed — the promotions already matched the rules."
+
+  defp frase_do_recalculo(%{written: escritas, concept_changed: 0}),
+    do:
+      "Rules recomputed: #{escritas} #{plural(escritas, "promotion", "promotions")} rewritten. " <>
+        "No issue changed concept — what changed is which rule decided it."
+
+  defp frase_do_recalculo(%{written: escritas, concept_changed: conceito}),
+    do:
+      "Rules recomputed: #{conceito} #{plural(conceito, "issue", "issues")} changed concept, " <>
+        "#{escritas} #{plural(escritas, "promotion", "promotions")} written in total."
+
+  defp plural(1, singular, _plural), do: singular
+  defp plural(_n, _singular, plural), do: plural
 
   defp frase_da_mudanca(%{sync_interval_minutes: nil} = tool),
     do:
