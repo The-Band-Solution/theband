@@ -49,9 +49,17 @@ defmodule TheBand.Profiles.RunWorkerTest do
     }
   end
 
-  defp gera_ok(tokens \\ 4321) do
+  # O `usage` traz as DUAS contagens, como o provedor traz. Um mock que só devolvesse a
+  # entrada tornaria a issue #454 invisível a teste: a função leria a chave que existe e a
+  # ausência da outra pareceria "o provedor não informou".
+  defp gera_ok(entrada \\ 4321, saida \\ 876) do
     expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
-      {:ok, %{text: Jason.encode!(resposta()), model: "m1", usage: %{"prompt_tokens" => tokens}}}
+      {:ok,
+       %{
+         text: Jason.encode!(resposta()),
+         model: "m1",
+         usage: %{"prompt_tokens" => entrada, "completion_tokens" => saida}
+       }}
     end)
   end
 
@@ -80,6 +88,39 @@ defmodule TheBand.Profiles.RunWorkerTest do
       assert resumo.generated == 1
       assert resumo.failed == 0
       assert resumo.input_tokens == 4321
+
+      # **A outra metade da conta** — issue #454. A `FR-021` pede custo, e a entrada sozinha
+      # não responde: a saída é cobrada a taxa mais alta.
+      assert resumo.output_tokens == 876, """
+      A contagem de saída chega no mesmo mapa `usage` que a de entrada. A versão anterior
+      lia uma chave e descartava o resto, e nenhum teste reprovava porque o mock também só
+      devolvia uma.
+      """
+    end
+
+    test "o provedor que não informa a saída deixa nulo, e nunca zero", ctx do
+      expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, _o ->
+        {:ok, %{text: Jason.encode!(resposta()), model: "m1", usage: %{"prompt_tokens" => 100}}}
+      end)
+
+      run = abrir(ctx.tenant, ctx.admin)
+      assert :ok = executar(ctx.tenant, run)
+
+      [entrada] =
+        TheBand.Repo.all(
+          Ecto.Query.from(e in TheBand.Profiles.RunEntry,
+            where: e.profile_run_id == ^run.id,
+            select: %{input: e.input_tokens, output: e.output_tokens}
+          )
+        )
+
+      assert entrada.input == 100
+
+      assert is_nil(entrada.output), """
+      Zero significaria "chamou e não gerou saída", que nunca é verdade numa geração
+      bem-sucedida. Ausência de informação é nula — a mesma regra que o `input_tokens` já
+      seguia.
+      """
     end
 
     test "a credencial usada fica registrada, e é a da própria organização", ctx do

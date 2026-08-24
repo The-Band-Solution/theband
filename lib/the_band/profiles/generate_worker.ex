@@ -34,29 +34,44 @@ defmodule TheBand.Profiles.GenerateWorker do
   impediria a `FR-016` de encerrar a rodada: encerrar viraria cancelamento de jobs já
   enfileirados, que é um estado que a tela não sabe nomear.
 
-  Os tokens de entrada vêm do `usage` que o provedor devolve. `nil` quando o provedor não os
-  informou — nunca zero, que significaria "chamou e não consumiu".
+  ## As duas contagens, e por que num mapa
+
+  O `usage` que o provedor devolve carrega entrada **e** saída. A versão anterior lia só a
+  entrada e jogava o resto fora — e a `FR-021` pede **custo**, que a entrada sozinha não
+  responde porque a saída é cobrada a taxa mais alta (issue #454).
+
+  A aridade não muda mais a cada métrica nova: o terceiro elemento é um mapa. Trocar
+  `{:ok, perfil, tokens}` por `{:ok, perfil, %{input: _, output: _}}` foi o último ajuste de
+  forma que este contrato precisa.
+
+  `nil` em qualquer das duas é o provedor não ter informado — **nunca zero**, que significaria
+  "chamou e não consumiu".
   """
   @spec gerar(Tenants.Tenant.t(), binary(), binary() | nil) ::
-          {:ok, map(), non_neg_integer() | nil} | {:error, term()}
+          {:ok, map(), %{input: non_neg_integer() | nil, output: non_neg_integer() | nil}}
+          | {:error, term()}
   def gerar(tenant, person_id, user_id \\ nil) do
     with {:ok, material} <- Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
          {:ok, resposta} <- chamar(tenant, material) do
       case gravar(tenant, material, resposta, user_id) do
-        {:ok, perfil} -> {:ok, perfil, tokens_de_entrada(resposta)}
+        {:ok, perfil} -> {:ok, perfil, consumo(resposta)}
         {:cancel, motivo} -> {:error, motivo}
       end
     end
   end
 
-  # O provedor nomeia o campo de formas diferentes conforme a rota. Nenhum deles presente é
-  # ausência, e ausência é nula: um zero aqui entraria na soma da rodada como se a chamada
-  # não tivesse custado nada.
-  defp tokens_de_entrada(%{usage: usage}) when is_map(usage) do
-    usage["prompt_tokens"] || usage["input_tokens"]
+  # O provedor nomeia os campos de formas diferentes conforme a rota — `prompt_tokens` e
+  # `completion_tokens` na de chat, `input_tokens` e `output_tokens` na de mensagens. Nenhum
+  # deles presente é ausência, e ausência é nula: um zero aqui entraria na soma da rodada como
+  # se a chamada não tivesse custado nada.
+  defp consumo(%{usage: usage}) when is_map(usage) do
+    %{
+      input: usage["prompt_tokens"] || usage["input_tokens"],
+      output: usage["completion_tokens"] || usage["output_tokens"]
+    }
   end
 
-  defp tokens_de_entrada(_), do: nil
+  defp consumo(_), do: %{input: nil, output: nil}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do

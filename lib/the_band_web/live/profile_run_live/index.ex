@@ -240,7 +240,8 @@ defmodule TheBandWeb.ProfileRunLive.Index do
               <th>generated</th>
               <th>skipped</th>
               <th>failed</th>
-              <th>input tokens</th>
+              <th>tokens in</th>
+              <th>tokens out</th>
             </tr>
           </thead>
           <tbody>
@@ -269,8 +270,24 @@ defmodule TheBandWeb.ProfileRunLive.Index do
                   <div>observation ended: {@resumos[run.id].skipped.observation_ended}</div>
                 </td>
                 <td data-label="failed" class="font-mono">{@resumos[run.id].failed}</td>
-                <td data-label="input tokens" class="font-mono">
+                <%!-- Os dois, em colunas separadas. Somá-los daria um número que não serve
+                      para calcular custo: as taxas diferem, e a saída é a mais cara. --%>
+                <td data-label="tokens in" class="font-mono">
                   {milhar(@resumos[run.id].input_tokens)}
+                </td>
+                <%!-- Zero aqui é rodada anterior à issue #454: ela não mediu a saída, e não
+                      há de onde recuperar — a resposta do provedor não é preservada. --%>
+                <td data-label="tokens out" class="font-mono">
+                  <span :if={@resumos[run.id].output_tokens > 0}>
+                    {milhar(@resumos[run.id].output_tokens)}
+                  </span>
+                  <span
+                    :if={@resumos[run.id].output_tokens == 0 and @resumos[run.id].generated > 0}
+                    class="opacity-60 italic text-xs"
+                    title="Rodada anterior ao registro da saída. Não é zero — é não medido, e não há de onde recuperar."
+                  >
+                    not measured
+                  </span>
                 </td>
                 <td data-label="">
                   <button

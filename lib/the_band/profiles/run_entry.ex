@@ -35,6 +35,7 @@ defmodule TheBand.Profiles.RunEntry do
 
     field :person_profile_id, :binary_id
     field :input_tokens, :integer
+    field :output_tokens, :integer
 
     timestamps(type: :utc_datetime)
   end
@@ -64,7 +65,8 @@ defmodule TheBand.Profiles.RunEntry do
       :reason,
       :failure_reason,
       :person_profile_id,
-      :input_tokens
+      :input_tokens,
+      :output_tokens
     ])
     |> validate_required([:tenant_id, :profile_run_id, :person_id, :outcome])
     |> validate_inclusion(:outcome, @outcomes)

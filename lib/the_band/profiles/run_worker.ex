@@ -107,12 +107,13 @@ defmodule TheBand.Profiles.RunWorker do
 
   defp gerar(tenant, run, pessoa) do
     case gerar_capturando(tenant, pessoa.id) do
-      {:ok, perfil, tokens} ->
+      {:ok, perfil, consumo} ->
         {:ok, _} =
           Runs.record(run, pessoa.id, %{
             outcome: "generated",
             person_profile_id: perfil.id,
-            input_tokens: tokens
+            input_tokens: consumo.input,
+            output_tokens: consumo.output
           })
 
         :continua
