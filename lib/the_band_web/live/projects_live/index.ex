@@ -25,6 +25,7 @@ defmodule TheBandWeb.ProjectsLive.Index do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Projects
 
   @impl true
   def mount(_params, _session, socket) do
@@ -38,6 +39,9 @@ defmodule TheBandWeb.ProjectsLive.Index do
        # digitado na busca, e o que está marcado. Um estado por projeto multiplicaria
        # a complexidade sem ninguém precisar de dois abertos ao mesmo tempo.
        picker: nil,
+       # Seletor de quadro é estado próprio: abrir os dois ao mesmo tempo no mesmo projeto
+       # é legítimo, e um `picker` só obrigaria a fechar um para abrir o outro.
+       picker_quadro: nil,
        busca: "",
        marcados: MapSet.new(),
        # Feature 028: qual projeto está em edição, e o rascunho de equipe nova.
@@ -243,6 +247,25 @@ defmodule TheBandWeb.ProjectsLive.Index do
     {:noreply, load(socket)}
   end
 
+  def handle_event("abrir_picker_quadro", %{"project_id" => pid}, socket),
+    do: {:noreply, assign(socket, picker_quadro: pid, erro: nil)}
+
+  def handle_event("fechar_picker_quadro", _params, socket),
+    do: {:noreply, assign(socket, picker_quadro: nil)}
+
+  # **Sem seleção múltipla, ao contrário do seletor de repositório.** São 26 quadros contra
+  # 160 repositórios, e associar quadro é decisão que se toma um de cada vez — a lista do
+  # projeto é curta por natureza.
+  def handle_event("associar_quadro", %{"project_id" => pid, "board_id" => bid}, socket) do
+    SPO.link_board(socket.assigns.current_tenant, pid, bid, socket.assigns.current_user.id)
+    {:noreply, load(socket)}
+  end
+
+  def handle_event("desassociar_quadro", %{"link_id" => id}, socket) do
+    SPO.unlink_board(socket.assigns.current_tenant, id, socket.assigns.current_user.id)
+    {:noreply, load(socket)}
+  end
+
   def handle_event("definir_pai", %{"project_id" => pid, "parent_id" => ""}, socket) do
     SPO.clear_parent(socket.assigns.current_tenant, pid)
     {:noreply, socket |> assign(erro: nil) |> load()}
@@ -285,6 +308,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
         Map.merge(p, %{
           parent_name: p.parent_id && nomes[p.parent_id],
           repositorios: SPO.list_project_repositories(tenant, p.id),
+          # **Um projeto pode ter mais de um quadro** — decisão de 2026-08-24, issue #367.
+          # Antes disto o projeto tinha zero, e a entrega lida pelo quadro corrente fazia
+          # dez meses do Conecta Fapes sumirem.
+          quadros: SPO.list_project_boards(tenant, p.id),
           contagem: SPO.count_project_issues(tenant, p.id),
           # Feature 028: as organizações filtram o seletor, e as equipes dizem quem
           # trabalha — com a proveniência junto, porque declarada ≠ observada.
@@ -295,6 +322,7 @@ defmodule TheBandWeb.ProjectsLive.Index do
 
     assign(socket,
       projetos: com_dados,
+      quadros_do_tenant: Projects.list_projects(tenant),
       nomes_de_repo: nomes_de_repo,
       nomes_de_org: nomes_de_org,
       organizacoes_do_tenant: EO.list_organizations(tenant),
@@ -611,6 +639,66 @@ defmodule TheBandWeb.ProjectsLive.Index do
               </div>
             </div>
 
+            <%!-- Os quadros vêm ANTES dos repositórios porque é por eles que a entrega é
+                  lida. Um projeto sem quadro alcança issue por repositório e não alcança
+                  sprint nenhum. --%>
+            <div>
+              <h4 class="text-xs uppercase tracking-wide opacity-60">Boards</h4>
+              <p :if={p.quadros == []} class="mt-1 text-sm opacity-70">
+                No board associated. The project reaches no sprint until one is — <strong>and a project may have more than one</strong>.
+              </p>
+              <ul class="mt-1 flex flex-wrap gap-2">
+                <li :for={q <- p.quadros} class="badge badge-outline gap-2">
+                  <span class="font-mono text-xs">{q.title}</span>
+                  <%!-- Fechado na origem NÃO é desvinculado: é o quadro encerrado que
+                        carrega o histórico que a #367 mostrou sumindo. --%>
+                  <span :if={q.closed} class="text-xs italic opacity-60">closed</span>
+                  <span class="text-xs opacity-60 tabular-nums">{q.items}</span>
+                  <button
+                    phx-click="desassociar_quadro"
+                    phx-value-link_id={q.id}
+                    class="cursor-pointer"
+                  >
+                    ×
+                  </button>
+                </li>
+              </ul>
+
+              <.button
+                :if={@picker_quadro != p.id}
+                phx-click="abrir_picker_quadro"
+                phx-value-project_id={p.id}
+                class="btn-outline btn-sm mt-2"
+              >
+                Associate boards
+              </.button>
+
+              <div :if={@picker_quadro == p.id} class="mt-2 rounded-lg border border-base-300 p-3">
+                <ul class="max-h-60 space-y-1 overflow-y-auto">
+                  <li :for={q <- quadros_disponiveis(@quadros_do_tenant, p)}>
+                    <button
+                      phx-click="associar_quadro"
+                      phx-value-project_id={p.id}
+                      phx-value-board_id={q.id}
+                      class="w-full cursor-pointer rounded px-2 py-1 text-left text-sm hover:bg-base-200"
+                    >
+                      <span class="font-mono text-xs">{q.title}</span>
+                      <span :if={q.closed} class="ml-1 text-xs italic opacity-60">closed</span>
+                    </button>
+                  </li>
+                </ul>
+                <p
+                  :if={quadros_disponiveis(@quadros_do_tenant, p) == []}
+                  class="text-sm opacity-70"
+                >
+                  Every observed board is already associated with this project.
+                </p>
+                <.button phx-click="fechar_picker_quadro" class="btn-ghost btn-xs mt-2">
+                  close
+                </.button>
+              </div>
+            </div>
+
             <div>
               <h4 class="text-xs uppercase tracking-wide opacity-60">Repositories</h4>
               <p :if={p.repositorios == []} class="mt-1 text-sm opacity-70">
@@ -756,4 +844,11 @@ defmodule TheBandWeb.ProjectsLive.Index do
   defp periodo(%{started_on: inicio, ended_on: nil}), do: "since #{inicio}"
   defp periodo(%{started_on: nil, ended_on: fim}), do: "until #{fim}"
   defp periodo(%{started_on: inicio, ended_on: fim}), do: "#{inicio} — #{fim}"
+  # Os quadros que ainda não são deste projeto. **O mesmo quadro pode servir a mais de um
+  # projeto** — o filtro é por projeto, e não global: excluir da lista o que já está em
+  # outro projeto impediria o caso que a decisão de 2026-08-24 declara possível.
+  defp quadros_disponiveis(todos, projeto) do
+    ja = MapSet.new(projeto.quadros, & &1.observed_project_id)
+    Enum.reject(todos, &MapSet.member?(ja, &1.id))
+  end
 end

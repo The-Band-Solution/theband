@@ -70,9 +70,15 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate link_repository(tenant, project_id, observed_repository_id, actor_id), to: Projects
   defdelegate unlink_repository(tenant, vinculo_id, actor_id), to: Projects
 
+  # O QUADRO, e não o projeto — `observed_projects` é o Projects v2 coletado. Um projeto
+  # pode ter mais de um: decisão de 2026-08-24, issue #367.
+  defdelegate link_board(tenant, project_id, observed_project_id, actor_id), to: Projects
+  defdelegate unlink_board(tenant, vinculo_id, actor_id), to: Projects
+
   defdelegate list_projects(tenant), to: Projects
   defdelegate fetch_project(tenant, id), to: Projects
   defdelegate list_project_repositories(tenant, project_id), to: Projects
+  defdelegate list_project_boards(tenant, project_id), to: Projects
   defdelegate list_project_issues(tenant, project_id, opts \\ []), to: Projects
   defdelegate count_project_issues(tenant, project_id), to: Projects
 end

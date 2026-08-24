@@ -17,6 +17,7 @@ defmodule TheBand.Ontology.SEON.SPO.ProjetosTest do
 
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Ontology.SEON.SPO.Schemas.ProjectBoard
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectRepository
 
   setup do
@@ -202,6 +203,113 @@ defmodule TheBand.Ontology.SEON.SPO.ProjetosTest do
     end
   end
 
+  describe "os quadros" do
+    # **Um projeto pode ter mais de um quadro** — decisão de 2026-08-24, issue #367. Antes
+    # disto o projeto tinha ZERO: não havia vínculo com `observed_projects` em forma alguma,
+    # e a entrega lida por um quadro só fazia dez meses sumirem.
+    test "os quatro quadros do Conecta Fapes são todos dele", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+
+      quadros =
+        for {titulo, n} <- [
+              {"Conecta Fapes", 1},
+              {"Conecta Fapes - Delivery", 2},
+              {"Conecta Fapes - Teste", 3},
+              {"Conecta Fapes - Discovery", 4}
+            ] do
+          {:ok, q} = quadro(ctx, titulo, n)
+          {:ok, _} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+          q
+        end
+
+      listados = SPO.list_project_boards(ctx.tenant, p.id)
+
+      assert length(listados) == 4, """
+      A pergunta original da #367 era "qual quadro é o quadro do projeto", e ela partia de
+      existir um. A decisão foi que pode haver vários — e sem esta lista o histórico do
+      projeto fica preso ao quadro corrente.
+      """
+
+      assert Enum.map(listados, & &1.title) ==
+               [
+                 "Conecta Fapes",
+                 "Conecta Fapes - Discovery",
+                 "Conecta Fapes - Delivery",
+                 "Conecta Fapes - Teste"
+               ]
+               |> Enum.sort()
+
+      assert length(quadros) == 4
+    end
+
+    test "associar registra autor e data", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, q} = quadro(ctx, "Delivery", 9)
+
+      {:ok, vinculo} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+
+      assert vinculo.linked_by_user_id == ctx.user.id
+      assert vinculo.linked_at
+    end
+
+    test "o mesmo quadro serve a dois projetos", ctx do
+      um = projeto(ctx, "Conecta Fapes")
+      outro = projeto(ctx, "Plataforma")
+      {:ok, q} = quadro(ctx, "Quadro comum", 7)
+
+      {:ok, _} = SPO.link_board(ctx.tenant, um.id, q.id, ctx.user.id)
+      {:ok, _} = SPO.link_board(ctx.tenant, outro.id, q.id, ctx.user.id)
+
+      assert length(SPO.list_project_boards(ctx.tenant, um.id)) == 1
+      assert length(SPO.list_project_boards(ctx.tenant, outro.id)) == 1
+    end
+
+    test "associar duas vezes revive o vínculo, e não cria outro", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, q} = quadro(ctx, "Delivery", 5)
+
+      {:ok, primeiro} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+      {:ok, segundo} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+
+      assert primeiro.id == segundo.id, """
+      O índice único é parcial sobre os vigentes: duas linhas vigentes para o mesmo par não
+      podem existir, e inserir de novo estouraria a constraint em vez de devolver a que há.
+      """
+
+      assert Repo.aggregate(ProjectBoard, :count) == 1
+    end
+
+    test "desfazer marca, e a linha continua", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, q} = quadro(ctx, "Delivery", 3)
+
+      {:ok, vinculo} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+      {:ok, desfeito} = SPO.unlink_board(ctx.tenant, vinculo.id, ctx.user.id)
+
+      assert desfeito.unlinked_by_user_id == ctx.user.id
+      assert SPO.list_project_boards(ctx.tenant, p.id) == []
+
+      assert Repo.aggregate(ProjectBoard, :count) == 1, """
+      Desfazer MARCA e nunca apaga. A pergunta "desde quando este quadro é deste projeto"
+      só tem resposta se o encerramento preservar o começo.
+      """
+    end
+
+    test "quadro fechado na origem continua sendo do projeto", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, q} = quadro(ctx, "Delivery encerrado", 8, closed: true)
+
+      {:ok, _} = SPO.link_board(ctx.tenant, p.id, q.id, ctx.user.id)
+
+      assert [listado] = SPO.list_project_boards(ctx.tenant, p.id)
+
+      assert listado.closed, """
+      Fechado na origem não é desvinculado aqui — é exatamente o quadro encerrado que
+      carrega o histórico que a #367 mostrou sumindo.
+      """
+    end
+  end
+
   describe "os repositórios" do
     test "associar registra autor e data", ctx do
       p = projeto(ctx, "Conecta Fapes")
@@ -315,5 +423,21 @@ defmodule TheBand.Ontology.SEON.SPO.ProjetosTest do
 
       assert SPO.list_projects(outro) == []
     end
+  end
+
+  # O quadro observado — `observed_projects`, o Projects v2 da origem. Não confundir com
+  # `spo_projects`: o GitHub chama o quadro de "project", e é daí que vem a colisão.
+  defp quadro(ctx, titulo, numero, opts \\ []) do
+    TheBand.Projects.record_observed_project(ctx.tenant, %{
+      connected_tool_id: ctx.cenario.tool.id,
+      number: numero,
+      title: titulo,
+      closed: Keyword.get(opts, :closed, false),
+      source_system: "github",
+      source_instance: "https://github.com",
+      source_external_id: "PVT_#{numero}",
+      collected_at: DateTime.utc_now(:second),
+      last_observed_at: DateTime.utc_now(:second)
+    })
   end
 end

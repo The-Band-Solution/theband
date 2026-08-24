@@ -23,6 +23,7 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.SPO.Schemas.Project
+  alias TheBand.Ontology.SEON.SPO.Schemas.ProjectBoard
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectOrganization
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectRepository
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectTeam
@@ -139,6 +140,110 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
         })
         |> Repo.update()
     end
+  end
+
+  @doc """
+  Associa um **quadro** observado ao projeto — issue #367.
+
+  ## Um projeto pode ter mais de um quadro
+
+  Decisão da pessoa mantenedora, 2026-08-24. Não há "o quadro do projeto": há os quadros
+  dele. O Conecta Fapes tem quatro, e lê-lo por um só fazia dez meses de entrega sumirem.
+
+  Quadro é `observed_projects` — o Projects v2 coletado —, e não `spo_projects`. O GitHub
+  chama o quadro de "project", e é daí que vem a colisão de nomes.
+
+  Decisão tem autor, como o vínculo com repositório.
+  """
+  @spec link_board(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectBoard.t()} | {:error, Ecto.Changeset.t()}
+  def link_board(%Tenant{id: tenant_id}, project_id, observed_project_id, actor_id) do
+    agora = DateTime.utc_now(:second)
+
+    chave = %{
+      tenant_id: tenant_id,
+      project_id: project_id,
+      observed_project_id: observed_project_id
+    }
+
+    # Reassociar um quadro que saiu **revive o vínculo encerrado** em vez de criar outro: o
+    # índice único é parcial sobre os vigentes, e duas linhas vigentes para o mesmo par não
+    # podem existir. `is_nil` e não `get_by` com nulo — o Ecto proíbe o segundo.
+    vigente =
+      Repo.one(
+        from v in ProjectBoard,
+          where:
+            v.tenant_id == ^tenant_id and v.project_id == ^project_id and
+              v.observed_project_id == ^observed_project_id and is_nil(v.unlinked_at)
+      )
+
+    case vigente do
+      nil ->
+        %ProjectBoard{}
+        |> ProjectBoard.changeset(
+          Map.merge(chave, %{linked_by_user_id: actor_id, linked_at: agora})
+        )
+        |> Repo.insert()
+
+      existente ->
+        {:ok, existente}
+    end
+  end
+
+  @doc """
+  Desfaz o vínculo com um quadro — **marca**, e nunca apaga.
+
+  A pergunta "desde quando este quadro é deste projeto" só tem resposta se o encerramento
+  preservar o começo.
+  """
+  @spec unlink_board(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, ProjectBoard.t()} | {:error, :not_found}
+  def unlink_board(%Tenant{id: tenant_id}, vinculo_id, actor_id) do
+    case Repo.get_by(ProjectBoard, id: vinculo_id, tenant_id: tenant_id) do
+      nil ->
+        {:error, :not_found}
+
+      vinculo ->
+        vinculo
+        |> ProjectBoard.changeset(%{
+          unlinked_at: DateTime.utc_now(:second),
+          unlinked_by_user_id: actor_id
+        })
+        |> Repo.update()
+    end
+  end
+
+  @doc """
+  Os quadros **vigentes** do projeto, com título e contagem de itens.
+
+  Traz o título junto porque a pergunta que a tela faz é "quais quadros", e um identificador
+  sem nome obrigaria uma segunda consulta para cada linha.
+  """
+  @spec list_project_boards(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_project_boards(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectBoard,
+        join: q in "observed_projects",
+        on: q.id == v.observed_project_id,
+        where:
+          v.tenant_id == ^tenant_id and v.project_id == ^project_id and is_nil(v.unlinked_at),
+        order_by: [asc: q.title],
+        select: %{
+          id: type(v.id, :binary_id),
+          observed_project_id: type(v.observed_project_id, :binary_id),
+          title: q.title,
+          number: q.number,
+          closed: q.closed,
+          linked_at: v.linked_at,
+          # Fechado na origem **não** é desvinculado aqui: o quadro encerrado continua sendo
+          # do projeto, e é o que preserva o histórico que a #367 mostrou sumindo.
+          items:
+            fragment(
+              "(select count(*) from project_items x where x.observed_project_id = ?)",
+              v.observed_project_id
+            )
+        }
+    )
   end
 
   @doc """
