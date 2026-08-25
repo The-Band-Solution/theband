@@ -94,7 +94,14 @@ Quem administra vê as evidências coletadas — **pessoa e equipe** — e **con
 ### O cadastro
 
 - **FR-001**: O cadastro de papéis MUST ser **por organização**. Um papel MUST NOT ficar visível em organização que não a sua.
-- **FR-002**: Os quatro papéis do Scrum que a rede nomeia MUST estar disponíveis em **todas** as organizações, sem cadastro prévio.
+- **FR-002**: Os quatro papéis do Scrum que a **SRO** nomeia MUST estar disponíveis em **todas** as organizações, sem cadastro prévio — `sro.product_owner_role`, `sro.scrum_master_role`, `sro.developer_role` e `sro.client_role`, todos filhos de `sro.scrum_role`.
+
+  > **São os únicos papéis que a plataforma traz prontos**, e a razão é que eles têm origem
+  > numa ontologia de referência: a SRO os define, e a definição é revisável em commit. Papel
+  > que a rede não nomeia é declaração da organização, e nasce com autor.
+  >
+  > **Nenhum papel vem da ferramenta.** `MAINTAINER` e `MEMBER` não entram no catálogo, e
+  > `EO.Constraints.platform_access_level_is_not_a_role/1` já os recusa desde a feature 021.
 - **FR-003**: Cada papel MUST declarar sua **origem** — do catálogo da rede, ou declarado por uma pessoa. A origem MUST ser visível na tela, e não inferida do nome.
 - **FR-004**: Papel do catálogo MUST NOT ser apagável. Ele MAY ser **ocultado** de uma organização, e ocultar MUST NOT invalidar vínculos que já o usam.
 - **FR-005**: Papel declarado MUST gravar **quem** o declarou e **quando**.
@@ -125,24 +132,35 @@ Quem administra vê as evidências coletadas — **pessoa e equipe** — e **con
 
 Decisão da pessoa mantenedora, 2026-08-24: *"não use os níveis de acesso do GitHub, isso não indica role dos projetos"*.
 
-- **FR-011**: A tela de promoção MUST NOT exibir o nível de acesso da plataforma de origem — `ADMIN`, `WRITE`, `READ`. Nem como sugestão, **nem como contexto**.
+- **FR-011**: A tela de promoção MUST NOT exibir o nível de acesso da plataforma de origem — `MAINTAINER` ou `MEMBER`. Nem como sugestão, **nem como contexto**.
 - **FR-012**: A plataforma MUST NOT inferir, sugerir ou pré-selecionar papel organizacional a partir do nível de acesso. Nenhum papel MUST vir pré-selecionado, por qualquer critério.
 - **FR-013**: O que a evidência afirma é **que uma pessoa pertence a uma equipe** na origem. É só isso que a tela MUST mostrar. Quem decide o papel decide a partir do que sabe da organização, e não do que a ferramenta permite a quem.
 
 > **Por que a versão anterior desta seção estava errada.** Ela dizia que a tela *poderia*
 > mostrar o acesso "como contexto", e proibia só a inferência. Não se sustenta: exibir
-> `ADMIN` ao lado de um seletor de papel **faz dele uma dica**, por mais que o texto negue.
+> `MAINTAINER` ao lado de um seletor de papel **faz dele uma dica**, por mais que o texto
+> negue.
 > A proibição da inferência viraria letra morta, e o viés entraria sem nenhum código o
 > declarar.
 >
-> **`ADMIN` diz quem administra membros e permissões no GitHub.** É atributo da ferramenta,
-> não da organização — e não guarda relação com quem é Product Owner, Scrum Master,
-> Developer ou Client.
+> **`MAINTAINER` diz quem pode gerir membros e permissões do time.** É atributo da
+> ferramenta, não da organização — e não diz se a pessoa é programadora, testadora,
+> designer ou gerente.
+>
+> **A plataforma já sabe disso, e antes desta feature.**
+> `EO.Constraints.platform_access_level_is_not_a_role/1` existe desde a feature 021, com a
+> justificativa escrita: promover acesso a papel produziria um catálogo que não corresponde
+> a função nenhuma, e faria as perguntas de competência `CQ12`, `CQ14` e `CQ16` devolverem
+> **resposta falsa em vez de nenhuma**. Esta spec não cria a regra: ela impede que a tela a
+> contorne.
+
+**Os valores, medidos em 2026-08-24** nas 101 evidências: `MEMBER` 63, nulo 33,
+`MAINTAINER` 5. Nenhum deles nomeia função.
 
 **O que continua sendo coletado.** `platform_access_level` permanece em
 `eo_team_membership_evidence`: é fato observado sobre a plataforma, e apagá-lo seria perder
-dado verdadeiro. O que esta feature proíbe é **usá-lo para decidir papel** — inclusive
-mostrando-o onde a decisão acontece.
+dado verdadeiro que outras telas já mostram — a da equipe e a da pessoa. O que esta feature
+proíbe é **usá-lo para decidir papel**, inclusive mostrando-o onde a decisão acontece.
 
 ### A tela
 
@@ -167,7 +185,7 @@ mostrando-o onde a decisão acontece.
 - **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel.
 - **SC-004**: Um papel declarado na organização A **não aparece** em nenhuma listagem da organização B — verificável abrindo as duas.
 - **SC-005**: Nenhum papel vem pré-selecionado, por critério nenhum. Verificável: em toda evidência, o campo de papel começa **vazio**.
-- **SC-005a**: O nível de acesso da origem **não aparece** na tela de promoção. Verificável procurando `ADMIN`, `WRITE` e `READ` no que ela renderiza: deve ser **zero**.
+- **SC-005a**: O nível de acesso da origem **não aparece** na tela de promoção. Verificável procurando `MAINTAINER` e `MEMBER` no que ela renderiza: deve ser **zero**.
 - **SC-006**: Depois de promovidas as evidências de uma equipe, as medidas de nível Equipe passam a calcular para ela — o que hoje **nenhuma** faz.
 - **SC-007**: A tela da equipe sem membros distingue *"nenhuma evidência"* de *"N evidências esperando confirmação"*. Nunca mostra as duas com a mesma frase.
 - **SC-008**: Uma pessoa com dois papéis numa equipe conta como **uma** pessoa em toda contagem de tamanho de equipe — verificável comparando a contagem com o número de vínculos, que serão diferentes.
