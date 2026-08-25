@@ -81,50 +81,95 @@ defmodule TheBandWeb.TeamsLive.Show do
   end
 
   def handle_event("promover", params, socket) do
-    %{"evidence_id" => id, "papel" => papel, "started_at" => data} = params
+    escolhas = escolhas_de(params)
 
-    resultado =
-      EO.promote_evidence(
-        socket.assigns.current_tenant,
-        id,
-        papel_escolhido(papel),
-        socket.assigns.current_user.id,
-        started_at: data_ou_nil(data)
-      )
+    resultados =
+      Enum.map(escolhas, fn {evidence_id, papel, data} ->
+        EO.promote_evidence(
+          socket.assigns.current_tenant,
+          evidence_id,
+          papel_escolhido(papel),
+          socket.assigns.current_user.id,
+          started_at: data_ou_nil(data)
+        )
+      end)
 
-    case resultado do
-      {:ok, _vinculo} ->
-        {:noreply, socket |> put_flash(:info, "Membership recorded.") |> load()}
-
-      # Cada recusa vira uma FRASE diferente. Um código de motivo na tela obrigaria quem lê a
-      # procurar o que ele significa — e a frase diz o que fazer.
-      {:error, :role_from_another_organization} ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           "That role belongs to another organisation. Roles are recognised per organisation."
-         )}
-
-      {:error, :already_promoted} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "This participation has already become a membership.")
-         |> load()}
-
-      {:error, :no_longer_observed} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "The source no longer shows this person on this team.")
-         |> load()}
-
-      {:error, :already_allocated} ->
-        {:noreply, put_flash(socket, :error, "This person already holds that role on this team.")}
-
-      {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not record: #{inspect(motivo)}")}
-    end
+    {:noreply,
+     socket
+     |> put_flash(tipo_do_resultado(resultados), frase_do_resultado(resultados, params))
+     |> load()}
   end
+
+  # As linhas escolhidas, na forma `{evidence_id, papel, data}`.
+  #
+  # `apenas` diz o que o botão pediu: um id de evidência, ou `"todas"`. E **linha sem papel
+  # escolhido não entra** — é o que faz "confirmar todas" pular em vez de recusar.
+  defp escolhas_de(%{"apenas" => "todas"} = params) do
+    papeis = Map.get(params, "papel", %{})
+    datas = Map.get(params, "started_at", %{})
+
+    papeis
+    |> Enum.reject(fn {_id, papel} -> papel in [nil, ""] end)
+    |> Enum.map(fn {id, papel} -> {id, papel, Map.get(datas, id)} end)
+  end
+
+  defp escolhas_de(%{"apenas" => id} = params) do
+    papel = get_in(params, ["papel", id])
+
+    if papel in [nil, ""],
+      do: [],
+      else: [{id, papel, get_in(params, ["started_at", id])}]
+  end
+
+  defp escolhas_de(_), do: []
+
+  # **Nenhum desfecho some.** Confirmadas, puladas e recusadas aparecem na mesma frase — e a
+  # contagem de puladas é o que impede quem clicou em "confirmar todas" de achar que
+  # confirmou tudo.
+  defp frase_do_resultado([], %{"apenas" => "todas"} = params) do
+    quantas = params |> Map.get("papel", %{}) |> map_size()
+    "Nothing confirmed: no role was chosen in any of the #{quantas} rows."
+  end
+
+  defp frase_do_resultado([], _params), do: "Choose a role before confirming."
+
+  defp frase_do_resultado(resultados, params) do
+    ok = Enum.count(resultados, &match?({:ok, _}, &1))
+    erros = Enum.reject(resultados, &match?({:ok, _}, &1))
+
+    puladas =
+      case params do
+        %{"apenas" => "todas"} ->
+          params |> Map.get("papel", %{}) |> map_size() |> Kernel.-(length(resultados))
+
+        _ ->
+          0
+      end
+
+    [
+      "#{ok} membership(s) recorded",
+      puladas > 0 && "#{puladas} skipped for having no role chosen",
+      erros != [] && "#{length(erros)} refused: #{Enum.map_join(erros, "; ", &motivo/1)}"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" · ")
+  end
+
+  # Erro entre acertos ainda é erro: a cor da mensagem segue o pior desfecho, e não o
+  # primeiro. Uma linha recusada no meio de nove aceitas passaria batida em verde.
+  defp tipo_do_resultado(resultados) do
+    if Enum.any?(resultados, &(not match?({:ok, _}, &1))), do: :error, else: :info
+  end
+
+  # Cada recusa vira uma FRASE. Um código de motivo na tela obrigaria quem lê a procurar o
+  # que ele significa.
+  defp motivo({:error, :role_from_another_organization}),
+    do: "that role belongs to another organisation"
+
+  defp motivo({:error, :already_promoted}), do: "already became a membership"
+  defp motivo({:error, :no_longer_observed}), do: "the source no longer shows this person here"
+  defp motivo({:error, :already_allocated}), do: "this person already holds that role here"
+  defp motivo({:error, outro}), do: inspect(outro)
 
   defp caminho(socket, id, mudancas),
     do: ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas)}"
@@ -378,46 +423,71 @@ defmodule TheBandWeb.TeamsLive.Show do
           confirmed it and when.
         </p>
 
-        <ul class="space-y-2">
-          <li :for={p <- @pendentes} class="card bg-base-200 p-3">
-            <form phx-submit="promover" id={"promover-#{p.id}"} class="flex flex-wrap items-end gap-2">
-              <input type="hidden" name="evidence_id" value={p.id} />
+        <%!-- **Um formulário só**, e não um por linha. É o que permite confirmar várias de
+              uma vez sem espelhar o estado dos seletores em `assigns` — o navegador já
+              guarda o que foi escolhido, e duplicar isso no servidor criaria duas fontes que
+              podem discordar.
 
-              <div class="min-w-40 flex-1">
-                <div class="font-medium">{p.person_name}</div>
-                <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
+              O botão diz QUAL linha: `name="apenas"` com o id da evidência, ou `"todas"`. --%>
+        <form phx-submit="promover" id="promover" class="space-y-2">
+          <ul class="space-y-2">
+            <li :for={p <- @pendentes} class="card bg-base-200 p-3">
+              <div class="flex flex-wrap items-end gap-2">
+                <div class="min-w-40 flex-1">
+                  <div class="font-medium">{p.person_name}</div>
+                  <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
+                </div>
+
+                <label class="fieldset">
+                  <span class="label-text text-xs">role</span>
+                  <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum
+                        — e menos ainda pelo nível de acesso, que nem chega aqui.
+
+                        Sem `required`: com o botão de confirmar todas, linha sem papel é
+                        PULADA, e não impedimento. `required` bloquearia o envio inteiro por
+                        causa de uma linha que ninguém quis preencher. --%>
+                  <select name={"papel[#{p.id}]"} class="select select-sm select-bordered">
+                    <option value="">choose…</option>
+                    <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
+                      {papel.name}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="fieldset">
+                  <span class="label-text text-xs">assumed the role on</span>
+                  <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
+                        não sabe desde quando a pessoa está na equipe — carimbar hoje sem
+                        permitir correção afirmaria algo falso para quem entrou há um ano.
+                        Esvaziar é permitido, e significa DESCONHECIDO. --%>
+                  <input
+                    type="date"
+                    name={"started_at[#{p.id}]"}
+                    value={Date.to_iso8601(Date.utc_today())}
+                    class="input input-sm input-bordered"
+                  />
+                </label>
+
+                <button type="submit" name="apenas" value={p.id} class="btn btn-primary btn-sm">
+                  Confirm
+                </button>
               </div>
+            </li>
+          </ul>
 
-              <label class="fieldset">
-                <span class="label-text text-xs">role</span>
-                <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum —
-                      e menos ainda pelo nível de acesso, que nem chega aqui. --%>
-                <select name="papel" class="select select-sm select-bordered" required>
-                  <option value="">choose…</option>
-                  <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
-                    {papel.name}
-                  </option>
-                </select>
-              </label>
-
-              <label class="fieldset">
-                <span class="label-text text-xs">assumed the role on</span>
-                <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
-                      não sabe desde quando a pessoa está na equipe — carimbar hoje sem
-                      permitir correção afirmaria algo falso para quem entrou há um ano.
-                      Esvaziar é permitido, e significa DESCONHECIDO. --%>
-                <input
-                  type="date"
-                  name="started_at"
-                  value={Date.to_iso8601(Date.utc_today())}
-                  class="input input-sm input-bordered"
-                />
-              </label>
-
-              <.button type="submit" variant="primary">Confirm</.button>
-            </form>
-          </li>
-        </ul>
+          <%!-- Confirmar todas: só as linhas COM papel escolhido. As demais são puladas, e a
+                mensagem diz quantas — pular em silêncio faria quem clicou achar que confirmou
+                tudo. --%>
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <button type="submit" name="apenas" value="todas" class="btn btn-primary btn-sm">
+              Confirm all
+            </button>
+            <span class="text-xs opacity-70">
+              Confirms only the rows where a role was chosen. The others are left as they are,
+              and the result says how many.
+            </span>
+          </div>
+        </form>
 
         <p class="text-xs opacity-60">
           Leaving the date empty is allowed, and means <strong>unknown</strong>

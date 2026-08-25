@@ -79,6 +79,11 @@ defmodule TheBandWeb.Layouts do
                 porque respondem "a plataforma está funcionando" e não "o que ela sabe". --%>
           <li><.link navigate={~p"/people"} class="btn btn-ghost btn-sm">People</.link></li>
           <li><.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">Teams</.link></li>
+          <%!-- `Roles` fica ao lado de `Teams` porque continua a mesma frase: quem, com quem,
+                **em que papel**. E porque é onde se confirma quem é quem — sem ela, 100
+                participações observadas ficam esperando numa tela que só se alcança pela URL,
+                que foi exatamente o que aconteceu com Changes, Files e Checks. --%>
+          <li><.link navigate={~p"/roles"} class="btn btn-ghost btn-sm">Roles</.link></li>
           <li><.link navigate={~p"/work"} class="btn btn-ghost btn-sm">Work</.link></li>
           <%!-- Os três continuam a frase que a ordem já contava: o que foi pedido (Work), o
                 que respondeu (Changes), o que a resposta tocou (Files), e o que a máquina
