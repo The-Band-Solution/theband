@@ -223,6 +223,31 @@ que revisa. É candidato a eixo, e **não** era o que eu tinha proposto.
   Product Owner. Depende de `item_field_values`, que já é coletado;
 - **quem cria iteração** — hipótese para Scrum Master.
 
+### Antes de medir: uma análise semântica do que É um Tech Lead
+
+Pedido em 2026-08-24. **Vem antes de escolher eixo**, e não depois — procurar sinal para um
+conceito que ninguém definiu produz a medida do sinal, não do papel.
+
+O que a análise precisa responder, e onde procurar:
+
+- **A literatura o define?** SEON, SWEBOK, a tese que originou a rede. Se nenhuma ontologia de
+  referência o nomeia, isso é resposta — e explica por que ele não está na SRO ao lado dos
+  quatro do Scrum;
+- **Ele é papel, ou é uma composição?** Hipótese a testar: *Tech Lead* pode não ser um papel
+  próprio, e sim `developer_role` acumulado com autoridade técnica sobre decisões de desenho.
+  Se for composição, o modelo certo não é um papel novo — é a pessoa com dois vínculos, que a
+  `FR-006a` da 043 já permite;
+- **O que ele decide que um Developer não decide?** É a pergunta que separa. E ela tem
+  contraparte observável: decisão de desenho aparece em revisão de PR e em comentário, não em
+  commit;
+- **A distinção é organizacional ou é de senioridade?** Se for senioridade, **não é papel** —
+  e a necessidade `people.demonstrated_domains` já declara que inferir nível a partir do
+  escopo das tarefas é circular.
+
+**A ordem importa.** Se a análise concluir que Tech Lead é composição ou senioridade, a
+feature de sugerir papel muda de forma — ou deixa de fazer sentido para ele, ficando só PO e
+Scrum Master, que a SRO define.
+
 ### As duas recusas que valem para qualquer eixo
 
 **Tech Lead não está na SRO.** Product Owner, Scrum Master, Developer e Client estão;
