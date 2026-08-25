@@ -90,6 +90,9 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate start_criterion_for(tenant, alvo), to: StartCriterion, as: :current
   defdelegate boards_overriding(tenant, project_id), to: StartCriterion
   defdelegate collected_event_types(tenant), to: StartCriterion
+
+  # Em LOTE: recebe lista, devolve mapa. A versão unitária seria N+1 com 19.200 atividades.
+  defdelegate resolve_start(tenant, issue_ids), to: StartCriterion
   defdelegate list_project_issues(tenant, project_id, opts \\ []), to: Projects
   defdelegate count_project_issues(tenant, project_id), to: Projects
 end

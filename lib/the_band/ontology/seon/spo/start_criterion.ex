@@ -160,6 +160,167 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
     )
   end
 
+  @typedoc """
+  O que a resolução devolve por issue.
+
+  As três ausências são **valores distintos, nunca `nil`** — `nil` colapsaria as três, e a
+  `FR-009` proíbe agregá-las. Cada uma vira uma frase diferente na tela, e cada frase diz o
+  que fazer.
+  """
+  @type resolucao ::
+          {:ok, DateTime.t(), origem()}
+          | {:missing, :sem_criterio}
+          | {:missing, {:criterio_ambiguo, [map()]}}
+          | {:missing, {:evento_nao_coletado, String.t()}}
+
+  @doc """
+  O instante de início de cada issue, resolvido pela escala — **em lote**.
+
+  Recebe lista e devolve mapa. Nunca uma issue por chamada: com 19.200 atividades a versão
+  unitária é N+1, e a decisão de resolver na leitura só se sustenta em lote.
+
+  ## A origem acompanha o instante
+
+  `{:ok, quando, origem}` — e a origem diz de qual quadro ou projeto o critério veio. A
+  `FR-013` exige que a tela mostre isso junto do número, e devolver só o `DateTime` tornaria
+  a proveniência impossível sem segunda consulta.
+
+  ## Vale a PRIMEIRA ocorrência
+
+  Uma tarefa que voltou ao Backlog e saiu de novo começou quando começou — `FR-011`.
+  Recomeçar não apaga o começo.
+  """
+  @spec resolve_start(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => resolucao()}
+  def resolve_start(_tenant, []), do: %{}
+
+  def resolve_start(%Tenant{} = tenant, issue_ids) do
+    criterios = criterio_por_issue(tenant, issue_ids)
+    tipos = criterios |> Map.values() |> Enum.flat_map(&tipos_de/1) |> Enum.uniq()
+    primeiros = primeira_ocorrencia(tenant, issue_ids, tipos)
+
+    Map.new(issue_ids, fn issue_id ->
+      {issue_id, resolver_uma(Map.get(criterios, issue_id), issue_id, primeiros)}
+    end)
+  end
+
+  defp tipos_de({:ok, _origem, event_type}), do: [event_type]
+  defp tipos_de(_), do: []
+
+  defp resolver_uma(nil, _issue_id, _primeiros), do: {:missing, :sem_criterio}
+
+  defp resolver_uma({:ambiguo, quadros}, _issue_id, _primeiros),
+    do: {:missing, {:criterio_ambiguo, quadros}}
+
+  defp resolver_uma({:ok, origem, event_type}, issue_id, primeiros) do
+    case Map.get(primeiros, {issue_id, event_type}) do
+      nil -> {:missing, {:evento_nao_coletado, event_type}}
+      quando -> {:ok, quando, origem}
+    end
+  end
+
+  # A escala, aplicada em UMA consulta para todas as issues.
+  #
+  #   1. quadro que declarou — desempate por `linked_at` mais recente
+  #   2. projeto que declarou
+  #   3. nada
+  #
+  # Empate real de `linked_at` não é desempatado: devolve `:ambiguo`, e a plataforma NÃO
+  # escolhe. Escolher o primeiro faria o que a FR-007 da feature 022 proíbe, num lugar onde
+  # ninguém procuraria.
+  defp criterio_por_issue(%Tenant{id: tenant_id}, issue_ids) do
+    pelo_quadro =
+      Repo.all(
+        from i in "project_items",
+          join: v in "spo_project_boards",
+          on: v.observed_project_id == i.observed_project_id and is_nil(v.unlinked_at),
+          join: c in ActivityStartCriterion,
+          on: c.observed_project_id == i.observed_project_id and is_nil(c.revoked_at),
+          join: q in "observed_projects",
+          on: q.id == i.observed_project_id,
+          where:
+            i.tenant_id == type(^tenant_id, :binary_id) and
+              i.collected_issue_id in type(^issue_ids, {:array, :binary_id}) and
+              is_nil(i.no_longer_observed_at),
+          select: %{
+            issue_id: type(i.collected_issue_id, :binary_id),
+            board_id: type(i.observed_project_id, :binary_id),
+            title: q.title,
+            event_type: c.event_type,
+            linked_at: v.linked_at
+          }
+      )
+
+    pelo_projeto =
+      Repo.all(
+        from i in "project_items",
+          join: v in "spo_project_boards",
+          on: v.observed_project_id == i.observed_project_id and is_nil(v.unlinked_at),
+          join: c in ActivityStartCriterion,
+          on: c.project_id == v.project_id and is_nil(c.revoked_at),
+          join: p in "spo_projects",
+          on: p.id == v.project_id,
+          where:
+            i.tenant_id == type(^tenant_id, :binary_id) and
+              i.collected_issue_id in type(^issue_ids, {:array, :binary_id}) and
+              is_nil(i.no_longer_observed_at),
+          select: %{
+            issue_id: type(i.collected_issue_id, :binary_id),
+            project_id: type(v.project_id, :binary_id),
+            name: p.name,
+            event_type: c.event_type
+          }
+      )
+
+    por_projeto = Map.new(pelo_projeto, &{&1.issue_id, &1})
+
+    pelo_quadro
+    |> Enum.group_by(& &1.issue_id)
+    |> Map.new(fn {issue_id, candidatos} -> {issue_id, decidir(candidatos)} end)
+    |> entao_o_projeto(por_projeto)
+  end
+
+  # O quadro vence o projeto — mas só quando declarou. Por isso o projeto entra depois, e só
+  # para as issues que o quadro não resolveu.
+  defp entao_o_projeto(pelo_quadro, por_projeto) do
+    Enum.reduce(por_projeto, pelo_quadro, fn {issue_id, p}, acc ->
+      Map.put_new(acc, issue_id, {:ok, {:project, p.project_id, p.name}, p.event_type})
+    end)
+  end
+
+  defp decidir([um]), do: {:ok, {:board, um.board_id, um.title}, um.event_type}
+
+  defp decidir(candidatos) do
+    mais_recente =
+      candidatos |> Enum.map(& &1.linked_at) |> Enum.max(NaiveDateTime, fn -> nil end)
+
+    case Enum.filter(candidatos, &(&1.linked_at == mais_recente)) do
+      [um] ->
+        {:ok, {:board, um.board_id, um.title}, um.event_type}
+
+      empatados ->
+        # Associação em lote produz `linked_at` iguais, e é o jeito natural de povoar um
+        # projeto. A plataforma NÃO desempata: nomeia o empate e devolve a decisão.
+        {:ambiguo, Enum.map(empatados, &Map.take(&1, [:board_id, :title, :linked_at]))}
+    end
+  end
+
+  # A PRIMEIRA ocorrência de cada tipo, por issue. Uma consulta para todas — sem isto a
+  # resolução seria N+1, e a decisão de resolver na leitura se inverteria.
+  defp primeira_ocorrencia(_tenant, _issue_ids, []), do: %{}
+
+  defp primeira_ocorrencia(%Tenant{id: tenant_id}, issue_ids, tipos) do
+    Repo.all(
+      from a in "spo_performed_project_activities",
+        where:
+          a.tenant_id == type(^tenant_id, :binary_id) and
+            a.subject_id in type(^issue_ids, {:array, :binary_id}) and
+            a.activity_type in ^tipos,
+        group_by: [a.subject_id, a.activity_type],
+        select: {type(a.subject_id, :binary_id), a.activity_type, min(a.occurred_at)}
+    )
+    |> Map.new(fn {issue_id, tipo, quando} -> {{issue_id, tipo}, quando} end)
+  end
+
   # ------------------------------------------------------------------ privados
 
   defp campo_do_alvo({:project, id}), do: %{project_id: id}

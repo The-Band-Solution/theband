@@ -13,6 +13,8 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
 
   import TheBand.WorkItemsFixtures
 
+  import Ecto.Query
+
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Ontology.SEON.SPO.Schemas.ActivityStartCriterion
 
@@ -29,7 +31,7 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
     atividade(tenant, @evento, 5)
     atividade(tenant, "AssignedEvent", 2)
 
-    %{tenant: tenant, user: user, projeto: projeto, tool: cenario.tool}
+    %{tenant: tenant, user: user, projeto: projeto, tool: cenario.tool, cenario: cenario}
   end
 
   describe "declarar" do
@@ -192,6 +194,168 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
     end
   end
 
+  describe "a escala" do
+    test "o quadro vence o projeto", ctx do
+      {:ok, q} = quadro(ctx, "Delivery", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+
+      issue = issue_no_quadro(ctx, q, "AssignedEvent")
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:project, ctx.projeto.id}, @evento, ctx.user.id)
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, q.id}, "AssignedEvent", ctx.user.id)
+
+      assert %{^issue => {:ok, _quando, origem}} = SPO.resolve_start(ctx.tenant, [issue])
+      assert {:board, _, "Delivery"} = origem
+    end
+
+    test "quadro SEM critério não vence — vale o do projeto", ctx do
+      {:ok, q} = quadro(ctx, "Sem critério", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+
+      issue = issue_no_quadro(ctx, q, @evento)
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:project, ctx.projeto.id}, @evento, ctx.user.id)
+
+      assert %{^issue => {:ok, _quando, {:project, _, "Conecta Fapes"}}} =
+               SPO.resolve_start(ctx.tenant, [issue])
+    end
+
+    test "sem critério algum, a ausência tem nome", ctx do
+      {:ok, q} = quadro(ctx, "Delivery", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+      issue = issue_no_quadro(ctx, q, @evento)
+
+      assert %{^issue => {:missing, :sem_criterio}} = SPO.resolve_start(ctx.tenant, [issue])
+    end
+
+    test "critério declarado, evento não coletado para AQUELA issue", ctx do
+      {:ok, q} = quadro(ctx, "Delivery", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+
+      # A issue existe no quadro, mas sem o evento que o critério pede.
+      issue = issue_no_quadro(ctx, q, "AssignedEvent")
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, q.id}, @evento, ctx.user.id)
+
+      assert %{^issue => {:missing, {:evento_nao_coletado, @evento}}} =
+               SPO.resolve_start(ctx.tenant, [issue])
+    end
+  end
+
+  describe "o desempate" do
+    test "vence o quadro de vínculo mais recente", ctx do
+      {:ok, antigo} = quadro(ctx, "Antigo", 1)
+      {:ok, novo} = quadro(ctx, "Novo", 2)
+
+      {:ok, v1} = SPO.link_board(ctx.tenant, ctx.projeto.id, antigo.id, ctx.user.id)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, novo.id, ctx.user.id)
+
+      # Recua o vínculo do antigo, para as datas diferirem de verdade.
+      recuar(v1.id, -3600)
+
+      issue = issue_no_quadro(ctx, antigo, @evento)
+      item_no_quadro(ctx, issue, novo)
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, antigo.id}, @evento, ctx.user.id)
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, novo.id}, "AssignedEvent", ctx.user.id)
+
+      assert %{^issue => {:missing, {:evento_nao_coletado, "AssignedEvent"}}} =
+               SPO.resolve_start(ctx.tenant, [issue]),
+             """
+             **Venceu o quadro mais recente.** Ele pede `AssignedEvent`, que esta issue não
+             tem — e o resultado é a ausência daquele evento, não o critério do quadro antigo.
+
+             Se o desempate tivesse escolhido o antigo, viria `{:ok, ...}`.
+             """
+    end
+
+    test "empate real NÃO é desempatado — vira ambíguo", ctx do
+      {:ok, um} = quadro(ctx, "Um", 1)
+      {:ok, outro} = quadro(ctx, "Outro", 2)
+
+      {:ok, v1} = SPO.link_board(ctx.tenant, ctx.projeto.id, um.id, ctx.user.id)
+      {:ok, v2} = SPO.link_board(ctx.tenant, ctx.projeto.id, outro.id, ctx.user.id)
+
+      # Associação em lote: os dois no mesmo instante. É o jeito natural de povoar um projeto.
+      igualar(v1.id, v2.id)
+
+      issue = issue_no_quadro(ctx, um, @evento)
+      item_no_quadro(ctx, issue, outro)
+
+      {:ok, _} = SPO.declare_start_criterion(ctx.tenant, {:board, um.id}, @evento, ctx.user.id)
+
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, outro.id}, "AssignedEvent", ctx.user.id)
+
+      assert %{^issue => {:missing, {:criterio_ambiguo, quadros}}} =
+               SPO.resolve_start(ctx.tenant, [issue])
+
+      assert length(quadros) == 2, """
+      **A plataforma não desempata.** Escolher o primeiro faria o que a FR-007 da feature 022
+      proíbe, num lugar onde ninguém procuraria.
+
+      E o retorno nomeia OS DOIS quadros: sem isso, quem administra sabe que há problema e não
+      sabe onde.
+      """
+
+      assert Enum.all?(quadros, &Map.has_key?(&1, :title))
+    end
+  end
+
+  describe "vale a primeira ocorrência" do
+    test "tarefa que voltou ao Backlog e saiu de novo começou quando começou", ctx do
+      {:ok, q} = quadro(ctx, "Delivery", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+      {:ok, _} = SPO.declare_start_criterion(ctx.tenant, {:board, q.id}, @evento, ctx.user.id)
+
+      issue = issue_no_quadro(ctx, q, @evento)
+
+      # A primeira ocorrência recua uma hora; a que já existe fica sendo a segunda.
+      primeira = DateTime.add(DateTime.utc_now(:second), -3600, :second)
+      atividade_da_issue(ctx.tenant, issue, @evento, primeira)
+
+      assert %{^issue => {:ok, quando, _}} = SPO.resolve_start(ctx.tenant, [issue])
+
+      # `occurred_at` é `NaiveDateTime` na coluna, e a comparação tem de ser na mesma moeda.
+      esperado = DateTime.to_naive(primeira)
+
+      assert NaiveDateTime.compare(NaiveDateTime.truncate(quando, :second), esperado) == :eq, """
+      **A FR-011.** Recomeçar não apaga o começo: uma tarefa que voltou ao Backlog e saiu de
+      novo começou na PRIMEIRA vez.
+
+      Com `max` em vez de `min`, o início viraria a última movimentação — e o cycle time de
+      quem retrabalha apareceria menor do que foi.
+      """
+    end
+  end
+
+  describe "o custo da leitura" do
+    test "não cresce com o número de issues", ctx do
+      {:ok, q} = quadro(ctx, "Delivery", 1)
+      {:ok, _} = SPO.link_board(ctx.tenant, ctx.projeto.id, q.id, ctx.user.id)
+      {:ok, _} = SPO.declare_start_criterion(ctx.tenant, {:board, q.id}, @evento, ctx.user.id)
+
+      uma = for _ <- 1..1, do: issue_no_quadro(ctx, q, @evento)
+      cinquenta = for _ <- 1..50, do: issue_no_quadro(ctx, q, @evento)
+
+      assert consultas(fn -> SPO.resolve_start(ctx.tenant, uma) end) ==
+               consultas(fn -> SPO.resolve_start(ctx.tenant, cinquenta) end),
+             """
+             **Sem isto a decisão do plano se inverte.** Resolver na leitura só se sustenta em
+             lote: com 19.200 atividades, uma consulta por issue seria N+1, e `start_date`
+             teria de ser gravado.
+             """
+    end
+  end
+
   # ---------------------------------------------------------------- auxiliares
 
   defp atividade(tenant, tipo, quantas) do
@@ -230,5 +394,115 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
       collected_at: DateTime.utc_now(:second),
       last_observed_at: DateTime.utc_now(:second)
     })
+  end
+
+  # Usa uma issue que o `cenario_real` já criou, e a põe no quadro. Criar issue nova exigiria
+  # replicar a gravação inteira da coleta, e o teste não é sobre isso.
+  defp issue_no_quadro(ctx, quadro, tipo_de_evento) do
+    issue_id = proxima_issue(ctx)
+    item_no_quadro(ctx, issue_id, quadro)
+    atividade_da_issue(ctx.tenant, issue_id, tipo_de_evento)
+    issue_id
+  end
+
+  defp proxima_issue(ctx) do
+    usadas = Process.get(:issues_usadas, MapSet.new())
+
+    id =
+      Repo.one!(
+        from i in "collected_issues",
+          where: i.tenant_id == type(^ctx.tenant.id, :binary_id),
+          where: i.id not in type(^MapSet.to_list(usadas), {:array, :binary_id}),
+          limit: 1,
+          select: type(i.id, :binary_id)
+      )
+
+    Process.put(:issues_usadas, MapSet.put(usadas, id))
+    id
+  end
+
+  defp item_no_quadro(ctx, issue_id, quadro) do
+    agora = DateTime.utc_now(:second)
+
+    Repo.insert_all("project_items", [
+      %{
+        id: Ecto.UUID.bingenerate(),
+        tenant_id: Ecto.UUID.dump!(ctx.tenant.id),
+        observed_project_id: Ecto.UUID.dump!(quadro.id),
+        collected_issue_id: Ecto.UUID.dump!(issue_id),
+        is_draft: false,
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "PVTI_#{System.unique_integer([:positive])}",
+        collected_at: agora,
+        last_observed_at: agora,
+        inserted_at: agora,
+        updated_at: agora
+      }
+    ])
+  end
+
+  defp atividade_da_issue(tenant, issue_id, tipo, quando \\ nil) do
+    agora = quando || DateTime.utc_now(:second)
+
+    Repo.insert_all("spo_performed_project_activities", [
+      %{
+        id: Ecto.UUID.bingenerate(),
+        tenant_id: Ecto.UUID.dump!(tenant.id),
+        internal_id: "a-#{System.unique_integer([:positive])}",
+        activity_type: tipo,
+        occurred_at: agora,
+        subject_type: "issue",
+        subject_id: Ecto.UUID.dump!(issue_id),
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "E_#{System.unique_integer([:positive])}",
+        inserted_at: agora,
+        updated_at: agora
+      }
+    ])
+  end
+
+  defp recuar(vinculo_id, segundos) do
+    Repo.update_all(
+      from(v in "spo_project_boards", where: v.id == type(^vinculo_id, :binary_id)),
+      set: [linked_at: DateTime.add(DateTime.utc_now(:second), segundos, :second)]
+    )
+  end
+
+  defp igualar(a, b) do
+    quando = DateTime.utc_now(:second)
+
+    for id <- [a, b] do
+      Repo.update_all(
+        from(v in "spo_project_boards", where: v.id == type(^id, :binary_id)),
+        set: [linked_at: quando]
+      )
+    end
+  end
+
+  # Conta as consultas de uma função — o mesmo padrão que `verification` usa.
+  defp consultas(fun) do
+    ref = make_ref()
+    pai = self()
+
+    :telemetry.attach(
+      "conta-#{inspect(ref)}",
+      [:the_band, :repo, :query],
+      fn _e, _m, _md, _c -> send(pai, {ref, :query}) end,
+      nil
+    )
+
+    fun.()
+    :telemetry.detach("conta-#{inspect(ref)}")
+    contar(ref, 0)
+  end
+
+  defp contar(ref, n) do
+    receive do
+      {^ref, :query} -> contar(ref, n + 1)
+    after
+      0 -> n
+    end
   end
 end
