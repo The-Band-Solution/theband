@@ -301,6 +301,62 @@ sendo ato humano — e a `FR-007` da feature 021 é a razão.
 
 ---
 
+## Pedido em 2026-08-25 — dashboards na tela da equipe, e o período de participação
+
+> *"Coloque na tela de team dashboards — depois eu passo as perguntas. Throughput da equipe,
+> throughput individual. Uma pessoa fica na equipe e no projeto por um período de tempo,
+> precisamos colocar isso."*
+
+### O período: metade já existe, e a outra metade não
+
+Medido em 2026-08-25:
+
+| vínculo | tem período? |
+|---|---|
+| pessoa ↔ **equipe** — `eo_team_memberships` | **sim**: `started_at` e `ended_at` |
+| equipe ↔ **projeto** — `spo_project_teams` | **sim**, com outro nome: `linked_at` e `unlinked_at` |
+| pessoa ↔ **projeto** | **não existe tabela** |
+
+Duas perguntas de desenho antes de qualquer código:
+
+**Pessoa fica no projeto pela equipe, ou direto?** Hoje só há o caminho pessoa → equipe →
+projeto, e ele já tem período dos dois lados. Se a resposta for "pela equipe", **não falta
+nada** — falta a leitura que interseca os dois períodos. Se for "também direto", é tabela
+nova.
+
+**A interseção é o ponto delicado.** Alguém na equipe de janeiro a junho, e a equipe no
+projeto de março a dezembro, esteve no projeto de **março a junho** — e nenhuma das duas
+colunas diz isso sozinha. É derivação, e ela precisa de nome.
+
+### Os dashboards dependem da decisão #370, que virou a feature 042
+
+`flow.throughput` conta tarefa concluída num intervalo. Throughput **individual** precisa da
+mesma coisa por pessoa — e a `flow.throughput.rate` já declara o nível `person`, com a
+limitação escrita: *"no nível person, a mesma tarefa aparece uma vez por participante quando
+há mais de um responsável, e a soma dos níveis person não é igual ao nível sprint"*.
+
+**Throughput de equipe agora é possível** — a 043 destravou o vínculo pessoa↔equipe. Antes
+não era: 12 equipes, zero membros.
+
+O que continua faltando é o **instante de início**, que é a feature 042 — especificada, 24
+issues, sem código.
+
+### A ordem que eu proporia
+
+1. **042** — o critério de início, sem o qual throughput não existe
+2. a leitura da **interseção de períodos**, que responde "quem estava neste projeto quando"
+3. os dashboards da tela de equipe, com as perguntas que você vai passar
+
+Fazer 3 antes de 1 produziria painel bonito medindo o que não existe.
+
+### O que já dá para medir hoje, sem nada disso
+
+`spo_performed_project_activities` tem 19.200 atividades com autor e `occurred_at`. Dá para
+contar **atividade por pessoa por mês** — não é `flow.throughput` (que exige tarefa concluída
+com início e fim), e vale dizer isso na tela em vez de chamar de throughput.
+
+---
+
 ## Lembretes que custaram caro
 
 - **`mix gates` — o veredito é o código de saída**, nunca a última linha:

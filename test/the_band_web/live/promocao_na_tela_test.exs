@@ -43,9 +43,29 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
         observed_at: DateTime.utc_now(:second)
       })
 
+    {:ok, outra_pessoa} =
+      EO.upsert_person_from_source(
+        tenant,
+        source_attrs("U_2", %{name: "Outra", login: "outra"})
+      )
+
+    {:ok, outra_evidencia} =
+      EO.record_team_membership_evidence(tenant, %{
+        person_id: outra_pessoa.id,
+        team_id: equipe.id,
+        person_external_id: "U_2",
+        team_external_id: "T_a",
+        platform_access_level: "MEMBER",
+        source_system: "github",
+        source_instance: "https://github.com",
+        observed_at: DateTime.utc_now(:second)
+      })
+
     %{
       conn: log_in(conn, user),
       tenant: tenant,
+      outra_pessoa: outra_pessoa,
+      outra_evidencia: outra_evidencia,
       user: user,
       organizacao: organizacao,
       equipe: equipe,
@@ -58,7 +78,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     test "diz quantas participações esperam confirmação", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      assert html =~ "waiting for confirmation", """
+      assert html =~ "2 participation(s) waiting for confirmation", """
       **A FR-014.** A equipe sem vínculo não é a mesma coisa que equipe sem ninguém — e
       mostrar "0 membros" seco esconderia trabalho que existe.
       """
@@ -84,15 +104,17 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
 
       html =
         live
-        |> form("#promover-#{ctx.evidencia.id}", %{
-          "evidence_id" => ctx.evidencia.id,
-          "papel" => "catalogo:sro.scrum_master_role",
-          "started_at" => "2026-03-01"
+        |> form("#promover", %{
+          "papel" => %{ctx.evidencia.id => "catalogo:sro.scrum_master_role"},
+          "started_at" => %{ctx.evidencia.id => "2026-03-01"}
         })
-        |> render_submit()
+        |> render_submit(%{"apenas" => ctx.evidencia.id})
 
-      assert html =~ "Membership recorded"
-      refute html =~ "waiting for confirmation"
+      assert html =~ "1 membership(s) recorded"
+
+      # A outra evidência continua esperando — confirmar uma não confirma as demais, e a
+      # contagem no título acompanha.
+      assert html =~ "1 participation(s) waiting for confirmation"
 
       assert EO.team_size(ctx.tenant, ctx.equipe.id) == 1
     end
@@ -144,12 +166,11 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
       {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
       live
-      |> form("#promover-#{ctx.evidencia.id}", %{
-        "evidence_id" => ctx.evidencia.id,
-        "papel" => "catalogo:sro.developer_role",
-        "started_at" => ""
+      |> form("#promover", %{
+        "papel" => %{ctx.evidencia.id => "catalogo:sro.developer_role"},
+        "started_at" => %{ctx.evidencia.id => ""}
       })
-      |> render_submit()
+      |> render_submit(%{"apenas" => ctx.evidencia.id})
 
       {:ok, evidencia} = EO.fetch_evidence(ctx.tenant, ctx.evidencia.id)
       {:ok, vinculo} = EO.fetch_membership(ctx.tenant, evidencia.promoted_membership_id)
@@ -158,6 +179,84 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
       **Branco é desconhecido.** A tela permite esvaziar, e esvaziar não vira hoje — quem
       promove pode não saber desde quando a pessoa está no papel, e inventar a data afirmaria
       que ela assumiu agora.
+      """
+    end
+  end
+
+  describe "confirmar todas" do
+    test "confirma as linhas com papel, e PULA as sem — dizendo quantas", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      html =
+        live
+        |> form("#promover", %{
+          "papel" => %{
+            ctx.evidencia.id => "catalogo:sro.developer_role",
+            # A segunda fica sem escolher: é o caso que o botão precisa tratar.
+            ctx.outra_evidencia.id => ""
+          },
+          "started_at" => %{ctx.evidencia.id => "", ctx.outra_evidencia.id => ""}
+        })
+        |> render_submit(%{"apenas" => "todas"})
+
+      assert html =~ "1 membership(s) recorded"
+
+      assert html =~ "1 skipped", """
+      **O pulo não pode ser silencioso.** Quem clicou em "confirmar todas" e viu só
+      "1 confirmada" concluiria que havia uma linha — e havia duas.
+
+      É o padrão que esta base mais paga: ausência de erro lida como resultado.
+      """
+
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 1
+      assert length(EO.pending_evidence(ctx.tenant, ctx.equipe.id)) == 1
+    end
+
+    test "confirma as duas quando as duas têm papel", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      html =
+        live
+        |> form("#promover", %{
+          "papel" => %{
+            ctx.evidencia.id => "catalogo:sro.developer_role",
+            ctx.outra_evidencia.id => "catalogo:sro.scrum_master_role"
+          },
+          "started_at" => %{ctx.evidencia.id => "", ctx.outra_evidencia.id => ""}
+        })
+        |> render_submit(%{"apenas" => "todas"})
+
+      assert html =~ "2 membership(s) recorded"
+      refute html =~ "skipped"
+
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 2
+      assert EO.pending_evidence(ctx.tenant, ctx.equipe.id) == []
+    end
+
+    test "nenhuma escolhida não confirma nada, e diz isso", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      html =
+        live
+        |> form("#promover", %{
+          "papel" => %{ctx.evidencia.id => "", ctx.outra_evidencia.id => ""},
+          "started_at" => %{ctx.evidencia.id => "", ctx.outra_evidencia.id => ""}
+        })
+        |> render_submit(%{"apenas" => "todas"})
+
+      assert html =~ "Nothing confirmed"
+      assert html =~ "2 rows"
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 0
+    end
+
+    test "o botão existe e diz o que faz", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      assert html =~ "Confirm all"
+
+      assert html =~ "only the rows where a role was chosen", """
+      O botão precisa dizer o que ele NÃO faz, antes de ser clicado. "Confirmar todas" lido
+      literalmente promete confirmar todas — inclusive as sem papel, que ele pula.
       """
     end
   end
