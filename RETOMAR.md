@@ -168,6 +168,73 @@ Sugestões concretas para a spec, quando ela for escrita:
 
 ---
 
+## E a pergunta que vem junto: distinguir PO de Scrum Master de Tech Lead
+
+Pedida em 2026-08-24. **Medi antes de guardar, e a minha primeira hipótese caiu.**
+
+### A hipótese que não funciona
+
+*"PO delega e não escreve código; Tech Lead delega e também commita e revisa."* O eixo seria
+`commits`.
+
+**Não separa nada.** Medido:
+
+```
+login              pessoas  p/outros  commits  reviews  moveu
+paulossjunior           28       384     1280       12    299
+fatasy                  23       171      196       21    289
+joaomrpimentel          17       137      307      299    271
+vinicius-je             15       355     2568      723    869
+marcelasfl              10       251     1138      439    530
+leticiacomerio           8        35        1        3     10
+sofiasilv4               8        23        0        0      3
+```
+
+`paulossjunior` delega para 28 pessoas **e** tem 1.280 commits. Quase todo mundo commita — o
+eixo só isola as duas últimas linhas, que não commitam nem revisam.
+
+### O que apareceu no lugar
+
+**A razão entre revisar e commitar discrimina, e o volume de commits não.**
+
+| | commits | reviews | razão |
+|---|---:|---:|---|
+| `paulossjunior` | 1.280 | 12 | **107:1** |
+| `fatasy` | 196 | 21 | 9:1 |
+| `joaomrpimentel` | 307 | 299 | **1:1** |
+| `luanotoni` | 101 | 246 | **1:2,4** |
+
+Quem revisa quase tanto quanto commita tem perfil diferente de quem commita cem vezes mais do
+que revisa. É candidato a eixo, e **não** era o que eu tinha proposto.
+
+### O que investigar amanhã, e o que já sei que não serve
+
+**Não serve**: volume de commits sozinho; nível de acesso do GitHub (já proibido nas specs
+041 e 043).
+
+**Investigar**:
+
+- **razão revisão/commit** — o achado acima, e o mais promissor;
+- **movimentação de item no quadro sem ser autor nem designado** — hipótese para Scrum Master,
+  que facilita fluxo sem executar. `ProjectV2ItemStatusChangedEvent` tem 5.965 ocorrências, e
+  `tadeuaugustovs` tem 84 delegações com **1** movimento, contra `vinicius-je` com 869. A
+  variação é enorme e ninguém olhou;
+- **quem preenche campo de prioridade** — hipótese para PO, e a `SRO` diz que *importance* é do
+  Product Owner. Depende de `item_field_values`, que já é coletado;
+- **quem cria iteração** — hipótese para Scrum Master.
+
+### As duas recusas que valem para qualquer eixo
+
+**Tech Lead não está na SRO.** Product Owner, Scrum Master, Developer e Client estão;
+Tech Lead é papel declarado pela organização. Então a sugestão dele só existe **depois** de
+alguém o declarar — e a 043 é o que torna isso possível.
+
+**Nenhum eixo separa por si.** O que a plataforma pode dizer é *"esta pessoa revisa tanto
+quanto commita e move 289 itens no quadro"*. Concluir qual dos três papéis isso é continua
+sendo ato humano — e a `FR-007` da feature 021 é a razão.
+
+---
+
 ## Lembretes que custaram caro
 
 - **`mix gates` — o veredito é o código de saída**, nunca a última linha:
