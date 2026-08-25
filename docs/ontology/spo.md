@@ -20,6 +20,8 @@
 - **[Projects and Stakeholders](#projects-and-stakeholders)** — conceitos e relações do módulo.
 - **[Processes and Activities](#processes-and-activities)** — A distinção central da SPO: processo pretendido (intended) é uma intenção de executar certos tipos de ação; processo executado (performed) é uma ocorrência que pode não corresponder à intenção original. Confundi-los inviabiliza qualquer análise de aderência entre plano e execução.
 - **[Artifacts and Resources](#artifacts-and-resources)** — conceitos e relações do módulo.
+- **[Activity Start Criterion](#activity-start-criterion)** — Qual evento observado marca o início de um trabalho é **convenção social**, e não fato que alguma origem forneça. Organizações diferentes reconhecem eventos diferentes como início, e nenhuma está errada.
+Este módulo dá nome à declaração. Sem ele, a plataforma teria de escolher — e a `FR-007` da feature 022 proíbe exatamente isso, deixando `flow.throughput`, `flow.wip.count` e o cycle time por pessoa sem um instante de início.
 
 ---
 
@@ -305,6 +307,41 @@ Papel assumido por um artefato — produto de software ou equipamento de hardwar
 | `changes` | `spo.performed_project_activity` | `spo.artifact` | many → many | association |
 | `describes` | `spo.document` | `spo.artifact` | many → many | association |
 | `uses resource` | `spo.performed_project_activity` | `spo.resource` | many → many | association |
+
+
+
+---
+
+## Activity Start Criterion
+
+<a id="activity-start-criterion"></a>
+
+Qual evento observado marca o início de um trabalho é **convenção social**, e não fato que alguma origem forneça. Organizações diferentes reconhecem eventos diferentes como início, e nenhuma está errada.
+Este módulo dá nome à declaração. Sem ele, a plataforma teria de escolher — e a `FR-007` da feature 022 proíbe exatamente isso, deixando `flow.throughput`, `flow.wip.count` e o cycle time por pessoa sem um instante de início.
+
+*Fonte: Issue #370; decisão da pessoa mantenedora em 2026-08-24*
+
+### Conceitos
+
+#### `spo.activity_start_criterion` — Activity Start Criterion
+
+*Critério de Início de Atividade*
+
+O tipo de evento que uma organização declara como aquele que traz à tona a situação de um trabalho ter começado.
+É objeto **social** porque a resposta não está no dado observado: o mesmo evento — mover um cartão, designar alguém, abrir a tarefa — significa "começou" numa organização e não significa noutra. A plataforma não escolhe; ela registra a escolha, com quem a fez e quando.
+Sem critério declarado, o instante de início fica **nulo** — ausência nomeada, e nunca a data corrente, que afirmaria que o trabalho começou agora.
+
+<sub>categoria UFO: `social_object`</sub>
+
+Exemplos: *a mudança de status no quadro conta como início, neste projeto*; *a designação conta como início, neste outro*
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `recognises` | `spo.activity_start_criterion` | `ufo.event` | many → one | association |
+| `declared for` | `spo.activity_start_criterion` | `spo.project` | one → one | association |
+| `determines the start of` | `spo.activity_start_criterion` | `spo.performed_project_activity` | one → many | association |
 
 
 
