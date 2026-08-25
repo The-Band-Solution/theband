@@ -61,7 +61,7 @@ A organização declara papéis que o Scrum não nomeia — *Tech Lead*, *Analis
 
 ### User Story 3 - Promover as evidências a vínculo (Priority: P1)
 
-Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que ela tem no GitHub — e **confirma** o vínculo escolhendo o papel.
+Quem administra vê as evidências coletadas — **pessoa e equipe** — e **confirma** o vínculo escolhendo o papel a partir do que sabe da organização.
 
 **Why this priority**: são as 101 que estão paradas, e é o que enche as 12 equipes.
 
@@ -121,11 +121,28 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 - **FR-009**: Uma evidência já promovida MUST NOT ser oferecida de novo, e MUST apontar para o vínculo que a promoveu.
 - **FR-010**: Evidência cuja observação terminou MUST NOT ser oferecida para promoção. Vínculo já promovido a partir dela MUST permanecer.
 
-### O que a sugestão pode e não pode dizer
+### O nível de acesso não entra nesta decisão
 
-- **FR-011**: A tela MAY mostrar o **acesso observado** da pessoa na plataforma de origem — `ADMIN`, `WRITE`, `READ` — como contexto para a decisão.
-- **FR-012**: A plataforma MUST NOT inferir papel organizacional a partir do nível de acesso. **`ADMIN` não é Scrum Master.** Nenhum papel MUST vir pré-selecionado a partir do acesso.
-- **FR-013**: O texto que acompanha a evidência MUST descrever o que foi **observado**, e MUST NOT sugerir o que a pessoa **é**. *"Esta pessoa administra a equipe no GitHub"* é o que se pode dizer; *"provavelmente é Scrum Master"* não.
+Decisão da pessoa mantenedora, 2026-08-24: *"não use os níveis de acesso do GitHub, isso não indica role dos projetos"*.
+
+- **FR-011**: A tela de promoção MUST NOT exibir o nível de acesso da plataforma de origem — `ADMIN`, `WRITE`, `READ`. Nem como sugestão, **nem como contexto**.
+- **FR-012**: A plataforma MUST NOT inferir, sugerir ou pré-selecionar papel organizacional a partir do nível de acesso. Nenhum papel MUST vir pré-selecionado, por qualquer critério.
+- **FR-013**: O que a evidência afirma é **que uma pessoa pertence a uma equipe** na origem. É só isso que a tela MUST mostrar. Quem decide o papel decide a partir do que sabe da organização, e não do que a ferramenta permite a quem.
+
+> **Por que a versão anterior desta seção estava errada.** Ela dizia que a tela *poderia*
+> mostrar o acesso "como contexto", e proibia só a inferência. Não se sustenta: exibir
+> `ADMIN` ao lado de um seletor de papel **faz dele uma dica**, por mais que o texto negue.
+> A proibição da inferência viraria letra morta, e o viés entraria sem nenhum código o
+> declarar.
+>
+> **`ADMIN` diz quem administra membros e permissões no GitHub.** É atributo da ferramenta,
+> não da organização — e não guarda relação com quem é Product Owner, Scrum Master,
+> Developer ou Client.
+
+**O que continua sendo coletado.** `platform_access_level` permanece em
+`eo_team_membership_evidence`: é fato observado sobre a plataforma, e apagá-lo seria perder
+dado verdadeiro. O que esta feature proíbe é **usá-lo para decidir papel** — inclusive
+mostrando-o onde a decisão acontece.
 
 ### A tela
 
@@ -149,7 +166,8 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 - **SC-002**: Promover uma evidência leva **menos de trinta segundos**, e o resultado aparece na tela da equipe na leitura seguinte.
 - **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel.
 - **SC-004**: Um papel declarado na organização A **não aparece** em nenhuma listagem da organização B — verificável abrindo as duas.
-- **SC-005**: Nenhum papel vem pré-selecionado a partir do nível de acesso. Verificável: em toda evidência, o campo de papel começa **vazio**.
+- **SC-005**: Nenhum papel vem pré-selecionado, por critério nenhum. Verificável: em toda evidência, o campo de papel começa **vazio**.
+- **SC-005a**: O nível de acesso da origem **não aparece** na tela de promoção. Verificável procurando `ADMIN`, `WRITE` e `READ` no que ela renderiza: deve ser **zero**.
 - **SC-006**: Depois de promovidas as evidências de uma equipe, as medidas de nível Equipe passam a calcular para ela — o que hoje **nenhuma** faz.
 - **SC-007**: A tela da equipe sem membros distingue *"nenhuma evidência"* de *"N evidências esperando confirmação"*. Nunca mostra as duas com a mesma frase.
 - **SC-008**: Uma pessoa com dois papéis numa equipe conta como **uma** pessoa em toda contagem de tamanho de equipe — verificável comparando a contagem com o número de vínculos, que serão diferentes.
@@ -166,6 +184,6 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 
 ## Fora do escopo
 
-- **Sugerir o papel a partir de evidência de trabalho** — quem revisa mais, quem fecha mais tarefa. É outra feature, e a `FR-012` desta declara que **acesso não é papel**; usar comportamento como pista tem os mesmos riscos e merece spec própria.
+- **Sugerir o papel a partir de qualquer coisa.** Nem de acesso — a `FR-011` proíbe —, nem de comportamento: quem revisa mais, quem fecha mais tarefa. O segundo tem os mesmos riscos do primeiro e merece spec própria, se algum dia for desejado.
 - **Hierarquia de equipes** — [#397](https://github.com/The-Band-Solution/theband/issues/397). Depende desta: hierarquia sem membro não soma nada.
 - **Alocar papel a pessoa fora de equipe.** O vínculo é pessoa-em-equipe; papel organizacional sem equipe é outro conceito.

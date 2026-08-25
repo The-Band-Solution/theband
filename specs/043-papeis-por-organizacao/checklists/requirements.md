@@ -41,19 +41,35 @@ tornaria o requisito não-verificável.
 | escopo do cadastro | **por organização** | *"o cadastro de papéis é por organização"* |
 | quem associa | **uma pessoa, via sistema** | *"quem associa os papéis é uma pessoa via sistema"* |
 | os quatro do Scrum | **pré-cadastrados, em todas** | *"esses papéis pré-cadastrados estão em todas as organizações"* |
+| papéis por pessoa | **mais de um na mesma equipe** | *"uma pessoa pode assumir mais de um papel na equipe do projeto"* |
+| nível de acesso | **não entra na decisão, nem como contexto** | *"não use os níveis de acesso do GitHub"* |
 
 Nenhuma virou `[NEEDS CLARIFICATION]` porque as três vieram ditas.
 
-## A recusa que a spec protege
+## A recusa que a spec protege, e a versão fraca que eu tinha escrito
 
-A `FR-012` e a `FR-013` existem para impedir o atalho óbvio: o GitHub entrega
-`platform_access_level`, e seria fácil pré-selecionar *Scrum Master* para quem é `ADMIN`.
+A primeira versão desta spec dizia que a tela **poderia** mostrar o nível de acesso "como
+contexto para a decisão", proibindo só a inferência.
 
-**`ADMIN` diz quem administra membros e permissões. Não diz quem facilita a cerimônia.**
-Inferir papel organizacional a partir de acesso é exatamente o que a `FR-007` da feature 021
-recusa observar — e o atalho seria invisível, porque produziria uma lista plausível.
+A pessoa mantenedora corrigiu: *"não use os níveis de acesso do GitHub, isso não indica role
+dos projetos"*. E a correção está certa por uma razão que a versão fraca não enxergava:
 
-A `SC-005` torna isso verificável: o campo de papel começa **vazio** em toda evidência.
+> **Exibir `ADMIN` ao lado de um seletor de papel faz dele uma dica**, por mais que o texto
+> negue. A proibição da inferência viraria letra morta, e o viés entraria sem nenhum código
+> o declarar — que é a pior forma, porque não há o que revisar.
+
+`ADMIN` é atributo da **ferramenta**: diz quem administra membros e permissões no GitHub. Não
+guarda relação com quem é Product Owner, Scrum Master, Developer ou Client.
+
+Duas verificações, e a segunda é a que a versão fraca não permitia:
+
+- **`SC-005`**: em toda evidência, o campo de papel começa **vazio**;
+- **`SC-005a`**: procurar `ADMIN`, `WRITE` e `READ` no que a tela de promoção renderiza deve
+  dar **zero**.
+
+`platform_access_level` **continua sendo coletado** — é fato observado, e apagá-lo seria
+perder dado verdadeiro. O que se proíbe é usá-lo para decidir papel, inclusive exibindo-o
+onde a decisão acontece.
 
 ## O que a spec deliberadamente NÃO resolve
 
