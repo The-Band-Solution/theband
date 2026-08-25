@@ -72,6 +72,8 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 1. **Dado** uma evidência não promovida, **quando** quem administra escolhe um papel e confirma, **então** o vínculo é criado com **quem confirmou e quando**, e a evidência passa a apontar para ele.
 2. **Dado** uma evidência já promovida, **quando** a lista é aberta, **então** ela aparece como resolvida, e não é oferecida de novo.
 3. **Dado** uma evidência da equipe da organização A, **quando** quem administra escolhe um papel da organização B, **então** a plataforma **recusa** — o papel do vínculo tem de ser da mesma organização da equipe.
+5. **Dado** uma pessoa já vinculada como Developer, **quando** quem administra a vincula também como Product Owner na mesma equipe, **então** os **dois** vínculos coexistem — e a contagem de pessoas da equipe **não** sobe.
+6. **Dado** a mesma pessoa e o mesmo papel, **quando** quem administra tenta vincular de novo, **então** a plataforma recusa e diz que o vínculo já existe.
 4. **Dado** que nenhuma evidência foi promovida, **quando** a tela da equipe é aberta, **então** ela diz **quantas** evidências estão esperando confirmação — e não mostra a equipe como se não tivesse ninguém.
 
 ---
@@ -95,7 +97,21 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 - **FR-003**: Cada papel MUST declarar sua **origem** — do catálogo da rede, ou declarado por uma pessoa. A origem MUST ser visível na tela, e não inferida do nome.
 - **FR-004**: Papel do catálogo MUST NOT ser apagável. Ele MAY ser **ocultado** de uma organização, e ocultar MUST NOT invalidar vínculos que já o usam.
 - **FR-005**: Papel declarado MUST gravar **quem** o declarou e **quando**.
-- **FR-006**: A unicidade do nome MUST ser por organização. Duas organizações MAY ter papéis de mesmo nome, e eles são papéis diferentes.
+- **FR-006**: A unicidade do código MUST ser por **organização**, e não por tenant. Duas organizações MAY ter papéis de mesmo código, e eles são papéis diferentes.
+
+  > **O índice de hoje impede isto.** `eo_organizational_roles_tenant_id_code_index` é `UNIQUE (tenant_id, code)`. Com o catálogo presente em todas as organizações, a segunda organização a receber `scrum_master` bateria na constraint. O índice MUST passar a incluir a organização.
+
+### Mais de um papel na mesma equipe
+
+- **FR-006a**: Uma pessoa MAY ocupar **mais de um papel** na mesma equipe. Product Owner e Developer simultâneos é situação real, e não erro a impedir.
+- **FR-006b**: O mesmo papel MUST NOT ser atribuído duas vezes à mesma pessoa na mesma equipe **enquanto vigente** — repetir não acrescenta informação, e a segunda linha tornaria a contagem de ocupantes errada.
+- **FR-006c**: Toda contagem de pessoas por equipe MUST contar **pessoas distintas**, e nunca vínculos. Uma pessoa com dois papéis é **uma** pessoa na equipe, e somar vínculos faria a equipe parecer maior do que é.
+
+> **O esquema já sustenta os dois primeiros.** `eo_team_memberships_vigente_index` é
+> `UNIQUE (tenant_id, person_id, team_id, organizational_role_id, …)` — o papel está na
+> chave, então papéis diferentes são linhas diferentes e o mesmo papel é recusado. O que
+> esta feature acrescenta é a `FR-006c`, que é de leitura, e a tela que permite atribuir o
+> segundo.
 
 ### A promoção
 
@@ -135,6 +151,7 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 - **SC-005**: Nenhum papel vem pré-selecionado a partir do nível de acesso. Verificável: em toda evidência, o campo de papel começa **vazio**.
 - **SC-006**: Depois de promovidas as evidências de uma equipe, as medidas de nível Equipe passam a calcular para ela — o que hoje **nenhuma** faz.
 - **SC-007**: A tela da equipe sem membros distingue *"nenhuma evidência"* de *"N evidências esperando confirmação"*. Nunca mostra as duas com a mesma frase.
+- **SC-008**: Uma pessoa com dois papéis numa equipe conta como **uma** pessoa em toda contagem de tamanho de equipe — verificável comparando a contagem com o número de vínculos, que serão diferentes.
 
 ---
 
