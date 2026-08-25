@@ -48,6 +48,15 @@ defmodule TheBand.Ontology.SEON.EO do
   # ------------------------------------------------------- papéis e alocação (feature 021)
 
   defdelegate list_roles(tenant, opts \\ []), to: Queries
+
+  # Issue #317 — os papéis DESTA organização, compostos com o catálogo da rede. Nome próprio
+  # porque `list_roles/2` é do tenant inteiro, e o escopo precisa estar no nome.
+  defdelegate list_organization_roles(tenant, organization_id), to: Queries
+  defdelegate role_by_concept(tenant, organization_id, concept_id), to: Queries
+  defdelegate team_size(tenant, team_id), to: Queries
+  defdelegate pending_evidence(tenant, team_id), to: Queries
+  defdelegate fetch_evidence(tenant, evidence_id), to: Queries
+  defdelegate fetch_team(tenant, team_id), to: Queries
   defdelegate fetch_role(tenant, role_id), to: Queries
   defdelegate suggested_roles(), to: Queries
   defdelegate count_memberships(tenant), to: Queries
@@ -55,9 +64,19 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_membership(tenant, membership_id), to: Queries
   defdelegate list_person_roles(tenant, person_id), to: Queries
 
-  defdelegate create_role(tenant, attrs), to: Commands
-  defdelegate rename_role(tenant, role_id, name), to: Commands
+  defdelegate create_role(tenant, organization_id, attrs, actor_id), to: Commands
+  defdelegate rename_role(tenant, role_id, name, actor_id \\ nil), to: Commands
   defdelegate delete_role(tenant, role_id), to: Commands
+
+  # Materializa um papel do catálogo nesta organização — a linha nasce no primeiro uso.
+  defdelegate materialize_catalog_role(tenant, organization_id, concept_id), to: Commands
+
+  # Ocultar MARCA, e nunca apaga. Papel do catálogo não é apagável: a rede continua nomeando-o.
+  defdelegate hide_role(tenant, role_id, actor_id), to: Commands
+  defdelegate unhide_role(tenant, role_id, actor_id), to: Commands
+
+  # Promover é ato de UMA PESSOA, com autor gravado. A plataforma não promove sozinha.
+  defdelegate promote_evidence(tenant, evidence_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate allocate(tenant, attrs), to: Commands
   defdelegate end_allocation(tenant, membership_id, quando), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries

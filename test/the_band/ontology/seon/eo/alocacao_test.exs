@@ -18,8 +18,15 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
 
   setup do
     tenant = tenant_fixture()
-    {:ok, papel} = EO.create_role(tenant, %{code: "developer", name: "Desenvolvedor"})
-    {:ok, outro_papel} = EO.create_role(tenant, %{code: "scrum_master", name: "Scrum Master"})
+    # Papel é DA ORGANIZAÇÃO desde a issue #317, e tem autor.
+    org = organization_fixture(tenant)
+    user = user_fixture(tenant)
+
+    {:ok, papel} =
+      EO.create_role(tenant, org.id, %{code: "developer", name: "Desenvolvedor"}, user.id)
+
+    {:ok, outro_papel} =
+      EO.create_role(tenant, org.id, %{code: "scrum_master", name: "Scrum Master"}, user.id)
 
     organizacao = organization_fixture(tenant, "acme")
     equipe = team_fixture(tenant, "T_a", %{organization: organizacao})

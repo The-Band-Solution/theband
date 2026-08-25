@@ -21,6 +21,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.EO.Queries
+  alias TheBand.Ontology.SEON.EO.RoleCatalog
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
@@ -536,26 +537,131 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   # ------------------------------------------------------- papéis e alocação (feature 021)
 
   @doc """
-  Cadastra um papel organizacional reconhecido pelo tenant (FR-001, FR-002).
+  Cadastra um papel **da organização** (FR-001, FR-005) — issue #317.
 
-  **O código é a identidade**, e o índice único por `(tenant_id, code)` já existia. O mesmo
-  código em outro tenant é aceito: papel é reconhecimento de uma organização, e duas
-  organizações reconhecerem "developer" não é conflito.
+  **O escopo é a organização, e não o tenant.** A equipe sempre teve `organization_id`; o papel
+  não tinha, e um papel cadastrado vazava para as três organizações do tenant, que não
+  compartilham vocabulário nenhum. É a mesma classe do defeito de escopo da issue #446.
+
+  **O código é a identidade**, e o índice único é por `(tenant_id, organization_id, code)`. O
+  mesmo código em outra organização é aceito: duas organizações reconhecerem "tech_lead" não é
+  conflito, são papéis diferentes.
+
+  `declared_by_user_id` é obrigatório aqui: papel sem catálogo tem autor, e a `CHECK` do banco
+  recusa a linha sem nenhuma das duas origens.
   """
-  @spec create_role(Tenant.t(), map()) ::
-          {:ok, OrganizationalRole.t()} | {:error, Ecto.Changeset.t()}
-  def create_role(%Tenant{id: tenant_id}, attrs) do
+  @spec create_role(Tenant.t(), Ecto.UUID.t(), map(), Ecto.UUID.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :code_taken | Ecto.Changeset.t()}
+  def create_role(%Tenant{id: tenant_id}, organization_id, attrs, actor_id) do
     attrs = normalize(attrs)
     codigo = attrs |> Map.get(:code) |> to_string() |> String.trim()
 
-    %OrganizationalRole{}
-    |> OrganizationalRole.changeset(%{
-      tenant_id: tenant_id,
-      code: codigo,
-      name: attrs[:name],
-      internal_id: papel_internal_id(tenant_id, codigo)
-    })
-    |> Repo.insert()
+    resultado =
+      %OrganizationalRole{}
+      |> OrganizationalRole.changeset(%{
+        tenant_id: tenant_id,
+        organization_id: organization_id,
+        code: codigo,
+        name: attrs[:name],
+        declared_by_user_id: actor_id,
+        internal_id: papel_internal_id(tenant_id, organization_id, codigo)
+      })
+      |> Repo.insert()
+
+    case resultado do
+      {:error, %Ecto.Changeset{errors: erros} = changeset} ->
+        # Erro previsto de negócio é RETORNO, e não exceção — princípio VIII. Quem chama
+        # precisa distinguir "código repetido" de "formulário inválido".
+        if Keyword.has_key?(erros, :code), do: {:error, :code_taken}, else: {:error, changeset}
+
+      ok ->
+        ok
+    end
+  end
+
+  @doc """
+  Materializa um papel do **catálogo** nesta organização, e devolve a linha.
+
+  O catálogo é composto na leitura e não é tabela — ver `EO.RoleCatalog`. A linha nasce aqui,
+  na primeira vez que alguém usa o papel.
+
+  ## `on_conflict` e não transação serializável
+
+  Duas promoções simultâneas com o mesmo papel tentariam gravar duas linhas. O índice único
+  recusa a segunda, e `on_conflict: :nothing` faz a recusa ser silenciosa — em seguida a leitura
+  devolve a que existe, **inclusive quando foi outro processo que a criou**.
+
+  Serializar seria caro para um caso raro cujo desfecho correto é *"use a que já existe"*, e não
+  *"falhe"*.
+  """
+  @spec materialize_catalog_role(Tenant.t(), Ecto.UUID.t(), String.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_in_catalog}
+  def materialize_catalog_role(%Tenant{id: tenant_id} = tenant, organization_id, concept_id) do
+    with {:ok, entrada} <- RoleCatalog.fetch_entry(concept_id) do
+      %OrganizationalRole{}
+      |> OrganizationalRole.changeset(%{
+        tenant_id: tenant_id,
+        organization_id: organization_id,
+        code: entrada.code,
+        name: entrada.name,
+        catalog_concept_id: concept_id,
+        internal_id: papel_internal_id(tenant_id, organization_id, entrada.code)
+      })
+      |> Repo.insert(on_conflict: :nothing)
+
+      # **Relê sempre**, e não usa o retorno do insert. Com `on_conflict: :nothing` o retorno
+      # vem sem `id` quando houve conflito, e é justamente o caso da corrida.
+      {:ok, Queries.role_by_concept(tenant, organization_id, concept_id)}
+    end
+  end
+
+  @doc """
+  Oculta um papel desta organização — **marca**, e nunca apaga (FR-004).
+
+  Papel do catálogo não é apagável: a rede continua nomeando-o. E papel com vínculo vigente
+  também não é ocultável — ocultar não invalida vínculo, e deixar vínculo apontando para papel
+  fora da lista seria pior que recusar.
+
+  A recusa devolve **quantos** vínculos impedem, e não só o erro: quem lê precisa saber o
+  tamanho do que a impede.
+  """
+  @spec hide_role(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found | {:in_use, pos_integer()}}
+  def hide_role(%Tenant{} = tenant, role_id, actor_id) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id) do
+      case Queries.count_memberships_of_role(tenant, papel.id) do
+        0 ->
+          agora = DateTime.utc_now(:second)
+
+          {1, _} =
+            Repo.update_all(
+              from(r in OrganizationalRole, where: r.id == ^papel.id),
+              set: [hidden_at: agora, updated_by_user_id: actor_id, updated_at: agora]
+            )
+
+          {:ok, %{papel | hidden_at: agora}}
+
+        quantos ->
+          {:error, {:in_use, quantos}}
+      end
+    end
+  end
+
+  @doc "Devolve à lista um papel oculto."
+  @spec unhide_role(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found}
+  def unhide_role(%Tenant{} = tenant, role_id, actor_id) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id) do
+      agora = DateTime.utc_now(:second)
+
+      {1, _} =
+        Repo.update_all(
+          from(r in OrganizationalRole, where: r.id == ^papel.id),
+          set: [hidden_at: nil, updated_by_user_id: actor_id, updated_at: agora]
+        )
+
+      {:ok, %{papel | hidden_at: nil}}
+    end
   end
 
   @doc """
@@ -564,20 +670,30 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   É pelo código que os vínculos referenciam o papel. Trocá-lo seria trocar a identidade, e a
   renomeação é do rótulo.
   """
-  @spec rename_role(Tenant.t(), Ecto.UUID.t(), String.t()) ::
-          {:ok, OrganizationalRole.t()} | {:error, :not_found | :blank_name}
-  def rename_role(%Tenant{} = tenant, role_id, name) do
+  @spec rename_role(Tenant.t(), Ecto.UUID.t(), String.t(), Ecto.UUID.t() | nil) ::
+          {:ok, OrganizationalRole.t()} | {:error, :not_found | :blank_name | :from_catalog}
+  def rename_role(%Tenant{} = tenant, role_id, name, actor_id \\ nil) do
     with {:ok, papel} <- Queries.fetch_role(tenant, role_id),
+         :ok <- nao_e_do_catalogo(papel),
          {:ok, nome} <- nome_preenchido(name) do
       {1, _} =
         Repo.update_all(
           from(r in OrganizationalRole, where: r.id == ^papel.id),
-          set: [name: nome, updated_at: DateTime.utc_now(:second)]
+          set: [
+            name: nome,
+            updated_by_user_id: actor_id,
+            updated_at: DateTime.utc_now(:second)
+          ]
         )
 
       {:ok, %{papel | name: nome}}
     end
   end
+
+  # Papel do catálogo tem nome vindo da rede. Editá-lo aqui produziria divergência silenciosa
+  # com o YAML — que é a mesma razão de o catálogo ser composto e não semeado.
+  defp nao_e_do_catalogo(%OrganizationalRole{catalog_concept_id: nil}), do: :ok
+  defp nao_e_do_catalogo(%OrganizationalRole{}), do: {:error, :from_catalog}
 
   @doc """
   Remove um papel, e **recusa** quando há vínculo apontando para ele (FR-005).
@@ -659,6 +775,89 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
+  Promove uma evidência a vínculo — issue #317.
+
+  ## Quem promove é uma pessoa, e o autor fica gravado
+
+  A plataforma **não** promove sozinha. Nenhuma origem fornece papel organizacional, e a
+  `FR-007` da feature 021 recusa observá-lo — o que existe é a evidência de que a pessoa
+  pertence à equipe, e o papel é decisão de quem administra.
+
+  ## O papel é tupla marcada, e o motivo é a ordem
+
+  `{:catalogo, conceito}` materializa a linha **dentro desta operação**. Receber só um `id`
+  obrigaria a tela a materializar antes de promover — e materializar sem promover deixaria
+  lixo se a promoção falhasse.
+
+  ## `started_at` nulo é nulo
+
+  Quando quem promove não sabe desde quando, a data fica **em branco**. Nunca a data de hoje:
+  inventá-la afirmaria que a pessoa assumiu o papel agora.
+
+  E **nunca** derivada de `observed_at` da evidência. Aquilo é quando a coleta viu — as 101
+  evidências têm `observed_at` entre 2026-08-09 e 2026-08-14, que é quando a plataforma foi
+  ligada, não quando as pessoas entraram nas equipes.
+
+  ## O papel tem de ser da organização da equipe
+
+  Não é expressável em `CHECK` porque envolve duas tabelas. A recusa é nomeada, e a tela diz
+  o porquê.
+  """
+  @spec promote_evidence(Tenant.t(), Ecto.UUID.t(), papel_escolhido(), Ecto.UUID.t(), keyword()) ::
+          {:ok, TeamMembership.t()}
+          | {:error,
+             :not_found
+             | :already_promoted
+             | :no_longer_observed
+             | :role_from_another_organization
+             | :not_in_catalog
+             | :already_allocated
+             | Ecto.Changeset.t()}
+  def promote_evidence(%Tenant{} = tenant, evidence_id, papel, actor_id, opts \\ []) do
+    with {:ok, evidencia} <- Queries.fetch_evidence(tenant, evidence_id),
+         :ok <- promovivel(evidencia),
+         {:ok, equipe} <- Queries.fetch_team(tenant, evidencia.team_id),
+         {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel) do
+      allocate(tenant, %{
+        person_id: evidencia.person_id,
+        team_id: evidencia.team_id,
+        organizational_role_id: role_id,
+        # Nulo quando quem promove não sabe. Nunca `observed_at`, nunca hoje.
+        started_at: Keyword.get(opts, :started_at),
+        declared_by_user_id: actor_id,
+        evidence_id: evidence_id
+      })
+    end
+  end
+
+  @typedoc "O papel escolhido: uma linha que existe, ou um conceito do catálogo a materializar."
+  @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
+
+  defp promovivel(%{promoted_membership_id: id}) when not is_nil(id),
+    do: {:error, :already_promoted}
+
+  defp promovivel(%{no_longer_observed_at: at}) when not is_nil(at),
+    do: {:error, :no_longer_observed}
+
+  defp promovivel(_), do: :ok
+
+  # A linha do catálogo nasce **aqui**, e não antes: materializar sem promover deixaria lixo se
+  # a promoção falhasse.
+  defp resolver_papel(tenant, organization_id, {:catalogo, conceito}) do
+    with {:ok, papel} <- materialize_catalog_role(tenant, organization_id, conceito),
+         do: {:ok, papel.id}
+  end
+
+  defp resolver_papel(tenant, organization_id, {:existente, role_id}) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id) do
+      # **A organização do papel tem de ser a da equipe.** Duas tabelas, então não é `CHECK`.
+      if papel.organization_id == organization_id,
+        do: {:ok, papel.id},
+        else: {:error, :role_from_another_organization}
+    end
+  end
+
+  @doc """
   Encerra a alocação gravando a data de fim (FR-010).
 
   **Não apaga.** A pessoa desempenhou aquele papel, e isso continua verdade depois de ela sair.
@@ -714,8 +913,10 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
 
   # Determinístico, como o dos observados — mas a chave é o que identifica o papel dentro do
   # tenant, porque não há origem externa: o papel é declaração.
-  defp papel_internal_id(tenant_id, codigo) do
-    hash_de([tenant_id, "role", codigo])
+  # A organização entra no hash porque ela entrou na identidade — dois papéis de mesmo código
+  # em organizações diferentes são papéis diferentes, e um `internal_id` igual os colapsaria.
+  defp papel_internal_id(tenant_id, organization_id, codigo) do
+    hash_de([tenant_id, "role", organization_id, codigo])
   end
 
   defp alocacao_internal_id(tenant_id, person_id, team_id, role_id) do

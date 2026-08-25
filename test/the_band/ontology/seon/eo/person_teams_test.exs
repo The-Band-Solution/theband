@@ -98,7 +98,7 @@ defmodule TheBand.Ontology.SEON.EO.PersonTeamsTest do
 
     test "conta por tenant", ctx do
       outro = tenant_fixture()
-      papel(ctx.tenant, "scrum_master")
+      papel(ctx.tenant, ctx.org, "scrum_master")
 
       assert EO.count_roles(ctx.tenant) == 1
       assert EO.count_roles(outro) == 0
@@ -182,15 +182,20 @@ defmodule TheBand.Ontology.SEON.EO.PersonTeamsTest do
     )
   end
 
-  defp papel(tenant, code) do
+  # Inserção direta, sem passar pelo comando — o teste quer a linha, não o fluxo. Desde a
+  # issue #317 a linha exige `organization_id` e **uma origem**: catálogo ou pessoa. Aqui vale
+  # o conceito da rede, porque `scrum_master` é justamente um dos quatro.
+  defp papel(tenant, organization, code) do
     Repo.insert_all("eo_organizational_roles", [
       %{
         id: Ecto.UUID.bingenerate(),
         tenant_id: Ecto.UUID.dump!(tenant.id),
+        organization_id: Ecto.UUID.dump!(organization.id),
         internal_id: code,
         record_version: 1,
         code: code,
         name: String.capitalize(code),
+        catalog_concept_id: "sro.#{code}_role",
         inserted_at: DateTime.utc_now(:second),
         updated_at: DateTime.utc_now(:second)
       }

@@ -62,41 +62,55 @@ defmodule TheBandWeb.PapelDeclaradoTest do
   end
 
   describe "a tela do catálogo" do
-    test "o estado vazio diz quantas evidências esperam", ctx do
+    test "os quatro do Scrum estão lá sem ninguém cadastrar", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/roles")
 
-      assert html =~ "No role registered yet"
+      for nome <- ["Product Owner", "Scrum Master", "Developer", "Client"] do
+        assert html =~ nome, """
+        **A FR-002.** Os quatro papéis que a SRO nomeia estão disponíveis em toda organização,
+        sem cadastro prévio — é o que dispensa o passo que separava quem administra de poder
+        promover uma evidência.
+        """
+      end
 
-      assert html =~ "1", """
-      Uma tela vazia que diz apenas "nenhum papel cadastrado" informa metade. A outra metade é
-      **quantas evidências dependem disso** — sem ela, ninguém sabe que a lista vazia é um
-      bloqueio, e não uma escolha.
+      assert html =~ "waiting for confirmation", """
+      A tela diz **quantas evidências esperam**. Sem isso, quem lê não sabe que há trabalho
+      parado — e a lista de papéis cheia pareceria "está tudo pronto".
       """
     end
 
-    test "abrir a tela não cadastra as sugestões", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/roles")
-
-      assert html =~ "suggestions"
+    test "abrir a tela não grava nada", ctx do
+      {:ok, _live, _html} = live(ctx.conn, ~p"/roles")
 
       assert EO.count_roles(ctx.tenant) == 0, """
-      **A SC-004.** A plataforma sugere e não cadastra: `eo.organizational_role` é papel social
-      **reconhecido pela organização**, e cadastrar sozinha seria reconhecer no lugar dela.
+      **Ler não escreve.** Os quatro do catálogo aparecem porque são **compostos da rede** a
+      cada leitura, e não porque foram semeados.
 
-      Abrir a tela é ler, e ler não escreve.
+      Semear criaria quatro linhas por organização que ninguém declarou — e se a SRO renomeasse
+      um papel, as linhas divergiriam da rede em silêncio.
       """
     end
 
-    test "cadastrar pela tela cria o papel", ctx do
+    test "cadastrar pela tela cria o papel da organização", ctx do
       {:ok, live, _html} = live(ctx.conn, ~p"/roles")
 
       html =
         live
-        |> form("form[phx-submit=create]", %{"code" => "developer", "name" => "Developer"})
+        |> form("form[phx-submit=create]", %{"code" => "tech_lead", "name" => "Tech Lead"})
         |> render_submit()
 
       assert html =~ "registered"
       assert EO.count_roles(ctx.tenant) == 1
+
+      papeis = EO.list_organization_roles(ctx.tenant, ctx.organizacao.id)
+      declarado = Enum.find(papeis, &(elem(&1.origem, 0) == :declarado))
+
+      assert declarado.code == "tech_lead"
+
+      assert declarado.origem == {:declarado, ctx.user.id}, """
+      Papel declarado tem **autor**, e a tela mostra a origem. Sem ela, em seis meses ninguém
+      sabe se `tech_lead` veio da rede ou alguém o digitou.
+      """
     end
   end
 
@@ -181,7 +195,13 @@ defmodule TheBandWeb.PapelDeclaradoTest do
   end
 
   defp alocar(ctx) do
-    {:ok, papel} = EO.create_role(ctx.tenant, %{code: "developer", name: "Desenvolvedor"})
+    {:ok, papel} =
+      EO.create_role(
+        ctx.tenant,
+        ctx.organizacao.id,
+        %{code: "developer", name: "Desenvolvedor"},
+        ctx.user.id
+      )
 
     {:ok, vinculo} =
       EO.allocate(ctx.tenant, %{
