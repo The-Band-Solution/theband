@@ -29,8 +29,14 @@ defmodule TheBand.Ontology.SEON.EO.ColetaNaoApagaDeclaracaoTest do
 
   setup do
     tenant = tenant_fixture()
-    {:ok, papel} = EO.create_role(tenant, %{code: "developer", name: "Desenvolvedor"})
+    # A organização vem ANTES do papel: desde a issue #317 o papel pertence a uma, e a ordem
+    # de criação passou a importar.
     organizacao = organization_fixture(tenant, "acme")
+    user = user_fixture(tenant)
+
+    {:ok, papel} =
+      EO.create_role(tenant, organizacao.id, %{code: "developer", name: "Desenvolvedor"}, user.id)
+
     equipe = team_fixture(tenant, "T_a", %{organization: organizacao})
 
     {:ok, pessoa} =

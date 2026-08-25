@@ -81,6 +81,7 @@ defmodule TheBand.Repo.Migrations.PapeisPorOrganizacao do
 
   def down do
     drop constraint(:eo_organizational_roles, :papel_tem_uma_origem_so)
+
     drop index(:eo_organizational_roles, [:tenant_id, :organization_id, :catalog_concept_id],
            name: :eo_organizational_roles_catalogo_index
          )

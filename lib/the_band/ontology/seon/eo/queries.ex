@@ -15,6 +15,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   import Ecto.Query
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.EO.RoleCatalog
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
@@ -669,6 +670,68 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   # ------------------------------------------------------- papéis e alocação (feature 021)
+
+  @doc """
+  Os papéis **desta organização**, compostos com o catálogo da rede — issue #317.
+
+  Nome próprio, e não `list_roles/2`: aquela é da feature 021 e devolve as linhas do tenant
+  inteiro. As duas coexistem enquanto houver chamador da antiga — e o nome desta diz o escopo,
+  que é justamente o que a 021 não tinha.
+
+  Devolve os quatro do Scrum sempre, com `id: nil` enquanto ninguém os usou, mais os
+  declarados pela organização. Ver `EO.RoleCatalog` para por que o catálogo não é tabela.
+  """
+  @spec list_organization_roles(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def list_organization_roles(%Tenant{id: tenant_id}, organization_id) do
+    from(r in OrganizationalRole,
+      where:
+        r.tenant_id == type(^tenant_id, :binary_id) and
+          r.organization_id == type(^organization_id, :binary_id),
+      select: %{
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        catalog_concept_id: r.catalog_concept_id,
+        declared_by_user_id: r.declared_by_user_id,
+        hidden_at: r.hidden_at
+      }
+    )
+    |> Repo.all()
+    |> RoleCatalog.compose()
+  end
+
+  @doc "A linha de um papel de catálogo nesta organização, ou `nil`."
+  @spec role_by_concept(Tenant.t(), Ecto.UUID.t(), String.t()) :: OrganizationalRole.t() | nil
+  def role_by_concept(%Tenant{id: tenant_id}, organization_id, concept_id) do
+    Repo.one(
+      from r in OrganizationalRole,
+        where:
+          r.tenant_id == type(^tenant_id, :binary_id) and
+            r.organization_id == type(^organization_id, :binary_id) and
+            r.catalog_concept_id == ^concept_id
+    )
+  end
+
+  @doc """
+  Quantas **pessoas distintas** a equipe tem — e nunca quantos vínculos.
+
+  Uma pessoa com Product Owner e Developer na mesma equipe é **uma** pessoa. Somar vínculos
+  faria a equipe parecer maior do que é, e o erro passa despercebido porque o número fica
+  plausível. Existe como função própria para que ninguém escreva `length(vinculos)`.
+  """
+  @spec team_size(Tenant.t(), Ecto.UUID.t()) :: non_neg_integer()
+  def team_size(%Tenant{id: tenant_id}, team_id) do
+    Repo.aggregate(
+      from(m in TeamMembership,
+        where:
+          m.tenant_id == type(^tenant_id, :binary_id) and
+            m.team_id == type(^team_id, :binary_id) and is_nil(m.ended_at),
+        distinct: m.person_id
+      ),
+      :count,
+      :person_id
+    )
+  end
 
   @doc "Os papéis que este tenant reconhece, por nome."
   @spec list_roles(Tenant.t(), keyword()) :: [OrganizationalRole.t()]
