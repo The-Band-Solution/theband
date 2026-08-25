@@ -248,6 +248,47 @@ O que a análise precisa responder, e onde procurar:
 feature de sugerir papel muda de forma — ou deixa de fazer sentido para ele, ficando só PO e
 Scrum Master, que a SRO define.
 
+### A hipótese da pessoa mantenedora, que é testável
+
+> *"É possível que o projeto assuma que o Tech Lead é um Scrum Master que é engenheiro de
+> software ao mesmo tempo, e ajuda a definir os cards — refinando tecnicamente e programando
+> também."*
+
+Isso é **composição**, e não papel novo:
+
+```
+tech_lead  ≡  sro.scrum_master_role  ∧  sro.developer_role  +  refinamento técnico do card
+```
+
+E ela é **testável contra o dado que já medi**. As três partes têm contraparte observável:
+
+| parte da hipótese | o que observar | já medido? |
+|---|---|---|
+| **Scrum Master** — facilita fluxo | move item no quadro sem ser autor nem designado | `ProjectV2ItemStatusChangedEvent`, 5.965 ocorrências |
+| **engenheiro** — programa | commits | sim, `commit_authors` |
+| **define e refina o card** | abre issue para outros, **e comenta nela** | delegação sim; comentário **não** — está em `collected_issue_comments`, 2.051 linhas, e ninguém cruzou |
+
+**Se a hipótese for verdadeira, o modelo certo é dois vínculos, não um papel.** A `FR-006a` da
+043 já permite uma pessoa acumular Scrum Master e Developer na mesma equipe — e a plataforma
+diria *"esta pessoa acumula os dois"*, que é mais informativo que um rótulo novo.
+
+### Colocar na SRO — há precedente, e há um limite
+
+Este projeto **já estendeu a SRO**: `sro/modules/scope_traceability.yaml`, com
+`source_type: project_decision`, referência à issue que a motivou, e a razão de o conceito
+viver ali em vez de noutra ontologia.
+
+Então a forma existe. O que a análise precisa decidir antes de usá-la:
+
+- **é conceito ou é composição?** Se for composição, acrescentar `sro.tech_lead_role` seria
+  reificar o que já se expressa com dois vínculos — padrão sem problema, que o princípio VIII
+  chama de antipadrão;
+- **a SRO é o lugar?** Ela descreve **Scrum**, e Tech Lead não é papel do Scrum. Se a
+  conclusão for que é papel de engenharia e não de processo ágil, o lugar seria SPO ou EO —
+  e pôr no lugar errado é o que o princípio IX existe para impedir;
+- **o que a extensão declara como limitação?** `scope_traceability` declara por que vive na
+  SRO. Uma extensão sem essa justificativa escrita não passa em revisão.
+
 ### As duas recusas que valem para qualquer eixo
 
 **Tech Lead não está na SRO.** Product Owner, Scrum Master, Developer e Client estão;
