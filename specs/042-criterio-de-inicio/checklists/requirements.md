@@ -50,6 +50,23 @@ Um ponto ficou **declarado como revisável** em vez de virar pergunta: issue em 
 **projetos diferentes**. Nenhum caso existe no dado de 2026-08-24, e travar a spec numa
 pergunta sobre caso inexistente custaria mais que registrar o padrão e corrigir na revisão.
 
+## A regra na tela é requisito, não polimento
+
+Pedido da pessoa mantenedora em 2026-08-24: *"coloque essas regras nas telas para o usuário
+entender"*. Virou `FR-013` a `FR-017`, e `SC-007`/`SC-008`.
+
+O motivo não é conforto: **uma escala de precedência que decide um número e vive só na spec
+produz o efeito que esta casa combate.** Quem lê o número não sabe de onde veio; quem
+discorda dele não sabe onde mexer.
+
+Três exigências que valem destacar:
+
+- a proveniência **acompanha o número**, e não vive numa página de ajuda;
+- a tela de declaração mostra a escala **em vigor naquele alvo** — ao declarar num projeto,
+  diz **quais quadros vão ignorar** a declaração, antes de gravar;
+- as ausências são **frases**, nunca códigos. A `SC-008` é verificável procurando
+  `criterio_ambiguo` no que a tela renderiza: deve ser zero.
+
 ## O que a spec deliberadamente NÃO resolve
 
 - **O critério de fim.** `flow.wip.count` precisa de início **e** fim, e esta feature entrega

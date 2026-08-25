@@ -48,6 +48,7 @@ Quem administra abre um projeto e declara qual evento observado marca o início 
 1. **Dado** um projeto sem critério declarado, **quando** a pessoa declara `ProjectV2ItemStatusChangedEvent`, **então** a declaração fica gravada com autor e data, e as atividades do projeto passam a ter `start_date` no instante daquele evento.
 2. **Dado** um projeto com critério declarado, **quando** a pessoa troca o evento declarado, **então** o `start_date` das atividades muda junto — a resolução acontece **na leitura**, e nunca fica gravada.
 3. **Dado** um projeto sem critério, **quando** a tela é aberta, **então** ela diz **quantas** atividades estão sem `start_date` por falta de critério — nunca um padrão implícito.
+4. **Dado** um projeto que já tem quadros com critério próprio, **quando** a pessoa vai declarar o critério do projeto, **então** a tela diz **quais quadros vão ignorar** esta declaração — antes de ela gravar, e não depois.
 
 ---
 
@@ -109,6 +110,16 @@ Medido em 2026-08-24: **414 de 3.215 issues (13%) estão em mais de um quadro**,
 - **FR-011**: Quando o evento reconhecido ocorrer mais de uma vez na mesma atividade, MUST valer a **primeira** ocorrência.
 - **FR-012**: A plataforma MUST oferecer, para escolha, apenas tipos de evento que ela **coleta** — e MUST mostrar o volume observado de cada um, para a escolha ser informada e não às cegas.
 
+### A regra tem de estar na tela
+
+Uma escala de precedência que decide um número e vive só na spec produz exatamente o efeito que esta casa combate: quem lê o número não sabe de onde ele veio, e quem discorda dele não sabe onde mexer.
+
+- **FR-013**: Toda tela que mostre um instante de início, ou uma medida derivada dele, MUST mostrar **de onde o critério veio** — do quadro (e qual) ou do projeto (e qual). A proveniência acompanha o número, e não vive numa página de ajuda.
+- **FR-014**: A tela de declaração MUST mostrar a escala **em vigor naquele alvo**, e não a escala em abstrato. Ao declarar num projeto que tem quadros com critério próprio, a tela MUST dizer **quais quadros vão ignorar** esta declaração, e por quê.
+- **FR-015**: As três ausências MUST ser escritas em frase, e nunca em código. *"Nenhum critério foi declarado para este projeto"* é a frase; `criterio_ausente` não é. E cada frase MUST dizer **o que fazer** — declarar, desambiguar, ou coletar.
+- **FR-016**: A frase do **critério ambíguo** MUST nomear os quadros em empate e a data que empatou. Sem isso, quem administra sabe que há um problema e não sabe onde ele está.
+- **FR-017**: A tela MUST explicar, no ponto da decisão, **por que o desempate é a data do vínculo** — em uma frase, com o custo de errar. Uma regra de precedência que ninguém entende é obedecida sem ser conferida.
+
 ### Key Entities
 
 - **Critério de início** — o que a organização declara: qual tipo de evento traz à tona a situação de um trabalho ter começado. Tem autor, data de declaração, e data de desfazimento quando houver.
@@ -127,6 +138,8 @@ Medido em 2026-08-24: **414 de 3.215 issues (13%) estão em mais de um quadro**,
 - **SC-004**: As três ausências aparecem separadas em toda tela que as mostre; **nenhuma tela agrega** "sem critério" com "critério ambíguo" ou com "evento não coletado".
 - **SC-005**: Trocar a declaração de um projeto muda a medida na leitura seguinte, **sem nenhuma etapa de recálculo**.
 - **SC-006**: Das 414 issues em mais de um quadro medidas em 2026-08-24, a regra de precedência resolve **todas** que tiverem `linked_at` distintos, e nomeia como ambíguas as que empatarem — sem escolher nenhuma por conta própria.
+- **SC-007**: Uma pessoa que nunca leu esta spec consegue dizer, olhando a tela, **de onde veio** o instante de início de uma atividade e **o que fazer** quando ele está ausente — sem abrir documentação.
+- **SC-008**: Nenhuma tela exibe um código de motivo. Verificável procurando `criterio_ambiguo`, `criterio_ausente` e afins no que a tela renderiza: **deve ser zero**.
 
 ---
 
