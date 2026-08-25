@@ -1,21 +1,50 @@
 # Retomar — 2026-08-25
 
-## Primeira coisa: continuar a implementação da 043
+## Primeira coisa: as telas da feature 042
 
-A feature **043 — Papéis por organização** está com a Fase 1 pronta e as outras quatro por fazer.
+O domínio está pronto e testado. **Faltam as telas** — e são elas que carregam os requisitos
+que você pediu explicitamente.
 
 ```bash
-git checkout 043-papeis-por-organizacao
+git checkout 042-criterio-de-inicio
 set -a && . ./.env && set +a
-mix ecto.migrate       # já aplicada; confirma que o banco está no estado certo
+mix ecto.migrate
 ```
 
-**Feito**: T001, T002, T003 — a migração, em `648773f`. Ida e volta conferida.
-
-**A fazer**: T004 a T018, e o `tasks.md` tem cada uma com os quatro campos e a issue ligada.
-
-| fase | tarefas | issues |
+| fase | tarefas | estado |
 |---|---|---|
+| ~~1 — a rede~~ | ~~T001–T003~~ | feito · `a556de6` |
+| ~~2 — o esquema~~ | ~~T004–T005~~ | feito · `1c16e2b` |
+| ~~3 — declarar e resolver~~ | ~~T006–T011~~ | feito · `5bae0d7` |
+| **4 — as telas** | T012–T016 | **a fazer** |
+| **as regras na tela** | T020–T022 | **a fazer** |
+| 5 — fechamento | T023–T024 | a fazer |
+
+**13 gates verdes**, 18 casos em `criterio_de_inicio_test.exs`, tudo empurrado.
+
+## Os requisitos de tela, que são o que você pediu
+
+- **FR-013** a proveniência acompanha o número — de qual quadro ou projeto o critério veio
+- **FR-014** ao declarar no projeto, dizer **quais quadros vão ignorar** — antes de gravar
+- **FR-015** as três ausências em **frase**, nunca em código, e cada uma diz o que fazer
+- **FR-016** o ambíguo nomeia os quadros em empate e a data
+- **FR-017** explicar **por que** o desempate é a data do vínculo, no ponto da decisão
+
+`boards_overriding/2` e `resolve_start/2` já devolvem tudo que essas frases precisam.
+
+## O achado do dia: um teste que faltava
+
+Injetei três defeitos para conferir que os casos os pegam. **Dois pegaram; o terceiro passou.**
+
+Trocar `min(occurred_at)` por `max` deu 17/17 verdes. A `FR-011` diz *"vale a primeira
+ocorrência"* e **não havia caso que a provasse** — com `max`, uma tarefa que voltou ao Backlog
+teria como início a última movimentação, e o cycle time de quem retrabalha apareceria menor do
+que foi.
+
+Escrito, e conferido. **Injetar o defeito é o que revela o teste que falta** — é o terceiro dia
+seguido em que isso acha algo.
+
+---|---|---|
 | ~~Fase 1 — esquema~~ | ~~T001–T003~~ | ~~#483–#485~~ |
 | Fase 2 — US1, o catálogo | T004–T007 | #486–#489 |
 | Fase 3 — US2, papéis próprios | T008–T010 | #490–#492 |
