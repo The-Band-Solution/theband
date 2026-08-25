@@ -154,8 +154,24 @@ Decisão da pessoa mantenedora, 2026-08-24: *"não use os níveis de acesso do G
 > **resposta falsa em vez de nenhuma**. Esta spec não cria a regra: ela impede que a tela a
 > contorne.
 
-**Os valores, medidos em 2026-08-24** nas 101 evidências: `MEMBER` 63, nulo 33,
-`MAINTAINER` 5. Nenhum deles nomeia função.
+### As 101 evidências afirmam uma coisa só
+
+**Que a pessoa é membro da equipe.** Medido em 2026-08-24:
+
+| valor | evidências | o que afirma |
+|---|---:|---|
+| `MEMBER` | 63 | é membro |
+| nulo | 33 | é membro |
+| `MAINTAINER` | 5 | é membro |
+
+Os três dizem **a mesma coisa**. A diferença entre `MEMBER` e `MAINTAINER` é permissão na
+ferramenta — quem pode gerir membros e permissões do time —, e não grau de pertencimento nem
+função. Ninguém é *"mais membro"* por ser `MAINTAINER`.
+
+Daí sai a razão prática da `FR-011`: **o nível não acrescenta nada à decisão de papel.** Não
+é que ele seja perigoso e útil; ali ele é perigoso e **inútil**. As 33 evidências com nível
+nulo sustentam a promoção exatamente como as outras 68 — o que confirma que a informação que
+importa é o pertencimento, e ela está presente nas 101.
 
 **O que continua sendo coletado.** `platform_access_level` permanece em
 `eo_team_membership_evidence`: é fato observado sobre a plataforma, e apagá-lo seria perder
@@ -182,7 +198,7 @@ proíbe é **usá-lo para decidir papel**, inclusive mostrando-o onde a decisão
 
 - **SC-001**: Numa organização recém-observada, quem administra encontra os quatro papéis do Scrum **sem cadastrar nada** — zero passos antes de poder promover.
 - **SC-002**: Promover uma evidência leva **menos de trinta segundos**, e o resultado aparece na tela da equipe na leitura seguinte.
-- **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel.
+- **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel — inclusive as **33 com nível de acesso nulo**, porque o nível não participa da promoção.
 - **SC-004**: Um papel declarado na organização A **não aparece** em nenhuma listagem da organização B — verificável abrindo as duas.
 - **SC-005**: Nenhum papel vem pré-selecionado, por critério nenhum. Verificável: em toda evidência, o campo de papel começa **vazio**.
 - **SC-005a**: O nível de acesso da origem **não aparece** na tela de promoção. Verificável procurando `MAINTAINER` e `MEMBER` no que ela renderiza: deve ser **zero**.
