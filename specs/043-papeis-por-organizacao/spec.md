@@ -1,0 +1,153 @@
+# Feature Specification: Papéis por organização, e a promoção das evidências de vínculo
+
+**Feature Branch**: `043-papeis-por-organizacao`
+**Created**: 2026-08-24
+**Status**: Draft
+**Fecha**: [#317](https://github.com/The-Band-Solution/theband/issues/317)
+**Input**: Decisão da pessoa mantenedora em 2026-08-24 — *"podemos ter um cadastro de papéis que pode ser reusado em várias equipes. Quem associa os papéis é uma pessoa via sistema, e o cadastro de papéis é por organização"*, seguida de *"podemos ter papéis básicos do scrum pré-cadastrados"* e *"esses papéis pré-cadastrados estão em todas as organizações"*.
+
+## A cadeia parada, medida
+
+```
+12  equipes gravadas
+101 evidências de vínculo coletadas do GitHub
+  0 vínculos promovidos
+  0 papéis organizacionais cadastrados
+```
+
+E `eo_team_memberships.organizational_role_id` é **`NOT NULL`**.
+
+A cadeia está parada no **primeiro elo**: sem papel cadastrado, nenhuma das 101 evidências pode virar vínculo, e as 12 equipes ficam vazias.
+
+**Consequência medida**: todo o nível Equipe dos painéis está vazio. Quatro das cinco medidas declaram `team` — taxa de CI, vazão, tempo até a primeira revisão e retrabalho — e **nenhuma calcula**.
+
+Isto não é defeito: é o desenho funcionando e esperando o ato humano que a `FR-007` da feature 021 exige. Falta o cadastro que torna o ato possível.
+
+---
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Os quatro papéis do Scrum já estão lá (Priority: P1)
+
+Quem administra abre a tela de papéis de uma organização e **encontra os quatro do Scrum já disponíveis**, sem cadastrar nada.
+
+**Why this priority**: é o que destrava a promoção. Sem papel, a evidência não vira vínculo.
+
+**Independent Test**: abrir a tela de papéis numa organização recém-observada e conferir que os quatro aparecem, marcados como vindos do catálogo.
+
+**Acceptance Scenarios**:
+
+1. **Dado** uma organização sem papel algum declarado, **quando** a tela de papéis é aberta, **então** os quatro do Scrum aparecem — Product Owner, Scrum Master, Developer e Client — cada um marcado como **do catálogo**.
+2. **Dado** três organizações no mesmo tenant, **quando** cada uma é aberta, **então** as três têm os quatro disponíveis, **independentemente**.
+3. **Dado** um papel do catálogo, **quando** quem administra tenta apagá-lo, **então** a plataforma recusa e explica: o catálogo vem da rede, e o que se pode fazer é **não usá-lo**.
+
+---
+
+### User Story 2 - Cadastrar papéis próprios da organização (Priority: P1)
+
+A organização declara papéis que o Scrum não nomeia — *Tech Lead*, *Analista de Requisitos*, o que ela usar —, e eles valem **só nela**.
+
+**Why this priority**: as três organizações observadas não compartilham vocabulário. Um papel que vaza entre elas produz lista que ninguém reconhece.
+
+**Independent Test**: declarar um papel numa organização e conferir que ele **não** aparece nas outras duas.
+
+**Acceptance Scenarios**:
+
+1. **Dado** uma organização, **quando** quem administra declara um papel, **então** ele fica gravado **com autor** e passa a aparecer na lista dela.
+2. **Dado** o papel declarado na organização A, **quando** a tela de papéis da organização B é aberta, **então** ele **não** aparece.
+3. **Dado** um papel declarado, **quando** a tela é aberta, **então** ele é distinguível dos do catálogo — a origem fica visível, não implícita.
+
+---
+
+### User Story 3 - Promover as evidências a vínculo (Priority: P1)
+
+Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que ela tem no GitHub — e **confirma** o vínculo escolhendo o papel.
+
+**Why this priority**: são as 101 que estão paradas, e é o que enche as 12 equipes.
+
+**Independent Test**: promover uma evidência e conferir que a equipe passa a ter um membro, com autor gravado.
+
+**Acceptance Scenarios**:
+
+1. **Dado** uma evidência não promovida, **quando** quem administra escolhe um papel e confirma, **então** o vínculo é criado com **quem confirmou e quando**, e a evidência passa a apontar para ele.
+2. **Dado** uma evidência já promovida, **quando** a lista é aberta, **então** ela aparece como resolvida, e não é oferecida de novo.
+3. **Dado** uma evidência da equipe da organização A, **quando** quem administra escolhe um papel da organização B, **então** a plataforma **recusa** — o papel do vínculo tem de ser da mesma organização da equipe.
+4. **Dado** que nenhuma evidência foi promovida, **quando** a tela da equipe é aberta, **então** ela diz **quantas** evidências estão esperando confirmação — e não mostra a equipe como se não tivesse ninguém.
+
+---
+
+### Edge Cases
+
+- **Evidência cuja pessoa saiu da equipe na origem** — `no_longer_observed_at` preenchido: não é oferecida para promoção, e se já foi promovida o vínculo **permanece**, com a data de fim. Marca nunca apaga.
+- **Papel do catálogo que a organização não quer**: pode ser **ocultado** dela, e ocultar não é apagar — a rede continua nomeando-o, e vínculos que já o usam continuam válidos.
+- **A rede ganha um quinto papel de Scrum**: ele aparece em todas as organizações na leitura seguinte, sem migração. É a propriedade que faz o catálogo valer a pena.
+- **A rede deixa de nomear um papel que já tem vínculos**: os vínculos continuam, e o papel aparece marcado como **não mais no catálogo**. Sumir em silêncio deixaria vínculos apontando para nada.
+- **Duas organizações com papel de mesmo nome**: são papéis diferentes, e isso é correto. A unicidade é por organização, nunca por tenant.
+
+---
+
+## Requirements *(mandatory)*
+
+### O cadastro
+
+- **FR-001**: O cadastro de papéis MUST ser **por organização**. Um papel MUST NOT ficar visível em organização que não a sua.
+- **FR-002**: Os quatro papéis do Scrum que a rede nomeia MUST estar disponíveis em **todas** as organizações, sem cadastro prévio.
+- **FR-003**: Cada papel MUST declarar sua **origem** — do catálogo da rede, ou declarado por uma pessoa. A origem MUST ser visível na tela, e não inferida do nome.
+- **FR-004**: Papel do catálogo MUST NOT ser apagável. Ele MAY ser **ocultado** de uma organização, e ocultar MUST NOT invalidar vínculos que já o usam.
+- **FR-005**: Papel declarado MUST gravar **quem** o declarou e **quando**.
+- **FR-006**: A unicidade do nome MUST ser por organização. Duas organizações MAY ter papéis de mesmo nome, e eles são papéis diferentes.
+
+### A promoção
+
+- **FR-007**: Promover uma evidência a vínculo MUST ser **ato de uma pessoa**, com autor gravado. A plataforma MUST NOT promover sozinha.
+- **FR-008**: O papel escolhido MUST pertencer à **mesma organização da equipe**. A plataforma MUST recusar a combinação inválida, e a recusa MUST dizer o porquê.
+- **FR-009**: Uma evidência já promovida MUST NOT ser oferecida de novo, e MUST apontar para o vínculo que a promoveu.
+- **FR-010**: Evidência cuja observação terminou MUST NOT ser oferecida para promoção. Vínculo já promovido a partir dela MUST permanecer.
+
+### O que a sugestão pode e não pode dizer
+
+- **FR-011**: A tela MAY mostrar o **acesso observado** da pessoa na plataforma de origem — `ADMIN`, `WRITE`, `READ` — como contexto para a decisão.
+- **FR-012**: A plataforma MUST NOT inferir papel organizacional a partir do nível de acesso. **`ADMIN` não é Scrum Master.** Nenhum papel MUST vir pré-selecionado a partir do acesso.
+- **FR-013**: O texto que acompanha a evidência MUST descrever o que foi **observado**, e MUST NOT sugerir o que a pessoa **é**. *"Esta pessoa administra a equipe no GitHub"* é o que se pode dizer; *"provavelmente é Scrum Master"* não.
+
+### A tela
+
+- **FR-014**: A tela da equipe MUST dizer **quantas evidências esperam confirmação**, e MUST NOT mostrar equipe sem membro como se ninguém pertencesse a ela — são coisas diferentes.
+- **FR-015**: A lista de papéis MUST distinguir visualmente os do catálogo dos declarados, e MUST dizer **quantos vínculos** usam cada um antes de permitir ocultar.
+
+---
+
+### Key Entities
+
+- **Papel organizacional** — o que a organização reconhece como função. Tem nome, código, origem (catálogo ou declarado) e a organização a que pertence.
+- **Catálogo de papéis** — os que a rede nomeia, disponíveis em toda organização, não apagáveis.
+- **Evidência de vínculo** — o que foi observado: uma pessoa pertence a uma equipe, com um nível de acesso. Já é coletada.
+- **Vínculo** — a afirmação de que uma pessoa ocupa um papel numa equipe. Declarado por uma pessoa a partir da evidência.
+
+---
+
+## Success Criteria *(mandatory)*
+
+- **SC-001**: Numa organização recém-observada, quem administra encontra os quatro papéis do Scrum **sem cadastrar nada** — zero passos antes de poder promover.
+- **SC-002**: Promover uma evidência leva **menos de trinta segundos**, e o resultado aparece na tela da equipe na leitura seguinte.
+- **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel.
+- **SC-004**: Um papel declarado na organização A **não aparece** em nenhuma listagem da organização B — verificável abrindo as duas.
+- **SC-005**: Nenhum papel vem pré-selecionado a partir do nível de acesso. Verificável: em toda evidência, o campo de papel começa **vazio**.
+- **SC-006**: Depois de promovidas as evidências de uma equipe, as medidas de nível Equipe passam a calcular para ela — o que hoje **nenhuma** faz.
+- **SC-007**: A tela da equipe sem membros distingue *"nenhuma evidência"* de *"N evidências esperando confirmação"*. Nunca mostra as duas com a mesma frase.
+
+---
+
+## Assumptions
+
+- **O catálogo vem da rede, e a rede já o tem.** `sro.product_owner_role`, `sro.scrum_master_role`, `sro.developer_role` e `sro.client_role`, todos filhos de `sro.scrum_role`. `EO.suggested_roles/0` já os deriva do YAML — o que muda é deixarem de ser sugestão de preenchimento e passarem a estar disponíveis.
+- **A forma copia `Mapping.Catalog`.** As regras de mapeamento já distinguem catálogo de declaração por um `catalog_key` nulável: presente significa que veio do catálogo, nulo que alguém escreveu. Reusar essa forma é preferível a inventar outra — a casa já a provou e ela é reconhecível.
+- **A coluna de organização nasce obrigatória.** Há **zero** papéis cadastrados, e essa é a única janela em que tornar a coluna obrigatória não custa migração. Nula significaria *"papel de todo o tenant"*, que é o comportamento de hoje e é o que esta feature existe para corrigir.
+- **É a mesma classe de defeito da issue #446** — filtrar por tenant onde a pergunta é por organização. Lá custou percorrer 480 repositórios em vez de 160, com a credencial errada.
+- **A promoção é o ato que a feature 021 previu.** O `declared_by_user_id` já existe em `eo_team_memberships` e está nulo em 100% das linhas — porque não há linhas. A coluna estava esperando esta feature.
+
+## Fora do escopo
+
+- **Sugerir o papel a partir de evidência de trabalho** — quem revisa mais, quem fecha mais tarefa. É outra feature, e a `FR-012` desta declara que **acesso não é papel**; usar comportamento como pista tem os mesmos riscos e merece spec própria.
+- **Hierarquia de equipes** — [#397](https://github.com/The-Band-Solution/theband/issues/397). Depende desta: hierarquia sem membro não soma nada.
+- **Alocar papel a pessoa fora de equipe.** O vínculo é pessoa-em-equipe; papel organizacional sem equipe é outro conceito.
