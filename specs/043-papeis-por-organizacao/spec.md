@@ -72,9 +72,9 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 1. **Dado** uma evidência não promovida, **quando** quem administra escolhe um papel e confirma, **então** o vínculo é criado com **quem confirmou e quando**, e a evidência passa a apontar para ele.
 2. **Dado** uma evidência já promovida, **quando** a lista é aberta, **então** ela aparece como resolvida, e não é oferecida de novo.
 3. **Dado** uma evidência da equipe da organização A, **quando** quem administra escolhe um papel da organização B, **então** a plataforma **recusa** — o papel do vínculo tem de ser da mesma organização da equipe.
+4. **Dado** que nenhuma evidência foi promovida, **quando** a tela da equipe é aberta, **então** ela diz **quantas** evidências estão esperando confirmação — e não mostra a equipe como se não tivesse ninguém.
 5. **Dado** uma pessoa já vinculada como Developer, **quando** quem administra a vincula também como Product Owner na mesma equipe, **então** os **dois** vínculos coexistem — e a contagem de pessoas da equipe **não** sobe.
 6. **Dado** a mesma pessoa e o mesmo papel, **quando** quem administra tenta vincular de novo, **então** a plataforma recusa e diz que o vínculo já existe.
-4. **Dado** que nenhuma evidência foi promovida, **quando** a tela da equipe é aberta, **então** ela diz **quantas** evidências estão esperando confirmação — e não mostra a equipe como se não tivesse ninguém.
 
 ---
 
@@ -84,7 +84,8 @@ Quem administra vê as evidências coletadas — pessoa, equipe, e o acesso que 
 - **Papel do catálogo que a organização não quer**: pode ser **ocultado** dela, e ocultar não é apagar — a rede continua nomeando-o, e vínculos que já o usam continuam válidos.
 - **A rede ganha um quinto papel de Scrum**: ele aparece em todas as organizações na leitura seguinte, sem migração. É a propriedade que faz o catálogo valer a pena.
 - **A rede deixa de nomear um papel que já tem vínculos**: os vínculos continuam, e o papel aparece marcado como **não mais no catálogo**. Sumir em silêncio deixaria vínculos apontando para nada.
-- **Duas organizações com papel de mesmo nome**: são papéis diferentes, e isso é correto. A unicidade é por organização, nunca por tenant.
+- **Duas organizações com papel de mesmo código**: são papéis diferentes, e isso é correto. A unicidade é por organização, nunca por tenant — e o índice de hoje impede, ver `FR-006`.
+- **A mesma pessoa como Product Owner e Developer**: os dois vínculos coexistem, e ela conta como **uma** pessoa no tamanho da equipe.
 
 ---
 
