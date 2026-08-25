@@ -31,6 +31,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   alias TheBand.Ontology.SEON.SPO.Commands
   alias TheBand.Ontology.SEON.SPO.Projects
   alias TheBand.Ontology.SEON.SPO.Queries
+  alias TheBand.Ontology.SEON.SPO.StartCriterion
 
   # ------------------------------------------------------------------- escritas
 
@@ -79,6 +80,16 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate fetch_project(tenant, id), to: Projects
   defdelegate list_project_repositories(tenant, project_id), to: Projects
   defdelegate list_project_boards(tenant, project_id), to: Projects
+
+  # O critério de início — issue #370. A plataforma NÃO escolhe; a organização declara.
+  defdelegate declare_start_criterion(tenant, alvo, event_type, actor_id),
+    to: StartCriterion,
+    as: :declare
+
+  defdelegate revoke_start_criterion(tenant, alvo, actor_id), to: StartCriterion, as: :revoke
+  defdelegate start_criterion_for(tenant, alvo), to: StartCriterion, as: :current
+  defdelegate boards_overriding(tenant, project_id), to: StartCriterion
+  defdelegate collected_event_types(tenant), to: StartCriterion
   defdelegate list_project_issues(tenant, project_id, opts \\ []), to: Projects
   defdelegate count_project_issues(tenant, project_id), to: Projects
 end
