@@ -80,6 +80,52 @@ defmodule TheBandWeb.TeamsLive.Show do
     {:noreply, carregar_projetos(socket)}
   end
 
+  def handle_event("promover", params, socket) do
+    %{"evidence_id" => id, "papel" => papel, "started_at" => data} = params
+
+    resultado =
+      EO.promote_evidence(
+        socket.assigns.current_tenant,
+        id,
+        papel_escolhido(papel),
+        socket.assigns.current_user.id,
+        started_at: data_ou_nil(data)
+      )
+
+    case resultado do
+      {:ok, _vinculo} ->
+        {:noreply, socket |> put_flash(:info, "Membership recorded.") |> load()}
+
+      # Cada recusa vira uma FRASE diferente. Um código de motivo na tela obrigaria quem lê a
+      # procurar o que ele significa — e a frase diz o que fazer.
+      {:error, :role_from_another_organization} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "That role belongs to another organisation. Roles are recognised per organisation."
+         )}
+
+      {:error, :already_promoted} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "This participation has already become a membership.")
+         |> load()}
+
+      {:error, :no_longer_observed} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "The source no longer shows this person on this team.")
+         |> load()}
+
+      {:error, :already_allocated} ->
+        {:noreply, put_flash(socket, :error, "This person already holds that role on this team.")}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not record: #{inspect(motivo)}")}
+    end
+  end
+
   defp caminho(socket, id, mudancas),
     do: ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas)}"
 
@@ -107,8 +153,51 @@ defmodule TheBandWeb.TeamsLive.Show do
     )
     |> assign(encontradas: EO.count_team_members(tenant, team.id, opts))
     |> assign(pending_role: EO.count_evidence_pending_role(tenant, team_id: team.id))
+    |> carregar_promocao()
     |> carregar_competencias()
   end
+
+  # Campo vazio é **desconhecido**, e nunca a data de hoje. Inventá-la afirmaria que a pessoa
+  # assumiu o papel agora, e o que se sabe é que ninguém disse quando.
+  defp data_ou_nil(""), do: nil
+  defp data_ou_nil(nil), do: nil
+
+  defp data_ou_nil(texto) do
+    case Date.from_iso8601(texto) do
+      {:ok, data} -> DateTime.new!(data, ~T[00:00:00], "Etc/UTC")
+      _ -> nil
+    end
+  end
+
+  # Issue #317: as evidências que esperam confirmação, e os papéis com que confirmá-las.
+  #
+  # `pending_evidence/2` **não devolve** o nível de acesso da plataforma. A garantia é do
+  # contrato, e não desta função: nenhum template pode exibir o que não chega até ele.
+  defp carregar_promocao(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    papeis =
+      if team.organization_id,
+        do:
+          tenant
+          |> EO.list_organization_roles(team.organization_id)
+          |> Enum.reject(& &1.hidden_at),
+        else: []
+
+    socket
+    |> assign(pendentes: EO.pending_evidence(tenant, team.id))
+    |> assign(papeis_para_promover: papeis)
+  end
+
+  # O valor do `<option>` carrega a ORIGEM junto do identificador, porque papel do catálogo
+  # ainda não usado **não tem id**. Sem isso, a tela teria de materializar antes de promover —
+  # e materializar sem promover deixaria lixo se a promoção falhasse.
+  defp valor_do_papel(%{id: nil, origem: {:catalogo, conceito}}), do: "catalogo:" <> conceito
+  defp valor_do_papel(%{id: id}), do: "existente:" <> id
+
+  defp papel_escolhido("catalogo:" <> conceito), do: {:catalogo, conceito}
+  defp papel_escolhido("existente:" <> id), do: {:existente, id}
 
   # Feature 029: a leitura de competências da equipe — contada dos perfis vigentes,
   # nunca gerada. Carregada no load porque a evolução usa o mesmo histórico.
@@ -272,6 +361,69 @@ defmodule TheBandWeb.TeamsLive.Show do
           {member.last_observed_at}
         </:col>
       </.data_table>
+
+      <%!-- ═══ A PROMOÇÃO — issue #317 ═══
+            Seção separada da tabela de membros, e a separação é o ponto. Ali o nível de
+            acesso aparece **rotulado como acesso**, porque é observação. Aqui ele NÃO
+            aparece: é onde a decisão de papel acontece, e exibi-lo faria dele uma dica.
+            A garantia é do contrato — `pending_evidence/2` não devolve o campo. --%>
+      <section :if={@pendentes != []} class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">
+          {length(@pendentes)} participation(s) waiting for confirmation
+        </h3>
+        <p class="text-sm opacity-70">
+          The platform observed that these people belong to this team. It does not know which
+          <strong>role</strong>
+          they hold — no source provides that. Choose the role and confirm; the record keeps who
+          confirmed it and when.
+        </p>
+
+        <ul class="space-y-2">
+          <li :for={p <- @pendentes} class="card bg-base-200 p-3">
+            <form phx-submit="promover" id={"promover-#{p.id}"} class="flex flex-wrap items-end gap-2">
+              <input type="hidden" name="evidence_id" value={p.id} />
+
+              <div class="min-w-40 flex-1">
+                <div class="font-medium">{p.person_name}</div>
+                <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
+              </div>
+
+              <label class="fieldset">
+                <span class="label-text text-xs">role</span>
+                <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum —
+                      e menos ainda pelo nível de acesso, que nem chega aqui. --%>
+                <select name="papel" class="select select-sm select-bordered" required>
+                  <option value="">choose…</option>
+                  <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
+                    {papel.name}
+                  </option>
+                </select>
+              </label>
+
+              <label class="fieldset">
+                <span class="label-text text-xs">assumed the role on</span>
+                <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
+                      não sabe desde quando a pessoa está na equipe — carimbar hoje sem
+                      permitir correção afirmaria algo falso para quem entrou há um ano.
+                      Esvaziar é permitido, e significa DESCONHECIDO. --%>
+                <input
+                  type="date"
+                  name="started_at"
+                  value={Date.to_iso8601(Date.utc_today())}
+                  class="input input-sm input-bordered"
+                />
+              </label>
+
+              <.button type="submit" variant="primary">Confirm</.button>
+            </form>
+          </li>
+        </ul>
+
+        <p class="text-xs opacity-60">
+          Leaving the date empty is allowed, and means <strong>unknown</strong>
+          — never today. The platform does not guess when someone took a role on.
+        </p>
+      </section>
 
       <div class="alert text-sm">
         <div>
