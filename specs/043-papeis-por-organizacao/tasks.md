@@ -133,13 +133,13 @@
 
 ## Fase 5 — Fechamento
 
-- [ ] T017 Quality gates verdes — [#499](https://github.com/The-Band-Solution/theband/issues/499)
+- [x] T017 Quality gates verdes — [#499](https://github.com/The-Band-Solution/theband/issues/499)
   - **Pronta quando**: todas as tarefas de implementação concluídas
   - **Descrição**: `mix gates` — os treze, e **nunca** com `| tail`: o veredito é o código de saída, e o pipe devolve o do `tail`. Lição L23
   - **Feita quando**: o comando sai com código 0
   - **Teste**: `mix gates > /tmp/g.log 2>&1; ec=$?; tail -30 /tmp/g.log; exit $ec`
 
-- [ ] T018 Percorrer o quickstart a mão — [#500](https://github.com/The-Band-Solution/theband/issues/500)
+- [x] T018 Percorrer o quickstart a mão — [percurso-t018.md](./percurso-t018.md) — [#500](https://github.com/The-Band-Solution/theband/issues/500)
   - **Pronta quando**: T017 concluída
   - **Descrição**: os oito passos de [quickstart.md](./quickstart.md), incluindo os que nenhuma suíte cobre — a `SC-003` contra o dado real das 101, e se a frase da equipe vazia **ensina** quem nunca leu a spec
   - **Feita quando**: os oito passos produziram o esperado, e o que divergiu virou defeito registrado ou correção de spec

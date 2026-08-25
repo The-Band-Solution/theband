@@ -226,7 +226,9 @@ Pedido da pessoa mantenedora, 2026-08-24: *"guarde quando uma pessoa assume um p
 
 - **SC-001**: Numa organização recém-observada, quem administra encontra os quatro papéis do Scrum **sem cadastrar nada** — zero passos antes de poder promover.
 - **SC-002**: Promover uma evidência leva **menos de trinta segundos**, e o resultado aparece na tela da equipe na leitura seguinte.
-- **SC-003**: Das **101 evidências** medidas em 2026-08-24, **100%** podem ser promovidas sem nenhum cadastro prévio de papel — inclusive as **33 com nível de acesso nulo**, porque o nível não participa da promoção.
+- **SC-003**: Das 101 evidências, as **97 vigentes** podem ser promovidas sem nenhum cadastro prévio de papel — inclusive as com nível de acesso nulo, porque o nível não participa da promoção.
+
+  > **Corrigido em 2026-08-25, ao percorrer a T018.** A versão anterior dizia "das 101, 100%". Medido: `total=101 · encerradas=4 · pendentes=97`. As quatro têm `no_longer_observed_at` preenchido — a origem parou de mostrar aquelas participações —, e a `FR-010` manda **não** oferecê-las. Não são promovíveis **por desenho**, e o critério que dizia 100% de 101 exigiria violar a própria regra.
 - **SC-004**: Um papel declarado na organização A **não aparece** em nenhuma listagem da organização B — verificável abrindo as duas.
 - **SC-005**: Nenhum papel vem pré-selecionado, por critério nenhum. Verificável: em toda evidência, o campo de papel começa **vazio**.
 - **SC-005a**: O nível de acesso da origem **não aparece** na tela de promoção. Verificável procurando `MAINTAINER` e `MEMBER` no que ela renderiza: deve ser **zero**.
