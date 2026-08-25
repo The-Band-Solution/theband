@@ -64,6 +64,18 @@ com histórico de vínculo também não deveria sumir. Ocultar é a operação.
 @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
 ```
 
+O quarto argumento é o autor. A **data de início** vai nas opções, e é `nil` quando quem
+promove não sabe:
+
+```elixir
+promote_evidence(tenant, evidence_id, papel, actor_id, started_at: ~D[2026-03-01])
+promote_evidence(tenant, evidence_id, papel, actor_id)   # sem data — desconhecido
+```
+
+**`nil` é `nil`, e nunca a data de hoje** — `FR-018`. E `started_at` **nunca** é derivado de
+`observed_at` da evidência: aquilo é quando a coleta viu, não quando a pessoa entrou
+(`FR-019`).
+
 **O papel escolhido é tupla marcada** porque o catálogo pode não ter linha ainda. Receber só
 um `id` obrigaria a tela a materializar antes de promover — e materializar sem promover
 deixaria lixo se a promoção falhasse.
@@ -76,6 +88,19 @@ Os quatro erros são **valores distintos**, e cada um vira frase diferente na te
 | `:no_longer_observed` | a pessoa não está mais nesta equipe na origem |
 | `:role_from_another_organization` | este papel é de outra organização — `FR-008` |
 | `:not_found` | a evidência não existe |
+
+## `EO.rename_role/4`
+
+```elixir
+@spec rename_role(Tenant.t(), Ecto.UUID.t(), String.t(), Ecto.UUID.t()) ::
+        {:ok, OrganizationalRole.t()} | {:error, :not_found | :from_catalog}
+```
+
+Renomeia um papel **declarado**. `{:error, :from_catalog}` para papel do catálogo — o nome
+vem da rede, e editá-lo aqui produziria divergência silenciosa com o YAML (`FR-022`).
+
+**Não existe `change_role_code`.** O código é a identidade; trocá-lo faria os vínculos
+existentes apontarem para outra coisa sem que nada avisasse (`FR-021`).
 
 ## `EO.pending_evidence/2`
 

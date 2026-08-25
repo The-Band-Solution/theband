@@ -70,6 +70,8 @@ Quem administra vê as evidências coletadas — **pessoa e equipe** — e **con
 **Acceptance Scenarios**:
 
 1. **Dado** uma evidência não promovida, **quando** quem administra escolhe um papel e confirma, **então** o vínculo é criado com **quem confirmou e quando**, e a evidência passa a apontar para ele.
+1a. **Dado** a mesma promoção, **quando** quem administra informa que a pessoa assumiu o papel em março, **então** o vínculo grava **março** como início — e a data do registro continua sendo hoje, separada.
+1b. **Dado** quem administra não sabe desde quando, **quando** deixa a data em branco, **então** o vínculo é criado **sem** data de início — e nenhuma data é inventada.
 2. **Dado** uma evidência já promovida, **quando** a lista é aberta, **então** ela aparece como resolvida, e não é oferecida de novo.
 3. **Dado** uma evidência da equipe da organização A, **quando** quem administra escolhe um papel da organização B, **então** a plataforma **recusa** — o papel do vínculo tem de ser da mesma organização da equipe.
 4. **Dado** que nenhuma evidência foi promovida, **quando** a tela da equipe é aberta, **então** ela diz **quantas** evidências estão esperando confirmação — e não mostra a equipe como se não tivesse ninguém.
@@ -178,6 +180,32 @@ importa é o pertencimento, e ela está presente nas 101.
 dado verdadeiro que outras telas já mostram — a da equipe e a da pessoa. O que esta feature
 proíbe é **usá-lo para decidir papel**, inclusive mostrando-o onde a decisão acontece.
 
+### Quando a pessoa assumiu o papel
+
+Pedido da pessoa mantenedora, 2026-08-24: *"guarde quando uma pessoa assume um papel"*.
+
+- **FR-016**: O vínculo MUST gravar **quando a pessoa assumiu o papel**, e essa data MUST ser distinta da data em que o registro foi feito.
+- **FR-017**: A data de início MUST ser **editável por quem promove**, e MAY vir preenchida com a data corrente como ponto de partida. A origem **não sabe** desde quando a pessoa está na equipe — carimbar a data corrente sem permitir correção afirmaria algo falso para quem entrou há um ano.
+- **FR-018**: A data de início MAY ficar **em branco**, e branco significa **desconhecido** — nunca a data de hoje. Medida que dependa dela MUST excluir os vínculos sem data e MUST dizer **quantos** excluiu.
+- **FR-019**: A data em que a observação da evidência ocorreu MUST NOT ser usada como data de início. Ela diz **quando a coleta viu**, não quando a pessoa entrou — as 101 evidências têm `observed_at` entre 2026-08-09 e 2026-08-14, que é quando a plataforma foi ligada.
+
+> **As três datas, e por que nenhuma substitui a outra**
+>
+> | data | o que significa |
+> |---|---|
+> | início do vínculo | quando a pessoa **assumiu o papel** — o fato |
+> | registro | quando alguém **gravou** — automático, já existe |
+> | observação da evidência | quando a **coleta viu** — não serve, e a `FR-019` proíbe |
+>
+> Colapsar as duas primeiras apagaria a distinção entre o que aconteceu e o que foi
+> declarado, que é a distinção que a plataforma inteira sustenta.
+
+### Editar um papel declarado
+
+- **FR-020**: O **nome** de um papel declarado MAY ser editado, com autor e data da edição.
+- **FR-021**: O **código** MUST NOT ser editado. Ele é a identidade, e trocá-lo faria os vínculos existentes apontarem para outra coisa sem que nada avisasse.
+- **FR-022**: Papel do catálogo MUST NOT ter nome nem código editados. Ambos vêm da rede, e editá-los aqui produziria divergência silenciosa com o YAML.
+
 ### A tela
 
 - **FR-014**: A tela da equipe MUST dizer **quantas evidências esperam confirmação**, e MUST NOT mostrar equipe sem membro como se ninguém pertencesse a ela — são coisas diferentes.
@@ -205,6 +233,8 @@ proíbe é **usá-lo para decidir papel**, inclusive mostrando-o onde a decisão
 - **SC-006**: Depois de promovidas as evidências de uma equipe, as medidas de nível Equipe passam a calcular para ela — o que hoje **nenhuma** faz.
 - **SC-007**: A tela da equipe sem membros distingue *"nenhuma evidência"* de *"N evidências esperando confirmação"*. Nunca mostra as duas com a mesma frase.
 - **SC-008**: Uma pessoa com dois papéis numa equipe conta como **uma** pessoa em toda contagem de tamanho de equipe — verificável comparando a contagem com o número de vínculos, que serão diferentes.
+- **SC-009**: Nenhum vínculo recebe data de início igual à data de observação da evidência. Verificável comparando as duas colunas: a coincidência sistemática seria o defeito que a `FR-019` proíbe.
+- **SC-010**: Vínculo com data de início em branco é contado e **nomeado** por toda medida que dependa dela — nunca silenciosamente excluído, e nunca preenchido com a data de hoje.
 
 ---
 

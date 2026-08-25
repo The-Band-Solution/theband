@@ -86,6 +86,30 @@ O que esta feature acrescenta é a `FR-006c`, que é de **leitura**:
 Uma pessoa com dois papéis é **uma** pessoa na equipe. Somar vínculos faria a equipe parecer
 maior — erro que passa despercebido porque o número fica plausível.
 
+### As datas do vínculo
+
+| coluna | estado | o que é |
+|---|---|---|
+| `started_at` | **existe**, nulável | quando a pessoa **assumiu o papel** — o fato. Preenchido por quem promove, e **nulo é desconhecido** |
+| `ended_at` | existe, nulável | quando deixou |
+| `inserted_at` | existe | quando alguém **gravou** — automático |
+
+**A coluna que pede o pedido já existe.** O que falta é a tela preenchê-la, e a regra de que
+nulo é desconhecido em vez de hoje.
+
+E `observed_at` da evidência **não entra aqui** — `FR-019`. As 101 evidências têm
+`observed_at` entre 2026-08-09 e 2026-08-14, que é quando a plataforma foi ligada, não
+quando as pessoas entraram nas equipes.
+
+### As colunas de edição do papel
+
+| coluna | estado | o que é |
+|---|---|---|
+| `updated_by_user_id` | **nova**, nulável | quem renomeou por último — `FR-020` |
+
+O `code` **não** tem coluna de edição porque não é editável: é a identidade, e trocá-lo faria
+os vínculos apontarem para outra coisa (`FR-021`).
+
 ### A constraint que falta
 
 ```
