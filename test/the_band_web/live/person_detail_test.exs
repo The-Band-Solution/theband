@@ -84,7 +84,7 @@ defmodule TheBandWeb.PersonDetailTest do
     end
 
     test "a explicação MUDA quando existe papel cadastrado", ctx do
-      papel(ctx.tenant, "scrum_master")
+      papel(ctx.tenant, organization_fixture(ctx.tenant, "papeis"), "scrum_master")
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
 
@@ -419,15 +419,20 @@ defmodule TheBandWeb.PersonDetailTest do
     )
   end
 
-  defp papel(tenant, code) do
+  # Inserção direta: o teste quer a linha, não o fluxo. Desde a issue #317 a linha exige
+  # `organization_id` e **uma origem** — aqui vale o conceito da rede, porque `scrum_master` é
+  # um dos quatro que a SRO nomeia.
+  defp papel(tenant, organization, code) do
     Repo.insert_all("eo_organizational_roles", [
       %{
         id: Ecto.UUID.bingenerate(),
         tenant_id: Ecto.UUID.dump!(tenant.id),
+        organization_id: Ecto.UUID.dump!(organization.id),
         internal_id: code,
         record_version: 1,
         code: code,
         name: String.capitalize(code),
+        catalog_concept_id: "sro.#{code}_role",
         inserted_at: DateTime.utc_now(:second),
         updated_at: DateTime.utc_now(:second)
       }

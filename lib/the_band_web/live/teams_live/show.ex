@@ -80,6 +80,97 @@ defmodule TheBandWeb.TeamsLive.Show do
     {:noreply, carregar_projetos(socket)}
   end
 
+  def handle_event("promover", params, socket) do
+    escolhas = escolhas_de(params)
+
+    resultados =
+      Enum.map(escolhas, fn {evidence_id, papel, data} ->
+        EO.promote_evidence(
+          socket.assigns.current_tenant,
+          evidence_id,
+          papel_escolhido(papel),
+          socket.assigns.current_user.id,
+          started_at: data_ou_nil(data)
+        )
+      end)
+
+    {:noreply,
+     socket
+     |> put_flash(tipo_do_resultado(resultados), frase_do_resultado(resultados, params))
+     |> load()}
+  end
+
+  # As linhas escolhidas, na forma `{evidence_id, papel, data}`.
+  #
+  # `apenas` diz o que o botão pediu: um id de evidência, ou `"todas"`. E **linha sem papel
+  # escolhido não entra** — é o que faz "confirmar todas" pular em vez de recusar.
+  defp escolhas_de(%{"apenas" => "todas"} = params) do
+    papeis = Map.get(params, "papel", %{})
+    datas = Map.get(params, "started_at", %{})
+
+    papeis
+    |> Enum.reject(fn {_id, papel} -> papel in [nil, ""] end)
+    |> Enum.map(fn {id, papel} -> {id, papel, Map.get(datas, id)} end)
+  end
+
+  defp escolhas_de(%{"apenas" => id} = params) do
+    papel = get_in(params, ["papel", id])
+
+    if papel in [nil, ""],
+      do: [],
+      else: [{id, papel, get_in(params, ["started_at", id])}]
+  end
+
+  defp escolhas_de(_), do: []
+
+  # **Nenhum desfecho some.** Confirmadas, puladas e recusadas aparecem na mesma frase — e a
+  # contagem de puladas é o que impede quem clicou em "confirmar todas" de achar que
+  # confirmou tudo.
+  defp frase_do_resultado([], %{"apenas" => "todas"} = params) do
+    quantas = params |> Map.get("papel", %{}) |> map_size()
+    "Nothing confirmed: no role was chosen in any of the #{quantas} rows."
+  end
+
+  defp frase_do_resultado([], _params), do: "Choose a role before confirming."
+
+  defp frase_do_resultado(resultados, params) do
+    ok = Enum.count(resultados, &match?({:ok, _}, &1))
+    erros = Enum.reject(resultados, &match?({:ok, _}, &1))
+
+    puladas =
+      case params do
+        %{"apenas" => "todas"} ->
+          params |> Map.get("papel", %{}) |> map_size() |> Kernel.-(length(resultados))
+
+        _ ->
+          0
+      end
+
+    [
+      "#{ok} membership(s) recorded",
+      puladas > 0 && "#{puladas} skipped for having no role chosen",
+      erros != [] && "#{length(erros)} refused: #{Enum.map_join(erros, "; ", &motivo/1)}"
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" · ")
+  end
+
+  # Erro entre acertos ainda é erro: a cor da mensagem segue o pior desfecho, e não o
+  # primeiro. Uma linha recusada no meio de nove aceitas passaria batida em verde.
+  defp tipo_do_resultado(resultados) do
+    if Enum.any?(resultados, &(not match?({:ok, _}, &1))), do: :error, else: :info
+  end
+
+  # Cada recusa vira uma FRASE. Um código de motivo na tela obrigaria quem lê a procurar o
+  # que ele significa.
+  defp motivo({:error, :role_from_another_organization}),
+    do: "that role belongs to another organisation"
+
+  defp motivo({:error, :already_promoted}), do: "already became a membership"
+  defp motivo({:error, :no_longer_observed}), do: "the source no longer shows this person here"
+  defp motivo({:error, :already_allocated}), do: "this person already holds that role here"
+  defp motivo({:error, outro}), do: inspect(outro)
+
   defp caminho(socket, id, mudancas),
     do: ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas)}"
 
@@ -107,8 +198,51 @@ defmodule TheBandWeb.TeamsLive.Show do
     )
     |> assign(encontradas: EO.count_team_members(tenant, team.id, opts))
     |> assign(pending_role: EO.count_evidence_pending_role(tenant, team_id: team.id))
+    |> carregar_promocao()
     |> carregar_competencias()
   end
+
+  # Campo vazio é **desconhecido**, e nunca a data de hoje. Inventá-la afirmaria que a pessoa
+  # assumiu o papel agora, e o que se sabe é que ninguém disse quando.
+  defp data_ou_nil(""), do: nil
+  defp data_ou_nil(nil), do: nil
+
+  defp data_ou_nil(texto) do
+    case Date.from_iso8601(texto) do
+      {:ok, data} -> DateTime.new!(data, ~T[00:00:00], "Etc/UTC")
+      _ -> nil
+    end
+  end
+
+  # Issue #317: as evidências que esperam confirmação, e os papéis com que confirmá-las.
+  #
+  # `pending_evidence/2` **não devolve** o nível de acesso da plataforma. A garantia é do
+  # contrato, e não desta função: nenhum template pode exibir o que não chega até ele.
+  defp carregar_promocao(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    papeis =
+      if team.organization_id,
+        do:
+          tenant
+          |> EO.list_organization_roles(team.organization_id)
+          |> Enum.reject(& &1.hidden_at),
+        else: []
+
+    socket
+    |> assign(pendentes: EO.pending_evidence(tenant, team.id))
+    |> assign(papeis_para_promover: papeis)
+  end
+
+  # O valor do `<option>` carrega a ORIGEM junto do identificador, porque papel do catálogo
+  # ainda não usado **não tem id**. Sem isso, a tela teria de materializar antes de promover —
+  # e materializar sem promover deixaria lixo se a promoção falhasse.
+  defp valor_do_papel(%{id: nil, origem: {:catalogo, conceito}}), do: "catalogo:" <> conceito
+  defp valor_do_papel(%{id: id}), do: "existente:" <> id
+
+  defp papel_escolhido("catalogo:" <> conceito), do: {:catalogo, conceito}
+  defp papel_escolhido("existente:" <> id), do: {:existente, id}
 
   # Feature 029: a leitura de competências da equipe — contada dos perfis vigentes,
   # nunca gerada. Carregada no load porque a evolução usa o mesmo histórico.
@@ -272,6 +406,94 @@ defmodule TheBandWeb.TeamsLive.Show do
           {member.last_observed_at}
         </:col>
       </.data_table>
+
+      <%!-- ═══ A PROMOÇÃO — issue #317 ═══
+            Seção separada da tabela de membros, e a separação é o ponto. Ali o nível de
+            acesso aparece **rotulado como acesso**, porque é observação. Aqui ele NÃO
+            aparece: é onde a decisão de papel acontece, e exibi-lo faria dele uma dica.
+            A garantia é do contrato — `pending_evidence/2` não devolve o campo. --%>
+      <section :if={@pendentes != []} class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">
+          {length(@pendentes)} participation(s) waiting for confirmation
+        </h3>
+        <p class="text-sm opacity-70">
+          The platform observed that these people belong to this team. It does not know which
+          <strong>role</strong>
+          they hold — no source provides that. Choose the role and confirm; the record keeps who
+          confirmed it and when.
+        </p>
+
+        <%!-- **Um formulário só**, e não um por linha. É o que permite confirmar várias de
+              uma vez sem espelhar o estado dos seletores em `assigns` — o navegador já
+              guarda o que foi escolhido, e duplicar isso no servidor criaria duas fontes que
+              podem discordar.
+
+              O botão diz QUAL linha: `name="apenas"` com o id da evidência, ou `"todas"`. --%>
+        <form phx-submit="promover" id="promover" class="space-y-2">
+          <ul class="space-y-2">
+            <li :for={p <- @pendentes} class="card bg-base-200 p-3">
+              <div class="flex flex-wrap items-end gap-2">
+                <div class="min-w-40 flex-1">
+                  <div class="font-medium">{p.person_name}</div>
+                  <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
+                </div>
+
+                <label class="fieldset">
+                  <span class="label-text text-xs">role</span>
+                  <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum
+                        — e menos ainda pelo nível de acesso, que nem chega aqui.
+
+                        Sem `required`: com o botão de confirmar todas, linha sem papel é
+                        PULADA, e não impedimento. `required` bloquearia o envio inteiro por
+                        causa de uma linha que ninguém quis preencher. --%>
+                  <select name={"papel[#{p.id}]"} class="select select-sm select-bordered">
+                    <option value="">choose…</option>
+                    <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
+                      {papel.name}
+                    </option>
+                  </select>
+                </label>
+
+                <label class="fieldset">
+                  <span class="label-text text-xs">assumed the role on</span>
+                  <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
+                        não sabe desde quando a pessoa está na equipe — carimbar hoje sem
+                        permitir correção afirmaria algo falso para quem entrou há um ano.
+                        Esvaziar é permitido, e significa DESCONHECIDO. --%>
+                  <input
+                    type="date"
+                    name={"started_at[#{p.id}]"}
+                    value={Date.to_iso8601(Date.utc_today())}
+                    class="input input-sm input-bordered"
+                  />
+                </label>
+
+                <button type="submit" name="apenas" value={p.id} class="btn btn-primary btn-sm">
+                  Confirm
+                </button>
+              </div>
+            </li>
+          </ul>
+
+          <%!-- Confirmar todas: só as linhas COM papel escolhido. As demais são puladas, e a
+                mensagem diz quantas — pular em silêncio faria quem clicou achar que confirmou
+                tudo. --%>
+          <div class="flex flex-wrap items-center gap-3 pt-1">
+            <button type="submit" name="apenas" value="todas" class="btn btn-primary btn-sm">
+              Confirm all
+            </button>
+            <span class="text-xs opacity-70">
+              Confirms only the rows where a role was chosen. The others are left as they are,
+              and the result says how many.
+            </span>
+          </div>
+        </form>
+
+        <p class="text-xs opacity-60">
+          Leaving the date empty is allowed, and means <strong>unknown</strong>
+          — never today. The platform does not guess when someone took a role on.
+        </p>
+      </section>
 
       <div class="alert text-sm">
         <div>
