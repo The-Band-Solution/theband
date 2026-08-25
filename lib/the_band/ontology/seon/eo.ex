@@ -54,6 +54,9 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate list_organization_roles(tenant, organization_id), to: Queries
   defdelegate role_by_concept(tenant, organization_id, concept_id), to: Queries
   defdelegate team_size(tenant, team_id), to: Queries
+  defdelegate pending_evidence(tenant, team_id), to: Queries
+  defdelegate fetch_evidence(tenant, evidence_id), to: Queries
+  defdelegate fetch_team(tenant, team_id), to: Queries
   defdelegate fetch_role(tenant, role_id), to: Queries
   defdelegate suggested_roles(), to: Queries
   defdelegate count_memberships(tenant), to: Queries
@@ -71,6 +74,9 @@ defmodule TheBand.Ontology.SEON.EO do
   # Ocultar MARCA, e nunca apaga. Papel do catálogo não é apagável: a rede continua nomeando-o.
   defdelegate hide_role(tenant, role_id, actor_id), to: Commands
   defdelegate unhide_role(tenant, role_id, actor_id), to: Commands
+
+  # Promover é ato de UMA PESSOA, com autor gravado. A plataforma não promove sozinha.
+  defdelegate promote_evidence(tenant, evidence_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate allocate(tenant, attrs), to: Commands
   defdelegate end_allocation(tenant, membership_id, quando), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries

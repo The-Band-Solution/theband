@@ -672,6 +672,57 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   # ------------------------------------------------------- papéis e alocação (feature 021)
 
   @doc """
+  As evidências desta equipe **esperando confirmação** — issue #317.
+
+  ## O que ela devolve, e o que ela NÃO devolve
+
+  Pessoa e equipe. **Não devolve `platform_access_level`.**
+
+  A garantia fica aqui, no contrato, e não na tela: se o valor não chega à camada de
+  apresentação, nenhum template pode exibi-lo por descuido. `MAINTAINER`, `MEMBER` e nulo
+  afirmam **a mesma coisa** — que a pessoa é membro da equipe —, e a diferença entre eles é
+  permissão na ferramenta, não função.
+
+  Exibi-lo ao lado de um seletor de papel faria dele uma dica, por mais que o texto negasse.
+  E ele não acrescenta nada à decisão: das 101 evidências medidas em 2026-08-24, **33 têm o
+  nível nulo** e sustentam a promoção exatamente como as outras 68.
+
+  `EO.Constraints.platform_access_level_is_not_a_role/1` já recusa o nível como papel desde a
+  feature 021, com a justificativa medida: promovê-lo faria `CQ12`, `CQ14` e `CQ16` devolverem
+  **resposta falsa em vez de nenhuma**.
+
+  ## Quem fica de fora
+
+  Evidência **já promovida** — `promoted_membership_id` preenchido — e evidência cuja
+  observação terminou. A segunda continua existindo, e o vínculo que veio dela permanece; ela
+  só não é oferecida de novo.
+  """
+  @spec pending_evidence(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def pending_evidence(%Tenant{id: tenant_id}, team_id) do
+    Repo.all(
+      from e in TeamMembershipEvidence,
+        join: p in Person,
+        on: p.id == e.person_id,
+        join: t in Team,
+        on: t.id == e.team_id,
+        where:
+          e.tenant_id == type(^tenant_id, :binary_id) and
+            e.team_id == type(^team_id, :binary_id) and
+            is_nil(e.promoted_membership_id) and is_nil(e.no_longer_observed_at),
+        order_by: [asc: p.name],
+        select: %{
+          id: e.id,
+          person_id: p.id,
+          person_name: p.name,
+          person_login: p.login,
+          team_id: t.id,
+          team_name: t.name,
+          organization_id: t.organization_id
+        }
+    )
+  end
+
+  @doc """
   Os papéis **desta organização**, compostos com o catálogo da rede — issue #317.
 
   Nome próprio, e não `list_roles/2`: aquela é da feature 021 e devolve as linhas do tenant
@@ -752,6 +803,32 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   rescue
     # Id que não é UUID vem da URL ou de formulário adulterado, e a resposta é a mesma: não
     # encontrado. Levantar derrubaria a tela por dado de entrada.
+    Ecto.Query.CastError -> {:error, :not_found}
+  end
+
+  @doc "A evidência daquele id, com escopo de tenant — issue #317."
+  @spec fetch_evidence(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, TeamMembershipEvidence.t()} | {:error, :not_found}
+  def fetch_evidence(%Tenant{id: tenant_id}, evidence_id) do
+    case Repo.one(
+           from e in TeamMembershipEvidence,
+             where: e.tenant_id == ^tenant_id and e.id == ^evidence_id
+         ) do
+      nil -> {:error, :not_found}
+      evidencia -> {:ok, evidencia}
+    end
+  rescue
+    Ecto.Query.CastError -> {:error, :not_found}
+  end
+
+  @doc "A equipe daquele id, com escopo de tenant. Traz `organization_id`, que a promoção usa."
+  @spec fetch_team(Tenant.t(), Ecto.UUID.t()) :: {:ok, Team.t()} | {:error, :not_found}
+  def fetch_team(%Tenant{id: tenant_id}, team_id) do
+    case Repo.one(from t in Team, where: t.tenant_id == ^tenant_id and t.id == ^team_id) do
+      nil -> {:error, :not_found}
+      equipe -> {:ok, equipe}
+    end
+  rescue
     Ecto.Query.CastError -> {:error, :not_found}
   end
 

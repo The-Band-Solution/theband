@@ -775,6 +775,89 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
+  Promove uma evidência a vínculo — issue #317.
+
+  ## Quem promove é uma pessoa, e o autor fica gravado
+
+  A plataforma **não** promove sozinha. Nenhuma origem fornece papel organizacional, e a
+  `FR-007` da feature 021 recusa observá-lo — o que existe é a evidência de que a pessoa
+  pertence à equipe, e o papel é decisão de quem administra.
+
+  ## O papel é tupla marcada, e o motivo é a ordem
+
+  `{:catalogo, conceito}` materializa a linha **dentro desta operação**. Receber só um `id`
+  obrigaria a tela a materializar antes de promover — e materializar sem promover deixaria
+  lixo se a promoção falhasse.
+
+  ## `started_at` nulo é nulo
+
+  Quando quem promove não sabe desde quando, a data fica **em branco**. Nunca a data de hoje:
+  inventá-la afirmaria que a pessoa assumiu o papel agora.
+
+  E **nunca** derivada de `observed_at` da evidência. Aquilo é quando a coleta viu — as 101
+  evidências têm `observed_at` entre 2026-08-09 e 2026-08-14, que é quando a plataforma foi
+  ligada, não quando as pessoas entraram nas equipes.
+
+  ## O papel tem de ser da organização da equipe
+
+  Não é expressável em `CHECK` porque envolve duas tabelas. A recusa é nomeada, e a tela diz
+  o porquê.
+  """
+  @spec promote_evidence(Tenant.t(), Ecto.UUID.t(), papel_escolhido(), Ecto.UUID.t(), keyword()) ::
+          {:ok, TeamMembership.t()}
+          | {:error,
+             :not_found
+             | :already_promoted
+             | :no_longer_observed
+             | :role_from_another_organization
+             | :not_in_catalog
+             | :already_allocated
+             | Ecto.Changeset.t()}
+  def promote_evidence(%Tenant{} = tenant, evidence_id, papel, actor_id, opts \\ []) do
+    with {:ok, evidencia} <- Queries.fetch_evidence(tenant, evidence_id),
+         :ok <- promovivel(evidencia),
+         {:ok, equipe} <- Queries.fetch_team(tenant, evidencia.team_id),
+         {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel) do
+      allocate(tenant, %{
+        person_id: evidencia.person_id,
+        team_id: evidencia.team_id,
+        organizational_role_id: role_id,
+        # Nulo quando quem promove não sabe. Nunca `observed_at`, nunca hoje.
+        started_at: Keyword.get(opts, :started_at),
+        declared_by_user_id: actor_id,
+        evidence_id: evidence_id
+      })
+    end
+  end
+
+  @typedoc "O papel escolhido: uma linha que existe, ou um conceito do catálogo a materializar."
+  @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
+
+  defp promovivel(%{promoted_membership_id: id}) when not is_nil(id),
+    do: {:error, :already_promoted}
+
+  defp promovivel(%{no_longer_observed_at: at}) when not is_nil(at),
+    do: {:error, :no_longer_observed}
+
+  defp promovivel(_), do: :ok
+
+  # A linha do catálogo nasce **aqui**, e não antes: materializar sem promover deixaria lixo se
+  # a promoção falhasse.
+  defp resolver_papel(tenant, organization_id, {:catalogo, conceito}) do
+    with {:ok, papel} <- materialize_catalog_role(tenant, organization_id, conceito),
+         do: {:ok, papel.id}
+  end
+
+  defp resolver_papel(tenant, organization_id, {:existente, role_id}) do
+    with {:ok, papel} <- Queries.fetch_role(tenant, role_id) do
+      # **A organização do papel tem de ser a da equipe.** Duas tabelas, então não é `CHECK`.
+      if papel.organization_id == organization_id,
+        do: {:ok, papel.id},
+        else: {:error, :role_from_another_organization}
+    end
+  end
+
+  @doc """
   Encerra a alocação gravando a data de fim (FR-010).
 
   **Não apaga.** A pessoa desempenhou aquele papel, e isso continua verdade depois de ela sair.
