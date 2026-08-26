@@ -16,6 +16,7 @@ modules:
   - projects_and_stakeholders
   - processes_and_activities
   - artifacts_and_resources
+  - activity_start_criterion
 provenance:
   source_type: reference_ontology
   reference: "Tese, Seção 2.2.2.1 (Figuras 16 e 17)"
