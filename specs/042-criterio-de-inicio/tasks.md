@@ -13,19 +13,19 @@ A `FR-007` opera sobre `spo_project_boards.linked_at`, criada na feature 041. O 
 
 O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gates reprovam se o YAML faltar, e o esquema referencia um conceito que precisa existir.
 
-- [ ] T001 Declarar o critério na rede — [#459](https://github.com/The-Band-Solution/theband/issues/459)
+- [x] T001 Declarar o critério na rede — [#459](https://github.com/The-Band-Solution/theband/issues/459)
   - **Pronta quando**: nada além do repositório — `SPO` já declara `dependencies: [ufo, eo]`, conferido em research.md R1
   - **Descrição**: criar `priv/knowledge_base/ontology/seon/spo/modules/activity_start_criterion.yaml` com `spo.activity_start_criterion` classificado como `ufo_category: social_object`, `ontouml_stereotype: kind`. A definição MUST registrar que qual evento marca o início é **convenção social** e não fato observado — FR-001, research.md R2. Acrescentar o módulo à lista `modules:` de `ontology.yaml`
   - **Feita quando**: `mix knowledge.validate` aceita a base; o conceito aparece em `docs/ontology/concept-index.md` depois de regenerar; a contagem de conceitos da rede sobe em um
   - **Teste**: `mix knowledge.validate` sai com código 0, e `grep spo.activity_start_criterion docs/ontology/spo.md` encontra a definição
 
-- [ ] T002 Declarar as relações do critério — [#460](https://github.com/The-Band-Solution/theband/issues/460)
+- [x] T002 Declarar as relações do critério — [#460](https://github.com/The-Band-Solution/theband/issues/460)
   - **Pronta quando**: T001 concluída
   - **Descrição**: no mesmo módulo, `spo.criterion_recognises` (critério → `ufo.event`, muitos-para-um) e as relações de alvo. **A relação com o quadro NÃO existe na rede** — `observed_projects` é tabela de coleta, não conceito de domínio —, e isso MUST ficar escrito como limitação declarada no YAML, e não contornado com um conceito inventado. FR-002, data-model.md
   - **Feita quando**: as relações aparecem no grafo; a limitação sobre o quadro está escrita no YAML, com a razão
   - **Teste**: `mix knowledge.graph` gera sem erro de referência pendente, e a limitação é legível em `docs/ontology/spo.md`
 
-- [ ] T003 Regenerar a documentação derivada — [#461](https://github.com/The-Band-Solution/theband/issues/461)
+- [x] T003 Regenerar a documentação derivada — [#461](https://github.com/The-Band-Solution/theband/issues/461)
   - **Pronta quando**: T001 e T002 concluídas
   - **Descrição**: `.venv/bin/python scripts/generate_docs.py`. Commitar o que ele produz. **Regenerar não é opcional** — a lição L68 e a issue #450 mostram o custo: a página afirmou 12 ontologias por nove features enquanto a base tinha 13
   - **Feita quando**: `git status` fica limpo depois de rodar o gerador uma segunda vez
@@ -35,13 +35,13 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
 
 ## Fase 2 — Esquema (bloqueia todas as histórias)
 
-- [ ] T004 Criar a tabela do critério — [#462](https://github.com/The-Band-Solution/theband/issues/462)
+- [x] T004 Criar a tabela do critério — [#462](https://github.com/The-Band-Solution/theband/issues/462)
   - **Pronta quando**: T002 concluída (o PR #458 já foi mergeado)
   - **Descrição**: migração `spo_activity_start_criteria` conforme data-model.md — `tenant_id` obrigatório, `project_id` e `observed_project_id` ambos nulos, `event_type` cru, autor e data de declaração e de revogação. `event_type` **sem enum**: a origem nomeia os eventos, e congelar a lista faria a plataforma recusar um evento novo do GitHub como se fosse erro
   - **Feita quando**: `mix ecto.migrate` e `mix ecto.rollback` completam nos dois sentidos; o `@moduledoc` da migração diz por que o alvo é polimórfico e o que isso custa
   - **Teste**: `mix ecto.migrate && mix ecto.rollback && mix ecto.migrate` — a ida e a volta, não só a ida
 
-- [ ] T005 Impedir alvo duplo e critério vigente duplicado — [#463](https://github.com/The-Band-Solution/theband/issues/463)
+- [x] T005 Impedir alvo duplo e critério vigente duplicado — [#463](https://github.com/The-Band-Solution/theband/issues/463)
   - **Pronta quando**: T004 concluída
   - **Descrição**: `CHECK (num_nonnulls(project_id, observed_project_id) = 1)` e dois índices únicos **parciais sobre os vigentes** (`WHERE revoked_at IS NULL`). O parcial é o que permite redeclarar depois de revogar — um índice total impediria, e é o mesmo desenho de `spo_project_repositories`
   - **Feita quando**: inserir linha com os dois alvos é recusado pelo banco; inserir segundo critério vigente para o mesmo alvo é recusado; inserir depois de revogar o anterior é aceito
@@ -55,37 +55,37 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
 
 **Teste independente**: declarar num projeto sem quadros e conferir que as atividades dele ganham início — e que as de outro projeto continuam sem.
 
-- [ ] T006 [US1] Schema do critério — [#464](https://github.com/The-Band-Solution/theband/issues/464)
+- [x] T006 [US1] Schema do critério — [#464](https://github.com/The-Band-Solution/theband/issues/464)
   - **Pronta quando**: T005 concluída; `contracts/criterio.md` escrito
   - **Descrição**: `lib/the_band/ontology/seon/spo/schemas/activity_start_criterion.ex`, com changeset validando o alvo exclusivo e o `unique_constraint` nomeando os dois índices parciais. O `@moduledoc` explica por que o conceito é `social_object` — quem lê o schema não vai ler a spec
   - **Feita quando**: changeset com dois alvos é inválido; changeset sem alvo nenhum é inválido; changeset com um alvo é válido
   - **Teste**: casos de changeset no arquivo de teste da feature, os três estados do alvo
 
-- [ ] T007 [US1] Declarar e revogar — [#465](https://github.com/The-Band-Solution/theband/issues/465)
+- [x] T007 [US1] Declarar e revogar — [#465](https://github.com/The-Band-Solution/theband/issues/465)
   - **Pronta quando**: T006 concluída
   - **Descrição**: `lib/the_band/ontology/seon/spo/start_criterion.ex` com `declare_start_criterion/4` e `revoke_start_criterion/3`, conforme `contracts/criterio.md`. O alvo é **tupla marcada** — `{:project, id}` ou `{:board, id}` —, e redeclarar **revoga a anterior e cria a nova na mesma transação**, nunca `update`: a FR-010 manda preservar quem declarou antes. Tipo desconhecido devolve `{:error, :unknown_event_type}`, e não levanta — princípio VIII, erro previsto é retorno
   - **Feita quando**: declarar duas vezes deixa duas linhas, uma revogada; revogar preenche autor e data e não apaga; tipo inexistente devolve erro sem levantar
   - **Teste**: caso que declara, redeclara e conta as linhas — `Repo.aggregate(..., :count) == 2` com uma revogada. E caso que afirma `{:error, :unknown_event_type}` sem `rescue`
 
-- [ ] T008 [US1] Delegar na fachada SPO — [#466](https://github.com/The-Band-Solution/theband/issues/466)
+- [x] T008 [US1] Delegar na fachada SPO — [#466](https://github.com/The-Band-Solution/theband/issues/466)
   - **Pronta quando**: T007 concluída
   - **Descrição**: `defdelegate` em `lib/the_band/ontology/seon/spo.ex` — a fachada contém apenas delegação, ADR 0003. Foi exatamente isto que faltou na feature 041 e produziu `UndefinedFunctionError` com a função existindo
   - **Feita quando**: as funções respondem por `SPO.` e não só por `SPO.StartCriterion.`
   - **Teste**: os testes da feature chamam por `SPO.`, nunca pelo módulo interno
 
-- [ ] T009 [US1] Resolver o início em lote — [#467](https://github.com/The-Band-Solution/theband/issues/467)
+- [x] T009 [US1] Resolver o início em lote — [#467](https://github.com/The-Band-Solution/theband/issues/467)
   - **Pronta quando**: T007 concluída; `contracts/criterio.md` define o retorno
   - **Descrição**: `resolve_start/2` — recebe **lista** de issues, devolve mapa. Nunca uma issue por chamada: com 19.200 atividades a versão unitária é N+1, e a decisão 2 do plano só se sustenta em lote. O retorno carrega a **origem** junto do instante (`{:board, id, title}` ou `{:project, id, name}`), porque a FR-013 exige que a tela diga de onde o critério veio, e devolver só o `DateTime` tornaria isso impossível sem segunda consulta. Vale a **primeira** ocorrência do evento — FR-011
   - **Feita quando**: uma issue resolvida devolve instante **e** origem; o número de consultas não cresce com o número de issues; a segunda ocorrência do evento na mesma issue é ignorada
   - **Teste**: caso com 1 e com 50 issues afirmando o **mesmo número de consultas**, usando o mesmo padrão do teste de custo que `verification` já tem
 
-- [ ] T010 [US1] Nomear as três ausências — [#468](https://github.com/The-Band-Solution/theband/issues/468)
+- [x] T010 [US1] Nomear as três ausências — [#468](https://github.com/The-Band-Solution/theband/issues/468)
   - **Pronta quando**: T009 concluída
   - **Descrição**: `resolve_start/2` devolve `{:missing, :sem_criterio}`, `{:missing, {:criterio_ambiguo, quadros}}` e `{:missing, {:evento_nao_coletado, tipo}}` — **valores distintos, nunca `nil`**. `nil` colapsaria as três, e a FR-009 proíbe agregá-las. O ambíguo carrega os quadros com título e `linked_at`, porque a FR-016 manda nomeá-los
   - **Feita quando**: as três ausências são distinguíveis no retorno; o ambíguo traz os quadros em empate; nenhum caminho devolve `nil` para ausência
   - **Teste**: três casos, um por ausência, afirmando o valor exato — e um caso afirmando que **nenhuma** delas é `nil`
 
-- [ ] T011 [US1] Listar os tipos de evento com volume — [#469](https://github.com/The-Band-Solution/theband/issues/469)
+- [x] T011 [US1] Listar os tipos de evento com volume — [#469](https://github.com/The-Band-Solution/theband/issues/469)
   - **Pronta quando**: T007 concluída
   - **Descrição**: `collected_event_types/1` devolve os tipos que a coleta tem, com contagem, ordenados por volume — FR-012. **Não recomenda**: devolver "sugerido" faria a plataforma escolher com passos extras, e a FR-007 da feature 022 proíbe
   - **Feita quando**: a lista traz só tipos presentes em `spo_performed_project_activities` do tenant; cada um com sua contagem; nenhum campo de sugestão
