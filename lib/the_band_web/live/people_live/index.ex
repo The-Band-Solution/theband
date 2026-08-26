@@ -33,6 +33,9 @@ defmodule TheBandWeb.PeopleLive.Index do
     {:noreply,
      socket
      |> assign(show_automation: params["automacao"] != "nao")
+     # Issue #81: a organização escolhida vive no endereço junto do resto. Um link que
+     # filtra precisa continuar filtrando para quem o recebe.
+     |> assign(organizacao_id: params["organizacao"])
      |> Tabela.aplicar(params, @tabelas)
      |> load()}
   end
@@ -49,13 +52,38 @@ defmodule TheBandWeb.PeopleLive.Index do
 
     {:noreply,
      push_patch(socket,
-       to: ~p"/people?#{Tabela.query(socket, "people", [pagina: 1], automacao: automacao)}"
+       to:
+         ~p"/people?#{Tabela.query(socket, "people", [pagina: 1], extras(socket, automacao: automacao))}"
+     )}
+  end
+
+  # Trocar de organização volta à primeira página: a página 3 do filtro anterior quase
+  # nunca existe no novo, e mostrar "nenhum resultado" por causa disso seria mentir sobre a
+  # organização escolhida.
+  def handle_event("filtrar_organizacao", %{"organizacao" => id}, socket) do
+    org = if id == "", do: nil, else: id
+
+    {:noreply,
+     push_patch(socket,
+       to:
+         ~p"/people?#{Tabela.query(socket, "people", [pagina: 1], extras(socket, organizacao: org))}"
      )}
   end
 
   defp caminho(socket, id, mudancas) do
-    automacao = if socket.assigns.show_automation, do: nil, else: "nao"
-    ~p"/people?#{Tabela.query(socket, id, mudancas, automacao: automacao)}"
+    ~p"/people?#{Tabela.query(socket, id, mudancas, extras(socket, []))}"
+  end
+
+  # Os filtros que não são da tabela viajam juntos. `Keyword.merge` deixa quem chama
+  # sobrescrever — é o que permite trocar a organização sem perder o estado das automações.
+  defp extras(socket, mudancas) do
+    Keyword.merge(
+      [
+        automacao: if(socket.assigns.show_automation, do: nil, else: "nao"),
+        organizacao: socket.assigns.organizacao_id
+      ],
+      mudancas
+    )
   end
 
   @impl true
@@ -94,6 +122,31 @@ defmodule TheBandWeb.PeopleLive.Index do
         </label>
       </form>
 
+      <%!-- Issue #81: escolher uma organização e ver só o que é dela. Ver a origem em cada
+            linha responde "de onde veio"; filtrar responde "quem é daqui", que é a pergunta
+            que se faz na prática. --%>
+      <form
+        :if={@organizacoes != []}
+        id="filtro-organizacao"
+        phx-change="filtrar_organizacao"
+        class="mb-3"
+      >
+        <label class="fieldset">
+          <span class="label-text text-xs">organisation</span>
+          <select name="organizacao" class="select select-sm select-bordered">
+            <option value="">every organisation</option>
+            <option :for={o <- @organizacoes} value={o.id} selected={@organizacao_id == o.id}>
+              {o.login}
+            </option>
+          </select>
+        </label>
+        <p :if={@organizacao_id} class="mt-1 text-xs opacity-60">
+          A person reaches an organisation <strong>through a team</strong> — there is no direct
+          edge. Summing the counts of every organisation gives more than the total, because
+          someone in two organisations is in both; that is correct, and not a double count.
+        </p>
+      </form>
+
       <.data_table
         id="people"
         rows={@rows}
@@ -101,7 +154,7 @@ defmodule TheBandWeb.PeopleLive.Index do
         por_pagina={@por_pagina}
         total={@encontradas}
         onde="name and login"
-        vazio={empty_message(@tabelas["people"].busca, @has_any)}
+        vazio={empty_message(@tabelas["people"].busca, @organizacao_id, @has_any)}
       >
         <:col :let={person} field={:name} label="name">
           <%!-- O nome abre o detalhe **dentro da plataforma**, não na origem: o que interessa
@@ -171,6 +224,14 @@ defmodule TheBandWeb.PeopleLive.Index do
       |> then(fn opts ->
         if socket.assigns.show_automation, do: opts, else: [{:account_type, "person"} | opts]
       end)
+      |> then(fn opts ->
+        # `filter_organization/2` atravessa as equipes, porque não existe aresta direta
+        # pessoa↔organização (`eo.cq02`). E o `IN (subquery)` faz quem está em duas equipes
+        # da mesma organização ser contado **uma vez** — T014.
+        if socket.assigns.organizacao_id,
+          do: [{:organization_id, socket.assigns.organizacao_id} | opts],
+          else: opts
+      end)
 
     rows =
       EO.list_people(
@@ -194,10 +255,28 @@ defmodule TheBandWeb.PeopleLive.Index do
       automation_count: EO.count_people(tenant, Keyword.put(opts, :account_type, ["bot", "app"]))
     )
     |> assign(has_any: EO.count_people(tenant) > 0)
+    |> assign(organizacoes: EO.list_organizations(tenant))
   end
 
-  defp empty_message(search, has_any)
-  defp empty_message("", false), do: "No sync has brought people yet."
-  defp empty_message("", true), do: "No person matches the filters applied."
-  defp empty_message(_search, _), do: "No person matches the search."
+  # T017: **vazio de dado e vazio de filtro são coisas diferentes**, e a frase precisa
+  # dizer qual é. "Nenhuma pessoa" quando a coleta nunca rodou manda esperar; "nenhuma
+  # pessoa nesta organização" manda trocar o filtro. Uma frase só para os dois faria quem
+  # lê procurar no lugar errado.
+  defp empty_message(search, organizacao_id, has_any)
+  defp empty_message("", nil, false), do: "No sync has brought people yet."
+
+  defp empty_message(_search, org, false) when not is_nil(org),
+    do: "No sync has brought people yet — the organisation filter has nothing to narrow."
+
+  defp empty_message("", org, true) when not is_nil(org),
+    do:
+      "No person is in this organisation. A person reaches an organisation through a team, " <>
+        "so someone with no team appears in none."
+
+  defp empty_message("", nil, true), do: "No person matches the filters applied."
+
+  defp empty_message(_search, org, true) when not is_nil(org),
+    do: "No person in this organisation matches the search."
+
+  defp empty_message(_search, nil, true), do: "No person matches the search."
 end
