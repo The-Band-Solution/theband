@@ -1,0 +1,90 @@
+module:
+  id: spo.activity_start_criterion
+  ontology: spo
+  name: Activity Start Criterion
+  version: 1.0.0
+  description:
+    pt-BR: >
+      Qual evento observado marca o início de um trabalho é **convenção social**, e não
+      fato que alguma origem forneça. Organizações diferentes reconhecem eventos
+      diferentes como início, e nenhuma está errada.
+
+      Este módulo dá nome à declaração. Sem ele, a plataforma teria de escolher — e a
+      `FR-007` da feature 022 proíbe exatamente isso, deixando `flow.throughput`,
+      `flow.wip.count` e o cycle time por pessoa sem um instante de início.
+  provenance:
+    source_type: project_decision
+    reference: "Issue #370; decisão da pessoa mantenedora em 2026-08-24"
+    year: 2026
+    note: >
+        Extensão do projeto The Band. O conceito vive na SPO porque
+        `spo.performed_project_activity` é o kind das ocorrências de atividade em toda a
+        rede, e é o `start_date` dele que o critério preenche. Pô-lo noutra ontologia
+        obrigaria essa outra a conhecer a atividade da SPO, invertendo a dependência.
+
+        **Limitação declarada**: a relação entre o critério e o QUADRO do Projects v2 não
+        existe aqui. `observed_projects` é tabela de coleta, não conceito de domínio — a
+        rede não nomeia quadro, e inventar um conceito para acomodar a implementação seria
+        o inverso do que o princípio I manda.
+
+concepts:
+  - id: spo.activity_start_criterion
+    name: Activity Start Criterion
+    label:
+      { pt-BR: "Critério de Início de Atividade", en: "Activity Start Criterion" }
+    definition:
+      pt-BR: >
+        O tipo de evento que uma organização declara como aquele que traz à tona a
+        situação de um trabalho ter começado.
+
+        É objeto **social** porque a resposta não está no dado observado: o mesmo evento
+        — mover um cartão, designar alguém, abrir a tarefa — significa "começou" numa
+        organização e não significa noutra. A plataforma não escolhe; ela registra a
+        escolha, com quem a fez e quando.
+
+        Sem critério declarado, o instante de início fica **nulo** — ausência nomeada, e
+        nunca a data corrente, que afirmaria que o trabalho começou agora.
+    classification: { ufo_category: social_object, ontouml_stereotype: kind }
+    examples:
+      - "a mudança de status no quadro conta como início, neste projeto"
+      - "a designação conta como início, neste outro"
+
+relations:
+  - id: spo.criterion_recognises
+    name: recognises
+    label: { pt-BR: "reconhece", en: "recognises" }
+    source: spo.activity_start_criterion
+    target: ufo.event
+    type: association
+    cardinality: { source: many, target: one }
+    semantics:
+      pt-BR: >
+        O tipo de evento que o critério aceita como marcador de início. É `ufo.event`
+        porque o que se reconhece é o **tipo** da ocorrência, e não uma ocorrência
+        específica.
+
+  - id: spo.criterion_declared_for_project
+    name: declared for
+    label: { pt-BR: "declarado para", en: "declared for" }
+    source: spo.activity_start_criterion
+    target: spo.project
+    type: association
+    cardinality: { source: one, target: one }
+    semantics:
+      pt-BR: >
+        O projeto para o qual o critério vale. Um projeto tem no máximo um critério
+        vigente — dois seriam duas respostas para a mesma pergunta, e a medida herdaria a
+        ambiguidade sem declará-la.
+
+  - id: spo.criterion_determines_start
+    name: determines the start of
+    label: { pt-BR: "determina o início de", en: "determines the start of" }
+    source: spo.activity_start_criterion
+    target: spo.performed_project_activity
+    type: association
+    cardinality: { source: one, target: many }
+    semantics:
+      pt-BR: >
+        A atividade executada cujo `start_date` o critério preenche. A determinação
+        acontece na **leitura**, e não é gravada: trocar a declaração muda a medida sem
+        recálculo, e sem a janela em que o gravado discorda do declarado.
