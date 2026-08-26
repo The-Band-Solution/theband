@@ -266,6 +266,52 @@ defmodule TheBandWeb.ProjectsLive.Index do
     {:noreply, load(socket)}
   end
 
+  def handle_event("declarar_criterio", params, socket) do
+    %{"project_id" => pid, "event_type" => tipo} = params
+
+    case SPO.declare_start_criterion(
+           socket.assigns.current_tenant,
+           {:project, pid},
+           tipo,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Start criterion declared: #{tipo}.")
+         |> load()}
+
+      # Erro previsto vira FRASE, e a frase diz por quê — FR-015.
+      {:error, :unknown_event_type} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "The platform has not collected that event. Only what it observes can be declared."
+         )}
+
+      {:error, motivo} ->
+        {:noreply, put_flash(socket, :error, "Could not declare: #{inspect(motivo)}")}
+    end
+  end
+
+  def handle_event("revogar_criterio", %{"project_id" => pid}, socket) do
+    case SPO.revoke_start_criterion(
+           socket.assigns.current_tenant,
+           {:project, pid},
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Criterion revoked. The declaration stays in the record.")
+         |> load()}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "There was no criterion to revoke.")}
+    end
+  end
+
   def handle_event("definir_pai", %{"project_id" => pid, "parent_id" => ""}, socket) do
     SPO.clear_parent(socket.assigns.current_tenant, pid)
     {:noreply, socket |> assign(erro: nil) |> load()}
@@ -311,7 +357,22 @@ defmodule TheBandWeb.ProjectsLive.Index do
           # **Um projeto pode ter mais de um quadro** — decisão de 2026-08-24, issue #367.
           # Antes disto o projeto tinha zero, e a entrega lida pelo quadro corrente fazia
           # dez meses do Conecta Fapes sumirem.
-          quadros: SPO.list_project_boards(tenant, p.id),
+          quadros:
+            tenant
+            |> SPO.list_project_boards(p.id)
+            |> Enum.map(fn q ->
+              Map.put(
+                q,
+                :criterio,
+                SPO.start_criterion_for(tenant, {:board, q.observed_project_id})
+              )
+            end),
+          # Issue #370: o critério do projeto, e quais quadros vão ignorá-lo.
+          criterio: SPO.start_criterion_for(tenant, {:project, p.id}),
+          quadros_com_criterio: SPO.boards_overriding(tenant, p.id),
+          # FR-004 e FR-009: quantas issues estão sem instante, e por qual das TRÊS
+          # ausências. Um total agregado não diz a ninguém o que fazer.
+          inicio: SPO.start_status(tenant, p.id),
           contagem: SPO.count_project_issues(tenant, p.id),
           # Feature 028: as organizações filtram o seletor, e as equipes dizem quem
           # trabalha — com a proveniência junto, porque declarada ≠ observada.
@@ -323,6 +384,8 @@ defmodule TheBandWeb.ProjectsLive.Index do
     assign(socket,
       projetos: com_dados,
       quadros_do_tenant: Projects.list_projects(tenant),
+      # Só o que a coleta traz, com volume — FR-012. Nenhum vem recomendado.
+      tipos_de_evento: SPO.collected_event_types(tenant),
       nomes_de_repo: nomes_de_repo,
       nomes_de_org: nomes_de_org,
       organizacoes_do_tenant: EO.list_organizations(tenant),
@@ -639,6 +702,125 @@ defmodule TheBandWeb.ProjectsLive.Index do
               </div>
             </div>
 
+            <%!-- ═══ O CRITÉRIO DE INÍCIO — issue #370 ═══
+                  Vem antes dos quadros porque é o que dá sentido a eles: sem critério, o
+                  quadro é lista, e não medida. --%>
+            <div>
+              <h4 class="text-xs uppercase tracking-wide opacity-60">Start criterion</h4>
+
+              <p class="mt-1 text-sm">
+                <span :if={p.criterio}>
+                  Work starts when
+                  <span class="badge badge-outline badge-sm font-mono">{p.criterio.event_type}</span>
+                  happens · declared {p.criterio.declared_at}
+                </span>
+                <%!-- FR-015: a ausência é FRASE, e a frase diz o que fazer. Um código de
+                      motivo obrigaria quem lê a procurar o que ele significa. --%>
+                <span :if={is_nil(p.criterio)} class="opacity-70">
+                  No criterion declared. Until one is, this project has
+                  <strong>no start instant</strong>
+                  — and throughput, work in progress and cycle time have nothing to measure
+                  from. Choose the event below.
+                </span>
+              </p>
+
+              <%!-- FR-014: dizer quais quadros vão IGNORAR esta declaração, ANTES de gravar.
+                    Depois seria informação inútil. --%>
+              <div :if={p.quadros_com_criterio != []} class="alert alert-warning mt-2 block text-xs">
+                <p>
+                  <strong>{length(p.quadros_com_criterio)} board(s) will ignore this</strong>
+                  — they declared their own, and the board wins over the project:
+                </p>
+                <ul class="mt-1 space-y-0.5">
+                  <li :for={q <- p.quadros_com_criterio} class="font-mono">
+                    {q.title} → {q.event_type}
+                  </li>
+                </ul>
+              </div>
+
+              <form phx-submit="declarar_criterio" class="mt-2 flex flex-wrap items-end gap-2">
+                <input type="hidden" name="project_id" value={p.id} />
+                <label class="fieldset">
+                  <span class="label-text text-xs">event that marks the start</span>
+                  <%!-- Só o que a coleta traz, com o VOLUME de cada um — FR-012. E nenhum
+                        vem pré-selecionado: mostrar volume é informar, recomendar seria
+                        escolher, e a FR-007 da feature 022 proíbe a plataforma escolher. --%>
+                  <select name="event_type" class="select select-sm select-bordered" required>
+                    <option value="">choose…</option>
+                    <option :for={t <- @tipos_de_evento} value={t.event_type}>
+                      {t.event_type} — {t.occurrences} observed
+                    </option>
+                  </select>
+                </label>
+                <.button type="submit" variant="primary" class="btn-sm">
+                  {if p.criterio, do: "Replace", else: "Declare"}
+                </.button>
+                <button
+                  :if={p.criterio}
+                  type="button"
+                  class="btn btn-ghost btn-sm"
+                  phx-click="revogar_criterio"
+                  phx-value-project_id={p.id}
+                  data-confirm="Revoke it? Activities lose their start instant until a new one is declared."
+                >
+                  revoke
+                </button>
+              </form>
+
+              <p class="mt-1 text-xs opacity-60">
+                Which event means "work started" is a <strong>convention of this organisation</strong>,
+                not a fact any source provides — so the platform records the choice instead of
+                making it. Replacing keeps the previous declaration in the record.
+              </p>
+
+              <%!-- ─── O que a declaração alcança — T013, FR-004 e FR-009 ───
+                    Separado por ausência, e nunca somado: `sem_criterio` se resolve
+                    declarando, `criterio_ambiguo` desassociando um quadro, e
+                    `evento_nao_coletado` coletando. Três ações diferentes, e um total
+                    agregado esconderia as três. --%>
+              <div :if={p.inicio.total > 0} class="mt-3 rounded border border-base-300 p-2">
+                <p class="text-xs uppercase tracking-wide opacity-60">
+                  Start instant · {p.inicio.total} issues reached
+                </p>
+                <ul class="mt-1 space-y-1 text-xs">
+                  <li class="tabular-nums">
+                    <strong>{p.inicio.com_instante}</strong> have a start instant.
+                  </li>
+                  <li :if={p.inicio.sem_criterio > 0} class="tabular-nums">
+                    <strong>{p.inicio.sem_criterio}</strong>
+                    have none because no criterion applies to them — <em>declare one above</em>, on this project or on their board.
+                  </li>
+                  <li :if={p.inicio.evento_nao_coletado > 0} class="tabular-nums">
+                    <strong>{p.inicio.evento_nao_coletado}</strong>
+                    have none because the declared event was never observed on them — <em>collect again</em>, or the event genuinely never happened.
+                  </li>
+                  <li :if={p.inicio.ambiguas != []} class="tabular-nums">
+                    <strong>{length(p.inicio.ambiguas)}</strong>
+                    have none because two boards tie — <em>unlink one of them</em>, listed below.
+                  </li>
+                </ul>
+
+                <%!-- T019: ambiguidade é TRABALHO, e não erro. Contar não permite resolver:
+                      quem administra precisa da issue, dos quadros e da data. --%>
+                <div :if={p.inicio.ambiguas != []} class="mt-2">
+                  <p class="text-xs">
+                    <strong>Waiting on a decision.</strong>
+                    These were linked to two boards <strong>at the same instant</strong>, and both
+                    boards declared a criterion. The platform <strong>does not pick one</strong>
+                    — picking would be choosing on your behalf, where nobody would look for it.
+                  </p>
+                  <ul class="mt-1 space-y-1">
+                    <li :for={a <- p.inicio.ambiguas} class="text-xs">
+                      <span class="font-mono">{a.title}</span>
+                      <span class="opacity-60">
+                        — {Enum.map_join(a.quadros, " · ", & &1.title)} · linked {hd(a.quadros).linked_at}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             <%!-- Os quadros vêm ANTES dos repositórios porque é por eles que a entrega é
                   lida. Um projeto sem quadro alcança issue por repositório e não alcança
                   sprint nenhum. --%>
@@ -653,6 +835,11 @@ defmodule TheBandWeb.ProjectsLive.Index do
                   <%!-- Fechado na origem NÃO é desvinculado: é o quadro encerrado que
                         carrega o histórico que a #367 mostrou sumindo. --%>
                   <span :if={q.closed} class="text-xs italic opacity-60">closed</span>
+                  <%!-- FR-013: a proveniência acompanha o número. Quadro com critério próprio
+                        prevalece sobre o do projeto, e quem lê precisa ver isso na linha. --%>
+                  <span :if={q.criterio} class="badge badge-primary badge-xs font-mono">
+                    {q.criterio.event_type}
+                  </span>
                   <span class="text-xs opacity-60 tabular-nums">{q.items}</span>
                   <button
                     phx-click="desassociar_quadro"

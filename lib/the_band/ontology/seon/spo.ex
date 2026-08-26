@@ -93,6 +93,7 @@ defmodule TheBand.Ontology.SEON.SPO do
 
   # Em LOTE: recebe lista, devolve mapa. A versão unitária seria N+1 com 19.200 atividades.
   defdelegate resolve_start(tenant, issue_ids), to: StartCriterion
+  defdelegate start_status(tenant, project_id), to: StartCriterion
   defdelegate list_project_issues(tenant, project_id, opts \\ []), to: Projects
   defdelegate count_project_issues(tenant, project_id), to: Projects
 end

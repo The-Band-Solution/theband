@@ -321,6 +321,99 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
     |> Map.new(fn {issue_id, tipo, quando} -> {{issue_id, tipo}, quando} end)
   end
 
+  @typedoc """
+  O estado de início das issues de um projeto, **separado por ausência**.
+
+  A `FR-009` proíbe agregar as três: cada uma tem uma causa diferente e uma ação diferente.
+  Somá-las produziria um número que ninguém sabe como reduzir.
+  """
+  @type estado_de_inicio :: %{
+          total: non_neg_integer(),
+          com_instante: non_neg_integer(),
+          sem_criterio: non_neg_integer(),
+          evento_nao_coletado: non_neg_integer(),
+          ambiguas: [map()]
+        }
+
+  @doc """
+  Quantas issues do projeto têm instante de início, e quantas não têm **por qual motivo**.
+
+  ## Por que não é um total
+
+  "1.842 sem instante" não diz a ninguém o que fazer. `sem_criterio` se resolve declarando,
+  `criterio_ambiguo` se resolve desassociando um quadro, `evento_nao_coletado` se resolve
+  coletando — três ações diferentes, e um total agregado esconde as três (`FR-004`,
+  `FR-009`).
+
+  ## As ambíguas vêm em lista, e não em contagem
+
+  Contar ambiguidade não permite resolvê-la: quem administra precisa saber **qual issue** e
+  **quais quadros** empataram, com a data (`T019`). É trabalho pendente, não erro.
+
+  ## O custo
+
+  Duas consultas para as issues do projeto e duas de `resolve_start/2` — quatro por projeto.
+  Numa lista de N projetos, 4N. Aceitável enquanto o número de projetos declarados é pequeno;
+  se crescer, a saída é materializar o estado, não paginar a lista.
+  """
+  @spec start_status(Tenant.t(), Ecto.UUID.t()) :: estado_de_inicio()
+  def start_status(%Tenant{} = tenant, project_id) do
+    ids = issues_do_projeto(tenant, project_id)
+    resolucoes = resolve_start(tenant, ids)
+
+    %{
+      total: length(ids),
+      com_instante: conta(resolucoes, &match?({:ok, _, _}, &1)),
+      sem_criterio: conta(resolucoes, &(&1 == {:missing, :sem_criterio})),
+      evento_nao_coletado: conta(resolucoes, &match?({:missing, {:evento_nao_coletado, _}}, &1)),
+      ambiguas: ambiguas(tenant, resolucoes)
+    }
+  end
+
+  defp conta(resolucoes, funcao), do: resolucoes |> Map.values() |> Enum.count(funcao)
+
+  defp ambiguas(tenant, resolucoes) do
+    empatadas =
+      for {issue_id, {:missing, {:criterio_ambiguo, quadros}}} <- resolucoes,
+          do: {issue_id, quadros}
+
+    titulos = titulos_de(tenant, Enum.map(empatadas, &elem(&1, 0)))
+
+    Enum.map(empatadas, fn {issue_id, quadros} ->
+      %{issue_id: issue_id, title: Map.get(titulos, issue_id), quadros: quadros}
+    end)
+  end
+
+  defp titulos_de(_tenant, []), do: %{}
+
+  defp titulos_de(%Tenant{id: tenant_id}, issue_ids) do
+    Repo.all(
+      from i in "collected_issues",
+        where:
+          i.tenant_id == type(^tenant_id, :binary_id) and
+            i.id in type(^issue_ids, {:array, :binary_id}),
+        select: {type(i.id, :binary_id), i.title}
+    )
+    |> Map.new()
+  end
+
+  # As issues alcançadas pelo projeto são as dos quadros vinculados a ele. Projeto sem quadro
+  # não alcança issue nenhuma — e é exatamente o que a tela precisa dizer.
+  defp issues_do_projeto(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from i in "project_items",
+        join: v in "spo_project_boards",
+        on: v.observed_project_id == i.observed_project_id and is_nil(v.unlinked_at),
+        where:
+          i.tenant_id == type(^tenant_id, :binary_id) and
+            v.project_id == type(^project_id, :binary_id) and
+            is_nil(i.no_longer_observed_at) and
+            not is_nil(i.collected_issue_id),
+        distinct: true,
+        select: type(i.collected_issue_id, :binary_id)
+    )
+  end
+
   # ------------------------------------------------------------------ privados
 
   defp campo_do_alvo({:project, id}), do: %{project_id: id}

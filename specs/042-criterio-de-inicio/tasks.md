@@ -91,13 +91,13 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
   - **Feita quando**: a lista traz só tipos presentes em `spo_performed_project_activities` do tenant; cada um com sua contagem; nenhum campo de sugestão
   - **Teste**: caso afirmando que um tipo ausente do tenant **não** aparece, e que a ordenação é por volume decrescente
 
-- [ ] T012 [US1] Declarar o critério na tela do projeto — [#470](https://github.com/The-Band-Solution/theband/issues/470)
+- [x] T012 [US1] Declarar o critério na tela do projeto — [#470](https://github.com/The-Band-Solution/theband/issues/470)
   - **Pronta quando**: T008 e T011 concluídas
   - **Descrição**: seção em `lib/the_band_web/live/projects_live/index.ex`, junto do alvo — princípio X. Mostra o critério vigente, a lista de tipos **com volume**, e o botão de revogar
   - **Feita quando**: declarar grava com autor; a lista mostra os volumes; revogar volta ao estado sem critério
   - **Teste**: `test/the_band_web/live/criterio_na_tela_test.exs` — o HTML contém o volume de pelo menos um tipo, e depois de declarar contém o tipo declarado
 
-- [ ] T013 [US1] Contar as atividades sem instante — [#471](https://github.com/The-Band-Solution/theband/issues/471)
+- [x] T013 [US1] Contar as atividades sem instante — [#471](https://github.com/The-Band-Solution/theband/issues/471)
   - **Pronta quando**: T010 e T012 concluídas
   - **Descrição**: a tela do projeto informa **quantas** atividades estão sem instante de início e **por qual** das três ausências — FR-004, FR-009. Nunca um total agregado
   - **Feita quando**: a contagem aparece separada por ausência; declarar um critério reduz a de `sem_criterio` na leitura seguinte
@@ -111,19 +111,19 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
 
 **Teste independente**: critérios diferentes no projeto e num quadro dele; as issues daquele quadro seguem o do quadro, as demais o do projeto.
 
-- [ ] T014 [US2] Aplicar a escala de precedência — [#472](https://github.com/The-Band-Solution/theband/issues/472)
+- [x] T014 [US2] Aplicar a escala de precedência — [#472](https://github.com/The-Band-Solution/theband/issues/472)
   - **Pronta quando**: T009 concluída
   - **Descrição**: em `resolve_start/2`, a ordem **quadro que declarou → projeto que declarou → nulo** — FR-006. Quadro **sem** critério não vence: ele só entra na escala quando declarou
   - **Feita quando**: issue em quadro com critério segue o do quadro; issue em quadro sem critério segue o do projeto; issue fora de quadro segue o do projeto
   - **Teste**: três casos, um por ramo, com critérios propositalmente **diferentes** entre projeto e quadro para que a troca seja detectável
 
-- [ ] T015 [US2] Declarar o critério na tela do quadro — [#473](https://github.com/The-Band-Solution/theband/issues/473)
+- [x] T015 [US2] Declarar o critério na tela do quadro — [#473](https://github.com/The-Band-Solution/theband/issues/473)
   - **Pronta quando**: T012 e T014 concluídas
   - **Descrição**: a mesma seção, agora por quadro, na lista de quadros que a feature 041 criou. O alvo muda; a interação não
   - **Feita quando**: declarar num quadro não altera o critério do projeto; os dois aparecem simultaneamente na tela, distinguíveis
   - **Teste**: caso que declara nos dois e afirma que a tela mostra ambos, com o do quadro marcado como prevalecente
 
-- [ ] T016 [US2] Avisar quais quadros vão ignorar a declaração — [#474](https://github.com/The-Band-Solution/theband/issues/474)
+- [x] T016 [US2] Avisar quais quadros vão ignorar a declaração — [#474](https://github.com/The-Band-Solution/theband/issues/474)
   - **Pronta quando**: T015 concluída
   - **Descrição**: `boards_overriding/2` e o aviso na tela — ao declarar no projeto, a tela nomeia **quais quadros vão ignorar** esta declaração, **antes de gravar** — FR-014. Depois de gravar seria informação inútil
   - **Feita quando**: o aviso aparece antes da gravação e nomeia os quadros; não aparece quando nenhum quadro tem critério próprio
@@ -137,19 +137,19 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
 
 **Teste independente**: issue em dois quadros com critérios diferentes segue o do vínculo mais recente.
 
-- [ ] T017 [US3] Desempatar pela data do vínculo — [#475](https://github.com/The-Band-Solution/theband/issues/475)
+- [x] T017 [US3] Desempatar pela data do vínculo — [#475](https://github.com/The-Band-Solution/theband/issues/475)
   - **Pronta quando**: T014 concluída
   - **Descrição**: quando a issue está em mais de um quadro com critério, vence o de `spo_project_boards.linked_at` **maior** — FR-007. `collected_at` **não serve**, e a razão está medida em research.md R3: empata em 0,0 s em 100% dos 414 casos, e significa "quando nós olhamos"
   - **Feita quando**: o critério do vínculo mais recente prevalece; trocar a ordem de associação troca o resultado
   - **Teste**: caso com dois quadros de `linked_at` distintos, afirmando o vencedor — e depois revertendo a ordem e afirmando que o vencedor mudou
 
-- [ ] T018 [US3] Nomear o empate em vez de escolher — [#476](https://github.com/The-Band-Solution/theband/issues/476)
+- [x] T018 [US3] Nomear o empate em vez de escolher — [#476](https://github.com/The-Band-Solution/theband/issues/476)
   - **Pronta quando**: T017 concluída
   - **Descrição**: `linked_at` iguais devolvem `{:missing, {:criterio_ambiguo, quadros}}` — FR-008. A plataforma **MUST NOT** desempatar por conta própria: escolher o primeiro faria exatamente o que a FR-007 da feature 022 proíbe, num lugar onde ninguém procuraria
   - **Feita quando**: dois vínculos com a mesma data devolvem ambíguo; o retorno traz os dois quadros com título e data
   - **Teste**: caso com `linked_at` idênticos afirmando `criterio_ambiguo` e **os dois títulos** no retorno — nunca um instante
 
-- [ ] T019 [US3] Listar as pendências de desambiguação — [#477](https://github.com/The-Band-Solution/theband/issues/477)
+- [x] T019 [US3] Listar as pendências de desambiguação — [#477](https://github.com/The-Band-Solution/theband/issues/477)
   - **Pronta quando**: T018 e T013 concluídas
   - **Descrição**: a tela lista as issues em estado ambíguo, com os quadros em empate e a data — para quem administra resolver. É trabalho, não erro
   - **Feita quando**: a lista aparece só quando há ambíguas; cada linha nomeia os quadros e a data; a lista some quando o empate é desfeito
@@ -161,19 +161,19 @@ O conceito entra na rede **antes** do código. Não é ordem cerimonial: os gate
 
 Pedido da pessoa mantenedora: *"coloque essas regras nas telas para o usuário entender"*. Uma escala que decide um número e vive só na spec produz o efeito que esta casa combate.
 
-- [ ] T020 A proveniência acompanha o número — [#478](https://github.com/The-Band-Solution/theband/issues/478)
+- [x] T020 A proveniência acompanha o número — [#478](https://github.com/The-Band-Solution/theband/issues/478)
   - **Pronta quando**: T014 concluída
   - **Descrição**: toda tela que mostre instante de início diz **de onde o critério veio** — do quadro (e qual) ou do projeto (e qual) — FR-013. Não é página de ajuda: fica junto do número
   - **Feita quando**: o instante nunca aparece sozinho; a origem é clicável para o alvo que a declarou
   - **Teste**: caso afirmando que o HTML contém o título do quadro ou o nome do projeto na mesma linha do instante
 
-- [ ] T021 As ausências viram frase — [#479](https://github.com/The-Band-Solution/theband/issues/479)
+- [x] T021 As ausências viram frase — [#479](https://github.com/The-Band-Solution/theband/issues/479)
   - **Pronta quando**: T013 e T019 concluídas
   - **Descrição**: as três ausências escritas em frase, **nunca em código** — FR-015. E cada frase diz **o que fazer**: declarar, desambiguar, ou coletar
   - **Feita quando**: nenhum código de motivo é renderizado; cada frase termina com uma ação
   - **Teste**: **a violação, não o caminho feliz** — `refute html =~ "criterio_ambiguo"` e `refute html =~ "sem_criterio"` nas três telas. É a `SC-008`
 
-- [ ] T022 Explicar o desempate no ponto da decisão — [#480](https://github.com/The-Band-Solution/theband/issues/480)
+- [x] T022 Explicar o desempate no ponto da decisão — [#480](https://github.com/The-Band-Solution/theband/issues/480)
   - **Pronta quando**: T016 e T021 concluídas
   - **Descrição**: uma frase, onde o desempate é aplicado, dizendo **por que** é a data do vínculo e o custo de errar — FR-017. Regra de precedência que ninguém entende é obedecida sem ser conferida
   - **Feita quando**: a explicação está junto da lista de pendências e da declaração de quadro; não está numa página separada
@@ -183,7 +183,7 @@ Pedido da pessoa mantenedora: *"coloque essas regras nas telas para o usuário e
 
 ## Fase 7 — Fechamento
 
-- [ ] T023 Quality gates verdes — [#481](https://github.com/The-Band-Solution/theband/issues/481)
+- [x] T023 Quality gates verdes — [#481](https://github.com/The-Band-Solution/theband/issues/481)
   - **Pronta quando**: todas as tarefas de implementação concluídas
   - **Descrição**: `mix gates` — os treze, e **nunca** com `| tail` nem `| grep`: o veredito é o código de saída, e o pipe devolve o do `tail`. Lição L23
   - **Feita quando**: o comando sai com código 0
