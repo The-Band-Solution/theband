@@ -52,6 +52,31 @@ defmodule TheBand.Profiles.Material do
           base: map()
         }
 
+  @typedoc """
+  O que a pessoa **escreveu para outras** — issue #364.
+
+  A contagem vai calculada, e não deduzida pelo modelo: ele erra conta, e já provou.
+
+  `pessoas_distintas` discrimina melhor que o total. Escrever 200 tarefas para uma pessoa e
+  60 para treze são coisas diferentes — a segunda atravessa o time, e o total sozinho não
+  separa as duas.
+
+  **A limitação**: `pessoas_distintas` conta `person_id`, então designação cuja pessoa não
+  foi resolvida na coleta **não entra**. Medido em 2026-08-26: das 4.323 designações
+  vigentes desta base, zero estão nesse estado, e os 63 logins distintos correspondem a 63
+  pessoas. Se um dia divergirem, este número passa a ser um piso, e não o total.
+
+  A `amostra` existe porque a contagem sozinha não basta: quem escreve *"corrigir typo"* e
+  quem escreve uma tarefa com contexto e critério aparecem **idênticos** num número. Título
+  e corpo é que separam distribuir trabalho de **decompor** trabalho.
+  """
+  @type autoria_para_outros :: %{
+          total: non_neg_integer(),
+          pessoas_distintas: non_neg_integer(),
+          amostra: [tarefa()],
+          amostra_de: non_neg_integer()
+        }
+
   @type t :: %{
           login: String.t() | nil,
           person_id: binary(),
@@ -67,7 +92,8 @@ defmodule TheBand.Profiles.Material do
           tipos: [{String.t(), non_neg_integer()}],
           periodos: [periodo()],
           veredito: String.t(),
-          paradas: [tarefa()]
+          paradas: [tarefa()],
+          para_outros: autoria_para_outros()
         }
 
   @doc """
@@ -187,7 +213,8 @@ defmodule TheBand.Profiles.Material do
       tipos: frequencias(concluidas, & &1.tipo),
       periodos: periodos,
       veredito: veredito(periodos, limiar),
-      paradas: Enum.filter(abertas, &(&1.dias_aberta > dias))
+      paradas: Enum.filter(abertas, &(&1.dias_aberta > dias)),
+      para_outros: para_outros(tenant, login(concluidas, abertas))
     }
   end
 
@@ -415,6 +442,69 @@ defmodule TheBand.Profiles.Material do
       }
     )
     |> Repo.all()
+  end
+
+  # A amostra: as mais recentes, com teto. **Medido antes de fixar** — as 384 tarefas que a
+  # pessoa mais ativa escreveu para outras somam 455.116 caracteres de corpo, e uma delas
+  # sozinha chega a 30.706. Sem teto, este bloco sozinho passaria de cem mil tokens.
+  @amostra_para_outros 20
+
+  # Quem abriu tarefa para outra pessoa fez algo que a contagem de tarefas designadas não
+  # mostra — e o material só tem o que foi designado À pessoa. O modelo não pode analisar o
+  # que não recebe.
+  defp para_outros(_tenant, nil),
+    do: %{total: 0, pessoas_distintas: 0, amostra: [], amostra_de: 0}
+
+  defp para_outros(%Tenant{id: tenant_id}, login) do
+    base =
+      from(i in "collected_issues",
+        join: a in "issue_assignees",
+        on: a.collected_issue_id == i.id and is_nil(a.no_longer_observed_at),
+        where:
+          i.tenant_id == type(^tenant_id, :binary_id) and i.author_login == ^login and
+            a.login != ^login
+      )
+
+    # Uma tarefa com dois designados, um deles a própria pessoa, ainda é tarefa escrita para
+    # outra — por isso `DISTINCT` na tarefa, e não contagem de linhas de designação.
+    [total, pessoas] =
+      Repo.one(
+        from [i, a] in base,
+          select: [count(i.id, :distinct), count(a.person_id, :distinct)]
+      )
+
+    %{
+      total: total,
+      pessoas_distintas: pessoas,
+      amostra: amostra_para_outros(base),
+      amostra_de: total
+    }
+  end
+
+  defp amostra_para_outros(base) do
+    Repo.all(
+      from [i, _a] in base,
+        join: o in "observed_repositories",
+        on: o.id == i.observed_repository_id,
+        join: sr in "cmpo_source_repositories",
+        on: sr.id == o.source_repository_id,
+        where: not is_nil(i.external_created_at),
+        distinct: i.id,
+        order_by: [desc: i.external_created_at],
+        limit: @amostra_para_outros,
+        select: %{
+          id: type(i.id, :binary_id),
+          number: i.number,
+          data: fragment("?::date", i.external_created_at),
+          titulo: i.title,
+          corpo: fragment("coalesce(?, '')", i.body),
+          repositorio: sr.name,
+          tipo: fragment("coalesce(?, '—')", i.issue_type),
+          autoria_propria: false,
+          designados: 1,
+          dias_aberta: nil
+        }
+    )
   end
 
   # -- utilidades --------------------------------------------------------------

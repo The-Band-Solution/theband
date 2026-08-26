@@ -23,6 +23,7 @@ defmodule TheBand.Profiles.MaterialTest do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles.Material
+  alias TheBand.Profiles.Prompt
   alias TheBand.WorkItems
 
   setup do
@@ -62,6 +63,125 @@ defmodule TheBand.Profiles.MaterialTest do
       ])
 
     issue
+  end
+
+  describe "o que a pessoa escreveu para OUTRAS — issue #364" do
+    test "conta as tarefas e as pessoas distintas, e não conta as próprias", ctx do
+      pessoa =
+        ctx |> pessoa_coletada("quem_escreve") |> then(&acima_do_piso(ctx, &1, "quem_escreve"))
+
+      # Escreveu para três pessoas diferentes, sendo duas tarefas para a mesma.
+      para(ctx, 701, "quem_escreve", "ana")
+      para(ctx, 702, "quem_escreve", "ana")
+      para(ctx, 703, "quem_escreve", "bruno")
+      para(ctx, 704, "quem_escreve", "carla")
+
+      # E uma para si mesma, que NÃO é escrita para outros.
+      para(ctx, 705, "quem_escreve", "quem_escreve")
+
+      # Uma designada a ela, escrita por outra pessoa — o material já tinha isto.
+      issue =
+        tarefa(ctx,
+          numero: 706,
+          fechada: ~U[2025-06-01 12:00:00Z],
+          login: "quem_escreve",
+          autor: "outra"
+        )
+
+      {:ok, _} =
+        WorkItems.replace_assignees(ctx.tenant, issue.id, [
+          %{login: "quem_escreve", external_id: "U_quem_escreve", person_id: pessoa.id}
+        ])
+
+      {:ok, m} = Material.build(ctx.tenant, pessoa.id)
+
+      assert m.para_outros.total == 4, """
+      **A tarefa que ela escreveu para si mesma não conta.** A pergunta é o que ela escreveu
+      PARA OUTRAS executarem, e incluir a própria autoria responderia outra coisa — o
+      material já tem `autoria_propria` para isso.
+      """
+
+      assert m.para_outros.pessoas_distintas == 3, """
+      **Pessoas distintas discrimina melhor que o total.** Quatro tarefas para três pessoas
+      é diferente de quatro tarefas para uma, e o total sozinho não separa as duas: a
+      segunda atravessa o time.
+      """
+    end
+
+    test "a amostra traz o TEXTO, porque o número sozinho não separa", ctx do
+      pessoa =
+        ctx |> pessoa_coletada("quem_escreve") |> then(&acima_do_piso(ctx, &1, "quem_escreve"))
+
+      para(ctx, 710, "quem_escreve", "ana", "Inception do SOT DevEx com critério de aceitação")
+
+      {:ok, m} = Material.build(ctx.tenant, pessoa.id)
+
+      assert [amostrada] = m.para_outros.amostra
+
+      assert amostrada.titulo =~ "Inception", """
+      **A contagem sozinha não basta.** Quem escreve "corrigir typo" e quem escreve uma
+      tarefa com contexto e critério aparecem idênticos num número — título e corpo é que
+      separam distribuir trabalho de decompor trabalho.
+
+      E o material só tem o que foi designado À pessoa: sem este bloco, o modelo não recebe
+      o texto e não pode analisar o que não recebe.
+      """
+    end
+
+    test "a amostra tem TETO, e diz de quantas ela saiu", ctx do
+      pessoa = ctx |> pessoa_coletada("prolifico") |> then(&acima_do_piso(ctx, &1, "prolifico"))
+      for n <- 720..749, do: para(ctx, n, "prolifico", "ana")
+
+      {:ok, m} = Material.build(ctx.tenant, pessoa.id)
+
+      assert m.para_outros.total == 30
+
+      assert length(m.para_outros.amostra) == 20, """
+      **O teto foi medido antes de ser fixado.** As 384 tarefas que a pessoa mais ativa
+      desta base escreveu para outras somam **455.116 caracteres** de corpo, e uma delas
+      sozinha chega a 30.706. Sem teto, este bloco passaria de cem mil tokens numa rodada.
+      """
+
+      assert m.para_outros.amostra_de == 30, """
+      E a amostra diz **de quantas** saiu. Vinte de trinta e vinte de vinte são coisas
+      diferentes, e omitir o corte faria a amostra parecer o todo.
+      """
+    end
+
+    test "ninguém escreveu para outros: ausência declarada, e não zero disfarçado", ctx do
+      pessoa =
+        ctx |> pessoa_coletada("so_executa") |> then(&acima_do_piso(ctx, &1, "so_executa"))
+
+      {:ok, m} = Material.build(ctx.tenant, pessoa.id)
+
+      assert m.para_outros == %{total: 0, pessoas_distintas: 0, amostra: [], amostra_de: 0}
+
+      texto = Prompt.material(m)
+
+      assert texto =~ "não é sinal de nada, é ausência", """
+      **Zero aqui não é sinal.** Quem só executa tarefa escrita por outros pode estar
+      entrando no time, ou não ter permissão para abrir issue no repositório. O prompt diz
+      isso para o modelo não ler o zero como característica da pessoa.
+      """
+    end
+
+    test "o prompt manda NÃO rotular a pessoa", ctx do
+      pessoa =
+        ctx |> pessoa_coletada("quem_escreve") |> then(&acima_do_piso(ctx, &1, "quem_escreve"))
+
+      para(ctx, 770, "quem_escreve", "ana")
+
+      {:ok, m} = Material.build(ctx.tenant, pessoa.id)
+      texto = Prompt.material(m)
+
+      assert texto =~ "liderança é conclusão", """
+      **A plataforma não rotula pessoa.** Abrir tarefa para outros também é papel de quem
+      faz triagem, escreve requisito, coordena entrega, ou é o único com permissão no
+      repositório. O afirmável é o que o texto sustenta; a conclusão é de quem lê.
+      """
+
+      assert texto =~ "não recalcule", "e a contagem vai calculada, porque o modelo erra conta"
+    end
   end
 
   describe "as tarefas abertas que a tela lista" do
@@ -260,5 +380,70 @@ defmodule TheBand.Profiles.MaterialTest do
     end
 
     p
+  end
+
+  # Uma tarefa que `autor` escreveu e `executor` executou.
+  #
+  # O designado vem com **pessoa resolvida**, como a coleta grava: medido em 2026-08-26,
+  # das 4.323 designações vigentes desta base, **zero** estão sem `person_id`. Fixture com
+  # `person_id: nil` testaria um estado que a coleta não produz.
+  defp para(ctx, numero, autor, executor, titulo \\ nil) do
+    executora = pessoa_coletada(ctx, executor)
+
+    {:ok, issue} =
+      WorkItems.record_collected_issue(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        number: numero,
+        title: titulo || "escrita para #{executor} ##{numero}",
+        body: "corpo da ##{numero}",
+        state: "OPEN",
+        author_login: autor,
+        external_created_at: ~U[2025-06-01 12:00:00Z],
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "I_para_#{numero}"
+      })
+
+    {:ok, _} =
+      WorkItems.replace_assignees(ctx.tenant, issue.id, [
+        %{login: executor, external_id: "U_#{executor}", person_id: executora.id}
+      ])
+
+    issue
+  end
+
+  # O piso de evidência exige 15 tarefas concluídas com corpo. Sem elas `build/2` devolve
+  # `:below_floor`, que é resposta certa e não é o que estes casos investigam.
+  defp acima_do_piso(ctx, pessoa, login) do
+    for n <- 1..15 do
+      issue =
+        tarefa(ctx,
+          numero: 800 + n,
+          fechada: DateTime.add(~U[2025-01-01 12:00:00Z], n * 5, :day),
+          login: login
+        )
+
+      {:ok, _} =
+        WorkItems.replace_assignees(ctx.tenant, issue.id, [
+          %{login: login, external_id: "U_#{login}", person_id: pessoa.id}
+        ])
+    end
+
+    pessoa
+  end
+
+  defp pessoa_coletada(ctx, login) do
+    {:ok, pessoa} =
+      EO.upsert_person_from_source(ctx.tenant, %{
+        login: login,
+        name: login,
+        account_type: "person",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "U_#{login}",
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    pessoa
   end
 end
