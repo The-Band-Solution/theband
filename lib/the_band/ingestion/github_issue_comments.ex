@@ -24,6 +24,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Communication.Commands
+  alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
@@ -81,14 +82,21 @@ defmodule TheBand.Ingestion.GithubIssueComments do
         select: %{
           id: type(r.id, :binary_id),
           qualified_name: f.qualified_name,
-          comments_collected_at: r.comments_collected_at
+          comments_collected_at: r.comments_collected_at,
+          query_versions: r.query_versions
         }
     )
   end
 
   defp coletar_repositorio(ctx, repo) do
+    # Issue #452, mesmo motivo que em `GithubChangeRequests`: a consulta que mudou não é a
+    # mesma consulta, e o corte não sabe disso sozinho.
     since =
-      repo.comments_collected_at && DateTime.from_naive!(repo.comments_collected_at, "Etc/UTC")
+      if QueryVersion.corte_vale?(repo.query_versions, "comments"),
+        do:
+          repo.comments_collected_at &&
+            DateTime.from_naive!(repo.comments_collected_at, "Etc/UTC"),
+        else: nil
 
     inicio = DateTime.utc_now(:second)
 
@@ -101,7 +109,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
         # Gravado só quando o repositório foi percorrido POR INTEIRO — é o que o
         # incremental da próxima passada assume, e é o que decide a frase do vazio
         # na tela ("não coletada" × "sem comentários").
-        marcar_percorrido(repo.id, inicio)
+        marcar_percorrido(repo.id, inicio, repo.query_versions)
 
         Map.merge(%{alcancado: true, issues: length(issues)}, resultado)
 
@@ -192,10 +200,13 @@ defmodule TheBand.Ingestion.GithubIssueComments do
     |> Map.new()
   end
 
-  defp marcar_percorrido(repo_id, inicio) do
+  defp marcar_percorrido(repo_id, inicio, versoes) do
     Repo.update_all(
       from(r in "observed_repositories", where: r.id == type(^repo_id, :binary_id)),
-      set: [comments_collected_at: inicio]
+      set: [
+        comments_collected_at: inicio,
+        query_versions: QueryVersion.marcar(versoes, "comments")
+      ]
     )
   end
 

@@ -26,6 +26,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Changes.Commands
+  alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Quality.Commands, as: QualityCommands
@@ -93,7 +94,8 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
         select: %{
           id: type(r.id, :binary_id),
           qualified_name: f.qualified_name,
-          changes_collected_at: r.changes_collected_at
+          changes_collected_at: r.changes_collected_at,
+          query_versions: r.query_versions
         }
     )
   end
@@ -101,8 +103,15 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   defp coletar_repositorio(ctx, repo) do
     [owner, name] = String.split(repo.qualified_name, "/", parts: 2)
 
+    # Issue #452: o corte responde "já coletei este registro". Quando a consulta ganha um
+    # campo a pergunta vira "já coletei este registro COM ESTA CONSULTA", e as duas só
+    # coincidem até alguém acrescentar campo. `corte_vale?/2` devolve `false` uma vez para
+    # quem ficou para trás, e o histórico é repaginado.
     corte =
-      repo.changes_collected_at && DateTime.from_naive!(repo.changes_collected_at, "Etc/UTC")
+      if QueryVersion.corte_vale?(repo.query_versions, "changes"),
+        do:
+          repo.changes_collected_at && DateTime.from_naive!(repo.changes_collected_at, "Etc/UTC"),
+        else: nil
 
     inicio = DateTime.utc_now(:second)
 
@@ -111,7 +120,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
     case paginar(ctx, %{owner: owner, name: name}, corte) do
       {:ok, solicitacoes} ->
         resultado = gravar(ctx, repo.id, solicitacoes)
-        marcar_percorrido(repo.id, inicio)
+        marcar_percorrido(repo.id, inicio, repo.query_versions)
         Map.put(resultado, :alcancado, true)
 
       {:error, motivo} ->
@@ -393,10 +402,15 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
     |> Map.new()
   end
 
-  defp marcar_percorrido(repo_id, inicio) do
+  # A versão é gravada junto com o corte, e não antes: marcar a versão de uma passagem que
+  # falhou faria a próxima confiar num histórico que não foi repaginado.
+  defp marcar_percorrido(repo_id, inicio, versoes) do
     Repo.update_all(
       from(r in "observed_repositories", where: r.id == type(^repo_id, :binary_id)),
-      set: [changes_collected_at: inicio]
+      set: [
+        changes_collected_at: inicio,
+        query_versions: QueryVersion.marcar(versoes, "changes")
+      ]
     )
   end
 
