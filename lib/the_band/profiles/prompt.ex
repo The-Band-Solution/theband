@@ -87,8 +87,51 @@ defmodule TheBand.Profiles.Prompt do
 
     #{Enum.map_join(m.periodos, "\n\n", &periodo/1)}
 
+    #{escritas_para_outros(m.para_outros)}
     TAREFAS CONCLUÍDAS
     #{Enum.map_join(m.periodos, "\n", &tarefas_do_periodo/1)}
+    """
+  end
+
+  # Issue #364: o que a pessoa escreveu PARA OUTRAS não aparece em lugar nenhum do resto do
+  # material, que é só o que foi designado a ela. O modelo não pode analisar o que não recebe.
+  #
+  # A contagem vai calculada. E a amostra existe porque o número sozinho não separa quem
+  # escreve "corrigir typo" de quem escreve tarefa com contexto e critério.
+  defp escritas_para_outros(%{total: 0}) do
+    """
+    ESCRITAS PARA OUTRAS PESSOAS
+                      nenhuma no material coletado — não é sinal de nada, é ausência
+    """
+  end
+
+  defp escritas_para_outros(pa) do
+    """
+    ESCRITAS PARA OUTRAS PESSOAS     já contado; use estes números, não recalcule
+                      #{pa.total} tarefas escritas por esta pessoa e executadas por outras
+                      #{pa.pessoas_distintas} pessoas distintas as executaram
+
+                      **pessoas distintas discrimina melhor que o total**: escrever muitas
+                      tarefas para uma pessoa e poucas para muitas são coisas diferentes,
+                      e a segunda atravessa o time
+
+                      **o que NÃO afirmar**: liderança é conclusão, e escrever tarefa para
+                      outros também é papel de quem faz triagem, escreve requisito, coordena
+                      entrega, ou é o único com permissão no repositório. O afirmável é o que
+                      o texto abaixo sustenta — se traz contexto e critério, ou se não traz,
+                      que também é achado
+
+    AMOSTRA DAS ESCRITAS PARA OUTRAS · as #{length(pa.amostra)} mais recentes de #{pa.amostra_de}
+    #{Enum.map_join(pa.amostra, "\n", &escrita_para_outro/1)}
+    """
+  end
+
+  defp escrita_para_outro(t) do
+    """
+
+    --- ##{t.number} · criada #{t.data} · #{t.repositorio} · tipo #{t.tipo}
+        #{cortar(t.titulo, 200)}
+        #{cortar(t.corpo, @corpo_max)}\
     """
   end
 

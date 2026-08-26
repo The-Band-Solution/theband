@@ -13,7 +13,8 @@
       "do_time_nao_da_pessoa",
       "alocacao",
       "recomendacoes",
-      "nao_alcanca"
+      "nao_alcanca",
+      "escreveu_para_outros"
     ],
     "properties": {
       "habilidades": {
@@ -225,6 +226,40 @@
       "nao_alcanca": {
         "type": "string",
         "description": "In English, with the numbers of this case: how many descriptions were written by someone else, how many tasks are shared, which periods have thin records. And what never becomes a task: reviews, mentoring, conversations — the record does not reach them."
+      },
+      "escreveu_para_outros": {
+        "type": "object",
+        "description": "O que a pessoa escreveu para OUTRAS executarem — issue #364. Os dois números vêm calculados no material e MUST ser reproduzidos como estão; nunca recalcule. A interpretação MUST se limitar ao que o texto das tarefas sustenta: se traz contexto e critério, ou se não traz — que também é achado. NUNCA rotule a pessoa: liderança é conclusão de quem lê, e escrever tarefa para outros também é papel de quem faz triagem, escreve requisito, coordena entrega, ou é o único com permissão no repositório.",
+        "required": [
+          "tarefas",
+          "pessoas_distintas",
+          "o_texto_mostra"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "tarefas": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "quantas tarefas ela escreveu e outras executaram, do material"
+          },
+          "pessoas_distintas": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "quantas pessoas distintas as executaram. Discrimina melhor que o total: muitas tarefas para uma pessoa e poucas para muitas são coisas diferentes"
+          },
+          "o_texto_mostra": {
+            "type": "string",
+            "minLength": 1,
+            "description": "o que a AMOSTRA do texto sustenta sobre como ela escreve para outros — contexto e critério presentes, ou ausentes. Frase descritiva, nunca rótulo de papel"
+          },
+          "tarefas_citadas": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "os números das tarefas da amostra que sustentam a frase"
+          }
+        }
       }
     }
   }
