@@ -469,6 +469,131 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
     )
   end
 
+  @typedoc """
+  Uma janela em que a pessoa esteve no projeto, **por uma equipe**.
+
+  **Os dois nulos têm sentidos opostos, e é de propósito.**
+
+  `ended_at: nil` significa **em curso** — o vínculo aberto é o que não terminou.
+
+  `started_at: nil` significa **desconhecido** — a entrada na equipe não foi registrada.
+  `eo_team_memberships.started_at` é anulável, e a promoção da feature 043 nem sempre sabe
+  desde quando a pessoa está lá.
+
+  Colapsar os dois faria "está no projeto desde março" e "não sabemos desde quando" virarem
+  a mesma linha na tela. A tela precisa distinguir, e por isso o retorno distingue.
+  """
+  @type janela :: %{
+          started_at: DateTime.t(),
+          ended_at: DateTime.t() | nil,
+          team_id: Ecto.UUID.t(),
+          team_name: String.t()
+        }
+
+  @doc """
+  Quem esteve neste projeto, **e quando** — a interseção de dois períodos que já existem.
+
+  ## O que ninguém calculava
+
+  Alguém na equipe de **janeiro a junho**, com a equipe no projeto de **março a dezembro**,
+  esteve no projeto de **março a junho**. Nenhuma das duas colunas diz isso sozinha, e
+  derivação sem nome vira consulta copiada em três telas que divergem na quarta.
+
+      início = max(entrada na equipe, vínculo da equipe com o projeto)
+      fim    = min(saída da equipe,   desvínculo da equipe do projeto)
+
+  ## É leitura, e não conceito gravado
+
+  A feature 042 enfrentou a mesma pergunta e respondeu *"resolve na leitura, nunca
+  materializa"* — porque o gravado abre uma janela em que ele discorda do declarado. Aqui o
+  argumento é o mesmo e mais forte: os dois períodos que compõem a interseção são
+  **editáveis**, e uma interseção gravada envelheceria no instante seguinte a qualquer
+  correção de data.
+
+  ## As janelas NÃO são fundidas
+
+  Pessoa em duas equipes do mesmo projeto tem duas janelas, e elas continuam duas. Fundir
+  `jan–mar` com `jul–set` em `jan–set` afirmaria presença em abril, maio e junho — meses em
+  que ela não esteve. E fundir janelas que se sobrepõem apagaria **por qual equipe** ela
+  entrou, que é a pergunta seguinte de quem lê.
+
+  Quem precisa de um total conta **pessoas distintas**, nunca janelas — é a mesma regra que
+  `team_size/2` segue desde a feature 043.
+
+  ## A pessoa entra pela equipe
+
+  Não há vínculo direto pessoa ↔ projeto nesta base, e por isso não há dois caminhos que
+  possam discordar. Se um dia houver, esta função ganha uma segunda origem e a proveniência
+  de cada janela passa a importar — a estrutura de retorno já a carrega em `team_id`.
+
+  ## Uma consulta
+
+  A interseção é feita no banco. Trazer as duas listas e cruzar em memória custaria uma
+  consulta por equipe, e o número de equipes por projeto não é limitado.
+  """
+  @spec project_participation(Tenant.t(), Ecto.UUID.t()) :: [
+          %{person_id: Ecto.UUID.t(), name: String.t(), janelas: [janela()]}
+        ]
+  def project_participation(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: m in "eo_team_memberships",
+        on: m.team_id == v.team_id and m.tenant_id == v.tenant_id,
+        join: p in "eo_people",
+        on: p.id == m.person_id,
+        join: t in "eo_teams",
+        on: t.id == v.team_id,
+        # A interseção é vazia quando a pessoa saiu da equipe antes de a equipe entrar
+        # no projeto, ou quando a equipe saiu antes de a pessoa entrar. Nos dois casos
+        # ela não esteve no projeto, e não aparecer é a resposta correta.
+        where:
+          v.tenant_id == ^tenant_id and v.project_id == ^project_id and
+            (is_nil(m.ended_at) or is_nil(v.linked_at) or m.ended_at >= v.linked_at) and
+            (is_nil(v.unlinked_at) or m.started_at <= v.unlinked_at),
+        order_by: [asc: p.name, asc: t.name],
+        select: %{
+          person_id: type(m.person_id, :binary_id),
+          name: p.name,
+          team_id: type(v.team_id, :binary_id),
+          team_name: t.name,
+          # `LEAST` e `GREATEST` do PostgreSQL **ignoram nulo**, e é isso que os torna certos
+          # para o fim e perigosos para o começo.
+          #
+          # No fim, nulo significa **em curso**, e `LEAST(fim, nulo)` devolver o outro fim é
+          # o que se quer: o lado aberto não encurta a janela.
+          #
+          # No começo, nulo significa **desconhecido**. `GREATEST(nulo, vinculo)` devolveria
+          # o vínculo, e a tela mostraria uma data de entrada que ninguém declarou. O `CASE`
+          # propaga o desconhecido em vez de preenchê-lo.
+          #
+          # O `type/2` em volta dos dois porque a consulta é sem esquema: sem ele o Postgrex
+          # devolve `NaiveDateTime`, o `@type` diria `DateTime.t()` mentindo, e quem
+          # formatasse na tela quebraria. Foi o mesmo defeito da feature 042.
+          started_at:
+            type(
+              fragment(
+                "CASE WHEN ? IS NULL THEN NULL ELSE GREATEST(?, COALESCE(?, ?)) END",
+                m.started_at,
+                m.started_at,
+                v.linked_at,
+                m.started_at
+              ),
+              :utc_datetime
+            ),
+          ended_at: type(fragment("LEAST(?, ?)", m.ended_at, v.unlinked_at), :utc_datetime)
+        }
+    )
+    |> Enum.group_by(& &1.person_id)
+    |> Enum.map(fn {person_id, linhas} ->
+      %{
+        person_id: person_id,
+        name: hd(linhas).name,
+        janelas: Enum.map(linhas, &Map.take(&1, [:started_at, :ended_at, :team_id, :team_name]))
+      }
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
   # ------------------------------------------------------------------------ leituras
 
   @doc """

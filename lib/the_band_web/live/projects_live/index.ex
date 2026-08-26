@@ -377,7 +377,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
           # Feature 028: as organizações filtram o seletor, e as equipes dizem quem
           # trabalha — com a proveniência junto, porque declarada ≠ observada.
           organizacoes: SPO.list_project_organizations(tenant, p.id),
-          equipes: SPO.list_project_teams(tenant, p.id)
+          equipes: SPO.list_project_teams(tenant, p.id),
+          # Issue #505: quem esteve neste projeto e QUANDO — a interseção do período na
+          # equipe com o período da equipe no projeto. Resolvida na leitura, nunca gravada.
+          participacao: SPO.project_participation(tenant, p.id)
         })
       end)
 
@@ -662,6 +665,44 @@ defmodule TheBandWeb.ProjectsLive.Index do
                   </button>
                 </li>
               </ul>
+              <%!-- ═══ QUEM ESTEVE NESTE PROJETO, E QUANDO — issue #505 ═══
+                    A interseção de dois períodos que já existiam separados. Nenhuma das duas
+                    colunas responde sozinha, e a resposta não estava em tela nenhuma. --%>
+              <div :if={p.equipes != []} class="mt-3 rounded border border-base-300 p-2">
+                <p class="text-xs uppercase tracking-wide opacity-60">
+                  Who was on this project, and when · {length(p.participacao)} people
+                </p>
+
+                <p :if={p.participacao == []} class="mt-1 text-xs opacity-70">
+                  The teams are associated, but no membership overlaps the period the team was
+                  on the project. Someone may have left the team before it joined — that is an
+                  answer, not a gap.
+                </p>
+
+                <ul class="mt-1 space-y-1">
+                  <li :for={pessoa <- p.participacao} class="text-xs">
+                    <span class="font-medium">{pessoa.name}</span>
+                    <%!-- Uma linha por janela, e nunca fundidas: jan–mar mais jul–set não é
+                          jan–set, e fundir afirmaria abril, maio e junho. --%>
+                    <span :for={j <- pessoa.janelas} class="ml-1 opacity-70">
+                      <span :if={j.started_at}>{Calendar.strftime(j.started_at, "%Y-%m-%d")}</span>
+                      <%!-- Começo nulo é DESCONHECIDO, e não a data do vínculo. Fim nulo é EM
+                            CURSO. Os dois nulos são coisas diferentes, e a frase é diferente. --%>
+                      <em :if={is_nil(j.started_at)}>entry date never recorded</em>
+                      → <span :if={j.ended_at}>{Calendar.strftime(j.ended_at, "%Y-%m-%d")}</span>
+                      <strong :if={is_nil(j.ended_at)}>still on it</strong>
+                      <span class="font-mono opacity-60">· {j.team_name}</span>
+                    </span>
+                  </li>
+                </ul>
+
+                <p class="mt-1 text-xs opacity-60">
+                  A person is on the project <strong>through a team</strong>: the window starts
+                  the later of the two dates and ends the earlier. Two teams give two windows,
+                  and they are not merged — merging would claim months nobody was there.
+                </p>
+              </div>
+
               <div :if={@current_user.role == "admin"} class="mt-2 flex flex-wrap items-center gap-2">
                 <form id={"equipe-#{p.id}"} phx-change="associar_equipe">
                   <input type="hidden" name="project_id" value={p.id} />
