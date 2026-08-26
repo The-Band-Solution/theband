@@ -86,6 +86,45 @@ defmodule TheBand.Ontology.SEON.SPO.ProjetosTest do
 
       assert {:ok, _} = SPO.create_project(outro, %{name: "Conecta Fapes"}, outro_user.id)
     end
+
+    test "o nome de um projeto REMOVIDO volta a ficar disponível", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, _} = SPO.remove_project(ctx.tenant, p.id, ctx.user.id)
+
+      assert {:ok, novo} = SPO.create_project(ctx.tenant, %{name: "Conecta Fapes"}, ctx.user.id),
+             """
+             Issue #509. O índice de nome era **total**, e reservava o nome de projetos
+             removidos para sempre — sem caminho de volta, porque não existe "desremover".
+
+             A tela chegava a dizer as duas coisas ao mesmo tempo: `No project registered yet`
+             e `name: has already been taken`.
+             """
+
+      assert novo.id != p.id
+
+      assert {:ok, antigo} = SPO.fetch_project(ctx.tenant, p.id)
+
+      assert antigo.removed_at, """
+      O removido tinha que continuar existindo. Remover **marca**, e nunca apaga: liberar o
+      nome apagando o registro trocaria um defeito por outro pior.
+      """
+    end
+
+    test "dois projetos VIGENTES com o mesmo nome continuam recusados", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      {:ok, _} = SPO.remove_project(ctx.tenant, p.id, ctx.user.id)
+      projeto(ctx, "Conecta Fapes")
+
+      assert {:error, changeset} =
+               SPO.create_project(ctx.tenant, %{name: "Conecta Fapes"}, ctx.user.id),
+             """
+             O índice parcial afrouxou o que devia — o removido — e não pode ter afrouxado
+             o resto. Dois projetos vigentes com o mesmo nome são duas respostas para a
+             mesma pergunta.
+             """
+
+      assert Keyword.has_key?(changeset.errors, :name)
+    end
   end
 
   describe "a fase muda com a estrutura" do
