@@ -116,6 +116,124 @@ defmodule TheBand.Ontology.SEON.SPO.Queries do
     end
   end
 
+  @typedoc """
+  Atividade registrada de uma pessoa, por mês — issue #508.
+
+  **Não é throughput, e o nome não pode sugerir que seja.**
+
+  | | `flow.throughput` | isto |
+  |---|---|---|
+  | conta | tarefa **concluída** | **evento** ocorrido |
+  | precisa de | início e fim | um carimbo só |
+  | responde | quanto trabalho atravessou o sistema | quanta atividade foi registrada |
+
+  Emprestar o nome seria o defeito: quem lê "throughput" compara com a definição da SRO e
+  dimensiona sprint com ele — e este número conta comentário, movimentação de card e
+  designação junto com trabalho concluído.
+  """
+  @type atividade_mensal :: %{
+          person_id: Ecto.UUID.t(),
+          login: String.t(),
+          name: String.t(),
+          total: non_neg_integer(),
+          meses: [{String.t(), non_neg_integer()}]
+        }
+
+  @typedoc """
+  O que a contagem por pessoa **não alcança**, com o tamanho da lacuna.
+
+  `spo_performed_project_activities` guarda `performer_login`, e não o identificador da
+  pessoa. Quem executou atividade mas não está em `eo_people` não pode ser classificado —
+  e a plataforma **não adivinha** qual é robô.
+  """
+  @type nao_classificado :: %{
+          atividades: non_neg_integer(),
+          autores: [%{login: String.t(), atividades: non_neg_integer()}]
+        }
+
+  @doc """
+  Atividade registrada por pessoa e por mês, e o que a contagem não alcança.
+
+  ## Por que o robô não é filtrado por nome
+
+  Na medição de 2026-08-26, os quatro autores de atividade fora de `eo_people` eram:
+
+      github-project-automation    2.877
+      MachadoVsouza                   17
+      leandrocaronelanschi             6
+      github-actions                   2
+
+  Dois **parecem** robô pelo nome e dois **parecem** pessoa. Classificar por `github-*`
+  publicaria a suposição como medida — e o erro cai para o lado barato: o não reconhecido
+  alguém corrige, o reconhecido errado vira número.
+
+  Por isso a divisão é por `eo_people.account_type`, que é declarado, e o que não está lá
+  volta em `nao_classificado` **com os logins à vista**. Quem lê decide; a plataforma não.
+
+  ## A ausência tem tamanho
+
+  2.902 atividades de 4 autores ficam de fora hoje — **15% do total**. Devolver só as
+  16.298 classificadas faria a soma parecer completa.
+  """
+  @spec activity_by_person_month(Tenant.t()) :: %{
+          pessoas: [atividade_mensal()],
+          nao_classificado: nao_classificado()
+        }
+  def activity_by_person_month(%Tenant{id: tenant_id} = tenant) do
+    %{
+      pessoas: atividade_das_pessoas(tenant_id),
+      nao_classificado: atividade_sem_pessoa(tenant)
+    }
+  end
+
+  defp atividade_das_pessoas(tenant_id) do
+    Repo.all(
+      from a in Activity,
+        join: p in "eo_people",
+        on: p.login == a.performer_login and p.tenant_id == a.tenant_id,
+        where: a.tenant_id == ^tenant_id and p.account_type == "person",
+        group_by: [p.id, p.login, p.name, fragment("to_char(?, 'YYYY-MM')", a.occurred_at)],
+        order_by: [asc: p.name, asc: fragment("to_char(?, 'YYYY-MM')", a.occurred_at)],
+        select: %{
+          person_id: type(p.id, :binary_id),
+          login: p.login,
+          name: p.name,
+          mes: fragment("to_char(?, 'YYYY-MM')", a.occurred_at),
+          quantas: count(a.id)
+        }
+    )
+    |> Enum.group_by(& &1.person_id)
+    |> Enum.map(fn {person_id, linhas} ->
+      %{
+        person_id: person_id,
+        login: hd(linhas).login,
+        name: hd(linhas).name,
+        total: Enum.sum(Enum.map(linhas, & &1.quantas)),
+        meses: Enum.map(linhas, &{&1.mes, &1.quantas})
+      }
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  # Robô, aplicação, e quem simplesmente não foi coletado — juntos, e **sem serem
+  # separados por palpite**. O que os une é o fato de não haver pessoa declarada por trás.
+  defp atividade_sem_pessoa(%Tenant{id: tenant_id}) do
+    autores =
+      Repo.all(
+        from a in Activity,
+          left_join: p in "eo_people",
+          on: p.login == a.performer_login and p.tenant_id == a.tenant_id,
+          where:
+            a.tenant_id == ^tenant_id and
+              (is_nil(p.id) or p.account_type != "person"),
+          group_by: a.performer_login,
+          order_by: [desc: count(a.id)],
+          select: %{login: a.performer_login, atividades: count(a.id)}
+      )
+
+    %{atividades: Enum.sum(Enum.map(autores, & &1.atividades)), autores: autores}
+  end
+
   defp estado_de_andamento?(%{payload: payload}) do
     andamento?(payload["status"]) or andamento?(payload["previousStatus"])
   end

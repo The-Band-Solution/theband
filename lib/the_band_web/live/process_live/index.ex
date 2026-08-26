@@ -44,7 +44,10 @@ defmodule TheBandWeb.ProcessLive.Index do
        tipos: SPO.count_activity_types(tenant),
        estados: estados,
        sem_andamento?: estados != [] and not Enum.any?(estados, &SPO.andamento?(&1.state)),
-       duplicados: duplicados(estados)
+       duplicados: duplicados(estados),
+       # Issue #508: atividade registrada por pessoa e por mês. NÃO é throughput, e a tela
+       # é obrigada a dizer o que conta.
+       atividade: SPO.activity_by_person_month(tenant)
      )}
   end
 
@@ -104,6 +107,76 @@ defmodule TheBandWeb.ProcessLive.Index do
           — which is the kind of wrong that looks plausible.
         </p>
       </.notice>
+
+      <%!-- ═══ ATIVIDADE REGISTRADA POR PESSOA E POR MÊS — issue #508 ═══
+            O rótulo NÃO é "throughput", e a diferença não é de palavra: throughput conta
+            tarefa concluída e precisa de início e fim; isto conta evento e precisa de um
+            carimbo só. Quem lê "throughput" dimensiona sprint com o número, e este número
+            não sustenta isso — ele soma comentário e movimentação de card ao trabalho
+            concluído. --%>
+      <div class="card mb-6 bg-base-200">
+        <div class="card-body gap-2 p-4 sm:p-5">
+          <h3 class="font-semibold">
+            Recorded activity <span class="opacity-60">{length(@atividade.pessoas)} people</span>
+          </h3>
+          <p class="text-xs text-base-content/70">
+            <strong>This is not throughput.</strong>
+            It counts <em>events</em>
+            — a card moved, a comment written, an assignment made —
+            and not work completed. Throughput needs a start and an end; this needs one
+            timestamp. Reading it as throughput would size a sprint with a number that does
+            not carry that meaning.
+          </p>
+
+          <p :if={@atividade.pessoas == []} class="text-sm opacity-70">
+            No activity collected yet. This is absence, not zero.
+          </p>
+
+          <table :if={@atividade.pessoas != []} class="table table-sm mt-1">
+            <thead>
+              <tr>
+                <th>person</th>
+                <th class="text-right">events</th>
+                <th>last months observed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={p <- Enum.sort_by(@atividade.pessoas, &(-&1.total))}>
+                <td>
+                  <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover">
+                    {p.name || p.login}
+                  </.link>
+                </td>
+                <td class="text-right tabular-nums">{p.total}</td>
+                <%!-- Os meses, e não uma média: "parou de aparecer em maio" é a pergunta que
+                      a média apaga. --%>
+                <td class="font-mono text-xs opacity-70">
+                  {p.meses |> Enum.take(-6) |> Enum.map_join(" · ", fn {m, n} -> "#{m}:#{n}" end)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <%!-- A lacuna vem COM TAMANHO e COM OS NOMES. Devolver só as classificadas faria
+                a soma parecer completa. E a plataforma não adivinha qual login é robô:
+                `github-project-automation` parece, `MachadoVsouza` não parece — e classificar
+                por padrão de nome publicaria a suposição como medida. --%>
+          <div :if={@atividade.nao_classificado.atividades > 0} class="mt-2 text-xs">
+            <p>
+              <strong>{@atividade.nao_classificado.atividades} events are not in this table.</strong>
+              Their author is not a person in the register — an automation, an app, or someone
+              never collected. The platform <strong>does not guess which</strong>: a name that
+              looks like a bot is still a guess, and a guess published as a measure is worse
+              than a gap named.
+            </p>
+            <ul class="mt-1 space-y-0.5">
+              <li :for={a <- @atividade.nao_classificado.autores} class="font-mono opacity-70">
+                {a.login} — {a.atividades}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
 
       <div class="grid gap-6 lg:grid-cols-2">
         <div class="card bg-base-200">
