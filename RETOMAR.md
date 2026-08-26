@@ -72,6 +72,56 @@ Além do site, o que a 042 e a 043 mudaram e a documentação ainda não diz:
   `flow.wip.count` e o cycle time por pessoa agora têm de onde partir, e a documentação
   ainda as descreve como bloqueadas pela `FR-007` da feature 022.
 
+## Pedido para amanhã: as métricas do PSM CID
+
+A pessoa mantenedora trouxe o **PSM Continuous Iterative Development Measurement Framework
+v2.1** (PSM + NDIA + INCOSE, 3 partes) e pediu: quais métricas viram YAML, e como se ligam às
+ontologias.
+
+**A estrutura já casa.** O schema de medida desta base tem `answers_information_need`,
+`scope.levels` e `limitations` obrigatório — que são a Information Need, a perspectiva
+team/product/enterprise e o contexto do modelo de informação do PSM (Figura 6, Parte 1).
+Faltam dois elementos do PSM: **Analysis Model** e **Decision Criteria**.
+
+### O que eu medi no banco, e é o que decide o mapeamento
+
+| entidade | quantidade |
+|---|---:|
+| issues coletadas | 5.216 |
+| itens de quadro | 4.070 |
+| atividades | 19.200 |
+| sprints (212, **todos com período**) | 212 |
+| commits | 21.365 |
+| solicitações de mudança | 5.635 (4.878 merged) |
+| verificações de CI | 15.671 (12.220 success, 2.987 failure) |
+| comentários de issue | 2.052 |
+
+**O achado que decide metade do framework**: `Story Points` tem **194 valores**, `Estimate`
+**109**, `Size` **63** — e itens com *alguma* estimativa são **303 de 4.070, ou 7,4%**.
+
+Velocity (8.10), Burndown (8.2) e Committed vs Completed (8.3) — as três medidas que o PSM
+prioriza — todas partem de story points. Com 7,4% de cobertura elas **rodam e não significam
+nada**. Isso não é motivo para não modelar: é a `limitation` que o YAML tem que declarar, e é
+exatamente o que esta casa faz quando ausência não vira zero.
+
+**Não coletamos nada** de release, deploy ou incidente. Então MTTR/MTTD (8.8) e Release
+Frequency (8.9) **não são computáveis** — e isso é ligação com a #442, o conector do ArgoCD.
+
+Tipo de issue: 3.996 **nulos** contra 196 `Bug`. Defect Detection (8.6) e Defect Resolution
+(8.7) dependem de distinguir defeito, e 76% das issues não dizem o que são.
+
+### O que a 042 destravou
+
+Cycle Time / Lead Time (8.5) e Cumulative Flow (8.4) precisam de instante de início. **Agora
+existe.** São as duas primeiras a modelar.
+
+### Onde retomar
+
+O plano é: mapear as 38 linhas da tabela ICM (Parte 1) e as 11 especificações (Parte 2)
+contra o que foi medido acima, e escrever YAML só para as que têm dado — cada uma com a
+`limitation` que diz o que falta. O resto entra como necessidade de informação **sem** medida,
+que é como esta base registra lacuna.
+
 ## O próximo passo
 
 **#505 — o período de participação, e a interseção pessoa → equipe → projeto.**
