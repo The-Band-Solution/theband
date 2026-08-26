@@ -53,22 +53,76 @@ defmodule TheBand.Mapping.PatternValidatorTest do
     end
   end
 
-  describe "o limite de tempo" do
-    test "o limite vem do catálogo e é dito na mensagem" do
-      assert V.limite_ms() == 100
-      assert V.explicar({:too_slow, 100}) =~ "100ms"
+  describe "o orçamento de avaliação — issue #501" do
+    test "o orçamento vem do catálogo, é em PASSOS, e a mensagem diz o número" do
+      assert V.orcamento_passos() == 100_000
+
+      mensagem = V.explicar({:too_expensive, 100_000})
+      assert mensagem =~ "100000"
+
+      assert mensagem =~ "backtracking steps", """
+      **A mensagem precisa dizer a unidade.** A versão anterior dizia "took longer than
+      100ms", e milissegundo depende da máquina de quem rodou — quem lia não tinha como
+      conferir. Passo é o mesmo em qualquer máquina.
+      """
+
+      refute mensagem =~ "ms", "e não pode voltar a falar em tempo"
     end
 
     test "amostra vazia não trava nem recusa" do
       assert V.validate("regex", "^\\[TASK\\]", []) == :ok
     end
 
-    test "expressão com quantificador aninhado sobre título longo é recusada" do
-      # O caso patológico clássico: `(a+)+$` sobre uma cadeia de `a` sem o `b` final faz
-      # o motor tentar todas as partições. Com 40 caracteres já passa de 100ms.
+    test "expressão com quantificador aninhado é recusada, e o veredito não depende da máquina" do
+      # `(a+)+$` sobre 40 `a` sem o `b` final faz o motor tentar 2⁴⁰ divisões. O orçamento
+      # corta em 100.000 passos, e 100.000 passos são 100.000 passos em qualquer máquina.
       longo = String.duplicate("a", 40) <> "b"
 
-      assert {:error, {:too_slow, 100}} = V.validate("regex", "^(a+)+$", [longo])
+      assert {:error, {:too_expensive, 100_000}} = V.validate("regex", "^(a+)+$", [longo])
+    end
+
+    test "o veredito é o MESMO com 40 e com 400 caracteres", ctx do
+      _ = ctx
+
+      for n <- [40, 120, 400] do
+        assert {:error, {:too_expensive, _}} =
+                 V.validate("regex", "^(a+)+$", [String.duplicate("a", n) <> "b"]),
+               """
+               **O que reprovava antes.** Com cronômetro, o tempo do motor era um platô — não
+               crescia com o tamanho — e ficava a 5 ms do limite de 100. Aumentar a cadeia não
+               mudava o resultado, e a máquina decidia. Com orçamento de passos, os três casos
+               estouram porque o TRABALHO estoura, e n = #{n} não é o que decide.
+               """
+      end
+    end
+
+    test "padrão legítimo caro NÃO é recusado", ctx do
+      _ = ctx
+
+      # `.*[Ss]print.*` foi o mais caro dos seis medidos contra 300 títulos reais: 1.000
+      # passos. O orçamento de 100.000 tem cem vezes de folga sobre ele.
+      titulos = [
+        "[TASK][Backend] Fechar o sprint 005 e consolidar as lições aprendidas do ciclo",
+        String.duplicate("palavra longa ", 17) <> "sprint"
+      ]
+
+      assert V.validate("regex", ".*[Ss]print.*", titulos) == :ok, """
+      **O orçamento precisa recusar o patológico sem recusar o legítimo.** Um número apertado
+      demais transforma o guarda em obstáculo, e quem escreve a regra não tem como saber que
+      a expressão dela era razoável.
+      """
+    end
+
+    test "estourar o orçamento é distinguível de não casar" do
+      # Sem `:report_errors` os dois desfechos voltam `:nomatch`, e a tela diria "sua regra
+      # não pega nada" quando a verdade é "sua regra é cara demais para avaliar".
+      assert V.validate("regex", "^\\[NUNCA-CASA\\]", @titulos) == :ok, """
+      Não casar com título nenhum é **resposta**, e não recusa: a pessoa pode estar
+      escrevendo uma regra para issues que ainda não chegaram.
+      """
+
+      assert {:error, {:too_expensive, _}} =
+               V.validate("regex", "^(a+)+$", [String.duplicate("a", 40) <> "b"])
     end
   end
 end

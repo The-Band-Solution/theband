@@ -130,7 +130,7 @@ derivation_rule:
         recusa, não o mapeamento.
 
   limits:
-    max_evaluation_ms: 100
+    max_evaluation_steps: 100000
     forbid_empty_match: true
     note:
       pt-BR: >
