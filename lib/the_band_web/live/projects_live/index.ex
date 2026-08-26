@@ -439,6 +439,12 @@ defmodule TheBandWeb.ProjectsLive.Index do
     |> Enum.sort_by(&elem(&1, 0))
   end
 
+  # O resto da casa escreve `2026-06-10 18:24`. O ISO cru — com `T` e `Z` — apareceu no
+  # percurso da T024 ao lado das outras datas, e destoava.
+  defp instante(nil), do: "—"
+  defp instante(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
+  defp instante(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
+
   defp data(""), do: nil
   defp data(nil), do: nil
 
@@ -712,7 +718,7 @@ defmodule TheBandWeb.ProjectsLive.Index do
                 <span :if={p.criterio}>
                   Work starts when
                   <span class="badge badge-outline badge-sm font-mono">{p.criterio.event_type}</span>
-                  happens · declared {p.criterio.declared_at}
+                  happens · declared {instante(p.criterio.declared_at)}
                 </span>
                 <%!-- FR-015: a ausência é FRASE, e a frase diz o que fazer. Um código de
                       motivo obrigaria quem lê a procurar o que ele significa. --%>
@@ -805,18 +811,38 @@ defmodule TheBandWeb.ProjectsLive.Index do
                 <div :if={p.inicio.ambiguas != []} class="mt-2">
                   <p class="text-xs">
                     <strong>Waiting on a decision.</strong>
-                    These were linked to two boards <strong>at the same instant</strong>, and both
-                    boards declared a criterion. The platform <strong>does not pick one</strong>
+                    When an issue sits on more than one board, the criterion that applies comes
+                    from the board <strong>most recently linked to the project</strong>
+                    — linking
+                    the new board last is already the gesture that says which one is current.
+                  </p>
+                  <%!-- FR-017: a explicação vive NO PONTO DA DECISÃO, e o empate aparece aqui.
+                        Ela também está na tela do quadro, e repetir é barato — mandar quem lê
+                        procurar noutra tela não é. O percurso da T024 achou essa falta. --%>
+                  <p class="mt-1 text-xs">
+                    These tied: they were linked to two boards <strong>at the same instant</strong>,
+                    so there is no most recent one, and both boards declared a criterion. The
+                    platform <strong>does not pick one</strong>
                     — picking would be choosing on your behalf, where nobody would look for it.
                   </p>
+                  <%!-- Corte declarado, e nunca silencioso: no percurso da T024 este projeto
+                        tinha 399 empates, e 399 linhas num cartão não são lidas. A linha
+                        seguinte diz quantas ficaram de fora — omitir o corte faria a lista
+                        parecer completa. --%>
                   <ul class="mt-1 space-y-1">
-                    <li :for={a <- p.inicio.ambiguas} class="text-xs">
+                    <li :for={a <- Enum.take(p.inicio.ambiguas, 20)} class="text-xs">
                       <span class="font-mono">{a.title}</span>
                       <span class="opacity-60">
-                        — {Enum.map_join(a.quadros, " · ", & &1.title)} · linked {hd(a.quadros).linked_at}
+                        — {Enum.map_join(a.quadros, " · ", & &1.title)} · linked {instante(
+                          hd(a.quadros).linked_at
+                        )}
                       </span>
                     </li>
                   </ul>
+                  <p :if={length(p.inicio.ambiguas) > 20} class="mt-1 text-xs opacity-70">
+                    and {length(p.inicio.ambiguas) - 20} more, not listed here. They tie the same
+                    way — unlinking one of the two boards resolves all of them at once.
+                  </p>
                 </div>
               </div>
             </div>

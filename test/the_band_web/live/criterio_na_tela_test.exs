@@ -232,6 +232,12 @@ defmodule TheBandWeb.CriterioNaTelaTest do
       lugar onde ninguém procuraria.
       """
 
+      assert com_empate =~ "most recently linked to the project", """
+      **A FR-017, no ponto da decisão.** O percurso da T024 achou a explicação do desempate
+      só na tela do quadro, e o empate aparece na do projeto — quem lia as linhas sabia que
+      a plataforma não escolhe, e não sabia POR QUE a data do vínculo é o critério.
+      """
+
       {:ok, _} = SPO.unlink_board(ctx.tenant, vinculo.id, ctx.user.id)
 
       {:ok, _live, sem_empate} = live(ctx.conn, ~p"/projects")
@@ -261,7 +267,7 @@ defmodule TheBandWeb.CriterioNaTelaTest do
 
       assert html =~ ~p"/boards/#{ctx.quadro.id}", "e a origem é clicável para o alvo"
 
-      assert html =~ "the first", """
+      assert html =~ "a later occurrence does not replace this one", """
       **A FR-011.** Vale a PRIMEIRA ocorrência. Sem dizer isso, quem vê a data de uma issue
       que voltou ao backlog conclui que a plataforma perdeu o começo.
       """

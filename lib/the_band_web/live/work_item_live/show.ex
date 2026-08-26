@@ -377,10 +377,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <p class="text-sm">
                 <span :if={match?({:ok, _, _, _}, @inicio)}>
                   <strong>{data(elem(@inicio, 1))}</strong>
-                  — the first time
-                  <span class="badge badge-outline badge-sm font-mono">{elem(@inicio, 3)}</span>
-                  happened on it — <strong>the first</strong>, because a task that went back to
-                  the backlog and out again started when it started.
+                  — the <strong>first</strong>
+                  time <span class="badge badge-outline badge-sm font-mono">{elem(@inicio, 3)}</span>
+                  happened on it. A task that went back to the backlog and out again started
+                  when it started, so a later occurrence does not replace this one.
                 </span>
                 <%!-- Cada ausência tem causa própria e ação própria — FR-009, FR-015. Nenhum
                       código de motivo: quem lê não deveria ter que procurar o que significa. --%>
@@ -426,7 +426,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
               <ul :if={match?({:missing, {:criterio_ambiguo, _}}, @inicio)} class="text-xs">
                 <li :for={q <- @inicio |> elem(1) |> elem(1)} class="font-mono">
-                  {q.title} · linked {q.linked_at}
+                  {q.title} · linked {data(q.linked_at)}
                 </li>
               </ul>
             </div>
@@ -1092,4 +1092,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
 
   defp data(nil), do: nil
   defp data(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
+  # `linked_at` vem de consulta sem esquema e chega naive. O ISO cru destoava das outras
+  # datas da mesma tela — apareceu no percurso da T024.
+  defp data(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
 end

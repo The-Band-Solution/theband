@@ -189,7 +189,7 @@ Pedido da pessoa mantenedora: *"coloque essas regras nas telas para o usuário e
   - **Feita quando**: o comando sai com código 0
   - **Teste**: `mix gates > /tmp/g.log 2>&1; ec=$?; tail -30 /tmp/g.log; exit $ec`
 
-- [ ] T024 Percorrer o quickstart a mão — [#482](https://github.com/The-Band-Solution/theband/issues/482)
+- [x] T024 Percorrer o quickstart a mão — [#482](https://github.com/The-Band-Solution/theband/issues/482)
   - **Pronta quando**: T023 concluída
   - **Descrição**: os sete passos de [quickstart.md](./quickstart.md), incluindo o que nenhuma suíte cobre — a `SC-007`, se a frase ensina quem nunca leu a spec
   - **Feita quando**: os sete passos produziram o esperado, e o que divergiu virou defeito registrado ou correção de spec
