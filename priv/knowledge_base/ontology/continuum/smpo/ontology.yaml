@@ -1,0 +1,64 @@
+# A rede não tinha conceito para o planejamento MACRO do projeto — e a lacuna foi
+# encontrada num defeito, não suposta.
+#
+# Medido em 2026-08-26 (issue #514): `sro_sprints` promovia TODO campo de iteração do
+# Projects v2 a `sro.sprint`, e o campo de origem mostrava três coisas distintas:
+#
+#     Sprint      171 iterações   duração média 13 dias   1.927 vínculos de issue
+#     Quarter      27 iterações   duração média 84 dias     669 vínculos de issue
+#     Iteration    14 iterações   duração média 13 dias      89 vínculos de issue
+#
+# Trimestre não é sprint. `sro.sprint` é `complex_action` — processo EXECUTADO, com o
+# trabalho acontecendo dentro dele. Um trimestre não é executado: é declarado antes, para
+# dizer em que horizonte o trabalho está sendo planejado. Achatar um no outro faz sprint
+# de toda caixa de 84 dias, e a vazão do trimestre parece seis vezes maior sem que mais
+# trabalho tenha atravessado nada.
+#
+# É o mesmo argumento que fundou a CMO (#318): ali, achatar comentário em artefato faria
+# "documento do projeto" de cada "isso quebrou no staging?".
+#
+# A decisão de estender (2026-08-26, pessoa mantenedora, issue #514): *"um quarter é um
+# elemento de planejamento de projeto — isso é um conceito que deve estar na ontologia"*, e
+# *"um sprint PODE estar dentro de quarter; quarter são planejamentos macros"*.
+#
+# O "pode" é literal, e foi medido: dos 135 sprints que coincidem no tempo com um
+# trimestre do mesmo quadro, **104 ficam dentro e 31 atravessam a fronteira** — 23%. Por
+# isso a relação entre sprint e trimestre é sobreposição temporal OBSERVADA, e nunca
+# contenção mereológica: modelar "o trimestre contém sprints" tornaria 31 sprints
+# impossíveis de representar.
+ontology:
+  id: smpo
+  name: Software Management Planning Ontology
+  acronym: SMPO
+  version: 0.1.0
+  namespace: the_band.ontology.continuum.smpo
+  layer: domain
+  network: continuum
+  description:
+    pt-BR: >
+      Conceitualização do planejamento macro do projeto: os horizontes que a organização
+      declara para organizar o trabalho — o trimestre à frente —, e a alocação de itens
+      de trabalho a eles. Existe para responder em que horizonte um trabalho foi
+      planejado, pergunta que a execução não responde: o sprint diz quando o trabalho
+      aconteceu, e o horizonte diz para quando ele havia sido pensado.
+    en: >
+      Conceptualisation of macro project planning: the horizons an organisation declares
+      to organise work — the quarter ahead — and the allocation of work items to them.
+dependencies: [ufo, eo, spo, sro]
+modules:
+  - project_planning
+competency_questions:
+  - smpo_competency_questions
+provenance:
+  source_type: project_decision
+  reference: "Issue #514 — a lacuna medida em 2026-08-26, e a decisão da pessoa mantenedora no mesmo dia"
+  authors: ["Santos Júnior, P. S."]
+  year: 2026
+  note: >
+    Extensão do continuum, não parte da tese: a tese cobre execução (SPO/SRO) e
+    integração/entrega contínuas (CIRO/CDRO). O planejamento macro — o horizonte
+    declarado ANTES da execução — é lacuna documentada na #514.
+
+    Ao contrário do resto do continuum, os verbos aqui não são todos no passado: um
+    horizonte de planejamento é declarado para o futuro, e descrevê-lo no passado
+    apagaria justamente o que o distingue da execução.
