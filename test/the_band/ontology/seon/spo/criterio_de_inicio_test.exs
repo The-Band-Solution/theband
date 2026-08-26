@@ -207,7 +207,7 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
       {:ok, _} =
         SPO.declare_start_criterion(ctx.tenant, {:board, q.id}, "AssignedEvent", ctx.user.id)
 
-      assert %{^issue => {:ok, _quando, origem}} = SPO.resolve_start(ctx.tenant, [issue])
+      assert %{^issue => {:ok, _quando, origem, _}} = SPO.resolve_start(ctx.tenant, [issue])
       assert {:board, _, "Delivery"} = origem
     end
 
@@ -220,7 +220,7 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
       {:ok, _} =
         SPO.declare_start_criterion(ctx.tenant, {:project, ctx.projeto.id}, @evento, ctx.user.id)
 
-      assert %{^issue => {:ok, _quando, {:project, _, "Conecta Fapes"}}} =
+      assert %{^issue => {:ok, _quando, {:project, _, "Conecta Fapes"}, _}} =
                SPO.resolve_start(ctx.tenant, [issue])
     end
 
@@ -322,7 +322,7 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
       primeira = DateTime.add(DateTime.utc_now(:second), -3600, :second)
       atividade_da_issue(ctx.tenant, issue, @evento, primeira)
 
-      assert %{^issue => {:ok, quando, _}} = SPO.resolve_start(ctx.tenant, [issue])
+      assert %{^issue => {:ok, quando, _, _}} = SPO.resolve_start(ctx.tenant, [issue])
 
       # `occurred_at` é `NaiveDateTime` na coluna, e a comparação tem de ser na mesma moeda.
       esperado = DateTime.to_naive(primeira)

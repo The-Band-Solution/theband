@@ -141,9 +141,17 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
       # consulta do repositório observado passou a ser feita porque a seção precisa de
       # `changes_collected_at` para distinguir "não coletada" de "nenhuma atende". Os
       # autores e integradores entram na consulta de nomes que já existia.
-      assert consultas <= 42, """
-      A tela passou a fazer #{consultas} consultas por render, contra 42 medidas depois da
-      feature 032 (40 na 030, 39 antes dela, 38 depois da 014).
+      # **46 desde a feature 042**, e são DUAS consultas fixas por render — o dobro porque
+      # `live/2` renderiza duas vezes. `resolve_start/2` decide o critério que se aplica a
+      # esta issue: uma consulta pelos quadros que declararam, outra pelo projeto. Nenhuma
+      # cresce com o número de linhas, e a terceira — a primeira ocorrência do evento — só
+      # roda quando algum critério se aplica, e aqui nenhum se aplica.
+      #
+      # **O teto sobe, a garantia não muda**: o que este caso protege é crescimento POR
+      # LINHA. Consulta fixa nova é custo declarado; consulta por linha é o defeito.
+      assert consultas <= 46, """
+      A tela passou a fazer #{consultas} consultas por render, contra 46 medidas depois da
+      feature 042 (42 na 032, 40 na 030, 39 antes dela, 38 depois da 014).
 
       Ligar um nome usa `person_id`, que já está carregado. Se o número subiu, alguma coisa
       está resolvendo por linha — o defeito que a feature 007 pagou com 135 por render.

@@ -367,6 +367,71 @@ defmodule TheBandWeb.WorkItemLive.Show do
             </div>
           </div>
 
+          <%!-- ═══ O INSTANTE DE INÍCIO — issue #370, FR-013 e FR-015 ═══
+                Fica junto das outras datas porque é uma delas — mas é a única derivada, e
+                por isso vem com a origem. As outras a origem informa; esta a organização
+                decidiu. --%>
+          <div class="card bg-base-200">
+            <div class="card-body gap-2 p-4 sm:p-5">
+              <h3 class="font-semibold">Start instant</h3>
+              <p class="text-sm">
+                <span :if={match?({:ok, _, _, _}, @inicio)}>
+                  <strong>{data(elem(@inicio, 1))}</strong>
+                  — the first time
+                  <span class="badge badge-outline badge-sm font-mono">{elem(@inicio, 3)}</span>
+                  happened on it — <strong>the first</strong>, because a task that went back to
+                  the backlog and out again started when it started.
+                </span>
+                <%!-- Cada ausência tem causa própria e ação própria — FR-009, FR-015. Nenhum
+                      código de motivo: quem lê não deveria ter que procurar o que significa. --%>
+                <span :if={@inicio == {:missing, :sem_criterio}} class="opacity-70">
+                  None. No criterion applies to this issue — neither its boards nor the project
+                  they belong to declared one. <strong>Declare one</strong>
+                  on the project or the board.
+                </span>
+                <span :if={match?({:missing, {:evento_nao_coletado, _}}, @inicio)} class="opacity-70">
+                  None. The declared criterion is
+                  <span class="badge badge-outline badge-sm font-mono">
+                    {@inicio |> elem(1) |> elem(1)}
+                  </span>
+                  and no such event was ever observed on this issue. Either it genuinely never
+                  happened, or the collection has not brought it yet.
+                </span>
+                <span :if={match?({:missing, {:criterio_ambiguo, _}}, @inicio)} class="opacity-70">
+                  None. This issue sits on two boards linked to the project <strong>at the same instant</strong>, and both declared a criterion. The
+                  platform <strong>does not pick one</strong> — unlink one of them:
+                </span>
+              </p>
+
+              <%!-- FR-013: a origem é clicável, e leva a quem declarou. Um instante sem origem
+                    não pode ser contestado por quem discorda dele. --%>
+              <p :if={match?({:ok, _, _, _}, @inicio)} class="text-xs opacity-70">
+                Criterion declared by
+                <.link
+                  :if={match?({:board, _, _}, elem(@inicio, 2))}
+                  navigate={~p"/boards/#{@inicio |> elem(2) |> elem(1)}"}
+                  class="link"
+                >
+                  board {@inicio |> elem(2) |> elem(2)}
+                </.link>
+                <.link
+                  :if={match?({:project, _, _}, elem(@inicio, 2))}
+                  navigate={~p"/projects"}
+                  class="link"
+                >
+                  project {@inicio |> elem(2) |> elem(2)}
+                </.link>
+                — the board wins over the project, and only when it declared one of its own.
+              </p>
+
+              <ul :if={match?({:missing, {:criterio_ambiguo, _}}, @inicio)} class="text-xs">
+                <li :for={q <- @inicio |> elem(1) |> elem(1)} class="font-mono">
+                  {q.title} · linked {q.linked_at}
+                </li>
+              </ul>
+            </div>
+          </div>
+
           <div class="card bg-base-200">
             <div class="card-body gap-2 p-4 sm:p-5">
               <h3 class="font-semibold">Dates</h3>
@@ -783,6 +848,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
     discussao = Discussions.for_issue(tenant, issue.id)
     mudancas = Changes.for_issue(tenant, issue.id)
     nomes = nomes(tenant, issue, discussao, mudancas)
+    inicio = Map.get(SPO.resolve_start(tenant, [issue.id]), issue.id)
 
     # **As quatro listas, uma vez cada.** `partes_faltando/2` as consultava de novo para contar —
     # três consultas repetidas por render, e a quarta lista teria virado a sétima. Contar o que já
@@ -800,6 +866,9 @@ defmodule TheBandWeb.WorkItemLive.Show do
     |> assign(
       issue: issue,
       pai: pai,
+      # Feature 042: o instante de início desta issue, resolvido pela escala — e a origem
+      # junto, porque a `FR-013` proíbe o número aparecer sozinho.
+      inicio: inicio,
       # A verificação do axioma é a **mesma função** que a tela do repositório usa em
       # lote. Dois caminhos discordariam, e uma tela avisaria o que a outra nega.
       violacao: violacao(issue, pai),

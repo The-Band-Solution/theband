@@ -242,12 +242,66 @@ defmodule TheBandWeb.CriterioNaTelaTest do
     end
   end
 
+  describe "a tela da issue — o instante nunca aparece sozinho (T020, FR-013)" do
+    test "mostra o instante, o evento, e a origem clicável", ctx do
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, ctx.quadro.id}, @evento, ctx.user.id)
+
+      issue_id = issue_no_quadro(ctx, ctx.quadro, @evento)
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{issue_id}")
+
+      assert html =~ "Start instant"
+      assert html =~ @evento, "o evento que marcou o início, e não só a data"
+
+      assert html =~ "board Delivery", """
+      **A FR-013.** O instante sozinho não pode ser contestado por quem discorda dele: quem
+      lê precisa saber qual alvo declarou o critério que o produziu.
+      """
+
+      assert html =~ ~p"/boards/#{ctx.quadro.id}", "e a origem é clicável para o alvo"
+
+      assert html =~ "the first", """
+      **A FR-011.** Vale a PRIMEIRA ocorrência. Sem dizer isso, quem vê a data de uma issue
+      que voltou ao backlog conclui que a plataforma perdeu o começo.
+      """
+    end
+
+    test "sem critério, a ausência é frase e diz o que fazer", ctx do
+      issue_id = issue_no_quadro(ctx, ctx.quadro, @evento)
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{issue_id}")
+
+      assert html =~ "No criterion applies to this issue"
+      assert html =~ "Declare one"
+    end
+
+    test "critério declarado e evento ausente é a TERCEIRA ausência", ctx do
+      {:ok, _} =
+        SPO.declare_start_criterion(ctx.tenant, {:board, ctx.quadro.id}, @evento, ctx.user.id)
+
+      issue_id = issue_no_quadro(ctx, ctx.quadro, "AssignedEvent")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/work/issues/#{issue_id}")
+
+      assert html =~ "no such event was ever observed on this issue", """
+      **A FR-009.** Confundir esta com `sem_criterio` mandaria quem lê declarar um critério
+      que já existe — e o problema é de coleta.
+      """
+
+      refute html =~ "No criterion applies to this issue"
+    end
+  end
+
   describe "nenhum código de motivo na tela — SC-008" do
-    test "nem no projeto, nem no quadro", ctx do
+    test "nem no projeto, nem no quadro, nem na issue", ctx do
+      issue_id = issue_no_quadro(ctx, ctx.quadro, @evento)
+
       {:ok, _live, projetos} = live(ctx.conn, ~p"/projects")
       {:ok, _live, quadros} = live(ctx.conn, ~p"/boards/#{ctx.quadro.id}")
+      {:ok, _live, issue} = live(ctx.conn, ~p"/work/issues/#{issue_id}")
 
-      for html <- [projetos, quadros],
+      for html <- [projetos, quadros, issue],
           codigo <- ~w(criterio_ambiguo sem_criterio evento_nao_coletado) do
         refute html =~ codigo, """
         **A SC-008.** `#{codigo}` é código de motivo, e a tela escreve frases.

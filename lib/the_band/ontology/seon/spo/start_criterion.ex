@@ -168,7 +168,7 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
   que fazer.
   """
   @type resolucao ::
-          {:ok, DateTime.t(), origem()}
+          {:ok, DateTime.t(), origem(), String.t()}
           | {:missing, :sem_criterio}
           | {:missing, {:criterio_ambiguo, [map()]}}
           | {:missing, {:evento_nao_coletado, String.t()}}
@@ -181,9 +181,13 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
 
   ## A origem acompanha o instante
 
-  `{:ok, quando, origem}` — e a origem diz de qual quadro ou projeto o critério veio. A
-  `FR-013` exige que a tela mostre isso junto do número, e devolver só o `DateTime` tornaria
-  a proveniência impossível sem segunda consulta.
+  `{:ok, quando, origem, event_type}` — a origem diz de qual quadro ou projeto o critério
+  veio, e `event_type` diz qual evento ele nomeia. A `FR-013` exige as duas coisas junto do
+  número, e devolver só o `DateTime` tornaria a proveniência impossível sem segunda consulta.
+
+  O `event_type` sai da **mesma** consulta que decidiu o critério. Deixá-lo de fora custava
+  uma consulta por tela de issue — e o guard de N+1 da `clicar_leva_a_pagina_test.exs`
+  cobrou por ela.
 
   ## Vale a PRIMEIRA ocorrência
 
@@ -214,7 +218,7 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
   defp resolver_uma({:ok, origem, event_type}, issue_id, primeiros) do
     case Map.get(primeiros, {issue_id, event_type}) do
       nil -> {:missing, {:evento_nao_coletado, event_type}}
-      quando -> {:ok, quando, origem}
+      quando -> {:ok, quando, origem, event_type}
     end
   end
 
@@ -316,7 +320,12 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
             a.subject_id in type(^issue_ids, {:array, :binary_id}) and
             a.activity_type in ^tipos,
         group_by: [a.subject_id, a.activity_type],
-        select: {type(a.subject_id, :binary_id), a.activity_type, min(a.occurred_at)}
+        # `type/2` no `min` porque a consulta é sem esquema: sem ele o Postgrex devolve
+        # `NaiveDateTime`, o `@type` diria `DateTime.t()` mentindo, e a tela quebraria ao
+        # formatar — que foi exatamente o que aconteceu.
+        select:
+          {type(a.subject_id, :binary_id), a.activity_type,
+           type(min(a.occurred_at), :utc_datetime)}
     )
     |> Map.new(fn {issue_id, tipo, quando} -> {{issue_id, tipo}, quando} end)
   end
@@ -363,7 +372,7 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
 
     %{
       total: length(ids),
-      com_instante: conta(resolucoes, &match?({:ok, _, _}, &1)),
+      com_instante: conta(resolucoes, &match?({:ok, _, _, _}, &1)),
       sem_criterio: conta(resolucoes, &(&1 == {:missing, :sem_criterio})),
       evento_nao_coletado: conta(resolucoes, &match?({:missing, {:evento_nao_coletado, _}}, &1)),
       ambiguas: ambiguas(tenant, resolucoes)
