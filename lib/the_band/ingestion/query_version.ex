@@ -42,9 +42,8 @@ defmodule TheBand.Ingestion.QueryVersion do
 
   - **`verifications`** sai de requisições REST, e não de arquivo `.graphql`. Não há o que
     vigiar por impressão digital, e a mudança de forma continua invisível ali;
-  - **`issues`** e **`branches`** têm corte, mas com formas diferentes — `percorrer?/2`
-    compara com `last_pushed_at`. Ganham a prevenção pela impressão digital, e não o
-    remédio automático;
+  - **`branches`** tem corte de forma diferente — compara com `last_pushed_at`. Ganha a
+    prevenção pela impressão digital, e não o remédio automático;
   - **`reviews_collected_at`** existe na tabela e **ninguém escreve nela**. Coluna morta,
     registrada aqui porque quem for mexer vai encontrá-la.
   """
@@ -72,7 +71,12 @@ defmodule TheBand.Ingestion.QueryVersion do
   @versoes %{
     # 2: `statusCheckRollup` entrou na feature 041, e foi o que expôs o defeito.
     "changes" => 2,
-    "comments" => 1
+    "comments" => 1,
+    # 2: `milestone { id dueOn }` entrou na issue #368 — o marco é onde o prazo mora, e a
+    # consulta pedia só `title`. Sem reabrir o corte, as 5.216 issues já coletadas ficariam
+    # com `milestone_due_on` nulo para sempre, e o corte de `issues` é o mais silencioso
+    # dos três: repositório sem push novo é pulado por inteiro.
+    "issues" => 2
   }
 
   # A impressão digital de cada arquivo de consulta. Muda o arquivo, muda o número, e o
@@ -82,7 +86,7 @@ defmodule TheBand.Ingestion.QueryVersion do
     "change_requests" => "1dd8e96a07a3d4ad",
     "issue_comments" => "c3cea59315496c95",
     "issue_types" => "02dd1d6214a74ba7",
-    "issues" => "adb2c1bc7548b0ce",
+    "issues" => "fdb882a84adb80b4",
     "organization" => "47dedb4ec75486a8",
     "organization_members" => "d659d90c384e064b",
     "project_boards" => "f274aa21a5d98649",

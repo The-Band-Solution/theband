@@ -44,7 +44,10 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $timeline_size: Int
         author { __typename login ... on User { id name } }
         assignees(first: 10) { nodes { __typename id login name } }
         labels(first: 20) { nodes { name color } }
-        milestone { title }
+        # `dueOn` é uma das origens de prazo que a #368 deixa a organização declarar — o
+        # GitHub não tem campo de prazo na issue, e o marco é onde a data mora. `id` junto
+        # porque título é renomeável, e chavear prazo por string perderia o marco no rename.
+        milestone { id title dueOn }
         projectItems: projectItems(first: 10) { nodes { project { title } } }
         comments { totalCount }
         reactions { totalCount }

@@ -29,6 +29,12 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
     # passou por coleta de issues" — e é a diferença entre "olhei e não achei" e "não sei",
     # que a tela precisa para não mostrar `0` nos dois casos.
     field :issues_collected_at, :utc_datetime
+
+    # Issue #452: a versão da consulta com que cada fase percorreu este repositório. A
+    # coluna existe desde a #452; o campo entra no schema pela #368, porque a fase de
+    # issues passou a precisar dele para decidir o corte — e as outras fases o leem por
+    # consulta sem schema.
+    field :query_versions, :map, default: %{}
     # Quando os comentários foram percorridos por inteiro — decide o incremental da
     # coleta E qual frase o vazio da discussão usa na tela (feature 030).
     field :comments_collected_at, :utc_datetime
@@ -62,6 +68,7 @@ defmodule TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository do
       :inaccessible_since,
       :inaccessible_reason,
       :issues_collected_at,
+      :query_versions,
       :comments_collected_at,
       :changes_collected_at,
       :verifications_collected_at,

@@ -33,6 +33,34 @@ properties:
           levels: { type: array, minItems: 1, items: { type: string } }
           filters: { type: array, items: { type: string } }
           period: { type: string }
+      # Aproximação declarada — a medida cujo dado a origem NÃO fornece, e o que se usa
+      # no lugar. Existe como campo próprio, e não como limitação em prosa, porque a
+      # diferença entre o que a aproximação diz e o que a medida diria precisa ser
+      # legível por máquina: é ela que impede a tela apresentar o substituto como se
+      # fosse a medida. Nasceu da issue #506, onde duas das cinco medidas do painel da
+      # equipe não calculam por falta de dado, e não de tela.
+      proxies:
+        type: object
+        additionalProperties: false
+        required: [note, sources]
+        properties:
+          note: { type: string }
+          sources:
+            type: array
+            minItems: 1
+            items:
+              type: object
+              additionalProperties: false
+              required: [id, expression, note]
+              properties:
+                id: { type: string }
+                expression: { type: string }
+                # O valor medido, com a data em que foi medido no nome do campo: número
+                # sem data envelhece em silêncio e continua parecendo atual.
+                measured_2026_08_26: { type: integer }
+                # O que a aproximação NÃO diz. Obrigatório: aproximação sem essa frase
+                # vira a medida no primeiro painel que a exibir.
+                note: { type: string }
       limitations: { type: array, minItems: 1, items: { type: string } }
       misinterpretations: { type: array, items: { type: string } }
       provenance: { $ref: "the-band/schemas/common#/$defs/provenance" }

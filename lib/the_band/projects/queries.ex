@@ -102,6 +102,74 @@ defmodule TheBand.Projects.Queries do
     )
   end
 
+  @doc """
+  Os quadros do tenant com a evidência para associá-los a um projeto — issue #367.
+
+  Volume, quantas issues seguem abertas e o período que o quadro cobre. É o que falta a
+  quem escolhe entre 26 quadros: `Conecta Fapes` tem 938 itens de dez/2025 a ago/2026, e
+  `[DEPRECATED] ConectaFapes` tem 196 de fev a jul/2025 — o período mais antigo do mesmo
+  projeto, e o que a #367 mostrou sumindo quando só o quadro corrente é lido.
+
+  Mostrar volume e período é informar. **Nenhum quadro vem recomendado**, e o nome não
+  decide nada: `[DEPRECATED]` no título é texto da origem, não classificação da
+  plataforma — quadro encerrado continua carregando o histórico do projeto.
+  """
+  @spec boards_with_evidence(Tenant.t()) :: [map()]
+  def boards_with_evidence(%Tenant{id: tenant_id}) do
+    Repo.all(
+      from o in ObservedProject,
+        left_join: i in Item,
+        on: i.observed_project_id == o.id and is_nil(i.no_longer_observed_at),
+        left_join: ci in "collected_issues",
+        on: ci.id == i.collected_issue_id,
+        where: o.tenant_id == ^tenant_id,
+        group_by: o.id,
+        order_by: [desc: count(i.id), asc: o.number],
+        select: %{
+          id: type(o.id, :binary_id),
+          number: o.number,
+          title: o.title,
+          closed: o.closed,
+          no_longer_observed_at: o.no_longer_observed_at,
+          itens: count(i.id),
+          # Abertas é `filter`, e não uma segunda consulta: o total sozinho não distingue
+          # o quadro encerrado com tudo fechado do quadro vivo com tudo aberto.
+          abertas: filter(count(ci.id), ci.state == "OPEN"),
+          primeira: type(min(ci.external_created_at), :utc_datetime),
+          ultima: type(max(ci.external_created_at), :utc_datetime)
+        }
+    )
+  end
+
+  @doc """
+  Os campos de DATA deste quadro, com quantos itens têm valor — issue #368.
+
+  A evidência para declarar qual é o prazo. A sondagem achou **33 pares (quadro, campo) de
+  data em 13 nomes e duas línguas**: `End date` é fim planejado num quadro e fim real
+  noutro, `Start date` é começo e não prazo, e `End Date` difere de `End date` só na caixa.
+
+  Mostrar quantos itens preenchem cada campo é informar; recomendar seria escolher, e a
+  plataforma não escolhe. Campo sem valor nenhum aparece com zero, e não some: campo vazio
+  declarado prazo produz issue sem prazo, que é resposta diferente de campo inexistente.
+  """
+  @spec date_fields(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def date_fields(%Tenant{id: tenant_id}, observed_project_id) do
+    Repo.all(
+      from d in FieldDefinition,
+        left_join: v in FieldValue,
+        on: v.project_field_definition_id == d.id,
+        where:
+          d.tenant_id == ^tenant_id and d.observed_project_id == ^observed_project_id and
+            d.data_type == "DATE" and is_nil(d.no_longer_observed_at),
+        group_by: [d.id, d.name],
+        order_by: [desc: count(v.id), asc: d.name],
+        select: %{
+          name: d.name,
+          preenchidos: count(v.id)
+        }
+    )
+  end
+
   @doc "Quantos itens o quadro tem — o total contra o qual a SC-009b soma os backlogs."
   @spec count_items(Tenant.t(), Ecto.UUID.t()) :: non_neg_integer()
   def count_items(%Tenant{id: tenant_id}, observed_project_id) do

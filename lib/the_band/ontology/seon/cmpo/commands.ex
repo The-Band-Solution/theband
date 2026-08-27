@@ -5,6 +5,7 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
 
   import Ecto.Query
 
+  alias TheBand.Ingestion.QueryVersion
   alias TheBand.Ontology.SEON.CMPO.Schemas.LoadedSoftwareSystemCopy, as: Copy
   alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
   alias TheBand.Ontology.SEON.CMPO.Schemas.SourceRepository
@@ -228,7 +229,13 @@ defmodule TheBand.Ontology.SEON.CMPO.Commands do
   def mark_issues_collected(%Tenant{id: tenant_id}, observed_repository_id, at) do
     with {:ok, observed} <- fetch_observed(tenant_id, observed_repository_id) do
       observed
-      |> ObservedRepository.changeset(%{issues_collected_at: at})
+      |> ObservedRepository.changeset(%{
+        issues_collected_at: at,
+        # Issue #452 pela #368: a versão da consulta é gravada JUNTO com o instante. Sem
+        # isso `corte_vale?/2` devolveria `false` a cada coleta, e o repositório seria
+        # repaginado por inteiro para sempre — a reabertura vale uma vez, e não sempre.
+        query_versions: QueryVersion.marcar(observed.query_versions, "issues")
+      })
       |> Repo.update()
     end
   end

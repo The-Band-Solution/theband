@@ -149,6 +149,7 @@ Tipo: `count` · unidade: `tasks` · níveis: sprint, project, team, person
 
 **Limitações**
 
+- O período é semanal por decisão da pessoa mantenedora em 2026-08-26, e a medida continua sendo instantânea por definição: WIP é o que estava aberto NUM instante, e semanal diz de quanto em quanto tempo esse instante é amostrado. O painel da equipe da issue #506 lê a série, e nunca um valor solto.
 - Contar tarefa aberta ignora o tamanho da tarefa - uma de duas horas e uma de duas semanas pesam igual, e um time que decompõe grosso parece ter menos trabalho aberto do que tem.
 - Depende de start_date registrado. Quando o início é derivado da transição de status do item do Projects v2, a confiança é média, e tarefa que nunca passou por "em andamento" não aparece em nenhum instante.
 - Tarefa sem end_date pode estar em execução ou abandonada; a medida não distingue as duas situações e trata o abandono como trabalho ativo.
@@ -156,6 +157,8 @@ Tipo: `count` · unidade: `tasks` · níveis: sprint, project, team, person
 - Trabalho que não virou tarefa - revisão de solicitação de mudança, apoio a incidente, espera por terceiro - consome capacidade e não entra na contagem, o que faz o WIP medido ser menor que o WIP real.
 - Um valor isolado não descreve o sprint. WIP é série temporal, e o instante escolhido determina o resultado: fim de semana, feriado e véspera de review deprimem o número por motivos que nada têm a ver com fluxo.
 - No nível person, o mesmo trabalho aparece uma vez por participante quando há mais de um responsável, e a soma dos níveis person não é igual ao nível sprint.
+- Amostrar semanalmente não elimina o efeito do dia escolhido, apenas o torna constante: se a amostra cai sempre na segunda, ela sempre mede o pior momento da semana anterior. O que a série semanal permite é comparar semana com semana, e nunca ler um ponto como o WIP do time.
+- A medida exige start_date E end_date, e o segundo é a lacuna que a issue #506 registrou. O critério de início veio da feature 042 e há quatro declarados; o critério de FIM não existe, e sem ele toda tarefa iniciada parece aberta para sempre. Enquanto isso não for declarado, a série semanal cresce monotonicamente e o crescimento não é acúmulo de trabalho: é ausência de fim.
 
 **Interpretações incorretas possíveis**
 
@@ -199,6 +202,9 @@ Tipo: `ratio` · unidade: `proportion` · níveis: sprint, project, team
 **Limitações**
 
 - Depende de que a aceitação dos entregáveis tenha sido registrada contra critérios de aceitação.
+- As aproximações declaradas em `proxies` NÃO substituem a medida. Elas respondem "o que não passou pela ferramenta", enquanto a medida responde "o que foi avaliado e recusado" - e um entregável pode ser recusado na review de sprint sem que solicitação alguma tenha sido fechada nem verificação alguma ter quebrado.
+- O denominador da aproximação por verificação é incompleto e o buraco é grande: 2.024 das solicitações integradas - 41% - não têm estado de verificação registrado. Calcular a razão sobre as que têm excluiria essas em silêncio, e o denominador mentiria para baixo. A parcela sem verificação MUST ser reportada ao lado do número, nunca descontada dele.
+- Solicitação fechada sem integrar mistura recusa com desistência. O estado de revisão que separaria as duas - mudanças solicitadas contra aprovada - não é coletado hoje, e enquanto não for, o número é teto e não medida.
 - Tarefas sem entregável associado ficam fora do numerador e do denominador.
 - Uma tarefa que produziu vários entregáveis conta uma vez, mesmo com apenas um não aceito.
 

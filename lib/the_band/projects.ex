@@ -31,6 +31,11 @@ defmodule TheBand.Projects do
   defdelegate list_projects(tenant), to: Queries
   defdelegate get_project(tenant, id), to: Queries
   defdelegate list_field_definitions(tenant, observed_project_id), to: Queries
+  # Issue #367: os quadros com volume e período — a evidência para associar ao projeto.
+  defdelegate boards_with_evidence(tenant), to: Queries
+
+  # Issue #368: os campos de DATA, com quantos itens preenchem cada um.
+  defdelegate date_fields(tenant, observed_project_id), to: Queries
   defdelegate list_items(tenant, observed_project_id), to: Queries
   defdelegate item_values(tenant, observed_project_id), to: Queries
   defdelegate list_iterations(tenant, observed_project_id), to: Queries

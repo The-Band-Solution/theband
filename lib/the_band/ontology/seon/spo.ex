@@ -29,6 +29,7 @@ defmodule TheBand.Ontology.SEON.SPO do
   """
 
   alias TheBand.Ontology.SEON.SPO.Commands
+  alias TheBand.Ontology.SEON.SPO.DeadlineCriterion
   alias TheBand.Ontology.SEON.SPO.Projects
   alias TheBand.Ontology.SEON.SPO.Queries
   alias TheBand.Ontology.SEON.SPO.StartCriterion
@@ -90,6 +91,19 @@ defmodule TheBand.Ontology.SEON.SPO do
 
   defdelegate revoke_start_criterion(tenant, alvo, actor_id), to: StartCriterion, as: :revoke
   defdelegate start_criterion_for(tenant, alvo), to: StartCriterion, as: :current
+
+  # Issue #368: o prazo é LISTA, e não um valor. 304 issues têm marco e caixa de tempo ao
+  # mesmo tempo, e 640 estão em mais de uma caixa — devolver um só escolheria em silêncio.
+  defdelegate declare_deadline_criterion(tenant, alvo, source, field_name, actor_id),
+    to: DeadlineCriterion,
+    as: :declare
+
+  defdelegate revoke_deadline_criterion(tenant, alvo, source, field_name, actor_id),
+    to: DeadlineCriterion,
+    as: :revoke
+
+  defdelegate deadline_criteria_for(tenant, alvo), to: DeadlineCriterion, as: :current
+  defdelegate resolve_deadlines(tenant, issue_ids), to: DeadlineCriterion, as: :resolve
   defdelegate boards_overriding(tenant, project_id), to: StartCriterion
   defdelegate collected_event_types(tenant), to: StartCriterion
 
