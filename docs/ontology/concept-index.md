@@ -3,7 +3,7 @@
 
 # Índice de conceitos
 
-231 conceitos na rede, em ordem alfabética de identificador.
+234 conceitos na rede, em ordem alfabética de identificador.
 
 | Id | Conceito | pt-BR | Ontologia | Categoria UFO |
 |---|---|---|---|---|
@@ -148,6 +148,9 @@
 | `rsro.requirement` | Requirement | Requisito | [rsro](rsro.md) | `goal` |
 | `rsro.requirements_artifact` | Requirements Artifact | Artefato de Requisitos | [rsro](rsro.md) | `social_object` |
 | `rsro.requirements_document` | Requirements Document | Documento de Requisitos | [rsro](rsro.md) | `social_object` |
+| `smpo.planning_allocation` | Planning Allocation | Alocação de Planejamento | [smpo](smpo.md) | `relator` |
+| `smpo.planning_horizon` | Planning Horizon | Horizonte de Planejamento | [smpo](smpo.md) | `social_object` |
+| `smpo.planning_quarter` | Planning Quarter | Trimestre de Planejamento | [smpo](smpo.md) | `social_object` |
 | `spo.activity_start_criterion` | Activity Start Criterion | Critério de Início de Atividade | [spo](spo.md) | `social_object` |
 | `spo.artifact` | Artifact | Artefato | [spo](spo.md) | `object` |
 | `spo.complex_project` | Complex Project | Projeto Complexo | [spo](spo.md) | `social_object` |

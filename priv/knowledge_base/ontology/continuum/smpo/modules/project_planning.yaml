@@ -30,6 +30,22 @@ concepts:
         executado nem produz coisa alguma — ele diz para quando o trabalho havia sido
         pensado, e continua existindo mesmo que nada tenha sido feito.
     classification: { ufo_category: social_object, ontouml_stereotype: kind }
+    provenance:
+      source_type: project_decision
+      reference: "Issue #514 — decisão da pessoa mantenedora em 2026-08-26"
+      year: 2026
+      note: >
+        Este conceito NÃO vem da literatura. Procurado antes de ser criado: a SPMO da
+        SEON, que é a camada de planejamento, tem 17 conceitos de estimativa e
+        rastreamento e nenhum de período. O único termo publicado para a caixa é o
+        *Program Increment* do SAFe, e adotá-lo importaria um método que esta
+        organização não pratica.
+
+        Existe como pai para que o trimestre não seja a única forma possível de horizonte
+        macro. **O segundo caso ainda não foi observado**: nesta base, os campos de
+        iteração são `Quarter` (média 84 dias), `Sprint` e `Iteration` (média 13). Quando
+        aparecer um semestre ou um PI, ele entra como irmão do trimestre sem mexer no que
+        já existe — e é isso que o pai compra.
     attributes:
       - { name: title, type: string, required: true }
       - { name: starts_on, type: date, required: false, description: "Ausente quando a origem não declara — nunca preenchido por inferência." }
@@ -57,6 +73,15 @@ concepts:
         trimestre ser trimestre é a organização tê-lo declarado como horizonte macro, e
         não o número de dias. Um trimestre encurtado continua sendo o trimestre.
     classification: { ufo_category: social_object, ontouml_stereotype: subkind, parent: smpo.planning_horizon }
+    provenance:
+      source_type: project_decision
+      reference: "Issue #514; duração conferida contra o SAFe Program Increment"
+      year: 2026
+      note: >
+        A duração medida — 61 a 92 dias, média 84 — cai dentro da caixa de 8 a 12 semanas
+        que o SAFe define para o *Program Increment*, e que organizações costumam alinhar
+        ao trimestre fiscal. A coincidência confirma a escala; o nome não foi tomado
+        emprestado.
     examples: ["Quarter 1", "Q3/2026"]
 
   - id: smpo.planning_allocation
