@@ -161,6 +161,10 @@ defmodule TheBandWeb.DiscussaoTest do
   describe "o sinal parada, com resolução" do
     setup ctx do
       pessoa = pessoa(ctx.tenant, "quem-trabalha", "Quem Trabalha")
+
+      # Issue #369: a aba de trabalho só abre para quem a plataforma sabe que é.
+      elo_de_identidade(ctx.tenant, ctx.admin, pessoa)
+
       %{pessoa: pessoa}
     end
 

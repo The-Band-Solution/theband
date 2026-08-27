@@ -44,6 +44,22 @@ defmodule TheBandWeb.ConnCase do
     Plug.Test.init_test_session(conn, %{"user_id" => user.id})
   end
 
+  @doc """
+  Declara que esta conta É esta pessoa observada — issue #369.
+
+  Sem o elo, a aba de trabalho fecha para todo mundo, inclusive para a própria pessoa: a
+  plataforma não sabe qual das pessoas observadas é a conta logada, e não adivinha. Todo
+  teste que abre a aba de trabalho de alguém precisa dizer quem a conta é.
+
+  Chamar isto NÃO é contornar a regra: é declarar o que a organização declararia. O que
+  contornaria seria afrouxar a verificação, e o que a mantém honesta é este passo aparecer
+  no setup de cada teste que depende dele.
+  """
+  def elo_de_identidade(tenant, user, pessoa) do
+    {:ok, ligada} = TheBand.Tenants.declare_person(tenant, user.id, pessoa.id, user.id)
+    ligada
+  end
+
   @doc "Cria tenant e usuário admin, e devolve os dois."
   def tenant_with_admin(slug \\ nil) do
     tenant = TheBand.DataCase.tenant_fixture(slug)

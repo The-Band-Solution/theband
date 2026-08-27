@@ -65,6 +65,14 @@ defmodule TheBand.WorkItems do
   defdelegate assigned_open_count(tenant, person_id), to: PersonWork
   defdelegate timeline_coverage(tenant, person_id), to: PersonWork
   defdelegate closed_by_month(tenant, person_id), to: PersonWork
+  # As duas séries por período, na escala pedida — semana, mês ou ano.
+  defdelegate state_changes_by_period(tenant, person_id, escala), to: PersonWork
+  defdelegate escalas(), to: PersonWork
+  # Burn-up e burn-down derivam da série — nenhuma consulta nova.
+  defdelegate burn(serie), to: PersonWork
+  defdelegate projecao(serie), to: PersonWork
+  # `data_end`: até quando o trabalho aberto foi planejado — data declarada, e não projetada.
+  defdelegate prazo_do_trabalho_aberto(tenant, person_id), to: PersonWork
   defdelegate open_age_buckets(tenant, person_id), to: PersonWork
   defdelegate lead_time(tenant, person_id), to: PersonWork
   defdelegate issues_assigned_to(tenant, person_id), to: PersonWork

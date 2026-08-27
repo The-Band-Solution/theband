@@ -16,7 +16,8 @@ defmodule TheBand.MixProject do
       # As Mix tasks de conhecimento chamam Mix.shell/0 e Mix.raise/1; sem :mix
       # no PLT o Dialyzer as reporta como funções inexistentes.
       dialyzer: [plt_add_apps: [:mix, :ex_unit]],
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      releases: releases()
     ]
   end
 
@@ -37,6 +38,24 @@ defmodule TheBand.MixProject do
   end
 
   # Specifies which paths to compile per environment.
+  # O release, para implantação em VPS.
+  #
+  # `include_executables_for: [:unix]` gera `bin/the_band`, que é o que o contêiner
+  # executa. `steps: [:assemble]` e nada mais: `:tar` produziria um pacote que ninguém
+  # consome — a imagem já é o pacote.
+  #
+  # **Sem `strip_beams: false`.** Os beams são despidos, e com isso `Code.fetch_docs/1`
+  # deixa de funcionar no release. Nada em produção lê doc; o que lê é a base de
+  # conhecimento em `priv/`, que vai inteira e é copiada explicitamente no Dockerfile.
+  defp releases do
+    [
+      the_band: [
+        include_executables_for: [:unix],
+        steps: [:assemble]
+      ]
+    ]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 

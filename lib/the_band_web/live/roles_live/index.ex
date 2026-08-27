@@ -38,6 +38,7 @@ defmodule TheBandWeb.RolesLive.Index do
   import TheBandWeb.Components.DataTable
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Tenants.User
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 25
@@ -97,6 +98,47 @@ defmodule TheBandWeb.RolesLive.Index do
 
       {:error, changeset} ->
         {:noreply, put_flash(socket, :error, "Could not register: #{errors(changeset)}")}
+    end
+  end
+
+  # Issue #369, FR-012e: a organização declara que o papel confere alcance. A plataforma
+  # NÃO decide pelo nome — `Tech Leader` parece liderança e `Coordenador` também, e a mesma
+  # organização pode ter um `Tech Lead` que é senioridade técnica e não chefia ninguém.
+  #
+  # O erro aqui é mais caro que nas irmãs: excesso de visibilidade concedido ninguém
+  # reclama, e o defeito fica.
+  def handle_event("conceder", %{"role_id" => id, "scope" => escopo}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      case EO.declare_grant(
+             socket.assigns.current_tenant,
+             id,
+             escopo,
+             socket.assigns.current_user.id
+           ) do
+        {:ok, _} ->
+          {:noreply, socket |> put_flash(:info, "Granted: #{rotulo(escopo)}.") |> load()}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "That grant is already declared.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can grant visibility.")}
+    end
+  end
+
+  def handle_event("revogar_concessao", %{"role_id" => id, "scope" => escopo}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      case EO.revoke_grant(
+             socket.assigns.current_tenant,
+             id,
+             escopo,
+             socket.assigns.current_user.id
+           ) do
+        {:ok, _} -> {:noreply, socket |> put_flash(:info, "Grant revoked.") |> load()}
+        {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to revoke.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can revoke visibility.")}
     end
   end
 
@@ -184,6 +226,10 @@ defmodule TheBandWeb.RolesLive.Index do
     |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
   end
 
+  defp rotulo("team"), do: "sees their team's work panels"
+  defp rotulo("organization"), do: "sees the organisation's work panels"
+  defp rotulo(outro), do: outro
+
   defp load(socket) do
     tenant = socket.assigns.current_tenant
     estado = socket.assigns.tabelas["roles"]
@@ -206,6 +252,10 @@ defmodule TheBandWeb.RolesLive.Index do
     # Quantas evidências esperam por um papel — é o que transforma "lista vazia" em
     # "bloqueio", e sem ele ninguém sabe que a ausência tem custo.
     |> assign(evidencias_pendentes: EO.count_evidence_pending_role(tenant))
+    # Issue #369: o que cada papel PERMITE VER. Duas consultas em memória a partir de uma,
+    # e nenhuma delas por linha da tabela.
+    |> assign(concessoes: EO.grants_by_role(tenant))
+    |> assign(cobertura_de_alcance: EO.grant_coverage(tenant))
 
     # `sugestoes` deixou de existir: os quatro do Scrum agora vêm **na lista**, compostos, e
     # não como preenchimento de formulário. A `FR-002` pede disponibilidade, não sugestão.
@@ -248,6 +298,20 @@ defmodule TheBandWeb.RolesLive.Index do
       <%!-- O aviso mudou de sentido. Antes a lista vinha vazia e as evidências ficavam
             bloqueadas; agora os quatro do Scrum estão sempre lá, então o que resta é o
             trabalho de confirmar. --%>
+      <%!-- Issue #369: enquanto ninguém for declarado líder, o painel de trabalho fecha
+            para todos exceto a própria pessoa. Não dizer isso faria a organização concluir
+            que a plataforma perdeu o dado — FR-012g. --%>
+      <.notice
+        :if={@cobertura_de_alcance.team == 0 and @cobertura_de_alcance.organization == 0}
+        kind={:gap}
+        title="Nobody sees anyone else's work panel"
+      >
+        No role grants visibility yet, so every work panel is visible only to the person it
+        belongs to. Leadership is <strong>declared</strong>, never guessed from a role's
+        name — a role called <span class="font-mono">Tech Leader</span>
+        reaches nobody until someone says so here.
+      </.notice>
+
       <div :if={@evidencias_pendentes > 0} class="alert block">
         <p class="font-semibold">
           {@evidencias_pendentes} observed participations are waiting for confirmation.
@@ -312,6 +376,55 @@ defmodule TheBandWeb.RolesLive.Index do
             declared here
           </span>
           <span :if={papel.hidden_at} class="badge badge-sm ml-1 italic opacity-60">hidden</span>
+        </:col>
+        <%!-- ═══ O QUE ESTE PAPEL PERMITE VER — issue #369, FR-012 ═══
+              Nada vem por nome. `Tech Leader` parece liderança e `Coordenador` também, e
+              conceder por padrão de nome erra para o lado que ninguém reclama: quem recebe
+              acesso a mais não abre chamado. --%>
+        <:col :let={papel} label="sees">
+          <span
+            :for={escopo <- Map.get(@concessoes, papel.id, [])}
+            class="badge badge-outline badge-sm mr-1 gap-1"
+          >
+            {rotulo(escopo)}
+            <button
+              :if={@current_user.role == "admin"}
+              type="button"
+              class="cursor-pointer"
+              phx-click="revogar_concessao"
+              phx-value-role_id={papel.id}
+              phx-value-scope={escopo}
+            >
+              ×
+            </button>
+          </span>
+
+          <%!-- Ausência nomeada: papel sem concessão não vê painel de mais ninguém, e
+                dizer "—" faria parecer que a coluna não se aplica. --%>
+          <em :if={Map.get(@concessoes, papel.id, []) == []} class="text-xs opacity-60">
+            only their own panel
+          </em>
+
+          <%!-- Papel do catálogo tem `id` NULO enquanto ninguém o usa — não há linha para
+                a concessão apontar, e o motivo é dito em vez de o controle sumir. --%>
+          <span :if={is_nil(papel.id)} class="block text-xs italic opacity-50">
+            allocate someone to this role first
+          </span>
+
+          <form
+            :if={@current_user.role == "admin" and not is_nil(papel.id)}
+            id={"conceder-#{papel.id}"}
+            phx-submit="conceder"
+            class="mt-1 flex items-center gap-1"
+          >
+            <input type="hidden" name="role_id" value={papel.id} />
+            <select name="scope" class="select select-xs select-bordered">
+              <option value="">grant…</option>
+              <option value="team">their team</option>
+              <option value="organization">their organisation</option>
+            </select>
+            <button type="submit" class="btn btn-xs">save</button>
+          </form>
         </:col>
         <:col :let={papel} field={:name} label="name">
           <%!-- `@renaming == papel.id` é armadilha aqui: papel do catálogo tem `id` NULO, e

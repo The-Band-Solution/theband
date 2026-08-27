@@ -27,6 +27,7 @@ defmodule TheBand.Ontology.SEON.EO do
   alias TheBand.Ontology.SEON.EO.Constraints
   alias TheBand.Ontology.SEON.EO.Profiles
   alias TheBand.Ontology.SEON.EO.Queries
+  alias TheBand.Ontology.SEON.EO.Visibility
 
   # ------------------------------------------------------------------- escritas
 
@@ -63,6 +64,15 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate count_memberships_of_role(tenant, role_id), to: Queries
   defdelegate fetch_membership(tenant, membership_id), to: Queries
   defdelegate list_person_roles(tenant, person_id), to: Queries
+
+  # Issue #369: quem vê o painel de quem. A concessão é DECLARADA por papel — `Tech Leader`
+  # parece liderança e `Coordenador` também, e conceder visibilidade por padrão de nome erra
+  # para o lado que ninguém reclama.
+  defdelegate pode_ver(tenant, user, person_id), to: Visibility
+  defdelegate grants_by_role(tenant), to: Visibility
+  defdelegate grant_coverage(tenant), to: Visibility
+  defdelegate declare_grant(tenant, role_id, scope, actor_id), to: Visibility
+  defdelegate revoke_grant(tenant, role_id, scope, actor_id), to: Visibility
 
   defdelegate create_role(tenant, organization_id, attrs, actor_id), to: Commands
   defdelegate rename_role(tenant, role_id, name, actor_id \\ nil), to: Commands

@@ -152,7 +152,9 @@ defmodule TheBandWeb.UI do
 
     * `:gap` — lacuna de conhecimento; a plataforma não sabe;
     * `:divergence` — o rótulo e a estrutura discordam;
-    * `:refused` — a plataforma recusou um vínculo, e as duas pontas continuam coletadas.
+    * `:refused` — a plataforma recusou: um vínculo cujas duas pontas continuam coletadas,
+      ou um alcance que a organização não declarou (issue #369). Nos dois casos o dado
+      existe e a recusa é decisão, e não ausência — que é o que separa este tom do `:gap`.
 
   Cada um carrega um ícone **além** da cor, porque a cor sozinha reprova em 1.4.1.
   """

@@ -40,6 +40,8 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
+  alias TheBand.Tenants
+  alias TheBand.Tenants.User
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
   alias TheBandWeb.WorkCharts
@@ -95,13 +97,64 @@ defmodule TheBandWeb.PeopleLive.Show do
   # relidas, e a tela mostraria o resultado da primeira visita para sempre.
   @impl true
   def handle_params(params, _uri, socket) do
-    {:noreply, socket |> Tabela.aplicar(params, @tabelas) |> load()}
+    {:noreply,
+     socket
+     |> assign(escala: escala_de(params))
+     |> Tabela.aplicar(params, @tabelas)
+     |> load()}
   end
 
+  # Escala desconhecida no endereço NÃO derruba a tela e NÃO é aceita: cai no mês, que é o
+  # que a página mostrava antes de a escolha existir. Aceitar qualquer texto o levaria até
+  # o `to_char` do Postgres, e um formato inválido ali é erro de banco numa página de
+  # leitura.
+  defp escala_de(%{"escala" => valor}) do
+    Enum.find(WorkItems.escalas(), :mes, &(Atom.to_string(&1) == valor))
+  end
+
+  defp escala_de(_params), do: :mes
+
   @impl true
+  def handle_event("escala", %{"escala" => valor}, socket) do
+    {:noreply, push_patch(socket, to: caminho_com_escala(socket, valor))}
+  end
+
   def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
+
+  # Issue #369, FR-012c: só admin declara o elo. A verificação vive AQUI, e não no comando,
+  # porque é aqui que a pessoa está — e um segundo lugar de autorização é um lugar a mais
+  # para divergir.
+  #
+  # O elo concede visibilidade: apontar uma conta para esta pessoa é dar a ela o painel
+  # desta pessoa. Não é campo de cadastro, é ato de acesso.
+  def handle_event("declarar_conta", %{"user_id" => ""}, socket),
+    do: {:noreply, put_flash(socket, :error, "Choose an account.")}
+
+  def handle_event("declarar_conta", %{"user_id" => user_id}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      declarar_conta(socket, user_id)
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can link an account.")}
+    end
+  end
+
+  def handle_event("revogar_conta", %{"user_id" => user_id}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      case Tenants.revoke_person(
+             socket.assigns.current_tenant,
+             user_id,
+             socket.assigns.current_user.id
+           ) do
+        {:ok, _} -> {:noreply, socket |> put_flash(:info, "Account unlinked.") |> load()}
+        {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to unlink.")}
+        {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Account not found.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can unlink an account.")}
+    end
+  end
 
   def handle_event("gerar_perfil", _params, socket) do
     tenant = socket.assigns.current_tenant
@@ -121,9 +174,46 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
-  defp caminho(socket, id, mudancas) do
-    ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, id, mudancas)}"
+  defp declarar_conta(socket, user_id) do
+    case Tenants.declare_person(
+           socket.assigns.current_tenant,
+           user_id,
+           socket.assigns.pessoa.id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, conta} ->
+        {:noreply, socket |> put_flash(:info, "#{conta.email} is now this person.") |> load()}
+
+      # "Já está em uso" sem dizer de quem manda quem declarou procurar. A plataforma sabe.
+      {:error, :taken} ->
+        {:noreply, put_flash(socket, :error, ja_e_de_outra(socket))}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Account not found.")}
+
+      {:error, %Ecto.Changeset{}} ->
+        {:noreply, put_flash(socket, :error, "That link could not be recorded.")}
+    end
   end
+
+  defp ja_e_de_outra(socket) do
+    case Tenants.user_for_person(socket.assigns.current_tenant, socket.assigns.pessoa.id) do
+      {:ok, conta} -> "#{conta.email} is already linked to this person."
+      :not_declared -> "That account is already linked to someone else."
+    end
+  end
+
+  # A escala viaja em TODO caminho desta tela, e não só no seletor: sem isto, buscar uma
+  # issue devolveria a página na escala mensal, e quem escolheu semanal veria a escolha
+  # sumir sem ter mexido nela.
+  defp caminho(socket, id, mudancas) do
+    ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, id, mudancas, escala: escala_no_endereco(socket))}"
+  end
+
+  # `:mes` é o padrão, e padrão não vai para o endereço — `?escala=mes` sugeriria uma
+  # escolha que ninguém fez. É a FR-005 da feature 019, e `Tabela.query/4` corta o vazio.
+  defp escala_no_endereco(%{assigns: %{escala: :mes}}), do: nil
+  defp escala_no_endereco(%{assigns: %{escala: escala}}), do: Atom.to_string(escala)
 
   defp load(socket) do
     tenant = socket.assigns.current_tenant
@@ -131,8 +221,32 @@ defmodule TheBandWeb.PeopleLive.Show do
     estado = socket.assigns.tabelas["issues"]
     pagina = estado.pagina
 
+    # Issue #369, FR-012: a decisão vem ANTES da carga, e não só antes do render.
+    #
+    # Calcular a vazão, o lead time e os antipadrões de quem não pode vê-los é fazer o
+    # trabalho do vazamento e depois esconder o resultado — e o custo fica igual. Aqui a
+    # recusa poupa as consultas do painel inteiro.
+    # A escala mora no ENDEREÇO, e não só no socket — feature 019. Sem isso, mandar o
+    # gráfico semanal para alguém mandaria o mensal, e voltar à página perderia a escolha.
+    escala = socket.assigns.escala
+
+    {alcance, motivo} = EO.pode_ver(tenant, socket.assigns.current_user, pessoa.id)
+
+    serie =
+      if alcance == :ok,
+        do: WorkItems.state_changes_by_period(tenant, pessoa.id, escala),
+        else: []
+
+    ve_o_trabalho? = alcance == :ok
+
     repositorios = WorkItems.repositories_of_person(tenant, pessoa.id)
-    cobertura = WorkItems.timeline_coverage(tenant, pessoa.id)
+
+    cobertura =
+      if ve_o_trabalho?, do: WorkItems.timeline_coverage(tenant, pessoa.id), else: {0, 0}
+
+    # Issue #369: UMA consulta, e não três. As contas do tenant vêm inteiras, e tanto "qual
+    # delas é esta pessoa" quanto a cobertura do elo saem delas em memória.
+    contas = Tenants.list_users(tenant)
 
     perfil = perfil_atual(tenant, pessoa.id)
     {pendente?, possivel} = estado_do_perfil(tenant, pessoa, perfil)
@@ -182,11 +296,30 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Os papéis **declarados** — vigentes e encerrados. Esconder o encerrado apagaria
       # história: quem saiu do papel continua tendo desempenhado.
       papeis_declarados: EO.list_person_roles(tenant, pessoa.id),
+      # Issue #369: qual conta é esta pessoa, e quais contas existem para escolher. A lista
+      # evita digitar `U_kgDOABFnGA` à mão — o id da origem é a identidade, e nunca o que
+      # alguém deveria transcrever.
+      # Issue #369. UMA consulta, e não três: as contas do tenant já vêm inteiras, e tanto
+      # "qual delas é esta pessoa" quanto a cobertura saem delas em memória. Três consultas
+      # aqui empurrariam a página de 22 para 24 por render, e o teste de custo existe
+      # justamente para que esse crescimento seja decidido, e não descoberto depois.
+      contas: contas,
+      conta_da_pessoa: Enum.find(contas, &(&1.person_id == pessoa.id and User.elo_vigente?(&1))),
+      cobertura_do_elo: %{
+        contas: length(contas),
+        declaradas: Enum.count(contas, &User.elo_vigente?/1)
+      },
       # **Duas contagens, e elas respondem coisas diferentes.** `designadas` é quantas issues
       # a pessoa tem — o número do cartão, que não muda quando alguém busca. `encontradas` é
       # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
       # afirmaria páginas que a busca não tem.
-      designadas: WorkItems.count_assigned_to(tenant, pessoa.id),
+      # Issue #369: o veredito e o motivo. O motivo NÃO é descartável — "não declararam
+      # quem você é" e "ninguém foi declarado líder" têm remédios diferentes, e a tela
+      # manda quem lê para o lugar certo (FR-012g).
+      ve_o_trabalho?: ve_o_trabalho?,
+      motivo_do_alcance: motivo,
+      designadas:
+        se_pode(ve_o_trabalho?, 0, fn -> WorkItems.count_assigned_to(tenant, pessoa.id) end),
       # O painel da pessoa — feature 023.
       #
       # `timeline_coverage/2` devolve o par de uma vez, e não em duas chamadas para pegar
@@ -195,25 +328,48 @@ defmodule TheBandWeb.PeopleLive.Show do
       designadas_abertas: elem(cobertura, 1),
       cobertura_observada: elem(cobertura, 0),
       cobertura_total: elem(cobertura, 1),
-      meses: WorkItems.closed_by_month(tenant, pessoa.id),
-      idades: WorkItems.open_age_buckets(tenant, pessoa.id),
-      lead_time: WorkItems.lead_time(tenant, pessoa.id),
-      antipadroes: Antipatterns.detect_for_person(tenant, pessoa.id),
+      # A série de duas linhas substitui a de uma: uma consulta pela outra, e a página
+      # continua no teto de 22 medido em `person_detail_test.exs`.
+      serie_por_periodo: serie,
+      # Burn-up e burn-down DERIVAM da série acima — nenhuma consulta nova, e a página
+      # continua no teto de 22 por render.
+      burn: WorkItems.burn(serie),
+      # Achatada aqui, e não no template: `case` dentro de `:if` deixa cláusula
+      # inalcançável, e o compilador reprova — com razão.
+      projecao: projecao_legivel(WorkItems.projecao(serie)),
+      # `data_end`: até quando o trabalho aberto foi planejado. Data DECLARADA — sai do fim
+      # da caixa de tempo —, e não projetada do ritmo. Custa uma consulta, e é o vigésimo
+      # terceiro item do teto medido em `person_detail_test.exs`.
+      prazo:
+        se_pode(ve_o_trabalho?, %{prazo: nil, origem: nil, sem_caixa: 0}, fn ->
+          WorkItems.prazo_do_trabalho_aberto(tenant, pessoa.id)
+        end),
+      escala: escala,
+      idades:
+        se_pode(ve_o_trabalho?, [], fn -> WorkItems.open_age_buckets(tenant, pessoa.id) end),
+      lead_time: se_pode(ve_o_trabalho?, nil, fn -> WorkItems.lead_time(tenant, pessoa.id) end),
+      antipadroes:
+        se_pode(ve_o_trabalho?, [], fn -> Antipatterns.detect_for_person(tenant, pessoa.id) end),
       encontradas:
-        WorkItems.count_collected(tenant, assigned_to: pessoa.id, search: estado.busca),
-      abertas: WorkItems.count_authored_by(tenant, pessoa.id),
+        se_pode(ve_o_trabalho?, 0, fn ->
+          WorkItems.count_collected(tenant, assigned_to: pessoa.id, search: estado.busca)
+        end),
+      abertas:
+        se_pode(ve_o_trabalho?, 0, fn -> WorkItems.count_authored_by(tenant, pessoa.id) end),
       repositorios: repositorios,
       # Uma consulta, virando mapa: é o mesmo `onde/2` da feature 007. O nome do repositório é de
       # CMPO, e `WorkItems` juntar a tabela dele quebraria a fronteira.
       nomes: nomes_de_repositorio(tenant),
       issues:
-        WorkItems.list_issues(tenant,
-          assigned_to: pessoa.id,
-          search: estado.busca,
-          order_by: estado.ordem,
-          limit: @por_pagina,
-          offset: (pagina - 1) * @por_pagina
-        )
+        se_pode(ve_o_trabalho?, [], fn ->
+          WorkItems.list_issues(tenant,
+            assigned_to: pessoa.id,
+            search: estado.busca,
+            order_by: estado.ordem,
+            limit: @por_pagina,
+            offset: (pagina - 1) * @por_pagina
+          )
+        end)
     )
   end
 
@@ -230,6 +386,34 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   defp titulo_do_antipadrao("process.ap04.movement_without_assignee"),
     do: "Moved with nobody assigned"
+
+  # Não é açúcar: é a diferença entre não mostrar e não calcular. `padrao` é o valor que a
+  # tela usaria se a seção fosse renderizada, e ela não é — existe para nenhum `@assign`
+  # faltar caso alguém acrescente uma referência fora da seção.
+  # Trocar a escala preserva busca, ordem e página — `Tabela.query/4` já compõe o endereço
+  # inteiro, e `extra` passa pelo mesmo corte de valor vazio que o resto. Montar o endereço
+  # à mão aqui criaria um segundo lugar que esquece um parâmetro quando alguém acrescentar
+  # o próximo.
+  defp caminho_com_escala(socket, valor) do
+    ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, "issues", [], escala: valor)}"
+  end
+
+  defp projecao_legivel({:converge, n}), do: %{tipo: :converge, periodos: n}
+
+  defp projecao_legivel({:nao_converge, criadas, fechadas}),
+    do: %{tipo: :nao_converge, criadas: criadas, fechadas: fechadas}
+
+  defp projecao_legivel({:alem_do_observado, n, observados}),
+    do: %{tipo: :alem_do_observado, periodos: n, observados: observados}
+
+  defp projecao_legivel(atomo), do: %{tipo: atomo}
+
+  defp rotulo_da_escala(:semana), do: "weekly"
+  defp rotulo_da_escala(:mes), do: "monthly"
+  defp rotulo_da_escala(:ano), do: "yearly"
+
+  defp se_pode(true, _padrao, consulta), do: consulta.()
+  defp se_pode(false, padrao, _consulta), do: padrao
 
   defp organizacoes_do_trabalho(tenant, repositorios, person_id) do
     por_equipe =
@@ -430,6 +614,81 @@ defmodule TheBandWeb.PeopleLive.Show do
 
               A ordem — declarado primeiro — é porque é o que responde "o que esta pessoa faz",
               e a participação responde "onde a origem a mostra". --%>
+        <%!-- ═══ QUAL CONTA É ESTA PESSOA — issue #369, FR-012c ═══
+              A regra de quem vê o painel de quem depende de saber qual das pessoas
+              observadas é quem está logado. O elo não vinha de lugar nenhum: medido em
+              2026-08-26, as 88 pessoas de `eo_people` têm `external_id` e login, e
+              NENHUMA tem e-mail — o GitHub não entrega. --%>
+        <section class="space-y-2">
+          <div>
+            <h3 class="font-semibold">Which account is this person</h3>
+            <p class="text-xs text-base-content/60">
+              Identity comes from the source — this person is
+              <span class="font-mono">{@pessoa.login}</span>
+              on GitHub. What has to be said by a person is which <strong>platform account</strong>
+              is the same human, and that is what this link records.
+            </p>
+          </div>
+
+          <p :if={@conta_da_pessoa} class="text-sm">
+            Linked to
+            <span class="badge badge-outline badge-sm font-mono">{@conta_da_pessoa.email}</span>
+            <span class="text-xs opacity-60">
+              declared on {Calendar.strftime(@conta_da_pessoa.person_declared_at, "%Y-%m-%d")}
+            </span>
+            <button
+              :if={@current_user.role == "admin"}
+              type="button"
+              class="btn btn-ghost btn-xs"
+              phx-click="revogar_conta"
+              phx-value-user_id={@conta_da_pessoa.id}
+              data-confirm="Unlink it? That account stops reaching this person's panel."
+            >
+              unlink
+            </button>
+          </p>
+
+          <%!-- Ausência nomeada, com o efeito junto: "nenhuma conta" sem dizer o que isso
+                causa parece detalhe de cadastro, quando é o que decide acesso. --%>
+          <p :if={is_nil(@conta_da_pessoa)} class="text-sm opacity-70">
+            <strong>No account linked.</strong>
+            Nobody signing in is recognised as this person, so nobody — not even they —
+            reaches this person's work panel through the visibility rule.
+          </p>
+
+          <%!-- Só admin. O elo CONCEDE visibilidade: apontar uma conta para esta pessoa é
+                dar a essa conta o painel desta pessoa. --%>
+          <form
+            :if={@current_user.role == "admin"}
+            id="elo-da-conta"
+            phx-submit="declarar_conta"
+            class="flex flex-wrap items-end gap-2"
+          >
+            <label class="fieldset">
+              <span class="label-text text-xs">the platform account that is this person</span>
+              <select name="user_id" class="select select-sm select-bordered">
+                <option value="">choose an account…</option>
+                <option :for={c <- @contas} value={c.id}>
+                  {c.email}{if c.name, do: " — #{c.name}"}
+                </option>
+              </select>
+            </label>
+            <.button type="submit" class="btn-sm">
+              {if @conta_da_pessoa, do: "Replace", else: "Link"}
+            </.button>
+          </form>
+
+          <p :if={@current_user.role != "admin"} class="text-xs opacity-60">
+            Only an administrator can change this link — it decides who sees whose panel.
+          </p>
+
+          <p class="text-xs opacity-60">
+            <strong>{@cobertura_do_elo.declaradas} of {@cobertura_do_elo.contas}</strong>
+            accounts are linked to an observed person. The rest reach no panel, and that is
+            a gap in what was declared — not a gap in what was collected.
+          </p>
+        </section>
+
         <section :if={@papeis_declarados != []} class="space-y-2">
           <div>
             <h3 class="font-semibold">Roles declared for this person</h3>
@@ -529,9 +788,43 @@ defmodule TheBandWeb.PeopleLive.Show do
           </div>
         </section>
 
+        <%!-- ═══ QUEM VÊ O PAINEL DE QUEM — issue #369, FR-012 ═══
+              Até 2026-08-26 a regra era "toda pessoa autenticada vê qualquer outra do
+              tenant", e vigorava POR OMISSÃO: o roteador exigia `require_user` e nada além.
+              A decisão registrada é outra — a própria pessoa, o líder da equipe dela, e o
+              responsável da organização. --%>
+        <section :if={not @ve_o_trabalho?} class="space-y-2">
+          <h3 class="font-semibold">Work</h3>
+
+          <%!-- FR-012g: os dois bloqueios têm remédios diferentes, e dizer "sem permissão"
+                para os dois mandaria quem lê procurar no lugar errado. --%>
+          <.notice
+            :if={@motivo_do_alcance == :conta_sem_pessoa_declarada}
+            kind={:gap}
+            title="We do not know which observed person you are"
+          >
+            Your account has not been linked to anyone the source observed, so the platform
+            cannot tell whether this panel is yours — and it will not guess.
+            An administrator declares that link on the person's page.
+          </.notice>
+
+          <%!-- `:refused`, e não `:gap`: a plataforma SABE quem tu é e sabe que tu não
+                lidera esta pessoa. É decisão aplicada, e não ausência de conhecimento. --%>
+          <.notice
+            :if={@motivo_do_alcance == :sem_alcance_declarado}
+            kind={:refused}
+            title="This panel is not yours to see"
+          >
+            A work panel is visible to the person themselves, to whoever leads their team,
+            and to whoever answers for the organisation. None of those is declared for you
+            here — and leadership is <strong>declared</strong>, never guessed from a role's
+            name.
+          </.notice>
+        </section>
+
         <%!-- O trabalho: dois números, e a soma deles não aparece em lugar nenhum. Quem abre uma
               issue não necessariamente trabalha nela. --%>
-        <section class="space-y-2">
+        <section :if={@ve_o_trabalho?} class="space-y-2">
           <h3 class="font-semibold">Work</h3>
 
           <%!-- A cobertura vem ANTES de qualquer número derivado, e não como rodapé.
@@ -564,17 +857,151 @@ defmodule TheBandWeb.PeopleLive.Show do
                   2026-08-17). Com min-w-0, quem rola é o overflow-x-auto do gráfico. --%>
             <div class="card min-w-0 bg-base-200 lg:col-span-2">
               <div class="card-body gap-2 p-4">
-                <h4 class="text-sm font-medium">
-                  Issues completed over time
-                  <span class="opacity-60">{@lead_time && @lead_time.count} in total</span>
-                </h4>
-                <p :if={@meses == []} class="text-xs text-base-content/60">
-                  This person has not closed any issue the platform has seen.
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <%!-- O título diz DE QUEM são as issues, e não só o que aconteceu com
+                        elas. "opened" aqui colidia com o "opened by" do cartão de autoria
+                        logo abaixo: medido em 2026-08-27, `fatasy` tem 8 designadas e 233
+                        abertas por ele, e o gráfico parecia contradizer o número. --%>
+                  <h4 class="text-sm font-medium">
+                    Issues assigned to them, over time
+                  </h4>
+
+                  <%!-- A escala mora no ENDEREÇO — feature 019. Mandar o link do gráfico
+                        semanal manda o semanal, e voltar à página não perde a escolha. --%>
+                  <div class="join" role="group" aria-label="time scale">
+                    <button
+                      :for={e <- WorkItems.escalas()}
+                      type="button"
+                      phx-click="escala"
+                      phx-value-escala={e}
+                      aria-pressed={to_string(@escala == e)}
+                      class={[
+                        "btn join-item btn-xs",
+                        @escala == e && "btn-active"
+                      ]}
+                    >
+                      {rotulo_da_escala(e)}
+                    </button>
+                  </div>
+                </div>
+
+                <p :if={@serie_por_periodo == []} class="text-xs text-base-content/60">
+                  The platform has seen no issue of this person — neither opened nor closed.
                 </p>
-                <WorkCharts.por_mes :if={@meses != []} serie={@meses} />
+                <WorkCharts.por_periodo :if={@serie_por_periodo != []} serie={@serie_por_periodo} />
+
+                <%!-- As três frases que a leitura errada exige. Sem elas o gráfico responde
+                      "vazão", que é outra medida e tem outras limitações declaradas. --%>
+                <%!-- A frase que faltava, e cuja ausência produziu a contradição
+                      aparente: DIZER de quem são as issues contadas. Abrir uma issue e
+                      trabalhar nela são coisas diferentes, e a página já separava as duas
+                      no cartão abaixo — o gráfico tinha de separar também. --%>
                 <p class="text-xs text-base-content/60">
-                  Counted by close date, from the issue itself — it does not depend on the timeline.
+                  These are the issues <strong>assigned</strong>
+                  to this person, counted by the issue's own dates. Issues they <em>opened</em>
+                  are a different number — the card below — because opening an issue and
+                  working on it are different things.
                 </p>
+                <p class="text-xs text-base-content/60">
+                  <strong>This is not throughput</strong>: throughput needs a declared start
+                  criterion and a recorded end, and answers how much work <em>crossed</em>
+                  the process.
+                </p>
+                <p class="text-xs text-base-content/60">
+                  The two bars of one period <strong>do not subtract</strong>. What closed in
+                  March is not what opened in March, so the gap between them is not work left
+                  over — the age chart beside this one is what shows what is open now.
+                </p>
+                <p :if={length(@serie_por_periodo) >= 60} class="text-xs text-base-content/60">
+                  Showing the most recent 60 periods. Older ones exist and are not drawn.
+                </p>
+              </div>
+            </div>
+
+            <%!-- ═══ BURN-UP E BURN-DOWN ═══
+                  O burn-down sozinho esconde a causa: quando a linha do que resta não
+                  desce, ela não diz se ninguém fechou nada ou se o escopo cresceu junto.
+                  As três linhas juntas respondem. --%>
+            <div class="card min-w-0 bg-base-200 lg:col-span-3">
+              <div class="card-body gap-2 p-4">
+                <h4 class="text-sm font-medium">
+                  Work assigned to them: accumulated, and what is left
+                </h4>
+
+                <p :if={@burn == []} class="text-xs text-base-content/60">
+                  Nothing to accumulate — the platform has seen no issue of this person.
+                </p>
+                <WorkCharts.burn :if={@burn != []} serie={@burn} />
+
+                <%!-- ── O prazo DECLARADO, e nunca projetado ── --%>
+                <p :if={@prazo.prazo} class="text-sm">
+                  Open work here was planned to end by <strong>{@prazo.prazo}</strong>
+                  <span :if={@prazo.origem == :sprint} class="text-xs opacity-60">
+                    — the end of the last time box it sits in
+                  </span>
+                  <%!-- Issue #514: o fim de um horizonte não é o fim de uma caixa de
+                        execução, e chamá-lo de prazo achataria as duas promessas. --%>
+                  <span :if={@prazo.origem == :planning_horizon} class="text-xs opacity-60">
+                    — the end of a <strong>planning horizon</strong>, which says when the work
+                    was planned for, not when a box of execution closes
+                  </span>
+                </p>
+
+                <.notice
+                  :if={is_nil(@prazo.prazo) and @burn != []}
+                  kind={:gap}
+                  title="No planned end date"
+                >
+                  None of this person's open work sits in a time box, so nothing declares when
+                  it was meant to finish. The platform will not infer one from the pace.
+                </.notice>
+
+                <%!-- A parcela sem caixa vem AO LADO do prazo, e nunca descontada dele:
+                      medido em 2026-08-27, uma pessoa tinha 111 de 156 issues abertas sem
+                      caixa nenhuma, e o prazo falava por 45. --%>
+                <.notice
+                  :if={@prazo.sem_caixa > 0 and @prazo.prazo}
+                  kind={:gap}
+                  title={"#{@prazo.sem_caixa} open issues sit in no time box"}
+                >
+                  The date above speaks only for the ones that do. These have no planned end
+                  at all, and are not counted against it.
+                </.notice>
+
+                <%!-- ── A projeção, e as três recusas ── --%>
+                <p :if={@projecao.tipo == :sem_trabalho_aberto} class="text-xs text-base-content/60">
+                  Nothing is open — everything the platform has seen was closed.
+                </p>
+
+                <p :if={@projecao.tipo == :converge} class="text-sm">
+                  At the pace of the last 6 periods, the open work reaches zero in about
+                  <strong>{@projecao[:periodos]} {rotulo_da_escala(@escala)} periods</strong>
+                  — <em>if</em>
+                  nothing new arrives, which it has been.
+                </p>
+
+                <.notice
+                  :if={@projecao.tipo == :nao_converge}
+                  kind={:refused}
+                  title="At the current pace this does not finish"
+                >
+                  Over the last 6 periods <strong>{@projecao[:criadas]}</strong>
+                  were opened against <strong>{@projecao[:fechadas]}</strong>
+                  closed. Scope is growing faster than it is being closed, so there is no date
+                  to give — and a date given anyway would be arithmetic, not a forecast.
+                </.notice>
+
+                <.notice
+                  :if={@projecao.tipo == :alem_do_observado}
+                  kind={:refused}
+                  title="The pace is too close to a tie to project a date"
+                >
+                  The arithmetic gives <strong>{@projecao[:periodos]} periods</strong>, from only
+                  <strong>{@projecao[:observados]}</strong>
+                  observed. Projecting further than what was observed is extrapolating past the
+                  evidence — what the number really says is that opening and closing are nearly
+                  even.
+                </.notice>
               </div>
             </div>
 

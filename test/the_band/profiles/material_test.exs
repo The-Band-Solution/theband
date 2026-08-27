@@ -65,6 +65,113 @@ defmodule TheBand.Profiles.MaterialTest do
     issue
   end
 
+  defp pessoa(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(
+        ctx.tenant,
+        Map.merge(source_attrs("U_#{login}"), %{name: login, login: login, account_type: "person"})
+      )
+
+    p
+  end
+
+  # A autoria é gravada DEPOIS: `record_collected_issue/2` recebe `author_login`, e o
+  # `author_person_id` é o que a consulta do material lê.
+  defp com_autoria(issue, ctx, pessoa) do
+    Repo.update_all(
+      from(i in "collected_issues",
+        where:
+          i.id == type(^issue.id, :binary_id) and
+            i.tenant_id == type(^ctx.tenant.id, :binary_id),
+        update: [set: [author_person_id: type(^pessoa.id, :binary_id)]]
+      ),
+      []
+    )
+
+    issue
+  end
+
+  defp com_designacao(issue, ctx, pessoa) do
+    {:ok, _} =
+      WorkItems.replace_assignees(ctx.tenant, issue.id, [
+        %{login: pessoa.login, external_id: "U_#{pessoa.login}", person_id: pessoa.id}
+      ])
+
+    issue
+  end
+
+  describe "quem abriu também conta — 2026-08-27" do
+    # O defeito medido: `fatasy` (Marcelo Razer) tem **8 issues designadas** e **233
+    # abertas por ele**. O material lia só designadas, e descrevia 3% do que ele fez.
+    #
+    # A correção NÃO é somar tudo num monte: cada tarefa carrega a relação, porque abrir
+    # e executar são participações diferentes — a rede as separa, e a página da pessoa
+    # mostra três cartões justamente para ninguém somar.
+    test "issue apenas ABERTA pela pessoa entra no material, marcada como tal", ctx do
+      pessoa = pessoa(ctx, "razer")
+
+      # Ela abriu, e a designação é de OUTRA pessoa.
+      tarefa(ctx, numero: 9001, fechada: ~U[2026-05-10 09:00:00Z], login: "outra", autor: "razer")
+      |> com_autoria(ctx, pessoa)
+
+      {:ok, material} = Material.build(ctx.tenant, pessoa.id, :primeira)
+
+      assert [%{relacao: "abriu"}] = material.concluidas, """
+      A issue aberta pela pessoa, mas designada a outra, não entrou no material.
+
+      Era o caso de `fatasy`: 8 designadas contra 233 abertas. Um perfil que lê só
+      designadas descreve 3% do que a pessoa fez, e a pessoa fica praticamente invisível.
+      """
+    end
+
+    test "designada E aberta pela mesma pessoa vem como `ambas`, e conta UMA vez", ctx do
+      pessoa = pessoa(ctx, "razer")
+
+      tarefa(ctx, numero: 9002, fechada: ~U[2026-05-10 09:00:00Z], login: "razer", autor: "razer")
+      |> com_autoria(ctx, pessoa)
+      |> com_designacao(ctx, pessoa)
+
+      {:ok, material} = Material.build(ctx.tenant, pessoa.id, :primeira)
+
+      assert [%{relacao: "ambas"}] = material.concluidas, """
+      A tarefa apareceu duas vezes, ou perdeu a relação.
+
+      Quem abre e executa a mesma issue participou das duas formas — e é UMA tarefa. Duas
+      linhas inflariam a contagem que alimenta o piso de evidência.
+      """
+    end
+
+    test "as três relações convivem, e o material as distingue", ctx do
+      pessoa = pessoa(ctx, "razer")
+
+      tarefa(ctx, numero: 9003, fechada: ~U[2026-05-10 09:00:00Z], login: "outra", autor: "razer")
+      |> com_autoria(ctx, pessoa)
+
+      tarefa(ctx, numero: 9004, fechada: ~U[2026-05-11 09:00:00Z], login: "razer", autor: "razer")
+      |> com_autoria(ctx, pessoa)
+      |> com_designacao(ctx, pessoa)
+
+      tarefa(ctx,
+        numero: 9005,
+        fechada: ~U[2026-05-12 09:00:00Z],
+        login: "razer",
+        autor: "terceira"
+      )
+      |> com_designacao(ctx, pessoa)
+
+      {:ok, material} = Material.build(ctx.tenant, pessoa.id, :primeira)
+
+      assert %{"abriu" => 1, "ambas" => 1, "designada" => 1} =
+               Enum.frequencies_by(material.concluidas, & &1.relacao),
+             """
+             As três participações foram achatadas numa só.
+
+             O material vai para um MODELO. Sem a relação em cada item, o texto gerado atribui a
+             quem abriu o trabalho de quem executou — e o perfil afirma execução que não houve.
+             """
+    end
+  end
+
   describe "o que a pessoa escreveu para OUTRAS — issue #364" do
     test "conta as tarefas e as pessoas distintas, e não conta as próprias", ctx do
       pessoa =

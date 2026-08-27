@@ -1,164 +1,288 @@
 # Retomar
 
-**Última sessão**: 2026-08-26, madrugada.
+**Última sessão**: 2026-08-26, noite/madrugada.
+
+A sessão inteira foi sobre **uma decisão aplicada quatro vezes**: a organização declara, e
+a plataforma não escolhe pelo nome. Quatro issues, quatro mecanismos, a mesma forma.
+
+---
+
+## Conferir primeiro
+
+| PR | issue | estado quando parei |
+|---|---|---|
+| [#523](https://github.com/The-Band-Solution/theband/pull/523) | #514 | **mergeado** ✅ |
+| [#524](https://github.com/The-Band-Solution/theband/pull/524) | #368 | **mergeado** ✅ |
+| [#525](https://github.com/The-Band-Solution/theband/pull/525) | #369 | **aberto** — confere o CI |
+
+**Confere se a #525 mergeou.** Ela fecha a #369 e traz também os dois gráficos da
+página da pessoa.
+
+## E o que está NÃO COMMITADO
+
+Duas frentes feitas depois do PR #525, e **nenhuma commitada**:
+
+### 1. Implantação em VPS — o contêiner SOBE e SERVE
+
+```
+Dockerfile                  multi-stage; compile ANTES de assets.deploy
+.dockerignore               .env excluído — ele tem a chave mestra
+rel/entrypoint.sh           confere as 4 variáveis, migra, e só então sobe
+lib/the_band/release.ex     TheBand.Release.migrate/0
+mix.exs                     releases() acrescentado
+lib/the_band/ontology/yaml_loader.ex   caminho `priv/` resolve por :code.priv_dir
+```
+
+Verificado em 2026-08-27: `docker build` verde, contêiner de pé contra o Postgres
+local, `base de conhecimento carregada: 119 artefatos`, e `/sign-in` respondendo
+**HTTP 200** com "The Band". Imagem de **231 MB**.
+
+**Três defeitos foram encontrados construindo, e nenhum apareceria sem construir:**
+
+1. `OTP 29.0` e a data do Debian **inventadas** — não existem no registro;
+2. `assets.deploy` antes de `compile` — `app.css` importa
+   `phoenix-colocated/the_band/colocated.css`, gerado pelo COMPILADOR, e o alias
+   `assets.deploy` deste projeto não inclui `compile`;
+3. **`Path.expand("priv/knowledge_base", File.cwd!())`** — em dev o cwd é a raiz do
+   projeto; no release é `/app`, e o `priv` fica em `lib/the_band-<versão>/priv`. Os
+   119 YAML estavam na imagem, três diretórios acima de onde o loader procurava.
+
+⚠️ **A recusa de subir estava CERTA** — foi ela que impediu o contêiner de servir telas
+vazias como se fossem resposta. Errado era o caminho.
+
+E a primeira correção do (3) **não funcionou**: mudou só o valor padrão, e o
+`config.exs` preenche `path` explicitamente. A correção que vale: caminho começando por
+`priv/` resolve contra `:code.priv_dir/1`.
+
+### 2. O perfil passa a ler quem ABRIU, e não só quem foi designado
+
+`lib/the_band/profiles/material.ex` — `tarefas/3` agora aceita designada **ou** autora,
+e cada item carrega `relacao`: `designada`, `abriu` ou `ambas`.
+
+A pergunta "somadas ou separadas" foi decidida pela própria base: **separadas**. A rede
+distingue submeter de executar, e a página mostra três cartões para ninguém somar.
+
+Medido no banco de desenvolvimento:
+
+| pessoa | concluídas | por relação |
+|---|---:|---|
+| **fatasy** | **33** (era ~8) | **100% `abriu`** — nunca designado |
+| vinicius-je | 335 (era 199) | 136 `abriu`, 163 `ambas`, 36 `designada` |
+| CaioLessaSimao | 89 (era 87) | 2 `abriu`, 37 `ambas`, 50 `designada` |
+
+Cinco injeções, cinco pegas. Três testes novos em `material_test.exs`.
+
+### 3. Correção do rótulo dos gráficos
+
+A pessoa mantenedora encontrou: `fatasy` mostrava **8** no gráfico e **233** no cartão
+abaixo. As contas estavam certas; **o rótulo estava errado** — eu chamei a série de
+"opened", e a página já usava "opened by" para AUTORIA.
+
+Corrigido: série `created`, título "Issues assigned to them, over time", e a frase
+"Issues they opened are a different number — the card below". Dois testes que reprovam
+se a palavra voltar.
+
+### Como retomar
+
+```bash
+grep CODIGO_DE_SAIDA_DO_GATE /tmp/gf.log     # gates rodando quando a sessão terminou
+docker build -t the_band:teste .              # já verde
+```
+
+⚠️ **A chave mestra.** `THE_BAND_MASTER_KEY` está só no `.env` desta máquina, e cifra as
+credenciais de todas as ferramentas. Antes de implantar, garanta que existe em outro
+lugar — ver [[chave-mestra-perdida-e-o-caminho-de-volta]].
+
+## Sobre a skill de devops
+
+Procurei com a skill `find-skills` (`npx skills find`). **Nenhuma serve**:
+
+- as de `elixir` têm 745, 305 e 270 instalações — abaixo do piso que a própria
+  skill recomenda, e de autores desconhecidos;
+- as de `vps` têm 131 ou menos;
+- as de deploy com volume são amarradas a plataforma: Azure (549K), Vercel (115K),
+  Cloudflare, Expo. Nenhuma cobre release Elixir em VPS.
+
+A única com massa e alguma serventia é `github/awesome-copilot@multi-stage-dockerfile`
+(22K), e é genérica. **Não instalei nenhuma** — skill de autor desconhecido é código
+que passa a rodar na sessão, e o ganho aqui era zero.
 
 ## O que ficou pronto
 
-**Feature 042 — critério de início — está no `main`** (`ef46d9c`, PR #510). As 24 tarefas,
-as 24 issues encerradas, e a **#370 fechou junto** — a decisão que estava aberta desde a
-`FR-007` da feature 022 e travava `flow.throughput`, `flow.wip.count` e o cycle time por
-pessoa.
+### #514 — o trimestre deixa de ser lido como sprint ✅ fechada
 
-O percurso do quickstart foi feito **na tela**, com navegador, contra o banco de
-desenvolvimento: `specs/042-criterio-de-inicio/percurso-t024.md`. Cinco divergências
-apareceram, quatro corrigidas ali mesmo.
+`sro_sprints` promovia **todo** campo de iteração a `sro.sprint`. Medido: `Quarter` tem 27
+iterações de 61 a 92 dias contra `Sprint` com 171 de 3 a 26. **669 dos 2.685 vínculos de
+issue — 25% — eram trimestre lido como sprint.**
 
-**Feature 043 — papéis por organização** — já estava no `main` e as dezoito issues
-continuavam abertas. Fechadas, com o commit que as entregou citado em cada uma.
+A organização declara o papel do par (quadro, campo). Resolve **na leitura, nunca
+materializa**: as 27 iterações já coletadas mudam de leitura no instante da declaração,
+sem recoleta e sem migração.
 
-## O que pode estar esperando quando tu voltar
+### #368 — de onde vem o prazo (PR #524)
 
-Dois PRs pequenos, armados para mergear sozinhos quando o CI ficar verde:
+O GitHub **não tem campo de prazo na issue**. 33 pares (quadro, campo) de data, 13 nomes,
+duas línguas. Decisão tua: além do campo do quadro, o prazo pode vir do **sprint** ou do
+**marco** — e *"se uma task está dentro do sprint, o prazo dela é do sprint E do
+milestone"*.
 
-| PR | o que é |
-|---|---|
-| [#511](https://github.com/The-Band-Solution/theband/pull/511) | marcar as dezesseis tarefas da 043 no `tasks.md` |
-| [#512](https://github.com/The-Band-Solution/theband/pull/512) | #509 — o nome de projeto removido volta a ficar disponível |
+**As três origens se somam.** A resolução devolve **lista com proveniência**, nunca um
+valor. Medido sobre 5.216 issues: 304 têm marco e caixa ao mesmo tempo, 640 estão em mais
+de uma caixa, 2.251 (43%) não alcançam origem alguma.
 
-**Conferir se mergearam.** Se algum reprovou, o motivo está nos checks.
+A #514 aparece dentro dela — verificado no quadro DevOps, 400 issues:
 
-## Pedido para amanhã: a documentação e o site
+```
+SEM papel declarado ..... %{sprint: 546}
+COM Quarter = horizonte .. %{planning_horizon: 175, sprint: 371}
+```
 
-**Já achei uma divergência concreta**, e ela dá o tom do resto do trabalho.
+**175 de 546 — 32% — eram trimestre lido como sprint.**
 
-O site (`origin/gh-pages:index.html`) diz:
+⚠️ **A próxima sincronização repagina as issues uma vez por repositório.** É intencional:
+`milestone { dueOn }` passou a ser coletado, e sem reabrir o corte as 5.216 issues ficariam
+com `milestone_due_on` nulo para sempre — o corte pula o repositório *inteiro* quando não
+houve push novo, e "sem push" é o estado normal da maioria. O teste de impressão digital da
+#452 pegou isso e obrigou a decidir.
 
-> uma rede de ontologias de referência com **222 conceitos**
+### #367 — a evidência para escolher o quadro (no PR #524, não fecha a issue)
 
-Os gates de hoje dizem:
+O picker de quadro agora mostra volume, abertas e período:
 
-> 116 arquivos YAML | **13 ontologias** | **231 conceitos** | **170 relações** | 5 medidas
+```
+#43 Conecta Fapes                938 itens · 785 abertas · Dec/2025 a Aug/2026
+#19 Conecta Fapes - Delivery     730 itens · 565 abertas · Jun/2025 a Jun/2026
+#7  [DEPRECATED] ConectaFapes    196 itens ·  49 abertas · Feb/2025 a Jul/2025
+```
 
-Nove conceitos de diferença. A 042 entrou com `spo.activity_start_criterion` e a 043 mexeu
-nos papéis; o número do site é de antes. Trocar `222` por `231` é uma linha — e é a parte
-fácil.
+**Tu já vinculou 4 quadros ao projeto "Conecta Fapes 042".** O `#7 [DEPRECATED]` — que
+carrega o período **mais antigo** — segue fora. Agora a tela te mostra o que ele carrega, e
+o vínculo é gesto teu.
 
-**A parte que importa**: os outros números do site não foram conferidos.
+### #506 — as duas decisões viraram declaração (no PR #524, não fecha a issue)
 
-| o que o site publica | conferido? |
-|---|---|
-| 222 conceitos | **não — são 231** |
-| 5.216 issues coletadas | não |
-| 160 repositórios | não |
-| 46.435 promoções semânticas | não |
-| 212 sprints reais | não |
-| 21.365 commits | não |
-| 2.024 sem check | conferido na recoleta de 2026-08-24 |
+`flow.wip.count` → `period: weekly`.
 
-**Medir cada um contra a origem, e nunca contra a página.** Já custou caro duas vezes nesta
-semana: a inversão do `statusCheckRollup` — que eu publiquei em quatro lugares antes de
-medir — e a "correção" da L70, que afastou o número da verdade porque usei um total
-parcialmente medido como denominador.
+`rework.not_accepted_deliverable_ratio` ganhou **`proxies`**, campo novo no schema de
+medida, com as origens que tu nomeou:
 
-A ordem que funciona: rodar `mix gates` para os números da base de conhecimento, consultar
-o banco para os de coleta, e só então mexer no HTML. Um número que não vier de uma consulta
-nesta sessão não entra.
-
-Além do site, o que a 042 e a 043 mudaram e a documentação ainda não diz:
-
-- `docs/ontology/` — o conceito novo e as relações dele;
-- o `README.md` da raiz, se ele carrega contagem;
-- as medidas de fluxo que **deixaram de estar travadas**: `flow.throughput`,
-  `flow.wip.count` e o cycle time por pessoa agora têm de onde partir, e a documentação
-  ainda as descreve como bloqueadas pela `FR-007` da feature 022.
-
-## Pedido para amanhã: as métricas do PSM CID
-
-A pessoa mantenedora trouxe o **PSM Continuous Iterative Development Measurement Framework
-v2.1** (PSM + NDIA + INCOSE, 3 partes) e pediu: quais métricas viram YAML, e como se ligam às
-ontologias.
-
-**A estrutura já casa.** O schema de medida desta base tem `answers_information_need`,
-`scope.levels` e `limitations` obrigatório — que são a Information Need, a perspectiva
-team/product/enterprise e o contexto do modelo de informação do PSM (Figura 6, Parte 1).
-Faltam dois elementos do PSM: **Analysis Model** e **Decision Criteria**.
-
-### O que eu medi no banco, e é o que decide o mapeamento
-
-| entidade | quantidade |
+| aproximação | medido |
 |---|---:|
-| issues coletadas | 5.216 |
-| itens de quadro | 4.070 |
-| atividades | 19.200 |
-| sprints (212, **todos com período**) | 212 |
-| commits | 21.365 |
-| solicitações de mudança | 5.635 (4.878 merged) |
-| verificações de CI | 15.671 (12.220 success, 2.987 failure) |
-| comentários de issue | 2.052 |
+| PR fechado sem integrar | 668 |
+| verificação que quebrou | 2.987 de 15.671 (19%) |
+| PR integrado com check quebrado | 261 |
 
-**O achado que decide metade do framework**: `Story Points` tem **194 valores**, `Estimate`
-**109**, `Size` **63** — e itens com *alguma* estimativa são **303 de 4.070, ou 7,4%**.
+Cada uma é **obrigada** a declarar o que NÃO diz. E a limitação que o denominador exige:
+**2.024 das integradas (41%) não têm estado de verificação registrado.**
 
-Velocity (8.10), Burndown (8.2) e Committed vs Completed (8.3) — as três medidas que o PSM
-prioriza — todas partem de story points. Com 7,4% de cobertura elas **rodam e não significam
-nada**. Isso não é motivo para não modelar: é a `limitation` que o YAML tem que declarar, e é
-exatamente o que esta casa faz quando ausência não vira zero.
+---
 
-**Não coletamos nada** de release, deploy ou incidente. Então MTTR/MTTD (8.8) e Release
-Frequency (8.9) **não são computáveis** — e isso é ligação com a #442, o conector do ArgoCD.
+## Onde parei: #369 — quem vê o painel de quem
 
-Tipo de issue: 3.996 **nulos** contra 196 `Bug`. Defect Detection (8.6) e Defect Resolution
-(8.7) dependem de distinguir defeito, e 76% das issues não dizem o que são.
+**Branch `feat/369-quem-ve-o-painel-de-quem` enviada, 13/13 gates, sem PR ainda.**
 
-### O que a 042 destravou
+Tua decisão: **a própria pessoa, o líder da equipe dela, e o responsável da organização.**
+E depois: os papéis de liderança são `Tech Leader` e `Team Leader`.
 
-Cycle Time / Lead Time (8.5) e Cumulative Flow (8.4) precisam de instante de início. **Agora
-existe.** São as duas primeiras a modelar.
+### O bloqueio que a issue não previa
 
-### Onde retomar
+Ao implementar, medi: **`eo_people` tem 88 pessoas e NENHUMA com e-mail** — o GitHub não
+entrega, por privacidade —, e `users` não tinha coluna alguma que apontasse para pessoa
+observada. **Nem "cada pessoa vê a si" nem "o líder vê o time" eram computáveis.**
 
-O plano é: mapear as 38 linhas da tabela ICM (Parte 1) e as 11 especificações (Parte 2)
-contra o que foi medido acima, e escrever YAML só para as que têm dado — cada uma com a
-`limitation` que diz o que falta. O resto entra como necessidade de informação **sem** medida,
-que é como esta base registra lacuna.
+Tua decisão: **usar o id do GitHub.** E o número mostra por quê — medido sobre as 88:
 
-## O próximo passo
+| campo | preenchido |
+|---|---:|
+| `external_id` (o id do GitHub) | **88** |
+| `login` | **88** |
+| `email` | **0** |
 
-**#505 — o período de participação, e a interseção pessoa → equipe → projeto.**
+Com e-mail, os **dois** lados do elo teriam que ser digitados. Com o id, o lado observado já
+vem pronto — e na tela a escolha virou uma **lista de contas**, não um `U_kgDOABFnGA` para
+transcrever.
 
-É o que tu pediste com estas palavras: *"Uma pessoa fica na equipe e no projeto por um
-período de tempo — precisamos colocar isso."*
+### O que está feito nessa branch (commit `9c38af0`, 13/13 gates)
 
-Não depende de decisão tua, e é modelagem e não tela. Pode começar direto pelo ciclo do
-Spec Kit.
+- migração `20260827050000_qual_pessoa_observada_e_a_conta.exs` — `users.person_id` aponta
+  para `eo_people`, com autor, data e revogação; índice parcial único entre os vigentes
+- `Tenants.declare_person/4`, `revoke_person/3`, `user_for_person/2`, `person_of_user/1`,
+  `elo_coverage/1`; `User.elo_vigente?/1`
+- seção na tela da pessoa com **lista de contas para escolher**, e **só admin declara**
+- 11 testes de lógica + 7 de tela, **10 injeções, 10 pegas**
+- spec: FR-012c a FR-012g
 
-Depois dele, **#508** — atividade por pessoa por mês. **Aviso que precisa estar na tela**:
-não é throughput, e um bot fica em segundo lugar no ranking. Medir atividade e chamar de
-produtividade é o erro que a medida convida.
+Dois defeitos meus que as injeções revelaram na primeira versão (a do e-mail), e que a
+versão por id já nasceu sem:
 
-## O que espera por ti, e por que eu não faço
+1. **revogar zerava o identificador** — perdia *quem* a conta era, sobrava só *desde
+   quando*. O índice parcial já exclui a linha revogada; zerar era desnecessário.
+2. **struct velha entre revogar e declarar** — `update_all` não atualiza a struct em
+   memória, e um campo cujo valor novo é igual ao da struct velha **não entra nas mudanças**
+   do changeset. `person_declared_by_user_id` ficaria nulo com `person_id` preenchido,
+   violando a CHECK. Resolvido recarregando entre as duas.
 
-**#506 — as perguntas que o painel da equipe responde.** Sem elas eu construiria o painel
-adivinhando o que ele deve dizer, que é o defeito que a própria #506 existe para evitar.
+### O que FALTA na #369
 
-E **#507** e **#504** dependem da #506.
+1. **Rebasear na `main`** depois que a #524 mergear, e abrir o PR
+2. **A concessão de visibilidade**: tabela `eo_role_visibility_grants` ligando papel a
+   escopo (`team` / `organization`), revogável, com autor — relator e nunca booleano, pelo
+   motivo de sempre: um `is_leader` perde quem concedeu e quando, e numa decisão de
+   visibilidade essa é a pergunta que mais se faz depois
+3. **Criar os papéis** `Tech Leader` e `Team Leader` na tela `/roles` e marcá-los escopo
+   `team` — hoje só existem **2 papéis, ambos `Developer Role`**
+4. **A regra de visibilidade em si** na rota `/people/:id` — hoje é `require_user` + tenant,
+   ou seja, toda pessoa autenticada vê qualquer outra
+5. **Quem é o responsável da organização** — tu não nomeou o papel; escopo `organization`
+   fica sem ninguém até nomear
 
-Outras decisões abertas: #368, #369, #452, as três perguntas restantes da #367, e a #442
-(ArgoCD, que tu excluiu de propósito).
+**A plataforma não deve casar `"Tech Leader"` por string.** Papel é renomeável, e conceder
+visibilidade por padrão de nome erra para o lado que ninguém reclama — o excesso concedido.
+A concessão é ato declarado, com autor. Está escrito como FR-012a na spec.
 
-## Solto, quando der
+---
 
-- **#501** — o guarda de 100 ms do `PatternValidator` está a 5 ms do que o PCRE já faz
-  sozinho pelo `match_limit`. O teste reprova no `main` também.
-- **#176** — decidida (opção b), ainda aberta. Fechar com o achado de que 21 sprints ocupam
-  duas caixas de sete dias.
-- **A análise semântica do Tech Lead** — mais a medida que separa quem delega de quem
-  refina tecnicamente, cruzando os 2.051 comentários de issue com a autoria delas.
+## Decisões tuas que continuam esperando
 
-## Uma coisa que reincidiu, e agora está anotada
+| issue | o que falta |
+|---|---|
+| **#506** | **as perguntas do painel da equipe**, com *quem decide o quê* em cada uma. É o que impede o painel; duas das cinco medidas já calculam |
+| **#367** | vincular (ou não) o `[DEPRECATED] ConectaFapes`; coletar a timeline do `conectafapes-project`; e quais colunas de cada quadro significam "concluído" |
+| **#442** | quatro escolhas técnicas do conector ArgoCD — qual API, como a ferramenta entra em `connected_tools`, onde o ambiente encontra o repositório, e se `drift` vira conceito |
+| **#397, #363, #356** | sem trabalho iniciado |
+| **#504, #507** | bloqueadas pela #506 |
 
-`git checkout -- <arquivo>` para desfazer injeção de defeito **destruiu trabalho não
-commitado duas vezes**. Na segunda levou um `type(min(...), :utc_datetime)` que consertava
-um `@type` mentiroso — e a suíte voltou a passar, porque o defeito só aparecia na tela.
+---
 
-O jeito certo é `cp` antes e `cp` depois.
+## Achados que valem lembrar
+
+**A #367 tem premissa vencida.** Ela diz que a plataforma não lê campo de quadro. **Lê** —
+a #181 entregou. Medi 3.601 itens com coluna e issue por trás: **409 marcados concluídos na
+coluna seguem abertos**, 87 fechados nunca saíram de coluna de início — 496 em 2.945
+comparáveis, **16,8%**. A issue estimava 11% sobre 25 itens.
+
+⚠️ **Ressalva**: classifiquei "coluna de início" **pelo nome**, que é exatamente o erro que
+estas quatro features existem para não cometer. Há 33 nomes de coluna em duas línguas. É
+primeira medida, **não resposta** — quais colunas significam concluído é declaração que
+ainda não foi feita.
+
+**Defesa em profundidade que parece redundância.** Os dois filtros de tenant da resolução de
+prazo se cobrem: remover um sozinho não quebra teste nenhum, remover os dois quebra. Está
+registrado no moduledoc do teste para ninguém "simplificar" um deles.
+
+**Duas injeções passaram na primeira tentativa nesta sessão, e nenhuma era defeito ausente
+no código** — as duas eram cenário fino demais no teste. O padrão: um campo declarado
+*em branco* passa por qualquer defeito de join, porque não há linha para o join achar. O
+caso que prova é o campo declarado **explicitamente com o outro valor**.
+
+---
+
+## Comandos
+
+```bash
+mix gates > /tmp/gates.log 2>&1; echo "CODIGO_DE_SAIDA_DO_GATE=$?" >> /tmp/gates.log
+grep CODIGO_DE_SAIDA_DO_GATE /tmp/gates.log     # o veredito é o número, lido num comando separado
+
+set -a; . ./.env; set +a                        # a chave mestra vem do .env
+MIX_ENV=dev mix run script.exs                  # medir contra o banco de desenvolvimento
+```
