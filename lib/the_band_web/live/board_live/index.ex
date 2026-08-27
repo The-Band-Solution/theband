@@ -18,6 +18,7 @@ defmodule TheBandWeb.BoardLive.Index do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Ontology.Continuum.SMPO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Projects
 
@@ -54,6 +55,40 @@ defmodule TheBandWeb.BoardLive.Index do
     do: {:noreply, assign(socket, selecionado: nil, detalhe: nil)}
 
   @impl true
+  # Issue #514: a organização declara o que o campo significa. A plataforma NÃO escolhe
+  # pelo nome — `Quarter` parece trimestre, e classificar por padrão de nome publicaria a
+  # suposição como medida.
+  def handle_event("declarar_papel", %{"field_name" => campo, "role" => papel}, socket) do
+    case SMPO.declare_field_role(
+           socket.assigns.current_tenant,
+           socket.assigns.selecionado.id,
+           campo,
+           papel,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Field #{campo} declared: #{rotulo_do_papel(papel)}.")
+         |> recarregar()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "That role could not be recorded.")}
+    end
+  end
+
+  def handle_event("revogar_papel", %{"field_name" => campo}, socket) do
+    case SMPO.revoke_field_role(
+           socket.assigns.current_tenant,
+           socket.assigns.selecionado.id,
+           campo,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} -> {:noreply, socket |> put_flash(:info, "Role revoked.") |> recarregar()}
+      {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to revoke.")}
+    end
+  end
+
   def handle_event("declarar_criterio", %{"event_type" => tipo}, socket) do
     quadro = socket.assigns.selecionado
 
@@ -106,11 +141,23 @@ defmodule TheBandWeb.BoardLive.Index do
     assign(socket, detalhe: detalhe(tenant, socket.assigns.selecionado))
   end
 
+  # O nome do campo vem da origem e traz espaço e acento — `Sprint (2 weeks)` existe. O
+  # `id` precisa ser selecionável, e trocar o que não é seguro mantém o formulário de cada
+  # linha distinto sem inventar um identificador que a origem não deu.
+  defp identificador(nome), do: String.replace(nome, ~r/[^A-Za-z0-9_-]/, "-")
+
+  defp rotulo_do_papel("planning_horizon"), do: "planning horizon"
+  defp rotulo_do_papel("sprint"), do: "sprint"
+  defp rotulo_do_papel(outro), do: outro
+
   defp detalhe(tenant, quadro) do
     iteracoes = Projects.list_iterations(tenant, quadro.id)
     mapeamentos = Projects.field_mappings(tenant)
+    horizontes = SMPO.horizon_field_external_ids(tenant, quadro.id)
 
     %{
+      # Issue #514: o que cada campo de iteração significa, e a evidência para decidir.
+      campos_de_iteracao: SMPO.iteration_fields(tenant, quadro.id),
       # Issue #370: o critério DESTE quadro, e os tipos que a coleta oferece.
       criterio: SPO.start_criterion_for(tenant, {:board, quadro.id}),
       tipos_de_evento: SPO.collected_event_types(tenant),
@@ -118,9 +165,19 @@ defmodule TheBandWeb.BoardLive.Index do
       mapeamentos: mapeamentos,
       total_itens: Projects.count_items(tenant, quadro.id),
       product_backlog: Projects.product_backlog(tenant, quadro.id),
+      # Issue #514: a mesma linha, lida conforme o papel declarado. O que a organização
+      # chamou de horizonte sai da lista de sprints — não some da tela, muda de seção.
       sprints:
-        for it <- iteracoes, it.sro_sprint_id != nil do
+        for it <- iteracoes,
+            it.sro_sprint_id != nil,
+            not MapSet.member?(horizontes, it.field_external_id) do
           %{iteracao: it, backlog: Projects.sprint_backlog(tenant, it.sro_sprint_id)}
+        end,
+      horizontes:
+        for it <- iteracoes,
+            it.sro_sprint_id != nil,
+            MapSet.member?(horizontes, it.field_external_id) do
+          %{iteracao: it, itens: length(Projects.sprint_backlog(tenant, it.sro_sprint_id))}
         end,
       pretendidas: Enum.filter(iteracoes, &(&1.spo_intended_process_id != nil)),
       importancia: Projects.importance_source(tenant, quadro.id)
@@ -174,6 +231,95 @@ defmodule TheBandWeb.BoardLive.Index do
           #{@selecionado.number} · {@selecionado.title}
           <:subtitle>collected board — nothing here is a project of its own</:subtitle>
         </.header>
+
+        <%!-- ═══ O QUE CADA CAMPO DE ITERAÇÃO SIGNIFICA — issue #514 ═══
+              A coleta promovia TODO campo de iteração a `sro.sprint`. Medido em 2026-08-26:
+              669 vínculos de issue em 2.685 — 25% — apontavam para trimestre lido como
+              sprint, e a vazão do trimestre parecia seis vezes maior sem que mais trabalho
+              tivesse atravessado nada. --%>
+        <div :if={@detalhe.campos_de_iteracao != []} class="card mb-4 bg-base-200">
+          <div class="card-body gap-2 p-4 sm:p-5">
+            <h3 class="font-semibold">What each iteration field means</h3>
+
+            <p class="text-xs text-base-content/70">
+              The platform <strong>does not guess</strong>. A field named
+              <span class="font-mono">Quarter</span>
+              looks like a quarter — and classifying by name pattern would publish the guess as
+              a measure. The durations below are the evidence; the decision is yours.
+            </p>
+
+            <table class="table table-sm mt-1">
+              <thead>
+                <tr>
+                  <th>field</th>
+                  <th class="text-right">iterations</th>
+                  <th>duration</th>
+                  <th>read as</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={c <- @detalhe.campos_de_iteracao}>
+                  <td class="font-mono">{c.field_name}</td>
+                  <td class="text-right tabular-nums">{c.iteracoes}</td>
+                  <%!-- Mínimo, máximo e média: uma média sozinha esconde que `Sprint 10` tem
+                        3 dias num campo de 14, e é a dispersão que revela o campo mal usado. --%>
+                  <td class="text-xs opacity-70 tabular-nums">
+                    {c.duracao_min}–{c.duracao_max} days · avg {c.duracao_media}
+                  </td>
+                  <td>
+                    <span :if={c.papel == "planning_horizon"} class="badge badge-sm">
+                      planning horizon
+                    </span>
+                    <span :if={c.papel == "sprint"} class="badge badge-outline badge-sm">sprint</span>
+                    <%!-- Ausência declarada, e não um traço: enquanto ninguém declara, a
+                          leitura trata como sprint — que é o comportamento que a #514 aponta. --%>
+                    <em :if={is_nil(c.papel)} class="text-xs opacity-60">
+                      not declared — read as sprint
+                    </em>
+                  </td>
+                  <td class="text-right">
+                    <form
+                      id={"papel-#{identificador(c.field_name)}"}
+                      phx-submit="declarar_papel"
+                      class="flex items-center justify-end gap-1"
+                    >
+                      <input type="hidden" name="field_name" value={c.field_name} />
+                      <select name="role" class="select select-xs select-bordered">
+                        <option value="">declare…</option>
+                        <%!-- Da ontologia, e não repetidos aqui: uma segunda lista
+                              divergiria em silêncio no dia em que um papel for acrescentado. --%>
+                        <option :for={papel <- SMPO.papeis()} value={papel}>
+                          {rotulo_do_papel(papel)}
+                        </option>
+                      </select>
+                      <.button type="submit" class="btn-xs">save</.button>
+                      <button
+                        :if={c.papel}
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        phx-click="revogar_papel"
+                        phx-value-field_name={c.field_name}
+                      >
+                        revoke
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <p class="mt-1 text-xs opacity-60">
+              A <strong>planning horizon</strong>
+              is not a sprint. A sprint is a process that was <em>performed</em>
+              — work happened inside it and it ended in a deliverable. A horizon
+              is <em>declared</em>
+              ahead of time and says <strong>when the work was planned for</strong>;
+              it produces nothing. Reading one as the other makes the quarter's throughput look six
+              times larger with no extra work having crossed anything.
+            </p>
+          </div>
+        </div>
 
         <%!-- ═══ O CRITÉRIO DESTE QUADRO — issue #370 ═══ --%>
         <div class="card bg-base-200 p-6">
@@ -308,6 +454,26 @@ defmodule TheBandWeb.BoardLive.Index do
             </h4>
             <div :for={item <- Enum.take(s.backlog, 15)} class="border-t border-base-300 py-1 text-sm">
               <.item_linha item={item} />
+            </div>
+          </div>
+
+          <%!-- Horizonte de planejamento: aparece, mas fora da lista de sprint backlog.
+                Some da contagem de sprint sem sumir da tela — o trimestre existe, e
+                esconder faria a organização achar que a declaração apagou o dado. --%>
+          <div :if={@detalhe.horizontes != []}>
+            <h4 class="text-xs font-semibold tracking-wide uppercase opacity-70">
+              Planning horizons — not sprints
+            </h4>
+            <p class="text-xs opacity-60">
+              Declared ahead of time to say <strong>when the work was planned for</strong>.
+              A horizon produces no deliverable, so what sits inside it is not a sprint
+              backlog and its item count is not throughput.
+            </p>
+            <div :for={h <- @detalhe.horizontes} class="border-t border-base-300 py-1 text-sm">
+              {h.iteracao.title}
+              <span class="text-xs opacity-60">
+                starts {h.iteracao.start_date} · {h.iteracao.duration_days} days · {h.itens} items planned for it
+              </span>
             </div>
           </div>
 

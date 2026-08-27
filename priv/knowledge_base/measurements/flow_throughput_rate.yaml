@@ -16,6 +16,7 @@ measurement:
       - "atribuir a tarefa ao sprint em que terminou, não ao sprint em que começou"
       - "separar tarefas com executor humano das automatizadas, cujo performer é nulo"
       - "reportar em separado a parcela de sro.successfully_performed_scrum_development_task, sem removê-la do total"
+      - "excluir as iterações cujo campo a organização declarou smpo.planning_horizon, porque horizonte não é caixa de execução e a issue nele foi planejada, nunca executada dentro dele"
     period: per_sprint
   limitations:
     - Contar tarefa concluída ignora o tamanho da tarefa - uma de duas horas e uma de duas semanas pesam igual, e decompor mais fino eleva a vazão sem que mais trabalho tenha sido feito.
@@ -23,6 +24,7 @@ measurement:
     - Tarefa concluída cujo entregável foi recusado atravessou o fluxo e não entregou resultado. Ela conta na vazão; a separação entre tarefa bem-sucedida e malsucedida depende de a aceitação ter sido registrada contra os criterios de aceitação, e é ato do Product Owner.
     - Tarefa reaberta e concluída de novo conta duas vezes sobre a mesma unidade de trabalho. Este projeto exige criar nova tarefa pretendida em vez de reabrir a executada; onde a regra não for seguida na ferramenta, a vazão infla sem aviso.
     - Comparar sprints exige duração constante. O campo Iteration deste projeto usa 14 dias; sprint encurtado por feriado ou interrompido produz um valor menor que não é queda de vazão.
+    - "Esta limitação previa feriado, e não previa uma caixa seis vezes maior. Medido em 2026-08-26, 669 dos 2.685 vínculos de issue - 25% - apontavam para campo Quarter de 84 dias de média promovido ao mesmo sro.sprint de 13 dias, e a vazão do trimestre parecia seis vezes maior sem que mais trabalho tivesse atravessado nada. A issue #514 separou os dois pela declaração da organização; enquanto o campo não for declarado, a leitura segue tratando como sprint, e esta medida continua misturando as granularidades naquele quadro."
     - Trabalho que não virou tarefa - revisão de solicitação de mudança, apoio a incidente, espera por terceiro - consome capacidade e não aparece na contagem, o que faz a vazão medida ser menor que o trabalho realizado.
     - Tarefa que começou em um sprint e terminou no seguinte é atribuída inteira ao sprint de término, o que credita ao sprint seguinte esforço gasto no anterior.
     - No nível person, a mesma tarefa aparece uma vez por participante quando há mais de um responsável, e a soma dos níveis person não é igual ao nível sprint.

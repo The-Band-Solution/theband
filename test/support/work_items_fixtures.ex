@@ -163,7 +163,14 @@ defmodule TheBand.WorkItemsFixtures do
     end
   end
 
-  defp ferramenta(tenant, login) do
+  @doc """
+  Uma ferramenta conectada com credencial, sem repositório nem issue.
+
+  Pública porque o cenário de quadro (issue #514) precisa da ferramenta e de mais nada:
+  montar os seis casos de issue só para ter um `connected_tool_id` amarraria o teste de
+  papel de campo a dados que ele não lê.
+  """
+  def ferramenta(tenant, login \\ "The-Band-Solution") do
     {:ok, tool} =
       %ConnectedTool{}
       |> ConnectedTool.changeset(%{
