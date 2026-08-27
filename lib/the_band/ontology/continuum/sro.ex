@@ -11,11 +11,23 @@ defmodule TheBand.Ontology.Continuum.SRO do
   prefixo das tabelas, a forma do critério de identidade e o tratamento da ausência
   serão copiados pelas irmãs — sprint backlog, cerimônia, entregável.
 
-  ## Todo campo de iteração é sprint
+  ## Todo campo de iteração é gravado aqui — mas nem todo é sprint
 
   Decisão da pessoa mantenedora em 2026-08-15: `Sprint`, `Iteration` e `Quarter` viram
   todos sprint. **O nome do campo fica gravado**, porque somar caixas de 14 e de 90 dias
   sem distingui-las produziria uma contagem que mistura granularidades.
+
+  Foi esse nome gravado que permitiu medir, em 2026-08-26, o que a decisão custava:
+  **669 vínculos de issue em 2.685 — 25% — apontavam para trimestre lido como sprint.**
+  A issue #514 separou os dois sem mexer nesta tabela. A coleta continua gravando toda
+  caixa de tempo aqui; o que mudou é que `TheBand.Ontology.Continuum.SMPO` deixa a
+  organização declarar o papel do par (quadro, campo), e a **leitura** respeita a
+  declaração. Nada é copiado para outra tabela, e revogar devolve a linha à leitura de
+  sprint sem migração nenhuma.
+
+  Consequência para quem chama daqui: `list_sprints/2` devolve **toda** caixa de tempo
+  gravada, horizonte incluído. Quem precisa da distinção pergunta ao SMPO — não é lapso,
+  é a fronteira: a SRO grava o observado, e o papel é declaração da organização.
 
   ## A ordem da coleta é obrigatória
 

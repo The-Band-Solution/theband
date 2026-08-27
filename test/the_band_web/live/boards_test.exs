@@ -8,13 +8,16 @@ defmodule TheBandWeb.BoardsTest do
   2. **campo sem mapeamento aparece como não interpretado** — nunca convertido (FR-025);
   3. **excluir aparece só para admin, grava o autor, e a coleta respeita**;
   4. **o botão continua sendo um botão** — `class` custom não pode engolir a base `btn`,
-     que foi como "Associate repositories" ficou invisível de clicar em 2026-08-16.
+     que foi como "Associate repositories" ficou invisível de clicar em 2026-08-16;
+  5. **nenhum campo de iteração vem com papel sugerido** — a tela mostra duração e volume,
+     e quem decide é a organização (issue #514).
   """
   use TheBandWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
   import TheBand.WorkItemsFixtures
 
+  alias TheBand.Ontology.Continuum.SMPO
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Projects
@@ -51,6 +54,128 @@ defmodule TheBandWeb.BoardsTest do
       })
 
     quadro
+  end
+
+  # Um campo de iteração de verdade, pelo caminho de produção: `record_iteration/2`
+  # promove a `sro.sprint` sozinho. Gravar a caixa à parte criaria uma segunda porta que
+  # a coleta não usa, e o teste passaria a provar um caminho que ninguém percorre.
+  defp campo_de_iteracao(ctx, quadro, nome, titulo, dias, inicio) do
+    agora = DateTime.utc_now(:second)
+    id_do_campo = "PVTIF_#{nome}"
+
+    {:ok, _} =
+      Projects.record_field_definition(ctx.tenant, %{
+        observed_project_id: quadro.id,
+        field_external_id: id_do_campo,
+        name: nome,
+        data_type: "ITERATION",
+        collected_at: agora
+      })
+
+    {:ok, %{promoted_to: {:sprint, _}}} =
+      Projects.record_iteration(ctx.tenant, %{
+        observed_project_id: quadro.id,
+        connected_tool_id: ctx.cenario.tool.id,
+        board_number: quadro.number,
+        board_title: quadro.title,
+        field_name: nome,
+        field_external_id: id_do_campo,
+        iteration_external_id: "PVTI_#{titulo}",
+        title: titulo,
+        start_date: inicio,
+        duration_days: dias,
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "PVTI_#{titulo}",
+        collected_at: agora,
+        last_observed_at: agora
+      })
+
+    :ok
+  end
+
+  describe "papel do campo de iteração — issue #514" do
+    test "a tela mostra a evidência e não sugere papel nenhum", ctx do
+      q = quadro(ctx)
+      campo_de_iteracao(ctx, q, "Sprint", "Sprint 38", 14, ~D[2026-06-29])
+      campo_de_iteracao(ctx, q, "Quarter", "Q3", 92, ~D[2026-07-01])
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/boards/#{q.id}")
+
+      assert html =~ "What each iteration field means"
+      assert html =~ "Quarter"
+      assert html =~ "92" and html =~ "14"
+
+      assert html =~ "not declared — read as sprint", """
+      A ausência de declaração não foi nomeada.
+
+      Enquanto ninguém declara, a leitura trata como sprint — e é isso que a #514 aponta.
+      Um traço no lugar diria "não se aplica", que é outra coisa.
+      """
+
+      refute html =~ "suggested", """
+      A tela sugeriu um papel.
+
+      `Quarter` parece trimestre, e classificar por padrão de nome publicaria a suposição
+      como medida. O erro cai para o lado barato: o reconhecido errado vira número.
+      """
+    end
+
+    test "declarar horizonte tira a iteração da lista de sprint sem sumir com ela", ctx do
+      q = quadro(ctx)
+      campo_de_iteracao(ctx, q, "Sprint", "Sprint 38", 14, ~D[2026-06-29])
+      campo_de_iteracao(ctx, q, "Quarter", "Q3", 92, ~D[2026-07-01])
+
+      {:ok, live, html} = live(ctx.conn, ~p"/boards/#{q.id}")
+      assert html =~ "Q3 · sprint backlog"
+
+      html =
+        live
+        |> form("#papel-Quarter", %{
+          "field_name" => "Quarter",
+          "role" => "planning_horizon"
+        })
+        |> render_submit()
+
+      assert html =~ "Planning horizons — not sprints"
+      assert html =~ "Sprint 38 · sprint backlog"
+
+      refute html =~ "Q3 · sprint backlog", """
+      O trimestre continuou sendo lido como sprint depois de declarado horizonte.
+
+      A declaração vale sobre o que JÁ foi coletado: nada é copiado, e a mesma linha de
+      `sro_sprints` muda de leitura. Se precisasse de recoleta, a declaração pareceria
+      sem efeito justo no momento em que alguém a faz.
+      """
+
+      assert SMPO.horizon_field?(ctx.tenant, q.id, "Quarter")
+    end
+
+    test "revogar devolve a iteração à leitura de sprint", ctx do
+      q = quadro(ctx)
+      campo_de_iteracao(ctx, q, "Quarter", "Q3", 92, ~D[2026-07-01])
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/boards/#{q.id}")
+
+      live
+      |> form("#papel-Quarter", %{
+        "field_name" => "Quarter",
+        "role" => "planning_horizon"
+      })
+      |> render_submit()
+
+      html = live |> element("button", "revoke") |> render_click()
+
+      assert html =~ "Q3 · sprint backlog"
+      refute html =~ "Planning horizons — not sprints"
+    end
+
+    test "quadro sem campo de iteração não mostra a seção", ctx do
+      q = quadro(ctx)
+      {:ok, _live, html} = live(ctx.conn, ~p"/boards/#{q.id}")
+
+      refute html =~ "What each iteration field means"
+    end
   end
 
   describe "/boards — T057" do
