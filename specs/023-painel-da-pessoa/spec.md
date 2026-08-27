@@ -227,19 +227,46 @@ que mais se aproxima de julgamento, e por isso vem depois de a US2 estar firme.
   organização concluir que a plataforma perdeu o dado.
 
 - **FR-012c**: A regra depende de saber **qual pessoa observada é cada pessoa usuária**, e
-  esse elo NÃO existe. Medido em 2026-08-26: `eo_people` tem 88 pessoas e **nenhuma com
-  e-mail** — o GitHub não entrega —, e a tabela `users` não tem coluna alguma que aponte
-  para uma pessoa observada. Nem "cada pessoa vê a si" nem "o líder vê o time" são
-  computáveis antes disso.
+  esse elo não existia. Nem "cada pessoa vê a si" nem "o líder vê o time" são computáveis
+  antes dele — nem o primeiro caso, que é o mais simples.
 
-  O elo MUST ser **declarado**, e MUST NOT ser inferido por login nem por semelhança de
-  nome. Identidade adivinhada para conceder visibilidade é o pior lugar em que este
-  projeto pode errar: o excesso concedido ninguém reclama, e quem recebeu o painel de
-  outra pessoa não abre chamado avisando.
+  Medido em 2026-08-26 sobre as 88 pessoas de `eo_people`:
 
-  Enquanto o elo não existir, a aba MUST ficar fechada para todos, com a frase que diz por
-  quê — e a frase MUST distinguir "ninguém foi declarado líder" de "não sabemos quem você
-  é entre as pessoas observadas", que são bloqueios diferentes e têm remédios diferentes.
+  | campo | preenchido |
+  |---|---:|
+  | `external_id` — o id do GitHub | **88** |
+  | `login` | **88** |
+  | `email` | **0** |
+
+  Decisão da pessoa mantenedora no mesmo dia: **o elo usa o id do GitHub.** O e-mail
+  obrigaria a digitar os dois lados; a identidade da origem já está gravada nas 88, e o
+  lado observado não precisa de digitação nenhuma.
+
+- **FR-012d**: O elo MUST apontar para `eo.person`, e MUST NOT copiar o id da origem para
+  `users`. `eo_people.external_id` já é o critério de identidade daquela entidade, e uma
+  segunda cópia diverge. Vale também para o dia em que houver mais de uma origem: a pessoa
+  é uma só, e as identidades de origem são várias.
+
+- **FR-012e**: O elo MUST NOT ser inferido por **login** nem por semelhança de nome. O
+  GitHub permite renomear, e libera o nome antigo para outra pessoa — casar por login faria
+  a visibilidade mudar de dono sem nada ter acontecido na plataforma. Identidade adivinhada
+  para conceder visibilidade é o pior lugar em que este projeto pode errar: o excesso
+  concedido ninguém reclama, e quem recebeu o painel de outra pessoa não abre chamado
+  avisando.
+
+- **FR-012f**: Declarar e revogar o elo MUST ser ato de quem tem `admin` de plataforma, e a
+  recusa MUST acontecer no tratamento do evento, e não apenas escondendo o formulário. O
+  cliente LiveView está do outro lado da rede, e o evento chega sem que a tela o tenha
+  oferecido.
+
+  `users.role` (`admin`/`member`) NÃO é papel na organização: `Tech Leader` e os demais
+  vivem em `eo_organizational_roles` e dizem o que a pessoa **faz**. Trocar os dois daria
+  administração da plataforma a quem só lidera uma equipe.
+
+- **FR-012g**: Enquanto o elo não existir para uma conta, a aba MUST ficar fechada para
+  ela, com a frase que diz por quê — e a frase MUST distinguir "ninguém foi declarado
+  líder" de "não sabemos quem você é entre as pessoas observadas", que são bloqueios
+  diferentes e têm remédios diferentes.
 
 ### O que a plataforma recusa mostrar
 

@@ -314,13 +314,30 @@ defmodule TheBandWeb.PersonDetailTest do
       # commitar são participações distintas, e a tela as mostra distintas. O custo de
       # três é o preço de não achatar — e nenhuma delas cresce com o dado.
       #
+      # **E a última vaga foi ocupada pela #369**, com uma consulta e não três:
+      #
+      #  15. as contas do tenant — `Tenants.list_users/1`.
+      #
+      # Ela serve TRÊS coisas na tela do elo: a lista para escolher qual conta é esta
+      # pessoa, qual delas já é, e a cobertura (`0 de 2`). Uma consulta por resposta seriam
+      # três, e o primeiro desenho fez isso — o teto acusou em 24, e as outras duas passaram
+      # a sair em memória das contas que já vieram inteiras.
+      #
+      # **A página está agora EXATAMENTE no teto.** A próxima consulta acrescentada aqui
+      # reprova este teste, e é de propósito: quem acrescentar decide entre justificar o
+      # acréscimo e nomeá-lo, ou derivar do que já foi carregado — como a #369 fez.
+      #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
       assert acrescentadas <= 22, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
       linha de base medida é **vinte e duas** — oito da tela original, sete do painel da 023,
-      três do perfil da 026, uma da participação em discussões da 030, e três das mudanças
-      da 032 (abriu, integrou, commitou — a rede separa os três atos).
+      três do perfil da 026, uma da participação em discussões da 030, três das mudanças
+      da 032 (abriu, integrou, commitou — a rede separa os três atos), e uma da #369 (as
+      contas do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez).
+
+      A página está EXATAMENTE no teto. Se tu acrescentou uma consulta, a saída é derivar do
+      que já foi carregado — não subir o número.
 
       O que a página faz além da lista:
 

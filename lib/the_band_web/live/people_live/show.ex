@@ -40,6 +40,8 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
+  alias TheBand.Tenants
+  alias TheBand.Tenants.User
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
   alias TheBandWeb.WorkCharts
@@ -103,6 +105,39 @@ defmodule TheBandWeb.PeopleLive.Show do
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
+  # Issue #369, FR-012c: só admin declara o elo. A verificação vive AQUI, e não no comando,
+  # porque é aqui que a pessoa está — e um segundo lugar de autorização é um lugar a mais
+  # para divergir.
+  #
+  # O elo concede visibilidade: apontar uma conta para esta pessoa é dar a ela o painel
+  # desta pessoa. Não é campo de cadastro, é ato de acesso.
+  def handle_event("declarar_conta", %{"user_id" => ""}, socket),
+    do: {:noreply, put_flash(socket, :error, "Choose an account.")}
+
+  def handle_event("declarar_conta", %{"user_id" => user_id}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      declarar_conta(socket, user_id)
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can link an account.")}
+    end
+  end
+
+  def handle_event("revogar_conta", %{"user_id" => user_id}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      case Tenants.revoke_person(
+             socket.assigns.current_tenant,
+             user_id,
+             socket.assigns.current_user.id
+           ) do
+        {:ok, _} -> {:noreply, socket |> put_flash(:info, "Account unlinked.") |> load()}
+        {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to unlink.")}
+        {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Account not found.")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "Only an administrator can unlink an account.")}
+    end
+  end
+
   def handle_event("gerar_perfil", _params, socket) do
     tenant = socket.assigns.current_tenant
     pessoa = socket.assigns.pessoa
@@ -121,6 +156,35 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
+  defp declarar_conta(socket, user_id) do
+    case Tenants.declare_person(
+           socket.assigns.current_tenant,
+           user_id,
+           socket.assigns.pessoa.id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, conta} ->
+        {:noreply, socket |> put_flash(:info, "#{conta.email} is now this person.") |> load()}
+
+      # "Já está em uso" sem dizer de quem manda quem declarou procurar. A plataforma sabe.
+      {:error, :taken} ->
+        {:noreply, put_flash(socket, :error, ja_e_de_outra(socket))}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, "Account not found.")}
+
+      {:error, %Ecto.Changeset{}} ->
+        {:noreply, put_flash(socket, :error, "That link could not be recorded.")}
+    end
+  end
+
+  defp ja_e_de_outra(socket) do
+    case Tenants.user_for_person(socket.assigns.current_tenant, socket.assigns.pessoa.id) do
+      {:ok, conta} -> "#{conta.email} is already linked to this person."
+      :not_declared -> "That account is already linked to someone else."
+    end
+  end
+
   defp caminho(socket, id, mudancas) do
     ~p"/people/#{socket.assigns.pessoa.id}?#{Tabela.query(socket, id, mudancas)}"
   end
@@ -133,6 +197,10 @@ defmodule TheBandWeb.PeopleLive.Show do
 
     repositorios = WorkItems.repositories_of_person(tenant, pessoa.id)
     cobertura = WorkItems.timeline_coverage(tenant, pessoa.id)
+
+    # Issue #369: UMA consulta, e não três. As contas do tenant vêm inteiras, e tanto "qual
+    # delas é esta pessoa" quanto a cobertura do elo saem delas em memória.
+    contas = Tenants.list_users(tenant)
 
     perfil = perfil_atual(tenant, pessoa.id)
     {pendente?, possivel} = estado_do_perfil(tenant, pessoa, perfil)
@@ -182,6 +250,19 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Os papéis **declarados** — vigentes e encerrados. Esconder o encerrado apagaria
       # história: quem saiu do papel continua tendo desempenhado.
       papeis_declarados: EO.list_person_roles(tenant, pessoa.id),
+      # Issue #369: qual conta é esta pessoa, e quais contas existem para escolher. A lista
+      # evita digitar `U_kgDOABFnGA` à mão — o id da origem é a identidade, e nunca o que
+      # alguém deveria transcrever.
+      # Issue #369. UMA consulta, e não três: as contas do tenant já vêm inteiras, e tanto
+      # "qual delas é esta pessoa" quanto a cobertura saem delas em memória. Três consultas
+      # aqui empurrariam a página de 22 para 24 por render, e o teste de custo existe
+      # justamente para que esse crescimento seja decidido, e não descoberto depois.
+      contas: contas,
+      conta_da_pessoa: Enum.find(contas, &(&1.person_id == pessoa.id and User.elo_vigente?(&1))),
+      cobertura_do_elo: %{
+        contas: length(contas),
+        declaradas: Enum.count(contas, &User.elo_vigente?/1)
+      },
       # **Duas contagens, e elas respondem coisas diferentes.** `designadas` é quantas issues
       # a pessoa tem — o número do cartão, que não muda quando alguém busca. `encontradas` é
       # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
@@ -430,6 +511,81 @@ defmodule TheBandWeb.PeopleLive.Show do
 
               A ordem — declarado primeiro — é porque é o que responde "o que esta pessoa faz",
               e a participação responde "onde a origem a mostra". --%>
+        <%!-- ═══ QUAL CONTA É ESTA PESSOA — issue #369, FR-012c ═══
+              A regra de quem vê o painel de quem depende de saber qual das pessoas
+              observadas é quem está logado. O elo não vinha de lugar nenhum: medido em
+              2026-08-26, as 88 pessoas de `eo_people` têm `external_id` e login, e
+              NENHUMA tem e-mail — o GitHub não entrega. --%>
+        <section class="space-y-2">
+          <div>
+            <h3 class="font-semibold">Which account is this person</h3>
+            <p class="text-xs text-base-content/60">
+              Identity comes from the source — this person is
+              <span class="font-mono">{@pessoa.login}</span>
+              on GitHub. What has to be said by a person is which <strong>platform account</strong>
+              is the same human, and that is what this link records.
+            </p>
+          </div>
+
+          <p :if={@conta_da_pessoa} class="text-sm">
+            Linked to
+            <span class="badge badge-outline badge-sm font-mono">{@conta_da_pessoa.email}</span>
+            <span class="text-xs opacity-60">
+              declared on {Calendar.strftime(@conta_da_pessoa.person_declared_at, "%Y-%m-%d")}
+            </span>
+            <button
+              :if={@current_user.role == "admin"}
+              type="button"
+              class="btn btn-ghost btn-xs"
+              phx-click="revogar_conta"
+              phx-value-user_id={@conta_da_pessoa.id}
+              data-confirm="Unlink it? That account stops reaching this person's panel."
+            >
+              unlink
+            </button>
+          </p>
+
+          <%!-- Ausência nomeada, com o efeito junto: "nenhuma conta" sem dizer o que isso
+                causa parece detalhe de cadastro, quando é o que decide acesso. --%>
+          <p :if={is_nil(@conta_da_pessoa)} class="text-sm opacity-70">
+            <strong>No account linked.</strong>
+            Nobody signing in is recognised as this person, so nobody — not even they —
+            reaches this person's work panel through the visibility rule.
+          </p>
+
+          <%!-- Só admin. O elo CONCEDE visibilidade: apontar uma conta para esta pessoa é
+                dar a essa conta o painel desta pessoa. --%>
+          <form
+            :if={@current_user.role == "admin"}
+            id="elo-da-conta"
+            phx-submit="declarar_conta"
+            class="flex flex-wrap items-end gap-2"
+          >
+            <label class="fieldset">
+              <span class="label-text text-xs">the platform account that is this person</span>
+              <select name="user_id" class="select select-sm select-bordered">
+                <option value="">choose an account…</option>
+                <option :for={c <- @contas} value={c.id}>
+                  {c.email}{if c.name, do: " — #{c.name}"}
+                </option>
+              </select>
+            </label>
+            <.button type="submit" class="btn-sm">
+              {if @conta_da_pessoa, do: "Replace", else: "Link"}
+            </.button>
+          </form>
+
+          <p :if={@current_user.role != "admin"} class="text-xs opacity-60">
+            Only an administrator can change this link — it decides who sees whose panel.
+          </p>
+
+          <p class="text-xs opacity-60">
+            <strong>{@cobertura_do_elo.declaradas} of {@cobertura_do_elo.contas}</strong>
+            accounts are linked to an observed person. The rest reach no panel, and that is
+            a gap in what was declared — not a gap in what was collected.
+          </p>
+        </section>
+
         <section :if={@papeis_declarados != []} class="space-y-2">
           <div>
             <h3 class="font-semibold">Roles declared for this person</h3>
