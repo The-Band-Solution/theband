@@ -22,6 +22,7 @@ Princípios acrescentados por emenda posterior:
   1.2.0 → VIII. Desenho que o problema justifica
   1.3.0 → IX. Ontologias modulares e autônomas
   1.4.0 → X. Responsabilidade única, em módulo e em tela
+  1.5.0 → XI. Estado conferido antes, sinal nunca silenciado
 
 Fonte dos princípios: AGENTS.md na raiz do repositório, documento normativo de fato
 desde antes desta ratificação. Esta constituição não inventa regra nova — codifica o
@@ -68,6 +69,28 @@ exemplo de configuração que mantém o gate verde e o faz parar de proteger.
 O que passa a ser exigido de quem já seguia a versão anterior: registrar no
 `plan.md` as três respostas antes de introduzir qualquer padrão — qual problema
 concreto, se ele existe agora, e o que fica pior.
+
+Emenda 1.5.0 — 2026-08-26
+=========================
+Versão: 1.4.0 → 1.5.0 (MINOR: princípio acrescentado, nenhum removido ou redefinido).
+
+Acrescenta o **princípio XI — Estado conferido antes, sinal nunca silenciado**.
+
+Motivo: numa sessão de 2026-08-26, quatro operações destrutivas de git escreveram no
+lugar errado, e as quatro têm a mesma forma — o sinal que revelaria o erro foi
+suprimido ou substituído. `git stash` sem ler a lista, `git checkout` sem verificar
+worktree, `git reset --hard` em branch não confirmada, e `git checkout <ref> --
+<caminhos>` com `2>/dev/null` sobrescrevendo trabalho não commitado.
+
+No mesmo dia, e pela mesma causa, um commit afirmou "13 gates verdes" com o credo
+reprovando: o `tail` depois do `mix gates` devolveu o próprio código de saída. Na
+direção oposta, um `grep -c` no fim da linha fez gates verdes serem lidos como falha.
+
+O que passa a ser exigido de quem já seguia a versão anterior: commitar antes de trocar
+de contexto; ler o estado antes de comando que sobrescreve; não suprimir `stderr` de
+comando que escreve; e ler o código de saída de dentro do log, nunca da notificação do
+comando composto.
+
 -->
 
 # Constituição do The Band
@@ -373,6 +396,50 @@ nova deve existir**; **X decide como dividir a que existe.** Usar X para justifi
 abstração antecipada inverte os dois: a segunda razão para mudar tem de ter **aparecido**,
 não de ser prevista.
 
+### XI. Estado conferido antes, sinal nunca silenciado
+
+Comando que **escreve em estado compartilhado** — árvore de trabalho, branch, remoto, banco
+— MUST ser precedido da leitura do estado em que vai escrever, e MUST NOT ter a saída de
+erro suprimida.
+
+- Trabalho não commitado **não tem cópia em lugar nenhum**. Antes de trocar de branch, de
+  aplicar `stash`, ou de rodar qualquer comando que sobrescreva a árvore, o que está feito
+  MUST estar commitado.
+- `git reset --hard`, `git checkout <ref> -- <caminhos>`, `git stash pop` e `git push -f`
+  MUST ser precedidos da leitura explícita do que será perdido — a branch corrente, a
+  lista de stashes, os worktrees, o que diverge do remoto. Encadear com `&&` ou `||` sem
+  conferir entre um e outro MUST NOT acontecer.
+- `2>/dev/null` em comando que escreve MUST NOT acontecer. O erro suprimido é exatamente o
+  que diria que a escrita foi para o lugar errado.
+- **O veredito de uma verificação é o código de saída, e o código de saída que chega a quem
+  lê é o do último comando da linha.** `mix gates > log; tail log` reporta o `tail`. Em
+  execução de fundo, o código MUST ser escrito **dentro** do próprio log, onde nada o
+  substitui; em primeiro plano, a linha MUST terminar em `exit $ec`.
+- Afirmar "gates verdes", "teste passou" ou "mergeado" sem ter lido o número MUST NOT
+  acontecer. Vale o princípio VII: sucesso se declara com evidência.
+
+**Razão**: em 2026-08-26 esta regra foi violada quatro vezes numa sessão, e as quatro têm a
+mesma forma — o sinal que revelaria o erro foi suprimido ou substituído.
+
+`git stash` sem ler a lista aplicou o stash de outra branch dentro da `main`, com conflito.
+`git checkout gh-pages` falhou porque a branch estava presa num worktree órfão, e o commit
+do site foi parar na branch de uma feature aberta. `git reset --hard` rodou numa branch que
+não havia sido confirmada, e a `main` local passou a apontar para o commit do site. E
+`git checkout <branch> -- <caminhos>` com `2>/dev/null` sobrescreveu uma revisão de
+literatura que ainda não estava commitada.
+
+Nada se perdeu **por sorte**: o texto sobrevivera num arquivo não rastreado, gerado a
+partir da fonte que ele documenta. Sorte não é procedimento.
+
+No mesmo dia, um commit afirmou "13 gates verdes" com o credo reprovando — porque o
+`tail` depois do `mix gates` devolveu o próprio código de saída, e a notificação do
+processo reportou o do comando composto. Na direção oposta, um `grep -c` no fim da linha
+fez gates verdes serem lidos como falha, por sair 1 ao não achar nada.
+
+**Relação com o princípio VII**: VII exige que o gate esteja verde antes do PR; **XI exige
+que o verde tenha sido lido, e não presumido**. Um gate que reprova e é reportado como
+verde é pior que um gate que não roda, porque quem lê para de conferir.
+
 ## Restrições tecnológicas
 
 Stack fixada: Elixir/Erlang OTP, Phoenix e LiveView, Ecto e PostgreSQL, Oban para jobs e
@@ -446,4 +513,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.4.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-11
+**Version**: 1.5.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-26
