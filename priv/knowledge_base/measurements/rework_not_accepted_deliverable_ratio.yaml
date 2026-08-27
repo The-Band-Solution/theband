@@ -10,8 +10,46 @@ measurement:
   scope:
     levels: [sprint, project, team]
     period: per_sprint
+  proxies:
+    note: >
+      A aceitação formal contra criterios de aceitação NUNCA foi registrada nesta base -
+      é a lacuna que a issue #506 declarou. Decisão da pessoa mantenedora em 2026-08-26:
+      usar como aproximação a solicitação de mudança recusada e a verificação de CI que
+      quebrou, que são o que a origem de fato registra.
+      Aproximação NÃO é a medida. As duas dizem que algo não passou; nenhuma diz que um
+      entregável foi avaliado contra critérios e recusado, e quem lê precisa ver a
+      diferença antes de tratar o número como retrabalho.
+    sources:
+      - id: change_request_not_merged
+        expression: "count(cmpo.change_request WHERE state = CLOSED AND merged_at IS NULL)"
+        measured_2026_08_26: 668
+        note: >
+          Mudança que NÃO entrou. Medido: 668 recusadas contra 4.878 integradas, e zero
+          fechadas com merge - o sinal é limpo.
+          O que ela NÃO diz: fechada sem integrar não é o mesmo que recusada em revisão.
+          Abandono, duplicata e substituição por outra solicitação caem no mesmo balde, e
+          chamar o conjunto de recusa atribuiria a uma decisão de revisão o que muitas
+          vezes foi desistência. O estado de revisão - mudanças solicitadas - seria o
+          sinal exato, e ele não é coletado.
+      - id: verification_failed
+        expression: "count(ciro.verification WHERE conclusion = failure)"
+        measured_2026_08_26: 2987
+        note: >
+          Verificação que quebrou. Medido: 2.987 falhas em 15.671 execuções, 19%.
+          O que ela NÃO diz: falha de CI é sinal de que o trabalho ainda não estava
+          pronto, e não de entregável recusado. Uma execução que quebra e é corrigida em
+          cinco minutos entra na contagem igual a uma que reprovou a entrega inteira.
+      - id: change_request_merged_over_failing_check
+        expression: "count(cmpo.change_request WHERE state = MERGED AND merged_check_state = FAILURE)"
+        measured_2026_08_26: 261
+        note: >
+          A mais informativa das três: mudança que entrou COM a verificação quebrada. Não
+          é retrabalho ainda - é a condição que costuma produzi-lo.
   limitations:
     - Depende de que a aceitação dos entregáveis tenha sido registrada contra critérios de aceitação.
+    - "As aproximações declaradas em `proxies` NÃO substituem a medida. Elas respondem \"o que não passou pela ferramenta\", enquanto a medida responde \"o que foi avaliado e recusado\" - e um entregável pode ser recusado na review de sprint sem que solicitação alguma tenha sido fechada nem verificação alguma ter quebrado."
+    - "O denominador da aproximação por verificação é incompleto e o buraco é grande: 2.024 das solicitações integradas - 41% - não têm estado de verificação registrado. Calcular a razão sobre as que têm excluiria essas em silêncio, e o denominador mentiria para baixo. A parcela sem verificação MUST ser reportada ao lado do número, nunca descontada dele."
+    - "Solicitação fechada sem integrar mistura recusa com desistência. O estado de revisão que separaria as duas - mudanças solicitadas contra aprovada - não é coletado hoje, e enquanto não for, o número é teto e não medida." 
     - Tarefas sem entregável associado ficam fora do numerador e do denominador.
     - Uma tarefa que produziu vários entregáveis conta uma vez, mesmo com apenas um não aceito.
   misinterpretations:

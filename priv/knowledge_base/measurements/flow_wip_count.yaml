@@ -15,8 +15,9 @@ measurement:
       - "excluir tarefas sem start_date registrado, contando-as como lacuna, nunca como zero"
       - "excluir tarefas cujo start_date é posterior ao fim do sprint observado"
       - "separar tarefas com executor humano das automatizadas, cujo performer é nulo"
-    period: point_in_time
+    period: weekly
   limitations:
+    - "O período é semanal por decisão da pessoa mantenedora em 2026-08-26, e a medida continua sendo instantânea por definição: WIP é o que estava aberto NUM instante, e semanal diz de quanto em quanto tempo esse instante é amostrado. O painel da equipe da issue #506 lê a série, e nunca um valor solto."
     - Contar tarefa aberta ignora o tamanho da tarefa - uma de duas horas e uma de duas semanas pesam igual, e um time que decompõe grosso parece ter menos trabalho aberto do que tem.
     - Depende de start_date registrado. Quando o início é derivado da transição de status do item do Projects v2, a confiança é média, e tarefa que nunca passou por "em andamento" não aparece em nenhum instante.
     - Tarefa sem end_date pode estar em execução ou abandonada; a medida não distingue as duas situações e trata o abandono como trabalho ativo.
@@ -24,6 +25,8 @@ measurement:
     - Trabalho que não virou tarefa - revisão de solicitação de mudança, apoio a incidente, espera por terceiro - consome capacidade e não entra na contagem, o que faz o WIP medido ser menor que o WIP real.
     - "Um valor isolado não descreve o sprint. WIP é série temporal, e o instante escolhido determina o resultado: fim de semana, feriado e véspera de review deprimem o número por motivos que nada têm a ver com fluxo."
     - No nível person, o mesmo trabalho aparece uma vez por participante quando há mais de um responsável, e a soma dos níveis person não é igual ao nível sprint.
+    - "Amostrar semanalmente não elimina o efeito do dia escolhido, apenas o torna constante: se a amostra cai sempre na segunda, ela sempre mede o pior momento da semana anterior. O que a série semanal permite é comparar semana com semana, e nunca ler um ponto como o WIP do time."
+    - "A medida exige start_date E end_date, e o segundo é a lacuna que a issue #506 registrou. O critério de início veio da feature 042 e há quatro declarados; o critério de FIM não existe, e sem ele toda tarefa iniciada parece aberta para sempre. Enquanto isso não for declarado, a série semanal cresce monotonicamente e o crescimento não é acúmulo de trabalho: é ausência de fim." 
   misinterpretations:
     - WIP baixo não significa fluxo saudável; pode indicar time bloqueado, dependência externa, ou tarefas grandes demais para se manifestarem como várias.
     - WIP alto não é sinônimo de produtividade. Costuma ser o contrário - quanto mais itens abertos ao mesmo tempo, maior o tempo de conclusão de cada um, porque o mesmo esforço se divide.

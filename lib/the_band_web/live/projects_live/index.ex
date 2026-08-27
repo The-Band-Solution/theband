@@ -386,7 +386,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
 
     assign(socket,
       projetos: com_dados,
-      quadros_do_tenant: Projects.list_projects(tenant),
+      # Issue #367: com volume, abertas e período. Escolher entre 26 quadros pelo título
+      # sozinho é escolher no escuro — e o quadro que carrega os dez meses mais antigos do
+      # projeto é justamente o que tem `[DEPRECATED]` no nome.
+      quadros_do_tenant: Projects.boards_with_evidence(tenant),
       # Só o que a coleta traz, com volume — FR-012. Nenhum vem recomendado.
       tipos_de_evento: SPO.collected_event_types(tenant),
       nomes_de_repo: nomes_de_repo,
@@ -938,6 +941,17 @@ defmodule TheBandWeb.ProjectsLive.Index do
                     >
                       <span class="font-mono text-xs">{q.title}</span>
                       <span :if={q.closed} class="ml-1 text-xs italic opacity-60">closed</span>
+                      <span
+                        :if={q.no_longer_observed_at}
+                        class="ml-1 text-xs italic opacity-60"
+                      >
+                        no longer at the source
+                      </span>
+                      <%!-- A evidência, e nunca uma recomendação: quantos itens, quantos
+                            seguem abertos, e o período que o quadro cobre. --%>
+                      <span class="ml-1 block text-xs opacity-60 tabular-nums">
+                        {q.itens} items · {q.abertas} still open{periodo(q)}
+                      </span>
                     </button>
                   </li>
                 </ul>
@@ -1101,6 +1115,14 @@ defmodule TheBandWeb.ProjectsLive.Index do
   # Os quadros que ainda não são deste projeto. **O mesmo quadro pode servir a mais de um
   # projeto** — o filtro é por projeto, e não global: excluir da lista o que já está em
   # outro projeto impediria o caso que a decisão de 2026-08-24 declara possível.
+  # Quadro sem issue nenhuma não ganha período inventado: sai sem a frase, e a ausência
+  # aparece como ausência. Um intervalo com as duas pontas iguais diria que o quadro
+  # cobre um instante, que é outra coisa.
+  defp periodo(%{primeira: nil}), do: ""
+
+  defp periodo(%{primeira: inicio, ultima: fim}),
+    do: " · #{Calendar.strftime(inicio, "%b/%Y")} to #{Calendar.strftime(fim, "%b/%Y")}"
+
   defp quadros_disponiveis(todos, projeto) do
     ja = MapSet.new(projeto.quadros, & &1.observed_project_id)
     Enum.reject(todos, &MapSet.member?(ja, &1.id))

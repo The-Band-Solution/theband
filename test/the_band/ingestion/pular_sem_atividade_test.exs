@@ -20,6 +20,7 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
 
   alias TheBand.Ingestion
   alias TheBand.Ingestion.GithubWorkItems
+  alias TheBand.Ingestion.QueryVersion
   alias TheBand.Ingestion.Sync
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.CMPO
@@ -38,19 +39,55 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
   end
 
   describe "a decisão" do
-    test "sem push desde a revisão, não percorre" do
+    test "sem push desde a revisão E já percorrido com esta consulta, não percorre" do
       assert {:nao, :sem_push_desde_a_revisao} =
                GithubWorkItems.percorrer?(
                  %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
-                 %{issues_collected_at: ~U[2026-08-01 00:00:00Z]}
+                 %{
+                   issues_collected_at: ~U[2026-08-01 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues")}
+                 }
                )
+    end
+
+    # Issue #452 aplicada a esta fase pela #368. O corte responde "já percorri este
+    # repositório"; a consulta que ganha um campo muda a pergunta para "já percorri COM
+    # ESTA CONSULTA". Aqui o silêncio seria o pior dos três cortes, porque este pula o
+    # repositório INTEIRO — e "sem push" é o estado normal da maioria.
+    test "sem push, mas a consulta ganhou campo: percorre uma vez", _ctx do
+      assert :sim =
+               GithubWorkItems.percorrer?(
+                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 %{
+                   issues_collected_at: ~U[2026-08-01 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues") - 1}
+                 }
+               )
+    end
+
+    test "repositório nunca marcado com versão nenhuma percorre", _ctx do
+      assert :sim =
+               GithubWorkItems.percorrer?(
+                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 %{issues_collected_at: ~U[2026-08-01 00:00:00Z], query_versions: %{}}
+               ),
+             """
+             O repositório já coletado antes da #368 não foi reaberto.
+
+             Todos os 135 observados estão nesse estado: a marca de versão para `issues` não
+             existia. Se o corte valesse para eles, as 5.216 issues ficariam com
+             `milestone_due_on` nulo para sempre, e ninguém veria.
+             """
     end
 
     test "com push depois da revisão, percorre" do
       assert :sim =
                GithubWorkItems.percorrer?(
                  %{last_pushed_at: ~U[2026-08-10 00:00:00Z]},
-                 %{issues_collected_at: ~U[2026-08-01 00:00:00Z]}
+                 %{
+                   issues_collected_at: ~U[2026-08-01 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues")}
+                 }
                )
     end
 

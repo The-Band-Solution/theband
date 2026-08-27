@@ -8,7 +8,10 @@ defmodule TheBandWeb.ProjetosTest do
      oferecer a escolha convidaria a gravar algo que a estrutura contradiz;
   2. **a recusa nomeia o motivo** — de quem o projeto já é parte, ou onde o ciclo se
      fecha. Dizer só "não deu" deixa quem cadastrou procurando;
-  3. **as duas contagens não somam** — direto e de subprojeto são fatos diferentes.
+  3. **as duas contagens não somam** — direto e de subprojeto são fatos diferentes;
+  4. **o picker de quadro mostra a evidência** — volume, abertas e período. Escolher entre
+     26 quadros pelo título é escolher no escuro, e o quadro que carrega os dez meses mais
+     antigos do projeto é justamente o que tem `[DEPRECATED]` no nome (issue #367).
   """
   use TheBandWeb.ConnCase, async: false
 
@@ -23,6 +26,108 @@ defmodule TheBandWeb.ProjetosTest do
     {tenant, user} = tenant_with_admin()
     cenario = cenario_real(tenant)
     %{conn: log_in(conn, user), tenant: tenant, user: user, cenario: cenario}
+  end
+
+  defp quadro(ctx, numero, titulo, opcoes \\ []) do
+    agora = DateTime.utc_now(:second)
+
+    {:ok, q} =
+      TheBand.Projects.record_observed_project(ctx.tenant, %{
+        connected_tool_id: ctx.cenario.tool.id,
+        number: numero,
+        title: titulo,
+        closed: Keyword.get(opcoes, :closed, false),
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "PVT_#{numero}",
+        collected_at: agora,
+        last_observed_at: agora
+      })
+
+    q
+  end
+
+  defp item_com_issue(ctx, quadro, issue) do
+    agora = DateTime.utc_now(:second)
+
+    {:ok, _} =
+      TheBand.Projects.record_item(ctx.tenant, %{
+        observed_project_id: quadro.id,
+        collected_issue_id: issue.id,
+        is_draft: false,
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "PVTI_#{quadro.number}_#{issue.id}",
+        collected_at: agora,
+        last_observed_at: agora
+      })
+  end
+
+  describe "escolher o quadro do projeto — issue #367" do
+    test "o picker mostra volume, abertas e período de cada quadro", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      corrente = quadro(ctx, 43, "Conecta Fapes")
+      antigo = quadro(ctx, 7, "[DEPRECATED] ConectaFapes", closed: true)
+
+      item_com_issue(ctx, corrente, Map.fetch!(ctx.cenario.issues, 1).pai)
+      item_com_issue(ctx, antigo, Map.fetch!(ctx.cenario.issues, 3).pai)
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/projects")
+
+      html =
+        live
+        |> element(~s(button[phx-click="abrir_picker_quadro"][phx-value-project_id="#{p.id}"]))
+        |> render_click()
+
+      assert html =~ "[DEPRECATED] ConectaFapes"
+
+      assert html =~ "items ·" and html =~ "still open", """
+      O picker não mostrou a evidência.
+
+      São 26 quadros no tenant. Escolher pelo título é escolher no escuro — e o quadro que
+      carrega os dez meses mais antigos do projeto é justamente o que tem `[DEPRECATED]` no
+      nome, com 196 itens que somem de qualquer painel se ninguém o vincular.
+      """
+    end
+
+    test "quadro fechado continua oferecido — encerrado não é excluído", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      antigo = quadro(ctx, 7, "[DEPRECATED] ConectaFapes", closed: true)
+      item_com_issue(ctx, antigo, Map.fetch!(ctx.cenario.issues, 1).pai)
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/projects")
+
+      html =
+        live
+        |> element(~s(button[phx-click="abrir_picker_quadro"][phx-value-project_id="#{p.id}"]))
+        |> render_click()
+
+      assert html =~ "[DEPRECATED] ConectaFapes", """
+      O quadro encerrado sumiu do picker.
+
+      Fechado na origem não é desvinculado nem irrelevante: é o quadro encerrado que carrega
+      o histórico que a #367 mostrou sumindo. Filtrá-lo faria a plataforma decidir, pelo
+      estado do quadro, o que é do projeto.
+      """
+
+      assert html =~ "closed"
+    end
+
+    test "quadro sem issue nenhuma não ganha período inventado", ctx do
+      p = projeto(ctx, "Conecta Fapes")
+      quadro(ctx, 46, "Conecta Fapes - Teste")
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/projects")
+
+      html =
+        live
+        |> element(~s(button[phx-click="abrir_picker_quadro"][phx-value-project_id="#{p.id}"]))
+        |> render_click()
+
+      assert html =~ "Conecta Fapes - Teste"
+      assert html =~ "0 items · 0 still open"
+      refute html =~ "0 items · 0 still open ·"
+    end
   end
 
   defp projeto(ctx, nome) do

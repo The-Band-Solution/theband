@@ -37,6 +37,10 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
     field :author_login, :string
     field :author_person_id, :binary_id
     field :milestone_title, :string
+    # #368: o marco é onde o prazo mora no GitHub. `due_on` nulo é marco sem prazo
+    # declarado, e o id acompanha porque título é renomeável.
+    field :milestone_external_id, :string
+    field :milestone_due_on, :date
     field :project_titles, {:array, :string}, default: []
     field :comment_count, :integer, default: 0
     field :reaction_count, :integer, default: 0
@@ -94,6 +98,8 @@ defmodule TheBand.WorkItems.Schemas.CollectedIssue do
       :author_login,
       :author_person_id,
       :milestone_title,
+      :milestone_external_id,
+      :milestone_due_on,
       :project_titles,
       :comment_count,
       :reaction_count,

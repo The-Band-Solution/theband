@@ -206,9 +206,40 @@ que mais se aproxima de julgamento, e por isso vem depois de a US2 estar firme.
 
 ### Quem vê
 
-- **FR-012**: A visibilidade da aba MUST seguir a decisão registrada: [NEEDS CLARIFICATION: quem
-  vê o painel de quem — cada pessoa vê só a si; quem tem papel de facilitação vê o time; ou toda
-  pessoa do tenant vê qualquer uma?]
+- **FR-012**: A visibilidade da aba MUST seguir a decisão registrada pela pessoa mantenedora
+  em 2026-08-26 — **a própria pessoa, o líder da equipe dela, e o responsável da organização**.
+
+  A regra que vigorava até então era a terceira opção da pergunta original — toda pessoa
+  autenticada do tenant vê qualquer outra —, e ela vigorava **por omissão**: o roteador
+  exigia `require_user` e nada além. Não estava declarada em lugar nenhum, o que é o
+  oposto do princípio de que a semântica vive declarada.
+
+- **FR-012a**: Líder de equipe e responsável de organização MUST vir de papel **declarado**,
+  nunca inferido. A plataforma NÃO decide por nome de papel: `Tech Lead` parece liderança e
+  `Coordenador` também, e classificar por padrão de nome publicaria a suposição como
+  autorização — que é a forma mais cara desse erro, porque o excesso concedido ninguém
+  reclama. Medido em 2026-08-26, existem **dois vínculos de papel vigentes, ambos
+  `Developer Role`**, e nenhum de liderança.
+
+- **FR-012b**: Enquanto nenhum papel de liderança estiver declarado, a aba MUST ficar
+  visível apenas para a própria pessoa, e a tela MUST dizer que ninguém foi declarado
+  líder — ausência nomeada, nunca porta aberta silenciosa. Fechar sem dizer faria a
+  organização concluir que a plataforma perdeu o dado.
+
+- **FR-012c**: A regra depende de saber **qual pessoa observada é cada pessoa usuária**, e
+  esse elo NÃO existe. Medido em 2026-08-26: `eo_people` tem 88 pessoas e **nenhuma com
+  e-mail** — o GitHub não entrega —, e a tabela `users` não tem coluna alguma que aponte
+  para uma pessoa observada. Nem "cada pessoa vê a si" nem "o líder vê o time" são
+  computáveis antes disso.
+
+  O elo MUST ser **declarado**, e MUST NOT ser inferido por login nem por semelhança de
+  nome. Identidade adivinhada para conceder visibilidade é o pior lugar em que este
+  projeto pode errar: o excesso concedido ninguém reclama, e quem recebeu o painel de
+  outra pessoa não abre chamado avisando.
+
+  Enquanto o elo não existir, a aba MUST ficar fechada para todos, com a frase que diz por
+  quê — e a frase MUST distinguir "ninguém foi declarado líder" de "não sabemos quem você
+  é entre as pessoas observadas", que são bloqueios diferentes e têm remédios diferentes.
 
 ### O que a plataforma recusa mostrar
 

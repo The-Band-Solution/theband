@@ -50,6 +50,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Mapping
   alias TheBand.Ontology.SEON.CMPO
@@ -200,10 +201,25 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   def percorrer?(%{last_pushed_at: nil}, _observado), do: :sim
   def percorrer?(_source, %{issues_collected_at: nil}), do: :sim
 
-  def percorrer?(%{last_pushed_at: push}, %{issues_collected_at: revisao}) do
-    if DateTime.compare(push, revisao) == :lt,
-      do: {:nao, :sem_push_desde_a_revisao},
-      else: :sim
+  def percorrer?(%{last_pushed_at: push}, observado) do
+    # Issue #452 aplicada a esta fase pela #368. O corte responde "já percorri este
+    # repositório"; quando a consulta ganha um campo, a pergunta vira "já percorri COM ESTA
+    # CONSULTA", e as duas só coincidem até alguém acrescentar campo.
+    #
+    # Aqui o silêncio é pior que nas outras fases: o corte pula o repositório **por
+    # inteiro**, então um repositório sem push novo nunca receberia o campo — e "sem push"
+    # é o estado normal da maioria depois que o trabalho migra. `corte_vale?/2` devolve
+    # `false` uma vez para quem ficou para trás.
+    cond do
+      not QueryVersion.corte_vale?(Map.get(observado, :query_versions), "issues") ->
+        :sim
+
+      DateTime.compare(push, observado.issues_collected_at) == :lt ->
+        {:nao, :sem_push_desde_a_revisao}
+
+      true ->
+        :sim
+    end
   end
 
   defp coletar_issues(ctx, %{
@@ -503,6 +519,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         author_login: get_in(node, ["author", "login"]),
         author_person_id: ctx.pessoas[get_in(node, ["author", "login"])],
         milestone_title: get_in(node, ["milestone", "title"]),
+        # #368: o marco é onde o prazo mora no GitHub — a issue não tem campo de prazo. O
+        # id acompanha porque título é renomeável, e `dueOn` nulo é marco sem prazo
+        # declarado, nunca hoje.
+        milestone_external_id: get_in(node, ["milestone", "id"]),
+        milestone_due_on: parse_date(get_in(node, ["milestone", "dueOn"])),
         project_titles: titulos_de_quadro(node),
         comment_count: get_in(node, ["comments", "totalCount"]) || 0,
         reaction_count: get_in(node, ["reactions", "totalCount"]) || 0
@@ -725,6 +746,24 @@ defmodule TheBand.Ingestion.GithubWorkItems do
     |> :code.priv_dir()
     |> Path.join("connectors/github/queries/#{name}.graphql")
     |> File.read!()
+  end
+
+  # `dueOn` do marco vem como instante ISO, e o prazo é um DIA: guardar o instante
+  # produziria "vence às 00:00 UTC", que em fuso a oeste é o dia anterior.
+  defp parse_date(nil), do: nil
+
+  defp parse_date(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, dt, _} -> DateTime.to_date(dt)
+      _ -> parse_date_apenas(iso)
+    end
+  end
+
+  defp parse_date_apenas(iso) do
+    case Date.from_iso8601(iso) do
+      {:ok, d} -> d
+      _ -> nil
+    end
   end
 
   defp parse_datetime(nil), do: nil
