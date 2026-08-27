@@ -177,7 +177,11 @@ defmodule TheBandWeb.WorkCharts do
     <div>
       <div class="mb-1 flex flex-wrap items-center gap-4 text-xs">
         <span class="flex items-center gap-1.5">
-          <span class="size-2.5 shrink-0 rounded-[1px] bg-primary" aria-hidden="true"></span> opened
+          <%!-- "created", e NUNCA "opened": a página usa "opened by" para AUTORIA, e são
+                perguntas diferentes. Medido em 2026-08-27, `fatasy` tem 8 designadas e
+                233 abertas por ele — com a mesma palavra nos dois lugares, o gráfico
+                parecia contradizer o número abaixo dele. --%>
+          <span class="size-2.5 shrink-0 rounded-[1px] bg-primary" aria-hidden="true"></span> created
         </span>
         <span class="flex items-center gap-1.5">
           <span class="size-2.5 shrink-0 rounded-[1px] bg-secondary" aria-hidden="true"></span> closed
@@ -222,7 +226,7 @@ defmodule TheBandWeb.WorkCharts do
               class="fill-primary"
               tabindex="0"
             >
-              <title>{d.criadas} opened in {d.periodo}</title>
+              <title>{d.criadas} created in {d.periodo}</title>
             </rect>
             <rect
               x={26 + i * @grupo + 4 + @bw}
@@ -315,7 +319,7 @@ defmodule TheBandWeb.WorkCharts do
     <div>
       <div class="mb-1 flex flex-wrap items-center gap-4 text-xs">
         <span class="flex items-center gap-1.5">
-          <span class="h-0.5 w-4 shrink-0 bg-primary" aria-hidden="true"></span> scope (opened)
+          <span class="h-0.5 w-4 shrink-0 bg-primary" aria-hidden="true"></span> scope (created)
         </span>
         <span class="flex items-center gap-1.5">
           <span class="h-0.5 w-4 shrink-0 bg-secondary" aria-hidden="true"></span> done (closed)
@@ -386,7 +390,7 @@ defmodule TheBandWeb.WorkCharts do
               tabindex="0"
             >
               <title>
-                {d.periodo}: {d.escopo} opened, {d.feito} closed, {d.aberto} still open
+                {d.periodo}: {d.escopo} created, {d.feito} closed, {d.aberto} still open
               </title>
             </rect>
             <text

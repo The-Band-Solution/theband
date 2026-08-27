@@ -397,19 +397,41 @@ defmodule TheBand.Profiles.Material do
 
   # -- consultas ---------------------------------------------------------------
 
+  # ── O que conta como trabalho desta pessoa ──────────────────────────────────────────
+  #
+  # Designada **ou** autora. Até 2026-08-27 era só designada, e o custo apareceu medindo
+  # `fatasy` (Marcelo Razer): **8 issues designadas contra 233 abertas por ele**. Um perfil
+  # que lê só designadas descrevia 3% do que ele fez.
+  #
+  # ## Somadas numa lista, mas NÃO achatadas
+  #
+  # A relação vai em cada item — `designada`, `abriu`, ou `ambas`. A rede separa submeter
+  # de executar de propósito, e a página da pessoa mostra três cartões justamente para
+  # ninguém somar. Uma lista sem a relação diria ao modelo que abrir e executar são a
+  # mesma participação, e o perfil sairia afirmando trabalho que ninguém fez.
+  #
+  # ## E o piso de evidência passa a alcançar quem só abre
+  #
+  # O piso conta tarefas com texto. Quem abre muito e é designado pouco ficava abaixo dele
+  # e não gerava perfil — invisível, que é a resposta que este projeto mais recusa.
   defp tarefas(%Tenant{id: tenant_id}, person_id, estado) do
     ordem = if estado == "CLOSED", do: :external_closed_at, else: :external_created_at
 
     from(i in "collected_issues",
-      join: a in "issue_assignees",
-      on: a.collected_issue_id == i.id and is_nil(a.no_longer_observed_at),
+      # `left_join`: a designação deixou de ser obrigatória. Com `join` a issue apenas
+      # aberta pela pessoa não teria linha em `issue_assignees` e sumiria — que era
+      # exatamente o defeito.
+      left_join: a in "issue_assignees",
+      on:
+        a.collected_issue_id == i.id and is_nil(a.no_longer_observed_at) and
+          a.person_id == type(^person_id, :binary_id),
       join: o in "observed_repositories",
       on: o.id == i.observed_repository_id,
       join: sr in "cmpo_source_repositories",
       on: sr.id == o.source_repository_id,
       where:
         i.tenant_id == type(^tenant_id, :binary_id) and
-          a.person_id == type(^person_id, :binary_id) and
+          (not is_nil(a.id) or i.author_person_id == type(^person_id, :binary_id)) and
           i.state == ^estado and not is_nil(field(i, ^ordem)),
       order_by: [asc: field(i, ^ordem)],
       select: %{
@@ -426,8 +448,18 @@ defmodule TheBand.Profiles.Material do
         corpo: fragment("coalesce(?, '')", i.body),
         repositorio: sr.name,
         tipo: fragment("coalesce(?, '—')", i.issue_type),
-        login: a.login,
-        autoria_propria: i.author_login == a.login,
+        login: fragment("coalesce(?, ?)", a.login, i.author_login),
+        # A relação é DADO do item, e não classificação da tela: o material do perfil vai
+        # para um modelo, e sem ela o texto gerado atribui a quem abriu o trabalho de quem
+        # executou.
+        relacao:
+          fragment(
+            "case when ? is not null and ? then 'ambas' when ? is not null then 'designada' else 'abriu' end",
+            a.id,
+            i.author_person_id == type(^person_id, :binary_id),
+            a.id
+          ),
+        autoria_propria: i.author_person_id == type(^person_id, :binary_id),
         designados:
           fragment(
             "(select count(*) from issue_assignees x where x.collected_issue_id = ? and x.no_longer_observed_at is null)",

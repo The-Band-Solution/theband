@@ -16,14 +16,55 @@ defmodule TheBand.Ontology.YamlLoader do
           payload: map()
         }
 
-  @doc "Diretório raiz da base de conhecimento, resolvido a partir da configuração."
+  @doc """
+  Diretório raiz da base de conhecimento, resolvido a partir da configuração.
+
+  ## O padrão sai de `:code.priv_dir/1`, e NÃO do diretório de trabalho
+
+  Num release o `priv/` fica em `lib/the_band-<versão>/priv`, e o diretório de trabalho é
+  a raiz do release. `Path.expand("priv/knowledge_base", File.cwd!())` resolve em
+  desenvolvimento, onde o cwd É a raiz do projeto, e aponta para o vazio no contêiner.
+
+  Medido em 2026-08-27, no primeiro contêiner que subiu: as migrações aplicaram e a
+  aplicação recusou o boot com *"a base de conhecimento não tem artefato algum"* — com os
+  119 YAML presentes na imagem, três diretórios acima.
+
+  **A recusa estava certa**, e é o que impediu o contêiner de servir telas vazias como se
+  fossem resposta. O que estava errado era o caminho.
+
+  ## A regra de resolução
+
+  `config.exs` traz `path: "priv/knowledge_base"`, e essa string tem de significar a mesma
+  coisa em desenvolvimento e no release. Por isso:
+
+    * caminho **absoluto** vai como veio — é como os testes apontam para uma base de
+      fixture em diretório temporário;
+    * relativo começando por `priv/` resolve contra `:code.priv_dir/1`;
+    * qualquer outro relativo continua contra o cwd.
+
+  A primeira tentativa de correção só mudou o PADRÃO da configuração, e não adiantou nada:
+  o `config.exs` preenche `path`, e o padrão nunca era alcançado. O contêiner reprovou
+  duas vezes com a mesma mensagem.
+  """
   @spec root() :: String.t()
   def root do
     :the_band
     |> Application.get_env(TheBand.Ontology.KnowledgeBase, [])
     |> Keyword.get(:path, "priv/knowledge_base")
-    |> Path.expand(File.cwd!())
+    |> resolver()
   end
+
+  # Caminho ABSOLUTO é usado como veio — é como os testes apontam para uma base de
+  # fixture em diretório temporário.
+  defp resolver("/" <> _ = absoluto), do: absoluto
+
+  # Relativo começando por `priv/` é resolvido contra o `priv` da APLICAÇÃO, e não contra
+  # o diretório de trabalho. `config.exs` traz `path: "priv/knowledge_base"`, e essa
+  # string precisa significar a mesma coisa nos dois mundos.
+  defp resolver("priv/" <> resto), do: Path.join(:code.priv_dir(:the_band), resto)
+
+  # Qualquer outro relativo continua contra o cwd, que é o comportamento anterior.
+  defp resolver(outro), do: Path.expand(outro, File.cwd!())
 
   @doc """
   Carrega todos os artefatos da base.

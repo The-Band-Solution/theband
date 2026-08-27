@@ -12,16 +12,100 @@ a plataforma não escolhe pelo nome. Quatro issues, quatro mecanismos, a mesma f
 | PR | issue | estado quando parei |
 |---|---|---|
 | [#523](https://github.com/The-Band-Solution/theband/pull/523) | #514 | **mergeado** ✅ |
-| [#524](https://github.com/The-Band-Solution/theband/pull/524) | #368 | **aberto**, `quality-gates` verde, `cobertura` ainda rodando |
+| [#524](https://github.com/The-Band-Solution/theband/pull/524) | #368 | **mergeado** ✅ |
+| [#525](https://github.com/The-Band-Solution/theband/pull/525) | #369 | **aberto** — confere o CI |
 
-**Confere se a #524 mergeou.** Se reprovou, o motivo está nos checks.
+**Confere se a #525 mergeou.** Ela fecha a #369 e traz também os dois gráficos da
+página da pessoa.
 
-A branch `feat/369-quem-ve-o-painel-de-quem` está **commitada e enviada** (`9c38af0`,
-13/13 gates), mas **sem PR** — ela está empilhada sobre `feat/368-de-onde-vem-o-prazo`, e
-`Closes` em PR empilhado não fecha issue nenhuma. Rebasear na `main` depois que a #524
-mergear, e só então abrir o PR.
+## E o que está NÃO COMMITADO
 
----
+Duas frentes feitas depois do PR #525, e **nenhuma commitada**:
+
+### 1. Implantação em VPS — o contêiner SOBE e SERVE
+
+```
+Dockerfile                  multi-stage; compile ANTES de assets.deploy
+.dockerignore               .env excluído — ele tem a chave mestra
+rel/entrypoint.sh           confere as 4 variáveis, migra, e só então sobe
+lib/the_band/release.ex     TheBand.Release.migrate/0
+mix.exs                     releases() acrescentado
+lib/the_band/ontology/yaml_loader.ex   caminho `priv/` resolve por :code.priv_dir
+```
+
+Verificado em 2026-08-27: `docker build` verde, contêiner de pé contra o Postgres
+local, `base de conhecimento carregada: 119 artefatos`, e `/sign-in` respondendo
+**HTTP 200** com "The Band". Imagem de **231 MB**.
+
+**Três defeitos foram encontrados construindo, e nenhum apareceria sem construir:**
+
+1. `OTP 29.0` e a data do Debian **inventadas** — não existem no registro;
+2. `assets.deploy` antes de `compile` — `app.css` importa
+   `phoenix-colocated/the_band/colocated.css`, gerado pelo COMPILADOR, e o alias
+   `assets.deploy` deste projeto não inclui `compile`;
+3. **`Path.expand("priv/knowledge_base", File.cwd!())`** — em dev o cwd é a raiz do
+   projeto; no release é `/app`, e o `priv` fica em `lib/the_band-<versão>/priv`. Os
+   119 YAML estavam na imagem, três diretórios acima de onde o loader procurava.
+
+⚠️ **A recusa de subir estava CERTA** — foi ela que impediu o contêiner de servir telas
+vazias como se fossem resposta. Errado era o caminho.
+
+E a primeira correção do (3) **não funcionou**: mudou só o valor padrão, e o
+`config.exs` preenche `path` explicitamente. A correção que vale: caminho começando por
+`priv/` resolve contra `:code.priv_dir/1`.
+
+### 2. O perfil passa a ler quem ABRIU, e não só quem foi designado
+
+`lib/the_band/profiles/material.ex` — `tarefas/3` agora aceita designada **ou** autora,
+e cada item carrega `relacao`: `designada`, `abriu` ou `ambas`.
+
+A pergunta "somadas ou separadas" foi decidida pela própria base: **separadas**. A rede
+distingue submeter de executar, e a página mostra três cartões para ninguém somar.
+
+Medido no banco de desenvolvimento:
+
+| pessoa | concluídas | por relação |
+|---|---:|---|
+| **fatasy** | **33** (era ~8) | **100% `abriu`** — nunca designado |
+| vinicius-je | 335 (era 199) | 136 `abriu`, 163 `ambas`, 36 `designada` |
+| CaioLessaSimao | 89 (era 87) | 2 `abriu`, 37 `ambas`, 50 `designada` |
+
+Cinco injeções, cinco pegas. Três testes novos em `material_test.exs`.
+
+### 3. Correção do rótulo dos gráficos
+
+A pessoa mantenedora encontrou: `fatasy` mostrava **8** no gráfico e **233** no cartão
+abaixo. As contas estavam certas; **o rótulo estava errado** — eu chamei a série de
+"opened", e a página já usava "opened by" para AUTORIA.
+
+Corrigido: série `created`, título "Issues assigned to them, over time", e a frase
+"Issues they opened are a different number — the card below". Dois testes que reprovam
+se a palavra voltar.
+
+### Como retomar
+
+```bash
+grep CODIGO_DE_SAIDA_DO_GATE /tmp/gf.log     # gates rodando quando a sessão terminou
+docker build -t the_band:teste .              # já verde
+```
+
+⚠️ **A chave mestra.** `THE_BAND_MASTER_KEY` está só no `.env` desta máquina, e cifra as
+credenciais de todas as ferramentas. Antes de implantar, garanta que existe em outro
+lugar — ver [[chave-mestra-perdida-e-o-caminho-de-volta]].
+
+## Sobre a skill de devops
+
+Procurei com a skill `find-skills` (`npx skills find`). **Nenhuma serve**:
+
+- as de `elixir` têm 745, 305 e 270 instalações — abaixo do piso que a própria
+  skill recomenda, e de autores desconhecidos;
+- as de `vps` têm 131 ou menos;
+- as de deploy com volume são amarradas a plataforma: Azure (549K), Vercel (115K),
+  Cloudflare, Expo. Nenhuma cobre release Elixir em VPS.
+
+A única com massa e alguma serventia é `github/awesome-copilot@multi-stage-dockerfile`
+(22K), e é genérica. **Não instalei nenhuma** — skill de autor desconhecido é código
+que passa a rodar na sessão, e o ganho aqui era zero.
 
 ## O que ficou pronto
 

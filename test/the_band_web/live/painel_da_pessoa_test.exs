@@ -141,7 +141,48 @@ defmodule TheBandWeb.PainelDaPessoaTest do
       assert Enum.find(meses, &(&1.month == "2026-02")).count == 0
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
-      assert html =~ "Issues opened and closed over time"
+      assert html =~ "Issues assigned to them, over time"
+    end
+
+    # A contradição aparente que a pessoa mantenedora encontrou em 2026-08-27: `fatasy`
+    # tem **8** issues designadas e **233** abertas por ele. O gráfico mostrava 8 e o
+    # cartão abaixo 233, e as duas legendas diziam "opened" — a mesma palavra para
+    # perguntas diferentes.
+    #
+    # As contas estavam certas; o rótulo estava errado. Abrir uma issue e trabalhar nela
+    # são coisas diferentes, e a página já separava as duas no cartão.
+    test "o gráfico diz de QUEM são as issues, e não colide com autoria", ctx do
+      # Uma designada a ela, e outra que ela abriu sem estar designada.
+      trabalhar(ctx, ctx.cenario.issues[1].pai, criada: ~U[2026-01-05 09:00:00Z])
+
+      outra = hd(ctx.cenario.issues[1].partes)
+
+      outra
+      |> Ecto.Changeset.change(author_person_id: ctx.pessoa.id)
+      |> Repo.update!()
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Issues assigned to them, over time", """
+      O título do gráfico não diz de quem são as issues contadas.
+
+      Sem isso ele parece contradizer o cartão de autoria logo abaixo — e o número que
+      parece errado é o que a pessoa vai acreditar.
+      """
+
+      assert html =~ "are a different number", """
+      A tela não diz que autoria é OUTRO número.
+
+      `fatasy`: 8 designadas contra 233 abertas por ele. Os dois estão certos, e sem a
+      frase o leitor conclui que um deles está quebrado.
+      """
+
+      refute html =~ ">created<" and html =~ "opened by", """
+      A palavra "opened" voltou para a série do gráfico.
+
+      Ela é da AUTORIA no cartão abaixo — `opened by`. Reusá-la para designadas foi
+      exatamente o defeito de 2026-08-27.
+      """
     end
 
     test "as duas séries vêm juntas, e o período vazio no meio não some", ctx do
@@ -251,7 +292,7 @@ defmodule TheBandWeb.PainelDaPessoaTest do
     test "escala desconhecida no endereço cai no mês, e não derruba a tela", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?escala=decada")
 
-      assert html =~ "Issues opened and closed over time", """
+      assert html =~ "Issues assigned to them, over time", """
       Uma escala inválida no endereço derrubou a página.
 
       O valor chega até o `to_char` do Postgres, e formato inválido ali é erro de banco numa
@@ -589,8 +630,8 @@ defmodule TheBandWeb.PainelDaPessoaTest do
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
 
-      assert html =~ "Work accumulated, and what is left"
-      assert html =~ "scope (opened)" and html =~ "done (closed)"
+      assert html =~ "Work assigned to them: accumulated, and what is left"
+      assert html =~ "scope (created)" and html =~ "done (closed)"
 
       assert html =~ "No planned end date", """
       A ausência de prazo não foi nomeada.

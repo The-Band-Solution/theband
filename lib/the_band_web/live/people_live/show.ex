@@ -858,8 +858,12 @@ defmodule TheBandWeb.PeopleLive.Show do
             <div class="card min-w-0 bg-base-200 lg:col-span-2">
               <div class="card-body gap-2 p-4">
                 <div class="flex flex-wrap items-baseline justify-between gap-2">
+                  <%!-- O título diz DE QUEM são as issues, e não só o que aconteceu com
+                        elas. "opened" aqui colidia com o "opened by" do cartão de autoria
+                        logo abaixo: medido em 2026-08-27, `fatasy` tem 8 designadas e 233
+                        abertas por ele, e o gráfico parecia contradizer o número. --%>
                   <h4 class="text-sm font-medium">
-                    Issues opened and closed over time
+                    Issues assigned to them, over time
                   </h4>
 
                   <%!-- A escala mora no ENDEREÇO — feature 019. Mandar o link do gráfico
@@ -888,11 +892,20 @@ defmodule TheBandWeb.PeopleLive.Show do
 
                 <%!-- As três frases que a leitura errada exige. Sem elas o gráfico responde
                       "vazão", que é outra medida e tem outras limitações declaradas. --%>
+                <%!-- A frase que faltava, e cuja ausência produziu a contradição
+                      aparente: DIZER de quem são as issues contadas. Abrir uma issue e
+                      trabalhar nela são coisas diferentes, e a página já separava as duas
+                      no cartão abaixo — o gráfico tinha de separar também. --%>
                 <p class="text-xs text-base-content/60">
-                  Counted by the issue's own dates — opened and closed — so it does not depend
-                  on the timeline. <strong>This is not throughput</strong>:
-                  throughput needs a declared start criterion and a recorded end, and answers
-                  how much work <em>crossed</em> the process.
+                  These are the issues <strong>assigned</strong>
+                  to this person, counted by the issue's own dates. Issues they <em>opened</em>
+                  are a different number — the card below — because opening an issue and
+                  working on it are different things.
+                </p>
+                <p class="text-xs text-base-content/60">
+                  <strong>This is not throughput</strong>: throughput needs a declared start
+                  criterion and a recorded end, and answers how much work <em>crossed</em>
+                  the process.
                 </p>
                 <p class="text-xs text-base-content/60">
                   The two bars of one period <strong>do not subtract</strong>. What closed in
@@ -911,7 +924,9 @@ defmodule TheBandWeb.PeopleLive.Show do
                   As três linhas juntas respondem. --%>
             <div class="card min-w-0 bg-base-200 lg:col-span-3">
               <div class="card-body gap-2 p-4">
-                <h4 class="text-sm font-medium">Work accumulated, and what is left</h4>
+                <h4 class="text-sm font-medium">
+                  Work assigned to them: accumulated, and what is left
+                </h4>
 
                 <p :if={@burn == []} class="text-xs text-base-content/60">
                   Nothing to accumulate — the platform has seen no issue of this person.
