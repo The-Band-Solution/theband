@@ -129,6 +129,36 @@ properties:
         # Quem usa isto assume o resto da regra da casa: valor derivado é rotulado como
         # derivado na tela, nunca apresentado como se a origem o tivesse dito.
         derived_from: { type: string }
+        # Para o atributo cujo VALOR da origem tem significado na rede — e não só forma.
+        #
+        # `state: APPROVED` do GitHub, `Code-Review: +2` do Gerrit e "aprovar" do GitLab
+        # dizem a mesma coisa com três vocabulários. Guardar só o cru deixa toda medida
+        # sobre revisão dependendo do enum de um forjador; traduzir em código esconde a
+        # tradução onde ninguém a audita.
+        #
+        # Aqui a correspondência é DADO da base: legível por máquina, verificável contra a
+        # ontologia pelo validador, e visível para quem precisar conferir por que
+        # `COMMENTED` virou abstenção.
+        #
+        # O valor cru continua sendo preservado — `value_map` acrescenta interpretação, e
+        # nunca substitui o que a origem disse.
+        value_map:
+          type: object
+          additionalProperties: false
+          required: [target_ontology, values]
+          properties:
+            target_ontology: { type: string }
+            # `values` mapeia valor cru → id de conceito. O validador confere que cada
+            # destino existe na ontologia nomeada: um conceito renomeado quebra a carga
+            # em vez de silenciar a tradução.
+            values:
+              type: object
+              additionalProperties: { type: string }
+            # O que fazer com valor que a origem devolver e não estiver no mapa. Ausente
+            # significa RECUSAR: valor desconhecido vira erro de carga, e não um conceito
+            # escolhido por padrão. Traduzir o não reconhecido para algo plausível é
+            # "padrão largo inventa mais".
+            unmapped: { enum: [reject, keep_raw] }
   relations:
     type: object
     additionalProperties:

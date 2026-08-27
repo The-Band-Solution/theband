@@ -3,7 +3,7 @@
 
 # Índice de conceitos
 
-234 conceitos na rede, em ordem alfabética de identificador.
+238 conceitos na rede, em ordem alfabética de identificador.
 
 | Id | Conceito | pt-BR | Ontologia | Categoria UFO |
 |---|---|---|---|---|
@@ -121,12 +121,16 @@
 | `osdef.fault` | Fault (Runtime Defect) | Fault (Defeito em Tempo de Execução) | [osdef](osdef.md) | `disposition` |
 | `osdef.vulnerability` | Vulnerability | Vulnerabilidade | [osdef](osdef.md) | `disposition` |
 | `osdef.vulnerable_state` | Vulnerable State | Estado Vulnerável | [osdef](osdef.md) | `situation` |
+| `qapo.abstaining_verdict` | Abstaining Verdict | Veredito de Abstenção | [qapo](qapo.md) | `social_object` |
 | `qapo.adherence_evaluation` | Adherence Evaluation | Avaliação de Aderência | [qapo](qapo.md) | `complex_action` |
 | `qapo.artifact_evaluation` | Artifact Evaluation | Avaliação de Artefato | [qapo](qapo.md) | `action` |
+| `qapo.endorsing_verdict` | Endorsing Verdict | Veredito de Endosso | [qapo](qapo.md) | `social_object` |
 | `qapo.evaluated_artifact` | Evaluated Artifact | Artefato Avaliado | [qapo](qapo.md) | `role` |
 | `qapo.evaluation_report` | Evaluation Report | Relatório de Avaliação | [qapo](qapo.md) | `social_object` |
+| `qapo.evaluation_verdict` | Evaluation Verdict | Veredito da Avaliação | [qapo](qapo.md) | `social_object` |
 | `qapo.noncompliance_identification` | Noncompliance Identification | Identificação de Não Conformidade | [qapo](qapo.md) | `action` |
 | `qapo.noncompliance_register` | Noncompliance Register | Registro de Não Conformidade | [qapo](qapo.md) | `social_object` |
+| `qapo.objecting_verdict` | Objecting Verdict | Veredito de Objeção | [qapo](qapo.md) | `social_object` |
 | `qapo.quality_assurance_process` | Quality Assurance Process | Processo de Garantia da Qualidade | [qapo](qapo.md) | `complex_action` |
 | `qapo.quality_criterion` | Quality Criterion | Critério de Qualidade | [qapo](qapo.md) | `normative_description` |
 | `roost.code_to_be_tested` | Code To Be Tested | Código a Ser Testado | [roost](roost.md) | `role` |

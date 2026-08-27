@@ -318,6 +318,32 @@ defmodule TheBandWeb.PersonDetailTest do
       # commitar são participações distintas, e a tela as mostra distintas. O custo de
       # três é o preço de não achatar — e nenhuma delas cresce com o dado.
       #
+      # **E de 23 para 26 pela feature 044**, com TRÊS — e o plano tinha previsto duas.
+      #
+      # O erro de contagem está registrado porque é instrutivo: `plan.md` mediu os dois
+      # AGREGADOS e esqueceu a listagem, que a tarefa T004 acrescentou depois. A conta certa
+      # só apareceu rodando este teste, que é para o que ele serve.
+      #
+      #  17. a participação da pessoa na solicitação de mudança —
+      #      `Changes.participacao_da_pessoa/2`. Devolve SEIS contagens numa consulta:
+      #      abriu, revisou, integrou, e os três vereditos. Seis consultas levariam a
+      #      página a 30, e o `filter (where ...)` do Postgres responde numa passagem;
+      #
+      #  18. a listagem das solicitações que a pessoa REVISOU — o terceiro papel em
+      #      `Changes.by_person/3`, que já listava abriu e integrou;
+      #
+      #  19. o desfecho das verificações sobre os commits dela —
+      #      `Verification.por_pessoa/2`. Devolve QUATRO números numa consulta: passou,
+      #      quebrou, outras, e a parcela do tenant sem autoria identificada.
+      #
+      #      O primeiro desenho usava duas — `join` para os números dela, e uma segunda
+      #      passagem para a parcela do tenant. `left_join` nos três responde tudo numa,
+      #      e a página baixou de 27 para 26.
+      #
+      # **Não dava para derivar nenhuma das duas.** Nenhuma consulta desta página tocava
+      # `collected_change_requests` com filtro de pessoa: `mudancas` traz as listas, e não
+      # as contagens; e a contagem sobre a lista mentiria, porque a lista é truncada em 10.
+      #
       # **E de 22 para 23 pelo burn-down**, com uma consulta e uma só:
       #
       #  16. até quando o trabalho ABERTO desta pessoa foi planejado —
@@ -349,13 +375,15 @@ defmodule TheBandWeb.PersonDetailTest do
       #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 23, """
+      assert acrescentadas <= 26, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **vinte e três** — oito da tela original, sete do painel da 023,
-      três do perfil da 026, uma da participação em discussões da 030, três das mudanças
-      da 032 (abriu, integrou, commitou — a rede separa os três atos), uma da #369 (as contas
-      do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez), e uma do
-      burn-down (o `data_end` do trabalho aberto, com a parcela sem caixa junto).
+      linha de base medida é **vinte e seis** — oito da tela original, sete do painel da
+      023, três do perfil da 026, uma da participação em discussões da 030, três das
+      mudanças da 032 (abriu, integrou, commitou — a rede separa os três atos), uma da #369
+      (as contas do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez),
+      uma do burn-down (o `data_end` do trabalho aberto), e **três da feature 044** (a
+      participação na mudança com seis contagens numa só, a listagem das revisadas, e o
+      desfecho das verificações com quatro números numa só).
 
       A página está EXATAMENTE no teto. Se tu acrescentou uma consulta, a primeira saída é
       derivar do que já foi carregado — foi o que o burn-up e o burn-down fizeram, e por isso

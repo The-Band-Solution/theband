@@ -5,7 +5,7 @@
 
 Documentação gerada a partir de `priv/knowledge_base/`. A base YAML é a fonte da verdade; esta página é derivada dela.
 
-**14 ontologias · 234 conceitos · 173 relações · 77 perguntas de competência**
+**14 ontologias · 238 conceitos · 174 relações · 77 perguntas de competência**
 
 ## Arquitetura
 
@@ -85,7 +85,7 @@ Cada seta significa *reusa conceitos de*. A direção vai sempre do módulo mais
 | [CMO](cmo.md) — Communication Ontology | Domínio | Continuum | `ufo`, `eo`, `spo` | 4 | 8 | 4 |
 | [CMPO](cmpo.md) — Configuration Management Process Ontology | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 27 | 21 | 0 |
 | [OSDEF](osdef.md) — Reference Ontology of Software Defects, Errors and Failures | Domínio | SEON | `ufo`, `spo`, `sys_swo`, `roost` | 6 | 5 | 0 |
-| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domínio | SEON | `ufo`, `spo` | 8 | 9 | 0 |
+| [QAPO](qapo.md) — Quality Assurance Process Ontology | Domínio | SEON | `ufo`, `spo` | 12 | 10 | 0 |
 | [ROoST](roost.md) — Reference Ontology on Software Testing | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 14 | 6 | 0 |
 | [RSRO](rsro.md) — Reference Software Requirements Ontology | Domínio | SEON | `ufo`, `spo` | 5 | 2 | 0 |
 | [SMPO](smpo.md) — Software Management Planning Ontology | Domínio | Continuum | `ufo`, `eo`, `spo`, `sro` | 3 | 3 | 4 |

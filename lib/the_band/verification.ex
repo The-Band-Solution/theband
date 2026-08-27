@@ -87,6 +87,108 @@ defmodule TheBand.Verification do
     |> Map.new()
   end
 
+  @doc """
+  O desfecho das verificações que dispararam sobre commits desta pessoa — feature 044.
+
+  ## A ligação, e o que ela perde
+
+  `commit_authors.author_person_id` → `collected_commits.sha` →
+  `collected_verifications.head_sha`. Medido em 2026-08-27: **8.358 de 15.671 execuções**
+  casam com commit de pessoa identificada — **47% não casam**, por três razões, e nenhuma é
+  defeito:
+
+    1. execução disparada por evento **sem commit** — `schedule`, `workflow_dispatch`;
+    2. commit cujo autor nunca foi promovido a pessoa;
+    3. commit de robô.
+
+  `sem_autoria_no_tenant` devolve essa parcela para a tela pôr **ao lado** dos números, e
+  nunca descontada deles (`FR-010` da spec 044).
+
+  ## Co-autoria CONTA
+
+  `commit_authors` traz `is_primary`, e o filtro **não** o usa: `cmpo.stakeholder_performed_commit`
+  declara `many` na origem, e ignorar o co-autor apagaria participação real. A consequência
+  é que a soma das páginas excede o total do tenant, e isso é fato — a mesma limitação que
+  `flow.throughput.rate` já declara para o nível `person`.
+
+  ## `skipped` e `cancelled` NÃO são passou nem quebrou
+
+  As duas palavras afirmam resultado, e pular ou cancelar não é resultado. Elas vão para
+  `outras`, e somá-las a qualquer um dos dois afirmaria verificação onde ninguém verificou
+  (`FR-004`).
+
+  ## Conta EXECUÇÕES, e não commits
+
+  Nova tentativa gera execução nova sobre o mesmo commit. Somar as duas e chamar de
+  "commits que quebraram" afirmaria dois commits onde houve um (`FR-005`).
+  """
+  @spec por_pessoa(Tenant.t(), Ecto.UUID.t()) :: %{
+          passou: non_neg_integer(),
+          quebrou: non_neg_integer(),
+          outras: non_neg_integer(),
+          sem_autoria_no_tenant: non_neg_integer()
+        }
+  def por_pessoa(%Tenant{id: tenant_id}, person_id) do
+    tenant_id
+    |> execucoes_com_autoria()
+    |> desfechos_de(person_id)
+    |> Repo.one()
+  end
+
+  # A passagem e as contagens ficam em funções separadas porque juntas passam do teto de
+  # complexidade do Credo — e a divisão é a mesma que a leitura pede: onde o dado está, e
+  # o que se pergunta a ele.
+  defp execucoes_com_autoria(tenant_id) do
+    from v in "collected_verifications",
+      # `left_join` nos três, e não `join`: a mesma passagem responde os números DELA e a
+      # parcela do tenant que não casa com pessoa alguma. Com `join`, a segunda pergunta
+      # exigiria uma segunda ida ao banco — e a página da pessoa está no teto medido.
+      left_join: cm in "collected_commits",
+      # O REPOSITÓRIO entra na junção, e não só o `sha`.
+      #
+      # Sem ele a mesma soma casa com commit de qualquer repositório do tenant — fork,
+      # espelho, ou um repositório que recebeu o mesmo commit por cherry-pick. Medido em
+      # 2026-08-27: **3 execuções** eram atribuídas ao commit de OUTRO repositório.
+      #
+      # Três em 8.662 é pouco, e é atribuição errada do mesmo jeito: a execução aparece
+      # na página de quem não a disparou.
+      on:
+        cm.sha == v.head_sha and cm.tenant_id == v.tenant_id and
+          cm.observed_repository_id == v.observed_repository_id,
+      left_join: ca in "commit_authors",
+      on:
+        ca.collected_commit_id == cm.id and ca.tenant_id == cm.tenant_id and
+          not is_nil(ca.author_person_id) and is_nil(ca.no_longer_observed_at),
+      where: v.tenant_id == type(^tenant_id, :binary_id) and is_nil(v.no_longer_observed_at)
+  end
+
+  defp desfechos_de(query, person_id) do
+    from [v, _cm, ca] in query,
+      select: %{
+        # `count(:distinct)` é obrigatório: um commit com dois autores produz duas linhas
+        # para a mesma execução, e sem ele a contagem dobraria para quem tem co-autoria.
+        passou:
+          filter(
+            count(v.id, :distinct),
+            ca.author_person_id == type(^person_id, :binary_id) and v.conclusion == "success"
+          ),
+        quebrou:
+          filter(
+            count(v.id, :distinct),
+            ca.author_person_id == type(^person_id, :binary_id) and v.conclusion == "failure"
+          ),
+        outras:
+          filter(
+            count(v.id, :distinct),
+            ca.author_person_id == type(^person_id, :binary_id) and
+              (is_nil(v.conclusion) or v.conclusion not in ["success", "failure"])
+          ),
+        # A parcela do TENANT, e não da pessoa: é contexto sobre o alcance da medida, e o
+        # mesmo número aparece em toda página.
+        sem_autoria_no_tenant: filter(count(v.id, :distinct), is_nil(ca.id))
+      }
+  end
+
   @doc "Uma execução, com o repositório. `nil` quando não é deste tenant — nunca erro de permissão."
   @spec get(Tenant.t(), Ecto.UUID.t()) :: map() | nil
   def get(%Tenant{id: tenant_id}, id) do

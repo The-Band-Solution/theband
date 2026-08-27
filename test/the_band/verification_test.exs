@@ -20,6 +20,7 @@ defmodule TheBand.VerificationTest do
 
   alias TheBand.Changes.Commands, as: ChangeCommands
   alias TheBand.ContadorDeConsultas
+  alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Verification
   alias TheBand.Verification.{Classification, Commands}
@@ -27,7 +28,13 @@ defmodule TheBand.VerificationTest do
   setup do
     {tenant, admin} = tenant_with_admin()
     cenario = cenario_real(tenant)
-    %{tenant: tenant, admin: admin, repo_id: cenario.observed_repository_id}
+
+    %{
+      tenant: tenant,
+      admin: admin,
+      repo_id: cenario.observed_repository_id,
+      tool_id: cenario.tool.id
+    }
   end
 
   defp execucao(tenant, repo_id, attrs) do
@@ -525,5 +532,263 @@ defmodule TheBand.VerificationTest do
       })
 
     %{change_request_id: cr.id, sha: sha}
+  end
+
+  describe "a verificação sobre os commits da pessoa — feature 044" do
+    test "separa passou de quebrou, e conta em UMA consulta", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+      commit_044(ctx, "sha_ok", p)
+      commit_044(ctx, "sha_ruim", p)
+
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_ok", conclusion: "success"})
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_ruim", conclusion: "failure"})
+
+      consultas = ContadorDeConsultas.contar(fn -> Verification.por_pessoa(ctx.tenant, p.id) end)
+
+      assert consultas == 1, """
+      A verificação custou #{consultas} consultas, e tem de custar UMA.
+
+      O primeiro desenho usava duas — `join` para os números dela, e uma segunda passagem
+      para a parcela do tenant. A página da pessoa foi a 27 por render, e o teto é 26.
+      `left_join` nos três responde tudo numa.
+      """
+
+      assert %{passou: 1, quebrou: 1, outras: 0} = Verification.por_pessoa(ctx.tenant, p.id)
+    end
+
+    test "`skipped` e `cancelled` NÃO são passou nem quebrou", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+      commit_044(ctx, "sha_pulado", p)
+
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_pulado", conclusion: "skipped"})
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_pulado", conclusion: "cancelled"})
+
+      assert %{passou: 0, quebrou: 0, outras: 2} = Verification.por_pessoa(ctx.tenant, p.id), """
+      Execução pulada ou cancelada entrou em passou ou quebrou.
+
+      As duas palavras afirmam RESULTADO, e pular ou cancelar não é resultado — ninguém
+      verificou nada. Somá-las a qualquer um dos dois afirmaria verificação que não houve.
+      """
+    end
+
+    test "conta EXECUÇÕES, e não commits — a nova tentativa conta duas vezes", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+      commit_044(ctx, "sha_retry", p)
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        head_sha: "sha_retry",
+        conclusion: "failure",
+        attempt: 1
+      })
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        head_sha: "sha_retry",
+        conclusion: "success",
+        attempt: 2
+      })
+
+      assert %{passou: 1, quebrou: 1} = Verification.por_pessoa(ctx.tenant, p.id), """
+      A nova tentativa foi achatada com a primeira.
+
+      Um commit, duas execuções: quebrou e depois passou. Contar "um commit" perderia que
+      alguém precisou tentar de novo, e a tela é obrigada a dizer que conta execuções.
+      """
+    end
+
+    test "co-autoria CONTA, e a mesma execução aparece nas duas pessoas", ctx do
+      autora = pessoa_044(ctx, "autora")
+      coautora = pessoa_044(ctx, "coautora")
+
+      commit_044(ctx, "sha_duplo", autora, coautora)
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_duplo", conclusion: "success"})
+
+      assert %{passou: 1} = Verification.por_pessoa(ctx.tenant, autora.id)
+
+      assert %{passou: 1} = Verification.por_pessoa(ctx.tenant, coautora.id), """
+      A co-autora não recebeu a execução.
+
+      `cmpo.stakeholder_performed_commit` declara `many` na origem, e ignorar o co-autor
+      apagaria participação real. A consequência — a soma das páginas excede o total — é
+      declarada, e não corrigida.
+      """
+    end
+
+    test "commit com DOIS autores não dobra a contagem de nenhum deles", ctx do
+      autora = pessoa_044(ctx, "autora")
+      coautora = pessoa_044(ctx, "coautora")
+
+      commit_044(ctx, "sha_duplo", autora, coautora)
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_duplo", conclusion: "success"})
+
+      assert %{passou: 1} = Verification.por_pessoa(ctx.tenant, autora.id), """
+      A contagem dobrou para quem tem co-autoria.
+
+      A junção produz uma linha por autor do commit. Sem `count(:distinct)`, uma execução
+      sobre commit de duas pessoas contaria duas vezes para cada uma.
+      """
+    end
+
+    test "a parcela sem autoria vai AO LADO, e não entra nos números da pessoa", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+      commit_044(ctx, "sha_dela", p)
+
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_dela", conclusion: "success"})
+      # Execução sem commit coletado — o caso de `schedule` e `workflow_dispatch`.
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_orfao", conclusion: "failure"})
+
+      r = Verification.por_pessoa(ctx.tenant, p.id)
+
+      assert %{passou: 1, quebrou: 0, sem_autoria_no_tenant: 1} = r, """
+      A execução órfã entrou nos números da pessoa, ou sumiu do relatório.
+
+      Medido em 2026-08-27: 7.313 de 15.671 execuções — 47% — não casam com pessoa alguma.
+      Ela vai ao lado, e nunca descontada nem somada: é contexto sobre o alcance da medida.
+      """
+    end
+
+    test "a mesma pessoa com dois logins no commit conta a execução uma vez", ctx do
+      p = pessoa_044(ctx, "dois-logins")
+
+      {:ok, c} =
+        ChangeCommands.record_commit(ctx.tenant, %{
+          observed_repository_id: ctx.repo_id,
+          sha: "sha_dois_papeis",
+          message_headline: "commit sha_dois_papeis",
+          external_committed_at: ~U[2026-06-01 10:00:00Z],
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "C_sha_dois_papeis"
+        })
+
+      # `replace_commit_authors/3` deduplica por LOGIN, não por pessoa — e uma pessoa
+      # pode ter mais de um login do GitHub apontando para o mesmo registro (conta
+      # pessoal e conta de trabalho). São duas linhas de autoria legítimas, com o mesmo
+      # `author_person_id`, e `commit_authors` não tem índice único sobre (commit, pessoa).
+      :ok =
+        ChangeCommands.replace_commit_authors(ctx.tenant, c.id, [
+          autor_044(p, true),
+          %{autor_044(p, false) | author_login: "#{p.login}-trabalho"}
+        ])
+
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_dois_papeis", conclusion: "success"})
+
+      assert %{passou: 1} = Verification.por_pessoa(ctx.tenant, p.id), """
+      Uma execução virou duas porque a pessoa consta duas vezes na autoria do commit.
+
+      É a junção que multiplica, e não o dado: uma execução, um commit, duas linhas de
+      autoria. Sem `count(:distinct)` a página mostra o dobro para quem tem dois logins
+      do GitHub no mesmo commit.
+
+      Medido em 2026-08-27: zero pares duplicados no banco de desenvolvimento, e nenhum
+      índice impedindo o primeiro.
+      """
+    end
+
+    test "commit de OUTRO repositório com o mesmo sha não é atribuído", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+
+      # O commit vive no repositório do cenário; a execução, em outro. Mesma soma.
+      commit_044(ctx, "sha_compartilhado", p)
+      outro_repo = outro_repositorio_044(ctx)
+
+      execucao(ctx.tenant, outro_repo, %{head_sha: "sha_compartilhado", conclusion: "failure"})
+
+      assert %{passou: 0, quebrou: 0, sem_autoria_no_tenant: 1} =
+               Verification.por_pessoa(ctx.tenant, p.id),
+             """
+             A execução de outro repositório foi atribuída ao commit desta pessoa.
+
+             Fork, espelho e cherry-pick produzem a mesma soma em repositórios diferentes. Sem o
+             repositório na junção, a execução aparece na página de quem não a disparou.
+
+             Medido em 2026-08-27: eram 3 execuções em 8.662. Poucas, e atribuição errada do
+             mesmo jeito.
+             """
+    end
+
+    test "outro tenant não alcança verificação nenhuma daqui", ctx do
+      p = pessoa_044(ctx, "quem-commita")
+      commit_044(ctx, "sha_dela", p)
+      execucao(ctx.tenant, ctx.repo_id, %{head_sha: "sha_dela", conclusion: "success"})
+
+      outro = TheBand.DataCase.tenant_fixture("outra-044v")
+
+      assert %{passou: 0, quebrou: 0, sem_autoria_no_tenant: 0} =
+               Verification.por_pessoa(outro, p.id),
+             """
+             A verificação vazou entre tenants.
+
+             Consulta sem filtro de tenant é bug de segurança, não de correção — princípio V.
+             """
+    end
+  end
+
+  defp pessoa_044(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(
+        ctx.tenant,
+        Map.merge(source_attrs("U_044v_#{login}"), %{
+          name: login,
+          login: login,
+          account_type: "person"
+        })
+      )
+
+    p
+  end
+
+  defp commit_044(ctx, sha, autora, coautora \\ nil) do
+    {:ok, c} =
+      ChangeCommands.record_commit(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        sha: sha,
+        message_headline: "commit #{sha}",
+        external_committed_at: ~U[2026-06-01 10:00:00Z],
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "C_#{sha}"
+      })
+
+    # As chaves são as do schema — `author_login`, `author_person_id`, `is_primary` —, e
+    # não nomes curtos: `replace_commit_authors/3` repassa o mapa direto ao changeset.
+    autores =
+      [autor_044(autora, true)] ++ if(coautora, do: [autor_044(coautora, false)], else: [])
+
+    :ok = ChangeCommands.replace_commit_authors(ctx.tenant, c.id, autores)
+    c
+  end
+
+  defp outro_repositorio_044(ctx) do
+    org = organization_fixture(ctx.tenant, "The-Band-Solution")
+
+    {:ok, repo} =
+      CMPO.upsert_source_repository_from_source(ctx.tenant, %{
+        organization_id: org.id,
+        name: "outro-044",
+        qualified_name: "acme/outro-044",
+        url: "https://github.com/acme/outro-044",
+        default_branch: "main",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "R_outro_044"
+      })
+
+    {:ok, observado} =
+      CMPO.observe_repository(
+        ctx.tenant,
+        ctx.tool_id,
+        repo.id
+      )
+
+    observado.id
+  end
+
+  defp autor_044(pessoa, principal?) do
+    %{
+      author_login: pessoa.login,
+      author_person_id: pessoa.id,
+      author_name: pessoa.name,
+      is_primary: principal?
+    }
   end
 end

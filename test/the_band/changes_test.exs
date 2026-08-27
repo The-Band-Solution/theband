@@ -403,4 +403,159 @@ defmodule TheBand.ChangesTest do
         select: i.external_id
     )
   end
+
+  describe "os três papéis na solicitação — feature 044" do
+    test "conta abriu, revisou e integrou em UMA consulta", ctx do
+      autora = pessoa_044(ctx, "autora")
+      revisora = pessoa_044(ctx, "revisora")
+
+      cr = solicitacao(ctx, 9001, %{author_person_id: autora.id, merged_by_person_id: autora.id})
+      avaliar(ctx, cr, revisora, "APPROVED")
+
+      consultas =
+        ContadorDeConsultas.contar(fn ->
+          Changes.participacao_da_pessoa(ctx.tenant, autora.id)
+        end)
+
+      assert consultas == 1, """
+      A participação custou #{consultas} consultas, e tem de custar UMA.
+
+      São seis contagens, e seis consultas levariam a página da pessoa de 23 para 29 por
+      render — o teste-guarda de custo reprova em 24. `filter (where ...)` responde as seis
+      numa passagem.
+      """
+
+      assert %{abriu: 1, integrou: 1, revisou: 0} =
+               Changes.participacao_da_pessoa(ctx.tenant, autora.id)
+
+      assert %{abriu: 0, integrou: 0, revisou: 1, endossou: 1} =
+               Changes.participacao_da_pessoa(ctx.tenant, revisora.id)
+    end
+
+    test "quem revisou DUAS vezes a mesma solicitação revisou UMA", ctx do
+      p = pessoa_044(ctx, "revisora")
+      cr = solicitacao(ctx, 9002)
+
+      avaliar(ctx, cr, p, "COMMENTED", "R_a")
+      avaliar(ctx, cr, p, "APPROVED", "R_b")
+
+      assert %{revisou: 1, endossou: 1, absteve: 1} =
+               Changes.participacao_da_pessoa(ctx.tenant, p.id),
+             """
+             As unidades foram achatadas.
+
+             `revisou` conta SOLICITAÇÕES distintas — quem revisou a mesma mudança duas vezes
+             revisou uma mudança. Os vereditos contam AVALIAÇÕES, porque são posições tomadas.
+
+             Medido em 2026-08-27: `vinicius-je` revisou 627 solicitações com 721 avaliações, e a
+             tela é obrigada a explicar a diferença.
+             """
+    end
+
+    test "revisão RETIRADA conta como revisão, e não como veredito", ctx do
+      p = pessoa_044(ctx, "revisora")
+      cr = solicitacao(ctx, 9003)
+
+      avaliar(ctx, cr, p, "DISMISSED")
+
+      assert %{revisou: 1, endossou: 0, objetou: 0, absteve: 0} =
+               Changes.participacao_da_pessoa(ctx.tenant, p.id),
+             """
+             A revisão retirada sumiu de "revisou", ou entrou num veredito.
+
+             Ela aconteceu — alguém leu a mudança e tomou posição —, e depois foi tirada de
+             circulação. Apagá-la de "revisou" nega o trabalho; contá-la como veredito afirma uma
+             posição que não vale mais.
+
+             O erro foi cometido ao implementar, em 2026-08-27: filtrar `revisou` pelos estados de
+             veredito devolvia 626 onde o certo é 627.
+             """
+    end
+
+    test "revisão de ROBÔ não entra em contagem de pessoa", ctx do
+      p = pessoa_044(ctx, "revisora")
+      cr = solicitacao(ctx, 9004)
+
+      # Bot: `author_person_id` nulo, que é o que a coleta grava.
+      avaliar(ctx, cr, nil, "APPROVED", "R_bot", "Bot")
+
+      assert %{revisou: 0, endossou: 0} = Changes.participacao_da_pessoa(ctx.tenant, p.id), """
+      A revisão do robô entrou na contagem de uma pessoa.
+
+      Bot não tem pessoa, e forçar uma inventaria participação. São 85 de 4.233 no banco de
+      desenvolvimento.
+      """
+    end
+
+    # DUAS revisões na mesma solicitação, e não uma: com uma só, a junção não produz
+    # linha repetida e o `distinct` nunca é exercitado — em branco ele passa por qualquer
+    # defeito.
+    test "a solicitação revisada aparece UMA vez, mesmo com duas revisões", ctx do
+      p = pessoa_044(ctx, "revisora")
+      cr = solicitacao(ctx, 9005, %{title: "a que ela revisou"})
+      avaliar(ctx, cr, p, "COMMENTED", "R_1")
+      avaliar(ctx, cr, p, "APPROVED", "R_2")
+
+      r = Changes.by_person(ctx.tenant, p.id)
+
+      assert [%{title: "a que ela revisou"}] = r.revisadas, """
+      A solicitação apareceu duas vezes na listagem.
+
+      A junção com as avaliações produz uma linha por revisão. Sem `distinct`, quem revisou
+      a mesma mudança duas vezes a veria repetida na tela — e a lista de 20 mostraria 10
+      mudanças.
+      """
+
+      assert r.abertas == []
+      assert r.integradas == []
+    end
+
+    test "outro tenant não alcança participação nenhuma daqui", ctx do
+      p = pessoa_044(ctx, "autora")
+      solicitacao(ctx, 9006, %{author_person_id: p.id})
+
+      outro = TheBand.DataCase.tenant_fixture("outra-044")
+
+      assert %{abriu: 0, integrou: 0, revisou: 0} =
+               Changes.participacao_da_pessoa(outro, p.id),
+             """
+             A participação vazou entre tenants.
+
+             Consulta sem filtro de tenant é bug de segurança, não de correção — princípio V.
+             """
+    end
+  end
+
+  defp pessoa_044(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(
+        ctx.tenant,
+        Map.merge(source_attrs("U_044_#{login}"), %{
+          name: login,
+          login: login,
+          account_type: "person"
+        })
+      )
+
+    p
+  end
+
+  # Grava a avaliação direto, e não pela ingestão: o teste é da LEITURA, e passar pela
+  # borda HTTP para produzir uma linha tornaria o teste sobre o conector.
+  defp avaliar(ctx, cr, pessoa, estado, external_id \\ nil, tipo \\ "User") do
+    {:ok, _} =
+      TheBand.Quality.Commands.record_evaluation(ctx.tenant, %{
+        collected_change_request_id: cr.id,
+        state: estado,
+        body: "corpo",
+        external_submitted_at: ~U[2026-06-02 10:00:00Z],
+        author_login: (pessoa && pessoa.login) || "robo",
+        author_type: tipo,
+        author_person_id: pessoa && pessoa.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: external_id || "R_#{cr.number}",
+        raw_payload: %{}
+      })
+  end
 end

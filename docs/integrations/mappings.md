@@ -307,7 +307,7 @@ Um Pull Request é a solicitação formal de que alterações em cópias de arte
 
 ### `github.pull_request_review.to.qapo.artifact_evaluation`
 
-**github.pull_request_review → qapo.artifact_evaluation** · equivalência *partial* · versão 2 · status *proposed*
+**github.pull_request_review → qapo.artifact_evaluation** · equivalência *partial* · versão 3 · status *proposed*
 
 Uma review de Pull Request é uma avaliação de artefato: alguém avalia objetivamente a aderência das alterações a critérios aplicáveis. O estado CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica conformidade na avaliação daquele revisor.
 
@@ -315,7 +315,9 @@ Uma review de Pull Request é uma avaliação de artefato: alguém avalia objeti
 
 - RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada": o módulo de projeto `qapo.evaluation_participation` declara `qapo.stakeholder_performed_artifact_evaluation` e `qapo.artifact_evaluation_evaluates`. A relação aponta para `spo.project_stakeholder` e para o papel `qapo.evaluated_artifact`, e não para `eo.person` nem para `cmpo.change_request` — é o que a mantém dentro das dependências declaradas da QAPO (`[ufo, spo]`), sem inverter a rede.
 
-- Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio. O `state` é preservado CRU e nenhuma coluna afirma conformidade.
+- Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio. O `state` é preservado CRU **e** interpretado por `value_map`; nenhuma das duas colunas afirma conformidade. `qapo.endorsing_verdict` é definido como "apto a seguir", e não como "sem problema" — a relação `artifact_evaluation_identified_noncompliance` declara `many` no destino justamente porque inclui zero e não o exige.
+
+- O veredito é a posição de UM avaliador, e não o estado da solicitação. Três endossos e uma objeção são quatro avaliações com quatro vereditos; se a mudança entrou ou não é outra pergunta, e quem a responde é `cmpo.stakeholder_performed_checkin`.
 
 - RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente": `author_type` guarda o `__typename` da origem, e toda contagem separa `User` de `Bot`. Sem isso a medida de tempo até a primeira revisão mediria o robô.
 

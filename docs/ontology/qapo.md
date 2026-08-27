@@ -19,6 +19,7 @@
 
 - **[Quality Assurance Process](#quality-assurance-process)** — Uma não conformidade é o registro de desvio em relação a um requisito aplicável. Não é automaticamente um defeito: transformar code smell em defeito é decisão de engenharia, e deve ser explícita.
 - **[Evaluation Participation](#evaluation-participation)** — Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as duas relações que a QAPO publicada deixa implícitas e que o rastreio de revisão atravessa. Extensão do projeto The Band, não da QAPO publicada.
+- **[Evaluation Verdict](#evaluation-verdict)** — A posição que o avaliador tomou sobre o artefato, e o estado de ciclo de vida da avaliação. Existe para que a plataforma tenha vocabulário próprio de revisão — sem ele, toda medida dependeria do enum de um forjador específico. Extensão do projeto The Band, não da QAPO publicada.
 
 ---
 
@@ -130,6 +131,60 @@ Quem executou uma avaliação de artefato, e qual artefato foi avaliado — as d
 | `performed` | `spo.project_stakeholder` | `qapo.artifact_evaluation` | one → many | participation |
 | `evaluates` | `qapo.artifact_evaluation` | `qapo.evaluated_artifact` | many → one | association |
 | `identified` | `qapo.artifact_evaluation` | `qapo.noncompliance_identification` | one → many | causation |
+
+
+
+---
+
+## Evaluation Verdict
+
+<a id="evaluation-verdict"></a>
+
+A posição que o avaliador tomou sobre o artefato, e o estado de ciclo de vida da avaliação. Existe para que a plataforma tenha vocabulário próprio de revisão — sem ele, toda medida dependeria do enum de um forjador específico. Extensão do projeto The Band, não da QAPO publicada.
+
+*Fonte: Decisão da pessoa mantenedora em 2026-08-27: mapear o estado para a ontologia, para ser universal*
+
+### Conceitos
+
+#### `qapo.evaluation_verdict` — Evaluation Verdict
+
+*Veredito da Avaliação*
+
+A posição que o avaliador assume sobre o artefato avaliado. É proposição, e não medida: descreve o que aquela pessoa afirmou, e não o estado do artefato.
+
+<sub>categoria UFO: `social_object` · especializa `spo.information_item`</sub>
+
+Exemplos: *endossa*; *objeta*; *abstém*
+
+#### `qapo.endorsing_verdict` — Endorsing Verdict
+
+*Veredito de Endosso*
+
+O avaliador considera o artefato apto a seguir. NÃO afirma ausência de não conformidade: endossar é não bloquear, e a ressalva registrada continua registrada.
+
+<sub>categoria UFO: `social_object` · especializa `qapo.evaluation_verdict`</sub>
+
+#### `qapo.objecting_verdict` — Objecting Verdict
+
+*Veredito de Objeção*
+
+O avaliador identifica não conformidade que deve ser resolvida antes de o artefato seguir. É a única posição que implica `qapo.noncompliance_identification`.
+
+<sub>categoria UFO: `social_object` · especializa `qapo.evaluation_verdict`</sub>
+
+#### `qapo.abstaining_verdict` — Abstaining Verdict
+
+*Veredito de Abstenção*
+
+O avaliador participou da avaliação e não tomou posição. É diferente de não ter avaliado: a avaliação aconteceu, e contá-la como ausência apagaria o trabalho de quem leu o artefato e comentou.
+
+<sub>categoria UFO: `social_object` · especializa `qapo.evaluation_verdict`</sub>
+
+### Relações
+
+| Relação | Origem | Destino | Cardinalidade | Tipo |
+|---|---|---|---|---|
+| `reached` | `qapo.artifact_evaluation` | `qapo.evaluation_verdict` | one → one | association |
 
 
 
