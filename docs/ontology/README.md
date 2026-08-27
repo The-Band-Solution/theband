@@ -5,7 +5,7 @@
 
 Documentação gerada a partir de `priv/knowledge_base/`. A base YAML é a fonte da verdade; esta página é derivada dela.
 
-**13 ontologias · 231 conceitos · 170 relações · 73 perguntas de competência**
+**14 ontologias · 234 conceitos · 173 relações · 77 perguntas de competência**
 
 ## Arquitetura
 
@@ -20,6 +20,7 @@ graph TD
   qapo["QAPO<br/><small>Quality Assurance Process Ontology</small>"]
   roost["ROoST<br/><small>Reference Ontology on Software Testing</small>"]
   rsro["RSRO<br/><small>Reference Software Requirements Ontology</small>"]
+  smpo["SMPO<br/><small>Software Management Planning Ontology</small>"]
   spo["SPO<br/><small>Software Process Ontology</small>"]
   sro["SRO<br/><small>Scrum Reference Ontology</small>"]
   sys_swo["SysSwO<br/><small>System and Software Ontology</small>"]
@@ -53,6 +54,10 @@ graph TD
   roost --> sys_swo
   rsro --> ufo
   rsro --> spo
+  smpo --> ufo
+  smpo --> eo
+  smpo --> spo
+  smpo --> sro
   spo --> ufo
   spo --> eo
   sro --> ufo
@@ -83,6 +88,7 @@ Cada seta significa *reusa conceitos de*. A direção vai sempre do módulo mais
 | [QAPO](qapo.md) — Quality Assurance Process Ontology | Domínio | SEON | `ufo`, `spo` | 8 | 9 | 0 |
 | [ROoST](roost.md) — Reference Ontology on Software Testing | Domínio | SEON | `ufo`, `spo`, `sys_swo` | 14 | 6 | 0 |
 | [RSRO](rsro.md) — Reference Software Requirements Ontology | Domínio | SEON | `ufo`, `spo` | 5 | 2 | 0 |
+| [SMPO](smpo.md) — Software Management Planning Ontology | Domínio | Continuum | `ufo`, `eo`, `spo`, `sro` | 3 | 3 | 4 |
 | [SRO](sro.md) — Scrum Reference Ontology | Domínio | Continuum | `ufo`, `eo`, `spo`, `sys_swo`, `rsro`, `cmpo` | 43 | 46 | 37 |
 
 ## Distinções que o modelo preserva

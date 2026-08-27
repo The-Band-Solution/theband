@@ -59,6 +59,33 @@ provenance:
     integração/entrega contínuas (CIRO/CDRO). O planejamento macro — o horizonte
     declarado ANTES da execução — é lacuna documentada na #514.
 
+    A LACUNA FOI PROCURADA NA LITERATURA ANTES DE SER PREENCHIDA (2026-08-26), como a
+    CMO fez na #318:
+
+    - **SPMO — Software Project Management Ontology** (SEON, Ruy et al.) é a camada
+      certa: declara cobrir "escopo, tempo e duração, e estimativa de custo de processos
+      pretendidos, além do rastreamento entre planejado e executado". Os 17 conceitos
+      dela são de estimativa e rastreamento — `Estimated Process`, `Duration Estimated
+      Activity`, `Project Plan`, `Work Package`, `Tracked Process` — e **nenhum
+      representa período de planejamento ou caixa de tempo**. A lacuna existe também na
+      referência.
+    - **A SEON publicada não contém a SRO.** O Scrum Reference Ontology é trabalho do
+      mesmo grupo, fora da rede — e é por isso que ele vive no continuum desta base.
+    - **SAFe** é o único corpo que nomeia a caixa: o *Program Increment*, "caixa de tempo
+      fixa de 8 a 12 semanas", frequentemente alinhada ao trimestre fiscal. Bate com o
+      medido — 61 a 92 dias, média 84, que são 12 semanas.
+
+      O nome NÃO foi adotado: importar "Program Increment" importaria o método, e esta
+      organização não pratica SAFe. O que foi adotado da literatura é a distinção que ela
+      faz — "PI Planning é um evento com formato prescrito; *quarterly planning* é uma
+      cadência que as organizações definem para si mesmas". "Definem para si mesmas" é o
+      que fundamenta `social_object`.
+
+    `smpo.planning_horizon` é, portanto, decisão deste projeto e não termo da literatura.
+    Ele existe como pai para que o trimestre não seja a única forma possível de horizonte
+    macro — e o segundo caso ainda não foi observado nesta base, onde os únicos campos de
+    iteração são `Quarter` (média 84 dias), `Sprint` e `Iteration` (média 13).
+
     Ao contrário do resto do continuum, os verbos aqui não são todos no passado: um
     horizonte de planejamento é declarado para o futuro, e descrevê-lo no passado
     apagaria justamente o que o distingue da execução.
