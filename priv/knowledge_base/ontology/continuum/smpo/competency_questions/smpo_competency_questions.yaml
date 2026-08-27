@@ -1,0 +1,42 @@
+ontology: smpo
+provenance:
+  source_type: project_decision
+  reference: "Issue #514 — cada pergunta amarra uma decisão que a plataforma sustenta"
+  year: 2026
+
+competency_questions:
+  - id: smpo.cq01
+    question:
+      pt-BR: Em que horizonte de planejamento um item de trabalho foi posto, e quando?
+      en: In which planning horizon was a work item placed, and when?
+    concepts: [smpo.planning_allocation, smpo.planning_horizon]
+    relations: [smpo.allocation_mediates_item, smpo.allocation_mediates_horizon]
+    expected_query_type: list
+
+  - id: smpo.cq02
+    question:
+      pt-BR: >
+        Quais itens saíram de um horizonte e entraram em outro — o replanejamento que a
+        pergunta "está no Q3?" apaga?
+      en: Which items moved from one horizon to another — the replanning that "is it in Q3?" erases?
+    concepts: [smpo.planning_allocation]
+    relations: [smpo.allocation_mediates_horizon]
+    expected_query_type: list
+
+  - id: smpo.cq03
+    question:
+      pt-BR: >
+        Quais sprints coincidiram com um trimestre, e quais atravessaram a fronteira dele?
+      en: Which sprints coincided with a quarter, and which crossed its boundary?
+    concepts: [smpo.planning_quarter, sro.sprint]
+    relations: [smpo.sprint_overlaps_horizon]
+    expected_query_type: list
+
+  - id: smpo.cq04
+    question:
+      pt-BR: >
+        Quantos itens foram planejados para um horizonte e nunca entraram em sprint algum?
+      en: How many items were planned for a horizon and never entered any sprint?
+    concepts: [smpo.planning_allocation, smpo.planning_horizon, sro.sprint]
+    relations: [smpo.allocation_mediates_item, smpo.sprint_overlaps_horizon]
+    expected_query_type: count
