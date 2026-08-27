@@ -642,4 +642,362 @@ defmodule TheBandWeb.PainelDaPessoaTest do
       """
     end
   end
+
+  describe "os três papéis na mudança — feature 044" do
+    test "os três números aparecem separados, e a soma NÃO aparece", ctx do
+      cr = solicitacao_044(ctx, 7001, ctx.pessoa)
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "opened" and html =~ "reviewed" and html =~ "integrated"
+
+      refute html =~ ">3<" and html =~ "total", """
+      A soma dos três papéis apareceu.
+
+      Abrir, revisar e integrar são participações distintas. `793 + 844 + 627` não
+      significa coisa alguma, e oferecer o total convida a lê-lo como volume de trabalho.
+      """
+
+      assert cr
+    end
+
+    test "o veredito é nomeado pelo conceito, e nunca pelo enum do GitHub", ctx do
+      cr = solicitacao_044(ctx, 7002)
+      avaliar_044(ctx, cr, ctx.pessoa, "APPROVED")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "endorsed", "o rótulo do conceito não apareceu"
+
+      refute html =~ "APPROVED", """
+      O enum do GitHub apareceu na tela.
+
+      A plataforma tem vocabulário próprio desde 2026-08-27 — `qapo.endorsing_verdict` —, e
+      mostrar `APPROVED` prenderia a leitura ao enum de um forjador. Gerrit chama a mesma
+      posição de `+2`.
+      """
+    end
+
+    test "a tela NÃO diz que endossar é ausência de problema", ctx do
+      cr = solicitacao_044(ctx, 7003)
+      avaliar_044(ctx, cr, ctx.pessoa, "APPROVED")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "not blocking", "a frase que separa endosso de conformidade sumiu"
+
+      # O regex mira a AFIRMAÇÃO, e não as palavras. A primeira versão do texto da tela
+      # dizia «and never "nothing was found"» — uma negação correta que o `refute` pegava
+      # como se fosse a afirmação. A frase foi reescrita, e o padrão continua estreito de
+      # propósito: ele existe para pegar quem escrever a afirmação, não quem a negar.
+      refute html =~ ~r/no issues found|nothing (was )?found|clean review/i, """
+      A tela afirmou que endossar é não ter encontrado problema.
+
+      A rede declara o contrário: `qapo.artifact_evaluation_identified_noncompliance` tem
+      `many` no destino porque INCLUI zero e não o exige. Uma avaliação que endossa pode ter
+      registrado ressalvas — FR-011.
+      """
+    end
+
+    test "a diferença entre revisões e vereditos é dita quando existe", ctx do
+      cr = solicitacao_044(ctx, 7004)
+      avaliar_044(ctx, cr, ctx.pessoa, "COMMENTED", "R_a")
+      avaliar_044(ctx, cr, ctx.pessoa, "APPROVED", "R_b")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "positions taken", """
+      A tela não explicou por que a soma dos vereditos é maior que as revisões.
+
+      Medido: `vinicius-je` revisou 627 solicitações com 721 avaliações. Sem a frase, quem
+      lê conclui que um dos números está quebrado — foi exatamente o que aconteceu com
+      `fatasy`, com 8 designadas e 233 abertas.
+      """
+    end
+
+    test "e NÃO é dita quando os dois números coincidem", ctx do
+      cr = solicitacao_044(ctx, 7005)
+      avaliar_044(ctx, cr, ctx.pessoa, "APPROVED")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      refute html =~ "positions taken", """
+      A tela explicou uma diferença que não existe.
+
+      Uma revisão sobre uma solicitação: os dois números são 1. Texto que explica o que não
+      aconteceu é ruído, e o olho para de ler o que explica o que aconteceu.
+      """
+    end
+
+    test "a solicitação revisada aparece na listagem", ctx do
+      cr = solicitacao_044(ctx, 7006, nil, "a que ela revisou")
+      avaliar_044(ctx, cr, ctx.pessoa, "APPROVED")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Reviewed"
+      assert html =~ "a que ela revisou"
+    end
+
+    test "a aba fechada NÃO calcula a participação", ctx do
+      cr = solicitacao_044(ctx, 7007, ctx.pessoa)
+      assert cr
+
+      {:ok, comum} =
+        TheBand.Tenants.create_user(ctx.tenant, %{
+          "email" => "membro-044-#{System.unique_integer([:positive])}@example.test",
+          "role" => "member"
+        })
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), comum)
+      {:ok, _live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+
+      refute html =~ "How they reviewed", """
+      A seção de veredito apareceu para quem não pode ver a aba de trabalho.
+      """
+
+      # A asserção que importa, e o HTML sozinho NÃO a faz: esconder a seção e calcular
+      # tudo passa por qualquer `refute` sobre texto.
+      #
+      # A CONTAGEM total também não serve aqui: a seção "Changes" é anterior à #369 e vive
+      # fora da aba, então `collected_change_requests` é consultada de qualquer jeito. Uma
+      # consulta a mais no meio de vinte e cinco não muda a comparação.
+      #
+      # O que distingue é a ASSINATURA: `collected_artifact_evaluations` é tocada por uma
+      # consulta só desta página — a da participação. Se ela aparecer com a aba fechada, a
+      # recusa não aconteceu antes da carga (#369 FR-012h).
+      consultas =
+        TheBand.ContadorDeConsultas.listar(fn ->
+          {:ok, _live, _html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      abertas =
+        TheBand.ContadorDeConsultas.listar(fn ->
+          {:ok, _live, _html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      conta = fn lista -> Enum.count(lista, &(&1 =~ "collected_change_requests")) end
+
+      assert conta.(consultas) < conta.(abertas), """
+      A aba fechada tocou `collected_change_requests` #{conta.(consultas)} vezes, e a aberta
+      #{conta.(abertas)} — o mesmo.
+
+      A consulta de participação é a diferença entre as duas, e ela não pode acontecer com a
+      aba fechada. Calcular e descartar é fazer o trabalho do vazamento pagando o custo
+      dele, e basta uma referência esquecida no template para o número aparecer.
+
+      A contagem TOTAL não serve aqui: a seção "Changes" é anterior à #369, vive fora da
+      aba, e consulta essa tabela de qualquer jeito.
+      """
+    end
+  end
+
+  describe "a verificação sobre os commits — feature 044" do
+    test "passou e quebrou aparecem separados, e `skipped` não entra em nenhum dos dois",
+         ctx do
+      commit_044(ctx, "sha_a", ctx.pessoa)
+      commit_044(ctx, "sha_b", ctx.pessoa)
+      commit_044(ctx, "sha_c", ctx.pessoa)
+
+      execucao_044(ctx, "sha_a", "success")
+      execucao_044(ctx, "sha_b", "failure")
+      execucao_044(ctx, "sha_c", "skipped")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Checks on their commits"
+      assert html =~ "passed" and html =~ "broke"
+
+      assert html =~ ~r/neither.{0,40}skipped/i, """
+      A execução pulada não apareceu na terceira posição.
+
+      `skipped` e `cancelled` não são resultado: nenhum código rodou. Somá-los a "passou"
+      afirma verificação que não houve, e a "quebrou", defeito que não houve — FR-004.
+      """
+    end
+
+    test "a parcela sem autoria aparece AO LADO, e não é descontada", ctx do
+      commit_044(ctx, "sha_dela", ctx.pessoa)
+      execucao_044(ctx, "sha_dela", "success")
+
+      # Duas execuções sobre commit de ninguém: evento sem commit, ou autor não promovido.
+      execucao_044(ctx, "sha_de_ninguem_1", "failure")
+      execucao_044(ctx, "sha_de_ninguem_2", "success")
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ ~r/2 runs in this organisation match no person/, """
+      A lacuna da atribuição não foi dita.
+
+      Medido em 2026-08-27: 47% das execuções não casam com pessoa alguma. Mostrar só os
+      números atribuídos, sem dizer o tamanho do que ficou de fora, apresenta uma medida
+      parcial como se fosse a medida — FR-010.
+      """
+
+      assert html =~ ~r/not counted above,\s+and not subtracted\s+from\s+it\s+either/, """
+      A frase que diz que a lacuna NÃO foi descontada sumiu.
+
+      Sem ela, quem lê pode supor que os números já descontaram o que não casou — e passar
+      a tratar a parcela atribuída como o todo.
+      """
+    end
+
+    test "sem execução alguma, a tela NOMEIA a ausência em vez de mostrar zero seco", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      # O apóstrofo sai escapado (`person&#39;s`), e a frase quebra em linhas no HEEX —
+      # por isso o padrão, e não a string.
+      assert html =~ ~r/No check run on this person/, """
+      A tela mostrou zero sem dizer por quê.
+
+      Zero aqui tem duas causas distintas — repositório sem workflow, ou commit não
+      coletado —, e nenhuma delas é "a pessoa não quebrou nada". A casa não deixa zero
+      falar sozinho.
+      """
+    end
+
+    test "com a aba fechada, a verificação não é NEM consultada", ctx do
+      commit_044(ctx, "sha_custo", ctx.pessoa)
+      execucao_044(ctx, "sha_custo", "failure")
+
+      {:ok, estranha} =
+        TheBand.Tenants.create_user(ctx.tenant, %{
+          "email" => "custo-044@example.test",
+          "role" => "member"
+        })
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), estranha)
+
+      # `collected_verifications` é tocada por uma consulta só desta página — a de
+      # `Verification.por_pessoa/2`. Se ela aparecer com a aba fechada, `se_pode/3` está
+      # calculando e jogando fora: paga-se o custo do vazamento sem o vazamento, e basta
+      # uma referência esquecida no template para o número aparecer.
+      fechada =
+        TheBand.ContadorDeConsultas.listar(fn ->
+          {:ok, _live, _html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      aberta =
+        TheBand.ContadorDeConsultas.listar(fn ->
+          {:ok, _live, _html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      conta = fn lista -> Enum.count(lista, &(&1 =~ "collected_verifications")) end
+
+      assert conta.(fechada) == 0, """
+      A aba fechada consultou `collected_verifications` #{conta.(fechada)} vezes.
+
+      A porta da #369 fica ANTES da carga, e não depois: esconder no `:if` deixa o custo
+      de pé, e a consulta continua atravessando o tenant de alguém que não pode vê-la.
+      """
+
+      assert conta.(aberta) > 0, """
+      A aba ABERTA também não consultou `collected_verifications`.
+
+      Sem esta metade, o teste passaria se a consulta tivesse sumido de vez — e diria que a
+      recusa funciona quando o que sumiu foi a funcionalidade.
+      """
+    end
+
+    test "quem não pode ver o trabalho também não vê a verificação", ctx do
+      commit_044(ctx, "sha_privado", ctx.pessoa)
+      execucao_044(ctx, "sha_privado", "failure")
+
+      # Conta comum do mesmo tenant: não é a pessoa, não lidera o time dela, não responde
+      # pela organização, e não é admin.
+      {:ok, estranha} =
+        TheBand.Tenants.create_user(ctx.tenant, %{
+          "email" => "estranha-044@example.test",
+          "role" => "member"
+        })
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), estranha)
+      {:ok, _live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+
+      refute html =~ "Checks on their commits", """
+      A seção de CI apareceu para quem a regra da #369 não autoriza.
+
+      Quebrar a construção é dado de desempenho: quem vê o painel de trabalho de alguém é
+      a própria pessoa, quem lidera o time, quem responde pela organização, ou o admin.
+      """
+    end
+  end
+
+  defp commit_044(ctx, sha, autora) do
+    {:ok, c} =
+      TheBand.Changes.Commands.record_commit(ctx.tenant, %{
+        observed_repository_id: ctx.cenario.observed_repository_id,
+        sha: sha,
+        message_headline: "commit #{sha}",
+        external_committed_at: ~U[2026-06-01 10:00:00Z],
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "C_044_#{sha}"
+      })
+
+    :ok =
+      TheBand.Changes.Commands.replace_commit_authors(ctx.tenant, c.id, [
+        %{
+          author_login: autora.login,
+          author_person_id: autora.id,
+          author_name: autora.name,
+          is_primary: true
+        }
+      ])
+
+    c
+  end
+
+  defp execucao_044(ctx, sha, conclusion) do
+    {:ok, v} =
+      TheBand.Verification.Commands.record_verification(ctx.tenant, %{
+        observed_repository_id: ctx.cenario.observed_repository_id,
+        name: "ci",
+        head_sha: sha,
+        status: "COMPLETED",
+        conclusion: conclusion,
+        external_started_at: ~U[2026-06-01 11:00:00Z],
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "V_044_#{sha}_#{conclusion}"
+      })
+
+    v
+  end
+
+  defp solicitacao_044(ctx, numero, autora \\ nil, titulo \\ nil) do
+    {:ok, cr} =
+      TheBand.Changes.Commands.record_change_request(ctx.tenant, %{
+        observed_repository_id: ctx.cenario.observed_repository_id,
+        number: numero,
+        title: titulo || "mudança #{numero}",
+        state: "MERGED",
+        source_branch: "f-#{numero}",
+        target_branch: "main",
+        author_person_id: autora && autora.id,
+        external_created_at: ~U[2026-06-01 10:00:00Z],
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_044_#{numero}"
+      })
+
+    cr
+  end
+
+  defp avaliar_044(ctx, cr, pessoa, estado, external_id \\ nil) do
+    {:ok, _} =
+      TheBand.Quality.Commands.record_evaluation(ctx.tenant, %{
+        collected_change_request_id: cr.id,
+        state: estado,
+        body: "corpo",
+        external_submitted_at: ~U[2026-06-02 10:00:00Z],
+        author_login: pessoa.login,
+        author_type: "User",
+        author_person_id: pessoa.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: external_id || "R_044_#{cr.number}",
+        raw_payload: %{}
+      })
+  end
 end

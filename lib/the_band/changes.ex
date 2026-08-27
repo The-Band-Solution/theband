@@ -152,10 +152,10 @@ defmodule TheBand.Changes do
   end
 
   @doc """
-  O que uma pessoa mudou, em três leituras **nunca somadas**: as solicitações que abriu,
-  as que integrou e os commits que executou.
+  O que uma pessoa mudou, em quatro leituras **nunca somadas**: as solicitações que abriu,
+  as que revisou, as que integrou, e os commits que executou.
 
-  Três consultas, uma por leitura. A de commits inclui os casos em que a pessoa é
+  Quatro consultas, uma por leitura. A de commits inclui os casos em que a pessoa é
   co-autora e não autora principal — é `cmpo.stakeholder_performed_commit` com
   cardinalidade `many` na origem, e achatar isso apagaria autoria compartilhada.
   """
@@ -165,9 +165,85 @@ defmodule TheBand.Changes do
 
     %{
       abertas: solicitacoes_por_papel(tenant_id, person_id, :autor, limite),
+      # Feature 044: o terceiro papel. `by_person/3` já devolvia dois — acrescentar aqui é
+      # o que evita uma segunda função que lista quase a mesma coisa e diverge na primeira
+      # mudança.
+      revisadas: solicitacoes_por_papel(tenant_id, person_id, :revisor, limite),
       integradas: solicitacoes_por_papel(tenant_id, person_id, :integrador, limite),
       commits: commits_da_pessoa(tenant_id, person_id, limite)
     }
+  end
+
+  @doc """
+  Os três papéis da pessoa na solicitação de mudança, e os vereditos das revisões dela.
+
+  Feature 044, `FR-001` e `FR-002`. **Uma consulta**, com `filter (where ...)` para as seis
+  contagens: a página da pessoa está no teto de consultas por render medido em
+  `person_detail_test.exs`, e seis consultas o estourariam.
+
+  ## As unidades diferem de propósito
+
+  `abriu`, `integrou` e `revisou` contam **solicitações distintas** — quem revisou a mesma
+  mudança duas vezes revisou uma mudança. `endossou`, `objetou` e `absteve` contam
+  **avaliações**, porque são posições tomadas, e a mesma pessoa pode mudar de posição.
+
+  Medido em 2026-08-27: `vinicius-je` revisou **627** solicitações com **721** avaliações.
+  A diferença não é defeito, e a tela é obrigada a dizê-lo (`FR-007` da spec 044).
+
+  ## O que NÃO entra
+
+  Revisão de robô: o filtro é `author_person_id`, e bot tem nulo.
+
+  Revisão de robô: o filtro é `author_person_id`, e bot tem nulo.
+
+  ## Retirada CONTA como revisão, e não conta como veredito
+
+  Medido em 2026-08-27: filtrar `revisou` pelos estados de veredito devolvia **626** para
+  `vinicius-je`, e o número certo é **627**. A diferença é uma solicitação cuja única
+  revisão dele foi **retirada**.
+
+  Ele revisou. A avaliação aconteceu, e depois alguém a tirou de circulação — apagá-la de
+  "revisou" negaria o trabalho de ler a mudança. O que ela não pode é entrar em veredito,
+  porque a posição não vale mais.
+
+  Por isso a junção **não** filtra por estado, e os três `filter` de veredito fazem o
+  recorte sozinhos: eles casam só com as três posições, e `DISMISSED` e `PENDING` ficam de
+  fora por não estarem em nenhum deles.
+  """
+  @spec participacao_da_pessoa(Tenant.t(), Ecto.UUID.t()) :: %{
+          abriu: non_neg_integer(),
+          integrou: non_neg_integer(),
+          revisou: non_neg_integer(),
+          endossou: non_neg_integer(),
+          objetou: non_neg_integer(),
+          absteve: non_neg_integer()
+        }
+  def participacao_da_pessoa(%Tenant{id: tenant_id}, person_id) do
+    Repo.one(
+      from c in "collected_change_requests",
+        left_join: a in "collected_artifact_evaluations",
+        on:
+          a.collected_change_request_id == c.id and a.tenant_id == c.tenant_id and
+            a.author_person_id == type(^person_id, :binary_id) and
+            is_nil(a.no_longer_observed_at),
+        where: c.tenant_id == type(^tenant_id, :binary_id) and is_nil(c.no_longer_observed_at),
+        select: %{
+          abriu:
+            filter(
+              count(c.id, :distinct),
+              c.author_person_id == type(^person_id, :binary_id)
+            ),
+          integrou:
+            filter(
+              count(c.id, :distinct),
+              c.merged_by_person_id == type(^person_id, :binary_id)
+            ),
+          revisou: filter(count(c.id, :distinct), not is_nil(a.id)),
+          endossou: filter(count(a.id), a.state == "APPROVED"),
+          objetou: filter(count(a.id), a.state == "CHANGES_REQUESTED"),
+          absteve: filter(count(a.id), a.state == "COMMENTED")
+        }
+    )
   end
 
   @doc """
@@ -723,6 +799,21 @@ defmodule TheBand.Changes do
 
         :integrador ->
           from c in base, where: c.merged_by_person_id == type(^person_id, :binary_id)
+
+        # Feature 044: quem REVISOU. A solicitação entra uma vez, ainda que a pessoa a
+        # tenha revisado duas — `distinct` sobre o id, porque a pergunta é "quantas
+        # mudanças ela revisou", e não "quantas vezes revisou".
+        #
+        # `author_person_id` na avaliação já exclui o robô: bot tem nulo, e forçar uma
+        # pessoa para ele inventaria participação.
+        :revisor ->
+          from c in base,
+            join: a in "collected_artifact_evaluations",
+            on:
+              a.collected_change_request_id == c.id and a.tenant_id == c.tenant_id and
+                a.author_person_id == type(^person_id, :binary_id) and
+                is_nil(a.no_longer_observed_at),
+            distinct: c.id
       end
 
     consulta |> Repo.all() |> Enum.map(&normalizar/1)

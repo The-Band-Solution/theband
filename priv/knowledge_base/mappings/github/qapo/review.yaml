@@ -1,6 +1,6 @@
 mapping:
   id: github.pull_request_review.to.qapo.artifact_evaluation
-  version: 2
+  version: 3
   status: proposed
 source: { provider: github, entity: pull_request_review, api: graphql, schema_version: v4 }
 target: { ontology: qapo, concept: qapo.artifact_evaluation }
@@ -15,8 +15,40 @@ identity:
   external_id_path: id
   natural_key: [pullRequest.id, id]
 attributes:
-  state:        { source_path: state }
-  submitted_at: { source_path: submittedAt }
+  # O CRU fica, e o interpretado vem junto. Preservar o `state` do GitHub é o que permite
+  # conferir a tradução depois; o `value_map` é o que dá à plataforma vocabulário próprio,
+  # em vez de deixar toda medida sobre revisão presa ao enum de um forjador.
+  state:
+    source_path: state
+    value_map:
+      target_ontology: qapo
+      # As três posições, e nada mais. `DISMISSED` e `PENDING` NÃO estão aqui de propósito:
+      # não são posições, são estado de ciclo de vida — a primeira é avaliação retirada de
+      # circulação, a segunda é avaliação que ainda não aconteceu. Tratá-las como veredito
+      # faria "quantas objeções houve" contar rascunho.
+      #
+      # `Gerrit` é o que prova que duas posições não bastam: `+1` endossa sem autoridade
+      # para liberar, e `−1` objeta sem bloquear. Um mapa de dois valores obrigaria a
+      # escolher um lado para cada um, e a escolha seria invenção.
+      values:
+        APPROVED: qapo.endorsing_verdict
+        CHANGES_REQUESTED: qapo.objecting_verdict
+        COMMENTED: qapo.abstaining_verdict
+      # Estado novo do GitHub RECUSA a carga, e não vira abstenção por parecer inofensivo.
+      # Traduzir o não reconhecido para o mais plausível é o erro que cai para o lado
+      # barato: o não reconhecido alguém corrige, o reconhecido errado vira medida.
+      #
+      # `reject` é o menos errado dos dois destinos possíveis HOJE, e não o desejado:
+      # `keep_raw` guardaria o valor sem tradução, e ele ficaria no banco sem ninguém ver
+      # — ausência silenciosa, que é pior que carga que cai.
+      #
+      # A issue #526 é a tela que muda isso: com os valores não traduzidos visíveis, com
+      # volume e desde quando, `keep_raw` passa a ser seguro. Até ela existir, `reject`.
+      unmapped: reject
+  # O ciclo de vida sai do MESMO campo da origem, e é outra pergunta. `derived_from`
+  # porque não existe caminho no payload para ele: é regra desta base.
+  lifecycle:
+    derived_from: "state: DISMISSED → retirada; PENDING → não submetida; demais → vigente"
   body:         { source_path: bodyText }
   author_type:  { source_path: author.__typename }
 relations:
@@ -28,6 +60,9 @@ relations:
     source_path: pullRequest.id
     target_ontology: cmpo
     target_concept: cmpo.change_request
+  # `submittedAt` nulo e `lifecycle: não submetida` são a MESMA coisa vista de dois
+  # lugares, e as duas ficam: a data responde "quando", e o ciclo responde "aconteceu?".
+  submitted_at: { source_path: submittedAt }
 limitations:
   - >
     RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada":
@@ -38,7 +73,14 @@ limitations:
     dependências declaradas da QAPO (`[ufo, spo]`), sem inverter a rede.
   - >
     Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio.
-    O `state` é preservado CRU e nenhuma coluna afirma conformidade.
+    O `state` é preservado CRU **e** interpretado por `value_map`; nenhuma das duas colunas
+    afirma conformidade. `qapo.endorsing_verdict` é definido como "apto a seguir", e não
+    como "sem problema" — a relação `artifact_evaluation_identified_noncompliance` declara
+    `many` no destino justamente porque inclui zero e não o exige.
+  - >
+    O veredito é a posição de UM avaliador, e não o estado da solicitação. Três endossos e
+    uma objeção são quatro avaliações com quatro vereditos; se a mudança entrou ou não é
+    outra pergunta, e quem a responde é `cmpo.stakeholder_performed_checkin`.
   - >
     RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente":
     `author_type` guarda o `__typename` da origem, e toda contagem separa `User` de `Bot`.

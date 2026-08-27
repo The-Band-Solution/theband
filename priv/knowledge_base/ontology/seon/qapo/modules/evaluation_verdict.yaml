@@ -1,0 +1,140 @@
+# A posição que o avaliador tomou — e por que ela não é o estado do GitHub com outro nome.
+#
+# **Descoberto ao implementar a coleta de review** (2026-08-27). O mapeamento
+# `github.pull_request_review.to.qapo.artifact_evaluation` preservava `state` CRU, e a
+# limitação era deliberada: "o `state` é preservado CRU e nenhuma coluna afirma
+# conformidade". Preservar é certo — mas guardar SÓ o cru deixa a plataforma sem
+# vocabulário próprio, e toda medida sobre revisão passaria a depender de um enum do
+# GitHub.
+#
+# Decisão da pessoa mantenedora: mapear para a ontologia, "para ser algo universal".
+#
+# ## O que atravessa os forjadores, e o que não atravessa
+#
+# Os nomes não atravessam. As posições, sim:
+#
+#   GitHub   APPROVED · CHANGES_REQUESTED · COMMENTED · DISMISSED · PENDING
+#   Gerrit   Code-Review +2 · +1 · 0 · −1 · −2
+#   GitLab   aprovar · retirar aprovação · thread não resolvida
+#
+# Gerrit é o caso que impede reduzir a booleano: `+1` endossa sem autoridade para liberar,
+# e `−1` objeta sem bloquear. Um modelo de dois valores obrigaria a escolher um lado para
+# cada um, e a escolha seria invenção.
+#
+# O que sobra depois de tirar os nomes são **três posições** e **dois estados de ciclo de
+# vida** — e os dois grupos não se misturam:
+#
+#   posição      endossa · objeta · abstém
+#   ciclo        não submetida · retirada
+#
+# `PENDING` e `DISMISSED` NÃO são posições: a primeira é avaliação que ainda não
+# aconteceu, a segunda é avaliação que aconteceu e foi tirada de circulação. Tratá-las como
+# um sexto e sétimo veredito faria "quantas objeções houve" contar rascunho.
+#
+# ## Por que não deriva de `identified_noncompliance`
+#
+# `qapo.artifact_evaluation_identified_noncompliance` já existe, e responde outra pergunta.
+# A relação dela declara, com todas as letras: **aprovação não é ausência de não
+# conformidade, é ausência de bloqueio**. Uma avaliação que endossa pode ter identificado
+# ressalvas.
+#
+# Veredito e não conformidade são dimensões independentes, e colapsá-las faria "aprovou"
+# significar "não achou nada" — que é falso e é a leitura que mais aparece.
+#
+# ## Extensão do projeto, e não da QAPO publicada
+#
+# A QAPO da tese descreve a avaliação, o critério e o registro de não conformidade. Ela
+# **não declara veredito**. Procurado antes de escrever, como a #318 fez com a CMO e a #514
+# com a SMPO.
+module:
+  id: qapo.evaluation_verdict
+  ontology: qapo
+  name: Evaluation Verdict
+  version: 1.0.0
+  description:
+    pt-BR: >
+      A posição que o avaliador tomou sobre o artefato, e o estado de ciclo de vida da
+      avaliação. Existe para que a plataforma tenha vocabulário próprio de revisão — sem
+      ele, toda medida dependeria do enum de um forjador específico. Extensão do projeto
+      The Band, não da QAPO publicada.
+  provenance:
+    source_type: project_decision
+    reference: "Decisão da pessoa mantenedora em 2026-08-27: mapear o estado para a ontologia, para ser universal"
+    year: 2026
+    note: >
+      A QAPO publicada não declara veredito de avaliação — declara a avaliação, o critério,
+      a identificação de não conformidade e o relatório. A lacuna foi procurada antes de
+      ser preenchida.
+
+      As três posições saem da comparação entre GitHub, Gerrit e GitLab, e não do primeiro
+      deles: Gerrit é o que prova que duas não bastam, porque `+1` endossa sem liberar e
+      `−1` objeta sem bloquear.
+
+concepts:
+  - id: qapo.evaluation_verdict
+    name: Evaluation Verdict
+    label: { pt-BR: "Veredito da Avaliação" }
+    definition:
+      pt-BR: >
+        A posição que o avaliador assume sobre o artefato avaliado. É proposição, e não
+        medida: descreve o que aquela pessoa afirmou, e não o estado do artefato.
+    # `social_object` sob `spo.information_item`, e NÃO `normative_description`.
+    #
+    # `qapo.quality_criterion` é normativo porque PRESCREVE — diz o que o artefato deve
+    # atender. Um veredito não prescreve nada: ele AFIRMA a posição de quem avaliou. É a
+    # mesma natureza de `qapo.noncompliance_register`, que também é item de informação
+    # produzido por um ato de avaliação.
+    classification: { ufo_category: social_object, parent: spo.information_item }
+    examples: ["endossa", "objeta", "abstém"]
+
+  - id: qapo.endorsing_verdict
+    name: Endorsing Verdict
+    label: { pt-BR: "Veredito de Endosso" }
+    definition:
+      pt-BR: >
+        O avaliador considera o artefato apto a seguir. NÃO afirma ausência de não
+        conformidade: endossar é não bloquear, e a ressalva registrada continua registrada.
+    classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
+
+  - id: qapo.objecting_verdict
+    name: Objecting Verdict
+    label: { pt-BR: "Veredito de Objeção" }
+    definition:
+      pt-BR: >
+        O avaliador identifica não conformidade que deve ser resolvida antes de o artefato
+        seguir. É a única posição que implica `qapo.noncompliance_identification`.
+    classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
+
+  - id: qapo.abstaining_verdict
+    name: Abstaining Verdict
+    label: { pt-BR: "Veredito de Abstenção" }
+    definition:
+      pt-BR: >
+        O avaliador participou da avaliação e não tomou posição. É diferente de não ter
+        avaliado: a avaliação aconteceu, e contá-la como ausência apagaria o trabalho de
+        quem leu o artefato e comentou.
+    classification: { ufo_category: social_object, parent: qapo.evaluation_verdict }
+
+relations:
+  - id: qapo.artifact_evaluation_reached_verdict
+    name: reached
+    label: { pt-BR: "chegou a", en: "reached" }
+    source: qapo.artifact_evaluation
+    target: qapo.evaluation_verdict
+    # `association`, como `qapo.noncompliance_identification_registers` da própria QAPO:
+    # um ato de avaliação e o item de informação que ele produz. `characterization` foi a
+    # primeira tentativa, e o validador a recusou — corretamente: não está entre os oito
+    # tipos que o esquema declara, e inventar tipo de relação para caber uma intuição é o
+    # oposto do que a rede existe para impedir.
+    type: association
+    cardinality: { source: one, target: one }
+    semantics:
+      pt-BR: >
+        Uma avaliação chega a um veredito, e a um só. Duas posições sobre o mesmo artefato
+        pela mesma pessoa são duas avaliações, em instantes diferentes — é o mesmo
+        raciocínio de `qapo.stakeholder_performed_artifact_evaluation`, que declara `one` na
+        origem porque revisão não tem co-autoria.
+
+        `one` no destino, e não `zero_or_one`: avaliação sem veredito é avaliação que não
+        aconteceu, e o estado de ciclo de vida — não submetida, retirada — vive fora do
+        veredito justamente para que ele nunca precise ser nulo.

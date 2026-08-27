@@ -40,8 +40,10 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
+  alias TheBand.Quality.Verdict
   alias TheBand.Tenants
   alias TheBand.Tenants.User
+  alias TheBand.Verification
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
   alias TheBandWeb.WorkCharts
@@ -266,6 +268,20 @@ defmodule TheBandWeb.PeopleLive.Show do
       # O que a pessoa MUDOU — três leituras nunca somadas, porque abrir, integrar e
       # commitar são atos distintos, com participações distintas na ontologia.
       mudancas: Changes.by_person(tenant, pessoa.id, limit: 10),
+      # Feature 044: as seis contagens numa consulta. Só quando a aba abre — calcular
+      # participação de quem não pode vê-la é fazer o trabalho do vazamento (#369 FR-012h).
+      # `participacao_na_mudanca`, e não `participacao`: a tela JÁ tem um assign com esse
+      # nome — a participação em discussões, da feature 030. Sobrescrevê-lo trocou a
+      # listagem de discussões por um mapa de contagens, e o erro só apareceu como
+      # `BadMapError` no render, longe da causa.
+      participacao_na_mudanca:
+        se_pode(ve_o_trabalho?, nil, fn ->
+          Changes.participacao_da_pessoa(tenant, pessoa.id)
+        end),
+      # Feature 044, US3: o desfecho da verificação sobre os commits dela. Independente da
+      # participação em mudança — domínios e tabelas diferentes.
+      verificacao:
+        se_pode(ve_o_trabalho?, nil, fn -> Verification.por_pessoa(tenant, pessoa.id) end),
       dias_parada: Material.stale_days(),
       pagina: pagina,
       # `@por_pagina` dentro do template é **assign**, não atributo de módulo — e sem esta linha o
@@ -408,6 +424,10 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   defp projecao_legivel(atomo), do: %{tipo: atomo}
 
+  # A soma dos três vereditos — que NÃO é a contagem de solicitações revisadas, e a tela
+  # explica a diferença quando ela existe.
+  defp avaliacoes(%{endossou: e, objetou: o, absteve: a}), do: e + o + a
+
   defp rotulo_da_escala(:semana), do: "weekly"
   defp rotulo_da_escala(:mes), do: "monthly"
   defp rotulo_da_escala(:ano), do: "yearly"
@@ -509,8 +529,71 @@ defmodule TheBandWeb.PeopleLive.Show do
               apart here because the network keeps them apart.
             </p>
 
+            <%!-- ═══ OS TRÊS PAPÉIS, EM NÚMERO — feature 044 ═══
+                  A soma dos três NÃO aparece, e é de propósito: abrir, revisar e integrar
+                  são participações distintas, e somá-las produziria um número que não
+                  significa coisa alguma. --%>
+            <div :if={@participacao_na_mudanca} class="mb-3 flex flex-wrap gap-4 text-sm">
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.abriu}</strong>
+                <span class="text-xs opacity-70">opened</span>
+              </span>
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.revisou}</strong>
+                <span class="text-xs opacity-70">reviewed</span>
+              </span>
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.integrou}</strong>
+                <span class="text-xs opacity-70">integrated</span>
+              </span>
+            </div>
+
+            <%!-- ═══ O VEREDITO — feature 044, US2 ═══
+                  Nomeado pelo CONCEITO da rede, e nunca pelo enum do GitHub: `APPROVED` e
+                  `CHANGES_REQUESTED` não aparecem em lugar nenhum desta tela. --%>
+            <div :if={@participacao_na_mudanca && @participacao_na_mudanca.revisou > 0} class="mb-3">
+              <h5 class="text-xs font-medium opacity-70">How they reviewed</h5>
+              <div class="flex flex-wrap gap-3 text-sm">
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.endossou}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.endorsing_verdict")}</span>
+                </span>
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.objetou}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.objecting_verdict")}</span>
+                </span>
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.absteve}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.abstaining_verdict")}</span>
+                </span>
+              </div>
+
+              <%!-- FR-011: endossar NÃO é ausência de não conformidade. A rede declara
+                    `many` no destino de `identified_noncompliance` porque inclui zero e
+                    não o exige. --%>
+              <p class="mt-1 text-xs text-base-content/60">
+                Endorsing means <em>not blocking</em> — a review that endorses may still
+                have raised concerns.
+              </p>
+
+              <%!-- T007: a diferença entre revisões e vereditos, dita SÓ quando existe.
+                    Medido: `vinicius-je` revisou 627 solicitações com 721 avaliações. Sem
+                    a frase, quem lê conclui que um dos números está quebrado — foi o que
+                    aconteceu com `fatasy`, com 8 e 233. --%>
+              <p
+                :if={avaliacoes(@participacao_na_mudanca) > @participacao_na_mudanca.revisou}
+                class="text-xs text-base-content/60"
+              >
+                {avaliacoes(@participacao_na_mudanca)} reviews over {@participacao_na_mudanca.revisou} change
+                requests — some were reviewed more than once. Reviews count <strong>positions taken</strong>; the number above counts <strong>changes reviewed</strong>.
+              </p>
+            </div>
+
             <p
-              :if={@mudancas.abertas == [] and @mudancas.integradas == [] and @mudancas.commits == []}
+              :if={
+                @mudancas.abertas == [] and @mudancas.revisadas == [] and @mudancas.integradas == [] and
+                  @mudancas.commits == []
+              }
               class="text-xs text-base-content/60"
             >
               No change request or commit collected for this person. Either the work goes
@@ -521,6 +604,19 @@ defmodule TheBandWeb.PeopleLive.Show do
               <h5 class="text-xs font-medium opacity-70">Opened</h5>
               <div
                 :for={m <- @mudancas.abertas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
+              </div>
+            </div>
+
+            <div :if={@mudancas.revisadas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Reviewed</h5>
+              <div
+                :for={m <- @mudancas.revisadas}
                 class="flex flex-wrap items-baseline gap-x-2 text-sm"
               >
                 <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
@@ -819,6 +915,60 @@ defmodule TheBandWeb.PeopleLive.Show do
             and to whoever answers for the organisation. None of those is declared for you
             here — and leadership is <strong>declared</strong>, never guessed from a role's
             name.
+          </.notice>
+        </section>
+
+        <%!-- ═══ A VERIFICAÇÃO SOBRE OS COMMITS DELA — feature 044, US3 ═══
+              `commit_authors` → `collected_commits` → `collected_verifications`, por
+              `sha` = `head_sha`. Co-autoria conta: a rede declara `many` na origem de
+              `cmpo.stakeholder_performed_commit`. --%>
+        <section :if={@ve_o_trabalho? and @verificacao} class="space-y-2">
+          <h3 class="font-semibold">Checks on their commits</h3>
+
+          <div class="flex flex-wrap gap-4 text-sm">
+            <span>
+              <strong class="tabular-nums">{@verificacao.passou}</strong>
+              <span class="text-xs opacity-70">passed</span>
+            </span>
+            <span>
+              <strong class="tabular-nums">{@verificacao.quebrou}</strong>
+              <span class="text-xs opacity-70">broke</span>
+            </span>
+            <%!-- FR-004: `skipped` e `cancelled` NÃO são passou nem quebrou. As duas
+                  palavras afirmam resultado, e pular ou cancelar não é resultado. --%>
+            <span :if={@verificacao.outras > 0}>
+              <strong class="tabular-nums">{@verificacao.outras}</strong>
+              <span class="text-xs opacity-70">neither — skipped or cancelled</span>
+            </span>
+          </div>
+
+          <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
+                commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
+                um. --%>
+          <p class="text-xs text-base-content/60">
+            Counted as <strong>runs</strong>, not commits — a retried commit produces a new
+            run.
+          </p>
+
+          <p
+            :if={@verificacao.passou == 0 and @verificacao.quebrou == 0 and @verificacao.outras == 0}
+            class="text-xs text-base-content/60"
+          >
+            No check run on this person's commits. Either their commits are in repositories
+            without workflows, or the commits themselves have not been collected.
+          </p>
+
+          <%!-- FR-010: a parcela AO LADO, e nunca descontada. Medido em 2026-08-27: 47%
+                das execuções não casam com pessoa alguma — evento sem commit, autor não
+                promovido, ou robô. --%>
+          <.notice
+            :if={@verificacao.sem_autoria_no_tenant > 0}
+            kind={:gap}
+            title={"#{@verificacao.sem_autoria_no_tenant} runs in this organisation match no person at all"}
+          >
+            They were triggered by an event with no commit, or by a commit whose author was
+            never promoted to a person. They are not counted above, and not subtracted from
+            it either — the numbers speak for the commits the platform could attribute.
           </.notice>
         </section>
 
