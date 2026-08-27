@@ -18,6 +18,7 @@ defmodule TheBandWeb.PainelDaPessoaTest do
   import TheBand.WorkItemsFixtures
 
   alias TheBand.Mapping.Antipatterns
+  alias TheBand.Ontology.Continuum.SRO
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
@@ -29,6 +30,11 @@ defmodule TheBandWeb.PainelDaPessoaTest do
     {tenant, user} = tenant_with_admin()
     cenario = cenario_real(tenant)
     {:ok, pessoa} = pessoa(tenant, "ana")
+
+    # Issue #369: a aba de trabalho só abre para quem a plataforma sabe que é. Sem o elo,
+    # nem a própria pessoa alcança o próprio painel — e é de propósito.
+    elo_de_identidade(tenant, user, pessoa)
+
     %{conn: log_in(conn, user), tenant: tenant, cenario: cenario, pessoa: pessoa}
   end
 
@@ -46,6 +52,24 @@ defmodule TheBandWeb.PainelDaPessoaTest do
 
   # Designa a issue à pessoa e opcionalmente a fecha, mexendo nas datas da origem — que é de
   # onde os dois gráficos saem.
+  defp caixa(ctx, titulo, inicio, dias) do
+    {:ok, s} =
+      SRO.record_sprint(ctx.tenant, %{
+        connected_tool_id: ctx.cenario.tool.id,
+        board_number: 31,
+        board_title: "DevOps",
+        field_name: "Sprint",
+        title: titulo,
+        started_on: inicio,
+        duration_days: dias,
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_external_id: "PVTI_#{titulo}"
+      })
+
+    s
+  end
+
   defp trabalhar(ctx, issue, opts) do
     {:ok, _} =
       WorkItems.replace_assignees(ctx.tenant, issue.id, [
@@ -117,7 +141,130 @@ defmodule TheBandWeb.PainelDaPessoaTest do
       assert Enum.find(meses, &(&1.month == "2026-02")).count == 0
 
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
-      assert html =~ "Issues completed over time"
+      assert html =~ "Issues opened and closed over time"
+    end
+
+    test "as duas séries vêm juntas, e o período vazio no meio não some", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-01-20 09:00:00Z]
+      )
+
+      trabalhar(ctx, hd(ctx.cenario.issues[1].partes),
+        criada: ~U[2026-03-01 09:00:00Z],
+        fechada: ~U[2026-03-10 09:00:00Z]
+      )
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :mes)
+
+      assert Enum.map(serie, & &1.periodo) == ["2026-01", "2026-02", "2026-03"]
+
+      assert Enum.find(serie, &(&1.periodo == "2026-02")) == %{
+               periodo: "2026-02",
+               criadas: 0,
+               fechadas: 0
+             }
+
+      assert Enum.find(serie, &(&1.periodo == "2026-01")) == %{
+               periodo: "2026-01",
+               criadas: 1,
+               fechadas: 1
+             },
+             """
+             As duas séries não vieram na mesma linha do período.
+
+             Elas saem de colunas diferentes da mesma tabela, e a união dos dois agrupamentos
+             existe para responder em UMA consulta — a página está no teto medido.
+             """
+    end
+
+    test "a escala muda a série, e as três contam o mesmo total", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-01-20 09:00:00Z]
+      )
+
+      trabalhar(ctx, hd(ctx.cenario.issues[1].partes),
+        criada: ~U[2026-03-01 09:00:00Z],
+        fechada: ~U[2026-03-10 09:00:00Z]
+      )
+
+      totais =
+        for escala <- WorkItems.escalas() do
+          serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, escala)
+          {escala, Enum.sum(Enum.map(serie, & &1.criadas)), length(serie)}
+        end
+
+      assert [{:semana, 2, semanas}, {:mes, 2, 3}, {:ano, 2, 1}] = totais, """
+      Trocar a escala mudou o TOTAL, e não só o agrupamento.
+
+      Duas issues criadas são duas em qualquer escala. Um total que muda com o agrupamento
+      significa dupla contagem — uma issue caindo em dois períodos —, e é o defeito clássico
+      de janela de tempo com borda mal fechada.
+      """
+
+      assert semanas > 3, "a escala semanal não abriu mais períodos que a mensal"
+    end
+
+    # `external_created_at` é anulável, e hoje o banco de desenvolvimento não tem nenhuma
+    # — medido em 2026-08-27, 0 de 5.216. A guarda existe para o dia em que a origem
+    # devolver uma sem data: `to_char(NULL, ...)` é NULL, e um período nulo viraria uma
+    # barra sem rótulo no meio da série.
+    test "issue sem data de criação não vira período nulo", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-01-20 09:00:00Z]
+      )
+
+      trabalhar(ctx, hd(ctx.cenario.issues[1].partes), criada: nil, fechada: nil)
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :mes)
+
+      assert [%{periodo: "2026-01", criadas: 1, fechadas: 1}] = serie, """
+      Uma issue sem data de criação entrou na série.
+
+      `to_char(NULL, ...)` é NULL, e ela viraria um período sem rótulo — uma barra que o
+      eixo não nomeia e que ninguém consegue situar no tempo.
+      """
+
+      refute Enum.any?(serie, &is_nil(&1.periodo))
+    end
+
+    test "a semana ISO da virada do ano não colide", ctx do
+      # 29/12/2025 é segunda-feira da semana 1 de 2026 pela ISO. Com `YYYY` em vez de
+      # `IYYY`, o rótulo sairia `2025-W01` — o mesmo de janeiro de 2025.
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2025-12-29 09:00:00Z],
+        fechada: ~U[2025-12-30 09:00:00Z]
+      )
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :semana)
+
+      assert [%{periodo: "2026-W01", criadas: 1, fechadas: 1}] = serie, """
+      A semana da virada do ano recebeu o rótulo do ano civil.
+
+      A ISO põe 29/12/2025 na semana 1 de 2026. Com `YYYY`, dezembro e janeiro do mesmo ano
+      civil dividiriam `2025-W01`, e duas semanas distantes somariam na mesma barra.
+      """
+    end
+
+    test "escala desconhecida no endereço cai no mês, e não derruba a tela", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?escala=decada")
+
+      assert html =~ "Issues opened and closed over time", """
+      Uma escala inválida no endereço derrubou a página.
+
+      O valor chega até o `to_char` do Postgres, e formato inválido ali é erro de banco numa
+      página de leitura. A lista de escalas é fechada, e o que não está nela vira o padrão.
+      """
+    end
+
+    test "trocar a escala preserva a busca", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}?q=agulha")
+
+      live |> element("button[phx-value-escala=semana]") |> render_click()
+
+      assert_patched(live, ~p"/people/#{ctx.pessoa.id}?escala=semana&q=agulha")
     end
 
     test "as faixas de idade vêm todas, inclusive as vazias", ctx do
@@ -285,6 +432,173 @@ defmodule TheBandWeb.PainelDaPessoaTest do
                live(conn, ~p"/people/#{ctx.pessoa.id}")
 
       assert destino == ~p"/people"
+    end
+  end
+
+  describe "burn-up, burn-down e a projeção" do
+    test "o acumulado sobe, e o aberto é a diferença das duas linhas", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-03-10 09:00:00Z]
+      )
+
+      trabalhar(ctx, hd(ctx.cenario.issues[1].partes), criada: ~U[2026-02-01 09:00:00Z])
+
+      burn =
+        ctx.tenant
+        |> WorkItems.state_changes_by_period(ctx.pessoa.id, :mes)
+        |> WorkItems.burn()
+
+      assert [
+               %{periodo: "2026-01", escopo: 1, feito: 0, aberto: 1},
+               %{periodo: "2026-02", escopo: 2, feito: 0, aberto: 2},
+               %{periodo: "2026-03", escopo: 2, feito: 1, aberto: 1}
+             ] = burn,
+             """
+             O acumulado não bate.
+
+             `escopo` e `feito` só sobem — são acumulados —, e `aberto` é exatamente a diferença
+             dos dois. Se `aberto` fosse uma série própria, ela poderia divergir das outras duas e
+             a tela mostraria três números que não fecham entre si.
+             """
+    end
+
+    test "sem trabalho aberto, a projeção diz isso e não uma data", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-01-20 09:00:00Z]
+      )
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :mes)
+      assert WorkItems.projecao(serie) == :sem_trabalho_aberto
+    end
+
+    test "escopo crescendo mais rápido que o fechamento NÃO vira data", ctx do
+      # Três criadas, uma fechada: abre mais do que fecha.
+      trabalhar(ctx, ctx.cenario.issues[1].pai,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-01-20 09:00:00Z]
+      )
+
+      for parte <- Enum.take(ctx.cenario.issues[1].partes, 3) do
+        trabalhar(ctx, parte, criada: ~U[2026-02-01 09:00:00Z])
+      end
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :mes)
+
+      assert {:nao_converge, criadas, fechadas} = WorkItems.projecao(serie), """
+      A projeção deu uma data para quem abre mais do que fecha.
+
+      Dividir o aberto por um líquido negativo ou zero produz número, e apresentá-lo como
+      previsão é aritmética disfarçada. A resposta certa é que no ritmo atual não termina.
+      """
+
+      assert criadas > fechadas
+    end
+
+    # Para cair aqui a JANELA precisa ser menor que a série: escopo antigo pesando sobre um
+    # ritmo recente que fecha, mas quase de empate. Se a janela cobrisse a série inteira, o
+    # líquido seria exatamente `-aberto`, e a resposta seria sempre `nao_converge`.
+    test "ritmo quase empatado NÃO projeta além do observado", ctx do
+      partes = Enum.take(ctx.cenario.issues[4].partes, 16)
+
+      # Dezesseis criadas em janeiro, e nenhuma fechada ali.
+      for parte <- partes, do: trabalhar(ctx, parte, criada: ~U[2026-01-05 09:00:00Z])
+
+      # Uma fechada por mês, de fevereiro a julho: seis períodos de líquido +1.
+      meses = [
+        ~U[2026-02-10 09:00:00Z],
+        ~U[2026-03-10 09:00:00Z],
+        ~U[2026-04-10 09:00:00Z],
+        ~U[2026-05-10 09:00:00Z],
+        ~U[2026-06-10 09:00:00Z],
+        ~U[2026-07-10 09:00:00Z]
+      ]
+
+      for {parte, fim} <- Enum.zip(partes, meses) do
+        trabalhar(ctx, parte, criada: ~U[2026-01-05 09:00:00Z], fechada: fim)
+      end
+
+      serie = WorkItems.state_changes_by_period(ctx.tenant, ctx.pessoa.id, :mes)
+
+      assert {:alem_do_observado, periodos, observados} = WorkItems.projecao(serie), """
+      A projeção deu uma data mais longa do que a série observada.
+
+      Medido em 2026-08-27 no banco de desenvolvimento: `CaioLessaSimao` fecharia em 78
+      meses a partir de 16 observados, e `tadeuaugustovs` em 171. Os dois "convergem" pela
+      conta, e nenhum dos números é informação — é divisão por quase-zero apresentada como
+      previsão.
+      """
+
+      assert periodos > observados
+    end
+
+    # O prazo é do trabalho ABERTO. Incluir a fechada daria a data da caixa dela, e uma
+    # caixa que termina depois folgaria o prazo de quem ainda tem trabalho para entregar.
+    test "o prazo é da caixa do trabalho ABERTO, e não da caixa da fechada", ctx do
+      aberta = ctx.cenario.issues[1].pai
+      fechada = hd(ctx.cenario.issues[1].partes)
+
+      trabalhar(ctx, aberta, criada: ~U[2026-01-05 09:00:00Z])
+
+      trabalhar(ctx, fechada,
+        criada: ~U[2026-01-05 09:00:00Z],
+        fechada: ~U[2026-02-10 09:00:00Z]
+      )
+
+      cedo = caixa(ctx, "Sprint 1", ~D[2026-02-01], 14)
+      tarde = caixa(ctx, "Sprint 9", ~D[2026-08-01], 14)
+
+      {:ok, _} = SRO.place_issue_in_sprint(ctx.tenant, cedo.id, aberta.id)
+      {:ok, _} = SRO.place_issue_in_sprint(ctx.tenant, tarde.id, fechada.id)
+
+      assert %{prazo: ~D[2026-02-14], sem_caixa: 0} =
+               WorkItems.prazo_do_trabalho_aberto(ctx.tenant, ctx.pessoa.id),
+             """
+             O prazo veio da caixa de uma issue já fechada.
+
+             A pergunta é até quando o que AINDA está aberto foi planejado. Uma caixa que termina
+             em agosto, de trabalho entregue em fevereiro, folgaria o prazo de quem ainda deve.
+             """
+    end
+
+    test "issue aberta fora de caixa nenhuma conta à parte, e não some", ctx do
+      dentro = ctx.cenario.issues[1].pai
+      fora = hd(ctx.cenario.issues[1].partes)
+
+      trabalhar(ctx, dentro, criada: ~U[2026-01-05 09:00:00Z])
+      trabalhar(ctx, fora, criada: ~U[2026-01-06 09:00:00Z])
+
+      c = caixa(ctx, "Sprint 1", ~D[2026-02-01], 14)
+      {:ok, _} = SRO.place_issue_in_sprint(ctx.tenant, c.id, dentro.id)
+
+      assert %{prazo: ~D[2026-02-14], sem_caixa: 1} =
+               WorkItems.prazo_do_trabalho_aberto(ctx.tenant, ctx.pessoa.id),
+             """
+             A issue aberta sem caixa sumiu, ou foi somada ao prazo.
+
+             Trabalho sem caixa não tem data planejada. Atribuir-lhe a data de outra caixa
+             inventaria uma promessa, e omiti-lo faria o prazo falar por trabalho que ele não
+             cobre — foi o que o dado real mostrou: 111 de 156 abertas de uma pessoa sem caixa
+             nenhuma, com o prazo falando por 45.
+             """
+    end
+
+    test "a tela mostra o burn e o prazo declarado", ctx do
+      trabalhar(ctx, ctx.cenario.issues[1].pai, criada: ~U[2026-01-05 09:00:00Z])
+
+      {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "Work accumulated, and what is left"
+      assert html =~ "scope (opened)" and html =~ "done (closed)"
+
+      assert html =~ "No planned end date", """
+      A ausência de prazo não foi nomeada.
+
+      Nenhuma issue desta pessoa está em caixa de tempo, então nada declara quando o
+      trabalho deveria terminar. A plataforma não infere um do ritmo — e dizer nada faria
+      parecer que o prazo existe e não coube na tela.
+      """
     end
   end
 end

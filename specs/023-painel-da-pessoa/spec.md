@@ -268,6 +268,33 @@ que mais se aproxima de julgamento, e por isso vem depois de a US2 estar firme.
   líder" de "não sabemos quem você é entre as pessoas observadas", que são bloqueios
   diferentes e têm remédios diferentes.
 
+- **FR-012j**: Quem tem `admin` de plataforma MUST ver todos os painéis do tenant.
+  Decisão da pessoa mantenedora em 2026-08-27.
+
+  Isto **junta** o que a `FR-012f` separa: `users.role` diz quem pode mexer na plataforma,
+  e passa a decidir também quem lê o trabalho de quem. A consequência declarada é que
+  administrar ferramentas inclui ler o painel de todas as pessoas — um privilégio que não
+  passa por declaração de papel e não aparece na tela dos papéis, onde os outros aparecem.
+
+  O motivo `:admin_da_plataforma` MUST vir **por último** em cada ramo: quando um motivo
+  mais específico se aplica, é ele que a tela mostra.
+
+- **FR-012h**: A recusa MUST acontecer **antes da carga**, e não apenas antes do render.
+  Calcular vazão, lead time e antipadrões de quem não pode vê-los é fazer o trabalho do
+  vazamento e descartar o resultado: o custo fica igual, e basta uma referência esquecida
+  no template para o número aparecer. O teste-guarda mede isso — a aba fechada custa
+  **menos** consultas que a aberta.
+
+- **FR-012i**: O alcance de escopo `team` MUST parar na equipe, e o de `organization` MUST
+  parar na organização. Uma equipe **sem organização declarada** não é alcançada por
+  `organization`: responder por organização nenhuma não é responder por essa equipe, e
+  liderança de equipe é outra declaração.
+
+  Medido por injeção em 2026-08-27: sem o filtro de escopo, uma concessão de
+  `organization` num papel abriria a equipe sem organização como se fosse liderança —
+  porque `NULL = NULL` é falso em SQL e a checagem por organização falha justamente ali.
+  Concede-se o que foi declarado, e nunca o que sobrou.
+
 ### O que a plataforma recusa mostrar
 
 - **FR-013**: A aba MUST NOT exibir throughput, WIP verdadeiro ou cycle time enquanto não houver

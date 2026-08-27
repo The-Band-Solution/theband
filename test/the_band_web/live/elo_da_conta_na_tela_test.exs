@@ -116,6 +116,83 @@ defmodule TheBandWeb.EloDaContaNaTelaTest do
     end
   end
 
+  describe "a aba de trabalho — issue #369, FR-012" do
+    # Logado como MEMBRO, e não como admin: desde 2026-08-27 admin vê tudo, e um teste que
+    # loga como admin provaria o contrário do que diz provar.
+    test "sem elo, a aba fecha e diz QUAL bloqueio é", ctx do
+      conn = log_in(Phoenix.ConnTest.build_conn(), ctx.comum)
+      {:ok, _live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "We do not know which observed person you are", """
+      A aba fechou sem dizer qual bloqueio é.
+
+      FR-012g: "não declararam quem você é" e "ninguém foi declarado líder" têm remédios
+      diferentes. Dizer "sem permissão" para os dois manda quem lê procurar no lugar errado.
+      """
+
+      refute html =~ "Concluded per month", "a aba de trabalho abriu sem elo declarado"
+    end
+
+    test "com o elo, a própria pessoa vê o próprio painel", ctx do
+      Tenants.declare_person(ctx.tenant, ctx.comum.id, ctx.pessoa.id, ctx.admin.id)
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), ctx.comum)
+      {:ok, _live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+
+      refute html =~ "We do not know which observed person you are"
+      assert html =~ "Work"
+    end
+
+    test "com elo em OUTRA pessoa, a aba fecha com o outro motivo", ctx do
+      outra = pessoa(ctx.tenant, "bia", "Bia")
+      Tenants.declare_person(ctx.tenant, ctx.comum.id, outra.id, ctx.admin.id)
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), ctx.comum)
+      {:ok, _live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+
+      assert html =~ "This panel is not yours to see", """
+      O segundo bloqueio não foi distinguido do primeiro.
+
+      Aqui a plataforma SABE quem a conta é — sabe que não é esta pessoa, e que ninguém
+      declarou liderança. É decisão aplicada, e não ausência de conhecimento.
+      """
+
+      refute html =~ "We do not know which observed person you are"
+    end
+
+    # A asserção que importa: a recusa não é só o HTML. Uma tela que esconde a seção mas
+    # calcula tudo faz o trabalho do vazamento e paga o custo — e basta uma referência
+    # esquecida no template para o número aparecer.
+    test "a aba fechada NÃO calcula o painel", ctx do
+      outra = pessoa(ctx.tenant, "bia", "Bia")
+      conn = log_in(Phoenix.ConnTest.build_conn(), ctx.comum)
+
+      # Com o elo apontando para a PRÓPRIA pessoa: a aba abre, e o painel é calculado.
+      Tenants.declare_person(ctx.tenant, ctx.comum.id, ctx.pessoa.id, ctx.admin.id)
+
+      aberta =
+        TheBand.ContadorDeConsultas.contar(fn ->
+          {:ok, _live, _html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      # Com o elo apontando para OUTRA pessoa: a aba fecha.
+      Tenants.declare_person(ctx.tenant, ctx.comum.id, outra.id, ctx.admin.id)
+
+      fechada =
+        TheBand.ContadorDeConsultas.contar(fn ->
+          {:ok, _live, _html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
+        end)
+
+      assert fechada < aberta, """
+      A aba fechada custou #{fechada} consultas, e a aberta #{aberta} — o mesmo.
+
+      Esconder a seção e calcular tudo é fazer o trabalho do vazamento e depois descartar o
+      resultado: o custo fica igual, e basta uma referência esquecida no template para o
+      número aparecer. A recusa acontece ANTES da carga, e por isso o número CAI.
+      """
+    end
+  end
+
   describe "o que a tela diz" do
     test "sem elo, diz que ninguém alcança o painel — nem a própria pessoa", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/people/#{ctx.pessoa.id}")

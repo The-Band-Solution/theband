@@ -24,6 +24,7 @@ defmodule TheBandWeb.PapelDeclaradoTest do
 
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Tenants
 
   setup %{conn: conn} do
     {:ok, _} = KnowledgeBase.load()
@@ -221,6 +222,65 @@ defmodule TheBandWeb.PapelDeclaradoTest do
     case Regex.run(~r{Roles declared for this person(.*?)</section>}s, html) do
       [_, bloco] -> bloco
       _ -> flunk("não achei o bloco de papéis declarados")
+    end
+  end
+
+  defp papel_declarado(ctx, code, name) do
+    {:ok, r} =
+      EO.create_role(ctx.tenant, ctx.organizacao.id, %{code: code, name: name}, ctx.user.id)
+
+    r
+  end
+
+  describe "o que o papel permite ver — issue #369" do
+    test "sem concessão nenhuma, a tela diz que ninguém vê painel de mais ninguém", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/roles")
+
+      assert html =~ "Nobody sees anyone else&#39;s work panel", """
+      A lacuna não foi dita.
+
+      Sem concessão, o painel de trabalho fecha para todos exceto a própria pessoa. Não
+      dizer isso faria a organização concluir que a plataforma perdeu o dado — FR-012g.
+      """
+
+      assert html =~ "only their own panel"
+    end
+
+    test "admin concede, e a tela passa a mostrar o alcance", ctx do
+      papel = papel_declarado(ctx, "tech_leader", "Tech Leader")
+
+      {:ok, live, html} = live(ctx.conn, ~p"/roles")
+      assert html =~ "only their own panel"
+
+      html =
+        live
+        |> form("#conceder-#{papel.id}", %{"scope" => "team"})
+        |> render_submit()
+
+      assert html =~ "sees their team&#39;s work panels"
+      refute html =~ "Nobody sees anyone else&#39;s work panel"
+
+      assert %{team: 1} = EO.grant_coverage(ctx.tenant)
+    end
+
+    # A rota `/roles` inteira é admin — `live_session :admin` no roteador. Quem não é admin
+    # nem chega à tela, e o evento nunca sai do navegador.
+    #
+    # A verificação no `handle_event` continua lá, e não é redundante: ela é a barreira que
+    # sobra no dia em que alguém mover a rota para fora daquele `live_session`, e conceder
+    # alcance é ato de acesso — quem recebe passa a ver o painel de trabalho de outras
+    # pessoas. As duas camadas cobrem uma à outra, e nenhuma delas é "a óbvia" para apagar.
+    test "quem não é admin não alcança a tela dos papéis", ctx do
+      {:ok, comum} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "membro-#{System.unique_integer([:positive])}@example.test",
+          "role" => "member"
+        })
+
+      conn = log_in(Phoenix.ConnTest.build_conn(), comum)
+
+      assert {:error, {:redirect, %{to: "/people"}}} = live(conn, ~p"/roles")
+      assert %{team: 0} = EO.grant_coverage(ctx.tenant)
     end
   end
 end

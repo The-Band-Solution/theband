@@ -47,6 +47,9 @@ defmodule TheBandWeb.TabelaEmTodasAsTelasTest do
         ])
     end
 
+    # Issue #369: sem o elo a aba de trabalho fecha, e não haveria tabela para buscar.
+    elo_de_identidade(tenant, user, pessoa)
+
     %{conn: log_in(conn, user), tenant: tenant, pessoa: pessoa}
   end
 

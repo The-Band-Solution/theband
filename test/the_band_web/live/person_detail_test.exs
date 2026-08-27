@@ -23,6 +23,10 @@ defmodule TheBandWeb.PersonDetailTest do
     {tenant, user} = tenant_with_admin()
     cenario = cenario_real(tenant)
     {:ok, pessoa} = pessoa(tenant, "ana")
+
+    # Issue #369: sem o elo a aba de trabalho fecha, e o teste mediria a tela errada.
+    elo_de_identidade(tenant, user, pessoa)
+
     %{conn: log_in(conn, user), tenant: tenant, cenario: cenario, pessoa: pessoa}
   end
 
@@ -314,7 +318,22 @@ defmodule TheBandWeb.PersonDetailTest do
       # commitar são participações distintas, e a tela as mostra distintas. O custo de
       # três é o preço de não achatar — e nenhuma delas cresce com o dado.
       #
-      # **E a última vaga foi ocupada pela #369**, com uma consulta e não três:
+      # **E de 22 para 23 pelo burn-down**, com uma consulta e uma só:
+      #
+      #  16. até quando o trabalho ABERTO desta pessoa foi planejado —
+      #      `prazo_do_trabalho_aberto/2`, o `data_end` da decisão de 2026-08-27.
+      #
+      # Ela devolve TRÊS respostas numa consulta: o maior `ended_on` entre as caixas do
+      # trabalho aberto, quantas issues abertas não estão em caixa nenhuma, e se aquelas
+      # caixas são sprint ou horizonte de planejamento (issue #514). Uma consulta por
+      # resposta seriam três.
+      #
+      # **Não dava para derivar.** As séries por período saem de `collected_issues`, e
+      # nenhuma consulta desta página tocava `sro_sprints` para esta pessoa. O burn-up e o
+      # burn-down em si DERIVAM — `burn/1` e `projecao/1` acumulam a série em memória, e
+      # custam zero. Foi a saída tentada primeiro, e ela não alcança uma data declarada.
+      #
+      # **E a vaga anterior foi ocupada pela #369**, com uma consulta e não três:
       #
       #  15. as contas do tenant — `Tenants.list_users/1`.
       #
@@ -325,19 +344,22 @@ defmodule TheBandWeb.PersonDetailTest do
       #
       # **A página está agora EXATAMENTE no teto.** A próxima consulta acrescentada aqui
       # reprova este teste, e é de propósito: quem acrescentar decide entre justificar o
-      # acréscimo e nomeá-lo, ou derivar do que já foi carregado — como a #369 fez.
+      # acréscimo e nomeá-lo, ou derivar do que já foi carregado — como a #369 fez, e como
+      # o burn-up e o burn-down fizeram.
       #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 22, """
+      assert acrescentadas <= 23, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **vinte e duas** — oito da tela original, sete do painel da 023,
+      linha de base medida é **vinte e três** — oito da tela original, sete do painel da 023,
       três do perfil da 026, uma da participação em discussões da 030, três das mudanças
-      da 032 (abriu, integrou, commitou — a rede separa os três atos), e uma da #369 (as
-      contas do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez).
+      da 032 (abriu, integrou, commitou — a rede separa os três atos), uma da #369 (as contas
+      do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez), e uma do
+      burn-down (o `data_end` do trabalho aberto, com a parcela sem caixa junto).
 
-      A página está EXATAMENTE no teto. Se tu acrescentou uma consulta, a saída é derivar do
-      que já foi carregado — não subir o número.
+      A página está EXATAMENTE no teto. Se tu acrescentou uma consulta, a primeira saída é
+      derivar do que já foi carregado — foi o que o burn-up e o burn-down fizeram, e por isso
+      custaram zero. Subir o número só depois de essa saída não existir, e nomeando a conta.
 
       O que a página faz além da lista:
 
