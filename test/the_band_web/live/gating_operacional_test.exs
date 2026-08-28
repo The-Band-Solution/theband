@@ -47,6 +47,22 @@ defmodule TheBandWeb.GatingOperacionalTest do
     assert flash["error"] =~ "organization"
   end
 
+  test "organization alcança /ai — decisão da aceitação do sprint 023 (FR-023 como escrito)",
+       ctx do
+    {:ok, _} =
+      Tenants.grant_scope(ctx.tenant, ctx.member.id, :organization, ctx.org_a.id, ctx.admin)
+
+    conn = log_in(ctx.conn, ctx.member)
+    assert {:ok, _view, html} = live(conn, ~p"/ai")
+    # A chave é UMA do tenant — o recorte de organização não a divide, e a tela é a mesma.
+    assert html =~ "provider"
+  end
+
+  test "member puro não alcança /ai", ctx do
+    assert {:error, {:redirect, %{to: "/people"}}} =
+             ctx.conn |> log_in(ctx.member) |> live(~p"/ai")
+  end
+
   test "organization da org A vê a ferramenta da A e NÃO a da B", ctx do
     {:ok, _} =
       Tenants.grant_scope(ctx.tenant, ctx.member.id, :organization, ctx.org_a.id, ctx.admin)

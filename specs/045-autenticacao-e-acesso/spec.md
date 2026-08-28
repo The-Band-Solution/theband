@@ -291,6 +291,10 @@ e senha, sair, e entrar de novo com a senha nova.
   duas condições MUST NOT ver essas entradas no menu, e o acesso direto por URL MUST
   ser recusado com o motivo. A gestão de contas e concessões MUST continuar exclusiva
   de administrador.
+  *Nota da aceitação (2026-08-28, decisão da pessoa mantenedora): AI é operacional
+  como escrito — a chave do provedor continua UMA por tenant, e quem responde por
+  organização a opera; o recorte de organização vale para Syncs/Tools (ferramentas e
+  coletas têm dono), não para a chave, que é indivisível.*
 
 ### Key Entities
 

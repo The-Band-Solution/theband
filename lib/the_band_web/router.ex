@@ -111,6 +111,14 @@ defmodule TheBandWeb.Router do
       # Aba de /syncs (#428). A geração escreve por tenant; o gate é o mesmo das
       # operacionais, e o recorte fino por organização não se aplica a rodada.
       live "/profiles", ProfileRunLive.Index, :index
+
+      # Aba de /tools (#428). A leitura anterior deixava /ai só para admin ("chave
+      # de modelo é credencial do tenant; credencial é gestão") — a aceitação do
+      # sprint 023 a levou à pessoa mantenedora, que decidiu o contrário em
+      # 2026-08-28: AI é OPERACIONAL (FR-023 vale como escrito), e quem responde
+      # por uma organização também opera o provedor — a chave é uma só do tenant,
+      # e isso o recorte não muda.
+      live "/ai", AILive.Index, :index
     end
   end
 
@@ -123,16 +131,6 @@ defmodule TheBandWeb.Router do
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
       live "/accounts", AccountsLive.Index, :index
       live "/access-scopes", AccessScopesLive.Index, :index
-
-      # **Aba de `/tools` desde 2026-08-18 (#428), e a decisão anterior fica registrada
-      # em vez de apagada.** Ela dizia: "as ferramentas conectadas são fontes de
-      # observação, e um provedor de modelo interpreta o que já foi observado; junto, a
-      # tela de ferramentas ofereceria sincronizar algo que não tem o que sincronizar".
-      #
-      # A razão continua verdadeira — e é por isso que as telas seguem SEPARADAS. O que
-      # mudou foi só onde se acha: quem procura "com que conta a plataforma trabalha"
-      # não precisa saber que existe um endereço próprio.
-      live "/ai", AILive.Index, :index
 
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.
