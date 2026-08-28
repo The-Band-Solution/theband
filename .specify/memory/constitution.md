@@ -91,6 +91,22 @@ de contexto; ler o estado antes de comando que sobrescreve; não suprimir `stder
 comando que escreve; e ler o código de saída de dentro do log, nunca da notificação do
 comando composto.
 
+Emenda 1.6.0 — 2026-08-28
+=========================
+Versão: 1.5.0 → 1.6.0 (MINOR: orientação materialmente ampliada na seção Fluxo de
+desenvolvimento; nenhum princípio removido ou redefinido).
+
+A seção de issues do PR ganha formato obrigatório: um bloco por user story (título,
+número, prioridade) e tabela por tarefa — issue, ID e o resumo do que entregou, na
+frente. Padrão adotado no PR #543 e tornado norma por instrução da pessoa mantenedora.
+
+Motivo: a lista `US1 #529 (T001 #532, ...)` informa rastreabilidade e nada mais — quem
+revisa precisa abrir cada issue para saber o que o PR contém. O resumo na frente põe a
+decisão de revisão no próprio PR.
+
+O que passa a ser exigido de quem já seguia a versão anterior: escrever a seção de
+issues nesse formato em todo PR de feature, a partir desta data.
+
 -->
 
 # Constituição do The Band
@@ -475,6 +491,12 @@ relações afetados, YAMLs alterados, a tabela de mapeamentos semânticos (orige
 conceito, equivalência, limitação), migrações, testes, resultado dos quality gates,
 perguntas de competência validadas, evidências e riscos residuais.
 
+A seção de issues do PR MUST seguir o padrão adotado no PR #543: um bloco por user story —
+título, número da issue e prioridade — e, dentro dele, uma tabela com uma linha por tarefa:
+issue, ID da tarefa e **o resumo do que ela entregou**, escrito na frente. Lista de números
+sem resumo MUST NOT ser usada: quem revisa decide pelo que foi entregue, e obrigá-lo a
+abrir quatorze issues para descobrir é esconder o PR atrás de links.
+
 Features independentes MUST NOT ser misturadas no mesmo PR. Refatoração sem relação com a
 feature em curso MUST NOT entrar nela.
 
@@ -513,4 +535,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.5.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-26
+**Version**: 1.6.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-28

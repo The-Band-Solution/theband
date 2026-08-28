@@ -753,6 +753,8 @@ docs(ontology): document review semantics
 
 **Pull Request** informa: feature, spec, plan, issues, ontologias afetadas, conceitos e relações afetados, YAMLs alterados, tabela de mapeamentos semânticos (origem | ontologia | conceito | equivalência | limitação), migrações, testes, resultado dos quality gates, perguntas de competência validadas, evidências e riscos residuais.
 
+A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
+
 **Definition of Done**: critérios de aceitação atendidos, issues atualizadas, YAMLs validados, perguntas de competência testadas, testes passando, Credo e Dialyzer aprovados, migrações testadas, mapeamento semântico revisado, documentação atualizada, PR aprovado por outro agente/pessoa, pipeline verde, merge feito, issues encerradas.
 
 ---
