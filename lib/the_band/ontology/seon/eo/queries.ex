@@ -17,9 +17,9 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO.RoleCatalog
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
-  alias TheBand.Ontology.SEON.EO.Schemas.RoleVisibilityGrant
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
+  alias TheBand.Ontology.SEON.EO.Schemas.RoleVisibilityGrant
   alias TheBand.Ontology.SEON.EO.Schemas.Team
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
