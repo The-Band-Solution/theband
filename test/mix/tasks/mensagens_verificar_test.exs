@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Mensagens.VerificarTest do
 
   import ExUnit.CaptureIO
 
+  alias Mix.Tasks.Mensagens.Verificar
+
   @fixtures Path.join(System.tmp_dir!(), "mensagens_verificar_fixtures")
 
   setup do
@@ -26,7 +28,7 @@ defmodule Mix.Tasks.Mensagens.VerificarTest do
     capture_io(fn ->
       capture_io(:stderr, fn ->
         try do
-          Mix.Tasks.Mensagens.Verificar.run([@fixtures])
+          Verificar.run([@fixtures])
           send(self(), :passou)
         rescue
           e in Mix.Error -> send(self(), {:reprovou, e.message})

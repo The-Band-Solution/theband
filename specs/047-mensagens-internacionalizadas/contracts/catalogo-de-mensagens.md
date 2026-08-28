@@ -48,13 +48,16 @@ dgettext("sistema", "Renamed to %{nome}. The code is unchanged.", nome: papel.na
 
 ```elixir
 # config/config.exs
-config :the_band, TheBandWeb.Gettext,
-  default_locale: "en",
-  allowed_locales: ["en", "pt"]
+config :gettext, :default_locale, "en"
+config :the_band, TheBandWeb.Gettext, allowed_locales: ["en", "pt"]
 ```
 
-Trocar o idioma padrão da plataforma = trocar `default_locale` (FR-005). Lacuna no
-idioma ativo cai no msgid — texto legível por construção, nunca chave crua.
+Trocar o idioma padrão da plataforma = trocar a linha do `:gettext` (FR-005).
+[Corrigido em 2026-08-28, na implementação: o contrato original punha
+`default_locale` na config do backend — que é COMPILE-TIME (o teste de idioma
+reprovou com ela e passou com a do app `:gettext`, a única lida em runtime).
+Erro de contrato corrigido no mesmo commit, com esta razão.] Lacuna no idioma
+ativo cai no msgid — texto legível por construção, nunca chave crua.
 
 ## O verificador — `mix mensagens.verificar`
 

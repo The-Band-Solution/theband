@@ -6,6 +6,8 @@ defmodule Mix.Tasks.Mensagens.LacunasTest do
 
   import ExUnit.CaptureIO
 
+  alias Mix.Tasks.Mensagens.Lacunas
+
   @fixtures Path.join(System.tmp_dir!(), "mensagens_lacunas_fixtures")
 
   setup do
@@ -28,7 +30,7 @@ defmodule Mix.Tasks.Mensagens.LacunasTest do
     msgstr "Papel não encontrado."
     """)
 
-    saida = capture_io(fn -> Mix.Tasks.Mensagens.Lacunas.run([@fixtures]) end)
+    saida = capture_io(fn -> Lacunas.run([@fixtures]) end)
 
     assert saida =~ "pt: 1 lacunas"
     assert saida =~ "errors: Board not found."
@@ -45,7 +47,7 @@ defmodule Mix.Tasks.Mensagens.LacunasTest do
     msgstr "Quadro não encontrado."
     """)
 
-    saida = capture_io(fn -> Mix.Tasks.Mensagens.Lacunas.run([@fixtures]) end)
+    saida = capture_io(fn -> Lacunas.run([@fixtures]) end)
     assert saida =~ "pt: 0 lacunas"
   end
 end
