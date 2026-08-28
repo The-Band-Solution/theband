@@ -150,7 +150,7 @@
 
 ## Phase 6 — Polish
 
-- [ ] T011 Gates verdes e evidência de viewport
+- [x] T011 Gates verdes e evidência de viewport
   - **Pronta quando**: T003–T010 concluídas
   - **Descrição**: rodar `mix gates` (veredito = código de saída, nenhum comando
     depois); conferir SC-005 em viewport 1.280px (nenhuma rolagem lateral da página

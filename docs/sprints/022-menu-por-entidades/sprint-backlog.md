@@ -64,7 +64,7 @@ Do [registro acumulado](../licoes-aprendidas.md), consideradas neste sprint:
 | T008 | Leitura agregada da organização | US3 | Task | [#539](https://github.com/The-Band-Solution/theband/issues/539) | 3 | feito |
 | T009 | Tela Organization com estados vazios nomeados | US3 | Task | [#540](https://github.com/The-Band-Solution/theband/issues/540) | 3 | feito |
 | T010 | Número conferido contra a origem | US3 | Task | [#541](https://github.com/The-Band-Solution/theband/issues/541) | 1 | feito |
-| T011 | Gates verdes e evidência de viewport | US3 | Task | [#542](https://github.com/The-Band-Solution/theband/issues/542) | 1 | em andamento |
+| T011 | Gates verdes e evidência de viewport | US3 | Task | [#542](https://github.com/The-Band-Solution/theband/issues/542) | 1 | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende. T001/T002 atendem a
 US1 por habilitarem o MVP; T011 fecha o sprint e está sob a última US por convenção.
