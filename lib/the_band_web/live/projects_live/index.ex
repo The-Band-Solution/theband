@@ -469,7 +469,12 @@ defmodule TheBandWeb.ProjectsLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+    <Layouts.app
+      flash={@flash}
+      current_user={@current_user}
+      current_tenant={@current_tenant}
+      nav_area={assigns[:nav_area]}
+    >
       <.header>
         Projects
         <:subtitle>What each project groups, and how many issues that reaches</:subtitle>

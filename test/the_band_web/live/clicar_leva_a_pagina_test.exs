@@ -106,11 +106,18 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
     test "a organização não vira ligação na lista de pessoas", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/people")
 
-      refute html =~ ~r{<a[^>]*href="/organizations}, """
-      Um nome de organização virou ligação.
+      # A feature 046 criou /organizations e a pôs na BARRA — o item do menu é
+      # legítimo, e o teste o exclui olhando só o conteúdo depois do header. O que
+      # continua proibido é o nome da organização virar ligação NA LISTA: a página
+      # que existe é o índice, e não uma página daquela organização — apontar o nome
+      # para o índice afirmaria destino que não responde por ele.
+      [_header, conteudo] = String.split(html, "</header>", parts: 2)
 
-      **Não existe página de organização.** Criar a rota é decisão de produto; apontar para uma que
-      não existe é afirmar tela que não há.
+      refute conteudo =~ ~r{<a[^>]*href="/organizations}, """
+      Um nome de organização virou ligação na lista.
+
+      **Não existe página daquela organização** — /organizations é o índice. Apontar o nome
+      para lá é afirmar destino que não responde por ele.
       """
     end
   end

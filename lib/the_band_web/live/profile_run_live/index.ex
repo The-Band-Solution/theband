@@ -130,7 +130,12 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+    <Layouts.app
+      flash={@flash}
+      current_user={@current_user}
+      current_tenant={@current_tenant}
+      nav_area={assigns[:nav_area]}
+    >
       <%!-- Sync concentra o que a plataforma faz sozinha (#428): a coleta traz de FORA,
             a geração de perfis é o que ela ESCREVE. Vizinhas e distintas — reunir não
             pode achatar a diferença. --%>

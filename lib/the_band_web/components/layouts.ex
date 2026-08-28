@@ -36,6 +36,10 @@ defmodule TheBandWeb.Layouts do
   attr :current_user, :map, default: nil
   attr :current_tenant, :map, default: nil
 
+  attr :nav_area, :atom,
+    default: nil,
+    doc: "a área ativa do menu, derivada do caminho pela hook (ver nav_area/1)"
+
   def app(assigns) do
     ~H"""
     <%!-- Mobile-first: a navegação empilha e rola horizontalmente no telefone, e só vira
@@ -73,54 +77,57 @@ defmodule TheBandWeb.Layouts do
         class="nav-rolavel -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0"
       >
         <ul class="flex items-center gap-1 whitespace-nowrap">
-          <%!-- A ordem segue o que a plataforma observa, do agente para o trabalho:
-                quem (pessoas), com quem (equipes), sobre o quê (trabalho). Depois vêm as
-                telas de operação — sincronizações e ferramentas —, separadas por borda,
-                porque respondem "a plataforma está funcionando" e não "o que ela sabe". --%>
-          <li><.link navigate={~p"/people"} class="btn btn-ghost btn-sm">People</.link></li>
-          <li><.link navigate={~p"/teams"} class="btn btn-ghost btn-sm">Teams</.link></li>
-          <%!-- `Roles` fica ao lado de `Teams` porque continua a mesma frase: quem, com quem,
-                **em que papel**. E porque é onde se confirma quem é quem — sem ela, 100
-                participações observadas ficam esperando numa tela que só se alcança pela URL,
-                que foi exatamente o que aconteceu com Changes, Files e Checks. --%>
-          <li><.link navigate={~p"/roles"} class="btn btn-ghost btn-sm">Roles</.link></li>
-          <li><.link navigate={~p"/work"} class="btn btn-ghost btn-sm">Work</.link></li>
-          <%!-- Os três continuam a frase que a ordem já contava: o que foi pedido (Work), o
-                que respondeu (Changes), o que a resposta tocou (Files), e o que a máquina
-                disse sobre ela (Checks). Por isso ficam AQUI e não no fim — depois de
-                `Process` eles se separariam do trabalho que descrevem, e a ordem deixaria
-                de contar nada.
-
-                Existem porque as telas existiam e ninguém as achava: 5.035 solicitações,
-                87.719 versões de arquivo e 1.051 execuções alcançáveis só digitando a URL.
-                Quem mantém o projeto perguntou onde elas estavam — se essa pessoa não acha,
-                ninguém acha. --%>
-          <li><.link navigate={~p"/work/changes"} class="btn btn-ghost btn-sm">Changes</.link></li>
-          <li><.link navigate={~p"/work/files"} class="btn btn-ghost btn-sm">Files</.link></li>
-          <%!-- `Checks`, e nunca `CI`: das 1.051 execuções coletadas, 399 não são integração
-                contínua nenhuma — são espelhamento, virada de sprint e automação de quadro —
-                e outras 107 são só implantação. Um menu `CI` prometeria uma coisa e
-                entregaria outra, que é a mesma família de erro que o mapeamento cometeu e o
-                dado desmentiu (L61). --%>
+          <%!-- A barra carrega as ENTIDADES — as mesmas do axioma de acesso da spec 045:
+                quem (pessoas), com quem (equipes), sobre o quê (projetos). O resto vive em
+                Settings, em seções nomeadas — spec 046. A história que motivou: doze itens
+                estouraram 1.280px, e antes disso Changes/Files/Checks passaram meses
+                alcançáveis só por URL (5.035 solicitações, 87.719 versões de arquivo e
+                1.051 execuções que ninguém achava). Item de barra não escala; a resposta
+                para "onde está?" passou a ser a estrutura: entidade na barra, o resto em
+                Settings, e as visões de trabalho como sub-abas de Work (work_tabs/1). --%>
           <li>
-            <.link navigate={~p"/work/verifications"} class="btn btn-ghost btn-sm">Checks</.link>
+            <.nav_item navigate={~p"/people"} active={@nav_area == :people}>People</.nav_item>
           </li>
-          <%!-- Fica do lado do conhecimento, e não da operação: responde "o que a
-                organização faz", e não "a plataforma está funcionando". --%>
-          <li><.link navigate={~p"/projects"} class="btn btn-ghost btn-sm">Projects</.link></li>
-          <li><.link navigate={~p"/boards"} class="btn btn-ghost btn-sm">Boards</.link></li>
-          <li><.link navigate={~p"/process"} class="btn btn-ghost btn-sm">Process</.link></li>
-          <li class="border-l border-base-300 pl-2">
-            <.link navigate={~p"/syncs"} class="btn btn-ghost btn-sm">Syncs</.link>
+          <li>
+            <.nav_item navigate={~p"/teams"} active={@nav_area == :teams}>Teams</.nav_item>
           </li>
-          <li :if={@current_user && @current_user.role == "admin"}>
-            <.link navigate={~p"/tools"} class="btn btn-ghost btn-sm">Tools</.link>
+          <li>
+            <.nav_item navigate={~p"/projects"} active={@nav_area == :projects}>Projects</.nav_item>
           </li>
-          <%!-- IA e geração de perfis saíram do menu (#428) e viraram ABAS: a IA em
-                Tools, porque é configuração de ferramenta; a geração em Syncs, porque
-                Sync concentra o que a plataforma faz sozinha. As telas continuam
-                separadas — cada uma faz uma coisa; o que mudou é onde se acha. --%>
-          <li class="ml-auto hidden border-l border-base-300 pl-3 lg:block">
+          <li>
+            <.nav_item navigate={~p"/organizations"} active={@nav_area == :organization}>
+              Organization
+            </.nav_item>
+          </li>
+          <li class="ml-auto">
+            <details class="dropdown dropdown-end">
+              <summary
+                class={["btn btn-ghost btn-sm", @nav_area == :settings && "btn-active"]}
+                aria-current={@nav_area == :settings && "true"}
+              >
+                <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+              </summary>
+              <ul class="menu dropdown-content z-10 mt-1 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg">
+                <li class="menu-title">Trabalho</li>
+                <li><.link navigate={~p"/work"}>Work</.link></li>
+                <li class="menu-title">Vocabulário</li>
+                <%!-- `Roles` é onde se confirma quem é quem — sem ela, 100 participações
+                      observadas ficaram esperando numa tela que só se alcançava pela URL. --%>
+                <li><.link navigate={~p"/roles"}>Roles</.link></li>
+                <%!-- Operação responde "a plataforma está funcionando", não "o que ela
+                      sabe" — e só aparece para quem administra (FR-003 da spec 046; a
+                      spec 045 amplia para o escopo organization NESTA condição, num
+                      ponto só). IA e geração de perfis seguem como ABAS de Tools e de
+                      Syncs (#428) — não são itens. --%>
+                <%= if @current_user && @current_user.role == "admin" do %>
+                  <li class="menu-title">Operação</li>
+                  <li><.link navigate={~p"/syncs"}>Syncs</.link></li>
+                  <li><.link navigate={~p"/tools"}>Tools</.link></li>
+                <% end %>
+              </ul>
+            </details>
+          </li>
+          <li class="hidden border-l border-base-300 pl-3 lg:block">
             <span class="text-xs opacity-70">
               {@current_tenant.name} · {@current_user.email}
             </span>
@@ -142,6 +149,100 @@ defmodule TheBandWeb.Layouts do
     <.flash_group flash={@flash} />
     """
   end
+
+  @doc """
+  A área do menu a que um caminho pertence — spec 046, FR-006.
+
+  Mapa declarativo por prefixo de rota, testável sem LiveView; nenhuma tela
+  declara a própria área, então tela nova não quebra em silêncio — cai em `nil`
+  (nenhuma marcação) até ganhar linha aqui. `/ai` e `/profiles` continuam com
+  rota própria mesmo fora do menu (#428), e pertencem a Settings quando abertas
+  por URL.
+  """
+  @nav_areas [
+    {"/people", :people},
+    {"/teams", :teams},
+    {"/projects", :projects},
+    {"/organizations", :organization},
+    {"/work", :settings},
+    {"/roles", :settings},
+    {"/syncs", :settings},
+    {"/tools", :settings},
+    {"/boards", :settings},
+    {"/process", :settings},
+    {"/ai", :settings},
+    {"/profiles", :settings}
+  ]
+
+  @spec nav_area(String.t() | nil) :: atom() | nil
+  def nav_area(path) when is_binary(path) do
+    Enum.find_value(@nav_areas, fn {prefix, area} ->
+      if path == prefix or String.starts_with?(path, prefix <> "/"), do: area
+    end)
+  end
+
+  def nav_area(_), do: nil
+
+  attr :navigate, :string, required: true
+  attr :active, :boolean, default: false
+  slot :inner_block, required: true
+
+  # `aria-current="true"`, e nunca `"page"`: a barra marca a SEÇÃO atual — de
+  # /people/123, o item People é outra página. `"page"` pertence à migalha, que é
+  # quem aponta o lugar exato; dois donos para o mesmo valor fariam o leitor de
+  # tela anunciar dois "você está aqui" diferentes.
+  defp nav_item(assigns) do
+    ~H"""
+    <.link
+      navigate={@navigate}
+      class={["btn btn-ghost btn-sm", @active && "btn-active"]}
+      aria-current={@active && "true"}
+    >
+      {render_slot(@inner_block)}
+    </.link>
+    """
+  end
+
+  @doc """
+  Sub-abas das telas de trabalho — spec 046, FR-005.
+
+  Com Work fora da barra, as seis visões viraram irmãs visíveis aqui: um clique
+  entre elas, nas rotas que sempre tiveram. Componente único para as seis telas
+  não divergirem na primeira mudança.
+  """
+  attr :active, :atom,
+    required: true,
+    values: [:issues, :changes, :files, :checks, :boards, :process]
+
+  def work_tabs(assigns) do
+    ~H"""
+    <nav class="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <div role="tablist" class="tabs tabs-border whitespace-nowrap">
+        <.link navigate={~p"/work"} role="tab" class={tab_class(@active == :issues)}>
+          Issues
+        </.link>
+        <.link navigate={~p"/work/changes"} role="tab" class={tab_class(@active == :changes)}>
+          Changes
+        </.link>
+        <.link navigate={~p"/work/files"} role="tab" class={tab_class(@active == :files)}>
+          Files
+        </.link>
+        <.link navigate={~p"/work/verifications"} role="tab" class={tab_class(@active == :checks)}>
+          Checks
+        </.link>
+        <.link navigate={~p"/boards"} role="tab" class={tab_class(@active == :boards)}>
+          Boards
+        </.link>
+        <.link navigate={~p"/process"} role="tab" class={tab_class(@active == :process)}>
+          Process
+        </.link>
+      </div>
+    </nav>
+    """
+  end
+
+  defp tab_class(true), do: "tab tab-active"
+  defp tab_class(false), do: "tab"
 
   @doc "Mensagens de flash e os avisos de reconexão do LiveView."
   attr :flash, :map, required: true
