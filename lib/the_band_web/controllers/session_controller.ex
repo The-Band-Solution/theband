@@ -40,6 +40,34 @@ defmodule TheBandWeb.SessionController do
   end
 
   @doc """
+  Troca de senha pela própria pessoa (FR-012/015) — no controller pelo mesmo
+  motivo de `set_password/2`: o token gira, e a sessão que fica precisa dele.
+  """
+  def update_password(conn, %{"current" => atual, "password" => nova}) do
+    user = conn.assigns.current_user
+
+    case Tenants.change_password(user.tenant, user.id, atual, nova) do
+      {:ok, atualizada} ->
+        conn
+        |> configure_session(renew: true)
+        |> put_session(:user_id, atualizada.id)
+        |> put_session(:session_token, atualizada.session_token)
+        |> put_flash(:info, "Senha trocada. As outras sessões foram encerradas.")
+        |> redirect(to: ~p"/profile")
+
+      {:error, :invalid_current} ->
+        conn
+        |> put_flash(:error, "A senha atual não confere.")
+        |> redirect(to: ~p"/profile")
+
+      {:error, _} ->
+        conn
+        |> put_flash(:error, "A senha precisa de pelo menos 12 caracteres.")
+        |> redirect(to: ~p"/profile")
+    end
+  end
+
+  @doc """
   Primeira definição de senha (fluxo da temporária, FR-013).
 
   Vive num controller, e não em LiveView, porque `set_password` gira o token e a

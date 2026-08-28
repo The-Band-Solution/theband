@@ -232,7 +232,10 @@ defmodule TheBandWeb.PeopleLive.Show do
     # gráfico semanal para alguém mandaria o mensal, e voltar à página perderia a escolha.
     escala = socket.assigns.escala
 
-    {alcance, motivo} = EO.pode_ver(tenant, socket.assigns.current_user, pessoa.id)
+    # Feature 045: o veredito único da UNIÃO — piso, derivados, concessões, e a
+    # liderança declarada (#369) somada por último. O Visibility continua dono da
+    # regra de liderança; quem decide acesso nas telas é o Access (FR-010/022).
+    {alcance, motivo} = Tenants.pode_ver(tenant, socket.assigns.current_user, pessoa.id)
 
     serie =
       if alcance == :ok,
@@ -472,6 +475,7 @@ defmodule TheBandWeb.PeopleLive.Show do
       current_user={@current_user}
       current_tenant={@current_tenant}
       nav_area={assigns[:nav_area]}
+      operacao_menu={assigns[:operacao_menu]}
     >
       <.breadcrumb niveis={[
         %{rotulo: "People", destino: ~p"/people"},
@@ -900,7 +904,7 @@ defmodule TheBandWeb.PeopleLive.Show do
           <%!-- FR-012g: os dois bloqueios têm remédios diferentes, e dizer "sem permissão"
                 para os dois mandaria quem lê procurar no lugar errado. --%>
           <.notice
-            :if={@motivo_do_alcance == :conta_sem_pessoa_declarada}
+            :if={@motivo_do_alcance in [:conta_sem_pessoa_declarada, :sem_elo_declarado]}
             kind={:gap}
             title="We do not know which observed person you are"
           >
@@ -909,17 +913,30 @@ defmodule TheBandWeb.PeopleLive.Show do
             An administrator declares that link on the person's page.
           </.notice>
 
-          <%!-- `:refused`, e não `:gap`: a plataforma SABE quem tu é e sabe que tu não
-                lidera esta pessoa. É decisão aplicada, e não ausência de conhecimento. --%>
+          <%!-- `:refused`, e não `:gap`: a plataforma SABE quem tu é e sabe que os teus
+                escopos não alcançam esta pessoa. É decisão aplicada, não ausência. --%>
           <.notice
-            :if={@motivo_do_alcance == :sem_alcance_declarado}
+            :if={@motivo_do_alcance in [:sem_alcance_declarado, :fora_dos_escopos]}
             kind={:refused}
             title="This panel is not yours to see"
           >
-            A work panel is visible to the person themselves, to whoever leads their team,
-            and to whoever answers for the organisation. None of those is declared for you
-            here — and leadership is <strong>declared</strong>, never guessed from a role's
-            name.
+            A panel is reachable by the person themselves, by a team or project scope that
+            includes them, by an organization scope, or by declared leadership — and none
+            of those covers you here. Scopes are <strong>declared or derived from
+            relations</strong>, never guessed; being an administrator manages the
+            platform, it does not open panels.
+          </.notice>
+
+          <%!-- A concessão existe mas o alvo dela sumiu: remédio diferente dos outros
+                dois — quem administra precisa reconceder sobre um alvo vigente. --%>
+          <.notice
+            :if={@motivo_do_alcance == :alvo_da_concessao_nao_existe_mais}
+            kind={:refused}
+            title="Your granted scope points to a target that no longer exists"
+          >
+            The team, project or organisation your scope was granted on is no longer
+            observed. An administrator can grant a scope on a current target in
+            Access scopes.
           </.notice>
         </section>
 

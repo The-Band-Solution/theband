@@ -190,7 +190,9 @@ defmodule TheBand.Tenants.AccessTest do
       aloca(ctx, bia, time, dev)
 
       diretora = user_fixture(ctx.tenant, "member")
-      {:ok, _} = Tenants.grant_scope(ctx.tenant, diretora.id, :organization, ctx.org.id, ctx.admin)
+
+      {:ok, _} =
+        Tenants.grant_scope(ctx.tenant, diretora.id, :organization, ctx.org.id, ctx.admin)
 
       assert {:ok, :escopo_da_organizacao} = Tenants.pode_ver(ctx.tenant, diretora, bia.id)
     end

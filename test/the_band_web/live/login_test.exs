@@ -53,6 +53,7 @@ defmodule TheBandWeb.LoginTest do
 
   test "as quatro recusas respondem idêntico", %{member: member} do
     sem_senha_tenant = tenant_fixture()
+
     {:ok, sem_senha} =
       Tenants.create_user(sem_senha_tenant, %{
         "email" => "s-#{System.unique_integer([:positive])}@example.test",

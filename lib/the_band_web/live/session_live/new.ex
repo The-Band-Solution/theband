@@ -59,7 +59,11 @@ defmodule TheBandWeb.SessionLive.New do
                 <p class="text-sm opacity-60">Enter your e-mail or GitHub username, and password.</p>
               </div>
 
-              <p :if={erro = Phoenix.Flash.get(@flash, :error)} role="alert" class="alert alert-error font-serif text-sm">
+              <p
+                :if={erro = Phoenix.Flash.get(@flash, :error)}
+                role="alert"
+                class="alert alert-error font-serif text-sm"
+              >
                 {erro}
               </p>
 

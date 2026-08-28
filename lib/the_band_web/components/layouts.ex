@@ -40,6 +40,10 @@ defmodule TheBandWeb.Layouts do
     default: nil,
     doc: "a área ativa do menu, derivada do caminho pela hook (ver nav_area/1)"
 
+  attr :operacao_menu, :boolean,
+    default: false,
+    doc: "a seção Operação aparece? admin OU organization (FR-023), decidido na hook"
+
   def app(assigns) do
     ~H"""
     <%!-- Mobile-first: a navegação empilha e rola horizontalmente no telefone, e só vira
@@ -115,14 +119,22 @@ defmodule TheBandWeb.Layouts do
                       observadas ficaram esperando numa tela que só se alcançava pela URL. --%>
                 <li><.link navigate={~p"/roles"}>Roles</.link></li>
                 <%!-- Operação responde "a plataforma está funcionando", não "o que ela
-                      sabe" — e só aparece para quem administra (FR-003 da spec 046; a
-                      spec 045 amplia para o escopo organization NESTA condição, num
-                      ponto só). IA e geração de perfis seguem como ABAS de Tools e de
-                      Syncs (#428) — não são itens. --%>
-                <%= if @current_user && @current_user.role == "admin" do %>
+                      sabe" — e aparece para quem administra OU tem concessão
+                      organization (FR-023 da 045, no ponto único que a 046 previu:
+                      a hook decide, o markup obedece). IA e geração de perfis seguem
+                      como ABAS de Tools e de Syncs (#428) — não são itens. --%>
+                <%= if @operacao_menu do %>
                   <li class="menu-title">Operação</li>
                   <li><.link navigate={~p"/syncs"}>Syncs</.link></li>
                   <li><.link navigate={~p"/tools"}>Tools</.link></li>
+                <% end %>
+                <%!-- Contas e concessões são GESTÃO — só a marca de administrador
+                      (FR-008/013); credencial de modelo idem (leitura de FR-023
+                      registrada no roteador). --%>
+                <%= if @current_user && @current_user.role == "admin" do %>
+                  <li class="menu-title">Contas</li>
+                  <li><.link navigate={~p"/accounts"}>Accounts</.link></li>
+                  <li><.link navigate={~p"/access-scopes"}>Access scopes</.link></li>
                 <% end %>
               </ul>
             </details>
@@ -131,6 +143,9 @@ defmodule TheBandWeb.Layouts do
             <span class="text-xs opacity-70">
               {@current_tenant.name} · {@current_user.email}
             </span>
+          </li>
+          <li>
+            <.link navigate={~p"/profile"} class="btn btn-ghost btn-xs">Profile</.link>
           </li>
           <li>
             <.link href={~p"/session"} method="delete" class="btn btn-ghost btn-xs">Sign out</.link>

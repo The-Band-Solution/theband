@@ -249,17 +249,28 @@ defmodule TheBand.Tenants.Access do
     end
   end
 
-  @doc "FR-023: quem alcança as telas operacionais, e com que recorte."
+  @doc """
+  FR-023: quem alcança as telas operacionais, e com que recorte.
+
+  Uma consulta só, e direto nas concessões: organization NÃO tem caminho
+  derivado (contrato), então a união inteira não precisa ser montada — e isso
+  importa porque o menu pergunta isto a cada tela.
+  """
   @spec operacional?(Tenant.t(), User.t()) ::
           {true, :admin | {:organizations, [Ecto.UUID.t()]}} | false
-  def operacional?(%Tenant{} = tenant, %User{} = user) do
+  def operacional?(%Tenant{id: tenant_id}, %User{} = user) do
     cond do
       User.admin?(user) ->
         {true, :admin}
 
       (orgs =
-         for(s <- scopes(tenant, user), s.level == :organization, s.target_id, do: s.target_id)) !=
-          [] ->
+         Repo.all(
+           from g in ScopeGrant,
+             where:
+               g.tenant_id == ^tenant_id and g.user_id == ^user.id and
+                 g.level == "organization" and is_nil(g.revoked_at),
+             select: g.target_id
+         )) != [] ->
         {true, {:organizations, orgs}}
 
       true ->

@@ -86,4 +86,28 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       |> halt()
     end
   end
+
+  @doc """
+  Exige alcance operacional — FR-023 da feature 045.
+
+  Syncs e Tools existem para administrador (tenant inteiro) ou para quem tem
+  concessão organization vigente — e aí com recorte, que fica em
+  `conn.assigns.operacao` para a tela filtrar pelo que pertence às organizações
+  concedidas. A recusa nomeia o motivo.
+  """
+  def require_operacao(conn, _opts) do
+    with user when not is_nil(user) <- conn.assigns[:current_user],
+         {true, recorte} <- Tenants.operacional?(conn.assigns.current_tenant, user) do
+      assign(conn, :operacao, recorte)
+    else
+      _ ->
+        conn
+        |> Phoenix.Controller.put_flash(
+          :error,
+          "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+        )
+        |> redirect(to: "/people")
+        |> halt()
+    end
+  end
 end

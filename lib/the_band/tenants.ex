@@ -81,6 +81,24 @@ defmodule TheBand.Tenants do
   end
 
   @doc """
+  A própria pessoa edita o próprio nome (feature 045, FR-012). SÓ o nome: e-mail
+  identifica a entrada, papel é gestão, elo é acesso — cada um tem o seu ato.
+  """
+  @spec update_name(Tenant.t(), Ecto.UUID.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def update_name(%Tenant{id: tenant_id}, user_id, nome) do
+    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+      user
+      |> Ecto.Changeset.cast(%{name: nome}, [:name])
+      |> Repo.update()
+      |> case do
+        {:ok, atualizada} -> {:ok, Repo.preload(atualizada, :tenant)}
+        erro -> erro
+      end
+    end
+  end
+
+  @doc """
   Declara qual pessoa observada é esta conta — issue #369, FR-012c.
 
   O elo é o que permite a plataforma responder "esse painel é o seu" e "essa pessoa é da

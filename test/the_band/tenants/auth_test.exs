@@ -130,7 +130,12 @@ defmodule TheBand.Tenants.AuthTest do
       token_antigo = entrada.session_token
 
       assert {:error, :invalid_current} =
-               Tenants.change_password(ctx.tenant, user.id, "atual-errada-longa", "nova-bem-comprida-1")
+               Tenants.change_password(
+                 ctx.tenant,
+                 user.id,
+                 "atual-errada-longa",
+                 "nova-bem-comprida-1"
+               )
 
       assert {:ok, trocada} =
                Tenants.change_password(ctx.tenant, user.id, @senha, "nova-bem-comprida-1")

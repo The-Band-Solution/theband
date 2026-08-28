@@ -25,6 +25,10 @@ defmodule TheBandWeb.Live.Hooks do
            socket
            |> assign(:current_user, user)
            |> assign(:current_tenant, user.tenant)
+           # O menu pergunta uma vez por mount: Operação aparece para admin OU
+           # organization (FR-023) — a condição vive em Access.operacional?/2,
+           # o ponto único que a 046 previu.
+           |> assign(:operacao_menu, TheBand.Tenants.operacional?(user.tenant, user) != false)
            |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)}
 
         {:redirect, destino} ->
@@ -35,6 +39,31 @@ defmodule TheBandWeb.Live.Hooks do
       # ou validade vencida: o caminho é a entrada. O destino pretendido foi
       # guardado pelo plug `salvar_destino` do roteador (FR-005).
       _ -> {:halt, redirect(socket, to: "/sign-in")}
+    end
+  end
+
+  def on_mount(:require_operacao, params, session, socket) do
+    case on_mount(:current_scope, params, session, socket) do
+      {:cont, socket} ->
+        case TheBand.Tenants.operacional?(
+               socket.assigns.current_tenant,
+               socket.assigns.current_user
+             ) do
+          {true, recorte} ->
+            {:cont, assign(socket, :operacao, recorte)}
+
+          false ->
+            {:halt,
+             socket
+             |> put_flash(
+               :error,
+               "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+             )
+             |> redirect(to: "/people")}
+        end
+
+      halted ->
+        halted
     end
   end
 
