@@ -1347,6 +1347,45 @@ defmodule TheBandWeb.PeopleLive.Show do
             </span>
           </div>
 
+          <%!-- A COMPOSIÇÃO dos desfechos, desenhada. Cores de STATUS da casa (verdete =
+                passou, argila = quebrou, neutro = nem um nem outro), nunca reusadas como
+                série — e nunca o único canal: os números em texto acima são a tabela, cada
+                segmento carrega title, e os segmentos têm vão de 2px. O validador de
+                paleta passou CVD e visão normal nos pares; o croma baixo do verdete é
+                decisão de marca (cor de instrumento, não de urgência), aliviada pelo
+                rótulo textual que a casa exige em tudo.
+
+                A parcela sem autoria NÃO entra nesta barra: é ausência (FR-010), vive na
+                figura separada abaixo, tracejada — somá-las afirmaria medida onde não há. --%>
+          <div
+            :if={@verificacao.passou + @verificacao.quebrou + @verificacao.outras > 0}
+            class="flex h-3 w-full max-w-xl gap-0.5 overflow-hidden rounded-[2px]"
+            role="img"
+            aria-label={"Runs on their commits: #{@verificacao.passou} passed, #{@verificacao.quebrou} broke, #{@verificacao.outras} neither"}
+          >
+            <div
+              :if={@verificacao.passou > 0}
+              class="rounded-[2px] bg-success"
+              style={"flex-grow: #{@verificacao.passou}"}
+              title={"#{@verificacao.passou} passed"}
+            >
+            </div>
+            <div
+              :if={@verificacao.quebrou > 0}
+              class="rounded-[2px] bg-error"
+              style={"flex-grow: #{@verificacao.quebrou}"}
+              title={"#{@verificacao.quebrou} broke"}
+            >
+            </div>
+            <div
+              :if={@verificacao.outras > 0}
+              class="rounded-[2px] bg-base-content/45"
+              style={"flex-grow: #{@verificacao.outras}"}
+              title={"#{@verificacao.outras} neither — skipped or cancelled"}
+            >
+            </div>
+          </div>
+
           <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
                 commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
                 um. --%>
@@ -1581,12 +1620,26 @@ defmodule TheBandWeb.PeopleLive.Show do
               channels, or the discussion of their repositories has not been collected yet.
             </p>
 
+            <%!-- A magnitude vira comprimento (pedido de 2026-08-28), SEM consulta nova:
+                  a barra é o mesmo `atos` de cada linha, proporcional ao maior da
+                  lista. Hachurada porque a contagem é DERIVADA de comentários
+                  coletados — a gramática da partitura vale em barra como vale em
+                  marca — e o número mono continua ao lado: cor e comprimento nunca
+                  são o único canal. --%>
             <div
               :for={d <- @participacao}
               class="flex flex-wrap items-baseline gap-x-3 border-t border-base-300 py-1.5 text-sm"
             >
-              <span class="w-16 shrink-0 text-right font-mono text-xs opacity-70 tabular-nums">
-                {d.atos}×
+              <span class="flex w-36 shrink-0 items-center justify-end gap-2">
+                <span
+                  class="h-2.5 rounded-[1px] text-primary outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+                  style={"width: #{max(round(d.atos / max_atos(@participacao) * 72), 3)}px"}
+                  title={"#{d.atos} collected comments in this discussion"}
+                  aria-hidden="true"
+                ></span>
+                <span class="w-9 text-right font-mono text-xs opacity-70 tabular-nums">
+                  {d.atos}×
+                </span>
               </span>
               <.link navigate={~p"/work/issues/#{d.issue_id}"} class="link link-hover">
                 {d.title}
@@ -1889,6 +1942,11 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   # A interface fala inglês; o modelo escreve em português. Traduzir aqui, e não no schema,
   # mantém o vocabulário da regra em uma língua só.
+  # O maior `atos` da lista, para as barras de participação serem proporcionais
+  # entre si. 1 no vazio só para o divisor nunca ser zero — sem lista não há barra.
+  defp max_atos([]), do: 1
+  defp max_atos(participacao), do: participacao |> Enum.map(& &1.atos) |> Enum.max()
+
   # A resolução tripla do sinal "parada" (#400) — uma consulta para TODAS as paradas.
   #
   # `nao_coletada` existe porque ausência de discussão coletada não é ausência de
