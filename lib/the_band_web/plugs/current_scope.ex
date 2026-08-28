@@ -5,11 +5,10 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   Toda consulta a dado coletado recebe o tenant daqui, e nenhuma o busca do
   dicionário de processo (FR-027, constituição princípio V).
 
-  > **Lacuna declarada.** A autenticação desta entrega é seleção de usuário em
-  > sessão, sem senha. O que está implementado de verdade é o **escopo**: o
-  > tenant atravessa toda consulta e é testado com dois tenants povoados. A
-  > autenticação propriamente dita é feature própria, e está registrada como não
-  > entregue no `sprint-review.md` — não como pronta.
+  A lacuna declarada da fundação — sessão por escolha, sem senha — fechou na
+  feature 045: a sessão nasce em `POST /session` com identificador e senha, e
+  carrega o `session_token` da conta. Token divergente aqui é senha trocada em
+  outro navegador (FR-015): a sessão cai como se não existisse.
   """
 
   import Plug.Conn
@@ -28,27 +27,46 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       user_id ->
         case Tenants.fetch_user(user_id) do
           {:ok, user} ->
-            conn
-            |> assign(:current_user, user)
-            |> assign(:current_tenant, user.tenant)
+            if user.session_token == get_session(conn, :session_token) do
+              conn
+              |> assign(:current_user, user)
+              |> assign(:current_tenant, user.tenant)
+            else
+              sem_sessao(conn)
+            end
 
           {:error, :not_found} ->
-            conn
-            |> delete_session(:user_id)
-            |> assign(:current_user, nil)
-            |> assign(:current_tenant, nil)
+            sem_sessao(conn)
         end
     end
   end
 
-  @doc "Exige sessão iniciada."
+  defp sem_sessao(conn) do
+    conn
+    |> delete_session(:user_id)
+    |> delete_session(:session_token)
+    |> assign(:current_user, nil)
+    |> assign(:current_tenant, nil)
+  end
+
+  @doc "Exige sessão iniciada — e guarda o destino para depois da entrada (FR-005)."
   def require_user(conn, _opts) do
     if conn.assigns[:current_user] do
       conn
     else
-      conn |> redirect(to: "/sign-in") |> halt()
+      conn
+      |> salvar_destino()
+      |> redirect(to: "/sign-in")
+      |> halt()
     end
   end
+
+  # Só GET carrega destino: repetir um POST depois do login seria repetir uma
+  # ação que a pessoa não confirmou.
+  defp salvar_destino(%Plug.Conn{method: "GET"} = conn),
+    do: put_session(conn, :redirect_to, conn.request_path)
+
+  defp salvar_destino(conn), do: conn
 
   @doc """
   Exige perfil administrador.

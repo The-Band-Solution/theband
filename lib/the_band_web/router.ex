@@ -51,6 +51,12 @@ defmodule TheBandWeb.Router do
     live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
+
+    # Definição forçada de senha (FR-013): exige sessão — o gate vive na hook e
+    # no controller, que validam o token; fora da pipeline require_user porque a
+    # conta nesse estado é recusada em toda OUTRA tela, não nesta.
+    live "/set-password", SessionLive.SetPassword, :new
+    post "/set-password", SessionController, :set_password
   end
 
   # Consulta — qualquer pessoa autenticada, sempre restrita ao próprio tenant.
