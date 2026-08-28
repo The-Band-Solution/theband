@@ -39,9 +39,20 @@ defmodule TheBandWeb.ConnCase do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 
-  @doc "Abre sessão para uma pessoa usuária do tenant."
+  @doc """
+  Abre sessão para uma pessoa usuária do tenant.
+
+  Atalho DE TESTE, e continua legítimo depois da feature 045 (research R10): o
+  formulário de login tem testes próprios; os demais não pagam bcrypt por setup.
+  O atalho carrega o `session_token` da conta — a hook valida a versão da
+  sessão, e um teste que trocar a senha no meio precisa relogar, como um
+  navegador precisaria.
+  """
   def log_in(conn, user) do
-    Plug.Test.init_test_session(conn, %{"user_id" => user.id})
+    Plug.Test.init_test_session(conn, %{
+      "user_id" => user.id,
+      "session_token" => user.session_token
+    })
   end
 
   @doc """

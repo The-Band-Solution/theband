@@ -427,6 +427,39 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   end
 
   @doc """
+  Projetos declarados ligados (vigentes) a QUALQUER das equipes — feature 045.
+
+  Uma passada para todas as equipes (L38): é a leitura de que o escopo project
+  derivado nasce, e ligação desfeita (`unlinked_at`) some daqui.
+  """
+  @spec projects_of_teams(Tenant.t(), [Ecto.UUID.t()]) :: [
+          %{project_id: Ecto.UUID.t(), project_name: String.t(), team_id: Ecto.UUID.t()}
+        ]
+  def projects_of_teams(%Tenant{id: tenant_id}, team_ids) when is_list(team_ids) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: p in Project,
+        on: p.id == v.project_id,
+        where:
+          v.tenant_id == ^tenant_id and v.team_id in ^team_ids and is_nil(v.unlinked_at) and
+            is_nil(p.removed_at),
+        order_by: [asc: p.name],
+        select: %{project_id: p.id, project_name: p.name, team_id: v.team_id}
+    )
+  end
+
+  @doc "Nomes de projetos declarados por id — feature 045, rótulo de concessões."
+  @spec projects_by_ids(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
+  def projects_by_ids(%Tenant{id: tenant_id}, ids) when is_list(ids) do
+    Repo.all(
+      from p in Project,
+        where: p.tenant_id == ^tenant_id and p.id in ^ids and is_nil(p.removed_at),
+        select: {p.id, p.name}
+    )
+    |> Map.new()
+  end
+
+  @doc """
   Os projetos vigentes de uma equipe — o mesmo vínculo, lido do lado da equipe.
 
   Uma consulta só: é a tela da equipe que chama, e por-projeto seria o N+1 que a casa

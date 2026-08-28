@@ -344,6 +344,7 @@ defmodule TheBandWeb.SourceLive.Index do
       current_user={@current_user}
       current_tenant={@current_tenant}
       nav_area={assigns[:nav_area]}
+      operacao_menu={assigns[:operacao_menu]}
     >
       <%!-- Reunidas na navegação (#428): quem procura "com que conta a plataforma
             trabalha" acha aqui, sem precisar saber que existe um endereço /ai. As telas
@@ -787,7 +788,13 @@ defmodule TheBandWeb.SourceLive.Index do
 
   defp load_tools(socket) do
     tenant = socket.assigns.current_tenant
-    tools = Sources.list_connected_tools(tenant)
+
+    # FR-023: quem entra por concessão organization vê e opera o que pertence às
+    # organizações concedidas; administrador vê o tenant inteiro.
+    tools =
+      tenant
+      |> Sources.list_connected_tools()
+      |> TheBandWeb.Operacao.filtrar_tools(socket.assigns.operacao, tenant)
 
     socket
     |> assign(tools: tools)

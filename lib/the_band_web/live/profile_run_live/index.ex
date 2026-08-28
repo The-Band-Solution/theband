@@ -135,6 +135,7 @@ defmodule TheBandWeb.ProfileRunLive.Index do
       current_user={@current_user}
       current_tenant={@current_tenant}
       nav_area={assigns[:nav_area]}
+      operacao_menu={assigns[:operacao_menu]}
     >
       <%!-- Sync concentra o que a plataforma faz sozinha (#428): a coleta traz de FORA,
             a geração de perfis é o que ela ESCREVE. Vizinhas e distintas — reunir não

@@ -386,18 +386,20 @@ defmodule TheBand.Ontology.SEON.EO.VisibilidadeTest do
   end
 
   describe "o admin da plataforma" do
-    test "vê todos os painéis, mesmo sem elo declarado", ctx do
+    test "NÃO vê painel por ser admin — administrar é mexer, ver é escopo (FR-022)", ctx do
       p = pessoa(ctx, "ana")
 
-      # `ctx.admin` não tem elo: quem administra a plataforma não precisa ser nenhuma das
-      # pessoas observadas.
+      # `ctx.admin` não tem elo nem concessão: a feature 045 reviu a decisão de
+      # 2026-08-27 quando o escopo `organization` passou a existir. Quem administra
+      # e precisa ver recebe concessão como qualquer conta — a migração deu essa
+      # concessão aos admins de então, e ela vive em Tenants.Access, não aqui.
       assert Tenants.person_of_user(ctx.admin) == :not_declared
 
-      assert {:ok, :admin_da_plataforma} = EO.pode_ver(ctx.tenant, ctx.admin, p.id), """
-      O admin não alcançou o painel.
+      assert {:nao, :conta_sem_pessoa_declarada} = EO.pode_ver(ctx.tenant, ctx.admin, p.id), """
+      O ramo "admin vê tudo" voltou ao Visibility.
 
-      Decisão da pessoa mantenedora em 2026-08-27: admin vê tudo. É o `users.role` — quem
-      conecta ferramenta e gerencia credencial —, e ele passa mesmo sem elo.
+      Ele saiu na feature 045 (FR-022): este módulo é dono de UMA regra — a liderança
+      declarada — e a união com escopos vive em Tenants.Access.
       """
     end
 

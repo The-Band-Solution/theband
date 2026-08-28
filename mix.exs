@@ -108,6 +108,10 @@ defmodule TheBand.MixProject do
       {:oban, "~> 2.23"},
       {:yaml_elixir, "~> 2.12"},
       {:cloak_ecto, "~> 1.3"},
+      # Feature 045 — hash de senha (FR-003), justificativa em
+      # specs/045-autenticacao-e-acesso/research.md R1: padrão do phx.gen.auth,
+      # manutenção ativa, e o custo (~100ms/verificação) é a proteção, não o preço.
+      {:bcrypt_elixir, "~> 3.3"},
       {:mox, "~> 1.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Segurança de Phoenix — XSS, CSRF, injeção, configuração insegura. Nenhuma ferramenta

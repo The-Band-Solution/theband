@@ -1,7 +1,8 @@
 defmodule TheBandWeb.Router do
   use TheBandWeb, :router
 
-  import TheBandWeb.Plugs.CurrentScope, only: [require_user: 2, require_admin: 2]
+  import TheBandWeb.Plugs.CurrentScope,
+    only: [require_user: 2, require_admin: 2, require_operacao: 2]
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -51,6 +52,12 @@ defmodule TheBandWeb.Router do
     live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
+
+    # Definição forçada de senha (FR-013): exige sessão — o gate vive na hook e
+    # no controller, que validam o token; fora da pipeline require_user porque a
+    # conta nesse estado é recusada em toda OUTRA tela, não nesta.
+    live "/set-password", SessionLive.SetPassword, :new
+    post "/set-password", SessionController, :set_password
   end
 
   # Consulta — qualquer pessoa autenticada, sempre restrita ao próprio tenant.
@@ -63,7 +70,7 @@ defmodule TheBandWeb.Router do
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
       live "/organizations", OrganizationLive.Index, :index
-      live "/syncs", SyncLive.Index, :index
+      live "/profile", ProfileLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index
       live "/boards", BoardLive.Index, :index
@@ -84,14 +91,38 @@ defmodule TheBandWeb.Router do
       live "/work/changes/:id", ChangeLive.Show, :show
       live "/work/repositories/:id", RepositoryLive.Show, :show
     end
+
+    # Trocar senha gira o token, e cookie é assunto de controller (FR-015) — por
+    # isso um POST clássico na pipeline autenticada, fora da live_session.
+    post "/profile/password", SessionController, :update_password
   end
 
-  # Ferramentas e credenciais — só administradores (Assumptions da spec).
+  # Operacionais — FR-023 (feature 045): administrador OU concessão organization
+  # vigente, com recorte pelas organizações concedidas. Syncs e Tools respondem
+  # "a plataforma está funcionando"; quem responde por uma organização opera o
+  # que pertence a ela.
+  scope "/", TheBandWeb do
+    pipe_through [:browser, :require_user, :require_operacao]
+
+    live_session :operacao, on_mount: {TheBandWeb.Live.Hooks, :require_operacao} do
+      live "/syncs", SyncLive.Index, :index
+      live "/tools", SourceLive.Index, :index
+
+      # Aba de /syncs (#428). A geração escreve por tenant; o gate é o mesmo das
+      # operacionais, e o recorte fino por organização não se aplica a rodada.
+      live "/profiles", ProfileRunLive.Index, :index
+    end
+  end
+
+  # Gestão — só administradores: credencial de modelo é do TENANT (a chave LLM
+  # não pertence a organização nenhuma — credencial é gestão, não operação; é a
+  # leitura registrada de FR-023 para o AI), contas e concessões idem.
   scope "/", TheBandWeb do
     pipe_through [:browser, :require_user, :require_admin]
 
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
-      live "/tools", SourceLive.Index, :index
+      live "/accounts", AccountsLive.Index, :index
+      live "/access-scopes", AccessScopesLive.Index, :index
 
       # **Aba de `/tools` desde 2026-08-18 (#428), e a decisão anterior fica registrada
       # em vez de apagada.** Ela dizia: "as ferramentas conectadas são fontes de
@@ -102,13 +133,6 @@ defmodule TheBandWeb.Router do
       # mudou foi só onde se acha: quem procura "com que conta a plataforma trabalha"
       # não precisa saber que existe um endereço próprio.
       live "/ai", AILive.Index, :index
-
-      # **Aba de `/syncs` desde 2026-08-18 (#428).** A razão da separação continua de pé
-      # — a geração responde "isto está funcionando" e a credencial responde "com que
-      # conta trabalhamos", e o princípio X pede telas diferentes (`FR-024`). Elas
-      # continuam diferentes; Sync passou a concentrar o que a plataforma faz sozinha,
-      # e a coleta traz de FORA enquanto a geração ESCREVE — vizinhas, nunca a mesma.
-      live "/profiles", ProfileRunLive.Index, :index
 
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.

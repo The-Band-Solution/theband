@@ -64,6 +64,7 @@ defmodule TheBandWeb.ChangeLive.File do
       current_user={@current_user}
       current_tenant={@current_tenant}
       nav_area={assigns[:nav_area]}
+      operacao_menu={assigns[:operacao_menu]}
     >
       <Layouts.work_tabs active={:files} />
       <.header>

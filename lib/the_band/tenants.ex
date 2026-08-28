@@ -10,8 +10,22 @@ defmodule TheBand.Tenants do
   import Ecto.Query
 
   alias TheBand.Repo
+  alias TheBand.Tenants.Access
+  alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
+
+  # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
+  defdelegate authenticate(identificador, senha), to: Auth
+  defdelegate set_password(tenant, user_id, senha), to: Auth
+  defdelegate change_password(tenant, user_id, atual, nova), to: Auth
+  defdelegate reset_password(tenant, user_id, actor_id), to: Auth
+
+  defdelegate scopes(tenant, user), to: Access
+  defdelegate pode_ver(tenant, user, person_id), to: Access
+  defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
+  defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
+  defdelegate operacional?(tenant, user), to: Access
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)
@@ -64,6 +78,24 @@ defmodule TheBand.Tenants do
     %User{}
     |> User.changeset(Map.put(attrs, "tenant_id", tenant_id))
     |> Repo.insert()
+  end
+
+  @doc """
+  A própria pessoa edita o próprio nome (feature 045, FR-012). SÓ o nome: e-mail
+  identifica a entrada, papel é gestão, elo é acesso — cada um tem o seu ato.
+  """
+  @spec update_name(Tenant.t(), Ecto.UUID.t(), String.t()) ::
+          {:ok, User.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def update_name(%Tenant{id: tenant_id}, user_id, nome) do
+    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+      user
+      |> Ecto.Changeset.cast(%{name: nome}, [:name])
+      |> Repo.update()
+      |> case do
+        {:ok, atualizada} -> {:ok, Repo.preload(atualizada, :tenant)}
+        erro -> erro
+      end
+    end
   end
 
   @doc """

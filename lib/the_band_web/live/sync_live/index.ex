@@ -197,6 +197,7 @@ defmodule TheBandWeb.SyncLive.Index do
       current_user={@current_user}
       current_tenant={@current_tenant}
       nav_area={assigns[:nav_area]}
+      operacao_menu={assigns[:operacao_menu]}
     >
       <%!-- Sync concentra o que a plataforma faz sozinha (#428): a coleta traz de FORA,
             a geração de perfis é o que ela ESCREVE. Vizinhas e distintas — reunir não
@@ -575,9 +576,21 @@ defmodule TheBandWeb.SyncLive.Index do
     # de novo.
     {:ok, _encerradas} = Ingestion.reconcile_stuck_syncs()
 
+    # FR-023: o recorte de organization filtra ferramentas — e as syncs pertencem
+    # à ferramenta, então o mesmo recorte as filtra por consequência.
+    tools =
+      tenant
+      |> Sources.list_connected_tools()
+      |> TheBandWeb.Operacao.filtrar_tools(socket.assigns.operacao, tenant)
+
+    syncs =
+      tenant
+      |> Ingestion.list_syncs(limit: 10)
+      |> TheBandWeb.Operacao.filtrar_syncs(socket.assigns.operacao, tools)
+
     socket
-    |> assign(tools: Sources.list_connected_tools(tenant))
-    |> assign(syncs: Ingestion.list_syncs(tenant, limit: 10))
+    |> assign(tools: tools)
+    |> assign(syncs: syncs)
     |> assign(usuarios: Tenants.users_by_id(tenant))
   end
 
