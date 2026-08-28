@@ -76,7 +76,7 @@ defmodule TheBandWeb.Layouts do
             barra passou de 1.280px e o `sm:overflow-visible` deixava a PÁGINA rolar de
             lado — medido em 2026-08-19: documento de 1.430px num viewport de 1.280. O
             conteúdo largo rola dentro do próprio contêiner; o corpo da página, nunca. --%>
-      <div :if={@current_tenant} class="flex items-center gap-2">
+      <div :if={@current_tenant} class="flex flex-wrap items-center gap-2">
         <%!-- A barra carrega as ENTIDADES — as mesmas do axioma de acesso da spec 045:
               quem (pessoas), com quem (equipes), sobre o quê (projetos). O resto vive em
               Settings, em seções nomeadas — spec 046.
@@ -86,7 +86,7 @@ defmodule TheBandWeb.Layouts do
               altura da barra — foi o defeito do Settings "que não abria": abria, e a
               barra o engolia. O menu e o bloco da conta ficam FORA, num irmão que
               não rola. --%>
-        <div class="nav-rolavel -mx-4 min-w-0 flex-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
+        <div class="nav-rolavel -mx-4 min-w-40 flex-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
           <ul class="flex items-center gap-1 whitespace-nowrap">
             <li>
               <.nav_item navigate={~p"/people"} active={@nav_area == :people}>People</.nav_item>

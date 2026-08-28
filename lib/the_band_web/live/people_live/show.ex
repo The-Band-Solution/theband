@@ -489,408 +489,55 @@ defmodule TheBandWeb.PeopleLive.Show do
       </.header>
 
       <div class="space-y-6">
-        <%!-- Proveniência primeiro: de onde veio, com que identificador, e desde quando. É o que
-              permite conferir a pessoa contra a origem. --%>
-        <section class="card bg-base-200">
-          <div class="card-body gap-3 p-4 sm:p-5">
-            <h3 class="font-semibold">Where this came from</h3>
-            <dl class="grid gap-2 sm:grid-cols-2">
-              <.field label="source">{@pessoa.source_system} · {@pessoa.source_instance}</.field>
-              <.field label="identifier at source">
-                <span class="font-mono text-xs">{@pessoa.external_id}</span>
-              </.field>
-              <.field label="first observed">{@pessoa.collected_at}</.field>
-              <.field label="last observed">{@pessoa.last_observed_at}</.field>
-              <.field :if={@organizacoes != []} label="organisations">
-                {Enum.map_join(@organizacoes, ", ", & &1.login)}
-                <div class="text-xs opacity-60">observed through team membership</div>
-              </.field>
-              <%!-- Dito com a evidência, e sem a palavra "membro": a plataforma observou o trabalho,
-                    não o pertencimento. Quem saiu antes de ela começar a olhar nunca esteve numa
-                    equipe, e o trabalho ficou. --%>
-              <.field :if={@organizacoes_por_trabalho != []} label="worked at">
-                <div :for={o <- @organizacoes_por_trabalho}>
-                  {o.organizacao.login}
-                  <span class="text-xs opacity-60">
-                    derived from work in {o.repositorios} repositor{if o.repositorios == 1,
-                      do: "y",
-                      else: "ies"} — not a declared membership
-                  </span>
-                </div>
-              </.field>
-            </dl>
-            <p :if={@pessoa.no_longer_observed_at} class="text-sm">
-              No longer observed since {@pessoa.no_longer_observed_at}. The platform saw this person
-              before, and does not see them now.
-            </p>
-          </div>
-
-          <%!-- O QUE A PESSOA MUDOU — cmpo.change_request e cmpo.commit_artifact_copy.
-                As três leituras ficam SEPARADAS porque a rede as separa: submeter,
-                integrar e executar são participações diferentes. Somá-las produziria um
-                número de "contribuições" que não corresponde a nada. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
-            <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
-              Changes
-            </h4>
-            <p class="mb-2 text-xs text-base-content/60">
-              Asking for a change, integrating it and committing are different acts — kept
-              apart here because the network keeps them apart.
-            </p>
-
-            <%!-- ═══ OS TRÊS PAPÉIS, EM NÚMERO — feature 044 ═══
-                  A soma dos três NÃO aparece, e é de propósito: abrir, revisar e integrar
-                  são participações distintas, e somá-las produziria um número que não
-                  significa coisa alguma. --%>
-            <div :if={@participacao_na_mudanca} class="mb-3 flex flex-wrap gap-4 text-sm">
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.abriu}</strong>
-                <span class="text-xs opacity-70">opened</span>
-              </span>
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.revisou}</strong>
-                <span class="text-xs opacity-70">reviewed</span>
-              </span>
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.integrou}</strong>
-                <span class="text-xs opacity-70">integrated</span>
-              </span>
-            </div>
-
-            <%!-- ═══ O VEREDITO — feature 044, US2 ═══
-                  Nomeado pelo CONCEITO da rede, e nunca pelo enum do GitHub: `APPROVED` e
-                  `CHANGES_REQUESTED` não aparecem em lugar nenhum desta tela. --%>
-            <div :if={@participacao_na_mudanca && @participacao_na_mudanca.revisou > 0} class="mb-3">
-              <h5 class="text-xs font-medium opacity-70">How they reviewed</h5>
-              <div class="flex flex-wrap gap-3 text-sm">
-                <span>
-                  <strong class="tabular-nums">{@participacao_na_mudanca.endossou}</strong>
-                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.endorsing_verdict")}</span>
-                </span>
-                <span>
-                  <strong class="tabular-nums">{@participacao_na_mudanca.objetou}</strong>
-                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.objecting_verdict")}</span>
-                </span>
-                <span>
-                  <strong class="tabular-nums">{@participacao_na_mudanca.absteve}</strong>
-                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.abstaining_verdict")}</span>
-                </span>
-              </div>
-
-              <%!-- FR-011: endossar NÃO é ausência de não conformidade. A rede declara
-                    `many` no destino de `identified_noncompliance` porque inclui zero e
-                    não o exige. --%>
-              <p class="mt-1 text-xs text-base-content/60">
-                Endorsing means <em>not blocking</em> — a review that endorses may still
-                have raised concerns.
-              </p>
-
-              <%!-- T007: a diferença entre revisões e vereditos, dita SÓ quando existe.
-                    Medido: `vinicius-je` revisou 627 solicitações com 721 avaliações. Sem
-                    a frase, quem lê conclui que um dos números está quebrado — foi o que
-                    aconteceu com `fatasy`, com 8 e 233. --%>
-              <p
-                :if={avaliacoes(@participacao_na_mudanca) > @participacao_na_mudanca.revisou}
-                class="text-xs text-base-content/60"
-              >
-                {avaliacoes(@participacao_na_mudanca)} reviews over {@participacao_na_mudanca.revisou} change
-                requests — some were reviewed more than once. Reviews count <strong>positions taken</strong>; the number above counts <strong>changes reviewed</strong>.
-              </p>
-            </div>
-
-            <p
-              :if={
-                @mudancas.abertas == [] and @mudancas.revisadas == [] and @mudancas.integradas == [] and
-                  @mudancas.commits == []
-              }
-              class="text-xs text-base-content/60"
+        <%!-- ═══ A LEITURA RÁPIDA — reorganização de 2026-08-28 ═══
+              Sumário antes do detalhe (Operate): a página tem oito seções e 8.000px,
+              e quem decide — gestor, tech lead — chegava aos números rolando. Todos
+              os valores JÁ estão carregados pelas seções abaixo: nenhuma consulta
+              nova (L38). Cada número é âncora para a seção que o explica. A soma
+              designadas+abertas segue não existindo — quem abre uma issue não
+              necessariamente trabalha nela. --%>
+        <section :if={@ve_o_trabalho?} class="card bg-base-200" aria-label="Reading at a glance">
+          <nav class="card-body flex-row flex-wrap items-stretch gap-x-0 gap-y-3 divide-x divide-base-300 p-4 sm:p-5">
+            <a href="#work" class="flex min-w-28 flex-col gap-0.5 px-4 first:pl-0 last:pr-0">
+              <span class="font-mono text-[11px] uppercase tracking-wider text-base-content/60">open now</span>
+              <span class="text-xl font-semibold tabular-nums">{@designadas_abertas}</span>
+              <span class="text-xs text-base-content/60">assigned, not done</span>
+            </a>
+            <a href="#work" class="flex min-w-28 flex-col gap-0.5 px-4">
+              <span class="font-mono text-[11px] uppercase tracking-wider text-base-content/60">assigned · opened</span>
+              <span class="text-xl font-semibold tabular-nums">{@designadas} · {@abertas}</span>
+              <span class="text-xs text-base-content/60">two counts, never a sum</span>
+            </a>
+            <a
+              :if={@lead_time && @lead_time.count > 0}
+              href="#work"
+              class="flex min-w-28 flex-col gap-0.5 px-4"
             >
-              No change request or commit collected for this person. Either the work goes
-              through other channels, or the repositories they touch have not been collected.
-            </p>
-
-            <div :if={@mudancas.abertas != []} class="mt-2">
-              <h5 class="text-xs font-medium opacity-70">Opened</h5>
-              <div
-                :for={m <- @mudancas.abertas}
-                class="flex flex-wrap items-baseline gap-x-2 text-sm"
-              >
-                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
-                  #{m.number} {m.title}
-                </.link>
-                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
-              </div>
-            </div>
-
-            <div :if={@mudancas.revisadas != []} class="mt-2">
-              <h5 class="text-xs font-medium opacity-70">Reviewed</h5>
-              <div
-                :for={m <- @mudancas.revisadas}
-                class="flex flex-wrap items-baseline gap-x-2 text-sm"
-              >
-                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
-                  #{m.number} {m.title}
-                </.link>
-                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
-              </div>
-            </div>
-
-            <div :if={@mudancas.integradas != []} class="mt-2">
-              <h5 class="text-xs font-medium opacity-70">Integrated</h5>
-              <div
-                :for={m <- @mudancas.integradas}
-                class="flex flex-wrap items-baseline gap-x-2 text-sm"
-              >
-                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
-                  #{m.number} {m.title}
-                </.link>
-              </div>
-            </div>
-
-            <div :if={@mudancas.commits != []} class="mt-2">
-              <h5 class="text-xs font-medium opacity-70">Committed</h5>
-              <div
-                :for={c <- @mudancas.commits}
-                class="flex flex-wrap items-baseline gap-x-2 text-sm"
-              >
-                <span class="font-mono text-xs opacity-60">{String.slice(c.sha, 0, 8)}</span>
-                <span :if={is_nil(c.change_request_id)}>{c.headline}</span>
-                <.link
-                  :if={c.change_request_id}
-                  navigate={~p"/work/changes/#{c.change_request_id}"}
-                  class="link link-hover"
-                >
-                  {c.headline}
-                </.link>
-                <%!-- Co-autoria dita: a pessoa participou da mudança sem ser a autora
-                      que o Git registra, e apresentar as duas iguais apagaria o fato. --%>
-                <span :if={not c.is_primary} class="badge badge-ghost badge-xs">co-author</span>
-              </div>
-            </div>
-          </div>
-
-          <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
-                observados, e por isso hachurada e rotulada. Responde o que designação
-                nenhuma responde: o trabalho que acontece na conversa. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
-                Discussions they took part in
-              </h4>
-              <span class="badge badge-outline badge-sm gap-1 text-warning">
-                <span class="size-2.5 shrink-0 rounded-[1px] outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"></span>
-                derived — counted from collected comments
+              <span class="font-mono text-[11px] uppercase tracking-wider text-base-content/60">lead time</span>
+              <span class="text-xl font-semibold tabular-nums">{@lead_time.median}d</span>
+              <span class="text-xs text-base-content/60">median · p85 {@lead_time.p85}d</span>
+            </a>
+            <a :if={@verificacao} href="#checks" class="flex min-w-28 flex-col gap-0.5 px-4">
+              <span class="font-mono text-[11px] uppercase tracking-wider text-base-content/60">checks</span>
+              <span class="text-xl font-semibold tabular-nums">
+                {@verificacao.passou}
+                <span class="text-sm font-normal text-base-content/60">passed</span>
+                {@verificacao.quebrou}
+                <span class="text-sm font-normal text-base-content/60">broke</span>
               </span>
-            </div>
-            <p class="mb-2 text-xs text-base-content/60">
-              Commenting is <strong>not</strong>
-              a completed task, and this is not a skill claim: it is where the person
-              showed up in the conversation — including on issues never assigned to them.
-            </p>
-
-            <p :if={@participacao == []} class="text-xs text-base-content/60">
-              No comment by this person has been collected. Either they work through other
-              channels, or the discussion of their repositories has not been collected yet.
-            </p>
-
-            <div
-              :for={d <- @participacao}
-              class="flex flex-wrap items-baseline gap-x-3 border-t border-base-300 py-1.5 text-sm"
-            >
-              <span class="w-16 shrink-0 text-right font-mono text-xs opacity-70 tabular-nums">
-                {d.atos}×
+              <span class="text-xs text-base-content/60">on their commits</span>
+            </a>
+            <a href="#profile" class="flex min-w-28 flex-col gap-0.5 px-4 last:pr-0">
+              <span class="font-mono text-[11px] uppercase tracking-wider text-base-content/60">profile</span>
+              <span :if={@perfil} class="text-xl font-semibold">
+                {Calendar.strftime(@perfil.inserted_at, "%Y-%m-%d")}
               </span>
-              <.link navigate={~p"/work/issues/#{d.issue_id}"} class="link link-hover">
-                {d.title}
-              </.link>
-              <span class="font-mono text-xs opacity-60 tabular-nums">
-                {Calendar.strftime(d.primeiro, "%Y-%m")} → {Calendar.strftime(d.ultimo, "%Y-%m")}
+              <span :if={is_nil(@perfil)} class="text-xl font-semibold text-base-content/60">none yet</span>
+              <span class="text-xs text-base-content/60">
+                {if @perfil, do: "derived — see the marks", else: "which is not a zero"}
               </span>
-            </div>
-          </div>
-        </section>
-
-        <%!-- **O papel declarado, e ele vem antes da participação observada de propósito.**
-
-              As duas coisas ficam separadas porque são de naturezas diferentes: o papel é
-              declaração humana, e nenhuma origem o fornece; a participação é observação. Uma
-              tela que mostrasse "Developer" sem dizer que alguém digitou aquilo transformaria
-              declaração em observação — e é o oposto do que a plataforma inteira defende.
-
-              A ordem — declarado primeiro — é porque é o que responde "o que esta pessoa faz",
-              e a participação responde "onde a origem a mostra". --%>
-        <%!-- ═══ QUAL CONTA É ESTA PESSOA — issue #369, FR-012c ═══
-              A regra de quem vê o painel de quem depende de saber qual das pessoas
-              observadas é quem está logado. O elo não vinha de lugar nenhum: medido em
-              2026-08-26, as 88 pessoas de `eo_people` têm `external_id` e login, e
-              NENHUMA tem e-mail — o GitHub não entrega. --%>
-        <section class="space-y-2">
-          <div>
-            <h3 class="font-semibold">Which account is this person</h3>
-            <p class="text-xs text-base-content/60">
-              Identity comes from the source — this person is
-              <span class="font-mono">{@pessoa.login}</span>
-              on GitHub. What has to be said by a person is which <strong>platform account</strong>
-              is the same human, and that is what this link records.
-            </p>
-          </div>
-
-          <p :if={@conta_da_pessoa} class="text-sm">
-            Linked to
-            <span class="badge badge-outline badge-sm font-mono">{@conta_da_pessoa.email}</span>
-            <span class="text-xs opacity-60">
-              declared on {Calendar.strftime(@conta_da_pessoa.person_declared_at, "%Y-%m-%d")}
-            </span>
-            <button
-              :if={@current_user.role == "admin"}
-              type="button"
-              class="btn btn-ghost btn-xs"
-              phx-click="revogar_conta"
-              phx-value-user_id={@conta_da_pessoa.id}
-              data-confirm="Unlink it? That account stops reaching this person's panel."
-            >
-              unlink
-            </button>
-          </p>
-
-          <%!-- Ausência nomeada, com o efeito junto: "nenhuma conta" sem dizer o que isso
-                causa parece detalhe de cadastro, quando é o que decide acesso. --%>
-          <p :if={is_nil(@conta_da_pessoa)} class="text-sm opacity-70">
-            <strong>No account linked.</strong>
-            Nobody signing in is recognised as this person, so nobody — not even they —
-            reaches this person's work panel through the visibility rule.
-          </p>
-
-          <%!-- Só admin. O elo CONCEDE visibilidade: apontar uma conta para esta pessoa é
-                dar a essa conta o painel desta pessoa. --%>
-          <form
-            :if={@current_user.role == "admin"}
-            id="elo-da-conta"
-            phx-submit="declarar_conta"
-            class="flex flex-wrap items-end gap-2"
-          >
-            <label class="fieldset">
-              <span class="label-text text-xs">the platform account that is this person</span>
-              <select name="user_id" class="select select-sm select-bordered">
-                <option value="">choose an account…</option>
-                <option :for={c <- @contas} value={c.id}>
-                  {c.email}{if c.name, do: " — #{c.name}"}
-                </option>
-              </select>
-            </label>
-            <.button type="submit" class="btn-sm">
-              {if @conta_da_pessoa, do: "Replace", else: "Link"}
-            </.button>
-          </form>
-
-          <p :if={@current_user.role != "admin"} class="text-xs opacity-60">
-            Only an administrator can change this link — it decides who sees whose panel.
-          </p>
-
-          <p class="text-xs opacity-60">
-            <strong>{@cobertura_do_elo.declaradas} of {@cobertura_do_elo.contas}</strong>
-            accounts are linked to an observed person. The rest reach no panel, and that is
-            a gap in what was declared — not a gap in what was collected.
-          </p>
-        </section>
-
-        <section :if={@papeis_declarados != []} class="space-y-2">
-          <div>
-            <h3 class="font-semibold">Roles declared for this person</h3>
-            <p class="text-xs text-base-content/60">
-              Declared by someone in this organisation — no source provides organisational role.
-            </p>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="table table-sm stacked">
-              <thead>
-                <tr>
-                  <th>role</th>
-                  <th>team</th>
-                  <th>from</th>
-                  <th>until</th>
-                  <th>declared by</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={papel <- @papeis_declarados} class={papel.ended_at && "opacity-60"}>
-                  <td data-label="role">
-                    <span class="font-medium">{papel.role_name}</span>
-                    <div class="text-xs opacity-60 font-mono">{papel.role_code}</div>
-                  </td>
-                  <td data-label="team" class="text-sm">{papel.team_name}</td>
-                  <%!-- Sem data não vira "hoje": ninguém disse quando, e inventar afirmaria
-                        que a alocação começou agora. --%>
-                  <td data-label="from" class="text-xs">
-                    <span :if={papel.started_at}>{papel.started_at}</span>
-                    <.absent :if={is_nil(papel.started_at)} reason="not stated" />
-                  </td>
-                  <td data-label="until" class="text-xs">
-                    <span :if={papel.ended_at}>{papel.ended_at}</span>
-                    <span :if={is_nil(papel.ended_at)} class="badge badge-sm badge-success">
-                      current
-                    </span>
-                  </td>
-                  <td data-label="declared by" class="text-xs opacity-70">
-                    <span :if={papel.declared_by}>{papel.declared_by}</span>
-                    <.absent :if={is_nil(papel.declared_by)} reason="author not recorded" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <%!-- As equipes, com o que a origem declara E o que a plataforma recusou promover. As três
-              coisas juntas: sem a segunda a tela afirma um vínculo que não existe; sem a terceira, a
-              recusa parece defeito. --%>
-        <section class="space-y-2">
-          <div>
-            <h3 class="font-semibold">Teams the source declares</h3>
-            <p class="text-xs text-base-content/60">
-              {explicacao_da_promocao(@equipes, @papeis)}
-            </p>
-          </div>
-
-          <.empty :if={@equipes == []} title="No team is declared for this person.">
-            The source does not place them in any team. This is what the source says — not a gap in
-            the collection.
-          </.empty>
-
-          <div :if={@equipes != []} class="overflow-x-auto">
-            <table class="table table-sm stacked">
-              <thead>
-                <tr>
-                  <th>team</th>
-                  <th>organisation</th>
-                  <%!-- "access at the tool", nunca "role": MAINTAINER é permissão na ferramenta, e
-                        papel é conceito do processo. Chamá-lo de papel aqui desfaria na interface a
-                        distinção que o modelo preserva. --%>
-                  <th>access at the tool</th>
-                  <th>relation</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={equipe <- @equipes}>
-                  <td data-label="team">
-                    <.link navigate={~p"/teams/#{equipe.team_id}"} class="link link-hover">
-                      {equipe.team_name}
-                    </.link>
-                  </td>
-                  <td data-label="organisation" class="text-xs opacity-70">
-                    {equipe.organization_login || "not declared"}
-                  </td>
-                  <td data-label="access at the tool">
-                    <span class="font-mono text-xs">{equipe.platform_access_level || "—"}</span>
-                  </td>
-                  <td data-label="relation">
-                    <.origem forma={forma_da_equipe(equipe)} texto={texto_da_equipe(equipe)} />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            </a>
+          </nav>
         </section>
 
         <%!-- ═══ QUEM VÊ O PAINEL DE QUEM — issue #369, FR-012 ═══
@@ -940,63 +587,14 @@ defmodule TheBandWeb.PeopleLive.Show do
           </.notice>
         </section>
 
-        <%!-- ═══ A VERIFICAÇÃO SOBRE OS COMMITS DELA — feature 044, US3 ═══
-              `commit_authors` → `collected_commits` → `collected_verifications`, por
-              `sha` = `head_sha`. Co-autoria conta: a rede declara `many` na origem de
-              `cmpo.stakeholder_performed_commit`. --%>
-        <section :if={@ve_o_trabalho? and @verificacao} class="space-y-2">
-          <h3 class="font-semibold">Checks on their commits</h3>
-
-          <div class="flex flex-wrap gap-4 text-sm">
-            <span>
-              <strong class="tabular-nums">{@verificacao.passou}</strong>
-              <span class="text-xs opacity-70">passed</span>
-            </span>
-            <span>
-              <strong class="tabular-nums">{@verificacao.quebrou}</strong>
-              <span class="text-xs opacity-70">broke</span>
-            </span>
-            <%!-- FR-004: `skipped` e `cancelled` NÃO são passou nem quebrou. As duas
-                  palavras afirmam resultado, e pular ou cancelar não é resultado. --%>
-            <span :if={@verificacao.outras > 0}>
-              <strong class="tabular-nums">{@verificacao.outras}</strong>
-              <span class="text-xs opacity-70">neither — skipped or cancelled</span>
-            </span>
-          </div>
-
-          <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
-                commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
-                um. --%>
-          <p class="text-xs text-base-content/60">
-            Counted as <strong>runs</strong>, not commits — a retried commit produces a new
-            run.
-          </p>
-
-          <p
-            :if={@verificacao.passou == 0 and @verificacao.quebrou == 0 and @verificacao.outras == 0}
-            class="text-xs text-base-content/60"
-          >
-            No check run on this person's commits. Either their commits are in repositories
-            without workflows, or the commits themselves have not been collected.
-          </p>
-
-          <%!-- FR-010: a parcela AO LADO, e nunca descontada. Medido em 2026-08-27: 47%
-                das execuções não casam com pessoa alguma — evento sem commit, autor não
-                promovido, ou robô. --%>
-          <.notice
-            :if={@verificacao.sem_autoria_no_tenant > 0}
-            kind={:gap}
-            title={"#{@verificacao.sem_autoria_no_tenant} runs in this organisation match no person at all"}
-          >
-            They were triggered by an event with no commit, or by a commit whose author was
-            never promoted to a person. They are not counted above, and not subtracted from
-            it either — the numbers speak for the commits the platform could attribute.
-          </.notice>
-        </section>
-
+        <%!-- A ORDEM DA PÁGINA é decisão → evidência → administração (reorganização de
+              2026-08-28): primeiro o que se lê para decidir (trabalho, perfil), depois a
+              evidência que sustenta (checks, proveniência, equipes, papéis), e por último
+              o que só quem administra toca (a conta). Cada seção continua dizendo sua
+              própria história — só a casa delas mudou. --%>
         <%!-- O trabalho: dois números, e a soma deles não aparece em lugar nenhum. Quem abre uma
               issue não necessariamente trabalha nela. --%>
-        <section :if={@ve_o_trabalho?} class="space-y-2">
+        <section :if={@ve_o_trabalho?} id="work" class="scroll-mt-20 space-y-2">
           <h3 class="font-semibold">Work</h3>
 
           <%!-- A cobertura vem ANTES de qualquer número derivado, e não como rodapé.
@@ -1090,6 +688,27 @@ defmodule TheBandWeb.PeopleLive.Show do
               </div>
             </div>
 
+            <%!-- A idade volta para o LADO do fluxo (reorganização 2026-08-28): o texto
+                  do gráfico semanal sempre disse "the age chart beside this one", e as
+                  features foram empurrando a vizinha para depois do burn — sobrando um
+                  terço vazio na primeira linha. Fluxo e idade se leem juntos: o que
+                  passou, e o que está parado esperando. --%>
+            <div class="card min-w-0 bg-base-200">
+              <div class="card-body gap-2 p-4">
+                <h4 class="text-sm font-medium">
+                  Age of open work <span class="opacity-60">{@designadas_abertas} open</span>
+                </h4>
+                <p :if={@designadas_abertas == 0} class="text-xs text-base-content/60">
+                  Nothing assigned and open right now.
+                </p>
+                <WorkCharts.por_faixa :if={@designadas_abertas > 0} faixas={@idades} />
+                <p class="text-xs text-base-content/60">
+                  Days since the issue was created. The only forward-looking measure here — the
+                  others count the past, this one shows what is sitting still now.
+                </p>
+              </div>
+            </div>
+
             <%!-- ═══ BURN-UP E BURN-DOWN ═══
                   O burn-down sozinho esconde a causa: quando a linha do que resta não
                   desce, ela não diz se ninguém fechou nada ou se o escopo cresceu junto.
@@ -1174,22 +793,6 @@ defmodule TheBandWeb.PeopleLive.Show do
                   evidence — what the number really says is that opening and closing are nearly
                   even.
                 </.notice>
-              </div>
-            </div>
-
-            <div class="card min-w-0 bg-base-200">
-              <div class="card-body gap-2 p-4">
-                <h4 class="text-sm font-medium">
-                  Age of open work <span class="opacity-60">{@designadas_abertas} open</span>
-                </h4>
-                <p :if={@designadas_abertas == 0} class="text-xs text-base-content/60">
-                  Nothing assigned and open right now.
-                </p>
-                <WorkCharts.por_faixa :if={@designadas_abertas > 0} faixas={@idades} />
-                <p class="text-xs text-base-content/60">
-                  Days since the issue was created. The only forward-looking measure here — the
-                  others count the past, this one shows what is sitting still now.
-                </p>
               </div>
             </div>
           </div>
@@ -1428,7 +1031,7 @@ defmodule TheBandWeb.PeopleLive.Show do
               escrito por um modelo não tem nenhum dos três. Reusá-lo seria aplicar o padrão
               fora do problema que o motivou. O que se reusa é a **regra**: preenchimento
               hachurado, e rótulo em texto ao lado. --%>
-        <section class="card bg-base-200">
+        <section id="profile" class="card scroll-mt-20 bg-base-200">
           <div class="card-body gap-3 p-4 sm:p-5">
             <h3 class="flex flex-wrap items-center gap-2 font-semibold">
               Profile &amp; growth
@@ -1718,6 +1321,464 @@ defmodule TheBandWeb.PeopleLive.Show do
               <.absent reason={recusa(elem(@perfil_possivel, 1))} />
             </div>
           </div>
+        </section>
+
+        <%!-- ═══ A VERIFICAÇÃO SOBRE OS COMMITS DELA — feature 044, US3 ═══
+              `commit_authors` → `collected_commits` → `collected_verifications`, por
+              `sha` = `head_sha`. Co-autoria conta: a rede declara `many` na origem de
+              `cmpo.stakeholder_performed_commit`. --%>
+        <section :if={@ve_o_trabalho? and @verificacao} id="checks" class="scroll-mt-20 space-y-2">
+          <h3 class="font-semibold">Checks on their commits</h3>
+
+          <div class="flex flex-wrap gap-4 text-sm">
+            <span>
+              <strong class="tabular-nums">{@verificacao.passou}</strong>
+              <span class="text-xs opacity-70">passed</span>
+            </span>
+            <span>
+              <strong class="tabular-nums">{@verificacao.quebrou}</strong>
+              <span class="text-xs opacity-70">broke</span>
+            </span>
+            <%!-- FR-004: `skipped` e `cancelled` NÃO são passou nem quebrou. As duas
+                  palavras afirmam resultado, e pular ou cancelar não é resultado. --%>
+            <span :if={@verificacao.outras > 0}>
+              <strong class="tabular-nums">{@verificacao.outras}</strong>
+              <span class="text-xs opacity-70">neither — skipped or cancelled</span>
+            </span>
+          </div>
+
+          <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
+                commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
+                um. --%>
+          <p class="text-xs text-base-content/60">
+            Counted as <strong>runs</strong>, not commits — a retried commit produces a new
+            run.
+          </p>
+
+          <p
+            :if={@verificacao.passou == 0 and @verificacao.quebrou == 0 and @verificacao.outras == 0}
+            class="text-xs text-base-content/60"
+          >
+            No check run on this person's commits. Either their commits are in repositories
+            without workflows, or the commits themselves have not been collected.
+          </p>
+
+          <%!-- FR-010: a parcela AO LADO, e nunca descontada. Medido em 2026-08-27: 47%
+                das execuções não casam com pessoa alguma — evento sem commit, autor não
+                promovido, ou robô. --%>
+          <.notice
+            :if={@verificacao.sem_autoria_no_tenant > 0}
+            kind={:gap}
+            title={"#{@verificacao.sem_autoria_no_tenant} runs in this organisation match no person at all"}
+          >
+            They were triggered by an event with no commit, or by a commit whose author was
+            never promoted to a person. They are not counted above, and not subtracted from
+            it either — the numbers speak for the commits the platform could attribute.
+          </.notice>
+        </section>
+
+        <%!-- Proveniência primeiro: de onde veio, com que identificador, e desde quando. É o que
+              permite conferir a pessoa contra a origem. --%>
+        <section id="provenance" class="card scroll-mt-20 bg-base-200">
+          <div class="card-body gap-3 p-4 sm:p-5">
+            <h3 class="font-semibold">Where this came from</h3>
+            <dl class="grid gap-2 sm:grid-cols-2">
+              <.field label="source">{@pessoa.source_system} · {@pessoa.source_instance}</.field>
+              <.field label="identifier at source">
+                <span class="font-mono text-xs">{@pessoa.external_id}</span>
+              </.field>
+              <.field label="first observed">{@pessoa.collected_at}</.field>
+              <.field label="last observed">{@pessoa.last_observed_at}</.field>
+              <.field :if={@organizacoes != []} label="organisations">
+                {Enum.map_join(@organizacoes, ", ", & &1.login)}
+                <div class="text-xs opacity-60">observed through team membership</div>
+              </.field>
+              <%!-- Dito com a evidência, e sem a palavra "membro": a plataforma observou o trabalho,
+                    não o pertencimento. Quem saiu antes de ela começar a olhar nunca esteve numa
+                    equipe, e o trabalho ficou. --%>
+              <.field :if={@organizacoes_por_trabalho != []} label="worked at">
+                <div :for={o <- @organizacoes_por_trabalho}>
+                  {o.organizacao.login}
+                  <span class="text-xs opacity-60">
+                    derived from work in {o.repositorios} repositor{if o.repositorios == 1,
+                      do: "y",
+                      else: "ies"} — not a declared membership
+                  </span>
+                </div>
+              </.field>
+            </dl>
+            <p :if={@pessoa.no_longer_observed_at} class="text-sm">
+              No longer observed since {@pessoa.no_longer_observed_at}. The platform saw this person
+              before, and does not see them now.
+            </p>
+          </div>
+
+          <%!-- O QUE A PESSOA MUDOU — cmpo.change_request e cmpo.commit_artifact_copy.
+                As três leituras ficam SEPARADAS porque a rede as separa: submeter,
+                integrar e executar são participações diferentes. Somá-las produziria um
+                número de "contribuições" que não corresponde a nada. --%>
+          <div class="mt-4 border-t border-base-300 pt-3">
+            <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+              Changes
+            </h4>
+            <p class="mb-2 text-xs text-base-content/60">
+              Asking for a change, integrating it and committing are different acts — kept
+              apart here because the network keeps them apart.
+            </p>
+
+            <%!-- ═══ OS TRÊS PAPÉIS, EM NÚMERO — feature 044 ═══
+                  A soma dos três NÃO aparece, e é de propósito: abrir, revisar e integrar
+                  são participações distintas, e somá-las produziria um número que não
+                  significa coisa alguma. --%>
+            <div :if={@participacao_na_mudanca} class="mb-3 flex flex-wrap gap-4 text-sm">
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.abriu}</strong>
+                <span class="text-xs opacity-70">opened</span>
+              </span>
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.revisou}</strong>
+                <span class="text-xs opacity-70">reviewed</span>
+              </span>
+              <span>
+                <strong class="tabular-nums">{@participacao_na_mudanca.integrou}</strong>
+                <span class="text-xs opacity-70">integrated</span>
+              </span>
+            </div>
+
+            <%!-- ═══ O VEREDITO — feature 044, US2 ═══
+                  Nomeado pelo CONCEITO da rede, e nunca pelo enum do GitHub: `APPROVED` e
+                  `CHANGES_REQUESTED` não aparecem em lugar nenhum desta tela. --%>
+            <div :if={@participacao_na_mudanca && @participacao_na_mudanca.revisou > 0} class="mb-3">
+              <h5 class="text-xs font-medium opacity-70">How they reviewed</h5>
+              <div class="flex flex-wrap gap-3 text-sm">
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.endossou}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.endorsing_verdict")}</span>
+                </span>
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.objetou}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.objecting_verdict")}</span>
+                </span>
+                <span>
+                  <strong class="tabular-nums">{@participacao_na_mudanca.absteve}</strong>
+                  <span class="text-xs opacity-70">{Verdict.rotulo("qapo.abstaining_verdict")}</span>
+                </span>
+              </div>
+
+              <%!-- FR-011: endossar NÃO é ausência de não conformidade. A rede declara
+                    `many` no destino de `identified_noncompliance` porque inclui zero e
+                    não o exige. --%>
+              <p class="mt-1 text-xs text-base-content/60">
+                Endorsing means <em>not blocking</em> — a review that endorses may still
+                have raised concerns.
+              </p>
+
+              <%!-- T007: a diferença entre revisões e vereditos, dita SÓ quando existe.
+                    Medido: `vinicius-je` revisou 627 solicitações com 721 avaliações. Sem
+                    a frase, quem lê conclui que um dos números está quebrado — foi o que
+                    aconteceu com `fatasy`, com 8 e 233. --%>
+              <p
+                :if={avaliacoes(@participacao_na_mudanca) > @participacao_na_mudanca.revisou}
+                class="text-xs text-base-content/60"
+              >
+                {avaliacoes(@participacao_na_mudanca)} reviews over {@participacao_na_mudanca.revisou} change
+                requests — some were reviewed more than once. Reviews count <strong>positions taken</strong>; the number above counts <strong>changes reviewed</strong>.
+              </p>
+            </div>
+
+            <p
+              :if={
+                @mudancas.abertas == [] and @mudancas.revisadas == [] and @mudancas.integradas == [] and
+                  @mudancas.commits == []
+              }
+              class="text-xs text-base-content/60"
+            >
+              No change request or commit collected for this person. Either the work goes
+              through other channels, or the repositories they touch have not been collected.
+            </p>
+
+            <div :if={@mudancas.abertas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Opened</h5>
+              <div
+                :for={m <- @mudancas.abertas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
+              </div>
+            </div>
+
+            <div :if={@mudancas.revisadas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Reviewed</h5>
+              <div
+                :for={m <- @mudancas.revisadas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+                <span class="text-xs opacity-60">{String.downcase(m.state || "")}</span>
+              </div>
+            </div>
+
+            <div :if={@mudancas.integradas != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Integrated</h5>
+              <div
+                :for={m <- @mudancas.integradas}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <.link navigate={~p"/work/changes/#{m.id}"} class="link link-hover">
+                  #{m.number} {m.title}
+                </.link>
+              </div>
+            </div>
+
+            <div :if={@mudancas.commits != []} class="mt-2">
+              <h5 class="text-xs font-medium opacity-70">Committed</h5>
+              <div
+                :for={c <- @mudancas.commits}
+                class="flex flex-wrap items-baseline gap-x-2 text-sm"
+              >
+                <span class="font-mono text-xs opacity-60">{String.slice(c.sha, 0, 8)}</span>
+                <span :if={is_nil(c.change_request_id)}>{c.headline}</span>
+                <.link
+                  :if={c.change_request_id}
+                  navigate={~p"/work/changes/#{c.change_request_id}"}
+                  class="link link-hover"
+                >
+                  {c.headline}
+                </.link>
+                <%!-- Co-autoria dita: a pessoa participou da mudança sem ser a autora
+                      que o Git registra, e apresentar as duas iguais apagaria o fato. --%>
+                <span :if={not c.is_primary} class="badge badge-ghost badge-xs">co-author</span>
+              </div>
+            </div>
+          </div>
+
+          <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
+                observados, e por isso hachurada e rotulada. Responde o que designação
+                nenhuma responde: o trabalho que acontece na conversa. --%>
+          <div class="mt-4 border-t border-base-300 pt-3">
+            <div class="mb-2 flex flex-wrap items-center gap-2">
+              <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
+                Discussions they took part in
+              </h4>
+              <span class="badge badge-outline badge-sm gap-1 text-warning">
+                <span class="size-2.5 shrink-0 rounded-[1px] outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"></span>
+                derived — counted from collected comments
+              </span>
+            </div>
+            <p class="mb-2 text-xs text-base-content/60">
+              Commenting is <strong>not</strong>
+              a completed task, and this is not a skill claim: it is where the person
+              showed up in the conversation — including on issues never assigned to them.
+            </p>
+
+            <p :if={@participacao == []} class="text-xs text-base-content/60">
+              No comment by this person has been collected. Either they work through other
+              channels, or the discussion of their repositories has not been collected yet.
+            </p>
+
+            <div
+              :for={d <- @participacao}
+              class="flex flex-wrap items-baseline gap-x-3 border-t border-base-300 py-1.5 text-sm"
+            >
+              <span class="w-16 shrink-0 text-right font-mono text-xs opacity-70 tabular-nums">
+                {d.atos}×
+              </span>
+              <.link navigate={~p"/work/issues/#{d.issue_id}"} class="link link-hover">
+                {d.title}
+              </.link>
+              <span class="font-mono text-xs opacity-60 tabular-nums">
+                {Calendar.strftime(d.primeiro, "%Y-%m")} → {Calendar.strftime(d.ultimo, "%Y-%m")}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <%!-- As equipes, com o que a origem declara E o que a plataforma recusou promover. As três
+              coisas juntas: sem a segunda a tela afirma um vínculo que não existe; sem a terceira, a
+              recusa parece defeito. --%>
+        <section id="teams" class="scroll-mt-20 space-y-2">
+          <div>
+            <h3 class="font-semibold">Teams the source declares</h3>
+            <p class="text-xs text-base-content/60">
+              {explicacao_da_promocao(@equipes, @papeis)}
+            </p>
+          </div>
+
+          <.empty :if={@equipes == []} title="No team is declared for this person.">
+            The source does not place them in any team. This is what the source says — not a gap in
+            the collection.
+          </.empty>
+
+          <div :if={@equipes != []} class="overflow-x-auto">
+            <table class="table table-sm stacked">
+              <thead>
+                <tr>
+                  <th>team</th>
+                  <th>organisation</th>
+                  <%!-- "access at the tool", nunca "role": MAINTAINER é permissão na ferramenta, e
+                        papel é conceito do processo. Chamá-lo de papel aqui desfaria na interface a
+                        distinção que o modelo preserva. --%>
+                  <th>access at the tool</th>
+                  <th>relation</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={equipe <- @equipes}>
+                  <td data-label="team">
+                    <.link navigate={~p"/teams/#{equipe.team_id}"} class="link link-hover">
+                      {equipe.team_name}
+                    </.link>
+                  </td>
+                  <td data-label="organisation" class="text-xs opacity-70">
+                    {equipe.organization_login || "not declared"}
+                  </td>
+                  <td data-label="access at the tool">
+                    <span class="font-mono text-xs">{equipe.platform_access_level || "—"}</span>
+                  </td>
+                  <td data-label="relation">
+                    <.origem forma={forma_da_equipe(equipe)} texto={texto_da_equipe(equipe)} />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <%!-- **O papel declarado, e ele vem antes da participação observada de propósito.**
+
+              As duas coisas ficam separadas porque são de naturezas diferentes: o papel é
+              declaração humana, e nenhuma origem o fornece; a participação é observação. Uma
+              tela que mostrasse "Developer" sem dizer que alguém digitou aquilo transformaria
+              declaração em observação — e é o oposto do que a plataforma inteira defende.
+
+              A ordem — declarado primeiro — é porque é o que responde "o que esta pessoa faz",
+              e a participação responde "onde a origem a mostra". --%>
+        <section :if={@papeis_declarados != []} class="space-y-2">
+          <div>
+            <h3 class="font-semibold">Roles declared for this person</h3>
+            <p class="text-xs text-base-content/60">
+              Declared by someone in this organisation — no source provides organisational role.
+            </p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="table table-sm stacked">
+              <thead>
+                <tr>
+                  <th>role</th>
+                  <th>team</th>
+                  <th>from</th>
+                  <th>until</th>
+                  <th>declared by</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={papel <- @papeis_declarados} class={papel.ended_at && "opacity-60"}>
+                  <td data-label="role">
+                    <span class="font-medium">{papel.role_name}</span>
+                    <div class="text-xs opacity-60 font-mono">{papel.role_code}</div>
+                  </td>
+                  <td data-label="team" class="text-sm">{papel.team_name}</td>
+                  <%!-- Sem data não vira "hoje": ninguém disse quando, e inventar afirmaria
+                        que a alocação começou agora. --%>
+                  <td data-label="from" class="text-xs">
+                    <span :if={papel.started_at}>{papel.started_at}</span>
+                    <.absent :if={is_nil(papel.started_at)} reason="not stated" />
+                  </td>
+                  <td data-label="until" class="text-xs">
+                    <span :if={papel.ended_at}>{papel.ended_at}</span>
+                    <span :if={is_nil(papel.ended_at)} class="badge badge-sm badge-success">
+                      current
+                    </span>
+                  </td>
+                  <td data-label="declared by" class="text-xs opacity-70">
+                    <span :if={papel.declared_by}>{papel.declared_by}</span>
+                    <.absent :if={is_nil(papel.declared_by)} reason="author not recorded" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <%!-- ═══ QUAL CONTA É ESTA PESSOA — issue #369, FR-012c ═══
+              A regra de quem vê o painel de quem depende de saber qual das pessoas
+              observadas é quem está logado. O elo não vinha de lugar nenhum: medido em
+              2026-08-26, as 88 pessoas de `eo_people` têm `external_id` e login, e
+              NENHUMA tem e-mail — o GitHub não entrega. --%>
+        <section id="account" class="scroll-mt-20 space-y-2">
+          <div>
+            <h3 class="font-semibold">Which account is this person</h3>
+            <p class="text-xs text-base-content/60">
+              Identity comes from the source — this person is
+              <span class="font-mono">{@pessoa.login}</span>
+              on GitHub. What has to be said by a person is which <strong>platform account</strong>
+              is the same human, and that is what this link records.
+            </p>
+          </div>
+
+          <p :if={@conta_da_pessoa} class="text-sm">
+            Linked to
+            <span class="badge badge-outline badge-sm font-mono">{@conta_da_pessoa.email}</span>
+            <span class="text-xs opacity-60">
+              declared on {Calendar.strftime(@conta_da_pessoa.person_declared_at, "%Y-%m-%d")}
+            </span>
+            <button
+              :if={@current_user.role == "admin"}
+              type="button"
+              class="btn btn-ghost btn-xs"
+              phx-click="revogar_conta"
+              phx-value-user_id={@conta_da_pessoa.id}
+              data-confirm="Unlink it? That account stops reaching this person's panel."
+            >
+              unlink
+            </button>
+          </p>
+
+          <%!-- Ausência nomeada, com o efeito junto: "nenhuma conta" sem dizer o que isso
+                causa parece detalhe de cadastro, quando é o que decide acesso. --%>
+          <p :if={is_nil(@conta_da_pessoa)} class="text-sm opacity-70">
+            <strong>No account linked.</strong>
+            Nobody signing in is recognised as this person, so nobody — not even they —
+            reaches this person's work panel through the visibility rule.
+          </p>
+
+          <%!-- Só admin. O elo CONCEDE visibilidade: apontar uma conta para esta pessoa é
+                dar a essa conta o painel desta pessoa. --%>
+          <form
+            :if={@current_user.role == "admin"}
+            id="elo-da-conta"
+            phx-submit="declarar_conta"
+            class="flex flex-wrap items-end gap-2"
+          >
+            <label class="fieldset">
+              <span class="label-text text-xs">the platform account that is this person</span>
+              <select name="user_id" class="select select-sm select-bordered">
+                <option value="">choose an account…</option>
+                <option :for={c <- @contas} value={c.id}>
+                  {c.email}{if c.name, do: " — #{c.name}"}
+                </option>
+              </select>
+            </label>
+            <.button type="submit" class="btn-sm">
+              {if @conta_da_pessoa, do: "Replace", else: "Link"}
+            </.button>
+          </form>
+
+          <p :if={@current_user.role != "admin"} class="text-xs opacity-60">
+            Only an administrator can change this link — it decides who sees whose panel.
+          </p>
+
+          <p class="text-xs opacity-60">
+            <strong>{@cobertura_do_elo.declaradas} of {@cobertura_do_elo.contas}</strong>
+            accounts are linked to an observed person. The rest reach no panel, and that is
+            a gap in what was declared — not a gap in what was collected.
+          </p>
         </section>
       </div>
     </Layouts.app>
