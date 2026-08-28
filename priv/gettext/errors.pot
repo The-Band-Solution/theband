@@ -294,6 +294,7 @@ msgid "Only an administrator can unlink an account."
 msgstr ""
 
 #: lib/the_band_web/live/hooks.ex:85
+#: lib/the_band_web/plugs/current_scope.ex:86
 #, elixir-autogen, elixir-format
 msgid "Only organisation administrators can do that."
 msgstr ""
@@ -338,6 +339,7 @@ msgid "Sync not found."
 msgstr ""
 
 #: lib/the_band_web/live/hooks.ex:62
+#: lib/the_band_web/plugs/current_scope.ex:110
 #, elixir-autogen, elixir-format
 msgid "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
 msgstr ""

@@ -62,16 +62,26 @@ defmodule Mix.Tasks.Mensagens.Verificar do
   end
 
   defp coletar({:put_flash, meta, args} = node, achados, arquivo) when is_list(args) do
-    mensagem = List.last(args)
+    {node, acumular(args, meta, achados, arquivo)}
+  end
 
-    if length(args) in [2, 3] and literal_de_mensagem?(mensagem) do
-      {node, [{arquivo, meta[:line]} | achados]}
-    else
-      {node, achados}
-    end
+  # A forma qualificada (Phoenix.Controller.put_flash / Phoenix.LiveView.put_flash)
+  # tem outra cabeça de AST — e foi por ela que a recusa do plug escapou da
+  # primeira varredura (pego pelo teste de idioma, 2026-08-28).
+  defp coletar({{:., _, [_mod, :put_flash]}, meta, args} = node, achados, arquivo)
+       when is_list(args) do
+    {node, acumular(args, meta, achados, arquivo)}
   end
 
   defp coletar(node, achados, _arquivo), do: {node, achados}
+
+  defp acumular(args, meta, achados, arquivo) do
+    if length(args) in [2, 3] and literal_de_mensagem?(List.last(args)) do
+      [{arquivo, meta[:line]} | achados]
+    else
+      achados
+    end
+  end
 
   # String literal.
   defp literal_de_mensagem?(arg) when is_binary(arg), do: true

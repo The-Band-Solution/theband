@@ -11,6 +11,8 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   outro navegador (FR-015): a sessão cai como se não existisse.
   """
 
+  use Gettext, backend: TheBandWeb.Gettext
+
   import Plug.Conn
   import Phoenix.Controller, only: [redirect: 2]
 
@@ -81,7 +83,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       conn
       |> Phoenix.Controller.put_flash(
         :error,
-        "Only organisation administrators can do that."
+        dgettext("errors", "Only organisation administrators can do that.")
       )
       |> redirect(to: "/people")
       |> halt()
@@ -105,7 +107,10 @@ defmodule TheBandWeb.Plugs.CurrentScope do
         conn
         |> Phoenix.Controller.put_flash(
           :error,
-          "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+          dgettext(
+            "errors",
+            "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+          )
         )
         |> redirect(to: "/people")
         |> halt()

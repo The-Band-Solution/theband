@@ -86,6 +86,21 @@ defmodule Mix.Tasks.Mensagens.VerificarTest do
     assert stderr =~ "interpolado.ex:5"
   end
 
+  test "a forma qualificada também é ralo — foi por ela que o plug escapou" do
+    escrever("qualificado.ex", """
+    defmodule Qualificado do
+      def f(conn) do
+        Phoenix.Controller.put_flash(conn, :error, "escapou do primeiro pente")
+      end
+    end
+    """)
+
+    {veredito, stderr} = rodar()
+
+    assert {:reprovou, _} = veredito
+    assert stderr =~ "qualificado.ex:3"
+  end
+
   test "gettext, variável e chamada de função passam" do
     escrever("limpo.ex", """
     defmodule Limpo do
