@@ -225,6 +225,34 @@ defmodule TheBand.Tenants.AccessTest do
       assert {:ok, :escopo_da_organizacao} = Tenants.pode_ver(ctx.tenant, diretora, bia.id)
     end
 
+    test "organization alcança quem a organização OBSERVA, mesmo sem vínculo promovido", ctx do
+      # O dado real: 101 evidências, 0 promoções. Só a equipe promovida deixava o
+      # escopo organization alcançar 4 de 88 pessoas — a pertença observada (evidência
+      # vigente da origem) é o fato que decide (correção registrada no contrato).
+      time = equipe(ctx, "Plataforma")
+      caio = pessoa(ctx, "caio")
+
+      {:ok, _} =
+        EO.record_team_membership_evidence(
+          ctx.tenant,
+          Map.merge(source_attrs("M_caio_#{System.unique_integer([:positive])}"), %{
+            person_external_id: caio.external_id,
+            team_external_id: time.external_id,
+            person_id: caio.id,
+            team_id: time.id,
+            platform_access_level: "MEMBER",
+            observed_at: DateTime.utc_now(:second)
+          })
+        )
+
+      diretora = user_fixture(ctx.tenant, "member")
+
+      {:ok, _} =
+        Tenants.grant_scope(ctx.tenant, diretora.id, :organization, ctx.org.id, ctx.admin)
+
+      assert {:ok, :escopo_da_organizacao} = Tenants.pode_ver(ctx.tenant, diretora, caio.id)
+    end
+
     test "a liderança declarada (#369) continua valendo — FR-018", ctx do
       time = equipe(ctx, "Plataforma")
       tl = papel(ctx, "tech-leader", "Tech Leader")

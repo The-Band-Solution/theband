@@ -76,34 +76,39 @@ defmodule TheBandWeb.Layouts do
             barra passou de 1.280px e o `sm:overflow-visible` deixava a PÁGINA rolar de
             lado — medido em 2026-08-19: documento de 1.430px num viewport de 1.280. O
             conteúdo largo rola dentro do próprio contêiner; o corpo da página, nunca. --%>
-      <div
-        :if={@current_tenant}
-        class="nav-rolavel -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0"
-      >
-        <ul class="flex items-center gap-1 whitespace-nowrap">
-          <%!-- A barra carrega as ENTIDADES — as mesmas do axioma de acesso da spec 045:
-                quem (pessoas), com quem (equipes), sobre o quê (projetos). O resto vive em
-                Settings, em seções nomeadas — spec 046. A história que motivou: doze itens
-                estouraram 1.280px, e antes disso Changes/Files/Checks passaram meses
-                alcançáveis só por URL (5.035 solicitações, 87.719 versões de arquivo e
-                1.051 execuções que ninguém achava). Item de barra não escala; a resposta
-                para "onde está?" passou a ser a estrutura: entidade na barra, o resto em
-                Settings, e as visões de trabalho como sub-abas de Work (work_tabs/1). --%>
+      <div :if={@current_tenant} class="flex flex-wrap items-center gap-2">
+        <%!-- A barra carrega as ENTIDADES — as mesmas do axioma de acesso da spec 045:
+              quem (pessoas), com quem (equipes), sobre o quê (projetos). O resto vive em
+              Settings, em seções nomeadas — spec 046.
+
+              SÓ as entidades vivem no contêiner rolável. `overflow-x: auto` força
+              overflow-y a auto, e um dropdown absoluto lá dentro abre CORTADO pela
+              altura da barra — foi o defeito do Settings "que não abria": abria, e a
+              barra o engolia. O menu e o bloco da conta ficam FORA, num irmão que
+              não rola. --%>
+        <div class="nav-rolavel -mx-4 min-w-40 flex-1 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
+          <ul class="flex items-center gap-1 whitespace-nowrap">
+            <li>
+              <.nav_item navigate={~p"/people"} active={@nav_area == :people}>People</.nav_item>
+            </li>
+            <li>
+              <.nav_item navigate={~p"/teams"} active={@nav_area == :teams}>Teams</.nav_item>
+            </li>
+            <li>
+              <.nav_item navigate={~p"/projects"} active={@nav_area == :projects}>
+                Projects
+              </.nav_item>
+            </li>
+            <li>
+              <.nav_item navigate={~p"/organizations"} active={@nav_area == :organization}>
+                Organization
+              </.nav_item>
+            </li>
+          </ul>
+        </div>
+
+        <ul class="flex shrink-0 items-center gap-1 whitespace-nowrap">
           <li>
-            <.nav_item navigate={~p"/people"} active={@nav_area == :people}>People</.nav_item>
-          </li>
-          <li>
-            <.nav_item navigate={~p"/teams"} active={@nav_area == :teams}>Teams</.nav_item>
-          </li>
-          <li>
-            <.nav_item navigate={~p"/projects"} active={@nav_area == :projects}>Projects</.nav_item>
-          </li>
-          <li>
-            <.nav_item navigate={~p"/organizations"} active={@nav_area == :organization}>
-              Organization
-            </.nav_item>
-          </li>
-          <li class="ml-auto">
             <details class="dropdown dropdown-end">
               <summary
                 class={["btn btn-ghost btn-sm", @nav_area == :settings && "btn-active"]}
