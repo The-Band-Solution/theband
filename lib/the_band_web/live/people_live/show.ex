@@ -1620,12 +1620,26 @@ defmodule TheBandWeb.PeopleLive.Show do
               channels, or the discussion of their repositories has not been collected yet.
             </p>
 
+            <%!-- A magnitude vira comprimento (pedido de 2026-08-28), SEM consulta nova:
+                  a barra é o mesmo `atos` de cada linha, proporcional ao maior da
+                  lista. Hachurada porque a contagem é DERIVADA de comentários
+                  coletados — a gramática da partitura vale em barra como vale em
+                  marca — e o número mono continua ao lado: cor e comprimento nunca
+                  são o único canal. --%>
             <div
               :for={d <- @participacao}
               class="flex flex-wrap items-baseline gap-x-3 border-t border-base-300 py-1.5 text-sm"
             >
-              <span class="w-16 shrink-0 text-right font-mono text-xs opacity-70 tabular-nums">
-                {d.atos}×
+              <span class="flex w-36 shrink-0 items-center justify-end gap-2">
+                <span
+                  class="h-2.5 rounded-[1px] text-primary outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+                  style={"width: #{max(round(d.atos / max_atos(@participacao) * 72), 3)}px"}
+                  title={"#{d.atos} collected comments in this discussion"}
+                  aria-hidden="true"
+                ></span>
+                <span class="w-9 text-right font-mono text-xs opacity-70 tabular-nums">
+                  {d.atos}×
+                </span>
               </span>
               <.link navigate={~p"/work/issues/#{d.issue_id}"} class="link link-hover">
                 {d.title}
@@ -1928,6 +1942,11 @@ defmodule TheBandWeb.PeopleLive.Show do
 
   # A interface fala inglês; o modelo escreve em português. Traduzir aqui, e não no schema,
   # mantém o vocabulário da regra em uma língua só.
+  # O maior `atos` da lista, para as barras de participação serem proporcionais
+  # entre si. 1 no vazio só para o divisor nunca ser zero — sem lista não há barra.
+  defp max_atos([]), do: 1
+  defp max_atos(participacao), do: participacao |> Enum.map(& &1.atos) |> Enum.max()
+
   # A resolução tripla do sinal "parada" (#400) — uma consulta para TODAS as paradas.
   #
   # `nao_coletada` existe porque ausência de discussão coletada não é ausência de
