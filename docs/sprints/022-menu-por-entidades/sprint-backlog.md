@@ -93,8 +93,8 @@ Estados: `a fazer` · `em andamento` · `feito` · `bloqueado` · `não iniciado
 
 Além da DoD por tarefa:
 
-- [ ] quality gates verdes (`mix gates` com saída lida do log, L60)
-- [ ] base de conhecimento válida
-- [ ] issues encerradas ou repriorizadas com justificativa
-- [ ] `sprint-review.md` escrito
-- [ ] `licoes-aprendidas.md` atualizado
+- [x] quality gates verdes (`mix gates` com saída lida do log, L60)
+- [x] base de conhecimento válida
+- [x] issues encerradas ou repriorizadas com justificativa
+- [x] `sprint-review.md` escrito
+- [x] `licoes-aprendidas.md` atualizado

@@ -2083,8 +2083,15 @@ foram.
 `| tail` for o jeito natural de encurtar, alguém vai usá-lo de novo. A alternativa acima
 precisa ser tão curta quanto, senão a regra continua dependendo de memória.
 
-**Estado**: aberta — a forma com redirecionamento não está no `AGENTS.md` ao lado da
-proibição, e proibir sem oferecer a substituta é o que fez esta reincidir.
+**Estado**: aberta — a forma com redirecionamento **entrou no `AGENTS.md`** (seção 4,
+ao lado da proibição), o que resolve a pendência original.
+
+**Aplicada em**: Sprint 022 — e cobrou uma variação nova. O comando foi
+`mix gates > log 2>&1; echo "EXIT=$?"` rodado em background: o `EXIT=` foi para a
+saída da *task*, e o log terminou só em "13 gates verdes" — a aceitação apontou que o
+log não continha o código de saída. A forma completa grava o veredito **no próprio
+log**: `mix gates > log 2>&1; echo "EXIT=$?" >> log`. Duas execuções sem reincidência
+do pipe; mais uma e encerra.
 
 ---
 
@@ -2531,3 +2538,32 @@ uma recoleta.
 
 **Relação com a L68.** A L68 é a causa da população incompleta — o corte incremental
 excluindo o registro antigo. Esta é o que fazer enquanto a lacuna existe.
+
+---
+
+## L71 — Quando o requisito muda de lugar, os testes que documentam o lugar antigo caem em lote
+
+**Origem**: Sprint 022 (feature 046) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** A feature 046 moveu a navegação — barra de 12 itens virou 4 entidades +
+Settings, e o rastro (Changes/Files/Checks) virou sub-aba de Work. A primeira rodada completa da
+suíte derrubou **6 testes de uma vez**, e nenhum era defeito do código novo: eram testes
+guardando o requisito antigo. Quatro em `menus_do_rastro_test` ("os três destinos aparecem NA
+BARRA"), um em `clicar_leva_a_pagina_test` (refutava `href="/organizations"` na página inteira
+porque "não existe página de organização" — passou a existir), e um em `migalha_test`
+(`aria-current="page"` em âncora — a barra nova usava o mesmo valor da migalha).
+
+**Por que aconteceu.** Testes bons carregam a *razão* do requisito no próprio arquivo — e é
+exatamente isso que os torna sensíveis quando a razão muda de endereço. O plano da feature listou
+telas e componentes a tocar, mas não perguntou **"quais testes documentam o comportamento que
+esta feature aposenta?"**. A suíte respondeu, ao custo de uma rodada inteira (≈10 min) e do
+diagnóstico um a um.
+
+**O que fazer diferente.** No plan de qualquer feature que MOVE um requisito (menu, rota, regra
+de visibilidade, formato), acrescentar um passo de busca dirigida antes de implementar:
+`grep` nos testes pelos invariantes que a spec revoga (os hrefs, as frases, os valores de
+atributo). Cada acerto vira decisão registrada: o teste muda de morada junto com o requisito
+(preservando a asserção), estreita o escopo, ou morre com a premissa — decidido no plan, não no
+vermelho da suíte. E a resolução dos três casos deste sprint é o catálogo de referência:
+mudança de morada (rastro), estreitamento de escopo (organização fora da barra), separação de
+vocabulário (`"true"` na barra, `"page"` só na migalha).
