@@ -117,6 +117,10 @@ defmodule TheBand.Tenants.Auth do
     por_email(identificador) || por_login_do_github(identificador)
   end
 
+  # A invariante que sustenta a resolução global: `users.email` tem índice ÚNICO
+  # na plataforma inteira (não por tenant). Se um dia e-mail passar a repetir
+  # entre tenants, este resolvedor precisa mudar JUNTO — a regra de ambiguidade
+  # do username (não identifica) passaria a valer para ele.
   defp por_email(identificador) do
     baixo = String.downcase(identificador)
     Repo.one(from u in User, where: fragment("lower(?)", u.email) == ^baixo, limit: 2)

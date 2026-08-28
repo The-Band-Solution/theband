@@ -147,6 +147,34 @@ defmodule TheBand.Tenants.AccessTest do
       assert {:error, :target_not_found} =
                Tenants.grant_scope(outro, u.id, :organization, ctx.org.id, outro_admin)
     end
+
+    test "concessão para conta de OUTRO tenant é recusada no domínio", ctx do
+      outro = tenant_fixture()
+      outro_admin = user_fixture(outro)
+      conta_alheia = user_fixture(outro, "member")
+      outra_org = organization_fixture(outro, "deles")
+
+      # Admin de cá, conta de lá, alvo de cá: a função recusa sem depender da
+      # tela ter filtrado — achado da revisão independente do PR #562.
+      assert {:error, :target_not_found} =
+               Tenants.grant_scope(
+                 ctx.tenant,
+                 conta_alheia.id,
+                 :organization,
+                 ctx.org.id,
+                 ctx.admin
+               )
+
+      # E o espelho: admin de OUTRO tenant não é admin AQUI, seja lá como chegou.
+      assert {:error, :not_admin} =
+               Tenants.grant_scope(
+                 ctx.tenant,
+                 conta_alheia.id,
+                 :organization,
+                 outra_org.id,
+                 outro_admin
+               )
+    end
   end
 
   describe "pode_ver/3 — o veredito" do

@@ -241,8 +241,18 @@ defmodule TheBand.Tenants.Access do
   def grant(%Tenant{} = tenant, user_id, level, target_id, %User{} = actor)
       when level in [:team, :project, :organization] do
     cond do
-      not User.admin?(actor) ->
+      # Administrador DESTE tenant: a marca é da conta, e a conta é de um tenant —
+      # um admin de fora não concede aqui, seja lá como a chamada chegou.
+      not (User.admin?(actor) and actor.tenant_id == tenant.id) ->
         {:error, :not_admin}
+
+      # A CONTA também é conferida contra o tenant, e aqui — não só na tela. Uma
+      # função que decide acesso não pode depender de quem a chama ter conferido
+      # (a mesma doutrina que valia para o ramo do admin no Visibility). Sem esta
+      # linha, um admin gravaria concessão para conta de OUTRO tenant — órfã e
+      # inerte, mas linha de acesso errada é linha de acesso errada.
+      not user_do_tenant?(tenant, user_id) ->
+        {:error, :target_not_found}
 
       not target_exists?(tenant, level, target_id) ->
         {:error, :target_not_found}
@@ -266,7 +276,7 @@ defmodule TheBand.Tenants.Access do
           {:ok, ScopeGrant.t()} | {:error, :not_admin | :not_found}
   def revoke(%Tenant{id: tenant_id}, grant_id, %User{} = actor) do
     cond do
-      not User.admin?(actor) ->
+      not (User.admin?(actor) and actor.tenant_id == tenant_id) ->
         {:error, :not_admin}
 
       grant =
@@ -308,6 +318,10 @@ defmodule TheBand.Tenants.Access do
       true ->
         false
     end
+  end
+
+  defp user_do_tenant?(%Tenant{id: tenant_id}, user_id) do
+    Repo.exists?(from u in User, where: u.id == ^user_id and u.tenant_id == ^tenant_id)
   end
 
   defp target_exists?(tenant, :team, id), do: EO.teams_by_ids(tenant, [id]) != %{}
