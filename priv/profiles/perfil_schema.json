@@ -231,9 +231,10 @@
         "type": "object",
         "description": "O que a pessoa escreveu para OUTRAS executarem — issue #364. Os dois números vêm calculados no material e MUST ser reproduzidos como estão; nunca recalcule. A interpretação MUST se limitar ao que o texto das tarefas sustenta: se traz contexto e critério, ou se não traz — que também é achado. NUNCA rotule a pessoa: liderança é conclusão de quem lê, e escrever tarefa para outros também é papel de quem faz triagem, escreve requisito, coordena entrega, ou é o único com permissão no repositório.",
         "required": [
-          "tarefas",
+          "o_texto_mostra",
           "pessoas_distintas",
-          "o_texto_mostra"
+          "tarefas",
+          "tarefas_citadas"
         ],
         "additionalProperties": false,
         "properties": {
