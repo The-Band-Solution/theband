@@ -40,6 +40,19 @@ defmodule TheBand.Tenants.User do
     field :name, :string
     field :role, :string, default: "member"
 
+    # Feature 045 — credencial e sessão versionada (contracts/auth.md).
+    # `password_hash` NULO é conta pré-feature: a entrada recusa com a mensagem
+    # única e orienta a procurar quem administra (FR-014). A senha em claro só
+    # existe no campo virtual, dura o changeset, e nunca chega a log ou tela.
+    field :password, :string, virtual: true, redact: true
+    field :password_hash, :string, redact: true
+    field :password_set_at, :utc_datetime
+    field :must_change_password, :boolean, default: false
+    field :session_token, :string, redact: true
+    field :logged_in_at, :utc_datetime
+    field :failed_attempts, :integer, default: 0
+    field :last_failed_at, :utc_datetime
+
     # Issue #369: qual pessoa observada é esta conta. Aponta para `eo_people`, e não para o
     # id do GitHub cru — aquele já é o critério de identidade de lá, e duas cópias divergem.
     field :person_id, :binary_id
@@ -92,4 +105,41 @@ defmodule TheBand.Tenants.User do
   @spec admin?(t()) :: boolean()
   def admin?(%__MODULE__{role: "admin"}), do: true
   def admin?(_), do: false
+
+  @doc """
+  Define a senha — contracts/auth.md.
+
+  Changeset separado do cadastro pela mesma razão do elo: senha decide entrada,
+  e um changeset único deixaria edição de nome tocar credencial sem ninguém ver.
+  Mínimo de 12 caracteres, sem exigência de composição (assumption da spec) —
+  regra simples e verificável. O hash acontece AQUI: nenhum caminho grava senha
+  em claro por esquecimento (mesmo desenho do Vault, FR-003).
+  """
+  @spec senha_changeset(t(), map(), keyword()) :: Ecto.Changeset.t()
+  def senha_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_required([:password])
+    |> validate_length(:password, min: 12, max: 128)
+    |> hash_password(opts)
+  end
+
+  defp hash_password(changeset, opts) do
+    case get_change(changeset, :password) do
+      nil ->
+        changeset
+
+      password when is_binary(password) ->
+        changeset
+        |> put_change(:password_hash, Bcrypt.hash_pwd_salt(password))
+        |> put_change(:password_set_at, DateTime.utc_now(:second))
+        |> put_change(:must_change_password, Keyword.get(opts, :temporary, false))
+        |> put_change(:session_token, novo_token())
+        |> delete_change(:password)
+    end
+  end
+
+  @doc "Token de sessão novo — girá-lo derruba as outras sessões (FR-015)."
+  @spec novo_token() :: String.t()
+  def novo_token, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 end

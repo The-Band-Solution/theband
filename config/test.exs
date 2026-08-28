@@ -76,3 +76,7 @@ config :the_band, Oban,
 # A segunda borda de I/O da plataforma. Mesma postura da primeira: é o único ponto que o
 # teste substitui, e nada abaixo dela é mockado.
 config :the_band, :llm_http_client, TheBand.LLMHTTPMock
+
+# Feature 045: hash rápido SÓ em teste. O custo do bcrypt é a proteção em
+# produção e seria minuto de suíte aqui — o que se testa é o contrato, não o custo.
+config :bcrypt_elixir, log_rounds: 4

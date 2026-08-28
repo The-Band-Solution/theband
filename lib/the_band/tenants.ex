@@ -10,8 +10,15 @@ defmodule TheBand.Tenants do
   import Ecto.Query
 
   alias TheBand.Repo
+  alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
+
+  # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
+  defdelegate authenticate(identificador, senha), to: Auth
+  defdelegate set_password(tenant, user_id, senha), to: Auth
+  defdelegate change_password(tenant, user_id, atual, nova), to: Auth
+  defdelegate reset_password(tenant, user_id, actor_id), to: Auth
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)
