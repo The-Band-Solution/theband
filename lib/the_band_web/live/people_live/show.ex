@@ -1347,6 +1347,45 @@ defmodule TheBandWeb.PeopleLive.Show do
             </span>
           </div>
 
+          <%!-- A COMPOSIÇÃO dos desfechos, desenhada. Cores de STATUS da casa (verdete =
+                passou, argila = quebrou, neutro = nem um nem outro), nunca reusadas como
+                série — e nunca o único canal: os números em texto acima são a tabela, cada
+                segmento carrega title, e os segmentos têm vão de 2px. O validador de
+                paleta passou CVD e visão normal nos pares; o croma baixo do verdete é
+                decisão de marca (cor de instrumento, não de urgência), aliviada pelo
+                rótulo textual que a casa exige em tudo.
+
+                A parcela sem autoria NÃO entra nesta barra: é ausência (FR-010), vive na
+                figura separada abaixo, tracejada — somá-las afirmaria medida onde não há. --%>
+          <div
+            :if={@verificacao.passou + @verificacao.quebrou + @verificacao.outras > 0}
+            class="flex h-3 w-full max-w-xl gap-0.5 overflow-hidden rounded-[2px]"
+            role="img"
+            aria-label={"Runs on their commits: #{@verificacao.passou} passed, #{@verificacao.quebrou} broke, #{@verificacao.outras} neither"}
+          >
+            <div
+              :if={@verificacao.passou > 0}
+              class="rounded-[2px] bg-success"
+              style={"flex-grow: #{@verificacao.passou}"}
+              title={"#{@verificacao.passou} passed"}
+            >
+            </div>
+            <div
+              :if={@verificacao.quebrou > 0}
+              class="rounded-[2px] bg-error"
+              style={"flex-grow: #{@verificacao.quebrou}"}
+              title={"#{@verificacao.quebrou} broke"}
+            >
+            </div>
+            <div
+              :if={@verificacao.outras > 0}
+              class="rounded-[2px] bg-base-content/45"
+              style={"flex-grow: #{@verificacao.outras}"}
+              title={"#{@verificacao.outras} neither — skipped or cancelled"}
+            >
+            </div>
+          </div>
+
           <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
                 commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
                 um. --%>
