@@ -17,6 +17,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO.RoleCatalog
   alias TheBand.Ontology.SEON.EO.Schemas.Organization
+  alias TheBand.Ontology.SEON.EO.Schemas.RoleVisibilityGrant
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
@@ -182,6 +183,67 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   @spec list_organizations(Tenant.t(), keyword()) :: [Organization.t()]
   def list_organizations(%Tenant{id: tenant_id}, _opts \\ []) do
     Repo.all(from o in Organization, where: o.tenant_id == ^tenant_id, order_by: o.name)
+  end
+
+  @doc """
+  A visão agregada da organização: equipes vigentes e responsáveis, por organização —
+  contrato em `specs/046-menu-por-entidades/contracts/eo-organization-overview.md`.
+
+  Uma passada por coleção, nunca consulta por linha (lição L38). "Responsável" tem a
+  definição única da regra de visibilidade (#369): pessoa com vínculo vigente cujo
+  papel carrega concessão de escopo `organization` não revogada — declaração, jamais
+  inferência por nome de papel. Projetos NÃO entram aqui: pertencem ao contexto
+  Projects, e a tela os agrupa por `source_instance` ↔ `login` — atravessar a
+  fronteira para poupar um `Enum.group_by` na view furaria o módulo (AGENTS §7.1).
+  """
+  @spec organization_overview(Tenant.t()) :: [
+          %{
+            organization: Organization.t(),
+            teams: [Team.t()],
+            responsibles: [%{person: Person.t(), role_name: String.t()}]
+          }
+        ]
+  def organization_overview(%Tenant{id: tenant_id} = tenant) do
+    equipes =
+      Repo.all(
+        from t in Team,
+          where:
+            t.tenant_id == ^tenant_id and is_nil(t.no_longer_observed_at) and
+              not is_nil(t.organization_id),
+          order_by: t.name
+      )
+      |> Enum.group_by(& &1.organization_id)
+
+    responsaveis =
+      Repo.all(
+        from m in TeamMembership,
+          join: g in RoleVisibilityGrant,
+          on:
+            g.organizational_role_id == m.organizational_role_id and
+              g.tenant_id == m.tenant_id and is_nil(g.revoked_at) and
+              g.scope == "organization",
+          join: t in Team,
+          on: t.id == m.team_id,
+          join: p in Person,
+          on: p.id == m.person_id,
+          join: r in OrganizationalRole,
+          on: r.id == m.organizational_role_id,
+          where:
+            m.tenant_id == ^tenant_id and is_nil(m.ended_at) and
+              not is_nil(t.organization_id),
+          distinct: [t.organization_id, p.id, r.id],
+          select: %{organization_id: t.organization_id, person: p, role_name: r.name},
+          order_by: [asc: p.name]
+      )
+      |> Enum.group_by(& &1.organization_id, &Map.take(&1, [:person, :role_name]))
+
+    for org <- list_organizations(tenant) do
+      %{
+        organization: org,
+        teams: Map.get(equipes, org.id, []),
+        responsibles: Map.get(responsaveis, org.id, [])
+      }
+    end
   end
 
   @doc """

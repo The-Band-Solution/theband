@@ -94,6 +94,11 @@ defmodule TheBandWeb.Layouts do
           <li>
             <.nav_item navigate={~p"/projects"} active={@nav_area == :projects}>Projects</.nav_item>
           </li>
+          <li>
+            <.nav_item navigate={~p"/organizations"} active={@nav_area == :organization}>
+              Organization
+            </.nav_item>
+          </li>
           <li class="ml-auto">
             <details class="dropdown dropdown-end">
               <summary

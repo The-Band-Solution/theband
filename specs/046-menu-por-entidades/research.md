@@ -27,25 +27,28 @@ Sidebar — mudança de layout muito maior que o problema; rejeitada.
 
 ## R3 — Projetos por organização: o vínculo que existe
 
-**Decision**: a tela Organization lista projetos casando
-`observed_projects.source_instance` (login da organização na origem) com
-`organizations.slug/login`. Quando um projeto não casa com organização nenhuma, ele
+**Decision (corrigida na implementação, 2026-08-28)**: a tela Organization liga
+projeto a organização pela cadeia declarada
+`observed_projects.connected_tool_id → connected_tools.organization_login →
+eo_organizations.login`. Projeto cuja ferramenta não casa com organização observada
 aparece num grupo "sem organização identificada" — ausência nomeada, nunca omitida.
 
-**Rationale**: `ObservedProject` não tem `organization_id`; o que a coleta registra é
-`source_instance`. Criar FK agora seria migração e re-coleta — fora do escopo de uma
-feature de menu. A limitação é **declarada na tela** (padrão da casa: derivado se
-declara; ausência nomeada).
+**Rationale**: a primeira versão desta decisão casava por
+`observed_projects.source_instance` ↔ login — e a implementação desmentiu **antes do
+banco**: a coleta grava `source_instance = tool.instance_url`
+(`lib/the_band/ingestion/github_projects.ex`), a URL da instância, nunca o login.
+Teriam sido 100% órfãos. A cadeia pela ferramenta conectada é declarada no cadastro
+(o GitHub exige `organization_login` na conexão) e já é o elo que o retrofito usa
+(`fetch_organization_by_login/2`).
 
-**Alternatives considered**: adicionar `organization_id` ao projeto — migração +
-mudança de coleta, escopo de outra feature; rejeitado aqui. Omitir projetos sem
-vínculo — ausência silenciosa, proibida pela casa; rejeitado.
+**Alternatives considered**: casar por `source_instance` — desmentido pelo código da
+coleta; rejeitado. Adicionar `organization_id` ao projeto — migração + re-coleta,
+escopo de outra feature; rejeitado aqui. Omitir projetos sem vínculo — ausência
+silenciosa, proibida pela casa; rejeitado.
 
-**Risco registrado**: se `source_instance` não corresponder ao login da organização
-nos dados reais, a tela mostrará todos os projetos como "sem organização identificada".
-O teste de implementação DEVE verificar contra o banco de desenvolvimento povoado
-(memória da casa: verificar número contra a origem), e o resultado da verificação
-entra no PR como evidência.
+**Risco residual**: ferramenta antiga sem `organization_login` (outros tool_types não
+o exigem) produz projetos órfãos legítimos — é o que o grupo nomeado existe para
+mostrar. T010 ainda confere os números contra o banco povoado.
 
 ## R4 — "Responsáveis" da organização
 

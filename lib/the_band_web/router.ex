@@ -62,6 +62,7 @@ defmodule TheBandWeb.Router do
       live "/people/:id", PeopleLive.Show, :show
       live "/teams", TeamsLive.Index, :index
       live "/teams/:id", TeamsLive.Show, :show
+      live "/organizations", OrganizationLive.Index, :index
       live "/syncs", SyncLive.Index, :index
       live "/process", ProcessLive.Index, :index
       live "/projects", ProjectsLive.Index, :index
