@@ -21,7 +21,7 @@ end
 
 alias TheBand.Tenants
 
-senha_padrao = "the-band-dev-123"
+senha_padrao = "senha-de-dev"
 
 seed = fn slug, name, users ->
   tenant =
