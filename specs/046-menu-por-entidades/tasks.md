@@ -5,7 +5,7 @@
 
 ## Phase 1 — Setup
 
-- [ ] T001 Abrir branch e registrar baseline dos gates
+- [x] T001 Abrir branch e registrar baseline dos gates
   - **Pronta quando**: nada além do repositório; working tree limpa (`git status`)
   - **Descrição**: criar `feature/046-menu-por-entidades` a partir de `main`
     atualizada; rodar `mix gates` e guardar a saída como baseline — o veredito é o
@@ -17,7 +17,7 @@
 
 ## Phase 2 — Foundational
 
-- [ ] T002 Helper de área ativa do menu
+- [x] T002 Helper de área ativa do menu
   - **Pronta quando**: T001 concluída
   - **Descrição**: função pura em `lib/the_band_web/components/layouts.ex` que mapeia
     o caminho da request para a área do menu (`/people` → `:people`, `/teams` →
@@ -32,7 +32,7 @@
 
 ## Phase 3 — US1: A barra vira entidades + Settings (P1) 🎯 MVP
 
-- [ ] T003 [US1] Reorganizar a barra principal
+- [x] T003 [US1] Reorganizar a barra principal
   - **Pronta quando**: T002 concluída
   - **Descrição**: em `lib/the_band_web/components/layouts.ex`, a barra passa a
     conter só People, Teams, Projects (+ Organization quando T013 entregar a rota),
@@ -48,7 +48,7 @@
     rota movida: barra contém exatamente os itens esperados e `aria-current` na área
     certa; não contém "Changes" nem "Syncs"
 
-- [ ] T004 [US1] Menu Settings com três seções e gating
+- [x] T004 [US1] Menu Settings com três seções e gating
   - **Pronta quando**: T003 concluída
   - **Descrição**: dropdown Settings no header (`<details class="dropdown">` daisyUI,
     research R2) com seções Trabalho (Work), Vocabulário (Roles) e Operação (Syncs,
@@ -62,7 +62,7 @@
     "Operação"/"Syncs"/"Tools"; render com member não contém nenhum dos três; links
     apontam para as rotas de hoje
 
-- [ ] T005 [P] [US1] Rotas antigas respondem inalteradas
+- [x] T005 [P] [US1] Rotas antigas respondem inalteradas
   - **Pronta quando**: T003 e T004 concluídas
   - **Descrição**: teste de fumaça percorrendo as rotas das nove telas movidas
     (`/roles`, `/work`, `/work/changes`, `/work/files`, `/work/verifications`,
@@ -75,7 +75,7 @@
 
 ## Phase 4 — US2: Sub-abas de trabalho (P2)
 
-- [ ] T006 [US2] Componente de sub-abas
+- [x] T006 [US2] Componente de sub-abas
   - **Pronta quando**: T003 concluída (Work já fora da barra)
   - **Descrição**: function component `work_tabs/1` (em
     `lib/the_band_web/components/layouts.ex` ou `core_components.ex`, junto dos
@@ -88,7 +88,7 @@
   - **Teste**: teste de componente em `layouts_nav_test.exs` — render com cada valor
     de `active`, asserção do link marcado e dos seis hrefs exatos
 
-- [ ] T007 [US2] Sub-abas nas seis telas
+- [x] T007 [US2] Sub-abas nas seis telas
   - **Pronta quando**: T006 concluída
   - **Descrição**: renderizar `<.work_tabs active={...}>` logo abaixo do header
     próprio em `work_item_live`, `change_live`, na LiveView de Files (conferir
@@ -102,7 +102,7 @@
 
 ## Phase 5 — US3: Tela Organization (P3)
 
-- [ ] T008 [US3] Leitura agregada da organização
+- [x] T008 [US3] Leitura agregada da organização
   - **Pronta quando**: contrato `contracts/eo-organization-overview.md` escrito (está)
     e T001 concluída
   - **Descrição**: implementar `organization_overview/1` e
@@ -121,7 +121,7 @@
     multitenant é a violação testada); projeto com `source_instance` sem organização
     correspondente aparece só em `projects_without_organization/1`
 
-- [ ] T009 [US3] Tela Organization com estados vazios nomeados
+- [x] T009 [US3] Tela Organization com estados vazios nomeados
   - **Pronta quando**: T008 concluída
   - **Descrição**: LiveView nova `lib/the_band_web/live/organization_live/index.ex` +
     rota `live "/organizations"` na live_session autenticada; uma seção por
@@ -136,7 +136,7 @@
     organizações com equipes e projetos aparecem, HTML não contém dado do segundo
     tenant; tenant vazio: frase do estado vazio presente, zero seções de organização
 
-- [ ] T010 [US3] Número conferido contra a origem
+- [x] T010 [US3] Número conferido contra a origem
   - **Pronta quando**: T009 concluída; banco dev povoado
   - **Descrição**: verificação da regra da casa (suíte verde não é evidência): com o
     servidor de dev de pé, comparar a contagem de organizações e de projetos por

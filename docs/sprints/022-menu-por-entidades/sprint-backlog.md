@@ -54,17 +54,17 @@ Do [registro acumulado](../licoes-aprendidas.md), consideradas neste sprint:
 
 | # | Tarefa | Atende | Tipo | Issue | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Abrir branch e registrar baseline dos gates | US1 | Task | [#532](https://github.com/The-Band-Solution/theband/issues/532) | 1 | a fazer |
-| T002 | Helper de área ativa do menu | US1 | Task | [#533](https://github.com/The-Band-Solution/theband/issues/533) | 2 | a fazer |
-| T003 | Reorganizar a barra principal | US1 | Task | [#534](https://github.com/The-Band-Solution/theband/issues/534) | 3 | a fazer |
-| T004 | Menu Settings com três seções e gating | US1 | Task | [#535](https://github.com/The-Band-Solution/theband/issues/535) | 3 | a fazer |
-| T005 | Rotas antigas respondem inalteradas | US1 | Task | [#536](https://github.com/The-Band-Solution/theband/issues/536) | 2 | a fazer |
-| T006 | Componente de sub-abas | US2 | Task | [#537](https://github.com/The-Band-Solution/theband/issues/537) | 2 | a fazer |
-| T007 | Sub-abas nas seis telas | US2 | Task | [#538](https://github.com/The-Band-Solution/theband/issues/538) | 2 | a fazer |
-| T008 | Leitura agregada da organização | US3 | Task | [#539](https://github.com/The-Band-Solution/theband/issues/539) | 3 | a fazer |
-| T009 | Tela Organization com estados vazios nomeados | US3 | Task | [#540](https://github.com/The-Band-Solution/theband/issues/540) | 3 | a fazer |
-| T010 | Número conferido contra a origem | US3 | Task | [#541](https://github.com/The-Band-Solution/theband/issues/541) | 1 | a fazer |
-| T011 | Gates verdes e evidência de viewport | US3 | Task | [#542](https://github.com/The-Band-Solution/theband/issues/542) | 1 | a fazer |
+| T001 | Abrir branch e registrar baseline dos gates | US1 | Task | [#532](https://github.com/The-Band-Solution/theband/issues/532) | 1 | feito |
+| T002 | Helper de área ativa do menu | US1 | Task | [#533](https://github.com/The-Band-Solution/theband/issues/533) | 2 | feito |
+| T003 | Reorganizar a barra principal | US1 | Task | [#534](https://github.com/The-Band-Solution/theband/issues/534) | 3 | feito |
+| T004 | Menu Settings com três seções e gating | US1 | Task | [#535](https://github.com/The-Band-Solution/theband/issues/535) | 3 | feito |
+| T005 | Rotas antigas respondem inalteradas | US1 | Task | [#536](https://github.com/The-Band-Solution/theband/issues/536) | 2 | feito |
+| T006 | Componente de sub-abas | US2 | Task | [#537](https://github.com/The-Band-Solution/theband/issues/537) | 2 | feito |
+| T007 | Sub-abas nas seis telas | US2 | Task | [#538](https://github.com/The-Band-Solution/theband/issues/538) | 2 | feito |
+| T008 | Leitura agregada da organização | US3 | Task | [#539](https://github.com/The-Band-Solution/theband/issues/539) | 3 | feito |
+| T009 | Tela Organization com estados vazios nomeados | US3 | Task | [#540](https://github.com/The-Band-Solution/theband/issues/540) | 3 | feito |
+| T010 | Número conferido contra a origem | US3 | Task | [#541](https://github.com/The-Band-Solution/theband/issues/541) | 1 | feito |
+| T011 | Gates verdes e evidência de viewport | US3 | Task | [#542](https://github.com/The-Band-Solution/theband/issues/542) | 1 | em andamento |
 
 Tarefa não recebe `Priority`: herda a da user story que atende. T001/T002 atendem a
 US1 por habilitarem o MVP; T011 fecha o sprint e está sob a última US por convenção.
