@@ -61,6 +61,10 @@ defmodule Mix.Tasks.Gates do
     # para a mesma dependência que este apontava. Bases de aviso diferentes.
     #
     {"auditoria de dependências", {:mix, ["hex.audit"]}},
+    # Feature 047: mensagem literal nos ralos (put_flash) reprova — o catálogo
+    # gettext é a casa de tudo que a plataforma diz. Contrato e fronteira em
+    # specs/047-mensagens-internacionalizadas/contracts/catalogo-de-mensagens.md.
+    {"mensagens no catálogo", {:mix, ["mensagens.verificar"]}},
     # **Segurança, e ela nasce verde.** Os seis achados da primeira execução foram tratados um
     # a um, e nenhum por desligar a verificação:
     #

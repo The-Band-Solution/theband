@@ -32,9 +32,9 @@ violação (L03).
 
 - [ ] T004 O gate "mensagens no catálogo"
   - **Pronta quando**: T003 concluída — o gate só entra quando a task já prova o veredito
-  - **Descrição**: entrada `{"mensagens no catálogo", {:mix, ["mensagens.verificar"]}}` em `@gates` de `lib/mix/tasks/gates.ex`, após credo. ATENÇÃO: neste momento o repositório tem 55 literais — o gate nasce VERMELHO e as fases seguintes o tornam verde; a run completa dos gates só é exigida em T011
-  - **Feita quando**: `mix gates` lista o gate novo; `mix mensagens.verificar` roda isolada e enumera os 55 pontos atuais
-  - **Teste**: `mix mensagens.verificar > /tmp/v.log 2>&1; echo "EXIT=$?" >> /tmp/v.log` — EXIT=1 e contagem igual à medida (55), no log
+  - **Descrição**: entrada `{"mensagens no catálogo", {:mix, ["mensagens.verificar"]}}` em `@gates` de `lib/mix/tasks/gates.ex`. ATENÇÃO: o gate nasce VERMELHO — a medição por AST na execução encontrou **137** literais em 17 arquivos (o grep do plano dizia 55: perdia multilinha, concatenação e a forma pipe — corrigido aqui com a razão, e é o argumento do verificador por AST); as fases seguintes o tornam verde, cobrado na run completa em T011
+  - **Feita quando**: `mix gates` lista o gate novo; `mix mensagens.verificar` roda isolada e enumera os 137 pontos atuais
+  - **Teste**: `mix mensagens.verificar > /tmp/v.log 2>&1; echo "EXIT=$?" >> /tmp/v.log` — EXIT=1 e contagem igual à medida (137), no log
 
 ## Phase 3: US1 — Toda mensagem de erro sai do catálogo (P1)
 

@@ -11,6 +11,13 @@ config :the_band,
   ecto_repos: [TheBand.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+# O catálogo de mensagens (feature 047). O padrão é "en" porque o msgid É a frase
+# que a tela mostra hoje (research R2) — trocar a plataforma para pt é trocar esta
+# linha quando o catálogo pt fechar, e só ela (FR-005).
+config :the_band, TheBandWeb.Gettext,
+  default_locale: "en",
+  allowed_locales: ["en", "pt"]
+
 # Configure the endpoint
 config :the_band, TheBandWeb.Endpoint,
   url: [host: "localhost"],
