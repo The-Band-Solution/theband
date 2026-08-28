@@ -5,7 +5,7 @@
 
 ## Phase 1 — Setup
 
-- [ ] T001 Abrir branch e registrar baseline dos gates
+- [x] T001 Abrir branch e registrar baseline dos gates
   - **Pronta quando**: nada além do repositório; working tree limpa; PR da 046 mergeado
   - **Descrição**: branch `feature/<US1>-autenticacao-e-acesso` a partir de `main`;
     `mix gates > /tmp/gates-base.log 2>&1; echo "EXIT=$?" >> /tmp/gates-base.log` —
@@ -14,7 +14,7 @@
   - **Feita quando**: branch existe; log do baseline contém `EXIT=0`
   - **Teste**: `grep EXIT= /tmp/gates-base.log` devolve 0
 
-- [ ] T002 Dependência bcrypt_elixir com justificativa
+- [x] T002 Dependência bcrypt_elixir com justificativa
   - **Pronta quando**: T001 concluída
   - **Descrição**: adicionar `bcrypt_elixir` ao `mix.exs` com versão fixada; a
     justificativa vive em research R1 (padrão phx.gen.auth, custo por tentativa é
@@ -24,7 +24,7 @@
 
 ## Phase 2 — Foundational
 
-- [ ] T003 Migrações: credencial na conta e tabela de concessões
+- [x] T003 Migrações: credencial na conta e tabela de concessões
   - **Pronta quando**: T001 concluída; data-model.md aprovado (está)
   - **Descrição**: migração 1 — colunas de `users` do data-model (password_hash,
     password_set_at, must_change_password, session_token, logged_in_at,
@@ -37,7 +37,7 @@
   - **Teste**: `mix ecto.migrate && mix ecto.rollback --step 2 && mix ecto.migrate`;
     SQL no dev: `SELECT count(*) FROM access_scope_grants` == admins × orgs
 
-- [ ] T004 Autenticação de domínio conforme contrato
+- [x] T004 Autenticação de domínio conforme contrato
   - **Pronta quando**: contrato `contracts/auth.md` escrito (está); T002 e T003 concluídas
   - **Descrição**: `lib/the_band/tenants/auth.ex` — `authenticate/2` (e-mail ou GitHub
     username via elo vigente, hash dummy p/ tempo constante, espera crescente R4),
@@ -50,7 +50,7 @@
     entre 2 tenants não entra; elo revogado não entra; conta sem senha não entra;
     5ª tentativa errada devolve `{:throttled, _}`; troca de senha muda session_token
 
-- [ ] T005 Escopos de domínio conforme contrato
+- [x] T005 Escopos de domínio conforme contrato
   - **Pronta quando**: contrato `contracts/access-scopes.md` escrito (está); T003 concluída
   - **Descrição**: `lib/the_band/tenants/access.ex` + `access/scope_grant.ex` —
     `scopes/2` (piso + derivados pela cadeia declarada R5/R6 + concessões, cada um com
@@ -66,7 +66,7 @@
 
 ## Phase 3 — US1: Entrar com e-mail ou usuário do GitHub, e sair (P1) 🎯 MVP
 
-- [ ] T006 [US1] Tela de login do protótipo e sessão real
+- [x] T006 [US1] Tela de login do protótipo e sessão real
   - **Pronta quando**: T004 concluída
   - **Descrição**: refazer `session_live/new.ex` (split marketing + formulário,
     protótipo do canvas — axioma, três compromissos, tagline) e
@@ -80,7 +80,7 @@
   - **Teste**: `test/the_band_web/live/login_test.exs` — cenários 1–8 da US1, com a
     violação de vazamento por mensagem (respostas byte-idênticas nos 4 casos de recusa)
 
-- [ ] T007 [US1] Sessão validada por token e expiração
+- [x] T007 [US1] Sessão validada por token e expiração
   - **Pronta quando**: T006 concluída
   - **Descrição**: hook `current_scope` passa a validar `session_token` da sessão
     contra a conta e `logged_in_at` + 7 dias (research R2); divergência → redirect a
@@ -91,7 +91,7 @@
   - **Teste**: `login_test.exs` — troca de senha derruba a outra sessão (FR-015);
     acesso sem sessão a /people redireciona com `redirect_to`
 
-- [ ] T008 [US1] Contas: criar e reiniciar senha (admin)
+- [x] T008 [US1] Contas: criar e reiniciar senha (admin)
   - **Pronta quando**: T004 concluída
   - **Descrição**: LiveView `/accounts` (live_session require_admin) — listar contas
     do tenant, criar conta (e-mail, nome), reiniciar senha exibindo a temporária UMA
@@ -105,7 +105,7 @@
 
 ## Phase 4 — US2: Escopos de acesso acumulativos (P2)
 
-- [ ] T009 [US2] Tela de concessões com derivados declarados
+- [x] T009 [US2] Tela de concessões com derivados declarados
   - **Pronta quando**: T005 concluída
   - **Descrição**: LiveView `/access-scopes` (require_admin), protótipo aprovado:
     formulário Grant a scope (team/project/organization + alvo obrigatório, recusa
@@ -118,7 +118,7 @@
   - **Teste**: `test/the_band_web/live/access_scopes_test.exs` — grant sem alvo mostra
     a frase; derivado exibe hachura/origem e não exibe Revoke; member não alcança
 
-- [ ] T010 [US2] O veredito único nas telas de pessoa
+- [x] T010 [US2] O veredito único nas telas de pessoa
   - **Pronta quando**: T005 concluída
   - **Descrição**: `people_live/show` (e onde mais `EO.Visibility.pode_ver/3` é
     chamado — grep) passam a chamar `Tenants.Access.pode_ver/3`; a recusa exibe o
@@ -131,7 +131,7 @@
     `access_test.exs`/tela: admin sem concessão recusado com motivo; líder declarado
     (regra #369) CONTINUA vendo (FR-018 — a violação testada é a regressão)
 
-- [ ] T011 [US2] Operacionais restritas e filtradas (FR-023)
+- [x] T011 [US2] Operacionais restritas e filtradas (FR-023)
   - **Pronta quando**: T005 concluída
   - **Descrição**: hook `require_operacao` (admin OU organization vigente) nas rotas
     /syncs, /tools, /ai, /profiles; telas filtram ferramentas/syncs por
@@ -146,7 +146,7 @@
 
 ## Phase 5 — US3: Configurar o próprio perfil (P3)
 
-- [ ] T012 [US3] Tela de perfil
+- [x] T012 [US3] Tela de perfil
   - **Pronta quando**: T004 e T005 concluídas
   - **Descrição**: LiveView `/profile` conforme protótipo: identidade (nome editável,
     e-mail leitura), troca de senha com confirmação da atual (FR-012), escopos

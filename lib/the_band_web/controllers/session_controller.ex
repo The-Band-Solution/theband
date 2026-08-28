@@ -77,30 +77,32 @@ defmodule TheBandWeb.SessionController do
     with user_id when is_binary(user_id) <- get_session(conn, :user_id),
          {:ok, user} <- Tenants.fetch_user(user_id),
          true <- user.session_token == get_session(conn, :session_token) do
-      cond do
-        senha != confirmacao ->
-          conn
-          |> put_flash(:error, "A confirmação não confere com a senha.")
-          |> redirect(to: ~p"/set-password")
-
-        true ->
-          case Tenants.set_password(user.tenant, user.id, senha) do
-            {:ok, atualizada} ->
-              conn
-              |> configure_session(renew: true)
-              |> put_session(:user_id, atualizada.id)
-              |> put_session(:session_token, atualizada.session_token)
-              |> put_flash(:info, "Senha definida.")
-              |> redirect(to: ~p"/people")
-
-            {:error, _changeset} ->
-              conn
-              |> put_flash(:error, "A senha precisa de pelo menos 12 caracteres.")
-              |> redirect(to: ~p"/set-password")
-          end
+      if senha == confirmacao do
+        aplicar_definicao(conn, user, senha)
+      else
+        conn
+        |> put_flash(:error, "A confirmação não confere com a senha.")
+        |> redirect(to: ~p"/set-password")
       end
     else
       _ -> conn |> configure_session(drop: true) |> redirect(to: ~p"/sign-in")
+    end
+  end
+
+  defp aplicar_definicao(conn, user, senha) do
+    case Tenants.set_password(user.tenant, user.id, senha) do
+      {:ok, atualizada} ->
+        conn
+        |> configure_session(renew: true)
+        |> put_session(:user_id, atualizada.id)
+        |> put_session(:session_token, atualizada.session_token)
+        |> put_flash(:info, "Senha definida.")
+        |> redirect(to: ~p"/people")
+
+      {:error, _changeset} ->
+        conn
+        |> put_flash(:error, "A senha precisa de pelo menos 12 caracteres.")
+        |> redirect(to: ~p"/set-password")
     end
   end
 end

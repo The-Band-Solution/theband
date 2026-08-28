@@ -57,20 +57,20 @@ desconhecido, não zero.
 
 | # | Tarefa | Atende | Tipo | Issue | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Abrir branch e registrar baseline dos gates | US1 | Task | [#548](https://github.com/The-Band-Solution/theband/issues/548) | 1 | a fazer |
-| T002 | Dependência bcrypt_elixir com justificativa | US1 | Task | [#549](https://github.com/The-Band-Solution/theband/issues/549) | 1 | a fazer |
-| T003 | Migrações: credencial e concessões | US1 | Task | [#550](https://github.com/The-Band-Solution/theband/issues/550) | 3 | a fazer |
-| T004 | Autenticação de domínio conforme contrato | US1 | Task | [#551](https://github.com/The-Band-Solution/theband/issues/551) | 5 | a fazer |
-| T005 | Escopos de domínio conforme contrato | US2 | Task | [#552](https://github.com/The-Band-Solution/theband/issues/552) | 5 | a fazer |
-| T006 | Tela de login do protótipo e sessão real | US1 | Task | [#553](https://github.com/The-Band-Solution/theband/issues/553) | 3 | a fazer |
-| T007 | Sessão validada por token e expiração | US1 | Task | [#554](https://github.com/The-Band-Solution/theband/issues/554) | 3 | a fazer |
-| T008 | Contas: criar e reiniciar senha (admin) | US1 | Task | [#555](https://github.com/The-Band-Solution/theband/issues/555) | 3 | a fazer |
-| T009 | Tela de concessões com derivados declarados | US2 | Task | [#556](https://github.com/The-Band-Solution/theband/issues/556) | 3 | a fazer |
-| T010 | O veredito único nas telas de pessoa | US2 | Task | [#557](https://github.com/The-Band-Solution/theband/issues/557) | 3 | a fazer |
-| T011 | Operacionais restritas e filtradas (FR-023) | US2 | Task | [#558](https://github.com/The-Band-Solution/theband/issues/558) | 3 | a fazer |
-| T012 | Tela de perfil | US3 | Task | [#559](https://github.com/The-Band-Solution/theband/issues/559) | 3 | a fazer |
-| T013 | Verificação contra a origem e evidências | US3 | Task | [#560](https://github.com/The-Band-Solution/theband/issues/560) | 1 | a fazer |
-| T014 | Gates verdes e fechamento | US3 | Task | [#561](https://github.com/The-Band-Solution/theband/issues/561) | 1 | a fazer |
+| T001 | Abrir branch e registrar baseline dos gates | US1 | Task | [#548](https://github.com/The-Band-Solution/theband/issues/548) | 1 | feito |
+| T002 | Dependência bcrypt_elixir com justificativa | US1 | Task | [#549](https://github.com/The-Band-Solution/theband/issues/549) | 1 | feito |
+| T003 | Migrações: credencial e concessões | US1 | Task | [#550](https://github.com/The-Band-Solution/theband/issues/550) | 3 | feito |
+| T004 | Autenticação de domínio conforme contrato | US1 | Task | [#551](https://github.com/The-Band-Solution/theband/issues/551) | 5 | feito |
+| T005 | Escopos de domínio conforme contrato | US2 | Task | [#552](https://github.com/The-Band-Solution/theband/issues/552) | 5 | feito |
+| T006 | Tela de login do protótipo e sessão real | US1 | Task | [#553](https://github.com/The-Band-Solution/theband/issues/553) | 3 | feito |
+| T007 | Sessão validada por token e expiração | US1 | Task | [#554](https://github.com/The-Band-Solution/theband/issues/554) | 3 | feito |
+| T008 | Contas: criar e reiniciar senha (admin) | US1 | Task | [#555](https://github.com/The-Band-Solution/theband/issues/555) | 3 | feito |
+| T009 | Tela de concessões com derivados declarados | US2 | Task | [#556](https://github.com/The-Band-Solution/theband/issues/556) | 3 | feito |
+| T010 | O veredito único nas telas de pessoa | US2 | Task | [#557](https://github.com/The-Band-Solution/theband/issues/557) | 3 | feito |
+| T011 | Operacionais restritas e filtradas (FR-023) | US2 | Task | [#558](https://github.com/The-Band-Solution/theband/issues/558) | 3 | feito |
+| T012 | Tela de perfil | US3 | Task | [#559](https://github.com/The-Band-Solution/theband/issues/559) | 3 | feito |
+| T013 | Verificação contra a origem e evidências | US3 | Task | [#560](https://github.com/The-Band-Solution/theband/issues/560) | 1 | em andamento |
+| T014 | Gates verdes e fechamento | US3 | Task | [#561](https://github.com/The-Band-Solution/theband/issues/561) | 1 | em andamento |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 

@@ -147,10 +147,9 @@ defmodule TheBand.Tenants.Auth do
   @spec set_password(Tenant.t(), Ecto.UUID.t(), String.t()) ::
           {:ok, User.t()} | {:error, Ecto.Changeset.t() | :not_found}
   def set_password(%Tenant{id: tenant_id}, user_id, senha) do
-    with %User{} = user <- do_tenant(tenant_id, user_id) do
-      user |> User.senha_changeset(%{password: senha}) |> Repo.update()
-    else
+    case do_tenant(tenant_id, user_id) do
       nil -> {:error, :not_found}
+      %User{} = user -> user |> User.senha_changeset(%{password: senha}) |> Repo.update()
     end
   end
 
@@ -177,17 +176,20 @@ defmodule TheBand.Tenants.Auth do
   @spec reset_password(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, String.t()} | {:error, :not_found | Ecto.Changeset.t()}
   def reset_password(%Tenant{id: tenant_id}, user_id, _actor_id) do
-    with %User{} = user <- do_tenant(tenant_id, user_id) do
-      temporaria = senha_temporaria()
-
-      case user
-           |> User.senha_changeset(%{password: temporaria}, temporary: true)
-           |> Repo.update() do
-        {:ok, _} -> {:ok, temporaria}
-        erro -> erro
-      end
-    else
+    case do_tenant(tenant_id, user_id) do
       nil -> {:error, :not_found}
+      %User{} = user -> gravar_temporaria(user)
+    end
+  end
+
+  defp gravar_temporaria(user) do
+    temporaria = senha_temporaria()
+
+    case user
+         |> User.senha_changeset(%{password: temporaria}, temporary: true)
+         |> Repo.update() do
+      {:ok, _} -> {:ok, temporaria}
+      erro -> erro
     end
   end
 

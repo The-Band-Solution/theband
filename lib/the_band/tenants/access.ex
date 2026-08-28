@@ -69,7 +69,7 @@ defmodule TheBand.Tenants.Access do
       end
 
     derivados_project =
-      for p <- SPO.projects_of_teams(tenant, Enum.map(equipes, & &1.team_id)),
+      for p <- projetos_das_equipes(tenant, equipes),
           uniq: true do
         %{
           level: :project,
@@ -85,6 +85,12 @@ defmodule TheBand.Tenants.Access do
 
   defp floor_scope,
     do: %{level: :person, target_id: nil, target_name: nil, origin: :floor, grant: nil}
+
+  # Sem equipe não há consulta: `in []` ainda é uma ida ao banco (L38).
+  defp projetos_das_equipes(_tenant, []), do: []
+
+  defp projetos_das_equipes(tenant, equipes),
+    do: SPO.projects_of_teams(tenant, Enum.map(equipes, & &1.team_id))
 
   defp granted_scopes(%Tenant{id: tenant_id} = tenant, %User{id: user_id}) do
     grants =
@@ -108,12 +114,15 @@ defmodule TheBand.Tenants.Access do
     end
   end
 
-  # Três consultas no máximo — uma por nível presente (L38), nunca por concessão.
+  # Três consultas no máximo — uma por nível presente (L38), nunca por concessão;
+  # e ZERO quando não há concessão nenhuma, que é o caso comum.
+  defp target_names(_tenant, []), do: %{}
+
   defp target_names(tenant, grants) do
     por_nivel = Enum.group_by(grants, & &1.level, & &1.target_id)
 
-    equipes = EO.teams_by_ids(tenant, Map.get(por_nivel, "team", []))
-    projetos = SPO.projects_by_ids(tenant, Map.get(por_nivel, "project", []))
+    equipes = nomes_ou_nada(por_nivel, "team", &EO.teams_by_ids(tenant, &1))
+    projetos = nomes_ou_nada(por_nivel, "project", &SPO.projects_by_ids(tenant, &1))
 
     organizacoes =
       case Map.get(por_nivel, "organization", []) do
@@ -130,27 +139,40 @@ defmodule TheBand.Tenants.Access do
   defp juntar(acc, nivel, mapa),
     do: Enum.into(mapa, acc, fn {id, nome} -> {{nivel, id}, nome} end)
 
+  defp nomes_ou_nada(por_nivel, nivel, buscar) do
+    case Map.get(por_nivel, nivel, []) do
+      [] -> %{}
+      ids -> buscar.(ids)
+    end
+  end
+
   @doc """
   Esta conta pode ver o painel desta pessoa? O motivo mais específico vence.
   """
   @spec pode_ver(Tenant.t(), User.t(), Ecto.UUID.t()) ::
           {:ok, atom()} | {:nao, atom()}
   def pode_ver(%Tenant{} = tenant, %User{} = user, alvo_person_id) do
+    # A própria pessoa decide em memória, ANTES de montar a união: é o caso mais
+    # comum da página da pessoa, e o teto de consultas dela é guardado por teste
+    # (L38 — o guardião reprovou a primeira versão, que montava tudo sempre).
+    if propria_pessoa?(user, alvo_person_id) do
+      {:ok, :propria_pessoa}
+    else
+      pela_uniao(tenant, user, alvo_person_id)
+    end
+  end
+
+  defp pela_uniao(tenant, user, alvo_person_id) do
     meus = scopes(tenant, user)
 
-    cond do
-      propria_pessoa?(user, alvo_person_id) ->
-        {:ok, :propria_pessoa}
-
-      motivo = alcanca_por_escopo(tenant, meus, alvo_person_id) ->
-        {:ok, motivo}
-
-      true ->
-        # A liderança declarada (#369) soma por último — FR-018.
-        case EO.Visibility.pode_ver(tenant, user, alvo_person_id) do
-          {:ok, motivo} -> {:ok, motivo}
-          {:nao, _} -> {:nao, motivo_da_recusa(meus)}
-        end
+    if motivo = alcanca_por_escopo(tenant, meus, alvo_person_id) do
+      {:ok, motivo}
+    else
+      # A liderança declarada (#369) soma por último — FR-018.
+      case EO.Visibility.pode_ver(tenant, user, alvo_person_id) do
+        {:ok, motivo} -> {:ok, motivo}
+        {:nao, _} -> {:nao, motivo_da_recusa(meus)}
+      end
     end
   end
 
@@ -159,15 +181,25 @@ defmodule TheBand.Tenants.Access do
   end
 
   # Devolve o motivo (:escopo_de_equipe | :escopo_de_projeto | :escopo_da_organizacao)
-  # ou nil. Uma leitura das relações do ALVO, comparada aos meus alvos por nível.
+  # ou nil. Uma leitura das relações do ALVO, comparada aos meus alvos por nível —
+  # e nenhuma leitura quando não tenho alvo nenhum (L38: o lado do alvo custa
+  # duas consultas, e sem escopo com alvo elas não decidem nada).
   defp alcanca_por_escopo(tenant, meus, alvo_person_id) do
+    if Enum.any?(meus, & &1.target_id) do
+      comparar_com_alvo(tenant, meus, alvo_person_id)
+    else
+      nil
+    end
+  end
+
+  defp comparar_com_alvo(tenant, meus, alvo_person_id) do
     alvo_equipes = EO.person_active_teams(tenant, alvo_person_id)
     alvo_team_ids = MapSet.new(alvo_equipes, & &1.team_id)
     alvo_org_ids = MapSet.new(alvo_equipes, & &1.organization_id) |> MapSet.delete(nil)
 
     alvo_project_ids =
       tenant
-      |> SPO.projects_of_teams(Enum.map(alvo_equipes, & &1.team_id))
+      |> projetos_das_equipes(alvo_equipes)
       |> MapSet.new(& &1.project_id)
 
     alvos = fn nivel ->

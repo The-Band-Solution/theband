@@ -26,18 +26,19 @@ defmodule TheBandWeb.Plugs.CurrentScope do
 
       user_id ->
         case Tenants.fetch_user(user_id) do
-          {:ok, user} ->
-            if user.session_token == get_session(conn, :session_token) do
-              conn
-              |> assign(:current_user, user)
-              |> assign(:current_tenant, user.tenant)
-            else
-              sem_sessao(conn)
-            end
-
-          {:error, :not_found} ->
-            sem_sessao(conn)
+          {:ok, user} -> com_token_valido(conn, user)
+          {:error, :not_found} -> sem_sessao(conn)
         end
+    end
+  end
+
+  defp com_token_valido(conn, user) do
+    if user.session_token == get_session(conn, :session_token) do
+      conn
+      |> assign(:current_user, user)
+      |> assign(:current_tenant, user.tenant)
+    else
+      sem_sessao(conn)
     end
   end
 
