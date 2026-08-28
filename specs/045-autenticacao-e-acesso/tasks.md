@@ -161,7 +161,7 @@
 
 ## Phase 6 — Polish
 
-- [ ] T013 Verificação contra a origem e evidências
+- [x] T013 Verificação contra a origem e evidências
   - **Pronta quando**: T006–T012 concluídas; banco dev migrado
   - **Descrição**: no dev — admins com concessão organization por organização (SQL ×
     tela /access-scopes); login real por e-mail e por username (screenshot); derivado
@@ -170,7 +170,7 @@
   - **Feita quando**: números tela × SQL batem; evidências anexadas ao PR
   - **Teste**: a própria verificação, com SQL e screenshots registrados
 
-- [ ] T014 Gates verdes e fechamento
+- [x] T014 Gates verdes e fechamento
   - **Pronta quando**: T013 concluída
   - **Descrição**: `mix gates > log 2>&1; echo "EXIT=$?" >> log` (forma completa da
     L60); atualizar protótipo/canvas se a implementação divergiu do desenho; PR no

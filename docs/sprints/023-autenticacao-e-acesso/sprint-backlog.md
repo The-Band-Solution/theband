@@ -69,8 +69,8 @@ desconhecido, não zero.
 | T010 | O veredito único nas telas de pessoa | US2 | Task | [#557](https://github.com/The-Band-Solution/theband/issues/557) | 3 | feito |
 | T011 | Operacionais restritas e filtradas (FR-023) | US2 | Task | [#558](https://github.com/The-Band-Solution/theband/issues/558) | 3 | feito |
 | T012 | Tela de perfil | US3 | Task | [#559](https://github.com/The-Band-Solution/theband/issues/559) | 3 | feito |
-| T013 | Verificação contra a origem e evidências | US3 | Task | [#560](https://github.com/The-Band-Solution/theband/issues/560) | 1 | em andamento |
-| T014 | Gates verdes e fechamento | US3 | Task | [#561](https://github.com/The-Band-Solution/theband/issues/561) | 1 | em andamento |
+| T013 | Verificação contra a origem e evidências | US3 | Task | [#560](https://github.com/The-Band-Solution/theband/issues/560) | 1 | feito |
+| T014 | Gates verdes e fechamento | US3 | Task | [#561](https://github.com/The-Band-Solution/theband/issues/561) | 1 | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 
