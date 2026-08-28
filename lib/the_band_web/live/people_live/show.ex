@@ -589,7 +589,7 @@ defmodule TheBandWeb.PeopleLive.Show do
 
         <%!-- A ORDEM DA PÁGINA é decisão → evidência → administração (reorganização de
               2026-08-28): primeiro o que se lê para decidir (trabalho, perfil), depois a
-              evidência que sustenta (checks, proveniência, equipes, papéis), e por último
+              evidência que sustenta (proveniência, equipes, papéis), e por último
               o que só quem administra toca (a conta). Cada seção continua dizendo sua
               própria história — só a casa delas mudou. --%>
         <%!-- O trabalho: dois números, e a soma deles não aparece em lugar nenhum. Quem abre uma
@@ -792,6 +792,109 @@ defmodule TheBandWeb.PeopleLive.Show do
                   observed. Projecting further than what was observed is extrapolating past the
                   evidence — what the number really says is that opening and closing are nearly
                   even.
+                </.notice>
+              </div>
+            </div>
+
+            <%!-- ═══ A VERIFICAÇÃO SOBRE OS COMMITS DELA — feature 044, US3 ═══
+                  `commit_authors` → `collected_commits` → `collected_verifications`, por
+                  `sha` = `head_sha`. Co-autoria conta: a rede declara `many` na origem de
+                  `cmpo.stakeholder_performed_commit`. Mudou de seção própria para cartão
+                  deste grid a pedido (2026-08-28): é gráfico, mora com os gráficos. --%>
+            <div
+              :if={@verificacao}
+              id="checks"
+              class="card min-w-0 scroll-mt-20 bg-base-200 lg:col-span-3"
+            >
+              <div class="card-body gap-2 p-4">
+                <h4 class="text-sm font-medium">Checks on their commits</h4>
+
+                <div class="flex flex-wrap gap-4 text-sm">
+                  <span>
+                    <strong class="tabular-nums">{@verificacao.passou}</strong>
+                    <span class="text-xs opacity-70">passed</span>
+                  </span>
+                  <span>
+                    <strong class="tabular-nums">{@verificacao.quebrou}</strong>
+                    <span class="text-xs opacity-70">broke</span>
+                  </span>
+                  <%!-- FR-004: `skipped` e `cancelled` NÃO são passou nem quebrou. As duas
+                        palavras afirmam resultado, e pular ou cancelar não é resultado. --%>
+                  <span :if={@verificacao.outras > 0}>
+                    <strong class="tabular-nums">{@verificacao.outras}</strong>
+                    <span class="text-xs opacity-70">neither — skipped or cancelled</span>
+                  </span>
+                </div>
+
+                <%!-- A COMPOSIÇÃO dos desfechos, desenhada. Cores de STATUS da casa (verdete =
+                      passou, argila = quebrou, neutro = nem um nem outro), nunca reusadas como
+                      série — e nunca o único canal: os números em texto acima são a tabela, cada
+                      segmento carrega title, e os segmentos têm vão de 2px. O validador de
+                      paleta passou CVD e visão normal nos pares; o croma baixo do verdete é
+                      decisão de marca (cor de instrumento, não de urgência), aliviada pelo
+                      rótulo textual que a casa exige em tudo.
+
+                      A parcela sem autoria NÃO entra nesta barra: é ausência (FR-010), vive na
+                      figura separada abaixo, tracejada — somá-las afirmaria medida onde não há. --%>
+                <div
+                  :if={@verificacao.passou + @verificacao.quebrou + @verificacao.outras > 0}
+                  class="flex h-3 w-full max-w-xl gap-0.5 overflow-hidden rounded-[2px]"
+                  role="img"
+                  aria-label={"Runs on their commits: #{@verificacao.passou} passed, #{@verificacao.quebrou} broke, #{@verificacao.outras} neither"}
+                >
+                  <div
+                    :if={@verificacao.passou > 0}
+                    class="rounded-[2px] bg-success"
+                    style={"flex-grow: #{@verificacao.passou}"}
+                    title={"#{@verificacao.passou} passed"}
+                  >
+                  </div>
+                  <div
+                    :if={@verificacao.quebrou > 0}
+                    class="rounded-[2px] bg-error"
+                    style={"flex-grow: #{@verificacao.quebrou}"}
+                    title={"#{@verificacao.quebrou} broke"}
+                  >
+                  </div>
+                  <div
+                    :if={@verificacao.outras > 0}
+                    class="rounded-[2px] bg-base-content/45"
+                    style={"flex-grow: #{@verificacao.outras}"}
+                    title={"#{@verificacao.outras} neither — skipped or cancelled"}
+                  >
+                  </div>
+                </div>
+
+                <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
+                      commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
+                      um. --%>
+                <p class="text-xs text-base-content/60">
+                  Counted as <strong>runs</strong>, not commits — a retried commit produces a new
+                  run.
+                </p>
+
+                <p
+                  :if={
+                    @verificacao.passou == 0 and @verificacao.quebrou == 0 and
+                      @verificacao.outras == 0
+                  }
+                  class="text-xs text-base-content/60"
+                >
+                  No check run on this person's commits. Either their commits are in repositories
+                  without workflows, or the commits themselves have not been collected.
+                </p>
+
+                <%!-- FR-010: a parcela AO LADO, e nunca descontada. Medido em 2026-08-27: 47%
+                      das execuções não casam com pessoa alguma — evento sem commit, autor não
+                      promovido, ou robô. --%>
+                <.notice
+                  :if={@verificacao.sem_autoria_no_tenant > 0}
+                  kind={:gap}
+                  title={"#{@verificacao.sem_autoria_no_tenant} runs in this organisation match no person at all"}
+                >
+                  They were triggered by an event with no commit, or by a commit whose author was
+                  never promoted to a person. They are not counted above, and not subtracted from
+                  it either — the numbers speak for the commits the platform could attribute.
                 </.notice>
               </div>
             </div>
@@ -1321,99 +1424,6 @@ defmodule TheBandWeb.PeopleLive.Show do
               <.absent reason={recusa(elem(@perfil_possivel, 1))} />
             </div>
           </div>
-        </section>
-
-        <%!-- ═══ A VERIFICAÇÃO SOBRE OS COMMITS DELA — feature 044, US3 ═══
-              `commit_authors` → `collected_commits` → `collected_verifications`, por
-              `sha` = `head_sha`. Co-autoria conta: a rede declara `many` na origem de
-              `cmpo.stakeholder_performed_commit`. --%>
-        <section :if={@ve_o_trabalho? and @verificacao} id="checks" class="scroll-mt-20 space-y-2">
-          <h3 class="font-semibold">Checks on their commits</h3>
-
-          <div class="flex flex-wrap gap-4 text-sm">
-            <span>
-              <strong class="tabular-nums">{@verificacao.passou}</strong>
-              <span class="text-xs opacity-70">passed</span>
-            </span>
-            <span>
-              <strong class="tabular-nums">{@verificacao.quebrou}</strong>
-              <span class="text-xs opacity-70">broke</span>
-            </span>
-            <%!-- FR-004: `skipped` e `cancelled` NÃO são passou nem quebrou. As duas
-                  palavras afirmam resultado, e pular ou cancelar não é resultado. --%>
-            <span :if={@verificacao.outras > 0}>
-              <strong class="tabular-nums">{@verificacao.outras}</strong>
-              <span class="text-xs opacity-70">neither — skipped or cancelled</span>
-            </span>
-          </div>
-
-          <%!-- A COMPOSIÇÃO dos desfechos, desenhada. Cores de STATUS da casa (verdete =
-                passou, argila = quebrou, neutro = nem um nem outro), nunca reusadas como
-                série — e nunca o único canal: os números em texto acima são a tabela, cada
-                segmento carrega title, e os segmentos têm vão de 2px. O validador de
-                paleta passou CVD e visão normal nos pares; o croma baixo do verdete é
-                decisão de marca (cor de instrumento, não de urgência), aliviada pelo
-                rótulo textual que a casa exige em tudo.
-
-                A parcela sem autoria NÃO entra nesta barra: é ausência (FR-010), vive na
-                figura separada abaixo, tracejada — somá-las afirmaria medida onde não há. --%>
-          <div
-            :if={@verificacao.passou + @verificacao.quebrou + @verificacao.outras > 0}
-            class="flex h-3 w-full max-w-xl gap-0.5 overflow-hidden rounded-[2px]"
-            role="img"
-            aria-label={"Runs on their commits: #{@verificacao.passou} passed, #{@verificacao.quebrou} broke, #{@verificacao.outras} neither"}
-          >
-            <div
-              :if={@verificacao.passou > 0}
-              class="rounded-[2px] bg-success"
-              style={"flex-grow: #{@verificacao.passou}"}
-              title={"#{@verificacao.passou} passed"}
-            >
-            </div>
-            <div
-              :if={@verificacao.quebrou > 0}
-              class="rounded-[2px] bg-error"
-              style={"flex-grow: #{@verificacao.quebrou}"}
-              title={"#{@verificacao.quebrou} broke"}
-            >
-            </div>
-            <div
-              :if={@verificacao.outras > 0}
-              class="rounded-[2px] bg-base-content/45"
-              style={"flex-grow: #{@verificacao.outras}"}
-              title={"#{@verificacao.outras} neither — skipped or cancelled"}
-            >
-            </div>
-          </div>
-
-          <%!-- FR-005: são EXECUÇÕES. Nova tentativa gera execução nova sobre o mesmo
-                commit, e chamar isso de "commits que quebraram" afirmaria dois onde houve
-                um. --%>
-          <p class="text-xs text-base-content/60">
-            Counted as <strong>runs</strong>, not commits — a retried commit produces a new
-            run.
-          </p>
-
-          <p
-            :if={@verificacao.passou == 0 and @verificacao.quebrou == 0 and @verificacao.outras == 0}
-            class="text-xs text-base-content/60"
-          >
-            No check run on this person's commits. Either their commits are in repositories
-            without workflows, or the commits themselves have not been collected.
-          </p>
-
-          <%!-- FR-010: a parcela AO LADO, e nunca descontada. Medido em 2026-08-27: 47%
-                das execuções não casam com pessoa alguma — evento sem commit, autor não
-                promovido, ou robô. --%>
-          <.notice
-            :if={@verificacao.sem_autoria_no_tenant > 0}
-            kind={:gap}
-            title={"#{@verificacao.sem_autoria_no_tenant} runs in this organisation match no person at all"}
-          >
-            They were triggered by an event with no commit, or by a commit whose author was
-            never promoted to a person. They are not counted above, and not subtracted from
-            it either — the numbers speak for the commits the platform could attribute.
-          </.notice>
         </section>
 
         <%!-- Proveniência primeiro: de onde veio, com que identificador, e desde quando. É o que
