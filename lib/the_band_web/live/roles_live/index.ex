@@ -83,7 +83,12 @@ defmodule TheBandWeb.RolesLive.Index do
       {:ok, papel} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Role #{papel.code} registered in this organisation.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Role %{papel} registered in this organisation.",
+             papel: papel.code
+           )
+         )
          |> load()}
 
       # Erro previsto de negócio chega nomeado, e a frase diz o escopo: o mesmo código em
@@ -93,11 +98,19 @@ defmodule TheBandWeb.RolesLive.Index do
          put_flash(
            socket,
            :error,
-           "This organisation already has a role with this code. Another organisation may."
+           dgettext(
+             "errors",
+             "This organisation already has a role with this code. Another organisation may."
+           )
          )}
 
       {:error, changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not register: #{errors(changeset)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not register: %{errors}", errors: errors(changeset))
+         )}
     end
   end
 
@@ -116,13 +129,22 @@ defmodule TheBandWeb.RolesLive.Index do
              socket.assigns.current_user.id
            ) do
         {:ok, _} ->
-          {:noreply, socket |> put_flash(:info, "Granted: #{rotulo(escopo)}.") |> load()}
+          {:noreply,
+           socket
+           |> put_flash(:info, dgettext("sistema", "Granted: %{rotulo}.", rotulo: rotulo(escopo)))
+           |> load()}
 
         {:error, _} ->
-          {:noreply, put_flash(socket, :error, "That grant is already declared.")}
+          {:noreply,
+           put_flash(socket, :error, dgettext("errors", "That grant is already declared."))}
       end
     else
-      {:noreply, put_flash(socket, :error, "Only an administrator can grant visibility.")}
+      {:noreply,
+       put_flash(
+         socket,
+         :error,
+         dgettext("errors", "Only an administrator can grant visibility.")
+       )}
     end
   end
 
@@ -134,11 +156,19 @@ defmodule TheBandWeb.RolesLive.Index do
              escopo,
              socket.assigns.current_user.id
            ) do
-        {:ok, _} -> {:noreply, socket |> put_flash(:info, "Grant revoked.") |> load()}
-        {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to revoke.")}
+        {:ok, _} ->
+          {:noreply, socket |> put_flash(:info, dgettext("sistema", "Grant revoked.")) |> load()}
+
+        {:error, :not_declared} ->
+          {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to revoke."))}
       end
     else
-      {:noreply, put_flash(socket, :error, "Only an administrator can revoke visibility.")}
+      {:noreply,
+       put_flash(
+         socket,
+         :error,
+         dgettext("errors", "Only an administrator can revoke visibility.")
+       )}
     end
   end
 
@@ -158,12 +188,15 @@ defmodule TheBandWeb.RolesLive.Index do
       {:ok, papel} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Renamed to #{papel.name}. The code is unchanged.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Renamed to %{papel}. The code is unchanged.", papel: papel.name)
+         )
          |> assign(renaming: nil)
          |> load()}
 
       {:error, :blank_name} ->
-        {:noreply, put_flash(socket, :error, "The name cannot be empty.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "The name cannot be empty."))}
 
       # Nome de papel do catálogo vem da rede. Editá-lo aqui produziria divergência silenciosa
       # com o YAML — a mesma razão de o catálogo ser composto e não semeado.
@@ -172,12 +205,18 @@ defmodule TheBandWeb.RolesLive.Index do
          socket
          |> put_flash(
            :error,
-           "This role comes from the ontology. Its name is defined there, not here."
+           dgettext(
+             "errors",
+             "This role comes from the ontology. Its name is defined there, not here."
+           )
          )
          |> assign(renaming: nil)}
 
       {:error, :not_found} ->
-        {:noreply, socket |> put_flash(:error, "Role not found.") |> assign(renaming: nil)}
+        {:noreply,
+         socket
+         |> put_flash(:error, dgettext("errors", "Role not found."))
+         |> assign(renaming: nil)}
     end
   end
 
@@ -188,7 +227,10 @@ defmodule TheBandWeb.RolesLive.Index do
       {:ok, papel} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Role #{papel.code} hidden from this organisation.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Role %{papel} hidden from this organisation.", papel: papel.code)
+         )
          |> load()}
 
       # A recusa diz **quantos**, e não só que não pode: quem lê precisa saber o tamanho do
@@ -198,21 +240,28 @@ defmodule TheBandWeb.RolesLive.Index do
          put_flash(
            socket,
            :error,
-           "#{quantos} membership(s) use this role. Hiding it would leave them pointing at a role no one can see."
+           dgettext(
+             "errors",
+             "%{quantos} membership(s) use this role. Hiding it would leave them pointing at a role no one can see.",
+             quantos: quantos
+           )
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Role not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Role not found."))}
     end
   end
 
   def handle_event("unhide", %{"id" => id}, socket) do
     case EO.unhide_role(socket.assigns.current_tenant, id, socket.assigns.current_user.id) do
       {:ok, papel} ->
-        {:noreply, socket |> put_flash(:info, "Role #{papel.code} is back.") |> load()}
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Role %{papel} is back.", papel: papel.code))
+         |> load()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Role not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Role not found."))}
     end
   end
 

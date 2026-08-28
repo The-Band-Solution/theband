@@ -35,22 +35,36 @@ defmodule TheBandWeb.AILive.Index do
       {:ok, cred} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Key checked against the provider and saved (#{masked(cred)}).")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Key checked against the provider and saved (%{masked}).",
+             masked: masked(cred)
+           )
+         )
          |> carregar()}
 
       # Cada recusa diz o que fazer em seguida, e todas terminam em "nothing was saved" —
       # sem isso, quem lê fica sem saber se a chave anterior sobreviveu.
       {:error, {:rejeitada, motivo}} ->
         {:noreply,
-         put_flash(socket, :error, "The provider refused the key: #{motivo}. Nothing was saved.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "The provider refused the key: %{motivo}. Nothing was saved.",
+             motivo: motivo
+           )
+         )}
 
       {:error, {:indisponivel, motivo}} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "Could not reach the provider: #{motivo}. The key was not checked, " <>
-             "so nothing was saved — it may well be valid."
+           dgettext(
+             "errors",
+             "Could not reach the provider: %{motivo}. The key was not checked, so nothing was saved — it may well be valid.",
+             motivo: motivo
+           )
          )}
 
       {:error, {:sem_modelos, motivo}} ->
@@ -58,8 +72,11 @@ defmodule TheBandWeb.AILive.Index do
          put_flash(
            socket,
            :error,
-           "#{motivo}. A key that reaches no model would fail on the first generation, " <>
-             "an hour later and for somebody else. Nothing was saved."
+           dgettext(
+             "errors",
+             "%{motivo}. A key that reaches no model would fail on the first generation, an hour later and for somebody else. Nothing was saved.",
+             motivo: motivo
+           )
          )}
 
       {:error, {:modelo_desconhecido, pedido, disponiveis}} ->
@@ -67,12 +84,21 @@ defmodule TheBandWeb.AILive.Index do
          put_flash(
            socket,
            :error,
-           "This key does not reach the model #{pedido}. It reaches: " <>
-             "#{Enum.join(Enum.take(disponiveis, 8), ", ")}. Nothing was saved."
+           dgettext(
+             "errors",
+             "This key does not reach the model %{pedido}. It reaches: %{disponiveis}. Nothing was saved.",
+             pedido: pedido,
+             disponiveis: Enum.join(Enum.take(disponiveis, 8), ", ")
+           )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not save: %{errors}", errors: errors(changeset))
+         )}
     end
   end
 
@@ -81,11 +107,19 @@ defmodule TheBandWeb.AILive.Index do
       :ok ->
         {:noreply,
          socket
-         |> put_flash(:info, "Key removed. The secret is gone — there is no history of it.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Key removed. The secret is gone — there is no history of it.")
+         )
          |> carregar()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "There is no key saved for this organisation.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "There is no key saved for this organisation.")
+         )}
     end
   end
 

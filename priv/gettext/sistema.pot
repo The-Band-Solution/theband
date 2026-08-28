@@ -1,12 +1,15 @@
-## "msgid"s in this file come from POT (.pot) files.
+## This file is a PO Template file.
 ##
-## Do not add, change, or remove "msgid"s manually here as they're tied to the ones
-## in the corresponding POT file (with the same domain). Use "mix gettext.extract
-## --merge" to update this file.
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
 msgid ""
 msgstr ""
-"Language: pt\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: lib/the_band_web/live/people_live/show.ex:214
 #, elixir-autogen, elixir-format

@@ -68,7 +68,10 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Pessoa de outro tenant devolve não encontrado — nunca "sem permissão", porque confirmar
       # existência já é vazamento entre tenants.
       {:error, :not_found} ->
-        {:ok, socket |> put_flash(:error, "Person not found.") |> push_navigate(to: ~p"/people")}
+        {:ok,
+         socket
+         |> put_flash(:error, dgettext("errors", "Person not found."))
+         |> push_navigate(to: ~p"/people")}
 
       {:ok, pessoa} ->
         # Assina só quando conectado: no primeiro render, estático, o processo morre em
@@ -84,13 +87,16 @@ defmodule TheBandWeb.PeopleLive.Show do
   # "ainda rodando" para quem olha.
   @impl true
   def handle_info({:perfil, :pronto, _person_id}, socket) do
-    {:noreply, socket |> put_flash(:info, "Profile ready.") |> load()}
+    {:noreply, socket |> put_flash(:info, dgettext("sistema", "Profile ready.")) |> load()}
   end
 
   def handle_info({:perfil, {:falhou, motivo}, _person_id}, socket) do
     {:noreply,
      socket
-     |> put_flash(:error, "Profile generation failed: #{falha(motivo)}")
+     |> put_flash(
+       :error,
+       dgettext("errors", "Profile generation failed: %{falha}", falha: falha(motivo))
+     )
      |> load()}
   end
 
@@ -132,13 +138,14 @@ defmodule TheBandWeb.PeopleLive.Show do
   # O elo concede visibilidade: apontar uma conta para esta pessoa é dar a ela o painel
   # desta pessoa. Não é campo de cadastro, é ato de acesso.
   def handle_event("declarar_conta", %{"user_id" => ""}, socket),
-    do: {:noreply, put_flash(socket, :error, "Choose an account.")}
+    do: {:noreply, put_flash(socket, :error, dgettext("errors", "Choose an account."))}
 
   def handle_event("declarar_conta", %{"user_id" => user_id}, socket) do
     if User.admin?(socket.assigns.current_user) do
       declarar_conta(socket, user_id)
     else
-      {:noreply, put_flash(socket, :error, "Only an administrator can link an account.")}
+      {:noreply,
+       put_flash(socket, :error, dgettext("errors", "Only an administrator can link an account."))}
     end
   end
 
@@ -149,12 +156,23 @@ defmodule TheBandWeb.PeopleLive.Show do
              user_id,
              socket.assigns.current_user.id
            ) do
-        {:ok, _} -> {:noreply, socket |> put_flash(:info, "Account unlinked.") |> load()}
-        {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to unlink.")}
-        {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Account not found.")}
+        {:ok, _} ->
+          {:noreply,
+           socket |> put_flash(:info, dgettext("sistema", "Account unlinked.")) |> load()}
+
+        {:error, :not_declared} ->
+          {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to unlink."))}
+
+        {:error, :not_found} ->
+          {:noreply, put_flash(socket, :error, dgettext("errors", "Account not found."))}
       end
     else
-      {:noreply, put_flash(socket, :error, "Only an administrator can unlink an account.")}
+      {:noreply,
+       put_flash(
+         socket,
+         :error,
+         dgettext("errors", "Only an administrator can unlink an account.")
+       )}
     end
   end
 
@@ -166,13 +184,18 @@ defmodule TheBandWeb.PeopleLive.Show do
       {:ok, _job} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Profile requested. It takes about a minute.")
+         |> put_flash(:info, dgettext("sistema", "Profile requested. It takes about a minute."))
          |> assign(perfil_pendente?: true)}
 
       # Falha ao enfileirar é falha, e é dita. Silêncio aqui faria a pessoa clicar de novo
       # sem saber que nada aconteceu.
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not request: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not request: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 
@@ -184,17 +207,24 @@ defmodule TheBandWeb.PeopleLive.Show do
            socket.assigns.current_user.id
          ) do
       {:ok, conta} ->
-        {:noreply, socket |> put_flash(:info, "#{conta.email} is now this person.") |> load()}
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "%{conta} is now this person.", conta: conta.email)
+         )
+         |> load()}
 
       # "Já está em uso" sem dizer de quem manda quem declarou procurar. A plataforma sabe.
       {:error, :taken} ->
         {:noreply, put_flash(socket, :error, ja_e_de_outra(socket))}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Account not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Account not found."))}
 
       {:error, %Ecto.Changeset{}} ->
-        {:noreply, put_flash(socket, :error, "That link could not be recorded.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "That link could not be recorded."))}
     end
   end
 

@@ -57,7 +57,7 @@ defmodule TheBandWeb.RepositoryLive.Show do
         {:ok,
          socket
          |> assign(repositorio: nil)
-         |> put_flash(:error, "Repository not found.")
+         |> put_flash(:error, dgettext("errors", "Repository not found."))
          |> push_navigate(to: ~p"/work")}
 
       {:ok, repositorio} ->
@@ -109,12 +109,20 @@ defmodule TheBandWeb.RepositoryLive.Show do
          socket
          |> put_flash(
            :info,
-           "Excluded from observation. The next collection skips it; nothing is marked absent."
+           dgettext(
+             "sistema",
+             "Excluded from observation. The next collection skips it; nothing is marked absent."
+           )
          )
          |> recarregar_repositorio()}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not exclude: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not exclude: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 
@@ -129,11 +137,19 @@ defmodule TheBandWeb.RepositoryLive.Show do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Back under observation. The next collection brings it again.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Back under observation. The next collection brings it again.")
+         )
          |> recarregar_repositorio()}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not include: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not include: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 

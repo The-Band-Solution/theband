@@ -110,3 +110,393 @@ msgstr ""
 
 msgid "must be equal to %{number}"
 msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:75
+#, elixir-autogen, elixir-format
+msgid "%{motivo}. A key that reaches no model would fail on the first generation, an hour later and for somebody else. Nothing was saved."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:243
+#, elixir-autogen, elixir-format
+msgid "%{quantos} membership(s) use this role. Hiding it would leave them pointing at a role no one can see."
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:91
+#, elixir-autogen, elixir-format
+msgid "A confirmação não confere com a senha."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:131
+#, elixir-autogen, elixir-format
+msgid "A run is already in progress. Two at once would write two profiles from the same material, and the table keeps both."
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:67
+#, elixir-autogen, elixir-format
+msgid "A senha atual não confere."
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:72
+#: lib/the_band_web/controllers/session_controller.ex:111
+#, elixir-autogen, elixir-format
+msgid "A senha precisa de pelo menos 12 caracteres."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:89
+#, elixir-autogen, elixir-format
+msgid "A sync is already running for this tool. The second one was not started."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:167
+#: lib/the_band_web/live/people_live/show.ex:223
+#, elixir-autogen, elixir-format
+msgid "Account not found."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:49
+#, elixir-autogen, elixir-format
+msgid "Board not found."
+msgstr ""
+
+#: lib/the_band_web/live/change_live/show.ex:45
+#, elixir-autogen, elixir-format
+msgid "Change request not found."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:141
+#, elixir-autogen, elixir-format
+msgid "Choose an account."
+msgstr ""
+
+#: lib/the_band_web/tabela_live.ex:124
+#, elixir-autogen, elixir-format
+msgid "Column %{campo} is not sortable here. Sortable: %{nomes}."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:192
+#: lib/the_band_web/live/projects_live/index.ex:309
+#, elixir-autogen, elixir-format
+msgid "Could not declare: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/repository_live/show.ex:124
+#, elixir-autogen, elixir-format
+msgid "Could not exclude: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/repository_live/show.ex:151
+#, elixir-autogen, elixir-format
+msgid "Could not include: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:63
+#, elixir-autogen, elixir-format
+msgid "Could not reach the provider: %{motivo}. The key was not checked, so nothing was saved — it may well be valid."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:112
+#, elixir-autogen, elixir-format
+msgid "Could not register: %{errors}"
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:197
+#, elixir-autogen, elixir-format
+msgid "Could not request: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:388
+#, elixir-autogen, elixir-format
+msgid "Could not resume the observation."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:100
+#: lib/the_band_web/live/source_live/index.ex:72
+#: lib/the_band_web/live/source_live/index.ex:148
+#: lib/the_band_web/live/source_live/index.ex:206
+#, elixir-autogen, elixir-format
+msgid "Could not save: %{errors}"
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:150
+#, elixir-autogen, elixir-format
+msgid "Could not start the run: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:107
+#, elixir-autogen, elixir-format
+msgid "Could not start: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:94
+#, elixir-autogen, elixir-format
+msgid "Could not turn it on: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:21
+#, elixir-autogen, elixir-format
+msgid "Credenciais inválidas."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:245
+#: lib/the_band_web/live/source_live/index.ex:277
+#, elixir-autogen, elixir-format
+msgid "Credential not found."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:80
+#: lib/the_band_web/live/source_live/index.ex:156
+#, elixir-autogen, elixir-format
+msgid "Failed to validate the credential: %{inspect}"
+msgstr ""
+
+#: lib/the_band_web/live/work_item_live/show.ex:72
+#, elixir-autogen, elixir-format
+msgid "Issue not found."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:115
+#, elixir-autogen, elixir-format
+msgid "It is already off."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:87
+#, elixir-autogen, elixir-format
+msgid "It is already on."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:99
+#: lib/the_band_web/live/board_live/index.ex:154
+#: lib/the_band_web/live/roles_live/index.ex:163
+#, elixir-autogen, elixir-format
+msgid "Nothing to revoke."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:164
+#, elixir-autogen, elixir-format
+msgid "Nothing to unlink."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:146
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can grant visibility."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:148
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can link an account."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:170
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can revoke visibility."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:174
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can unlink an account."
+msgstr ""
+
+#: lib/the_band_web/live/hooks.ex:85
+#, elixir-autogen, elixir-format
+msgid "Only organisation administrators can do that."
+msgstr ""
+
+#: lib/the_band_web/tabela_live.ex:151
+#, elixir-autogen, elixir-format
+msgid "Page %{n} is not a page number. Showing the same."
+msgstr ""
+
+#: lib/the_band_web/live/change_live/commits.ex:32
+#: lib/the_band_web/live/people_live/show.ex:73
+#, elixir-autogen, elixir-format
+msgid "Person not found."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:98
+#, elixir-autogen, elixir-format
+msgid "Profile generation failed: %{falha}"
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:136
+#: lib/the_band_web/live/projects_live/index.ex:169
+#, elixir-autogen, elixir-format
+msgid "Project not found."
+msgstr ""
+
+#: lib/the_band_web/live/repository_live/show.ex:60
+#, elixir-autogen, elixir-format
+msgid "Repository not found."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:218
+#: lib/the_band_web/live/roles_live/index.ex:251
+#: lib/the_band_web/live/roles_live/index.ex:264
+#, elixir-autogen, elixir-format
+msgid "Role not found."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:146
+#, elixir-autogen, elixir-format
+msgid "Sync not found."
+msgstr ""
+
+#: lib/the_band_web/live/hooks.ex:62
+#, elixir-autogen, elixir-format
+msgid "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:36
+#, elixir-autogen, elixir-format
+msgid "Team not found."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:139
+#, elixir-autogen, elixir-format
+msgid "That grant is already declared."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:227
+#, elixir-autogen, elixir-format
+msgid "That link could not be recorded."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:83
+#, elixir-autogen, elixir-format
+msgid "That role could not be recorded."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:132
+#, elixir-autogen, elixir-format
+msgid "That source is already declared, or the field is missing."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:60
+#, elixir-autogen, elixir-format
+msgid "The credential is valid but lacks the required scopes: %{scopes}. Without them the collection would return zero teams, which is worse than failing. Nothing was saved."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:138
+#, elixir-autogen, elixir-format
+msgid "The credential lacks scopes: %{scopes}."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:378
+#, elixir-autogen, elixir-format
+msgid "The credential lacks the scopes: %{scopes}"
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:240
+#, elixir-autogen, elixir-format
+msgid "The label cannot be empty."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:199
+#, elixir-autogen, elixir-format
+msgid "The name cannot be empty."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:423
+#, elixir-autogen, elixir-format
+msgid "The name typed does not match the organisation."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:181
+#: lib/the_band_web/live/projects_live/index.ex:298
+#, elixir-autogen, elixir-format
+msgid "The platform has not collected that event. Only what it observes can be declared."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:53
+#, elixir-autogen, elixir-format
+msgid "The provider refused the key: %{motivo}. Nothing was saved."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:371
+#, elixir-autogen, elixir-format
+msgid "The tool refused the credential."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:52
+#: lib/the_band_web/live/source_live/index.ex:130
+#, elixir-autogen, elixir-format
+msgid "The tool refused the credential. Nothing was saved."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:121
+#, elixir-autogen, elixir-format
+msgid "There is no key saved for this organisation."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:216
+#: lib/the_band_web/live/projects_live/index.ex:331
+#, elixir-autogen, elixir-format
+msgid "There was no criterion to revoke."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:270
+#, elixir-autogen, elixir-format
+msgid "This is the only active credential. To stop collecting, end the observation."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:87
+#, elixir-autogen, elixir-format
+msgid "This key does not reach the model %{pedido}. It reaches: %{disponiveis}. Nothing was saved."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:101
+#, elixir-autogen, elixir-format
+msgid "This organisation already has a role with this code. Another organisation may."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:142
+#, elixir-autogen, elixir-format
+msgid "This organisation has no provider key of its own."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:79
+#, elixir-autogen, elixir-format
+msgid "This organisation has no provider key of its own. A run would have to spend the installation's key, and that would put one organisation's usage on another's bill. Save a key first."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:162
+#, elixir-autogen, elixir-format
+msgid "This project has parts. Move or remove the subprojects first — removing in cascade would erase declarations nobody asked to erase."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:208
+#, elixir-autogen, elixir-format
+msgid "This role comes from the ontology. Its name is defined there, not here."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:132
+#, elixir-autogen, elixir-format
+msgid "This sync still has work running. Closing it would drop a collection in progress."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:190
+#, elixir-autogen, elixir-format
+msgid "This tool has already collected data. Correcting the registration is no longer possible — another organization is another tool. End the observation and connect the other one."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:97
+#, elixir-autogen, elixir-format
+msgid "This tool has no active credential."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:123
+#: lib/the_band_web/live/source_live/index.ex:199
+#: lib/the_band_web/live/source_live/index.ex:299
+#: lib/the_band_web/live/source_live/index.ex:320
+#: lib/the_band_web/live/source_live/index.ex:332
+#: lib/the_band_web/live/source_live/index.ex:384
+#: lib/the_band_web/live/source_live/index.ex:427
+#: lib/the_band_web/live/sync_live/index.ex:68
+#: lib/the_band_web/live/sync_live/index.ex:100
+#, elixir-autogen, elixir-format
+msgid "Tool not found."
+msgstr ""
+
+#: lib/the_band_web/live/verification_live/show.ex:32
+#, elixir-autogen, elixir-format
+msgid "Verification run not found"
+msgstr ""

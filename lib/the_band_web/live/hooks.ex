@@ -80,7 +80,10 @@ defmodule TheBandWeb.Live.Hooks do
         else
           {:halt,
            socket
-           |> put_flash(:error, dgettext("errors", "Only organisation administrators can do that."))
+           |> put_flash(
+             :error,
+             dgettext("errors", "Only organisation administrators can do that.")
+           )
            |> redirect(to: "/people")}
         end
 

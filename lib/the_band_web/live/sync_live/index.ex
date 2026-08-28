@@ -65,7 +65,7 @@ defmodule TheBandWeb.SyncLive.Index do
        |> load()}
     else
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
 
       # A mensagem vem do changeset, e não de um texto genérico: quem digitou 5 precisa saber
       # que o mínimo é 15, e por quê.
@@ -79,24 +79,33 @@ defmodule TheBandWeb.SyncLive.Index do
 
     with {:ok, tool} <- Sources.fetch_connected_tool(tenant, tool_id),
          {:ok, _sync} <- Ingestion.start_sync(tenant, tool) do
-      {:noreply, socket |> put_flash(:info, "Sync started.") |> load()}
+      {:noreply, socket |> put_flash(:info, dgettext("sistema", "Sync started.")) |> load()}
     else
       {:error, :already_running} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "A sync is already running for this tool. The second one was not started."
+           dgettext(
+             "errors",
+             "A sync is already running for this tool. The second one was not started."
+           )
          )}
 
       {:error, :no_active_credential} ->
-        {:noreply, put_flash(socket, :error, "This tool has no active credential.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "This tool has no active credential."))}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Could not start: #{inspect(reason)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not start: %{inspect}", inspect: inspect(reason))
+         )}
     end
   end
 
@@ -109,7 +118,10 @@ defmodule TheBandWeb.SyncLive.Index do
       {:ok, _sync} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Sync closed. The tool accepts a new collection now.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Sync closed. The tool accepts a new collection now.")
+         )
          |> load()}
 
       {:error, :job_alive} ->
@@ -117,15 +129,21 @@ defmodule TheBandWeb.SyncLive.Index do
          socket
          |> put_flash(
            :error,
-           "This sync still has work running. Closing it would drop a collection in progress."
+           dgettext(
+             "errors",
+             "This sync still has work running. Closing it would drop a collection in progress."
+           )
          )
          |> load()}
 
       {:error, :not_running} ->
-        {:noreply, socket |> put_flash(:info, "This sync was already closed.") |> load()}
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "This sync was already closed."))
+         |> load()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Sync not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Sync not found."))}
     end
   end
 
@@ -139,7 +157,10 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply,
      socket
      |> assign(reprocess: :running)
-     |> put_flash(:info, "Reprocessing the mappings over the data already collected.")}
+     |> put_flash(
+       :info,
+       dgettext("sistema", "Reprocessing the mappings over the data already collected.")
+     )}
   end
 
   @impl true

@@ -69,7 +69,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
       {:error, :not_found} ->
         {:ok,
          socket
-         |> put_flash(:error, "Issue not found.")
+         |> put_flash(:error, dgettext("errors", "Issue not found."))
          |> push_navigate(to: ~p"/work")}
     end
   end

@@ -133,7 +133,7 @@ defmodule TheBandWeb.ProjectsLive.Index do
         {:noreply, assign(socket, erro: primeira_mensagem(ch))}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Project not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Project not found."))}
     end
   end
 
@@ -147,7 +147,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
          socket
          |> put_flash(
            :info,
-           "Project removed. The declaration stays on record; there is no undelete."
+           dgettext(
+             "sistema",
+             "Project removed. The declaration stays on record; there is no undelete."
+           )
          )
          |> load()}
 
@@ -156,12 +159,14 @@ defmodule TheBandWeb.ProjectsLive.Index do
          put_flash(
            socket,
            :error,
-           "This project has parts. Move or remove the subprojects first — removing in " <>
-             "cascade would erase declarations nobody asked to erase."
+           dgettext(
+             "errors",
+             "This project has parts. Move or remove the subprojects first — removing in cascade would erase declarations nobody asked to erase."
+           )
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Project not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Project not found."))}
     end
   end
 
@@ -278,7 +283,10 @@ defmodule TheBandWeb.ProjectsLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Start criterion declared: #{tipo}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Start criterion declared: %{tipo}.", tipo: tipo)
+         )
          |> load()}
 
       # Erro previsto vira FRASE, e a frase diz por quê — FR-015.
@@ -287,11 +295,19 @@ defmodule TheBandWeb.ProjectsLive.Index do
          put_flash(
            socket,
            :error,
-           "The platform has not collected that event. Only what it observes can be declared."
+           dgettext(
+             "errors",
+             "The platform has not collected that event. Only what it observes can be declared."
+           )
          )}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not declare: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 
@@ -304,11 +320,15 @@ defmodule TheBandWeb.ProjectsLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Criterion revoked. The declaration stays in the record.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Criterion revoked. The declaration stays in the record.")
+         )
          |> load()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "There was no criterion to revoke.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no criterion to revoke."))}
     end
   end
 

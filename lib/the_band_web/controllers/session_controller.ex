@@ -56,7 +56,10 @@ defmodule TheBandWeb.SessionController do
         |> configure_session(renew: true)
         |> put_session(:user_id, atualizada.id)
         |> put_session(:session_token, atualizada.session_token)
-        |> put_flash(:info, dgettext("sistema", "Senha trocada. As outras sessões foram encerradas."))
+        |> put_flash(
+          :info,
+          dgettext("sistema", "Senha trocada. As outras sessões foram encerradas.")
+        )
         |> redirect(to: ~p"/profile")
 
       {:error, :invalid_current} ->

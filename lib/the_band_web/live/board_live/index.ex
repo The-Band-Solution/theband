@@ -46,7 +46,7 @@ defmodule TheBandWeb.BoardLive.Index do
       {:error, :not_found} ->
         {:noreply,
          socket
-         |> put_flash(:error, "Board not found.")
+         |> put_flash(:error, dgettext("errors", "Board not found."))
          |> push_patch(to: ~p"/boards")}
     end
   end
@@ -69,11 +69,18 @@ defmodule TheBandWeb.BoardLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Field #{campo} declared: #{rotulo_do_papel(papel)}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Field %{campo} declared: %{rotulo_do_papel}.",
+             campo: campo,
+             rotulo_do_papel: rotulo_do_papel(papel)
+           )
+         )
          |> recarregar()}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "That role could not be recorded.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "That role could not be recorded."))}
     end
   end
 
@@ -84,8 +91,12 @@ defmodule TheBandWeb.BoardLive.Index do
            campo,
            socket.assigns.current_user.id
          ) do
-      {:ok, _} -> {:noreply, socket |> put_flash(:info, "Role revoked.") |> recarregar()}
-      {:error, :not_declared} -> {:noreply, put_flash(socket, :error, "Nothing to revoke.")}
+      {:ok, _} ->
+        {:noreply,
+         socket |> put_flash(:info, dgettext("sistema", "Role revoked.")) |> recarregar()}
+
+      {:error, :not_declared} ->
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to revoke."))}
     end
   end
 
@@ -105,12 +116,21 @@ defmodule TheBandWeb.BoardLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Deadline source added: #{rotulo_da_origem(origem, campo)}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Deadline source added: %{rotulo_da_origem}.",
+             rotulo_da_origem: rotulo_da_origem(origem, campo)
+           )
+         )
          |> recarregar()}
 
       {:error, _} ->
         {:noreply,
-         put_flash(socket, :error, "That source is already declared, or the field is missing.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "That source is already declared, or the field is missing.")
+         )}
     end
   end
 
@@ -125,10 +145,13 @@ defmodule TheBandWeb.BoardLive.Index do
            socket.assigns.current_user.id
          ) do
       {:ok, _} ->
-        {:noreply, socket |> put_flash(:info, "Deadline source revoked.") |> recarregar()}
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Deadline source revoked."))
+         |> recarregar()}
 
       {:error, :not_declared} ->
-        {:noreply, put_flash(socket, :error, "Nothing to revoke.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Nothing to revoke."))}
     end
   end
 
@@ -144,7 +167,10 @@ defmodule TheBandWeb.BoardLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Start criterion declared for this board: #{tipo}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Start criterion declared for this board: %{tipo}.", tipo: tipo)
+         )
          |> recarregar()}
 
       {:error, :unknown_event_type} ->
@@ -152,11 +178,19 @@ defmodule TheBandWeb.BoardLive.Index do
          put_flash(
            socket,
            :error,
-           "The platform has not collected that event. Only what it observes can be declared."
+           dgettext(
+             "errors",
+             "The platform has not collected that event. Only what it observes can be declared."
+           )
          )}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not declare: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 
@@ -171,11 +205,15 @@ defmodule TheBandWeb.BoardLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Criterion revoked. The project's one applies again, if declared.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Criterion revoked. The project's one applies again, if declared.")
+         )
          |> recarregar()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "There was no criterion to revoke.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no criterion to revoke."))}
     end
   end
 
