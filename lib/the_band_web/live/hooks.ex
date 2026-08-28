@@ -18,7 +18,8 @@ defmodule TheBandWeb.Live.Hooks do
         {:cont,
          socket
          |> assign(:current_user, user)
-         |> assign(:current_tenant, user.tenant)}
+         |> assign(:current_tenant, user.tenant)
+         |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)}
 
       _ ->
         {:halt, redirect(socket, to: "/sign-in")}
@@ -40,5 +41,12 @@ defmodule TheBandWeb.Live.Hooks do
       halted ->
         halted
     end
+  end
+
+  # A área ativa do menu vem do caminho da request (spec 046, FR-006). Vive na
+  # hook, e não em cada LiveView, pelo mesmo motivo do tenant acima: a primeira
+  # tela que esquecesse de declarar ficaria sem marcação em silêncio.
+  defp nav_area_hook(_params, uri, socket) do
+    {:cont, assign(socket, :nav_area, TheBandWeb.Layouts.nav_area(URI.parse(uri).path))}
   end
 end

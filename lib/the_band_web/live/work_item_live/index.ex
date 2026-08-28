@@ -86,7 +86,13 @@ defmodule TheBandWeb.WorkItemLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={@current_user} current_tenant={@current_tenant}>
+    <Layouts.app
+      flash={@flash}
+      current_user={@current_user}
+      current_tenant={@current_tenant}
+      nav_area={assigns[:nav_area]}
+    >
+      <Layouts.work_tabs active={:issues} />
       <.header>
         Work
         <:subtitle>

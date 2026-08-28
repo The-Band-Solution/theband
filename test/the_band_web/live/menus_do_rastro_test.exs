@@ -1,17 +1,23 @@
 defmodule TheBandWeb.MenusDoRastroTest do
   @moduledoc """
-  Os três menus que alcançam o rastro — feature 038, issue #436.
+  Os três menus que alcançam o rastro — feature 038, issue #436; morada movida
+  pela feature 046 (menu por entidades).
+
+  A lacuna original não muda: telas funcionando que ninguém achava. O que mudou é
+  ONDE o rastro se acha — a barra virou entidades, e o rastro vive nas sub-abas de
+  Work (`Layouts.work_tabs/1`), um clique a partir de qualquer visão de trabalho.
 
   ## As asserções que carregam este arquivo
 
-  1. **os três destinos estão na barra**, e não só as rotas no roteador — foi exatamente
-     essa a lacuna: telas funcionando que ninguém achava;
-  2. **o rótulo é `Checks`, nunca `CI`** — 399 das 1.051 execuções não são integração
-     contínua, e o menu não pode prometer o que a tela não entrega;
+  1. **os três destinos estão nas sub-abas de Work**, e não só as rotas no
+     roteador;
+  2. **o rótulo é `Checks`, nunca `CI`** — 399 das 1.051 execuções não são
+     integração contínua, e o menu não pode prometer o que a tela não entrega;
   3. **a ordem é a da cadeia observada**, e não alfabética nem de chegada;
-  4. quem **não** é admin também alcança os três: o rastro é conhecimento, não operação;
-  5. **os painéis dizem o tamanho do que existe antes de alguém procurar** — sem eles,
-     busca sem resultado é indistinguível de coleta que não rodou.
+  4. quem **não** é admin também alcança os três: o rastro é conhecimento, não
+     operação;
+  5. **os painéis dizem o tamanho do que existe antes de alguém procurar** — sem
+     eles, busca sem resultado é indistinguível de coleta que não rodou.
   """
   use TheBandWeb.ConnCase, async: false
 
@@ -24,40 +30,40 @@ defmodule TheBandWeb.MenusDoRastroTest do
     %{conn: log_in(conn, admin), tenant: tenant}
   end
 
-  test "os três destinos aparecem na barra, alcançáveis por clique", ctx do
-    {:ok, _live, html} = live(ctx.conn, ~p"/people")
+  test "os três destinos aparecem nas sub-abas de Work, alcançáveis por clique", ctx do
+    {:ok, _live, html} = live(ctx.conn, ~p"/work")
 
     for destino <- @destinos do
       assert html =~ ~s|href="#{destino}"|,
-             "#{destino} não está na barra — a tela existe e ninguém a acha"
+             "#{destino} não está nas sub-abas — a tela existe e ninguém a acha"
     end
   end
 
   test "o rótulo da verificação é Checks, e nunca CI", ctx do
-    {:ok, _live, html} = live(ctx.conn, ~p"/people")
+    {:ok, _live, html} = live(ctx.conn, ~p"/work")
 
-    assert html =~ ">Checks</a>"
+    assert html =~ "Checks"
 
-    # A asserção é sobre o ITEM da barra, não sobre a página inteira: "CI" pode aparecer
-    # em texto corrido sem prometer nada. O que não pode é rotular o menu.
-    refute html =~ ">CI</a>"
+    # A asserção é sobre o ITEM do menu, não sobre a página inteira: "CI" pode aparecer
+    # em texto corrido sem prometer nada. O que não pode é rotular a aba.
+    refute html =~ ~r/>\s*CI\s*<\/a>/
   end
 
-  test "a ordem conta a cadeia: Work, Changes, Files, Checks", ctx do
-    {:ok, _live, html} = live(ctx.conn, ~p"/people")
+  test "a ordem conta a cadeia: Issues, Changes, Files, Checks", ctx do
+    {:ok, _live, html} = live(ctx.conn, ~p"/work")
 
     indices =
-      Enum.map(["/work", "/work/changes", "/work/files", "/work/verifications"], fn rota ->
+      Enum.map(["/work/changes", "/work/files", "/work/verifications"], fn rota ->
         {i, _} = :binary.match(html, ~s|href="#{rota}"|)
         i
       end)
 
-    assert indices == Enum.sort(indices), "a ordem da barra não segue a cadeia observada"
+    assert indices == Enum.sort(indices), "a ordem das sub-abas não segue a cadeia observada"
 
-    # E os três ficam ANTES de Projects — depois de `Process` eles se separariam do
-    # trabalho que descrevem, e a ordem deixaria de contar nada.
-    {projects, _} = :binary.match(html, ~s|href="/projects"|)
-    assert List.last(indices) < projects
+    # E os três ficam ANTES de Boards e Process — depois deles o rastro se
+    # separaria do trabalho que descreve, e a ordem deixaria de contar nada.
+    {boards, _} = :binary.match(html, ~s|href="/boards"|)
+    assert List.last(indices) < boards
   end
 
   test "quem não é admin também alcança os três", %{tenant: tenant} do
@@ -69,7 +75,7 @@ defmodule TheBandWeb.MenusDoRastroTest do
 
     conn = log_in(build_conn(), membro)
 
-    {:ok, _live, html} = live(conn, ~p"/people")
+    {:ok, _live, html} = live(conn, ~p"/work")
 
     for destino <- @destinos do
       assert html =~ ~s|href="#{destino}"|, "#{destino} sumiu para quem não é admin"
