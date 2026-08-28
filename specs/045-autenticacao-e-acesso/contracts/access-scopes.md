@@ -65,6 +65,23 @@
   vigente — devolvendo QUAIS organizações, para as telas operacionais filtrarem
   (research R8).
 
+## Dependências acrescentadas às fachadas (leituras estreitas)
+
+Para compor sem furar fronteira nem consultar por linha (L38), as fachadas ganham:
+
+```elixir
+EO.person_active_teams(tenant, person_id)
+  :: [%{team_id: id, team_name: String.t(), organization_id: id | nil}]
+  # vínculos VIGENTES (ended_at nulo) — evidência não conta
+
+EO.teams_by_ids(tenant, [id]) :: %{id => nome}
+SPO.projects_of_teams(tenant, [team_id])
+  :: [%{project_id: id, project_name: String.t(), team_id: id}]  # ligações vigentes
+SPO.projects_by_ids(tenant, [id]) :: %{id => nome}
+```
+
+Todas recebem tenant; nenhuma devolve `Ecto.Query`.
+
 ## O que esta API NÃO expõe, e por quê
 
 - **Não expõe booleano seco em pode_ver** — o motivo é requisito (FR-011); booleano

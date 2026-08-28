@@ -29,16 +29,18 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
   remédios diferentes, e a tela precisa dizer qual é — `FR-012g`. Um booleano faria a tela
   dar a mesma frase para os dois, e quem lesse iria procurar no lugar errado.
 
-  ## Admin da plataforma vê tudo
+  ## Admin da plataforma NÃO vê tudo — mais (feature 045, FR-022)
 
-  Decisão da pessoa mantenedora em 2026-08-27. É o `users.role`, e não papel na organização
-  — quem conecta ferramenta e gerencia credencial. **Junta duas coisas que o resto desta
-  regra separa**, e o custo é que administrar ferramentas passa a incluir ler o painel de
-  todo mundo, sem passar por declaração de papel e sem aparecer na tela dos papéis.
+  A decisão de 2026-08-27 ("admin vê tudo") juntava duas coisas que o resto desta
+  regra separa, e foi revista quando o vocabulário que faltava passou a existir: o
+  escopo `organization` da feature 045. Administrar é mexer; ver é escopo — quem
+  administra e precisa ver recebe concessão como qualquer conta (a migração da 045
+  deu aos admins de então uma concessão organization por organização observada,
+  para a virada não rebaixar ninguém em silêncio).
 
-  Vale por último em cada ramo: quando um motivo mais específico se aplica, é ele que a
-  tela mostra. Dizer "porque você é admin" a quem é a própria pessoa seria verdade e
-  resposta errada.
+  Este módulo segue dono de UMA regra: a liderança declarada (#369). A união com os
+  escopos acumulativos vive em `TheBand.Tenants.Access`, que chama esta função por
+  último — os escopos SOMAM sobre ela, nunca a substituem (FR-018).
 
   ## O que esta regra NÃO faz
 
@@ -52,7 +54,6 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
   """
   import Ecto.Query
 
-  alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.RoleVisibilityGrant
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Repo
@@ -64,7 +65,6 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
           :propria_pessoa
           | :lidera_a_equipe
           | :responsavel_da_organizacao
-          | :admin_da_plataforma
           | :conta_sem_pessoa_declarada
           | :sem_alcance_declarado
 
@@ -81,13 +81,13 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
         {:ok, :propria_pessoa}
 
       {:ok, minha_pessoa} ->
-        alcance(tenant, quem, minha_pessoa, alvo_person_id)
+        alcance(tenant, minha_pessoa, alvo_person_id)
 
       # Sem o elo, nem o próprio painel seria alcançável — e é um bloqueio com remédio, que
-      # a tela nomeia diferente do outro. Admin passa mesmo sem elo: quem administra a
-      # plataforma não precisa ser nenhuma das pessoas observadas.
+      # a tela nomeia diferente do outro. Admin NÃO passa mais por aqui (FR-022):
+      # administrar é mexer; ver vem de escopo, decidido em Tenants.Access.
       :not_declared ->
-        ou_admin(tenant, quem, alvo_person_id, :conta_sem_pessoa_declarada)
+        {:nao, :conta_sem_pessoa_declarada}
     end
   end
 
@@ -162,7 +162,7 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
 
   # --------------------------------------------------------------------------- privadas
 
-  defp alcance(tenant, quem, minha_pessoa, alvo_person_id) do
+  defp alcance(tenant, minha_pessoa, alvo_person_id) do
     cond do
       lidera_equipe_do_alvo?(tenant, minha_pessoa, alvo_person_id) ->
         {:ok, :lidera_a_equipe}
@@ -171,40 +171,8 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
         {:ok, :responsavel_da_organizacao}
 
       true ->
-        ou_admin(tenant, quem, alvo_person_id, :sem_alcance_declarado)
+        {:nao, :sem_alcance_declarado}
     end
-  end
-
-  # Decisão da pessoa mantenedora em 2026-08-27: **admin vê tudo.**
-  #
-  # É o `role` da PLATAFORMA — quem conecta ferramenta e gerencia credencial —, e ligá-lo à
-  # visibilidade junta duas coisas que o resto desta regra separa de propósito. A decisão é
-  # da organização, e o custo dela é este: quem administra ferramentas lê o painel de todo
-  # mundo, e é um privilégio que não passa por declaração de papel nem aparece na tela dos
-  # papéis.
-  #
-  # Vem POR ÚLTIMO em cada ramo, e não primeiro: quando um motivo mais específico se
-  # aplica, é ele que a tela mostra. Dizer "porque você é admin" a quem é a própria pessoa
-  # seria verdade e resposta errada.
-  defp ou_admin(%Tenant{id: tenant_id}, quem, alvo_person_id, motivo) do
-    # O tenant da pessoa alvo é conferido AQUI, e não deixado para quem chama.
-    #
-    # Os outros ramos conferem por tabela: as consultas de equipe e organização filtram por
-    # tenant, e `person_of_user/1` também. O ramo do admin curto-circuita antes de qualquer
-    # consulta, e sem esta linha um admin de outro tenant receberia `{:ok, ...}` para uma
-    # pessoa que não é dele. A tela nunca chega aí — `fetch_person/2` recusa antes —, mas
-    # uma função que decide acesso não pode depender de quem a chama ter conferido.
-    if User.admin?(quem) and pessoa_do_tenant?(tenant_id, alvo_person_id),
-      do: {:ok, :admin_da_plataforma},
-      else: {:nao, motivo}
-  end
-
-  defp pessoa_do_tenant?(tenant_id, person_id) do
-    Repo.exists?(
-      from p in Person,
-        where:
-          p.tenant_id == type(^tenant_id, :binary_id) and p.id == type(^person_id, :binary_id)
-    )
   end
 
   # Alcança quem está na MESMA equipe em que a pessoa tem um papel com escopo `team`.

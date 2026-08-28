@@ -678,6 +678,41 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  As equipes com vínculo VIGENTE da pessoa — feature 045 (contrato access-scopes.md).
+
+  Vínculo, e não evidência: `list_person_teams/2` conta o que a origem afirmou;
+  esta conta o que a organização declarou e não encerrou (`ended_at` nulo). É a
+  leitura de que o escopo derivado nasce — e por isso vínculo encerrado some daqui.
+  """
+  @spec person_active_teams(Tenant.t(), Ecto.UUID.t()) :: [
+          %{team_id: Ecto.UUID.t(), team_name: String.t(), organization_id: Ecto.UUID.t() | nil}
+        ]
+  def person_active_teams(%Tenant{id: tenant_id}, person_id) do
+    Repo.all(
+      from m in TeamMembership,
+        join: t in Team,
+        on: t.id == m.team_id,
+        where:
+          m.tenant_id == ^tenant_id and m.person_id == ^person_id and is_nil(m.ended_at) and
+            is_nil(t.no_longer_observed_at),
+        distinct: t.id,
+        order_by: [asc: t.name],
+        select: %{team_id: t.id, team_name: t.name, organization_id: t.organization_id}
+    )
+  end
+
+  @doc "Nomes de equipes por id — feature 045, para rotular concessões sem consulta por linha."
+  @spec teams_by_ids(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
+  def teams_by_ids(%Tenant{id: tenant_id}, ids) when is_list(ids) do
+    Repo.all(
+      from t in Team,
+        where: t.tenant_id == ^tenant_id and t.id in ^ids,
+        select: {t.id, t.name}
+    )
+    |> Map.new()
+  end
+
+  @doc """
   As equipes que **a origem declara** para a pessoa, numa consulta.
 
   O que ela devolve é **evidência**, não vínculo: `promoted?` diz se a plataforma promoveu, e

@@ -10,6 +10,7 @@ defmodule TheBand.Tenants do
   import Ecto.Query
 
   alias TheBand.Repo
+  alias TheBand.Tenants.Access
   alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -19,6 +20,12 @@ defmodule TheBand.Tenants do
   defdelegate set_password(tenant, user_id, senha), to: Auth
   defdelegate change_password(tenant, user_id, atual, nova), to: Auth
   defdelegate reset_password(tenant, user_id, actor_id), to: Auth
+
+  defdelegate scopes(tenant, user), to: Access
+  defdelegate pode_ver(tenant, user, person_id), to: Access
+  defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
+  defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
+  defdelegate operacional?(tenant, user), to: Access
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)
