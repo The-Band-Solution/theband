@@ -98,8 +98,9 @@ Estados: `a fazer` · `em andamento` · `feito` · `bloqueado` · `não iniciado
 
 Além da DoD por tarefa:
 
-- [ ] quality gates verdes (forma completa da L60, EXIT no log)
-- [ ] base de conhecimento válida
-- [ ] issues encerradas ou repriorizadas com justificativa
-- [ ] `sprint-review.md` escrito
-- [ ] `licoes-aprendidas.md` atualizado (incidente da iteration incluído)
+- [x] quality gates verdes (forma completa da L60, EXIT no log) — 13/13, EXIT=0
+- [x] base de conhecimento válida (parte dos gates)
+- [x] issues encerradas ou repriorizadas com justificativa — #548–#561 fechadas;
+      fatia de FR-008 repriorizada como [#568](https://github.com/The-Band-Solution/theband/issues/568)
+- [x] `sprint-review.md` escrito
+- [x] `licoes-aprendidas.md` atualizado (incidente da iteration incluído — L72)

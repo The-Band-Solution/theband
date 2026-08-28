@@ -1350,6 +1350,11 @@ crescer sem decisão. **"Um número que não cresce" não é asserção**: passa
 **Aplicada em**: Sprint 010 — e ali ela cobrou duas vezes. O teste de custo comparava a mesma página
 com ela mesma (**L41**), e uma mensagem de telemetria atrasada entrou na contagem seguinte (**L42**).
 
+**Aplicada em**: Sprint 023 — e desta vez ela DEFENDEU: o guardião reprovou o veredito novo de
+acesso (+5 consultas por render na página da pessoa) antes de qualquer tela lenta existir. A
+correção voltou ao teto sem subir a régua: a própria pessoa decide em memória, o lado do alvo
+só é lido quando há escopo com alvo, e nomes de concessão custam zero sem concessão.
+
 **Estado**: aberta.
 
 ---
@@ -2567,3 +2572,70 @@ atributo). Cada acerto vira decisão registrada: o teste muda de morada junto co
 vermelho da suíte. E a resolução dos três casos deste sprint é o catálogo de referência:
 mudança de morada (rastro), estreitamento de escopo (organização fora da barra), separação de
 vocabulário (`"true"` na barra, `"page"` só na migalha).
+
+---
+
+## L72 — A API de iterations substitui a lista inteira: reenviar sempre as vigentes
+
+**Origem**: Sprint 023 · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** Ao criar a iteration do Sprint 023 com
+`updateProjectV2Field.iterationConfiguration`, a do Sprint 022 sumiu e os 15 itens dele
+ficaram sem sprint. A entrada `iterations` não ACRESCENTA — substitui a lista ativa por
+inteiro, e não aceita `id` (recriar gera id novo, órfanando as atribuições).
+
+**O que fazer diferente.** Toda mutação nessa configuração reenvia TODAS as iterations
+vigentes junto da nova. Quando o dano acontecer: recriar as duas e reatribuir os itens na
+hora, conferindo por consulta — foi o reparo, com datas até mais fiéis (022 = 1 dia).
+
+---
+
+## L73 — `isVisible` não vê o corte por overflow: a prova de tela é a imagem
+
+**Origem**: Sprint 023 · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** O dropdown do Settings abria CORTADO pelo `overflow-x-auto` da barra
+(overflow-x força overflow-y). O diagnóstico inicial acertou a causa — e foi descartado
+porque o `isVisible()` do Playwright devolveu `true`: o predicado não considera corte por
+overflow de ancestral. O screenshot capturado NA MESMA SESSÃO mostrava o menu ausente, e
+não foi olhado. A pessoa mantenedora reportou o defeito duas vezes até a imagem ser lida.
+
+**O que fazer diferente.** Predicado de visibilidade nunca encerra diagnóstico de tela: a
+prova é a IMAGEM, olhada. Se um screenshot já foi capturado para provar algo, ele é lido
+antes de qualquer conclusão — capturar e não olhar é pior que não capturar, porque veste
+o diagnóstico de verificado.
+
+---
+
+## L74 — A árvore de trabalho decide o que o dev server serve
+
+**Origem**: Sprint 023 · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** Duas vezes no mesmo dia: (1) `mix.lock` mudou (bcrypt) e o code
+reloader passou a responder 500 em tudo exigindo restart — o erro estava claro no log do
+servidor, não na tela; (2) o conserto do schema vivia na branch do fix, e voltar a árvore
+para a branch da feature ressuscitou o 400 NO MEIO de um teste da pessoa mantenedora — o
+schema é lido do disco a cada geração, e o disco é a branch atual.
+
+**O que fazer diferente.** Com dev server de reloader ligado, trocar de branch é mexer no
+servidor VIVO: antes de trocar, dizer o que o usuário verá mudar; depois de mexer em
+mix.lock/config, reiniciar o servidor sem esperar o sintoma. Fix quente que o usuário está
+exercitando fica também na árvore ativa (aplicado sem commit) até o merge oficial.
+
+---
+
+## L75 — Squash-merge abre janela para commits órfãos na branch do PR
+
+**Origem**: Sprint 023 · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** O PR #562 foi squash-mergeado enquanto a sessão continuava
+empurrando commits na mesma branch (dropdown, alcance do organization, página da pessoa).
+Os pushes entraram na branch remota — e em lugar nenhum: o PR já estava fechado, e nada
+avisa. Só a pergunta "fez o PR?" revelou; a comparação por SHA engana (squash não preserva
+commits), e foi o diff de CONTEÚDO contra a main que disse o que faltava.
+
+**O que fazer diferente.** Antes de cada push numa branch com PR aberto, conferir o estado
+do PR (`gh pr view --json state`). Depois de merge detectado: parar de empurrar ali,
+cherry-pick do que sobrou numa branch nova a partir da main, PR complementar. Diferença
+real entre branch e main se mede por conteúdo (`git diff main branch`), nunca por lista de
+commits.
