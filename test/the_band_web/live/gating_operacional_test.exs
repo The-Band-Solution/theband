@@ -47,7 +47,8 @@ defmodule TheBandWeb.GatingOperacionalTest do
     assert flash["error"] =~ "organization"
   end
 
-  test "organization alcança /ai — decisão da aceitação do sprint 023 (FR-023 como escrito)", ctx do
+  test "organization alcança /ai — decisão da aceitação do sprint 023 (FR-023 como escrito)",
+       ctx do
     {:ok, _} =
       Tenants.grant_scope(ctx.tenant, ctx.member.id, :organization, ctx.org_a.id, ctx.admin)
 

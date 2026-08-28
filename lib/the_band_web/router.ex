@@ -132,7 +132,6 @@ defmodule TheBandWeb.Router do
       live "/accounts", AccountsLive.Index, :index
       live "/access-scopes", AccessScopesLive.Index, :index
 
-
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.
       live "/roles", RolesLive.Index, :index
