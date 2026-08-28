@@ -195,7 +195,16 @@ defmodule TheBand.Tenants.Access do
   defp comparar_com_alvo(tenant, meus, alvo_person_id) do
     alvo_equipes = EO.person_active_teams(tenant, alvo_person_id)
     alvo_team_ids = MapSet.new(alvo_equipes, & &1.team_id)
-    alvo_org_ids = MapSet.new(alvo_equipes, & &1.organization_id) |> MapSet.delete(nil)
+
+    # A organização do alvo vem por DOIS fatos: a equipe com vínculo promovido, e a
+    # evidência vigente da origem. Só o primeiro deixava organization alcançar 4 de
+    # 88 pessoas no dado real — o vínculo promovido quase não existe (101 evidências,
+    # 0 promoções), e "pessoa da organização" na spec é quem a organização observa.
+    alvo_org_ids =
+      alvo_equipes
+      |> MapSet.new(& &1.organization_id)
+      |> MapSet.delete(nil)
+      |> MapSet.union(MapSet.new(observed_orgs(tenant, meus, alvo_person_id)))
 
     alvo_project_ids =
       tenant
@@ -212,6 +221,14 @@ defmodule TheBand.Tenants.Access do
       not MapSet.disjoint?(alvos.(:organization), alvo_org_ids) -> :escopo_da_organizacao
       true -> nil
     end
+  end
+
+  # A evidência só é consultada quando tenho escopo organization — para os demais
+  # é uma ida ao banco que não decide nada (L38).
+  defp observed_orgs(tenant, meus, alvo_person_id) do
+    if Enum.any?(meus, &(&1.level == :organization)),
+      do: EO.person_observed_organization_ids(tenant, alvo_person_id),
+      else: []
   end
 
   # Recusa com remédio certo: sem elo E sem escopo é um pedido de declaração;

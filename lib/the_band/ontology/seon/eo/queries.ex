@@ -701,6 +701,28 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     )
   end
 
+  @doc """
+  As organizações em que a pessoa é OBSERVADA — feature 045 (contrato access-scopes.md).
+
+  Pela evidência vigente da origem (`no_longer_observed_at` nulo): é o que o GitHub
+  afirma sobre pertencer, e existe porque o vínculo promovido quase não existe no
+  dado real (101 evidências, 0 promoções — a história da tela de papéis). O escopo
+  organization alcança quem a organização-alvo OBSERVA, não só quem ela promoveu.
+  """
+  @spec person_observed_organization_ids(Tenant.t(), Ecto.UUID.t()) :: [Ecto.UUID.t()]
+  def person_observed_organization_ids(%Tenant{id: tenant_id}, person_id) do
+    Repo.all(
+      from e in TeamMembershipEvidence,
+        join: t in Team,
+        on: t.id == e.team_id,
+        where:
+          e.tenant_id == ^tenant_id and e.person_id == ^person_id and
+            is_nil(e.no_longer_observed_at) and not is_nil(t.organization_id),
+        distinct: true,
+        select: t.organization_id
+    )
+  end
+
   @doc "Nomes de equipes por id — feature 045, para rotular concessões sem consulta por linha."
   @spec teams_by_ids(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t()}
   def teams_by_ids(%Tenant{id: tenant_id}, ids) when is_list(ids) do

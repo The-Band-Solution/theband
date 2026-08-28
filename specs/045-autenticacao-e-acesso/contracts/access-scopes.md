@@ -78,6 +78,11 @@ EO.teams_by_ids(tenant, [id]) :: %{id => nome}
 SPO.projects_of_teams(tenant, [team_id])
   :: [%{project_id: id, project_name: String.t(), team_id: id}]  # ligações vigentes
 SPO.projects_by_ids(tenant, [id]) :: %{id => nome}
+EO.person_observed_organization_ids(tenant, person_id) :: [org_id]
+  # evidência VIGENTE da origem — correção de 2026-08-28, no commit: o ramo
+  # organization só via a organização pela equipe promovida, e o dado real quase
+  # não tem promoção (alcançava 4 de 88); "pessoa da organização" é quem a
+  # organização OBSERVA, e a evidência vigente é esse fato.
 ```
 
 Todas recebem tenant; nenhuma devolve `Ecto.Query`.
