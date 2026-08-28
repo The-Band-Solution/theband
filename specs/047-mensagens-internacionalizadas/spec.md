@@ -145,8 +145,12 @@ gerar o relatório de lacunas.
 
 - **gettext é a infraestrutura** — já é dependência do projeto com `priv/gettext/`;
   a feature o adota em vez de introduzir tecnologia nova.
-- **Idioma padrão: português**; inglês como segundo idioma. A interface hoje mistura
-  os dois — a migração é a oportunidade de unificar, tela a tela, sem big-bang.
+- **Idioma padrão: inglês, configurável; português como segundo idioma.**
+  [Corrigida em 2026-08-28, research R2: a assumption original dizia "português
+  padrão", escrita como palpite — o pedido não fixa idioma. Medido, a interface é
+  majoritariamente inglês e dezenas de testes afirmam esse texto; msgid = frase
+  atual preserva cada byte e faz a migração sem big-bang. Virar pt o padrão é
+  trocar uma config (FR-005) quando o catálogo pt fechar.]
 - **Logs, exceções e mensagens de operação ficam fora**: são para quem desenvolve.
   Redação de log continua seguindo a regra de segurança existente (sem segredo, sem
   payload sensível).
