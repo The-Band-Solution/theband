@@ -55,8 +55,12 @@ mensal — botões desabilitados com a frase; configurar a chave; voltar — hab
 
 - Chave existe mas foi **desativada/destruída** depois: mesmo estado de "sem chave" —
   a pergunta é "há chave utilizável agora?", não "houve chave algum dia?".
-- Organização com chave e outra sem, no mesmo tenant: cada página responde pela
-  organização da pessoa/geração em questão.
+- A chave é **uma por tenant** (decisão de 2026-08-28: "o IA pode ser por tenant").
+  [Corrigido em 2026-08-28, research R1: o edge case original supunha chave por
+  organização, modelo que não existe — a frase da tela usa "organisation"
+  coloquialmente para o tenant.] "Utilizável" difere por caminho: a geração da
+  pessoa aceita a chave do ambiente (é como o dev roda); a mensal exige credencial
+  do tenant (FR-011 da 044).
 - A verificação do estado não pode custar consulta por linha em listas — é por
   página, uma vez.
 
@@ -91,8 +95,13 @@ Nenhuma nova — leitura do estado da credencial de provedor que já existe.
 
 ## Assumptions
 
-- **A defesa já existe** (`Profiles.request` recusa sem chave) — esta feature é a
-  camada de comunicação; nada de autorização muda.
+- **A defesa existe na geração mensal e NASCE nesta feature para a da pessoa.**
+  [Corrigido em 2026-08-28, research R3: a assumption original dizia
+  "`Profiles.request` recusa sem chave" — medido, ela enfileirava sem conferir, e
+  a falha só aparecia no worker, deixando a tela pendente para sempre (sucesso
+  silencioso). A guarda `{:error, :sem_chave}` entra em `request/3` com contrato
+  atualizado antes do código — é o que torna o cenário 4 verdadeiro.] Nada de
+  autorização muda; desabilitar o botão segue sendo comunicação.
 - **Não entra no sprint 023** — pedida durante ele e contida no backlog; candidata
   natural a acompanhar a 047 (mensagens) ou entrar num sprint de polimento com o fix
   #563, que tocou o mesmo fluxo.
