@@ -1475,23 +1475,28 @@ defmodule TheBandWeb.PeopleLive.Show do
               apart here because the network keeps them apart.
             </p>
 
-            <%!-- ═══ OS TRÊS PAPÉIS, EM NÚMERO — feature 044 ═══
+            <%!-- ═══ OS TRÊS PAPÉIS, EM NÚMERO E EM BARRA — feature 044 ═══
                   A soma dos três NÃO aparece, e é de propósito: abrir, revisar e integrar
                   são participações distintas, e somá-las produziria um número que não
-                  significa coisa alguma. --%>
-            <div :if={@participacao_na_mudanca} class="mb-3 flex flex-wrap gap-4 text-sm">
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.abriu}</strong>
-                <span class="text-xs opacity-70">opened</span>
-              </span>
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.revisou}</strong>
-                <span class="text-xs opacity-70">reviewed</span>
-              </span>
-              <span>
-                <strong class="tabular-nums">{@participacao_na_mudanca.integrou}</strong>
-                <span class="text-xs opacity-70">integrated</span>
-              </span>
+                  significa coisa alguma. Por isso três barras SEPARADAS na mesma escala
+                  (comparáveis), e nunca uma barra empilhada (que afirmaria um todo).
+                  Hachura: o papel é derivado das solicitações coletadas, não declarado.
+                  Zero não ganha barra — ausência não vira marca de 3px. --%>
+            <div :if={@participacao_na_mudanca} class="mb-3 space-y-1">
+              <div
+                :for={{rotulo, valor} <- papeis_na_mudanca(@participacao_na_mudanca)}
+                class="flex items-center gap-2 text-sm"
+              >
+                <span class="w-20 shrink-0 text-right text-xs opacity-70">{rotulo}</span>
+                <div
+                  :if={valor > 0}
+                  class="h-2.5 rounded-[1px] text-primary outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+                  style={"width: #{max(round(valor / max_papel(@participacao_na_mudanca) * 160), 3)}px"}
+                  title={"#{valor} #{rotulo}"}
+                >
+                </div>
+                <strong class="font-mono text-xs tabular-nums">{valor}</strong>
+              </div>
             </div>
 
             <%!-- ═══ O VEREDITO — feature 044, US2 ═══
@@ -1512,6 +1517,41 @@ defmodule TheBandWeb.PeopleLive.Show do
                   <strong class="tabular-nums">{@participacao_na_mudanca.absteve}</strong>
                   <span class="text-xs opacity-70">{Verdict.rotulo("qapo.abstaining_verdict")}</span>
                 </span>
+              </div>
+
+              <%!-- A COMPOSIÇÃO dos vereditos, desenhada — mesma gramática da barra dos
+                    checks: aqui os três SÃO partes de um todo (toda posição tomada é
+                    endosso, objeção ou abstenção), então a barra empilhada é honesta.
+                    Cores de status da casa (verdete = não bloqueia, argila = bloqueia,
+                    neutro = abstém), nunca o único canal: os números acima são a tabela,
+                    cada segmento carrega title, vãos de 2px. --%>
+              <div
+                :if={avaliacoes(@participacao_na_mudanca) > 0}
+                class="mt-1 flex h-2.5 w-full max-w-xl gap-0.5 overflow-hidden rounded-[2px]"
+                role="img"
+                aria-label={"Positions taken: #{@participacao_na_mudanca.endossou} endorsing, #{@participacao_na_mudanca.objetou} objecting, #{@participacao_na_mudanca.absteve} abstaining"}
+              >
+                <div
+                  :if={@participacao_na_mudanca.endossou > 0}
+                  class="rounded-[2px] bg-success"
+                  style={"flex-grow: #{@participacao_na_mudanca.endossou}"}
+                  title={"#{@participacao_na_mudanca.endossou} #{Verdict.rotulo("qapo.endorsing_verdict")}"}
+                >
+                </div>
+                <div
+                  :if={@participacao_na_mudanca.objetou > 0}
+                  class="rounded-[2px] bg-error"
+                  style={"flex-grow: #{@participacao_na_mudanca.objetou}"}
+                  title={"#{@participacao_na_mudanca.objetou} #{Verdict.rotulo("qapo.objecting_verdict")}"}
+                >
+                </div>
+                <div
+                  :if={@participacao_na_mudanca.absteve > 0}
+                  class="rounded-[2px] bg-base-content/45"
+                  style={"flex-grow: #{@participacao_na_mudanca.absteve}"}
+                  title={"#{@participacao_na_mudanca.absteve} #{Verdict.rotulo("qapo.abstaining_verdict")}"}
+                >
+                </div>
               </div>
 
               <%!-- FR-011: endossar NÃO é ausência de não conformidade. A rede declara
@@ -1956,6 +1996,13 @@ defmodule TheBandWeb.PeopleLive.Show do
   # entre si. 1 no vazio só para o divisor nunca ser zero — sem lista não há barra.
   defp max_atos([]), do: 1
   defp max_atos(participacao), do: participacao |> Enum.map(& &1.atos) |> Enum.max()
+
+  # Os rótulos acompanham os da linha de números que estas barras substituem;
+  # a ordem é a do ciclo (abrir → revisar → integrar), não a do tamanho.
+  defp papeis_na_mudanca(p),
+    do: [{"opened", p.abriu}, {"reviewed", p.revisou}, {"integrated", p.integrou}]
+
+  defp max_papel(p), do: max(max(p.abriu, max(p.revisou, p.integrou)), 1)
 
   # A resolução tripla do sinal "parada" (#400) — uma consulta para TODAS as paradas.
   #
