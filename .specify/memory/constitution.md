@@ -1,5 +1,22 @@
 <!--
 Sync Impact Report
+
+Emenda 1.7.0 — 2026-08-29
+=========================
+Versão: 1.6.0 → 1.7.0 (MINOR: seção Fluxo de desenvolvimento materialmente ampliada —
+o modelo de branches vira Gitflow simplificado com a main como linha de produção).
+
+O repositório adota Gitflow simplificado: `development` é a linha de integração e a
+branch default; toda branch nova nasce dela e seu PR a mira; a `main` é a linha de
+PRODUÇÃO — só recebe PR de release vindo de `development`, aberto sob decisão do
+Product Owner, e todo merge em `main` é deploy (CD: imagem em ghcr.io com a tag da
+versão, delivery no Dokploy/Contabo via webhook). Hotfix nasce de `main` e volta para
+`main` E `development`. Decisão da pessoa mantenedora em 2026-08-29.
+
+Motivo: com a produção nascendo (spec 050), "merge na main" precisava de significado
+único — antes era integração; agora é entrega. Separar integração (development) de
+entrega (main) dá ao Product Owner o ato concreto da decisão de delivery (o merge do
+PR de release) e ao CD um gatilho sem ambiguidade.
 ==================
 Versão: template não preenchido → 1.0.0
 Motivo do bump: ratificação inicial. O arquivo continha apenas os placeholders do
@@ -260,7 +277,7 @@ Quem implementa MUST NOT ser quem valida sozinho.
   como cumprida.
 - Sucesso MUST ser declarado com evidência: saída de teste, log ou captura de tela. Tarefa
   marcada como concluída sem evidência MUST NOT ser aceita.
-- Push direto na branch principal MUST NOT acontecer.
+- Push direto em `main` ou em `development` MUST NOT acontecer — as duas só recebem merge de PR.
 - Erro MUST NOT ser escondido com mock excessivo ou valor fixo. Mock somente na borda HTTP;
   módulo de domínio próprio MUST NOT ser mockado.
 
@@ -482,7 +499,20 @@ sensível completo.
 
 ## Fluxo de desenvolvimento
 
-Branches: `feature/<issue>-<descricao>`, `fix/`, `refactor/`, `docs/`, `test/`, `chore/`.
+**Gitflow simplificado (emenda 1.7.0)**: a branch `development` é a linha de INTEGRAÇÃO e
+a default do repositório. Toda branch nova — `feature/<issue>-<descricao>`, `fix/`,
+`refactor/`, `docs/`, `test/`, `chore/` — MUST nascer de `development`, e seu PR MUST
+mirar `development`.
+
+A `main` é a linha de PRODUÇÃO: MUST receber somente PR de **release** vindo de
+`development`, aberto sob decisão do Product Owner — que define a versão (semver sobre
+entregáveis ACEITOS) e, com o merge, decide o momento do delivery. **Todo merge em `main`
+é deploy**: dispara o CD — imagem publicada em `ghcr.io` com a tag da versão e delivery no
+Dokploy (VPS Contabo) via webhook (spec 050, FR-015/FR-016). Merge em `main` que não deva
+ir a produção não existe: o que não deve ir, não merga.
+
+**Hotfix** é a única exceção: nasce de `main`, e ao mergear volta para `main` E para
+`development` — corrigir produção sem reintegrar reabriria o defeito no release seguinte.
 
 Commits seguem Conventional Commits com escopo igual à ontologia ou ao subsistema afetado.
 
@@ -535,4 +565,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.6.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-28
+**Version**: 1.7.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-29

@@ -751,6 +751,8 @@ fix(cmpo): prevent duplicate commit ingestion
 docs(ontology): document review semantics
 ```
 
+**Gitflow simplificado (constituição 1.7.0, 2026-08-29)**: `development` é a integração e a branch default — toda branch nova nasce dela e o PR a mira. A `main` é PRODUÇÃO: só recebe PR de release vindo de `development` (aberto sob decisão do Product Owner, versão semver sobre aceitos), e **todo merge em `main` é deploy** — o CD publica a imagem em ghcr.io com a tag da versão e entrega no Dokploy via webhook. Hotfix nasce de `main` e volta para `main` E `development`. Push direto em qualquer uma das duas não acontece.
+
 **Pull Request** informa: feature, spec, plan, issues, ontologias afetadas, conceitos e relações afetados, YAMLs alterados, tabela de mapeamentos semânticos (origem | ontologia | conceito | equivalência | limitação), migrações, testes, resultado dos quality gates, perguntas de competência validadas, evidências e riscos residuais.
 
 A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
@@ -820,7 +822,7 @@ Não:
 - **implementar sem sprint backlog aberto pela skill `sprint-backlog`**;
 - abrir sprint sem ler `docs/sprints/licoes-aprendidas.md`;
 - fechar sprint sem `sprint-review.md` separando feito de não feito;
-- fazer push direto na branch principal;
+- fazer push direto em `main` ou em `development`;
 - aprovar o próprio PR, ou fazer merge sem revisão independente;
 - declarar sucesso sem evidência (log, saída de teste, screenshot);
 - remover ou enfraquecer teste para o pipeline passar;
