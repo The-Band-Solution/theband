@@ -133,7 +133,7 @@ msgstr ""
 msgid "A confirmação não confere com a senha."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:131
+#: lib/the_band_web/live/profile_run_live/index.ex:132
 #, elixir-autogen, elixir-format
 msgid "A run is already in progress. Two at once would write two profiles from the same material, and the table keeps both."
 msgstr ""
@@ -154,8 +154,8 @@ msgstr ""
 msgid "A sync is already running for this tool. The second one was not started."
 msgstr "Já há uma sincronização em curso para esta ferramenta. A segunda não foi iniciada."
 
-#: lib/the_band_web/live/people_live/show.ex:167
-#: lib/the_band_web/live/people_live/show.ex:223
+#: lib/the_band_web/live/people_live/show.ex:168
+#: lib/the_band_web/live/people_live/show.ex:230
 #, elixir-autogen, elixir-format
 msgid "Account not found."
 msgstr ""
@@ -170,7 +170,7 @@ msgstr "Quadro não encontrado."
 msgid "Change request not found."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:141
+#: lib/the_band_web/live/people_live/show.ex:142
 #, elixir-autogen, elixir-format
 msgid "Choose an account."
 msgstr ""
@@ -206,7 +206,7 @@ msgstr ""
 msgid "Could not register: %{errors}"
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:197
+#: lib/the_band_web/live/people_live/show.ex:204
 #, elixir-autogen, elixir-format
 msgid "Could not request: %{inspect}"
 msgstr ""
@@ -224,7 +224,7 @@ msgstr ""
 msgid "Could not save: %{errors}"
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:150
+#: lib/the_band_web/live/profile_run_live/index.ex:151
 #, elixir-autogen, elixir-format
 msgid "Could not start the run: %{inspect}"
 msgstr ""
@@ -234,7 +234,7 @@ msgstr ""
 msgid "Could not start: %{inspect}"
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:94
+#: lib/the_band_web/live/profile_run_live/index.ex:95
 #, elixir-autogen, elixir-format
 msgid "Could not turn it on: %{inspect}"
 msgstr ""
@@ -261,12 +261,12 @@ msgstr ""
 msgid "Issue not found."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:115
+#: lib/the_band_web/live/profile_run_live/index.ex:116
 #, elixir-autogen, elixir-format
 msgid "It is already off."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:87
+#: lib/the_band_web/live/profile_run_live/index.ex:88
 #, elixir-autogen, elixir-format
 msgid "It is already on."
 msgstr ""
@@ -278,7 +278,7 @@ msgstr ""
 msgid "Nothing to revoke."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:164
+#: lib/the_band_web/live/people_live/show.ex:165
 #, elixir-autogen, elixir-format
 msgid "Nothing to unlink."
 msgstr ""
@@ -288,7 +288,7 @@ msgstr ""
 msgid "Only an administrator can grant visibility."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:148
+#: lib/the_band_web/live/people_live/show.ex:149
 #, elixir-autogen, elixir-format
 msgid "Only an administrator can link an account."
 msgstr ""
@@ -298,7 +298,7 @@ msgstr ""
 msgid "Only an administrator can revoke visibility."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:174
+#: lib/the_band_web/live/people_live/show.ex:175
 #, elixir-autogen, elixir-format
 msgid "Only an administrator can unlink an account."
 msgstr ""
@@ -315,12 +315,12 @@ msgid "Page %{n} is not a page number. Showing the same."
 msgstr "%{n} não é número de página. Mostrando a mesma."
 
 #: lib/the_band_web/live/change_live/commits.ex:32
-#: lib/the_band_web/live/people_live/show.ex:73
+#: lib/the_band_web/live/people_live/show.ex:74
 #, elixir-autogen, elixir-format
 msgid "Person not found."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:98
+#: lib/the_band_web/live/people_live/show.ex:99
 #, elixir-autogen, elixir-format
 msgid "Profile generation failed: %{falha}"
 msgstr ""
@@ -364,7 +364,7 @@ msgstr "Equipe não encontrada."
 msgid "That grant is already declared."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:227
+#: lib/the_band_web/live/people_live/show.ex:234
 #, elixir-autogen, elixir-format
 msgid "That link could not be recorded."
 msgstr ""
@@ -457,12 +457,12 @@ msgstr ""
 msgid "This organisation already has a role with this code. Another organisation may."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:142
+#: lib/the_band_web/live/profile_run_live/index.ex:143
 #, elixir-autogen, elixir-format
 msgid "This organisation has no provider key of its own."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:79
+#: lib/the_band_web/live/profile_run_live/index.ex:80
 #, elixir-autogen, elixir-format
 msgid "This organisation has no provider key of its own. A run would have to spend the installation's key, and that would put one organisation's usage on another's bill. Save a key first."
 msgstr ""
@@ -508,4 +508,24 @@ msgstr ""
 #: lib/the_band_web/live/verification_live/show.ex:32
 #, elixir-autogen, elixir-format
 msgid "Verification run not found"
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:448
+#, elixir-autogen, elixir-format, fuzzy
+msgid "This organisation has no provider key of its own. Configure it in AI provider, under Operação."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:455
+#, elixir-autogen, elixir-format, fuzzy
+msgid "This organisation has no provider key of its own. Someone who operates it configures one in AI provider."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:2061
+#, elixir-autogen, elixir-format, fuzzy
+msgid "This organisation has no provider key. Configure it in AI provider, under Operação."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:2068
+#, elixir-autogen, elixir-format, fuzzy
+msgid "This organisation has no provider key. Someone who operates it configures one in AI provider."
 msgstr ""

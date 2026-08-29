@@ -73,13 +73,26 @@ defmodule TheBand.Profiles do
 
   Devolve o job, e **não** o perfil: quem chama não espera. A chamada leva de 25 a 60
   segundos, medidos.
+
+  Recusa `{:error, :sem_chave}` quando não há chave nenhuma — nem do tenant, nem do
+  ambiente (feature 048, contrato `estado-da-chave.md`). Antes disso o job entrava na
+  fila condenado e falhava no worker, deixando a tela em "pendente" para sempre — o
+  sucesso silencioso de sempre. A chave do ambiente segue valendo NESTE caminho (é
+  como o desenvolvimento roda); a rodada mensal continua mais estrita (tenant-only,
+  FR-011 da 044, `Runs.credencial/1`).
   """
   @spec request(Tenant.t(), binary(), binary() | nil) ::
-          {:ok, Oban.Job.t()} | {:error, term()}
-  def request(%Tenant{id: tenant_id}, person_id, user_id \\ nil) do
-    %{tenant_id: tenant_id, person_id: person_id, requested_by_user_id: user_id}
-    |> GenerateWorker.new()
-    |> Oban.insert()
+          {:ok, Oban.Job.t()} | {:error, :sem_chave} | {:error, term()}
+  def request(%Tenant{id: tenant_id} = tenant, person_id, user_id \\ nil) do
+    case TheBand.AI.origem_da_chave(tenant) do
+      :nenhuma ->
+        {:error, :sem_chave}
+
+      _tenant_ou_ambiente ->
+        %{tenant_id: tenant_id, person_id: person_id, requested_by_user_id: user_id}
+        |> GenerateWorker.new()
+        |> Oban.insert()
+    end
   end
 
   @doc """

@@ -375,15 +375,17 @@ defmodule TheBandWeb.PersonDetailTest do
       #
       # Subir o teto sem essa conta seria enfraquecer o gate, e é antipadrão declarado neste
       # projeto. O que o mantém honesto é o número ser medido e cada acréscimo nomeado.
-      assert acrescentadas <= 26, """
+      assert acrescentadas <= 27, """
       A página acrescentou #{acrescentadas} consultas por render sobre a lista de pessoas, e a
-      linha de base medida é **vinte e seis** — oito da tela original, sete do painel da
+      linha de base medida é **vinte e sete** — oito da tela original, sete do painel da
       023, três do perfil da 026, uma da participação em discussões da 030, três das
       mudanças da 032 (abriu, integrou, commitou — a rede separa os três atos), uma da #369
       (as contas do tenant, que servem a escolha, o elo vigente e a cobertura de uma vez),
-      uma do burn-down (o `data_end` do trabalho aberto), e **três da feature 044** (a
+      uma do burn-down (o `data_end` do trabalho aberto), **três da feature 044** (a
       participação na mudança com seis contagens numa só, a listagem das revisadas, e o
-      desfecho das verificações com quatro números numa só).
+      desfecho das verificações com quatro números numa só), e **uma da feature 048** (o
+      estado da chave do provedor, que os botões de geração dizem ANTES do clique — sem
+      derivação possível: a credencial não sai de nenhuma consulta que a página já faz).
 
       A página está EXATAMENTE no teto. Se tu acrescentou uma consulta, a primeira saída é
       derivar do que já foi carregado — foi o que o burn-up e o burn-down fizeram, e por isso

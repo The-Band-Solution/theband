@@ -23,6 +23,7 @@ defmodule TheBandWeb.ProfileRunLive.Index do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.AI
   alias TheBand.Profiles.{Automation, Run, Runs}
 
   @impl true
@@ -175,8 +176,17 @@ defmodule TheBandWeb.ProfileRunLive.Index do
           Whether this organisation writes competence profiles on its own, and what each run did.
         </:subtitle>
         <:actions>
-          <.button :if={@estado == :never_enabled} phx-click="enable">Turn on</.button>
-          <.button :if={match?({:disabled, _}, @estado)} phx-click="enable">Turn on</.button>
+          <%!-- Feature 048: o estado da chave dito ANTES do clique, disabled real. --%>
+          <.button :if={@estado == :never_enabled} phx-click="enable" disabled={not @chave_do_tenant?}>
+            Turn on
+          </.button>
+          <.button
+            :if={match?({:disabled, _}, @estado)}
+            phx-click="enable"
+            disabled={not @chave_do_tenant?}
+          >
+            Turn on
+          </.button>
           <button
             :if={match?({:enabled, _}, @estado)}
             class="btn btn-outline btn-sm"
@@ -221,10 +231,14 @@ defmodule TheBandWeb.ProfileRunLive.Index do
           :if={match?({:enabled, _}, @estado)}
           class="btn btn-xs btn-outline w-fit"
           phx-click="run_now"
+          disabled={not @chave_do_tenant?}
           data-confirm="A run asked for by hand writes a new profile for EVERY person with material — the change rule only applies to the monthly run. This spends provider tokens for the whole organisation. Start it?"
         >
           run now — everyone
         </button>
+        <p :if={not @chave_do_tenant?} class="text-xs text-warning">
+          {frase_da_chave(@operacao_menu)}
+        </p>
       </div>
 
       <div class="card bg-base-200 p-6">
@@ -415,6 +429,10 @@ defmodule TheBandWeb.ProfileRunLive.Index do
     |> assign(estado: Automation.state(tenant))
     |> assign(rodadas: rodadas)
     |> assign(resumos: Map.new(rodadas, &{&1.id, Runs.summary(&1)}))
+    # Feature 048: aqui a chave utilizável é a DO TENANT — a rodada recusa a do
+    # ambiente (FR-011 da 044, Runs.credencial/1), e o botão diz o mesmo que o
+    # domínio recusaria. UMA leitura por carga.
+    |> assign(chave_do_tenant?: match?({:ok, _}, AI.fetch(tenant)))
   end
 
   defp autor({_, %{by: nil}}), do: "somebody no longer registered"
@@ -423,6 +441,22 @@ defmodule TheBandWeb.ProfileRunLive.Index do
   defp quando({_, %{at: at}}), do: DateTime.truncate(at, :second)
 
   # 651338 lê como telefone; 651,338 lê como contagem. O separador segue a tela, em inglês.
+  # Feature 048, FR-004: adaptada a quem lê — e AQUI a lacuna é a chave DO TENANT
+  # ("of its own"): a do ambiente existe e mesmo assim a rodada recusa (FR-011/044).
+  defp frase_da_chave(true),
+    do:
+      dgettext(
+        "errors",
+        "This organisation has no provider key of its own. Configure it in AI provider, under Operação."
+      )
+
+  defp frase_da_chave(_),
+    do:
+      dgettext(
+        "errors",
+        "This organisation has no provider key of its own. Someone who operates it configures one in AI provider."
+      )
+
   defp milhar(n) when is_integer(n) do
     n
     |> Integer.to_charlist()

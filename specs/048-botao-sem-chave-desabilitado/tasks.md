@@ -7,7 +7,7 @@ contracts/estado-da-chave.md, quickstart.md
 
 ## Phase 1: Setup
 
-- [ ] T001 Abrir baseline dos gates
+- [x] T001 Abrir baseline dos gates
   - **Pronta quando**: nada além do repositório; branch `048-botao-sem-chave-desabilitado` na main atual
   - **Descrição**: `mix gates > /tmp/gates_048_baseline.log 2>&1; echo "EXIT=$?" >> /tmp/gates_048_baseline.log`, run TERMINADA antes de qualquer edição (L60 + lição do baseline contaminado)
   - **Feita quando**: log com `EXIT=0` na última linha, sem edição concorrente
@@ -15,7 +15,7 @@ contracts/estado-da-chave.md, quickstart.md
 
 ## Phase 2: Foundational
 
-- [ ] T002 A guarda do domínio, pela violação
+- [x] T002 A guarda do domínio, pela violação
   - **Pronta quando**: T001 concluída; `contracts/estado-da-chave.md` escrito (está)
   - **Descrição**: `Profiles.request/3` recusa `{:error, :sem_chave}` quando
     `AI.origem_da_chave(tenant) == :nenhuma`, ANTES de enfileirar; `{:ambiente, _}`
@@ -26,7 +26,7 @@ contracts/estado-da-chave.md, quickstart.md
 
 ## Phase 3: US1 — O botão desabilitado diz o que falta (P1)
 
-- [ ] T003 [US1] A página da pessoa diz antes do clique
+- [x] T003 [US1] A página da pessoa diz antes do clique
   - **Pronta quando**: T002 concluída
   - **Descrição**: `people_live/show.ex` — assign do estado da chave no mount
     (1 leitura, `origem_da_chave/1`); "Generate again" e "Generate profile" ganham
@@ -37,7 +37,7 @@ contracts/estado-da-chave.md, quickstart.md
   - **Feita quando**: sem chave → botões `disabled` + frase; com ambiente ou tenant → habilitados sem frase; evento forçado recusado com flash
   - **Teste**: `test/the_band_web/live/botao_sem_chave_test.exs` — sem chave (disabled+frase, evento forçado recusado), com chave (habilitado, frase ausente), dois leitores (frases diferentes)
 
-- [ ] T004 [US1] A geração mensal diz antes do clique, tenant-only
+- [x] T004 [US1] A geração mensal diz antes do clique, tenant-only
   - **Pronta quando**: T003 concluída (mesmo teste de tela cresce)
   - **Descrição**: `profile_run_live/index.ex` — assign via `AI.fetch/1` (credencial
     do TENANT; ambiente NÃO habilita — FR-011 da 044); "Turn on" e "Run now"

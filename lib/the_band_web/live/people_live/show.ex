@@ -33,6 +33,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   import Ecto.Query, only: [from: 2]
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.AI
   alias TheBand.Changes
   alias TheBand.Communication.Discussions
   alias TheBand.Mapping.Antipatterns
@@ -187,6 +188,12 @@ defmodule TheBandWeb.PeopleLive.Show do
          |> put_flash(:info, dgettext("sistema", "Profile requested. It takes about a minute."))
          |> assign(perfil_pendente?: true)}
 
+      # Feature 048, cenário 4: o botão desabilitado é aviso; ISTO é a defesa. O
+      # evento só chega aqui por fora do botão (console, HTML editado) — e a recusa
+      # nomeia o mesmo motivo que a frase da tela.
+      {:error, :sem_chave} ->
+        {:noreply, put_flash(socket, :error, frase_da_chave(socket.assigns.operacao_menu))}
+
       # Falha ao enfileirar é falha, e é dita. Silêncio aqui faria a pessoa clicar de novo
       # sem saber que nada aconteceu.
       {:error, motivo} ->
@@ -290,6 +297,10 @@ defmodule TheBandWeb.PeopleLive.Show do
     |> assign(
       perfil_pendente?: pendente?,
       perfil_possivel: possivel,
+      # Feature 048: o botão diz ANTES do clique. UMA leitura por carga (a 27ª
+      # consulta da página, nomeada no guardião) — o caminho da pessoa aceita a
+      # chave do ambiente, ao contrário da rodada mensal (contrato estado-da-chave).
+      chave_disponivel?: AI.origem_da_chave(tenant) != :nenhuma,
       # **FR-016.** Sem isto um perfil de dezembro parece atual em junho, e quem lê decide
       # com texto velho sem saber que é velho. Sai da diferença entre o recorte gravado e o
       # que existe hoje — que é exatamente para isso que o recorte é coluna.
@@ -1401,14 +1412,21 @@ defmodule TheBandWeb.PeopleLive.Show do
                     tarefas que saiu da primeira vez, e quem clica precisa saber disso no
                     momento de clicar. --%>
               <div class="flex flex-wrap items-center gap-3 border-t border-base-300 pt-3">
+                <%!-- Feature 048: o estado é conhecido ANTES do clique, e o botão o diz.
+                      disabled REAL (atributo), nunca só classe — leitor de tela e teste
+                      enxergam o mesmo fato. A defesa continua no domínio (request/3). --%>
                 <button
                   :if={not @perfil_pendente?}
                   type="button"
                   phx-click="gerar_perfil"
                   class="btn btn-sm btn-outline"
+                  disabled={not @chave_disponivel?}
                 >
                   Generate again
                 </button>
+                <span :if={not @chave_disponivel?} class="text-xs text-warning">
+                  {frase_da_chave(@operacao_menu)}
+                </span>
                 <.absent
                   :if={@perfil_pendente?}
                   reason="A new profile was requested. It appears here on its own when it is done."
@@ -1443,9 +1461,17 @@ defmodule TheBandWeb.PeopleLive.Show do
                 No profile yet. Generating one sends the <strong>titles and descriptions</strong>
                 of this person's tasks to an external language-model provider.
               </p>
-              <button type="button" phx-click="gerar_perfil" class="btn btn-sm btn-primary">
+              <button
+                type="button"
+                phx-click="gerar_perfil"
+                class="btn btn-sm btn-primary"
+                disabled={not @chave_disponivel?}
+              >
                 Generate profile
               </button>
+              <p :if={not @chave_disponivel?} class="text-xs text-warning">
+                {frase_da_chave(@operacao_menu)}
+              </p>
             </div>
 
             <%!-- Estado 4: não há material. Sem botão, e com os números — a recusa é do
@@ -2026,6 +2052,23 @@ defmodule TheBandWeb.PeopleLive.Show do
   # entre si. 1 no vazio só para o divisor nunca ser zero — sem lista não há barra.
   defp max_atos([]), do: 1
   defp max_atos(participacao), do: participacao |> Enum.map(& &1.atos) |> Enum.max()
+
+  # Feature 048, FR-004: a frase se adapta a quem lê. Quem OPERA (admin ou escopo
+  # organization — o mesmo @operacao_menu que abre o menu Operação) recebe o
+  # caminho; quem não opera recebe quem resolve — sem link para onde não alcança.
+  defp frase_da_chave(true),
+    do:
+      dgettext(
+        "errors",
+        "This organisation has no provider key. Configure it in AI provider, under Operação."
+      )
+
+  defp frase_da_chave(_),
+    do:
+      dgettext(
+        "errors",
+        "This organisation has no provider key. Someone who operates it configures one in AI provider."
+      )
 
   # Os rótulos acompanham os da linha de números que estas barras substituem;
   # a ordem é a do ciclo (abrir → revisar → integrar), não a do tamanho.
