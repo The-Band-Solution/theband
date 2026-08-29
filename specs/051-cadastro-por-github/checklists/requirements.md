@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Cadastrar contas pela pessoa do GitHub
+# Specification Quality Checklist: Contas — cadastrar pessoas e associar o GitHub
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-08-29
@@ -33,8 +33,14 @@
 
 ## Notes
 
-- Fronteira com a 049 declarada: esta cadastra contas locais apontando para a
-  identidade estável; a 049 autentica via OAuth — mesma identidade, atos diferentes.
-- US2 oferece o vínculo, nunca decide — a lição do padrão largo está na spec.
+- Reescrita em 2026-08-29 por instrução da pessoa mantenedora: pessoa primeiro
+  (nome, e-mail) e a associação do GitHub NA área — a versão anterior partia da
+  pessoa do GitHub para a conta.
+- Decisão de modelagem registrada nas Assumptions: NÃO nasce entidade "pessoa
+  declarada" separada — a conta (nome, e-mail) aponta para a pessoa coletada pelo
+  elo; segunda noção de pessoa duplicaria identidade sem problema que o exija
+  (princípio VIII).
+- Fronteira com a 049 declarada: esta associa identidades a contas locais; a 049
+  autentica via OAuth — mesma identidade estável, atos diferentes.
 - Medido antes de escrever: cadastro hoje é em dois lugares (/accounts + página da
   pessoa); e-mail é NOT NULL; 88/88 pessoas têm external_id.
