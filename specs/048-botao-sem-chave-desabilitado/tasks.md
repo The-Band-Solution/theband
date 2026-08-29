@@ -48,7 +48,7 @@ contracts/estado-da-chave.md, quickstart.md
 
 ## Phase 4: Polish
 
-- [ ] T005 Gates verdes e PR no padrão
+- [x] T005 Gates verdes e PR no padrão
   - **Pronta quando**: T001–T004 concluídas
   - **Descrição**: `mix gates > /tmp/gates_048.log 2>&1; echo "EXIT=$?" >> /tmp/gates_048.log`; quickstart §1–§5 executado com evidências (capturas dos dois estados); PR no padrão 1.6.0
   - **Feita quando**: EXIT=0 no log; evidências guardadas; PR aberto
