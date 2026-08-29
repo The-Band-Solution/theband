@@ -346,14 +346,24 @@ defmodule TheBandWeb.ProjectsLive.Index do
       # saber de quem o projeto já é parte, ou onde o ciclo se fecha.
       {:error, {:already_has_parent, nome}} ->
         {:noreply,
-         assign(socket, erro: "This project is already part of #{nome}. Detach it first.")}
+         assign(socket,
+           erro:
+             dgettext("errors", "This project is already part of %{nome}. Detach it first.",
+               nome: nome
+             )
+         )}
 
       {:error, {:cycle, caminho}} ->
         {:noreply,
-         assign(socket, erro: "That would create a cycle: #{Enum.join(caminho, " → ")}")}
+         assign(socket,
+           erro:
+             dgettext("errors", "That would create a cycle: %{caminho}",
+               caminho: Enum.join(caminho, " → ")
+             )
+         )}
 
       {:error, :not_found} ->
-        {:noreply, assign(socket, erro: "Project not found.")}
+        {:noreply, assign(socket, erro: dgettext("errors", "Project not found."))}
     end
   end
 

@@ -41,10 +41,15 @@ defmodule TheBandWeb.ProfileLive.Index do
            nome
          ) do
       {:ok, user} ->
-        {:noreply, assign(socket, current_user: user, ok: "Nome atualizado.", erro: nil)}
+        {:noreply,
+         assign(socket,
+           current_user: user,
+           ok: dgettext("sistema", "Nome atualizado."),
+           erro: nil
+         )}
 
       {:error, _} ->
-        {:noreply, assign(socket, erro: "Nome não atualizado.", ok: nil)}
+        {:noreply, assign(socket, erro: dgettext("errors", "Nome não atualizado."), ok: nil)}
     end
   end
 

@@ -392,7 +392,9 @@ defmodule TheBandWeb.SyncLive.MappingRules do
     end)
   end
 
-  defp ativada, do: "Rule activated, with you as the author. The recalculation is queued."
+  defp ativada,
+    do:
+      dgettext("sistema", "Rule activated, with you as the author. The recalculation is queued.")
 
   defp onde("declared_type"), do: "declared type"
   defp onde("title"), do: "title"
@@ -407,9 +409,10 @@ defmodule TheBandWeb.SyncLive.MappingRules do
   defp humanizar({:invalid_pattern, motivo}), do: Mapping.explain_refusal(motivo)
 
   defp humanizar({:unknown_concept, id}),
-    do: "concept #{id} does not exist in the knowledge base"
+    do: dgettext("errors", "concept %{id} does not exist in the knowledge base", id: id)
 
-  defp humanizar(:unknown_entry), do: "this proposal no longer exists in the catalogue"
+  defp humanizar(:unknown_entry),
+    do: dgettext("errors", "this proposal no longer exists in the catalogue")
 
   defp humanizar(%Ecto.Changeset{} = changeset) do
     changeset.errors

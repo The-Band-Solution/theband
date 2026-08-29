@@ -19,6 +19,14 @@ defmodule Mix.Tasks.Mensagens.Verificar do
   @raiz "lib/the_band_web"
   @tradutores [:gettext, :dgettext, :ngettext, :dngettext, :pgettext, :dpgettext]
 
+  # A classe "assign de mensagem renderizado" — achada pela aceitação do sprint 024
+  # (047/T012, #609): `assign(erro: "…")`/`assign(ok: "…")` exibidos em div escapavam
+  # do pente do put_flash, e duas user stories voltaram por isso. As chaves são
+  # DECLARADAS aqui porque assign carrega de tudo (page_title, contadores) — vigiar
+  # toda string em assign afogaria o gate em falso positivo; vigiar as chaves de
+  # mensagem é a fronteira que o contrato registra.
+  @chaves_de_mensagem [:erro, :ok, :error, :aviso]
+
   @impl Mix.Task
   def run(args) do
     raiz = List.first(args) || @raiz
@@ -29,8 +37,8 @@ defmodule Mix.Tasks.Mensagens.Verificar do
       |> Enum.flat_map(&achados_do_arquivo/1)
       |> Enum.sort()
 
-    Enum.each(achados, fn {arquivo, linha} ->
-      Mix.shell().error("#{arquivo}:#{linha}: put_flash com literal fora do catálogo")
+    Enum.each(achados, fn {arquivo, linha, ralo} ->
+      Mix.shell().error("#{arquivo}:#{linha}: #{ralo} com literal fora do catálogo")
     end)
 
     case achados do
@@ -73,11 +81,34 @@ defmodule Mix.Tasks.Mensagens.Verificar do
     {node, acumular(args, meta, achados, arquivo)}
   end
 
+  # assign/2 (pipe) e assign/3: a lista de opções pode vir como último argumento.
+  defp coletar({:assign, meta, args} = node, achados, arquivo) when is_list(args) do
+    {node, acumular_assign(args, meta, achados, arquivo)}
+  end
+
+  defp coletar({{:., _, [_mod, :assign]}, meta, args} = node, achados, arquivo)
+       when is_list(args) do
+    {node, acumular_assign(args, meta, achados, arquivo)}
+  end
+
   defp coletar(node, achados, _arquivo), do: {node, achados}
+
+  defp acumular_assign(args, meta, achados, arquivo) do
+    opcoes = List.last(args)
+
+    if Keyword.keyword?(opcoes) and
+         Enum.any?(opcoes, fn {chave, valor} ->
+           chave in @chaves_de_mensagem and literal_de_mensagem?(valor)
+         end) do
+      [{arquivo, meta[:line], :assign} | achados]
+    else
+      achados
+    end
+  end
 
   defp acumular(args, meta, achados, arquivo) do
     if length(args) in [2, 3] and literal_de_mensagem?(List.last(args)) do
-      [{arquivo, meta[:line]} | achados]
+      [{arquivo, meta[:line], :put_flash} | achados]
     else
       achados
     end

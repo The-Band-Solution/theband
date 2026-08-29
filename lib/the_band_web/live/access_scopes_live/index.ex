@@ -66,7 +66,11 @@ defmodule TheBandWeb.AccessScopesLive.Index do
 
         {:noreply,
          assign(socket,
-           erro: "Escolha #{artigo[nivel]} — escopo #{nivel} não existe sem alvo.",
+           erro:
+             dgettext("errors", "Escolha %{artigo} — escopo %{nivel} não existe sem alvo.",
+               artigo: artigo[nivel],
+               nivel: nivel
+             ),
            ok: nil
          )}
 
@@ -80,14 +84,26 @@ defmodule TheBandWeb.AccessScopesLive.Index do
              ) do
           {:ok, _} ->
             {:noreply,
-             socket |> assign(ok: "Escopo #{nivel} concedido.", erro: nil) |> carregar()}
+             socket
+             |> assign(
+               ok: dgettext("sistema", "Escopo %{nivel} concedido.", nivel: nivel),
+               erro: nil
+             )
+             |> carregar()}
 
           {:error, %Ecto.Changeset{}} ->
             {:noreply,
-             assign(socket, erro: "Já existe concessão vigente para esse alvo.", ok: nil)}
+             assign(socket,
+               erro: dgettext("errors", "Já existe concessão vigente para esse alvo."),
+               ok: nil
+             )}
 
           {:error, motivo} ->
-            {:noreply, assign(socket, erro: "Concessão recusada: #{motivo}.", ok: nil)}
+            {:noreply,
+             assign(socket,
+               erro: dgettext("errors", "Concessão recusada: %{motivo}.", motivo: motivo),
+               ok: nil
+             )}
         end
     end
   end
@@ -99,10 +115,17 @@ defmodule TheBandWeb.AccessScopesLive.Index do
            socket.assigns.current_user
          ) do
       {:ok, _} ->
-        {:noreply, socket |> assign(ok: "Escopo revogado.", erro: nil) |> carregar()}
+        {:noreply,
+         socket
+         |> assign(ok: dgettext("sistema", "Escopo revogado."), erro: nil)
+         |> carregar()}
 
       {:error, motivo} ->
-        {:noreply, assign(socket, erro: "Revogação recusada: #{motivo}.", ok: nil)}
+        {:noreply,
+         assign(socket,
+           erro: dgettext("errors", "Revogação recusada: %{motivo}.", motivo: motivo),
+           ok: nil
+         )}
     end
   end
 

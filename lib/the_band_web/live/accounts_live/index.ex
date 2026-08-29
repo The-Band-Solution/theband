@@ -39,7 +39,10 @@ defmodule TheBandWeb.AccountsLive.Index do
 
       {:error, changeset} ->
         {:noreply,
-         assign(socket, erro: "Conta não criada: #{motivo(changeset)}", temporaria: nil)}
+         assign(socket,
+           erro: dgettext("errors", "Conta não criada: %{motivo}", motivo: motivo(changeset)),
+           temporaria: nil
+         )}
     end
   end
 
@@ -56,7 +59,8 @@ defmodule TheBandWeb.AccountsLive.Index do
          |> carregar()}
 
       {:error, _} ->
-        {:noreply, assign(socket, erro: "Conta não encontrada.", temporaria: nil)}
+        {:noreply,
+         assign(socket, erro: dgettext("errors", "Conta não encontrada."), temporaria: nil)}
     end
   end
 
