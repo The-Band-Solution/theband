@@ -27,7 +27,13 @@ defmodule TheBandWeb.ChaveDoModeloTest do
   setup %{conn: conn} do
     anterior = System.get_env("API_KEY")
     System.delete_env("API_KEY")
-    on_exit(fn -> if anterior, do: System.put_env("API_KEY", anterior) end)
+
+    on_exit(fn ->
+      # Restauração SIMÉTRICA: sem isto, um put_env dentro de teste vaza para a
+      # suíte inteira quando `anterior` é nil — foi o flake que derrubou o CI do
+      # #596 e deixou o do #594 verde por sorte de seed (2026-08-29).
+      if anterior, do: System.put_env("API_KEY", anterior), else: System.delete_env("API_KEY")
+    end)
 
     {tenant, admin} = tenant_with_admin()
 
