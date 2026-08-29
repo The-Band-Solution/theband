@@ -702,6 +702,22 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  Os logins das pessoas pedidas, num mapa — feature 051 (contrato contas-e-elo.md).
+
+  Existe para a lista de contas dizer o GitHub associado de TODAS as linhas numa
+  consulta (L38) — uma por linha seria N+1 na tela de administração.
+  """
+  @spec person_logins(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t() | nil}
+  def person_logins(%Tenant{id: tenant_id}, person_ids) when is_list(person_ids) do
+    from(p in Person,
+      where: p.tenant_id == ^tenant_id and p.id in ^person_ids,
+      select: {p.id, p.login}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
   As organizações em que a pessoa é OBSERVADA — feature 045 (contrato access-scopes.md).
 
   Pela evidência vigente da origem (`no_longer_observed_at` nulo): é o que o GitHub
