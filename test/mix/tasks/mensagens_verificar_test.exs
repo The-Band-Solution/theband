@@ -103,6 +103,43 @@ defmodule Mix.Tasks.Mensagens.VerificarTest do
     assert stderr =~ "qualificado.ex:3"
   end
 
+  test "a classe assign de mensagem também é ralo — duas US voltaram por ela (047/T012)" do
+    escrever("assinado.ex", """
+    defmodule Assinado do
+      def f(socket, nivel) do
+        socket
+        |> assign(erro: "Concessão recusada: \#{nivel}.", ok: nil)
+        |> assign(ok: "Escopo revogado.")
+      end
+
+      def g(socket), do: assign(socket, erro: "à moda arity 3", temporaria: nil)
+    end
+    """)
+
+    {veredito, stderr} = rodar()
+
+    assert {:reprovou, mensagem} = veredito
+    assert mensagem =~ "3 literais"
+    assert stderr =~ "assinado.ex:4"
+    assert stderr =~ "assinado.ex:5"
+    assert stderr =~ "assinado.ex:8"
+  end
+
+  test "assign com chave que não é de mensagem passa — a fronteira é declarada" do
+    escrever("titulo.ex", """
+    defmodule Titulo do
+      def f(socket) do
+        socket
+        |> assign(page_title: "People")
+        |> assign(erro: nil, ok: dgettext("sistema", "Escopo revogado."))
+      end
+    end
+    """)
+
+    {veredito, _stderr} = rodar()
+    assert veredito == :passou
+  end
+
   test "gettext, variável e chamada de função passam" do
     escrever("limpo.ex", """
     defmodule Limpo do

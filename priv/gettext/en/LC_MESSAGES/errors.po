@@ -320,6 +320,7 @@ msgstr ""
 
 #: lib/the_band_web/live/projects_live/index.ex:136
 #: lib/the_band_web/live/projects_live/index.ex:169
+#: lib/the_band_web/live/projects_live/index.ex:366
 #, elixir-autogen, elixir-format
 msgid "Project not found."
 msgstr ""
@@ -521,4 +522,59 @@ msgstr ""
 #: lib/the_band_web/live/people_live/show.ex:2068
 #, elixir-autogen, elixir-format, fuzzy
 msgid "This organisation has no provider key. Someone who operates it configures one in AI provider."
+msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:104
+#, elixir-autogen, elixir-format
+msgid "Concessão recusada: %{motivo}."
+msgstr ""
+
+#: lib/the_band_web/live/accounts_live/index.ex:43
+#, elixir-autogen, elixir-format
+msgid "Conta não criada: %{motivo}"
+msgstr ""
+
+#: lib/the_band_web/live/accounts_live/index.ex:63
+#, elixir-autogen, elixir-format
+msgid "Conta não encontrada."
+msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:70
+#, elixir-autogen, elixir-format
+msgid "Escolha %{artigo} — escopo %{nivel} não existe sem alvo."
+msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:97
+#, elixir-autogen, elixir-format
+msgid "Já existe concessão vigente para esse alvo."
+msgstr ""
+
+#: lib/the_band_web/live/profile_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Nome não atualizado."
+msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:126
+#, elixir-autogen, elixir-format
+msgid "Revogação recusada: %{motivo}."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:360
+#, elixir-autogen, elixir-format
+msgid "That would create a cycle: %{caminho}"
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:351
+#, elixir-autogen, elixir-format
+msgid "This project is already part of %{nome}. Detach it first."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:412
+#, elixir-autogen, elixir-format
+msgid "concept %{id} does not exist in the knowledge base"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:415
+#, elixir-autogen, elixir-format
+msgid "this proposal no longer exists in the catalogue"
 msgstr ""

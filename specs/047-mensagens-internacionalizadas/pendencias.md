@@ -1,21 +1,23 @@
-# Pendências — texto de tela fora do verificador v1
+# Pendências — texto de tela fora do verificador v2
 
-**O que este documento é**: o backlog nomeado do que a 047 NÃO cobriu — texto que
-vive em HEEx (avisos `<.notice>`, ausências `<.absent>`, estados vazios, títulos e
-legendas), fora dos ralos de `put_flash` que o verificador v1 vigia. É documento de
-backlog, não allowlist: o gate não o lê (research R7), e cada linha é queimada
-quando a tela migrar, em sprint futuro.
+**Refeito em 2026-08-29 (047/T013, #610)** depois de a aceitação do sprint 024
+derrubar a versão anterior: ela media com o grep do próprio instrumento e herdava a
+cegueira dele (L80) — a classe "assign de mensagem renderizado" ficou invisível e
+duas user stories voltaram. A classe agora está DENTRO do verificador (v2, T012);
+este documento enumera o que segue FORA, e diz como foi validado.
 
-**O que já está coberto** (verificador `mix mensagens.verificar`, gate desde
-2026-08-28): todo `put_flash` — 137 mensagens migradas, domínios `errors` (97) e
-`sistema` (40).
+## O que o verificador v2 cobre (gate `mensagens no catálogo`)
 
-## Por tela — medido, nunca estimado
+- `put_flash` — todas as formas (simples, pipe, qualificada), por AST;
+- `assign` com chave de mensagem declarada (`:erro`, `:ok`, `:error`, `:aviso`) —
+  a lista de chaves cresce com cada classe nova descoberta, no mesmo commit do caso
+  de teste.
 
-Contagem de chamadas `<.notice>` e `<.absent>` (as componentes de mensagem nomeada),
-por: `grep -rc '<\.notice\|<\.absent' lib/the_band_web --include='*.ex'` em
-2026-08-28. O texto corrido de HEEx (parágrafos, títulos, legendas de gráfico) NÃO
-está contado — a migração de cada tela o inventaria ao chegar nela.
+## O que segue fora, enumerado
+
+Texto corrido em HEEx: avisos `<.notice>`, ausências `<.absent>`, títulos,
+parágrafos e legendas de gráfico. Contagem de chamadas `<.notice>`/`<.absent>` por
+`grep -rc '<\.notice\|<\.absent' lib/the_band_web --include='*.ex'` em 2026-08-29:
 
 | Tela | notices/absents | Queimada em |
 |---|---:|---|
@@ -32,8 +34,29 @@ está contado — a migração de cada tela o inventaria ao chegar nela.
 | `live/change_live/show.ex` | 1 | |
 | `live/board_live/index.ex` | 1 | |
 
-## O que o verificador v1 declaradamente não vê
+**A contagem acima NÃO é o inventário completo do HEEx**: parágrafos e títulos não
+entram nela (um `<p>` explicativo não é notice). A migração de cada tela inventaria
+o texto dela ao chegar — a tabela diz por onde começar, não quanto falta ao todo.
 
-Do contrato (`contracts/catalogo-de-mensagens.md`): texto em `~H`, `@doc`, `Logger`,
-`raise` e `IO.puts` de mix task. Ampliar a fronteira é decisão de sprint futuro —
-por AST de template, nunca por regex larga ([[padrao-largo-inventa-mais]]).
+## Validação por amostragem independente (L80)
+
+Duas telas abertas à mão em 2026-08-29, lendo o render e conferindo contra este
+documento e contra o verificador:
+
+- `teams_live/show.ex`: 1 `<.absent>` (linha 615, cobertura de perfis) — bate com a
+  tabela; nenhum assign de mensagem restante (verificador v2 zero ali).
+- `ai_live/index.ex`: 2 `<.absent>` (linhas 170 e 212) — bate; os flashes e o
+  estado da chave já migrados (044/047/048).
+
+Amostra limitada a duas telas nesta rodada; a regra fica: **toda queima de tela
+valida a linha dela por leitura do render, não pelo grep** — e classe nova de ralo
+achada na queima entra no verificador no mesmo commit.
+
+## Obrigações que viajam com as pendências
+
+- **FR-007 (decisão de vocabulário migra com a razão)**: os textos com termo fixado
+  — ex.: "Checks", nunca "CI" (decisão da 044) — estão no HEEx destas telas. Quem
+  queimar a tela leva a decisão junto, como comentário `#.` na entrada do catálogo.
+  Até lá, a razão vive nos comentários do próprio HEEx.
+- Frase nova em tela NOVA nasce no catálogo desde já — o gate reprova os ralos, e a
+  revisão de PR cobra o resto.

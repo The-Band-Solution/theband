@@ -67,13 +67,19 @@ ativo cai no msgid — texto legível por construção, nunca chave crua.
 - **Reprova** (exit 1): imprime uma linha por achado — `lib/...ex:LINHA: put_flash
   com literal fora do catálogo` — e o total no fim.
 
-### O que é ralo de mensagem (v1)
+### O que é ralo de mensagem (v2 — ampliado em 2026-08-29, 047/T012)
 
 1. `put_flash(conn_ou_socket, :error | :info, ARG)` — em qualquer módulo de
-   `lib/the_band_web/`.
-2. `ARG` reprovado quando: string literal; interpolação (`"... #{x} ..."`);
+   `lib/the_band_web/`, formas simples e qualificada.
+2. **`assign` com chave de mensagem** (`:erro`, `:ok`, `:error`, `:aviso`) e valor
+   literal — a classe "assign de mensagem renderizado", achada pela aceitação do
+   sprint 024 (duas US voltaram por ela). As chaves são DECLARADAS no verificador:
+   assign carrega de tudo (títulos, contadores), e vigiar toda string afogaria o
+   gate em falso positivo — a lista de chaves é a fronteira, e cresce com cada
+   classe nova descoberta, no mesmo commit do caso de teste (L80).
+3. `ARG` reprovado quando: string literal; interpolação (`"... #{x} ..."`);
    concatenação (`<>`) contendo literal.
-3. `ARG` aprovado quando: chamada `gettext/dgettext/ngettext/dngettext`; variável
+4. `ARG` aprovado quando: chamada `gettext/dgettext/ngettext/dngettext`; variável
    ou chamada de função (a frase nasceu noutro lugar — o verificador segue ralos,
    não fluxo de dados; a função de origem é auditável por leitura).
 
