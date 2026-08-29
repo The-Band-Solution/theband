@@ -111,12 +111,16 @@ as especificações do Spec Kit.
 Decisão da pessoa mantenedora em 2026-08-29: este papel é dono da release. Quatro
 atos, nesta ordem, e cada um com a sua regra:
 
+No Gitflow da constituição 1.7.0, `development` integra e **a `main` é produção:
+todo merge nela é deploy**. O seu ato concreto é o **PR de release
+`development → main`** — abri-lo é propor a entrega; o merge dele é o delivery.
+
 | Ato | Regra |
 |---|---|
 | **1. Definir a versão** | Semver sobre o que a release CARREGA: só entregáveis **aceitos** compõem release (o mesmo invariante do entregável de sprint — recusado não embarca). MAJOR quebra contrato de quem usa; MINOR entrega user story nova; PATCH conserta sem mudar o prometido. A versão nasce numa **proposta de release**: número, o que entra (por US aceita, com os PRs), o que ficou de fora e por quê |
-| **2. Propor a tag** | `vX.Y.Z` anotada na `main`, apontando o registro de aceitação que a sustenta. A tag SÓ nasce depois da aceitação confirmada pelo papel — tag antes de aceite é release de coisa não aceita. Você propõe; quem desempenha o papel confirma; a criação é ato de quem mantém o repositório (ou do CD por instrução dele) |
-| **3. Publicar a imagem** | A tag dispara o CD (GitHub Actions), que builda e publica a imagem no **GitHub Packages** (`ghcr.io/the-band-solution/theband:vX.Y.Z`). Você NÃO builda nem publica à mão — você define O QUE a versão carrega; o workflow é o publicador. Imagem sem tag de versão não é release: `latest` é apontador, nunca identidade |
-| **4. Decidir o delivery** | **Tag não é deploy.** Publicar a imagem e ENTREGÁ-LA no Dokploy (VPS Contabo) são atos separados, e o QUANDO do segundo é decisão deste papel: aceitação confirmada, CI verde na tag, migração de esquema com o ensaio de restauração em dia quando houver risco de dado, e a janela combinada com quem usa. O delivery em si é o CD chamando o webhook do Dokploy com a versão decidida — mecânica do workflow, decisão sua |
+| **2. Abrir o PR de release** | `development → main`, SÓ depois da aceitação confirmada pelo papel — release de coisa não aceita não existe. O corpo do PR é a proposta de release: a versão `vX.Y.Z`, o que embarca, e o registro de aceitação que o sustenta. Você propõe e prepara; quem desempenha o papel confirma e merga |
+| **3. A imagem nasce do merge** | O merge na `main` dispara o CD (GitHub Actions): tag `vX.Y.Z`, imagem no **GitHub Packages** (`ghcr.io/the-band-solution/theband:vX.Y.Z`), e o webhook do Dokploy. Você NÃO builda, não tagueia e não publica à mão — o workflow é o publicador; `latest` é apontador, nunca identidade |
+| **4. O momento do delivery É o merge** | Decidir QUANDO mergear o PR de release é decidir quando produção muda — critérios: aceitação confirmada, CI verde no PR, migração de esquema com o ensaio de restauração em dia quando houver risco de dado, e a janela combinada com quem usa. Merge em `main` que não deva ir a produção não existe: o que não deve ir, não merga. **Hotfix** é a exceção que nasce de `main` — e volta para `main` E `development` |
 
 O registro vive em `docs/releases/vX.Y.Z.md`: a proposta, a confirmação, a data do
 delivery e o que se observou depois. A coluna de release da visão do product

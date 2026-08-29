@@ -167,24 +167,26 @@ segredo (nada).
   gerenciado por trás). **Provedor decidido em 2026-08-29: Contabo**
   (https://contabo.com) — o tamanho da máquina é decisão de planejamento, com
   requisitos mínimos declarados.
-- **FR-015** (acrescentado em 2026-08-29; refinado no mesmo dia com o Dokploy):
-  publicar e atualizar MUST ser **CD no GitHub** — a tag de versão dispara um
-  workflow de Actions que builda a imagem, publica no **GitHub Packages**
+- **FR-015** (2026-08-29; reconciliado com o Gitflow da constituição 1.7.0):
+  publicar e atualizar MUST ser **CD no GitHub**, e o gatilho é **o merge na
+  `main`** — que no Gitflow adotado só acontece pelo PR de release vindo de
+  `development`. O workflow então: builda a imagem, cria a tag `vX.Y.Z` da versão
+  decidida no PR de release, publica no **GitHub Packages**
   (`ghcr.io/the-band-solution/theband:vX.Y.Z`) e entrega chamando o **webhook de
-  deploy do Dokploy** instalado no VPS (decisão: Dokploy como camada de operação —
-  TLS/Traefik, env vars, Postgres com backup agendado, histórico de imagens). O
-  auto-deploy-on-push do Dokploy fica DESLIGADO: deploy só depois dos gates verdes,
-  pelo workflow. Segredos (webhook, chave mestra, banco) vivem em GitHub Secrets e
-  no painel do Dokploy — nunca no repositório. As migrações rodam antes de atender
-  (FR-003/FR-011 valem por cima). O "agente de publicação" pedido é este workflow
-  mais o runbook: nenhum passo manual sobre o servidor no caminho feliz.
-- **FR-016** (acrescentado em 2026-08-29, decisão da pessoa mantenedora): a release
-  tem dona — o papel de **Product Owner** define a versão (semver sobre entregáveis
-  ACEITOS, nunca recusados), propõe a tag `vX.Y.Z` (só após aceitação confirmada),
-  e DECIDE O MOMENTO do delivery no Dokploy — **tag não é deploy**: publicar a
-  imagem e entregá-la são atos separados. Registro em `docs/releases/vX.Y.Z.md`.
-  A alçada está no agente (`.claude/agents/product-owner.md`, seção "A release é
-  sua").
+  deploy do Dokploy** no VPS (Dokploy como camada de operação — TLS/Traefik, env
+  vars, Postgres com backup agendado, histórico de imagens). O auto-deploy-on-push
+  do Dokploy fica DESLIGADO — quem deploya é o workflow, depois dos gates.
+  Segredos (webhook, chave mestra, banco) vivem em GitHub Secrets e no painel do
+  Dokploy — nunca no repositório. Migrações rodam antes de atender (FR-003/FR-011
+  valem por cima). O "agente de publicação" é este workflow mais o runbook: nenhum
+  passo manual sobre o servidor no caminho feliz.
+- **FR-016** (2026-08-29; reconciliado com o Gitflow): a release tem dona — o
+  papel de **Product Owner** define a versão (semver sobre entregáveis ACEITOS,
+  nunca recusados) e ABRE o PR de release `development → main` só após a aceitação
+  confirmada. **O momento do delivery É o merge desse PR** — o ato único que gera
+  tag, imagem e deploy juntos (a main é produção; merge que não deva ir a produção
+  não existe). Registro em `docs/releases/vX.Y.Z.md`. A alçada está no agente
+  (`.claude/agents/product-owner.md`, seção "A release é sua").
 - **FR-013**: **Sem domínio próprio por ora** — decisão de 2026-08-28: um endereço
   derivado do provedor/da máquina basta, desde que estável e com HTTPS válido (FR-001
   não afrouxa). O desenho MUST permitir apontar um domínio próprio depois sem
