@@ -4,8 +4,10 @@
 
 **Created**: 2026-08-28
 
-**Status**: Especificada — backlog (execução adiada por decisão de 2026-08-28:
-"faça o deploy depois"; clarificações de hospedagem, domínio e backup já resolvidas)
+**Status**: Especificada — **preparação reaberta em 2026-08-29** ("vamos preparar
+para enviar"): provedor decidido (Contabo) e o mecanismo de publicação decidido (CD
+no GitHub, FR-015). Pronta para /speckit-plan; o deploy real espera o VPS existir e
+a chave SSH entrar nos Secrets — atos da pessoa mantenedora.
 
 **Input**: User description: "Colocar o The Band em produção: a plataforma acessível
 por HTTPS num endereço estável para as pessoas do tenant, com autenticação real
@@ -162,8 +164,15 @@ segredo (nada).
 - **FR-012**: A produção MUST rodar num **servidor alugado (VPS) operado via Docker**
   — decisão da pessoa mantenedora em 2026-08-28. Controle total e custo baixo; TLS,
   backup e monitoramento entram como procedimento desta feature (não há provedor
-  gerenciado por trás). O provedor específico e o tamanho da máquina são decisão de
-  planejamento, com requisitos mínimos declarados.
+  gerenciado por trás). **Provedor decidido em 2026-08-29: Contabo**
+  (https://contabo.com) — o tamanho da máquina é decisão de planejamento, com
+  requisitos mínimos declarados.
+- **FR-015** (acrescentado em 2026-08-29, decisão da pessoa mantenedora): publicar e
+  atualizar MUST ser **CD no GitHub** — um workflow de Actions que, no
+  merge/release, builda a imagem e atualiza o VPS por SSH (chave em GitHub Secrets,
+  nunca no repositório), rodando as migrações antes de atender (FR-003/FR-011
+  continuam valendo por cima). O "agente de publicação" pedido é este workflow mais
+  o runbook: nenhum passo manual sobre o servidor no caminho feliz.
 - **FR-013**: **Sem domínio próprio por ora** — decisão de 2026-08-28: um endereço
   derivado do provedor/da máquina basta, desde que estável e com HTTPS válido (FR-001
   não afrouxa). O desenho MUST permitir apontar um domínio próprio depois sem
