@@ -65,7 +65,10 @@ defmodule TheBandWeb.ProfileRunLive.Index do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Automatic generation is on. A first run started right away.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Automatic generation is on. A first run started right away.")
+         )
          |> carregar()}
 
       {:error, :no_credential} ->
@@ -73,16 +76,23 @@ defmodule TheBandWeb.ProfileRunLive.Index do
          put_flash(
            socket,
            :error,
-           "This organisation has no provider key of its own. A run would have to spend the " <>
-             "installation's key, and that would put one organisation's usage on another's " <>
-             "bill. Save a key first."
+           dgettext(
+             "errors",
+             "This organisation has no provider key of its own. A run would have to spend the installation's key, and that would put one organisation's usage on another's bill. Save a key first."
+           )
          )}
 
       {:error, :already_enabled} ->
-        {:noreply, socket |> put_flash(:error, "It is already on.") |> carregar()}
+        {:noreply,
+         socket |> put_flash(:error, dgettext("errors", "It is already on.")) |> carregar()}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not turn it on: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not turn it on: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 
@@ -93,13 +103,16 @@ defmodule TheBandWeb.ProfileRunLive.Index do
          socket
          |> put_flash(
            :info,
-           "Automatic generation is off from the next run on. A run in progress is not " <>
-             "interrupted — half the people generated is a state no screen can name."
+           dgettext(
+             "sistema",
+             "Automatic generation is off from the next run on. A run in progress is not interrupted — half the people generated is a state no screen can name."
+           )
          )
          |> carregar()}
 
       {:error, :not_enabled} ->
-        {:noreply, socket |> put_flash(:error, "It is already off.") |> carregar()}
+        {:noreply,
+         socket |> put_flash(:error, dgettext("errors", "It is already off.")) |> carregar()}
     end
   end
 
@@ -108,22 +121,34 @@ defmodule TheBandWeb.ProfileRunLive.Index do
 
     case Runs.start(tenant, trigger: :manual, requested_by: socket.assigns.current_user) do
       {:ok, _run} ->
-        {:noreply, socket |> put_flash(:info, "Run started.") |> carregar()}
+        {:noreply, socket |> put_flash(:info, dgettext("sistema", "Run started.")) |> carregar()}
 
       {:error, :already_running} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "A run is already in progress. Two at once would write two profiles from the same " <>
-             "material, and the table keeps both."
+           dgettext(
+             "errors",
+             "A run is already in progress. Two at once would write two profiles from the same material, and the table keeps both."
+           )
          )}
 
       {:error, :no_credential} ->
-        {:noreply, put_flash(socket, :error, "This organisation has no provider key of its own.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "This organisation has no provider key of its own.")
+         )}
 
       {:error, motivo} ->
-        {:noreply, put_flash(socket, :error, "Could not start the run: #{inspect(motivo)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not start the run: %{inspect}", inspect: inspect(motivo))
+         )}
     end
   end
 

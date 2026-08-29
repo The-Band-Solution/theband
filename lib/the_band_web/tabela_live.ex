@@ -39,6 +39,8 @@ defmodule TheBandWeb.TabelaLive do
   página 7 de outra ordenação é outro conjunto de linhas, e ninguém pediu por ele.
   """
 
+  use Gettext, backend: TheBandWeb.Gettext
+
   import Phoenix.Component, only: [assign: 2]
   import Phoenix.LiveView, only: [push_patch: 2, put_flash: 3]
 
@@ -119,7 +121,12 @@ defmodule TheBandWeb.TabelaLive do
          put_flash(
            socket,
            :error,
-           "Column #{campo} is not sortable here. Sortable: #{nomes(estado.campos)}."
+           dgettext(
+             "errors",
+             "Column %{campo} is not sortable here. Sortable: %{nomes}.",
+             campo: campo,
+             nomes: nomes(estado.campos)
+           )
          )}
 
       encontrado ->
@@ -137,7 +144,12 @@ defmodule TheBandWeb.TabelaLive do
         {:noreply, push_patch(socket, to: caminho.(socket, id, pagina: numero))}
 
       _ ->
-        {:noreply, put_flash(socket, :error, "Page #{n} is not a page number. Showing the same.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Page %{n} is not a page number. Showing the same.", n: n)
+         )}
     end
   end
 

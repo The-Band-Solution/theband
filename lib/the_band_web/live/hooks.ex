@@ -6,6 +6,8 @@ defmodule TheBandWeb.Live.Hooks do
   e a primeira vez que alguém esquecesse, a consulta rodaria sem filtro.
   """
 
+  use Gettext, backend: TheBandWeb.Gettext
+
   import Phoenix.Component
   import Phoenix.LiveView
 
@@ -57,7 +59,10 @@ defmodule TheBandWeb.Live.Hooks do
              socket
              |> put_flash(
                :error,
-               "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+               dgettext(
+                 "errors",
+                 "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
+               )
              )
              |> redirect(to: "/people")}
         end
@@ -75,7 +80,10 @@ defmodule TheBandWeb.Live.Hooks do
         else
           {:halt,
            socket
-           |> put_flash(:error, "Only organisation administrators can do that.")
+           |> put_flash(
+             :error,
+             dgettext("errors", "Only organisation administrators can do that.")
+           )
            |> redirect(to: "/people")}
         end
 

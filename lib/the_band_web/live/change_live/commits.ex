@@ -27,7 +27,10 @@ defmodule TheBandWeb.ChangeLive.Commits do
 
       # Id de outro tenant devolve "não encontrada", nunca "sem permissão".
       {:error, :not_found} ->
-        {:ok, socket |> put_flash(:error, "Person not found.") |> push_navigate(to: ~p"/people")}
+        {:ok,
+         socket
+         |> put_flash(:error, dgettext("errors", "Person not found."))
+         |> push_navigate(to: ~p"/people")}
     end
   end
 

@@ -1,0 +1,212 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:214
+#, elixir-autogen, elixir-format
+msgid "%{conta} is now this person."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:42
+#, elixir-autogen, elixir-format
+msgid "%{tool} connected, credential validated."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:161
+#, elixir-autogen, elixir-format
+msgid "Account unlinked."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:292
+#, elixir-autogen, elixir-format
+msgid "Attention state cleared for %{tool}."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:106
+#, elixir-autogen, elixir-format
+msgid "Automatic generation is off from the next run on. A run in progress is not interrupted — half the people generated is a state no screen can name."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:70
+#, elixir-autogen, elixir-format
+msgid "Automatic generation is on. A first run started right away."
+msgstr ""
+
+#: lib/the_band_web/live/repository_live/show.ex:142
+#, elixir-autogen, elixir-format
+msgid "Back under observation. The next collection brings it again."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:257
+#, elixir-autogen, elixir-format
+msgid "Credential %{credential} destroyed. The secret is gone."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:113
+#, elixir-autogen, elixir-format
+msgid "Credential %{label} added and validated. Nothing was ended, and no data was marked."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:232
+#, elixir-autogen, elixir-format
+msgid "Credential renamed to %{credential}."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:325
+#, elixir-autogen, elixir-format
+msgid "Criterion revoked. The declaration stays in the record."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:210
+#, elixir-autogen, elixir-format
+msgid "Criterion revoked. The project's one applies again, if declared."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:121
+#, elixir-autogen, elixir-format
+msgid "Deadline source added: %{rotulo_da_origem}."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:150
+#, elixir-autogen, elixir-format
+msgid "Deadline source revoked."
+msgstr ""
+
+#: lib/the_band_web/live/repository_live/show.ex:112
+#, elixir-autogen, elixir-format
+msgid "Excluded from observation. The next collection skips it; nothing is marked absent."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:74
+#, elixir-autogen, elixir-format
+msgid "Field %{campo} declared: %{rotulo_do_papel}."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:160
+#, elixir-autogen, elixir-format
+msgid "Grant revoked."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:134
+#, elixir-autogen, elixir-format
+msgid "Granted: %{rotulo}."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:40
+#, elixir-autogen, elixir-format
+msgid "Key checked against the provider and saved (%{masked})."
+msgstr ""
+
+#: lib/the_band_web/live/ai_live/index.ex:112
+#, elixir-autogen, elixir-format
+msgid "Key removed. The secret is gone — there is no history of it."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:406
+#, elixir-autogen, elixir-format
+msgid "Observation of %{org} ended. %{people} person(s), %{teams} team(s) and %{links} link(s) marked. %{destroyed} credential(s) destroyed. Nothing was deleted."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:361
+#, elixir-autogen, elixir-format
+msgid "Observation of %{org} resumed. The marked records become current again on the next collection, and only those the source still shows."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:90
+#, elixir-autogen, elixir-format
+msgid "Profile ready."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:187
+#, elixir-autogen, elixir-format
+msgid "Profile requested. It takes about a minute."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:150
+#, elixir-autogen, elixir-format
+msgid "Project removed. The declaration stays on record; there is no undelete."
+msgstr ""
+
+#: lib/the_band_web/live/source_live/index.ex:176
+#, elixir-autogen, elixir-format
+msgid "Registration corrected to %{tool}."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:193
+#, elixir-autogen, elixir-format
+msgid "Renamed to %{papel}. The code is unchanged."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:162
+#, elixir-autogen, elixir-format
+msgid "Reprocessing the mappings over the data already collected."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:232
+#, elixir-autogen, elixir-format
+msgid "Role %{papel} hidden from this organisation."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:260
+#, elixir-autogen, elixir-format
+msgid "Role %{papel} is back."
+msgstr ""
+
+#: lib/the_band_web/live/roles_live/index.ex:88
+#, elixir-autogen, elixir-format
+msgid "Role %{papel} registered in this organisation."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:96
+#, elixir-autogen, elixir-format
+msgid "Role revoked."
+msgstr ""
+
+#: lib/the_band_web/live/profile_run_live/index.ex:124
+#, elixir-autogen, elixir-format
+msgid "Run started."
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:106
+#, elixir-autogen, elixir-format
+msgid "Senha definida."
+msgstr ""
+
+#: lib/the_band_web/controllers/session_controller.ex:61
+#, elixir-autogen, elixir-format
+msgid "Senha trocada. As outras sessões foram encerradas."
+msgstr ""
+
+#: lib/the_band_web/live/board_live/index.ex:172
+#, elixir-autogen, elixir-format
+msgid "Start criterion declared for this board: %{tipo}."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:288
+#, elixir-autogen, elixir-format
+msgid "Start criterion declared: %{tipo}."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:123
+#, elixir-autogen, elixir-format
+msgid "Sync closed. The tool accepts a new collection now."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:82
+#, elixir-autogen, elixir-format
+msgid "Sync started."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:142
+#, elixir-autogen, elixir-format
+msgid "This sync was already closed."
+msgstr ""

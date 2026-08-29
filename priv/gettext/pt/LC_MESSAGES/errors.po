@@ -1,15 +1,22 @@
-## `msgid`s in this file come from POT (.pot) files.
+## "msgid"s in this file come from POT (.pot) files.
 ##
-## Do not add, change, or remove `msgid`s manually here as
-## they're tied to the ones in the corresponding POT file
-## (with the same domain).
-##
-## Use `mix gettext.extract --merge` or `mix gettext.merge`
-## to merge POT files into PO files.
+## Do not add, change, or remove "msgid"s manually here as they're tied to the ones
+## in the corresponding POT file (with the same domain). Use "mix gettext.extract
+## --merge" to update this file.
 msgid ""
 msgstr ""
-"Language: en\n"
+"Language: pt\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+## This is a PO Template file.
+##
+## `msgid`s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run `mix gettext.extract` to bring this file up to
+## date. Leave `msgstr`s empty as changing them here has no
+## effect: edit them in PO (`.po`) files instead.
 ## From Ecto.Changeset.cast/4
 msgid "can't be blank"
 msgstr ""
@@ -145,7 +152,7 @@ msgstr ""
 #: lib/the_band_web/live/sync_live/index.ex:89
 #, elixir-autogen, elixir-format
 msgid "A sync is already running for this tool. The second one was not started."
-msgstr ""
+msgstr "Já há uma sincronização em curso para esta ferramenta. A segunda não foi iniciada."
 
 #: lib/the_band_web/live/people_live/show.ex:167
 #: lib/the_band_web/live/people_live/show.ex:223
@@ -156,7 +163,7 @@ msgstr ""
 #: lib/the_band_web/live/board_live/index.ex:49
 #, elixir-autogen, elixir-format
 msgid "Board not found."
-msgstr ""
+msgstr "Quadro não encontrado."
 
 #: lib/the_band_web/live/change_live/show.ex:45
 #, elixir-autogen, elixir-format
@@ -241,7 +248,7 @@ msgstr ""
 #: lib/the_band_web/live/source_live/index.ex:277
 #, elixir-autogen, elixir-format
 msgid "Credential not found."
-msgstr ""
+msgstr "Credencial não encontrada."
 
 #: lib/the_band_web/live/source_live/index.ex:80
 #: lib/the_band_web/live/source_live/index.ex:156
@@ -300,12 +307,12 @@ msgstr ""
 #: lib/the_band_web/plugs/current_scope.ex:86
 #, elixir-autogen, elixir-format
 msgid "Only organisation administrators can do that."
-msgstr ""
+msgstr "Só quem administra a organização pode fazer isso."
 
 #: lib/the_band_web/tabela_live.ex:151
 #, elixir-autogen, elixir-format
 msgid "Page %{n} is not a page number. Showing the same."
-msgstr ""
+msgstr "%{n} não é número de página. Mostrando a mesma."
 
 #: lib/the_band_web/live/change_live/commits.ex:32
 #: lib/the_band_web/live/people_live/show.ex:73
@@ -322,19 +329,19 @@ msgstr ""
 #: lib/the_band_web/live/projects_live/index.ex:169
 #, elixir-autogen, elixir-format
 msgid "Project not found."
-msgstr ""
+msgstr "Projeto não encontrado."
 
 #: lib/the_band_web/live/repository_live/show.ex:60
 #, elixir-autogen, elixir-format
 msgid "Repository not found."
-msgstr ""
+msgstr "Repositório não encontrado."
 
 #: lib/the_band_web/live/roles_live/index.ex:218
 #: lib/the_band_web/live/roles_live/index.ex:251
 #: lib/the_band_web/live/roles_live/index.ex:264
 #, elixir-autogen, elixir-format
 msgid "Role not found."
-msgstr ""
+msgstr "Papel não encontrado."
 
 #: lib/the_band_web/live/sync_live/index.ex:146
 #, elixir-autogen, elixir-format
@@ -350,7 +357,7 @@ msgstr ""
 #: lib/the_band_web/live/teams_live/show.ex:36
 #, elixir-autogen, elixir-format
 msgid "Team not found."
-msgstr ""
+msgstr "Equipe não encontrada."
 
 #: lib/the_band_web/live/roles_live/index.ex:139
 #, elixir-autogen, elixir-format
@@ -422,7 +429,7 @@ msgstr ""
 #: lib/the_band_web/live/source_live/index.ex:130
 #, elixir-autogen, elixir-format
 msgid "The tool refused the credential. Nothing was saved."
-msgstr ""
+msgstr "A ferramenta recusou a credencial. Nada foi salvo."
 
 #: lib/the_band_web/live/ai_live/index.ex:121
 #, elixir-autogen, elixir-format
@@ -483,7 +490,7 @@ msgstr ""
 #: lib/the_band_web/live/sync_live/index.ex:97
 #, elixir-autogen, elixir-format
 msgid "This tool has no active credential."
-msgstr ""
+msgstr "Esta ferramenta não tem credencial ativa."
 
 #: lib/the_band_web/live/source_live/index.ex:123
 #: lib/the_band_web/live/source_live/index.ex:199

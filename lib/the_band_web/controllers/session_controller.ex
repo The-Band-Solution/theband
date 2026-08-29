@@ -14,7 +14,11 @@ defmodule TheBandWeb.SessionController do
 
   alias TheBand.Tenants
 
-  @mensagem_unica "Credenciais inválidas."
+  # A recusa única da 045 (FR-002 de lá): byte-idêntica entre identificador
+  # inexistente, senha errada e conta sem senha — provada em login_test.exs por
+  # Enum.uniq. Vive numa função (gettext é runtime; atributo congelaria a língua
+  # na compilação) e num único ponto, para continuar única por construção.
+  defp mensagem_unica, do: dgettext("errors", "Credenciais inválidas.")
 
   def create(conn, %{"identifier" => identificador, "password" => senha}) do
     case Tenants.authenticate(identificador, senha) do
@@ -29,7 +33,7 @@ defmodule TheBandWeb.SessionController do
         |> redirect(to: if(user.must_change_password, do: ~p"/set-password", else: destino))
 
       {:error, _qualquer} ->
-        conn |> put_flash(:error, @mensagem_unica) |> redirect(to: ~p"/sign-in")
+        conn |> put_flash(:error, mensagem_unica()) |> redirect(to: ~p"/sign-in")
     end
   end
 
@@ -52,17 +56,20 @@ defmodule TheBandWeb.SessionController do
         |> configure_session(renew: true)
         |> put_session(:user_id, atualizada.id)
         |> put_session(:session_token, atualizada.session_token)
-        |> put_flash(:info, "Senha trocada. As outras sessões foram encerradas.")
+        |> put_flash(
+          :info,
+          dgettext("sistema", "Senha trocada. As outras sessões foram encerradas.")
+        )
         |> redirect(to: ~p"/profile")
 
       {:error, :invalid_current} ->
         conn
-        |> put_flash(:error, "A senha atual não confere.")
+        |> put_flash(:error, dgettext("errors", "A senha atual não confere."))
         |> redirect(to: ~p"/profile")
 
       {:error, _} ->
         conn
-        |> put_flash(:error, "A senha precisa de pelo menos 12 caracteres.")
+        |> put_flash(:error, dgettext("errors", "A senha precisa de pelo menos 12 caracteres."))
         |> redirect(to: ~p"/profile")
     end
   end
@@ -81,7 +88,7 @@ defmodule TheBandWeb.SessionController do
         aplicar_definicao(conn, user, senha)
       else
         conn
-        |> put_flash(:error, "A confirmação não confere com a senha.")
+        |> put_flash(:error, dgettext("errors", "A confirmação não confere com a senha."))
         |> redirect(to: ~p"/set-password")
       end
     else
@@ -96,12 +103,12 @@ defmodule TheBandWeb.SessionController do
         |> configure_session(renew: true)
         |> put_session(:user_id, atualizada.id)
         |> put_session(:session_token, atualizada.session_token)
-        |> put_flash(:info, "Senha definida.")
+        |> put_flash(:info, dgettext("sistema", "Senha definida."))
         |> redirect(to: ~p"/people")
 
       {:error, _changeset} ->
         conn
-        |> put_flash(:error, "A senha precisa de pelo menos 12 caracteres.")
+        |> put_flash(:error, dgettext("errors", "A senha precisa de pelo menos 12 caracteres."))
         |> redirect(to: ~p"/set-password")
     end
   end

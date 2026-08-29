@@ -37,7 +37,10 @@ defmodule TheBandWeb.SourceLive.Index do
       {:ok, %{tool: tool}} ->
         {:noreply,
          socket
-         |> put_flash(:info, "#{tool.tool_type} connected, credential validated.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "%{tool} connected, credential validated.", tool: tool.tool_type)
+         )
          |> assign(form_open: false)
          |> load_tools()}
 
@@ -46,7 +49,7 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "The tool refused the credential. Nothing was saved."
+           dgettext("errors", "The tool refused the credential. Nothing was saved.")
          )}
 
       {:error, {:missing_scopes, missing}} ->
@@ -54,16 +57,30 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "The credential is valid but lacks the required scopes: #{Enum.join(missing, ", ")}. " <>
-             "Without them the collection would return zero teams, which is worse than failing. Nothing was saved."
+           dgettext(
+             "errors",
+             "The credential is valid but lacks the required scopes: %{scopes}. Without them the collection would return zero teams, which is worse than failing. Nothing was saved.",
+             scopes: Enum.join(missing, ", ")
+           )
          )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not save: %{errors}", errors: errors(changeset))
+         )}
 
       {:error, reason} ->
         {:noreply,
-         put_flash(socket, :error, "Failed to validate the credential: #{inspect(reason)}")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Failed to validate the credential: %{inspect}",
+             inspect: inspect(reason)
+           )
+         )}
     end
   end
 
@@ -93,29 +110,53 @@ defmodule TheBandWeb.SourceLive.Index do
        socket
        |> put_flash(
          :info,
-         "Credential #{credential.label} added and validated. " <>
-           "Nothing was ended, and no data was marked."
+         dgettext(
+           "sistema",
+           "Credential %{label} added and validated. Nothing was ended, and no data was marked.",
+           label: credential.label
+         )
        )
        |> assign(adding: nil)
        |> load_tools()}
     else
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
 
       {:error, :unauthorized} ->
         {:noreply,
-         put_flash(socket, :error, "The tool refused the credential. Nothing was saved.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "The tool refused the credential. Nothing was saved.")
+         )}
 
       {:error, {:missing_scopes, escopos}} ->
         {:noreply,
-         put_flash(socket, :error, "The credential lacks scopes: #{Enum.join(escopos, ", ")}.")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "The credential lacks scopes: %{scopes}.",
+             scopes: Enum.join(escopos, ", ")
+           )
+         )}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not save: %{errors}", errors: errors(changeset))
+         )}
 
       {:error, reason} ->
         {:noreply,
-         put_flash(socket, :error, "Failed to validate the credential: #{inspect(reason)}")}
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Failed to validate the credential: %{inspect}",
+             inspect: inspect(reason)
+           )
+         )}
     end
   end
 
@@ -130,7 +171,12 @@ defmodule TheBandWeb.SourceLive.Index do
       {:ok, tool} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Registration corrected to #{tool.organization_login}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Registration corrected to %{tool}.",
+             tool: tool.organization_login
+           )
+         )
          |> assign(correcting: nil)
          |> load_tools()}
 
@@ -141,18 +187,24 @@ defmodule TheBandWeb.SourceLive.Index do
          socket
          |> put_flash(
            :error,
-           "This tool has already collected data. Correcting the registration is no longer " <>
-             "possible — another organization is another tool. End the observation and " <>
-             "connect the other one."
+           dgettext(
+             "errors",
+             "This tool has already collected data. Correcting the registration is no longer possible — another organization is another tool. End the observation and connect the other one."
+           )
          )
          |> assign(correcting: nil)
          |> load_tools()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not save: #{errors(changeset)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not save: %{errors}", errors: errors(changeset))
+         )}
     end
   end
 
@@ -175,15 +227,23 @@ defmodule TheBandWeb.SourceLive.Index do
       {:ok, credential} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Credential renamed to #{credential.label}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Credential renamed to %{credential}.",
+             credential: credential.label
+           )
+         )
          |> assign(renaming: nil)
          |> load_tools()}
 
       {:error, :blank_label} ->
-        {:noreply, put_flash(socket, :error, "The label cannot be empty.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "The label cannot be empty."))}
 
       {:error, :not_found} ->
-        {:noreply, socket |> put_flash(:error, "Credential not found.") |> assign(renaming: nil)}
+        {:noreply,
+         socket
+         |> put_flash(:error, dgettext("errors", "Credential not found."))
+         |> assign(renaming: nil)}
     end
   end
 
@@ -192,7 +252,12 @@ defmodule TheBandWeb.SourceLive.Index do
       {:ok, credential} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Credential #{credential.label} destroyed. The secret is gone.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Credential %{credential} destroyed. The secret is gone.",
+             credential: credential.label
+           )
+         )
          |> load_tools()}
 
       # A recusa nomeia o caminho certo. Dizer só "não pode" deixaria quem quer parar de
@@ -202,11 +267,14 @@ defmodule TheBandWeb.SourceLive.Index do
          put_flash(
            socket,
            :error,
-           "This is the only active credential. To stop collecting, end the observation."
+           dgettext(
+             "errors",
+             "This is the only active credential. To stop collecting, end the observation."
+           )
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Credential not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Credential not found."))}
     end
   end
 
@@ -219,11 +287,16 @@ defmodule TheBandWeb.SourceLive.Index do
 
         {:noreply,
          socket
-         |> put_flash(:info, "Attention state cleared for #{tool.organization_login}.")
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Attention state cleared for %{tool}.",
+             tool: tool.organization_login
+           )
+         )
          |> load_tools()}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
     end
   end
 
@@ -244,7 +317,7 @@ defmodule TheBandWeb.SourceLive.Index do
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
     end
   end
 
@@ -252,8 +325,11 @@ defmodule TheBandWeb.SourceLive.Index do
 
   def handle_event("ask_resume", %{"id" => id}, socket) do
     case Sources.fetch_connected_tool(socket.assigns.current_tenant, id) do
-      {:ok, tool} -> {:noreply, assign(socket, resuming: tool)}
-      {:error, :not_found} -> {:noreply, put_flash(socket, :error, "Tool not found.")}
+      {:ok, tool} ->
+        {:noreply, assign(socket, resuming: tool)}
+
+      {:error, :not_found} ->
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
     end
   end
 
@@ -282,28 +358,34 @@ defmodule TheBandWeb.SourceLive.Index do
        |> assign(resuming: nil)
        |> put_flash(
          :info,
-         "Observation of #{tool.organization_login} resumed. " <>
-           "The marked records become current again on the next collection, " <>
-           "and only those the source still shows."
+         dgettext(
+           "sistema",
+           "Observation of %{org} resumed. The marked records become current again on the next collection, and only those the source still shows.",
+           org: tool.organization_login
+         )
        )
        |> load_tools()}
     else
       {:error, :unauthorized} ->
-        {:noreply, put_flash(socket, :error, "The tool refused the credential.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "The tool refused the credential."))}
 
       {:error, {:missing_scopes, faltando}} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "The credential lacks the scopes: #{Enum.join(faltando, ", ")}"
+           dgettext("errors", "The credential lacks the scopes: %{scopes}",
+             scopes: Enum.join(faltando, ", ")
+           )
          )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Could not resume the observation.")}
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "Could not resume the observation."))}
     end
   end
 
@@ -321,18 +403,28 @@ defmodule TheBandWeb.SourceLive.Index do
        |> assign(ending: nil)
        |> put_flash(
          :info,
-         "Observation of #{tool.organization_login} ended. " <>
-           "#{resultado.marked.people} person(s), #{resultado.marked.teams} team(s) and " <>
-           "#{resultado.marked.links} link(s) marked. " <>
-           "#{resultado.credentials_destroyed} credential(s) destroyed. Nothing was deleted."
+         dgettext(
+           "sistema",
+           "Observation of %{org} ended. %{people} person(s), %{teams} team(s) and %{links} link(s) marked. %{destroyed} credential(s) destroyed. Nothing was deleted.",
+           org: tool.organization_login,
+           people: resultado.marked.people,
+           teams: resultado.marked.teams,
+           links: resultado.marked.links,
+           destroyed: resultado.credentials_destroyed
+         )
        )
        |> load_tools()}
     else
       {:error, :confirmation_mismatch} ->
-        {:noreply, put_flash(socket, :error, "The name typed does not match the organisation.")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "The name typed does not match the organisation.")
+         )}
 
       {:error, :not_found} ->
-        {:noreply, put_flash(socket, :error, "Tool not found.")}
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Tool not found."))}
     end
   end
 

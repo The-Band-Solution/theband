@@ -31,7 +31,10 @@ defmodule TheBandWeb.TeamsLive.Show do
     case Enum.find(EO.list_teams(tenant), &(&1.id == id)) do
       # FR-027 — id de outro tenant não devolve o registro; devolve 404.
       nil ->
-        {:ok, socket |> put_flash(:error, "Team not found.") |> push_navigate(to: ~p"/teams")}
+        {:ok,
+         socket
+         |> put_flash(:error, dgettext("errors", "Team not found."))
+         |> push_navigate(to: ~p"/teams")}
 
       team ->
         {:ok, assign(socket, page_title: team.name, team: team)}

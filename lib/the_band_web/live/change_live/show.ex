@@ -42,7 +42,7 @@ defmodule TheBandWeb.ChangeLive.Show do
       {:error, :not_found} ->
         {:ok,
          socket
-         |> put_flash(:error, "Change request not found.")
+         |> put_flash(:error, dgettext("errors", "Change request not found."))
          |> push_navigate(to: ~p"/work")}
     end
   end

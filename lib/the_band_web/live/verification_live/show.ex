@@ -29,7 +29,7 @@ defmodule TheBandWeb.VerificationLive.Show do
       nil ->
         {:ok,
          socket
-         |> put_flash(:error, "Verification run not found")
+         |> put_flash(:error, dgettext("errors", "Verification run not found"))
          |> push_navigate(to: ~p"/work/verifications")}
 
       execucao ->
