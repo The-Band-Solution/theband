@@ -21,6 +21,17 @@ defmodule TheBandWeb.PerfilTest do
 
   setup %{conn: conn} do
     {:ok, _} = KnowledgeBase.load()
+
+    # Estes testes pedem geração e esperam {:ok, _}: a guarda da 048 exige chave
+    # utilizável, e o ambiente do teste declara a dele — com restauração simétrica,
+    # nunca contando com vazamento de outro arquivo (o flake de 2026-08-29).
+    anterior = System.get_env("API_KEY")
+    System.put_env("API_KEY", "sk-do-ambiente-para-perfil")
+
+    on_exit(fn ->
+      if anterior, do: System.put_env("API_KEY", anterior), else: System.delete_env("API_KEY")
+    end)
+
     {tenant, user} = tenant_with_admin()
     cenario = cenario_real(tenant)
 
