@@ -71,8 +71,11 @@ mudar.
 
 ### User Story 3 - Um idioma escolhido, dois disponíveis (Priority: P3)
 
-A plataforma define o idioma padrão (português) e mantém inglês como segundo idioma,
-com as lacunas de tradução visíveis (relatório do que falta), nunca silenciosas.
+A plataforma define o idioma padrão por configuração — hoje inglês, a língua real da
+interface (correção R2; trocar para português é trocar UMA config quando o catálogo
+pt fechar) — e mantém o segundo idioma com as lacunas de tradução visíveis
+(relatório do que falta), nunca silenciosas. [Parágrafo alinhado à correção em
+2026-08-29, T013 — a ressalva da aceitação do sprint 024.]
 
 **Why this priority**: é o que a internacionalização compra; vem por último porque
 depende do inventário completo das duas primeiras.
