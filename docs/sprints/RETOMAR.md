@@ -29,10 +29,17 @@ pela pessoa mantenedora).
    provedor + restauração ensaiada (FR-014), e **FR-015 novo: publicar e atualizar é
    CD no GitHub** — workflow de Actions que builda a imagem e atualiza o VPS por SSH
    (chave em GitHub Secrets, NUNCA no repositório), migração antes de atender. O
-   "agente de publicação" pedido = o workflow + runbook. Próximo passo:
+   "agente de publicação" pedido = o workflow + runbook. **Refinado no mesmo dia**:
+   a camada de operação no VPS é o **Dokploy** (TLS/Traefik, env vars, Postgres com
+   backup agendado, histórico de imagens), com o auto-deploy-on-push DESLIGADO — o
+   deploy é o Actions verde publicando em `ghcr.io` e chamando o webhook. E a
+   release ganhou dona (**FR-016**): o Product Owner define a versão (semver sobre
+   entregáveis ACEITOS), propõe a tag após a aceitação confirmada, e decide o
+   MOMENTO do delivery — tag não é deploy; alçada registrada em
+   `.claude/agents/product-owner.md`, seção "A release é sua". Próximo passo:
    `/speckit-plan` da 050 → sprint 026. O deploy real espera a pessoa mantenedora
-   criar o VPS na Contabo e colocar a chave SSH nos Secrets — pedir quando o plano
-   chegar lá (motivo legítimo de parada: credencial).
+   criar o VPS na Contabo, instalar o Dokploy e colocar webhook/segredos nos GitHub
+   Secrets — pedir quando o plano chegar lá (motivo legítimo de parada: credencial).
 4. Depois da produção: **049** (entrar com GitHub — depende de endereço público),
    e **#568** (gestão da marca de admin, precisa de spec).
 
