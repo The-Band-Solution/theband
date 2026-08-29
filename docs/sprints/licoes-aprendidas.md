@@ -2588,6 +2588,14 @@ inteiro, e não aceita `id` (recriar gera id novo, órfanando as atribuições).
 vigentes junto da nova. Quando o dano acontecer: recriar as duas e reatribuir os itens na
 hora, conferindo por consulta — foi o reparo, com datas até mais fiéis (022 = 1 dia).
 
+**Aplicada em**: Sprint 024 (abertura) — a dança preventiva preservou 34 atribuições,
+conferidas por consulta. **E o Sprint 025 (abertura) refinou o mapa do perigo**: iteration
+COMPLETADA mantém o id e sobrevive à mutação, mas os VALORES dos itens que apontavam para
+uma iteration que saiu da lista ativa são apagados — e a API recusa reatribuir a uma
+completada ("The iteration Id does not belong to the field"). Os 15 itens do Sprint 022
+perderam o campo de forma irrecuperável; o registro de pertença é o sprint-backlog no
+repositório, e o campo do Projects é retrato do presente, não arquivo.
+
 ---
 
 ## L73 — `isVisible` não vê o corte por overflow: a prova de tela é a imagem
@@ -2639,3 +2647,98 @@ do PR (`gh pr view --json state`). Depois de merge detectado: parar de empurrar 
 cherry-pick do que sobrou numa branch nova a partir da main, PR complementar. Diferença
 real entre branch e main se mede por conteúdo (`git diff main branch`), nunca por lista de
 commits.
+
+---
+
+## L76 — A ferramenta de medir precisa da gramática do alvo
+
+**Origem**: Sprint 024 · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O plano da 047 mediu "55 literais de mensagem" com grep. O
+verificador por AST, na execução, achou **137** — multilinha, concatenação e a forma
+pipe eram invisíveis à regex. O plano dimensionou a migração pela metade.
+
+**Por que aconteceu.** Grep lê linhas; código é árvore. Medir estrutura sintática com
+ferramenta de texto erra sempre para baixo — e o número menor parece mais crível.
+
+**O que fazer diferente.** Contagem que vira escopo de tarefa usa a ferramenta com a
+gramática do alvo: código Elixir se conta por AST (`Code.string_to_quoted`), nunca
+por regex. Grep serve para ACHAR candidatos, não para CONTAR compromissos. Parente
+próxima da "verificar número contra a origem" — aqui a origem é a árvore sintática.
+
+---
+
+## L77 — Verificador novo nasce com teste de ponta que NÃO passa por ele
+
+**Origem**: Sprint 024 · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O verificador da 047 cobria `put_flash` simples — e a forma
+qualificada `Phoenix.Controller.put_flash` (outra cabeça de AST) passou reta. Quem
+pegou foi o TESTE DE IDIOMA: a recusa do plug não trocava de língua, porque o literal
+nunca tinha migrado. O verificador dizia "zero achados" com um achado vivo.
+
+**Por que aconteceu.** Testar o verificador só com fixtures desenhadas por quem o
+escreveu prova que ele vê o que o autor lembrou — não o que o repositório contém.
+
+**O que fazer diferente.** Todo verificador/gate novo ganha ao menos um teste de
+ponta a ponta que exercita o EFEITO prometido (aqui: trocar o idioma troca a frase)
+sem passar pelo verificador. É o par de fora que pega a cabeça de AST esquecida.
+
+---
+
+## L78 — "Troca em runtime" só entra no contrato com teste em runtime
+
+**Origem**: Sprint 024 · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O contrato da 047 prometia trocar o idioma padrão via config do
+backend gettext. Na implementação, o teste reprovou: a config do backend é
+COMPILE-TIME; só a do app `:gettext` é lida em runtime. O contrato foi corrigido no
+mesmo commit, com a razão — mas a promessa tinha sido escrita sem prova.
+
+**O que fazer diferente.** Cláusula de contrato do tipo "mudar X reconfigura em
+runtime" nasce com o teste que muda X em runtime e observa o efeito — antes de o
+contrato ser dado como escrito. Documentação de biblioteca não substitui a medição
+(a do gettext descreve as duas configs sem gritar qual é compile-time).
+
+---
+
+## L79 — Agente com árvore compartilhada não troca de branch
+
+**Origem**: Sprint 024 · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** O agente de aceitação do PO rodou `git checkout main` para
+avaliar a 047 — na MESMA árvore da sessão principal. A máquina dormiu, o agente
+morreu, e a sessão voltou com os arquivos da 048 "revertidos" no disco até alguém
+notar que a branch era outra. Nada se perdeu porque tudo estava commitado e empurrado
+— por sorte de disciplina, não por desenho.
+
+**O que fazer diferente.** Prompt de agente que toca repositório compartilhado carrega
+a regra explícita: NÃO trocar de branch/stash — avaliar o que a árvore tem, ou pedir
+worktree próprio (`git worktree add`). E a sessão principal confere
+`git branch --show-current` ao retomar de qualquer agente que rodou git.
+
+---
+
+## L80 — A pendência medida com o grep do instrumento herda a cegueira dele
+
+**Origem**: Sprint 024 (aceitação) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O `pendencias.md` da 047 prometia enumerar todo texto de tela
+fora do verificador — e foi medido com um grep de `<.notice>/<.absent>`. A classe
+"assign de mensagem renderizado" (`assign(erro: "...")` exibido num div) não é
+notice nem `put_flash`: ficou fora do catálogo, fora do verificador E fora da
+enumeração. O PO achou com leitura dirigida, e duas user stories voltaram por isso.
+
+**Por que aconteceu.** O documento de pendências foi validado contra o próprio
+método (o grep reproduzia as contagens byte a byte — E7 da aceitação), não contra a
+pergunta que ele responde ("o que a tela diz que não vem do catálogo?"). Instrumento
+conferido consigo mesmo confirma a si, não o mundo.
+
+**O que fazer diferente.** Enumeração de lacuna se valida por AMOSTRAGEM INDEPENDENTE:
+abrir N telas e listar à mão o que elas dizem, e conferir a lista contra a
+enumeração — o mesmo princípio da dupla medição (duas medidas, comparar
+sobreposição). E toda classe nova de ralo descoberta vira caso de teste do
+verificador no mesmo commit.
+
+**Aplicada em**: Sprint 025 — o retrabalho amplia o verificador para a classe assign
+por AST e refaz as pendências com amostragem.

@@ -60,22 +60,22 @@ desconhecido, não zero.
 
 | # | Tarefa | Atende | Issue | Estimate | Estado |
 |---|---|---|---|---|---|
-| 047/T001 | Abrir baseline dos gates | US1 | [#576](https://github.com/The-Band-Solution/theband/issues/576) | 1 | a fazer |
-| 047/T002 | Configurar locales e domínios do catálogo | US1 | [#577](https://github.com/The-Band-Solution/theband/issues/577) | 1 | a fazer |
-| 047/T003 | Verificador de literais, pela violação | US1 | [#578](https://github.com/The-Band-Solution/theband/issues/578) | 3 | a fazer |
-| 047/T004 | O gate mensagens no catálogo | US1 | [#579](https://github.com/The-Band-Solution/theband/issues/579) | 1 | a fazer |
-| 047/T005 | As mensagens da 045 migram sem mudar um byte | US1 | [#580](https://github.com/The-Band-Solution/theband/issues/580) | 2 | a fazer |
-| 047/T006 | Flashes de erro dos LiveViews para errors | US1 | [#581](https://github.com/The-Band-Solution/theband/issues/581) | 5 | a fazer |
-| 047/T007 | Confirmações e avisos para sistema | US2 | [#582](https://github.com/The-Band-Solution/theband/issues/582) | 3 | a fazer |
-| 047/T008 | Pendências de tela, medidas e nomeadas | US2 | [#583](https://github.com/The-Band-Solution/theband/issues/583) | 1 | a fazer |
-| 047/T009 | O relatório de lacunas | US3 | [#584](https://github.com/The-Band-Solution/theband/issues/584) | 2 | a fazer |
-| 047/T010 | A troca de idioma provada | US3 | [#585](https://github.com/The-Band-Solution/theband/issues/585) | 2 | a fazer |
-| 047/T011 | Gates verdes e PR no padrão | US3 | [#586](https://github.com/The-Band-Solution/theband/issues/586) | 1 | a fazer |
-| 048/T001 | Abrir baseline dos gates | US1 | [#588](https://github.com/The-Band-Solution/theband/issues/588) | 1 | a fazer |
-| 048/T002 | A guarda do domínio, pela violação | US1 | [#589](https://github.com/The-Band-Solution/theband/issues/589) | 2 | a fazer |
-| 048/T003 | A página da pessoa diz antes do clique | US1 | [#590](https://github.com/The-Band-Solution/theband/issues/590) | 3 | a fazer |
-| 048/T004 | A geração mensal diz antes, tenant-only | US1 | [#591](https://github.com/The-Band-Solution/theband/issues/591) | 2 | a fazer |
-| 048/T005 | Gates verdes e PR no padrão | US1 | [#592](https://github.com/The-Band-Solution/theband/issues/592) | 1 | a fazer |
+| 047/T001 | Abrir baseline dos gates | US1 | [#576](https://github.com/The-Band-Solution/theband/issues/576) | 1 | feito |
+| 047/T002 | Configurar locales e domínios do catálogo | US1 | [#577](https://github.com/The-Band-Solution/theband/issues/577) | 1 | feito |
+| 047/T003 | Verificador de literais, pela violação | US1 | [#578](https://github.com/The-Band-Solution/theband/issues/578) | 3 | feito |
+| 047/T004 | O gate mensagens no catálogo | US1 | [#579](https://github.com/The-Band-Solution/theband/issues/579) | 1 | feito |
+| 047/T005 | As mensagens da 045 migram sem mudar um byte | US1 | [#580](https://github.com/The-Band-Solution/theband/issues/580) | 2 | feito |
+| 047/T006 | Flashes de erro dos LiveViews para errors | US1 | [#581](https://github.com/The-Band-Solution/theband/issues/581) | 5 | feito |
+| 047/T007 | Confirmações e avisos para sistema | US2 | [#582](https://github.com/The-Band-Solution/theband/issues/582) | 3 | feito |
+| 047/T008 | Pendências de tela, medidas e nomeadas | US2 | [#583](https://github.com/The-Band-Solution/theband/issues/583) | 1 | feito |
+| 047/T009 | O relatório de lacunas | US3 | [#584](https://github.com/The-Band-Solution/theband/issues/584) | 2 | feito |
+| 047/T010 | A troca de idioma provada | US3 | [#585](https://github.com/The-Band-Solution/theband/issues/585) | 2 | feito |
+| 047/T011 | Gates verdes e PR no padrão | US3 | [#586](https://github.com/The-Band-Solution/theband/issues/586) | 1 | feito |
+| 048/T001 | Abrir baseline dos gates | US1 | [#588](https://github.com/The-Band-Solution/theband/issues/588) | 1 | feito |
+| 048/T002 | A guarda do domínio, pela violação | US1 | [#589](https://github.com/The-Band-Solution/theband/issues/589) | 2 | feito |
+| 048/T003 | A página da pessoa diz antes do clique | US1 | [#590](https://github.com/The-Band-Solution/theband/issues/590) | 3 | feito |
+| 048/T004 | A geração mensal diz antes, tenant-only | US1 | [#591](https://github.com/The-Band-Solution/theband/issues/591) | 2 | feito |
+| 048/T005 | Gates verdes e PR no padrão | US1 | [#592](https://github.com/The-Band-Solution/theband/issues/592) | 1 | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 
@@ -112,8 +112,8 @@ Estados: `a fazer` · `em andamento` · `feito` · `bloqueado` · `não iniciado
 
 Além da DoD por tarefa:
 
-- [ ] quality gates verdes nas duas branches (forma L60, EXIT no log) — 14 gates a partir da 047
-- [ ] base de conhecimento válida (parte dos gates)
-- [ ] issues #573–#592 encerradas ou repriorizadas com justificativa
-- [ ] `sprint-review.md` escrito
-- [ ] `licoes-aprendidas.md` atualizado
+- [x] quality gates verdes nas duas branches (forma L60, EXIT no log) — 14/14 nas duas, EXIT=0
+- [x] base de conhecimento válida (parte dos gates)
+- [x] issues #573–#592 encerradas à mão com evidência (PRs no padrão 1.6.0 não fecham sozinhos)
+- [x] `sprint-review.md` escrito
+- [x] `licoes-aprendidas.md` atualizado — L76–L79
