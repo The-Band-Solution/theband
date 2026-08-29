@@ -52,8 +52,15 @@ defmodule TheBandWeb.RodadaTest do
     end
 
     test "ligar sem credencial recusa, e a frase diz de quem é a conta", ctx do
-      {:ok, live, _} = live(ctx.conn, ~p"/profiles")
-      html = live |> element("button", "Turn on") |> render_click()
+      {:ok, live, html} = live(ctx.conn, ~p"/profiles")
+
+      # Feature 048 (L71: o teste muda de veículo, o invariante fica): o clique no
+      # botão morreu — ele nasce desabilitado com a frase, e o próprio framework
+      # recusa clicá-lo. A violação agora é o evento por fora do botão (cenário 4
+      # da 048), e a defesa do domínio continua EXATAMENTE a mesma.
+      assert html =~ "no provider key of its own"
+
+      html = render_click(live, "enable", %{})
 
       assert html =~ "no provider key of its own"
       assert html =~ "another&#39;s bill"

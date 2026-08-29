@@ -11,7 +11,7 @@
 msgid ""
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:214
+#: lib/the_band_web/live/people_live/show.ex:221
 #, elixir-autogen, elixir-format
 msgid "%{conta} is now this person."
 msgstr ""
@@ -21,7 +21,7 @@ msgstr ""
 msgid "%{tool} connected, credential validated."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:161
+#: lib/the_band_web/live/people_live/show.ex:162
 #, elixir-autogen, elixir-format
 msgid "Account unlinked."
 msgstr ""
@@ -31,12 +31,12 @@ msgstr ""
 msgid "Attention state cleared for %{tool}."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:106
+#: lib/the_band_web/live/profile_run_live/index.ex:107
 #, elixir-autogen, elixir-format
 msgid "Automatic generation is off from the next run on. A run in progress is not interrupted — half the people generated is a state no screen can name."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:70
+#: lib/the_band_web/live/profile_run_live/index.ex:71
 #, elixir-autogen, elixir-format
 msgid "Automatic generation is on. A first run started right away."
 msgstr ""
@@ -121,12 +121,12 @@ msgstr ""
 msgid "Observation of %{org} resumed. The marked records become current again on the next collection, and only those the source still shows."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:90
+#: lib/the_band_web/live/people_live/show.ex:91
 #, elixir-autogen, elixir-format
 msgid "Profile ready."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:187
+#: lib/the_band_web/live/people_live/show.ex:188
 #, elixir-autogen, elixir-format
 msgid "Profile requested. It takes about a minute."
 msgstr ""
@@ -171,7 +171,7 @@ msgstr ""
 msgid "Role revoked."
 msgstr ""
 
-#: lib/the_band_web/live/profile_run_live/index.ex:124
+#: lib/the_band_web/live/profile_run_live/index.ex:125
 #, elixir-autogen, elixir-format
 msgid "Run started."
 msgstr ""
