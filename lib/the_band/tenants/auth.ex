@@ -174,6 +174,32 @@ defmodule TheBand.Tenants.Auth do
   end
 
   @doc """
+  Cadastro pelo ato da tela (feature 051): cria a conta E emite a temporária numa
+  transação — tudo ou nada. Contrato em `specs/051-cadastro-por-github/contracts/
+  contas-e-elo.md`: sem isto o cadastro eram dois cliques, e a falha do segundo
+  deixava conta sem senha em silêncio. `create_user/2` permanece para seeds e
+  fixtures; este é o caminho de quem administra.
+
+  A temporária volta UMA vez, em claro, para a tela mostrar — nunca logada, nunca
+  persistida em claro (mesmas regras do reinício abaixo).
+  """
+  @spec cadastrar_conta(Tenant.t(), map(), User.t()) ::
+          {:ok, {User.t(), String.t()}} | {:error, Ecto.Changeset.t()}
+  def cadastrar_conta(%Tenant{id: tenant_id}, attrs, %User{} = _actor) do
+    Repo.transaction(fn ->
+      with {:ok, user} <-
+             %User{}
+             |> User.changeset(Map.put(attrs, "tenant_id", tenant_id))
+             |> Repo.insert(),
+           {:ok, temporaria} <- gravar_temporaria(user) do
+        {Repo.get!(User, user.id), temporaria}
+      else
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
+
+  @doc """
   Reinício por quem administra (FR-013): devolve a temporária UMA vez — ela não
   é gravada em claro nem logada; a primeira entrada obriga a troca.
   """

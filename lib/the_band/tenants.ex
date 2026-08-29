@@ -20,6 +20,7 @@ defmodule TheBand.Tenants do
   defdelegate set_password(tenant, user_id, senha), to: Auth
   defdelegate change_password(tenant, user_id, atual, nova), to: Auth
   defdelegate reset_password(tenant, user_id, actor_id), to: Auth
+  defdelegate cadastrar_conta(tenant, attrs, actor), to: Auth
 
   defdelegate scopes(tenant, user), to: Access
   defdelegate pode_ver(tenant, user, person_id), to: Access
@@ -96,6 +97,23 @@ defmodule TheBand.Tenants do
         erro -> erro
       end
     end
+  end
+
+  @doc """
+  A conta com elo VIGENTE para esta pessoa, ou nil — feature 051, contrato
+  `contas-e-elo.md`. Leitura estreita chamada SÓ no caminho do `{:error, :taken}`
+  de `declare_person/4`, para a recusa nomear a conta dona (cenário 3 da US2);
+  zero custo no caminho feliz. A corrida continua segura pelo índice único parcial
+  — esta função dá o NOME, o banco dá a garantia.
+  """
+  @spec user_of_person(Tenant.t(), Ecto.UUID.t()) :: User.t() | nil
+  def user_of_person(%Tenant{id: tenant_id}, person_id) do
+    Repo.one(
+      from u in User,
+        where:
+          u.tenant_id == ^tenant_id and u.person_id == ^person_id and
+            is_nil(u.person_revoked_at)
+    )
   end
 
   @doc """
