@@ -52,6 +52,20 @@ Amostra limitada a duas telas nesta rodada; a regra fica: **toda queima de tela
 valida a linha dela por leitura do render, não pelo grep** — e classe nova de ralo
 achada na queima entra no verificador no mesmo commit.
 
+## Classes nomeadas fora do verificador v2 (decisões da aceitação do 025)
+
+- **Rótulos de situação em `.ex`** (`origem_rotulo/1` em access_scopes_live e
+  parentes): classificados pela pessoa mantenedora (2026-08-29) como
+  HEEx-pendência — migram quando a tela deles queimar.
+- **Frases nascidas em função de origem** (`PatternValidator.explicar/1`,
+  `primeira_mensagem/1`): NÃO são pendência — são o retrabalho da #573 no sprint
+  026, com a caça aos irmãos pela forma `(erro|ok|error|aviso): funcao(...)` (L81).
+
+**Correção de afirmação (aceitação do 025)**: este documento dizia que a razão do
+FR-007 "vive nos comentários do próprio HEEx" — conferido nos três pontos de
+"Checks", não vive. A razão vive nas SPECS das features que fixaram os termos
+(044 para "Checks"), e quem queimar a tela a busca lá.
+
 ## Obrigações que viajam com as pendências
 
 - **FR-007 (decisão de vocabulário migra com a razão)**: os textos com termo fixado
