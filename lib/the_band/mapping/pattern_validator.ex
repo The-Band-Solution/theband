@@ -98,28 +98,12 @@ defmodule TheBand.Mapping.PatternValidator do
 
   def validate(_literal, _pattern, _sample), do: :ok
 
-  @doc """
-  A recusa em português, com o que a pessoa precisa para corrigir.
-
-  A posição do erro entra na mensagem porque é ela que diz **onde** consertar — sem ela, a
-  pessoa relê a expressão inteira procurando o parêntese que faltou.
-  """
-  @spec explicar(motivo()) :: String.t()
-  # As três frases vão para a tela, e por isso são em inglês.
-  def explicar({:does_not_compile, razao, posicao}),
-    do: "the expression does not compile: #{razao}, at position #{posicao}"
-
-  def explicar(:matches_empty),
-    do:
-      "the expression matches empty text, so it would match every issue in the organisation — " <>
-        "a rule that matches everything classifies nothing"
-
-  # Passos, e não milissegundos: o número é o mesmo em qualquer máquina, e por isso quem lê
-  # pode conferi-lo. "Levou mais de 100ms" não era conferível — dependia da máquina.
-  def explicar({:too_expensive, orcamento}),
-    do:
-      "the expression exceeded the evaluation budget of #{orcamento} backtracking steps over " <>
-        "real titles from this organisation; nested quantifiers are the usual cause"
+  # 047/T014 (#617): as frases de recusa MORAVAM aqui, em literal — o domínio
+  # fabricando texto de tela, contra a regra do contrato do catálogo ("a camada
+  # web traduz o motivo em frase"). Elas se mudaram para a borda
+  # (mapping_rules.humanizar/1), byte a byte, via catálogo; este módulo devolve
+  # a TUPLA do motivo e nada mais. A posição do erro segue na tupla — é ela que
+  # diz ONDE consertar, e a borda a interpola.
 
   # `Regex.compile/2` devolve `{:error, {razão, posição}}` e nada mais — o dialyzer
   # confirma. Uma cláusula extra para `{:error, razão}` nunca casaria, e cláusula morta é

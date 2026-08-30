@@ -570,12 +570,12 @@ msgstr ""
 msgid "This project is already part of %{nome}. Detach it first."
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/mapping_rules.ex:412
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:437
 #, elixir-autogen, elixir-format
 msgid "concept %{id} does not exist in the knowledge base"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/mapping_rules.ex:415
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:440
 #, elixir-autogen, elixir-format
 msgid "this proposal no longer exists in the catalogue"
 msgstr ""
@@ -588,4 +588,24 @@ msgstr ""
 #: lib/the_band_web/live/accounts_live/index.ex:156
 #, elixir-autogen, elixir-format
 msgid "Nada a revogar."
+msgstr ""
+
+#: lib/the_band_web/live/projects_live/index.ex:499
+#, elixir-autogen, elixir-format
+msgid "Could not save the project."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:416
+#, elixir-autogen, elixir-format
+msgid "the expression does not compile: %{razao}, at position %{posicao}"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:430
+#, elixir-autogen, elixir-format
+msgid "the expression exceeded the evaluation budget of %{orcamento} backtracking steps over real titles from this organisation; nested quantifiers are the usual cause"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/mapping_rules.ex:423
+#, elixir-autogen, elixir-format
+msgid "the expression matches empty text, so it would match every issue in the organisation — a rule that matches everything classifies nothing"
 msgstr ""

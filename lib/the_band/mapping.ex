@@ -77,5 +77,4 @@ defmodule TheBand.Mapping do
   # ------------------------------------------------------------------ validação
 
   defdelegate validate_pattern(how, pattern, sample), to: PatternValidator, as: :validate
-  defdelegate explain_refusal(motivo), to: PatternValidator, as: :explicar
 end
