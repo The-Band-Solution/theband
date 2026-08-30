@@ -54,7 +54,7 @@ da 051) antes destas — decisão da aceitação do 025.
 
 ## Phase 5: Polish
 
-- [ ] T007 Gates verdes e PR no padrão
+- [x] T007 Gates verdes e PR no padrão
   - **Pronta quando**: T001–T006
   - **Descrição**: `mix gates > /tmp/gates_050.log 2>&1; echo "EXIT=$?" >> /tmp/gates_050.log`; quickstart §1–§3 com evidências; PR para `development` no padrão 1.6.0, com revisor pedido ao abrir e no board
   - **Feita quando**: EXIT=0; evidências olhadas; PR aberto no padrão
