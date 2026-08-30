@@ -40,8 +40,8 @@ completada. A pertença deles está no sprint-backlog da 022.
 
 | # | Tarefa | Atende | Issue | Estimate | Estado |
 |---|---|---|---|---|---|
-| 047/T012 | A classe assign entra no catálogo e no verificador | 047/US1+US2 (#573, #574) | [#609](https://github.com/The-Band-Solution/theband/issues/609) | 3 | a fazer |
-| 047/T013 | Pendências com amostragem independente, e o texto da US3 | 047/US2+US3 | [#610](https://github.com/The-Band-Solution/theband/issues/610) | 2 | a fazer |
+| 047/T012 | A classe assign entra no catálogo e no verificador | 047/US1+US2 (#573, #574) | [#609](https://github.com/The-Band-Solution/theband/issues/609) | 3 | feito |
+| 047/T013 | Pendências com amostragem independente, e o texto da US3 | 047/US2+US3 | [#610](https://github.com/The-Band-Solution/theband/issues/610) | 2 | feito |
 
 ## User stories da 051
 
@@ -54,14 +54,14 @@ completada. A pertença deles está no sprint-backlog da 022.
 
 | # | Tarefa | Atende | Issue | Estimate | Estado |
 |---|---|---|---|---|---|
-| T001 | Abrir baseline dos gates | US1 | [#599](https://github.com/The-Band-Solution/theband/issues/599) | 1 | a fazer |
-| T002 | O cadastro transacional com temporária, pela violação | US1 | [#600](https://github.com/The-Band-Solution/theband/issues/600) | 2 | a fazer |
-| T003 | A leitura estreita do conflito | US2 | [#601](https://github.com/The-Band-Solution/theband/issues/601) | 1 | a fazer |
-| T004 | O cadastro na tela, com a temporária de uma vez | US1 | [#602](https://github.com/The-Band-Solution/theband/issues/602) | 2 | a fazer |
-| T005 | A lista diz quem tem GitHub, numa consulta | US2 | [#603](https://github.com/The-Band-Solution/theband/issues/603) | 2 | a fazer |
-| T006 | Associar com busca, e o conflito nomeado | US2 | [#604](https://github.com/The-Band-Solution/theband/issues/604) | 3 | a fazer |
-| T007 | Revogar na área, e o login acompanha | US2 | [#605](https://github.com/The-Band-Solution/theband/issues/605) | 2 | a fazer |
-| T008 | Gates verdes e PR no padrão | US2 | [#606](https://github.com/The-Band-Solution/theband/issues/606) | 1 | a fazer |
+| T001 | Abrir baseline dos gates | US1 | [#599](https://github.com/The-Band-Solution/theband/issues/599) | 1 | feito |
+| T002 | O cadastro transacional com temporária, pela violação | US1 | [#600](https://github.com/The-Band-Solution/theband/issues/600) | 2 | feito |
+| T003 | A leitura estreita do conflito | US2 | [#601](https://github.com/The-Band-Solution/theband/issues/601) | 1 | feito |
+| T004 | O cadastro na tela, com a temporária de uma vez | US1 | [#602](https://github.com/The-Band-Solution/theband/issues/602) | 2 | feito |
+| T005 | A lista diz quem tem GitHub, numa consulta | US2 | [#603](https://github.com/The-Band-Solution/theband/issues/603) | 2 | feito |
+| T006 | Associar com busca, e o conflito nomeado | US2 | [#604](https://github.com/The-Band-Solution/theband/issues/604) | 3 | feito |
+| T007 | Revogar na área, e o login acompanha | US2 | [#605](https://github.com/The-Band-Solution/theband/issues/605) | 2 | feito |
+| T008 | Gates verdes e PR no padrão | US2 | [#606](https://github.com/The-Band-Solution/theband/issues/606) | 1 | feito |
 
 Tarefa não recebe `Priority`: herda a da user story que atende.
 
@@ -83,9 +83,9 @@ Tarefa não recebe `Priority`: herda a da user story que atende.
 
 ## Definition of Done do sprint
 
-- [ ] quality gates verdes nas branches (forma L60, EXIT no log)
-- [ ] base de conhecimento válida
-- [ ] issues #597–#606, #609–#610 encerradas APÓS a aceitação (ordem certa desta vez)
-- [ ] `sprint-review.md` escrito
-- [ ] `licoes-aprendidas.md` atualizado
-- [ ] PRs com revisão pedida ao abrir, e dentro do board do projeto
+- [x] quality gates verdes nas branches (forma L60, EXIT no log) — 14/14 nas duas
+- [x] base de conhecimento válida (parte dos gates)
+- [x] issues #597–#606, #609–#610 encerradas APÓS a aceitação confirmada (ordem certa)
+- [x] `sprint-review.md` escrito
+- [x] `licoes-aprendidas.md` atualizado — L81, L82
+- [x] PRs com revisão pedida ao abrir (+1s, timeline) e dentro do board
