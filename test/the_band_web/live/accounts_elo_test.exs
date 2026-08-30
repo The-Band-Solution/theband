@@ -10,6 +10,8 @@ defmodule TheBandWeb.AccountsEloTest do
 
   import Phoenix.LiveViewTest
 
+  require Ecto.Query
+
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Tenants
 
@@ -102,6 +104,73 @@ defmodule TheBandWeb.AccountsEloTest do
       # A associação vale na entrada: username + a temporária do reset.
       assert {:ok, autenticada} = Tenants.authenticate("achavel", senha)
       assert autenticada.id == nova.id
+    end
+
+    test "o resultado diz a organização — o edge case dos homônimos (T009)", ctx do
+      # Duas pessoas de MESMO nome em organizações diferentes: quem administra
+      # decide pelo identificador COM contexto — spec.md:93, recusado na
+      # aceitação do 025 e entregue aqui.
+      org = organization_fixture(ctx.tenant, "org-da-gemea")
+
+      {:ok, time} =
+        EO.upsert_team_from_source(ctx.tenant, %{
+          organization_id: org.id,
+          name: "Time Gêmeo",
+          slug: "time-gemeo",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "T_gemeo",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      gemea = pessoa(ctx.tenant, "gemea-a", "Gêmea Silva")
+      _outra = pessoa(ctx.tenant, "gemea-b", "Gêmea Silva")
+
+      {:ok, _} =
+        EO.record_team_membership_evidence(ctx.tenant, %{
+          person_id: gemea.id,
+          team_id: time.id,
+          person_external_id: gemea.external_id,
+          team_external_id: time.external_id,
+          platform_access_level: "MEMBER",
+          source_system: "github",
+          source_instance: "https://github.com",
+          observed_at: DateTime.utc_now(:second),
+          last_observed_at: DateTime.utc_now(:second)
+        })
+
+      conta_alvo = conta(ctx.tenant, "quem-liga@example.test")
+
+      {:ok, view, _} = live(ctx.conn, ~p"/accounts")
+      render_click(view, "abrir_busca", %{"user-id" => conta_alvo.id})
+      html = render_change(view, "buscar_pessoa", %{"q" => "Gêmea"})
+
+      assert html =~ "gemea-a"
+      assert html =~ "gemea-b"
+      assert html =~ "org-da-gemea"
+    end
+
+    test "a observação terminada é dita no resultado (T009)", ctx do
+      encerrada = pessoa(ctx.tenant, "que-saiu")
+
+      encerrada_id = encerrada.id
+
+      {1, _} =
+        TheBand.Repo.update_all(
+          Ecto.Query.from(pe in TheBand.Ontology.SEON.EO.Schemas.Person,
+            where: pe.id == ^encerrada_id
+          ),
+          set: [no_longer_observed_at: DateTime.utc_now(:second)]
+        )
+
+      alvo = conta(ctx.tenant, "liga-encerrada@example.test")
+
+      {:ok, view, _} = live(ctx.conn, ~p"/accounts")
+      render_click(view, "abrir_busca", %{"user-id" => alvo.id})
+      html = render_change(view, "buscar_pessoa", %{"q" => "que-saiu"})
+
+      assert html =~ "que-saiu"
+      assert html =~ "no longer observed"
     end
 
     test "busca sem resultado é ausência nomeada", ctx do

@@ -88,25 +88,35 @@ defmodule TheBandWeb.AccountsLive.Index do
   # ── O elo, administrado na área (051/US2) ──
 
   def handle_event("abrir_busca", %{"user-id" => user_id}, socket) do
-    {:noreply, assign(socket, busca: %{user_id: user_id, q: "", resultados: []})}
+    {:noreply, assign(socket, busca: %{user_id: user_id, q: "", resultados: [], orgs: %{}})}
   end
 
   def handle_event("fechar_busca", _params, socket) do
     {:noreply, assign(socket, busca: nil)}
   end
 
-  # A consulta roda no EVENTO da digitação, nunca no mount (contrato). Resultado
-  # traz nome, login e organização não — a busca é sobre pessoas; os homônimos se
-  # separam pelo LOGIN, que é único na origem.
+  # A consulta roda no EVENTO da digitação, nunca no mount (contrato). O
+  # resultado traz nome, login E organização — o edge case dos homônimos que
+  # spec/contrato/tasks sempre pediram; a versão anterior divergia num comentário
+  # sem corrigir contrato nenhum, e a US caiu na aceitação por isso (L82,
+  # 051/T009 #618). Duas consultas por página de resultados, nunca por linha
+  # (L38): a busca e as organizações observadas em lote. A observação terminada
+  # também é dita — gente sai do GitHub sem sair da organização.
   def handle_event("buscar_pessoa", %{"q" => q}, socket) do
-    resultados =
+    tenant = socket.assigns.current_tenant
+
+    {resultados, orgs} =
       if String.trim(q) == "" do
-        []
+        {[], %{}}
       else
-        EO.list_people(socket.assigns.current_tenant, search: q, limit: 8)
+        pessoas = EO.list_people(tenant, search: q, limit: 8)
+        {pessoas, EO.observed_org_logins_of_people(tenant, Enum.map(pessoas, & &1.id))}
       end
 
-    {:noreply, assign(socket, busca: %{socket.assigns.busca | q: q, resultados: resultados})}
+    {:noreply,
+     assign(socket,
+       busca: %{socket.assigns.busca | q: q, resultados: resultados, orgs: orgs}
+     )}
   end
 
   def handle_event("associar", %{"user-id" => user_id, "person-id" => person_id}, socket) do
@@ -287,6 +297,12 @@ defmodule TheBandWeb.AccountsLive.Index do
                         class="btn btn-ghost btn-xs"
                       >
                         {p.name} <span class="font-mono opacity-60">{p.login}</span>
+                        <span :if={@busca.orgs[p.id]} class="text-xs opacity-60">
+                          · {Enum.join(@busca.orgs[p.id], ", ")}
+                        </span>
+                        <span :if={p.no_longer_observed_at} class="badge badge-ghost badge-xs">
+                          no longer observed
+                        </span>
                       </button>
                     </li>
                   </ul>
