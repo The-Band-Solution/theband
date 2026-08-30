@@ -49,10 +49,17 @@ cadastrar_conta(tenant, %{"name" => nome, "email" => email}, actor)
   inteira — nunca por linha (L38).
 - **Cadastrar**: nome + e-mail → `cadastrar_conta/3`; a temporária aparece uma
   única vez e some no evento seguinte (padrão existente do reset).
-- **Associar**: busca `EO.list_people(tenant, q:, limit: 8)` disparada por evento
-  (nunca no mount); resultado com nome, login e organização; escolher chama
-  `declare_person/4`. `:taken` → recusa nomeando a conta dona
-  (`user_of_person/2`).
+- **Associar**: busca `EO.list_people(tenant, search:, limit: 8)` disparada por
+  evento (nunca no mount); resultado com nome, login, **organização observada**
+  (via `EO.observed_org_logins_of_people/2` — leitura em LOTE por página de
+  resultados, nunca por linha) e a **marca de observação terminada** quando
+  houver; escolher chama `declare_person/4`. `:taken` → recusa nomeando a conta
+  dona (`user_of_person/2`).
+  [Correção registrada em 2026-08-29 (051/T009, #618): a implementação original
+  divergiu deste contrato num comentário ("organização não") sem corrigi-lo — a
+  US caiu na aceitação do sprint 025 por isso (L82). O contrato SEMPRE pediu a
+  organização; esta nota registra a violação e o conserto, e a leitura em lote
+  que o cumpre dentro do custo (L38).]
 - **Revogar**: botão na linha chama `revoke_person/3` com confirmação; a linha
   volta a dizer a ausência.
 - Toda frase nova nasce em `dgettext` (errors/sistema) — gate da 047.

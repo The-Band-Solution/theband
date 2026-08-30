@@ -44,6 +44,7 @@ defmodule TheBand.Ontology.SEON.EO do
 
   defdelegate fetch_person(tenant, person_id), to: Queries
   defdelegate person_logins(tenant, person_ids), to: Queries
+  defdelegate observed_org_logins_of_people(tenant, person_ids), to: Queries
   defdelegate list_person_teams(tenant, person_id), to: Queries
   defdelegate person_active_teams(tenant, person_id), to: Queries
   defdelegate person_observed_organization_ids(tenant, person_id), to: Queries
