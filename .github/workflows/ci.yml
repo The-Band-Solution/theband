@@ -176,3 +176,31 @@ jobs:
           name: cobertura
           path: cover/
           retention-days: 30
+
+  # ── Feature 050 (T003): a imagem quebrada reprova o PR, não o deploy ─────────
+  # Roda SÓ quando o que a compõe muda — Dockerfile, .dockerignore ou rel/. Fora
+  # disso o job nem aparece: os 14 gates continuam sendo o veredito de código.
+  imagem:
+    name: a imagem de produção builda
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: só quando a imagem muda
+        id: mudou
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docker:
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'rel/**'
+      - name: docker build
+        if: steps.mudou.outputs.docker == 'true'
+        run: |
+          docker build -t theband:pr . > build.log 2>&1; EXIT=$?
+          tail -30 build.log
+          echo "EXIT=$EXIT"
+          exit $EXIT
+      - name: sem mudança de imagem — nada a buildar
+        if: steps.mudou.outputs.docker != 'true'
+        run: echo "Dockerfile/.dockerignore/rel intocados — o build não roda de propósito."

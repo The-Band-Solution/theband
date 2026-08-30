@@ -1,0 +1,90 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# CD — feature 050, contrato em specs/050-em-producao/contracts/pipeline-de-release.md.
+#
+# Gitflow (constituição 1.7.0): a main só recebe merge do PR de release vindo de
+# development, aberto sob decisão do Product Owner — e TODO merge nela é deploy.
+# Este workflow é a consequência mecânica: versão do mix.exs → imagem no ghcr →
+# tag git → webhook do Dokploy. Sem suíte de testes aqui — o PR de release já
+# passou pelos 14 gates no CI; o que este workflow valida é o que só ele produz.
+#
+# Idempotente por versão: re-executar sobre versão já publicada reporta e sai
+# verde, sem republicar nem re-entregar.
+# ═══════════════════════════════════════════════════════════════════════════════
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write # a tag git vX.Y.Z nasce do merge
+  packages: write # ghcr.io
+
+env:
+  IMAGEM: ghcr.io/the-band-solution/theband
+
+jobs:
+  release:
+    name: imagem, tag e delivery
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # as tags existentes decidem o passo 1
+
+      - name: a versão vem do mix.exs, e versão repetida FALHA nomeando
+        id: versao
+        run: |
+          VERSAO=$(grep -o 'version: "[^"]*"' mix.exs | head -1 | cut -d'"' -f2)
+          test -n "$VERSAO" || { echo "mix.exs sem version — nada a publicar" >&2; exit 1; }
+          echo "versao=v$VERSAO" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$VERSAO" > /dev/null; then
+            if [ "$(git rev-parse "refs/tags/v$VERSAO^{commit}")" = "$GITHUB_SHA" ]; then
+              echo "ja_publicada=true" >> "$GITHUB_OUTPUT"
+              echo "v$VERSAO já aponta para este commit — idempotência: nada a refazer."
+            else
+              echo "A tag v$VERSAO JÁ EXISTE em outro commit. Versão não se reusa:" >&2
+              echo "o PR de release precisa de um bump novo no mix.exs." >&2
+              exit 1
+            fi
+          else
+            echo "ja_publicada=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: login no ghcr
+        if: steps.versao.outputs.ja_publicada == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build e publicação da imagem
+        if: steps.versao.outputs.ja_publicada == 'false'
+        run: |
+          docker build -t "$IMAGEM:${{ steps.versao.outputs.versao }}" -t "$IMAGEM:latest" . \
+            > build.log 2>&1; EXIT=$?
+          tail -30 build.log
+          echo "EXIT=$EXIT"
+          [ $EXIT -eq 0 ] || exit $EXIT
+          docker push "$IMAGEM:${{ steps.versao.outputs.versao }}"
+          docker push "$IMAGEM:latest"
+
+      - name: a tag git nasce do merge
+        if: steps.versao.outputs.ja_publicada == 'false'
+        run: |
+          git config user.name "the-band-cd"
+          git config user.email "cd@users.noreply.github.com"
+          git tag -a "${{ steps.versao.outputs.versao }}" -m "Release ${{ steps.versao.outputs.versao }} — registro em docs/releases/" "$GITHUB_SHA"
+          git push origin "${{ steps.versao.outputs.versao }}"
+
+      - name: delivery no Dokploy — resposta não-2xx FALHA
+        if: steps.versao.outputs.ja_publicada == 'false'
+        run: |
+          if [ -z "${{ secrets.DOKPLOY_WEBHOOK_URL }}" ]; then
+            echo "DOKPLOY_WEBHOOK_URL ausente nos Secrets — a imagem e a tag existem," >&2
+            echo "mas NÃO houve delivery. O runbook §2 diz onde configurar." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
+          echo "webhook aceito — o Dokploy puxa $IMAGEM:latest e reimplanta."
