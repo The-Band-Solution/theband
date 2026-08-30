@@ -157,8 +157,12 @@ defmodule TheBandWeb.AccountsLive.Index do
     end
   end
 
+  # 047/T014 (#617): mesma classe do primeira_mensagem — o catálogo traduz o
+  # erro do Ecto; montado à mão, os msgids que errors.po já tem eram descartados.
   defp motivo(changeset) do
-    Enum.map_join(changeset.errors, "; ", fn {campo, {msg, _}} -> "#{campo} #{msg}" end)
+    Enum.map_join(changeset.errors, "; ", fn {campo, erro} ->
+      "#{campo} #{TheBandWeb.CoreComponents.translate_error(erro)}"
+    end)
   end
 
   defp elo_vigente?(user), do: user.person_id && is_nil(user.person_revoked_at)

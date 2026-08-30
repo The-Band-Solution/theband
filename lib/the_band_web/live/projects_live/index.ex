@@ -491,10 +491,12 @@ defmodule TheBandWeb.ProjectsLive.Index do
     end
   end
 
-  defp primeira_mensagem(%Ecto.Changeset{errors: [{campo, {msg, _}} | _]}),
-    do: "#{campo}: #{msg}"
+  # 047/T014 (#617): o erro do Ecto passa pelo catálogo — errors.po JÁ tinha os
+  # msgids padrão e este helper os descartava, montando a frase à mão.
+  defp primeira_mensagem(%Ecto.Changeset{errors: [{campo, erro} | _]}),
+    do: "#{campo}: #{TheBandWeb.CoreComponents.translate_error(erro)}"
 
-  defp primeira_mensagem(_changeset), do: "Could not save the project."
+  defp primeira_mensagem(_changeset), do: dgettext("errors", "Could not save the project.")
 
   @impl true
   def render(assigns) do
