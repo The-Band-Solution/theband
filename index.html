@@ -72,8 +72,22 @@
   [data-lang] { display: none; }
   html[lang="pt-BR"] [data-lang="pt"], html[lang="en"] [data-lang="en"] { display: block; }
 
-  .troca-idioma {
+  .barra-topo {
     position: fixed; top: 1rem; right: 1rem; z-index: 10;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  .entrar {
+    display: none; background: var(--verdete); color: var(--papel);
+    text-decoration: none; font-weight: 600; font-size: .85rem;
+    padding: .42rem .9rem; border-radius: 4px; white-space: nowrap;
+  }
+  html[lang="pt-BR"] .entrar[data-lang="pt"],
+  html[lang="en"] .entrar[data-lang="en"] { display: inline-block; }
+  /* em tela estreita fica só o verbo: a barra não pode cobrir o título */
+  .amplo { display: none; }
+  @media (min-width: 42rem) { .amplo { display: inline; } }
+
+  .troca-idioma {
     display: flex; gap: 0; border: 1px solid var(--pauta); border-radius: 4px;
     background: var(--cartao); overflow: hidden;
   }
@@ -175,6 +189,9 @@
   .botao.cheio { background: var(--verdete); color: var(--papel); }
   .botao.vazado { border: 1.5px solid var(--verdete); color: var(--verdete); }
 
+  .acao { margin: 2.2rem 0 0; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .nota-acao { font-size: .9rem; color: var(--tinta-2); max-width: 22rem; }
+
   footer { border-top: 1px solid var(--pauta); padding: 1.6rem 0 2.4rem; font-size: .85rem; color: var(--tinta-2); }
   footer .faixa { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   a { color: var(--verdete); text-underline-offset: 3px; text-decoration-thickness: 1px; }
@@ -182,9 +199,15 @@
   abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 </style>
 
-<div class="troca-idioma" role="group" aria-label="Idioma / Language">
-  <button id="btn-pt" aria-pressed="true" onclick="trocarIdioma('pt-BR')">PT</button>
-  <button id="btn-en" aria-pressed="false" onclick="trocarIdioma('en')">EN</button>
+<div class="barra-topo">
+  <a class="entrar" data-lang="pt" href="https://app.theband.dev/sign-in"
+     aria-label="Entrar na plataforma">Entrar<span class="amplo"> na plataforma</span></a>
+  <a class="entrar" data-lang="en" href="https://app.theband.dev/sign-in"
+     aria-label="Sign in to the platform">Sign in<span class="amplo"> to the platform</span></a>
+  <div class="troca-idioma" role="group" aria-label="Idioma / Language">
+    <button id="btn-pt" aria-pressed="true" onclick="trocarIdioma('pt-BR')">PT</button>
+    <button id="btn-en" aria-pressed="false" onclick="trocarIdioma('en')">EN</button>
+  </div>
 </div>
 <script>
   var TITULOS = {
@@ -212,6 +235,10 @@
       Suas ferramentas produzem notas: issues, commits, sprints, quadros — cada uma no
       seu vocabulário. O The Band as rege numa língua comum, até virarem
       <strong>informação em que a organização pode agir</strong>.
+    </p>
+    <p class="acao">
+      <a class="botao cheio" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+      <span class="nota-acao">A conta é criada por quem administra a instalação.</span>
     </p>
     <div class="compasso" aria-hidden="true">
       <div class="pauta"></div>
@@ -412,11 +439,11 @@
       <h2 class="serif">Regência aberta.</h2>
       <p class="texto mudo" style="margin: 0 auto;">
         Elixir + Phoenix, PostgreSQL, base de conhecimento em YAML versionado.
-        Treze quality gates. Código aberto, da tese ao deploy.
+        Quatorze quality gates. Código aberto, da tese ao deploy.
       </p>
       <div class="botoes">
-        <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">Ver o repositório</a>
-        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Começar pelo README</a>
+        <a class="botao cheio" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband">Ver o repositório</a>
       </div>
     </div>
   </section>
@@ -440,6 +467,10 @@
       Your tools produce notes: issues, commits, sprints, boards — each in its own
       vocabulary. The Band conducts them into a common language, until they become
       <strong>information your organisation can act on</strong>.
+    </p>
+    <p class="acao">
+      <a class="botao cheio" href="https://app.theband.dev/sign-in">Sign in to the platform</a>
+      <span class="nota-acao">Your account is created by whoever administers the installation.</span>
     </p>
     <div class="compasso" aria-hidden="true">
       <div class="pauta"></div>
@@ -642,11 +673,11 @@
       <h2 class="serif">Open conducting.</h2>
       <p class="texto mudo" style="margin: 0 auto;">
         Elixir + Phoenix, PostgreSQL, a versioned YAML knowledge base.
-        Thirteen quality gates. Open source, from thesis to deploy.
+        Fourteen quality gates. Open source, from thesis to deploy.
       </p>
       <div class="botoes">
-        <a class="botao cheio" href="https://github.com/The-Band-Solution/theband">View the repository</a>
-        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband#readme">Start with the README</a>
+        <a class="botao cheio" href="https://app.theband.dev/sign-in">Sign in to the platform</a>
+        <a class="botao vazado" href="https://github.com/The-Band-Solution/theband">View the repository</a>
       </div>
     </div>
   </section>
