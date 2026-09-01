@@ -57,9 +57,14 @@ achada na queima entra no verificador no mesmo commit.
 - **Rótulos de situação em `.ex`** (`origem_rotulo/1` em access_scopes_live e
   parentes): classificados pela pessoa mantenedora (2026-08-29) como
   HEEx-pendência — migram quando a tela deles queimar.
-- **Frases nascidas em função de origem** (`PatternValidator.explicar/1`,
-  `primeira_mensagem/1`): NÃO são pendência — são o retrabalho da #573 no sprint
-  026, com a caça aos irmãos pela forma `(erro|ok|error|aviso): funcao(...)` (L81).
+- **Frases nascidas em função de origem**: deixaram de ser pendência E deixaram de
+  depender de caça — o verificador v3 (2026-08-30) resolve UM salto no mesmo
+  arquivo e as vê. Os 9 membros vivos foram migrados no mesmo commit
+  (`ja_e_de_outra`, `frase_do_recalculo` ×3, `frase_da_mudanca` ×2,
+  `primeira_mensagem` do sync, `frase_do_resultado` ×2).
+  **A lição do caminho**: a caça manual pela forma `(erro|ok|error|aviso): funcao(`
+  não via a forma posicional `put_flash(socket, :error, funcao(...))` — duas
+  sintaxes, uma classe. Caça por forma erra; regra no verificador não.
 
 **Correção de afirmação (aceitação do 025)**: este documento dizia que a razão do
 FR-007 "vive nos comentários do próprio HEEx" — conferido nos três pontos de

@@ -511,12 +511,12 @@ msgstr ""
 msgid "This organisation has no provider key of its own. Someone who operates it configures one in AI provider."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:2061
+#: lib/the_band_web/live/people_live/show.ex:2066
 #, elixir-autogen, elixir-format
 msgid "This organisation has no provider key. Configure it in AI provider, under Operação."
 msgstr ""
 
-#: lib/the_band_web/live/people_live/show.ex:2068
+#: lib/the_band_web/live/people_live/show.ex:2073
 #, elixir-autogen, elixir-format
 msgid "This organisation has no provider key. Someone who operates it configures one in AI provider."
 msgstr ""
@@ -605,4 +605,34 @@ msgstr ""
 #: lib/the_band_web/live/sync_live/mapping_rules.ex:423
 #, elixir-autogen, elixir-format
 msgid "the expression matches empty text, so it would match every issue in the organisation — a rule that matches everything classifies nothing"
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:243
+#, elixir-autogen, elixir-format
+msgid "%{email} is already linked to this person."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:161
+#, elixir-autogen, elixir-format
+msgid "%{quantos} refused: %{motivos}"
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:141
+#, elixir-autogen, elixir-format
+msgid "Choose a role before confirming."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:825
+#, elixir-autogen, elixir-format
+msgid "Could not save the interval."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:135
+#, elixir-autogen, elixir-format
+msgid "Nothing confirmed: no role was chosen in any of the %{quantas} rows."
+msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex:246
+#, elixir-autogen, elixir-format
+msgid "That account is already linked to someone else."
 msgstr ""

@@ -235,10 +235,15 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
+  # 047 (classe função-origem, v3): a frase nasce no catálogo — antes vivia em
+  # literal aqui e chegava ao ralo por trás desta chamada, invisível ao pente.
   defp ja_e_de_outra(socket) do
     case Tenants.user_for_person(socket.assigns.current_tenant, socket.assigns.pessoa.id) do
-      {:ok, conta} -> "#{conta.email} is already linked to this person."
-      :not_declared -> "That account is already linked to someone else."
+      {:ok, conta} ->
+        dgettext("errors", "%{email} is already linked to this person.", email: conta.email)
+
+      :not_declared ->
+        dgettext("errors", "That account is already linked to someone else.")
     end
   end
 

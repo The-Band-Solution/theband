@@ -228,6 +228,41 @@ msgstr ""
 msgid "Rule activated, with you as the author. The recalculation is queued."
 msgstr ""
 
+#: lib/the_band_web/live/teams_live/show.ex:157
+#, elixir-autogen, elixir-format
+msgid "%{ok} membership(s) recorded"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:814
+#, elixir-autogen, elixir-format
+msgid "%{org} will sync every %{intervalo}."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:159
+#, elixir-autogen, elixir-format
+msgid "%{puladas} skipped for having no role chosen"
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:806
+#, elixir-autogen, elixir-format
+msgid "Automatic sync is off for %{org}. It will only run when you press Sync."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:776
+#, elixir-autogen, elixir-format
+msgid "Rules recomputed. Nothing changed — the promotions already matched the rules."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:792
+#, elixir-autogen, elixir-format
+msgid "Rules recomputed: %{conceito} %{plural_issue} changed concept, %{escritas} %{plural_promo} written in total."
+msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:783
+#, elixir-autogen, elixir-format
+msgid "Rules recomputed: %{escritas} %{plural} rewritten. No issue changed concept — what changed is which rule decided it."
+msgstr ""
+
 #: lib/the_band_web/live/session_live/new.ex:40
 #, elixir-autogen, elixir-format
 msgid "Every note says where it came from. No number shows up without a source."
