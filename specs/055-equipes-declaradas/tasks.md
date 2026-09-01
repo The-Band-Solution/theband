@@ -89,7 +89,7 @@ declarada.
   - **Descrição**: função irmã de `create_declared_team/3` em `eo/commands.ex`, com organização e o tipo da estrutura. **Não generalizar a existente** — decisão 4 do plano: organização nula é *exigida* lá e *proibida* aqui, e uma função com invariante condicional ao parâmetro é a que ninguém lê depois
   - **Feita quando**: a equipe nasce com organização, autor e proveniência `the_band/declared`; a função da 028 continua intacta
   - **Teste**: o caso da equipe criada, e a suíte da 028 verde sem alteração
-  - **ACRESCENTADO durante a execução**: a recusa de nome repetido exigiu uma **migração** que o plano não previa — índice parcial único em  **onde a origem é declarada**. Só entre declaradas: homônima de uma observada é fato do mundo, não erro; e incluir as observadas faria a COLETA falhar quando o GitHub tivesse dois times de mesmo nome
+  - **ACRESCENTADO durante a execução**: a recusa de nome repetido exigiu uma **migração** que o plano não previa — índice parcial único em `(tenant_id, organization_id, name)` **onde a origem é declarada**. Só entre declaradas: homônima de uma observada é fato do mundo, não erro; e incluir as observadas faria a COLETA falhar quando o GitHub tivesse dois times de mesmo nome
 
 - [x] T010 [US1] A tela cria, e diz de onde a equipe veio
   - **Pronta quando**: T009
