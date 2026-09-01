@@ -637,3 +637,8 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Esta conta já vê este alvo. Nada a fazer."
 msgstr ""
+
+#: lib/the_band_web/live/teams_live/index.ex:63
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can declare a team."
+msgstr ""

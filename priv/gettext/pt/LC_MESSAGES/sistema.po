@@ -297,3 +297,8 @@ msgstr "Quando falta nota, ela diz que falta — não toca zero no lugar."
 #, elixir-autogen, elixir-format
 msgid "Your tools keep loose notes: a commit here, an issue there, the same person under three different names. The Band plays those notes together — and what reaches you is music: who does what, with whom, since when."
 msgstr "Suas ferramentas guardam notas soltas: um commit aqui, uma issue ali, a mesma pessoa com três nomes diferentes. O The Band toca essas notas juntas — e o que chega até você é música: quem faz o quê, com quem, desde quando."
+
+#: lib/the_band_web/live/teams_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Team %{nome} declared."
+msgstr "Equipe %{nome} declarada."

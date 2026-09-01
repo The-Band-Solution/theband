@@ -84,13 +84,14 @@ período anterior mostra o mesmo número antes e depois.
 **Teste independente**: criar pela tela e encontrá-la na lista, marcada como
 declarada.
 
-- [ ] T009 [US1] A equipe da estrutura, ao lado da equipe de projeto
+- [x] T009 [US1] A equipe da estrutura, ao lado da equipe de projeto
   - **Pronta quando**: T003
   - **Descrição**: função irmã de `create_declared_team/3` em `eo/commands.ex`, com organização e o tipo da estrutura. **Não generalizar a existente** — decisão 4 do plano: organização nula é *exigida* lá e *proibida* aqui, e uma função com invariante condicional ao parâmetro é a que ninguém lê depois
   - **Feita quando**: a equipe nasce com organização, autor e proveniência `the_band/declared`; a função da 028 continua intacta
   - **Teste**: o caso da equipe criada, e a suíte da 028 verde sem alteração
+  - **ACRESCENTADO durante a execução**: a recusa de nome repetido exigiu uma **migração** que o plano não previa — índice parcial único em  **onde a origem é declarada**. Só entre declaradas: homônima de uma observada é fato do mundo, não erro; e incluir as observadas faria a COLETA falhar quando o GitHub tivesse dois times de mesmo nome
 
-- [ ] T010 [US1] A tela cria, e diz de onde a equipe veio
+- [x] T010 [US1] A tela cria, e diz de onde a equipe veio
   - **Pronta quando**: T009
   - **Descrição**: em `teams_live/index.ex`, a ação de criar, e a coluna de origem na lista. A distinção observada × declarada **não pode ser carregada só por cor** (FR-002) — texto ou marca legível sem cor. Só quem administra vê a ação
   - **Feita quando**: a equipe criada aparece na lista marcada; quem não administra não vê o botão
