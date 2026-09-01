@@ -3,6 +3,12 @@
 **Input**: specs/052-primeira-conta-do-ambiente/ — spec.md, plan.md, research.md,
 data-model.md, contracts/primeira-conta.md, quickstart.md
 
+> **Issues criadas retroativamente em 2026-09-01** — #648 a #662, uma por tarefa,
+> na ordem T001→#648 … T015→#662. O ciclo desta feature pulou o
+> `/speckit-taskstoissues`, e as tarefas foram executadas sem issue; a lacuna e o
+> que ela custou estão no [fechamento do sprint 026](../../docs/sprints/026-heranca-e-a-producao/aceitacao.md#lacunas-de-processo).
+> As caixas abaixo foram marcadas na mesma data, contra o que o PR #640 entregou.
+
 **Tests**: cada tarefa carrega o seu; as violações primeiro (senha curta, variável
 ausente, admin já existente).
 
@@ -114,7 +120,7 @@ que a plataforma atende requisições.
   - **Descrição**: `docs/producao/runbook.md` §8 — as quatro variáveis, onde defini-las, o que o log diz em cada um dos quatro casos, e a recomendação de REMOVER o valor da senha do painel depois do primeiro acesso (FR-012). Dizer também o custo aceito: enquanto a variável existir, a senha é legível por quem tem acesso ao painel
   - **Feita quando**: a seção é executável por uma pessoa sem esta sessão aberta; o custo está dito no lugar onde alguém vai ler, e não escondido
   - **Teste**: revisão cruzada contra o contrato e o quickstart §7 — nenhum passo do caminho feliz exige console
-- [ ] T015 Gates verdes e PR no padrão
+- [x] T015 Gates verdes e PR no padrão
   - **Pronta quando**: T001–T014
   - **Descrição**: `mix gates > /tmp/gates_052.log 2>&1; echo "EXIT=$?" >> /tmp/gates_052.log`; quickstart §1–§6 com evidências; PR para `development` no padrão 1.6.0, com a seção Issues trazendo resumo por tarefa
   - **Feita quando**: EXIT=0; as evidências do quickstart olhadas uma a uma; PR aberto com revisor pedido

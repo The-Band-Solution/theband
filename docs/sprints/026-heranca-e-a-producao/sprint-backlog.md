@@ -1,6 +1,6 @@
 # Sprint 026 — Herança e a produção
 
-**Período**: 2026-08-29 a 2026-09-05
+**Período**: 2026-08-29 a 2026-09-05 — **fechado em 2026-09-01** ([review](sprint-review.md))
 **Herança**: retrabalho das US [#573](https://github.com/The-Band-Solution/theband/issues/573)
 e [#598](https://github.com/The-Band-Solution/theband/issues/598)
 (aceitação do [sprint 025](../025-contas-e-o-elo-do-github/aceitacao.md))
@@ -78,9 +78,13 @@ itens (2 tarefas de herança + 2 PRs + 3 US e 7 tarefas da 050).
 
 ## Definition of Done do sprint
 
-- [ ] quality gates verdes nas branches (L60, EXIT no log)
-- [ ] base de conhecimento válida
-- [ ] issues #617–#618, #620–#629 encerradas APÓS a aceitação
-- [ ] `sprint-review.md` escrito
-- [ ] `licoes-aprendidas.md` atualizado
-- [ ] PRs com revisão pedida ao abrir e no board
+- [x] quality gates verdes nas branches (L60, EXIT no log) — 14/14, `EXIT=0` em 2026-09-01
+- [x] base de conhecimento válida — 120 YAML, 14 ontologias, 238 conceitos
+- [ ] issues #617–#618, #620–#629 encerradas APÓS a aceitação — #617, #618 e #634
+      encerradas; **#620–#629 seguem abertas**, à espera da confirmação do
+      [registro de aceitação](aceitacao.md)
+- [x] `sprint-review.md` escrito — [aqui](sprint-review.md)
+- [x] `licoes-aprendidas.md` atualizado — L83 a L90
+- [ ] PRs com revisão pedida ao abrir e no board — **NÃO cumprido**: seis dos nove
+      PRs foram mergeados sem revisor pedido, e nenhum dos nove tem revisão
+      registrada (L89)

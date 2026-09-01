@@ -147,3 +147,117 @@ fechar. Sem este passo, ninguém entra.
 
 5. As contas seguintes nascem em `/accounts`, com senha temporária gerada por
    quem administra. Este passo é só para a primeira.
+
+## §9 [MARCO — pessoa] O domínio próprio — feature 054
+
+**A ordem é a parte que importa.** Cada inversão produz um sintoma diferente, e
+nenhum deles nomeia a causa. Está escrito na ordem em que precisa acontecer.
+
+### Antes de tudo: o repositório pronto
+
+`THE_BAND_ORIGENS_EXTRAS` já precisa existir na versão que está em produção.
+Publicar o nome novo com uma versão que não conhece a variável entrega um
+endereço que responde 200 e não é interativo — as telas não atualizam, e não há
+erro visível. É a P1 da 050, e é o defeito que esta feature existe para não
+introduzir.
+
+Conferir antes de mexer no DNS:
+
+```bash
+bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io
+```
+
+### 1. O DNS aponta — SEM o intermediário na frente
+
+No provedor do domínio, **um** registro de endereço:
+
+| Nome | Aponta para | Observação |
+|---|---|---|
+| `app.theband.dev` | o IP da produção | **com o intermediário desligado** — no Cloudflare, a nuvem **cinza** |
+
+**Não toque no apex nem no `www`.** `theband.dev` serve o **site público**, hoje
+no GitHub Pages (`185.199.108.153` e irmãos). Apontá-lo para a produção tiraria o
+site do ar; adicioná-lo à aplicação no painel faria os dois serviços disputarem o
+mesmo certificado.
+
+*Se inverter*: quem emite o certificado precisa provar que controla o nome, e a
+prova chega por requisição ao próprio endereço. Com o intermediário na frente,
+ela pode nunca chegar — e o sintoma é um certificado que não sai, sem dizer por
+quê.
+
+### 2. O nome entra no painel, e o certificado é emitido
+
+No painel de quem hospeda, na aplicação: adicionar **`app.theband.dev`** — e só
+ele — apontando para a porta da aplicação, com HTTPS por Let's Encrypt. Esperar o
+certificado.
+
+**`.dev` não tem plano B.** O TLD está na lista de pré-carregamento de HSTS dos
+navegadores: sem certificado válido, o navegador recusa antes de qualquer
+requisição sair. Não existe "abre inseguro e a pessoa prossegue" — existe
+inalcançável. **Não divulgue o nome antes deste passo terminar.**
+
+Conferir:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://app.theband.dev/sign-in   # 200
+curl -s -o /dev/null -D - http://app.theband.dev/sign-in | head -2         # 301 → https
+```
+
+### 3. As duas origens são declaradas — ANTES de trocar o `PHX_HOST`
+
+No painel, nas variáveis da aplicação:
+
+```
+THE_BAND_ORIGENS_EXTRAS=https://theband.5.189.161.85.sslip.io
+PHX_HOST=app.theband.dev
+```
+
+**Nessa ordem, e no mesmo deploy.** `THE_BAND_ORIGENS_EXTRAS` é *por onde as
+pessoas chegam*; `PHX_HOST` é *o endereço que a plataforma escreve nos links*.
+Trocar só o segundo deixa o endereço antigo sem conexão viva — que é o mesmo
+defeito, na direção contrária.
+
+Deixar a medida contínua rodando durante o deploy, para provar o SC-004:
+
+```bash
+while true; do
+  printf '%s %s\n' "$(date +%H:%M:%S)" \
+    "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+       https://theband.5.189.161.85.sslip.io/sign-in)"
+  sleep 5
+done
+```
+
+### 4. O intermediário entra — e a cifra vai até a aplicação
+
+Só agora ligar o proxy (nuvem **laranja**), com:
+
+- **modo de cifra**: o que cifra também **entre o intermediário e a aplicação** e
+  valida o certificado. No Cloudflare, `Full (strict)`;
+- **conexões vivas (WebSockets)**: ligadas.
+
+*Se escolher o modo que cifra só até o intermediário*: a aplicação exige cifra
+(`force_ssl` em `config/prod.exs`), o intermediário responde que já cifrou, e
+nasce um **laço de redirecionamento** — a página nunca carrega, e o erro não
+nomeia a causa.
+
+*Se as conexões vivas estiverem desligadas*: HTTP responde 200 e nenhuma tela
+atualiza. O mesmo sintoma da P1, com origem diferente — por isso o passo 5 existe
+mesmo quando o passo 2 passou.
+
+### 5. A conferência que decide: o socket, nos dois endereços
+
+```bash
+bash scripts/medir-enderecos.sh https://app.theband.dev
+bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io
+```
+
+**Os dois têm de passar.** Um `200` no HTTP não é evidência de nada aqui: o
+defeito desta feature produz exatamente um 200 com o socket recusado (L85). O
+script imprime a leitura dos códigos — `403` é recusa de origem, `400` é o
+handshake incompleto do `curl` com a origem **aceita**.
+
+### 6. A pendência é encerrada
+
+Com os dois endereços medidos, marcar a **P1 da 050** como encerrada em
+`specs/050-em-producao/pendencias.md`, com a data e o que a substituiu.

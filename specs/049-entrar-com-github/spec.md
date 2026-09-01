@@ -4,7 +4,8 @@
 
 **Created**: 2026-08-28
 
-**Status**: Draft — backlog (não selecionada para sprint; sprint 023 em curso)
+**Status**: Draft — **pedida de novo em 2026-09-01**, com a plataforma já em
+produção. Sai do backlog; pronta para `/speckit-plan`.
 
 **Input**: User description: "É possível pensar no sign up/sign in com o GitHub? Ao
 logar, já associar a pessoa à pessoa que já puxamos."
@@ -152,6 +153,13 @@ porque as duas primeiras entregam o valor maior.
   expiração, derrubada por troca de senha; nenhuma sessão paralela.
 - **FR-007**: A credencial do aplicativo OAuth MUST viver no ambiente da plataforma
   (como a chave mestra), nunca em tenant, YAML ou repositório.
+- **FR-009** (2026-09-01): A conta que entra pelo OAuth MUST enxergar, no primeiro
+  minuto e sem concessão nenhuma, **a própria pessoa, as equipes de que participa e
+  os projetos em que está**. Isto não é feature nova: `Tenants.Access` já deriva
+  `piso ++ derivados_team ++ derivados_project ++ concedidos` a partir do elo
+  vigente, e escopo derivado **nunca se grava** — é leitura das relações do momento.
+  O requisito existe para que a entrega seja verificada por esse critério, e não
+  pela suposição de que o elo basta.
 - **FR-008**: /accounts MUST mostrar a origem de cada conta (administrativa ou
   GitHub) e a proveniência do elo (declarado ou demonstrado).
 
@@ -174,6 +182,20 @@ porque as duas primeiras entregam o valor maior.
   distinta da declaração manual, em /accounts e /profile.
 - **SC-004**: As invariantes da 045 permanecem: recusa única na porta de senha,
   sessão única versionada, e-mail único — suítes existentes passam sem afrouxar.
+
+## Por que ela volta agora (2026-09-01)
+
+A plataforma entrou em produção nesta madrugada, e a primeira conta passou a nascer
+de variáveis de ambiente (feature 052). Isso resolve **uma** conta — a de quem
+instala. As outras continuam pela fila administrativa que esta spec existe para
+eliminar: criar conta, entregar senha temporária, declarar o elo, uma pessoa por vez.
+
+Com 88 pessoas observadas no piloto, todas com identificador do GitHub, a fila é o
+gargalo entre "a plataforma está no ar" e "a organização usa a plataforma".
+
+E o custo de não ter isto ficou concreto: a senha do primeiro administrador precisou
+passar pelo painel de quem hospeda, e a recomendação de removê-la depois é
+procedimento que alguém pode esquecer. Entrada por OAuth não tem senha para vazar.
 
 ## Assumptions
 

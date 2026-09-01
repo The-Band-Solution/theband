@@ -20,3 +20,18 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "close"
 msgstr ""
+
+#: lib/the_band_web/live/sync_live/index.ex:529
+#, elixir-autogen, elixir-format
+msgid "last progress %{tempo} ago"
+msgstr "último avanço há %{tempo}"
+
+#: lib/the_band_web/live/sync_live/index.ex:528
+#, elixir-autogen, elixir-format
+msgid "no progress for %{tempo}"
+msgstr "sem avanço há %{tempo}"
+
+#: lib/the_band_web/live/sync_live/index.ex:476
+#, elixir-autogen, elixir-format
+msgid "running"
+msgstr "em curso"
