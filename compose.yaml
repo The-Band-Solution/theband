@@ -76,6 +76,14 @@ services:
       THE_BAND_MASTER_KEY: ${THE_BAND_MASTER_KEY:?defina no .env — gere com mix the_band.gen_key}
       PHX_HOST: ${PHX_HOST:-localhost}
       PHX_SERVER: "true"
+      # A primeira conta (feature 052). OPCIONAIS de propósito, e sem `:?`: a
+      # ausência não impede o ensaio de subir, do mesmo jeito que não impede a
+      # produção. Vazias, o log diz quais faltaram e a plataforma sobe sem conta.
+      THE_BAND_TENANT_NOME: ${THE_BAND_TENANT_NOME:-}
+      THE_BAND_TENANT_SLUG: ${THE_BAND_TENANT_SLUG:-}
+      THE_BAND_ADMIN_EMAIL: ${THE_BAND_ADMIN_EMAIL:-}
+      THE_BAND_ADMIN_SENHA: ${THE_BAND_ADMIN_SENHA:-}
+      THE_BAND_ADMIN_NOME: ${THE_BAND_ADMIN_NOME:-}
     ports:
       - "${APP_PORT:-4001}:4000"
     depends_on:
