@@ -27,4 +27,14 @@ echo "aplicando migrações pendentes…"
 /app/bin/the_band eval 'TheBand.Release.migrate()'
 echo "migrações aplicadas."
 
+# A primeira conta — feature 052. Sem ela, uma instalação nova sobe e ninguém
+# consegue entrar: o `seeds.exs` levanta em produção de propósito, e `/accounts`
+# pressupõe que já exista alguém administrando.
+#
+# NÃO derruba o contêiner quando as variáveis faltam, ao contrário das quatro
+# conferidas lá em cima. Sem banco, subir significaria servir zero em toda tela;
+# sem primeira conta, a plataforma está correta e apenas vazia — e derrubar por
+# variável esquecida transformaria um esquecimento em produção fora do ar.
+/app/bin/the_band eval 'TheBand.Release.semear_primeira_conta()'
+
 exec "$@"
