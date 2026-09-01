@@ -233,7 +233,7 @@ msgstr ""
 msgid "%{ok} membership(s) recorded"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:814
+#: lib/the_band_web/live/sync_live/index.ex:883
 #, elixir-autogen, elixir-format
 msgid "%{org} will sync every %{intervalo}."
 msgstr ""
@@ -243,22 +243,22 @@ msgstr ""
 msgid "%{puladas} skipped for having no role chosen"
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:806
+#: lib/the_band_web/live/sync_live/index.ex:875
 #, elixir-autogen, elixir-format
 msgid "Automatic sync is off for %{org}. It will only run when you press Sync."
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:776
+#: lib/the_band_web/live/sync_live/index.ex:845
 #, elixir-autogen, elixir-format
 msgid "Rules recomputed. Nothing changed — the promotions already matched the rules."
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:792
+#: lib/the_band_web/live/sync_live/index.ex:861
 #, elixir-autogen, elixir-format
 msgid "Rules recomputed: %{conceito} %{plural_issue} changed concept, %{escritas} %{plural_promo} written in total."
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:783
+#: lib/the_band_web/live/sync_live/index.ex:852
 #, elixir-autogen, elixir-format
 msgid "Rules recomputed: %{escritas} %{plural} rewritten. No issue changed concept — what changed is which rule decided it."
 msgstr ""
