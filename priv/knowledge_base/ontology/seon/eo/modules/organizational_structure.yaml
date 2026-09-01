@@ -162,6 +162,35 @@ relations:
         é um tipo de matriz, é uma organização que ocupa posição na estrutura da
         matriz. Por ser contingente, admite início e fim.
 
+  - id: eo.team_part_of_team
+    name: is part of
+    label: { pt-BR: "é parte de", en: "is part of" }
+    source: eo.team
+    target: eo.team
+    type: part_whole
+    cardinality: { source: many, target: many }
+    temporal: { type: historical_relation }
+    semantics:
+      description: >
+        Uma equipe pode ser parte de outra — é o caso da célula dentro do
+        departamento, ou do time dentro da frente. Mesma forma que
+        eo.organization_part_of_organization: é parthood entre coletivos, não
+        generalização, e por ser contingente admite início e fim.
+
+        A cardinalidade é muitos para muitos porque a estrutura real não é
+        árvore: a mesma equipe pode compor mais de uma frente ao mesmo tempo, e
+        limitar a um todo forçaria a organização a escolher qual das verdades
+        registrar.
+
+        A relação é ACÍCLICA por restrição, e não por construção: nada no
+        modelo impede declarar A parte de B e B parte de A, e um ciclo faria
+        qualquer agregação pela hierarquia não terminar. A recusa é da
+        aplicação.
+
+        O período é da RELAÇÃO, não das equipes: uma equipe que deixou de ser
+        parte de outra continua existindo com o histórico dela intacto — a
+        composição terminou, a equipe não.
+
   - id: eo.organizational_unit_part_of_organization
     name: is part of
     label: { pt-BR: "é parte de", en: "is part of" }

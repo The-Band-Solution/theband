@@ -15,7 +15,7 @@ revisto.
 
 ## Phase 1: Setup
 
-- [ ] T001 Abrir baseline dos gates
+- [x] T001 Abrir baseline dos gates
   - **Pronta quando**: nada além do repositório; branch nascida de `development`
   - **Descrição**: `mix gates > /tmp/gates_055_baseline.log 2>&1; echo "EXIT=$?" >> /tmp/gates_055_baseline.log`, execução TERMINADA antes de editar. O veredito é o código de saída, dentro do log, e nada roda depois dele (L60, princípio XI)
   - **Feita quando**: `EXIT=0` na última linha, sem edição concorrente
@@ -23,17 +23,18 @@ revisto.
 
 ## Phase 2: Foundational
 
-- [ ] T002 O conceito da composição entra na ontologia
+- [x] T002 O conceito da composição entra na ontologia
   - **Pronta quando**: T001
-  - **Descrição**: `priv/knowledge_base/ontology/seon/eo/modules/team_composition.yaml` com o conceito e a relação entre equipes, **e a entrada em `modules:` do `ontology.yaml` da EO**. A segunda parte não é detalhe: sem ela o conceito conta e não aparece na página da ontologia — é exatamente a #527
-  - **Feita quando**: o validador aceita; o conceito aparece em `docs/ontology/eo.md` depois de regenerar
-  - **Teste**: `.venv/bin/python3 scripts/validate_knowledge_base.py` sai `0`; e removendo a linha de `modules:`, o validador **reprova** com a mensagem do módulo não declarado
+  - **Descrição**: a relação `eo.team_part_of_team` no módulo `organizational_structure.yaml` — **não em módulo novo**. O módulo existente já traz `eo.organization_part_of_organization` (`part_whole`, `temporal: historical_relation`) e `eo.team`: a composição de equipes é a mesma forma entre outros dois nós, e módulo novo para uma relação seria estrutura sem problema que a justifique. **Corrigido em relação ao plano durante a execução, com a razão — L82**
+  - **Feita quando**: o validador aceita, e a relação **aparece em `docs/ontology/eo.md`** depois de regenerar — que é o que a #527 exigia provar
+  - **Teste**: `.venv/bin/python3 scripts/validate_knowledge_base.py` sai `0` e conta uma relação a mais (174 → 175); `grep team_part_of_team docs/ontology/eo.md` devolve linha
 
-- [ ] T003 A migração: a composição e o equívoco
+- [x] T003 A migração: a composição e o equívoco
   - **Pronta quando**: T002; `data-model.md` lido
   - **Descrição**: tabela de composição com `tenant_id`, `parte_id`, `todo_id`, `started_at`, `ended_at`, `declared_by_user_id`, `ended_by_user_id`, e **índice parcial único** em `(tenant_id, parte_id, todo_id)` onde `ended_at` é nulo. Mais três colunas em `eo_team_memberships`: `invalidado_em`, `invalidado_por_user_id`, `motivo_invalidacao`. Nenhuma coluna existente muda
   - **Feita quando**: `mix ecto.migrate` e o rollback voltam ao esquema anterior sem resíduo
   - **Teste**: a ida e a volta — `mix ecto.migrate` seguido de `mix ecto.rollback`, e o `structure.sql` conferido nos dois estados
+  - **ACRESCENTADO durante a execução**: a migração também **recria o `eo_team_memberships_vigente_index`**. Ele nasceu em 2026-08-14 com `where: "ended_at IS NULL"`, e sem o segundo termo um vínculo invalidado continuaria ocupando a vaga única — **vincular de novo depois de corrigir um engano seria recusado pelo banco**, deixando quem errou sem saída. O custo da decisão 2 do plano não vive só nas consultas: vive no índice
 
 ## Phase 3: US2 — A pessoa entra, sai, e o que ela fez continua lá (P1)
 
@@ -46,31 +47,31 @@ período anterior mostra o mesmo número antes e depois.
 > Esta fase vem antes da US1 **de propósito**. O invariante mais caro da feature
 > está aqui, e ele é o que decide o desenho das outras duas.
 
-- [ ] T004 [US2] A violação: registrar saída não pode apagar
+- [x] T004 [US2] A violação: registrar saída não pode apagar
   - **Pronta quando**: T003
   - **Descrição**: `test/the_band/ontology/seon/eo/team_membership_test.exs` — escrever PRIMEIRO o caso do SC-003: um vínculo com período, um número medido para aquele período, a saída registrada com data posterior, e **o mesmo número medido de novo**. Falha agora porque a função não existe — é o ponto (L77)
   - **Feita quando**: o caso existe e falha por ausência da função, não por sintaxe
   - **Teste**: `MIX_ENV=test mix test test/the_band/ontology/seon/eo/team_membership_test.exs` reprova com função indefinida
 
-- [ ] T005 [US2] Vincular pessoa, com papel e início
+- [x] T005 [US2] Vincular pessoa, com papel e início
   - **Pronta quando**: T004 escrito e reprovando
   - **Descrição**: comando em `eo/commands.ex` que grava o vínculo declarado com `declared_by_user_id` — distinto do `record_derived_team_membership/2`, que é derivado (research R1). Recusa quando já existe vínculo vigente, pela **violação do índice parcial**, e não por consulta prévia: a consulta prévia perde a corrida entre duas abas, como a 052 provou
   - **Feita quando**: o vínculo nasce com autor e início; a segunda tentativa vigente devolve `{:error, motivo}` nomeando desde quando o primeiro vale
   - **Teste**: o caso da duplicata vigente, e o caso **concorrente** — duas chamadas simultâneas produzem **um** vínculo, e a perdedora lê a violação como "já existe"
 
-- [ ] T006 [US2] Registrar a saída
+- [x] T006 [US2] Registrar a saída
   - **Pronta quando**: T005
   - **Descrição**: comando que grava `ended_at` e quem registrou. **Nenhuma linha é removida** (C2 do contrato). Data no passado é aceita — quem declara sabe mais que a plataforma; data no **futuro** é recusada, porque afirmaria um fato que ainda não aconteceu
   - **Feita quando**: T004 passa inteiro; a pessoa aparece no histórico com o período fechado
   - **Teste**: o caso do SC-003 (o número que não muda), mais o caso da data futura recusada
 
-- [ ] T007 [US2] Registrar o equívoco, sem apagar
+- [x] T007 [US2] Registrar o equívoco, sem apagar
   - **Pronta quando**: T006
   - **Descrição**: comando que preenche `invalidado_em`, `invalidado_por_user_id` e `motivo_invalidacao`. O vínculo deixa de valer para **qualquer** período, e o registro permanece. **`Repo.delete` não aparece nesta feature** — se aparecer, o desenho mudou
   - **Feita quando**: o vínculo invalidado não conta em período nenhum; a linha continua consultável com a razão
   - **Teste**: o caso do equívoco, e `grep -rn "Repo.delete" lib/the_band/ontology/seon/eo/commands.ex` devolvendo **zero**
 
-- [ ] T008 [US2] "Vigente" passa a ter duas condições, em todo lugar
+- [x] T008 [US2] "Vigente" passa a ter duas condições, em todo lugar
   - **Pronta quando**: T007
   - **Descrição**: varrer `eo/queries.ex` e `eo/visibility.ex` por toda consulta que hoje decide vigência por `ended_at` nulo, e acrescentar `invalidado_em` nulo. É o custo declarado da decisão 2 do plano, e a caça aos irmãos que a L81 exige: derivar o padrão e varrer o repositório **antes** de entregar
   - **Feita quando**: nenhuma consulta de vínculo vigente considera só uma condição; o que a varredura achou está migrado ou nomeado nas pendências

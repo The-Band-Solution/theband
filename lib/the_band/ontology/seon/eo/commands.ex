@@ -47,6 +47,151 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   def upsert_person_from_source(tenant, attrs), do: upsert(Person, tenant, attrs)
 
   @doc """
+  Vincula uma pessoa a uma equipe, por **declaração** — feature 055, FR-003.
+
+  Distinto de `record_derived_team_membership/2`, que é derivado da coleta: aqui
+  alguém afirma, e o autor fica registrado.
+
+  **A recusa da duplicata vem do banco, não de consulta prévia.** Um `SELECT`
+  antes do `INSERT` perde a corrida entre duas abas — foi o que a feature 052
+  provou quando a garantia contra dois administradores veio dos índices únicos.
+  Aqui o índice parcial `eo_vinculo_vigente_da_pessoa_index` faz o mesmo papel, e
+  a violação é lida como "já existe vínculo vigente".
+  """
+  @spec declare_team_membership(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          map(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def declare_team_membership(%Tenant{id: tenant_id}, team_id, person_id, attrs, actor_id) do
+    inicio = attrs |> Map.get(:started_at, DateTime.utc_now()) |> DateTime.truncate(:second)
+
+    case vigente(tenant_id, team_id, person_id) do
+      nil ->
+        %TeamMembership{}
+        |> TeamMembership.changeset(%{
+          tenant_id: tenant_id,
+          internal_id: "declared_" <> Ecto.UUID.generate(),
+          team_id: team_id,
+          person_id: person_id,
+          organizational_role_id: Map.get(attrs, :organizational_role_id),
+          started_at: inicio,
+          declared_by_user_id: actor_id
+        })
+        |> Repo.insert()
+        |> relator()
+
+      %TeamMembership{started_at: desde} ->
+        {:error,
+         "esta pessoa já tem vínculo vigente nesta equipe desde #{DateTime.to_date(desde)}"}
+    end
+  end
+
+  @doc """
+  Registra que a pessoa **saiu** da equipe — feature 055, FR-004 e FR-005.
+
+  O vínculo continua existindo com o fim registrado. **Nenhuma linha é removida**,
+  e é isso que o SC-003 mede: um painel de período anterior à saída mostra o mesmo
+  número antes e depois.
+
+  Data no futuro é recusada — afirmaria um fato que ainda não aconteceu. Data no
+  passado é aceita: quem declara sabe mais que a plataforma.
+  """
+  @spec record_team_departure(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          DateTime.t(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def record_team_departure(%Tenant{id: tenant_id}, team_id, person_id, quando, _actor_id) do
+    quando = DateTime.truncate(quando, :second)
+
+    with :ok <- nao_esta_no_futuro(quando),
+         %TeamMembership{} = vinculo <- vigente(tenant_id, team_id, person_id) do
+      vinculo
+      |> TeamMembership.changeset(%{ended_at: quando})
+      |> Repo.update()
+      |> relator()
+    else
+      nil -> {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+      {:error, motivo} -> {:error, motivo}
+    end
+  end
+
+  defp nao_esta_no_futuro(quando) do
+    if DateTime.compare(quando, DateTime.utc_now()) == :gt do
+      {:error, "a saída não pode estar no futuro"}
+    else
+      :ok
+    end
+  end
+
+  # O resultado do Repo vira relator com motivo legível — {:error, changeset} não
+  # serve a quem chama de fora do domínio.
+  defp relator({:ok, registro}), do: {:ok, registro}
+  defp relator({:error, %Ecto.Changeset{} = cs}), do: {:error, motivo_do_changeset(cs)}
+
+  @doc """
+  Registra que o vínculo foi criado **por engano** — feature 055, FR-006.
+
+  A pessoa **nunca** esteve na equipe: o vínculo deixa de valer para período
+  algum. E o registro do equívoco permanece, com autor e razão.
+
+  **A razão é obrigatória**, e não por formalismo: sem ela, um engano registrado
+  no mesmo dia da entrada fica indistinguível de alguém que entrou e saiu no
+  mesmo dia. O banco impõe o trio junto — `eo_equivoco_do_vinculo_completo`.
+  """
+  @spec record_team_membership_mistake(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          String.t(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def record_team_membership_mistake(%Tenant{id: tenant_id}, team_id, person_id, razao, actor_id)
+      when is_binary(razao) and razao != "" do
+    case vigente(tenant_id, team_id, person_id) do
+      nil ->
+        {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+
+      %TeamMembership{} = vinculo ->
+        vinculo
+        |> TeamMembership.changeset(%{
+          invalidated_at: DateTime.utc_now(:second),
+          invalidated_by_user_id: actor_id,
+          invalidation_reason: razao
+        })
+        |> Repo.update()
+        |> relator()
+    end
+  end
+
+  def record_team_membership_mistake(_tenant, _team_id, _person_id, _razao, _actor_id),
+    do: {:error, "o equívoco exige uma razão escrita"}
+
+  # VIGENTE são as DUAS condições: sem fim registrado E sem invalidação. Deixar
+  # uma de fora faz um vínculo invalidado continuar contando — e o defeito não
+  # aparece até alguém somar.
+  defp vigente(tenant_id, team_id, person_id) do
+    TeamMembership
+    |> where(
+      [m],
+      m.tenant_id == ^tenant_id and m.team_id == ^team_id and m.person_id == ^person_id and
+        is_nil(m.ended_at) and is_nil(m.invalidated_at)
+    )
+    |> Repo.one()
+  end
+
+  defp motivo_do_changeset(%Ecto.Changeset{} = changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
+  end
+
+  @doc """
   Cria uma equipe **declarada** — feature 028, FR-007.
 
   `type: "project_team"`, sem organização: o schema já documenta que o que justifica o
