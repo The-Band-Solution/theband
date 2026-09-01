@@ -26,5 +26,62 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Ensaio da imagem de produção (profile "producao") ────────────────────────
+  #
+  # `docker compose --profile producao up --build` sobe a MESMA imagem que o CD
+  # publica, com as variáveis vindas do `.env` — nenhuma env solta na linha de
+  # comando, onde ela vaza para o histórico do shell.
+  #
+  # Sem o profile, `docker compose up` continua subindo só o Postgres de dev: quem
+  # desenvolve não paga o build da release.
+  postgres_prod:
+    profiles: ["producao"]
+    image: postgres:16-alpine
+    container_name: the_band_postgres_prod
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PROD_PASSWORD:-postgres}
+      # O banco NASCE criado. O entrypoint da imagem MIGRA, não cria — e um
+      # Postgres cru fazia o ensaio morrer em `invalid_catalog_name` na primeira
+      # subida, defeito que o quickstart §2 não via porque nunca criava o banco.
+      POSTGRES_DB: ${POSTGRES_PROD_DB:-band_prod}
+    volumes:
+      - the_band_pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    profiles: ["producao"]
+    build: .
+    image: theband:dev
+    container_name: the_band_app
+    # AQUI o `.env` é carregado: o compose lê o arquivo da raiz e resolve os
+    # `${...}` abaixo com ele. O arquivo é ignorado pelo git (.gitignore) e
+    # barrado no build (.dockerignore `.env*`) — não entra na imagem, chega só em
+    # runtime, que é o que o contrato do pipeline exige.
+    #
+    # A lista é a LISTA FECHADA do contrato, escrita variável por variável, e não
+    # um `env_file:` — `env_file` despeja o arquivo inteiro no contêiner, e o
+    # `.env` de quem desenvolve carrega segredo que a imagem não usa (API_KEY).
+    # Segredo que não precisa entrar não entra.
+    environment:
+      # `DATABASE_URL` do `.env` aponta para `localhost`, que dentro do contêiner
+      # é o próprio contêiner. Na rede do compose o host é o nome do serviço —
+      # daí a variável própria do ensaio.
+      DATABASE_URL: ${DATABASE_URL_CONTAINER:?defina no .env — veja .env.example}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?defina no .env — gere com mix phx.gen.secret}
+      THE_BAND_MASTER_KEY: ${THE_BAND_MASTER_KEY:?defina no .env — gere com mix the_band.gen_key}
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PHX_SERVER: "true"
+    ports:
+      - "${APP_PORT:-4001}:4000"
+    depends_on:
+      postgres_prod:
+        condition: service_healthy
+
 volumes:
   the_band_pgdata:
+  the_band_pgdata_prod:

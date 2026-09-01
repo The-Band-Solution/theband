@@ -262,3 +262,38 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Rules recomputed: %{escritas} %{plural} rewritten. No issue changed concept — what changed is which rule decided it."
 msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:40
+#, elixir-autogen, elixir-format
+msgid "Every note says where it came from. No number shows up without a source."
+msgstr "Cada nota diz de onde veio. Nenhum número aparece sem origem."
+
+#: lib/the_band_web/live/session_live/new.ex:62
+#, elixir-autogen, elixir-format
+msgid "No password yet? An administrator generates a temporary one for you."
+msgstr "Sem senha definida? Quem administra gera uma senha temporária para você."
+
+#: lib/the_band_web/live/session_live/new.ex:33
+#, elixir-autogen, elixir-format
+msgid "Notes aren’t music."
+msgstr "Notas não são música."
+
+#: lib/the_band_web/live/session_live/new.ex:57
+#, elixir-autogen, elixir-format
+msgid "The GitHub username works while the link to the observed person is current."
+msgstr "O usuário do GitHub vale enquanto o elo com a pessoa observada estiver vigente."
+
+#: lib/the_band_web/live/session_live/new.ex:44
+#, elixir-autogen, elixir-format
+msgid "What the platform inferred is said as inference, kept apart from what it saw."
+msgstr "O que a plataforma deduziu vem dito como dedução, separado do que ela viu."
+
+#: lib/the_band_web/live/session_live/new.ex:48
+#, elixir-autogen, elixir-format
+msgid "When a note is missing, it says so — it does not play zero instead."
+msgstr "Quando falta nota, ela diz que falta — não toca zero no lugar."
+
+#: lib/the_band_web/live/session_live/new.ex:35
+#, elixir-autogen, elixir-format
+msgid "Your tools keep loose notes: a commit here, an issue there, the same person under three different names. The Band plays those notes together — and what reaches you is music: who does what, with whom, since when."
+msgstr "Suas ferramentas guardam notas soltas: um commit aqui, uma issue ali, a mesma pessoa com três nomes diferentes. O The Band toca essas notas juntas — e o que chega até você é música: quem faz o quê, com quem, desde quando."
