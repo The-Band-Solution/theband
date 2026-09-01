@@ -169,14 +169,16 @@ bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io
 
 ### 1. O DNS aponta — SEM o intermediário na frente
 
-No provedor do domínio, dois registros de endereço:
+No provedor do domínio, **um** registro de endereço:
 
-| Nome | Aponta para |
-|---|---|
-| `theband.dev` | o IP da produção |
-| `www.theband.dev` | o IP da produção |
+| Nome | Aponta para | Observação |
+|---|---|---|
+| `app.theband.dev` | o IP da produção | **com o intermediário desligado** — no Cloudflare, a nuvem **cinza** |
 
-**Com o intermediário desligado** (no Cloudflare, a nuvem **cinza**).
+**Não toque no apex nem no `www`.** `theband.dev` serve o **site público**, hoje
+no GitHub Pages (`185.199.108.153` e irmãos). Apontá-lo para a produção tiraria o
+site do ar; adicioná-lo à aplicação no painel faria os dois serviços disputarem o
+mesmo certificado.
 
 *Se inverter*: quem emite o certificado precisa provar que controla o nome, e a
 prova chega por requisição ao próprio endereço. Com o intermediário na frente,
@@ -185,8 +187,8 @@ quê.
 
 ### 2. O nome entra no painel, e o certificado é emitido
 
-No painel de quem hospeda, na aplicação: adicionar `theband.dev` (e `www`)
-apontando para a porta da aplicação, com HTTPS por Let's Encrypt. Esperar o
+No painel de quem hospeda, na aplicação: adicionar **`app.theband.dev`** — e só
+ele — apontando para a porta da aplicação, com HTTPS por Let's Encrypt. Esperar o
 certificado.
 
 **`.dev` não tem plano B.** O TLD está na lista de pré-carregamento de HSTS dos
@@ -197,8 +199,8 @@ inalcançável. **Não divulgue o nome antes deste passo terminar.**
 Conferir:
 
 ```bash
-curl -s -o /dev/null -w '%{http_code}\n' https://theband.dev/sign-in   # 200
-curl -s -o /dev/null -D - http://theband.dev/sign-in | head -2         # 301 → https
+curl -s -o /dev/null -w '%{http_code}\n' https://app.theband.dev/sign-in   # 200
+curl -s -o /dev/null -D - http://app.theband.dev/sign-in | head -2         # 301 → https
 ```
 
 ### 3. As duas origens são declaradas — ANTES de trocar o `PHX_HOST`
@@ -207,7 +209,7 @@ No painel, nas variáveis da aplicação:
 
 ```
 THE_BAND_ORIGENS_EXTRAS=https://theband.5.189.161.85.sslip.io
-PHX_HOST=theband.dev
+PHX_HOST=app.theband.dev
 ```
 
 **Nessa ordem, e no mesmo deploy.** `THE_BAND_ORIGENS_EXTRAS` é *por onde as
@@ -246,7 +248,7 @@ mesmo quando o passo 2 passou.
 ### 5. A conferência que decide: o socket, nos dois endereços
 
 ```bash
-bash scripts/medir-enderecos.sh https://theband.dev
+bash scripts/medir-enderecos.sh https://app.theband.dev
 bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io
 ```
 

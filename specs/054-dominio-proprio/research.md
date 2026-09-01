@@ -22,7 +22,7 @@ conferido está dito como não conferido.
 - `"*.exemplo.com"` casa o próprio domínio e qualquer subdomínio;
 - item sem host **levanta** na subida, com mensagem nomeando o valor inválido.
 
-**Consequência que muda o desenho**: escrever `https://theband.dev` é mais
+**Consequência que muda o desenho**: escrever `https://app.theband.dev` é mais
 restritivo do que o comportamento de hoje, não menos — hoje o esquema e a porta
 não são comparados. Isso é ganho, e precisa estar dito no contrato para ninguém
 "consertar" a diferença depois.
@@ -68,7 +68,7 @@ conecta", e isso é falso. Limitação escrita é limitação que não vira surp
 
 **O que foi conferido**: o TLD `.dev` está na lista de pré-carregamento de HSTS
 dos navegadores. Consequência prática: o navegador **recusa** HTTP para
-`theband.dev` antes de qualquer requisição sair — não existe "abre inseguro e a
+`app.theband.dev` antes de qualquer requisição sair — não existe "abre inseguro e a
 pessoa clica em prosseguir".
 
 **Consequência para a ordem dos passos**: o nome só pode ser anunciado depois de
