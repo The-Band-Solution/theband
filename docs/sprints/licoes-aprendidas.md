@@ -3082,3 +3082,55 @@ Três formas de evitar, em ordem de força:
 É a mesma família da L70 (número medido no meio de um backfill) e da L84 (`Done`
 no painel não é aplicação no ar): **o instrumento está certo, o momento é que
 está errado** — e o resultado parece bom, que é o que faz ninguém conferir.
+
+---
+
+## L94 — Mensagem que afirma a causa sem conferir manda procurar no lugar errado
+
+**Origem**: Sprint 027 (produção) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** A tela de escopos de acesso mostrava
+*"Já existe concessão vigente para esse alvo"* para **qualquer** erro de
+changeset — falta de campo obrigatório, nível inválido e violação de unicidade
+caíam todos na mesma frase:
+
+```elixir
+{:error, %Ecto.Changeset{}} ->
+  assign(socket, erro: dgettext("errors", "Já existe concessão vigente para esse alvo."))
+```
+
+A pessoa mantenedora tentou conceder escopo de organização a uma conta, recebeu
+essa frase, e concluiu o que a frase diz: **que só uma pessoa pode ter escopo por
+organização**. Não pode ser mais errado — o índice é
+`(tenant_id, user_id, level, target_id)`, e duas contas na mesma organização
+foram provadas por teste, no domínio e pela tela.
+
+O diagnóstico consumiu quatro medições — a contagem no banco de desenvolvimento,
+o índice na migração, `granted_scopes/2` para ver se a lista escondia algo, e a
+busca por um segundo índice — e **nenhuma delas encontrou a causa**, porque a
+causa nunca chegou à tela. A captura da produção derrubou as duas hipóteses que
+eu tinha formado a partir da própria mensagem.
+
+**Por que aconteceu.** O `case` casava a **forma** do erro (`%Ecto.Changeset{}`) e
+escrevia a **causa** mais provável. Enquanto a causa provável é a única, ninguém
+nota; no dia em que for outra, a mensagem mente com convicção — e quem lê para de
+procurar, porque já recebeu uma resposta.
+
+É o sucesso silencioso ao contrário: em vez de um erro que não aparece, **um erro
+que aparece dizendo outra coisa**.
+
+**O que fazer diferente.** Erro exibido a alguém descreve **a situação
+observada**, nunca a restrição presumida. Em Ecto, isso é conferir o
+`constraint` no `opts` do erro antes de nomeá-lo:
+
+```elixir
+if Enum.any?(errors, fn {_c, {_m, opts}} -> opts[:constraint] == :unique end) do
+  # aí sim, a frase da duplicata
+else
+  # e aqui, o que o changeset realmente disse
+end
+```
+
+A pergunta que separa as duas: *"se a causa fosse outra, esta frase mudaria?"* Se
+não muda, ela não está descrevendo o que aconteceu — está descrevendo o que quem
+escreveu imaginou.
