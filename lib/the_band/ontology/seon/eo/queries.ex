@@ -702,6 +702,51 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  Os logins das pessoas pedidas, num mapa — feature 051 (contrato contas-e-elo.md).
+
+  Existe para a lista de contas dizer o GitHub associado de TODAS as linhas numa
+  consulta (L38) — uma por linha seria N+1 na tela de administração.
+  """
+  @spec person_logins(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => String.t() | nil}
+  def person_logins(%Tenant{id: tenant_id}, person_ids) when is_list(person_ids) do
+    from(p in Person,
+      where: p.tenant_id == ^tenant_id and p.id in ^person_ids,
+      select: {p.id, p.login}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
+  Os logins das organizações OBSERVADAS de várias pessoas, num mapa — 051/T009
+  (contrato contas-e-elo.md, correção da aceitação do sprint 025).
+
+  Existe para a busca de pessoas em /accounts dizer a organização de cada
+  resultado (o edge case dos homônimos) em UMA consulta para a página de
+  resultados — por pessoa seria N+1 (L38). Mesmo desenho da leitura singular
+  abaixo: evidência vigente, organização da equipe.
+  """
+  @spec observed_org_logins_of_people(Tenant.t(), [Ecto.UUID.t()]) ::
+          %{Ecto.UUID.t() => [String.t()]}
+  def observed_org_logins_of_people(_tenant, []), do: %{}
+
+  def observed_org_logins_of_people(%Tenant{id: tenant_id}, person_ids) do
+    Repo.all(
+      from e in TeamMembershipEvidence,
+        join: t in Team,
+        on: t.id == e.team_id,
+        join: o in Organization,
+        on: o.id == t.organization_id,
+        where:
+          e.tenant_id == ^tenant_id and e.person_id in ^person_ids and
+            is_nil(e.no_longer_observed_at) and not is_nil(t.organization_id),
+        distinct: true,
+        select: {e.person_id, o.login}
+    )
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+  end
+
+  @doc """
   As organizações em que a pessoa é OBSERVADA — feature 045 (contrato access-scopes.md).
 
   Pela evidência vigente da origem (`no_longer_observed_at` nulo): é o que o GitHub

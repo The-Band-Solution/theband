@@ -44,13 +44,21 @@ defmodule TheBandWeb.AccountsTest do
     assert html_depois =~ "temporária pendente"
   end
 
-  test "criar conta: nasce sem senha, e a tela diz que a entrada recusa", ctx do
+  # Feature 051 (L71: o teste muda com o requisito): a conta deixou de nascer sem
+  # senha — cadastrar_conta/3 cria e emite a temporária num ato só (US1). O
+  # invariante antigo ("nasce sem senha") foi REVOGADO pela spec; o novo é que a
+  # temporária aparece no cadastro, uma vez, com a troca obrigatória pendente.
+  test "criar conta: nasce COM a temporária, mostrada uma vez", ctx do
     {:ok, view, _} = ctx.conn |> log_in(ctx.admin) |> live(~p"/accounts")
 
     email = "nova-#{System.unique_integer([:positive])}@example.test"
     html = render_submit(view, "criar", %{"email" => email, "name" => "Nova"})
 
     assert html =~ email
-    assert html =~ "sem senha — a entrada recusa"
+    [temporaria] = Regex.run(~r/font-mono text-lg">([a-z2-7]+)</, html, capture: :all_but_first)
+    assert String.length(temporaria) >= 12
+    assert html =~ "temporária pendente"
+    # A frase "sem senha" segue existindo para contas LEGADAS (o member da
+    # fixture nasce por create_user) — o invariante novo é a temporária acima.
   end
 end

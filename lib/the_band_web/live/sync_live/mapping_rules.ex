@@ -406,7 +406,32 @@ defmodule TheBandWeb.SyncLive.MappingRules do
   defp como("regex"), do: "regular expression"
   defp como(outro), do: outro
 
-  defp humanizar({:invalid_pattern, motivo}), do: Mapping.explain_refusal(motivo)
+  # 047/T014 (#617): a BORDA traduz o motivo — o domínio devolve a tupla e as
+  # frases moram aqui, no catálogo. Antes, esta cláusula chamava de volta o
+  # domínio (Mapping.explain_refusal) e as três frases viviam em literal no
+  # PatternValidator — o irmão do contraexemplo que derrubou a US1 duas vezes.
+  # Os textos são os MESMOS, byte a byte: mudança de casa, nunca de frase.
+  defp humanizar({:invalid_pattern, {:does_not_compile, razao, posicao}}),
+    do:
+      dgettext("errors", "the expression does not compile: %{razao}, at position %{posicao}",
+        razao: razao,
+        posicao: posicao
+      )
+
+  defp humanizar({:invalid_pattern, :matches_empty}),
+    do:
+      dgettext(
+        "errors",
+        "the expression matches empty text, so it would match every issue in the organisation — a rule that matches everything classifies nothing"
+      )
+
+  defp humanizar({:invalid_pattern, {:too_expensive, orcamento}}),
+    do:
+      dgettext(
+        "errors",
+        "the expression exceeded the evaluation budget of %{orcamento} backtracking steps over real titles from this organisation; nested quantifiers are the usual cause",
+        orcamento: orcamento
+      )
 
   defp humanizar({:unknown_concept, id}),
     do: dgettext("errors", "concept %{id} does not exist in the knowledge base", id: id)
@@ -414,8 +439,11 @@ defmodule TheBandWeb.SyncLive.MappingRules do
   defp humanizar(:unknown_entry),
     do: dgettext("errors", "this proposal no longer exists in the catalogue")
 
+  # O erro do Ecto passa pelo catálogo — errors.po JÁ tem os msgids padrão
+  # ("can't be blank", "has already been taken"); montá-lo à mão os descartava.
   defp humanizar(%Ecto.Changeset{} = changeset) do
-    changeset.errors
-    |> Enum.map_join("; ", fn {campo, {mensagem, _}} -> "#{campo}: #{mensagem}" end)
+    Enum.map_join(changeset.errors, "; ", fn {campo, erro} ->
+      "#{campo}: #{TheBandWeb.CoreComponents.translate_error(erro)}"
+    end)
   end
 end

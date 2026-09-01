@@ -1,126 +1,76 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# The Band — imagem de produção para VPS
+# A imagem de produção — feature 050, contrato em
+# specs/050-em-producao/contracts/pipeline-de-release.md.
 #
-# Duas etapas: a de construção tem Elixir, Node e o código-fonte; a de execução tem
-# só o release e as bibliotecas de sistema que o BEAM precisa. A imagem final não
-# carrega compilador nem fonte, e é o que reduz superfície de ataque e tamanho.
+# Dois estágios, e a MESMA base de SO nos dois (debian bookworm): bcrypt_elixir
+# compila NIF no builder, e um runtime de outra família glibc quebraria em
+# RUNTIME, não no build — o pior lugar. As versões de Elixir/OTP são as do CI
+# (1.20.2 / OTP 29), de propósito: a imagem que vai ao ar é compilada pelo mesmo
+# toolchain que os gates aprovaram.
 #
-# ## O que NÃO pode faltar na etapa final
-#
-# `priv/` inteiro. A base de conhecimento (724K de YAML) e as consultas GraphQL dos
-# conectores vivem lá, e são LIDAS EM TEMPO DE EXECUÇÃO — a aplicação recusa subir
-# sem elas, e uma imagem que copia só `_build` sobe e falha no primeiro boot.
-#
-# ## As versões são fixas de propósito
-#
-# `elixir:1.20` sem digest seguiria a tag e mudaria debaixo do deploy. A versão do
-# Debian da etapa final tem de ser a MESMA da etapa de construção: o BEAM é ligado à
-# libc da imagem onde foi compilado, e misturar bookworm com trixie produz erro de
-# símbolo no boot que não parece erro de versão.
+# Nenhum segredo entra aqui — nem ARG, nem ENV: tudo chega em runtime pelo painel
+# do Dokploy, e o rel/entrypoint.sh recusa subir sem as quatro obrigatórias,
+# nomeando a que falta.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Estes três números NÃO são escolha de estilo: a combinação exata tem de existir
-# como tag em `hexpm/elixir`. A primeira tentativa usou `29.0` e uma data de Debian
-# inventada, e o build reprovou com `not found` — que é o erro que este arquivo
-# existe para não deixar chegar ao servidor.
-#
-# Conferidos no registro em 2026-08-27:
-#   curl -s "https://hub.docker.com/v2/repositories/hexpm/elixir/tags/?name=1.20.2-erlang-29"
-ARG ELIXIR_VERSION=1.20.2
-ARG OTP_VERSION=29.0.3
-ARG DEBIAN_VERSION=bookworm-20260713-slim
+# ── Estágio 1: builder ─────────────────────────────────────────────────────────
+FROM hexpm/elixir:1.20.2-erlang-29.0.5-debian-bookworm-20260713-slim AS builder
 
-ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
-ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
-
-# ─────────────────────────────────────────── construção ───────────────────────
-FROM ${BUILDER_IMAGE} AS builder
-
-RUN apt-get update -y \
-  && apt-get install -y build-essential git curl \
-  && apt-get clean && rm -f /var/lib/apt/lists/*_*
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends build-essential git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+ENV MIX_ENV=prod
 
 RUN mix local.hex --force && mix local.rebar --force
 
-ENV MIX_ENV="prod"
-
-# As dependências vêm ANTES do código-fonte: elas mudam raramente, e esta camada
-# fica em cache enquanto `mix.lock` não muda. Copiar tudo de uma vez recompilaria
-# 100 dependências a cada linha alterada no `lib/`.
+# Deps primeiro, sozinhas: mudar código de aplicação não invalida o cache desta
+# camada — e é ela a mais cara.
 COPY mix.exs mix.lock ./
-RUN mix deps.get --only $MIX_ENV
-RUN mkdir config
-
-COPY config/config.exs config/${MIX_ENV}.exs config/
+RUN mix deps.get --only prod
+COPY config/config.exs config/prod.exs config/
 RUN mix deps.compile
 
 COPY priv priv
-COPY lib lib
 COPY assets assets
+COPY lib lib
 
-# **`compile` ANTES de `assets.deploy`**, e a ordem não é preferência.
-#
-# `app.css` importa `phoenix-colocated/the_band/colocated.css`, que é gerado pelo
-# COMPILADOR do LiveView — não pelo tailwind. E o alias `assets.deploy` deste projeto
-# não inclui `compile`: são só `tailwind`, `esbuild` e `phx.digest`.
-#
-# Na ordem inversa o build morre com `Can't resolve
-# 'phoenix-colocated/the_band/colocated.css'`, e o erro não parece de ordem — parece
-# de dependência de JavaScript ausente. Medido em 2026-08-27: build reprovou em
-# `[builder 13/17]`.
+# O compile vem ANTES do assets.deploy: os assets colocados do Phoenix 1.8
+# (phoenix-colocated/*) são extraídos NA compilação — o tailwind os resolve de
+# _build, e sem compilar antes o build morre em "Can't resolve colocated.css"
+# (medido na primeira tentativa desta imagem).
 RUN mix compile
-
-# `assets.deploy` roda tailwind e esbuild e depois `phx.digest`, que produz os
-# arquivos com hash em `priv/static`. Sem o digest o cache do navegador serve CSS
-# velho depois de cada deploy, e o sintoma parece bug de layout.
 RUN mix assets.deploy
 
-# `runtime.exs` vem por último: ele é lido no BOOT, e não na compilação. Copiá-lo
-# antes não muda nada agora, e invalidaria o cache das camadas acima a cada mudança
-# de configuração de execução.
 COPY config/runtime.exs config/
-
 COPY rel rel
+
 RUN mix release
 
-# ─────────────────────────────────────────── execução ─────────────────────────
-FROM ${RUNNER_IMAGE}
+# ── Estágio 2: runtime ─────────────────────────────────────────────────────────
+FROM debian:bookworm-20260713-slim
 
-# `libstdc++6` e `libncurses5` são do BEAM; `openssl` é de toda conexão TLS,
-# inclusive a do Postgres gerenciado; `ca-certificates` é o que faz a chamada ao
-# GitHub não falhar com erro de certificado — e esse erro NÃO se parece com falta
-# de pacote quando aparece.
-RUN apt-get update -y \
-  && apt-get install -y libstdc++6 openssl libncurses5 locales ca-certificates \
-  && apt-get clean && rm -f /var/lib/apt/lists/*_*
+RUN apt-get update -y && \
+    apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# UTF-8 explícito: nomes de pessoa e título de issue vêm com acento, e sob a locale
-# `POSIX` do Debian mínimo eles chegam ao log e ao HTML corrompidos.
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+# UTF-8 de verdade: nomes de pessoas e títulos de issues carregam acento, e o
+# runtime sem locale os corromperia no log.
+RUN sed -i '/pt_BR.UTF-8/s/^# //' /etc/locale.gen && \
+    sed -i '/en_US.UTF-8/s/^# //' /etc/locale.gen && locale-gen
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
 
 WORKDIR /app
+RUN useradd --create-home band && chown -R band /app
+USER band
 
-# Usuário sem privilégio. O contêiner não precisa de root para servir HTTP, e rodar
-# como root transforma qualquer execução remota de código em execução como root.
-RUN chown nobody /app
-USER nobody
-
-ENV MIX_ENV="prod"
-
-# SEM isto o endpoint NÃO serve. `runtime.exs` só liga `server: true` quando
-# `PHX_SERVER` está definida — é a convenção de release do Phoenix —, e o contêiner
-# subiria, ficaria saudável, e não responderia em porta nenhuma. O sintoma é um
-# health check que falha sem log de erro.
-ENV PHX_SERVER="true"
-
-COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/the_band ./
-
-COPY --chown=nobody:root rel/entrypoint.sh ./entrypoint.sh
+COPY --from=builder --chown=band:band /app/_build/prod/rel/the_band ./
+COPY --from=builder --chown=band:band /app/rel/entrypoint.sh /app/entrypoint.sh
 
 EXPOSE 4000
+ENV PHX_SERVER=true
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bin/the_band", "start"]

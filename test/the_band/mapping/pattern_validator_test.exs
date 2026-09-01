@@ -21,14 +21,30 @@ defmodule TheBand.Mapping.PatternValidatorTest do
       assert is_binary(razao)
       assert is_integer(posicao)
 
-      assert V.explicar({:does_not_compile, razao, posicao}) =~ "at position"
+      # 047/T014 (L71): a frase mudou de casa — do domínio para o catálogo, via
+      # borda. O invariante (a POSIÇÃO entra na mensagem) agora se prova na frase
+      # do catálogo, interpolada com a tupla que o domínio devolve.
+      frase =
+        Gettext.dgettext(
+          TheBandWeb.Gettext,
+          "errors",
+          "the expression does not compile: %{razao}, at position %{posicao}",
+          razao: razao,
+          posicao: posicao
+        )
+
+      assert frase =~ "at position #{posicao}"
     end
 
     test "expressão que casa texto vazio é recusada" do
       assert V.validate("regex", ".*", @titulos) == {:error, :matches_empty}
       assert V.validate("regex", "(a)?", @titulos) == {:error, :matches_empty}
 
-      assert V.explicar(:matches_empty) =~ "match every issue"
+      assert Gettext.dgettext(
+               TheBandWeb.Gettext,
+               "errors",
+               "the expression matches empty text, so it would match every issue in the organisation — a rule that matches everything classifies nothing"
+             ) =~ "match every issue"
     end
 
     test "padrão vazio é recusado em qualquer forma de comparação" do
@@ -57,7 +73,14 @@ defmodule TheBand.Mapping.PatternValidatorTest do
     test "o orçamento vem do catálogo, é em PASSOS, e a mensagem diz o número" do
       assert V.orcamento_passos() == 100_000
 
-      mensagem = V.explicar({:too_expensive, 100_000})
+      mensagem =
+        Gettext.dgettext(
+          TheBandWeb.Gettext,
+          "errors",
+          "the expression exceeded the evaluation budget of %{orcamento} backtracking steps over real titles from this organisation; nested quantifiers are the usual cause",
+          orcamento: 100_000
+        )
+
       assert mensagem =~ "100000"
 
       assert mensagem =~ "backtracking steps", """

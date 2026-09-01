@@ -1,39 +1,16 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-# O que NÃO entra no contexto de construção.
-#
-# A primeira linha é a que importa: `.env` guarda `THE_BAND_MASTER_KEY`, que cifra
-# as credenciais de todas as ferramentas conectadas. Ele não é copiado por nenhum
-# `COPY` do Dockerfile, mas o contexto inteiro é enviado ao daemon — e um `COPY . .`
-# acrescentado por descuido no futuro o levaria para dentro da imagem.
-# ═══════════════════════════════════════════════════════════════════════════════
-.env
-.env.*
-!.env.example
-
-# Compilado na máquina de desenvolvimento: os beams são de outra libc e de outro
-# MIX_ENV, e copiá-los faria o release montar sobre artefato incompatível.
-_build
-deps
-.elixir_ls
-.venv
-
-# Nada disso é lido em produção.
-cover
-docs
-specs
-test
-erl_crash.dump
-*.dump
-
-.git
-.github
-.claude
-.specify
-
-# Os estáticos são gerados por `mix assets.deploy` DENTRO da construção. Os de
-# desenvolvimento têm digest diferente, e copiá-los serviria CSS velho com nome novo.
-priv/static/assets
-priv/static/cache_manifest.json
-
-node_modules
-assets/node_modules
+_build/
+deps/
+.git/
+.elixir_ls/
+node_modules/
+assets/node_modules/
+test/
+docs/
+specs/
+priv/static/assets/
+.env*
+*.log
+.impeccable/
+.claude/
+.github/
+scripts/.venv/

@@ -2742,3 +2742,47 @@ verificador no mesmo commit.
 
 **Aplicada em**: Sprint 025 — o retrabalho amplia o verificador para a classe assign
 por AST e refaz as pendências com amostragem.
+
+---
+
+## L81 — Fechar o contraexemplo não fecha a classe
+
+**Origem**: Sprint 025 (aceitação) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O retrabalho da 047 migrou os 13 pontos que a aceitação do 024
+apontou e ampliou o verificador para a classe assign — e a US1 caiu DE NOVO: as
+mesmas frases-de-tela-em-literal existiam um nível atrás, nascendo em função de
+origem (`PatternValidator.explicar/1`, `primeira_mensagem/1`) e chegando ao mesmo
+ralo assign por trás de uma chamada que o verificador aprova de propósito.
+
+**Por que aconteceu.** O retrabalho mirou a LISTA de achados, não a FORMA deles. A
+fronteira "chamada de função aprovada" é legítima — desde que o que escapa por ela
+esteja enumerado, e ninguém caçou o que escapava.
+
+**O que fazer diferente.** Todo retrabalho de classe fecha com a caça aos IRMÃOS:
+derivar o padrão sintático da classe (aqui, `(erro|ok|error|aviso): funcao(...)`) e
+varrer o repositório por ele ANTES de entregar. O que a varredura achar ou migra no
+mesmo PR ou entra nomeado nas pendências — nunca fica para a próxima aceitação
+descobrir.
+
+---
+
+## L82 — O comentário que contradiz o contrato é a violação documentando a si mesma
+
+**Origem**: Sprint 025 (aceitação) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** Spec, contrato e tasks da 051 pediam a ORGANIZAÇÃO no resultado
+da busca de pessoas (o edge case dos homônimos). A implementação mostrou só nome e
+login — e deixou um comentário dizendo "organização não", com um racional novo, sem
+corrigir contrato nenhum. A US caiu na aceitação por isso.
+
+**Por que aconteceu.** No calor da implementação, a divergência pareceu melhoria e o
+comentário pareceu registro. Mas a regra da casa é outra: erro de contrato se
+corrige NO CONTRATO, no mesmo commit, com a razão — comentário em código não emenda
+documento normativo, só confessa que ele foi ignorado.
+
+**O que fazer diferente.** Ao divergir de spec/contrato/tasks durante a implementação:
+parar, corrigir o documento com data e razão (ou perguntar, se a divergência é
+decisão de produto), e SÓ ENTÃO codificar. Grep de conferência antes do PR:
+comentários com "não"/"em vez de" perto de referências a FR/contrato merecem
+leitura dupla.
