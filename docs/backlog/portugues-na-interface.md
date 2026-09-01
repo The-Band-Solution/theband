@@ -87,17 +87,42 @@ Na ordem, e a ordem é o ponto:
 
 Fazer 2 e 3 antes de 1 é o que garante a reincidência.
 
-## Uma decisão que precisa ser tomada antes
+## A decisão, tomada em 2026-09-01
 
-**Qual é a língua-fonte do produto?** Hoje o `msgid` é ora inglês, ora português,
-e isso é o que produz o caso 2. As duas saídas são legítimas, e nenhuma é
-neutra:
+**O inglês é a língua-fonte do produto.** O `msgid` passa a ser sempre inglês, e
+o `pt` continua existindo como tradução.
 
-- **`msgid` sempre em inglês**, com `pt` como tradução. É a convenção do gettext,
-  e faz a ausência de tradução cair em inglês — o idioma padrão. Custa reescrever
-  os 17 msgids e as traduções que já existem;
-- **`msgid` sempre em português**, com `en` como tradução obrigatória. Mantém a
-  língua em que o produto é pensado, e exige um gate que reprove tradução vazia —
-  senão o caso 2 volta.
+> *"quero tudo em inglês no sistema"* — pessoa mantenedora, 2026-09-01
 
-Sem essa decisão, qualquer correção é local e o problema retorna.
+### O que isso resolve por construção
+
+A ausência de tradução deixa de ser um defeito. Quando falta `msgstr`, o gettext
+devolve o `msgid` — e com a chave em inglês, **a falta cai no idioma padrão**, em
+vez de mostrar português a quem escolheu inglês. O caso 2 acima deixa de ser
+possível, e não por vigilância: por forma.
+
+### O que ela custa
+
+**Dezessete `msgid` são reescritos**, e reescrever chave não é traduzir: a chave
+é o identificador. Trocar `"Senha definida."` por `"Password set."` **quebra o
+vínculo** com a tradução `pt` existente, que precisa ser remapeada no mesmo
+passo. Feito com `mix gettext.extract` sem cuidado, as traduções antigas viram
+obsoletas e as novas nascem vazias — o defeito ao contrário.
+
+### O que ela NÃO decide
+
+**O `pt` fica.** Ele está hoje inalcançável — não existe troca de idioma em
+runtime — e **90% vazio**: 18 traduções preenchidas de 173. Manter é decisão
+consciente, e preserva a intenção do PR #637, que traduziu a tela de entrada
+*"para quando o locale `pt` for servido"*.
+
+**A consequência disso precisa estar dita**: enquanto não houver troca em
+runtime, o `pt` é um catálogo que ninguém lê, e catálogos que ninguém lê
+apodrecem. Se a troca não vier, a decisão honesta no futuro é removê-lo — e não
+mantê-lo por hábito.
+
+### O que muda no verificador
+
+Com o inglês como fonte, o gate ganha uma regra a mais que ele não tinha: **`msgid`
+em português é erro**, e não só literal fora do catálogo. É uma verificação
+barata — a mesma varredura que hoje procura literais passa a olhar as chaves.
