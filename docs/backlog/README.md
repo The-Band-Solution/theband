@@ -9,6 +9,7 @@ escopo — não só a lista.
 | [GitHub → SRO](github-to-sro.md) | ingestão do GitHub para a Scrum Reference Ontology, em fatias verticais | alta |
 | [Papéis Scrum](papeis-scrum.md) | cadastro declarado e alocação de pessoas — o que o GitHub não expõe | alta |
 | [Biblioteca de derivação](tooling-library.md) | extrair a transformação como biblioteca independente | **baixa** |
+| [Setup inicial e a empresa com endereço próprio](setup-inicial-e-multiempresa.md) | o wizard que cria a empresa, conecta organizações do GitHub e dá a ela `<empresa>.theband.dev` | **alta** |
 
 ## Dívidas e defeitos com issue aberta
 
