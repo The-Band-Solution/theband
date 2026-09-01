@@ -14,6 +14,13 @@ próprio de recusa**. As três ausências são decisões, e estão justificadas 
 `mix ecto.gen.migration` ou de um `Logger.error` nosso para a origem recusada, o
 desenho mudou e o plano precisa ser revisto **antes** do código.
 
+> **Issues criadas retroativamente em 2026-09-01** — #664 a #677. As executadas
+> (T001–T010, T013 → #664–#674) nasceram já encerradas, dizendo que vieram depois
+> do trabalho; as três abertas (T011 → #675, T012 → #676, T014 → #677) carregam o
+> estado medido e os passos. O ciclo desta feature também pulou o
+> `/speckit-taskstoissues` — **segunda ocorrência da mesma lacuna**, depois da
+> 052, e é o que a torna padrão em vez de esquecimento.
+
 **Nota de escopo**: três tarefas são **marcos de pessoa** — dependem de acesso ao
 provedor de DNS e ao painel de quem hospeda, e nenhuma quantidade de código as
 executa. Estão marcadas `[MARCO — pessoa]` e ficam no fim, porque o repositório
@@ -133,7 +140,7 @@ e ver o socket aceito nos dois.
 
 ## Phase 6: Polish
 
-- [ ] T013 Gates verdes, PR no padrão e revisão CONFERIDA
+- [x] T013 Gates verdes, PR no padrão e revisão CONFERIDA
   - **Pronta quando**: T003 a T010 concluídas
   - **Descrição**: `mix gates` com o código de saída dentro do log; abrir o PR no padrão da casa — issues com resumo na frente, e revisão pedida **e conferida depois de pedir** com `gh pr view <n> --json reviewRequests`, porque o comando de pedir sai com zero mesmo sem pedir ninguém (L89, L14)
   - **Feita quando**: `EXIT=0`; o PR existe com revisor listado no JSON, e está no board com `Iteration` e `Status`
