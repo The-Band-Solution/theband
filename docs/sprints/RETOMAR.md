@@ -45,14 +45,36 @@ Estas nasceram de coisas que passaram pelo chat e **precisam ser rotacionadas**:
 
 ## O que fazer ao retomar, na ordem
 
-1. **As quatro rotações acima.**
-2. **Merge do #642** e deste PR.
-3. **Fechar o sprint 026** — `sprint-review.md` e as lições. Esta sessão produziu
-   pelo menos seis, listadas abaixo.
-4. **A tela de issue** — pedido novo, ainda sem spec (ver adiante).
+1. **As quatro rotações acima.** ← continuam pendentes; são da pessoa mantenedora
+2. ~~Merge do #642 e deste PR~~ — **feitos** em 2026-09-01 (#642 e #643). Aberto
+   agora: **#644** (specs 049 e 053) e o PR deste fechamento
+3. ~~Fechar o sprint 026~~ — **feito**: [review](026-heranca-e-a-producao/sprint-review.md),
+   [aceitação](026-heranca-e-a-producao/aceitacao.md) e as lições **L83 a L90**.
+   A aceitação classificou 5 entregáveis aceitos e 3 não aceitos, **todos os três
+   por critério sem evidência** — e ela ainda **espera a confirmação da pessoa
+   alocada ao papel de PO**
+4. **A tela de issue** — pedido novo, ainda sem spec (ver adiante)
 5. **O ensaio de restauração em produção** (SC-003) — o dry-run local provou o
    procedimento; falta executá-lo contra o backup do Dokploy, **antes** de haver
-   dado que importe. A janela é agora.
+   dado que importe. **A janela está se fechando**: a produção já tem 4895 issues
+6. **O back-merge da `main` na `development`** — o release v0.2.0 entrou por
+   squash (#641) e a `development` não conhece aquele commit. L83: cada release
+   sem back-merge aumenta a divergência
+
+## O que o fechamento do sprint 026 mediu, e ninguém tinha medido
+
+- `http://…/sign-in` → **301** para HTTPS; `/sign-in` → **200 em 0,65s**; sete
+  rotas de dados sem sessão → **302 em todas** (2026-09-01 11:52 UTC)
+- **SC-004 da 052**: dez subidas seguidas → **1 administrador, 1 organização**
+  (`%{criada: 1, ja_existe: 9}`). Virou teste no repositório
+- **Um teste fraco na FR-005**: desligar a leitura da corrida perdida deixava os
+  16 testes verdes, porque o teste da corrida contava só o vencedor. Corrigido —
+  a mesma injeção agora reprova (L90)
+
+**O que continua sem evidência** (destino registrado na aceitação): a sessão
+sobreviver ao release, a janela de indisponibilidade, o percurso de menos de dois
+minutos, o backup existir fora da máquina, a falha de backup ser visível, e os
+seeds serem recusados no ambiente real.
 
 ## Pedido novo, ainda sem spec
 
