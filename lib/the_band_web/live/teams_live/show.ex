@@ -131,10 +131,14 @@ defmodule TheBandWeb.TeamsLive.Show do
   # confirmou tudo.
   defp frase_do_resultado([], %{"apenas" => "todas"} = params) do
     quantas = params |> Map.get("papel", %{}) |> map_size()
-    "Nothing confirmed: no role was chosen in any of the #{quantas} rows."
+
+    dgettext("errors", "Nothing confirmed: no role was chosen in any of the %{quantas} rows.",
+      quantas: quantas
+    )
   end
 
-  defp frase_do_resultado([], _params), do: "Choose a role before confirming."
+  defp frase_do_resultado([], _params),
+    do: dgettext("errors", "Choose a role before confirming.")
 
   defp frase_do_resultado(resultados, params) do
     ok = Enum.count(resultados, &match?({:ok, _}, &1))
@@ -150,9 +154,14 @@ defmodule TheBandWeb.TeamsLive.Show do
       end
 
     [
-      "#{ok} membership(s) recorded",
-      puladas > 0 && "#{puladas} skipped for having no role chosen",
-      erros != [] && "#{length(erros)} refused: #{Enum.map_join(erros, "; ", &motivo/1)}"
+      dgettext("sistema", "%{ok} membership(s) recorded", ok: ok),
+      puladas > 0 &&
+        dgettext("sistema", "%{puladas} skipped for having no role chosen", puladas: puladas),
+      erros != [] &&
+        dgettext("errors", "%{quantos} refused: %{motivos}",
+          quantos: length(erros),
+          motivos: Enum.map_join(erros, "; ", &motivo/1)
+        )
     ]
     |> Enum.filter(& &1)
     |> Enum.join(" · ")

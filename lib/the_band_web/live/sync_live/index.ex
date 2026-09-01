@@ -772,34 +772,57 @@ defmodule TheBandWeb.SyncLive.Index do
   # mesmo estado devolve zero nos dois. A frase diz isso, em vez de deixar a tela silenciar
   # e quem lê achar que nada rodou.
   defp frase_do_recalculo(%{written: 0, concept_changed: 0}),
-    do: "Rules recomputed. Nothing changed — the promotions already matched the rules."
+    do:
+      dgettext(
+        "sistema",
+        "Rules recomputed. Nothing changed — the promotions already matched the rules."
+      )
 
   defp frase_do_recalculo(%{written: escritas, concept_changed: 0}),
     do:
-      "Rules recomputed: #{escritas} #{plural(escritas, "promotion", "promotions")} rewritten. " <>
-        "No issue changed concept — what changed is which rule decided it."
+      dgettext(
+        "sistema",
+        "Rules recomputed: %{escritas} %{plural} rewritten. No issue changed concept — what changed is which rule decided it.",
+        escritas: escritas,
+        plural: plural(escritas, "promotion", "promotions")
+      )
 
   defp frase_do_recalculo(%{written: escritas, concept_changed: conceito}),
     do:
-      "Rules recomputed: #{conceito} #{plural(conceito, "issue", "issues")} changed concept, " <>
-        "#{escritas} #{plural(escritas, "promotion", "promotions")} written in total."
+      dgettext(
+        "sistema",
+        "Rules recomputed: %{conceito} %{plural_issue} changed concept, %{escritas} %{plural_promo} written in total.",
+        conceito: conceito,
+        plural_issue: plural(conceito, "issue", "issues"),
+        escritas: escritas,
+        plural_promo: plural(escritas, "promotion", "promotions")
+      )
 
   defp plural(1, singular, _plural), do: singular
   defp plural(_n, _singular, plural), do: plural
 
   defp frase_da_mudanca(%{sync_interval_minutes: nil} = tool),
     do:
-      "Automatic sync is off for #{tool.organization_login}. It will only run when you press Sync."
+      dgettext(
+        "sistema",
+        "Automatic sync is off for %{org}. It will only run when you press Sync.",
+        org: tool.organization_login
+      )
 
   defp frase_da_mudanca(tool),
     do:
-      "#{tool.organization_login} will sync every #{intervalo_em_texto(tool.sync_interval_minutes)}."
+      dgettext("sistema", "%{org} will sync every %{intervalo}.",
+        org: tool.organization_login,
+        intervalo: intervalo_em_texto(tool.sync_interval_minutes)
+      )
 
+  # O erro do Ecto passa pelo catálogo (translate_error), e o fallback também —
+  # antes o traverse descartava a tradução e a última frase era literal.
   defp primeira_mensagem(changeset) do
     changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Ecto.Changeset.traverse_errors(&TheBandWeb.CoreComponents.translate_error/1)
     |> Enum.flat_map(fn {_campo, msgs} -> msgs end)
-    |> List.first() || "Could not save the interval."
+    |> List.first() || dgettext("errors", "Could not save the interval.")
   end
 
   # As opções que a tela oferece. O dado guarda MINUTOS, não um rótulo: acrescentar "a cada
