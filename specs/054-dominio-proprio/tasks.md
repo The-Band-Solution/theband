@@ -112,7 +112,15 @@ e ver o socket aceito nos dois.
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io` contra a produção de hoje — sai `0` e imprime `200` e o handshake aceito; e com uma origem inventada no lugar da própria, sai diferente de zero
 
 - [ ] T011 [US1] [MARCO — pessoa] O DNS aponta, e o certificado sai
-  - **Pronta quando**: T009 e T010 mergeados; acesso ao provedor de DNS e ao painel
+  - **ESTADO MEDIDO EM 2026-09-01**: o DNS **já foi apontado**, com o proxy do
+    Cloudflare **ligado**, e o domínio **não foi adicionado no painel**. Medido:
+    `https://theband.dev/sign-in` devolve **526**; o certificado que a origem
+    serve para esse nome é `CN=TRAEFIK DEFAULT CERT`, autoassinado; e
+    `Host: theband.dev` direto na origem devolve **404** — não existe rota. Sem
+    rota, o desafio do Let's Encrypt devolve 404 e o certificado nunca sai. É a
+    inversão que o `§9` previa, acontecendo
+  - **Pronta quando**: T009 e T010 mergeados **e a release que os carrega em
+    produção** (v0.3.0); acesso ao provedor de DNS e ao painel
   - **Descrição**: seguir o `§9` do runbook — registro do nome e do `www` apontando para o IP da produção, **sem** o intermediário na frente; publicar o nome no painel de quem hospeda; esperar o certificado. Só depois ligar o intermediário, em modo que cifra também até a aplicação. `.dev` não tem plano B: sem certificado, o navegador recusa antes de qualquer requisição (research R4)
   - **Feita quando**: `https://theband.dev/sign-in` responde 200 com certificado válido para o nome; `http://theband.dev/sign-in` devolve 301; `www` chega ao mesmo lugar
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.dev` — HTTP conforme, e o handshake do socket **aceito** com a própria origem
