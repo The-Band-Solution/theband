@@ -200,6 +200,38 @@ class KB:
                 if not os.path.exists(path):
                     self.fail("module", f"{oid}: modules/{m}.yaml declarado no ontology.yaml mas ausente")
 
+    def check_modules_declared(self):
+        """Cada arquivo em ``modules/`` está declarado no ``ontology.yaml``.
+
+        A direção inversa da anterior, e a que escapava. Um módulo escrito e não
+        declarado **entra na contagem e no índice de conceitos** — porque ambos
+        varrem o diretório — e **some da página da própria ontologia**, porque o
+        gerador percorre a lista declarada. O número diz 238, o índice lista, e a
+        ontologia omite: quem procura pelo caminho natural conclui que o conceito
+        não existe.
+
+        O gate de derivação reproduzível não pega, e por um motivo que vale
+        registrar: ele compara a documentação gerada com os YAML, e os dois
+        **concordam em omitir**. Encontrado em 2026-08-27 com
+        ``qapo.evaluation_verdict`` (issue #527).
+        """
+        for oid, (d, dirname) in self.ontologies.items():
+            declarados = {str(m) for m in (d.get("modules") or [])}
+            diretorio = f"{dirname}/modules"
+            if not os.path.isdir(diretorio):
+                continue
+            for arquivo in sorted(os.listdir(diretorio)):
+                if not arquivo.endswith(".yaml"):
+                    continue
+                nome = arquivo[: -len(".yaml")]
+                if nome not in declarados:
+                    self.fail(
+                        "module",
+                        f"{oid}: modules/{arquivo} existe mas NÃO está em `modules:` do "
+                        f"ontology.yaml — os conceitos dele contam e não aparecem na "
+                        f"página da ontologia",
+                    )
+
     def check_cycles(self):
         """Nenhum ciclo entre ontologias.
 
@@ -472,6 +504,7 @@ class KB:
         self.check_relation_refs()
         self.check_role_grounding()
         self.check_modules_exist()
+        self.check_modules_declared()
         self.check_cycles()
         self.check_competency_questions()
         self.check_measurements()
