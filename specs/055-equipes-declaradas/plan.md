@@ -49,6 +49,15 @@ período anterior muda ao registrar saída (FR-005)
 
 ### As decisões de desenho (princípio VIII)
 
+> **Corrigido durante a execução (T002), com a razão — L82.** O plano dizia
+> **módulo novo** `team_composition.yaml`. Ao abrir o módulo existente, achei
+> `eo.organization_part_of_organization` — `part_whole` com
+> `temporal: historical_relation`, e `eo.team` na mesma vizinhança. A composição
+> de equipes é **a mesma forma, entre outros dois nós**: módulo novo para uma
+> relação seria estrutura sem problema que a justifique (princípio VIII). Ela
+> entrou como `eo.team_part_of_team` no `organizational_structure.yaml`, e
+> **aparece em `docs/ontology/eo.md`** — que era o que a #527 exigia provar.
+
 **1. Tabela própria para a composição, e conceito na EO — não `parent_team_id`.**
 
 - *Problema*: declarar que uma equipe faz parte de outra, **com autor e data**, e
@@ -124,7 +133,7 @@ specs/055-equipes-declaradas/
 
 ```text
 priv/knowledge_base/ontology/seon/eo/modules/
-└── team_composition.yaml          # NOVO — o conceito, antes da tabela (princípio I)
+└── organizational_structure.yaml  # +1 relação: eo.team_part_of_team (ver a correção abaixo)
 
 priv/repo/migrations/
 └── <ts>_composicao_de_equipes_e_o_equivoco.exs   # NOVO

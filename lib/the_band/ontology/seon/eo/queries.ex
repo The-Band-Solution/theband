@@ -155,6 +155,39 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> Repo.aggregate(:count, :id)
   end
 
+  @doc """
+  Quantas pessoas estavam na equipe **numa data** — feature 055.
+
+  É a consulta que prova o SC-003: registrar a saída de alguém **não pode mudar**
+  o que esta função devolve para uma data anterior à saída. Se mudar, a saída
+  está apagando em vez de encerrar.
+
+  **Vigente naquela data** são três condições, e a terceira é a que a feature
+  acrescentou: começou até a data, não terminou antes dela, e **não foi
+  invalidado**. O vínculo invalidado nunca vigeu, então não conta em data
+  alguma — nem nas anteriores ao reconhecimento do engano.
+
+  ## A borda
+
+  O período é **fechado no início e aberto no fim** — `[started_at, ended_at)`.
+  No instante exato da saída a pessoa já não está. A convenção precisa ser a
+  mesma em toda consulta: com `>=` no lugar de `>`, quem entra numa equipe no dia
+  em que sai de outra contaria nas duas.
+  """
+  @spec count_team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: non_neg_integer()
+  def count_team_members_at(%Tenant{id: tenant_id}, team_id, quando) do
+    TeamMembership
+    |> where(
+      [m],
+      m.tenant_id == ^tenant_id and m.team_id == ^team_id and
+        is_nil(m.invalidated_at) and
+        m.started_at <= ^quando and
+        (is_nil(m.ended_at) or m.ended_at > ^quando)
+    )
+    |> select([m], count(m.id))
+    |> Repo.one()
+  end
+
   defp busca_por_pessoa(query, termo) when termo in [nil, ""], do: query
 
   defp busca_por_pessoa(query, termo) do
@@ -215,26 +248,9 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       |> Enum.group_by(& &1.organization_id)
 
     responsaveis =
-      Repo.all(
-        from m in TeamMembership,
-          join: g in RoleVisibilityGrant,
-          on:
-            g.organizational_role_id == m.organizational_role_id and
-              g.tenant_id == m.tenant_id and is_nil(g.revoked_at) and
-              g.scope == "organization",
-          join: t in Team,
-          on: t.id == m.team_id,
-          join: p in Person,
-          on: p.id == m.person_id,
-          join: r in OrganizationalRole,
-          on: r.id == m.organizational_role_id,
-          where:
-            m.tenant_id == ^tenant_id and is_nil(m.ended_at) and
-              not is_nil(t.organization_id),
-          distinct: [t.organization_id, p.id, r.id],
-          select: %{organization_id: t.organization_id, person: p, role_name: r.name},
-          order_by: [asc: p.name]
-      )
+      tenant_id
+      |> responsaveis_pela_organizacao()
+      |> Repo.all()
       |> Enum.group_by(& &1.organization_id, &Map.take(&1, [:person, :role_name]))
 
     for org <- list_organizations(tenant) do
@@ -244,6 +260,32 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         responsibles: Map.get(responsaveis, org.id, [])
       }
     end
+  end
+
+  # Quem responde pela organização: tem papel com concessão de escopo `organization`,
+  # e vínculo VIGENTE — sem fim registrado e sem invalidação. Extraída da função
+  # acima porque a segunda condição de vigência (feature 055) empurrou a
+  # complexidade dela acima do que o credo aceita.
+  defp responsaveis_pela_organizacao(tenant_id) do
+    from(m in TeamMembership,
+      join: g in RoleVisibilityGrant,
+      on:
+        g.organizational_role_id == m.organizational_role_id and
+          g.tenant_id == m.tenant_id and is_nil(g.revoked_at) and
+          g.scope == "organization",
+      join: t in Team,
+      on: t.id == m.team_id,
+      join: p in Person,
+      on: p.id == m.person_id,
+      join: r in OrganizationalRole,
+      on: r.id == m.organizational_role_id,
+      where: m.tenant_id == ^tenant_id,
+      distinct: [t.organization_id, p.id, r.id],
+      select: %{organization_id: t.organization_id, person: p, role_name: r.name},
+      order_by: [asc: p.name]
+    )
+    |> where([m], is_nil(m.ended_at) and is_nil(m.invalidated_at))
+    |> where([_m, _g, t], not is_nil(t.organization_id))
   end
 
   @doc """
@@ -694,6 +736,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         on: t.id == m.team_id,
         where:
           m.tenant_id == ^tenant_id and m.person_id == ^person_id and is_nil(m.ended_at) and
+            is_nil(m.invalidated_at) and
             is_nil(t.no_longer_observed_at),
         distinct: t.id,
         order_by: [asc: t.name],
@@ -940,7 +983,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       from(m in TeamMembership,
         where:
           m.tenant_id == type(^tenant_id, :binary_id) and
-            m.team_id == type(^team_id, :binary_id) and is_nil(m.ended_at),
+            m.team_id == type(^team_id, :binary_id) and is_nil(m.ended_at) and
+            is_nil(m.invalidated_at),
         distinct: m.person_id
       ),
       :count,
@@ -1036,7 +1080,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         left_join: u in "users",
         on: u.id == m.declared_by_user_id,
         where: m.tenant_id == ^tenant_id and m.person_id == ^person_id,
-        order_by: [desc: is_nil(m.ended_at), asc: r.name],
+        order_by: [desc: is_nil(m.ended_at) and is_nil(m.invalidated_at), asc: r.name],
         select: %{
           id: m.id,
           role_code: r.code,

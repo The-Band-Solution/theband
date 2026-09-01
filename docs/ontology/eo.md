@@ -141,6 +141,7 @@ Exemplos: *A alocação de John como programador na equipe de desenvolvimento do
 | Relação | Origem | Destino | Cardinalidade | Tipo |
 |---|---|---|---|---|
 | `is part of` | `eo.organization` | `eo.organization` | many → zero_or_one | part_whole |
+| `is part of` | `eo.team` | `eo.team` | many → many | part_whole |
 | `is part of` | `eo.organizational_unit` | `eo.organization` | many → one | part_whole |
 | `belongs to` | `eo.organizational_team` | `eo.organization` | many → one | association |
 | `recognizes` | `eo.organization` | `eo.organizational_role` | one → many | association |
@@ -150,6 +151,10 @@ Exemplos: *A alocação de John como programador na equipe de desenvolvimento do
 | `is played by` | `eo.team_member` | `eo.person` | many → one | association |
 
 - **`eo.organization_part_of_organization`** — Uma organização pode ser parte de outra — é o caso da subsidiária dentro do grupo. É relação de parthood, não de generalização: a subsidiária não é um tipo de matriz, é uma organização que ocupa posição na estrutura da matriz. Por ser contingente, admite início e fim.
+- **`eo.team_part_of_team`** — Uma equipe pode ser parte de outra — é o caso da célula dentro do departamento, ou do time dentro da frente. Mesma forma que eo.organization_part_of_organization: é parthood entre coletivos, não generalização, e por ser contingente admite início e fim.
+A cardinalidade é muitos para muitos porque a estrutura real não é árvore: a mesma equipe pode compor mais de uma frente ao mesmo tempo, e limitar a um todo forçaria a organização a escolher qual das verdades registrar.
+A relação é ACÍCLICA por restrição, e não por construção: nada no modelo impede declarar A parte de B e B parte de A, e um ciclo faria qualquer agregação pela hierarquia não terminar. A recusa é da aplicação.
+O período é da RELAÇÃO, não das equipes: uma equipe que deixou de ser parte de outra continua existindo com o histórico dela intacto — a composição terminou, a equipe não.
 - **`eo.organizational_unit_part_of_organization`** — Toda unidade organizacional é parte de exatamente uma organização, e não existe fora dela. A cardinalidade obrigatória no destino é o que a distingue de uma organização: uma organização pode não ser parte de nada.
 - **`eo.organizational_team_belongs_to_organization`** — Uma equipe organizacional pertence a exatamente uma organização, e uma organização tem várias. A definição de eo.organizational_team já afirmava esse vínculo em prosa; declará-lo não inventa semântica, torna explícito o que o conceito diz de si.
 Parte do subkind e não do kind: eo.project_team liga-se a um projeto — um conceito de SPO —, não a uma organização. Pôr a relação em eo.team obrigaria toda equipe de projeto a ter organização, o que é falso em projeto entre organizações.
