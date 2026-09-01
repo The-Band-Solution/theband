@@ -41,7 +41,33 @@ defmodule TheBand.Ingestion.GithubProjects do
   def collect(ctx) do
     with {:ok, quadros} <- buscar_quadros(ctx) do
       mapeamentos = Projects.field_mappings(ctx.tenant)
-      resultado = Enum.map(quadros, &percorrer_quadro(ctx, &1, mapeamentos))
+
+      # O checkpoint existe para a TELA, e não para retomada: sem ele, `/syncs` mostrava
+      # as sete fases cheias enquanto esta ainda corria, e quem olhava concluía que a
+      # coleta tinha travado. Medido em 2026-09-01: a sincronização ficou `running` com
+      # tudo aparentemente completo, e o botão de destravar parecia a saída.
+      #
+      # O total vem do número de quadros que a origem informou — medido, não estimado —,
+      # e o progresso é gravado a cada quadro percorrido.
+      total = length(quadros)
+
+      resultado =
+        quadros
+        |> Enum.with_index(1)
+        |> Enum.map(fn {quadro, indice} ->
+          efeito = percorrer_quadro(ctx, quadro, mapeamentos)
+
+          Ingestion.checkpoint_page(
+            ctx.sync,
+            "github.project",
+            cursor_de(indice, total),
+            indice,
+            total
+          )
+
+          Ingestion.broadcast(ctx.tenant.id, {:sync_progress, ctx.sync.id, "github.project"})
+          efeito
+        end)
 
       {:ok,
        %{
@@ -58,6 +84,11 @@ defmodule TheBand.Ingestion.GithubProjects do
        }}
     end
   end
+
+  # `checkpoint_page/5` com cursor NULO marca a sincronização como `completed` — quem
+  # encerra é o job, depois de todas as fases. Enquanto há quadro a percorrer, o cursor
+  # é o índice; no último, continua não-nulo pela mesma razão.
+  defp cursor_de(indice, total), do: "quadro-#{indice}-de-#{total}"
 
   defp soma(resultado, chave), do: resultado |> Enum.map(&Map.get(&1, chave, 0)) |> Enum.sum()
 

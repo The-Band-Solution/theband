@@ -453,15 +453,35 @@ defmodule TheBandWeb.SyncLive.Index do
               mostra a CONTAGEM: inventar o denominador produziria número que parece
               informação e não é. --%>
         <div :if={sync.status in ["running", "completed"]} class="space-y-3">
+          <%!-- Com o total FECHADO, percentual e barra proporcional. Em curso, o
+                denominador ainda cresce a cada repositório lido — a barra vira
+                indeterminada e o número é a CONTAGEM do que já chegou, sem "de N".
+                Um "de N" provisório convida a ler N como o total, que é o engano que
+                esta tela produziu em produção. --%>
           <div :if={progresso(sync)} class="flex items-center gap-3">
             <progress
+              :if={progresso(sync).total_fechado?}
               class="progress progress-success flex-1"
               value={progresso(sync).feitos}
               max={progresso(sync).total}
             ></progress>
-            <span class="text-sm font-mono w-12 text-right">{progresso(sync).percentual}%</span>
-            <span class="text-xs opacity-70 w-28 text-right">
-              {progresso(sync).feitos} de {progresso(sync).total}
+            <progress :if={!progresso(sync).total_fechado?} class="progress progress-info flex-1"></progress>
+
+            <span
+              :if={progresso(sync).total_fechado?}
+              data-testid="progresso-percentual"
+              class="text-sm font-mono w-12 text-right"
+            >{progresso(sync).percentual}%</span>
+            <span :if={!progresso(sync).total_fechado?} class="text-xs opacity-70 w-12 text-right">
+              {gettext("running")}
+            </span>
+
+            <span class="text-xs opacity-70 w-28 text-right font-mono">
+              <%= if progresso(sync).total_fechado? do %>
+                {progresso(sync).feitos} de {progresso(sync).total}
+              <% else %>
+                {progresso(sync).feitos}
+              <% end %>
             </span>
           </div>
 
@@ -487,12 +507,27 @@ defmodule TheBandWeb.SyncLive.Index do
                 >
                 </div>
               </div>
-              <span class="w-28 shrink-0 text-right font-mono">{contagem(fase)}</span>
+              <span class="w-28 shrink-0 text-right font-mono">{contagem(
+                fase,
+                sync.status != "running"
+              )}</span>
             </div>
           </div>
 
-          <div :if={sync.status == "running" && @fase} class="text-xs">
-            collecting now: <span class="font-mono">{legivel(@fase)}</span>
+          <%!-- "Está acontecendo alguma coisa?" é a pergunta que esta linha responde, e
+                a resposta útil não é um log rolante: é HÁ QUANTO TEMPO algo avançou. Um
+                log diz o que aconteceu; o silêncio dele é ambíguo — pode ser trabalho
+                demorado ou processo morto. O tempo desde o último avanço distingue os
+                dois, e é o número que decide se o botão de destravar é a saída. --%>
+          <div :if={sync.status == "running"} class="flex flex-wrap items-baseline gap-x-3 text-xs">
+            <span :if={@fase}>
+              collecting now: <span class="font-mono">{legivel(@fase)}</span>
+            </span>
+            <span :if={parado_ha(sync)} class={[parado_ha(sync) > 300 && "text-warning"]}>
+              {if parado_ha(sync) > 300,
+                do: gettext("no progress for %{tempo}", tempo: espera_em_texto(parado_ha(sync))),
+                else: gettext("last progress %{tempo} ago", tempo: espera_em_texto(parado_ha(sync)))}
+            </span>
           </div>
         </div>
 
@@ -661,7 +696,11 @@ defmodule TheBandWeb.SyncLive.Index do
     {"github.team_member", "team links"},
     {"github.repository", "repositories"},
     {"github.issue", "issues"},
-    {"promocao", "promotion"}
+    {"promocao", "promotion"},
+    # A coleta de quadros roda DEPOIS da promoção, e não tinha linha aqui. O efeito era
+    # `running` com as sete fases cheias — quem olhava concluía que travou, e o botão de
+    # destravar parecia a saída. Medido na produção em 2026-09-01.
+    {"github.project", "boards"}
   ]
 
   @doc false
@@ -671,6 +710,24 @@ defmodule TheBandWeb.SyncLive.Index do
   # Devolve `nil` quando nenhuma fase informou total — e nesse caso a tela não mostra
   # percentual nenhum. Uma barra sobre denominador inventado é a família da L22: número
   # que parece informação e não é.
+  #
+  # ## Por que o percentual só aparece quando a coleta TERMINA (2026-09-01)
+  #
+  # O denominador das issues é MÓVEL: `coletar_issues/2` acrescenta o `totalCount` de
+  # cada repositório à medida que o percorre. Enquanto a coleta anda, numerador e
+  # denominador crescem juntos e são sempre iguais — e a barra marcava **100% do começo
+  # ao fim**.
+  #
+  # Medido na produção em 2026-09-01: a mesma coleta mostrou `666 de 666` com 100%, e
+  # minutos depois `3476 de 3476`, também com 100%, ainda coletando. O total real da
+  # origem era 4895. Nenhum dos dois números estava errado; o percentual é que afirmava
+  # completude que não existia — e enganou inclusive quem estava investigando.
+  #
+  # Denominador provisório é da mesma família do denominador inventado, e a regra que já
+  # valia para o segundo passa a valer para o primeiro: **sem total fechado, contagem, e
+  # não percentual.** Enquanto corre, a tela mostra quanto já chegou e qual repositório
+  # está sendo lido; quando termina, mostra o percentual, que aí é sobre um total que não
+  # muda mais.
   defp progresso(sync) do
     com_total = Enum.filter(checkpoints(sync), &(&1.expected_count && &1.expected_count > 0))
 
@@ -682,7 +739,12 @@ defmodule TheBandWeb.SyncLive.Index do
         total = Enum.sum(Enum.map(cps, & &1.expected_count))
         feitos = Enum.sum(Enum.map(cps, &min(&1.record_count, &1.expected_count)))
 
-        %{feitos: feitos, total: total, percentual: round(feitos / total * 100)}
+        %{
+          feitos: feitos,
+          total: total,
+          percentual: round(feitos / total * 100),
+          total_fechado?: sync.status != "running"
+        }
     end
   end
 
@@ -711,12 +773,19 @@ defmodule TheBandWeb.SyncLive.Index do
 
   # `nil` é "esta fase não executou"; zero é "executou e não achou nada". A tela diz
   # coisas diferentes para os dois, e é a mesma distinção que o corpo da issue carrega.
-  defp contagem(%{registros: nil}), do: "—"
+  defp contagem(%{registros: nil}, _total_fechado?), do: "—"
 
-  defp contagem(%{registros: feitos, esperado: total}) when is_integer(total) and total > 0,
-    do: "#{feitos} de #{total}"
+  # Com a coleta EM CURSO, nenhuma fase mostra "de N". O esperado das issues cresce a
+  # cada repositório lido, e "3476 de 3476" convida a ler 3476 como o total — quando o
+  # real era 4895. A regra é do sync inteiro, e não da fase: enquanto ele corre, nenhum
+  # denominador está fechado, e o que se sabe é quanto já chegou.
+  defp contagem(%{registros: feitos}, false), do: to_string(feitos)
 
-  defp contagem(%{registros: feitos}), do: to_string(feitos)
+  defp contagem(%{registros: feitos, esperado: total}, _total_fechado?)
+       when is_integer(total) and total > 0,
+       do: "#{feitos} de #{total}"
+
+  defp contagem(%{registros: feitos}, _total_fechado?), do: to_string(feitos)
 
   defp fases(sync) do
     todos = checkpoints(sync)
@@ -857,9 +926,30 @@ defmodule TheBandWeb.SyncLive.Index do
     end
   end
 
+  # Abaixo de um minuto o texto é em SEGUNDOS. Sem esta cláusula, "há 12 segundos"
+  # aparecia como "há 0 min" — que lido literalmente afirma que nada se passou.
+  defp espera_em_texto(segundos) when segundos < 60, do: "#{segundos} s"
   defp espera_em_texto(segundos) when segundos < 3600, do: "#{div(segundos, 60)} min"
   defp espera_em_texto(segundos) when segundos < 86_400, do: "#{div(segundos, 3600)} h"
   defp espera_em_texto(segundos), do: "#{div(segundos, 86_400)} d"
+
+  # Segundos desde o último checkpoint gravado — `nil` quando nenhum foi gravado ainda.
+  #
+  # A ausência é dita como ausência: sem checkpoint, a linha não aparece, em vez de
+  # mostrar zero e afirmar que acabou de avançar.
+  defp parado_ha(sync) do
+    case checkpoints(sync) do
+      [] ->
+        nil
+
+      cps ->
+        ultimo =
+          cps |> Enum.map(& &1.updated_at) |> Enum.reject(&is_nil/1) |> Enum.max(fn -> nil end)
+
+        # `updated_at` já é `utc_datetime` no schema — converter de naive quebraria.
+        ultimo && DateTime.diff(DateTime.utc_now(), ultimo)
+    end
+  end
 
   defp running?(syncs, tool) do
     Enum.any?(syncs, &(&1.connected_tool_id == tool.id and &1.status == "running"))

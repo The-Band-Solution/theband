@@ -28,6 +28,68 @@ defmodule TheBandWeb.SyncCardTest do
     %{conn: log_in(conn, user), tenant: tenant, sync: sync, cenario: cenario}
   end
 
+  describe "o percentual, enquanto a coleta anda" do
+    @doc false
+    # O engano medido em produção, 2026-09-01: o denominador das issues CRESCE a cada
+    # repositório lido, então numerador e denominador são sempre iguais e a barra marcava
+    # 100% do começo ao fim. A mesma coleta mostrou `666 de 666` com 100%, depois
+    # `3476 de 3476` com 100%, ainda coletando — e o total real da origem era 4895.
+    #
+    # Estes dois testes são a violação: eles falham se o percentual voltar a aparecer
+    # antes de o total fechar.
+    test "sync em curso NÃO mostra percentual, nem 'de N'", %{conn: conn, sync: sync} do
+      # O sync nasce `running` e só sai disso em `finish/2` — o `status` que
+      # `checkpoint_page/5` grava é o do CHECKPOINT, não o do sync.
+      Ingestion.checkpoint_page(sync, "github.repository", "cursor", 125, 125)
+      Ingestion.checkpoint_page(sync, "github.issue", "cursor", 3476, 3476)
+
+      {:ok, _live, html} = live(conn, ~p"/syncs")
+
+      # O alvo é o ELEMENTO do percentual, não a string "100%": as barras das fases
+      # usam `style="width: 100%"`, e assertar sobre a string casaria com o CSS.
+      refute html =~ ~s(data-testid="progresso-percentual")
+      refute html =~ "3476 de 3476"
+      # O que já chegou continua visível: em curso a informação é a contagem.
+      assert html =~ "3476"
+    end
+
+    test "sync terminado mostra o percentual sobre o total que não muda mais",
+         %{conn: conn, sync: sync} do
+      Ingestion.checkpoint_page(sync, "github.repository", nil, 125, 125)
+      Ingestion.checkpoint_page(sync, "github.issue", nil, 4895, 4895)
+      {:ok, _} = sync |> Ingestion.reload() |> Ingestion.finish(:completed)
+
+      {:ok, _live, html} = live(conn, ~p"/syncs")
+
+      assert html =~ ~s(data-testid="progresso-percentual")
+      assert html =~ "100%"
+      assert html =~ "4895 de 4895"
+    end
+  end
+
+  describe "a linha de atividade" do
+    test "sync em curso diz há quanto tempo algo avançou", %{conn: conn, sync: sync} do
+      Ingestion.checkpoint_page(sync, "github.issue", "cursor", 100, 4895)
+
+      {:ok, _live, html} = live(conn, ~p"/syncs")
+
+      # A pergunta que a linha responde é "está acontecendo alguma coisa?". Um log
+      # rolante não responde: o silêncio dele é ambíguo entre trabalho demorado e
+      # processo morto. O tempo desde o último avanço distingue os dois.
+      assert html =~ "último avanço" or html =~ "last progress"
+    end
+
+    test "sync terminado não mostra a linha de atividade", %{conn: conn, sync: sync} do
+      Ingestion.checkpoint_page(sync, "github.issue", nil, 4895, 4895)
+      {:ok, _} = sync |> Ingestion.reload() |> Ingestion.finish(:completed)
+
+      {:ok, _live, html} = live(conn, ~p"/syncs")
+
+      refute html =~ "último avanço"
+      refute html =~ "last progress"
+    end
+  end
+
   describe "as fases" do
     test "cada chave da tela corresponde a uma que a coleta grava",
          %{conn: conn, sync: sync} do
@@ -40,7 +102,8 @@ defmodule TheBandWeb.SyncCardTest do
             {"github.team_member:ia", 7},
             {"github.repository", 121},
             {"github.issue", 3383},
-            {"promocao", 4474}
+            {"promocao", 4474},
+            {"github.project", 12}
           ] do
         Ingestion.checkpoint_page(sync, entidade, nil, quantos)
       end
@@ -53,6 +116,11 @@ defmodule TheBandWeb.SyncCardTest do
       assert html =~ ">67<"
       assert html =~ "teams"
       assert html =~ ">8<"
+
+      # A fase de quadros roda depois da promoção e não tinha linha: a tela mostrava
+      # tudo cheio enquanto ela ainda corria, e `running` parecia travado.
+      assert html =~ "boards"
+      assert html =~ ">12<"
     end
 
     test "vínculos de equipe somam os checkpoints por prefixo, e não entram em equipes",

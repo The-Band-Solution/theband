@@ -632,7 +632,7 @@ msgstr ""
 msgid "Choose a role before confirming."
 msgstr ""
 
-#: lib/the_band_web/live/sync_live/index.ex:825
+#: lib/the_band_web/live/sync_live/index.ex:894
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Could not save the interval."
 msgstr ""
