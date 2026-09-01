@@ -13,6 +13,7 @@ defmodule TheBand.Tenants.BootstrapTest do
   alias TheBand.Tenants
   alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Bootstrap
+  alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
   import Ecto.Query
@@ -100,6 +101,15 @@ defmodule TheBand.Tenants.BootstrapTest do
 
       assert conta_admins() == 1
       assert Repo.aggregate(from(u in User, where: u.email == "outra@exemplo.test"), :count) == 0
+    end
+
+    test "dez subidas seguidas produzem exatamente um administrador (SC-004)" do
+      # O `setup` já é a primeira subida; faltam nove para as dez que o SC-004 conta.
+      restantes = for _ <- 1..9, do: Bootstrap.criar_primeira_conta(ambiente_completo())
+
+      assert Enum.all?(restantes, &match?({:ok, :ja_existe}, &1))
+      assert conta_admins() == 1
+      assert Repo.aggregate(from(t in Tenant, where: t.slug == "ensaio"), :count) == 1
     end
 
     test "a senha trocada pela interface sobrevive a cinco subidas (SC-005)" do
@@ -206,6 +216,11 @@ defmodule TheBand.Tenants.BootstrapTest do
 
       assert conta_admins() == 1
       assert Enum.count(resultados, &match?({:ok, :criada, _}, &1)) == 1
+
+      # E o PERDEDOR lê a violação como instalação já feita — não como erro de
+      # quem configurou. Sem esta asserção, contar só o vencedor passa mesmo com
+      # a leitura da corrida desligada, e o boot da segunda subida gritaria.
+      assert Enum.count(resultados, &match?({:ok, :ja_existe}, &1)) == 1
     end
   end
 end

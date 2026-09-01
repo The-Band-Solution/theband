@@ -2786,3 +2786,184 @@ parar, corrigir o documento com data e razão (ou perguntar, se a divergência �
 decisão de produto), e SÓ ENTÃO codificar. Grep de conferência antes do PR:
 comentários com "não"/"em vez de" perto de referências a FR/contrato merecem
 leitura dupla.
+
+---
+
+## L83 — Squash-merge no release diverge os históricos
+
+**Origem**: Sprint 026 (release v0.1.0) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** O PR #636 entrou na `main` por squash, criando ali um commit
+que a `development` não conhecia. O merge de volta abriu **6 conflitos, todos de
+conteúdo idêntico** — a árvore resultante era igual à da `development`.
+
+**Por que aconteceu.** Squash produz um commit novo, sem parentesco com os que ele
+resume. Os conteúdos continuam iguais e os históricos divergem; o git não tem como
+saber que os dois lados são a mesma coisa, e o GitHub passa a avisar
+"main had recent pushes" nos PRs seguintes.
+
+**O que fazer diferente.** Duas coisas, e a primeira evita metade do problema.
+
+**O bump da versão é commit na `development`**, antes de abrir o PR de release —
+nunca numa branch `release/*`. A v0.1.0 saiu de `development → main` e o bump
+voltou junto; a v0.2.0 saiu de `release/v0.2.0 → main`, e **a `development`
+continuou dizendo `0.1.0` no `mix.exs` enquanto a produção servia `0.2.0`**. A
+fonte única da versão afirmando o que o ambiente contradiz, e qualquer imagem
+construída a partir da `development` sairia com a tag errada. Descoberto no
+back-merge, que separou o conflito falso (oito arquivos idênticos) da diferença
+real (uma linha).
+
+**E o back-merge da `main` na `development` depois de cada release**, resolvendo
+os conflitos pela versão da `development`. Sem ele, cada release aumenta a
+divergência e os conflitos falsos crescem. Com o bump no lugar certo, o
+back-merge passa a ser só convergência de histórico — nenhuma decisão de
+conteúdo. A alternativa estrutural — trocar o squash por merge commit **apenas**
+no PR de release — é emenda ao fluxo da constituição 1.7.0, e ainda não foi
+decidida.
+
+---
+
+## L84 — O painel dizer `Done` não significa aplicação no ar
+
+**Origem**: Sprint 026 (produção) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O Dokploy marcou dois deploys como concluídos enquanto o
+contêiner morria em laço.
+
+**Por que aconteceu.** `Done` no painel de quem hospeda significa "criei o
+serviço", não "o processo sobreviveu". São duas afirmações diferentes, e a
+interface mostra só a primeira com a palavra que sugere a segunda.
+
+**O que fazer diferente.** A prova de que a aplicação está no ar é **sempre a
+medição de fora** — requisição ao endereço público, com código de resposta e
+tempo. Painel de terceiro é indício; medição é evidência. Vale para qualquer
+ferramenta de implantação, não só para o Dokploy.
+
+---
+
+## L85 — Um 200 de HTTP pode afirmar o que o socket contradiz
+
+**Origem**: Sprint 026 (produção) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** Com `PHX_HOST` apontando para o host do painel e as pessoas
+acessando por outro endereço, o `check_origin` padrão do Phoenix recusava o
+WebSocket do LiveView com **403** enquanto a página respondia **200**. O log
+registrou `_mount_attempts => "79"`. Para quem olhava, era uma barra de
+carregamento que não terminava.
+
+**Por que aconteceu.** `PHX_HOST` serve para **gerar** URLs; a origem aceita no
+socket é **por onde as pessoas chegam**. Com um endereço só, as duas coincidem e
+ninguém nota que são coisas diferentes.
+
+**O que fazer diferente.** Medir o **socket**, não só o HTTP: uma aplicação
+LiveView só está no ar quando a conexão do socket é aceita. É a classe do sucesso
+silencioso na direção do falso positivo — o verde de uma camada afirmando o que
+a de baixo contradiz.
+
+---
+
+## L86 — Denominador móvel mente igual a denominador inventado
+
+**Origem**: Sprint 026 (produção) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** A barra de progresso de `/syncs` marcou **100% durante a
+coleta inteira**, porque o total crescia junto com o coletado. Enganou inclusive
+a investigação que procurava por que a coleta parecia travada.
+
+**Por que aconteceu.** Percentual pressupõe denominador fechado. Enquanto a
+descoberta e a coleta correm juntas, `coletado/total` é sempre ≈1 — e o número
+mais convincente da tela é o mais vazio.
+
+**O que fazer diferente.** **Sem total fechado, contagem — nunca percentual.**
+Mostrar `1.204 itens` diz a verdade que `100%` esconde. Corrigido no PR #642.
+Vale para toda medida derivada de um denominador ainda em formação — é a mesma
+família da L70 (número medido no meio de um backfill).
+
+---
+
+## L87 — Fase invisível faz trabalho parecer travado
+
+**Origem**: Sprint 026 (produção) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** A coleta de quadros roda depois da promoção e **não tinha
+linha na tela nem checkpoint**. Com as sete fases visíveis cheias e o sync ainda
+`running`, a conclusão natural era que travara — quando faltavam 15 quadros e
+3981 itens para trazer.
+
+**Por que aconteceu.** A tela enumerava as fases que existiam quando foi escrita.
+A fase nova entrou no processo e não na enumeração, e ausência de linha foi lida
+como ausência de trabalho.
+
+**O que fazer diferente.** Toda fase de processo longo nasce com **linha na tela e
+checkpoint**, no mesmo commit que a cria. Enumeração de fases é a mesma classe da
+L80: o instrumento que não vê a fase nova afirma que ela não existe.
+
+---
+
+## L88 — Um segredo de 8 segundos, e o contrato que salvou o diagnóstico
+
+**Origem**: Sprint 026 (release v0.1.0) · **Tipo**: dependência · **Estado**: aberta
+
+**O que aconteceu.** O CD da v0.1.0 falhou porque leu `DOKPLOY_WEBHOOK_URL` **oito
+segundos antes** de o segredo ser criado. A mensagem do contrato foi a que devia
+ser — *"a imagem e a tag existem, mas NÃO houve delivery"* — e por causa dela
+ninguém procurou a imagem no lugar errado. O re-run resolveu em 11s.
+
+**Por que aconteceu.** Marco humano e disparo automático correndo em paralelo:
+o merge disparou o workflow enquanto a pessoa ainda cadastrava o segredo.
+
+**O que fazer diferente.** Nenhuma ação corretiva — o contrato já fazia o certo, e
+a lição é a **confirmação**: mensagem de falha que separa o que aconteceu do que
+não aconteceu vale o custo de escrevê-la, e se paga na primeira falha real.
+Registrar como evidência a favor da prática, não como defeito a corrigir.
+
+---
+
+## L89 — PR sem revisor pedido não é PR revisado, e o merge não sabe disso
+
+**Origem**: Sprint 026 (aceitação) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** Dos nove PRs do sprint, **seis foram mergeados sem revisor
+pedido** (#635, #637, #638, #639, #640, #642). Os três primeiros (#630, #631,
+#632) pediram revisão a duas pessoas, e **nenhuma revisou**: `reviews` está vazio
+nos nove. Ninguém percebeu durante o sprint — o merge não pergunta.
+
+**Por que aconteceu.** A sessão da produção correu em ritmo de incidente, e o
+pedido de revisão é o passo que some primeiro quando o PR é meio para outra
+coisa. O princípio VII da constituição exige revisor diferente de quem
+implementou; a ferramenta não o exige, e o que só o processo exige é o que só o
+processo perde.
+
+**O que fazer diferente.** Conferir o pedido **depois de pedir** —
+`gh pr view <n> --json reviewRequests` —, porque o comando de pedir sai com
+código zero mesmo quando não pede ninguém (L14). E, quando não houver revisor
+possível, **escrever o atestado**: quem revisou, quando, e sob que condição. As
+três situações são diferentes e só uma é lacuna de revisão: *revisão registrada*,
+*revisão atestada sem registro* e *revisão não ocorreu*. O que este sprint
+produziu foi a terceira em seis PRs, e ela não se conserta depois do merge.
+
+---
+
+## L90 — Contar só o vencedor da corrida não prova o perdedor
+
+**Origem**: Sprint 026 (aceitação) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** O teste da corrida da 052 (FR-005) asseverava duas coisas:
+que existe **um** administrador ao fim, e que **exatamente uma** das duas chamadas
+devolveu `{:ok, :criada, _}`. Desligando a leitura da corrida perdida — o
+perdedor passando a devolver `{:error, changeset}` em vez de `{:ok, :ja_existe}` —
+**os 16 testes continuaram verdes**. O defeito só apareceu porque a aceitação
+injetou.
+
+**Por que aconteceu.** As asserções descreviam o **estado final** e o **vencedor**.
+O perdedor não tem efeito no banco, então nenhuma contagem o alcança — e é
+justamente ele que a FR-005 promete atender: numa segunda subida real, o caminho
+comum é o do perdedor, e um `{:error, ...}` ali faria o boot gritar sobre uma
+instalação que está correta.
+
+**O que fazer diferente.** Em toda corrida, **asserir os dois lados**: o que o
+vencedor produziu e o que o perdedor devolveu. A regra vale além de corrida — é a
+forma geral do relator: quando uma função devolve fases diferentes para o mesmo
+estado final, o teste que só olha o estado não distingue as fases. Vale também
+como recado sobre injeção: a injeção que **passa** é a informativa, porque não
+diz "o código está certo", diz "o teste não vê aqui".
