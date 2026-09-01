@@ -1,0 +1,15 @@
+# Esta branch serve o site público em theband.dev — o que estiver aqui vai para a
+# internet. E ela compartilha a árvore de trabalho com a branch de código, onde
+# vivem o .env (com a chave mestra), os artefatos de build e o priv/.
+#
+# Sem este arquivo, um `git add -A` distraído nesta branch publica a chave mestra
+# num repositório público. Ignorar não é organização: é a barreira.
+.env
+.env.*
+_build/
+deps/
+priv/
+cover/
+node_modules/
+*.dump
+erl_crash.dump
