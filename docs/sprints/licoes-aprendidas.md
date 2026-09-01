@@ -3001,3 +3001,43 @@ A forma geral, que vale além deste ciclo: **passo de processo cujo produto vive
 fora do repositório precisa de conferência explícita**, porque nenhum gate o
 alcança. É a mesma família da L57 — verificação que nunca roda é verificação que
 não existe.
+
+---
+
+## L92 — Squash num back-merge apaga o back-merge
+
+**Origem**: Sprint 026 (release v0.3.0) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** O PR #646 fez o back-merge da `main` na `development` — a
+ação que a L83 prescreve — e **foi mergeado por squash**. O conteúdo chegou; a
+ancestralidade não. Duas releases depois, o PR de release da v0.3.0 nasceu
+`DIRTY`, conflitando nos **mesmos arquivos falsos** que o #646 já tinha
+resolvido: gettext, o `tasks.md` da 052, o `bootstrap_test.exs`.
+
+A prova está no próprio histórico: o back-merge do v0.1.0 (`d9c6a57`)
+**sobreviveu**, porque aquele foi mergeado com merge commit. E
+`git merge-base main development` continuava apontando para `cc4b5f9` — a
+v0.1.0 —, como se a v0.2.0 nunca tivesse voltado.
+
+**Por que aconteceu.** Squash existe para transformar N commits em um, e o preço
+é **descartar os pais**. Num PR comum isso é o efeito desejado. Num back-merge,
+o segundo pai **é o produto inteiro** — o conteúdo já era idêntico dos dois
+lados. Squashar um back-merge é pedir o que ele entrega e jogar fora o que ele
+faz.
+
+O que escondeu o erro por um ciclo: **o resultado parecia certo**. Os arquivos
+ficaram corretos, os gates passaram, e nada apareceu até o release seguinte.
+
+**O que fazer diferente.** **Back-merge é mergeado com merge commit, nunca com
+squash** — o repositório permite os três métodos, e a escolha é de quem aperta o
+botão. Para tornar isso conferível em vez de lembrado, o PR de back-merge nasce
+dizendo no título e no corpo que squash o anula, e traz as duas medidas que o
+provam:
+
+```bash
+git diff origin/development          # vazio: nenhuma decisão de conteúdo
+git cat-file -p HEAD | grep -c ^parent   # 2: é isso que o squash apagaria
+```
+
+E a conferência depois: `git merge-base main development` tem que apontar para o
+**último** release, não para o anterior.
