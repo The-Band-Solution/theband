@@ -106,8 +106,13 @@ if config_env() == :prod do
 
   config :the_band, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # `PHX_HOST` responde "que endereço a plataforma escreve nos links".
+  # `THE_BAND_ORIGENS_EXTRAS` responde "por onde as pessoas chegam". Enquanto
+  # houve um endereço só, as duas perguntas tiveram a mesma resposta e ninguém
+  # notou que eram diferentes — ver a P1 da 050 e a feature 054.
   config :the_band, TheBandWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
+    check_origin: TheBandWeb.Origens.aceitas(host, System.get_env("THE_BAND_ORIGENS_EXTRAS")),
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
