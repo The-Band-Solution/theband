@@ -13,7 +13,7 @@ precisa ser revisto antes do código.
 
 ## Phase 1: Setup
 
-- [ ] T001 Abrir baseline dos gates
+- [x] T001 Abrir baseline dos gates
   - **Pronta quando**: nada além do repositório; branch nascida de `development`
   - **Descrição**: `mix gates > /tmp/gates_052_baseline.log 2>&1; echo "EXIT=$?" >> /tmp/gates_052_baseline.log`, run TERMINADA antes de editar. O veredito é o código de saída, e nada roda depois dele (L60)
   - **Feita quando**: `EXIT=0` na última linha, sem edição concorrente
@@ -21,7 +21,7 @@ precisa ser revisto antes do código.
 
 ## Phase 2: Foundational
 
-- [ ] T002 O contrato lido, e a ausência de migração confirmada
+- [x] T002 O contrato lido, e a ausência de migração confirmada
   - **Pronta quando**: T001
   - **Descrição**: conferir contra o código que os três changesets que o contrato reaproveita existem e validam o que ele afirma — `Tenant.changeset/2` (slug `^[a-z0-9-]+$`, único), `User.changeset/2` (e-mail obrigatório e único, papel entre os conhecidos), `User.senha_changeset/3` (mínimo 12, hash dentro do changeset). Conferir também que `unique_index(:tenants, [:slug])` e `unique_index(:users, [:email])` estão no esquema — é neles que o FR-005 se apoia
   - **Feita quando**: as cinco afirmações do contrato conferidas uma a uma contra o código; qualquer divergência corrigida NO CONTRATO, no mesmo commit, com a razão escrita
@@ -34,22 +34,22 @@ precisa ser revisto antes do código.
 **Teste independente**: subir contra um banco vazio com as quatro variáveis e
 entrar pela tela de entrada com aquelas credenciais.
 
-- [ ] T003 [US1] A violação: a senha não pode vazar
+- [x] T003 [US1] A violação: a senha não pode vazar
   - **Pronta quando**: T002
   - **Descrição**: `test/the_band/tenants/bootstrap_test.exs` — escrever PRIMEIRO os casos que provam o FR-006: nem o retorno `:criada` nem o changeset de erro carregam a senha. O teste falha agora, porque o módulo não existe; é o ponto (L77 — verificador novo nasce com teste que NÃO passa por ele)
   - **Feita quando**: os dois casos existem e falham por ausência do módulo, não por erro de sintaxe
   - **Teste**: `mix test test/the_band/tenants/bootstrap_test.exs` reprova nomeando `TheBand.Tenants.Bootstrap` como indefinido
-- [ ] T004 [US1] Criar a primeira conta a partir do ambiente
+- [x] T004 [US1] Criar a primeira conta a partir do ambiente
   - **Pronta quando**: T003; contrato `contracts/primeira-conta.md` escrito (está)
   - **Descrição**: `lib/the_band/tenants/bootstrap.ex` com `criar_primeira_conta(ambiente \\ &System.get_env/1)`. Lê as quatro variáveis da lista FECHADA, cria organização e conta NUMA TRANSAÇÃO (FR-004), com `role: "admin"`, e devolve `{:ok, :criada, %{email:, slug:}}` — **sem a senha**. O parâmetro `ambiente` existe para o teste injetar sem `System.put_env/2`, que vaza entre testes assíncronos
   - **Feita quando**: T003 passa; uma organização e uma conta com marca de administração existem depois da chamada contra banco vazio; a senha não aparece em nenhum campo do retorno
   - **Teste**: `test/the_band/tenants/bootstrap_test.exs` — "cria quando não há admin" e os dois de vazamento do T003
-- [ ] T005 [US1] O release semeia, e o entrypoint chama
+- [x] T005 [US1] O release semeia, e o entrypoint chama
   - **Pronta quando**: T004
   - **Descrição**: `TheBand.Release.semear_primeira_conta/0` em `lib/the_band/release.ex`, usando `Ecto.Migrator.with_repo/2` como `migrate/0` já faz — sobe o repositório sem a árvore de supervisão, para os coletores não começarem a puxar trabalho. Traduz o relator nas quatro frases do contrato e imprime. Uma linha em `rel/entrypoint.sh`, DEPOIS de `Release.migrate()`. **Nunca sai diferente de zero** — o `set -e` derrubaria o contêiner, e a ausência das variáveis é caso previsto (FR-007)
   - **Feita quando**: o quickstart §2 passa — `migrações aplicadas.` seguido de `primeira conta criada: <email>, admin de <slug>.`; a senha não aparece no log
   - **Teste**: quickstart §2 executado, com `docker compose --profile producao logs app | grep -c "$THE_BAND_ADMIN_SENHA"` devolvendo **0** (SC-003)
-- [ ] T006 [US1] Entrar com a conta recém-criada
+- [x] T006 [US1] Entrar com a conta recém-criada
   - **Pronta quando**: T005
   - **Descrição**: percorrer o quickstart §3 — abrir a tela de entrada e autenticar com o e-mail e a senha das variáveis. Nenhum código novo; é a prova de que a conta criada serve para o que existe (SC-001)
   - **Feita quando**: a sessão abre e a pessoa vê a plataforma com poder de administração
@@ -62,17 +62,17 @@ entrar pela tela de entrada com aquelas credenciais.
 **Teste independente**: subir duas vezes com as mesmas variáveis e conferir que a
 segunda não altera conta alguma.
 
-- [ ] T007 [US2] A violação: a senha trocada não pode voltar
+- [x] T007 [US2] A violação: a senha trocada não pode voltar
   - **Pronta quando**: T004
   - **Descrição**: em `bootstrap_test.exs`, o caso que separa esta feature de um defeito — criar, trocar a senha pelo caminho que já existe, chamar `criar_primeira_conta` cinco vezes com a variável no valor ANTIGO, e afirmar que a senha trocada continua valendo. Provar com `Auth`, comparando o hash em vigor, e não por ausência de erro (SC-005)
   - **Feita quando**: o caso existe e reprova se a criação deixar de checar a existência antes de escrever
   - **Teste**: `test/the_band/tenants/bootstrap_test.exs` — "senha trocada sobrevive a cinco subidas"
-- [ ] T008 [US2] Não criar quando já existe administrador
+- [x] T008 [US2] Não criar quando já existe administrador
   - **Pronta quando**: T007
   - **Descrição**: em `bootstrap.ex`, a consulta de existência ANTES de ler o ambiente e de abrir transação — no caminho comum a função faz uma consulta e para. A pergunta é "existe alguma pessoa com marca de administração", nunca "existe este e-mail" (FR-002)
   - **Feita quando**: T007 passa; com admin existente, devolve `:ja_existe` e a contagem de contas não muda; um e-mail DIFERENTE nas variáveis também devolve `:ja_existe`
   - **Teste**: os três casos em `bootstrap_test.exs` — "não cria quando há admin", "e-mail diferente não cria segundo", "senha trocada sobrevive"
-- [ ] T009 [US2] A corrida não produz dois administradores
+- [x] T009 [US2] A corrida não produz dois administradores
   - **Pronta quando**: T008
   - **Descrição**: o teste de duas chamadas concorrentes (`Task.async` x2 contra o mesmo banco), afirmando UM administrador ao fim. A violação de unicidade que o perdedor recebe é lida como `:ja_existe`, e não como erro — research R1. **Nenhum lock novo**: a garantia é dos índices que já existem
   - **Feita quando**: o teste passa; existe exatamente uma conta com marca de administração; o retorno do perdedor é `:ja_existe`
@@ -86,22 +86,22 @@ log nomeia o que houve.
 **Teste independente**: subir contra banco vazio sem nenhuma variável e conferir
 que a plataforma atende requisições.
 
-- [ ] T010 [US3] Nomear todas as variáveis ausentes
+- [x] T010 [US3] Nomear todas as variáveis ausentes
   - **Pronta quando**: T008
   - **Descrição**: em `bootstrap.ex`, `{:error, {:faltando, [atom]}}` com a lista COMPLETA — não o primeiro que faltou. Quem esqueceu duas variáveis descobre as duas numa subida, e não em duas. `THE_BAND_ADMIN_NOME` é opcional (contrato) e não entra na lista
   - **Feita quando**: faltando duas variáveis, a lista traz as duas; nada é criado — nem organização sozinha, nem conta sem organização
   - **Teste**: `bootstrap_test.exs` — "ausência nomeia todas", e o caso que afirma zero organizações depois de uma falta parcial
-- [ ] T011 [US3] A recusa vem dos changesets que já existem
+- [x] T011 [US3] A recusa vem dos changesets que já existem
   - **Pronta quando**: T010
   - **Descrição**: valor presente mas inválido devolve `{:error, %Ecto.Changeset{}}` vindo de `Tenant.changeset/2` ou `User.senha_changeset/3` — nenhuma validação nova (research R5, FR-008). Limpar o campo virtual de senha do changeset devolvido, para que o erro não carregue o segredo
   - **Feita quando**: senha de 11 caracteres é recusada pelo `senha_changeset`; slug com espaço é recusado pelo `Tenant.changeset`; nada é criado nos dois casos; nenhum dos changesets carrega a senha
   - **Teste**: `bootstrap_test.exs` — "recusa vem do changeset existente" usando 11 caracteres, valor que SÓ aquele changeset recusa; se uma cópia da validação existisse, o número passaria
-- [ ] T012 [US3] A plataforma sobe sem as variáveis
+- [x] T012 [US3] A plataforma sobe sem as variáveis
   - **Pronta quando**: T011; T005
   - **Descrição**: percorrer o quickstart §5 e §6 — sem nenhuma variável, e com valores inválidos. O `semear_primeira_conta/0` imprime e sai zero nos dois casos; o endpoint sobe (FR-007)
   - **Feita quando**: nos dois percursos o log NOMEIA o que houve e `/sign-in` responde 200, sem conta alguma
   - **Teste**: quickstart §5 e §6 com as saídas coladas na evidência, e `curl -s -o /dev/null -w "%{http_code}" localhost:4001/sign-in` = 200 em ambos
-- [ ] T013 [US3] Organização existente é reaproveitada
+- [x] T013 [US3] Organização existente é reaproveitada
   - **Pronta quando**: T011
   - **Descrição**: banco restaurado pode ter organizações e nenhum administrador. Slug já presente: a conta nasce DENTRO da organização existente, sem tentar criar uma segunda (FR-011). Sem isto, uma instalação restaurada ficaria sem caminho de entrada — o problema que a feature existe para eliminar
   - **Feita quando**: com a organização já criada e nenhum admin, a chamada devolve `:criada` e existe UMA organização ao fim
@@ -109,7 +109,7 @@ que a plataforma atende requisições.
 
 ## Phase 6: Polish
 
-- [ ] T014 O runbook ganha a primeira conta
+- [x] T014 O runbook ganha a primeira conta
   - **Pronta quando**: T012
   - **Descrição**: `docs/producao/runbook.md` §8 — as quatro variáveis, onde defini-las, o que o log diz em cada um dos quatro casos, e a recomendação de REMOVER o valor da senha do painel depois do primeiro acesso (FR-012). Dizer também o custo aceito: enquanto a variável existir, a senha é legível por quem tem acesso ao painel
   - **Feita quando**: a seção é executável por uma pessoa sem esta sessão aberta; o custo está dito no lugar onde alguém vai ler, e não escondido
