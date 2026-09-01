@@ -7,8 +7,10 @@ herança de [047](../../specs/047-mensagens-internacionalizadas/spec.md) e
 **Avaliado em**: 2026-09-01, na `development` (todos os PRs mergeados), com
 evidência executada nesta avaliação — gates, medição HTTP contra o endereço real
 e a medição do SC-004 que faltava.
-**Papel**: Product Owner — avaliação proposta pelo agente; **a confirmação é da
-pessoa alocada ao papel**, e ainda não aconteceu.
+**Papel**: Product Owner — avaliação proposta pelo agente e **CONFIRMADA pela
+pessoa alocada ao papel em 2026-09-01**, nos vereditos como propostos: 5
+entregáveis aceitos, 3 não aceitos, e as user stories recusadas com o destino
+escrito em vez de encerradas.
 **Tipo de PO**: `sro.product_owner_client` — quem demanda é quem mantém.
 
 ## Resumo
@@ -293,6 +295,22 @@ Nomeadas porque não se fecham sozinhas:
    isso é **revisão atestada sem registro**, e o atestado não foi escrito.
 4. **As issues #620–#629 seguem abertas.** É o correto pela DoD (encerrar após a
    aceitação) — e por isso o destino delas depende da confirmação deste registro.
+
+## O que aconteceu com as issues, depois da confirmação
+
+Executado em 2026-09-01, logo após a confirmação:
+
+| Issue | Ação | Razão |
+|---|---|---|
+| #622 (050/US3) | **encerrada** | entregável aceito, com a ressalva do AS1 registrada no comentário |
+| #623–#629 (050/T001–T007) | **encerradas** | tarefas executadas. A fase delas é `non_successfully_performed` porque alimentam o D5, e isso está escrito em cada comentário — encerrar a issue não apaga a fase |
+| #620 (050/US1) | **segue aberta**, com destino | volta ao product backlog como tarefa nova de medição |
+| #621 (050/US2) | **segue aberta**, primeira da fila do 027 | com o bloqueador nomeado: acesso ao painel do Dokploy |
+| #648–#662 (052/T001–T015) | **criadas e encerradas** | registro retroativo da lacuna 1 abaixo. Cada uma diz que nasceu depois do trabalho — a data de abertura não mente por omissão |
+
+A criação retroativa **não conserta** o que a lacuna custou: `flow.wip.count`
+subcontou o sprint 026 enquanto ele corria, e isso é irrecuperável. O que ela
+recupera é a rastreabilidade daqui para a frente.
 
 ## Destino das user stories
 

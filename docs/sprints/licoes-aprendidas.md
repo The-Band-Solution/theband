@@ -2967,3 +2967,37 @@ forma geral do relator: quando uma função devolve fases diferentes para o mesm
 estado final, o teste que só olha o estado não distingue as fases. Vale também
 como recado sobre injeção: a injeção que **passa** é a informativa, porque não
 diz "o código está certo", diz "o teste não vê aqui".
+
+---
+
+## L91 — O passo do ciclo que não tem gate é o que some
+
+**Origem**: Sprint 026 (fechamento) · **Tipo**: processo · **Estado**: aberta
+
+**O que aconteceu.** Duas features seguidas — a 052 e a 054 — correram
+`/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → **implementação**,
+pulando o `/speckit-taskstoissues`. Nenhuma das duas teve issue no GitHub
+enquanto o trabalho acontecia. Descoberto só no fechamento do sprint, quando a
+aceitação foi procurar as issues das tarefas e não achou.
+
+**Por que aconteceu.** Todo passo anterior do ciclo **produz um arquivo que o
+passo seguinte lê**: sem `spec.md` não há plano, sem `tasks.md` não há o que
+implementar. O `taskstoissues` é o único que produz algo **fora do repositório**
+— e nada dentro dele repara na ausência. Os gates rodam sobre o código; o
+`tasks.md` fica completo e correto; a implementação segue. **Não existe passo
+seguinte que tropece.**
+
+O custo não é burocrático: `flow.wip.count` subcontou o sprint 026 enquanto ele
+corria, e essa medida não se recupera depois. Issues criadas retroativamente
+restauram a rastreabilidade, nunca a série temporal.
+
+**O que fazer diferente.** Tratar `taskstoissues` como **parte da tarefa T001 do
+sprint**, e não como passo solto: nenhuma tarefa começa antes de a issue dela
+existir. E a conferência é uma linha —
+`gh issue list --search "<feature>/T in:title"` devolvendo o número esperado —,
+que cabe na mesma checagem em que se lê o código de saída dos gates.
+
+A forma geral, que vale além deste ciclo: **passo de processo cujo produto vive
+fora do repositório precisa de conferência explícita**, porque nenhum gate o
+alcança. É a mesma família da L57 — verificação que nunca roda é verificação que
+não existe.

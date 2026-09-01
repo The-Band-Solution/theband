@@ -14,6 +14,13 @@ próprio de recusa**. As três ausências são decisões, e estão justificadas 
 `mix ecto.gen.migration` ou de um `Logger.error` nosso para a origem recusada, o
 desenho mudou e o plano precisa ser revisto **antes** do código.
 
+> **Issues criadas retroativamente em 2026-09-01** — #664 a #677. As executadas
+> (T001–T010, T013 → #664–#674) nasceram já encerradas, dizendo que vieram depois
+> do trabalho; as três abertas (T011 → #675, T012 → #676, T014 → #677) carregam o
+> estado medido e os passos. O ciclo desta feature também pulou o
+> `/speckit-taskstoissues` — **segunda ocorrência da mesma lacuna**, depois da
+> 052, e é o que a torna padrão em vez de esquecimento.
+
 **Nota de escopo**: três tarefas são **marcos de pessoa** — dependem de acesso ao
 provedor de DNS e ao painel de quem hospeda, e nenhuma quantidade de código as
 executa. Estão marcadas `[MARCO — pessoa]` e ficam no fim, porque o repositório
@@ -112,7 +119,15 @@ e ver o socket aceito nos dois.
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io` contra a produção de hoje — sai `0` e imprime `200` e o handshake aceito; e com uma origem inventada no lugar da própria, sai diferente de zero
 
 - [ ] T011 [US1] [MARCO — pessoa] O DNS aponta, e o certificado sai
-  - **Pronta quando**: T009 e T010 mergeados; acesso ao provedor de DNS e ao painel
+  - **ESTADO MEDIDO EM 2026-09-01**: o DNS **já foi apontado**, com o proxy do
+    Cloudflare **ligado**, e o domínio **não foi adicionado no painel**. Medido:
+    `https://theband.dev/sign-in` devolve **526**; o certificado que a origem
+    serve para esse nome é `CN=TRAEFIK DEFAULT CERT`, autoassinado; e
+    `Host: theband.dev` direto na origem devolve **404** — não existe rota. Sem
+    rota, o desafio do Let's Encrypt devolve 404 e o certificado nunca sai. É a
+    inversão que o `§9` previa, acontecendo
+  - **Pronta quando**: T009 e T010 mergeados **e a release que os carrega em
+    produção** (v0.3.0); acesso ao provedor de DNS e ao painel
   - **Descrição**: seguir o `§9` do runbook — registro do nome e do `www` apontando para o IP da produção, **sem** o intermediário na frente; publicar o nome no painel de quem hospeda; esperar o certificado. Só depois ligar o intermediário, em modo que cifra também até a aplicação. `.dev` não tem plano B: sem certificado, o navegador recusa antes de qualquer requisição (research R4)
   - **Feita quando**: `https://theband.dev/sign-in` responde 200 com certificado válido para o nome; `http://theband.dev/sign-in` devolve 301; `www` chega ao mesmo lugar
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.dev` — HTTP conforme, e o handshake do socket **aceito** com a própria origem
@@ -125,7 +140,7 @@ e ver o socket aceito nos dois.
 
 ## Phase 6: Polish
 
-- [ ] T013 Gates verdes, PR no padrão e revisão CONFERIDA
+- [x] T013 Gates verdes, PR no padrão e revisão CONFERIDA
   - **Pronta quando**: T003 a T010 concluídas
   - **Descrição**: `mix gates` com o código de saída dentro do log; abrir o PR no padrão da casa — issues com resumo na frente, e revisão pedida **e conferida depois de pedir** com `gh pr view <n> --json reviewRequests`, porque o comando de pedir sai com zero mesmo sem pedir ninguém (L89, L14)
   - **Feita quando**: `EXIT=0`; o PR existe com revisor listado no JSON, e está no board com `Iteration` e `Status`
