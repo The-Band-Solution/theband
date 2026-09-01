@@ -2802,11 +2802,24 @@ resume. Os conteúdos continuam iguais e os históricos divergem; o git não tem
 saber que os dois lados são a mesma coisa, e o GitHub passa a avisar
 "main had recent pushes" nos PRs seguintes.
 
-**O que fazer diferente.** Back-merge da `main` na `development` **depois de cada
-release**, resolvendo tudo pela versão da `development`, que é superconjunto. Sem
-ele, cada release aumenta a divergência e os conflitos falsos crescem. A
-alternativa estrutural — trocar o squash por merge commit **apenas** no PR de
-release — é emenda ao fluxo da constituição 1.7.0, e ainda não foi decidida.
+**O que fazer diferente.** Duas coisas, e a primeira evita metade do problema.
+
+**O bump da versão é commit na `development`**, antes de abrir o PR de release —
+nunca numa branch `release/*`. A v0.1.0 saiu de `development → main` e o bump
+voltou junto; a v0.2.0 saiu de `release/v0.2.0 → main`, e **a `development`
+continuou dizendo `0.1.0` no `mix.exs` enquanto a produção servia `0.2.0`**. A
+fonte única da versão afirmando o que o ambiente contradiz, e qualquer imagem
+construída a partir da `development` sairia com a tag errada. Descoberto no
+back-merge, que separou o conflito falso (oito arquivos idênticos) da diferença
+real (uma linha).
+
+**E o back-merge da `main` na `development` depois de cada release**, resolvendo
+os conflitos pela versão da `development`. Sem ele, cada release aumenta a
+divergência e os conflitos falsos crescem. Com o bump no lugar certo, o
+back-merge passa a ser só convergência de histórico — nenhuma decisão de
+conteúdo. A alternativa estrutural — trocar o squash por merge commit **apenas**
+no PR de release — é emenda ao fluxo da constituição 1.7.0, e ainda não foi
+decidida.
 
 ---
 
