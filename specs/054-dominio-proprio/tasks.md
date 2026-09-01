@@ -21,7 +21,7 @@ precisa estar pronto antes de o primeiro endereço mudar.
 
 ## Phase 1: Setup
 
-- [ ] T001 Abrir baseline dos gates
+- [x] T001 Abrir baseline dos gates
   - **Pronta quando**: nada além do repositório; branch nascida de `development`
   - **Descrição**: `mix gates > /tmp/gates_054_baseline.log 2>&1; echo "EXIT=$?" >> /tmp/gates_054_baseline.log`, execução TERMINADA antes de editar qualquer arquivo. O veredito é o código de saída, escrito dentro do log, e nada roda depois dele (L60, princípio XI)
   - **Feita quando**: `EXIT=0` na última linha do log, sem edição concorrente
@@ -29,7 +29,7 @@ precisa estar pronto antes de o primeiro endereço mudar.
 
 ## Phase 2: Foundational
 
-- [ ] T002 Confirmar a comparação que a lista impõe
+- [x] T002 Confirmar a comparação que a lista impõe
   - **Pronta quando**: T001; `contracts/origens-aceitas.md` escrito
   - **Descrição**: conferir contra `deps/phoenix/lib/phoenix/socket/transport.ex` as três afirmações que o contrato faz e das quais tudo depende: (a) o padrão do endpoint é `check_origin: true` e compara **só o host**; (b) com lista, a comparação inclui esquema e porta, com `nil` casando qualquer valor; (c) requisição **sem** cabeçalho de origem não é checada. Qualquer divergência é corrigida NO CONTRATO, no mesmo commit, com a razão (L82)
   - **Feita quando**: as três afirmações conferidas linha a linha; a tabela "o que muda em relação a hoje" do contrato bate com o que a fonte faz
@@ -47,25 +47,26 @@ duas conectam; subir sem nenhuma e conferir que só a principal conecta.
 > US1 sem ela publica um defeito: o segundo endereço responde 200 e não é
 > interativo. O repositório precisa estar pronto antes de o DNS mudar.
 
-- [ ] T003 [US2] A violação: a ausência não pode liberar
+- [x] T003 [US2] A violação: a ausência não pode liberar
   - **Pronta quando**: T002
   - **Descrição**: `test/the_band_web/origens_test.exs` — escrever PRIMEIRO os casos que provam C2 e C7 do contrato: `nil` e `""` produzem **exatamente** `["https://<host>"]`, e **nenhum** valor de entrada produz lista que aceite origem arbitrária (nem `"*"`, nem `"true"`, nem só vírgulas). O teste falha agora porque o módulo não existe — é o ponto (L77)
   - **Feita quando**: os casos existem e falham por ausência do módulo, não por erro de sintaxe
   - **Teste**: `MIX_ENV=test mix test test/the_band_web/origens_test.exs` reprova com `TheBandWeb.Origens is not available`
 
-- [ ] T004 [US2] A lista de origens vira função pura
+- [x] T004 [US2] A lista de origens vira função pura
   - **Pronta quando**: T003 escrito e reprovando
   - **Descrição**: `lib/the_band_web/origens.ex` com `aceitas/2`, conforme o contrato: host principal sempre primeiro (C1), ausência restringe (C2), ordem preservada (C3), espaços e entradas vazias descartados (C4), entrada sem esquema recebe `https://` (C5), sem duplicatas (C6). Função **pura** — não lê o ambiente por dentro; quem lê é o `runtime.exs`. É o que a torna testável, e é a razão de o módulo existir (decisão 1 do plano)
   - **Feita quando**: T003 passa inteiro; os sete invariantes do contrato têm caso próprio; o módulo não chama `System.get_env/1`
-  - **Teste**: `MIX_ENV=test mix test test/the_band_web/origens_test.exs` verde; `grep -c "System.get_env" lib/the_band_web/origens.ex` devolve `0`
+  - **Teste**: `MIX_ENV=test mix test test/the_band_web/origens_test.exs` verde; `grep -c "System.get_env(" lib/the_band_web/origens.ex` devolve `0` — com o parêntese: o moduledoc **menciona** `System.get_env/1` em prosa, de propósito, para explicar por que a função é pura
 
-- [ ] T005 [US2] O endpoint passa a declarar as origens
+- [x] T005 [US2] O endpoint passa a declarar as origens
   - **Pronta quando**: T004
   - **Descrição**: em `config/runtime.exs`, no bloco de produção, acrescentar `check_origin: TheBandWeb.Origens.aceitas(host, System.get_env("THE_BAND_ORIGENS_EXTRAS"))` à configuração do endpoint. O `host` é o mesmo que já alimenta `url:` — as duas coisas continuam existindo, e é justamente a separação delas que o FR-004 pede
   - **Feita quando**: a configuração do endpoint traz `check_origin` com lista; subir em produção sem a variável nova mantém o comportamento de hoje
-  - **Teste**: `MIX_ENV=prod PHX_HOST=exemplo.test SECRET_KEY_BASE=$(mix phx.gen.secret) DATABASE_URL=ecto://u:p@localhost/x THE_BAND_MASTER_KEY=x mix run -e 'TheBandWeb.Endpoint.config(:check_origin) |> IO.inspect()'` imprime `["https://exemplo.test"]`; com `THE_BAND_ORIGENS_EXTRAS=https://outro.test` imprime os dois, nessa ordem
+  - **Teste**: com `MIX_ENV=prod` e as variáveis obrigatórias definidas, `mix run --no-start -e 'Application.get_env(:the_band, TheBandWeb.Endpoint)[:check_origin] |> IO.inspect()'` imprime `["https://exemplo.test"]`; com `THE_BAND_ORIGENS_EXTRAS=https://outro.test` imprime os dois, nessa ordem.
+    **Corrigido durante a execução**: a primeira redação usava `TheBandWeb.Endpoint.config/2`, que exige o endpoint no ar e levanta com `--no-start`; e sem `--no-start` a subida exigiria banco. `Application.get_env/2` lê a mesma configuração que o `runtime.exs` acabou de escrever, sem subir nada
 
-- [ ] T006 [US2] A variável nova entra no exemplo do ambiente
+- [x] T006 [US2] A variável nova entra no exemplo do ambiente
   - **Pronta quando**: T005
   - **Descrição**: `.env.example` ganha `THE_BAND_ORIGENS_EXTRAS=` com o comentário que diz o que ela é — **por onde as pessoas chegam**, diferente do `PHX_HOST`, que é **o endereço que a plataforma escreve nos links**. Sem essa frase, as duas voltam a ser confundidas, que é a causa raiz da P1 da 050
   - **Feita quando**: a variável aparece com valor vazio e o comentário distingue as duas perguntas; nada no `.env.example` sugere que deixá-la vazia libere origens
@@ -79,13 +80,13 @@ a origem — em vez de virar uma tela que não atualiza.
 **Teste independente**: tentar conectar de uma origem não declarada e encontrar a
 recusa no registro, nomeando-a.
 
-- [ ] T007 [US3] Provar que a recusa nomeia a origem
+- [x] T007 [US3] Provar que a recusa nomeia a origem
   - **Pronta quando**: T005
   - **Descrição**: teste que exerce o transporte com uma origem fora da lista e **captura o registro**, afirmando que a mensagem contém a origem que tentou. O FR-008 já é atendido pelo Phoenix (research R2) — esta tarefa não escreve registro nenhum, ela **prova** que o registro existe, e é ela que avisa no dia em que a biblioteca mudar
   - **Feita quando**: o teste afirma sobre a origem dentro da mensagem capturada, e não apenas sobre o 403; um comentário no teste diz por que não escrevemos registro próprio (decisão 3 do plano)
   - **Teste**: `MIX_ENV=test mix test test/the_band_web/origens_recusa_test.exs` — verde com a origem na mensagem, e reprova se a asserção da origem for removida
 
-- [ ] T008 [US3] A limitação da origem ausente, escrita onde se lê
+- [x] T008 [US3] A limitação da origem ausente, escrita onde se lê
   - **Pronta quando**: T007
   - **Descrição**: registrar no moduledoc de `lib/the_band_web/origens.ex` a limitação que o contrato declara: requisição **sem** cabeçalho de origem não é checada pelo transporte, e contra cliente programático a defesa é a sessão. Sem isso, quem ler os testes concluirá "só quem está na lista conecta", que é falso (research R3)
   - **Feita quando**: o moduledoc traz a limitação com a razão, e aponta para o contrato
@@ -98,13 +99,13 @@ recusa no registro, nomeando-a.
 **Teste independente**: abrir os dois endereços de fora e ver a tela de entrada;
 e ver o socket aceito nos dois.
 
-- [ ] T009 [US1] O runbook ganha a ordem do domínio
+- [x] T009 [US1] O runbook ganha a ordem do domínio
   - **Pronta quando**: T005; `quickstart.md` escrito
   - **Descrição**: nova seção `§9` em `docs/producao/runbook.md` com os passos **na ordem em que precisam acontecer** e a razão de cada ordem (research R5): DNS sem intermediário → certificado emitido → intermediário ligado com cifra ponta a ponta → conferência do socket. Incluir o que dá errado em cada inversão — certificado que não sai, laço de redirecionamento, tela que não atualiza —, porque é a inversão que acontece na prática
   - **Feita quando**: a seção existe com os quatro passos numerados, cada um com o sintoma de tê-lo feito fora de ordem; a variável `THE_BAND_ORIGENS_EXTRAS` aparece no passo em que é preenchida
   - **Teste**: leitura dirigida — alguém que não escreveu a seção executa os passos no ambiente e não precisa perguntar nada fora dela. Enquanto o marco não acontece, a revisão do PR confere a seção contra `research.md` R4, R5 e R6
 
-- [ ] T010 [US1] A medida dos dois endereços, escrita para ser executada
+- [x] T010 [US1] A medida dos dois endereços, escrita para ser executada
   - **Pronta quando**: T009
   - **Descrição**: `scripts/medir-enderecos.sh` com as medidas do `quickstart.md` — HTTP dos dois endereços, redirecionamento do HTTP simples, e o **handshake do socket** com origem própria e com origem não declarada. O script imprime a tabela de leitura dos códigos (403 = recusa, 400 = handshake incompleto com origem ACEITA), porque ler 400 como falha faria a feature parecer quebrada
   - **Feita quando**: o script roda contra um endereço dado por argumento; sai com código diferente de zero quando o socket é recusado no endereço que deveria aceitar
