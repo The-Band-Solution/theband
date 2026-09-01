@@ -3041,3 +3041,44 @@ git cat-file -p HEAD | grep -c ^parent   # 2: é isso que o squash apagaria
 
 E a conferência depois: `git merge-base main development` tem que apontar para o
 **último** release, não para o anterior.
+
+---
+
+## L93 — Durante o deploy, duas versões atendem, e a medida de fora não diz qual respondeu
+
+**Origem**: Sprint 026 (produção, feature 054) · **Tipo**: técnica · **Estado**: aberta
+
+**O que aconteceu.** Logo depois de um redeploy, três sondas ao socket devolveram
+`400 / 400 / 403` — o resultado que provava a feature 054 em produção. Foi
+declarado como prova. Minutos depois, o log do contêiner mostrou a **mesma
+origem sendo recusada** no mesmo minuto:
+
+```
+20:04:54  Access TheBandWeb.Endpoint at https://theband.5.189.161.85.sslip.io
+20:05:35  [error] Could not check origin — Origin: https://app.theband.dev
+20:10:20  SIGTERM received - shutting down
+```
+
+O contêiner **antigo** ainda estava atendendo, com a configuração antiga, e só
+morreu às 20:10. Durante cinco minutos os dois estiveram atrás do mesmo
+roteador: cada requisição caía num ou noutro, e a medida virou cara ou coroa. A
+repetição depois do `SIGTERM` deu `400/400/403` três vezes seguidas — aí sim.
+
+**Por que aconteceu.** Deploy sem interrupção **existe justamente porque as duas
+versões coexistem**. Quem mede de fora vê um endereço só e conclui que há um
+serviço só. O engano é invisível: o número que sai é plausível, e é o número que
+se esperava.
+
+**O que fazer diferente.** Medida de aceitação **não se faz durante o deploy**.
+Três formas de evitar, em ordem de força:
+
+1. esperar o `SIGTERM` do contêiner antigo aparecer no log — é o único sinal que
+   diz que a coexistência acabou;
+2. conferir a identidade de quem respondeu: a linha `Access TheBandWeb.Endpoint
+   at …` do boot diz qual configuração está em vigor;
+3. **repetir a medida até estabilizar** — uma leitura só, numa janela de troca,
+   não é evidência. Duas versões produzem duas respostas para a mesma pergunta.
+
+É a mesma família da L70 (número medido no meio de um backfill) e da L84 (`Done`
+no painel não é aplicação no ar): **o instrumento está certo, o momento é que
+está errado** — e o resultado parece bom, que é o que faz ninguém conferir.

@@ -7,7 +7,38 @@ Pendência sem gatilho vira lista morta: quem lê não sabe quando agir.
 
 ---
 
-## P1 — A origem do socket depende do `PHX_HOST`
+## P1 — A origem do socket depende do `PHX_HOST` — ✅ ENCERRADA em 2026-09-01
+
+> **Encerrada pela feature [054](../054-dominio-proprio/spec.md)**, FR-004 a
+> FR-008, em produção.
+>
+> **O gatilho disparou exatamente como escrito**: *"o dia em que houver um
+> segundo endereço — domínio próprio com o `sslip.io` ainda respondendo"*. O
+> domínio foi comprado em 2026-09-01, e a pendência virou requisito no mesmo dia.
+>
+> **A correção proposta abaixo mudou de nome, e não de forma**: a variável se
+> chama `THE_BAND_ORIGENS_EXTRAS` (o prefixo do projeto, não `PHX_`), e a lista
+> passou por uma função pura para que o invariante *"a ausência restringe"*
+> pudesse ser provado em teste — `config/runtime.exs` não é testável.
+>
+> **Medido em produção**, com os dois endereços no ar e as duas origens
+> declaradas:
+>
+> | endereço | tela | http simples | socket, origem própria | socket, origem estranha |
+> |---|---|---|---|---|
+> | `https://app.theband.dev` | 200 em 0,96s | 301 | **400** (aceita) | **403** |
+> | `https://theband.5.189.161.85.sslip.io` | 200 em 0,85s | 301 | **400** (aceita) | **403** |
+>
+> E o FR-008 apareceu no log da produção, nomeando quem tentou:
+> `Could not check origin ... Origin of the request: https://app.theband.dev` —
+> registrado pelo próprio Phoenix, que foi a razão de **não** escrevermos registro
+> nosso.
+>
+> **O que a P1 previa e se confirmou**: no caminho até aqui, o `PHX_HOST` foi
+> trocado sozinho por alguns minutos, e o endereço que funcionava perdeu as telas
+> vivas — 200 no HTTP, 403 no socket, sem erro visível. O texto abaixo descreveu
+> esse defeito antes de ele acontecer pela segunda vez.
+
 
 **O que aconteceu.** Em 2026-09-01, o primeiro deploy subiu com
 `PHX_HOST=vmi3547213.contaboserver.net` enquanto as pessoas acessavam por
