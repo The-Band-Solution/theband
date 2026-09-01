@@ -211,12 +211,12 @@ msgstr ""
 msgid "This sync was already closed."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:89
+#: lib/the_band_web/live/access_scopes_live/index.ex:117
 #, elixir-autogen, elixir-format
 msgid "Escopo %{nivel} concedido."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:120
+#: lib/the_band_web/live/access_scopes_live/index.ex:144
 #, elixir-autogen, elixir-format
 msgid "Escopo revogado."
 msgstr ""

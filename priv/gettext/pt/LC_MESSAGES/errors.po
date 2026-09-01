@@ -531,7 +531,8 @@ msgstr ""
 msgid "This organisation has no provider key. Someone who operates it configures one in AI provider."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:104
+#: lib/the_band_web/live/access_scopes_live/index.ex:54
+#: lib/the_band_web/live/access_scopes_live/index.ex:128
 #, elixir-autogen, elixir-format
 msgid "Concessão recusada: %{motivo}."
 msgstr ""
@@ -547,14 +548,9 @@ msgstr ""
 msgid "Conta não encontrada."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:70
+#: lib/the_band_web/live/access_scopes_live/index.ex:98
 #, elixir-autogen, elixir-format
 msgid "Escolha %{artigo} — escopo %{nivel} não existe sem alvo."
-msgstr ""
-
-#: lib/the_band_web/live/access_scopes_live/index.ex:97
-#, elixir-autogen, elixir-format
-msgid "Já existe concessão vigente para esse alvo."
 msgstr ""
 
 #: lib/the_band_web/live/profile_live/index.ex:52
@@ -562,7 +558,7 @@ msgstr ""
 msgid "Nome não atualizado."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:126
+#: lib/the_band_web/live/access_scopes_live/index.ex:150
 #, elixir-autogen, elixir-format
 msgid "Revogação recusada: %{motivo}."
 msgstr ""
@@ -646,3 +642,8 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "That account is already linked to someone else."
 msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Esta conta já vê este alvo. Nada a fazer."
+msgstr "Esta conta já vê este alvo. Nada a fazer."

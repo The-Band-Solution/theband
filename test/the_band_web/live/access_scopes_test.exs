@@ -26,6 +26,51 @@ defmodule TheBandWeb.AccessScopesTest do
     %{conn: log_in(conn, admin), tenant: tenant, admin: admin, member: member, org: org}
   end
 
+  describe "mais de uma pessoa no mesmo alvo (2026-09-01)" do
+    test "a segunda conta recebe escopo de organização na MESMA organização", ctx do
+      # A tela recusava com "já existe concessão vigente para esse alvo", e a
+      # frase fazia parecer LIMITE DO SISTEMA — uma pessoa por organização. Não
+      # é: o índice é por (tenant, conta, nível, alvo). Este teste fixa isso.
+      {:ok, view, _} = live(ctx.conn, ~p"/access-scopes")
+
+      html_1 =
+        render_submit(view, "grant", %{
+          "user_id" => ctx.admin.id,
+          "level" => "organization",
+          "target_id" => ctx.org.id
+        })
+
+      html_2 =
+        render_submit(view, "grant", %{
+          "user_id" => ctx.member.id,
+          "level" => "organization",
+          "target_id" => ctx.org.id
+        })
+
+      refute html_1 =~ "recusada"
+      refute html_2 =~ "recusada"
+      refute html_2 =~ "already sees this target"
+    end
+
+    test "a MESMA conta duas vezes é recusada dizendo que já está feito", ctx do
+      {:ok, view, _} = live(ctx.conn, ~p"/access-scopes")
+
+      params = %{
+        "user_id" => ctx.member.id,
+        "level" => "organization",
+        "target_id" => ctx.org.id
+      }
+
+      render_submit(view, "grant", params)
+      html = render_submit(view, "grant", params)
+
+      # A recusa diz O QUE ACONTECEU — "já vê" —, e não a restrição do banco.
+      # Erro que descreve a restrição em vez da situação manda quem lê procurar
+      # no lugar errado: foi assim que ele foi lido como limite de uma pessoa.
+      assert html =~ "already sees this target"
+    end
+  end
+
   test "member não alcança a gestão", ctx do
     assert {:error, {:redirect, %{to: "/people"}}} =
              build_conn() |> log_in(ctx.member) |> live(~p"/access-scopes")
