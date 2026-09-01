@@ -100,3 +100,50 @@ docker exec -i 3d665aae71e6 psql -U postgres -d band_ensaio < /tmp/ensaio.sql
    (varredura de segredos em imagem — `docker history` — e logs), SC-005 (a
    varredura das 27 rotas da 045 contra o endereço real).
 5. O ensaio do §6 com dado real entra no calendário do mês.
+
+## §8 A primeira conta — feature 052
+
+A plataforma sobe com o banco vazio, e o `seeds.exs` levanta em produção de
+propósito: senha padrão conhecida seria a porta aberta que a 045 existe para
+fechar. Sem este passo, ninguém entra.
+
+1. No painel, na aba de ambiente da aplicação, acrescentar às que já existem:
+
+   | variável | o quê |
+   |---|---|
+   | `THE_BAND_TENANT_NOME` | nome legível da organização |
+   | `THE_BAND_TENANT_SLUG` | identificador estável — minúsculas, números e hífen |
+   | `THE_BAND_ADMIN_EMAIL` | e-mail de entrada |
+   | `THE_BAND_ADMIN_SENHA` | senha escolhida na hora, no mínimo 12 caracteres |
+   | `THE_BAND_ADMIN_NOME` | opcional — sem ele a pessoa preenche em `/profile` |
+
+2. Implantar. No log do contêiner, uma destas quatro linhas:
+
+   | o que aparece | o que significa |
+   |---|---|
+   | `primeira conta criada: <email>, admin de <slug>.` | deu certo |
+   | `já existe administrador — nada a criar.` | a instalação já tinha conta |
+   | `sem <VAR>, <VAR> — nenhuma conta criada.` | variável faltando, e a linha diz quais |
+   | `primeira conta recusada: <campo> <motivo>.` | valor inválido, e a linha diz qual regra |
+
+   **Nos quatro casos a plataforma sobe.** Ao contrário de `DATABASE_URL`, cuja
+   ausência derruba, aqui a falta não impede: sem banco, subir significaria
+   servir zero em toda tela; sem primeira conta, a plataforma está correta e
+   apenas vazia.
+
+3. Entrar pela tela de entrada com esse e-mail e essa senha.
+
+4. **REMOVER `THE_BAND_ADMIN_SENHA` do painel.**
+
+   Enquanto a variável existir, a senha do primeiro administrador é **legível
+   por quem tem acesso ao painel**. Esse é o custo declarado da escolha por
+   variáveis de ambiente, e não um descuido — uma tela de instalação levaria a
+   senha do teclado ao hash sem parada intermediária, e foi descartada por
+   simplicidade.
+
+   Removê-la não afeta nada: no boot seguinte o log dirá `já existe
+   administrador`. E trocar a senha pela interface depois disso vale para sempre
+   — reiniciar não a sobrescreve.
+
+5. As contas seguintes nascem em `/accounts`, com senha temporária gerada por
+   quem administra. Este passo é só para a primeira.

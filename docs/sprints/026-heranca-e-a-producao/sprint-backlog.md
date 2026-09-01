@@ -35,8 +35,9 @@ itens (2 tarefas de herança + 2 PRs + 3 US e 7 tarefas da 050).
 
 | # | Tarefa | Atende | Issue | PR | Estado |
 |---|---|---|---|---|---|
-| 047/T014 | As frases de função-origem passam pela borda | #573 | [#617](https://github.com/The-Band-Solution/theband/issues/617) | [#630](https://github.com/The-Band-Solution/theband/pull/630) | feito — aguardando revisão/merge |
-| 051/T009 | A busca diz a organização e a observação terminada | #598 | [#618](https://github.com/The-Band-Solution/theband/issues/618) | [#631](https://github.com/The-Band-Solution/theband/pull/631) | feito — aguardando revisão/merge |
+| 047/T014 | As frases de função-origem passam pela borda | #573 | [#617](https://github.com/The-Band-Solution/theband/issues/617) | [#630](https://github.com/The-Band-Solution/theband/pull/630) | feito — mergeado em 2026-08-30 |
+| 051/T009 | A busca diz a organização e a observação terminada | #598 | [#618](https://github.com/The-Band-Solution/theband/issues/618) | [#631](https://github.com/The-Band-Solution/theband/pull/631) | feito — mergeado em 2026-08-30 |
+| 047/T015 | O verificador vê a classe função-origem (salto de um nó) | #573 | [#634](https://github.com/The-Band-Solution/theband/issues/634) | [#635](https://github.com/The-Band-Solution/theband/pull/635) | feito — PR aberto em 2026-08-31 |
 
 ## User stories da 050
 
@@ -50,13 +51,13 @@ itens (2 tarefas de herança + 2 PRs + 3 US e 7 tarefas da 050).
 
 | # | Tarefa | Atende | Issue | Estimate | Estado |
 |---|---|---|---|---|---|
-| T001 | Abrir baseline dos gates | US1 | [#623](https://github.com/The-Band-Solution/theband/issues/623) | 1 | a fazer |
-| T002 | A imagem, pela violação | US1 | [#624](https://github.com/The-Band-Solution/theband/issues/624) | 3 | a fazer |
-| T003 | O CI builda a imagem quando ela muda | US1 | [#625](https://github.com/The-Band-Solution/theband/issues/625) | 1 | a fazer |
-| T004 | O workflow de CD conforme o contrato | US1 | [#626](https://github.com/The-Band-Solution/theband/issues/626) | 3 | a fazer |
-| T005 | O runbook do Dokploy no Contabo | US1 | [#627](https://github.com/The-Band-Solution/theband/issues/627) | 3 | a fazer |
-| T006 | O ensaio de restauração, escrito para ser executado | US2 | [#628](https://github.com/The-Band-Solution/theband/issues/628) | 2 | a fazer |
-| T007 | Gates verdes e PR no padrão | US2/US3 | [#629](https://github.com/The-Band-Solution/theband/issues/629) | 1 | a fazer |
+| T001 | Abrir baseline dos gates | US1 | [#623](https://github.com/The-Band-Solution/theband/issues/623) | 1 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T002 | A imagem, pela violação | US1 | [#624](https://github.com/The-Band-Solution/theband/issues/624) | 3 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T003 | O CI builda a imagem quando ela muda | US1 | [#625](https://github.com/The-Band-Solution/theband/issues/625) | 1 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T004 | O workflow de CD conforme o contrato | US1 | [#626](https://github.com/The-Band-Solution/theband/issues/626) | 3 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T005 | O runbook do Dokploy no Contabo | US1 | [#627](https://github.com/The-Band-Solution/theband/issues/627) | 3 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T006 | O ensaio de restauração, escrito para ser executado | US2 | [#628](https://github.com/The-Band-Solution/theband/issues/628) | 2 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
+| T007 | Gates verdes e PR no padrão | US2/US3 | [#629](https://github.com/The-Band-Solution/theband/issues/629) | 1 | feito — PR [#632](https://github.com/The-Band-Solution/theband/pull/632), mergeado em 2026-08-30 |
 
 ## Fora do escopo deste sprint
 

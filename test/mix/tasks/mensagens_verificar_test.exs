@@ -140,6 +140,59 @@ defmodule Mix.Tasks.Mensagens.VerificarTest do
     assert veredito == :passou
   end
 
+  test "o salto de um nó: a frase nascida em FUNÇÃO é achada (v3)" do
+    escrever("indireto.ex", """
+    defmodule Indireto do
+      def f(socket) do
+        put_flash(socket, :error, ja_e_de_outra(socket))
+      end
+
+      def g(socket, n) do
+        assign(socket, erro: frase(n), ok: nil)
+      end
+
+      defp ja_e_de_outra(_socket), do: "That account is already linked to someone else."
+
+      defp frase(n), do: "Rules recomputed: \#{n} promotions rewritten."
+    end
+    """)
+
+    {veredito, stderr} = rodar()
+
+    assert {:reprovou, mensagem} = veredito
+    assert mensagem =~ "2 literais"
+    assert stderr =~ "ja_e_de_outra/frase"
+    assert stderr =~ "frase/frase"
+  end
+
+  test "junção por pontuação não é frase — o padrão largo não inventa achado" do
+    escrever("juncao.ex", """
+    defmodule Juncao do
+      def f(socket, campo, erro) do
+        assign(socket, erro: montar(campo, erro))
+      end
+
+      defp montar(campo, erro), do: "\#{campo}: \#{TheBandWeb.CoreComponents.translate_error(erro)}"
+    end
+    """)
+
+    {veredito, _stderr} = rodar()
+    assert veredito == :passou
+  end
+
+  test "função que alimenta ralo mas devolve do catálogo passa" do
+    escrever("catalogada.ex", """
+    defmodule Catalogada do
+      def f(socket), do: put_flash(socket, :error, frase())
+
+      defp frase, do: dgettext("errors", "Choose a role before confirming.")
+    end
+    """)
+
+    {veredito, _stderr} = rodar()
+    assert veredito == :passou
+  end
+
   test "gettext, variável e chamada de função passam" do
     escrever("limpo.ex", """
     defmodule Limpo do
