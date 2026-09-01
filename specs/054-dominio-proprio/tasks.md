@@ -119,22 +119,23 @@ e ver o socket aceito nos dois.
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io` contra a produção de hoje — sai `0` e imprime `200` e o handshake aceito; e com uma origem inventada no lugar da própria, sai diferente de zero
 
 - [ ] T011 [US1] [MARCO — pessoa] O DNS aponta, e o certificado sai
-  - **ESTADO MEDIDO EM 2026-09-01**: o DNS **já foi apontado**, com o proxy do
-    Cloudflare **ligado**, e o domínio **não foi adicionado no painel**. Medido:
-    `https://theband.dev/sign-in` devolve **526**; o certificado que a origem
-    serve para esse nome é `CN=TRAEFIK DEFAULT CERT`, autoassinado; e
-    `Host: theband.dev` direto na origem devolve **404** — não existe rota. Sem
-    rota, o desafio do Let's Encrypt devolve 404 e o certificado nunca sai. É a
-    inversão que o `§9` previa, acontecendo
+  - **ESTADO MEDIDO EM 2026-09-01, e o endereço MUDOU no meio**: primeiro o apex
+    `theband.dev` foi apontado para o Cloudflare com o proxy ligado e sem rota no
+    painel — devolvia **526**, com a origem servindo `CN=TRAEFIK DEFAULT CERT` e
+    `Host: theband.dev` dando **404**. Depois quem opera **repontou o apex para o
+    GitHub Pages** (mede 200, `server: GitHub.com`) e decidiu que a aplicação vive
+    em **`app.theband.dev`**. Estado atual: `app.theband.dev` **não resolve**, e
+    `Host: app.theband.dev` na origem devolve **404** — a rota ainda não existe.
+    O apex está resolvido e fora desta tarefa
   - **Pronta quando**: T009 e T010 mergeados **e a release que os carrega em
     produção** (v0.3.0); acesso ao provedor de DNS e ao painel
   - **Descrição**: seguir o `§9` do runbook — registro do nome e do `www` apontando para o IP da produção, **sem** o intermediário na frente; publicar o nome no painel de quem hospeda; esperar o certificado. Só depois ligar o intermediário, em modo que cifra também até a aplicação. `.dev` não tem plano B: sem certificado, o navegador recusa antes de qualquer requisição (research R4)
-  - **Feita quando**: `https://theband.dev/sign-in` responde 200 com certificado válido para o nome; `http://theband.dev/sign-in` devolve 301; `www` chega ao mesmo lugar
-  - **Teste**: `bash scripts/medir-enderecos.sh https://theband.dev` — HTTP conforme, e o handshake do socket **aceito** com a própria origem
+  - **Feita quando**: `https://app.theband.dev/sign-in` responde 200 com certificado válido para o nome; `http://app.theband.dev/sign-in` devolve 301; o apex `theband.dev` continua servindo o site público, intocado
+  - **Teste**: `bash scripts/medir-enderecos.sh https://app.theband.dev` — HTTP conforme, e o handshake do socket **aceito** com a própria origem
 
 - [ ] T012 [US1] [MARCO — pessoa] A declaração das duas origens
   - **Pronta quando**: T011
-  - **Descrição**: no painel de quem hospeda, `PHX_HOST=theband.dev` e `THE_BAND_ORIGENS_EXTRAS=https://theband.5.189.161.85.sslip.io`; reimplantar. A ordem importa: declarar a origem extra **antes** de trocar o `PHX_HOST` evita a janela em que o endereço antigo fica sem socket
+  - **Descrição**: no painel de quem hospeda, `PHX_HOST=app.theband.dev` e `THE_BAND_ORIGENS_EXTRAS=https://theband.5.189.161.85.sslip.io`; reimplantar. A ordem importa: declarar a origem extra **antes** de trocar o `PHX_HOST` evita a janela em que o endereço antigo fica sem socket
   - **Feita quando**: os dois endereços aceitam o socket, medidos separadamente (SC-002); o endereço antigo não teve interrupção durante a troca (SC-004)
   - **Teste**: `bash scripts/medir-enderecos.sh` nos dois endereços, com a medida contínua do passo 6 do `quickstart.md` rodando durante a troca — toda linha `200`
 

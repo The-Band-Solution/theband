@@ -29,7 +29,7 @@ enquanto, para quem olhava, era só uma barra de carregamento que não terminava
 
 ### User Story 1 - A plataforma atende no nome que a organização escolheu (Priority: P1)
 
-Quem chega digita `theband.dev` e vê a tela de entrada, cifrada, sem aviso do
+Quem chega digita `app.theband.dev` e vê a tela de entrada, cifrada, sem aviso do
 navegador. O endereço antigo continua atendendo — ninguém que tenha o link
 guardado descobre a mudança por um erro.
 
@@ -38,12 +38,12 @@ emprestado: muda com a máquina, não se escreve num cartão, e não sustenta a
 identidade de quem publica.
 
 **Independent Test**: de uma rede que não é a de desenvolvimento, abrir
-`theband.dev` e ver a tela de entrada; abrir o endereço antigo e ver a mesma
+`app.theband.dev` e ver a tela de entrada; abrir o endereço antigo e ver a mesma
 coisa.
 
 **Acceptance Scenarios**:
 
-1. **Given** o nome publicado, **When** alguém abre `http://theband.dev`,
+1. **Given** o nome publicado, **When** alguém abre `http://app.theband.dev`,
    **Then** é levada ao HTTPS com certificado **válido para esse nome** — nunca
    uma página sem cifra, nunca um aviso de certificado.
 2. **Given** o nome publicado, **When** alguém abre o endereço antigo,
@@ -73,7 +73,7 @@ página respondeu.
 **Acceptance Scenarios**:
 
 1. **Given** os dois endereços publicados, **When** alguém abre uma tela viva por
-   `theband.dev`, **Then** a conexão viva é **aceita** e a tela atualiza sem
+   `app.theband.dev`, **Then** a conexão viva é **aceita** e a tela atualiza sem
    recarregar.
 2. **Given** os dois endereços publicados, **When** alguém abre a mesma tela pelo
    endereço antigo, **Then** o mesmo acontece.
@@ -123,7 +123,10 @@ ser aceitos.
 - **O certificado não é emitido porque o intermediário estava à frente durante a
   emissão.** O desafio de emissão precisa alcançar quem publica; com o
   intermediário no caminho, ele pode nunca chegar.
-- **`www.theband.dev`.** Quem digita com `www` não pode encontrar erro.
+- **O apex e o `www` NÃO são da aplicação.** `theband.dev` serve o site público
+  (hoje no GitHub Pages, medido em 2026-09-01: responde 200, `server: GitHub.com`),
+  e a plataforma não pode reivindicá-los — pedir certificado para um nome que
+  outro serviço atende quebra os dois.
 - **O endereço antigo depende do IP.** Trocar de máquina muda o nome derivado do
   IP; o endereço antigo é temporário por construção, e a declaração de origens
   precisa poder acompanhar sem novo release.
@@ -134,12 +137,13 @@ ser aceitos.
 
 ### Functional Requirements
 
-- **FR-001**: A plataforma MUST atender em `theband.dev` sob HTTPS, com
+- **FR-001**: A plataforma MUST atender em `app.theband.dev` sob HTTPS, com
   certificado válido para esse nome.
 - **FR-002**: Uma requisição em HTTP simples ao nome novo MUST ser levada ao
   HTTPS.
-- **FR-003**: `www.theband.dev` MUST levar ao mesmo lugar que o nome sem `www` —
-  nunca a um erro.
+- **FR-003**: A plataforma MUST NOT reivindicar o apex `theband.dev` nem
+  `www.theband.dev`. O apex serve o site público, por outro serviço; adicionar
+  esses nomes à aplicação faria os dois disputarem o mesmo certificado.
 - **FR-004**: As origens aceitas para a conexão das telas vivas MUST vir de uma
   **lista declarada**, e não de um único valor derivado do endereço usado para
   gerar links. As duas coisas são diferentes: uma é *por onde as pessoas chegam*,
@@ -199,8 +203,12 @@ ser aceitos.
 - **O endereço antigo continua enquanto o IP não mudar.** Aposentá-lo é decisão
   futura, e esta feature não a toma: ela só garante que os dois convivem. Quando a
   decisão vier, a lista declarada de FR-004 é o lugar onde ela se aplica.
-- **Fora de escopo**: e-mail no domínio, subdomínio de homologação, cache ou CDN
-  do intermediário, e qualquer mudança na tela de entrada. Esta feature muda por
+- **O apex `theband.dev` é do site público**, servido pelo GitHub Pages, e não
+  desta feature. A aplicação vive em `app.theband.dev` — decisão de quem opera,
+  tomada em 2026-09-01, depois de o apex já estar apontado para o Pages.
+- **Fora de escopo**: o apex e o `www`, e-mail no domínio, subdomínio de
+  homologação, cache ou CDN do intermediário, e qualquer mudança na tela de
+  entrada. Esta feature muda por
   onde se chega, não o que se vê ao chegar.
 - **A plataforma continua atrás de um intermediário que termina a cifra e repassa
   a requisição** — é o arranjo de hoje, e a 050 já registrou que ele depende de o

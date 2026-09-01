@@ -8,7 +8,7 @@
 # pendência P1 da 050). Nenhuma medida de HTTP encontra isso.
 #
 # Uso:
-#   bash scripts/medir-enderecos.sh https://theband.dev
+#   bash scripts/medir-enderecos.sh https://app.theband.dev
 #
 # Sai 0 quando o endereço serve E aceita a própria origem no socket.
 # Sai 1 quando qualquer uma das duas coisas falha.

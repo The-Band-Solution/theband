@@ -40,7 +40,7 @@ mora o erro de digitação.
 ## 3. O HTTP, nos dois endereços
 
 ```bash
-for BASE in https://theband.dev https://theband.5.189.161.85.sslip.io; do
+for BASE in https://app.theband.dev https://theband.5.189.161.85.sslip.io; do
   echo "== $BASE"
   curl -s -o /dev/null -w '  sign-in: %{http_code} em %{time_total}s\n' --max-time 20 "$BASE/sign-in"
   curl -s -o /dev/null -D - --max-time 20 "${BASE/https:/http:}/sign-in" | head -2
@@ -63,11 +63,11 @@ handshake() {
 }
 
 # cada endereço, com a PRÓPRIA origem — os dois têm de ser aceitos (SC-002)
-handshake https://theband.dev                      https://theband.dev
+handshake https://app.theband.dev                      https://app.theband.dev
 handshake https://theband.5.189.161.85.sslip.io    https://theband.5.189.161.85.sslip.io
 
 # e uma origem que ninguém declarou — tem de ser recusada (SC-003)
-handshake https://theband.dev                      https://origem-que-ninguem-declarou.example
+handshake https://app.theband.dev                      https://origem-que-ninguem-declarou.example
 ```
 
 **Como ler o número** — e esta tabela é a parte que se esquece:
