@@ -227,3 +227,38 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Rule activated, with you as the author. The recalculation is queued."
 msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:40
+#, elixir-autogen, elixir-format
+msgid "Every note says where it came from. No number shows up without a source."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:62
+#, elixir-autogen, elixir-format
+msgid "No password yet? An administrator generates a temporary one for you."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:33
+#, elixir-autogen, elixir-format
+msgid "Notes aren’t music."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:57
+#, elixir-autogen, elixir-format
+msgid "The GitHub username works while the link to the observed person is current."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:44
+#, elixir-autogen, elixir-format
+msgid "What the platform inferred is said as inference, kept apart from what it saw."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:48
+#, elixir-autogen, elixir-format
+msgid "When a note is missing, it says so — it does not play zero instead."
+msgstr ""
+
+#: lib/the_band_web/live/session_live/new.ex:35
+#, elixir-autogen, elixir-format
+msgid "Your tools keep loose notes: a commit here, an issue there, the same person under three different names. The Band plays those notes together — and what reaches you is music: who does what, with whom, since when."
+msgstr ""

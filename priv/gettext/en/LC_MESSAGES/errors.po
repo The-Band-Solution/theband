@@ -535,7 +535,7 @@ msgid "Conta não criada: %{motivo}"
 msgstr ""
 
 #: lib/the_band_web/live/accounts_live/index.ex:84
-#: lib/the_band_web/live/accounts_live/index.ex:142
+#: lib/the_band_web/live/accounts_live/index.ex:152
 #, elixir-autogen, elixir-format
 msgid "Conta não encontrada."
 msgstr ""
@@ -580,12 +580,12 @@ msgstr ""
 msgid "this proposal no longer exists in the catalogue"
 msgstr ""
 
-#: lib/the_band_web/live/accounts_live/index.ex:134
+#: lib/the_band_web/live/accounts_live/index.ex:144
 #, elixir-autogen, elixir-format
 msgid "Essa pessoa já está associada à conta %{email}."
 msgstr ""
 
-#: lib/the_band_web/live/accounts_live/index.ex:156
+#: lib/the_band_web/live/accounts_live/index.ex:166
 #, elixir-autogen, elixir-format
 msgid "Nada a revogar."
 msgstr ""

@@ -40,7 +40,13 @@ defmodule TheBandWeb.LoginTest do
     refute html =~ "card w-full bg-base-200 hover:bg-base-300"
     assert html =~ ~s(name="identifier")
     assert html =~ ~s(name="password")
-    assert html =~ "Notas não são"
+
+    # O axioma da marca é conferido PELO CATÁLOGO, e não por literal. A copy foi
+    # para o gettext em 2026-08-31 (o painel estava em português ao lado de um
+    # formulário em inglês, com locale padrão `en`); um literal aqui prenderia o
+    # teste a um idioma, e ele cairia de novo na próxima tradução — sem que nada
+    # de comportamento tivesse mudado.
+    assert html =~ Gettext.dgettext(TheBandWeb.Gettext, "sistema", "Notes aren’t music.")
   end
 
   test "entrar por e-mail abre a sessão e navega", %{conn: conn, member: member} do
