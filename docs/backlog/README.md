@@ -9,6 +9,7 @@ escopo — não só a lista.
 | [GitHub → SRO](github-to-sro.md) | ingestão do GitHub para a Scrum Reference Ontology, em fatias verticais | alta |
 | [Papéis Scrum](papeis-scrum.md) | cadastro declarado e alocação de pessoas — o que o GitHub não expõe | alta |
 | [Biblioteca de derivação](tooling-library.md) | extrair a transformação como biblioteca independente | **baixa** |
+| [Decisões pendentes](decisoes-pendentes.md) | o que não pode ser implementado sem uma resposta humana — o quadro do Conecta Fapes, o conector do ArgoCD, a skill de humanização | **bloqueadas** |
 
 ## Dívidas e defeitos com issue aberta
 
