@@ -414,7 +414,70 @@
 
   <section>
     <div class="faixa">
-      <h2 class="serif"><span class="num">V.</span>Medido em produção, não prometido</h2>
+      <h2 class="serif"><span class="num">V.</span>A equipe feita de equipes, sem <em>somar</em></h2>
+      <div class="duas">
+        <div class="texto">
+          <p>
+            Uma equipe composta por outras aparece com <strong>uma linha por subequipe,
+            lado a lado — e nenhum total</strong>. Não é lacuna: a mesma pessoa pode
+            pertencer a duas subequipes e a mesma tarefa aparecer nas duas. Somar contaria
+            duas vezes, e ninguém conseguiria reconciliar o número com a realidade.
+          </p>
+          <p>
+            Clicar numa subequipe abre o detalhe dela — o que está fazendo, o que já fez, o
+            que vem a seguir, e o que ela sabe. <strong>Os gráficos vivem lá</strong>: a tela
+            da equipe composta é para comparar, e comparação se faz em números alinhados.
+          </p>
+          <ul class="mudo" style="padding-left:1.1rem;">
+            <li><strong>quem saiu para de contar na saída</strong> — e o que fez enquanto estava continua contando;</li>
+            <li><strong>um mês fechado nunca muda</strong> — registrar uma saída hoje não reescreve março;</li>
+            <li><strong>ausência é dita</strong> — subequipe sem trabalho aparece nomeada, nunca como zero.</li>
+          </ul>
+        </div>
+        <dl class="recibo mono" style="margin-top:0;">
+          <dt>o que afirma</dt>
+          <dd>“19 itens em aberto” — a distância entre as duas curvas</dd>
+          <dt>evidência</dt>
+          <dd>76 abertos e 57 fechados em 8 semanas · contagem observada</dd>
+          <dt>proveniência</dt>
+          <dd>o que resta é <strong>derivado</strong> das duas séries — por isso hachurado</dd>
+          <dt>o que não alcança</dt>
+          <dd>não há escopo comprometido: não responde se um sprint termina. E “fechado” é o ato da ferramenta — abandonado e concluído entram iguais</dd>
+        </dl>
+      </div>
+
+      <div class="graficos">
+        <figure class="grafico" style="margin:0">
+          <h4>Burn-up e burn-down, e o que resta entre eles</h4>
+          <p class="sub">acumulado de abertos e de fechados · a faixa hachurada é o trabalho em aberto, e não uma terceira linha</p>
+          <svg viewBox="0 0 470 150" style="width:100%;height:auto;display:block" role="img" aria-label="Duas curvas acumuladas ao longo de 8 semanas: abertos chega a 76, fechados a 57. A faixa entre elas é o trabalho em aberto, 19 no fim do período."><defs><pattern id="hb" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--verdete)" stroke-width="1.3" opacity=".4"/></pattern></defs><line x1="0" y1="130" x2="470" y2="130" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="87" x2="470" y2="87" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="43" x2="470" y2="43" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="0" x2="470" y2="0" stroke="var(--pauta)" stroke-width="1"/><polygon points="0,121 67,108 134,98 201,82 269,71 336,53 403,40 470,20 470,47 403,63 336,73 269,85 201,94 134,107 67,114 0,124" fill="url(#hb)"/><polyline points="0,121 67,108 134,98 201,82 269,71 336,53 403,40 470,20" fill="none" stroke="var(--verdete)" stroke-width="2"/><polyline points="0,124 67,114 134,107 201,94 269,85 336,73 403,63 470,47" fill="none" stroke="var(--latao)" stroke-width="2"/><circle cx="470" cy="20" r="4" fill="var(--verdete)"/><circle cx="470" cy="47" r="4" fill="var(--latao)"/><line x1="454" y1="20" x2="454" y2="47" stroke="var(--tinta-2)" stroke-width="1.3"/><text x="449" y="37" font-size="9.5" fill="var(--tinta-2)" text-anchor="end" font-family="ui-monospace,monospace">19 em aberto</text><text x="470" y="12" font-size="9.5" fill="var(--verdete)" text-anchor="end" font-family="ui-monospace,monospace">76 aberto</text><text x="470" y="61" font-size="9.5" fill="var(--latao)" text-anchor="end" font-family="ui-monospace,monospace">57 fechado</text><text x="0" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">07/07</text><text x="269" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">04/08</text><text x="470" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">25</text></svg>
+          <details class="tabela"><summary>ver como tabela</summary>
+            <table><tr><th>semana</th><th>abertos</th><th>fechados</th><th>em aberto</th></tr>
+              <tr><td>07/07</td><td>6</td><td>4</td><td>2</td></tr><tr><td>04/08</td><td>41</td><td>31</td><td>10</td></tr>
+              <tr><td>25/08</td><td>76</td><td>57</td><td>19</td></tr></table>
+          </details>
+        </figure>
+        <figure class="grafico" style="margin:0">
+          <h4>As subequipes, uma a uma</h4>
+          <p class="sub">trabalho em aberto por subequipe · <strong>sem célula de total</strong>, e a tela diz por quê</p>
+          <div class="barras mono" role="img" aria-label="Barras: Dados 19 em aberto; Plataforma diretos 11; Interface 8; Integrações sem trabalho no período.">
+            <span class="rotulo">Dados</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">19</span>
+            <span class="rotulo">Plataforma · diretos</span><span class="trilho"><span class="barra" style="width:58%"></span></span><span class="valor">11</span>
+            <span class="rotulo">Interface</span><span class="trilho"><span class="barra" style="width:42%"></span></span><span class="valor">8</span>
+            <span class="rotulo">Integrações</span><span class="trilho"><span class="barra" style="width:0"></span></span><span class="valor">—</span>
+          </div>
+          <p class="sub" style="margin:.9rem 0 0">Integrações não tem <strong>zero</strong>: não teve trabalho no período, e as duas coisas não são a mesma. E as linhas não somam 38 — a mesma pessoa está em duas delas.</p>
+        </figure>
+      </div>
+      <p class="nota-ilustrativa">Números ilustrativos, na forma real da tela. A previsão de entrega é feita por simulação sobre o histórico da própria equipe — sai sempre como faixa de confiança, nunca como data, e abaixo de seis semanas de histórico a plataforma recusa prever e diz o que falta.</p>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">VI.</span>Medido em produção, não prometido</h2>
       <p class="texto mudo">Uma instalação real, três organizações observadas:</p>
       <div class="numeros mono">
         <div class="numero"><div class="valor">5.216</div><div class="rotulo">issues coletadas e classificadas</div></div>
@@ -647,7 +710,70 @@
 
   <section>
     <div class="faixa">
-      <h2 class="serif"><span class="num">V.</span>Measured in production, not promised</h2>
+      <h2 class="serif"><span class="num">V.</span>A team made of teams, with nothing <em>summed</em></h2>
+      <div class="duas">
+        <div class="texto">
+          <p>
+            A team composed of others shows <strong>one row per sub-team, side by side — and
+            no total</strong>. That is not an omission: the same person can belong to two
+            sub-teams and the same task appear in both. Summing would count it twice, and
+            nobody could reconcile the number with reality.
+          </p>
+          <p>
+            Clicking a sub-team opens its detail — what it is doing, what it has done, what
+            comes next, and what it knows. <strong>The charts live there</strong>: the
+            composed-team screen is for comparing, and comparing is done in aligned numbers.
+          </p>
+          <ul class="mudo" style="padding-left:1.1rem;">
+            <li><strong>whoever left stops counting at the moment they left</strong> — and what they did while there still counts;</li>
+            <li><strong>a closed month never changes</strong> — recording a departure today does not rewrite March;</li>
+            <li><strong>absence is stated</strong> — a sub-team with no work is named, never shown as zero.</li>
+          </ul>
+        </div>
+        <dl class="recibo mono" style="margin-top:0;">
+          <dt>what it claims</dt>
+          <dd>“19 items still open” — the distance between the two curves</dd>
+          <dt>evidence</dt>
+          <dd>76 opened and 57 closed over 8 weeks · observed count</dd>
+          <dt>provenance</dt>
+          <dd>what remains is <strong>derived</strong> from the two series — hence hatched</dd>
+          <dt>what it does not reach</dt>
+          <dd>there is no committed scope: it does not answer whether a sprint finishes. And “closed” is the tool's act — abandoned and completed enter alike</dd>
+        </dl>
+      </div>
+
+      <div class="graficos">
+        <figure class="grafico" style="margin:0">
+          <h4>Burn-up and burn-down, and what remains between them</h4>
+          <p class="sub">cumulative opened and closed · the hatched band is the open work, not a third line</p>
+          <svg viewBox="0 0 470 150" style="width:100%;height:auto;display:block" role="img" aria-label="Two cumulative curves over 8 weeks: opened reaches 76, closed 57. The band between them is the open work, 19 at the end of the period."><defs><pattern id="hb" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--verdete)" stroke-width="1.3" opacity=".4"/></pattern></defs><line x1="0" y1="130" x2="470" y2="130" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="87" x2="470" y2="87" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="43" x2="470" y2="43" stroke="var(--pauta)" stroke-width="1"/><line x1="0" y1="0" x2="470" y2="0" stroke="var(--pauta)" stroke-width="1"/><polygon points="0,121 67,108 134,98 201,82 269,71 336,53 403,40 470,20 470,47 403,63 336,73 269,85 201,94 134,107 67,114 0,124" fill="url(#hb)"/><polyline points="0,121 67,108 134,98 201,82 269,71 336,53 403,40 470,20" fill="none" stroke="var(--verdete)" stroke-width="2"/><polyline points="0,124 67,114 134,107 201,94 269,85 336,73 403,63 470,47" fill="none" stroke="var(--latao)" stroke-width="2"/><circle cx="470" cy="20" r="4" fill="var(--verdete)"/><circle cx="470" cy="47" r="4" fill="var(--latao)"/><line x1="454" y1="20" x2="454" y2="47" stroke="var(--tinta-2)" stroke-width="1.3"/><text x="449" y="37" font-size="9.5" fill="var(--tinta-2)" text-anchor="end" font-family="ui-monospace,monospace">19 still open</text><text x="470" y="12" font-size="9.5" fill="var(--verdete)" text-anchor="end" font-family="ui-monospace,monospace">76 opened</text><text x="470" y="61" font-size="9.5" fill="var(--latao)" text-anchor="end" font-family="ui-monospace,monospace">57 closed</text><text x="0" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">07/07</text><text x="269" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">04/08</text><text x="470" y="147" font-size="9" fill="var(--tinta-2)" text-anchor="middle" font-family="ui-monospace,monospace">25</text></svg>
+          <details class="tabela"><summary>see as a table</summary>
+            <table><tr><th>week</th><th>opened</th><th>closed</th><th>still open</th></tr>
+              <tr><td>07 Jul</td><td>6</td><td>4</td><td>2</td></tr><tr><td>04 Aug</td><td>41</td><td>31</td><td>10</td></tr>
+              <tr><td>25 Aug</td><td>76</td><td>57</td><td>19</td></tr></table>
+          </details>
+        </figure>
+        <figure class="grafico" style="margin:0">
+          <h4>The sub-teams, one by one</h4>
+          <p class="sub">open work per sub-team · <strong>no total cell</strong>, and the screen says why</p>
+          <div class="barras mono" role="img" aria-label="Bars: Data 19 open; Platform direct members 11; Interface 8; Integrations no work in the period.">
+            <span class="rotulo">Data</span><span class="trilho"><span class="barra" style="width:100%"></span></span><span class="valor">19</span>
+            <span class="rotulo">Platform · direct</span><span class="trilho"><span class="barra" style="width:58%"></span></span><span class="valor">11</span>
+            <span class="rotulo">Interface</span><span class="trilho"><span class="barra" style="width:42%"></span></span><span class="valor">8</span>
+            <span class="rotulo">Integrations</span><span class="trilho"><span class="barra" style="width:0"></span></span><span class="valor">—</span>
+          </div>
+          <p class="sub" style="margin:.9rem 0 0">Integrations is not <strong>zero</strong>: it had no work in the period, and the two are not the same. And the rows do not add to 38 — the same person is in two of them.</p>
+        </figure>
+      </div>
+      <p class="nota-ilustrativa">Illustrative numbers, in the real shape of the screen. The delivery forecast is built by simulation over the team's own history — it always comes out as a confidence range, never a date, and below six weeks of history the platform refuses to forecast and says what is missing.</p>
+    </div>
+  </section>
+
+  <div class="faixa"><div class="pauta" role="presentation"></div></div>
+
+  <section>
+    <div class="faixa">
+      <h2 class="serif"><span class="num">VI.</span>Measured in production, not promised</h2>
       <p class="texto mudo">One real installation, three organisations observed:</p>
       <div class="numeros mono">
         <div class="numero"><div class="valor">5,216</div><div class="rotulo">issues collected and classified</div></div>
