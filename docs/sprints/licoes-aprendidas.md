@@ -3006,7 +3006,7 @@ não existe.
 
 ## L92 — Squash num back-merge apaga o back-merge
 
-**Origem**: Sprint 026 (release v0.3.0) · **Tipo**: processo · **Estado**: aberta
+**Origem**: Sprint 026 (release v0.3.0) · **Tipo**: processo · **Estado**: **encerrada no Sprint 028** — virou regra no `AGENTS.md` §12 e campo obrigatório no template de PR
 
 **O que aconteceu.** O PR #646 fez o back-merge da `main` na `development` — a
 ação que a L83 prescreve — e **foi mergeado por squash**. O conteúdo chegou; a
@@ -3215,3 +3215,31 @@ se muda ou não muda. `grep` pelo nome do conceito é o mínimo. E toda condiç�
 sobre coluna anulável precisa dizer explicitamente o que faz com o nulo.
 
 **Aplicada em**: Sprint 028 — US1 e T034 da feature 057 são a correção.
+
+---
+
+## As três do squash, encerradas juntas — Sprint 028
+
+**L75**, **L83** e **L92** são o mesmo defeito visto em três lugares: o squash cria
+um commit **novo, sem os pais originais**, e o Git perde a informação de que
+aquele trabalho já foi integrado.
+
+A L92 aconteceu **depois** de a L75 e a L83 já estarem escritas. Isso é o achado:
+**lembrar da lição no momento de clicar o botão não funcionou**, e três registros
+não impediram a quarta ocorrência.
+
+O que mudou no sprint 028, e por que isto encerra as três:
+
+1. **`AGENTS.md` §12** ganhou a tabela de quando usar cada tipo — vira obrigação
+   verificável em revisão, e não lembrete;
+2. **`.github/pull_request_template.md`** exige o tipo de merge **declarado no
+   corpo do PR**, com o motivo. Quem clica não precisa lembrar de qual caso este
+   PR é: quem abriu já disse.
+
+A diferença entre lembrete e regra é essa: o lembrete depende de alguém recordar
+no pior momento — quando já está com o dedo no botão e o trabalho parece
+terminado.
+
+**Se reincidir mesmo assim**, a próxima medida não é uma quarta lição: é
+desabilitar o squash na configuração do repositório para os casos em que ele
+destrói, e deixar o botão oferecer só o que é correto.

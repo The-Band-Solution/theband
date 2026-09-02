@@ -757,6 +757,31 @@ docs(ontology): document review semantics
 
 A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
 
+### O tipo de merge é declarado NO PR, e não escolhido no botão
+
+Todo PR **MUST** trazer, no corpo, qual dos dois usar — e o motivo. Quem clica o
+botão não deve precisar lembrar de qual caso este PR é.
+
+> **Squash quando a branch morre no merge. Merge commit quando alguém depende do
+> histórico dela.**
+
+| Situação | Tipo | Por quê |
+|---|---|---|
+| feature simples que mira `development` | **squash** | ninguém ramifica dela, e commits de trabalho em progresso viram ruído no histórico |
+| **branch empilhada** sobre outra ainda aberta | **merge commit** | a branch seguinte espera encontrar aqueles commits; squash os apaga, e o próximo merge conflita em todo arquivo tocado |
+| **release** `development` → `main` | **merge commit** | L83 — squash faz as duas linhas divergirem, e a divergência não se desfaz |
+| **back-merge** `main` → `development` | **merge commit** | L92 — squash apaga o registro de que já voltou, e os conflitos reaparecem maiores |
+| **hotfix**, que vai para as duas | **merge commit** | mesma razão do back-merge |
+| commits que carregam decisão, um a um | **merge commit** | espremer perde o raciocínio, que é justamente o que alguém procura seis meses depois |
+
+**A causa é sempre a mesma**: o squash cria um commit **novo, sem os pais
+originais**. O Git perde a informação de que aquele trabalho já foi integrado, e
+volta a oferecê-lo como se fosse inédito.
+
+Três lições nasceram disso — **L75**, **L83** e **L92** —, e a terceira aconteceu
+depois de as duas primeiras já estarem escritas. É por isso que a declaração é do
+PR: lembrar da lição no momento de clicar não funcionou.
+
 **Definition of Done**: critérios de aceitação atendidos, issues atualizadas, YAMLs validados, perguntas de competência testadas, testes passando, Credo e Dialyzer aprovados, migrações testadas, mapeamento semântico revisado, documentação atualizada, PR aprovado por outro agente/pessoa, pipeline verde, merge feito, issues encerradas.
 
 ---
