@@ -9,6 +9,206 @@ mesmos erros — e é o erro repetido que custa mais caro, porque já era conhec
 
 ---
 
+## Como usar este registro
+
+São **99 lições** em 28 sprints. Ninguém lê noventa e nove blocos ao abrir um
+sprint — e foi por não serem lidos que a **L92** reincidiu com a L75 e a L83 já
+escritas, e a **L95** reincidiu no sprint seguinte ao que a criou.
+
+Por isso o índice é **por família**, e cada família tem **uma regra**. As sete
+regras levam um minuto; os blocos ficam para quando a regra não bastar e alguém
+precisar do caso concreto.
+
+> **Lição que descreve um ato repetível não pertence só a este documento.** Ela
+> vira regra no `AGENTS.md` e campo obrigatório no artefato onde o ato acontece.
+> Aqui fica o **porquê**; lá fica a **obrigação** — L98.
+
+---
+
+## As sete famílias
+
+### O defeito que não produz erro
+
+Ausência de erro não é resultado. O gate precisa saber **reprovar**, e o caminho de falha precisa ser exercitado.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L05](#l05--varchar255-em-coluna-de-diagnóstico-troca-o-erro-real-por-um-erro-de-banco) | `varchar(255)` em coluna de diagnóstico troca o erro real por um erro de banco | — | 001 |
+| [L07](#l07--autogenerate-false-em-chave-binary_id-devolve-struct-sem-id) | `autogenerate: false` em chave `binary_id` devolve struct sem `id` | — | 001 |
+| [L13](#l13--secret-referenciado-e-não-cadastrado-chega-como-string-vazia) | Secret referenciado e não cadastrado chega como string vazia | — | 001 |
+| [L19](#l19--marcar-ausência-por-tenant-marca-o-que-é-de-outra-organização) | Marcar ausência por tenant marca o que é de outra organização | — | 002 |
+| [L22](#l22--gate-que-só-compara-duas-execuções-não-sabe-dizer-se-alguma-funcionou) | Gate que só compara duas execuções não sabe dizer se alguma funcionou | — | 002 |
+| [L23](#l23--aviso-de-verificação-pulada-é-reprovação-não-observação) | Aviso de verificação pulada é reprovação, não observação | — | 002 |
+| [L26](#l26--casar-o-envelope-errado-devolve-lista-vazia-em-vez-de-erro) | Casar o envelope errado devolve lista vazia em vez de erro | — | 002 |
+| [L29](#l29--falha-transitória-que-marca-estado-permanente-tira-dado-de-circulação-em-silêncio) | Falha transitória que marca estado permanente tira dado de circulação em silêncio | — | 002 |
+| [L32](#l32--texto-que-afirma-o-que-a-plataforma-não-observou-é-o-mesmo-defeito-na-direção-oposta) | Texto que afirma o que a plataforma não observou é o mesmo defeito, na direção oposta | — | 002 |
+| [L36](#l36--gate-que-descarta-o-retorno-da-task-não-é-gate) | Gate que descarta o retorno da task não é gate | — | 002 |
+| [L54](#l54--átomo-criado-sob-demanda-faz-o-resultado-depender-da-ordem-de-carga) | Átomo criado sob demanda faz o resultado depender da ordem de carga | técnica | 014 |
+| [L57](#l57--verificação-que-filtra-um-tipo-que-ninguém-produz-nunca-roda) | Verificação que filtra um tipo que ninguém produz nunca roda | técnica | 014 |
+| [L62](#l62--somar-contadores-por-lista-escrita-à-mão-apaga-a-chave-nova-em-silêncio) | Somar contadores por lista escrita à mão apaga a chave nova em silêncio | técnica | 021 |
+| [L63](#l63--vínculo-que-só-grava-o-que-casou-apaga-o-que-a-origem-disse) | Vínculo que só grava o que casou apaga o que a origem disse | técnica | 021 |
+| [L66](#l66--script-que-monta-o-contexto-à-mão-esconde-o-contrato-que-o-job-real-quebra) | Script que monta o contexto à mão esconde o contrato que o job real quebra | técnica | 021 |
+| [L69](#l69--defeito-dentro-de-loggerinfo-é-invisível-a-teste-por-configuração) | Defeito dentro de `Logger.info` é invisível a teste, por configuração | técnica | 002 |
+
+**16 abertas** · encerradas ou fundidas: L60
+
+### O número que mente sobre o que mediu
+
+Denominador móvel, medida em curso, total que esconde fenômeno. **Comparar sobreposição**, nunca totais.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L04](#l04--campo-opcional-na-query-pode-custar-um-escopo-inteiro) | Campo opcional na query pode custar um escopo inteiro | — | 001 |
+| [L37](#l37--a-coluna-estreita-só-cai-quando-a-escrita-fica-frequente) | A coluna estreita só cai quando a escrita fica frequente | — | 002 |
+| [L38](#l38--o-custo-de-uma-tela-se-mede-pela-diferença-e-pela-constância-nunca-pelo-total) | O custo de uma tela se mede pela diferença e pela constância, nunca pelo total | técnica | 009 |
+| [L40](#l40--duas-grandezas-com-nomes-parecidos-e-o-complemento-derivado-da-errada) | Duas grandezas com nomes parecidos, e o complemento derivado da errada | processo | 010 |
+| [L49](#l49--uma-medida-não-descreve-uma-tela-cujo-custo-depende-do-plano-de-execução) | Uma medida não descreve uma tela cujo custo depende do plano de execução | técnica | 012 |
+| [L53](#l53--o-teto-de-um-teste-de-custo-vem-da-medida-dos-dois-lados) | O teto de um teste de custo vem da medida dos dois lados | técnica | 013 |
+| [L64](#l64--denominador-que-inclui-o-caso-impossível-esconde-o-sinal) | Denominador que inclui o caso impossível esconde o sinal | técnica | 021 |
+| [L67](#l67--duas-medidas-do-mesmo-nome-comparar-os-totais-esconde-que-são-fenômenos-diferentes) | Duas medidas do mesmo nome: comparar os totais esconde que são fenômenos diferentes | técnica | 002 |
+| [L70](#l70--número-medido-no-meio-de-um-backfill-parece-final-e-não-é) | Número medido no meio de um backfill parece final e não é | processo | 002 |
+| [L86](#l86--denominador-móvel-mente-igual-a-denominador-inventado) | Denominador móvel mente igual a denominador inventado | técnica | 026 |
+| [L90](#l90--contar-só-o-vencedor-da-corrida-não-prova-o-perdedor) | Contar só o vencedor da corrida não prova o perdedor | técnica | 026 |
+
+**11 abertas**
+
+### Afirmar sem medir na origem
+
+Painel, HTTP e log dizem o que a origem contradiz. **Uma consulta à origem** acha o que a suíte não acha.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L30](#l30--conferir-o-número-contra-a-origem-acha-o-que-a-suíte-não-acha) | Conferir o número contra a origem acha o que a suíte não acha | — | 002 |
+| [L33](#l33--a-pergunta-que-pega-o-defeito-de-migração-é-o-que-a-tela-diz-no-dia-seguinte) | A pergunta que pega o defeito de migração é "o que a tela diz no dia seguinte" | — | 002 |
+| [L47](#l47--vínculo-entre-repositórios-só-existe-a-partir-da-segunda-coleta) | Vínculo entre repositórios só existe a partir da segunda coleta | conhecimento | 011 |
+| [L51](#l51--afirmar-sobre-o-schema-sem-conferir-contradiz-a-documentação-que-já-está-no-código) | Afirmar sobre o schema sem conferir contradiz a documentação que já está no código | processo | 012 |
+| [L61](#l61--uma-limitação-declarada-no-mapeamento-não-vira-restrição-no-código-sozinha) | Uma limitação declarada no mapeamento não vira restrição no código sozinha | conhecimento | 021 |
+| [L76](#l76--a-ferramenta-de-medir-precisa-da-gramática-do-alvo) | A ferramenta de medir precisa da gramática do alvo | técnica | 024 |
+| [L80](#l80--a-pendência-medida-com-o-grep-do-instrumento-herda-a-cegueira-dele) | A pendência medida com o grep do instrumento herda a cegueira dele | técnica | 024 |
+| [L84](#l84--o-painel-dizer-done-não-significa-aplicação-no-ar) | O painel dizer `Done` não significa aplicação no ar | técnica | 026 |
+| [L85](#l85--um-200-de-http-pode-afirmar-o-que-o-socket-contradiz) | Um 200 de HTTP pode afirmar o que o socket contradiz | técnica | 026 |
+| [L93](#l93--durante-o-deploy-duas-versões-atendem-e-a-medida-de-fora-não-diz-qual-respondeu) | Durante o deploy, duas versões atendem, e a medida de fora não diz qual respondeu | técnica | 026 |
+| [L94](#l94--mensagem-que-afirma-a-causa-sem-conferir-manda-procurar-no-lugar-errado) | Mensagem que afirma a causa sem conferir manda procurar no lugar errado | técnica | 027 |
+
+**11 abertas** · encerradas ou fundidas: L35
+
+### Teste que não prova o que diz provar
+
+Compara consigo mesmo, depende do relógio, ou fecha o contraexemplo sem fechar a classe.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L03](#l03--um-teste-com-dado-inválido-encontra-o-que-o-caminho-feliz-esconde) | Um teste com dado inválido encontra o que o caminho feliz esconde | — | 001 |
+| [L20](#l20--estado-derivado-do-último-precisa-de-desempate-determinístico) | Estado derivado do "último" precisa de desempate determinístico | — | 002 |
+| [L41](#l41--teste-que-compara-uma-coisa-com-ela-mesma-passa-sempre) | Teste que compara uma coisa com ela mesma passa sempre | técnica | 010 |
+| [L42](#l42--mensagem-atrasada-de-telemetria-entra-na-contagem-seguinte) | Mensagem atrasada de telemetria entra na contagem seguinte | técnica | 010 |
+| [L43](#l43--quando-o-axioma-responde-a-pergunta-errada-a-correção-é-a-precondição-não-um-filtro-na-resposta) | Quando o axioma responde a pergunta errada, a correção é a precondição, não um filtro na resposta | técnica | 010 |
+| [L46](#l46--teste-com-corte-temporal-e-dado-montado-no-mesmo-instante-passa-ou-falha-por-sorte) | Teste com corte temporal e dado montado no mesmo instante passa ou falha por sorte | técnica | 011 |
+| [L50](#l50--teste-que-compara-duas-medidas-precisa-provar-que-mediu-alguma-coisa) | Teste que compara duas medidas precisa provar que mediu alguma coisa | técnica | 012 |
+| [L56](#l56--filtrar-telemetria-pela-source-não-alcança-quem-consulta-por-sql-cru) | Filtrar telemetria pela `source` não alcança quem consulta por SQL cru | técnica | 014 |
+| [L59](#l59--o-verde-do-ci-dependia-de-quem-disparou-a-execução) | O verde do CI dependia de quem disparou a execução | técnica | 015 |
+| [L68](#l68--corte-incremental-exclui-para-sempre-o-registro-antigo-quando-a-consulta-ganha-campo) | Corte incremental exclui para sempre o registro antigo quando a consulta ganha campo | técnica | 002 |
+| [L77](#l77--verificador-novo-nasce-com-teste-de-ponta-que-não-passa-por-ele) | Verificador novo nasce com teste de ponta que NÃO passa por ele | técnica | 024 |
+| [L78](#l78--troca-em-runtime-só-entra-no-contrato-com-teste-em-runtime) | "Troca em runtime" só entra no contrato com teste em runtime | técnica | 024 |
+| [L81](#l81--fechar-o-contraexemplo-não-fecha-a-classe) | Fechar o contraexemplo não fecha a classe | técnica | 025 |
+
+**13 abertas**
+
+### Merge, branch e histórico
+
+**Squash quando a branch morre no merge; merge commit quando alguém depende do histórico dela.** Virou regra — `AGENTS.md` §12 e o template de PR.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L12](#l12--pull-request-não-aberto-na-hora-passa-a-carregar-outra-feature) | Pull request não aberto na hora passa a carregar outra feature | — | 001 |
+| [L52](#l52--continuidade-de-conversa-não-é-continuidade-de-branch) | Continuidade de conversa não é continuidade de branch | processo | 013 |
+| [L58](#l58--pr-empilhado-incorporado-depois-da-base-não-chega-a-lugar-nenhum) | PR empilhado incorporado depois da base não chega a lugar nenhum | processo | 015 |
+| [L74](#l74--a-árvore-de-trabalho-decide-o-que-o-dev-server-serve) | A árvore de trabalho decide o que o dev server serve | processo | 023 |
+| [L79](#l79--agente-com-árvore-compartilhada-não-troca-de-branch) | Agente com árvore compartilhada não troca de branch | processo | 024 |
+
+**5 abertas** · encerradas ou fundidas: L75, L83, L92
+
+### Revisão e PR
+
+Pedir revisor e obter revisão são atos diferentes. **Zero revisões é impedimento, não observação.**
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L15](#l15--não-há-revisor-possível-num-repositório-de-um-colaborador-só) | Não há revisor possível num repositório de um colaborador só | — | 001 |
+| [L48](#l48--palavra-de-fechamento-em-português-não-fecha-a-issue-e-nada-avisa) | Palavra de fechamento em português não fecha a issue, e nada avisa | processo | 011 |
+| [L82](#l82--o-comentário-que-contradiz-o-contrato-é-a-violação-documentando-a-si-mesma) | O comentário que contradiz o contrato é a violação documentando a si mesma | processo | 025 |
+| [L88](#l88--um-segredo-de-8-segundos-e-o-contrato-que-salvou-o-diagnóstico) | Um segredo de 8 segundos, e o contrato que salvou o diagnóstico | dependência | 026 |
+| [L95](#l95--pedir-revisor-não-é-obter-revisão-e-o-merge-não-espera) | Pedir revisor não é obter revisão, e o merge não espera | processo | 027 |
+| [L98](#l98--a-lição-que-não-vira-regra-reincide-no-sprint-seguinte) | A lição que não vira regra reincide no sprint seguinte | processo | 028 |
+
+**6 abertas** · encerradas ou fundidas: L14, L89
+
+### O passo do ciclo sem dono
+
+O que não tem gate some. Conferir **issue por issue** antes de declarar entregue.
+
+| # | Lição | Tipo | Sprint |
+|---|---|---|---|
+| [L01](#l01--ferramenta-de-scaffolding-sobrescreve-documento-normativo) | Ferramenta de scaffolding sobrescreve documento normativo | — | 001 |
+| [L02](#l02--servidor-no-ar-duplica-o-efeito-de-qualquer-job-disparado-por-script) | Servidor no ar duplica o efeito de qualquer job disparado por script | — | 001 |
+| [L06](#l06--cd-no-shell-persiste-entre-comandos-e-escreve-no-lugar-errado) | `cd` no shell persiste entre comandos e escreve no lugar errado | — | 001 |
+| [L08](#l08--contrato-escrito-junto-com-o-código-descreve-não-decide) | Contrato escrito junto com o código descreve, não decide | — | 001 |
+| [L09](#l09--um-contrato-pode-contradizer-a-si-mesmo-e-só-a-implementação-revela) | Um contrato pode contradizer a si mesmo, e só a implementação revela | — | 001 |
+| [L10](#l10--rótulo-de-cipher-precisa-identificar-a-chave-não-a-versão-do-algoritmo) | Rótulo de cipher precisa identificar a chave, não a versão do algoritmo | — | 001 |
+| [L11](#l11--configurar-iterations-do-projectv2-recria-as-existentes) | Configurar iterations do ProjectV2 recria as existentes | — | 001 |
+| [L17](#l17--a-derivação-do-esquema-não-era-função-da-ontologia) | A derivação do esquema não era função da ontologia | — | 002 |
+| [L18](#l18--um-critério-atendido-não-é-um-critério-suficiente) | Um critério atendido não é um critério suficiente | — | 002 |
+| [L21](#l21--função-pública-testada-e-sem-consumidor-não-é-funcionalidade-entregue) | Função pública testada e sem consumidor não é funcionalidade entregue | — | 002 |
+| [L24](#l24--caminho-que-só-roda-no-ambiente-limpo-não-é-testado-por-quem-já-tem-o-ambiente) | Caminho que só roda no ambiente limpo não é testado por quem já tem o ambiente | — | 002 |
+| [L25](#l25--número-da-issue-não-identifica-ele-é-único-dentro-do-repositório) | Número da issue não identifica: ele é único dentro do repositório | — | 002 |
+| [L27](#l27--implementar-antes-do-plano-faz-o-teste-descobrir-o-que-o-plano-descobriria) | Implementar antes do plano faz o teste descobrir o que o plano descobriria | — | 002 |
+| [L28](#l28--calcular-e-não-gravar-é-pior-que-não-calcular) | Calcular e não gravar é pior que não calcular | — | 002 |
+| [L31](#l31--regra-nova-muda-o-significado-de-teste-que-passava) | Regra nova muda o significado de teste que passava | — | 002 |
+| [L34](#l34--a-mesma-palavra-para-duas-coisas-diferentes-esconde-o-caso-que-a-feature-existe-para-resolver) | A mesma palavra para duas coisas diferentes esconde o caso que a feature existe para resolver | — | 002 |
+| [L39](#l39--um-join-num-escopo-compartilhado-desloca-os-bindings-de-quem-compõe-sobre-ele) | Um `join` num escopo compartilhado desloca os bindings de quem compõe sobre ele | técnica | 009 |
+| [L44](#l44--sprint-que-fecha-sem-review-deixa-a-lição-rascunhada-e-a-próxima-feature-a-cita-como-se-existisse) | Sprint que fecha sem review deixa a lição rascunhada, e a próxima feature a cita como se existisse | processo | 009 |
+| [L45](#l45--sprint-novo-tirado-da-main-não-enxerga-o-fecho-do-sprint-anterior-enquanto-o-pr-está-aberto) | Sprint novo tirado da `main` não enxerga o fecho do sprint anterior enquanto o PR está aberto | processo | 011 |
+| [L55](#l55--task-que-não-compila-valida-o-build-anterior) | Task que não compila valida o build anterior | processo | 014 |
+| [L65](#l65--coleta-que-a-rede-já-especificou-custa-a-fração-de-uma-que-não) | Coleta que a rede já especificou custa a fração de uma que não | processo | 021 |
+| [L71](#l71--quando-o-requisito-muda-de-lugar-os-testes-que-documentam-o-lugar-antigo-caem-em-lote) | Quando o requisito muda de lugar, os testes que documentam o lugar antigo caem em lote | processo | 022 |
+| [L72](#l72--a-api-de-iterations-substitui-a-lista-inteira-reenviar-sempre-as-vigentes) | A API de iterations substitui a lista inteira: reenviar sempre as vigentes | técnica | 023 |
+| [L73](#l73--isvisible-não-vê-o-corte-por-overflow-a-prova-de-tela-é-a-imagem) | `isVisible` não vê o corte por overflow: a prova de tela é a imagem | processo | 023 |
+| [L87](#l87--fase-invisível-faz-trabalho-parecer-travado) | Fase invisível faz trabalho parecer travado | técnica | 026 |
+| [L91](#l91--o-passo-do-ciclo-que-não-tem-gate-é-o-que-some) | O passo do ciclo que não tem gate é o que some | processo | 026 |
+| [L96](#l96--issue-que-ninguém-fecha-faz-o-sprint-parecer-não-entregue) | Issue que ninguém fecha faz o sprint parecer não entregue | processo | 027 |
+| [L97](#l97--feature-que-corrige-o-vínculo-não-corrige-quem-lê-o-vínculo) | Feature que corrige o vínculo não corrige quem lê o vínculo | técnica | 027 |
+| [L99](#l99--conferir-issue-por-issue-achou-o-que-planejar-não-achou) | Conferir issue por issue achou o que planejar não achou | processo | 028 |
+| [L100](#l100--branch-de-documentação-sem-pr-faz-o-código-chegar-sem-a-spec) | Branch de documentação sem PR faz o código chegar sem a spec | processo | 028 |
+
+**30 abertas**
+
+---
+
+## Encerradas
+
+Encerrar **não apaga**. Move a obrigação para onde ela é verificável, e deixa aqui
+o raciocínio que a produziu — o bloco continua no corpo do documento.
+
+| # | Lição | Como encerrou |
+|---|---|---|
+| [L60](#l60--o-pipe-no-mix-gates-devolve-o-código-de-saída-do-tail) | O pipe no `mix gates` devolve o código de saída do `tail` | regra no `AGENTS.md` §7 — `mix gates` é a definição única, e o veredito é **o código de saída dela** |
+| [L75](#l75--squash-merge-abre-janela-para-commits-órfãos-na-branch-do-pr) | Squash-merge abre janela para commits órfãos na branch do PR | regra no `AGENTS.md` §12 e campo obrigatório no template de PR |
+| [L83](#l83--squash-merge-no-release-diverge-os-históricos) | Squash-merge no release diverge os históricos | regra no `AGENTS.md` §12 e campo obrigatório no template de PR |
+| [L92](#l92--squash-num-back-merge-apaga-o-back-merge) | Squash num back-merge apaga o back-merge | regra no `AGENTS.md` §12 e campo obrigatório no template de PR |
+
+## Fundidas
+
+Lições que descreviam o **mesmo ato em momentos diferentes**. Separadas, cada
+metade parecia cumprida sozinha — que é exatamente como o defeito passava.
+
+| # | Incorporada a | Por quê |
+|---|---|---|
+| [L14](#l14--gh-engole-em-silêncio-o-pedido-de-revisão-recusado) | **[L95](#l95--pedir-revisor-não-é-obter-revisão-e-o-merge-não-espera)** | `gh` engolir o pedido em silêncio e o merge não esperar pela revisão são o mesmo buraco, nas duas pontas |
+| [L35](#l35--conferir-contra-a-origem-acha-defeito-fora-da-feature-que-se-está-entregando) | **[L30](#l30--conferir-o-número-contra-a-origem-acha-o-que-a-suíte-não-acha)** | não é lição nova: é a L30 dizendo que **somar o total não basta** — a comparação é item a item |
+| [L89](#l89--pr-sem-revisor-pedido-não-é-pr-revisado-e-o-merge-não-sabe-disso) | **[L95](#l95--pedir-revisor-não-é-obter-revisão-e-o-merge-não-espera)** | as duas metades do mesmo fracasso — L89 confere `reviewRequests` **depois de pedir**, L95 confere `reviews` **antes de mesclar**. Separadas, cada uma parecia cumprida sozinha |
+
+---
+
 ## Sprint 001 — Fundação e coleta EO (2026-08-09)
 
 ### L01 — Ferramenta de scaffolding sobrescreve documento normativo
@@ -300,6 +500,8 @@ configuração, não. Um trecho tratava vazio como ausente, o outro como valor.
 **Aplicada em**: Sprint 002 — Fase 0, ao abrir o PR da 001.
 
 ### L14 — `gh` engole em silêncio o pedido de revisão recusado
+
+> **Fundida na L95 no Sprint 028** — `gh` engolir o pedido em silêncio e o merge não esperar pela revisão são o mesmo buraco, nas duas pontas.
 
 **O que aconteceu.** Passou a valer a regra de todo PR nascer com revisor pedido, e
 o PR #90 foi aberto com `gh pr create ... --reviewer paulossjunior`. O comando
@@ -712,7 +914,7 @@ Nenhum dos dois é sutil. Os dois exigiam um formulário para aparecer.
 
 **Onde**: Sprint 003 — o gate "modelo de informação — derivação reproduzível".
 
-**O que aconteceu.** O gate nasceu na correção da [L17](#l17), para provar que a
+**O que aconteceu.** O gate nasceu na correção da [L17](#l17--a-derivação-do-esquema-não-era-função-da-ontologia), para provar que a
 derivação é determinística. Ele roda o script duas vezes e compara as saídas:
 
 ```bash
@@ -1205,6 +1407,8 @@ perguntas que ninguém separou.
 ---
 
 ## L35 — Conferir contra a origem acha defeito fora da feature que se está entregando
+
+> **Fundida na L30 no Sprint 028** — não é lição nova: é a L30 dizendo que **somar o total não basta** — a comparação é item a item.
 
 **Onde**: Sprint 007 — a pessoa mantenedora achou o número de issues baixo e pediu conferência.
 
@@ -2042,6 +2246,8 @@ defeito por um risco. A dívida ficou registrada, separada, no PR #308.
 
 ## L60 — O pipe no `mix gates` devolve o código de saída do `tail`
 
+> **Encerrada no Sprint 028** — regra no `AGENTS.md` §7 — `mix gates` é a definição única, e o veredito é **o código de saída dela**. O bloco fica: a regra carrega a obrigação, e aqui está o caso que a produziu.
+
 **Origem**: Sprint 016 · **Tipo**: processo
 
 **O que aconteceu.** A primeira execução dos gates desta sessão foi:
@@ -2634,6 +2840,8 @@ exercitando fica também na árvore ativa (aplicado sem commit) até o merge ofi
 
 ## L75 — Squash-merge abre janela para commits órfãos na branch do PR
 
+> **Encerrada no Sprint 028** — regra no `AGENTS.md` §12 e campo obrigatório no template de PR. O bloco fica: a regra carrega a obrigação, e aqui está o caso que a produziu.
+
 **Origem**: Sprint 023 · **Tipo**: processo · **Estado**: aberta
 
 **O que aconteceu.** O PR #562 foi squash-mergeado enquanto a sessão continuava
@@ -2791,6 +2999,8 @@ leitura dupla.
 
 ## L83 — Squash-merge no release diverge os históricos
 
+> **Encerrada no Sprint 028** — regra no `AGENTS.md` §12 e campo obrigatório no template de PR. O bloco fica: a regra carrega a obrigação, e aqui está o caso que a produziu.
+
 **Origem**: Sprint 026 (release v0.1.0) · **Tipo**: processo · **Estado**: aberta
 
 **O que aconteceu.** O PR #636 entrou na `main` por squash, criando ali um commit
@@ -2921,6 +3131,8 @@ Registrar como evidência a favor da prática, não como defeito a corrigir.
 
 ## L89 — PR sem revisor pedido não é PR revisado, e o merge não sabe disso
 
+> **Fundida na L95 no Sprint 028** — as duas metades do mesmo fracasso — L89 confere `reviewRequests` **depois de pedir**, L95 confere `reviews` **antes de mesclar**. Separadas, cada uma parecia cumprida sozinha.
+
 **Origem**: Sprint 026 (aceitação) · **Tipo**: processo · **Estado**: aberta
 
 **O que aconteceu.** Dos nove PRs do sprint, **seis foram mergeados sem revisor
@@ -3006,7 +3218,9 @@ não existe.
 
 ## L92 — Squash num back-merge apaga o back-merge
 
-**Origem**: Sprint 026 (release v0.3.0) · **Tipo**: processo · **Estado**: aberta
+> **Encerrada no Sprint 028** — regra no `AGENTS.md` §12 e campo obrigatório no template de PR. O bloco fica: a regra carrega a obrigação, e aqui está o caso que a produziu.
+
+**Origem**: Sprint 026 (release v0.3.0) · **Tipo**: processo · **Estado**: **encerrada no Sprint 028** — virou regra no `AGENTS.md` §12 e campo obrigatório no template de PR
 
 **O que aconteceu.** O PR #646 fez o back-merge da `main` na `development` — a
 ação que a L83 prescreve — e **foi mergeado por squash**. O conteúdo chegou; a
@@ -3215,3 +3429,116 @@ se muda ou não muda. `grep` pelo nome do conceito é o mínimo. E toda condiç�
 sobre coluna anulável precisa dizer explicitamente o que faz com o nulo.
 
 **Aplicada em**: Sprint 028 — US1 e T034 da feature 057 são a correção.
+
+---
+
+## As três do squash, encerradas juntas — Sprint 028
+
+**L75**, **L83** e **L92** são o mesmo defeito visto em três lugares: o squash cria
+um commit **novo, sem os pais originais**, e o Git perde a informação de que
+aquele trabalho já foi integrado.
+
+A L92 aconteceu **depois** de a L75 e a L83 já estarem escritas. Isso é o achado:
+**lembrar da lição no momento de clicar o botão não funcionou**, e três registros
+não impediram a quarta ocorrência.
+
+O que mudou no sprint 028, e por que isto encerra as três:
+
+1. **`AGENTS.md` §12** ganhou a tabela de quando usar cada tipo — vira obrigação
+   verificável em revisão, e não lembrete;
+2. **`.github/pull_request_template.md`** exige o tipo de merge **declarado no
+   corpo do PR**, com o motivo. Quem clica não precisa lembrar de qual caso este
+   PR é: quem abriu já disse.
+
+A diferença entre lembrete e regra é essa: o lembrete depende de alguém recordar
+no pior momento — quando já está com o dedo no botão e o trabalho parece
+terminado.
+
+**Se reincidir mesmo assim**, a próxima medida não é uma quarta lição: é
+desabilitar o squash na configuração do repositório para os casos em que ele
+destrói, e deixar o botão oferecer só o que é correto.
+## L98 — A lição que não vira regra reincide no sprint seguinte
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** A **L95** — pedir revisor não é obter revisão — nasceu no
+sprint 027 e **reincidiu no 028**: cinco PRs incorporados com zero revisões cada.
+
+O mesmo padrão com o squash: **L75**, **L83** e **L92**, e a terceira ocorreu
+depois de as duas primeiras já estarem escritas.
+
+**Por que aconteceu.** O registro acumulado é lido ao **abrir** o sprint. O ato
+que a lição descreve acontece semanas depois, no pior momento possível — com o
+trabalho parecendo terminado e o dedo no botão. Escrever a lição preserva o
+raciocínio; não muda o comportamento.
+
+**O que fazer diferente.** Lição que descreve um **ato repetível** vira duas
+coisas, e não uma:
+
+1. **regra no `AGENTS.md`** — obrigação verificável em revisão;
+2. **campo obrigatório no artefato** onde o ato acontece.
+
+Foi o que se fez com o tipo de merge: `AGENTS.md` §12 mais o
+`.github/pull_request_template.md`. O registro acumulado guarda o **porquê**; o
+artefato carrega a **obrigação**.
+
+O teste para saber se a lição precisa disso: *o erro acontece num momento em que
+ninguém está lendo lições?* Se sim, escrever no documento não basta.
+
+**Aplicada em**: Sprint 028 — L92 encerrada por virar regra e campo de template.
+
+---
+
+## L99 — Conferir issue por issue achou o que planejar não achou
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** Ao fechar o sprint, `gh issue list --state open` mostrou que
+**T020 e T021 nunca foram implementadas**. A seção de pessoas tinha as tarefas e
+não tinha as habilidades: a US4 estava pela metade, com o PR já incorporado e os
+gates verdes.
+
+**Por que aconteceu.** Nenhum gate pega isso. Os testes provam **o que existe**, e
+não o que foi prometido — uma seção ausente não tem teste que falhe, e a suíte
+inteira fica verde sobre metade da user story.
+
+O plano tinha as tarefas certas; a implementação passou por cima delas ao montar
+a seção, e nada entre as duas comparou uma coisa com a outra.
+
+**O que fazer diferente.** A conferência issue a issue **antes** de escrever a
+review não é formalidade: é a única leitura que compara o **prometido** com o
+**entregue**. Já entrou na DoD do sprint por causa da L96, e neste sprint ela
+funcionou no sprint que a criou.
+
+**Aplicada em**: Sprint 028 — achou a lacuna, e o PR #762 a fechou.
+
+---
+
+## L100 — Branch de documentação sem PR faz o código chegar sem a spec
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** Os PRs de código foram ramificados de `development`, e a
+branch com a spec, o plano, as tarefas e o sprint **nunca teve PR**. Os três
+primeiros PRs saíram sem os documentos que implementavam.
+
+O defeito só apareceu quando um arquivo do backlog, escrito horas antes, **sumiu
+da árvore de trabalho** — e a busca por ele revelou seis commits parados numa
+branch sem destino.
+
+**Por que aconteceu.** O ciclo Spec Kit cria a branch da feature e commita os
+artefatos nela. A implementação começa com `git checkout development`, e o passo
+de abrir o PR dos documentos **não tem gate** — é a L91 aparecendo em outro
+lugar do mesmo ciclo.
+
+**O que fazer diferente.** Ao ramificar para implementar, conferir que a branch de
+origem **já está em `development`**:
+
+```bash
+git log development..<branch-da-spec>   # vazio = já incorporada
+```
+
+Uma linha responde. Se não estiver vazio, abrir o PR dela **antes** de começar a
+implementar — os PRs de código dependem daqueles documentos para serem revisáveis.
+
+**Aplicada em**: Sprint 028 — corrigido com o PR #760, aberto tarde.
