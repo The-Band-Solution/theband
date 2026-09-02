@@ -216,7 +216,7 @@ sustenta todas as outras.
 
 | Fase | O que entra | Prova |
 |---|---|---|
-| **1** | `EO.team_members_at/3` + correção de `TeamSkills` | Cenários 1 e 2 — o passado não se reescreve |
+| **1** | `EO.team_members_at/3` + o nulo em `started_at` + correção de `TeamSkills` | Cenários 1, 2 e 2b — o passado não se reescreve, e quem tem data desconhecida não some |
 | **2** | medidas declaradas em YAML (princípio IV) | `mix knowledge.validate` |
 | **3** | séries de equipe com vigência por data do evento | Cenários 4 e 12 |
 | **4** | tela da equipe composta, sem soma | Cenário 3 |
@@ -250,5 +250,11 @@ Vai para `docs/backlog/` ao final da feature — declarada, não escondida.
 
 > Preenchido apenas se o Constitution Check tiver violações a justificar.
 
-Nenhuma violação. Os dois ⚠️ acima são **tarefas** (declarar as medidas em YAML) e
+**Achado do `/speckit-analyze` em 2026-09-02, corrigido antes da implementação**:
+a condição de vigência escrita como `started_at <= data` descartaria em silêncio
+o vínculo com data de início desconhecida — fallback silencioso, que o princípio
+VIII trata como defeito. O defeito já existia em `count_team_members_at/3` desde
+a feature 055; T034 corrige os dois. FR-006a e SC-011a nasceram daí.
+
+Nenhuma violação em aberto. Os dois ⚠️ acima são **tarefas** (declarar as medidas em YAML) e
 **limite declarado** (tamanho de `show.ex`), não desvios de princípio.

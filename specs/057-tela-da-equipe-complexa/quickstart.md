@@ -52,6 +52,20 @@ em período nenhum.
 
 ---
 
+## Cenário 2b — Vínculo sem data de início continua contando *(FR-006a, SC-011a)*
+
+Pessoa com `started_at` nulo — o que `Commands.allocate/2` grava quando a data é
+desconhecida.
+
+**Esperado**: aparece nas medidas em **qualquer** data, e a tela declara que a
+data de início é desconhecida.
+
+**A falha que este cenário pega** é silenciosa: escrita como `started_at <= data`,
+a comparação avalia para desconhecido contra nulo e o Postgres descarta a linha —
+a pessoa deixa de ser membro em data alguma, sem erro e sem aviso.
+
+---
+
 ## Cenário 3 — Nada é somado *(US2, SC-003)*
 
 1. equipe A composta por B e C;

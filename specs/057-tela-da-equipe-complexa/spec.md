@@ -239,6 +239,7 @@ abaixo do piso.
   não promovida; não entra nos números.
 - **Vínculo com `started_at` desconhecido** — a pessoa entra a partir da primeira
   evidência observada, e a tela declara que a data de início é desconhecida.
+  **Nunca é excluída**: nulo é desconhecido, não "nunca pertenceu" — FR-006a.
 - **Semana sem trabalho** dentro do período coletado — zero observado.
   **Semana fora** do período coletado — ausente, nunca zero.
 - **Item aberto antes da janela e ainda aberto** — entra na linha de base de
@@ -271,6 +272,10 @@ abaixo do piso.
 - **FR-006**: Vínculo sem `started_at` conhecido MUST ser tratado a partir da
   primeira evidência observada da pessoa na equipe, e a tela MUST declarar que a
   data de início é desconhecida.
+- **FR-006a**: Vínculo sem `started_at` MUST NOT ser excluído das medidas. Uma
+  comparação de data contra nulo não é falsa: é desconhecida — e tratá-la como
+  falsa faz a pessoa deixar de ser membro **em data alguma**, sem erro e sem
+  aviso. É o fallback silencioso que o princípio VIII trata como defeito.
 
 ### A equipe composta de equipes
 
@@ -397,6 +402,8 @@ abaixo do piso.
 - **SC-010**: Com histórico abaixo do piso, nenhuma previsão é apresentada e a
   tela nomeia o que falta.
 - **SC-011**: Nenhuma consulta desta feature devolve dado de outro tenant.
+- **SC-011a**: 100% dos vínculos com `started_at` desconhecido aparecem nas
+  medidas da equipe — nenhum é excluído por comparação com nulo.
 - **SC-012**: Uma pessoa sem permissão de administrar equipes consegue abrir e ler
   a tela da equipe.
 
@@ -405,6 +412,10 @@ abaixo do piso.
 - **O trabalho de uma equipe é o dos seus membros.** Segue a regra já usada nos
   avisos de processo: os itens atribuídos às pessoas da equipe — agora restritos
   ao período do vínculo. Não existe vínculo direto entre item e equipe na origem.
+- **O que é o "período coletado"**: a janela em que a plataforma de fato tem
+  observação da origem para aquela equipe — a mesma borda que a cobertura de
+  timeline já expõe hoje para a pessoa. Fora dela não se afirma zero, porque não
+  se observou; dentro dela, zero é observação.
 - **Período padrão das séries: 8 semanas**, sem seletor nesta feature. Escolher o
   período é trabalho separado, e um seletor sem definição de período fechado
   reabriria a questão do denominador móvel.

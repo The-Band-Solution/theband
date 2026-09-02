@@ -17,7 +17,7 @@ Três módulos ganham API pública. Nenhuma migração.
         person_id: Ecto.UUID.t(),
         name: String.t(),
         login: String.t() | nil,
-        started_at: DateTime.t(),
+        started_at: DateTime.t() | nil,
         ended_at: DateTime.t() | nil
       }
 ```
@@ -27,6 +27,17 @@ Quem pertencia à equipe **na data**, pela mesma regra de vigência de
 invalidado. Borda `[started_at, ended_at)`.
 
 Ordenada por `name`. Equipe sem membros na data devolve `[]`.
+
+**`started_at` nulo é membro, e a condição precisa dizer isso.** A ontologia
+declara o atributo como `required: false`, e `Commands.allocate/2` grava nulo de
+propósito — nulo significa *não se sabe desde quando*, nunca *começou hoje*. Uma
+condição escrita como `started_at <= data` avalia para **desconhecido** contra
+nulo, e o Postgres descarta a linha: a pessoa deixa de ser membro **em data
+alguma**, sem erro e sem aviso.
+
+A condição correta é `(started_at is null or started_at <= data)`, e ela vale
+igualmente em `count_team_members_at/3`, que tem o mesmo defeito desde a feature
+055 — FR-006a, SC-011a.
 
 **Não** inclui evidência não promovida — quem a origem lista sem vínculo declarado
 sai por `pending_evidence/2`, que já existe, e a tela apresenta em separado

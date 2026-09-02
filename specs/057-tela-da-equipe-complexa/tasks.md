@@ -49,7 +49,7 @@ feature.
     **três** condições e a borda é `[started_at, ended_at)` — a mesma de
     `count_team_members_at/3`, que fica ao lado. Extrair o fragmento de vigência
     para função privada reusada pelas duas, para não existir uma segunda definição
-    de "vigente" (R5, D3)
+    de "vigente" (R5, D3) Cobre FR-001, FR-003.
   - **Feita quando**: a função devolve os membros ordenados por nome; vínculo
     invalidado não aparece em data nenhuma; quem sai num dia e entra em outra
     equipe no mesmo dia conta em **uma** só
@@ -61,7 +61,7 @@ feature.
   - **Pronta quando**: T002 concluída
   - **Descrição**: `EO.team_member_ids_at/3`, mesma regra de vigência, devolvendo
     apenas os ids. Existe porque quem monta consulta de trabalho não usa os nomes,
-    e carregá-los seria trabalho jogado fora em toda chamada
+    e carregá-los seria trabalho jogado fora em toda chamada — FR-001
   - **Feita quando**: devolve exatamente os mesmos ids que `team_members_at/3`
     devolveria, na mesma ordem
   - **Teste**: `queries_test.exs` — igualdade entre
@@ -79,6 +79,26 @@ feature.
     preenchidos, e nenhuma delas aparece na tela sem estar declarada aqui
   - **Teste**: `mix knowledge.validate` e `mix knowledge.test` verdes, e
     `mix knowledge.graph` sem aresta nova de ontologia
+
+- [ ] T034 [#754](https://github.com/The-Band-Solution/theband/issues/754) Tratar o vínculo sem data de início conhecida
+  - **Pronta quando**: T002 concluída
+  - **Descrição**: a condição de vigência precisa ser
+    `(started_at is null or started_at <= data)`. A ontologia declara o atributo
+    como `required: false` e `Commands.allocate/2` grava nulo de propósito — nulo
+    é *não se sabe desde quando*, nunca *começou hoje*. Escrita como
+    `started_at <= data`, a comparação avalia para **desconhecido** e o Postgres
+    descarta a linha: a pessoa deixa de ser membro **em data alguma**, sem erro e
+    sem aviso. É o fallback silencioso que o princípio VIII trata como defeito.
+    Corrigir em `team_members_at/3`, `team_member_ids_at/3` **e** em
+    `count_team_members_at/3`, que carrega o mesmo defeito desde a feature 055 —
+    FR-006, FR-006a, SC-011a
+  - **Feita quando**: vínculo com `started_at` nulo aparece nas medidas em
+    qualquer data; `count_team_members_at/3` passa a contá-lo; a tela declara que
+    a data de início é desconhecida
+  - **Teste**: `test/the_band/ontology/seon/eo/queries_test.exs` — vínculo com
+    `started_at: nil` e `ended_at: nil` aparece em `team_members_at/3` para uma
+    data qualquer, e o mesmo caso acrescentado ao teste de
+    `count_team_members_at/3`
 
 ---
 
@@ -99,7 +119,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
     `membros/3` recebendo a data e chamando `EO.team_members_at/3` no lugar de
     `list_team_members(..., include_no_longer_observed: false)`. `coverage/2`
     delega para `coverage/3` com o instante atual; o tipo `coverage()` **não muda**
-    (R9, contrato §4)
+    (R9, contrato §4) Cobre FR-001, FR-002, SC-001.
   - **Feita quando**: uma pessoa com vínculo encerrado deixa de aparecer na
     cobertura de hoje; o trabalho que ela concluiu antes da saída continua contando
     para a equipe; a assinatura antiga continua funcionando
@@ -112,7 +132,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
     aplicá-lo a todos os meses. Passa a chamar `membros/3` **uma vez por mês da
     série**, com o corte daquele mês. A série continua tendo um ponto por mês que
     teve geração de perfil, e não um por mês de calendário — interpolar afirmaria
-    observação que não houve
+    observação que não houve — FR-001, FR-004
   - **Feita quando**: uma pessoa que entrou em junho não aparece nos pontos
     anteriores a junho; uma pessoa que saiu em março aparece nos pontos até março e
     não depois
@@ -124,7 +144,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
   - **Descrição**: o teste que corresponde ao **SC-002**, e o mais importante da
     feature. Capturar a série inteira, registrar uma saída com data em julho,
     recapturar, e comparar. É o mesmo defeito que o SC-003 da 055 proíbe no
-    vínculo, e o teste tem a mesma forma
+    vínculo, e o teste tem a mesma forma — FR-004
   - **Feita quando**: os pontos anteriores a julho são **idênticos** antes e
     depois; só julho em diante difere
   - **Teste**: `team_skills_test.exs` — `assert antes_de_julho(serie_1) ==
@@ -172,7 +192,7 @@ que o clique leva à tela da subequipe.
   - **Descrição**: a estrutura `linha_de_subequipe` de `data-model.md` — membros,
     abertas, fechadas na janela, paradas, e `sem_trabalho?`. O booleano existe para
     separar **zero observado** de **ausência** (FR-012): a tela usa o booleano, e
-    não infere ausência de um zero
+    não infere ausência de um zero — FR-007
   - **Feita quando**: cada subequipe produz uma linha; a equipe produz também a
     linha dos membros diretos, marcada como tal; nenhuma função devolve um campo de
     total
@@ -210,6 +230,18 @@ que o clique leva à tela da subequipe.
   - **Teste**: `show_test.exs` — subequipe sem issues; o HTML da linha não contém
     `0` nas células de indicador
 
+- [ ] T037 [P] [US2] [#757](https://github.com/The-Band-Solution/theband/issues/757) Destacar a subequipe com mais trabalho parado
+  - **Pronta quando**: T011 concluída
+  - **Descrição**: as linhas de subequipe ordenadas por trabalho parado, do maior
+    para o menor, com a contagem visível em cada uma. É o que torna SC-005
+    verificável: sem ordenação declarada, "identificar em menos de 30 segundos"
+    depende de sorte na ordem alfabética. Ordenar **não é somar** — cada linha
+    continua com o número dela
+  - **Feita quando**: a subequipe com mais paradas aparece primeiro; o critério de
+    ordenação está dito na tela; nenhum total foi introduzido
+  - **Teste**: `show_test.exs` — três subequipes com 5, 0 e 2 paradas; a ordem
+    renderizada é 5, 2, 0, e o HTML segue sem célula de total
+
 ---
 
 ## Phase 5: User Story 3 — O detalhe da subequipe (P2)
@@ -229,7 +261,7 @@ período declarado.
     contra a data do evento — `external_created_at` na série de criadas,
     `external_closed_at` na de fechadas —, e não como lista de ids (R5, D3). É o
     que faz SC-002 valer também aqui. Formato de período com ano **ISO**
-    (`IYYY-"W"IW`), nunca civil
+    (`IYYY-"W"IW`), nunca civil — FR-002, FR-015
   - **Feita quando**: uma issue fechada depois da saída de quem a tinha não aparece
     na série; registrar uma saída hoje não altera nenhuma semana anterior à saída;
     a semana de 29/12 recebe o rótulo do ano ISO
@@ -241,7 +273,7 @@ período declarado.
   - **Descrição**: `DISTINCT` na issue dentro de `team_state_changes_by_period/4`
     (R4). Item atribuído a duas pessoas **da mesma equipe** é um item só para a
     equipe. É o oposto da regra por pessoa, e é a razão de FR-008 proibir somar as
-    linhas de subequipe — a tarefa e o texto de T012 falam do mesmo fato
+    linhas de subequipe — a tarefa e o texto de T012 falam do mesmo fato — FR-025
   - **Feita quando**: a série da equipe conta **1** para a issue compartilhada,
     enquanto as linhas por pessoa contam **2**
   - **Teste**: `team_series_test.exs` — issue com dois designados da mesma equipe;
@@ -285,11 +317,25 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
     equipe inteira. `aberta_ha_dias` conta da **abertura do item** — a origem não
     registra quando a atribuição aconteceu (R1), e FR-019a proíbe apresentar tempo
     de atribuição. Pessoa sem tarefa entra no mapa com lista **vazia**; chave
-    ausente significa que não é da equipe
+    ausente significa que não é da equipe — FR-017, FR-018, FR-019
   - **Feita quando**: pessoa com duas tarefas devolve as duas; pessoa sem tarefa
     aparece com `[]`; nenhuma função elege uma tarefa como atual
   - **Teste**: `team_series_test.exs` — mapa com uma pessoa de duas tarefas e outra
     de nenhuma; a segunda tem chave presente e lista vazia
+
+- [ ] T035 [US4] [#755](https://github.com/The-Band-Solution/theband/issues/755) Renderizar a seção de pessoas
+  - **Pronta quando**: T018 concluída
+  - **Descrição**: a seção que lista cada pessoa da equipe com suas tarefas
+    abertas, em `lib/the_band_web/live/teams_live/show.ex`. Uma linha por tarefa,
+    **nenhuma eleita como atual** (FR-018), e pessoa sem tarefa aparecendo com a
+    ausência dita em texto e não omitida (FR-017, FR-021, SC-006). T019 e T020
+    acrescentam a marca de parada e as habilidades **dentro** desta seção — sem
+    ela, as duas não têm onde existir
+  - **Feita quando**: toda pessoa da equipe aparece com pelo menos uma linha; a
+    que não tem tarefa traz o texto de ausência; nenhuma linha em branco
+  - **Teste**: `test/the_band_web/live/teams_live/show_test.exs` — equipe com uma
+    pessoa de duas tarefas e outra de nenhuma; o HTML tem as duas tarefas e o
+    texto de ausência, e a contagem de linhas de pessoa é igual à de membros
 
 - [ ] T019 [P] [US4] [#739](https://github.com/The-Band-Solution/theband/issues/739) Marcar a tarefa parada, e dizer o que a marca é
   - **Pronta quando**: T018 concluída
@@ -307,7 +353,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Descrição**: seção própria em `show.ex`, por pessoa, na gramática da tela de
     pessoa — pílulas com marca `derived` e fundo hachurado, porque são conclusão
     lida do trabalho concluído e não registro (FR-022). Consome o perfil vigente
-    já existente; **não** define piso próprio (R8)
+    já existente; **não** define piso próprio (R8) Cobre SC-007.
   - **Feita quando**: cada habilidade carrega a marca de derivada; a seção declara
     que habilidade ausente significa não observada aqui, nunca incapacidade
     (FR-024)
@@ -329,11 +375,23 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Pronta quando**: T011 concluída
   - **Descrição**: conferir que a leitura da tela **não** exige escopo de
     administrar equipes (FR-039) — administrar não é ver. Os controles de declarar,
-    compor e registrar saída continuam restritos
+    compor e registrar saída continuam restritos — SC-012
   - **Feita quando**: pessoa sem escopo abre a tela e lê tudo; os controles de
     escrita não aparecem para ela
   - **Teste**: `show_test.exs` — dois usuários, um com escopo e outro sem; ambos
     veem os indicadores, só o primeiro vê os formulários
+
+- [ ] T036 [P] [US4] [#756](https://github.com/The-Band-Solution/theband/issues/756) Dizer por que as linhas por pessoa não somam
+  - **Pronta quando**: T035 concluída
+  - **Descrição**: texto na seção de pessoas declarando que uma tarefa com mais de
+    um responsável **aparece para cada um** (FR-025). É o par de T012, que diz o
+    mesmo das linhas de subequipe — e é a mesma causa: a contagem por pessoa e a
+    contagem da equipe respondem perguntas diferentes, e a diferença entre elas
+    tem que estar escrita onde os números aparecem
+  - **Feita quando**: o texto está na seção de pessoas e nomeia a causa; um leitor
+    consegue explicar por que a soma das linhas não é o número da equipe
+  - **Teste**: `show_test.exs` — tarefa com dois responsáveis da mesma equipe; as
+    duas linhas aparecem e o texto está presente
 
 ---
 
@@ -351,7 +409,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Descrição**: `WorkItems.team_open_at/3` — criados até a data, não fechados
     até a data, de quem pertencia na data. É a **linha de base** de FR-026a. Sem
     ela a distância entre as curvas mede só os itens nascidos na janela, e uma
-    equipe com 40 itens abertos há meses apareceria com distância zero (R2)
+    equipe com 40 itens abertos há meses apareceria com distância zero (R2) Cobre FR-026.
   - **Feita quando**: devolve a contagem correta para uma data no passado, e
     respeita a vigência do vínculo naquela data
   - **Teste**: `team_series_test.exs` — 12 issues abertas antes da janela; a função
@@ -361,7 +419,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Pronta quando**: T023 concluída
   - **Descrição**: `PersonWork.burn/2` recebendo `aberto_inicial`, com `burn/1`
     delegando com `0`. Função **pura**, sem consulta. A página da pessoa **não
-    muda** nesta feature — a limitação dela vira item de backlog em T032 (D2)
+    muda** nesta feature — a limitação dela vira item de backlog em T032 (D2) Cobre FR-026, FR-028, SC-004.
   - **Feita quando**: `aberto(t) == aberto_inicial + criadas(t₀..t) −
     fechadas(t₀..t)` em todo ponto; `burn/1` devolve exatamente o que devolvia
     antes
@@ -406,7 +464,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     módulo **puro** que não toca no banco. Duas hipóteses: escopo congelado sorteia
     só de `fechadas`; escopo vivo sorteia também de `criadas` e soma. Semente
     derivada dos dados de entrada, aplicada em processo isolado — sem isso o
-    resultado muda entre duas leituras e FR-036 falha (R6)
+    resultado muda entre duas leituras e FR-036 falha (R6) Cobre FR-031, FR-032, SC-008, SC-009.
   - **Feita quando**: as duas hipóteses saem com p50, p85, p95 e `nao_concluiram`;
     a mesma entrada devolve exatamente a mesma saída; percentil de hipótese cujas
     rodadas não concluíram vem `nil`, nunca um número grande
@@ -420,7 +478,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     `{:sem_historico, faltando}` (FR-034, R7). `faltando` traz o observado **e** o
     exigido, para a tela dizer o que falta em vez de só recusar. Com 3 semanas e 4
     fechamentos a faixa cobriria quase todo o horizonte, e rotulá-la de 85%
-    emprestaria autoridade a ruído
+    emprestaria autoridade a ruído — SC-010
   - **Feita quando**: as duas condições do piso recusam separadamente; a estrutura
     devolvida traz os quatro números
   - **Teste**: `forecast_test.exs` — série de 3 semanas com 4 fechadas devolve
@@ -433,7 +491,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     apresentando valor como data prometida (FR-033). Quando a maioria das rodadas
     não termina, apresentar a **proporção** (FR-035) — omitir transformaria "quase
     nunca termina" em "termina em poucas semanas". Sem histórico, mostrar o que
-    falta e nenhuma faixa
+    falta e nenhuma faixa — SC-010
   - **Feita quando**: os três estados aparecem corretamente — com previsão, sem
     histórico, e com maioria não concluída; o texto declara o que a simulação
     assume (FR-037)
@@ -448,7 +506,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Pronta quando**: T014, T018 e T023 concluídas
   - **Descrição**: dois tenants povoados ao mesmo tempo, cada um com equipe de
     mesmo nome e issues próprias. Exigido pelo princípio V e por FR-038 — consulta
-    sem tenant é bug de segurança, não de correção
+    sem tenant é bug de segurança, não de correção — SC-011
   - **Feita quando**: nenhuma das funções novas devolve linha do outro tenant
   - **Teste**: `team_series_test.exs` — um caso por função pública nova, cada um
     com os dois tenants povoados
@@ -473,7 +531,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     aberto, e o teto de consultas como motivo do adiamento
 
 - [ ] T033 [#753](https://github.com/The-Band-Solution/theband/issues/753) Fechar os gates e abrir o PR
-  - **Pronta quando**: T001 a T032 concluídas
+  - **Pronta quando**: T001 a T032 e T034 a T037 concluídas
   - **Descrição**: `mix gates` é a definição única — o veredito é o **código de
     saída dela**, e qualquer comando depois o substitui. PR com resumo na frente e
     as issues depois, mirando `development`, com revisão independente (princípio
@@ -493,16 +551,19 @@ Criadas em 2026-09-02. Toda tarefa tem issue — nenhuma pendência de link.
 | User story | Issue | Tarefas |
 |---|---|---|
 | US1 | [#715](https://github.com/The-Band-Solution/theband/issues/715) | T005–T008 |
-| US2 | [#716](https://github.com/The-Band-Solution/theband/issues/716) | T009–T013 |
+| US2 | [#716](https://github.com/The-Band-Solution/theband/issues/716) | T009–T013, T037 |
 | US3 | [#717](https://github.com/The-Band-Solution/theband/issues/717) | T014–T017 |
-| US4 | [#718](https://github.com/The-Band-Solution/theband/issues/718) | T018–T022 |
+| US4 | [#718](https://github.com/The-Band-Solution/theband/issues/718) | T018–T022, T035, T036 |
 | US5 | [#719](https://github.com/The-Band-Solution/theband/issues/719) | T023–T026 |
 | US6 | [#720](https://github.com/The-Band-Solution/theband/issues/720) | T027–T029 |
 
-Setup e Foundational (T001–T004) e Polish (T030–T033) não pertencem a user
+Setup e Foundational (T001–T004, T034) e Polish (T030–T033) não pertencem a user
 story: são pré-requisito e fechamento.
 
-Faixa completa: [#721](https://github.com/The-Band-Solution/theband/issues/721) a [#753](https://github.com/The-Band-Solution/theband/issues/753).
+Faixa completa: [#721](https://github.com/The-Band-Solution/theband/issues/721) a
+[#757](https://github.com/The-Band-Solution/theband/issues/757). As quatro últimas
+(T034–T037) vieram do `/speckit-analyze`, e por isso ficam fora da ordem numérica:
+renumerar invalidaria as 33 issues já criadas.
 
 ---
 
@@ -554,7 +615,8 @@ nova tornaria impossível saber se uma diferença veio da correção ou da featu
 
 ## Notes
 
-- **33 tarefas**, 6 user stories, nenhuma migração
+- **37 tarefas**, 6 user stories, nenhuma migração
+- T034–T037 nasceram do `/speckit-analyze` e são lidas na posição, não no número
 - Toda tarefa tem `Pronta quando`, `Descrição`, `Feita quando` e `Teste`
 - Nenhum `Teste` é `mix test` sozinho — cada um nomeia arquivo, caso ou asserção
 - **T007 é a tarefa mais importante da feature**: se o passado se reescreve,
