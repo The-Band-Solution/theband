@@ -13,6 +13,7 @@ escopo — não só a lista.
 | [O projeto pertence a uma organização](projeto-pertence-a-organizacao.md) | o elo que falta entre projeto e organização, decidido em 2026-09-01, e a premissa da ontologia que ele vence | **alta** |
 | [Português na interface](portugues-na-interface.md) | 23 ocorrências de português numa interface que serve em inglês — e o verificador que não as vê | média |
 | [A tela da equipe complexa](tela-da-equipe-complexa.md) | os indicadores por subequipe sem soma, o foco da tela, e o defeito que a medida tem hoje ao ignorar o período do vínculo | **alta** |
+| [O burn da pessoa parte de zero](burn-da-pessoa-sem-linha-de-base.md) | a página da pessoa mede o que nasceu na janela, e o rótulo diz trabalho em aberto | média — a pergunta precisa ser decidida antes do código |
 | [Decisões pendentes](decisoes-pendentes.md) | o que não pode ser implementado sem uma resposta humana — o quadro do Conecta Fapes, o conector do ArgoCD, a skill de humanização | **bloqueadas** |
 
 ## Dívidas e defeitos com issue aberta
