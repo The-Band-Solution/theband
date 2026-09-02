@@ -22,7 +22,7 @@ feature.
 
 ## Phase 1: Setup
 
-- [ ] T001 Fixtures de equipe com período de vínculo
+- [ ] T001 [#721](https://github.com/The-Band-Solution/theband/issues/721) Fixtures de equipe com período de vínculo
   - **Pronta quando**: nada além do repositório; as fixtures da feature 055 já
     produzem equipe declarada e composição
   - **Descrição**: em `test/support/fixtures/`, acrescentar helpers que criam
@@ -41,7 +41,7 @@ feature.
 
 ## Phase 2: Foundational — bloqueia todas as user stories
 
-- [ ] T002 Consultar quem pertencia numa data
+- [ ] T002 [#722](https://github.com/The-Band-Solution/theband/issues/722) Consultar quem pertencia numa data
   - **Pronta quando**: o contrato em `contracts/medidas-de-equipe.md` está escrito
     (está); T001 concluída
   - **Descrição**: `EO.team_members_at/3` em
@@ -57,7 +57,7 @@ feature.
     vínculo `[2026-01-10, 2026-03-15)` aparece em `2026-03-14T23:59` e **não**
     aparece em `2026-03-15T00:00`
 
-- [ ] T003 [P] Expor só os ids dos membros na data
+- [ ] T003 [P] [#723](https://github.com/The-Band-Solution/theband/issues/723) Expor só os ids dos membros na data
   - **Pronta quando**: T002 concluída
   - **Descrição**: `EO.team_member_ids_at/3`, mesma regra de vigência, devolvendo
     apenas os ids. Existe porque quem monta consulta de trabalho não usa os nomes,
@@ -67,7 +67,7 @@ feature.
   - **Teste**: `queries_test.exs` — igualdade entre
     `Enum.map(team_members_at(...), & &1.person_id)` e `team_member_ids_at(...)`
 
-- [ ] T004 [P] Declarar as medidas novas na base de conhecimento
+- [ ] T004 [P] [#724](https://github.com/The-Band-Solution/theband/issues/724) Declarar as medidas novas na base de conhecimento
   - **Pronta quando**: nada além do repositório
   - **Descrição**: em `priv/knowledge_base/`, declarar as medidas que a feature
     apresenta — o burn com linha de base e a previsão — cada uma ligada a uma
@@ -93,7 +93,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
 
 ### Implementação da User Story 1
 
-- [ ] T005 [US1] Passar a data para as competências da equipe
+- [ ] T005 [US1] [#725](https://github.com/The-Band-Solution/theband/issues/725) Passar a data para as competências da equipe
   - **Pronta quando**: T002 concluída
   - **Descrição**: em `lib/the_band/profiles/team_skills.ex`, `membros/2` vira
     `membros/3` recebendo a data e chamando `EO.team_members_at/3` no lugar de
@@ -106,7 +106,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
   - **Teste**: `test/the_band/profiles/team_skills_test.exs` — vínculo encerrado em
     2026-03-15, issue fechada em 03-10 conta e a de 04-02 não
 
-- [ ] T006 [US1] Recortar a evolução mês a mês
+- [ ] T006 [US1] [#726](https://github.com/The-Band-Solution/theband/issues/726) Recortar a evolução mês a mês
   - **Pronta quando**: T005 concluída
   - **Descrição**: `evolution/2` deixa de montar **um** conjunto de membros e
     aplicá-lo a todos os meses. Passa a chamar `membros/3` **uma vez por mês da
@@ -119,7 +119,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
   - **Teste**: `team_skills_test.exs` — série com entrada em junho e saída em
     março, conferindo a presença mês a mês
 
-- [ ] T007 [US1] Provar que o passado não se reescreve
+- [ ] T007 [US1] [#727](https://github.com/The-Band-Solution/theband/issues/727) Provar que o passado não se reescreve
   - **Pronta quando**: T006 concluída
   - **Descrição**: o teste que corresponde ao **SC-002**, e o mais importante da
     feature. Capturar a série inteira, registrar uma saída com data em julho,
@@ -130,7 +130,7 @@ registrar outra saída, conferir que os meses fechados **não mudaram**.
   - **Teste**: `team_skills_test.exs` — `assert antes_de_julho(serie_1) ==
     antes_de_julho(serie_2)`, igualdade estrita
 
-- [ ] T008 [P] [US1] Apresentar a evidência não promovida em separado
+- [ ] T008 [P] [US1] [#728](https://github.com/The-Band-Solution/theband/issues/728) Apresentar a evidência não promovida em separado
   - **Pronta quando**: T005 concluída
   - **Descrição**: em `lib/the_band_web/live/teams_live/show.ex`, quem a origem
     lista sem vínculo declarado sai por `pending_evidence/2` — que já existe — e é
@@ -155,7 +155,7 @@ que o clique leva à tela da subequipe.
 
 ### Implementação da User Story 2
 
-- [ ] T009 [US2] Descobrir se a equipe é composta
+- [ ] T009 [US2] [#729](https://github.com/The-Band-Solution/theband/issues/729) Descobrir se a equipe é composta
   - **Pronta quando**: T002 concluída; `team_parts/2` já existe da feature 055
   - **Descrição**: em `show.ex`, carregar as partes vigentes com `EO.team_parts/2`.
     Composição **encerrada** não entra (FR-013). Uma parte só **não** é equipe
@@ -167,7 +167,7 @@ que o clique leva à tela da subequipe.
   - **Teste**: `show_test.exs` — três equipes de exemplo (0, 1 e 3 partes),
     conferindo qual caminho cada uma toma
 
-- [ ] T010 [US2] Montar a linha de indicadores de uma equipe
+- [ ] T010 [US2] [#730](https://github.com/The-Band-Solution/theband/issues/730) Montar a linha de indicadores de uma equipe
   - **Pronta quando**: T002 e T009 concluídas
   - **Descrição**: a estrutura `linha_de_subequipe` de `data-model.md` — membros,
     abertas, fechadas na janela, paradas, e `sem_trabalho?`. O booleano existe para
@@ -179,7 +179,7 @@ que o clique leva à tela da subequipe.
   - **Teste**: `show_test.exs` — a estrutura devolvida para três subequipes tem
     quatro linhas e nenhuma chave `total`
 
-- [ ] T011 [US2] Tela da equipe composta, sem total
+- [ ] T011 [US2] [#731](https://github.com/The-Band-Solution/theband/issues/731) Tela da equipe composta, sem total
   - **Pronta quando**: T010 concluída
   - **Descrição**: renderizar uma linha por subequipe mais a dos diretos, cada uma
     ligando à tela daquela subequipe (FR-010). **Nenhum gráfico** aqui (FR-011): a
@@ -191,7 +191,7 @@ que o clique leva à tela da subequipe.
   - **Teste**: `show_test.exs` — varredura do HTML por essas três palavras e por
     `<svg>`, todas ausentes
 
-- [ ] T012 [P] [US2] Dizer por que as linhas não somam
+- [ ] T012 [P] [US2] [#732](https://github.com/The-Band-Solution/theband/issues/732) Dizer por que as linhas não somam
   - **Pronta quando**: T011 concluída
   - **Descrição**: texto na tela nomeando a causa (FR-009): a mesma pessoa pode
     estar em duas subequipes e a mesma tarefa aparecer nas duas. Sem o texto, a
@@ -201,7 +201,7 @@ que o clique leva à tela da subequipe.
   - **Teste**: `show_test.exs` — o HTML contém a explicação, e ela cita as duas
     causas
 
-- [ ] T013 [P] [US2] Nomear a subequipe sem trabalho
+- [ ] T013 [P] [US2] [#733](https://github.com/The-Band-Solution/theband/issues/733) Nomear a subequipe sem trabalho
   - **Pronta quando**: T010 concluída
   - **Descrição**: linha de subequipe com `sem_trabalho?: true` é apresentada com
     ausência dita em texto, **nunca com zero** (FR-012)
@@ -222,7 +222,7 @@ período declarado.
 
 ### Implementação da User Story 3
 
-- [ ] T014 [US3] Série semanal da equipe, recortada pelo vínculo
+- [ ] T014 [US3] [#734](https://github.com/The-Band-Solution/theband/issues/734) Série semanal da equipe, recortada pelo vínculo
   - **Pronta quando**: T002 concluída; o contrato §2 está escrito
   - **Descrição**: `WorkItems.team_state_changes_by_period/4` em
     `lib/the_band/work_items/queries.ex`. A vigência entra como **junção** avaliada
@@ -236,7 +236,7 @@ período declarado.
   - **Teste**: `test/the_band/work_items/team_series_test.exs` — série capturada,
     saída registrada, série recapturada; igualdade estrita nas semanas anteriores
 
-- [ ] T015 [US3] Contar uma vez a issue de duas pessoas
+- [ ] T015 [US3] [#735](https://github.com/The-Band-Solution/theband/issues/735) Contar uma vez a issue de duas pessoas
   - **Pronta quando**: T014 concluída
   - **Descrição**: `DISTINCT` na issue dentro de `team_state_changes_by_period/4`
     (R4). Item atribuído a duas pessoas **da mesma equipe** é um item só para a
@@ -247,7 +247,7 @@ período declarado.
   - **Teste**: `team_series_test.exs` — issue com dois designados da mesma equipe;
     `assert serie_da_equipe == 1` e `assert soma_por_pessoa == 2`
 
-- [ ] T016 [US3] Seções do que faz, fez, e vem a seguir
+- [ ] T016 [US3] [#736](https://github.com/The-Band-Solution/theband/issues/736) Seções do que faz, fez, e vem a seguir
   - **Pronta quando**: T014 concluída
   - **Descrição**: em `show.ex`, três seções distintas listando itens
     identificáveis com link para a issue (FR-014). A ordem é a da spec: fazendo,
@@ -257,7 +257,7 @@ período declarado.
   - **Teste**: `show_test.exs` — subequipe com um item em cada estado; os três
     títulos e os três identificadores aparecem no HTML
 
-- [ ] T017 [P] [US3] Separar semana zerada de semana não coletada
+- [ ] T017 [P] [US3] [#737](https://github.com/The-Band-Solution/theband/issues/737) Separar semana zerada de semana não coletada
   - **Pronta quando**: T014 concluída
   - **Descrição**: semana sem movimento **dentro** do período coletado vem com zero
     nas duas séries; semana **fora** do período coletado não aparece (FR-016). A
@@ -279,7 +279,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
 
 ### Implementação da User Story 4
 
-- [ ] T018 [US4] Todas as tarefas abertas de cada pessoa
+- [ ] T018 [US4] [#738](https://github.com/The-Band-Solution/theband/issues/738) Todas as tarefas abertas de cada pessoa
   - **Pronta quando**: T002 concluída; o contrato §2 está escrito
   - **Descrição**: `WorkItems.team_open_tasks_by_person/3`, **uma consulta** para a
     equipe inteira. `aberta_ha_dias` conta da **abertura do item** — a origem não
@@ -291,7 +291,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Teste**: `team_series_test.exs` — mapa com uma pessoa de duas tarefas e outra
     de nenhuma; a segunda tem chave presente e lista vazia
 
-- [ ] T019 [P] [US4] Marcar a tarefa parada, e dizer o que a marca é
+- [ ] T019 [P] [US4] [#739](https://github.com/The-Band-Solution/theband/issues/739) Marcar a tarefa parada, e dizer o que a marca é
   - **Pronta quando**: T018 concluída
   - **Descrição**: `parada?` quando passa de 90 dias desde a abertura (FR-020). A
     tela mostra a marca **e** o texto de que ela é convite a perguntar, não
@@ -302,7 +302,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Teste**: `show_test.exs` — duas tarefas nas bordas do limiar, e a presença
     dos dois textos no HTML
 
-- [ ] T020 [US4] Habilidades demonstradas com marca de derivada
+- [ ] T020 [US4] [#740](https://github.com/The-Band-Solution/theband/issues/740) Habilidades demonstradas com marca de derivada
   - **Pronta quando**: T005 concluída
   - **Descrição**: seção própria em `show.ex`, por pessoa, na gramática da tela de
     pessoa — pílulas com marca `derived` e fundo hachurado, porque são conclusão
@@ -314,7 +314,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Teste**: `show_test.exs` — contagem de pílulas igual à contagem de marcas de
     derivada, e o texto sobre ausência presente
 
-- [ ] T021 [P] [US4] Dizer por que alguém não tem habilidade listada
+- [ ] T021 [P] [US4] [#741](https://github.com/The-Band-Solution/theband/issues/741) Dizer por que alguém não tem habilidade listada
   - **Pronta quando**: T020 concluída
   - **Descrição**: pessoa com material abaixo do piso devolve
     `{:abaixo_do_piso, %{fechadas: n, exigidas: n}}` — o relator, e não lista vazia.
@@ -325,7 +325,7 @@ com tempos distintos, sem que nenhuma seja eleita a atual.
   - **Teste**: `show_test.exs` — pessoa com duas issues fechadas; nenhuma pílula
     para ela, e o motivo no HTML
 
-- [ ] T022 [P] [US4] Ver a equipe sem poder administrá-la
+- [ ] T022 [P] [US4] [#742](https://github.com/The-Band-Solution/theband/issues/742) Ver a equipe sem poder administrá-la
   - **Pronta quando**: T011 concluída
   - **Descrição**: conferir que a leitura da tela **não** exige escopo de
     administrar equipes (FR-039) — administrar não é ver. Os controles de declarar,
@@ -346,7 +346,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
 
 ### Implementação da User Story 5
 
-- [ ] T023 [US5] Contar o trabalho aberto no início da janela
+- [ ] T023 [US5] [#743](https://github.com/The-Band-Solution/theband/issues/743) Contar o trabalho aberto no início da janela
   - **Pronta quando**: T002 concluída; o contrato §2 está escrito
   - **Descrição**: `WorkItems.team_open_at/3` — criados até a data, não fechados
     até a data, de quem pertencia na data. É a **linha de base** de FR-026a. Sem
@@ -357,7 +357,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Teste**: `team_series_test.exs` — 12 issues abertas antes da janela; a função
     devolve 12 para a data de início
 
-- [ ] T024 [US5] Acumular o burn a partir da linha de base
+- [ ] T024 [US5] [#744](https://github.com/The-Band-Solution/theband/issues/744) Acumular o burn a partir da linha de base
   - **Pronta quando**: T023 concluída
   - **Descrição**: `PersonWork.burn/2` recebendo `aberto_inicial`, com `burn/1`
     delegando com `0`. Função **pura**, sem consulta. A página da pessoa **não
@@ -369,7 +369,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     6 criadas e 4 fechadas na janela; `aberto` final é 14, e bate com a contagem
     direta de issues em aberto naquela data
 
-- [ ] T025 [US5] Desenhar o que resta como faixa, nunca como linha
+- [ ] T025 [US5] [#745](https://github.com/The-Band-Solution/theband/issues/745) Desenhar o que resta como faixa, nunca como linha
   - **Pronta quando**: T024 concluída
   - **Descrição**: na tela da subequipe, duas séries num **único eixo** — nunca
     dois eixos —, e o que resta como a **região entre elas**, hachurada porque é
@@ -379,7 +379,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     três `polyline`; há um só eixo de valores
   - **Teste**: `show_test.exs` — contagem de elementos no SVG renderizado
 
-- [ ] T026 [P] [US5] Declarar o que o burn não responde
+- [ ] T026 [P] [US5] [#746](https://github.com/The-Band-Solution/theband/issues/746) Declarar o que o burn não responde
   - **Pronta quando**: T025 concluída; T004 concluída
   - **Descrição**: os dois textos que a spec exige (FR-029, FR-030): não há escopo
     comprometido, então o gráfico não responde se um sprint termina; e "fechado" é
@@ -400,7 +400,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
 
 ### Implementação da User Story 6
 
-- [ ] T027 [US6] Simular as duas hipóteses de entrega
+- [ ] T027 [US6] [#747](https://github.com/The-Band-Solution/theband/issues/747) Simular as duas hipóteses de entrega
   - **Pronta quando**: T014 concluída; o contrato §3 está escrito
   - **Descrição**: `TheBand.Forecast.monte_carlo/2` em `lib/the_band/forecast.ex`,
     módulo **puro** que não toca no banco. Duas hipóteses: escopo congelado sorteia
@@ -414,7 +414,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     == monte_carlo(s, aberto: 19)`, igualdade estrita; e a faixa de 85% cobre ao
     menos 85% das rodadas
 
-- [ ] T028 [P] [US6] Recusar prever sem histórico
+- [ ] T028 [P] [US6] [#748](https://github.com/The-Band-Solution/theband/issues/748) Recusar prever sem histórico
   - **Pronta quando**: T027 concluída
   - **Descrição**: menos de 6 períodos **ou** menos de 10 fechadas devolve
     `{:sem_historico, faltando}` (FR-034, R7). `faltando` traz o observado **e** o
@@ -427,7 +427,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     `{:sem_historico, %{semanas: 3, semanas_exigidas: 6, fechadas: 4,
     fechadas_exigidas: 10}}`
 
-- [ ] T029 [US6] Apresentar a faixa, nunca a data
+- [ ] T029 [US6] [#749](https://github.com/The-Band-Solution/theband/issues/749) Apresentar a faixa, nunca a data
   - **Pronta quando**: T027 e T028 concluídas; T004 concluída
   - **Descrição**: na tela, cada resultado com sua confiança, e nenhum texto
     apresentando valor como data prometida (FR-033). Quando a maioria das rodadas
@@ -444,7 +444,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
 
 ## Phase 9: Polish & Cross-Cutting
 
-- [ ] T030 [P] Provar o isolamento entre tenants
+- [ ] T030 [P] [#750](https://github.com/The-Band-Solution/theband/issues/750) Provar o isolamento entre tenants
   - **Pronta quando**: T014, T018 e T023 concluídas
   - **Descrição**: dois tenants povoados ao mesmo tempo, cada um com equipe de
     mesmo nome e issues próprias. Exigido pelo princípio V e por FR-038 — consulta
@@ -453,7 +453,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Teste**: `team_series_test.exs` — um caso por função pública nova, cada um
     com os dois tenants povoados
 
-- [ ] T031 [P] Medir o teto de consultas das duas telas
+- [ ] T031 [P] [#751](https://github.com/The-Band-Solution/theband/issues/751) Medir o teto de consultas das duas telas
   - **Pronta quando**: T011 e T029 concluídas
   - **Descrição**: contar as consultas por render e conferir contra o teto do
     plano — 9 na tela da subequipe, 4 + 3 por subequipe na composta. O teto vira
@@ -461,7 +461,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Feita quando**: o teste falha se o número subir
   - **Teste**: `show_test.exs` — contagem via telemetria do Ecto nos dois caminhos
 
-- [ ] T032 [P] Registrar no backlog a limitação da página da pessoa
+- [ ] T032 [P] [#752](https://github.com/The-Band-Solution/theband/issues/752) Registrar no backlog a limitação da página da pessoa
   - **Pronta quando**: T024 concluída
   - **Descrição**: em `docs/backlog/`, registrar que a página da pessoa acumula o
     burn a partir de zero e tem a mesma limitação que T023 corrige para a equipe
@@ -472,7 +472,7 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
   - **Teste**: revisão — o item cita `burn/1`, o efeito de subestimar o trabalho
     aberto, e o teto de consultas como motivo do adiamento
 
-- [ ] T033 Fechar os gates e abrir o PR
+- [ ] T033 [#753](https://github.com/The-Band-Solution/theband/issues/753) Fechar os gates e abrir o PR
   - **Pronta quando**: T001 a T032 concluídas
   - **Descrição**: `mix gates` é a definição única — o veredito é o **código de
     saída dela**, e qualquer comando depois o substitui. PR com resumo na frente e
@@ -483,6 +483,26 @@ qualquer semana é igual à contagem de itens em aberto naquela semana.
     e depois medidos em dado real
   - **Teste**: `echo $?` imediatamente após `mix gates`, e o PR aberto com
     revisor atribuído
+
+---
+
+## As issues
+
+Criadas em 2026-09-02. Toda tarefa tem issue — nenhuma pendência de link.
+
+| User story | Issue | Tarefas |
+|---|---|---|
+| US1 | [#715](https://github.com/The-Band-Solution/theband/issues/715) | T005–T008 |
+| US2 | [#716](https://github.com/The-Band-Solution/theband/issues/716) | T009–T013 |
+| US3 | [#717](https://github.com/The-Band-Solution/theband/issues/717) | T014–T017 |
+| US4 | [#718](https://github.com/The-Band-Solution/theband/issues/718) | T018–T022 |
+| US5 | [#719](https://github.com/The-Band-Solution/theband/issues/719) | T023–T026 |
+| US6 | [#720](https://github.com/The-Band-Solution/theband/issues/720) | T027–T029 |
+
+Setup e Foundational (T001–T004) e Polish (T030–T033) não pertencem a user
+story: são pré-requisito e fechamento.
+
+Faixa completa: [#721](https://github.com/The-Band-Solution/theband/issues/721) a [#753](https://github.com/The-Band-Solution/theband/issues/753).
 
 ---
 
