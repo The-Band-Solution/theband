@@ -33,17 +33,24 @@ defmodule TheBand.Tenants.DeclararEstruturaTest do
 
   describe "escopo de organização declara equipe da estrutura" do
     test "na organização que o escopo nomeia, pode", ctx do
-      {:ok, _} = Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :organization, ctx.acme.id, ctx.admin)
+      {:ok, _} =
+        Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :organization, ctx.acme.id, ctx.admin)
 
       assert {:ok, _} =
                Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :organization, ctx.acme.id)
     end
 
     test "NOUTRA organização, não pode — é a recusa cruzada", ctx do
-      {:ok, _} = Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :organization, ctx.acme.id, ctx.admin)
+      {:ok, _} =
+        Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :organization, ctx.acme.id, ctx.admin)
 
       assert {:nao, _} =
-               Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :organization, ctx.globex.id)
+               Access.pode_declarar_estrutura(
+                 ctx.tenant,
+                 ctx.pessoa,
+                 :organization,
+                 ctx.globex.id
+               )
     end
 
     test "sem escopo nenhum, não pode", ctx do
@@ -62,13 +69,15 @@ defmodule TheBand.Tenants.DeclararEstruturaTest do
     test "no projeto que o escopo nomeia, pode", ctx do
       {:ok, _} = Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :project, ctx.p1.id, ctx.admin)
 
-      assert {:ok, _} = Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :project, ctx.p1.id)
+      assert {:ok, _} =
+               Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :project, ctx.p1.id)
     end
 
     test "NOUTRO projeto, não pode", ctx do
       {:ok, _} = Tenants.grant_scope(ctx.tenant, ctx.pessoa.id, :project, ctx.p1.id, ctx.admin)
 
-      assert {:nao, _} = Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :project, ctx.p2.id)
+      assert {:nao, _} =
+               Access.pode_declarar_estrutura(ctx.tenant, ctx.pessoa, :project, ctx.p2.id)
     end
 
     test "escopo de PROJETO não declara equipe de ORGANIZAÇÃO", ctx do

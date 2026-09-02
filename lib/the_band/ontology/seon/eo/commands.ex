@@ -26,6 +26,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamComposition
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.Repo
@@ -189,6 +190,143 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     changeset
     |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
     |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
+  end
+
+  @doc """
+  Declara que uma equipe **faz parte** de outra — feature 055, FR-008 e FR-009.
+
+  ## O ciclo é recusado, e a recusa diz o caminho
+
+  Com ciclo, qualquer agregação pela hierarquia **não termina** — inclusive a soma
+  de competências que a issue #397 pede.
+
+  A detecção **caminha em memória** sobre o grafo carregado numa consulta. São 12
+  equipes na organização de referência; `WITH RECURSIVE` seria correto e mais caro
+  de ler. **A limitação tem prazo**: acima de alguns milhares de equipes a
+  caminhada passa a pesar, e a troca por consulta recursiva é a correção. Escolha
+  com prazo declarado não é dívida escondida.
+
+  E a recusa **nomeia o caminho** — *"Equipe A faz parte de Equipe B, que faz
+  parte de Equipe C"*. Dizer apenas "fecharia ciclo" manda a pessoa procurar.
+  """
+  @spec compose_teams(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, TeamComposition.t()} | {:error, String.t()}
+  def compose_teams(%Tenant{id: tenant_id}, part_id, whole_id, actor_id) do
+    cond do
+      part_id == whole_id ->
+        {:error, "uma equipe não pode fazer parte de si mesma"}
+
+      caminho = caminho_de_volta(tenant_id, whole_id, part_id) ->
+        {:error, "isto fecharia um ciclo: " <> caminho}
+
+      true ->
+        gravar_composicao(tenant_id, part_id, whole_id, actor_id)
+    end
+  end
+
+  defp gravar_composicao(tenant_id, part_id, whole_id, actor_id) do
+    %TeamComposition{}
+    |> TeamComposition.changeset(%{
+      tenant_id: tenant_id,
+      part_team_id: part_id,
+      whole_team_id: whole_id,
+      started_at: DateTime.utc_now(:second),
+      declared_by_user_id: actor_id
+    })
+    |> Repo.insert()
+    |> case do
+      {:ok, c} -> {:ok, c}
+      {:error, cs} -> {:error, motivo_da_composicao(cs)}
+    end
+  end
+
+  defp motivo_da_composicao(changeset) do
+    if nome_repetido?(changeset),
+      do: "esta composição já vale",
+      else: motivo_do_changeset(changeset)
+  end
+
+  @doc """
+  Encerra a composição — feature 055, FR-008.
+
+  **A equipe não é tocada.** O período é da relação: quem deixou de ser parte de
+  outra continua existindo, com o histórico intacto.
+  """
+  @spec decompose_teams(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, TeamComposition.t()} | {:error, String.t()}
+  def decompose_teams(%Tenant{id: tenant_id}, part_id, whole_id, actor_id) do
+    TeamComposition
+    |> where(
+      [c],
+      c.tenant_id == ^tenant_id and c.part_team_id == ^part_id and
+        c.whole_team_id == ^whole_id and is_nil(c.ended_at)
+    )
+    |> Repo.one()
+    |> case do
+      nil ->
+        {:error, "esta composição não está vigente"}
+
+      composicao ->
+        composicao
+        |> TeamComposition.changeset(%{
+          ended_at: DateTime.utc_now(:second),
+          ended_by_user_id: actor_id
+        })
+        |> Repo.update()
+        |> relator()
+    end
+  end
+
+  # Sobe a partir de `origem` pelas composições vigentes. Se alcançar `procurado`,
+  # devolve o caminho em nomes; senão, nil.
+  #
+  # A busca é do TODO para cima: se A está prestes a virar parte de B, o ciclo
+  # existe quando A já é alcançável subindo de B.
+  defp caminho_de_volta(tenant_id, origem, procurado) do
+    arestas =
+      TeamComposition
+      |> where([c], c.tenant_id == ^tenant_id and is_nil(c.ended_at))
+      |> select([c], {c.part_team_id, c.whole_team_id})
+      |> Repo.all()
+      |> Enum.group_by(fn {parte, _todo} -> parte end, fn {_parte, todo} -> todo end)
+
+    case subir(arestas, origem, procurado, [origem], MapSet.new()) do
+      nil ->
+        nil
+
+      caminho ->
+        Enum.map_join(caminho, " faz parte de ", &nome_da_equipe(tenant_id, &1))
+    end
+  end
+
+  defp subir(arestas, atual, procurado, caminho, vistos) do
+    cond do
+      atual == procurado and length(caminho) > 1 ->
+        Enum.reverse(caminho)
+
+      MapSet.member?(vistos, atual) ->
+        nil
+
+      true ->
+        arestas
+        |> Map.get(atual, [])
+        |> Enum.find_value(&passo(arestas, &1, procurado, caminho, MapSet.put(vistos, atual)))
+    end
+  end
+
+  defp passo(arestas, proximo, procurado, caminho, vistos) do
+    if proximo == procurado do
+      Enum.reverse([proximo | caminho])
+    else
+      subir(arestas, proximo, procurado, [proximo | caminho], vistos)
+    end
+  end
+
+  defp nome_da_equipe(tenant_id, id) do
+    Team
+    |> where([t], t.tenant_id == ^tenant_id and t.id == ^id)
+    |> select([t], t.name)
+    |> Repo.one() || "equipe desconhecida"
   end
 
   @doc """
