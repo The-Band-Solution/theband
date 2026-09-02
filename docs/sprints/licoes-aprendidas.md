@@ -3134,3 +3134,84 @@ end
 A pergunta que separa as duas: *"se a causa fosse outra, esta frase mudaria?"* Se
 não muda, ela não está descrevendo o que aconteceu — está descrevendo o que quem
 escreveu imaginou.
+
+---
+
+## L95 — Pedir revisor não é obter revisão, e o merge não espera
+
+**Tipo**: processo · **Origem**: Sprint 027 · **Estado**: aberta
+
+**O que aconteceu.** Os quatro PRs da feature 055 — #706, #710, #712 e #713 —
+foram incorporados em `development` com **2 revisores pedidos e 0 revisões** cada
+um. Medido em 2026-09-02 com `gh pr view --json reviews,reviewRequests`.
+
+**Por que aconteceu.** A L89 fez pedir revisor virar hábito, e o hábito foi
+confundido com a garantia. Pedir revisor é uma ação de quem abre o PR; revisar é
+ação de outra pessoa, em outro momento — e nada entre as duas impede o merge. O
+botão não sabe a diferença entre "ninguém revisou ainda" e "ninguém vai revisar".
+
+**O que fazer diferente.** Antes de incorporar, medir: `gh pr view <n> --json
+reviews --jq '.reviews|length'`. Zero é impedimento, não observação. Quando a
+revisão não puder ser obtida, **declarar a lacuna na review do sprint** — que foi
+o que se fez aqui, tarde.
+
+**Aplicada em**: Sprint 028 — condição de entrada dos PRs da feature 057.
+
+---
+
+## L96 — Issue que ninguém fecha faz o sprint parecer não entregue
+
+**Tipo**: processo · **Origem**: Sprint 027 · **Estado**: aberta
+
+**O que aconteceu.** Treze tarefas concluídas e incorporadas, e **zero issues
+fechadas**. Em 2026-09-02, quem olhasse a origem veria 18 issues abertas e
+concluiria que o sprint não entregou nada.
+
+**Por que aconteceu.** O fechamento dependia da palavra-chave no PR, que já falha
+por três motivos conhecidos, e ninguém conferiu depois. Não há gate entre "o
+código está em `development`" e "a issue está fechada" — e o passo sem gate é o
+que some, que é a L91 aparecendo em outro lugar.
+
+**Por que custa caro aqui em particular.** A plataforma existe para calcular
+medidas de fluxo a partir de issues. Um repositório em que a issue não fecha
+quando o trabalho acaba produz lead time infinito e throughput zero — sobre o
+próprio projeto que a mede.
+
+**O que fazer diferente.** Ao fechar o sprint, `gh issue list --state open` com o
+prefixo da feature **antes** de escrever a review. Issue aberta com tarefa
+marcada `[x]` no `tasks.md` é divergência a resolver, não detalhe.
+
+**Aplicada em**: Sprint 028 — entra na Definition of Done do sprint.
+
+---
+
+## L97 — Feature que corrige o vínculo não corrige quem lê o vínculo
+
+**Tipo**: técnica · **Origem**: Sprint 027 · **Estado**: aberta
+
+**O que aconteceu.** A feature 055 entregou `started_at`, `ended_at` e a
+invalidação do vínculo, com o SC-003 exigindo que registrar uma saída não mude o
+passado. **Nenhuma consulta de medida passou a usar isso.**
+`Profiles.TeamSkills` continuou lendo a evidência que a origem lista hoje — de
+modo que quem saiu segue contando, e o conjunto de membros de hoje é aplicado aos
+meses passados.
+
+O defeito que o SC-003 proíbe no vínculo estava acontecendo na medida, **no mesmo
+sprint que criou o dado para evitá-lo**.
+
+**Por que aconteceu.** O escopo foi escrito em termos de *quem escreve* o vínculo
+— declarar, encerrar, invalidar. Ninguém listou *quem lê*. Um dado novo não
+alcança sozinho os consumidores do dado antigo, e a busca por eles não acontece
+por acaso.
+
+**Um segundo defeito, da mesma família**, achado ao planejar a 057: a condição de
+vigência usa `started_at <= data`, e `started_at` é anulável de propósito. Contra
+nulo a comparação avalia para desconhecido e a linha é descartada — quem tem data
+de início desconhecida **não é membro em data alguma**, sem erro e sem aviso.
+
+**O que fazer diferente.** Feature que acrescenta atributo temporal a um conceito
+**lista os consumidores atuais** desse conceito no `plan.md`, e diz para cada um
+se muda ou não muda. `grep` pelo nome do conceito é o mínimo. E toda condição
+sobre coluna anulável precisa dizer explicitamente o que faz com o nulo.
+
+**Aplicada em**: Sprint 028 — US1 e T034 da feature 057 são a correção.
