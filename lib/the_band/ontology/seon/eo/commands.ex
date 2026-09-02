@@ -290,7 +290,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
       |> Repo.all()
       |> Enum.group_by(fn {parte, _todo} -> parte end, fn {_parte, todo} -> todo end)
 
-    case subir(arestas, origem, procurado, [origem], MapSet.new()) do
+    case subir(arestas, origem, procurado, [origem], []) do
       nil ->
         nil
 
@@ -299,18 +299,22 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     end
   end
 
+  # `vistos` é lista, e não MapSet, por duas razões que andam juntas: são 12
+  # equipes na organização de referência — a busca linear não pesa —, e o MapSet
+  # atravessando a recursão produz aviso de opacidade no dialyzer. Estrutura mais
+  # esperta para um conjunto que cabe na mão custaria um gate.
   defp subir(arestas, atual, procurado, caminho, vistos) do
     cond do
       atual == procurado and length(caminho) > 1 ->
         Enum.reverse(caminho)
 
-      MapSet.member?(vistos, atual) ->
+      atual in vistos ->
         nil
 
       true ->
         arestas
         |> Map.get(atual, [])
-        |> Enum.find_value(&passo(arestas, &1, procurado, caminho, MapSet.put(vistos, atual)))
+        |> Enum.find_value(&passo(arestas, &1, procurado, caminho, [atual | vistos]))
     end
   end
 
