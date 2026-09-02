@@ -1,0 +1,48 @@
+information_need:
+  id: flow.open_work_balance
+  name:
+    pt-BR: "Equilíbrio entre o que abre e o que fecha"
+    en: "Balance between what opens and what closes"
+  question:
+    pt-BR: >
+      A equipe fecha trabalho na velocidade em que ele aparece, e o que está em
+      aberto está crescendo ou diminuindo ao longo do tempo?
+    en: >
+      Is the team closing work as fast as it arrives, and is the open work
+      growing or shrinking over time?
+  stakeholders: [engineering_manager, team_lead, scrum_master, product_manager]
+  decision_supported:
+    pt-BR: >
+      Decidir se o problema de uma equipe é de capacidade ou de entrada. Uma
+      equipe que fecha bem e mesmo assim acumula não precisa trabalhar mais
+      rápido — precisa que menos coisa entre, ou que alguém decida o que não
+      será feito. As duas conclusões exigem ações opostas, e sem esta medida
+      elas são indistinguíveis.
+    en: >
+      Decide whether a team's problem is capacity or intake. A team that closes
+      well and still accumulates does not need to work faster — it needs less to
+      arrive, or someone to decide what will not be done.
+  required_concepts:
+    [sro.intended_scrum_development_task, sro.performed_scrum_development_task,
+     eo.team, eo.team_membership, eo.person]
+  required_relations:
+    [eo.membership_to_team, eo.team_member_is_person]
+  candidate_measurements: [flow.open_work.cumulative, flow.completion.forecast]
+  provenance:
+    source_type: project_decision
+    note: >
+      Necessidade levantada em 2026-09-02, feature 057. Distingue-se de
+      flow.work_in_progress: o WIP responde quanto trabalho está aberto NUM
+      INSTANTE, e esta responde se o saldo entre entrada e saída se sustenta AO
+      LONGO DO TEMPO.
+
+      A distinção importa porque as duas têm o mesmo sintoma e causas opostas.
+      Um WIP alto num instante pode ser pico; um saldo negativo sustentado é
+      estrutural, e nenhuma quantidade de esforço dentro das taxas atuais o
+      resolve.
+
+      Esta necessidade é respondível com o dado que existe hoje, e o WIP não é:
+      flow.work_in_progress exige critério de FIM declarado, que não existe
+      (issue #506). Aqui o fim é o fechamento do item na ferramenta — que é ato
+      da ferramenta e não critério declarado, e a limitação está escrita nas
+      medidas.

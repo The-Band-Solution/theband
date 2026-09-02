@@ -1,0 +1,57 @@
+measurement:
+  id: flow.completion.forecast
+  name:
+    pt-BR: "Previsão de conclusão por simulação, com sua confiança"
+    en: "Completion forecast by simulation, with its confidence"
+  answers_information_need: [flow.open_work_balance]
+  value_type: duration
+  unit: weeks
+  formula:
+    expression: >
+      For each of N runs: sample a weekly closed count from the observed history
+      and subtract from remaining; under the live-scope hypothesis also sample a
+      weekly opened count and add. Repeat until remaining <= 0 or the horizon is
+      reached. The forecast is the distribution of run lengths, reported as the
+      50th, 85th and 95th percentiles, together with the proportion of runs that
+      did not finish within the horizon.
+    inputs:
+      [weekly_opened_count, weekly_closed_count, open_at_observation_instant,
+       runs, horizon_weeks]
+  scope:
+    levels: [team]
+    filters:
+      - "amostrar apenas do histórico observado da própria equipe — nunca de outra equipe, nunca de uma média da organização"
+      - "exigir piso: ao menos 6 períodos na série E ao menos 10 itens fechados. Abaixo disso, NÃO produzir previsão"
+      - "usar semente derivada dos dados de entrada, para que a mesma consulta produza a mesma previsão"
+    period: weekly
+  limitations:
+    - "A simulação assume que o período à frente se parece com o observado — mesmas pessoas, mesmo tipo de trabalho. Uma equipe que acabou de perder alguém não tem histórico que sustente essa premissa, e a previsão continua saindo sem saber disso."
+    - "Oito semanas é histórico fino. O piso de seis períodos e dez itens fechados evita o pior caso, e não transforma histórico curto em previsão boa."
+    - "A hipótese de escopo congelado responde uma pergunta que quase nunca é a real: nada novo entrar. Ela existe para separar capacidade de entrada, e não para ser lida sozinha."
+    - "Quando a maioria das rodadas não conclui dentro do horizonte, os percentis descrevem uma MINORIA. A proporção de não conclusão é parte obrigatória do resultado, e não uma nota de rodapé."
+    - "Percentil de hipótese cujas rodadas não concluíram é NULO, nunca um número grande. Um número grande diria uma data; nulo diz desconhecido."
+    - "A amostragem trata as semanas como independentes e intercambiáveis. Férias, feriado e ciclo de release não são independentes, e a variabilidade real é maior que a simulada."
+    - "Herda todas as limitações de flow.open_work.cumulative, inclusive a de que 'fechado' é o ato da ferramenta."
+  misinterpretations:
+    - "Ler a faixa de 85% como uma data prometida. É a semana em que 85% das rodadas terminaram, dado o passado observado — não um compromisso, e nada nela obriga o futuro."
+    - "Assumir o p50 como previsão. Metade das rodadas passou dele; usá-lo para prometer erra metade das vezes por definição."
+    - "Concluir que a equipe precisa trabalhar mais quando a hipótese de escopo vivo não converge. Se a entrada supera a saída, nenhuma quantidade de esforço dentro das taxas atuais fecha a conta — a decisão é sobre o que entra."
+    - "Comparar a previsão de duas equipes como medida de desempenho. Elas amostram históricos diferentes, com trabalho de naturezas diferentes."
+    - "Refazer a simulação até sair um número melhor. A semente é derivada dos dados justamente para que isso não seja possível."
+  provenance:
+    source_type: project_decision
+    note: >
+      Feature 057, pedido da pessoa mantenedora em 2026-09-02.
+
+      Escolhida a simulação em vez da extrapolação aritmética que
+      TheBand.WorkItems.projecao/1 faz para a pessoa. Aquela devolve um ponto e
+      RECUSA quando o fechamento não supera a abertura — medido em 2026-08-27,
+      59 das 63 pessoas com trabalho aberto caem nessa recusa.
+
+      Recusar é correto para um ponto. Mas a pergunta "qual a chance de terminar"
+      tem resposta mesmo quando a maioria das rodadas não termina: é uma
+      proporção, e é justamente essa proporção que informa a decisão.
+
+      O determinismo não é detalhe de implementação: a previsão é lida numa
+      reunião e conferida depois, e duas leituras diferentes do mesmo dado
+      destroem a confiança mais rápido do que uma previsão larga.

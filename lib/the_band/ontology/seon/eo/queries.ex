@@ -178,15 +178,113 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   @spec count_team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: non_neg_integer()
   def count_team_members_at(%Tenant{id: tenant_id}, team_id, quando) do
     TeamMembership
-    |> where(
-      [m],
-      m.tenant_id == ^tenant_id and m.team_id == ^team_id and
-        is_nil(m.invalidated_at) and
-        m.started_at <= ^quando and
-        (is_nil(m.ended_at) or m.ended_at > ^quando)
-    )
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> vigente_em(quando)
     |> select([m], count(m.id))
     |> Repo.one()
+  end
+
+  @doc """
+  Quem pertencia à equipe **numa data**, com nome e período — feature 057.
+
+  Mesma regra de vigência de `count_team_members_at/3`, que é o ponto: as duas
+  saem de `vigente_em/2`, e uma segunda definição de "vigente" é justamente o
+  defeito que a feature 055 gastou um sprint para eliminar.
+
+  Ordenada por nome. Equipe sem membros na data devolve `[]`.
+
+  **Não** inclui evidência não promovida — quem a origem lista sem vínculo
+  declarado sai por `pending_evidence/2`, e a tela apresenta em separado (FR-005).
+  Somá-los aqui apagaria a diferença entre o que a organização declarou e o que a
+  ferramenta mostrou.
+  """
+  @spec team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [map()]
+  def team_members_at(%Tenant{id: tenant_id}, team_id, quando) do
+    TeamMembership
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> vigente_em(quando)
+    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    |> order_by([_m, p], asc: p.name, asc: p.login)
+    |> select([m, p], %{
+      person_id: p.id,
+      name: p.name,
+      login: p.login,
+      started_at: m.started_at,
+      ended_at: m.ended_at
+    })
+    |> Repo.all()
+  end
+
+  @doc """
+  Só os ids de quem pertencia na data.
+
+  Existe porque quem monta consulta de trabalho não usa os nomes, e carregá-los
+  seria juntar `eo_people` em toda chamada da série para descartar o resultado.
+  """
+  @spec team_member_ids_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [Ecto.UUID.t()]
+  def team_member_ids_at(%Tenant{id: tenant_id}, team_id, quando) do
+    TeamMembership
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> vigente_em(quando)
+    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    |> order_by([_m, p], asc: p.name, asc: p.login)
+    |> select([m], m.person_id)
+    |> Repo.all()
+  end
+
+  @doc """
+  Quem **algum dia** teve vínculo não invalidado com a equipe.
+
+  Existe por causa de um defeito que o teste do SC-002 encontrou: uma série
+  histórica montada a partir de quem é membro HOJE faz quem saiu desaparecer
+  **de todos os meses**, inclusive daqueles em que pertencia. O conjunto de
+  hoje serve para a foto de hoje; para a série, o universo é quem já esteve.
+
+  Não inclui vínculo invalidado: ele nunca vigeu, e não vigeu em mês nenhum.
+  """
+  @spec team_member_ids_ever(Tenant.t(), Ecto.UUID.t()) :: [Ecto.UUID.t()]
+  def team_member_ids_ever(%Tenant{id: tenant_id}, team_id) do
+    TeamMembership
+    |> where(
+      [m],
+      m.tenant_id == ^tenant_id and m.team_id == ^team_id and is_nil(m.invalidated_at)
+    )
+    |> distinct(true)
+    |> select([m], m.person_id)
+    |> Repo.all()
+  end
+
+  # A vigência numa data, numa definição só — feature 057, T002 e T034.
+  #
+  # ## São três condições, e a terceira veio da 055
+  #
+  # Começou até a data, não terminou antes dela, e **não foi invalidado**. O
+  # vínculo invalidado nunca vigeu, então não conta em data alguma — nem nas
+  # anteriores ao reconhecimento do engano.
+  #
+  # ## A borda
+  #
+  # `[started_at, ended_at)` — fechada no início, aberta no fim. No instante
+  # exato da saída a pessoa já não está. Com `>=` no lugar de `>`, quem entra
+  # numa equipe no dia em que sai de outra contaria nas duas.
+  #
+  # ## `started_at` nulo é membro, e a condição precisa dizer isso
+  #
+  # A ontologia declara o atributo como `required: false`, e `allocate/2` grava
+  # nulo de propósito: nulo é **não se sabe desde quando**, nunca "começou hoje".
+  #
+  # Escrita como `m.started_at <= ^quando`, a comparação avalia para
+  # DESCONHECIDO contra nulo e o Postgres descarta a linha — a pessoa deixaria de
+  # ser membro **em data alguma**, sem erro e sem aviso. É o fallback silencioso
+  # que o princípio VIII trata como defeito, e ele esteve aqui desde a 055.
+  defp vigente_em(query, quando) do
+    where(
+      query,
+      [m],
+      is_nil(m.invalidated_at) and
+        (is_nil(m.started_at) or m.started_at <= ^quando) and
+        (is_nil(m.ended_at) or m.ended_at > ^quando)
+    )
   end
 
   defp busca_por_pessoa(query, termo) when termo in [nil, ""], do: query

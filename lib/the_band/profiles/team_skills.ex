@@ -52,9 +52,9 @@ defmodule TheBand.Profiles.TeamSkills do
 
   Número fixo de consultas (SC-001): uma para membros, uma para os perfis vigentes.
   """
-  @spec coverage(Tenant.t(), Ecto.UUID.t()) :: coverage()
-  def coverage(%Tenant{} = tenant, team_id) do
-    membros = membros(tenant, team_id)
+  @spec coverage(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: coverage()
+  def coverage(%Tenant{} = tenant, team_id, quando \\ DateTime.utc_now()) do
+    membros = membros(tenant, team_id, quando)
     vigentes = perfis_vigentes(tenant, Enum.map(membros, & &1.person_id))
 
     montar_cobertura(membros, vigentes)
@@ -68,9 +68,11 @@ defmodule TheBand.Profiles.TeamSkills do
           %{mes: Date.t(), cobertura: %{String.t() => non_neg_integer()}}
         ]
   def evolution(%Tenant{} = tenant, team_id) do
-    membros = membros(tenant, team_id)
-    ids = Enum.map(membros, & &1.person_id)
-    historico = perfis_todos(tenant, ids)
+    # O universo é quem JÁ ESTEVE na equipe, e não quem está hoje. Montar a série
+    # a partir dos membros de hoje faz quem saiu desaparecer de TODOS os meses,
+    # inclusive daqueles em que pertencia — que é o defeito do SC-002 aparecendo
+    # do outro lado. O recorte por mês vem depois, em `membros_em/3`.
+    historico = perfis_todos(tenant, EO.team_member_ids_ever(tenant, team_id))
 
     historico
     |> Enum.map(&Date.beginning_of_month(data(&1.generated_at)))
@@ -78,10 +80,14 @@ defmodule TheBand.Profiles.TeamSkills do
     |> Enum.sort(Date)
     |> Enum.map(fn mes ->
       corte = Date.end_of_month(mes)
+      do_mes = MapSet.new(membros_em(tenant, team_id, corte), & &1.person_id)
 
       vigentes_na_data =
         historico
-        |> Enum.filter(&(Date.compare(data(&1.generated_at), corte) != :gt))
+        |> Enum.filter(
+          &(Date.compare(data(&1.generated_at), corte) != :gt and
+              MapSet.member?(do_mes, &1.person_id))
+        )
         |> Enum.group_by(& &1.person_id)
         |> Enum.map(fn {_pid, gens} -> Enum.max_by(gens, & &1.generated_at, NaiveDateTime) end)
 
@@ -207,10 +213,34 @@ defmodule TheBand.Profiles.TeamSkills do
   defp data(%DateTime{} = dt), do: DateTime.to_date(dt)
   defp data(%NaiveDateTime{} = dt), do: NaiveDateTime.to_date(dt)
 
-  defp membros(tenant, team_id) do
+  # O conjunto de membros vem do VÍNCULO DECLARADO vigente na data, e não da
+  # evidência que a origem lista hoje — feature 057, FR-001.
+  #
+  # Antes desta correção, `list_team_members(include_no_longer_observed: false)`
+  # devolvia quem o GitHub mostra AGORA, e o resultado era aplicado a qualquer
+  # período. Duas consequências, e a segunda é a grave:
+  #
+  #   * quem saiu continuava contando depois da saída, se a origem ainda o lista;
+  #   * o conjunto de HOJE era aplicado a todos os meses passados, de modo que o
+  #     número de um mês fechado mudava hoje.
+  #
+  # A segunda é o mesmo defeito que o SC-003 da feature 055 proíbe no vínculo,
+  # acontecendo na medida.
+  # O conjunto de membros no FIM de um mês fechado. Uma consulta por ponto da
+  # série, e não uma para a série inteira — é o que faz um mês passado devolver
+  # sempre o mesmo número, por mais saídas que se registrem depois (SC-002).
+  #
+  # `corte` é uma Date; a vigência compara DateTime. O fim do dia é a borda
+  # certa: o vínculo encerrado NAQUELE dia ainda vigeu no mês.
+  defp membros_em(tenant, team_id, %Date{} = corte) do
+    {:ok, fim} = DateTime.new(corte, ~T[23:59:59], "Etc/UTC")
+    EO.team_members_at(tenant, team_id, fim)
+  end
+
+  defp membros(tenant, team_id, quando) do
     tenant
-    |> EO.list_team_members(team_id, include_no_longer_observed: false)
-    |> Enum.map(fn m -> %{person_id: m.person.id, name: m.person.name || m.person.login} end)
+    |> EO.team_members_at(team_id, quando)
+    |> Enum.map(fn m -> %{person_id: m.person_id, name: m.name || m.login} end)
     |> Enum.uniq_by(& &1.person_id)
   end
 
