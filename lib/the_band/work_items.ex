@@ -70,7 +70,7 @@ defmodule TheBand.WorkItems do
   defdelegate state_changes_by_period(tenant, person_id, escala), to: PersonWork
   defdelegate escalas(), to: PersonWork
   # Burn-up e burn-down derivam da série — nenhuma consulta nova.
-  defdelegate burn(serie), to: PersonWork
+  defdelegate burn(serie, aberto_inicial \\ 0), to: PersonWork
   defdelegate projecao(serie), to: PersonWork
   # `data_end`: até quando o trabalho aberto foi planejado — data declarada, e não projetada.
   defdelegate prazo_do_trabalho_aberto(tenant, person_id), to: PersonWork
@@ -88,7 +88,7 @@ defmodule TheBand.WorkItems do
 
   defdelegate team_open_at(tenant, team_id, quando), to: TeamWork, as: :open_at
 
-  defdelegate team_open_tasks_by_person(tenant, team_id, quando),
+  defdelegate team_open_tasks_by_person(tenant, team_id, quando, ids \\ nil),
     to: TeamWork,
     as: :open_tasks_by_person
 

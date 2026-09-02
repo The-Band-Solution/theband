@@ -267,18 +267,29 @@ defmodule TheBand.WorkItems.PersonWork do
   linha de resta não desce, é porque a de escopo está subindo**, e não porque ninguém
   fechou nada.
 
-  ## O acumulado começa no primeiro período da série, e não em zero absoluto
+  ## O acumulado começa onde `aberto_inicial` disser, e não em zero absoluto
 
-  A série já vem cortada nos últimos períodos. O acumulado dentro dela é o acumulado
-  **daquela janela**, e a tela diz isso — chamar de "total" um acumulado de janela faria
-  o escopo parecer menor do que é para quem tem histórico longo.
+  A série já vem cortada nos últimos períodos. **Sem uma linha de base**, o acumulado
+  dentro dela conta apenas os itens NASCIDOS na janela — e a distância entre `escopo` e
+  `feito` deixa de ser o trabalho em aberto: uma equipe com quarenta itens abertos há
+  meses e nenhuma abertura recente apareceria com distância zero.
+
+  `aberto_inicial` é a contagem de itens já em aberto no começo da janela. Com ela vale
+  a identidade que a tela promete:
+
+      aberto(t) == aberto_inicial + criadas(t₀..t) - fechadas(t₀..t)
+
+  **A página da PESSOA passa zero**, e por isso continua com a limitação acima. Corrigir
+  isso lá exige critério de revisão próprio e tem teto de consultas próprio, medido em
+  `person_detail_test.exs` — está registrado no backlog, e não escondido. Quem lê a
+  assinatura não deve concluir que a pessoa tem linha de base: ela não tem.
   """
-  @spec burn(list()) :: [
+  @spec burn(list(), non_neg_integer()) :: [
           %{periodo: String.t(), escopo: integer(), feito: integer(), aberto: integer()}
         ]
-  def burn(serie) do
+  def burn(serie, aberto_inicial \\ 0) do
     serie
-    |> Enum.scan(%{escopo: 0, feito: 0}, fn d, acc ->
+    |> Enum.scan(%{escopo: aberto_inicial, feito: 0}, fn d, acc ->
       %{periodo: d.periodo, escopo: acc.escopo + d.criadas, feito: acc.feito + d.fechadas}
     end)
     |> Enum.map(&Map.put(&1, :aberto, &1.escopo - &1.feito))
