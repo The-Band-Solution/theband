@@ -3243,3 +3243,88 @@ terminado.
 **Se reincidir mesmo assim**, a próxima medida não é uma quarta lição: é
 desabilitar o squash na configuração do repositório para os casos em que ele
 destrói, e deixar o botão oferecer só o que é correto.
+## L98 — A lição que não vira regra reincide no sprint seguinte
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** A **L95** — pedir revisor não é obter revisão — nasceu no
+sprint 027 e **reincidiu no 028**: cinco PRs incorporados com zero revisões cada.
+
+O mesmo padrão com o squash: **L75**, **L83** e **L92**, e a terceira ocorreu
+depois de as duas primeiras já estarem escritas.
+
+**Por que aconteceu.** O registro acumulado é lido ao **abrir** o sprint. O ato
+que a lição descreve acontece semanas depois, no pior momento possível — com o
+trabalho parecendo terminado e o dedo no botão. Escrever a lição preserva o
+raciocínio; não muda o comportamento.
+
+**O que fazer diferente.** Lição que descreve um **ato repetível** vira duas
+coisas, e não uma:
+
+1. **regra no `AGENTS.md`** — obrigação verificável em revisão;
+2. **campo obrigatório no artefato** onde o ato acontece.
+
+Foi o que se fez com o tipo de merge: `AGENTS.md` §12 mais o
+`.github/pull_request_template.md`. O registro acumulado guarda o **porquê**; o
+artefato carrega a **obrigação**.
+
+O teste para saber se a lição precisa disso: *o erro acontece num momento em que
+ninguém está lendo lições?* Se sim, escrever no documento não basta.
+
+**Aplicada em**: Sprint 028 — L92 encerrada por virar regra e campo de template.
+
+---
+
+## L99 — Conferir issue por issue achou o que planejar não achou
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** Ao fechar o sprint, `gh issue list --state open` mostrou que
+**T020 e T021 nunca foram implementadas**. A seção de pessoas tinha as tarefas e
+não tinha as habilidades: a US4 estava pela metade, com o PR já incorporado e os
+gates verdes.
+
+**Por que aconteceu.** Nenhum gate pega isso. Os testes provam **o que existe**, e
+não o que foi prometido — uma seção ausente não tem teste que falhe, e a suíte
+inteira fica verde sobre metade da user story.
+
+O plano tinha as tarefas certas; a implementação passou por cima delas ao montar
+a seção, e nada entre as duas comparou uma coisa com a outra.
+
+**O que fazer diferente.** A conferência issue a issue **antes** de escrever a
+review não é formalidade: é a única leitura que compara o **prometido** com o
+**entregue**. Já entrou na DoD do sprint por causa da L96, e neste sprint ela
+funcionou no sprint que a criou.
+
+**Aplicada em**: Sprint 028 — achou a lacuna, e o PR #762 a fechou.
+
+---
+
+## L100 — Branch de documentação sem PR faz o código chegar sem a spec
+
+**Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
+
+**O que aconteceu.** Os PRs de código foram ramificados de `development`, e a
+branch com a spec, o plano, as tarefas e o sprint **nunca teve PR**. Os três
+primeiros PRs saíram sem os documentos que implementavam.
+
+O defeito só apareceu quando um arquivo do backlog, escrito horas antes, **sumiu
+da árvore de trabalho** — e a busca por ele revelou seis commits parados numa
+branch sem destino.
+
+**Por que aconteceu.** O ciclo Spec Kit cria a branch da feature e commita os
+artefatos nela. A implementação começa com `git checkout development`, e o passo
+de abrir o PR dos documentos **não tem gate** — é a L91 aparecendo em outro
+lugar do mesmo ciclo.
+
+**O que fazer diferente.** Ao ramificar para implementar, conferir que a branch de
+origem **já está em `development`**:
+
+```bash
+git log development..<branch-da-spec>   # vazio = já incorporada
+```
+
+Uma linha responde. Se não estiver vazio, abrir o PR dela **antes** de começar a
+implementar — os PRs de código dependem daqueles documentos para serem revisáveis.
+
+**Aplicada em**: Sprint 028 — corrigido com o PR #760, aberto tarde.
