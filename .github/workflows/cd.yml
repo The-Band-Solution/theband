@@ -28,7 +28,7 @@ jobs:
     name: imagem, tag e delivery
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # as tags existentes decidem o passo 1
 
