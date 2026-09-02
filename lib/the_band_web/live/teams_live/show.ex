@@ -16,6 +16,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
   alias TheBand.Tenants
+  alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -303,11 +304,52 @@ defmodule TheBandWeb.TeamsLive.Show do
           |> Enum.reject(& &1.hidden_at),
         else: []
 
+    partes = EO.team_parts(tenant, team.id)
+
     socket
-    |> assign(contem: EO.team_parts(tenant, team.id))
+    |> assign(contem: partes)
     |> assign(faz_parte_de: EO.team_wholes(tenant, team.id))
+    |> carregar_linhas(partes)
     |> assign(pendentes: EO.pending_evidence(tenant, team.id))
     |> assign(papeis_para_promover: papeis)
+  end
+
+  # As linhas da equipe COMPOSTA — feature 057, US2.
+  #
+  # Uma linha por subequipe, mais a dos membros diretos. **Nenhum total**: a mesma
+  # pessoa pode pertencer a duas subequipes e a mesma tarefa aparecer nas duas, e
+  # somar contaria duas vezes.
+  #
+  # `composta?` exige DUAS ou mais partes. Com uma só, a equipe segue como simples
+  # com uma composição declarada — comparar uma linha com nada não é comparação.
+  #
+  # A ordem é por trabalho parado, do maior para o menor (SC-005): sem critério
+  # declarado, "identificar em menos de 30 segundos" depende de sorte na ordem
+  # alfabética. Ordenar NÃO é somar — cada linha continua com o número dela.
+  defp carregar_linhas(socket, partes) when length(partes) < 2 do
+    assign(socket, composta?: false, linhas: [])
+  end
+
+  defp carregar_linhas(socket, partes) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    subequipes =
+      Enum.map(partes, fn p ->
+        tenant
+        |> WorkItems.team_snapshot(p.team_id, agora)
+        |> Map.merge(%{nome: p.name, direta?: false})
+      end)
+
+    diretos =
+      tenant
+      |> WorkItems.team_snapshot(team.id, agora)
+      |> Map.merge(%{nome: team.name <> " · direct members", direta?: true})
+
+    linhas = Enum.sort_by(subequipes, & &1.paradas, :desc) ++ [diretos]
+
+    assign(socket, composta?: true, linhas: linhas)
   end
 
   # O valor do `<option>` carrega a ORIGEM junto do identificador, porque papel do catálogo
@@ -438,6 +480,79 @@ defmodule TheBandWeb.TeamsLive.Show do
           {@encontradas} {if @encontradas == 1, do: "member", else: "members"} · {@pending_role} with no organisational role assigned
         </:subtitle>
       </.header>
+
+      <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
+            dos membros diretos, e NENHUM total.
+
+            Não somar é decisão, e não lacuna: a mesma pessoa pode pertencer a duas
+            subequipes e a mesma tarefa aparecer nas duas. O texto abaixo da tabela
+            diz isso, porque sem ele a ausência de total parece esquecimento e
+            alguém acrescenta o total depois.
+
+            **Nenhum gráfico aqui** (FR-011): esta tela é para comparar, e
+            comparação se faz em números alinhados. Os gráficos vivem na tela da
+            subequipe. --%>
+      <section :if={@composta?} class="card bg-base-200 p-4">
+        <h2 class="text-sm font-semibold">Teams inside this one</h2>
+        <p class="mt-1 text-xs opacity-70">
+          Ordered by stopped work, so the row that needs a conversation comes first.
+        </p>
+
+        <table class="table table-sm mt-3">
+          <thead>
+            <tr>
+              <th>team</th>
+              <th class="text-right">members</th>
+              <th class="text-right">open</th>
+              <th class="text-right">closed · 8w</th>
+              <th class="text-right">stopped</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={l <- @linhas}>
+              <td>
+                <.link :if={not l.direta?} navigate={~p"/teams/#{l.team_id}"} class="link">
+                  {l.nome}
+                </.link>
+                <span :if={l.direta?} class="opacity-80">{l.nome}</span>
+              </td>
+              <%!-- Ausência NOMEADA, nunca zero (FR-012). Uma subequipe sem trabalho
+                    no período não teve zero itens: não houve o que observar, e as
+                    duas coisas levam a decisões diferentes. --%>
+              <td :if={l.sem_trabalho?} colspan="4" class="text-xs opacity-70">
+                No work observed in the period — which is not the same as zero.
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.membros}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.abertas}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.fechadas_na_janela}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                <span class={if l.paradas > 0, do: "text-warning font-semibold"}>{l.paradas}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 rounded border border-dashed border-base-300 p-3">
+          <h3 class="text-xs font-semibold tracking-wide uppercase opacity-70">
+            why these rows are not added up
+          </h3>
+          <p class="mt-1 text-sm">
+            The same person can belong to <strong>two sub-teams</strong>, and the same task can
+            appear in both. A total would count each of them twice, and nobody could reconcile
+            it with the work that exists. Each row is measured on its own.
+          </p>
+          <p class="mt-2 text-sm opacity-80">
+            Charts live on each sub-team's own screen. This one is for comparing, and comparing
+            is done in aligned numbers.
+          </p>
+        </div>
+      </section>
 
       <section class="card bg-base-200 p-4">
         <h2 class="text-sm font-semibold">Structure</h2>
