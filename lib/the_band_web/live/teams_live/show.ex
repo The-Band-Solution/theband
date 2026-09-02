@@ -15,6 +15,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Tenants
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -68,6 +69,66 @@ defmodule TheBandWeb.TeamsLive.Show do
       )
 
     {:noreply, carregar_projetos(socket)}
+  end
+
+  # A subequipe HERDA a organização da mãe, e isso não é conveniência: quem tem
+  # escopo nesta equipe declara DENTRO dela, e não em qualquer lugar da
+  # organização. Oferecer um seletor de organização aqui faria a autoridade subir.
+  def handle_event("criar_subequipe", %{"name" => nome}, socket) do
+    tenant = socket.assigns.current_tenant
+    mae = socket.assigns.team
+    ator = socket.assigns.current_user
+
+    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+      {:ok, _} ->
+        with {:ok, filha} <-
+               EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
+             {:ok, _} <- EO.compose_teams(tenant, filha.id, mae.id, ator.id) do
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
+           )
+           |> load()}
+        else
+          {:error, motivo} when is_binary(motivo) -> {:noreply, put_flash(socket, :error, motivo)}
+        end
+
+      {:nao, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "You have no scope to declare a team here.")
+         )}
+    end
+  end
+
+  def handle_event("descompor", %{"part_id" => parte}, socket) do
+    tenant = socket.assigns.current_tenant
+    mae = socket.assigns.team
+    ator = socket.assigns.current_user
+
+    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+      {:ok, _} ->
+        case EO.decompose_teams(tenant, parte, mae.id, ator.id) do
+          {:ok, _} ->
+            {:noreply,
+             socket |> put_flash(:info, dgettext("sistema", "Composition ended.")) |> load()}
+
+          {:error, motivo} ->
+            {:noreply, put_flash(socket, :error, motivo)}
+        end
+
+      {:nao, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "You have no scope to declare a team here.")
+         )}
+    end
   end
 
   def handle_event("associar_projeto", _params, socket), do: {:noreply, socket}
@@ -243,6 +304,8 @@ defmodule TheBandWeb.TeamsLive.Show do
         else: []
 
     socket
+    |> assign(contem: EO.team_parts(tenant, team.id))
+    |> assign(faz_parte_de: EO.team_wholes(tenant, team.id))
     |> assign(pendentes: EO.pending_evidence(tenant, team.id))
     |> assign(papeis_para_promover: papeis)
   end
@@ -375,6 +438,49 @@ defmodule TheBandWeb.TeamsLive.Show do
           {@encontradas} {if @encontradas == 1, do: "member", else: "members"} · {@pending_role} with no organisational role assigned
         </:subtitle>
       </.header>
+
+      <section class="card bg-base-200 p-4">
+        <h2 class="text-sm font-semibold">Structure</h2>
+
+        <div :if={@faz_parte_de != []} class="mt-2 text-sm">
+          <span class="opacity-70">Part of:</span>
+          <span :for={m <- @faz_parte_de} class="ml-1">
+            <.link navigate={~p"/teams/#{m.team_id}"} class="link">{m.name}</.link>
+          </span>
+        </div>
+
+        <div class="mt-3">
+          <span class="text-sm opacity-70">Contains:</span>
+          <p :if={@contem == []} class="text-sm opacity-60">
+            No team inside this one.
+          </p>
+          <ul :if={@contem != []} class="mt-1 space-y-1">
+            <li :for={f <- @contem} class="flex items-center gap-2 text-sm">
+              <.link navigate={~p"/teams/#{f.team_id}"} class="link">{f.name}</.link>
+              <span class="opacity-60 text-xs">since {f.desde}</span>
+              <button
+                phx-click="descompor"
+                phx-value-part_id={f.team_id}
+                class="btn btn-xs btn-ghost text-error"
+                data-confirm="The team keeps existing — only the composition ends."
+              >
+                remove from here
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <form phx-submit="criar_subequipe" class="mt-4 flex flex-wrap items-end gap-3">
+          <label class="form-control">
+            <span class="label-text text-xs">Declare a team inside this one</span>
+            <input type="text" name="name" required class="input input-sm input-bordered" />
+          </label>
+          <button type="submit" class="btn btn-sm">Declare inside</button>
+          <span class="text-xs opacity-60">
+            It inherits this team's organisation — a team is declared inside what you already reach.
+          </span>
+        </form>
+      </section>
 
       <.data_table
         id="members"
