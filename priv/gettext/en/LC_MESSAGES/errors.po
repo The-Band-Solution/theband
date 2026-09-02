@@ -640,3 +640,8 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Esta conta já vê este alvo. Nada a fazer."
 msgstr "This account already sees this target. Nothing to do."
+
+#: lib/the_band_web/live/teams_live/index.ex:63
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Only an administrator can declare a team."
+msgstr ""
