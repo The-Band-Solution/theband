@@ -147,6 +147,54 @@ defmodule TheBand.Tenants.Access do
   end
 
   @doc """
+  Esta conta pode **declarar estrutura** neste alvo? — feature 055.
+
+  ## Por que é uma pergunta diferente de `pode_ver/3`
+
+  `pode_ver/3` responde sobre **ver o painel de uma pessoa**. Esta responde sobre
+  **escrever**: declarar uma equipe dentro de uma organização ou de um projeto.
+
+  A doutrina do FR-022 — *administrar não é ver* — continua de pé, e nos dois
+  sentidos: nenhum ramo aqui olha `users.role` para conceder **visão**, e o escopo
+  não vira, sozinho, uma segunda coisa. O que ele autoriza é declarar estrutura
+  **dentro do alvo que ele nomeia**, e nada além dele.
+
+  ## O que ela recusa, e é o caso que decide
+
+  **Escopo noutro alvo não vale.** Quem tem `organization` na ACME não declara na
+  GLOBEX — a recusa cruzada é o que separa esta regra de *"tem escopo? pode"*, que
+  é a implementação óbvia e errada.
+
+  **Escopo de nível diferente não vale.** `project` num projeto não declara equipe
+  da organização: o escopo nomeia um projeto, e equipe da estrutura pertence a uma
+  organização. **Autoridade não sobe.**
+
+  **Escopo `team` não declara nada.** Ele nomeia uma equipe, e equipe não é onde
+  outra equipe nasce.
+  """
+  @spec pode_declarar_estrutura(Tenant.t(), User.t(), :organization | :project, Ecto.UUID.t()) ::
+          {:ok, atom()} | {:nao, atom()}
+  def pode_declarar_estrutura(%Tenant{} = tenant, %User{} = user, nivel, alvo_id)
+      when nivel in [:organization, :project] do
+    cond do
+      User.admin?(user) and user.tenant_id == tenant.id ->
+        {:ok, :admin}
+
+      tem_escopo?(tenant, user, nivel, alvo_id) ->
+        {:ok, :escopo_concedido}
+
+      true ->
+        {:nao, :sem_escopo_no_alvo}
+    end
+  end
+
+  defp tem_escopo?(tenant, user, nivel, alvo_id) do
+    tenant
+    |> scopes(user)
+    |> Enum.any?(fn e -> e.level == nivel and e.target_id == alvo_id end)
+  end
+
+  @doc """
   Esta conta pode ver o painel desta pessoa? O motivo mais específico vence.
   """
   @spec pode_ver(Tenant.t(), User.t(), Ecto.UUID.t()) ::

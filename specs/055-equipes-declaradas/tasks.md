@@ -104,13 +104,13 @@ declarada.
 **Teste independente**: compor duas equipes e ver nas duas telas; tentar fechar
 ciclo e ser recusado.
 
-- [ ] T011 [US3] A violação: o ciclo de comprimento 3
+- [x] T011 [US3] A violação: o ciclo de comprimento 3
   - **Pronta quando**: T003
   - **Descrição**: `test/the_band/ontology/seon/eo/team_composition_test.exs` — escrever PRIMEIRO `A⊂B`, `B⊂C`, e a tentativa `C⊂A`. O caso do vizinho direto (`A⊂B`, `B⊂A`) passa em implementação ingênua; **o de comprimento 3 é o que prova**
   - **Feita quando**: os dois casos existem e falham por ausência da função
   - **Teste**: `MIX_ENV=test mix test test/the_band/ontology/seon/eo/team_composition_test.exs` reprova por função indefinida
 
-- [ ] T012 [US3] Compor e descompor, com a recusa que diz o caminho
+- [x] T012 [US3] Compor e descompor, com a recusa que diz o caminho
   - **Pronta quando**: T011 escrito e reprovando
   - **Descrição**: comandos de compor e descompor, com a detecção de ciclo caminhando em memória sobre o grafo carregado numa consulta (decisão 3 do plano). A recusa **nomeia o caminho** que fecharia o ciclo — *"A faz parte de B, que faz parte de C"* —, não apenas que fecha
   - **Feita quando**: T011 passa; descompor mantém a equipe e o histórico dela

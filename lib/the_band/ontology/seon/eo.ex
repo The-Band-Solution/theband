@@ -38,6 +38,8 @@ defmodule TheBand.Ontology.SEON.EO do
 
   # Feature 055 — a organização declara suas equipes.
   defdelegate declare_structural_team(tenant, organization_id, name, actor_id), to: Commands
+  defdelegate compose_teams(tenant, part_id, whole_id, actor_id), to: Commands
+  defdelegate decompose_teams(tenant, part_id, whole_id, actor_id), to: Commands
   defdelegate declare_team_membership(tenant, team_id, person_id, attrs, actor_id), to: Commands
   defdelegate record_team_departure(tenant, team_id, person_id, quando, actor_id), to: Commands
 
