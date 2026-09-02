@@ -153,10 +153,13 @@ ambas aparecem, com tempos distintos, sem que nenhuma seja eleita "a atual".
 3. **Given** uma tarefa aberta há mais de 90 dias, **When** a tela é aberta,
    **Then** ela recebe marca visível de parada, e a tela diz que a marca é um
    convite a perguntar, não um veredito
-4. **Given** uma pessoa cujo material no período está abaixo do piso de geração de
+4. **Given** qualquer tarefa aberta, **When** o tempo é exibido, **Then** ele é
+   contado da abertura do item, e a tela declara que a origem não informa quando a
+   pessoa assumiu
+5. **Given** uma pessoa cujo material no período está abaixo do piso de geração de
    perfil, **When** a seção de habilidades é exibida, **Then** nenhuma habilidade
    é listada para ela e a tela diz por quê
-5. **Given** a seção de habilidades, **When** ela é exibida, **Then** cada
+6. **Given** a seção de habilidades, **When** ela é exibida, **Then** cada
    habilidade carrega marca de derivada, e a tela declara que habilidade ausente
    significa não observada aqui, nunca incapacidade
 
@@ -238,6 +241,8 @@ abaixo do piso.
   evidência observada, e a tela declara que a data de início é desconhecida.
 - **Semana sem trabalho** dentro do período coletado — zero observado.
   **Semana fora** do período coletado — ausente, nunca zero.
+- **Item aberto antes da janela e ainda aberto** — entra na linha de base de
+  FR-026a; sem ela o gráfico afirmaria menos trabalho aberto do que existe.
 - **Item reaberto** — o fechamento anterior permanece na curva na semana em que
   ocorreu, e a reabertura acrescenta uma abertura na semana em que ocorreu.
 - **Histórico abaixo do piso** para previsão — recusa explicada, nunca faixa
@@ -296,9 +301,12 @@ abaixo do piso.
   abertas atribuídas a ela, uma por linha.
 - **FR-018**: O sistema MUST NOT eleger uma tarefa como "atual" quando há mais de
   uma aberta.
-- **FR-019**: Cada tarefa aberta MUST trazer há quanto tempo está aberta para
-  aquela pessoa, contado da atribuição — e a tela MUST declarar que é da
-  atribuição, não do início do trabalho.
+- **FR-019**: Cada tarefa aberta MUST trazer há quanto tempo está **aberta**,
+  contado da abertura do item — e a tela MUST declarar que é da abertura, e não de
+  quando a pessoa a assumiu nem de quando o trabalho começou.
+- **FR-019a**: O sistema MUST NOT apresentar tempo desde a atribuição. A origem
+  não registra quando a atribuição aconteceu, e derivar essa data de qualquer
+  outra seria inventá-la.
 - **FR-020**: Tarefa aberta além do limiar de parada MUST receber marca visível, e
   a tela MUST declarar que a marca é um convite a perguntar.
 - **FR-021**: Pessoa sem tarefa aberta MUST aparecer com a ausência dita em texto.
@@ -315,6 +323,10 @@ abaixo do piso.
 
 - **FR-026**: O sistema MUST apresentar o acumulado de itens abertos e o acumulado
   de itens fechados no período, como duas séries num único eixo.
+- **FR-026a**: O acumulado de abertos MUST partir da contagem de itens **já em
+  aberto no início do período**, e não de zero. Sem essa linha de base a distância
+  entre as curvas mede apenas os itens nascidos dentro da janela, e não o trabalho
+  em aberto — que é o que FR-028 exige.
 - **FR-027**: O trabalho ainda em aberto MUST ser apresentado como a região entre
   as duas séries, marcada como derivada, e MUST NOT ser uma terceira série.
 - **FR-028**: A distância entre as séries em qualquer ponto MUST ser igual à
@@ -396,7 +408,10 @@ abaixo do piso.
 - **Período padrão das séries: 8 semanas**, sem seletor nesta feature. Escolher o
   período é trabalho separado, e um seletor sem definição de período fechado
   reabriria a questão do denominador móvel.
-- **Limiar de parada: 90 dias** desde a atribuição.
+- **Limiar de parada: 90 dias** desde a **abertura do item**. A origem não
+  registra quando a atribuição aconteceu — decisão já em vigor desde 2026-08-27 —,
+  e uma tarefa assumida tarde lê como mais lenta do que foi. A tela declara isso
+  em vez de esconder.
 - **Piso para previsão: 6 semanas completas dentro do período coletado e ao menos
   10 itens fechados.** Abaixo disso a faixa seria larga a ponto de não informar, e
   apresentá-la seria pior do que recusar.
