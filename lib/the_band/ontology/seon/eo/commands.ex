@@ -192,6 +192,57 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
+  Cria a equipe **da estrutura da organização** — feature 055, FR-001.
+
+  Irmã de `create_declared_team/3`, e **não** uma generalização dela. As duas
+  invariantes se contradizem: lá a organização é nula **por exigência** — o que
+  justifica `project_team` é o vínculo com projeto —, e aqui ela é obrigatória.
+  Uma função com invariante condicional ao parâmetro é a que ninguém consegue ler
+  depois.
+
+  Nome repetido na mesma organização é recusado **pelo índice parcial**, e não por
+  consulta prévia: a consulta prévia perde a corrida entre duas abas. E a recusa
+  vale só entre declaradas — homônima de uma observada é fato do mundo, não erro.
+  """
+  @spec declare_structural_team(Tenant.t(), Ecto.UUID.t() | nil, String.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, String.t()}
+  def declare_structural_team(%Tenant{id: tenant_id}, organization_id, name, actor_id) do
+    now = DateTime.utc_now(:second)
+    external_id = "declared_" <> Ecto.UUID.generate()
+
+    %Team{}
+    |> Team.from_source_changeset(%{
+      tenant_id: tenant_id,
+      internal_id: external_id,
+      type: "organizational_team",
+      name: name,
+      organization_id: organization_id,
+      declared_by_user_id: actor_id,
+      source_system: "the_band",
+      source_instance: "declared",
+      external_id: external_id,
+      collected_at: now,
+      last_observed_at: now
+    })
+    |> Repo.insert()
+    |> case do
+      {:ok, equipe} ->
+        {:ok, equipe}
+
+      {:error, changeset} ->
+        if nome_repetido?(changeset) do
+          {:error, "já existe uma equipe declarada com este nome nesta organização"}
+        else
+          {:error, motivo_do_changeset(changeset)}
+        end
+    end
+  end
+
+  defp nome_repetido?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn {_campo, {_msg, opts}} -> opts[:constraint] == :unique end)
+  end
+
+  @doc """
   Cria uma equipe **declarada** — feature 028, FR-007.
 
   `type: "project_team"`, sem organização: o schema já documenta que o que justifica o

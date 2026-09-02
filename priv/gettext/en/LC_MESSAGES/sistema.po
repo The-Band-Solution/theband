@@ -297,3 +297,8 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Your tools keep loose notes: a commit here, an issue there, the same person under three different names. The Band plays those notes together — and what reaches you is music: who does what, with whom, since when."
 msgstr ""
+
+#: lib/the_band_web/live/teams_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Team %{nome} declared."
+msgstr ""

@@ -11,6 +11,7 @@ escopo — não só a lista.
 | [Biblioteca de derivação](tooling-library.md) | extrair a transformação como biblioteca independente | **baixa** |
 | [Setup inicial e a empresa com endereço próprio](setup-inicial-e-multiempresa.md) | o wizard que cria a empresa, conecta organizações do GitHub e dá a ela `<empresa>.theband.dev` | **alta** |
 | [O projeto pertence a uma organização](projeto-pertence-a-organizacao.md) | o elo que falta entre projeto e organização, decidido em 2026-09-01, e a premissa da ontologia que ele vence | **alta** |
+| [Português na interface](portugues-na-interface.md) | 23 ocorrências de português numa interface que serve em inglês — e o verificador que não as vê | média |
 | [Decisões pendentes](decisoes-pendentes.md) | o que não pode ser implementado sem uma resposta humana — o quadro do Conecta Fapes, o conector do ArgoCD, a skill de humanização | **bloqueadas** |
 
 ## Dívidas e defeitos com issue aberta

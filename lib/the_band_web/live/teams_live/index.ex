@@ -11,6 +11,7 @@ defmodule TheBandWeb.TeamsLive.Index do
   import TheBandWeb.Components.DataTable
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Tenants.User
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -33,6 +34,39 @@ defmodule TheBandWeb.TeamsLive.Index do
   def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
+
+  # Só quem administra declara equipe. A conferência é AQUI e não só no template:
+  # esconder o botão é aparência, e uma função que decide escrita não pode
+  # depender de quem a chamou ter escondido.
+  def handle_event("declarar_equipe", %{"name" => nome, "organization_id" => org_id}, socket) do
+    if User.admin?(socket.assigns.current_user) do
+      case EO.declare_structural_team(
+             socket.assigns.current_tenant,
+             vazio_vira_nulo(org_id),
+             String.trim(nome),
+             socket.assigns.current_user.id
+           ) do
+        {:ok, equipe} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, dgettext("sistema", "Team %{nome} declared.", nome: equipe.name))
+           |> load()}
+
+        {:error, motivo} when is_binary(motivo) ->
+          {:noreply, put_flash(socket, :error, motivo)}
+      end
+    else
+      {:noreply,
+       put_flash(
+         socket,
+         :error,
+         dgettext("errors", "Only an administrator can declare a team.")
+       )}
+    end
+  end
+
+  defp vazio_vira_nulo(""), do: nil
+  defp vazio_vira_nulo(valor), do: valor
 
   defp caminho(socket, id, mudancas), do: ~p"/teams?#{Tabela.query(socket, id, mudancas)}"
 
@@ -68,6 +102,28 @@ defmodule TheBandWeb.TeamsLive.Index do
         </p>
       </div>
 
+      <section :if={User.admin?(@current_user)} class="card bg-base-200 p-4">
+        <h2 class="text-sm font-semibold">Declare a team</h2>
+        <p class="text-xs opacity-70">
+          For the team that exists in the organisation and not at the source tool. It shows up
+          in the list marked <strong>declared</strong>, next to the observed ones.
+        </p>
+        <form phx-submit="declarar_equipe" class="mt-3 flex flex-wrap items-end gap-3">
+          <label class="form-control">
+            <span class="label-text text-xs">Name</span>
+            <input type="text" name="name" required class="input input-sm input-bordered" />
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs">Organisation</span>
+            <select name="organization_id" required class="select select-sm select-bordered">
+              <option value="">—</option>
+              <option :for={{id, org} <- @organizations} value={id}>{org.login}</option>
+            </select>
+          </label>
+          <button type="submit" class="btn btn-sm btn-primary">Declare</button>
+        </form>
+      </section>
+
       <.data_table
         id="teams"
         rows={@teams}
@@ -91,6 +147,9 @@ defmodule TheBandWeb.TeamsLive.Index do
         </:col>
         <:col :let={team} label="type">
           <span class="badge badge-sm">{team.type}</span>
+          <span :if={team.source_instance == "declared"} class="badge badge-sm badge-info ml-1">
+            declared
+          </span>
           <span
             :if={EO.derived_team?(team)}
             class="badge badge-sm badge-warning ml-1"

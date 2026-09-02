@@ -80,6 +80,12 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
     |> unique_constraint([:tenant_id, :source_system, :source_instance, :external_id],
       name: :eo_teams_application_reference_index
     )
+    # Feature 055: duas equipes DECLARADAS com o mesmo nome na mesma organização.
+    # Sem esta linha o Ecto levanta em vez de devolver relator — e a tela veria
+    # uma exceção onde deveria ver uma recusa com razão.
+    |> unique_constraint([:tenant_id, :organization_id, :name],
+      name: :eo_nome_unico_da_equipe_declarada_index
+    )
     # A restrição vive no banco (T007), e esta declaração é o que transforma a
     # violação em changeset em vez de exceção. Sem ela, gravar equipe organizacional
     # sem organização derruba o processo com `Ecto.ConstraintError` — o
