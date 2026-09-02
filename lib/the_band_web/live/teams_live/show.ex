@@ -606,6 +606,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   # AS PESSOAS — feature 057, US4. TODAS as tarefas abertas, e nenhuma eleita
   # como "atual": qual delas é a atual é julgamento que o dado não faz.
   attr :detalhe, :map, required: true
+  attr :habilidades, :map, required: true
 
   defp pessoas_da_equipe(assigns) do
     ~H"""
@@ -643,6 +644,38 @@ defmodule TheBandWeb.TeamsLive.Show do
           </span>
           <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">stale</span>
         </div>
+
+        <%!-- AS HABILIDADES — feature 057, FR-022 a FR-024. Mesma gramática da
+              tela de pessoa: pílulas âmbar tracejadas e hachuradas, porque são
+              CONCLUSÃO lida do trabalho concluído, e não registro. Quem passa os
+              olhos precisa ver que é derivado antes de ler a palavra. --%>
+        <div
+          :if={match?({:ok, _}, Map.get(@habilidades, p.person_id))}
+          class="ml-4 mt-1 flex flex-wrap items-center gap-1.5"
+        >
+          <% {:ok, hs} = @habilidades[p.person_id] %>
+          <span class="text-xs font-semibold tracking-wide text-warning uppercase">
+            demonstrated
+          </span>
+          <span
+            :for={h <- hs}
+            class="rounded-full border border-dashed border-warning/70 bg-warning/5 px-2.5 py-0.5 text-xs text-warning"
+          >
+            {h}
+          </span>
+        </div>
+
+        <%!-- Abaixo do piso NÃO lista nada, e diz por quê (FR-023). Uma seção
+              vazia responderia "nenhuma habilidade", que é afirmação diferente de
+              "não havia material para ler". --%>
+        <p
+          :if={match?({:abaixo_do_piso, _}, Map.get(@habilidades, p.person_id))}
+          class="ml-4 mt-1 text-xs opacity-70"
+        >
+          No skill is listed: this person has no current profile, and a profile is only
+          generated above a floor of completed work. <strong>That is a gap in the record</strong>,
+          never a statement about the person.
+        </p>
       </div>
 
       <div class="mt-3 rounded border border-dashed border-base-300 p-3 text-sm">
@@ -654,6 +687,13 @@ defmodule TheBandWeb.TeamsLive.Show do
         <p class="mt-2 opacity-80">
           <em>Stale</em> past 90 days is an invitation to ask, not a verdict: it says the board
           has not been told anything about that item in three months.
+        </p>
+        <p class="mt-2 opacity-80">
+          The skills are <strong>derived</strong> from completed work — hatched because they are a
+          conclusion, not a record. A missing skill means <strong>not observed here</strong>:
+          someone can be excellent at something and never have done it in this repository, in
+          this period. Read the other way round, this becomes a ranking of people, which it is
+          not and cannot support.
         </p>
       </div>
     </section>
@@ -902,7 +942,10 @@ defmodule TheBandWeb.TeamsLive.Show do
       <div :if={@detalhe} class="space-y-4">
         <.burn_da_equipe detalhe={@detalhe} />
         <.previsao_da_equipe detalhe={@detalhe} />
-        <.pessoas_da_equipe detalhe={@detalhe} />
+        <.pessoas_da_equipe
+          detalhe={@detalhe}
+          habilidades={Profiles.team_skills_by_person(@cobertura)}
+        />
       </div>
 
       <section class="card bg-base-200 p-4">

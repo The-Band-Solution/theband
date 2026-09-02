@@ -34,6 +34,10 @@ defmodule TheBand.Profiles do
   defdelegate team_evolution(tenant, team_id), to: TheBand.Profiles.TeamSkills, as: :evolution
   defdelegate team_summary(coverage), to: TheBand.Profiles.TeamSkills, as: :summary
 
+  defdelegate team_skills_by_person(coverage),
+    to: TheBand.Profiles.TeamSkills,
+    as: :por_pessoa
+
   def subscribe(%Tenant{id: tenant_id}, person_id),
     do: Phoenix.PubSub.subscribe(TheBand.PubSub, topico(tenant_id, person_id))
 

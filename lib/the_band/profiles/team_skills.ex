@@ -104,6 +104,42 @@ defmodule TheBand.Profiles.TeamSkills do
   end
 
   @doc """
+  As habilidades **de cada pessoa**, derivadas da cobertura que já foi calculada.
+
+  Função **pura**: não consulta nada. Inverte o índice que `coverage/3` produziu —
+  competência → pessoas vira pessoa → competências.
+
+  ## Por que derivar em vez de consultar de novo
+
+  A tela mostra as duas leituras na mesma página: a matriz da equipe e a lista por
+  pessoa. Consultar duas vezes custaria uma ida ao banco **e** abriria a porta
+  para as duas discordarem — uma geração de perfil entre as duas consultas
+  bastaria.
+
+  ## Ausência é o relator, e não a lista vazia
+
+  Quem não tem perfil vigente vem `{:abaixo_do_piso, nome}`, e não `{:ok, []}`.
+  Lista vazia responde "nenhuma habilidade demonstrada", que é afirmação diferente
+  de "não havia material para ler" — e é a segunda que a tela precisa dizer
+  (FR-023). Confundi-las transformaria lacuna do registro em julgamento da pessoa.
+  """
+  @spec por_pessoa(coverage()) :: %{
+          Ecto.UUID.t() => {:ok, [String.t()]} | {:abaixo_do_piso, String.t()}
+        }
+  def por_pessoa(%{competencias: competencias, sem_perfil: sem_perfil}) do
+    com =
+      competencias
+      |> Enum.flat_map(fn c -> Enum.map(c.pessoas, &{&1.person_id, c.nome}) end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      # Ordem alfabética das competências, nunca por contagem: a lista de uma
+      # pessoa não é ranking do que ela faz melhor (FR-006a).
+      |> Map.new(fn {pid, nomes} -> {pid, {:ok, Enum.sort(nomes)}} end)
+
+    Map.new(sem_perfil, &{&1.person_id, {:abaixo_do_piso, &1.name}})
+    |> Map.merge(com)
+  end
+
+  @doc """
   O resumo, montado das contagens — frases calculadas, nunca texto de modelo (FR-007).
 
   Determinístico: o mesmo `coverage` produz as mesmas frases, na mesma ordem.
