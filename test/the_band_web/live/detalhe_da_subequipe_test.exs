@@ -308,4 +308,100 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
       assert html =~ "Teams inside this one"
     end
   end
+
+  describe "as habilidades demonstradas" do
+    defp perfil(ctx, pessoa, dominios) do
+      {:ok, _} =
+        EO.record_profile(ctx.tenant, %{
+          person_id: pessoa.id,
+          generated_at: DateTime.utc_now(:second),
+          model: "m1",
+          content: %{
+            "habilidades" => Enum.map(dominios, &elem(&1, 0)),
+            "destaques" =>
+              Enum.map(dominios, fn {d, t} ->
+                %{
+                  "dominio" => d,
+                  "demonstrou" => "x",
+                  "tarefas" => t,
+                  "periodos" => [1],
+                  "mais_recente" => "2026-08",
+                  "evidencia" => [1]
+                }
+              end),
+            "lacunas" => [],
+            "resumo" => %{"forcas" => "f", "evolucao" => "e", "atencao" => "a"},
+            "trajetoria" => [],
+            "alocacao" => [],
+            "recomendacoes" => []
+          },
+          tasks_closed: 30,
+          tasks_open: 0,
+          tasks_with_body: 30,
+          tasks_authored_by_other: 0,
+          tasks_shared: 0
+        })
+    end
+
+    test "FR-022: cada habilidade carrega marca de derivada", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ana)
+      perfil(ctx, ana, [{"observabilidade", 14}, {"kubernetes", 9}])
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      t = texto(html)
+
+      assert t =~ "demonstrated"
+      assert t =~ "observabilidade"
+      assert t =~ "kubernetes"
+      assert t =~ "border-dashed border-warning"
+    end
+
+    test "FR-023: quem está abaixo do piso não lista nada, e a tela diz por quê", ctx do
+      ana = pessoa(ctx, "ana")
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, ana)
+      vincular(ctx, bia)
+      perfil(ctx, ana, [{"observabilidade", 14}])
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      t = texto(html)
+
+      assert t =~ "No skill is listed"
+      assert t =~ "<strong>That is a gap in the record</strong>"
+      assert t =~ "never a statement about the person"
+    end
+
+    test "FR-024: a tela declara que habilidade ausente é não observada aqui", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ana)
+      perfil(ctx, ana, [{"observabilidade", 14}])
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      t = texto(html)
+
+      assert t =~ "A missing skill means <strong>not observed here</strong>"
+      assert t =~ "becomes a ranking of people, which it is not"
+    end
+
+    test "quem saiu não aparece com habilidade nenhuma", ctx do
+      ana = pessoa(ctx, "ana")
+
+      {:ok, _} =
+        EO.allocate(ctx.tenant, %{
+          person_id: ana.id,
+          team_id: ctx.equipe.id,
+          organizational_role_id: ctx.papel.id,
+          started_at: dias(-300),
+          ended_at: dias(-30)
+        })
+
+      perfil(ctx, ana, [{"kubernetes", 9}])
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      refute texto(html) =~ "kubernetes",
+             "a competência de quem já saiu não é da equipe de hoje — é a correção da US1 valendo também aqui"
+    end
+  end
 end
