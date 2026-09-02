@@ -93,11 +93,15 @@ defmodule TheBand.WorkItems.TeamWork do
   `aberta_ha_dias` conta da **abertura do item**. A origem não registra quando a
   atribuição aconteceu — decisão em vigor desde 2026-08-27 —, e derivar essa data
   de qualquer outra coluna seria inventá-la e apresentá-la como observada.
+
+  Quem já tem os ids dos membros pode passá-los em `ids` — a tela do detalhe já
+  carregou os nomes, e reconsultar as vigências para obter os mesmos ids seria uma
+  ida ao banco para repetir o que está na mão.
   """
-  @spec open_tasks_by_person(Tenant.t(), Ecto.UUID.t(), DateTime.t()) ::
+  @spec open_tasks_by_person(Tenant.t(), Ecto.UUID.t(), DateTime.t(), [Ecto.UUID.t()] | nil) ::
           %{Ecto.UUID.t() => [map()]}
-  def open_tasks_by_person(%Tenant{id: tenant_id} = tenant, team_id, quando) do
-    ids = EO.team_member_ids_at(tenant, team_id, quando)
+  def open_tasks_by_person(%Tenant{id: tenant_id} = tenant, team_id, quando, ids \\ nil) do
+    ids = ids || EO.team_member_ids_at(tenant, team_id, quando)
     vazio = Map.new(ids, &{&1, []})
 
     if ids == [] do

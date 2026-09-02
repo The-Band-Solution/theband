@@ -88,7 +88,7 @@ defmodule TheBand.WorkItems do
 
   defdelegate team_open_at(tenant, team_id, quando), to: TeamWork, as: :open_at
 
-  defdelegate team_open_tasks_by_person(tenant, team_id, quando),
+  defdelegate team_open_tasks_by_person(tenant, team_id, quando, ids \\ nil),
     to: TeamWork,
     as: :open_tasks_by_person
 
