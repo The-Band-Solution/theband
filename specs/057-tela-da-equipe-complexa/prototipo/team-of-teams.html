@@ -1,0 +1,506 @@
+<title>Team of teams</title>
+<style>
+
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--amber:#8a5a0c;--clay:#8c3327;
+--s1:#00897a;--s2:#a35c00;--s3:#4a5bbf;--grade:#e3e7e4;--eixo:#c9d0cb;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--amber:#d9a441;--clay:#e08574;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}}
+*{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
+::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+h1,h2,h3{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.85rem}h2{font-size:1.1rem}h3{font-size:.92rem}
+.faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+.mig{font-family:var(--grot);font-size:.8rem;color:var(--tinta-2);margin-bottom:.6rem}
+.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums} .v{font-size:.95rem}
+p{margin:.5rem 0 0;max-width:70ch} .sub{color:var(--tinta-2);font-size:.9rem}
+.ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
+.marca{font-family:var(--grot);font-size:.7rem;padding:.05rem .45rem;border-radius:.25rem;
+border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem}
+.marca .am{width:.6rem;height:.6rem;border-radius:2px;border:1px solid currentColor}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.sec{margin-top:2.5rem}
+.sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
+.sec-cab h2{flex:1 1 auto}
+.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:.78rem}
+.legenda span{display:inline-flex;align-items:center;gap:.35rem;color:var(--tinta-2)}
+.legenda i{width:.8rem;height:.45rem;border-radius:2px}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);
+text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha)}
+th:first-child,th.esq{text-align:left}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:middle;font-size:.93rem}
+td:first-child,td.esq{text-align:left} tbody tr:hover{background:var(--verdete-soft)}
+.eq{font-family:var(--grot);font-weight:650;font-size:.95rem;color:var(--verdete-deep);text-decoration:none}
+.eq:hover{text-decoration:underline;text-underline-offset:3px}
+.eq-sub{display:block;font-size:.75rem;color:var(--tinta-2);margin-top:.15rem}
+svg.g{width:100%;height:auto;display:block;overflow:visible} svg.mini{max-width:150px;margin-left:auto}
+.ex{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:middle}
+.rd{font-family:var(--mono);font-size:9px;text-anchor:middle;font-variant-numeric:tabular-nums}
+.s3{fill:var(--s3)}
+.hachurado{background:repeating-linear-gradient(135deg,var(--papel-2) 0 6px,var(--papel) 6px 7px)}
+.s1{fill:var(--s1)}.s2{fill:var(--s2)}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:1.15rem;margin-top:1rem}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:.89rem;margin:0}
+.vazio{border:1.5px dashed var(--linha);border-radius:.5rem;padding:1rem 1.15rem;margin-top:.9rem;
+background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.grupo{margin-top:1rem}
+.grupo-cab{display:flex;align-items:baseline;gap:.6rem;margin-bottom:.2rem}
+.grupo-cab a{font-family:var(--grot);font-weight:650;font-size:.9rem;color:var(--verdete-deep);text-decoration:none}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:.88rem}
+.tarefa{display:block;font-size:.85rem;color:var(--tinta-2)}
+.parada{color:var(--amber);font-weight:650}
+.mk{font-family:var(--grot);font-size:.66rem;color:var(--amber);border:1.5px solid currentColor;
+border-radius:.25rem;padding:0 .3rem;margin-left:.35rem}
+.barras{margin-top:.6rem}
+.bl{display:flex;align-items:center;gap:.7rem;padding:.25rem 0}
+.bn{flex:0 0 11rem;font-size:.88rem}
+.ba{flex:1;height:.55rem;background:var(--linha);border-radius:2px;overflow:hidden}
+.ba i{display:block;height:100%;background:var(--s1)}
+.bv{flex:0 0 4rem;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.85rem}
+.unico{color:var(--clay);font-family:var(--grot);font-size:.68rem;border:1.5px solid currentColor;
+border-radius:.25rem;padding:0 .3rem;margin-left:.35rem}
+.proj{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem}
+.proj a{font-family:var(--grot);font-size:.84rem;text-decoration:none;color:var(--verdete-deep);
+border:1.5px solid var(--linha);border-radius:.25rem;padding:.28rem .65rem;background:var(--papel-2)}
+.tela{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--papel);
+background:var(--verdete-deep);display:inline-block;padding:.18rem .55rem;border-radius:.25rem}
+.grade-mult{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.9rem;margin-top:.9rem}
+.mult{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:.85rem .95rem}
+.mult-cab{display:flex;flex-direction:column;gap:.1rem;margin-bottom:.4rem}
+.mult-nome{font-family:var(--grot);font-weight:650;font-size:.92rem;color:var(--verdete-deep)}
+
+.pes{border-top:1.5px solid var(--linha);padding:.75rem 0}
+.pes-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem;margin-bottom:.35rem}
+.pes-papel{font-family:var(--grot);font-size:.74rem;color:var(--tinta-2)}
+.pes-met{margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+.tf{display:flex;align-items:baseline;gap:.6rem;padding:.2rem 0 .2rem 1rem;font-size:.9rem}
+.tf-id{font-family:var(--mono);font-size:.78rem;color:var(--verdete-deep);text-decoration:none;flex:0 0 3rem}
+.tf-t{flex:1 1 auto;color:var(--tinta-2)}
+.tf .v{flex:0 0 3.5rem;text-align:right}
+.tf-vazio{padding-left:1rem}
+.hb{border-top:1.5px solid var(--linha);padding:.7rem 0}
+.hb-nome{font-family:var(--grot);font-weight:650;font-size:.88rem;display:flex;flex-wrap:wrap;align-items:baseline;gap:.5rem}
+.hb-papel{font-weight:400;font-size:.74rem;color:var(--tinta-2)}
+.pils{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
+.pil{font-family:var(--grot);font-size:.8rem;color:var(--amber);border:1.5px dashed currentColor;
+border-radius:999px;padding:.15rem .7rem;
+background:repeating-linear-gradient(135deg,color-mix(in oklab,currentColor 8%,transparent) 0 5px,transparent 5px 10px)}
+@media (max-width:44rem){.tf{flex-wrap:wrap;padding-left:0}.tf-t{flex:1 1 100%;order:3}.pes-met{margin-left:0;flex:1 1 100%}}
+hr.sp{border:0;border-top:1.5px solid var(--linha);margin:3.5rem 0 2.5rem}
+@media (max-width:44rem){
+ table.emp thead{position:absolute;left:-9999px}
+ table.emp tr{display:block;border:1.5px solid var(--linha);border-radius:.5rem;padding:.6rem .8rem;margin-bottom:.55rem}
+ table.emp td{display:flex;justify-content:space-between;gap:1rem;border:0;padding:.2rem 0;text-align:right;align-items:center}
+ table.emp td::before{content:attr(data-label);font-family:var(--mono);font-size:.63rem;letter-spacing:.06em;
+ text-transform:uppercase;color:var(--tinta-2);text-align:left}
+ table.emp td:first-child{display:block} table.emp td:first-child::before{content:none}
+ svg.mini{max-width:120px} .bn{flex:0 0 7rem}}
+
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--amber:#d9a441;--clay:#e08574;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}
+
+body{background:var(--papel);color:var(--tinta)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+</style>
+<div class="faixa">
+
+<span class="tela">screen 1 · complex team</span>
+<nav class="mig" style="margin-top:.7rem"><a href="#">Teams</a> / Plataforma</nav>
+<h1>Plataforma</h1>
+<div class="ident">
+  <span class="marca dec"><span class="am"></span>declared</span>
+  <span class="rot">organizational team · LEDS — ConectaFapes · 3 teams inside · 23 people</span>
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Composed of 3 teams</h2><span class="rot">each measured on its own</span></div>
+  
+  <table class="emp">
+    <thead><tr><th>team</th><th>people</th><th>closed 8w</th><th>CI success</th><th>1st review</th></tr></thead>
+    <tbody><tr>
+      <td data-label="team"><a class="eq" href="#dados">Dados</a>
+        <span class="eq-sub"><span class="marca dec"><span class="am"></span>declared</span> · inside since 01 Sep</span></td>
+      
+      <td data-label="people"><span class="v">7</span></td>
+      <td data-label="closed 8w"><span class="v">57</span></td>
+      <td data-label="CI success"><span class="v">92%</span></td>
+      <td data-label="1st review"><span class="v">6h 20m</span></td>
+    </tr><tr>
+      <td data-label="team"><a class="eq" href="#dados">APIs</a>
+        <span class="eq-sub"><span class="marca dec"><span class="am"></span>declared</span> · inside since 01 Sep</span></td>
+      
+      <td data-label="people"><span class="v">5</span></td>
+      <td data-label="closed 8w"><span class="v">18</span></td>
+      <td data-label="CI success"><span class="v">78%</span></td>
+      <td data-label="1st review"><span class="v">31h 05m</span></td>
+    </tr><tr>
+      <td data-label="team"><a class="eq" href="#dados">Squad A</a>
+        <span class="eq-sub"><span class="marca obs"><span class="am"></span>observed</span> · inside since 01 Sep</span></td>
+      
+      <td data-label="people"><span class="v">9</span></td>
+      <td data-label="closed 8w"><span class="v">84</span></td>
+      <td data-label="CI success"><span class="v">88%</span></td>
+      <td data-label="1st review"><span class="v">11h 47m</span></td>
+    </tr>
+      <tr><td data-label="team"><strong style="font-family:var(--grot);font-size:.95rem">Plataforma itself</strong>
+          <span class="eq-sub">people in this team and in none of the three</span></td>
+        
+        <td data-label="people"><span class="v">2</span></td><td data-label="closed 8w"><span class="v">5</span></td>
+        <td data-label="CI success"><span class="v">95%</span></td><td data-label="1st review"><span class="v">4h 02m</span></td></tr>
+    </tbody>
+  </table>
+  <div class="aviso"><span class="rot">why there is no total</span>
+    <p>The rows are not added up. The same person can belong to more than one of these teams, so a
+    sum would count her twice — and the result would be neither a headcount nor an amount of work.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What the team is doing</h2><span class="rot">open and assigned · today</span></div>
+  <div class="grupo"><div class="grupo-cab"><a href="#dados">Dados</a><span class="rot">7 people · 9 open</span></div>
+    <table class="emp"><thead><tr><th>person</th><th class="esq">task</th><th>on it for</th></tr></thead><tbody>
+      <tr><td data-label="person"><span class="pessoa">Ana Ribeiro</span></td>
+        <td data-label="task" class="esq"><span class="tarefa">#412 Sincronizar quadros do Projects v2</span></td>
+        <td data-label="on it for"><span class="v">4d</span></td></tr>
+      <tr><td data-label="person"><span class="pessoa">João Marcos Pimentel</span></td>
+        <td data-label="task" class="esq"><span class="tarefa">#389 Corte incremental por repositório</span></td>
+        <td data-label="on it for"><span class="v parada">127d</span><span class="mk">stale</span></td></tr>
+    </tbody></table></div>
+  <div class="grupo"><div class="grupo-cab"><a href="#dados">APIs</a><span class="rot">5 people · 4 open</span></div>
+    <table class="emp"><thead><tr><th>person</th><th class="esq">task</th><th>on it for</th></tr></thead><tbody>
+      <tr><td data-label="person"><span class="pessoa">Marcelo Fatasy</span></td>
+        <td data-label="task" class="esq"><span class="tarefa">#377 Conector do ArgoCD — levantamento</span></td>
+        <td data-label="on it for"><span class="v parada">96d</span><span class="mk">stale</span></td></tr>
+      <tr><td data-label="person"><span class="pessoa">Adylla Ribeiro</span></td>
+        <td data-label="task" class="esq"><span class="tarefa">#468 Recusa de origem nomeia quem tentou</span></td>
+        <td data-label="on it for"><span class="v">2d</span></td></tr>
+    </tbody></table></div>
+  <div class="aviso"><span class="rot">what “on it for” counts</span>
+    <p>Time since the task started, by the start criterion the organisation declared — four are
+    declared. Over <strong>90 days</strong> it is marked <em>stale</em>: the only part of this
+    screen meant to produce action today.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What it has already done</h2>
+    <span class="rot">last 8 weeks · by team, never added up</span></div>
+  <table class="emp">
+    <thead><tr><th>team</th><th>closed</th><th>assigned to them</th><th>opened by them</th></tr></thead>
+    <tbody>
+      <tr><td data-label="team"><a class="eq" href="#dados">Dados</a></td>
+        <td data-label="closed"><span class="v">57</span></td>
+        <td data-label="assigned to them"><span class="v">34</span></td>
+        <td data-label="opened by them"><span class="v">23</span></td></tr>
+      <tr><td data-label="team"><a class="eq" href="#dados">APIs</a></td>
+        <td data-label="closed"><span class="v">18</span></td>
+        <td data-label="assigned to them"><span class="v">18</span></td>
+        <td data-label="opened by them"><span class="v">0</span></td></tr>
+      <tr><td data-label="team"><a class="eq" href="#dados">Squad A</a></td>
+        <td data-label="closed"><span class="v">84</span></td>
+        <td data-label="assigned to them"><span class="v">51</span></td>
+        <td data-label="opened by them"><span class="v">33</span></td></tr>
+      <tr><td data-label="team"><strong style="font-family:var(--grot);font-size:.95rem">Plataforma itself</strong></td>
+        <td data-label="closed"><span class="v">5</span></td>
+        <td data-label="assigned to them"><span class="v">4</span></td>
+        <td data-label="opened by them"><span class="v">1</span></td></tr>
+    </tbody>
+  </table>
+  <div class="aviso"><span class="rot">what “closed” means here, and what it does not</span>
+    <p>Closed is <strong>the issue being closed at the source</strong> — not a declared end
+    criterion. This counts an act of the tool, not a decision of the team. <em>Assigned</em> and
+    <em>opened</em> are different relations and are shown apart, never summed: the same issue can
+    be in both.</p></div>
+  <div class="vazio"><h3>No chart here yet</h3>
+    <p class="sub">Which measure this team is read by over time is <strong>not decided</strong>.
+    A chart drawn before that decision would pick the measure by what is easy to draw — and the
+    easy one today is a proxy, not the declared measure. The charts live on each team's own
+    screen, where there is a single series.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What comes next</h2><span class="marca aus"><span class="am"></span>no value</span></div>
+  <div class="vazio"><h3>Throughput, burn-up and burn-down are all waiting on one declaration</h3>
+    <p class="sub">Board columns are collected — <span class="n">3.981</span> items across
+    <span class="n">15</span> boards. What is missing is <strong>which column means what</strong>:
+    33 column names in two languages, and reading “Done” as finished is the guess this platform
+    exists not to make.</p>
+    <p class="sub" style="margin-top:.5rem">Throughput needs an end criterion <em>and</em> a sprint
+    that matches — sprint 026 is recorded as starting 19 Sep and ran 29 Aug to 01 Sep. Burn-down
+    needs a <strong>committed scope</strong>: without the commitment it is a line falling towards a
+    total nobody agreed to.</p>
+    <p class="sub" style="margin-top:.5rem">Declaring the columns turns all three on with
+    <strong>no collection and no migration</strong> — the items already collected change reading
+    the moment the organisation declares.</p></div>
+  <div class="barras" style="margin-top:.9rem"><span class="rot">what the source calls them today</span>
+    <div class="bl"><span class="bn">Backlog</span><span class="ba"><i style="width:42%"></i></span><span class="bv">168</span></div>
+    <div class="bl"><span class="bn">Em andamento</span><span class="ba"><i style="width:11%"></i></span><span class="bv">44</span></div>
+    <div class="bl"><span class="bn">Homologação</span><span class="ba"><i style="width:6%"></i></span><span class="bv">23</span></div>
+    <div class="bl"><span class="bn">Done</span><span class="ba"><i style="width:41%"></i></span><span class="bv">165</span></div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What the team knows</h2><span class="rot">profiles generated 01 Sep · 19 of 23 people</span></div>
+  <p class="sub">Coverage is the share of people who <strong>demonstrated</strong> the skill —
+  evidence in the work, not a self-assessment.</p>
+  <div class="barras">
+    <div class="bl"><span class="bn">Elixir</span><span class="ba"><i style="width:74%"></i></span><span class="bv">14/19</span></div>
+    <div class="bl"><span class="bn">PostgreSQL</span><span class="ba"><i style="width:58%"></i></span><span class="bv">11/19</span></div>
+    <div class="bl"><span class="bn">CI/CD</span><span class="ba"><i style="width:32%"></i></span><span class="bv">6/19</span></div>
+    <div class="bl"><span class="bn">Ontology modelling<span class="unico">single point</span></span>
+      <span class="ba"><i style="width:5%"></i></span><span class="bv">1/19</span></div>
+    <div class="bl"><span class="bn">Kubernetes<span class="unico">absent</span></span>
+      <span class="ba"><i style="width:0"></i></span><span class="bv">0/19</span></div>
+  </div>
+  <div class="aviso"><span class="rot">the four without a profile</span>
+    <p>Ana Paula, Bruno, Letícia and Rafael have no generated profile — not enough material in the
+    period. They are named because an absent profile is an absent person in every number above:
+    <span class="n">14/19</span> would read as <span class="n">14/23</span> without this line.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Structure and projects</h2><span class="rot">where this team sits</span></div>
+  <p class="sub">Contains <a href="#dados" style="color:var(--verdete-deep)">Dados</a>,
+    <a href="#dados" style="color:var(--verdete-deep)">APIs</a> and
+    <a href="#dados" style="color:var(--verdete-deep)">Squad A</a>. Part of no other team.</p>
+  <div class="proj"><a href="#">Conecta Fapes</a><a href="#">Conecta Fapes — Delivery</a><a href="#">Backoffice</a></div>
+</section>
+
+<hr class="sp">
+
+<span class="tela" id="dados">screen 2 · after clicking a sub-team</span>
+<nav class="mig" style="margin-top:.7rem"><a href="#">Teams</a> / <a href="#">Plataforma</a> / Dados</nav>
+<h1>Dados</h1>
+<div class="ident"><span class="marca dec"><span class="am"></span>declared</span>
+  <span class="rot">organizational team · part of Plataforma since 01 Sep 2026 · contains none</span></div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>The six measures</h2><span class="rot">three have no value, and say why</span></div>
+  <table class="emp">
+    <thead><tr><th>measure</th><th>value</th><th class="esq">what it supports deciding</th></tr></thead>
+    <tbody>
+      <tr><td data-label="measure">People <span class="marca obs"><span class="am"></span>observed</span></td>
+        <td data-label="value"><span class="v">7</span></td>
+        <td data-label="supports" class="esq sub">who is here now, and since when</td></tr>
+      <tr><td data-label="measure">CI success rate <span class="marca der"><span class="am"></span>derived</span></td>
+        <td data-label="value"><span class="v">92%</span></td>
+        <td data-label="supports" class="esq sub">where verification is failing, and in which repository</td></tr>
+      <tr><td data-label="measure">Time to first review <span class="marca der"><span class="am"></span>derived</span></td>
+        <td data-label="value"><span class="v">6h 20m</span></td>
+        <td data-label="supports" class="esq sub">whether work waits for a reviewer, and for how long</td></tr>
+      <tr><td data-label="measure">Throughput <span class="marca aus"><span class="am"></span>no value</span></td>
+        <td data-label="value" class="sub">—</td>
+        <td data-label="supports" class="esq sub">needs an end criterion, and a sprint whose dates match</td></tr>
+      <tr><td data-label="measure">Work in progress <span class="marca aus"><span class="am"></span>no value</span></td>
+        <td data-label="value" class="sub">—</td>
+        <td data-label="supports" class="esq sub">needs a start and an end; only the start is declared</td></tr>
+      <tr><td data-label="measure">Rework <span class="marca aus"><span class="am"></span>no value</span></td>
+        <td data-label="value" class="sub">—</td>
+        <td data-label="supports" class="esq sub">acceptance is never recorded on the platform — it lives in markdown</td></tr>
+    </tbody></table>
+  <p class="sub" style="margin-top:.7rem">A dash with a reason, never a zero. A zero here would
+  claim a measurement nobody made.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Week by week</h2><span class="rot">8 weeks · to 25 Aug</span></div>
+  <div class="cartao">
+    <div class="legenda" style="margin-top:0"><span><i style="background:var(--s1)"></i>opened</span>
+      <span><i style="background:var(--s2)"></i>closed</span></div>
+    <svg viewBox="0 0 560 115" class="g" role="img" aria-label="Opened and closed per week for Dados"><line x1="0" y1="95" x2="560" y2="95" stroke="var(--eixo)" stroke-width="1"/><line x1="0" y1="63.3" x2="560" y2="63.3" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="31.7" x2="560" y2="31.7" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="0.0" x2="560" y2="0.0" stroke="var(--grade)" stroke-width="1"/><rect x="9.1" y="54.3" width="22.4" height="40.7" rx="2" fill="var(--s1)"/><rect x="38.5" y="67.9" width="22.4" height="27.1" rx="2" fill="var(--s2)"/><text x="35.0" y="111" class="ex">07 Jul</text><rect x="79.1" y="33.9" width="22.4" height="61.1" rx="2" fill="var(--s1)"/><rect x="108.5" y="47.5" width="22.4" height="47.5" rx="2" fill="var(--s2)"/><rect x="149.1" y="47.5" width="22.4" height="47.5" rx="2" fill="var(--s1)"/><rect x="178.5" y="61.1" width="22.4" height="33.9" rx="2" fill="var(--s2)"/><rect x="219.1" y="20.4" width="22.4" height="74.6" rx="2" fill="var(--s1)"/><rect x="248.5" y="33.9" width="22.4" height="61.1" rx="2" fill="var(--s2)"/><rect x="289.1" y="40.7" width="22.4" height="54.3" rx="2" fill="var(--s1)"/><rect x="318.5" y="54.3" width="22.4" height="40.7" rx="2" fill="var(--s2)"/><text x="315.0" y="111" class="ex">04 Aug</text><rect x="359.1" y="13.6" width="22.4" height="81.4" rx="2" fill="var(--s1)"/><rect x="388.5" y="40.7" width="22.4" height="54.3" rx="2" fill="var(--s2)"/><rect x="429.1" y="33.9" width="22.4" height="61.1" rx="2" fill="var(--s1)"/><rect x="458.5" y="47.5" width="22.4" height="47.5" rx="2" fill="var(--s2)"/><rect x="499.1" y="0.0" width="22.4" height="95.0" rx="2" fill="var(--s1)"/><rect x="528.5" y="20.4" width="22.4" height="74.6" rx="2" fill="var(--s2)"/><text x="525.0" y="111" class="ex">25</text><text x="510.3" y="-4.0" class="rd s1">14</text><text x="539.7" y="16.4" class="rd s2">11</text></svg>
+  </div>
+
+  <div class="cartao">
+    <div class="sec-cab" style="border:0;padding:0"><h3>Work being carried</h3>
+      <span class="marca aus"><span class="am"></span>proxy</span></div>
+    <svg viewBox="0 0 560 135" class="g" role="img" aria-label="Open work per week, opened minus closed"><line x1="0" y1="113.0" x2="560" y2="113.0" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="75.3" x2="560" y2="75.3" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="37.7" x2="560" y2="37.7" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="0.0" x2="560" y2="0.0" stroke="var(--grade)" stroke-width="1"/><polyline points="0.0,103.3 80.0,93.5 160.0,83.8 240.0,74.0 320.0,64.3 400.0,44.8 480.0,35.0 560.0,20.4" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/><circle cx="0.0" cy="103.3" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="80.0" cy="93.5" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="160.0" cy="83.8" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="240.0" cy="74.0" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="320.0" cy="64.3" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="400.0" cy="44.8" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="480.0" cy="35.0" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="560.0" cy="20.4" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><text x="0.0" y="131" class="ex">07 Jul</text><text x="320.0" y="131" class="ex">04 Aug</text><text x="560.0" y="131" class="ex">25</text><text x="560" y="10.4" class="rd s1" text-anchor="end">19 carried</text></svg>
+    <table><thead><tr><th>week</th><th>07 Jul</th><th>14</th><th>21</th><th>28</th><th>04 Aug</th><th>11</th><th>18</th><th>25</th></tr></thead>
+      <tbody><tr><td>open at week end</td><td><span class="n">2</span></td><td><span class="n">4</span></td><td><span class="n">6</span></td><td><span class="n">8</span></td><td><span class="n">10</span></td><td><span class="n">14</span></td><td><span class="n">16</span></td><td><span class="n">19</span></td></tr></tbody></table>
+  </div>
+
+  <div class="aviso"><span class="rot">what this line is, and what it is not</span>
+    <p>It is <strong>opened minus closed</strong>, accumulated — a proxy. It is <strong>not
+    <span class="n">flow.wip.count</span></strong>, the declared measure, which needs a start
+    <em>and</em> an end criterion. Here the end is “the issue was closed at the source”: an act of
+    the tool, not a decision of the team. A task that was abandoned looks exactly like a task in
+    progress.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Burn-up and burn-down</h2>
+    <span class="rot">8 weeks · cumulative</span></div>
+  <div class="cartao">
+    <div class="legenda" style="margin-top:0">
+      <span><i style="background:var(--s1)"></i>opened, cumulative — the burn-up</span>
+      <span><i style="background:var(--s2)"></i>closed, cumulative — the burn-down</span>
+    </div>
+    <svg viewBox="0 0 560 175" class="g" role="img"
+      aria-label="Cumulative opened and closed over 8 weeks. The hatched band between them is the work still open."><defs><pattern id="h" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--s1)" stroke-width="1.4" opacity=".38"/></pattern><marker id="s" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><circle cx="3" cy="3" r="1.6" fill="var(--tinta-2)"/></marker></defs><line x1="0" y1="153.0" x2="560" y2="153.0" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="114.8" x2="560" y2="114.8" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="76.5" x2="560" y2="76.5" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="38.2" x2="560" y2="38.2" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="0.0" x2="560" y2="0.0" stroke="var(--grade)" stroke-width="1"/><polygon points="0.0,142.4 80.0,126.5 160.0,114.1 240.0,94.7 320.0,80.6 400.0,59.4 480.0,43.5 560.0,18.8 560.0,52.3 480.0,71.8 400.0,84.1 320.0,98.3 240.0,108.9 160.0,124.7 80.0,133.6 0.0,145.9" fill="url(#h)" stroke="none"/><polyline points="0.0,142.4 80.0,126.5 160.0,114.1 240.0,94.7 320.0,80.6 400.0,59.4 480.0,43.5 560.0,18.8" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/><polyline points="0.0,145.9 80.0,133.6 160.0,124.7 240.0,108.9 320.0,98.3 400.0,84.1 480.0,71.8 560.0,52.3" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"/><circle cx="560.0" cy="18.8" r="4.5" fill="var(--s1)" stroke="var(--papel)" stroke-width="2"/><circle cx="560.0" cy="52.3" r="4.5" fill="var(--s2)" stroke="var(--papel)" stroke-width="2"/><text x="0.0" y="171" class="ex">07 Jul</text><text x="320.0" y="171" class="ex">04 Aug</text><text x="560.0" y="171" class="ex">25</text><line x1="546.0" y1="18.8" x2="546.0" y2="52.3" stroke="var(--tinta-2)" stroke-width="1.5" marker-start="url(#s)" marker-end="url(#s)"/><text x="540.0" y="38.6" class="rd" fill="var(--tinta-2)" text-anchor="end">19 still open</text><text x="560" y="9.8" class="rd s1" text-anchor="end">76 opened</text><text x="560" y="67.3" class="rd s2" text-anchor="end">57 closed</text></svg>
+    <table><thead><tr><th>week</th><th>07 Jul</th><th>14</th><th>21</th><th>28</th><th>04 Aug</th><th>11</th><th>18</th><th>25</th></tr></thead>
+      <tbody>
+        <tr><td>opened, cumulative</td><td><span class="n">6</span></td><td><span class="n">15</span></td><td><span class="n">22</span></td><td><span class="n">33</span></td><td><span class="n">41</span></td><td><span class="n">53</span></td><td><span class="n">62</span></td><td><span class="n">76</span></td></tr>
+        <tr><td>closed, cumulative</td><td><span class="n">4</span></td><td><span class="n">11</span></td><td><span class="n">16</span></td><td><span class="n">25</span></td><td><span class="n">31</span></td><td><span class="n">39</span></td><td><span class="n">46</span></td><td><span class="n">57</span></td></tr>
+        <tr><td>still open</td><td><span class="n">2</span></td><td><span class="n">4</span></td><td><span class="n">6</span></td><td><span class="n">8</span></td><td><span class="n">10</span></td><td><span class="n">14</span></td><td><span class="n">16</span></td><td><span class="n">19</span></td></tr>
+      </tbody></table>
+  </div>
+
+  <div class="aviso"><span class="rot">where “still open” is</span>
+    <p>It is <strong>not a third line</strong> — it is the <strong>distance between the two</strong>,
+    hatched because it is derived and not observed. Reading the gap is the whole chart: it widens
+    when the team opens faster than it closes, and narrows when it catches up. At the end of the
+    period it is <span class="n">19</span>.</p>
+    <p style="margin-top:.5rem">A third line would draw the same fact twice, and invite someone to
+    read it against a baseline it does not have.</p></div>
+
+  <div class="aviso"><span class="rot">what this is not</span>
+    <p>There is <strong>no committed scope</strong> here, so this does not answer <em>will the
+    sprint finish</em>. The scope is simply everything opened so far. What it answers is narrower
+    and real: <strong>is the team closing as fast as it opens</strong>.</p>
+    <p style="margin-top:.5rem">And <em>closed</em> is the issue being closed at the source — an act
+    of the tool, not a declared end criterion. A task abandoned and one finished look the same
+    here.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Monte Carlo forecast</h2>
+    <span class="rot">10 000 runs · sampled from the last 8 weeks</span></div>
+
+  <p class="sub">No estimates and no velocity. Each run draws a week of throughput
+  at random from the weeks this team actually had, and repeats until the open work
+  is gone. The spread of the runs is the forecast.</p>
+
+  <div class="cartao">
+    <h3>If nothing new opened</h3>
+    <p class="sub" style="margin-top:.15rem">Clearing today’s <span class="n">19</span> open
+    items, drawing from observed throughput.</p>
+    <svg viewBox="0 -22 520 150" class="g" role="img"
+      aria-label="Distribution of completion week: 8 percent finish in week 2, 70 percent in week 3, 22 percent in week 4, and under 1 percent in week 5."><rect x="3.0" y="111.9" width="124.0" height="14.1" rx="4" fill="var(--s1)"/><text x="65.0" y="106.9" class="rd" fill="var(--tinta-2)">7%</text><text x="65.0" y="139" class="ex">week 2</text><rect x="133.0" y="0.0" width="124.0" height="126.0" rx="4" fill="var(--s1)"/><text x="195.0" y="-5.0" class="rd" fill="var(--tinta-2)">69%</text><text x="195.0" y="139" class="ex">week 3</text><rect x="263.0" y="86.5" width="124.0" height="39.5" rx="4" fill="var(--s1)"/><text x="325.0" y="81.5" class="rd" fill="var(--tinta-2)">21%</text><text x="325.0" y="139" class="ex">week 4</text><rect x="393.0" y="125.4" width="124.0" height="0.6" rx="4" fill="var(--s2)"/><text x="455.0" y="120.4" class="rd" fill="var(--tinta-2)">0%</text><text x="455.0" y="139" class="ex">week 5</text><line x1="387.0" y1="-6" x2="387.0" y2="126" stroke="var(--tinta-2)" stroke-width="1.5" stroke-dasharray="3 3"/><text x="382.0" y="-9" class="rd" fill="var(--tinta-2)" text-anchor="end">85% of runs finish by here</text><line x1="0" y1="126" x2="520" y2="126" stroke="var(--eixo)" stroke-width="1"/></svg>
+    <table><thead><tr><th class="esq">confidence</th><th>finishes by</th></tr></thead>
+      <tbody>
+        <tr><td class="esq">50% — a coin flip, not a commitment</td><td><span class="n">week 3</span></td></tr>
+        <tr><td class="esq">85% — the one worth telling people</td><td><span class="n">week 4</span></td></tr>
+        <tr><td class="esq">95%</td><td><span class="n">week 4</span></td></tr>
+      </tbody></table>
+  </div>
+
+  <div class="cartao">
+    <h3>If work keeps arriving as it has</h3>
+    <p class="sub" style="margin-top:.15rem">Same simulation, but each week also draws
+    an arrival count from the weeks this team actually had.</p>
+    <svg viewBox="0 0 520 160" class="g" role="img"
+      aria-label="Projected open work over 12 weeks: median rises from 19 to 48, with a band from 33 to 62."><line x1="0" y1="138.0" x2="520" y2="138.0" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="98.6" x2="520" y2="98.6" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="59.1" x2="520" y2="59.1" stroke="var(--grade)" stroke-width="1"/><line x1="0" y1="19.7" x2="520" y2="19.7" stroke="var(--grade)" stroke-width="1"/><polygon points="0.0,100.5 43.3,86.7 86.7,78.9 130.0,72.9 173.3,65.1 216.7,59.1 260.0,51.3 303.3,45.3 346.7,39.4 390.0,33.5 433.3,27.6 476.7,21.7 520.0,15.8 520.0,72.9 476.7,76.9 433.3,78.9 390.0,82.8 346.7,86.7 303.3,90.7 260.0,92.7 216.7,94.6 173.3,98.6 130.0,100.5 86.7,102.5 43.3,104.5 0.0,100.5" fill="var(--s2)" opacity=".16"/><polyline points="0.0,100.5 43.3,96.6 86.7,90.7 130.0,86.7 173.3,82.8 216.7,76.9 260.0,72.9 303.3,67.0 346.7,63.1 390.0,59.1 433.3,53.2 476.7,49.3 520.0,43.4" fill="none" stroke="var(--s2)" stroke-width="2"/><circle cx="0" cy="100.5" r="4.5" fill="var(--s2)" stroke="var(--papel)" stroke-width="2"/><text x="8" y="92.5" class="rd s2" text-anchor="start">19 open today</text><text x="520" y="47.4" class="rd s2" text-anchor="end">48</text><text x="520" y="11.8" class="rd" fill="var(--tinta-2)" text-anchor="end">62 · p90</text><text x="520" y="83.9" class="rd" fill="var(--tinta-2)" text-anchor="end">33 · p10</text><text x="0.0" y="156" class="ex">week 0</text><text x="173.3" y="156" class="ex">week 4</text><text x="346.7" y="156" class="ex">week 8</text><text x="520.0" y="156" class="ex">week 12</text><line x1="0" y1="138" x2="520" y2="138" stroke="var(--eixo)" stroke-width="1"/></svg>
+    <div class="legenda">
+      <span><i style="background:var(--s2)"></i>median run</span>
+      <span><i style="background:var(--s2);opacity:.3"></i>80% of runs fall in here</span>
+    </div>
+  </div>
+
+  <div class="aviso"><span class="rot">what the two runs say together</span>
+    <p>The team can clear what is open in <strong>three to four weeks</strong>. It still
+    ends the quarter with <strong>more open work than it has today</strong> — a median of
+    <span class="n">48</span> against <span class="n">19</span> now.</p>
+    <p style="margin-top:.5rem">Both are true because they answer different questions. Work
+    arrives at <span class="n">9.5</span> a week and leaves at <span class="n">7.1</span>.
+    The gap is small enough to miss in any single week and large enough to decide the quarter,
+    which is exactly the kind of thing a forecast is for and a status meeting is not.</p>
+    <p style="margin-top:.5rem">Only <span class="n">2</span> of the 10 000 runs cleared the
+    backlog with arrivals included. <strong>That is the finding</strong>, and no amount of
+    working harder inside the current rates changes it.</p></div>
+
+  <div class="aviso"><span class="rot">before anyone plans against this</span>
+    <p>Eight weeks is a thin history, and it assumes next quarter resembles last —
+    same people, same kind of work. A team that just lost a member has no such history.
+    Read <span class="n">week 4</span> as <em>the 85% line from what we have seen</em>,
+    never as a date that was promised.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What each person is on</h2><span class="rot">5 people · open tasks and time on each</span></div>
+  <p class="sub">Every task assigned and still open, with how long it has been open for that person. More than one task means more than one line — <strong>nothing is collapsed into a “current” task</strong>, because which one is current is a judgement the data does not make.</p>
+  <div style="margin-top:.9rem">
+  <div class="pes"><div class="pes-cab"><span class="pessoa">Ana Ribeiro</span><span class="pes-papel">tech lead</span><span class="pes-met">14 closed 8w · 3h 10m to 1st review</span></div><div class="tf"><a class="tf-id" href="#">#412</a><span class="tf-t">Sincronizar quadros do Projects v2</span><span class="v">4d</span></div><div class="tf"><a class="tf-id" href="#">#468</a><span class="tf-t">Revisar o contrato de origens declaradas</span><span class="v">2d</span></div></div>
+  <div class="pes"><div class="pes-cab"><span class="pessoa">João Marcos Pimentel</span><span class="pes-papel">developer</span><span class="pes-met">9 closed 8w · 9h 44m to 1st review</span></div><div class="tf"><a class="tf-id" href="#">#389</a><span class="tf-t">Corte incremental por repositório</span><span class="v parada">127d</span><span class='mk'>stale</span></div><div class="tf"><a class="tf-id" href="#">#401</a><span class="tf-t">Checkpoint gravado por página</span><span class="v">31d</span></div></div>
+  <div class="pes"><div class="pes-cab"><span class="pessoa">Caio Lessa Simão</span><span class="pes-papel">developer</span><span class="pes-met">11 closed 8w · 5h 02m to 1st review</span></div><div class="tf"><a class="tf-id" href="#">#455</a><span class="tf-t">Timeline do conectafapes-project</span><span class="v">11d</span></div></div>
+  <div class="pes"><div class="pes-cab"><span class="pessoa">Letícia Moura</span><span class="pes-papel">developer</span><span class="pes-met">8 closed 8w · 4h 27m to 1st review</span></div><div class="tf"><a class="tf-id" href="#">#470</a><span class="tf-t">Origens declaradas no socket</span><span class="v">3d</span></div><div class="tf"><a class="tf-id" href="#">#474</a><span class="tf-t">Escala de texto escolhida por quem lê</span><span class="v">1d</span></div></div>
+  <div class="pes"><div class="pes-cab"><span class="pessoa">Rafael Dias</span><span class="unico" title="Not enough material in the period">no profile</span><span class="pes-papel">developer</span><span class="pes-met">2 closed 8w · — to 1st review</span></div><div class="tf tf-vazio"><span class="sub">No open task assigned</span></div></div>
+  </div>
+
+  <div class="aviso"><span class="rot">what time on task counts</span>
+    <p>Days since the task was <strong>assigned to that person</strong> — not since work started, which is never recorded. A task picked up late reads as slower than it was.</p>
+    <p style="margin-top:.5rem"><strong>#389 at 127 days</strong> is marked <em>stale</em> past ninety. It is a flag to go ask, not a verdict: the honest reading is that the board has not been told anything about it in four months.</p></div>
+
+  <div class="aviso"><span class="rot">why these are not added up</span>
+    <p>A task with two people responsible <strong>appears once for each</strong>. Summing the lines would count it twice, and the team’s own line is measured separately rather than derived from these.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Demonstrated skills</h2><span class="rot">derived · from closed tasks in the period</span></div>
+  <div class="ident" style="margin-top:.6rem"><span class="marca der"><span class="am"></span>derived — read from what was completed</span></div>
+  <p class="sub">Same reading as a person’s own page: each pill is a skill the closed work <strong>showed</strong>, drawn hatched because it is a conclusion and not a record.</p>
+  <div style="margin-top:.9rem">
+  <div class="hb"><div class="hb-nome">Ana Ribeiro<span class="hb-papel">tech lead</span></div><div class="pils"><span class="pil">Ontology modelling</span><span class="pil">Ecto migrations</span><span class="pil">LiveView</span><span class="pil">Release engineering</span><span class="pil">Code review</span></div></div>
+  <div class="hb"><div class="hb-nome">João Marcos Pimentel<span class="hb-papel">developer</span></div><div class="pils"><span class="pil">GraphQL ingestion</span><span class="pil">Rate limiting</span><span class="pil">SQL tuning</span><span class="pil">Incremental sync</span></div></div>
+  <div class="hb"><div class="hb-nome">Caio Lessa Simão<span class="hb-papel">developer</span></div><div class="pils"><span class="pil">LiveView</span><span class="pil">Timeline rendering</span><span class="pil">JS interop</span></div></div>
+  <div class="hb"><div class="hb-nome">Letícia Moura<span class="hb-papel">developer</span></div><div class="pils"><span class="pil">Multitenancy</span><span class="pil">Access control</span><span class="pil">Sobelow · security gates</span><span class="pil">CSS</span></div></div>
+  <div class="hb"><div class="hb-nome">Rafael Dias<span class="unico">no profile</span></div><p class="sub" style="margin:0">Two closed tasks in eight weeks is below the floor the profile rules set. <strong>No skill is listed</strong> — and none is implied.</p></div>
+  </div>
+
+  <div class="aviso"><span class="rot">what a missing skill means</span>
+    <p>It means <strong>not seen here</strong>. Someone can be excellent at something and never have done it in this repository, in this period — and the pill will be absent. Read as a list of what a person <em>can</em> do, this becomes a ranking of people, which it is not and cannot support.</p>
+    <p style="margin-top:.5rem">Two skills appear once in the whole team — <strong>Release engineering</strong> and <strong>Sobelow · security gates</strong>. That is not about the people; it is where the team has no second reader.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Periods</h2><span class="rot">one left, and the period still counts</span></div>
+  <table class="emp"><thead><tr><th>person</th><th class="esq">role</th><th>in the team</th></tr></thead><tbody>
+    <tr><td data-label="person">Ana Ribeiro</td><td data-label="role" class="esq sub">tech lead</td>
+      <td data-label="in the team"><span class="n">12 Jan 2026 →</span></td></tr>
+    <tr><td data-label="person">João Marcos Pimentel</td><td data-label="role" class="esq sub">developer</td>
+      <td data-label="in the team"><span class="n">03 Mar 2026 →</span></td></tr>
+    <tr><td data-label="person">Caio Lessa Simão</td><td data-label="role" class="esq sub">developer</td>
+      <td data-label="in the team"><span class="n">10 Jan – 28 Feb 2026</span>
+        <span class="eq-sub">left · the work of that period still counts for this team</span></td></tr>
+  </tbody></table>
+</section>
+
+
+<section class="sec">
+  <div class="sec-cab"><h2>What this team knows</h2>
+    <span class="rot">profiles generated 01 Sep · 6 of 7 people</span></div>
+  <p class="sub">Coverage inside <strong>Dados only</strong> — not the coverage of Plataforma.
+  A skill can be strong here and absent next door, and that is the difference a parent team's
+  average would hide.</p>
+
+  <div class="barras">
+    <div class="bl"><span class="bn">PostgreSQL</span><span class="ba"><i style="width:100%"></i></span><span class="bv">6/6</span></div>
+    <div class="bl"><span class="bn">Elixir</span><span class="ba"><i style="width:83%"></i></span><span class="bv">5/6</span></div>
+    <div class="bl"><span class="bn">Ontology modelling<span class="unico">single point</span></span>
+      <span class="ba"><i style="width:17%"></i></span><span class="bv">1/6</span></div>
+    <div class="bl"><span class="bn">CI/CD<span class="unico">absent</span></span>
+      <span class="ba"><i style="width:0"></i></span><span class="bv">0/6</span></div>
+  </div>
+
+  <div class="aviso"><span class="rot">the one without a profile</span>
+    <p>Rafael has no generated profile — not enough material in the period. He is named because an
+    absent profile is an absent person in every bar above: <span class="n">5/6</span> would read as
+    <span class="n">5/7</span> without this line.</p></div>
+
+  <div class="aviso"><span class="rot">what the single point means here</span>
+    <p><strong>Ontology modelling</strong> was demonstrated by one person in this team. Losing her
+    loses the skill — and the parent team shows the same skill at <span class="n">1/19</span>,
+    which is the same one person. A wider team does not make a single point less single.</p></div>
+</section>
+
+</div>
