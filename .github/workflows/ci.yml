@@ -36,13 +36,13 @@ jobs:
           POSTGRES_DB: the_band_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: erlef/setup-beam@v1
         with:
@@ -50,7 +50,7 @@ jobs:
           otp-version: "29"
 
       - name: Cache de dependências e PLT
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -73,7 +73,7 @@ jobs:
       # justamente a distinção que o produto passou a fazer na feature 009.
       # ------------------------------------------------------------------------
       - name: Cache dos binários de assets
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             _build/tailwind-*
@@ -129,13 +129,13 @@ jobs:
           POSTGRES_DB: the_band_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: erlef/setup-beam@v1
         with:
@@ -143,7 +143,7 @@ jobs:
           otp-version: "29"
 
       - name: Cache de dependências
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             deps
@@ -152,7 +152,7 @@ jobs:
           restore-keys: ${{ runner.os }}-mix-
 
       - name: Cache dos binários de assets
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             _build/tailwind-*
@@ -171,7 +171,7 @@ jobs:
       - name: Conferir que a medida existe
         run: test -s cover/excoveralls.xml || { echo "cobertura ausente — a medida não aconteceu"; exit 1; }
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cobertura
           path: cover/
@@ -184,10 +184,10 @@ jobs:
     name: a imagem de produção builda
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: só quando a imagem muda
         id: mudou
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             docker:
