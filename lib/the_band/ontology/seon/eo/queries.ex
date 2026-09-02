@@ -21,6 +21,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.RoleVisibilityGrant
   alias TheBand.Ontology.SEON.EO.Schemas.Team
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamComposition
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.RawData
@@ -990,6 +991,52 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       :count,
       :person_id
     )
+  end
+
+  @doc """
+  As equipes que **fazem parte** desta — feature 055, US3.
+
+  Só as composições **vigentes**: descompor encerra a relação, e a equipe que
+  saiu continua existindo com o histórico dela. Ela some daqui, não do mundo.
+  """
+  @spec team_parts(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def team_parts(%Tenant{id: tenant_id}, team_id) do
+    from(c in TeamComposition,
+      join: t in Team,
+      on: t.id == c.part_team_id,
+      where:
+        c.tenant_id == ^tenant_id and c.whole_team_id == type(^team_id, :binary_id) and
+          is_nil(c.ended_at),
+      order_by: [asc: t.name],
+      select: %{
+        team_id: t.id,
+        name: t.name,
+        declarada: c.declared_by_user_id,
+        desde: c.started_at
+      }
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  As equipes de que **esta faz parte** — a direção contrária de `team_parts/2`.
+
+  As duas existem porque a tela mostra os dois lados: a de cima diz o que contém,
+  a de baixo diz de quem faz parte. Uma equipe pode compor mais de uma — a
+  cardinalidade declarada é muitos-para-muitos, e a estrutura real não é árvore.
+  """
+  @spec team_wholes(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def team_wholes(%Tenant{id: tenant_id}, team_id) do
+    from(c in TeamComposition,
+      join: t in Team,
+      on: t.id == c.whole_team_id,
+      where:
+        c.tenant_id == ^tenant_id and c.part_team_id == type(^team_id, :binary_id) and
+          is_nil(c.ended_at),
+      order_by: [asc: t.name],
+      select: %{team_id: t.id, name: t.name, desde: c.started_at}
+    )
+    |> Repo.all()
   end
 
   @doc "Os papéis que este tenant reconhece, por nome."

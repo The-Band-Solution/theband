@@ -116,7 +116,7 @@ ciclo e ser recusado.
   - **Feita quando**: T011 passa; descompor mantém a equipe e o histórico dela
   - **Teste**: os dois ciclos, e a asserção sobre o **conteúdo** da mensagem de recusa — que reprova se ela virar genérica
 
-- [ ] T013 [US3] A estrutura nas duas telas
+- [x] T013 [US3] A estrutura nas duas telas
   - **Pronta quando**: T012
   - **Descrição**: em `teams_live/show.ex`, a seção do que a equipe contém e de quem ela faz parte, com as ações de compor e descompor para quem administra
   - **Feita quando**: as duas direções aparecem; a ação some para quem não administra
