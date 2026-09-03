@@ -50,6 +50,7 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate team_members_at(tenant, team_id, quando), to: Queries
   defdelegate team_member_ids_at(tenant, team_id, quando), to: Queries
   defdelegate team_member_ids_ever(tenant, team_id), to: Queries
+  defdelegate team_memberships_with_period(tenant, team_id), to: Queries
   defdelegate team_parts(tenant, team_id), to: Queries
   defdelegate team_wholes(tenant, team_id), to: Queries
   defdelegate record_team_membership_evidence(tenant, attrs), to: Commands

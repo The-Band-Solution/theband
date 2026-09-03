@@ -22,11 +22,13 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
 
   import Ecto.Query
 
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO.Schemas.Project
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectBoard
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectOrganization
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectRepository
   alias TheBand.Ontology.SEON.SPO.Schemas.ProjectTeam
+  alias TheBand.Periodos
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
@@ -480,8 +482,142 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   end
 
   @doc """
+  Quem trabalhou neste projeto, e quando — feature 058, US2.
+
+  A resposta é a interseção de **três períodos**: pessoa ↔ equipe, equipe ↔
+  projeto, e a janela perguntada. `TheBand.Periodos.interseccao/1` decide cada
+  uma, e o veredito viaja junto de cada linha.
+
+  ## Uma pessoa, uma linha, e as equipes por onde ela chegou
+
+  A mesma pessoa pode alcançar o projeto por mais de uma equipe. Ela aparece
+  **uma vez**, com todas em `equipes` — duas linhas somariam a mesma pessoa, e
+  quem contasse a lista mediria participações em vez de gente.
+
+  ## Desligar não apaga
+
+  Vínculo encerrado continua contando no intervalo em que vigeu. É a mesma regra
+  que a feature 055 estabeleceu para a saída de uma pessoa, aplicada ao vínculo
+  entre equipe e projeto.
+
+  ## O veredito parcial não é detalhe
+
+  Quando uma borda é desconhecida, a linha vem com `{:parcial, quais}`. Quem
+  apresenta **precisa mostrar isso**: a linha depende de uma data que ninguém
+  declarou, e omitir a marca afirmaria o que a plataforma não sabe.
+  """
+  @spec who_worked_on(Tenant.t(), Ecto.UUID.t(), Periodos.periodo()) :: [map()]
+  def who_worked_on(%Tenant{} = tenant, project_id, janela) do
+    tenant
+    |> project_teams_with_period(project_id)
+    |> Enum.flat_map(&pessoas_da_equipe_no_periodo(tenant, &1, janela))
+    |> juntar_por_pessoa()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  # Cada membro da equipe vira um candidato, com o veredito dos TRÊS períodos.
+  # `:nao_intersecta` é descartado aqui; `:intersecta` e `{:parcial, _}` seguem.
+  defp pessoas_da_equipe_no_periodo(tenant, %{team_id: team_id, name: nome, periodo: pe}, janela) do
+    tenant
+    |> EO.team_memberships_with_period(team_id)
+    |> Enum.map(fn m ->
+      {m, Periodos.interseccao([m.periodo, pe, janela])}
+    end)
+    |> Enum.reject(fn {_m, v} -> v == :nao_intersecta end)
+    |> Enum.map(fn {m, v} ->
+      %{
+        person_id: m.person_id,
+        name: m.name,
+        login: m.login,
+        equipes: [%{team_id: team_id, name: nome}],
+        periodo: v
+      }
+    end)
+  end
+
+  # A mesma pessoa por duas equipes vira UMA linha. O veredito mais fraco vence:
+  # se um dos caminhos depende de borda desconhecida, a linha inteira depende —
+  # dizer `:intersecta` porque o outro caminho é certo esconderia a dúvida.
+  defp juntar_por_pessoa(linhas) do
+    linhas
+    |> Enum.group_by(& &1.person_id)
+    |> Enum.map(fn {_pid, [primeira | _] = todas} ->
+      %{
+        primeira
+        | equipes: todas |> Enum.flat_map(& &1.equipes) |> Enum.uniq_by(& &1.team_id),
+          periodo: veredito_mais_fraco(Enum.map(todas, & &1.periodo))
+      }
+    end)
+  end
+
+  defp veredito_mais_fraco(vereditos) do
+    parciais =
+      vereditos
+      |> Enum.flat_map(fn
+        {:parcial, bordas} -> bordas
+        _ -> []
+      end)
+      |> Enum.uniq()
+
+    if parciais == [], do: :intersecta, else: {:parcial, parciais}
+  end
+
+  @doc """
+  As equipes de um projeto **com o período de cada vínculo** — feature 058, T004.
+
+  Diferente de `list_project_teams/2`, que filtra `is_nil(unlinked_at)` e por isso
+  só enxerga o presente. Aqui o vínculo **encerrado continua sendo devolvido**,
+  com o intervalo em que vigeu: desligar não apaga o que houve, e é essa a
+  pergunta que `linked_at` e `unlinked_at` existem para responder.
+
+  As duas colunas estão na tabela desde que ela foi criada e **nenhuma consulta as
+  usava**.
+
+  `inicio: nil` significa **desde quando não se sabe**, e nunca "desde sempre" —
+  quem decide o que fazer com isso é `TheBand.Periodos.interseccao/1`.
+  """
+  @spec project_teams_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def project_teams_with_period(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: t in "eo_teams",
+        on: t.id == v.team_id,
+        where: v.tenant_id == ^tenant_id and v.project_id == ^project_id,
+        order_by: [asc: t.name, asc: v.linked_at],
+        select: %{
+          team_id: v.team_id,
+          name: t.name,
+          periodo: %{inicio: v.linked_at, fim: v.unlinked_at}
+        }
+    )
+  end
+
+  @doc """
+  Os repositórios de um projeto **com o período de cada vínculo** — feature 058, T012.
+
+  Mesma forma de `project_teams_with_period/2`, sobre a segunda tabela de período
+  que ninguém consultava. Existe para a US3: a taxa do pipeline é dos
+  repositórios dos projetos da equipe, e não de quem disparou a execução.
+  """
+  @spec project_repositories_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def project_repositories_with_period(%Tenant{id: tenant_id}, project_id) do
+    Repo.all(
+      from v in ProjectRepository,
+        where: v.tenant_id == ^tenant_id and v.project_id == ^project_id,
+        order_by: [asc: v.linked_at],
+        select: %{
+          observed_repository_id: v.observed_repository_id,
+          periodo: %{inicio: v.linked_at, fim: v.unlinked_at}
+        }
+    )
+  end
+
+  @doc """
   As equipes vigentes de um projeto, **com a proveniência junto** — a tela separa a
   declarada da observada (FR-008), porque o produto existe para essa distinção.
+
+  Só as **vigentes**. Para o histórico com período, ver
+  `project_teams_with_period/2`.
   """
   @spec list_project_teams(Tenant.t(), Ecto.UUID.t()) :: [map()]
   def list_project_teams(%Tenant{id: tenant_id}, project_id) do

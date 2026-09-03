@@ -12,6 +12,10 @@ measurement:
     filters: ["excluir revisões automáticas", "excluir solicitações em rascunho"]
     period: rolling_30_days
   limitations:
+    - "No nível TEAM, a solicitação conta para a equipe quando quem a ABRIU pertencia a ela na data de abertura — e não na data da consulta, nem pela equipe de quem revisou. Recortar pela revisão mediria a equipe de quem revisa, e esta é uma espera de quem abriu (feature 058, R3)."
+    - "Solicitação ainda sem revisão humana NÃO tem tempo: tem espera em curso. Omiti-la faria a mediana melhorar quanto pior a equipe estivesse, porque as que mais interessam são justamente as que ninguém revisou (feature 058, R5)."
+    - "A mediana por pessoa e a da equipe respondem perguntas diferentes e não devem ser reconciliadas. Cada solicitação tem um autor, então não há dupla contagem — mas os dois números medem coisas distintas."
+    - "Solicitação aberta por quem nunca teve vínculo declarado não conta para equipe nenhuma. Ela é nomeada no que ficou de fora, e não some."
     - Revisões automáticas devem ser excluídas ou classificadas separadamente.
     - Solicitações de mudança sem revisão não possuem valor concluído e não entram na média.
     - Solicitações abertas como rascunho distorcem o início da espera.
