@@ -79,6 +79,7 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate role_by_concept(tenant, organization_id, concept_id), to: Queries
   defdelegate team_size(tenant, team_id), to: Queries
   defdelegate pending_evidence(tenant, team_id), to: Queries
+  defdelegate membership_disagreements(tenant, team_id), to: Queries
   defdelegate fetch_evidence(tenant, evidence_id), to: Queries
   defdelegate fetch_team(tenant, team_id), to: Queries
   defdelegate fetch_role(tenant, role_id), to: Queries

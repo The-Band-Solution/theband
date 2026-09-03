@@ -315,6 +315,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> assign(faz_parte_de: EO.team_wholes(tenant, team.id))
     |> carregar_linhas(partes)
     |> assign(pendentes: EO.pending_evidence(tenant, team.id))
+    |> assign(discordancias: EO.membership_disagreements(tenant, team.id))
     |> assign(papeis_para_promover: papeis)
   end
 
@@ -1039,6 +1040,84 @@ defmodule TheBandWeb.TeamsLive.Show do
           {member.last_observed_at}
         </:col>
       </.data_table>
+
+      <%!-- ═══ AS DUAS AFIRMAÇÕES — feature 055, FR-012 ═══
+            Duas tabelas afirmam sobre a mesma pessoa, e aqui elas discordam. A tela
+            mostra AS DUAS e não escolhe — nem a mais recente.
+
+            Escolher esconderia que o GitHub não foi atualizado, e isso é informação
+            sobre a ORGANIZAÇÃO, não ruído. Quem vê só a declaração conclui que está
+            tudo em ordem; quem vê só a coleta conclui que a saída não aconteceu.
+
+            Cada afirmação leva a origem NOMEADA ao lado. Sem o nome, duas frases
+            contraditórias na mesma tela parecem defeito da plataforma — e o que elas
+            são é o retrato de duas fontes que discordam. --%>
+      <section :if={@discordancias != []} class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold text-warning">
+          Source and declaration disagree about {length(@discordancias)} person(s)
+        </h3>
+        <p class="text-sm opacity-70">
+          Both affirmations are shown below, and the platform does not choose between them —
+          not even the more recent one. Choosing would hide that one of the two was not
+          updated, and which one it is changes what someone has to go and fix.
+        </p>
+
+        <ul class="space-y-2">
+          <li :for={d <- @discordancias} class="card bg-base-200 p-3">
+            <div class="flex flex-wrap items-baseline gap-2">
+              <.link navigate={~p"/people/#{d.person_id}"} class="link link-hover font-semibold">
+                {d.name || d.login}
+              </.link>
+              <span :if={d.login && d.name} class="text-xs opacity-60">@{d.login}</span>
+            </div>
+
+            <div class="mt-2 grid gap-2 sm:grid-cols-2">
+              <%!-- A afirmação da COLETA, com a origem nomeada. --%>
+              <div class="border-l-2 border-info pl-2">
+                <div class="text-xs font-semibold tracking-wide text-info uppercase">
+                  collected from the source
+                </div>
+                <p :if={d.observado.presente?} class="text-sm">
+                  The source still shows this person in this team.
+                </p>
+                <p :if={!d.observado.presente?} class="text-sm">
+                  The source no longer shows this person in this team.
+                </p>
+                <div :if={d.observado.last_observed_at} class="text-xs opacity-60">
+                  last observed at {d.observado.last_observed_at}
+                </div>
+                <div :if={d.observado.no_longer_observed_at} class="text-xs opacity-60">
+                  no longer observed since {d.observado.no_longer_observed_at}
+                </div>
+              </div>
+
+              <%!-- A afirmação da DECLARAÇÃO, com a origem nomeada. O equívoco é
+                    caso próprio: "saiu em março" e "nunca esteve" pedem conversas
+                    diferentes, e colapsá-los perderia justamente a diferença. --%>
+              <div class="border-l-2 border-warning pl-2">
+                <div class="text-xs font-semibold tracking-wide text-warning uppercase">
+                  declared by the organisation
+                </div>
+                <p :if={d.declarado.equivoco?} class="text-sm">
+                  Declared a mistake: the organisation states this person never belonged here.
+                </p>
+                <p :if={!d.declarado.equivoco? && !d.declarado.vigente?} class="text-sm">
+                  Declared as having left this team.
+                </p>
+                <p :if={d.declarado.vigente?} class="text-sm">
+                  Declared a current membership in this team.
+                </p>
+                <div :if={d.declarado.ended_at} class="text-xs opacity-60">
+                  declared end at {d.declarado.ended_at}
+                </div>
+                <div :if={is_nil(d.declarado.started_at)} class="text-xs opacity-60">
+                  start date unknown
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </section>
 
       <%!-- ═══ A PROMOÇÃO — issue #317 ═══
             Seção separada da tabela de membros, e a separação é o ponto. Ali o nível de
