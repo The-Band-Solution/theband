@@ -273,6 +273,105 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   # A ontologia declara o atributo como `required: false`, e `allocate/2` grava
   # nulo de propósito: nulo é **não se sabe desde quando**, nunca "começou hoje".
   #
+  @doc """
+  As pessoas sobre quem a coleta e a declaração **discordam** — feature 055, FR-012.
+
+  Duas tabelas afirmam sobre a mesma pessoa. `TeamMembershipEvidence` guarda o que
+  a origem **mostrou**; `TeamMembership` guarda o que alguém **afirmou**. Quando
+  as duas dizem coisas diferentes sobre a pessoa estar na equipe, esta consulta
+  devolve **as duas afirmações**, e não escolhe uma.
+
+  ## Por que não escolher a mais recente
+
+  Escolher esconde que o GitHub não foi atualizado — e isso é informação **sobre a
+  organização**, não ruído. Alguém saiu da equipe no papel e continua no time do
+  GitHub: a plataforma que mostra só a declaração diz que está tudo em ordem, e a
+  que mostra só a coleta diz que a saída não aconteceu. As duas mentem por
+  omissão.
+
+  ## Os dois sentidos da discordância
+
+  A coleta pode mostrar quem a declaração diz que saiu, **e** a declaração pode
+  dizer vigente quem a origem não mostra mais. A FR-012 fala em discordar, e não
+  em um sentido só — cobrir apenas o primeiro deixaria metade dos casos calada.
+
+  ## O que NÃO é discordância
+
+  **Evidência sem vínculo nenhum** não é: a coleta afirma, e a declaração não
+  afirmou nada. Isso sai por `pending_evidence/2`, e a tela apresenta em separado
+  (feature 057, FR-005). Discordância exige **as duas** terem falado.
+
+  ## O vínculo invalidado conta como "não está"
+
+  Registrar o equívoco afirma que a pessoa **nunca** esteve — é afirmação mais
+  forte que a saída, e não ausência de afirmação. Se a origem continua a mostrar,
+  as duas discordam. `equivoco?` distingue os dois casos na tela, porque "saiu em
+  março" e "nunca esteve" pedem conversas diferentes.
+
+  `equivoco?` exige que **todas** as declarações sejam invalidadas, e não que
+  exista uma. Quem teve um papel encerrado e outro invalidado **pertenceu** à
+  equipe: dizer "nunca esteve" ali seria falso, e seria a tela afirmando o que
+  ninguém declarou.
+
+  ## A agregação, e o defeito que ela evita
+
+  Uma pessoa pode ter **mais de um** vínculo com a mesma equipe: entrou, saiu, e
+  voltou. Juntar evidência com vínculo linha a linha produziria discordância falsa
+  a partir da linha encerrada, enquanto a vigente concorda com a coleta. Por isso
+  o veredito declarado é **agregado por pessoa**: vigente é existir ao menos um
+  vínculo sem fim e sem invalidação.
+  """
+  @spec membership_disagreements(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def membership_disagreements(%Tenant{id: tenant_id}, team_id) do
+    declarados =
+      from m in TeamMembership,
+        where:
+          m.tenant_id == type(^tenant_id, :binary_id) and
+            m.team_id == type(^team_id, :binary_id),
+        group_by: m.person_id,
+        select: %{
+          person_id: m.person_id,
+          vigentes: filter(count(m.id), is_nil(m.ended_at) and is_nil(m.invalidated_at)),
+          invalidados: filter(count(m.id), not is_nil(m.invalidated_at)),
+          total: count(m.id),
+          ultimo_fim: max(m.ended_at),
+          inicio: min(m.started_at)
+        }
+
+    Repo.all(
+      from e in TeamMembershipEvidence,
+        join: d in subquery(declarados),
+        on: d.person_id == e.person_id,
+        join: p in Person,
+        on: p.id == e.person_id,
+        where:
+          e.tenant_id == type(^tenant_id, :binary_id) and
+            e.team_id == type(^team_id, :binary_id),
+        where:
+          (is_nil(e.no_longer_observed_at) and d.vigentes == 0) or
+            (not is_nil(e.no_longer_observed_at) and d.vigentes > 0),
+        order_by: [asc: p.name, asc: p.login],
+        select: %{
+          person_id: p.id,
+          name: p.name,
+          login: p.login,
+          observado: %{
+            presente?: is_nil(e.no_longer_observed_at),
+            platform_access_level: e.platform_access_level,
+            observed_at: e.observed_at,
+            last_observed_at: e.last_observed_at,
+            no_longer_observed_at: e.no_longer_observed_at
+          },
+          declarado: %{
+            vigente?: d.vigentes > 0,
+            equivoco?: d.invalidados == d.total,
+            started_at: d.inicio,
+            ended_at: d.ultimo_fim
+          }
+        }
+    )
+  end
+
   # Escrita como `m.started_at <= ^quando`, a comparação avalia para
   # DESCONHECIDO contra nulo e o Postgres descarta a linha — a pessoa deixaria de
   # ser membro **em data alguma**, sem erro e sem aviso. É o fallback silencioso
