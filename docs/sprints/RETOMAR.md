@@ -1,150 +1,146 @@
-# Retomar — estado em 2026-09-01 (madrugada), a plataforma EM PRODUÇÃO
+# Retomar — estado em 2026-09-02 (noite)
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
-## O que mudou nesta sessão, em uma frase
+## Onde parei, em uma frase
 
-**A plataforma saiu do repositório e foi para produção**: v0.1.0 e v0.2.0
-publicadas, VPS Contabo com Dokploy, banco, backup, e a primeira conta nascendo
-do ambiente — com alguém de fato entrando e a coleta trazendo as 4895 issues da
-`leds-conectafapes`.
+**Sprint 029 aberto e a implementação começada**: `TheBand.Periodos` e a US2
+prontas na branch `058-medidas-da-equipe`, cinco commits empurrados, **sem PR
+aberto ainda**.
 
-## O endereço
+## O primeiro comando
 
-| o quê | onde |
-|---|---|
-| **a plataforma** | https://theband.5.189.161.85.sslip.io/sign-in |
-| painel do Dokploy | https://vmi3547213.contaboserver.net/ |
-| VPS | Contabo `vmi3547213`, IP `5.189.161.85`, Cloud VPS 4, 100 GB |
-| imagem | `ghcr.io/the-band-solution/theband` — tags `v0.1.0`, `v0.2.0`, `latest` |
+```bash
+git checkout 058-medidas-da-equipe && git pull
+mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
+```
 
-## PRs abertos ao fim da sessão
+Estava **0** ao desligar.
 
-| PR | O que é | Estado |
+---
+
+## Sprint 029 — o que falta
+
+| Tarefa | Issue | O que é |
 |---|---|---|
-| [#642](https://github.com/The-Band-Solution/theband/pull/642) | a barra não diz 100% enquanto a coleta anda; fase de quadros na tela; linha de atividade | **ABERTO** — 14 gates verdes, 9/9 testes |
-| PR desta escrita | este RETOMAR | abrir/mergear |
+| **T008** ← **começar aqui** | [#775](https://github.com/The-Band-Solution/theband/issues/775) | recortar a espera por revisão pela equipe |
+| T009 | [#776](https://github.com/The-Band-Solution/theband/issues/776) | espera em curso, que não é tempo zero |
+| T010, T011 | #777, #778 | por pessoa, e a seção na tela |
+| T012–T016 | #779–#783 | a US3 inteira — a taxa do pipeline |
+| T017–T021 | #784–#788 | polish, cobertura, gates e PR |
 
-Mergeados nesta sessão: #635 (047/T015), #636 (release v0.1.0), #637 (porta
-pública fala pela metáfora), #638 (spec+plan+tasks 052), #639 (medição da 050),
-#640 (implementação da 052), #641 (**release v0.2.0**).
+**Feito**: T001–T005 ([#768](https://github.com/The-Band-Solution/theband/issues/768)–[#772](https://github.com/The-Band-Solution/theband/issues/772)),
+25 testes passando. **T006 e T007** (a marca do parcial e a seção na tela) ainda
+não.
 
-## PENDÊNCIAS DE SEGURANÇA — fazer primeiro
+Tudo em [`specs/058-medidas-da-equipe/tasks.md`](../../specs/058-medidas-da-equipe/tasks.md),
+com os quatro campos e o link de cada issue.
 
-Estas nasceram de coisas que passaram pelo chat e **precisam ser rotacionadas**:
+### A primeira coisa a fazer, além de código
 
-1. **O `Webhook URL` do Dokploy** apareceu legível num print
-   (`.../api/deploy/LYja3JJLgxtIPSgCHfwAx`). Regenerar pelo ícone de recarregar
-   na aba `Deployments` da aplicação, e depois `gh secret set DOKPLOY_WEBHOOK_URL`.
-2. **Cinco senhas foram coladas na conversa** durante a tentativa de acesso SSH,
-   incluindo uma com forma de senha pessoal reutilizada. Trocar onde valerem.
-3. **A senha do banco** (`theband-postgres`) foi colada junto com a
-   `DATABASE_URL`. O banco nasceu vazio; rotacionar é barato.
-4. **`THE_BAND_ADMIN_SENHA`** continua no painel do Dokploy. Removê-la — no boot
-   seguinte o log dirá `já existe administrador`, e a conta continua.
+**Abrir o PR desta branch.** Os cinco commits estão no remoto e sem PR — foi
+exatamente esse o defeito da **L100** no sprint passado, e ele reincidiria aqui.
 
-## O que fazer ao retomar, na ordem
+Usar o template novo: `.github/pull_request_template.md`. **Tipo de merge é campo
+obrigatório** — esta branch é `squash` (nada ramifica dela).
 
-1. **As quatro rotações acima.** ← continuam pendentes; são da pessoa mantenedora
-2. ~~Merge do #642 e deste PR~~ — **feitos** em 2026-09-01 (#642 e #643). Aberto
-   agora: **#644** (specs 049 e 053) e o PR deste fechamento
-3. ~~Fechar o sprint 026~~ — **feito**: [review](026-heranca-e-a-producao/sprint-review.md),
-   [aceitação](026-heranca-e-a-producao/aceitacao.md) e as lições **L83 a L90**.
-   A aceitação classificou 5 entregáveis aceitos e 3 não aceitos, **todos os três
-   por critério sem evidência** — e ela ainda **espera a confirmação da pessoa
-   alocada ao papel de PO**
-4. **A tela de issue** — pedido novo, ainda sem spec (ver adiante)
-5. **O ensaio de restauração em produção** (SC-003) — o dry-run local provou o
-   procedimento; falta executá-lo contra o backup do Dokploy, **antes** de haver
-   dado que importe. **A janela está se fechando**: a produção já tem 4895 issues
-6. **O back-merge da `main` na `development`** — o release v0.2.0 entrou por
-   squash (#641) e a `development` não conhece aquele commit. L83: cada release
-   sem back-merge aumenta a divergência
+---
 
-## O que o fechamento do sprint 026 mediu, e ninguém tinha medido
+## O que esta sessão entregou
 
-- `http://…/sign-in` → **301** para HTTPS; `/sign-in` → **200 em 0,65s**; sete
-  rotas de dados sem sessão → **302 em todas** (2026-09-01 11:52 UTC)
-- **SC-004 da 052**: dez subidas seguidas → **1 administrador, 1 organização**
-  (`%{criada: 1, ja_existe: 9}`). Virou teste no repositório
-- **Um teste fraco na FR-005**: desligar a leitura da corrida perdida deixava os
-  16 testes verdes, porque o teste da corrida contava só o vencedor. Corrigido —
-  a mesma injeção agora reprova (L90)
+### Sprint 028 — feature 057, incorporado
 
-**O que continua sem evidência** (destino registrado na aceitação): a sessão
-sobreviver ao release, a janela de indisponibilidade, o percurso de menos de dois
-minutos, o backup existir fora da máquina, a falha de backup ser visível, e os
-seeds serem recusados no ambiente real.
+Cinco PRs em `development`, **todos merge commit**, `mix gates` verde depois.
 
-## Pedido novo, ainda sem spec
+A tela da equipe passou a responder as quatro perguntas de gestão; a equipe
+composta mostra as subequipes **sem somar**; burn-up/burn-down com o que resta
+como faixa derivada; previsão de Monte Carlo determinística; tarefas e
+habilidades por pessoa.
 
-**A discussão de uma issue vai para o lado esquerdo, e a distribuição da página
-melhora.** Pedido da pessoa mantenedora em 2026-09-01, sobre a tela de detalhe de
-issue. Não há spec, plano nem tarefa — começar pelo `/speckit-specify`.
+**42 das 43 issues fechadas.**
 
-## Lições que esta sessão produziu
+### Fora da feature
 
-Para entrarem em `licoes-aprendidas.md` no fechamento do sprint:
+- **Sprint 027 fechado** — não estava: 13 tarefas entregues, zero issues
+  fechadas, nenhuma review;
+- **site publicado** no `gh-pages` — seção nova em PT e EN;
+- **`AGENTS.md` §12** e o **template de PR** — o tipo de merge deixou de ser
+  escolha do botão;
+- **lições reorganizadas**: 99 em sete famílias, com índice. Antes eram 3 330
+  linhas sem índice nenhum;
+- **higiene do CI** — seis ações em `node24` (PR [#764](https://github.com/The-Band-Solution/theband/pull/764));
+- **épico #504 revisto** — foi o que originou o sprint 029.
 
-**L83 — Squash-merge no release diverge os históricos.** O #636 entrou na `main`
-por squash, criando um commit que a `development` não conhecia. O merge de volta
-abriu 6 conflitos, todos de conteúdo idêntico. Resolvido com back-merge (a árvore
-resultante era idêntica à da `development`). Sem ele, o release seguinte abriria
-os mesmos conflitos, maiores. *Ação: back-merge após cada release, ou trocar o
-squash por merge commit em `development → main`.*
+---
 
-**L84 — O painel dizer `Done` não significa aplicação no ar.** O Dokploy marcou
-dois deploys como concluídos enquanto o contêiner morria em laço: `Done` é "criei
-o serviço", não "o processo sobreviveu". *Ação: a prova é sempre a medição de
-fora.*
+## O que está aberto, e não escondido
 
-**L85 — Um 200 de HTTP pode afirmar o que o socket contradiz.** Com o `PHX_HOST`
-apontando para o host do painel, o `check_origin` recusava o WebSocket com 403
-enquanto a página respondia 200. O log registrou `_mount_attempts => "79"`. Para
-quem olhava, era uma barra de carregamento que não terminava. *Ação: medir o
-socket, e não só o HTTP.*
+### A revisão independente, pelo terceiro sprint
 
-**L86 — Denominador móvel mente igual a denominador inventado.** A barra de
-`/syncs` marcava 100% durante a coleta inteira porque o total crescia junto com o
-coletado. Enganou inclusive a investigação. *Ação: sem total fechado, contagem —
-nunca percentual.* Corrigido no #642.
+**Os cinco PRs do sprint 028 foram incorporados com ZERO revisões.** A lacuna
+está declarada em cada um, e a issue
+[#753](https://github.com/The-Band-Solution/theband/issues/753) segue aberta.
 
-**L87 — Fase invisível faz trabalho parecer travado.** A coleta de quadros roda
-depois da promoção e não tinha linha na tela nem checkpoint. Com as sete fases
-cheias e o sync `running`, a conclusão natural era que travara — quando faltavam
-15 quadros e 3981 itens. Corrigido no #642.
+O princípio VII manda declarar, nunca marcar como cumprida. **CI verde não é
+revisão**: os gates dizem que o código compila e não regride, e não dizem que
+alguém leu o desenho.
 
-**L88 — Um segredo de 8 segundos.** O CD da v0.1.0 falhou porque leu
-`DOKPLOY_WEBHOOK_URL` oito segundos antes de o segredo ser criado. A mensagem do
-contrato salvou o diagnóstico: *"a imagem e a tag existem, mas NÃO houve
-delivery"*. *Ação: nenhuma — o contrato já fazia o certo. Registrar como
-confirmação.*
+### A chave mestra não está neste ambiente
 
-E a **reincidência da L-do-`replace`-sem-`assert`**, quinta ocorrência: o
-`mix format` quebrou a linha de uma chamada, a substituição não casou, e o teste
-seguiu reprovando enquanto eu procurava a causa em outro lugar.
+`mix run` contra o banco falha com `:missing_master_key`. Isso bloqueia:
 
-## O que a produção provou estar certo
+- **T020** — medir a cobertura do dado antes de aceitar a US3;
+- qualquer conferência contra a origem (**L30**).
 
-Registrado em [pendencias.md](../../specs/050-em-producao/pendencias.md) e vale
-repetir: o entrypoint derrubou o contêiner ao não resolver o banco, em vez de
-servir zero em toda tela; a migração rodou antes do endpoint; o CD falhou dizendo
-o que faltava; e a imagem não carrega segredo nenhum — medido antes do primeiro
-release.
+Se os vínculos equipe ↔ projeto forem zero, **a US3 entrega só o ramo da
+recusa** — e isso é **resultado**, não falha. Está na spec e na DoD.
 
-## Estado da 050 e da 052
+### Duas limitações que se acumulam
 
-**050** — [medição](../../specs/050-em-producao/medicao-do-primeiro-release.md)
-com veredito por critério. SC-004 e SC-005 atendidos, SC-002 atendido, SC-001 era
-parcial por falta de conta (a 052 fechou), SC-003 falta em produção, SC-006
-precisa de sete dias. Quatro pendências com gatilho.
+**O sprint não tem iteration** — o terceiro seguido. Acrescentá-la recria as
+existentes: a **L11** mediu 97 itens órfãos.
 
-**052** — implementada e em produção. 15 testes, as violações primeiro. Uma
-tarefa em aberto: T015 (gates e PR), que este próprio ciclo cumpriu.
+**As user stories ficam sem tipo** — `User Story` não existe na organização.
+Criar o tipo altera a configuração e **não foi autorizado**. Sem tipo é ausência;
+com o tipo errado é afirmação falsa.
 
-## Sobre a coleta da leds-conectafapes
+---
 
-Números conferidos contra a origem, para não reabrir a dúvida: **125
-repositórios, 4895 issues, 15 quadros, 3981 itens de quadro**. A coleta trouxe
-125 e 4895 — nada faltou. O `666` que assustou era leitura parcial de um
-denominador que ainda crescia.
+## Dois erros meus nesta sessão, com a correção registrada
+
+**Afirmei que `linked_at` era anulável.** É `NOT NULL` — conferi a migração só
+depois de o teste falhar. É a **L51**, e a correção está em `research.md` (R2a)
+com a tabela das seis colunas.
+
+**Tratei `fim` nulo como desconhecido, e ele significa vigente.** O primeiro erro
+escondia este, que é pior: marcaria **quase toda linha** como duvidosa, até a
+marca deixar de significar alguma coisa. Só a ponta de início produz
+`{:parcial, _}` agora.
+
+Os dois estão em `research.md`, não corrigidos em silêncio.
+
+---
+
+## Decisões desta sessão que valem para as próximas
+
+**O tipo de merge é declarado no PR**, não escolhido no botão. Três lições
+nasceram do squash (L75, L83, L92) e a terceira aconteceu com as duas já
+escritas — por isso virou regra e campo, e não uma quarta lição.
+
+**Lição que descreve ato repetível vira regra no `AGENTS.md` e campo no artefato
+onde o ato acontece.** O registro guarda o porquê; o artefato carrega a
+obrigação. É a **L98**.
+
+**Conferir issue por issue antes da review** achou que T020 e T021 da 057 nunca
+foram implementadas — com o PR incorporado e os gates verdes. Nenhum gate pega
+isso: os testes provam o que **existe**, não o que foi prometido. É a **L99**, e
+está na DoD.
+
+---
+
+## Onde ler, na ordem
+
+1. [`docs/sprints/029-medidas-da-equipe/sprint-backlog.md`](029-medidas-da-equipe/sprint-backlog.md) — o objetivo e a DoD
+2. [`specs/058-medidas-da-equipe/tasks.md`](../../specs/058-medidas-da-equipe/tasks.md) — o que fazer
+3. [`specs/058-medidas-da-equipe/research.md`](../../specs/058-medidas-da-equipe/research.md) — **R1 e R2a**, as duas decisões que mudaram o plano
+4. [`docs/sprints/licoes-aprendidas.md`](licoes-aprendidas.md) — as **sete famílias** no topo levam um minuto

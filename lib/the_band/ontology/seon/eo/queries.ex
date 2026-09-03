@@ -233,6 +233,37 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   end
 
   @doc """
+  Os vínculos de uma equipe **com o período de cada um** — feature 058, US2.
+
+  Diferente de `team_members_at/3`, que responde *quem estava numa data*. Aqui
+  vem **todo mundo que já esteve**, cada um com o intervalo em que esteve — porque
+  a interseção com outros períodos é decidida por quem chama, e não aqui.
+
+  Vínculo **invalidado** não aparece: ele nunca vigeu, e não tem intervalo.
+
+  `inicio: nil` é **desde quando não se sabe**. Quem decide o que fazer com isso é
+  `TheBand.Periodos.interseccao/1`.
+  """
+  @spec team_memberships_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def team_memberships_with_period(%Tenant{id: tenant_id}, team_id) do
+    TeamMembership
+    |> where(
+      [m],
+      m.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id) and
+        is_nil(m.invalidated_at)
+    )
+    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    |> order_by([_m, p], asc: p.name, asc: p.login)
+    |> select([m, p], %{
+      person_id: p.id,
+      name: p.name,
+      login: p.login,
+      periodo: %{inicio: m.started_at, fim: m.ended_at}
+    })
+    |> Repo.all()
+  end
+
+  @doc """
   Quem **algum dia** teve vínculo não invalidado com a equipe.
 
   Existe por causa de um defeito que o teste do SC-002 encontrou: uma série
