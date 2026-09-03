@@ -22,11 +22,15 @@ O que resta é **menor e diferente** do que estava escrito, e são três coisas:
 |---|---|---|
 | 1 | o tempo até a primeira revisão, recortado por equipe | não |
 | 2 | o elo equipe ↔ projeto **com período** | não |
-| 3 | a taxa de sucesso do pipeline por equipe | **não se sabe** — é pergunta de pesquisa |
+| 3 | a taxa de sucesso do pipeline por equipe | não — a pesquisa resolveu |
 
-A terceira é diferente das outras duas: **a entrega pode ser a recusa**. Se não
-existir caminho honesto de uma verificação até uma equipe, a resposta é dizer
-isso na tela — e não construir o painel com o caminho que parecer plausível.
+A terceira nasceu como pergunta aberta, e a pesquisa a respondeu (R1): existem
+**dois** caminhos de uma verificação até uma equipe, e eles afirmam coisas
+diferentes. O escolhido é **por repositório → projeto → equipe**; o do ator da
+execução responde *quem apertou o botão*, e não *quem cuida do código*.
+
+A recusa continua existindo — mas **por equipe sem projeto declarado**, e não
+pela medida inteira.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -98,15 +102,15 @@ períodos devolve exatamente quem estava nos dois ao mesmo tempo.
 
 ---
 
-### User Story 3 - A taxa do pipeline, ou a recusa explicada (Priority: P2)
+### User Story 3 - A taxa do pipeline dos projetos desta equipe (Priority: P2)
 
-Quem gerencia procura a taxa de sucesso do pipeline desta equipe. **Ou ela
-aparece com sua proveniência, ou a tela diz por que não existe neste nível** — e
-o motivo é específico, não um "não disponível".
+Quem gerencia vê a taxa de sucesso das verificações **dos repositórios dos
+projetos em que esta equipe trabalhava**, no período. Equipe sem projeto
+declarado não tem a taxa — e a tela diz **isso**, nomeando o elo que falta.
 
-**Why this priority**: é a única das três cuja viabilidade não se conhece. Vem
-por último porque a resposta pode mudar o que se entrega, e entregar as outras
-duas não depende dela.
+**Why this priority**: a pesquisa respondeu a pergunta que a spec deixou aberta
+(R1). Vem por último porque reusa a interseção de períodos que a US2 constrói —
+e não porque a viabilidade seja incerta.
 
 **Independent Test**: com verificações coletadas e equipes declaradas, conferir
 que a tela ou apresenta a taxa com o caminho declarado, ou apresenta o motivo da
@@ -114,16 +118,19 @@ ausência nomeando o elo que falta.
 
 **Acceptance Scenarios**:
 
-1. **Given** que a pesquisa encontrou um caminho honesto de verificação até
-   equipe, **When** a tela é aberta, **Then** a taxa aparece com o caminho
-   declarado junto do número
-2. **Given** que a pesquisa **não** encontrou caminho honesto, **When** a tela é
-   aberta, **Then** ela nomeia o elo que falta e o que seria necessário para a
-   medida existir
-3. **Given** verificações em andamento, **When** a taxa é calculada, **Then** elas
+1. **Given** uma equipe ligada a um projeto com repositórios, **When** a tela é
+   aberta, **Then** a taxa aparece com o caminho declarado junto do número, e com
+   sobre **quantas execuções** ela foi calculada
+2. **Given** uma equipe **sem projeto declarado**, **When** a tela é aberta,
+   **Then** ela nomeia o elo que falta — a plataforma não sabe de quais
+   repositórios essa equipe cuida — e **não** apresenta taxa nenhuma
+3. **Given** uma execução disparada por alguém de fora da equipe num repositório
+   do projeto dela, **When** a taxa é calculada, **Then** ela **conta**: a medida
+   é do pipeline dos repositórios, e não de quem apertou o botão
+4. **Given** verificações em andamento, **When** a taxa é calculada, **Then** elas
    **não** entram como sucesso nem como falha, e a contagem delas é exibida em
    separado
-4. **Given** verificações interrompidas, não executadas ou expiradas, **When** a
+5. **Given** verificações interrompidas, não executadas ou expiradas, **When** a
    taxa é calculada, **Then** cada fase conta em separado, e nenhuma é somada a
    "falhou" — cancelar é decisão humana
 
@@ -142,6 +149,9 @@ ausência nomeando o elo que falta.
 - **Janela perguntada que não intersecta nada** — resposta vazia **dita**, e não
   lista em branco.
 - **Verificação em andamento** — fora do numerador e do denominador.
+- **Equipe sem projeto declarado** — sem taxa, com o elo que falta nomeado.
+- **Repositório ligado ao projeto e depois desligado** — as execuções do
+  intervalo em que esteve ligado contam; as de fora, não.
 
 ## Requirements *(mandatory)*
 
@@ -181,14 +191,20 @@ ausência nomeando o elo que falta.
 
 ### A taxa do pipeline
 
-- **FR-013**: O sistema MUST apresentar a taxa de sucesso do pipeline no nível da
-  equipe **ou** a recusa explicada, e a recusa MUST nomear o elo que falta.
+- **FR-013**: A taxa MUST ser calculada sobre as verificações dos **repositórios
+  dos projetos** ligados à equipe no período, e MUST NOT ser calculada por quem
+  disparou a execução — o ator é quem apertou o botão, não quem cuida do código.
+- **FR-013a**: Equipe sem projeto declarado MUST NOT receber taxa, e a tela MUST
+  nomear o elo que falta.
+- **FR-013b**: O sistema MUST NOT apresentar duas taxas de pipeline com o mesmo
+  rótulo e denominadores diferentes.
 - **FR-014**: Verificação **em andamento** MUST ficar fora do numerador e do
   denominador, e MUST ser exibida em separado.
 - **FR-015**: Interrompida, não executada e expirada MUST contar cada uma em sua
   própria fase, e MUST NOT ser somadas a "falhou".
-- **FR-016**: Quando a taxa existir, o **caminho** da verificação até a equipe
-  MUST ser declarado junto do número.
+- **FR-016**: Quando a taxa existir, o **caminho** da verificação até a equipe e
+  o **número de execuções** sobre o qual ela foi calculada MUST aparecer junto do
+  número.
 
 ### Regras que valem em toda medida desta feature
 
@@ -230,8 +246,9 @@ ausência nomeando o elo que falta.
 - **SC-005**: 100% dos resultados com borda desconhecida trazem a marca de
   período parcialmente desconhecido.
 - **SC-006**: Nenhuma pessoa aparece duas vezes na resposta do projeto.
-- **SC-007**: A taxa do pipeline **ou** existe com o caminho declarado, **ou** a
-  tela nomeia o elo que falta — nunca "não disponível" sem motivo.
+- **SC-007**: A taxa do pipeline **ou** existe com o caminho e o tamanho da
+  amostra declarados, **ou** a tela nomeia o elo que falta — nunca "não
+  disponível" sem motivo.
 - **SC-008**: Verificações em andamento não aparecem em numerador nem
   denominador de nenhuma taxa.
 - **SC-009**: 100% das medidas novas estão declaradas em YAML antes de aparecer
@@ -249,9 +266,13 @@ ausência nomeando o elo que falta.
   esta feature consome — não redefine.
 - **As cinco fases de verificação já existem** desde a feature 037, e esta
   feature consome a separação delas.
-- **O caminho verificação → equipe é pergunta de pesquisa**, e a resposta pode
-  ser que ele não existe. Nesse caso a entrega da US3 é a recusa declarada, com o
-  elo que falta nomeado — e isso **conta como entrega**, não como falha.
+- **O caminho verificação → equipe foi resolvido pela pesquisa** (R1): é por
+  repositório → projeto → equipe, e **não** pelo ator da execução. Os dois
+  existem no esquema, e o do ator responde outra pergunta — *quem disparou* não é
+  *quem cuida do código*.
+- **A cobertura do dado é desconhecida**: a aplicação não sobe neste ambiente
+  (`:missing_master_key`), e medir contra o banco não foi possível. Por isso a
+  tela declara o tamanho da amostra, e a aceitação inclui medi-lo (R6).
 - **A interface é em inglês**, com pt como tradução.
 - **Fora de escopo**: `flow.throughput.rate` e `flow.wip.count`, que dependem do
   critério de início da feature 042 e são o único item do épico #504 que precisa
