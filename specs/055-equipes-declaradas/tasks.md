@@ -124,17 +124,30 @@ ciclo e ser recusado.
 
 ## Phase 6: A discordância, e o polimento
 
-- [ ] T014 As duas afirmações, quando coleta e declaração discordam
+- [x] T014 As duas afirmações, quando coleta e declaração discordam
   - **Pronta quando**: T008 e T013
   - **Descrição**: na tela da equipe, quando a evidência observada mostra a pessoa e o vínculo declarado diz que ela saiu, mostrar **as duas**, identificando a origem de cada uma (FR-012). Escolher uma — mesmo a mais recente — esconde que o GitHub não foi atualizado, que é informação sobre a organização
   - **Feita quando**: o caso da discordância aparece com as duas origens nomeadas
   - **Teste**: teste de tela com evidência e vínculo em desacordo, que **falha se a tela mostrar só uma** das afirmações
+  - **Feita em 2026-09-03**: `EO.membership_disagreements/2` e a seção na tela.
+    `test/the_band_web/live/duas_afirmacoes_test.exs` (7 casos) e
+    `test/the_band/ontology/seon/eo/discordancia_test.exs` (8 casos).
+    **Reprovação conferida por injeção**: removida a afirmação da coleta do
+    template, 4 dos 7 casos de tela reprovam. Os dois sentidos da discordância
+    são cobertos, e o equívoco é caso próprio. Teto de consultas 16 → 17, com o
+    motivo no arquivo do teste
 
 - [ ] T015 Gates verdes, PR no padrão e revisão CONFERIDA
   - **Pronta quando**: T001 a T014
   - **Descrição**: `mix gates` com o código de saída dentro do log; PR no padrão da casa — issues com resumo na frente —, e revisão pedida **e conferida** com `gh pr view <n> --json reviewRequests`, porque o comando de pedir sai zero mesmo sem pedir ninguém (L89, L14)
   - **Feita quando**: `EXIT=0`; o PR existe com revisor **não vazio** no JSON, e está no board
   - **Teste**: `tail -1 /tmp/gates_055.log` = `EXIT=0`; `gh pr view <n> --json reviewRequests` devolve lista não vazia
+  - **NÃO ATENDÍVEL COMO ESCRITA — 2026-09-03**: `mix gates` saiu **0** e o PR
+    existiu no padrão (#792, com as issues e o resumo na frente). O que não é
+    atendível é "revisor **não vazio** no JSON": a pessoa mantenedora decidiu em
+    2026-09-03 que a revisão é dela, e autor não se atribui como revisor. A
+    tarefa fica **aberta e declarada**, nunca marcada — princípio VII. Reescrever
+    o critério é decisão de quem zela pelo backlog, e não deste PR
 
 ## Dependências e ordem
 

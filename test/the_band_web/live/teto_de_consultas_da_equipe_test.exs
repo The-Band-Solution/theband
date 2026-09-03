@@ -47,7 +47,17 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   #
   # **Sem folga de propósito.** Qualquer consulta a mais quebra, e é isso que se
   # quer: a decisão de gastar mais uma aparece neste arquivo.
-  @teto_do_detalhe 16
+  #
+  # **16 → 17 em 2026-09-03**, pela T014 da feature 055: `membership_disagreements/2`,
+  # a seção que mostra as duas afirmações quando a coleta e a declaração discordam
+  # (FR-012). A consulta é **uma só e constante** — agrega os vínculos por pessoa
+  # numa subconsulta em vez de perguntar por linha, então o número não cresce com o
+  # tamanho da equipe. O teste do crescimento adiante continua valendo.
+  #
+  # A alternativa era derivar a discordância das listas já carregadas. Ela não
+  # serve: a lista de membros observados é **paginada**, e a discordância de quem
+  # está na página 2 desapareceria da tela sem que nada avisasse.
+  @teto_do_detalhe 17
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do
@@ -187,7 +197,8 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
       teto declarado é #{@teto_do_detalhe}.
 
       O teto cobre a página INTEIRA — estrutura, membros, evidência pendente, projetos, avisos
-      de processo, competências, e as seções da feature 057. As seções novas custam 5 dessas.
+      de processo, competências, as seções da feature 057 e a discordância da 055 (FR-012). As
+      seções da 057 custam 5 dessas, e a discordância custa 1.
 
       Subir o teto é decisão, e a decisão aparece neste arquivo em vez de passar num diff de
       template. Se a seção nova vale a consulta, mude o número aqui e diga por quê.

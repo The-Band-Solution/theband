@@ -1,21 +1,59 @@
-# Retomar — estado em 2026-09-02 (noite)
+# Retomar — estado em 2026-09-03 (tarde), a v0.4.0 no ar e uma frase errada em produção
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
 ## Onde parei, em uma frase
 
-**Sprint 029 aberto e a implementação começada**: `TheBand.Periodos` e a US2
-prontas na branch `058-medidas-da-equipe`, cinco commits empurrados, **sem PR
-aberto ainda**.
+**A v0.4.0 está em produção** — e ela subiu **sem** a T014, por quinze segundos de
+ordem invertida, deixando a issue #700 fechada com o código fora do ar.
 
 ## O primeiro comando
 
 ```bash
-git checkout 058-medidas-da-equipe && git pull
+git checkout development && git pull
 mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-Estava **0** ao desligar.
+Estava **0** em 2026-09-03, com 1 667 testes passando.
+
+## O release v0.4.0 saiu, e duas coisas saíram erradas
+
+Publicado em 2026-09-03 às 13:25Z. CD verde (run `33761119637`), tag `v0.4.0`,
+imagem entregue. Leva as features **055**, **056**, **057** e a **058 parcial**.
+
+**Erro 1 — entrou por squash.** `1b04c53` tem **um** pai; o release v0.3.0
+(`b0fe177`) tem dois. É a L83 pela quarta vez, agora com a regra no `AGENTS.md`
+§12, o campo no template e o motivo declarado no corpo do #791. Desfeito pelo
+back-merge do #793 — `development..main` voltou a **0**, e a `main` é ancestral da
+`development` outra vez.
+
+**Erro 2 — a ordem inverteu, e é o que ainda está aberto:**
+
+```
+#791  release v0.4.0   mergeado 13:25:52Z
+#792  a FR-012 do 055  mergeado 13:26:07Z
+```
+
+**A produção não tem a T014.** Conferido na origem:
+`git grep -c membership_disagreements origin/main -- lib` devolve nada.
+
+O defeito não é o código faltando — é que a **#700 está fechada** e o release
+está **publicado**, e as duas coisas juntas afirmam que a FR-012 está atendida no
+ar. A tela em produção continua sem marcar a discordância entre coleta e
+declaração. Virou a **L101**.
+
+**A v0.5.0 conserta isso**, e é o PR aberto agora.
+
+**E nada protege a `main`.** Medido em 2026-09-03:
+`gh api repos/The-Band-Solution/theband/branches/main/protection` devolve
+**404 Branch not protected** — nem a `main`, nem a `development`. Sem branch
+protection o botão de merge aceita clique com o CI pendente ou vermelho, e na
+`main` o clique é o deploy.
+
+**A pessoa mantenedora decidiu criar a proteção — "mais tarde", em 2026-09-03.**
+Fica aqui e não no #791 porque aquele PR fecha no merge e leva o registro com
+ele. Até a proteção existir, o guarda é disciplina humana, e conferir os checks
+**no head atual** antes de mergear na `main` é passo, não observação.
 
 ---
 
@@ -23,26 +61,37 @@ Estava **0** ao desligar.
 
 | Tarefa | Issue | O que é |
 |---|---|---|
-| **T008** ← **começar aqui** | [#775](https://github.com/The-Band-Solution/theband/issues/775) | recortar a espera por revisão pela equipe |
-| T009 | [#776](https://github.com/The-Band-Solution/theband/issues/776) | espera em curso, que não é tempo zero |
-| T010, T011 | #777, #778 | por pessoa, e a seção na tela |
+| **T006** ← **começar aqui** | [#773](https://github.com/The-Band-Solution/theband/issues/773) | a marca do período parcialmente desconhecido, na tela |
+| **T007** | [#774](https://github.com/The-Band-Solution/theband/issues/774) | a seção na tela do projeto, com a ausência dita |
+| T008–T011 | #775–#778 | a US1 — o tempo até a primeira revisão |
 | T012–T016 | #779–#783 | a US3 inteira — a taxa do pipeline |
 | T017–T021 | #784–#788 | polish, cobertura, gates e PR |
 
-**Feito**: T001–T005 ([#768](https://github.com/The-Band-Solution/theband/issues/768)–[#772](https://github.com/The-Band-Solution/theband/issues/772)),
-25 testes passando. **T006 e T007** (a marca do parcial e a seção na tela) ainda
-não.
+**Feito e MERGEADO**: T001–T005
+([#768](https://github.com/The-Band-Solution/theband/issues/768)–[#772](https://github.com/The-Band-Solution/theband/issues/772)
+fechadas), pelo squash do #789 em `1e733aa`.
+
+**Começar pela T006, e não pela T008.** A ordem anterior deste arquivo dizia T008,
+e estava errada: a US2 é o MVP e ficou sem as duas tarefas de tela.
+
+**O que isso custou, e vale dizer em voz alta**: `who_worked_on/3` e
+`TheBand.Periodos` estão na `development` **sem consumidor visível**, e o release
+v0.4.0 os leva a produção assim. Ninguém que usa a plataforma vê diferença
+nenhuma. O #789 foi mergeado ainda em draft, e a T006 e a T007 são o que fecha
+isso — é por elas que a próxima sessão começa.
 
 Tudo em [`specs/058-medidas-da-equipe/tasks.md`](../../specs/058-medidas-da-equipe/tasks.md),
 com os quatro campos e o link de cada issue.
 
 ### A primeira coisa a fazer, além de código
 
-**Abrir o PR desta branch.** Os cinco commits estão no remoto e sem PR — foi
-exatamente esse o defeito da **L100** no sprint passado, e ele reincidiria aqui.
+**Conferir se o release saiu, e o que ele deixou pendente.** Se o #791 já entrou:
+medir a produção pelo [runbook](../producao/runbook.md) — SC-001 a SC-005, contra
+o endereço real e não pelo painel do Dokploy dizer `Done` (**L84**) — e fazer o
+**back-merge `main` → `development` com merge commit** (**L92**).
 
-Usar o template novo: `.github/pull_request_template.md`. **Tipo de merge é campo
-obrigatório** — esta branch é `squash` (nada ramifica dela).
+Se não entrou, ele continua esperando decisão do Product Owner, e a T006 é o
+trabalho que não depende disso.
 
 ---
 
