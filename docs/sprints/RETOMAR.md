@@ -30,9 +30,16 @@ frente.
 **A ordem importa**: o #792 primeiro. Mergeado o #791 antes dele, a v0.4.0 sobe
 com a FR-012 do 055 aberta.
 
-**E nada protege a `main`.** Sem branch protection, o botão de merge aceita
-clique com o CI pendente ou vermelho — e o clique é o deploy. O guarda hoje é
-disciplina humana, e está registrado como decisão pendente no #791.
+**E nada protege a `main`.** Medido em 2026-09-03:
+`gh api repos/The-Band-Solution/theband/branches/main/protection` devolve
+**404 Branch not protected** — nem a `main`, nem a `development`. Sem branch
+protection o botão de merge aceita clique com o CI pendente ou vermelho, e na
+`main` o clique é o deploy.
+
+**A pessoa mantenedora decidiu criar a proteção — "mais tarde", em 2026-09-03.**
+Fica aqui e não no #791 porque aquele PR fecha no merge e leva o registro com
+ele. Até a proteção existir, o guarda é disciplina humana, e conferir os checks
+**no head atual** antes de mergear na `main` é passo, não observação.
 
 ---
 
