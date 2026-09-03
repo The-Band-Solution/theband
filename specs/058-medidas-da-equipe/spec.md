@@ -93,9 +93,10 @@ períodos devolve exatamente quem estava nos dois ao mesmo tempo.
 3. **Given** uma equipe desligada do projeto, **When** a pergunta é sobre o
    período em que ela estava ligada, **Then** as pessoas daquele período
    aparecem — desligar não apaga o que houve
-4. **Given** um vínculo cujo início é desconhecido, **When** a interseção é
-   calculada, **Then** o resultado marca o período como **parcialmente
-   desconhecido**, e não o trata como aberto desde sempre
+4. **Given** uma pessoa cujo vínculo não tem data de início, **When** a
+   interseção é calculada, **Then** o resultado marca **parcialmente
+   desconhecido**; e **Given** um vínculo apenas em curso, **Then** ele **não** é
+   marcado — `fim` nulo é vigente, não desconhecido
 5. **Given** a mesma pessoa em duas equipes ligadas ao mesmo projeto, **When** o
    resultado é exibido, **Then** ela aparece **uma vez**, com as duas equipes
    nomeadas
@@ -141,8 +142,9 @@ ausência nomeando o elo que falta.
   tela declara que descarta a do robô.
 - **Solicitação de quem nunca teve vínculo declarado** — não conta para equipe
   nenhuma, e aparece na contagem do que ficou de fora.
-- **Vínculo equipe ↔ projeto sem `linked_at`** — período parcialmente
-  desconhecido, nunca aberto desde sempre.
+- **Vínculo de pessoa sem `started_at`** — período parcialmente desconhecido,
+  nunca aberto desde sempre. É a **única** ponta que produz dúvida: `linked_at` é
+  `NOT NULL` nas duas tabelas de projeto (R2a), e `fim` nulo significa **vigente**.
 - **Pessoa em duas equipes do mesmo projeto** — uma linha, duas equipes nomeadas.
 - **Equipe ligada, desligada e religada ao mesmo projeto** — os dois intervalos
   contam, e o intervalo entre eles não.
@@ -179,9 +181,11 @@ ausência nomeando o elo que falta.
   perguntada.
 - **FR-008**: Vínculo encerrado MUST continuar contando no intervalo em que
   vigeu — desligar **não** apaga o que houve.
-- **FR-009**: Quando qualquer um dos períodos tem borda desconhecida, o resultado
-  MUST marcar o período como **parcialmente desconhecido**, e MUST NOT tratá-lo
-  como aberto.
+- **FR-009**: Quando o **início** de qualquer período é desconhecido, o resultado
+  MUST marcar **parcialmente desconhecido**, e MUST NOT tratá-lo como aberto.
+- **FR-009a**: `fim` nulo significa **vigente**, e MUST NOT ser marcado como
+  desconhecido. Marcá-lo poria a dúvida em quase toda linha até ela deixar de
+  significar alguma coisa.
 - **FR-010**: Pessoa que alcança o projeto por mais de uma equipe MUST aparecer
   **uma vez**, com todas as equipes nomeadas.
 - **FR-011**: Intervalo sem interseção MUST devolver ausência dita, e não lista

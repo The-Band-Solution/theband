@@ -74,6 +74,40 @@ recusa passa a valer **por equipe sem projeto**, e não pela medida inteira.
 
 ---
 
+## R2a — Correção: `linked_at` é NOT NULL, e eu afirmei o contrário
+
+**Conferido em 2026-09-02**, depois de o teste falhar com
+`null value in column "linked_at" violates not-null constraint`.
+
+R2 e a spec diziam que `spo_project_teams.linked_at` era anulável. **É `null:
+false`** — e `spo_project_repositories.linked_at` também. Afirmei sobre o esquema
+sem conferir a migração, que é a **L51**.
+
+| coluna | anulável? |
+|---|---|
+| `eo_team_memberships.started_at` | **sim** |
+| `eo_team_memberships.ended_at` | sim |
+| `spo_project_teams.linked_at` | **não** |
+| `spo_project_teams.unlinked_at` | sim |
+| `spo_project_repositories.linked_at` | **não** |
+| `spo_project_repositories.unlinked_at` | sim |
+
+**O que muda, e o que não muda.**
+
+O terceiro estado `{:parcial, _}` **continua necessário** — `started_at` do
+vínculo de pessoa é anulável de propósito, e é o caso que a feature 057 já
+tratou. O que muda é a **origem** da dúvida: ela vem de quem entrou na equipe sem
+data conhecida, e **nunca** do vínculo com projeto ou repositório.
+
+**`fim` nulo não é dúvida**: `unlinked_at` nulo significa **vigente**, e não
+desconhecido. Foi aqui que a redação original errou por generalizar — tratar
+todo nulo como desconhecido inverteria o significado do fim.
+
+`TheBand.Periodos` não muda: ele recebe períodos e não sabe de onde vêm. Quem
+monta o período é que precisa distinguir *fim aberto* de *início desconhecido*.
+
+---
+
 ## R2 — A interseção de três períodos, e o que fazer com o nulo
 
 A US2 pede a interseção de **pessoa ↔ equipe**, **equipe ↔ projeto** e a janela

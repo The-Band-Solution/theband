@@ -18,20 +18,27 @@ A única coisa que atravessa três ontologias. Não consulta nada.
 @type veredito ::
         :intersecta
         | :nao_intersecta
-        | {:parcial, [:inicio_desconhecido | :fim_desconhecido]}
+        | {:parcial, [:inicio_desconhecido]}
 
 @spec interseccao([periodo()]) :: veredito()
 ```
 
 Borda `[início, fim)` — fechada no início, aberta no fim, a mesma da feature 057.
 
-**`nil` é desconhecido, e nunca "aberto".** Um período com `inicio: nil` que se
-sobrepõe aos demais devolve `{:parcial, [:inicio_desconhecido]}`, e **não**
-`:intersecta`.
+**As duas pontas nulas significam coisas diferentes.** `inicio: nil` é *não se
+sabe desde quando* e devolve `{:parcial, [:inicio_desconhecido]}`; `fim: nil` é
+*ainda vigente* e **não** produz dúvida.
 
-Essa é a razão de o módulo existir. Tratar `nil` como aberto é o fallback
-silencioso que a feature 057 corrigiu no vínculo, e a regra precisa viver num
-lugar só — escrita três vezes, divergiria na primeira correção.
+A assimetria é do domínio: `eo_team_memberships.started_at` é anulável de
+propósito, e `linked_at` é `NOT NULL` nas duas tabelas de projeto (R2a).
+
+Essa é a razão de o módulo existir. Tratar o início nulo como aberto é o fallback
+silencioso que a feature 057 corrigiu no vínculo; tratar o fim nulo como
+desconhecido é o erro oposto, e pior na prática — a maioria dos vínculos está em
+curso.
+
+A regra precisa viver num lugar só: escrita três vezes, divergiria na primeira
+correção.
 
 **Por que na raiz de `lib/the_band/`, e não dentro de uma ontologia**: intersectar
 datas não pertence a EO, SPO nem CIRO. Pô-la em qualquer uma obrigaria as outras
@@ -166,7 +173,7 @@ aquela equipe cuida.
 | Ausente | Motivo |
 |---|---|
 | taxa por ator da execução | R1 — outra pergunta, e o nome enganaria |
-| período "aberto" como padrão para `nil` | `nil` é desconhecido |
+| início "aberto" como padrão para `nil` | é desconhecido, e afirmar seria inventar |
 | tempo médio de revisão sem as em espera | a mediana andaria para o lado errado |
 | soma entre nível pessoa e nível equipe | respondem perguntas diferentes |
 
