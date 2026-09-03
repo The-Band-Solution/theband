@@ -1,8 +1,8 @@
 # Sprint 011 — o vínculo que sumiu na origem
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [012 — o vínculo que sumiu na origem](../../specs/012-vinculo-que-sumiu-na-origem/spec.md)
-**Plano**: [plan.md](../../specs/012-vinculo-que-sumiu-na-origem/plan.md)
+**Feature**: [012 — o vínculo que sumiu na origem](../../../specs/012-vinculo-que-sumiu-na-origem/spec.md)
+**Plano**: [plan.md](../../../specs/012-vinculo-que-sumiu-na-origem/plan.md)
 **Origem**: [#263](https://github.com/The-Band-Solution/theband/issues/263), achada **durante** o sprint 010
 **Análise**: rodada antes do código, **quatro correções** — três de desenho
 
@@ -83,7 +83,7 @@ correção de virar um defeito pior que o original.
 
 ## Tarefas
 
-Detalhadas em [012/tasks.md](../../specs/012-vinculo-que-sumiu-na-origem/tasks.md). Cada tarefa é
+Detalhadas em [012/tasks.md](../../../specs/012-vinculo-que-sumiu-na-origem/tasks.md). Cada tarefa é
 filha da **user story que ela atende** — nunca do épico.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |

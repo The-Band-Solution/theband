@@ -1,8 +1,8 @@
 # Sprint 024 — Review
 
 **Período**: 2026-08-28 a 2026-08-29 (dois dias)
-**Features**: [047-mensagens-internacionalizadas](../../specs/047-mensagens-internacionalizadas/spec.md) e
-[048-botao-sem-chave-desabilitado](../../specs/048-botao-sem-chave-desabilitado/spec.md)
+**Features**: [047-mensagens-internacionalizadas](../../../specs/047-mensagens-internacionalizadas/spec.md) e
+[048-botao-sem-chave-desabilitado](../../../specs/048-botao-sem-chave-desabilitado/spec.md)
 **PRs**: [#593](https://github.com/The-Band-Solution/theband/pull/593) (047, squash) e
 [#594](https://github.com/The-Band-Solution/theband/pull/594) (048, squash) — CI 2/2 verde
 nos dois; revisão adversarial no #594 sem achado real.

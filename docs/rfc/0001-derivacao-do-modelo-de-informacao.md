@@ -109,7 +109,7 @@ mais geral precisa aparecer na ontologia específica. A tese resolve por
   módulos passam a se tocar no nível do banco, e extrair um para serviço depois
   exige desfazer as FKs.
 
-**Inclinação atual.** Referência, por coerência com a [ADR 0001](0001-monolito-modular-elixir.md):
+**Inclinação atual.** Referência, por coerência com a [ADR 0001](../adr/0001-monolito-modular-elixir.md):
 enquanto for um banco só, transação local resolve o que o `internal_id`
 resolveria. As colunas `internal_id` e `record_version` continuam existindo,
 prontas para o dia em que um módulo virar serviço.

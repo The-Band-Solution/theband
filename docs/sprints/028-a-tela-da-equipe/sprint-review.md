@@ -1,7 +1,7 @@
 # Sprint 028 — Review
 
 **Período**: 2026-09-02 a 2026-09-09 · encerrado em 2026-09-02
-**Feature**: [057 — a tela da equipe, e a equipe feita de equipes](../../specs/057-tela-da-equipe-complexa/spec.md)
+**Feature**: [057 — a tela da equipe, e a equipe feita de equipes](../../../specs/057-tela-da-equipe-complexa/spec.md)
 
 ## Resumo
 
@@ -74,7 +74,7 @@ sprint que a registrou. Está anotado nas lições.
 
 **O burn da página da pessoa parte de zero.** A correção equivalente foi feita
 para a equipe neste sprint. Registrada em
-[`docs/backlog/burn-da-pessoa-sem-linha-de-base.md`](../../docs/backlog/burn-da-pessoa-sem-linha-de-base.md)
+[`docs/backlog/burn-da-pessoa-sem-linha-de-base.md`](../../backlog/burn-da-pessoa-sem-linha-de-base.md)
 com os três motivos, e o terceiro é o que importa: na pessoa, talvez o recorte de
 janela **seja** o desejado. Precisa ser decidido, não deduzido.
 

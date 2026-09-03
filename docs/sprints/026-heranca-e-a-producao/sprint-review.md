@@ -3,10 +3,10 @@
 **Período**: 2026-08-29 a 2026-09-01 — **fechado quatro dias antes** do fim
 previsto (2026-09-05), porque o objetivo foi alcançado e ultrapassado: o sprint
 prometia deixar a produção *a três marcos de distância*, e a produção está no ar.
-**Features**: [050-em-producao](../../specs/050-em-producao/spec.md) e
-[052-primeira-conta-do-ambiente](../../specs/052-primeira-conta-do-ambiente/spec.md),
-mais a herança de [047](../../specs/047-mensagens-internacionalizadas/spec.md) e
-[051](../../specs/051-cadastro-por-github/spec.md).
+**Features**: [050-em-producao](../../../specs/050-em-producao/spec.md) e
+[052-primeira-conta-do-ambiente](../../../specs/052-primeira-conta-do-ambiente/spec.md),
+mais a herança de [047](../../../specs/047-mensagens-internacionalizadas/spec.md) e
+[051](../../../specs/051-cadastro-por-github/spec.md).
 **Endereço**: <https://theband.5.189.161.85.sslip.io/sign-in> — VPS Contabo
 `vmi3547213`, Dokploy, imagem `ghcr.io/the-band-solution/theband` nas tags
 `v0.1.0`, `v0.2.0` e `latest`.
@@ -89,7 +89,7 @@ defeito de produção — `osdef.defect`, não user story.
 - **Coleta conferida contra a origem**: 125 repositórios, 4895 issues, 15
   quadros, 3981 itens de quadro.
 - **Medição por critério da 050**:
-  [medicao-do-primeiro-release.md](../../specs/050-em-producao/medicao-do-primeiro-release.md).
+  [medicao-do-primeiro-release.md](../../../specs/050-em-producao/medicao-do-primeiro-release.md).
 - **CI**: verde nos nove PRs do sprint, com os três workflows (quality-gates, a
   imagem de produção builda, cobertura).
 
@@ -107,7 +107,7 @@ chat durante a implantação:
 4. `THE_BAND_ADMIN_SENHA` continua no painel do Dokploy — removê-la; no boot
    seguinte o log dirá `já existe administrador`, e a conta continua.
 
-**Técnica**, registrada em [pendencias.md](../../specs/050-em-producao/pendencias.md):
+**Técnica**, registrada em [pendencias.md](../../../specs/050-em-producao/pendencias.md):
 
 - **P1** — a origem do socket depende do `PHX_HOST`; vira bug no dia em que
   houver um segundo endereço;

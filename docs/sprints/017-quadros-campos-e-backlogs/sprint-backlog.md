@@ -1,8 +1,8 @@
 # Sprint 017 — Quadros, campos e backlogs
 
 **Período**: 2026-08-16 em diante
-**Feature**: [004](../../specs/004-issues-e-projetos/spec.md), fase F7 (convergência da F4)
-**Plano**: [plan.md](../../specs/004-issues-e-projetos/plan.md)
+**Feature**: [004](../../../specs/004-issues-e-projetos/spec.md), fase F7 (convergência da F4)
+**Plano**: [plan.md](../../../specs/004-issues-e-projetos/plan.md)
 
 ## Objetivo do sprint
 

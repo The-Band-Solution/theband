@@ -1,0 +1,247 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# MkDocs — o site da documentação do The Band.
+#
+# ATENÇÃO AO DEPLOY. A branch `gh-pages` NÃO está vazia: ela serve
+# https://theband.dev com um `index.html` de 53 KB e um `CNAME`. `mkdocs gh-deploy`
+# APAGA a branch inteira — a landing page e o domínio junto.
+#
+# Por isso o site é publicado em `theband.dev/docs/` por um workflow que preserva
+# o que já existe na raiz. Ver `.github/workflows/docs.yml`, e nunca rodar
+# `mkdocs gh-deploy` neste repositório.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+site_name: The Band — Documentação
+site_description: >-
+  Integração semântica de dados de Engenharia de Software: coleta das ferramentas,
+  harmonização contra ontologias de referência, proveniência preservada.
+site_url: https://theband.dev/docs/
+repo_url: https://github.com/The-Band-Solution/theband
+repo_name: The-Band-Solution/theband
+edit_uri: edit/development/docs/
+copyright: The Band — base científica na tese de Paulo Sérgio dos Santos Júnior (UFES, 2023)
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: pt-BR
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    # O tema segue o do sistema, e os dois botões permitem escolher.
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Seguir o sistema
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Modo escuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Modo claro
+
+markdown_extensions:
+  - tables                    # 105 dos 110 arquivos usam tabela
+  - admonition
+  - attr_list
+  - md_in_html
+  - footnotes
+  - toc:
+      permalink: true
+      toc_depth: 3
+      # O slug do GitHub, e não o do MkDocs. Os documentos foram escritos para
+      # serem lidos no GitHub e têm centenas de links internos com o formato
+      # dele — "— " vira dois hífens, e o padrão do MkDocs faz um só. Sem isto,
+      # 154 âncoras quebram só em `licoes-aprendidas.md`.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify {kwds: {case: lower}}
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search:
+      lang: pt
+
+# Os links que saem de `docs/` viram URL do GitHub no momento do build — o fonte
+# continua relativo e navegável no repositório. Ver o moduledoc do arquivo.
+hooks:
+  - scripts/mkdocs_hooks.py
+
+nav:
+  - Início: README.md
+
+  - Arquitetura:
+      - Visão geral: architecture/overview.md
+      - Modelo de dados: architecture/modelo-de-dados.md
+      - Design system: design-system.md
+
+  - Ontologias:
+      - Rede de ontologias: ontology/README.md
+      - Índice de conceitos: ontology/concept-index.md
+      - EO — organização e pessoas: ontology/eo.md
+      - SPO — projetos: ontology/spo.md
+      - SRO — processo e trabalho: ontology/sro.md
+      - CMPO — mudanças: ontology/cmpo.md
+      - CMO — configuração: ontology/cmo.md
+      - CDRO — dependências: ontology/cdro.md
+      - CIRO — integração contínua: ontology/ciro.md
+      - RSRO — release: ontology/rsro.md
+      - QAPO — qualidade: ontology/qapo.md
+      - SMPO — medição: ontology/smpo.md
+      - ROoST — testes: ontology/roost.md
+      - OSDeF — código: ontology/osdef.md
+      - UFO — fundamentação: ontology/ufo.md
+      - SysSwO — sistema e software: ontology/sys_swo.md
+
+  - Dados externos:
+      - Mapeamentos semânticos: integrations/mappings.md
+      - Verificação contínua: integrations/verificacao-continua.md
+      - Extensões ao one-table-per-kind: research/extensions-to-one-table-per-kind.md
+
+  - Medidas:
+      - Necessidades de informação e medidas: metrics/README.md
+
+  - Decisões:
+      - ADRs: adr/README.md
+      - 0001 monolito modular elixir: adr/0001-monolito-modular-elixir.md
+      - 0002 yaml como base de conhecimento: adr/0002-yaml-como-base-de-conhecimento.md
+      - 0003 organizacao por ontologias: adr/0003-organizacao-por-ontologias.md
+      - 0004 modelo de informacao one table per kind: adr/0004-modelo-de-informacao-one-table-per-kind.md
+      - RFCs: rfc/README.md
+      - RFC 0001 — derivação do modelo de informação: rfc/0001-derivacao-do-modelo-de-informacao.md
+
+  - Operação:
+      - Deployment: deployment.md
+      - Runbook de produção: producao/runbook.md
+      - Fluxo de uma feature: processes/feature-workflow.md
+
+  - Releases:
+      - Histórico: releases/README.md
+      - v0.3.0: releases/v0.3.0.md
+      - v0.2.0: releases/v0.2.0.md
+      - v0.1.0: releases/v0.1.0.md
+
+  - Backlog:
+      - Visão geral: backlog/README.md
+      - Burn da pessoa sem linha de base: backlog/burn-da-pessoa-sem-linha-de-base.md
+      - Crud entities: backlog/crud-entities.md
+      - Decisoes pendentes: backlog/decisoes-pendentes.md
+      - Github to sro: backlog/github-to-sro.md
+      - Papeis scrum: backlog/papeis-scrum.md
+      - Portugues na interface: backlog/portugues-na-interface.md
+      - Projeto pertence a organizacao: backlog/projeto-pertence-a-organizacao.md
+      - Servidor mcp: backlog/servidor-mcp.md
+      - Setup inicial e multiempresa: backlog/setup-inicial-e-multiempresa.md
+      - Tela da equipe complexa: backlog/tela-da-equipe-complexa.md
+      - Tooling library: backlog/tooling-library.md
+
+  - Sprints:
+      - Retomar — estado atual: sprints/RETOMAR.md
+      - Lições aprendidas: sprints/licoes-aprendidas.md
+      - Por sprint:
+          - 001 — Fundacao e coleta eo:
+              - Aceitação: sprints/001-fundacao-e-coleta-eo/aceitacao.md
+              - Backlog do sprint: sprints/001-fundacao-e-coleta-eo/sprint-backlog.md
+              - Review: sprints/001-fundacao-e-coleta-eo/sprint-review.md
+          - 002 — Escopo por organizacao:
+              - Aceitação: sprints/002-escopo-por-organizacao/aceitacao.md
+              - Backlog do sprint: sprints/002-escopo-por-organizacao/sprint-backlog.md
+              - Review: sprints/002-escopo-por-organizacao/sprint-review.md
+          - 003 — Corrigir e encerrar observacao:
+              - Aceitação: sprints/003-corrigir-e-encerrar-observacao/aceitacao.md
+              - Backlog do sprint: sprints/003-corrigir-e-encerrar-observacao/sprint-backlog.md
+              - Review: sprints/003-corrigir-e-encerrar-observacao/sprint-review.md
+          - 004 — Issues e projetos:
+              - Aceitação: sprints/004-issues-e-projetos/aceitacao.md
+              - Backlog do sprint: sprints/004-issues-e-projetos/sprint-backlog.md
+              - Review: sprints/004-issues-e-projetos/sprint-review.md
+          - 005 — Mapeamento e detalhe:
+              - Aceitacao 005: sprints/005-mapeamento-e-detalhe/aceitacao-005.md
+              - Aceitação: sprints/005-mapeamento-e-detalhe/aceitacao.md
+              - Backlog do sprint: sprints/005-mapeamento-e-detalhe/sprint-backlog.md
+              - Review: sprints/005-mapeamento-e-detalhe/sprint-review.md
+          - 006 — Marca de issues:
+              - Backlog do sprint: sprints/006-marca-de-issues/sprint-backlog.md
+              - Review: sprints/006-marca-de-issues/sprint-review.md
+          - 007 — Destravar sync presa:
+              - Backlog do sprint: sprints/007-destravar-sync-presa/sprint-backlog.md
+              - Review: sprints/007-destravar-sync-presa/sprint-review.md
+          - 008 — Marca que se cura:
+              - Backlog do sprint: sprints/008-marca-que-se-cura/sprint-backlog.md
+              - Review: sprints/008-marca-que-se-cura/sprint-review.md
+          - 009 — Detalhe da pessoa:
+              - Backlog do sprint: sprints/009-detalhe-da-pessoa/sprint-backlog.md
+              - Review: sprints/009-detalhe-da-pessoa/sprint-review.md
+          - 010 — De quem a issue e parte:
+              - Backlog do sprint: sprints/010-de-quem-a-issue-e-parte/sprint-backlog.md
+              - Review: sprints/010-de-quem-a-issue-e-parte/sprint-review.md
+          - 011 — Vinculo que sumiu na origem:
+              - Backlog do sprint: sprints/011-vinculo-que-sumiu-na-origem/sprint-backlog.md
+              - Review: sprints/011-vinculo-que-sumiu-na-origem/sprint-review.md
+          - 012 — Pagina da pessoa mais rapida:
+              - Backlog do sprint: sprints/012-pagina-da-pessoa-mais-rapida/sprint-backlog.md
+              - Review: sprints/012-pagina-da-pessoa-mais-rapida/sprint-review.md
+          - 013 — Clicar e quem escreveu:
+              - Backlog do sprint: sprints/013-clicar-e-quem-escreveu/sprint-backlog.md
+              - Review: sprints/013-clicar-e-quem-escreveu/sprint-review.md
+          - 014 — Design system: sprints/014-design-system/sprint-backlog.md
+          - 016 — Geracao mensal de perfis:
+              - Backlog do sprint: sprints/016-geracao-mensal-de-perfis/sprint-backlog.md
+              - Review: sprints/016-geracao-mensal-de-perfis/sprint-review.md
+          - 017 — Quadros campos e backlogs: sprints/017-quadros-campos-e-backlogs/sprint-backlog.md
+          - 018 — Competencias da equipe: sprints/018-competencias-da-equipe/sprint-backlog.md
+          - 019 — Comentarios das issues: sprints/019-comentarios-das-issues/sprint-backlog.md
+          - 020 — Coleta de mudancas: sprints/020-coleta-de-mudancas/sprint-backlog.md
+          - 021 — Coleta do ci: sprints/021-coleta-do-ci/sprint-review.md
+          - 022 — Menu por entidades:
+              - Backlog do sprint: sprints/022-menu-por-entidades/sprint-backlog.md
+              - Review: sprints/022-menu-por-entidades/sprint-review.md
+          - 023 — Autenticacao e acesso:
+              - Backlog do sprint: sprints/023-autenticacao-e-acesso/sprint-backlog.md
+              - Review: sprints/023-autenticacao-e-acesso/sprint-review.md
+          - 024 — Mensagens e o botao da chave:
+              - Aceitação: sprints/024-mensagens-e-o-botao-da-chave/aceitacao.md
+              - Backlog do sprint: sprints/024-mensagens-e-o-botao-da-chave/sprint-backlog.md
+              - Review: sprints/024-mensagens-e-o-botao-da-chave/sprint-review.md
+          - 025 — Contas e o elo do github:
+              - Aceitação: sprints/025-contas-e-o-elo-do-github/aceitacao.md
+              - Backlog do sprint: sprints/025-contas-e-o-elo-do-github/sprint-backlog.md
+              - Review: sprints/025-contas-e-o-elo-do-github/sprint-review.md
+          - 026 — Heranca e a producao:
+              - Aceitação: sprints/026-heranca-e-a-producao/aceitacao.md
+              - Backlog do sprint: sprints/026-heranca-e-a-producao/sprint-backlog.md
+              - Review: sprints/026-heranca-e-a-producao/sprint-review.md
+          - 027 — Equipes declaradas:
+              - Backlog do sprint: sprints/027-equipes-declaradas/sprint-backlog.md
+              - Review: sprints/027-equipes-declaradas/sprint-review.md
+          - 028 — A tela da equipe:
+              - Backlog do sprint: sprints/028-a-tela-da-equipe/sprint-backlog.md
+              - Review: sprints/028-a-tela-da-equipe/sprint-review.md
+          - 029 — Medidas da equipe: sprints/029-medidas-da-equipe/sprint-backlog.md

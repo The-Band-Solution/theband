@@ -1,8 +1,8 @@
 # Sprint 006 — a marca de trabalho no repositório
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [007 — marca de issues](../../specs/007-marca-de-issues/spec.md)
-**Plano**: [plan.md](../../specs/007-marca-de-issues/plan.md) ·
+**Feature**: [007 — marca de issues](../../../specs/007-marca-de-issues/spec.md)
+**Plano**: [plan.md](../../../specs/007-marca-de-issues/plan.md) ·
 **Análise**: rodada antes do código, seis correções aplicadas
 
 ## Objetivo do sprint
@@ -20,7 +20,7 @@ deste sprint:
 
 | Lição | Origem | Como está sendo aplicada |
 |---|---|---|
-| **L08** | Sprint 002 | contrato de API escrito **antes** da primeira função pública — [contracts/repository-work-mark.md](../../specs/007-marca-de-issues/contracts/repository-work-mark.md), commitado antes de qualquer código |
+| **L08** | Sprint 002 | contrato de API escrito **antes** da primeira função pública — [contracts/repository-work-mark.md](../../../specs/007-marca-de-issues/contracts/repository-work-mark.md), commitado antes de qualquer código |
 | **L11** | Sprint 002 | **não** vou tocar a configuração de iterations. Ver "Sprint no GitHub" |
 | **L18** | Sprint 003 | critério atendido não é suficiente: a aceitação avalia cada um dos 11 SC com evidência, nunca a suíte verde |
 | **L21** | Sprint 004 | nada de função pública sem consumidor visível: a consulta agrupada de F1 só é entregue com a marca de F3 na mesma fatia |
@@ -73,7 +73,7 @@ por que estão vazios.
 
 ## Tarefas
 
-Detalhadas em [007/tasks.md](../../specs/007-marca-de-issues/tasks.md). Cada tarefa é filha da
+Detalhadas em [007/tasks.md](../../../specs/007-marca-de-issues/tasks.md). Cada tarefa é filha da
 **user story que ela atende** — nunca do épico: tarefa sob épico viola `sro.rule07`, e é o aviso
 que a própria feature 006 passou a mostrar.
 
@@ -160,4 +160,4 @@ O número da branch difere do diretório da spec de propósito, e está explicad
 - [x] PR [#195](https://github.com/The-Band-Solution/theband/pull/195) com revisor `the-band` **conferido** por `requested_reviewers`, ligado ao projeto
 - [x] [`sprint-review.md`](sprint-review.md) escrito, separando feito de não feito
 - [x] `licoes-aprendidas.md` atualizado — L32 e L33
-- [x] [`aceitacao.md`](../../specs/007-marca-de-issues/aceitacao.md) — 11 SC avaliados um a um
+- [x] [`aceitacao.md`](../../../specs/007-marca-de-issues/aceitacao.md) — 11 SC avaliados um a um

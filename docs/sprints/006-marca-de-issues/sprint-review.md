@@ -1,7 +1,7 @@
 # Sprint 006 — Review
 
 **Período**: 2026-08-12 a 2026-08-18
-**Feature**: [007 — marca de issues](../../specs/007-marca-de-issues/spec.md)
+**Feature**: [007 — marca de issues](../../../specs/007-marca-de-issues/spec.md)
 **PR**: [#195](https://github.com/The-Band-Solution/theband/pull/195), base
 `007-interface-em-ingles`
 
@@ -17,7 +17,7 @@
 depois do #184 — a ordem importava, porque a marca aplica o design system que vive lá.
 
 `main` em `277d159` com **10 gates verdes por código de saída**. A avaliação critério por
-critério está em [aceitacao.md](../../specs/007-marca-de-issues/aceitacao.md): **10 dos 11 SC
+critério está em [aceitacao.md](../../../specs/007-marca-de-issues/aceitacao.md): **10 dos 11 SC
 atendidos**, e o restante — SC-009, legibilidade em 360 px — está declarado como **não
 verificado**, porque a estrutura existe e ninguém olhou a tela. Declarar atendido seria declarar
 sucesso sem evidência.

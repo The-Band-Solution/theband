@@ -1,9 +1,9 @@
 # Sprint 029 — As medidas que faltam na tela da equipe
 
 **Período**: 2026-09-02 a 2026-09-09 (cadência de uma semana)
-**Feature**: [058](../../specs/058-medidas-da-equipe/spec.md)
-**Plano**: [plan.md](../../specs/058-medidas-da-equipe/plan.md) ·
-**Pesquisa**: [research.md](../../specs/058-medidas-da-equipe/research.md)
+**Feature**: [058](../../../specs/058-medidas-da-equipe/spec.md)
+**Plano**: [plan.md](../../../specs/058-medidas-da-equipe/plan.md) ·
+**Pesquisa**: [research.md](../../../specs/058-medidas-da-equipe/research.md)
 
 ## Objetivo do sprint
 
@@ -72,7 +72,7 @@ ligadas como sub-issue.
 
 ## Tarefas
 
-Todas em [`tasks.md`](../../specs/058-medidas-da-equipe/tasks.md), com os quatro
+Todas em [`tasks.md`](../../../specs/058-medidas-da-equipe/tasks.md), com os quatro
 campos e o link da issue. Faixa:
 [#768](https://github.com/The-Band-Solution/theband/issues/768) a
 [#788](https://github.com/The-Band-Solution/theband/issues/788).
@@ -101,8 +101,8 @@ todas em **a fazer**.
 | `flow.throughput.rate` e `flow.wip.count` | dependem do critério de início da **feature 042** — 24 issues sem código. São o único item do épico #504 que ainda precisa dela |
 | `rework.not_accepted_deliverable_ratio` | **não se calcula**: a aceitação nunca é registrada |
 | a taxa do pipeline **por ator da execução** | responde outra pergunta (R1), e oferecer as duas é a L67 |
-| o burn da página da pessoa | [backlog](../../docs/backlog/burn-da-pessoa-sem-linha-de-base.md) — a pergunta precisa ser decidida antes do código |
-| [servidor MCP](../../docs/backlog/servidor-mcp.md) | bloqueado até autenticação e tenant serem decididos |
+| o burn da página da pessoa | [backlog](../../backlog/burn-da-pessoa-sem-linha-de-base.md) — a pergunta precisa ser decidida antes do código |
+| [servidor MCP](../../backlog/servidor-mcp.md) | bloqueado até autenticação e tenant serem decididos |
 | criar os tipos `User Story` e `Epic` | altera a configuração da organização; exige confirmação |
 | acertar as iterations | L11 mediu o custo: 97 itens órfãos |
 
