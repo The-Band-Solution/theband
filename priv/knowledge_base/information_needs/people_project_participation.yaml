@@ -1,0 +1,49 @@
+information_need:
+  id: people.project_participation
+  name:
+    pt-BR: "Quem trabalhou neste projeto, e quando"
+    en: "Who worked on this project, and when"
+  question:
+    pt-BR: >
+      Quem trabalhou neste projeto num intervalo, e por qual equipe cada pessoa
+      chegou até ele?
+    en: >
+      Who worked on this project during an interval, and through which team did
+      each person reach it?
+  stakeholders: [engineering_manager, project_manager, team_lead, product_manager]
+  decision_supported:
+    pt-BR: >
+      Saber com quem falar sobre uma decisão tomada no passado, e quem tem o
+      contexto de uma parte do sistema. Um projeto de dois anos tem pessoas que
+      entraram, saíram e voltaram — perguntar à equipe de hoje sobre uma escolha
+      de janeiro passado leva à resposta de quem não estava lá.
+
+      Apoia também a decisão de alocação: quem já trabalhou neste projeto
+      precisa de menos tempo para voltar a ele.
+    en: >
+      Know whom to ask about a past decision, and who holds context on a part of
+      the system. Asking today's team about a choice made a year ago reaches
+      people who were not there.
+  required_concepts:
+    [eo.person, eo.team, eo.team_membership, spo.project]
+  required_relations:
+    [eo.membership_to_team, eo.team_member_is_person]
+  provenance:
+    source_type: project_decision
+    note: >
+      Necessidade levantada em 2026-09-02, feature 058, ao rever o épico #504.
+
+      A pergunta é antiga e o dado existe: `spo_project_teams` guarda `linked_at`
+      e `unlinked_at` desde que a tabela foi criada, e `eo_team_memberships`
+      guarda `started_at` e `ended_at`. **Nenhuma consulta usava os dois.**
+
+      Não é medida — é uma pergunta cuja resposta é uma lista de pessoas. Por
+      isso não tem `candidate_measurements`: contar quantas pessoas passaram por
+      um projeto seria outra coisa, e provavelmente enganosa (uma equipe grande
+      por um mês contaria mais que uma pequena por dois anos).
+
+      A resposta é a interseção de TRÊS períodos — pessoa ↔ equipe, equipe ↔
+      projeto, e a janela perguntada — e precisa distinguir "não intersecta" de
+      "a interseção depende de uma borda que ninguém declarou". Os três atributos
+      de período são anuláveis de propósito, e tratar nulo como aberto afirmaria
+      o que ninguém disse.

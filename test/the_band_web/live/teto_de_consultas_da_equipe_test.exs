@@ -1,0 +1,236 @@
+defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
+  @moduledoc """
+  O custo das duas telas de equipe — feature 057, T031.
+
+  **O teto é teste, e não anotação.** Anotado no plano, ele não impede nada: a
+  próxima seção acrescentada passa despercebida, e a página começa a consultar
+  por linha sem ninguém notar. É o defeito que a feature 007 pagou com 135
+  consultas por render.
+
+  ## As duas asserções, e qual delas importa mais
+
+  1. **o número não cresce com o dado** — a mais importante. Uma tela que
+     consulta por subequipe ou por pessoa passa com três e derruba com trinta;
+  2. **o número tem teto declarado** — "um número que não cresce" passa com 8 e
+     com 80.
+
+  ## A medida é a DIFERENÇA, e não o total
+
+  `live/2` faz consultas de framework e autenticação em dois renders. Medir o
+  total mediria o Phoenix; a diferença contra a listagem de equipes isola o custo
+  **destas telas**.
+  """
+  use TheBandWeb.ConnCase, async: false
+
+  import Phoenix.LiveViewTest
+  import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
+
+  alias TheBand.Ontology.SEON.EO
+  alias TheBand.Repo
+  alias TheBand.WorkItems.Schemas.CollectedIssue
+  alias TheBand.WorkItems.Schemas.IssueAssignee
+
+  # Medidos em 2026-09-02. Subir qualquer um dos dois é decisão, e a decisão
+  # aparece aqui em vez de passar num diff de template.
+  #
+  # ## O que o teto do detalhe cobre, e por que não é 9
+  #
+  # O `plan.md` declarou "no máximo 9 consultas por render" para a tela da
+  # subequipe. **As seções da feature 057 custam 5**: duas da série, uma da linha
+  # de base, uma das tarefas por pessoa e uma dos membros.
+  #
+  # Este número é maior porque mede a página INTEIRA contra a listagem, e a
+  # página já trazia estrutura, membros, evidência pendente, projetos, avisos de
+  # processo e competências — tudo anterior a esta feature. Medir só as seções
+  # novas exigiria um marcador por seção, e o marcador mentiria assim que alguém
+  # movesse uma consulta de lugar.
+  #
+  # **Sem folga de propósito.** Qualquer consulta a mais quebra, e é isso que se
+  # quer: a decisão de gastar mais uma aparece neste arquivo.
+  @teto_do_detalhe 16
+  @teto_da_composta_por_subequipe 6
+
+  setup %{conn: conn} do
+    {tenant, admin} = tenant_with_admin()
+    cenario = cenario_real(tenant)
+    org = cenario.organization
+    {:ok, papel} = EO.create_role(tenant, org.id, %{code: "dev", name: "Dev"}, admin.id)
+
+    %{
+      conn: log_in(conn, admin),
+      tenant: tenant,
+      admin: admin,
+      org: org,
+      papel: papel,
+      repo_id: cenario.observed_repository_id
+    }
+  end
+
+  defp equipe(ctx, nome) do
+    {:ok, t} = EO.declare_structural_team(ctx.tenant, ctx.org.id, nome, ctx.admin.id)
+    t
+  end
+
+  defp pessoa(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(ctx.tenant, %{
+        login: login,
+        name: login,
+        account_type: "person",
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_endpoint: "/users/#{login}",
+        external_id: "U_#{login}",
+        collected_at: DateTime.utc_now(:second),
+        payload: %{"login" => login}
+      })
+
+    p
+  end
+
+  defp vincular(ctx, equipe, pessoa) do
+    {:ok, _} =
+      EO.allocate(ctx.tenant, %{
+        person_id: pessoa.id,
+        team_id: equipe.id,
+        organizational_role_id: ctx.papel.id,
+        started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
+      })
+  end
+
+  defp issue(ctx, externo, pessoa, dias) do
+    {:ok, i} =
+      Repo.insert(%CollectedIssue{
+        tenant_id: ctx.tenant.id,
+        observed_repository_id: ctx.repo_id,
+        external_id: externo,
+        number: :erlang.phash2(externo, 1_000_000),
+        source_system: "github",
+        source_instance: "https://github.com",
+        title: "issue #{externo}",
+        state: "OPEN",
+        external_created_at: DateTime.add(DateTime.utc_now(:second), -dias, :day),
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    Repo.insert!(%IssueAssignee{
+      tenant_id: ctx.tenant.id,
+      collected_issue_id: i.id,
+      login: pessoa.login,
+      person_id: pessoa.id
+    })
+  end
+
+  defp contar(fun) do
+    TheBand.ContadorDeConsultas.listar(fn -> {:ok, _live, _html} = fun.() end)
+  end
+
+  defp por_render(consultas), do: div(length(consultas), 2)
+
+  defp diferenca(antes, depois) do
+    a = Enum.frequencies(antes)
+    d = Enum.frequencies(depois)
+
+    (Map.keys(a) ++ Map.keys(d))
+    |> Enum.uniq()
+    |> Enum.map(fn k -> {k, Map.get(d, k, 0) - Map.get(a, k, 0)} end)
+    |> Enum.reject(fn {_k, delta} -> delta == 0 end)
+    |> Enum.sort_by(fn {_k, delta} -> -abs(delta) end)
+    |> Enum.map_join("\n", fn {k, delta} ->
+      "  #{String.pad_leading("#{if delta > 0, do: "+", else: ""}#{delta}", 4)}  #{k}"
+    end)
+  end
+
+  describe "a tela do detalhe da subequipe" do
+    test "o número de consultas não cresce com o dado", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+      for n <- 1..3, do: issue(ctx, "p#{n}", ana, n * 4)
+
+      poucas = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}") end)
+
+      # Agora com muito mais: dez pessoas e trinta itens abertos.
+      for i <- 1..10 do
+        p = pessoa(ctx, "pessoa#{i}")
+        vincular(ctx, time, p)
+        for n <- 1..3, do: issue(ctx, "m#{i}_#{n}", p, n * 5)
+      end
+
+      muitas = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}") end)
+
+      assert length(poucas) == length(muitas), """
+      A tela fez #{length(poucas)} consultas com 1 pessoa e 3 itens, e #{length(muitas)} com
+      11 pessoas e 33 itens — ela consulta por linha.
+
+      É a asserção que mais importa das duas: "um número que não cresce" passa com 8 e com 80,
+      mas uma tela que consulta por pessoa derruba a página quando a equipe cresce.
+
+      O que mudou entre as duas medições:
+
+      #{diferenca(poucas, muitas)}
+      """
+    end
+
+    test "o custo da tela tem teto declarado", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+      for n <- 1..16, do: issue(ctx, "h#{n}", ana, n * 3)
+
+      lista = por_render(contar(fn -> live(ctx.conn, ~p"/teams") end))
+      detalhe = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}") end))
+      acrescentadas = detalhe - lista
+
+      assert acrescentadas <= @teto_do_detalhe, """
+      A página da equipe acrescenta #{acrescentadas} consultas por render sobre a listagem, e o
+      teto declarado é #{@teto_do_detalhe}.
+
+      O teto cobre a página INTEIRA — estrutura, membros, evidência pendente, projetos, avisos
+      de processo, competências, e as seções da feature 057. As seções novas custam 5 dessas.
+
+      Subir o teto é decisão, e a decisão aparece neste arquivo em vez de passar num diff de
+      template. Se a seção nova vale a consulta, mude o número aqui e diga por quê.
+      """
+    end
+  end
+
+  describe "a tela da equipe composta" do
+    test "o custo cresce por subequipe, e o passo tem teto", ctx do
+      mae = equipe(ctx, "Plataforma")
+
+      duas =
+        for n <- 1..2 do
+          f = equipe(ctx, "Sub#{n}")
+          {:ok, _} = EO.compose_teams(ctx.tenant, f.id, mae.id, ctx.admin.id)
+          p = pessoa(ctx, "d#{n}")
+          vincular(ctx, f, p)
+          issue(ctx, "i#{n}", p, 10)
+          f
+        end
+
+      com_duas = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{mae.id}") end))
+
+      for n <- 3..6 do
+        f = equipe(ctx, "Sub#{n}")
+        {:ok, _} = EO.compose_teams(ctx.tenant, f.id, mae.id, ctx.admin.id)
+        p = pessoa(ctx, "d#{n}")
+        vincular(ctx, f, p)
+        issue(ctx, "i#{n}", p, 10)
+      end
+
+      com_seis = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{mae.id}") end))
+      passo = (com_seis - com_duas) / 4
+
+      assert length(duas) == 2
+
+      assert passo <= @teto_da_composta_por_subequipe, """
+      Cada subequipe custa #{Float.round(passo, 1)} consultas por render, e o teto declarado é
+      #{@teto_da_composta_por_subequipe}.
+
+      Aqui o crescimento por linha é ESPERADO — a tela mede cada subequipe separadamente porque
+      somar contaria a mesma pessoa duas vezes. O que não pode crescer é o custo POR subequipe.
+      """
+    end
+  end
+end

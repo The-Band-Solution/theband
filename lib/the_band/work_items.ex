@@ -30,6 +30,7 @@ defmodule TheBand.WorkItems do
   alias TheBand.WorkItems.PersonWork
   alias TheBand.WorkItems.Queries
   alias TheBand.WorkItems.Routing
+  alias TheBand.WorkItems.TeamWork
 
   # ------------------------------------------------------------------- escritas
 
@@ -69,13 +70,29 @@ defmodule TheBand.WorkItems do
   defdelegate state_changes_by_period(tenant, person_id, escala), to: PersonWork
   defdelegate escalas(), to: PersonWork
   # Burn-up e burn-down derivam da série — nenhuma consulta nova.
-  defdelegate burn(serie), to: PersonWork
+  defdelegate burn(serie, aberto_inicial \\ 0), to: PersonWork
   defdelegate projecao(serie), to: PersonWork
   # `data_end`: até quando o trabalho aberto foi planejado — data declarada, e não projetada.
   defdelegate prazo_do_trabalho_aberto(tenant, person_id), to: PersonWork
   defdelegate open_age_buckets(tenant, person_id), to: PersonWork
   defdelegate lead_time(tenant, person_id), to: PersonWork
   defdelegate issues_assigned_to(tenant, person_id), to: PersonWork
+
+  # O trabalho da EQUIPE, recortado pelo período do vínculo — feature 057.
+  # Nomes prefixados com `team_` porque respondem a mesma pergunta da pessoa
+  # sobre outro sujeito, e a contagem difere: para a equipe, item de dois
+  # responsáveis conta UMA vez; para a pessoa, uma vez para cada.
+  defdelegate team_state_changes_by_period(tenant, team_id, escala, opts),
+    to: TeamWork,
+    as: :state_changes_by_period
+
+  defdelegate team_open_at(tenant, team_id, quando), to: TeamWork, as: :open_at
+
+  defdelegate team_open_tasks_by_person(tenant, team_id, quando, ids \\ nil),
+    to: TeamWork,
+    as: :open_tasks_by_person
+
+  defdelegate team_snapshot(tenant, team_id, quando, opts \\ []), to: TeamWork, as: :snapshot
   defdelegate list_issues(tenant, opts \\ []), to: Queries
   defdelegate count_by_promotion(tenant, opts \\ []), to: Queries
   defdelegate count_gaps_by_reason(tenant, opts \\ []), to: Queries

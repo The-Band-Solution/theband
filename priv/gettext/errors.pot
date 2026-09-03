@@ -345,7 +345,7 @@ msgstr ""
 msgid "Syncs e Tools pedem administração ou escopo organization — o seu acesso não os alcança."
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:36
+#: lib/the_band_web/live/teams_live/show.ex:37
 #, elixir-autogen, elixir-format
 msgid "Team not found."
 msgstr ""
@@ -521,7 +521,8 @@ msgstr ""
 msgid "This organisation has no provider key. Someone who operates it configures one in AI provider."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:104
+#: lib/the_band_web/live/access_scopes_live/index.ex:54
+#: lib/the_band_web/live/access_scopes_live/index.ex:128
 #, elixir-autogen, elixir-format
 msgid "Concessão recusada: %{motivo}."
 msgstr ""
@@ -537,14 +538,9 @@ msgstr ""
 msgid "Conta não encontrada."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:70
+#: lib/the_band_web/live/access_scopes_live/index.ex:98
 #, elixir-autogen, elixir-format
 msgid "Escolha %{artigo} — escopo %{nivel} não existe sem alvo."
-msgstr ""
-
-#: lib/the_band_web/live/access_scopes_live/index.ex:97
-#, elixir-autogen, elixir-format
-msgid "Já existe concessão vigente para esse alvo."
 msgstr ""
 
 #: lib/the_band_web/live/profile_live/index.ex:52
@@ -552,7 +548,7 @@ msgstr ""
 msgid "Nome não atualizado."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:126
+#: lib/the_band_web/live/access_scopes_live/index.ex:150
 #, elixir-autogen, elixir-format
 msgid "Revogação recusada: %{motivo}."
 msgstr ""
@@ -612,12 +608,12 @@ msgstr ""
 msgid "%{email} is already linked to this person."
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:161
+#: lib/the_band_web/live/teams_live/show.ex:222
 #, elixir-autogen, elixir-format
 msgid "%{quantos} refused: %{motivos}"
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:141
+#: lib/the_band_web/live/teams_live/show.ex:202
 #, elixir-autogen, elixir-format
 msgid "Choose a role before confirming."
 msgstr ""
@@ -627,7 +623,7 @@ msgstr ""
 msgid "Could not save the interval."
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:135
+#: lib/the_band_web/live/teams_live/show.ex:196
 #, elixir-autogen, elixir-format
 msgid "Nothing confirmed: no role was chosen in any of the %{quantas} rows."
 msgstr ""
@@ -635,4 +631,20 @@ msgstr ""
 #: lib/the_band_web/live/people_live/show.ex:246
 #, elixir-autogen, elixir-format
 msgid "That account is already linked to someone else."
+msgstr ""
+
+#: lib/the_band_web/live/access_scopes_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Esta conta já vê este alvo. Nada a fazer."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/index.ex:63
+#, elixir-autogen, elixir-format
+msgid "Only an administrator can declare a team."
+msgstr ""
+
+#: lib/the_band_web/live/teams_live/show.ex:103
+#: lib/the_band_web/live/teams_live/show.ex:129
+#, elixir-autogen, elixir-format
+msgid "You have no scope to declare a team here."
 msgstr ""

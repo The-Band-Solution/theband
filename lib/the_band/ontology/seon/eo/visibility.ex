@@ -180,43 +180,57 @@ defmodule TheBand.Ontology.SEON.EO.Visibility do
   # Vínculo encerrado não alcança, dos dois lados: quem saiu da equipe deixou de liderá-la,
   # e quem saiu deixou de ser liderado. `ended_at` preenchido é história, e não permissão.
   defp lidera_equipe_do_alvo?(%Tenant{id: tenant_id}, minha_pessoa, alvo_person_id) do
-    Repo.exists?(
-      from meu in TeamMembership,
-        join: g in RoleVisibilityGrant,
-        on:
-          g.organizational_role_id == meu.organizational_role_id and
-            g.tenant_id == meu.tenant_id and is_nil(g.revoked_at) and g.scope == "team",
-        join: dele in TeamMembership,
-        on: dele.team_id == meu.team_id and dele.tenant_id == meu.tenant_id,
-        where:
-          meu.tenant_id == type(^tenant_id, :binary_id) and
-            meu.person_id == type(^minha_pessoa, :binary_id) and is_nil(meu.ended_at) and
-            dele.person_id == type(^alvo_person_id, :binary_id) and is_nil(dele.ended_at)
+    from(meu in TeamMembership,
+      as: :meu,
+      join: g in RoleVisibilityGrant,
+      on:
+        g.organizational_role_id == meu.organizational_role_id and
+          g.tenant_id == meu.tenant_id and is_nil(g.revoked_at) and g.scope == "team",
+      join: dele in TeamMembership,
+      as: :dele,
+      on: dele.team_id == meu.team_id and dele.tenant_id == meu.tenant_id
     )
+    |> where([meu: m], m.tenant_id == type(^tenant_id, :binary_id))
+    |> where([meu: m], m.person_id == type(^minha_pessoa, :binary_id))
+    |> where([dele: d], d.person_id == type(^alvo_person_id, :binary_id))
+    |> ambos_os_lados_vigentes()
+    |> Repo.exists?()
+  end
+
+  # Vigente são DUAS condições — sem fim registrado E sem invalidação —, e valem
+  # para os dois lados do elo. Extraído porque a repetição inline empurrava a
+  # complexidade da função acima do que o credo aceita, e porque a regra é uma só:
+  # quem saiu deixou de liderar, e quem nunca esteve nunca liderou.
+  defp ambos_os_lados_vigentes(query) do
+    query
+    |> where([meu: m], is_nil(m.ended_at) and is_nil(m.invalidated_at))
+    |> where([dele: d], is_nil(d.ended_at) and is_nil(d.invalidated_at))
   end
 
   # Alcança quem está numa equipe da MESMA organização em que a pessoa tem um papel com
   # escopo `organization`. A organização vem da equipe, e não é inferida do trabalho: "é
   # membro" e "trabalhou lá" são afirmações diferentes, e só a primeira é declaração.
   defp responde_pela_organizacao?(%Tenant{id: tenant_id}, minha_pessoa, alvo_person_id) do
-    Repo.exists?(
-      from meu in TeamMembership,
-        join: g in RoleVisibilityGrant,
-        on:
-          g.organizational_role_id == meu.organizational_role_id and
-            g.tenant_id == meu.tenant_id and is_nil(g.revoked_at) and g.scope == "organization",
-        join: minha_equipe in "eo_teams",
-        on: minha_equipe.id == meu.team_id,
-        join: dele in TeamMembership,
-        on: dele.tenant_id == meu.tenant_id,
-        join: equipe_dele in "eo_teams",
-        on:
-          equipe_dele.id == dele.team_id and
-            equipe_dele.organization_id == minha_equipe.organization_id,
-        where:
-          meu.tenant_id == type(^tenant_id, :binary_id) and
-            meu.person_id == type(^minha_pessoa, :binary_id) and is_nil(meu.ended_at) and
-            dele.person_id == type(^alvo_person_id, :binary_id) and is_nil(dele.ended_at)
+    from(meu in TeamMembership,
+      as: :meu,
+      join: g in RoleVisibilityGrant,
+      on:
+        g.organizational_role_id == meu.organizational_role_id and
+          g.tenant_id == meu.tenant_id and is_nil(g.revoked_at) and g.scope == "organization",
+      join: minha_equipe in "eo_teams",
+      on: minha_equipe.id == meu.team_id,
+      join: dele in TeamMembership,
+      as: :dele,
+      on: dele.tenant_id == meu.tenant_id,
+      join: equipe_dele in "eo_teams",
+      on:
+        equipe_dele.id == dele.team_id and
+          equipe_dele.organization_id == minha_equipe.organization_id
     )
+    |> where([meu: m], m.tenant_id == type(^tenant_id, :binary_id))
+    |> where([meu: m], m.person_id == type(^minha_pessoa, :binary_id))
+    |> where([dele: d], d.person_id == type(^alvo_person_id, :binary_id))
+    |> ambos_os_lados_vigentes()
+    |> Repo.exists?()
   end
 end

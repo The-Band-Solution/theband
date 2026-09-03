@@ -208,12 +208,12 @@ msgstr ""
 msgid "This sync was already closed."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:89
+#: lib/the_band_web/live/access_scopes_live/index.ex:117
 #, elixir-autogen, elixir-format
 msgid "Escopo %{nivel} concedido."
 msgstr ""
 
-#: lib/the_band_web/live/access_scopes_live/index.ex:120
+#: lib/the_band_web/live/access_scopes_live/index.ex:144
 #, elixir-autogen, elixir-format
 msgid "Escopo revogado."
 msgstr ""
@@ -228,7 +228,7 @@ msgstr ""
 msgid "Rule activated, with you as the author. The recalculation is queued."
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:157
+#: lib/the_band_web/live/teams_live/show.ex:218
 #, elixir-autogen, elixir-format
 msgid "%{ok} membership(s) recorded"
 msgstr ""
@@ -238,7 +238,7 @@ msgstr ""
 msgid "%{org} will sync every %{intervalo}."
 msgstr ""
 
-#: lib/the_band_web/live/teams_live/show.ex:159
+#: lib/the_band_web/live/teams_live/show.ex:220
 #, elixir-autogen, elixir-format
 msgid "%{puladas} skipped for having no role chosen"
 msgstr ""
@@ -297,3 +297,18 @@ msgstr "Quando falta nota, ela diz que falta — não toca zero no lugar."
 #, elixir-autogen, elixir-format
 msgid "Your tools keep loose notes: a commit here, an issue there, the same person under three different names. The Band plays those notes together — and what reaches you is music: who does what, with whom, since when."
 msgstr "Suas ferramentas guardam notas soltas: um commit aqui, uma issue ali, a mesma pessoa com três nomes diferentes. O The Band toca essas notas juntas — e o que chega até você é música: quem faz o quê, com quem, desde quando."
+
+#: lib/the_band_web/live/teams_live/index.ex:52
+#, elixir-autogen, elixir-format
+msgid "Team %{nome} declared."
+msgstr "Equipe %{nome} declarada."
+
+#: lib/the_band_web/live/teams_live/show.ex:118
+#, elixir-autogen, elixir-format
+msgid "Composition ended."
+msgstr "Composição encerrada."
+
+#: lib/the_band_web/live/teams_live/show.ex:91
+#, elixir-autogen, elixir-format, fuzzy
+msgid "Team %{nome} declared inside this one."
+msgstr "Equipe %{nome} declarada."

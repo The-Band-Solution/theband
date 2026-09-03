@@ -118,7 +118,7 @@ e ver o socket aceito nos dois.
   - **Feita quando**: o script roda contra um endereço dado por argumento; sai com código diferente de zero quando o socket é recusado no endereço que deveria aceitar
   - **Teste**: `bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io` contra a produção de hoje — sai `0` e imprime `200` e o handshake aceito; e com uma origem inventada no lugar da própria, sai diferente de zero
 
-- [ ] T011 [US1] [MARCO — pessoa] O DNS aponta, e o certificado sai
+- [x] T011 [US1] [MARCO — pessoa] O DNS aponta, e o certificado sai
   - **ESTADO MEDIDO EM 2026-09-01, e o endereço MUDOU no meio**: primeiro o apex
     `theband.dev` foi apontado para o Cloudflare com o proxy ligado e sem rota no
     painel — devolvia **526**, com a origem servindo `CN=TRAEFIK DEFAULT CERT` e
@@ -133,7 +133,7 @@ e ver o socket aceito nos dois.
   - **Feita quando**: `https://app.theband.dev/sign-in` responde 200 com certificado válido para o nome; `http://app.theband.dev/sign-in` devolve 301; o apex `theband.dev` continua servindo o site público, intocado
   - **Teste**: `bash scripts/medir-enderecos.sh https://app.theband.dev` — HTTP conforme, e o handshake do socket **aceito** com a própria origem
 
-- [ ] T012 [US1] [MARCO — pessoa] A declaração das duas origens
+- [x] T012 [US1] [MARCO — pessoa] A declaração das duas origens
   - **Pronta quando**: T011
   - **Descrição**: no painel de quem hospeda, `PHX_HOST=app.theband.dev` e `THE_BAND_ORIGENS_EXTRAS=https://theband.5.189.161.85.sslip.io`; reimplantar. A ordem importa: declarar a origem extra **antes** de trocar o `PHX_HOST` evita a janela em que o endereço antigo fica sem socket
   - **Feita quando**: os dois endereços aceitam o socket, medidos separadamente (SC-002); o endereço antigo não teve interrupção durante a troca (SC-004)
@@ -147,7 +147,7 @@ e ver o socket aceito nos dois.
   - **Feita quando**: `EXIT=0`; o PR existe com revisor listado no JSON, e está no board com `Iteration` e `Status`
   - **Teste**: `tail -1 /tmp/gates_054.log` = `EXIT=0`; `gh pr view <n> --json reviewRequests` devolve lista **não vazia**
 
-- [ ] T014 A P1 da 050 é encerrada, dizendo o que a substituiu
+- [x] T014 A P1 da 050 é encerrada, dizendo o que a substituiu
   - **Pronta quando**: T012 (os dois endereços medidos)
   - **Descrição**: em `specs/050-em-producao/pendencias.md`, marcar a P1 como encerrada com a data, o que a substituiu (FR-004 a FR-008 desta feature) e o que a medição encontrou. Pendência encerrada sem dizer o que a fechou vira dúvida na próxima leitura
   - **Feita quando**: a P1 aparece encerrada, com data e link para esta feature; o gatilho original está citado, mostrando que ele disparou como previsto

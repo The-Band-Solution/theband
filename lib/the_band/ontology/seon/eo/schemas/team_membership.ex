@@ -56,6 +56,18 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
 
     field :declared_by_user_id, :binary_id
 
+    # Feature 055 — o EQUÍVOCO: o vínculo que nunca vigeu.
+    #
+    # Diferente de `ended_at`, que diz "esteve e não está mais". Aqui o período
+    # inteiro deixa de valer, e a RAZÃO é o que distingue um engano registrado no
+    # mesmo dia da entrada de alguém que entrou e saiu no mesmo dia.
+    #
+    # Vigente passa a ser `ended_at` nulo **E** `invalidated_at` nulo — as duas
+    # condições, em toda consulta.
+    field :invalidated_at, :utc_datetime
+    field :invalidated_by_user_id, :binary_id
+    field :invalidation_reason, :string
+
     timestamps(type: :utc_datetime)
   end
 
@@ -71,7 +83,10 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
       :organizational_role_id,
       :started_at,
       :ended_at,
-      :declared_by_user_id
+      :declared_by_user_id,
+      :invalidated_at,
+      :invalidated_by_user_id,
+      :invalidation_reason
     ])
     |> validate_required([
       :tenant_id,

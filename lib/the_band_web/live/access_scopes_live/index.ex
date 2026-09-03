@@ -39,6 +39,34 @@ defmodule TheBandWeb.AccessScopesLive.Index do
      |> carregar()}
   end
 
+  # A tela dizia "já existe concessão vigente" para QUALQUER erro de changeset —
+  # falta de campo, nível inválido e unicidade caíam na mesma frase. Afirmar a
+  # causa sem conferir é a forma de sucesso silencioso ao contrário: um erro que
+  # mente sobre si mesmo manda quem lê procurar no lugar errado.
+  #
+  # Encontrado em 2026-09-01, quando a mensagem fez parecer que só uma pessoa
+  # podia ter escopo de organização. Podem várias: o índice é por
+  # (tenant, conta, nível, alvo).
+  defp motivo_da_recusa(%Ecto.Changeset{} = changeset) do
+    if ja_concedido?(changeset) do
+      dgettext("errors", "Esta conta já vê este alvo. Nada a fazer.")
+    else
+      dgettext("errors", "Concessão recusada: %{motivo}.", motivo: erros_legiveis(changeset))
+    end
+  end
+
+  defp ja_concedido?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn {_campo, {_msg, opts}} ->
+      Keyword.get(opts, :constraint) == :unique
+    end)
+  end
+
+  defp erros_legiveis(%Ecto.Changeset{} = changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
+    |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo} #{Enum.join(msgs, ", ")}" end)
+  end
+
   defp carregar(socket) do
     tenant = socket.assigns.current_tenant
 
@@ -91,12 +119,8 @@ defmodule TheBandWeb.AccessScopesLive.Index do
              )
              |> carregar()}
 
-          {:error, %Ecto.Changeset{}} ->
-            {:noreply,
-             assign(socket,
-               erro: dgettext("errors", "Já existe concessão vigente para esse alvo."),
-               ok: nil
-             )}
+          {:error, %Ecto.Changeset{} = changeset} ->
+            {:noreply, assign(socket, erro: motivo_da_recusa(changeset), ok: nil)}
 
           {:error, motivo} ->
             {:noreply,

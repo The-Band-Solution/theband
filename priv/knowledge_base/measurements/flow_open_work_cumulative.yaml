@@ -1,0 +1,55 @@
+measurement:
+  id: flow.open_work.cumulative
+  name:
+    pt-BR: "Abertas e fechadas acumuladas, e o que resta entre elas"
+    en: "Cumulative opened and closed, and what remains between them"
+  answers_information_need: [flow.open_work_balance]
+  value_type: count
+  unit: work_items
+  formula:
+    expression: >
+      opened_cumulative(t) = open_at(window_start)
+        + count(items WHERE created_at IN [window_start, t]);
+      closed_cumulative(t) = count(items WHERE closed_at IN [window_start, t]);
+      still_open(t) = opened_cumulative(t) - closed_cumulative(t)
+    inputs:
+      [item_created_at, item_closed_at, window_start, window_end,
+       team_membership_started_at, team_membership_ended_at,
+       team_membership_invalidated_at]
+  scope:
+    levels: [team, project]
+    filters:
+      - "contar cada item UMA VEZ por equipe, com DISTINCT: item atribuído a duas pessoas da mesma equipe é um item só. No nível person o mesmo item aparece uma vez por participante, e as duas contagens NÃO se somam"
+      - "incluir apenas itens de quem pertencia à equipe na data DO EVENTO — created_at para a série de abertas, closed_at para a de fechadas —, e nunca de quem pertence hoje"
+      - "excluir vínculo invalidado em qualquer período: ele nunca vigeu"
+      - "incluir vínculo com started_at desconhecido: nulo é desconhecido, nunca 'nunca pertenceu'"
+      - "não apresentar período fora da janela coletada; período dentro dela sem movimento é zero observado"
+    period: weekly
+  limitations:
+    - "NÃO existe escopo comprometido. A medida não responde se um sprint termina — não há compromisso declarado contra o qual comparar, e o escopo aqui é simplesmente tudo o que foi aberto."
+    - "'Fechado' é o ato registrado na ferramenta, e não um critério de término declarado. Item abandonado e item concluído entram iguais, e a medida não distingue os dois. O critério de fim continua sendo a lacuna da issue #506."
+    - "O acumulado PRECISA partir da contagem de itens já em aberto no início da janela. Partindo de zero, a distância entre as curvas mede apenas os itens nascidos dentro da janela: uma equipe com quarenta itens abertos há meses e nenhuma abertura recente apareceria com distância zero."
+    - "Item reaberto acrescenta uma abertura na semana em que foi reaberto e mantém o fechamento anterior na semana em que ocorreu. A mesma unidade de trabalho aparece duas vezes na série de abertas."
+    - "Trabalho que não virou item — revisão, apoio a incidente, espera por terceiro — não entra em nenhuma das duas curvas, e o saldo medido é menor que o real nas duas pontas."
+    - "A janela padrão é de oito semanas. Oito semanas é histórico curto, e uma equipe que mudou de composição no meio dela tem duas realidades numa série só."
+    - "O que resta é DERIVADO das duas séries, e não observado. Apresentá-lo com o mesmo peso visual das curvas afirmaria observação que não houve."
+  misinterpretations:
+    - "Ler a distância entre as curvas como atraso. Ela é trabalho em aberto, e trabalho em aberto é o estado normal de uma equipe que existe — o que informa é se ela alarga ou estreita."
+    - "Concluir que a equipe está lenta quando a faixa alarga. Alargar significa que entra mais do que sai; pode ser inteiramente entrada, com a saída inalterada."
+    - "Somar as curvas de duas equipes. A mesma pessoa pode pertencer às duas e o mesmo item aparecer nas duas — o total contaria duas vezes."
+    - "Tratar a curva de fechadas como entrega de valor. Ela conta itens fechados na ferramenta, incluindo os abandonados."
+    - "Comparar a distância entre equipes de tamanhos diferentes sem normalizar. A medida vira contagem de pessoas."
+  provenance:
+    source_type: project_decision
+    note: >
+      Feature 057, decisão da pessoa mantenedora em 2026-09-02: o burn-up é o
+      acumulado de abertas e o burn-down o acumulado de fechadas.
+
+      A definição dispensa o escopo comprometido que o burn-down clássico exige e
+      que a plataforma não tem — e é por isso que esta medida é desenhável com o
+      dado que já existe, enquanto flow.work_in_progress continua bloqueada pela
+      ausência de critério de fim.
+
+      O que resta NÃO é uma terceira série: é a distância entre as duas, marcada
+      como derivada. Uma terceira linha desenharia o mesmo fato duas vezes e
+      convidaria a lê-la contra uma linha de base que ela não tem.

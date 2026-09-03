@@ -188,8 +188,21 @@ quê.
 ### 2. O nome entra no painel, e o certificado é emitido
 
 No painel de quem hospeda, na aplicação: adicionar **`app.theband.dev`** — e só
-ele — apontando para a porta da aplicação, com HTTPS por Let's Encrypt. Esperar o
-certificado.
+ele — apontando para a porta da aplicação (`4000`), com HTTPS por Let's Encrypt.
+Esperar o certificado.
+
+> ⚠️ **Em 2026-09-01 este passo NÃO funcionou, e o caminho foi outro.** O que se
+> mediu: DNS resolvendo direto na origem, rota existindo (`Host: app.theband.dev`
+> → 301 para o host certo), aplicação respondendo 200 por trás do certificado
+> errado, caminho do desafio ACME aberto (404 do handler, não redirecionamento),
+> nenhum CAA no domínio, e o campo `Certificate` do domínio já em `Let's
+> Encrypt`. Mesmo assim a origem seguiu servindo `CN=TRAEFIK DEFAULT CERT`.
+>
+> **A causa não foi diagnosticada** — o log do Traefik não chegou a ser lido. Está
+> registrado como o que é: passo que falhou sem explicação, e não passo que
+> funciona. Quem retomar começa por `dokploy-traefik` → Logs, filtrando `acme`.
+>
+> O caminho usado no lugar está no **§9-B**, adiante.
 
 **`.dev` não tem plano B.** O TLD está na lista de pré-carregamento de HSTS dos
 navegadores: sem certificado válido, o navegador recusa antes de qualquer
@@ -256,6 +269,40 @@ bash scripts/medir-enderecos.sh https://theband.5.189.161.85.sslip.io
 defeito desta feature produz exatamente um 200 com o socket recusado (L85). O
 script imprime a leitura dos códigos — `403` é recusa de origem, `400` é o
 handshake incompleto do `curl` com a origem **aceita**.
+
+### §9-B — O caminho alternativo: certificado de origem do intermediário
+
+**Foi por aqui que a produção subiu em 2026-09-01**, depois de o Let's Encrypt não
+emitir. Vale como alternativa permanente, e não só como remendo — com uma
+diferença que precisa estar escrita: **a renovação deixa de ser automática**.
+
+1. **Cloudflare → SSL/TLS → Origin Server → Create Certificate**. Hostnames
+   `*.theband.dev` e `theband.dev` — o curinga de um nível cobre `app`. Validade
+   padrão de 15 anos;
+2. **a chave privada aparece uma vez só.** Vai do painel do Cloudflare direto
+   para o do Dokploy: nunca por chat, nunca por arquivo do repositório (FR-011);
+3. **Dokploy → Certificates** → certificado customizado, colando certificado e
+   chave. Depois, **Domains → `app.theband.dev`** → campo `Certificate` apontando
+   para ele;
+4. **Cloudflare → DNS** → registro `app` → **Proxied** (laranja);
+5. **Cloudflare → SSL/TLS → Overview** → modo **`Full (strict)`**. Na interface
+   nova: *Configure* → *Custom SSL/TLS* → `Full (strict)`;
+6. **Network → WebSockets: ON**.
+
+**Quem apresenta o certificado ao navegador passa a ser o Cloudflare**, com o
+Universal SSL dele — medido em 2026-09-01: `CN=theband.dev`, emissor
+`Google Trust Services`. O certificado de origem cifra e **autentica** o trecho
+Cloudflare↔servidor.
+
+> **Não use `Full` sem o `(strict)`.** Ele aceita qualquer certificado na origem,
+> inclusive autoassinado: o trecho fica cifrado e **não autenticado**, e um
+> intermediário ali passa despercebido. Com o certificado de origem instalado,
+> `Full (strict)` funciona de primeira — não há motivo para o modo fraco.
+
+**O que este caminho deixa em aberto**: a renovação. O certificado do Let's
+Encrypt renovava sozinho; este vence em 15 anos e ninguém será lembrado. Quando o
+Let's Encrypt voltar a funcionar, trocar o `Certificate` do domínio de volta e
+seguir em `Full (strict)`.
 
 ### 6. A pendência é encerrada
 

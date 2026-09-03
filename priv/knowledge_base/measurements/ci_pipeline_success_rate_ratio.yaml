@@ -12,6 +12,10 @@ measurement:
     filters: ["excluir execuções canceladas", "excluir execuções puladas"]
     period: rolling_30_days
   limitations:
+    - "No nível TEAM, o caminho é repositório → projeto → equipe, e NUNCA o ator da execução. `collected_verifications.actor_person_id` existe e daria uma taxa mais barata, e ela responderia outra pergunta: o ator é quem DISPAROU, não quem cuida do código. Execução agendada tem por ator quem configurou o agendamento; de push, quem empurrou. Uma equipe cujo CI roda por agendamento apareceria quase vazia (feature 058, R1)."
+    - "Equipe sem projeto declarado NÃO recebe taxa. Zero diria que o pipeline falhou; a verdade é que a plataforma não sabe de quais repositórios aquela equipe cuida — e a recusa nomeia o elo que falta."
+    - "A taxa precisa vir com o NÚMERO DE EXECUÇÕES sobre o qual foi calculada. Cem por cento sobre três execuções e cem por cento sobre trezentas não são a mesma afirmação, e a cobertura do dado no nível equipe não foi medida (feature 058, R6)."
+    - "Execução em andamento fica FORA do numerador e do denominador: processo que ainda não decidiu nada não é sucesso nem falha, e contá-lo como qualquer um dos dois inventaria um veredito."
     - Execuções canceladas e puladas não são insucesso e devem sair do denominador.
     - Repositórios com pipelines de propósitos distintos precisam de recorte por workflow.
     - Reexecução manual de um pipeline que falhou pode inflar artificialmente a taxa.

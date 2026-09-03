@@ -35,6 +35,24 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate upsert_person_from_source(tenant, attrs), to: Commands
   defdelegate upsert_team_from_source(tenant, attrs), to: Commands
   defdelegate create_declared_team(tenant, name, actor_id), to: Commands
+
+  # Feature 055 — a organização declara suas equipes.
+  defdelegate declare_structural_team(tenant, organization_id, name, actor_id), to: Commands
+  defdelegate compose_teams(tenant, part_id, whole_id, actor_id), to: Commands
+  defdelegate decompose_teams(tenant, part_id, whole_id, actor_id), to: Commands
+  defdelegate declare_team_membership(tenant, team_id, person_id, attrs, actor_id), to: Commands
+  defdelegate record_team_departure(tenant, team_id, person_id, quando, actor_id), to: Commands
+
+  defdelegate record_team_membership_mistake(tenant, team_id, person_id, razao, actor_id),
+    to: Commands
+
+  defdelegate count_team_members_at(tenant, team_id, quando), to: Queries
+  defdelegate team_members_at(tenant, team_id, quando), to: Queries
+  defdelegate team_member_ids_at(tenant, team_id, quando), to: Queries
+  defdelegate team_member_ids_ever(tenant, team_id), to: Queries
+  defdelegate team_memberships_with_period(tenant, team_id), to: Queries
+  defdelegate team_parts(tenant, team_id), to: Queries
+  defdelegate team_wholes(tenant, team_id), to: Queries
   defdelegate record_team_membership_evidence(tenant, attrs), to: Commands
 
   defdelegate mark_evidence_no_longer_observed(tenant, organization_id, collection_started_at),

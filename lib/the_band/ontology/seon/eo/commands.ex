@@ -26,6 +26,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   alias TheBand.Ontology.SEON.EO.Schemas.OrganizationalRole
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Ontology.SEON.EO.Schemas.Team
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamComposition
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembershipEvidence
   alias TheBand.Repo
@@ -45,6 +46,343 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   @spec upsert_person_from_source(Tenant.t(), map()) ::
           {:ok, Person.t()} | {:error, Ecto.Changeset.t()}
   def upsert_person_from_source(tenant, attrs), do: upsert(Person, tenant, attrs)
+
+  @doc """
+  Vincula uma pessoa a uma equipe, por **declaração** — feature 055, FR-003.
+
+  Distinto de `record_derived_team_membership/2`, que é derivado da coleta: aqui
+  alguém afirma, e o autor fica registrado.
+
+  **A recusa da duplicata vem do banco, não de consulta prévia.** Um `SELECT`
+  antes do `INSERT` perde a corrida entre duas abas — foi o que a feature 052
+  provou quando a garantia contra dois administradores veio dos índices únicos.
+  Aqui o índice parcial `eo_vinculo_vigente_da_pessoa_index` faz o mesmo papel, e
+  a violação é lida como "já existe vínculo vigente".
+  """
+  @spec declare_team_membership(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          map(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def declare_team_membership(%Tenant{id: tenant_id}, team_id, person_id, attrs, actor_id) do
+    inicio = attrs |> Map.get(:started_at, DateTime.utc_now()) |> DateTime.truncate(:second)
+
+    case vigente(tenant_id, team_id, person_id) do
+      nil ->
+        %TeamMembership{}
+        |> TeamMembership.changeset(%{
+          tenant_id: tenant_id,
+          internal_id: "declared_" <> Ecto.UUID.generate(),
+          team_id: team_id,
+          person_id: person_id,
+          organizational_role_id: Map.get(attrs, :organizational_role_id),
+          started_at: inicio,
+          declared_by_user_id: actor_id
+        })
+        |> Repo.insert()
+        |> relator()
+
+      %TeamMembership{started_at: desde} ->
+        {:error,
+         "esta pessoa já tem vínculo vigente nesta equipe desde #{DateTime.to_date(desde)}"}
+    end
+  end
+
+  @doc """
+  Registra que a pessoa **saiu** da equipe — feature 055, FR-004 e FR-005.
+
+  O vínculo continua existindo com o fim registrado. **Nenhuma linha é removida**,
+  e é isso que o SC-003 mede: um painel de período anterior à saída mostra o mesmo
+  número antes e depois.
+
+  Data no futuro é recusada — afirmaria um fato que ainda não aconteceu. Data no
+  passado é aceita: quem declara sabe mais que a plataforma.
+  """
+  @spec record_team_departure(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          DateTime.t(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def record_team_departure(%Tenant{id: tenant_id}, team_id, person_id, quando, _actor_id) do
+    quando = DateTime.truncate(quando, :second)
+
+    with :ok <- nao_esta_no_futuro(quando),
+         %TeamMembership{} = vinculo <- vigente(tenant_id, team_id, person_id) do
+      vinculo
+      |> TeamMembership.changeset(%{ended_at: quando})
+      |> Repo.update()
+      |> relator()
+    else
+      nil -> {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+      {:error, motivo} -> {:error, motivo}
+    end
+  end
+
+  defp nao_esta_no_futuro(quando) do
+    if DateTime.compare(quando, DateTime.utc_now()) == :gt do
+      {:error, "a saída não pode estar no futuro"}
+    else
+      :ok
+    end
+  end
+
+  # O resultado do Repo vira relator com motivo legível — {:error, changeset} não
+  # serve a quem chama de fora do domínio.
+  defp relator({:ok, registro}), do: {:ok, registro}
+  defp relator({:error, %Ecto.Changeset{} = cs}), do: {:error, motivo_do_changeset(cs)}
+
+  @doc """
+  Registra que o vínculo foi criado **por engano** — feature 055, FR-006.
+
+  A pessoa **nunca** esteve na equipe: o vínculo deixa de valer para período
+  algum. E o registro do equívoco permanece, com autor e razão.
+
+  **A razão é obrigatória**, e não por formalismo: sem ela, um engano registrado
+  no mesmo dia da entrada fica indistinguível de alguém que entrou e saiu no
+  mesmo dia. O banco impõe o trio junto — `eo_equivoco_do_vinculo_completo`.
+  """
+  @spec record_team_membership_mistake(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          String.t(),
+          Ecto.UUID.t()
+        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+  def record_team_membership_mistake(%Tenant{id: tenant_id}, team_id, person_id, razao, actor_id)
+      when is_binary(razao) and razao != "" do
+    case vigente(tenant_id, team_id, person_id) do
+      nil ->
+        {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+
+      %TeamMembership{} = vinculo ->
+        vinculo
+        |> TeamMembership.changeset(%{
+          invalidated_at: DateTime.utc_now(:second),
+          invalidated_by_user_id: actor_id,
+          invalidation_reason: razao
+        })
+        |> Repo.update()
+        |> relator()
+    end
+  end
+
+  def record_team_membership_mistake(_tenant, _team_id, _person_id, _razao, _actor_id),
+    do: {:error, "o equívoco exige uma razão escrita"}
+
+  # VIGENTE são as DUAS condições: sem fim registrado E sem invalidação. Deixar
+  # uma de fora faz um vínculo invalidado continuar contando — e o defeito não
+  # aparece até alguém somar.
+  defp vigente(tenant_id, team_id, person_id) do
+    TeamMembership
+    |> where(
+      [m],
+      m.tenant_id == ^tenant_id and m.team_id == ^team_id and m.person_id == ^person_id and
+        is_nil(m.ended_at) and is_nil(m.invalidated_at)
+    )
+    |> Repo.one()
+  end
+
+  defp motivo_do_changeset(%Ecto.Changeset{} = changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
+  end
+
+  @doc """
+  Declara que uma equipe **faz parte** de outra — feature 055, FR-008 e FR-009.
+
+  ## O ciclo é recusado, e a recusa diz o caminho
+
+  Com ciclo, qualquer agregação pela hierarquia **não termina** — inclusive a soma
+  de competências que a issue #397 pede.
+
+  A detecção **caminha em memória** sobre o grafo carregado numa consulta. São 12
+  equipes na organização de referência; `WITH RECURSIVE` seria correto e mais caro
+  de ler. **A limitação tem prazo**: acima de alguns milhares de equipes a
+  caminhada passa a pesar, e a troca por consulta recursiva é a correção. Escolha
+  com prazo declarado não é dívida escondida.
+
+  E a recusa **nomeia o caminho** — *"Equipe A faz parte de Equipe B, que faz
+  parte de Equipe C"*. Dizer apenas "fecharia ciclo" manda a pessoa procurar.
+  """
+  @spec compose_teams(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, TeamComposition.t()} | {:error, String.t()}
+  def compose_teams(%Tenant{id: tenant_id}, part_id, whole_id, actor_id) do
+    cond do
+      part_id == whole_id ->
+        {:error, "uma equipe não pode fazer parte de si mesma"}
+
+      caminho = caminho_de_volta(tenant_id, whole_id, part_id) ->
+        {:error, "isto fecharia um ciclo: " <> caminho}
+
+      true ->
+        gravar_composicao(tenant_id, part_id, whole_id, actor_id)
+    end
+  end
+
+  defp gravar_composicao(tenant_id, part_id, whole_id, actor_id) do
+    %TeamComposition{}
+    |> TeamComposition.changeset(%{
+      tenant_id: tenant_id,
+      part_team_id: part_id,
+      whole_team_id: whole_id,
+      started_at: DateTime.utc_now(:second),
+      declared_by_user_id: actor_id
+    })
+    |> Repo.insert()
+    |> case do
+      {:ok, c} -> {:ok, c}
+      {:error, cs} -> {:error, motivo_da_composicao(cs)}
+    end
+  end
+
+  defp motivo_da_composicao(changeset) do
+    if nome_repetido?(changeset),
+      do: "esta composição já vale",
+      else: motivo_do_changeset(changeset)
+  end
+
+  @doc """
+  Encerra a composição — feature 055, FR-008.
+
+  **A equipe não é tocada.** O período é da relação: quem deixou de ser parte de
+  outra continua existindo, com o histórico intacto.
+  """
+  @spec decompose_teams(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, TeamComposition.t()} | {:error, String.t()}
+  def decompose_teams(%Tenant{id: tenant_id}, part_id, whole_id, actor_id) do
+    TeamComposition
+    |> where(
+      [c],
+      c.tenant_id == ^tenant_id and c.part_team_id == ^part_id and
+        c.whole_team_id == ^whole_id and is_nil(c.ended_at)
+    )
+    |> Repo.one()
+    |> case do
+      nil ->
+        {:error, "esta composição não está vigente"}
+
+      composicao ->
+        composicao
+        |> TeamComposition.changeset(%{
+          ended_at: DateTime.utc_now(:second),
+          ended_by_user_id: actor_id
+        })
+        |> Repo.update()
+        |> relator()
+    end
+  end
+
+  # Sobe a partir de `origem` pelas composições vigentes. Se alcançar `procurado`,
+  # devolve o caminho em nomes; senão, nil.
+  #
+  # A busca é do TODO para cima: se A está prestes a virar parte de B, o ciclo
+  # existe quando A já é alcançável subindo de B.
+  defp caminho_de_volta(tenant_id, origem, procurado) do
+    arestas =
+      TeamComposition
+      |> where([c], c.tenant_id == ^tenant_id and is_nil(c.ended_at))
+      |> select([c], {c.part_team_id, c.whole_team_id})
+      |> Repo.all()
+      |> Enum.group_by(fn {parte, _todo} -> parte end, fn {_parte, todo} -> todo end)
+
+    case subir(arestas, origem, procurado, [origem], []) do
+      nil ->
+        nil
+
+      caminho ->
+        Enum.map_join(caminho, " faz parte de ", &nome_da_equipe(tenant_id, &1))
+    end
+  end
+
+  # `vistos` é lista, e não MapSet, por duas razões que andam juntas: são 12
+  # equipes na organização de referência — a busca linear não pesa —, e o MapSet
+  # atravessando a recursão produz aviso de opacidade no dialyzer. Estrutura mais
+  # esperta para um conjunto que cabe na mão custaria um gate.
+  defp subir(arestas, atual, procurado, caminho, vistos) do
+    cond do
+      atual == procurado and length(caminho) > 1 ->
+        Enum.reverse(caminho)
+
+      atual in vistos ->
+        nil
+
+      true ->
+        arestas
+        |> Map.get(atual, [])
+        |> Enum.find_value(&passo(arestas, &1, procurado, caminho, [atual | vistos]))
+    end
+  end
+
+  defp passo(arestas, proximo, procurado, caminho, vistos) do
+    if proximo == procurado do
+      Enum.reverse([proximo | caminho])
+    else
+      subir(arestas, proximo, procurado, [proximo | caminho], vistos)
+    end
+  end
+
+  defp nome_da_equipe(tenant_id, id) do
+    Team
+    |> where([t], t.tenant_id == ^tenant_id and t.id == ^id)
+    |> select([t], t.name)
+    |> Repo.one() || "equipe desconhecida"
+  end
+
+  @doc """
+  Cria a equipe **da estrutura da organização** — feature 055, FR-001.
+
+  Irmã de `create_declared_team/3`, e **não** uma generalização dela. As duas
+  invariantes se contradizem: lá a organização é nula **por exigência** — o que
+  justifica `project_team` é o vínculo com projeto —, e aqui ela é obrigatória.
+  Uma função com invariante condicional ao parâmetro é a que ninguém consegue ler
+  depois.
+
+  Nome repetido na mesma organização é recusado **pelo índice parcial**, e não por
+  consulta prévia: a consulta prévia perde a corrida entre duas abas. E a recusa
+  vale só entre declaradas — homônima de uma observada é fato do mundo, não erro.
+  """
+  @spec declare_structural_team(Tenant.t(), Ecto.UUID.t() | nil, String.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, String.t()}
+  def declare_structural_team(%Tenant{id: tenant_id}, organization_id, name, actor_id) do
+    now = DateTime.utc_now(:second)
+    external_id = "declared_" <> Ecto.UUID.generate()
+
+    %Team{}
+    |> Team.from_source_changeset(%{
+      tenant_id: tenant_id,
+      internal_id: external_id,
+      type: "organizational_team",
+      name: name,
+      organization_id: organization_id,
+      declared_by_user_id: actor_id,
+      source_system: "the_band",
+      source_instance: "declared",
+      external_id: external_id,
+      collected_at: now,
+      last_observed_at: now
+    })
+    |> Repo.insert()
+    |> case do
+      {:ok, equipe} ->
+        {:ok, equipe}
+
+      {:error, changeset} ->
+        if nome_repetido?(changeset) do
+          {:error, "já existe uma equipe declarada com este nome nesta organização"}
+        else
+          {:error, motivo_do_changeset(changeset)}
+        end
+    end
+  end
+
+  defp nome_repetido?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn {_campo, {_msg, opts}} -> opts[:constraint] == :unique end)
+  end
 
   @doc """
   Cria uma equipe **declarada** — feature 028, FR-007.

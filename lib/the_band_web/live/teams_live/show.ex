@@ -11,12 +11,18 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   import TheBandWeb.Components.DataTable
 
+  alias TheBand.Forecast
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Tenants
+  alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
 
+  # Oito semanas. Escolher o período é trabalho separado, e um seletor sem
+  # período fechado reabriria a questão do denominador móvel (L86).
+  @janela_em_dias 56
   @por_pagina 50
 
   # O papel organizacional fica fora das colunas ordenáveis: ele é **derivado** de haver ou não
@@ -68,6 +74,66 @@ defmodule TheBandWeb.TeamsLive.Show do
       )
 
     {:noreply, carregar_projetos(socket)}
+  end
+
+  # A subequipe HERDA a organização da mãe, e isso não é conveniência: quem tem
+  # escopo nesta equipe declara DENTRO dela, e não em qualquer lugar da
+  # organização. Oferecer um seletor de organização aqui faria a autoridade subir.
+  def handle_event("criar_subequipe", %{"name" => nome}, socket) do
+    tenant = socket.assigns.current_tenant
+    mae = socket.assigns.team
+    ator = socket.assigns.current_user
+
+    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+      {:ok, _} ->
+        with {:ok, filha} <-
+               EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
+             {:ok, _} <- EO.compose_teams(tenant, filha.id, mae.id, ator.id) do
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
+           )
+           |> load()}
+        else
+          {:error, motivo} when is_binary(motivo) -> {:noreply, put_flash(socket, :error, motivo)}
+        end
+
+      {:nao, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "You have no scope to declare a team here.")
+         )}
+    end
+  end
+
+  def handle_event("descompor", %{"part_id" => parte}, socket) do
+    tenant = socket.assigns.current_tenant
+    mae = socket.assigns.team
+    ator = socket.assigns.current_user
+
+    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+      {:ok, _} ->
+        case EO.decompose_teams(tenant, parte, mae.id, ator.id) do
+          {:ok, _} ->
+            {:noreply,
+             socket |> put_flash(:info, dgettext("sistema", "Composition ended.")) |> load()}
+
+          {:error, motivo} ->
+            {:noreply, put_flash(socket, :error, motivo)}
+        end
+
+      {:nao, _} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "You have no scope to declare a team here.")
+         )}
+    end
   end
 
   def handle_event("associar_projeto", _params, socket), do: {:noreply, socket}
@@ -242,10 +308,431 @@ defmodule TheBandWeb.TeamsLive.Show do
           |> Enum.reject(& &1.hidden_at),
         else: []
 
+    partes = EO.team_parts(tenant, team.id)
+
     socket
+    |> assign(contem: partes)
+    |> assign(faz_parte_de: EO.team_wholes(tenant, team.id))
+    |> carregar_linhas(partes)
     |> assign(pendentes: EO.pending_evidence(tenant, team.id))
     |> assign(papeis_para_promover: papeis)
   end
+
+  # As linhas da equipe COMPOSTA — feature 057, US2.
+  #
+  # Uma linha por subequipe, mais a dos membros diretos. **Nenhum total**: a mesma
+  # pessoa pode pertencer a duas subequipes e a mesma tarefa aparecer nas duas, e
+  # somar contaria duas vezes.
+  #
+  # `composta?` exige DUAS ou mais partes. Com uma só, a equipe segue como simples
+  # com uma composição declarada — comparar uma linha com nada não é comparação.
+  #
+  # A ordem é por trabalho parado, do maior para o menor (SC-005): sem critério
+  # declarado, "identificar em menos de 30 segundos" depende de sorte na ordem
+  # alfabética. Ordenar NÃO é somar — cada linha continua com o número dela.
+  defp carregar_linhas(socket, partes) when length(partes) < 2 do
+    socket
+    |> assign(composta?: false, linhas: [])
+    |> carregar_detalhe()
+  end
+
+  defp carregar_linhas(socket, partes) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    subequipes =
+      Enum.map(partes, fn p ->
+        tenant
+        |> WorkItems.team_snapshot(p.team_id, agora)
+        |> Map.merge(%{nome: p.name, direta?: false})
+      end)
+
+    diretos =
+      tenant
+      |> WorkItems.team_snapshot(team.id, agora)
+      |> Map.merge(%{nome: team.name <> " · direct members", direta?: true})
+
+    linhas = Enum.sort_by(subequipes, & &1.paradas, :desc) ++ [diretos]
+
+    # A tela composta é para comparar. O detalhe — séries, burn, previsão e
+    # pessoas — vive na tela de cada subequipe (FR-011).
+    assign(socket, composta?: true, linhas: linhas, detalhe: nil)
+  end
+
+  # O DETALHE da subequipe — feature 057, US3, US4, US5 e US6.
+  #
+  # Só carrega quando a equipe NÃO é composta: são as duas telas que a spec
+  # descreve, e a rota é uma só porque a pergunta é uma só — como está esta
+  # equipe. O que muda é o que a equipe é.
+  defp carregar_detalhe(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+    desde = DateTime.add(agora, -@janela_em_dias, :day)
+
+    serie =
+      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
+        desde: desde,
+        ate: agora
+      )
+
+    aberto_inicial = WorkItems.team_open_at(tenant, team.id, desde)
+    tarefas = WorkItems.team_open_tasks_by_person(tenant, team.id, agora)
+    membros = EO.team_members_at(tenant, team.id, agora)
+
+    assign(socket,
+      detalhe: %{
+        serie: serie,
+        burn: WorkItems.burn(serie, aberto_inicial),
+        aberto_inicial: aberto_inicial,
+        previsao:
+          Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora)),
+        piso: Forecast.piso(),
+        pessoas: Enum.map(membros, &Map.put(&1, :tarefas, Map.get(tarefas, &1.person_id, [])))
+      }
+    )
+  end
+
+  # ------------------------------------------- as seções do detalhe (feature 057)
+
+  # O BURN — feature 057, US5. Duas séries num ÚNICO eixo, e o que resta como a
+  # REGIÃO entre elas, hachurada porque é derivada (FR-027).
+  #
+  # Uma terceira linha desenharia o mesmo fato duas vezes e convidaria a lê-la
+  # contra uma linha de base que ela não tem. O campo `aberto` existe e é o mesmo
+  # número que a altura da faixa representa — o que a regra proíbe é apresentá-lo
+  # como série.
+  attr :detalhe, :map, required: true
+
+  defp burn_da_equipe(assigns) do
+    assigns = assign(assigns, :pontos, pontos_do_burn(assigns.detalhe.burn))
+
+    ~H"""
+    <section class="card bg-base-200 p-4">
+      <h2 class="text-sm font-semibold">Burn-up and burn-down</h2>
+      <p class="mt-1 text-xs opacity-70">
+        8 weeks · cumulative opened and closed. The hatched band between them is the work
+        still open — it is derived from the two series, not a third line.
+      </p>
+
+      <p :if={@detalhe.serie == []} class="mt-3 text-sm opacity-70">
+        No week of this team falls inside the collected period, so there is no series to
+        draw — which is not the same as a series of zeros.
+      </p>
+
+      <svg
+        :if={@pontos}
+        viewBox="0 0 560 170"
+        class="mt-3 w-full"
+        role="img"
+        aria-label={"Cumulative opened and closed over #{length(@detalhe.burn)} weeks. The band between them is the work still open, #{@pontos.aberto_final} at the end."}
+      >
+        <defs>
+          <pattern
+            id="burn-hachura"
+            width="6"
+            height="6"
+            patternTransform="rotate(135)"
+            patternUnits="userSpaceOnUse"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="6"
+              stroke="currentColor"
+              stroke-width="1.4"
+              class="text-primary"
+              opacity="0.38"
+            />
+          </pattern>
+        </defs>
+        <polygon points={@pontos.faixa} fill="url(#burn-hachura)" />
+        <polyline
+          points={@pontos.escopo}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="text-primary"
+        />
+        <polyline
+          points={@pontos.feito}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="text-warning"
+        />
+      </svg>
+
+      <div :if={@pontos} class="mt-2 flex flex-wrap gap-4 text-xs">
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-1 w-4 rounded bg-primary"></span> opened, cumulative
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-1 w-4 rounded bg-warning"></span> closed, cumulative
+        </span>
+        <span class="opacity-70">
+          still open: <span class="font-mono tabular-nums">{@pontos.aberto_final}</span>
+        </span>
+      </div>
+
+      <details :if={@pontos} class="mt-2">
+        <summary class="cursor-pointer text-xs opacity-70">see as a table</summary>
+        <table class="table table-xs mt-2">
+          <thead>
+            <tr>
+              <th>week</th><th class="text-right">opened</th><th class="text-right">closed</th><th class="text-right">
+                still open
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={b <- @detalhe.burn}>
+              <td class="font-mono text-xs">{b.periodo}</td>
+              <td class="text-right font-mono tabular-nums">{b.escopo}</td>
+              <td class="text-right font-mono tabular-nums">{b.feito}</td>
+              <td class="text-right font-mono tabular-nums">{b.aberto}</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+
+      <div class="mt-3 rounded border border-dashed border-base-300 p-3 text-sm">
+        <p>
+          The cumulative opened starts at
+          <span class="font-mono tabular-nums">{@detalhe.aberto_inicial}</span>
+          —
+          the items already open when the window began. Starting from zero would measure only
+          the items born inside these eight weeks, and call that the open work.
+        </p>
+        <p class="mt-2 opacity-80">
+          There is <strong>no committed scope</strong> here, so this does not answer whether a
+          sprint finishes. And <em>closed</em> is the issue being closed at the source — an act
+          of the tool, not a declared end criterion. A task abandoned and one finished look the
+          same here.
+        </p>
+      </div>
+    </section>
+    """
+  end
+
+  # A PREVISÃO — feature 057, US6. Faixa com sua confiança, nunca data.
+  attr :detalhe, :map, required: true
+
+  defp previsao_da_equipe(assigns) do
+    ~H"""
+    <section class="card bg-base-200 p-4">
+      <h2 class="text-sm font-semibold">Delivery forecast</h2>
+      <div class="mt-1">
+        <span class="badge badge-outline badge-sm gap-1 text-warning">
+          <span class="size-2.5 shrink-0 rounded-[1px] outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"></span>
+          derived — simulated from this team's own history
+        </span>
+      </div>
+
+      <%!-- Abaixo do piso a plataforma RECUSA e diz o que falta. Uma faixa larga
+            apresentada com rótulo de 85% empresta autoridade a ruído. --%>
+      <div :if={match?({:sem_historico, _}, @detalhe.previsao)} class="mt-3 text-sm">
+        <% {:sem_historico, falta} = @detalhe.previsao %>
+        <p>
+          <strong>No forecast yet.</strong>
+          It needs <span class="font-mono tabular-nums">{falta.semanas_exigidas}</span>
+          weeks of history and <span class="font-mono tabular-nums">{falta.fechadas_exigidas}</span>
+          closed items; this team has <span class="font-mono tabular-nums">{falta.semanas}</span>
+          and <span class="font-mono tabular-nums">{falta.fechadas}</span>.
+        </p>
+        <p class="mt-2 opacity-80">
+          Below that, the range would cover almost the whole horizon. Refusing says more than a
+          number nobody could act on.
+        </p>
+      </div>
+
+      <div :if={match?({:ok, _}, @detalhe.previsao)} class="mt-3 space-y-3">
+        <% {:ok, p} = @detalhe.previsao %>
+        <p class="text-sm opacity-80">
+          {p.rodadas} runs, each drawing a week of throughput at random from the weeks this team
+          actually had. No estimates.
+        </p>
+
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>hypothesis</th><th class="text-right">50%</th><th class="text-right">85%</th><th class="text-right">
+                95%
+              </th><th class="text-right">did not finish</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>if nothing new opened</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.congelado.p50)}</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.congelado.p85)}</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.congelado.p95)}</td>
+              <td class="text-right font-mono tabular-nums">{p.congelado.nao_concluiram}</td>
+            </tr>
+            <tr>
+              <td>if work keeps arriving as it has</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.vivo.p50)}</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.vivo.p85)}</td>
+              <td class="text-right font-mono tabular-nums">{semana_ou_traco(p.vivo.p95)}</td>
+              <td class="text-right font-mono tabular-nums">{p.vivo.nao_concluiram}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="rounded border border-dashed border-base-300 p-3 text-sm">
+          <p>
+            Work arrives at
+            <span class="font-mono tabular-nums">{Float.round(p.ritmo.abre_por_semana, 1)}</span>
+            a week and leaves at <span class="font-mono tabular-nums">{Float.round(p.ritmo.fecha_por_semana, 1)}</span>.
+            The two hypotheses answer different questions, and both can be true at once.
+          </p>
+          <p class="mt-2 opacity-80">
+            A dash means <strong>unknown</strong>, not far away: those runs did not finish inside
+            the {p.horizonte_semanas}-week horizon, and a large number would read as a date.
+          </p>
+          <p class="mt-2 opacity-80">
+            Read <em>85%</em> as the line from what we have seen — never as a date that was
+            promised. The simulation assumes the period ahead resembles the one observed: same
+            people, same kind of work.
+          </p>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # AS PESSOAS — feature 057, US4. TODAS as tarefas abertas, e nenhuma eleita
+  # como "atual": qual delas é a atual é julgamento que o dado não faz.
+  attr :detalhe, :map, required: true
+  attr :habilidades, :map, required: true
+
+  defp pessoas_da_equipe(assigns) do
+    ~H"""
+    <section class="card bg-base-200 p-4">
+      <h2 class="text-sm font-semibold">What each person is on</h2>
+      <p class="mt-1 text-xs opacity-70">
+        Every open task assigned, with how long it has been open. Time counts from when the
+        item was opened — the source does not record when someone took it on.
+      </p>
+
+      <p :if={@detalhe.pessoas == []} class="mt-3 text-sm opacity-70">
+        No one has a declared membership in this team right now.
+      </p>
+
+      <div :for={p <- @detalhe.pessoas} class="mt-3 border-t border-base-300 pt-2">
+        <div class="flex flex-wrap items-baseline gap-2">
+          <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover font-semibold">
+            {p.name || p.login}
+          </.link>
+          <span :if={is_nil(p.started_at)} class="badge badge-ghost badge-xs">
+            start date unknown
+          </span>
+        </div>
+
+        <%!-- Ausência DITA, e a pessoa não some da lista (FR-021). --%>
+        <p :if={p.tarefas == []} class="ml-4 text-sm opacity-70">No open task assigned</p>
+
+        <div :for={t <- p.tarefas} class="ml-4 flex flex-wrap items-baseline gap-2 text-sm">
+          <span class="font-mono text-xs opacity-70">{t.external_id}</span>
+          <.link navigate={~p"/work/issues/#{t.issue_id}"} class="link link-hover flex-1">
+            {t.titulo}
+          </.link>
+          <span class={["font-mono text-xs tabular-nums", t.parada? && "font-semibold text-warning"]}>
+            {t.aberta_ha_dias}d
+          </span>
+          <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">stale</span>
+        </div>
+
+        <%!-- AS HABILIDADES — feature 057, FR-022 a FR-024. Mesma gramática da
+              tela de pessoa: pílulas âmbar tracejadas e hachuradas, porque são
+              CONCLUSÃO lida do trabalho concluído, e não registro. Quem passa os
+              olhos precisa ver que é derivado antes de ler a palavra. --%>
+        <div
+          :if={match?({:ok, _}, Map.get(@habilidades, p.person_id))}
+          class="ml-4 mt-1 flex flex-wrap items-center gap-1.5"
+        >
+          <% {:ok, hs} = @habilidades[p.person_id] %>
+          <span class="text-xs font-semibold tracking-wide text-warning uppercase">
+            demonstrated
+          </span>
+          <span
+            :for={h <- hs}
+            class="rounded-full border border-dashed border-warning/70 bg-warning/5 px-2.5 py-0.5 text-xs text-warning"
+          >
+            {h}
+          </span>
+        </div>
+
+        <%!-- Abaixo do piso NÃO lista nada, e diz por quê (FR-023). Uma seção
+              vazia responderia "nenhuma habilidade", que é afirmação diferente de
+              "não havia material para ler". --%>
+        <p
+          :if={match?({:abaixo_do_piso, _}, Map.get(@habilidades, p.person_id))}
+          class="ml-4 mt-1 text-xs opacity-70"
+        >
+          No skill is listed: this person has no current profile, and a profile is only
+          generated above a floor of completed work. <strong>That is a gap in the record</strong>,
+          never a statement about the person.
+        </p>
+      </div>
+
+      <div class="mt-3 rounded border border-dashed border-base-300 p-3 text-sm">
+        <p>
+          A task with more than one person responsible <strong>appears once for each</strong>.
+          Summing these lines would overcount the team, and the team's own numbers are measured
+          separately rather than derived from them.
+        </p>
+        <p class="mt-2 opacity-80">
+          <em>Stale</em> past 90 days is an invitation to ask, not a verdict: it says the board
+          has not been told anything about that item in three months.
+        </p>
+        <p class="mt-2 opacity-80">
+          The skills are <strong>derived</strong> from completed work — hatched because they are a
+          conclusion, not a record. A missing skill means <strong>not observed here</strong>:
+          someone can be excellent at something and never have done it in this repository, in
+          this period. Read the other way round, this becomes a ranking of people, which it is
+          not and cannot support.
+        </p>
+      </div>
+    </section>
+    """
+  end
+
+  # A geometria do burn, calculada aqui e não no template: o template desenha o
+  # que recebe, e uma expressão aritmética dentro do HEEx é onde erro de eixo se
+  # esconde.
+  defp pontos_do_burn([]), do: nil
+
+  defp pontos_do_burn(burn) do
+    largura = 560
+    altura = 150
+    limite = max(Enum.max(Enum.map(burn, & &1.escopo)), 1) * 1.12
+    passo = if length(burn) > 1, do: largura / (length(burn) - 1), else: 0
+
+    coord = fn valores ->
+      valores
+      |> Enum.with_index()
+      |> Enum.map_join(" ", fn {v, i} ->
+        "#{Float.round(i * passo, 1)},#{Float.round(altura - v / limite * altura, 1)}"
+      end)
+    end
+
+    escopo = coord.(Enum.map(burn, & &1.escopo))
+    feito = coord.(Enum.map(burn, & &1.feito))
+
+    %{
+      escopo: escopo,
+      feito: feito,
+      faixa: escopo <> " " <> (feito |> String.split(" ") |> Enum.reverse() |> Enum.join(" ")),
+      aberto_final: List.last(burn).aberto
+    }
+  end
+
+  # Traço, e não um número grande: nulo diz desconhecido.
+  defp semana_ou_traco(nil), do: "—"
+  defp semana_ou_traco(n), do: "week #{n}"
 
   # O valor do `<option>` carrega a ORIGEM junto do identificador, porque papel do catálogo
   # ainda não usado **não tem id**. Sem isso, a tela teria de materializar antes de promover —
@@ -375,6 +862,134 @@ defmodule TheBandWeb.TeamsLive.Show do
           {@encontradas} {if @encontradas == 1, do: "member", else: "members"} · {@pending_role} with no organisational role assigned
         </:subtitle>
       </.header>
+
+      <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
+            dos membros diretos, e NENHUM total.
+
+            Não somar é decisão, e não lacuna: a mesma pessoa pode pertencer a duas
+            subequipes e a mesma tarefa aparecer nas duas. O texto abaixo da tabela
+            diz isso, porque sem ele a ausência de total parece esquecimento e
+            alguém acrescenta o total depois.
+
+            **Nenhum gráfico aqui** (FR-011): esta tela é para comparar, e
+            comparação se faz em números alinhados. Os gráficos vivem na tela da
+            subequipe. --%>
+      <section :if={@composta?} class="card bg-base-200 p-4">
+        <h2 class="text-sm font-semibold">Teams inside this one</h2>
+        <p class="mt-1 text-xs opacity-70">
+          Ordered by stopped work, so the row that needs a conversation comes first.
+        </p>
+
+        <table class="table table-sm mt-3">
+          <thead>
+            <tr>
+              <th>team</th>
+              <th class="text-right">members</th>
+              <th class="text-right">open</th>
+              <th class="text-right">closed · 8w</th>
+              <th class="text-right">stopped</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={l <- @linhas}>
+              <td>
+                <.link :if={not l.direta?} navigate={~p"/teams/#{l.team_id}"} class="link">
+                  {l.nome}
+                </.link>
+                <span :if={l.direta?} class="opacity-80">{l.nome}</span>
+              </td>
+              <%!-- Ausência NOMEADA, nunca zero (FR-012). Uma subequipe sem trabalho
+                    no período não teve zero itens: não houve o que observar, e as
+                    duas coisas levam a decisões diferentes. --%>
+              <td :if={l.sem_trabalho?} colspan="4" class="text-xs opacity-70">
+                No work observed in the period — which is not the same as zero.
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.membros}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.abertas}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                {l.fechadas_na_janela}
+              </td>
+              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                <span class={if l.paradas > 0, do: "text-warning font-semibold"}>{l.paradas}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="mt-3 rounded border border-dashed border-base-300 p-3">
+          <h3 class="text-xs font-semibold tracking-wide uppercase opacity-70">
+            why these rows are not added up
+          </h3>
+          <p class="mt-1 text-sm">
+            The same person can belong to <strong>two sub-teams</strong>, and the same task can
+            appear in both. A total would count each of them twice, and nobody could reconcile
+            it with the work that exists. Each row is measured on its own.
+          </p>
+          <p class="mt-2 text-sm opacity-80">
+            Charts live on each sub-team's own screen. This one is for comparing, and comparing
+            is done in aligned numbers.
+          </p>
+        </div>
+      </section>
+
+      <%!-- O DETALHE da subequipe. Só existe quando a equipe não é composta: são as
+            duas telas da spec, numa rota só, porque a pergunta é a mesma — como
+            está esta equipe. --%>
+      <div :if={@detalhe} class="space-y-4">
+        <.burn_da_equipe detalhe={@detalhe} />
+        <.previsao_da_equipe detalhe={@detalhe} />
+        <.pessoas_da_equipe
+          detalhe={@detalhe}
+          habilidades={Profiles.team_skills_by_person(@cobertura)}
+        />
+      </div>
+
+      <section class="card bg-base-200 p-4">
+        <h2 class="text-sm font-semibold">Structure</h2>
+
+        <div :if={@faz_parte_de != []} class="mt-2 text-sm">
+          <span class="opacity-70">Part of:</span>
+          <span :for={m <- @faz_parte_de} class="ml-1">
+            <.link navigate={~p"/teams/#{m.team_id}"} class="link">{m.name}</.link>
+          </span>
+        </div>
+
+        <div class="mt-3">
+          <span class="text-sm opacity-70">Contains:</span>
+          <p :if={@contem == []} class="text-sm opacity-60">
+            No team inside this one.
+          </p>
+          <ul :if={@contem != []} class="mt-1 space-y-1">
+            <li :for={f <- @contem} class="flex items-center gap-2 text-sm">
+              <.link navigate={~p"/teams/#{f.team_id}"} class="link">{f.name}</.link>
+              <span class="opacity-60 text-xs">since {f.desde}</span>
+              <button
+                phx-click="descompor"
+                phx-value-part_id={f.team_id}
+                class="btn btn-xs btn-ghost text-error"
+                data-confirm="The team keeps existing — only the composition ends."
+              >
+                remove from here
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <form phx-submit="criar_subequipe" class="mt-4 flex flex-wrap items-end gap-3">
+          <label class="form-control">
+            <span class="label-text text-xs">Declare a team inside this one</span>
+            <input type="text" name="name" required class="input input-sm input-bordered" />
+          </label>
+          <button type="submit" class="btn btn-sm">Declare inside</button>
+          <span class="text-xs opacity-60">
+            It inherits this team's organisation — a team is declared inside what you already reach.
+          </span>
+        </form>
+      </section>
 
       <.data_table
         id="members"
