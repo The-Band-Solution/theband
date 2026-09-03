@@ -49,8 +49,9 @@ Ausência de erro não é resultado. O gate precisa saber **reprovar**, e o cami
 | [L63](#l63--vínculo-que-só-grava-o-que-casou-apaga-o-que-a-origem-disse) | Vínculo que só grava o que casou apaga o que a origem disse | técnica | 021 |
 | [L66](#l66--script-que-monta-o-contexto-à-mão-esconde-o-contrato-que-o-job-real-quebra) | Script que monta o contexto à mão esconde o contrato que o job real quebra | técnica | 021 |
 | [L69](#l69--defeito-dentro-de-loggerinfo-é-invisível-a-teste-por-configuração) | Defeito dentro de `Logger.info` é invisível a teste, por configuração | técnica | 002 |
+| [L101](#l101--issue-fechada-na-integração-afirma-sobre-a-produção) | Issue fechada na integração afirma sobre a produção | processo | 029 |
 
-**16 abertas** · encerradas ou fundidas: L60
+**17 abertas** · encerradas ou fundidas: L60
 
 ### O número que mente sobre o que mediu
 
@@ -126,7 +127,13 @@ Compara consigo mesmo, depende do relógio, ou fecha o contraexemplo sem fechar 
 | [L74](#l74--a-árvore-de-trabalho-decide-o-que-o-dev-server-serve) | A árvore de trabalho decide o que o dev server serve | processo | 023 |
 | [L79](#l79--agente-com-árvore-compartilhada-não-troca-de-branch) | Agente com árvore compartilhada não troca de branch | processo | 024 |
 
-**5 abertas** · encerradas ou fundidas: L75, L83, L92
+**8 abertas** · encerradas ou fundidas: nenhuma
+
+**L75, L83 e L92 foram REABERTAS em 2026-09-03** — o release v0.4.0 entrou por
+squash com a regra no `AGENTS.md`, o campo no template e o motivo declarado no
+corpo do PR. Ver
+[As três do squash](#as-três-do-squash-encerradas-juntas--sprint-028): elas só
+encerram quando o guarda for configuração, e não lembrete.
 
 ### Revisão e PR
 
@@ -3457,6 +3464,47 @@ terminado.
 **Se reincidir mesmo assim**, a próxima medida não é uma quarta lição: é
 desabilitar o squash na configuração do repositório para os casos em que ele
 destrói, e deixar o botão oferecer só o que é correto.
+
+### REINCIDIU — 2026-09-03, e as três voltam a estar ABERTAS
+
+O release **v0.4.0** entrou na `main` por **squash**. A conta é objetiva:
+
+```
+1b04c53  →  1 pai      v0.4.0, este release
+b0fe177  →  2 pais      v0.3.0, feito certo
+```
+
+As duas camadas criadas no sprint 028 estavam no lugar, e nenhuma segurou:
+
+- o `AGENTS.md` §12 tinha a tabela, com "release `development` → `main`" =
+  **merge commit**, e o motivo;
+- o template exigia o tipo declarado, e o corpo do PR #791 **declarava merge
+  commit** com a citação da L83 dentro dele.
+
+A divergência voltou: `development..main` = 2, `main..development` = 60, com os
+releases **v0.3.0 e v0.4.0 ambos sem back-merge**. Desfeito no PR #793 — quatro
+conflitos, todos de conteúdo que a `development` já tinha, e a árvore resultante
+**idêntica** à dela (`git diff --cached origin/development` vazio).
+
+**O que isto ensina, e é diferente das três:** declarar no corpo do PR é a
+terceira forma de lembrete, não a primeira forma de guarda. Regra em documento,
+campo em template e motivo escrito por quem abriu — as três dependem de alguém
+ler no momento de clicar.
+
+**A medida prescrita acima está vencida**, e a configuração hoje é:
+
+```
+allow_merge_commit: true    allow_squash_merge: true    allow_rebase_merge: true
+gh api .../branches/main/protection  →  404 Branch not protected
+```
+
+Duas saídas, e a segunda tem menos custo: desligar `allow_squash_merge` no
+repositório (features simples para `development` perdem o squash que o
+`AGENTS.md` recomenda), **ou** branch protection na `main` com método de merge por
+branch e `quality-gates` obrigatório — que resolve isto **e** o clique com CI
+pendente. A pessoa mantenedora decidiu criar a proteção em 2026-09-03.
+
+**Até ela existir, as três não estão encerradas.**
 ## L98 — A lição que não vira regra reincide no sprint seguinte
 
 **Tipo**: processo · **Origem**: Sprint 028 · **Estado**: aberta
@@ -3542,3 +3590,59 @@ Uma linha responde. Se não estiver vazio, abrir o PR dela **antes** de começar
 implementar — os PRs de código dependem daqueles documentos para serem revisáveis.
 
 **Aplicada em**: Sprint 028 — corrigido com o PR #760, aberto tarde.
+
+---
+
+## L101 — Issue fechada na integração afirma sobre a produção
+
+**Sprint 029** · processo
+
+A closing keyword do GitHub dispara quando o PR entra na **branch padrão** —
+`development`. A produção é a `main`. Entre as duas há um release, e no intervalo
+a issue está **fechada** com o código **fora do ar**.
+
+**O que aconteceu.** Em 2026-09-03 os dois PRs entraram fora de ordem, por
+quinze segundos:
+
+```
+#791  release v0.4.0   mergeado 13:25:52Z
+#792  a FR-012 do 055  mergeado 13:26:07Z
+```
+
+A v0.4.0 subiu **sem** a T014. Conferido na origem, e não pelo PR:
+`membership_disagreements` não existe na `main`, existe na `development`.
+
+**Por que é defeito e não contratempo.** Isolado, código faltando num release é
+banal — sai no próximo. O defeito é a **combinação de dois sinais verdadeiros**
+que juntos afirmam algo falso: a issue #700 está fechada, o release v0.4.0 está
+publicado com tag e CD verde, e quem conferir a entrega pela issue conclui que a
+FR-012 está atendida em produção. A tela no ar continua sem marcar a discordância
+entre coleta e declaração.
+
+Ninguém mentiu e nenhum passo falhou. É a família do
+[sucesso silencioso](#o-defeito-que-não-produz-erro): ausência de erro lida como
+resultado, agora na fronteira entre integração e produção.
+
+**Por que a ordem foi declarada e não bastou.** O corpo do #791 trazia a ordem
+numerada, com o passo 1 sendo "o #792 entra primeiro" e o motivo escrito. Dois
+PRs prontos ao mesmo tempo, e os dois botões verdes — a ordem existia no
+documento, não no mecanismo. É a mesma forma da reincidência do squash no mesmo
+dia, e por isso as duas apontam para a mesma medida.
+
+**O que fazer diferente.**
+
+1. **Conferir na `main`, nunca na issue**, se a pergunta é "está em produção":
+
+   ```bash
+   git grep -c '<símbolo novo>' origin/main -- lib   # 0 = não está no ar
+   ```
+
+2. **Quando dois PRs têm ordem entre si, um deles não deve estar mergeável.**
+   Deixar o release em **draft** até o dependente entrar transforma a ordem em
+   mecanismo, e custa um clique;
+3. **A issue que fecha na integração não afirma sobre produção**, e o corpo do PR
+   de release é o único lugar onde essa diferença fica registrada. Enquanto o
+   release não sai, uma issue fechada é promessa, não entrega.
+
+**Aplicada em**: Sprint 029 — a T014 ficou fora da v0.4.0, e a #700 fechada
+enquanto a produção não a tem.

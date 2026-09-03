@@ -142,6 +142,12 @@ ciclo e ser recusado.
   - **Descrição**: `mix gates` com o código de saída dentro do log; PR no padrão da casa — issues com resumo na frente —, e revisão pedida **e conferida** com `gh pr view <n> --json reviewRequests`, porque o comando de pedir sai zero mesmo sem pedir ninguém (L89, L14)
   - **Feita quando**: `EXIT=0`; o PR existe com revisor **não vazio** no JSON, e está no board
   - **Teste**: `tail -1 /tmp/gates_055.log` = `EXIT=0`; `gh pr view <n> --json reviewRequests` devolve lista não vazia
+  - **NÃO ATENDÍVEL COMO ESCRITA — 2026-09-03**: `mix gates` saiu **0** e o PR
+    existiu no padrão (#792, com as issues e o resumo na frente). O que não é
+    atendível é "revisor **não vazio** no JSON": a pessoa mantenedora decidiu em
+    2026-09-03 que a revisão é dela, e autor não se atribui como revisor. A
+    tarefa fica **aberta e declarada**, nunca marcada — princípio VII. Reescrever
+    o critério é decisão de quem zela pelo backlog, e não deste PR
 
 ## Dependências e ordem
 

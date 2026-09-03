@@ -48,11 +48,45 @@ defmodule TheBand.Periodos do
 
   A ausência de borda **não impede** a recusa: dois períodos com início nulo cujos
   fins são disjuntos continuam sendo `:nao_intersecta`, porque o que se sabe já
-  basta para negar. O `{:parcial, _}` só aparece quando a sobreposição **depende**
-  de uma borda que ninguém declarou.
+  basta para negar.
 
   Dizer `{:parcial, _}` para um caso que já se sabe negativo seria o erro
   simétrico: transformar conhecimento em dúvida.
+
+  ## A marca é PESSIMISTA, e o que isso custa
+
+  Corrigido em 2026-09-03. Este trecho afirmava que o `{:parcial, _}` "só aparece
+  quando a sobreposição **depende** de uma borda que ninguém declarou". **O código
+  não faz isso**, e nunca fez:
+
+      defp bordas_desconhecidas(periodos) do
+        if Enum.any?(periodos, &is_nil(&1.inicio)), do: [:inicio_desconhecido], else: []
+      end
+
+  Qualquer início nulo marca, mesmo quando a sobreposição é certa por outro
+  caminho. Medido:
+
+      membro  = jan–dez     (início conhecido)
+      vinculo = jan–dez     (início conhecido)
+      janela  = ?–jun       (início nulo)
+
+  A sobreposição jan–jun está **inteira** dentro das duas pontas conhecidas: não
+  importa onde a janela comece, ela existe. O veredito ainda assim é
+  `{:parcial, [:inicio_desconhecido]}`.
+
+  Os 12 testes da T001 passaram porque nenhum deles tinha um período de início
+  nulo cuja sobreposição fosse certa pelos outros — o caso não estava coberto.
+
+  **Consequência para quem chama:** janela de consulta com data vazia envenena
+  **toda** linha do resultado, e a marca deixa de distinguir coisa alguma — que é
+  exatamente o que este módulo declara querer evitar duas seções acima. Quem
+  monta a janela a partir de campo de formulário **precisa exigir as duas datas**.
+
+  Corrigir o código para cumprir a promessa original é decisão em aberto: ela
+  muda o que `interseccao/1` devolve para casos que hoje já têm chamador, e a
+  marca passaria a significar algo mais forte. Enquanto não for tomada, **este
+  documento descreve o comportamento real**: pessimista, e errando para o lado de
+  duvidar.
 
   ## Exemplos
 

@@ -1,11 +1,11 @@
-# Retomar — estado em 2026-09-03, com o release v0.4.0 esperando decisão
+# Retomar — estado em 2026-09-03 (tarde), a v0.4.0 no ar e uma frase errada em produção
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
 ## Onde parei, em uma frase
 
-**O release v0.4.0 está aberto e esperando o Product Owner**, e o sprint 029 tem
-cinco das 21 tarefas na `development` — sem nada em tela.
+**A v0.4.0 está em produção** — e ela subiu **sem** a T014, por quinze segundos de
+ordem invertida, deixando a issue #700 fechada com o código fora do ar.
 
 ## O primeiro comando
 
@@ -14,21 +14,35 @@ git checkout development && git pull
 mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-Estava **0** em 2026-09-03, com 1 665 testes passando.
+Estava **0** em 2026-09-03, com 1 667 testes passando.
 
-## O que decide tudo o resto: dois PRs abertos
+## O release v0.4.0 saiu, e duas coisas saíram erradas
 
-| PR | O que é | Base | Quem decide |
-|---|---|---|---|
-| [#792](https://github.com/The-Band-Solution/theband/pull/792) | 055/T014 — a FR-012, as duas afirmações | `development` | entra antes do #791 |
-| [#791](https://github.com/The-Band-Solution/theband/pull/791) | **release v0.4.0** — 055, 056, 057 e a 058 parcial | `main` | **Product Owner (FR-016)** |
+Publicado em 2026-09-03 às 13:25Z. CD verde (run `33761119637`), tag `v0.4.0`,
+imagem entregue. Leva as features **055**, **056**, **057** e a **058 parcial**.
 
-**Merge no #791 É o deploy** — o CD dispara em push na `main`. A produção está em
-**v0.3.0** desde 2026-09-01; a `development` está em `0.4.0` e 59 commits à
-frente.
+**Erro 1 — entrou por squash.** `1b04c53` tem **um** pai; o release v0.3.0
+(`b0fe177`) tem dois. É a L83 pela quarta vez, agora com a regra no `AGENTS.md`
+§12, o campo no template e o motivo declarado no corpo do #791. Desfeito pelo
+back-merge do #793 — `development..main` voltou a **0**, e a `main` é ancestral da
+`development` outra vez.
 
-**A ordem importa**: o #792 primeiro. Mergeado o #791 antes dele, a v0.4.0 sobe
-com a FR-012 do 055 aberta.
+**Erro 2 — a ordem inverteu, e é o que ainda está aberto:**
+
+```
+#791  release v0.4.0   mergeado 13:25:52Z
+#792  a FR-012 do 055  mergeado 13:26:07Z
+```
+
+**A produção não tem a T014.** Conferido na origem:
+`git grep -c membership_disagreements origin/main -- lib` devolve nada.
+
+O defeito não é o código faltando — é que a **#700 está fechada** e o release
+está **publicado**, e as duas coisas juntas afirmam que a FR-012 está atendida no
+ar. A tela em produção continua sem marcar a discordância entre coleta e
+declaração. Virou a **L101**.
+
+**A v0.5.0 conserta isso**, e é o PR aberto agora.
 
 **E nada protege a `main`.** Medido em 2026-09-03:
 `gh api repos/The-Band-Solution/theband/branches/main/protection` devolve
