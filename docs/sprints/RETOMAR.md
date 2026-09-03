@@ -1,21 +1,38 @@
-# Retomar — estado em 2026-09-02 (noite)
+# Retomar — estado em 2026-09-03, com o release v0.4.0 esperando decisão
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
 ## Onde parei, em uma frase
 
-**Sprint 029 aberto e a implementação começada**: `TheBand.Periodos` e a US2
-prontas na branch `058-medidas-da-equipe`, cinco commits empurrados, **sem PR
-aberto ainda**.
+**O release v0.4.0 está aberto e esperando o Product Owner**, e o sprint 029 tem
+cinco das 21 tarefas na `development` — sem nada em tela.
 
 ## O primeiro comando
 
 ```bash
-git checkout 058-medidas-da-equipe && git pull
+git checkout development && git pull
 mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-Estava **0** ao desligar.
+Estava **0** em 2026-09-03, com 1 665 testes passando.
+
+## O que decide tudo o resto: dois PRs abertos
+
+| PR | O que é | Base | Quem decide |
+|---|---|---|---|
+| [#792](https://github.com/The-Band-Solution/theband/pull/792) | 055/T014 — a FR-012, as duas afirmações | `development` | entra antes do #791 |
+| [#791](https://github.com/The-Band-Solution/theband/pull/791) | **release v0.4.0** — 055, 056, 057 e a 058 parcial | `main` | **Product Owner (FR-016)** |
+
+**Merge no #791 É o deploy** — o CD dispara em push na `main`. A produção está em
+**v0.3.0** desde 2026-09-01; a `development` está em `0.4.0` e 59 commits à
+frente.
+
+**A ordem importa**: o #792 primeiro. Mergeado o #791 antes dele, a v0.4.0 sobe
+com a FR-012 do 055 aberta.
+
+**E nada protege a `main`.** Sem branch protection, o botão de merge aceita
+clique com o CI pendente ou vermelho — e o clique é o deploy. O guarda hoje é
+disciplina humana, e está registrado como decisão pendente no #791.
 
 ---
 
@@ -23,26 +40,37 @@ Estava **0** ao desligar.
 
 | Tarefa | Issue | O que é |
 |---|---|---|
-| **T008** ← **começar aqui** | [#775](https://github.com/The-Band-Solution/theband/issues/775) | recortar a espera por revisão pela equipe |
-| T009 | [#776](https://github.com/The-Band-Solution/theband/issues/776) | espera em curso, que não é tempo zero |
-| T010, T011 | #777, #778 | por pessoa, e a seção na tela |
+| **T006** ← **começar aqui** | [#773](https://github.com/The-Band-Solution/theband/issues/773) | a marca do período parcialmente desconhecido, na tela |
+| **T007** | [#774](https://github.com/The-Band-Solution/theband/issues/774) | a seção na tela do projeto, com a ausência dita |
+| T008–T011 | #775–#778 | a US1 — o tempo até a primeira revisão |
 | T012–T016 | #779–#783 | a US3 inteira — a taxa do pipeline |
 | T017–T021 | #784–#788 | polish, cobertura, gates e PR |
 
-**Feito**: T001–T005 ([#768](https://github.com/The-Band-Solution/theband/issues/768)–[#772](https://github.com/The-Band-Solution/theband/issues/772)),
-25 testes passando. **T006 e T007** (a marca do parcial e a seção na tela) ainda
-não.
+**Feito e MERGEADO**: T001–T005
+([#768](https://github.com/The-Band-Solution/theband/issues/768)–[#772](https://github.com/The-Band-Solution/theband/issues/772)
+fechadas), pelo squash do #789 em `1e733aa`.
+
+**Começar pela T006, e não pela T008.** A ordem anterior deste arquivo dizia T008,
+e estava errada: a US2 é o MVP e ficou sem as duas tarefas de tela.
+
+**O que isso custou, e vale dizer em voz alta**: `who_worked_on/3` e
+`TheBand.Periodos` estão na `development` **sem consumidor visível**, e o release
+v0.4.0 os leva a produção assim. Ninguém que usa a plataforma vê diferença
+nenhuma. O #789 foi mergeado ainda em draft, e a T006 e a T007 são o que fecha
+isso — é por elas que a próxima sessão começa.
 
 Tudo em [`specs/058-medidas-da-equipe/tasks.md`](../../specs/058-medidas-da-equipe/tasks.md),
 com os quatro campos e o link de cada issue.
 
 ### A primeira coisa a fazer, além de código
 
-**Abrir o PR desta branch.** Os cinco commits estão no remoto e sem PR — foi
-exatamente esse o defeito da **L100** no sprint passado, e ele reincidiria aqui.
+**Conferir se o release saiu, e o que ele deixou pendente.** Se o #791 já entrou:
+medir a produção pelo [runbook](../producao/runbook.md) — SC-001 a SC-005, contra
+o endereço real e não pelo painel do Dokploy dizer `Done` (**L84**) — e fazer o
+**back-merge `main` → `development` com merge commit** (**L92**).
 
-Usar o template novo: `.github/pull_request_template.md`. **Tipo de merge é campo
-obrigatório** — esta branch é `squash` (nada ramifica dela).
+Se não entrou, ele continua esperando decisão do Product Owner, e a T006 é o
+trabalho que não depende disso.
 
 ---
 
