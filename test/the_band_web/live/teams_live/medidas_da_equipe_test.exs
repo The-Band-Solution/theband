@@ -16,14 +16,18 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
 
   import Ecto.Query
   import Phoenix.LiveViewTest
+  import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
 
+  alias TheBand.Changes.Commands, as: ChangeCommands
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Quality.Commands, as: QualityCommands
   alias TheBand.Repo
 
   setup %{conn: conn} do
     {tenant, admin} = tenant_with_admin()
-    org = organization_fixture(tenant, "acme")
+    cenario = cenario_real(tenant)
+    org = cenario.organization
     {:ok, papel} = EO.create_role(tenant, org.id, %{code: "dev", name: "Dev"}, admin.id)
     {:ok, equipe} = EO.declare_structural_team(tenant, org.id, "Dados", admin.id)
 
@@ -33,7 +37,8 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       admin: admin,
       org: org,
       papel: papel,
-      equipe: equipe
+      equipe: equipe,
+      repo_id: cenario.observed_repository_id
     }
   end
 
@@ -177,5 +182,118 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
 
       refute secao =~ "ana"
     end
+  end
+
+  describe "a espera por revisão (US1)" do
+    test "declara o que a medida descarta, e de onde o tempo conta", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 201, ana, dias_atras(10))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 2, :hour))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "on the day they opened them", """
+      A tela não diz que o recorte é pela ABERTURA. Sem essa frase, quem lê supõe que a
+      lista é de quem está na equipe hoje, e a medida vira outra (FR-019).
+      """
+
+      assert secao =~ "bot review does not end the count", """
+      A tela não declara que descarta a revisão de robô (FR-003). O número existiria sem
+      dizer o que ele exclui.
+      """
+
+      assert secao =~ "2.0h to first human review"
+    end
+
+    test "a espera em curso aparece contada ao lado, e não somem nem viram zero", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      _sem_revisao = solicitacao(ctx, 202, ana, dias_atras(12))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "waiting for 12 day(s)"
+      assert secao =~ "still waiting"
+
+      assert secao =~ "none reviewed yet", """
+      Sem nenhuma revisada a tela precisa dizer que não há mediana. Um "0h" ali afirmaria
+      revisão instantânea (FR-018).
+      """
+    end
+
+    test "duas pessoas com esperas distintas, e o texto que impede reconciliar", ctx do
+      ana = pessoa(ctx, "ana")
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      vincular(ctx, ctx.equipe, bia, dias_atras(200))
+
+      pr_ana = solicitacao(ctx, 203, ana, dias_atras(9))
+      revisao(ctx, pr_ana, DateTime.add(pr_ana.external_created_at, 3, :hour))
+      pr_bia = solicitacao(ctx, 204, bia, dias_atras(8))
+      revisao(ctx, pr_bia, DateTime.add(pr_bia.external_created_at, 1, :hour))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "ana"
+      assert secao =~ "bia"
+      assert secao =~ "3.0h to first human review"
+      assert secao =~ "1.0h to first human review"
+
+      assert secao =~ "different questions", """
+      A tela mostra as duas leituras sem dizer que elas respondem perguntas diferentes.
+      Sem a frase, alguém soma a mediana por pessoa com a da equipe (FR-005, FR-020).
+      """
+    end
+
+    test "equipe sem solicitação diz a ausência, e não zero", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "That is not a wait of", """
+      Equipe sem solicitação ficou sem frase. Zero afirmaria que a equipe abriu
+      solicitações e ninguém esperou (FR-006, FR-018).
+      """
+    end
+  end
+
+  defp solicitacao(ctx, numero, autora, aberta_em) do
+    {:ok, pr} =
+      ChangeCommands.record_change_request(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        number: numero,
+        title: "solicitação #{numero}",
+        state: "OPEN",
+        external_created_at: aberta_em,
+        author_login: autora.login,
+        author_person_id: autora.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_#{numero}"
+      })
+
+    pr
+  end
+
+  defp revisao(ctx, pr, quando) do
+    {:ok, a} =
+      QualityCommands.record_evaluation(ctx.tenant, %{
+        collected_change_request_id: pr.id,
+        state: "APPROVED",
+        author_login: "revisora",
+        author_type: "User",
+        external_submitted_at: quando,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PRR_#{System.unique_integer([:positive])}"
+      })
+
+    a
   end
 end

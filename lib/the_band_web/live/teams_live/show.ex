@@ -16,6 +16,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Quality
   alias TheBand.Tenants
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
@@ -780,6 +781,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> assign(projetos_da_equipe: vinculados)
     |> assign(projetos_disponiveis: Enum.reject(SPO.list_projects(tenant), &(&1.id in ids)))
     |> carregar_quem_trabalhou(SPO.team_projects_with_period(tenant, team.id))
+    |> carregar_espera_por_revisao()
   end
 
   # QUEM TRABALHOU nos projetos desta equipe — feature 058, US2 (T006, T007).
@@ -820,6 +822,42 @@ defmodule TheBandWeb.TeamsLive.Show do
 
     assign(socket, quem_trabalhou: linhas)
   end
+
+  # A ESPERA POR REVISÃO — feature 058, US1 (T008–T011).
+  #
+  # Uma consulta, agrupada por pessoa em memória: `agrupar_por_pessoa/1` é pura, e
+  # chamar a versão que consulta de novo produziria dois números com o mesmo
+  # rótulo, que é a L67.
+  #
+  # A janela é a mesma das outras seções — oito semanas —, e recorta pela data de
+  # ABERTURA da solicitação, porque é isso que a medida é.
+  defp carregar_espera_por_revisao(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    esperas =
+      Quality.team_time_to_first_review(tenant, team.id,
+        desde: DateTime.add(agora, -@janela_em_dias, :day),
+        ate: agora
+      )
+
+    assign(socket,
+      espera_por_revisao: %{
+        esperas: esperas,
+        por_pessoa: Quality.agrupar_por_pessoa(esperas),
+        mediana: Quality.mediana_em_horas(esperas),
+        em_curso: Enum.count(esperas, &match?({:aguardando, _}, &1.estado))
+      }
+    )
+  end
+
+  # O tempo já esperado, em texto. A em curso NUNCA vira "0h": a frase diz há
+  # quantos dias ninguém revisou, que é o que faz alguém agir.
+  defp texto_da_espera({:revisada, horas}), do: "#{horas}h to first human review"
+
+  defp texto_da_espera({:aguardando, dias}),
+    do: "waiting for #{dias} day(s) — no human review yet"
 
   # A marca do período parcialmente desconhecido (FR-009, SC-005).
   #
@@ -1361,6 +1399,81 @@ defmodule TheBandWeb.TeamsLive.Show do
         <p class="text-xs opacity-60">
           A membership with no start date is <strong>unknown</strong>, never open since
           forever — those rows carry the mark above. An open end date means <strong>current</strong>, and is not marked.
+        </p>
+      </section>
+
+      <%!-- A ESPERA POR REVISÃO — feature 058, US1 (T011).
+
+            A limitação vem JUNTO do número, e não numa página de ajuda (FR-019):
+            o tempo conta da abertura, e revisão de robô não encerra a contagem.
+            Quem lê o número sem essas duas frases lê outra medida.
+
+            A espera EM CURSO aparece ao lado da mediana, e não dentro dela: sem
+            ela, a mediana melhoraria quanto pior a equipe estivesse. --%>
+      <section id="espera-por-revisao" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Waiting for first review</h3>
+        <p class="text-sm opacity-70">
+          Change requests opened by people who belonged to this team
+          <strong>on the day they opened them</strong>
+          — not on the day you are reading. Time runs until the first <strong>human</strong>
+          review: a bot review does not end the count, and is discarded here.
+        </p>
+
+        <%!-- Equipe sem solicitação diz a ausência em texto, e nunca zero (FR-006):
+              zero afirmaria que a equipe abriu solicitações e ninguém esperou. --%>
+        <p :if={@espera_por_revisao.esperas == []} class="text-sm opacity-70">
+          No change request opened by this team in the last 8 weeks. That is not a wait of
+          zero — it is nothing to measure.
+        </p>
+
+        <div :if={@espera_por_revisao.esperas != []} class="flex flex-wrap gap-4">
+          <div class="card bg-base-200 p-3">
+            <div class="text-xs opacity-70">team median · closed waits</div>
+            <div class="text-lg font-semibold">
+              {if @espera_por_revisao.mediana, do: "#{@espera_por_revisao.mediana}h", else: "—"}
+            </div>
+            <div :if={is_nil(@espera_por_revisao.mediana)} class="text-xs opacity-60">
+              none reviewed yet — no median to state
+            </div>
+          </div>
+
+          <div class="card bg-base-200 p-3">
+            <div class="text-xs opacity-70">still waiting</div>
+            <div class="text-lg font-semibold">{@espera_por_revisao.em_curso}</div>
+            <div class="text-xs opacity-60">outside the median, counted on their own</div>
+          </div>
+        </div>
+
+        <%!-- A mesma medida POR PESSOA (T010). O texto abaixo existe porque alguém
+              somaria as duas: a mesma solicitação tem um autor só, então não há dupla
+              contagem — o que há são duas perguntas diferentes (FR-005, FR-020). --%>
+        <ul :if={@espera_por_revisao.por_pessoa != []} class="space-y-2 text-sm">
+          <li :for={linha <- @espera_por_revisao.por_pessoa} class="card bg-base-200 p-3">
+            <div class="flex flex-wrap items-baseline gap-2">
+              <span class="font-medium">{linha.autor_login || "unknown author"}</span>
+              <span class="text-xs opacity-60">
+                median {if h = Quality.mediana_em_horas(linha.esperas), do: "#{h}h", else: "—"}
+              </span>
+            </div>
+            <ul class="mt-1 space-y-1">
+              <li :for={e <- linha.esperas} class="flex flex-wrap items-baseline gap-2 text-xs">
+                <span class="font-mono opacity-70">#{e.numero}</span>
+                <span class="opacity-80">{e.titulo}</span>
+                <span class={[
+                  "badge badge-sm",
+                  match?({:aguardando, _}, e.estado) && "badge-warning"
+                ]}>
+                  {texto_da_espera(e.estado)}
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <p :if={@espera_por_revisao.esperas != []} class="text-xs opacity-60">
+          The per-person medians and the team median answer <strong>different questions</strong>
+          and are not meant to be reconciled: one is about a person's requests, the other
+          about the team's. They are not summed, and neither derives from the other.
         </p>
       </section>
 

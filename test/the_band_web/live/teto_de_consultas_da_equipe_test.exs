@@ -65,7 +65,13 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # As duas consultas de `who_worked_on_many/3` só nascem quando há projeto, e por
   # isso não aparecem neste cenário. O teste do acréscimo das três seções mede o
   # caso COM projeto, e vive adiante neste mesmo arquivo.
-  @teto_do_detalhe 18
+  #
+  # **18 → 19 em 2026-09-03**, pela US1 da feature 058:
+  # `team_time_to_first_review/3`, a espera por revisão. É **uma** consulta para as
+  # duas leituras da seção — a da equipe e a por pessoa —, agrupada em memória por
+  # `agrupar_por_pessoa/1`. Uma segunda consulta com o mesmo filtro produziria dois
+  # números com o mesmo rótulo, que é a L67.
+  @teto_do_detalhe 19
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do
