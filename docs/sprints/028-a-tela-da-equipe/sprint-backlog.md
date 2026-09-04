@@ -1,9 +1,9 @@
 # Sprint 028 — A tela da equipe, e a equipe feita de equipes
 
 **Período**: 2026-09-02 a 2026-09-09 (cadência de uma semana)
-**Feature**: [057](../../specs/057-tela-da-equipe-complexa/spec.md)
-**Plano**: [plan.md](../../specs/057-tela-da-equipe-complexa/plan.md)
-**Protótipo aprovado**: [prototipo/](../../specs/057-tela-da-equipe-complexa/prototipo/)
+**Feature**: [057](../../../specs/057-tela-da-equipe-complexa/spec.md)
+**Plano**: [plan.md](../../../specs/057-tela-da-equipe-complexa/plan.md)
+**Protótipo aprovado**: [prototipo/](../../../specs/057-tela-da-equipe-complexa/prototipo)
 
 ## Objetivo do sprint
 
@@ -71,7 +71,7 @@ herdam a da user story que atendem.
 
 ## Tarefas
 
-Todas em [`tasks.md`](../../specs/057-tela-da-equipe-complexa/tasks.md), com os
+Todas em [`tasks.md`](../../../specs/057-tela-da-equipe-complexa/tasks.md), com os
 quatro campos e o link da issue. Faixa: [#721](https://github.com/The-Band-Solution/theband/issues/721)
 a [#757](https://github.com/The-Band-Solution/theband/issues/757).
 
@@ -110,7 +110,7 @@ todas em **a fazer**.
 | **qualquer soma consolidada** | por decisão, não por prazo — FR-008 |
 | criar os tipos `User Story` e `Epic` | altera a configuração da organização; exige confirmação |
 | acertar as iterations do Projects v2 | L11 mediu o custo: 97 itens órfãos |
-| [servidor MCP](../../docs/backlog/servidor-mcp.md) | registrado em 2026-09-02; bloqueado até autenticação e tenant serem decididos |
+| [servidor MCP](../../backlog/servidor-mcp.md) | registrado em 2026-09-02; bloqueado até autenticação e tenant serem decididos |
 
 ## Riscos e dependências
 

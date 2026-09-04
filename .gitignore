@@ -55,3 +55,7 @@ npm-debug.log
 __pycache__/
 cover/
 .impeccable/config.local.json
+
+# O site do MkDocs é gerado — `mkdocs build` o reconstrói do zero, e ele tem 15 MB.
+# A publicação sai do workflow `docs.yml`, nunca do que está na árvore de trabalho.
+/site/

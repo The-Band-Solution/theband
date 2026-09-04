@@ -1,7 +1,7 @@
 # Sprint 022 — Review
 
 **Período**: 2026-08-28 (aberto e fechado no mesmo dia)
-**Feature**: [046-menu-por-entidades](../../specs/046-menu-por-entidades/spec.md)
+**Feature**: [046-menu-por-entidades](../../../specs/046-menu-por-entidades/spec.md)
 **PR**: [#543](https://github.com/The-Band-Solution/theband/pull/543), merge `380d90f`
 
 ## Resumo

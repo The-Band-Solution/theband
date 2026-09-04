@@ -1,6 +1,6 @@
 # Sprint 018 — Competências da equipe
 
-**Período**: 2026-08-16 · **Feature**: [029](../../specs/029-competencias-da-equipe/spec.md)
+**Período**: 2026-08-16 · **Feature**: [029](../../../specs/029-competencias-da-equipe/spec.md)
 
 ## Objetivo
 

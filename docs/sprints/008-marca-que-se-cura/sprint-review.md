@@ -1,7 +1,7 @@
 # Sprint 008 — Review
 
 **Período**: 2026-08-12 a 2026-08-18
-**Feature**: [009 — marca que se cura](../../specs/009-marca-que-se-cura/spec.md)
+**Feature**: [009 — marca que se cura](../../../specs/009-marca-que-se-cura/spec.md)
 **PR**: [#230](https://github.com/The-Band-Solution/theband/pull/230), `MERGEABLE · CLEAN`,
 CI verde em 2m4s
 
@@ -14,7 +14,7 @@ CI verde em 2m4s
 | Entregáveis aceitos | 9 | **9** |
 
 **10 gates verdes por código de saída**, **430 testes**, 28 próprios da feature. A avaliação
-critério por critério está em [aceitacao.md](../../specs/009-marca-que-se-cura/aceitacao.md): **12
+critério por critério está em [aceitacao.md](../../../specs/009-marca-que-se-cura/aceitacao.md): **12
 de 12 SC atendidos**, dois com a ressalva de não terem sido exercitados em produção.
 
 ## O que foi feito

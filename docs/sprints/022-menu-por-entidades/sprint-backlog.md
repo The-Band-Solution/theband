@@ -1,8 +1,8 @@
 # Sprint 022 — Menu por entidades
 
 **Período**: 2026-08-28 a 2026-09-03
-**Feature**: [046-menu-por-entidades](../../specs/046-menu-por-entidades/spec.md)
-**Plano**: [plan.md](../../specs/046-menu-por-entidades/plan.md)
+**Feature**: [046-menu-por-entidades](../../../specs/046-menu-por-entidades/spec.md)
+**Plano**: [plan.md](../../../specs/046-menu-por-entidades/plan.md)
 
 ## Objetivo do sprint
 

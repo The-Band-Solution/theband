@@ -1,7 +1,7 @@
 # Sprint 007 — Review
 
 **Período**: 2026-08-12 a 2026-08-18
-**Feature**: [008 — destravar sync presa](../../specs/008-destravar-sync-presa/spec.md)
+**Feature**: [008 — destravar sync presa](../../../specs/008-destravar-sync-presa/spec.md)
 **PR**: [#212](https://github.com/The-Band-Solution/theband/pull/212), incorporado em
 2026-08-12T13:37:23Z · `main` em `f09e467`
 
@@ -14,7 +14,7 @@
 | Entregáveis aceitos | 9 | **9** |
 
 **10 gates verdes por código de saída**, 402 testes. A avaliação critério por critério está em
-[aceitacao.md](../../specs/008-destravar-sync-presa/aceitacao.md): **14 de 14 SC atendidos**, dois
+[aceitacao.md](../../../specs/008-destravar-sync-presa/aceitacao.md): **14 de 14 SC atendidos**, dois
 com ressalva declarada.
 
 ## O que foi feito

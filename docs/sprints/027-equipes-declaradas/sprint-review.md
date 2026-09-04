@@ -1,7 +1,7 @@
 # Sprint 027 — Review
 
 **Período**: 2026-09-01 a 2026-09-08 · encerrado antecipadamente em 2026-09-02
-**Feature**: [055 — equipes declaradas](../../specs/055-equipes-declaradas/spec.md)
+**Feature**: [055 — equipes declaradas](../../../specs/055-equipes-declaradas/spec.md)
 
 ## Resumo
 
@@ -73,7 +73,7 @@ a evidência que a origem lista hoje. Quem saiu segue contando, e o conjunto de
 membros de hoje é aplicado aos meses passados.
 
 É o **mesmo defeito que o SC-003 desta feature proíbe no vínculo**, acontecendo na
-medida. Já está registrado em [`docs/backlog/tela-da-equipe-complexa.md`](../../docs/backlog/tela-da-equipe-complexa.md)
+medida. Já está registrado em [`docs/backlog/tela-da-equipe-complexa.md`](../../backlog/tela-da-equipe-complexa.md)
 e é a US1 da feature 057 — o primeiro item do sprint 028.
 
 **Um defeito mais antigo, achado ao planejar a 057**: a condição de vigência usa

@@ -5,9 +5,9 @@
 [#620](https://github.com/The-Band-Solution/theband/issues/620) — as duas user
 stories da 050 **não aceitas** no
 [sprint 026](../026-heranca-e-a-producao/aceitacao.md)
-**Feature**: [055-equipes-declaradas](../../specs/055-equipes-declaradas/spec.md) ·
-[plan](../../specs/055-equipes-declaradas/plan.md) ·
-[contrato](../../specs/055-equipes-declaradas/contracts/equipes-declaradas.md)
+**Feature**: [055-equipes-declaradas](../../../specs/055-equipes-declaradas/spec.md) ·
+[plan](../../../specs/055-equipes-declaradas/plan.md) ·
+[contrato](../../../specs/055-equipes-declaradas/contracts/equipes-declaradas.md)
 
 ## Objetivo do sprint
 
