@@ -799,14 +799,8 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     # chamou espera tratar.
     if complete_application_reference?(attrs) do
       case find_by_application_reference(schema, tenant_id, attrs) do
-        nil ->
-          struct(schema)
-          |> schema.from_source_changeset(attrs)
-          |> Repo.insert()
-          |> with_outcome(:created)
-
-        record ->
-          update_existing(schema, record, attrs)
+        nil -> inserir_ou_reconhecer(schema, tenant_id, attrs)
+        record -> update_existing(schema, record, attrs)
       end
     else
       {:error, schema.from_source_changeset(struct(schema), attrs)}
@@ -816,6 +810,56 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   defp complete_application_reference?(attrs) do
     Enum.all?([:source_system, :source_instance, :external_id, :collected_at], fn field ->
       Map.get(attrs, field) not in [nil, ""]
+    end)
+  end
+
+  # A consulta e o insert não são atômicos, e entre os dois cabe outra coleta.
+  #
+  # Medido em 2026-09-04, na primeira coleta real contra `leds-conectafapes`: dois
+  # coletores da mesma organização correram juntos, os dois consultaram a Application
+  # Reference da equipe derivada, nenhum a encontrou, e o segundo insert bateu no
+  # índice único — `eo_teams_application_reference_index`. O sync inteiro foi a
+  # `failed` **depois** de já ter gravado 69 pessoas, 936 issues e 598 solicitações,
+  # e a etapa dos vínculos de equipe nunca rodou. A tela mostraria nove equipes
+  # vazias, e quem olhasse concluiria que a organização não declara equipes.
+  #
+  # O conflito é **reconhecimento, e não erro**: significa que a entidade passou a
+  # existir entre a consulta e a gravação, que é exatamente o caso que o upsert
+  # existe para tratar. Relemos e atualizamos, como se a tivéssemos achado antes.
+  #
+  # Só o conflito da Application Reference é tratado assim. Qualquer outro erro de
+  # changeset volta como veio — engolir os demais transformaria dado inválido em
+  # sucesso silencioso, que é o defeito que este projeto mais paga.
+  defp inserir_ou_reconhecer(schema, tenant_id, attrs) do
+    struct(schema)
+    |> schema.from_source_changeset(attrs)
+    |> Repo.insert()
+    |> case do
+      {:ok, _} = ok ->
+        with_outcome(ok, :created)
+
+      {:error, changeset} = erro ->
+        if conflito_de_application_reference?(changeset) do
+          reconhecer_o_que_chegou_primeiro(schema, tenant_id, attrs, erro)
+        else
+          erro
+        end
+    end
+  end
+
+  defp reconhecer_o_que_chegou_primeiro(schema, tenant_id, attrs, erro) do
+    case find_by_application_reference(schema, tenant_id, attrs) do
+      # Some entre o conflito e a releitura só se alguém apagou no intervalo. Aí o
+      # erro original é a resposta honesta: não há registro para atualizar.
+      nil -> erro
+      record -> update_existing(schema, record, attrs)
+    end
+  end
+
+  defp conflito_de_application_reference?(%Ecto.Changeset{errors: errors}) do
+    Enum.any?(errors, fn {_campo, {_msg, opts}} ->
+      opts[:constraint] == :unique and
+        opts[:constraint_name] |> to_string() |> String.ends_with?("application_reference_index")
     end)
   end
 
