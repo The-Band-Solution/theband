@@ -18,6 +18,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Profiles
   alias TheBand.Quality
   alias TheBand.Tenants
+  alias TheBand.Verification
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
 
@@ -780,8 +781,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> assign(projetos_da_equipe: vinculados)
     |> assign(projetos_disponiveis: Enum.reject(SPO.list_projects(tenant), &(&1.id in ids)))
-    |> carregar_quem_trabalhou(SPO.team_projects_with_period(tenant, team.id))
-    |> carregar_espera_por_revisao()
+    |> carregar_medidas_da_058(SPO.team_project_links_with_period(tenant, team.id))
   end
 
   # QUEM TRABALHOU nos projetos desta equipe — feature 058, US2 (T006, T007).
@@ -802,6 +802,16 @@ defmodule TheBandWeb.TeamsLive.Show do
   # vínculo vigente, e esta mostra por onde a equipe passou. Desligar não apaga
   # (FR-008), e com o filtro do vigente o projeto de que a equipe saiu sumia junto
   # com todo mundo que trabalhou nele — encontrado por teste.
+  # UMA leitura dos vínculos equipe ↔ projeto para as duas seções que precisam dela.
+  # Carregá-la duas vezes seria a mesma consulta por render, e — pior — abriria a
+  # porta para as duas seções discordarem quando uma delas mudasse de filtro.
+  defp carregar_medidas_da_058(socket, vinculos) do
+    socket
+    |> carregar_quem_trabalhou(Enum.uniq_by(vinculos, & &1.project_id))
+    |> carregar_espera_por_revisao()
+    |> carregar_taxa_do_pipeline(vinculos)
+  end
+
   defp carregar_quem_trabalhou(socket, []), do: assign(socket, quem_trabalhou: [])
 
   defp carregar_quem_trabalhou(socket, projetos) do
@@ -851,6 +861,40 @@ defmodule TheBandWeb.TeamsLive.Show do
       }
     )
   end
+
+  # A TAXA DO PIPELINE — feature 058, US3 (T016).
+  #
+  # O caminho é `repositório → projeto → equipe`, e a recusa é um estado de
+  # primeira classe: equipe sem projeto declarado não recebe taxa nenhuma, e a tela
+  # nomeia o elo que falta em vez de mostrar zero.
+  #
+  # O nome da equipe vai junto porque a tela já o tem: sem ele, a recusa custaria
+  # uma consulta a mais para escrever uma palavra que já está na página.
+  defp carregar_taxa_do_pipeline(socket, vinculos) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    taxa =
+      Verification.team_pipeline_rate(tenant, team.id,
+        desde: DateTime.add(agora, -@janela_em_dias, :day),
+        ate: agora,
+        nome: team.name,
+        vinculos: vinculos
+      )
+
+    assign(socket, taxa_do_pipeline: taxa)
+  end
+
+  # A tela lê a taxa por estes dois, e não desempacota a tupla no meio do template:
+  # `{:ok, taxa}` e `{:sem_projeto, _}` são estados diferentes, e um `elem/2` solto
+  # num atributo quebraria com o outro estado sem dizer por quê.
+  defp campo_da_taxa({:ok, taxa}, campo), do: Map.fetch!(taxa, campo)
+
+  # `nil` é a ausência dita: nada produziu resultado, e não há o que dividir. Um
+  # "0%" ali afirmaria que tudo falhou.
+  defp percentual_na_tela({:ok, %{percentual: nil}}), do: "—"
+  defp percentual_na_tela({:ok, %{percentual: p}}), do: "#{p}%"
 
   # O tempo já esperado, em texto. A em curso NUNCA vira "0h": a frase diz há
   # quantos dias ninguém revisou, que é o que faz alguém agir.
@@ -1475,6 +1519,105 @@ defmodule TheBandWeb.TeamsLive.Show do
           and are not meant to be reconciled: one is about a person's requests, the other
           about the team's. They are not summed, and neither derives from the other.
         </p>
+      </section>
+
+      <%!-- A TAXA DO PIPELINE — feature 058, US3 (T016).
+
+            O tamanho da amostra não é enfeite: a cobertura do dado é desconhecida,
+            e uma taxa de 100% sobre três execuções não é a mesma afirmação que
+            sobre trezentas (FR-016).
+
+            E a recusa é um estado de primeira classe: sem projeto declarado não há
+            taxa, e a tela NOMEIA o elo que falta em vez de mostrar zero — zero
+            diria que o pipeline falhou. --%>
+      <section id="taxa-do-pipeline" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Pipeline success rate</h3>
+
+        <div :if={match?({:sem_projeto, _}, @taxa_do_pipeline)} class="card bg-base-200 p-3">
+          <p class="text-sm">
+            No rate for <strong>{elem(@taxa_do_pipeline, 1).equipe}</strong>
+            — this team is not linked to any project, so the platform does not know which
+            repositories it looks after. The missing link is <strong>team → project</strong>, and it is declared on this page.
+          </p>
+          <p class="mt-1 text-xs opacity-60">
+            This is not a rate of zero: zero would say the pipeline failed.
+          </p>
+        </div>
+
+        <div :if={match?({:ok, _}, @taxa_do_pipeline)} class="space-y-3">
+          <div class="flex flex-wrap items-end gap-4">
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">success rate</div>
+              <div class="text-lg font-semibold">{percentual_na_tela(@taxa_do_pipeline)}</div>
+              <div class="text-xs opacity-60">
+                over {campo_da_taxa(@taxa_do_pipeline, :denominador_do_percentual)} run(s) that
+                produced a result
+              </div>
+            </div>
+
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">runs considered</div>
+              <div class="text-lg font-semibold">
+                {campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas)}
+              </div>
+              <div class="text-xs opacity-60">
+                across {campo_da_taxa(@taxa_do_pipeline, :repositorios)} repository(ies), last 8
+                weeks
+              </div>
+            </div>
+
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">still running</div>
+              <div class="text-lg font-semibold">
+                {campo_da_taxa(@taxa_do_pipeline, :em_andamento)}
+              </div>
+              <div class="text-xs opacity-60">neither success nor failure</div>
+            </div>
+          </div>
+
+          <p
+            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) == 0}
+            class="text-sm opacity-70"
+          >
+            No verification run collected for these repositories in the window. Nothing to
+            divide — that is an absence, not a rate of zero.
+          </p>
+
+          <%!-- As cinco fases, cada uma no seu campo. Somar qualquer uma delas a
+                "failed" inflaria a taxa com o que ninguém quebrou (FR-015). --%>
+          <table
+            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) > 0}
+            class="table table-sm"
+          >
+            <thead>
+              <tr>
+                <th>succeeded</th>
+                <th>failed</th>
+                <th>interrupted</th>
+                <th>not performed</th>
+                <th>expired</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :sucesso)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :falha)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :interrompida)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :nao_executada)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :expirada)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="text-xs opacity-60">
+            Path: <span class="font-mono">{campo_da_taxa(@taxa_do_pipeline, :caminho)}</span>
+            — the rate is about the repositories of this team's projects, and <strong>not</strong>
+            about who triggered each run: the actor is whoever pressed the button, not whoever
+            looks after the code. Interrupted, not performed and expired count on their own and
+            are never added to "failed" — cancelling is a human decision. Runs still going are
+            outside both the numerator and the denominator.
+          </p>
+        </div>
       </section>
 
       <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora

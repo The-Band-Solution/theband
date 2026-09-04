@@ -143,53 +143,72 @@ defmodule TheBand.Quality do
 
   @spec team_time_to_first_review(Tenant.t(), Ecto.UUID.t(), keyword()) :: [espera()]
   def team_time_to_first_review(%Tenant{id: tenant_id}, team_id, opts \\ []) do
-    from(c in "collected_change_requests",
-      join: m in "eo_team_memberships",
-      on:
-        m.person_id == c.author_person_id and m.tenant_id == c.tenant_id and
-          is_nil(m.invalidated_at) and
-          (is_nil(m.started_at) or m.started_at <= c.external_created_at) and
-          (is_nil(m.ended_at) or m.ended_at > c.external_created_at),
-      left_join: a in "collected_artifact_evaluations",
-      on:
-        a.collected_change_request_id == c.id and is_nil(a.no_longer_observed_at) and
-          not is_nil(a.external_submitted_at) and a.author_type == @humano,
-      where:
-        c.tenant_id == type(^tenant_id, :binary_id) and
-          m.team_id == type(^team_id, :binary_id) and
-          is_nil(c.no_longer_observed_at),
-      group_by: [
-        c.id,
-        c.number,
-        c.title,
-        c.external_created_at,
-        c.author_person_id,
-        c.author_login
-      ],
-      order_by: [desc: c.external_created_at],
-      select: %{
-        change_request_id: type(c.id, :binary_id),
-        numero: c.number,
-        titulo: c.title,
-        # `type/2` porque a consulta é sobre a TABELA, e não sobre um schema: sem ele
-        # o Postgres devolve `NaiveDateTime`, e a conta de dias da espera em curso
-        # explode com `FunctionClauseError` em vez de errar o número — pego por teste.
-        aberta_em: type(c.external_created_at, :utc_datetime),
-        autor_person_id: type(c.author_person_id, :binary_id),
-        autor_login: c.author_login,
-        primeira_revisao_em: min(a.external_submitted_at),
-        segundos:
-          fragment(
-            "extract(epoch from (min(?) - ?))::bigint",
-            a.external_submitted_at,
-            c.external_created_at
-          )
-      }
-    )
+    tenant_id
+    |> abertas_por_quem_pertencia(team_id)
+    |> com_primeira_revisao_humana()
     |> aplicar_janela(opts)
     |> limit(^Keyword.get(opts, :limit, 200))
     |> Repo.all()
     |> Enum.map(&com_estado/1)
+  end
+
+  # O RECORTE: solicitação cujo autor pertencia à equipe na data de ABERTURA dela.
+  #
+  # As três condições de vigência ficam em `where` encadeados, e não amontoadas no
+  # `on` do join — a consulta inteira num `from` só passou dos 9 de complexidade que
+  # o Credo aceita, e o gate estava certo: a regra do recorte é o que esta função é,
+  # e ler o resto junto escondia isso.
+  defp abertas_por_quem_pertencia(tenant_id, team_id) do
+    from(c in "collected_change_requests",
+      join: m in "eo_team_memberships",
+      on: m.person_id == c.author_person_id and m.tenant_id == c.tenant_id,
+      where:
+        c.tenant_id == type(^tenant_id, :binary_id) and
+          m.team_id == type(^team_id, :binary_id) and
+          is_nil(c.no_longer_observed_at)
+    )
+    |> where([_c, m], is_nil(m.invalidated_at))
+    |> where([c, m], is_nil(m.started_at) or m.started_at <= c.external_created_at)
+    |> where([c, m], is_nil(m.ended_at) or m.ended_at > c.external_created_at)
+  end
+
+  # `left_join`, e não `join`: a solicitação sem revisão humana **tem de vir**, com
+  # `min` nulo. Um join interno a deixaria de fora, e a mediana melhoraria quanto
+  # pior a equipe estivesse.
+  defp com_primeira_revisao_humana(query) do
+    query
+    |> join(:left, [c, _m], a in "collected_artifact_evaluations",
+      on:
+        a.collected_change_request_id == c.id and is_nil(a.no_longer_observed_at) and
+          not is_nil(a.external_submitted_at) and a.author_type == @humano
+    )
+    |> group_by([c], [
+      c.id,
+      c.number,
+      c.title,
+      c.external_created_at,
+      c.author_person_id,
+      c.author_login
+    ])
+    |> order_by([c], desc: c.external_created_at)
+    |> select([c, _m, a], %{
+      change_request_id: type(c.id, :binary_id),
+      numero: c.number,
+      titulo: c.title,
+      # `type/2` porque a consulta é sobre a TABELA, e não sobre um schema: sem ele
+      # o Postgres devolve `NaiveDateTime`, e a conta de dias da espera em curso
+      # explode com `FunctionClauseError` em vez de errar o número — pego por teste.
+      aberta_em: type(c.external_created_at, :utc_datetime),
+      autor_person_id: type(c.author_person_id, :binary_id),
+      autor_login: c.author_login,
+      primeira_revisao_em: min(a.external_submitted_at),
+      segundos:
+        fragment(
+          "extract(epoch from (min(?) - ?))::bigint",
+          a.external_submitted_at,
+          c.external_created_at
+        )
+    })
   end
 
   @doc """

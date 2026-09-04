@@ -26,6 +26,7 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.Repo
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.IssueAssignee
@@ -71,7 +72,17 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # duas leituras da seção — a da equipe e a por pessoa —, agrupada em memória por
   # `agrupar_por_pessoa/1`. Uma segunda consulta com o mesmo filtro produziria dois
   # números com o mesmo rótulo, que é a L67.
+  #
+  # **Fica em 19 com a US3.** A taxa do pipeline reusa a lista de vínculos equipe ↔
+  # projeto que a seção de quem trabalhou já carrega, e no caminho da recusa —
+  # equipe sem projeto, que é o cenário deste teste — não consulta mais nada.
   @teto_do_detalhe 19
+
+  # O acréscimo das TRÊS seções da feature 058 quando a equipe TEM projeto, medido
+  # contra a mesma página sem projeto nenhum. É o caminho caro, e o que o teste
+  # acima não vê: com projeto nascem as duas consultas de `who_worked_on_many/3`,
+  # a dos repositórios e a das execuções.
+  @teto_das_secoes_058 6
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do
@@ -218,6 +229,52 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
       template. Se a seção nova vale a consulta, mude o número aqui e diga por quê.
       """
     end
+  end
+
+  describe "as três seções da feature 058" do
+    test "custam no máximo o teto declarado, e o número não cresce com o dado", ctx do
+      sem_projeto = equipe(ctx, "Sem projeto")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, sem_projeto, ana)
+
+      com_projeto = equipe(ctx, "Com projeto")
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, com_projeto, bia)
+      ligar(ctx, com_projeto, "Alfa")
+
+      base = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{sem_projeto.id}") end))
+      com_uma = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{com_projeto.id}") end))
+
+      assert com_uma - base <= @teto_das_secoes_058, """
+      As seções da 058 acrescentam #{com_uma - base} consultas quando a equipe tem projeto,
+      e o teto declarado é #{@teto_das_secoes_058}.
+
+      Subir é decisão, e ela aparece neste arquivo.
+      """
+
+      # Agora com CINCO projetos e mais gente: o custo não pode acompanhar.
+      for n <- 2..5, do: ligar(ctx, com_projeto, "Projeto #{n}")
+
+      for i <- 1..5 do
+        p = pessoa(ctx, "p058_#{i}")
+        vincular(ctx, com_projeto, p)
+      end
+
+      com_cinco = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{com_projeto.id}") end))
+
+      assert com_cinco == com_uma, """
+      A página fez #{com_uma} consultas com 1 projeto e #{com_cinco} com 5 — ela consulta por
+      projeto. `who_worked_on_many/3` e `project_repositories_with_period_many/2` existem
+      exatamente para que esse número não se mexa.
+      """
+    end
+  end
+
+  defp ligar(ctx, equipe, nome_do_projeto) do
+    {:ok, projeto} = SPO.create_project(ctx.tenant, %{name: nome_do_projeto}, ctx.admin.id)
+    {:ok, _} = SPO.link_team(ctx.tenant, projeto.id, equipe.id, ctx.admin.id)
+    {:ok, _} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+    projeto
   end
 
   describe "a tela da equipe composta" do

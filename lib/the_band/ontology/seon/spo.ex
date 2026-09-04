@@ -69,12 +69,15 @@ defmodule TheBand.Ontology.SEON.SPO do
   defdelegate list_project_teams(tenant, project_id), to: Projects
   defdelegate project_teams_with_period(tenant, project_id), to: Projects
   defdelegate project_repositories_with_period(tenant, project_id), to: Projects
+  defdelegate project_repositories_with_period_many(tenant, project_ids), to: Projects
+  defdelegate project_repositories_in(tenant, project_id, janela), to: Projects
   defdelegate who_worked_on(tenant, project_id, janela), to: Projects
   defdelegate who_worked_on_many(tenant, project_ids, janela), to: Projects
   defdelegate project_teams_with_period_many(tenant, project_ids), to: Projects
   defdelegate project_participation(tenant, project_id), to: Projects
   defdelegate list_team_projects(tenant, team_id), to: Projects
-  defdelegate team_projects_with_period(tenant, team_id), to: Projects
+  defdelegate team_projects_ever(tenant, team_id), to: Projects
+  defdelegate team_project_links_with_period(tenant, team_id), to: Projects
   defdelegate projects_of_teams(tenant, team_ids), to: Projects
   defdelegate projects_by_ids(tenant, ids), to: Projects
   defdelegate set_parent(tenant, project_id, parent_id), to: Projects

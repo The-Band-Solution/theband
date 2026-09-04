@@ -23,6 +23,8 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Quality.Commands, as: QualityCommands
   alias TheBand.Repo
+  alias TheBand.Tenants
+  alias TheBand.Verification.Commands, as: VerificationCommands
 
   setup %{conn: conn} do
     {tenant, admin} = tenant_with_admin()
@@ -261,6 +263,124 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       solicitações e ninguém esperou (FR-006, FR-018).
       """
     end
+  end
+
+  describe "a taxa do pipeline (US3)" do
+    test "equipe sem projeto NOMEIA o elo que falta, e não mostra taxa nenhuma", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#taxa-do-pipeline") |> render()
+
+      assert secao =~ "not linked to any project"
+      assert secao =~ "team → project"
+      assert secao =~ "Dados"
+
+      assert secao =~ "not a rate of zero", """
+      A tela precisa dizer POR QUE não há taxa. Zero diria que o pipeline falhou; a
+      verdade é que a plataforma não sabe de quais repositórios a equipe cuida (FR-013a).
+      """
+
+      # O que não pode aparecer é NÚMERO nenhum — o título da seção continua sendo
+      # "Pipeline success rate", e é o painel de números que fica ausente.
+      refute secao =~ "runs considered"
+      refute secao =~ "%"
+    end
+
+    test "com projeto, a taxa vem com o caminho e o TAMANHO DA AMOSTRA", ctx do
+      {projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
+      {:ok, _} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+
+      verificacao(ctx, "ciro.successful_continuous_integration_process", "success")
+      verificacao(ctx, "ciro.unsuccessful_continuous_integration_process", "failure")
+      verificacao(ctx, "ciro.interrupted_continuous_integration_process", "cancelled")
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#taxa-do-pipeline") |> render()
+
+      assert secao =~ "50.0%"
+
+      assert secao =~ "run(s) that", """
+      O número apareceu sem o tamanho da amostra. Uma taxa de 100% sobre três execuções não
+      é a mesma afirmação que sobre trezentas (FR-016).
+      """
+
+      assert secao =~ "repository → project → team", """
+      O caminho não está escrito junto do número. Sem ele, ninguém sabe se a taxa é dos
+      repositórios ou de quem disparou (FR-016).
+      """
+
+      assert secao =~ "never added to"
+    end
+
+    test "a fase interrompida aparece separada, e não somada a falha", ctx do
+      {projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
+      {:ok, _} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+
+      verificacao(ctx, "ciro.interrupted_continuous_integration_process", "cancelled")
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#taxa-do-pipeline") |> render()
+
+      assert secao =~ "interrupted"
+
+      assert secao =~ "—", """
+      Sem nada que produzisse resultado, a taxa tem de ser um travessão. "0%" diria que
+      tudo falhou, e o que houve foi um cancelamento (FR-015, FR-018).
+      """
+    end
+  end
+
+  describe "ver não exige administrar (T019, SC-011)" do
+    test "perfil member lê as três medidas, e não vê os controles de escrita", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      {projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
+      {:ok, _} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+      verificacao(ctx, "ciro.successful_continuous_integration_process", "success")
+
+      pr = solicitacao(ctx, 301, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      {:ok, member} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "member@example.test",
+          "name" => "Member",
+          "role" => "member"
+        })
+
+      {:ok, live, html} = live(log_in(ctx.conn, member), ~p"/teams/#{ctx.equipe.id}")
+
+      assert html =~ "Who worked on these projects", "US2 não chegou a quem só lê"
+      assert html =~ "Waiting for first review", "US1 não chegou a quem só lê"
+      assert html =~ "Pipeline success rate", "US3 não chegou a quem só lê"
+
+      assert live |> element("#quem-trabalhou") |> render() =~ "ana"
+      assert live |> element("#espera-por-revisao") |> render() =~ "4.0h"
+      assert live |> element("#taxa-do-pipeline") |> render() =~ "100.0%"
+
+      refute html =~ "associate with a project…", """
+      Quem só lê viu o controle de associar projeto. Ler as medidas não exige administrar
+      — e administrar não é ver (FR-023).
+      """
+    end
+  end
+
+  defp verificacao(ctx, fase, conclusao) do
+    {:ok, v} =
+      VerificationCommands.record_verification(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        workflow_name: "CI",
+        head_sha: "abc1234",
+        trigger_event: "push",
+        run_status: "completed",
+        conclusion: conclusao,
+        phase: fase,
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -2, :day),
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "run-#{System.unique_integer([:positive])}"
+      })
+
+    v
   end
 
   defp solicitacao(ctx, numero, autora, aberta_em) do

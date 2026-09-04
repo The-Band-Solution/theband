@@ -21,8 +21,195 @@ defmodule TheBand.Verification do
 
   import Ecto.Query
 
+  alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Periodos
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
+
+  @doc """
+  A taxa do pipeline **desta equipe** — feature 058, US3 (T013, T014, T015).
+
+  ## O caminho é `repositório → projeto → equipe`, e nunca o ator
+
+  A pesquisa achou **dois** caminhos de uma verificação até uma equipe, e eles
+  respondem perguntas diferentes (R1). O ator da execução é quem **disparou**:
+  numa execução agendada é quem configurou o agendamento; numa de `push`, quem
+  empurrou. Uma equipe cujo CI roda por agendamento apareceria quase vazia.
+
+  **`actor_person_id` não é usado aqui.** A coluna existe, e usá-la produziria uma
+  segunda taxa com o mesmo rótulo e denominador diferente — a L67.
+
+  A consequência está no teste: execução disparada por alguém **de fora** da equipe,
+  num repositório do projeto dela, **conta**.
+
+  ## Os três períodos
+
+  Um repositório entra quando o vínculo equipe ↔ projeto, o vínculo projeto ↔
+  repositório e a janela se sobrepõem. Desligar qualquer um dos dois não apaga o
+  intervalo em que vigeu (FR-012).
+
+  ## Nenhuma fase é somada a `falha`, e `em_andamento` fica fora da conta
+
+  Interrompida, não executada e expirada são fases próprias: cancelar é decisão
+  humana, e contá-la como quebra inflaria a taxa com o que ninguém quebrou. Em
+  andamento não é sucesso nem falha — processo que ainda não decidiu nada não entra
+  em numerador nem denominador (FR-014, FR-015, SC-008).
+
+  ## Os DOIS denominadores, cada um com seu nome
+
+  `execucoes_consideradas` são as que **terminaram**, nas cinco fases.
+  `percentual` é `sucesso / (sucesso + falha)` — a proporção entre as que
+  produziram **resultado** —, e `denominador_do_percentual` diz sobre quantas.
+
+  São dois números diferentes de propósito: dividir o sucesso pelas cinco fases
+  faria a taxa cair a cada cancelamento, e chamar isso de *taxa de sucesso do
+  pipeline* culparia o pipeline por decisão humana. Apresentar um sem o outro é
+  que seria enganoso, e por isso os dois voltam juntos.
+
+  `percentual` é **nil** quando nada produziu resultado. Zero diria que tudo
+  falhou; nil diz que não há o que dividir (FR-018).
+
+  ## A recusa nomeia o elo que falta
+
+  Equipe sem projeto declarado devolve `{:sem_projeto, %{equipe: nome}}`, e **não**
+  uma taxa de zero. Zero diria que o pipeline falhou; a verdade é que a plataforma
+  não sabe de quais repositórios aquela equipe cuida (FR-013a).
+
+  Três consultas, mais uma no ramo da recusa — o nome da equipe, para que a tela
+  possa nomeá-la.
+  """
+  @type taxa :: %{
+          sucesso: non_neg_integer(),
+          falha: non_neg_integer(),
+          interrompida: non_neg_integer(),
+          nao_executada: non_neg_integer(),
+          expirada: non_neg_integer(),
+          em_andamento: non_neg_integer(),
+          execucoes_consideradas: non_neg_integer(),
+          percentual: float() | nil,
+          denominador_do_percentual: non_neg_integer(),
+          repositorios: non_neg_integer(),
+          caminho: String.t()
+        }
+
+  @caminho "repository → project → team"
+
+  @fases %{
+    "ciro.successful_continuous_integration_process" => :sucesso,
+    "ciro.unsuccessful_continuous_integration_process" => :falha,
+    "ciro.interrupted_continuous_integration_process" => :interrompida,
+    "ciro.unperformed_continuous_integration_process" => :nao_executada,
+    "ciro.expired_continuous_integration_process" => :expirada
+  }
+
+  @spec team_pipeline_rate(Tenant.t(), Ecto.UUID.t(), keyword()) ::
+          {:ok, taxa()} | {:sem_projeto, %{equipe: String.t()}}
+  def team_pipeline_rate(%Tenant{} = tenant, team_id, opts \\ []) do
+    janela = %{inicio: Keyword.get(opts, :desde), fim: Keyword.get(opts, :ate)}
+
+    # `:vinculos` existe para quem JÁ os carregou — a tela carrega, porque a seção
+    # de quem trabalhou nos projetos usa a mesma lista. Sem isso, a página faria a
+    # mesma consulta duas vezes por render.
+    case Keyword.get(opts, :vinculos) || SPO.team_project_links_with_period(tenant, team_id) do
+      [] ->
+        # `:nome` existe para quem JÁ tem o nome — a tela tem. Sem ele a recusa
+        # custaria uma consulta a mais só para escrever uma palavra que o chamador
+        # já carregava.
+        {:sem_projeto, %{equipe: Keyword.get(opts, :nome) || nome_da_equipe(tenant, team_id)}}
+
+      vinculos ->
+        {:ok,
+         taxa_dos_repositorios(tenant, repositorios_no_periodo(tenant, vinculos, janela), janela)}
+    end
+  end
+
+  # A interseção dos três períodos decide cada repositório. `Periodos` é puro, e a
+  # decisão fica em memória: filtrar isso em SQL exigiria repetir a regra da borda
+  # numa segunda linguagem, e ela divergiria na primeira correção.
+  defp repositorios_no_periodo(tenant, vinculos, janela) do
+    do_projeto =
+      tenant
+      |> SPO.project_repositories_with_period_many(Enum.map(vinculos, & &1.project_id))
+      |> Enum.group_by(& &1.project_id)
+
+    vinculos
+    |> Enum.flat_map(fn vinculo ->
+      do_projeto
+      |> Map.get(vinculo.project_id, [])
+      |> Enum.filter(fn repo ->
+        Periodos.interseccao([vinculo.periodo, repo.periodo, janela]) != :nao_intersecta
+      end)
+      |> Enum.map(& &1.observed_repository_id)
+    end)
+    |> Enum.uniq()
+  end
+
+  defp taxa_dos_repositorios(_tenant, [], _janela), do: taxa_vazia(0)
+
+  defp taxa_dos_repositorios(%Tenant{id: tenant_id}, repositorios, janela) do
+    contagem =
+      from(v in "collected_verifications",
+        where:
+          v.tenant_id == type(^tenant_id, :binary_id) and
+            v.observed_repository_id in type(^repositorios, {:array, :binary_id}) and
+            is_nil(v.no_longer_observed_at),
+        group_by: v.phase,
+        select: {v.phase, count(v.id)}
+      )
+      |> janela_da_execucao(janela)
+      |> Repo.all()
+      |> Map.new()
+
+    montar_taxa(contagem, length(repositorios))
+  end
+
+  defp janela_da_execucao(query, %{inicio: inicio, fim: fim}) do
+    query
+    |> entao(inicio, &where(&1, [v], v.external_started_at >= ^&2))
+    |> entao(fim, &where(&1, [v], v.external_started_at < ^&2))
+  end
+
+  defp entao(query, nil, _fun), do: query
+  defp entao(query, valor, fun), do: fun.(query, valor)
+
+  defp montar_taxa(contagem, repositorios) do
+    por_fase =
+      Enum.reduce(@fases, %{}, fn {chave, campo}, acc ->
+        Map.put(acc, campo, Map.get(contagem, chave, 0))
+      end)
+
+    # `phase` nulo é processo em andamento — e também o desfecho que a rede não
+    # nomeia. As duas coisas caem aqui, e a tela declara isso: nenhuma delas é
+    # sucesso nem falha, e é essa a decisão que importa para a taxa.
+    em_andamento = Map.get(contagem, nil, 0)
+    consideradas = por_fase |> Map.values() |> Enum.sum()
+    com_resultado = por_fase.sucesso + por_fase.falha
+
+    por_fase
+    |> Map.merge(%{
+      em_andamento: em_andamento,
+      execucoes_consideradas: consideradas,
+      denominador_do_percentual: com_resultado,
+      percentual: percentual(por_fase.sucesso, com_resultado),
+      repositorios: repositorios,
+      caminho: @caminho
+    })
+  end
+
+  defp percentual(_sucesso, 0), do: nil
+  defp percentual(sucesso, total), do: Float.round(sucesso * 100 / total, 1)
+
+  defp taxa_vazia(repositorios) do
+    montar_taxa(%{}, repositorios)
+  end
+
+  defp nome_da_equipe(%Tenant{id: tenant_id}, team_id) do
+    Repo.one(
+      from t in "eo_teams",
+        where: t.tenant_id == type(^tenant_id, :binary_id) and t.id == type(^team_id, :binary_id),
+        select: t.name
+    ) || "this team"
+  end
 
   @doc """
   As execuções mais recentes, com a contagem de jobs derivada das entradas.
