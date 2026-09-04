@@ -116,9 +116,14 @@ defmodule TheBand.Ingestion.GithubIssueComments do
       {:error, reason} ->
         # Falha transitória não marca estado permanente (L29): sem checkpoint, a
         # próxima coleta percorre de novo. O motivo vai para o log, não para o dado.
-        Logger.warning(
-          "comentários de #{repo.owner}/#{repo.name} não coletados: #{inspect(reason)}"
-        )
+        # `qualified_name` já é "owner/name", e é o único nome que este map carrega —
+        # `repo.owner` levantava `KeyError` **dentro do tratamento da falha**, e o job
+        # inteiro morria. Encontrado na primeira coleta real, em 2026-09-04: cinco
+        # tentativas, `discarded`, e com ele foram embora as etapas seguintes do sync.
+        #
+        # O caminho feliz nunca tocou nesta linha. Só se chega aqui quando a origem
+        # falha — e era exatamente aí que a falha transitória virava permanente.
+        Logger.warning("comentários de #{repo.qualified_name} não coletados: #{inspect(reason)}")
 
         %{alcancado: false, issues: 0, coletados: 0, marcados: 0, truncadas: 0}
     end
