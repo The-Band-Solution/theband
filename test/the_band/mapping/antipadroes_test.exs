@@ -19,10 +19,12 @@ defmodule TheBand.Mapping.AntipadroesTest do
   """
   use TheBand.DataCase, async: false
 
+  import Ecto.Query
   import TheBand.WorkItemsFixtures
 
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.WorkItems
 
@@ -193,5 +195,118 @@ defmodule TheBand.Mapping.AntipadroesTest do
 
       assert {:error, :not_found} = Antipatterns.detect(outro, ctx.issue.id)
     end
+  end
+
+  # ───────────────── a estrutura, e não o processo — decisão de 2026-09-04 ─────
+
+  describe "os antipadrões da ESTRUTURA da equipe" do
+    setup ctx do
+      admin_daqui = usuario_admin(ctx.tenant)
+      org = organization_fixture(ctx.tenant, "acme-estrutura")
+
+      {:ok, papel} =
+        EO.create_role(ctx.tenant, org.id, %{code: "dev", name: "Dev"}, admin_daqui.id)
+
+      {:ok, equipe} =
+        EO.declare_structural_team(ctx.tenant, org.id, "Dados", admin_daqui.id)
+
+      %{org: org, papel: papel, equipe: equipe, admin: admin_daqui}
+    end
+
+    test "equipe SEM vínculo vigente é `team_with_no_members`", ctx do
+      achados = Antipatterns.detect_structural_for_team(ctx.tenant, ctx.equipe.id)
+
+      assert [%{id: "structure.ap02.team_with_no_members", membros_vigentes: 0}] = achados
+
+      refute Antipatterns.team_of_one?(achados), """
+      Zero e um não são o mesmo fenômeno: zero não tem sobre quem calcular, e um calcula a
+      medida de uma pessoa com o rótulo da equipe.
+      """
+    end
+
+    test "equipe com UMA pessoa é `team_of_one`, e a máxima vem da base", ctx do
+      pessoa_na_equipe(ctx, "ana")
+
+      assert [achado] = Antipatterns.detect_structural_for_team(ctx.tenant, ctx.equipe.id)
+      assert achado.id == "structure.ap01.team_of_one"
+      assert achado.membros_vigentes == 1
+      assert Antipatterns.team_of_one?([achado])
+
+      # O texto NÃO está no código: ele vem de `structure_antipatterns.yaml`, como o
+      # princípio IV exige. Acrescentar uma máxima não deveria recompilar nada.
+      assert achado.nome == "Equipe de uma pessoa só"
+      assert achado.afirmacao =~ "exatamente um"
+      assert achado.consequencia =~ "agregado deixa de agregar"
+    end
+
+    test "equipe com DUAS pessoas não tem antipadrão de estrutura", ctx do
+      pessoa_na_equipe(ctx, "ana")
+      pessoa_na_equipe(ctx, "bia")
+
+      assert Antipatterns.detect_structural_for_team(ctx.tenant, ctx.equipe.id) == []
+    end
+
+    test "quem saiu não conta — a contagem é de vínculo VIGENTE", ctx do
+      ana = pessoa_na_equipe(ctx, "ana")
+      pessoa_na_equipe(ctx, "bia")
+
+      assert Antipatterns.detect_structural_for_team(ctx.tenant, ctx.equipe.id) == []
+
+      {1, _} =
+        TheBand.Repo.update_all(
+          from(m in "eo_team_memberships",
+            where:
+              m.tenant_id == type(^ctx.tenant.id, :binary_id) and
+                m.team_id == type(^ctx.equipe.id, :binary_id) and
+                m.person_id == type(^ana.id, :binary_id)
+          ),
+          set: [ended_at: DateTime.add(DateTime.utc_now(:second), -1, :day)]
+        )
+
+      assert [%{id: "structure.ap01.team_of_one"}] =
+               Antipatterns.detect_structural_for_team(ctx.tenant, ctx.equipe.id),
+             """
+             A equipe ficou com uma pessoa depois de alguém sair, e o antipadrão não apareceu.
+             A anomalia é sobre AGORA — quem saiu não compõe a equipe de hoje.
+             """
+    end
+  end
+
+  # O tenant deste arquivo vem de `tenant_fixture/0`, sem conta nenhuma — e declarar
+  # equipe exige um ator. Criar um aqui é mais honesto do que procurar um que não existe.
+  defp usuario_admin(tenant) do
+    {:ok, admin} =
+      TheBand.Tenants.create_user(tenant, %{
+        "email" => "admin-estrutura@example.test",
+        "name" => "Admin",
+        "role" => "admin"
+      })
+
+    admin
+  end
+
+  defp pessoa_na_equipe(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(ctx.tenant, %{
+        login: login,
+        name: login,
+        account_type: "person",
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_endpoint: "/users/#{login}",
+        external_id: "U_#{login}_estrutura",
+        collected_at: DateTime.utc_now(:second),
+        payload: %{"login" => login}
+      })
+
+    {:ok, _} =
+      EO.allocate(ctx.tenant, %{
+        person_id: p.id,
+        team_id: ctx.equipe.id,
+        organizational_role_id: ctx.papel.id,
+        started_at: DateTime.add(DateTime.utc_now(:second), -30, :day)
+      })
+
+    p
   end
 end

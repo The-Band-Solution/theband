@@ -1,0 +1,123 @@
+derivation_rule:
+  id: structure.antipatterns
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Antipadrões da estrutura organizacional declarada"
+
+  description:
+    pt-BR: >
+      As máximas que descrevem quando a **estrutura declarada** deixa de sustentar o que a
+      plataforma afirma sobre ela.
+
+      `process.antipatterns` observa a distância entre o processo declarado e o executado, e
+      olha para issues. Estas olham para a **equipe**: quantas pessoas a compõem, e o que isso
+      faz com toda medida de nível `team`.
+
+      A separação é do domínio. Uma issue fechada sem movimentação é um fato sobre um item de
+      trabalho; uma equipe de uma pessoa é um fato sobre a **unidade de medida** — e envenena
+      todo número calculado sobre ela, incluindo os que já estão na tela.
+
+  rationale:
+    pt-BR: >
+      Uma medida de equipe existe para dizer algo que a soma das pessoas não diz. Numa equipe
+      de **uma** pessoa isso desaparece: a mediana da equipe é a mediana daquela pessoa, a
+      vazão da equipe é a vazão dela, e a taxa do pipeline é a do trabalho dela.
+
+      A consequência prática apareceu em 2026-09-04, na revisão de segurança da feature 058: a
+      quebra por pessoa nomeada passou a exigir alcance sobre a equipe (FR-024), e o **agregado
+      continuou aberto** — como deve ser, porque agregado não identifica ninguém. Numa equipe
+      de uma pessoa ele identifica, e a fronteira que a FR-024 desenhou some sem que nada
+      avise.
+
+      **A saída não é um piso de pessoas.** "Agregado só a partir de N" seria vocabulário novo
+      — a base não tem esse N, e escolhê-lo seria a plataforma inventando política. A decisão
+      da pessoa mantenedora em 2026-09-04 é outra: **equipe de uma pessoa é anomalia, e o que
+      a plataforma faz com anomalia é identificá-la.**
+
+  what_this_is_not:
+    pt-BR: >
+      **Não é proibição.** `enforcement: detection`: a plataforma relata, e nunca recusa a
+      declaração. Uma equipe pode legitimamente ter uma pessoa por um período — alguém saiu,
+      alguém ainda vai entrar. O antipadrão diz que **as medidas de nível equipe não
+      significam o que prometem** enquanto isso durar, e não que a declaração está errada.
+
+      **Não é avaliação de pessoa.** Nenhuma destas máximas diz nada sobre quem está na equipe.
+      Elas dizem que a unidade sobre a qual a organização quer medir não está formada.
+
+      **Não é sobre tamanho ideal.** A plataforma não tem opinião sobre quantas pessoas uma
+      equipe deve ter. Um e zero são detectados porque quebram a **aritmética da medida**, e
+      não porque sejam poucos.
+
+  antipatterns:
+    - id: structure.ap01.team_of_one
+      name:
+        pt-BR: "Equipe de uma pessoa só"
+      statement:
+        pt-BR: >
+          A equipe tem **exatamente um** vínculo vigente. Toda medida de nível equipe calculada
+          sobre ela é, número a número, a medida daquela pessoa — com outro rótulo.
+      formal: >
+        ∀ t: Team
+          (|{p : Person | active_membership(p, t)}| = 1) → TeamOfOne(t)
+      consequence:
+        pt-BR: >
+          **O agregado deixa de agregar.** Uma tela que mostra "mediana da equipe" a quem não
+          alcança a equipe está mostrando o número de uma pessoa nomeável — a fronteira de
+          FR-024 da feature 058 existe exatamente para isso não acontecer, e aqui ela some sem
+          aviso.
+
+          Enquanto o antipadrão vigora, a leitura agregada **é** leitura individual, e quem a
+          apresenta precisa dizer isso.
+      concepts: [eo.team, eo.team_membership]
+      enforcement: detection
+      severity: informativo
+
+    - id: structure.ap02.team_with_no_members
+      name:
+        pt-BR: "Equipe sem nenhum vínculo vigente"
+      statement:
+        pt-BR: >
+          A equipe está declarada e **nenhuma pessoa** tem vínculo vigente com ela.
+      formal: >
+        ∀ t: Team
+          (|{p : Person | active_membership(p, t)}| = 0) → TeamWithNoMembers(t)
+      consequence:
+        pt-BR: >
+          Toda medida de nível equipe sobre ela devolve vazio, e **vazio não é zero**: a equipe
+          não teve vazão nula, ela não tem sobre quem calcular. Uma tela que mostrasse `0`
+          afirmaria desempenho onde não há unidade.
+
+          Medido em 2026-08-25, antes do PR #502: **12 equipes com zero membros**, e quatro das
+          cinco medidas de nível `team` declaradas sem conseguir calcular nenhuma.
+      concepts: [eo.team, eo.team_membership]
+      enforcement: detection
+      severity: informativo
+
+  limits:
+    pt-BR: >
+      **Estas máximas contam vínculo VIGENTE, e vigência é declaração.** Uma equipe cujos
+      vínculos existem mas ninguém confirmou aparece como sem membros — e isso é fato sobre o
+      que a organização declarou, não sobre quem trabalha lá.
+
+      **A contagem não distingue vínculo sem data de início.** `started_at` nulo é
+      desconhecido, e a convenção da plataforma é tratá-lo como membro: quem tem vínculo não
+      invalidado conta. Uma equipe cujos vínculos todos carecem de data aparece formada, e a
+      dúvida sobre desde quando fica com `TheBand.Periodos`.
+
+      **Nenhuma máxima aqui é retroativa a um período.** Elas descrevem a equipe **agora**. Uma
+      equipe que teve seis pessoas no trimestre passado e tem uma hoje é `team_of_one` hoje, e
+      as medidas do trimestre passado continuam sendo de seis.
+
+  provenance:
+    source_type: maintainer_decision
+    reference: "Decisão da pessoa mantenedora em 2026-09-04, ao decidir o que fazer com a equipe de uma pessoa na feature 058"
+    note:
+      pt-BR: >
+        A pergunta chegou como escolha entre aceitar o risco e definir um piso de pessoas. A
+        resposta recusou as duas: **é anomalia, e anomalia se identifica**. É a mesma postura
+        que `process_antipatterns.yaml` registra para o processo — a plataforma relata o que
+        observou, e quem decide o que fazer é a organização.

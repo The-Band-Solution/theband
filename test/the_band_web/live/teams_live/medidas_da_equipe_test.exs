@@ -389,6 +389,13 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
     test "conta SEM alcance lê os agregados e NÃO lê login nem número de solicitação", ctx do
       ana = pessoa(ctx, "ana")
       vincular(ctx, ctx.equipe, ana, dias_atras(200))
+
+      # DUAS pessoas: com uma só, a equipe cai em `structure.ap01.team_of_one` e o
+      # agregado é retido também — que é o caso do teste seguinte. Aqui o que está sob
+      # teste é a fronteira da FR-024 numa equipe formada.
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, ctx.equipe, bia, dias_atras(200))
+
       pr = solicitacao(ctx, 501, ana, dias_atras(5))
       revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
 
@@ -423,6 +430,43 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       A quebra sumiu sem explicação. Seção que encolhe sem dizer por quê parece defeito,
       e apresentá-la vazia afirmaria que a equipe não tem solicitações (FR-018).
       """
+    end
+
+    test "equipe de UMA pessoa retém até o agregado, e nomeia a anomalia", ctx do
+      # Decisão da pessoa mantenedora em 2026-09-04: equipe de uma pessoa é anomalia, e
+      # a plataforma a identifica. O agregado dela não agrega — é a medida daquela
+      # pessoa com outro rótulo —, então a fronteira da FR-024 vale para ele também.
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 503, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      {:ok, estranha} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "estranha2@example.test",
+          "name" => "Estranha",
+          "role" => "member"
+        })
+
+      {:ok, live, _html} = live(log_in(ctx.conn, estranha), ~p"/teams/#{ctx.equipe.id}")
+
+      # A anomalia é NOMEADA, na seção própria e antes das medidas.
+      anomalia = live |> element("#estrutura-anomala") |> render()
+      assert anomalia =~ "Equipe de uma pessoa só"
+      assert anomalia =~ "structure.ap01.team_of_one"
+      assert anomalia =~ "1 active membership(s)"
+
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "This team has one member"
+
+      refute secao =~ "4.0h", """
+      O agregado apareceu numa equipe de uma pessoa, para quem não alcança a equipe. Ali a
+      mediana da equipe É a mediana daquela pessoa, e mostrá-la contorna a FR-024 sem que
+      nada avise.
+      """
+
+      refute secao =~ "#503"
     end
 
     test "quem tem VÍNCULO na equipe lê a quebra — colega vê colega", ctx do

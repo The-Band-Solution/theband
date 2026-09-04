@@ -81,7 +81,12 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # A opção saiu, e com ela `:nome`. As duas consultas de volta são o preço da
   # garantia morar dentro da função, e não no chamador. **Subir por segurança é a
   # única razão que não precisa de justificativa de desempenho.**
-  @teto_do_detalhe 21
+  # **21 → 22 em 2026-09-04**, pelo antipadrão da estrutura
+  # (`structure.ap01.team_of_one`): a contagem de vínculos vigentes da equipe. Uma
+  # consulta constante, e ela vem ANTES das medidas de propósito — quem lê um número de
+  # nível equipe precisa saber primeiro se a unidade sobre a qual ele foi calculado
+  # está formada.
+  @teto_do_detalhe 22
 
   # O acréscimo do caminho COM PROJETO sobre o caminho sem projeto nenhum — as duas
   # consultas de `who_worked_on_many/3` e a dos repositórios, menos a que se cancela.

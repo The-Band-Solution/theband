@@ -237,6 +237,17 @@ ausência nomeando o elo que falta.
   045. A rota é artefato do roteador, e não fronteira do domínio.
 - **FR-024a**: A recusa MUST nomear o motivo — nunca esconder a seção sem dizer por
   quê, e nunca apresentar a quebra vazia como se a equipe não tivesse solicitações.
+- **FR-025**: Equipe com **exatamente um** vínculo vigente MUST ser identificada como
+  antipadrão de estrutura, e o **agregado** dela MUST seguir a mesma fronteira de
+  FR-024 — ali a mediana da equipe é a mediana daquela pessoa, com outro rótulo.
+
+  *Decisão da pessoa mantenedora em 2026-09-04.* A pergunta chegou como escolha entre
+  aceitar o risco e definir um piso de pessoas, e a resposta recusou as duas: **é
+  anomalia, e anomalia se identifica.** O piso seria vocabulário que a base de
+  conhecimento não tem, e escolhê-lo seria a plataforma inventando política. A máxima
+  vive em `priv/knowledge_base/rules/structure_antipatterns.yaml`, com a equipe sem
+  vínculo nenhum ao lado — zero e um quebram a aritmética da medida por razões
+  diferentes, e cada um tem sua máxima.
 
 ### Key Entities
 
@@ -282,7 +293,9 @@ ausência nomeando o elo que falta.
   fielmente o critério. O defeito estava no critério, que confundiu *não administra*
   com *não tem relação nenhuma*.
 - **SC-012**: Uma conta sem escopo sobre a equipe lê os agregados e **não** lê
-  login, número de solicitação nem mediana individual.
+  login, número de solicitação nem mediana individual — **exceto** quando a equipe tem
+  um único vínculo vigente, caso em que o agregado também é retido e a anomalia é
+  nomeada na tela (FR-025).
 
 ## Assumptions
 

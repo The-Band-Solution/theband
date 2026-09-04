@@ -811,6 +811,13 @@ defmodule TheBandWeb.TeamsLive.Show do
   # porta para as duas seções discordarem quando uma delas mudasse de filtro.
   defp carregar_medidas_da_058(socket, vinculos) do
     socket
+    |> assign(
+      antipadroes_da_estrutura:
+        Antipatterns.detect_structural_for_team(
+          socket.assigns.current_tenant,
+          socket.assigns.team.id
+        )
+    )
     |> carregar_quem_trabalhou(Enum.uniq_by(vinculos, & &1.project_id))
     |> carregar_espera_por_revisao()
     |> carregar_taxa_do_pipeline()
@@ -879,12 +886,26 @@ defmodule TheBandWeb.TeamsLive.Show do
 
     ve_por_pessoa? = alcance == :ok
 
+    # A EQUIPE DE UMA PESSOA — decisão da pessoa mantenedora, 2026-09-04.
+    #
+    # Nela o agregado deixa de agregar: a mediana da equipe É a mediana daquela pessoa,
+    # com outro rótulo. Mostrá-lo a quem não alcança a equipe faria a fronteira da
+    # FR-024 sumir sem que nada avisasse — e não por um furo na regra, mas porque a
+    # unidade de medida não está formada.
+    #
+    # A saída não é um piso de pessoas: seria vocabulário que a base não tem. É
+    # identificar a anomalia, e é o que `structure.ap01.team_of_one` faz.
+    de_uma_pessoa? = Antipatterns.team_of_one?(socket.assigns.antipadroes_da_estrutura)
+    ve_agregado? = ve_por_pessoa? or not de_uma_pessoa?
+
     assign(socket,
       espera_por_revisao: %{
         esperas: esperas,
         truncou?: truncou?,
         limite: @limite_de_esperas,
         ve_por_pessoa?: ve_por_pessoa?,
+        ve_agregado?: ve_agregado?,
+        de_uma_pessoa?: de_uma_pessoa?,
         motivo_da_recusa: motivo,
         por_pessoa: if(ve_por_pessoa?, do: Quality.agrupar_por_pessoa(esperas), else: []),
         mediana: Quality.mediana_em_horas(esperas),
@@ -1417,6 +1438,24 @@ defmodule TheBandWeb.TeamsLive.Show do
         </form>
       </section>
 
+      <%!-- ANTIPADRÕES DA ESTRUTURA — decisão da pessoa mantenedora, 2026-09-04.
+
+            Vem ANTES das medidas, e não depois: quem lê um número de nível equipe
+            precisa saber, primeiro, se a unidade sobre a qual ele foi calculado está
+            formada. Um aviso embaixo do número chega tarde. --%>
+      <section :if={@antipadroes_da_estrutura != []} id="estrutura-anomala" class="mt-8">
+        <div :for={a <- @antipadroes_da_estrutura} class="alert alert-warning items-start text-sm">
+          <div>
+            <div class="font-semibold">{a.nome}</div>
+            <p class="mt-1 opacity-90">{a.afirmacao}</p>
+            <p class="mt-1 opacity-80">{a.consequencia}</p>
+            <div class="mt-1 font-mono text-xs opacity-60">
+              {a.id} · {a.membros_vigentes} active membership(s)
+            </div>
+          </div>
+        </div>
+      </section>
+
       <%!-- QUEM TRABALHOU NO PROJETO — feature 058, US2 (T006, T007).
 
             A pergunta que duas colunas de período existem para responder desde que
@@ -1501,7 +1540,32 @@ defmodule TheBandWeb.TeamsLive.Show do
           zero — it is nothing to measure.
         </p>
 
-        <div :if={@espera_por_revisao.esperas != []} class="flex flex-wrap gap-4">
+        <%!-- A EQUIPE DE UMA PESSOA — `structure.ap01.team_of_one`.
+
+              Aqui o agregado É o número de uma pessoa nomeável, e mostrá-lo a quem não
+              alcança a equipe contornaria a FR-024 sem ninguém notar. A saída não é um
+              piso: é dizer qual anomalia está no caminho. --%>
+        <div
+          :if={@espera_por_revisao.de_uma_pessoa? and @espera_por_revisao.esperas != []}
+          class="alert alert-warning text-sm"
+        >
+          <div>
+            <p>
+              <strong>This team has one member.</strong>
+              A team median over one person is that person's median with another name, so the
+              numbers below are treated as individual, not aggregate.
+            </p>
+            <p :if={not @espera_por_revisao.ve_agregado?} class="mt-1">
+              You do not have reach over this team, so they are withheld — the same rule that
+              hides the per-person breakdown.
+            </p>
+          </div>
+        </div>
+
+        <div
+          :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_agregado?}
+          class="flex flex-wrap gap-4"
+        >
           <div class="card bg-base-200 p-3">
             <div class="text-xs opacity-70">team median · closed waits</div>
             <div class="text-lg font-semibold">
@@ -1522,8 +1586,13 @@ defmodule TheBandWeb.TeamsLive.Show do
         <%!-- A recusa NOMEIA o motivo (FR-024a). Esconder a quebra sem dizer por quê
               faria a seção parecer incompleta, e apresentá-la vazia afirmaria que a
               equipe não tem solicitações — que é o que FR-018 proíbe. --%>
+        <%!-- "os números acima" só é verdade quando há números acima: numa equipe de uma
+              pessoa o agregado foi retido, e o alerta anterior já explicou por quê. --%>
         <p
-          :if={not @espera_por_revisao.ve_por_pessoa? and @espera_por_revisao.esperas != []}
+          :if={
+            not @espera_por_revisao.ve_por_pessoa? and @espera_por_revisao.esperas != [] and
+              @espera_por_revisao.ve_agregado?
+          }
           class="text-sm opacity-70"
         >
           The team numbers above are shown to everyone in this organisation. The
