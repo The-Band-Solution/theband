@@ -1470,8 +1470,23 @@ defmodule TheBandWeb.TeamsLive.Show do
       <section :if={@quem_trabalhou != []} id="quem-trabalhou" class="mt-8 space-y-3">
         <h3 class="text-base font-semibold">Who worked on these projects</h3>
         <p class="text-sm opacity-70">
-          People who belonged to a team while that team was linked to the project, over the
-          last 8 weeks. A person reached by two teams appears <strong>once</strong>, with both named — two rows would count the same person twice.
+          A person works on a project when <strong>their team is on that project</strong>
+          — the
+          definition given by the maintainer on 2026-09-04. So this list is <strong>derived</strong>
+          from two declared links, pessoa ↔ equipe and equipe ↔ projeto, over the last 8 weeks.
+          A person reached by two teams appears <strong>once</strong>, with both named — two rows
+          would count the same person twice.
+        </p>
+
+        <%!-- A proveniência DERIVADA muda o que a lista pode ser lida como, e as duas
+              direções do erro são simétricas. O design system manda o preenchimento
+              carregar a proveniência; aqui ela é texto porque a lista é de gente, e
+              hachurar nomes de pessoas sugeriria dúvida sobre elas. --%>
+        <p class="text-xs opacity-60">
+          It is <strong>not</strong>
+          an observation of work in the project's repositories: someone on the team who touched
+          nothing still appears, and someone who committed there without being on a linked team
+          does not. Both are consequences of the definition, not gaps in collection.
         </p>
 
         <ul class="space-y-3">

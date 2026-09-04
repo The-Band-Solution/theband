@@ -108,6 +108,36 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       assert secao =~ "via Dados"
     end
 
+    test "a tela declara que a participação é DERIVADA, e as duas direções do erro", ctx do
+      # A definição da pessoa mantenedora em 2026-09-04: uma pessoa trabalha num projeto
+      # quando a equipe dela está no projeto. Sem essa frase na tela, a lista é lida como
+      # observação de trabalho — e aí as duas ausências viram suspeita de coleta quebrada.
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      {_projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#quem-trabalhou") |> render()
+
+      assert secao =~ "their team is on that project", """
+      A tela não diz de onde a lista vem. A participação é DERIVADA de dois vínculos
+      declarados, e uma lista de nomes sem essa frase afirma observação que não houve
+      (FR-007, FR-017).
+      """
+
+      # Trechos que não atravessam quebra de linha: o HEEx preserva as do template, e
+      # uma asserção sobre a frase inteira falharia dizendo que a frase sumiu.
+      assert secao =~ "nothing still appears", """
+      A tela não declara que quem está na equipe e não tocou em nada aparece — a primeira
+      das duas direções do erro, e consequência da definição.
+      """
+
+      assert secao =~ "without being on a linked team", """
+      A tela não declara a segunda direção: quem commitou nos repositórios do projeto sem
+      estar em equipe ligada NÃO aparece. Sem isso, a ausência parece coleta quebrada.
+      """
+    end
+
     test "a mesma pessoa por duas equipes aparece uma vez, com as duas nomeadas", ctx do
       {:ok, outra} =
         EO.declare_structural_team(ctx.tenant, ctx.org.id, "Plataforma", ctx.admin.id)

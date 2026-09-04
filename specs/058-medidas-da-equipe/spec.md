@@ -179,6 +179,22 @@ ausência nomeando o elo que falta.
 - **FR-007**: O sistema MUST responder quem trabalhou num projeto num intervalo,
   pela interseção de três períodos: pessoa ↔ equipe, equipe ↔ projeto, e a janela
   perguntada.
+
+  **A definição, dada pela pessoa mantenedora em 2026-09-04**: *uma pessoa trabalha
+  num projeto quando a equipe dela está no projeto.* Ela decide duas coisas que a
+  spec deixava implícitas:
+
+  1. a participação é **derivada** de dois vínculos declarados, e não observada no
+     trabalho — a tela MUST dizer isso junto da lista (FR-017);
+  2. as duas direções do erro são **consequência da definição**, e não lacuna de
+     coleta: quem está na equipe e não tocou em nada aparece; quem commitou nos
+     repositórios do projeto sem estar em equipe ligada não aparece. A tela MUST
+     declarar as duas.
+- **FR-007a**: A lista de quem trabalhou num projeto é **estrutura declarada**, e
+  não desempenho de pessoa nomeada — por isso **não** está sob a fronteira de
+  FR-024. Ela tem a mesma natureza da lista de integrantes que a tela já mostra
+  aberta: diz quem a organização declarou onde, e nenhum número sobre como a pessoa
+  trabalha.
 - **FR-008**: Vínculo encerrado MUST continuar contando no intervalo em que
   vigeu — desligar **não** apaga o que houve.
 - **FR-009**: Quando o **início** de qualquer período é desconhecido, o resultado
