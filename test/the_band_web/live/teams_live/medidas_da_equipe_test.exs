@@ -97,12 +97,45 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       vincular(ctx, ctx.equipe, ana, dias_atras(200))
       {_projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
 
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#quem-trabalhou") |> render()
 
       assert html =~ "Who worked on these projects"
-      assert html =~ "Alfa"
-      assert html =~ "ana"
-      assert html =~ "via Dados"
+      # Escopado: "ana" também está na tabela de membros, e sobre a página inteira a
+      # asserção passaria com a seção vazia.
+      assert secao =~ "Alfa"
+      assert secao =~ "ana"
+      assert secao =~ "via Dados"
+    end
+
+    test "a tela declara que a participação é DERIVADA, e as duas direções do erro", ctx do
+      # A definição da pessoa mantenedora em 2026-09-04: uma pessoa trabalha num projeto
+      # quando a equipe dela está no projeto. Sem essa frase na tela, a lista é lida como
+      # observação de trabalho — e aí as duas ausências viram suspeita de coleta quebrada.
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      {_projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#quem-trabalhou") |> render()
+
+      assert secao =~ "their team is on that project", """
+      A tela não diz de onde a lista vem. A participação é DERIVADA de dois vínculos
+      declarados, e uma lista de nomes sem essa frase afirma observação que não houve
+      (FR-007, FR-017).
+      """
+
+      # Trechos que não atravessam quebra de linha: o HEEx preserva as do template, e
+      # uma asserção sobre a frase inteira falharia dizendo que a frase sumiu.
+      assert secao =~ "nothing still appears", """
+      A tela não declara que quem está na equipe e não tocou em nada aparece — a primeira
+      das duas direções do erro, e consequência da definição.
+      """
+
+      assert secao =~ "without being on a linked team", """
+      A tela não declara a segunda direção: quem commitou nos repositórios do projeto sem
+      estar em equipe ligada NÃO aparece. Sem isso, a ausência parece coleta quebrada.
+      """
     end
 
     test "a mesma pessoa por duas equipes aparece uma vez, com as duas nomeadas", ctx do
@@ -137,11 +170,14 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       vincular(ctx, ctx.equipe, sem_data, nil)
       {_projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
 
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#quem-trabalhou") |> render()
 
-      assert html =~ "partially unknown"
-
-      assert html =~ "start date", """
+      # A frase INTEIRA, e dentro da seção: "start date" sozinho aparece em mais dois
+      # lugares da página — o rodapé desta seção e o badge "start date unknown" da
+      # seção de pessoas. Com a asserção solta, trocar o nome da borda por "boundary"
+      # passava (achado da revisão de QA do PR #798).
+      assert secao =~ "partially unknown: start date", """
       A marca apareceu sem nomear a borda. "Parcial" sozinho diz que há dúvida e não diz
       o que fazer com ela; "start date" diz qual campo preencher (FR-009, SC-005).
       """
@@ -251,6 +287,39 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       """
     end
 
+    test "quando corta em 200, a tela DIZ que cortou", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(300))
+
+      # 201 para cruzar o teto por uma. O corte silencioso era o achado: uma mediana
+      # sobre 200 de 500 é outra medida, apresentada com o mesmo rótulo (revisão de
+      # segurança do PR #798).
+      for n <- 1..201, do: solicitacao(ctx, 400 + n, ana, dias_atras(rem(n, 50) + 1))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "Showing the most recent 200 requests only", """
+      A tela cortou em 200 e não disse. Quem lê a mediana acredita que ela é sobre tudo o
+      que houve na janela (FR-018, FR-019).
+      """
+
+      assert secao =~ "not over all of them"
+    end
+
+    test "com poucas solicitações, a tela NÃO diz que cortou", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(300))
+      for n <- 1..3, do: solicitacao(ctx, 700 + n, ana, dias_atras(n))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      refute secao =~ "Showing the most recent", """
+      A tela avisou de um corte que não houve. Aviso que aparece sempre deixa de ser aviso.
+      """
+    end
+
     test "equipe sem solicitação diz a ausência, e não zero", ctx do
       ana = pessoa(ctx, "ana")
       vincular(ctx, ctx.equipe, ana, dias_atras(200))
@@ -298,9 +367,13 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
 
       assert secao =~ "50.0%"
 
-      assert secao =~ "run(s) that", """
-      O número apareceu sem o tamanho da amostra. Uma taxa de 100% sobre três execuções não
-      é a mesma afirmação que sobre trezentas (FR-016).
+      # O NÚMERO, e não a legenda: trocar o campo renderizado de
+      # `denominador_do_percentual` para `repositorios` fazia a tela declarar "over 1
+      # run(s)" onde são 2, e os 13 testes deste arquivo passavam (achado da revisão
+      # de QA do PR #798).
+      assert secao =~ "over 2 run(s) that", """
+      O número apareceu sem o tamanho da amostra correto. Uma taxa de 100% sobre três
+      execuções não é a mesma afirmação que sobre trezentas (FR-016).
       """
 
       assert secao =~ "repository → project → team", """
@@ -320,17 +393,148 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
       secao = live |> element("#taxa-do-pipeline") |> render()
 
-      assert secao =~ "interrupted"
+      # A CÉLULA da fase, e não o cabeçalho: `<th>interrupted</th>` renderiza sempre
+      # que há execução, e `assert secao =~ "interrupted"` passava mesmo com a fase
+      # somada a falha (achado da revisão de QA do PR #798).
+      assert secao =~ "over 0 run(s) that"
 
-      assert secao =~ "—", """
-      Sem nada que produzisse resultado, a taxa tem de ser um travessão. "0%" diria que
-      tudo falhou, e o que houve foi um cancelamento (FR-015, FR-018).
+      # A LINHA da tabela, célula a célula: sucesso 0, falha 0, interrompida 1. Somar a
+      # interrompida a "failed" mudaria a segunda célula, e o cabeçalho não denuncia.
+      assert secao =~ "<td>0</td><td>0</td><td>1</td><td>0</td><td>0</td>", """
+      As cinco fases não vieram separadas. Cancelar é decisão humana, e contá-la como
+      quebra inflaria a taxa com o que ninguém quebrou (FR-015).
+      """
+
+      # E o que NÃO pode existir: somar a interrompida ao denominador do percentual
+      # fazia a tela mostrar "0.0%" — e o travessão do parágrafo do caminho fazia a
+      # asserção do travessão passar assim mesmo.
+      refute secao =~ "%", """
+      Apareceu uma porcentagem sobre uma execução que não produziu resultado. "0%" diria
+      que tudo falhou, e o que houve foi um cancelamento (FR-015, FR-018).
       """
     end
   end
 
-  describe "ver não exige administrar (T019, SC-011)" do
-    test "perfil member lê as três medidas, e não vê os controles de escrita", ctx do
+  describe "a quebra por pessoa exige alcance sobre a equipe (FR-024, SC-012)" do
+    test "conta SEM alcance lê os agregados e NÃO lê login nem número de solicitação", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+
+      # DUAS pessoas: com uma só, a equipe cai em `structure.ap01.team_of_one` e o
+      # agregado é retido também — que é o caso do teste seguinte. Aqui o que está sob
+      # teste é a fronteira da FR-024 numa equipe formada.
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, ctx.equipe, bia, dias_atras(200))
+
+      pr = solicitacao(ctx, 501, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      {:ok, estranha} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "estranha@example.test",
+          "name" => "Estranha",
+          "role" => "member"
+        })
+
+      {:ok, live, _html} = live(log_in(ctx.conn, estranha), ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      # O AGREGADO continua aberto — FR-023 segue de pé: ver não exige administrar.
+      assert secao =~ "team median"
+      assert secao =~ "still waiting"
+      assert secao =~ "4.0h", "a mediana da equipe sumiu junto com a quebra"
+
+      # A quebra por pessoa, não.
+      refute secao =~ "#501", """
+      O número da solicitação de uma pessoa nomeada apareceu para quem não alcança a
+      equipe. A decisão de 2026-08-26 (spec 023, FR-012) diz quem lê o trabalho de
+      alguém: a própria pessoa, quem lidera a equipe dela, e quem responde pela
+      organização.
+      """
+
+      # E a recusa é DITA, nunca silenciosa (FR-024a).
+      # O trecho não atravessa quebra de linha nem apóstrofo: o HEEx escapa `'` para
+      # `&#39;` e preserva as quebras do template. Uma asserção sobre a frase inteira
+      # falharia dizendo "a recusa sumiu" quando ela está lá.
+      assert secao =~ "the breakdown is withheld", """
+      A quebra sumiu sem explicação. Seção que encolhe sem dizer por quê parece defeito,
+      e apresentá-la vazia afirmaria que a equipe não tem solicitações (FR-018).
+      """
+    end
+
+    test "equipe de UMA pessoa retém até o agregado, e nomeia a anomalia", ctx do
+      # Decisão da pessoa mantenedora em 2026-09-04: equipe de uma pessoa é anomalia, e
+      # a plataforma a identifica. O agregado dela não agrega — é a medida daquela
+      # pessoa com outro rótulo —, então a fronteira da FR-024 vale para ele também.
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 503, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      {:ok, estranha} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "estranha2@example.test",
+          "name" => "Estranha",
+          "role" => "member"
+        })
+
+      {:ok, live, _html} = live(log_in(ctx.conn, estranha), ~p"/teams/#{ctx.equipe.id}")
+
+      # A anomalia é NOMEADA, na seção própria e antes das medidas.
+      anomalia = live |> element("#estrutura-anomala") |> render()
+      assert anomalia =~ "Equipe de uma pessoa só"
+      assert anomalia =~ "structure.ap01.team_of_one"
+      assert anomalia =~ "1 active membership(s)"
+
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "This team has one member"
+
+      refute secao =~ "4.0h", """
+      O agregado apareceu numa equipe de uma pessoa, para quem não alcança a equipe. Ali a
+      mediana da equipe É a mediana daquela pessoa, e mostrá-la contorna a FR-024 sem que
+      nada avise.
+      """
+
+      refute secao =~ "#503"
+    end
+
+    test "quem tem VÍNCULO na equipe lê a quebra — colega vê colega", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 502, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      # A conta da própria ana: elo com a pessoa, e vínculo vigente na equipe.
+      {:ok, conta_da_ana} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "ana@example.test",
+          "name" => "ana",
+          "role" => "member"
+        })
+
+      {:ok, _} = Tenants.declare_person(ctx.tenant, conta_da_ana.id, ana.id, ctx.admin.id)
+
+      {:ok, live, _html} = live(log_in(ctx.conn, conta_da_ana), ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "#502", "quem está na equipe deixou de ver o trabalho dela"
+      assert secao =~ "different questions"
+      refute secao =~ "the breakdown is withheld"
+    end
+  end
+
+  describe "ver não exige administrar (T019, SC-011 emendado em 2026-09-04)" do
+    # SC-011 dizia "uma pessoa sem permissão de administrar equipes lê todas as
+    # medidas". Como estava escrito, ele **exigia o vazamento**: uma conta sem relação
+    # nenhuma também é "uma pessoa sem permissão de administrar", e o teste antigo
+    # implementava fielmente o critério errado.
+    #
+    # A emenda do Product Owner (2026-09-04) acrescenta a fronteira que faltava — com
+    # ESCOPO sobre a equipe —, e mantém intacto o que o critério queria dizer:
+    # administrar não é pré-requisito para ver.
+    test "perfil member COM vínculo lê as três medidas, e não vê os controles de escrita",
+         ctx do
       ana = pessoa(ctx, "ana")
       vincular(ctx, ctx.equipe, ana, dias_atras(200))
       {projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
@@ -347,6 +551,19 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
           "role" => "member"
         })
 
+      # O vínculo é o que dá alcance sobre a equipe — colega vê colega, sem ninguém
+      # conceder nada. Sem ele, esta conta leria os agregados e não a quebra, que é o
+      # caso do describe anterior (SC-012).
+      pessoa_do_member = pessoa(ctx, "membro")
+      vincular(ctx, ctx.equipe, pessoa_do_member, dias_atras(50))
+      {:ok, _} = Tenants.declare_person(ctx.tenant, member.id, pessoa_do_member.id, ctx.admin.id)
+
+      # Um projeto NÃO ligado à equipe, para o seletor de associação ter o que oferecer.
+      # Sem ele, `@projetos_disponiveis` é vazio e o formulário não renderiza para
+      # ninguém — o `refute` passava com a guarda de admin removida, e o teste media a
+      # fixture em vez do controle (achado da revisão de QA do PR #798).
+      {:ok, _solto} = SPO.create_project(ctx.tenant, %{name: "Beta"}, ctx.admin.id)
+
       {:ok, live, html} = live(log_in(ctx.conn, member), ~p"/teams/#{ctx.equipe.id}")
 
       assert html =~ "Who worked on these projects", "US2 não chegou a quem só lê"
@@ -354,12 +571,24 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       assert html =~ "Pipeline success rate", "US3 não chegou a quem só lê"
 
       assert live |> element("#quem-trabalhou") |> render() =~ "ana"
-      assert live |> element("#espera-por-revisao") |> render() =~ "4.0h"
+      # A quebra por pessoa, e não só o agregado: com vínculo, ela é legível.
+      espera = live |> element("#espera-por-revisao") |> render()
+      assert espera =~ "4.0h"
+      assert espera =~ "#301", "quem tem vínculo na equipe deixou de ver a quebra"
       assert live |> element("#taxa-do-pipeline") |> render() =~ "100.0%"
 
       refute html =~ "associate with a project…", """
       Quem só lê viu o controle de associar projeto. Ler as medidas não exige administrar
       — e administrar não é ver (FR-023).
+      """
+
+      # E o outro lado, que é o que prova que o controle EXISTE: sem ele, o refute
+      # acima passaria por o formulário nunca renderizar.
+      {:ok, _admin_live, html_admin} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      assert html_admin =~ "associate with a project…", """
+      Quem administra deixou de ver o controle. O refute do `member` só significa alguma
+      coisa se houver o que esconder.
       """
     end
   end

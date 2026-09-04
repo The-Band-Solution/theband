@@ -25,6 +25,7 @@ defmodule TheBand.Tenants do
   defdelegate scopes(tenant, user), to: Access
   defdelegate pode_declarar_estrutura(tenant, user, nivel, alvo_id), to: Access
   defdelegate pode_ver(tenant, user, person_id), to: Access
+  defdelegate pode_ver_equipe(tenant, user, team_id), to: Access
   defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
   defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
   defdelegate operacional?(tenant, user), to: Access

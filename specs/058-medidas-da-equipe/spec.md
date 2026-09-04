@@ -179,6 +179,22 @@ ausência nomeando o elo que falta.
 - **FR-007**: O sistema MUST responder quem trabalhou num projeto num intervalo,
   pela interseção de três períodos: pessoa ↔ equipe, equipe ↔ projeto, e a janela
   perguntada.
+
+  **A definição, dada pela pessoa mantenedora em 2026-09-04**: *uma pessoa trabalha
+  num projeto quando a equipe dela está no projeto.* Ela decide duas coisas que a
+  spec deixava implícitas:
+
+  1. a participação é **derivada** de dois vínculos declarados, e não observada no
+     trabalho — a tela MUST dizer isso junto da lista (FR-017);
+  2. as duas direções do erro são **consequência da definição**, e não lacuna de
+     coleta: quem está na equipe e não tocou em nada aparece; quem commitou nos
+     repositórios do projeto sem estar em equipe ligada não aparece. A tela MUST
+     declarar as duas.
+- **FR-007a**: A lista de quem trabalhou num projeto é **estrutura declarada**, e
+  não desempenho de pessoa nomeada — por isso **não** está sob a fronteira de
+  FR-024. Ela tem a mesma natureza da lista de integrantes que a tela já mostra
+  aberta: diz quem a organização declarou onde, e nenhum número sobre como a pessoa
+  trabalha.
 - **FR-008**: Vínculo encerrado MUST continuar contando no intervalo em que
   vigeu — desligar **não** apaga o que houve.
 - **FR-009**: Quando o **início** de qualquer período é desconhecido, o resultado
@@ -223,6 +239,31 @@ ausência nomeando o elo que falta.
   com limitações e interpretações incorretas, **antes** de aparecer na tela.
 - **FR-022**: Toda consulta MUST ser restrita ao tenant de quem consulta.
 - **FR-023**: Ver estas medidas MUST NOT exigir permissão de administrar equipes.
+- **FR-024**: A quebra **por pessoa nomeada** MUST ser apresentada apenas a quem
+  alcança a equipe pelo veredito de acesso vigente, e a decisão MUST vir **antes**
+  da carga. O agregado da equipe — mediana, espera em curso, ausência dita e as
+  limitações — MUST permanecer legível por qualquer conta do tenant.
+
+  *Acrescentado em 2026-09-04, por decisão do Product Owner, depois de a revisão de
+  segurança do PR #798 encontrar que qualquer conta do tenant lia login, número de
+  solicitação e mediana individual de pessoa nomeada.* **Não é regra nova**: aplica
+  à tela da equipe a decisão registrada em FR-012 da spec 023 (2026-08-26) — o
+  trabalho de alguém é visível para a própria pessoa, para quem lidera a equipe dela
+  e para quem responde pela organização — e o alcance definido em FR-010 da spec
+  045. A rota é artefato do roteador, e não fronteira do domínio.
+- **FR-024a**: A recusa MUST nomear o motivo — nunca esconder a seção sem dizer por
+  quê, e nunca apresentar a quebra vazia como se a equipe não tivesse solicitações.
+- **FR-025**: Equipe com **exatamente um** vínculo vigente MUST ser identificada como
+  antipadrão de estrutura, e o **agregado** dela MUST seguir a mesma fronteira de
+  FR-024 — ali a mediana da equipe é a mediana daquela pessoa, com outro rótulo.
+
+  *Decisão da pessoa mantenedora em 2026-09-04.* A pergunta chegou como escolha entre
+  aceitar o risco e definir um piso de pessoas, e a resposta recusou as duas: **é
+  anomalia, e anomalia se identifica.** O piso seria vocabulário que a base de
+  conhecimento não tem, e escolhê-lo seria a plataforma inventando política. A máxima
+  vive em `priv/knowledge_base/rules/structure_antipatterns.yaml`, com a equipe sem
+  vínculo nenhum ao lado — zero e um quebram a aritmética da medida por razões
+  diferentes, e cada um tem sua máxima.
 
 ### Key Entities
 
@@ -258,7 +299,19 @@ ausência nomeando o elo que falta.
 - **SC-009**: 100% das medidas novas estão declaradas em YAML antes de aparecer
   na tela.
 - **SC-010**: Nenhuma consulta desta feature devolve dado de outro tenant.
-- **SC-011**: Uma pessoa sem permissão de administrar equipes lê todas as medidas.
+- **SC-011** *(emendado em 2026-09-04)*: Uma pessoa **sem permissão de administrar
+  equipes e com escopo sobre a equipe** lê todas as medidas, inclusive a quebra por
+  pessoa.
+
+  *A emenda não ajusta o critério ao que foi entregue — faz o contrário.* Como
+  estava escrito, SC-011 **exigia o vazamento**: uma conta sem relação nenhuma
+  também é "uma pessoa sem permissão de administrar equipes", e o teste implementava
+  fielmente o critério. O defeito estava no critério, que confundiu *não administra*
+  com *não tem relação nenhuma*.
+- **SC-012**: Uma conta sem escopo sobre a equipe lê os agregados e **não** lê
+  login, número de solicitação nem mediana individual — **exceto** quando a equipe tem
+  um único vínculo vigente, caso em que o agregado também é retido e a anomalia é
+  nomeada na tela (FR-025).
 
 ## Assumptions
 

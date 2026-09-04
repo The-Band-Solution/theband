@@ -275,7 +275,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       [m],
       m.tenant_id == ^tenant_id and m.team_id in ^team_ids and is_nil(m.invalidated_at)
     )
-    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    # O tenant amarrado nas duas tabelas — ver o mesmo padrão em `Projects`.
+    |> join(:inner, [m], p in Person, on: p.id == m.person_id and p.tenant_id == m.tenant_id)
     |> order_by([_m, p], asc: p.name, asc: p.login)
     |> select([m, p], %{
       team_id: m.team_id,

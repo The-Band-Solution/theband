@@ -515,7 +515,10 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
     Repo.all(
       from v in ProjectTeam,
         join: p in Project,
-        on: p.id == v.project_id,
+        # O tenant é amarrado nas DUAS tabelas: a dirigente já filtra, e a chave do join
+        # sozinha depende de o UUID nunca colidir. Dois padrões no mesmo módulo fariam a
+        # próxima pessoa escolher o errado metade das vezes (revisão de segurança, #798).
+        on: p.id == v.project_id and p.tenant_id == v.tenant_id,
         where: v.tenant_id == ^tenant_id and v.team_id == ^team_id and is_nil(p.removed_at),
         order_by: [asc: p.name, asc: v.linked_at],
         select: %{
@@ -687,7 +690,7 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
     Repo.all(
       from v in ProjectTeam,
         join: t in "eo_teams",
-        on: t.id == v.team_id,
+        on: t.id == v.team_id and t.tenant_id == v.tenant_id,
         where: v.tenant_id == ^tenant_id and v.project_id in ^project_ids,
         order_by: [asc: t.name, asc: v.linked_at],
         select: %{

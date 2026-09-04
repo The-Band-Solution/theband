@@ -15,11 +15,14 @@ defmodule TheBand.Isolamento058Test do
   """
   use TheBand.DataCase, async: false
 
+  import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
   import TheBandWeb.ConnCase, only: [tenant_with_admin: 0]
 
+  alias TheBand.Changes.Commands, as: ChangeCommands
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Quality
+  alias TheBand.Quality.Commands, as: QualityCommands
   alias TheBand.Verification
 
   setup do
@@ -58,7 +61,49 @@ defmodule TheBand.Isolamento058Test do
     {:ok, projeto} = SPO.create_project(tenant, %{name: "Alfa"}, admin.id)
     {:ok, _} = SPO.link_team(tenant, projeto.id, equipe.id, admin.id)
 
-    %{tenant: tenant, admin: admin, org: org, equipe: equipe, pessoa: ana, projeto: projeto}
+    # O repositório e a solicitação existem porque SEM ELES dois casos deste arquivo
+    # passavam com o filtro de tenant removido — achado da revisão de segurança do PR
+    # #798. `== []` sobre tabela vazia é verdadeiro com filtro, sem filtro, e com a
+    # função substituída por `fn _, _ -> [] end`: a asserção celebrava a consulta
+    # quebrada.
+    cenario = cenario_real(tenant)
+    {:ok, _} = SPO.link_repository(tenant, projeto.id, cenario.observed_repository_id, admin.id)
+
+    {:ok, pr} =
+      ChangeCommands.record_change_request(tenant, %{
+        observed_repository_id: cenario.observed_repository_id,
+        number: :erlang.phash2(sufixo, 100_000),
+        title: "solicitação de #{sufixo}",
+        state: "OPEN",
+        external_created_at: DateTime.add(DateTime.utc_now(:second), -5, :day),
+        author_login: "ana",
+        author_person_id: ana.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_#{sufixo}"
+      })
+
+    {:ok, _} =
+      QualityCommands.record_evaluation(tenant, %{
+        collected_change_request_id: pr.id,
+        state: "APPROVED",
+        author_login: "revisora",
+        author_type: "User",
+        external_submitted_at: DateTime.add(pr.external_created_at, 2, :hour),
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PRR_#{sufixo}"
+      })
+
+    %{
+      tenant: tenant,
+      admin: admin,
+      org: org,
+      equipe: equipe,
+      pessoa: ana,
+      projeto: projeto,
+      repositorio: cenario.observed_repository_id
+    }
   end
 
   defp janela do
@@ -106,12 +151,35 @@ defmodule TheBand.Isolamento058Test do
   end
 
   test "project_repositories_in/3 não atravessa a fronteira", ctx do
+    # A positiva vem PRIMEIRO, e é ela que impede a negativa de celebrar uma consulta
+    # que devolve vazio sempre.
+    assert [_um_repo] = SPO.project_repositories_in(ctx.um.tenant, ctx.um.projeto.id, janela())
+
     assert SPO.project_repositories_in(ctx.um.tenant, ctx.outro.projeto.id, janela()) == []
+
+    # E a variante em lote, que é onde o filtro de fronteira mora e onde 182 testes
+    # não perceberam a remoção dele.
+    projetos =
+      ctx.um.tenant
+      |> SPO.project_repositories_with_period_many([ctx.um.projeto.id, ctx.outro.projeto.id])
+      |> Enum.map(& &1.project_id)
+      |> Enum.uniq()
+
+    assert projetos == [ctx.um.projeto.id]
   end
 
   test "team_time_to_first_review/3 e a versão por pessoa não atravessam", ctx do
+    assert [_uma] = Quality.team_time_to_first_review(ctx.um.tenant, ctx.um.equipe.id)
+
+    assert [_uma_pessoa] =
+             Quality.team_time_to_first_review_by_person(ctx.um.tenant, ctx.um.equipe.id)
+
     assert Quality.team_time_to_first_review(ctx.um.tenant, ctx.outro.equipe.id) == []
     assert Quality.team_time_to_first_review_by_person(ctx.um.tenant, ctx.outro.equipe.id) == []
+
+    # A direção inversa também: tenant povoado consultando equipe de tenant povoado é
+    # o único caso que pega TROCA de filtro, e não só remoção.
+    assert Quality.team_time_to_first_review(ctx.outro.tenant, ctx.um.equipe.id) == []
   end
 
   test "team_pipeline_rate/3 recusa a equipe do outro tenant", ctx do

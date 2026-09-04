@@ -800,8 +800,10 @@ defmodule TheBand.VerificationTest do
     test "equipe sem projeto declarado devolve o RELATOR, e não uma taxa de zero", ctx do
       equipe = equipe_058(ctx, "Sem projeto")
 
-      assert {:sem_projeto, %{equipe: "Sem projeto"}} =
-               Verification.team_pipeline_rate(ctx.tenant, equipe.id),
+      # `==`, e não `=`: com o casamento de padrão a mensagem abaixo NUNCA aparece —
+      # o MatchError é levantado antes da maquinaria do ExUnit (revisão de QA, PR #798).
+      assert Verification.team_pipeline_rate(ctx.tenant, equipe.id) ==
+               {:sem_projeto, %{equipe: "Sem projeto"}},
              """
              Uma taxa de zero diria que o pipeline falhou. A verdade é outra: a plataforma
              não sabe de quais repositórios esta equipe cuida, e a recusa NOMEIA o elo que
@@ -958,6 +960,13 @@ defmodule TheBand.VerificationTest do
 
       [_antes, depois] = String.split(fonte, "def team_pipeline_rate", parts: 2)
       [corpo, _resto] = String.split(depois, "\n  @doc", parts: 2)
+
+      # A guarda de que a janela pegou o código certo. Sem ela, um `@doc` inserido
+      # entre a função e os helpers encolhe o recorte, e o `refute` passa sobre texto
+      # vazio — medido na revisão de QA do PR #798, injetando o join pelo ator junto
+      # com um `@doc`: este teste passou, e só o comportamental reprovou.
+      assert corpo =~ "collected_verifications", "a janela não pegou a consulta"
+      assert corpo =~ "montar_taxa", "a janela não pegou a montagem da taxa"
 
       refute corpo =~ "actor_person_id", """
       `actor_person_id` apareceu no caminho da taxa. Ele responde *quem disparou*, e não
