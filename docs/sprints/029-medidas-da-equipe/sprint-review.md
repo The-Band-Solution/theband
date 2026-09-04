@@ -99,19 +99,81 @@ lição está no **como** foram achados, e não em que existiram:
    `com_primeira_revisao_humana/1` não foi obediência ao gate: o recorte pela data
    de abertura **é** a regra da medida, e lia-se melhor sozinho.
 
+## A revisão independente, e o que ela achou
+
+**O PR #798 foi incorporado em 2026-09-04 às 02:58 com `reviews: []`.** Perguntado
+se alguém havia lido, a pessoa mantenedora respondeu que **não há como saber** — e
+por isso o registro diz **revisão não registrada**, e não *atestada sem registro*.
+`reviews: []` prova ausência de registro, não ausência de leitura; afirmar a segunda
+seria inventar.
+
+Foi a terceira reincidência da L95. O que mudou desta vez veio **depois** do merge:
+três revisões independentes por agente, e as três acharam coisa que os gates não
+pegam.
+
+### Revisão de segurança (OWASP) — 7 achados
+
+| # | Achado | Estado |
+|---|---|---|
+| 1 | `project_repositories_with_period_many/2` sem teste do filtro de tenant | corrigido |
+| 2 | três joins não amarravam `tenant_id` entre as tabelas | corrigido |
+| 3 | **dois casos do teste de isolamento comparavam `[] == []`** | corrigido |
+| 4 | `:vinculos` e `:nome` — garantia morando no chamador | **opções removidas** |
+| 5 | o Sobelow **não enxerga `raw/1` dentro de `~H`** | gate novo |
+| 6 | leitura individual sem veredito de acesso | FR-024 |
+| 7 | corte em 200 solicitações, silencioso | a tela diz que cortou |
+
+O achado 5 foi **medido, e não deduzido**: XSS injetado numa seção que mostra título
+vindo do GitHub, e o scan saiu limpo com código 0; um defeito que o Sobelow reconhece
+foi injetado em seguida, e aí ele reprovou. *"Sobelow limpo"* nesta base significa
+"nenhum padrão conhecido **fora dos templates**", e toda a superfície de renderização
+é LiveView.
+
+O achado 3 é o mais desconfortável: **com o filtro de tenant removido, a suíte inteira
+passava — 1 711 testes.** O arquivo cujo nome afirma provar SC-010 não provava.
+
+### Revisão de QA — 8 achados
+
+Os cinco testes que sustentam o núcleo da feature **reprovam quando o código erra**,
+provados por injeção. Mas quatro asserções da suíte de tela celebravam o que não
+mediram — também provadas por injeção:
+
+- `assert secao =~ "interrupted"` casava com o **cabeçalho** da tabela, e passava com
+  "0.0%" na tela — o defeito que o teste diz impedir;
+- `assert html =~ "start date"` tinha **três fontes** na página;
+- `assert secao =~ "run(s) that"` media a legenda, não o número que ela qualifica;
+- o `refute` da permissão passava com a guarda de admin removida: a fixture não
+  deixava o formulário renderizar **para ninguém**.
+
+E o teto das seções era **estimativa** (6); medido, era 3. Estimativa deixa folga, e
+folga é onde consulta nova entra sem ninguém ver.
+
+### Decisão do Product Owner — FR-024 e FR-025
+
+O achado 6 não era decisão nova: **a pergunta "quem vê o trabalho de alguém" foi
+respondida em 2026-08-26** (spec 023, FR-012), e a tela da equipe restabelecia por
+omissão o regime revogado. SC-011, como estava escrito, **exigia o vazamento** — uma
+conta sem relação nenhuma também é "uma pessoa sem permissão de administrar equipes".
+O critério voltou emendado, com SC-012 ao lado.
+
+A equipe de uma pessoa foi decidida pela pessoa mantenedora no mesmo dia: **é
+anomalia, e anomalia se identifica** — nem risco aceito, nem piso de pessoas, que
+seria vocabulário que a base não tem.
+
 ## O que não foi feito
 
 | Tarefa | Issue | Motivo | Destino |
 |---|---|---|---|
-| T021 (parte) | [#788](https://github.com/The-Band-Solution/theband/issues/788) | gates verdes ✅, PR aberto ✅, **revisão independente ✗** | próximo sprint, como condição de entrada |
+| T021 (parte) | [#788](https://github.com/The-Band-Solution/theband/issues/788) | gates verdes ✅, PR aberto ✅, **revisão humana não registrada** | mecanismo, e não outro registro |
 
-**É a terceira vez seguida.** A L95 nasceu no sprint 027, reincidiu no 028, e
-reincide aqui. A lacuna está declarada no PR, como o princípio VII exige, e **não
-está marcada como cumprida**.
+**É a terceira vez seguida**, e a L98 descreve o padrão: lição que não vira regra
+reincide. Uma lição que reincide três vezes não precisa de outro registro — precisa
+de um mecanismo.
 
-O padrão é o que a lição 98 descreve: lição que não vira regra reincide. Uma
-lição que reincide três vezes não precisa de outro registro — precisa de um
-mecanismo, e propor qual é trabalho do próximo sprint backlog.
+O que este sprint acrescentou como mecanismo, e não como promessa: a revisão
+independente **por agente**, com injeção de defeito como prova, achou 15 problemas
+que 1 711 testes verdes e 14 gates não pegaram. Não substitui leitura humana de
+desenho; cobre a parte que a leitura humana também costuma não pegar.
 
 ## O que continua aberto no épico [#504](https://github.com/The-Band-Solution/theband/issues/504)
 
