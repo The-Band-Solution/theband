@@ -73,16 +73,27 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # `agrupar_por_pessoa/1`. Uma segunda consulta com o mesmo filtro produziria dois
   # números com o mesmo rótulo, que é a L67.
   #
-  # **Fica em 19 com a US3.** A taxa do pipeline reusa a lista de vínculos equipe ↔
-  # projeto que a seção de quem trabalhou já carrega, e no caminho da recusa —
-  # equipe sem projeto, que é o cenário deste teste — não consulta mais nada.
-  @teto_do_detalhe 19
+  # **19 → 21 em 2026-09-04**, pela revisão de segurança do PR #798. A taxa do
+  # pipeline reusava a lista de vínculos que a seção de quem trabalhou já carregava,
+  # por uma opção `:vinculos` — e com a lista vindo de fora, `team_id` deixava de
+  # decidir qualquer coisa: a taxa de uma equipe podia sair com o rótulo de outra.
+  #
+  # A opção saiu, e com ela `:nome`. As duas consultas de volta são o preço da
+  # garantia morar dentro da função, e não no chamador. **Subir por segurança é a
+  # única razão que não precisa de justificativa de desempenho.**
+  @teto_do_detalhe 21
 
-  # O acréscimo das TRÊS seções da feature 058 quando a equipe TEM projeto, medido
-  # contra a mesma página sem projeto nenhum. É o caminho caro, e o que o teste
-  # acima não vê: com projeto nascem as duas consultas de `who_worked_on_many/3`,
-  # a dos repositórios e a das execuções.
-  @teto_das_secoes_058 6
+  # O acréscimo do caminho COM PROJETO sobre o caminho sem projeto nenhum — as duas
+  # consultas de `who_worked_on_many/3` e a dos repositórios, menos a que se cancela.
+  #
+  # **Era 6 e é 3.** O 6 foi estimado do `tasks.md`; o 3 foi medido em 2026-09-04,
+  # depois de a revisão de QA apontar que o número não vinha de medição. Estimativa
+  # deixa folga, e folga é onde consulta nova entra sem ninguém ver.
+  #
+  # **Ele NÃO mede "as três seções"** — a consulta da US1 roda nos dois lados e se
+  # cancela na diferença. Quem cobre a US1 é o teto da página, acima. O nome diz o
+  # que a medida é.
+  @teto_do_caminho_com_projeto 3
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do
@@ -231,8 +242,8 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
     end
   end
 
-  describe "as três seções da feature 058" do
-    test "custam no máximo o teto declarado, e o número não cresce com o dado", ctx do
+  describe "o caminho com projeto, da feature 058" do
+    test "custa no máximo o teto declarado, e o número não cresce com o dado", ctx do
       sem_projeto = equipe(ctx, "Sem projeto")
       ana = pessoa(ctx, "ana")
       vincular(ctx, sem_projeto, ana)
@@ -245,9 +256,17 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
       base = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{sem_projeto.id}") end))
       com_uma = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{com_projeto.id}") end))
 
-      assert com_uma - base <= @teto_das_secoes_058, """
-      As seções da 058 acrescentam #{com_uma - base} consultas quando a equipe tem projeto,
-      e o teto declarado é #{@teto_das_secoes_058}.
+      # A guarda que faltava: sem ela, se as seções sumissem da tela o delta seria 0 e
+      # o teto passaria — o teste celebraria a ausência do que veio medir.
+      assert com_uma - base > 0, """
+      O caminho com projeto não custou consulta nenhuma a mais. Ou as seções sumiram da
+      tela, ou a fixture não ligou o projeto — e nos dois casos este teste não está
+      medindo o que diz medir.
+      """
+
+      assert com_uma - base <= @teto_do_caminho_com_projeto, """
+      O caminho com projeto acrescenta #{com_uma - base} consultas sobre o caminho sem
+      projeto, e o teto declarado é #{@teto_do_caminho_com_projeto}.
 
       Subir é decisão, e ela aparece neste arquivo.
       """

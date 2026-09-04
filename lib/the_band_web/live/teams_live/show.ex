@@ -25,6 +25,10 @@ defmodule TheBandWeb.TeamsLive.Show do
   # Oito semanas. Escolher o período é trabalho separado, e um seletor sem
   # período fechado reabriria a questão do denominador móvel (L86).
   @janela_em_dias 56
+
+  # O teto de solicitações que a seção da espera carrega. Cortar é decisão, e a tela
+  # DIZ quando corta: mediana sobre 200 de 500 é outra medida com o mesmo rótulo.
+  @limite_de_esperas 200
   @por_pagina 50
 
   # O papel organizacional fica fora das colunas ordenáveis: ele é **derivado** de haver ou não
@@ -809,7 +813,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> carregar_quem_trabalhou(Enum.uniq_by(vinculos, & &1.project_id))
     |> carregar_espera_por_revisao()
-    |> carregar_taxa_do_pipeline(vinculos)
+    |> carregar_taxa_do_pipeline()
   end
 
   defp carregar_quem_trabalhou(socket, []), do: assign(socket, quem_trabalhou: [])
@@ -846,15 +850,24 @@ defmodule TheBandWeb.TeamsLive.Show do
     team = socket.assigns.team
     agora = DateTime.utc_now()
 
-    esperas =
+    # Pede UMA a mais que o limite para saber se cortou. Sem isso o corte é
+    # silencioso, e uma mediana sobre 200 de 500 é outra medida — apresentada com o
+    # mesmo rótulo (achado da revisão de segurança do PR #798).
+    carregadas =
       Quality.team_time_to_first_review(tenant, team.id,
         desde: DateTime.add(agora, -@janela_em_dias, :day),
-        ate: agora
+        ate: agora,
+        limit: @limite_de_esperas + 1
       )
+
+    truncou? = length(carregadas) > @limite_de_esperas
+    esperas = Enum.take(carregadas, @limite_de_esperas)
 
     assign(socket,
       espera_por_revisao: %{
         esperas: esperas,
+        truncou?: truncou?,
+        limite: @limite_de_esperas,
         por_pessoa: Quality.agrupar_por_pessoa(esperas),
         mediana: Quality.mediana_em_horas(esperas),
         em_curso: Enum.count(esperas, &match?({:aguardando, _}, &1.estado))
@@ -868,9 +881,11 @@ defmodule TheBandWeb.TeamsLive.Show do
   # primeira classe: equipe sem projeto declarado não recebe taxa nenhuma, e a tela
   # nomeia o elo que falta em vez de mostrar zero.
   #
-  # O nome da equipe vai junto porque a tela já o tem: sem ele, a recusa custaria
-  # uma consulta a mais para escrever uma palavra que já está na página.
-  defp carregar_taxa_do_pipeline(socket, vinculos) do
+  # A função consulta os próprios vínculos, e a tela NÃO os passa: a revisão de
+  # segurança mostrou que a opção transformava `team_id` em enfeite, e a taxa de uma
+  # equipe podia sair com o rótulo de outra. Custa uma consulta por render, e está
+  # no teto declarado.
+  defp carregar_taxa_do_pipeline(socket) do
     tenant = socket.assigns.current_tenant
     team = socket.assigns.team
     agora = DateTime.utc_now()
@@ -878,9 +893,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     taxa =
       Verification.team_pipeline_rate(tenant, team.id,
         desde: DateTime.add(agora, -@janela_em_dias, :day),
-        ate: agora,
-        nome: team.name,
-        vinculos: vinculos
+        ate: agora
       )
 
     assign(socket, taxa_do_pipeline: taxa)
@@ -1513,6 +1526,11 @@ defmodule TheBandWeb.TeamsLive.Show do
             </ul>
           </li>
         </ul>
+
+        <p :if={@espera_por_revisao.truncou?} class="text-sm opacity-70">
+          Showing the most recent {@espera_por_revisao.limite} requests only — there are more
+          in the window, and the medians above are over <strong>what is shown</strong>, not over all of them.
+        </p>
 
         <p :if={@espera_por_revisao.esperas != []} class="text-xs opacity-60">
           The per-person medians and the team median answer <strong>different questions</strong>

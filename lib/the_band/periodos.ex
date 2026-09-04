@@ -217,13 +217,15 @@ defmodule TheBand.Periodos do
   # desconhecido certamente estão. A sobreposição é certa quando ele cabe depois
   # de todos os inícios conhecidos e antes de todos os fins conhecidos.
   defp sobreposicao_certa?(periodos, sem_inicio) do
-    with {:ok, critico} <- menor_fim(sem_inicio) do
-      depois_de_todos_os_inicios?(periodos, critico) and
-        cabe_antes_dos_fins?(periodos, critico)
-    else
+    case menor_fim(sem_inicio) do
+      {:ok, critico} ->
+        depois_de_todos_os_inicios?(periodos, critico) and
+          cabe_antes_dos_fins?(periodos, critico)
+
       # Algum período sem início tem fim nulo: ele pode ter começado depois de
       # tudo e ainda estar em curso, e não há instante que se possa garantir.
-      :indeterminado -> false
+      :indeterminado ->
+        false
     end
   end
 

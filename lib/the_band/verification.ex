@@ -75,8 +75,10 @@ defmodule TheBand.Verification do
   uma taxa de zero. Zero diria que o pipeline falhou; a verdade é que a plataforma
   não sabe de quais repositórios aquela equipe cuida (FR-013a).
 
-  Três consultas, mais uma no ramo da recusa — o nome da equipe, para que a tela
-  possa nomeá-la.
+  Três consultas, mais uma no ramo da recusa — o nome da equipe, para a tela poder
+  nomeá-la. Nenhuma delas é dispensável por opção do chamador: a revisão de
+  segurança do PR #798 mostrou que passar os vínculos de fora fazia `team_id`
+  deixar de decidir, e a taxa de uma equipe podia sair com o rótulo de outra.
   """
   @type taxa :: %{
           sucesso: non_neg_integer(),
@@ -107,15 +109,20 @@ defmodule TheBand.Verification do
   def team_pipeline_rate(%Tenant{} = tenant, team_id, opts \\ []) do
     janela = %{inicio: Keyword.get(opts, :desde), fim: Keyword.get(opts, :ate)}
 
-    # `:vinculos` existe para quem JÁ os carregou — a tela carrega, porque a seção
-    # de quem trabalhou nos projetos usa a mesma lista. Sem isso, a página faria a
-    # mesma consulta duas vezes por render.
-    case Keyword.get(opts, :vinculos) || SPO.team_project_links_with_period(tenant, team_id) do
+    # Os vínculos são consultados AQUI, e não recebidos por opção.
+    #
+    # Havia uma opção `:vinculos`, para a tela economizar uma consulta, e a revisão de
+    # segurança do PR #798 mostrou o que ela custava: com a lista vindo de fora,
+    # `team_id` deixava de decidir qualquer coisa no ramo `{:ok, _}`, e
+    # `team_pipeline_rate(tenant, equipe_A, vinculos: vínculos_de_B)` devolvia a taxa
+    # de B com o rótulo de A. A garantia morava no chamador, e o segundo chamador não
+    # ia saber disso. O mesmo valia para `:nome`, escrito na tela verbatim.
+    #
+    # Uma consulta a mais por render é o preço, declarado no teto: a garantia vale
+    # mais do que ela.
+    case SPO.team_project_links_with_period(tenant, team_id) do
       [] ->
-        # `:nome` existe para quem JÁ tem o nome — a tela tem. Sem ele a recusa
-        # custaria uma consulta a mais só para escrever uma palavra que o chamador
-        # já carregava.
-        {:sem_projeto, %{equipe: Keyword.get(opts, :nome) || nome_da_equipe(tenant, team_id)}}
+        {:sem_projeto, %{equipe: nome_da_equipe(tenant, team_id)}}
 
       vinculos ->
         {:ok,

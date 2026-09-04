@@ -310,7 +310,9 @@ defmodule TheBand.QualityTest do
       linhas = Quality.team_time_to_first_review(ctx.tenant, equipe.id)
       estados = linhas |> Enum.sort_by(& &1.numero) |> Enum.map(& &1.estado)
 
-      assert [{:revisada, 2.0}, {:aguardando, 30}] = estados, """
+      # `==`: com `=` o MatchError vem antes da mensagem, e quem lê às três da manhã
+      # recebe um dump de estrutura em vez da frase (revisão de QA, PR #798).
+      assert estados == [{:revisada, 2.0}, {:aguardando, 30}], """
       Os estados vieram #{inspect(estados)}. Omitir a que ninguém revisou faria a mediana
       MELHORAR quanto pior a equipe estivesse, e contá-la como zero afirmaria revisão
       instantânea (FR-004, SC-003).
