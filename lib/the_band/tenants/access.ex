@@ -224,6 +224,80 @@ defmodule TheBand.Tenants.Access do
     end
   end
 
+  @doc """
+  Esta conta alcança **esta equipe**? — feature 058, FR-024.
+
+  A pergunta é da equipe, e não de cada pessoa dentro dela. A tela mostra a quebra
+  por pessoa nomeada de uma seção inteira, e perguntar `pode_ver/3` por linha
+  produziria consulta por linha — a L38, o antipadrão que este módulo existe para
+  evitar.
+
+  ## Por que ela existe
+
+  A decisão registrada em 2026-08-26 (spec 023, FR-012) é que o painel de uma
+  pessoa é visível para **a própria pessoa, o líder da equipe dela, e o responsável
+  da organização** — e não para qualquer conta autenticada, que era o regime que
+  vigorava **por omissão**.
+
+  A tela da equipe passou a oferecer a mesma classe de leitura pela porta ao lado:
+  login, solicitações abertas por pessoa nomeada e a mediana individual. Sem este
+  veredito, a decisão de 2026-08-26 valeria numa rota e não na outra — e a rota é
+  artefato do roteador, não fronteira do domínio.
+
+  ## O que ela NÃO fecha
+
+  O **agregado** da equipe — mediana, espera em curso, a ausência dita e as
+  limitações — continua legível por qualquer conta do tenant. FR-023 segue de pé:
+  ver não exige administrar. O que muda é que estranho deixa de ser tratado como
+  colega.
+
+  ## Os caminhos que abrem
+
+  Admin do tenant; escopo `team` naquela equipe; escopo `organization` na
+  organização dela; e o vínculo vigente — quem está na equipe vê o trabalho dela.
+  O escopo `project` **não** entra: ele nomeia um projeto, e uma equipe pode
+  trabalhar em vários; deixá-lo passar faria autoridade subir de lado.
+  """
+  @spec pode_ver_equipe(Tenant.t(), User.t(), Ecto.UUID.t()) ::
+          {:ok, atom()} | {:nao, atom()}
+  def pode_ver_equipe(%Tenant{} = tenant, %User{} = user, team_id) do
+    cond do
+      User.admin?(user) and user.tenant_id == tenant.id -> {:ok, :admin}
+      tem_escopo?(tenant, user, :team, team_id) -> {:ok, :escopo_de_equipe}
+      escopo_na_organizacao_da_equipe?(tenant, user, team_id) -> {:ok, :escopo_da_organizacao}
+      membro_da_equipe?(tenant, user, team_id) -> {:ok, :vinculo_vigente}
+      true -> {:nao, :fora_do_alcance}
+    end
+  end
+
+  defp escopo_na_organizacao_da_equipe?(tenant, user, team_id) do
+    orgs = for s <- scopes(tenant, user), s.level == :organization, s.target_id, do: s.target_id
+
+    # A equipe só é lida quando há escopo de organização — sem ele a consulta não
+    # decidiria nada (L38).
+    orgs != [] and organizacao_da_equipe(tenant, team_id) in orgs
+  end
+
+  defp organizacao_da_equipe(tenant, team_id) do
+    case Enum.find(EO.list_teams(tenant), &(&1.id == team_id)) do
+      %{organization_id: org_id} -> org_id
+      _ -> nil
+    end
+  end
+
+  # O vínculo vigente é o que faz colega ver colega sem ninguém conceder nada.
+  defp membro_da_equipe?(tenant, user, team_id) do
+    case Tenants.person_of_user(user) do
+      {:ok, person_id} ->
+        tenant
+        |> EO.person_active_teams(person_id)
+        |> Enum.any?(&(&1.team_id == team_id))
+
+      _ ->
+        false
+    end
+  end
+
   defp propria_pessoa?(%User{} = user, alvo_person_id) do
     match?({:ok, ^alvo_person_id}, Tenants.person_of_user(user))
   end

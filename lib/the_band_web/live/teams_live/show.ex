@@ -863,12 +863,30 @@ defmodule TheBandWeb.TeamsLive.Show do
     truncou? = length(carregadas) > @limite_de_esperas
     esperas = Enum.take(carregadas, @limite_de_esperas)
 
+    # O VEREDITO — feature 058, FR-024, decidido pelo Product Owner em 2026-09-04.
+    #
+    # A quebra por pessoa nomeada é leitura de desempenho de gente, e a decisão de
+    # quem pode fazê-la está registrada desde 2026-08-26 (spec 023, FR-012): a
+    # própria pessoa, quem lidera a equipe dela, e quem responde pela organização.
+    # Sem isto, essa decisão valeria em `/people/:id` e não aqui — e a rota é
+    # artefato do roteador, não fronteira do domínio.
+    #
+    # O veredito é da EQUIPE, uma vez: perguntar por linha seria consulta por linha
+    # (L38). E ele vem ANTES de montar o agrupamento, e não depois: agrupar para
+    # esconder seria fazer o trabalho do vazamento e jogar fora o resultado.
+    {alcance, motivo} =
+      Tenants.pode_ver_equipe(tenant, socket.assigns.current_user, team.id)
+
+    ve_por_pessoa? = alcance == :ok
+
     assign(socket,
       espera_por_revisao: %{
         esperas: esperas,
         truncou?: truncou?,
         limite: @limite_de_esperas,
-        por_pessoa: Quality.agrupar_por_pessoa(esperas),
+        ve_por_pessoa?: ve_por_pessoa?,
+        motivo_da_recusa: motivo,
+        por_pessoa: if(ve_por_pessoa?, do: Quality.agrupar_por_pessoa(esperas), else: []),
         mediana: Quality.mediana_em_horas(esperas),
         em_curso: Enum.count(esperas, &match?({:aguardando, _}, &1.estado))
       }
@@ -1501,6 +1519,21 @@ defmodule TheBandWeb.TeamsLive.Show do
           </div>
         </div>
 
+        <%!-- A recusa NOMEIA o motivo (FR-024a). Esconder a quebra sem dizer por quê
+              faria a seção parecer incompleta, e apresentá-la vazia afirmaria que a
+              equipe não tem solicitações — que é o que FR-018 proíbe. --%>
+        <p
+          :if={not @espera_por_revisao.ve_por_pessoa? and @espera_por_revisao.esperas != []}
+          class="text-sm opacity-70"
+        >
+          The team numbers above are shown to everyone in this organisation. The
+          <strong>per-person breakdown</strong>
+          — who opened which request, and how long each waited — is not: reading someone's
+          work is for that person, whoever leads their team, and whoever answers for the
+          organisation. You are none of those for this team, so the breakdown is withheld,
+          not empty.
+        </p>
+
         <%!-- A mesma medida POR PESSOA (T010). O texto abaixo existe porque alguém
               somaria as duas: a mesma solicitação tem um autor só, então não há dupla
               contagem — o que há são duas perguntas diferentes (FR-005, FR-020). --%>
@@ -1532,7 +1565,10 @@ defmodule TheBandWeb.TeamsLive.Show do
           in the window, and the medians above are over <strong>what is shown</strong>, not over all of them.
         </p>
 
-        <p :if={@espera_por_revisao.esperas != []} class="text-xs opacity-60">
+        <p
+          :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_por_pessoa?}
+          class="text-xs opacity-60"
+        >
           The per-person medians and the team median answer <strong>different questions</strong>
           and are not meant to be reconciled: one is about a person's requests, the other
           about the team's. They are not summed, and neither derives from the other.

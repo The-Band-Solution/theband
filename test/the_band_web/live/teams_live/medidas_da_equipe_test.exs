@@ -385,8 +385,82 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
     end
   end
 
-  describe "ver não exige administrar (T019, SC-011)" do
-    test "perfil member lê as três medidas, e não vê os controles de escrita", ctx do
+  describe "a quebra por pessoa exige alcance sobre a equipe (FR-024, SC-012)" do
+    test "conta SEM alcance lê os agregados e NÃO lê login nem número de solicitação", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 501, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      {:ok, estranha} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "estranha@example.test",
+          "name" => "Estranha",
+          "role" => "member"
+        })
+
+      {:ok, live, _html} = live(log_in(ctx.conn, estranha), ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      # O AGREGADO continua aberto — FR-023 segue de pé: ver não exige administrar.
+      assert secao =~ "team median"
+      assert secao =~ "still waiting"
+      assert secao =~ "4.0h", "a mediana da equipe sumiu junto com a quebra"
+
+      # A quebra por pessoa, não.
+      refute secao =~ "#501", """
+      O número da solicitação de uma pessoa nomeada apareceu para quem não alcança a
+      equipe. A decisão de 2026-08-26 (spec 023, FR-012) diz quem lê o trabalho de
+      alguém: a própria pessoa, quem lidera a equipe dela, e quem responde pela
+      organização.
+      """
+
+      # E a recusa é DITA, nunca silenciosa (FR-024a).
+      # O trecho não atravessa quebra de linha nem apóstrofo: o HEEx escapa `'` para
+      # `&#39;` e preserva as quebras do template. Uma asserção sobre a frase inteira
+      # falharia dizendo "a recusa sumiu" quando ela está lá.
+      assert secao =~ "the breakdown is withheld", """
+      A quebra sumiu sem explicação. Seção que encolhe sem dizer por quê parece defeito,
+      e apresentá-la vazia afirmaria que a equipe não tem solicitações (FR-018).
+      """
+    end
+
+    test "quem tem VÍNCULO na equipe lê a quebra — colega vê colega", ctx do
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(200))
+      pr = solicitacao(ctx, 502, ana, dias_atras(5))
+      revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :hour))
+
+      # A conta da própria ana: elo com a pessoa, e vínculo vigente na equipe.
+      {:ok, conta_da_ana} =
+        Tenants.create_user(ctx.tenant, %{
+          "email" => "ana@example.test",
+          "name" => "ana",
+          "role" => "member"
+        })
+
+      {:ok, _} = Tenants.declare_person(ctx.tenant, conta_da_ana.id, ana.id, ctx.admin.id)
+
+      {:ok, live, _html} = live(log_in(ctx.conn, conta_da_ana), ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "#502", "quem está na equipe deixou de ver o trabalho dela"
+      assert secao =~ "different questions"
+      refute secao =~ "the breakdown is withheld"
+    end
+  end
+
+  describe "ver não exige administrar (T019, SC-011 emendado em 2026-09-04)" do
+    # SC-011 dizia "uma pessoa sem permissão de administrar equipes lê todas as
+    # medidas". Como estava escrito, ele **exigia o vazamento**: uma conta sem relação
+    # nenhuma também é "uma pessoa sem permissão de administrar", e o teste antigo
+    # implementava fielmente o critério errado.
+    #
+    # A emenda do Product Owner (2026-09-04) acrescenta a fronteira que faltava — com
+    # ESCOPO sobre a equipe —, e mantém intacto o que o critério queria dizer:
+    # administrar não é pré-requisito para ver.
+    test "perfil member COM vínculo lê as três medidas, e não vê os controles de escrita",
+         ctx do
       ana = pessoa(ctx, "ana")
       vincular(ctx, ctx.equipe, ana, dias_atras(200))
       {projeto, _v} = projeto_ligado(ctx, "Alfa", ctx.equipe)
@@ -403,6 +477,13 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
           "role" => "member"
         })
 
+      # O vínculo é o que dá alcance sobre a equipe — colega vê colega, sem ninguém
+      # conceder nada. Sem ele, esta conta leria os agregados e não a quebra, que é o
+      # caso do describe anterior (SC-012).
+      pessoa_do_member = pessoa(ctx, "membro")
+      vincular(ctx, ctx.equipe, pessoa_do_member, dias_atras(50))
+      {:ok, _} = Tenants.declare_person(ctx.tenant, member.id, pessoa_do_member.id, ctx.admin.id)
+
       # Um projeto NÃO ligado à equipe, para o seletor de associação ter o que oferecer.
       # Sem ele, `@projetos_disponiveis` é vazio e o formulário não renderiza para
       # ninguém — o `refute` passava com a guarda de admin removida, e o teste media a
@@ -416,7 +497,10 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       assert html =~ "Pipeline success rate", "US3 não chegou a quem só lê"
 
       assert live |> element("#quem-trabalhou") |> render() =~ "ana"
-      assert live |> element("#espera-por-revisao") |> render() =~ "4.0h"
+      # A quebra por pessoa, e não só o agregado: com vínculo, ela é legível.
+      espera = live |> element("#espera-por-revisao") |> render()
+      assert espera =~ "4.0h"
+      assert espera =~ "#301", "quem tem vínculo na equipe deixou de ver a quebra"
       assert live |> element("#taxa-do-pipeline") |> render() =~ "100.0%"
 
       refute html =~ "associate with a project…", """

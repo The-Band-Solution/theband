@@ -223,6 +223,20 @@ ausência nomeando o elo que falta.
   com limitações e interpretações incorretas, **antes** de aparecer na tela.
 - **FR-022**: Toda consulta MUST ser restrita ao tenant de quem consulta.
 - **FR-023**: Ver estas medidas MUST NOT exigir permissão de administrar equipes.
+- **FR-024**: A quebra **por pessoa nomeada** MUST ser apresentada apenas a quem
+  alcança a equipe pelo veredito de acesso vigente, e a decisão MUST vir **antes**
+  da carga. O agregado da equipe — mediana, espera em curso, ausência dita e as
+  limitações — MUST permanecer legível por qualquer conta do tenant.
+
+  *Acrescentado em 2026-09-04, por decisão do Product Owner, depois de a revisão de
+  segurança do PR #798 encontrar que qualquer conta do tenant lia login, número de
+  solicitação e mediana individual de pessoa nomeada.* **Não é regra nova**: aplica
+  à tela da equipe a decisão registrada em FR-012 da spec 023 (2026-08-26) — o
+  trabalho de alguém é visível para a própria pessoa, para quem lidera a equipe dela
+  e para quem responde pela organização — e o alcance definido em FR-010 da spec
+  045. A rota é artefato do roteador, e não fronteira do domínio.
+- **FR-024a**: A recusa MUST nomear o motivo — nunca esconder a seção sem dizer por
+  quê, e nunca apresentar a quebra vazia como se a equipe não tivesse solicitações.
 
 ### Key Entities
 
@@ -258,7 +272,17 @@ ausência nomeando o elo que falta.
 - **SC-009**: 100% das medidas novas estão declaradas em YAML antes de aparecer
   na tela.
 - **SC-010**: Nenhuma consulta desta feature devolve dado de outro tenant.
-- **SC-011**: Uma pessoa sem permissão de administrar equipes lê todas as medidas.
+- **SC-011** *(emendado em 2026-09-04)*: Uma pessoa **sem permissão de administrar
+  equipes e com escopo sobre a equipe** lê todas as medidas, inclusive a quebra por
+  pessoa.
+
+  *A emenda não ajusta o critério ao que foi entregue — faz o contrário.* Como
+  estava escrito, SC-011 **exigia o vazamento**: uma conta sem relação nenhuma
+  também é "uma pessoa sem permissão de administrar equipes", e o teste implementava
+  fielmente o critério. O defeito estava no critério, que confundiu *não administra*
+  com *não tem relação nenhuma*.
+- **SC-012**: Uma conta sem escopo sobre a equipe lê os agregados e **não** lê
+  login, número de solicitação nem mediana individual.
 
 ## Assumptions
 
