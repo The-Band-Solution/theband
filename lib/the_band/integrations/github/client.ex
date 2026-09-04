@@ -268,8 +268,28 @@ defmodule TheBand.Integrations.GitHub.Client do
 
   def transient?(_outro), do: false
 
-  # `RATE_LIMITED` chega aqui quando a pausa não o alcançou antes — e ele se cura esperando.
-  defp erro_do_momento?(%{"type" => "RATE_LIMITED"}), do: true
+  # O rate limit chega aqui quando a pausa não o alcançou antes — e ele se cura esperando.
+  #
+  # **A origem usa DUAS grafias**, medido em 2026-09-04 numa coleta real que esgotou a cota:
+  #
+  #     %{"type" => "RATE_LIMITED"}                          o que o código conhecia
+  #     %{"type" => "RATE_LIMIT", "code" => "graphql_rate_limit",
+  #       "message" => "API rate limit already exceeded for user ID ..."}
+  #
+  # Com só a primeira, a segunda caía na cláusula do erro permanente logo abaixo: sem
+  # `snooze`, cinco tentativas queimadas em minutos, e o sync inteiro em `failed` — quando
+  # bastava esperar a janela reabrir. O dado já coletado ficava, e a coleta parava de vez.
+  #
+  # A lista é FECHADA de propósito. Casar por `String.contains?("RATE")` pegaria também um
+  # erro de outra família que mencionasse a palavra, e insistir num erro permanente é o
+  # oposto do que esta função existe para decidir.
+  @tipos_de_rate_limit ~w(RATE_LIMITED RATE_LIMIT)
+
+  defp erro_do_momento?(%{"type" => tipo}) when tipo in @tipos_de_rate_limit, do: true
+
+  # O `code` é a segunda testemunha: a resposta que trouxe `RATE_LIMIT` também trouxe
+  # `graphql_rate_limit` ali. Se a origem mudar o `type` de novo, o `code` ainda decide.
+  defp erro_do_momento?(%{"code" => "graphql_rate_limit"}), do: true
 
   # "Não encontrado" e "sem escopo" se repetem: o repositório não existe, ou a credencial não
   # o alcança. Escopo não muda sozinho.
