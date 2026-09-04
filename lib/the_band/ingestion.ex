@@ -246,51 +246,69 @@ defmodule TheBand.Ingestion do
           | {:skipped, String.t()}
         ) ::
           {:ok, Sync.t()} | {:error, Ecto.Changeset.t()}
+  # O incremento é do BANCO, e não da memória — ADR 0006, item 2.
+  #
+  # Havia `sync.records_collected + 1`: lê em memória, soma, grava. Com uma coleta
+  # sequencial isso bastava. Com duas escritas ao mesmo tempo, as duas leem o mesmo
+  # valor e uma sobrescreve a outra — e o resultado **não é erro**: é um número menor
+  # do que a realidade, sem nada acusando.
+  #
+  # Contador errado numa tela de progresso é pior do que coleta lenta, e é por isso que
+  # esta mudança vem ANTES de qualquer paralelismo.
+  #
+  # `skip_reasons` é o caso à parte: é um mapa, e somar chave a chave não tem operador de
+  # incremento. Ele continua sendo lido e escrito, e por isso continua sujeito à corrida —
+  # está declarado abaixo em vez de silenciado.
   def tally(%Sync{} = sync, outcome) do
-    attrs =
-      case outcome do
-        :created ->
-          %{
-            records_collected: sync.records_collected + 1,
-            records_created: sync.records_created + 1
-          }
+    case incrementos(outcome) do
+      {:incrementos, campos} -> incrementar(sync, campos, nil)
+      {:incrementos, campos, {:skip_reason, reason}} -> incrementar(sync, campos, reason)
+    end
+  end
 
-        :updated ->
-          %{
-            records_collected: sync.records_collected + 1,
-            records_updated: sync.records_updated + 1
-          }
+  defp incrementos(:created), do: {:incrementos, [records_collected: 1, records_created: 1]}
+  defp incrementos(:updated), do: {:incrementos, [records_collected: 1, records_updated: 1]}
+  defp incrementos(:unchanged), do: {:incrementos, [records_collected: 1]}
 
-        :unchanged ->
-          %{records_collected: sync.records_collected + 1}
+  # Conta **repositório**, e por isso não passa por `records_*`: aqueles contam registros,
+  # e somar 39 repositórios ali faria a soma que a tela exibe mentir.
+  #
+  # Incrementado **a cada falha**, nunca no fim da fase: coleta interrompida antes do fim
+  # ficaria com zero, e zero afirma que tudo foi alcançado. É a mesma regra do checkpoint —
+  # registrar depois de processar, por item.
+  defp incrementos(:repository_unreachable), do: {:incrementos, [repositories_unreachable: 1]}
 
-        # Conta **repositório**, e por isso não passa por `records_*`: aqueles contam registros,
-        # e somar 39 repositórios ali faria a soma que a tela exibe mentir.
-        #
-        # Incrementado **a cada falha**, nunca no fim da fase: coleta interrompida antes do fim
-        # ficaria com zero, e zero afirma que tudo foi alcançado. É a mesma regra do checkpoint —
-        # registrar depois de processar, por item.
-        :repository_unreachable ->
-          %{repositories_unreachable: sync.repositories_unreachable + 1}
+  # Conta **repositório**, e pelo mesmo motivo do de cima não passa por `records_*`.
+  #
+  # Incrementado a cada pulo, e não no fim da fase: coleta interrompida no meio ficaria
+  # com zero, e zero afirma que tudo foi percorrido.
+  defp incrementos(:repository_skipped), do: {:incrementos, [repositories_skipped: 1]}
 
-        # Conta **repositório**, e pelo mesmo motivo do de cima não passa por `records_*`:
-        # aqueles contam registros, e somar repositórios ali faria a soma que a tela exibe
-        # mentir.
-        #
-        # Incrementado a cada pulo, e não no fim da fase: coleta interrompida no meio ficaria
-        # com zero, e zero afirma que tudo foi percorrido.
-        :repository_skipped ->
-          %{repositories_skipped: sync.repositories_skipped + 1}
+  defp incrementos({:skipped, reason}) do
+    {:incrementos, [records_collected: 1, records_skipped: 1], {:skip_reason, reason}}
+  end
 
-        {:skipped, reason} ->
-          %{
-            records_collected: sync.records_collected + 1,
-            records_skipped: sync.records_skipped + 1,
-            skip_reasons: Map.update(sync.skip_reasons, reason, 1, &(&1 + 1))
-          }
-      end
+  defp incrementar(%Sync{id: id}, campos, reason) do
+    {1, _} = Repo.update_all(from(s in Sync, where: s.id == ^id), inc: campos)
 
-    sync |> Sync.changeset(attrs) |> Repo.update()
+    # Relê depois de incrementar: quem chama espera o registro atualizado, e ler o
+    # resultado do banco é o único jeito de devolver o valor real quando há mais de um
+    # escritor. A `struct` que veio por parâmetro já está velha nesse ponto.
+    atualizado = Repo.get!(Sync, id)
+
+    if reason, do: gravar_motivo_do_pulo(atualizado, reason), else: {:ok, atualizado}
+  end
+
+  # `skip_reasons` é mapa, e mapa não tem operador de incremento no Postgres. Continua
+  # sendo lido e escrito — e por isso continua sujeito à corrida que os contadores
+  # deixaram de ter. Fica DECLARADO: sob concorrência, um motivo pode ser subcontado.
+  #
+  # Não é o mesmo risco: os contadores alimentam a tela de progresso, e este mapa
+  # alimenta a lista de motivos, onde a presença importa mais que a contagem exata.
+  defp gravar_motivo_do_pulo(%Sync{} = sync, reason) do
+    sync
+    |> Sync.changeset(%{skip_reasons: Map.update(sync.skip_reasons, reason, 1, &(&1 + 1))})
+    |> Repo.update()
   end
 
   @spec finish(Sync.t(), :completed | :failed | :interrupted, keyword()) ::
