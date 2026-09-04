@@ -57,7 +57,15 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # A alternativa era derivar a discordância das listas já carregadas. Ela não
   # serve: a lista de membros observados é **paginada**, e a discordância de quem
   # está na página 2 desapareceria da tela sem que nada avisasse.
-  @teto_do_detalhe 17
+  #
+  # **17 → 18 em 2026-09-03**, pela US2 da feature 058: `team_projects_with_period/2`,
+  # os projetos por que a equipe passou. Ela é constante — uma consulta, independente
+  # de quantos projetos existam.
+  #
+  # As duas consultas de `who_worked_on_many/3` só nascem quando há projeto, e por
+  # isso não aparecem neste cenário. O teste do acréscimo das três seções mede o
+  # caso COM projeto, e vive adiante neste mesmo arquivo.
+  @teto_do_detalhe 18
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do

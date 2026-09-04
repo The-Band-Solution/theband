@@ -245,22 +245,47 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   `TheBand.Periodos.interseccao/1`.
   """
   @spec team_memberships_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
-  def team_memberships_with_period(%Tenant{id: tenant_id}, team_id) do
+  def team_memberships_with_period(%Tenant{} = tenant, team_id) do
+    tenant
+    |> team_memberships_with_period_many([team_id])
+    |> Map.get(team_id, [])
+  end
+
+  @doc """
+  O mesmo de `team_memberships_with_period/2`, para **várias equipes numa consulta**.
+
+  Existe pela tela: a seção "quem trabalhou nos projetos desta equipe" precisa dos
+  vínculos de todas as equipes ligadas a todos os projetos, e perguntar uma vez por
+  equipe faria o custo da página crescer com o dado — o defeito que o teto de
+  consultas da feature 057 existe para impedir.
+
+  Devolve um mapa `team_id => [vínculo]`. Equipe sem vínculo nenhum **não aparece**
+  no mapa, e quem chama usa `Map.get(mapa, id, [])`: chave ausente e lista vazia
+  dizem a mesma coisa aqui, porque a pergunta é "quais vínculos", e não "esta
+  equipe existe".
+  """
+  @spec team_memberships_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          Ecto.UUID.t() => [map()]
+        }
+  def team_memberships_with_period_many(_tenant, []), do: %{}
+
+  def team_memberships_with_period_many(%Tenant{id: tenant_id}, team_ids) do
     TeamMembership
     |> where(
       [m],
-      m.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id) and
-        is_nil(m.invalidated_at)
+      m.tenant_id == ^tenant_id and m.team_id in ^team_ids and is_nil(m.invalidated_at)
     )
     |> join(:inner, [m], p in Person, on: p.id == m.person_id)
     |> order_by([_m, p], asc: p.name, asc: p.login)
     |> select([m, p], %{
+      team_id: m.team_id,
       person_id: p.id,
       name: p.name,
       login: p.login,
       periodo: %{inicio: m.started_at, fim: m.ended_at}
     })
     |> Repo.all()
+    |> Enum.group_by(& &1.team_id)
   end
 
   @doc """

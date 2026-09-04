@@ -779,7 +779,58 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> assign(projetos_da_equipe: vinculados)
     |> assign(projetos_disponiveis: Enum.reject(SPO.list_projects(tenant), &(&1.id in ids)))
+    |> carregar_quem_trabalhou(SPO.team_projects_with_period(tenant, team.id))
   end
+
+  # QUEM TRABALHOU nos projetos desta equipe — feature 058, US2 (T006, T007).
+  #
+  # A resposta é a interseção de três períodos, e `who_worked_on_many/3` a calcula
+  # para todos os projetos em **duas** consultas. Perguntar projeto a projeto
+  # custaria duas por projeto, e a página passaria a consultar por linha.
+  #
+  # A janela é a mesma da feature 057 — oito semanas, sem seletor. Com seletor, a
+  # data vazia envenenaria toda linha com a marca de parcial, que é o que
+  # `TheBand.Periodos` declara querer evitar.
+  #
+  # Projeto **sem interseção** fica na lista com a lista de pessoas vazia, e a tela
+  # diz a ausência em texto: remover a linha faria o projeto sumir sem explicação,
+  # que é o que FR-011 proíbe.
+  #
+  # A lista de projetos NÃO é a da seção de associação acima: aquela mostra o
+  # vínculo vigente, e esta mostra por onde a equipe passou. Desligar não apaga
+  # (FR-008), e com o filtro do vigente o projeto de que a equipe saiu sumia junto
+  # com todo mundo que trabalhou nele — encontrado por teste.
+  defp carregar_quem_trabalhou(socket, []), do: assign(socket, quem_trabalhou: [])
+
+  defp carregar_quem_trabalhou(socket, projetos) do
+    tenant = socket.assigns.current_tenant
+    agora = DateTime.utc_now()
+    janela = %{inicio: DateTime.add(agora, -@janela_em_dias, :day), fim: agora}
+
+    por_projeto = SPO.who_worked_on_many(tenant, Enum.map(projetos, & &1.project_id), janela)
+
+    linhas =
+      Enum.map(projetos, fn pr ->
+        %{
+          project_id: pr.project_id,
+          nome: pr.nome,
+          pessoas: Map.get(por_projeto, pr.project_id, [])
+        }
+      end)
+
+    assign(socket, quem_trabalhou: linhas)
+  end
+
+  # A marca do período parcialmente desconhecido (FR-009, SC-005).
+  #
+  # **Não é nota de rodapé**: quem lê precisa saber que a linha depende de uma
+  # borda que ninguém declarou. E ela NOMEIA a borda — "parcial" sozinho não diz
+  # o que fazer para resolver; "início desconhecido" diz.
+  defp borda_desconhecida({:parcial, bordas}), do: Enum.map_join(bordas, ", ", &nome_da_borda/1)
+  defp borda_desconhecida(_), do: nil
+
+  defp nome_da_borda(:inicio_desconhecido), do: "start date"
+  defp nome_da_borda(outra), do: to_string(outra)
 
   defp projetos_da_equipe(tenant, team_id), do: SPO.list_team_projects(tenant, team_id)
 
@@ -1251,6 +1302,66 @@ defmodule TheBandWeb.TeamsLive.Show do
             <option :for={p <- @projetos_disponiveis} value={p.id}>{p.name}</option>
           </select>
         </form>
+      </section>
+
+      <%!-- QUEM TRABALHOU NO PROJETO — feature 058, US2 (T006, T007).
+
+            A pergunta que duas colunas de período existem para responder desde que
+            a tabela foi criada, e que nenhuma consulta fazia.
+
+            A resposta é a interseção de TRÊS períodos: pessoa ↔ equipe, equipe ↔
+            projeto, e a janela. Desligar não apaga o que houve: quem esteve no
+            intervalo continua aparecendo por ele.
+
+            Projeto sem interseção traz a frase de ausência, e não uma lista vazia
+            (FR-011) — lista em branco é indistinguível de erro de carregamento. --%>
+      <section :if={@quem_trabalhou != []} id="quem-trabalhou" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Who worked on these projects</h3>
+        <p class="text-sm opacity-70">
+          People who belonged to a team while that team was linked to the project, over the
+          last 8 weeks. A person reached by two teams appears <strong>once</strong>, with both named — two rows would count the same person twice.
+        </p>
+
+        <ul class="space-y-3">
+          <li :for={linha <- @quem_trabalhou} class="card bg-base-200 p-3">
+            <div class="font-medium">{linha.nome}</div>
+
+            <%!-- A ausência é DITA, e diz qual dos dois lados falta: sem equipe
+                  ligada no período, ou ligada sem ninguém dentro dela. As duas
+                  frases levam a ações diferentes. --%>
+            <p :if={linha.pessoas == []} class="mt-1 text-sm opacity-70">
+              Nobody worked on this project in the window — either no team was linked to it
+              then, or the teams that were had no member in the period. Not zero people:
+              no intersection.
+            </p>
+
+            <ul :if={linha.pessoas != []} class="mt-2 space-y-1 text-sm">
+              <li :for={pessoa <- linha.pessoas} class="flex flex-wrap items-baseline gap-2">
+                <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover">
+                  {pessoa.name}
+                </.link>
+                <span :if={pessoa.login} class="text-xs opacity-60">@{pessoa.login}</span>
+                <span class="text-xs opacity-70">
+                  via {Enum.map_join(pessoa.equipes, ", ", & &1.name)}
+                </span>
+                <%!-- A marca do parcial nomeia a borda que falta. Sem o nome, quem lê
+                      sabe que há dúvida e não sabe o que fazer com ela. --%>
+                <span
+                  :if={borda_desconhecida(pessoa.periodo)}
+                  class="badge badge-sm badge-warning"
+                  title="the intersection depends on a boundary nobody declared"
+                >
+                  partially unknown: {borda_desconhecida(pessoa.periodo)}
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <p class="text-xs opacity-60">
+          A membership with no start date is <strong>unknown</strong>, never open since
+          forever — those rows carry the mark above. An open end date means <strong>current</strong>, and is not marked.
+        </p>
       </section>
 
       <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora
