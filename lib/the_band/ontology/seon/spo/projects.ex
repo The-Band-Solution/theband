@@ -482,6 +482,52 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   end
 
   @doc """
+  Os projetos por que esta equipe passou, **vigentes ou não** — feature 058, US2.
+
+  Diferente de `list_team_projects/2`, que filtra `is_nil(unlinked_at)` porque
+  serve à associação: ali a pergunta é *com o que esta equipe está ligada agora*.
+
+  Aqui a pergunta é outra — *em que esta equipe trabalhou* —, e desligar **não
+  apaga o que houve** (FR-008). Encontrado por um teste: com o filtro do vigente,
+  o projeto de que a equipe saiu sumia da tela inteira, e com ele as pessoas que
+  trabalharam nele no intervalo em que ela esteve lá.
+
+  Cada projeto aparece **uma vez**, mesmo com dois vínculos — ligada, desligada e
+  religada é o mesmo projeto, e duas linhas na tela sugeririam dois.
+  """
+  @spec team_projects_ever(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def team_projects_ever(%Tenant{} = tenant, team_id) do
+    tenant
+    |> team_project_links_with_period(team_id)
+    |> Enum.uniq_by(& &1.project_id)
+  end
+
+  @doc """
+  Cada vínculo desta equipe com um projeto, **com o período em que vigeu** — 058, US3.
+
+  Diferente de `team_projects_ever/2`, que colapsa por projeto para a tela: aqui os
+  dois intervalos de uma equipe ligada, desligada e religada **aparecem os dois**,
+  porque a interseção com o período do repositório é calculada por vínculo. Colapsar
+  antes de intersectar contaria o intervalo entre eles, em que a equipe não estava lá.
+  """
+  @spec team_project_links_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def team_project_links_with_period(%Tenant{id: tenant_id}, team_id) do
+    Repo.all(
+      from v in ProjectTeam,
+        join: p in Project,
+        on: p.id == v.project_id,
+        where: v.tenant_id == ^tenant_id and v.team_id == ^team_id and is_nil(p.removed_at),
+        order_by: [asc: p.name, asc: v.linked_at],
+        select: %{
+          project_id: p.id,
+          nome: p.name,
+          link_id: v.id,
+          periodo: %{inicio: v.linked_at, fim: v.unlinked_at}
+        }
+    )
+  end
+
+  @doc """
   Quem trabalhou neste projeto, e quando — feature 058, US2.
 
   A resposta é a interseção de **três períodos**: pessoa ↔ equipe, equipe ↔
@@ -509,17 +555,61 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   @spec who_worked_on(Tenant.t(), Ecto.UUID.t(), Periodos.periodo()) :: [map()]
   def who_worked_on(%Tenant{} = tenant, project_id, janela) do
     tenant
-    |> project_teams_with_period(project_id)
-    |> Enum.flat_map(&pessoas_da_equipe_no_periodo(tenant, &1, janela))
-    |> juntar_por_pessoa()
-    |> Enum.sort_by(& &1.name)
+    |> who_worked_on_many([project_id], janela)
+    |> Map.get(project_id, [])
+  end
+
+  @doc """
+  A mesma resposta de `who_worked_on/3`, para **vários projetos em duas consultas**.
+
+  Existe pela tela da equipe, que pergunta por todos os projetos dela de uma vez.
+  Chamar `who_worked_on/3` num laço custaria duas consultas **por projeto**, e a
+  página passaria a consultar por linha — o defeito que o teto de consultas da
+  feature 057 existe para impedir.
+
+  As duas consultas são: os vínculos equipe ↔ projeto de todos os projetos, e os
+  vínculos pessoa ↔ equipe de todas as equipes que apareceram. A interseção
+  continua sendo decidida em memória por `TheBand.Periodos`, que é pura.
+
+  Devolve `project_id => [pessoa_no_projeto]`. Projeto sem equipe ligada **não
+  aparece** no mapa — a ausência é dita por quem apresenta, e não por uma lista
+  vazia sem explicação (FR-011).
+  """
+  @spec who_worked_on_many(Tenant.t(), [Ecto.UUID.t()], Periodos.periodo()) :: %{
+          Ecto.UUID.t() => [map()]
+        }
+  def who_worked_on_many(_tenant, [], _janela), do: %{}
+
+  def who_worked_on_many(%Tenant{} = tenant, project_ids, janela) do
+    vinculos = project_teams_with_period_many(tenant, project_ids)
+
+    membros =
+      EO.team_memberships_with_period_many(
+        tenant,
+        vinculos |> Enum.map(& &1.team_id) |> Enum.uniq()
+      )
+
+    vinculos
+    |> Enum.group_by(& &1.project_id)
+    |> Map.new(fn {project_id, do_projeto} ->
+      pessoas =
+        do_projeto
+        |> Enum.flat_map(&pessoas_da_equipe_no_periodo(membros, &1, janela))
+        |> juntar_por_pessoa()
+        |> Enum.sort_by(& &1.name)
+
+      {project_id, pessoas}
+    end)
   end
 
   # Cada membro da equipe vira um candidato, com o veredito dos TRÊS períodos.
   # `:nao_intersecta` é descartado aqui; `:intersecta` e `{:parcial, _}` seguem.
-  defp pessoas_da_equipe_no_periodo(tenant, %{team_id: team_id, name: nome, periodo: pe}, janela) do
-    tenant
-    |> EO.team_memberships_with_period(team_id)
+  #
+  # Os vínculos chegam prontos, e não são consultados aqui: a consulta por equipe
+  # é o que faria o custo crescer com o dado.
+  defp pessoas_da_equipe_no_periodo(membros, %{team_id: team_id, name: nome, periodo: pe}, janela) do
+    membros
+    |> Map.get(team_id, [])
     |> Enum.map(fn m ->
       {m, Periodos.interseccao([m.periodo, pe, janela])}
     end)
@@ -577,14 +667,31 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   quem decide o que fazer com isso é `TheBand.Periodos.interseccao/1`.
   """
   @spec project_teams_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
-  def project_teams_with_period(%Tenant{id: tenant_id}, project_id) do
+  def project_teams_with_period(%Tenant{} = tenant, project_id) do
+    tenant
+    |> project_teams_with_period_many([project_id])
+    |> Enum.filter(&(&1.project_id == project_id))
+  end
+
+  @doc """
+  Os vínculos equipe ↔ projeto de **vários projetos numa consulta** — feature 058.
+
+  Mesmo conteúdo de `project_teams_with_period/2`, com `project_id` em cada linha.
+  Existe para `who_worked_on_many/3`, e pela mesma razão: a tela pergunta por
+  todos os projetos da equipe de uma vez.
+  """
+  @spec project_teams_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: [map()]
+  def project_teams_with_period_many(_tenant, []), do: []
+
+  def project_teams_with_period_many(%Tenant{id: tenant_id}, project_ids) do
     Repo.all(
       from v in ProjectTeam,
         join: t in "eo_teams",
         on: t.id == v.team_id,
-        where: v.tenant_id == ^tenant_id and v.project_id == ^project_id,
+        where: v.tenant_id == ^tenant_id and v.project_id in ^project_ids,
         order_by: [asc: t.name, asc: v.linked_at],
         select: %{
+          project_id: v.project_id,
           team_id: v.team_id,
           name: t.name,
           periodo: %{inicio: v.linked_at, fim: v.unlinked_at}
@@ -600,16 +707,51 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
   repositórios dos projetos da equipe, e não de quem disparou a execução.
   """
   @spec project_repositories_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
-  def project_repositories_with_period(%Tenant{id: tenant_id}, project_id) do
+  def project_repositories_with_period(%Tenant{} = tenant, project_id) do
+    tenant
+    |> project_repositories_with_period_many([project_id])
+    |> Enum.filter(&(&1.project_id == project_id))
+  end
+
+  @doc """
+  O mesmo, para **vários projetos numa consulta** — feature 058, US3.
+
+  A taxa do pipeline é dos repositórios dos projetos da equipe, e a equipe pode ter
+  muitos projetos: uma consulta por projeto faria o custo da tela crescer com o dado.
+  """
+  @spec project_repositories_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: [map()]
+  def project_repositories_with_period_many(_tenant, []), do: []
+
+  def project_repositories_with_period_many(%Tenant{id: tenant_id}, project_ids) do
     Repo.all(
       from v in ProjectRepository,
-        where: v.tenant_id == ^tenant_id and v.project_id == ^project_id,
+        where: v.tenant_id == ^tenant_id and v.project_id in ^project_ids,
         order_by: [asc: v.linked_at],
         select: %{
+          project_id: v.project_id,
           observed_repository_id: v.observed_repository_id,
           periodo: %{inicio: v.linked_at, fim: v.unlinked_at}
         }
     )
+  end
+
+  @doc """
+  Os repositórios ligados ao projeto **no período** — feature 058, T012.
+
+  Filtra pela interseção entre o período do vínculo e a janela, com
+  `TheBand.Periodos`: repositório desligado **conta** no intervalo em que esteve
+  ligado, e não conta fora dele (FR-012).
+
+  Devolve só os ids: quem chama quer as execuções deles, e carregar o resto seria
+  trabalho que ninguém pediu.
+  """
+  @spec project_repositories_in(Tenant.t(), Ecto.UUID.t(), Periodos.periodo()) :: [Ecto.UUID.t()]
+  def project_repositories_in(%Tenant{} = tenant, project_id, janela) do
+    tenant
+    |> project_repositories_with_period(project_id)
+    |> Enum.reject(&(Periodos.interseccao([&1.periodo, janela]) == :nao_intersecta))
+    |> Enum.map(& &1.observed_repository_id)
+    |> Enum.uniq()
   end
 
   @doc """

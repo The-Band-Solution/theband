@@ -22,6 +22,8 @@ defmodule TheBand.VerificationTest do
   alias TheBand.ContadorDeConsultas
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Repo
   alias TheBand.Verification
   alias TheBand.Verification.{Classification, Commands}
 
@@ -790,5 +792,233 @@ defmodule TheBand.VerificationTest do
       author_name: pessoa.name,
       is_primary: principal?
     }
+  end
+
+  # ───────────────────────── feature 058, US3 — a taxa do pipeline da equipe ───
+
+  describe "a taxa do pipeline da equipe (058, T013-T015)" do
+    test "equipe sem projeto declarado devolve o RELATOR, e não uma taxa de zero", ctx do
+      equipe = equipe_058(ctx, "Sem projeto")
+
+      assert {:sem_projeto, %{equipe: "Sem projeto"}} =
+               Verification.team_pipeline_rate(ctx.tenant, equipe.id),
+             """
+             Uma taxa de zero diria que o pipeline falhou. A verdade é outra: a plataforma
+             não sabe de quais repositórios esta equipe cuida, e a recusa NOMEIA o elo que
+             falta (FR-013a, SC-007).
+             """
+    end
+
+    test "a execução de quem está FORA da equipe conta — o caminho é o repositório", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      _ligacao = ligar_projeto_e_repo(ctx, equipe)
+      forasteira = pessoa_058(ctx, "forasteira")
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.successful_continuous_integration_process",
+        conclusion: "success",
+        actor_login: forasteira.login,
+        actor_person_id: forasteira.id,
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -3, :day)
+      })
+
+      {:ok, taxa} = Verification.team_pipeline_rate(ctx.tenant, equipe.id)
+
+      assert taxa.sucesso == 1, """
+      A execução disparada por alguém de fora não contou. O ator é quem apertou o botão,
+      e não quem cuida do código: uma equipe cujo CI roda por agendamento apareceria
+      quase vazia (FR-013, R1).
+      """
+
+      assert taxa.caminho == "repository → project → team"
+    end
+
+    test "as cinco fases contam separadas, e nenhuma soma a falha", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      _ligacao = ligar_projeto_e_repo(ctx, equipe)
+
+      for {fase, conclusao} <- [
+            {"ciro.successful_continuous_integration_process", "success"},
+            {"ciro.unsuccessful_continuous_integration_process", "failure"},
+            {"ciro.interrupted_continuous_integration_process", "cancelled"},
+            {"ciro.unperformed_continuous_integration_process", "skipped"},
+            {"ciro.expired_continuous_integration_process", "timed_out"}
+          ] do
+        execucao(ctx.tenant, ctx.repo_id, %{
+          phase: fase,
+          conclusion: conclusao,
+          external_started_at: DateTime.add(DateTime.utc_now(:second), -2, :day)
+        })
+      end
+
+      {:ok, taxa} = Verification.team_pipeline_rate(ctx.tenant, equipe.id)
+
+      assert %{sucesso: 1, falha: 1, interrompida: 1, nao_executada: 1, expirada: 1} = taxa
+
+      assert taxa.execucoes_consideradas == 5
+
+      assert taxa.percentual == 50.0, """
+      O percentual veio #{inspect(taxa.percentual)}. Ele é sucesso sobre as que produziram
+      RESULTADO — 1 de 2 —, e não sobre as cinco: dividir pelas cinco faria a taxa cair a
+      cada cancelamento, e culparia o pipeline por decisão humana (FR-015).
+      """
+
+      assert taxa.denominador_do_percentual == 2
+    end
+
+    test "em andamento fica fora do numerador e do denominador (SC-008)", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      _ligacao = ligar_projeto_e_repo(ctx, equipe)
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.successful_continuous_integration_process",
+        conclusion: "success",
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -2, :day)
+      })
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: nil,
+        run_status: "in_progress",
+        conclusion: nil,
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -1, :hour)
+      })
+
+      {:ok, taxa} = Verification.team_pipeline_rate(ctx.tenant, equipe.id)
+
+      assert taxa.em_andamento == 1
+      assert taxa.execucoes_consideradas == 1
+      assert taxa.denominador_do_percentual == 1
+      assert taxa.percentual == 100.0
+    end
+
+    test "nada com resultado devolve percentual nil, e não zero", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      _ligacao = ligar_projeto_e_repo(ctx, equipe)
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.interrupted_continuous_integration_process",
+        conclusion: "cancelled",
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -2, :day)
+      })
+
+      {:ok, taxa} = Verification.team_pipeline_rate(ctx.tenant, equipe.id)
+
+      assert taxa.percentual == nil, """
+      Zero diria que tudo falhou. Não há o que dividir: uma execução cancelada não
+      produziu resultado nenhum (FR-018).
+      """
+
+      assert taxa.execucoes_consideradas == 1
+    end
+
+    test "repositório desligado conta no intervalo em que esteve ligado, e não fora", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      ligacao = ligar_projeto_e_repo(ctx, equipe)
+
+      # A equipe está no projeto desde 500 dias atrás; o repositório esteve ligado
+      # ao projeto de 400 a 300 dias atrás.
+      recuar_vinculo(
+        "spo_project_teams",
+        ligacao.vinculo_equipe,
+        DateTime.add(DateTime.utc_now(:second), -500, :day),
+        nil
+      )
+
+      recuar_vinculo(
+        "spo_project_repositories",
+        ligacao.vinculo_repo,
+        DateTime.add(DateTime.utc_now(:second), -400, :day),
+        DateTime.add(DateTime.utc_now(:second), -300, :day)
+      )
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.successful_continuous_integration_process",
+        conclusion: "success",
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -350, :day)
+      })
+
+      dentro =
+        Verification.team_pipeline_rate(ctx.tenant, equipe.id,
+          desde: DateTime.add(DateTime.utc_now(:second), -420, :day),
+          ate: DateTime.add(DateTime.utc_now(:second), -280, :day)
+        )
+
+      fora =
+        Verification.team_pipeline_rate(ctx.tenant, equipe.id,
+          desde: DateTime.add(DateTime.utc_now(:second), -30, :day),
+          ate: DateTime.utc_now(:second)
+        )
+
+      assert {:ok, %{sucesso: 1}} = dentro
+      assert {:ok, %{sucesso: 0, repositorios: 0}} = fora
+    end
+
+    test "a consulta não junta em eo_people pelo ator", _ctx do
+      fonte = File.read!("lib/the_band/verification.ex")
+
+      [_antes, depois] = String.split(fonte, "def team_pipeline_rate", parts: 2)
+      [corpo, _resto] = String.split(depois, "\n  @doc", parts: 2)
+
+      refute corpo =~ "actor_person_id", """
+      `actor_person_id` apareceu no caminho da taxa. Ele responde *quem disparou*, e não
+      *quem cuida do código* — usá-lo produziria uma segunda taxa com o mesmo rótulo e
+      denominador diferente (L67, FR-013b).
+      """
+    end
+
+    test "outro tenant não recebe execução nenhuma (SC-010)", ctx do
+      equipe = equipe_058(ctx, "Dados")
+      _ligacao = ligar_projeto_e_repo(ctx, equipe)
+
+      execucao(ctx.tenant, ctx.repo_id, %{
+        phase: "ciro.successful_continuous_integration_process",
+        conclusion: "success",
+        external_started_at: DateTime.add(DateTime.utc_now(:second), -2, :day)
+      })
+
+      {outro, _} = tenant_with_admin()
+
+      assert {:sem_projeto, _} = Verification.team_pipeline_rate(outro, equipe.id)
+    end
+  end
+
+  defp equipe_058(ctx, nome) do
+    org = organization_fixture(ctx.tenant, "acme-#{System.unique_integer([:positive])}")
+    {:ok, equipe} = EO.declare_structural_team(ctx.tenant, org.id, nome, ctx.admin.id)
+    equipe
+  end
+
+  defp pessoa_058(ctx, login) do
+    {:ok, p} =
+      EO.upsert_person_from_source(ctx.tenant, %{
+        login: login,
+        name: login,
+        account_type: "person",
+        source_system: "github",
+        source_instance: "https://github.com",
+        source_endpoint: "/users/#{login}",
+        external_id: "U_#{login}",
+        collected_at: DateTime.utc_now(:second),
+        payload: %{"login" => login}
+      })
+
+    p
+  end
+
+  defp ligar_projeto_e_repo(ctx, equipe) do
+    {:ok, projeto} = SPO.create_project(ctx.tenant, %{name: "Alfa"}, ctx.admin.id)
+    {:ok, vinculo_equipe} = SPO.link_team(ctx.tenant, projeto.id, equipe.id, ctx.admin.id)
+    {:ok, vinculo_repo} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+    %{projeto: projeto, vinculo_equipe: vinculo_equipe, vinculo_repo: vinculo_repo}
+  end
+
+  # Os dois vínculos nascem com `linked_at` = agora. Recuar a ponta é o que permite
+  # montar a matriz de datas — e sem recuar a da EQUIPE, o teste do repositório
+  # desligado mede outra coisa: a equipe não estava no projeto naquele intervalo.
+  defp recuar_vinculo(tabela, vinculo, desde, ate) do
+    Repo.update_all(
+      from(x in tabela, where: x.id == type(^vinculo.id, :binary_id)),
+      set: [linked_at: desde, unlinked_at: ate]
+    )
   end
 end

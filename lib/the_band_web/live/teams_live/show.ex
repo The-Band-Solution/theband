@@ -16,7 +16,9 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Quality
   alias TheBand.Tenants
+  alias TheBand.Verification
   alias TheBand.WorkItems
   alias TheBandWeb.TabelaLive, as: Tabela
 
@@ -779,7 +781,138 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> assign(projetos_da_equipe: vinculados)
     |> assign(projetos_disponiveis: Enum.reject(SPO.list_projects(tenant), &(&1.id in ids)))
+    |> carregar_medidas_da_058(SPO.team_project_links_with_period(tenant, team.id))
   end
+
+  # QUEM TRABALHOU nos projetos desta equipe — feature 058, US2 (T006, T007).
+  #
+  # A resposta é a interseção de três períodos, e `who_worked_on_many/3` a calcula
+  # para todos os projetos em **duas** consultas. Perguntar projeto a projeto
+  # custaria duas por projeto, e a página passaria a consultar por linha.
+  #
+  # A janela é a mesma da feature 057 — oito semanas, sem seletor. Com seletor, a
+  # data vazia envenenaria toda linha com a marca de parcial, que é o que
+  # `TheBand.Periodos` declara querer evitar.
+  #
+  # Projeto **sem interseção** fica na lista com a lista de pessoas vazia, e a tela
+  # diz a ausência em texto: remover a linha faria o projeto sumir sem explicação,
+  # que é o que FR-011 proíbe.
+  #
+  # A lista de projetos NÃO é a da seção de associação acima: aquela mostra o
+  # vínculo vigente, e esta mostra por onde a equipe passou. Desligar não apaga
+  # (FR-008), e com o filtro do vigente o projeto de que a equipe saiu sumia junto
+  # com todo mundo que trabalhou nele — encontrado por teste.
+  # UMA leitura dos vínculos equipe ↔ projeto para as duas seções que precisam dela.
+  # Carregá-la duas vezes seria a mesma consulta por render, e — pior — abriria a
+  # porta para as duas seções discordarem quando uma delas mudasse de filtro.
+  defp carregar_medidas_da_058(socket, vinculos) do
+    socket
+    |> carregar_quem_trabalhou(Enum.uniq_by(vinculos, & &1.project_id))
+    |> carregar_espera_por_revisao()
+    |> carregar_taxa_do_pipeline(vinculos)
+  end
+
+  defp carregar_quem_trabalhou(socket, []), do: assign(socket, quem_trabalhou: [])
+
+  defp carregar_quem_trabalhou(socket, projetos) do
+    tenant = socket.assigns.current_tenant
+    agora = DateTime.utc_now()
+    janela = %{inicio: DateTime.add(agora, -@janela_em_dias, :day), fim: agora}
+
+    por_projeto = SPO.who_worked_on_many(tenant, Enum.map(projetos, & &1.project_id), janela)
+
+    linhas =
+      Enum.map(projetos, fn pr ->
+        %{
+          project_id: pr.project_id,
+          nome: pr.nome,
+          pessoas: Map.get(por_projeto, pr.project_id, [])
+        }
+      end)
+
+    assign(socket, quem_trabalhou: linhas)
+  end
+
+  # A ESPERA POR REVISÃO — feature 058, US1 (T008–T011).
+  #
+  # Uma consulta, agrupada por pessoa em memória: `agrupar_por_pessoa/1` é pura, e
+  # chamar a versão que consulta de novo produziria dois números com o mesmo
+  # rótulo, que é a L67.
+  #
+  # A janela é a mesma das outras seções — oito semanas —, e recorta pela data de
+  # ABERTURA da solicitação, porque é isso que a medida é.
+  defp carregar_espera_por_revisao(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    esperas =
+      Quality.team_time_to_first_review(tenant, team.id,
+        desde: DateTime.add(agora, -@janela_em_dias, :day),
+        ate: agora
+      )
+
+    assign(socket,
+      espera_por_revisao: %{
+        esperas: esperas,
+        por_pessoa: Quality.agrupar_por_pessoa(esperas),
+        mediana: Quality.mediana_em_horas(esperas),
+        em_curso: Enum.count(esperas, &match?({:aguardando, _}, &1.estado))
+      }
+    )
+  end
+
+  # A TAXA DO PIPELINE — feature 058, US3 (T016).
+  #
+  # O caminho é `repositório → projeto → equipe`, e a recusa é um estado de
+  # primeira classe: equipe sem projeto declarado não recebe taxa nenhuma, e a tela
+  # nomeia o elo que falta em vez de mostrar zero.
+  #
+  # O nome da equipe vai junto porque a tela já o tem: sem ele, a recusa custaria
+  # uma consulta a mais para escrever uma palavra que já está na página.
+  defp carregar_taxa_do_pipeline(socket, vinculos) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now()
+
+    taxa =
+      Verification.team_pipeline_rate(tenant, team.id,
+        desde: DateTime.add(agora, -@janela_em_dias, :day),
+        ate: agora,
+        nome: team.name,
+        vinculos: vinculos
+      )
+
+    assign(socket, taxa_do_pipeline: taxa)
+  end
+
+  # A tela lê a taxa por estes dois, e não desempacota a tupla no meio do template:
+  # `{:ok, taxa}` e `{:sem_projeto, _}` são estados diferentes, e um `elem/2` solto
+  # num atributo quebraria com o outro estado sem dizer por quê.
+  defp campo_da_taxa({:ok, taxa}, campo), do: Map.fetch!(taxa, campo)
+
+  # `nil` é a ausência dita: nada produziu resultado, e não há o que dividir. Um
+  # "0%" ali afirmaria que tudo falhou.
+  defp percentual_na_tela({:ok, %{percentual: nil}}), do: "—"
+  defp percentual_na_tela({:ok, %{percentual: p}}), do: "#{p}%"
+
+  # O tempo já esperado, em texto. A em curso NUNCA vira "0h": a frase diz há
+  # quantos dias ninguém revisou, que é o que faz alguém agir.
+  defp texto_da_espera({:revisada, horas}), do: "#{horas}h to first human review"
+
+  defp texto_da_espera({:aguardando, dias}),
+    do: "waiting for #{dias} day(s) — no human review yet"
+
+  # A marca do período parcialmente desconhecido (FR-009, SC-005).
+  #
+  # **Não é nota de rodapé**: quem lê precisa saber que a linha depende de uma
+  # borda que ninguém declarou. E ela NOMEIA a borda — "parcial" sozinho não diz
+  # o que fazer para resolver; "início desconhecido" diz.
+  defp borda_desconhecida({:parcial, bordas}), do: Enum.map_join(bordas, ", ", &nome_da_borda/1)
+  defp borda_desconhecida(_), do: nil
+
+  defp nome_da_borda(:inicio_desconhecido), do: "start date"
+  defp nome_da_borda(outra), do: to_string(outra)
 
   defp projetos_da_equipe(tenant, team_id), do: SPO.list_team_projects(tenant, team_id)
 
@@ -1251,6 +1384,240 @@ defmodule TheBandWeb.TeamsLive.Show do
             <option :for={p <- @projetos_disponiveis} value={p.id}>{p.name}</option>
           </select>
         </form>
+      </section>
+
+      <%!-- QUEM TRABALHOU NO PROJETO — feature 058, US2 (T006, T007).
+
+            A pergunta que duas colunas de período existem para responder desde que
+            a tabela foi criada, e que nenhuma consulta fazia.
+
+            A resposta é a interseção de TRÊS períodos: pessoa ↔ equipe, equipe ↔
+            projeto, e a janela. Desligar não apaga o que houve: quem esteve no
+            intervalo continua aparecendo por ele.
+
+            Projeto sem interseção traz a frase de ausência, e não uma lista vazia
+            (FR-011) — lista em branco é indistinguível de erro de carregamento. --%>
+      <section :if={@quem_trabalhou != []} id="quem-trabalhou" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Who worked on these projects</h3>
+        <p class="text-sm opacity-70">
+          People who belonged to a team while that team was linked to the project, over the
+          last 8 weeks. A person reached by two teams appears <strong>once</strong>, with both named — two rows would count the same person twice.
+        </p>
+
+        <ul class="space-y-3">
+          <li :for={linha <- @quem_trabalhou} class="card bg-base-200 p-3">
+            <div class="font-medium">{linha.nome}</div>
+
+            <%!-- A ausência é DITA, e diz qual dos dois lados falta: sem equipe
+                  ligada no período, ou ligada sem ninguém dentro dela. As duas
+                  frases levam a ações diferentes. --%>
+            <p :if={linha.pessoas == []} class="mt-1 text-sm opacity-70">
+              Nobody worked on this project in the window — either no team was linked to it
+              then, or the teams that were had no member in the period. Not zero people:
+              no intersection.
+            </p>
+
+            <ul :if={linha.pessoas != []} class="mt-2 space-y-1 text-sm">
+              <li :for={pessoa <- linha.pessoas} class="flex flex-wrap items-baseline gap-2">
+                <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover">
+                  {pessoa.name}
+                </.link>
+                <span :if={pessoa.login} class="text-xs opacity-60">@{pessoa.login}</span>
+                <span class="text-xs opacity-70">
+                  via {Enum.map_join(pessoa.equipes, ", ", & &1.name)}
+                </span>
+                <%!-- A marca do parcial nomeia a borda que falta. Sem o nome, quem lê
+                      sabe que há dúvida e não sabe o que fazer com ela. --%>
+                <span
+                  :if={borda_desconhecida(pessoa.periodo)}
+                  class="badge badge-sm badge-warning"
+                  title="the intersection depends on a boundary nobody declared"
+                >
+                  partially unknown: {borda_desconhecida(pessoa.periodo)}
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <p class="text-xs opacity-60">
+          A membership with no start date is <strong>unknown</strong>, never open since
+          forever — those rows carry the mark above. An open end date means <strong>current</strong>, and is not marked.
+        </p>
+      </section>
+
+      <%!-- A ESPERA POR REVISÃO — feature 058, US1 (T011).
+
+            A limitação vem JUNTO do número, e não numa página de ajuda (FR-019):
+            o tempo conta da abertura, e revisão de robô não encerra a contagem.
+            Quem lê o número sem essas duas frases lê outra medida.
+
+            A espera EM CURSO aparece ao lado da mediana, e não dentro dela: sem
+            ela, a mediana melhoraria quanto pior a equipe estivesse. --%>
+      <section id="espera-por-revisao" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Waiting for first review</h3>
+        <p class="text-sm opacity-70">
+          Change requests opened by people who belonged to this team
+          <strong>on the day they opened them</strong>
+          — not on the day you are reading. Time runs until the first <strong>human</strong>
+          review: a bot review does not end the count, and is discarded here.
+        </p>
+
+        <%!-- Equipe sem solicitação diz a ausência em texto, e nunca zero (FR-006):
+              zero afirmaria que a equipe abriu solicitações e ninguém esperou. --%>
+        <p :if={@espera_por_revisao.esperas == []} class="text-sm opacity-70">
+          No change request opened by this team in the last 8 weeks. That is not a wait of
+          zero — it is nothing to measure.
+        </p>
+
+        <div :if={@espera_por_revisao.esperas != []} class="flex flex-wrap gap-4">
+          <div class="card bg-base-200 p-3">
+            <div class="text-xs opacity-70">team median · closed waits</div>
+            <div class="text-lg font-semibold">
+              {if @espera_por_revisao.mediana, do: "#{@espera_por_revisao.mediana}h", else: "—"}
+            </div>
+            <div :if={is_nil(@espera_por_revisao.mediana)} class="text-xs opacity-60">
+              none reviewed yet — no median to state
+            </div>
+          </div>
+
+          <div class="card bg-base-200 p-3">
+            <div class="text-xs opacity-70">still waiting</div>
+            <div class="text-lg font-semibold">{@espera_por_revisao.em_curso}</div>
+            <div class="text-xs opacity-60">outside the median, counted on their own</div>
+          </div>
+        </div>
+
+        <%!-- A mesma medida POR PESSOA (T010). O texto abaixo existe porque alguém
+              somaria as duas: a mesma solicitação tem um autor só, então não há dupla
+              contagem — o que há são duas perguntas diferentes (FR-005, FR-020). --%>
+        <ul :if={@espera_por_revisao.por_pessoa != []} class="space-y-2 text-sm">
+          <li :for={linha <- @espera_por_revisao.por_pessoa} class="card bg-base-200 p-3">
+            <div class="flex flex-wrap items-baseline gap-2">
+              <span class="font-medium">{linha.autor_login || "unknown author"}</span>
+              <span class="text-xs opacity-60">
+                median {if h = Quality.mediana_em_horas(linha.esperas), do: "#{h}h", else: "—"}
+              </span>
+            </div>
+            <ul class="mt-1 space-y-1">
+              <li :for={e <- linha.esperas} class="flex flex-wrap items-baseline gap-2 text-xs">
+                <span class="font-mono opacity-70">#{e.numero}</span>
+                <span class="opacity-80">{e.titulo}</span>
+                <span class={[
+                  "badge badge-sm",
+                  match?({:aguardando, _}, e.estado) && "badge-warning"
+                ]}>
+                  {texto_da_espera(e.estado)}
+                </span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <p :if={@espera_por_revisao.esperas != []} class="text-xs opacity-60">
+          The per-person medians and the team median answer <strong>different questions</strong>
+          and are not meant to be reconciled: one is about a person's requests, the other
+          about the team's. They are not summed, and neither derives from the other.
+        </p>
+      </section>
+
+      <%!-- A TAXA DO PIPELINE — feature 058, US3 (T016).
+
+            O tamanho da amostra não é enfeite: a cobertura do dado é desconhecida,
+            e uma taxa de 100% sobre três execuções não é a mesma afirmação que
+            sobre trezentas (FR-016).
+
+            E a recusa é um estado de primeira classe: sem projeto declarado não há
+            taxa, e a tela NOMEIA o elo que falta em vez de mostrar zero — zero
+            diria que o pipeline falhou. --%>
+      <section id="taxa-do-pipeline" class="mt-8 space-y-3">
+        <h3 class="text-base font-semibold">Pipeline success rate</h3>
+
+        <div :if={match?({:sem_projeto, _}, @taxa_do_pipeline)} class="card bg-base-200 p-3">
+          <p class="text-sm">
+            No rate for <strong>{elem(@taxa_do_pipeline, 1).equipe}</strong>
+            — this team is not linked to any project, so the platform does not know which
+            repositories it looks after. The missing link is <strong>team → project</strong>, and it is declared on this page.
+          </p>
+          <p class="mt-1 text-xs opacity-60">
+            This is not a rate of zero: zero would say the pipeline failed.
+          </p>
+        </div>
+
+        <div :if={match?({:ok, _}, @taxa_do_pipeline)} class="space-y-3">
+          <div class="flex flex-wrap items-end gap-4">
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">success rate</div>
+              <div class="text-lg font-semibold">{percentual_na_tela(@taxa_do_pipeline)}</div>
+              <div class="text-xs opacity-60">
+                over {campo_da_taxa(@taxa_do_pipeline, :denominador_do_percentual)} run(s) that
+                produced a result
+              </div>
+            </div>
+
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">runs considered</div>
+              <div class="text-lg font-semibold">
+                {campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas)}
+              </div>
+              <div class="text-xs opacity-60">
+                across {campo_da_taxa(@taxa_do_pipeline, :repositorios)} repository(ies), last 8
+                weeks
+              </div>
+            </div>
+
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">still running</div>
+              <div class="text-lg font-semibold">
+                {campo_da_taxa(@taxa_do_pipeline, :em_andamento)}
+              </div>
+              <div class="text-xs opacity-60">neither success nor failure</div>
+            </div>
+          </div>
+
+          <p
+            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) == 0}
+            class="text-sm opacity-70"
+          >
+            No verification run collected for these repositories in the window. Nothing to
+            divide — that is an absence, not a rate of zero.
+          </p>
+
+          <%!-- As cinco fases, cada uma no seu campo. Somar qualquer uma delas a
+                "failed" inflaria a taxa com o que ninguém quebrou (FR-015). --%>
+          <table
+            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) > 0}
+            class="table table-sm"
+          >
+            <thead>
+              <tr>
+                <th>succeeded</th>
+                <th>failed</th>
+                <th>interrupted</th>
+                <th>not performed</th>
+                <th>expired</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :sucesso)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :falha)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :interrompida)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :nao_executada)}</td>
+                <td>{campo_da_taxa(@taxa_do_pipeline, :expirada)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="text-xs opacity-60">
+            Path: <span class="font-mono">{campo_da_taxa(@taxa_do_pipeline, :caminho)}</span>
+            — the rate is about the repositories of this team's projects, and <strong>not</strong>
+            about who triggered each run: the actor is whoever pressed the button, not whoever
+            looks after the code. Interrupted, not performed and expired count on their own and
+            are never added to "failed" — cancelling is a human decision. Runs still going are
+            outside both the numerator and the denominator.
+          </p>
+        </div>
       </section>
 
       <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora
