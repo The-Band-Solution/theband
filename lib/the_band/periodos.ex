@@ -53,40 +53,58 @@ defmodule TheBand.Periodos do
   Dizer `{:parcial, _}` para um caso que já se sabe negativo seria o erro
   simétrico: transformar conhecimento em dúvida.
 
-  ## A marca é PESSIMISTA, e o que isso custa
+  ## A marca só aparece quando a sobreposição DEPENDE da borda que falta
 
-  Corrigido em 2026-09-03. Este trecho afirmava que o `{:parcial, _}` "só aparece
-  quando a sobreposição **depende** de uma borda que ninguém declarou". **O código
-  não faz isso**, e nunca fez:
+  **Corrigido em 2026-09-04**, e é a segunda correção deste trecho — a primeira
+  (2026-09-03) foi da documentação, para parar de prometer o que o código não
+  fazia. Esta é do código.
+
+  O que havia:
 
       defp bordas_desconhecidas(periodos) do
         if Enum.any?(periodos, &is_nil(&1.inicio)), do: [:inicio_desconhecido], else: []
       end
 
-  Qualquer início nulo marca, mesmo quando a sobreposição é certa por outro
-  caminho. Medido:
+  Qualquer início nulo marcava, mesmo quando a sobreposição era certa por outro
+  caminho:
 
       membro  = jan–dez     (início conhecido)
       vinculo = jan–dez     (início conhecido)
       janela  = ?–jun       (início nulo)
 
   A sobreposição jan–jun está **inteira** dentro das duas pontas conhecidas: não
-  importa onde a janela comece, ela existe. O veredito ainda assim é
+  importa onde a janela comece, ela existe. O veredito, ainda assim, era
   `{:parcial, [:inicio_desconhecido]}`.
 
-  Os 12 testes da T001 passaram porque nenhum deles tinha um período de início
-  nulo cuja sobreposição fosse certa pelos outros — o caso não estava coberto.
+  **Por que isso importava mais depois da feature 058:** a tela passou a mostrar a
+  marca. Uma equipe cujos vínculos não têm `started_at` a veria em toda linha, e
+  marca que aparece sempre não distingue nada — que é exatamente o que este módulo
+  diz querer evitar duas seções acima.
 
-  **Consequência para quem chama:** janela de consulta com data vazia envenena
-  **toda** linha do resultado, e a marca deixa de distinguir coisa alguma — que é
-  exatamente o que este módulo declara querer evitar duas seções acima. Quem
-  monta a janela a partir de campo de formulário **precisa exigir as duas datas**.
+  ### A regra, e por que ela é essa
 
-  Corrigir o código para cumprir a promessa original é decisão em aberto: ela
-  muda o que `interseccao/1` devolve para casos que hoje já têm chamador, e a
-  marca passaria a significar algo mais forte. Enquanto não for tomada, **este
-  documento descreve o comportamento real**: pessimista, e errando para o lado de
-  duvidar.
+  Um período de início desconhecido é `[x, fim)` com `x < fim`: sabe-se que
+  terminou (ou termina) em `fim`, e não desde quando vale. O **pior caso** é `x`
+  imediatamente antes de `fim` — o vínculo mais curto possível.
+
+  A sobreposição é **certa** quando existe instante comum mesmo nesse pior caso:
+
+      S = maior dos inícios conhecidos           (nenhum: -infinito)
+      E = menor dos fins conhecidos              (nenhum: +infinito)
+      P = menor dos fins dos períodos SEM início (fim nulo: +infinito)
+
+      certa  <=>  P > S  e  P <= E
+
+  `P` é o instante crítico: o único lugar onde os períodos de início desconhecido
+  certamente estão é logo antes do fim deles.
+
+  Sem nenhum início nulo não há dúvida a levantar, e o veredito é `:intersecta`.
+
+  ### O que a mudança custa a quem chama
+
+  `{:parcial, _}` passou a significar algo **mais forte**: a resposta depende de
+  uma data que ninguém declarou. Quem já tratava os três estados continua correto;
+  o que muda é que a marca aparece menos, e quando aparece, aparece por um motivo.
 
   ## Exemplos
 
@@ -105,6 +123,19 @@ defmodule TheBand.Periodos do
       ...>   %{inicio: nil, fim: nil}
       ...> ])
       {:parcial, [:inicio_desconhecido]}
+
+  E o caso que a correção de 2026-09-04 mudou: o início desconhecido está numa
+  ponta cujo fim cai DENTRO do outro período, então a sobreposição existe sem
+  depender de onde ele começou.
+
+      iex> jan = ~U[2026-01-01 00:00:00Z]
+      iex> jun = ~U[2026-06-01 00:00:00Z]
+      iex> dez = ~U[2026-12-01 00:00:00Z]
+      iex> TheBand.Periodos.interseccao([
+      ...>   %{inicio: jan, fim: dez},
+      ...>   %{inicio: nil, fim: jun}
+      ...> ])
+      :intersecta
 
       iex> jan = ~U[2026-01-01 00:00:00Z]
       iex> jun = ~U[2026-06-01 00:00:00Z]
@@ -168,8 +199,54 @@ defmodule TheBand.Periodos do
 
   # Só a ponta de INÍCIO produz dúvida. `fim` nulo é o vínculo em curso — um fato,
   # e não uma lacuna.
+  #
+  # E a dúvida só é levantada quando a sobreposição DEPENDE dela: o pior caso de um
+  # período `[?, fim)` é começar imediatamente antes de `fim`, e se ainda assim
+  # houver instante comum, não há o que duvidar.
   defp bordas_desconhecidas(periodos) do
-    if Enum.any?(periodos, &is_nil(&1.inicio)), do: [:inicio_desconhecido], else: []
+    sem_inicio = Enum.filter(periodos, &is_nil(&1.inicio))
+
+    cond do
+      sem_inicio == [] -> []
+      sobreposicao_certa?(periodos, sem_inicio) -> []
+      true -> [:inicio_desconhecido]
+    end
+  end
+
+  # `P` é o instante crítico — o único lugar onde os períodos de início
+  # desconhecido certamente estão. A sobreposição é certa quando ele cabe depois
+  # de todos os inícios conhecidos e antes de todos os fins conhecidos.
+  defp sobreposicao_certa?(periodos, sem_inicio) do
+    with {:ok, critico} <- menor_fim(sem_inicio) do
+      depois_de_todos_os_inicios?(periodos, critico) and
+        cabe_antes_dos_fins?(periodos, critico)
+    else
+      # Algum período sem início tem fim nulo: ele pode ter começado depois de
+      # tudo e ainda estar em curso, e não há instante que se possa garantir.
+      :indeterminado -> false
+    end
+  end
+
+  defp menor_fim(periodos) do
+    if Enum.any?(periodos, &is_nil(&1.fim)) do
+      :indeterminado
+    else
+      {:ok, periodos |> Enum.map(& &1.fim) |> Enum.min_by(&DateTime.to_unix/1)}
+    end
+  end
+
+  # O instante imediatamente ANTES de `critico` precisa estar depois de cada
+  # início conhecido — daí a comparação estrita.
+  defp depois_de_todos_os_inicios?(periodos, critico) do
+    periodos
+    |> Enum.reject(&is_nil(&1.inicio))
+    |> Enum.all?(&(DateTime.compare(&1.inicio, critico) == :lt))
+  end
+
+  defp cabe_antes_dos_fins?(periodos, critico) do
+    periodos
+    |> Enum.reject(&is_nil(&1.fim))
+    |> Enum.all?(&(DateTime.compare(critico, &1.fim) != :gt))
   end
 
   defp depois_do_inicio?(nil, _quando), do: true

@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Gates do
-  @shortdoc "Roda os treze quality gates, na ordem do CI, abortando no primeiro que reprovar"
+  @shortdoc "Roda os quatorze quality gates, na ordem do CI, abortando no primeiro que reprovar"
 
   @moduledoc """
-  Os treze quality gates da constituição, num comando.
+  Os quatorze quality gates da constituição, num comando.
 
       mix gates
 

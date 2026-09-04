@@ -89,7 +89,7 @@ tendência**. Isso está declarado, e não fingido: quem quiser a evolução com
 
 | Onde | O quê |
 |---|---|
-| `mix gates` | **doze gates**, offline, com veredito por código de saída |
+| `mix gates` | **quatorze gates**, offline, com veredito por código de saída |
 | `cover/excoveralls.xml` | cobertura — 80,1% na medida de 2026-08-13 |
 | `cover/credo.json` | achados de Credo, Sobelow e auditoria, reunidos |
 
