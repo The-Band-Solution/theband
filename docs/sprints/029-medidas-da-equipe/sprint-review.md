@@ -49,20 +49,61 @@ select 'collected_verifications='||(select count(*) from collected_verifications
 | `collected_change_requests` | **0** |
 | `eo_team_memberships` | **0** |
 
-**O que estes números querem dizer, e o que não querem.** O banco de
-desenvolvimento desta máquina está **vazio** — 12 MB, só esquema. Ele não é a
-origem que a pesquisa citou (19 200 atividades, 50 autores), e **a cobertura do
-tenant real continua não medida**.
+**O que estes números queriam dizer, e o que não queriam.** O banco de
+desenvolvimento estava **vazio** — 12 MB, só esquema. A medição não era da cobertura:
+era da ausência de dado local.
 
-Isso é limitação declarada, e não estimada: medi, e o que encontrei foi ausência
-de dado local. Medir a origem real exigiria o banco de produção, que não é acesso
-deste trabalho.
+### A medição de verdade, com dado coletado
 
-**A conclusão sobre a US3 não muda por isso**, e é a que a T020 previu: com
-vínculos em zero, a US3 entrega o ramo da recusa — `{:sem_projeto, _}`, com o elo
-que falta nomeado na tela. **É resultado, não falha.** O ramo da taxa está
-implementado e coberto por teste com dado montado; o que falta para vê-lo com
-número real é dado coletado, e não código.
+Em 2026-09-04 a pessoa mantenedora cadastrou a credencial e a coleta rodou contra a
+organização real **`leds-conectafapes`**. Os números, medidos no banco depois dela:
+
+| tabela | linhas |
+|---|---:|
+| `eo_people` | **69** |
+| `eo_teams` | **9** |
+| `eo_team_membership_evidence` | **79** |
+| **`eo_team_memberships`** | **0** |
+| `observed_repositories` | **125** |
+| `collected_issues` | **936** |
+| `collected_change_requests` | **598** |
+| `collected_artifact_evaluations` | **423** |
+| `collected_verifications` | **0** |
+| `spo_project_teams` | **0** |
+| `spo_project_repositories` | **0** |
+
+### A conclusão, e ela é mais forte do que a T020 previa
+
+**Zero vínculos promovidos, com 79 evidências esperando.** Não é falha de coleta: a
+plataforma observa o vínculo e **exige confirmação humana do papel** antes de promovê-lo.
+Enquanto ninguém confirma, toda medida de nível `team` fica sem base — e as nove equipes
+disparam `structure.ap02.team_with_no_members`, o antipadrão declarado neste mesmo
+sprint. A tela vai dizer isso em vez de mostrar zero, que é exatamente para o que ele
+foi escrito.
+
+É o mesmo fenômeno que o épico #504 registrou em 2026-08-25 — *"101 evidências, 0
+promoções"* —, agora medido de novo com outro número e a mesma forma.
+
+**Zero vínculos equipe ↔ projeto e projeto ↔ repositório.** A US3 entrega, contra o dado
+real, **exatamente o ramo da recusa** que a T020 previu: `{:sem_projeto, _}`, com o elo
+que falta nomeado na tela. **É resultado, não falha** — e agora é resultado *medido*, e
+não deduzido.
+
+**A cobertura da taxa do pipeline é zero.** `collected_verifications` está em 0, e por
+isso nenhum número de CI foi calculado sobre amostra desconhecida: não há amostra. É a
+declaração que a R6 pedia, com o dado na mão.
+
+### O defeito que a coleta real encontrou
+
+A primeira execução terminou em `failed` **depois** de gravar 69 pessoas, 936 issues e
+598 solicitações: o upsert da equipe derivada consultava a Application Reference e
+inseria, e entre as duas coisas coube outra coleta — o segundo insert bateu no índice
+único. A etapa dos vínculos nunca rodou, e a tela mostraria nove equipes vazias sem que
+nada dissesse por quê.
+
+Corrigido e fechado como [#800](https://github.com/The-Band-Solution/theband/issues/800):
+o conflito da Application Reference passou a ser **reconhecimento**, e não erro. Foi
+preciso rodar contra origem real para encontrá-lo — 1 704 testes verdes não o pegaram.
 
 ## Evidências
 
