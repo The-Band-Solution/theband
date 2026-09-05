@@ -44,7 +44,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
+    resultados = coletar_em_paralelo(ctx, repositorios)
 
     {:ok,
      %{
@@ -69,6 +69,31 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   # para repositórios das outras duas**. Onde a credencial errada recebia 404, a fase
   # marcava o repositório como percorrido e vazio — ausência de ACESSO lida como ausência
   # de dado, que é a confusão que a casa mais combate.
+  # A concorrência, e o teto — ADR 0006, item 3. Teto 5 pelo pool do Ecto, que tem 10.
+  @concorrencia 5
+  @timeout_por_repositorio :timer.minutes(10)
+
+  defp coletar_em_paralelo(ctx, repositorios) do
+    TheBand.Ingestion.TaskSupervisor
+    |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
+      max_concurrency: @concorrencia,
+      ordered: false,
+      timeout: @timeout_por_repositorio,
+      on_timeout: :kill_task
+    )
+    |> Enum.map(&resultado_da_tarefa/1)
+  end
+
+  defp resultado_da_tarefa({:ok, resultado}), do: resultado
+
+  # Tarefa morta vira não alcançado, e nunca sucesso: o resumo diria que o repositório
+  # foi percorrido, e a próxima coleta o pularia por causa do checkpoint que ele não tem.
+  defp resultado_da_tarefa({:exit, motivo}) do
+    Logger.warning("comentários de um repositório não completaram: #{inspect(motivo)}")
+
+    %{alcancado: false, issues: 0, coletados: 0, marcados: 0, truncadas: 0}
+  end
+
   defp repositorios_observados(tenant_id, tool_id) do
     # owner/name vêm do repositório-fonte (qualified_name = "owner/name"); a marca de
     # exclusão da observação é excluded_at — exclusão é decisão de quem administra.
@@ -116,9 +141,14 @@ defmodule TheBand.Ingestion.GithubIssueComments do
       {:error, reason} ->
         # Falha transitória não marca estado permanente (L29): sem checkpoint, a
         # próxima coleta percorre de novo. O motivo vai para o log, não para o dado.
-        Logger.warning(
-          "comentários de #{repo.owner}/#{repo.name} não coletados: #{inspect(reason)}"
-        )
+        # `qualified_name` já é "owner/name", e é o único nome que este map carrega —
+        # `repo.owner` levantava `KeyError` **dentro do tratamento da falha**, e o job
+        # inteiro morria. Encontrado na primeira coleta real, em 2026-09-04: cinco
+        # tentativas, `discarded`, e com ele foram embora as etapas seguintes do sync.
+        #
+        # O caminho feliz nunca tocou nesta linha. Só se chega aqui quando a origem
+        # falha — e era exatamente aí que a falha transitória virava permanente.
+        Logger.warning("comentários de #{repo.qualified_name} não coletados: #{inspect(reason)}")
 
         %{alcancado: false, issues: 0, coletados: 0, marcados: 0, truncadas: 0}
     end

@@ -56,42 +56,65 @@ era da ausência de dado local.
 ### A medição de verdade, com dado coletado
 
 Em 2026-09-04 a pessoa mantenedora cadastrou a credencial e a coleta rodou contra a
-organização real **`leds-conectafapes`**. Os números, medidos no banco depois dela:
+organização real **`leds-conectafapes`**. Foram **sete tentativas** até uma terminar em
+`completed` — as seis primeiras morreram, e cada morte virou uma correção (ver adiante).
+
+Os números da coleta completa:
 
 | tabela | linhas |
 |---|---:|
-| `eo_people` | **69** |
+| `eo_people` | **80** |
 | `eo_teams` | **9** |
-| `eo_team_membership_evidence` | **79** |
+| `eo_team_membership_evidence` | **90** |
 | **`eo_team_memberships`** | **0** |
 | `observed_repositories` | **125** |
-| `collected_issues` | **936** |
-| `collected_change_requests` | **598** |
-| `collected_artifact_evaluations` | **423** |
-| `collected_verifications` | **0** |
-| `spo_project_teams` | **0** |
-| `spo_project_repositories` | **0** |
+| `collected_issues` | **4 971** |
+| `collected_change_requests` | **5 466** |
+| `collected_artifact_evaluations` | **4 634** |
+| `collected_verifications` | **5 311** |
+| **`spo_project_teams`** | **0** |
+| **`spo_project_repositories`** | **0** |
 
-### A conclusão, e ela é mais forte do que a T020 previa
+### A conclusão sobre a US3, agora com dado real dos dois lados
 
-**Zero vínculos promovidos, com 79 evidências esperando.** Não é falha de coleta: a
-plataforma observa o vínculo e **exige confirmação humana do papel** antes de promovê-lo.
-Enquanto ninguém confirma, toda medida de nível `team` fica sem base — e as nove equipes
-disparam `structure.ap02.team_with_no_members`, o antipadrão declarado neste mesmo
-sprint. A tela vai dizer isso em vez de mostrar zero, que é exatamente para o que ele
-foi escrito.
+**A taxa do pipeline tem numerador e não tem caminho.** Há 5 311 execuções de verificação
+coletadas — o dado que faltava na primeira medição. E há **zero** vínculos equipe ↔
+projeto e **zero** projeto ↔ repositório.
 
-É o mesmo fenômeno que o épico #504 registrou em 2026-08-25 — *"101 evidências, 0
-promoções"* —, agora medido de novo com outro número e a mesma forma.
+O caminho que a US3 declara é `repositório → projeto → equipe`, e ele está cortado nos
+dois elos. A entrega contra dado real é **exatamente o ramo da recusa** — `{:sem_projeto,
+_}`, com o elo que falta nomeado na tela.
 
-**Zero vínculos equipe ↔ projeto e projeto ↔ repositório.** A US3 entrega, contra o dado
-real, **exatamente o ramo da recusa** que a T020 previu: `{:sem_projeto, _}`, com o elo
-que falta nomeado na tela. **É resultado, não falha** — e agora é resultado *medido*, e
-não deduzido.
+É o que a T020 previu, e agora é resultado **medido**: não faltava dado de CI; falta a
+declaração que liga repositório a projeto e projeto a equipe. Nenhuma linha de código
+resolve isso — é trabalho de quem administra a organização.
 
-**A cobertura da taxa do pipeline é zero.** `collected_verifications` está em 0, e por
-isso nenhum número de CI foi calculado sobre amostra desconhecida: não há amostra. É a
-declaração que a R6 pedia, com o dado na mão.
+**Zero vínculos promovidos, com 90 evidências esperando.** A plataforma observa o vínculo
+e exige confirmação humana do papel. Enquanto ninguém confirma, toda medida de nível
+`team` fica sem base, e as nove equipes disparam
+`structure.ap02.team_with_no_members` — o antipadrão declarado neste sprint, valendo
+contra dado real no primeiro contato.
+
+### A cobertura das verificações, e o que não sei explicar
+
+**23 dos 125 repositórios** têm `verifications_collected_at`, e só **16** têm execuções no
+banco — os outros 7 foram percorridos e não têm CI.
+
+Os 102 restantes **não** têm explicação no resumo da coleta: `unreachable: 0`,
+`without_ci: 0`, `rate_limited: 0`. Nenhum dos motivos que o código sabe registrar
+aparece.
+
+Fica como **pendência declarada, e não como número apresentado**: a cobertura real da
+taxa do pipeline é de 16 repositórios com dado, sobre 125 observados, e não sei dizer se
+os 102 foram percorridos e nada tinham, ou se a etapa parou sem marcar. Apresentar 5 311
+execuções sem esta ressalva sugeriria uma amostra que não foi verificada.
+
+### Os 37 inacessíveis sumiram
+
+Na primeira coleta, 37 repositórios foram marcados com *"the tool refused the credential"*.
+Na coleta completa são **zero** — a plataforma limpou a marca ao alcançá-los. Confirma que
+a marca é sobre o **momento**, e não sobre o repositório, que é o que
+`clear_inaccessible/2` existe para fazer.
 
 ### O defeito que a coleta real encontrou
 

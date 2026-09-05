@@ -35,6 +35,58 @@ defmodule TheBand.Integrations.GitHub.TransientTest do
       assert Client.transient?({:graphql_errors, [%{"type" => "RATE_LIMITED"}]})
     end
 
+    test "a SEGUNDA grafia do limite de taxa também é transitória" do
+      # Medido em 2026-09-04, numa coleta real que esgotou a cota. A origem devolveu
+      # `RATE_LIMIT` — sem o `ED` — e o classificador conhecia só `RATE_LIMITED`.
+      #
+      # A consequência não foi um erro a mais: foi o sync inteiro em `failed` com cinco
+      # tentativas queimadas em minutos, quando bastava esperar a janela reabrir.
+      erro = %{
+        "code" => "graphql_rate_limit",
+        "message" => "API rate limit already exceeded for user ID 1140504.",
+        "type" => "RATE_LIMIT"
+      }
+
+      assert Client.transient?({:graphql_errors, [erro]}), """
+      O limite de taxa foi classificado como PERMANENTE. Sem `snooze`, a coleta não espera
+      a janela: ela queima as tentativas e para de vez, deixando o resto por coletar.
+      """
+    end
+
+    test "o `code` decide quando o `type` mudar de novo" do
+      # Segunda testemunha: se a origem inventar um terceiro `type`, o `code` ainda diz.
+      assert Client.transient?({:graphql_errors, [%{"code" => "graphql_rate_limit"}]})
+    end
+
+    test "o limite de taxa é reconhecido como TAXA, e não só como transitório" do
+      # As duas classificações respondem perguntas diferentes: `transient?` diz se vale
+      # insistir; `rate_limit?` diz se insistir AGORA adianta. Para a taxa, não adianta —
+      # a janela leva até uma hora, e as cinco tentativas do Oban se esgotam em minutos,
+      # todas dentro da mesma janela fechada.
+      erro = %{"type" => "RATE_LIMIT", "code" => "graphql_rate_limit"}
+
+      assert Client.rate_limit?({:graphql_errors, [erro]})
+      assert Client.rate_limit?({:graphql_errors, [%{"type" => "RATE_LIMITED"}]})
+      assert Client.rate_limit?({:rate_limited, 12_345})
+    end
+
+    test "erro transitório que NÃO é de taxa não pede espera" do
+      # Falha interna da origem se cura tentando de novo, e não esperando uma hora.
+      # Confundir as duas faria a coleta dormir por nada.
+      interno = %{"message" => "Something went wrong while executing your query"}
+
+      assert Client.transient?({:graphql_errors, [interno]})
+      refute Client.rate_limit?({:graphql_errors, [interno]})
+      refute Client.rate_limit?({:transport, :nxdomain})
+    end
+
+    test "erro que apenas MENCIONA limite continua permanente" do
+      # A lista de tipos é fechada de propósito. Casar por texto pegaria famílias de erro
+      # que só mencionam a palavra, e insistir num erro permanente é o oposto do que a
+      # classificação existe para decidir.
+      refute Client.transient?({:graphql_errors, [%{"type" => "FORBIDDEN"}]})
+    end
+
     test "transporte e erro de servidor seguem transitórios" do
       assert Client.transient?({:transport, :nxdomain})
       assert Client.transient?({:unexpected_status, 502})

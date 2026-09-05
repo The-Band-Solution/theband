@@ -44,7 +44,7 @@ defmodule TheBand.Ingestion.GithubVerifications do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
+    resultados = coletar_em_paralelo(ctx, repositorios)
 
     {:ok,
      %{
@@ -63,6 +63,38 @@ defmodule TheBand.Ingestion.GithubVerifications do
        rate_limited: Enum.count(resultados, &(&1.estado == :sem_janela)),
        unreachable: Enum.count(resultados, &(&1.estado == :inalcancavel))
      }}
+  end
+
+  # A concorrência, e o teto — ADR 0006, item 3.
+  #
+  # Esta é a etapa mais cara da coleta: **uma requisição por execução** para trazer os
+  # jobs. É onde o paralelismo mais rende, e é a única fase que não depende de nenhuma
+  # outra — por isso foi a primeira escolhida na ADR.
+  #
+  # Teto 5: o pool do Ecto tem 10 conexões, e estourá-lo trava a aplicação inteira.
+  @concorrencia 5
+  @timeout_por_repositorio :timer.minutes(10)
+
+  defp coletar_em_paralelo(ctx, repositorios) do
+    TheBand.Ingestion.TaskSupervisor
+    |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
+      max_concurrency: @concorrencia,
+      ordered: false,
+      timeout: @timeout_por_repositorio,
+      on_timeout: :kill_task
+    )
+    |> Enum.map(&resultado_da_tarefa/1)
+  end
+
+  defp resultado_da_tarefa({:ok, resultado}), do: resultado
+
+  # Tarefa morta — exceção ou tempo esgotado. Tratá-la como sucesso faria o resumo dizer
+  # que o repositório foi alcançado, e `unreachable` sairia menor do que a realidade.
+  # Vira o mesmo estado que a falha já produzia no caminho sequencial.
+  defp resultado_da_tarefa({:exit, motivo}) do
+    Logger.warning("verificações de um repositório não completaram: #{inspect(motivo)}")
+
+    %{estado: :inalcancavel, execucoes: 0, jobs: 0, sem_jobs: 0, monoliticos: 0, sem_nome: 0}
   end
 
   # **Filtra pela FERRAMENTA, não só pelo tenant** — issue #446.

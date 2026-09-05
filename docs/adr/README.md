@@ -12,6 +12,8 @@ revisitada com a informação que existia quando foi tomada.
 | [0001](0001-monolito-modular-elixir.md) | Monólito modular em Elixir/Phoenix, não microserviços | Aceita |
 | [0002](0002-yaml-como-base-de-conhecimento.md) | YAML versionado como base de conhecimento declarativa | Aceita |
 | [0003](0003-organizacao-por-ontologias.md) | Domínio organizado pelas ontologias, não pelas ferramentas | Aceita |
+| [0004](0004-modelo-de-informacao-one-table-per-kind.md) | Modelo de informação derivado da ontologia por `one table per kind` | Aceita |
+| [0005](0005-telemetria-da-jornada.md) | Telemetria da jornada: `:telemetry` como barramento, coletor local, taxonomia declarada | **Proposta** |
 
 ## Quando escrever uma ADR
 

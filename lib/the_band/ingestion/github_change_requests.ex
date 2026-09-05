@@ -47,7 +47,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
+    resultados = coletar_em_paralelo(ctx, repositorios)
 
     {:ok,
      %{
@@ -67,6 +67,55 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
        truncated: soma(resultados, :truncadas),
        unreachable: Enum.count(resultados, &(&1.alcancado == false))
      }}
+  end
+
+  # A concorrência, e o teto — ADR 0006, item 3.
+  #
+  # Medido em 2026-09-04, em série: 86 repositórios em 34,5 min, ~24 s cada, com **quatro
+  # dos cinco slots da fila ociosos**. O gargalo era o desenho, e não a cota do GitHub —
+  # 2,5 repositórios por minuto não chega perto dos 5 000 pontos/hora.
+  #
+  # O teto é 5 porque o menor de dois limites manda: o pool do Ecto tem 10 conexões, e
+  # estourá-lo trava a aplicação inteira, não só a coleta. Metade fica para o resto.
+  #
+  # `ordered: false` porque a ordem dos resultados não significa nada aqui, e segurar o
+  # primeiro repositório lento para preservar ordem desperdiçaria o ganho.
+  @concorrencia 5
+  @timeout_por_repositorio :timer.minutes(10)
+
+  defp coletar_em_paralelo(ctx, repositorios) do
+    TheBand.Ingestion.TaskSupervisor
+    |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
+      max_concurrency: @concorrencia,
+      ordered: false,
+      timeout: @timeout_por_repositorio,
+      on_timeout: :kill_task
+    )
+    |> Enum.map(&resultado_da_tarefa/1)
+  end
+
+  defp resultado_da_tarefa({:ok, resultado}), do: resultado
+
+  # Tarefa que morreu — exceção ou tempo esgotado. `async_stream` a entrega como
+  # `{:exit, motivo}`, e **tratá-la como sucesso é o jeito clássico de perder falha em
+  # silêncio**: o resumo diria que o repositório foi alcançado, e o `unreachable` sairia
+  # menor do que a realidade.
+  #
+  # Aqui ela vira exatamente o que a falha transitória já produzia no caminho sequencial:
+  # não alcançado, sem checkpoint, para a próxima coleta tentar de novo (L29).
+  defp resultado_da_tarefa({:exit, motivo}) do
+    Logger.warning("coleta de mudanças de um repositório não completou: #{inspect(motivo)}")
+
+    %{
+      alcancado: false,
+      solicitacoes: 0,
+      commits: 0,
+      atendidas: 0,
+      avaliacoes: 0,
+      avaliacoes_de_bot: 0,
+      pendentes: 0,
+      truncadas: 0
+    }
   end
 
   defp soma(resultados, chave), do: Enum.sum(Enum.map(resultados, &Map.get(&1, chave, 0)))

@@ -27,6 +27,16 @@ defmodule TheBand.Application do
       {Oban, Application.fetch_env!(:the_band, Oban)},
       {DNSCluster, query: Application.get_env(:the_band, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TheBand.PubSub},
+      # As tarefas da coleta rodam SOB SUPERVISOR, e não linkadas ao job — ADR 0006.
+      #
+      # `Task.async_stream` linka a tarefa a quem a criou: uma exceção num repositório
+      # derrubaria o job inteiro, que é exatamente o acoplamento de destino que a ADR
+      # existe para quebrar. Foi assim que um `KeyError` num único repositório matou a
+      # coleta em 2026-09-04, levando junto as etapas seguintes.
+      #
+      # Com `async_stream_nolink`, a tarefa que morre vira `{:exit, motivo}` no fluxo, e
+      # os outros repositórios seguem.
+      {Task.Supervisor, name: TheBand.Ingestion.TaskSupervisor},
       TheBandWeb.Endpoint
     ]
 
