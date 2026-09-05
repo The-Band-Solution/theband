@@ -188,6 +188,7 @@ defmodule TheBand.WorkItemsFixtures do
         connected_tool_id: tool.id,
         label: "principal",
         secret: "ghp_cenario",
+        owner_login: "dono-#{System.unique_integer([:positive])}",
         last_four: "ario",
         scopes: ["read:org"],
         validated_at: DateTime.utc_now(:second)

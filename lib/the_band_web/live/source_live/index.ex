@@ -785,6 +785,18 @@ defmodule TheBandWeb.SourceLive.Index do
             </p>
           </form>
 
+          <div
+            :for={{dono, outras} <- cota_compartilhada(@mesmo_dono, tool)}
+            id={"cota-compartilhada-#{tool.id}-#{dono}"}
+            role="note"
+            class="alert alert-warning text-xs mb-2"
+          >
+            <span>
+              This tool shares the 5,000 requests/hour quota with {Enum.join(outras, ", ")}: the
+              GitHub quota belongs to the user, not to the token. The token in both belongs to <span class="font-mono">{dono}</span>.
+            </span>
+          </div>
+
           <table class="table table-sm stacked">
             <thead>
               <tr>
@@ -822,7 +834,15 @@ defmodule TheBandWeb.SourceLive.Index do
                   </form>
                   <span :if={@renaming != credential.id}>{credential.label}</span>
                 </td>
-                <td class="font-mono text-xs">{ToolCredential.masked(credential)}</td>
+                <td class="font-mono text-xs">
+                  {ToolCredential.masked(credential)}
+                  <span :if={credential.owner_login} class="ml-1 opacity-70">
+                    owner: {credential.owner_login}
+                  </span>
+                  <span :if={is_nil(credential.owner_login)} class="ml-1 opacity-50">
+                    owner unknown until the next sync
+                  </span>
+                </td>
                 <td class="text-xs">{Enum.join(credential.scopes, ", ")}</td>
                 <td class="text-xs">{credential.validated_at}</td>
                 <td>
@@ -895,6 +915,10 @@ defmodule TheBandWeb.SourceLive.Index do
     # plataforma continua coletando.
     |> assign(ended: Map.new(tools, &{&1.id, Sources.observation_ended_at(&1)}))
     |> assign(situacao: Map.new(tools, &{&1.id, Sources.situacao(&1)}))
+    # ADR 0007: a cota do GitHub é do usuário, não do token. Medida no tenant inteiro, e
+    # não nas ferramentas filtradas — quem divide cota divide mesmo que a outra ferramenta
+    # não esteja nesta lista.
+    |> assign(mesmo_dono: Sources.credenciais_com_mesmo_dono(tenant))
     # Corrigir o cadastro só existe enquanto nada foi coletado. Fica no assign, e não no
     # markup, porque é uma medida — três consultas por ferramenta — e a tela não decide
     # por conta própria quando a janela fechou.
@@ -906,6 +930,18 @@ defmodule TheBandWeb.SourceLive.Index do
   end
 
   defp all_credentials(socket), do: Enum.flat_map(socket.assigns.tools, & &1.credentials)
+
+  # Para cada dono que aparece nesta ferramenta **e** em outra: o login e os nomes das outras.
+  # O mapa vem de `Sources.credenciais_com_mesmo_dono/1`, que já descartou os donos com uma
+  # ferramenta só.
+  defp cota_compartilhada(mesmo_dono, %{id: tool_id}) do
+    for {dono, tools} <- Enum.sort(mesmo_dono), Enum.any?(tools, &(&1.id == tool_id)) do
+      outras = tools |> Enum.reject(&(&1.id == tool_id)) |> Enum.map(&nome_da_ferramenta/1)
+      {dono, outras}
+    end
+  end
+
+  defp nome_da_ferramenta(%{organization_login: org, instance_url: url}), do: "#{org} (#{url})"
 
   # Três respostas, e `disabled` não é uma delas: nenhuma linha do código a escrevia, e um estado
   # que nunca acontece é um estado que quem lê precisa considerar à toa.

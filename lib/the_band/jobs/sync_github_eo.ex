@@ -29,6 +29,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   require Logger
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.Cota
   alias TheBand.Ingestion.GithubBranches
   alias TheBand.Ingestion.GithubChangeRequests
   alias TheBand.Ingestion.GithubCommitFiles
@@ -56,7 +57,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       # Fora do `with` de propósito: o ramo de erro precisa da `tool` para marcá-la, e o
       # `else` de um `with` não enxerga as variáveis ligadas nas cláusulas anteriores.
       case Sources.fetch_secret(credential) do
-        {:ok, token} -> run(tenant, sync, tool, token)
+        {:ok, token} -> run(tenant, sync, tool, token, com_dono(credential))
         {:error, :unreadable} -> credencial_ilegivel(tenant, sync, tool)
       end
     else
@@ -65,6 +66,21 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # A identidade da cota é o dono do token (ADR 0007, parte 1). Credenciais anteriores à
+  # ADR não o têm gravado: uma chamada a `/user` — a mesma da validação — o descobre e
+  # persiste, uma vez. Se falhar, a coleta segue com a identidade por credencial, que é
+  # menos correta e está declarada em `Cota.chave/2`; a próxima sincronização tenta de novo.
+  defp com_dono(credential) do
+    case Sources.descobrir_dono(credential) do
+      {:ok, credential} ->
+        credential
+
+      {:error, motivo} ->
+        Logger.warning("dono do token não descoberto: #{inspect(motivo)}")
+        credential
     end
   end
 
@@ -89,7 +105,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     {:error, :unreadable_credential}
   end
 
-  defp run(tenant, sync, tool, token) do
+  defp run(tenant, sync, tool, token, credential) do
     started_at = sync.started_at
 
     ctx = %{
@@ -97,6 +113,9 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       sync: sync,
       tool: tool,
       token: token,
+      # A identidade da cota — ADR 0007. Toda requisição do conector passa pelo gestor com
+      # esta chave: é o usuário do GitHub dono do token, e não o token nem a ferramenta.
+      cota: Cota.chave(tool, credential),
       org: tool.organization_login,
       # **O instante de referência das marcas de ausência**, e ele TEM de estar no `ctx`.
       # `GithubWorkItems` marca a issue e o vínculo de decomposição que sumiram, e
@@ -173,144 +192,130 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # A coleta de trabalho não derruba a sincronização de EO: pessoas e equipes já foram
   # gravadas, e perdê-las por causa de uma falha na segunda fase seria pior que
   # registrar a falha. O motivo fica no log e a fase seguinte tenta na próxima coleta.
+  #
+  # **As etapas são uma lista, e não uma cadeia de chamadas aninhadas** — ADR 0007. Cada
+  # uma devolve `{:ok, resumo}`, `{:snooze, segundos}` ou `{:error, motivo}`:
+  #
+  # - `{:ok, resumo}` soma ao resumo e segue;
+  # - `{:snooze, s}` PARA a lista — a janela fechou; o que falta fica para a retomada, e o
+  #   `run/5` devolve a espera ao Oban sem fechar o sync;
+  # - `{:error, motivo}` que é cota (`Client.rate_limit?/1`) vale como `{:snooze}`;
+  #   qualquer outro erro vai para o log e a lista segue, como sempre foi.
+  #
+  # A ordem é dependência de dado, e está declarada em cada etapa.
   defp coletar_trabalho(ctx) do
-    case GithubWorkItems.collect(ctx) do
-      {:ok, resumo} ->
-        Map.merge(resumo, coletar_caixas_de_tempo(ctx))
+    Enum.reduce_while(etapas(), %{}, fn {nome, etapa}, acumulado ->
+      case etapa.(ctx) do
+        {:ok, resumo} ->
+          {:cont, Map.merge(acumulado, resumo)}
 
-      {:error, reason} ->
-        Logger.warning("coleta de repositórios e issues falhou: #{inspect(reason)}")
-        %{repositories: 0, issues: 0, error: reason}
+        {:snooze, segundos} ->
+          {:halt, Map.put(acumulado, :snooze, segundos)}
+
+        {:error, motivo} ->
+          erro_da_etapa(ctx, nome, motivo, acumulado)
+      end
+    end)
+  end
+
+  # Cota é espera; qualquer outro erro vai para o log e a lista segue, como sempre foi.
+  defp erro_da_etapa(ctx, nome, motivo, acumulado) do
+    if Client.rate_limit?(motivo) do
+      {:halt, Map.put(acumulado, :snooze, segundos_de_espera(motivo, ctx.tool, ctx.token))}
+    else
+      Logger.warning("etapa #{nome} falhou: #{inspect(motivo)}")
+      # Um mapa `erros: %{etapa => motivo}`, e não um átomo interpolado por etapa: o nome
+      # vem da lista fixa `etapas/0`, mas átomo dinâmico é o que o Sobelow acusa (e com razão
+      # como regra geral) — e o resumo fica mais fácil de ler com os erros juntos.
+      {:cont, Map.update(acumulado, :erros, %{nome => motivo}, &Map.put(&1, nome, motivo))}
     end
   end
 
-  # **Depois das issues**, e a ordem é dependência de dado: o vínculo entre issue e
-  # caixa de tempo precisa da issue gravada, e ela vem da fase anterior.
-  #
-  # Falhar aqui não derruba o que já foi coletado, pelo mesmo motivo da fase de
-  # trabalho: repositórios e issues já estão no banco, e perdê-los por causa de uma
-  # falha nos quadros seria pior que registrar a falha.
+  defp etapas do
+    [
+      # Repositórios e issues — tudo o que vem depois aponta para um repositório observado.
+      {:trabalho, &GithubWorkItems.collect/1},
+      # **Depois das issues**: o vínculo entre issue e caixa de tempo precisa da issue gravada.
+      {:caixas_de_tempo, &coletar_caixas_de_tempo/1},
+      # **Depois das issues**: o comentário aponta para a issue gravada. Lê da BASE, não da
+      # memória da etapa anterior (L47) — issue nova com comentário entra na mesma passada.
+      {:comentarios, &coletar_comentarios/1},
+      # **Depois das issues**: o vínculo entre solicitação e issue precisa da issue gravada.
+      {:mudancas, &coletar_mudancas/1},
+      # **Depois dos commits**, que a etapa de mudanças grava: o arquivo pende de um commit.
+      {:arquivos, &coletar_arquivos/1},
+      # Pende só do repositório observado. Antes das branches por ser a mais cara: uma
+      # requisição REST por execução.
+      {:verificacoes, &coletar_verificacoes/1},
+      # **Não é incremental, e por isso fica no fim.** A pergunta é "que branches existem
+      # agora", e responder exige o conjunto inteiro para saber o que deixou de existir.
+      {:branches, &coletar_branches/1}
+    ]
+  end
+
   defp coletar_caixas_de_tempo(ctx) do
-    resumo_quadros =
-      case GithubProjects.collect(ctx) do
-        {:ok, resumo} ->
-          resumo
-
-        {:error, reason} ->
-          Logger.warning("coleta de quadros falhou: #{inspect(reason)}")
-          %{projects: 0, sprints: 0, links: 0, sprints_error: reason}
-      end
-
-    Map.merge(resumo_quadros, coletar_comentarios(ctx))
+    with {:ok, resumo} <- GithubProjects.collect(ctx) do
+      {:ok, Map.take(resumo, [:projects, :sprints, :links, :without_projects])}
+    end
   end
 
-  # **Depois das issues**, pela mesma dependência de dado: o comentário aponta para a
-  # issue gravada. E lê as issues da BASE, não da memória da fase anterior (L47) —
-  # issue nova com comentário entra na mesma passada.
-  #
-  # Falhar aqui não derruba nada do que veio antes; sem checkpoint gravado, a próxima
-  # coleta percorre de novo (L29).
   defp coletar_comentarios(ctx) do
-    # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com
-    # log) — por isso não há ramo de erro aqui.
-    {:ok, resumo} = GithubIssueComments.collect(ctx)
-
-    Map.merge(
-      %{comments: resumo.comments, comment_issues: resumo.issues_visited},
-      coletar_mudancas(ctx)
-    )
+    with {:ok, resumo} <- GithubIssueComments.collect(ctx) do
+      {:ok, %{comments: resumo.comments, comment_issues: resumo.issues_visited}}
+    end
   end
 
-  # **Depois das issues**, e pela mesma dependência de dado: o vínculo entre solicitação
-  # e issue precisa da issue gravada. Lê da BASE, não da memória da fase anterior (L47).
-  #
-  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) —
-  # por isso não há ramo de erro aqui.
   defp coletar_mudancas(ctx) do
-    {:ok, resumo} = GithubChangeRequests.collect(ctx)
-
-    Map.merge(
-      %{
-        change_requests: resumo.change_requests,
-        commits: resumo.commits,
-        attended_issues: resumo.attended_issues
-      },
-      coletar_arquivos(ctx)
-    )
+    with {:ok, resumo} <- GithubChangeRequests.collect(ctx) do
+      {:ok,
+       %{
+         change_requests: resumo.change_requests,
+         commits: resumo.commits,
+         attended_issues: resumo.attended_issues
+       }}
+    end
   end
 
-  # **Depois dos commits**, e por dependência de dado: o arquivo pende de um commit
-  # gravado, e o pendente é lido da BASE (L47).
-  #
-  # `limit` e `wait_for_rate_limit: false` são a diferença desta fase para a coleta
-  # avulsa: são 5.000 requisições por hora e uma por commit, e uma sincronização que
-  # dorme esperando a janela reabrir pareceria travada — o Oban a mataria por tempo
-  # antes de ela terminar. A fatia por passada avança o checkpoint e a próxima
-  # sincronização continua de onde esta parou; a coleta avulsa, sem limite, percorre
-  # tudo esperando a janela.
+  # `limit`: são 5 000 requisições por hora e uma por commit. A fatia por passada avança o
+  # checkpoint e a próxima sincronização continua de onde esta parou. A espera pela janela
+  # é do gestor de cotas, e não desta etapa — ela devolve `{:snooze}` como as outras.
   @fatia_de_arquivos 500
 
   defp coletar_arquivos(ctx) do
-    {:ok, resumo} =
-      GithubCommitFiles.collect(ctx, limit: @fatia_de_arquivos, wait_for_rate_limit: false)
-
-    Map.merge(
-      %{commit_files: resumo.files, file_commits: resumo.commits_visited},
-      coletar_verificacoes(ctx)
-    )
-  end
-
-  # A verificação contínua não depende das fases anteriores — pende só do repositório
-  # observado. Fica por último porque é a mais cara por repositório (uma requisição por
-  # execução para trazer os jobs), e falhar aqui não pode custar o que já foi coletado.
-  #
-  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) —
-  # por isso não há ramo de erro aqui.
-  defp coletar_verificacoes(ctx) do
-    case GithubVerifications.collect(ctx) do
-      {:ok, resumo} ->
-        Map.merge(
-          %{
-            verifications: resumo.verifications,
-            verification_components: resumo.components,
-            monolithic_jobs: resumo.monolithic_jobs,
-            repositories_without_ci: resumo.without_ci,
-            # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que
-            # sobrou trabalho, e a diferença entre "volte depois" e "algo quebrou".
-            verifications_rate_limited: resumo.rate_limited
-          },
-          coletar_branches(ctx)
-        )
-
-      # A janela fechou no meio da etapa (ADR 0006, item 5). A chave viaja no mapa
-      # porque a cadeia inteira de fases devolve mapas — e `run/4` a lê antes de
-      # fechar o sync. Branches ficam para a retomada: não é incremental, e rodar
-      # agora gastaria a cota que acabou de acabar.
-      {:snooze, segundos} ->
-        %{snooze: segundos}
+    with {:ok, resumo} <- GithubCommitFiles.collect(ctx, limit: @fatia_de_arquivos) do
+      {:ok, %{commit_files: resumo.files, file_commits: resumo.commits_visited}}
     end
   end
 
-  # **Não é incremental, e por isso fica no fim.** A pergunta é "que branches existem
-  # agora", e responder exige o conjunto inteiro para saber o que deixou de existir — filtro
-  # por data traria só as novas, e branch apagada nunca seria marcada.
-  #
+  defp coletar_verificacoes(ctx) do
+    with {:ok, resumo} <- GithubVerifications.collect(ctx) do
+      {:ok,
+       %{
+         verifications: resumo.verifications,
+         verification_components: resumo.components,
+         monolithic_jobs: resumo.monolithic_jobs,
+         repositories_without_ci: resumo.without_ci,
+         # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
+         # trabalho, e a diferença entre "volte depois" e "algo quebrou".
+         verifications_rate_limited: resumo.rate_limited
+       }}
+    end
+  end
+
   # O custo é uma consulta por repositório, medido: 6, 63 e 47 branches nos repositórios do
   # piloto, todas numa página de 100.
-  #
-  # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) — por
-  # isso não há ramo de erro aqui.
   defp coletar_branches(ctx) do
-    {:ok, resumo} = GithubBranches.collect(ctx)
-
-    %{
-      branches: resumo.branches,
-      protected_branches: resumo.protected,
-      # "Não soubemos dizer" nunca vira "não protegida": sem escopo de administração o campo
-      # não vem da origem, e este contador é o que impede a leitura errada.
-      branch_protection_unknown: resumo.protection_unknown,
-      branches_gone: resumo.marked_unobserved
-    }
+    with {:ok, resumo} <- GithubBranches.collect(ctx) do
+      {:ok,
+       %{
+         branches: resumo.branches,
+         protected_branches: resumo.protected,
+         # "Não soubemos dizer" nunca vira "não protegida": sem escopo de administração o
+         # campo não vem da origem, e este contador é o que impede a leitura errada.
+         branch_protection_unknown: resumo.protection_unknown,
+         branches_gone: resumo.marked_unobserved
+       }}
+    end
   end
 
   # Falha transitória **não** encerra a sincronização. Marcá-la como falha levaria
@@ -368,6 +373,10 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # reabrir no instante exato às vezes ainda recusa.
   defp segundos_de_espera({:rate_limited, %DateTime{} = reset}, _tool, _token),
     do: max(DateTime.diff(reset, DateTime.utc_now(), :second) + 60, 60)
+
+  # O gestor recusou a GraphQL sem saber o reset (a origem recusa sem dizer quando volta).
+  defp segundos_de_espera({:rate_limited, nil}, tool, token),
+    do: Client.segundos_ate_reabrir(tool.instance_url, token)
 
   # GraphQL: o erro não traz o reset; `/rate_limit` traz, e não consome cota.
   defp segundos_de_espera(_graphql, tool, token),
@@ -492,7 +501,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       |> then(fn vars -> if cursor, do: Map.put(vars, :after, cursor), else: vars end)
 
     case query(ctx, query_name, variables) do
-      {:ok, %{data: data, rate_limit: rate_limit}} ->
+      {:ok, %{data: data}} ->
         {nodes, page_info} = extract(data, query_name)
         Enum.each(nodes, &handler.(ctx, &1))
 
@@ -506,17 +515,12 @@ defmodule TheBand.Jobs.SyncGitHubEO do
           {:sync_progress, ctx.sync.id, entity_type, length(nodes)}
         )
 
-        cond do
-          is_nil(next_cursor) ->
-            :ok
-
-          match?({:pause_until, _}, Client.pause_needed?(rate_limit)) ->
-            {:pause_until, reset_at} = Client.pause_needed?(rate_limit)
-            {:snooze, max(DateTime.diff(reset_at, DateTime.utc_now()), 1)}
-
-          true ->
-            do_paginate(ctx, entity_type, query_name, handler, next_cursor, opts)
-        end
+        # A pausa preventiva saiu daqui: é o gestor de cotas que decide, ANTES de cada
+        # requisição, na porta única do cliente (ADR 0007). Quando ele recusa, `query/3`
+        # devolve `{:error, {:rate_limited, reset}}` e o job hiberna pelo caminho comum.
+        if is_nil(next_cursor),
+          do: :ok,
+          else: do_paginate(ctx, entity_type, query_name, handler, next_cursor, opts)
 
       other ->
         normalize_error(other)
@@ -622,7 +626,9 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # ------------------------------------------------------------------ auxiliares
 
   defp query(ctx, name, variables) do
-    Client.graphql(ctx.tool.instance_url, ctx.token, read_query(name), variables)
+    Client.graphql(ctx.tool.instance_url, ctx.token, read_query(name), variables,
+      cota: ctx[:cota]
+    )
   end
 
   # O caminho é montado a partir de literal do próprio código — `"issues"`, `"repositories"` —,

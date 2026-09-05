@@ -33,11 +33,11 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
   setup :verify_on_exit!
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.Cota
   alias TheBand.Ingestion.GithubVerifications
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Repo
   alias TheBand.Sources.ConnectedTool
-  alias TheBand.Sources.ToolCredential
   alias TheBand.Verification.Commands
 
   setup do
@@ -60,7 +60,15 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
       |> Repo.insert()
 
     %{
-      ctx: %{tenant: tenant, sync: sync, tool: tool, token: "token-de-teste"},
+      ctx: %{
+        tenant: tenant,
+        sync: sync,
+        tool: tool,
+        token: "token-de-teste",
+        # A identidade da cota (ADR 0007). Sem ela o cliente não passa pelo gestor, e a
+        # pausa preventiva — que é o que dois destes testes provam — não existiria.
+        cota: Cota.chave(tool, %{id: tool.id, owner_login: nil})
+      },
       repo_id: cenario.observed_repository_id
     }
   end
@@ -93,11 +101,16 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
       {:ok,
        %{
          status: 403,
-         headers: [{"x-ratelimit-remaining", "0"}, {"x-ratelimit-reset", "1788580800"}],
+         headers: [{"x-ratelimit-remaining", "0"}, {"x-ratelimit-reset", reset_futuro()}],
          body: %{}
        }}
     end)
   end
+
+  # O reset SEMPRE no futuro. O primeiro esboço usava um epoch fixo (2026-09-04 12:00), que
+  # ficou no passado no dia seguinte — e o gestor de cotas, corretamente, lia "a janela já
+  # reabriu" e concedia tudo. Um teste de pausa que passa a depender do calendário não é teste.
+  defp reset_futuro, do: Integer.to_string(System.system_time(:second) + 1800)
 
   # 500 é falha da origem, e não cota: `x-ratelimit-remaining` nem aparece.
   defp responder_quebrado do
@@ -133,7 +146,7 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
         {:ok,
          %{
            status: 403,
-           headers: [{"x-ratelimit-remaining", "0"}, {"x-ratelimit-reset", "1788580800"}],
+           headers: [{"x-ratelimit-remaining", "0"}, {"x-ratelimit-reset", reset_futuro()}],
            body: %{}
          }}
       end)
@@ -252,7 +265,7 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
       {:ok, respostas_403} = Agent.start_link(fn -> 0 end)
 
       stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
-        cabecalhos = [{"x-ratelimit-remaining", "3"}, {"x-ratelimit-reset", "1788580800"}]
+        cabecalhos = [{"x-ratelimit-remaining", "3"}, {"x-ratelimit-reset", reset_futuro()}]
 
         cond do
           String.ends_with?(url, "/jobs") ->
@@ -283,8 +296,11 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
         end
       end)
 
-      assert {:snooze, _} = GithubVerifications.collect(ctx.ctx), """
-      A etapa viu `remaining: 3` numa resposta 200 e seguiu pedindo. Com concorrência 5, as
+      resultado = GithubVerifications.collect(ctx.ctx)
+
+      assert {:snooze, _} = resultado, """
+      A etapa viu `remaining: 3` numa resposta 200 e seguiu pedindo — devolveu
+      #{inspect(resultado)} com o gestor em #{inspect(Cota.estado(ctx.ctx.cota))}. Com concorrência 5, as
       tarefas em voo gastam a cota que sobrou, e a próxima requisição é um 403 — que conta e
       não traz nada. A GraphQL pausa preventivamente há semanas; a REST não pausava.
       """

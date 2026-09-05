@@ -91,23 +91,8 @@ defmodule TheBand.Ingestion.GithubVerifications do
   # mesmos repositórios com concorrência 1 e com 5, e trocar o atributo entre as rodadas
   # obrigaria a recompilar, o que mata a coleta em curso. O padrão continua sendo 5, e o
   # motivo do teto está na ADR: o pool do Ecto tem 10 conexões.
-  # PAUSA PREVENTIVA no balde REST — o análogo do `pause_needed?` da GraphQL, que esta
-  # etapa nunca teve. A execução atual está gravada inteira; o que se decide é se vale
-  # pedir a PRÓXIMA. Com `remaining` abaixo da margem, não vale: as tarefas em voo ainda
-  # vão gastar até `concorrencia` requisições, e a margem é para elas.
-  defp pausar_se_a_janela_encurtou(%{remaining: r, reset: %DateTime{} = reset}, resultado)
-       when is_integer(r) do
-    if r < margem_da_janela(), do: {:sem_janela, reset}, else: resultado
-  end
-
-  defp pausar_se_a_janela_encurtou(_janela, resultado), do: resultado
-
   defp concorrencia, do: Application.get_env(:the_band, :concorrencia_da_coleta, 5)
 
-  # A margem é duas vezes a concorrência — a mesma regra do `pause_needed?` da GraphQL
-  # (`remaining < cost * 2`): as tarefas em voo ainda vão gastar até `concorrencia`
-  # requisições depois da decisão, e a segunda metade é a folga.
-  defp margem_da_janela, do: concorrencia() * 2
   @timeout_por_repositorio :timer.minutes(10)
 
   # PASSO 1 do algoritmo (ADR 0006, item 5): PARAR no primeiro rate limit.
@@ -300,8 +285,10 @@ defmodule TheBand.Ingestion.GithubVerifications do
   # `process_kinds` sai dos componentes dos jobs, e gravar a execução primeiro obrigaria a
   # voltar para atualizá-la — dois caminhos de escrita para o mesmo fato.
   defp gravar_run(ctx, repo, run) do
-    case Client.run_jobs(ctx.tool.instance_url, ctx.token, repo.qualified_name, run["id"]) do
-      {:ok, %{jobs: jobs, janela: janela}} ->
+    case Client.run_jobs(ctx.tool.instance_url, ctx.token, repo.qualified_name, run["id"],
+           cota: ctx[:cota]
+         ) do
+      {:ok, %{jobs: jobs}} ->
         classificados =
           Enum.map(jobs, &{&1, Classification.componentes(&1["name"], etapas_de(&1))})
 
@@ -313,7 +300,7 @@ defmodule TheBand.Ingestion.GithubVerifications do
             somar(acc, gravar_job(ctx, verificacao, par, tipos))
           end)
 
-        pausar_se_a_janela_encurtou(janela, resultado)
+        resultado
 
       # A janela fechou AQUI. Antes: marcava `sem_jobs` e seguia para a próxima execução,
       # que falhava igual — 586 vezes numa coleta. Agora para, e a execução NÃO é gravada
@@ -408,7 +395,12 @@ defmodule TheBand.Ingestion.GithubVerifications do
   defp paginar(ctx, repo, desde, pagina \\ 1, acumulado \\ []) do
     opcoes = [page: pagina, per_page: @por_pagina, since: desde]
 
-    case Client.workflow_runs(ctx.tool.instance_url, ctx.token, repo.qualified_name, opcoes) do
+    case Client.workflow_runs(
+           ctx.tool.instance_url,
+           ctx.token,
+           repo.qualified_name,
+           [{:cota, ctx[:cota]} | opcoes]
+         ) do
       {:ok, %{runs: []}} ->
         {:ok, acumulado}
 

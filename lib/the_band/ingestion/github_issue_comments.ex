@@ -24,6 +24,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Communication.Commands
+  alias TheBand.Ingestion.Janela
   alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -44,17 +45,23 @@ defmodule TheBand.Ingestion.GithubIssueComments do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = coletar_em_paralelo(ctx, repositorios)
+    case coletar_em_paralelo(ctx, repositorios) do
+      # A janela fechou no meio (ADR 0006 §5; ADR 0007): o que já foi gravado fica, o que
+      # falta é da retomada. Devolver um resumo aqui faria o job fechar o sync como completo.
+      {:sem_janela, reset} ->
+        {:snooze, Janela.segundos_ate(reset)}
 
-    {:ok,
-     %{
-       repositories: length(repositorios),
-       comments: Enum.sum(Enum.map(resultados, & &1.coletados)),
-       issues_visited: Enum.sum(Enum.map(resultados, & &1.issues)),
-       marked_unobserved: Enum.sum(Enum.map(resultados, & &1.marcados)),
-       truncated: Enum.sum(Enum.map(resultados, & &1.truncadas)),
-       unreachable: Enum.count(resultados, &(&1.alcancado == false))
-     }}
+      resultados ->
+        {:ok,
+         %{
+           repositories: length(repositorios),
+           comments: Enum.sum(Enum.map(resultados, & &1.coletados)),
+           issues_visited: Enum.sum(Enum.map(resultados, & &1.issues)),
+           marked_unobserved: Enum.sum(Enum.map(resultados, & &1.marcados)),
+           truncated: Enum.sum(Enum.map(resultados, & &1.truncadas)),
+           unreachable: Enum.count(resultados, &(&1.alcancado == false))
+         }}
+    end
   end
 
   # **Filtra pela FERRAMENTA, não só pelo tenant** — issue #446.
@@ -85,7 +92,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
       timeout: @timeout_por_repositorio,
       on_timeout: :kill_task
     )
-    |> Enum.map(&resultado_da_tarefa/1)
+    |> Janela.ate_fechar(&resultado_da_tarefa/1)
   end
 
   defp resultado_da_tarefa({:ok, resultado}), do: resultado
@@ -141,6 +148,19 @@ defmodule TheBand.Ingestion.GithubIssueComments do
         marcar_percorrido(repo.id, inicio, repo.query_versions)
 
         Map.merge(%{alcancado: true, issues: length(issues)}, resultado)
+
+      # O gestor de cotas recusou — ou a origem recusou por cota. Não é o repositório: é a
+      # hora. Vira parada da etapa, e não `unreachable`.
+      {:error, {:rate_limited, reset}} ->
+        %{
+          alcancado: false,
+          sem_janela: true,
+          reset: reset,
+          issues: 0,
+          coletados: 0,
+          marcados: 0,
+          truncadas: 0
+        }
 
       {:error, reason} ->
         # Falha transitória não marca estado permanente (L29): sem checkpoint, a
@@ -247,7 +267,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   defp paginar(ctx, variables, cursor \\ nil, acumulado \\ []) do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(), vars, cota: ctx[:cota]) do
       # O ENVELOPE, nunca `{:ok, data}` direto — L26: casar largo devolvia lista vazia
       # sem erro, e o job completava com zero coletados.
       {:ok, %{data: data}} ->

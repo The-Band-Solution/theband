@@ -2,7 +2,8 @@
 
 ## Status
 
-Proposta — 2026-09-05
+Aceita — 2026-09-05 ("implemente"). Emendada no mesmo dia pela implementação, nos dois
+pontos marcados **Emenda** abaixo.
 
 Depende de: [ADR 0006](0006-coleta-paralela.md) — hibernar sem dormir é o que a espera do gestor aciona
 Relacionada: [ADR 0005](0005-telemetria-da-jornada.md) — a J2 observa a espera que este ADR decide
@@ -127,9 +128,17 @@ Cota.estado(chave)                   # para a tela e para os testes
 **A regra de concessão:**
 
 ```
-concede se  remaining − em_voo − custo  ≥  margem
-margem = concorrência total em voo permitida (teto global, proposta: 10)
+concede se  remaining  ≥  custo × (em_voo + 1 + teto)
+teto = concorrência total em voo permitida (global, 10)
 ```
+
+> **Emenda (2026-09-05, implementação).** A proposta original era
+> `remaining − em_voo − custo ≥ margem`, em requisições. Na GraphQL a unidade é **ponto**, e
+> uma consulta do conector custa 100: com 150 pontos sobrando a regra original concedia, e a
+> próxima página consumiria dois terços do que restava. A regra passou a contar em unidades
+> do balde — na REST (custo 1) ela se reduz à original — e o gestor usa o **maior** entre o
+> custo estimado pelo cliente e o último custo visto na identidade, porque o custo de uma
+> consulta só se conhece depois dela.
 
 `em_voo` já está na conta — por isso a margem é a concorrência, e não `2 × concorrência`
 como hoje. Quem não é concedido recebe `{:espera, segundos_até_reset + 60}` e o
@@ -142,10 +151,15 @@ concorrentes chegam fora de ordem) e decrementa `em_voo`. Se o usuário gastou c
 The Band, o próximo cabeçalho corrige. Contar sozinho — como faria um token bucket local
 (`Hammer`, `ExRated`) — erra exatamente nesse caso.
 
-**Reset.** Quando `now ≥ reset`, o gestor não presume 5 000: faz **uma** chamada a
-`GET /rate_limit` (grátis na primária) e recarrega os dois baldes. É também o que faz ao
-nascer, se tiver um token à mão; se não tiver, começa em `remaining: nil` e concede até a
-primeira leitura.
+**Reset.** Quando `now ≥ reset`, o saldo volta a **desconhecido** e o gestor concede; a
+primeira resposta da janela nova traz o saldo real e corrige.
+
+> **Emenda (2026-09-05, implementação).** A proposta era uma chamada a `GET /rate_limit`
+> no reset e ao nascer. Ela exigiria o token **dentro** do processo — e a mesma seção
+> decide que o processo não guarda segredo. O custo de não fazê-la é, no pior caso, até
+> `teto` requisições concedidas no escuro que voltam 403 se o dono gastou a cota fora do The
+> Band; o 403 é tratado como hoje e a leitura seguinte corrige. `/rate_limit` continua sendo
+> o que o job consulta para saber quanto esperar quando a GraphQL recusa sem dizer o reset.
 
 **Cota secundária.** O teto de `em_voo` (10) fica abaixo dos 100 concorrentes. Para os 900
 pontos/min REST: 10 em voo com latência de ~300 ms produzem ~33 req/s no pior caso, acima do

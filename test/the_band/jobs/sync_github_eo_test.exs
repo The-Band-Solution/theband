@@ -9,7 +9,6 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
   use TheBand.DataCase, async: false
 
-  import Ecto.Query
   import Mox
 
   alias TheBand.Ingestion
@@ -43,6 +42,7 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
         connected_tool_id: tool.id,
         label: "teste",
         secret: "token-de-teste",
+        owner_login: "dono-#{System.unique_integer([:positive])}",
         last_four: "este",
         validated_at: DateTime.utc_now(:second)
       })
@@ -459,7 +459,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       tenant: tenant,
       sync: sync
     } do
-      # Janela apertada: remaining < cost * 2 na primeira página que tem próxima.
+      # Janela apertada na primeira página que tem próxima. Quem decide é o gestor de cotas
+      # (ADR 0007): a consulta custou 100 e sobram 150 — a próxima não cabe com folga.
       apertado = %{"cost" => 100, "remaining" => 150, "resetAt" => reset_em(90)}
 
       responder(fn query, _vars ->
