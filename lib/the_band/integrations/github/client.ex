@@ -95,8 +95,8 @@ defmodule TheBand.Integrations.GitHub.Client do
 
     url = api_base(instance_url) <> "/repos/#{repositorio}/actions/runs?" <> consulta
 
-    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
-      {:ok, %{total: body["total_count"] || 0, runs: body["workflow_runs"] || []}}
+    with {:ok, body, janela} <- url |> HTTP.impl().get(token) |> resposta_rest_com_janela() do
+      {:ok, %{total: body["total_count"] || 0, runs: body["workflow_runs"] || [], janela: janela}}
     end
   end
 
@@ -107,14 +107,14 @@ defmodule TheBand.Integrations.GitHub.Client do
   Trazer todas faria o mesmo job aparecer duas vezes e a contagem de componentes mentir.
   """
   @spec run_jobs(String.t(), String.t(), String.t(), integer()) ::
-          {:ok, %{total: integer(), jobs: [map()]}} | {:error, term()}
+          {:ok, %{total: integer(), jobs: [map()], janela: map()}} | {:error, term()}
   def run_jobs(instance_url, token, repositorio, run_id) do
     url =
       api_base(instance_url) <>
         "/repos/#{repositorio}/actions/runs/#{run_id}/jobs?per_page=100&filter=latest"
 
-    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
-      {:ok, %{total: body["total_count"] || 0, jobs: body["jobs"] || []}}
+    with {:ok, body, janela} <- url |> HTTP.impl().get(token) |> resposta_rest_com_janela() do
+      {:ok, %{total: body["total_count"] || 0, jobs: body["jobs"] || [], janela: janela}}
     end
   end
 
@@ -141,6 +141,42 @@ defmodule TheBand.Integrations.GitHub.Client do
   defp resposta_rest({:ok, %{status: status}}), do: {:error, {:unexpected_status, status}}
   defp resposta_rest({:error, %{reason: reason}}), do: {:error, {:transport, reason}}
   defp resposta_rest({:error, reason}), do: {:error, {:transport, reason}}
+
+  # A JANELA vem junto do corpo — achado da avaliação técnica de 2026-09-05.
+  #
+  # Toda resposta REST traz `x-ratelimit-remaining` e `x-ratelimit-reset`, e o código só os
+  # lia em 403/429 — na resposta 200 eram descartados. A consequência: a etapa mais cara da
+  # coleta (uma requisição por execução, balde `core`) NÃO tinha pausa preventiva, enquanto
+  # a GraphQL tem (`pause_needed?` sobre `rateLimit` do corpo). Ela só descobria a cota
+  # depois de bater — e bater custa uma requisição que não traz nada.
+  #
+  # `remaining: nil` quando o cabeçalho não veio (duplos de teste, proxies): quem lê trata
+  # como "não sei", e não pausa por não saber.
+  defp resposta_rest_com_janela({:ok, %{status: 200, body: body} = resposta}) do
+    headers = Map.get(resposta, :headers, [])
+    {:ok, body, %{remaining: restante_de(headers), reset: reset_ou_nil(headers)}}
+  end
+
+  defp resposta_rest_com_janela(outra), do: resposta_rest(outra)
+
+  defp restante_de(headers) do
+    case cabecalho(headers, "x-ratelimit-remaining") do
+      nil ->
+        nil
+
+      valor ->
+        valor
+        |> Integer.parse()
+        |> then(fn
+          {n, _} -> n
+          :error -> nil
+        end)
+    end
+  end
+
+  defp reset_ou_nil(headers) do
+    if cabecalho(headers, "x-ratelimit-reset"), do: reset_de(headers), else: nil
+  end
 
   @doc """
   Executa uma consulta GraphQL.

@@ -34,9 +34,11 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
 
   alias TheBand.Ingestion
   alias TheBand.Ingestion.GithubVerifications
+  alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Repo
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ToolCredential
+  alias TheBand.Verification.Commands
 
   setup do
     tenant = tenant_fixture()
@@ -63,6 +65,26 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
     }
   end
 
+  # Um repositório observado a mais, para a etapa ter vários por onde parar.
+  defp observar_repositorio(ctx, nome) do
+    org = organization_fixture(ctx.ctx.tenant, "org-#{nome}")
+
+    {:ok, fonte} =
+      CMPO.upsert_source_repository_from_source(ctx.ctx.tenant, %{
+        organization_id: org.id,
+        name: nome,
+        qualified_name: "acme/#{nome}",
+        url: "https://github.com/acme/#{nome}",
+        default_branch: "main",
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "R_#{nome}"
+      })
+
+    {:ok, observado} = CMPO.observe_repository(ctx.ctx.tenant, ctx.ctx.tool.id, fonte.id)
+    observado
+  end
+
   # A janela esgotada, como a ORIGEM a entrega: 403 com `x-ratelimit-remaining: 0`. É o
   # cliente que traduz isso para `{:rate_limited, _}`, e um duplo que devolvesse a tupla
   # pronta pularia justamente a tradução que decide.
@@ -85,28 +107,52 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
   end
 
   describe "a janela esgotada é contada como janela, e não como repositório quebrado" do
-    test "rate limit vira `rate_limited`, e NÃO `unreachable`", ctx do
+    test "a janela fechada devolve a ESPERA, e não um resumo parcial", ctx do
       responder_com_janela_fechada()
 
-      {:ok, resumo} = GithubVerifications.collect(ctx.ctx)
-
-      assert resumo.rate_limited > 0, """
-      A janela esgotada não foi contada como janela. O estado `:sem_janela` existe no
-      contador e precisa ser PRODUZIDO por alguém — antes desta correção, nada o produzia,
-      e 98 repositórios saudáveis apareceram como inalcançáveis na coleta real.
+      assert {:snooze, segundos} = GithubVerifications.collect(ctx.ctx), """
+      A etapa devolveu um resumo com a janela fechada. O job leria como "acabou", fecharia
+      o sync em `completed`, e a tela mostraria os repositórios coletados como se fossem
+      todos — foi o que aconteceu em 2026-09-05 (ADR 0006, item 5).
       """
 
-      assert resumo.unreachable == 0, """
-      O repositório foi marcado como inalcançável por causa da cota. "Volte daqui a
-      pouco" e "algo está errado com este repositório" levam a ações opostas, e quem lê
-      `unreachable` vai investigar um repositório que não tem nada.
+      assert segundos >= 60, "a espera precisa da folga de um minuto sobre o reset"
+    end
+
+    test "PARA no primeiro rate limit, em vez de bater em todos os repositórios", ctx do
+      # Medido em 2026-09-05: 125 requisições devolveram 403 em cinco segundos, cada uma
+      # contando contra a cota secundária, nenhuma trazendo nada. Com `reduce_while`, as
+      # tarefas em voo terminam e as não iniciadas nunca começam.
+      for n <- 1..20, do: observar_repositorio(ctx, "repo-#{n}")
+
+      {:ok, contador} = Agent.start_link(fn -> 0 end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        Agent.update(contador, &(&1 + 1))
+
+        {:ok,
+         %{
+           status: 403,
+           headers: [{"x-ratelimit-remaining", "0"}, {"x-ratelimit-reset", "1788580800"}],
+           body: %{}
+         }}
+      end)
+
+      {:snooze, _} = GithubVerifications.collect(ctx.ctx)
+      chamadas = Agent.get(contador, & &1)
+
+      # 21 repositórios, concorrência 5: no pior caso as 5 em voo mais o lote que o stream
+      # já tinha pedido. Muito menos que 21 — e a diferença é o que a cota agradece.
+      assert chamadas < 21, """
+      A etapa fez #{chamadas} requisições depois de a janela fechar — ela continuou
+      batendo em repositório por repositório. Cada uma conta contra a cota secundária.
       """
     end
 
     test "o checkpoint NÃO avança quando a janela fecha", ctx do
       responder_com_janela_fechada()
 
-      {:ok, _} = GithubVerifications.collect(ctx.ctx)
+      {:snooze, _} = GithubVerifications.collect(ctx.ctx)
 
       marcado =
         Repo.one(
@@ -120,6 +166,131 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
       filtra por data: marcar aqui faria a próxima coleta pular tudo o que a janela
       impediu de ver, e a lacuna nunca seria preenchida.
       """
+    end
+
+    test "execução COMPLETA que já tem jobs não gera nova requisição de jobs", ctx do
+      # PASSO 4 da ADR 0006, item 5. A retomada refazia as mesmas requisições de jobs de
+      # execuções já gravadas — 3 316 delas — e caía no mesmo buraco de cota, no mesmo
+      # lugar, para sempre.
+      {:ok, ja_gravada} =
+        Commands.record_verification(ctx.ctx.tenant, %{
+          observed_repository_id: ctx.repo_id,
+          workflow_name: "CI",
+          run_status: "completed",
+          conclusion: "success",
+          head_sha: "abc111",
+          external_id: "111",
+          source_system: "github",
+          source_instance: "https://github.com"
+        })
+
+      {:ok, _} =
+        Commands.record_component(ctx.ctx.tenant, %{
+          collected_verification_id: ja_gravada.id,
+          job_name: "build",
+          external_id: "job-111"
+        })
+
+      {:ok, urls} = Agent.start_link(fn -> [] end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        Agent.update(urls, &[url | &1])
+
+        cond do
+          String.contains?(url, "/actions/runs/") and String.ends_with?(url, "/jobs") ->
+            {:ok, %{status: 200, headers: [], body: %{"jobs" => []}}}
+
+          String.contains?(url, "/actions/runs") ->
+            {:ok,
+             %{
+               status: 200,
+               headers: [],
+               body: %{
+                 "workflow_runs" => [
+                   %{
+                     "id" => 111,
+                     "status" => "completed",
+                     "conclusion" => "success",
+                     "name" => "CI",
+                     "head_sha" => "abc111"
+                   },
+                   %{
+                     "id" => 222,
+                     "status" => "completed",
+                     "conclusion" => "success",
+                     "name" => "CI",
+                     "head_sha" => "abc222"
+                   }
+                 ]
+               }
+             }}
+
+          true ->
+            {:ok, %{status: 200, headers: [], body: %{}}}
+        end
+      end)
+
+      {:ok, _} = GithubVerifications.collect(ctx.ctx)
+      pedidas = Agent.get(urls, & &1)
+
+      refute Enum.any?(pedidas, &String.contains?(&1, "/runs/111/jobs")), """
+      A retomada pediu de novo os jobs da execução 111, que já estava COMPLETA e com jobs
+      no banco. É cota gasta para gravar o que já está gravado — e é por isso que a coleta
+      caía no mesmo rate limit toda vez.
+      """
+
+      assert Enum.any?(pedidas, &String.contains?(&1, "/runs/222/jobs")), """
+      A execução 222 é nova e precisa dos jobs. Pular TODAS as requisições de jobs seria
+      trocar o defeito por outro.
+      """
+    end
+
+    test "PARA ANTES de bater: remaining baixo numa resposta 200 já é espera", ctx do
+      # Achado da avaliação técnica de 2026-09-05: a REST descartava os cabeçalhos de cota
+      # nas respostas 200, e a etapa mais cara não tinha pausa preventiva — só descobria a
+      # cota depois de bater, e bater custa uma requisição que não traz nada.
+      {:ok, respostas_403} = Agent.start_link(fn -> 0 end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        cabecalhos = [{"x-ratelimit-remaining", "3"}, {"x-ratelimit-reset", "1788580800"}]
+
+        cond do
+          String.ends_with?(url, "/jobs") ->
+            {:ok, %{status: 200, headers: cabecalhos, body: %{"jobs" => []}}}
+
+          String.contains?(url, "/actions/runs") ->
+            {:ok,
+             %{
+               status: 200,
+               headers: cabecalhos,
+               body: %{
+                 "workflow_runs" =>
+                   for n <- 1..8 do
+                     %{
+                       "id" => n,
+                       "status" => "completed",
+                       "conclusion" => "success",
+                       "name" => "CI",
+                       "head_sha" => "sha#{n}"
+                     }
+                   end
+               }
+             }}
+
+          true ->
+            Agent.update(respostas_403, &(&1 + 1))
+            {:ok, %{status: 403, headers: cabecalhos, body: %{}}}
+        end
+      end)
+
+      assert {:snooze, _} = GithubVerifications.collect(ctx.ctx), """
+      A etapa viu `remaining: 3` numa resposta 200 e seguiu pedindo. Com concorrência 5, as
+      tarefas em voo gastam a cota que sobrou, e a próxima requisição é um 403 — que conta e
+      não traz nada. A GraphQL pausa preventivamente há semanas; a REST não pausava.
+      """
+
+      assert Agent.get(respostas_403, & &1) == 0,
+             "a pausa preventiva existe para nunca chegar ao 403"
     end
 
     test "erro de verdade continua sendo `unreachable`", ctx do

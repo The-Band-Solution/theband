@@ -127,15 +127,27 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         # ela, e é a primeira fase que a grava.
         trabalho = coletar_trabalho(ctx)
 
-        sync
-        |> Ingestion.reload()
-        |> Ingestion.finish(:completed, memberships_pending_role: pending)
+        # A janela fechou numa etapa do trabalho (ADR 0006, item 5). O sync NÃO fecha —
+        # ele não terminou, está esperando. Marcá-lo `completed` diria que a coleta
+        # trouxe tudo, e a tela mostraria 23 repositórios com verificação como se fossem todos os
+        # que têm CI. Foi exatamente o que aconteceu em 2026-09-05.
+        case trabalho do
+          %{snooze: segundos} ->
+            Logger.info("coleta em espera pela janela: continua em #{segundos}s")
+            Ingestion.broadcast(tenant.id, {:sync_paused, sync.id, segundos})
+            {:snooze, segundos}
 
-        Sources.touch_last_sync(tool)
-        Sources.clear_needs_attention(tool)
-        Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
-        Logger.info("trabalho coletado: #{inspect(trabalho)}")
-        :ok
+          _ ->
+            sync
+            |> Ingestion.reload()
+            |> Ingestion.finish(:completed, memberships_pending_role: pending)
+
+            Sources.touch_last_sync(tool)
+            Sources.clear_needs_attention(tool)
+            Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+            Logger.info("trabalho coletado: #{inspect(trabalho)}")
+            :ok
+        end
 
       {:snooze, seconds} ->
         Ingestion.broadcast(tenant.id, {:sync_paused, sync.id, seconds})
@@ -255,20 +267,28 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # A fase absorve falha por repositório (vira `unreachable` no resumo dela, com log) —
   # por isso não há ramo de erro aqui.
   defp coletar_verificacoes(ctx) do
-    {:ok, resumo} = GithubVerifications.collect(ctx)
+    case GithubVerifications.collect(ctx) do
+      {:ok, resumo} ->
+        Map.merge(
+          %{
+            verifications: resumo.verifications,
+            verification_components: resumo.components,
+            monolithic_jobs: resumo.monolithic_jobs,
+            repositories_without_ci: resumo.without_ci,
+            # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que
+            # sobrou trabalho, e a diferença entre "volte depois" e "algo quebrou".
+            verifications_rate_limited: resumo.rate_limited
+          },
+          coletar_branches(ctx)
+        )
 
-    Map.merge(
-      %{
-        verifications: resumo.verifications,
-        verification_components: resumo.components,
-        monolithic_jobs: resumo.monolithic_jobs,
-        repositories_without_ci: resumo.without_ci,
-        # Nunca zero disfarçando "acabou": é o que diz à próxima sincronização que sobrou
-        # trabalho, e a diferença entre "volte depois" e "algo quebrou".
-        verifications_rate_limited: resumo.rate_limited
-      },
-      coletar_branches(ctx)
-    )
+      # A janela fechou no meio da etapa (ADR 0006, item 5). A chave viaja no mapa
+      # porque a cadeia inteira de fases devolve mapas — e `run/4` a lê antes de
+      # fechar o sync. Branches ficam para a retomada: não é incremental, e rodar
+      # agora gastaria a cota que acabou de acabar.
+      {:snooze, segundos} ->
+        %{snooze: segundos}
+    end
   end
 
   # **Não é incremental, e por isso fica no fim.** A pergunta é "que branches existem
@@ -309,7 +329,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       # `{:snooze, segundos}` devolve o job à fila SEM consumir tentativa, que é o que o
       # moduledoc deste módulo promete desde o começo (FR-016).
       Client.rate_limit?(reason) ->
-        adiar_ate_reabrir(tenant, sync, tool, token)
+        adiar_ate_reabrir(tenant, sync, tool, token, reason)
 
       Client.transient?(reason) ->
         Logger.warning("falha transitória na coleta, será retentada: #{inspect(reason)}")
@@ -330,14 +350,28 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # O sync fica `running` de propósito: ele não falhou, está esperando a janela. Marcar
   # `failed` aqui levaria alguém a investigar uma coleta que vai continuar sozinha — e
   # liberaria o índice que impede duas coletas simultâneas da mesma ferramenta.
-  defp adiar_ate_reabrir(tenant, sync, tool, token) do
-    segundos = Client.segundos_ate_reabrir(tool.instance_url, token)
+  # O RESET vem do próprio erro quando ele o traz — achado da avaliação técnica de
+  # 2026-09-05. A REST e a GraphQL têm baldes SEPARADOS (`core` e `graphql`), com reset
+  # independente. `segundos_ate_reabrir/3` lê o do GraphQL; um `{:rate_limited, reset}` da
+  # REST já carrega o reset do balde `core` no cabeçalho, e consultar o outro faria o job
+  # dormir a hora do balde errado.
+  defp adiar_ate_reabrir(tenant, sync, tool, token, reason) do
+    segundos = segundos_de_espera(reason, tool, token)
 
     Logger.warning("limite de taxa atingido; a coleta continua em #{segundos}s")
     Ingestion.broadcast(tenant.id, {:sync_paused, sync.id, segundos})
 
     {:snooze, segundos}
   end
+
+  # REST: o cabeçalho já disse quando o balde `core` reabre — um minuto de folga, porque
+  # reabrir no instante exato às vezes ainda recusa.
+  defp segundos_de_espera({:rate_limited, %DateTime{} = reset}, _tool, _token),
+    do: max(DateTime.diff(reset, DateTime.utc_now(), :second) + 60, 60)
+
+  # GraphQL: o erro não traz o reset; `/rate_limit` traz, e não consome cota.
+  defp segundos_de_espera(_graphql, tool, token),
+    do: Client.segundos_ate_reabrir(tool.instance_url, token)
 
   # ------------------------------------------------------------------ coleta
 
