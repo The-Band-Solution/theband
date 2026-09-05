@@ -83,7 +83,7 @@ Três estados diferentes, três lugares, e o motivo de cada um:
 
 Só a terceira linha muda de lugar quando houver um segundo nó — ver Consequências.
 
-Cinco partes, na ordem em que se entregam. Cada uma tem um consumidor visível; nenhuma é
+Seis partes, na ordem em que se entregam. Cada uma tem um consumidor visível; nenhuma é
 infraestrutura sozinha.
 
 ### 1. A identidade da cota é o usuário do GitHub, e ela passa a ser gravada
@@ -215,6 +215,54 @@ Alimentado por `Cota.estado/1` e por um `{:cota, chave, estado}` no PubSub a cad
 `observar/3`. O contador regressivo atual vira uma linha desse painel, com o motivo
 ("REST esgotada, reabre em 12 min") em vez de um número solto.
 
+### 6. As etapas são um grafo, e a próxima é a que tem dependência pronta e balde aberto
+
+Hoje `coletar_trabalho/1` é uma lista fixa de sete etapas, e a espera de qualquer uma fecha
+o job inteiro. Mas os dois baldes são independentes: quando a GraphQL esgota, a REST está
+cheia — e as etapas REST não precisam da GraphQL para andar.
+
+Cada etapa passa a declarar **balde** e **dependências** (conferido no código em
+2026-09-05):
+
+| etapa | balde | depende de |
+|---|---|---|
+| EO — organização, membros, equipes | GraphQL | — |
+| 1 repositórios e issues | GraphQL | EO |
+| 2 projetos e quadros | GraphQL | 1 |
+| 3 comentários de issues | GraphQL | 1 (as issues precisam existir) |
+| 4 solicitações de mudança | GraphQL | 1 |
+| 5 arquivos de commit | **REST** | 4 (os commits são gravados pela etapa 4) |
+| 6 verificações | **REST** | 1 (só precisa dos repositórios observados) |
+| 7 branches | GraphQL | 1 |
+
+**A regra de escolha**, no lugar da lista: a próxima etapa é a que tem **todas as
+dependências `done`** no checkpoint deste sync **e cujo balde tem janela**
+(`Cota.estado/1` acima da margem). Se nenhuma etapa pronta tem janela, o job hiberna até o
+**menor** `reset` entre os baldes que desbloqueiam alguma coisa — e não até o reset do
+balde que acabou de fechar.
+
+O que isso muda, com a cota GraphQL esgotada logo depois da etapa 1 (o caso medido em
+2026-09-05):
+
+| | hoje | com a parte 6 |
+|---|---|---|
+| a GraphQL fecha após a etapa 1 | job hiberna até o reset da GraphQL; REST intocada | etapa 6 (verificações, REST) roda enquanto a GraphQL reabre |
+| a REST fecha no meio da etapa 6 | job hiberna | etapas 2, 3, 4 e 7 (GraphQL) rodam; a 6 retoma do cursor quando a REST reabrir |
+| ambas fechadas | hiberna | hiberna — até o menor reset |
+
+Uma hora inteira de um balde deixa de ser desperdiçada enquanto o outro reabre.
+
+**O que NÃO muda:** o resultado. Ordem diferente, mesmos dados — as dependências garantem
+que nenhuma etapa lê o que ainda não foi gravado. É por isso que elas são **declaradas**
+no código e conferidas por teste, e não deduzidas: uma etapa que rodasse antes da sua
+dependência **não falharia** — coletaria zero, contaria zero, e marcaria `done`. É o
+sucesso silencioso que a base já registrou oito vezes, e a Verificação 5 existe para ele.
+
+**O que fica de fora desta parte:** rodar um estágio REST e um GraphQL **ao mesmo tempo**.
+Os baldes primários são separados, mas a cota secundária (100 em voo, CPU) é uma só, e o
+job hoje é um processo com uma sequência. Primeiro a escolha pela disponibilidade,
+sequencial; concorrência entre baldes só depois da Verificação 4 medir onde está o tempo.
+
 ## Alternativas consideradas
 
 **Contadores em ETS, sem processo.** `:ets.update_counter` é mais rápido e não tem fila.
@@ -284,6 +332,11 @@ Quatro provas, nenhuma de suíte verde: a medida é na origem ou no contador.
    painel aberto: número de 403 (esperado 0), tempo total, e a menor `remaining` vista em
    cada balde. É a Verificação 1 da ADR 0006 que a cota impediu de medir — com o gestor,
    ela cabe numa janela.
+5. **Nenhuma etapa antes da sua dependência, e a REST anda com a GraphQL fechada.** Com o
+   mock fechando a GraphQL logo após a etapa 1: o job executa a etapa 6 (verificações) e
+   **não** executa a 3 (comentários) nem a 5 (arquivos, que dependem da 4). Segunda parte
+   da mesma prova: uma etapa cuja dependência não está `done` nunca é escolhida — o
+   contador do mock para ela é zero, e não "zero coletado com sucesso".
 
 ## Entrega
 
@@ -296,9 +349,10 @@ e quando.
 | 2 | `Cota` + `requisitar/4` na porta única; remoção das quatro políticas locais; painel mínimo (remaining, reset, em voo) | `SyncLive.Index`; Verificações 1 e 2 |
 | 3 | checkpoint com `done` e cursor em todas as etapas | Verificação 3; retomada visível no painel ("etapa 4 de 7, página 12") |
 | 4 | medida real da coleta completa, e emenda a esta ADR com os números | Verificação 4; ADR 0006 Verificação 1 |
+| 5 | etapas como grafo: balde e dependências declaradas, escolha pela disponibilidade | painel mostra "verificações adiantadas: GraphQL reabre 14:07"; Verificação 5 |
 
 Fora deste ADR: estado no banco para multi-nó; limitador por minuto para a cota secundária
-(só se a medida 4 mostrar 429).
+(só se a medida 4 mostrar 429); etapas REST e GraphQL em concorrência (só depois da medida 4).
 
 ## Referências
 
