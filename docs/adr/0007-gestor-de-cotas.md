@@ -71,6 +71,18 @@ memória de VM é correto hoje. A seção "Consequências" diz o que muda com do
 
 ## Decisão proposta
 
+### O que fica onde — a pergunta "gravar em banco para voltar?"
+
+Três estados diferentes, três lugares, e o motivo de cada um:
+
+| estado | onde mora | por quê |
+|---|---|---|
+| **onde parei** — etapa, cursor, repositório, `done` | **banco**, `sync_checkpoints` (já existe) | precisa sobreviver a deploy, reinício e queda; é o que a retomada lê |
+| **quando volto** — `scheduled_at` do job | **banco**, `oban_jobs` (já é assim) | o snooze do Oban é uma linha no Postgres; o servidor cai no meio da espera, sobe, e o job acorda na hora certa |
+| **quanto resta** — `remaining`, `reset`, `em_voo`, `esperando` | **memória**, o `GenServer` | reconstruível em **uma** chamada grátis a `/rate_limit`; uma cópia no banco fica velha no instante em que é gravada (o dono gasta cota fora do The Band e ela não sabe) e custaria uma escrita por requisição. A origem é a verdade; o gestor é cache |
+
+Só a terceira linha muda de lugar quando houver um segundo nó — ver Consequências.
+
 Cinco partes, na ordem em que se entregam. Cada uma tem um consumidor visível; nenhuma é
 infraestrutura sozinha.
 
