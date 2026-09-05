@@ -80,13 +80,17 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   #
   # `ordered: false` porque a ordem dos resultados não significa nada aqui, e segurar o
   # primeiro repositório lento para preservar ordem desperdiçaria o ganho.
-  @concorrencia 5
+  # Configurável para MEDIR — ADR 0006, Verificação 1. A comparação honesta exige rodar os
+  # mesmos repositórios com concorrência 1 e com 5, e trocar o atributo entre as rodadas
+  # obrigaria a recompilar, o que mata a coleta em curso. O padrão continua sendo 5, e o
+  # motivo do teto está na ADR: o pool do Ecto tem 10 conexões.
+  defp concorrencia, do: Application.get_env(:the_band, :concorrencia_da_coleta, 5)
   @timeout_por_repositorio :timer.minutes(10)
 
   defp coletar_em_paralelo(ctx, repositorios) do
     TheBand.Ingestion.TaskSupervisor
     |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
-      max_concurrency: @concorrencia,
+      max_concurrency: concorrencia(),
       ordered: false,
       timeout: @timeout_por_repositorio,
       on_timeout: :kill_task

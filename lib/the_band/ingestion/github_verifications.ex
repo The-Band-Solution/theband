@@ -39,31 +39,46 @@ defmodule TheBand.Ingestion.GithubVerifications do
   Nunca devolve erro: falha num repositório vira `unreachable` no resumo e log — os
   demais seguem, e a próxima coleta tenta de novo (L29).
   """
-  @spec collect(map()) :: {:ok, map()}
+  @spec collect(map()) :: {:ok, map()} | {:snooze, non_neg_integer()}
   def collect(ctx) do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = coletar_em_paralelo(ctx, repositorios)
+    case coletar_em_paralelo(ctx, repositorios) do
+      # PASSO 3 do algoritmo (ADR 0006, item 5): a janela fechou no meio. A etapa
+      # devolve a espera em vez de um resumo parcial que o job leria como "acabou".
+      {:sem_janela, reset} ->
+        {:snooze, segundos_ate(reset)}
 
-    {:ok,
-     %{
-       repositories: length(repositorios),
-       # Nunca zero disfarçando "acabou": é o que diz à próxima passada que há trabalho.
-       runs_without_jobs: Enum.sum(Enum.map(resultados, & &1.sem_jobs)),
-       verifications: Enum.sum(Enum.map(resultados, & &1.execucoes)),
-       components: Enum.sum(Enum.map(resultados, & &1.jobs)),
-       monolithic_jobs: Enum.sum(Enum.map(resultados, & &1.monoliticos)),
-       unnamed_components: Enum.sum(Enum.map(resultados, & &1.sem_nome)),
-       without_ci: Enum.count(resultados, &(&1.estado == :sem_ci)),
-       # Separado de `unreachable` porque as duas frases são diferentes: janela esgotada
-       # é "volte daqui a pouco", e inalcançável é "algo está errado com este
-       # repositório". Somá-las fez 160 repositórios saudáveis parecerem quebrados na
-       # primeira medição, em 2026-08-18.
-       rate_limited: Enum.count(resultados, &(&1.estado == :sem_janela)),
-       unreachable: Enum.count(resultados, &(&1.estado == :inalcancavel))
-     }}
+      resultados ->
+        {:ok, resumo(repositorios, resultados)}
+    end
   end
+
+  defp resumo(repositorios, resultados) do
+    %{
+      repositories: length(repositorios),
+      # Nunca zero disfarçando "acabou": é o que diz à próxima passada que há trabalho.
+      runs_without_jobs: Enum.sum(Enum.map(resultados, & &1.sem_jobs)),
+      verifications: Enum.sum(Enum.map(resultados, & &1.execucoes)),
+      components: Enum.sum(Enum.map(resultados, & &1.jobs)),
+      monolithic_jobs: Enum.sum(Enum.map(resultados, & &1.monoliticos)),
+      unnamed_components: Enum.sum(Enum.map(resultados, & &1.sem_nome)),
+      without_ci: Enum.count(resultados, &(&1.estado == :sem_ci)),
+      # Separado de `unreachable` porque as duas frases são diferentes: janela esgotada
+      # é "volte daqui a pouco", e inalcançável é "algo está errado com este
+      # repositório". Somá-las fez 160 repositórios saudáveis parecerem quebrados na
+      # primeira medição, em 2026-08-18.
+      rate_limited: Enum.count(resultados, &(&1.estado == :sem_janela)),
+      unreachable: Enum.count(resultados, &(&1.estado == :inalcancavel))
+    }
+  end
+
+  # Um minuto de folga sobre o reset: reabrir no instante exato às vezes ainda recusa.
+  defp segundos_ate(%DateTime{} = reset),
+    do: max(DateTime.diff(reset, DateTime.utc_now(), :second) + 60, 60)
+
+  defp segundos_ate(_desconhecido), do: 900
 
   # A concorrência, e o teto — ADR 0006, item 3.
   #
@@ -72,18 +87,52 @@ defmodule TheBand.Ingestion.GithubVerifications do
   # outra — por isso foi a primeira escolhida na ADR.
   #
   # Teto 5: o pool do Ecto tem 10 conexões, e estourá-lo trava a aplicação inteira.
-  @concorrencia 5
+  # Configurável para MEDIR — ADR 0006, Verificação 1. A comparação honesta exige rodar os
+  # mesmos repositórios com concorrência 1 e com 5, e trocar o atributo entre as rodadas
+  # obrigaria a recompilar, o que mata a coleta em curso. O padrão continua sendo 5, e o
+  # motivo do teto está na ADR: o pool do Ecto tem 10 conexões.
+  # PAUSA PREVENTIVA no balde REST — o análogo do `pause_needed?` da GraphQL, que esta
+  # etapa nunca teve. A execução atual está gravada inteira; o que se decide é se vale
+  # pedir a PRÓXIMA. Com `remaining` abaixo da margem, não vale: as tarefas em voo ainda
+  # vão gastar até `concorrencia` requisições, e a margem é para elas.
+  defp pausar_se_a_janela_encurtou(%{remaining: r, reset: %DateTime{} = reset}, resultado)
+       when is_integer(r) do
+    if r < margem_da_janela(), do: {:sem_janela, reset}, else: resultado
+  end
+
+  defp pausar_se_a_janela_encurtou(_janela, resultado), do: resultado
+
+  defp concorrencia, do: Application.get_env(:the_band, :concorrencia_da_coleta, 5)
+
+  # A margem é duas vezes a concorrência — a mesma regra do `pause_needed?` da GraphQL
+  # (`remaining < cost * 2`): as tarefas em voo ainda vão gastar até `concorrencia`
+  # requisições depois da decisão, e a segunda metade é a folga.
+  defp margem_da_janela, do: concorrencia() * 2
   @timeout_por_repositorio :timer.minutes(10)
 
+  # PASSO 1 do algoritmo (ADR 0006, item 5): PARAR no primeiro rate limit.
+  #
+  # Medido em 2026-09-05: ao bater na cota, a etapa seguia para o próximo repositório — que
+  # falhava igual, gastando mais uma requisição. Foram 98 seguidas, e depois 125 em cinco
+  # segundos. Cada uma conta contra a cota secundária, e nenhuma trouxe nada.
+  #
+  # `reduce_while` sobre o stream: as tarefas já em voo terminam (o `halt` não as mata), as
+  # não iniciadas nunca começam. O que já foi coletado está gravado; o que não foi fica sem
+  # checkpoint, e a retomada sabe onde continuar.
   defp coletar_em_paralelo(ctx, repositorios) do
     TheBand.Ingestion.TaskSupervisor
     |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
-      max_concurrency: @concorrencia,
+      max_concurrency: concorrencia(),
       ordered: false,
       timeout: @timeout_por_repositorio,
       on_timeout: :kill_task
     )
-    |> Enum.map(&resultado_da_tarefa/1)
+    |> Enum.reduce_while([], fn tarefa, acc ->
+      case resultado_da_tarefa(tarefa) do
+        %{estado: :sem_janela, reset: reset} -> {:halt, {:sem_janela, reset}}
+        resultado -> {:cont, [resultado | acc]}
+      end
+    end)
   end
 
   defp resultado_da_tarefa({:ok, resultado}), do: resultado
@@ -130,15 +179,40 @@ defmodule TheBand.Ingestion.GithubVerifications do
 
     case paginar(ctx, repo, desde(repo)) do
       {:ok, runs} ->
-        resultado = gravar_runs(ctx, repo, runs)
-        marcar_se_completo(repo, inicio, resultado)
-        Map.merge(%{estado: :ok, execucoes: length(runs)}, resultado)
+        case gravar_runs(ctx, repo, runs) do
+          # A janela fechou no MEIO das execuções. O que já tem jobs está gravado; o
+          # checkpoint não avança; o reset sobe para a etapa parar.
+          {:sem_janela, reset} ->
+            vazio(:sem_janela) |> Map.put(:reset, reset)
+
+          resultado ->
+            marcar_se_completo(repo, inicio, resultado)
+            Map.merge(%{estado: :ok, execucoes: length(runs)}, resultado)
+        end
 
       {:error, :not_found_at_source} ->
         # Actions desligado. Marca o checkpoint: o repositório FOI percorrido, e a
         # resposta foi "não há verificação contínua aqui".
         Commands.touch_repository(repo.id, inicio)
         vazio(:sem_ci)
+
+      # JANELA ESGOTADA não é repositório quebrado — medido em 2026-09-05.
+      #
+      # O estado `:sem_janela` existia no contador e **nada o produzia**: o rate limit
+      # reativo caía no ramo geral abaixo e virava `:inalcancavel`. Na coleta real, 98
+      # repositórios saudáveis foram contados como inalcançáveis, e o resumo informou
+      # `rate_limited: 0` — exatamente o que o comentário do contador diz que não pode
+      # acontecer, e pela segunda vez (a primeira foi medida em 2026-08-18, com 160).
+      #
+      # A frase importa: "volte daqui a pouco" e "algo está errado com este repositório"
+      # levam a ações opostas. Quem lê `unreachable: 98` vai investigar 98 repositórios
+      # que não têm nada.
+      {:error, {:rate_limited, reset}} ->
+        Logger.info(
+          "verificações de #{repo.qualified_name} adiadas: janela reabre em #{inspect(reset)}"
+        )
+
+        vazio(:sem_janela) |> Map.put(:reset, reset)
 
       {:error, reason} ->
         Logger.warning("verificações de #{repo.qualified_name} não coletadas: #{inspect(reason)}")
@@ -178,8 +252,46 @@ defmodule TheBand.Ingestion.GithubVerifications do
     quando |> NaiveDateTime.to_date() |> Date.add(-1)
   end
 
+  # PASSO 4 do algoritmo (ADR 0006, item 5): retomar de onde parou, e não recomeçar.
+  #
+  # Uma execução COMPLETA que já tem jobs no banco não muda mais — refazer a requisição
+  # de jobs dela é gastar cota para gravar o que já está gravado. Era o que a retomada
+  # fazia: refazia as mesmas 3 316 requisições e caía no mesmo buraco, no mesmo lugar,
+  # para sempre.
+  #
+  # UMA consulta por repositório, e não uma por execução: o conjunto vem antes do laço.
   defp gravar_runs(ctx, repo, runs) do
-    Enum.reduce(runs, zero(), fn run, acc -> somar(acc, gravar_run(ctx, repo, run)) end)
+    ja_completas = execucoes_completas_com_jobs(ctx.tenant.id, repo.id)
+
+    Enum.reduce_while(runs, zero(), fn run, acc ->
+      if MapSet.member?(ja_completas, to_string(run["id"])) do
+        {:cont, acc}
+      else
+        passo_da_execucao(ctx, repo, run, acc)
+      end
+    end)
+  end
+
+  defp passo_da_execucao(ctx, repo, run, acc) do
+    case gravar_run(ctx, repo, run) do
+      {:sem_janela, _reset} = parada -> {:halt, parada}
+      resultado -> {:cont, somar(acc, resultado)}
+    end
+  end
+
+  defp execucoes_completas_com_jobs(tenant_id, repo_id) do
+    Repo.all(
+      from v in "collected_verifications",
+        join: c in "verification_components",
+        on: c.collected_verification_id == v.id,
+        where:
+          v.tenant_id == type(^tenant_id, :binary_id) and
+            v.observed_repository_id == type(^repo_id, :binary_id) and
+            v.run_status == "completed",
+        distinct: true,
+        select: v.external_id
+    )
+    |> MapSet.new()
   end
 
   defp zero, do: %{jobs: 0, monoliticos: 0, sem_nome: 0, sem_jobs: 0}
@@ -189,16 +301,25 @@ defmodule TheBand.Ingestion.GithubVerifications do
   # voltar para atualizá-la — dois caminhos de escrita para o mesmo fato.
   defp gravar_run(ctx, repo, run) do
     case Client.run_jobs(ctx.tool.instance_url, ctx.token, repo.qualified_name, run["id"]) do
-      {:ok, %{jobs: jobs}} ->
+      {:ok, %{jobs: jobs, janela: janela}} ->
         classificados =
           Enum.map(jobs, &{&1, Classification.componentes(&1["name"], etapas_de(&1))})
 
         tipos = Classification.tipos(Enum.map(classificados, &elem(&1, 1)))
         verificacao = registrar_execucao(ctx, repo, run, tipos)
 
-        Enum.reduce(classificados, zero(), fn par, acc ->
-          somar(acc, gravar_job(ctx, verificacao, par, tipos))
-        end)
+        resultado =
+          Enum.reduce(classificados, zero(), fn par, acc ->
+            somar(acc, gravar_job(ctx, verificacao, par, tipos))
+          end)
+
+        pausar_se_a_janela_encurtou(janela, resultado)
+
+      # A janela fechou AQUI. Antes: marcava `sem_jobs` e seguia para a próxima execução,
+      # que falhava igual — 586 vezes numa coleta. Agora para, e a execução NÃO é gravada
+      # sem jobs: ela não existe ainda no banco, e a retomada a trará inteira.
+      {:error, {:rate_limited, reset}} ->
+        {:sem_janela, reset}
 
       {:error, reason} ->
         # Sem os jobs não há como derivar o tipo, e derivá-lo de outra coisa seria
