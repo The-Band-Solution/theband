@@ -37,6 +37,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   alias TheBand.Ingestion.GithubProjects
   alias TheBand.Ingestion.GithubVerifications
   alias TheBand.Ingestion.GithubWorkItems
+  alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
   alias TheBand.RawData
@@ -193,74 +194,131 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # gravadas, e perdê-las por causa de uma falha na segunda fase seria pior que
   # registrar a falha. O motivo fica no log e a fase seguinte tenta na próxima coleta.
   #
-  # **As etapas são uma lista, e não uma cadeia de chamadas aninhadas** — ADR 0007. Cada
-  # uma devolve `{:ok, resumo}`, `{:snooze, segundos}` ou `{:error, motivo}`:
+  # **As etapas são um GRAFO, e a próxima é a que tem dependência pronta e balde aberto** —
+  # ADR 0007, parte 6. Os dois baldes de cota são independentes: com a GraphQL esgotada, as
+  # etapas REST (arquivos, verificações) têm janela e não precisam da GraphQL para andar. A
+  # lista fixa de antes hibernava o job inteiro e desperdiçava uma hora do outro balde.
   #
-  # - `{:ok, resumo}` soma ao resumo e segue;
-  # - `{:snooze, s}` PARA a lista — a janela fechou; o que falta fica para a retomada, e o
-  #   `run/5` devolve a espera ao Oban sem fechar o sync;
-  # - `{:error, motivo}` que é cota (`Client.rate_limit?/1`) vale como `{:snooze}`;
-  #   qualquer outro erro vai para o log e a lista segue, como sempre foi.
-  #
-  # A ordem é dependência de dado, e está declarada em cada etapa.
-  defp coletar_trabalho(ctx) do
-    Enum.reduce_while(etapas(), %{}, fn {nome, etapa}, acumulado ->
-      # RETOMADA — ADR 0007, parte 4. A etapa concluída nesta sincronização não roda de
-      # novo: um `{:snooze}` na sexta refazia as requisições da primeira à quinta na volta.
-      if Ingestion.etapa_concluida?(ctx.sync, "etapa:" <> Atom.to_string(nome)) do
-        {:cont, Map.update(acumulado, :etapas_puladas, [nome], &[nome | &1])}
-      else
-        passo_da_etapa(ctx, nome, etapa, acumulado)
-      end
-    end)
+  # A cada volta:
+  # - `pendentes`: etapas não concluídas neste sync (checkpoint `etapa:<nome>`) e que não
+  #   falharam nesta passada;
+  # - `prontas`: pendentes com TODAS as dependências concluídas — declaradas em `etapas/0` e
+  #   conferidas por teste, porque uma etapa antes da sua dependência não falharia: coletaria
+  #   zero e marcaria `done`;
+  # - `com_janela`: prontas cujo balde o gestor diz aberto, e que não devolveram espera nesta
+  #   passada.
+  # Executa a primeira com janela, na ordem da lista. Sem nenhuma: hiberna até o MENOR reset
+  # entre os baldes fechados — e não até o do balde que acabou de fechar.
+  defp coletar_trabalho(ctx), do: proxima_etapa(ctx, %{fechados: %{}, falhas: %{}})
+
+  defp proxima_etapa(ctx, acumulado) do
+    pendentes =
+      Enum.reject(etapas(), &(concluida?(ctx, &1) or Map.has_key?(acumulado.falhas, &1.nome)))
+
+    case pendentes do
+      [] ->
+        resumo_final(acumulado)
+
+      _ ->
+        prontas = Enum.filter(pendentes, &dependencias_concluidas?(ctx, &1))
+        com_janela = Enum.filter(prontas, &janela_aberta?(ctx, &1, acumulado))
+        escolher(ctx, acumulado, pendentes, prontas, com_janela)
+    end
   end
 
-  defp passo_da_etapa(ctx, nome, etapa, acumulado) do
-    case etapa.(ctx) do
+  # Nenhuma pronta: o que falta depende de uma etapa que falhou nesta passada. Fica para a
+  # próxima sincronização, registrado — e não em loop.
+  defp escolher(_ctx, acumulado, pendentes, [], _com_janela) do
+    resumo_final(Map.put(acumulado, :bloqueadas, Enum.map(pendentes, & &1.nome)))
+  end
+
+  # Prontas, todas sem janela: hiberna até o menor reset que desbloqueia alguma.
+  defp escolher(_ctx, acumulado, _pendentes, prontas, []) do
+    segundos =
+      prontas
+      |> Enum.map(&Map.get(acumulado.fechados, &1.balde))
+      |> Enum.reject(&is_nil/1)
+      |> Enum.min(fn -> Janela.segundos_ate(nil) end)
+
+    acumulado |> resumo_final() |> Map.put(:snooze, segundos)
+  end
+
+  defp escolher(ctx, acumulado, _pendentes, _prontas, [etapa | _]) do
+    proxima_etapa(ctx, executar_etapa(ctx, etapa, acumulado))
+  end
+
+  defp executar_etapa(ctx, %{nome: nome, balde: balde, fun: fun}, acumulado) do
+    case fun.(ctx) do
       {:ok, resumo} ->
         {:ok, _} = Ingestion.concluir_etapa(ctx.sync, Atom.to_string(nome))
-        {:cont, Map.merge(acumulado, resumo)}
+        Map.merge(acumulado, resumo)
 
+      # A etapa parou na janela: o balde dela está fechado nesta passada, e as etapas de
+      # OUTRO balde ainda podem rodar. O gestor já sabe (foi ele que recusou, ou observou o
+      # 403); o registro aqui é para não tentar o mesmo balde de novo nesta passada.
       {:snooze, segundos} ->
-        {:halt, Map.put(acumulado, :snooze, segundos)}
+        put_in(acumulado, [:fechados, balde], segundos)
 
       {:error, motivo} ->
-        erro_da_etapa(ctx, nome, motivo, acumulado)
+        if Client.rate_limit?(motivo) do
+          put_in(acumulado, [:fechados, balde], segundos_de_espera(motivo, ctx.tool, ctx.token))
+        else
+          Logger.warning("etapa #{nome} falhou: #{inspect(motivo)}")
+          put_in(acumulado, [:falhas, nome], motivo)
+        end
     end
   end
 
-  # Cota é espera; qualquer outro erro vai para o log e a lista segue, como sempre foi.
-  defp erro_da_etapa(ctx, nome, motivo, acumulado) do
-    if Client.rate_limit?(motivo) do
-      {:halt, Map.put(acumulado, :snooze, segundos_de_espera(motivo, ctx.tool, ctx.token))}
-    else
-      Logger.warning("etapa #{nome} falhou: #{inspect(motivo)}")
-      # Um mapa `erros: %{etapa => motivo}`, e não um átomo interpolado por etapa: o nome
-      # vem da lista fixa `etapas/0`, mas átomo dinâmico é o que o Sobelow acusa (e com razão
-      # como regra geral) — e o resumo fica mais fácil de ler com os erros juntos.
-      {:cont, Map.update(acumulado, :erros, %{nome => motivo}, &Map.put(&1, nome, motivo))}
-    end
+  defp concluida?(ctx, %{nome: nome}),
+    do: Ingestion.etapa_concluida?(ctx.sync, "etapa:" <> Atom.to_string(nome))
+
+  defp dependencias_concluidas?(ctx, %{depende_de: deps}),
+    do: Enum.all?(deps, &concluida?(ctx, %{nome: &1}))
+
+  # Sem identidade de cota (scripts avulsos, testes que montam o `ctx` à mão) não há gestor a
+  # consultar — e aí a lista se comporta como a de antes: em ordem, até alguém devolver espera.
+  defp janela_aberta?(ctx, %{balde: balde}, acumulado) do
+    not Map.has_key?(acumulado.fechados, balde) and
+      (is_nil(ctx[:cota]) or Cota.janela_aberta?(ctx[:cota], balde) == :aberta)
   end
 
+  # O resumo que o `run/5` lê: os contadores das etapas, mais `erros: %{etapa => motivo}`
+  # quando houve, e `snooze`/`bloqueadas` quando a passada não terminou tudo.
+  defp resumo_final(%{falhas: falhas} = acumulado) do
+    resumo = Map.drop(acumulado, [:fechados, :falhas])
+    if falhas == %{}, do: resumo, else: Map.put(resumo, :erros, falhas)
+  end
+
+  # O grafo: nome, balde de cota, dependências de dado. A ordem da lista decide entre
+  # etapas igualmente prontas e com janela.
   defp etapas do
     [
       # Repositórios e issues — tudo o que vem depois aponta para um repositório observado.
-      {:trabalho, &GithubWorkItems.collect/1},
+      %{nome: :trabalho, balde: :graphql, depende_de: [], fun: &GithubWorkItems.collect/1},
       # **Depois das issues**: o vínculo entre issue e caixa de tempo precisa da issue gravada.
-      {:caixas_de_tempo, &coletar_caixas_de_tempo/1},
+      %{
+        nome: :caixas_de_tempo,
+        balde: :graphql,
+        depende_de: [:trabalho],
+        fun: &coletar_caixas_de_tempo/1
+      },
       # **Depois das issues**: o comentário aponta para a issue gravada. Lê da BASE, não da
       # memória da etapa anterior (L47) — issue nova com comentário entra na mesma passada.
-      {:comentarios, &coletar_comentarios/1},
+      %{
+        nome: :comentarios,
+        balde: :graphql,
+        depende_de: [:trabalho],
+        fun: &coletar_comentarios/1
+      },
       # **Depois das issues**: o vínculo entre solicitação e issue precisa da issue gravada.
-      {:mudancas, &coletar_mudancas/1},
+      %{nome: :mudancas, balde: :graphql, depende_de: [:trabalho], fun: &coletar_mudancas/1},
       # **Depois dos commits**, que a etapa de mudanças grava: o arquivo pende de um commit.
-      {:arquivos, &coletar_arquivos/1},
-      # Pende só do repositório observado. Antes das branches por ser a mais cara: uma
-      # requisição REST por execução.
-      {:verificacoes, &coletar_verificacoes/1},
+      %{nome: :arquivos, balde: :core, depende_de: [:mudancas], fun: &coletar_arquivos/1},
+      # Pende só do repositório observado. É REST: anda com a GraphQL fechada.
+      %{nome: :verificacoes, balde: :core, depende_de: [:trabalho], fun: &coletar_verificacoes/1},
       # **Não é incremental, e por isso fica no fim.** A pergunta é "que branches existem
       # agora", e responder exige o conjunto inteiro para saber o que deixou de existir.
-      {:branches, &coletar_branches/1}
+      %{nome: :branches, balde: :graphql, depende_de: [:trabalho], fun: &coletar_branches/1}
     ]
   end
 

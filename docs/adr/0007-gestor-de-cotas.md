@@ -287,6 +287,14 @@ no código e conferidas por teste, e não deduzidas: uma etapa que rodasse antes
 dependência **não falharia** — coletaria zero, contaria zero, e marcaria `done`. É o
 sucesso silencioso que a base já registrou oito vezes, e a Verificação 5 existe para ele.
 
+> **Nota de implementação (2026-09-05).** O job pergunta ao gestor `janela_aberta?/2` — a
+> mesma regra de concessão, sem reservar — antes de escolher. Uma etapa que devolve espera
+> fecha o seu balde **para esta passada** (o gestor já sabe; o registro no job evita tentar o
+> mesmo balde de novo). Uma etapa que falha por outro motivo bloqueia as que dependem dela:
+> elas ficam registradas como `bloqueadas` no resumo e vão para a próxima sincronização, em
+> vez de rodarem sobre dado que não existe. Sem identidade de cota (scripts avulsos), a lista
+> se comporta como antes: em ordem, até alguém devolver espera.
+
 **O que fica de fora desta parte:** rodar um estágio REST e um GraphQL **ao mesmo tempo**.
 Os baldes primários são separados, mas a cota secundária (100 em voo, CPU) é uma só, e o
 job hoje é um processo com uma sequência. Primeiro a escolha pela disponibilidade,

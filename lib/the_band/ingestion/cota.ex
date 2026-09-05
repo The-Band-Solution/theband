@@ -122,6 +122,22 @@ defmodule TheBand.Ingestion.Cota do
     GenServer.cast(processo(chave), {:observar, balde, leitura})
   end
 
+  @doc """
+  O balde tem janela para UMA requisição agora? — sem contar nada em voo.
+
+  É a pergunta do job ao escolher a próxima etapa (ADR 0007, parte 6): com a GraphQL
+  fechada e a REST aberta, a etapa REST pronta roda em vez de o job hibernar. Devolve
+  `:aberta` ou `{:fechada, %{reset, segundos}}`; identidade que nunca pediu está aberta.
+  """
+  @spec janela_aberta?(chave(), balde()) ::
+          :aberta | {:fechada, %{reset: DateTime.t() | nil, segundos: pos_integer()}}
+  def janela_aberta?(chave, balde) when balde in @baldes do
+    case Registry.lookup(@registry, chave) do
+      [{pid, _}] -> GenServer.call(pid, {:janela?, balde})
+      [] -> :aberta
+    end
+  end
+
   @doc "O estado dos dois baldes, para a tela e para os testes. `nil` se a identidade nunca pediu."
   @spec estado(chave()) :: %{core: map(), graphql: map()} | nil
   def estado(chave) do
@@ -197,6 +213,15 @@ defmodule TheBand.Ingestion.Cota do
 
   def handle_call(:estado, _de, estado) do
     {:reply, estado.baldes, estado, @ociosidade}
+  end
+
+  def handle_call({:janela?, nome}, _de, estado) do
+    balde = estado.baldes[nome] |> reabrir_se_passou(DateTime.utc_now())
+    estado = guardar(estado, nome, balde)
+
+    if concede?(balde, balde.ultimo_custo),
+      do: {:reply, :aberta, estado, @ociosidade},
+      else: {:reply, {:fechada, espera(balde)}, estado, @ociosidade}
   end
 
   @impl true

@@ -604,6 +604,87 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
     end
   end
 
+  describe "as etapas são um grafo (ADR 0007, parte 6 — Verificação 5)" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "GraphQL fechada logo após os repositórios: as verificações (REST) rodam; comentários e arquivos não",
+         ctx do
+      repositorio_observado(ctx.tenant, ctx.tool)
+      {:ok, chamadas} = Agent.start_link(fn -> %{graphql: 0, runs: 0, commits: 0} end)
+      vazio = pagina([], false, nil)
+      apertado = %{"cost" => 100, "remaining" => 150, "resetAt" => reset_em(1800)}
+
+      responder(fn query, _vars ->
+        Agent.update(chamadas, &Map.update!(&1, :graphql, fn n -> n + 1 end))
+        base = %{"rateLimit" => @rate_limit_folgado}
+
+        cond do
+          String.contains?(query, "membersWithRole") ->
+            Map.put(base, "organization", %{"id" => "O_1", "membersWithRole" => vazio})
+
+          String.contains?(query, "teams(") ->
+            Map.put(base, "organization", %{"id" => "O_1", "teams" => vazio})
+
+          String.contains?(query, "repositories(") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "repositories" => pagina([repositorio_de_teste()], false, nil)
+            })
+
+          # A ÚLTIMA consulta da etapa 1 (issues do único repositório) traz a cota apertada:
+          # daqui em diante o gestor recusa toda GraphQL. A etapa 1 termina concluída.
+          String.contains?(query, "issues(") ->
+            %{
+              "rateLimit" => apertado,
+              "repository" => %{"id" => "R_1", "issues" => Map.put(vazio, "totalCount", 0)}
+            }
+
+          true ->
+            Map.put(base, "organization", org_node())
+        end
+      end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        if String.contains?(url, "/commits/") do
+          Agent.update(chamadas, &Map.update!(&1, :commits, fn n -> n + 1 end))
+          {:ok, %{status: 200, body: %{"files" => []}, headers: %{}}}
+        else
+          Agent.update(chamadas, &Map.update!(&1, :runs, fn n -> n + 1 end))
+
+          {:ok, %{status: 200, body: %{"total_count" => 0, "workflow_runs" => []}, headers: %{}}}
+        end
+      end)
+
+      assert {:snooze, _} = perform(ctx.tenant, ctx.sync),
+             "a GraphQL fechou: o job hiberna no fim"
+
+      sync = Ingestion.reload(ctx.sync)
+      feitas = Agent.get(chamadas, & &1)
+
+      assert Ingestion.etapa_concluida?(sync, "etapa:trabalho")
+
+      assert Ingestion.etapa_concluida?(sync, "etapa:verificacoes") and feitas.runs > 0, """
+      A GraphQL fechou e a REST estava cheia — e as verificações (REST, que dependem só dos
+      repositórios) não rodaram. É a hora inteira de um balde desperdiçada enquanto o outro
+      reabre, que a parte 6 existe para aproveitar.
+      """
+
+      refute Ingestion.etapa_concluida?(sync, "etapa:comentarios"), "GraphQL: sem janela"
+      refute Ingestion.etapa_concluida?(sync, "etapa:mudancas"), "GraphQL: sem janela"
+
+      assert feitas.commits == 0 and not Ingestion.etapa_concluida?(sync, "etapa:arquivos"), """
+      Os arquivos de commit (REST) rodaram ANTES das solicitações de mudança, de quem
+      dependem — os commits que eles percorrem ainda não existem. A etapa não falharia:
+      coletaria zero e marcaria concluída. É o sucesso silencioso que a dependência
+      declarada impede.
+      """
+    end
+  end
+
   describe "retomada após interrupção (FR-015, SC-006)" do
     setup do
       tenant = tenant_fixture()
