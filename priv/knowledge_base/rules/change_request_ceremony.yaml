@@ -1,0 +1,104 @@
+derivation_rule:
+  id: change_request.ceremony
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Solicitação de cerimônia do processo, e não de mudança no código"
+
+  description:
+    pt-BR: >
+      Distingue a solicitação de mudança que **carrega trabalho** daquela que **executa uma
+      etapa do processo** — release, back-merge, hotfix de versão.
+
+      As duas são `cmpo.change_request` na origem e no modelo. A distinção não é de tipo:
+      é de **para que a medida serve**.
+
+  rationale:
+    pt-BR: >
+      Medido em 2026-09-05, na organização `leds-conectafapes`, sobre 140 solicitações de
+      56 dias:
+
+      | população | revisadas | mediana | em curso | mediana |
+      |---|---:|---:|---:|---:|
+      | cerimônia | **32** | 0,1 h | 18 | 29 dias |
+      | trabalho | 11 | 0,6 h | **79** | **38 dias** |
+
+      **A composição é oposta nos dois lados.** A cerimônia domina o que é revisado; o
+      trabalho de código domina o que fica esperando.
+
+      Somadas, as duas produzem uma tela que engana sem nenhum número errado: *mediana de
+      0,1 h* sugere que a equipe revisa em minutos, quando as revisões rápidas são
+      aprovações de release — e **46 solicitações de código estão paradas há mais de 30
+      dias** sem nenhuma revisão humana.
+
+      Uma release aprovada em quatro segundos não informa nada sobre carga de revisão, que
+      é a decisão que `review.time_to_first_review.duration` declara apoiar.
+
+  what_this_is_not:
+    pt-BR: >
+      **Não é filtro.** A cerimônia não é descartada: ela é **contada em separado**, com
+      nome. Removê-la faria a contagem da tela discordar da contagem do GitHub sem
+      explicação, e ela é fato sobre o processo da organização.
+
+      **Não é juízo sobre a prática.** Aprovar a própria release em segundos pode ser o
+      procedimento correto da organização. A regra não diz que está errado — diz que
+      **medir isso junto com revisão de código** produz um número que não sustenta
+      decisão.
+
+      **Não é classificação por autor.** Quem publica a release varia; o padrão está no
+      título.
+
+  patterns:
+    # Prefixos e marcas de título, ANCORADOS. A âncora é a defesa contra o que a base já
+    # chama de padrão largo: `contains?("release")` casaria com
+    # "fix: release notes quebradas", que é trabalho de código.
+    #
+    # A lista é da ORGANIZAÇÃO, e não da plataforma. Outra organização nomeia de outro
+    # jeito, e é por isso que ela vive aqui e não numa constante do código.
+    - id: change_request.ceremony.release
+      match: prefix
+      value: "release "
+      name:
+        pt-BR: "Publicação de versão"
+    - id: change_request.ceremony.back_merge
+      match: prefix
+      value: "back-merge"
+      name:
+        pt-BR: "Retorno da linha estável para a de desenvolvimento"
+    - id: change_request.ceremony.hotfix
+      match: prefix
+      value: "hotfix "
+      name:
+        pt-BR: "Correção publicada fora do ciclo"
+    - id: change_request.ceremony.branch_sync
+      match: contains
+      value: "main -> develop"
+      name:
+        pt-BR: "Sincronização entre linhas"
+
+  limits:
+    pt-BR: >
+      **A classificação é do TÍTULO, e título é texto livre.** Uma solicitação de trabalho
+      intitulada `Release the kraken` seria classificada como cerimônia. O erro é possível
+      e é aceitável nesta direção: a cerimônia aparece contada e nomeada na tela, então
+      quem lê enxerga o que entrou nela.
+
+      **O contrário é o erro caro**, e a âncora existe por causa dele: uma release que
+      escape para a população de trabalho puxa a mediana para baixo, e é exatamente o
+      defeito que esta regra corrige.
+
+      **Não vale para outra organização sem revisão.** Os quatro padrões saíram do dado de
+      uma organização. Aplicá-los a outra sem conferir é a suposição que a plataforma
+      recusa em todo o resto.
+
+  provenance:
+    source_type: measured_from_source
+    reference: "Conferência contra a origem em 2026-09-05, organização leds-conectafapes, 140 solicitações em 56 dias — issue #805"
+    note:
+      pt-BR: >
+        A regra nasceu de uma conferência, e não de uma suposição: a mediana de 0,1 h com
+        97 esperas em curso era contraditória o bastante para investigar, e a investigação
+        achou 32 releases entre as 43 revisadas.
