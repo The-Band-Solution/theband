@@ -26,6 +26,7 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Changes.Commands
+  alias TheBand.Ingestion.Janela
   alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -47,26 +48,32 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = coletar_em_paralelo(ctx, repositorios)
+    case coletar_em_paralelo(ctx, repositorios) do
+      # A janela fechou no meio (ADR 0006 §5; ADR 0007): o que já foi gravado fica, o que
+      # falta é da retomada. Devolver um resumo aqui faria o job fechar o sync como completo.
+      {:sem_janela, reset} -> {:snooze, Janela.segundos_ate(reset)}
+      resultados -> {:ok, resumo(repositorios, resultados)}
+    end
+  end
 
-    {:ok,
-     %{
-       repositories: length(repositorios),
-       change_requests: soma(resultados, :solicitacoes),
-       commits: soma(resultados, :commits),
-       attended_issues: soma(resultados, :atendidas),
-       # A avaliação de artefato — `qapo.artifact_evaluation`. Bot separado de pessoa
-       # porque o mapeamento manda: contar revisão automática como humana faria a medida
-       # de tempo até a primeira revisão medir o robô.
-       artifact_evaluations: soma(resultados, :avaliacoes),
-       bot_evaluations: soma(resultados, :avaliacoes_de_bot),
-       # **Nunca zero disfarçando "acabou".** É quanto a origem reconheceu e a plataforma
-       # não conseguiu resolver porque a issue ainda não foi coletada — o número que a
-       # versão anterior descartava em silêncio (issue #438).
-       attended_issues_pending: soma(resultados, :pendentes),
-       truncated: soma(resultados, :truncadas),
-       unreachable: Enum.count(resultados, &(&1.alcancado == false))
-     }}
+  defp resumo(repositorios, resultados) do
+    %{
+      repositories: length(repositorios),
+      change_requests: soma(resultados, :solicitacoes),
+      commits: soma(resultados, :commits),
+      attended_issues: soma(resultados, :atendidas),
+      # A avaliação de artefato — `qapo.artifact_evaluation`. Bot separado de pessoa
+      # porque o mapeamento manda: contar revisão automática como humana faria a medida
+      # de tempo até a primeira revisão medir o robô.
+      artifact_evaluations: soma(resultados, :avaliacoes),
+      bot_evaluations: soma(resultados, :avaliacoes_de_bot),
+      # **Nunca zero disfarçando "acabou".** É quanto a origem reconheceu e a plataforma
+      # não conseguiu resolver porque a issue ainda não foi coletada — o número que a
+      # versão anterior descartava em silêncio (issue #438).
+      attended_issues_pending: soma(resultados, :pendentes),
+      truncated: soma(resultados, :truncadas),
+      unreachable: Enum.count(resultados, &(&1.alcancado == false))
+    }
   end
 
   # A concorrência, e o teto — ADR 0006, item 3.
@@ -80,18 +87,22 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   #
   # `ordered: false` porque a ordem dos resultados não significa nada aqui, e segurar o
   # primeiro repositório lento para preservar ordem desperdiçaria o ganho.
-  @concorrencia 5
+  # Configurável para MEDIR — ADR 0006, Verificação 1. A comparação honesta exige rodar os
+  # mesmos repositórios com concorrência 1 e com 5, e trocar o atributo entre as rodadas
+  # obrigaria a recompilar, o que mata a coleta em curso. O padrão continua sendo 5, e o
+  # motivo do teto está na ADR: o pool do Ecto tem 10 conexões.
+  defp concorrencia, do: Application.get_env(:the_band, :concorrencia_da_coleta, 5)
   @timeout_por_repositorio :timer.minutes(10)
 
   defp coletar_em_paralelo(ctx, repositorios) do
     TheBand.Ingestion.TaskSupervisor
     |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
-      max_concurrency: @concorrencia,
+      max_concurrency: concorrencia(),
       ordered: false,
       timeout: @timeout_por_repositorio,
       on_timeout: :kill_task
     )
-    |> Enum.map(&resultado_da_tarefa/1)
+    |> Janela.ate_fechar(&resultado_da_tarefa/1)
   end
 
   defp resultado_da_tarefa({:ok, resultado}), do: resultado
@@ -171,6 +182,22 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
         resultado = gravar(ctx, repo.id, solicitacoes)
         marcar_percorrido(repo.id, inicio, repo.query_versions)
         Map.put(resultado, :alcancado, true)
+
+      # O gestor de cotas recusou — ou a origem recusou por cota. Não é o repositório: é a
+      # hora. Vira parada da etapa, e não `unreachable`.
+      {:error, {:rate_limited, reset}} ->
+        %{
+          alcancado: false,
+          sem_janela: true,
+          reset: reset,
+          solicitacoes: 0,
+          commits: 0,
+          atendidas: 0,
+          pendentes: 0,
+          avaliacoes: 0,
+          avaliacoes_de_bot: 0,
+          truncadas: 0
+        }
 
       {:error, motivo} ->
         Logger.warning("mudanças de #{repo.qualified_name} não coletadas: #{inspect(motivo)}")
@@ -399,7 +426,8 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
            ctx.tool.instance_url,
            ctx.token,
            read_query("pull_request_commits"),
-           vars
+           vars,
+           cota: ctx[:cota]
          ) do
       {:ok, %{data: data}} ->
         commits = get_in(data, ["repository", "pullRequest", "commits"]) || %{}
@@ -472,7 +500,9 @@ defmodule TheBand.Ingestion.GithubChangeRequests do
   defp paginar(ctx, variables, corte, cursor \\ nil, acumulado \\ []) do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query("change_requests"), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query("change_requests"), vars,
+           cota: ctx[:cota]
+         ) do
       # O ENVELOPE, nunca `{:ok, data}` direto — L26.
       {:ok, %{data: data}} ->
         prs = get_in(data, ["repository", "pullRequests"]) || %{}

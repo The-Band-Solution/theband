@@ -50,6 +50,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.Janela
   alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Mapping
@@ -85,25 +86,52 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       # e a coleta passou a criar pessoas: sem fiar, quem nascesse no repositório 3 não existiria no
       # mapa ao coletar o 4, e as issues dela ficariam sem vínculo até a coleta seguinte — em alguns
       # repositórios sim, em outros não, na mesma execução e sem erro nenhum.
-      {resultado, _ctx} = Enum.map_reduce(repositorios, ctx, &coletar_issues(&2, &1))
+      case percorrer_repositorios(ctx, repositorios) do
+        # A janela fechou no meio (ADR 0007). NÃO promove: a classificação conta vínculos
+        # vigentes, e promover sobre metade dos repositórios afirmaria épico por parte
+        # que ainda não foi olhada. A retomada percorre o que faltou e promove no fim.
+        {:sem_janela, reset} ->
+          {:snooze, Janela.segundos_ate(reset)}
 
-      # **Depois de todas as marcas de ausência**, e isso é carga: a classificação conta só
-      # vínculos vigentes, e promover antes de marcar afirmaria épico por parte largada.
-      promover(ctx, organization)
+        resultado ->
+          # **Depois de todas as marcas de ausência**, e isso é carga: a classificação conta
+          # só vínculos vigentes, e promover antes de marcar afirmaria épico por parte largada.
+          promover(ctx, organization)
 
-      {:ok,
-       %{
-         organization_id: organization.id,
-         repositories: length(repositorios),
-         issues: Enum.sum(Enum.map(resultado, & &1.coletadas)),
-         unreachable: Enum.count(resultado, &(&1.alcancado == false)),
-         # Quantos foram pulados, e **por qual motivo** — FR-007. Pular em silêncio é
-         # indistinguível de percorrer e não achar nada, e as duas coisas dizem coisas
-         # opostas sobre a origem.
-         skipped:
-           Enum.frequencies_by(Enum.filter(resultado, &Map.has_key?(&1, :pulado)), & &1.pulado),
-         decomposition_links_absent: Enum.sum(Enum.map(resultado, & &1.vinculos_ausentes))
-       }}
+          {:ok,
+           %{
+             organization_id: organization.id,
+             repositories: length(repositorios),
+             issues: Enum.sum(Enum.map(resultado, & &1.coletadas)),
+             unreachable: Enum.count(resultado, &(&1.alcancado == false)),
+             # Quantos foram pulados, e **por qual motivo** — FR-007. Pular em silêncio é
+             # indistinguível de percorrer e não achar nada, e as duas coisas dizem coisas
+             # opostas sobre a origem.
+             skipped:
+               Enum.frequencies_by(
+                 Enum.filter(resultado, &Map.has_key?(&1, :pulado)),
+                 & &1.pulado
+               ),
+             decomposition_links_absent: Enum.sum(Enum.map(resultado, & &1.vinculos_ausentes))
+           }}
+      end
+    end
+  end
+
+  # O `ctx` é fiado de repositório em repositório (o mapa login → pessoa cresce), e a
+  # travessia PARA na janela fechada — `Janela.ate_fechar/2` não serve aqui porque o
+  # acumulador carrega o `ctx` junto com os resultados.
+  defp percorrer_repositorios(ctx, repositorios) do
+    repositorios
+    |> Enum.reduce_while({[], ctx}, fn repositorio, {resultados, ctx} ->
+      case coletar_issues(ctx, repositorio) do
+        {%{sem_janela: true} = parada, _ctx} -> {:halt, {:sem_janela, Map.get(parada, :reset)}}
+        {resultado, ctx} -> {:cont, {[resultado | resultados], ctx}}
+      end
+    end)
+    |> case do
+      {:sem_janela, _reset} = parada -> parada
+      {resultados, _ctx} -> Enum.reverse(resultados)
     end
   end
 
@@ -310,6 +338,18 @@ defmodule TheBand.Ingestion.GithubWorkItems do
            coletadas: length(gravadas),
            alcancado: true,
            vinculos_ausentes: ausentes
+         }, ctx}
+
+      # O gestor de cotas recusou — ou a origem recusou por cota (ADR 0007). Não é o
+      # repositório: é a hora. A etapa PARA aqui; o que falta é da retomada.
+      {:error, {:rate_limited, reset}} ->
+        {%{
+           repositorio: repo.name,
+           coletadas: 0,
+           alcancado: false,
+           sem_janela: true,
+           reset: reset,
+           vinculos_ausentes: 0
          }, ctx}
 
       {:error, reason} ->
@@ -708,7 +748,9 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   defp paginar(ctx, query_name, variables, cursor \\ nil, acumulado \\ [], total \\ nil) do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(query_name), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(query_name), vars,
+           cota: ctx[:cota]
+         ) do
       # O cliente devolve o ENVELOPE — `%{data: ..., rate_limit: ...}` —, e não o `data`
       # direto. Casar com `{:ok, data}` compilava, rodava, e devolvia lista vazia sem
       # erro: o job completava com zero coletados. Foi o que aconteceu na primeira

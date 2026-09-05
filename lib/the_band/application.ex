@@ -37,6 +37,9 @@ defmodule TheBand.Application do
       # Com `async_stream_nolink`, a tarefa que morre vira `{:exit, motivo}` no fluxo, e
       # os outros repositórios seguem.
       {Task.Supervisor, name: TheBand.Ingestion.TaskSupervisor},
+      # O gestor de cotas — ADR 0007. Um processo por identidade de cota (usuário do
+      # GitHub), criado no primeiro pedido; aqui sobem só o Registry e o supervisor deles.
+      TheBand.Ingestion.Cota.Arvore,
       TheBandWeb.Endpoint
     ]
 

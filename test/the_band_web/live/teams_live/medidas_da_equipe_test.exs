@@ -254,9 +254,9 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       secao = live |> element("#espera-por-revisao") |> render()
 
       assert secao =~ "waiting for 12 day(s)"
-      assert secao =~ "still waiting"
+      assert secao =~ "waiting now"
 
-      assert secao =~ "none reviewed yet", """
+      assert secao =~ "no code change reviewed yet", """
       Sem nenhuma revisada a tela precisa dizer que não há mediana. Um "0h" ali afirmaria
       revisão instantânea (FR-018).
       """
@@ -318,6 +318,40 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       refute secao =~ "Showing the most recent", """
       A tela avisou de um corte que não houve. Aviso que aparece sempre deixa de ser aviso.
       """
+    end
+
+    test "a cerimônia não entra na mediana do código, e aparece contada à parte", ctx do
+      # Medido na origem em 2026-09-05: 32 das 43 revisadas eram release e back-merge, com
+      # mediana de 0,1 h, contra 0,6 h do trabalho de código. Somadas, a tela dizia 0,1 h —
+      # e havia 46 solicitações de código paradas há mais de 30 dias (issue #805).
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, ctx.equipe, ana, dias_atras(300))
+
+      # Duas releases, aprovadas em segundos.
+      for {n, titulo} <- [{601, "Release v1.0.0"}, {602, "Back-merge main -> develop (v1.0.0)"}] do
+        pr = solicitacao_intitulada(ctx, n, ana, dias_atras(10), titulo)
+        revisao(ctx, pr, DateTime.add(pr.external_created_at, 4, :second))
+      end
+
+      # Um trabalho de código, revisado em 5 horas.
+      trabalho =
+        solicitacao_intitulada(ctx, 603, ana, dias_atras(9), "feat: coleta por repositório")
+
+      revisao(ctx, trabalho, DateTime.add(trabalho.external_created_at, 5, :hour))
+
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      secao = live |> element("#espera-por-revisao") |> render()
+
+      assert secao =~ "5.0h", """
+      A mediana em destaque tem de ser a do TRABALHO DE CÓDIGO. Com as duas releases
+      dentro, ela cairia para perto de zero e a tela diria que a equipe revisa em segundos.
+      """
+
+      assert secao =~ "process ceremony"
+      assert secao =~ "releases and back-merges"
+
+      # E a cerimônia NÃO é descartada — some-la faria a contagem discordar do GitHub.
+      assert secao =~ ">2<", "as duas de cerimônia precisam aparecer contadas"
     end
 
     test "equipe sem solicitação diz a ausência, e não zero", ctx do
@@ -440,8 +474,8 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       secao = live |> element("#espera-por-revisao") |> render()
 
       # O AGREGADO continua aberto — FR-023 segue de pé: ver não exige administrar.
-      assert secao =~ "team median"
-      assert secao =~ "still waiting"
+      assert secao =~ "code review"
+      assert secao =~ "waiting now"
       assert secao =~ "4.0h", "a mediana da equipe sumiu junto com a quebra"
 
       # A quebra por pessoa, não.
@@ -610,6 +644,24 @@ defmodule TheBandWeb.TeamsLive.MedidasDaEquipeTest do
       })
 
     v
+  end
+
+  defp solicitacao_intitulada(ctx, numero, autora, aberta_em, titulo) do
+    {:ok, pr} =
+      ChangeCommands.record_change_request(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        number: numero,
+        title: titulo,
+        state: "OPEN",
+        external_created_at: aberta_em,
+        author_login: autora.login,
+        author_person_id: autora.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_#{numero}"
+      })
+
+    pr
   end
 
   defp solicitacao(ctx, numero, autora, aberta_em) do

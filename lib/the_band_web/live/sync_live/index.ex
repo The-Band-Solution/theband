@@ -9,6 +9,7 @@ defmodule TheBandWeb.SyncLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.Cota
   alias TheBand.Jobs.ReprocessMappings
   alias TheBand.Mapping
   alias TheBand.Ontology.SEON.EO
@@ -31,6 +32,10 @@ defmodule TheBandWeb.SyncLive.Index do
        page_title: "Syncs",
        fase: nil,
        paused: nil,
+       # O painel de cota — ADR 0007, parte 5. Por identidade (usuário do GitHub dono do
+       # token): o que resta em cada balde, quando reabre, quantas em voo.
+       cotas: %{},
+       cotas_assinadas: MapSet.new(),
        reprocess: nil,
        mapeamento: nil,
        # Muda a cada recálculo concluído, e é o que faz o componente de regras recarregar:
@@ -186,6 +191,10 @@ defmodule TheBandWeb.SyncLive.Index do
     {:noreply, assign(socket, paused: seconds)}
   end
 
+  def handle_info({:cota, chave, baldes}, socket) do
+    {:noreply, update(socket, :cotas, &Map.put(&1, chave, baldes))}
+  end
+
   def handle_info({:sync_finished, _id}, socket) do
     {:noreply, socket |> assign(paused: nil) |> load()}
   end
@@ -248,6 +257,40 @@ defmodule TheBandWeb.SyncLive.Index do
           before syncing.
         </p>
       </div>
+
+      <section :if={@cotas != %{}} class="rounded-box border border-base-300 p-4 space-y-3">
+        <h2 class="font-semibold">API quota</h2>
+        <p class="text-sm opacity-70">
+          The GitHub quota belongs to the user who owns the token, not to the tool. Two tools
+          with tokens of the same user share one line here. What is shown is what the last
+          response said, corrected by what is still in flight.
+        </p>
+        <div :for={{chave, baldes} <- @cotas} class="text-sm">
+          <div class="font-medium">{dono_da_cota(chave)} · {elem(chave, 0)}</div>
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>bucket</th>
+                  <th>remaining</th>
+                  <th>reopens</th>
+                  <th>in flight</th>
+                  <th>refused this window</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={{nome, balde} <- [{"REST", baldes.core}, {"GraphQL", baldes.graphql}]}>
+                  <td>{nome}</td>
+                  <td>{saldo(balde)}</td>
+                  <td>{reabre_em(balde)}</td>
+                  <td>{balde.em_voo}</td>
+                  <td>{balde.recusados_na_janela}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
 
       <div class="grid gap-3 sm:grid-cols-2">
         <div
@@ -602,7 +645,9 @@ defmodule TheBandWeb.SyncLive.Index do
         <table :if={sync.status != "running"} class="table table-xs stacked">
           <thead>
             <tr>
-              <th>entity</th><th class="text-right">pages</th><th class="text-right">records</th><th>
+              <th>entity</th><th>status</th><th class="text-right">pages</th><th class="text-right">
+                records
+              </th><th>
                 last page
               </th>
             </tr>
@@ -610,6 +655,7 @@ defmodule TheBandWeb.SyncLive.Index do
           <tbody>
             <tr :for={checkpoint <- checkpoints(sync)}>
               <td data-label="entity" class="font-mono text-xs">{checkpoint.entity_type}</td>
+              <td data-label="status" class="text-xs">{checkpoint.status}</td>
               <td data-label="pages" class="text-right tabular-nums">{checkpoint.page_count}</td>
               <td data-label="records" class="text-right tabular-nums">{checkpoint.record_count}</td>
               <td data-label="last page">{checkpoint.last_page_at}</td>
@@ -648,7 +694,45 @@ defmodule TheBandWeb.SyncLive.Index do
     |> assign(tools: tools)
     |> assign(syncs: syncs)
     |> assign(usuarios: Tenants.users_by_id(tenant))
+    |> observar_cotas(tools)
   end
+
+  # Uma assinatura por identidade de cota, e não por ferramenta: duas ferramentas com
+  # tokens do mesmo usuário são a MESMA cota, e o painel mostra uma linha. A assinatura é
+  # feita uma vez (o `load/1` roda a cada evento); o estado inicial vem do gestor, que pode
+  # ainda não existir — aí a identidade só aparece quando a primeira requisição sair.
+  defp observar_cotas(socket, tools) do
+    chaves =
+      tools
+      |> Enum.filter(&(&1.tool_type == "github"))
+      |> Enum.map(&Cota.chave(&1, Sources.active_credential(&1)))
+      |> Enum.uniq()
+
+    novas = Enum.reject(chaves, &MapSet.member?(socket.assigns.cotas_assinadas, &1))
+    if connected?(socket), do: Enum.each(novas, &Cota.subscribe/1)
+
+    cotas =
+      Enum.reduce(chaves, socket.assigns.cotas, fn chave, acc ->
+        case Cota.estado(chave) do
+          nil -> acc
+          baldes -> Map.put(acc, chave, baldes)
+        end
+      end)
+
+    socket
+    |> assign(cotas: cotas)
+    |> update(:cotas_assinadas, &MapSet.union(&1, MapSet.new(novas)))
+  end
+
+  defp dono_da_cota({_instancia, {:credencial, _id}}), do: "credential not yet identified"
+  defp dono_da_cota({_instancia, login}), do: login
+
+  defp reabre_em(%{reset: %DateTime{} = reset}), do: Calendar.strftime(reset, "%H:%M UTC")
+  defp reabre_em(_balde), do: "unknown"
+
+  defp saldo(%{remaining: nil}), do: "not read yet"
+  defp saldo(%{remaining: r, limit: nil}), do: Integer.to_string(r)
+  defp saldo(%{remaining: r, limit: l}), do: "#{r} / #{l}"
 
   # Por sync, e não do tenant: o número ao lado de uma execução tem de ser o que **ela**
   # trouxe.

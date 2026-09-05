@@ -104,10 +104,21 @@ Os 102 restantes **não** têm explicação no resumo da coleta: `unreachable: 0
 `without_ci: 0`, `rate_limited: 0`. Nenhum dos motivos que o código sabe registrar
 aparece.
 
-Fica como **pendência declarada, e não como número apresentado**: a cobertura real da
-taxa do pipeline é de 16 repositórios com dado, sobre 125 observados, e não sei dizer se
-os 102 foram percorridos e nada tinham, ou se a etapa parou sem marcar. Apresentar 5 311
-execuções sem esta ressalva sugeriria uma amostra que não foi verificada.
+**Investigado em 2026-09-05, e explicado**: 98 dos 102 falharam com `{:rate_limited, _}`
+— cota, não problema do repositório. O resumo dizia `rate_limited: 0` porque o estado
+`:sem_janela` existia no contador e **nada o produzia** — o rate limit reativo caía no
+ramo geral e virava `:inalcancavel`. Corrigido no PR #806, com a etapa ganhando os
+primeiros testes que já teve.
+
+E as execuções gravadas **sem jobs** — 418 de 6 168 — têm a mesma causa, e só ela: os
+586 registros de *"jobs não coletados"* no log são todos `{:rate_limited, _}`. Não são
+jobs expirados nem defeito de coleta. Com o `snooze` corrigido, a próxima coleta espera a
+janela e preenche; o checkpoint bloqueado nesses repositórios está fazendo exatamente o
+que a L29 manda.
+
+A cobertura real da taxa do pipeline segue sendo **16 repositórios com dado, sobre 125
+observados** — e agora com a causa da diferença nomeada, em vez de declarada como
+desconhecida.
 
 ### Os 37 inacessíveis sumiram
 
