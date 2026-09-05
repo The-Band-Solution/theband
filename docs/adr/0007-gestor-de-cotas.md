@@ -214,6 +214,21 @@ O que isso fecha, medido no inventário:
 `*_collected_at` continua sendo o corte incremental **entre** sincronizações; o checkpoint é
 o corte **dentro** de uma.
 
+> **Emenda (2026-09-05, implementação).** A unidade de retomada **dentro** de uma etapa
+> é o repositório, e não a página. As etapas por repositório acumulam as páginas em
+> memória e gravam no fim (`paginar` → `gravar`); um cursor por página só valeria se cada
+> página fosse gravada ao chegar, o que muda a estrutura das seis etapas. O que entrou:
+> `etapa:<nome>` marcada `completed` ao fim de cada etapa (a etapa concluída não roda de
+> novo na retomada), o mesmo teste para as entidades EO (que já tinham cursor por página e
+> agora também têm "concluída"), e as branches passaram a pular o repositório percorrido
+> nesta sincronização — a marca era escrita e nunca lida. Custo do que ficou de fora: um
+> `{:snooze}` no meio de um repositório refaz as páginas **daquele** repositório na volta
+> — no maior da organização medida, dez páginas. Cursor por página nas etapas por
+> repositório fica para quando a medida real (Verificação 4) mostrar que isso pesa. A
+> consulta da **organização** roda a cada passada — uma requisição: ela é o pai do contexto
+> (`organization_node`), e reconstruí-la do payload preservado não valia o custo de uma
+> chamada por retomada.
+
 ### 5. A tela: a cota é visível, com nome
 
 Princípio IV: nada na tela sem declaração — e o inverso também vale: nada que decide fica

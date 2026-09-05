@@ -205,17 +205,28 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # A ordem é dependência de dado, e está declarada em cada etapa.
   defp coletar_trabalho(ctx) do
     Enum.reduce_while(etapas(), %{}, fn {nome, etapa}, acumulado ->
-      case etapa.(ctx) do
-        {:ok, resumo} ->
-          {:cont, Map.merge(acumulado, resumo)}
-
-        {:snooze, segundos} ->
-          {:halt, Map.put(acumulado, :snooze, segundos)}
-
-        {:error, motivo} ->
-          erro_da_etapa(ctx, nome, motivo, acumulado)
+      # RETOMADA — ADR 0007, parte 4. A etapa concluída nesta sincronização não roda de
+      # novo: um `{:snooze}` na sexta refazia as requisições da primeira à quinta na volta.
+      if Ingestion.etapa_concluida?(ctx.sync, "etapa:" <> Atom.to_string(nome)) do
+        {:cont, Map.update(acumulado, :etapas_puladas, [nome], &[nome | &1])}
+      else
+        passo_da_etapa(ctx, nome, etapa, acumulado)
       end
     end)
+  end
+
+  defp passo_da_etapa(ctx, nome, etapa, acumulado) do
+    case etapa.(ctx) do
+      {:ok, resumo} ->
+        {:ok, _} = Ingestion.concluir_etapa(ctx.sync, Atom.to_string(nome))
+        {:cont, Map.merge(acumulado, resumo)}
+
+      {:snooze, segundos} ->
+        {:halt, Map.put(acumulado, :snooze, segundos)}
+
+      {:error, motivo} ->
+        erro_da_etapa(ctx, nome, motivo, acumulado)
+    end
   end
 
   # Cota é espera; qualquer outro erro vai para o log e a lista segue, como sempre foi.
@@ -490,8 +501,14 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
   # Paginação genérica: uma página por vez, checkpoint depois de processar.
   defp paginate(ctx, entity_type, query_name, handler, opts \\ []) do
-    cursor = Ingestion.resume_cursor(ctx.sync, entity_type)
-    do_paginate(ctx, entity_type, query_name, handler, cursor, opts)
+    # Concluída nesta sincronização, não pagina de novo (ADR 0007, parte 4). O cursor
+    # sozinho não distinguia "terminou" de "nunca começou" — os dois eram `nil`.
+    if Ingestion.etapa_concluida?(ctx.sync, entity_type) do
+      :ok
+    else
+      cursor = Ingestion.resume_cursor(ctx.sync, entity_type)
+      do_paginate(ctx, entity_type, query_name, handler, cursor, opts)
+    end
   end
 
   defp do_paginate(ctx, entity_type, query_name, handler, cursor, opts) do

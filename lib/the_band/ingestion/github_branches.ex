@@ -46,7 +46,10 @@ defmodule TheBand.Ingestion.GithubBranches do
   """
   @spec collect(map()) :: {:ok, map()}
   def collect(ctx) do
-    repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
+    repositorios =
+      ctx.tenant.id
+      |> repositorios_observados(ctx.tool.id)
+      |> Enum.reject(&feito_nesta_sincronizacao?(&1, ctx.sync.started_at))
 
     # Sequencial, e PARA na janela fechada (ADR 0007): o que já foi gravado fica, o que
     # falta é da retomada. Seguir devolveria um resumo e o job fecharia o sync como completo.
@@ -90,9 +93,28 @@ defmodule TheBand.Ingestion.GithubBranches do
         where:
           r.tenant_id == type(^tenant_id, :binary_id) and
             r.connected_tool_id == type(^tool_id, :binary_id) and is_nil(r.excluded_at),
-        select: %{id: type(r.id, :binary_id), qualified_name: f.qualified_name}
+        select: %{
+          id: type(r.id, :binary_id),
+          qualified_name: f.qualified_name,
+          branches_collected_at: r.branches_collected_at
+        }
     )
   end
+
+  # Percorrido NESTA sincronização: a etapa parou na janela no meio, e a retomada não
+  # precisa refazer os repositórios que já concluiu (ADR 0007, parte 4). Entre
+  # sincronizações a etapa continua não-incremental, pelo motivo declarado no job: a
+  # pergunta é "que branches existem agora".
+  defp feito_nesta_sincronizacao?(%{branches_collected_at: nil}, _inicio), do: false
+
+  defp feito_nesta_sincronizacao?(%{branches_collected_at: quando}, %DateTime{} = inicio) do
+    quando
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.compare(inicio)
+    |> Kernel.in([:gt, :eq])
+  end
+
+  defp feito_nesta_sincronizacao?(_repo, _inicio), do: false
 
   defp coletar_repositorio(ctx, repo) do
     inicio = DateTime.utc_now(:second)

@@ -645,7 +645,9 @@ defmodule TheBandWeb.SyncLive.Index do
         <table :if={sync.status != "running"} class="table table-xs stacked">
           <thead>
             <tr>
-              <th>entity</th><th class="text-right">pages</th><th class="text-right">records</th><th>
+              <th>entity</th><th>status</th><th class="text-right">pages</th><th class="text-right">
+                records
+              </th><th>
                 last page
               </th>
             </tr>
@@ -653,6 +655,7 @@ defmodule TheBandWeb.SyncLive.Index do
           <tbody>
             <tr :for={checkpoint <- checkpoints(sync)}>
               <td data-label="entity" class="font-mono text-xs">{checkpoint.entity_type}</td>
+              <td data-label="status" class="text-xs">{checkpoint.status}</td>
               <td data-label="pages" class="text-right tabular-nums">{checkpoint.page_count}</td>
               <td data-label="records" class="text-right tabular-nums">{checkpoint.record_count}</td>
               <td data-label="last page">{checkpoint.last_page_at}</td>
