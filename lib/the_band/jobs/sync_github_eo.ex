@@ -154,7 +154,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         {:error, :unauthorized}
 
       {:error, reason} ->
-        finish_with_error(tenant, sync, reason)
+        finish_with_error(tenant, sync, tool, token, reason)
     end
   end
 
@@ -297,20 +297,46 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # alguém a investigar uma coleta que o Oban ainda vai retentar sozinho — e,
   # pior, liberaria o índice que impede duas coletas simultâneas da mesma
   # ferramenta, porque ele só bloqueia enquanto o estado é `running`.
-  defp finish_with_error(tenant, sync, reason) do
-    if Client.transient?(reason) do
-      Logger.warning("falha transitória na coleta, será retentada: #{inspect(reason)}")
-      Ingestion.broadcast(tenant.id, {:sync_retrying, sync.id, Client.describe_error(reason)})
-    else
-      sync
-      |> Ingestion.reload()
-      |> Ingestion.finish(:failed, error_reason: Client.describe_error(reason))
+  defp finish_with_error(tenant, sync, tool, token, reason) do
+    cond do
+      # RATE LIMIT: espera, e não retenta — medido em 2026-09-04.
+      #
+      # Retentar é o que `transient?` produz, e para o limite de taxa isso é a decisão
+      # errada: a janela leva até uma hora, e as cinco tentativas do Oban se esgotam em
+      # minutos, todas dentro da mesma janela fechada. O job era descartado, e a coleta
+      # parava de vez — foi assim que ela morreu em 2 de 88 repositórios.
+      #
+      # `{:snooze, segundos}` devolve o job à fila SEM consumir tentativa, que é o que o
+      # moduledoc deste módulo promete desde o começo (FR-016).
+      Client.rate_limit?(reason) ->
+        adiar_ate_reabrir(tenant, sync, tool, token)
 
-      Logger.error("coleta falhou: #{inspect(reason)}")
-      Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+      Client.transient?(reason) ->
+        Logger.warning("falha transitória na coleta, será retentada: #{inspect(reason)}")
+        Ingestion.broadcast(tenant.id, {:sync_retrying, sync.id, Client.describe_error(reason)})
+        {:error, reason}
+
+      true ->
+        sync
+        |> Ingestion.reload()
+        |> Ingestion.finish(:failed, error_reason: Client.describe_error(reason))
+
+        Logger.error("coleta falhou: #{inspect(reason)}")
+        Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+        {:error, reason}
     end
+  end
 
-    {:error, reason}
+  # O sync fica `running` de propósito: ele não falhou, está esperando a janela. Marcar
+  # `failed` aqui levaria alguém a investigar uma coleta que vai continuar sozinha — e
+  # liberaria o índice que impede duas coletas simultâneas da mesma ferramenta.
+  defp adiar_ate_reabrir(tenant, sync, tool, token) do
+    segundos = Client.segundos_ate_reabrir(tool.instance_url, token)
+
+    Logger.warning("limite de taxa atingido; a coleta continua em #{segundos}s")
+    Ingestion.broadcast(tenant.id, {:sync_paused, sync.id, segundos})
+
+    {:snooze, segundos}
   end
 
   # ------------------------------------------------------------------ coleta

@@ -329,6 +329,49 @@ defmodule TheBand.Integrations.GitHub.Client do
 
   def pause_needed?(_), do: :continue
 
+  @doc """
+  Este erro é o limite de taxa da origem? — e portanto **se cura esperando**, e não
+  tentando de novo.
+
+  Existe separada de `transient?/1` porque as duas decisões são diferentes. Transitório
+  responde *"vale insistir?"*; esta responde *"insistir AGORA adianta?"* — e para o rate
+  limit a resposta é **não**: a janela leva até uma hora, e as tentativas do Oban se
+  esgotam em minutos.
+
+  Medido em 2026-09-04: uma coleta real esgotou a cota, o erro foi classificado como
+  transitório, o Oban retentou cinco vezes em poucos minutos, e o job foi descartado —
+  todas as tentativas dentro da mesma janela fechada.
+  """
+  @spec rate_limit?(term()) :: boolean()
+  def rate_limit?({:graphql_errors, errors}) when is_list(errors),
+    do: Enum.any?(errors, &erro_de_taxa?/1)
+
+  def rate_limit?({:rate_limited, _reset}), do: true
+  def rate_limit?(_outro), do: false
+
+  defp erro_de_taxa?(%{"type" => tipo}) when tipo in @tipos_de_rate_limit, do: true
+  defp erro_de_taxa?(%{"code" => "graphql_rate_limit"}), do: true
+  defp erro_de_taxa?(_outro), do: false
+
+  @doc """
+  Quantos segundos faltam para a janela reabrir.
+
+  Consulta `/rate_limit`, que **não consome cota** — é a única chamada possível com a
+  cota esgotada. Quando ela própria falha, devolve o padrão em vez de levantar: não saber
+  quanto falta não é motivo para desistir da coleta.
+  """
+  @spec segundos_ate_reabrir(String.t(), String.t(), non_neg_integer()) :: non_neg_integer()
+  def segundos_ate_reabrir(instance_url, token, padrao \\ 900) do
+    case HTTP.impl().get(api_base(instance_url) <> "/rate_limit", token) do
+      {:ok, %{status: 200, body: %{"resources" => %{"graphql" => %{"reset" => reset}}}}} ->
+        # Um minuto de folga: reabrir no instante exato do reset às vezes ainda recusa.
+        max(reset - System.system_time(:second) + 60, 60)
+
+      _ ->
+        padrao
+    end
+  end
+
   defp api_base("https://github.com"), do: "https://api.github.com"
   defp api_base(url), do: String.trim_trailing(url, "/") <> "/api/v3"
 

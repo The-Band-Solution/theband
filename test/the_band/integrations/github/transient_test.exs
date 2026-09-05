@@ -58,6 +58,28 @@ defmodule TheBand.Integrations.GitHub.TransientTest do
       assert Client.transient?({:graphql_errors, [%{"code" => "graphql_rate_limit"}]})
     end
 
+    test "o limite de taxa é reconhecido como TAXA, e não só como transitório" do
+      # As duas classificações respondem perguntas diferentes: `transient?` diz se vale
+      # insistir; `rate_limit?` diz se insistir AGORA adianta. Para a taxa, não adianta —
+      # a janela leva até uma hora, e as cinco tentativas do Oban se esgotam em minutos,
+      # todas dentro da mesma janela fechada.
+      erro = %{"type" => "RATE_LIMIT", "code" => "graphql_rate_limit"}
+
+      assert Client.rate_limit?({:graphql_errors, [erro]})
+      assert Client.rate_limit?({:graphql_errors, [%{"type" => "RATE_LIMITED"}]})
+      assert Client.rate_limit?({:rate_limited, 12_345})
+    end
+
+    test "erro transitório que NÃO é de taxa não pede espera" do
+      # Falha interna da origem se cura tentando de novo, e não esperando uma hora.
+      # Confundir as duas faria a coleta dormir por nada.
+      interno = %{"message" => "Something went wrong while executing your query"}
+
+      assert Client.transient?({:graphql_errors, [interno]})
+      refute Client.rate_limit?({:graphql_errors, [interno]})
+      refute Client.rate_limit?({:transport, :nxdomain})
+    end
+
     test "erro que apenas MENCIONA limite continua permanente" do
       # A lista de tipos é fechada de propósito. Casar por texto pegaria famílias de erro
       # que só mencionam a palavra, e insistir num erro permanente é o oposto do que a

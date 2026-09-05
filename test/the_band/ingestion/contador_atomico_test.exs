@@ -17,6 +17,7 @@ defmodule TheBand.Ingestion.ContadorAtomicoTest do
   """
   use TheBand.DataCase, async: false
 
+  alias Ecto.Adapters.SQL.Sandbox
   alias TheBand.Ingestion
   alias TheBand.Ingestion.Sync
   alias TheBand.Repo
@@ -38,7 +39,7 @@ defmodule TheBand.Ingestion.ContadorAtomicoTest do
         fn _ ->
           # Cada tarefa recebe a struct do MESMO instante — é exatamente o cenário que
           # a corrida produz: todas leem o mesmo valor antes de qualquer escrita.
-          Ecto.Adapters.SQL.Sandbox.allow(Repo, ctx.owner_pid, self())
+          Sandbox.allow(Repo, ctx.owner_pid, self())
           Ingestion.tally(ctx.sync, :created)
         end,
         max_concurrency: 10,
@@ -63,7 +64,7 @@ defmodule TheBand.Ingestion.ContadorAtomicoTest do
       1..@concorrentes
       |> Task.async_stream(
         fn _ ->
-          Ecto.Adapters.SQL.Sandbox.allow(Repo, ctx.owner_pid, self())
+          Sandbox.allow(Repo, ctx.owner_pid, self())
           Ingestion.tally(ctx.sync, :repository_unreachable)
         end,
         max_concurrency: 10,
