@@ -140,6 +140,24 @@ defmodule TheBand.Ingestion.GithubVerifications do
         Commands.touch_repository(repo.id, inicio)
         vazio(:sem_ci)
 
+      # JANELA ESGOTADA não é repositório quebrado — medido em 2026-09-05.
+      #
+      # O estado `:sem_janela` existia no contador e **nada o produzia**: o rate limit
+      # reativo caía no ramo geral abaixo e virava `:inalcancavel`. Na coleta real, 98
+      # repositórios saudáveis foram contados como inalcançáveis, e o resumo informou
+      # `rate_limited: 0` — exatamente o que o comentário do contador diz que não pode
+      # acontecer, e pela segunda vez (a primeira foi medida em 2026-08-18, com 160).
+      #
+      # A frase importa: "volte daqui a pouco" e "algo está errado com este repositório"
+      # levam a ações opostas. Quem lê `unreachable: 98` vai investigar 98 repositórios
+      # que não têm nada.
+      {:error, {:rate_limited, reset}} ->
+        Logger.info(
+          "verificações de #{repo.qualified_name} adiadas: janela reabre em #{inspect(reset)}"
+        )
+
+        vazio(:sem_janela)
+
       {:error, reason} ->
         Logger.warning("verificações de #{repo.qualified_name} não coletadas: #{inspect(reason)}")
 
