@@ -186,7 +186,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
         {:error, :unauthorized}
 
       {:error, reason} ->
-        finish_with_error(tenant, sync, tool, token, reason)
+        finish_with_error(ctx, reason)
     end
   end
 
@@ -261,7 +261,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
 
       {:error, motivo} ->
         if Client.rate_limit?(motivo) do
-          put_in(acumulado, [:fechados, balde], segundos_de_espera(motivo, ctx.tool, ctx.token))
+          put_in(acumulado, [:fechados, balde], segundos_de_espera(motivo, ctx))
         else
           Logger.warning("etapa #{nome} falhou: #{inspect(motivo)}")
           put_in(acumulado, [:falhas, nome], motivo)
@@ -391,7 +391,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # alguém a investigar uma coleta que o Oban ainda vai retentar sozinho — e,
   # pior, liberaria o índice que impede duas coletas simultâneas da mesma
   # ferramenta, porque ele só bloqueia enquanto o estado é `running`.
-  defp finish_with_error(tenant, sync, tool, token, reason) do
+  defp finish_with_error(%{tenant: tenant, sync: sync} = ctx, reason) do
     cond do
       # RATE LIMIT: espera, e não retenta — medido em 2026-09-04.
       #
@@ -403,7 +403,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       # `{:snooze, segundos}` devolve o job à fila SEM consumir tentativa, que é o que o
       # moduledoc deste módulo promete desde o começo (FR-016).
       Client.rate_limit?(reason) ->
-        adiar_ate_reabrir(tenant, sync, tool, token, reason)
+        adiar_ate_reabrir(ctx, reason)
 
       Client.transient?(reason) ->
         Logger.warning("falha transitória na coleta, será retentada: #{inspect(reason)}")
@@ -429,8 +429,8 @@ defmodule TheBand.Jobs.SyncGitHubEO do
   # independente. `segundos_ate_reabrir/3` lê o do GraphQL; um `{:rate_limited, reset}` da
   # REST já carrega o reset do balde `core` no cabeçalho, e consultar o outro faria o job
   # dormir a hora do balde errado.
-  defp adiar_ate_reabrir(tenant, sync, tool, token, reason) do
-    segundos = segundos_de_espera(reason, tool, token)
+  defp adiar_ate_reabrir(%{tenant: tenant, sync: sync} = ctx, reason) do
+    segundos = segundos_de_espera(reason, ctx)
 
     Logger.warning("limite de taxa atingido; a coleta continua em #{segundos}s")
     Ingestion.broadcast(tenant.id, {:sync_paused, sync.id, segundos})
@@ -438,18 +438,26 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     {:snooze, segundos}
   end
 
-  # REST: o cabeçalho já disse quando o balde `core` reabre — um minuto de folga, porque
-  # reabrir no instante exato às vezes ainda recusa.
-  defp segundos_de_espera({:rate_limited, %DateTime{} = reset}, _tool, _token),
+  # O erro já trouxe o reset — cabeçalho da REST, ou a recusa do gestor, que devolve o reset
+  # conhecido do balde. Um minuto de folga, porque reabrir no instante exato às vezes ainda
+  # recusa.
+  defp segundos_de_espera({:rate_limited, %DateTime{} = reset}, _ctx),
     do: max(DateTime.diff(reset, DateTime.utc_now(), :second) + 60, 60)
 
-  # O gestor recusou a GraphQL sem saber o reset (a origem recusa sem dizer quando volta).
-  defp segundos_de_espera({:rate_limited, nil}, tool, token),
-    do: Client.segundos_ate_reabrir(tool.instance_url, token)
-
-  # GraphQL: o erro não traz o reset; `/rate_limit` traz, e não consome cota.
-  defp segundos_de_espera(_graphql, tool, token),
-    do: Client.segundos_ate_reabrir(tool.instance_url, token)
+  # O erro NÃO trouxe o reset: é a GraphQL recusando com `RATE_LIMITED`, que não diz quando
+  # volta. Quem sabe é o GESTOR — ele guardou o `resetAt` da última resposta boa do balde.
+  #
+  # `GET /rate_limit` era a fonte aqui, e foi medido mentindo em 2026-09-06: devolveu
+  # `5000/5000, used: 0` nos dois baldes enquanto os cabeçalhos da REST diziam 1 634
+  # usadas e o `rateLimit` da GraphQL dizia 1 987 pontos gastos. Com ele, o job dormiria
+  # uma hora inteira (o "reset" de uma janela que ele acha vazia) em vez dos minutos que
+  # faltavam. Fica como último recurso, quando não há gestor ou ele nunca viu o balde.
+  defp segundos_de_espera(_sem_reset, ctx) do
+    case ctx[:cota] && Cota.janela_aberta?(ctx.cota, :graphql) do
+      {:fechada, %{segundos: segundos}} -> segundos
+      _ -> Client.segundos_ate_reabrir(ctx.tool.instance_url, ctx.token)
+    end
+  end
 
   # ------------------------------------------------------------------ coleta
 
