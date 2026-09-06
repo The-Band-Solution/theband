@@ -11,6 +11,7 @@ escopo — não só a lista.
 | [Biblioteca de derivação](tooling-library.md) | extrair a transformação como biblioteca independente | **baixa** |
 | [Setup inicial e a empresa com endereço próprio](setup-inicial-e-multiempresa.md) | o wizard que cria a empresa, conecta organizações do GitHub e dá a ela `<empresa>.theband.dev` | **alta** |
 | [O projeto pertence a uma organização](projeto-pertence-a-organizacao.md) | o elo que falta entre projeto e organização, decidido em 2026-09-01, e a premissa da ontologia que ele vence | **alta** |
+| [A organização do tenant, as organizações do GitHub, e o sign up](organizacao-do-tenant-e-sign-up.md) | separar a instituição que usa a plataforma da organização do GitHub que ela observa; a instituição nasce com a instalação, liga N organizações do GitHub, e o sign up cria as seguintes — spec [059](../../specs/059-organizacao-do-tenant/spec.md), rascunho com duas decisões em aberto | **alta — proposta de 2026-09-06, a confirmar na priorização** |
 | [Português na interface](portugues-na-interface.md) | 23 ocorrências de português numa interface que serve em inglês — e o verificador que não as vê | média |
 | [A tela da equipe complexa](tela-da-equipe-complexa.md) | os indicadores por subequipe sem soma, o foco da tela, e o defeito que a medida tem hoje ao ignorar o período do vínculo | **alta** |
 | [O burn da pessoa parte de zero](burn-da-pessoa-sem-linha-de-base.md) | a página da pessoa mede o que nasceu na janela, e o rótulo diz trabalho em aberto | média — a pergunta precisa ser decidida antes do código |
