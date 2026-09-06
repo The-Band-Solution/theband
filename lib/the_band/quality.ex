@@ -18,6 +18,7 @@ defmodule TheBand.Quality do
 
   import Ecto.Query
 
+  alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
 
@@ -247,6 +248,85 @@ defmodule TheBand.Quality do
       %{autor_person_id: person_id, autor_login: login, esperas: delas}
     end)
     |> Enum.sort_by(&(&1.autor_login || ""))
+  end
+
+  @regra_cerimonia "change_request.ceremony"
+
+  @doc """
+  Separa a espera de **trabalho de código** da de **cerimônia do processo** — issue #805.
+
+  As duas são solicitações de mudança, e respondem perguntas diferentes. Medido em
+  2026-09-05, na organização `leds-conectafapes`, sobre 140 solicitações de 56 dias:
+
+  | população | revisadas | mediana | em curso | mediana |
+  |---|---:|---:|---:|---:|
+  | cerimônia | **32** | 0,1 h | 18 | 29 dias |
+  | trabalho | 11 | 0,6 h | **79** | **38 dias** |
+
+  **A composição é oposta nos dois lados.** A cerimônia domina o que é revisado; o
+  trabalho domina o que fica esperando. Somadas, produzem uma tela que engana sem nenhum
+  número errado — *mediana de 0,1 h* sugere revisão em minutos, e há 46 solicitações de
+  código paradas há mais de 30 dias.
+
+  **A cerimônia não é descartada**: ela volta separada, com nome. Removê-la faria a
+  contagem discordar da do GitHub sem explicação, e ela é fato sobre o processo.
+
+  Os padrões vêm da **base de conhecimento**, e não de constante aqui: eles são da
+  organização, e outra organização nomeia de outro jeito.
+  """
+  @spec separar_por_natureza([espera()]) :: %{trabalho: [espera()], cerimonia: [espera()]}
+  def separar_por_natureza(esperas) do
+    padroes = padroes_de_cerimonia()
+    {cerimonia, trabalho} = Enum.split_with(esperas, &cerimonia?(&1.titulo, padroes))
+
+    %{trabalho: trabalho, cerimonia: cerimonia}
+  end
+
+  # A âncora é a defesa contra o padrão largo: `contains?("release")` casaria com
+  # "fix: release notes quebradas", que é trabalho de código. Só `contains` declarado
+  # explicitamente na regra pode casar no meio.
+  defp cerimonia?(titulo, padroes) when is_binary(titulo) do
+    minusculo = String.downcase(titulo)
+
+    Enum.any?(padroes, fn
+      %{"match" => "prefix", "value" => v} -> String.starts_with?(minusculo, v)
+      %{"match" => "contains", "value" => v} -> String.contains?(minusculo, v)
+      _ -> false
+    end)
+  end
+
+  defp cerimonia?(_titulo, _padroes), do: false
+
+  defp padroes_de_cerimonia do
+    case KnowledgeBase.rule(@regra_cerimonia) do
+      {:ok, regra} -> Map.get(regra, "patterns", [])
+      :error -> raise "regra #{@regra_cerimonia} ausente da base de conhecimento"
+    end
+  end
+
+  @doc """
+  A mediana da espera **em curso**, em dias — a que sustenta a decisão de redistribuir.
+
+  `mediana_em_horas/1` responde *"quanto demorou o que foi revisado"*. Esta responde
+  *"há quanto tempo espera o que não foi"*, e é a que estava escondida dentro de um
+  contador sem nome (issue #805).
+
+  `nil` quando nada está esperando — e nunca zero, que afirmaria espera instantânea.
+  """
+  @spec mediana_da_espera_em_dias([espera()]) :: number() | nil
+  def mediana_da_espera_em_dias(esperas) do
+    dias =
+      esperas
+      |> Enum.flat_map(fn
+        %{estado: {:aguardando, d}} -> [d]
+        _ -> []
+      end)
+      |> Enum.sort()
+
+    case dias do
+      [] -> nil
+      lista -> mediana(lista)
+    end
   end
 
   @doc """

@@ -898,18 +898,38 @@ defmodule TheBandWeb.TeamsLive.Show do
     de_uma_pessoa? = Antipatterns.team_of_one?(socket.assigns.antipadroes_da_estrutura)
     ve_agregado? = ve_por_pessoa? or not de_uma_pessoa?
 
+    # As DUAS POPULAÇÕES, separadas — issue #805.
+    #
+    # Medido em 2026-09-05: 32 das 43 revisadas eram release e back-merge, e 79 das 97 em
+    # curso eram trabalho de código. A composição é oposta nos dois lados, e somá-las
+    # produzia uma tela que engana sem nenhum número errado: mediana de 0,1 h sugeria
+    # revisão em minutos, com 46 solicitações de código paradas há mais de 30 dias.
+    #
+    # A cerimônia não é descartada: ela aparece contada e nomeada. Removê-la faria a
+    # contagem discordar da do GitHub sem explicação.
+    %{trabalho: trabalho, cerimonia: cerimonia} = Quality.separar_por_natureza(esperas)
+
     assign(socket,
       espera_por_revisao: %{
         esperas: esperas,
+        trabalho: trabalho,
+        cerimonia: cerimonia,
         truncou?: truncou?,
         limite: @limite_de_esperas,
         ve_por_pessoa?: ve_por_pessoa?,
         ve_agregado?: ve_agregado?,
         de_uma_pessoa?: de_uma_pessoa?,
         motivo_da_recusa: motivo,
-        por_pessoa: if(ve_por_pessoa?, do: Quality.agrupar_por_pessoa(esperas), else: []),
-        mediana: Quality.mediana_em_horas(esperas),
-        em_curso: Enum.count(esperas, &match?({:aguardando, _}, &1.estado))
+        por_pessoa: if(ve_por_pessoa?, do: Quality.agrupar_por_pessoa(trabalho), else: []),
+        # A mediana que a tela DESTACA é a do trabalho de código: é ela que sustenta a
+        # decisão de redistribuir revisores. A da cerimônia vem ao lado, dita como o que é.
+        mediana: Quality.mediana_em_horas(trabalho),
+        mediana_da_cerimonia: Quality.mediana_em_horas(cerimonia),
+        # A que estava escondida dentro de um contador sem nome: há quanto tempo espera o
+        # trabalho que NÃO foi revisado. É o número que faz alguém agir.
+        espera_em_curso_dias: Quality.mediana_da_espera_em_dias(trabalho),
+        em_curso: Enum.count(trabalho, &match?({:aguardando, _}, &1.estado)),
+        cerimonia_em_curso: Enum.count(cerimonia, &match?({:aguardando, _}, &1.estado))
       }
     )
   end
@@ -1582,21 +1602,53 @@ defmodule TheBandWeb.TeamsLive.Show do
           class="flex flex-wrap gap-4"
         >
           <div class="card bg-base-200 p-3">
-            <div class="text-xs opacity-70">team median · closed waits</div>
+            <div class="text-xs opacity-70">code review · median wait</div>
             <div class="text-lg font-semibold">
               {if @espera_por_revisao.mediana, do: "#{@espera_por_revisao.mediana}h", else: "—"}
             </div>
             <div :if={is_nil(@espera_por_revisao.mediana)} class="text-xs opacity-60">
-              none reviewed yet — no median to state
+              no code change reviewed yet — no median to state
             </div>
           </div>
 
+          <%!-- O NÚMERO QUE FAZ ALGUÉM AGIR — issue #805.
+                Estava escondido dentro de um contador chamado "still waiting", ao lado de
+                uma mediana que o desmentia. --%>
           <div class="card bg-base-200 p-3">
-            <div class="text-xs opacity-70">still waiting</div>
-            <div class="text-lg font-semibold">{@espera_por_revisao.em_curso}</div>
-            <div class="text-xs opacity-60">outside the median, counted on their own</div>
+            <div class="text-xs opacity-70">waiting now · median age</div>
+            <div class="text-lg font-semibold">
+              {if @espera_por_revisao.espera_em_curso_dias,
+                do: "#{@espera_por_revisao.espera_em_curso_dias} d",
+                else: "—"}
+            </div>
+            <div class="text-xs opacity-60">
+              across {@espera_por_revisao.em_curso} code change(s) with no human review
+            </div>
+          </div>
+
+          <%!-- A cerimônia NÃO é descartada: aparece contada e nomeada. Removê-la faria a
+                contagem discordar da do GitHub sem explicação, e ela é fato sobre o
+                processo da organização. --%>
+          <div :if={@espera_por_revisao.cerimonia != []} class="card bg-base-200 p-3">
+            <div class="text-xs opacity-70">process ceremony</div>
+            <div class="text-lg font-semibold">{length(@espera_por_revisao.cerimonia)}</div>
+            <div class="text-xs opacity-60">
+              releases and back-merges, median {if @espera_por_revisao.mediana_da_cerimonia,
+                do: "#{@espera_por_revisao.mediana_da_cerimonia}h",
+                else: "—"} — counted apart
+            </div>
           </div>
         </div>
+
+        <%!-- A limitação vem junto do número (FR-019), e esta é a que a conferência
+              contra a origem obrigou a escrever. --%>
+        <p :if={@espera_por_revisao.cerimonia != []} class="text-xs opacity-60">
+          A <strong>release</strong>
+          approved in seconds is a step of the process, not a review of code — counting the
+          two together made the median read as fast while code changes sat unreviewed for
+          weeks. They are separated here, and the rule that separates them is declared in the
+          knowledge base, not in the code: another organisation names these differently.
+        </p>
 
         <%!-- A recusa NOMEIA o motivo (FR-024a). Esconder a quebra sem dizer por quê
               faria a seção parecer incompleta, e apresentá-la vazia afirmaria que a

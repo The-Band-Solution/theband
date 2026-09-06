@@ -42,6 +42,7 @@ defmodule TheBand.Sources do
           :active,
           :validated_at,
           :scopes,
+          :owner_login,
           :last_failure_at,
           :last_failure_reason,
           :inserted_at,
@@ -125,6 +126,76 @@ defmodule TheBand.Sources do
     case cifrado && Vault.decrypt(cifrado) do
       {:ok, segredo} -> {:ok, segredo}
       _ -> {:error, :unreadable}
+    end
+  end
+
+  # ------------------------------------------------------------ dono do token
+
+  @doc """
+  Ferramentas do tenant cujas credenciais ativas pertencem ao mesmo usuário do GitHub
+  (ADR 0007, decisão 1).
+
+  A cota primária do GitHub — 5 000 requisições por hora — é do **usuário autenticado**, e
+  não do token: dois tokens do mesmo usuário, em duas ferramentas, dividem o mesmo saldo.
+  Esta é a consulta que responde "quem divide cota com quem", e devolve só os donos que
+  aparecem em **duas ou mais** ferramentas — um dono com uma ferramenta só não divide nada.
+
+  Credencial sem dono conhecido (`owner_login` nulo) fica de fora: não dá para afirmar que
+  divide cota com alguém sem saber de quem é. `descobrir_dono/1` preenche essa lacuna.
+  """
+  @spec credenciais_com_mesmo_dono(Tenant.t()) :: %{String.t() => [ConnectedTool.t()]}
+  def credenciais_com_mesmo_dono(%Tenant{id: tenant_id}) do
+    linhas =
+      Repo.all(
+        from c in ToolCredential,
+          join: t in ConnectedTool,
+          on: t.id == c.connected_tool_id,
+          where: c.tenant_id == ^tenant_id and c.active == true and not is_nil(c.owner_login),
+          order_by: [asc: t.tool_type, asc: t.instance_url, asc: t.organization_login],
+          select: {c.owner_login, t}
+      )
+
+    linhas
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    # Duas credenciais do mesmo dono na mesma ferramenta não dividem cota com ninguém de
+    # fora: a ferramenta conta uma vez.
+    |> Map.new(fn {dono, tools} -> {dono, Enum.uniq_by(tools, & &1.id)} end)
+    |> Map.filter(fn {_dono, tools} -> length(tools) >= 2 end)
+  end
+
+  @doc """
+  Descobre e grava o dono de uma credencial que ainda não o tem (ADR 0007, decisão 1).
+
+  As credenciais gravadas antes desta decisão não sabem de quem são: o login veio em toda
+  validação e foi descartado. Descobrir custa **uma** chamada a `/user` com o token
+  decifrado — e só quando o dono é desconhecido: com `owner_login` preenchido, devolve a
+  credencial como está, sem tocar na origem. Quem chama é o job de coleta, que já vai
+  abrir o segredo de todo jeito.
+
+  `{:error, :unreadable}` é o mesmo de `fetch_secret/1`: a chave que cifrou o segredo não
+  existe mais, e nenhuma repetição resolve. Os demais erros são os de
+  `Client.verify_credential/2`.
+  """
+  @spec descobrir_dono(ToolCredential.t()) :: {:ok, ToolCredential.t()} | {:error, term()}
+  def descobrir_dono(%ToolCredential{owner_login: dono} = credential) when is_binary(dono),
+    do: {:ok, credential}
+
+  def descobrir_dono(%ToolCredential{} = credential) do
+    with {:ok, segredo} <- fetch_secret(credential),
+         {:ok, tool} <- ferramenta_da_credencial(credential),
+         {:ok, %{login: login}} <- Client.verify_credential(tool.instance_url, segredo) do
+      # `change/2`, e não `ToolCredential.changeset/2`: a credencial pode ter chegado sem o
+      # segredo carregado (`credenciais_sem_segredo/0`), e o changeset completo o exigiria.
+      credential
+      |> Ecto.Changeset.change(owner_login: login)
+      |> Repo.update()
+    end
+  end
+
+  defp ferramenta_da_credencial(%ToolCredential{connected_tool_id: tool_id}) do
+    case Repo.get(ConnectedTool, tool_id) do
+      %ConnectedTool{} = tool -> {:ok, tool}
+      nil -> {:error, :tool_not_found}
     end
   end
 
@@ -344,7 +415,7 @@ defmodule TheBand.Sources do
   @spec resume_observation(Tenant.t(), ConnectedTool.t(), map()) ::
           {:ok, map()} | {:error, term()}
   def resume_observation(%Tenant{id: tenant_id}, %ConnectedTool{} = tool, attrs) do
-    with {:ok, %{scopes: scopes}} <-
+    with {:ok, verificacao} <-
            Client.verify_credential(tool.instance_url, field(attrs, "secret")) do
       Repo.transaction(fn ->
         {:ok, event} =
@@ -359,7 +430,7 @@ defmodule TheBand.Sources do
           })
           |> Repo.insert()
 
-        credential = insert_credential_or_rollback(tenant_id, tool, attrs, scopes)
+        credential = insert_credential_or_rollback(tenant_id, tool, attrs, verificacao)
 
         # A ferramenta volta ao estado ativo: o motivo de atenção, se havia, era da
         # credencial destruída — e ela não existe mais.
@@ -372,8 +443,8 @@ defmodule TheBand.Sources do
 
   # `Repo.rollback` e não `{:ok, _} =`: um changeset inválido é resposta da aplicação,
   # e derrubar o processo tiraria da tela a chance de dizer o que está errado.
-  defp insert_credential_or_rollback(tenant_id, %ConnectedTool{} = tool, attrs, scopes) do
-    case tenant_id |> credential_changeset(tool.id, attrs, scopes) |> Repo.insert() do
+  defp insert_credential_or_rollback(tenant_id, %ConnectedTool{} = tool, attrs, verificacao) do
+    case tenant_id |> credential_changeset(tool.id, attrs, verificacao) |> Repo.insert() do
       {:ok, credential} -> credential
       {:error, changeset} -> Repo.rollback(changeset)
     end
@@ -396,9 +467,9 @@ defmodule TheBand.Sources do
           {:ok, %{tool: ConnectedTool.t(), credential: ToolCredential.t()}}
           | {:error, term()}
   def connect_tool(%Tenant{} = tenant, attrs) do
-    with {:ok, %{scopes: scopes}} <-
+    with {:ok, verificacao} <-
            Client.verify_credential(field(attrs, "instance_url"), field(attrs, "secret")) do
-      insert_tool_and_credential(tenant, attrs, scopes)
+      insert_tool_and_credential(tenant, attrs, verificacao)
     end
   end
 
@@ -413,9 +484,9 @@ defmodule TheBand.Sources do
   def add_credential(%Tenant{id: tenant_id}, %ConnectedTool{} = tool, attrs) do
     secret = field(attrs, "secret")
 
-    with {:ok, %{scopes: scopes}} <- Client.verify_credential(tool.instance_url, secret) do
+    with {:ok, verificacao} <- Client.verify_credential(tool.instance_url, secret) do
       tenant_id
-      |> credential_changeset(tool.id, attrs, scopes)
+      |> credential_changeset(tool.id, attrs, verificacao)
       |> Repo.insert()
     end
   end
@@ -640,7 +711,7 @@ defmodule TheBand.Sources do
     |> Repo.update()
   end
 
-  defp insert_tool_and_credential(%Tenant{id: tenant_id}, attrs, scopes) do
+  defp insert_tool_and_credential(%Tenant{id: tenant_id}, attrs, verificacao) do
     tool_attrs = %{
       tenant_id: tenant_id,
       tool_type: field(attrs, "tool_type", "github"),
@@ -654,7 +725,7 @@ defmodule TheBand.Sources do
     Repo.transaction(fn ->
       with {:ok, tool} <- insert_tool(tool_attrs),
            {:ok, credential} <-
-             Repo.insert(credential_changeset(tenant_id, tool.id, attrs, scopes)) do
+             Repo.insert(credential_changeset(tenant_id, tool.id, attrs, verificacao)) do
         %{tool: tool, credential: credential}
       else
         {:error, changeset} -> Repo.rollback(changeset)
@@ -672,7 +743,9 @@ defmodule TheBand.Sources do
     )
   end
 
-  defp credential_changeset(tenant_id, tool_id, attrs, scopes) do
+  # `verificacao` é o que `Client.verify_credential/2` devolveu: os escopos **e** o login do
+  # dono. O login nunca vem da tela — é a origem quem diz de quem é o token (ADR 0007).
+  defp credential_changeset(tenant_id, tool_id, attrs, %{login: login, scopes: scopes}) do
     secret = field(attrs, "secret")
 
     ToolCredential.changeset(%ToolCredential{}, %{
@@ -684,6 +757,7 @@ defmodule TheBand.Sources do
       secret: secret,
       last_four: ToolCredential.last_four(secret),
       scopes: scopes,
+      owner_login: login,
       validated_at: DateTime.utc_now(:second)
     })
   end

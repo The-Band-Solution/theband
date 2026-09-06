@@ -14,6 +14,8 @@ revisitada com a informação que existia quando foi tomada.
 | [0003](0003-organizacao-por-ontologias.md) | Domínio organizado pelas ontologias, não pelas ferramentas | Aceita |
 | [0004](0004-modelo-de-informacao-one-table-per-kind.md) | Modelo de informação derivado da ontologia por `one table per kind` | Aceita |
 | [0005](0005-telemetria-da-jornada.md) | Telemetria da jornada: `:telemetry` como barramento, coletor local, taxonomia declarada | **Proposta** |
+| [0006](0006-coleta-paralela.md) | Coleta paralela: concorrência por repositório, contador atômico antes, e o rate limit que hiberna sem dormir | **Proposta** |
+| [0007](0007-gestor-de-cotas.md) | Gestor de cotas: a cota é do usuário do GitHub, um processo a governa, e a coleta volta de onde parou | Aceita |
 
 ## Quando escrever uma ADR
 

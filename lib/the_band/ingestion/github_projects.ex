@@ -97,7 +97,7 @@ defmodule TheBand.Ingestion.GithubProjects do
   defp buscar_quadros(ctx, cursor \\ nil, acumulado \\ []) do
     vars = %{organization: ctx.tool.organization_login, after: cursor}
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, ler(:quadros), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, ler(:quadros), vars, cota: ctx[:cota]) do
       {:ok, %{data: %{"organization" => %{"projectsV2" => pagina}}}} ->
         acumulado = acumulado ++ (pagina["nodes"] || [])
 
@@ -373,7 +373,7 @@ defmodule TheBand.Ingestion.GithubProjects do
       after: cursor
     }
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, ler(:itens), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, ler(:itens), vars, cota: ctx[:cota]) do
       {:ok, %{data: %{"organization" => %{"projectV2" => %{"items" => itens}}}}} ->
         acumulado = acumulado ++ (itens["nodes"] || [])
 

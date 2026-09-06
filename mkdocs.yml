@@ -134,6 +134,9 @@ nav:
       - 0002 yaml como base de conhecimento: adr/0002-yaml-como-base-de-conhecimento.md
       - 0003 organizacao por ontologias: adr/0003-organizacao-por-ontologias.md
       - 0004 modelo de informacao one table per kind: adr/0004-modelo-de-informacao-one-table-per-kind.md
+      - 0005 telemetria da jornada: adr/0005-telemetria-da-jornada.md
+      - 0006 coleta paralela: adr/0006-coleta-paralela.md
+      - 0007 gestor de cotas: adr/0007-gestor-de-cotas.md
       - RFCs: rfc/README.md
       - RFC 0001 — derivação do modelo de informação: rfc/0001-derivacao-do-modelo-de-informacao.md
 

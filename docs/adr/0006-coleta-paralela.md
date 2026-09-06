@@ -25,8 +25,20 @@ A primeira coleta contra dado real, em 2026-09-04, foi medida:
 resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
 ```
 
-E não é rate limit: a cota GraphQL é 5 000 pontos/hora, e ~2,5 repositórios por minuto
-não chega perto. Se fosse, haveria `snooze` — e não houve nenhum.
+E na etapa medida não era rate limit: a cota GraphQL é 5 000 pontos/hora, e ~2,5
+repositórios por minuto não chega perto. Se fosse, haveria `snooze` — e não houve nenhum.
+
+**Correção de 2026-09-05, apontada pela avaliação técnica independente**: essa frase vale
+para as **mudanças**, que usam GraphQL. As **verificações** usam REST — uma requisição
+por execução, no balde `core`, que tem cota e reset **próprios**. Foi esse balde que
+estourou duas vezes no dia, e a ADR original tratava os dois como um só.
+
+A aritmética que decide tudo: 5 000 req/h são **1,39 req/s sustentado**. A coleta com
+concorrência 5 fez ~4 req/s — gasta a hora inteira de cota em **~21 minutos**. Os 3 316
+runs de 10 repositórios extrapolam para ~28 000 requisições na carga inicial de 86: **no
+mínimo 5,7 horas de cota a 100% de aproveitamento, com qualquer concorrência**. O desenho
+não pode ir mais rápido; só pode não desperdiçar requisição e atravessar várias janelas
+sem perder o lugar. **É coordenação de uma cota externa, e não processamento.**
 
 ### O modo de falha que a serialização produz
 
@@ -97,13 +109,89 @@ risco, sem precisar de DAG.
 limiting global são exatamente essa lista de problemas resolvida. Comprá-lo agora seria
 adquirir solução para problema que ainda não se tem.
 
+### 5. O rate limit dentro da etapa: hibernar sem dormir, e retomar de onde parou
+
+Pedido da pessoa mantenedora em 2026-09-05, depois de a coleta real mostrar o custo do que
+existe hoje: **98 repositórios pulados e 586 execuções sem jobs**, todos por rate limit,
+numa coleta que terminou em `completed` como se nada faltasse.
+
+O que o código fazia ao bater na cota **no meio** de uma etapa:
+
+1. marcava o repositório como não coletado e **seguia para o próximo** — que falhava
+   igual, gastando mais uma requisição contra a cota secundária. Foram 98 seguidas;
+2. gravava a execução sem os jobs e seguia para a próxima execução — 586 vezes;
+3. terminava a etapa com resumo parcial, e o job com `:ok`. **A próxima coleta refazia
+   tudo**, inclusive a requisição de jobs de execuções que **já os tinham** no banco —
+   e batia na cota de novo, no mesmo lugar.
+
+A implementação óbvia é `Process.sleep` até a janela reabrir. **É a errada**, e o código
+já diz por quê: um job que dorme parece travado, o `ReconcileStuckSyncs` o encerraria, e o
+slot da fila fica preso por até uma hora sem fazer nada.
+
+#### O algoritmo
+
+```
+ao receber {:rate_limited, reset} dentro de uma etapa:
+
+  1. PARAR a etapa — não tentar o próximo repositório nem a próxima execução.
+     Todos falhariam igual, e cada tentativa é uma requisição que a cota
+     secundária conta. Com Task.async_stream isso é reduce_while sobre o
+     stream: as tarefas já iniciadas terminam, as não iniciadas não começam.
+
+  2. NÃO gravar checkpoint do que ficou incompleto — já é assim (L29), e é
+     o que faz a retomada saber onde continuar.
+
+  3. A etapa devolve {:snooze, reset} em vez de {:ok, resumo_parcial}.
+     O job propaga: Oban reagenda SEM consumir tentativa, o slot da fila é
+     liberado, o sync fica `running`, e nenhum processo dorme.
+
+  4. NA RETOMADA, repositório sem checkpoint é refeito — MAS execução que
+     JÁ TEM jobs no banco NÃO gera nova requisição de jobs. É a diferença
+     entre "retomar de onde parou" e "recomeçar": hoje a retomada refaz as
+     mesmas 3 316 requisições e cai no mesmo buraco.
+
+  5. Repetir até a etapa completar sem snooze.
+```
+
+**O passo 4 é o que torna os outros úteis.** Sem ele, hibernar e voltar só adia a mesma
+falha: a cota reabre, a coleta refaz o que já tinha, gasta a cota de novo no mesmo ponto,
+e hiberna outra vez — para sempre, no mesmo repositório.
+
+#### O que isto NÃO muda
+
+O `pause_needed?` preventivo (`remaining < cost * 2`) continua sendo a primeira defesa: é
+melhor pausar antes de bater do que tratar a batida. Este algoritmo é o segundo nível — o
+que acontece quando a pausa preventiva não alcançou, porque outra coisa gastou a cota (um
+segundo coletor, ou a pessoa usando o mesmo token no `gh`).
+
 ## Alternativas consideradas
 
 **Subir o limite da fila `ingestion`.** Não resolve nada: há **um** job de sync, e ele
 seria o mesmo job sequencial com mais vizinhos ociosos.
 
-**Broadway.** Backpressure e concorrência prontos, e nenhuma persistência. A coleta precisa
-sobreviver a reinício — sem isso, volta ao começo a cada deploy.
+**Broadway.** Backpressure e concorrência prontos, e nenhuma persistência própria.
+
+*Emendado em 2026-09-05, depois de avaliação técnica independente pedida pela pessoa
+mantenedora.* O argumento original — "a fonte é uma API paginada, não uma fila" — é
+**fraco**: a fonte de um pipeline aqui seria a lista de `(repositório, etapa)` pendentes
+no Postgres, e um `ack` que grava checkpoint é persistência suficiente. O argumento
+correto é outro: **esse produtor é o Oban** — fila em Postgres com `SKIP LOCKED`,
+`snooze` sem consumir tentativa, `unique`, telemetria, e o `ReconcileStuckSyncs` decide
+"presa" consultando `oban_jobs`. Um pipeline fora do Oban seria encerrado como órfão em
+60 segundos. Broadway sobre Postgres é reimplementar a metade do Oban que já se paga, para
+ganhar a metade que não se precisa.
+
+E o `rate_limiting` nativo do Broadway mede a coisa errada: **mensagens por pipeline**, com
+taxa fixa. A cota é **requisições por token**, compartilhada entre etapas, coletores e o
+`gh` de quem mantém — e toda resposta REST já traz `x-ratelimit-remaining`, que é a
+verdade do token naquele instante. Ler o cabeçalho torna o limitador fixo desnecessário.
+
+**OTP + Broadway, GenStage puro, e o híbrido** foram avaliados e recusados pelo mesmo
+motivo: para uma lista finita de ~100 itens com concorrência 5, `async_stream` **já é** um
+consumidor por demanda. Backpressure resolve fonte mais rápida que consumidor; aqui o
+destino aceita menos do que se produz. O que rende é um GenServer por token só se for
+**orçamento lido do cabeçalho**, não taxa fixa — e o primeiro passo disso nem precisa de
+processo: é devolver `remaining`/`reset` das respostas 200, que hoje são descartados.
 
 **`Task.async` sem stream.** Sem limite de concorrência: 88 requisições simultâneas
 estouram o pool do Ecto e a cota do GitHub ao mesmo tempo.

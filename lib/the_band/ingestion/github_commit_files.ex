@@ -20,6 +20,7 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
   require Logger
 
   alias TheBand.Changes.Commands
+  alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Repo
 
@@ -35,21 +36,24 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
   @spec collect(map(), keyword()) :: {:ok, map()}
   def collect(ctx, opts \\ []) do
     limite = Keyword.get(opts, :limit)
-    esperar? = Keyword.get(opts, :wait_for_rate_limit, true)
     pendentes = commits_pendentes(ctx.tenant.id, ctx.tool.id, limite)
 
-    resultados = Enum.map(pendentes, &coletar_commit(ctx, &1, esperar?))
+    # PARA na janela fechada, e não dorme (ADR 0007): antes, esta etapa era a única que
+    # segurava o processo com `Process.sleep` até o reset. A espera agora é do Oban, como
+    # nas outras etapas — e os commits que ficaram continuam pendentes para a retomada.
+    case Janela.ate_fechar(pendentes, &coletar_commit(ctx, &1)) do
+      {:sem_janela, reset} ->
+        {:snooze, Janela.segundos_ate(reset)}
 
-    {:ok,
-     %{
-       commits_visited: length(pendentes),
-       files: Enum.sum(Enum.map(resultados, &elem(&1, 1))),
-       gone_from_source: Enum.count(resultados, &(elem(&1, 0) == :gone)),
-       # Quantos ficaram por rate limit sem espera — é o que diz à próxima execução que
-       # há trabalho, e nunca zero disfarçando "acabou".
-       rate_limited: Enum.count(resultados, &(elem(&1, 0) == :rate_limited)),
-       unreachable: Enum.count(resultados, &(elem(&1, 0) == :error))
-     }}
+      resultados ->
+        {:ok,
+         %{
+           commits_visited: length(pendentes),
+           files: Enum.sum(Enum.map(resultados, & &1.arquivos)),
+           gone_from_source: Enum.count(resultados, &(&1.estado == :gone)),
+           unreachable: Enum.count(resultados, &(&1.estado == :error))
+         }}
+    end
   end
 
   # Cada commit ainda não percorrido — sem filtro por vínculo com issue. A ordem é
@@ -84,46 +88,32 @@ defmodule TheBand.Ingestion.GithubCommitFiles do
     Repo.all(consulta)
   end
 
-  defp coletar_commit(ctx, commit, esperar?) do
-    case Client.commit_files(ctx.tool.instance_url, ctx.token, commit.repositorio, commit.sha) do
+  defp coletar_commit(ctx, commit) do
+    case Client.commit_files(ctx.tool.instance_url, ctx.token, commit.repositorio, commit.sha,
+           cota: ctx[:cota]
+         ) do
       {:ok, arquivos} ->
         :ok =
           Commands.replace_commit_files(ctx.tenant, commit.id, Enum.map(arquivos, &traduzir/1))
 
-        {:ok, length(arquivos)}
+        %{estado: :ok, arquivos: length(arquivos)}
 
       # Force-push reescreve história: o commit que a plataforma coletou pode não existir
       # mais na origem. É fato sobre o repositório, e marcar o checkpoint evita tentar de
       # novo para sempre.
       {:error, :not_found_at_source} ->
         :ok = Commands.replace_commit_files(ctx.tenant, commit.id, [])
-        {:gone, 0}
+        %{estado: :gone, arquivos: 0}
 
-      # **Rate limit esgotado não é falha: é a janela.** Esperar e continuar é o que
-      # transforma "não coletado" em "coletado mais tarde" — a limitação era nossa.
-      {:error, {:rate_limited, reset_em}} when esperar? ->
-        esperar_janela(reset_em)
-        coletar_commit(ctx, commit, esperar?)
-
-      {:error, {:rate_limited, _reset}} ->
-        {:rate_limited, 0}
+      # **Rate limit esgotado não é falha: é a janela.** O commit fica pendente
+      # (`files_collected_at` nulo) e a retomada o traz.
+      {:error, {:rate_limited, reset}} ->
+        %{estado: :sem_janela, sem_janela: true, reset: reset, arquivos: 0}
 
       {:error, motivo} ->
         Logger.warning("arquivos de #{commit.sha} não coletados: #{inspect(motivo)}")
-        {:error, 0}
+        %{estado: :error, arquivos: 0}
     end
-  end
-
-  # Dorme até a janela reabrir, com um segundo de folga. O log existe porque uma pausa
-  # de vinte minutos sem aviso é indistinguível de travamento.
-  defp esperar_janela(reset_em) do
-    segundos = max(DateTime.diff(reset_em, DateTime.utc_now(), :second) + 1, 1)
-
-    Logger.info(
-      "rate limit esgotado: aguardando #{div(segundos, 60)}min até #{DateTime.to_iso8601(reset_em)}"
-    )
-
-    Process.sleep(segundos * 1000)
   end
 
   defp traduzir(arquivo) do

@@ -235,6 +235,36 @@ defmodule TheBand.Ingestion do
     )
   end
 
+  @doc """
+  Esta entidade já foi percorrida por inteiro NESTA sincronização? — ADR 0007, parte 4.
+
+  `resume_cursor/2` devolve `nil` tanto para "concluída" quanto para "nunca começou", e a
+  retomada tratava as duas igual: refazia a paginação do início. Um `{:snooze}` na sexta
+  etapa refazia as requisições da primeira, da segunda e da sétima na volta.
+  """
+  @spec etapa_concluida?(Sync.t(), String.t()) :: boolean()
+  def etapa_concluida?(%Sync{id: sync_id}, entity_type) do
+    Repo.exists?(
+      from c in Checkpoint,
+        where:
+          c.sync_id == ^sync_id and c.entity_type == ^entity_type and
+            c.status == "completed"
+    )
+  end
+
+  @doc """
+  Marca uma etapa da coleta de trabalho como concluída nesta sincronização.
+
+  O checkpoint é `etapa:<nome>`, sem cursor — é o que `checkpoint_page/5` grava como
+  `completed`. A tela o lista na tabela de checkpoints; a barra de fases o ignora, porque
+  ele não é uma entidade coletada, é o fim de uma etapa.
+  """
+  @spec concluir_etapa(Sync.t(), String.t()) ::
+          {:ok, Checkpoint.t()} | {:error, Ecto.Changeset.t()}
+  def concluir_etapa(%Sync{} = sync, nome) when is_binary(nome) do
+    checkpoint_page(sync, "etapa:" <> nome, nil, 0)
+  end
+
   @doc "Acumula o resultado de uma escrita no relatório da sincronização (FR-028)."
   @spec tally(
           Sync.t(),
