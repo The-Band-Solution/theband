@@ -706,31 +706,29 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
       stub(TheBand.GitHubHTTPMock, :post, fn _url, %{query: query}, _token ->
         body =
-          cond do
-            String.contains?(query, "membersWithRole") ->
-              case Agent.get_and_update(paginas_de_membros, &{&1 + 1, &1 + 1}) do
-                1 ->
-                  %{
-                    "data" => %{
-                      "rateLimit" => janela,
-                      "organization" => %{
-                        "id" => "O_1",
-                        "membersWithRole" => pagina([], true, "c1")
-                      }
+          if String.contains?(query, "membersWithRole") do
+            case Agent.get_and_update(paginas_de_membros, &{&1 + 1, &1 + 1}) do
+              1 ->
+                %{
+                  "data" => %{
+                    "rateLimit" => janela,
+                    "organization" => %{
+                      "id" => "O_1",
+                      "membersWithRole" => pagina([], true, "c1")
                     }
                   }
+                }
 
-                _ ->
-                  # A segunda página: a origem recusa por cota, sem dizer quando volta.
-                  %{
-                    "errors" => [
-                      %{"type" => "RATE_LIMITED", "message" => "API rate limit exceeded"}
-                    ]
-                  }
-              end
-
-            true ->
-              %{"data" => %{"rateLimit" => janela, "organization" => org_node()}}
+              _ ->
+                # A segunda página: a origem recusa por cota, sem dizer quando volta.
+                %{
+                  "errors" => [
+                    %{"type" => "RATE_LIMITED", "message" => "API rate limit exceeded"}
+                  ]
+                }
+            end
+          else
+            %{"data" => %{"rateLimit" => janela, "organization" => org_node()}}
           end
 
         {:ok, %{status: 200, body: body, headers: %{}}}
