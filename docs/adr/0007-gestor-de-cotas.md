@@ -158,8 +158,17 @@ primeira resposta da janela nova traz o saldo real e corrige.
 > no reset e ao nascer. Ela exigiria o token **dentro** do processo — e a mesma seção
 > decide que o processo não guarda segredo. O custo de não fazê-la é, no pior caso, até
 > `teto` requisições concedidas no escuro que voltam 403 se o dono gastou a cota fora do The
-> Band; o 403 é tratado como hoje e a leitura seguinte corrige. `/rate_limit` continua sendo
-> o que o job consulta para saber quanto esperar quando a GraphQL recusa sem dizer o reset.
+> Band; o 403 é tratado como hoje e a leitura seguinte corrige.
+>
+> **Segunda razão, medida na Verificação 4 (2026-09-06):** `GET /rate_limit` **mente** para
+> o token da coleta. Devolveu `core 5000/5000 used 0` e `graphql 5000/5000 used 0` enquanto,
+> no mesmo instante, o cabeçalho de `GET /user` dizia `remaining 3366, used 1634` e o
+> `rateLimit` da GraphQL dizia `remaining 3013, used 1987`. O `reset` que ele informa é
+> sempre "agora + 1 h". Um gestor alimentado por ele acreditaria numa cota cheia; um job que
+> lhe perguntasse quanto esperar dormiria uma hora quando faltavam minutos. A fonte da
+> verdade são os cabeçalhos e o `rateLimit` — e o gestor guarda o `resetAt` de cada balde,
+> que é o que o job passa a consultar quando a GraphQL recusa sem dizer quando volta.
+> `/rate_limit` fica como último recurso, sem gestor.
 
 **Cota secundária.** O teto de `em_voo` (10) fica abaixo dos 100 concorrentes. Para os 900
 pontos/min REST: 10 em voo com latência de ~300 ms produzem ~33 req/s no pior caso, acima do

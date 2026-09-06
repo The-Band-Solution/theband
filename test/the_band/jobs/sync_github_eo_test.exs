@@ -685,6 +685,68 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
     end
   end
 
+  describe "a espera da GraphQL vem do gestor, e não de /rate_limit" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "RATE_LIMITED sem reset: o job espera até o resetAt que o gestor viu, sem consultar /rate_limit",
+         %{tenant: tenant, sync: sync} do
+      # Medido em 2026-09-06: `GET /rate_limit` devolveu 5000/5000 e `used: 0` com 1 987
+      # pontos gastos. O job que confiasse nele dormiria uma hora; o gestor sabe que faltam
+      # trinta minutos, porque a última resposta boa disse.
+      # Conta só as páginas de membros: a organização vem antes, e recusar a PRIMEIRA
+      # página deixaria o gestor sem nenhum `resetAt` desta janela — só o da fixture
+      # folgada, que é 2030, e a espera sairia em anos.
+      {:ok, paginas_de_membros} = Agent.start_link(fn -> 0 end)
+      # Toda resposta boa diz a mesma coisa: reabre em 30 minutos.
+      janela = %{"cost" => 1, "remaining" => 4000, "resetAt" => reset_em(1800)}
+
+      stub(TheBand.GitHubHTTPMock, :post, fn _url, %{query: query}, _token ->
+        body =
+          cond do
+            String.contains?(query, "membersWithRole") ->
+              case Agent.get_and_update(paginas_de_membros, &{&1 + 1, &1 + 1}) do
+                1 ->
+                  %{
+                    "data" => %{
+                      "rateLimit" => janela,
+                      "organization" => %{
+                        "id" => "O_1",
+                        "membersWithRole" => pagina([], true, "c1")
+                      }
+                    }
+                  }
+
+                _ ->
+                  # A segunda página: a origem recusa por cota, sem dizer quando volta.
+                  %{
+                    "errors" => [
+                      %{"type" => "RATE_LIMITED", "message" => "API rate limit exceeded"}
+                    ]
+                  }
+              end
+
+            true ->
+              %{"data" => %{"rateLimit" => janela, "organization" => org_node()}}
+          end
+
+        {:ok, %{status: 200, body: body, headers: %{}}}
+      end)
+
+      # Nenhum `stub`/`expect` para GET: se o job consultar /rate_limit, o Mox levanta.
+      assert {:snooze, segundos} = perform(tenant, sync)
+
+      assert segundos in 1700..1900, """
+      A espera foi de #{segundos}s. O gestor viu `resetAt` daqui a 30 min na última resposta
+      boa; a espera certa é ~1 860 s (30 min + 1 min de folga). 3 660 s seria a hora inteira
+      que /rate_limit inventa; 900 s seria o padrão de quem não sabe.
+      """
+    end
+  end
+
   describe "retomada após interrupção (FR-015, SC-006)" do
     setup do
       tenant = tenant_fixture()

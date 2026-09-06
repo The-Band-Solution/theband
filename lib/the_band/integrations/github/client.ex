@@ -441,11 +441,19 @@ defmodule TheBand.Integrations.GitHub.Client do
   defp erro_de_taxa?(_outro), do: false
 
   @doc """
-  Quantos segundos faltam para a janela reabrir.
+  Quantos segundos faltam para a janela reabrir — **último recurso**, e não a fonte.
 
-  Consulta `/rate_limit`, que **não consome cota** — é a única chamada possível com a
-  cota esgotada. Quando ela própria falha, devolve o padrão em vez de levantar: não saber
-  quanto falta não é motivo para desistir da coleta.
+  Consulta `/rate_limit`, que não consome cota primária. **Medido mentindo em
+  2026-09-06**, durante a coleta real da organização `leds-conectafapes` com PAT de
+  `paulossjunior`: devolveu `core 5000/5000 used 0` e `graphql 5000/5000 used 0` enquanto,
+  no mesmo segundo, o cabeçalho de `GET /user` dizia `remaining 3366, used 1634` e o
+  `rateLimit` da GraphQL dizia `remaining 3013, used 1987, resetAt 23:49`. O `reset` que ele
+  devolve é sempre "agora + 1 h" — o de uma janela que ele acha vazia.
+
+  Quem sabe o reset é o gestor de cotas (`TheBand.Ingestion.Cota`), que guarda o `resetAt`
+  da última resposta boa de cada balde. O job pergunta a ele primeiro; esta função só entra
+  quando não há gestor (scripts avulsos) ou ele nunca viu o balde. Quando ela própria falha,
+  devolve o padrão em vez de levantar: não saber quanto falta não é motivo para desistir.
   """
   @spec segundos_ate_reabrir(String.t(), String.t(), non_neg_integer()) :: non_neg_integer()
   def segundos_ate_reabrir(instance_url, token, padrao \\ 900) do
