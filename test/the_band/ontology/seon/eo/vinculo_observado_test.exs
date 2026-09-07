@@ -173,6 +173,42 @@ defmodule TheBand.Ontology.SEON.EO.VinculoObservadoTest do
     end
   end
 
+  describe "o equívoco vale para o vínculo observado, e a coleta não recria (decisão de 2026-09-07)" do
+    test "depois de marcado como equívoco, reobservar a pessoa NÃO cria vínculo novo", ctx do
+      {:ok, _} = observar(ctx, ctx.ana)
+      [observado] = vinculos(ctx)
+
+      {:ok, invalidado} =
+        EO.record_team_membership_mistake(
+          ctx.tenant,
+          ctx.equipe.id,
+          ctx.ana.id,
+          "login errado",
+          ctx.admin.id
+        )
+
+      assert invalidado.id == observado.id
+      assert invalidado.invalidated_at, "o equívoco é registrado no próprio vínculo observado"
+
+      # A origem continua listando a Ana: a coleta seguinte a reobserva.
+      {:ok, evidencia} = observar(ctx, ctx.ana)
+
+      assert [_so_o_invalidado] = vinculos(ctx), """
+      A coleta recriou o vínculo por cima do equívoco. Quem administra disse "esta pessoa
+      nunca esteve nesta equipe"; a coleta não pode responder "está" — ela registra que a
+      origem ainda a lista, e a tela mostra as duas afirmações.
+      """
+
+      assert is_nil(evidencia.promoted_membership_id) or
+               evidencia.promoted_membership_id == observado.id
+
+      assert EO.count_team_members_at(ctx.tenant, ctx.equipe.id, DateTime.utc_now()) == 0
+
+      assert EO.membership_disagreements(ctx.tenant, ctx.equipe.id) != [],
+             "coleta e declaração discordam — e a tela diz"
+    end
+  end
+
   describe "declarar o papel é sobre o MESMO vínculo" do
     test "promote_evidence preenche papel e autor no vínculo observado, sem criar outro", ctx do
       {:ok, evidencia} = observar(ctx, ctx.ana)

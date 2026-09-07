@@ -675,12 +675,18 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     end
   end
 
+  # Declaração é qualquer coisa que alguém da organização AFIRMOU sobre o par pessoa–equipe:
+  # um papel, um autor, ou o EQUÍVOCO ("nunca esteve") — este último também sobre vínculo
+  # observado, por decisão da pessoa mantenedora em 2026-09-07. Depois de um equívoco a
+  # coleta não recria o vínculo, mesmo que a origem continue listando a pessoa; a evidência
+  # fica viva e a tela mostra as duas afirmações até a origem ser corrigida.
   defp existe_declaracao?(tenant_id, person_id, team_id) do
     Repo.exists?(
       from m in TeamMembership,
         where:
           m.tenant_id == ^tenant_id and m.person_id == ^person_id and m.team_id == ^team_id and
-            (not is_nil(m.declared_by_user_id) or not is_nil(m.organizational_role_id))
+            (not is_nil(m.declared_by_user_id) or not is_nil(m.organizational_role_id) or
+               not is_nil(m.invalidated_at))
     )
   end
 
