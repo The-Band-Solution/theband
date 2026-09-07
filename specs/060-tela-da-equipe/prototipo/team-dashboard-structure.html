@@ -154,6 +154,19 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     </tbody>
   </table></div>
   <div class="aviso"><span class="rot">why no total</span><p>Two squads on the same project share items; a person in two squads would be counted twice. Each row is that project's own count. The team's total flow is the "Flow" section above.</p></div>
+
+  <div class="cartao" style="border-color:var(--amber);background:var(--amber-soft)">
+    <span class="marca der"><span class="am"></span>working outside any declared project</span>
+    <p><strong>4 people · 23 open items · 2 repositories</strong> with work in the last 56 days that belongs to <em>no</em> board of a declared project. <span class="ex-mark">example data</span></p>
+    <div class="scroll"><table style="margin-top:.5rem">
+      <thead><tr><th class="esq">where</th><th class="esq">who</th><th>open items</th><th>closed · 56 d</th></tr></thead>
+      <tbody>
+        <tr><td class="esq"><a class="eq" href="#">leds-conectafapes/infra-scripts</a><span class="eq-sub">repository · in no board</span></td><td class="esq"><span class="chip s1">BLUE</span> Ana Souza, Davi Rocha</td><td class="v">15</td><td class="v">31</td></tr>
+        <tr><td class="esq"><a class="eq" href="#">board "Experimentos IA"</a><span class="eq-sub">board · linked to no declared project</span></td><td class="esq"><span class="chip s3">PINK</span> Bia Lemos, Gil Costa</td><td class="v">8</td><td class="v">6</td></tr>
+      </tbody>
+    </table></div>
+    <p class="sub">The team is doing something the organisation has not named. Either declare the project (and link this team to it) or accept it as unplanned work — the alert stays until one of the two happens. It is an alert, not a project row: nothing here is inferred as "the team's project".</p>
+  </div>
 </section>
 
 <section class="sec">
@@ -205,7 +218,7 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <!-- COMMITTED vs DELIVERED -->
     <div class="cartao" style="margin-top:0">
       <h3>Committed × delivered</h3>
-      <p class="sub" style="font-size:.8rem"><strong>Committed</strong> = items in the iteration when it started (from the board's iterations); <strong>delivered</strong> = of those, closed by the iteration's end. Per iteration, not per calendar week — the axis follows the iterations of the declared project.</p>
+      <p class="sub" style="font-size:.8rem"><strong>Committed</strong> = items <em>opened</em> in the period; <strong>delivered</strong> = items moved to <em>done</em> in the period (decision of 7 Sep). Same items as the burn chart, per period instead of cumulative: the burn shows the stock, this shows the flow in and out.</p>
       <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Committed versus delivered per iteration">
         <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="107" x2="300" y2="107"/><line x1="40" y1="64" x2="300" y2="64"/><line x1="40" y1="21" x2="300" y2="21"/></g>
         <g class="ey"><text x="36" y="153">0</text><text x="36" y="110">10</text><text x="36" y="67">20</text><text x="36" y="24">30</text></g>
@@ -217,9 +230,9 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
           <rect x="63" y="85.5" width="14" height="64.5"/><rect x="105" y="55.4" width="14" height="94.6"/><rect x="147" y="72.6" width="14" height="77.4"/><rect x="189" y="46.8" width="14" height="103.2"/><rect x="231" y="38.2" width="14" height="111.8"/><rect x="273" y="64" width="14" height="86"/>
         </g>
         <g class="rd"><text x="70" y="81">15/20</text><text x="112" y="51">22/25</text><text x="154" y="68">18/22</text><text x="196" y="42">24/30</text><text x="238" y="33">26/28</text><text x="280" y="59">20/26</text></g>
-        <g class="ex"><text x="62" y="163">it. 12</text><text x="104" y="163">it. 13</text><text x="146" y="163">it. 14</text><text x="188" y="163">it. 15</text><text x="230" y="163">it. 16</text><text x="272" y="163">it. 17</text></g>
+        <g class="ex"><text x="62" y="163">28 Jul</text><text x="104" y="163">4 Aug</text><text x="146" y="163">11 Aug</text><text x="188" y="163">18 Aug</text><text x="230" y="163">25 Aug</text><text x="272" y="163">1 Sep</text></g>
       </svg>
-      <div class="leg-g"><span><i style="background:var(--eixo)"></i>committed at start</span><span><i style="background:var(--verdete)"></i>delivered by end</span><span>median delivered: <span class="n">85%</span> of committed</span></div>
+      <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened in the week</span><span><i style="background:var(--verdete)"></i>done in the week</span><span>8 weeks: <span class="n">165</span> opened · <span class="n">125</span> done</span></div>
     </div>
 
     <!-- MONTE CARLO -->
@@ -428,8 +441,8 @@ Who is in the team, in which squad, in which role — and the five things the or
       <li><strong>"Mistake" on an observed link.</strong> <em>Decided 7 Sep:</em> allowed. The mistake is recorded; the next collection does not re-associate; the screen shows both statements while the source disagrees.</li>
       <li><strong>Direct members of a composed team.</strong> <em>Decided 7 Sep:</em> yes — the row "direct members" on the dashboard and the chip "direct" in the member list stay.</li>
       <li><strong>Charts on the composed team's dashboard</strong> — your request of 7 Sep amends 057 FR-011 ("no charts on the composed team"). The squad page keeps its own charts; the team dashboard shows the whole team's flow. Confirm the amendment.</li>
-      <li><strong>What "committed" means.</strong> The prototype takes it from the board's iterations (items present when the iteration started). If the organisation does not plan by iteration, the chart says so and shows nothing — it never infers a commitment.</li>
-      <li><strong>Projects on the dashboard.</strong> Only declared links appear. Should the dashboard also list boards the team's people touched without a declared link, marked as "not declared"? The prototype says no — it points to "Who worked on the project" instead.</li>
+      <li><strong>What "committed" means.</strong> <em>Decided 7 Sep:</em> opened in the period; "delivered" is done in the period. No iteration needed.</li>
+      <li><strong>Projects on the dashboard.</strong> <em>Decided 7 Sep:</em> only declared links are projects; work outside any declared project raises an <strong>alert</strong> (who, where, how much) — never a project row.</li>
       <li><strong>Month and year grain.</strong> Same items, coarser axis. Monte Carlo stays weekly (its samples are weeks); month/year only re-bin burn and committed × delivered.</li>
       <li><strong>Roles here and at <kbd>/roles</kbd>.</strong> The prototype creates roles from the team's structure screen — the same command, the same organisation scope. Does <kbd>/roles</kbd> stay as the organisation-wide view (grants of visibility live there), or does it fold into this screen?</li>
     </ol>

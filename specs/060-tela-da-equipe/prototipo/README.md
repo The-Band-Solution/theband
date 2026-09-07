@@ -21,12 +21,13 @@ vale. Mesmo vocabulário visual do protótipo da 057 (`specs/057-tela-da-equipe-
    057 FR-011. A página do squad continua com os gráficos dela.
 5. **Papéis são criados na tela de estrutura** (e continuam em `/roles`): mesmo comando, mesmo
    escopo — a organização.
-6. **Projetos no dashboard**: só os vínculos declarados equipe → projeto.
+6. **Projetos no dashboard**: só os vínculos declarados equipe → projeto. Trabalho fora de
+   qualquer projeto declarado vira **alerta** (quem, onde, quanto) — nunca linha de projeto.
+7. **Prometido × Entregue**: prometido = itens **abertos** no período; entregue = itens levados a
+   **done** no período. Sem depender de iteração.
 
 ## Premissas que a spec carrega até serem contestadas
 
-- "Prometido" = itens presentes na iteração do quadro quando ela começou; sem iteração, o
-  gráfico diz "sem compromisso declarado" e não mostra nada.
 - Mês e ano só mudam a granulação do eixo do burn e do Prometido × Entregue; o Monte Carlo
   continua semanal.
 - Nomes de pessoas no protótipo são fictícios (marcados `example`); contagens e medidas vêm da
