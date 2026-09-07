@@ -47,7 +47,7 @@ tornou o único conjunto de membros.
 | Seção de `/teams/:id` hoje | Origem | Destino nesta feature | Natureza |
 |---|---|---|---|
 | cabeçalho: N membros · M sem papel | 043/055 | cabeçalho das duas abas | mantém |
-| *Teams inside this one* — linha por subequipe, sem total, sem gráfico | 057 US2 | **Dashboard**: cartão por subequipe **e** a tabela por medida | reorganiza; ganha o cartão como porta |
+| *Teams inside this one* — linha por subequipe, sem total, sem gráfico | 057 US2 | **Dashboard**: cartão por subequipe **e** a tabela por medida | reorganiza; ganha o cartão como porta (US7, FR-041) e o gráfico pequeno (US9, FR-084) |
 | burn, previsão (só equipe simples) | 057 US5–US6 | **Dashboard** da equipe simples, como está; a composta passa a ter fluxo próprio | mantém; **emenda 057 FR-011** |
 | *what each person is on* + habilidades por pessoa (só equipe simples) | 057 US4 | **Dashboard** da simples, como está; a **composta** ganha *Pessoas — diretas e pelas subequipes*, agrupadas por subequipe | mantém; **novo** na composta (decisão 9) |
 | — | — | **Dashboard**: *Problemas agora* — cartões contados, cada um com limiar declarado na base; verde = conferido e nada achado | **novo** (decisão 9) |
@@ -86,7 +86,7 @@ Estrutura. É o que faz do Dashboard uma tela legível por qualquer conta do ten
 
 | Spec e requisito | O que dizia | O que passa a valer | Onde nesta spec |
 |---|---|---|---|
-| **057 FR-011** | a tela da equipe composta MUST NOT apresentar gráficos | a equipe composta apresenta o **fluxo da equipe inteira** — burn, Prometido × Entregue, Monte Carlo — e um gráfico pequeno por cartão de subequipe; a tabela por subequipe continua sem gráfico | FR-058, FR-059 |
+| **057 FR-011** | a tela da equipe composta MUST NOT apresentar gráficos | a equipe composta apresenta o **fluxo da equipe inteira** — burn, Prometido × Entregue, Monte Carlo — e um gráfico pequeno por cartão de subequipe; a tabela por subequipe continua sem gráfico | FR-058, FR-059, FR-084 |
 | **057 FR-029** | a tela MUST declarar que não há escopo comprometido | continua valendo, e vale **também** para *Prometido × Entregue*: "prometido" é rótulo para *aberto no período*, definido junto do título, e MUST NOT ser lido como compromisso | FR-063 |
 | **057 FR-008** (esclarecimento, não emenda) | MUST NOT somar as linhas de subequipe | continua; o fluxo da equipe inteira é medido sobre o **conjunto distinto** de pessoas e itens, e a tela diz que não é soma | FR-060 |
 | **055, decisão em aberto 2** da emenda de 2026-09-06 | equívoco em vínculo observado: permitir ou não | **permitido** — decisão de 2026-09-07; a coleta não recria | FR-024 a FR-028 |
@@ -306,8 +306,13 @@ quantos observados e quantos declarados, desde quando faz parte e quem declarou 
 as composições encerradas em histórico, e declara que uma equipe **existente** da
 mesma organização passa a fazer parte desta, com data ou com início desconhecido.
 Ciclos são recusados com o caminho nomeado. Uma equipe composta pode ter membros
-diretos. No Dashboard, cada subequipe é um cartão, e o cartão é a porta para a
-página dela.
+diretos.
+
+**O cartão da subequipe no Dashboard deixou de ser cobrado aqui.** Até 2026-09-07
+esta história pedia o cartão e o clique que abre o Dashboard da subequipe. O cartão
+e a porta passaram a ser requisito e aceitação da **US7** (FR-041), e o gráfico
+pequeno dentro dele, da **US9** (FR-084) — nenhum dos dois existe quando esta
+história é entregue. Ver *Decisões de 2026-09-07*, decisão 11.
 
 **Why this priority**: P2 porque as cinco histórias anteriores entregam valor numa
 equipe simples. A composição é o que permite perguntar da organização inteira, e é
@@ -316,7 +321,7 @@ o segundo item do foco declarado.
 **Independent Test**: compor duas equipes existentes numa terceira, uma com data e
 uma sem; tentar fechar um ciclo de comprimento 3 e ser recusado com o caminho;
 encerrar uma composição e conferir que a subequipe continua existindo e a linha foi
-para o histórico; clicar no cartão e chegar a `/teams/:id` da subequipe.
+para o histórico; conferir que a subequipe passa a mostrar *faz parte de* esta.
 
 **Acceptance Scenarios**:
 
@@ -336,10 +341,7 @@ para o histórico; clicar no cartão e chegar a `/teams/:id` da subequipe.
 5. **Given** uma equipe composta com pessoas vinculadas **diretamente** a ela,
    **When** o Dashboard e a Estrutura abrem, **Then** o Dashboard tem a linha
    *membros diretos* e a Estrutura marca essas pessoas como *direta*.
-6. **Given** o Dashboard de uma equipe composta, **When** quem lê clica no cartão de
-   uma subequipe **ou** no gráfico pequeno dele, **Then** abre o Dashboard daquela
-   subequipe.
-7. **Given** uma equipe com **uma** composição vigente, **When** a tela abre,
+6. **Given** uma equipe com **uma** composição vigente, **When** a tela abre,
    **Then** ela segue como equipe simples no Dashboard (057) e a Estrutura mostra a
    composição.
 
@@ -348,12 +350,14 @@ para o histórico; clicar no cartão e chegar a `/teams/:id` da subequipe.
 ### User Story 7 - O Dashboard reorganizado: medidas com composição, projetos declarados, e o que está fora deles (Priority: P2)
 
 Quem gerencia abre `/teams/:id` e cai no Dashboard. Vê, se a equipe é composta, um
-cartão por subequipe com as mesmas medidas e um gráfico pequeno, **nunca um total**,
-e a razão de não somar. Cada medida diz sobre quem foi calculada. Os projetos em
-que a equipe trabalha são **os declarados**, com período e com as subequipes que
-têm vínculo próprio ao mesmo projeto. Trabalho em repositório ou quadro que não
-pertence a nenhum projeto declarado da equipe aparece como **alerta** — onde, quem,
-quanto —, e nunca como projeto.
+cartão por subequipe com as mesmas medidas da tabela, **nunca um total**, e a
+razão de não somar; clicar no cartão abre o Dashboard daquela subequipe. O gráfico
+pequeno dentro do cartão chega com a US9 (FR-084): o cartão é porta antes de haver
+curva. Cada medida diz sobre quem foi calculada. Os projetos em que a equipe
+trabalha são **os declarados**, com período e com as subequipes que têm vínculo
+próprio ao mesmo projeto. Trabalho em repositório ou quadro que não pertence a
+nenhum projeto declarado da equipe aparece como **alerta** — onde, quem, quanto —,
+e nunca como projeto.
 
 **Why this priority**: é a reorganização que as cinco P1 já pedem para existir, e o
 que dá lugar à visão do gestor (US8) e ao fluxo (US9). O alerta é o que torna
@@ -364,7 +368,7 @@ visível a diferença entre "a plataforma não sabe" e "a organização não dec
 equipe composta, varrer a tela e não encontrar célula de total; conferir que 100%
 das medidas trazem *N — X observados sem papel, Y declarados*; criar trabalho num
 repositório não ligado a projeto da equipe e ver o alerta nascer — e sumir ao
-declarar o vínculo.
+declarar o vínculo; clicar no cartão de uma subequipe e chegar ao `/teams/:id` dela.
 
 **Acceptance Scenarios**:
 
@@ -394,6 +398,9 @@ declarar o vínculo.
 8. **Given** uma conta sem escopo sobre a equipe **e sem vínculo vigente nela**,
    **When** o alerta é exibido, **Then** ela lê onde e quanto, e **não** lê quem — a
    quebra por pessoa nomeada segue a fronteira de 058 FR-024 (FR-007).
+9. **Given** o Dashboard de uma equipe composta, **When** quem lê clica no cartão de
+   uma subequipe, **Then** abre o Dashboard daquela subequipe, e a porta **não**
+   depende de haver gráfico no cartão (FR-041; 057 FR-010).
 
 ---
 
@@ -472,7 +479,8 @@ No Dashboard da equipe composta, quem gerencia vê o burn-up/burn-down da equipe
 **inteira** por semana, mês ou ano; *Prometido × Entregue* — abertos e levados a
 fechamento em cada período —; e a previsão de Monte Carlo, semanal, com duas
 hipóteses e a confiança de cada uma. Trocar a granulação reagrupa os mesmos itens;
-não muda a medida.
+não muda a medida. E o cartão de cada subequipe — que a US7 já entregou como porta —
+ganha aqui o **gráfico pequeno**, que também abre o Dashboard dela.
 
 **Why this priority**: P3 porque é o maior salto de leitura e o mais fácil de ler
 errado — e porque depende de as cinco P1 estarem certas: o conjunto de membros é o
@@ -482,8 +490,9 @@ emendando 057 FR-011.
 **Independent Test**: com uma série conhecida, conferir que a distância entre as
 curvas em qualquer ponto é o número de itens em aberto naquele ponto, nas três
 granulações; que o total de abertos e de fechados na janela é o mesmo em semana,
-mês e ano; que a previsão é idêntica em duas consultas; e que abaixo do piso nenhuma
-previsão aparece.
+mês e ano; que a previsão é idêntica em duas consultas; que abaixo do piso nenhuma
+previsão aparece; e que o cartão de cada subequipe traz o gráfico pequeno e que
+clicar nele chega ao `/teams/:id` da subequipe.
 
 **Acceptance Scenarios**:
 
@@ -508,6 +517,9 @@ previsão aparece.
    o que falta (057 FR-034).
 6. **Given** a mesma consulta duas vezes, **When** as curvas e a faixa são
    comparadas, **Then** são idênticas (057 FR-036).
+7. **Given** o Dashboard de uma equipe composta, **When** os cartões de subequipe são
+   exibidos, **Then** cada um traz o **gráfico pequeno** (FR-058, FR-084), e clicar
+   no gráfico abre o Dashboard daquela subequipe — a mesma porta do cartão (FR-041).
 
 ### Edge Cases
 
@@ -723,9 +735,12 @@ previsão aparece.
 - **FR-040**: Equipe composta MAY ter membros **diretos**. O Dashboard MUST ter a
   linha *membros diretos* (057 FR-007) e a Estrutura MUST marcar esses vínculos como
   *direta*.
-- **FR-041**: No Dashboard da equipe composta, cada subequipe MUST ser um **cartão**
-  com as mesmas medidas da tabela e um gráfico pequeno, e clicar no cartão **ou** no
-  gráfico MUST abrir o Dashboard daquela subequipe (057 FR-010).
+- **FR-041** *(decisão da pessoa mantenedora em 2026-09-07)*: No Dashboard da equipe
+  composta, cada subequipe MUST ser um **cartão** com as mesmas medidas da tabela, e
+  clicar no cartão MUST abrir o Dashboard daquela subequipe (057 FR-010). O cartão
+  MUST ser porta **sem** depender de gráfico: o gráfico pequeno é FR-084, e a porta
+  não espera por ele. **Cobrado na US7**, não na US6 — o cartão é artefato do
+  Dashboard reorganizado, e a US6 termina antes de ele existir (decisão 11).
 - **FR-042**: A Estrutura MUST mostrar *faz parte de* — as equipes de que esta é
   parte —, com link.
 
@@ -950,6 +965,15 @@ previsão aparece.
   alguma; compô-la é declaração como qualquer outra, e a tela MUST continuar dizendo
   que ela não existe na ferramenta de origem.
 
+### O gráfico pequeno no cartão da subequipe
+
+- **FR-084** *(decisão da pessoa mantenedora em 2026-09-07)*: O cartão de subequipe
+  de FR-041 MUST ganhar o **gráfico pequeno** de FR-058, e clicar no gráfico MUST
+  abrir o Dashboard daquela subequipe — a mesma porta do cartão (057 FR-010). A
+  **tabela** por subequipe MUST permanecer sem gráfico (057 FR-011 emendado por
+  FR-058). **Cobrado na US9**, não na US6: o gráfico é fluxo, e chega quando o fluxo
+  chega (decisão 11).
+
 ### O que da 055 esta spec só reutiliza
 
 | 055 | O que é | Aqui |
@@ -1137,8 +1161,9 @@ contestadas:
 
 ## Decisões de 2026-09-07
 
-As quatro perguntas que esta escrita deixou abertas (1 a 4) e seis levantadas pela
-coordenação (5 a 10) foram respondidas pela pessoa mantenedora em **2026-09-07**.
+As quatro perguntas que esta escrita deixou abertas (1 a 4), seis levantadas pela
+coordenação (5 a 10) e uma levantada pela **DSM desta feature** (11) foram
+respondidas pela pessoa mantenedora em **2026-09-07**.
 Nenhuma está em aberto. Cada requisito tocado leva a marca *(decisão da pessoa
 mantenedora em 2026-09-07)*.
 
@@ -1154,6 +1179,7 @@ mantenedora em 2026-09-07)*.
 | 8 | quem age na estrutura | administradora **e** um papel de gestor da equipe, modelado como **concessão a papel organizacional** (*gerir estrutura da equipe*), no molde das concessões de visibilidade; sem segundo tipo de conta | FR-006, FR-080 a FR-082, SC-011 |
 | 9 | janela das medidas | **56 dias** por padrão **e** a pessoa pode escolher; o título diz a janela | FR-079, SC-020 |
 | 10 | trabalho fora de projeto declarado | issues e PRs **abertos** em repositórios que não estão em nenhum quadro de projeto declarado **+** quadros sem projeto | FR-053, SC-021 |
+| 11 | em que história o cartão da subequipe é cobrado | **mover**: o cartão e a porta viram requisito e aceitação da **US7**; o gráfico pequeno, da **US9**; a US6 fica com a composição, o histórico, os membros diretos e o *faz parte de*. A DSM mostrou a dependência para frente — o cenário da US6 pedia artefato de entrega posterior, e não seria avaliável ao fim dela | FR-041, FR-084, US6, US7 c9, US9 c7 |
 
 O que estas decisões deslocam em outras specs está na tabela *Emendas*, no início.
 

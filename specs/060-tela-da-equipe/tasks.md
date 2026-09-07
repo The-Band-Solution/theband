@@ -272,6 +272,12 @@ T001 ─┬─ T002 ── T004 ── T005 ─┬─ T006 ─┐
 | SC-012 (zero linhas removidas) | T014, T016, T018, T022 |
 | SC-015 (YAML antes da tela) | T002, T003 |
 | teto de consultas | T013 |
+| FR-041 (cartão da subequipe e a porta, US7), FR-084 (gráfico pequeno no cartão, US9) | **sem tarefa** — US7 e US9 não estão planejadas em tarefas; os dois vieram da US6 pela decisão 11 de 2026-09-07 |
+
+Esta tabela cobre o que a **PR 1** entrega (US1–US5, as duas abas e a concessão).
+Requisitos de US6 a US9 só aparecem aqui quando a PR 1 os toca — FR-052 (a escrita
+de projeto muda de aba) e FR-007 (confirmado sem mudança) são os casos. FR-041 e
+FR-084 não são: ficam sem tarefa até US7 e US9 serem planejadas.
 
 ## Dependências externas desta PR
 
