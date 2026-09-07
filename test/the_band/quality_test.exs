@@ -376,6 +376,7 @@ defmodule TheBand.QualityTest do
         person_id: p.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: desde
       })
 
@@ -391,6 +392,7 @@ defmodule TheBand.QualityTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: desde
       })
   end

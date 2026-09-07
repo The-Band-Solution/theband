@@ -304,6 +304,7 @@ defmodule TheBand.Mapping.AntipadroesTest do
         person_id: p.id,
         team_id: ctx.equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -30, :day)
       })
 

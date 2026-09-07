@@ -59,6 +59,7 @@ defmodule TheBand.Ontology.SEON.EO.ColetaNaoApagaDeclaracaoTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: user.id,
         evidence_id: evidencia.id
       })
 

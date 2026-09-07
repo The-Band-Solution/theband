@@ -84,7 +84,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     p
   end
 
-  defp membro(tenant, equipe, pessoa, papel) do
+  defp membro(tenant, equipe, pessoa, papel, quem) do
     agora = DateTime.utc_now(:second)
 
     {:ok, _} =
@@ -110,6 +110,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: quem.id,
         started_at: DateTime.add(agora, -400, :day)
       })
   end
@@ -117,8 +118,8 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
   test "a seção existe, marcada derivada, com a matriz e quem falta", ctx do
     ana = pessoa_com_perfil(ctx.tenant, "ana", [{"observabilidade", 14}])
     zeta = pessoa_com_perfil(ctx.tenant, "zeta", [])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, zeta, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, zeta, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -132,7 +133,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
 
   test "sem perfil algum, a ausência é nomeada e nada é contado", ctx do
     ana = pessoa_com_perfil(ctx.tenant, "ana", [])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -175,8 +176,8 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     # parecia dizer que só uma pessoa trabalhava.
     ana = pessoa_com_perfil(ctx.tenant, "ana", [{"grafos com LangGraph", 9}])
     tadeu = pessoa_com_perfil(ctx.tenant, "tadeu", [{"RAG com vectorstore", 40}])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, tadeu, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, tadeu, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -192,8 +193,8 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
   test "com sobreposição, a matriz de colunas volta", ctx do
     ana = pessoa_com_perfil(ctx.tenant, "ana", [{"observabilidade", 5}])
     bia = pessoa_com_perfil(ctx.tenant, "bia", [{"observabilidade", 7}])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, bia, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, bia, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -205,7 +206,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
     # Era o estado da base real em 2026-08-17: primeira rodada em agosto, e a seção
     # inteira escondida — como se evolução não existisse como leitura.
     ana = pessoa_com_perfil(ctx.tenant, "ana", [{"observabilidade", 5}])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -219,7 +220,7 @@ defmodule TheBandWeb.EquipeCompetenciasTest do
 
   test "os avisos de processo aparecem, e não-avaliado nunca vira saúde", ctx do
     ana = pessoa_com_perfil(ctx.tenant, "ana", [])
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
 
     {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 

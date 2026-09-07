@@ -66,6 +66,7 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
         person_id: pessoa.id,
         team_id: ctx.equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: Keyword.get(opts, :desde, dias(-300))
       })
   end
@@ -392,6 +393,7 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
           person_id: ana.id,
           team_id: ctx.equipe.id,
           organizational_role_id: ctx.papel.id,
+          declared_by_user_id: ctx.admin.id,
           started_at: dias(-300),
           ended_at: dias(-30)
         })

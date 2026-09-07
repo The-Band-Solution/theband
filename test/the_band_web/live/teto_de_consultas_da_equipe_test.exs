@@ -148,6 +148,7 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
       })
   end

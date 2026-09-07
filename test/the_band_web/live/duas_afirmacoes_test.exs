@@ -178,7 +178,8 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
         EO.allocate(ctx.tenant, %{
           person_id: ctx.pessoa.id,
           team_id: ctx.equipe.id,
-          organizational_role_id: outro_papel.id
+          organizational_role_id: outro_papel.id,
+          declared_by_user_id: ctx.admin.id
         })
 
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
