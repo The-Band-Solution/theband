@@ -130,3 +130,23 @@ tendência**. Isso está declarado, e não fingido: quem quiser a evolução com
 - não afrouxa asserção que reprovou — investiga se quem está errado é o teste ou o código,
   e diz qual;
 - não declara a análise configurada enquanto o token não existir.
+
+## A tela entregue contra o protótipo aprovado
+
+Decisão da pessoa mantenedora em 2026-09-07: **a tela implementada é exatamente a tela
+aprovada**. Para toda spec com protótipo em `specs/NNN/prototipo/`, você confere a tela real
+contra a seção "A estrutura aprovada, seção por seção" do `PROMPT.md`, item a item:
+
+| Confere | Como |
+|---|---|
+| a seção existe, **na ordem** | teste LiveView que assere a ordem dos títulos no HTML renderizado, não só a presença |
+| o texto é o do protótipo | frases-chave (rótulos, recusas, "absence, not zero") asseridas literalmente |
+| a marca é a certa | `observed`/`declared`/`derived`/`absent`/`left`/`mistake` — classe e texto, porque a distinção nunca é só por cor |
+| a ação existe e faz o que o protótipo diz | evento disparado, efeito no banco, e o que **não** acontece ("ended, not deleted": a linha continua) |
+| a recusa aparece como estado | "no declared project — no rate" é texto na tela, não `nil` engolido |
+| a composição acompanha a medida | "X observed without a declared role, Y declared" ao lado de cada número (ADR 0008) |
+
+Divergência é defeito, não "melhoria de implementação": vai para o Product Owner como item
+nomeado, e a tela não é aceita até o Design republicar o protótipo ou o código voltar ao
+protótipo. Você não decide qual dos dois — apresenta a divergência com a captura e o trecho
+do `PROMPT.md`.
