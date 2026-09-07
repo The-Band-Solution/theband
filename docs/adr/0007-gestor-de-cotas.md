@@ -403,6 +403,15 @@ REST fechada) valem no dado real, e não só no mock.
 coleta — `5000/5000, used 0` nos dois baldes durante toda a coleta. Registrado na emenda
 da parte 2 e corrigido em #809: a espera da GraphQL passa a vir do gestor.
 
+**Segundo achado fora do previsto:** na retomada, o resolvedor de DNS local falhou — 501
+`nxdomain` e alguns timeouts em oito minutos — e a etapa das verificações gravou **835
+execuções "sem jobs"** em 14 repositórios, sem marcá-los. A origem estava bem; o dado na
+tela não. Falha transitória passa a **parar a etapa** e voltar em dois minutos, sem gravar
+nada (mesmo caminho da janela); o permanente (404, recusa) continua gravando sem jobs.
+Corrigido em PR própria. Fica a observação: a retomada pediu ~325 requisições por minuto
+com concorrência 5 — dentro da cota secundária (900/min), mas talvez acima do que o
+resolvedor local sustenta; um teto de ritmo entra só se a medida seguinte repetir o quadro.
+
 **O que a medida diz sobre o orçamento:** uma coleta completa de verificações custa mais
 de uma janela REST (≈ 7 000 requisições para 6 042 execuções: uma por execução, mais uma
 por página de listagem). É o custo da primeira passada e da retomada de repositórios que a
