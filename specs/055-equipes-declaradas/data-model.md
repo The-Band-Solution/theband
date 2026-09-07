@@ -60,6 +60,12 @@ anterior mude. Uma linha apagada muda todos.
 
 ## O que NÃO muda
 
+> **Emendado em 2026-09-06**: os dois primeiros itens desta lista deixaram de valer.
+> A coleta passa a materializar **vínculo observado** — `eo_team_memberships` com
+> `organizational_role_id`, `declared_by_user_id` e `started_at` nulos, e proveniência
+> da coleta — e a evidência passa a apontar para ele. Ver a spec, seção *Emenda de
+> 2026-09-06*, FR-013 a FR-018. O texto abaixo é o desenho original, preservado.
+
 - **`eo_team_membership_evidence`** — a evidência observada continua como está. O
   FR-012 exige mostrar as duas afirmações quando discordarem, e isso é leitura,
   não estrutura;

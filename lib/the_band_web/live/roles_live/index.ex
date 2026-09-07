@@ -300,7 +300,7 @@ defmodule TheBandWeb.RolesLive.Index do
     |> assign(encontrados: length(filtrados))
     # Quantas evidências esperam por um papel — é o que transforma "lista vazia" em
     # "bloqueio", e sem ele ninguém sabe que a ausência tem custo.
-    |> assign(evidencias_pendentes: EO.count_evidence_pending_role(tenant))
+    |> assign(evidencias_pendentes: EO.count_memberships_pending_role(tenant))
     # Issue #369: o que cada papel PERMITE VER. Duas consultas em memória a partir de uma,
     # e nenhuma delas por linha da tabela.
     |> assign(concessoes: EO.grants_by_role(tenant))
@@ -369,7 +369,7 @@ defmodule TheBandWeb.RolesLive.Index do
 
       <div :if={@evidencias_pendentes > 0} class="alert block">
         <p class="font-semibold">
-          {@evidencias_pendentes} observed participations are waiting for confirmation.
+          {@evidencias_pendentes} observed memberships are without a declared role.
         </p>
         <p class="text-sm">
           The roles below are available — the four from the ontology need no registration. Each

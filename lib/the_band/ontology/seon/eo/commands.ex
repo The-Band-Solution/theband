@@ -612,6 +612,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         |> TeamMembershipEvidence.changeset(attrs)
         |> Repo.insert()
         |> with_outcome(:created)
+        |> observar_vinculo(tenant_id)
 
       record ->
         # Reobservar não é um vínculo novo: atualiza a última observação e
@@ -624,7 +625,141 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         })
         |> Repo.update()
         |> with_outcome(:unchanged)
+        |> observar_vinculo(tenant_id)
     end
+  end
+
+  # O VÍNCULO OBSERVADO — decisão da pessoa mantenedora em 2026-09-06 (regra
+  # `github.team_membership_evidence` v2).
+  #
+  # A participação que a origem mostra vira `eo.team_membership` aqui, na coleta, com o
+  # papel declaradamente ausente (`organizational_role_id` nulo) e sem autor
+  # (`declared_by_user_id` nulo). Antes, a evidência esperava alguém confirmar com papel — e
+  # ninguém confirmava: 59 evidências nas 8 equipes do GitHub, zero vínculos, toda medida por
+  # equipe vazia, 78% das solicitações fora de qualquer medida.
+  #
+  # Idempotente: a evidência já apontando para um vínculo VIGENTE não cria outro; a que
+  # aponta para um encerrado (a pessoa saiu e voltou) ganha vínculo novo; e um vínculo vigente
+  # da mesma pessoa na mesma equipe — declarado por alguém, ou observado por outra evidência —
+  # é reaproveitado e apontado, nunca duplicado.
+  defp observar_vinculo({:ok, %TeamMembershipEvidence{} = evidencia} = ok, tenant_id) do
+    case vinculo_vigente(tenant_id, evidencia.person_id, evidencia.team_id) do
+      nil ->
+        # ONDE A ORGANIZAÇÃO JÁ DECLAROU ALGO — saída, equívoco —, a coleta não cria vínculo:
+        # criar afirmaria "está na equipe" por cima de "saiu" ou "nunca esteve". A evidência
+        # fica sem vínculo, e a tela mostra as duas afirmações (055, FR-012). A observação só
+        # preenche onde ninguém declarou nada.
+        if existe_declaracao?(tenant_id, evidencia.person_id, evidencia.team_id),
+          do: ok,
+          else: criar_e_apontar(tenant_id, evidencia)
+
+      %TeamMembership{id: id} when id == evidencia.promoted_membership_id ->
+        ok
+
+      vinculo ->
+        apontar(evidencia, vinculo)
+    end
+  end
+
+  defp observar_vinculo(erro, _tenant_id), do: erro
+
+  defp criar_e_apontar(tenant_id, evidencia) do
+    case inserir_vinculo_observado(tenant_id, evidencia) do
+      {:ok, vinculo} ->
+        apontar(evidencia, vinculo)
+
+      # Corrida entre duas evidências da mesma pessoa e equipe: o índice parcial recusou a
+      # segunda; a primeira já existe e é a que se aponta.
+      {:error, _changeset} ->
+        apontar(evidencia, vinculo_vigente(tenant_id, evidencia.person_id, evidencia.team_id))
+    end
+  end
+
+  defp existe_declaracao?(tenant_id, person_id, team_id) do
+    Repo.exists?(
+      from m in TeamMembership,
+        where:
+          m.tenant_id == ^tenant_id and m.person_id == ^person_id and m.team_id == ^team_id and
+            (not is_nil(m.declared_by_user_id) or not is_nil(m.organizational_role_id))
+    )
+  end
+
+  # O vínculo puramente observado e vigente desta pessoa nesta equipe — o que `allocate/2`
+  # COMPLETA em vez de duplicar, e o que a ausência na origem encerra.
+  defp vinculo_observado_vigente(tenant_id, person_id, team_id) do
+    Repo.one(
+      from m in TeamMembership,
+        where:
+          m.tenant_id == ^tenant_id and m.person_id == ^person_id and m.team_id == ^team_id and
+            is_nil(m.organizational_role_id) and is_nil(m.declared_by_user_id) and
+            is_nil(m.ended_at) and is_nil(m.invalidated_at),
+        limit: 1
+    )
+  end
+
+  defp vinculo_vigente(tenant_id, person_id, team_id) do
+    Repo.one(
+      from m in TeamMembership,
+        where:
+          m.tenant_id == ^tenant_id and m.person_id == ^person_id and m.team_id == ^team_id and
+            is_nil(m.ended_at) and is_nil(m.invalidated_at),
+        limit: 1
+    )
+  end
+
+  defp inserir_vinculo_observado(tenant_id, evidencia) do
+    %TeamMembership{}
+    |> TeamMembership.changeset(%{
+      tenant_id: tenant_id,
+      person_id: evidencia.person_id,
+      team_id: evidencia.team_id,
+      organizational_role_id: nil,
+      # Desconhecido, e nunca `observed_at`: aquilo é quando a coleta viu, não desde quando
+      # a pessoa está na equipe.
+      started_at: nil,
+      declared_by_user_id: nil,
+      # Determinístico: reprocessar a mesma evidência reconhece o vínculo em vez de duplicar.
+      internal_id: "observed_" <> evidencia.id
+    })
+    |> Repo.insert()
+  end
+
+  defp apontar(evidencia, nil), do: {:ok, evidencia}
+
+  defp apontar(evidencia, %TeamMembership{id: membership_id}) do
+    evidencia
+    |> Ecto.Changeset.change(promoted_membership_id: membership_id)
+    |> Repo.update()
+    |> case do
+      {:ok, atualizada} -> {:ok, %{atualizada | outcome: evidencia.outcome}}
+      erro -> erro
+    end
+  end
+
+  # O vínculo OBSERVADO acompanha a evidência: quando a origem deixa de mostrar a pessoa no
+  # time, o vínculo observado é ENCERRADO — `ended_at` no instante da ausência, nunca
+  # apagado. O vínculo DECLARADO não é tocado: a declaração é da organização, e coleta e
+  # declaração discordando é o que a tela mostra lado a lado (055, FR-012).
+  defp encerrar_vinculos_observados(_tenant_id, [], _now), do: 0
+
+  defp encerrar_vinculos_observados(tenant_id, evidence_ids, now) do
+    apontados =
+      from e in TeamMembershipEvidence,
+        where: e.tenant_id == ^tenant_id and e.id in ^evidence_ids,
+        select: e.promoted_membership_id
+
+    {count, _} =
+      Repo.update_all(
+        from(m in TeamMembership,
+          where:
+            m.tenant_id == ^tenant_id and m.id in subquery(apontados) and
+              is_nil(m.declared_by_user_id) and is_nil(m.organizational_role_id) and
+              is_nil(m.ended_at) and is_nil(m.invalidated_at)
+        ),
+        set: [ended_at: now, updated_at: now]
+      )
+
+    count
   end
 
   @doc """
@@ -660,17 +795,26 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         where: t.tenant_id == ^tenant_id and t.organization_id == ^organization_id,
         select: t.id
 
-    {count, _} =
-      Repo.update_all(
-        from(e in TeamMembershipEvidence,
+    now = DateTime.utc_now(:second)
+
+    ausentes =
+      Repo.all(
+        from e in TeamMembershipEvidence,
           where:
             e.tenant_id == ^tenant_id and
               e.team_id in subquery(equipes_da_org) and
               e.last_observed_at < ^collection_started_at and
-              is_nil(e.no_longer_observed_at)
-        ),
-        set: [no_longer_observed_at: DateTime.utc_now(:second)]
+              is_nil(e.no_longer_observed_at),
+          select: e.id
       )
+
+    {count, _} =
+      Repo.update_all(
+        from(e in TeamMembershipEvidence, where: e.id in ^ausentes),
+        set: [no_longer_observed_at: now]
+      )
+
+    encerrar_vinculos_observados(tenant_id, ausentes, now)
 
     {:ok, count}
   end
@@ -743,15 +887,22 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   defp mark_links(tenant_id, equipes, now) do
-    {count, _} =
-      Repo.update_all(
-        from(e in TeamMembershipEvidence,
+    ausentes =
+      Repo.all(
+        from e in TeamMembershipEvidence,
           where:
             e.tenant_id == ^tenant_id and e.team_id in subquery(equipes) and
-              is_nil(e.no_longer_observed_at)
-        ),
+              is_nil(e.no_longer_observed_at),
+          select: e.id
+      )
+
+    {count, _} =
+      Repo.update_all(
+        from(e in TeamMembershipEvidence, where: e.id in ^ausentes),
         set: [no_longer_observed_at: now]
       )
+
+    encerrar_vinculos_observados(tenant_id, ausentes, now)
 
     count
   end
@@ -1124,6 +1275,37 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   def allocate(%Tenant{id: tenant_id} = tenant, attrs) do
     attrs = normalize(attrs)
 
+    # Desde 2026-09-06 a coleta já criou o vínculo OBSERVADO desta pessoa nesta equipe.
+    # Declarar é COMPLETÁ-LO — papel, autor, início — e não inserir um segundo vigente: dois
+    # vínculos vigentes para a mesma pessoa na mesma equipe dobrariam a contagem de membros.
+    case vinculo_observado_vigente(tenant_id, attrs[:person_id], attrs[:team_id]) do
+      nil -> inserir_declaracao(tenant, attrs)
+      observado -> declarar_sobre_o_observado(tenant, observado, attrs)
+    end
+  end
+
+  defp declarar_sobre_o_observado(tenant, observado, attrs) do
+    observado
+    |> TeamMembership.changeset(%{
+      organizational_role_id: attrs[:organizational_role_id],
+      declared_by_user_id: attrs[:declared_by_user_id],
+      started_at: attrs[:started_at] || observado.started_at,
+      ended_at: attrs[:ended_at]
+    })
+    |> Repo.update()
+    |> case do
+      {:ok, vinculo} ->
+        apontar_evidencia(tenant, attrs[:evidence_id], vinculo.id)
+        {:ok, vinculo}
+
+      {:error, %Ecto.Changeset{errors: erros} = changeset} ->
+        if Keyword.has_key?(erros, :ended_at),
+          do: {:error, :period_inverted},
+          else: {:error, changeset}
+    end
+  end
+
+  defp inserir_declaracao(%Tenant{id: tenant_id} = tenant, attrs) do
     changeset =
       TeamMembership.changeset(%TeamMembership{}, %{
         tenant_id: tenant_id,
@@ -1197,9 +1379,11 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
              | Ecto.Changeset.t()}
   def promote_evidence(%Tenant{} = tenant, evidence_id, papel, actor_id, opts \\ []) do
     with {:ok, evidencia} <- Queries.fetch_evidence(tenant, evidence_id),
-         :ok <- promovivel(evidencia),
+         :ok <- promovivel(tenant, evidencia),
          {:ok, equipe} <- Queries.fetch_team(tenant, evidencia.team_id),
          {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel) do
+      # `allocate/2` completa o vínculo observado que a coleta criou — o mesmo vínculo —,
+      # ou insere a declaração quando não há observado (2026-09-06).
       allocate(tenant, %{
         person_id: evidencia.person_id,
         team_id: evidencia.team_id,
@@ -1215,13 +1399,24 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   @typedoc "O papel escolhido: uma linha que existe, ou um conceito do catálogo a materializar."
   @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
 
-  defp promovivel(%{promoted_membership_id: id}) when not is_nil(id),
-    do: {:error, :already_promoted}
-
-  defp promovivel(%{no_longer_observed_at: at}) when not is_nil(at),
+  # Devolve `{:ok, vinculo_observado | nil}`: o vínculo vigente SEM papel que a evidência
+  # aponta (a declarar), `nil` quando não há vínculo nenhum (caminho antigo), e recusa
+  # quando o vínculo já tem papel — declarado uma vez, não se declara de novo por aqui.
+  defp promovivel(_tenant, %{no_longer_observed_at: at}) when not is_nil(at),
     do: {:error, :no_longer_observed}
 
-  defp promovivel(_), do: :ok
+  defp promovivel(_tenant, %{promoted_membership_id: nil}), do: :ok
+
+  # A evidência que aponta para um vínculo OBSERVADO (sem papel) ainda espera a declaração;
+  # a que aponta para um vínculo com papel já foi declarada — não se declara de novo por
+  # aqui. A que aponta para um vínculo encerrado (a pessoa saiu e voltou) é promovível.
+  defp promovivel(%Tenant{id: tenant_id}, %{promoted_membership_id: id}) do
+    case Repo.one(from m in TeamMembership, where: m.tenant_id == ^tenant_id and m.id == ^id) do
+      %TeamMembership{organizational_role_id: nil, ended_at: nil, invalidated_at: nil} -> :ok
+      %TeamMembership{ended_at: nil, invalidated_at: nil} -> {:error, :already_promoted}
+      _ -> :ok
+    end
+  end
 
   # A linha do catálogo nasce **aqui**, e não antes: materializar sem promover deixaria lixo se
   # a promoção falhasse.

@@ -86,7 +86,10 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # consulta constante, e ela vem ANTES das medidas de propósito — quem lê um número de
   # nível equipe precisa saber primeiro se a unidade sobre a qual ele foi calculado
   # está formada.
-  @teto_do_detalhe 22
+  # 23 desde 2026-09-06: a composição das medidas ("X observados sem papel, Y declarados")
+  # custa UMA consulta a mais — `team_members_at/3` — e ela está declarada aqui, e não
+  # escondida num teto que sobe sem ninguém dizer por quê.
+  @teto_do_detalhe 23
 
   # O acréscimo do caminho COM PROJETO sobre o caminho sem projeto nenhum — as duas
   # consultas de `who_worked_on_many/3` e a dos repositórios, menos a que se cancela.

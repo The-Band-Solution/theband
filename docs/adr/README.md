@@ -16,6 +16,7 @@ revisitada com a informação que existia quando foi tomada.
 | [0005](0005-telemetria-da-jornada.md) | Telemetria da jornada: `:telemetry` como barramento, coletor local, taxonomia declarada | **Proposta** |
 | [0006](0006-coleta-paralela.md) | Coleta paralela: concorrência por repositório, contador atômico antes, e o rate limit que hiberna sem dormir | **Proposta** |
 | [0007](0007-gestor-de-cotas.md) | Gestor de cotas: a cota é do usuário do GitHub, um processo a governa, e a coleta volta de onde parou | Aceita |
+| [0008](0008-vinculo-observado.md) | O vínculo observado: a participação que a ferramenta mostra conta como membro, e o papel é o que se declara | Aceita |
 
 ## Quando escrever uma ADR
 

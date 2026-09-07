@@ -160,7 +160,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
       refute html =~ "Source and declaration disagree"
-      assert html =~ "waiting for confirmation"
+      assert html =~ "without a declared role"
     end
 
     test "vínculo encerrado ao lado de outro vigente não é discordância", ctx do

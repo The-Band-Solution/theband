@@ -217,6 +217,6 @@ defmodule TheBandWeb.TeamsLive.Index do
     # a equipe não explica por que a contagem de pessoas não fecha.
     |> assign(derived_count: EO.count_teams(tenant, origin: :derived))
     |> assign(observed_count: EO.count_teams(tenant, origin: :observed))
-    |> assign(pending_role: EO.count_evidence_pending_role(tenant))
+    |> assign(pending_role: EO.count_memberships_pending_role(tenant))
   end
 end

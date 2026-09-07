@@ -12,11 +12,18 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
   `observado` ou `declarado` — deixaria metade dos campos nulos em metade das linhas:
   evidência tem nível de acesso e marca de ausência; vínculo tem papel, período e autor.
 
-  ## Por que ele estava vazio
+  ## Por que ele estava vazio — e o vínculo OBSERVADO (emenda de 2026-09-06)
 
-  `organizational_role_id` é obrigatório, e nenhum papel havia sido cadastrado. Medido em
+  `organizational_role_id` era obrigatório, e nenhum papel havia sido cadastrado. Medido em
   2026-08-14: **101 evidências, zero vínculos, zero papéis** — os três números são o mesmo
   fato.
+
+  Medido de novo em 2026-09-06, com a coleta real: 59 evidências nas 8 equipes do GitHub,
+  zero vínculos, toda medida por equipe vazia, e 78% das solicitações fora de qualquer
+  medida. A decisão da pessoa mantenedora: a participação observada na ferramenta **vira
+  vínculo na coleta**, com o papel declaradamente ausente — `organizational_role_id` nulo e
+  `declared_by_user_id` nulo é o vínculo **observado**. Quem administra declara o papel
+  depois, no mesmo vínculo. Declaração continua exigindo papel: é a validação abaixo.
 
   ## O período, e o que a ausência dele significa
 
@@ -88,22 +95,30 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
       :invalidated_by_user_id,
       :invalidation_reason
     ])
-    |> validate_required([
-      :tenant_id,
-      :internal_id,
-      :person_id,
-      :team_id,
-      # **Obrigatório, e é a razão de a tabela estar vazia.** Sem papel não há vínculo: o
-      # relator da ontologia exige os três, e o GitHub fornece dois.
-      :organizational_role_id
-    ])
+    |> validate_required([:tenant_id, :internal_id, :person_id, :team_id])
+    # O papel é obrigatório na DECLARAÇÃO, e ausente no vínculo OBSERVADO (2026-09-06). O
+    # relator da ontologia exige os três; a plataforma materializa o observado com o papel
+    # declaradamente ausente, e a tela diz isso. Declarar sem papel continua recusado.
+    |> validar_papel_da_declaracao()
     |> validar_periodo()
+    |> unique_constraint([:tenant_id, :person_id, :team_id],
+      name: :eo_team_memberships_observado_vigente_index
+    )
     # A duplicata vem do índice **parcial** — só o banco sabe o que está vigente no instante
     # da escrita. Sem declarar aqui, a violação levanta `Ecto.ConstraintError` em vez de
     # virar resposta, e a tela não teria o que exibir.
     |> unique_constraint([:person_id, :team_id, :organizational_role_id],
       name: :eo_team_memberships_vigente_index
     )
+  end
+
+  defp validar_papel_da_declaracao(changeset) do
+    if get_field(changeset, :declared_by_user_id) &&
+         is_nil(get_field(changeset, :organizational_role_id)) do
+      add_error(changeset, :organizational_role_id, "a declaração exige um papel")
+    else
+      changeset
+    end
   end
 
   # Fim antes do começo é dado impossível, e a recusa é do changeset — não do banco. A

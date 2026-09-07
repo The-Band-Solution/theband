@@ -114,6 +114,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       from e in TeamMembershipEvidence,
         join: p in Person,
         on: p.id == e.person_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
         where: e.tenant_id == ^tenant_id and e.team_id == ^team_id,
         select: %{
           person: p,
@@ -121,7 +123,9 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
           observed_at: e.observed_at,
           last_observed_at: e.last_observed_at,
           no_longer_observed_at: e.no_longer_observed_at,
-          pending_role: is_nil(e.promoted_membership_id)
+          # Desde 2026-09-06 a evidência viva sempre aponta para um vínculo; "pendente" é o
+          # vínculo SEM PAPEL declarado — e não a ausência de vínculo.
+          pending_role: is_nil(e.promoted_membership_id) or is_nil(m.organizational_role_id)
         }
 
     query
@@ -210,7 +214,12 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       name: p.name,
       login: p.login,
       started_at: m.started_at,
-      ended_at: m.ended_at
+      ended_at: m.ended_at,
+      # O vínculo é DECLARADO quando alguém o afirmou; OBSERVADO quando a coleta o criou a
+      # partir da origem (2026-09-06). A tela diz qual é, e as medidas dizem sobre quantos
+      # de cada foram calculadas.
+      declarado?: not is_nil(m.declared_by_user_id),
+      papel_declarado?: not is_nil(m.organizational_role_id)
     })
     |> Repo.all()
   end
@@ -820,6 +829,30 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   # ------------------------------------------------------------------- lacunas
 
   @doc """
+  Quantos vínculos VIGENTES estão sem papel declarado — o número que "pendente de papel"
+  passou a significar em 2026-09-06, quando a coleta começou a criar o vínculo observado.
+
+  `count_evidence_pending_role/2` conta evidência sem vínculo nenhum, que desde então é
+  raro (só a evidência que a coleta não conseguiu apontar).
+  """
+  @spec count_memberships_pending_role(Tenant.t(), keyword()) :: non_neg_integer()
+  def count_memberships_pending_role(%Tenant{id: tenant_id}, opts \\ []) do
+    query =
+      from m in TeamMembership,
+        where:
+          m.tenant_id == ^tenant_id and is_nil(m.organizational_role_id) and
+            is_nil(m.ended_at) and is_nil(m.invalidated_at)
+
+    query =
+      case Keyword.get(opts, :team_id) do
+        nil -> query
+        team_id -> where(query, [m], m.team_id == ^team_id)
+      end
+
+    Repo.aggregate(query, :count, :id)
+  end
+
+  @doc """
   FR-021 e SC-010 — quantos vínculos observados ainda não têm papel atribuído.
 
   É medida de lacuna de conhecimento, não erro: diz quanto da estrutura
@@ -1098,6 +1131,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         on: t.id == e.team_id,
         left_join: o in Organization,
         on: o.id == t.organization_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
         where: e.tenant_id == ^tenant_id and e.person_id == ^person_id,
         order_by: [asc: t.name],
         select: %{
@@ -1108,7 +1143,10 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
           observed_at: e.observed_at,
           last_observed_at: e.last_observed_at,
           no_longer_observed_at: e.no_longer_observed_at,
-          promoted?: not is_nil(e.promoted_membership_id)
+          # "Promovida" passou a significar COM PAPEL DECLARADO (2026-09-06): a coleta já
+          # aponta toda evidência viva para um vínculo, e o que a tela da pessoa distingue é
+          # se alguém declarou o papel.
+          promoted?: not is_nil(m.organizational_role_id)
         }
     )
   end
@@ -1167,10 +1205,17 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         on: p.id == e.person_id,
         join: t in Team,
         on: t.id == e.team_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
+        # Sem vínculo (caminho antigo) OU com vínculo observado vigente sem papel: nos
+        # dois casos o que falta é a DECLARAÇÃO do papel (2026-09-06).
         where:
           e.tenant_id == type(^tenant_id, :binary_id) and
             e.team_id == type(^team_id, :binary_id) and
-            is_nil(e.promoted_membership_id) and is_nil(e.no_longer_observed_at),
+            is_nil(e.no_longer_observed_at) and
+            (is_nil(e.promoted_membership_id) or
+               (is_nil(m.organizational_role_id) and is_nil(m.ended_at) and
+                  is_nil(m.invalidated_at))),
         order_by: [asc: p.name],
         select: %{
           id: e.id,

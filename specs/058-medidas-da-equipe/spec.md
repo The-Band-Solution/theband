@@ -6,6 +6,10 @@
 
 **Status**: Draft
 
+**Emendada**: 2026-09-06 — FR-026 e SC-013/SC-014, a composição que sustenta cada
+medida. Decorre da emenda da [spec 055](../055-equipes-declaradas/spec.md) da mesma
+data, que faz da participação observada um vínculo.
+
 **Input**: User description: "As medidas que faltam na tela da equipe, e o elo com o projeto. Três coisas, e a terceira tem uma pergunta em aberto que a pesquisa precisa responder. (1) O tempo até a primeira revisão humana, por equipe e por pessoa. (2) O elo equipe ↔ projeto com período. (3) A taxa de sucesso do pipeline no nível da equipe — o caminho de uma verificação até uma equipe não se sabe, e a resposta pode ser que a medida não se calcula neste nível."
 
 ## O que esta feature resolve
@@ -141,7 +145,9 @@ ausência nomeando o elo que falta.
 - **Primeira revisão de robô** — o tempo conta até a primeira **humana**, e a
   tela declara que descarta a do robô.
 - **Solicitação de quem nunca teve vínculo declarado** — não conta para equipe
-  nenhuma, e aparece na contagem do que ficou de fora.
+  nenhuma, e aparece na contagem do que ficou de fora. *(Emendado em 2026-09-06:
+  vínculo **nenhum** — observado ou declarado. Quem a origem mostra num time tem
+  vínculo observado e conta. FR-026d.)*
 - **Vínculo de pessoa sem `started_at`** — período parcialmente desconhecido,
   nunca aberto desde sempre. É a **única** ponta que produz dúvida: `linked_at` é
   `NOT NULL` nas duas tabelas de projeto (R2a), e `fim` nulo significa **vigente**.
@@ -265,6 +271,51 @@ ausência nomeando o elo que falta.
   vínculo nenhum ao lado — zero e um quebram a aritmética da medida por razões
   diferentes, e cada um tem sua máxima.
 
+### Emenda de 2026-09-06 — a composição que sustenta a medida
+
+*Decisão da pessoa mantenedora em 2026-09-06, tomada junto com a emenda da spec 055
+que faz da participação observada um vínculo.* Medido por ela naquela data, na
+`leds-conectafapes`: 8 equipes, 59 evidências de vínculo em 49 pessoas, **zero**
+vínculos vigentes; **838 das 1 077** solicitações dos últimos 56 dias (78%) abertas
+por autor que só tinha evidência — fora de toda medida desta feature. Com a emenda
+da 055 elas entram, e entram por vínculos cujo papel ninguém declarou. A medida
+passa a existir e precisa dizer sobre quem foi calculada. **Não há segunda
+definição de membro**: a decisão recusou explicitamente medir "só os declarados".
+
+- **FR-026**: Toda medida por equipe MUST apresentar, junto do número, a
+  **composição** que a sustenta, na forma *N membros — X observados na ferramenta
+  sem papel declarado, Y declarados*, onde N são **pessoas distintas** com vínculo
+  vigente (043, FR-006c), X as que só têm vínculo observado sem papel, e Y as que
+  têm ao menos um papel declarado. X + Y = N em toda apresentação.
+- **FR-026a**: A composição é **rótulo, e não filtro**. MUST NOT existir uma segunda
+  definição de membro: nenhuma medida "só dos declarados" ao lado da medida da
+  equipe, nenhum seletor que exclua os observados. Há **um** conjunto de membros —
+  o vínculo vigente, observado ou declarado —, e o rótulo diz de que ele é feito.
+- **FR-026b**: A composição apresentada é a **vigente na data da consulta**, e a
+  tela MUST dizer isso. O recorte da medida continua sendo por data do evento
+  (FR-002, FR-007): quem saiu antes do período não está em N e conta no que fez
+  enquanto pertencia.
+- **FR-026c**: Quando X > 0, a tela MUST declarar que, para esses X, **o papel na
+  equipe é desconhecido** — a pergunta *qual papel cada membro desempenha*
+  (`sro.cq16`, e `sro.cq14` para o time) não tem resposta até que alguém declare.
+  É limitação da medida, e FR-019 exige que ela viva junto do número.
+- **FR-026d**: O que ficou de fora MUST passar a ser **autor sem vínculo nenhum** —
+  nem observado, nem declarado —, e a contagem do que ficou de fora (R3) MUST dizer
+  isso com essas palavras.
+- **FR-026e**: A composição **não é medida nova**; é o conjunto sobre o qual as
+  medidas já declaradas são calculadas. A limitação *calculada sobre vínculos cujo
+  papel pode não estar declarado* MUST constar no YAML de cada medida de nível
+  `team` **antes** de aparecer na tela — o mesmo que FR-021 exige de medida nova,
+  pelo princípio IV.
+
+**Consequência declarada, e não escondida**: como o vínculo observado nasce com
+`started_at` nulo (055, FR-013c), a interseção de períodos da US2 (FR-009) passa a
+marcar **parcialmente desconhecido** na quase totalidade das linhas enquanto ninguém
+declarar início. FR-009a previu esse efeito para o `fim` e o evitou; para o
+`início` ele é verdadeiro, e a marca é correta — a alternativa seria inventar data
+(043, FR-019). O que tira a marca é declarar o início, e a tela MUST dizer isso onde
+a marca aparece.
+
 ### Key Entities
 
 - **Solicitação de mudança** — o que é aberto e revisto; carrega quem abriu e
@@ -272,6 +323,8 @@ ausência nomeando o elo que falta.
 - **Avaliação de artefato** — a revisão, com autor humano ou robô e o instante em
   que foi submetida.
 - **Vínculo de equipe** — pessoa, papel, equipe e período; a fonte do recorte.
+  *(Emendado em 2026-09-06: o papel pode estar **não declarado** — 055, FR-013 —
+  e o vínculo pode ter nascido da coleta, sem autor de declaração.)*
 - **Vínculo equipe ↔ projeto** — com `linked_at` e `unlinked_at`, hoje sem
   consumidor.
 - **Verificação coletada** — a execução do pipeline, com as cinco fases separadas
@@ -312,12 +365,20 @@ ausência nomeando o elo que falta.
   login, número de solicitação nem mediana individual — **exceto** quando a equipe tem
   um único vínculo vigente, caso em que o agregado também é retido e a anomalia é
   nomeada na tela (FR-025).
+- **SC-013** *(emenda de 2026-09-06)*: **Nenhuma** medida por equipe é apresentada
+  sem a composição que a sustenta — 100% das seções de medida da tela da equipe
+  trazem *N membros — X observados sem papel declarado, Y declarados*, com
+  X + Y = N, verificável por varredura da tela renderizada.
+- **SC-014** *(emenda de 2026-09-06)*: **Zero** medidas "só de declarados": nenhuma
+  seção, seletor ou nota apresenta um segundo valor da mesma medida calculado sobre
+  outro conjunto de membros.
 
 ## Assumptions
 
 - **O recorte segue a feature 057**: vigência avaliada contra a data do evento,
   borda `[início, fim)`, e `started_at` nulo é membro — nulo é desconhecido,
-  nunca "nunca pertenceu".
+  nunca "nunca pertenceu". *(Emendado em 2026-09-06: deixa de ser o caso raro e
+  passa a ser o caso comum — todo vínculo observado nasce assim. 055, FR-013c.)*
 - **O período padrão é o mesmo da 057**: 8 semanas, sem seletor nesta feature.
 - **A distinção robô/humano já existe** em `collected_artifact_evaluations`, e
   esta feature consome — não redefine.

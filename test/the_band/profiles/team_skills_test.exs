@@ -325,11 +325,15 @@ defmodule TheBand.Profiles.TeamSkillsTest do
              "registrar uma saída reescreveu um mês fechado — é o defeito que o SC-003 da 055 proíbe no vínculo, acontecendo na medida"
     end
 
-    test "FR-005: pessoa observada sem vínculo declarado não entra nas contagens", ctx do
+    test "pessoa observada pela origem CONTA — com o papel por declarar (ADR 0008)", ctx do
+      # Até 2026-09-06 este teste afirmava o contrário (057, FR-005): evidência sem
+      # declaração não entrava. A medida real mostrou o custo — 8 equipes com zero membros e
+      # 78% das solicitações fora de toda medida — e a decisão da pessoa mantenedora inverteu:
+      # a participação observada vira vínculo na coleta; o que se declara é o papel.
       ana = pessoa(ctx.tenant, "ana")
       agora = DateTime.utc_now(:second)
 
-      # Só evidência: a origem lista, a organização não declarou.
+      # Só evidência: a origem lista, a organização ainda não declarou o papel.
       {:ok, _} =
         EO.record_team_membership_evidence(ctx.tenant, %{
           team_id: ctx.equipe.id,
@@ -346,8 +350,19 @@ defmodule TheBand.Profiles.TeamSkillsTest do
 
       perfil(ctx.tenant, ana, [{"kubernetes", 9}], agora_menos(2))
 
-      assert TeamSkills.coverage(ctx.tenant, ctx.equipe.id).membros == 0
-      assert TeamSkills.coverage(ctx.tenant, ctx.equipe.id).competencias == []
+      cobertura = TeamSkills.coverage(ctx.tenant, ctx.equipe.id)
+
+      assert cobertura.membros == 1, """
+      A pessoa que a origem mostra na equipe não contou. É o estado que deixou a equipe
+      PLATAFORMA (19 pessoas) com cobertura de competências vazia em 2026-09-06.
+      """
+
+      assert Enum.any?(
+               cobertura.competencias,
+               &(&1.nome == "kubernetes" or &1[:nome] == "kubernetes")
+             ) or
+               cobertura.competencias != [],
+             "a competência da pessoa observada entra na cobertura da equipe"
     end
   end
 end

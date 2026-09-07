@@ -173,7 +173,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
       assert EO.count_people(tenant) == 1
       assert EO.count_teams(tenant) == 1
-      assert EO.count_evidence_pending_role(tenant) == 1
+      # Desde 2026-09-06 a coleta cria o vínculo observado; o que fica pendente é o PAPEL.
+      assert EO.count_memberships_pending_role(tenant) == 1
 
       assert [pessoa] = EO.list_people(tenant)
       assert pessoa.source_system == "github"

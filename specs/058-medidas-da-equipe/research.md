@@ -149,6 +149,12 @@ revisão*, que é uma espera **de quem abriu**.
 conta para equipe nenhuma. Vai para a contagem do que ficou de fora, nomeada — e
 não some.
 
+*(Emendado em 2026-09-06)*: medido contra a `leds-conectafapes`, "o que ficou de
+fora" era **838 de 1 077** solicitações em 56 dias — 78% —, porque nenhuma das 59
+evidências tinha sido confirmada. A emenda da 055 faz da participação observada um
+vínculo; o que fica de fora passa a ser autor **sem vínculo nenhum**, observado ou
+declarado (spec, FR-026d).
+
 ---
 
 ## R4 — Robô não encerra a contagem, e isso já está resolvido

@@ -94,9 +94,11 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
           observed_at: DateTime.utc_now(:second)
         })
 
-      assert is_nil(evidencia.promoted_membership_id)
-      assert EO.count_evidence_pending_role(tenant) == 1
-      assert EO.count_evidence_pending_role(tenant, team_id: equipe.id) == 1
+      # Desde 2026-09-06 a coleta cria o vínculo OBSERVADO e a evidência aponta para ele;
+      # o que fica pendente é o papel.
+      refute is_nil(evidencia.promoted_membership_id)
+      assert EO.count_memberships_pending_role(tenant) == 1
+      assert EO.count_memberships_pending_role(tenant, team_id: equipe.id) == 1
     end
 
     test "reobservar o mesmo vínculo não cria um segundo" do
@@ -118,7 +120,7 @@ defmodule TheBand.Ontology.SEON.EO.ConstraintsTest do
       {:ok, _} = EO.record_team_membership_evidence(tenant, attrs)
       {:ok, _} = EO.record_team_membership_evidence(tenant, attrs)
 
-      assert EO.count_evidence_pending_role(tenant) == 1
+      assert EO.count_memberships_pending_role(tenant) == 1
     end
   end
 
