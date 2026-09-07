@@ -29,6 +29,14 @@ vale. Mesmo vocabulário visual do protótipo da 057 (`specs/057-tela-da-equipe-
 8. **Equipe composta mostra o resumo de cada subequipe** — um cartão por squad com as medidas
    e um gráfico pequeno; clicar no cartão ou no gráfico abre a página da subequipe (057, screen 2).
 
+9. **O dashboard é a visão geral do gestor**: além das medidas, mostra **Problems now**
+   (issues abertas há mais de 30 dias, revisões esperando há mais de 7, pipeline falhando na
+   main, tarefas paradas além do limiar, pessoas sem tarefa, membros sem papel, trabalho fora de
+   projeto, anomalias de estrutura — cada um com o limiar declarado na base) e **People** — todos
+   os membros, diretos e via squads, com papel, **as tarefas abertas agora** (todas, com idade e
+   marca de parada; nunca uma "atual" eleita) e o **perfil demonstrado** (ou "sem perfil ainda",
+   abaixo do piso).
+
 ## Premissas que a spec carrega até serem contestadas
 
 - Mês e ano só mudam a granulação do eixo do burn e do Prometido × Entregue; o Monte Carlo

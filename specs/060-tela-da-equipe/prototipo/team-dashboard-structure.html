@@ -95,6 +95,18 @@ svg.g{width:100%;height:auto;display:block;overflow:visible}
 .leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
 .leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
 .leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
+.tarefa{display:block;font-size:.8rem;line-height:1.35;margin-top:.15rem}
+.tarefa .num{font-family:var(--mono);color:var(--verdete-deep)}.tarefa .idade{font-family:var(--mono);font-size:.7rem;color:var(--tinta-2)}
+.parada{color:var(--clay);font-family:var(--grot);font-size:.68rem;border:1.5px dashed var(--clay);border-radius:.25rem;padding:0 .35rem;margin-left:.3rem}
+.skill{display:inline-block;font-family:var(--grot);font-size:.68rem;padding:.02rem .4rem;border-radius:.25rem;background:var(--verdete-soft);color:var(--verdete-deep);margin:.1rem .15rem 0 0;white-space:nowrap}
+.skill.fraca{background:transparent;border:1px dashed var(--linha);color:var(--tinta-2)}
+.problemas{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin-top:1rem}
+.problema{border:1.5px solid var(--linha);border-radius:.5rem;padding:.8rem .95rem;background:var(--papel-2);border-top:4px solid var(--amber)}
+.problema.grave{border-top-color:var(--clay)}.problema.ok{border-top-color:var(--verdete)}
+.problema .grande{font-family:var(--mono);font-size:1.6rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.problema .grande.grave{color:var(--clay)}.problema .grande.ok{color:var(--verdete-deep)}
+.problema ul{margin:.4rem 0 0;padding-left:1rem;font-size:.8rem}.problema li{margin-top:.15rem}
+.grupo-sq{margin-top:1.2rem}.grupo-sq h3{display:flex;align-items:center;gap:.4rem}
 .squads{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(15.5rem,1fr));margin-top:1rem}
 a.squad{display:block;text-decoration:none;color:inherit;background:var(--papel-2);border:1.5px solid var(--linha);border-left-width:4px;border-radius:.5rem;padding:.9rem 1rem;transition:border-color .15s}
 a.squad:hover{border-color:var(--verdete);background:var(--verdete-soft)}
@@ -124,7 +136,7 @@ a.squad .ir{font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep);m
 <span class="tela" id="dashboard">screen 1 · dashboard</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
-The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). First, one card per squad — a summary and a door to the squad's own page. Then the tables, and the team's <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
+The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). For the manager, in this order: one card per squad (a summary and a door to the squad's own page); <strong>problems now</strong>; the measures, one row per squad; the team's <strong>flow charts</strong>; <strong>the people</strong> — direct and through the squads — with what each is on now and what each has demonstrated; the projects. The <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
 
 <section class="sec">
   <div class="sec-cab"><h2>Squads at a glance</h2><span class="rot">one card per squad · click a card or its chart to open the squad</span></div>
@@ -159,6 +171,31 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 </section>
 
 <section class="sec">
+  <div class="sec-cab"><h2>Problems now</h2><span class="rot">what needs a manager's eye today · counted, never inferred</span></div>
+  <p class="sub">Each card is a fact with a threshold the platform declares (the knowledge base names it). A card in green means the fact was checked and found nothing — which is different from not having looked.</p>
+  <div class="problemas">
+    <div class="problema grave"><span class="rot">issues open · over 30 days</span><div class="grande grave">46</div>
+      <ul><li><span class="chip s2">GREEN</span> 21 · oldest 112 d</li><li><span class="chip s1">BLUE</span> 17 · oldest 84 d</li><li><span class="chip s3">PINK</span> 8</li></ul>
+      <a class="ir" href="#" style="font-family:var(--grot);font-size:.74rem;color:var(--verdete-deep)">see the 46 →</a></div>
+    <div class="problema grave"><span class="rot">code changes waiting review · over 7 days</span><div class="grande grave">38</div>
+      <ul><li>median wait <span class="n">38 d</span></li><li>12 with no reviewer requested</li></ul></div>
+    <div class="problema"><span class="rot">pipeline failing on main · now</span><div class="grande">3 <span style="font-size:.9rem;color:var(--tinta-2)">repos</span></div>
+      <ul><li>conecta-api · failing for 4 d</li><li>conecta-web · 2 d</li><li>infra-scripts · 6 h</li></ul></div>
+    <div class="problema"><span class="rot">tasks open beyond the stop threshold</span><div class="grande">9</div>
+      <ul><li>threshold: 14 d without a state change</li><li>5 people involved</li></ul></div>
+    <div class="problema"><span class="rot">people with no open task</span><div class="grande">3</div>
+      <ul><li>Caio Prado, Hugo Dias, Íris Melo <span class="ex-mark">example</span></li><li>absence of assignment, not idleness</li></ul></div>
+    <div class="problema"><span class="rot">members without a declared role</span><div class="grande">17 <span style="font-size:.9rem;color:var(--tinta-2)">of 19</span></div>
+      <ul><li>the source lists them; nobody declared the role</li><li><a href="#structure" style="color:var(--verdete-deep)">declare on the Structure tab →</a></li></ul></div>
+    <div class="problema ok"><span class="rot">work outside any declared project</span><div class="grande ok">0</div>
+      <ul><li>checked over 56 days · nothing found</li></ul></div>
+    <div class="problema ok"><span class="rot">structure anomalies</span><div class="grande ok">0</div>
+      <ul><li>no team of one, no team without members</li></ul></div>
+  </div>
+  <p class="sub"><span class="ex-mark">example data</span> for the counts; the 46 and the 38 d are real (2026-09-05, leds-conectafapes).</p>
+</section>
+
+<section class="sec">
   <div class="sec-cab"><h2>Time to first review</h2><span class="rot">last 56 days · code changes and process ceremony, apart</span></div>
   <div class="grade-m">
     <div class="medida"><span class="rot">code changes · median wait</span><span class="grande">0.6 h</span><span class="contra">11 reviewed · 79 still waiting</span><span class="base">measured over 19 members — 17 observed without a declared role, 2 declared</span></div>
@@ -183,6 +220,62 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <div class="medida"><span class="rot">team · declared project path</span><span class="grande">85.3%</span><span class="contra">over 1 657 · 1 821 considered · 16 repositories</span><span class="base">measured over 19 members — 17 observed without a declared role, 2 declared</span></div>
     <div class="medida recusa"><span class="rot">SQUAD PINK</span><span class="grande">no declared project — no rate</span><span class="contra">the link team → project is what the rate follows</span><span class="base">refusal is a first-class state: no number without a path</span></div>
   </div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>People — direct and through the squads</h2><span class="rot">19 people · what each is on now, and what each has shown</span></div>
+  <p class="sub">Every member of the composed team, grouped by squad; a person in two squads appears under each (and is counted once in the 19). <strong>Now</strong> lists every open task assigned — the platform does not elect a "current" one (057, FR-018) — with how long it has been open. <strong>Profile</strong> is what the person has demonstrated in closed work; below the floor of material it says so instead of guessing.</p>
+
+  <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--s1)"></span>SQUAD BLUE <span class="rot">6 people</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pessoa">Ana Souza</span><span class="login">@ana-souza <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><span class="tarefa"><span class="num">#812</span> Retry on nxdomain <span class="idade">open 3 d</span></span><span class="tarefa"><span class="num">#790</span> Quota manager panel <span class="idade">open 19 d</span><span class="parada">stopped 14 d</span></span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">postgres</span><span class="skill">oban</span><span class="skill fraca">ci · 1 task</span></td>
+        <td><span class="marca der"><span class="am"></span>1 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Davi Rocha</span><span class="login">@davirocha <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><span class="tarefa"><span class="num">#801</span> Oban stalls silently <span class="idade">open 6 d</span></span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">observability</span></td>
+        <td></td></tr>
+      <tr><td><span class="pessoa">Hugo Dias</span><span class="login">@hugodias <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
+        <td class="esq"><span class="vazio" style="display:inline-block;margin:0;padding:.15rem .5rem;font-size:.78rem">No open task assigned</span></td>
+        <td class="esq"><span class="sub" style="font-size:.78rem">no profile yet — 2 closed tasks, floor is 5</span></td>
+        <td><span class="marca aus"><span class="am"></span>no task</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="font-size:.78rem">… 3 more in SQUAD BLUE. <a href="#" style="color:var(--verdete-deep)">open the squad →</a></p>
+  </div>
+
+  <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--s2)"></span>SQUAD GREEN <span class="rot">8 people</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pessoa">Bia Lemos</span><span class="login">@bialemos · also in PINK <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
+        <td class="esq"><span class="tarefa"><span class="num">#805</span> Ceremony vs code review <span class="idade">open 2 d</span></span><span class="tarefa"><span class="num">#777</span> Team page: participation period <span class="idade">open 11 d</span></span><span class="tarefa"><span class="num">#760</span> Export CSV <span class="idade">open 31 d</span><span class="parada">stopped 22 d</span></span></td>
+        <td class="esq"><span class="skill">liveview</span><span class="skill">elixir</span><span class="skill">sql</span><span class="skill">design</span></td>
+        <td><span class="marca der"><span class="am"></span>1 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Gil Costa</span><span class="login">@gilcosta <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><span class="tarefa"><span class="num">#799</span> Team of one is an anomaly <span class="idade">open 5 d</span></span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill fraca">yaml · 1 task</span></td>
+        <td></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="font-size:.78rem">… 6 more in SQUAD GREEN. <a href="#" style="color:var(--verdete-deep)">open the squad →</a></p>
+  </div>
+
+  <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--linha)"></span>Direct members <span class="rot">2 people · in no squad</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pessoa">Caio Prado</span><span class="login">@caioprado <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Scrum Master</td>
+        <td class="esq"><span class="vazio" style="display:inline-block;margin:0;padding:.15rem .5rem;font-size:.78rem">No open task assigned</span></td>
+        <td class="esq"><span class="skill">facilitation</span><span class="skill">planning</span></td>
+        <td><span class="marca aus"><span class="am"></span>no task</span></td></tr>
+    </tbody>
+  </table></div>
+  </div>
+  <div class="aviso"><span class="rot">what the profile is, and is not</span><p>Demonstrated skills are read from the tasks the person closed in the period — labels, repositories, files touched. An absent skill means <em>not observed here</em>, never "does not have it" (057, FR-024). The full profile, with the tasks that back each skill, is on the person's page.</p></div>
 </section>
 
 <section class="sec">
