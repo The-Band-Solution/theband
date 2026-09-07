@@ -74,7 +74,7 @@ defmodule TheBandWeb.PapelDeclaradoTest do
         """
       end
 
-      assert html =~ "waiting for confirmation", """
+      assert html =~ "without a declared role", """
       A tela diz **quantas evidências esperam**. Sem isso, quem lê não sabe que há trabalho
       parado — e a lista de papéis cheia pareceria "está tudo pronto".
       """

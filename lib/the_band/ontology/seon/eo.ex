@@ -141,6 +141,7 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate derived_prefix(), to: Commands
   defdelegate derived_source(), to: Commands
   defdelegate count_evidence_pending_role(tenant, opts \\ []), to: Queries
+  defdelegate count_memberships_pending_role(tenant, opts \\ []), to: Queries
 
   # ---------------------------------------------------------------- invariantes
 

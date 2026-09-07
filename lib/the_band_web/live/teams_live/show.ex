@@ -49,7 +49,12 @@ defmodule TheBandWeb.TeamsLive.Show do
          |> push_navigate(to: ~p"/teams")}
 
       team ->
-        {:ok, assign(socket, page_title: team.name, team: team)}
+        {:ok,
+         assign(socket,
+           page_title: team.name,
+           team: team,
+           composicao: %{total: 0, observados: 0, declarados: 0}
+         )}
     end
   end
 
@@ -281,7 +286,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         )
     )
     |> assign(encontradas: EO.count_team_members(tenant, team.id, opts))
-    |> assign(pending_role: EO.count_evidence_pending_role(tenant, team_id: team.id))
+    |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
     |> carregar_promocao()
     |> carregar_competencias()
   end
@@ -870,6 +875,21 @@ defmodule TheBandWeb.TeamsLive.Show do
     truncou? = length(carregadas) > @limite_de_esperas
     esperas = Enum.take(carregadas, @limite_de_esperas)
 
+    # A COMPOSIÇÃO sobre a qual as medidas desta seção são calculadas — decisão da pessoa
+    # mantenedora em 2026-09-06 ("2 e 3"): o vínculo observado conta como membro, e a tela
+    # diz quantos dos membros são observados sem papel declarado e quantos foram declarados.
+    # Uma definição de membro; a transparência é sobre a origem de cada um.
+    membros = EO.team_members_at(tenant, team.id, agora)
+
+    socket =
+      assign(socket,
+        composicao: %{
+          total: length(membros),
+          observados: Enum.count(membros, &(not &1.declarado?)),
+          declarados: Enum.count(membros, & &1.declarado?)
+        }
+      )
+
     # O VEREDITO — feature 058, FR-024, decidido pelo Product Owner em 2026-09-04.
     #
     # A quebra por pessoa nomeada é leitura de desempenho de gente, e a decisão de
@@ -1046,6 +1066,20 @@ defmodule TheBandWeb.TeamsLive.Show do
       y = 23 - v / maximo * 18
       "#{Float.round(x * 1.0, 1)},#{Float.round(y * 1.0, 1)}"
     end)
+  end
+
+  # SOBRE QUEM a medida foi calculada — decisão da pessoa mantenedora em 2026-09-06 ("3":
+  # transparência). O vínculo observado conta como membro; a frase diz quantos membros são
+  # observados na ferramenta sem papel declarado e quantos foram declarados pela organização.
+  # Sem ela, "mediana de 6 h sobre 19 pessoas" esconderia que ninguém declarou nenhuma delas.
+  attr :composicao, :map, required: true
+
+  defp composicao_da_medida(assigns) do
+    ~H"""
+    <p class="text-xs opacity-70">
+      measured over {@composicao.total} {if @composicao.total == 1, do: "member", else: "members"} — {@composicao.observados} observed at the source without a declared role, {@composicao.declarados} with a declared role
+    </p>
+    """
   end
 
   # A PROVENIÊNCIA da equipe — 2026-09-06, a pedido da pessoa mantenedora ao avaliar a tela.
@@ -1377,13 +1411,13 @@ defmodule TheBandWeb.TeamsLive.Show do
             A garantia é do contrato — `pending_evidence/2` não devolve o campo. --%>
       <section :if={@pendentes != []} class="mt-8 space-y-3">
         <h3 class="text-base font-semibold">
-          {length(@pendentes)} participation(s) waiting for confirmation
+          {length(@pendentes)} observed member(s) without a declared role
         </h3>
         <p class="text-sm opacity-70">
-          The platform observed that these people belong to this team. It does not know which
-          <strong>role</strong>
-          they hold — no source provides that. Choose the role and confirm; the record keeps who
-          confirmed it and when.
+          The source shows that these people belong to this team, and they already count as
+          members. What the platform does not know is which <strong>role</strong> they hold —
+          no source provides that. Choose the role and declare it; the record keeps who
+          declared it and when.
         </p>
 
         <%!-- **Um formulário só**, e não um por linha. É o que permite confirmar várias de
@@ -1432,7 +1466,7 @@ defmodule TheBandWeb.TeamsLive.Show do
                 </label>
 
                 <button type="submit" name="apenas" value={p.id} class="btn btn-primary btn-sm">
-                  Confirm
+                  Declare role
                 </button>
               </div>
             </li>
@@ -1443,7 +1477,7 @@ defmodule TheBandWeb.TeamsLive.Show do
                 tudo. --%>
           <div class="flex flex-wrap items-center gap-3 pt-1">
             <button type="submit" name="apenas" value="todas" class="btn btn-primary btn-sm">
-              Confirm all
+              Declare all roles
             </button>
             <span class="text-xs opacity-70">
               Confirms only the rows where a role was chosen. The others are left as they are,
@@ -1607,6 +1641,7 @@ defmodule TheBandWeb.TeamsLive.Show do
             ela, a mediana melhoraria quanto pior a equipe estivesse. --%>
       <section id="espera-por-revisao" class="mt-8 space-y-3">
         <h3 class="text-base font-semibold">Waiting for first review</h3>
+        <.composicao_da_medida composicao={@composicao} />
         <p class="text-sm opacity-70">
           Change requests opened by people who belonged to this team
           <strong>on the day they opened them</strong>
@@ -1768,6 +1803,7 @@ defmodule TheBandWeb.TeamsLive.Show do
             diria que o pipeline falhou. --%>
       <section id="taxa-do-pipeline" class="mt-8 space-y-3">
         <h3 class="text-base font-semibold">Pipeline success rate</h3>
+        <.composicao_da_medida composicao={@composicao} />
 
         <div :if={match?({:sem_projeto, _}, @taxa_do_pipeline)} class="card bg-base-200 p-3">
           <p class="text-sm">

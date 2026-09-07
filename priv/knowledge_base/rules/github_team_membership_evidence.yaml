@@ -1,6 +1,6 @@
 derivation_rule:
   id: github.team_membership_evidence
-  version: 1
+  version: 2
   provider: github
   status: proposed
   confidence: high
@@ -42,6 +42,20 @@ derivation_rule:
     - concept: eo.organizational_team
       from: organization.teams.nodes
       confidence: high
+    # Versão 2 (2026-09-06, decisão da pessoa mantenedora). O relator exige pessoa, equipe e
+    # papel; a plataforma passa a materializá-lo com o papel DECLARADAMENTE AUSENTE, porque a
+    # participação é fato observado e a medida por equipe é impossível sem ela. Medido antes
+    # da mudança: 59 evidências nas 8 equipes do GitHub, zero vínculos, toda medida por
+    # equipe vazia, 78% das solicitações fora de qualquer medida.
+    - concept: eo.team_membership
+      from: team.members
+      confidence: medium
+      note: >
+        Vínculo OBSERVADO: organizational_role_id nulo ("papel não declarado"),
+        declared_by_user_id nulo, started_at nulo (a origem não diz desde quando). Quem
+        administra declara o papel depois, no mesmo vínculo. Quando a origem deixa de mostrar
+        a pessoa no time, o vínculo observado é encerrado (ended_at = instante da ausência);
+        vínculo declarado não é tocado pela coleta, e as duas afirmações aparecem lado a lado.
 
   # ---------------------------------------------------------------------------
   # O que NÃO é materializado, e por quê
@@ -53,15 +67,12 @@ derivation_rule:
           Não existe no GitHub. O papel organizacional vem de cadastro do tenant
           ou de outra fonte que o registre, como um sistema de RH ou uma
           ferramenta de gestão de projetos.
-    - concept: eo.team_membership
-      reason:
-        pt-BR: >
-          Depende do papel. Sem ele, o relator estaria incompleto — e uma
-          alocação sem papel não responde nenhuma das perguntas que a alocação
-          existe para responder.
+    # eo.team_membership saiu desta lista na versão 2 — ver `materializes`. O que
+    # continua não materializado é o PAPEL: CQ14 e CQ16 (perguntas sobre papel) seguem
+    # sem resposta até a declaração, e o vínculo observado diz isso de si mesmo.
 
   # ---------------------------------------------------------------------------
-  # O vínculo observado é preservado, sem virar alocação
+  # O vínculo observado é preservado como evidência E materializado como vínculo
   # ---------------------------------------------------------------------------
   observed_link:
     name:
@@ -74,18 +85,19 @@ derivation_rule:
       - { name: observed_at, from: collected_at }
     promotion:
       to: eo.team_membership
-      requires: organizational_role_assigned
+      requires: nothing
       note: >
-        Quando o tenant atribui um papel organizacional à pessoa naquele time, o
-        vínculo observado é promovido a eo.team_membership. Até lá permanece como
-        evidência: consultável, contável e explicitamente incompleto.
+        Versão 2: a promoção é AUTOMÁTICA na coleta, para vínculo observado sem papel.
+        A evidência continua existindo e aponta para o vínculo (promoted_membership_id).
+        Declarar o papel é ato de quem administra, sobre o mesmo vínculo — e é o que
+        transforma observado em declarado (declared_by_user_id preenchido).
 
   gap_reporting:
     metric: memberships_pending_role
     note: >
-      O número de vínculos observados sem papel atribuído é informação, não erro.
-      Mede quanto da estrutura organizacional o sistema ainda não conhece, e deve
-      aparecer no onboarding do tenant.
+      O número de vínculos VIGENTES SEM PAPEL é informação, não erro. Mede quanto da
+      estrutura organizacional o sistema ainda não conhece, e aparece na tela da equipe
+      junto de cada medida: "N membros — X observados sem papel declarado, Y declarados".
 
   # ---------------------------------------------------------------------------
   # Limitação temporal

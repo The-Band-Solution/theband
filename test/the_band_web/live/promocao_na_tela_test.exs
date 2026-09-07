@@ -78,7 +78,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     test "diz quantas participações esperam confirmação", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      assert html =~ "2 participation(s) waiting for confirmation", """
+      assert html =~ "2 observed member(s) without a declared role", """
       **A FR-014.** A equipe sem vínculo não é a mesma coisa que equipe sem ninguém — e
       mostrar "0 membros" seco esconderia trabalho que existe.
       """
@@ -114,9 +114,12 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
 
       # A outra evidência continua esperando — confirmar uma não confirma as demais, e a
       # contagem no título acompanha.
-      assert html =~ "1 participation(s) waiting for confirmation"
+      assert html =~ "1 observed member(s) without a declared role"
 
-      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 1
+      # As duas pessoas já contam desde a coleta (vínculo observado, 2026-09-06); declarar
+      # o papel de uma deixa UMA pendente.
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 2
+      assert EO.count_memberships_pending_role(ctx.tenant, team_id: ctx.equipe.id) == 1
     end
   end
 
@@ -127,7 +130,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
       # A seção de promoção vai do título até o aviso que a segue. Recortar é necessário: a
       # tabela de MEMBROS mostra o nível de propósito, rotulado como acesso, e ali ele é
       # observação legítima.
-      [_, resto] = String.split(html, "waiting for confirmation", parts: 2)
+      [_, resto] = String.split(html, "without a declared role", parts: 2)
       [secao, _] = String.split(resto, "Por que o papel organizacional", parts: 2)
 
       refute secao =~ "MAINTAINER", """
@@ -208,7 +211,10 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
       É o padrão que esta base mais paga: ausência de erro lida como resultado.
       """
 
-      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 1
+      # As duas pessoas já contam desde a coleta (vínculo observado, 2026-09-06); declarar
+      # o papel de uma deixa UMA pendente.
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 2
+      assert EO.count_memberships_pending_role(ctx.tenant, team_id: ctx.equipe.id) == 1
       assert length(EO.pending_evidence(ctx.tenant, ctx.equipe.id)) == 1
     end
 
@@ -246,13 +252,15 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
 
       assert html =~ "Nothing confirmed"
       assert html =~ "2 rows"
-      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 0
+      # Nada declarado — mas as duas já contam como membros observados (2026-09-06).
+      assert EO.team_size(ctx.tenant, ctx.equipe.id) == 2
+      assert EO.count_memberships_pending_role(ctx.tenant, team_id: ctx.equipe.id) == 2
     end
 
     test "o botão existe e diz o que faz", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      assert html =~ "Confirm all"
+      assert html =~ "Declare all roles"
 
       assert html =~ "only the rows where a role was chosen", """
       O botão precisa dizer o que ele NÃO faz, antes de ser clicado. "Confirmar todas" lido

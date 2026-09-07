@@ -137,7 +137,9 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     case collect(ctx) do
       {:ok, organization_id} ->
         {:ok, _} = EO.mark_evidence_no_longer_observed(tenant, organization_id, started_at)
-        pending = EO.count_evidence_pending_role(tenant)
+        # Vínculos vigentes sem papel declarado — desde 2026-09-06 a coleta cria o vínculo
+        # observado, e o que fica pendente é o PAPEL.
+        pending = EO.count_memberships_pending_role(tenant)
 
         # Segunda fase da MESMA sincronização: repositórios, issues e promoção.
         # Sincronizar traz tudo — dois registros de `sync` para uma ação de quem opera

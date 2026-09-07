@@ -137,6 +137,7 @@ nav:
       - 0005 telemetria da jornada: adr/0005-telemetria-da-jornada.md
       - 0006 coleta paralela: adr/0006-coleta-paralela.md
       - 0007 gestor de cotas: adr/0007-gestor-de-cotas.md
+      - 0008 vinculo observado: adr/0008-vinculo-observado.md
       - RFCs: rfc/README.md
       - RFC 0001 — derivação do modelo de informação: rfc/0001-derivacao-do-modelo-de-informacao.md
 
