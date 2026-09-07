@@ -107,13 +107,21 @@ defmodule TheBandWeb.ScreensTest do
       %{conn: log_in(conn, user), tenant: tenant, equipe: equipe}
     end
 
-    test "lista equipes com proveniência e conta pendentes de papel", %{conn: conn} do
+    test "lista equipes SEM a proveniência — que mora na página da equipe — e conta pendentes de papel",
+         %{conn: conn, equipe: equipe} do
       {:ok, _live, html} = live(conn, ~p"/teams")
 
       assert html =~ "Core"
       assert html =~ "organizational_team"
-      assert html =~ "T_1"
       assert html =~ "pending"
+
+      # Desde 2026-09-07 o identificador na origem, a origem e a data de coleta saíram da
+      # lista (pedido da pessoa mantenedora ao avaliar a tela) e estão na página da equipe.
+      refute html =~ "T_1"
+
+      {:ok, _live, pagina} = live(conn, ~p"/teams/#{equipe.id}")
+      assert pagina =~ "T_1"
+      assert pagina =~ "identifier at source"
     end
 
     test "a tela de integrantes rotula o nível como acesso, nunca como papel", %{
