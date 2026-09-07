@@ -9,8 +9,10 @@ mantenedora em 2026-09-07, sobre o protótipo aprovado no mesmo dia
 ([`prototipo/README.md`](prototipo/README.md)). As **oito decisões** registradas
 ali estão incorporadas e **não são reabertas** aqui — inclusive a **decisão 9**,
 acrescentada no mesmo dia depois do início desta escrita: o Dashboard é a **visão
-geral do gestor**, com *Problemas agora* e *Pessoas*. O que ficou em aberto está na
-seção *Perguntas abertas*, e são quatro.
+geral do gestor**, com *Problemas agora* e *Pessoas*. As quatro perguntas que esta
+escrita deixou abertas, e seis outras levantadas pela coordenação, foram
+**respondidas pela pessoa mantenedora em 2026-09-07** — ver *Decisões de
+2026-09-07*. Nenhuma pergunta segue em aberto.
 
 **Input**: User description, na ordem em que veio: "Vamos projetar a tela de
 equipes. Uma equipe tem um dashboard com as métricas, uma tela de estrutura
@@ -52,7 +54,7 @@ tornou o único conjunto de membros.
 | *Structure* — faz parte de / contém / *Declare inside* / *remove from here* | 055 US3 | **Estrutura**: seção *Subequipes*, com data, histórico e composição de equipe **existente** | reorganiza; ganha composição com data e de equipe existente |
 | tabela *members* por evidência (acesso, observado em, última observação) | 021/043 | **Estrutura**: lista por **vínculo** — papel, origem, desde, subequipes, ações por linha | **substitui** |
 | *Source and declaration disagree* | 055 FR-012 | **Estrutura**, junto da lista | mantém |
-| *observed members without a declared role* — formulário em lote | 043 US3, #317 | **Estrutura**: ação *declarar papel* na linha da pessoa | reorganiza — ver Perguntas abertas, Q3 |
+| *observed members without a declared role* — formulário em lote | 043 US3, #317 | **Estrutura**: ação *declarar papel* na linha da pessoa **e** o lote mantido, com a contagem das puladas | reorganiza (decisão 3, 2026-09-07) |
 | *Projects* — badges, associar/desassociar (admin) | 028/058 | leitura no **Dashboard** com período; escrita na **Estrutura** (*Where this team sits*) | reorganiza |
 | antipadrões de estrutura (ap01, ap02) | 058 FR-025 | **Dashboard**, *Structure warnings* | mantém |
 | *Who worked on these projects* | 058 US2 | **Dashboard** | mantém |
@@ -88,6 +90,10 @@ Estrutura. É o que faz do Dashboard uma tela legível por qualquer conta do ten
 | **057 FR-029** | a tela MUST declarar que não há escopo comprometido | continua valendo, e vale **também** para *Prometido × Entregue*: "prometido" é rótulo para *aberto no período*, definido junto do título, e MUST NOT ser lido como compromisso | FR-063 |
 | **057 FR-008** (esclarecimento, não emenda) | MUST NOT somar as linhas de subequipe | continua; o fluxo da equipe inteira é medido sobre o **conjunto distinto** de pessoas e itens, e a tela diz que não é soma | FR-060 |
 | **055, decisão em aberto 2** da emenda de 2026-09-06 | equívoco em vínculo observado: permitir ou não | **permitido** — decisão de 2026-09-07; a coleta não recria | FR-024 a FR-028 |
+| **055, premissa "saída sem data"** | hoje, marcada como presumida | **recusar** — a data é obrigatória (decisão 2, 2026-09-07) | FR-023 |
+| **057 e 058, premissa "período padrão, sem seletor nesta feature"** | 8 semanas / 56 dias, seletor é trabalho separado | o trabalho separado chega aqui: padrão fixo **e** período escolhível, com a janela sempre no título (decisões 1 e 9, 2026-09-07) | FR-078, FR-079 |
+| **058 FR-024** (confirmação, não emenda) | quebra por pessoa nomeada só para quem alcança a equipe | confirmado: admin, escopo `team`, escopo `organization` **e membro vigente** — os quatro caminhos de `pode_ver_equipe/3` (decisão 7, 2026-09-07) | FR-007, FR-076 |
+| **055 FR-011 / premissa "quem administra é quem declara"** | ações só para quem administra | administrador **e** quem desempenha papel organizacional com a concessão *gerir estrutura da equipe* (decisão 8, 2026-09-07) | FR-006, FR-080 a FR-082 |
 
 Nenhum arquivo das specs 055 e 057 é alterado por esta. Cada emenda é aplicada por
 quem mantém a spec de origem, a partir do que está escrito aqui.
@@ -135,9 +141,9 @@ lista (vigentes, saíram, equívocos) batem com uma consulta ao banco.
 5. **Given** a origem ainda lista uma pessoa que a organização declarou ter saído,
    **When** a aba abre, **Then** as duas afirmações aparecem lado a lado, com a
    origem de cada uma nomeada, e a tela não escolhe (055 FR-012).
-6. **Given** uma conta do tenant **sem** escopo para declarar estrutura na
-   organização desta equipe, **When** abre a aba, **Then** lê a lista inteira e
-   **nenhuma** ação de escrita é apresentada.
+6. **Given** uma conta do tenant que **não** é administradora e **não** desempenha
+   papel com a concessão de gerir estrutura nesta equipe, **When** abre a aba,
+   **Then** lê a lista inteira e **nenhuma** ação de escrita é apresentada.
 7. **Given** a distinção observado/declarado/saiu/equívoco, **When** a tela é lida
    sem cor, **Then** a distinção sobrevive — está em texto, não só em cor.
 
@@ -375,18 +381,19 @@ declarar o vínculo.
    projetos é exibida, **Then** há uma linha por vínculo declarado, com o período,
    as subequipes que têm vínculo **próprio** ao mesmo projeto, e **nenhum** projeto
    que não tenha vínculo declarado.
-5. **Given** itens de trabalho de membros da equipe em repositório ou quadro que
-   não está ligado a nenhum projeto declarado da equipe, **When** o Dashboard abre,
-   **Then** aparece um **alerta** com onde (repositório ou quadro), quem e quanto —
-   e o alerta **não** é uma linha de projeto.
+5. **Given** issues e solicitações de mudança **abertas** de membros da equipe em
+   repositório que não está em nenhum quadro de projeto declarado da equipe, ou em
+   quadro sem projeto declarado, **When** o Dashboard abre, **Then** aparece um
+   **alerta** com onde (repositório ou quadro), quem e quantas abertas — e o alerta
+   **não** é uma linha de projeto.
 6. **Given** o alerta, **When** a organização declara o projeto e liga a equipe a
    ele, **Then** o alerta deixa de existir e o trabalho passa a contar na linha do
    projeto.
 7. **Given** uma subequipe sem trabalho no período, **When** o cartão é exibido,
    **Then** a ausência é dita em texto, nunca zero (057 FR-012).
-8. **Given** uma conta sem escopo sobre a equipe, **When** o alerta é exibido,
-   **Then** ela lê onde e quanto, e **não** lê quem — a quebra por pessoa nomeada
-   segue a fronteira de 058 FR-024.
+8. **Given** uma conta sem escopo sobre a equipe **e sem vínculo vigente nela**,
+   **When** o alerta é exibido, **Then** ela lê onde e quanto, e **não** lê quem — a
+   quebra por pessoa nomeada segue a fronteira de 058 FR-024 (FR-007).
 
 ---
 
@@ -451,10 +458,11 @@ grupos e conta uma vez no total, e que nenhuma pessoa tem uma tarefa "atual" ele
    tem, e nenhuma habilidade é listada (057 FR-023); toda habilidade exibida traz
    marca de derivada e a tela diz que ausência é *não observada aqui* (057 FR-022,
    FR-024).
-10. **Given** uma conta sem escopo sobre a equipe, **When** a seção *Pessoas* e os
-    cartões que nomeiam pessoas são exibidos, **Then** ela lê os agregados e não lê
-    nome, tarefa nem perfil de pessoa nomeada, e a recusa é nomeada (058 FR-024,
-    FR-024a).
+10. **Given** uma conta sem escopo sobre a equipe **e sem vínculo vigente nela**,
+    **When** a seção *Pessoas* e os cartões que nomeiam pessoas são exibidos,
+    **Then** ela lê os agregados e não lê nome, tarefa nem perfil de pessoa nomeada,
+    e a recusa é nomeada (058 FR-024, FR-024a); **Given** uma conta cuja pessoa é
+    **membro vigente** da equipe, **Then** ela lê a quebra por pessoa.
 
 ---
 
@@ -516,7 +524,8 @@ previsão aparece.
   observação for **contínua**, nada é recriado; uma observação **nova** depois de uma
   ausência constatada é retorno, e nasce vínculo observado novo (055 FR-015, US2
   cenário 4).
-- **Saída sem data.** Ver Perguntas abertas, Q2.
+- **Saída sem data.** Recusada — a data é obrigatória e o campo não vem preenchido
+  (decisão 2, 2026-09-07; FR-023).
 - **Alterar papel de quem tem dois.** A alteração é de **um** dos dois; o outro
   continua.
 - **Composição com início desconhecido e a medida da equipe inteira.** O trabalho da
@@ -528,7 +537,9 @@ previsão aparece.
 - **Papel criado com a linha de declaração aberta.** Ao voltar, o novo papel está no
   seletor; a linha não perdeu o que já estava escolhido.
 - **Código sugerido colide.** É editável; se enviado igual, recusa com a razão.
-- **Ano sobre janela de oito semanas.** Ver Perguntas abertas, Q1.
+- **Ano sobre janela de oito semanas** seria uma barra só. A janela padrão de cada
+  granulação é própria — 8 semanas, 12 meses, todos os anos coletados — e o título
+  diz qual está em uso (decisão 1, 2026-09-07; FR-078).
 - **Item reaberto.** Aparece como abertura no período em que reabriu e mantém o
   fechamento anterior — nos dois gráficos (057 edge case; limitação declarada em
   `flow.open_work.cumulative`).
@@ -563,17 +574,26 @@ previsão aparece.
 
 - **FR-005**: Ver qualquer das duas abas MUST NOT exigir permissão de administrar
   (057 FR-039, 058 FR-023). Toda consulta MUST ser restrita ao tenant (055 FR-010).
-- **FR-006**: Toda ação de escrita MUST exigir que a conta possa declarar estrutura
-  na organização da equipe — a mesma pergunta que hoje autoriza compor (`admin` do
-  tenant, ou escopo `organization` nesse alvo). Quem não pode MUST NOT ver a ação,
-  **e** a tentativa por evento MUST ser recusada — esconder o botão não é
-  autorização (055 FR-011). *Isto inclui declarar papel, que hoje não confere
-  permissão nenhuma antes de gravar — ver Impacto.*
-- **FR-007**: A lista de membros e a lista de subequipes são **estrutura declarada**
-  (058 FR-007a) e MUST ser legíveis por qualquer conta do tenant. Números sobre o
-  trabalho de pessoa **nomeada** — o *quem* do alerta de trabalho fora de projeto
-  (FR-053), a quebra por pessoa da espera por revisão — MUST seguir a fronteira de
-  058 FR-024 e FR-024a.
+- **FR-006** *(decisão da pessoa mantenedora em 2026-09-07)*: Toda ação de escrita MUST estar disponível para **duas** contas, e
+  só para elas: a **administradora** do tenant, e a conta cuja pessoa desempenha,
+  com vínculo vigente, um **papel organizacional que carrega a concessão *gerir
+  estrutura da equipe*** com alcance sobre esta equipe (FR-080 a FR-082). Quem não
+  é nenhuma das duas MUST NOT ver a ação, **e** a tentativa por evento MUST ser
+  recusada com o motivo — esconder o botão não é autorização (055 FR-011). *Isto
+  inclui declarar papel, que hoje não confere permissão nenhuma antes de gravar; e
+  substitui, para a estrutura, o caminho por escopo `organization` de conta que
+  `pode_declarar_estrutura/4` aceita hoje — ver Impacto.*
+- **FR-007** *(decisão da pessoa mantenedora em 2026-09-07)*: A lista de membros e a lista de subequipes são **estrutura
+  declarada** (058 FR-007a) e MUST ser legíveis por qualquer conta do tenant. Números
+  sobre o trabalho de pessoa **nomeada** — o *quem* do alerta de trabalho fora de
+  projeto (FR-053), a quebra por pessoa da espera por revisão, as tarefas e o perfil
+  em *Pessoas* (FR-076) — MUST ser apresentados a quem **alcança a equipe** pelo
+  veredito vigente de 058 FR-024, que são quatro caminhos e MUST permanecer os
+  quatro: administradora do tenant; conta com escopo `team` nesta equipe; conta com
+  escopo `organization` na organização dela; e conta cuja pessoa é **membro
+  vigente** desta equipe — colega vê colega. Os demais MUST ler os agregados, e a
+  recusa MUST ser nomeada (058 FR-024a). O escopo `project` MUST NOT abrir — nomeia
+  projeto, não equipe.
 
 ### Os membros
 
@@ -599,9 +619,14 @@ previsão aparece.
 - **FR-013**: A discordância entre coleta e declaração MUST ser apresentada na
   Estrutura, junto da lista, com as duas afirmações e a origem de cada uma nomeada
   (055 FR-012); *equívoco* e *saída* MUST ser textos distintos.
-- **FR-014**: Pessoa que a origem mostra e que já tem vínculo observado MUST NOT ter
-  uma segunda seção "aguardando confirmação": o que falta nela é o papel, e a ação
-  está na linha (FR-015).
+- **FR-014** *(decisão da pessoa mantenedora em 2026-09-07)*: Pessoa que a origem mostra e que já tem vínculo observado MUST NOT
+  ter uma seção "aguardando confirmação" separada da lista: o que falta nela é o
+  papel, e a ação está na linha (FR-015). O formulário **em lote** — declarar o papel
+  de várias pessoas de uma vez — MUST ser mantido na Estrutura, junto da lista,
+  chamando o **mesmo** comando de FR-015, e o resultado MUST dizer **quantas linhas
+  foram puladas** por não ter papel escolhido. São dois pontos de entrada para um
+  comando só, na mesma aba, com o mesmo registro de autor e data — a tensão com o
+  princípio X ("ação num lugar só") foi pesada e decidida.
 
 ### Declarar e alterar o papel
 
@@ -630,8 +655,11 @@ previsão aparece.
 - **FR-022**: A tela MUST distinguir, em texto, fim **declarado** (por quem, quando)
   de fim **constatado pela coleta**, e neste caso MUST declarar que a data diz quando
   a plataforma deixou de ver, não quando a pessoa saiu (055 FR-015a).
-- **FR-023**: Data no futuro MUST ser recusada. Saída em vínculo já encerrado MUST
-  ser recusada sem reescrever a data original.
+- **FR-023** *(decisão da pessoa mantenedora em 2026-09-07)*: A data da saída é **obrigatória**: saída sem data MUST ser recusada
+  com a razão, e o campo MUST NOT vir preenchido com hoje — a premissa da 055 ("hoje,
+  marcada como presumida") fica substituída, porque presunção sem marca no registro
+  vira fato. Data no futuro MUST ser recusada. Saída em vínculo já encerrado MUST ser
+  recusada sem reescrever a data original.
 
 ### O equívoco
 
@@ -741,11 +769,15 @@ previsão aparece.
   medidas; ver Impacto.*
 - **FR-052**: Ligar e desligar projeto MUST viver na Estrutura (FR-003), sob a
   mesma permissão de FR-006.
-- **FR-053**: O Dashboard MUST apresentar um **alerta** quando houver itens de
-  trabalho, na janela, de membros da equipe (no período do vínculo) cujo repositório
-  **ou** quadro não está ligado a **nenhum** projeto declarado da equipe. O alerta
-  MUST dizer **onde** (repositório ou quadro, e que ele não está ligado a projeto),
-  **quem** (sob a fronteira de FR-007) e **quanto** (abertos, fechados na janela).
+- **FR-053** *(decisão da pessoa mantenedora em 2026-09-07)*: O Dashboard MUST apresentar um **alerta** de trabalho fora de
+  projeto declarado, definido assim: (i) **issues e solicitações de mudança
+  abertas**, de membros da equipe no período do vínculo, em **repositório que não está
+  em nenhum quadro de projeto declarado** da equipe — nem ligado ao projeto, nem
+  presente em quadro ligado a ele —; e (ii) **quadros** (Projects v2) que contêm itens
+  abertos de membros da equipe e **não estão ligados a nenhum projeto declarado**. O
+  alerta MUST dizer **onde** (o repositório ou o quadro, e que ele não está ligado a
+  projeto), **quem** (sob a fronteira de FR-007) e **quantas abertas**. Item fechado
+  não entra: o alerta é sobre o que está em andamento sem nome.
 - **FR-054**: O alerta MUST NOT ser apresentado como linha de projeto, MUST NOT
   inferir projeto, e MUST permanecer até que a organização declare o projeto e ligue
   a equipe a ele. A tela MUST dizer isso com essas palavras.
@@ -775,9 +807,10 @@ previsão aparece.
   curvas das subequipes — pessoa em duas subequipes e item com dois responsáveis
   contam uma vez aqui e uma vez em cada cartão (esclarecimento de 057 FR-008).
 - **FR-061**: O burn e o *Prometido × Entregue* MUST oferecer granulação **semana,
-  mês e ano**. Trocar a granulação MUST reagrupar os **mesmos itens**, e MUST NOT
-  mudar a medida: a soma de abertos e a de fechados na janela MUST ser igual nas
-  três. *A janela de cada granulação está em aberto — Q1.*
+  mês e ano**. Trocar a granulação **mantendo a janela** MUST reagrupar os **mesmos
+  itens**, e MUST NOT mudar a medida: a soma de abertos e a de fechados na janela
+  MUST ser igual nas três. Cada granulação tem janela padrão própria (FR-078), e
+  quando a troca de granulação troca a janela, o título MUST dizer a nova.
 - **FR-062**: *Prometido × Entregue* MUST apresentar, por período, os itens
   **abertos** no período e os itens **fechados** no período — as mesmas duas
   contagens que alimentam o burn, sem acumular. *Fechado* é `external_closed_at`
@@ -790,7 +823,8 @@ previsão aparece.
   lado, e o gráfico MUST NOT ser lido como compromisso nem como término de sprint.
 - **FR-064**: A previsão de Monte Carlo da equipe inteira MUST seguir 057 FR-031 a
   FR-037 e MUST ser **semanal** independentemente da granulação escolhida em
-  FR-061 — as amostras são semanas. A tela MUST dizer isso.
+  FR-061 — as amostras são as semanas da janela mostrada (FR-078). A tela MUST dizer
+  isso, e o piso de 057 FR-034 vale sobre essa janela.
 
 ### A visão geral do gestor — problemas agora
 
@@ -813,13 +847,16 @@ previsão aparece.
 - **FR-068**: Cada cartão com número maior que zero MUST levar à lista do que
   contou — a seção do Dashboard ou da Estrutura que detalha o fato; (f) leva à aba
   Estrutura.
-- **FR-069**: **Nenhum limiar MUST viver em constante de módulo.** Cada limiar MUST
-  estar declarado em YAML da base antes de o cartão existir — pela mesma razão que
-  `profile.thresholds` dá: é decisão sobre o que a plataforma afirma, e mudá-lo é
-  decisão registrada. O único limiar de parada declarado hoje é
-  `profile.thresholds.stale_open_work.stale_days = 90`, contado **desde a abertura do
-  item**; os valores do protótipo (30, 7 e "14 dias sem mudança de estado") **não**
-  estão declarados — Q4.
+- **FR-069** *(decisão da pessoa mantenedora em 2026-09-07)*: **Nenhum limiar MUST viver em constante de módulo.** Cada limiar
+  MUST estar declarado em YAML da base antes de o cartão existir — pela mesma razão
+  que `profile.thresholds` dá: é decisão sobre o que a plataforma afirma, e mudá-lo é
+  decisão registrada. Os limiares desta seção são: (a) issue aberta há mais de **30
+  dias** e (b) solicitação de código esperando revisão humana há mais de **7 dias** —
+  **confirmados em 2026-09-07**, a declarar em YAML com a decisão que apoiam antes
+  dos cartões nascerem; (d) tarefa parada usa o limiar **já declarado**
+  `profile.thresholds.stale_open_work.stale_days = 90`, contado desde a abertura do
+  item. A leitura "14 dias sem mudança de estado" do protótipo foi **recusada**: um
+  só limiar de parada na plataforma.
 - **FR-070**: Em equipe composta, o número do cartão MUST ser a contagem
   **distinta** sobre o conjunto de FR-056; a quebra por subequipe MAY ser exibida, e
   a tela MUST dizer que as partes podem se sobrepor — pessoa em duas subequipes conta
@@ -848,20 +885,70 @@ previsão aparece.
   FR-019, FR-019a); a marca de parada pelo limiar declarado (057 FR-020, FR-069);
   **nenhuma** tarefa eleita como "atual" (057 FR-018); e, sem tarefa, a ausência dita
   em texto (057 FR-021).
-- **FR-075**: O perfil demonstrado MUST ser lido do trabalho fechado, cada habilidade
-  com marca de derivada (057 FR-022). Abaixo do piso de
-  `profile.thresholds.evidence_floor` (15 tarefas concluídas com descrição) a coluna
-  MUST dizer *sem perfil ainda*, com o piso e quanto a pessoa tem, e MUST NOT listar
-  habilidade (057 FR-023). A tela MUST declarar que ausência é *não observada aqui*,
-  nunca incapacidade (057 FR-024), e MUST ligar à página da pessoa.
-- **FR-076**: A seção *Pessoas* e todo cartão que nomeia pessoa MUST seguir a
-  fronteira de 058 FR-024: nome, tarefas e perfil de pessoa nomeada só para quem
-  alcança a equipe pelo veredito de acesso vigente; os agregados — quantas pessoas,
-  quantas sem tarefa, quantas paradas — legíveis por qualquer conta do tenant; a
-  recusa MUST ser nomeada (058 FR-024a).
+- **FR-075** *(decisão da pessoa mantenedora em 2026-09-07)*: O perfil demonstrado MUST ser lido do trabalho fechado, cada
+  habilidade com marca de derivada (057 FR-022), e a coluna MUST mostrar **até
+  quatro** habilidades, com *+N no perfil* quando houver mais e **link para o perfil
+  detalhado da pessoa** (`/people/:id`). Quais quatro é decisão do `plan.md` contra
+  `profile.thresholds.highlight`, e a tela MUST dizer o critério. Abaixo do piso de
+  `profile.thresholds.evidence_floor` (**15** tarefas concluídas com descrição) a
+  coluna MUST dizer *sem perfil ainda*, com o piso e quanto a pessoa tem, e MUST NOT
+  listar habilidade (057 FR-023). A tela MUST declarar que ausência é *não observada
+  aqui*, nunca incapacidade (057 FR-024).
+- **FR-076** *(decisão da pessoa mantenedora em 2026-09-07)*: A seção *Pessoas* e todo cartão que nomeia pessoa MUST seguir a
+  fronteira de FR-007: nome, tarefas e perfil de pessoa nomeada para quem tem escopo
+  sobre a equipe (`team`, `organization`, administradora) **e para os membros
+  vigentes da equipe** — a conta cuja pessoa tem vínculo vigente nela; os agregados —
+  quantas pessoas, quantas sem tarefa, quantas paradas — legíveis por qualquer conta
+  do tenant; a recusa MUST ser nomeada (058 FR-024a).
 - **FR-077**: Grupo grande MAY ser truncado com *… N mais em X — abrir a subequipe*;
   o truncamento MUST dizer **quantos** ficaram de fora, como o teto da espera por
   revisão já diz quando corta.
+
+### A janela e a granulação
+
+- **FR-078** *(decisão da pessoa mantenedora em 2026-09-07)*: Os gráficos de fluxo (FR-058 a FR-064) MUST ter **janela padrão
+  fixa por granulação** — **8 semanas** para semana, **12 meses** para mês, **todos os
+  anos coletados** para ano — **e** a pessoa MAY escolher outro período. O **título de
+  cada gráfico MUST dizer sempre a janela mostrada**, padrão ou escolhida. A janela
+  escolhida MUST constar na URL, pela mesma razão da aba (FR-001): um link cai onde
+  aponta. É a resposta à objeção da 057 (L86) ao seletor: o denominador pode mudar,
+  mas nunca em silêncio.
+- **FR-079** *(decisão da pessoa mantenedora em 2026-09-07)*: As medidas do Dashboard — espera por revisão, taxa do pipeline,
+  cartões, linhas de projeto, alerta — MUST usar janela padrão de **56 dias** **e** a
+  pessoa MAY escolher outro período; o título de cada seção MUST dizer a janela
+  mostrada. Toda comparação entre subequipes ou entre projetos na mesma tela MUST
+  usar a **mesma** janela. Nenhuma medida MUST ser apresentada sem a janela escrita
+  junto do número.
+
+### Quem gere a estrutura
+
+- **FR-080** *(decisão da pessoa mantenedora em 2026-09-07)*: A plataforma MUST reconhecer a **concessão *gerir estrutura da
+  equipe*** atribuída a um **papel organizacional**, com alcance `team` (as equipes em
+  que a pessoa desempenha o papel, com vínculo vigente) ou `organization` (todas as
+  equipes da organização), registrando quem concedeu e quando, e revogável por
+  **marca**, nunca por remoção — o mesmo molde da concessão de visibilidade
+  (`eo_role_visibility_grants`, #369, 045 FR-022). MUST NOT nascer segundo tipo de
+  conta, nem `role` novo na plataforma: gestor é **papel organizacional com
+  concessão**, e a organização cria o papel (US5) e a administradora concede.
+- **FR-081**: A concessão MUST ser declarada por conta **administradora**, no mesmo
+  lugar em que as concessões de visibilidade por papel são declaradas hoje
+  (`/roles`). A aba Estrutura MUST mostrar, na seção *Papéis*, quais papéis carregam
+  a concessão — leitura, não escrita.
+- **FR-082**: Vínculo encerrado ou invalidado MUST NOT conferir a concessão — quem
+  saiu da equipe deixou de gerí-la; e a concessão MUST NOT ser inferida por nome de
+  papel ("Tech Lead", "Coordenador"): só a declaração confere (#369, FR-012e da 023).
+  Toda recusa MUST nomear o motivo — *sem concessão*, *vínculo encerrado*, *conta sem
+  pessoa declarada* são bloqueios diferentes.
+
+### A equipe composta de referência, e a derivada
+
+- **FR-083** *(decisão da pessoa mantenedora em 2026-09-07)*: A equipe composta de referência ("Conecta Fapes") MUST ser
+  **declarada** pela organização (055 FR-001) e os squads **observados** MUST ser
+  compostos nela por declaração (055 US3 cenário 4, FR-037). A equipe **derivada**
+  (`github.default_team` — quem não está em time nenhum) MUST continuar existindo ao
+  lado, regida pela regra dela, e MUST NOT ser composta automaticamente em equipe
+  alguma; compô-la é declaração como qualquer outra, e a tela MUST continuar dizendo
+  que ela não existe na ferramenta de origem.
 
 ### O que da 055 esta spec só reutiliza
 
@@ -932,14 +1019,16 @@ previsão aparece.
   SC-003).
 - **SC-009**: No burn da equipe inteira, a distância entre as curvas em qualquer
   ponto é igual à contagem de itens em aberto naquele ponto, nas **três**
-  granulações; a soma de abertos e a de fechados na janela é **igual** em semana,
-  mês e ano.
+  granulações; **para a mesma janela**, a soma de abertos e a de fechados é
+  **igual** em semana, mês e ano.
 - **SC-010**: **0** projetos no Dashboard sem vínculo declarado; **100%** do trabalho
   em repositório/quadro fora de projeto declarado aparece no alerta e em **nenhuma**
   linha de projeto.
-- **SC-011**: Uma conta sem escopo na organização lê as duas abas e encontra **0**
-  ações de escrita; **100%** das tentativas por evento dessa conta são recusadas
-  (055 FR-011).
+- **SC-011**: Uma conta que não é administradora e cuja pessoa não desempenha papel
+  com a concessão de gerir estrutura nesta equipe lê as duas abas e encontra **0**
+  ações de escrita; **100%** das tentativas por evento dessa conta são recusadas com
+  motivo nomeado (055 FR-011, FR-082). Uma conta cuja pessoa desempenha o papel com
+  a concessão, com vínculo vigente, encontra **todas** as ações.
 - **SC-012**: **0** linhas removidas fisicamente em toda operação desta feature —
   saída, equívoco, alteração de papel, encerramento de composição, ocultação de
   papel (055 SC-005).
@@ -962,7 +1051,16 @@ previsão aparece.
   conta **uma** vez — verificável comparando o total com uma consulta `DISTINCT`.
 - **SC-019**: **0** pessoas com tarefa "atual" eleita; **100%** das pessoas sem tarefa
   têm a ausência dita em texto (057 SC-006); **100%** das pessoas abaixo do piso
-  mostram *sem perfil ainda* com o piso declarado e **0** habilidades listadas.
+  mostram *sem perfil ainda* com o piso declarado e **0** habilidades listadas;
+  **0** linhas com mais de quatro habilidades, e **100%** com link para `/people/:id`.
+- **SC-020**: **100%** dos títulos de gráfico e de seção de medida dizem a janela
+  mostrada; trocar a janela troca o título em **100%** dos casos; **0** medidas na
+  tela sem janela escrita junto do número — verificável por varredura com dois
+  períodos diferentes.
+- **SC-021**: **100%** dos itens do alerta de trabalho fora de projeto estão
+  **abertos** e em repositório ou quadro sem projeto declarado — verificável cruzando
+  a lista com os vínculos projeto ↔ repositório e projeto ↔ quadro; **0** itens
+  fechados no alerta.
 
 ## Fora de escopo
 
@@ -972,15 +1070,15 @@ previsão aparece.
   alerta de FR-053. Não há conceito na base para uma aceitação assim, e esta spec
   **não** o cria: o alerta permanece até haver vínculo declarado. A lacuna fica
   registrada aqui, sem nome.
-- **Seletor livre de período.** A granulação de FR-061 não é seletor de período
-  (057, L86). Ver Q1 sobre a janela por granulação.
+- **Período sem título.** O seletor de período existe (FR-078, FR-079); o que fica
+  fora é qualquer apresentação de número cuja janela não esteja escrita junto dele.
 - **Critério de término declarado** (#506). "Fechado" continua sendo o ato da
   ferramenta, e "done" no protótipo é rótulo para isso (FR-062).
 - **Mudanças em `/roles`.** As concessões de visibilidade continuam lá; esta spec só
   chama o comando de criar/renomear/ocultar de outro lugar (FR-030).
 - **Mover pessoa entre equipes** como ato único: é saída numa e vínculo noutra.
-- **Equipe derivada** (`github.default_team`): segue a 055 e a ADR 0008; nada aqui é
-  específico dela.
+- **Compor a equipe derivada automaticamente.** Ela fica ao lado, com a regra dela
+  (FR-083); compô-la é declaração, não coleta.
 - **Exportação, notificação, importação de planilha** (055).
 - **Alterar o detalhe da equipe simples** da 057 além de pô-lo dentro da aba
   Dashboard.
@@ -994,8 +1092,9 @@ previsão aparece.
 Carregadas do protótipo (`prototipo/README.md`) e desta escrita, até serem
 contestadas:
 
-- **Mês e ano só mudam a granulação** do burn e do *Prometido × Entregue*; o Monte
-  Carlo continua semanal (README). Sobre a **janela** de cada granulação, ver Q1.
+- **Mês e ano mudam a granulação e a janela padrão** do burn e do *Prometido ×
+  Entregue* (8 semanas · 12 meses · todos os anos coletados — decisão 1, 2026-09-07);
+  o Monte Carlo continua semanal (README).
 - **Nomes de pessoas no protótipo são fictícios**; contagens e medidas vêm da coleta
   real de 2026-09-06 da `leds-conectafapes`. Nenhum número do protótipo é medida.
 - **O conjunto de membros da equipe inteira** é o de FR-056 — união distinta pela
@@ -1011,10 +1110,14 @@ contestadas:
   é relator com período, e "editar" o papel apagaria o período em que o anterior
   vigeu. É desenho a confirmar no `plan.md`, não regra nova.
 - **A interface é em inglês**, com pt como tradução (decisão de 2026-09-01).
-- **Janela padrão: 8 semanas**, sem seletor (057).
-- **Quem administra é quem pode declarar estrutura na organização** — `admin` do
-  tenant ou escopo `organization` nesse alvo. Esta spec não cria papel nem escopo
-  novo (055).
+- **Janelas padrão**: 56 dias para as medidas; por granulação para os gráficos; as
+  duas escolhíveis, com a janela no título (decisões 1 e 9, 2026-09-07). Se o
+  controle é um só ou dois é decisão do `plan.md`; o que a spec fixa é que nenhum
+  número aparece sem a janela escrita.
+- **Quem age na estrutura** é a administradora do tenant e quem desempenha papel
+  organizacional com a concessão *gerir estrutura da equipe* (decisão 8, 2026-09-07;
+  FR-080 a FR-082). Esta spec não cria tipo de conta nem `role` de plataforma; cria
+  um **tipo de concessão** a papel, no molde da de visibilidade.
 - **O piso do perfil é o declarado**: `profile.thresholds.evidence_floor.tasks_with_body
   = 15` tarefas concluídas com descrição. O "floor is 5" do protótipo confunde com
   `tasks_per_period = 5`, que é o piso da **evolução**, não do perfil.
@@ -1027,51 +1130,32 @@ contestadas:
   mostra o autor da saída em vínculo observado encerrado pela coleta — FR-022 exige
   distinguir; (d) o protótipo diz "floor is 5" — o piso declarado é 15; (e) o
   protótipo mostra "12 with no reviewer requested" — não coletado, fora de escopo;
-  (f) os limiares 30, 7 e 14 do protótipo não estão declarados — Q4. A spec vence
-  nos seis.
+  (f) dos limiares do protótipo, 30 e 7 foram confirmados em 2026-09-07 e ganham
+  YAML; "14 d sem mudança de estado" foi recusado — a parada é a declarada, 90 dias
+  desde a abertura; (g) o protótipo lista o perfil sem teto — a coluna mostra até
+  quatro, com link. A spec vence nos sete.
 
-## Perguntas abertas
+## Decisões de 2026-09-07
 
-Só onde há duas leituras materiais que o dia de hoje não decidiu.
+As quatro perguntas que esta escrita deixou abertas (1 a 4) e seis levantadas pela
+coordenação (5 a 10) foram respondidas pela pessoa mantenedora em **2026-09-07**.
+Nenhuma está em aberto. Cada requisito tocado leva a marca *(decisão da pessoa
+mantenedora em 2026-09-07)*.
 
-- **Q1 — A janela por granulação** [NEEDS CLARIFICATION]. Com a janela fixa de 8
-  semanas, a granulação *mês* produz dois ou três pontos e *ano* produz **um**. Duas
-  leituras: (a) a janela é sempre 8 semanas e mês/ano só reagrupam — o gráfico anual
-  é uma barra, e a premissa do README está literalmente cumprida; (b) a janela é
-  **função da granulação**, fixa por granulação — por exemplo 8 semanas, 12 meses,
-  todos os anos coletados —, o que mantém a objeção da 057 ao seletor livre (não há
-  período escolhido pela pessoa) e faz mês e ano informarem. **Recomendação do
-  papel**: (b), com as três janelas declaradas no YAML da medida.
-- **Q2 — Saída sem data** [NEEDS CLARIFICATION]. A premissa da 055 diz: *hoje, marcada
-  como presumida*. O vínculo não tem campo de "presumida", e a doutrina da base é
-  *vazio é desconhecido, nunca hoje*. Duas leituras: (a) recusar sem data — o
-  formulário exige a data, sem valor pré-preenchido; (b) cumprir a 055 e criar a
-  marca de data presumida no vínculo. **Recomendação do papel**: (a); a 055 é
-  corrigida por quem a mantém.
-- **Q3 — O formulário em lote de declarar papel** [NEEDS CLARIFICATION]. A tela de
-  hoje tem *Declare all roles*; o protótipo declara na linha. O princípio X pede a
-  ação num lugar só. Duas leituras: (a) remover o lote — a ação vive na linha; (b)
-  manter o lote como atalho na Estrutura, chamando o mesmo comando. **Recomendação
-  do papel**: (a); com 17 pessoas sem papel na equipe de referência, o lote é
-  conveniência real, e por isso a pergunta é feita em vez de decidida.
-- **Q4 — Os limiares de *Problemas agora*** [NEEDS CLARIFICATION]. Procurado em
-  `priv/knowledge_base/rules/` por *stop*, *parada*, *threshold*, *limiar* em
-  2026-09-07: o **único** limiar declarado é
-  `profile.thresholds.stale_open_work.stale_days = 90`, contado desde a abertura do
-  item — é o limiar de parada da 057 FR-020 e de `@parada_em_dias 90`. Os três
-  valores do protótipo são propostas de quem coordenou o desenho, e nenhum está
-  declarado: **30 dias** para issue aberta (o número aparece na base só como
-  observação medida em `change_request.ceremony`, sobre solicitações, não como
-  limiar); **7 dias** para revisão esperando; **"14 dias sem mudança de estado"** para
-  tarefa parada. Este último tem duas leituras materiais: (a) a marca de parada
-  continua sendo a declarada — 90 dias desde a abertura —, um limiar só na plataforma
-  para o mesmo fato, e o cartão (d) conta o que a 057 já marca; (b) nasce um segundo
-  limiar, *sem mudança de estado há N dias*, que responde outra pergunta (movimento,
-  não idade), exige movimentação de quadro coletada — que `process.ap03` mostra não
-  existir para todo item — e produziria duas marcas de "parada" com definições
-  diferentes na mesma tela. **Recomendação do papel**: (a) para a parada; 30 e 7
-  entram como propostas a declarar em YAML, cada uma com a decisão que apoia, **ou o
-  cartão correspondente não nasce** (FR-069).
+| # | Pergunta | Decisão | Onde |
+|---|---|---|---|
+| 1 | janela dos gráficos por granulação | padrão fixo por granulação — 8 semanas · 12 meses · todos os anos coletados — **e** a pessoa pode escolher outro período; o título sempre diz a janela | FR-061, FR-064, FR-078, SC-009, SC-020 |
+| 2 | saída sem data | **recusar** — a data é obrigatória | FR-023 |
+| 3 | formulário em lote de declarar papel | **manter**, com a contagem das puladas | FR-014 |
+| 4 | limiares de *Problemas agora* | **30 d** (issues abertas) e **7 d** (revisões esperando) confirmados, com YAML e a decisão que apoiam; parada usa os **90 d** já declarados em `profile.thresholds.stale_open_work` | FR-069, Impacto |
+| 5 | perfil no Dashboard | até **4** habilidades, piso **15**, **link** para `/people/:id` | FR-075, SC-019 |
+| 6 | a equipe composta e a derivada | a organização **declara** "Conecta Fapes" e compõe os squads observados nela; a derivada continua ao lado, com a regra dela | FR-083 |
+| 7 | quem vê nomes, tarefas e perfil | quem tem escopo sobre a equipe **e os membros vigentes dela**; os demais veem agregados — confirma os quatro caminhos de `pode_ver_equipe/3` | FR-007, FR-076, US7 c8, US8 c10 |
+| 8 | quem age na estrutura | administradora **e** um papel de gestor da equipe, modelado como **concessão a papel organizacional** (*gerir estrutura da equipe*), no molde das concessões de visibilidade; sem segundo tipo de conta | FR-006, FR-080 a FR-082, SC-011 |
+| 9 | janela das medidas | **56 dias** por padrão **e** a pessoa pode escolher; o título diz a janela | FR-079, SC-020 |
+| 10 | trabalho fora de projeto declarado | issues e PRs **abertos** em repositórios que não estão em nenhum quadro de projeto declarado **+** quadros sem projeto | FR-053, SC-021 |
+
+O que estas decisões deslocam em outras specs está na tabela *Emendas*, no início.
 
 ## Impacto
 
@@ -1101,6 +1185,11 @@ Só onde há duas leituras materiais que o dia de hoje não decidiu.
 | issues abertas além do limiar; revisões de código esperando além do limiar | `Quality` e `WorkItems` têm as populações; a contagem por limiar não existe | FR-065 (a), (b) |
 | pessoas da equipe **inteira** com tarefas abertas e perfil | `team_open_tasks_by_person/3` e `team_skills_by_person/1` operam sobre uma equipe; falta o conjunto de FR-056 agrupado por subequipe | FR-073 a FR-075 |
 | pedido de revisão | **não coletado** | fora de escopo (FR-072) |
+| `Tenants.Access.pode_declarar_estrutura/4` | autoriza por `admin` ou escopo `organization` **de conta**; a decisão 8 nomeia admin e o papel com concessão — o caminho por escopo de conta precisa ser **substituído** pelo da concessão (ou a decisão 8 é reaberta); sem isso a spec e o código dizem coisas diferentes sobre quem escreve | FR-006, FR-080 |
+| concessão *gerir estrutura da equipe* | não existe: `eo_role_visibility_grants` só confere **visão**; falta o registro por papel + alcance + autor + revogação para **gestão**, e o veredito que o lê | FR-080 a FR-082 |
+| `Tenants.Access.pode_ver_equipe/3` | já abre por admin, `team`, `organization` e vínculo vigente — **reusar**, não estender | FR-007, FR-076 |
+| janela escolhível nas consultas de fluxo e de medida | `state_changes_by_period/4` já aceita `desde`/`ate`; as demais fixam 56 dias em `@janela_em_dias` — precisam receber a janela | FR-078, FR-079 |
+| teto de quatro habilidades e link | `team_skills_by_person/1` devolve a lista inteira; o corte e o critério ficam na tela, ditos | FR-075 |
 
 ### Base de conhecimento — antes da tela (princípio IV; 058 FR-021, FR-026e)
 
@@ -1110,15 +1199,17 @@ dizer.
 | O que precisa existir | Natureza | Responde a | Observação |
 |---|---|---|---|
 | **abertos e fechados por período**, sem acumular — o *Prometido × Entregue* | medida nova | `flow.open_work_balance` (já declarada) | são as duas entradas de `flow.open_work.cumulative` sem o acumulado; limitações a copiar: "fechado é ato da ferramenta", "não há escopo comprometido", "prometido é rótulo, não compromisso" (FR-063) |
-| granulação semana/mês/ano em `flow.open_work.cumulative` e na medida acima | emenda de medida | — | hoje `period: weekly`; declarar que mês e ano são **reagrupamento da mesma medida**, e as janelas de Q1 |
+| granulação semana/mês/ano em `flow.open_work.cumulative` e na medida acima | emenda de medida | — | hoje `period: weekly`; declarar que mês e ano são **reagrupamento da mesma medida**, as janelas padrão por granulação (8 semanas · 12 meses · todos os anos) e que a janela é **parâmetro dito no título** (decisão 1) |
+| a janela como parâmetro em `review.time_to_first_review.duration` e `ci.pipeline_success_rate.ratio` | emenda de medida | — | as limitações citam "56 dias" como fixo; passa a ser padrão escolhível, com a janela no título (decisão 9) |
 | o conjunto de membros da **equipe composta** em `flow.open_work.cumulative` e `flow.completion.forecast` | emenda de medida (filtro) | — | FR-056: união distinta pela composição vigente na data do evento; item conta uma vez; "não é soma dos cartões" nas *misinterpretations* |
 | o recorte **equipe ∩ projeto** nos números da linha de projeto | emenda de medida (escopo) | — | `review.time_to_first_review.duration` e `ci.pipeline_success_rate.ratio` declaram `team` e `project`, não a interseção; ou se declara, ou a linha de projeto fica sem esses números |
 | o **alerta de trabalho fora de projeto declarado** | regra/anomalia (como `structure_antipatterns.yaml`) | decisão: declarar o projeto e ligar a equipe | FR-053, FR-054; consequência: o trabalho não entra em nenhuma linha de projeto nem na taxa do pipeline |
 | `github_team_membership_evidence` **v3** | emenda de regra | — | v2 diz "vínculo declarado não é tocado"; precisa dizer que **saída e equívoco em vínculo observado** também bloqueiam a recriação enquanto a observação for contínua (FR-026, FR-027) |
 | a necessidade *o que precisa do olhar de quem gerencia hoje* | necessidade de informação | decisão: onde agir hoje — concluir, repassar, declarar, ligar | é o que sustenta a seção *Problemas agora* como um todo; sem ela a seção é dashboard sem necessidade declarada (princípio IV) |
-| **limiar de issue aberta** (proposta: 30 dias) | limiar em regra (como `profile.thresholds`) | a necessidade acima | **não declarado** — Q4; sem YAML o cartão (a) não nasce |
-| **limiar de revisão de código esperando** (proposta: 7 dias) | limiar em regra | a necessidade acima | **não declarado** — Q4; sem YAML o cartão (b) não nasce |
-| **limiar de parada** | já declarado: `profile.thresholds.stale_open_work.stale_days = 90`, desde a abertura | — | o cartão (d) reusa; se Q4 escolher "14 dias sem mudança de estado", é **emenda** a `profile.thresholds` e à premissa da 057, não constante nova |
+| **limiar de issue aberta — 30 dias** | limiar em regra (como `profile.thresholds`) | a necessidade acima | **confirmado em 2026-09-07**; YAML com o valor e a decisão que apoia, **antes** do cartão (a) |
+| **limiar de revisão de código esperando — 7 dias** | limiar em regra | a necessidade acima | **confirmado em 2026-09-07**; YAML com o valor e a decisão que apoia, **antes** do cartão (b) |
+| **limiar de parada** | já declarado: `profile.thresholds.stale_open_work.stale_days = 90`, desde a abertura | — | o cartão (d) e a marca de FR-074 **reusam**; "14 d sem mudança de estado" recusado em 2026-09-07 |
+| a **concessão *gerir estrutura da equipe*** | declaração da plataforma adjacente à EO — mesmo lugar ontológico de `spo.activity_start_criterion` (módulo YAML da SPO) | decisão: quem pode declarar estrutura numa equipe | a concessão de **visibilidade** (`eo_role_visibility_grants`) **não** está declarada na base hoje — lacuna herdada; declarar as duas juntas fecha a lacuna em vez de dobrá-la. Nome a ser dado por quem mantém a base; a proposta deste papel está no relatório |
 | **pipeline falhando agora na branch padrão** | regra/anomalia (estado, não taxa) | a necessidade acima | `ci.pipeline_success_rate.ratio` é taxa sobre a janela; "falhando agora" é a última verificação concluída na branch padrão — outra afirmação, que precisa de nome |
 | cartões (e) a (h) | — | — | reusam declarações existentes: 057 FR-021, 055 FR-018, a regra do alerta (linha acima), `structure_antipatterns.yaml`; sem YAML novo além da necessidade |
 
@@ -1127,7 +1218,13 @@ dizer.
 - **Spec 057**: FR-011 e FR-029 (emendas), FR-008 (esclarecimento) — pela tabela
   no início.
 - **Spec 055**: decisão em aberto 2 da emenda de 2026-09-06 (fechada por FR-024);
-  premissa "saída sem data" (Q2).
+  premissa "saída sem data" (substituída por FR-023: recusar); premissa "quem
+  administra é quem declara" (ampliada por FR-080: admin **e** papel com concessão).
+- **Specs 057 e 058**: premissa "período padrão, sem seletor nesta feature" — o
+  seletor chega por FR-078/FR-079, com a janela no título.
+- **Spec 045**: ganha um segundo tipo de concessão — por papel, para **gestão** —
+  ao lado das concessões de visão por conta; "administrar não é ver" continua de pé,
+  e gerir estrutura é uma terceira coisa, nomeada (FR-080).
 - **ADR 0008**: a guarda de recriação (item 4 da decisão) precisa cobrir saída e
   equívoco em vínculo observado — FR-026.
 - **`docs/backlog/perguntas-do-painel-da-equipe.md`**: P1 a P3 (vazão, WIP,
