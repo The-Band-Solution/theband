@@ -7,8 +7,10 @@
 **Status**: Draft — escrita pelo papel de Product Owner a pedido da pessoa
 mantenedora em 2026-09-07, sobre o protótipo aprovado no mesmo dia
 ([`prototipo/README.md`](prototipo/README.md)). As **oito decisões** registradas
-ali estão incorporadas e **não são reabertas** aqui. O que ficou em aberto está na
-seção *Perguntas abertas*, e são três.
+ali estão incorporadas e **não são reabertas** aqui — inclusive a **decisão 9**,
+acrescentada no mesmo dia depois do início desta escrita: o Dashboard é a **visão
+geral do gestor**, com *Problemas agora* e *Pessoas*. O que ficou em aberto está na
+seção *Perguntas abertas*, e são quatro.
 
 **Input**: User description, na ordem em que veio: "Vamos projetar a tela de
 equipes. Uma equipe tem um dashboard com as métricas, uma tela de estrutura
@@ -44,7 +46,9 @@ tornou o único conjunto de membros.
 |---|---|---|---|
 | cabeçalho: N membros · M sem papel | 043/055 | cabeçalho das duas abas | mantém |
 | *Teams inside this one* — linha por subequipe, sem total, sem gráfico | 057 US2 | **Dashboard**: cartão por subequipe **e** a tabela por medida | reorganiza; ganha o cartão como porta |
-| burn, previsão, *what each person is on* (só equipe simples) | 057 US4–US6 | **Dashboard** da equipe simples, como está; a composta passa a ter fluxo próprio | mantém; **emenda 057 FR-011** |
+| burn, previsão (só equipe simples) | 057 US5–US6 | **Dashboard** da equipe simples, como está; a composta passa a ter fluxo próprio | mantém; **emenda 057 FR-011** |
+| *what each person is on* + habilidades por pessoa (só equipe simples) | 057 US4 | **Dashboard** da simples, como está; a **composta** ganha *Pessoas — diretas e pelas subequipes*, agrupadas por subequipe | mantém; **novo** na composta (decisão 9) |
+| — | — | **Dashboard**: *Problemas agora* — cartões contados, cada um com limiar declarado na base; verde = conferido e nada achado | **novo** (decisão 9) |
 | *Structure* — faz parte de / contém / *Declare inside* / *remove from here* | 055 US3 | **Estrutura**: seção *Subequipes*, com data, histórico e composição de equipe **existente** | reorganiza; ganha composição com data e de equipe existente |
 | tabela *members* por evidência (acesso, observado em, última observação) | 021/043 | **Estrutura**: lista por **vínculo** — papel, origem, desde, subequipes, ações por linha | **substitui** |
 | *Source and declaration disagree* | 055 FR-012 | **Estrutura**, junto da lista | mantém |
@@ -346,8 +350,8 @@ pertence a nenhum projeto declarado da equipe aparece como **alerta** — onde, 
 quanto —, e nunca como projeto.
 
 **Why this priority**: é a reorganização que as cinco P1 já pedem para existir, e o
-que dá lugar ao fluxo (US8). O alerta é o que torna visível a diferença entre
-"a plataforma não sabe" e "a organização não declarou".
+que dá lugar à visão do gestor (US8) e ao fluxo (US9). O alerta é o que torna
+visível a diferença entre "a plataforma não sabe" e "a organização não declarou".
 
 **Independent Test**: abrir `/teams/:id` sem `?tab` e cair no Dashboard; abrir
 `?tab=structure` e cair na Estrutura; recarregar e continuar na mesma aba; numa
@@ -386,7 +390,75 @@ declarar o vínculo.
 
 ---
 
-### User Story 8 - O fluxo da equipe inteira: burn, Prometido × Entregue, Monte Carlo (Priority: P3)
+### User Story 8 - A visão geral do gestor: o que precisa de olhar hoje, e o que cada pessoa está fazendo (Priority: P2)
+
+Quem gerencia abre o Dashboard e, antes das medidas, vê **Problemas agora**: um
+cartão por fato que pede atenção — issues abertas além de um limiar, solicitações de
+código esperando revisão humana além de outro, pipeline falhando **agora** na branch
+padrão, tarefas paradas além do limiar de parada, pessoas sem tarefa aberta, membros
+sem papel declarado, trabalho fora de projeto declarado, anomalias de estrutura —,
+cada cartão com o **limiar escrito**, vindo da base de conhecimento, e cada número
+**contado**, nunca inferido. Um cartão em verde significa *conferido e nada
+encontrado*, o que é diferente de *não conferido*. Abaixo, **Pessoas — diretas e
+pelas subequipes**: todos os membros da equipe composta, agrupados por subequipe,
+com papel, **todas** as tarefas abertas agora com idade e marca de parada, e o
+perfil demonstrado — ou *sem perfil ainda*, quando o material está abaixo do piso.
+
+**Why this priority**: decisão 9 da pessoa mantenedora em 2026-09-07 — o Dashboard
+é a visão geral de quem gerencia, e a visão geral começa pelo que precisa de decisão
+hoje, não pela série histórica. P2 e não P1 porque cada cartão e cada linha reusa um
+fato que outra história desta spec ou de spec anterior já produz; o que esta
+história acrescenta é o lugar e o limiar.
+
+**Independent Test**: numa equipe composta com dados conhecidos, conferir que cada
+cartão traz o limiar escrito e que o número bate com a lista que ele abre; zerar um
+fato (por exemplo, ligar o repositório ao projeto) e ver o cartão ficar *conferido,
+nada encontrado*; remover a coleta de um insumo e ver o cartão dizer *não
+conferido*, e não zero; conferir que uma pessoa em duas subequipes aparece nos dois
+grupos e conta uma vez no total, e que nenhuma pessoa tem uma tarefa "atual" eleita.
+
+**Acceptance Scenarios**:
+
+1. **Given** o Dashboard de uma equipe, **When** *Problemas agora* é exibido,
+   **Then** cada cartão traz o número, o **limiar escrito** e a origem do limiar na
+   base de conhecimento, e o texto diz sobre que janela e que conjunto de membros foi
+   contado.
+2. **Given** um fato conferido e não encontrado, **When** o cartão é exibido,
+   **Then** ele diz *conferido, nada encontrado*; **Given** um insumo que a coleta
+   não traz, **Then** o cartão diz *não conferido* e o que falta — nunca zero.
+3. **Given** um cartão com número maior que zero, **When** quem lê o aciona, **Then**
+   chega à lista do que foi contado — na seção do Dashboard ou da aba Estrutura que
+   detalha aquele fato.
+4. **Given** uma equipe composta, **When** um cartão quebra por subequipe, **Then** o
+   número do cartão é a contagem **distinta** sobre a equipe inteira, a quebra é por
+   subequipe, e a tela diz que a quebra pode se sobrepor — não é partição.
+5. **Given** uma equipe **sem projeto declarado**, **When** o cartão do pipeline é
+   exibido, **Then** ele diz *não conferível* nomeando o elo que falta (058 FR-013a),
+   e não zero nem verde.
+6. **Given** a seção *Pessoas*, **When** é exibida, **Then** todos os membros
+   vigentes da equipe inteira aparecem, agrupados por subequipe e *membros diretos*;
+   pessoa em duas subequipes aparece nos dois grupos com *também em X* e conta uma
+   vez no total.
+7. **Given** uma pessoa com três tarefas abertas, **When** a linha é exibida,
+   **Then** as três aparecem, cada uma com identificação, link e há quanto tempo está
+   aberta desde a abertura do item, e nenhuma é eleita "atual" (057 FR-017 a
+   FR-019a); a que ultrapassa o limiar de parada declarado recebe a marca (057
+   FR-020).
+8. **Given** uma pessoa sem tarefa aberta, **When** a linha é exibida, **Then** a
+   ausência é dita em texto e a pessoa não é omitida (057 FR-021).
+9. **Given** uma pessoa abaixo do piso de perfil, **When** a coluna de perfil é
+   exibida, **Then** diz *sem perfil ainda*, com o piso declarado e quanto a pessoa
+   tem, e nenhuma habilidade é listada (057 FR-023); toda habilidade exibida traz
+   marca de derivada e a tela diz que ausência é *não observada aqui* (057 FR-022,
+   FR-024).
+10. **Given** uma conta sem escopo sobre a equipe, **When** a seção *Pessoas* e os
+    cartões que nomeiam pessoas são exibidos, **Then** ela lê os agregados e não lê
+    nome, tarefa nem perfil de pessoa nomeada, e a recusa é nomeada (058 FR-024,
+    FR-024a).
+
+---
+
+### User Story 9 - O fluxo da equipe inteira: burn, Prometido × Entregue, Monte Carlo (Priority: P3)
 
 No Dashboard da equipe composta, quem gerencia vê o burn-up/burn-down da equipe
 **inteira** por semana, mês ou ano; *Prometido × Entregue* — abertos e levados a
@@ -720,6 +792,77 @@ previsão aparece.
   FR-037 e MUST ser **semanal** independentemente da granulação escolhida em
   FR-061 — as amostras são semanas. A tela MUST dizer isso.
 
+### A visão geral do gestor — problemas agora
+
+- **FR-065**: O Dashboard MUST apresentar, antes das medidas, a seção *Problemas
+  agora*: um cartão **contado** por fato, com o **limiar escrito no cartão** e a
+  origem do limiar na base de conhecimento. Os fatos: (a) issues abertas há mais que
+  o limiar; (b) solicitações de mudança **de código** esperando a primeira revisão
+  humana há mais que o limiar; (c) pipeline falhando **agora** na branch padrão, por
+  repositório dos projetos declarados da equipe; (d) tarefas abertas além do limiar
+  de parada (057 FR-020); (e) pessoas sem tarefa aberta (057 FR-021); (f) membros
+  sem papel declarado (055 FR-018); (g) trabalho fora de projeto declarado (FR-053);
+  (h) anomalias de estrutura (058 FR-025).
+- **FR-066**: Cada cartão MUST dizer sobre o que foi contado — a janela, e o
+  conjunto de membros com a composição de FR-043 — e MUST NOT inferir: o número é
+  contagem sobre fato coletado ou declarado.
+- **FR-067**: Cartão com contagem zero MUST dizer *conferido, nada encontrado*.
+  Quando um insumo não é coletado ou a medida não é calculável, o cartão MUST dizer
+  *não conferido* e o que falta. Os dois estados MUST ser distinguíveis em texto, e
+  nenhum dos dois MUST ser um zero mudo.
+- **FR-068**: Cada cartão com número maior que zero MUST levar à lista do que
+  contou — a seção do Dashboard ou da Estrutura que detalha o fato; (f) leva à aba
+  Estrutura.
+- **FR-069**: **Nenhum limiar MUST viver em constante de módulo.** Cada limiar MUST
+  estar declarado em YAML da base antes de o cartão existir — pela mesma razão que
+  `profile.thresholds` dá: é decisão sobre o que a plataforma afirma, e mudá-lo é
+  decisão registrada. O único limiar de parada declarado hoje é
+  `profile.thresholds.stale_open_work.stale_days = 90`, contado **desde a abertura do
+  item**; os valores do protótipo (30, 7 e "14 dias sem mudança de estado") **não**
+  estão declarados — Q4.
+- **FR-070**: Em equipe composta, o número do cartão MUST ser a contagem
+  **distinta** sobre o conjunto de FR-056; a quebra por subequipe MAY ser exibida, e
+  a tela MUST dizer que as partes podem se sobrepor — pessoa em duas subequipes conta
+  nas duas — e por isso não formam partição (057 FR-008).
+- **FR-071**: O cartão (c) MUST seguir o caminho da 058 — repositórios dos projetos
+  declarados da equipe (058 FR-013) —, olhar a **branch padrão** coletada de cada
+  repositório e a **última verificação concluída** nela; verificação em andamento
+  MUST NOT contar (058 FR-014). Equipe sem projeto declarado MUST ter o cartão como
+  *não conferível*, nomeando o elo (058 FR-013a).
+- **FR-072**: O cartão (b) MUST usar a mesma população da 058 US1 — solicitações de
+  código, com a cerimônia do processo contada à parte pela regra
+  `change_request.ceremony` — e a primeira revisão **humana**. *Sem revisor pedido*
+  MUST NOT ser apresentado enquanto a coleta não trouxer o pedido de revisão, que
+  hoje não é coletado — o protótipo mostra e a spec recusa.
+
+### A visão geral do gestor — as pessoas
+
+- **FR-073**: O Dashboard da equipe **composta** MUST apresentar *Pessoas — diretas e
+  pelas subequipes*: todos os membros vigentes do conjunto de FR-056 na data da
+  consulta, agrupados por subequipe e por *membros diretos*. Pessoa em mais de uma
+  subequipe MUST aparecer em cada grupo, com *também em X*, e MUST contar **uma vez**
+  no total.
+- **FR-074**: Cada pessoa MUST trazer o papel ou *não declarado*; **todas** as tarefas
+  abertas atribuídas a ela **agora**, cada uma com identificação, link e há quanto
+  tempo está aberta, contado da **abertura do item** e declarado como tal (057 FR-017,
+  FR-019, FR-019a); a marca de parada pelo limiar declarado (057 FR-020, FR-069);
+  **nenhuma** tarefa eleita como "atual" (057 FR-018); e, sem tarefa, a ausência dita
+  em texto (057 FR-021).
+- **FR-075**: O perfil demonstrado MUST ser lido do trabalho fechado, cada habilidade
+  com marca de derivada (057 FR-022). Abaixo do piso de
+  `profile.thresholds.evidence_floor` (15 tarefas concluídas com descrição) a coluna
+  MUST dizer *sem perfil ainda*, com o piso e quanto a pessoa tem, e MUST NOT listar
+  habilidade (057 FR-023). A tela MUST declarar que ausência é *não observada aqui*,
+  nunca incapacidade (057 FR-024), e MUST ligar à página da pessoa.
+- **FR-076**: A seção *Pessoas* e todo cartão que nomeia pessoa MUST seguir a
+  fronteira de 058 FR-024: nome, tarefas e perfil de pessoa nomeada só para quem
+  alcança a equipe pelo veredito de acesso vigente; os agregados — quantas pessoas,
+  quantas sem tarefa, quantas paradas — legíveis por qualquer conta do tenant; a
+  recusa MUST ser nomeada (058 FR-024a).
+- **FR-077**: Grupo grande MAY ser truncado com *… N mais em X — abrir a subequipe*;
+  o truncamento MUST dizer **quantos** ficaram de fora, como o teto da espera por
+  revisão já diz quando corta.
+
 ### O que da 055 esta spec só reutiliza
 
 | 055 | O que é | Aqui |
@@ -807,6 +950,19 @@ previsão aparece.
 - **SC-015**: **100%** das medidas e recortes novos desta feature têm YAML na base de
   conhecimento **antes** de aparecer na tela — a lista está em *Impacto* (058
   SC-009; princípio IV).
+- **SC-016**: **100%** dos cartões de *Problemas agora* trazem o limiar escrito e a
+  origem dele na base; **0** limiares em constante de módulo — verificável lendo o
+  código dos cartões contra `priv/knowledge_base/`.
+- **SC-017**: **100%** dos cartões com contagem zero dizem *conferido, nada
+  encontrado*; **100%** dos cartões cujo insumo não é coletado dizem *não conferido*
+  com o que falta; **0** cartões com zero mudo — verificável por varredura da tela
+  com um insumo retirado.
+- **SC-018**: **100%** dos membros vigentes do conjunto da equipe inteira aparecem na
+  seção *Pessoas*; pessoa em duas subequipes aparece nos dois grupos e o total a
+  conta **uma** vez — verificável comparando o total com uma consulta `DISTINCT`.
+- **SC-019**: **0** pessoas com tarefa "atual" eleita; **100%** das pessoas sem tarefa
+  têm a ausência dita em texto (057 SC-006); **100%** das pessoas abaixo do piso
+  mostram *sem perfil ainda* com o piso declarado e **0** habilidades listadas.
 
 ## Fora de escopo
 
@@ -828,6 +984,10 @@ previsão aparece.
 - **Exportação, notificação, importação de planilha** (055).
 - **Alterar o detalhe da equipe simples** da 057 além de pô-lo dentro da aba
   Dashboard.
+- **"Sem revisor pedido"** no cartão de revisões. O pedido de revisão não é coletado;
+  o número do protótipo não é calculável, e o cartão não o mostra até haver coleta.
+- **Silenciar ou adiar um cartão** de *Problemas agora*. Não há conceito na base para
+  "problema reconhecido"; o cartão fica enquanto o fato durar.
 
 ## Premissas
 
@@ -855,11 +1015,20 @@ contestadas:
 - **Quem administra é quem pode declarar estrutura na organização** — `admin` do
   tenant ou escopo `organization` nesse alvo. Esta spec não cria papel nem escopo
   novo (055).
-- **Onde o protótipo diverge desta spec**: (a) o protótipo mostra o alerta com nomes
-  para qualquer leitor — FR-007 restringe o *quem*; (b) o protótipo sugere "aceitar
-  como não planejado" — fora de escopo; (c) o protótipo não mostra o autor da saída
-  em vínculo observado encerrado pela coleta — FR-022 exige distinguir. A spec vence
-  nos três.
+- **O piso do perfil é o declarado**: `profile.thresholds.evidence_floor.tasks_with_body
+  = 15` tarefas concluídas com descrição. O "floor is 5" do protótipo confunde com
+  `tasks_per_period = 5`, que é o piso da **evolução**, não do perfil.
+- **O conjunto de pessoas da seção *Pessoas*** é o de FR-056 na data da consulta —
+  o mesmo que sustenta o fluxo da equipe inteira; não há uma segunda definição de
+  membro (058 FR-026a).
+- **Onde o protótipo diverge desta spec**: (a) o protótipo mostra o alerta e a seção
+  *Pessoas* com nomes para qualquer leitor — FR-007 e FR-076 restringem; (b) o
+  protótipo sugere "aceitar como não planejado" — fora de escopo; (c) o protótipo não
+  mostra o autor da saída em vínculo observado encerrado pela coleta — FR-022 exige
+  distinguir; (d) o protótipo diz "floor is 5" — o piso declarado é 15; (e) o
+  protótipo mostra "12 with no reviewer requested" — não coletado, fora de escopo;
+  (f) os limiares 30, 7 e 14 do protótipo não estão declarados — Q4. A spec vence
+  nos seis.
 
 ## Perguntas abertas
 
@@ -885,6 +1054,24 @@ Só onde há duas leituras materiais que o dia de hoje não decidiu.
   manter o lote como atalho na Estrutura, chamando o mesmo comando. **Recomendação
   do papel**: (a); com 17 pessoas sem papel na equipe de referência, o lote é
   conveniência real, e por isso a pergunta é feita em vez de decidida.
+- **Q4 — Os limiares de *Problemas agora*** [NEEDS CLARIFICATION]. Procurado em
+  `priv/knowledge_base/rules/` por *stop*, *parada*, *threshold*, *limiar* em
+  2026-09-07: o **único** limiar declarado é
+  `profile.thresholds.stale_open_work.stale_days = 90`, contado desde a abertura do
+  item — é o limiar de parada da 057 FR-020 e de `@parada_em_dias 90`. Os três
+  valores do protótipo são propostas de quem coordenou o desenho, e nenhum está
+  declarado: **30 dias** para issue aberta (o número aparece na base só como
+  observação medida em `change_request.ceremony`, sobre solicitações, não como
+  limiar); **7 dias** para revisão esperando; **"14 dias sem mudança de estado"** para
+  tarefa parada. Este último tem duas leituras materiais: (a) a marca de parada
+  continua sendo a declarada — 90 dias desde a abertura —, um limiar só na plataforma
+  para o mesmo fato, e o cartão (d) conta o que a 057 já marca; (b) nasce um segundo
+  limiar, *sem mudança de estado há N dias*, que responde outra pergunta (movimento,
+  não idade), exige movimentação de quadro coletada — que `process.ap03` mostra não
+  existir para todo item — e produziria duas marcas de "parada" com definições
+  diferentes na mesma tela. **Recomendação do papel**: (a) para a parada; 30 e 7
+  entram como propostas a declarar em YAML, cada uma com a decisão que apoia, **ou o
+  cartão correspondente não nasce** (FR-069).
 
 ## Impacto
 
@@ -910,6 +1097,10 @@ Só onde há duas leituras materiais que o dia de hoje não decidiu.
 | `WorkItems.TeamWork` para a equipe **inteira** | só recorta por vínculo direto; falta a união distinta pela composição vigente na data do evento | FR-056 |
 | consulta do trabalho fora de projeto declarado | não existe | FR-053 |
 | números de equipe ∩ projeto | não existem como consulta | FR-051 |
+| pipeline falhando **agora** na branch padrão | insumos existem — `source_repository.default_branch` e `collected_verification.head_branch` —, a consulta não | FR-071 |
+| issues abertas além do limiar; revisões de código esperando além do limiar | `Quality` e `WorkItems` têm as populações; a contagem por limiar não existe | FR-065 (a), (b) |
+| pessoas da equipe **inteira** com tarefas abertas e perfil | `team_open_tasks_by_person/3` e `team_skills_by_person/1` operam sobre uma equipe; falta o conjunto de FR-056 agrupado por subequipe | FR-073 a FR-075 |
+| pedido de revisão | **não coletado** | fora de escopo (FR-072) |
 
 ### Base de conhecimento — antes da tela (princípio IV; 058 FR-021, FR-026e)
 
@@ -924,6 +1115,12 @@ dizer.
 | o recorte **equipe ∩ projeto** nos números da linha de projeto | emenda de medida (escopo) | — | `review.time_to_first_review.duration` e `ci.pipeline_success_rate.ratio` declaram `team` e `project`, não a interseção; ou se declara, ou a linha de projeto fica sem esses números |
 | o **alerta de trabalho fora de projeto declarado** | regra/anomalia (como `structure_antipatterns.yaml`) | decisão: declarar o projeto e ligar a equipe | FR-053, FR-054; consequência: o trabalho não entra em nenhuma linha de projeto nem na taxa do pipeline |
 | `github_team_membership_evidence` **v3** | emenda de regra | — | v2 diz "vínculo declarado não é tocado"; precisa dizer que **saída e equívoco em vínculo observado** também bloqueiam a recriação enquanto a observação for contínua (FR-026, FR-027) |
+| a necessidade *o que precisa do olhar de quem gerencia hoje* | necessidade de informação | decisão: onde agir hoje — concluir, repassar, declarar, ligar | é o que sustenta a seção *Problemas agora* como um todo; sem ela a seção é dashboard sem necessidade declarada (princípio IV) |
+| **limiar de issue aberta** (proposta: 30 dias) | limiar em regra (como `profile.thresholds`) | a necessidade acima | **não declarado** — Q4; sem YAML o cartão (a) não nasce |
+| **limiar de revisão de código esperando** (proposta: 7 dias) | limiar em regra | a necessidade acima | **não declarado** — Q4; sem YAML o cartão (b) não nasce |
+| **limiar de parada** | já declarado: `profile.thresholds.stale_open_work.stale_days = 90`, desde a abertura | — | o cartão (d) reusa; se Q4 escolher "14 dias sem mudança de estado", é **emenda** a `profile.thresholds` e à premissa da 057, não constante nova |
+| **pipeline falhando agora na branch padrão** | regra/anomalia (estado, não taxa) | a necessidade acima | `ci.pipeline_success_rate.ratio` é taxa sobre a janela; "falhando agora" é a última verificação concluída na branch padrão — outra afirmação, que precisa de nome |
+| cartões (e) a (h) | — | — | reusam declarações existentes: 057 FR-021, 055 FR-018, a regra do alerta (linha acima), `structure_antipatterns.yaml`; sem YAML novo além da necessidade |
 
 ### Documentos de outros papéis que esta spec afeta, sem alterá-los
 
