@@ -40,6 +40,10 @@ defmodule TheBand.Ingestion.GithubVerifications do
   demais seguem, e a próxima coleta tenta de novo (L29).
   """
   @spec collect(map()) :: {:ok, map()} | {:snooze, non_neg_integer()}
+  # Dois minutos: o bastante para um resolvedor de DNS ou um proxy se recuperar, e curto o
+  # bastante para não parecer travamento. Não é cota — a cota tem reset; a rede não avisa.
+  @pausa_de_rede_segundos 120
+
   def collect(ctx) do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
@@ -49,6 +53,19 @@ defmodule TheBand.Ingestion.GithubVerifications do
       # devolve a espera em vez de um resumo parcial que o job leria como "acabou".
       {:sem_janela, reset} ->
         {:snooze, segundos_ate(reset)}
+
+      # A ORIGEM FICOU INDISPONÍVEL no meio (rede, DNS, 5xx) — medido em 2026-09-06: 501
+      # `nxdomain` do resolvedor local numa retomada gravaram 835 execuções "sem jobs" em 14
+      # repositórios, e a tela mostrou isso até a coleta seguinte. Transitório não é dado: a
+      # etapa para e volta daqui a pouco, pelo mesmo caminho da janela — e o checkpoint não
+      # avança.
+      {:origem_indisponivel, motivo} ->
+        Logger.warning(
+          "origem indisponível durante as verificações: #{inspect(motivo)} — " <>
+            "a etapa volta em #{@pausa_de_rede_segundos}s"
+        )
+
+        {:snooze, @pausa_de_rede_segundos}
 
       resultados ->
         {:ok, resumo(repositorios, resultados)}
@@ -115,6 +132,7 @@ defmodule TheBand.Ingestion.GithubVerifications do
     |> Enum.reduce_while([], fn tarefa, acc ->
       case resultado_da_tarefa(tarefa) do
         %{estado: :sem_janela, reset: reset} -> {:halt, {:sem_janela, reset}}
+        %{estado: :origem_indisponivel, motivo: m} -> {:halt, {:origem_indisponivel, m}}
         resultado -> {:cont, [resultado | acc]}
       end
     end)
@@ -170,6 +188,9 @@ defmodule TheBand.Ingestion.GithubVerifications do
           {:sem_janela, reset} ->
             vazio(:sem_janela) |> Map.put(:reset, reset)
 
+          {:origem_indisponivel, motivo} ->
+            vazio(:origem_indisponivel) |> Map.put(:motivo, motivo)
+
           resultado ->
             marcar_se_completo(repo, inicio, resultado)
             Map.merge(%{estado: :ok, execucoes: length(runs)}, resultado)
@@ -200,9 +221,17 @@ defmodule TheBand.Ingestion.GithubVerifications do
         vazio(:sem_janela) |> Map.put(:reset, reset)
 
       {:error, reason} ->
-        Logger.warning("verificações de #{repo.qualified_name} não coletadas: #{inspect(reason)}")
+        # Transitório NÃO é inalcançável (L29): um `:nxdomain` de um instante já custou 38
+        # repositórios fora de observação. Vira parada da etapa, e não marca de repositório.
+        if Client.transient?(reason) do
+          vazio(:origem_indisponivel) |> Map.put(:motivo, reason)
+        else
+          Logger.warning(
+            "verificações de #{repo.qualified_name} não coletadas: #{inspect(reason)}"
+          )
 
-        vazio(:inalcancavel)
+          vazio(:inalcancavel)
+        end
     end
   end
 
@@ -260,6 +289,7 @@ defmodule TheBand.Ingestion.GithubVerifications do
   defp passo_da_execucao(ctx, repo, run, acc) do
     case gravar_run(ctx, repo, run) do
       {:sem_janela, _reset} = parada -> {:halt, parada}
+      {:origem_indisponivel, _motivo} = parada -> {:halt, parada}
       resultado -> {:cont, somar(acc, resultado)}
     end
   end
@@ -308,13 +338,21 @@ defmodule TheBand.Ingestion.GithubVerifications do
       {:error, {:rate_limited, reset}} ->
         {:sem_janela, reset}
 
+      # A ORIGEM FALHOU DE PASSAGEM (rede, DNS, 5xx): a execução NÃO é gravada sem jobs —
+      # ela não existe ainda no banco, e a retomada daqui a dois minutos a traz inteira.
+      # Gravar sem jobs era o que fez 835 execuções aparecerem como "jobs não coletados"
+      # numa coleta em que a origem estava bem e o DNS local não (2026-09-06).
       {:error, reason} ->
-        # Sem os jobs não há como derivar o tipo, e derivá-lo de outra coisa seria
-        # inventá-lo. A execução é gravada com a lista vazia e a tela a mostra como
-        # "jobs não coletados" — frase diferente de "execução sem jobs".
-        Logger.warning("jobs da execução #{run["id"]} não coletados: #{inspect(reason)}")
-        registrar_execucao(ctx, repo, run, [])
-        %{zero() | sem_jobs: 1}
+        if Client.transient?(reason) do
+          {:origem_indisponivel, reason}
+        else
+          # Permanente (404, recusa): sem os jobs não há como derivar o tipo, e derivá-lo de
+          # outra coisa seria inventá-lo. A execução é gravada com a lista vazia e a tela a
+          # mostra como "jobs não coletados" — frase diferente de "execução sem jobs".
+          Logger.warning("jobs da execução #{run["id"]} não coletados: #{inspect(reason)}")
+          registrar_execucao(ctx, repo, run, [])
+          %{zero() | sem_jobs: 1}
+        end
     end
   end
 

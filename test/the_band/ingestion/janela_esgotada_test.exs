@@ -112,10 +112,24 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
   # reabriu" e concedia tudo. Um teste de pausa que passa a depender do calendário não é teste.
   defp reset_futuro, do: Integer.to_string(System.system_time(:second) + 1800)
 
-  # 500 é falha da origem, e não cota: `x-ratelimit-remaining` nem aparece.
+  defp oito_execucoes do
+    for n <- 1..8 do
+      %{
+        "id" => n,
+        "status" => "completed",
+        "conclusion" => "success",
+        "name" => "CI",
+        "head_sha" => "sha#{n}"
+      }
+    end
+  end
+
+  # Credencial recusada para este repositório é falha PERMANENTE — e não cota: o cabeçalho
+  # `x-ratelimit-remaining` nem aparece. (Era um 500 até 2026-09-06; 5xx é falha da origem
+  # de passagem, transitória pela regra da casa, e passou a parar a etapa em vez de marcar.)
   defp responder_quebrado do
     stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
-      {:ok, %{status: 500, headers: [], body: "boom"}}
+      {:ok, %{status: 401, headers: [], body: %{}}}
     end)
   end
 
@@ -210,7 +224,7 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
         Agent.update(urls, &[url | &1])
 
         cond do
-          String.contains?(url, "/actions/runs/") and String.ends_with?(url, "/jobs") ->
+          String.contains?(url, "/actions/runs/") and String.contains?(url, "/jobs") ->
             {:ok, %{status: 200, headers: [], body: %{"jobs" => []}}}
 
           String.contains?(url, "/actions/runs") ->
@@ -268,7 +282,7 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
         cabecalhos = [{"x-ratelimit-remaining", "3"}, {"x-ratelimit-reset", reset_futuro()}]
 
         cond do
-          String.ends_with?(url, "/jobs") ->
+          String.contains?(url, "/jobs") ->
             {:ok, %{status: 200, headers: cabecalhos, body: %{"jobs" => []}}}
 
           String.contains?(url, "/actions/runs") ->
@@ -309,7 +323,79 @@ defmodule TheBand.Ingestion.JanelaEsgotadaTest do
              "a pausa preventiva existe para nunca chegar ao 403"
     end
 
-    test "erro de verdade continua sendo `unreachable`", ctx do
+    test "ORIGEM INDISPONÍVEL no meio das execuções: a etapa para, nada é gravado sem jobs, e volta em 2 min",
+         ctx do
+      # Medido em 2026-09-06: 501 `nxdomain` do resolvedor local numa retomada gravaram 835
+      # execuções "sem jobs" em 14 repositórios — e a tela mostrou isso até a coleta seguinte.
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        cond do
+          # Como o Req devolve a falha de transporte.
+          String.contains?(url, "/jobs") ->
+            {:error, %{reason: :nxdomain}}
+
+          String.contains?(url, "/actions/runs") ->
+            {:ok, %{status: 200, headers: [], body: %{"workflow_runs" => oito_execucoes()}}}
+
+          true ->
+            {:ok, %{status: 200, headers: [], body: %{}}}
+        end
+      end)
+
+      assert {:snooze, 120} = GithubVerifications.collect(ctx.ctx), """
+      A etapa seguiu com a origem fora do ar. Cada execução virou "jobs não coletados" no
+      banco, o repositório ficou sem marca, e a tela mostrou centenas de execuções sem
+      componente — até a próxima coleta refazer tudo.
+      """
+
+      gravadas =
+        Repo.one(
+          from v in "collected_verifications",
+            where: v.observed_repository_id == type(^ctx.repo_id, :binary_id),
+            select: count()
+        )
+
+      assert gravadas == 0, """
+      #{gravadas} execução(ões) gravada(s) sem jobs por causa de uma falha de REDE. A
+      execução não existe ainda; a retomada a traz inteira. Gravá-la agora é afirmar sobre
+      a origem algo que só se sabe sobre o DNS local.
+      """
+
+      refute Repo.one(
+               from r in "observed_repositories",
+                 where: r.id == type(^ctx.repo_id, :binary_id),
+                 select: r.verifications_collected_at
+             ),
+             "o checkpoint não avança: nada foi percorrido"
+    end
+
+    test "erro PERMANENTE numa execução (404) continua gravando-a sem jobs e seguindo", ctx do
+      # A distinção que a correção acima não pode apagar: um 404 num run diz algo sobre a
+      # origem, e a execução é gravada com "jobs não coletados" — frase da tela desde a 037.
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        cond do
+          String.contains?(url, "/jobs") ->
+            {:ok, %{status: 404, headers: [], body: %{}}}
+
+          String.contains?(url, "/actions/runs") ->
+            {:ok,
+             %{
+               status: 200,
+               headers: [],
+               body: %{"workflow_runs" => Enum.take(oito_execucoes(), 1)}
+             }}
+
+          true ->
+            {:ok, %{status: 200, headers: [], body: %{}}}
+        end
+      end)
+
+      assert {:ok, resumo} = GithubVerifications.collect(ctx.ctx)
+
+      assert resumo.runs_without_jobs == 1,
+             "o 404 é permanente: gravada sem jobs, e a etapa segue"
+    end
+
+    test "erro PERMANENTE de verdade continua sendo `unreachable`", ctx do
       responder_quebrado()
 
       {:ok, resumo} = GithubVerifications.collect(ctx.ctx)
