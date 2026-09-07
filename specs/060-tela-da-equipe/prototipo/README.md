@@ -37,9 +37,26 @@ vale. Mesmo vocabulário visual do protótipo da 057 (`specs/057-tela-da-equipe-
    marca de parada; nunca uma "atual" eleita) e o **perfil demonstrado** (ou "sem perfil ainda",
    abaixo do piso).
 
+## As dez respostas da pessoa mantenedora (2026-09-07, segunda rodada)
+
+| # | questão | decisão |
+|---|---|---|
+| 1 | janela dos gráficos por granulação | padrão fixo (8 semanas · 12 meses · todos os anos) **e** a pessoa pode escolher o período |
+| 2 | saída sem data | **exigir a data** |
+| 3 | "Declare all roles" em lote | **manter** |
+| 4 | limiares dos problemas | **30 d** issues, **7 d** revisões — ganham YAML; tarefa parada usa os **90 d** já declarados |
+| 5 | perfil no dashboard | **4 habilidades, piso 15**, e **link para o perfil detalhado** da pessoa |
+| 6 | qual é a equipe composta | a organização **declara** "Conecta Fapes" e compõe os squads; a derivada continua ao lado |
+| 7 | quem vê nomes, tarefas e perfil | quem tem escopo sobre a equipe **e os membros da equipe**; os demais veem agregados |
+| 8 | quem age na estrutura | administrador **e** um papel de **gestor da equipe** (concessão "gerir estrutura da equipe") |
+| 9 | janela das medidas | **56 dias por padrão**, e a pessoa pode escolher o período |
+| 10 | trabalho fora de projeto declarado | issues e PRs em repositórios fora de qualquer quadro de projeto declarado + quadros sem projeto |
+
 ## Premissas que a spec carrega até serem contestadas
 
 - Mês e ano só mudam a granulação do eixo do burn e do Prometido × Entregue; o Monte Carlo
   continua semanal.
+- "Gestor da equipe" é uma concessão a um papel organizacional (como as concessões de
+  visibilidade de `/access-scopes`), e não um segundo tipo de conta.
 - Nomes de pessoas no protótipo são fictícios (marcados `example`); contagens e medidas vêm da
   coleta real de 2026-09-06 da organização `leds-conectafapes`.

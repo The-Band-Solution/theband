@@ -136,7 +136,7 @@ a.squad .ir{font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep);m
 <span class="tela" id="dashboard">screen 1 · dashboard</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
-The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). For the manager, in this order: one card per squad (a summary and a door to the squad's own page); <strong>problems now</strong>; the measures, one row per squad; the team's <strong>flow charts</strong>; <strong>the people</strong> — direct and through the squads — with what each is on now and what each has demonstrated; the projects. The <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
+The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). Visible in full — names, tasks, profiles — to administrators, to whoever holds a scope over the team, and to <strong>the team's own members</strong>; everyone else sees the aggregates (decided 7 Sep). For the manager, in this order: one card per squad (a summary and a door to the squad's own page); <strong>problems now</strong>; the measures, one row per squad; the team's <strong>flow charts</strong>; <strong>the people</strong> — direct and through the squads — with what each is on now and what each has demonstrated; the projects. The <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
 
 <section class="sec">
   <div class="sec-cab"><h2>Squads at a glance</h2><span class="rot">one card per squad · click a card or its chart to open the squad</span></div>
@@ -196,7 +196,7 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 </section>
 
 <section class="sec">
-  <div class="sec-cab"><h2>Time to first review</h2><span class="rot">last 56 days · code changes and process ceremony, apart</span></div>
+  <div class="sec-cab"><h2>Time to first review</h2><span class="rot">last 56 days (default) · code changes and process ceremony, apart</span><span class="seg" title="56 days is the default; choose another period for the measures"><span class="on">56 d</span><span>90 d</span><span>custom…</span></span></div>
   <div class="grade-m">
     <div class="medida"><span class="rot">code changes · median wait</span><span class="grande">0.6 h</span><span class="contra">11 reviewed · 79 still waiting</span><span class="base">measured over 19 members — 17 observed without a declared role, 2 declared</span></div>
     <div class="medida"><span class="rot">still waiting · median age</span><span class="grande">38 d</span><span class="contra">46 older than 30 days</span><span class="base">a wait that is still open counts as open, never as zero</span></div>
@@ -232,11 +232,11 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <tbody>
       <tr><td><span class="pessoa">Ana Souza</span><span class="login">@ana-souza <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
         <td class="esq"><span class="tarefa"><span class="num">#812</span> Retry on nxdomain <span class="idade">open 3 d</span></span><span class="tarefa"><span class="num">#790</span> Quota manager panel <span class="idade">open 19 d</span></span></td>
-        <td class="esq"><span class="skill">elixir</span><span class="skill">postgres</span><span class="skill">oban</span><span class="skill fraca">ci · 1 task</span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">postgres</span><span class="skill">oban</span><span class="skill fraca">ci · 1 task</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
       <tr><td><span class="pessoa">Davi Rocha</span><span class="login">@davirocha <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
         <td class="esq"><span class="tarefa"><span class="num">#801</span> Oban stalls silently <span class="idade">open 6 d</span></span></td>
-        <td class="esq"><span class="skill">elixir</span><span class="skill">observability</span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">observability</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
       <tr><td><span class="pessoa">Hugo Dias</span><span class="login">@hugodias <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
         <td class="esq"><span class="vazio" style="display:inline-block;margin:0;padding:.15rem .5rem;font-size:.78rem">No open task assigned</span></td>
@@ -253,11 +253,11 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <tbody>
       <tr><td><span class="pessoa">Bia Lemos</span><span class="login">@bialemos · also in PINK <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
         <td class="esq"><span class="tarefa"><span class="num">#805</span> Ceremony vs code review <span class="idade">open 2 d</span></span><span class="tarefa"><span class="num">#777</span> Team page: participation period <span class="idade">open 11 d</span></span><span class="tarefa"><span class="num">#760</span> Export CSV <span class="idade">open 112 d</span><span class="parada">stopped · over 90 d</span></span></td>
-        <td class="esq"><span class="skill">liveview</span><span class="skill">elixir</span><span class="skill">sql</span><span class="skill">design</span></td>
+        <td class="esq"><span class="skill">liveview</span><span class="skill">elixir</span><span class="skill">sql</span><span class="skill">design</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td><span class="marca der"><span class="am"></span>1 stopped</span></td></tr>
       <tr><td><span class="pessoa">Gil Costa</span><span class="login">@gilcosta <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
         <td class="esq"><span class="tarefa"><span class="num">#799</span> Team of one is an anomaly <span class="idade">open 5 d</span></span></td>
-        <td class="esq"><span class="skill">elixir</span><span class="skill fraca">yaml · 1 task</span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill fraca">yaml · 1 task</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
     </tbody>
   </table></div>
@@ -270,12 +270,12 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <tbody>
       <tr><td><span class="pessoa">Caio Prado</span><span class="login">@caioprado <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Scrum Master</td>
         <td class="esq"><span class="vazio" style="display:inline-block;margin:0;padding:.15rem .5rem;font-size:.78rem">No open task assigned</span></td>
-        <td class="esq"><span class="skill">facilitation</span><span class="skill">planning</span></td>
+        <td class="esq"><span class="skill">facilitation</span><span class="skill">planning</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td><span class="marca aus"><span class="am"></span>no task</span></td></tr>
     </tbody>
   </table></div>
   </div>
-  <div class="aviso"><span class="rot">what the profile is, and is not</span><p>Demonstrated skills are read from the tasks the person closed in the period — labels, repositories, files touched. An absent skill means <em>not observed here</em>, never "does not have it" (057, FR-024). The full profile, with the tasks that back each skill, is on the person's page.</p></div>
+  <div class="aviso"><span class="rot">what the profile is, and is not</span><p>Up to four strongest skills per person, read from the tasks the person closed — labels, repositories, files touched; below 15 described tasks the profile is not generated and the cell says so. An absent skill means <em>not observed here</em>, never "does not have it" (057, FR-024). <strong>"full profile →"</strong> opens the person's page, with every skill and the tasks that back each one.</p></div>
 </section>
 
 <section class="sec">
@@ -318,10 +318,11 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 </section>
 
 <section class="sec">
-  <div class="sec-cab"><h2>Flow</h2><span class="rot">whole team · 8 weeks to 6 Sep</span>
+  <div class="sec-cab"><h2>Flow</h2><span class="rot">whole team · last 8 weeks (default for this grain)</span>
     <span class="seg"><span class="on">week</span><span>month</span><span>year</span></span>
+    <span class="seg" title="Default window per grain: 8 weeks · 12 months · all collected years. Choose another period here."><span>from <input type="date" value="2026-07-14" style="font:inherit;font-size:.72rem;border:0;background:transparent;color:inherit;width:8.2rem"></span><span>to <input type="date" value="2026-09-06" style="font:inherit;font-size:.72rem;border:0;background:transparent;color:inherit;width:8.2rem"></span></span>
   </div>
-  <p class="sub">The switch changes the <em>grain</em> of the axis, never the measure: a month is the same items counted by month. "Closed" is the act recorded at the tool, not a judgement of done (057, FR-030). <span class="ex-mark">example data</span> for the curves.</p>
+  <p class="sub">The grain switch changes the axis, never the measure: a month is the same items counted by month. Each grain opens with its <strong>default window</strong> — 8 weeks, 12 months, all collected years — and the period can be changed here; the title always says which window is shown (decided 7 Sep). "Closed" is the act recorded at the tool, not a judgement of done (057, FR-030). <span class="ex-mark">example data</span> for the curves.</p>
 
   <div class="grade-g">
     <!-- BURN-UP / BURN-DOWN -->
@@ -412,7 +413,7 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 <span class="tela" id="structure">screen 2 · structure</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
-Who is in the team, in which squad, in which role — and the five things the organisation can do about it: <strong>create the roles</strong> the organisation uses, <strong>declare a role</strong>, <strong>record a departure</strong> (with the date), <strong>undo a mistake</strong> (a link that never was), and <strong>compose</strong> squads into this team. Nothing is ever deleted; every correction keeps who did it and when.</div>
+Who is in the team, in which squad, in which role — and the five things <strong>an administrator or a team manager</strong> (a role granted "manage team structure") can do about it: <strong>create the roles</strong> the organisation uses, <strong>declare a role</strong>, <strong>record a departure</strong> (with the date), <strong>undo a mistake</strong> (a link that never was), and <strong>compose</strong> squads into this team. Nothing is ever deleted; every correction keeps who did it and when.</div>
 
 <div class="legenda">
   <span><span class="marca obs"><span class="am"></span>observed</span> the source shows it; role not declared</span>
@@ -583,7 +584,13 @@ Who is in the team, in which squad, in which role — and the five things the or
       <li><strong>What "committed" means.</strong> <em>Decided 7 Sep:</em> opened in the period; "delivered" is done in the period. No iteration needed.</li>
       <li><strong>Projects on the dashboard.</strong> <em>Decided 7 Sep:</em> only declared links are projects; work outside any declared project raises an <strong>alert</strong> (who, where, how much) — never a project row.</li>
       <li><strong>Month and year grain.</strong> Same items, coarser axis. Monte Carlo stays weekly (its samples are weeks); month/year only re-bin burn and committed × delivered.</li>
-      <li><strong>Thresholds of "Problems now".</strong> The base declares one today: 90 days open (<kbd>profile.thresholds.stale_open_work</kbd>). "30 days" for issues and "7 days" for reviews do not exist yet — either they are declared in a YAML with the decision they support, or those two cards are not built (principle IV).</li>
+      <li><strong>Thresholds of "Problems now".</strong> <em>Decided 7 Sep:</em> 30 days for issues and 7 days for reviews are confirmed and get their YAML with the decision they support; tasks use the 90 days the base already declares.</li>
+      <li><strong>Windows.</strong> <em>Decided 7 Sep:</em> defaults are fixed — 56 days for the measures; 8 weeks · 12 months · all years per grain for the charts — and the person can choose another period; the title always names the window shown.</li>
+      <li><strong>Departure without a date</strong> is refused; <strong>"Declare all roles"</strong> stays. <em>Decided 7 Sep.</em></li>
+      <li><strong>Profile on the dashboard.</strong> <em>Decided 7 Sep:</em> up to four skills, floor of 15 described tasks, and a link to the person's full profile.</li>
+      <li><strong>The composed team.</strong> <em>Decided 7 Sep:</em> the organisation declares "Conecta Fapes" and composes the squads into it; the derived team keeps its own rule alongside.</li>
+      <li><strong>Who sees and who acts.</strong> <em>Decided 7 Sep:</em> names, tasks and profiles for administrators, scope holders and the team's own members; structure actions for administrators and for a team-manager role granted "manage team structure".</li>
+      <li><strong>Work outside a declared project</strong> = open issues and change requests in repositories that belong to no board of a declared project, plus boards linked to no project. <em>Decided 7 Sep.</em></li>
       <li><strong>Roles here and at <kbd>/roles</kbd>.</strong> The prototype creates roles from the team's structure screen — the same command, the same organisation scope. Does <kbd>/roles</kbd> stay as the organisation-wide view (grants of visibility live there), or does it fold into this screen?</li>
     </ol>
   </div>
