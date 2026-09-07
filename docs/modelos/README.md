@@ -22,7 +22,12 @@ repositório — schema, migração, YAML da base, spec, issue — e abre dizend
 
 | Documento | Derivado de | Data |
 |---|---|---|
-| _(vazio — o primeiro é o da feature 060)_ | | |
+| [`classes/eo-estrutura-organizacional.md`](classes/eo-estrutura-organizacional.md) | `lib/the_band/ontology/seon/eo/schemas/*.ex`, as treze migrações da EO, `organizational_structure.yaml`, `github_team_membership_evidence.yaml` | 2026-09-07 |
+| [`estados/vinculo-de-equipe.md`](estados/vinculo-de-equipe.md) | `eo/commands.ex`, `eo/queries.ex`, `schemas/team_membership.ex`, migrações `20260814140000`, `20260901230000`, `20260906230000`, ADR 0008 e os testes de vínculo | 2026-09-07 |
+| [`dsm/060-tela-da-equipe.md`](dsm/060-tela-da-equipe.md) | `specs/060-tela-da-equipe/{spec,plan,tasks,data-model}.md` e os módulos que cada história toca | 2026-09-07 |
+
+`banco/` ainda está vazia. Os índices parciais e os `CHECK` da EO estão na tabela *Invariantes*
+do diagrama de classes; o `erDiagram` do contexto EO é a próxima entrega.
 
 ## Como ler uma DSM
 
