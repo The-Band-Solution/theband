@@ -52,7 +52,15 @@ defmodule TheBandWeb.ProvenienciaNaPaginaDaEquipeTest do
     # decide `collected_at`, e a página mostra o que está gravado.
     gravada = TheBand.Repo.get!(TheBand.Ontology.SEON.EO.Schemas.Team, ctx.team.id)
     assert html =~ "collected at"
-    assert html =~ to_string(gravada.collected_at)
+
+    trecho = html |> String.split("collected at") |> Enum.at(1, "") |> String.slice(0, 160)
+
+    # HEEx renderiza DateTime em ISO 8601 (`2026-09-04T04:00:50Z`), e não como `to_string/1`.
+    assert html =~ DateTime.to_iso8601(gravada.collected_at), """
+    O registro tem collected_at=#{gravada.collected_at}; a página mostra, depois do rótulo:
+    #{inspect(trecho)}
+    """
+
     assert html =~ "github", "a origem é nomeada, e não só o identificador"
   end
 end
