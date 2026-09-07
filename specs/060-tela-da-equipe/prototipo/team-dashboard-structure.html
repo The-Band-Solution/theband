@@ -117,9 +117,10 @@ a.squad .ir{font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep);m
 </div>
 <p class="sub">One team, two screens. <strong>Dashboard</strong> answers how the team is doing; <strong>Structure</strong> answers who is in it, in which squad, in which role, and lets the organisation correct what the source got wrong. <span class="ex-mark">example data</span> marks what was invented for this prototype; the counts come from the real collection of 6 Sep.</p>
 
-<nav class="abas"><a class="aba ativa" href="#dashboard">Dashboard</a><a class="aba" href="#structure">Structure</a></nav>
+<nav class="abas" id="abas"><a class="aba ativa" href="#dashboard" data-tela="dashboard">Dashboard</a><a class="aba" href="#structure" data-tela="structure">Structure</a><a class="aba" href="#both" data-tela="both" style="margin-left:auto;font-weight:400">show both</a></nav>
 
 <!-- ═══════════════════════════════ SCREEN 1 ═══════════════════════════════ -->
+<div id="tela-dashboard">
 <span class="tela" id="dashboard">screen 1 · dashboard</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
@@ -312,7 +313,9 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
   <p><strong>SQUAD PINK</strong> has one <em>declared</em> role and four observed members. Nothing wrong yet — but if the organisation ends the four observed links, every squad measure becomes one person's measure with another label.</p></div>
 </section>
 
+</div>
 <!-- ═══════════════════════════════ SCREEN 2 ═══════════════════════════════ -->
+<div id="tela-structure">
 <span class="tela" id="structure">screen 2 · structure</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
@@ -475,8 +478,9 @@ Who is in the team, in which squad, in which role — and the five things the or
   </table></div>
 </section>
 
+</div>
 <section class="sec">
-  <div class="sec-cab"><h2>Open questions for the maintainer</h2><span class="rot">decide before the code</span></div>
+  <div class="sec-cab"><h2>Decisions and open questions</h2><span class="rot">decide before the code</span></div>
   <div class="cartao">
     <ol style="margin:0;padding-left:1.2rem;font-size:.92rem">
       <li><strong>Dashboard and Structure as two tabs of <kbd>/teams/:id</kbd>.</strong> <em>Decided 7 Sep:</em> tabs; the URL keeps the tab (<kbd>?tab=structure</kbd>) so a link lands where it points.</li>
@@ -491,3 +495,19 @@ Who is in the team, in which squad, in which role — and the five things the or
   </div>
 </section>
 </div>
+<script>
+(function(){
+  var abas=document.querySelectorAll('#abas .aba');
+  var telas={dashboard:document.getElementById('tela-dashboard'),structure:document.getElementById('tela-structure')};
+  function mostrar(qual){
+    Object.keys(telas).forEach(function(k){telas[k].hidden=(qual!=='both'&&k!==qual);});
+    abas.forEach(function(a){a.classList.toggle('ativa',a.dataset.tela===qual);});
+    document.getElementById('tela-'+(qual==='both'?'dashboard':qual)).scrollIntoView({block:'start'});
+  }
+  abas.forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();history.replaceState(null,'','#'+a.dataset.tela);mostrar(a.dataset.tela);});});
+  var h=(location.hash||'#dashboard').slice(1);
+  if(!(h in telas)&&h!=='both'){h='dashboard';}
+  Object.keys(telas).forEach(function(k){telas[k].hidden=(h!=='both'&&k!==h);});
+  abas.forEach(function(a){a.classList.toggle('ativa',a.dataset.tela===h);});
+})();
+</script>
