@@ -1,6 +1,6 @@
 derivation_rule:
   id: github.team_membership_evidence
-  version: 2
+  version: 3
   provider: github
   status: proposed
   confidence: high
@@ -57,6 +57,18 @@ derivation_rule:
         a pessoa no time, o vínculo observado é encerrado (ended_at = instante da ausência);
         vínculo declarado não é tocado pela coleta, e as duas afirmações aparecem lado a lado.
 
+        VERSÃO 3 (2026-09-07). Depois de uma SAÍDA DECLARADA (ended_by_user_id preenchido) ou
+        de um EQUÍVOCO (invalidated_at) sobre o vínculo observado, a coleta NÃO recria o
+        vínculo enquanto a observação da origem for CONTÍNUA — isto é, enquanto a evidência
+        não tiver no_longer_observed_at. A origem continua listando a pessoa, a evidência
+        continua viva, e a tela mostra as duas afirmações até alguém corrigir a origem.
+
+        Uma observação NOVA depois de ausência constatada é RETORNO, e nasce vínculo
+        observado novo; os períodos coexistem, e o antigo permanece com o seu fim. É a mesma
+        regra do "quem saiu e voltou ganha vínculo novo" (ADR 0008, item 5), estendida à saída
+        declarada — antes da versão 3, a saída declarada num vínculo observado era desfeita
+        pela coleta seguinte, porque a guarda só reconhecia autor, papel e equívoco.
+
   # ---------------------------------------------------------------------------
   # O que NÃO é materializado, e por quê
   # ---------------------------------------------------------------------------
@@ -91,6 +103,12 @@ derivation_rule:
         A evidência continua existindo e aponta para o vínculo (promoted_membership_id).
         Declarar o papel é ato de quem administra, sobre o mesmo vínculo — e é o que
         transforma observado em declarado (declared_by_user_id preenchido).
+
+        Versão 3: a promoção automática NÃO acontece quando já existe, para o mesmo par
+        pessoa–equipe, uma declaração da organização que a contradiga — saída com autor ou
+        equívoco — e a observação é contínua. A declaração da organização vence a
+        observação enquanto as duas discordarem; a coleta registra que a origem ainda lista,
+        e não afirma pertencimento por cima de quem disse o contrário.
 
   gap_reporting:
     metric: memberships_pending_role

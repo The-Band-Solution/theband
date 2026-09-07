@@ -13,6 +13,7 @@ ontology:
 dependencies: [ufo]
 modules:
   - organizational_structure
+  - role_grants
 provenance:
   source_type: reference_ontology
   reference: "Tese, Seção 2.2.2.1 — EO, SPO e SysSwO (Figura 16)"
