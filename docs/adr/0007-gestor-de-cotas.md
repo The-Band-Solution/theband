@@ -384,6 +384,50 @@ Quatro provas, nenhuma de suíte verde: a medida é na origem ou no contador.
    da mesma prova: uma etapa cuja dependência não está `done` nunca é escolhida — o
    contador do mock para ela é zero, e não "zero coletado com sucesso".
 
+## Verificação 4 — medida em 2026-09-06
+
+Coleta completa da organização `leds-conectafapes` (125 repositórios) no servidor de
+desenvolvimento, com o código mergeado em #808, painel aberto e o log guardado.
+
+| o quê | medido |
+|---|---|
+| início → fim | 22:54:22 → 00:04:37 UTC — **70 min**, dos quais **43 min hibernando** (23:13 → 23:56) |
+| respostas 403 da origem | **0** |
+| recusas do gestor | 1 — REST `core` com **9 de 5 000** restantes, às 23:13, nas verificações |
+| REST usada | 4 991 na primeira janela + 2 016 na segunda ≈ **7 000 requisições** |
+| GraphQL usada | 2 138 pontos na primeira janela; **1** na retomada (a organização) |
+| etapas GraphQL (trabalho, quadros, comentários, mudanças) | 22:54 → 22:57, **3 min** |
+| arquivos de commit (REST, 500) | 22:57 → 23:02 |
+| verificações (REST) | 23:02 → 23:13 (janela fecha) e 23:56 → 00:04; **6 042 execuções gravadas** |
+| branches (GraphQL) | **23:13:21 — rodaram com a REST fechada**, antes de hibernar (parte 6) |
+| retomada às 23:56 | seis etapas puladas pelo checkpoint; **zero requisições** delas (parte 4) |
+| `verifications_collected_at` | 122 de 125 repositórios marcados ao fim |
+| dono do token | descoberto e gravado na primeira passada (parte 1) |
+
+**O que a medida confirma:** as Verificações 1 (zero 403 sob concorrência), 3 (retomada
+não refaz) e 5 (REST anda com a GraphQL fechada — aqui o inverso: a GraphQL andou com a
+REST fechada) valem no dado real, e não só no mock.
+
+**O que a medida achou e o ADR não previa:** `GET /rate_limit` **mente** para o token da
+coleta — `5000/5000, used 0` nos dois baldes durante toda a coleta. Registrado na emenda
+da parte 2 e corrigido em #809: a espera da GraphQL passa a vir do gestor.
+
+**Segundo achado fora do previsto:** na retomada, o resolvedor de DNS local falhou — 501
+`nxdomain` e alguns timeouts em oito minutos — e a etapa das verificações gravou **835
+execuções "sem jobs"** em 14 repositórios, sem marcá-los. A origem estava bem; o dado na
+tela não. Falha transitória passa a **parar a etapa** e voltar em dois minutos, sem gravar
+nada (mesmo caminho da janela); o permanente (404, recusa) continua gravando sem jobs.
+Corrigido em PR própria. Fica a observação: a retomada pediu ~325 requisições por minuto
+com concorrência 5 — dentro da cota secundária (900/min), mas talvez acima do que o
+resolvedor local sustenta; um teto de ritmo entra só se a medida seguinte repetir o quadro.
+
+**O que a medida diz sobre o orçamento:** uma coleta completa de verificações custa mais
+de uma janela REST (≈ 7 000 requisições para 6 042 execuções: uma por execução, mais uma
+por página de listagem). É o custo da primeira passada e da retomada de repositórios que a
+cota impediu de marcar em 2026-09-05; a passada incremental seguinte pede só o que mudou.
+A Verificação 1 da ADR 0006 (ganho da concorrência 5 × 1) continua **sem medida
+controlada**: esta coleta não é comparável a uma serial, porque a serial nunca completou.
+
 ## Entrega
 
 Ordem proposta, cada item com tela ou medida no fim. O Product Owner decide o que entra
