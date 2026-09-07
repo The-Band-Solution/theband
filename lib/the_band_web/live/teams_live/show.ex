@@ -1048,6 +1048,50 @@ defmodule TheBandWeb.TeamsLive.Show do
     end)
   end
 
+  # A PROVENIÊNCIA da equipe — 2026-09-06, a pedido da pessoa mantenedora ao avaliar a tela.
+  #
+  # Saiu da lista (`/teams`) e veio para aqui: origem, identificador na origem e datas de
+  # coleta são o que diz DE ONDE este registro veio e QUANDO foi visto, e isso se lê uma
+  # equipe por vez — não em três colunas iguais em cinquenta linhas. A equipe declarada não
+  # tem origem externa: tem quem a declarou, e a data. A derivada diz que a plataforma a criou.
+  attr :team, :map, required: true
+
+  defp proveniencia_da_equipe(assigns) do
+    ~H"""
+    <dl class="mb-6 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-[auto_1fr]">
+      <dt class="opacity-60">source</dt>
+      <dd>
+        <span :if={@team.source_instance == "declared"}>
+          declared by the organisation — does not exist at any source tool
+        </span>
+        <span :if={EO.derived_team?(@team)}>
+          derived by the platform — does not exist at the source tool
+        </span>
+        <span :if={@team.source_instance != "declared" and not EO.derived_team?(@team)}>
+          {@team.source_system}
+          <span class="opacity-60">{@team.source_instance}</span>
+        </span>
+      </dd>
+
+      <dt :if={@team.external_id && @team.source_instance != "declared"} class="opacity-60">
+        identifier at source
+      </dt>
+      <dd :if={@team.external_id && @team.source_instance != "declared"} class="font-mono">
+        {@team.external_id}
+      </dd>
+
+      <dt :if={@team.collected_at} class="opacity-60">collected at</dt>
+      <dd :if={@team.collected_at}>{@team.collected_at}</dd>
+
+      <dt :if={@team.last_observed_at} class="opacity-60">last observed at</dt>
+      <dd :if={@team.last_observed_at}>{@team.last_observed_at}</dd>
+
+      <dt :if={@team.no_longer_observed_at} class="opacity-60">no longer observed since</dt>
+      <dd :if={@team.no_longer_observed_at}>{@team.no_longer_observed_at}</dd>
+    </dl>
+    """
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -1068,6 +1112,8 @@ defmodule TheBandWeb.TeamsLive.Show do
           {@encontradas} {if @encontradas == 1, do: "member", else: "members"} · {@pending_role} with no organisational role assigned
         </:subtitle>
       </.header>
+
+      <.proveniencia_da_equipe team={@team} />
 
       <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
             dos membros diretos, e NENHUM total.
