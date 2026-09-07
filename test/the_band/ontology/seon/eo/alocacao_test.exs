@@ -14,6 +14,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
   """
   use TheBand.DataCase, async: false
 
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO
 
   setup do
@@ -39,8 +40,61 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
       papel: papel,
       outro_papel: outro_papel,
       equipe: equipe,
-      pessoa: pessoa
+      pessoa: pessoa,
+      # Quem declara — obrigatório desde 2026-09-07: papel declarado exige autor.
+      user: user
     }
+  end
+
+  describe "a declaração é um PAR: papel e autor (decisão de 2026-09-07)" do
+    test "papel sem quem o declarou é recusado, nomeando o campo", ctx do
+      changeset =
+        TeamMembership.changeset(%TeamMembership{}, %{
+          tenant_id: ctx.tenant.id,
+          internal_id: "sem_autor",
+          person_id: ctx.pessoa.id,
+          team_id: ctx.equipe.id,
+          organizational_role_id: ctx.papel.id
+        })
+
+      refute changeset.valid?, """
+      Um vínculo com papel e sem autor foi aceito. A tela deriva a ORIGEM do vínculo desse
+      campo: sem autor, a linha é apresentada como **observada**, que significa "a origem
+      mostra a pessoa e o papel não foi declarado". Com papel preenchido, ela sairia como
+      "observado · Desenvolvedor" — contradizendo-se na frente de quem lê.
+      """
+
+      assert changeset.errors[:declared_by_user_id], "a recusa nomeia o campo que falta"
+    end
+
+    test "a outra metade continua valendo: autor sem papel é recusado", ctx do
+      changeset =
+        TeamMembership.changeset(%TeamMembership{}, %{
+          tenant_id: ctx.tenant.id,
+          internal_id: "sem_papel",
+          person_id: ctx.pessoa.id,
+          team_id: ctx.equipe.id,
+          declared_by_user_id: ctx.user.id
+        })
+
+      refute changeset.valid?
+      assert changeset.errors[:organizational_role_id]
+    end
+
+    test "o vínculo OBSERVADO continua legítimo: sem papel E sem autor", ctx do
+      changeset =
+        TeamMembership.changeset(%TeamMembership{}, %{
+          tenant_id: ctx.tenant.id,
+          internal_id: "observado",
+          person_id: ctx.pessoa.id,
+          team_id: ctx.equipe.id
+        })
+
+      assert changeset.valid?, """
+      A coleta cria o vínculo observado sem papel e sem autor (ADR 0008) — é a origem
+      afirmando participação, e nada mais. Barrá-lo aqui apagaria 59 vínculos reais.
+      """
+    end
   end
 
   describe "alocar" do
@@ -101,6 +155,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
                  person_id: ctx.pessoa.id,
                  team_id: ctx.equipe.id,
                  organizational_role_id: ctx.papel.id,
+                 declared_by_user_id: ctx.user.id,
                  started_at: ~U[2026-08-01 00:00:00Z],
                  ended_at: ~U[2026-07-01 00:00:00Z]
                })
@@ -116,6 +171,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
           person_id: ctx.pessoa.id,
           team_id: ctx.equipe.id,
           organizational_role_id: ctx.papel.id,
+          declared_by_user_id: ctx.user.id,
           evidence_id: evidencia.id
         })
 
@@ -171,7 +227,8 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
     EO.allocate(ctx.tenant, %{
       person_id: ctx.pessoa.id,
       team_id: ctx.equipe.id,
-      organizational_role_id: papel.id
+      organizational_role_id: papel.id,
+      declared_by_user_id: ctx.user.id
     })
   end
 

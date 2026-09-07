@@ -112,12 +112,37 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
     )
   end
 
+  # A DECLARAÇÃO É UM PAR, e a regra vale nas duas direções — decisão da pessoa mantenedora
+  # em 2026-09-07.
+  #
+  # A metade que já existia: quem declara precisa dizer o papel. A metade que faltava: quem
+  # grava um papel precisa dizer **quem** o declarou. As duas são declaração incompleta, e
+  # barrar só uma era a assimetria que deixava passar `Developer` sem autor.
+  #
+  # Por que isso importa na tela: a origem do vínculo é derivada de `declared_by_user_id` —
+  # sem autor, a linha é apresentada como **observada**, que significa "a origem mostra a
+  # pessoa, e o papel não foi declarado". Um vínculo com papel e sem autor sairia como
+  # "observado · Developer", contradizendo-se na frente de quem lê.
+  #
+  # Varrido antes de mudar: 24 chamadas gravavam papel sem autor, **todas em teste**; nenhum
+  # caminho de produção, e zero linhas assim no banco de desenvolvimento (90 vínculos). Não
+  # há fato consumado a preservar — só uma porta que ninguém tinha atravessado.
+  #
+  # O vínculo OBSERVADO continua legítimo: sem papel **e** sem autor, é a coleta afirmando
+  # participação e nada mais (ADR 0008).
   defp validar_papel_da_declaracao(changeset) do
-    if get_field(changeset, :declared_by_user_id) &&
-         is_nil(get_field(changeset, :organizational_role_id)) do
-      add_error(changeset, :organizational_role_id, "a declaração exige um papel")
-    else
-      changeset
+    papel = get_field(changeset, :organizational_role_id)
+    autor = get_field(changeset, :declared_by_user_id)
+
+    cond do
+      autor && is_nil(papel) ->
+        add_error(changeset, :organizational_role_id, "a declaração exige um papel")
+
+      papel && is_nil(autor) ->
+        add_error(changeset, :declared_by_user_id, "o papel declarado exige quem o declarou")
+
+      true ->
+        changeset
     end
   end
 

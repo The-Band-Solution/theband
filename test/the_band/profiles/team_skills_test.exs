@@ -46,7 +46,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
     p
   end
 
-  defp membro(tenant, equipe, pessoa, papel) do
+  defp membro(tenant, equipe, pessoa, papel, quem) do
     agora = DateTime.utc_now(:second)
 
     {:ok, _} =
@@ -65,7 +65,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
 
     # Feature 057: a medida lê o vínculo declarado, não a evidência. Os testes
     # desta suíte medem COMPETÊNCIA, e sem o vínculo mediriam zero pessoas.
-    vinculo(tenant, equipe, pessoa, papel, desde: agora_menos(400))
+    vinculo(tenant, equipe, pessoa, papel, quem, desde: agora_menos(400))
   end
 
   defp perfil(tenant, pessoa, destaques, gerado_em) do
@@ -107,12 +107,15 @@ defmodule TheBand.Profiles.TeamSkillsTest do
   # O VÍNCULO DECLARADO — o que a medida passou a ler na feature 057. A evidência
   # de `membro/3` continua sendo gravada porque a tela a usa; o que conta para as
   # competências é isto.
-  defp vinculo(tenant, equipe, pessoa, papel, opts \\ []) do
+  # `quem` é obrigatório desde 2026-09-07: papel declarado exige quem o declarou, e o
+  # ajudante não tem o ator no escopo — ele passa a recebê-lo, como o comando exige.
+  defp vinculo(tenant, equipe, pessoa, papel, quem, opts \\ []) do
     {:ok, v} =
       EO.allocate(tenant, %{
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: quem.id,
         started_at: opts[:desde],
         ended_at: opts[:ate]
       })
@@ -123,8 +126,8 @@ defmodule TheBand.Profiles.TeamSkillsTest do
   test "SC-002: o número por competência é pessoas distintas no perfil vigente", ctx do
     ana = pessoa(ctx.tenant, "ana")
     bia = pessoa(ctx.tenant, "bia")
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, bia, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, bia, ctx.papel, ctx.admin)
 
     perfil(ctx.tenant, ana, [{"observabilidade", 14}, {"kubernetes", 9}], agora_menos(2))
     # O perfil ANTIGO da bia tinha kubernetes; o vigente não tem mais — só o vigente conta.
@@ -146,8 +149,8 @@ defmodule TheBand.Profiles.TeamSkillsTest do
   test "SC-003: membro sem perfil é nomeado, nunca zero", ctx do
     ana = pessoa(ctx.tenant, "ana")
     sem = pessoa(ctx.tenant, "zulmira")
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, sem, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, sem, ctx.papel, ctx.admin)
 
     perfil(ctx.tenant, ana, [{"observabilidade", 14}], agora_menos(1))
 
@@ -165,7 +168,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
 
   test "SC-004/FR-003: a evolução reconta com o vigente de cada mês com geração", ctx do
     ana = pessoa(ctx.tenant, "ana")
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
 
     # Duas gerações em meses diferentes; entre elas há meses SEM geração.
     perfil(ctx.tenant, ana, [{"kubernetes", 5}], agora_menos(95))
@@ -185,8 +188,8 @@ defmodule TheBand.Profiles.TeamSkillsTest do
     # zana tem MAIS tarefas que ana — se a ordenação fosse por total, zana viria primeiro.
     ana = pessoa(ctx.tenant, "ana")
     zana = pessoa(ctx.tenant, "zana")
-    membro(ctx.tenant, ctx.equipe, ana, ctx.papel)
-    membro(ctx.tenant, ctx.equipe, zana, ctx.papel)
+    membro(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin)
+    membro(ctx.tenant, ctx.equipe, zana, ctx.papel, ctx.admin)
 
     perfil(ctx.tenant, ana, [{"observabilidade", 3}], agora_menos(2))
     perfil(ctx.tenant, zana, [{"observabilidade", 30}], agora_menos(1))
@@ -206,7 +209,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
   test "SC-001: número fixo de consultas, com muitos membros", ctx do
     for i <- 1..8 do
       p = pessoa(ctx.tenant, "pessoa-#{i}")
-      membro(ctx.tenant, ctx.equipe, p, ctx.papel)
+      membro(ctx.tenant, ctx.equipe, p, ctx.papel, ctx.admin)
       perfil(ctx.tenant, p, [{"observabilidade", i}], agora_menos(i))
     end
 
@@ -230,12 +233,12 @@ defmodule TheBand.Profiles.TeamSkillsTest do
       bia = pessoa(ctx.tenant, "bia")
 
       # Ana pertenceu de -300 a -100 dias. Bia continua.
-      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel,
+      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin,
         desde: agora_menos(300),
         ate: agora_menos(100)
       )
 
-      vinculo(ctx.tenant, ctx.equipe, bia, ctx.papel, desde: agora_menos(300))
+      vinculo(ctx.tenant, ctx.equipe, bia, ctx.papel, ctx.admin, desde: agora_menos(300))
 
       perfil(ctx.tenant, ana, [{"kubernetes", 9}], agora_menos(150))
       perfil(ctx.tenant, bia, [{"observabilidade", 8}], agora_menos(2))
@@ -256,7 +259,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
 
     test "FR-003: vínculo invalidado não conta em data alguma", ctx do
       ana = pessoa(ctx.tenant, "ana")
-      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel, desde: agora_menos(300))
+      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin, desde: agora_menos(300))
       perfil(ctx.tenant, ana, [{"kubernetes", 9}], agora_menos(150))
 
       {:ok, _} =
@@ -285,6 +288,7 @@ defmodule TheBand.Profiles.TeamSkillsTest do
           person_id: ana.id,
           team_id: ctx.equipe.id,
           organizational_role_id: ctx.papel.id,
+          declared_by_user_id: ctx.admin.id,
           started_at: nil
         })
 
@@ -298,8 +302,8 @@ defmodule TheBand.Profiles.TeamSkillsTest do
     test "SC-002: registrar uma saída HOJE não muda nenhum ponto passado", ctx do
       ana = pessoa(ctx.tenant, "ana")
       bia = pessoa(ctx.tenant, "bia")
-      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel, desde: agora_menos(400))
-      vinculo(ctx.tenant, ctx.equipe, bia, ctx.papel, desde: agora_menos(400))
+      vinculo(ctx.tenant, ctx.equipe, ana, ctx.papel, ctx.admin, desde: agora_menos(400))
+      vinculo(ctx.tenant, ctx.equipe, bia, ctx.papel, ctx.admin, desde: agora_menos(400))
 
       perfil(ctx.tenant, ana, [{"kubernetes", 9}], agora_menos(200))
       perfil(ctx.tenant, bia, [{"observabilidade", 8}], agora_menos(200))

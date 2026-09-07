@@ -170,7 +170,8 @@ defmodule TheBand.Ontology.SEON.EO.DiscordanciaTest do
         EO.allocate(c.tenant, %{
           person_id: outra_pessoa.id,
           team_id: c.equipe.id,
-          organizational_role_id: c.papel.id
+          organizational_role_id: c.papel.id,
+          declared_by_user_id: c.user.id
         })
 
       # A origem nunca mostrou esta pessoa, e ausência de evidência não é
