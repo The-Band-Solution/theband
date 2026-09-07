@@ -14,8 +14,8 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
   """
   use TheBand.DataCase, async: false
 
-  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
 
   setup do
     tenant = tenant_fixture()

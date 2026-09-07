@@ -199,13 +199,23 @@ defmodule TheBand.Ontology.SEON.EO.StructureGrants do
       on: alvo.id == type(^team_id, :binary_id),
       where:
         m.tenant_id == type(^tenant_id, :binary_id) and
-          m.person_id == type(^person_id, :binary_id) and
-          (not is_nil(m.ended_at) or not is_nil(m.invalidated_at)) and
-          ((g.scope == "team" and m.team_id == type(^team_id, :binary_id)) or
-             (g.scope == "organization" and
-                alvo.organization_id == minha_equipe.organization_id))
+          m.person_id == type(^person_id, :binary_id)
     )
+    |> where([m], not is_nil(m.ended_at) or not is_nil(m.invalidated_at))
+    |> onde_a_concessao_alcancaria(team_id)
     |> Repo.exists?()
+  end
+
+  # O alcance de cada escopo, na forma de condição — extraído porque somar os dois ramos à
+  # consulta acima passava do limite de complexidade que o credo aceita, e porque a regra é
+  # uma só: `team` olha a própria equipe, `organization` olha a organização dela.
+  defp onde_a_concessao_alcancaria(query, team_id) do
+    where(
+      query,
+      [m, g, minha_equipe, alvo],
+      (g.scope == "team" and m.team_id == type(^team_id, :binary_id)) or
+        (g.scope == "organization" and alvo.organization_id == minha_equipe.organization_id)
+    )
   end
 
   # Vigente são DUAS condições — sem fim registrado E sem invalidação. Só o lado de quem
