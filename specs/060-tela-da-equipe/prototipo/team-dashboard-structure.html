@@ -95,6 +95,16 @@ svg.g{width:100%;height:auto;display:block;overflow:visible}
 .leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
 .leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
 .leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
+.squads{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(15.5rem,1fr));margin-top:1rem}
+a.squad{display:block;text-decoration:none;color:inherit;background:var(--papel-2);border:1.5px solid var(--linha);border-left-width:4px;border-radius:.5rem;padding:.9rem 1rem;transition:border-color .15s}
+a.squad:hover{border-color:var(--verdete);background:var(--verdete-soft)}
+a.squad .cab{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+a.squad h3{color:var(--verdete-deep)}
+a.squad .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-top:.5rem}
+a.squad .nums b{display:block;font-family:var(--mono);font-size:1.05rem;font-weight:500;font-variant-numeric:tabular-nums}
+a.squad .nums span{font-family:var(--grot);font-size:.68rem;color:var(--tinta-2)}
+a.squad svg{margin-top:.5rem}
+a.squad .ir{font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep);margin-top:.4rem;display:block}
 </style>
 
 <div class="faixa">
@@ -113,7 +123,39 @@ svg.g{width:100%;height:auto;display:block;overflow:visible}
 <span class="tela" id="dashboard">screen 1 · dashboard</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
-The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). Below the tables, the team's <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
+The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). First, one card per squad — a summary and a door to the squad's own page. Then the tables, and the team's <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Squads at a glance</h2><span class="rot">one card per squad · click a card or its chart to open the squad</span></div>
+  <p class="sub">The composed team shows each squad's summary side by side — the same measures, <strong>never summed</strong>. Each card is a door: clicking it (or the small chart) opens that squad's own page, with the week-by-week detail, the burn, the forecast and what each person is on (057, screen 2).</p>
+  <div class="squads">
+    <a class="squad" href="#" style="border-left-color:var(--s1)">
+      <div class="cab"><h3>SQUAD BLUE</h3><span class="rot">6 members</span></div>
+      <div class="nums"><div><b>22</b><span>open items</span></div><div><b>0.8 h</b><span>median wait</span></div><div><b>91%</b><span>pipeline</span></div></div>
+      <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD BLUE opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,30 34,26 64,22 94,19 124,15 154,11 184,8 214,5"/><polyline fill="none" stroke="var(--s1)" stroke-width="2" points="4,38 34,35 64,31 94,27 124,25 154,21 184,17 214,14"/><circle cx="214" cy="14" r="2.5" fill="var(--s1)"/></svg>
+      <span class="ir">open SQUAD BLUE →</span>
+    </a>
+    <a class="squad" href="#" style="border-left-color:var(--s2)">
+      <div class="cab"><h3>SQUAD GREEN</h3><span class="rot">8 members</span></div>
+      <div class="nums"><div><b>37</b><span>open items</span></div><div><b>0.4 h</b><span>median wait</span></div><div><b>82%</b><span>pipeline</span></div></div>
+      <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD GREEN opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,28 34,24 64,18 94,14 124,12 154,9 184,6 214,4"/><polyline fill="none" stroke="var(--s2)" stroke-width="2" points="4,40 34,36 64,33 94,30 124,26 154,22 184,20 214,17"/><circle cx="214" cy="17" r="2.5" fill="var(--s2)"/></svg>
+      <span class="ir">open SQUAD GREEN →</span>
+    </a>
+    <a class="squad" href="#" style="border-left-color:var(--s3)">
+      <div class="cab"><h3>SQUAD PINK</h3><span class="rot">5 members</span></div>
+      <div class="nums"><div><b>20</b><span>open items</span></div><div><b>1.9 h</b><span>median wait</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">no project</b><span>pipeline</span></div></div>
+      <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD PINK opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,32 34,30 64,26 94,24 124,20 154,18 184,14 214,12"/><polyline fill="none" stroke="var(--s3)" stroke-width="2" points="4,40 34,39 64,37 94,35 124,33 154,30 184,28 214,26"/><circle cx="214" cy="26" r="2.5" fill="var(--s3)"/></svg>
+      <span class="ir">open SQUAD PINK →</span>
+    </a>
+    <a class="squad" href="#" style="border-left-color:var(--linha)">
+      <div class="cab"><h3>Direct members</h3><span class="rot">2 members</span></div>
+      <div class="nums"><div><b>0</b><span>open items</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">no value</b><span>median wait</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">—</b><span>pipeline</span></div></div>
+      <div class="vazio" style="margin-top:.5rem;padding:.5rem .7rem;font-size:.78rem">No work in the period — absence, not zero.</div>
+      <span class="ir">see the two people →</span>
+    </a>
+  </div>
+  <div class="leg-g"><span><i style="background:var(--tinta-2)"></i>opened, cumulative</span><span><i style="background:var(--verdete)"></i>closed, cumulative (in the squad's colour)</span><span><span class="ex-mark">example data</span> for the curves</span></div>
+</section>
 
 <section class="sec">
   <div class="sec-cab"><h2>Time to first review</h2><span class="rot">last 56 days · code changes and process ceremony, apart</span></div>

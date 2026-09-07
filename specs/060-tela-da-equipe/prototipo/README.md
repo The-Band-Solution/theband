@@ -26,6 +26,9 @@ vale. Mesmo vocabulário visual do protótipo da 057 (`specs/057-tela-da-equipe-
 7. **Prometido × Entregue**: prometido = itens **abertos** no período; entregue = itens levados a
    **done** no período. Sem depender de iteração.
 
+8. **Equipe composta mostra o resumo de cada subequipe** — um cartão por squad com as medidas
+   e um gráfico pequeno; clicar no cartão ou no gráfico abre a página da subequipe (057, screen 2).
+
 ## Premissas que a spec carrega até serem contestadas
 
 - Mês e ano só mudam a granulação do eixo do burn e do Prometido × Entregue; o Monte Carlo
