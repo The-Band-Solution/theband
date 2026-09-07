@@ -54,7 +54,7 @@ tornou o único conjunto de membros.
 | *Who worked on these projects* | 058 US2 | **Dashboard** | mantém |
 | *Waiting for first review* — com composição e cerimônia à parte | 058 US1, #805 | **Dashboard**, por subequipe quando composta | mantém |
 | *Pipeline success rate* | 058 US3 | **Dashboard**, por subequipe quando composta | mantém |
-| *Process warnings* | 040 | **Dashboard** | mantém |
+| *Process warnings* | regra `process_antipatterns.yaml` | **Dashboard** | mantém |
 | *Skills* — cobertura, evolução, quem demonstra | 029 | **Dashboard** | mantém |
 | — | — | **Estrutura**: seção *Papéis* — criar, renomear, ocultar; catálogo SRO | **novo** na tela (comando já existe em `/roles`) |
 | — | — | **Estrutura**: *saída com data*, *equívoco com razão* por linha | **novo** na tela (comandos existem; ver Impacto pelo que falta neles) |
@@ -643,9 +643,9 @@ previsão aparece.
 - **FR-045**: Subequipe sem trabalho no período MUST ter a ausência dita em texto,
   nunca zero (057 FR-012).
 - **FR-046**: As seções da 058 — espera por revisão com cerimônia à parte, taxa do
-  pipeline, quem trabalhou nos projetos — e as da 029 e 040 — habilidades, avisos de
-  processo — MUST permanecer no Dashboard como estão, com os requisitos das specs de
-  origem. Esta spec **não** os altera.
+  pipeline, quem trabalhou nos projetos —, as habilidades da 029 e os avisos de
+  processo da regra `process_antipatterns.yaml` MUST permanecer no Dashboard como
+  estão, com os requisitos das specs e regras de origem. Esta spec **não** os altera.
 - **FR-047**: Em equipe **simples**, o Dashboard MUST continuar a mostrar o detalhe
   da 057 (US3 a US6) — as seções por pessoa, o burn e a previsão — e as seções da
   058. Esta spec não altera a equipe simples além das abas.
