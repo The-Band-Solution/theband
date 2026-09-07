@@ -40,7 +40,8 @@ defmodule TheBand.Repo.Migrations.VinculoObservado do
     create unique_index(
              :eo_team_memberships,
              [:tenant_id, :person_id, :team_id],
-             where: "ended_at IS NULL AND invalidated_at IS NULL AND organizational_role_id IS NULL",
+             where:
+               "ended_at IS NULL AND invalidated_at IS NULL AND organizational_role_id IS NULL",
              name: :eo_team_memberships_observado_vigente_index
            )
 
