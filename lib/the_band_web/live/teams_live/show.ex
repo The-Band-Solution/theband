@@ -1144,6 +1144,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   # como série.
   attr :detalhe, :map, required: true
   attr :janela, :map, required: true
+  attr :team_id, :string, required: true
 
   defp burn_da_equipe(assigns) do
     assigns =
@@ -1153,9 +1154,12 @@ defmodule TheBandWeb.TeamsLive.Show do
     <section class="card bg-base-200 p-4">
       <%!-- A JANELA NO TÍTULO, sempre — FR-078. Foi a condição para o seletor existir: a
             objeção da 057 era o denominador móvel, e a resposta é dizer o denominador. --%>
-      <h2 class="text-sm font-semibold">
-        Burn-up and burn-down <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
-      </h2>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-semibold">
+          Burn-up and burn-down <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
+        </h2>
+        <.seletor_de_granulacao granulacao={@janela.granulacao} team_id={@team_id} />
+      </div>
       <p class="mt-1 text-xs opacity-70">
         cumulative opened and closed. The hatched band between them is the work
         still open — it is derived from the two series, not a third line.
@@ -1405,15 +1409,19 @@ defmodule TheBandWeb.TeamsLive.Show do
   # quem já entendeu errado.
   attr :detalhe, :map, required: true
   attr :janela, :map, required: true
+  attr :team_id, :string, required: true
 
   defp prometido_e_entregue(assigns) do
     assigns = assign(assigns, :barras, barras_do_prometido(assigns.detalhe.serie))
 
     ~H"""
     <section class="card bg-base-200 p-4">
-      <h2 class="text-sm font-semibold">
-        Promised × Delivered <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
-      </h2>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-semibold">
+          Promised × Delivered <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
+        </h2>
+        <.seletor_de_granulacao granulacao={@janela.granulacao} team_id={@team_id} />
+      </div>
 
       <%!-- A DEFINIÇÃO E A RESSALVA, junto do título e antes do gráfico (FR-063). --%>
       <p class="mt-1 text-xs">
@@ -1585,166 +1593,165 @@ defmodule TheBandWeb.TeamsLive.Show do
           actually had. No estimates.
         </p>
 
-        <%!-- ═══ O GRÁFICO DA PREVISÃO — pedido da pessoa mantenedora em 2026-09-08 ═══
+        <%!-- ═══ O HISTOGRAMA DA PREVISÃO ═══
+              Pedido da pessoa mantenedora em 2026-09-08, depois de eu ter desenhado faixas
+              de confiança e ela ter perguntado se *Delivery forecast* era o Monte Carlo.
 
-              ## Por que FAIXAS, e não uma linha ou uma barra
+              É. E o histograma é o gráfico PRÓPRIO de uma simulação de Monte Carlo: o que ela
+              produz são dez mil rodadas, e o histograma é a única forma de as mostrar sem
+              escolher por quem lê.
 
-              Uma barra até a semana N desenha um ponto, e um ponto é lido como data. O que a
-              simulação produz não é um ponto: é uma distribuição. A faixa mostra a distância
-              entre o 50% e o 95% — e essa distância **é** a informação. Faixa curta significa
-              ritmo constante; faixa longa significa que a mesma equipe às vezes fecha dez e às
-              vezes zero, e nenhum número único diria isso.
+              ## Por que a faixa não bastava
 
-              ## As duas hipóteses no MESMO eixo
+              Faixa e percentis são três cortes da distribuição, e três cortes não recuperam a
+              forma. Duas simulações podem ter o **mesmo** 50% e 85% com distribuições muito
+              diferentes: uma concentrada em duas semanas, outra espalhada por oito com dois
+              picos. A primeira é ritmo previsível; a segunda é uma equipe que alterna semanas
+              cheias e vazias — e a decisão de quem lê muda.
 
-              Congelada e viva medem semanas na mesma régua, e sobrepô-las é o que torna
-              visível o custo do trabalho novo: a distância horizontal entre as duas faixas é
-              quanto o fluxo de entrada empurra a conclusão para frente. Dois gráficos lado a
-              lado com escalas próprias esconderiam exactamente isso.
+              Os percentis continuam desenhados **sobre** o histograma, como linhas verticais:
+              a forma responde "com que regularidade", e o percentil responde "até quando".
 
-              ## A parte que NÃO concluiu tem lugar no desenho
+              ## Dois histogramas, e não um sobreposto
 
-              As rodadas que não zeraram dentro do horizonte aparecem como a região hachurada
-              à direita, e não como ausência. Omiti-las faria uma previsão em que 74% das
-              rodadas nunca terminaram parecer igual a uma em que todas terminaram. --%>
-        <div class="rounded border border-base-300 p-3">
-          <svg
-            viewBox="0 0 560 118"
-            class="w-full"
-            role="img"
-            aria-label={rotulo_da_previsao(p)}
-          >
-            <defs>
-              <pattern
-                id="previsao-hachura"
-                width="6"
-                height="6"
-                patternTransform="rotate(135)"
-                patternUnits="userSpaceOnUse"
+              Duas distribuições no mesmo par de eixos com barras translúcidas produzem uma
+              terceira forma que não existe. Empilhados, cada um com o seu eixo Y e o **mesmo**
+              eixo X, a comparação continua possível — é a distância horizontal entre os picos
+              que mostra o custo do trabalho novo. --%>
+        <div class="mt-3 space-y-3">
+          <div :for={h <- histogramas_da_previsao(p)} class="rounded border border-base-300 p-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <span class="text-xs font-semibold">{h.rotulo}</span>
+              <span class="text-xs opacity-70">{h.resumo}</span>
+            </div>
+
+            <svg
+              viewBox="0 0 560 96"
+              class="mt-1 w-full"
+              role="img"
+              aria-label={h.descricao}
+            >
+              <defs>
+                <pattern
+                  id={"previsao-hachura-#{h.chave}"}
+                  width="6"
+                  height="6"
+                  patternTransform="rotate(135)"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <line
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="6"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    opacity="0.3"
+                  />
+                </pattern>
+              </defs>
+
+              <%!-- AS BARRAS: uma por semana do horizonte, incluindo as de zero. Omitir a
+                    semana vazia encostaria dois picos distantes um no outro, e a leitura
+                    seria de continuidade onde houve pausa. --%>
+              <rect
+                :for={b <- h.barras}
+                x={b.x}
+                y={b.y}
+                width={h.largura_da_barra}
+                height={b.altura}
+                fill="currentColor"
+                class={h.classe}
+                opacity="0.55"
+              />
+
+              <%!-- A COLUNA DO QUE NÃO CONCLUIU, hachurada e separada por um vão. Não é a
+                    semana seguinte à última: é "nunca, dentro deste horizonte", e desenhá-la
+                    encostada nas outras a faria ser lida como mais uma semana. --%>
+              <rect
+                :if={h.nunca.altura > 0}
+                x={h.nunca.x}
+                y={h.nunca.y}
+                width={h.largura_da_barra}
+                height={h.nunca.altura}
+                fill={"url(#previsao-hachura-#{h.chave})"}
+                stroke="currentColor"
+                stroke-width="0.8"
+                opacity="0.7"
+              />
+              <text
+                :if={h.nunca.altura > 0}
+                x={h.nunca.x + h.largura_da_barra / 2}
+                y="82"
+                font-size="8"
+                fill="currentColor"
+                text-anchor="middle"
+                opacity="0.7"
               >
-                <line
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="6"
-                  stroke="currentColor"
-                  stroke-width="1.4"
-                  class="text-base-content"
-                  opacity="0.22"
-                />
-              </pattern>
-            </defs>
-
-            <g :for={faixa <- faixas_da_previsao(p)}>
-              <text x="0" y={faixa.y - 8} font-size="9" fill="currentColor" opacity="0.7">
-                {faixa.rotulo}
+                never
               </text>
 
-              <%!-- A régua de fundo é o horizonte inteiro: sem ela, uma faixa que ocupa meio
-                    desenho parece meio horizonte tanto num de 12 semanas quanto num de 52. --%>
+              <%!-- OS PERCENTIS SOBRE A FORMA. A forma responde "com que regularidade"; o
+                    percentil responde "até quando". Nenhum dos dois substitui o outro. --%>
+              <g :for={marca <- h.marcas}>
+                <line
+                  x1={marca.x}
+                  y1="6"
+                  x2={marca.x}
+                  y2="70"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-dasharray={marca.tracejado}
+                  class={h.classe}
+                />
+                <text
+                  x={marca.x}
+                  y="4"
+                  font-size="8"
+                  fill="currentColor"
+                  text-anchor="middle"
+                  class={h.classe}
+                >
+                  {marca.rotulo}
+                </text>
+              </g>
+
               <line
                 x1="0"
-                y1={faixa.y}
-                x2="500"
-                y2={faixa.y}
+                y1="70"
+                x2="560"
+                y2="70"
                 stroke="currentColor"
                 stroke-width="1"
-                opacity="0.18"
+                opacity="0.25"
               />
-
-              <%!-- O que não concluiu: hachurado, à direita, com a largura da proporção. --%>
-              <rect
-                :if={faixa.nao_concluiu_x < 500}
-                x={faixa.nao_concluiu_x}
-                y={faixa.y - 6}
-                width={500 - faixa.nao_concluiu_x}
-                height="12"
-                fill="url(#previsao-hachura)"
-              />
-
-              <%!-- 50% → 95%: a faixa. 85% marcado dentro dela. --%>
-              <rect
-                :if={faixa.tem_faixa?}
-                x={faixa.x50}
-                y={faixa.y - 5}
-                width={max(faixa.x95 - faixa.x50, 2)}
-                height="10"
-                rx="2"
-                fill="currentColor"
-                class={faixa.classe}
-                opacity="0.28"
-              />
-              <line
-                :if={faixa.x85}
-                x1={faixa.x85}
-                y1={faixa.y - 7}
-                x2={faixa.x85}
-                y2={faixa.y + 7}
-                stroke="currentColor"
-                stroke-width="2"
-                class={faixa.classe}
-              />
-              <circle
-                :if={faixa.tem_faixa?}
-                cx={faixa.x50}
-                cy={faixa.y}
-                r="3.5"
-                fill="currentColor"
-                class={faixa.classe}
-              />
+              <g font-size="8" fill="currentColor" opacity="0.6">
+                <text :for={t <- h.eixo} x={t.x} y="82" text-anchor="middle">{t.rotulo}</text>
+              </g>
 
               <text
-                :if={faixa.tem_faixa?}
-                x="508"
-                y={faixa.y + 3}
+                :if={h.barras == []}
+                x="4"
+                y="40"
                 font-size="9"
                 fill="currentColor"
                 opacity="0.75"
               >
-                {faixa.texto}
+                no run reached zero inside the horizon — the whole distribution is "never"
               </text>
-              <text
-                :if={not faixa.tem_faixa?}
-                x="0"
-                y={faixa.y + 3}
-                font-size="9"
-                fill="currentColor"
-                opacity="0.75"
-              >
-                no run reached zero inside the horizon
-              </text>
-            </g>
+            </svg>
+          </div>
 
-            <%!-- O eixo do tempo, em semanas: sem ele a faixa não tem unidade. --%>
-            <line
-              x1="0"
-              y1="100"
-              x2="500"
-              y2="100"
-              stroke="currentColor"
-              stroke-width="1"
-              opacity="0.25"
-            />
-            <g font-size="9" fill="currentColor" opacity="0.6">
-              <text :for={t <- eixo_da_previsao(p)} x={t.x} y="113" text-anchor="middle">
-                {t.rotulo}
-              </text>
-            </g>
-          </svg>
-
-          <div class="mt-1 flex flex-wrap gap-4 text-xs">
+          <div class="flex flex-wrap gap-4 text-xs">
             <span class="flex items-center gap-1.5">
-              <span class="inline-block size-2.5 rounded-full bg-primary"></span> 50%
+              <span class="inline-block h-2.5 w-3 bg-primary/60"></span> runs finishing in that week
             </span>
             <span class="flex items-center gap-1.5">
-              <span class="inline-block h-3 w-0.5 bg-primary"></span> 85%
-            </span>
-            <span class="flex items-center gap-1.5">
-              <span class="inline-block h-2.5 w-4 rounded bg-primary/30"></span> 50% → 95%
+              <span class="inline-block h-3 w-0.5 bg-primary"></span> 50% and 85% marks
             </span>
             <span class="flex items-center gap-1.5">
               <span
-                class="inline-block size-2.5 border border-current opacity-50"
+                class="inline-block size-2.5 border border-current opacity-60"
                 style="background: repeating-linear-gradient(135deg, transparent 0 2px, currentColor 2px 3px);"
               ></span>
               runs that never reached zero
@@ -2030,72 +2037,151 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp se_couber(total) when total <= 14, do: 0..(total - 1) |> Enum.to_list()
   defp se_couber(total), do: Enum.uniq([0, div(total - 1, 2), total - 1])
 
-  # A GEOMETRIA DA PREVISÃO — uma faixa por hipótese, as duas na mesma régua de semanas.
+  # O SELETOR DE GRANULAÇÃO — FR-061, e vive no cabeçalho de CADA gráfico de fluxo.
   #
-  # A largura útil é 500 de 560: os 60 da direita são onde o rótulo de cada faixa cabe. E o
-  # eixo é o HORIZONTE inteiro, não o maior percentil: sem essa régua fixa, uma faixa que
-  # ocupa meio desenho pareceria meio horizonte tanto num de 12 semanas quanto num de 52.
-  defp faixas_da_previsao(p) do
+  # Estava solto no topo do painel, e a pessoa mantenedora perguntou em 2026-09-08 por um
+  # filtro no *Promised × Delivered* — que já era governado por ele. O controle estava longe
+  # do gráfico, e um controle longe do que ele muda é um controle que ninguém encontra.
+  #
+  # Dois lugares para mudar o MESMO estado, e não dois estados: os dois fazem `patch` para o
+  # mesmo parâmetro do endereço, e os dois gráficos usam a mesma janela — que é o que a FR-079
+  # exige de qualquer comparação na mesma tela.
+  attr :granulacao, :atom, required: true
+  attr :team_id, :string, required: true
+
+  defp seletor_de_granulacao(assigns) do
+    ~H"""
+    <div role="group" aria-label="Flow granularity" class="join">
+      <.link
+        :for={{valor, rotulo} <- [{"semana", "week"}, {"mes", "month"}, {"ano", "year"}]}
+        patch={~p"/teams/#{@team_id}?granulacao=#{valor}"}
+        aria-current={if to_string(@granulacao) == valor, do: "true"}
+        class={["btn btn-xs join-item", to_string(@granulacao) == valor && "btn-active"]}
+      >
+        {rotulo}
+      </.link>
+    </div>
+    """
+  end
+
+  # A GEOMETRIA DO HISTOGRAMA — uma barra por semana do horizonte, duas hipóteses empilhadas.
+  #
+  # O eixo X vai de 1 ao horizonte, mais uma coluna separada para o "never". A largura da
+  # barra sai da divisão: horizonte de 12 dá barras largas, de 52 dá barras finas, e nos dois
+  # casos o desenho ocupa a mesma largura.
+  #
+  # O eixo Y é o pico DAQUELA hipótese, e não o das duas. Compartilhar o Y faria a hipótese de
+  # distribuição mais espalhada aparecer rasteira — e o que se compara entre as duas é **onde**
+  # a massa está, no eixo X, que é compartilhado.
+  defp histogramas_da_previsao(p) do
     horizonte = max(p.horizonte_semanas, 1)
-    x = fn semanas -> Float.round(semanas / horizonte * 500, 1) end
+
+    # A coluna do "never" fica depois de um vão de uma barra: encostada, seria lida como mais
+    # uma semana do horizonte.
+    colunas = horizonte + 2
+    largura = 560 / colunas
+    x_de = fn semana -> Float.round((semana - 1) * largura, 2) end
 
     [
-      {p.congelado, "if nothing new opened", "text-primary", 34},
-      {p.vivo, "if work keeps arriving as it has", "text-warning", 76}
+      {p.congelado, "if nothing new opened", "text-primary", "congelado"},
+      {p.vivo, "if work keeps arriving as it has", "text-warning", "vivo"}
     ]
-    |> Enum.map(fn {hipotese, rotulo, classe, y} ->
+    |> Enum.map(fn {hipotese, rotulo, classe, chave} ->
+      barras = barras_do_histograma(hipotese, horizonte, largura, x_de)
+
       %{
+        chave: chave,
         rotulo: rotulo,
         classe: classe,
-        y: y,
-        tem_faixa?: not is_nil(hipotese.p50),
-        x50: hipotese.p50 && x.(hipotese.p50),
-        x85: hipotese.p85 && x.(hipotese.p85),
-        # Sem p95, a faixa vai até o fim do horizonte: é onde as rodadas que faltam estão.
-        x95: x.(hipotese.p95 || horizonte),
-        # A proporção que NÃO concluiu, medida da direita para a esquerda: a região hachurada
-        # começa onde a parte concluída termina.
-        nao_concluiu_x: 500 - Float.round(hipotese.nao_concluiram / p.rodadas * 500, 1),
-        texto: texto_da_faixa(hipotese)
+        largura_da_barra: Float.round(largura * 0.8, 2),
+        barras: barras,
+        nunca: coluna_do_nunca(hipotese, p.rodadas, colunas, largura, x_de),
+        marcas: marcas_dos_percentis(hipotese, largura, x_de),
+        eixo: eixo_do_histograma(horizonte, x_de, largura),
+        resumo: texto_da_faixa(hipotese),
+        descricao: descricao_do_histograma(hipotese, rotulo, p)
       }
     end)
   end
 
-  defp texto_da_faixa(%{p50: nil}), do: ""
+  # `[]` quando nenhuma rodada concluiu, e a tela escreve isso em palavras: um eixo com doze
+  # barras de altura zero afirmaria que a simulação rodou e não achou nada, quando o que ela
+  # achou foi "nunca" em todas as rodadas.
+  defp barras_do_histograma(%{distribuicao: distribuicao}, _horizonte, _largura, _x_de)
+       when distribuicao == %{},
+       do: []
 
-  defp texto_da_faixa(%{p50: p50, p85: nil}), do: "50%: #{p50}w · 85%: —"
+  defp barras_do_histograma(%{distribuicao: distribuicao}, horizonte, largura, x_de) do
+    pico = max(Enum.max(Map.values(distribuicao)), 1)
+
+    for semana <- 1..horizonte do
+      quantas = Map.get(distribuicao, semana, 0)
+      altura = Float.round(quantas / pico * 60, 2)
+
+      %{
+        semana: semana,
+        quantas: quantas,
+        x: x_de.(semana) + largura * 0.1,
+        y: Float.round(70 - altura, 2),
+        altura: altura
+      }
+    end
+    |> Enum.reject(&(&1.altura == 0.0))
+  end
+
+  # A coluna do "never" tem a altura da PROPORÇÃO de rodadas que não concluíram, e não do pico
+  # das que concluíram: é o único jeito de 74% de "nunca" parecer 74%.
+  defp coluna_do_nunca(hipotese, rodadas, colunas, largura, x_de) do
+    proporcao = if rodadas > 0, do: hipotese.nao_concluiram / rodadas, else: 0.0
+    altura = Float.round(proporcao * 60, 2)
+
+    %{x: x_de.(colunas) + largura * 0.1, y: Float.round(70 - altura, 2), altura: altura}
+  end
+
+  # A marca cai no MEIO da barra da semana, e não na borda: o percentil é aquela semana, e
+  # desenhá-lo na borda o faria parecer o limite entre duas.
+  defp marcas_dos_percentis(hipotese, largura, x_de) do
+    [{hipotese.p50, "50%", "0"}, {hipotese.p85, "85%", "3 2"}]
+    |> Enum.reject(fn {semana, _rotulo, _tracejado} -> is_nil(semana) end)
+    |> Enum.map(fn {semana, rotulo, tracejado} ->
+      %{x: Float.round(x_de.(semana) + largura / 2, 2), rotulo: rotulo, tracejado: tracejado}
+    end)
+  end
+
+  defp eixo_do_histograma(horizonte, x_de, largura) do
+    passo = max(div(horizonte, 6), 1)
+
+    1..horizonte
+    |> Enum.filter(&(rem(&1, passo) == 0 or &1 == 1))
+    |> Enum.map(&%{x: Float.round(x_de.(&1) + largura / 2, 2), rotulo: "#{&1}w"})
+  end
+
+  defp texto_da_faixa(%{p50: nil}), do: "no run reached zero"
+
+  defp texto_da_faixa(%{p50: p50, p85: nil}),
+    do: "50%: #{p50}w · 85%: no figure — more than 15% never finished"
 
   defp texto_da_faixa(%{p50: p50, p85: p85}), do: "50%: #{p50}w · 85%: #{p85}w"
 
-  # Quatro marcas no eixo, do zero ao horizonte. Mais que isso e os números se tocam na
-  # largura de um cartão.
-  defp eixo_da_previsao(p) do
-    horizonte = max(p.horizonte_semanas, 1)
-
-    for parte <- 0..4 do
-      semanas = round(horizonte * parte / 4)
-
-      %{
-        x: Float.round(parte / 4 * 500, 1),
-        rotulo: if(parte == 0, do: "now", else: "#{semanas}w")
-      }
-    end
+  # A descrição para quem não vê o gráfico diz a FORMA em palavras — onde está o pico e o
+  # quanto a distribuição se espalha —, porque é isso que o histograma acrescenta aos números
+  # que já estão na tabela abaixo.
+  defp descricao_do_histograma(%{distribuicao: d} = hipotese, rotulo, p) when d == %{} do
+    "#{rotulo}: none of the #{p.rodadas} runs reached zero within #{p.horizonte_semanas} weeks. " <>
+      "#{hipotese.nao_concluiram} runs never finished."
   end
 
-  # A descrição do gráfico para quem não o vê. Diz os números, e não a forma — "duas faixas
-  # horizontais" não informa quem usa leitor de tela.
-  defp rotulo_da_previsao(p) do
-    "Simulated weeks to reach zero open items, over a #{p.horizonte_semanas}-week horizon. " <>
-      "If nothing new opened: #{descricao_da_hipotese(p.congelado)}. " <>
-      "If work keeps arriving: #{descricao_da_hipotese(p.vivo)}."
+  defp descricao_do_histograma(hipotese, rotulo, p) do
+    {semana_pico, no_pico} = Enum.max_by(hipotese.distribuicao, fn {_s, n} -> n end)
+    semanas_com_rodadas = map_size(hipotese.distribuicao)
+
+    "#{rotulo}: the runs that reached zero are spread over #{semanas_com_rodadas} weeks, " <>
+      "with the most — #{no_pico} of #{p.rodadas} — landing on week #{semana_pico}. " <>
+      "Half finish within #{hipotese.p50} weeks. " <>
+      "#{hipotese.nao_concluiram} runs never finished inside the #{p.horizonte_semanas}-week horizon."
   end
 
-  defp descricao_da_hipotese(%{p50: nil}), do: "no run reached zero"
-
-  defp descricao_da_hipotese(%{p50: p50, p85: p85}),
-    do: "half of the runs within #{p50} weeks, 85% within #{p85 || "more than the horizon"}"
-
-  # Traço, e não um número grande: nulo diz desconhecido.
+  # Traço, e não um número grande: nulo diz desconhecido.  # Traço, e não um número grande: nulo diz desconhecido.
   defp semana_ou_traco(nil), do: "—"
   defp semana_ou_traco(n), do: "week #{n}"
 
@@ -2612,34 +2698,8 @@ defmodule TheBandWeb.TeamsLive.Show do
             duas telas da spec, numa rota só, porque a pergunta é a mesma — como
             está esta equipe. --%>
         <div :if={@detalhe} class="space-y-4">
-          <%!-- O SELETOR DE GRANULAÇÃO — FR-061.
-
-                `patch`, e a escolha vai ao endereço: quem manda o link do mês não manda o da
-                semana. E cada granulação traz a SUA janela padrão (FR-078), porque não é a
-                mesma janela reagrupada — doze semanas em anos dariam um ponto só. --%>
-          <div class="flex flex-wrap items-baseline gap-2">
-            <span class="text-xs opacity-70">Group flow by</span>
-            <div role="group" aria-label="Flow granularity" class="join">
-              <.link
-                :for={{valor, rotulo} <- [{"semana", "week"}, {"mes", "month"}, {"ano", "year"}]}
-                patch={~p"/teams/#{@team.id}?granulacao=#{valor}"}
-                aria-current={if to_string(@granulacao) == valor, do: "true"}
-                class={[
-                  "btn btn-xs join-item",
-                  to_string(@granulacao) == valor && "btn-active"
-                ]}
-              >
-                {rotulo}
-              </.link>
-            </div>
-            <span class="text-xs opacity-60">
-              Changing this regroups the same items over that granularity's own default
-              window — it does not change what is measured.
-            </span>
-          </div>
-
-          <.burn_da_equipe detalhe={@detalhe} janela={@janela} />
-          <.prometido_e_entregue detalhe={@detalhe} janela={@janela} />
+          <.burn_da_equipe detalhe={@detalhe} janela={@janela} team_id={@team.id} />
+          <.prometido_e_entregue detalhe={@detalhe} janela={@janela} team_id={@team.id} />
           <.previsao_da_equipe detalhe={@detalhe} />
           <.pessoas_da_equipe
             detalhe={@detalhe}

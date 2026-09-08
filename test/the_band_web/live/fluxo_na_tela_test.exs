@@ -112,7 +112,17 @@ defmodule TheBandWeb.FluxoNaTelaTest do
     test "as três opções existem, e a semana é a que está em uso por padrão", ctx do
       {:ok, live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      assert html =~ "Group flow by"
+      # O SELETOR VIVE NO CABEÇALHO DE CADA GRÁFICO, e não solto no topo. Um controle longe
+      # do que ele muda é um controle que ninguém encontra — foi o que a pessoa mantenedora
+      # apontou em 2026-09-08 ao pedir "filtro no Promised × Delivered", que já era governado
+      # pelo seletor do topo.
+      #
+      # Dois lugares, um só estado: os dois fazem `patch` para o mesmo parâmetro.
+      assert length(String.split(html, ~s|aria-label="Flow granularity"|)) - 1 == 2, """
+      Os DOIS gráficos de fluxo precisam do seletor no cabeçalho. A FR-079 exige que
+      comparações na mesma tela usem a mesma janela, e é o mesmo parâmetro que os governa.
+      """
+
       assert html =~ "granulacao=semana"
       assert html =~ "granulacao=mes"
       assert html =~ "granulacao=ano"
@@ -308,8 +318,8 @@ defmodule TheBandWeb.FluxoNaTelaTest do
 
       assert html =~ "No forecast yet"
 
-      refute html =~ "runs that never reached zero", """
-      Abaixo do piso a plataforma recusa. Desenhar faixas a partir de duas semanas de
+      refute html =~ "runs finishing in that week", """
+      Abaixo do piso a plataforma recusa. Desenhar um histograma a partir de duas semanas de
       histórico emprestaria a autoridade de um gráfico a ruído.
       """
     end
@@ -323,27 +333,32 @@ defmodule TheBandWeb.FluxoNaTelaTest do
 
       # A legenda dos três marcadores: sem ela, três formas diferentes no mesmo desenho são
       # decoração.
-      assert html =~ "50% → 95%"
+      assert html =~ "runs finishing in that week"
+      assert html =~ "50% and 85% marks"
       assert html =~ "runs that never reached zero"
 
-      # E o eixo em semanas, começando em "now": uma faixa sem unidade não é uma medida.
-      # O corte é a seção da previsão — "now" solto na página inteira não prova onde está.
+      # O eixo em semanas. O corte é a seção da previsão — o rótulo solto na página inteira
+      # não prova onde está.
       [_antes, previsao] = String.split(html, "Delivery forecast", parts: 2)
 
-      assert previsao =~ "now", "o eixo da previsão não tem a marca de origem"
-      assert previsao =~ ~r/\d+w/, "o eixo da previsão não tem semanas"
+      assert previsao =~ ~r/\d+w/, "o eixo do histograma não tem semanas"
+
+      # E a coluna do "never", separada das semanas: é "nunca, neste horizonte", e não a
+      # semana seguinte à última.
+      assert previsao =~ ">never<" or previsao =~ "never"
     end
 
     test "o gráfico tem descrição para quem não o vê, com os NÚMEROS", ctx do
       ctx = com_historico(ctx)
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      assert html =~ "Simulated weeks to reach zero open items", """
-      O `aria-label` diz os números, e não a forma: "duas faixas horizontais" não informa
-      quem usa leitor de tela.
-      """
+      # O `aria-label` do histograma diz a FORMA em palavras — onde está o pico e o quanto a
+      # distribuição se espalha —, porque é isso que ele acrescenta aos números da tabela.
+      assert html =~ "landing on week" or html =~ "none of the",
+             "a descrição não diz onde está o pico da distribuição"
 
       assert html =~ "week horizon"
+      assert html =~ "spread over" or html =~ "never finished"
     end
   end
 
