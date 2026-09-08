@@ -79,16 +79,22 @@ defmodule TheBandWeb.DeclararPapelNaLinhaTest do
       refute html =~ "Change role"
     end
 
-    test "vínculo com papel declarado oferece 'Change role'", ctx do
+    test "vínculo com papel declarado: o botão da linha ACRESCENTA, e trocar é por papel", ctx do
       declarar(ctx, ctx.dev)
-      {:ok, _live, html} = estrutura(ctx)
+      {:ok, live, html} = estrutura(ctx)
 
-      assert html =~ "Change role", """
-      Com papel declarado, a ação é TROCAR — e trocar encerra o papel atual. Chamá-la de
-      "declarar" esconderia o encerramento de quem clica.
-      """
-
+      # ANTES este teste afirmava `html =~ "Change role"` no botão da LINHA, e a ação encerrava
+      # o primeiro papel por ordem de criação. Decisão da pessoa mantenedora em 2026-09-08: um
+      # botão *Change* por papel, e o da linha passa a somar.
+      #
+      # A razão é a ambiguidade que o rótulo antigo escondia: com *Developer* e *Scrum Master*,
+      # quem clicava em "Change role" não escolhia qual estava trocando.
+      assert html =~ "Add role"
+      refute html =~ "Change role"
       refute html =~ "Declare role"
+
+      # E o *Change* daquele papel existe, com o id do vínculo.
+      assert has_element?(live, ~s|button[phx-click="abrir_papel"][phx-value-membership_id]|)
     end
   end
 
@@ -205,6 +211,114 @@ defmodule TheBandWeb.DeclararPapelNaLinhaTest do
 
       assert depois =~ "needs a name"
       assert length(EO.list_organization_roles(ctx.tenant, ctx.org.id)) == antes
+    end
+  end
+
+  describe "um botão Change por PAPEL (decisão de 2026-09-08)" do
+    test "com dois papéis, há dois botões Change — e o da linha ACRESCENTA", ctx do
+      um = declarar(ctx, ctx.dev)
+      dois = declarar(ctx, ctx.sm)
+
+      {:ok, live, html} = estrutura(ctx)
+
+      # Um botão por papel, cada um carregando o SEU membership_id.
+      assert has_element?(live, ~s|button[phx-value-membership_id="#{um.id}"]|)
+      assert has_element?(live, ~s|button[phx-value-membership_id="#{dois.id}"]|)
+
+      # E o botão da linha, sem membership_id, passa a dizer que soma.
+      assert html =~ "Add role", """
+      Com papel já declarado, o botão da linha ACRESCENTA um segundo — e chamá-lo de
+      "Declare role" esconderia que o primeiro continua. Antes desta decisão ele dizia
+      "Change role" e encerrava o primeiro papel por ordem de criação: quem tinha dois clicava
+      sem saber qual estava trocando, e a tela não perguntava.
+      """
+
+      refute html =~ "Change role"
+    end
+
+    test "sem papel algum, o botão da linha diz Declare role", ctx do
+      observar(ctx)
+      {:ok, _live, html} = estrutura(ctx)
+
+      assert html =~ "Declare role"
+      refute html =~ "Add role"
+    end
+
+    test "o formulário NOMEIA o papel que está sendo trocado", ctx do
+      um = declarar(ctx, ctx.dev)
+      _dois = declarar(ctx, ctx.sm)
+
+      {:ok, live, _html} = estrutura(ctx)
+
+      aberto =
+        live
+        |> element(~s|button[phx-value-membership_id="#{um.id}"]|)
+        |> render_click()
+
+      assert aberto =~ "replacing Desenvolvedora", """
+      Com dois papéis vigentes, "change role · Ana" não diz qual — e é justamente a
+      ambiguidade que o botão por papel veio remover. Deixá-la no título a reintroduziria
+      depois do clique.
+      """
+
+      refute aberto =~ "replacing Scrum Master"
+      assert aberto =~ "role this person holds here is untouched"
+    end
+
+    test "trocar UM papel deixa o outro intacto", ctx do
+      um = declarar(ctx, ctx.dev)
+      dois = declarar(ctx, ctx.sm)
+
+      {:ok, papel_novo} =
+        EO.create_role(ctx.tenant, ctx.org.id, %{code: "tl", name: "Tech Lead"}, ctx.admin.id)
+
+      {:ok, live, _html} = estrutura(ctx)
+
+      render_submit(live, "registrar_papel", %{
+        "person_id" => ctx.ana.id,
+        "membership_id" => um.id,
+        "papel" => "existente:#{papel_novo.id}",
+        "desde" => "2026-03-01"
+      })
+
+      [pessoa] = EO.list_team_roster(ctx.tenant, ctx.equipe.id)
+
+      vigentes =
+        pessoa.vinculos
+        |> Enum.filter(&(&1.vigente? and &1.role))
+        |> Enum.map(& &1.role.name)
+        |> Enum.sort()
+
+      assert vigentes == ["Scrum Master", "Tech Lead"], """
+      Trocar um papel encerra AQUELE e abre o novo; os outros continuam — é o que FR-018
+      permite. Achei #{inspect(vigentes)}.
+      """
+
+      # E o encerrado é exatamente o que foi clicado.
+      encerrado = Enum.find(pessoa.vinculos, &(&1.membership_id == um.id))
+      assert encerrado.fim, "o papel clicado não foi encerrado"
+
+      intacto = Enum.find(pessoa.vinculos, &(&1.membership_id == dois.id))
+      assert is_nil(intacto.fim), "o outro papel foi encerrado sem ninguém pedir"
+    end
+
+    test "papel de SUBEQUIPE não oferece Change nesta tela", ctx do
+      parte = team_fixture(ctx.tenant, "T_dados", %{organization: ctx.org, name: "DADOS"})
+      {:ok, _} = EO.compose_teams(ctx.tenant, parte.id, ctx.equipe.id, ctx.admin.id)
+
+      {:ok, na_parte} =
+        EO.declare_role(ctx.tenant, parte.id, ctx.ana.id, {:existente, ctx.dev.id}, ctx.admin.id)
+
+      {:ok, live, html} = estrutura(ctx)
+
+      # A pessoa aparece, com o chip da subequipe.
+      assert html =~ "DADOS"
+
+      refute has_element?(live, ~s|button[phx-value-membership_id="#{na_parte.id}"]|), """
+      Trocar o papel de alguém numa subequipe é trabalho na tela DAQUELA subequipe, onde o
+      veredito é o dela. Oferecer o botão aqui faria a autoridade atravessar de lado — quem
+      gere esta equipe passaria a mexer na estrutura de outra.
+      """
     end
   end
 

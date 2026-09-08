@@ -268,21 +268,27 @@ defmodule TheBandWeb.TeamsLive.Show do
   #
   # Passam por `com_gestao/2` como os demais: quem não gere não vê o botão, e o evento chega
   # por websocket de todo modo.
-  def handle_event("abrir_papel", %{"person_id" => id}, socket) do
+  def handle_event("abrir_papel", %{"person_id" => id} = params, socket) do
     com_gestao(socket, fn ->
       case pessoa_do_roster(socket, id) do
         nil ->
           socket
 
         pessoa ->
+          # `trocar` é o `membership_id` que o BOTÃO trouxe, e não uma escolha da tela.
+          #
+          # Antes vinha de `vinculo_com_papel/1`, que pegava o primeiro papel vigente por
+          # ordem de criação: com dois papéis, quem clicava não sabia qual estava trocando.
+          # Agora cada papel tem o seu botão, e o clique diz qual. `nil` é o botão da linha,
+          # que ACRESCENTA.
+          trocar = params["membership_id"]
+
           assign(socket,
             papel: %{
               person_id: pessoa.person_id,
               name: pessoa.name,
-              # `trocar` é o `membership_id` do papel vigente a encerrar, ou `false` quando
-              # não há papel declarado. Guarda a decisão de qual comando chamar, tomada com o
-              # roster que está na tela — e reconferida no `handle_event` da submissão.
-              trocar: vinculo_com_papel(pessoa),
+              trocar: trocar,
+              papel_atual: nome_do_papel(pessoa, trocar),
               escolhido: nil
             },
             saida: nil,
@@ -629,17 +635,22 @@ defmodule TheBandWeb.TeamsLive.Show do
   # `unhide_role/3` têm tipo de retorno fechado, e o dialyzer recusa a cláusula que nunca casa.
   defp frase_do_papel_criado(%Ecto.Changeset{} = cs), do: motivo_do_changeset(cs)
 
-  # O `membership_id` do papel vigente a encerrar, ou `false`. Com dois papéis vigentes pega o
-  # primeiro — e a tela chama isso de "Change role", que encerra **aquele** e abre o novo; os
-  # demais continuam. Trocar todos de uma vez seria outra ação, e ninguém a pediu.
-  defp vinculo_com_papel(pessoa) do
-    case Enum.find(pessoa.vinculos, &(&1.vigente? and &1.direta? and &1.role)) do
-      nil -> false
-      vinculo -> vinculo.membership_id
+  # O NOME do papel que o botão clicado representa — para o formulário poder dizê-lo. `nil`
+  # quando o clique foi no botão da linha, que acrescenta em vez de trocar.
+  defp nome_do_papel(_pessoa, nil), do: nil
+
+  defp nome_do_papel(pessoa, membership_id) do
+    case Enum.find(pessoa.vinculos, &(&1.membership_id == membership_id)) do
+      %{role: %{name: nome}} -> nome
+      _ -> nil
     end
   end
 
-  defp algum_papel_declarado?(pessoa), do: vinculo_com_papel(pessoa) != false
+  # Só decide o RÓTULO do botão da linha: "Declare role" onde não há papel algum, "＋ Add
+  # role" onde já há. Deixou de escolher qual vínculo trocar — isso agora vem do clique, e é
+  # a decisão da pessoa mantenedora de 2026-09-08.
+  defp algum_papel_declarado?(pessoa),
+    do: Enum.any?(pessoa.vinculos, &(&1.vigente? and &1.direta? and &1.role))
 
   defp aplicar_saida(socket, person_id, data) do
     case EO.record_team_departure(
@@ -2911,7 +2922,15 @@ defmodule TheBandWeb.TeamsLive.Show do
           </:col>
 
           <:col :let={pessoa} label="role">
-            <div :for={v <- pessoa.vinculos} class="py-0.5">
+            <%!-- UM BOTÃO *Change* POR PAPEL — decisão da pessoa mantenedora em 2026-09-08.
+
+                  Antes havia um só, no fim da linha, e com dois papéis vigentes ele encerrava
+                  **o primeiro** por ordem de criação. Quem tinha *Developer* e *Scrum Master*
+                  clicava sem saber qual estava trocando, e a tela não perguntava.
+
+                  Com o botão ao lado de cada papel, qual muda é o que a pessoa clicou. Os
+                  outros continuam — e é isso que FR-018 permite. --%>
+            <div :for={v <- pessoa.vinculos} class="flex items-center gap-1 py-0.5">
               <span :if={v.role} class="text-xs">{v.role.name}</span>
               <%!-- Ausência NOMEADA e em destaque, nunca em branco: célula vazia lê-se como
                     "não carregou", e o que ela diz é que ninguém declarou o papel. --%>
@@ -2919,6 +2938,22 @@ defmodule TheBandWeb.TeamsLive.Show do
                 not declared
               </span>
               <span :if={not v.direta?} class="text-xs opacity-50">· {v.team_name}</span>
+
+              <%!-- Só sobre papel DESTA equipe e vigente: trocar o papel de alguém numa
+                    subequipe é trabalho na tela daquela subequipe, onde o veredito é o dela.
+                    Fazê-lo daqui faria a autoridade atravessar de lado. --%>
+              <button
+                :if={
+                  match?({:ok, _}, @gestao) and not is_nil(v.role) and v.vigente? and
+                    v.direta?
+                }
+                phx-click="abrir_papel"
+                phx-value-person_id={pessoa.person_id}
+                phx-value-membership_id={v.membership_id}
+                class="btn btn-ghost btn-xs"
+              >
+                Change
+              </button>
             </div>
           </:col>
 
@@ -2999,15 +3034,17 @@ defmodule TheBandWeb.TeamsLive.Show do
                 oferecer um botão que o servidor vai recusar. --%>
           <:col :let={pessoa} label="">
             <div :if={match?({:ok, _}, @gestao) and pessoa.situacao == :vigente} class="flex gap-1">
-              <%!-- "Declare role" quando nenhum vínculo vigente tem papel; "Change role"
-                    quando algum tem. São ações diferentes: uma completa o vínculo observado,
-                    a outra encerra um papel e abre outro. --%>
+              <%!-- O botão da LINHA sempre ACRESCENTA um papel; trocar é por papel, na
+                    coluna. O rótulo muda porque as duas situações são diferentes para quem
+                    lê: onde não há papel, declarar é completar o vínculo observado; onde já
+                    há, é somar um segundo — e chamar isso de "declarar" esconderia que o
+                    primeiro continua. --%>
               <button
                 phx-click="abrir_papel"
                 phx-value-person_id={pessoa.person_id}
                 class="btn btn-xs btn-primary"
               >
-                {if algum_papel_declarado?(pessoa), do: "Change role", else: "Declare role"}
+                {if algum_papel_declarado?(pessoa), do: "＋ Add role", else: "Declare role"}
               </button>
               <button
                 phx-click="abrir_saida"
@@ -3179,6 +3216,12 @@ defmodule TheBandWeb.TeamsLive.Show do
         <section :if={@papel} class="card border border-primary bg-base-200 p-4">
           <h3 class="text-sm font-semibold">
             {if @papel.trocar, do: "change role", else: "declare role"} · {@papel.name}
+            <%!-- O TÍTULO NOMEIA O PAPEL. Com dois papéis vigentes, "change role · Ana" não
+                  diz qual — e é justamente a ambiguidade que o botão por papel veio remover.
+                  Deixá-la no título a reintroduziria depois do clique. --%>
+            <span :if={@papel.papel_atual} class="font-normal opacity-70">
+              · replacing {@papel.papel_atual}
+            </span>
           </h3>
 
           <form phx-submit="registrar_papel" phx-change="escolher_papel" class="mt-2">
@@ -3232,16 +3275,18 @@ defmodule TheBandWeb.TeamsLive.Show do
 
           <p class="mt-2 text-xs opacity-80">
             <span class="font-semibold">empty date = unknown, never today.</span>
-            <span :if={not @papel.trocar}>
+            <span :if={is_nil(@papel.trocar)}>
               Declaring completes the observed link — <strong>same link</strong>, now with a
               role and an author. A second role at the same time is allowed: Developer and
               Scrum Master together is common.
             </span>
-            <span :if={@papel.trocar}>
+            <span :if={not is_nil(@papel.trocar)}>
               Changing <strong>ends</strong>
-              the current role and opens the new one from the same date. The old link stays,
-              with its period closed — that <em>is</em>
-              the history.
+              <strong>{@papel.papel_atual || "the current role"}</strong>
+              and opens the new one from the same date. The old link stays, with its period
+              closed — that <em>is</em>
+              the history. Any <strong>other</strong>
+              role this person holds here is untouched.
             </span>
           </p>
         </section>
