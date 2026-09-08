@@ -1824,31 +1824,50 @@ defmodule TheBandWeb.TeamsLive.Show do
     """
   end
 
+  # A ESCADA DO ESCOPO em peso e preenchimento, e não em matiz: neutro cheio no mais largo,
+  # fundo da família um degrau abaixo, peso normal no mais frequente.
   defp marca("sro.epic"),
-    do: %{texto: "EPIC", classe: "badge-secondary", titulo: "epic — a user story with parts"}
+    do: %{
+      texto: "EPIC",
+      classe: "badge-neutral font-semibold",
+      titulo: "epic — a user story with parts"
+    }
 
   defp marca("sro.atomic_user_story"),
-    do: %{texto: "US", classe: "badge-primary", titulo: "atomic user story — no parts"}
+    do: %{
+      texto: "US",
+      classe: "badge-soft font-semibold",
+      titulo: "atomic user story — no parts"
+    }
 
+  # Peso normal porque são 760 de 1154: negrito aqui pintaria dois terços da tela e apagaria
+  # o destaque de `EPIC` e `BUG`, que são os raros e os que pedem atenção.
   defp marca("sro.intended_scrum_development_task"),
     do: %{
       texto: "TASK",
-      classe: "badge-ghost",
+      classe: "badge-soft",
       titulo: "intended development task — declared, not necessarily executed"
     }
 
+  # A ÚNICA matiz da família. O clay significa "equívoco **e gravidade**" nesta casa, e
+  # defeito é o caso da gravidade — o que separa `BUG` de `mistake` é a forma: aquele fica no
+  # `outline`, este toma o `soft`.
   defp marca("osdef.defect"),
-    do: %{texto: "BUG", classe: "badge-error badge-outline", titulo: "defect"}
+    do: %{texto: "BUG", classe: "badge-error badge-soft font-semibold", titulo: "defect"}
 
-  # Conceito novo na base aparece com o identificador, e não em branco: desaparecer da tela
-  # seria pior que aparecer sem tradução. É a mesma decisão de `ConceptLabel`.
+  # DUAS cláusulas para duas ignorâncias diferentes, que antes dividiam `badge-ghost`.
+  #
+  # Aqui o conceito EXISTE e ninguém o traduziu: aparece com o identificador, e não em branco
+  # — desaparecer da tela é pior que aparecer sem tradução (a decisão de `ConceptLabel`).
+  # Tracejado porque tracejado é o *absent* desta casa.
   defp marca(conceito) when is_binary(conceito),
-    do: %{texto: conceito, classe: "badge-ghost", titulo: conceito}
+    do: %{texto: conceito, classe: "badge-dash text-base-content/80", titulo: conceito}
 
+  # E aqui não há conceito: a regra não classificou. Mesma lacuna, mais apagada.
   defp marca(nil),
     do: %{
       texto: "—",
-      classe: "badge-ghost opacity-60",
+      classe: "badge-dash text-base-content/60",
       titulo:
         "the mapping rule did not classify this item — no type at the source, and the structure does not decide"
     }
