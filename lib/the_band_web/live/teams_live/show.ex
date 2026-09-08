@@ -17,6 +17,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
   alias TheBand.Quality
+  alias TheBand.Teams.ProblemsNow
   alias TheBand.Tenants
   alias TheBand.Verification
   alias TheBand.WorkItems
@@ -817,6 +818,38 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp aba_no_endereco(%{assigns: %{aba: :structure}}), do: "structure"
   defp aba_no_endereco(_socket), do: nil
 
+  # *PROBLEMAS AGORA* — spec 060, FR-065 (US8). Vem ANTES das medidas de propósito: quem abre
+  # o painel pergunta primeiro "o que precisa de mim hoje", e a medida responde outra coisa.
+  defp carregar_problemas_agora(socket) do
+    tenant = socket.assigns.current_tenant
+
+    # `@janela_em_dias` é atributo de MÓDULO; dentro de `~H` o `@` lê **assign**. Sem esta
+    # linha o template levantaria `KeyError` no render — e o compilador não avisa.
+    # O QUE A TELA JÁ TEM, entregue aos cartões em vez de reconsultado.
+    #
+    # A primeira versão consultava tudo, e o teto acusou: 32 consultas acrescentadas contra as
+    # 21 declaradas, com o número **crescendo por pessoa**. A causa não era desempenho — era
+    # duplicação: o painel já carrega as tarefas por pessoa, as anomalias, a espera por revisão
+    # e a contagem de vínculos sem papel.
+    insumos = %{
+      pessoas: get_in(socket.assigns, [Access.key(:detalhe), Access.key(:pessoas)]),
+      esperas: get_in(socket.assigns, [Access.key(:espera_por_revisao), Access.key(:esperas)]),
+      antipadroes: socket.assigns[:antipadroes_da_estrutura],
+      pending_role: socket.assigns[:pending_role]
+    }
+
+    assign(socket,
+      janela_em_dias: @janela_em_dias,
+      problemas:
+        ProblemsNow.cartoes(
+          tenant,
+          socket.assigns.escopo_do_roster,
+          insumos,
+          janela_em_dias: @janela_em_dias
+        )
+    )
+  end
+
   # O CABEÇALHO É DAS DUAS ABAS (FR-004), e por isso carrega antes de qualquer uma delas.
   #
   # Os três números saem de `team_roster_totals/2`, que usa a mesma agregação da listagem da
@@ -852,6 +885,10 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> carregar_composicao()
     |> carregar_competencias()
+    # POR ÚLTIMO, de propósito: cinco dos oito cartões derivam do que as duas linhas acima
+    # carregaram. Montá-los antes exigiria consultar de novo — e dois caminhos para o mesmo
+    # número divergem.
+    |> carregar_problemas_agora()
   end
 
   defp carregar_aba(socket, :structure) do
@@ -1792,6 +1829,70 @@ defmodule TheBandWeb.TeamsLive.Show do
       _ -> rotulo
     end
   end
+
+  # O CARTÃO DE UM PROBLEMA — FR-066 a FR-068.
+  #
+  # Três coisas que ele nunca omite: **sobre o que** foi contado (o limiar), **de onde vem** o
+  # limiar (a regra na base), e **para onde levar** quando o número é maior que zero.
+  #
+  # A quarta, e a que separa este cartão de um contador qualquer: a diferença entre *conferido,
+  # nada encontrado* e *não conferido*. Os dois seriam zero num inteiro solto, e são afirmações
+  # opostas — uma diz que a plataforma olhou, a outra que ela não pôde olhar.
+  attr :problema, :map, required: true
+  attr :team_id, :string, required: true
+
+  defp cartao_de_problema(assigns) do
+    ~H"""
+    <div class={[
+      "card border p-3",
+      case @problema.resultado do
+        {:contado, 0, _} -> "border-base-300 bg-base-100"
+        {:contado, _, _} -> "border-warning bg-base-100"
+        {:nao_conferido, _} -> "border-dashed border-base-300 bg-base-100"
+      end
+    ]}>
+      <span class="text-xs font-semibold">{@problema.titulo}</span>
+
+      <%!-- CONTADO, e maior que zero: o número, e o caminho para a lista que o produziu. --%>
+      <div :if={match?({:contado, n, _} when n > 0, @problema.resultado)} class="mt-1">
+        <% {:contado, n, _} = @problema.resultado %>
+        <span class="font-mono text-2xl tabular-nums text-warning">{n}</span>
+        <.link
+          :if={@problema.destino}
+          navigate={destino_do_problema(@team_id, @problema.destino)}
+          class="link link-hover ml-2 text-xs"
+        >
+          see the list
+        </.link>
+      </div>
+
+      <%!-- CONTADO ZERO: *conferido, nada encontrado*. Não é um zero mudo — a frase é o que o
+            separa do cartão sem insumo, logo abaixo. --%>
+      <p :if={match?({:contado, 0, _}, @problema.resultado)} class="mt-1 text-xs opacity-70">
+        <span class="font-mono text-2xl tabular-nums opacity-60">0</span>
+        <span class="ml-1">checked, nothing found</span>
+      </p>
+
+      <%!-- NÃO CONFERIDO: sem número, e com o que falta. Um zero aqui afirmaria que a
+            plataforma olhou — e ela não pôde. --%>
+      <div :if={match?({:nao_conferido, _}, @problema.resultado)} class="mt-1">
+        <% {:nao_conferido, falta} = @problema.resultado %>
+        <span class="badge badge-dash badge-sm text-base-content/70">not checked</span>
+        <p class="mt-1 text-xs opacity-70">{falta}</p>
+      </div>
+
+      <p class="mt-2 text-[0.65rem] opacity-60">
+        {@problema.limiar}<br />
+        <span class="font-mono">{@problema.origem}</span>
+      </p>
+    </div>
+    """
+  end
+
+  # O destino é uma âncora nesta tela, ou a outra aba. As duas formas existem porque os fatos
+  # moram em lugares diferentes: o papel não declarado é da Estrutura, a espera é do painel.
+  defp destino_do_problema(team_id, "?tab=" <> _ = aba), do: ~p"/teams/#{team_id}" <> aba
+  defp destino_do_problema(team_id, ancora), do: ~p"/teams/#{team_id}" <> ancora
 
   # A MARCA DO CONCEITO — o que o item É, em três letras, antes do título.
   #
@@ -2950,6 +3051,45 @@ defmodule TheBandWeb.TeamsLive.Show do
       </nav>
 
       <div :if={@aba == :dashboard} class="space-y-4">
+        <%!-- ═══ PROBLEMAS AGORA — FR-065 a FR-069 (US8) ═══
+
+              Vem ANTES das medidas, e a ordem é o requisito: quem abre o painel pergunta
+              primeiro *o que precisa do meu olhar hoje*, e uma medida de fluxo responde outra
+              coisa. Pôr isto depois faria quem gerencia rolar a página para chegar ao que
+              veio buscar.
+
+              ## Um cartão é uma CONTAGEM, e o limiar está escrito nele
+
+              O número sem o limiar é um número sem pergunta: "46 issues" não diz nada; "46
+              issues abertas há mais de 30 dias" diz. E cada cartão nomeia a **origem** do
+              limiar na base de conhecimento, porque a FR-069 proíbe limiar em constante — em
+              constante, ele muda num diff e ninguém percebe que a plataforma passou a afirmar
+              outra coisa.
+
+              ## Zero não é a mesma coisa que não conferido
+
+              `conferido, nada encontrado` é informação: a plataforma tinha o insumo, olhou, e
+              não achou. `não conferido` é lacuna: o insumo não é coletado. Apresentados como
+              número, os dois seriam **zero** — e são afirmações opostas. A FR-067 obriga a
+              distingui-los em texto, e é por isso que dois dos oito cartões não têm número. --%>
+        <section class="card bg-base-200 p-4">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-sm font-semibold">Problems now</h2>
+            <span class="text-xs opacity-70">
+              counted over the whole team · window of {@janela_em_dias} days where a window applies
+            </span>
+          </div>
+          <p class="mt-1 text-xs opacity-70">
+            Each card counts a <strong>fact</strong>, never an inference, and carries the
+            threshold that decided the count. Nothing here is ordered by severity — counting is
+            what the platform can do; deciding what is urgent is yours.
+          </p>
+
+          <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <.cartao_de_problema :for={p <- @problemas} problema={p} team_id={@team.id} />
+          </div>
+        </section>
+
         <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
             dos membros diretos, e NENHUM total.
 

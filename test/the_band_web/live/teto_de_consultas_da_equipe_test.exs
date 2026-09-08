@@ -102,7 +102,20 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # granulação para ler outra coisa.
   #
   # Medido, não estimado: 21 com 1 pessoa e 21 com 11.
-  @teto_do_detalhe 21
+  # **21 → 22 em 2026-09-08**, pela seção *Problemas agora* (spec 060, FR-065).
+  #
+  # Oito cartões, e **uma** consulta nova: a das issues abertas além do limiar. Os outros sete
+  # não consultam — cinco derivam do que o painel já carrega (as tarefas por pessoa, a espera
+  # por revisão, as anomalias, a contagem de vínculos sem papel), e dois dizem **não
+  # conferido** porque o insumo não existe.
+  #
+  # A primeira versão consultava tudo por conta própria: **32 acrescentadas**, e o número
+  # **crescia com o número de pessoas** — duas por pessoa. Este teto o apanhou antes de subir.
+  #
+  # A causa não era desempenho: era duplicação. Contar de novo o que a tela já tem produziria
+  # dois caminhos para o mesmo número, e dois caminhos divergem. A correção foi passar os
+  # insumos, não otimizar a consulta.
+  @teto_do_detalhe 22
 
   # A ABA DA ESTRUTURA — medida em 2026-09-08 (T013): 7 consultas por render, constantes com
   # 1 e com 11 pessoas, e constantes com 0 e com 3 subequipes.

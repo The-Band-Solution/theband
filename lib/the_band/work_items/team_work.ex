@@ -27,13 +27,23 @@ defmodule TheBand.WorkItems.TeamWork do
 
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
+  alias TheBand.Profiles.Material
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.IssueAssignee
   alias TheBand.WorkItems.Schemas.IssuePromotion
 
-  @parada_em_dias 90
+  # O LIMIAR DE PARADA VEM DA BASE, e não de uma constante de módulo.
+  #
+  # Havia 90 escrito aqui — duplicata silenciosa de
+  # `profile.thresholds.stale_open_work.stale_days`, que já declarava o mesmo número. Duas
+  # cópias do mesmo limiar em lugares diferentes é a plataforma esperando discordar de si
+  # mesma: quem mudasse o YAML veria o perfil da pessoa mudar e o painel da equipe não.
+  #
+  # A FR-069 da spec 060 o proíbe por escrito, e a razão é operacional: em constante, o
+  # limiar muda num diff e ninguém percebe que a plataforma passou a afirmar outra coisa.
+  defp parada_em_dias, do: Material.stale_days()
 
   @doc """
   Issues criadas e concluídas por período, das pessoas que pertenciam à equipe
@@ -321,7 +331,7 @@ defmodule TheBand.WorkItems.TeamWork do
 
     linha
     |> Map.drop([:aberta_desde])
-    |> Map.merge(%{aberta_ha_dias: max(dias, 0), parada?: dias > @parada_em_dias})
+    |> Map.merge(%{aberta_ha_dias: max(dias, 0), parada?: dias > parada_em_dias()})
   end
 
   defp fechadas_entre(%Tenant{id: tenant_id}, team_id, desde, ate) do
