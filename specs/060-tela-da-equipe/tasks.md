@@ -315,6 +315,7 @@ T001 ─┬─ T002 ── T004 ── T005 ─┬─ T006 ─┐
 | SC-015 (YAML antes da tela) | T002, T003 |
 | teto de consultas | T013 |
 | FR-041 (cartão da subequipe e a porta, US7), FR-084 (gráfico pequeno no cartão, US9) | **sem tarefa** — US7 e US9 não estão planejadas em tarefas; os dois vieram da US6 pela decisão 11 de 2026-09-07 |
+| FR-085 a FR-112 (os quatro gráficos por membro, US10 a US12) | **sem tarefa** — extensão escrita em 2026-09-08 ([`spec-graficos-por-membro.md`](spec-graficos-por-membro.md)); depende da US9 e do protótipo desta aba, que ainda não existe |
 
 Esta tabela cobre o que a **PR 1** entrega (US1–US5, as duas abas e a concessão).
 Requisitos de US6 a US9 só aparecem aqui quando a PR 1 os toca — FR-052 (a escrita

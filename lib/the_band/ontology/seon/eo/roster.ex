@@ -84,7 +84,7 @@ defmodule TheBand.Ontology.SEON.EO.Roster do
   """
   @spec list_team_roster(Tenant.t(), Ecto.UUID.t(), keyword()) :: [map()]
   def list_team_roster(%Tenant{id: tenant_id} = tenant, team_id, opts \\ []) do
-    equipes = equipes_do_alcance(tenant, team_id)
+    equipes = opts[:escopo] || equipes_do_alcance(tenant, team_id)
 
     pessoas =
       tenant_id
@@ -105,7 +105,7 @@ defmodule TheBand.Ontology.SEON.EO.Roster do
   """
   @spec count_team_roster(Tenant.t(), Ecto.UUID.t(), keyword()) :: non_neg_integer()
   def count_team_roster(%Tenant{id: tenant_id} = tenant, team_id, opts \\ []) do
-    equipes = equipes_do_alcance(tenant, team_id)
+    equipes = opts[:escopo] || equipes_do_alcance(tenant, team_id)
 
     from(m in TeamMembership,
       join: p in Person,
@@ -125,13 +125,13 @@ defmodule TheBand.Ontology.SEON.EO.Roster do
   Saem da mesma definição de `situacao` porque números que se contradizem na mesma tela são
   pior que número ausente: quem lê não sabe qual acreditar, e passa a não acreditar em nenhum.
   """
-  @spec team_roster_totals(Tenant.t(), Ecto.UUID.t()) :: %{
+  @spec team_roster_totals(Tenant.t(), Ecto.UUID.t(), keyword()) :: %{
           vigentes: non_neg_integer(),
           sairam: non_neg_integer(),
           equivocos: non_neg_integer()
         }
-  def team_roster_totals(%Tenant{id: tenant_id} = tenant, team_id) do
-    equipes = equipes_do_alcance(tenant, team_id)
+  def team_roster_totals(%Tenant{id: tenant_id} = tenant, team_id, opts \\ []) do
+    equipes = opts[:escopo] || equipes_do_alcance(tenant, team_id)
 
     tenant_id
     |> agregado_por_pessoa(equipes)
@@ -195,6 +195,20 @@ defmodule TheBand.Ontology.SEON.EO.Roster do
       {role_id, %{nesta_equipe: nesta_equipe || 0, na_organizacao: na_organizacao}}
     end)
   end
+
+  @doc """
+  O ALCANCE do roster: esta equipe e as partes com composição vigente.
+
+  Público porque as três funções acima o precisam, e chamar cada uma sem ele custa **uma
+  consulta idêntica por chamada**. Medido em 2026-09-08: a aba da estrutura fazia 9 consultas,
+  e 3 eram esta mesma — a listagem, a contagem e os totais perguntando o mesmo ao banco.
+
+  Quem desenha a tela chama isto **uma vez** e passa em `opts[:escopo]`. Quem chama de fora
+  sem o `opts` continua correto, só paga a consulta: o padrão não pode ser "rápido e errado
+  se você esquecer".
+  """
+  @spec escopo(Tenant.t(), Ecto.UUID.t()) :: [Ecto.UUID.t()]
+  def escopo(%Tenant{} = tenant, team_id), do: equipes_do_alcance(tenant, team_id)
 
   # ------------------------------------------------------------------ o alcance
 

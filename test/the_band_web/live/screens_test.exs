@@ -210,6 +210,17 @@ defmodule TheBandWeb.ScreensTest do
       assert {:error, {:live_redirect, %{to: "/teams"}}} =
                live(log_in(build_conn(), usuario_outro), ~p"/teams/#{equipe_do_um.id}")
 
+      # E a ABA da estrutura pelo mesmo id também — feature 060, T024.
+      #
+      # Não é redundante: a aba é onde a escrita vive, e a decisão de quem vê acontece no
+      # `mount/3`, antes de `handle_params/3` ler a aba. Um `?tab=` que passasse pela recusa
+      # abriria a porta das ações sobre uma equipe de outro cliente.
+      assert {:error, {:live_redirect, %{to: "/teams"}}} =
+               live(
+                 log_in(build_conn(), usuario_outro),
+                 ~p"/teams/#{equipe_do_um.id}?tab=structure"
+               )
+
       # E a organização dona continua enxergando o que é dela.
       {:ok, _live, html} = live(log_in(build_conn(), usuario_um), ~p"/people")
       assert html =~ "Ana Souza"

@@ -92,7 +92,8 @@ defmodule TheBand.Ontology.SEON.EO do
   # responde por vínculo, e `list_team_members/3` responde por evidência.
   defdelegate list_team_roster(tenant, team_id, opts \\ []), to: Roster
   defdelegate count_team_roster(tenant, team_id, opts \\ []), to: Roster
-  defdelegate team_roster_totals(tenant, team_id), to: Roster
+  defdelegate team_roster_totals(tenant, team_id, opts \\ []), to: Roster
+  defdelegate team_roster_scope(tenant, team_id), to: Roster, as: :escopo
 
   defdelegate role_holder_counts(tenant, organization_id, team_id), to: Roster
   defdelegate suggested_roles(), to: Queries

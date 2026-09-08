@@ -156,21 +156,28 @@ defmodule TheBandWeb.TeamsLive.Show do
   def handle_event("ordenar", params, socket), do: Tabela.ordenar(params, socket, &caminho/3)
   def handle_event("pagina", params, socket), do: Tabela.pagina(params, socket, &caminho/3)
 
-  def handle_event(
-        "associar_projeto",
-        %{"project_id" => pid},
-        %{assigns: %{current_user: %{role: "admin"}}} = socket
-      )
-      when pid != "" do
-    {:ok, _} =
-      SPO.link_team(
-        socket.assigns.current_tenant,
-        pid,
-        socket.assigns.team.id,
-        socket.assigns.current_user.id
-      )
+  # A LIGAÇÃO A PROJETO PASSA PELO MESMO VEREDITO — T023, FR-003 e FR-052.
+  #
+  # Estava atrás de `%{role: "admin"}` casado no próprio `handle_event`, e isso tinha duas
+  # consequências:
+  #
+  # 1. quem gere a estrutura por **concessão de papel** — o modelo que a T006 estabeleceu —
+  #    não podia ligar a equipe a um projeto, embora possa declarar papel, saída e equívoco.
+  #    Uma porta com regra própria;
+  # 2. quem NÃO era admin caía na cláusula-vazia abaixo, que devolvia `{:noreply, socket}` sem
+  #    dizer nada. Sucesso silencioso: a tela não mudava, e quem clicou não sabia por quê.
+  def handle_event("associar_projeto", %{"project_id" => pid}, socket) when pid != "" do
+    com_gestao(socket, fn ->
+      {:ok, _} =
+        SPO.link_team(
+          socket.assigns.current_tenant,
+          pid,
+          socket.assigns.team.id,
+          socket.assigns.current_user.id
+        )
 
-    {:noreply, carregar_projetos(socket)}
+      carregar_projetos(socket)
+    end)
   end
 
   # A subequipe HERDA a organização da mãe, e isso não é conveniência: quem tem
@@ -213,17 +220,21 @@ defmodule TheBandWeb.TeamsLive.Show do
     end)
   end
 
-  def handle_event("associar_projeto", _params, socket), do: {:noreply, socket}
+  # Sem projeto escolhido não é recusa de permissão: é o `<select>` no estado "choose…". A
+  # recusa diz isso, em vez de devolver o socket calado — que fazia o clique não produzir
+  # nada e a pessoa clicar de novo.
+  def handle_event("associar_projeto", _params, socket),
+    do:
+      {:noreply,
+       put_flash(socket, :error, dgettext("errors", "Pick a project to link this team to."))}
 
-  def handle_event(
-        "desassociar_projeto",
-        %{"link_id" => lid},
-        %{assigns: %{current_user: %{role: "admin"}}} = socket
-      ) do
-    {:ok, _} =
-      SPO.unlink_team(socket.assigns.current_tenant, lid, socket.assigns.current_user.id)
+  def handle_event("desassociar_projeto", %{"link_id" => lid}, socket) do
+    com_gestao(socket, fn ->
+      {:ok, _} =
+        SPO.unlink_team(socket.assigns.current_tenant, lid, socket.assigns.current_user.id)
 
-    {:noreply, carregar_projetos(socket)}
+      carregar_projetos(socket)
+    end)
   end
 
   # `promover` NÃO conferia nada antes da feature 060: qualquer conta autenticada que
@@ -795,9 +806,15 @@ defmodule TheBandWeb.TeamsLive.Show do
     tenant = socket.assigns.current_tenant
     team = socket.assigns.team
 
+    # O ALCANCE, UMA VEZ. Medido em 2026-09-08: sem isto, a aba da estrutura fazia a mesma
+    # consulta de composição três vezes por render — os totais, a listagem e a contagem
+    # perguntando o mesmo ao banco.
+    escopo = EO.team_roster_scope(tenant, team.id)
+
     socket
     |> assign(por_pagina: @por_pagina)
-    |> assign(totais: EO.team_roster_totals(tenant, team.id))
+    |> assign(escopo_do_roster: escopo)
+    |> assign(totais: EO.team_roster_totals(tenant, team.id, escopo: escopo))
     |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
     |> assign(gestao: Tenants.pode_gerir_estrutura(tenant, socket.assigns.current_user, team.id))
     # Os formulários da linha nascem fechados a cada carga: trocar de aba ou de página com um
@@ -822,7 +839,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     team = socket.assigns.team
     estado = socket.assigns.tabelas["members"]
 
-    opts = [search: estado.busca]
+    opts = [search: estado.busca, escopo: socket.assigns.escopo_do_roster]
 
     socket
     |> assign(
@@ -3449,7 +3466,7 @@ defmodule TheBandWeb.TeamsLive.Show do
             <li :for={pr <- @projetos_da_equipe} class="badge badge-outline gap-2">
               <.link navigate={~p"/projects"} class="link link-hover">{pr.nome}</.link>
               <button
-                :if={@current_user.role == "admin"}
+                :if={match?({:ok, _}, @gestao)}
                 phx-click="desassociar_projeto"
                 phx-value-link_id={pr.link_id}
                 class="cursor-pointer"
@@ -3459,7 +3476,7 @@ defmodule TheBandWeb.TeamsLive.Show do
             </li>
           </ul>
           <form
-            :if={@current_user.role == "admin" and @projetos_disponiveis != []}
+            :if={match?({:ok, _}, @gestao) and @projetos_disponiveis != []}
             id="associar-projeto"
             phx-change="associar_projeto"
           >
