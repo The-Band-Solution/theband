@@ -52,11 +52,57 @@ defmodule TheBand.WorkItems.TeamWork do
     forma = formato(escala)
     desde = Keyword.fetch!(opts, :desde)
     ate = Keyword.fetch!(opts, :ate)
+    equipes = alcance(team_id, opts)
 
-    criadas = por_evento(tenant, team_id, :external_created_at, forma, desde, ate)
-    fechadas = por_evento(tenant, team_id, :external_closed_at, forma, desde, ate)
+    criadas = por_evento(tenant, equipes, :external_created_at, forma, desde, ate)
+    fechadas = por_evento(tenant, equipes, :external_closed_at, forma, desde, ate)
 
     juntar(criadas, fechadas, escala, desde, ate)
+  end
+
+  # O ALCANCE é uma LISTA de equipes — feature 060, FR-056 e FR-058.
+  #
+  # Uma equipe **composta** flui como um todo, e o conjunto dela é a união distinta dos
+  # membros dela e das partes vigentes. Sem isto, o painel de uma equipe composta media só
+  # quem tem vínculo direto — em geral ninguém, porque numa composta as pessoas estão nas
+  # partes.
+  #
+  # **A soma das partes NÃO é o todo** (FR-060), e é o `DISTINCT` na issue que garante: a
+  # pessoa em duas partes e o item com dois responsáveis contam **uma** vez aqui, e uma vez em
+  # cada parte quando cada parte é medida por si. Somar os números das partes daria outro
+  # número, e a tela diz isso em palavras.
+  #
+  # O padrão é `[team_id]`: quem chama sem `:equipes` continua medindo a equipe própria.
+  defp alcance(team_id, opts) do
+    case Keyword.get(opts, :equipes) do
+      nil -> [team_id]
+      [] -> [team_id]
+      lista -> lista
+    end
+  end
+
+  @doc """
+  A abertura do item mais **antigo** desta equipe, ou `nil` se não há nenhum.
+
+  Serve a uma coisa só: a janela padrão da granulação **ano** é "todos os anos coletados"
+  (feature 060, FR-078), e "todos" não é um número que se possa fixar. Cinco anos seria
+  inventado — mostraria anos vazios numa base nova e cortaria anos reais numa antiga.
+
+  `nil` é resposta legítima e diferente de zero: a equipe não tem item coletado, e a tela diz
+  isso em vez de desenhar um eixo sem dado.
+  """
+  @spec primeira_atividade(Tenant.t(), Ecto.UUID.t(), keyword()) :: DateTime.t() | nil
+  def primeira_atividade(%Tenant{id: tenant_id}, team_id, opts \\ []) do
+    equipes = alcance(team_id, opts)
+
+    CollectedIssue
+    |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+    |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
+    |> where([i], not is_nil(i.external_created_at))
+    |> where([_i, _a, m], is_nil(m.invalidated_at))
+    |> select([i], min(i.external_created_at))
+    |> Repo.one()
   end
 
   @doc """
@@ -69,12 +115,14 @@ defmodule TheBand.WorkItems.TeamWork do
   dentro dela: uma equipe com quarenta itens abertos há meses e nenhuma abertura
   recente apareceria com distância zero.
   """
-  @spec open_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: non_neg_integer()
-  def open_at(%Tenant{id: tenant_id}, team_id, quando) do
+  @spec open_at(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: non_neg_integer()
+  def open_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    equipes = alcance(team_id, opts)
+
     CollectedIssue
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
-    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(i.external_created_at) and i.external_created_at <= ^quando)
     |> where([i], is_nil(i.external_closed_at) or i.external_closed_at > ^quando)
     |> vigente_em(quando)
@@ -185,11 +233,11 @@ defmodule TheBand.WorkItems.TeamWork do
   # muda nenhuma linha cuja data de evento seja anterior à saída.
   #
   # `started_at` nulo é membro — nulo é desconhecido, nunca "nunca pertenceu".
-  defp por_evento(%Tenant{id: tenant_id}, team_id, campo, forma, desde, ate) do
+  defp por_evento(%Tenant{id: tenant_id}, equipes, campo, forma, desde, ate) do
     CollectedIssue
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
-    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(field(i, ^campo)))
     |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
     |> where(

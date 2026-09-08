@@ -63,6 +63,19 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
 
     field :declared_by_user_id, :binary_id
 
+    # QUANDO a declaração foi feita — o "em D" de "declarado por X em D" (FR-010). Não é
+    # `inserted_at`: o vínculo OBSERVADO que foi completado com um papel nasceu antes da
+    # declaração, e o `updated_at` dele some na escrita seguinte.
+    field :declared_at, :utc_datetime
+
+    # QUEM registrou a saída, e QUANDO registrou (FR-021, FR-022). Sem eles, fim declarado e
+    # fim constatado pela coleta são a mesma coisa — uma data. `ended_at` é a data DA SAÍDA,
+    # podendo ser retroativa; `end_declared_at` é o instante do registro. Colapsá-las faria
+    # "saiu em março, declarado em setembro" virar "saiu em setembro", e o número já
+    # apresentado para o período anterior mudaria.
+    field :ended_by_user_id, :binary_id
+    field :end_declared_at, :utc_datetime
+
     # Feature 055 — o EQUÍVOCO: o vínculo que nunca vigeu.
     #
     # Diferente de `ended_at`, que diz "esteve e não está mais". Aqui o período
@@ -91,15 +104,20 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
       :started_at,
       :ended_at,
       :declared_by_user_id,
+      :declared_at,
+      :ended_by_user_id,
+      :end_declared_at,
       :invalidated_at,
       :invalidated_by_user_id,
       :invalidation_reason
     ])
     |> validate_required([:tenant_id, :internal_id, :person_id, :team_id])
+    |> selar_a_declaracao()
     # O papel é obrigatório na DECLARAÇÃO, e ausente no vínculo OBSERVADO (2026-09-06). O
     # relator da ontologia exige os três; a plataforma materializa o observado com o papel
     # declaradamente ausente, e a tela diz isso. Declarar sem papel continua recusado.
     |> validar_papel_da_declaracao()
+    |> validar_saida_declarada()
     |> validar_periodo()
     |> unique_constraint([:tenant_id, :person_id, :team_id],
       name: :eo_team_memberships_observado_vigente_index
@@ -112,12 +130,82 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
     )
   end
 
+  # `declared_at` é derivado, e é o CHANGESET que o deriva — não os chamadores.
+  #
+  # A CHECK `eo_declaracao_tem_autor` exige autor e instante juntos, e a alternativa era
+  # confiar em três lugares (`declare_team_membership/5`, `inserir_declaracao/2`,
+  # `declarar_sobre_o_observado/3`) para lembrar do segundo campo. Nenhum lembrou: a migração
+  # entrou sem esta função e **toda declaração nova passou a estourar** com
+  # `Ecto.ConstraintError` — e não apareceu na CI, porque a auditoria de dependências reprovou
+  # antes de a suíte rodar.
+  #
+  # O instante certo é o da escrita, e só a escrita o conhece. Pedir aos chamadores um valor
+  # que eles não escolhem é convidá-los a errar; derivá-lo aqui torna o par impossível de
+  # quebrar. Vale nas duas direções: desdeclarar limpa o instante, senão a linha ficaria com
+  # data de uma declaração que não existe mais.
+  defp selar_a_declaracao(changeset) do
+    case {get_field(changeset, :declared_by_user_id), get_field(changeset, :declared_at)} do
+      {nil, nil} -> changeset
+      {nil, _instante} -> put_change(changeset, :declared_at, nil)
+      {_autor, nil} -> put_change(changeset, :declared_at, DateTime.utc_now(:second))
+      {_autor, _instante} -> changeset
+    end
+  end
+
+  # A DECLARAÇÃO É UM PAR, e a regra vale nas duas direções — decisão da pessoa mantenedora
+  # em 2026-09-07.
+  #
+  # A metade que já existia: quem declara precisa dizer o papel. A metade que faltava: quem
+  # grava um papel precisa dizer **quem** o declarou. As duas são declaração incompleta, e
+  # barrar só uma era a assimetria que deixava passar `Developer` sem autor.
+  #
+  # Por que isso importa na tela: a origem do vínculo é derivada de `declared_by_user_id` —
+  # sem autor, a linha é apresentada como **observada**, que significa "a origem mostra a
+  # pessoa, e o papel não foi declarado". Um vínculo com papel e sem autor sairia como
+  # "observado · Developer", contradizendo-se na frente de quem lê.
+  #
+  # Varrido antes de mudar: 24 chamadas gravavam papel sem autor, **todas em teste**; nenhum
+  # caminho de produção, e zero linhas assim no banco de desenvolvimento (90 vínculos). Não
+  # há fato consumado a preservar — só uma porta que ninguém tinha atravessado.
+  #
+  # O vínculo OBSERVADO continua legítimo: sem papel **e** sem autor, é a coleta afirmando
+  # participação e nada mais (ADR 0008).
   defp validar_papel_da_declaracao(changeset) do
-    if get_field(changeset, :declared_by_user_id) &&
-         is_nil(get_field(changeset, :organizational_role_id)) do
-      add_error(changeset, :organizational_role_id, "a declaração exige um papel")
-    else
-      changeset
+    papel = get_field(changeset, :organizational_role_id)
+    autor = get_field(changeset, :declared_by_user_id)
+
+    cond do
+      autor && is_nil(papel) ->
+        add_error(changeset, :organizational_role_id, "a declaração exige um papel")
+
+      papel && is_nil(autor) ->
+        add_error(changeset, :declared_by_user_id, "o papel declarado exige quem o declarou")
+
+      true ->
+        changeset
+    end
+  end
+
+  # A SAÍDA DECLARADA também é um par: quem registrou e quando registrou andam juntos, e só
+  # existem sobre um fim que existe. O banco impõe o trio (`eo_saida_declarada_completa`); o
+  # changeset o traduz, para a recusa chegar à tela em vez de levantar.
+  defp validar_saida_declarada(changeset) do
+    autor = get_field(changeset, :ended_by_user_id)
+    registrado = get_field(changeset, :end_declared_at)
+    fim = get_field(changeset, :ended_at)
+
+    cond do
+      is_nil(autor) and is_nil(registrado) ->
+        changeset
+
+      is_nil(autor) or is_nil(registrado) ->
+        add_error(changeset, :ended_by_user_id, "quem registrou a saída e quando andam juntos")
+
+      is_nil(fim) ->
+        add_error(changeset, :ended_at, "a saída registrada exige a data em que a pessoa saiu")
+
+      true ->
+        changeset
     end
   end
 

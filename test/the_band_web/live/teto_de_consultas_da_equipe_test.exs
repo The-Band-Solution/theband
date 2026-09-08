@@ -89,7 +89,36 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # 23 desde 2026-09-06: a composição das medidas ("X observados sem papel, Y declarados")
   # custa UMA consulta a mais — `team_members_at/3` — e ela está declarada aqui, e não
   # escondida num teto que sobe sem ninguém dizer por quê.
-  @teto_do_detalhe 23
+  # **23 → 21 em 2026-09-08**, pela feature 060 (T010, T013). O número BAIXOU, e é raro o
+  # bastante para merecer a explicação:
+  #
+  # As seis seções de estrutura saíram do painel para a aba `?tab=structure`, e cada aba passou
+  # a carregar só o que desenha. Saíram do painel: o roster, a contagem, a evidência pendente,
+  # a discordância, os papéis da organização e as contagens por papel.
+  #
+  # Entrou uma: a previsão reconsulta a série em **semanas** em vez de reusar a do burn, porque
+  # o Monte Carlo é semanal qualquer que seja a granulação escolhida (FR-064). Doze meses
+  # dariam doze amostras, e a previsão mudaria de significado quando quem lê trocasse a
+  # granulação para ler outra coisa.
+  #
+  # Medido, não estimado: 21 com 1 pessoa e 21 com 11.
+  @teto_do_detalhe 21
+
+  # A ABA DA ESTRUTURA — medida em 2026-09-08 (T013): 7 consultas por render, constantes com
+  # 1 e com 11 pessoas, e constantes com 0 e com 3 subequipes.
+  #
+  # ## Como saiu de 9 para 7
+  #
+  # A primeira medida deu 9, e **três delas eram a mesma**: a listagem do roster, a contagem e
+  # os totais chamavam `equipes_do_alcance/2` cada uma por sua conta — a mesma consulta de
+  # composição, três vezes por render. `Roster.escopo/2` virou público e a tela o calcula uma
+  # vez, passando em `opts[:escopo]`.
+  #
+  # Quem chama de fora sem o `opts` continua correto e paga a consulta: o padrão não pode ser
+  # "rápido e errado se você esquecer".
+  #
+  # **Sem folga.** Qualquer consulta a mais quebra, e é isso que se quer.
+  @teto_da_estrutura 7
 
   # O acréscimo do caminho COM PROJETO sobre o caminho sem projeto nenhum — as duas
   # consultas de `who_worked_on_many/3` e a dos repositórios, menos a que se cancela.
@@ -148,6 +177,7 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
       })
   end
@@ -193,6 +223,101 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
     |> Enum.map_join("\n", fn {k, delta} ->
       "  #{String.pad_leading("#{if delta > 0, do: "+", else: ""}#{delta}", 4)}  #{k}"
     end)
+  end
+
+  describe "a aba da ESTRUTURA (feature 060, T013)" do
+    test "o número de consultas não cresce com as pessoas", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      uma = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      for i <- 1..10 do
+        p = pessoa(ctx, "pessoa#{i}")
+        vincular(ctx, time, p)
+      end
+
+      onze = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      assert length(uma) == length(onze), """
+      A estrutura fez #{length(uma)} consultas com 1 pessoa e #{length(onze)} com 11 — ela
+      consulta por linha.
+
+      É o defeito que o roster foi desenhado para não ter: duas consultas, uma para as pessoas
+      da página e outra para os vínculos DESSAS pessoas. A alternativa natural — os vínculos de
+      cada pessoa numa consulta por linha — passa em todo teste funcional.
+
+      O que mudou entre as duas medições:
+
+      #{diferenca(uma, onze)}
+      """
+    end
+
+    test "nem com as subequipes", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      sem = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      for i <- 1..3 do
+        sub = equipe(ctx, "Sub#{i}")
+        {:ok, _} = EO.compose_teams(ctx.tenant, sub.id, time.id, ctx.admin.id)
+        vincular(ctx, sub, pessoa(ctx, "sub#{i}"))
+      end
+
+      com = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      assert length(sem) == length(com), """
+      A estrutura fez #{length(sem)} consultas sem subequipe e #{length(com)} com três.
+
+      O alcance do roster inclui as partes vigentes, e é uma consulta só — a lista de equipes
+      entra num `IN`. Uma consulta por subequipe apareceria aqui.
+
+      #{diferenca(sem, com)}
+      """
+    end
+
+    test "o custo da aba tem teto declarado", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      lista = por_render(contar(fn -> live(ctx.conn, ~p"/teams") end))
+
+      estrutura =
+        por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end))
+
+      acrescentadas = estrutura - lista
+
+      assert acrescentadas <= @teto_da_estrutura, """
+      A aba da estrutura acrescenta #{acrescentadas} consultas por render sobre a listagem, e o
+      teto declarado é #{@teto_da_estrutura}.
+
+      Subir o teto é decisão, e a decisão aparece neste arquivo. Antes de subi-lo, confira se a
+      consulta nova não é uma que já existe: foi assim que este número caiu de 9 para 7 — três
+      chamadas pediam o mesmo alcance ao banco.
+      """
+    end
+
+    test "a aba do painel não paga as consultas da estrutura, e vice-versa", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+      for n <- 1..3, do: issue(ctx, "d#{n}", ana, n * 4)
+
+      painel = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}") end))
+
+      estrutura =
+        por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end))
+
+      assert estrutura < painel, """
+      A estrutura custou #{estrutura} e o painel #{painel}. Se as duas custam o mesmo, cada aba
+      está carregando o que a outra desenha — que é o que a decisão D2 do plano evitou. Com as
+      duas na mesma rota, isso dobraria o custo de cada visita para mostrar metade.
+      """
+    end
   end
 
   describe "a tela do detalhe da subequipe" do

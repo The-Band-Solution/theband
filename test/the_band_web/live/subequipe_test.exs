@@ -22,7 +22,7 @@ defmodule TheBandWeb.SubequipeTest do
 
   describe "declarar uma equipe dentro desta" do
     test "a subequipe nasce e aparece em 'Contains'", ctx do
-      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       html = render_submit(view, "criar_subequipe", %{"name" => "Dados"})
 
@@ -31,7 +31,7 @@ defmodule TheBandWeb.SubequipeTest do
     end
 
     test "ela HERDA a organização da mãe", ctx do
-      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
       render_submit(view, "criar_subequipe", %{"name" => "Dados"})
 
       [%{team_id: filha_id}] = EO.team_parts(ctx.tenant, ctx.mae.id)
@@ -41,11 +41,11 @@ defmodule TheBandWeb.SubequipeTest do
     end
 
     test "a outra direção aparece na tela da filha", ctx do
-      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
       render_submit(view, "criar_subequipe", %{"name" => "Dados"})
       [%{team_id: filha_id}] = EO.team_parts(ctx.tenant, ctx.mae.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{filha_id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{filha_id}?tab=structure")
 
       # A de cima diz o que contém; a de baixo diz de quem faz parte.
       assert html =~ "Part of"
@@ -55,7 +55,7 @@ defmodule TheBandWeb.SubequipeTest do
 
   describe "descompor não apaga a equipe" do
     test "a filha sai da estrutura e continua existindo", ctx do
-      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
       render_submit(view, "criar_subequipe", %{"name" => "Dados"})
       [%{team_id: filha_id}] = EO.team_parts(ctx.tenant, ctx.mae.id)
 
@@ -75,11 +75,19 @@ defmodule TheBandWeb.SubequipeTest do
           "role" => "member"
         })
 
-      {:ok, view, _} = build_conn() |> log_in(outra) |> live(~p"/teams/#{ctx.mae.id}")
+      {:ok, view, _} =
+        build_conn() |> log_in(outra) |> live(~p"/teams/#{ctx.mae.id}?tab=structure")
 
       html = render_submit(view, "criar_subequipe", %{"name" => "Pela porta dos fundos"})
 
-      assert html =~ "no scope"
+      # A recusa MUDOU de nome com a feature 060: o escopo de conta deixou de decidir
+      # escrita (T006), e quem não tem pessoa declarada não alcança papel nenhum — logo,
+      # concessão nenhuma. "no scope" era a frase do modelo anterior.
+      #
+      # E note o que este teste prova de mais importante: o formulário NÃO é renderizado
+      # para esta conta, e o evento chegou de todo modo, por `render_submit`. Foi o veredito
+      # re-perguntado no evento que recusou — esconder o botão nunca foi a proteção.
+      assert html =~ "not linked to a person"
       assert EO.team_parts(ctx.tenant, ctx.mae.id) == []
     end
   end

@@ -76,7 +76,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
 
   describe "a seção de promoção" do
     test "diz quantas participações esperam confirmação", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       assert html =~ "2 observed member(s) without a declared role", """
       **A FR-014.** A equipe sem vínculo não é a mesma coisa que equipe sem ninguém — e
@@ -87,7 +87,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
 
     test "os quatro papéis do Scrum estão no seletor, sem cadastro", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       for nome <- ["Product Owner", "Scrum Master", "Developer", "Client"] do
         assert html =~ nome
@@ -100,7 +100,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
 
     test "promover cria o vínculo e tira da lista", ctx do
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       html =
         live
@@ -123,50 +123,58 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
   end
 
-  describe "o nível de acesso" do
-    test "NÃO aparece na seção de promoção — SC-005a", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+  describe "o nível de acesso da origem" do
+    test "não aparece em lugar nenhum da tela da equipe — SC-004, e a SC-005a por consequência",
+         ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
-      # A seção de promoção vai do título até o aviso que a segue. Recortar é necessário: a
-      # tabela de MEMBROS mostra o nível de propósito, rotulado como acesso, e ali ele é
-      # observação legítima.
-      [_, resto] = String.split(html, "without a declared role", parts: 2)
-      [secao, _] = String.split(resto, "Por que o papel organizacional", parts: 2)
-
-      refute secao =~ "MAINTAINER", """
-      **A SC-005a.** `MAINTAINER` ao lado de um seletor de papel é uma dica, por mais que o
-      texto negue — e a proibição da FR-012 viraria letra morta.
-
-      A garantia é do contrato: `pending_evidence/2` não devolve o campo. Se ele apareceu
-      aqui, alguém o buscou por outro caminho.
+      # ANTES a proibição era só da seção de promoção (SC-005a), e este arquivo recortava a
+      # seção para verificá-la — porque a tabela de membros mostrava o nível de propósito,
+      # rotulado como acesso.
+      #
+      # A feature 060 tirou a coluna da tabela (FR-008), e com isso a verificação não precisa
+      # mais de recorte: a página INTEIRA não nomeia o nível. É a afirmação mais forte, e a
+      # que não depende de eu ter recortado a seção certa — o recorte anterior passaria se o
+      # nível migrasse dois parágrafos para fora dele.
+      refute html =~ "MAINTAINER", """
+      `MAINTAINER` na mesma tela que um seletor de papel é uma dica, por mais que o texto
+      negue. A garantia é do contrato: `pending_evidence/2` não devolve o campo, e o roster
+      não o seleciona. Se apareceu, alguém o buscou por outro caminho.
       """
 
-      refute secao =~ "MEMBER"
-    end
+      refute html =~ "MEMBER"
+      refute html =~ "access at the platform"
 
-    test "continua aparecendo na tabela de membros, rotulado como acesso", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
-
-      assert html =~ "access at the platform", """
-      O nível **não some da plataforma** — é fato observado sobre a ferramenta, e apagá-lo
-      seria perder dado verdadeiro. O que muda é o LUGAR: ele sai de onde a decisão de papel
-      acontece.
-      """
-
-      assert html =~ "MAINTAINER"
+      # O que ocupa o lugar dele: a ausência de papel, nomeada.
+      assert html =~ "not declared"
     end
   end
 
   describe "a data de início" do
-    test "vem preenchida com hoje, como ponto de partida", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+    test "vem VAZIA, e o rótulo diz que vazio é desconhecido (FR-016)", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
-      assert html =~ Date.to_iso8601(Date.utc_today())
-      assert html =~ ~s(type="date")
+      # ANTES este teste afirmava o contrário — "vem preenchida com hoje, como ponto de
+      # partida" —, e a premissa era que quem soubesse a data real a corrigiria. Não é o que
+      # acontece: um campo já preenchido é enviado como está, e a data de hoje passa a ser a
+      # data em que assumiu o papel quem o assumiu há um ano. A FR-016 substituiu a premissa.
+      #
+      # E a versão anterior desta asserção era um VERDE FALSO depois da mudança: ela procurava
+      # a data de hoje em qualquer lugar do HTML, e hoje aparece no eixo do gráfico de burn.
+      # Passava sem que o campo estivesse preenchido. Por isso agora a asserção é sobre o
+      # CAMPO, com o nome dele.
+      assert html =~ ~s|name="started_at[#{ctx.evidencia.id}]"|
+
+      refute html =~ ~r/name="started_at\[#{ctx.evidencia.id}\]"[^>]*value="\d/, """
+      O campo de início não pode vir preenchido. Vazio é DESCONHECIDO — a origem não sabe
+      desde quando a pessoa está no papel, e a plataforma não inventa.
+      """
+
+      assert html =~ "empty = unknown"
     end
 
     test "esvaziar grava nulo, e não a data de hoje", ctx do
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       live
       |> form("#promover", %{
@@ -188,7 +196,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
 
   describe "confirmar todas" do
     test "confirma as linhas com papel, e PULA as sem — dizendo quantas", ctx do
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       html =
         live
@@ -219,7 +227,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
 
     test "confirma as duas quando as duas têm papel", ctx do
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       html =
         live
@@ -240,7 +248,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
 
     test "nenhuma escolhida não confirma nada, e diz isso", ctx do
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       html =
         live
@@ -258,7 +266,7 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
     end
 
     test "o botão existe e diz o que faz", ctx do
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       assert html =~ "Declare all roles"
 

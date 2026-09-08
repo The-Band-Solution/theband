@@ -165,12 +165,16 @@ defmodule TheBandWeb.TabelaEmTodasAsTelasTest do
       organizacao = organization_fixture(ctx.tenant, "acme")
       equipe = team_fixture(ctx.tenant, "T_a", %{organization: organizacao})
 
-      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{equipe.id}")
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{equipe.id}?tab=structure")
 
       ordenado = live |> element("th button[phx-value-campo=name]") |> render_click()
 
       assert ordenado =~ "↑"
-      assert parametros(live) == %{"ordem" => "name", "dir" => "asc"}
+
+      # A ABA SOBREVIVE À ORDENAÇÃO (feature 060, FR-002). Sem `tab` aqui, o primeiro clique
+      # em ordenar devolveria quem está na estrutura ao painel — com a ordem aplicada a uma
+      # tabela que saiu da tela.
+      assert parametros(live) == %{"ordem" => "name", "dir" => "asc", "tab" => "structure"}
     end
   end
 end

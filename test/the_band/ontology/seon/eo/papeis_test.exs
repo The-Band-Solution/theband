@@ -209,7 +209,8 @@ defmodule TheBand.Ontology.SEON.EO.PapeisTest do
       EO.allocate(ctx.tenant, %{
         person_id: pessoa.id,
         team_id: equipe.id,
-        organizational_role_id: papel.id
+        organizational_role_id: papel.id,
+        declared_by_user_id: ctx.user.id
       })
 
     %{papel: papel, pessoa: pessoa, equipe: equipe, vinculo: vinculo}

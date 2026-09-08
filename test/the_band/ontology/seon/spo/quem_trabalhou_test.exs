@@ -64,6 +64,7 @@ defmodule TheBand.Ontology.SEON.SPO.QuemTrabalhouTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: desde,
         ended_at: ate
       })

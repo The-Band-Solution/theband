@@ -75,6 +75,7 @@ defmodule TheBand.Tenants.AccessTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: Keyword.get(opts, :started_at, DateTime.utc_now(:second)),
         ended_at: Keyword.get(opts, :ended_at)
       })
@@ -126,7 +127,7 @@ defmodule TheBand.Tenants.AccessTest do
       refute Enum.any?(escopos, &(&1.level == :project))
 
       # Encerra o vínculo pessoa→equipe: o derivado team morre junto.
-      {:ok, _} = EO.end_allocation(ctx.tenant, m.id, DateTime.utc_now(:second))
+      {:ok, _} = EO.end_allocation(ctx.tenant, m.id, DateTime.utc_now(:second), ctx.admin.id)
       escopos = Tenants.scopes(ctx.tenant, u)
       refute Enum.any?(escopos, &(&1.level == :team))
     end

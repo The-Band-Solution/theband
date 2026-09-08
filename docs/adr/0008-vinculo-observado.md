@@ -140,10 +140,34 @@ decidiu o contrário (FR-012).
 5. **Medida real, depois da migração em desenvolvimento:** as 8 equipes sem `ap02`, e a
    contagem de solicitações de autores sem nenhum vínculo — hoje 838 — medida de novo.
 
+## Emenda de 2026-09-08 — a regra v3, e o item 5 estendido
+
+O **item 5** desta decisão diz: *quem saiu e voltou ganha vínculo novo*. A feature 060
+estendeu-o à **saída declarada** e ao **equívoco**, e a regra
+`github_team_membership_evidence.yaml` subiu para a **versão 3**.
+
+O que faltava era uma lacuna que esta ADR criou sem ver. A guarda da coleta reconhecia
+declaração por três sinais — papel, autor da declaração e equívoco. Numa **saída declarada
+sobre vínculo observado** não há nenhum dos três: não há papel, não há autor de declaração,
+só o autor da saída. A coleta seguinte não via declaração alguma e criava outro vínculo —
+**desfazendo a saída**. Quem declarava via a pessoa voltar sozinha à equipe.
+
+`ended_by_user_id` entrou na guarda. E como uma guarda permanente impediria o retorno de
+existir, a exceção é uma só e é a desta ADR, estendida: a observação **nova depois de
+ausência constatada** é retorno, e nasce vínculo novo; o antigo permanece com o seu fim. A
+marca de ausência é lida **antes** do update que a apaga.
+
+Detalhe medido em 2026-09-08: o mesmo commit descobriu que `count_team_members_at/3` contava
+**vínculos** onde prometia pessoas. Com o vínculo observado convivendo com o declarado, e
+FR-018 permitindo dois papéis, quem desempenha dois contava duas vezes. Corrigido para
+`count(distinct person_id)` — e `team_size/2` já contava distinto, o que mostra qual era a
+intenção desde o início.
+
 ## Referências
 
-- Specs 055 e 058 (emendas de 2026-09-06), 043 (FR-007), 057 (FR-005).
-- `priv/knowledge_base/rules/github_team_membership_evidence.yaml` v2;
+- Specs 055 e 058 (emendas de 2026-09-06), 043 (FR-007), 057 (FR-005), **060 (FR-026,
+  FR-027)**.
+- `priv/knowledge_base/rules/github_team_membership_evidence.yaml` **v3** (2026-09-07);
   `docs/backlog/vinculo-observado-sem-papel.md` (a nota para a base).
 - Medida de 2026-09-06: `sonda_times` contra a origem; `eo_team_membership_evidence` e
   `eo_team_memberships` no banco de desenvolvimento; solicitações dos últimos 56 dias.

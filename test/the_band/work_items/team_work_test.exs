@@ -67,6 +67,7 @@ defmodule TheBand.WorkItems.TeamWorkTest do
         person_id: pessoa.id,
         team_id: ctx.equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: opts[:desde],
         ended_at: opts[:ate]
       })

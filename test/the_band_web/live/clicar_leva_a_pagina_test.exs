@@ -87,7 +87,7 @@ defmodule TheBandWeb.ClicarLevaAPaginaTest do
       pessoa = pessoa(ctx.tenant, "quem-participa")
       equipe = equipe_com(ctx.tenant, pessoa)
 
-      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{equipe.id}")
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{equipe.id}?tab=structure")
 
       assert html =~ ~s{href="/people/#{pessoa.id}"}
 

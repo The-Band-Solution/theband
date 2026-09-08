@@ -55,6 +55,7 @@ defmodule TheBand.Isolamento058Test do
         person_id: ana.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -100, :day)
       })
 

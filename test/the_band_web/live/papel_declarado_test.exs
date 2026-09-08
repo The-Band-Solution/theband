@@ -232,6 +232,67 @@ defmodule TheBandWeb.PapelDeclaradoTest do
     r
   end
 
+  describe "o que o papel permite GERIR — feature 060, FR-081" do
+    test "sem concessão nenhuma, a tela diz que o papel não gere nada", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/roles")
+
+      assert html =~ "manages nothing", """
+      A ausência não foi dita. Papel sem concessão de gestão não declara estrutura de
+      equipe nenhuma, e um traço faria parecer que a coluna não se aplica àquele papel.
+      """
+    end
+
+    test "admin concede a gestão, e a tela passa a mostrar o alcance", ctx do
+      papel = papel_declarado(ctx, "eng_manager", "Engineering Manager")
+
+      {:ok, live, html} = live(ctx.conn, ~p"/roles")
+      assert html =~ "manages nothing"
+
+      html =
+        live
+        |> form("#conceder-gestao-#{papel.id}", %{"scope" => "team"})
+        |> render_submit()
+
+      assert html =~ "manages their team&#39;s structure"
+      assert EO.structure_grants_by_role(ctx.tenant)[papel.id] == ["team"]
+    end
+
+    test "conceder gestão NÃO concede visibilidade — são decisões separadas", ctx do
+      papel = papel_declarado(ctx, "eng_manager", "Engineering Manager")
+
+      {:ok, live, _} = live(ctx.conn, ~p"/roles")
+
+      html =
+        live
+        |> form("#conceder-gestao-#{papel.id}", %{"scope" => "organization"})
+        |> render_submit()
+
+      assert html =~ "manages the organisation&#39;s teams"
+
+      assert EO.grants_by_role(ctx.tenant) == %{}, """
+      Conceder gestão concedeu visibilidade junto. A spec 045 (FR-022) separa ver de mexer
+      de propósito: quem precisa das duas recebe as duas, e o registro diz qual é qual.
+      """
+
+      assert html =~ "only their own panel", "a coluna de visão continua dizendo a ausência"
+    end
+
+    test "revogar a gestão devolve a ausência dita", ctx do
+      papel = papel_declarado(ctx, "eng_manager", "Engineering Manager")
+      {:ok, live, _} = live(ctx.conn, ~p"/roles")
+
+      live |> form("#conceder-gestao-#{papel.id}", %{"scope" => "team"}) |> render_submit()
+
+      html =
+        live
+        |> element(~s|button[phx-click="revogar_gestao"][phx-value-role_id="#{papel.id}"]|)
+        |> render_click()
+
+      assert html =~ "manages nothing"
+      assert EO.structure_grants_by_role(ctx.tenant) == %{}
+    end
+  end
+
   describe "o que o papel permite ver — issue #369" do
     test "sem concessão nenhuma, a tela diz que ninguém vê painel de mais ninguém", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/roles")

@@ -73,6 +73,7 @@ defmodule TheBandWeb.EquipeCompostaTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
       })
   end
@@ -155,11 +156,25 @@ defmodule TheBandWeb.EquipeCompostaTest do
       assert html =~ "same task"
     end
 
-    test "FR-011: nenhum gráfico nesta tela", ctx do
+    test "057 FR-011, EMENDADA: a TABELA continua sem gráfico, e o fluxo da equipe tem", ctx do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
 
-      refute html =~ "<svg",
-             "gráfico aqui contraria a decisão: a tela composta é para comparar, e comparação se faz em números alinhados"
+      # A 057 FR-011 proibia gráfico nesta tela, e a 060 FR-058 a emendou. O que ela protegia
+      # continua valendo — e é o que este teste passou a medir: a **tabela** por subequipe é
+      # para comparar, e comparação se faz em números alinhados.
+      [_antes, tabela] = String.split(html, "Teams inside this one", parts: 2)
+      [tabela, _depois] = String.split(tabela, "</table>", parts: 2)
+
+      refute tabela =~ "<svg", """
+      Gráfico DENTRO da tabela por subequipe contraria a decisão que a 057 tomou e a 060
+      manteve: a tabela é para comparar, e comparação se faz em números alinhados. O gráfico
+      pequeno por subequipe é a FR-084, e vive no CARTÃO da US7 — que ainda não existe.
+      """
+
+      # E o fluxo da equipe inteira agora existe, com a frase que a FR-060 exige.
+      assert html =~ "<svg", "a equipe composta passou a ter o fluxo da equipe inteira (FR-058)"
+      assert html =~ "not the sum"
+      assert html =~ "whole team"
     end
 
     test "SC-005: a ordem é por trabalho parado, e não alfabética", ctx do
@@ -201,10 +216,13 @@ defmodule TheBandWeb.EquipeCompostaTest do
       refute html =~ "Teams inside this one"
     end
 
+    # A lista de partes ("Contains:") é da aba ESTRUTURA desde a feature 060 — a seção
+    # "Teams inside this one", que compara subequipes, continua no painel. Ler a estrutura
+    # aqui é o que estes dois casos fazem, e por isso abrem a aba.
     test "com UMA parte só, segue como equipe simples", ctx do
       subequipe(ctx, "Dados")
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one",
              "comparar uma linha com nada não é comparação — uma parte só é composição declarada, não equipe composta"
@@ -217,7 +235,7 @@ defmodule TheBandWeb.EquipeCompostaTest do
       interface = subequipe(ctx, "Interface")
       {:ok, _} = EO.decompose_teams(ctx.tenant, interface.id, ctx.mae.id, ctx.admin.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one"
       refute html =~ ~s|/teams/#{interface.id}|

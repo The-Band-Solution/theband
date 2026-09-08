@@ -33,6 +33,7 @@ defmodule TheBand.Tenants.Access do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Repo
   alias TheBand.Tenants
@@ -147,47 +148,54 @@ defmodule TheBand.Tenants.Access do
   end
 
   @doc """
-  Esta conta pode **declarar estrutura** neste alvo? — feature 055.
+  Esta conta pode **declarar a estrutura desta equipe**? — feature 060, FR-006 e FR-080 a
+  FR-082.
 
-  ## Por que é uma pergunta diferente de `pode_ver/3`
+  ## Por que é uma pergunta diferente de `pode_ver_equipe/3`
 
-  `pode_ver/3` responde sobre **ver o painel de uma pessoa**. Esta responde sobre
-  **escrever**: declarar uma equipe dentro de uma organização ou de um projeto.
+  Aquela responde sobre **ler** as medidas da equipe; esta, sobre **escrever** a estrutura
+  dela: o papel de cada pessoa, a saída, o equívoco, a composição de subequipes, os papéis
+  da organização e a ligação a projeto. A spec 045 (FR-022) separa ver de mexer de
+  propósito, e as duas decisões não se implicam.
 
-  A doutrina do FR-022 — *administrar não é ver* — continua de pé, e nos dois
-  sentidos: nenhum ramo aqui olha `users.role` para conceder **visão**, e o escopo
-  não vira, sozinho, uma segunda coisa. O que ele autoriza é declarar estrutura
-  **dentro do alvo que ele nomeia**, e nada além dele.
+  ## A lista é fechada: administrador, ou papel com concessão
 
-  ## O que ela recusa, e é o caso que decide
+  Decisão da pessoa mantenedora em 2026-09-07. Substitui `pode_declarar_estrutura/4`, que
+  autorizava também pelo escopo `organization`/`project` **da conta** — e escopo de conta é
+  concedido para **ver**. Medido antes de trocar, no banco de desenvolvimento: **zero**
+  contas não-administradoras escreviam por esse caminho, e as duas administradoras
+  continuam escrevendo sem concessão nenhuma. A troca não tirou poder de ninguém.
 
-  **Escopo noutro alvo não vale.** Quem tem `organization` na ACME não declara na
-  GLOBEX — a recusa cruzada é o que separa esta regra de *"tem escopo? pode"*, que
-  é a implementação óbvia e errada.
+  A concessão é do **papel**, e a pessoa a alcança pelo vínculo vigente com ele — nunca da
+  conta, que sobreviveria à troca de papel, e nunca pelo nome do papel.
 
-  **Escopo de nível diferente não vale.** `project` num projeto não declara equipe
-  da organização: o escopo nomeia um projeto, e equipe da estrutura pertence a uma
-  organização. **Autoridade não sobe.**
+  ## Os motivos, e por que são quatro e não um `false`
 
-  **Escopo `team` não declara nada.** Ele nomeia uma equipe, e equipe não é onde
-  outra equipe nasce.
+  `:conta_sem_pessoa_declarada` — a conta não tem elo com pessoa, e a concessão fala de
+  papéis de pessoas. `:vinculo_encerrado` — existe um papel concedido que alcançaria esta
+  equipe, e o vínculo com ele acabou. `:sem_concessao` — nenhum papel vigente alcança.
+
+  As três levam a ações diferentes: ligar a conta a uma pessoa, renovar o vínculo, pedir a
+  concessão. Colapsá-las num `false` manda quem foi recusado procurar a administradora com
+  a pergunta errada.
   """
-  @spec pode_declarar_estrutura(Tenant.t(), User.t(), :organization | :project, Ecto.UUID.t()) ::
-          {:ok, atom()} | {:nao, atom()}
-  def pode_declarar_estrutura(%Tenant{} = tenant, %User{} = user, nivel, alvo_id)
-      when nivel in [:organization, :project] do
-    cond do
-      User.admin?(user) and user.tenant_id == tenant.id ->
-        {:ok, :admin}
-
-      tem_escopo?(tenant, user, nivel, alvo_id) ->
-        {:ok, :escopo_concedido}
-
-      true ->
-        {:nao, :sem_escopo_no_alvo}
+  @spec pode_gerir_estrutura(Tenant.t(), User.t(), Ecto.UUID.t()) ::
+          {:ok, :admin | :gestor_da_equipe | :gestor_da_organizacao}
+          | {:nao, :conta_sem_pessoa_declarada | :vinculo_encerrado | :sem_concessao}
+  def pode_gerir_estrutura(%Tenant{} = tenant, %User{} = user, team_id) do
+    if User.admin?(user) and user.tenant_id == tenant.id do
+      {:ok, :admin}
+    else
+      case Tenants.person_of_user(user) do
+        {:ok, pessoa_id} -> StructureGrants.alcance(tenant, pessoa_id, team_id)
+        :not_declared -> {:nao, :conta_sem_pessoa_declarada}
+      end
     end
   end
 
+  # O escopo da CONTA continua decidindo **visão** — `pode_ver/3` e `pode_ver_equipe/3` o
+  # usam. O que ele deixou de decidir, em 2026-09-07, é **escrita** na estrutura: aquilo
+  # passou a ser concessão a papel (`pode_gerir_estrutura/3`).
   defp tem_escopo?(tenant, user, nivel, alvo_id) do
     tenant
     |> scopes(user)

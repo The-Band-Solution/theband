@@ -91,7 +91,8 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
-  Registra que a pessoa **saiu** da equipe — feature 055, FR-004 e FR-005.
+  Registra que a pessoa **saiu** da equipe — feature 055, FR-004 e FR-005; feature 060,
+  FR-019, FR-021 e FR-023.
 
   O vínculo continua existindo com o fim registrado. **Nenhuma linha é removida**,
   e é isso que o SC-003 mede: um painel de período anterior à saída mostra o mesmo
@@ -99,6 +100,28 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
 
   Data no futuro é recusada — afirmaria um fato que ainda não aconteceu. Data no
   passado é aceita: quem declara sabe mais que a plataforma.
+
+  ## Grava TRÊS coisas, e não uma
+
+  `ended_at` é a data da saída, possivelmente retroativa; `end_declared_at` é o instante do
+  registro; `ended_by_user_id` é quem afirmou. Antes desta versão o `actor_id` chegava e era
+  **descartado**, e o efeito não era cosmético: fim declarado e fim constatado pela coleta
+  ficavam indistinguíveis, os dois uma data e nada mais. FR-022 exige a tela dizer qual é
+  qual, e sem autor não há como.
+
+  ## Alcança TODOS os vínculos vigentes do par, e devolve quantos
+
+  "A pessoa saiu da equipe" é afirmação sobre a pessoa **na equipe**, não sobre um papel — e
+  FR-018 permite dois papéis vigentes ao mesmo tempo. Encerrar só um deixaria a pessoa metade
+  dentro e metade fora; e a versão anterior fazia pior que isso: `vigente/3` usa `Repo.one` e
+  **levantaria** diante de dois papéis, derrubando a tela em vez de recusar.
+
+  Daí `update_all` em lugar de changeset. As garantias que importam continuam de pé: a data no
+  futuro é recusada acima, e as duas CHECKs de `20260908010000_saida_declarada_com_autor`
+  valem no **banco** — que é exatamente onde o changeset não alcança um `update_all`.
+
+  Zero vigentes é `{:error, …}` nomeado, nunca `{:ok, 0}`. Declarar a saída de quem não está
+  na equipe é engano de quem opera, e devolver sucesso o esconderia.
   """
   @spec record_team_departure(
           Tenant.t(),
@@ -106,21 +129,33 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           Ecto.UUID.t(),
           DateTime.t(),
           Ecto.UUID.t()
-        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
-  def record_team_departure(%Tenant{id: tenant_id}, team_id, person_id, quando, _actor_id) do
+        ) :: {:ok, non_neg_integer()} | {:error, String.t()}
+  def record_team_departure(%Tenant{id: tenant_id}, team_id, person_id, quando, actor_id)
+      when is_binary(actor_id) do
     quando = DateTime.truncate(quando, :second)
+    agora = DateTime.utc_now(:second)
 
-    with :ok <- nao_esta_no_futuro(quando),
-         %TeamMembership{} = vinculo <- vigente(tenant_id, team_id, person_id) do
-      vinculo
-      |> TeamMembership.changeset(%{ended_at: quando})
-      |> Repo.update()
-      |> relator()
-    else
-      nil -> {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
-      {:error, motivo} -> {:error, motivo}
+    with :ok <- nao_esta_no_futuro(quando) do
+      {quantos, _} =
+        Repo.update_all(vigentes(tenant_id, team_id, person_id),
+          set: [
+            ended_at: quando,
+            ended_by_user_id: actor_id,
+            end_declared_at: agora,
+            updated_at: agora
+          ]
+        )
+
+      if quantos == 0,
+        do: {:error, "esta pessoa não tem vínculo vigente nesta equipe"},
+        else: {:ok, quantos}
     end
   end
+
+  # Saída sem autor é recusada em vez de gravada. A CHECK do banco já a impediria, mas com
+  # uma mensagem de constraint; aqui a recusa tem nome, e a tela tem o que mostrar.
+  def record_team_departure(_tenant, _team_id, _person_id, _quando, _actor_id),
+    do: {:error, "a saída declarada exige quem a declarou"}
 
   defp nao_esta_no_futuro(quando) do
     if DateTime.compare(quando, DateTime.utc_now()) == :gt do
@@ -144,6 +179,18 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   **A razão é obrigatória**, e não por formalismo: sem ela, um engano registrado
   no mesmo dia da entrada fica indistinguível de alguém que entrou e saiu no
   mesmo dia. O banco impõe o trio junto — `eo_equivoco_do_vinculo_completo`.
+
+  ## Alcança o PAR, e devolve quantos — feature 060, FR-024 e FR-025
+
+  Pelo mesmo motivo da saída: "esta pessoa nunca esteve nesta equipe" é afirmação sobre a
+  pessoa **na equipe**, e FR-018 permite dois papéis vigentes ao mesmo tempo. Invalidar um só
+  deixaria a pessoa nunca-tendo-estado por um papel e tendo-estado pelo outro.
+
+  E `vigente/3` usava `Repo.one`: com dois papéis, isto **levantava** em vez de recusar.
+
+  Vale para vínculo **declarado e observado** — decisão da pessoa mantenedora em 2026-09-07.
+  Depois do equívoco a coleta não recria o vínculo enquanto a origem continuar mostrando a
+  pessoa; a evidência fica viva e a tela mostra as duas afirmações.
   """
   @spec record_team_membership_mistake(
           Tenant.t(),
@@ -151,38 +198,55 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           Ecto.UUID.t(),
           String.t(),
           Ecto.UUID.t()
-        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+        ) :: {:ok, non_neg_integer()} | {:error, String.t()}
   def record_team_membership_mistake(%Tenant{id: tenant_id}, team_id, person_id, razao, actor_id)
-      when is_binary(razao) and razao != "" do
-    case vigente(tenant_id, team_id, person_id) do
-      nil ->
-        {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+      when is_binary(razao) and razao != "" and is_binary(actor_id) do
+    agora = DateTime.utc_now(:second)
 
-      %TeamMembership{} = vinculo ->
-        vinculo
-        |> TeamMembership.changeset(%{
-          invalidated_at: DateTime.utc_now(:second),
+    {quantos, _} =
+      Repo.update_all(vigentes(tenant_id, team_id, person_id),
+        set: [
+          invalidated_at: agora,
           invalidated_by_user_id: actor_id,
-          invalidation_reason: razao
-        })
-        |> Repo.update()
-        |> relator()
-    end
+          invalidation_reason: razao,
+          updated_at: agora
+        ]
+      )
+
+    if quantos == 0,
+      do: {:error, "esta pessoa não tem vínculo vigente nesta equipe"},
+      else: {:ok, quantos}
   end
 
+  def record_team_membership_mistake(_tenant, _team_id, _person_id, razao, _actor_id)
+      when not is_binary(razao) or razao == "",
+      do: {:error, "o equívoco exige uma razão escrita"}
+
   def record_team_membership_mistake(_tenant, _team_id, _person_id, _razao, _actor_id),
-    do: {:error, "o equívoco exige uma razão escrita"}
+    do: {:error, "o equívoco exige quem o registrou"}
 
   # VIGENTE são as DUAS condições: sem fim registrado E sem invalidação. Deixar
   # uma de fora faz um vínculo invalidado continuar contando — e o defeito não
   # aparece até alguém somar.
-  defp vigente(tenant_id, team_id, person_id) do
+  # Cada um dos vínculos vigentes do par pessoa–equipe, como CONSULTA — o alvo da saída e do
+  # equívoco, que são afirmações sobre a pessoa na equipe e não sobre um papel.
+  defp vigentes(tenant_id, team_id, person_id) do
     TeamMembership
     |> where(
       [m],
       m.tenant_id == ^tenant_id and m.team_id == ^team_id and m.person_id == ^person_id and
         is_nil(m.ended_at) and is_nil(m.invalidated_at)
     )
+  end
+
+  # UM vigente do par — serve a quem precisa da linha em si (a declaração, para recusar
+  # declarar de novo). O `limit` não é enfeite: desde que FR-018 permitiu dois papéis ao
+  # mesmo tempo, `Repo.one` sem ele **levantaria** `Ecto.MultipleResultsError`. A ordem é
+  # declarada para o resultado não depender do plano do banco.
+  defp vigente(tenant_id, team_id, person_id) do
+    vigentes(tenant_id, team_id, person_id)
+    |> order_by([m], asc: m.inserted_at)
+    |> limit(1)
     |> Repo.one()
   end
 
@@ -612,9 +676,13 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         |> TeamMembershipEvidence.changeset(attrs)
         |> Repo.insert()
         |> with_outcome(:created)
-        |> observar_vinculo(tenant_id)
+        |> observar_vinculo(tenant_id, false)
 
       record ->
+        # A marca de ausência é lida AQUI, antes do update — o próprio update a apaga, e
+        # depois dele não há como saber se esta observação é continuação ou retorno.
+        retorno? = not is_nil(record.no_longer_observed_at)
+
         # Reobservar não é um vínculo novo: atualiza a última observação e
         # limpa a marca de ausência, preservando observed_at original.
         record
@@ -625,7 +693,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         })
         |> Repo.update()
         |> with_outcome(:unchanged)
-        |> observar_vinculo(tenant_id)
+        |> observar_vinculo(tenant_id, retorno?)
     end
   end
 
@@ -642,16 +710,23 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   # aponta para um encerrado (a pessoa saiu e voltou) ganha vínculo novo; e um vínculo vigente
   # da mesma pessoa na mesma equipe — declarado por alguém, ou observado por outra evidência —
   # é reaproveitado e apontado, nunca duplicado.
-  defp observar_vinculo({:ok, %TeamMembershipEvidence{} = evidencia} = ok, tenant_id) do
+  defp observar_vinculo({:ok, %TeamMembershipEvidence{} = evidencia} = ok, tenant_id, retorno?) do
     case vinculo_vigente(tenant_id, evidencia.person_id, evidencia.team_id) do
       nil ->
         # ONDE A ORGANIZAÇÃO JÁ DECLAROU ALGO — saída, equívoco —, a coleta não cria vínculo:
         # criar afirmaria "está na equipe" por cima de "saiu" ou "nunca esteve". A evidência
         # fica sem vínculo, e a tela mostra as duas afirmações (055, FR-012). A observação só
         # preenche onde ninguém declarou nada.
-        if existe_declaracao?(tenant_id, evidencia.person_id, evidencia.team_id),
-          do: ok,
-          else: criar_e_apontar(tenant_id, evidencia)
+        #
+        # RETORNO é a exceção, e uma só (FR-027, regra v3): a origem deixou de mostrar a
+        # pessoa, a ausência foi constatada, e a origem voltou a mostrá-la. Aí a observação
+        # não contradiz a declaração antiga — ela afirma um período NOVO, e o antigo
+        # permanece com o seu fim. Sem esta exceção a guarda seria permanente, e quem
+        # voltasse à equipe nunca mais teria vínculo observado.
+        if not retorno? and
+             existe_declaracao?(tenant_id, evidencia.person_id, evidencia.team_id),
+           do: ok,
+           else: criar_e_apontar(tenant_id, evidencia)
 
       %TeamMembership{id: id} when id == evidencia.promoted_membership_id ->
         ok
@@ -661,7 +736,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     end
   end
 
-  defp observar_vinculo(erro, _tenant_id), do: erro
+  defp observar_vinculo(erro, _tenant_id, _retorno?), do: erro
 
   defp criar_e_apontar(tenant_id, evidencia) do
     case inserir_vinculo_observado(tenant_id, evidencia) do
@@ -676,17 +751,21 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   # Declaração é qualquer coisa que alguém da organização AFIRMOU sobre o par pessoa–equipe:
-  # um papel, um autor, ou o EQUÍVOCO ("nunca esteve") — este último também sobre vínculo
-  # observado, por decisão da pessoa mantenedora em 2026-09-07. Depois de um equívoco a
-  # coleta não recria o vínculo, mesmo que a origem continue listando a pessoa; a evidência
-  # fica viva e a tela mostra as duas afirmações até a origem ser corrigida.
+  # um papel, um autor, o EQUÍVOCO ("nunca esteve") ou a SAÍDA declarada. Depois de qualquer
+  # uma delas a coleta não recria o vínculo, mesmo que a origem continue listando a pessoa; a
+  # evidência fica viva e a tela mostra as duas afirmações até a origem ser corrigida.
+  #
+  # `ended_by_user_id` entrou na regra v3 (2026-09-07), e a lacuna era real: numa saída
+  # declarada sobre vínculo OBSERVADO não há papel nem autor de declaração — só o autor da
+  # saída. A guarda não o reconhecia, e a coleta seguinte **desfazia** a saída criando um
+  # vínculo novo. Quem declarava via a pessoa voltar sozinha à equipe.
   defp existe_declaracao?(tenant_id, person_id, team_id) do
     Repo.exists?(
       from m in TeamMembership,
         where:
           m.tenant_id == ^tenant_id and m.person_id == ^person_id and m.team_id == ^team_id and
             (not is_nil(m.declared_by_user_id) or not is_nil(m.organizational_role_id) or
-               not is_nil(m.invalidated_at))
+               not is_nil(m.invalidated_at) or not is_nil(m.ended_by_user_id))
     )
   end
 
@@ -1405,6 +1484,128 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   @typedoc "O papel escolhido: uma linha que existe, ou um conceito do catálogo a materializar."
   @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
 
+  @doc """
+  Declara o papel de uma pessoa nesta equipe — feature 060, FR-015 a FR-018.
+
+  ## A diferença com `promote_evidence/5`
+
+  Aquela parte da **evidência**: existe uma observação da origem, e quem administra a confirma
+  com um papel. Esta parte do **par pessoa–equipe**, e não exige evidência nenhuma — é o
+  caminho de quem declara alguém que a origem não mostra, ou de quem declara um **segundo**
+  papel para quem já tem um.
+
+  As duas terminam em `allocate/2`, que **completa** o vínculo observado quando ele existe
+  (mesmo `id`, ADR 0008) em vez de criar um segundo vigente.
+
+  ## `started_at` nulo FICA nulo (FR-016)
+
+  Campo vazio é desconhecido, nunca hoje. Preencher com hoje afirmaria que a pessoa assumiu o
+  papel agora, e o que se sabe é que ninguém disse quando. É a mesma regra da data da saída
+  (FR-023), pela mesma razão: presunção sem marca no registro vira fato.
+
+  ## O papel do catálogo nasce DENTRO da operação
+
+  Materializá-lo antes deixaria uma linha órfã de papel se a declaração falhasse — e um
+  catálogo com papéis que ninguém desempenha é pior que um catálogo curto: quem escolhe na
+  próxima vez não distingue o papel real do resto.
+  """
+  @spec declare_role(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          papel_escolhido(),
+          Ecto.UUID.t(),
+          keyword()
+        ) ::
+          {:ok, TeamMembership.t()}
+          | {:error,
+             :already_allocated
+             | :role_from_another_organization
+             | :not_in_catalog
+             | :not_found
+             | Ecto.Changeset.t()}
+  def declare_role(%Tenant{} = tenant, team_id, person_id, papel, actor_id, opts \\ []) do
+    with {:ok, equipe} <- Queries.fetch_team(tenant, team_id),
+         {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel) do
+      allocate(tenant, %{
+        person_id: person_id,
+        team_id: team_id,
+        organizational_role_id: role_id,
+        started_at: Keyword.get(opts, :started_at),
+        declared_by_user_id: actor_id
+      })
+    end
+  end
+
+  @doc """
+  Troca o papel de um vínculo: encerra o antigo e declara o novo — FR-017.
+
+  ## O histórico é a linha encerrada
+
+  Não há tabela de histórico de papel, e não é lacuna: o vínculo antigo **fica**, com o
+  período fechado, e a pergunta "que papel esta pessoa desempenhava em março" tem resposta
+  lendo os vínculos. Uma segunda tabela seria uma segunda verdade sobre o mesmo fato.
+
+  ## Numa transação, e por quê
+
+  Encerrar sem declarar deixa a pessoa na equipe sem papel — indistinguível de um vínculo
+  observado, que significa outra coisa. Declarar sem encerrar deixa dois papéis vigentes, o
+  que é legítimo (FR-018) mas **não** é o que quem clicou em "Change role" pediu.
+
+  As duas datas são a MESMA: o antigo termina onde o novo começa. `opts[:desde]` permite a
+  troca retroativa; sem ele, agora.
+
+  Trocar para o papel que a pessoa já tem vigente é `:already_allocated` — o índice parcial o
+  recusaria, e a mensagem nomeada é melhor que um erro de constraint.
+  """
+  @spec change_role(Tenant.t(), Ecto.UUID.t(), papel_escolhido(), Ecto.UUID.t(), keyword()) ::
+          {:ok, %{encerrado: TeamMembership.t(), novo: TeamMembership.t()}}
+          | {:error,
+             :not_found
+             | :already_ended
+             | :already_allocated
+             | :role_from_another_organization
+             | :not_in_catalog
+             | Ecto.Changeset.t()}
+  def change_role(%Tenant{} = tenant, membership_id, papel, actor_id, opts \\ []) do
+    quando = Keyword.get(opts, :desde) || DateTime.utc_now(:second)
+
+    Repo.transaction(fn ->
+      # O PAPEL É RESOLVIDO E COMPARADO **ANTES** DE ENCERRAR.
+      #
+      # Na ordem inversa — encerrar, depois declarar — trocar para o papel que a pessoa já
+      # tem **funcionava**: o vínculo antigo já não estava vigente quando a declaração
+      # chegava, então o índice parcial não a recusava. O resultado era uma linha encerrada e
+      # outra idêntica aberta, apresentadas na tela como uma troca de papel que não houve.
+      #
+      # Resolver dentro da transação é o que permite comparar sem deixar lixo: um conceito do
+      # catálogo é materializado aqui, e o `rollback` o desfaz se a comparação recusar.
+      with {:ok, antigo} <- Queries.fetch_membership(tenant, membership_id),
+           {:ok, equipe} <- Queries.fetch_team(tenant, antigo.team_id),
+           {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel),
+           :ok <- papel_realmente_diferente(antigo, role_id),
+           {:ok, encerrado} <- end_allocation(tenant, membership_id, quando, actor_id),
+           {:ok, novo} <-
+             declare_role(
+               tenant,
+               antigo.team_id,
+               antigo.person_id,
+               {:existente, role_id},
+               actor_id,
+               started_at: quando
+             ) do
+        %{encerrado: encerrado, novo: novo}
+      else
+        {:error, motivo} -> Repo.rollback(motivo)
+      end
+    end)
+  end
+
+  defp papel_realmente_diferente(%TeamMembership{organizational_role_id: atual}, atual),
+    do: {:error, :already_allocated}
+
+  defp papel_realmente_diferente(_antigo, _novo), do: :ok
+
   # Devolve `{:ok, vinculo_observado | nil}`: o vínculo vigente SEM papel que a evidência
   # aponta (a declarar), `nil` quando não há vínculo nenhum (caminho antigo), e recusa
   # quando o vínculo já tem papel — declarado uma vez, não se declara de novo por aqui.
@@ -1441,27 +1642,45 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
-  Encerra a alocação gravando a data de fim (FR-010).
+  Encerra a alocação gravando a data de fim, **com quem a declarou** (FR-010, FR-022).
 
   **Não apaga.** A pessoa desempenhou aquele papel, e isso continua verdade depois de ela sair.
 
   Encerrar de novo devolve `{:error, :already_ended}` e **não reescreve** a data da primeira: a
   segunda tentativa é engano de quem opera, e sobrescrever perderia quando de fato terminou.
+
+  ## Encerra UM vínculo — e é essa a diferença com `record_team_departure/5`
+
+  Aqui o alvo é um `membership_id`: um papel que terminou, com a pessoa possivelmente
+  continuando na equipe por outro. Lá o alvo é o par pessoa–equipe, e alcança todos. São
+  perguntas diferentes, e é por isso que `change_role/5` usa esta e não aquela.
+
+  A aridade 3 desta função não guardava autor, e sem ele fim declarado e fim constatado pela
+  coleta ficavam indistinguíveis — a mesma lacuna que a saída tinha.
   """
-  @spec end_allocation(Tenant.t(), Ecto.UUID.t(), DateTime.t()) ::
+  @spec end_allocation(Tenant.t(), Ecto.UUID.t(), DateTime.t(), Ecto.UUID.t()) ::
           {:ok, TeamMembership.t()} | {:error, :not_found | :already_ended}
-  def end_allocation(%Tenant{} = tenant, membership_id, quando) do
+  def end_allocation(%Tenant{} = tenant, membership_id, quando, actor_id)
+      when is_binary(actor_id) do
     with {:ok, vinculo} <- Queries.fetch_membership(tenant, membership_id) do
       if vinculo.ended_at do
         {:error, :already_ended}
       else
+        quando = DateTime.truncate(quando, :second)
+        agora = DateTime.utc_now(:second)
+
         {1, _} =
           Repo.update_all(
             from(m in TeamMembership, where: m.id == ^vinculo.id),
-            set: [ended_at: quando, updated_at: DateTime.utc_now(:second)]
+            set: [
+              ended_at: quando,
+              ended_by_user_id: actor_id,
+              end_declared_at: agora,
+              updated_at: agora
+            ]
           )
 
-        {:ok, %{vinculo | ended_at: quando}}
+        {:ok, %{vinculo | ended_at: quando, ended_by_user_id: actor_id, end_declared_at: agora}}
       end
     end
   end
