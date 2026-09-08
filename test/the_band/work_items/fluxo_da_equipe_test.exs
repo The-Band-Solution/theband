@@ -174,6 +174,159 @@ defmodule TheBand.WorkItems.FluxoDaEquipeTest do
     end
   end
 
+  describe "o fluxo da equipe INTEIRA, sobre o conjunto (FR-056, FR-058, FR-060)" do
+    test "mede o trabalho de quem está nas SUBEQUIPES, e não só o de vínculo direto", ctx do
+      # Uma equipe composta com duas partes, e as pessoas nas partes — que é o caso real: numa
+      # composta, quem tem vínculo direto em geral é ninguém.
+      org = organization_fixture(ctx.tenant, "acme2")
+      todo = team_fixture(ctx.tenant, "T_todo", %{organization: org, name: "TODO"})
+      parte_a = team_fixture(ctx.tenant, "T_a2", %{organization: org, name: "A"})
+      parte_b = team_fixture(ctx.tenant, "T_b2", %{organization: org, name: "B"})
+
+      autor = user_fixture(ctx.tenant)
+      {:ok, _} = EO.compose_teams(ctx.tenant, parte_a.id, todo.id, autor.id)
+      {:ok, _} = EO.compose_teams(ctx.tenant, parte_b.id, todo.id, autor.id)
+
+      {:ok, papel} = EO.create_role(ctx.tenant, org.id, %{code: "d2", name: "D"}, autor.id)
+
+      {:ok, bia} =
+        EO.upsert_person_from_source(
+          ctx.tenant,
+          source_attrs("U_bia", %{name: "Bia", login: "bia"})
+        )
+
+      {:ok, _} =
+        EO.declare_role(ctx.tenant, parte_a.id, bia.id, {:existente, papel.id}, autor.id,
+          started_at: dias(-300)
+        )
+
+      # Um item da Bia, que está na parte A e não no todo.
+      {:ok, i} =
+        Repo.insert(%CollectedIssue{
+          tenant_id: ctx.tenant.id,
+          observed_repository_id: ctx.repo_id,
+          external_id: "todo_1",
+          number: System.unique_integer([:positive]),
+          source_system: "github",
+          source_instance: "https://github.com",
+          title: "issue",
+          state: "OPEN",
+          external_created_at: dias(-10),
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      Repo.insert!(%IssueAssignee{
+        tenant_id: ctx.tenant.id,
+        collected_issue_id: i.id,
+        login: bia.login,
+        person_id: bia.id
+      })
+
+      opts = [desde: dias(-56), ate: dias(0)]
+      escopo = EO.team_roster_scope(ctx.tenant, todo.id)
+
+      # SEM o conjunto: o todo não vê nada, porque ninguém tem vínculo direto nele.
+      so_direto = WorkItems.team_state_changes_by_period(ctx.tenant, todo.id, :semana, opts)
+      assert somas(so_direto) == %{criadas: 0, fechadas: 0}
+
+      # COM o conjunto: vê o item da parte.
+      inteira =
+        WorkItems.team_state_changes_by_period(
+          ctx.tenant,
+          todo.id,
+          :semana,
+          opts ++ [equipes: escopo]
+        )
+
+      assert somas(inteira) == %{criadas: 1, fechadas: 0}, """
+      Sem o conjunto da equipe inteira, o painel de uma equipe composta mede quem tem vínculo
+      DIRETO nela — em geral ninguém, porque numa composta as pessoas estão nas partes. Era
+      isso que a 057 FR-011 impedia sem querer, e que a 060 FR-058 emendou.
+      """
+    end
+
+    test "a mesma pessoa em DUAS partes conta uma vez no todo (FR-060)", ctx do
+      org = organization_fixture(ctx.tenant, "acme3")
+      todo = team_fixture(ctx.tenant, "T_todo3", %{organization: org, name: "TODO3"})
+      parte_a = team_fixture(ctx.tenant, "T_a3", %{organization: org, name: "A3"})
+      parte_b = team_fixture(ctx.tenant, "T_b3", %{organization: org, name: "B3"})
+
+      autor = user_fixture(ctx.tenant)
+      {:ok, _} = EO.compose_teams(ctx.tenant, parte_a.id, todo.id, autor.id)
+      {:ok, _} = EO.compose_teams(ctx.tenant, parte_b.id, todo.id, autor.id)
+
+      {:ok, papel} = EO.create_role(ctx.tenant, org.id, %{code: "d3", name: "D"}, autor.id)
+
+      {:ok, cida} =
+        EO.upsert_person_from_source(
+          ctx.tenant,
+          source_attrs("U_cida", %{name: "Cida", login: "cida"})
+        )
+
+      # NAS DUAS partes. O vínculo é por equipe, então são dois vínculos.
+      for parte <- [parte_a, parte_b] do
+        {:ok, _} =
+          EO.declare_role(ctx.tenant, parte.id, cida.id, {:existente, papel.id}, autor.id,
+            started_at: dias(-300)
+          )
+      end
+
+      {:ok, i} =
+        Repo.insert(%CollectedIssue{
+          tenant_id: ctx.tenant.id,
+          observed_repository_id: ctx.repo_id,
+          external_id: "todo3_1",
+          number: System.unique_integer([:positive]),
+          source_system: "github",
+          source_instance: "https://github.com",
+          title: "issue",
+          state: "CLOSED",
+          external_created_at: dias(-20),
+          external_closed_at: dias(-10),
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      Repo.insert!(%IssueAssignee{
+        tenant_id: ctx.tenant.id,
+        collected_issue_id: i.id,
+        login: cida.login,
+        person_id: cida.id
+      })
+
+      escopo = EO.team_roster_scope(ctx.tenant, todo.id)
+
+      serie =
+        WorkItems.team_state_changes_by_period(
+          ctx.tenant,
+          todo.id,
+          :semana,
+          desde: dias(-56),
+          ate: dias(0),
+          equipes: escopo
+        )
+
+      assert somas(serie) == %{criadas: 1, fechadas: 1}, """
+      A Cida está nas duas partes, e o item é dela. O `JOIN` com os vínculos produz DUAS
+      linhas para o mesmo item, e sem `DISTINCT` na issue o todo contaria 2.
+
+      É a FR-060 medida: a curva do todo não é a soma das curvas das partes, e o motivo é
+      exactamente este — a pessoa em duas partes e o item com dois responsáveis contam uma
+      vez aqui, e uma vez em cada parte.
+      """
+
+      # E cada parte, medida por si, também conta o item — uma vez cada.
+      for parte <- [parte_a, parte_b] do
+        da_parte =
+          WorkItems.team_state_changes_by_period(ctx.tenant, parte.id, :semana,
+            desde: dias(-56),
+            ate: dias(0)
+          )
+
+        assert somas(da_parte) == %{criadas: 1, fechadas: 1}
+      end
+    end
+  end
+
   describe "a janela padrão da granulação ano precisa do banco (FR-078)" do
     test "primeira_atividade devolve a abertura mais antiga da equipe", ctx do
       issue(ctx, "velha", criada: dias(-700), fechada: dias(-690))

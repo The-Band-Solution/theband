@@ -156,11 +156,25 @@ defmodule TheBandWeb.EquipeCompostaTest do
       assert html =~ "same task"
     end
 
-    test "FR-011: nenhum gráfico nesta tela", ctx do
+    test "057 FR-011, EMENDADA: a TABELA continua sem gráfico, e o fluxo da equipe tem", ctx do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
 
-      refute html =~ "<svg",
-             "gráfico aqui contraria a decisão: a tela composta é para comparar, e comparação se faz em números alinhados"
+      # A 057 FR-011 proibia gráfico nesta tela, e a 060 FR-058 a emendou. O que ela protegia
+      # continua valendo — e é o que este teste passou a medir: a **tabela** por subequipe é
+      # para comparar, e comparação se faz em números alinhados.
+      [_antes, tabela] = String.split(html, "Teams inside this one", parts: 2)
+      [tabela, _depois] = String.split(tabela, "</table>", parts: 2)
+
+      refute tabela =~ "<svg", """
+      Gráfico DENTRO da tabela por subequipe contraria a decisão que a 057 tomou e a 060
+      manteve: a tabela é para comparar, e comparação se faz em números alinhados. O gráfico
+      pequeno por subequipe é a FR-084, e vive no CARTÃO da US7 — que ainda não existe.
+      """
+
+      # E o fluxo da equipe inteira agora existe, com a frase que a FR-060 exige.
+      assert html =~ "<svg", "a equipe composta passou a ter o fluxo da equipe inteira (FR-058)"
+      assert html =~ "not the sum"
+      assert html =~ "whole team"
     end
 
     test "SC-005: a ordem é por trabalho parado, e não alfabética", ctx do

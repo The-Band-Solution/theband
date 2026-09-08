@@ -10,6 +10,36 @@
 e recusas são as do protótipo; o que o protótipo marca `example` é dado de exemplo, e o que
 está nas tabelas de contagem é dado real de 2026-09-06.
 
+## O que a implementação de 2026-09-08 entregou
+
+| User story | Estado | O que dá para fazer na tela |
+|---|---|---|
+| **US1** — quem está na equipe | **entregue** | duas abas na mesma rota, uma linha por pessoa com os vínculos dentro, as quatro marcas com legenda em texto, e quem não gere lê tudo sem ver ação |
+| **US2** — declarar e alterar papel | **entregue** | *Declare role* / *Change role* na linha, `＋ new role…` criando sem sair dela, e o lote *Declare all roles* |
+| **US3** — a pessoa saiu | **entregue** | *Left the team…* com data obrigatória e vazia, e a mensagem dizendo quantos vínculos foram alcançados |
+| **US4** — o vínculo que nunca foi | **entregue** | *Mistake…* com razão obrigatória, e o texto que separa equívoco de saída |
+| **US5** — os papéis da organização | **entregue** | a seção *Roles*, com as duas contagens, código sugerido, renomear e ocultar |
+| **US9** — o fluxo em três granulações | **entregue** | burn com valores e datas no eixo, *Promised × Delivered*, Monte Carlo como histograma, e o seletor semana/mês/ano no cabeçalho de cada gráfico |
+| **US6, US7, US8** | **sem tarefa** | especificadas; o perfil de cada membro, o cartão da subequipe como porta, e as tarefas e problemas por pessoa |
+
+**Fora da entrega, e por quê:**
+
+- **T029, o gráfico pequeno no cartão da subequipe** (FR-084): depende do **cartão**, que é a
+  US7. Construir o gráfico antes do cartão seria infraestrutura sem consumidor visível;
+- **os quatro gráficos por membro** — WIP, prometido × realizado, throughput e Monte Carlo —
+  pedidos em 2026-09-08 e especificados em
+  [`spec-graficos-por-membro.md`](../../specs/060-tela-da-equipe/spec-graficos-por-membro.md)
+  como US10 a US12. **Sem protótipo aprovado**, e a casa não implementa tela sem ele.
+
+**Três defeitos anteriores à feature, achados ao construí-la:**
+
+1. `count_team_members_at/3` e `team_members_at/3` contavam **vínculos** onde prometiam
+   pessoas — quem tem dois papéis contava duas vezes, e a tela listava a pessoa duas vezes;
+2. o evento `promover` **não conferia permissão nenhuma**: qualquer conta autenticada que
+   alcançasse a tela declarava papel para quem quisesse;
+3. a coleta **desfazia a saída declarada** sobre vínculo observado, porque a guarda não
+   reconhecia o autor da saída. Registrado como emenda na ADR 0008.
+
 ## O que é
 
 Uma equipe passa a ter duas abas em `/teams/:id`:

@@ -584,8 +584,16 @@ defmodule TheBandWeb.TeamsLive.Show do
     do: dgettext("errors", "That link is already ended — nothing to change.")
 
   defp frase_do_papel(:not_found), do: dgettext("errors", "Link not found.")
-  defp frase_do_papel(motivo) when is_binary(motivo), do: motivo
-  defp frase_do_papel(outro), do: inspect(outro)
+
+  defp frase_do_papel(:not_in_catalog),
+    do: dgettext("errors", "That role is not in the catalogue.")
+
+  defp frase_do_papel(%Ecto.Changeset{} = cs), do: motivo_do_changeset(cs)
+
+  # SEM CATCH-ALL, e o dialyzer é que apontou: o `_ = outro` que eu havia escrito nunca casa,
+  # porque o tipo de retorno de `declare_role/6` e `change_role/5` é fechado. Um fallback que
+  # nunca corre dá a impressão de cobertura que não existe — e no dia em que o domínio ganhar
+  # um motivo novo, o compilador avisa em vez de a tela imprimir `:algum_atomo` para quem lê.
 
   # AS RECUSAS DA SEÇÃO DE PAPÉIS, cada uma dizendo o que fazer.
   #
@@ -617,8 +625,9 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp frase_do_papel_criado(:blank_name), do: dgettext("errors", "A role needs a name.")
   defp frase_do_papel_criado(:not_found), do: dgettext("errors", "Role not found.")
 
+  # Também sem catch-all, pela mesma razão: `create_role/4`, `rename_role/4`, `hide_role/3` e
+  # `unhide_role/3` têm tipo de retorno fechado, e o dialyzer recusa a cláusula que nunca casa.
   defp frase_do_papel_criado(%Ecto.Changeset{} = cs), do: motivo_do_changeset(cs)
-  defp frase_do_papel_criado(outro), do: inspect(outro)
 
   # O `membership_id` do papel vigente a encerrar, ou `false`. Com dois papéis vigentes pega o
   # primeiro — e a tela chama isso de "Change role", que encerra **aquele** e abre o novo; os
@@ -1024,7 +1033,18 @@ defmodule TheBandWeb.TeamsLive.Show do
 
     # A tela composta é para comparar. O detalhe — séries, burn, previsão e
     # pessoas — vive na tela de cada subequipe (FR-011).
-    assign(socket, composta?: true, linhas: linhas, detalhe: nil)
+    # A EQUIPE COMPOSTA PASSA A TER OS GRÁFICOS — feature 060, FR-058, emendando 057 FR-011.
+    #
+    # `detalhe: nil` era a proibição da 057: comparação em números alinhados, sem gráfico. O
+    # que ela protegia continua valendo — a **tabela** por subequipe segue sem gráfico —, e o
+    # que ela impedia sem querer era o fluxo da equipe INTEIRA, que é outra pergunta.
+    #
+    # E a curva não é a soma das curvas das partes (FR-060): o conjunto é a união distinta, e
+    # a pessoa em duas partes e o item com dois responsáveis contam uma vez aqui. A tela diz
+    # isso em palavras, porque a ausência de total numa tela que tem gráfico parece descuido.
+    socket
+    |> assign(composta?: true, linhas: linhas)
+    |> carregar_detalhe()
   end
 
   # O DETALHE da subequipe — feature 057, US3, US4, US5 e US6.
@@ -1038,15 +1058,23 @@ defmodule TheBandWeb.TeamsLive.Show do
     agora = DateTime.utc_now()
     granulacao = socket.assigns.granulacao
 
-    janela = janela_do_fluxo(tenant, team, granulacao, socket.assigns.periodos, agora)
+    # O ALCANCE DO FLUXO: numa equipe composta, o conjunto da equipe inteira (FR-056). É o
+    # mesmo alcance do roster — a equipe e as partes com composição vigente —, e reusá-lo é o
+    # que impede a tela de ter duas definições de "quem é desta equipe".
+    escopo = socket.assigns.escopo_do_roster
+    fluxo = [equipes: escopo]
+
+    janela = janela_do_fluxo(tenant, team, granulacao, socket.assigns.periodos, agora, fluxo)
 
     serie =
-      WorkItems.team_state_changes_by_period(tenant, team.id, granulacao,
-        desde: janela.desde,
-        ate: agora
+      WorkItems.team_state_changes_by_period(
+        tenant,
+        team.id,
+        granulacao,
+        [desde: janela.desde, ate: agora] ++ fluxo
       )
 
-    aberto_inicial = WorkItems.team_open_at(tenant, team.id, janela.desde)
+    aberto_inicial = WorkItems.team_open_at(tenant, team.id, janela.desde, fluxo)
     tarefas = WorkItems.team_open_tasks_by_person(tenant, team.id, agora)
     membros = EO.team_members_at(tenant, team.id, agora)
 
@@ -1056,7 +1084,11 @@ defmodule TheBandWeb.TeamsLive.Show do
         serie: serie,
         burn: WorkItems.burn(serie, aberto_inicial),
         aberto_inicial: aberto_inicial,
-        previsao: previsao_semanal(tenant, team, janela, agora),
+        previsao: previsao_semanal(tenant, team, janela, agora, fluxo),
+        # A equipe composta precisa dizer que a curva NÃO é a soma das partes (FR-060). A
+        # frase é da tela, e o dado que a justifica é este: quantas equipes entraram no
+        # conjunto.
+        equipes_no_conjunto: length(escopo),
         piso: Forecast.piso(),
         pessoas: Enum.map(membros, &Map.put(&1, :tarefas, Map.get(tarefas, &1.person_id, [])))
       }
@@ -1071,7 +1103,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   #
   # O `rotulo` volta com a janela porque o título de CADA gráfico tem de dizê-la (FR-078), e
   # deixar a tela montar a frase espalharia a regra por três componentes.
-  defp janela_do_fluxo(tenant, team, granulacao, escolhidos, agora) do
+  defp janela_do_fluxo(tenant, team, granulacao, escolhidos, agora, fluxo) do
     quantos = escolhidos || padrao_de_periodos(granulacao)
 
     desde =
@@ -1079,7 +1111,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         # "Todos os anos coletados" só o banco sabe. Sem item algum, a janela cai no padrão de
         # cinco anos — e a tela vai dizer que não há série, que é o que de facto acontece.
         {:ano, nil} ->
-          case WorkItems.team_first_activity(tenant, team.id) do
+          case WorkItems.team_first_activity(tenant, team.id, fluxo) do
             nil -> DateTime.add(agora, -365 * 5, :day)
             primeira -> primeira
           end
@@ -1128,24 +1160,26 @@ defmodule TheBandWeb.TeamsLive.Show do
   # Então a previsão reconsulta em semanas sobre a MESMA janela mostrada, em vez de reusar a
   # série do burn. É uma consulta a mais, e é o preço de a previsão não mudar de significado
   # quando quem lê troca a granulação para ler outra coisa.
-  defp previsao_semanal(tenant, team, %{granulacao: :semana}, agora) do
-    serie =
-      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
-        desde: janela_desde(team, agora, 8),
-        ate: agora
-      )
-
-    Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora))
+  defp previsao_semanal(tenant, team, %{granulacao: :semana}, agora, fluxo) do
+    prever(tenant, team, janela_desde(team, agora, 8), agora, fluxo)
   end
 
-  defp previsao_semanal(tenant, team, janela, agora) do
+  defp previsao_semanal(tenant, team, janela, agora, fluxo) do
+    prever(tenant, team, janela.desde, agora, fluxo)
+  end
+
+  defp prever(tenant, team, desde, agora, fluxo) do
     serie =
-      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
-        desde: janela.desde,
-        ate: agora
+      WorkItems.team_state_changes_by_period(
+        tenant,
+        team.id,
+        :semana,
+        [desde: desde, ate: agora] ++ fluxo
       )
 
-    Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora))
+    Forecast.monte_carlo(serie,
+      aberto: WorkItems.team_open_at(tenant, team.id, agora, fluxo)
+    )
   end
 
   defp janela_desde(_team, agora, semanas), do: DateTime.add(agora, -7 * semanas, :day)
@@ -1180,6 +1214,24 @@ defmodule TheBandWeb.TeamsLive.Show do
       <p class="mt-1 text-xs opacity-70">
         cumulative opened and closed. The hatched band between them is the work
         still open — it is derived from the two series, not a third line.
+        <span class="opacity-80">
+          Changing the grouping regroups the same items over that granularity's own default
+          window — it does not change what is measured.
+        </span>
+      </p>
+
+      <%!-- FR-060 — a curva da equipe INTEIRA não é a soma das curvas das subequipes.
+            A frase é obrigatória, e a razão de ser obrigatória é esta: numa tela que agora
+            tem gráfico, a ausência de um total parece descuido, e alguém somaria as linhas da
+            tabela para "conferir" — chegando a outro número, e concluindo que o gráfico está
+            errado. --%>
+      <p :if={@detalhe.equipes_no_conjunto > 1} class="mt-1 text-xs">
+        This curve covers the <strong>whole team</strong>
+        — its own members plus everyone in the {@detalhe.equipes_no_conjunto - 1} sub-teams
+        currently composed into it. It is <strong>not the sum</strong>
+        of the sub-team curves: someone in two sub-teams, and an item with two assignees,
+        count <em>once</em>
+        here and once in each sub-team.
       </p>
 
       <p :if={@detalhe.serie == []} class="mt-3 text-sm opacity-70">
