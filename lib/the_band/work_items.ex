@@ -92,6 +92,15 @@ defmodule TheBand.WorkItems do
     to: TeamWork,
     as: :primeira_atividade
 
+  # As séries e a linha de base de VÁRIAS equipes, numa consulta por evento — o gráfico
+  # pequeno de cada cartão de subequipe (060 FR-084). Uma chamada por cartão custaria três
+  # consultas por subequipe, e é o 1+N que o teto da tela pega.
+  defdelegate team_state_changes_by_team(tenant, equipes, escala, opts),
+    to: TeamWork,
+    as: :state_changes_by_team
+
+  defdelegate team_open_at_by_team(tenant, equipes, quando), to: TeamWork, as: :open_at_by_team
+
   defdelegate team_open_tasks_by_person(tenant, team_id, quando, ids \\ nil),
     to: TeamWork,
     as: :open_tasks_by_person

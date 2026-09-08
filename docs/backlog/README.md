@@ -5,6 +5,7 @@ escopo — não só a lista.
 
 | Documento | Do que trata | Prioridade |
 |---|---|---|
+| [O backup restaurado de verdade](backup-restaurado-de-verdade.md) | o §6 do runbook — bloqueado na conta do S3, que ainda não existe; a 050/US2 segue não aceita | **alta** |
 | [Entidades e CRUD](crud-entities.md) | como 220 conceitos viram ~94 entidades, e a ordem de construção | alta |
 | [GitHub → SRO](github-to-sro.md) | ingestão do GitHub para a Scrum Reference Ontology, em fatias verticais | alta |
 | [Papéis Scrum](papeis-scrum.md) | cadastro declarado e alocação de pessoas — o que o GitHub não expõe | alta |
