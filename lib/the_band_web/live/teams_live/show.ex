@@ -14,7 +14,6 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Forecast
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.EO
-  alias TheBand.Ontology.SEON.EO.Roster
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
   alias TheBand.Quality
@@ -258,6 +257,49 @@ defmodule TheBandWeb.TeamsLive.Show do
   #
   # Passam por `com_gestao/2` como os demais: quem não gere não vê o botão, e o evento chega
   # por websocket de todo modo.
+  def handle_event("abrir_papel", %{"person_id" => id}, socket) do
+    com_gestao(socket, fn ->
+      case pessoa_do_roster(socket, id) do
+        nil ->
+          socket
+
+        pessoa ->
+          assign(socket,
+            papel: %{
+              person_id: pessoa.person_id,
+              name: pessoa.name,
+              # `trocar` é o `membership_id` do papel vigente a encerrar, ou `false` quando
+              # não há papel declarado. Guarda a decisão de qual comando chamar, tomada com o
+              # roster que está na tela — e reconferida no `handle_event` da submissão.
+              trocar: vinculo_com_papel(pessoa),
+              escolhido: nil
+            },
+            saida: nil,
+            equivoco: nil
+          )
+      end
+    end)
+  end
+
+  # A escolha do `<select>` volta ao servidor para que "＋ new role…" possa abrir o campo do
+  # nome. `phx-change` no formulário inteiro, e não só no select: o campo de data também
+  # dispara, e reabrir o formulário perdendo o que já foi digitado seria pior que uma
+  # requisição a mais.
+  def handle_event("escolher_papel", %{"papel" => escolhido}, socket) do
+    {:noreply, assign(socket, papel: %{socket.assigns.papel | escolhido: escolhido})}
+  end
+
+  def handle_event("escolher_papel", _params, socket), do: {:noreply, socket}
+
+  def handle_event("registrar_papel", params, socket) do
+    com_gestao(socket, fn ->
+      case papel_do_formulario(socket, params) do
+        {:ok, papel} -> aplicar_papel(socket, params, papel)
+        {:error, motivo} -> put_flash(socket, :error, motivo)
+      end
+    end)
+  end
+
   def handle_event("abrir_saida", %{"person_id" => id}, socket) do
     com_gestao(socket, fn ->
       assign(socket, saida: pessoa_do_roster(socket, id), equivoco: nil)
@@ -316,6 +358,135 @@ defmodule TheBandWeb.TeamsLive.Show do
       end
     end)
   end
+
+  # A escolha do formulário vira `papel_escolhido()`. "＋ new role…" cria o papel **aqui**,
+  # na organização da equipe, e a declaração usa o id recém-criado — é o "sem sair da linha"
+  # da FR-034.
+  defp papel_do_formulario(_socket, %{"papel" => ""}),
+    do:
+      {:error,
+       dgettext("errors", "Pick a role, or create a new one — the platform does not guess.")}
+
+  defp papel_do_formulario(socket, %{"papel" => "novo", "nome_do_papel" => nome}) do
+    nome = String.trim(nome)
+
+    if nome == "" do
+      {:error, dgettext("errors", "A new role needs a name.")}
+    else
+      criar_papel(socket, nome)
+    end
+  end
+
+  defp papel_do_formulario(_socket, %{"papel" => valor}), do: {:ok, papel_escolhido(valor)}
+
+  defp papel_do_formulario(_socket, _params),
+    do: {:error, dgettext("errors", "Pick a role, or create a new one.")}
+
+  defp criar_papel(socket, nome) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    case EO.create_role(
+           tenant,
+           team.organization_id,
+           %{code: codigo_sugerido(nome), name: nome},
+           socket.assigns.current_user.id
+         ) do
+      {:ok, papel} -> {:ok, {:existente, papel.id}}
+      {:error, motivo} when is_atom(motivo) -> {:error, to_string(motivo)}
+      {:error, %Ecto.Changeset{} = cs} -> {:error, motivo_do_changeset(cs)}
+    end
+  end
+
+  # O código sai do nome: "Tech Lead" vira `tech_lead`. Pedir o código a quem digita o nome
+  # seria pedir duas vezes a mesma coisa, e a segunda é a que ninguém entende para que serve.
+  defp codigo_sugerido(nome) do
+    nome
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/u, "_")
+    |> String.trim("_")
+  end
+
+  defp motivo_do_changeset(%Ecto.Changeset{} = cs) do
+    cs
+    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
+  end
+
+  defp aplicar_papel(socket, params, papel) do
+    opts = opcoes_de_data(params)
+    resultado = declarar_ou_trocar(socket, params, papel, opts)
+
+    case resultado do
+      {:ok, _} ->
+        socket
+        |> put_flash(:info, dgettext("sistema", "Role recorded."))
+        |> assign(papel: nil)
+        |> recarregar()
+
+      {:error, motivo} ->
+        put_flash(socket, :error, frase_do_papel(motivo))
+    end
+  end
+
+  # `membership_id` presente é TROCA; ausente é declaração. O parâmetro vem do formulário, e é
+  # por isso que `change_role/5` reconfere o vínculo: o campo escondido diz o que a tela viu
+  # no último render, e o vínculo pode ter sido encerrado desde então.
+  defp declarar_ou_trocar(socket, %{"membership_id" => id}, papel, opts) when id != "" do
+    EO.change_role(
+      socket.assigns.current_tenant,
+      id,
+      papel,
+      socket.assigns.current_user.id,
+      Keyword.take(opts, [:desde])
+    )
+  end
+
+  defp declarar_ou_trocar(socket, params, papel, opts) do
+    EO.declare_role(
+      socket.assigns.current_tenant,
+      socket.assigns.team.id,
+      params["person_id"],
+      papel,
+      socket.assigns.current_user.id,
+      started_at: opts[:desde]
+    )
+  end
+
+  # Data vazia é `nil`, e `nil` significa desconhecido — não hoje (FR-016).
+  defp opcoes_de_data(%{"desde" => texto}) when is_binary(texto) do
+    case data_da_saida(texto) do
+      {:ok, data} -> [desde: data]
+      :sem_data -> [desde: nil]
+    end
+  end
+
+  defp opcoes_de_data(_params), do: [desde: nil]
+
+  defp frase_do_papel(:already_allocated),
+    do: dgettext("errors", "This person already holds that role here.")
+
+  defp frase_do_papel(:role_from_another_organization),
+    do: dgettext("errors", "That role belongs to another organisation.")
+
+  defp frase_do_papel(:already_ended),
+    do: dgettext("errors", "That link is already ended — nothing to change.")
+
+  defp frase_do_papel(:not_found), do: dgettext("errors", "Link not found.")
+  defp frase_do_papel(motivo) when is_binary(motivo), do: motivo
+  defp frase_do_papel(outro), do: inspect(outro)
+
+  # O `membership_id` do papel vigente a encerrar, ou `false`. Com dois papéis vigentes pega o
+  # primeiro — e a tela chama isso de "Change role", que encerra **aquele** e abre o novo; os
+  # demais continuam. Trocar todos de uma vez seria outra ação, e ninguém a pediu.
+  defp vinculo_com_papel(pessoa) do
+    case Enum.find(pessoa.vinculos, &(&1.vigente? and &1.direta? and &1.role)) do
+      nil -> false
+      vinculo -> vinculo.membership_id
+    end
+  end
+
+  defp algum_papel_declarado?(pessoa), do: vinculo_com_papel(pessoa) != false
 
   defp aplicar_saida(socket, person_id, data) do
     case EO.record_team_departure(
@@ -493,12 +664,12 @@ defmodule TheBandWeb.TeamsLive.Show do
 
     socket
     |> assign(por_pagina: @por_pagina)
-    |> assign(totais: Roster.team_roster_totals(tenant, team.id))
+    |> assign(totais: EO.team_roster_totals(tenant, team.id))
     |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
     |> assign(gestao: Tenants.pode_gerir_estrutura(tenant, socket.assigns.current_user, team.id))
     # Os formulários da linha nascem fechados a cada carga: trocar de aba ou de página com um
     # formulário aberto o deixaria pendurado sobre uma linha que já não está na tela.
-    |> assign(saida: nil, equivoco: nil)
+    |> assign(saida: nil, equivoco: nil, papel: nil)
   end
 
   # CADA ABA CARREGA SÓ O QUE DESENHA — decisão D2 do plano.
@@ -522,7 +693,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> assign(
       roster:
-        Roster.list_team_roster(
+        EO.list_team_roster(
           tenant,
           team.id,
           opts ++
@@ -533,7 +704,7 @@ defmodule TheBandWeb.TeamsLive.Show do
             ]
         )
     )
-    |> assign(encontradas: Roster.count_team_roster(tenant, team.id, opts))
+    |> assign(encontradas: EO.count_team_roster(tenant, team.id, opts))
     |> carregar_promocao()
   end
 
@@ -2291,6 +2462,16 @@ defmodule TheBandWeb.TeamsLive.Show do
                 oferecer um botão que o servidor vai recusar. --%>
           <:col :let={pessoa} label="">
             <div :if={match?({:ok, _}, @gestao) and pessoa.situacao == :vigente} class="flex gap-1">
+              <%!-- "Declare role" quando nenhum vínculo vigente tem papel; "Change role"
+                    quando algum tem. São ações diferentes: uma completa o vínculo observado,
+                    a outra encerra um papel e abre outro. --%>
+              <button
+                phx-click="abrir_papel"
+                phx-value-person_id={pessoa.person_id}
+                class="btn btn-xs btn-primary"
+              >
+                {if algum_papel_declarado?(pessoa), do: "Change role", else: "Declare role"}
+              </button>
               <button
                 phx-click="abrir_saida"
                 phx-value-person_id={pessoa.person_id}
@@ -2308,6 +2489,82 @@ defmodule TheBandWeb.TeamsLive.Show do
             </div>
           </:col>
         </.data_table>
+
+        <%!-- ═══ DECLARAR OU ALTERAR O PAPEL — T019, FR-015 a FR-018 e FR-034 ═══
+              O texto é o do protótipo aprovado em 2026-09-07.
+
+              A data "since" vem VAZIA, e o rótulo diz o que isso significa — "empty =
+              unknown, never today". A versão anterior desta tela pré-preenchia com hoje na
+              seção de promoção, e a FR-016 a proíbe pela mesma razão da FR-023. --%>
+        <section :if={@papel} class="card border border-primary bg-base-200 p-4">
+          <h3 class="text-sm font-semibold">
+            {if @papel.trocar, do: "change role", else: "declare role"} · {@papel.name}
+          </h3>
+
+          <form phx-submit="registrar_papel" phx-change="escolher_papel" class="mt-2">
+            <input type="hidden" name="person_id" value={@papel.person_id} />
+            <input :if={@papel.trocar} type="hidden" name="membership_id" value={@papel.trocar} />
+
+            <div class="flex flex-wrap items-end gap-3">
+              <label class="form-control">
+                <span class="label-text text-xs">{@papel.name}'s role in this team</span>
+                <select name="papel" class="select select-sm select-bordered">
+                  <option value="">choose…</option>
+                  <option
+                    :for={papel <- @papeis_para_promover}
+                    value={valor_do_papel(papel)}
+                    selected={@papel.escolhido == valor_do_papel(papel)}
+                  >
+                    {papel.name}
+                  </option>
+                  <option value="novo" selected={@papel.escolhido == "novo"}>
+                    ＋ new role…
+                  </option>
+                </select>
+              </label>
+
+              <%!-- "＋ new role…" abre o campo SEM SAIR DA LINHA (FR-034). O formulário de
+                    papéis vive na seção Roles; trazer a pessoa até lá e de volta perderia a
+                    linha em que ela estava. --%>
+              <label :if={@papel.escolhido == "novo"} class="form-control">
+                <span class="label-text text-xs">name of the new role</span>
+                <input
+                  type="text"
+                  name="nome_do_papel"
+                  placeholder="e.g. Tech Lead"
+                  class="input input-sm input-bordered"
+                />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text text-xs">since</span>
+                <input type="date" name="desde" class="input input-sm input-bordered" />
+              </label>
+
+              <button type="submit" class="btn btn-sm btn-primary">
+                {if @papel.trocar, do: "Change", else: "Declare"}
+              </button>
+              <button type="button" phx-click="fechar_formularios" class="btn btn-sm btn-ghost">
+                Cancel
+              </button>
+            </div>
+          </form>
+
+          <p class="mt-2 text-xs opacity-80">
+            <span class="font-semibold">empty date = unknown, never today.</span>
+            <span :if={not @papel.trocar}>
+              Declaring completes the observed link — <strong>same link</strong>, now with a
+              role and an author. A second role at the same time is allowed: Developer and
+              Scrum Master together is common.
+            </span>
+            <span :if={@papel.trocar}>
+              Changing <strong>ends</strong>
+              the current role and opens the new one from the same date. The old link stays,
+              with its period closed — that <em>is</em>
+              the history.
+            </span>
+          </p>
+        </section>
 
         <%!-- ═══ SAÍDA DECLARADA — T015, FR-019 a FR-023 ═══
               O texto é o do protótipo aprovado em 2026-09-07.
@@ -2506,15 +2763,19 @@ defmodule TheBandWeb.TeamsLive.Show do
                   </label>
 
                   <label class="fieldset">
-                    <span class="label-text text-xs">assumed the role on</span>
-                    <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
-                        não sabe desde quando a pessoa está na equipe — carimbar hoje sem
-                        permitir correção afirmaria algo falso para quem entrou há um ano.
-                        Esvaziar é permitido, e significa DESCONHECIDO. --%>
+                    <span class="label-text text-xs">
+                      assumed the role on <span class="opacity-60">· empty = unknown</span>
+                    </span>
+                    <%!-- VAZIA, e não hoje — feature 060, FR-016 (T020).
+                        Vinha preenchida com hoje "como ponto de partida", e a premissa era que
+                        quem soubesse a data real a corrigiria. Não é o que acontece: um campo
+                        já preenchido é enviado como está, e a data de hoje passa a ser a data
+                        em que assumiu o papel quem o assumiu há um ano.
+                        A origem não sabe desde quando, e a plataforma não inventa. Vazio é
+                        DESCONHECIDO, e é a mesma regra da data da saída (FR-023). --%>
                     <input
                       type="date"
                       name={"started_at[#{p.id}]"}
-                      value={Date.to_iso8601(Date.utc_today())}
                       class="input input-sm input-bordered"
                     />
                   </label>

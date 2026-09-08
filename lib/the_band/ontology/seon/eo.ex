@@ -27,6 +27,7 @@ defmodule TheBand.Ontology.SEON.EO do
   alias TheBand.Ontology.SEON.EO.Constraints
   alias TheBand.Ontology.SEON.EO.Profiles
   alias TheBand.Ontology.SEON.EO.Queries
+  alias TheBand.Ontology.SEON.EO.Roster
   alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.EO.Visibility
 
@@ -85,6 +86,13 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_evidence(tenant, evidence_id), to: Queries
   defdelegate fetch_team(tenant, team_id), to: Queries
   defdelegate fetch_role(tenant, role_id), to: Queries
+
+  # O ROSTER — feature 060, T009. Uma linha por PESSOA, com os vínculos dela dentro, e o
+  # alcance incluindo as subequipes vigentes. Vive em `Roster` e não em `Queries` porque
+  # responde por vínculo, e `list_team_members/3` responde por evidência.
+  defdelegate list_team_roster(tenant, team_id, opts \\ []), to: Roster
+  defdelegate count_team_roster(tenant, team_id, opts \\ []), to: Roster
+  defdelegate team_roster_totals(tenant, team_id), to: Roster
   defdelegate suggested_roles(), to: Queries
   defdelegate count_memberships(tenant), to: Queries
   defdelegate count_memberships_of_role(tenant, role_id), to: Queries

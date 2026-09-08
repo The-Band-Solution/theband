@@ -151,11 +151,26 @@ defmodule TheBandWeb.PromocaoNaTelaTest do
   end
 
   describe "a data de início" do
-    test "vem preenchida com hoje, como ponto de partida", ctx do
+    test "vem VAZIA, e o rótulo diz que vazio é desconhecido (FR-016)", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
-      assert html =~ Date.to_iso8601(Date.utc_today())
-      assert html =~ ~s(type="date")
+      # ANTES este teste afirmava o contrário — "vem preenchida com hoje, como ponto de
+      # partida" —, e a premissa era que quem soubesse a data real a corrigiria. Não é o que
+      # acontece: um campo já preenchido é enviado como está, e a data de hoje passa a ser a
+      # data em que assumiu o papel quem o assumiu há um ano. A FR-016 substituiu a premissa.
+      #
+      # E a versão anterior desta asserção era um VERDE FALSO depois da mudança: ela procurava
+      # a data de hoje em qualquer lugar do HTML, e hoje aparece no eixo do gráfico de burn.
+      # Passava sem que o campo estivesse preenchido. Por isso agora a asserção é sobre o
+      # CAMPO, com o nome dele.
+      assert html =~ ~s|name="started_at[#{ctx.evidencia.id}]"|
+
+      refute html =~ ~r/name="started_at\[#{ctx.evidencia.id}\]"[^>]*value="\d/, """
+      O campo de início não pode vir preenchido. Vazio é DESCONHECIDO — a origem não sabe
+      desde quando a pessoa está no papel, e a plataforma não inventa.
+      """
+
+      assert html =~ "empty = unknown"
     end
 
     test "esvaziar grava nulo, e não a data de hoje", ctx do
