@@ -250,6 +250,125 @@ defmodule TheBandWeb.TeamsLive.Show do
     end)
   end
 
+  # ABRIR E FECHAR OS FORMULÁRIOS DA LINHA — T015, T017.
+  #
+  # Um por vez: abrir a saída fecha o equívoco e vice-versa. Dois formulários abertos sobre a
+  # mesma pessoa, um dizendo "saiu em" e o outro "nunca esteve", convidariam a preencher os
+  # dois — e são afirmações contraditórias.
+  #
+  # Passam por `com_gestao/2` como os demais: quem não gere não vê o botão, e o evento chega
+  # por websocket de todo modo.
+  def handle_event("abrir_saida", %{"person_id" => id}, socket) do
+    com_gestao(socket, fn ->
+      assign(socket, saida: pessoa_do_roster(socket, id), equivoco: nil)
+    end)
+  end
+
+  def handle_event("abrir_equivoco", %{"person_id" => id}, socket) do
+    com_gestao(socket, fn ->
+      assign(socket, equivoco: pessoa_do_roster(socket, id), saida: nil)
+    end)
+  end
+
+  def handle_event("fechar_formularios", _params, socket),
+    do: {:noreply, assign(socket, saida: nil, equivoco: nil)}
+
+  def handle_event("registrar_saida", %{"person_id" => id, "quando" => quando}, socket) do
+    com_gestao(socket, fn ->
+      # A DATA É OBRIGATÓRIA, e a recusa é aqui — não no `required` do HTML. O evento chega
+      # por websocket, e `required` não vale para quem o dispara sem passar pelo formulário.
+      case data_da_saida(quando) do
+        {:ok, data} ->
+          socket
+          |> aplicar_saida(id, data)
+          |> assign(saida: nil)
+
+        :sem_data ->
+          put_flash(
+            socket,
+            :error,
+            dgettext(
+              "errors",
+              "A departure needs a date — the platform does not assume today."
+            )
+          )
+      end
+    end)
+  end
+
+  def handle_event("registrar_equivoco", %{"person_id" => id, "razao" => razao}, socket) do
+    com_gestao(socket, fn ->
+      case EO.record_team_membership_mistake(
+             socket.assigns.current_tenant,
+             socket.assigns.team.id,
+             id,
+             String.trim(razao),
+             socket.assigns.current_user.id
+           ) do
+        {:ok, quantos} ->
+          socket
+          |> put_flash(:info, frase_do_equivoco(quantos))
+          |> assign(equivoco: nil)
+          |> recarregar()
+
+        {:error, motivo} ->
+          put_flash(socket, :error, motivo)
+      end
+    end)
+  end
+
+  defp aplicar_saida(socket, person_id, data) do
+    case EO.record_team_departure(
+           socket.assigns.current_tenant,
+           socket.assigns.team.id,
+           person_id,
+           data,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, quantos} ->
+        socket |> put_flash(:info, frase_da_saida(quantos)) |> recarregar()
+
+      {:error, motivo} ->
+        put_flash(socket, :error, motivo)
+    end
+  end
+
+  # A data vem como `"AAAA-MM-DD"` do `input type=date`, e vira o INÍCIO daquele dia. Não é
+  # `DateTime.utc_now/0` com a data trocada: a hora de hoje aplicada a uma data retroativa
+  # afirmaria um instante que ninguém informou.
+  defp data_da_saida(texto) when is_binary(texto) do
+    case Date.from_iso8601(String.trim(texto)) do
+      {:ok, data} -> {:ok, DateTime.new!(data, ~T[00:00:00], "Etc/UTC")}
+      {:error, _} -> :sem_data
+    end
+  end
+
+  defp data_da_saida(_), do: :sem_data
+
+  # QUANTOS vínculos foram alcançados, dito na frase. Uma pessoa com dois papéis produz "2
+  # links", e omitir o número esconderia que a ação alcançou mais do que a linha clicada.
+  defp frase_da_saida(1), do: dgettext("sistema", "Departure recorded — 1 link ended.")
+
+  defp frase_da_saida(n),
+    do: dgettext("sistema", "Departure recorded — %{n} links ended.", n: n)
+
+  defp frase_do_equivoco(1),
+    do: dgettext("sistema", "Recorded as a mistake — 1 link now counts for no date.")
+
+  defp frase_do_equivoco(n),
+    do:
+      dgettext(
+        "sistema",
+        "Recorded as a mistake — %{n} links now count for no date.",
+        n: n
+      )
+
+  # A pessoa da linha, lida do roster que já está na tela — e não do banco. Se o id não está
+  # no roster, quem disparou o evento não o pegou desta tela, e não há formulário a abrir.
+  defp pessoa_do_roster(socket, person_id) do
+    Enum.find(socket.assigns.roster, &(&1.person_id == person_id))
+  end
+
   # O VEREDITO É RE-PERGUNTADO EM TODO EVENTO DE ESCRITA — FR-006, FR-082, SC-011.
   #
   # Não basta esconder o botão: o evento chega por websocket, e quem sabe o nome dele o
@@ -377,6 +496,9 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> assign(totais: Roster.team_roster_totals(tenant, team.id))
     |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
     |> assign(gestao: Tenants.pode_gerir_estrutura(tenant, socket.assigns.current_user, team.id))
+    # Os formulários da linha nascem fechados a cada carga: trocar de aba ou de página com um
+    # formulário aberto o deixaria pendurado sobre uma linha que já não está na tela.
+    |> assign(saida: nil, equivoco: nil)
   end
 
   # CADA ABA CARREGA SÓ O QUE DESENHA — decisão D2 do plano.
@@ -2163,7 +2285,100 @@ defmodule TheBandWeb.TeamsLive.Show do
               {nome}
             </span>
           </:col>
+
+          <%!-- AS AÇÕES SÓ EXISTEM PARA QUEM GERE (FR-006, SC-011), e só sobre quem está
+                vigente: pedir a saída de quem já saiu, ou o equívoco de um equívoco, é
+                oferecer um botão que o servidor vai recusar. --%>
+          <:col :let={pessoa} label="">
+            <div :if={match?({:ok, _}, @gestao) and pessoa.situacao == :vigente} class="flex gap-1">
+              <button
+                phx-click="abrir_saida"
+                phx-value-person_id={pessoa.person_id}
+                class="btn btn-xs btn-ghost"
+              >
+                Left the team…
+              </button>
+              <button
+                phx-click="abrir_equivoco"
+                phx-value-person_id={pessoa.person_id}
+                class="btn btn-xs btn-ghost text-error"
+              >
+                Mistake…
+              </button>
+            </div>
+          </:col>
         </.data_table>
+
+        <%!-- ═══ SAÍDA DECLARADA — T015, FR-019 a FR-023 ═══
+              O texto é o do protótipo aprovado em 2026-09-07.
+
+              **A data NÃO vem preenchida**, e aqui o protótipo mostrava `2026-09-05`. A
+              FR-023 substituiu aquela premissa da 055 ("hoje, marcada como presumida") por
+              esta: presunção sem marca no registro vira fato. Um campo já preenchido com hoje
+              é aceito com um clique, e a data de hoje passa a ser a data da saída de quem
+              saiu no mês passado. --%>
+        <section :if={@saida} class="card border border-warning bg-base-200 p-4">
+          <h3 class="text-sm font-semibold">
+            left the team · {@saida.name}
+          </h3>
+
+          <form phx-submit="registrar_saida" class="mt-2 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="person_id" value={@saida.person_id} />
+            <label class="form-control">
+              <span class="label-text text-xs">{@saida.name} left on</span>
+              <input type="date" name="quando" class="input input-sm input-bordered" />
+            </label>
+            <button type="submit" class="btn btn-sm btn-warning">Record departure</button>
+            <button type="button" phx-click="fechar_formularios" class="btn btn-sm btn-ghost">
+              Cancel
+            </button>
+          </form>
+
+          <p class="mt-2 text-xs opacity-80">
+            The link is <strong>ended, not deleted</strong>. Every number already shown for a
+            period before that date stays exactly the same. If the source still lists this
+            person, the next collection will <strong>not</strong>
+            re-add them — the screen will show <em>both</em>
+            statements instead.
+          </p>
+        </section>
+
+        <%!-- ═══ O EQUÍVOCO — T017, FR-024 e FR-025 ═══
+              A razão é obrigatória, e o texto diz por quê: sem ela, um engano registrado no
+              mesmo dia da entrada fica indistinguível de alguém que entrou e saiu no mesmo
+              dia. O banco impõe o trio junto. --%>
+        <section :if={@equivoco} class="card border border-error bg-base-200 p-4">
+          <h3 class="text-sm font-semibold text-error">
+            registered by mistake · {@equivoco.name}
+          </h3>
+
+          <form phx-submit="registrar_equivoco" class="mt-2 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="person_id" value={@equivoco.person_id} />
+            <label class="form-control min-w-80">
+              <span class="label-text text-xs">why</span>
+              <input
+                type="text"
+                name="razao"
+                required
+                placeholder="e.g. wrong login picked when declaring"
+                class="input input-sm input-bordered"
+              />
+            </label>
+            <button type="submit" class="btn btn-sm btn-error">Invalidate link</button>
+            <button type="button" phx-click="fechar_formularios" class="btn btn-sm btn-ghost">
+              Cancel
+            </button>
+          </form>
+
+          <p class="mt-2 text-xs opacity-80">
+            <strong>This is not "left the team".</strong>
+            A mistake is a link that never was: it leaves every measure, for <strong>every date</strong>. The record stays — with the reason, who, and when —
+            because the mistake itself is a fact. It applies to <strong>declared and observed</strong>
+            links alike: after a mistake, the next collection <em>does not</em>
+            re-create the link even if the source still lists the person — the screen shows
+            both statements instead, until the source is fixed.
+          </p>
+        </section>
 
         <%!-- ═══ AS DUAS AFIRMAÇÕES — feature 055, FR-012 ═══
             Duas tabelas afirmam sobre a mesma pessoa, e aqui elas discordam. A tela
