@@ -59,7 +59,7 @@ defmodule TheBand.Ontology.SEON.EO.DiscordanciaTest do
     test "vínculo encerrado ao lado de um vigente NÃO é discordância", ctx do
       c = ctx.a
       {:ok, encerrado} = aloca(c, c.papel)
-      {:ok, _} = EO.end_allocation(c.tenant, encerrado.id, ontem())
+      {:ok, _} = EO.end_allocation(c.tenant, encerrado.id, ontem(), c.user.id)
 
       {:ok, outro_papel} =
         EO.create_role(c.tenant, c.org.id, %{code: "sm", name: "Scrum Master"}, c.user.id)
@@ -74,13 +74,13 @@ defmodule TheBand.Ontology.SEON.EO.DiscordanciaTest do
     test "dois vínculos, os dois encerrados, é discordância uma vez só", ctx do
       c = ctx.a
       {:ok, um} = aloca(c, c.papel)
-      {:ok, _} = EO.end_allocation(c.tenant, um.id, ontem())
+      {:ok, _} = EO.end_allocation(c.tenant, um.id, ontem(), c.user.id)
 
       {:ok, outro_papel} =
         EO.create_role(c.tenant, c.org.id, %{code: "sm", name: "Scrum Master"}, c.user.id)
 
       {:ok, dois} = aloca(c, outro_papel)
-      {:ok, _} = EO.end_allocation(c.tenant, dois.id, ontem())
+      {:ok, _} = EO.end_allocation(c.tenant, dois.id, ontem(), c.user.id)
 
       # Uma pessoa, uma linha. Duas linhas fariam quem conta a lista medir
       # vínculos em vez de gente.
@@ -119,7 +119,7 @@ defmodule TheBand.Ontology.SEON.EO.DiscordanciaTest do
       # Pertenceu como desenvolvedora e saiu; o vínculo de Scrum Master foi um
       # engano. Dizer "nunca esteve" seria falso — ela esteve, no primeiro papel.
       {:ok, encerrado} = aloca(c, c.papel)
-      {:ok, _} = EO.end_allocation(c.tenant, encerrado.id, ontem())
+      {:ok, _} = EO.end_allocation(c.tenant, encerrado.id, ontem(), c.user.id)
 
       {:ok, outro_papel} =
         EO.create_role(c.tenant, c.org.id, %{code: "sm", name: "Scrum Master"}, c.user.id)
@@ -219,7 +219,7 @@ defmodule TheBand.Ontology.SEON.EO.DiscordanciaTest do
 
   defp discorda(c) do
     {:ok, vinculo} = aloca(c, c.papel)
-    {:ok, _} = EO.end_allocation(c.tenant, vinculo.id, ontem())
+    {:ok, _} = EO.end_allocation(c.tenant, vinculo.id, ontem(), c.user.id)
     :ok
   end
 

@@ -135,7 +135,7 @@ defmodule TheBand.Ontology.SEON.EO.ColetaNaoApagaDeclaracaoTest do
   end
 
   test "encerrar o vínculo não apaga a evidência", ctx do
-    {:ok, _} = EO.end_allocation(ctx.tenant, ctx.vinculo.id, DateTime.utc_now(:second))
+    {:ok, _} = EO.end_allocation(ctx.tenant, ctx.vinculo.id, DateTime.utc_now(:second), ctx.vinculo.declared_by_user_id)
 
     assert recarregar_evidencia(ctx), """
     Encerrar uma declaração humana não pode apagar a observação que a originou — ela continua

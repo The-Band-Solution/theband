@@ -129,7 +129,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
 
     test "o mesmo papel com períodos distintos produz duas linhas", ctx do
       {:ok, primeiro} = alocar(ctx, ctx.papel)
-      {:ok, _} = EO.end_allocation(ctx.tenant, primeiro.id, ~U[2026-06-30 00:00:00Z])
+      {:ok, _} = EO.end_allocation(ctx.tenant, primeiro.id, ~U[2026-06-30 00:00:00Z], ctx.user.id)
 
       assert {:ok, _} = alocar(ctx, ctx.papel), """
       **Este caso valida o índice parcial.** Quem saiu do papel e voltou tem duas linhas, com
@@ -185,7 +185,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
       antes = EO.count_memberships(ctx.tenant)
 
       assert {:ok, encerrado} =
-               EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-01 00:00:00Z])
+               EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-01 00:00:00Z], ctx.user.id)
 
       assert encerrado.ended_at == ~U[2026-08-01 00:00:00Z]
 
@@ -199,10 +199,10 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
 
     test "encerrar de novo não reescreve a data da primeira vez", ctx do
       {:ok, vinculo} = alocar(ctx, ctx.papel)
-      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-01 00:00:00Z])
+      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-01 00:00:00Z], ctx.user.id)
 
       assert {:error, :already_ended} =
-               EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-20 00:00:00Z])
+               EO.end_allocation(ctx.tenant, vinculo.id, ~U[2026-08-20 00:00:00Z], ctx.user.id)
 
       {:ok, intacto} = EO.fetch_membership(ctx.tenant, vinculo.id)
 
@@ -217,7 +217,7 @@ defmodule TheBand.Ontology.SEON.EO.AlocacaoTest do
       vizinho = tenant_fixture()
 
       assert {:error, :not_found} =
-               EO.end_allocation(vizinho, vinculo.id, ~U[2026-08-01 00:00:00Z])
+               EO.end_allocation(vizinho, vinculo.id, ~U[2026-08-01 00:00:00Z], ctx.user.id)
     end
   end
 

@@ -13,6 +13,7 @@ defmodule TheBand.Ontology.SEON.EO.TeamMembershipTest do
   use TheBand.DataCase, async: true
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
 
   @dia_1 ~U[2026-01-10 00:00:00Z]
   @dia_30 ~U[2026-01-30 00:00:00Z]
@@ -90,11 +91,19 @@ defmodule TheBand.Ontology.SEON.EO.TeamMembershipTest do
           a.id
         )
 
-      {:ok, vinculo} = EO.record_team_departure(t, e.id, p.id, @dia_30, a.id)
+      # A saída devolve QUANTOS vínculos alcançou, e não a linha: ela alcança todos os
+      # vigentes do par, e não há "a" linha para devolver.
+      assert {:ok, 1} = EO.record_team_departure(t, e.id, p.id, @dia_30, a.id)
+
+      vinculo = Repo.get_by!(TeamMembership, tenant_id: t.id, team_id: e.id, person_id: p.id)
 
       assert vinculo.started_at == DateTime.truncate(@dia_1, :second)
       assert vinculo.ended_at == DateTime.truncate(@dia_30, :second)
-      refute is_nil(vinculo.id)
+
+      # E as três colunas juntas: quem declarou a saída, e quando registrou. Sem o autor,
+      # este fim ficaria indistinguível de um fim CONSTATADO pela coleta (FR-022).
+      assert vinculo.ended_by_user_id == a.id
+      refute is_nil(vinculo.end_declared_at)
     end
   end
 

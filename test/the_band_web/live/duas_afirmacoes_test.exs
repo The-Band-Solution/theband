@@ -70,7 +70,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
   describe "a coleta mostra quem a declaração diz que saiu (FR-012)" do
     test "a tela mostra AS DUAS afirmações, cada uma com a sua origem", ctx do
       {:ok, vinculo} = aloca(ctx)
-      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem())
+      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem(), ctx.admin.id)
 
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -91,7 +91,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
 
     test "e não escolhe: a tela NÃO diz que a pessoa simplesmente saiu", ctx do
       {:ok, vinculo} = aloca(ctx)
-      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem())
+      {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem(), ctx.admin.id)
 
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
@@ -169,7 +169,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
       # Juntar linha a linha produziria discordância falsa — é o defeito que a
       # agregação por pessoa evita.
       {:ok, encerrado} = aloca(ctx)
-      {:ok, _} = EO.end_allocation(ctx.tenant, encerrado.id, ontem())
+      {:ok, _} = EO.end_allocation(ctx.tenant, encerrado.id, ontem(), ctx.admin.id)
 
       {:ok, outro_papel} =
         EO.create_role(ctx.tenant, ctx.org.id, %{code: "sm", name: "Scrum Master"}, ctx.admin.id)

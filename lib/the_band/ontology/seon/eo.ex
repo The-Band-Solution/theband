@@ -127,7 +127,7 @@ defmodule TheBand.Ontology.SEON.EO do
   # Promover é ato de UMA PESSOA, com autor gravado. A plataforma não promove sozinha.
   defdelegate promote_evidence(tenant, evidence_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate allocate(tenant, attrs), to: Commands
-  defdelegate end_allocation(tenant, membership_id, quando), to: Commands
+  defdelegate end_allocation(tenant, membership_id, quando, actor_id), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries
   defdelegate count_people(tenant, opts \\ []), to: Queries
   defdelegate person_ids_by_login(tenant), to: Queries

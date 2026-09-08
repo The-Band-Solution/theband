@@ -112,6 +112,7 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
       :invalidation_reason
     ])
     |> validate_required([:tenant_id, :internal_id, :person_id, :team_id])
+    |> selar_a_declaracao()
     # O papel é obrigatório na DECLARAÇÃO, e ausente no vínculo OBSERVADO (2026-09-06). O
     # relator da ontologia exige os três; a plataforma materializa o observado com o papel
     # declaradamente ausente, e a tela diz isso. Declarar sem papel continua recusado.
@@ -127,6 +128,28 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
     |> unique_constraint([:person_id, :team_id, :organizational_role_id],
       name: :eo_team_memberships_vigente_index
     )
+  end
+
+  # `declared_at` é derivado, e é o CHANGESET que o deriva — não os chamadores.
+  #
+  # A CHECK `eo_declaracao_tem_autor` exige autor e instante juntos, e a alternativa era
+  # confiar em três lugares (`declare_team_membership/5`, `inserir_declaracao/2`,
+  # `declarar_sobre_o_observado/3`) para lembrar do segundo campo. Nenhum lembrou: a migração
+  # entrou sem esta função e **toda declaração nova passou a estourar** com
+  # `Ecto.ConstraintError` — e não apareceu na CI, porque a auditoria de dependências reprovou
+  # antes de a suíte rodar.
+  #
+  # O instante certo é o da escrita, e só a escrita o conhece. Pedir aos chamadores um valor
+  # que eles não escolhem é convidá-los a errar; derivá-lo aqui torna o par impossível de
+  # quebrar. Vale nas duas direções: desdeclarar limpa o instante, senão a linha ficaria com
+  # data de uma declaração que não existe mais.
+  defp selar_a_declaracao(changeset) do
+    case {get_field(changeset, :declared_by_user_id), get_field(changeset, :declared_at)} do
+      {nil, nil} -> changeset
+      {nil, _instante} -> put_change(changeset, :declared_at, nil)
+      {_autor, nil} -> put_change(changeset, :declared_at, DateTime.utc_now(:second))
+      {_autor, _instante} -> changeset
+    end
   end
 
   # A DECLARAÇÃO É UM PAR, e a regra vale nas duas direções — decisão da pessoa mantenedora
