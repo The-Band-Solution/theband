@@ -95,7 +95,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     mae = socket.assigns.team
     ator = socket.assigns.current_user
 
-    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+    case Tenants.pode_gerir_estrutura(tenant, ator, mae.id) do
       {:ok, _} ->
         with {:ok, filha} <-
                EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
@@ -111,13 +111,8 @@ defmodule TheBandWeb.TeamsLive.Show do
           {:error, motivo} when is_binary(motivo) -> {:noreply, put_flash(socket, :error, motivo)}
         end
 
-      {:nao, _} ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           dgettext("errors", "You have no scope to declare a team here.")
-         )}
+      {:nao, motivo} ->
+        {:noreply, put_flash(socket, :error, frase_da_recusa(motivo))}
     end
   end
 
@@ -126,7 +121,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     mae = socket.assigns.team
     ator = socket.assigns.current_user
 
-    case Tenants.pode_declarar_estrutura(tenant, ator, :organization, mae.organization_id) do
+    case Tenants.pode_gerir_estrutura(tenant, ator, mae.id) do
       {:ok, _} ->
         case EO.decompose_teams(tenant, parte, mae.id, ator.id) do
           {:ok, _} ->
@@ -137,13 +132,8 @@ defmodule TheBandWeb.TeamsLive.Show do
             {:noreply, put_flash(socket, :error, motivo)}
         end
 
-      {:nao, _} ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           dgettext("errors", "You have no scope to declare a team here.")
-         )}
+      {:nao, motivo} ->
+        {:noreply, put_flash(socket, :error, frase_da_recusa(motivo))}
     end
   end
 
@@ -290,6 +280,30 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> carregar_promocao()
     |> carregar_competencias()
   end
+
+  # A RECUSA DIZ O QUE FAZER — os três motivos levam a ações diferentes (FR-006), e um
+  # "sem permissão" genérico manda quem foi recusado procurar a administradora com a
+  # pergunta errada.
+  defp frase_da_recusa(:conta_sem_pessoa_declarada),
+    do:
+      dgettext(
+        "errors",
+        "Your account is not linked to a person yet, and managing a team's structure is granted to organisational roles."
+      )
+
+  defp frase_da_recusa(:vinculo_encerrado),
+    do:
+      dgettext(
+        "errors",
+        "Your membership with the role that manages this team has ended. Renew it, or ask for the grant on another role."
+      )
+
+  defp frase_da_recusa(:sem_concessao),
+    do:
+      dgettext(
+        "errors",
+        "No role of yours is granted to manage this team's structure. An administrator grants it on the roles screen."
+      )
 
   # Campo vazio é **desconhecido**, e nunca a data de hoje. Inventá-la afirmaria que a pessoa
   # assumiu o papel agora, e o que se sabe é que ninguém disse quando.
