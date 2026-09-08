@@ -202,10 +202,13 @@ defmodule TheBandWeb.EquipeCompostaTest do
       refute html =~ "Teams inside this one"
     end
 
+    # A lista de partes ("Contains:") é da aba ESTRUTURA desde a feature 060 — a seção
+    # "Teams inside this one", que compara subequipes, continua no painel. Ler a estrutura
+    # aqui é o que estes dois casos fazem, e por isso abrem a aba.
     test "com UMA parte só, segue como equipe simples", ctx do
       subequipe(ctx, "Dados")
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one",
              "comparar uma linha com nada não é comparação — uma parte só é composição declarada, não equipe composta"
@@ -218,7 +221,7 @@ defmodule TheBandWeb.EquipeCompostaTest do
       interface = subequipe(ctx, "Interface")
       {:ok, _} = EO.decompose_teams(ctx.tenant, interface.id, ctx.mae.id, ctx.admin.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one"
       refute html =~ ~s|/teams/#{interface.id}|

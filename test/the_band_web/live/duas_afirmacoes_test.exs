@@ -72,7 +72,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
       {:ok, vinculo} = aloca(ctx)
       {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem(), ctx.admin.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       # A discordância é anunciada, e não escondida numa nota de rodapé.
       assert html =~ "Source and declaration disagree"
@@ -93,7 +93,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
       {:ok, vinculo} = aloca(ctx)
       {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, ontem(), ctx.admin.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       # A afirmação da coleta é a que uma tela que "resolve" a discordância
       # descartaria — ela é mais antiga em espírito, e a declaração é a decisão
@@ -108,7 +108,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
       {:ok, _vinculo} = aloca(ctx)
       {:ok, 1} = EO.mark_evidence_no_longer_observed(ctx.tenant, ctx.org.id, daqui_um_minuto())
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       assert html =~ "Source and declaration disagree"
       assert html =~ @origem_coleta
@@ -131,7 +131,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
           ctx.admin.id
         )
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       assert html =~ @origem_coleta
       assert html =~ @origem_declaracao
@@ -148,7 +148,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
     test "as duas concordando não produzem seção nenhuma", ctx do
       {:ok, _vinculo} = aloca(ctx)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       refute html =~ "Source and declaration disagree"
       refute html =~ @origem_declaracao
@@ -157,7 +157,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
     test "evidência SEM vínculo nenhum não é discordância — a declaração não falou", ctx do
       # Nenhum `aloca/1` aqui: existe evidência e não existe vínculo. Isso sai por
       # `pending_evidence/2` e a tela apresenta em separado (feature 057, FR-005).
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       refute html =~ "Source and declaration disagree"
       assert html =~ "without a declared role"
@@ -182,7 +182,7 @@ defmodule TheBandWeb.DuasAfirmacoesTest do
           declared_by_user_id: ctx.admin.id
         })
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?tab=structure")
 
       refute html =~ "Source and declaration disagree"
     end

@@ -78,7 +78,9 @@ defmodule TheBand.Tenants.GerirEstruturaTest do
       })
 
     if opts[:encerrado],
-      do: {:ok, _} = EO.end_allocation(ctx.tenant, vinculo.id, DateTime.utc_now(:second), ctx.admin.id)
+      do:
+        {:ok, _} =
+          EO.end_allocation(ctx.tenant, vinculo.id, DateTime.utc_now(:second), ctx.admin.id)
 
     %{conta: conta, pessoa: pessoa, vinculo: vinculo}
   end

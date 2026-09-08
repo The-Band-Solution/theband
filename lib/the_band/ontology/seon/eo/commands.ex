@@ -211,7 +211,7 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   # VIGENTE são as DUAS condições: sem fim registrado E sem invalidação. Deixar
   # uma de fora faz um vínculo invalidado continuar contando — e o defeito não
   # aparece até alguém somar.
-  # TODOS os vínculos vigentes do par pessoa–equipe, como CONSULTA — o alvo da saída e do
+  # Cada um dos vínculos vigentes do par pessoa–equipe, como CONSULTA — o alvo da saída e do
   # equívoco, que são afirmações sobre a pessoa na equipe e não sobre um papel.
   defp vigentes(tenant_id, team_id, person_id) do
     TeamMembership

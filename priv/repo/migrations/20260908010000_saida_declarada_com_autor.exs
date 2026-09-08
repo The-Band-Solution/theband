@@ -48,6 +48,31 @@ defmodule TheBand.Repo.Migrations.SaidaDeclaradaComAutor do
       add :end_declared_at, :utc_datetime
     end
 
+    flush()
+
+    # O BACKFILL VEM ANTES DAS CHECKS, e a ordem não é estilo.
+    #
+    # `CREATE CONSTRAINT` valida as linhas que já existem, no instante da criação. Com a
+    # ordem invertida, esta migração passava em banco vazio — e reprovava em qualquer banco
+    # com vínculo declarado, que é todo banco real:
+    #
+    #     ** (Postgrex.Error) ERROR 23514 (check_violation)
+    #        table: eo_team_memberships
+    #        constraint: eo_declaracao_tem_autor
+    #
+    # Foi assim que apareceu: a suíte, que roda contra banco criado do zero, ficou verde, e
+    # o `mix ecto.migrate` do banco de desenvolvimento (90 vínculos) parou na hora.
+    #
+    # O vínculo declarado que já existe ganha a data que ele sempre teve: a da própria
+    # criação. Não é chute — a declaração aconteceu quando a linha nasceu.
+    execute """
+    UPDATE eo_team_memberships
+       SET declared_at = inserted_at
+     WHERE declared_by_user_id IS NOT NULL AND declared_at IS NULL
+    """
+
+    flush()
+
     create constraint(
              :eo_team_memberships,
              :eo_saida_declarada_completa,
@@ -65,16 +90,6 @@ defmodule TheBand.Repo.Migrations.SaidaDeclaradaComAutor do
              OR (declared_by_user_id IS NOT NULL AND declared_at IS NOT NULL)
              """
            )
-
-    flush()
-
-    # O vínculo declarado que já existe ganha a data que ele sempre teve: a da própria
-    # criação. Não é chute — a declaração aconteceu quando a linha nasceu.
-    execute """
-    UPDATE eo_team_memberships
-       SET declared_at = inserted_at
-     WHERE declared_by_user_id IS NOT NULL AND declared_at IS NULL
-    """
   end
 
   def down do

@@ -14,6 +14,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Forecast
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.Roster
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
   alias TheBand.Quality
@@ -31,10 +32,13 @@ defmodule TheBandWeb.TeamsLive.Show do
   @limite_de_esperas 200
   @por_pagina 50
 
-  # O papel organizacional fica fora das colunas ordenáveis: ele é **derivado** de haver ou não
-  # vínculo promovido, e não coluna da consulta. Ordenar por ele exigiria ordenar por uma
-  # ausência, o que a lista já diz em texto.
-  @tabelas [{"members", [:name, :platform_access_level, :observed_at, :last_observed_at], nil}]
+  # Só `name` é ordenável, e a lista encurtou de propósito na feature 060.
+  #
+  # As outras três eram da tabela por EVIDÊNCIA — nível de acesso na plataforma e as duas
+  # datas de observação —, e essa tabela deixou de existir aqui. Papel, origem e início não
+  # entram: cada pessoa pode ter DOIS vínculos na linha, com papéis e datas diferentes, e não
+  # existe "o papel" da linha para ordenar por.
+  @tabelas [{"members", [:name], nil}]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -62,8 +66,45 @@ defmodule TheBandWeb.TeamsLive.Show do
   def handle_params(_params, _uri, %{assigns: %{team: nil}} = socket), do: {:noreply, socket}
 
   def handle_params(params, _uri, socket) do
-    {:noreply, socket |> Tabela.aplicar(params, @tabelas) |> load()}
+    {aba, socket} = aba_pedida(params, socket)
+
+    {:noreply,
+     socket
+     |> assign(aba: aba)
+     |> Tabela.aplicar(params, @tabelas)
+     |> carregar_cabecalho()
+     |> carregar_aba(aba)}
   end
+
+  # A ABA VIVE NO ENDEREÇO — feature 060, FR-001 a FR-003, decisão D1 do plano.
+  #
+  # Duas abas e não duas rotas: a pergunta é a mesma ("como está esta equipe"), e o cabeçalho
+  # é o mesmo. Mas a aba no endereço não é enfeite — sem ela, quem manda o link da estrutura
+  # para alguém manda o painel, e o botão de voltar do navegador não volta de aba.
+  #
+  # Aba inexistente NÃO é silenciosamente o painel: mostra o painel **e diz** que não existe.
+  # Cair no padrão sem avisar é o "sucesso silencioso" — quem digitou `?tab=members` conclui
+  # que a plataforma não tem aquela informação, quando o que ela não tem é aquele nome.
+  #
+  # Os nomes são casados um a um, e não convertidos: `String.to_atom/1` sobre parâmetro de URL
+  # cria átomo a partir de entrada de fora, que não é coletado pelo garbage collector.
+  defp aba_pedida(%{"tab" => "dashboard"}, socket), do: {:dashboard, socket}
+  defp aba_pedida(%{"tab" => "structure"}, socket), do: {:structure, socket}
+
+  defp aba_pedida(%{"tab" => outra}, socket) when is_binary(outra) and outra != "" do
+    {:dashboard,
+     put_flash(
+       socket,
+       :error,
+       dgettext(
+         "errors",
+         "A team has no “%{tab}” tab. Showing the dashboard.",
+         tab: outra
+       )
+     )}
+  end
+
+  defp aba_pedida(_params, socket), do: {:dashboard, socket}
 
   @impl true
   def handle_event("buscar", params, socket), do: Tabela.buscar(params, socket, &caminho/3)
@@ -91,50 +132,40 @@ defmodule TheBandWeb.TeamsLive.Show do
   # escopo nesta equipe declara DENTRO dela, e não em qualquer lugar da
   # organização. Oferecer um seletor de organização aqui faria a autoridade subir.
   def handle_event("criar_subequipe", %{"name" => nome}, socket) do
-    tenant = socket.assigns.current_tenant
-    mae = socket.assigns.team
-    ator = socket.assigns.current_user
+    com_gestao(socket, fn ->
+      tenant = socket.assigns.current_tenant
+      mae = socket.assigns.team
+      ator = socket.assigns.current_user
 
-    case Tenants.pode_gerir_estrutura(tenant, ator, mae.id) do
-      {:ok, _} ->
-        with {:ok, filha} <-
-               EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
-             {:ok, _} <- EO.compose_teams(tenant, filha.id, mae.id, ator.id) do
-          {:noreply,
-           socket
-           |> put_flash(
-             :info,
-             dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
-           )
-           |> load()}
-        else
-          {:error, motivo} when is_binary(motivo) -> {:noreply, put_flash(socket, :error, motivo)}
-        end
-
-      {:nao, motivo} ->
-        {:noreply, put_flash(socket, :error, frase_da_recusa(motivo))}
-    end
+      with {:ok, filha} <-
+             EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
+           {:ok, _} <- EO.compose_teams(tenant, filha.id, mae.id, ator.id) do
+        socket
+        |> put_flash(
+          :info,
+          dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
+        )
+        |> recarregar()
+      else
+        {:error, motivo} when is_binary(motivo) -> put_flash(socket, :error, motivo)
+      end
+    end)
   end
 
   def handle_event("descompor", %{"part_id" => parte}, socket) do
-    tenant = socket.assigns.current_tenant
-    mae = socket.assigns.team
-    ator = socket.assigns.current_user
+    com_gestao(socket, fn ->
+      tenant = socket.assigns.current_tenant
+      mae = socket.assigns.team
+      ator = socket.assigns.current_user
 
-    case Tenants.pode_gerir_estrutura(tenant, ator, mae.id) do
-      {:ok, _} ->
-        case EO.decompose_teams(tenant, parte, mae.id, ator.id) do
-          {:ok, _} ->
-            {:noreply,
-             socket |> put_flash(:info, dgettext("sistema", "Composition ended.")) |> load()}
+      case EO.decompose_teams(tenant, parte, mae.id, ator.id) do
+        {:ok, _} ->
+          socket |> put_flash(:info, dgettext("sistema", "Composition ended.")) |> recarregar()
 
-          {:error, motivo} ->
-            {:noreply, put_flash(socket, :error, motivo)}
-        end
-
-      {:nao, motivo} ->
-        {:noreply, put_flash(socket, :error, frase_da_recusa(motivo))}
-    end
+        {:error, motivo} ->
+          put_flash(socket, :error, motivo)
+      end
+    end)
   end
 
   def handle_event("associar_projeto", _params, socket), do: {:noreply, socket}
@@ -150,24 +181,49 @@ defmodule TheBandWeb.TeamsLive.Show do
     {:noreply, carregar_projetos(socket)}
   end
 
+  # `promover` NÃO conferia nada antes da feature 060: qualquer conta autenticada que
+  # alcançasse a tela declarava papel para quem quisesse. É a lacuna que o T012 fecha, e a
+  # razão de o veredito ser re-perguntado no evento e não só lido do assign — o assign é do
+  # último render, e a concessão pode ter sido revogada desde então.
   def handle_event("promover", params, socket) do
-    escolhas = escolhas_de(params)
+    com_gestao(socket, fn ->
+      resultados =
+        Enum.map(escolhas_de(params), fn {evidence_id, papel, data} ->
+          EO.promote_evidence(
+            socket.assigns.current_tenant,
+            evidence_id,
+            papel_escolhido(papel),
+            socket.assigns.current_user.id,
+            started_at: data_ou_nil(data)
+          )
+        end)
 
-    resultados =
-      Enum.map(escolhas, fn {evidence_id, papel, data} ->
-        EO.promote_evidence(
-          socket.assigns.current_tenant,
-          evidence_id,
-          papel_escolhido(papel),
-          socket.assigns.current_user.id,
-          started_at: data_ou_nil(data)
-        )
-      end)
+      socket
+      |> put_flash(tipo_do_resultado(resultados), frase_do_resultado(resultados, params))
+      |> recarregar()
+    end)
+  end
 
-    {:noreply,
-     socket
-     |> put_flash(tipo_do_resultado(resultados), frase_do_resultado(resultados, params))
-     |> load()}
+  # O VEREDITO É RE-PERGUNTADO EM TODO EVENTO DE ESCRITA — FR-006, FR-082, SC-011.
+  #
+  # Não basta esconder o botão: o evento chega por websocket, e quem sabe o nome dele o
+  # dispara sem passar por botão nenhum. Esconder é para não prometer o que não se pode
+  # cumprir; conferir aqui é o que impede.
+  #
+  # E confere de novo em vez de reusar `@gestao`: aquele assign é do último render, e a
+  # concessão pode ter sido revogada entre o render e o clique.
+  defp com_gestao(socket, fazer) do
+    tenant = socket.assigns.current_tenant
+    ator = socket.assigns.current_user
+
+    case Tenants.pode_gerir_estrutura(tenant, ator, socket.assigns.team.id) do
+      {:ok, _} -> {:noreply, fazer.()}
+      {:nao, motivo} -> {:noreply, put_flash(socket, :error, frase_da_recusa(motivo))}
+    end
+  end
+
+  defp recarregar(socket) do
+    socket |> carregar_cabecalho() |> carregar_aba(socket.assigns.aba)
   end
 
   # As linhas escolhidas, na forma `{evidence_id, papel, data}`.
@@ -250,10 +306,45 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp motivo({:error, :already_allocated}), do: "this person already holds that role here"
   defp motivo({:error, outro}), do: inspect(outro)
 
+  # Buscar, ordenar e paginar preservam a aba. Sem isto, a primeira busca na estrutura
+  # devolveria quem busca ao painel — com o termo aplicado a uma tabela que não está na tela.
+  # `nil` no painel de propósito: `?tab=dashboard` no endereço sugere uma escolha que ninguém
+  # fez, e é a mesma regra da FR-005 da feature 019.
   defp caminho(socket, id, mudancas),
-    do: ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas)}"
+    do:
+      ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas, tab: aba_no_endereco(socket))}"
 
-  defp load(socket) do
+  defp aba_no_endereco(%{assigns: %{aba: :structure}}), do: "structure"
+  defp aba_no_endereco(_socket), do: nil
+
+  # O CABEÇALHO É DAS DUAS ABAS (FR-004), e por isso carrega antes de qualquer uma delas.
+  #
+  # Os três números saem de `team_roster_totals/2`, que usa a mesma agregação da listagem da
+  # estrutura. Não é economia: um cabeçalho que conta por evidência sobre uma lista que conta
+  # por pessoa produz dois números diferentes na mesma tela, e quem lê não sabe qual seguir.
+  defp carregar_cabecalho(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    socket
+    |> assign(por_pagina: @por_pagina)
+    |> assign(totais: Roster.team_roster_totals(tenant, team.id))
+    |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
+    |> assign(gestao: Tenants.pode_gerir_estrutura(tenant, socket.assigns.current_user, team.id))
+  end
+
+  # CADA ABA CARREGA SÓ O QUE DESENHA — decisão D2 do plano.
+  #
+  # Antes, `load/1` carregava tudo: o painel pagava as consultas da estrutura e a estrutura
+  # pagava as do painel. Com as duas abas na mesma rota isso dobraria o custo de cada visita
+  # para mostrar metade.
+  defp carregar_aba(socket, :dashboard) do
+    socket
+    |> carregar_composicao()
+    |> carregar_competencias()
+  end
+
+  defp carregar_aba(socket, :structure) do
     tenant = socket.assigns.current_tenant
     team = socket.assigns.team
     estado = socket.assigns.tabelas["members"]
@@ -261,10 +352,9 @@ defmodule TheBandWeb.TeamsLive.Show do
     opts = [search: estado.busca]
 
     socket
-    |> assign(por_pagina: @por_pagina)
     |> assign(
-      members:
-        EO.list_team_members(
+      roster:
+        Roster.list_team_roster(
           tenant,
           team.id,
           opts ++
@@ -275,10 +365,8 @@ defmodule TheBandWeb.TeamsLive.Show do
             ]
         )
     )
-    |> assign(encontradas: EO.count_team_members(tenant, team.id, opts))
-    |> assign(pending_role: EO.count_memberships_pending_role(tenant, team_id: team.id))
+    |> assign(encontradas: Roster.count_team_roster(tenant, team.id, opts))
     |> carregar_promocao()
-    |> carregar_competencias()
   end
 
   # A RECUSA DIZ O QUE FAZER — os três motivos levam a ações diferentes (FR-006), e um
@@ -307,6 +395,22 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   # Campo vazio é **desconhecido**, e nunca a data de hoje. Inventá-la afirmaria que a pessoa
   # assumiu o papel agora, e o que se sabe é que ninguém disse quando.
+  # `%d %b %Y` — "30 Jan 2026". O formato ISO num painel lido por gestor troca uma data por
+  # uma sequência que ninguém lê em voz alta, e o mês por extenso remove a ambiguidade
+  # dia/mês que a notação numérica carrega entre países.
+  defp data_curta(nil), do: "—"
+  defp data_curta(%DateTime{} = d), do: Calendar.strftime(d, "%d %b %Y")
+  defp data_curta(%Date{} = d), do: Calendar.strftime(d, "%d %b %Y")
+
+  defp fim_declarado?({:declarado, _autor, _registrado, _quando}), do: true
+  defp fim_declarado?(_), do: false
+
+  # A data DO FIM, qualquer que seja a forma. O que ela significa muda com a forma, e é a
+  # tela que diz — aqui só se extrai o instante.
+  defp fim_em({:declarado, _autor, _registrado, quando}), do: quando
+  defp fim_em({:coleta, quando}), do: quando
+  defp fim_em({:sem_autor, quando}), do: quando
+
   defp data_ou_nil(""), do: nil
   defp data_ou_nil(nil), do: nil
 
@@ -338,7 +442,6 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> assign(contem: partes)
     |> assign(faz_parte_de: EO.team_wholes(tenant, team.id))
-    |> carregar_linhas(partes)
     |> assign(pendentes: EO.pending_evidence(tenant, team.id))
     |> assign(discordancias: EO.membership_disagreements(tenant, team.id))
     |> assign(papeis_para_promover: papeis)
@@ -356,6 +459,12 @@ defmodule TheBandWeb.TeamsLive.Show do
   # A ordem é por trabalho parado, do maior para o menor (SC-005): sem critério
   # declarado, "identificar em menos de 30 segundos" depende de sorte na ordem
   # alfabética. Ordenar NÃO é somar — cada linha continua com o número dela.
+  # As linhas da equipe composta são do PAINEL: comparar subequipes é leitura, não estrutura.
+  defp carregar_composicao(socket) do
+    tenant = socket.assigns.current_tenant
+    carregar_linhas(socket, EO.team_parts(tenant, socket.assigns.team.id))
+  end
+
   defp carregar_linhas(socket, partes) when length(partes) < 2 do
     socket
     |> assign(composta?: false, linhas: [])
@@ -1154,16 +1263,49 @@ defmodule TheBandWeb.TeamsLive.Show do
         %{rotulo: "Teams", destino: ~p"/teams"},
         %{rotulo: @team.name, destino: nil}
       ]} />
+      <%!-- O CABEÇALHO É DAS DUAS ABAS (FR-004), e os três números contam PESSOAS, nunca
+            evidências: quem saiu e quem foi registrado por engano aparecem separados de quem
+            está, porque somá-los responderia "quantas linhas existem" a quem perguntou
+            "quantas pessoas estão na equipe". --%>
       <.header>
         {@team.name}
         <:subtitle>
-          {@encontradas} {if @encontradas == 1, do: "member", else: "members"} · {@pending_role} with no organisational role assigned
+          {@totais.vigentes} {if @totais.vigentes == 1, do: "person", else: "people"} here
+          <span :if={@totais.sairam > 0}>· {@totais.sairam} left</span>
+          <span :if={@totais.equivocos > 0}>· {@totais.equivocos} recorded by mistake</span>
+          <span :if={@pending_role > 0}>· {@pending_role} with no organisational role</span>
         </:subtitle>
       </.header>
 
       <.proveniencia_da_equipe team={@team} />
 
-      <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
+      <%!-- AS DUAS ABAS — FR-001 a FR-003. `patch` e não `navigate`: trocar de aba não é
+            trocar de página, e recarregar o cabeçalho a cada clique piscaria a tela inteira
+            para mudar a metade de baixo.
+
+            `aria-selected` não é enfeite de acessibilidade: é o que diz a um leitor de tela
+            qual das duas está aberta. Sem ele a nav anuncia dois links e nenhum estado. --%>
+      <nav role="tablist" aria-label="Team views" class="tabs tabs-bordered mt-4">
+        <.link
+          patch={~p"/teams/#{@team.id}"}
+          role="tab"
+          aria-selected={@aba == :dashboard}
+          class={["tab", @aba == :dashboard && "tab-active"]}
+        >
+          Dashboard
+        </.link>
+        <.link
+          patch={~p"/teams/#{@team.id}?tab=structure"}
+          role="tab"
+          aria-selected={@aba == :structure}
+          class={["tab", @aba == :structure && "tab-active"]}
+        >
+          Structure
+        </.link>
+      </nav>
+
+      <div :if={@aba == :dashboard} class="space-y-4">
+        <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
             dos membros diretos, e NENHUM total.
 
             Não somar é decisão, e não lacuna: a mesma pessoa pode pertencer a duas
@@ -1174,173 +1316,300 @@ defmodule TheBandWeb.TeamsLive.Show do
             **Nenhum gráfico aqui** (FR-011): esta tela é para comparar, e
             comparação se faz em números alinhados. Os gráficos vivem na tela da
             subequipe. --%>
-      <section :if={@composta?} class="card bg-base-200 p-4">
-        <h2 class="text-sm font-semibold">Teams inside this one</h2>
-        <p class="mt-1 text-xs opacity-70">
-          Ordered by stopped work, so the row that needs a conversation comes first.
-        </p>
+        <section :if={@composta?} class="card bg-base-200 p-4">
+          <h2 class="text-sm font-semibold">Teams inside this one</h2>
+          <p class="mt-1 text-xs opacity-70">
+            Ordered by stopped work, so the row that needs a conversation comes first.
+          </p>
 
-        <table class="table table-sm mt-3">
-          <thead>
-            <tr>
-              <th>team</th>
-              <th class="text-right">members</th>
-              <th class="text-right">open</th>
-              <th class="text-right">closed · 8w</th>
-              <th class="text-right">stopped</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr :for={l <- @linhas}>
-              <td>
-                <.link :if={not l.direta?} navigate={~p"/teams/#{l.team_id}"} class="link">
-                  {l.nome}
-                </.link>
-                <span :if={l.direta?} class="opacity-80">{l.nome}</span>
-              </td>
-              <%!-- Ausência NOMEADA, nunca zero (FR-012). Uma subequipe sem trabalho
+          <table class="table table-sm mt-3">
+            <thead>
+              <tr>
+                <th>team</th>
+                <th class="text-right">members</th>
+                <th class="text-right">open</th>
+                <th class="text-right">closed · 8w</th>
+                <th class="text-right">stopped</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={l <- @linhas}>
+                <td>
+                  <.link :if={not l.direta?} navigate={~p"/teams/#{l.team_id}"} class="link">
+                    {l.nome}
+                  </.link>
+                  <span :if={l.direta?} class="opacity-80">{l.nome}</span>
+                </td>
+                <%!-- Ausência NOMEADA, nunca zero (FR-012). Uma subequipe sem trabalho
                     no período não teve zero itens: não houve o que observar, e as
                     duas coisas levam a decisões diferentes. --%>
-              <td :if={l.sem_trabalho?} colspan="4" class="text-xs opacity-70">
-                No work observed in the period — which is not the same as zero.
-              </td>
-              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
-                {l.membros}
-              </td>
-              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
-                {l.abertas}
-              </td>
-              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
-                {l.fechadas_na_janela}
-              </td>
-              <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
-                <span class={if l.paradas > 0, do: "text-warning font-semibold"}>{l.paradas}</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                <td :if={l.sem_trabalho?} colspan="4" class="text-xs opacity-70">
+                  No work observed in the period — which is not the same as zero.
+                </td>
+                <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                  {l.membros}
+                </td>
+                <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                  {l.abertas}
+                </td>
+                <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                  {l.fechadas_na_janela}
+                </td>
+                <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                  <span class={if l.paradas > 0, do: "text-warning font-semibold"}>{l.paradas}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div class="mt-3 rounded border border-dashed border-base-300 p-3">
-          <h3 class="text-xs font-semibold tracking-wide uppercase opacity-70">
-            why these rows are not added up
-          </h3>
-          <p class="mt-1 text-sm">
-            The same person can belong to <strong>two sub-teams</strong>, and the same task can
-            appear in both. A total would count each of them twice, and nobody could reconcile
-            it with the work that exists. Each row is measured on its own.
-          </p>
-          <p class="mt-2 text-sm opacity-80">
-            Charts live on each sub-team's own screen. This one is for comparing, and comparing
-            is done in aligned numbers.
-          </p>
-        </div>
-      </section>
+          <div class="mt-3 rounded border border-dashed border-base-300 p-3">
+            <h3 class="text-xs font-semibold tracking-wide uppercase opacity-70">
+              why these rows are not added up
+            </h3>
+            <p class="mt-1 text-sm">
+              The same person can belong to <strong>two sub-teams</strong>, and the same task can
+              appear in both. A total would count each of them twice, and nobody could reconcile
+              it with the work that exists. Each row is measured on its own.
+            </p>
+            <p class="mt-2 text-sm opacity-80">
+              Charts live on each sub-team's own screen. This one is for comparing, and comparing
+              is done in aligned numbers.
+            </p>
+          </div>
+        </section>
 
-      <%!-- O DETALHE da subequipe. Só existe quando a equipe não é composta: são as
+        <%!-- O DETALHE da subequipe. Só existe quando a equipe não é composta: são as
             duas telas da spec, numa rota só, porque a pergunta é a mesma — como
             está esta equipe. --%>
-      <div :if={@detalhe} class="space-y-4">
-        <.burn_da_equipe detalhe={@detalhe} />
-        <.previsao_da_equipe detalhe={@detalhe} />
-        <.pessoas_da_equipe
-          detalhe={@detalhe}
-          habilidades={Profiles.team_skills_by_person(@cobertura)}
-        />
+        <div :if={@detalhe} class="space-y-4">
+          <.burn_da_equipe detalhe={@detalhe} />
+          <.previsao_da_equipe detalhe={@detalhe} />
+          <.pessoas_da_equipe
+            detalhe={@detalhe}
+            habilidades={Profiles.team_skills_by_person(@cobertura)}
+          />
+        </div>
       </div>
 
-      <section class="card bg-base-200 p-4">
-        <h2 class="text-sm font-semibold">Structure</h2>
+      <div :if={@aba == :structure} class="space-y-4">
+        <%!-- ONDE ESTA EQUIPE FICA — em LEITURA no topo da estrutura (FR-013). Antes esta
+              seção misturava ler e escrever no mesmo cartão; separá-las é o que permite
+              mostrá-la a quem não gere sem mostrar botão que a pessoa não pode usar. --%>
+        <section class="card bg-base-200 p-4">
+          <h2 class="text-sm font-semibold">Where this team sits</h2>
 
-        <div :if={@faz_parte_de != []} class="mt-2 text-sm">
-          <span class="opacity-70">Part of:</span>
-          <span :for={m <- @faz_parte_de} class="ml-1">
-            <.link navigate={~p"/teams/#{m.team_id}"} class="link">{m.name}</.link>
-          </span>
-        </div>
+          <div :if={@faz_parte_de != []} class="mt-2 text-sm">
+            <span class="opacity-70">Part of:</span>
+            <span :for={m <- @faz_parte_de} class="ml-1">
+              <.link navigate={~p"/teams/#{m.team_id}"} class="link">{m.name}</.link>
+            </span>
+          </div>
 
-        <div class="mt-3">
-          <span class="text-sm opacity-70">Contains:</span>
-          <p :if={@contem == []} class="text-sm opacity-60">
-            No team inside this one.
+          <div class="mt-3">
+            <span class="text-sm opacity-70">Contains:</span>
+            <p :if={@contem == []} class="text-sm opacity-60">
+              No team inside this one.
+            </p>
+            <ul :if={@contem != []} class="mt-1 space-y-1">
+              <li :for={f <- @contem} class="flex items-center gap-2 text-sm">
+                <.link navigate={~p"/teams/#{f.team_id}"} class="link">{f.name}</.link>
+                <span class="opacity-60 text-xs">since {f.desde}</span>
+                <button
+                  :if={match?({:ok, _}, @gestao)}
+                  phx-click="descompor"
+                  phx-value-part_id={f.team_id}
+                  class="btn btn-xs btn-ghost text-error"
+                  data-confirm="The team keeps existing — only the composition ends."
+                >
+                  remove from here
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <%!-- Quem não gere LÊ a estrutura inteira e não vê ação nenhuma (FR-006, SC-011).
+              Mostrar o botão e recusar no clique ensina que a plataforma é imprevisível; a
+              recusa nomeada abaixo diz o que fazer para conseguir. --%>
+          <p :if={match?({:nao, _}, @gestao)} class="mt-4 text-xs opacity-70">
+            {frase_da_recusa(elem(@gestao, 1))}
           </p>
-          <ul :if={@contem != []} class="mt-1 space-y-1">
-            <li :for={f <- @contem} class="flex items-center gap-2 text-sm">
-              <.link navigate={~p"/teams/#{f.team_id}"} class="link">{f.name}</.link>
-              <span class="opacity-60 text-xs">since {f.desde}</span>
-              <button
-                phx-click="descompor"
-                phx-value-part_id={f.team_id}
-                class="btn btn-xs btn-ghost text-error"
-                data-confirm="The team keeps existing — only the composition ends."
-              >
-                remove from here
-              </button>
-            </li>
-          </ul>
-        </div>
 
-        <form phx-submit="criar_subequipe" class="mt-4 flex flex-wrap items-end gap-3">
-          <label class="form-control">
-            <span class="label-text text-xs">Declare a team inside this one</span>
-            <input type="text" name="name" required class="input input-sm input-bordered" />
-          </label>
-          <button type="submit" class="btn btn-sm">Declare inside</button>
-          <span class="text-xs opacity-60">
-            It inherits this team's organisation — a team is declared inside what you already reach.
-          </span>
-        </form>
-      </section>
-
-      <.data_table
-        id="members"
-        rows={@members}
-        estado={@tabelas["members"]}
-        por_pagina={@por_pagina}
-        total={@encontradas}
-        onde="name and login"
-        vazio="This team has no member observed at the source."
-        class="table stacked"
-      >
-        <:col :let={member} field={:name} label="person">
-          <%!-- Nome e login levam ao **mesmo** lugar: são duas grafias da mesma pessoa, e
-                obrigar quem lê a descobrir qual das duas é clicável seria pedir que ele
-                adivinhe. A participação pode ter acabado; a pessoa continua existindo. --%>
-          <.link
-            navigate={~p"/people/#{member.person.id}"}
-            class={[
-              "link link-hover font-medium underline decoration-dotted",
-              member.no_longer_observed_at && "opacity-50"
-            ]}
+          <form
+            :if={match?({:ok, _}, @gestao)}
+            phx-submit="criar_subequipe"
+            class="mt-4 flex flex-wrap items-end gap-3"
           >
-            {member.person.name}
-          </.link>
-          <div :if={member.person.login} class="text-xs opacity-60">
-            <.link navigate={~p"/people/#{member.person.id}"} class="link link-hover">
-              @{member.person.login}
-            </.link>
-          </div>
-          <div :if={member.no_longer_observed_at} class="text-xs opacity-60">
-            no longer observed since {member.no_longer_observed_at}
-          </div>
-        </:col>
-        <:col :let={member} field={:platform_access_level} label="access at the platform">
-          <span class="badge badge-sm badge-ghost font-mono">
-            {member.platform_access_level}
-          </span>
-        </:col>
-        <:col :let={member} label="organisational role">
-          <span :if={member.pending_role} class="text-xs opacity-60">pending</span>
-          <span :if={!member.pending_role} class="text-xs">assigned</span>
-        </:col>
-        <:col :let={member} field={:observed_at} label="observed at" class="text-xs">
-          {member.observed_at}
-        </:col>
-        <:col :let={member} field={:last_observed_at} label="last observation" class="text-xs">
-          {member.last_observed_at}
-        </:col>
-      </.data_table>
+            <label class="form-control">
+              <span class="label-text text-xs">Declare a team inside this one</span>
+              <input type="text" name="name" required class="input input-sm input-bordered" />
+            </label>
+            <button type="submit" class="btn btn-sm">Declare inside</button>
+            <span class="text-xs opacity-60">
+              It inherits this team's organisation — a team is declared inside what you already reach.
+            </span>
+          </form>
+        </section>
 
-      <%!-- ═══ AS DUAS AFIRMAÇÕES — feature 055, FR-012 ═══
+        <%!-- A LEGENDA DAS QUATRO MARCAS, antes da tabela e em TEXTO.
+
+              Cor sozinha não é marca: quem não distingue as cores lê uma tabela sem
+              nenhuma distinção, e a distinção aqui é a tese da tela. Cada linha abaixo diz
+              a palavra que aparece na coluna, e o que ela significa. --%>
+        <section class="card bg-base-200 p-4">
+          <h2 class="text-sm font-semibold">How to read the link column</h2>
+          <dl class="mt-2 grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+            <div>
+              <dt class="font-semibold">declared</dt>
+              <dd class="opacity-70">
+                someone in the organisation affirmed it, and the name and date are shown.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">observed</dt>
+              <dd class="opacity-70">
+                the source shows the person here, and nobody declared the role yet.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">left</dt>
+              <dd class="opacity-70">
+                the link is closed. It is not deleted — every past period keeps its numbers.
+              </dd>
+            </div>
+            <div>
+              <dt class="font-semibold">mistake</dt>
+              <dd class="opacity-70">
+                the person was never here. The link counts for no date at all.
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <%!-- UMA LINHA POR PESSOA (FR-009), e os vínculos dela dentro da linha.
+
+              A versão anterior listava EVIDÊNCIAS, e quem tinha vínculo direto e numa
+              subequipe aparecia duas vezes — a mesma pessoa contada duas vezes numa tela
+              cuja pergunta é "quem está nesta equipe".
+
+              E não há mais coluna de "access at the platform": `MAINTAINER`/`MEMBER` são
+              permissão no GitHub, não papel na organização (FR-008, SC-004). Mostrá-los onde
+              se lê papel fazia a tela afirmar cargo que ninguém declarou. --%>
+        <.data_table
+          id="members"
+          rows={@roster}
+          estado={@tabelas["members"]}
+          por_pagina={@por_pagina}
+          total={@encontradas}
+          onde="name and login"
+          vazio="Nobody has a link to this team yet — neither declared nor observed."
+          class="table stacked"
+        >
+          <:col :let={pessoa} field={:name} label="person">
+            <%!-- Nome e login levam ao MESMO lugar: são duas grafias da mesma pessoa, e
+                  obrigar quem lê a descobrir qual das duas é clicável seria pedir que ele
+                  adivinhe. A participação pode ter acabado; a pessoa continua existindo. --%>
+            <.link
+              navigate={~p"/people/#{pessoa.person_id}"}
+              class={[
+                "link link-hover font-medium underline decoration-dotted",
+                pessoa.situacao != :vigente && "opacity-50"
+              ]}
+            >
+              {pessoa.name}
+            </.link>
+            <div :if={pessoa.login} class="text-xs opacity-60">
+              <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover">
+                @{pessoa.login}
+              </.link>
+            </div>
+          </:col>
+
+          <:col :let={pessoa} label="role">
+            <div :for={v <- pessoa.vinculos} class="py-0.5">
+              <span :if={v.role} class="text-xs">{v.role.name}</span>
+              <%!-- Ausência NOMEADA e em destaque, nunca em branco: célula vazia lê-se como
+                    "não carregou", e o que ela diz é que ninguém declarou o papel. --%>
+              <span :if={is_nil(v.role)} class="text-xs font-semibold text-warning">
+                not declared
+              </span>
+              <span :if={not v.direta?} class="text-xs opacity-50">· {v.team_name}</span>
+            </div>
+          </:col>
+
+          <:col :let={pessoa} label="link">
+            <div :for={v <- pessoa.vinculos} class="py-0.5 text-xs">
+              <span :if={v.equivoco} class="badge badge-sm badge-error badge-outline">
+                mistake
+              </span>
+              <span
+                :if={is_nil(v.equivoco) and v.fim}
+                class="badge badge-sm badge-warning badge-outline"
+              >
+                left
+              </span>
+              <span
+                :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :declarado}
+                class="badge badge-sm badge-success badge-outline"
+              >
+                declared
+              </span>
+              <span
+                :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :observado}
+                class="badge badge-sm badge-ghost"
+              >
+                observed
+              </span>
+
+              <div :if={v.declared_by} class="opacity-60">
+                by {v.declared_by}
+                <span :if={v.declared_at}>on {data_curta(v.declared_at)}</span>
+              </div>
+
+              <%!-- AS TRÊS FORMAS DE FIM NÃO SÃO A MESMA COISA (FR-022).
+
+                    No fim constatado pela coleta a data é **quando a plataforma parou de
+                    ver**, e não quando a pessoa saiu. A frase está aqui porque a data sozinha
+                    se passa por data de saída, e quem lê decide com base nela. --%>
+              <div :if={fim_declarado?(v.fim)} class="opacity-60">
+                left on {data_curta(elem(v.fim, 3))} · declared by {elem(v.fim, 1)}
+              </div>
+              <div :if={match?({:coleta, _}, v.fim)} class="opacity-60">
+                the source stopped showing this person on {data_curta(elem(v.fim, 1))} — which is
+                when the platform stopped seeing, not when the person left
+              </div>
+              <div :if={match?({:sem_autor, _}, v.fim)} class="opacity-60">
+                ended on {data_curta(elem(v.fim, 1))} · author not recorded
+              </div>
+              <div :if={v.equivoco} class="opacity-60">
+                never here · {v.equivoco.razao}
+                <span :if={v.equivoco.por}>· {v.equivoco.por}</span>
+              </div>
+            </div>
+          </:col>
+
+          <:col :let={pessoa} label="since" class="text-xs">
+            <div :for={v <- pessoa.vinculos} class="py-0.5 font-mono tabular-nums">
+              <span :if={v.equivoco}>never</span>
+              <span :if={is_nil(v.equivoco) and is_nil(v.started_at)} class="opacity-60">
+                unknown
+              </span>
+              <span :if={is_nil(v.equivoco) and v.started_at}>
+                {data_curta(v.started_at)}<span :if={v.fim}> → {data_curta(fim_em(v.fim))}</span>
+              </span>
+            </div>
+          </:col>
+
+          <:col :let={pessoa} label="squads">
+            <span :if={pessoa.direta?} class="badge badge-sm badge-neutral badge-outline">
+              direct
+            </span>
+            <span :for={nome <- pessoa.squads} class="badge badge-sm badge-ghost ml-1">
+              {nome}
+            </span>
+          </:col>
+        </.data_table>
+
+        <%!-- ═══ AS DUAS AFIRMAÇÕES — feature 055, FR-012 ═══
             Duas tabelas afirmam sobre a mesma pessoa, e aqui elas discordam. A tela
             mostra AS DUAS e não escolhe — nem a mais recente.
 
@@ -1351,226 +1620,232 @@ defmodule TheBandWeb.TeamsLive.Show do
             Cada afirmação leva a origem NOMEADA ao lado. Sem o nome, duas frases
             contraditórias na mesma tela parecem defeito da plataforma — e o que elas
             são é o retrato de duas fontes que discordam. --%>
-      <section :if={@discordancias != []} class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold text-warning">
-          Source and declaration disagree about {length(@discordancias)} person(s)
-        </h3>
-        <p class="text-sm opacity-70">
-          Both affirmations are shown below, and the platform does not choose between them —
-          not even the more recent one. Choosing would hide that one of the two was not
-          updated, and which one it is changes what someone has to go and fix.
-        </p>
+        <section :if={@discordancias != []} class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold text-warning">
+            Source and declaration disagree about {length(@discordancias)} person(s)
+          </h3>
+          <p class="text-sm opacity-70">
+            Both affirmations are shown below, and the platform does not choose between them —
+            not even the more recent one. Choosing would hide that one of the two was not
+            updated, and which one it is changes what someone has to go and fix.
+          </p>
 
-        <ul class="space-y-2">
-          <li :for={d <- @discordancias} class="card bg-base-200 p-3">
-            <div class="flex flex-wrap items-baseline gap-2">
-              <.link navigate={~p"/people/#{d.person_id}"} class="link link-hover font-semibold">
-                {d.name || d.login}
-              </.link>
-              <span :if={d.login && d.name} class="text-xs opacity-60">@{d.login}</span>
-            </div>
-
-            <div class="mt-2 grid gap-2 sm:grid-cols-2">
-              <%!-- A afirmação da COLETA, com a origem nomeada. --%>
-              <div class="border-l-2 border-info pl-2">
-                <div class="text-xs font-semibold tracking-wide text-info uppercase">
-                  collected from the source
-                </div>
-                <p :if={d.observado.presente?} class="text-sm">
-                  The source still shows this person in this team.
-                </p>
-                <p :if={!d.observado.presente?} class="text-sm">
-                  The source no longer shows this person in this team.
-                </p>
-                <div :if={d.observado.last_observed_at} class="text-xs opacity-60">
-                  last observed at {d.observado.last_observed_at}
-                </div>
-                <div :if={d.observado.no_longer_observed_at} class="text-xs opacity-60">
-                  no longer observed since {d.observado.no_longer_observed_at}
-                </div>
+          <ul class="space-y-2">
+            <li :for={d <- @discordancias} class="card bg-base-200 p-3">
+              <div class="flex flex-wrap items-baseline gap-2">
+                <.link navigate={~p"/people/#{d.person_id}"} class="link link-hover font-semibold">
+                  {d.name || d.login}
+                </.link>
+                <span :if={d.login && d.name} class="text-xs opacity-60">@{d.login}</span>
               </div>
 
-              <%!-- A afirmação da DECLARAÇÃO, com a origem nomeada. O equívoco é
+              <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                <%!-- A afirmação da COLETA, com a origem nomeada. --%>
+                <div class="border-l-2 border-info pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-info uppercase">
+                    collected from the source
+                  </div>
+                  <p :if={d.observado.presente?} class="text-sm">
+                    The source still shows this person in this team.
+                  </p>
+                  <p :if={!d.observado.presente?} class="text-sm">
+                    The source no longer shows this person in this team.
+                  </p>
+                  <div :if={d.observado.last_observed_at} class="text-xs opacity-60">
+                    last observed at {d.observado.last_observed_at}
+                  </div>
+                  <div :if={d.observado.no_longer_observed_at} class="text-xs opacity-60">
+                    no longer observed since {d.observado.no_longer_observed_at}
+                  </div>
+                </div>
+
+                <%!-- A afirmação da DECLARAÇÃO, com a origem nomeada. O equívoco é
                     caso próprio: "saiu em março" e "nunca esteve" pedem conversas
                     diferentes, e colapsá-los perderia justamente a diferença. --%>
-              <div class="border-l-2 border-warning pl-2">
-                <div class="text-xs font-semibold tracking-wide text-warning uppercase">
-                  declared by the organisation
-                </div>
-                <p :if={d.declarado.equivoco?} class="text-sm">
-                  Declared a mistake: the organisation states this person never belonged here.
-                </p>
-                <p :if={!d.declarado.equivoco? && !d.declarado.vigente?} class="text-sm">
-                  Declared as having left this team.
-                </p>
-                <p :if={d.declarado.vigente?} class="text-sm">
-                  Declared a current membership in this team.
-                </p>
-                <div :if={d.declarado.ended_at} class="text-xs opacity-60">
-                  declared end at {d.declarado.ended_at}
-                </div>
-                <div :if={is_nil(d.declarado.started_at)} class="text-xs opacity-60">
-                  start date unknown
+                <div class="border-l-2 border-warning pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-warning uppercase">
+                    declared by the organisation
+                  </div>
+                  <p :if={d.declarado.equivoco?} class="text-sm">
+                    Declared a mistake: the organisation states this person never belonged here.
+                  </p>
+                  <p :if={!d.declarado.equivoco? && !d.declarado.vigente?} class="text-sm">
+                    Declared as having left this team.
+                  </p>
+                  <p :if={d.declarado.vigente?} class="text-sm">
+                    Declared a current membership in this team.
+                  </p>
+                  <div :if={d.declarado.ended_at} class="text-xs opacity-60">
+                    declared end at {d.declarado.ended_at}
+                  </div>
+                  <div :if={is_nil(d.declarado.started_at)} class="text-xs opacity-60">
+                    start date unknown
+                  </div>
                 </div>
               </div>
-            </div>
-          </li>
-        </ul>
-      </section>
+            </li>
+          </ul>
+        </section>
 
-      <%!-- ═══ A PROMOÇÃO — issue #317 ═══
+        <%!-- ═══ A PROMOÇÃO — issue #317 ═══
             Seção separada da tabela de membros, e a separação é o ponto. Ali o nível de
             acesso aparece **rotulado como acesso**, porque é observação. Aqui ele NÃO
             aparece: é onde a decisão de papel acontece, e exibi-lo faria dele uma dica.
             A garantia é do contrato — `pending_evidence/2` não devolve o campo. --%>
-      <section :if={@pendentes != []} class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">
-          {length(@pendentes)} observed member(s) without a declared role
-        </h3>
-        <p class="text-sm opacity-70">
-          The source shows that these people belong to this team, and they already count as
-          members. What the platform does not know is which <strong>role</strong> they hold —
-          no source provides that. Choose the role and declare it; the record keeps who
-          declared it and when.
-        </p>
+        <section :if={@pendentes != []} class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">
+            {length(@pendentes)} observed member(s) without a declared role
+          </h3>
+          <p class="text-sm opacity-70">
+            The source shows that these people belong to this team, and they already count as
+            members. What the platform does not know is which <strong>role</strong> they hold —
+            no source provides that. Choose the role and declare it; the record keeps who
+            declared it and when.
+          </p>
 
-        <%!-- **Um formulário só**, e não um por linha. É o que permite confirmar várias de
+          <%!-- **Um formulário só**, e não um por linha. É o que permite confirmar várias de
               uma vez sem espelhar o estado dos seletores em `assigns` — o navegador já
               guarda o que foi escolhido, e duplicar isso no servidor criaria duas fontes que
               podem discordar.
 
               O botão diz QUAL linha: `name="apenas"` com o id da evidência, ou `"todas"`. --%>
-        <form phx-submit="promover" id="promover" class="space-y-2">
-          <ul class="space-y-2">
-            <li :for={p <- @pendentes} class="card bg-base-200 p-3">
-              <div class="flex flex-wrap items-end gap-2">
-                <div class="min-w-40 flex-1">
-                  <div class="font-medium">{p.person_name}</div>
-                  <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
-                </div>
+          <form phx-submit="promover" id="promover" class="space-y-2">
+            <ul class="space-y-2">
+              <li :for={p <- @pendentes} class="card bg-base-200 p-3">
+                <div class="flex flex-wrap items-end gap-2">
+                  <div class="min-w-40 flex-1">
+                    <div class="font-medium">{p.person_name}</div>
+                    <div :if={p.person_login} class="text-xs opacity-60">@{p.person_login}</div>
+                  </div>
 
-                <label class="fieldset">
-                  <span class="label-text text-xs">role</span>
-                  <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum
+                  <label class="fieldset">
+                    <span class="label-text text-xs">role</span>
+                    <%!-- **Começa vazio.** Nenhum papel vem pré-selecionado, por critério nenhum
                         — e menos ainda pelo nível de acesso, que nem chega aqui.
 
                         Sem `required`: com o botão de confirmar todas, linha sem papel é
                         PULADA, e não impedimento. `required` bloquearia o envio inteiro por
                         causa de uma linha que ninguém quis preencher. --%>
-                  <select name={"papel[#{p.id}]"} class="select select-sm select-bordered">
-                    <option value="">choose…</option>
-                    <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
-                      {papel.name}
-                    </option>
-                  </select>
-                </label>
+                    <select name={"papel[#{p.id}]"} class="select select-sm select-bordered">
+                      <option value="">choose…</option>
+                      <option :for={papel <- @papeis_para_promover} value={valor_do_papel(papel)}>
+                        {papel.name}
+                      </option>
+                    </select>
+                  </label>
 
-                <label class="fieldset">
-                  <span class="label-text text-xs">assumed the role on</span>
-                  <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
+                  <label class="fieldset">
+                    <span class="label-text text-xs">assumed the role on</span>
+                    <%!-- Vem preenchido com hoje como PONTO DE PARTIDA, e é editável. A origem
                         não sabe desde quando a pessoa está na equipe — carimbar hoje sem
                         permitir correção afirmaria algo falso para quem entrou há um ano.
                         Esvaziar é permitido, e significa DESCONHECIDO. --%>
-                  <input
-                    type="date"
-                    name={"started_at[#{p.id}]"}
-                    value={Date.to_iso8601(Date.utc_today())}
-                    class="input input-sm input-bordered"
-                  />
-                </label>
+                    <input
+                      type="date"
+                      name={"started_at[#{p.id}]"}
+                      value={Date.to_iso8601(Date.utc_today())}
+                      class="input input-sm input-bordered"
+                    />
+                  </label>
 
-                <button type="submit" name="apenas" value={p.id} class="btn btn-primary btn-sm">
-                  Declare role
-                </button>
-              </div>
-            </li>
-          </ul>
+                  <button type="submit" name="apenas" value={p.id} class="btn btn-primary btn-sm">
+                    Declare role
+                  </button>
+                </div>
+              </li>
+            </ul>
 
-          <%!-- Confirmar todas: só as linhas COM papel escolhido. As demais são puladas, e a
+            <%!-- Confirmar todas: só as linhas COM papel escolhido. As demais são puladas, e a
                 mensagem diz quantas — pular em silêncio faria quem clicou achar que confirmou
                 tudo. --%>
-          <div class="flex flex-wrap items-center gap-3 pt-1">
-            <button type="submit" name="apenas" value="todas" class="btn btn-primary btn-sm">
-              Declare all roles
-            </button>
-            <span class="text-xs opacity-70">
-              Confirms only the rows where a role was chosen. The others are left as they are,
-              and the result says how many.
-            </span>
-          </div>
-        </form>
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button type="submit" name="apenas" value="todas" class="btn btn-primary btn-sm">
+                Declare all roles
+              </button>
+              <span class="text-xs opacity-70">
+                Confirms only the rows where a role was chosen. The others are left as they are,
+                and the result says how many.
+              </span>
+            </div>
+          </form>
 
-        <p class="text-xs opacity-60">
-          Leaving the date empty is allowed, and means <strong>unknown</strong>
-          — never today. The platform does not guess when someone took a role on.
-        </p>
-      </section>
-
-      <div class="alert text-sm">
-        <div>
-          <p class="font-semibold">Por que o papel organizacional aparece como pendente</p>
-          <p>
-            <span class="font-mono">MAINTAINER</span>
-            e <span class="font-mono">MEMBER</span>
-            are team administration levels at the platform: they say who can manage members and
-            permissions. They do not say whether the person is a developer, a tester, a designer
-            or a manager. Treating them as a role would produce a catalogue matching no real
-            function. The link stays recorded as evidence until the organisation assigns the role.
+          <p class="text-xs opacity-60">
+            Leaving the date empty is allowed, and means <strong>unknown</strong>
+            — never today. The platform does not guess when someone took a role on.
           </p>
+        </section>
+
+        <div class="alert text-sm">
+          <div>
+            <p class="font-semibold">Por que o papel organizacional aparece como pendente</p>
+            <%!-- A nota deixou de NOMEAR os níveis de administração da origem (feature 060,
+                  FR-008, SC-004). Eles não aparecem mais em lugar nenhum desta tela, e
+                  citá-los só aqui os reintroduziria como dica ao lado do seletor de papel —
+                  que é exactamente o que a SC-005a proíbe. O argumento não depende dos
+                  nomes. --%>
+            <p>
+              The source says who can administer the team at the tool: who manages members and
+              permissions. It does not say whether the person is a developer, a tester, a
+              designer or a manager. Treating that level as a role would produce a catalogue
+              matching no real function. The link stays recorded as evidence until the
+              organisation assigns the role.
+            </p>
+          </div>
         </div>
       </div>
 
-      <%!-- Projetos da equipe — o vínculo da 028, acessível também deste lado. --%>
-      <section class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">Projects</h3>
-        <p :if={@projetos_da_equipe == []} class="text-sm opacity-70">
-          This team is not associated with any project — "who works on this project" has no
-          answer through it yet.
-        </p>
-        <ul class="flex flex-wrap gap-2">
-          <li :for={pr <- @projetos_da_equipe} class="badge badge-outline gap-2">
-            <.link navigate={~p"/projects"} class="link link-hover">{pr.nome}</.link>
-            <button
-              :if={@current_user.role == "admin"}
-              phx-click="desassociar_projeto"
-              phx-value-link_id={pr.link_id}
-              class="cursor-pointer"
-            >
-              ×
-            </button>
-          </li>
-        </ul>
-        <form
-          :if={@current_user.role == "admin" and @projetos_disponiveis != []}
-          id="associar-projeto"
-          phx-change="associar_projeto"
-        >
-          <select name="project_id" class="select select-sm select-bordered">
-            <option value="">associate with a project…</option>
-            <option :for={p <- @projetos_disponiveis} value={p.id}>{p.name}</option>
-          </select>
-        </form>
-      </section>
+      <div :if={@aba == :dashboard} class="space-y-4">
+        <%!-- Projetos da equipe — o vínculo da 028, acessível também deste lado. --%>
+        <section class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">Projects</h3>
+          <p :if={@projetos_da_equipe == []} class="text-sm opacity-70">
+            This team is not associated with any project — "who works on this project" has no
+            answer through it yet.
+          </p>
+          <ul class="flex flex-wrap gap-2">
+            <li :for={pr <- @projetos_da_equipe} class="badge badge-outline gap-2">
+              <.link navigate={~p"/projects"} class="link link-hover">{pr.nome}</.link>
+              <button
+                :if={@current_user.role == "admin"}
+                phx-click="desassociar_projeto"
+                phx-value-link_id={pr.link_id}
+                class="cursor-pointer"
+              >
+                ×
+              </button>
+            </li>
+          </ul>
+          <form
+            :if={@current_user.role == "admin" and @projetos_disponiveis != []}
+            id="associar-projeto"
+            phx-change="associar_projeto"
+          >
+            <select name="project_id" class="select select-sm select-bordered">
+              <option value="">associate with a project…</option>
+              <option :for={p <- @projetos_disponiveis} value={p.id}>{p.name}</option>
+            </select>
+          </form>
+        </section>
 
-      <%!-- ANTIPADRÕES DA ESTRUTURA — decisão da pessoa mantenedora, 2026-09-04.
+        <%!-- ANTIPADRÕES DA ESTRUTURA — decisão da pessoa mantenedora, 2026-09-04.
 
             Vem ANTES das medidas, e não depois: quem lê um número de nível equipe
             precisa saber, primeiro, se a unidade sobre a qual ele foi calculado está
             formada. Um aviso embaixo do número chega tarde. --%>
-      <section :if={@antipadroes_da_estrutura != []} id="estrutura-anomala" class="mt-8">
-        <div :for={a <- @antipadroes_da_estrutura} class="alert alert-warning items-start text-sm">
-          <div>
-            <div class="font-semibold">{a.nome}</div>
-            <p class="mt-1 opacity-90">{a.afirmacao}</p>
-            <p class="mt-1 opacity-80">{a.consequencia}</p>
-            <div class="mt-1 font-mono text-xs opacity-60">
-              {a.id} · {a.membros_vigentes} active membership(s)
+        <section :if={@antipadroes_da_estrutura != []} id="estrutura-anomala" class="mt-8">
+          <div :for={a <- @antipadroes_da_estrutura} class="alert alert-warning items-start text-sm">
+            <div>
+              <div class="font-semibold">{a.nome}</div>
+              <p class="mt-1 opacity-90">{a.afirmacao}</p>
+              <p class="mt-1 opacity-80">{a.consequencia}</p>
+              <div class="mt-1 font-mono text-xs opacity-60">
+                {a.id} · {a.membros_vigentes} active membership(s)
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <%!-- QUEM TRABALHOU NO PROJETO — feature 058, US2 (T006, T007).
+        <%!-- QUEM TRABALHOU NO PROJETO — feature 058, US2 (T006, T007).
 
             A pergunta que duas colunas de período existem para responder desde que
             a tabela foi criada, e que nenhuma consulta fazia.
@@ -1581,71 +1856,71 @@ defmodule TheBandWeb.TeamsLive.Show do
 
             Projeto sem interseção traz a frase de ausência, e não uma lista vazia
             (FR-011) — lista em branco é indistinguível de erro de carregamento. --%>
-      <section :if={@quem_trabalhou != []} id="quem-trabalhou" class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">Who worked on these projects</h3>
-        <p class="text-sm opacity-70">
-          A person works on a project when <strong>their team is on that project</strong>
-          — the
-          definition given by the maintainer on 2026-09-04. So this list is <strong>derived</strong>
-          from two declared links, pessoa ↔ equipe and equipe ↔ projeto, over the last 8 weeks.
-          A person reached by two teams appears <strong>once</strong>, with both named — two rows
-          would count the same person twice.
-        </p>
+        <section :if={@quem_trabalhou != []} id="quem-trabalhou" class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">Who worked on these projects</h3>
+          <p class="text-sm opacity-70">
+            A person works on a project when <strong>their team is on that project</strong>
+            — the
+            definition given by the maintainer on 2026-09-04. So this list is <strong>derived</strong>
+            from two declared links, pessoa ↔ equipe and equipe ↔ projeto, over the last 8 weeks.
+            A person reached by two teams appears <strong>once</strong>, with both named — two rows
+            would count the same person twice.
+          </p>
 
-        <%!-- A proveniência DERIVADA muda o que a lista pode ser lida como, e as duas
+          <%!-- A proveniência DERIVADA muda o que a lista pode ser lida como, e as duas
               direções do erro são simétricas. O design system manda o preenchimento
               carregar a proveniência; aqui ela é texto porque a lista é de gente, e
               hachurar nomes de pessoas sugeriria dúvida sobre elas. --%>
-        <p class="text-xs opacity-60">
-          It is <strong>not</strong>
-          an observation of work in the project's repositories: someone on the team who touched
-          nothing still appears, and someone who committed there without being on a linked team
-          does not. Both are consequences of the definition, not gaps in collection.
-        </p>
+          <p class="text-xs opacity-60">
+            It is <strong>not</strong>
+            an observation of work in the project's repositories: someone on the team who touched
+            nothing still appears, and someone who committed there without being on a linked team
+            does not. Both are consequences of the definition, not gaps in collection.
+          </p>
 
-        <ul class="space-y-3">
-          <li :for={linha <- @quem_trabalhou} class="card bg-base-200 p-3">
-            <div class="font-medium">{linha.nome}</div>
+          <ul class="space-y-3">
+            <li :for={linha <- @quem_trabalhou} class="card bg-base-200 p-3">
+              <div class="font-medium">{linha.nome}</div>
 
-            <%!-- A ausência é DITA, e diz qual dos dois lados falta: sem equipe
+              <%!-- A ausência é DITA, e diz qual dos dois lados falta: sem equipe
                   ligada no período, ou ligada sem ninguém dentro dela. As duas
                   frases levam a ações diferentes. --%>
-            <p :if={linha.pessoas == []} class="mt-1 text-sm opacity-70">
-              Nobody worked on this project in the window — either no team was linked to it
-              then, or the teams that were had no member in the period. Not zero people:
-              no intersection.
-            </p>
+              <p :if={linha.pessoas == []} class="mt-1 text-sm opacity-70">
+                Nobody worked on this project in the window — either no team was linked to it
+                then, or the teams that were had no member in the period. Not zero people:
+                no intersection.
+              </p>
 
-            <ul :if={linha.pessoas != []} class="mt-2 space-y-1 text-sm">
-              <li :for={pessoa <- linha.pessoas} class="flex flex-wrap items-baseline gap-2">
-                <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover">
-                  {pessoa.name}
-                </.link>
-                <span :if={pessoa.login} class="text-xs opacity-60">@{pessoa.login}</span>
-                <span class="text-xs opacity-70">
-                  via {Enum.map_join(pessoa.equipes, ", ", & &1.name)}
-                </span>
-                <%!-- A marca do parcial nomeia a borda que falta. Sem o nome, quem lê
+              <ul :if={linha.pessoas != []} class="mt-2 space-y-1 text-sm">
+                <li :for={pessoa <- linha.pessoas} class="flex flex-wrap items-baseline gap-2">
+                  <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover">
+                    {pessoa.name}
+                  </.link>
+                  <span :if={pessoa.login} class="text-xs opacity-60">@{pessoa.login}</span>
+                  <span class="text-xs opacity-70">
+                    via {Enum.map_join(pessoa.equipes, ", ", & &1.name)}
+                  </span>
+                  <%!-- A marca do parcial nomeia a borda que falta. Sem o nome, quem lê
                       sabe que há dúvida e não sabe o que fazer com ela. --%>
-                <span
-                  :if={borda_desconhecida(pessoa.periodo)}
-                  class="badge badge-sm badge-warning"
-                  title="the intersection depends on a boundary nobody declared"
-                >
-                  partially unknown: {borda_desconhecida(pessoa.periodo)}
-                </span>
-              </li>
-            </ul>
-          </li>
-        </ul>
+                  <span
+                    :if={borda_desconhecida(pessoa.periodo)}
+                    class="badge badge-sm badge-warning"
+                    title="the intersection depends on a boundary nobody declared"
+                  >
+                    partially unknown: {borda_desconhecida(pessoa.periodo)}
+                  </span>
+                </li>
+              </ul>
+            </li>
+          </ul>
 
-        <p class="text-xs opacity-60">
-          A membership with no start date is <strong>unknown</strong>, never open since
-          forever — those rows carry the mark above. An open end date means <strong>current</strong>, and is not marked.
-        </p>
-      </section>
+          <p class="text-xs opacity-60">
+            A membership with no start date is <strong>unknown</strong>, never open since
+            forever — those rows carry the mark above. An open end date means <strong>current</strong>, and is not marked.
+          </p>
+        </section>
 
-      <%!-- A ESPERA POR REVISÃO — feature 058, US1 (T011).
+        <%!-- A ESPERA POR REVISÃO — feature 058, US1 (T011).
 
             A limitação vem JUNTO do número, e não numa página de ajuda (FR-019):
             o tempo conta da abertura, e revisão de robô não encerra a contagem.
@@ -1653,160 +1928,160 @@ defmodule TheBandWeb.TeamsLive.Show do
 
             A espera EM CURSO aparece ao lado da mediana, e não dentro dela: sem
             ela, a mediana melhoraria quanto pior a equipe estivesse. --%>
-      <section id="espera-por-revisao" class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">Waiting for first review</h3>
-        <.composicao_da_medida composicao={@composicao} />
-        <p class="text-sm opacity-70">
-          Change requests opened by people who belonged to this team
-          <strong>on the day they opened them</strong>
-          — not on the day you are reading. Time runs until the first <strong>human</strong>
-          review: a bot review does not end the count, and is discarded here.
-        </p>
+        <section id="espera-por-revisao" class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">Waiting for first review</h3>
+          <.composicao_da_medida composicao={@composicao} />
+          <p class="text-sm opacity-70">
+            Change requests opened by people who belonged to this team
+            <strong>on the day they opened them</strong>
+            — not on the day you are reading. Time runs until the first <strong>human</strong>
+            review: a bot review does not end the count, and is discarded here.
+          </p>
 
-        <%!-- Equipe sem solicitação diz a ausência em texto, e nunca zero (FR-006):
+          <%!-- Equipe sem solicitação diz a ausência em texto, e nunca zero (FR-006):
               zero afirmaria que a equipe abriu solicitações e ninguém esperou. --%>
-        <p :if={@espera_por_revisao.esperas == []} class="text-sm opacity-70">
-          No change request opened by this team in the last 8 weeks. That is not a wait of
-          zero — it is nothing to measure.
-        </p>
+          <p :if={@espera_por_revisao.esperas == []} class="text-sm opacity-70">
+            No change request opened by this team in the last 8 weeks. That is not a wait of
+            zero — it is nothing to measure.
+          </p>
 
-        <%!-- A EQUIPE DE UMA PESSOA — `structure.ap01.team_of_one`.
+          <%!-- A EQUIPE DE UMA PESSOA — `structure.ap01.team_of_one`.
 
               Aqui o agregado É o número de uma pessoa nomeável, e mostrá-lo a quem não
               alcança a equipe contornaria a FR-024 sem ninguém notar. A saída não é um
               piso: é dizer qual anomalia está no caminho. --%>
-        <div
-          :if={@espera_por_revisao.de_uma_pessoa? and @espera_por_revisao.esperas != []}
-          class="alert alert-warning text-sm"
-        >
-          <div>
-            <p>
-              <strong>This team has one member.</strong>
-              A team median over one person is that person's median with another name, so the
-              numbers below are treated as individual, not aggregate.
-            </p>
-            <p :if={not @espera_por_revisao.ve_agregado?} class="mt-1">
-              You do not have reach over this team, so they are withheld — the same rule that
-              hides the per-person breakdown.
-            </p>
-          </div>
-        </div>
-
-        <div
-          :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_agregado?}
-          class="flex flex-wrap gap-4"
-        >
-          <div class="card bg-base-200 p-3">
-            <div class="text-xs opacity-70">code review · median wait</div>
-            <div class="text-lg font-semibold">
-              {if @espera_por_revisao.mediana, do: "#{@espera_por_revisao.mediana}h", else: "—"}
-            </div>
-            <div :if={is_nil(@espera_por_revisao.mediana)} class="text-xs opacity-60">
-              no code change reviewed yet — no median to state
+          <div
+            :if={@espera_por_revisao.de_uma_pessoa? and @espera_por_revisao.esperas != []}
+            class="alert alert-warning text-sm"
+          >
+            <div>
+              <p>
+                <strong>This team has one member.</strong>
+                A team median over one person is that person's median with another name, so the
+                numbers below are treated as individual, not aggregate.
+              </p>
+              <p :if={not @espera_por_revisao.ve_agregado?} class="mt-1">
+                You do not have reach over this team, so they are withheld — the same rule that
+                hides the per-person breakdown.
+              </p>
             </div>
           </div>
 
-          <%!-- O NÚMERO QUE FAZ ALGUÉM AGIR — issue #805.
+          <div
+            :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_agregado?}
+            class="flex flex-wrap gap-4"
+          >
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">code review · median wait</div>
+              <div class="text-lg font-semibold">
+                {if @espera_por_revisao.mediana, do: "#{@espera_por_revisao.mediana}h", else: "—"}
+              </div>
+              <div :if={is_nil(@espera_por_revisao.mediana)} class="text-xs opacity-60">
+                no code change reviewed yet — no median to state
+              </div>
+            </div>
+
+            <%!-- O NÚMERO QUE FAZ ALGUÉM AGIR — issue #805.
                 Estava escondido dentro de um contador chamado "still waiting", ao lado de
                 uma mediana que o desmentia. --%>
-          <div class="card bg-base-200 p-3">
-            <div class="text-xs opacity-70">waiting now · median age</div>
-            <div class="text-lg font-semibold">
-              {if @espera_por_revisao.espera_em_curso_dias,
-                do: "#{@espera_por_revisao.espera_em_curso_dias} d",
-                else: "—"}
+            <div class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">waiting now · median age</div>
+              <div class="text-lg font-semibold">
+                {if @espera_por_revisao.espera_em_curso_dias,
+                  do: "#{@espera_por_revisao.espera_em_curso_dias} d",
+                  else: "—"}
+              </div>
+              <div class="text-xs opacity-60">
+                across {@espera_por_revisao.em_curso} code change(s) with no human review
+              </div>
             </div>
-            <div class="text-xs opacity-60">
-              across {@espera_por_revisao.em_curso} code change(s) with no human review
-            </div>
-          </div>
 
-          <%!-- A cerimônia NÃO é descartada: aparece contada e nomeada. Removê-la faria a
+            <%!-- A cerimônia NÃO é descartada: aparece contada e nomeada. Removê-la faria a
                 contagem discordar da do GitHub sem explicação, e ela é fato sobre o
                 processo da organização. --%>
-          <div :if={@espera_por_revisao.cerimonia != []} class="card bg-base-200 p-3">
-            <div class="text-xs opacity-70">process ceremony</div>
-            <div class="text-lg font-semibold">{length(@espera_por_revisao.cerimonia)}</div>
-            <div class="text-xs opacity-60">
-              releases and back-merges, median {if @espera_por_revisao.mediana_da_cerimonia,
-                do: "#{@espera_por_revisao.mediana_da_cerimonia}h",
-                else: "—"} — counted apart
+            <div :if={@espera_por_revisao.cerimonia != []} class="card bg-base-200 p-3">
+              <div class="text-xs opacity-70">process ceremony</div>
+              <div class="text-lg font-semibold">{length(@espera_por_revisao.cerimonia)}</div>
+              <div class="text-xs opacity-60">
+                releases and back-merges, median {if @espera_por_revisao.mediana_da_cerimonia,
+                  do: "#{@espera_por_revisao.mediana_da_cerimonia}h",
+                  else: "—"} — counted apart
+              </div>
             </div>
           </div>
-        </div>
 
-        <%!-- A limitação vem junto do número (FR-019), e esta é a que a conferência
+          <%!-- A limitação vem junto do número (FR-019), e esta é a que a conferência
               contra a origem obrigou a escrever. --%>
-        <p :if={@espera_por_revisao.cerimonia != []} class="text-xs opacity-60">
-          A <strong>release</strong>
-          approved in seconds is a step of the process, not a review of code — counting the
-          two together made the median read as fast while code changes sat unreviewed for
-          weeks. They are separated here, and the rule that separates them is declared in the
-          knowledge base, not in the code: another organisation names these differently.
-        </p>
+          <p :if={@espera_por_revisao.cerimonia != []} class="text-xs opacity-60">
+            A <strong>release</strong>
+            approved in seconds is a step of the process, not a review of code — counting the
+            two together made the median read as fast while code changes sat unreviewed for
+            weeks. They are separated here, and the rule that separates them is declared in the
+            knowledge base, not in the code: another organisation names these differently.
+          </p>
 
-        <%!-- A recusa NOMEIA o motivo (FR-024a). Esconder a quebra sem dizer por quê
+          <%!-- A recusa NOMEIA o motivo (FR-024a). Esconder a quebra sem dizer por quê
               faria a seção parecer incompleta, e apresentá-la vazia afirmaria que a
               equipe não tem solicitações — que é o que FR-018 proíbe. --%>
-        <%!-- "os números acima" só é verdade quando há números acima: numa equipe de uma
+          <%!-- "os números acima" só é verdade quando há números acima: numa equipe de uma
               pessoa o agregado foi retido, e o alerta anterior já explicou por quê. --%>
-        <p
-          :if={
-            not @espera_por_revisao.ve_por_pessoa? and @espera_por_revisao.esperas != [] and
-              @espera_por_revisao.ve_agregado?
-          }
-          class="text-sm opacity-70"
-        >
-          The team numbers above are shown to everyone in this organisation. The
-          <strong>per-person breakdown</strong>
-          — who opened which request, and how long each waited — is not: reading someone's
-          work is for that person, whoever leads their team, and whoever answers for the
-          organisation. You are none of those for this team, so the breakdown is withheld,
-          not empty.
-        </p>
+          <p
+            :if={
+              not @espera_por_revisao.ve_por_pessoa? and @espera_por_revisao.esperas != [] and
+                @espera_por_revisao.ve_agregado?
+            }
+            class="text-sm opacity-70"
+          >
+            The team numbers above are shown to everyone in this organisation. The
+            <strong>per-person breakdown</strong>
+            — who opened which request, and how long each waited — is not: reading someone's
+            work is for that person, whoever leads their team, and whoever answers for the
+            organisation. You are none of those for this team, so the breakdown is withheld,
+            not empty.
+          </p>
 
-        <%!-- A mesma medida POR PESSOA (T010). O texto abaixo existe porque alguém
+          <%!-- A mesma medida POR PESSOA (T010). O texto abaixo existe porque alguém
               somaria as duas: a mesma solicitação tem um autor só, então não há dupla
               contagem — o que há são duas perguntas diferentes (FR-005, FR-020). --%>
-        <ul :if={@espera_por_revisao.por_pessoa != []} class="space-y-2 text-sm">
-          <li :for={linha <- @espera_por_revisao.por_pessoa} class="card bg-base-200 p-3">
-            <div class="flex flex-wrap items-baseline gap-2">
-              <span class="font-medium">{linha.autor_login || "unknown author"}</span>
-              <span class="text-xs opacity-60">
-                median {if h = Quality.mediana_em_horas(linha.esperas), do: "#{h}h", else: "—"}
-              </span>
-            </div>
-            <ul class="mt-1 space-y-1">
-              <li :for={e <- linha.esperas} class="flex flex-wrap items-baseline gap-2 text-xs">
-                <span class="font-mono opacity-70">#{e.numero}</span>
-                <span class="opacity-80">{e.titulo}</span>
-                <span class={[
-                  "badge badge-sm",
-                  match?({:aguardando, _}, e.estado) && "badge-warning"
-                ]}>
-                  {texto_da_espera(e.estado)}
+          <ul :if={@espera_por_revisao.por_pessoa != []} class="space-y-2 text-sm">
+            <li :for={linha <- @espera_por_revisao.por_pessoa} class="card bg-base-200 p-3">
+              <div class="flex flex-wrap items-baseline gap-2">
+                <span class="font-medium">{linha.autor_login || "unknown author"}</span>
+                <span class="text-xs opacity-60">
+                  median {if h = Quality.mediana_em_horas(linha.esperas), do: "#{h}h", else: "—"}
                 </span>
-              </li>
-            </ul>
-          </li>
-        </ul>
+              </div>
+              <ul class="mt-1 space-y-1">
+                <li :for={e <- linha.esperas} class="flex flex-wrap items-baseline gap-2 text-xs">
+                  <span class="font-mono opacity-70">#{e.numero}</span>
+                  <span class="opacity-80">{e.titulo}</span>
+                  <span class={[
+                    "badge badge-sm",
+                    match?({:aguardando, _}, e.estado) && "badge-warning"
+                  ]}>
+                    {texto_da_espera(e.estado)}
+                  </span>
+                </li>
+              </ul>
+            </li>
+          </ul>
 
-        <p :if={@espera_por_revisao.truncou?} class="text-sm opacity-70">
-          Showing the most recent {@espera_por_revisao.limite} requests only — there are more
-          in the window, and the medians above are over <strong>what is shown</strong>, not over all of them.
-        </p>
+          <p :if={@espera_por_revisao.truncou?} class="text-sm opacity-70">
+            Showing the most recent {@espera_por_revisao.limite} requests only — there are more
+            in the window, and the medians above are over <strong>what is shown</strong>, not over all of them.
+          </p>
 
-        <p
-          :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_por_pessoa?}
-          class="text-xs opacity-60"
-        >
-          The per-person medians and the team median answer <strong>different questions</strong>
-          and are not meant to be reconciled: one is about a person's requests, the other
-          about the team's. They are not summed, and neither derives from the other.
-        </p>
-      </section>
+          <p
+            :if={@espera_por_revisao.esperas != [] and @espera_por_revisao.ve_por_pessoa?}
+            class="text-xs opacity-60"
+          >
+            The per-person medians and the team median answer <strong>different questions</strong>
+            and are not meant to be reconciled: one is about a person's requests, the other
+            about the team's. They are not summed, and neither derives from the other.
+          </p>
+        </section>
 
-      <%!-- A TAXA DO PIPELINE — feature 058, US3 (T016).
+        <%!-- A TAXA DO PIPELINE — feature 058, US3 (T016).
 
             O tamanho da amostra não é enfeite: a cobertura do dado é desconhecida,
             e uma taxa de 100% sobre três execuções não é a mesma afirmação que
@@ -1815,337 +2090,341 @@ defmodule TheBandWeb.TeamsLive.Show do
             E a recusa é um estado de primeira classe: sem projeto declarado não há
             taxa, e a tela NOMEIA o elo que falta em vez de mostrar zero — zero
             diria que o pipeline falhou. --%>
-      <section id="taxa-do-pipeline" class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">Pipeline success rate</h3>
-        <.composicao_da_medida composicao={@composicao} />
+        <section id="taxa-do-pipeline" class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">Pipeline success rate</h3>
+          <.composicao_da_medida composicao={@composicao} />
 
-        <div :if={match?({:sem_projeto, _}, @taxa_do_pipeline)} class="card bg-base-200 p-3">
-          <p class="text-sm">
-            No rate for <strong>{elem(@taxa_do_pipeline, 1).equipe}</strong>
-            — this team is not linked to any project, so the platform does not know which
-            repositories it looks after. The missing link is <strong>team → project</strong>, and it is declared on this page.
-          </p>
-          <p class="mt-1 text-xs opacity-60">
-            This is not a rate of zero: zero would say the pipeline failed.
-          </p>
-        </div>
-
-        <div :if={match?({:ok, _}, @taxa_do_pipeline)} class="space-y-3">
-          <div class="flex flex-wrap items-end gap-4">
-            <div class="card bg-base-200 p-3">
-              <div class="text-xs opacity-70">success rate</div>
-              <div class="text-lg font-semibold">{percentual_na_tela(@taxa_do_pipeline)}</div>
-              <div class="text-xs opacity-60">
-                over {campo_da_taxa(@taxa_do_pipeline, :denominador_do_percentual)} run(s) that
-                produced a result
-              </div>
-            </div>
-
-            <div class="card bg-base-200 p-3">
-              <div class="text-xs opacity-70">runs considered</div>
-              <div class="text-lg font-semibold">
-                {campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas)}
-              </div>
-              <div class="text-xs opacity-60">
-                across {campo_da_taxa(@taxa_do_pipeline, :repositorios)} repository(ies), last 8
-                weeks
-              </div>
-            </div>
-
-            <div class="card bg-base-200 p-3">
-              <div class="text-xs opacity-70">still running</div>
-              <div class="text-lg font-semibold">
-                {campo_da_taxa(@taxa_do_pipeline, :em_andamento)}
-              </div>
-              <div class="text-xs opacity-60">neither success nor failure</div>
-            </div>
+          <div :if={match?({:sem_projeto, _}, @taxa_do_pipeline)} class="card bg-base-200 p-3">
+            <p class="text-sm">
+              No rate for <strong>{elem(@taxa_do_pipeline, 1).equipe}</strong>
+              — this team is not linked to any project, so the platform does not know which
+              repositories it looks after. The missing link is <strong>team → project</strong>, and it is declared on this page.
+            </p>
+            <p class="mt-1 text-xs opacity-60">
+              This is not a rate of zero: zero would say the pipeline failed.
+            </p>
           </div>
 
-          <p
-            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) == 0}
-            class="text-sm opacity-70"
-          >
-            No verification run collected for these repositories in the window. Nothing to
-            divide — that is an absence, not a rate of zero.
-          </p>
+          <div :if={match?({:ok, _}, @taxa_do_pipeline)} class="space-y-3">
+            <div class="flex flex-wrap items-end gap-4">
+              <div class="card bg-base-200 p-3">
+                <div class="text-xs opacity-70">success rate</div>
+                <div class="text-lg font-semibold">{percentual_na_tela(@taxa_do_pipeline)}</div>
+                <div class="text-xs opacity-60">
+                  over {campo_da_taxa(@taxa_do_pipeline, :denominador_do_percentual)} run(s) that
+                  produced a result
+                </div>
+              </div>
 
-          <%!-- As cinco fases, cada uma no seu campo. Somar qualquer uma delas a
+              <div class="card bg-base-200 p-3">
+                <div class="text-xs opacity-70">runs considered</div>
+                <div class="text-lg font-semibold">
+                  {campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas)}
+                </div>
+                <div class="text-xs opacity-60">
+                  across {campo_da_taxa(@taxa_do_pipeline, :repositorios)} repository(ies), last 8
+                  weeks
+                </div>
+              </div>
+
+              <div class="card bg-base-200 p-3">
+                <div class="text-xs opacity-70">still running</div>
+                <div class="text-lg font-semibold">
+                  {campo_da_taxa(@taxa_do_pipeline, :em_andamento)}
+                </div>
+                <div class="text-xs opacity-60">neither success nor failure</div>
+              </div>
+            </div>
+
+            <p
+              :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) == 0}
+              class="text-sm opacity-70"
+            >
+              No verification run collected for these repositories in the window. Nothing to
+              divide — that is an absence, not a rate of zero.
+            </p>
+
+            <%!-- As cinco fases, cada uma no seu campo. Somar qualquer uma delas a
                 "failed" inflaria a taxa com o que ninguém quebrou (FR-015). --%>
-          <table
-            :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) > 0}
-            class="table table-sm"
-          >
-            <thead>
-              <tr>
-                <th>succeeded</th>
-                <th>failed</th>
-                <th>interrupted</th>
-                <th>not performed</th>
-                <th>expired</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>{campo_da_taxa(@taxa_do_pipeline, :sucesso)}</td>
-                <td>{campo_da_taxa(@taxa_do_pipeline, :falha)}</td>
-                <td>{campo_da_taxa(@taxa_do_pipeline, :interrompida)}</td>
-                <td>{campo_da_taxa(@taxa_do_pipeline, :nao_executada)}</td>
-                <td>{campo_da_taxa(@taxa_do_pipeline, :expirada)}</td>
-              </tr>
-            </tbody>
-          </table>
+            <table
+              :if={campo_da_taxa(@taxa_do_pipeline, :execucoes_consideradas) > 0}
+              class="table table-sm"
+            >
+              <thead>
+                <tr>
+                  <th>succeeded</th>
+                  <th>failed</th>
+                  <th>interrupted</th>
+                  <th>not performed</th>
+                  <th>expired</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{campo_da_taxa(@taxa_do_pipeline, :sucesso)}</td>
+                  <td>{campo_da_taxa(@taxa_do_pipeline, :falha)}</td>
+                  <td>{campo_da_taxa(@taxa_do_pipeline, :interrompida)}</td>
+                  <td>{campo_da_taxa(@taxa_do_pipeline, :nao_executada)}</td>
+                  <td>{campo_da_taxa(@taxa_do_pipeline, :expirada)}</td>
+                </tr>
+              </tbody>
+            </table>
 
-          <p class="text-xs opacity-60">
-            Path: <span class="font-mono">{campo_da_taxa(@taxa_do_pipeline, :caminho)}</span>
-            — the rate is about the repositories of this team's projects, and <strong>not</strong>
-            about who triggered each run: the actor is whoever pressed the button, not whoever
-            looks after the code. Interrupted, not performed and expired count on their own and
-            are never added to "failed" — cancelling is a human decision. Runs still going are
-            outside both the numerator and the denominator.
-          </p>
-        </div>
-      </section>
+            <p class="text-xs opacity-60">
+              Path: <span class="font-mono">{campo_da_taxa(@taxa_do_pipeline, :caminho)}</span>
+              — the rate is about the repositories of this team's projects, and <strong>not</strong>
+              about who triggered each run: the actor is whoever pressed the button, not whoever
+              looks after the code. Interrupted, not performed and expired count on their own and
+              are never added to "failed" — cancelling is a human decision. Runs still going are
+              outside both the numerator and the denominator.
+            </p>
+          </div>
+        </section>
 
-      <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora
+        <%!-- Antipadrões do processo nas issues dos membros — pedido da pessoa mantenedora
             em 2026-08-16: a tela da equipe ALERTA onde o processo range. As máximas vêm
             da base de conhecimento; "não avaliado" e "nada encontrado" nunca se
             confundem — afirmar saúde sobre issues que ninguém olhou seria o antipadrão
             desta própria tela. --%>
-      <section class="mt-8 space-y-3">
-        <h3 class="text-base font-semibold">Process warnings</h3>
-        <p class="text-sm opacity-70">
-          Antipatterns found in the issues assigned to this team's members. They are not
-          judgements about people — they say the record of the process is incomplete, and
-          the cost is that the organisation loses the measurement.
-        </p>
+        <section class="mt-8 space-y-3">
+          <h3 class="text-base font-semibold">Process warnings</h3>
+          <p class="text-sm opacity-70">
+            Antipatterns found in the issues assigned to this team's members. They are not
+            judgements about people — they say the record of the process is incomplete, and
+            the cost is that the organisation loses the measurement.
+          </p>
 
-        <p
-          :if={@antipadroes.avaliadas == 0 and @antipadroes.nao_avaliadas > 0}
-          class="text-sm opacity-70"
-        >
-          None of the {@antipadroes.nao_avaliadas} issues has collected board movement, so
-          nothing was evaluated — which is not the same as finding nothing.
-        </p>
+          <p
+            :if={@antipadroes.avaliadas == 0 and @antipadroes.nao_avaliadas > 0}
+            class="text-sm opacity-70"
+          >
+            None of the {@antipadroes.nao_avaliadas} issues has collected board movement, so
+            nothing was evaluated — which is not the same as finding nothing.
+          </p>
 
-        <p
-          :if={@antipadroes.avaliadas > 0 and @antipadroes.achados == []}
-          class="text-sm opacity-70"
-        >
-          Nothing found in the {@antipadroes.avaliadas} issues that could be evaluated.
-        </p>
+          <p
+            :if={@antipadroes.avaliadas > 0 and @antipadroes.achados == []}
+            class="text-sm opacity-70"
+          >
+            Nothing found in the {@antipadroes.avaliadas} issues that could be evaluated.
+          </p>
 
-        <ul :if={@antipadroes.achados != []} class="space-y-1 text-sm">
-          <li :for={a <- @antipadroes.achados} class="flex items-baseline gap-2">
-            <span class="badge badge-sm badge-warning">{a.count}</span>
-            <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
-            <span class="font-mono text-xs opacity-60">{a.id}</span>
-          </li>
-        </ul>
+          <ul :if={@antipadroes.achados != []} class="space-y-1 text-sm">
+            <li :for={a <- @antipadroes.achados} class="flex items-baseline gap-2">
+              <span class="badge badge-sm badge-warning">{a.count}</span>
+              <span class="font-medium">{titulo_do_antipadrao(a.id)}</span>
+              <span class="font-mono text-xs opacity-60">{a.id}</span>
+            </li>
+          </ul>
 
-        <p
-          :if={@antipadroes.avaliadas > 0 and @antipadroes.nao_avaliadas > 0}
-          class="text-xs opacity-60"
-        >
-          Evaluated over {@antipadroes.avaliadas} issues; {@antipadroes.nao_avaliadas} had
-          no collected movement and were not evaluated.
-        </p>
-      </section>
+          <p
+            :if={@antipadroes.avaliadas > 0 and @antipadroes.nao_avaliadas > 0}
+            class="text-xs opacity-60"
+          >
+            Evaluated over {@antipadroes.avaliadas} issues; {@antipadroes.nao_avaliadas} had
+            no collected movement and were not evaluated.
+          </p>
+        </section>
 
-      <%!-- ============ Feature 029: competências da equipe ============
+        <%!-- ============ Feature 029: competências da equipe ============
             Tudo aqui é DERIVADO DE DERIVADO: contagem sobre perfis escritos por modelo.
             A contagem é exata; o que ela conta é derivado — as duas verdades aparecem.
             Sem ranking de pessoas (FR-006a): a matriz junta leituras individuais. --%>
-      <section class="mt-8 space-y-4">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 class="text-base font-semibold">Skills — read from what people did</h3>
-          <span class="badge badge-outline badge-warning gap-2 text-xs">
-            <span
-              class="inline-block h-3 w-3 rounded-sm border border-current"
-              style="background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px);"
-            ></span>
-            derived — counted over model-written profiles
-          </span>
-        </div>
+        <section class="mt-8 space-y-4">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="text-base font-semibold">Skills — read from what people did</h3>
+            <span class="badge badge-outline badge-warning gap-2 text-xs">
+              <span
+                class="inline-block h-3 w-3 rounded-sm border border-current"
+                style="background: repeating-linear-gradient(135deg, transparent 0 3px, currentColor 3px 4px);"
+              ></span>
+              derived — counted over model-written profiles
+            </span>
+          </div>
 
-        <div :if={@cobertura.com_perfil == 0} class="card bg-base-200 p-6">
-          <.absent reason="No member of this team has a profile yet — there is nothing to count. Coverage appears after the first profiles are generated." />
-        </div>
+          <div :if={@cobertura.com_perfil == 0} class="card bg-base-200 p-6">
+            <.absent reason="No member of this team has a profile yet — there is nothing to count. Coverage appears after the first profiles are generated." />
+          </div>
 
-        <div :if={@cobertura.com_perfil > 0} class="grid gap-4 lg:grid-cols-2">
-          <div class="card bg-base-200 p-5">
-            <h4 class="mb-1 text-sm font-semibold">Coverage per skill</h4>
-            <p class="mb-3 text-xs opacity-70">
-              how many of the {@cobertura.membros} members demonstrate each one · current profiles
-            </p>
-            <div class="space-y-2">
-              <div
-                :for={c <- @cobertura.competencias}
-                class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,18rem)_1fr_max-content]"
-              >
-                <%!-- No telefone o rótulo ocupa a linha inteira e a barra vem embaixo:
+          <div :if={@cobertura.com_perfil > 0} class="grid gap-4 lg:grid-cols-2">
+            <div class="card bg-base-200 p-5">
+              <h4 class="mb-1 text-sm font-semibold">Coverage per skill</h4>
+              <p class="mb-3 text-xs opacity-70">
+                how many of the {@cobertura.membros} members demonstrate each one · current profiles
+              </p>
+              <div class="space-y-2">
+                <div
+                  :for={c <- @cobertura.competencias}
+                  class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,18rem)_1fr_max-content]"
+                >
+                  <%!-- No telefone o rótulo ocupa a linha inteira e a barra vem embaixo:
                       rótulo de até 18rem em 390px deixava a barra com ~40px — lasca,
                       não medida (visto em 2026-08-17). --%>
-                <span class="col-span-2 break-words sm:col-span-1">{c.nome}</span>
-                <div class="h-3 rounded-sm bg-base-300">
-                  <div
-                    class="h-3 rounded-sm bg-primary"
-                    style={"width: #{round(c.total_pessoas / max(@cobertura.membros, 1) * 100)}%; min-width: 4px;"}
-                  >
+                  <span class="col-span-2 break-words sm:col-span-1">{c.nome}</span>
+                  <div class="h-3 rounded-sm bg-base-300">
+                    <div
+                      class="h-3 rounded-sm bg-primary"
+                      style={"width: #{round(c.total_pessoas / max(@cobertura.membros, 1) * 100)}%; min-width: 4px;"}
+                    >
+                    </div>
                   </div>
+                  <span class="font-mono text-xs tabular-nums opacity-70">
+                    {c.total_pessoas}/{@cobertura.membros}
+                  </span>
                 </div>
+              </div>
+            </div>
+
+            <div class="card bg-base-200 p-5">
+              <h4 class="mb-1 text-sm font-semibold">What this team demonstrates — computed</h4>
+              <p class="mb-3 text-xs opacity-70">
+                sentences assembled from the counts, never written by a model
+              </p>
+              <ul class="space-y-2 border-l-2 border-warning pl-3 text-sm">
+                <li :for={f <- @resumo_equipe}>{f.frase}</li>
+              </ul>
+            </div>
+          </div>
+
+          <div :if={@cobertura.com_perfil > 0} class="card bg-base-200 p-5">
+            <h4 class="mb-1 text-sm font-semibold">Evolution — coverage per profile generation</h4>
+            <%!-- Um mês só de geração não é série — mas esconder a seção afirmaria que a
+                evolução não existe como leitura. A ausência é nomeada, com o que a faria
+                aparecer (#403; era o estado da base real em 2026-08-17). --%>
+            <p :if={length(@evolucao) <= 1} class="text-sm opacity-70">
+              All current profiles were generated within a single month — evolution appears
+              from the second generation month on. The monthly round writes it by itself.
+            </p>
+            <p :if={length(@evolucao) > 1} class="mb-3 text-xs opacity-70">
+              people with the skill in the profile current at each month with a generation ·
+              a skill leaving the series is <em>evidence not renewed</em>, never regression ·
+              the 5 widest-covered skills of today; the coverage list above has them all
+            </p>
+            <div :if={length(@evolucao) > 1} class="space-y-2">
+              <div
+                :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
+                class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,14rem)_1fr_max-content]"
+              >
+                <span class="col-span-2 break-words sm:col-span-1">{serie.nome}</span>
+                <svg
+                  viewBox="0 0 200 26"
+                  preserveAspectRatio="none"
+                  class="h-6 w-full"
+                  role="img"
+                  aria-label={"#{serie.nome}: de #{serie.primeiro} para #{serie.ultimo} pessoas"}
+                >
+                  <polyline
+                    points={sparkline(serie.pontos)}
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="text-primary"
+                  />
+                </svg>
                 <span class="font-mono text-xs tabular-nums opacity-70">
-                  {c.total_pessoas}/{@cobertura.membros}
+                  {serie.primeiro} → {serie.ultimo} {tendencia(serie)}<span
+                    :if={serie.primeiro == 0 and serie.ultimo > 0}
+                    class="text-success"
+                  > new</span>
                 </span>
               </div>
             </div>
           </div>
 
-          <div class="card bg-base-200 p-5">
-            <h4 class="mb-1 text-sm font-semibold">What this team demonstrates — computed</h4>
-            <p class="mb-3 text-xs opacity-70">
-              sentences assembled from the counts, never written by a model
-            </p>
-            <ul class="space-y-2 border-l-2 border-warning pl-3 text-sm">
-              <li :for={f <- @resumo_equipe}>{f.frase}</li>
-            </ul>
-          </div>
-        </div>
-
-        <div :if={@cobertura.com_perfil > 0} class="card bg-base-200 p-5">
-          <h4 class="mb-1 text-sm font-semibold">Evolution — coverage per profile generation</h4>
-          <%!-- Um mês só de geração não é série — mas esconder a seção afirmaria que a
-                evolução não existe como leitura. A ausência é nomeada, com o que a faria
-                aparecer (#403; era o estado da base real em 2026-08-17). --%>
-          <p :if={length(@evolucao) <= 1} class="text-sm opacity-70">
-            All current profiles were generated within a single month — evolution appears
-            from the second generation month on. The monthly round writes it by itself.
-          </p>
-          <p :if={length(@evolucao) > 1} class="mb-3 text-xs opacity-70">
-            people with the skill in the profile current at each month with a generation ·
-            a skill leaving the series is <em>evidence not renewed</em>, never regression ·
-            the 5 widest-covered skills of today; the coverage list above has them all
-          </p>
-          <div :if={length(@evolucao) > 1} class="space-y-2">
-            <div
-              :for={serie <- series_de_evolucao(@cobertura, @evolucao)}
-              class="grid grid-cols-[1fr_max-content] items-center gap-x-3 gap-y-1 text-sm sm:grid-cols-[minmax(8rem,14rem)_1fr_max-content]"
-            >
-              <span class="col-span-2 break-words sm:col-span-1">{serie.nome}</span>
-              <svg
-                viewBox="0 0 200 26"
-                preserveAspectRatio="none"
-                class="h-6 w-full"
-                role="img"
-                aria-label={"#{serie.nome}: de #{serie.primeiro} para #{serie.ultimo} pessoas"}
-              >
-                <polyline
-                  points={sparkline(serie.pontos)}
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="text-primary"
-                />
-              </svg>
-              <span class="font-mono text-xs tabular-nums opacity-70">
-                {serie.primeiro} → {serie.ultimo} {tendencia(serie)}<span
-                  :if={serie.primeiro == 0 and serie.ultimo > 0}
-                  class="text-success"
-                > new</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <%!-- A FORMA segue o dado: matriz só quando há sobreposição — colunas de domínios
+          <%!-- A FORMA segue o dado: matriz só quando há sobreposição — colunas de domínios
               únicos fazem quem não é dono delas virar travessão, e a tela parece dizer que
               só uma pessoa trabalha (visto no time IA em 2026-08-16: todos com dezenas de
               tarefas, e a matriz mostrando só o Tadeu). Sem sobreposição, lista por pessoa. --%>
-        <div
-          :if={@cobertura.com_perfil > 0 and not matriz_agrega?(@cobertura)}
-          class="card bg-base-200 p-5"
-        >
-          <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
-          <p class="mb-3 text-xs opacity-70">
-            per person, because no domain repeats across people yet — the count is
-            <strong>completed tasks</strong>
-            evidencing each skill. Alphabetical; no ranking.
-          </p>
-          <div class="space-y-3">
-            <div :for={pessoa <- pessoas_da_matriz(@cobertura)} class="text-sm">
-              <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover font-medium">
-                {pessoa.name}
-              </.link>
-              <span class="ml-2 inline-flex flex-wrap gap-1.5 align-middle">
-                <span
-                  :for={{nome, tarefas} <- Enum.sort_by(pessoa.tarefas, &elem(&1, 0))}
-                  class="badge badge-sm badge-primary badge-outline gap-1"
-                >
-                  {nome} <span class="font-mono tabular-nums">{tarefas}</span>
-                </span>
-              </span>
-            </div>
-            <div :for={p <- @cobertura.sem_perfil} class="text-sm italic opacity-60">
-              {p.name} — no profile yet; no row is not no skill
-            </div>
-          </div>
-        </div>
-
-        <div
-          :if={@cobertura.com_perfil > 0 and matriz_agrega?(@cobertura)}
-          class="card bg-base-200 p-5"
-        >
-          <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
-          <p class="mb-3 text-xs opacity-70">
-            the cell is the count of <strong>completed tasks</strong> evidencing the skill —
-            delivery, never promise. People in alphabetical order; no ranking.
-          </p>
-          <div class="overflow-x-auto">
-            <table class="table table-xs">
-              <thead>
-                <tr>
-                  <th>member</th>
-                  <th :for={c <- @cobertura.competencias} class="text-center">
-                    {c.nome}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={pessoa <- pessoas_da_matriz(@cobertura)}>
-                  <td>
-                    <.link
-                      navigate={~p"/people/#{pessoa.person_id}"}
-                      class="link link-hover font-medium"
-                    >
-                      {pessoa.name}
-                    </.link>
-                  </td>
-                  <td
-                    :for={c <- @cobertura.competencias}
-                    class="text-center font-mono tabular-nums"
+          <div
+            :if={@cobertura.com_perfil > 0 and not matriz_agrega?(@cobertura)}
+            class="card bg-base-200 p-5"
+          >
+            <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
+            <p class="mb-3 text-xs opacity-70">
+              per person, because no domain repeats across people yet — the count is
+              <strong>completed tasks</strong>
+              evidencing each skill. Alphabetical; no ranking.
+            </p>
+            <div class="space-y-3">
+              <div :for={pessoa <- pessoas_da_matriz(@cobertura)} class="text-sm">
+                <.link navigate={~p"/people/#{pessoa.person_id}"} class="link link-hover font-medium">
+                  {pessoa.name}
+                </.link>
+                <span class="ml-2 inline-flex flex-wrap gap-1.5 align-middle">
+                  <span
+                    :for={{nome, tarefas} <- Enum.sort_by(pessoa.tarefas, &elem(&1, 0))}
+                    class="badge badge-sm badge-primary badge-outline gap-1"
                   >
-                    <%= if t = pessoa.tarefas[c.nome] do %>
-                      <span class="badge badge-sm badge-primary badge-outline">{t}</span>
-                    <% else %>
-                      <span class="opacity-30">—</span>
-                    <% end %>
-                  </td>
-                </tr>
-                <tr :for={p <- @cobertura.sem_perfil} class="opacity-60">
-                  <td class="italic">{p.name}</td>
-                  <td colspan={length(@cobertura.competencias)} class="text-xs italic">
-                    no profile yet — no row is not no skill
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    {nome} <span class="font-mono tabular-nums">{tarefas}</span>
+                  </span>
+                </span>
+              </div>
+              <div :for={p <- @cobertura.sem_perfil} class="text-sm italic opacity-60">
+                {p.name} — no profile yet; no row is not no skill
+              </div>
+            </div>
           </div>
-        </div>
 
-        <p :if={@cobertura.sem_perfil != [] and @cobertura.com_perfil > 0} class="text-xs opacity-70">
-          {length(@cobertura.sem_perfil)} of {@cobertura.membros} members have no profile yet —
-          coverage above is a floor, never a ceiling. Members come from source-declared evidence.
-        </p>
-      </section>
+          <div
+            :if={@cobertura.com_perfil > 0 and matriz_agrega?(@cobertura)}
+            class="card bg-base-200 p-5"
+          >
+            <h4 class="mb-1 text-sm font-semibold">Who demonstrates what</h4>
+            <p class="mb-3 text-xs opacity-70">
+              the cell is the count of <strong>completed tasks</strong> evidencing the skill —
+              delivery, never promise. People in alphabetical order; no ranking.
+            </p>
+            <div class="overflow-x-auto">
+              <table class="table table-xs">
+                <thead>
+                  <tr>
+                    <th>member</th>
+                    <th :for={c <- @cobertura.competencias} class="text-center">
+                      {c.nome}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr :for={pessoa <- pessoas_da_matriz(@cobertura)}>
+                    <td>
+                      <.link
+                        navigate={~p"/people/#{pessoa.person_id}"}
+                        class="link link-hover font-medium"
+                      >
+                        {pessoa.name}
+                      </.link>
+                    </td>
+                    <td
+                      :for={c <- @cobertura.competencias}
+                      class="text-center font-mono tabular-nums"
+                    >
+                      <%= if t = pessoa.tarefas[c.nome] do %>
+                        <span class="badge badge-sm badge-primary badge-outline">{t}</span>
+                      <% else %>
+                        <span class="opacity-30">—</span>
+                      <% end %>
+                    </td>
+                  </tr>
+                  <tr :for={p <- @cobertura.sem_perfil} class="opacity-60">
+                    <td class="italic">{p.name}</td>
+                    <td colspan={length(@cobertura.competencias)} class="text-xs italic">
+                      no profile yet — no row is not no skill
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <p
+            :if={@cobertura.sem_perfil != [] and @cobertura.com_perfil > 0}
+            class="text-xs opacity-70"
+          >
+            {length(@cobertura.sem_perfil)} of {@cobertura.membros} members have no profile yet —
+            coverage above is a floor, never a ceiling. Members come from source-declared evidence.
+          </p>
+        </section>
+      </div>
     </Layouts.app>
     """
   end

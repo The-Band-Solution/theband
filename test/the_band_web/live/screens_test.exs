@@ -143,13 +143,24 @@ defmodule TheBandWeb.ScreensTest do
           observed_at: DateTime.utc_now(:second)
         })
 
-      {:ok, _live, html} = live(conn, ~p"/teams/#{equipe.id}")
+      {:ok, _live, html} = live(conn, ~p"/teams/#{equipe.id}?tab=structure")
 
-      assert html =~ "access at the platform"
-      assert html =~ "MAINTAINER"
-      assert html =~ "papel organizacional"
-      # O rótulo é parte do contrato: chamar o nível de "cargo" na tela desfaria
-      # na interface a distinção que o modelo preserva.
+      # O CONTRATO VIROU A AUSÊNCIA — feature 060, FR-008 e SC-004.
+      #
+      # Antes, a tela mostrava `MAINTAINER` numa coluna chamada "access at the platform", e
+      # este teste guardava o RÓTULO: o nível aparecia, mas nunca chamado de papel. Não foi
+      # suficiente. Uma coluna de permissão da ferramenta ao lado de uma coluna de papel é
+      # lida como papel por quem passa os olhos, por mais correto que o cabeçalho esteja.
+      #
+      # O nível continua GRAVADO em `eo_team_membership_evidence.platform_access_level` — é
+      # fato observado, e apagá-lo seria perder dado verdadeiro. O que mudou é que ele saiu
+      # DESTA tela. Hoje não é mostrado em nenhuma outra, e isso está registrado como
+      # pendência, não como decisão fechada.
+      refute html =~ "access at the platform"
+      refute html =~ "MAINTAINER"
+
+      # E o que a coluna de papel diz agora, quando ninguém declarou: a ausência nomeada.
+      assert html =~ "not declared"
       refute html =~ "cargo"
     end
   end
