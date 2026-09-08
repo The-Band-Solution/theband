@@ -184,7 +184,16 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     TeamMembership
     |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
     |> vigente_em(quando)
-    |> select([m], count(m.id))
+    # PESSOAS DISTINTAS, e não vínculos.
+    #
+    # `count(m.id)` contava linhas, e desde 2026-09-01 o índice parcial permite dois vínculos
+    # vigentes do mesmo par pessoa–equipe com papéis diferentes (FR-018 da 060 o tornou
+    # explícito). Quem desempenha dois papéis contava **duas vezes** — e a função promete
+    # "quantas pessoas", não "quantos vínculos".
+    #
+    # `team_size/2` já contava distinto, o que mostra qual era a intenção: as duas respondem a
+    # mesma pergunta em datas diferentes, e discordavam.
+    |> select([m], count(m.person_id, :distinct))
     |> Repo.one()
   end
 
@@ -208,7 +217,10 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
     |> vigente_em(quando)
     |> join(:inner, [m], p in Person, on: p.id == m.person_id)
-    |> order_by([_m, p], asc: p.name, asc: p.login)
+    # `person_id` na ordenação não é enfeite: `uma_linha_por_pessoa/1` agrupa por adjacência,
+    # e duas pessoas distintas com o mesmo nome e login nulo se intercalariam — fundindo gente
+    # diferente numa linha só.
+    |> order_by([m, p], asc: p.name, asc: p.login, asc: m.person_id)
     |> select([m, p], %{
       person_id: p.id,
       name: p.name,
@@ -222,7 +234,52 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       papel_declarado?: not is_nil(m.organizational_role_id)
     })
     |> Repo.all()
+    |> uma_linha_por_pessoa()
   end
+
+  # UMA LINHA POR PESSOA, pelo mesmo motivo de `count_team_members_at/3`.
+  #
+  # Dois papéis vigentes davam duas linhas, e a tela listava a pessoa duas vezes — com o
+  # cabeçalho ao lado dizendo um número que já era o número de vínculos. Os dois defeitos se
+  # confirmavam um ao outro.
+  #
+  # ## As regras da fusão, e por que estas
+  #
+  # - **início**: o mais ANTIGO, porque a pergunta é desde quando a pessoa está na equipe, e
+  #   não desde quando exerce este papel. `nil` é desconhecido e **vence** qualquer data: se um
+  #   dos vínculos não diz desde quando, a resposta honesta sobre a pessoa é "não se sabe";
+  # - **fim**: aqui todos os vínculos são vigentes na data, então `ended_at` é nulo por
+  #   construção. Preservado como vem;
+  # - **declarado?** e **papel_declarado?**: verdadeiro se QUALQUER vínculo o for. A pessoa
+  #   com um papel declarado e um observado tem, sim, papel declarado nesta equipe — negá-lo
+  #   por causa do outro vínculo apagaria a declaração que existe.
+  #
+  # Feito em Elixir e não em SQL: `DISTINCT ON` exigiria escolher **uma** das linhas, e
+  # escolher perderia o início mais antigo ou a declaração que está na outra.
+  defp uma_linha_por_pessoa(linhas) do
+    linhas
+    |> Enum.chunk_by(& &1.person_id)
+    |> Enum.map(fn
+      [uma] -> uma
+      varias -> Enum.reduce(varias, &fundir_vinculos/2)
+    end)
+  end
+
+  defp fundir_vinculos(b, a) do
+    %{
+      a
+      | started_at: inicio_mais_antigo(a.started_at, b.started_at),
+        declarado?: a.declarado? or b.declarado?,
+        papel_declarado?: a.papel_declarado? or b.papel_declarado?
+    }
+  end
+
+  # Desconhecido vence data: a pessoa está na equipe desde antes do que qualquer vínculo diz.
+  defp inicio_mais_antigo(nil, _outro), do: nil
+  defp inicio_mais_antigo(_um, nil), do: nil
+
+  defp inicio_mais_antigo(um, outro),
+    do: if(DateTime.compare(um, outro) == :lt, do: um, else: outro)
 
   @doc """
   Só os ids de quem pertencia na data.

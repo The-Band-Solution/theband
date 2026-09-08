@@ -179,6 +179,18 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   **A razão é obrigatória**, e não por formalismo: sem ela, um engano registrado
   no mesmo dia da entrada fica indistinguível de alguém que entrou e saiu no
   mesmo dia. O banco impõe o trio junto — `eo_equivoco_do_vinculo_completo`.
+
+  ## Alcança o PAR, e devolve quantos — feature 060, FR-024 e FR-025
+
+  Pelo mesmo motivo da saída: "esta pessoa nunca esteve nesta equipe" é afirmação sobre a
+  pessoa **na equipe**, e FR-018 permite dois papéis vigentes ao mesmo tempo. Invalidar um só
+  deixaria a pessoa nunca-tendo-estado por um papel e tendo-estado pelo outro.
+
+  E `vigente/3` usava `Repo.one`: com dois papéis, isto **levantava** em vez de recusar.
+
+  Vale para vínculo **declarado e observado** — decisão da pessoa mantenedora em 2026-09-07.
+  Depois do equívoco a coleta não recria o vínculo enquanto a origem continuar mostrando a
+  pessoa; a evidência fica viva e a tela mostra as duas afirmações.
   """
   @spec record_team_membership_mistake(
           Tenant.t(),
@@ -186,27 +198,32 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           Ecto.UUID.t(),
           String.t(),
           Ecto.UUID.t()
-        ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
+        ) :: {:ok, non_neg_integer()} | {:error, String.t()}
   def record_team_membership_mistake(%Tenant{id: tenant_id}, team_id, person_id, razao, actor_id)
-      when is_binary(razao) and razao != "" do
-    case vigente(tenant_id, team_id, person_id) do
-      nil ->
-        {:error, "esta pessoa não tem vínculo vigente nesta equipe"}
+      when is_binary(razao) and razao != "" and is_binary(actor_id) do
+    agora = DateTime.utc_now(:second)
 
-      %TeamMembership{} = vinculo ->
-        vinculo
-        |> TeamMembership.changeset(%{
-          invalidated_at: DateTime.utc_now(:second),
+    {quantos, _} =
+      Repo.update_all(vigentes(tenant_id, team_id, person_id),
+        set: [
+          invalidated_at: agora,
           invalidated_by_user_id: actor_id,
-          invalidation_reason: razao
-        })
-        |> Repo.update()
-        |> relator()
-    end
+          invalidation_reason: razao,
+          updated_at: agora
+        ]
+      )
+
+    if quantos == 0,
+      do: {:error, "esta pessoa não tem vínculo vigente nesta equipe"},
+      else: {:ok, quantos}
   end
 
+  def record_team_membership_mistake(_tenant, _team_id, _person_id, razao, _actor_id)
+      when not is_binary(razao) or razao == "",
+      do: {:error, "o equívoco exige uma razão escrita"}
+
   def record_team_membership_mistake(_tenant, _team_id, _person_id, _razao, _actor_id),
-    do: {:error, "o equívoco exige uma razão escrita"}
+    do: {:error, "o equívoco exige quem o registrou"}
 
   # VIGENTE são as DUAS condições: sem fim registrado E sem invalidação. Deixar
   # uma de fora faz um vínculo invalidado continuar contando — e o defeito não

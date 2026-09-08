@@ -140,7 +140,11 @@ defmodule TheBand.Ontology.SEON.EO.TeamMembershipTest do
           a.id
         )
 
-      {:ok, v} = EO.record_team_membership_mistake(t, e.id, p.id, "homônima", a.id)
+      # Devolve QUANTOS vínculos alcançou, e não a linha: o equívoco é afirmação sobre a
+      # pessoa na equipe, e alcança todos os vigentes do par (FR-024).
+      assert {:ok, 1} = EO.record_team_membership_mistake(t, e.id, p.id, "homônima", a.id)
+
+      v = Repo.get_by!(TeamMembership, tenant_id: t.id, team_id: e.id, person_id: p.id)
 
       refute is_nil(v.invalidated_at)
       assert v.invalidated_by_user_id == a.id

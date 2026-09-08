@@ -178,15 +178,17 @@ defmodule TheBand.Ontology.SEON.EO.VinculoObservadoTest do
       {:ok, _} = observar(ctx, ctx.ana)
       [observado] = vinculos(ctx)
 
-      {:ok, invalidado} =
-        EO.record_team_membership_mistake(
-          ctx.tenant,
-          ctx.equipe.id,
-          ctx.ana.id,
-          "login errado",
-          ctx.admin.id
-        )
+      # UM alcançado, e é o próprio vínculo observado — não um segundo criado ao lado.
+      assert {:ok, 1} =
+               EO.record_team_membership_mistake(
+                 ctx.tenant,
+                 ctx.equipe.id,
+                 ctx.ana.id,
+                 "login errado",
+                 ctx.admin.id
+               )
 
+      assert [invalidado] = vinculos(ctx)
       assert invalidado.id == observado.id
       assert invalidado.invalidated_at, "o equívoco é registrado no próprio vínculo observado"
 

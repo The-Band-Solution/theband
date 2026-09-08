@@ -185,6 +185,103 @@ defmodule TheBand.Ontology.SEON.EO.SaidaDeclaradaTest do
     end
   end
 
+  describe "o equívoco alcança o par pelo mesmo motivo da saída (FR-024, FR-025)" do
+    # Vive neste arquivo, e não no `team_membership_test.exs`, porque o que se prova é a MESMA
+    # decisão: saída e equívoco são afirmações sobre a pessoa NA EQUIPE, e o cenário de dois
+    # papéis vigentes que as distingue está montado aqui.
+
+    test "quem tem dois papéis vigentes é invalidado nos dois numa chamada", ctx do
+      declarar(ctx, ctx.dev)
+      declarar(ctx, ctx.sm)
+
+      assert {:ok, 2} =
+               EO.record_team_membership_mistake(
+                 ctx.tenant,
+                 ctx.equipe.id,
+                 ctx.ana.id,
+                 "homônima — é outra Ana",
+                 ctx.autor.id
+               )
+
+      for vinculo <- vinculos(ctx) do
+        refute is_nil(vinculo.invalidated_at), "um dos papéis ficou vigente depois do equívoco"
+        assert vinculo.invalidated_by_user_id == ctx.autor.id
+        assert vinculo.invalidation_reason == "homônima — é outra Ana"
+      end
+    end
+
+    test "o invalidado não conta em data ALGUMA, nem antes do reconhecimento", ctx do
+      declarar(ctx, ctx.dev, @dia_1)
+      declarar(ctx, ctx.sm, @dia_1)
+
+      # UMA pessoa, com dois papéis. A contagem é de PESSOAS: `count(m.id)` daria 2 aqui, e
+      # foi assim que o defeito apareceu — a função promete "quantas pessoas".
+      assert EO.count_team_members_at(ctx.tenant, ctx.equipe.id, ~U[2026-01-15 00:00:00Z]) == 1
+
+      # E a lista traz a pessoa UMA vez, pelo mesmo motivo.
+      assert [uma] = EO.team_members_at(ctx.tenant, ctx.equipe.id, ~U[2026-01-15 00:00:00Z])
+      assert uma.person_id == ctx.ana.id
+
+      {:ok, 2} =
+        EO.record_team_membership_mistake(
+          ctx.tenant,
+          ctx.equipe.id,
+          ctx.ana.id,
+          "engano",
+          ctx.autor.id
+        )
+
+      # Depois: zero, e em TODA data. É a diferença com a saída — a saída fecha um período que
+      # existiu; o equívoco diz que ele nunca existiu.
+      assert EO.count_team_members_at(ctx.tenant, ctx.equipe.id, ~U[2026-01-15 00:00:00Z]) == 0,
+             "o equívoco tem de sair da medida também nas datas anteriores ao reconhecimento"
+
+      assert EO.count_team_members_at(ctx.tenant, ctx.equipe.id, @dia_60) == 0
+    end
+
+    test "razão vazia continua recusada, e sem autor também", ctx do
+      declarar(ctx, ctx.dev)
+
+      assert {:error, razao} =
+               EO.record_team_membership_mistake(
+                 ctx.tenant,
+                 ctx.equipe.id,
+                 ctx.ana.id,
+                 "",
+                 ctx.autor.id
+               )
+
+      assert razao =~ "razão escrita"
+
+      assert {:error, autor} =
+               EO.record_team_membership_mistake(
+                 ctx.tenant,
+                 ctx.equipe.id,
+                 ctx.ana.id,
+                 "engano",
+                 nil
+               )
+
+      assert autor =~ "quem o registrou"
+
+      assert [vinculo] = vinculos(ctx)
+      assert is_nil(vinculo.invalidated_at), "uma das recusas gravou o equívoco mesmo assim"
+    end
+
+    test "par sem vínculo vigente é erro nomeado, e nunca {:ok, 0}", ctx do
+      assert {:error, motivo} =
+               EO.record_team_membership_mistake(
+                 ctx.tenant,
+                 ctx.equipe.id,
+                 ctx.ana.id,
+                 "engano",
+                 ctx.autor.id
+               )
+
+      assert motivo =~ "não tem vínculo vigente"
+    end
+  end
+
   describe "a coleta não desfaz a saída declarada (FR-026, FR-027)" do
     test "depois da saída, a coleta NÃO recria o vínculo enquanto a origem seguir mostrando",
          ctx do
