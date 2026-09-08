@@ -302,6 +302,51 @@ defmodule TheBandWeb.FluxoNaTelaTest do
     end
   end
 
+  describe "o gráfico da previsão (pedido de 2026-09-08)" do
+    test "sem histórico não há gráfico, e a tela diz o que falta", ctx do
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      assert html =~ "No forecast yet"
+
+      refute html =~ "runs that never reached zero", """
+      Abaixo do piso a plataforma recusa. Desenhar faixas a partir de duas semanas de
+      histórico emprestaria a autoridade de um gráfico a ruído.
+      """
+    end
+
+    test "com histórico, desenha as duas hipóteses na MESMA régua", ctx do
+      ctx = com_historico(ctx)
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      assert html =~ "if nothing new opened"
+      assert html =~ "if work keeps arriving as it has"
+
+      # A legenda dos três marcadores: sem ela, três formas diferentes no mesmo desenho são
+      # decoração.
+      assert html =~ "50% → 95%"
+      assert html =~ "runs that never reached zero"
+
+      # E o eixo em semanas, começando em "now": uma faixa sem unidade não é uma medida.
+      # O corte é a seção da previsão — "now" solto na página inteira não prova onde está.
+      [_antes, previsao] = String.split(html, "Delivery forecast", parts: 2)
+
+      assert previsao =~ "now", "o eixo da previsão não tem a marca de origem"
+      assert previsao =~ ~r/\d+w/, "o eixo da previsão não tem semanas"
+    end
+
+    test "o gráfico tem descrição para quem não o vê, com os NÚMEROS", ctx do
+      ctx = com_historico(ctx)
+      {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
+
+      assert html =~ "Simulated weeks to reach zero open items", """
+      O `aria-label` diz os números, e não a forma: "duas faixas horizontais" não informa
+      quem usa leitor de tela.
+      """
+
+      assert html =~ "week horizon"
+    end
+  end
+
   describe "Prometido × Entregue (FR-062, FR-063)" do
     test "a palavra 'promised' nunca aparece sem a definição operacional ao lado", ctx do
       {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")

@@ -1585,6 +1585,173 @@ defmodule TheBandWeb.TeamsLive.Show do
           actually had. No estimates.
         </p>
 
+        <%!-- ═══ O GRÁFICO DA PREVISÃO — pedido da pessoa mantenedora em 2026-09-08 ═══
+
+              ## Por que FAIXAS, e não uma linha ou uma barra
+
+              Uma barra até a semana N desenha um ponto, e um ponto é lido como data. O que a
+              simulação produz não é um ponto: é uma distribuição. A faixa mostra a distância
+              entre o 50% e o 95% — e essa distância **é** a informação. Faixa curta significa
+              ritmo constante; faixa longa significa que a mesma equipe às vezes fecha dez e às
+              vezes zero, e nenhum número único diria isso.
+
+              ## As duas hipóteses no MESMO eixo
+
+              Congelada e viva medem semanas na mesma régua, e sobrepô-las é o que torna
+              visível o custo do trabalho novo: a distância horizontal entre as duas faixas é
+              quanto o fluxo de entrada empurra a conclusão para frente. Dois gráficos lado a
+              lado com escalas próprias esconderiam exactamente isso.
+
+              ## A parte que NÃO concluiu tem lugar no desenho
+
+              As rodadas que não zeraram dentro do horizonte aparecem como a região hachurada
+              à direita, e não como ausência. Omiti-las faria uma previsão em que 74% das
+              rodadas nunca terminaram parecer igual a uma em que todas terminaram. --%>
+        <div class="rounded border border-base-300 p-3">
+          <svg
+            viewBox="0 0 560 118"
+            class="w-full"
+            role="img"
+            aria-label={rotulo_da_previsao(p)}
+          >
+            <defs>
+              <pattern
+                id="previsao-hachura"
+                width="6"
+                height="6"
+                patternTransform="rotate(135)"
+                patternUnits="userSpaceOnUse"
+              >
+                <line
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="6"
+                  stroke="currentColor"
+                  stroke-width="1.4"
+                  class="text-base-content"
+                  opacity="0.22"
+                />
+              </pattern>
+            </defs>
+
+            <g :for={faixa <- faixas_da_previsao(p)}>
+              <text x="0" y={faixa.y - 8} font-size="9" fill="currentColor" opacity="0.7">
+                {faixa.rotulo}
+              </text>
+
+              <%!-- A régua de fundo é o horizonte inteiro: sem ela, uma faixa que ocupa meio
+                    desenho parece meio horizonte tanto num de 12 semanas quanto num de 52. --%>
+              <line
+                x1="0"
+                y1={faixa.y}
+                x2="500"
+                y2={faixa.y}
+                stroke="currentColor"
+                stroke-width="1"
+                opacity="0.18"
+              />
+
+              <%!-- O que não concluiu: hachurado, à direita, com a largura da proporção. --%>
+              <rect
+                :if={faixa.nao_concluiu_x < 500}
+                x={faixa.nao_concluiu_x}
+                y={faixa.y - 6}
+                width={500 - faixa.nao_concluiu_x}
+                height="12"
+                fill="url(#previsao-hachura)"
+              />
+
+              <%!-- 50% → 95%: a faixa. 85% marcado dentro dela. --%>
+              <rect
+                :if={faixa.tem_faixa?}
+                x={faixa.x50}
+                y={faixa.y - 5}
+                width={max(faixa.x95 - faixa.x50, 2)}
+                height="10"
+                rx="2"
+                fill="currentColor"
+                class={faixa.classe}
+                opacity="0.28"
+              />
+              <line
+                :if={faixa.x85}
+                x1={faixa.x85}
+                y1={faixa.y - 7}
+                x2={faixa.x85}
+                y2={faixa.y + 7}
+                stroke="currentColor"
+                stroke-width="2"
+                class={faixa.classe}
+              />
+              <circle
+                :if={faixa.tem_faixa?}
+                cx={faixa.x50}
+                cy={faixa.y}
+                r="3.5"
+                fill="currentColor"
+                class={faixa.classe}
+              />
+
+              <text
+                :if={faixa.tem_faixa?}
+                x="508"
+                y={faixa.y + 3}
+                font-size="9"
+                fill="currentColor"
+                opacity="0.75"
+              >
+                {faixa.texto}
+              </text>
+              <text
+                :if={not faixa.tem_faixa?}
+                x="0"
+                y={faixa.y + 3}
+                font-size="9"
+                fill="currentColor"
+                opacity="0.75"
+              >
+                no run reached zero inside the horizon
+              </text>
+            </g>
+
+            <%!-- O eixo do tempo, em semanas: sem ele a faixa não tem unidade. --%>
+            <line
+              x1="0"
+              y1="100"
+              x2="500"
+              y2="100"
+              stroke="currentColor"
+              stroke-width="1"
+              opacity="0.25"
+            />
+            <g font-size="9" fill="currentColor" opacity="0.6">
+              <text :for={t <- eixo_da_previsao(p)} x={t.x} y="113" text-anchor="middle">
+                {t.rotulo}
+              </text>
+            </g>
+          </svg>
+
+          <div class="mt-1 flex flex-wrap gap-4 text-xs">
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block size-2.5 rounded-full bg-primary"></span> 50%
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block h-3 w-0.5 bg-primary"></span> 85%
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="inline-block h-2.5 w-4 rounded bg-primary/30"></span> 50% → 95%
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span
+                class="inline-block size-2.5 border border-current opacity-50"
+                style="background: repeating-linear-gradient(135deg, transparent 0 2px, currentColor 2px 3px);"
+              ></span>
+              runs that never reached zero
+            </span>
+          </div>
+        </div>
+
         <table class="table table-sm">
           <thead>
             <tr>
@@ -1862,6 +2029,71 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   defp se_couber(total) when total <= 14, do: 0..(total - 1) |> Enum.to_list()
   defp se_couber(total), do: Enum.uniq([0, div(total - 1, 2), total - 1])
+
+  # A GEOMETRIA DA PREVISÃO — uma faixa por hipótese, as duas na mesma régua de semanas.
+  #
+  # A largura útil é 500 de 560: os 60 da direita são onde o rótulo de cada faixa cabe. E o
+  # eixo é o HORIZONTE inteiro, não o maior percentil: sem essa régua fixa, uma faixa que
+  # ocupa meio desenho pareceria meio horizonte tanto num de 12 semanas quanto num de 52.
+  defp faixas_da_previsao(p) do
+    horizonte = max(p.horizonte_semanas, 1)
+    x = fn semanas -> Float.round(semanas / horizonte * 500, 1) end
+
+    [
+      {p.congelado, "if nothing new opened", "text-primary", 34},
+      {p.vivo, "if work keeps arriving as it has", "text-warning", 76}
+    ]
+    |> Enum.map(fn {hipotese, rotulo, classe, y} ->
+      %{
+        rotulo: rotulo,
+        classe: classe,
+        y: y,
+        tem_faixa?: not is_nil(hipotese.p50),
+        x50: hipotese.p50 && x.(hipotese.p50),
+        x85: hipotese.p85 && x.(hipotese.p85),
+        # Sem p95, a faixa vai até o fim do horizonte: é onde as rodadas que faltam estão.
+        x95: x.(hipotese.p95 || horizonte),
+        # A proporção que NÃO concluiu, medida da direita para a esquerda: a região hachurada
+        # começa onde a parte concluída termina.
+        nao_concluiu_x: 500 - Float.round(hipotese.nao_concluiram / p.rodadas * 500, 1),
+        texto: texto_da_faixa(hipotese)
+      }
+    end)
+  end
+
+  defp texto_da_faixa(%{p50: nil}), do: ""
+
+  defp texto_da_faixa(%{p50: p50, p85: nil}), do: "50%: #{p50}w · 85%: —"
+
+  defp texto_da_faixa(%{p50: p50, p85: p85}), do: "50%: #{p50}w · 85%: #{p85}w"
+
+  # Quatro marcas no eixo, do zero ao horizonte. Mais que isso e os números se tocam na
+  # largura de um cartão.
+  defp eixo_da_previsao(p) do
+    horizonte = max(p.horizonte_semanas, 1)
+
+    for parte <- 0..4 do
+      semanas = round(horizonte * parte / 4)
+
+      %{
+        x: Float.round(parte / 4 * 500, 1),
+        rotulo: if(parte == 0, do: "now", else: "#{semanas}w")
+      }
+    end
+  end
+
+  # A descrição do gráfico para quem não o vê. Diz os números, e não a forma — "duas faixas
+  # horizontais" não informa quem usa leitor de tela.
+  defp rotulo_da_previsao(p) do
+    "Simulated weeks to reach zero open items, over a #{p.horizonte_semanas}-week horizon. " <>
+      "If nothing new opened: #{descricao_da_hipotese(p.congelado)}. " <>
+      "If work keeps arriving: #{descricao_da_hipotese(p.vivo)}."
+  end
+
+  defp descricao_da_hipotese(%{p50: nil}), do: "no run reached zero"
+
+  defp descricao_da_hipotese(%{p50: p50, p85: p85}),
+    do: "half of the runs within #{p50} weeks, 85% within #{p85 || "more than the horizon"}"
 
   # Traço, e não um número grande: nulo diz desconhecido.
   defp semana_ou_traco(nil), do: "—"
