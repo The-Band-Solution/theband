@@ -1028,17 +1028,42 @@ defmodule TheBandWeb.TeamsLive.Show do
     team = socket.assigns.team
     agora = DateTime.utc_now()
 
+    # A JANELA DO GRÁFICO PEQUENO é a mesma dos gráficos grandes — e não uma escolhida aqui.
+    # A FR-079 exige que toda comparação na mesma tela use a mesma janela: com janelas
+    # diferentes, dois cartões lado a lado seriam incomparáveis sem que nada dissesse.
+    janela_dos_cartoes =
+      janela_do_fluxo(tenant, team, socket.assigns.granulacao, socket.assigns.periodos, agora, [])
+
+    # AS FAÍSCAS DE TODOS OS CARTÕES EM DUAS CONSULTAS, e não três por cartão.
+    #
+    # A primeira versão pedia a série por subequipe, e o teto de consultas da tela acusou: 7
+    # por subequipe contra as 6 declaradas. Era o 1+N que aquele teto existe para pegar — com
+    # dez subequipes, trinta consultas para desenhar dez faíscas de 40 pixels.
+    #
+    # Subir o teto teria sido mover a trave.
+    faiscas =
+      faiscas_dos_cartoes(
+        tenant,
+        [team.id | Enum.map(partes, & &1.team_id)],
+        janela_dos_cartoes,
+        agora
+      )
+
     subequipes =
       Enum.map(partes, fn p ->
         tenant
         |> WorkItems.team_snapshot(p.team_id, agora)
-        |> Map.merge(%{nome: p.name, direta?: false})
+        |> Map.merge(%{nome: p.name, direta?: false, faisca: faiscas[p.team_id]})
       end)
 
     diretos =
       tenant
       |> WorkItems.team_snapshot(team.id, agora)
-      |> Map.merge(%{nome: team.name <> " · direct members", direta?: true})
+      |> Map.merge(%{
+        nome: team.name <> " · direct members",
+        direta?: true,
+        faisca: faiscas[team.id]
+      })
 
     linhas = Enum.sort_by(subequipes, & &1.paradas, :desc) ++ [diretos]
 
@@ -1054,8 +1079,141 @@ defmodule TheBandWeb.TeamsLive.Show do
     # a pessoa em duas partes e o item com dois responsáveis contam uma vez aqui. A tela diz
     # isso em palavras, porque a ausência de total numa tela que tem gráfico parece descuido.
     socket
-    |> assign(composta?: true, linhas: linhas)
+    |> assign(composta?: true, linhas: linhas, janela_dos_cartoes: janela_dos_cartoes)
     |> carregar_detalhe()
+  end
+
+  # A FAÍSCA dentro do cartão. Sem eixo, sem rótulo, sem faixa: 100 × 28.
+  #
+  # `nil` diz **ausência**, e a frase é obrigatória: uma faísca reta em zero afirmaria "abriu
+  # zero e fechou zero", quando o que houve foi não ter o que observar. É a mesma regra que a
+  # tabela já aplica, e a razão de ela existir aqui é que o gráfico esconde a distinção melhor
+  # que o número.
+  attr :faisca, :map, default: nil
+  attr :janela, :map, required: true
+
+  defp faisca_do_cartao(assigns) do
+    ~H"""
+    <div class="h-7">
+      <svg
+        :if={@faisca}
+        viewBox="0 0 100 28"
+        preserveAspectRatio="none"
+        class="h-7 w-full"
+        role="img"
+        aria-label={"Cumulative opened and closed, #{@janela.rotulo}. #{@faisca.aberto_final} still open at the end."}
+      >
+        <polyline
+          points={@faisca.escopo}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          vector-effect="non-scaling-stroke"
+          class="text-primary"
+        />
+        <polyline
+          points={@faisca.feito}
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          vector-effect="non-scaling-stroke"
+          class="text-warning"
+        />
+      </svg>
+
+      <p :if={is_nil(@faisca)} class="text-xs opacity-60">
+        No work observed in this window — which is not the same as zero.
+      </p>
+    </div>
+    """
+  end
+
+  # OS NÚMEROS DO CARTÃO, e são os mesmos da tabela — não uma seleção diferente.
+  #
+  # Duas apresentações do mesmo dado precisam dizer o mesmo, senão quem compara o cartão com a
+  # linha encontra dois números e não sabe qual seguir. E **nenhum total** (FR-044, SC-008).
+  attr :linha, :map, required: true
+
+  defp numeros_do_cartao(assigns) do
+    ~H"""
+    <dl class="grid grid-cols-3 gap-1 text-xs">
+      <div>
+        <dt class="opacity-60">members</dt>
+        <dd class="font-mono tabular-nums">{@linha.membros}</dd>
+      </div>
+      <div>
+        <dt class="opacity-60">open</dt>
+        <dd class="font-mono tabular-nums">{@linha.abertas}</dd>
+      </div>
+      <div>
+        <dt class="opacity-60">stopped</dt>
+        <dd class={["font-mono tabular-nums", @linha.paradas > 0 && "text-warning"]}>
+          {@linha.paradas}
+        </dd>
+      </div>
+    </dl>
+    """
+  end
+
+  # O GRÁFICO PEQUENO DO CARTÃO — feature 060, FR-084 (T029).
+  #
+  # É o burn da subequipe, na mesma janela e granulação dos gráficos grandes, reduzido ao que
+  # cabe num cartão: as duas curvas acumuladas, sem eixo, sem rótulo e sem faixa hachurada.
+  #
+  # ## O que ele responde, e o que NÃO
+  #
+  # Responde **a forma**: abriu e fechou juntos, ou a distância cresceu? É a pergunta que
+  # decide se vale abrir o painel daquela subequipe — e é por isso que o cartão inteiro é
+  # porta (FR-041) e o gráfico também (FR-084).
+  #
+  # **Não** responde quanto: os números estão no cartão, em texto e alinhados. Ler valor numa
+  # faísca de 40 pixels seria adivinhar, e é a razão de a tabela continuar sem gráfico — ela é
+  # para comparar, e comparação se faz em números alinhados (057 FR-011, mantida por FR-058).
+  #
+  # `nil` quando a janela não tem série, e o cartão diz isso em palavras: uma faísca reta em
+  # zero afirmaria "abriu zero e fechou zero", quando o que houve foi não ter o que observar.
+  defp faiscas_dos_cartoes(tenant, equipes, janela, agora) do
+    series =
+      WorkItems.team_state_changes_by_team(tenant, equipes, janela.granulacao,
+        desde: janela.desde,
+        ate: agora
+      )
+
+    bases = WorkItems.team_open_at_by_team(tenant, equipes, janela.desde)
+
+    Map.new(equipes, fn team_id ->
+      serie = Map.get(series, team_id, [])
+
+      # `nil` quando a janela não tem movimento algum — e o cartão diz isso em palavras.
+      faisca =
+        if Enum.any?(serie, &(&1.criadas > 0 or &1.fechadas > 0)) do
+          pontos_da_faisca(WorkItems.burn(serie, Map.get(bases, team_id, 0)))
+        end
+
+      {team_id, faisca}
+    end)
+  end
+
+  # A geometria da faísca: 100 × 28, sem margem — o cartão dá a moldura.
+  defp pontos_da_faisca([]), do: nil
+
+  defp pontos_da_faisca(burn) do
+    limite = max(Enum.max(Enum.map(burn, & &1.escopo)), 1)
+    passo = if length(burn) > 1, do: 100 / (length(burn) - 1), else: 0
+
+    coord = fn valores ->
+      valores
+      |> Enum.with_index()
+      |> Enum.map_join(" ", fn {v, i} ->
+        "#{Float.round(i * passo, 1)},#{Float.round(26 - v / limite * 24, 1)}"
+      end)
+    end
+
+    %{
+      escopo: coord.(Enum.map(burn, & &1.escopo)),
+      feito: coord.(Enum.map(burn, & &1.feito)),
+      aberto_final: List.last(burn).aberto
+    }
   end
 
   # O DETALHE da subequipe — feature 057, US3, US4, US5 e US6.
@@ -2712,8 +2870,60 @@ defmodule TheBandWeb.TeamsLive.Show do
             **Nenhum gráfico aqui** (FR-011): esta tela é para comparar, e
             comparação se faz em números alinhados. Os gráficos vivem na tela da
             subequipe. --%>
+        <%!-- ═══ OS CARTÕES DE SUBEQUIPE — FR-041 (US7) e FR-084 (US9) ═══
+
+              Cada subequipe é um cartão com as MESMAS medidas da tabela, e o cartão inteiro
+              é a porta para o painel dela (057 FR-010). O gráfico pequeno também é porta —
+              a mesma —, porque quem clica num gráfico quer ver aquele gráfico maior.
+
+              ## Por que cartões E tabela, e não um só
+
+              Respondem perguntas diferentes sobre os mesmos números. O cartão responde *como
+              vai esta subequipe* — e a faísca dá a forma num relance. A tabela responde *qual
+              delas precisa de conversa* — e isso se lê em colunas alinhadas, que é a decisão
+              da 057 FR-011 e a razão de a tabela continuar **sem** gráfico.
+
+              **Nenhum total, nos dois** (FR-044, SC-008): a mesma pessoa pode estar em duas
+              subequipes e a mesma tarefa aparecer nas duas. --%>
         <section :if={@composta?} class="card bg-base-200 p-4">
-          <h2 class="text-sm font-semibold">Teams inside this one</h2>
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-sm font-semibold">Teams inside this one</h2>
+            <span class="text-xs opacity-70">{@janela_dos_cartoes.rotulo}</span>
+          </div>
+          <p class="mt-1 text-xs opacity-70">
+            One card per sub-team, plus this team's direct members. Click a card — or its
+            chart — to open that team's dashboard.
+          </p>
+
+          <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div
+              :for={l <- @linhas}
+              class={[
+                "card border border-base-300 bg-base-100 p-3",
+                not l.direta? && "transition hover:border-primary"
+              ]}
+            >
+              <%!-- O cartão da própria equipe NÃO é porta: já estamos nela. Um link para a
+                    tela em que a pessoa está é um clique que não leva a lugar nenhum. --%>
+              <.link
+                :if={not l.direta?}
+                navigate={~p"/teams/#{l.team_id}"}
+                class="flex flex-col gap-2"
+              >
+                <span class="text-sm font-semibold">{l.nome}</span>
+                <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
+                <.numeros_do_cartao linha={l} />
+              </.link>
+
+              <div :if={l.direta?} class="flex flex-col gap-2">
+                <span class="text-sm font-semibold opacity-80">{l.nome}</span>
+                <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
+                <.numeros_do_cartao linha={l} />
+              </div>
+            </div>
+          </div>
+
+          <h2 class="mt-6 text-sm font-semibold">The same numbers, side by side</h2>
           <p class="mt-1 text-xs opacity-70">
             Ordered by stopped work, so the row that needs a conversation comes first.
           </p>

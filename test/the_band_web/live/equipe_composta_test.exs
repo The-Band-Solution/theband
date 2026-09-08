@@ -156,13 +156,80 @@ defmodule TheBandWeb.EquipeCompostaTest do
       assert html =~ "same task"
     end
 
+    test "FR-041/FR-084: cada subequipe é um CARTÃO, com faísca, e o cartão é porta", ctx do
+      {:ok, live, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      # Um cartão por subequipe, mais o dos membros diretos.
+      assert html =~ "One card per sub-team"
+      assert html =~ "Click a card"
+
+      # O CARTÃO É PORTA (FR-041), e a porta é a mesma do gráfico (FR-084): o cartão inteiro
+      # é o link, e a faísca está dentro dele.
+      #
+      # A *Interface* tem trabalho de 3 dias, dentro da janela padrão de 8 semanas.
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.interface.id}"] svg|), """
+      O cartão da subequipe tem de ser o link, com a faísca DENTRO dele — clicar no gráfico
+      abre o painel daquela subequipe, e é a mesma porta do cartão (FR-084).
+      """
+
+      # A *Dados* tem trabalho de 100 e 120 dias — FORA da janela. O cartão dela é porta do
+      # mesmo jeito, e no lugar da faísca diz a ausência: uma linha reta em zero afirmaria
+      # "abriu zero e fechou zero", quando o que houve foi não ter o que observar nesta
+      # janela. É a mesma regra da tabela, e aqui importa mais — o gráfico esconde a
+      # distinção melhor que o número.
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.dados.id}"]|),
+             "o cartão sem faísca continua porta"
+
+      assert html =~ "No work observed in this window"
+    end
+
+    test "o cartão dos membros DIRETOS não é porta — já estamos nesta tela", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.dados.id}"]|)
+
+      # O recorte é a REGIÃO DOS CARTÕES: a aba Dashboard é, ela mesma, um link legítimo
+      # para `/teams/:id` — e afirmar sobre a página inteira confundiria os dois.
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      [_antes, cartoes] = String.split(html, "One card per sub-team", parts: 2)
+      [cartoes, _depois] = String.split(cartoes, "The same numbers, side by side", parts: 2)
+
+      refute cartoes =~ ~s|href="/teams/#{ctx.mae.id}"|, """
+      Um link para a tela em que a pessoa já está é um clique que não leva a lugar nenhum.
+      """
+    end
+
+    test "os cartões e a tabela dizem os MESMOS números, e nenhum total", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      # Duas apresentações do mesmo dado: se divergirem, quem compara encontra dois números e
+      # não sabe qual seguir.
+      assert html =~ "The same numbers, side by side"
+
+      cabecalhos =
+        Regex.scan(~r|<th[^>]*>(.*?)</th>|s, html)
+        |> Enum.map(&(&1 |> List.last() |> String.downcase()))
+
+      for proibido <- ~w(total sum combined overall aggregate) do
+        refute Enum.any?(cabecalhos, &String.contains?(&1, proibido)),
+               "achei um cabeçalho com #{proibido} — FR-044 e SC-008 proíbem total"
+      end
+
+      # E nos cartões, as três medidas sem nenhuma soma.
+      assert html =~ ">members<"
+      assert html =~ ">open<"
+      assert html =~ ">stopped<"
+    end
+
     test "057 FR-011, EMENDADA: a TABELA continua sem gráfico, e o fluxo da equipe tem", ctx do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
 
       # A 057 FR-011 proibia gráfico nesta tela, e a 060 FR-058 a emendou. O que ela protegia
       # continua valendo — e é o que este teste passou a medir: a **tabela** por subequipe é
       # para comparar, e comparação se faz em números alinhados.
-      [_antes, tabela] = String.split(html, "Teams inside this one", parts: 2)
+      # O recorte é a TABELA, e não a seção: os cartões vivem na mesma seção e TÊM faísca
+      # (FR-084). Cortar em "Teams inside this one" pegaria os dois.
+      [_antes, tabela] = String.split(html, "The same numbers, side by side", parts: 2)
       [tabela, _depois] = String.split(tabela, "</table>", parts: 2)
 
       refute tabela =~ "<svg", """
