@@ -93,6 +93,8 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate list_team_roster(tenant, team_id, opts \\ []), to: Roster
   defdelegate count_team_roster(tenant, team_id, opts \\ []), to: Roster
   defdelegate team_roster_totals(tenant, team_id), to: Roster
+
+  defdelegate role_holder_counts(tenant, organization_id, team_id), to: Roster
   defdelegate suggested_roles(), to: Queries
   defdelegate count_memberships(tenant), to: Queries
   defdelegate count_memberships_of_role(tenant, role_id), to: Queries

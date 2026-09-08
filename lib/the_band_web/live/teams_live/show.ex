@@ -313,7 +313,107 @@ defmodule TheBandWeb.TeamsLive.Show do
   end
 
   def handle_event("fechar_formularios", _params, socket),
-    do: {:noreply, assign(socket, saida: nil, equivoco: nil)}
+    do: {:noreply, assign(socket, saida: nil, equivoco: nil, papel: nil, renomeando: nil)}
+
+  # O CÓDIGO É SUGERIDO DO NOME, e editável (FR-031).
+  #
+  # Só sugere enquanto quem digita não tocou no código: a partir daí a sugestão pararia de
+  # ajudar e passaria a apagar o que a pessoa escreveu a cada letra do nome.
+  def handle_event("sugerir_codigo", %{"name" => nome, "code" => codigo}, socket) do
+    sugerido = codigo_sugerido(nome)
+    anterior = socket.assigns.novo_papel
+
+    codigo =
+      if codigo == "" or codigo == codigo_sugerido(anterior.name),
+        do: sugerido,
+        else: codigo
+
+    {:noreply, assign(socket, novo_papel: %{name: nome, code: codigo})}
+  end
+
+  def handle_event("sugerir_codigo", _params, socket), do: {:noreply, socket}
+
+  def handle_event("criar_papel", %{"name" => nome, "code" => codigo}, socket) do
+    com_gestao(socket, fn ->
+      case EO.create_role(
+             socket.assigns.current_tenant,
+             socket.assigns.team.organization_id,
+             %{code: String.trim(codigo), name: String.trim(nome)},
+             socket.assigns.current_user.id
+           ) do
+        {:ok, papel} ->
+          socket
+          |> put_flash(
+            :info,
+            dgettext("sistema", "Role %{nome} created.", nome: papel.name)
+          )
+          |> assign(novo_papel: %{name: "", code: ""})
+          |> recarregar()
+
+        {:error, motivo} ->
+          put_flash(socket, :error, frase_do_papel_criado(motivo))
+      end
+    end)
+  end
+
+  def handle_event("abrir_renomear", %{"role_id" => id}, socket) do
+    com_gestao(socket, fn -> assign(socket, renomeando: id, papel: nil) end)
+  end
+
+  def handle_event("renomear_papel", %{"role_id" => id, "name" => nome}, socket) do
+    com_gestao(socket, fn ->
+      case EO.rename_role(
+             socket.assigns.current_tenant,
+             id,
+             String.trim(nome),
+             socket.assigns.current_user.id
+           ) do
+        {:ok, papel} ->
+          # OS VÍNCULOS CONTINUAM APONTANDO PARA O MESMO PAPEL (FR-032): renomear é uma
+          # atualização da linha, e não um papel novo com os vínculos migrados.
+          socket
+          |> put_flash(:info, dgettext("sistema", "Role renamed to %{nome}.", nome: papel.name))
+          |> assign(renomeando: nil)
+          |> recarregar()
+
+        {:error, motivo} ->
+          put_flash(socket, :error, frase_do_papel_criado(motivo))
+      end
+    end)
+  end
+
+  def handle_event("ocultar_papel", %{"role_id" => id}, socket) do
+    com_gestao(socket, fn ->
+      case EO.hide_role(socket.assigns.current_tenant, id, socket.assigns.current_user.id) do
+        {:ok, papel} ->
+          # OCULTAR É MARCAR, e não apagar: quem desempenhou aquele papel continua tendo
+          # desempenhado, e a medida de um período anterior não pode mudar.
+          socket
+          |> put_flash(:info, dgettext("sistema", "Role %{nome} hidden.", nome: papel.name))
+          |> recarregar()
+
+        {:error, motivo} ->
+          put_flash(socket, :error, frase_do_papel_criado(motivo))
+      end
+    end)
+  end
+
+  def handle_event("reexibir_papel", %{"role_id" => id}, socket) do
+    com_gestao(socket, fn ->
+      case EO.unhide_role(socket.assigns.current_tenant, id, socket.assigns.current_user.id) do
+        {:ok, papel} ->
+          socket
+          |> put_flash(
+            :info,
+            dgettext("sistema", "Role %{nome} is visible again.", nome: papel.name)
+          )
+          |> recarregar()
+
+        {:error, motivo} ->
+          put_flash(socket, :error, frase_do_papel_criado(motivo))
+      end
+    end)
+  end
 
   def handle_event("registrar_saida", %{"person_id" => id, "quando" => quando}, socket) do
     com_gestao(socket, fn ->
@@ -475,6 +575,39 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp frase_do_papel(:not_found), do: dgettext("errors", "Link not found.")
   defp frase_do_papel(motivo) when is_binary(motivo), do: motivo
   defp frase_do_papel(outro), do: inspect(outro)
+
+  # AS RECUSAS DA SEÇÃO DE PAPÉIS, cada uma dizendo o que fazer.
+  #
+  # `{:in_use, n}` diz **quantos** vínculos impedem (FR-033): "não é possível ocultar" manda
+  # quem administra procurar o problema; "3 pessoas desempenham este papel" diz onde está.
+  defp frase_do_papel_criado(:code_taken),
+    do:
+      dgettext(
+        "errors",
+        "This organisation already has a role with that code. Pick another one — the same code in another organisation is fine."
+      )
+
+  defp frase_do_papel_criado({:in_use, quantos}),
+    do:
+      dngettext(
+        "errors",
+        "One person still holds this role — end that link first, or leave the role visible.",
+        "%{count} people still hold this role — end those links first, or leave the role visible.",
+        quantos
+      )
+
+  defp frase_do_papel_criado(:from_catalog),
+    do:
+      dgettext(
+        "errors",
+        "This role comes from the concept catalogue. Renaming it here would make the platform disagree with the ontology it publishes."
+      )
+
+  defp frase_do_papel_criado(:blank_name), do: dgettext("errors", "A role needs a name.")
+  defp frase_do_papel_criado(:not_found), do: dgettext("errors", "Role not found.")
+
+  defp frase_do_papel_criado(%Ecto.Changeset{} = cs), do: motivo_do_changeset(cs)
+  defp frase_do_papel_criado(outro), do: inspect(outro)
 
   # O `membership_id` do papel vigente a encerrar, ou `false`. Com dois papéis vigentes pega o
   # primeiro — e a tela chama isso de "Change role", que encerra **aquele** e abre o novo; os
@@ -669,7 +802,8 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> assign(gestao: Tenants.pode_gerir_estrutura(tenant, socket.assigns.current_user, team.id))
     # Os formulários da linha nascem fechados a cada carga: trocar de aba ou de página com um
     # formulário aberto o deixaria pendurado sobre uma linha que já não está na tela.
-    |> assign(saida: nil, equivoco: nil, papel: nil)
+    |> assign(saida: nil, equivoco: nil, papel: nil, renomeando: nil)
+    |> assign(novo_papel: %{name: "", code: ""})
   end
 
   # CADA ABA CARREGA SÓ O QUE DESENHA — decisão D2 do plano.
@@ -706,7 +840,49 @@ defmodule TheBandWeb.TeamsLive.Show do
     )
     |> assign(encontradas: EO.count_team_roster(tenant, team.id, opts))
     |> carregar_promocao()
+    |> carregar_papeis_da_organizacao()
   end
+
+  # OS PAPÉIS DA ORGANIZAÇÃO e quantas pessoas os desempenham — T021, T022.
+  #
+  # Duas consultas para a seção inteira: a lista de papéis (que já compõe catálogo e criados)
+  # e as contagens num `GROUP BY`. Uma consulta por linha da tabela passaria em teste com três
+  # papéis e apareceria em produção com trinta.
+  defp carregar_papeis_da_organizacao(socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    papeis =
+      if team.organization_id,
+        do: EO.list_organization_roles(tenant, team.organization_id),
+        else: []
+
+    contagens =
+      if team.organization_id,
+        do: EO.role_holder_counts(tenant, team.organization_id, team.id),
+        else: %{}
+
+    socket
+    |> assign(papeis_da_organizacao: papeis)
+    |> assign(contagens_por_papel: contagens)
+    |> assign(papeis_do_catalogo: Enum.count(papeis, &do_catalogo?/1))
+    |> assign(papeis_criados: Enum.count(papeis, &(not do_catalogo?(&1))))
+  end
+
+  # A ORIGEM do papel sai da tupla marcada de `RoleCatalog.compose/1` — `{:catalogo, id}` ou
+  # `{:organizacao, _}`. Derivá-la do nome seria o erro que a ADR sobre padrão largo descreve.
+  defp do_catalogo?(%{origem: {:catalogo, _}}), do: true
+  defp do_catalogo?(_papel), do: false
+
+  defp origem_do_papel(%{origem: {:catalogo, conceito}}), do: "catalogue · #{conceito}"
+  defp origem_do_papel(_papel), do: "created by the organisation"
+
+  # Papel sem ninguém não está no mapa, e `0/0` é a resposta certa — inclusive para o papel do
+  # catálogo que ainda não foi materializado e por isso não tem `id` para chavear.
+  defp contagem_do_papel(_contagens, %{id: nil}), do: %{nesta_equipe: 0, na_organizacao: 0}
+
+  defp contagem_do_papel(contagens, %{id: id}),
+    do: Map.get(contagens, id, %{nesta_equipe: 0, na_organizacao: 0})
 
   # A RECUSA DIZ O QUE FAZER — os três motivos levam a ações diferentes (FR-006), e um
   # "sem permissão" genérico manda quem foi recusado procurar a administradora com a
@@ -2489,6 +2665,149 @@ defmodule TheBandWeb.TeamsLive.Show do
             </div>
           </:col>
         </.data_table>
+
+        <%!-- ═══ OS PAPÉIS DA ORGANIZAÇÃO — T022, FR-029 a FR-033 ═══
+              Vive na Estrutura porque é aqui que se declara papel: mandar quem está
+              declarando até `/roles` para criar o papel que falta, e voltar, perde a linha em
+              que a pessoa estava. É o **mesmo comando** de `/roles` e o **mesmo escopo** — a
+              organização (FR-030), e não uma segunda porta com regras próprias. --%>
+        <section :if={@team.organization_id} class="card bg-base-200 p-4">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-sm font-semibold">Roles</h2>
+            <span class="text-xs opacity-70">
+              of this team's organisation · {@papeis_do_catalogo} from the catalogue · {@papeis_criados} created here
+            </span>
+          </div>
+
+          <p class="mt-1 text-xs opacity-70">
+            The same roles as <.link navigate={~p"/roles"} class="link">/roles</.link>
+            — one catalogue, one scope. A role created here appears there, and in every role
+            selector of this organisation, immediately.
+          </p>
+
+          <div class="mt-3 overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>role</th>
+                  <th>code</th>
+                  <th>origin</th>
+                  <th class="text-right">people here</th>
+                  <th class="text-right">in the organisation</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={papel <- @papeis_da_organizacao} class={papel.hidden_at && "opacity-50"}>
+                  <td>
+                    <span :if={@renomeando != papel.id}>{papel.name}</span>
+                    <form
+                      :if={@renomeando == papel.id}
+                      phx-submit="renomear_papel"
+                      class="flex items-center gap-1"
+                    >
+                      <input type="hidden" name="role_id" value={papel.id} />
+                      <input
+                        type="text"
+                        name="name"
+                        value={papel.name}
+                        required
+                        class="input input-xs input-bordered"
+                      />
+                      <button type="submit" class="btn btn-xs btn-primary">Save</button>
+                      <button
+                        type="button"
+                        phx-click="fechar_formularios"
+                        class="btn btn-xs btn-ghost"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                    <span :if={papel.hidden_at} class="ml-1 badge badge-xs badge-ghost">
+                      hidden
+                    </span>
+                  </td>
+                  <td class="font-mono text-xs">{papel.code}</td>
+                  <td class="text-xs opacity-70">{origem_do_papel(papel)}</td>
+                  <td class="text-right font-mono tabular-nums">
+                    {contagem_do_papel(@contagens_por_papel, papel).nesta_equipe}
+                  </td>
+                  <td class="text-right font-mono tabular-nums">
+                    {contagem_do_papel(@contagens_por_papel, papel).na_organizacao}
+                  </td>
+                  <td>
+                    <%!-- Papel do CATÁLOGO não tem ação de remover nem de renomear (FR-033):
+                          o nome vem da rede de conceitos, e renomeá-lo aqui faria a
+                          plataforma discordar da ontologia que ela mesma publica. --%>
+                    <div
+                      :if={
+                        match?({:ok, _}, @gestao) and not is_nil(papel.id) and
+                          not do_catalogo?(papel)
+                      }
+                      class="flex gap-1"
+                    >
+                      <button
+                        phx-click="abrir_renomear"
+                        phx-value-role_id={papel.id}
+                        class="btn btn-xs btn-ghost"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        :if={is_nil(papel.hidden_at)}
+                        phx-click="ocultar_papel"
+                        phx-value-role_id={papel.id}
+                        class="btn btn-xs btn-ghost text-error"
+                      >
+                        Hide
+                      </button>
+                      <button
+                        :if={papel.hidden_at}
+                        phx-click="reexibir_papel"
+                        phx-value-role_id={papel.id}
+                        class="btn btn-xs btn-ghost"
+                      >
+                        Unhide
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <%!-- CRIAR: o código é SUGERIDO do nome e editável (FR-031). Sugerir sem permitir
+                editar imporia a nossa transliteração a quem tem convenção própria; pedir sem
+                sugerir faria digitar duas vezes a mesma coisa. --%>
+          <form
+            :if={match?({:ok, _}, @gestao)}
+            phx-submit="criar_papel"
+            phx-change="sugerir_codigo"
+            class="mt-3 flex flex-wrap items-end gap-3"
+          >
+            <label class="form-control">
+              <span class="label-text text-xs">new role</span>
+              <input
+                type="text"
+                name="name"
+                value={@novo_papel.name}
+                required
+                placeholder="e.g. Tech Lead"
+                class="input input-sm input-bordered"
+              />
+            </label>
+            <label class="form-control">
+              <span class="label-text text-xs">code · suggested, editable</span>
+              <input
+                type="text"
+                name="code"
+                value={@novo_papel.code}
+                class="input input-sm input-bordered font-mono"
+              />
+            </label>
+            <button type="submit" class="btn btn-sm">＋ New role</button>
+          </form>
+        </section>
 
         <%!-- ═══ DECLARAR OU ALTERAR O PAPEL — T019, FR-015 a FR-018 e FR-034 ═══
               O texto é o do protótipo aprovado em 2026-09-07.

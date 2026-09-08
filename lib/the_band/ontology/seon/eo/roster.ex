@@ -145,6 +145,57 @@ defmodule TheBand.Ontology.SEON.EO.Roster do
   defp chave_do_total(:saiu), do: :sairam
   defp chave_do_total(:equivoco), do: :equivocos
 
+  @doc """
+  Quantas PESSOAS desempenham cada papel — nesta equipe e na organização (FR-029).
+
+  Devolve `%{organizational_role_id => %{nesta_equipe: n, na_organizacao: n}}`.
+
+  ## Uma consulta, e não duas por papel
+
+  Os dois números saem do mesmo `GROUP BY` com `FILTER`: o total é a organização, e o
+  filtrado é a equipe. A alternativa natural — uma consulta por linha da tabela de papéis —
+  passa em todo teste funcional com três papéis e aparece em produção com trinta.
+
+  ## Pessoas DISTINTAS, e vigentes
+
+  `count(distinct person_id)`, pelo mesmo motivo de `count_team_members_at/3`: a pergunta é
+  quantas pessoas, e alguém pode ter o mesmo papel em duas equipes da organização — contaria
+  duas vezes na coluna da organização.
+
+  ## Papel sem ninguém não aparece no mapa
+
+  E é intencional: a tela lê `Map.get(contagens, papel.id, %{nesta_equipe: 0, na_organizacao: 0})`,
+  e o papel do **catálogo** que ainda não foi materializado não tem `id` para chavear — vale
+  `0/0` por construção, sem uma linha inventada no mapa para representá-lo.
+  """
+  @spec role_holder_counts(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) :: %{
+          Ecto.UUID.t() => %{nesta_equipe: non_neg_integer(), na_organizacao: non_neg_integer()}
+        }
+  def role_holder_counts(%Tenant{id: tenant_id}, organization_id, team_id) do
+    Repo.all(
+      from m in TeamMembership,
+        join: t in Team,
+        on: t.id == m.team_id,
+        where:
+          m.tenant_id == type(^tenant_id, :binary_id) and
+            t.organization_id == type(^organization_id, :binary_id) and
+            not is_nil(m.organizational_role_id) and
+            is_nil(m.ended_at) and is_nil(m.invalidated_at),
+        group_by: m.organizational_role_id,
+        select: {
+          type(m.organizational_role_id, :binary_id),
+          count(m.person_id, :distinct),
+          filter(
+            count(m.person_id, :distinct),
+            m.team_id == type(^team_id, :binary_id)
+          )
+        }
+    )
+    |> Map.new(fn {role_id, na_organizacao, nesta_equipe} ->
+      {role_id, %{nesta_equipe: nesta_equipe || 0, na_organizacao: na_organizacao}}
+    end)
+  end
+
   # ------------------------------------------------------------------ o alcance
 
   # Esta equipe e as PARTES com composição vigente. Uma consulta, e o `team_id` primeiro para
