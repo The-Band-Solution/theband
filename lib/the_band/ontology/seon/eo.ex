@@ -128,6 +128,11 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate promote_evidence(tenant, evidence_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate allocate(tenant, attrs), to: Commands
   defdelegate end_allocation(tenant, membership_id, quando, actor_id), to: Commands
+
+  defdelegate declare_role(tenant, team_id, person_id, papel, actor_id, opts \\ []),
+    to: Commands
+
+  defdelegate change_role(tenant, membership_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries
   defdelegate count_people(tenant, opts \\ []), to: Queries
   defdelegate person_ids_by_login(tenant), to: Queries

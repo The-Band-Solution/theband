@@ -1484,6 +1484,128 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   @typedoc "O papel escolhido: uma linha que existe, ou um conceito do catálogo a materializar."
   @type papel_escolhido :: {:existente, Ecto.UUID.t()} | {:catalogo, String.t()}
 
+  @doc """
+  Declara o papel de uma pessoa nesta equipe — feature 060, FR-015 a FR-018.
+
+  ## A diferença com `promote_evidence/5`
+
+  Aquela parte da **evidência**: existe uma observação da origem, e quem administra a confirma
+  com um papel. Esta parte do **par pessoa–equipe**, e não exige evidência nenhuma — é o
+  caminho de quem declara alguém que a origem não mostra, ou de quem declara um **segundo**
+  papel para quem já tem um.
+
+  As duas terminam em `allocate/2`, que **completa** o vínculo observado quando ele existe
+  (mesmo `id`, ADR 0008) em vez de criar um segundo vigente.
+
+  ## `started_at` nulo FICA nulo (FR-016)
+
+  Campo vazio é desconhecido, nunca hoje. Preencher com hoje afirmaria que a pessoa assumiu o
+  papel agora, e o que se sabe é que ninguém disse quando. É a mesma regra da data da saída
+  (FR-023), pela mesma razão: presunção sem marca no registro vira fato.
+
+  ## O papel do catálogo nasce DENTRO da operação
+
+  Materializá-lo antes deixaria uma linha órfã de papel se a declaração falhasse — e um
+  catálogo com papéis que ninguém desempenha é pior que um catálogo curto: quem escolhe na
+  próxima vez não distingue o papel real do resto.
+  """
+  @spec declare_role(
+          Tenant.t(),
+          Ecto.UUID.t(),
+          Ecto.UUID.t(),
+          papel_escolhido(),
+          Ecto.UUID.t(),
+          keyword()
+        ) ::
+          {:ok, TeamMembership.t()}
+          | {:error,
+             :already_allocated
+             | :role_from_another_organization
+             | :not_in_catalog
+             | :not_found
+             | Ecto.Changeset.t()}
+  def declare_role(%Tenant{} = tenant, team_id, person_id, papel, actor_id, opts \\ []) do
+    with {:ok, equipe} <- Queries.fetch_team(tenant, team_id),
+         {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel) do
+      allocate(tenant, %{
+        person_id: person_id,
+        team_id: team_id,
+        organizational_role_id: role_id,
+        started_at: Keyword.get(opts, :started_at),
+        declared_by_user_id: actor_id
+      })
+    end
+  end
+
+  @doc """
+  Troca o papel de um vínculo: encerra o antigo e declara o novo — FR-017.
+
+  ## O histórico é a linha encerrada
+
+  Não há tabela de histórico de papel, e não é lacuna: o vínculo antigo **fica**, com o
+  período fechado, e a pergunta "que papel esta pessoa desempenhava em março" tem resposta
+  lendo os vínculos. Uma segunda tabela seria uma segunda verdade sobre o mesmo fato.
+
+  ## Numa transação, e por quê
+
+  Encerrar sem declarar deixa a pessoa na equipe sem papel — indistinguível de um vínculo
+  observado, que significa outra coisa. Declarar sem encerrar deixa dois papéis vigentes, o
+  que é legítimo (FR-018) mas **não** é o que quem clicou em "Change role" pediu.
+
+  As duas datas são a MESMA: o antigo termina onde o novo começa. `opts[:desde]` permite a
+  troca retroativa; sem ele, agora.
+
+  Trocar para o papel que a pessoa já tem vigente é `:already_allocated` — o índice parcial o
+  recusaria, e a mensagem nomeada é melhor que um erro de constraint.
+  """
+  @spec change_role(Tenant.t(), Ecto.UUID.t(), papel_escolhido(), Ecto.UUID.t(), keyword()) ::
+          {:ok, %{encerrado: TeamMembership.t(), novo: TeamMembership.t()}}
+          | {:error,
+             :not_found
+             | :already_ended
+             | :already_allocated
+             | :role_from_another_organization
+             | :not_in_catalog
+             | Ecto.Changeset.t()}
+  def change_role(%Tenant{} = tenant, membership_id, papel, actor_id, opts \\ []) do
+    quando = Keyword.get(opts, :desde) || DateTime.utc_now(:second)
+
+    Repo.transaction(fn ->
+      # O PAPEL É RESOLVIDO E COMPARADO **ANTES** DE ENCERRAR.
+      #
+      # Na ordem inversa — encerrar, depois declarar — trocar para o papel que a pessoa já
+      # tem **funcionava**: o vínculo antigo já não estava vigente quando a declaração
+      # chegava, então o índice parcial não a recusava. O resultado era uma linha encerrada e
+      # outra idêntica aberta, apresentadas na tela como uma troca de papel que não houve.
+      #
+      # Resolver dentro da transação é o que permite comparar sem deixar lixo: um conceito do
+      # catálogo é materializado aqui, e o `rollback` o desfaz se a comparação recusar.
+      with {:ok, antigo} <- Queries.fetch_membership(tenant, membership_id),
+           {:ok, equipe} <- Queries.fetch_team(tenant, antigo.team_id),
+           {:ok, role_id} <- resolver_papel(tenant, equipe.organization_id, papel),
+           :ok <- papel_realmente_diferente(antigo, role_id),
+           {:ok, encerrado} <- end_allocation(tenant, membership_id, quando, actor_id),
+           {:ok, novo} <-
+             declare_role(
+               tenant,
+               antigo.team_id,
+               antigo.person_id,
+               {:existente, role_id},
+               actor_id,
+               started_at: quando
+             ) do
+        %{encerrado: encerrado, novo: novo}
+      else
+        {:error, motivo} -> Repo.rollback(motivo)
+      end
+    end)
+  end
+
+  defp papel_realmente_diferente(%TeamMembership{organizational_role_id: atual}, atual),
+    do: {:error, :already_allocated}
+
+  defp papel_realmente_diferente(_antigo, _novo), do: :ok
+
   # Devolve `{:ok, vinculo_observado | nil}`: o vínculo vigente SEM papel que a evidência
   # aponta (a declarar), `nil` quando não há vínculo nenhum (caminho antigo), e recusa
   # quando o vínculo já tem papel — declarado uma vez, não se declara de novo por aqui.
