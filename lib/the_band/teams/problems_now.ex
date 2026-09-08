@@ -150,12 +150,24 @@ defmodule TheBand.Teams.ProblemsNow do
 
   # ------------------------------------------------------------------ os limiares
 
-  @doc "A idade a partir da qual uma issue aberta entra na contagem — da base."
-  @spec issue_open_days() :: pos_integer()
+  @doc """
+  A idade a partir da qual uma issue aberta entra na contagem — da base.
+
+  `nil` quando a regra **não está** na base de conhecimento, e é retorno legítimo: é o que faz
+  o cartão dizer *não conferido* em vez de contar com um limiar inventado. O dialyzer apanhou
+  o `@spec` anterior, que dizia `pos_integer()` e tornava o ramo do `nil` inalcançável — o
+  spec é que mentia, não o código.
+  """
+  @spec issue_open_days() :: pos_integer() | nil
   def issue_open_days, do: limiar("open_issue_age", "open_days")
 
-  @doc "A espera a partir da qual uma revisão pendente entra na contagem — da base."
-  @spec review_wait_days() :: pos_integer()
+  @doc """
+  A espera a partir da qual uma revisão pendente entra na contagem — da base.
+
+  `nil` pela mesma razão de `issue_open_days/0`: sem a regra declarada, o cartão recusa em vez
+  de contar.
+  """
+  @spec review_wait_days() :: pos_integer() | nil
   def review_wait_days, do: limiar("review_wait", "wait_days")
 
   defp limiar(regra, chave) do
