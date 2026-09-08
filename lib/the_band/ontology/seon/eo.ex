@@ -27,6 +27,7 @@ defmodule TheBand.Ontology.SEON.EO do
   alias TheBand.Ontology.SEON.EO.Constraints
   alias TheBand.Ontology.SEON.EO.Profiles
   alias TheBand.Ontology.SEON.EO.Queries
+  alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.EO.Visibility
 
   # ------------------------------------------------------------------- escritas
@@ -98,6 +99,19 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate grant_coverage(tenant), to: Visibility
   defdelegate declare_grant(tenant, role_id, scope, actor_id), to: Visibility
   defdelegate revoke_grant(tenant, role_id, scope, actor_id), to: Visibility
+
+  # A concessão de GERIR a estrutura — irmã da de visibilidade, com o verbo trocado
+  # (feature 060, FR-080 a FR-082). Ver e mexer são decisões separadas: conceder uma não
+  # concede a outra.
+  defdelegate structure_grants_by_role(tenant), to: StructureGrants, as: :grants_by_role
+
+  defdelegate declare_structure_grant(tenant, role_id, scope, actor_id),
+    to: StructureGrants,
+    as: :declare_grant
+
+  defdelegate revoke_structure_grant(tenant, role_id, scope, actor_id),
+    to: StructureGrants,
+    as: :revoke_grant
 
   defdelegate create_role(tenant, organization_id, attrs, actor_id), to: Commands
   defdelegate rename_role(tenant, role_id, name, actor_id \\ nil), to: Commands

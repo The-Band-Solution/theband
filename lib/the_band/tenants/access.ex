@@ -32,8 +32,8 @@ defmodule TheBand.Tenants.Access do
 
   import Ecto.Query
 
-  alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Repo
   alias TheBand.Tenants
