@@ -63,6 +63,19 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
 
     field :declared_by_user_id, :binary_id
 
+    # QUANDO a declaração foi feita — o "em D" de "declarado por X em D" (FR-010). Não é
+    # `inserted_at`: o vínculo OBSERVADO que foi completado com um papel nasceu antes da
+    # declaração, e o `updated_at` dele some na escrita seguinte.
+    field :declared_at, :utc_datetime
+
+    # QUEM registrou a saída, e QUANDO registrou (FR-021, FR-022). Sem eles, fim declarado e
+    # fim constatado pela coleta são a mesma coisa — uma data. `ended_at` é a data DA SAÍDA,
+    # podendo ser retroativa; `end_declared_at` é o instante do registro. Colapsá-las faria
+    # "saiu em março, declarado em setembro" virar "saiu em setembro", e o número já
+    # apresentado para o período anterior mudaria.
+    field :ended_by_user_id, :binary_id
+    field :end_declared_at, :utc_datetime
+
     # Feature 055 — o EQUÍVOCO: o vínculo que nunca vigeu.
     #
     # Diferente de `ended_at`, que diz "esteve e não está mais". Aqui o período
@@ -91,6 +104,9 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
       :started_at,
       :ended_at,
       :declared_by_user_id,
+      :declared_at,
+      :ended_by_user_id,
+      :end_declared_at,
       :invalidated_at,
       :invalidated_by_user_id,
       :invalidation_reason
@@ -100,6 +116,7 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
     # relator da ontologia exige os três; a plataforma materializa o observado com o papel
     # declaradamente ausente, e a tela diz isso. Declarar sem papel continua recusado.
     |> validar_papel_da_declaracao()
+    |> validar_saida_declarada()
     |> validar_periodo()
     |> unique_constraint([:tenant_id, :person_id, :team_id],
       name: :eo_team_memberships_observado_vigente_index
@@ -140,6 +157,29 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamMembership do
 
       papel && is_nil(autor) ->
         add_error(changeset, :declared_by_user_id, "o papel declarado exige quem o declarou")
+
+      true ->
+        changeset
+    end
+  end
+
+  # A SAÍDA DECLARADA também é um par: quem registrou e quando registrou andam juntos, e só
+  # existem sobre um fim que existe. O banco impõe o trio (`eo_saida_declarada_completa`); o
+  # changeset o traduz, para a recusa chegar à tela em vez de levantar.
+  defp validar_saida_declarada(changeset) do
+    autor = get_field(changeset, :ended_by_user_id)
+    registrado = get_field(changeset, :end_declared_at)
+    fim = get_field(changeset, :ended_at)
+
+    cond do
+      is_nil(autor) and is_nil(registrado) ->
+        changeset
+
+      is_nil(autor) or is_nil(registrado) ->
+        add_error(changeset, :ended_by_user_id, "quem registrou a saída e quando andam juntos")
+
+      is_nil(fim) ->
+        add_error(changeset, :ended_at, "a saída registrada exige a data em que a pessoa saiu")
 
       true ->
         changeset
