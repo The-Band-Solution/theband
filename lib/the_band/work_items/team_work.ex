@@ -31,6 +31,7 @@ defmodule TheBand.WorkItems.TeamWork do
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.IssueAssignee
+  alias TheBand.WorkItems.Schemas.IssuePromotion
 
   @parada_em_dias 90
 
@@ -255,15 +256,28 @@ defmodule TheBand.WorkItems.TeamWork do
     else
       CollectedIssue
       |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+      |> join(:left, [i, _a], pr in IssuePromotion, on: pr.collected_issue_id == i.id)
       |> where([i, a], i.tenant_id == ^tenant_id and a.person_id in ^ids)
       |> where([i], is_nil(i.external_closed_at) and not is_nil(i.external_created_at))
       |> order_by([i], asc: i.external_created_at)
-      |> select([i, a], %{
+      |> select([i, a, pr], %{
         person_id: a.person_id,
         issue_id: i.id,
         external_id: i.external_id,
         titulo: i.title,
-        aberta_desde: i.external_created_at
+        aberta_desde: i.external_created_at,
+        # O CONCEITO PROMOVIDO, e não o tipo declarado na origem.
+        #
+        # `collected_issues.issue_type` é o rótulo que a organização pôs — e nesta base ele é
+        # **nulo em 778 dos 1154 itens abertos**. O conceito vem da promoção, que aplica a
+        # regra `github.issue_type_routing` com a precedência declarada: a **estrutura vence
+        # a declaração**. Uma issue tipo `Feature` com partes que são user stories é épico; a
+        # mesma sem partes é user story atômica.
+        #
+        # `LEFT JOIN`, e `nil` quando não houve promoção: a tela nomeia a ausência em vez de
+        # supor tarefa. Chutar aqui contamina toda medida de escopo — é o que a própria regra
+        # diz no `fallback_rationale`.
+        conceito: pr.derived_concept
       })
       |> Repo.all()
       |> Enum.map(&tarefa(&1, quando))

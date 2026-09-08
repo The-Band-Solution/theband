@@ -1793,6 +1793,66 @@ defmodule TheBandWeb.TeamsLive.Show do
     end
   end
 
+  # A MARCA DO CONCEITO — o que o item É, em três letras, antes do título.
+  #
+  # As quatro que aparecem no dado real: `TASK`, `US`, `EPIC` e `BUG`. A quarta não estava no
+  # pedido e não pode ser escondida — são 71 itens abertos, e chamá-los de tarefa afirmaria
+  # algo que a promoção não afirma.
+  #
+  # ## Cor não é a marca
+  #
+  # As quatro têm cores diferentes **e** texto diferente. Quem não distingue as cores lê
+  # `TASK` e `EPIC`, que é a informação; a cor só a acelera para quem as vê.
+  #
+  # ## Sem promoção diz ausência, e não tarefa
+  #
+  # `nil` é o item que a regra não classificou — tipo nulo na origem e estrutura que não
+  # decide. A tela escreve `—` com o título ao passar o mouse, em vez de supor: "chutar aqui
+  # contamina toda medida de escopo", diz o `fallback_rationale` da própria regra.
+  attr :conceito, :string, default: nil
+
+  defp marca_do_conceito(assigns) do
+    assigns = assign(assigns, :marca, marca(assigns.conceito))
+
+    ~H"""
+    <span
+      class={["badge badge-sm shrink-0 font-mono text-[0.65rem]", @marca.classe]}
+      title={@marca.titulo}
+    >
+      {@marca.texto}
+    </span>
+    """
+  end
+
+  defp marca("sro.epic"),
+    do: %{texto: "EPIC", classe: "badge-secondary", titulo: "epic — a user story with parts"}
+
+  defp marca("sro.atomic_user_story"),
+    do: %{texto: "US", classe: "badge-primary", titulo: "atomic user story — no parts"}
+
+  defp marca("sro.intended_scrum_development_task"),
+    do: %{
+      texto: "TASK",
+      classe: "badge-ghost",
+      titulo: "intended development task — declared, not necessarily executed"
+    }
+
+  defp marca("osdef.defect"),
+    do: %{texto: "BUG", classe: "badge-error badge-outline", titulo: "defect"}
+
+  # Conceito novo na base aparece com o identificador, e não em branco: desaparecer da tela
+  # seria pior que aparecer sem tradução. É a mesma decisão de `ConceptLabel`.
+  defp marca(conceito) when is_binary(conceito),
+    do: %{texto: conceito, classe: "badge-ghost", titulo: conceito}
+
+  defp marca(nil),
+    do: %{
+      texto: "—",
+      classe: "badge-ghost opacity-60",
+      titulo:
+        "the mapping rule did not classify this item — no type at the source, and the structure does not decide"
+    }
+
   # A PREVISÃO — feature 057, US6. Faixa com sua confiança, nunca data.
   attr :detalhe, :map, required: true
 
@@ -2077,7 +2137,19 @@ defmodule TheBandWeb.TeamsLive.Show do
         <p :if={p.tarefas == []} class="ml-4 text-sm opacity-70">No open task assigned</p>
 
         <div :for={t <- p.tarefas} class="ml-4 flex flex-wrap items-baseline gap-2 text-sm">
-          <span class="font-mono text-xs opacity-70">{t.external_id}</span>
+          <%!-- A MARCA DO CONCEITO, no lugar do identificador da origem — pedido da pessoa
+                mantenedora em 2026-09-08.
+
+                `I_kwDON0TQIs6vA1ZX` é o `node_id` do GraphQL do GitHub: identifica a issue na
+                origem e não diz nada a quem lê a tela. Ocupava o lugar da informação que
+                importa antes do título — **o que este item é**.
+
+                A marca vem da PROMOÇÃO, e não do tipo declarado na origem: a regra
+                `github.issue_type_routing` tem precedência `structure_over_declaration`, e é
+                por isso que uma issue tipo `Feature` com partes que são user stories é épico,
+                e a mesma sem partes é user story atômica. Nesta base o tipo declarado é nulo
+                em 778 dos 1154 itens abertos, e a promoção classifica todos. --%>
+          <.marca_do_conceito conceito={t.conceito} />
           <.link navigate={~p"/work/issues/#{t.issue_id}"} class="link link-hover flex-1">
             {t.titulo}
           </.link>
