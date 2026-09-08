@@ -60,6 +60,28 @@ defmodule TheBand.WorkItems.TeamWork do
   end
 
   @doc """
+  A abertura do item mais **antigo** desta equipe, ou `nil` se não há nenhum.
+
+  Serve a uma coisa só: a janela padrão da granulação **ano** é "todos os anos coletados"
+  (feature 060, FR-078), e "todos" não é um número que se possa fixar. Cinco anos seria
+  inventado — mostraria anos vazios numa base nova e cortaria anos reais numa antiga.
+
+  `nil` é resposta legítima e diferente de zero: a equipe não tem item coletado, e a tela diz
+  isso em vez de desenhar um eixo sem dado.
+  """
+  @spec primeira_atividade(Tenant.t(), Ecto.UUID.t()) :: DateTime.t() | nil
+  def primeira_atividade(%Tenant{id: tenant_id}, team_id) do
+    CollectedIssue
+    |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+    |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i], not is_nil(i.external_created_at))
+    |> where([_i, _a, m], is_nil(m.invalidated_at))
+    |> select([i], min(i.external_created_at))
+    |> Repo.one()
+  end
+
+  @doc """
   Quantos itens da equipe estavam **em aberto** naquele instante.
 
   Criados até a data, não fechados até a data, de quem pertencia **na data**.

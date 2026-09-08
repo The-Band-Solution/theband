@@ -214,6 +214,48 @@ quem não gere lê e não age.
 
 ---
 
+## Fase 8 — US9: o fluxo, em três granulações (P3)
+
+Planejada em 2026-09-08, a pedido da pessoa mantenedora, depois de a tela subir sem os
+gráficos que ela havia pedido em 2026-09-07. A US9 estava especificada (FR-058 a FR-064,
+FR-078) e **sem nenhuma tarefa** — e por isso nada foi construído.
+
+- [ ] **T026 [US9]** A granulação e a janela vivem no endereço, com padrão por granulação
+  - `granulacao=semana|mes|ano` e `periodos=<n>` em `handle_params/3`, casados um a um (nunca
+    `String.to_atom/1`); valor inválido cai no padrão **e** avisa, como a aba. Padrão por
+    granulação: **8 semanas**, **12 meses**, **todos os anos coletados** — este último exige
+    `TeamWork.primeira_atividade/2`, que hoje não existe. O título de cada gráfico diz sempre
+    a janela mostrada. FR-061, FR-078.
+  - **Feita quando**: a soma de abertos e a de fechados na janela é **igual** nas três
+    granulações sobre a mesma janela; trocar a granulação troca a janela padrão e o título diz
+    a nova; `?granulacao=decada` desenha semana e avisa.
+  - **Teste**: `fluxo_da_equipe_test.exs` — a igualdade das somas é o caso que prova FR-061.
+
+- [ ] **T027 [US9]** *Prometido × Entregue*, com a definição junto do título
+  - Componente novo, **sem acumular** — as mesmas duas contagens do burn, por período. A
+    declaração *não há escopo comprometido* e a definição operacional (*prometido = aberto no
+    período; entregue = fechado no período*) ficam **junto do título**, nunca em rodapé.
+    FR-062, FR-063.
+  - **Feita quando**: a palavra "promised" não aparece sem a definição ao lado; os números de
+    um período batem com a linha daquele período na tabela do burn.
+  - **Teste**: o mesmo arquivo; e um caso que falha se a definição sair do título.
+
+- [ ] **T028 [US9]** Os três gráficos na equipe COMPOSTA, sobre o conjunto da equipe inteira
+  - Emenda 057 FR-011. Exige o conjunto **da equipe inteira** (FR-056): `TeamWork` passa a
+    aceitar uma **lista** de equipes, e a lista é a do `Roster.equipes_do_alcance/2` — a
+    composição vigente, não a soma dos cartões. O texto de FR-060 (*não é a soma*) é
+    obrigatório na seção. A **tabela** por subequipe continua sem gráfico.
+  - **Feita quando**: numa equipe composta com duas partes, a curva conta a pessoa das duas
+    partes **uma** vez; a distância entre as curvas em cada ponto é o aberto naquele ponto.
+  - **Bloqueio conhecido**: o banco de desenvolvimento não tem equipe com duas partes, então
+    a medida real precisa de cenário construído.
+
+- [ ] **T029 [US9]** O gráfico pequeno no cartão da subequipe
+  - FR-084. **Depende da US7**, que entrega o cartão e ainda não tem tarefa. Fica parada até
+    lá — construir o gráfico antes do cartão seria infraestrutura sem consumidor visível.
+
+---
+
 ## Fase 7 — Fechamento
 
 - [ ] **T023** A escrita de projeto vive na Estrutura, sob o mesmo veredito

@@ -30,6 +30,11 @@ defmodule TheBandWeb.TeamsLive.Show do
   # O teto de solicitações que a seção da espera carrega. Cortar é decisão, e a tela
   # DIZ quando corta: mediana sobre 200 de 500 é outra medida com o mesmo rótulo.
   @limite_de_esperas 200
+
+  # O teto de períodos que a pessoa pode pedir. Não é desconfiança: `?periodos=100000` em
+  # granulação de semana pediria duas mil consultas de eixo e um SVG que nenhum navegador
+  # desenha. Acima do teto, cai no padrão da granulação.
+  @maximo_de_periodos 240
   @por_pagina 50
 
   # Só `name` é ordenável, e a lista encurtou de propósito na feature 060.
@@ -67,14 +72,55 @@ defmodule TheBandWeb.TeamsLive.Show do
 
   def handle_params(params, _uri, socket) do
     {aba, socket} = aba_pedida(params, socket)
+    {granulacao, socket} = granulacao_pedida(params, socket)
 
     {:noreply,
      socket
-     |> assign(aba: aba)
+     |> assign(aba: aba, granulacao: granulacao, periodos: periodos_pedidos(params))
      |> Tabela.aplicar(params, @tabelas)
      |> carregar_cabecalho()
      |> carregar_aba(aba)}
   end
+
+  # A GRANULAÇÃO TAMBÉM VIVE NO ENDEREÇO — feature 060, FR-061 e FR-078.
+  #
+  # A objeção da 057 (L86) ao seletor de período era o denominador móvel: trocar a janela
+  # muda o número sem que quem lê perceba. A resposta não foi recusar o seletor, foi exigir
+  # que a janela apareça **no título de cada gráfico** e **no endereço** — o denominador pode
+  # mudar, nunca em silêncio, e um link cai onde aponta.
+  #
+  # Casadas uma a uma pela mesma razão da aba: converter parâmetro de URL em átomo cria átomo
+  # a partir de entrada externa, e átomo não é coletado.
+  defp granulacao_pedida(%{"granulacao" => "semana"}, socket), do: {:semana, socket}
+  defp granulacao_pedida(%{"granulacao" => "mes"}, socket), do: {:mes, socket}
+  defp granulacao_pedida(%{"granulacao" => "ano"}, socket), do: {:ano, socket}
+
+  defp granulacao_pedida(%{"granulacao" => outra}, socket)
+       when is_binary(outra) and outra != "" do
+    {:semana,
+     put_flash(
+       socket,
+       :error,
+       dgettext(
+         "errors",
+         "“%{g}” is not a granularity. Showing weeks.",
+         g: outra
+       )
+     )}
+  end
+
+  defp granulacao_pedida(_params, socket), do: {:semana, socket}
+
+  # Quantos períodos, quando quem lê escolheu. `nil` significa "o padrão desta granulação",
+  # e não zero — são coisas diferentes, e zero período não é uma janela.
+  defp periodos_pedidos(%{"periodos" => texto}) when is_binary(texto) do
+    case Integer.parse(texto) do
+      {n, ""} when n > 0 and n <= @maximo_de_periodos -> n
+      _ -> nil
+    end
+  end
+
+  defp periodos_pedidos(_params), do: nil
 
   # A ABA VIVE NO ENDEREÇO — feature 060, FR-001 a FR-003, decisão D1 do plano.
   #
@@ -504,30 +550,119 @@ defmodule TheBandWeb.TeamsLive.Show do
     tenant = socket.assigns.current_tenant
     team = socket.assigns.team
     agora = DateTime.utc_now()
-    desde = DateTime.add(agora, -@janela_em_dias, :day)
+    granulacao = socket.assigns.granulacao
+
+    janela = janela_do_fluxo(tenant, team, granulacao, socket.assigns.periodos, agora)
 
     serie =
-      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
-        desde: desde,
+      WorkItems.team_state_changes_by_period(tenant, team.id, granulacao,
+        desde: janela.desde,
         ate: agora
       )
 
-    aberto_inicial = WorkItems.team_open_at(tenant, team.id, desde)
+    aberto_inicial = WorkItems.team_open_at(tenant, team.id, janela.desde)
     tarefas = WorkItems.team_open_tasks_by_person(tenant, team.id, agora)
     membros = EO.team_members_at(tenant, team.id, agora)
 
     assign(socket,
+      janela: janela,
       detalhe: %{
         serie: serie,
         burn: WorkItems.burn(serie, aberto_inicial),
         aberto_inicial: aberto_inicial,
-        previsao:
-          Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora)),
+        previsao: previsao_semanal(tenant, team, janela, agora),
         piso: Forecast.piso(),
         pessoas: Enum.map(membros, &Map.put(&1, :tarefas, Map.get(tarefas, &1.person_id, [])))
       }
     )
   end
+
+  # A JANELA PADRÃO É POR GRANULAÇÃO — FR-078: 8 semanas, 12 meses, todos os anos coletados.
+  #
+  # Não é a mesma janela reagrupada. Doze semanas em anos daria um ponto só, e oito anos em
+  # semanas daria quatrocentos pontos ilegíveis. Cada granulação responde a uma pergunta de
+  # horizonte diferente, e a janela é parte da pergunta.
+  #
+  # O `rotulo` volta com a janela porque o título de CADA gráfico tem de dizê-la (FR-078), e
+  # deixar a tela montar a frase espalharia a regra por três componentes.
+  defp janela_do_fluxo(tenant, team, granulacao, escolhidos, agora) do
+    quantos = escolhidos || padrao_de_periodos(granulacao)
+
+    desde =
+      case {granulacao, escolhidos} do
+        # "Todos os anos coletados" só o banco sabe. Sem item algum, a janela cai no padrão de
+        # cinco anos — e a tela vai dizer que não há série, que é o que de facto acontece.
+        {:ano, nil} ->
+          case WorkItems.team_first_activity(tenant, team.id) do
+            nil -> DateTime.add(agora, -365 * 5, :day)
+            primeira -> primeira
+          end
+
+        {:semana, _} ->
+          DateTime.add(agora, -7 * quantos, :day)
+
+        {:mes, _} ->
+          DateTime.add(agora, -31 * quantos, :day)
+
+        {:ano, _} ->
+          DateTime.add(agora, -365 * quantos, :day)
+      end
+
+    %{
+      granulacao: granulacao,
+      desde: desde,
+      ate: agora,
+      escolhida?: not is_nil(escolhidos),
+      rotulo: rotulo_da_janela(granulacao, desde, agora)
+    }
+  end
+
+  defp padrao_de_periodos(:semana), do: 8
+  defp padrao_de_periodos(:mes), do: 12
+  defp padrao_de_periodos(:ano), do: 5
+
+  defp rotulo_da_janela(granulacao, desde, ate) do
+    "#{nome_da_granulacao(granulacao)} · #{data_curta(desde)} → #{data_curta(ate)}"
+  end
+
+  defp nome_da_granulacao(:semana), do: "by week"
+  defp nome_da_granulacao(:mes), do: "by month"
+  defp nome_da_granulacao(:ano), do: "by year"
+
+  defp unidade_da_granulacao(:semana), do: "week"
+  defp unidade_da_granulacao(:mes), do: "month"
+  defp unidade_da_granulacao(:ano), do: "year"
+
+  # A PREVISÃO É SEMANAL, qualquer que seja a granulação escolhida — FR-064.
+  #
+  # Monte Carlo amostra o ritmo de fechamento, e a amostra tem de ter tamanho suficiente para
+  # a distribuição significar algo: doze meses dão doze amostras, e cinco anos dão cinco. O
+  # piso de 057 FR-034 existe justamente contra isso.
+  #
+  # Então a previsão reconsulta em semanas sobre a MESMA janela mostrada, em vez de reusar a
+  # série do burn. É uma consulta a mais, e é o preço de a previsão não mudar de significado
+  # quando quem lê troca a granulação para ler outra coisa.
+  defp previsao_semanal(tenant, team, %{granulacao: :semana}, agora) do
+    serie =
+      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
+        desde: janela_desde(team, agora, 8),
+        ate: agora
+      )
+
+    Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora))
+  end
+
+  defp previsao_semanal(tenant, team, janela, agora) do
+    serie =
+      WorkItems.team_state_changes_by_period(tenant, team.id, :semana,
+        desde: janela.desde,
+        ate: agora
+      )
+
+    Forecast.monte_carlo(serie, aberto: WorkItems.team_open_at(tenant, team.id, agora))
+  end
+
+  defp janela_desde(_team, agora, semanas), do: DateTime.add(agora, -7 * semanas, :day)
 
   # ------------------------------------------- as seções do detalhe (feature 057)
 
@@ -539,26 +674,32 @@ defmodule TheBandWeb.TeamsLive.Show do
   # número que a altura da faixa representa — o que a regra proíbe é apresentá-lo
   # como série.
   attr :detalhe, :map, required: true
+  attr :janela, :map, required: true
 
   defp burn_da_equipe(assigns) do
-    assigns = assign(assigns, :pontos, pontos_do_burn(assigns.detalhe.burn))
+    assigns =
+      assign(assigns, :pontos, pontos_do_burn(assigns.detalhe.burn, assigns.janela.granulacao))
 
     ~H"""
     <section class="card bg-base-200 p-4">
-      <h2 class="text-sm font-semibold">Burn-up and burn-down</h2>
+      <%!-- A JANELA NO TÍTULO, sempre — FR-078. Foi a condição para o seletor existir: a
+            objeção da 057 era o denominador móvel, e a resposta é dizer o denominador. --%>
+      <h2 class="text-sm font-semibold">
+        Burn-up and burn-down <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
+      </h2>
       <p class="mt-1 text-xs opacity-70">
-        8 weeks · cumulative opened and closed. The hatched band between them is the work
+        cumulative opened and closed. The hatched band between them is the work
         still open — it is derived from the two series, not a third line.
       </p>
 
       <p :if={@detalhe.serie == []} class="mt-3 text-sm opacity-70">
-        No week of this team falls inside the collected period, so there is no series to
-        draw — which is not the same as a series of zeros.
+        No {unidade_da_granulacao(@janela.granulacao)} of this team falls inside the collected
+        period, so there is no series to draw — which is not the same as a series of zeros.
       </p>
 
       <svg
         :if={@pontos}
-        viewBox="0 0 560 170"
+        viewBox="0 0 560 190"
         class="mt-3 w-full"
         role="img"
         aria-label={"Cumulative opened and closed over #{length(@detalhe.burn)} weeks. The band between them is the work still open, #{@pontos.aberto_final} at the end."}
@@ -598,6 +739,59 @@ defmodule TheBandWeb.TeamsLive.Show do
           stroke-width="2"
           class="text-warning"
         />
+
+        <%!-- O TETO DO EIXO, escrito. Sem escala, a mesma inclinação serve a 4 itens e a 400
+              — e quem lê decide pela inclinação. --%>
+        <text x="2" y="10" font-size="9" fill="currentColor" opacity="0.55">
+          {@pontos.teto}
+        </text>
+
+        <%!-- OS VALORES EM CADA PONTO (pedido de 2026-09-08). Acumulado aberto acima da
+              curva, acumulado fechado abaixo — os dois no mesmo x nunca colidem. --%>
+        <g font-size="9" fill="currentColor" text-anchor="middle">
+          <text
+            :for={r <- @pontos.rotulos}
+            x={r.x}
+            y={r.y_escopo}
+            class="text-primary"
+            opacity="0.85"
+          >
+            {r.escopo}
+          </text>
+          <text
+            :for={r <- @pontos.rotulos}
+            x={r.x}
+            y={r.y_feito}
+            class="text-warning"
+            opacity="0.85"
+          >
+            {r.feito}
+          </text>
+        </g>
+
+        <%!-- A LINHA DO TEMPO. A régua fica ABAIXO do zero da série (y=150), para não cruzar
+              a faixa hachurada e ser lida como um valor. --%>
+        <line
+          x1="0"
+          y1="166"
+          x2="496"
+          y2="166"
+          stroke="currentColor"
+          stroke-width="1"
+          opacity="0.25"
+        />
+        <g font-size="9" fill="currentColor" opacity="0.6" text-anchor="middle">
+          <text :for={t <- @pontos.eixo} x={t.x} y="179">{t.rotulo}</text>
+          <line
+            :for={t <- @pontos.eixo}
+            x1={t.x}
+            y1="163"
+            x2={t.x}
+            y2="169"
+            stroke="currentColor"
+            stroke-width="1"
+          />
+        </g>
       </svg>
 
       <div :if={@pontos} class="mt-2 flex flex-wrap gap-4 text-xs">
@@ -612,12 +806,84 @@ defmodule TheBandWeb.TeamsLive.Show do
         </span>
       </div>
 
+      <%!-- ═══ A DIFERENÇA, E QUANDO ELA CHEGARIA A ZERO ═══
+            Pedido da pessoa mantenedora em 2026-09-08: "a diferença e um possível prazo de
+            conclusão baseado na velocidade de entrega".
+
+            ## Por que sai da previsão, e não de uma divisão
+
+            `aberto / fecha_por_semana` daria um número, e daria o número errado com cara de
+            certo: usaria a média e jogaria fora a variação. Uma equipe que fecha 10, 0, 10, 0
+            e outra que fecha 5, 5, 5, 5 têm a mesma média e horizontes muito diferentes.
+
+            Pior: seria uma SEGUNDA conta na mesma tela. A previsão logo abaixo já amostra o
+            ritmo de fechamento observado — é exatamente "baseado na velocidade de entrega" —,
+            e dois números divergentes sobre a mesma pergunta ensinam a não acreditar em
+            nenhum. Então a faixa aqui é a MESMA, lida da mesma fonte.
+
+            ## Por que faixa com confiança, e nunca uma data
+
+            Uma data é lida como promessa. A plataforma não tem escopo comprometido, e metade
+            das rodadas terminar até a semana N não é "termina na semana N" (057 FR-031 a
+            FR-037). A hipótese usada aqui é a CONGELADA — nada de novo entrando —, e a tela
+            diz isso, porque é o limite otimista: com trabalho novo chegando, demora mais. --%>
+      <div :if={@pontos && match?({:ok, _}, @detalhe.previsao)} class="mt-3 space-y-1 text-sm">
+        <% {:ok, p} = @detalhe.previsao %>
+        <p>
+          The gap is <strong class="font-mono tabular-nums">{@pontos.aberto_final}</strong>
+          items still open. At the closing pace observed in this window —
+          <span class="font-mono tabular-nums">{Float.round(p.ritmo.fecha_por_semana, 1)}</span>
+          closed per week —
+          <span :if={p.congelado.p50}>
+            half of the simulated runs reach zero within <strong>{p.congelado.p50} {if p.congelado.p50 == 1, do: "week", else: "weeks"}</strong>.
+            <span :if={p.congelado.p85}>
+              85% of them reach zero within <strong>{p.congelado.p85} weeks</strong>.
+            </span>
+            <%!-- p85 nulo com p50 preenchido NÃO é "mais de N semanas": é a ausência de um
+                  percentil, porque mais de 15% das rodadas não chegaram a zero dentro do
+                  horizonte. Escrever um número aqui inventaria o percentil que não existe. --%>
+            <span :if={is_nil(p.congelado.p85)}>
+              There is <strong>no 85% figure</strong>
+              — more than 15% of the runs did not reach zero within the {p.horizonte_semanas}-week horizon at all.
+            </span>
+          </span>
+          <span :if={is_nil(p.congelado.p50)}>
+            <strong>most runs never reach zero</strong>
+            inside the {p.horizonte_semanas}-week horizon — the closing pace does not keep up
+            with what is open.
+          </span>
+        </p>
+        <p class="text-xs opacity-70">
+          This is a <strong>range with its confidence, never a date</strong>. It assumes
+          <strong>nothing new arrives</strong>
+          — the optimistic bound; with new work coming in
+          it takes longer, and the forecast below shows both hypotheses. There is no committed
+          scope here, so this does not answer whether a deadline is met.
+          <span :if={p.congelado.nao_concluiram > 0}>
+            {p.congelado.nao_concluiram} of {p.rodadas} runs did not finish at all.
+          </span>
+        </p>
+      </div>
+
+      <p
+        :if={@pontos && match?({:sem_historico, _}, @detalhe.previsao)}
+        class="mt-3 text-sm opacity-70"
+      >
+        <% {:sem_historico, falta} = @detalhe.previsao %> The gap is
+        <strong class="font-mono tabular-nums">{@pontos.aberto_final}</strong>
+        items still open, and <strong>no horizon is shown</strong>: this window has {falta.semanas} of the {falta.semanas_exigidas} periods and {falta.fechadas} of the {falta.fechadas_exigidas} closed items the forecast needs. A pace read from less than
+        that would be a guess wearing the clothes of a measure.
+      </p>
+
       <details :if={@pontos} class="mt-2">
         <summary class="cursor-pointer text-xs opacity-70">see as a table</summary>
         <table class="table table-xs mt-2">
           <thead>
             <tr>
-              <th>week</th><th class="text-right">opened</th><th class="text-right">closed</th><th class="text-right">
+              <th>{unidade_da_granulacao(@janela.granulacao)}</th>
+              <th class="text-right">opened</th>
+              <th class="text-right">closed</th>
+              <th class="text-right">
                 still open
               </th>
             </tr>
@@ -639,7 +905,7 @@ defmodule TheBandWeb.TeamsLive.Show do
           <span class="font-mono tabular-nums">{@detalhe.aberto_inicial}</span>
           —
           the items already open when the window began. Starting from zero would measure only
-          the items born inside these eight weeks, and call that the open work.
+          the items born inside this window, and call that the open work.
         </p>
         <p class="mt-2 opacity-80">
           There is <strong>no committed scope</strong> here, so this does not answer whether a
@@ -650,6 +916,166 @@ defmodule TheBandWeb.TeamsLive.Show do
       </div>
     </section>
     """
+  end
+
+  # PROMETIDO × ENTREGUE — feature 060, US9: FR-062 e FR-063.
+  #
+  # As MESMAS duas contagens do burn, sem acumular. O burn responde "quanto trabalho está
+  # aberto agora"; este responde "quanto entrou e quanto saiu em cada período". A segunda
+  # pergunta é a que se faz numa reunião de equipe, e o acumulado a esconde: uma curva que
+  # sobe devagar pode ser tanto pouca abertura quanto muito fechamento.
+  #
+  # ## Por que a definição fica JUNTO DO TÍTULO, e não em rodapé
+  #
+  # "Prometido" é a palavra que a pessoa mantenedora escolheu, e ela **não** significa
+  # compromisso: significa *aberto no período*. Sem a definição ao lado, o gráfico é lido
+  # como escopo de sprint contra entrega de sprint — e a plataforma não tem escopo
+  # comprometido em lugar nenhum (057 FR-029, emendada pela FR-063).
+  #
+  # Rodapé não serve. Quem lê um gráfico lê o título e as barras; a nota abaixo é lida por
+  # quem já entendeu errado.
+  attr :detalhe, :map, required: true
+  attr :janela, :map, required: true
+
+  defp prometido_e_entregue(assigns) do
+    assigns = assign(assigns, :barras, barras_do_prometido(assigns.detalhe.serie))
+
+    ~H"""
+    <section class="card bg-base-200 p-4">
+      <h2 class="text-sm font-semibold">
+        Promised × Delivered <span class="ml-1 font-normal opacity-70">· {@janela.rotulo}</span>
+      </h2>
+
+      <%!-- A DEFINIÇÃO E A RESSALVA, junto do título e antes do gráfico (FR-063). --%>
+      <p class="mt-1 text-xs">
+        <strong>promised</strong>
+        = opened in the period · <strong>delivered</strong>
+        = closed in the period.
+      </p>
+      <p class="mt-1 text-xs opacity-70">
+        There is <strong>no committed scope</strong> in the platform, so this is not a sprint
+        commitment against a sprint result. <em>Closed</em> is the issue being closed at the
+        source — an act of the tool, not a declared end criterion.
+      </p>
+
+      <p :if={@barras == []} class="mt-3 text-sm opacity-70">
+        No {unidade_da_granulacao(@janela.granulacao)} of this team falls inside the collected
+        period, so there is nothing to compare — which is not the same as opened zero and
+        closed zero.
+      </p>
+
+      <%!-- Barras lado a lado por período, e o eixo é o MAIOR dos dois valores da janela.
+            Dois eixos separados deixariam duas barras de altura igual significando números
+            diferentes. --%>
+      <div :if={@barras != []} class="mt-3 flex items-end gap-2 overflow-x-auto pb-1">
+        <div :for={b <- @barras} class="flex min-w-12 flex-col items-center gap-1">
+          <div class="flex h-28 items-end gap-0.5">
+            <div
+              class="w-3 rounded-t bg-primary"
+              style={"height: #{b.altura_criadas}%"}
+              title={"opened: #{b.criadas}"}
+            >
+            </div>
+            <div
+              class="w-3 rounded-t bg-warning"
+              style={"height: #{b.altura_fechadas}%"}
+              title={"closed: #{b.fechadas}"}
+            >
+            </div>
+          </div>
+          <span class="font-mono text-[10px] opacity-60">{b.curto}</span>
+        </div>
+      </div>
+
+      <div :if={@barras != []} class="mt-2 flex flex-wrap gap-4 text-xs">
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-3 w-3 rounded-sm bg-primary"></span> promised — opened
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-3 w-3 rounded-sm bg-warning"></span> delivered — closed
+        </span>
+      </div>
+
+      <details :if={@barras != []} class="mt-2">
+        <summary class="cursor-pointer text-xs opacity-70">see as a table</summary>
+        <table class="table table-xs mt-2">
+          <thead>
+            <tr>
+              <th>{unidade_da_granulacao(@janela.granulacao)}</th>
+              <th class="text-right">promised</th>
+              <th class="text-right">delivered</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={b <- @barras}>
+              <td class="font-mono text-xs">{b.periodo}</td>
+              <td class="text-right font-mono tabular-nums">{b.criadas}</td>
+              <td class="text-right font-mono tabular-nums">{b.fechadas}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <%!-- O total da JANELA, e é ele que a FR-061 obriga a ser igual nas três
+                    granulações: reagrupar não muda o que se mediu. --%>
+              <th>window</th>
+              <th class="text-right font-mono tabular-nums">
+                {Enum.sum(Enum.map(@barras, & &1.criadas))}
+              </th>
+              <th class="text-right font-mono tabular-nums">
+                {Enum.sum(Enum.map(@barras, & &1.fechadas))}
+              </th>
+            </tr>
+          </tfoot>
+        </table>
+      </details>
+    </section>
+    """
+  end
+
+  # As barras, com a altura em percentual do maior valor da janela.
+  #
+  # `[]` também quando a janela inteira é ZERO, e não só quando não há série. A série nunca
+  # vem vazia de facto: `periodos_ate/3` gera um período para cada semana, mês ou ano da
+  # janela, com zero onde não houve nada. Desenhar isso daria nove barras rasas dizendo
+  # "abriu zero, fechou zero" — e o que aconteceu foi que **não houve o que observar**.
+  #
+  # É a mesma regra da tabela da equipe composta: ausência é nomeada, nunca zero. As duas
+  # levam a decisões diferentes — zero convida a perguntar por que a equipe parou; ausência
+  # convida a perguntar se a coleta chegou.
+  defp barras_do_prometido([]), do: []
+
+  defp barras_do_prometido(serie) do
+    teto = Enum.max(Enum.flat_map(serie, &[&1.criadas, &1.fechadas]))
+
+    if teto == 0, do: [], else: barras_com_teto(serie, teto)
+  end
+
+  defp barras_com_teto(serie, teto) do
+    Enum.map(serie, fn p ->
+      %{
+        periodo: p.periodo,
+        curto: periodo_curto(p.periodo),
+        criadas: p.criadas,
+        fechadas: p.fechadas,
+        altura_criadas: altura(p.criadas, teto),
+        altura_fechadas: altura(p.fechadas, teto)
+      }
+    end)
+  end
+
+  # Zero desenha uma lasca de 2%, e não nada. Barra ausente e barra de zero se pareceriam, e
+  # são coisas diferentes: nesta janela o período existe e o número é zero. (Janela INTEIRA
+  # em zero não chega aqui — `barras_do_prometido/1` a trata como ausência.)
+  defp altura(0, _teto), do: 2
+  defp altura(valor, teto), do: max(round(valor / teto * 100), 2)
+
+  # `2026-W36` → `W36`; `2026-09` → `09`; `2026` fica inteiro. O rótulo longo continua na
+  # tabela, e o eixo não pode ficar ilegível de tanto texto.
+  defp periodo_curto(rotulo) do
+    case String.split(rotulo, "-") do
+      [_ano, resto] -> resto
+      _ -> rotulo
+    end
   end
 
   # A PREVISÃO — feature 057, US6. Faixa com sua confiança, nunca data.
@@ -838,20 +1264,24 @@ defmodule TheBandWeb.TeamsLive.Show do
   # A geometria do burn, calculada aqui e não no template: o template desenha o
   # que recebe, e uma expressão aritmética dentro do HEEx é onde erro de eixo se
   # esconde.
-  defp pontos_do_burn([]), do: nil
+  defp pontos_do_burn([], _granulacao), do: nil
 
-  defp pontos_do_burn(burn) do
-    largura = 560
+  defp pontos_do_burn(burn, granulacao) do
+    # A largura útil encurtou de 560 para 496: os 64 px da direita são a margem em que os
+    # rótulos de valor do último ponto caibam. Sem ela o número sai do `viewBox` e o
+    # navegador o corta sem avisar — o rótulo mais importante, o do fim da série.
+    largura = 496
     altura = 150
     limite = max(Enum.max(Enum.map(burn, & &1.escopo)), 1) * 1.12
     passo = if length(burn) > 1, do: largura / (length(burn) - 1), else: 0
 
+    y = fn v -> Float.round(altura - v / limite * altura, 1) end
+    x = fn i -> Float.round(i * passo, 1) end
+
     coord = fn valores ->
       valores
       |> Enum.with_index()
-      |> Enum.map_join(" ", fn {v, i} ->
-        "#{Float.round(i * passo, 1)},#{Float.round(altura - v / limite * altura, 1)}"
-      end)
+      |> Enum.map_join(" ", fn {v, i} -> "#{x.(i)},#{y.(v)}" end)
     end
 
     escopo = coord.(Enum.map(burn, & &1.escopo))
@@ -861,9 +1291,108 @@ defmodule TheBandWeb.TeamsLive.Show do
       escopo: escopo,
       feito: feito,
       faixa: escopo <> " " <> (feito |> String.split(" ") |> Enum.reverse() |> Enum.join(" ")),
-      aberto_final: List.last(burn).aberto
+      aberto_final: List.last(burn).aberto,
+      # O TETO DO EIXO, escrito. Um gráfico sem escala é uma forma bonita: a mesma inclinação
+      # serve a 4 itens e a 400, e quem lê decide com base na inclinação.
+      teto: ceil(limite),
+      rotulos: rotulos_do_burn(burn, x, y),
+      eixo: eixo_do_tempo(burn, granulacao, x)
     }
   end
+
+  # O EIXO X COMO LINHA DO TEMPO, com datas — pedido da pessoa mantenedora em 2026-09-08.
+  #
+  # `2026-W36` é o rótulo interno da série, e não uma data que alguém leia. Quem olha o
+  # gráfico precisa saber **quando** foi cada ponto, e ISO week number não responde isso sem
+  # uma consulta a um calendário.
+  #
+  # A densidade é escolhida, não sorteada: acima de 8 períodos só um a cada dois recebe data,
+  # e o último sempre recebe. Sem isso as datas se sobrepõem e o eixo fica ilegível — e um
+  # eixo ilegível é pior que um eixo sem rótulo, porque parece informação.
+  defp eixo_do_tempo(burn, granulacao, x) do
+    total = length(burn)
+    passo = if total > 8, do: 2, else: 1
+
+    burn
+    |> Enum.with_index()
+    |> Enum.filter(fn {_b, i} -> rem(i, passo) == 0 or i == total - 1 end)
+    |> Enum.map(fn {b, i} ->
+      %{x: x.(i), rotulo: data_do_periodo(b.periodo, granulacao)}
+    end)
+  end
+
+  # `2026-W36` → `31 Aug`; `2026-09` → `Sep 2026`; `2026` → `2026`.
+  #
+  # A data da semana é a da SEGUNDA-FEIRA, e não um dia qualquer dela: a semana ISO começa na
+  # segunda, e um ponto rotulado com a quarta faria dois gráficos da mesma série discordarem
+  # em dois dias. Janeiro 4 está sempre na semana 1 — é daí que a conta parte.
+  #
+  # Conferida contra `:calendar.iso_week_number/1` em 2026-09-08, ida e volta: 2026-W1
+  # (29 Dez 2025), 2026-W36, 2026-W52, 2025-W1 e 2027-W1 voltam idênticas. A única divergência
+  # é `2024-W53`, e é de entrada impossível — 2024 tem 52 semanas ISO, e o rótulo nasce de
+  # `iso_week_number/1`, que nunca o produziria. Degrada para 2025-W1 em vez de levantar.
+  defp data_do_periodo(rotulo, :semana) do
+    case String.split(rotulo, "-W") do
+      [ano, semana] ->
+        with {ano, ""} <- Integer.parse(ano),
+             {semana, ""} <- Integer.parse(semana),
+             {:ok, quatro_de_janeiro} <- Date.new(ano, 1, 4) do
+          quatro_de_janeiro
+          |> Date.add(-(Date.day_of_week(quatro_de_janeiro) - 1))
+          |> Date.add(7 * (semana - 1))
+          |> Calendar.strftime("%d %b")
+        else
+          _ -> rotulo
+        end
+
+      _ ->
+        rotulo
+    end
+  end
+
+  defp data_do_periodo(rotulo, :mes) do
+    case String.split(rotulo, "-") do
+      [ano, mes] ->
+        with {ano, ""} <- Integer.parse(ano),
+             {mes, ""} <- Integer.parse(mes),
+             {:ok, data} <- Date.new(ano, mes, 1) do
+          Calendar.strftime(data, "%b %Y")
+        else
+          _ -> rotulo
+        end
+
+      _ ->
+        rotulo
+    end
+  end
+
+  defp data_do_periodo(rotulo, :ano), do: rotulo
+
+  # Um rótulo por ponto, e não só no fim — foi o pedido da pessoa mantenedora em 2026-09-08.
+  #
+  # Acima de 14 períodos os números se sobrepõem e passam a esconder a curva que deviam
+  # explicar; aí só o primeiro, o do meio e o último recebem rótulo, e a tabela em "see as a
+  # table" continua com todos. Cortar é decisão, e a tela não finge que os desenhou.
+  defp rotulos_do_burn(burn, x, y) do
+    total = length(burn)
+    quais = se_couber(total)
+
+    burn
+    |> Enum.with_index()
+    |> Enum.filter(fn {_b, i} -> i in quais end)
+    |> Enum.map(fn {b, i} ->
+      %{
+        x: x.(i),
+        y_escopo: y.(b.escopo) - 5,
+        y_feito: y.(b.feito) + 11,
+        escopo: b.escopo,
+        feito: b.feito
+      }
+    end)
+  end
+
+  defp se_couber(total) when total <= 14, do: 0..(total - 1) |> Enum.to_list()
+  defp se_couber(total), do: Enum.uniq([0, div(total - 1, 2), total - 1])
 
   # Traço, e não um número grande: nulo diz desconhecido.
   defp semana_ou_traco(nil), do: "—"
@@ -1289,7 +1818,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         <.link
           patch={~p"/teams/#{@team.id}"}
           role="tab"
-          aria-selected={@aba == :dashboard}
+          aria-selected={if @aba == :dashboard, do: "true", else: "false"}
           class={["tab", @aba == :dashboard && "tab-active"]}
         >
           Dashboard
@@ -1297,7 +1826,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         <.link
           patch={~p"/teams/#{@team.id}?tab=structure"}
           role="tab"
-          aria-selected={@aba == :structure}
+          aria-selected={if @aba == :structure, do: "true", else: "false"}
           class={["tab", @aba == :structure && "tab-active"]}
         >
           Structure
@@ -1382,7 +1911,34 @@ defmodule TheBandWeb.TeamsLive.Show do
             duas telas da spec, numa rota só, porque a pergunta é a mesma — como
             está esta equipe. --%>
         <div :if={@detalhe} class="space-y-4">
-          <.burn_da_equipe detalhe={@detalhe} />
+          <%!-- O SELETOR DE GRANULAÇÃO — FR-061.
+
+                `patch`, e a escolha vai ao endereço: quem manda o link do mês não manda o da
+                semana. E cada granulação traz a SUA janela padrão (FR-078), porque não é a
+                mesma janela reagrupada — doze semanas em anos dariam um ponto só. --%>
+          <div class="flex flex-wrap items-baseline gap-2">
+            <span class="text-xs opacity-70">Group flow by</span>
+            <div role="group" aria-label="Flow granularity" class="join">
+              <.link
+                :for={{valor, rotulo} <- [{"semana", "week"}, {"mes", "month"}, {"ano", "year"}]}
+                patch={~p"/teams/#{@team.id}?granulacao=#{valor}"}
+                aria-current={if to_string(@granulacao) == valor, do: "true"}
+                class={[
+                  "btn btn-xs join-item",
+                  to_string(@granulacao) == valor && "btn-active"
+                ]}
+              >
+                {rotulo}
+              </.link>
+            </div>
+            <span class="text-xs opacity-60">
+              Changing this regroups the same items over that granularity's own default
+              window — it does not change what is measured.
+            </span>
+          </div>
+
+          <.burn_da_equipe detalhe={@detalhe} janela={@janela} />
+          <.prometido_e_entregue detalhe={@detalhe} janela={@janela} />
           <.previsao_da_equipe detalhe={@detalhe} />
           <.pessoas_da_equipe
             detalhe={@detalhe}
