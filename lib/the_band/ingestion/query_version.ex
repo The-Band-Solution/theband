@@ -76,7 +76,20 @@ defmodule TheBand.Ingestion.QueryVersion do
     # consulta pedia só `title`. Sem reabrir o corte, as 5.216 issues já coletadas ficariam
     # com `milestone_due_on` nulo para sempre, e o corte de `issues` é o mais silencioso
     # dos três: repositório sem push novo é pulado por inteiro.
-    "issues" => 2
+    #
+    # 3: `issues(last: 1, orderBy: UPDATED_AT)` entrou em `repositories.graphql` em
+    # 2026-09-09 — o **sinal do corte** desta fase deixou de ser `pushedAt`.
+    #
+    # **Incrementar aqui é o que torna o conserto retroativo.** O corte comparava com o
+    # último push de código, e atividade de issue não é push: repositórios de quadro eram
+    # pulados para sempre. Medido contra a API — `plataformas-project` tinha push de 21/jul
+    # e issue fechada no dia da medição, com **712** issues congeladas.
+    #
+    # Sem o incremento, esses repositórios continuariam pulados: o sinal novo só é lido
+    # **depois** de o corte deixar passar, e o corte antigo não deixava. Com ele,
+    # `corte_vale?/2` devolve `false` uma vez por repositório, todos são percorridos, e o
+    # estado congelado é relido.
+    "issues" => 3
   }
 
   # A impressão digital de cada arquivo de consulta. Muda o arquivo, muda o número, e o
@@ -94,7 +107,7 @@ defmodule TheBand.Ingestion.QueryVersion do
     "project_items_full" => "168c0be8d7de2d50",
     "project_iterations" => "19612bdade1b3f3f",
     "pull_request_commits" => "756c217c2cbf8896",
-    "repositories" => "89fa9050f685d6cb",
+    "repositories" => "455cabbf23755dcf",
     "team_members" => "7cc577f6ea2453eb",
     "teams" => "8d90c8866fa4fae6"
   }
