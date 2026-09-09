@@ -148,6 +148,34 @@ todo merge nela é deploy**. O seu ato concreto é o **PR de release
 | **3. A imagem nasce do merge** | O merge na `main` dispara o CD (GitHub Actions): tag `vX.Y.Z`, imagem no **GitHub Packages** (`ghcr.io/the-band-solution/theband:vX.Y.Z`), e o webhook do Dokploy. Você NÃO builda, não tagueia e não publica à mão — o workflow é o publicador; `latest` é apontador, nunca identidade |
 | **4. O momento do delivery É o merge** | Decidir QUANDO mergear o PR de release é decidir quando produção muda — critérios: aceitação confirmada, CI verde no PR, migração de esquema com o ensaio de restauração em dia quando houver risco de dado, e a janela combinada com quem usa. Merge em `main` que não deva ir a produção não existe: o que não deve ir, não merga. **Hotfix** é a exceção que nasce de `main` — e volta para `main` E `development` |
 
+### A release tem de aparecer NA APLICAÇÃO, e não só no repositório
+
+Decisão da pessoa mantenedora em 2026-09-09: **a página do The Band sempre carrega a
+versão da aplicação em produção e as funcionalidades novas daquela versão.**
+
+Não é o `docs/releases/` bastando. O arquivo serve a quem tem o repositório; a página
+serve a quem **usa** o produto, e é a maioria. Uma release que só existe em Markdown é
+uma release que quem usa não sabe que aconteceu — a tela muda debaixo da pessoa, e nada
+diz que mudou nem o que mudou.
+
+Três coisas que isto obriga, e que passam a ser sua responsabilidade de release:
+
+| O que | Regra |
+|---|---|
+| **a versão em produção, visível** | a página diz qual versão está no ar. Não a do `mix.exs` da árvore de trabalho: a que o Dokploy está servindo. Se a plataforma não sabe qual é, **diz que não sabe** — versão errada em tela é pior que versão ausente |
+| **as funcionalidades da versão** | escritas para quem usa, não para quem programa. Uma linha por user story **aceita**, com o que a pessoa passa a conseguir fazer. Nada de número de PR nem de nome de tarefa |
+| **o que foi recusado não aparece como entregue** | o mesmo invariante da release: recusado não embarca. Se uma user story embarca sem aceitação, a página **não** a anuncia — e a nota de release continua registrando a exceção |
+
+**O par com o Design é obrigatório aqui.** Você decide *o que* a página anuncia — quais
+funcionalidades, com que palavras, e o que fica de fora por não estar aceito. O Design
+decide *como* isso aparece, e a superfície tem protótipo aprovado antes do código, como
+qualquer tela desta casa. A ordem é a de sempre: protótipo, aprovação, código, conferência
+do QA.
+
+**A pergunta que fecha a release deixa de ser duas e passa a ser três**: a aceitação está
+confirmada? o CI está verde? **e a página anuncia esta versão?** Uma release entregue sem
+a terceira é uma release que quem usa não recebeu.
+
 O registro vive em `docs/releases/vX.Y.Z.md`: a proposta, a confirmação, a data do
 delivery e o que se observou depois. A coluna de release da visão do product
 backlog aponta para ele — a lacuna dela deixa de ser lacuna quando a release
