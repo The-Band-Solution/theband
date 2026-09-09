@@ -2529,9 +2529,17 @@ defmodule TheBandWeb.TeamsLive.Show do
           Summing these lines would overcount the team, and the team's own numbers are measured
           separately rather than derived from them.
         </p>
+        <%!-- O LIMIAR VEM DA BASE, também na prosa — FR-069.
+              Estava escrito à mão aqui, "90 days" e "three months", enquanto a marca duas
+              caixas acima já lia `Material.stale_days()`. Muda-se o YAML e esta frase passa a
+              mentir — e "three months" mentiria duas vezes, porque é o mesmo número dito em
+              outra unidade. Achado ao escrever a página do site, em 2026-09-09.
+              A segunda cláusula perdeu a duração de propósito: repetir o número em meses
+              seria reintroduzir a derivação que o primeiro erro criou. --%>
         <p class="mt-2 opacity-80">
-          <em>Stale</em> past 90 days is an invitation to ask, not a verdict: it says the board
-          has not been told anything about that item in three months.
+          <em>Stale</em> past {Material.stale_days()} days is an invitation to ask, not a
+          verdict: it says the board has not been told anything about that item in all that
+          time.
         </p>
         <p class="mt-2 opacity-80">
           The skills are <strong>derived</strong> from completed work — hatched because they are a
