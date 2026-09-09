@@ -4,9 +4,9 @@
 **Herança**: retrabalho das US [#573](https://github.com/The-Band-Solution/theband/issues/573)
 e [#598](https://github.com/The-Band-Solution/theband/issues/598)
 (aceitação do [sprint 025](../025-contas-e-o-elo-do-github/aceitacao.md))
-**Feature**: [050-em-producao](../../specs/050-em-producao/spec.md) ·
-[plan](../../specs/050-em-producao/plan.md) ·
-[contrato do pipeline](../../specs/050-em-producao/contracts/pipeline-de-release.md)
+**Feature**: [050-em-producao](../../../specs/050-em-producao/spec.md) ·
+[plan](../../../specs/050-em-producao/plan.md) ·
+[contrato do pipeline](../../../specs/050-em-producao/contracts/pipeline-de-release.md)
 
 ## Objetivo do sprint
 

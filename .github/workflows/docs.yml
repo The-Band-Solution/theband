@@ -1,0 +1,94 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Publica o site da documentação em https://theband.dev/docs/
+#
+# ⚠️ A `gh-pages` NÃO é deste site sozinha. Ela serve a landing page em
+# `index.html` (53 KB) e carrega o `CNAME` do domínio. Por isso:
+#
+#   • `mkdocs gh-deploy` NUNCA é usado — ele APAGA a branch inteira;
+#   • a publicação escreve APENAS em `docs/`, e o passo de guarda aborta se o
+#     `CNAME` ou o `index.html` da raiz sumirem.
+#
+# O guarda existe porque um deploy que destrói o domínio não dá erro: ele
+# publica com sucesso um site sem CNAME, e o domínio cai em silêncio. É a
+# família do sucesso silencioso, e aqui ela custaria o endereço do produto.
+# ═══════════════════════════════════════════════════════════════════════════════
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - 'scripts/mkdocs_hooks.py'
+      - 'requirements-docs.txt'
+      - '.github/workflows/docs.yml'
+  # Permite publicar sem esperar um push — útil depois de mexer na gh-pages à mão.
+  workflow_dispatch:
+
+permissions:
+  contents: write # o push na gh-pages
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: false # publicação não se cancela no meio
+
+jobs:
+  publicar:
+    name: construir e publicar em /docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: dependências fixadas
+        run: pip install -r requirements-docs.txt
+
+      - name: construir — MODO ESTRITO
+        # `--strict` transforma link quebrado em falha de build. Não é rigor
+        # decorativo: foi ele que encontrou 118 links quebrados que ninguém via,
+        # inclusive no GitHub. Sem ele o site publica os 404 em silêncio.
+        run: mkdocs build --strict
+
+      - name: publicar em gh-pages/docs, preservando a raiz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          git clone --depth 1 --branch gh-pages \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" publicacao
+
+          # Só a subpasta é substituída. A raiz não é tocada por comando nenhum.
+          rm -rf publicacao/docs
+          cp -r site publicacao/docs
+
+          # ── O GUARDA ──
+          # Um deploy que perdeu o CNAME publica com sucesso e derruba o domínio
+          # sem erro nenhum. Conferir é mais barato que descobrir.
+          test -f publicacao/CNAME || { echo "::error::CNAME sumiu da gh-pages — abortando"; exit 1; }
+          test -f publicacao/index.html || { echo "::error::index.html da raiz sumiu — abortando"; exit 1; }
+          test -f publicacao/docs/index.html || { echo "::error::o site não gerou docs/index.html"; exit 1; }
+
+          echo "CNAME preservado: $(cat publicacao/CNAME)"
+
+          cd publicacao
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "nada mudou no site — nada a publicar"
+            exit 0
+          fi
+
+          git commit -m "docs: site atualizado a partir de ${GITHUB_SHA}"
+          git push
+
+      - name: onde ficou
+        run: echo "### Site publicado em https://theband.dev/docs/" >> "$GITHUB_STEP_SUMMARY"

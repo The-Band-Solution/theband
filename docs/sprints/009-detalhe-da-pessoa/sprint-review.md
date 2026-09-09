@@ -1,7 +1,7 @@
 # Sprint 009 — Review
 
-**Período**: 2026-08-12 · **Feature**: [010 — detalhe da pessoa](../../specs/010-detalhe-da-pessoa/spec.md)
-**Aceitação**: [aceitacao.md](../../specs/010-detalhe-da-pessoa/aceitacao.md) — **12 de 13** critérios
+**Período**: 2026-08-12 · **Feature**: [010 — detalhe da pessoa](../../../specs/010-detalhe-da-pessoa/spec.md)
+**Aceitação**: [aceitacao.md](../../../specs/010-detalhe-da-pessoa/aceitacao.md) — **12 de 13** critérios
 **Escrita em**: 2026-08-12, **depois** de o sprint 010 abrir — e isso é o primeiro achado desta review
 
 ## Por que esta review chegou atrasada

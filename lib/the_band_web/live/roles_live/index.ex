@@ -172,6 +172,64 @@ defmodule TheBandWeb.RolesLive.Index do
     end
   end
 
+  # O QUE ESTE PAPEL PERMITE GERIR — feature 060, FR-081.
+  #
+  # Espelha os dois eventos acima, com o verbo trocado: aqueles concedem VER o painel de
+  # trabalho; estes concedem DECLARAR a estrutura da equipe. A spec 045 (FR-022) separa as
+  # duas de propósito, e por isso são dois pares de eventos e não um com bandeira.
+  def handle_event("conceder_gestao", %{"role_id" => id, "scope" => escopo}, socket) do
+    com_admin(
+      socket,
+      dgettext("errors", "Only an administrator can grant structure management."),
+      fn ->
+        case EO.declare_structure_grant(
+               socket.assigns.current_tenant,
+               id,
+               escopo,
+               socket.assigns.current_user.id
+             ) do
+          {:ok, _} ->
+            socket
+            |> put_flash(
+              :info,
+              dgettext("sistema", "Granted: %{rotulo}.", rotulo: rotulo_de_gestao(escopo))
+            )
+            |> load()
+
+          {:error, :already_granted} ->
+            put_flash(socket, :error, dgettext("errors", "That grant is already declared."))
+
+          {:error, :invalid_scope} ->
+            put_flash(socket, :error, dgettext("errors", "Choose a scope for the grant."))
+
+          {:error, _} ->
+            put_flash(socket, :error, dgettext("errors", "That grant is already declared."))
+        end
+      end
+    )
+  end
+
+  def handle_event("revogar_gestao", %{"role_id" => id, "scope" => escopo}, socket) do
+    com_admin(
+      socket,
+      dgettext("errors", "Only an administrator can revoke structure management."),
+      fn ->
+        case EO.revoke_structure_grant(
+               socket.assigns.current_tenant,
+               id,
+               escopo,
+               socket.assigns.current_user.id
+             ) do
+          {:ok, _} ->
+            socket |> put_flash(:info, dgettext("sistema", "Grant revoked.")) |> load()
+
+          {:error, :not_declared} ->
+            put_flash(socket, :error, dgettext("errors", "Nothing to revoke."))
+        end
+      end
+    )
+  end
+
   def handle_event("ask_rename", %{"id" => id}, socket),
     do: {:noreply, assign(socket, renaming: id)}
 
@@ -265,6 +323,13 @@ defmodule TheBandWeb.RolesLive.Index do
     end
   end
 
+  # Só quem administra concede — e a recusa é dita, nunca um botão que some sem explicação.
+  defp com_admin(socket, recusa, fun) do
+    if User.admin?(socket.assigns.current_user),
+      do: {:noreply, fun.()},
+      else: {:noreply, put_flash(socket, :error, recusa)}
+  end
+
   defp caminho(socket, id, mudancas), do: ~p"/roles?#{Tabela.query(socket, id, mudancas)}"
 
   # Mesma forma que `SourceLive.Index` usa: a mensagem do changeset chega à tela nomeando o
@@ -274,6 +339,10 @@ defmodule TheBandWeb.RolesLive.Index do
     |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
     |> Enum.map_join("; ", fn {field, msgs} -> "#{field} #{Enum.join(msgs, ", ")}" end)
   end
+
+  defp rotulo_de_gestao("team"), do: "manages their team's structure"
+  defp rotulo_de_gestao("organization"), do: "manages the organisation's teams"
+  defp rotulo_de_gestao(outro), do: outro
 
   defp rotulo("team"), do: "sees their team's work panels"
   defp rotulo("organization"), do: "sees the organisation's work panels"
@@ -300,10 +369,12 @@ defmodule TheBandWeb.RolesLive.Index do
     |> assign(encontrados: length(filtrados))
     # Quantas evidências esperam por um papel — é o que transforma "lista vazia" em
     # "bloqueio", e sem ele ninguém sabe que a ausência tem custo.
-    |> assign(evidencias_pendentes: EO.count_evidence_pending_role(tenant))
+    |> assign(evidencias_pendentes: EO.count_memberships_pending_role(tenant))
     # Issue #369: o que cada papel PERMITE VER. Duas consultas em memória a partir de uma,
     # e nenhuma delas por linha da tabela.
     |> assign(concessoes: EO.grants_by_role(tenant))
+    # Uma consulta para a coluna inteira, nunca uma por linha.
+    |> assign(concessoes_de_gestao: EO.structure_grants_by_role(tenant))
     |> assign(cobertura_de_alcance: EO.grant_coverage(tenant))
 
     # `sugestoes` deixou de existir: os quatro do Scrum agora vêm **na lista**, compostos, e
@@ -369,7 +440,7 @@ defmodule TheBandWeb.RolesLive.Index do
 
       <div :if={@evidencias_pendentes > 0} class="alert block">
         <p class="font-semibold">
-          {@evidencias_pendentes} observed participations are waiting for confirmation.
+          {@evidencias_pendentes} observed memberships are without a declared role.
         </p>
         <p class="text-sm">
           The roles below are available — the four from the ontology need no registration. Each
@@ -470,6 +541,54 @@ defmodule TheBandWeb.RolesLive.Index do
             :if={@current_user.role == "admin" and not is_nil(papel.id)}
             id={"conceder-#{papel.id}"}
             phx-submit="conceder"
+            class="mt-1 flex items-center gap-1"
+          >
+            <input type="hidden" name="role_id" value={papel.id} />
+            <select name="scope" class="select select-xs select-bordered">
+              <option value="">grant…</option>
+              <option value="team">their team</option>
+              <option value="organization">their organisation</option>
+            </select>
+            <button type="submit" class="btn btn-xs">save</button>
+          </form>
+        </:col>
+        <%!-- ═══ O QUE ESTE PAPEL PERMITE GERIR — feature 060, FR-081 ═══
+              Irmã da coluna acima, com o verbo trocado. Ver e mexer são decisões separadas
+              (045, FR-022): conceder uma não concede a outra, e o registro diz qual é qual.
+              Aqui o erro por padrão de nome é mais caro — excesso de visibilidade concedido
+              ninguém reclama; excesso de gestão reescreve a estrutura de quem não deveria. --%>
+        <:col :let={papel} label="manages">
+          <span
+            :for={escopo <- Map.get(@concessoes_de_gestao, papel.id, [])}
+            class="badge badge-outline badge-sm mr-1 gap-1"
+          >
+            {rotulo_de_gestao(escopo)}
+            <button
+              :if={@current_user.role == "admin"}
+              type="button"
+              class="cursor-pointer"
+              phx-click="revogar_gestao"
+              phx-value-role_id={papel.id}
+              phx-value-scope={escopo}
+            >
+              ×
+            </button>
+          </span>
+
+          <%!-- Ausência nomeada: quem tem este papel não declara estrutura nenhuma, e "—"
+                faria parecer que a coluna não se aplica. --%>
+          <em :if={Map.get(@concessoes_de_gestao, papel.id, []) == []} class="text-xs opacity-60">
+            manages nothing
+          </em>
+
+          <span :if={is_nil(papel.id)} class="block text-xs italic opacity-50">
+            allocate someone to this role first
+          </span>
+
+          <form
+            :if={@current_user.role == "admin" and not is_nil(papel.id)}
+            id={"conceder-gestao-#{papel.id}"}
+            phx-submit="conceder_gestao"
             class="mt-1 flex items-center gap-1"
           >
             <input type="hidden" name="role_id" value={papel.id} />

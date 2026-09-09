@@ -1,8 +1,8 @@
 # Sprint 020 — A coleta das mudanças e o rastreio
 
 **Período**: 2026-08-18 a 2026-09-01
-**Feature**: [032](../../specs/032-coleta-de-mudancas/spec.md)
-**Plano**: [plan.md](../../specs/032-coleta-de-mudancas/plan.md)
+**Feature**: [032](../../../specs/032-coleta-de-mudancas/spec.md)
+**Plano**: [plan.md](../../../specs/032-coleta-de-mudancas/plan.md)
 
 ## Objetivo do sprint
 
@@ -29,7 +29,7 @@ de qualquer linha de coleta.
 
 ## Tarefas
 
-Ver [tasks.md](../../specs/032-coleta-de-mudancas/tasks.md). Phases 1 a 3 feitas; Phase 4
+Ver [tasks.md](../../../specs/032-coleta-de-mudancas/tasks.md). Phases 1 a 3 feitas; Phase 4
 (lista, busca e linha do tempo) aprovada em proposta e pendente.
 
 ## Os critérios, com a evidência

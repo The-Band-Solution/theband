@@ -1,6 +1,6 @@
 # Aceitação — Feature 006: detalhe da issue e decomposição navegável
 
-Avaliação de cada critério de sucesso da [spec](../../specs/006-detalhe-da-issue/spec.md),
+Avaliação de cada critério de sucesso da [spec](../../../specs/006-detalhe-da-issue/spec.md),
 **um a um, com evidência**. É a L18 aplicada: critério atendido não é critério suficiente, e
 suíte verde não é evidência de que *este* critério passou.
 

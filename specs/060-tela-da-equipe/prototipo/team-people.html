@@ -1,0 +1,950 @@
+<title>Flow per person</title>
+<style>
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--s1:#00897a;--s2:#a35c00;--s3:#4a5bbf;--grade:#e3e7e4;--eixo:#c9d0cb;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}
+*{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
+::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.85rem}h2{font-size:1.1rem}h3{font-size:.92rem}h4{font-size:.85rem}
+.faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+.mig{font-family:var(--grot);font-size:.8rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:.95rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
+.ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
+.marca{font-family:var(--grot);font-size:.7rem;padding:.05rem .45rem;border-radius:.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.marca .am{width:.6rem;height:.6rem;border-radius:2px;border:1px solid currentColor}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.saiu{color:var(--tinta-2)}.saiu .am{background:var(--linha)}
+.eqv{color:var(--clay)}.eqv .am{background-image:var(--hatch)}
+.sec{margin-top:2.5rem}
+.sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
+.sec-cab h2{flex:1 1 auto}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+th:first-child,th.esq{text-align:left}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:.93rem}
+td:first-child,td.esq{text-align:left} tbody tr:hover{background:var(--verdete-soft)}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:.88rem}
+.login{font-family:var(--mono);font-size:.72rem;color:var(--tinta-2);display:block}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:1.15rem;margin-top:1rem}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:.89rem;margin:0}
+.vazio{border:1.5px dashed var(--linha);border-radius:.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:.25rem;width:max-content}
+.abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);margin-top:1.2rem}
+.aba{font-family:var(--grot);font-size:.85rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
+.aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
+.btn{font-family:var(--grot);font-size:.74rem;font-weight:650;padding:.25rem .6rem;border-radius:.3rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn.q{color:var(--tinta-2)}
+.chip{font-family:var(--grot);font-size:.7rem;padding:.02rem .45rem;border-radius:.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
+.chip.s3{border-color:var(--s3);color:var(--s3)}
+.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:.78rem;flex-wrap:wrap}
+.ex-mark{font-family:var(--mono);font-size:.62rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
+.re-mark{font-family:var(--mono);font-size:.62rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
+.scroll{overflow-x:auto}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:.5rem;background:var(--verdete-soft);font-size:.86rem}
+.nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
+kbd{font-family:var(--mono);font-size:.72rem;border:1px solid var(--linha);border-radius:.2rem;padding:0 .3rem;background:var(--papel-2)}
+.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:.35rem;overflow:hidden;font-family:var(--grot);font-size:.76rem}
+.seg span{padding:.2rem .7rem;color:var(--tinta-2);border-right:1.5px solid var(--linha)}.seg span:last-child{border-right:0}
+.seg span.on{background:var(--verdete);color:var(--papel);font-weight:650}
+svg.g{width:100%;height:auto;display:block;overflow:visible}
+.ex{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:middle}
+.ey{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:end}
+.rd{font-family:var(--mono);font-size:9px;text-anchor:middle;font-variant-numeric:tabular-nums;fill:var(--tinta)}
+.leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
+.leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
+.leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
+.cab-g{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.cc{font-family:var(--mono);font-size:.65rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
+.cc-epic{background:var(--tinta);color:var(--papel);font-weight:700}
+.cc-us{background:var(--tinta-soft);color:var(--tinta);font-weight:700}
+.cc-task{background:var(--tinta-soft);color:var(--tinta)}
+.cc-bug{background:var(--clay-soft);color:var(--clay);font-weight:700}
+.cc-nil{border-color:var(--linha);border-style:dashed;color:var(--tinta-2)}
+.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
+.mix b{font-weight:400;margin-left:-.28rem}.mix .tot{color:var(--tinta-2);margin-right:.2rem}
+
+/* ── new for this screen ───────────────────────────────────────── */
+.antes{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(23rem,1fr));margin-top:1.1rem}
+.antes .bl{border:1.5px solid var(--linha);border-left-width:4px;border-radius:.4rem;padding:.85rem 1rem}
+.antes .bl.grave{border-left-color:var(--clay);background:var(--clay-soft)}
+.antes .bl.lim{border-left-color:var(--amber);background:var(--amber-soft)}
+.antes h3{margin-bottom:.25rem}.antes p{font-size:.85rem;max-width:none}
+.conta{margin-top:1.1rem;font-family:var(--grot);font-size:.9rem;border-left:3px solid var(--amber);padding:.35rem .8rem}
+.conta b{font-weight:650}.conta span{color:var(--tinta-2);font-size:.84rem;display:block}
+.ordem{font-family:var(--grot);font-size:.74rem;color:var(--tinta-2);margin-top:.35rem}
+.tp{table-layout:auto}
+.tp td{padding:.6rem .5rem}
+.tp th:first-child,.tp td:first-child{min-width:15rem}
+.tp th:nth-child(2),.tp td:nth-child(2){min-width:9rem}
+.tp th:nth-child(3),.tp td:nth-child(3),.tp th:nth-child(4),.tp td:nth-child(4){min-width:6rem}
+.tp th:nth-child(5),.tp td:nth-child(5){min-width:5.5rem}
+.tp td.agora .n2{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.tp td.agora .dir{display:block;font-family:var(--grot);font-size:.7rem;color:var(--tinta-2);margin-top:.1rem}
+.tp td.agora .nc{display:block;font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);margin-top:.15rem}
+.aus-cel{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);border-bottom:1.5px dashed var(--tinta-2);padding-bottom:.05rem;white-space:nowrap}
+td.prev{background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(--tinta-soft) 6px 7px);min-width:12.5rem}
+.prev-rec{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);display:block}
+.prev-ok{font-family:var(--mono);font-size:.8rem;color:var(--amber);font-variant-numeric:tabular-nums;display:block}
+.piso{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;font-variant-numeric:tabular-nums}
+.piso .curto{color:var(--amber);border-bottom:1.5px dashed var(--amber)}
+.pes-sub{font-family:var(--grot);font-size:.72rem;color:var(--tinta-2);display:block;margin-top:.12rem}
+.cob{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
+tr.aberta>td{background:var(--verdete-soft)}
+tr.aberta>td:first-child{box-shadow:inset 3px 0 0 var(--verdete)}
+tr.saiu-l .pessoa{color:var(--tinta-2)}
+tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
+.bloco{border-left:4px solid var(--verdete);background:var(--papel-2);padding:1rem 1.1rem}
+.bloco-cab{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
+.defs{margin-top:.7rem;display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
+.defs div{font-size:.82rem;border-left:3px solid var(--linha);padding:.1rem .7rem}
+.defs div.lim{border-left-color:var(--amber)}
+.grade-4{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));margin-top:.9rem}
+.g-cart{background:var(--papel);border:1.5px solid var(--linha);border-radius:.45rem;padding:.75rem .85rem}
+.g-cart h4{display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap}
+.g-cart h4 .ord{font-family:var(--mono);font-size:.7rem;color:var(--tinta-2);font-weight:400}
+.g-cart .def{font-size:.78rem;color:var(--tinta-2);margin-top:.15rem}
+.g-cart.der-c{border-color:var(--amber);border-style:dashed}
+.recusa-c{border:1.5px dashed var(--linha);border-radius:.4rem;padding:.7rem .8rem;margin-top:.5rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.recusa-c .t{font-family:var(--grot);font-size:.86rem;font-weight:650;color:var(--tinta-2)}
+.recusa-c p{font-size:.8rem;margin-top:.3rem}
+.par-linha{margin-top:1.1rem}
+.par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.4rem}
+.par-cab{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
+.par-cab .h{font-family:var(--grot);font-weight:650;font-size:.88rem;border-bottom:3px solid var(--verdete);padding-bottom:.25rem}
+.par-cab .h.b{border-bottom-color:var(--s3)}
+.escala{font-family:var(--grot);font-size:.76rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:.3rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
+.tres{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:1rem}
+.tres .a{border:1.5px solid var(--linha);border-top-width:4px;border-radius:.45rem;padding:.8rem .9rem;background:var(--papel-2)}
+.tres .a.a1{border-top-color:var(--tinta-2)}.tres .a.a2{border-top-color:var(--amber)}.tres .a.a3{border-top-style:dashed;border-top-color:var(--linha)}
+.tres .a h4{margin-bottom:.3rem}.tres .a p{font-size:.82rem}
+.tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:.35rem}
+.dens{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);margin-top:.5rem}
+ol.dec-l{margin:0;padding-left:1.2rem;font-size:.92rem}ol.dec-l li{margin-top:.35rem}
+</style>
+<div class="faixa">
+<h1>Flow per person</h1>
+<div class="ident">
+  <span class="marca obs"><span class="am"></span>observed work items</span>
+  <span class="marca der"><span class="am"></span>derived · forecast</span>
+  <span class="marca aus"><span class="am"></span>absence, written</span>
+  <span class="sub">the third tab of <kbd>/teams/:id</kbd> · <kbd>?tab=people</kbd></span>
+</div>
+<p>A third tab, and one question the other two do not answer: <strong>how the work assigned to each person moved across the same window</strong>. Not <em>who needs a look today</em> — <em>Problems now</em>, on the Dashboard, answers that with declared thresholds. Not <em>what one person is like</em> — <kbd>/people/:id</kbd> answers that, in depth, and stays the house of the deep read. This tab exists for the one thing only the team's screen can do: put every member's flow on <strong>one window</strong>, in aligned numbers. The four charts asked for on 8 Sep — working in progress, promised × delivered, throughput and the delivery forecast — open <strong>one person at a time, inside the table</strong>.</p>
+<p class="sub"><span class="re-mark">real</span> marks what was measured on the development base on 8 Sep: the open-item counts, per squad and per person. <span class="ex-mark">example</span> marks everything else — names, logins, roles, and <strong>every opened, closed and forecast figure on this page</strong>. Nothing closed was measured; see the last section for what was not verified.</p>
+
+<!-- ═══════════════════════════════ SCREEN 3 ═══════════════════════════════ -->
+<span class="tela">screen 3 · flow per person · a squad where nothing moved</span>
+<div class="mig"><a href="#">Teams</a> › <a href="#">Conecta Fapes</a> › SQUAD PINK</div>
+<h2 style="font-size:1.5rem">SQUAD PINK</h2>
+<nav class="abas"><a class="aba" href="#" title="the approved prototype of 7 Sep">Dashboard</a><a class="aba" href="#" title="the approved prototype of 7 Sep">Structure</a><a class="aba ativa" href="#">Flow per person</a></nav>
+
+<div class="nota-de-tela"><span class="rot">what this screen is</span>
+One row per member, on the <strong>same window</strong> as the Dashboard's charts, with <strong>no chart in any row</strong>: a table is for comparing, and comparison is made in aligned numbers (057 FR-011, kept by 060 FR-058). The four charts of <em>one</em> person open in place, under the row. The tab never repeats the open-task list — that is <em>What each person is on</em>, on the Dashboard, and it answers a different question: what is in someone's hands <em>now</em>, not how it moved.
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Flow per person</h2><span class="rot">5 members · 14 Jul → 8 Sep · by week</span>
+    <span class="seg" title="One control for the whole tab. It rewrites the address and regroups every row at once."><span class="on">week</span><span>month</span><span>year</span></span></div>
+  <p class="sub"><strong>One grain control for the whole tab</strong>, here in the section header. On the Dashboard the switch sits inside each chart's header (decided 8 Sep); it does not here, because two people's charts must never sit on two different windows (FR-079, FR-104). Each chart still names its window in its own title. Changing the control rewrites the address and regroups every row at once.</p>
+
+  <div class="antes">
+    <div class="bl grave">
+      <h3>A table of work items, not a table of people.</h3>
+      <p>Four measures beside a person's name is the shape of a ranking. <strong>It is not one, and it cannot support one.</strong> An item with two assignees counts once for each, so no column sums to the team's flow — the team's numbers are measured separately, over the distinct set (FR-060), and live on the Dashboard.</p>
+      <p>What was collected differs from row to row, so <strong>two rows do not share a denominator</strong>. And the largest number here, <em>open now</em>, counts work that has <strong>not moved</strong>: read as a ranking, it would put the most stalled person on top.</p>
+      <p>The table is ordered by <strong>declared role, then name</strong>. No measure column sorts it, and none offers to: ordering people by a measure is the ranking this screen refuses, one click away. <strong>No average and no rate per person is reported</strong> either — a single number per person is exactly the productivity figure the platform does not hold.</p>
+    </div>
+    <div class="bl lim">
+      <h3>“Working in progress” here is not <span class="login" style="display:inline">flow.wip.count</span>.</h3>
+      <p>The declared formula needs the start and the end of the executed task, and <strong>the end criterion does not exist</strong> in what is collected (issue <span class="login" style="display:inline">#506</span>). What is computed instead is the substitution the team's burn already makes: an item is <em>open</em> when <span class="login" style="display:inline">external_created_at</span> is present and <span class="login" style="display:inline">external_closed_at</span> is null at the instant sampled.</p>
+      <p>Two consequences, and both are on the chart: the clock starts when the <strong>item</strong> was opened, not when the person picked it up — the source does not record that; and there is <strong>no WIP limit</strong> anywhere on this screen, because none is declared and a threshold line would invent one (FR-091).</p>
+      <p>The measure's own declared misreadings, copied and not summarised: <strong>a low number does not mean healthy flow; a high number is not productivity; and comparing people without normalising turns it into a different measure.</strong></p>
+    </div>
+  </div>
+
+  <div class="conta"><b>Delivery forecast produced for 0 of 5 people</b> in this window. <span>The floor belongs to the method — 6 periods of history and 10 closed items — and never to the people below it. In this squad the blocking condition is the same for all five, and it is written in every cell.</span></div>
+  <div class="scroll"><table class="tp">
+    <thead><tr>
+      <th class="esq">person · role · collection</th>
+      <th>open now<br><span style="text-transform:none;letter-spacing:0">and the change across the window</span> <span class="re-mark">real</span></th>
+      <th>opened<br>in the window <span class="ex-mark">example</span></th>
+      <th>closed<br>in the window <span class="ex-mark">example</span></th>
+      <th>weeks with<br>a close <span class="ex-mark">example</span></th>
+      <th class="esq">delivery forecast<br>12 weeks · weekly <span class="ex-mark">example</span></th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pessoa">Bia Lemos</span><span class="login">@bialemos <span class="ex-mark">example</span></span><span class="pes-sub">Developer · declared · member since 4 Feb 2025</span><span class="cob">3 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">22</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Nina Kalil</span><span class="login">@ninakalil <span class="ex-mark">example</span></span><span class="pes-sub">Developer · declared · member since 12 Mar 2024</span><span class="cob">5 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">54</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr class="aberta">
+        <td><span class="pessoa">Lia Moraes</span><span class="login">@liamoraes <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">6 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">114</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn p">close ▴</button></td>
+      </tr>
+
+      <tr class="bloco-l"><td colspan="7"><div class="bloco">
+        <div class="bloco-cab">
+          <h3>Lia Moraes · the four charts <span class="rot">· 14 Jul → 8 Sep · by week</span></h3>
+          <a href="#" style="font-family:var(--grot);font-size:.78rem;color:var(--verdete-deep)">open her full page → <kbd>/people/liamoraes</kbd></a>
+        </div>
+        <p class="sub" style="font-size:.82rem;margin-top:.45rem">Read in this order, and the numbers are the order: <strong>1</strong> what is there, <strong>2</strong> what moved in and out, <strong>3</strong> at what pace, <strong>4</strong> what that pace implies. Three of the four are <span class="marca obs" style="font-size:.66rem"><span class="am"></span>observed</span>; the fourth is <span class="marca der" style="font-size:.66rem"><span class="am"></span>derived</span> and its card is dashed, so a simulation is never read as a count.</p>
+        <div class="defs">
+          <div><strong>promised</strong> = opened in the period · <strong>delivered</strong> = closed in the period. There is <strong>no committed scope</strong> in the platform: this is not a sprint commitment against a sprint result. <em>Closed</em> is the issue being closed at the source — an act of the tool, not a declared end criterion, and the count ignores the size of the item: splitting finer raises it without more work done.</div>
+          <div class="lim"><strong>working in progress</strong> here = items assigned to her and still open at each sample. Not <span class="login" style="display:inline">flow.wip.count</span>, whose formula needs an end criterion that does not exist (issue <span class="login" style="display:inline">#506</span>). No WIP limit is drawn: none is declared.</div>
+        </div>
+        <div class="mix">
+          <span class="tot">114 open, by concept</span><span class="cc cc-task">TASK</span><b>71</b><span class="cc cc-us">US</span><b>28</b><span class="cc cc-bug">BUG</span><b>8</b><span class="cc cc-epic">EPIC</span><b>7</b> <span class="ex-mark">example split</span>
+        </div>
+        <p class="sub" style="font-size:.78rem">The composition of the number, not the list of items — the list is on the Dashboard, and this tab does not repeat it (FR-088).</p>
+
+        <div class="grade-4">
+          <!-- 1 · WORKING IN PROGRESS -->
+          <div class="g-cart">
+            <h4><span class="ord">1 ·</span> Working in progress <span class="rot">· by week · 14 Jul → 8 Sep</span></h4>
+            <p class="def">Items assigned and still open at each weekly sample. The series, never a lone value — a single value does not describe flow.</p>
+            <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Open items assigned to Lia Moraes: flat at 114 across all eight weekly samples.">
+              <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="117.5" x2="300" y2="117.5"/><line x1="40" y1="85" x2="300" y2="85"/><line x1="40" y1="52.5" x2="300" y2="52.5"/><line x1="40" y1="20" x2="300" y2="20"/></g>
+              <g class="ey"><text x="36" y="153">0</text><text x="36" y="120.5">30</text><text x="36" y="88">60</text><text x="36" y="55.5">90</text><text x="36" y="23">120</text></g>
+              <polyline fill="none" stroke="var(--verdete)" stroke-width="2.5" points="40,26.5 77,26.5 114,26.5 151,26.5 189,26.5 226,26.5 263,26.5 300,26.5"/>
+              <g fill="var(--verdete)"><circle cx="40" cy="26.5" r="2"/><circle cx="77" cy="26.5" r="2"/><circle cx="114" cy="26.5" r="2"/><circle cx="151" cy="26.5" r="2"/><circle cx="189" cy="26.5" r="2"/><circle cx="226" cy="26.5" r="2"/><circle cx="263" cy="26.5" r="2"/><circle cx="300" cy="26.5" r="3.2"/></g>
+              <text class="rd" x="298" y="17" style="text-anchor:end">114 · sampled 8 Sep 00:00</text>
+              <text class="ex" x="46" y="56" style="text-anchor:start;paint-order:stroke;stroke:var(--papel);stroke-width:3px">flat at every sample — the eight points are</text>
+              <text class="ex" x="46" y="68" style="text-anchor:start;paint-order:stroke;stroke:var(--papel);stroke-width:3px">the same 114 items, none opened, none closed</text>
+              <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+              <g class="ex"><text x="40" y="164">14 Jul</text><text x="114" y="164">28 Jul</text><text x="189" y="164">11 Aug</text><text x="263" y="164">25 Aug</text><text x="300" y="176">8 Sep</text></g>
+            </svg>
+            <div class="leg-g"><span><i style="background:var(--verdete)"></i>open at each sample · observed</span></div>
+            <p class="def" style="margin-top:.35rem">The oldest of the 114 has been open <span class="n">550 d</span>; the newest, <span class="n">217 d</span>. <span class="re-mark">real</span> — every one of them was opened long before this window, which is why the line is flat and not why she did nothing.</p>
+          </div>
+
+          <!-- 2 · PROMISED × DELIVERED -->
+          <div class="g-cart">
+            <h4><span class="ord">2 ·</span> Promised × Delivered <span class="rot">· by week · 14 Jul → 8 Sep</span></h4>
+            <p class="def"><strong>promised</strong> = opened in the week · <strong>delivered</strong> = closed in the week. Not cumulative.</p>
+            <svg class="g" viewBox="0 0 320 178" role="img" aria-label="No item assigned to Lia Moraes was opened or closed in any week of this window.">
+              <defs><pattern id="v1" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="7" height="7" fill="var(--papel)"/><rect width="1.4" height="7" fill="var(--linha)"/></pattern></defs>
+              <rect x="40" y="20" width="260" height="130" fill="url(#v1)" stroke="var(--linha)" stroke-width="1" stroke-dasharray="4 3"/>
+              <g class="ey"><text x="36" y="153">0</text><text x="36" y="88">1</text><text x="36" y="23">2</text></g>
+              <text class="ex" x="170" y="78" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px;fill:var(--tinta)">no item assigned to this person was opened</text>
+              <text class="ex" x="170" y="90" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px;fill:var(--tinta)">or closed in any week of this window</text>
+              <text class="ex" x="170" y="106" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px">an empty plot is drawn, never left blank — absence, not zero</text>
+              <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+              <g class="ex"><text x="40" y="164">14 Jul</text><text x="114" y="164">28 Jul</text><text x="189" y="164">11 Aug</text><text x="263" y="164">25 Aug</text><text x="300" y="176">8 Sep</text></g>
+            </svg>
+            <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened in the week</span><span><i style="background:var(--verdete)"></i>closed in the week</span><span>8 weeks: <span class="aus-cel">none of either</span></span></div>
+          </div>
+
+          <!-- 3 · THROUGHPUT -->
+          <div class="g-cart">
+            <h4><span class="ord">3 ·</span> Throughput <span class="rot">· by week · 14 Jul → 8 Sep</span></h4>
+            <p class="def">Items assigned to her and closed in each week — the <em>person</em> level of the measure. An item with two assignees counts once for each, so these bars never sum to the squad's.</p>
+            <svg class="g" viewBox="0 0 320 178" role="img" aria-label="No item assigned to Lia Moraes was closed in any of the eight weeks.">
+              <defs><pattern id="v2" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="7" height="7" fill="var(--papel)"/><rect width="1.4" height="7" fill="var(--linha)"/></pattern></defs>
+              <rect x="40" y="20" width="260" height="130" fill="url(#v2)" stroke="var(--linha)" stroke-width="1" stroke-dasharray="4 3"/>
+              <g class="ey"><text x="36" y="153">0</text><text x="36" y="88">1</text><text x="36" y="23">2</text></g>
+              <text class="ex" x="170" y="78" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px;fill:var(--tinta)">no item closed in any of the eight weeks</text>
+              <text class="ex" x="170" y="90" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px;fill:var(--tinta)">0 of 8 weeks with a close</text>
+              <text class="ex" x="170" y="106" style="paint-order:stroke;stroke:var(--papel);stroke-width:3.5px">no rate is reported: there is no close to make a rate from</text>
+              <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+              <g class="ex"><text x="40" y="164">14 Jul</text><text x="114" y="164">28 Jul</text><text x="189" y="164">11 Aug</text><text x="263" y="164">25 Aug</text><text x="300" y="176">8 Sep</text></g>
+            </svg>
+            <p class="def" style="margin-top:.35rem">These are the same numbers as <em>delivered</em> in chart 2, read as a pace instead of against what was opened. Same data, two questions — see open question 2.</p>
+          </div>
+
+          <!-- 4 · DELIVERY FORECAST -->
+          <div class="g-cart der-c">
+            <h4><span class="ord">4 ·</span> Delivery forecast <span class="rot">· weekly, whatever grain the others show · 12-week horizon</span></h4>
+            <p class="def">Derived, not observed: 10 000 simulated runs over her own weekly closing history. Weekly whatever the grain switch says, because its samples are weeks.</p>
+            <div class="recusa-c">
+              <span class="t">No forecast — below the floor of the method.</span>
+              <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>0</b> of <b>10</b> items — short by 10</span></div>
+              <p>The floor is the method's: without at least ten closed items the sampled history is not a history, and a distribution drawn from nothing would be a shape with no content. <strong>This is a gap in the observed record, never a statement about the person.</strong></p>
+              <p>Her squad's history is <strong>not borrowed</strong> to fill it (FR-101): without this person's own closings there is no forecast about this person's work, and lending the squad's pace would fabricate a number about someone.</p>
+              <p>What it would have answered, had the floor been met, is a question about <strong>the work</strong>: when what is in her hands runs out, at the pace observed for it. Never a capacity, a commitment, or a date.</p>
+            </div>
+          </div>
+        </div>
+      </div></td></tr>
+
+      <tr>
+        <td><span class="pessoa">Rui Barreto</span><span class="login">@ruibarreto <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">4 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">77</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Téo Franco</span><span class="login">@teofranco <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">2 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">30</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <div class="ordem">Ordered by declared role, then by name — never by a measure. The two people with a declared role come first; the three the source only observed follow. <strong>No column header sorts</strong>, and none offers to.</div>
+
+  <div class="aviso"><span class="rot">what this table says about this squad, and what it does not</span>
+  <p><strong>Nothing here moved in this window.</strong> Five rows, 297 open items, and not one opening or closing in eight weeks. That is an observation about <em>the work</em> — the same observation the Dashboard makes when it counts 297 of 297 items past the 90-day threshold — and it is not an observation about the five people: a stalled board, a project waiting on someone outside the team, and five people reassigned elsewhere all produce this exact table, and the platform cannot tell them apart from what it collects.</p>
+  <p style="margin-top:.5rem"><strong>Two rows are not comparable when their collection is not.</strong> Six repositories were observed for one person and two for another; how many exist for either is not known, so the columns above compare <em>records</em> before they compare anything else. Until the platform has that denominator, that sentence stays next to the numbers and not in a footnote (FR-111, FR-112).</p></div>
+  <p class="sub" style="font-size:.8rem"><span class="re-mark">real</span> the five members, and 114, 77, 54 open (development base, 8 Sep), summing with the other two rows to the squad's real 297 — 180 TASK · 78 US · 21 BUG · 18 EPIC. <span class="ex-mark">example</span> the split of the remaining 52 between Bia and Téo, the names, the roles, the repository counts, and every opened/closed/forecast figure. <strong>The zeros in the three middle columns are an assumption, not a measurement</strong>: the newest still-open item of this squad is 217 days old, so nothing opened inside the window is still open — but an item opened <em>and</em> closed inside the window would not appear in that sample, and none was counted here. Stated as an assumption because it is one.</p>
+</section>
+<!-- ═══════════════════════════════ SCREEN 4 ═══════════════════════════════ -->
+<span class="tela">screen 4 · the same tab, a team that moves · and two people opened side by side</span>
+<div class="mig"><a href="#">Teams</a> › Equipe IA</div>
+<h2 style="font-size:1.5rem">Equipe IA</h2>
+<nav class="abas"><a class="aba" href="#">Dashboard</a><a class="aba" href="#">Structure</a><a class="aba ativa" href="#">Flow per person</a></nav>
+
+<div class="nota-de-tela"><span class="rot">what this screen adds</span>
+The same tab on a team where work does move, and where the rows are not all alike: one person above the forecast floor and five below it for two different reasons, one who joined inside the window, one who left with a declared date, one with <strong>no observed item at all</strong>, and one holding items the routing rule did not classify. And the second mode of the tab: <strong>two people opened at once</strong>, which takes both out of their rows and puts the four measures side by side, one row per measure.
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Flow per person</h2><span class="rot">7 members · 14 Jul → 8 Sep · by week</span>
+    <span class="seg"><span class="on">week</span><span>month</span><span>year</span></span></div>
+
+  <div class="antes">
+    <div class="bl grave">
+      <h3>A table of work items, not a table of people.</h3>
+      <p>The block is the same on every team and it is not collapsible: it is the sentence that has to be read before the numbers, so it sits above them and not under them. Items count once per assignee, the columns never sum to the team, the rows do not share a denominator, and no measure sorts the table.</p>
+    </div>
+    <div class="bl lim">
+      <h3>“Working in progress” here is not <span class="login" style="display:inline">flow.wip.count</span>.</h3>
+      <p>Open means <span class="login" style="display:inline">external_created_at</span> present and <span class="login" style="display:inline">external_closed_at</span> null at the instant sampled — the substitution the burn already makes, because the end criterion does not exist (issue <span class="login" style="display:inline">#506</span>). A low number is not healthy flow; a high number is not productivity; comparing people without normalising makes it a different measure.</p>
+    </div>
+  </div>
+
+  <div class="conta"><b>Delivery forecast produced for 1 of 7 people</b> in this window. <span>Five are below the floor and one has no open work to forecast. The floor belongs to the method — 6 periods of history and 10 closed items — and never to the people below it.</span></div>
+
+  <div class="scroll"><table class="tp">
+    <thead><tr>
+      <th class="esq">person · role · collection</th>
+      <th>open now<br><span style="text-transform:none;letter-spacing:0">and the change across the window</span></th>
+      <th>opened<br>in the window <span class="ex-mark">example</span></th>
+      <th>closed<br>in the window <span class="ex-mark">example</span></th>
+      <th>weeks with<br>a close <span class="ex-mark">example</span></th>
+      <th class="esq">delivery forecast<br>12 weeks · weekly <span class="ex-mark">example</span></th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      <tr class="aberta">
+        <td><span class="pessoa">Noa Vidal</span><span class="login">@noavidal <span class="ex-mark">example</span></span><span class="pes-sub">Developer · declared · member since 3 Jan 2025</span><span class="cob">7 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">11</span><span class="dir">9 at the first sample · +2 across the window</span></td>
+        <td class="v">12</td><td class="v">11</td><td class="v">8 of 8</td>
+        <td class="esq prev"><span class="prev-ok">p50 11 wk · no p85</span><span class="piso">if work keeps arriving · 18% of runs never reached zero</span></td>
+        <td><button class="btn p">close ▴</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Otávio Rangel</span><span class="login">@otaviorangel <span class="ex-mark">example</span></span><span class="pes-sub">Developer · declared · <strong>member since 20 Aug</strong>, inside this window</span><span class="cob">2 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">24</span><span class="dir">first sample 20 Aug · +24 since joining</span></td>
+        <td class="v">9</td><td class="v">6</td><td class="v">2 of 3</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history <span class="curto">3 of 6 short</span> · closed <span class="curto">6 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr class="saiu-l">
+        <td><span class="pessoa">Sara Beltrão</span><span class="login">@sarabeltrao <span class="ex-mark">example</span></span><span class="pes-sub">Tech Lead · declared · <span class="marca saiu" style="font-size:.66rem"><span class="am"></span>left 14 Aug</span> declared by @paulo, 15 Aug</span><span class="cob">4 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">9</span><span class="dir">unchanged since 14 Aug · still assigned to her at the source</span></td>
+        <td class="v">2</td><td class="v">5</td><td class="v">3 of 5</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history <span class="curto">5 of 6 short</span> · closed <span class="curto">5 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Duda Cordeiro</span><span class="login">@dudacordeiro <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · since 9 Sep 2024</span><span class="cob">3 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">18</span><span class="dir">16 at the first sample · +2 across the window</span><span class="nc"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</span></td>
+        <td class="v">5</td><td class="v">3</td><td class="v">3 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr class="aberta">
+        <td><span class="pessoa">Pedro Assis</span><span class="login">@pedroassis <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">2 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">3</span><span class="dir">5 at the first sample · −2 across the window</span></td>
+        <td class="v">3</td><td class="v">4</td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">4 of 10 short</span></span></td>
+        <td><button class="btn p">close ▴</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Vera Lins</span><span class="login">@veralins <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · since 2 May 2025</span><span class="cob">2 repos observed · denominator unknown</span></td>
+        <td class="agora"><span class="aus-cel">no open item assigned</span><span class="dir">and none observed at any sample of this window</span></td>
+        <td><span class="aus-cel">none opened</span></td>
+        <td><span class="aus-cel">none closed</span></td>
+        <td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">nothing to forecast</span><span class="piso">no open item to reach zero — the floor is not the reason here</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Zeca Amorim</span><span class="login">@zecaamorim <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · <strong>start date unknown</strong></span><span class="cob">1 repo observed · denominator unknown</span></td>
+        <td class="agora"><span class="n2">18</span><span class="dir">17 at the first sample · +1 across the window</span></td>
+        <td class="v">4</td><td class="v">2</td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">2 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <div class="ordem">Ordered by declared role, then by name: Developer, Developer, Tech Lead, then the four the source only observed. <strong>No column header sorts.</strong> Two rows are open, so their charts left the table and sit below it, side by side.</div>
+
+  <div class="aviso"><span class="rot">the window is the same for everyone; the history inside it is not</span>
+  <p>Otávio joined on <strong>20 Aug</strong> and Sara left on <strong>14 Aug</strong>. Their windows are the team's — 14 Jul → 8 Sep — but the part of it in which the platform has anything to say about them is shorter, and that is written in their rows. <strong>Fewer periods with data is a shorter history inside the same window, and not less work.</strong> Sara's row stays: what she did inside the window still counts (US3), her open items are still assigned to her at the source, and nothing is deleted retroactively. Zeca's start date is unknown, so the row says so instead of guessing one.</p></div>
+</section>
+<section class="sec">
+  <div class="sec-cab"><h2>Two people open · Noa Vidal and Pedro Assis</h2><span class="rot">14 Jul → 8 Sep · by week · one row per measure</span><button class="btn q">close both ▴</button></div>
+  <p class="sub">Opening a second person <strong>takes both out of their rows</strong> and lays the four measures out one per row, so the two charts being compared are next to each other instead of six table rows apart. One person open stays in place, under the row, as a two-by-two — that is the read of <em>one</em> person, and it belongs beside their row. Two is the limit; the reasoning is in open question 1.</p>
+  <div class="defs">
+    <div><strong>promised</strong> = opened in the period · <strong>delivered</strong> = closed in the period. There is <strong>no committed scope</strong> in the platform. <em>Closed</em> is the act recorded at the tool, and the count ignores the size of the item.</div>
+    <div class="lim"><strong>working in progress</strong> = items assigned and still open at each sample. Not <span class="login" style="display:inline">flow.wip.count</span> (issue <span class="login" style="display:inline">#506</span>). No WIP limit is drawn.</div>
+  </div>
+
+  <div class="par-cab" style="margin-top:1rem">
+    <div class="h">Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h b">Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+  </div>
+
+  <!-- ROW 1 · WIP -->
+  <div class="par-linha">
+    <h3><span class="rot">1 ·</span> Working in progress <span class="rot">· items assigned and still open at each weekly sample</span></h3>
+    <div class="par">
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Open items assigned to Noa Vidal, eight weekly samples, from 9 to 11, peaking at 13.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="106.7" x2="300" y2="106.7"/><line x1="40" y1="63.3" x2="300" y2="63.3"/><line x1="40" y1="20" x2="300" y2="20"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="109.7">5</text><text x="36" y="66.3">10</text><text x="36" y="23">15</text></g>
+          <polyline fill="none" stroke="var(--verdete)" stroke-width="2.5" points="40,72 77,63.3 114,46 151,54.7 189,37.3 226,46 263,54.7 300,54.7"/>
+          <g fill="var(--verdete)"><circle cx="40" cy="72" r="2"/><circle cx="77" cy="63.3" r="2"/><circle cx="114" cy="46" r="2"/><circle cx="151" cy="54.7" r="2"/><circle cx="189" cy="37.3" r="2"/><circle cx="226" cy="46" r="2"/><circle cx="263" cy="54.7" r="2"/><circle cx="300" cy="54.7" r="3.2"/></g>
+          <text class="rd" x="298" y="30" style="text-anchor:end">11 · sampled 8 Sep</text>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="40" y="164">14 Jul</text><text x="114" y="164">28 Jul</text><text x="189" y="164">11 Aug</text><text x="263" y="164">25 Aug</text><text x="300" y="176">8 Sep</text></g>
+        </svg>
+        <div class="leg-g"><span>y axis 0–15 · peak 13 on 11 Aug</span></div>
+      </div>
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Open items assigned to Pedro Assis, eight weekly samples, from 5 down to 3.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="85" x2="300" y2="85"/><line x1="40" y1="20" x2="300" y2="20"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="88">3</text><text x="36" y="23">6</text></g>
+          <polyline fill="none" stroke="var(--s3)" stroke-width="2.5" points="40,41.7 77,63.3 114,63.3 151,85 189,85 226,63.3 263,85 300,85"/>
+          <g fill="var(--s3)"><circle cx="40" cy="41.7" r="2"/><circle cx="77" cy="63.3" r="2"/><circle cx="114" cy="63.3" r="2"/><circle cx="151" cy="85" r="2"/><circle cx="189" cy="85" r="2"/><circle cx="226" cy="63.3" r="2"/><circle cx="263" cy="85" r="2"/><circle cx="300" cy="85" r="3.2"/></g>
+          <text class="rd" x="298" y="30" style="text-anchor:end">3 · sampled 8 Sep</text>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="40" y="164">14 Jul</text><text x="114" y="164">28 Jul</text><text x="189" y="164">11 Aug</text><text x="263" y="164">25 Aug</text><text x="300" y="176">8 Sep</text></g>
+        </svg>
+        <div class="leg-g"><span>y axis 0–6 · peak 5 on 14 Jul</span></div>
+      </div>
+    </div>
+    <span class="escala">The two y axes differ — <strong>0–15</strong> against <strong>0–6</strong>. Each chart keeps the scale its own numbers need, and neither is stretched to the other: <strong>the shapes compare, the heights do not.</strong> A shared axis would flatten the smaller series into a line at the bottom and call it a comparison.</span>
+  </div>
+
+  <!-- ROW 2 · PROMISED × DELIVERED -->
+  <div class="par-linha">
+    <h3><span class="rot">2 ·</span> Promised × Delivered <span class="rot">· opened in the week against closed in the week · not cumulative</span></h3>
+    <div class="par">
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Noa Vidal, opened and closed per week: 12 opened and 11 closed over eight weeks.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="85.5" x2="300" y2="85.5"/><line x1="40" y1="21" x2="300" y2="21"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="88.5">2</text><text x="36" y="24">4</text></g>
+          <g fill="var(--eixo)"><rect x="46" y="85.5" width="13" height="64.5"/><rect x="78" y="117.75" width="13" height="32.25"/><rect x="110" y="53.25" width="13" height="96.75"/><rect x="174" y="85.5" width="13" height="64.5"/><rect x="206" y="117.75" width="13" height="32.25"/><rect x="238" y="85.5" width="13" height="64.5"/><rect x="270" y="117.75" width="13" height="32.25"/></g>
+          <line x1="142" y1="150" x2="155" y2="150" stroke="var(--eixo)" stroke-width="2" stroke-dasharray="2 2"/>
+          <g fill="var(--verdete)"><rect x="59" y="117.75" width="13" height="32.25"/><rect x="91" y="85.5" width="13" height="64.5"/><rect x="123" y="117.75" width="13" height="32.25"/><rect x="155" y="85.5" width="13" height="64.5"/><rect x="187" y="117.75" width="13" height="32.25"/><rect x="219" y="117.75" width="13" height="32.25"/><rect x="251" y="85.5" width="13" height="64.5"/><rect x="283" y="117.75" width="13" height="32.25"/></g>
+          <g class="rd"><text x="59" y="80.5">2/1</text><text x="91" y="80.5">1/2</text><text x="123" y="48.25">3/1</text><text x="155" y="80.5">0/2</text><text x="187" y="80.5">2/1</text><text x="219" y="112.75">1/1</text><text x="251" y="80.5">2/2</text><text x="283" y="112.75">1/1</text></g>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="59" y="164">14 Jul</text><text x="123" y="164">28 Jul</text><text x="187" y="164">11 Aug</text><text x="251" y="164">25 Aug</text></g>
+        </svg>
+        <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened</span><span><i style="background:var(--verdete)"></i>closed</span><span>8 weeks: <span class="n">12</span> opened · <span class="n">11</span> closed</span></div>
+        <p class="def">The dashed tick on 4 Aug is a week with nothing opened — a measured zero inside a series, which is not the same as an absence of the series.</p>
+      </div>
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Pedro Assis, opened and closed per week: 3 opened and 4 closed over eight weeks.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="85.5" x2="300" y2="85.5"/><line x1="40" y1="21" x2="300" y2="21"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="88.5">1</text><text x="36" y="24">2</text></g>
+          <g fill="var(--eixo)"><rect x="46" y="85.5" width="13" height="64.5"/><rect x="110" y="85.5" width="13" height="64.5"/><rect x="174" y="85.5" width="13" height="64.5"/></g>
+          <g stroke="var(--eixo)" stroke-width="2" stroke-dasharray="2 2"><line x1="78" y1="150" x2="91" y2="150"/><line x1="142" y1="150" x2="155" y2="150"/><line x1="206" y1="150" x2="219" y2="150"/><line x1="238" y1="150" x2="251" y2="150"/><line x1="270" y1="150" x2="283" y2="150"/></g>
+          <g fill="var(--s3)"><rect x="91" y="85.5" width="13" height="64.5"/><rect x="123" y="85.5" width="13" height="64.5"/><rect x="187" y="85.5" width="13" height="64.5"/><rect x="251" y="85.5" width="13" height="64.5"/></g>
+          <g stroke="var(--s3)" stroke-width="2" stroke-dasharray="2 2"><line x1="59" y1="150" x2="72" y2="150"/><line x1="155" y1="150" x2="168" y2="150"/><line x1="219" y1="150" x2="232" y2="150"/><line x1="283" y1="150" x2="296" y2="150"/></g>
+          <g class="rd"><text x="59" y="80.5">1/0</text><text x="91" y="80.5">0/1</text><text x="123" y="80.5">1/1</text><text x="155" y="144">0/0</text><text x="187" y="80.5">1/1</text><text x="219" y="144">0/0</text><text x="251" y="80.5">0/1</text><text x="283" y="144">0/0</text></g>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="59" y="164">14 Jul</text><text x="123" y="164">28 Jul</text><text x="187" y="164">11 Aug</text><text x="251" y="164">25 Aug</text></g>
+        </svg>
+        <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened</span><span><i style="background:var(--s3)"></i>closed</span><span>8 weeks: <span class="n">3</span> opened · <span class="n">4</span> closed</span></div>
+        <p class="def">Three of the eight weeks have neither bar. The label <span class="n">0/0</span> is written on each of them: a week the platform looked at and found nothing is not a week it did not look at.</p>
+      </div>
+    </div>
+    <span class="escala">y axes <strong>0–4</strong> and <strong>0–2</strong>. Twelve opened against three is a difference in the amount of work assigned, and nothing else: neither number was chosen by the person it sits beside.</span>
+  </div>
+
+  <!-- ROW 3 · THROUGHPUT -->
+  <div class="par-linha">
+    <h3><span class="rot">3 ·</span> Throughput <span class="rot">· items closed in each week · the person level of the measure</span></h3>
+    <div class="par">
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Noa Vidal closed one or two items in each of the eight weeks, eleven in total.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="107" x2="300" y2="107"/><line x1="40" y1="64" x2="300" y2="64"/><line x1="40" y1="21" x2="300" y2="21"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="110">1</text><text x="36" y="67">2</text><text x="36" y="24">3</text></g>
+          <g fill="var(--verdete)"><rect x="50" y="107" width="20" height="43"/><rect x="82" y="64" width="20" height="86"/><rect x="114" y="107" width="20" height="43"/><rect x="146" y="64" width="20" height="86"/><rect x="178" y="107" width="20" height="43"/><rect x="210" y="107" width="20" height="43"/><rect x="242" y="64" width="20" height="86"/><rect x="274" y="107" width="20" height="43"/></g>
+          <g class="rd"><text x="60" y="102">1</text><text x="92" y="59">2</text><text x="124" y="102">1</text><text x="156" y="59">2</text><text x="188" y="102">1</text><text x="220" y="102">1</text><text x="252" y="59">2</text><text x="284" y="102">1</text></g>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="60" y="164">14 Jul</text><text x="124" y="164">28 Jul</text><text x="188" y="164">11 Aug</text><text x="252" y="164">25 Aug</text></g>
+        </svg>
+        <div class="leg-g"><span><span class="n">11</span> closed · <span class="n">8 of 8</span> weeks with a close</span></div>
+      </div>
+      <div class="g-cart">
+        <svg class="g" viewBox="0 0 320 178" role="img" aria-label="Pedro Assis closed one item in four of the eight weeks, four in total.">
+          <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="85.5" x2="300" y2="85.5"/><line x1="40" y1="21" x2="300" y2="21"/></g>
+          <g class="ey"><text x="36" y="153">0</text><text x="36" y="88.5">1</text><text x="36" y="24">2</text></g>
+          <g fill="var(--s3)"><rect x="82" y="85.5" width="20" height="64.5"/><rect x="114" y="85.5" width="20" height="64.5"/><rect x="178" y="85.5" width="20" height="64.5"/><rect x="242" y="85.5" width="20" height="64.5"/></g>
+          <g stroke="var(--s3)" stroke-width="2" stroke-dasharray="2 2"><line x1="50" y1="150" x2="70" y2="150"/><line x1="146" y1="150" x2="166" y2="150"/><line x1="210" y1="150" x2="230" y2="150"/><line x1="274" y1="150" x2="294" y2="150"/></g>
+          <g class="rd"><text x="60" y="144">0</text><text x="92" y="80.5">1</text><text x="124" y="80.5">1</text><text x="156" y="144">0</text><text x="188" y="80.5">1</text><text x="220" y="144">0</text><text x="252" y="80.5">1</text><text x="284" y="144">0</text></g>
+          <line x1="40" y1="150" x2="300" y2="150" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="60" y="164">14 Jul</text><text x="124" y="164">28 Jul</text><text x="188" y="164">11 Aug</text><text x="252" y="164">25 Aug</text></g>
+        </svg>
+        <div class="leg-g"><span><span class="n">4</span> closed · <span class="n">4 of 8</span> weeks with a close</span></div>
+      </div>
+    </div>
+    <span class="escala"><strong>No average and no median per person is drawn on either chart.</strong> A single rate beside a name is the productivity number this platform does not hold; the two honest readings are already here — how many were closed, and in how many of the periods. And these bars are the <em>delivered</em> bars of row 2, read as a pace: the same numbers answering a different question. See open question 2.</span>
+  </div>
+</section>
+<section class="sec" style="margin-top:1.4rem">
+  <div class="par-linha" style="margin-top:0">
+    <h3><span class="rot">4 ·</span> Delivery forecast <span class="rot">· weekly whatever grain the others show · 12-week horizon · 10 000 runs</span></h3>
+    <p class="sub" style="font-size:.82rem">Derived, not observed — both cards below are dashed for that reason. Two hypotheses, <strong>stacked and never overlaid</strong>: two translucent shapes on one pair of axes make a third shape that does not exist. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other. And the question is about <strong>the work</strong> — when what is in this person's hands runs out, at the pace observed for it — never about capacity, commitment or a date.</p>
+    <div class="par">
+      <div class="g-cart der-c">
+        <div class="cab-g"><span class="rot">if nothing new opened · frozen scope</span><span class="rot">11 open · 1.4 closed per week</span></div>
+        <svg class="g" viewBox="0 0 560 100" role="img" aria-label="Noa Vidal, frozen scope: run lengths peak at week 8; the 50% mark is week 8, the 85% mark week 11, and 3% of runs never reached zero.">
+          <defs><pattern id="nf1" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--verdete)" stroke-width="1.4"/></pattern></defs>
+          <g fill="var(--verdete)" opacity="0.55"><rect x="160" y="62" width="32" height="8"/><rect x="200" y="52" width="32" height="18"/><rect x="240" y="38" width="32" height="32"/><rect x="280" y="26" width="32" height="44"/><rect x="320" y="40" width="32" height="30"/><rect x="360" y="52" width="32" height="18"/><rect x="400" y="60" width="32" height="10"/><rect x="440" y="65" width="32" height="5"/></g>
+          <rect x="520" y="66" width="32" height="4" fill="url(#nf1)" stroke="var(--verdete)" stroke-width="0.8"/>
+          <text x="536" y="82" class="ex">never</text><text x="536" y="62" class="rd" style="fill:var(--verdete)">3%</text>
+          <line x1="296" y1="14" x2="296" y2="70" stroke="var(--verdete)" stroke-width="1.5"/><text x="296" y="11" class="rd" style="fill:var(--verdete)">50%</text>
+          <line x1="416" y1="14" x2="416" y2="70" stroke="var(--verdete)" stroke-width="1.5" stroke-dasharray="3 2"/><text x="416" y="11" class="rd" style="fill:var(--verdete)">85%</text>
+          <line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="16" y="82">1</text><text x="136" y="82">4</text><text x="296" y="82">8</text><text x="456" y="82">12</text><text x="270" y="96">weeks to reach zero</text></g>
+        </svg>
+        <p class="def"><span class="n">50%</span> of runs reached zero by week <span class="n">8</span>, <span class="n">85%</span> by week <span class="n">11</span>.</p>
+      </div>
+      <div class="g-cart der-c">
+        <div class="cab-g"><span class="rot">if work keeps arriving as it has · live scope</span><span class="rot">1.5 opened per week</span></div>
+        <svg class="g" viewBox="0 0 560 100" role="img" aria-label="Noa Vidal, live scope: run lengths peak at week 11, the 50% mark is week 11, there is no 85% mark, and 18% of runs never reached zero.">
+          <defs><pattern id="nf2" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--amber)" stroke-width="1.4"/></pattern></defs>
+          <g fill="var(--amber)" opacity="0.55"><rect x="280" y="64" width="32" height="6"/><rect x="320" y="54" width="32" height="16"/><rect x="360" y="44" width="32" height="26"/><rect x="400" y="38" width="32" height="32"/><rect x="440" y="46" width="32" height="24"/></g>
+          <rect x="520" y="32" width="32" height="38" fill="url(#nf2)" stroke="var(--amber)" stroke-width="0.8"/>
+          <text x="536" y="82" class="ex">never</text><text x="536" y="28" class="rd" style="fill:var(--amber)">18%</text>
+          <line x1="416" y1="14" x2="416" y2="70" stroke="var(--amber)" stroke-width="1.5"/><text x="416" y="11" class="rd" style="fill:var(--amber)">50%</text>
+          <line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/>
+          <g class="ex"><text x="16" y="82">1</text><text x="136" y="82">4</text><text x="296" y="82">8</text><text x="456" y="82">12</text><text x="270" y="96">weeks to reach zero</text></g>
+        </svg>
+        <p class="def"><span class="n">50%</span> by week <span class="n">11</span>, and <strong>no 85% figure</strong>: more than 15% of the runs did not reach zero inside the horizon, and writing a number there would invent a percentile that does not exist. The proportion that never finished is part of the result, not a footnote.</p>
+      </div>
+    </div>
+    <div class="par" style="margin-top:.6rem">
+      <div class="g-cart" style="border-style:dashed">
+        <span class="rot">what the table cell carries for Noa</span>
+        <div style="margin-top:.35rem"><span class="prev-ok">p50 11 wk · no p85</span><span class="piso">if work keeps arriving · 18% of runs never reached zero</span></div>
+        <p class="def">The cell reports the <strong>live</strong> hypothesis, because that is the one that includes work still arriving; the frozen bound is the optimistic one and stays in the chart. The cell is a <em>state</em>, not a value: forecast produced, below the floor, or nothing to forecast.</p>
+      </div>
+      <div class="g-cart der-c">
+        <div class="recusa-c" style="margin-top:0">
+          <span class="t">Pedro Assis · no forecast — below the floor of the method.</span>
+          <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>4</b> of <b>10</b> items — short by 6</span></div>
+          <p>Four closings across eight weeks is a record, not a history: ten is the floor the method needs before a distribution drawn from it means anything. <strong>A gap in the observed record, never a statement about the person.</strong></p>
+          <p>Noa's history, on the other side of this row, is <strong>not</strong> borrowed to fill it. Two people on one screen make that borrowing look natural, which is exactly why the refusal says it here.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aviso"><span class="rot">why two, and why the pair leaves the table</span>
+  <p>Four charts and their caveats are roughly <span class="n">700 px</span> tall. Two blocks opened in place, six rows apart, put <span class="n">1 400 px</span> between the two things being compared and push the table itself off the screen — so opening a second person is not a second block, it is a <strong>mode</strong>: both leave the table, and the four measures line up one per row. Three would give each chart about <span class="n">19 rem</span> in this column, below what an eight-point series with its axis labels can carry, and would ask the reader to hold three scales at once. <strong>The limit here is two, against the three proposed in FR-087</strong> — open question 1.</p></div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>The three absences, and they are not the same absence</h2><span class="rot">one sentence for all three would be the easy answer and the wrong one</span></div>
+  <p class="sub">Every cell on this tab that has no number says <em>what it is the absence of</em>. Three of them look alike from a distance and mean entirely different things, so each has its own form, its own words, and its own place.</p>
+  <div class="tres">
+    <div class="a a1">
+      <h4>1 · Nothing observed for this person</h4>
+      <p><strong>Vera Lins</strong> — declared member, no work item observed at any sample of this window. The row <strong>stays in the table</strong> (FR-021): removing it would answer the question "what did she do" with silence.</p>
+      <div class="amostra">
+        <span class="aus-cel">no open item assigned</span>
+        <div class="pes-sub" style="margin-top:.2rem">and none observed at any sample of this window</div>
+        <div class="piso" style="margin-top:.3rem">forecast: <span style="color:var(--tinta-2)">nothing to forecast — no open item to reach zero</span></div>
+      </div>
+      <p style="margin-top:.5rem">Its mark is <span class="marca aus" style="font-size:.66rem"><span class="am"></span>dashed</span> — absent, not zero. It is <strong>absence of an observed assignment</strong>, and it is not idleness: two repositories were observed for her, and how many she actually works in is not known.</p>
+      <p><strong>A different case wears different words:</strong> a person who has items but none open right now reads <em>“nothing open at any sample — her items in this window were all closed”</em>. That is a measured zero of a series that exists, and it must not borrow this cell's sentence.</p>
+    </div>
+    <div class="a a2">
+      <h4>2 · Below the floor of the forecast</h4>
+      <p>The method needs <strong>6 periods of history</strong> and <strong>10 closed items</strong>. Both numbers the person has, and both the method wants, are in every refusing cell — four numbers, always, with the words <em>met</em> and <em>short</em> carrying the difference so it never rests on colour alone.</p>
+      <div class="amostra">
+        <span class="prev-rec">no forecast · below the floor</span>
+        <span class="piso">history 8 of 6 met · closed <span class="curto">4 of 10 short</span></span>
+        <div class="piso" style="margin-top:.4rem">history <span class="curto">3 of 6 short</span> · closed <span class="curto">6 of 10 short</span></div>
+        <div class="pes-sub">the second is Otávio, who joined on 20 Aug: <strong>both</strong> conditions block, and both are shown</div>
+      </div>
+      <p style="margin-top:.5rem">The two conditions fail for different reasons and the cell says which: <em>closed short</em> is a record of few closings; <em>history short</em> is a person the platform has been watching for three weeks. <strong>Neither is a statement about the person.</strong> And no forecast is ever computed from the team's history to fill the gap (FR-101).</p>
+      <p>The whole column carries a faint hatched ground, so that a table where most cells refuse reads as <strong>one measured region</strong> and not as a screen that failed to load.</p>
+    </div>
+    <div class="a a3">
+      <h4>3 · The item the rule did not classify</h4>
+      <p>Not an absent measure — an absent <em>label</em>. The item counts in every number on the row; what it <em>is</em> is unknown. It appears where the count is, never as a footnote:</p>
+      <div class="amostra">
+        <span class="n2" style="font-family:var(--mono);font-size:1.05rem">18</span>
+        <div class="pes-sub">16 at the first sample · +2 across the window</div>
+        <div class="piso" style="margin-top:.2rem"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</div>
+      </div>
+      <p style="margin-top:.5rem">The mark is the one the approved prototype already fixed: <span class="cc cc-nil">—</span> dashed and outlined, distinct in greyscale from <span class="cc cc-task">TASK</span>, <span class="cc cc-us">US</span>, <span class="cc cc-epic">EPIC</span> and <span class="cc cc-bug">BUG</span>. The routing rule is <span class="login" style="display:inline">github.issue_type_routing</span>, and it classified all 1 154 open items of this base on 8 Sep — <strong>no item of these two teams falls here today</strong>. The treatment is on record anyway, marked <span class="ex-mark">example</span>, because "it did not happen today" is not "it cannot happen".</p>
+    </div>
+  </div>
+</section>
+<!-- ═══════════════════════════════ SCREEN 5 ═══════════════════════════════ -->
+<span class="tela">screen 5 · the same table at 31 rows · the density test</span>
+<div class="mig"><a href="#">Teams</a> › LEDS - ConectaFapes</div>
+<h2 style="font-size:1.5rem">LEDS - ConectaFapes</h2>
+<nav class="abas"><a class="aba" href="#">Dashboard</a><a class="aba" href="#">Structure</a><a class="aba ativa" href="#">Flow per person</a></nav>
+
+<div class="nota-de-tela"><span class="rot">what this band is for, and what it is not</span>
+Thirty-one members is the team that fails any design which does not make a cut — 31 people × 4 charts is 124 charts on one page, and 124 charts is not a page, it is an archive. This band exists to test one thing: whether six columns and a mostly-refusing forecast column still read at 31 lines, with every block closed. <strong><span class="ex-mark">example</span> — not one number in this band was measured.</strong> Nobody was asked, no per-person figure for this team was computed, and the names are invented. Read the shape, never the values.
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Flow per person</h2><span class="rot">31 members · 14 Jul → 8 Sep · by week</span>
+    <span class="seg"><span class="on">week</span><span>month</span><span>year</span></span></div>
+
+  <div class="antes">
+    <div class="bl grave"><h3>A table of work items, not a table of people.</h3><p>Thirty-one rows of four measures is the strongest invitation to a ranking this platform can build, which is why the block grows no smaller here. Items count once per assignee; no column sums to the team; the rows do not share a denominator; no measure sorts the table.</p></div>
+    <div class="bl lim"><h3>“Working in progress” here is not <span class="login" style="display:inline">flow.wip.count</span>.</h3><p>Open means created and not yet closed at the instant sampled — the end criterion the formula needs does not exist (issue <span class="login" style="display:inline">#506</span>). No WIP limit is drawn: none is declared.</p></div>
+  </div>
+
+  <div class="conta"><b>Delivery forecast produced for 4 of 31 people</b> in this window. <span>Twenty-six are below the floor and one has no open work to forecast at all — the ordinary state of a real team: the method needs 10 closed items per person, and a team's ten is common where a person's ten is not. The line is here so that a column of refusals reads as the record it is, and not as a broken screen.</span></div>
+
+  <div class="scroll"><table class="tp">
+    <thead><tr>
+      <th class="esq">person · role</th>
+      <th>open now<br><span style="text-transform:none;letter-spacing:0">and the change across the window</span></th>
+      <th>opened<br>in the window</th>
+      <th>closed<br>in the window</th>
+      <th>weeks with<br>a close</th>
+      <th class="esq">delivery forecast<br>12 weeks · weekly</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pessoa">Alice Bittencourt</span><span class="login">@alicebittencourt</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">27</span><span class="dir">25 at the first sample · +2 across the window</span></td>
+        <td><span class="v">7</span></td><td><span class="v">5</span></td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">5 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Caio Prado</span><span class="login">@caioprado</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">13</span><span class="dir">15 at the first sample · −2 across the window</span></td>
+        <td><span class="v">9</span></td><td><span class="v">11</span></td><td class="v">7 of 8</td>
+        <td class="esq prev"><span class="prev-ok">p50 9 wk · p85 not reported</span><span class="piso">if work keeps arriving · 12% of runs never reached zero</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Heitor Sampaio</span><span class="login">@heitorsampaio</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">41</span><span class="dir">40 at the first sample · +1 across the window</span></td>
+        <td><span class="v">3</span></td><td><span class="v">2</span></td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">2 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Iara Fontes</span><span class="login">@iarafontes</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">8</span><span class="dir">11 at the first sample · −3 across the window</span></td>
+        <td><span class="v">6</span></td><td><span class="v">9</span></td><td class="v">6 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">9 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Lucas Vergueiro</span><span class="login">@lucasvergueiro</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">52</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">1</span></td><td><span class="v">1</span></td><td class="v">1 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">1 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Rafa Quintela</span><span class="login">@rafaquintela</span><span class="pes-sub">Developer</span></td>
+        <td class="agora"><span class="n2">19</span><span class="dir">17 at the first sample · +2 across the window</span></td>
+        <td><span class="v">12</span></td><td><span class="v">10</span></td><td class="v">6 of 8</td>
+        <td class="esq prev"><span class="prev-ok">p50 7 wk · p85 not reported</span><span class="piso">if work keeps arriving · 4% of runs never reached zero</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Selma Drummond</span><span class="login">@selmadrummond</span><span class="pes-sub">Product Owner</span></td>
+        <td class="agora"><span class="n2">6</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">2</span></td><td><span class="v">2</span></td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">2 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Bruno Aché</span><span class="login">@brunoache</span><span class="pes-sub">Tech Lead</span></td>
+        <td class="agora"><span class="n2">34</span><span class="dir">33 at the first sample · +1 across the window</span></td>
+        <td><span class="v">4</span></td><td><span class="v">3</span></td><td class="v">3 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Marta Peçanha</span><span class="login">@martapecanha</span><span class="pes-sub">Tech Lead</span></td>
+        <td class="agora"><span class="n2">22</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">5</span></td><td><span class="v">5</span></td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">5 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Ana Tavares</span><span class="login">@anatavares</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">63</span><span class="dir">62 at the first sample · +1 across the window</span></td>
+        <td><span class="v">2</span></td><td><span class="v">1</span></td><td class="v">1 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">1 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Breno Salles</span><span class="login">@brenosalles</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">11</span><span class="dir">9 at the first sample · +2 across the window</span></td>
+        <td><span class="v">14</span></td><td><span class="v">12</span></td><td class="v">8 of 8</td>
+        <td class="esq prev"><span class="prev-ok">p50 6 wk · p85 not reported</span><span class="piso">if work keeps arriving · 7% of runs never reached zero</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Clara Vasques</span><span class="login">@claravasques</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">29</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td><td><span class="aus-cel">none closed</span></td><td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Dante Ferraz</span><span class="login">@danteferraz</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">45</span><span class="dir">44 at the first sample · +1 across the window</span></td>
+        <td><span class="v">3</span></td><td><span class="v">2</span></td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">2 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Elis Barroso</span><span class="login">@elisbarroso</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="aus-cel">no open item assigned</span><span class="dir">and none observed at any sample of this window</span></td>
+        <td><span class="aus-cel">none opened</span></td><td><span class="aus-cel">none closed</span></td><td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">nothing to forecast</span><span class="piso">no open item to reach zero — the floor is not the reason here</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Fabio Nunes</span><span class="login">@fabionunes</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">17</span><span class="dir">16 at the first sample · +1 across the window</span></td>
+        <td><span class="v">6</span></td><td><span class="v">5</span></td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">5 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Gil Andrade</span><span class="login">@gilandrade</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">38</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">1</span></td><td><span class="v">1</span></td><td class="v">1 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">1 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Hugo Dias</span><span class="login">@hugodias</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">24</span><span class="dir">23 at the first sample · +1 across the window</span></td>
+        <td><span class="v">8</span></td><td><span class="v">7</span></td><td class="v">5 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">7 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Íris Melo</span><span class="login">@irismelo</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">9</span><span class="dir">12 at the first sample · −3 across the window</span></td>
+        <td><span class="v">10</span></td><td><span class="v">13</span></td><td class="v">8 of 8</td>
+        <td class="esq prev"><span class="prev-ok">p50 5 wk · p85 not reported</span><span class="piso">if work keeps arriving · 3% of runs never reached zero</span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Joana Pires</span><span class="login">@joanapires</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">56</span><span class="dir">55 at the first sample · +1 across the window</span></td>
+        <td><span class="v">2</span></td><td><span class="v">1</span></td><td class="v">1 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">1 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Kaio Serpa</span><span class="login">@kaioserpa</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">31</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td><td><span class="aus-cel">none closed</span></td><td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Laís Camargo</span><span class="login">@laiscamargo</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">14</span><span class="dir">13 at the first sample · +1 across the window</span></td>
+        <td><span class="v">7</span></td><td><span class="v">6</span></td><td class="v">5 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">6 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Murilo Bastos</span><span class="login">@murilobastos</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">48</span><span class="dir">47 at the first sample · +1 across the window</span></td>
+        <td><span class="v">4</span></td><td><span class="v">3</span></td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Nara Coutinho</span><span class="login">@naracoutinho</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">7</span><span class="dir">8 at the first sample · −1 across the window</span></td>
+        <td><span class="v">5</span></td><td><span class="v">6</span></td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">6 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Olavo Tinoco</span><span class="login">@olavotinoco</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">26</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">1</span></td><td><span class="v">1</span></td><td class="v">1 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">1 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Paula Rangel</span><span class="login">@paularangel</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">35</span><span class="dir">34 at the first sample · +1 across the window</span></td>
+        <td><span class="v">6</span></td><td><span class="v">5</span></td><td class="v">3 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">5 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Quintino Sá</span><span class="login">@quintinosa</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">12</span><span class="dir">11 at the first sample · +1 across the window</span></td>
+        <td><span class="v">4</span></td><td><span class="v">3</span></td><td class="v">3 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Rosa Vilela</span><span class="login">@rosavilela</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">58</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="aus-cel">none opened</span></td><td><span class="aus-cel">none closed</span></td><td class="v">0 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">0 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Sérgio Aguiar</span><span class="login">@sergioaguiar</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">20</span><span class="dir">19 at the first sample · +1 across the window</span></td>
+        <td><span class="v">9</span></td><td><span class="v">8</span></td><td class="v">6 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">8 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Tomás Leite</span><span class="login">@tomasleite</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">42</span><span class="dir">no change across the 8 samples</span></td>
+        <td><span class="v">2</span></td><td><span class="v">2</span></td><td class="v">2 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">2 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Vitória Lacerda</span><span class="login">@vitorialacerda</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">15</span><span class="dir">14 at the first sample · +1 across the window</span></td>
+        <td><span class="v">7</span></td><td><span class="v">6</span></td><td class="v">4 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">6 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Yuri Bandeira</span><span class="login">@yuribandeira</span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span></span></td>
+        <td class="agora"><span class="n2">33</span><span class="dir">32 at the first sample · +1 across the window</span></td>
+        <td><span class="v">5</span></td><td><span class="v">4</span></td><td class="v">3 of 8</td>
+        <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">4 of 10 short</span></span></td>
+        <td><button class="btn q">charts ▾</button></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <div class="ordem">Ordered by declared role, then by name: 6 Developers, 1 Product Owner, 2 Tech Leads, then the 22 people the source observed with no declared role. <strong>No column header sorts.</strong></div>
+  <div class="dens">At 31 rows the table is about <span class="n">2 400 px</span> — two screens and a half, scrolled once, with every chart closed. That is the cut: <strong>the four charts are never on the page until someone asks for one person's</strong>, and at most two people's are ever on it at once. The alternative that was rejected — grouping the rows under their declared role — would put a heading between the numbers being compared and, worse, would invite a count under each heading, which is the per-role aggregate this platform does not hold.</div>
+  <div class="aviso"><span class="rot">what a column of refusals is telling you</span>
+  <p>Twenty-seven cells reporting no forecast in thirty-one rows is not a defect of the screen and not a defect of the people. It is what a real team's record looks like against a method that needs ten closings per person: <strong>the floor belongs to the method</strong>. Each cell still carries its four numbers, so the column is readable as a distribution — how far each person is from the floor, and which of the two conditions is the one that blocks.</p></div>
+</section>
+<section class="sec">
+  <div class="sec-cab"><h2>Decisions and open questions</h2><span class="rot">decide before the code</span></div>
+
+  <div class="cartao">
+    <h3>Carried in, already decided — this screen changes none of them</h3>
+    <ol class="dec-l">
+      <li><strong>The tab lives in the address.</strong> <em>Decided 7 Sep:</em> tabs of <kbd>/teams/:id</kbd>, the tab in the URL. This one is <kbd>?tab=people</kbd> — a short value, while the label says what it answers, <em>Flow per person</em>.</li>
+      <li><strong>Promised = opened in the period; delivered = closed in the period.</strong> <em>Decided 7 Sep.</em> No committed scope exists, and the definition travels with the word.</li>
+      <li><strong>The forecast stays weekly</strong> whatever grain the other charts show, because its samples are weeks. <em>Decided 7 Sep, kept here.</em></li>
+      <li><strong>Two hypotheses, frozen scope and live scope</strong>, stacked and never overlaid; the proportion of runs that never reached zero is part of the result, and a percentile of unfinished runs is null, never a large number. <em>Corrected 8 Sep, kept here.</em></li>
+      <li><strong>Nothing is deleted.</strong> A departure has a date and an author; what the person did inside the window still counts, and the row stays.</li>
+      <li><strong>The mark of the concept</strong> and its fixed slot. <em>Decided 8 Sep.</em> This tab uses only <span class="cc cc-nil">—</span> and the four counts of a composition, never the list of items.</li>
+    </ol>
+  </div>
+
+  <div class="cartao">
+    <h3>Taken by the design, with the reason — the maintainer's to overturn</h3>
+    <ol class="dec-l" start="7">
+      <li><strong>The tab's job is distribution and history, not triage and not depth.</strong> If it were triage it would duplicate <em>Problems now</em>, which already answers "what needs an eye today" with declared thresholds and does it better. If it were depth it would duplicate <kbd>/people/:id</kbd>. What is left is the only thing the team's screen can do that neither can: <strong>every member's flow on one window</strong>. Every choice below follows from that sentence.</li>
+      <li><strong>Six columns, and the fourth measure is a state and not a value.</strong> <em>person · open now and its change · opened · closed · weeks with a close · forecast.</em> <em>Open now</em> anchors the series; the <em>change across the window</em> is the series reduced to its first and last sample, and the screen says that is what it is — what happened between them is on the chart. <em>Opened</em> and <em>closed</em> are Promised × Delivered in operational words, so the word "promised" never appears without its definition. <em>Weeks with a close</em> is throughput's regularity, and it shares its unit with the forecast floor, which is why the two columns sit side by side.</li>
+      <li><strong>The words "working in progress" never appear in the table.</strong> Same device the house already uses for "promised": the column is called <em>open now</em>, and the asked-for name appears only where its definition is attached to it — the block above the table, and each chart's own header. A name that cannot carry its definition does not get used.</li>
+      <li><strong>The anti-ranking sentence is a block above the numbers, not a footnote</strong>, and it does not collapse. It is the first thing after the section title on every team, at every size, and it names the four devices the design uses beyond words: no measure sorts the table, no header offers to sort, no per-person average or rate is reported anywhere, and every row carries its own denominator so the column stops being a ladder.</li>
+      <li><strong>The grain control appears once, in the section header</strong> — a deliberate divergence from the Dashboard, where it sits in each chart's header (decision of 8 Sep). Two people's charts must never sit on two windows (FR-079), and a control repeated eight times implies eight independent controls. Each chart still names its window in its title.</li>
+      <li><strong>Two people open, not three, and the second one changes the layout.</strong> One open is a two-by-two under its own row. Two open leave the table and become four rows of two charts, so the charts being compared are adjacent instead of 1 400 px apart. Each keeps its own y axis and the row says the axes differ. This overrules the number proposed in FR-087 — see open question 1.</li>
+      <li><strong>Each of the three absences has its own form and its own words.</strong> Nothing observed for the person is dashed and says what the absence is of; below the floor carries four numbers with <em>met</em> and <em>short</em> so it never rests on colour; the unclassified item sits next to the count it is part of. And a fourth state exists on purpose: <em>nothing to forecast</em>, for someone with no open work — the floor is not the reason there, and using the floor's words would be a different lie.</li>
+      <li><strong>An empty chart is drawn, never left blank.</strong> Its axes, its scale and a sentence on its own plot area, on a faint dashed ground. A blank rectangle is indistinguishable from a chart that failed to render, and this screen has whole teams whose charts are empty.</li>
+      <li><strong>The forecast column carries a faint hatched ground</strong> so that 27 refusals in 31 rows read as one measured region instead of 27 holes.</li>
+      <li><strong>Collection coverage sits in the person cell</strong>, as "<em>N repos observed · denominator unknown</em>", and the non-comparability sentence sits beside the table. The platform can name the repositories it observed for a person and cannot name the ones it did not; until it can, the wording says so rather than implying a ratio — see open question 5.</li>
+      <li><strong>The screen reports the observation, never the conclusion.</strong> SQUAD PINK's band says "nothing opened or closed in eight weeks" and lists the readings that produce that table — a stalled board, a blocked dependency, five people working elsewhere — without choosing one. Choosing one would be analysis the collection does not support.</li>
+    </ol>
+  </div>
+
+  <div class="cartao">
+    <h3>Open — each one is the maintainer's to settle</h3>
+    <ol class="dec-l" start="18">
+      <li><strong>How many people open at once?</strong> FR-087 proposes three, and says the number is proposed and not measured. <em>(a)</em> one, and comparison stays in the table; <em>(b)</em> <strong>two, with the paired layout on this page</strong>; <em>(c)</em> three, in place, as proposed. <em>Recommended: (b).</em> Three charts abreast in this column are about 19 rem each — below what an eight-point series with axis labels carries — and three scales is not a comparison, it is a gallery. Two also keeps the query ceiling (SC-031) comfortable rather than tight.</li>
+      <li><strong>Throughput and <em>delivered</em> are the same numbers.</strong> Chart 3 draws the bars of chart 2 again, read as a pace instead of against what was opened. Both were asked for by name. <em>(a)</em> keep four charts and say so on the screen, as here; <em>(b)</em> three charts, with the pace reading folded into Promised × Delivered; <em>(c)</em> four, and drop the <em>opened</em> bars from chart 2 so the two stop overlapping. <em>Recommended: (a) for the first version</em> — the redundancy is visible and named, and dropping a chart the maintainer asked for by name is not the design's call.</li>
+      <li><strong>The two derivations this table introduces need a name in the knowledge base before the code.</strong> The <em>change across the window</em> (first sample against last) and <em>weeks with a close</em> (periods with a non-zero value) are readings of declared measures, not new measures — but nothing reaches the screen without a declaration (constitution, principle IV). <em>(a)</em> declare both as readings on <span class="login" style="display:inline">flow.open_work.cumulative</span> and <span class="login" style="display:inline">flow.throughput.rate</span>; <em>(b)</em> drop both columns and leave the table with three numbers. <em>Recommended: (a)</em> — without them the table shows a stock with no direction and a total with no regularity, and FR-089 requires the series and not a lone value.</li>
+      <li><strong>Does the "promised" caveat at the top of the section count as "beside" the word?</strong> The reading of FR-063 that accepts this screen and the one that rejects it. This design implements <em>(a)</em>: the word never appears in the table at all, and appears in each open block with the definition attached. <em>(b)</em> would require it inside every chart, and there is one chart per open person, so (b) costs little here — it costs a lot only if the word returns to the table. <em>Recommended: (a).</em></li>
+      <li><strong>Coverage without a denominator.</strong> FR-111 wants collection coverage beside the numbers; <span class="login" style="display:inline">repositories_of_person/2</span> lists what was observed and nothing counts what was not. <em>(a)</em> show the count with "denominator unknown", as here; <em>(b)</em> show no number and keep only the sentence about non-comparability; <em>(c)</em> hold the tab until a denominator exists. <em>Recommended: (a)</em> — a count that names its own missing denominator is more honest than silence, and the sentence stays either way.</li>
+      <li><strong>Does a person see their own row when they do not reach the team?</strong> Inherited from the spec, and untouched by this design: <span class="login" style="display:inline">pode_ver_equipe/3</span> has four paths and none of them is "it is about me". If the answer is yes, it is a fifth path in the access verdict, decided by the architect and not by this screen.</li>
+      <li><strong>Whose page carries the four charts in the long run?</strong> <kbd>/people/:id</kbd> already holds closings by month, open-age buckets and lead time. If it grows these four, this tab keeps only the table and the comparison of two — which may be the right shape. <em>(a)</em> as designed here; <em>(b)</em> the four charts move to the person's page and this tab links to them; <em>(c)</em> both, and the two screens are kept in step by hand. <em>Recommended: (a) now, (b) later</em> — but not (c), which is two screens drifting apart by construction.</li>
+    </ol>
+  </div>
+
+  <div class="cartao">
+    <h3>What was not verified, and must not be read as measured</h3>
+    <p class="sub">Written here rather than in a report, because the screen is what gets read.</p>
+    <ul style="font-size:.9rem;margin:.4rem 0 0;padding-left:1.1rem">
+      <li><strong>No closing was measured.</strong> Every <em>opened in the window</em>, <em>closed in the window</em>, <em>weeks with a close</em> and forecast figure on all three bands is invented. What was measured on 8 Sep is the count of <strong>open</strong> items: 760 TASK · 288 US · 71 BUG · 35 EPIC across everyone in a team; SQUAD PINK's 180 · 78 · 21 · 18; and per person, 114, 77 and 54 in PINK and 11, 3 and 0 in Equipe IA.</li>
+      <li><strong>SQUAD PINK's zeros are an inference, not a reading.</strong> The newest still-open item is 217 days old, so nothing opened inside the window remains open — but an item opened <em>and</em> closed inside the window leaves no trace in that sample. Nobody counted those.</li>
+      <li><strong>The split of the remaining open items</strong> — 52 between two people in PINK, 69 between four in Equipe IA — is invented to make the rows sum to the squad's real total.</li>
+      <li><strong>No repository-coverage number exists</strong> for any person; every "<em>N repos observed</em>" on this page is invented, and the missing denominator is real.</li>
+      <li><strong>Nothing was measured for LEDS - ConectaFapes.</strong> The 31-row band is a density test with invented people; the team's size is the only real thing in it.</li>
+      <li><strong>The query ceiling was not measured.</strong> Whether two people open stays inside the per-render limit the team screen's guard test holds is an argument here, not a measurement (SC-031).</li>
+      <li><strong>The composed-team case is described, not drawn.</strong> On a composed team the tab still has one row per person — the tab is per person, not per membership — with the squad chips in the person cell and still no total. No band on this page shows it.</li>
+    </ul>
+  </div>
+</section>
+</div>

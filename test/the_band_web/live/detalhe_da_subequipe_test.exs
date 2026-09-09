@@ -66,6 +66,7 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
         person_id: pessoa.id,
         team_id: ctx.equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: Keyword.get(opts, :desde, dias(-300))
       })
   end
@@ -254,7 +255,9 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
       t = texto(html)
-      assert t =~ "stale"
+      # O rótulo passou a carregar o LIMIAR (protótipo, decisão 18): "stale" sozinho não diz
+      # sobre o que a contagem foi feita.
+      assert t =~ "stopped · over"
       assert t =~ "invitation to ask, not a verdict"
       assert html =~ "95d"
       assert html =~ "85d"
@@ -293,8 +296,8 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
     end
   end
 
-  describe "a equipe composta não mostra o detalhe" do
-    test "FR-011: com duas subequipes, nenhum gráfico e nenhuma previsão", ctx do
+  describe "a equipe composta mostra o fluxo da equipe INTEIRA (060 FR-058)" do
+    test "com duas subequipes, tem gráfico e previsão — e diz que não é a soma", ctx do
       {:ok, a} = EO.declare_structural_team(ctx.tenant, ctx.org.id, "A", ctx.admin.id)
       {:ok, b} = EO.declare_structural_team(ctx.tenant, ctx.org.id, "B", ctx.admin.id)
       {:ok, _} = EO.compose_teams(ctx.tenant, a.id, ctx.equipe.id, ctx.admin.id)
@@ -302,10 +305,22 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
 
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
-      refute html =~ "<svg"
-      refute html =~ "Delivery forecast"
-      refute html =~ "What each person is on"
+      # ANTES este teste afirmava o contrário: `refute html =~ "<svg"`, pela 057 FR-011.
+      #
+      # A 060 FR-058 emendou aquela proibição. Ela impedia sem querer o fluxo da equipe
+      # INTEIRA, que é outra pergunta: numa equipe composta as pessoas estão nas partes, e
+      # sem o conjunto o painel media quem tem vínculo direto — em geral ninguém.
+      #
+      # O que a 057 protegia continua de pé, e está medido em `equipe_composta_test.exs`: a
+      # TABELA por subequipe segue sem gráfico.
+      assert html =~ "<svg"
+      assert html =~ "Delivery forecast"
       assert html =~ "Teams inside this one"
+
+      # A frase da FR-060, sem a qual a ausência de total parece descuido e alguém soma as
+      # linhas da tabela para "conferir".
+      assert html =~ "not the sum"
+      assert html =~ "2 sub-teams"
     end
   end
 
@@ -392,6 +407,7 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
           person_id: ana.id,
           team_id: ctx.equipe.id,
           organizational_role_id: ctx.papel.id,
+          declared_by_user_id: ctx.admin.id,
           started_at: dias(-300),
           ended_at: dias(-30)
         })

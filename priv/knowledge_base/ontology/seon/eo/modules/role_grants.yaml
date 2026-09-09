@@ -1,0 +1,128 @@
+module:
+  id: eo.role_grants
+  ontology: eo
+  name: Role Grants
+  version: 1.0.0
+  description:
+    pt-BR: >
+      O que um papel organizacional **permite** na plataforma: ver o painel de trabalho de
+      quem, e gerir a estrutura de qual equipe.
+
+      Não é conceito da EO de referência. É a **declaração adjacente** — o mesmo lugar
+      ontológico que `spo.activity_start_criterion` ocupa para o instante de início: a rede
+      não responde quem pode o quê nesta plataforma, e inventar a resposta dentro da
+      ontologia seria pôr decisão de produto na camada que descreve o mundo.
+
+      A concessão é **por papel**, e nunca inferida do nome dele. `Tech Leader` parece
+      liderança e `Coordenador` também; a mesma organização pode ter um `Tech Lead` que é
+      senioridade técnica e não chefia ninguém. O erro por padrão de nome é caro nas duas
+      direções, e mais caro na da gestão: excesso de visibilidade concedido ninguém reclama;
+      excesso de gestão concedido reescreve a estrutura de quem não deveria.
+
+      Toda concessão tem autor, data e revogação **por marca** — revogar nunca apaga a
+      linha, porque quem concedeu, quando, e até quando, é a pergunta que mais se faz depois.
+  provenance:
+    source_type: project_decision
+    reference: >
+      Issue #369 (concessão de visibilidade, 2026-08-26); spec 045 FR-022 (ver e mexer são
+      decisões separadas); spec 060 FR-080 a FR-082 (concessão de gestão, decisão da pessoa
+      mantenedora em 2026-09-07)
+    year: 2026
+    note: >
+      A concessão de **visibilidade** existia no código desde 2026-08-26
+      (`eo_role_visibility_grants`, `lib/the_band/ontology/seon/eo/schemas/role_visibility_grant.ex`)
+      **sem estar declarada na base** — lacuna herdada, encontrada ao planejar a spec 060.
+      Declarar as duas juntas fecha a lacuna em vez de dobrá-la: a de gestão nasce declarada,
+      e a de visibilidade deixa de ser código sem conceito.
+
+      **O que estas concessões não são**: papel de plataforma. `users.role` (`admin`,
+      `member`) continua sendo outra coisa — a administradora age sem concessão nenhuma, e
+      ninguém mais age sem ela. Uma conta não recebe concessão; um **papel** recebe, e a
+      pessoa alcança pelo vínculo vigente com esse papel.
+
+concepts:
+  - id: eo.role_visibility_grant
+    name: Role Visibility Grant
+    label:
+      { pt-BR: "Concessão de visibilidade por papel", en: "Role Visibility Grant" }
+    definition:
+      pt-BR: >
+        Declaração de que quem desempenha um papel organizacional, **com vínculo vigente**,
+        alcança o painel de trabalho das pessoas da sua equipe (alcance `team`) ou da sua
+        organização (alcance `organization`).
+
+        O alcance é o que a declaração diz, e não um booleano: `is_leader` perderia quem
+        concedeu, quando, e até onde — e numa decisão de visibilidade essas três são as
+        perguntas seguintes.
+    classification: { ufo_category: normative_description, ontouml_stereotype: kind }
+    attributes:
+      - { name: scope, type: enum, values: [team, organization], required: true }
+      - { name: declared_at, type: datetime, required: true }
+      - { name: revoked_at, type: datetime, required: false }
+    examples:
+      - "quem é Scrum Master vê o painel de quem está nas equipes em que ele é Scrum Master"
+      - "quem é Diretor de Tecnologia vê o painel de toda a organização"
+    provenance:
+      source_type: project_decision
+      reference: "Issue #369; persistida em eo_role_visibility_grants desde 2026-08-27"
+
+  - id: eo.role_structure_management_grant
+    name: Role Structure Management Grant
+    label:
+      {
+        pt-BR: "Concessão de gestão da estrutura por papel",
+        en: "Role Structure Management Grant",
+      }
+    definition:
+      pt-BR: >
+        Declaração de que quem desempenha um papel organizacional, **com vínculo vigente**,
+        pode declarar a estrutura de uma equipe — o papel de cada pessoa, a saída, o
+        equívoco, a composição de subequipes, os papéis da organização e a ligação a projeto
+        — nas equipes em que tem o papel (alcance `team`) ou em todas as da organização
+        (alcance `organization`).
+
+        **Ver e mexer são decisões separadas** (spec 045, FR-022): a concessão de
+        visibilidade não confere gestão, e a de gestão não confere visibilidade. Quem
+        precisa das duas recebe as duas, e o registro diz qual é qual.
+    classification: { ufo_category: normative_description, ontouml_stereotype: kind }
+    attributes:
+      - { name: scope, type: enum, values: [team, organization], required: true }
+      - { name: declared_at, type: datetime, required: true }
+      - { name: revoked_at, type: datetime, required: false }
+    examples:
+      - "quem é Scrum Master declara o papel e a saída de quem está na sua equipe"
+      - "quem é Gerente de Engenharia gere a estrutura de todas as equipes da organização"
+    provenance:
+      source_type: project_decision
+      reference: "Spec 060 FR-080 a FR-082; decisão da pessoa mantenedora em 2026-09-07"
+      note: >
+        Nasce da medida de 2026-09-06: 59 participações observadas e nenhum papel declarado,
+        porque só a conta administradora podia declarar. Abrir a declaração a quem coordena a
+        equipe é o que faz a estrutura ser mantida por quem a conhece.
+
+relations:
+  - id: eo.visibility_grant_to_role
+    name: granted to
+    label: { pt-BR: "concedida ao papel", en: "granted to" }
+    source: eo.role_visibility_grant
+    target: eo.organizational_role
+    type: association
+    cardinality: { source: many, target: one }
+    semantics:
+      pt-BR: >
+        O papel que recebe a concessão. Muitas concessões para um papel porque os alcances
+        são distintos e independentes — `team` e `organization` podem coexistir, e a mais
+        ampla vence na leitura.
+
+  - id: eo.structure_management_grant_to_role
+    name: granted to
+    label: { pt-BR: "concedida ao papel", en: "granted to" }
+    source: eo.role_structure_management_grant
+    target: eo.organizational_role
+    type: association
+    cardinality: { source: many, target: one }
+    semantics:
+      pt-BR: >
+        O mesmo desenho da concessão irmã, com o verbo trocado. O alcance é avaliado contra a
+        equipe sobre a qual se quer agir: `team` alcança as equipes em que a pessoa tem o
+        papel vigente; `organization`, todas as equipes da organização daquele papel.

@@ -1,7 +1,7 @@
 # Sprint 011 — Review
 
-**Período**: 2026-08-12 · **Feature**: [012 — o vínculo que sumiu na origem](../../specs/012-vinculo-que-sumiu-na-origem/spec.md)
-**PR**: [#278](https://github.com/The-Band-Solution/theband/pull/278) · **Aceitação**: [aceitacao.md](../../specs/012-vinculo-que-sumiu-na-origem/aceitacao.md)
+**Período**: 2026-08-12 · **Feature**: [012 — o vínculo que sumiu na origem](../../../specs/012-vinculo-que-sumiu-na-origem/spec.md)
+**PR**: [#278](https://github.com/The-Band-Solution/theband/pull/278) · **Aceitação**: [aceitacao.md](../../../specs/012-vinculo-que-sumiu-na-origem/aceitacao.md)
 
 Escrita **neste** sprint, e não no seguinte. É a L44 aplicada a ela mesma.
 

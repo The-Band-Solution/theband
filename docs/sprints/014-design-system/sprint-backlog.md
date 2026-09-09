@@ -1,6 +1,6 @@
 # Sprint 014 — o design system
 
-**Período**: 2026-08-13 · **Features**: [016 migalha](../../specs/016-migalha-de-pao/spec.md) · [017 tabela](../../specs/017-tabela-que-busca-ordena-e-pagina/spec.md)
+**Período**: 2026-08-13 · **Features**: [016 migalha](../../../specs/016-migalha-de-pao/spec.md) · [017 tabela](../../../specs/017-tabela-que-busca-ordena-e-pagina/spec.md)
 **Origem**: [#285](https://github.com/The-Band-Solution/theband/issues/285) e [#289](https://github.com/The-Band-Solution/theband/issues/289)
 
 ## Objetivo

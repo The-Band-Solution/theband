@@ -75,9 +75,24 @@ a primeira revisão*, que é uma espera de quem abriu.
 **`{:aguardando, dias}` nunca é omitido nem vira zero.** Ver o data-model: sem as
 em espera, a mediana melhora quanto pior a equipe estiver.
 
+`espera` carrega também `autor_login`, para a tela nomear quem abriu sem uma
+segunda consulta às pessoas.
+
 ### `team_time_to_first_review_by_person/3`
 
 Mesma assinatura, agrupada por autor.
+
+### `agrupar_por_pessoa/1` e `mediana_em_horas/1` — acrescentadas na implementação
+
+**Correção do contrato, escrita quando a tela mostrou o erro** (2026-09-03). A
+seção mostra as duas leituras juntas, e chamar `team_time_to_first_review/3` e
+depois `..._by_person/3` faria **duas consultas com o mesmo filtro** por render.
+
+`agrupar_por_pessoa/1` é pura e recebe a lista já carregada;
+`team_time_to_first_review_by_person/3` passou a ser a composição das duas.
+
+`mediana_em_horas/1` é pura e ignora as em curso: a espera delas não terminou.
+Devolve `nil` quando nenhuma foi revisada — zero afirmaria revisão instantânea.
 
 **As duas contagens não somam**, e quem chama precisa dizer isso na tela: a
 mesma solicitação tem **um** autor, então aqui não há dupla contagem — mas a
@@ -124,6 +139,36 @@ Os repositórios ligados ao projeto **no período**. Existe para a US3, e usa
 `spo_project_repositories.linked_at` / `unlinked_at` — colunas que **nenhuma
 consulta usava**.
 
+### As variantes em lote — acrescentadas na implementação
+
+**Correção do contrato, escrita quando o teto de consultas reprovou**
+(2026-09-03). A tela da equipe pergunta por **todos** os projetos dela de uma vez,
+e as funções por projeto, chamadas num laço, fariam a página consultar por linha —
+o defeito que o teto da feature 057 existe para impedir.
+
+```elixir
+@spec who_worked_on_many(Tenant.t(), [Ecto.UUID.t()], periodo()) ::
+        %{Ecto.UUID.t() => [pessoa_no_projeto()]}
+@spec project_teams_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: [map()]
+@spec project_repositories_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: [map()]
+```
+
+`who_worked_on_many/3` custa **duas** consultas para qualquer número de projetos, e
+`who_worked_on/3` passou a ser ela com um id — uma implementação só, e por isso
+uma regra só.
+
+### `team_projects_ever/2` e `team_project_links_with_period/2`
+
+**Correção do contrato, escrita quando um teste mostrou o erro** (2026-09-03). A
+seção usava `list_team_projects/2`, que filtra `is_nil(unlinked_at)` porque serve
+à associação. Com ele, **o projeto de que a equipe saiu sumia da tela inteira**,
+levando junto todo mundo que trabalhou nele — contra a FR-008.
+
+`team_projects_ever/2` devolve os projetos por que a equipe passou, um por
+projeto. `team_project_links_with_period/2` devolve **cada vínculo** com seu
+período: ligada, desligada e religada são dois intervalos, e colapsá-los antes de
+intersectar contaria o intervalo do meio, em que a equipe não estava lá.
+
 ---
 
 ## 4. `TheBand.Verification` — a taxa da equipe
@@ -142,9 +187,36 @@ consulta usava**.
         expirada: non_neg_integer(),
         em_andamento: non_neg_integer(),
         execucoes_consideradas: non_neg_integer(),
+        percentual: float() | nil,
+        denominador_do_percentual: non_neg_integer(),
+        repositorios: non_neg_integer(),
         caminho: String.t()
       }
 ```
+
+`opts` aceita `:desde`, `:ate`, e mais dois que **existem para não repetir
+trabalho de quem chama**: `:nome`, o nome da equipe — a tela já o tem, e sem ele a
+recusa custaria uma consulta para escrever uma palavra que já está na página; e
+`:vinculos`, a lista de vínculos equipe ↔ projeto já carregada, que a seção de
+quem trabalhou nos projetos carrega de qualquer jeito.
+
+### Os DOIS denominadores — acrescentados na implementação
+
+**Correção do contrato, escrita ao implementar** (2026-09-03). O tipo original não
+tinha percentual nenhum, e a tela teria de inventar um denominador — que é
+exatamente o que a FR-013b proíbe.
+
+`execucoes_consideradas` são as que **terminaram**, nas cinco fases.
+`percentual` é `sucesso / (sucesso + falha)`, e `denominador_do_percentual` diz
+sobre quantas. São dois números diferentes de propósito: dividir o sucesso pelas
+cinco fases faria a taxa cair a cada cancelamento, e chamar isso de *taxa de
+sucesso do pipeline* culparia o pipeline por decisão humana.
+
+`percentual` é **nil** quando nada produziu resultado. Zero diria que tudo falhou;
+nil diz que não há o que dividir.
+
+`repositorios` é quantos repositórios entraram na conta — parte do tamanho da
+amostra que a FR-016 exige junto do número.
 
 **O caminho é `repositório → projeto → equipe`**, e não o ator da execução.
 

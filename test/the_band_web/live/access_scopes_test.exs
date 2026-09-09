@@ -144,6 +144,7 @@ defmodule TheBandWeb.AccessScopesTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.utc_now(:second)
       })
 

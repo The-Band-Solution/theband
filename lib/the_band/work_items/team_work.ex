@@ -27,12 +27,23 @@ defmodule TheBand.WorkItems.TeamWork do
 
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.EO.Schemas.TeamMembership
+  alias TheBand.Profiles.Material
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.IssueAssignee
+  alias TheBand.WorkItems.Schemas.IssuePromotion
 
-  @parada_em_dias 90
+  # O LIMIAR DE PARADA VEM DA BASE, e não de uma constante de módulo.
+  #
+  # Havia 90 escrito aqui — duplicata silenciosa de
+  # `profile.thresholds.stale_open_work.stale_days`, que já declarava o mesmo número. Duas
+  # cópias do mesmo limiar em lugares diferentes é a plataforma esperando discordar de si
+  # mesma: quem mudasse o YAML veria o perfil da pessoa mudar e o painel da equipe não.
+  #
+  # A FR-069 da spec 060 o proíbe por escrito, e a razão é operacional: em constante, o
+  # limiar muda num diff e ninguém percebe que a plataforma passou a afirmar outra coisa.
+  defp parada_em_dias, do: Material.stale_days()
 
   @doc """
   Issues criadas e concluídas por período, das pessoas que pertenciam à equipe
@@ -52,11 +63,155 @@ defmodule TheBand.WorkItems.TeamWork do
     forma = formato(escala)
     desde = Keyword.fetch!(opts, :desde)
     ate = Keyword.fetch!(opts, :ate)
+    equipes = alcance(team_id, opts)
 
-    criadas = por_evento(tenant, team_id, :external_created_at, forma, desde, ate)
-    fechadas = por_evento(tenant, team_id, :external_closed_at, forma, desde, ate)
+    criadas = por_evento(tenant, equipes, :external_created_at, forma, desde, ate)
+    fechadas = por_evento(tenant, equipes, :external_closed_at, forma, desde, ate)
 
     juntar(criadas, fechadas, escala, desde, ate)
+  end
+
+  @doc """
+  A série de VÁRIAS equipes, numa consulta por evento — feature 060, FR-084.
+
+  Devolve `%{team_id => [%{periodo, criadas, fechadas}]}`, cada série com todos os períodos da
+  janela, inclusive os vazios.
+
+  ## Por que existe
+
+  O gráfico pequeno do cartão de subequipe (FR-084) precisa da série **de cada** subequipe. A
+  forma óbvia — chamar `state_changes_by_period/4` por cartão — custa três consultas por
+  subequipe, e o teto de consultas da tela acusou: 7 por subequipe contra as 6 declaradas.
+
+  É o padrão 1+N que aquele teto existe para pegar. Subir o teto seria mover a trave: com dez
+  subequipes seriam trinta consultas para desenhar dez faíscas de 40 pixels.
+
+  Aqui são **duas** consultas para qualquer número de equipes — uma por evento —, agrupando
+  por equipe e período no banco.
+
+  ## O DISTINCT continua por equipe
+
+  Item de dois responsáveis da mesma equipe conta **uma** vez naquela equipe, e uma vez em
+  cada outra equipe cujos membros o tenham. É a regra da 057 FR-008, e agrupar por equipe a
+  preserva: o `count(distinct)` é calculado dentro de cada grupo.
+  """
+  @spec state_changes_by_team(Tenant.t(), [Ecto.UUID.t()], atom(), keyword()) :: %{
+          Ecto.UUID.t() => [map()]
+        }
+  def state_changes_by_team(%Tenant{} = tenant, equipes, escala, opts)
+      when escala in [:semana, :mes, :ano] do
+    forma = formato(escala)
+    desde = Keyword.fetch!(opts, :desde)
+    ate = Keyword.fetch!(opts, :ate)
+
+    criadas = por_evento_e_equipe(tenant, equipes, :external_created_at, forma, desde, ate)
+    fechadas = por_evento_e_equipe(tenant, equipes, :external_closed_at, forma, desde, ate)
+
+    Map.new(equipes, fn team_id ->
+      {team_id,
+       juntar(
+         Map.get(criadas, team_id, %{}),
+         Map.get(fechadas, team_id, %{}),
+         escala,
+         desde,
+         ate
+       )}
+    end)
+  end
+
+  @doc """
+  Quantos itens cada equipe tinha em aberto naquele instante — a linha de base de várias
+  faíscas, numa consulta.
+
+  Equipe sem nenhum item aberto **não** entra no mapa, e quem lê usa `Map.get(.., id, 0)`:
+  uma entrada com zero seria uma linha inventada para dizer o que a ausência já diz.
+  """
+  @spec open_at_by_team(Tenant.t(), [Ecto.UUID.t()], DateTime.t()) :: %{
+          Ecto.UUID.t() => non_neg_integer()
+        }
+  def open_at_by_team(%Tenant{id: tenant_id}, equipes, quando) do
+    CollectedIssue
+    |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+    |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
+    |> where([i], not is_nil(i.external_created_at) and i.external_created_at <= ^quando)
+    |> where([i], is_nil(i.external_closed_at) or i.external_closed_at > ^quando)
+    |> vigente_em(quando)
+    |> group_by([_i, _a, m], m.team_id)
+    |> select([i, _a, m], {type(m.team_id, :binary_id), count(i.id, :distinct)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  # Como `por_evento/6`, com a equipe no `GROUP BY`. O resultado é aninhado por equipe para
+  # quem chama não precisar reagrupar.
+  defp por_evento_e_equipe(%Tenant{id: tenant_id}, equipes, campo, forma, desde, ate) do
+    CollectedIssue
+    |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+    |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
+    |> where([i], not is_nil(field(i, ^campo)))
+    |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
+    |> where(
+      [i, _a, m],
+      is_nil(m.invalidated_at) and
+        (is_nil(m.started_at) or m.started_at <= field(i, ^campo)) and
+        (is_nil(m.ended_at) or m.ended_at > field(i, ^campo))
+    )
+    |> group_by([i, _a, m], [m.team_id, fragment("2")])
+    |> select(
+      [i, _a, m],
+      {type(m.team_id, :binary_id), fragment("to_char(?, ?)", field(i, ^campo), ^forma),
+       count(i.id, :distinct)}
+    )
+    |> Repo.all()
+    |> Enum.group_by(fn {team_id, _p, _n} -> team_id end, fn {_t, p, n} -> {p, n} end)
+    |> Map.new(fn {team_id, pares} -> {team_id, Map.new(pares)} end)
+  end
+
+  # O ALCANCE é uma LISTA de equipes — feature 060, FR-056 e FR-058.
+  #
+  # Uma equipe **composta** flui como um todo, e o conjunto dela é a união distinta dos
+  # membros dela e das partes vigentes. Sem isto, o painel de uma equipe composta media só
+  # quem tem vínculo direto — em geral ninguém, porque numa composta as pessoas estão nas
+  # partes.
+  #
+  # **A soma das partes NÃO é o todo** (FR-060), e é o `DISTINCT` na issue que garante: a
+  # pessoa em duas partes e o item com dois responsáveis contam **uma** vez aqui, e uma vez em
+  # cada parte quando cada parte é medida por si. Somar os números das partes daria outro
+  # número, e a tela diz isso em palavras.
+  #
+  # O padrão é `[team_id]`: quem chama sem `:equipes` continua medindo a equipe própria.
+  defp alcance(team_id, opts) do
+    case Keyword.get(opts, :equipes) do
+      nil -> [team_id]
+      [] -> [team_id]
+      lista -> lista
+    end
+  end
+
+  @doc """
+  A abertura do item mais **antigo** desta equipe, ou `nil` se não há nenhum.
+
+  Serve a uma coisa só: a janela padrão da granulação **ano** é "todos os anos coletados"
+  (feature 060, FR-078), e "todos" não é um número que se possa fixar. Cinco anos seria
+  inventado — mostraria anos vazios numa base nova e cortaria anos reais numa antiga.
+
+  `nil` é resposta legítima e diferente de zero: a equipe não tem item coletado, e a tela diz
+  isso em vez de desenhar um eixo sem dado.
+  """
+  @spec primeira_atividade(Tenant.t(), Ecto.UUID.t(), keyword()) :: DateTime.t() | nil
+  def primeira_atividade(%Tenant{id: tenant_id}, team_id, opts \\ []) do
+    equipes = alcance(team_id, opts)
+
+    CollectedIssue
+    |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+    |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
+    |> where([i], not is_nil(i.external_created_at))
+    |> where([_i, _a, m], is_nil(m.invalidated_at))
+    |> select([i], min(i.external_created_at))
+    |> Repo.one()
   end
 
   @doc """
@@ -69,12 +224,14 @@ defmodule TheBand.WorkItems.TeamWork do
   dentro dela: uma equipe com quarenta itens abertos há meses e nenhuma abertura
   recente apareceria com distância zero.
   """
-  @spec open_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: non_neg_integer()
-  def open_at(%Tenant{id: tenant_id}, team_id, quando) do
+  @spec open_at(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: non_neg_integer()
+  def open_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    equipes = alcance(team_id, opts)
+
     CollectedIssue
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
-    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(i.external_created_at) and i.external_created_at <= ^quando)
     |> where([i], is_nil(i.external_closed_at) or i.external_closed_at > ^quando)
     |> vigente_em(quando)
@@ -109,15 +266,28 @@ defmodule TheBand.WorkItems.TeamWork do
     else
       CollectedIssue
       |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
+      |> join(:left, [i, _a], pr in IssuePromotion, on: pr.collected_issue_id == i.id)
       |> where([i, a], i.tenant_id == ^tenant_id and a.person_id in ^ids)
       |> where([i], is_nil(i.external_closed_at) and not is_nil(i.external_created_at))
       |> order_by([i], asc: i.external_created_at)
-      |> select([i, a], %{
+      |> select([i, a, pr], %{
         person_id: a.person_id,
         issue_id: i.id,
         external_id: i.external_id,
         titulo: i.title,
-        aberta_desde: i.external_created_at
+        aberta_desde: i.external_created_at,
+        # O CONCEITO PROMOVIDO, e não o tipo declarado na origem.
+        #
+        # `collected_issues.issue_type` é o rótulo que a organização pôs — e nesta base ele é
+        # **nulo em 778 dos 1154 itens abertos**. O conceito vem da promoção, que aplica a
+        # regra `github.issue_type_routing` com a precedência declarada: a **estrutura vence
+        # a declaração**. Uma issue tipo `Feature` com partes que são user stories é épico; a
+        # mesma sem partes é user story atômica.
+        #
+        # `LEFT JOIN`, e `nil` quando não houve promoção: a tela nomeia a ausência em vez de
+        # supor tarefa. Chutar aqui contamina toda medida de escopo — é o que a própria regra
+        # diz no `fallback_rationale`.
+        conceito: pr.derived_concept
       })
       |> Repo.all()
       |> Enum.map(&tarefa(&1, quando))
@@ -161,7 +331,7 @@ defmodule TheBand.WorkItems.TeamWork do
 
     linha
     |> Map.drop([:aberta_desde])
-    |> Map.merge(%{aberta_ha_dias: max(dias, 0), parada?: dias > @parada_em_dias})
+    |> Map.merge(%{aberta_ha_dias: max(dias, 0), parada?: dias > parada_em_dias()})
   end
 
   defp fechadas_entre(%Tenant{id: tenant_id}, team_id, desde, ate) do
@@ -185,11 +355,11 @@ defmodule TheBand.WorkItems.TeamWork do
   # muda nenhuma linha cuja data de evento seja anterior à saída.
   #
   # `started_at` nulo é membro — nulo é desconhecido, nunca "nunca pertenceu".
-  defp por_evento(%Tenant{id: tenant_id}, team_id, campo, forma, desde, ate) do
+  defp por_evento(%Tenant{id: tenant_id}, equipes, campo, forma, desde, ate) do
     CollectedIssue
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
-    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], not is_nil(field(i, ^campo)))
     |> where([i], field(i, ^campo) >= ^desde and field(i, ^campo) <= ^ate)
     |> where(

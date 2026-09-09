@@ -1,8 +1,8 @@
 # Sprint 008 — a marca de inacessível se cura
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [009 — marca que se cura](../../specs/009-marca-que-se-cura/spec.md)
-**Plano**: [plan.md](../../specs/009-marca-que-se-cura/plan.md)
+**Feature**: [009 — marca que se cura](../../../specs/009-marca-que-se-cura/spec.md)
+**Plano**: [plan.md](../../../specs/009-marca-que-se-cura/plan.md)
 **Origem**: [#213](https://github.com/The-Band-Solution/theband/issues/213) e
 [#214](https://github.com/The-Band-Solution/theband/issues/214), **Bug, P0**
 **Análise**: rodada antes do código, **seis correções**, uma delas crítica
@@ -57,7 +57,7 @@ número cresce sozinho.
 
 ## Tarefas
 
-Detalhadas em [009/tasks.md](../../specs/009-marca-que-se-cura/tasks.md). Cada tarefa é filha da
+Detalhadas em [009/tasks.md](../../../specs/009-marca-que-se-cura/tasks.md). Cada tarefa é filha da
 **user story que ela atende** — nunca do épico.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
@@ -123,9 +123,9 @@ que este defeito viveu dois dias.
 ## Definition of Done do sprint
 
 - [x] `mix gates` verde pelo **código de saída** — dez gates, em `main` (`26f8a45`), 430 testes
-- [x] V1 e V4 a V9 do [quickstart](../../specs/009-marca-que-se-cura/quickstart.md) verificados
+- [x] V1 e V4 a V9 do [quickstart](../../../specs/009-marca-que-se-cura/quickstart.md) verificados
 - [ ] **V2 e V3 — no dado real**: exigem a chave mestra e o token, que são da pessoa mantenedora.
-      Declarado como pendente na [aceitação](../../specs/009-marca-que-se-cura/aceitacao.md), e o
+      Declarado como pendente na [aceitação](../../../specs/009-marca-que-se-cura/aceitacao.md), e o
       mecanismo está medido no banco: **96 → 135** repositórios coletáveis
 - [x] as nove issues encerradas — #216 a #228, todas `Done` no projeto
 - [x] PR [#230](https://github.com/The-Band-Solution/theband/pull/230) com revisor `the-band`
@@ -133,7 +133,7 @@ que este defeito viveu dois dias.
 - [x] [`sprint-review.md`](sprint-review.md) escrito, separando feito de não feito
 - [x] `licoes-aprendidas.md` atualizado — L36 e L37, e a **L36 foi reescrita** quando o experimento
       mostrou que o mecanismo que eu havia publicado estava errado
-- [x] [`aceitacao.md`](../../specs/009-marca-que-se-cura/aceitacao.md) com os 12 SC avaliados um a um
+- [x] [`aceitacao.md`](../../../specs/009-marca-que-se-cura/aceitacao.md) com os 12 SC avaliados um a um
 
 **O sprint fecha com um item aberto e ele está nomeado**: a prova no dado real. Marcar como feito o
 que depende de credencial que não é minha seria declarar sucesso sem evidência.

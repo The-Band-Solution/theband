@@ -114,6 +114,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
       from e in TeamMembershipEvidence,
         join: p in Person,
         on: p.id == e.person_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
         where: e.tenant_id == ^tenant_id and e.team_id == ^team_id,
         select: %{
           person: p,
@@ -121,7 +123,9 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
           observed_at: e.observed_at,
           last_observed_at: e.last_observed_at,
           no_longer_observed_at: e.no_longer_observed_at,
-          pending_role: is_nil(e.promoted_membership_id)
+          # Desde 2026-09-06 a evidência viva sempre aponta para um vínculo; "pendente" é o
+          # vínculo SEM PAPEL declarado — e não a ausência de vínculo.
+          pending_role: is_nil(e.promoted_membership_id) or is_nil(m.organizational_role_id)
         }
 
     query
@@ -180,7 +184,16 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     TeamMembership
     |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
     |> vigente_em(quando)
-    |> select([m], count(m.id))
+    # PESSOAS DISTINTAS, e não vínculos.
+    #
+    # `count(m.id)` contava linhas, e desde 2026-09-01 o índice parcial permite dois vínculos
+    # vigentes do mesmo par pessoa–equipe com papéis diferentes (FR-018 da 060 o tornou
+    # explícito). Quem desempenha dois papéis contava **duas vezes** — e a função promete
+    # "quantas pessoas", não "quantos vínculos".
+    #
+    # `team_size/2` já contava distinto, o que mostra qual era a intenção: as duas respondem a
+    # mesma pergunta em datas diferentes, e discordavam.
+    |> select([m], count(m.person_id, :distinct))
     |> Repo.one()
   end
 
@@ -198,22 +211,94 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   Somá-los aqui apagaria a diferença entre o que a organização declarou e o que a
   ferramenta mostrou.
   """
-  @spec team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [map()]
-  def team_members_at(%Tenant{id: tenant_id}, team_id, quando) do
+  @spec team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: [map()]
+  def team_members_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    # O ALCANCE pode ser o conjunto da EQUIPE INTEIRA — feature 060, FR-056.
+    #
+    # Sem `opts[:escopo]` continua sendo só a equipe própria, que é o comportamento de quem
+    # chama de fora. Com ele, inclui as partes com composição vigente.
+    #
+    # A falta disto produziu o defeito mais caro que o QA achou em 2026-09-08: numa equipe
+    # composta, o cartão *tarefas paradas* dizia **"conferido, nada encontrado"** enquanto o
+    # cartão da subequipe, duas seções abaixo, dizia **"stopped 2"**. Quem gerencia lia um
+    # falso negativo sobre itens parados há 400 e 120 dias — exatamente o que a seção
+    # *Problemas agora* existe para impedir.
+    #
+    # A mesma lacuna fazia a seção de pessoas listar **1 de 3**, e o rodapé das medidas dizer
+    # *"measured over 1 member"* no mesmo scroll em que o cabeçalho dizia *"3 people here"*.
+    equipes = opts[:escopo] || [team_id]
+
     TeamMembership
-    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> vigente_em(quando)
     |> join(:inner, [m], p in Person, on: p.id == m.person_id)
-    |> order_by([_m, p], asc: p.name, asc: p.login)
+    # `person_id` na ordenação não é enfeite: `uma_linha_por_pessoa/1` agrupa por adjacência,
+    # e duas pessoas distintas com o mesmo nome e login nulo se intercalariam — fundindo gente
+    # diferente numa linha só.
+    |> order_by([m, p], asc: p.name, asc: p.login, asc: m.person_id)
     |> select([m, p], %{
       person_id: p.id,
       name: p.name,
       login: p.login,
       started_at: m.started_at,
-      ended_at: m.ended_at
+      ended_at: m.ended_at,
+      # O vínculo é DECLARADO quando alguém o afirmou; OBSERVADO quando a coleta o criou a
+      # partir da origem (2026-09-06). A tela diz qual é, e as medidas dizem sobre quantos
+      # de cada foram calculadas.
+      declarado?: not is_nil(m.declared_by_user_id),
+      papel_declarado?: not is_nil(m.organizational_role_id)
     })
     |> Repo.all()
+    |> uma_linha_por_pessoa()
   end
+
+  # A ordenação por `p.name` já põe os vínculos da mesma pessoa lado a lado, mesmo vindo de
+  # equipes diferentes do conjunto — é o que `uma_linha_por_pessoa/1` precisa para agrupar por
+  # adjacência, e a razão de `person_id` estar no `order_by`.
+
+  # UMA LINHA POR PESSOA, pelo mesmo motivo de `count_team_members_at/3`.
+  #
+  # Dois papéis vigentes davam duas linhas, e a tela listava a pessoa duas vezes — com o
+  # cabeçalho ao lado dizendo um número que já era o número de vínculos. Os dois defeitos se
+  # confirmavam um ao outro.
+  #
+  # ## As regras da fusão, e por que estas
+  #
+  # - **início**: o mais ANTIGO, porque a pergunta é desde quando a pessoa está na equipe, e
+  #   não desde quando exerce este papel. `nil` é desconhecido e **vence** qualquer data: se um
+  #   dos vínculos não diz desde quando, a resposta honesta sobre a pessoa é "não se sabe";
+  # - **fim**: aqui todos os vínculos são vigentes na data, então `ended_at` é nulo por
+  #   construção. Preservado como vem;
+  # - **declarado?** e **papel_declarado?**: verdadeiro se QUALQUER vínculo o for. A pessoa
+  #   com um papel declarado e um observado tem, sim, papel declarado nesta equipe — negá-lo
+  #   por causa do outro vínculo apagaria a declaração que existe.
+  #
+  # Feito em Elixir e não em SQL: `DISTINCT ON` exigiria escolher **uma** das linhas, e
+  # escolher perderia o início mais antigo ou a declaração que está na outra.
+  defp uma_linha_por_pessoa(linhas) do
+    linhas
+    |> Enum.chunk_by(& &1.person_id)
+    |> Enum.map(fn
+      [uma] -> uma
+      varias -> Enum.reduce(varias, &fundir_vinculos/2)
+    end)
+  end
+
+  defp fundir_vinculos(b, a) do
+    %{
+      a
+      | started_at: inicio_mais_antigo(a.started_at, b.started_at),
+        declarado?: a.declarado? or b.declarado?,
+        papel_declarado?: a.papel_declarado? or b.papel_declarado?
+    }
+  end
+
+  # Desconhecido vence data: a pessoa está na equipe desde antes do que qualquer vínculo diz.
+  defp inicio_mais_antigo(nil, _outro), do: nil
+  defp inicio_mais_antigo(_um, nil), do: nil
+
+  defp inicio_mais_antigo(um, outro),
+    do: if(DateTime.compare(um, outro) == :lt, do: um, else: outro)
 
   @doc """
   Só os ids de quem pertencia na data.
@@ -222,13 +307,20 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   seria juntar `eo_people` em toda chamada da série para descartar o resultado.
   """
   @spec team_member_ids_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [Ecto.UUID.t()]
-  def team_member_ids_at(%Tenant{id: tenant_id}, team_id, quando) do
+  def team_member_ids_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    equipes = opts[:escopo] || [team_id]
+
+    # DISTINCT porque a pessoa em duas partes do conjunto tem dois vínculos, e é UMA pessoa.
+    #
+    # A junção com `Person` e a ordenação por nome saíram: existiam só para ordenar, e o
+    # Postgres recusa `SELECT DISTINCT` com `ORDER BY` sobre coluna fora do select. Ordem de
+    # uma lista de identificadores não é informação — quem precisa de ordem usa
+    # `team_members_at/4`, que traz o nome.
     TeamMembership
-    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> vigente_em(quando)
-    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
-    |> order_by([_m, p], asc: p.name, asc: p.login)
     |> select([m], m.person_id)
+    |> distinct(true)
     |> Repo.all()
   end
 
@@ -245,22 +337,48 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   `TheBand.Periodos.interseccao/1`.
   """
   @spec team_memberships_with_period(Tenant.t(), Ecto.UUID.t()) :: [map()]
-  def team_memberships_with_period(%Tenant{id: tenant_id}, team_id) do
+  def team_memberships_with_period(%Tenant{} = tenant, team_id) do
+    tenant
+    |> team_memberships_with_period_many([team_id])
+    |> Map.get(team_id, [])
+  end
+
+  @doc """
+  O mesmo de `team_memberships_with_period/2`, para **várias equipes numa consulta**.
+
+  Existe pela tela: a seção "quem trabalhou nos projetos desta equipe" precisa dos
+  vínculos de todas as equipes ligadas a todos os projetos, e perguntar uma vez por
+  equipe faria o custo da página crescer com o dado — o defeito que o teto de
+  consultas da feature 057 existe para impedir.
+
+  Devolve um mapa `team_id => [vínculo]`. Equipe sem vínculo nenhum **não aparece**
+  no mapa, e quem chama usa `Map.get(mapa, id, [])`: chave ausente e lista vazia
+  dizem a mesma coisa aqui, porque a pergunta é "quais vínculos", e não "esta
+  equipe existe".
+  """
+  @spec team_memberships_with_period_many(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          Ecto.UUID.t() => [map()]
+        }
+  def team_memberships_with_period_many(_tenant, []), do: %{}
+
+  def team_memberships_with_period_many(%Tenant{id: tenant_id}, team_ids) do
     TeamMembership
     |> where(
       [m],
-      m.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id) and
-        is_nil(m.invalidated_at)
+      m.tenant_id == ^tenant_id and m.team_id in ^team_ids and is_nil(m.invalidated_at)
     )
-    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    # O tenant amarrado nas duas tabelas — ver o mesmo padrão em `Projects`.
+    |> join(:inner, [m], p in Person, on: p.id == m.person_id and p.tenant_id == m.tenant_id)
     |> order_by([_m, p], asc: p.name, asc: p.login)
     |> select([m, p], %{
+      team_id: m.team_id,
       person_id: p.id,
       name: p.name,
       login: p.login,
       periodo: %{inicio: m.started_at, fim: m.ended_at}
     })
     |> Repo.all()
+    |> Enum.group_by(& &1.team_id)
   end
 
   @doc """
@@ -794,6 +912,30 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   # ------------------------------------------------------------------- lacunas
 
   @doc """
+  Quantos vínculos VIGENTES estão sem papel declarado — o número que "pendente de papel"
+  passou a significar em 2026-09-06, quando a coleta começou a criar o vínculo observado.
+
+  `count_evidence_pending_role/2` conta evidência sem vínculo nenhum, que desde então é
+  raro (só a evidência que a coleta não conseguiu apontar).
+  """
+  @spec count_memberships_pending_role(Tenant.t(), keyword()) :: non_neg_integer()
+  def count_memberships_pending_role(%Tenant{id: tenant_id}, opts \\ []) do
+    query =
+      from m in TeamMembership,
+        where:
+          m.tenant_id == ^tenant_id and is_nil(m.organizational_role_id) and
+            is_nil(m.ended_at) and is_nil(m.invalidated_at)
+
+    query =
+      case Keyword.get(opts, :team_id) do
+        nil -> query
+        team_id -> where(query, [m], m.team_id == ^team_id)
+      end
+
+    Repo.aggregate(query, :count, :id)
+  end
+
+  @doc """
   FR-021 e SC-010 — quantos vínculos observados ainda não têm papel atribuído.
 
   É medida de lacuna de conhecimento, não erro: diz quanto da estrutura
@@ -1072,6 +1214,8 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         on: t.id == e.team_id,
         left_join: o in Organization,
         on: o.id == t.organization_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
         where: e.tenant_id == ^tenant_id and e.person_id == ^person_id,
         order_by: [asc: t.name],
         select: %{
@@ -1082,7 +1226,10 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
           observed_at: e.observed_at,
           last_observed_at: e.last_observed_at,
           no_longer_observed_at: e.no_longer_observed_at,
-          promoted?: not is_nil(e.promoted_membership_id)
+          # "Promovida" passou a significar COM PAPEL DECLARADO (2026-09-06): a coleta já
+          # aponta toda evidência viva para um vínculo, e o que a tela da pessoa distingue é
+          # se alguém declarou o papel.
+          promoted?: not is_nil(m.organizational_role_id)
         }
     )
   end
@@ -1141,10 +1288,17 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
         on: p.id == e.person_id,
         join: t in Team,
         on: t.id == e.team_id,
+        left_join: m in TeamMembership,
+        on: m.id == e.promoted_membership_id,
+        # Sem vínculo (caminho antigo) OU com vínculo observado vigente sem papel: nos
+        # dois casos o que falta é a DECLARAÇÃO do papel (2026-09-06).
         where:
           e.tenant_id == type(^tenant_id, :binary_id) and
             e.team_id == type(^team_id, :binary_id) and
-            is_nil(e.promoted_membership_id) and is_nil(e.no_longer_observed_at),
+            is_nil(e.no_longer_observed_at) and
+            (is_nil(e.promoted_membership_id) or
+               (is_nil(m.organizational_role_id) and is_nil(m.ended_at) and
+                  is_nil(m.invalidated_at))),
         order_by: [asc: p.name],
         select: %{
           id: e.id,

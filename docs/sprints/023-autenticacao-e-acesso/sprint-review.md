@@ -1,7 +1,7 @@
 # Sprint 023 — Review
 
 **Período**: 2026-08-28 (aberto e fechado no mesmo dia)
-**Feature**: [045-autenticacao-e-acesso](../../specs/045-autenticacao-e-acesso/spec.md)
+**Feature**: [045-autenticacao-e-acesso](../../../specs/045-autenticacao-e-acesso/spec.md)
 **PRs**: [#562](https://github.com/The-Band-Solution/theband/pull/562) (feature, squash),
 [#564](https://github.com/The-Band-Solution/theband/pull/564) (fix schema do perfil),
 [#565](https://github.com/The-Band-Solution/theband/pull/565) (complemento pós-squash),

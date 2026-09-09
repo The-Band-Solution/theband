@@ -1,6 +1,6 @@
 # Sprint 016 — Review
 
-**Período**: 2026-08-16 · **Feature**: [027](../../specs/027-geracao-mensal-de-perfis/spec.md)
+**Período**: 2026-08-16 · **Feature**: [027](../../../specs/027-geracao-mensal-de-perfis/spec.md)
 **PR**: [#360](https://github.com/The-Band-Solution/theband/pull/360)
 
 ## Resumo

@@ -1,8 +1,8 @@
 # Sprint 010 — de quem cada issue é parte
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [011 — de quem cada issue é parte](../../specs/011-de-quem-a-issue-e-parte/spec.md)
-**Plano**: [plan.md](../../specs/011-de-quem-a-issue-e-parte/plan.md)
+**Feature**: [011 — de quem cada issue é parte](../../../specs/011-de-quem-a-issue-e-parte/spec.md)
+**Plano**: [plan.md](../../../specs/011-de-quem-a-issue-e-parte/plan.md)
 **Origem**: [#246](https://github.com/The-Band-Solution/theband/issues/246), pedida durante o sprint 009
 **Análise**: rodada antes do código, **quatro correções** — duas delas requisitos **sem tarefa nenhuma**
 
@@ -65,7 +65,7 @@ despercebida. Deixá-la fora entregaria uma coluna que mente em 36 linhas.
 
 ## Tarefas
 
-Detalhadas em [011/tasks.md](../../specs/011-de-quem-a-issue-e-parte/tasks.md). Cada tarefa é filha da
+Detalhadas em [011/tasks.md](../../../specs/011-de-quem-a-issue-e-parte/tasks.md). Cada tarefa é filha da
 **user story que ela atende** — nunca do épico.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
@@ -144,7 +144,7 @@ migração.
 ## Definition of Done do sprint
 
 - [ ] `mix gates` verde pelo **código de saída** — dez gates
-- [ ] V1 a V12 do [quickstart](../../specs/011-de-quem-a-issue-e-parte/quickstart.md) verificados
+- [ ] V1 a V12 do [quickstart](../../../specs/011-de-quem-a-issue-e-parte/quickstart.md) verificados
 - [ ] **no dado real**: a lista de um repositório mostra pai, conceito e relação, com as 293 avisando
 - [ ] a invariante conferida: atendimento + violação + composição + não nomeada = **1 666**
 - [ ] as nove issues encerradas ou repriorizadas com justificativa

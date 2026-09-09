@@ -24,6 +24,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Communication.Commands
+  alias TheBand.Ingestion.Janela
   alias TheBand.Ingestion.QueryVersion
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.EO
@@ -44,17 +45,23 @@ defmodule TheBand.Ingestion.GithubIssueComments do
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
     repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
 
-    resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
+    case coletar_em_paralelo(ctx, repositorios) do
+      # A janela fechou no meio (ADR 0006 §5; ADR 0007): o que já foi gravado fica, o que
+      # falta é da retomada. Devolver um resumo aqui faria o job fechar o sync como completo.
+      {:sem_janela, reset} ->
+        {:snooze, Janela.segundos_ate(reset)}
 
-    {:ok,
-     %{
-       repositories: length(repositorios),
-       comments: Enum.sum(Enum.map(resultados, & &1.coletados)),
-       issues_visited: Enum.sum(Enum.map(resultados, & &1.issues)),
-       marked_unobserved: Enum.sum(Enum.map(resultados, & &1.marcados)),
-       truncated: Enum.sum(Enum.map(resultados, & &1.truncadas)),
-       unreachable: Enum.count(resultados, &(&1.alcancado == false))
-     }}
+      resultados ->
+        {:ok,
+         %{
+           repositories: length(repositorios),
+           comments: Enum.sum(Enum.map(resultados, & &1.coletados)),
+           issues_visited: Enum.sum(Enum.map(resultados, & &1.issues)),
+           marked_unobserved: Enum.sum(Enum.map(resultados, & &1.marcados)),
+           truncated: Enum.sum(Enum.map(resultados, & &1.truncadas)),
+           unreachable: Enum.count(resultados, &(&1.alcancado == false))
+         }}
+    end
   end
 
   # **Filtra pela FERRAMENTA, não só pelo tenant** — issue #446.
@@ -69,6 +76,35 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   # para repositórios das outras duas**. Onde a credencial errada recebia 404, a fase
   # marcava o repositório como percorrido e vazio — ausência de ACESSO lida como ausência
   # de dado, que é a confusão que a casa mais combate.
+  # A concorrência, e o teto — ADR 0006, item 3. Teto 5 pelo pool do Ecto, que tem 10.
+  # Configurável para MEDIR — ADR 0006, Verificação 1. A comparação honesta exige rodar os
+  # mesmos repositórios com concorrência 1 e com 5, e trocar o atributo entre as rodadas
+  # obrigaria a recompilar, o que mata a coleta em curso. O padrão continua sendo 5, e o
+  # motivo do teto está na ADR: o pool do Ecto tem 10 conexões.
+  defp concorrencia, do: Application.get_env(:the_band, :concorrencia_da_coleta, 5)
+  @timeout_por_repositorio :timer.minutes(10)
+
+  defp coletar_em_paralelo(ctx, repositorios) do
+    TheBand.Ingestion.TaskSupervisor
+    |> Task.Supervisor.async_stream_nolink(repositorios, &coletar_repositorio(ctx, &1),
+      max_concurrency: concorrencia(),
+      ordered: false,
+      timeout: @timeout_por_repositorio,
+      on_timeout: :kill_task
+    )
+    |> Janela.ate_fechar(&resultado_da_tarefa/1)
+  end
+
+  defp resultado_da_tarefa({:ok, resultado}), do: resultado
+
+  # Tarefa morta vira não alcançado, e nunca sucesso: o resumo diria que o repositório
+  # foi percorrido, e a próxima coleta o pularia por causa do checkpoint que ele não tem.
+  defp resultado_da_tarefa({:exit, motivo}) do
+    Logger.warning("comentários de um repositório não completaram: #{inspect(motivo)}")
+
+    %{alcancado: false, issues: 0, coletados: 0, marcados: 0, truncadas: 0}
+  end
+
   defp repositorios_observados(tenant_id, tool_id) do
     # owner/name vêm do repositório-fonte (qualified_name = "owner/name"); a marca de
     # exclusão da observação é excluded_at — exclusão é decisão de quem administra.
@@ -113,12 +149,30 @@ defmodule TheBand.Ingestion.GithubIssueComments do
 
         Map.merge(%{alcancado: true, issues: length(issues)}, resultado)
 
+      # O gestor de cotas recusou — ou a origem recusou por cota. Não é o repositório: é a
+      # hora. Vira parada da etapa, e não `unreachable`.
+      {:error, {:rate_limited, reset}} ->
+        %{
+          alcancado: false,
+          sem_janela: true,
+          reset: reset,
+          issues: 0,
+          coletados: 0,
+          marcados: 0,
+          truncadas: 0
+        }
+
       {:error, reason} ->
         # Falha transitória não marca estado permanente (L29): sem checkpoint, a
         # próxima coleta percorre de novo. O motivo vai para o log, não para o dado.
-        Logger.warning(
-          "comentários de #{repo.owner}/#{repo.name} não coletados: #{inspect(reason)}"
-        )
+        # `qualified_name` já é "owner/name", e é o único nome que este map carrega —
+        # `repo.owner` levantava `KeyError` **dentro do tratamento da falha**, e o job
+        # inteiro morria. Encontrado na primeira coleta real, em 2026-09-04: cinco
+        # tentativas, `discarded`, e com ele foram embora as etapas seguintes do sync.
+        #
+        # O caminho feliz nunca tocou nesta linha. Só se chega aqui quando a origem
+        # falha — e era exatamente aí que a falha transitória virava permanente.
+        Logger.warning("comentários de #{repo.qualified_name} não coletados: #{inspect(reason)}")
 
         %{alcancado: false, issues: 0, coletados: 0, marcados: 0, truncadas: 0}
     end
@@ -213,7 +267,7 @@ defmodule TheBand.Ingestion.GithubIssueComments do
   defp paginar(ctx, variables, cursor \\ nil, acumulado \\ []) do
     vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(), vars, cota: ctx[:cota]) do
       # O ENVELOPE, nunca `{:ok, data}` direto — L26: casar largo devolvia lista vazia
       # sem erro, e o job completava com zero coletados.
       {:ok, %{data: data}} ->

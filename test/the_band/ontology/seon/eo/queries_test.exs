@@ -114,8 +114,11 @@ defmodule TheBand.Ontology.SEON.EO.QueriesTest do
 
       assert [membro] = EO.list_team_members(tenant, equipe.id)
       assert membro.no_longer_observed_at
-      # Continua contando como pendente: o vínculo existiu e não foi apagado.
-      assert EO.count_evidence_pending_role(tenant) == 1
+      # Desde 2026-09-06 a coleta cria o vínculo observado e a ausência o ENCERRA — não
+      # apaga. Quem sumiu não está pendente de papel: não está vigente. O vínculo continua
+      # no banco, com fim.
+      assert EO.count_memberships_pending_role(tenant) == 0
+      assert EO.count_memberships(tenant) == 1
     end
   end
 

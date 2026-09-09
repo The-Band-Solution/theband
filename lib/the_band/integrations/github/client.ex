@@ -8,6 +8,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   perderia a janela inteira.
   """
 
+  alias TheBand.Ingestion.Cota
   alias TheBand.Integrations.GitHub.HTTP
 
   @required_scopes ~w(read:org)
@@ -58,12 +59,12 @@ defmodule TheBand.Integrations.GitHub.Client do
   arquivos alterados só existe na REST, e é uma requisição por commit — o que decidiu o
   escopo da coleta (issue #429).
   """
-  @spec commit_files(String.t(), String.t(), String.t(), String.t()) ::
+  @spec commit_files(String.t(), String.t(), String.t(), String.t(), keyword()) ::
           {:ok, [map()]} | {:error, term()}
-  def commit_files(instance_url, token, repositorio, sha) do
+  def commit_files(instance_url, token, repositorio, sha, opcoes \\ []) do
     url = api_base(instance_url) <> "/repos/#{repositorio}/commits/#{sha}"
 
-    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+    with {:ok, body} <- rest(url, token, opcoes) do
       {:ok, body["files"] || []}
     end
   end
@@ -95,7 +96,7 @@ defmodule TheBand.Integrations.GitHub.Client do
 
     url = api_base(instance_url) <> "/repos/#{repositorio}/actions/runs?" <> consulta
 
-    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+    with {:ok, body} <- rest(url, token, opcoes) do
       {:ok, %{total: body["total_count"] || 0, runs: body["workflow_runs"] || []}}
     end
   end
@@ -106,15 +107,94 @@ defmodule TheBand.Integrations.GitHub.Client do
   `filter=latest` é deliberado: numa reexecução, o que interessa é a tentativa vigente.
   Trazer todas faria o mesmo job aparecer duas vezes e a contagem de componentes mentir.
   """
-  @spec run_jobs(String.t(), String.t(), String.t(), integer()) ::
+  @spec run_jobs(String.t(), String.t(), String.t(), integer(), keyword()) ::
           {:ok, %{total: integer(), jobs: [map()]}} | {:error, term()}
-  def run_jobs(instance_url, token, repositorio, run_id) do
+  def run_jobs(instance_url, token, repositorio, run_id, opcoes \\ []) do
     url =
       api_base(instance_url) <>
         "/repos/#{repositorio}/actions/runs/#{run_id}/jobs?per_page=100&filter=latest"
 
-    with {:ok, body} <- url |> HTTP.impl().get(token) |> resposta_rest() do
+    with {:ok, body} <- rest(url, token, opcoes) do
       {:ok, %{total: body["total_count"] || 0, jobs: body["jobs"] || []}}
+    end
+  end
+
+  # A PORTA ÚNICA da REST — ADR 0007, parte 3. Toda requisição REST do conector passa
+  # aqui: pede licença ao gestor de cotas antes, e lhe devolve a leitura dos cabeçalhos
+  # depois. Sem `cota:` nas opções não há governo — é o caso da validação de credencial,
+  # que acontece antes de existir identidade de cota, e dos testes que exercitam só o
+  # cliente. O job passa a chave sempre.
+  defp rest(url, token, opcoes) do
+    case requisitar(opcoes, :core, fn -> HTTP.impl().get(url, token) end, &leitura_rest/1) do
+      # A recusa do gestor NÃO passa por `resposta_rest/1`: lá, `{:error, _}` é falha de
+      # transporte — e a recusa viraria `{:transport, {:rate_limited, _}}`, que nenhuma
+      # etapa reconhece como cota. Foi assim que 8 execuções saíram como "sem jobs".
+      {:error, {:rate_limited, _reset}} = recusa -> recusa
+      resposta -> resposta_rest(resposta)
+    end
+  end
+
+  defp requisitar(opcoes, balde, fazer, leitura) do
+    case Keyword.get(opcoes, :cota) do
+      nil ->
+        fazer.()
+
+      chave ->
+        case Cota.pedir(chave, balde, Keyword.get(opcoes, :custo, 1)) do
+          :ok ->
+            resposta = fazer.()
+            Cota.observar(chave, balde, leitura.(resposta))
+            resposta
+
+          # Recusado ANTES de sair: nenhuma requisição foi feita. O erro é o mesmo que a
+          # origem produziria ao recusar — quem chama já sabe traduzi-lo para `{:snooze}`.
+          {:espera, %{reset: reset, segundos: segundos}} ->
+            {:error,
+             {:rate_limited, reset || DateTime.add(DateTime.utc_now(), segundos, :second)}}
+        end
+    end
+  end
+
+  # O que a resposta REST diz sobre a cota, em qualquer status — os cabeçalhos vêm sempre.
+  # `nil` quando não há resposta (transporte): o gestor só devolve a requisição em voo.
+  defp leitura_rest({:ok, %{headers: headers}}) do
+    %{
+      remaining: restante_de(headers),
+      reset: reset_ou_nil(headers),
+      limit: inteiro_do_cabecalho(headers, "x-ratelimit-limit")
+    }
+  end
+
+  defp leitura_rest(_sem_resposta), do: nil
+
+  # O que a resposta GraphQL diz sobre a cota. Vem no corpo (`rateLimit`, pedido por toda
+  # consulta do conector); quando a origem recusa por cota, vem como erro sem reset — e o
+  # saldo é zero até a próxima leitura.
+  defp leitura_graphql({:ok, %{status: 200, body: %{"data" => %{"rateLimit" => rl}}}})
+       when is_map(rl) do
+    %{
+      remaining: rl["remaining"],
+      limit: rl["limit"],
+      cost: rl["cost"],
+      reset: data_iso(rl["resetAt"])
+    }
+  end
+
+  defp leitura_graphql({:ok, %{status: 200, body: %{"errors" => errors}}}) when is_list(errors) do
+    if Enum.any?(errors, &erro_de_taxa?/1), do: %{remaining: 0, reset: nil}, else: nil
+  end
+
+  defp leitura_graphql({:ok, %{status: status, headers: headers}}) when status in [403, 429],
+    do: %{remaining: restante_de(headers), reset: reset_ou_nil(headers)}
+
+  defp leitura_graphql(_outra), do: nil
+
+  defp data_iso(nil), do: nil
+
+  defp data_iso(texto) do
+    case DateTime.from_iso8601(texto) do
+      {:ok, dt, _} -> dt
+      _ -> nil
     end
   end
 
@@ -142,18 +222,45 @@ defmodule TheBand.Integrations.GitHub.Client do
   defp resposta_rest({:error, %{reason: reason}}), do: {:error, {:transport, reason}}
   defp resposta_rest({:error, reason}), do: {:error, {:transport, reason}}
 
+  defp restante_de(headers), do: inteiro_do_cabecalho(headers, "x-ratelimit-remaining")
+
+  defp reset_ou_nil(headers) do
+    if cabecalho(headers, "x-ratelimit-reset"), do: reset_de(headers), else: nil
+  end
+
+  defp inteiro_do_cabecalho(headers, nome) do
+    case cabecalho(headers, nome) do
+      nil ->
+        nil
+
+      valor ->
+        case Integer.parse(valor) do
+          {n, _} -> n
+          :error -> nil
+        end
+    end
+  end
+
   @doc """
   Executa uma consulta GraphQL.
 
   Devolve também a informação de rate limit, para que quem pagina possa pausar
   **antes** de esgotar a janela.
   """
-  @spec graphql(String.t(), String.t(), String.t(), map()) ::
+  @spec graphql(String.t(), String.t(), String.t(), map(), keyword()) ::
           {:ok, %{data: map(), rate_limit: map() | nil}} | {:error, term()}
-  def graphql(instance_url, token, query, variables \\ %{}) do
+  def graphql(instance_url, token, query, variables \\ %{}, opcoes \\ []) do
     url = graphql_endpoint(instance_url)
 
-    case HTTP.impl().post(url, %{query: query, variables: variables}, token) do
+    # A PORTA ÚNICA da GraphQL — ADR 0007, parte 3. O custo de uma consulta só se conhece
+    # depois dela; o gestor usa o último custo visto na identidade como estimativa.
+    fazer = fn -> HTTP.impl().post(url, %{query: query, variables: variables}, token) end
+
+    case requisitar(opcoes, :graphql, fazer, &leitura_graphql/1) do
+      # A recusa do gestor, inteira — e não como falha de transporte (ver `rest/3`).
+      {:error, {:rate_limited, _reset}} = recusa ->
+        recusa
+
       {:ok, %{status: 200, body: %{"errors" => errors}}} when errors != [] ->
         {:error, {:graphql_errors, errors}}
 
@@ -252,6 +359,10 @@ defmodule TheBand.Integrations.GitHub.Client do
   """
   @spec transient?(term()) :: boolean()
   def transient?({:transport, _reason}), do: true
+  # Cota esgotada se cura esperando — vale insistir, depois. Sem esta cláusula, o
+  # `{:rate_limited, _}` que o gestor devolve antes de sair caía no permanente, e um
+  # repositório saudável era marcado como inacessível por causa da hora do dia.
+  def transient?({:rate_limited, _reset}), do: true
   def transient?({:unexpected_status, status}) when status >= 500, do: true
   def transient?({:unexpected_status, status, _body}) when status >= 500, do: true
 
@@ -268,8 +379,28 @@ defmodule TheBand.Integrations.GitHub.Client do
 
   def transient?(_outro), do: false
 
-  # `RATE_LIMITED` chega aqui quando a pausa não o alcançou antes — e ele se cura esperando.
-  defp erro_do_momento?(%{"type" => "RATE_LIMITED"}), do: true
+  # O rate limit chega aqui quando a pausa não o alcançou antes — e ele se cura esperando.
+  #
+  # **A origem usa DUAS grafias**, medido em 2026-09-04 numa coleta real que esgotou a cota:
+  #
+  #     %{"type" => "RATE_LIMITED"}                          o que o código conhecia
+  #     %{"type" => "RATE_LIMIT", "code" => "graphql_rate_limit",
+  #       "message" => "API rate limit already exceeded for user ID ..."}
+  #
+  # Com só a primeira, a segunda caía na cláusula do erro permanente logo abaixo: sem
+  # `snooze`, cinco tentativas queimadas em minutos, e o sync inteiro em `failed` — quando
+  # bastava esperar a janela reabrir. O dado já coletado ficava, e a coleta parava de vez.
+  #
+  # A lista é FECHADA de propósito. Casar por `String.contains?("RATE")` pegaria também um
+  # erro de outra família que mencionasse a palavra, e insistir num erro permanente é o
+  # oposto do que esta função existe para decidir.
+  @tipos_de_rate_limit ~w(RATE_LIMITED RATE_LIMIT)
+
+  defp erro_do_momento?(%{"type" => tipo}) when tipo in @tipos_de_rate_limit, do: true
+
+  # O `code` é a segunda testemunha: a resposta que trouxe `RATE_LIMIT` também trouxe
+  # `graphql_rate_limit` ali. Se a origem mudar o `type` de novo, o `code` ainda decide.
+  defp erro_do_momento?(%{"code" => "graphql_rate_limit"}), do: true
 
   # "Não encontrado" e "sem escopo" se repetem: o repositório não existe, ou a credencial não
   # o alcança. Escopo não muda sozinho.
@@ -286,28 +417,55 @@ defmodule TheBand.Integrations.GitHub.Client do
   defp erro_do_momento?(_erro), do: false
 
   @doc """
-  Decide se é hora de pausar (FR-016, research.md R6).
+  Este erro é o limite de taxa da origem? — e portanto **se cura esperando**, e não
+  tentando de novo.
 
-  A regra é `remaining < cost * 2`. A margem de duas vezes cobre a variação de
-  custo entre páginas — uma consulta pode custar mais que a anterior, e reagir
-  só quando `remaining < cost` deixaria a última página sem folga.
+  Existe separada de `transient?/1` porque as duas decisões são diferentes. Transitório
+  responde *"vale insistir?"*; esta responde *"insistir AGORA adianta?"* — e para o rate
+  limit a resposta é **não**: a janela leva até uma hora, e as tentativas do Oban se
+  esgotam em minutos.
+
+  Medido em 2026-09-04: uma coleta real esgotou a cota, o erro foi classificado como
+  transitório, o Oban retentou cinco vezes em poucos minutos, e o job foi descartado —
+  todas as tentativas dentro da mesma janela fechada.
   """
-  @spec pause_needed?(map() | nil) :: {:pause_until, DateTime.t()} | :continue
-  def pause_needed?(nil), do: :continue
+  @spec rate_limit?(term()) :: boolean()
+  def rate_limit?({:graphql_errors, errors}) when is_list(errors),
+    do: Enum.any?(errors, &erro_de_taxa?/1)
 
-  def pause_needed?(%{"cost" => cost, "remaining" => remaining, "resetAt" => reset_at})
-      when is_integer(cost) and is_integer(remaining) do
-    if remaining < cost * 2 do
-      case DateTime.from_iso8601(reset_at) do
-        {:ok, dt, _} -> {:pause_until, dt}
-        _ -> :continue
-      end
-    else
-      :continue
+  def rate_limit?({:rate_limited, _reset}), do: true
+  def rate_limit?(_outro), do: false
+
+  defp erro_de_taxa?(%{"type" => tipo}) when tipo in @tipos_de_rate_limit, do: true
+  defp erro_de_taxa?(%{"code" => "graphql_rate_limit"}), do: true
+  defp erro_de_taxa?(_outro), do: false
+
+  @doc """
+  Quantos segundos faltam para a janela reabrir — **último recurso**, e não a fonte.
+
+  Consulta `/rate_limit`, que não consome cota primária. **Medido mentindo em
+  2026-09-06**, durante a coleta real da organização `leds-conectafapes` com PAT de
+  `paulossjunior`: devolveu `core 5000/5000 used 0` e `graphql 5000/5000 used 0` enquanto,
+  no mesmo segundo, o cabeçalho de `GET /user` dizia `remaining 3366, used 1634` e o
+  `rateLimit` da GraphQL dizia `remaining 3013, used 1987, resetAt 23:49`. O `reset` que ele
+  devolve é sempre "agora + 1 h" — o de uma janela que ele acha vazia.
+
+  Quem sabe o reset é o gestor de cotas (`TheBand.Ingestion.Cota`), que guarda o `resetAt`
+  da última resposta boa de cada balde. O job pergunta a ele primeiro; esta função só entra
+  quando não há gestor (scripts avulsos) ou ele nunca viu o balde. Quando ela própria falha,
+  devolve o padrão em vez de levantar: não saber quanto falta não é motivo para desistir.
+  """
+  @spec segundos_ate_reabrir(String.t(), String.t(), non_neg_integer()) :: non_neg_integer()
+  def segundos_ate_reabrir(instance_url, token, padrao \\ 900) do
+    case HTTP.impl().get(api_base(instance_url) <> "/rate_limit", token) do
+      {:ok, %{status: 200, body: %{"resources" => %{"graphql" => %{"reset" => reset}}}}} ->
+        # Um minuto de folga: reabrir no instante exato do reset às vezes ainda recusa.
+        max(reset - System.system_time(:second) + 60, 60)
+
+      _ ->
+        padrao
     end
   end
-
-  def pause_needed?(_), do: :continue
 
   defp api_base("https://github.com"), do: "https://api.github.com"
   defp api_base(url), do: String.trim_trailing(url, "/") <> "/api/v3"

@@ -1,7 +1,7 @@
 # Sprint 013 — clicar leva à página, e quem escreveu passa a existir
 
 **Período**: 2026-08-13 a 2026-08-19
-**Features**: [014](../../specs/014-clicar-leva-a-pagina/spec.md) · [015](../../specs/015-quem-escreveu-a-issue-tambem-e-observado/spec.md)
+**Features**: [014](../../../specs/014-clicar-leva-a-pagina/spec.md) · [015](../../../specs/015-quem-escreveu-a-issue-tambem-e-observado/spec.md)
 **Origem**: [#281](https://github.com/The-Band-Solution/theband/issues/281) e [#283](https://github.com/The-Band-Solution/theband/issues/283)
 
 ## Objetivo

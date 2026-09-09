@@ -1,0 +1,6 @@
+# Dependências do site da documentação — `mkdocs build --strict`.
+#
+# Fixadas com `==` de propósito: o site é publicado por workflow, e versão
+# flutuante faz o build quebrar num dia em que ninguém tocou na documentação.
+mkdocs==1.6.1
+mkdocs-material==9.7.7

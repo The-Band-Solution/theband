@@ -27,6 +27,8 @@ defmodule TheBand.Ontology.SEON.EO do
   alias TheBand.Ontology.SEON.EO.Constraints
   alias TheBand.Ontology.SEON.EO.Profiles
   alias TheBand.Ontology.SEON.EO.Queries
+  alias TheBand.Ontology.SEON.EO.Roster
+  alias TheBand.Ontology.SEON.EO.StructureGrants
   alias TheBand.Ontology.SEON.EO.Visibility
 
   # ------------------------------------------------------------------- escritas
@@ -47,10 +49,11 @@ defmodule TheBand.Ontology.SEON.EO do
     to: Commands
 
   defdelegate count_team_members_at(tenant, team_id, quando), to: Queries
-  defdelegate team_members_at(tenant, team_id, quando), to: Queries
-  defdelegate team_member_ids_at(tenant, team_id, quando), to: Queries
+  defdelegate team_members_at(tenant, team_id, quando, opts \\ []), to: Queries
+  defdelegate team_member_ids_at(tenant, team_id, quando, opts \\ []), to: Queries
   defdelegate team_member_ids_ever(tenant, team_id), to: Queries
   defdelegate team_memberships_with_period(tenant, team_id), to: Queries
+  defdelegate team_memberships_with_period_many(tenant, team_ids), to: Queries
   defdelegate team_parts(tenant, team_id), to: Queries
   defdelegate team_wholes(tenant, team_id), to: Queries
   defdelegate record_team_membership_evidence(tenant, attrs), to: Commands
@@ -83,6 +86,16 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate fetch_evidence(tenant, evidence_id), to: Queries
   defdelegate fetch_team(tenant, team_id), to: Queries
   defdelegate fetch_role(tenant, role_id), to: Queries
+
+  # O ROSTER — feature 060, T009. Uma linha por PESSOA, com os vínculos dela dentro, e o
+  # alcance incluindo as subequipes vigentes. Vive em `Roster` e não em `Queries` porque
+  # responde por vínculo, e `list_team_members/3` responde por evidência.
+  defdelegate list_team_roster(tenant, team_id, opts \\ []), to: Roster
+  defdelegate count_team_roster(tenant, team_id, opts \\ []), to: Roster
+  defdelegate team_roster_totals(tenant, team_id, opts \\ []), to: Roster
+  defdelegate team_roster_scope(tenant, team_id), to: Roster, as: :escopo
+
+  defdelegate role_holder_counts(tenant, organization_id, team_id), to: Roster
   defdelegate suggested_roles(), to: Queries
   defdelegate count_memberships(tenant), to: Queries
   defdelegate count_memberships_of_role(tenant, role_id), to: Queries
@@ -98,6 +111,19 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate declare_grant(tenant, role_id, scope, actor_id), to: Visibility
   defdelegate revoke_grant(tenant, role_id, scope, actor_id), to: Visibility
 
+  # A concessão de GERIR a estrutura — irmã da de visibilidade, com o verbo trocado
+  # (feature 060, FR-080 a FR-082). Ver e mexer são decisões separadas: conceder uma não
+  # concede a outra.
+  defdelegate structure_grants_by_role(tenant), to: StructureGrants, as: :grants_by_role
+
+  defdelegate declare_structure_grant(tenant, role_id, scope, actor_id),
+    to: StructureGrants,
+    as: :declare_grant
+
+  defdelegate revoke_structure_grant(tenant, role_id, scope, actor_id),
+    to: StructureGrants,
+    as: :revoke_grant
+
   defdelegate create_role(tenant, organization_id, attrs, actor_id), to: Commands
   defdelegate rename_role(tenant, role_id, name, actor_id \\ nil), to: Commands
   defdelegate delete_role(tenant, role_id), to: Commands
@@ -112,7 +138,12 @@ defmodule TheBand.Ontology.SEON.EO do
   # Promover é ato de UMA PESSOA, com autor gravado. A plataforma não promove sozinha.
   defdelegate promote_evidence(tenant, evidence_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate allocate(tenant, attrs), to: Commands
-  defdelegate end_allocation(tenant, membership_id, quando), to: Commands
+  defdelegate end_allocation(tenant, membership_id, quando, actor_id), to: Commands
+
+  defdelegate declare_role(tenant, team_id, person_id, papel, actor_id, opts \\ []),
+    to: Commands
+
+  defdelegate change_role(tenant, membership_id, papel, actor_id, opts \\ []), to: Commands
   defdelegate list_people(tenant, opts \\ []), to: Queries
   defdelegate count_people(tenant, opts \\ []), to: Queries
   defdelegate person_ids_by_login(tenant), to: Queries
@@ -140,6 +171,7 @@ defmodule TheBand.Ontology.SEON.EO do
   defdelegate derived_prefix(), to: Commands
   defdelegate derived_source(), to: Commands
   defdelegate count_evidence_pending_role(tenant, opts \\ []), to: Queries
+  defdelegate count_memberships_pending_role(tenant, opts \\ []), to: Queries
 
   # ---------------------------------------------------------------- invariantes
 

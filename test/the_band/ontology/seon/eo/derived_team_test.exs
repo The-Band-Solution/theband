@@ -103,6 +103,52 @@ defmodule TheBand.Ontology.SEON.EO.DerivedTeamTest do
     e
   end
 
+  describe "a corrida entre dois coletores (issue #800)" do
+    test "o conflito da Application Reference é reconhecido, e não vira erro" do
+      tenant = tenant_fixture()
+      org = organization_fixture(tenant, "leds-conectafapes")
+
+      {:ok, primeira} = EO.upsert_derived_team(tenant, org)
+
+      # A corrida, encenada: o segundo coletor consulta, não acha — porque simulamos o
+      # instante ANTERIOR à gravação do primeiro — e insere. No código real os dois
+      # `find_by_application_reference` acontecem antes de qualquer insert; aqui basta
+      # chamar de novo, porque o caminho de conflito é o mesmo.
+      assert {:ok, segunda} = EO.upsert_derived_team(tenant, org)
+
+      assert segunda.id == primeira.id, """
+      O segundo upsert criou OUTRA equipe. A Application Reference é determinística, e
+      duas linhas com a mesma referência fariam a organização parecer ter duas equipes
+      derivadas — e a contagem de equipes mentiria.
+      """
+
+      assert Repo.aggregate(
+               from(t in "eo_teams",
+                 where:
+                   t.tenant_id == type(^tenant.id, :binary_id) and
+                     like(t.external_id, "derived:default_team:%")
+               ),
+               :count
+             ) == 1
+    end
+
+    test "OUTRO conflito único continua sendo erro — o discriminador olha o índice" do
+      tenant = tenant_fixture()
+      org = organization_fixture(tenant, "alfa")
+
+      {:ok, admin} =
+        TheBand.Tenants.create_user(tenant, %{"email" => "a@x.test", "role" => "admin"})
+
+      {:ok, _} = EO.declare_structural_team(tenant, org.id, "Dados", admin.id)
+
+      # `eo_nome_unico_da_equipe_declarada_index` é outro índice único da mesma tabela.
+      # Reconhecer o conflito dele como "já existe, atualize" apagaria a recusa que a
+      # unicidade do nome declarado existe para produzir — e o discriminador precisa
+      # separar os dois pelo NOME do índice, não por ser único.
+      assert {:error, _} = EO.declare_structural_team(tenant, org.id, "Dados", admin.id)
+    end
+  end
+
   describe "quem a equipe derivada acolhe (T021, FR-004)" do
     test "organização sem nenhum time: todos entram — o caso de ifesserra-lab" do
       tenant = tenant_fixture()

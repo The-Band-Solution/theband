@@ -1,8 +1,8 @@
 # Sprint 023 — Autenticação e acesso
 
 **Período**: 2026-08-28 a 2026-09-04
-**Feature**: [045-autenticacao-e-acesso](../../specs/045-autenticacao-e-acesso/spec.md)
-**Plano**: [plan.md](../../specs/045-autenticacao-e-acesso/plan.md)
+**Feature**: [045-autenticacao-e-acesso](../../../specs/045-autenticacao-e-acesso/spec.md)
+**Plano**: [plan.md](../../../specs/045-autenticacao-e-acesso/plan.md)
 
 ## Objetivo do sprint
 

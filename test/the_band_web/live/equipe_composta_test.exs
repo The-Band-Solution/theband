@@ -73,6 +73,7 @@ defmodule TheBandWeb.EquipeCompostaTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
       })
   end
@@ -155,11 +156,138 @@ defmodule TheBandWeb.EquipeCompostaTest do
       assert html =~ "same task"
     end
 
-    test "FR-011: nenhum gráfico nesta tela", ctx do
+    test "FR-041/FR-084: cada subequipe é um CARTÃO, com faísca, e o cartão é porta", ctx do
+      {:ok, live, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      # Um cartão por subequipe, mais o dos membros diretos.
+      assert html =~ "One card per sub-team"
+      assert html =~ "Click a card"
+
+      # O CARTÃO É PORTA (FR-041), e a porta é a mesma do gráfico (FR-084): o cartão inteiro
+      # é o link, e a faísca está dentro dele.
+      #
+      # A *Interface* tem trabalho de 3 dias, dentro da janela padrão de 8 semanas.
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.interface.id}"] svg|), """
+      O cartão da subequipe tem de ser o link, com a faísca DENTRO dele — clicar no gráfico
+      abre o painel daquela subequipe, e é a mesma porta do cartão (FR-084).
+      """
+
+      # A *Dados* tem trabalho de 100 e 120 dias — FORA da janela. O cartão dela é porta do
+      # mesmo jeito, e no lugar da faísca diz a ausência: uma linha reta em zero afirmaria
+      # "abriu zero e fechou zero", quando o que houve foi não ter o que observar nesta
+      # janela. É a mesma regra da tabela, e aqui importa mais — o gráfico esconde a
+      # distinção melhor que o número.
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.dados.id}"]|),
+             "o cartão sem faísca continua porta"
+
+      assert html =~ "Nothing opened or closed in this window", """
+      A frase é sobre MOVIMENTO, e o cartão mostra estoque ao lado. Dizer "no work observed"
+      num cartão com `open 2` parece contradição — e as duas coisas são verdadeiras: há dois
+      itens abertos, e nenhum se moveu na janela.
+      """
+    end
+
+    test "o cartão dos membros DIRETOS não é porta — já estamos nesta tela", ctx do
+      {:ok, live, _html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      assert has_element?(live, ~s|a[href="/teams/#{ctx.dados.id}"]|)
+
+      # O recorte é a REGIÃO DOS CARTÕES: a aba Dashboard é, ela mesma, um link legítimo
+      # para `/teams/:id` — e afirmar sobre a página inteira confundiria os dois.
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      [_antes, cartoes] = String.split(html, "One card per sub-team", parts: 2)
+      [cartoes, _depois] = String.split(cartoes, "The same numbers, side by side", parts: 2)
+
+      refute cartoes =~ ~s|href="/teams/#{ctx.mae.id}"|, """
+      Um link para a tela em que a pessoa já está é um clique que não leva a lugar nenhum.
+      """
+    end
+
+    test "os cartões e a tabela dizem os MESMOS números, e nenhum total", ctx do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
 
-      refute html =~ "<svg",
-             "gráfico aqui contraria a decisão: a tela composta é para comparar, e comparação se faz em números alinhados"
+      # Duas apresentações do mesmo dado: se divergirem, quem compara encontra dois números e
+      # não sabe qual seguir.
+      assert html =~ "The same numbers, side by side"
+
+      cabecalhos =
+        Regex.scan(~r|<th[^>]*>(.*?)</th>|s, html)
+        |> Enum.map(&(&1 |> List.last() |> String.downcase()))
+
+      for proibido <- ~w(total sum combined overall aggregate) do
+        refute Enum.any?(cabecalhos, &String.contains?(&1, proibido)),
+               "achei um cabeçalho com #{proibido} — FR-044 e SC-008 proíbem total"
+      end
+
+      # A RÉGUA, e não "as mesmas medidas" ao pé da letra (Design, 2026-09-09, §5): todo
+      # número do cartão aparece na tabela com o mesmo valor e definição; o cartão não mostra
+      # número que a tabela não tenha. Subconjunto é permitido, divergência é defeito.
+      [_antes, grade] = String.split(html, "One card per sub-team", parts: 2)
+      [grade, tabela] = String.split(grade, "The same numbers, side by side", parts: 2)
+
+      rotulos_do_cartao =
+        Regex.scan(~r|<dt[^>]*>(.*?)</dt>|s, grade)
+        |> Enum.map(&(&1 |> List.last() |> String.trim()))
+        |> Enum.uniq()
+
+      assert rotulos_do_cartao == ["open items", "median wait"], """
+      O cartão tem DOIS vãos, e são as medidas herdadas da tabela aprovada da 057 —
+      `1st review` virou `median wait`. `members` subiu para o cabeçalho porque não é medida
+      do trabalho, e `stopped` desceu para a tabela porque o número sem o limiar não é
+      interpretável. `pipeline` não entra: não há vínculo projeto→subequipe, e a taxa seria
+      "no project" em todos os cartões — a recusa já tem lugar próprio na tela.
+
+      Achei: #{inspect(rotulos_do_cartao)}
+      """
+
+      for rotulo <- rotulos_do_cartao do
+        assert tabela =~ rotulo, """
+        `#{rotulo}` está no cartão e não na tabela. O cartão não pode mostrar número que a
+        tabela não tenha — quem compara as duas apresentações precisa achar o mesmo.
+        """
+      end
+
+      # `members` está no CABEÇALHO do cartão, não nos vãos — e continua na tabela.
+      assert grade =~ "members"
+      assert tabela =~ ">members<"
+
+      # O LIMIAR viaja com o número (FR-069): "stopped" sozinho não é interpretável.
+      assert tabela =~ "stopped · open &gt; 90 d"
+
+      # E o âmbar saiu: estava ligado nas TRÊS subequipes, e condição sempre verdadeira é
+      # mancha, não informação.
+      [corpo, _] = String.split(tabela, "</table>", parts: 2)
+
+      refute corpo =~ "text-warning", """
+      O âmbar no número de paradas estava ligado em todas as linhas (214/183/151 no banco de
+      desenvolvimento). Cor que não distingue nenhuma linha não informa nada, e gasta a matiz
+      que nesta casa significa derivado/obsoleto.
+      """
+    end
+
+    test "057 FR-011, EMENDADA: a TABELA continua sem gráfico, e o fluxo da equipe tem", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+
+      # A 057 FR-011 proibia gráfico nesta tela, e a 060 FR-058 a emendou. O que ela protegia
+      # continua valendo — e é o que este teste passou a medir: a **tabela** por subequipe é
+      # para comparar, e comparação se faz em números alinhados.
+      # O recorte é a TABELA, e não a seção: os cartões vivem na mesma seção e TÊM faísca
+      # (FR-084). Cortar em "Teams inside this one" pegaria os dois.
+      [_antes, tabela] = String.split(html, "The same numbers, side by side", parts: 2)
+      [tabela, _depois] = String.split(tabela, "</table>", parts: 2)
+
+      refute tabela =~ "<svg", """
+      Gráfico DENTRO da tabela por subequipe contraria a decisão que a 057 tomou e a 060
+      manteve: a tabela é para comparar, e comparação se faz em números alinhados. O gráfico
+      pequeno por subequipe é a FR-084, e vive no CARTÃO — que existe, e está medido pelo
+      teste "FR-041/FR-084" acima. Esta asserção é sobre a TABELA, e as duas convivem na
+      mesma seção: uma para comparar em números alinhados, a outra para responder a forma.
+      """
+
+      # E o fluxo da equipe inteira agora existe, com a frase que a FR-060 exige.
+      assert html =~ "<svg", "a equipe composta passou a ter o fluxo da equipe inteira (FR-058)"
+      assert html =~ "not the sum"
+      assert html =~ "whole team"
     end
 
     test "SC-005: a ordem é por trabalho parado, e não alfabética", ctx do
@@ -201,10 +329,13 @@ defmodule TheBandWeb.EquipeCompostaTest do
       refute html =~ "Teams inside this one"
     end
 
+    # A lista de partes ("Contains:") é da aba ESTRUTURA desde a feature 060 — a seção
+    # "Teams inside this one", que compara subequipes, continua no painel. Ler a estrutura
+    # aqui é o que estes dois casos fazem, e por isso abrem a aba.
     test "com UMA parte só, segue como equipe simples", ctx do
       subequipe(ctx, "Dados")
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one",
              "comparar uma linha com nada não é comparação — uma parte só é composição declarada, não equipe composta"
@@ -217,7 +348,7 @@ defmodule TheBandWeb.EquipeCompostaTest do
       interface = subequipe(ctx, "Interface")
       {:ok, _} = EO.decompose_teams(ctx.tenant, interface.id, ctx.mae.id, ctx.admin.id)
 
-      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}")
+      {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
 
       refute html =~ "Teams inside this one"
       refute html =~ ~s|/teams/#{interface.id}|

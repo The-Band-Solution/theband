@@ -1,8 +1,8 @@
 # Sprint 016 — a geração mensal dos perfis
 
 **Período**: a partir de 2026-08-16 · fim não declarado — ver *Limitações* abaixo
-**Feature**: [027 geração mensal de perfis](../../specs/027-geracao-mensal-de-perfis/spec.md)
-**Plano**: [plan.md](../../specs/027-geracao-mensal-de-perfis/plan.md) · **Tarefas**: [tasks.md](../../specs/027-geracao-mensal-de-perfis/tasks.md)
+**Feature**: [027 geração mensal de perfis](../../../specs/027-geracao-mensal-de-perfis/spec.md)
+**Plano**: [plan.md](../../../specs/027-geracao-mensal-de-perfis/plan.md) · **Tarefas**: [tasks.md](../../../specs/027-geracao-mensal-de-perfis/tasks.md)
 **Branch**: `027-geracao-mensal-de-perfis`
 
 ## Objetivo do sprint

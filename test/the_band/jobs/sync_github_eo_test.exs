@@ -9,10 +9,10 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
   use TheBand.DataCase, async: false
 
-  import Ecto.Query
   import Mox
 
   alias TheBand.Ingestion
+  alias TheBand.Ingestion.Cota
   alias TheBand.Ingestion.Sync
   alias TheBand.Jobs.SyncGitHubEO
   alias TheBand.Ontology.SEON.CMPO
@@ -43,6 +43,7 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
         connected_tool_id: tool.id,
         label: "teste",
         secret: "token-de-teste",
+        owner_login: "dono-#{System.unique_integer([:positive])}",
         last_four: "este",
         validated_at: DateTime.utc_now(:second)
       })
@@ -172,7 +173,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
 
       assert EO.count_people(tenant) == 1
       assert EO.count_teams(tenant) == 1
-      assert EO.count_evidence_pending_role(tenant) == 1
+      # Desde 2026-09-06 a coleta cria o vínculo observado; o que fica pendente é o PAPEL.
+      assert EO.count_memberships_pending_role(tenant) == 1
 
       assert [pessoa] = EO.list_people(tenant)
       assert pessoa.source_system == "github"
@@ -459,7 +461,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       tenant: tenant,
       sync: sync
     } do
-      # Janela apertada: remaining < cost * 2 na primeira página que tem próxima.
+      # Janela apertada na primeira página que tem próxima. Quem decide é o gestor de cotas
+      # (ADR 0007): a consulta custou 100 e sobram 150 — a próxima não cabe com folga.
       apertado = %{"cost" => 100, "remaining" => 150, "resetAt" => reset_em(90)}
 
       responder(fn query, _vars ->
@@ -489,6 +492,257 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert Ingestion.reload(sync).status == "running"
       assert Ingestion.resume_cursor(sync, "github.user") == "cursor-1"
       assert EO.count_people(tenant) == 1
+    end
+  end
+
+  describe "retomada não refaz o que já foi feito (ADR 0007, parte 4 — Verificação 3)" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "a janela fecha na última etapa: na volta, nenhuma etapa anterior faz requisição", ctx do
+      repositorio_observado(ctx.tenant, ctx.tool)
+      {:ok, chamadas} = Agent.start_link(fn -> %{graphql: 0, rest: 0} end)
+      vazio = pagina([], false, nil)
+
+      # A resposta das solicitações de mudança — a última consulta GraphQL antes das
+      # branches — traz a cota apertada: sobram 150 pontos e a consulta custou 100. O gestor
+      # recusa a PRÓXIMA GraphQL, que é a etapa das branches. As etapas REST (arquivos,
+      # verificações) seguem: o balde é outro.
+      apertado = %{"cost" => 100, "remaining" => 150, "resetAt" => reset_em(1800)}
+
+      responder(fn query, _vars ->
+        Agent.update(chamadas, &Map.update!(&1, :graphql, fn n -> n + 1 end))
+        base = %{"rateLimit" => @rate_limit_folgado}
+
+        cond do
+          String.contains?(query, "membersWithRole") ->
+            Map.put(base, "organization", %{"id" => "O_1", "membersWithRole" => vazio})
+
+          String.contains?(query, "teams(") ->
+            Map.put(base, "organization", %{"id" => "O_1", "teams" => vazio})
+
+          String.contains?(query, "projectsV2") ->
+            Map.put(base, "organization", %{"id" => "O_1", "projectsV2" => vazio})
+
+          String.contains?(query, "pullRequests") ->
+            %{
+              "rateLimit" => apertado,
+              "repository" => %{"id" => "R_1", "pullRequests" => Map.put(vazio, "totalCount", 0)}
+            }
+
+          String.contains?(query, "issues(") ->
+            Map.put(base, "repository", %{
+              "id" => "R_1",
+              "issues" => Map.put(vazio, "totalCount", 0)
+            })
+
+          String.contains?(query, "repositories(") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "repositories" => pagina([repositorio_de_teste()], false, nil)
+            })
+
+          String.contains?(query, "refs(") ->
+            Map.put(base, "repository", %{
+              "refs" => Map.put(vazio, "totalCount", 0),
+              "defaultBranchRef" => %{"name" => "main"}
+            })
+
+          true ->
+            Map.put(base, "organization", org_node())
+        end
+      end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn _url, _token ->
+        Agent.update(chamadas, &Map.update!(&1, :rest, fn n -> n + 1 end))
+        {:ok, %{status: 200, body: %{"total_count" => 0, "workflow_runs" => []}, headers: %{}}}
+      end)
+
+      # 1ª passada: para nas branches, com tudo antes concluído.
+      assert {:snooze, _} = perform(ctx.tenant, ctx.sync)
+      depois_da_primeira = Agent.get(chamadas, & &1)
+      assert depois_da_primeira.graphql > 0 and depois_da_primeira.rest > 0
+
+      sync = Ingestion.reload(ctx.sync)
+      assert sync.status == "running", "esperando não é terminado"
+      assert Ingestion.etapa_concluida?(sync, "github.user"), "as pessoas (EO) foram concluídas"
+      assert Ingestion.etapa_concluida?(sync, "etapa:mudancas")
+      assert Ingestion.etapa_concluida?(sync, "etapa:verificacoes")
+      refute Ingestion.etapa_concluida?(sync, "etapa:branches"), "a etapa que a janela pegou"
+
+      # 2ª passada, com a janela ainda fechada: NENHUMA requisição sai. As etapas concluídas
+      # são puladas pelo checkpoint; a das branches é recusada pelo gestor antes de sair.
+      assert {:snooze, _} = perform(ctx.tenant, ctx.sync)
+
+      assert Agent.get(chamadas, & &1) == depois_da_primeira, """
+      A retomada fez requisições que a primeira passada já tinha feito. Antes da ADR 0007,
+      a volta refazia a paginação das pessoas e equipes, os quadros e as branches — e as
+      etapas REST inteiras — para chegar ao mesmo lugar em que a janela tinha fechado.
+      """
+
+      # A janela reabre (a origem informaria isso na primeira resposta; aqui o gestor é
+      # informado direto). 3ª passada: só as branches rodam, e o sync termina.
+      chave = Cota.chave(ctx.tool, TheBand.Sources.active_credential(ctx.tool))
+      Cota.observar(chave, :graphql, %{remaining: 4000, cost: 1, reset: reset_datetime(1800)})
+
+      assert :ok = perform(ctx.tenant, ctx.sync)
+      final = Agent.get(chamadas, & &1)
+
+      # DUAS consultas, e não uma: a organização é lida a cada passada — ela é o pai de
+      # tudo no contexto (`organization_node`) e custa uma requisição, declarada na ADR —,
+      # e as branches do único repositório. Nada mais.
+      assert final.graphql == depois_da_primeira.graphql + 2, """
+      Com a janela aberta, a retomada deveria fazer DUAS consultas GraphQL — a organização,
+      que é o pai do contexto, e as branches do único repositório — e nenhuma outra.
+      Fez #{final.graphql - depois_da_primeira.graphql}.
+      """
+
+      assert final.rest == depois_da_primeira.rest, "as etapas REST já estavam concluídas"
+      assert Ingestion.reload(ctx.sync).status == "completed"
+    end
+  end
+
+  describe "as etapas são um grafo (ADR 0007, parte 6 — Verificação 5)" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "GraphQL fechada logo após os repositórios: as verificações (REST) rodam; comentários e arquivos não",
+         ctx do
+      repositorio_observado(ctx.tenant, ctx.tool)
+      {:ok, chamadas} = Agent.start_link(fn -> %{graphql: 0, runs: 0, commits: 0} end)
+      vazio = pagina([], false, nil)
+      apertado = %{"cost" => 100, "remaining" => 150, "resetAt" => reset_em(1800)}
+
+      responder(fn query, _vars ->
+        Agent.update(chamadas, &Map.update!(&1, :graphql, fn n -> n + 1 end))
+        base = %{"rateLimit" => @rate_limit_folgado}
+
+        cond do
+          String.contains?(query, "membersWithRole") ->
+            Map.put(base, "organization", %{"id" => "O_1", "membersWithRole" => vazio})
+
+          String.contains?(query, "teams(") ->
+            Map.put(base, "organization", %{"id" => "O_1", "teams" => vazio})
+
+          String.contains?(query, "repositories(") ->
+            Map.put(base, "organization", %{
+              "id" => "O_1",
+              "repositories" => pagina([repositorio_de_teste()], false, nil)
+            })
+
+          # A ÚLTIMA consulta da etapa 1 (issues do único repositório) traz a cota apertada:
+          # daqui em diante o gestor recusa toda GraphQL. A etapa 1 termina concluída.
+          String.contains?(query, "issues(") ->
+            %{
+              "rateLimit" => apertado,
+              "repository" => %{"id" => "R_1", "issues" => Map.put(vazio, "totalCount", 0)}
+            }
+
+          true ->
+            Map.put(base, "organization", org_node())
+        end
+      end)
+
+      stub(TheBand.GitHubHTTPMock, :get, fn url, _token ->
+        if String.contains?(url, "/commits/") do
+          Agent.update(chamadas, &Map.update!(&1, :commits, fn n -> n + 1 end))
+          {:ok, %{status: 200, body: %{"files" => []}, headers: %{}}}
+        else
+          Agent.update(chamadas, &Map.update!(&1, :runs, fn n -> n + 1 end))
+
+          {:ok, %{status: 200, body: %{"total_count" => 0, "workflow_runs" => []}, headers: %{}}}
+        end
+      end)
+
+      assert {:snooze, _} = perform(ctx.tenant, ctx.sync),
+             "a GraphQL fechou: o job hiberna no fim"
+
+      sync = Ingestion.reload(ctx.sync)
+      feitas = Agent.get(chamadas, & &1)
+
+      assert Ingestion.etapa_concluida?(sync, "etapa:trabalho")
+
+      assert Ingestion.etapa_concluida?(sync, "etapa:verificacoes") and feitas.runs > 0, """
+      A GraphQL fechou e a REST estava cheia — e as verificações (REST, que dependem só dos
+      repositórios) não rodaram. É a hora inteira de um balde desperdiçada enquanto o outro
+      reabre, que a parte 6 existe para aproveitar.
+      """
+
+      refute Ingestion.etapa_concluida?(sync, "etapa:comentarios"), "GraphQL: sem janela"
+      refute Ingestion.etapa_concluida?(sync, "etapa:mudancas"), "GraphQL: sem janela"
+
+      assert feitas.commits == 0 and not Ingestion.etapa_concluida?(sync, "etapa:arquivos"), """
+      Os arquivos de commit (REST) rodaram ANTES das solicitações de mudança, de quem
+      dependem — os commits que eles percorrem ainda não existem. A etapa não falharia:
+      coletaria zero e marcaria concluída. É o sucesso silencioso que a dependência
+      declarada impede.
+      """
+    end
+  end
+
+  describe "a espera da GraphQL vem do gestor, e não de /rate_limit" do
+    setup do
+      tenant = tenant_fixture()
+      tool = setup_tool(tenant)
+      %{tenant: tenant, tool: tool, sync: open_sync(tenant, tool)}
+    end
+
+    test "RATE_LIMITED sem reset: o job espera até o resetAt que o gestor viu, sem consultar /rate_limit",
+         %{tenant: tenant, sync: sync} do
+      # Medido em 2026-09-06: `GET /rate_limit` devolveu 5000/5000 e `used: 0` com 1 987
+      # pontos gastos. O job que confiasse nele dormiria uma hora; o gestor sabe que faltam
+      # trinta minutos, porque a última resposta boa disse.
+      # Conta só as páginas de membros: a organização vem antes, e recusar a PRIMEIRA
+      # página deixaria o gestor sem nenhum `resetAt` desta janela — só o da fixture
+      # folgada, que é 2030, e a espera sairia em anos.
+      {:ok, paginas_de_membros} = Agent.start_link(fn -> 0 end)
+      # Toda resposta boa diz a mesma coisa: reabre em 30 minutos.
+      janela = %{"cost" => 1, "remaining" => 4000, "resetAt" => reset_em(1800)}
+
+      stub(TheBand.GitHubHTTPMock, :post, fn _url, %{query: query}, _token ->
+        body =
+          if String.contains?(query, "membersWithRole") do
+            case Agent.get_and_update(paginas_de_membros, &{&1 + 1, &1 + 1}) do
+              1 ->
+                %{
+                  "data" => %{
+                    "rateLimit" => janela,
+                    "organization" => %{
+                      "id" => "O_1",
+                      "membersWithRole" => pagina([], true, "c1")
+                    }
+                  }
+                }
+
+              _ ->
+                # A segunda página: a origem recusa por cota, sem dizer quando volta.
+                %{
+                  "errors" => [
+                    %{"type" => "RATE_LIMITED", "message" => "API rate limit exceeded"}
+                  ]
+                }
+            end
+          else
+            %{"data" => %{"rateLimit" => janela, "organization" => org_node()}}
+          end
+
+        {:ok, %{status: 200, body: body, headers: %{}}}
+      end)
+
+      # Nenhum `stub`/`expect` para GET: se o job consultar /rate_limit, o Mox levanta.
+      assert {:snooze, segundos} = perform(tenant, sync)
+
+      assert segundos in 1700..1900, """
+      A espera foi de #{segundos}s. O gestor viu `resetAt` daqui a 30 min na última resposta
+      boa; a espera certa é ~1 860 s (30 min + 1 min de folga). 3 660 s seria a hora inteira
+      que /rate_limit inventa; 900 s seria o padrão de quem não sabe.
+      """
     end
   end
 
@@ -653,6 +907,8 @@ defmodule TheBand.Jobs.SyncGitHubEOTest do
       assert tool.needs_attention_reason =~ "chave mestra"
     end
   end
+
+  defp reset_datetime(segundos), do: DateTime.add(DateTime.utc_now(), segundos, :second)
 
   defp reset_em(segundos) do
     DateTime.utc_now() |> DateTime.add(segundos, :second) |> DateTime.to_iso8601()

@@ -1,8 +1,8 @@
 # Sprint 009 — o detalhe da pessoa
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [010 — detalhe da pessoa](../../specs/010-detalhe-da-pessoa/spec.md)
-**Plano**: [plan.md](../../specs/010-detalhe-da-pessoa/plan.md)
+**Feature**: [010 — detalhe da pessoa](../../../specs/010-detalhe-da-pessoa/spec.md)
+**Plano**: [plan.md](../../../specs/010-detalhe-da-pessoa/plan.md)
 **Origem**: [#211](https://github.com/The-Band-Solution/theband/issues/211), pedida durante o sprint 007
 **Análise**: rodada antes do código, **seis correções**, a crítica sendo de **fronteira**
 
@@ -59,7 +59,7 @@ saída era SQL. Aqui a plataforma funciona — o que falta é **enxergar** o que
 
 ## Tarefas
 
-Detalhadas em [010/tasks.md](../../specs/010-detalhe-da-pessoa/tasks.md). Cada tarefa é filha da
+Detalhadas em [010/tasks.md](../../../specs/010-detalhe-da-pessoa/tasks.md). Cada tarefa é filha da
 **user story que ela atende** — nunca do épico.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
@@ -129,7 +129,7 @@ existe.
 ## Definition of Done do sprint
 
 - [ ] `mix gates` verde pelo **código de saída** — dez gates
-- [ ] V1 a V10 do [quickstart](../../specs/010-detalhe-da-pessoa/quickstart.md) verificados
+- [ ] V1 a V10 do [quickstart](../../../specs/010-detalhe-da-pessoa/quickstart.md) verificados
 - [ ] **no dado real**: a página de uma das 75 pessoas abre e mostra as três seções, com a explicação
       da não promoção
 - [ ] a invariante das autorias conferida: a soma fecha com **4 241**

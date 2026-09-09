@@ -159,9 +159,32 @@ defmodule TheBand.Forecast do
       p50: percentil(concluidas, 50, rodadas),
       p85: percentil(concluidas, 85, rodadas),
       p95: percentil(concluidas, 95, rodadas),
-      nao_concluiram: rodadas - length(concluidas)
+      nao_concluiram: rodadas - length(concluidas),
+      distribuicao: distribuicao(concluidas)
     }
   end
+
+  @doc """
+  Quantas rodadas terminaram em cada semana — a DISTRIBUIÇÃO, e não só os percentis.
+
+  `%{semana => quantas_rodadas}`, só com as semanas em que alguma rodada terminou.
+
+  ## Por que ela sai daqui, e não é reconstruída na tela
+
+  Os percentis são três cortes da distribuição, e três cortes não recuperam a forma. Duas
+  simulações podem ter o **mesmo** p50 e p85 e distribuições muito diferentes: uma
+  concentrada em duas semanas, outra espalhada por oito com dois picos. A primeira é um
+  ritmo previsível; a segunda é uma equipe que alterna semanas cheias e vazias — e a decisão
+  de quem lê muda.
+
+  É o gráfico próprio de uma simulação de Monte Carlo: o que ela produz são as dez mil
+  rodadas, e o histograma é a única forma de as mostrar sem escolher por quem lê.
+
+  Semana sem nenhuma rodada **não** entra no mapa, e a tela desenha zero ali — é diferente
+  de não existir a semana.
+  """
+  @spec distribuicao([pos_integer()]) :: %{pos_integer() => pos_integer()}
+  def distribuicao(concluidas), do: Enum.frequencies(concluidas)
 
   # O percentil é sobre TODAS as rodadas, e não só sobre as que concluíram. Se
   # 40% não terminou, não existe p85 — o valor na posição 85% do total caiu fora

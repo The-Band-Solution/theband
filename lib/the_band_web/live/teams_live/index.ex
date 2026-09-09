@@ -18,7 +18,13 @@ defmodule TheBandWeb.TeamsLive.Index do
 
   # Organização fica de fora das colunas ordenáveis: ela vem de outra consulta, e ordenar por
   # coluna que a consulta não trouxe pareceria ordenação sem ser.
-  @tabelas [{"teams", [:name, :slug, :source_system, :collected_at], nil}]
+  #
+  # Origem, identificador na origem e data de coleta SAÍRAM da lista em 2026-09-06, a pedido
+  # da pessoa mantenedora ao avaliar a tela: são proveniência, e proveniência é da página da
+  # equipe, onde se lê uma equipe por vez. Na lista, ocupavam três colunas para dizer o que
+  # toda linha dizia igual ("github · https://github.com") ou o que ninguém compara (um id
+  # opaco). Continuam no dado e na página.
+  @tabelas [{"teams", [:name, :slug], nil}]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -158,16 +164,6 @@ defmodule TheBandWeb.TeamsLive.Index do
             derived
           </span>
         </:col>
-        <:col :let={team} field={:source_system} label="source" class="text-xs">
-          {team.source_system}
-          <div class="opacity-60">{team.source_instance}</div>
-        </:col>
-        <:col :let={team} label="identifier at source" class="font-mono text-xs">
-          {team.external_id}
-        </:col>
-        <:col :let={team} field={:collected_at} label="collected at" class="text-xs">
-          {team.collected_at}
-        </:col>
         <:col :let={team} label="">
           <.link navigate={~p"/teams/#{team.id}"} class="btn btn-xs btn-ghost">members</.link>
         </:col>
@@ -217,6 +213,6 @@ defmodule TheBandWeb.TeamsLive.Index do
     # a equipe não explica por que a contagem de pessoas não fecha.
     |> assign(derived_count: EO.count_teams(tenant, origin: :derived))
     |> assign(observed_count: EO.count_teams(tenant, origin: :observed))
-    |> assign(pending_role: EO.count_evidence_pending_role(tenant))
+    |> assign(pending_role: EO.count_memberships_pending_role(tenant))
   end
 end

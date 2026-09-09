@@ -3,8 +3,8 @@
 **Período**: 2026-08-29 a 2026-09-05
 **Herança**: retrabalho das US1/US2 da 047 (recusadas na
 [aceitação do sprint 024](../024-mensagens-e-o-botao-da-chave/aceitacao.md))
-**Feature nova**: [051-cadastro-por-github](../../specs/051-cadastro-por-github/spec.md)
-**Plano**: [051/plan.md](../../specs/051-cadastro-por-github/plan.md)
+**Feature nova**: [051-cadastro-por-github](../../../specs/051-cadastro-por-github/spec.md)
+**Plano**: [051/plan.md](../../../specs/051-cadastro-por-github/plan.md)
 
 ## Objetivo do sprint
 

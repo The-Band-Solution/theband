@@ -1,10 +1,10 @@
 # Sprint 024 — Mensagens e o botão da chave
 
 **Período**: 2026-08-28 a 2026-09-04
-**Features**: [047-mensagens-internacionalizadas](../../specs/047-mensagens-internacionalizadas/spec.md) e
-[048-botao-sem-chave-desabilitado](../../specs/048-botao-sem-chave-desabilitado/spec.md)
-**Planos**: [047/plan.md](../../specs/047-mensagens-internacionalizadas/plan.md) ·
-[048/plan.md](../../specs/048-botao-sem-chave-desabilitado/plan.md)
+**Features**: [047-mensagens-internacionalizadas](../../../specs/047-mensagens-internacionalizadas/spec.md) e
+[048-botao-sem-chave-desabilitado](../../../specs/048-botao-sem-chave-desabilitado/spec.md)
+**Planos**: [047/plan.md](../../../specs/047-mensagens-internacionalizadas/plan.md) ·
+[048/plan.md](../../../specs/048-botao-sem-chave-desabilitado/plan.md)
 
 ## Objetivo do sprint
 

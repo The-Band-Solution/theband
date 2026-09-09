@@ -1,8 +1,8 @@
 # Sprint 007 — destravar a sincronização presa
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [008 — destravar sync presa](../../specs/008-destravar-sync-presa/spec.md)
-**Plano**: [plan.md](../../specs/008-destravar-sync-presa/plan.md) ·
+**Feature**: [008 — destravar sync presa](../../../specs/008-destravar-sync-presa/spec.md)
+**Plano**: [plan.md](../../../specs/008-destravar-sync-presa/plan.md) ·
 **Origem**: [#175](https://github.com/The-Band-Solution/theband/issues/175), product backlog
 **Análise**: rodada antes do código, e **mudou a decisão central**
 
@@ -87,7 +87,7 @@ cobre o caso que a plataforma não consegue provar — real, e menos frequente.
 
 ## Tarefas
 
-Detalhadas em [008/tasks.md](../../specs/008-destravar-sync-presa/tasks.md). Cada tarefa é filha da
+Detalhadas em [008/tasks.md](../../../specs/008-destravar-sync-presa/tasks.md). Cada tarefa é filha da
 **user story que ela atende** — nunca do épico: tarefa sob épico viola `sro.rule07`.
 
 | # | Tarefa | Atende | Issue | Estimate | Fase | Estado |
@@ -147,7 +147,7 @@ tagline — está aberto e não bloqueia: nenhum arquivo em comum.
 ## Definition of Done do sprint
 
 - [ ] `mix gates` verde pelo **código de saída** — dez gates
-- [ ] V1 a V9 do [quickstart](../../specs/008-destravar-sync-presa/quickstart.md) verificados
+- [ ] V1 a V9 do [quickstart](../../../specs/008-destravar-sync-presa/quickstart.md) verificados
 - [ ] o job órfão de 2026-08-09 **encerrado pela plataforma**, não por SQL — é a prova no dado real
 - [ ] as nove issues encerradas ou repriorizadas com justificativa
 - [ ] PR com revisor pedido e **conferido** por `requested_reviewers` (L14), ligado ao projeto

@@ -1,7 +1,7 @@
 # Sprint 010 — Review
 
-**Período**: 2026-08-12 · **Feature**: [011 — de quem cada issue é parte](../../specs/011-de-quem-a-issue-e-parte/spec.md)
-**Aceitação**: [aceitacao.md](../../specs/011-de-quem-a-issue-e-parte/aceitacao.md) — **12 de 13** critérios
+**Período**: 2026-08-12 · **Feature**: [011 — de quem cada issue é parte](../../../specs/011-de-quem-a-issue-e-parte/spec.md)
+**Aceitação**: [aceitacao.md](../../../specs/011-de-quem-a-issue-e-parte/aceitacao.md) — **12 de 13** critérios
 
 ## Resumo
 

@@ -1,8 +1,8 @@
 # Sprint 005 — Review
 
 **Período**: 2026-08-11 a 2026-08-12
-**Features**: [005 — regras de mapeamento](../../specs/005-regras-de-mapeamento/spec.md) ·
-[006 — detalhe da issue](../../specs/006-detalhe-da-issue/spec.md)
+**Features**: [005 — regras de mapeamento](../../../specs/005-regras-de-mapeamento/spec.md) ·
+[006 — detalhe da issue](../../../specs/006-detalhe-da-issue/spec.md)
 
 ## Resumo
 

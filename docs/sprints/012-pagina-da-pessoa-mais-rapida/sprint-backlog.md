@@ -1,8 +1,8 @@
 # Sprint 012 — a página da pessoa que não varre tudo
 
 **Período**: 2026-08-12 a 2026-08-18 (cadência de uma semana)
-**Feature**: [013 — a página da pessoa que não varre tudo](../../specs/013-pagina-da-pessoa-mais-rapida/spec.md)
-**Plano**: [plan.md](../../specs/013-pagina-da-pessoa-mais-rapida/plan.md)
+**Feature**: [013 — a página da pessoa que não varre tudo](../../../specs/013-pagina-da-pessoa-mais-rapida/spec.md)
+**Plano**: [plan.md](../../../specs/013-pagina-da-pessoa-mais-rapida/plan.md)
 **Origem**: pedido da pessoa mantenedora — *"estudo de como otimizar a tela de pessoas"*
 **Análise**: rodada antes do código, **cinco correções** — duas de correção silenciosa, três de
 testes que não podiam funcionar
@@ -71,7 +71,7 @@ mesmo assim.
 
 ## Tarefas
 
-Detalhadas em [013/tasks.md](../../specs/013-pagina-da-pessoa-mais-rapida/tasks.md).
+Detalhadas em [013/tasks.md](../../../specs/013-pagina-da-pessoa-mais-rapida/tasks.md).
 
 | # | Tarefa | Atende | Estimate | Fase | Estado |
 |---|---|---|---|---|---|

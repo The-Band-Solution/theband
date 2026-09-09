@@ -26,6 +26,7 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.Repo
   alias TheBand.WorkItems.Schemas.CollectedIssue
   alias TheBand.WorkItems.Schemas.IssueAssignee
@@ -57,7 +58,92 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
   # A alternativa era derivar a discordância das listas já carregadas. Ela não
   # serve: a lista de membros observados é **paginada**, e a discordância de quem
   # está na página 2 desapareceria da tela sem que nada avisasse.
-  @teto_do_detalhe 17
+  #
+  # **17 → 18 em 2026-09-03**, pela US2 da feature 058: `team_projects_with_period/2`,
+  # os projetos por que a equipe passou. Ela é constante — uma consulta, independente
+  # de quantos projetos existam.
+  #
+  # As duas consultas de `who_worked_on_many/3` só nascem quando há projeto, e por
+  # isso não aparecem neste cenário. O teste do acréscimo das três seções mede o
+  # caso COM projeto, e vive adiante neste mesmo arquivo.
+  #
+  # **18 → 19 em 2026-09-03**, pela US1 da feature 058:
+  # `team_time_to_first_review/3`, a espera por revisão. É **uma** consulta para as
+  # duas leituras da seção — a da equipe e a por pessoa —, agrupada em memória por
+  # `agrupar_por_pessoa/1`. Uma segunda consulta com o mesmo filtro produziria dois
+  # números com o mesmo rótulo, que é a L67.
+  #
+  # **19 → 21 em 2026-09-04**, pela revisão de segurança do PR #798. A taxa do
+  # pipeline reusava a lista de vínculos que a seção de quem trabalhou já carregava,
+  # por uma opção `:vinculos` — e com a lista vindo de fora, `team_id` deixava de
+  # decidir qualquer coisa: a taxa de uma equipe podia sair com o rótulo de outra.
+  #
+  # A opção saiu, e com ela `:nome`. As duas consultas de volta são o preço da
+  # garantia morar dentro da função, e não no chamador. **Subir por segurança é a
+  # única razão que não precisa de justificativa de desempenho.**
+  # **21 → 22 em 2026-09-04**, pelo antipadrão da estrutura
+  # (`structure.ap01.team_of_one`): a contagem de vínculos vigentes da equipe. Uma
+  # consulta constante, e ela vem ANTES das medidas de propósito — quem lê um número de
+  # nível equipe precisa saber primeiro se a unidade sobre a qual ele foi calculado
+  # está formada.
+  # 23 desde 2026-09-06: a composição das medidas ("X observados sem papel, Y declarados")
+  # custa UMA consulta a mais — `team_members_at/3` — e ela está declarada aqui, e não
+  # escondida num teto que sobe sem ninguém dizer por quê.
+  # **23 → 21 em 2026-09-08**, pela feature 060 (T010, T013). O número BAIXOU, e é raro o
+  # bastante para merecer a explicação:
+  #
+  # As seis seções de estrutura saíram do painel para a aba `?tab=structure`, e cada aba passou
+  # a carregar só o que desenha. Saíram do painel: o roster, a contagem, a evidência pendente,
+  # a discordância, os papéis da organização e as contagens por papel.
+  #
+  # Entrou uma: a previsão reconsulta a série em **semanas** em vez de reusar a do burn, porque
+  # o Monte Carlo é semanal qualquer que seja a granulação escolhida (FR-064). Doze meses
+  # dariam doze amostras, e a previsão mudaria de significado quando quem lê trocasse a
+  # granulação para ler outra coisa.
+  #
+  # Medido, não estimado: 21 com 1 pessoa e 21 com 11.
+  # **21 → 22 em 2026-09-08**, pela seção *Problemas agora* (spec 060, FR-065).
+  #
+  # Oito cartões, e **uma** consulta nova: a das issues abertas além do limiar. Os outros sete
+  # não consultam — cinco derivam do que o painel já carrega (as tarefas por pessoa, a espera
+  # por revisão, as anomalias, a contagem de vínculos sem papel), e dois dizem **não
+  # conferido** porque o insumo não existe.
+  #
+  # A primeira versão consultava tudo por conta própria: **32 acrescentadas**, e o número
+  # **crescia com o número de pessoas** — duas por pessoa. Este teto o apanhou antes de subir.
+  #
+  # A causa não era desempenho: era duplicação. Contar de novo o que a tela já tem produziria
+  # dois caminhos para o mesmo número, e dois caminhos divergem. A correção foi passar os
+  # insumos, não otimizar a consulta.
+  @teto_do_detalhe 22
+
+  # A ABA DA ESTRUTURA — medida em 2026-09-08 (T013): 7 consultas por render, constantes com
+  # 1 e com 11 pessoas, e constantes com 0 e com 3 subequipes.
+  #
+  # ## Como saiu de 9 para 7
+  #
+  # A primeira medida deu 9, e **três delas eram a mesma**: a listagem do roster, a contagem e
+  # os totais chamavam `equipes_do_alcance/2` cada uma por sua conta — a mesma consulta de
+  # composição, três vezes por render. `Roster.escopo/2` virou público e a tela o calcula uma
+  # vez, passando em `opts[:escopo]`.
+  #
+  # Quem chama de fora sem o `opts` continua correto e paga a consulta: o padrão não pode ser
+  # "rápido e errado se você esquecer".
+  #
+  # **Sem folga.** Qualquer consulta a mais quebra, e é isso que se quer.
+  @teto_da_estrutura 7
+
+  # O acréscimo do caminho COM PROJETO sobre o caminho sem projeto nenhum — as duas
+  # consultas de `who_worked_on_many/3` e a dos repositórios, menos a que se cancela.
+  #
+  # **Era 6 e é 3.** O 6 foi estimado do `tasks.md`; o 3 foi medido em 2026-09-04,
+  # depois de a revisão de QA apontar que o número não vinha de medição. Estimativa
+  # deixa folga, e folga é onde consulta nova entra sem ninguém ver.
+  #
+  # **Ele NÃO mede "as três seções"** — a consulta da US1 roda nos dois lados e se
+  # cancela na diferença. Quem cobre a US1 é o teto da página, acima. O nome diz o
+  # que a medida é.
+  @teto_do_caminho_com_projeto 3
   @teto_da_composta_por_subequipe 6
 
   setup %{conn: conn} do
@@ -104,6 +190,7 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
         person_id: pessoa.id,
         team_id: equipe.id,
         organizational_role_id: ctx.papel.id,
+        declared_by_user_id: ctx.admin.id,
         started_at: DateTime.add(DateTime.utc_now(:second), -300, :day)
       })
   end
@@ -149,6 +236,101 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
     |> Enum.map_join("\n", fn {k, delta} ->
       "  #{String.pad_leading("#{if delta > 0, do: "+", else: ""}#{delta}", 4)}  #{k}"
     end)
+  end
+
+  describe "a aba da ESTRUTURA (feature 060, T013)" do
+    test "o número de consultas não cresce com as pessoas", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      uma = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      for i <- 1..10 do
+        p = pessoa(ctx, "pessoa#{i}")
+        vincular(ctx, time, p)
+      end
+
+      onze = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      assert length(uma) == length(onze), """
+      A estrutura fez #{length(uma)} consultas com 1 pessoa e #{length(onze)} com 11 — ela
+      consulta por linha.
+
+      É o defeito que o roster foi desenhado para não ter: duas consultas, uma para as pessoas
+      da página e outra para os vínculos DESSAS pessoas. A alternativa natural — os vínculos de
+      cada pessoa numa consulta por linha — passa em todo teste funcional.
+
+      O que mudou entre as duas medições:
+
+      #{diferenca(uma, onze)}
+      """
+    end
+
+    test "nem com as subequipes", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      sem = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      for i <- 1..3 do
+        sub = equipe(ctx, "Sub#{i}")
+        {:ok, _} = EO.compose_teams(ctx.tenant, sub.id, time.id, ctx.admin.id)
+        vincular(ctx, sub, pessoa(ctx, "sub#{i}"))
+      end
+
+      com = contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end)
+
+      assert length(sem) == length(com), """
+      A estrutura fez #{length(sem)} consultas sem subequipe e #{length(com)} com três.
+
+      O alcance do roster inclui as partes vigentes, e é uma consulta só — a lista de equipes
+      entra num `IN`. Uma consulta por subequipe apareceria aqui.
+
+      #{diferenca(sem, com)}
+      """
+    end
+
+    test "o custo da aba tem teto declarado", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+
+      lista = por_render(contar(fn -> live(ctx.conn, ~p"/teams") end))
+
+      estrutura =
+        por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end))
+
+      acrescentadas = estrutura - lista
+
+      assert acrescentadas <= @teto_da_estrutura, """
+      A aba da estrutura acrescenta #{acrescentadas} consultas por render sobre a listagem, e o
+      teto declarado é #{@teto_da_estrutura}.
+
+      Subir o teto é decisão, e a decisão aparece neste arquivo. Antes de subi-lo, confira se a
+      consulta nova não é uma que já existe: foi assim que este número caiu de 9 para 7 — três
+      chamadas pediam o mesmo alcance ao banco.
+      """
+    end
+
+    test "a aba do painel não paga as consultas da estrutura, e vice-versa", ctx do
+      time = equipe(ctx, "Dados")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, time, ana)
+      for n <- 1..3, do: issue(ctx, "d#{n}", ana, n * 4)
+
+      painel = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}") end))
+
+      estrutura =
+        por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{time.id}?tab=structure") end))
+
+      assert estrutura < painel, """
+      A estrutura custou #{estrutura} e o painel #{painel}. Se as duas custam o mesmo, cada aba
+      está carregando o que a outra desenha — que é o que a decisão D2 do plano evitou. Com as
+      duas na mesma rota, isso dobraria o custo de cada visita para mostrar metade.
+      """
+    end
   end
 
   describe "a tela do detalhe da subequipe" do
@@ -204,6 +386,60 @@ defmodule TheBandWeb.TetoDeConsultasDaEquipeTest do
       template. Se a seção nova vale a consulta, mude o número aqui e diga por quê.
       """
     end
+  end
+
+  describe "o caminho com projeto, da feature 058" do
+    test "custa no máximo o teto declarado, e o número não cresce com o dado", ctx do
+      sem_projeto = equipe(ctx, "Sem projeto")
+      ana = pessoa(ctx, "ana")
+      vincular(ctx, sem_projeto, ana)
+
+      com_projeto = equipe(ctx, "Com projeto")
+      bia = pessoa(ctx, "bia")
+      vincular(ctx, com_projeto, bia)
+      ligar(ctx, com_projeto, "Alfa")
+
+      base = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{sem_projeto.id}") end))
+      com_uma = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{com_projeto.id}") end))
+
+      # A guarda que faltava: sem ela, se as seções sumissem da tela o delta seria 0 e
+      # o teto passaria — o teste celebraria a ausência do que veio medir.
+      assert com_uma - base > 0, """
+      O caminho com projeto não custou consulta nenhuma a mais. Ou as seções sumiram da
+      tela, ou a fixture não ligou o projeto — e nos dois casos este teste não está
+      medindo o que diz medir.
+      """
+
+      assert com_uma - base <= @teto_do_caminho_com_projeto, """
+      O caminho com projeto acrescenta #{com_uma - base} consultas sobre o caminho sem
+      projeto, e o teto declarado é #{@teto_do_caminho_com_projeto}.
+
+      Subir é decisão, e ela aparece neste arquivo.
+      """
+
+      # Agora com CINCO projetos e mais gente: o custo não pode acompanhar.
+      for n <- 2..5, do: ligar(ctx, com_projeto, "Projeto #{n}")
+
+      for i <- 1..5 do
+        p = pessoa(ctx, "p058_#{i}")
+        vincular(ctx, com_projeto, p)
+      end
+
+      com_cinco = por_render(contar(fn -> live(ctx.conn, ~p"/teams/#{com_projeto.id}") end))
+
+      assert com_cinco == com_uma, """
+      A página fez #{com_uma} consultas com 1 projeto e #{com_cinco} com 5 — ela consulta por
+      projeto. `who_worked_on_many/3` e `project_repositories_with_period_many/2` existem
+      exatamente para que esse número não se mexa.
+      """
+    end
+  end
+
+  defp ligar(ctx, equipe, nome_do_projeto) do
+    {:ok, projeto} = SPO.create_project(ctx.tenant, %{name: nome_do_projeto}, ctx.admin.id)
+    {:ok, _} = SPO.link_team(ctx.tenant, projeto.id, equipe.id, ctx.admin.id)
+    {:ok, _} = SPO.link_repository(ctx.tenant, projeto.id, ctx.repo_id, ctx.admin.id)
+    projeto
   end
 
   describe "a tela da equipe composta" do

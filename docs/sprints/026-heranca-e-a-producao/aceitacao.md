@@ -1,9 +1,9 @@
 # Sprint 026 — Registro de aceitação
 
-**Features**: [050-em-producao](../../specs/050-em-producao/spec.md) ·
-[052-primeira-conta-do-ambiente](../../specs/052-primeira-conta-do-ambiente/spec.md) ·
-herança de [047](../../specs/047-mensagens-internacionalizadas/spec.md) e
-[051](../../specs/051-cadastro-por-github/spec.md)
+**Features**: [050-em-producao](../../../specs/050-em-producao/spec.md) ·
+[052-primeira-conta-do-ambiente](../../../specs/052-primeira-conta-do-ambiente/spec.md) ·
+herança de [047](../../../specs/047-mensagens-internacionalizadas/spec.md) e
+[051](../../../specs/051-cadastro-por-github/spec.md)
 **Avaliado em**: 2026-09-01, na `development` (todos os PRs mergeados), com
 evidência executada nesta avaliação — gates, medição HTTP contra o endereço real
 e a medição do SC-004 que faltava.

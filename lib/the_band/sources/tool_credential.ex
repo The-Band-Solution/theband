@@ -33,6 +33,11 @@ defmodule TheBand.Sources.ToolCredential do
     field :active, :boolean, default: true
     field :validated_at, :utc_datetime
     field :scopes, {:array, :string}, default: []
+    # Login do usuário do GitHub dono do token — ADR 0007. A cota de 5 000 requisições por
+    # hora é dele, não do token: duas credenciais com o mesmo `owner_login` dividem o saldo.
+    # Vem de `verify_credential/2`, nunca da tela. Nulo nas credenciais anteriores à decisão,
+    # até `Sources.descobrir_dono/1` preencher.
+    field :owner_login, :string
     field :last_failure_at, :utc_datetime
     field :last_failure_reason, :string
 
@@ -51,6 +56,7 @@ defmodule TheBand.Sources.ToolCredential do
       :active,
       :validated_at,
       :scopes,
+      :owner_login,
       :last_failure_at,
       :last_failure_reason
     ])

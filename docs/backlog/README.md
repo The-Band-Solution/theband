@@ -5,14 +5,18 @@ escopo — não só a lista.
 
 | Documento | Do que trata | Prioridade |
 |---|---|---|
+| [O backup restaurado de verdade](backup-restaurado-de-verdade.md) | o §6 do runbook — bloqueado na conta do S3, que ainda não existe; a 050/US2 segue não aceita | **alta** |
 | [Entidades e CRUD](crud-entities.md) | como 220 conceitos viram ~94 entidades, e a ordem de construção | alta |
 | [GitHub → SRO](github-to-sro.md) | ingestão do GitHub para a Scrum Reference Ontology, em fatias verticais | alta |
 | [Papéis Scrum](papeis-scrum.md) | cadastro declarado e alocação de pessoas — o que o GitHub não expõe | alta |
 | [Biblioteca de derivação](tooling-library.md) | extrair a transformação como biblioteca independente | **baixa** |
 | [Setup inicial e a empresa com endereço próprio](setup-inicial-e-multiempresa.md) | o wizard que cria a empresa, conecta organizações do GitHub e dá a ela `<empresa>.theband.dev` | **alta** |
 | [O projeto pertence a uma organização](projeto-pertence-a-organizacao.md) | o elo que falta entre projeto e organização, decidido em 2026-09-01, e a premissa da ontologia que ele vence | **alta** |
+| [A organização do tenant, as organizações do GitHub, e o sign up](organizacao-do-tenant-e-sign-up.md) | separar a instituição que usa a plataforma da organização do GitHub que ela observa; a instituição nasce com a instalação, liga N organizações do GitHub, e o sign up cria as seguintes — spec [059](../../specs/059-organizacao-do-tenant/spec.md), rascunho com duas decisões em aberto | **alta — proposta de 2026-09-06, a confirmar na priorização** |
 | [Português na interface](portugues-na-interface.md) | 23 ocorrências de português numa interface que serve em inglês — e o verificador que não as vê | média |
+| [A tela da equipe: dashboard do gestor e estrutura](tela-da-equipe.md) | duas abas em `/teams/:id`; protótipo aprovado em 2026-09-07 com link e prompt; membros → subequipes → dashboard → fluxo — spec [060](../../specs/060-tela-da-equipe/spec.md) | **alta — foco de 2026-09-07** |
 | [A tela da equipe complexa](tela-da-equipe-complexa.md) | os indicadores por subequipe sem soma, o foco da tela, e o defeito que a medida tem hoje ao ignorar o período do vínculo | **alta** |
+| [O vínculo observado sem papel](vinculo-observado-sem-papel.md) | o que a regra `github.team_membership_evidence` precisa dizer na versão 2 — a participação observada vira vínculo com papel declaradamente ausente —, a razão ontológica, e o que mais na base a decisão de 2026-09-06 alcança | **alta — decidido em 2026-09-06; o YAML ainda é v1** |
 | [O burn da pessoa parte de zero](burn-da-pessoa-sem-linha-de-base.md) | a página da pessoa mede o que nasceu na janela, e o rótulo diz trabalho em aberto | média — a pergunta precisa ser decidida antes do código |
 | [Um servidor MCP para os dados](servidor-mcp.md) | expor as respostas da plataforma a agentes de terceiros, com a proveniência junto | **bloqueada** — depende de decidir autenticação e tenant |
 | [Decisões pendentes](decisoes-pendentes.md) | o que não pode ser implementado sem uma resposta humana — o quadro do Conecta Fapes, o conector do ArgoCD, a skill de humanização | **bloqueadas** |

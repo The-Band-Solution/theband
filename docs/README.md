@@ -88,3 +88,39 @@ O roadmap completo está em [AGENTS.md](../AGENTS.md), seção 19.
 ## Interface
 
 [design-system.md](design-system.md) — a gramática da evidência, a paleta, as três vozes tipográficas, WCAG 2.0 e mobile-first. **Normativo**: vale para toda tela nova.
+
+---
+
+## O site desta documentação
+
+Estas páginas são publicadas em **<https://theband.dev/docs/>** pelo workflow
+[`docs.yml`](../.github/workflows/docs.yml), a cada push na `main` que toque em
+`docs/`.
+
+Para ver localmente antes de abrir PR:
+
+```bash
+pip install -r ../requirements-docs.txt
+mkdocs serve            # http://127.0.0.1:8000
+mkdocs build --strict   # o que a CI roda
+```
+
+**`--strict` transforma link quebrado em falha de build**, e não é rigor
+decorativo: foi ele que encontrou **118 links quebrados** que ninguém via — a
+maioria com um `../` a menos, apontando para `docs/specs/` em vez de `specs/`.
+Estavam quebrados no GitHub também, e nenhuma revisão os pegou porque link
+quebrado não dá erro, só devolve 404 para quem clicou.
+
+### Duas coisas que não se faz aqui
+
+**Nunca rodar `mkdocs gh-deploy`.** A branch `gh-pages` **não** é deste site: ela
+serve a landing page de `theband.dev` e carrega o `CNAME`. O `gh-deploy` apaga a
+branch inteira, e levaria o domínio junto. A publicação escreve apenas em
+`docs/`, com um passo que aborta se o `CNAME` ou o `index.html` da raiz
+desaparecerem.
+
+**Não reescrever para URL absoluta** os links que apontam para fora de `docs/` —
+`specs/`, `priv/`, `AGENTS.md`. Eles continuam relativos no fonte, e o hook
+[`scripts/mkdocs_hooks.py`](../scripts/mkdocs_hooks.py) os converte para o
+GitHub **no momento do build**. Assim a documentação segue navegável no
+repositório, offline e sob `git grep`.

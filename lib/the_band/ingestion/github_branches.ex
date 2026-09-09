@@ -30,6 +30,7 @@ defmodule TheBand.Ingestion.GithubBranches do
   Module.register_attribute(__MODULE__, :sobelow_skip, accumulate: true)
 
   alias TheBand.Configuration.Commands
+  alias TheBand.Ingestion.Janela
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Repo
 
@@ -45,21 +46,31 @@ defmodule TheBand.Ingestion.GithubBranches do
   """
   @spec collect(map()) :: {:ok, map()}
   def collect(ctx) do
-    repositorios = repositorios_observados(ctx.tenant.id, ctx.tool.id)
-    resultados = Enum.map(repositorios, &coletar_repositorio(ctx, &1))
+    repositorios =
+      ctx.tenant.id
+      |> repositorios_observados(ctx.tool.id)
+      |> Enum.reject(&feito_nesta_sincronizacao?(&1, ctx.sync.started_at))
 
-    {:ok,
-     %{
-       repositories: length(repositorios),
-       branches: soma(resultados, :branches),
-       protected: soma(resultados, :protegidas),
-       # Nunca zero disfarçando "acabou": é quanto a plataforma não soube dizer se está
-       # protegida, por falta de escopo de administração na credencial.
-       protection_unknown: soma(resultados, :protecao_desconhecida),
-       marked_unobserved: soma(resultados, :marcadas),
-       truncated: soma(resultados, :truncadas),
-       unreachable: Enum.count(resultados, &(&1.alcancado == false))
-     }}
+    # Sequencial, e PARA na janela fechada (ADR 0007): o que já foi gravado fica, o que
+    # falta é da retomada. Seguir devolveria um resumo e o job fecharia o sync como completo.
+    case Janela.ate_fechar(repositorios, &coletar_repositorio(ctx, &1)) do
+      {:sem_janela, reset} ->
+        {:snooze, Janela.segundos_ate(reset)}
+
+      resultados ->
+        {:ok,
+         %{
+           repositories: length(repositorios),
+           branches: soma(resultados, :branches),
+           protected: soma(resultados, :protegidas),
+           # Nunca zero disfarçando "acabou": é quanto a plataforma não soube dizer se está
+           # protegida, por falta de escopo de administração na credencial.
+           protection_unknown: soma(resultados, :protecao_desconhecida),
+           marked_unobserved: soma(resultados, :marcadas),
+           truncated: soma(resultados, :truncadas),
+           unreachable: Enum.count(resultados, &(&1.alcancado == false))
+         }}
+    end
   end
 
   # **Filtra pela FERRAMENTA, não só pelo tenant** — issue #446.
@@ -82,9 +93,28 @@ defmodule TheBand.Ingestion.GithubBranches do
         where:
           r.tenant_id == type(^tenant_id, :binary_id) and
             r.connected_tool_id == type(^tool_id, :binary_id) and is_nil(r.excluded_at),
-        select: %{id: type(r.id, :binary_id), qualified_name: f.qualified_name}
+        select: %{
+          id: type(r.id, :binary_id),
+          qualified_name: f.qualified_name,
+          branches_collected_at: r.branches_collected_at
+        }
     )
   end
+
+  # Percorrido NESTA sincronização: a etapa parou na janela no meio, e a retomada não
+  # precisa refazer os repositórios que já concluiu (ADR 0007, parte 4). Entre
+  # sincronizações a etapa continua não-incremental, pelo motivo declarado no job: a
+  # pergunta é "que branches existem agora".
+  defp feito_nesta_sincronizacao?(%{branches_collected_at: nil}, _inicio), do: false
+
+  defp feito_nesta_sincronizacao?(%{branches_collected_at: quando}, %DateTime{} = inicio) do
+    quando
+    |> DateTime.from_naive!("Etc/UTC")
+    |> DateTime.compare(inicio)
+    |> Kernel.in([:gt, :eq])
+  end
+
+  defp feito_nesta_sincronizacao?(_repo, _inicio), do: false
 
   defp coletar_repositorio(ctx, repo) do
     inicio = DateTime.utc_now(:second)
@@ -104,6 +134,19 @@ defmodule TheBand.Ingestion.GithubBranches do
           resultado
         )
         |> tap(fn _ -> Commands.touch_repository(repo.id, inicio, total) end)
+
+      # O gestor de cotas recusou — ou a origem recusou por cota. É a hora, e não o repositório.
+      {:error, {:rate_limited, reset}} ->
+        %{
+          alcancado: false,
+          sem_janela: true,
+          reset: reset,
+          branches: 0,
+          protegidas: 0,
+          protecao_desconhecida: 0,
+          marcadas: 0,
+          truncadas: 0
+        }
 
       {:error, reason} ->
         Logger.warning("branches de #{repo.qualified_name} não coletadas: #{inspect(reason)}")
@@ -176,7 +219,7 @@ defmodule TheBand.Ingestion.GithubBranches do
   defp paginar(ctx, variables, cursor \\ nil, acumulado \\ [], total \\ nil, padrao \\ nil) do
     vars = Map.merge(variables, %{page_size: @por_pagina, after: cursor})
 
-    case Client.graphql(ctx.tool.instance_url, ctx.token, consulta(), vars) do
+    case Client.graphql(ctx.tool.instance_url, ctx.token, consulta(), vars, cota: ctx[:cota]) do
       # O ENVELOPE, nunca `{:ok, data}` direto — L26: casar largo devolvia lista vazia sem
       # erro, e o job completava com zero coletados.
       {:ok, %{data: data}} ->

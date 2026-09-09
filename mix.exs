@@ -4,7 +4,7 @@ defmodule TheBand.MixProject do
   def project do
     [
       app: :the_band,
-      version: "0.5.0",
+      version: "0.6.0",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -17,7 +17,25 @@ defmodule TheBand.MixProject do
       # no PLT o Dialyzer as reporta como funções inexistentes.
       dialyzer: [plt_add_apps: [:mix, :ex_unit]],
       listeners: [Phoenix.CodeReloader],
-      releases: releases()
+      releases: releases(),
+      # FALSO POSITIVO DE METADADO, e não risco aceito — avaliação em
+      # `docs/seguranca/2026-09-08-decimal-expoente-ilimitado.md`.
+      #
+      # O aviso `CVE-2026-32686` ("Unbounded exponent in decimal enables unauthenticated
+      # DoS") declara `patched_versions: 3.0.0`, e esta base usa 3.1.1. O registro OSV tem a
+      # faixa SEMVER com `{"introduced": "0"}` e **nenhum evento `fixed`**, então a lista
+      # enumerada inclui as versões já corrigidas — e o gate casa.
+      #
+      # Medido no artefato instalado, não deduzido: o contexto padrão traz
+      # `emax: 6144`/`emin: -6143`, `Decimal.parse("1e1000000000")` devolve `:error` e
+      # `Decimal.new/1` levanta. A mitigação está de pé.
+      #
+      # A proteção real NÃO é esta linha: é `test/the_band/decimal_limitado_test.exs`, que
+      # reprova se a faixa do `Decimal` deixar de ser a corrigida. Um downgrade quebra a
+      # suíte em vez de depender de alguém reler uma data. `mix hex.audit` continua
+      # imprimindo o achado sob `Ignored advisories:` e denuncia a entrada quando ela ficar
+      # obsoleta — que é o sinal para remover esta exceção.
+      hex: [ignore_advisories: ["CVE-2026-32686"]]
     ]
   end
 

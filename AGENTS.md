@@ -803,7 +803,9 @@ Cada agente tem escopo. Quem implementa não valida sozinho.
 | Reviewer | revisar código, arquitetura, semântica, YAMLs, testes, segurança, documentação |
 | DevOps | CI, containers, releases, ambientes, migrações, observabilidade |
 | Security | autenticação, autorização, tokens, permissões, logs, dependências, dados sensíveis |
+| Design | a tela antes do código: protótipo navegável publicado e guardado na spec com o prompt e as decisões; design system herdado; **a tela implementada é exatamente a aprovada**. Trabalha em par com Product Owner e QA. Definido em `.claude/agents/design.md` |
 | Documentation | README, arquitetura, ontologias, integrações, mapeamentos, ADRs, quickstart, catálogos |
+| Documentation — Modelos | diagrama de classes (UML), máquinas de estado, modelo de banco (ERD) e **DSM** entre épicos, user stories e features. Mermaid em Markdown, **derivado** do código, das migrações e da base — nunca de memória, sempre com `arquivo:linha`. Definido em `.claude/agents/documentacao-modelos.md` |
 
 ---
 

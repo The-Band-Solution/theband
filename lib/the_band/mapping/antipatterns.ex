@@ -30,11 +30,13 @@ defmodule TheBand.Mapping.Antipatterns do
   """
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems
 
   @regra "process.antipatterns"
+  @regra_estrutural "structure.antipatterns"
   @movimentacao "ProjectV2ItemStatusChangedEvent"
 
   @type achado :: %{
@@ -168,6 +170,66 @@ defmodule TheBand.Mapping.Antipatterns do
         |> Enum.frequencies_by(& &1.id)
         |> Enum.map(fn {id, n} -> %{id: id, count: n} end)
         |> Enum.sort_by(& &1.count, :desc)
+    }
+  end
+
+  @doc """
+  Os antipadrões da ESTRUTURA desta equipe — decisão da pessoa mantenedora, 2026-09-04.
+
+  As outras funções deste módulo olham para issues, e dizem que o registro do processo
+  está incompleto. Esta olha para a **unidade de medida**: quantas pessoas compõem a
+  equipe sobre a qual toda medida de nível `team` é calculada.
+
+  ## Por que é antipadrão, e não um piso
+
+  A pergunta chegou como escolha entre aceitar o risco de uma equipe de uma pessoa e
+  definir um mínimo — *"agregado só a partir de N"*. As duas foram recusadas: o N não
+  existe na base de conhecimento, e escolhê-lo seria a plataforma inventando política.
+
+  **Equipe de uma pessoa é anomalia, e o que a plataforma faz com anomalia é
+  identificá-la.** O agregado dela não agrega: a mediana da equipe é a mediana daquela
+  pessoa, com outro rótulo — e a fronteira que a FR-024 desenhou para a quebra por
+  pessoa some sem que nada avise.
+
+  Duas consultas no máximo, e nenhuma por linha.
+  """
+  @spec detect_structural_for_team(Tenant.t(), Ecto.UUID.t()) :: [map()]
+  def detect_structural_for_team(%Tenant{} = tenant, team_id) do
+    vigentes = EO.count_team_members_at(tenant, team_id, DateTime.utc_now())
+
+    @regra_estrutural
+    |> maximas()
+    |> Enum.filter(&viola_estrutura?(&1, vigentes))
+    |> Enum.map(&achado_estrutural(&1, vigentes))
+  end
+
+  @doc """
+  Esta equipe é uma equipe de uma pessoa? — a pergunta que a tela faz antes de mostrar
+  o agregado a quem não alcança a equipe.
+
+  Existe separada de `detect_structural_for_team/2` porque quem apresenta o número
+  precisa de um booleano, e não da lista inteira de achados. Deriva da mesma contagem,
+  para não haver dois caminhos até o mesmo fato.
+  """
+  @spec team_of_one?([map()]) :: boolean()
+  def team_of_one?(achados), do: Enum.any?(achados, &(&1.id == "structure.ap01.team_of_one"))
+
+  # A contagem exata é o que decide, e não uma faixa: um e zero quebram a aritmética da
+  # medida por razões diferentes, e cada um tem sua máxima.
+  defp viola_estrutura?(%{"id" => "structure.ap01.team_of_one"}, vigentes), do: vigentes == 1
+
+  defp viola_estrutura?(%{"id" => "structure.ap02.team_with_no_members"}, vigentes),
+    do: vigentes == 0
+
+  defp viola_estrutura?(_maxima, _vigentes), do: false
+
+  defp achado_estrutural(maxima, vigentes) do
+    %{
+      id: maxima["id"],
+      nome: get_in(maxima, ["name", "pt-BR"]),
+      afirmacao: get_in(maxima, ["statement", "pt-BR"]),
+      consequencia: get_in(maxima, ["consequence", "pt-BR"]),
+      membros_vigentes: vigentes
     }
   end
 

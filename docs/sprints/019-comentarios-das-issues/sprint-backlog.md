@@ -1,8 +1,8 @@
 # Sprint 019 — Os comentários das issues, e a participação nas discussões
 
 **Período**: 2026-08-17 a 2026-08-31
-**Feature**: [030](../../specs/030-comentarios-das-issues/spec.md)
-**Plano**: [plan.md](../../specs/030-comentarios-das-issues/plan.md)
+**Feature**: [030](../../../specs/030-comentarios-das-issues/spec.md)
+**Plano**: [plan.md](../../../specs/030-comentarios-das-issues/plan.md)
 
 ## Objetivo do sprint
 

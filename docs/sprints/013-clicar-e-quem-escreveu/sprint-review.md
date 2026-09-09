@@ -1,6 +1,6 @@
 # Sprint 013 — Review
 
-**Período**: 2026-08-13 · **Features**: [014](../../specs/014-clicar-leva-a-pagina/spec.md) e [015](../../specs/015-quem-escreveu-a-issue-tambem-e-observado/spec.md)
+**Período**: 2026-08-13 · **Features**: [014](../../../specs/014-clicar-leva-a-pagina/spec.md) e [015](../../../specs/015-quem-escreveu-a-issue-tambem-e-observado/spec.md)
 **PRs**: [#286](https://github.com/The-Band-Solution/theband/pull/286) e [#287](https://github.com/The-Band-Solution/theband/pull/287)
 
 ## Resumo

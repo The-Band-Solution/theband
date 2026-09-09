@@ -1,10 +1,10 @@
 # Sprint 005 — mapeamento por organização e detalhe da issue
 
 **Período**: 2026-08-11 a 2026-08-17 (cadência de uma semana)
-**Features**: [005 — regras de mapeamento](../../specs/005-regras-de-mapeamento/spec.md) ·
-[006 — detalhe da issue](../../specs/006-detalhe-da-issue/spec.md)
-**Planos**: [005/plan.md](../../specs/005-regras-de-mapeamento/plan.md) ·
-[006/plan.md](../../specs/006-detalhe-da-issue/plan.md)
+**Features**: [005 — regras de mapeamento](../../../specs/005-regras-de-mapeamento/spec.md) ·
+[006 — detalhe da issue](../../../specs/006-detalhe-da-issue/spec.md)
+**Planos**: [005/plan.md](../../../specs/005-regras-de-mapeamento/plan.md) ·
+[006/plan.md](../../../specs/006-detalhe-da-issue/plan.md)
 
 ## Objetivo do sprint
 
@@ -87,7 +87,7 @@ dificuldade para o time. Campo em branco significa **desconhecido**, nunca zero.
 
 ### Feature 006 — T001 a T020, todas feitas
 
-Detalhadas em [006/tasks.md](../../specs/006-detalhe-da-issue/tasks.md). Quatro fases: campos
+Detalhadas em [006/tasks.md](../../../specs/006-detalhe-da-issue/tasks.md). Quatro fases: campos
 na origem e no banco; leituras com a separação na API; axioma como função pura; as duas telas.
 
 **Sem issue individual por tarefa**, e é diferença em relação ao sprint 004 — que criou 29.
@@ -97,7 +97,7 @@ carregam o rastro, e `tasks.md` carrega o detalhe. **Isso é declarado, não omi
 
 ### Feature 005 — T001 a T025, a fazer
 
-Detalhadas em [005/tasks.md](../../specs/005-regras-de-mapeamento/tasks.md).
+Detalhadas em [005/tasks.md](../../../specs/005-regras-de-mapeamento/tasks.md).
 
 | Fase | Tarefas | Atende | O que entrega |
 |---|---|---|---|

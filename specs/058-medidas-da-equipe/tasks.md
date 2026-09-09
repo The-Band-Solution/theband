@@ -19,7 +19,7 @@ colunas de período ganham o primeiro consumidor.
 
 ## Phase 1: Foundational — bloqueia as três histórias
 
-- [ ] T001 [#768](https://github.com/The-Band-Solution/theband/issues/768) A interseção de períodos, e o nulo que não é aberto
+- [x] T001 [#768](https://github.com/The-Band-Solution/theband/issues/768) A interseção de períodos, e o nulo que não é aberto
   - **Pronta quando**: o contrato em `contracts/medidas-e-periodos.md` está
     escrito (está); nada além do repositório
   - **Descrição**: `TheBand.Periodos.interseccao/1` em `lib/the_band/periodos.ex`,
@@ -34,7 +34,7 @@ colunas de período ganham o primeiro consumidor.
   - **Teste**: `test/the_band/periodos_test.exs` — a tabela dos três estados, e o
     caso da borda: `[jan, 1º-jun)` contra `1º-jun` devolve `:nao_intersecta`
 
-- [ ] T002 [P] [#769](https://github.com/The-Band-Solution/theband/issues/769) Declarar o nível de equipe nas duas medidas existentes
+- [x] T002 [P] [#769](https://github.com/The-Band-Solution/theband/issues/769) Declarar o nível de equipe nas duas medidas existentes
   - **Pronta quando**: nada além do repositório
   - **Descrição**: em `priv/knowledge_base/measurements/`,
     `review_time_to_first_review_duration.yaml` e
@@ -48,7 +48,7 @@ colunas de período ganham o primeiro consumidor.
   - **Teste**: `mix knowledge.validate` e `mix knowledge.graph` verdes, e o
     `scope.levels` das duas contém `team`
 
-- [ ] T003 [P] [#770](https://github.com/The-Band-Solution/theband/issues/770) Declarar a pergunta de quem trabalhou no projeto
+- [x] T003 [P] [#770](https://github.com/The-Band-Solution/theband/issues/770) Declarar a pergunta de quem trabalhou no projeto
   - **Pronta quando**: nada além do repositório
   - **Descrição**: necessidade de informação nova em
     `priv/knowledge_base/information_needs/`, com a pergunta, o stakeholder e a
@@ -71,7 +71,7 @@ a ter resposta.
 pessoa para dentro e para fora, e conferir que a interseção devolve exatamente
 quem estava nos dois ao mesmo tempo.
 
-- [ ] T004 [US2] [#771](https://github.com/The-Band-Solution/theband/issues/771) Ler os períodos do vínculo equipe ↔ projeto
+- [x] T004 [US2] [#771](https://github.com/The-Band-Solution/theband/issues/771) Ler os períodos do vínculo equipe ↔ projeto
   - **Pronta quando**: T001 concluída
   - **Descrição**: consulta em `lib/the_band/ontology/seon/spo/queries.ex` que
     devolve os vínculos de um projeto **com `linked_at` e `unlinked_at`** — as
@@ -83,7 +83,7 @@ quem estava nos dois ao mesmo tempo.
   - **Teste**: `test/the_band/ontology/seon/spo/projects_test.exs` — três
     vínculos: vigente, encerrado, e sem data de início
 
-- [ ] T005 [US2] [#772](https://github.com/The-Band-Solution/theband/issues/772) Responder quem trabalhou no projeto num intervalo
+- [x] T005 [US2] [#772](https://github.com/The-Band-Solution/theband/issues/772) Responder quem trabalhou no projeto num intervalo
   - **Pronta quando**: T001 e T004 concluídas
   - **Descrição**: `SPO.who_worked_on/3`, a interseção de **três** períodos —
     pessoa ↔ equipe, equipe ↔ projeto, e a janela perguntada — usando
@@ -96,7 +96,7 @@ quem estava nos dois ao mesmo tempo.
   - **Teste**: `projects_test.exs` — a matriz de perguntas do Cenário 3 do
     quickstart, e o caso das duas equipes
 
-- [ ] T006 [P] [US2] [#773](https://github.com/The-Band-Solution/theband/issues/773) Marcar o período parcialmente desconhecido
+- [x] T006 [P] [US2] [#773](https://github.com/The-Band-Solution/theband/issues/773) Marcar o período parcialmente desconhecido
   - **Pronta quando**: T005 concluída
   - **Descrição**: o resultado carrega o veredito de `Periodos`, e a tela mostra a
     marca quando ele é `{:parcial, _}` (FR-009, SC-005). **Não** é nota de
@@ -107,7 +107,7 @@ quem estava nos dois ao mesmo tempo.
   - **Teste**: `test/the_band_web/live/teams_live/medidas_da_equipe_test.exs` — a
     marca no HTML, e o texto que diz qual borda falta
 
-- [ ] T007 [US2] [#774](https://github.com/The-Band-Solution/theband/issues/774) A seção na tela, com a ausência dita
+- [x] T007 [US2] [#774](https://github.com/The-Band-Solution/theband/issues/774) A seção na tela, com a ausência dita
   - **Pronta quando**: T005 concluída
   - **Descrição**: seção na tela do projeto listando quem trabalhou nele, com as
     equipes por onde cada pessoa chegou. Intervalo sem interseção mostra
@@ -127,7 +127,7 @@ quem estava nos dois ao mesmo tempo.
 solicitações e conferir que só as delas aparecem; registrar uma saída e conferir
 que as anteriores continuam contando.
 
-- [ ] T008 [US1] [#775](https://github.com/The-Band-Solution/theband/issues/775) Recortar a espera por revisão pela equipe
+- [x] T008 [US1] [#775](https://github.com/The-Band-Solution/theband/issues/775) Recortar a espera por revisão pela equipe
   - **Pronta quando**: T001 concluída; o contrato §2 está escrito
   - **Descrição**: `Quality.team_time_to_first_review/3`. O recorte é pela
     **ABERTURA** da solicitação: ela conta para a equipe quando quem a abriu
@@ -140,7 +140,7 @@ que as anteriores continuam contando.
   - **Teste**: `test/the_band/quality_test.exs` — o par de datas em torno da
     saída, e uma solicitação revisada primeiro por robô
 
-- [ ] T009 [US1] [#776](https://github.com/The-Band-Solution/theband/issues/776) A espera em curso, que não é tempo zero
+- [x] T009 [US1] [#776](https://github.com/The-Band-Solution/theband/issues/776) A espera em curso, que não é tempo zero
   - **Pronta quando**: T008 concluída
   - **Descrição**: solicitação ainda sem revisão humana devolve
     `{:aguardando, ha_dias}`, e **nunca** some da lista nem vira zero (FR-004).
@@ -152,7 +152,7 @@ que as anteriores continuam contando.
   - **Teste**: `quality_test.exs` — duas solicitações, e a asserção de que a lista
     tem duas entradas com formas diferentes
 
-- [ ] T010 [P] [US1] [#777](https://github.com/The-Band-Solution/theband/issues/777) A mesma espera, por pessoa
+- [x] T010 [P] [US1] [#777](https://github.com/The-Band-Solution/theband/issues/777) A mesma espera, por pessoa
   - **Pronta quando**: T008 concluída
   - **Descrição**: `Quality.team_time_to_first_review_by_person/3`, agrupada por
     autor. A tela declara que a mediana por pessoa e a da equipe **respondem
@@ -162,7 +162,7 @@ que as anteriores continuam contando.
   - **Teste**: `medidas_da_equipe_test.exs` — duas pessoas com esperas distintas,
     e o texto presente
 
-- [ ] T011 [US1] [#778](https://github.com/The-Band-Solution/theband/issues/778) A seção na tela, com o que a medida descarta
+- [x] T011 [US1] [#778](https://github.com/The-Band-Solution/theband/issues/778) A seção na tela, com o que a medida descarta
   - **Pronta quando**: T009 e T010 concluídas; T002 concluída
   - **Descrição**: seção na tela da equipe com a espera por revisão, declarando
     que **descarta a revisão de robô** e que o tempo conta da abertura (FR-003,
@@ -182,7 +182,7 @@ recusa nomeia o elo que falta.
 **Teste independente**: equipe com projeto e repositórios devolve a taxa com o
 caminho declarado; equipe sem projeto devolve o relator da recusa.
 
-- [ ] T012 [US3] [#779](https://github.com/The-Band-Solution/theband/issues/779) Os repositórios do projeto no período
+- [x] T012 [US3] [#779](https://github.com/The-Band-Solution/theband/issues/779) Os repositórios do projeto no período
   - **Pronta quando**: T001 e T004 concluídas
   - **Descrição**: `SPO.project_repositories_in/3`, usando
     `spo_project_repositories.linked_at` e `unlinked_at` — a segunda tabela de
@@ -192,7 +192,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
     intervalo em que vigeu, e não para o de fora
   - **Teste**: `projects_test.exs` — repositório com os dois intervalos
 
-- [ ] T013 [US3] [#780](https://github.com/The-Band-Solution/theband/issues/780) A taxa pelo caminho do repositório, e não pelo ator
+- [x] T013 [US3] [#780](https://github.com/The-Band-Solution/theband/issues/780) A taxa pelo caminho do repositório, e não pelo ator
   - **Pronta quando**: T012 concluída; o contrato §4 está escrito
   - **Descrição**: `Verification.team_pipeline_rate/3` pelo caminho
     `repositório → projeto → equipe`. **`actor_person_id` NÃO é usado**: o ator é
@@ -205,7 +205,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
   - **Teste**: `test/the_band/verification_test.exs` — a execução do estranho que
     conta, e a asserção de que a consulta não junta em `eo_people` pelo ator
 
-- [ ] T014 [P] [US3] [#781](https://github.com/The-Band-Solution/theband/issues/781) As cinco fases, e o que fica fora da conta
+- [x] T014 [P] [US3] [#781](https://github.com/The-Band-Solution/theband/issues/781) As cinco fases, e o que fica fora da conta
   - **Pronta quando**: T013 concluída
   - **Descrição**: cada fase em seu campo, e **nenhuma somada a `falha`** —
     cancelar é decisão humana, e contá-la como quebra inflaria a taxa com o que
@@ -216,7 +216,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
   - **Teste**: `verification_test.exs` — uma execução de cada fase, e a soma dos
     campos batendo com o total observado
 
-- [ ] T015 [US3] [#782](https://github.com/The-Band-Solution/theband/issues/782) A recusa que nomeia o elo que falta
+- [x] T015 [US3] [#782](https://github.com/The-Band-Solution/theband/issues/782) A recusa que nomeia o elo que falta
   - **Pronta quando**: T013 concluída
   - **Descrição**: equipe sem projeto declarado devolve
     `{:sem_projeto, %{equipe: nome}}` — e **não** uma taxa de zero. Zero diria que
@@ -227,7 +227,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
   - **Teste**: `verification_test.exs` e `medidas_da_equipe_test.exs` — o relator,
     e o texto na tela
 
-- [ ] T016 [US3] [#783](https://github.com/The-Band-Solution/theband/issues/783) A taxa na tela, com o tamanho da amostra
+- [x] T016 [US3] [#783](https://github.com/The-Band-Solution/theband/issues/783) A taxa na tela, com o tamanho da amostra
   - **Pronta quando**: T014 e T015 concluídas; T002 concluída
   - **Descrição**: a seção mostra a taxa **com o caminho declarado e o número de
     execuções** sobre o qual foi calculada (FR-016). O tamanho não é enfeite: a
@@ -242,14 +242,14 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
 
 ## Phase 5: Polish
 
-- [ ] T017 [P] [#784](https://github.com/The-Band-Solution/theband/issues/784) Provar o isolamento entre tenants
+- [x] T017 [P] [#784](https://github.com/The-Band-Solution/theband/issues/784) Provar o isolamento entre tenants
   - **Pronta quando**: T005, T008 e T013 concluídas
   - **Descrição**: dois tenants povoados ao mesmo tempo, com equipes e projetos de
     mesmo nome. Consulta sem tenant é bug de segurança, não de correção — FR-022 — SC-010
   - **Feita quando**: nenhuma das funções novas devolve linha do outro tenant
   - **Teste**: um caso por função pública nova, cada um com os dois tenants
 
-- [ ] T018 [P] [#785](https://github.com/The-Band-Solution/theband/issues/785) Conferir o teto de consultas da tela
+- [x] T018 [P] [#785](https://github.com/The-Band-Solution/theband/issues/785) Conferir o teto de consultas da tela
   - **Pronta quando**: T007, T011 e T016 concluídas
   - **Descrição**: as três seções somam no máximo **6 consultas** por render, e o
     teto de 16 da feature 057 continua valendo. Subir qualquer um dos dois é
@@ -259,7 +259,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
   - **Teste**: `teto_de_consultas_da_equipe_test.exs` — o número não cresce com o
     dado, e o teto não subiu
 
-- [ ] T019 [P] [#786](https://github.com/The-Band-Solution/theband/issues/786) Ver as medidas sem poder administrar
+- [x] T019 [P] [#786](https://github.com/The-Band-Solution/theband/issues/786) Ver as medidas sem poder administrar
   - **Pronta quando**: T007, T011 e T016 concluídas
   - **Descrição**: ler as três medidas **não** exige escopo de administrar equipes
     — administrar não é ver, FR-023 — SC-011
@@ -268,7 +268,7 @@ caminho declarado; equipe sem projeto devolve o relator da recusa.
   - **Teste**: `medidas_da_equipe_test.exs` — dois usuários, um com escopo e outro
     sem
 
-- [ ] T020 [#787](https://github.com/The-Band-Solution/theband/issues/787) Medir a cobertura do dado, e escrevê-la na review
+- [x] T020 [#787](https://github.com/The-Band-Solution/theband/issues/787) Medir a cobertura do dado, e escrevê-la na review
   - **Pronta quando**: T013 concluída; a chave mestra disponível no ambiente
   - **Descrição**: o **Cenário 0** do quickstart. Contar as verificações
     coletadas, os vínculos equipe ↔ projeto e os projeto ↔ repositório. A pesquisa

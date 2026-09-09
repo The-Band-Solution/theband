@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Gates do
-  @shortdoc "Roda os treze quality gates, na ordem do CI, abortando no primeiro que reprovar"
+  @shortdoc "Roda os quatorze quality gates, na ordem do CI, abortando no primeiro que reprovar"
 
   @moduledoc """
-  Os treze quality gates da constituição, num comando.
+  Os quatorze quality gates da constituição, num comando.
 
       mix gates
 
@@ -74,6 +74,20 @@ defmodule Mix.Tasks.Gates do
     #
     # `--skip` é o que faz as anotações valerem; sem ela, elas são comentário decorativo.
     {"sobelow", {:mix, ["sobelow", "--exit", "low", "--skip"]}},
+    # O que o Sobelow NÃO enxerga, medido em 2026-09-04 pela revisão de segurança do
+    # PR #798: `raw/1` dentro de um bloco `~H` de LiveView. O experimento foi feito, e
+    # não deduzido — `{raw(e.titulo)}` injetado numa seção que mostra título de
+    # solicitação vindo do GitHub, e o scan saiu **limpo, código 0**. Para provar que a
+    # ferramenta não estava quebrada, um defeito que ela reconhece foi injetado em
+    # seguida, e aí ela reprovou.
+    #
+    # "Sobelow limpo" nesta base significa, então: nenhum padrão conhecido **fora dos
+    # templates**. Como toda a superfície de renderização é LiveView e quase todo o
+    # texto exibido veio de terceiro, a lacuna vale um gate próprio.
+    #
+    # Este passo não substitui nem enfraquece o Sobelow: acrescenta a busca que ele não
+    # faz.
+    {"raw() fora dos templates", {:fun, :sem_raw_no_web}},
     {"dialyzer", {:mix, ["dialyzer"]}},
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já
@@ -177,6 +191,45 @@ defmodule Mix.Tasks.Gates do
   end
 
   defp execute({:fun, name}), do: apply(__MODULE__, name, [])
+
+  @doc """
+  Nenhum `raw/1` em `lib/the_band_web` — o escape do HEEx fica inteiro.
+
+  Não há nenhum hoje. O gate existe para que o **primeiro** precise de uma decisão,
+  em vez de passar num diff de template com o Sobelow verde ao lado.
+
+  Quem precisar de HTML confiável de verdade usa `Phoenix.HTML.raw/1` com o motivo
+  escrito e acrescenta a exceção aqui, **nomeando o arquivo** — nunca apagando o
+  gate.
+  """
+  def sem_raw_no_web do
+    achados =
+      "lib/the_band_web/**/*.ex"
+      |> Path.wildcard()
+      |> Enum.flat_map(&raw_no_arquivo/1)
+
+    case achados do
+      [] ->
+        Mix.shell().info("   nenhum raw() em lib/the_band_web")
+        :ok
+
+      _ ->
+        Enum.each(achados, &Mix.shell().error("   #{&1}: raw() desliga o escape do HEEx"))
+        {:error, "raw() em #{length(achados)} lugar(es)"}
+    end
+  end
+
+  # `(?<![\\w.])` evita casar `Phoenix.HTML.raw` de um alias e nomes que terminam em
+  # "raw" — o gate precisa apontar para a chamada, e não para toda linha que contenha
+  # as três letras.
+  defp raw_no_arquivo(arquivo) do
+    arquivo
+    |> File.read!()
+    |> String.split("\n")
+    |> Enum.with_index(1)
+    |> Enum.filter(fn {linha, _n} -> Regex.match?(~r/(?<![\w.])raw\(/, linha) end)
+    |> Enum.map(fn {_linha, n} -> "#{arquivo}:#{n}" end)
+  end
 
   @doc """
   A derivação é função da ontologia: duas execuções iguais dão a mesma saída.

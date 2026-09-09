@@ -1,6 +1,6 @@
 # Aceitação — Feature 005: regras de mapeamento por organização
 
-Avaliação de cada critério de sucesso da [spec](../../specs/005-regras-de-mapeamento/spec.md),
+Avaliação de cada critério de sucesso da [spec](../../../specs/005-regras-de-mapeamento/spec.md),
 **um a um, com evidência**. É a L18: critério atendido não é critério suficiente, e suíte
 verde não é evidência de que *este* critério passou.
 

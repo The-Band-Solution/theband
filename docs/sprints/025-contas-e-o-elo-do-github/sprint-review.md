@@ -1,7 +1,7 @@
 # Sprint 025 — Review
 
 **Período**: 2026-08-29 (um dia)
-**Herança**: retrabalho das US 047/US1–US2 · **Feature**: [051](../../specs/051-cadastro-por-github/spec.md)
+**Herança**: retrabalho das US 047/US1–US2 · **Feature**: [051](../../../specs/051-cadastro-por-github/spec.md)
 **PRs**: [#611](https://github.com/The-Band-Solution/theband/pull/611) (retrabalho, squash) e
 [#612](https://github.com/The-Band-Solution/theband/pull/612) (051, squash) — CI verde,
 revisão pedida ao abrir nos dois, ambos no board.

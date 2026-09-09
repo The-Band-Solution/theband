@@ -1,7 +1,7 @@
 # Sprint 012 — Review
 
-**Período**: 2026-08-12 · **Feature**: [013](../../specs/013-pagina-da-pessoa-mais-rapida/spec.md)
-**Aceitação**: [aceitacao.md](../../specs/013-pagina-da-pessoa-mais-rapida/aceitacao.md)
+**Período**: 2026-08-12 · **Feature**: [013](../../../specs/013-pagina-da-pessoa-mais-rapida/spec.md)
+**Aceitação**: [aceitacao.md](../../../specs/013-pagina-da-pessoa-mais-rapida/aceitacao.md)
 
 ## Resumo
 

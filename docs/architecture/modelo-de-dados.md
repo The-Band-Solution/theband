@@ -642,7 +642,7 @@ Declarado em vez de omitido.
 | Oban | tabela criada pela biblioteca; não a inspecionei |
 | Índices completos | listei os únicos que sustentam a Application Reference; não auditei todos |
 | Colunas de `eo_organizational_units` | tabela renomeada de `eo_sectors`; não reli a migração original |
-| Regras de derivação em detalhe | `scripts/derive_information_model.py` e a [ADR 0004](../adr/) |
+| Regras de derivação em detalhe | `scripts/derive_information_model.py` e a [ADR 0004](../adr/README.md) |
 
 ## Manutenção deste documento
 
