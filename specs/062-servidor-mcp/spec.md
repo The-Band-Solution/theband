@@ -62,6 +62,23 @@ criaria a segunda verdade sobre acesso que a 061 recusou.
   API recusa, e o servidor MCP recusa — pela mesma razão e com a mesma mensagem. Três portas
   para o mesmo dado com três respostas diferentes é o mesmo furo contado três vezes.
 - **FR-005**: A revogação do token vale na chamada seguinte, sem cache — herdado da Q3 da 061.
+- **FR-006**: O servidor **não guarda o token** — nem em disco, nem em memória entre chamadas,
+  nem em variável de ambiente própria. Ele recebe o token na chamada, verifica, responde e
+  esquece. É a mesma decisão da 061 (FR-079 a FR-082), e aqui ela tem um alcance a mais: um
+  servidor que guardasse tokens de vários clientes seria um cofre de credenciais de terceiros
+  que ninguém pediu.
+- **FR-007**: **Onde o token fica é responsabilidade do cliente**, e a plataforma MUST dizer
+  isso na documentação em vez de presumir. O cliente MCP guarda o token na configuração dele —
+  um arquivo no disco de quem usa, fora do alcance de qualquer trava desta plataforma. As duas
+  consequências que a documentação MUST declarar:
+  1. **revogação é o único controle que a plataforma tem** sobre um token que já saiu. Não há
+     como apagá-lo do outro lado;
+  2. **o token no arquivo de configuração do cliente é um segredo em disco**, e a orientação é
+     a mesma de qualquer credencial: fora do repositório, fora do histórico de terminal, e
+     revogado quando a máquina sai de uso.
+- **FR-008**: Nenhuma resposta de ferramenta MUST conter o token, parte dele além do prefixo
+  público, ou qualquer valor derivado dele. O consumidor é um modelo que pode repetir o que
+  recebe — e o que ele repete pode ser registrado, cacheado e indexado do outro lado.
 
 ### A forma da resposta: a proveniência não é opcional
 
