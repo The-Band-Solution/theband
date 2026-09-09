@@ -323,6 +323,75 @@ e senha, sair, e entrar de novo com a senha nova.
   organização a opera; o recorte de organização vale para Syncs/Tools (ferramentas e
   coletas têm dono), não para a chave, que é indivisível.*
 
+- **FR-024**: O veredito de acesso a dado de pessoa nomeada MUST cobrir **agregado sobre
+  a pessoa**, e MUST NOT cobrir **atribuição no item** nem o **diretório de pessoas**.
+  Decisão da pessoa mantenedora em 2026-09-09, sobre o achado **H2** e o inventário
+  medido em [`docs/seguranca/2026-09-09-inventario-do-h2.md`](../../docs/seguranca/2026-09-09-inventario-do-h2.md).
+
+  **As três naturezas, e o que cada uma decide:**
+
+  | natureza | exemplo | segue o veredito? |
+  |---|---|---|
+  | **agregado** sobre a pessoa | ranking de quem integrou vermelho; contagem de eventos por pessoa; mediana individual | **sim** |
+  | **atribuição** no item | quem abriu a issue, quem revisou a solicitação, quem tocou o arquivo | **não** |
+  | **diretório** de pessoas | nome e `@login` de quem está na organização | **não** |
+
+  **A razão da atribuição**: a autoria é parte do trabalho, e não uma medida sobre a
+  pessoa — issue sem quem a abriu não se lê, e solicitação sem revisor não se avalia.
+  Quem alcança o item já vê o trabalho.
+
+  **A razão do diretório**: um tenant é uma organização, e quem está dentro saber quem
+  mais está é o que uma lista de ramais faz. O diretório afirma que a pessoa **existe**;
+  as medidas sobre ela seguem o veredito.
+
+  **O risco que esta FR aceita, e para onde ele vai.** Com acesso a muitos itens, alguém
+  reconstrói **por acumulação** o agregado que o veredito recusa direto. É o *risco de
+  agregação*, e ele é real. Esconder a atribuição não o fecha — quem quer acumular
+  acumula devagar — e paga um preço alto de produto por uma proteção que não protege.
+
+  O caminho é **registro de acesso** (achado **H4**: nenhum evento de autenticação ou
+  autorização é registrado hoje, e é por isso que não se sabe se algo já aconteceu) e
+  **limite de taxa**. Enquanto o H4 não existir, este risco está **aceito e declarado**,
+  e não mitigado.
+
+  ### Quem alcança o agregado — a definição do regime
+
+  Confirmada pela pessoa mantenedora em 2026-09-09, ao reler o que o código faz:
+
+  | quem | alcança | de onde vem |
+  |---|---|---|
+  | **a própria pessoa** | o que ela fez | `propria_pessoa?/2`, decidido em memória antes de qualquer consulta |
+  | **colega da mesma equipe** | os colegas | escopo de equipe **derivado** dos vínculos vigentes (`scopes/2`) |
+  | **liderança declarada** | quem ela lidera, **mesmo sem ser colega** | `EO.Visibility`, FR-018 (#369) |
+  | **escopo de organização** | as pessoas das equipes **daquela** organização | concessão declarada |
+  | **administração do tenant** | tudo no tenant | FR-022, emendada em 2026-09-09 |
+
+  **Não é só o líder.** Todo membro de uma equipe alcança os colegas dela, porque
+  `scopes/2` deriva escopo de equipe dos vínculos vigentes da própria pessoa. Confirmado
+  como intencional em 2026-09-09 — quem trabalha junto vê o trabalho de quem trabalha
+  junto, e a liderança declarada existe para alcançar quem **não** é colega.
+
+  **Organização não é tenant.** Um tenant pode ter várias organizações, e o escopo
+  `organization` alcança **a sua**. Só administração alcança o tenant inteiro.
+
+  **E escopo de PROJETO não abre painel de pessoa** — decidido em 2026-09-09, e a razão já
+  estava escrita em `pode_ver_equipe/3`, que recusa este mesmo escopo: *"ele nomeia um
+  projeto, e uma equipe pode trabalhar em vários; deixá-lo passar faria autoridade subir de
+  lado"*.
+
+  Em `pode_ver/3` valia **mais**: quem tinha escopo de um projeto alcançava o painel
+  completo de qualquer pessoa cuja equipe tocasse aquele projeto — incluindo o trabalho
+  dela em **outros** projetos, que aquele escopo não nomeia. **O caminho existia sem teste
+  nenhum.** Corrigido com o teste que o guarda fechado e o par que prova que o escopo
+  continua existindo para o que ele nomeia.
+
+  **Por que esta FR existe, e não uma linha de conversa.** O regime anterior vigorava
+  **por omissão** — a spec 023 registra que *"toda pessoa autenticada do tenant vê
+  qualquer outra"* valia porque *"o roteador exigia `require_user` e nada além"*. Cada
+  seção construída depois herdou a omissão sem ninguém decidir, e foi assim que o H2
+  nasceu. Escrita como FR, a decisão passa a ser herdada **de propósito**, e
+  `test/the_band_web/live/h2_paridade_das_rotas_test.exs` a cobra por enumeração.
+
 ### Key Entities
 
 - **Conta de usuária**: quem entra na plataforma. E-mail (identidade de entrada que
