@@ -16,6 +16,13 @@ Band a funcionalidade de ser consumido via API. Para consumir a API o cliente
 precisa de um token que será gerado na área administrativa. A API precisa de ter
 Swagger."*
 
+> **Estado: em desenvolvimento.** A spec está escrita e as oito perguntas abertas foram
+> respondidas (seção *As oito perguntas, respondidas*), com Q1, Q2 e Q3 vindas da avaliação
+> do papel Security de 2026-09-09. **Não há código**: nenhuma rota passa pela pipeline
+> `:api`, e a API não responde. Antes de implementar faltam, pelas regras da casa, o **ADR**
+> — abrir a API é estabelecer contrato público (`AGENTS.md` §16) — e o `plan.md`, o
+> `tasks.md` e o sprint backlog (§17).
+
 ## O que esta feature resolve
 
 Hoje o The Band só responde para olho humano. As respostas existem — equipes,
@@ -603,21 +610,183 @@ nenhuma outra história desta feature entregue endpoint fora da lista de FR-020.
 
 ---
 
-## Perguntas abertas
+## As oito perguntas, respondidas
 
-Nenhuma tem resposta nesta spec. As três primeiras **bloqueiam** o
-`/speckit-plan`; as demais podem ser respondidas durante ele.
+**Estado da feature: em desenvolvimento.** A spec está escrita, a avaliação de segurança
+está feita, e as três perguntas que bloqueavam o `/speckit-plan` têm resposta. Não há
+código: nenhuma rota passa pela pipeline `:api`, e a API **não responde** hoje.
 
-| # | Pergunta | Leituras | Recomendação |
-|---|---|---|---|
-| **Q1** | Que função de hash guarda o token? | hash criptográfico rápido de uso único, ou derivação de chave lenta como a da senha | **rápido**, porque o segredo tem 32 bytes de entropia de máquina e o custo lento é proteção contra dicionário, que aqui não se aplica — **mas a decisão é do papel Security, e o custo por requisição é de arquitetura** |
-| **Q2** | O token pertence à conta ou ao tenant? | FR-028, as duas leituras com custo | **à conta**, aceitando que o alcance da integração mude quando a pessoa mudar de equipe, e tornando isso visível na tela (FR-047) |
-| **Q3** | Qual latência entre revogar e recusar é aceitável? | zero (consulta ao banco em toda chamada), ou um teto declarado com cache | **declarar o número**, qualquer que seja. Cache não declarado é revogação que não se sabe quando vale |
-| **Q4** | Trocar a senha da conta dona derruba os tokens dela? | sim (coerente com a sessão, FR-015 da 045), ou não (token é credencial própria) | **não** — derrubar integrações porque alguém trocou a senha é interrupção silenciosa de terceiro. Mas a leitura oposta é defensável se a troca de senha significar suspeita de comprometimento |
-| **Q5** | A resposta de coleção traz total de itens? | sim (consulta a mais por chamada), ou só *tem próxima página* | **só *tem próxima***, e declarar a ausência. Total estimado é pior que total ausente |
-| **Q6** | Uso do token é campo atualizado ou série de eventos? | campo (barato, responde *"ainda está em uso?"*), ou série (responde *"o que andou consultando"*, e cresce sem teto) | **campo** no primeiro corte, com a lacuna declarada: não haverá auditoria de o que foi consultado |
-| **Q7** | Quem alcança a interface do Swagger? | aberta, atrás de sessão, ou só fora de produção | **atrás de sessão** — quem integra tem conta; o mapa completo da superfície não precisa ser público |
-| **Q8** | A expiração tem padrão? | sem expiração por padrão, ou padrão de N dias | **sem expiração, dita explicitamente** — padrão silencioso de expiração derruba integração meses depois, sem ninguém ligar as duas coisas |
+As respostas de Q1, Q2 e Q3 vêm da avaliação do papel Security de 2026-09-09 —
+[`docs/seguranca/2026-09-09-api-com-token.md`](../../docs/seguranca/2026-09-09-api-com-token.md),
+18 achados, dez de severidade alta, OWASP Top 10 (2021) verificado contra o ASVS. As de Q4 a
+Q8 são as recomendações desta spec, agora tomadas como decisão.
+
+### Q1 — que função de hash guarda o token
+
+**Decidido: SHA-256 do segredo, comparado com `Plug.Crypto.secure_compare/2`.**
+
+Security descartou as duas alternativas por razões diferentes, e o par é o que ensina:
+
+| Forma | Por que não |
+|---|---|
+| `TheBand.Encrypted.Binary` (Cloak/AES-GCM) | reversível. Com a chave mestra devolve **todos** os tokens em claro. É a proteção certa para credencial de terceiro — que a plataforma precisa **replicar** — e a errada para verificador do próprio segredo, que a plataforma só precisa **conferir** |
+| `Bcrypt.hash_pwd_salt/1` | ~100 ms por verificação, **medido e declarado no `mix.exs`**. Aquele custo *é* a proteção contra senha humana de baixa entropia; numa API é auto-negação de serviço, e impede busca por índice |
+
+A entropia está nos 256 bits do segredo, não no KDF: não há dicionário a percorrer. **O
+bcrypt continua guardando senha**, exatamente onde a lentidão é defesa — o que decide é a
+entropia da entrada, e não a preferência pelo "hash mais forte".
+
+**Dois detalhes que a decisão arrasta**, e o segundo é fácil de errar:
+
+- a comparação MUST ser em **tempo constante**. Hoje a sessão compara com `==` e **está
+  correta**: o valor vem de cookie assinado pelo próprio servidor, e sem a assinatura não se
+  itera valor para medir tempo. Na API o valor vem cru de um cabeçalho controlado por quem
+  chama — o canal de tempo é alcançável;
+- a busca no banco MUST ser pelo **id público** (indexado, único), e **nunca pelo hash**:
+  `where: t.token_hash == ^hash` é comparação do Postgres, fora do nosso controle de tempo. É
+  a razão de o token ter **duas partes**.
+
+### Q2 — o token pertence à conta ou ao tenant
+
+**Decidido: à conta, com o tenant amarrado na linha — e nenhum veredito dentro dele.**
+
+O token guarda **quem** (`user_id`) e **onde** (`tenant_id`, `NOT NULL`). O *que pode* é
+**recomputado a cada requisição**, porque `Access.scopes/2` lê as relações vigentes:
+*"encerrou o fato, fechou o escopo — sem job, sem coluna, sem segunda verdade"*.
+
+Cinco eventos passam a surtir efeito na requisição seguinte **sem trabalho nenhum**, e é o
+que torna esta a resposta certa:
+
+| Evento | Efeito no alcance do token |
+|---|---|
+| concessão revogada | o escopo sai da união |
+| vínculo de equipe encerrado | `EO.person_active_teams/2` deixa de devolvê-lo |
+| elo revogado | o piso cai; `pode_ver/3` passa a `{:nao, :sem_elo_declarado}` |
+| `role` rebaixado de `admin` | os ramos de administração deixam de abrir |
+| observação da ferramenta encerrada | o dado deixa de ser coletado; o já coletado permanece (princípio III) |
+
+**Por isso o token MUST NOT gravar escopo, papel, lista de organizações nem qualquer veredito
+materializado.** O desenho de JWT com *claims* está **proibido** nesta feature: cria a segunda
+verdade que `access.ex` foi escrito para não ter, e ela **envelhece no bolso de quem saiu**.
+
+O custo aceito é o que a recomendação original já dizia: o alcance da integração muda quando a
+pessoa muda de equipe, e a tela tem de tornar isso visível (FR-047).
+
+### Q3 — que latência entre revogar e recusar é aceitável
+
+**Decidido: zero. Sem cache de token na v1.**
+
+> *"Cache é otimização, e otimização que atrasa revogação é decisão de segurança disfarçada de
+> desempenho."*
+
+Se o custo virar problema **medido**, o cache volta como decisão, com prazo de invalidação
+declarado — e o número vai para a documentação da API, porque quem integra precisa saber
+quanto tempo um token revogado ainda responde.
+
+**A expiração segue a mesma lógica**: conferida **na requisição**, contra
+`DateTime.utc_now/0`, e não por job que marca linhas. Job cria janela entre o vencimento e a
+passagem dele, e essa janela é acesso concedido por atraso de fila.
+
+### Q4 — trocar a senha da conta dona derruba os tokens dela
+
+**Decidido: não derruba.** Derrubar integração de terceiro porque alguém trocou a senha é
+interrupção silenciosa, e a pessoa que troca a senha não liga as duas coisas.
+
+**Mas a decisão só é defensável junto com o achado A01-6**, que está abaixo: hoje o
+desligamento de uma pessoa é feito, na prática, redefinindo a senha e não a entregando. Se o
+token sobrevive à troca de senha — e sobrevive —, esse mecanismo implícito **deixa de
+desligar**. A revogação em massa por conta é o que compensa, e é requisito, não conveniência.
+
+### Q5 — a resposta de coleção traz total de itens
+
+**Decidido: não traz total. Traz *tem próxima página*, e diz que não traz total.** Total
+estimado é pior que total ausente, e é a mesma regra que a tela aplica: ausência dita.
+
+### Q6 — uso do token é campo atualizado ou série de eventos
+
+**Decidido: campo**, no primeiro corte, **com a lacuna declarada**: não haverá auditoria do
+*que* foi consultado, só de *quando* o token foi usado por último. A série responde outra
+pergunta e cresce sem teto; entra quando houver necessidade de informação que a peça.
+
+### Q7 — quem alcança a interface do Swagger
+
+**Decidido: atrás de sessão.** Quem integra tem conta, e o mapa completo da superfície não
+precisa ser público. E o ativo do Swagger UI é servido do **próprio domínio** — afrouxar a CSP
+para acomodar CDN contraria um achado do Sobelow já tratado (issue #288), e não se toma aqui.
+
+### Q8 — a expiração tem padrão
+
+**Decidido: tem, e vai para a base de conhecimento.** Padrão silencioso de expiração derruba
+integração meses depois sem ninguém ligar as duas coisas — mas *nenhuma* expiração é
+superfície que ninguém vigia. A saída é o padrão **declarado e dito na tela**, com aviso antes
+do vencimento.
+
+Regra nova: `priv/knowledge_base/rules/api_access_thresholds.yaml`, id
+`api.access.thresholds`. Nenhum destes valores vive em constante de módulo — FR-069.
+
+| Limiar | Nome | Valor proposto |
+|---|---|---|
+| validade máxima | `api.access.token_lifetime` | 90 dias |
+| expiração por desuso | `api.access.token_idle_expiry` | 30 dias sem uso |
+| aviso de vencimento | `api.access.token_expiry_warning` | 14 dias antes, com "vence em N dias" — nunca só a data |
+| teto de página | `api.access.page_size_max` | 100, padrão 25 |
+| taxa | `api.access.rate_limit` | a definir com o PO |
+
+---
+
+## O que a avaliação de segurança acrescentou aos requisitos
+
+A tese do documento de Security é uma tabela, e ela muda o desenho: **a API não é uma tela sem
+HTML.** É uma segunda porta para o mesmo dado, e não herda **nenhuma** das nove garantias que
+hoje moram na pipeline `:browser` ou na `on_mount` das `live_session` — pessoa autenticada,
+tenant vindo da conta, sessão versionada, expiração por inatividade, senha temporária, espera
+crescente, mensagem única de recusa, alcance operacional, CSRF.
+
+Cada uma tem de ser reconstruída ou **explicitamente dispensada com motivo escrito**. O que
+**não** se reconstrói é o **veredito**: esse existe, é único, e reusá-lo é requisito.
+
+### Requisitos novos
+
+- **FR-070**: nenhuma rota da API MUST ler o tenant de parâmetro, cabeçalho ou corpo. O tenant
+  sai do token, sempre.
+- **FR-071**: toda leitura MUST passar por `%Tenant{}`. Id de recurso de outro tenant responde
+  **404**, e não 403 — 403 confirma existência.
+- **FR-072**: a autorização por pessoa MUST reusar `Tenants.pode_ver/3` e
+  `pode_ver_equipe/3`. Token válido do tenant **não** é autorização suficiente, e
+  reimplementar o veredito no controlador cria a segunda verdade.
+- **FR-073**: a paridade tela↔API MUST ser provada por teste. O que a tela recusa por
+  veredito, a API recusa pela mesma razão — autoridade que vaza por outra porta é o mesmo
+  furo com outro nome.
+- **FR-074**: quem administra o tenant MUST poder revogar **qualquer** token de **qualquer**
+  conta do tenant, num ato, com efeito na requisição seguinte. Marca com autoria
+  (`revoked_at`, `revoked_by_user_id`), **nunca `delete`**: histórico de acesso é dado de
+  auditoria.
+- **FR-075**: a tela de contas MUST mostrar quantos tokens vigentes cada conta tem — ausência
+  dita, nunca coluna em branco.
+- **FR-076**: a recusa MUST ser **401 único**. Token inexistente, revogado e vencido têm corpo
+  **idêntico**; o motivo vai para o retorno interno e para o log, nunca para o corpo.
+- **FR-077**: filtro, ordenação e paginação MUST vir de **lista fechada casada uma a uma**,
+  como já é nas telas. Nada de coluna vinda da *query string*.
+- **FR-078**: o log MUST carregar os campos de observabilidade do `AGENTS.md` §15 e MUST NOT
+  carregar o segredo do token, nem qualquer parte dele além do prefixo público.
+
+### A limitação que fica escrita, e não presumida
+
+**Não existe estado de conta desativada nesta plataforma.** `users` tem `email`, `name`,
+`role` e `tenant_id`; `tenants` tem `status`, `users` não tem equivalente. A tela de contas
+oferece criar, redefinir senha, associar e revogar elo — **não há desativar**.
+
+O desligamento hoje é implícito: quem administra redefine a senha, recebe a temporária uma
+vez, e não a entrega. **Esse mecanismo para de funcionar no dia em que existir token.**
+
+Uma pessoa que sai da organização continuaria lendo os dados dela por API, e quem administra
+não teria um ato que resolva. É acesso órfão, e passa por todas as travas justamente porque o
+token é válido e a conta existe.
+
+`users.disabled_at` é **item de backlog anterior a esta feature**, com o ato correspondente em
+`/accounts` e a regra de que conta desativada não autentica **nem por senha nem por token**.
+Enquanto não existir, a FR-074 é o substituto — e esta limitação MUST aparecer na
+documentação da API, não só aqui.
 
 ---
 
