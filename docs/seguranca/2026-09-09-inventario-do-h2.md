@@ -56,7 +56,7 @@ cobre — *"quem tem o escopo de team, organization e admin podem ver; e a pesso
 seu"*. As duas passaram a **filtrar pelo alcance**, e há teste de paridade que enumera
 as rotas desta lista e exige que todas respondam igual.
 
-### (b) Atribuição no item — **espera decisão**
+### (b) Atribuição no item — **decidido em 2026-09-09: NÃO segue o veredito**
 
 | rota | o que mostra |
 |---|---|
@@ -68,22 +68,27 @@ as rotas desta lista e exige que todas respondam igual.
 porque **esconder o autor torna o item ilegível** — uma issue sem quem a abriu não se
 lê, e uma solicitação sem revisor não se avalia.
 
-A pergunta concreta: *o regime da FR-012 cobre a atribuição, ou cobre só o agregado?*
+**Decisão da pessoa mantenedora, 2026-09-09: fica visível.** Escrita como
+[FR-024 da spec 045](../../specs/045-autenticacao-e-acesso/spec.md).
 
-Um argumento para **não** cobrir: quem alcança o item já vê o trabalho; a autoria é parte
-do trabalho, e não uma medida sobre a pessoa. Um argumento para **cobrir**: com acesso a
-muitos itens, alguém reconstrói por acumulação o que o agregado entrega direto — e o
-documento do H2 chama isso de **risco de agregação**, que é de desenho e não de
-implementação.
+A autoria é parte do trabalho, e não uma medida sobre a pessoa — issue sem quem a abriu
+não se lê, e solicitação sem revisor não se avalia. Quem alcança o item já vê o trabalho.
 
-### (c) O diretório de pessoas — **espera decisão, e é a mais caras**
+**O risco de agregação fica aceito e declarado**, não mitigado: com acesso a muitos
+itens, alguém reconstrói por acumulação o agregado que o veredito recusa direto. Esconder
+a atribuição não o fecha — quem quer acumular acumula devagar. O caminho é o **H4**
+(registro de acesso) e limite de taxa, e enquanto o H4 não existir **não se sabe se algo
+já aconteceu**.
+
+### (c) O diretório de pessoas — **decidido em 2026-09-09: NÃO segue o veredito**
 
 | rota | o que mostra |
 |---|---|
 | `/people` | **nome e `@login` de todas as pessoas do tenant** |
 
-Gateá-lo significa que **quem é membro não vê quem está na organização**. É decisão de
-produto antes de ser de segurança, e não se toma por analogia com as outras duas.
+**Decisão da pessoa mantenedora, 2026-09-09: fica visível.** Um tenant é uma
+organização, e quem está dentro saber quem mais está é o que uma lista de ramais faz. O
+diretório afirma que a pessoa **existe**; as medidas sobre ela seguem o veredito.
 
 ---
 
@@ -91,7 +96,7 @@ produto antes de ser de segurança, e não se toma por analogia com as outras du
 
 | item | estado |
 |---|---|
-| 1. decisão registrada da pessoa mantenedora, como **FR nova numerada** | **(a) decidido**; (b) e (c) **abertas** |
+| 1. decisão registrada da pessoa mantenedora, como **FR nova numerada** | **feito** — [FR-024 da spec 045](../../specs/045-autenticacao-e-acesso/spec.md), as três naturezas decididas |
 | 2. o inventário, para a decisão ser tomada sobre o que existe | **este documento** |
 | 3. teste de paridade que impede a próxima tela de herdar a omissão | **feito** — `h2_paridade_das_rotas_test.exs` |
 

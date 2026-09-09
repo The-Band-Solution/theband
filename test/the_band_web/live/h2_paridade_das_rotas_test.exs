@@ -17,12 +17,16 @@ defmodule TheBandWeb.H2ParidadeDasRotasTest do
   ## O que ele NÃO cobre, e está declarado
 
   As rotas de **atribuição no item** — quem abriu esta issue, quem revisou esta
-  solicitação, quem tocou este arquivo. Elas mostram pessoa nomeada, e **não** são
-  ranking: esconder o autor torna o item ilegível. Se a pessoa mantenedora decidir que o
-  regime as cobre, elas entram na lista abaixo e este teste passa a exigi-las.
+  solicitação, quem tocou este arquivo — e o **diretório de pessoas** (`/people`).
 
-  E o **diretório de pessoas** (`/people`), que é decisão de produto própria: gateá-lo
-  significa que quem é membro não vê quem está na organização.
+  **E não é lacuna: é decisão.** A **FR-024 da spec 045**, decidida pela pessoa
+  mantenedora em 2026-09-09, diz que o veredito cobre **agregado sobre a pessoa** e
+  **não** cobre atribuição nem diretório. A autoria é parte do trabalho, e o diretório
+  afirma que a pessoa existe.
+
+  O **risco de agregação** fica aceito e declarado por aquela FR — quem acumula muitos
+  itens reconstrói o agregado —, e o caminho dele é o achado **H4** (registro de acesso)
+  com limite de taxa, e não esconder o autor.
   """
   use TheBandWeb.ConnCase, async: false
 
