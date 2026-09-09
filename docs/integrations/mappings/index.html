@@ -1,0 +1,6974 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Integração semântica de dados de Engenharia de Software: coleta das ferramentas, harmonização contra ontologias de referência, proveniência preservada.">
+      
+      
+      
+        <link rel="canonical" href="https://theband.dev/docs/integrations/mappings/">
+      
+      
+        <link rel="prev" href="../../ontology/sys_swo/">
+      
+      
+        <link rel="next" href="../verificacao-continua/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Mapeamentos semânticos - The Band — Documentação</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#mapeamentos-semânticos" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="The Band — Documentação" class="md-header__button md-logo" aria-label="The Band — Documentação" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            The Band — Documentação
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Mapeamentos semânticos
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Seguir o sistema"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Seguir o sistema" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Modo escuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Modo escuro" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Modo claro"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/The-Band-Solution/theband" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    The-Band-Solution/theband
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="The Band — Documentação" class="md-nav__button md-logo" aria-label="The Band — Documentação" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    The Band — Documentação
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/The-Band-Solution/theband" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    The-Band-Solution/theband
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/modelo-de-dados/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../funcionalidades/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Funcionalidades
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Funcionalidades
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../funcionalidades/tela-da-equipe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A tela da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../ontology/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ontologias
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ontologias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/concept-index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice de conceitos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/eo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EO — organização e pessoas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/spo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SPO — projetos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/sro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SRO — processo e trabalho
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cmpo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CMPO — mudanças
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cmo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CMO — configuração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cdro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDRO — dependências
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/ciro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CIRO — integração contínua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/rsro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RSRO — release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/qapo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QAPO — qualidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/smpo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SMPO — medição
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/roost/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ROoST — testes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/osdef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSDeF — código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/ufo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UFO — fundamentação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/sys_swo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SysSwO — sistema e software
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dados externos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Dados externos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mapeamentos semânticos
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mapeamentos semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#justificativas-e-limitações" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Justificativas e limitações
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Justificativas e limitações">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#githubcommittocmpocommit_artifact_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.commit.to.cmpo.commit_artifact_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubcommit_filetocmpoartifact_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.commit_file.to.cmpo.artifact_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubdeploymenttocdrodeployment_activity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.deployment.to.cdro.deployment_activity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuebugtoosdefdefect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.bug.to.osdef.defect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetasktosrointended_scrum_development_task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.task.to.sro.intended_scrum_development_task
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetoosdefdefect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.to.osdef.defect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetosroepic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.to.sro.epic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissueuser_storytosroatomic_user_story" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.user_story.to.sro.atomic_user_story
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissue_commenttocmocomment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue_comment.to.cmo.comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githuborganizationtoeoorganization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.organization.to.eo.organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_itemstosrobacklogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_items.to.sro.backlogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_iterationtospospecific_intended_project_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_iteration.to.spo.specific_intended_project_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_iterationtosrosprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_iteration.to.sro.sprint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubpull_requesttocmpochange_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.pull_request.to.cmpo.change_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubpull_request_reviewtoqapoartifact_evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.pull_request_review.to.qapo.artifact_evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubreftocmpobranch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.ref.to.cmpo.branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubrepositorytocmposource_repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.repository.to.cmpo.source_repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubteamtoeoorganizational_team" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.team.to.eo.organizational_team
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubteam_membertoeoperson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.team_member.to.eo.person
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubusertoeoperson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.user.to.eo.person
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubworkflow_jobtociroci_component_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.workflow_job.to.ciro.ci_component_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubworkflow_runtocirocontinuous_integration_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.workflow_run.to.ciro.continuous_integration_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../verificacao-continua/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verificação contínua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research/extensions-to-one-table-per-kind/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extensões ao one-table-per-kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../metrics/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Medidas
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Medidas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../adr/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-monolito-modular-elixir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0001 monolito modular elixir
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-yaml-como-base-de-conhecimento/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0002 yaml como base de conhecimento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-organizacao-por-ontologias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0003 organizacao por ontologias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-modelo-de-informacao-one-table-per-kind/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0004 modelo de informacao one table per kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-telemetria-da-jornada/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0005 telemetria da jornada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0006-coleta-paralela/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0006 coleta paralela
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0007-gestor-de-cotas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0007 gestor de cotas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0008-vinculo-observado/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0008 vinculo observado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rfc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RFCs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rfc/0001-derivacao-do-modelo-de-informacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RFC 0001 — derivação do modelo de informação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../producao/runbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de produção
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../processes/feature-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de uma feature
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releases
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_9" id="__nav_9_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Releases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.6.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.6.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.3.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.3.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../backlog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backlog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/burn-da-pessoa-sem-linha-de-base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Burn da pessoa sem linha de base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/crud-entities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crud entities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/decisoes-pendentes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisoes pendentes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/github-to-sro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Github to sro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/papeis-scrum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Papeis scrum
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/portugues-na-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portugues na interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/projeto-pertence-a-organizacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projeto pertence a organizacao
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/servidor-mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servidor mcp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/setup-inicial-e-multiempresa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup inicial e multiempresa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/tela-da-equipe-complexa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tela da equipe complexa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/tooling-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tooling library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sprints
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/RETOMAR/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retomar — estado atual
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/licoes-aprendidas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lições aprendidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Por sprint
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Por sprint
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_1" id="__nav_11_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    001 — Fundacao e coleta eo
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    001 — Fundacao e coleta eo
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_2" id="__nav_11_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    002 — Escopo por organizacao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    002 — Escopo por organizacao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_3" id="__nav_11_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    003 — Corrigir e encerrar observacao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    003 — Corrigir e encerrar observacao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_4" id="__nav_11_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    004 — Issues e projetos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    004 — Issues e projetos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_5" id="__nav_11_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    005 — Mapeamento e detalhe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    005 — Mapeamento e detalhe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/aceitacao-005/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitacao 005
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_6" id="__nav_11_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    006 — Marca de issues
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    006 — Marca de issues
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/006-marca-de-issues/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/006-marca-de-issues/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_7" id="__nav_11_3_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    007 — Destravar sync presa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    007 — Destravar sync presa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/007-destravar-sync-presa/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/007-destravar-sync-presa/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_8" id="__nav_11_3_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    008 — Marca que se cura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    008 — Marca que se cura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/008-marca-que-se-cura/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/008-marca-que-se-cura/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_9" id="__nav_11_3_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    009 — Detalhe da pessoa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    009 — Detalhe da pessoa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/009-detalhe-da-pessoa/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/009-detalhe-da-pessoa/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_10" id="__nav_11_3_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    010 — De quem a issue e parte
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    010 — De quem a issue e parte
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/010-de-quem-a-issue-e-parte/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/010-de-quem-a-issue-e-parte/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_11" id="__nav_11_3_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    011 — Vinculo que sumiu na origem
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    011 — Vinculo que sumiu na origem
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/011-vinculo-que-sumiu-na-origem/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/011-vinculo-que-sumiu-na-origem/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_12" id="__nav_11_3_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    012 — Pagina da pessoa mais rapida
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    012 — Pagina da pessoa mais rapida
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/012-pagina-da-pessoa-mais-rapida/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/012-pagina-da-pessoa-mais-rapida/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_13" id="__nav_11_3_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    013 — Clicar e quem escreveu
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    013 — Clicar e quem escreveu
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/013-clicar-e-quem-escreveu/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/013-clicar-e-quem-escreveu/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/014-design-system/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    014 — Design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_15" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_15" id="__nav_11_3_15_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    016 — Geracao mensal de perfis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    016 — Geracao mensal de perfis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/016-geracao-mensal-de-perfis/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/016-geracao-mensal-de-perfis/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/017-quadros-campos-e-backlogs/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    017 — Quadros campos e backlogs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/018-competencias-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    018 — Competencias da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/019-comentarios-das-issues/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    019 — Comentarios das issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/020-coleta-de-mudancas/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    020 — Coleta de mudancas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/021-coleta-do-ci/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    021 — Coleta do ci
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_21" id="__nav_11_3_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    022 — Menu por entidades
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    022 — Menu por entidades
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/022-menu-por-entidades/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/022-menu-por-entidades/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_22" id="__nav_11_3_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    023 — Autenticacao e acesso
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    023 — Autenticacao e acesso
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/023-autenticacao-e-acesso/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/023-autenticacao-e-acesso/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_23" id="__nav_11_3_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    024 — Mensagens e o botao da chave
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    024 — Mensagens e o botao da chave
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_24" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_24" id="__nav_11_3_24_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    025 — Contas e o elo do github
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_24_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_24">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    025 — Contas e o elo do github
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_25" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_25" id="__nav_11_3_25_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    026 — Heranca e a producao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_25_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_25">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    026 — Heranca e a producao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_26" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_26" id="__nav_11_3_26_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    027 — Equipes declaradas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_26_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_26">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    027 — Equipes declaradas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/027-equipes-declaradas/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/027-equipes-declaradas/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_27" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_27" id="__nav_11_3_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    028 — A tela da equipe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    028 — A tela da equipe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/028-a-tela-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/028-a-tela-da-equipe/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/029-medidas-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    029 — Medidas da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#justificativas-e-limitações" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Justificativas e limitações
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Justificativas e limitações">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#githubcommittocmpocommit_artifact_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.commit.to.cmpo.commit_artifact_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubcommit_filetocmpoartifact_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.commit_file.to.cmpo.artifact_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubdeploymenttocdrodeployment_activity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.deployment.to.cdro.deployment_activity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuebugtoosdefdefect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.bug.to.osdef.defect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetasktosrointended_scrum_development_task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.task.to.sro.intended_scrum_development_task
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetoosdefdefect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.to.osdef.defect
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissuetosroepic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.to.sro.epic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissueuser_storytosroatomic_user_story" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue.user_story.to.sro.atomic_user_story
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubissue_commenttocmocomment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.issue_comment.to.cmo.comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githuborganizationtoeoorganization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.organization.to.eo.organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_itemstosrobacklogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_items.to.sro.backlogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_iterationtospospecific_intended_project_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_iteration.to.spo.specific_intended_project_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubproject_iterationtosrosprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.project_iteration.to.sro.sprint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubpull_requesttocmpochange_request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.pull_request.to.cmpo.change_request
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubpull_request_reviewtoqapoartifact_evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.pull_request_review.to.qapo.artifact_evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubreftocmpobranch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.ref.to.cmpo.branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubrepositorytocmposource_repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.repository.to.cmpo.source_repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubteamtoeoorganizational_team" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.team.to.eo.organizational_team
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubteam_membertoeoperson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.team_member.to.eo.person
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubusertoeoperson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.user.to.eo.person
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubworkflow_jobtociroci_component_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.workflow_job.to.ciro.ci_component_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#githubworkflow_runtocirocontinuous_integration_process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        github.workflow_run.to.ciro.continuous_integration_process
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/The-Band-Solution/theband/edit/development/docs/integrations/mappings.md" title="Editar esta página" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<!-- GERADO POR scripts/generate_docs.py A PARTIR DE priv/knowledge_base/. NÃO EDITE À MÃO. -->
+
+<h1 id="mapeamentos-semânticos">Mapeamentos semânticos<a class="headerlink" href="#mapeamentos-semânticos" title="Permanent link">&para;</a></h1>
+<p>Como cada entidade das ferramentas externas se relaciona com os conceitos da rede.</p>
+<p>Nenhum dado externo entra no domínio sem um mapeamento declarado, com grau de equivalência, justificativa e limitações explícitas. Semelhança de nome nunca basta.</p>
+<table>
+<thead>
+<tr>
+<th>Origem</th>
+<th>Entidade</th>
+<th>Ontologia</th>
+<th>Conceito</th>
+<th>Equivalência</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>github</td>
+<td><code>commit</code></td>
+<td><code>cmpo</code></td>
+<td><code>cmpo.commit_artifact_copy</code></td>
+<td>total</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>commit_file</code></td>
+<td><code>cmpo</code></td>
+<td><code>cmpo.artifact_copy</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>deployment</code></td>
+<td><code>cdro</code></td>
+<td><code>cdro.deployment_activity</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue</code></td>
+<td><code>osdef</code></td>
+<td><code>osdef.defect</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue</code></td>
+<td><code>sro</code></td>
+<td><code>sro.intended_scrum_development_task</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue</code></td>
+<td><code>osdef</code></td>
+<td><code>osdef.defect</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue</code></td>
+<td><code>sro</code></td>
+<td><code>sro.epic</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue</code></td>
+<td><code>sro</code></td>
+<td><code>sro.atomic_user_story</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>issue_comment</code></td>
+<td><code>cmo</code></td>
+<td><code>cmo.comment</code></td>
+<td>total</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>organization</code></td>
+<td><code>eo</code></td>
+<td><code>eo.organization</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>project_v2_item</code></td>
+<td><code>sro</code></td>
+<td><code>sro.product_backlog</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>project_v2_iteration</code></td>
+<td><code>spo</code></td>
+<td><code>spo.specific_intended_project_process</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>project_v2_iteration</code></td>
+<td><code>sro</code></td>
+<td><code>sro.sprint</code></td>
+<td>derived</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>pull_request</code></td>
+<td><code>cmpo</code></td>
+<td><code>cmpo.change_request</code></td>
+<td>total</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>pull_request_review</code></td>
+<td><code>qapo</code></td>
+<td><code>qapo.artifact_evaluation</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>ref</code></td>
+<td><code>cmpo</code></td>
+<td><code>cmpo.branch</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>repository</code></td>
+<td><code>cmpo</code></td>
+<td><code>cmpo.source_repository</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>team</code></td>
+<td><code>eo</code></td>
+<td><code>eo.organizational_team</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>team_member</code></td>
+<td><code>eo</code></td>
+<td><code>eo.person</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>user</code></td>
+<td><code>eo</code></td>
+<td><code>eo.person</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>workflow_job</code></td>
+<td><code>ciro</code></td>
+<td><code>ciro.continuous_build_process</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+<tr>
+<td>github</td>
+<td><code>workflow_run</code></td>
+<td><code>ciro</code></td>
+<td><code>ciro.continuous_integration_process</code></td>
+<td>partial</td>
+<td>proposed</td>
+</tr>
+</tbody>
+</table>
+<h2 id="justificativas-e-limitações">Justificativas e limitações<a class="headerlink" href="#justificativas-e-limitações" title="Permanent link">&para;</a></h2>
+<h3 id="githubcommittocmpocommit_artifact_copy"><code>github.commit.to.cmpo.commit_artifact_copy</code><a class="headerlink" href="#githubcommittocmpocommit_artifact_copy" title="Permanent link">&para;</a></h3>
+<p><strong>github.commit → cmpo.commit_artifact_copy</strong> · equivalência <em>total</em> · versão 1 · status <em>proposed</em></p>
+<p>Um commit do Git é o ato que envia cópias de artefato para uma branch de destino, com autor, instante e mensagem — a definição de cmpo.commit_artifact_copy, que é atividade (ufo action) e não objeto. A equivalência é total para o ATO; a cópia de artefato que ele produz é outro conceito, e está fora deste mapeamento.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p><strong>As duas relações que faltavam foram declaradas</strong> (issue #426): a participação cmpo.stakeholder_performed_commit e a associação cmpo.commit_accomplished_change_request, no módulo cmpo.change_traceability.</p>
+</li>
+<li>
+<p><code>mentions_issues</code> aponta para sro.user_story (ou o destino que o roteamento tiver decidido) por padrão de TEXTO, e continua sem relação própria: o caminho declarado é commit → change_request → item de escopo, e a menção é atalho de confiança baixa. Quando os dois discordam, a estrutura vence — com a divergência registrada.</p>
+</li>
+<li>
+<p><strong>O commit não sabe em qual branch está.</strong> O mesmo <code>oid</code> existe em quantas branches o tiverem; a branch de destino pertence ao cmpo.checkin, não ao ato isolado. O campo grava a branch em que o commit foi OBSERVADO na coleta, e nada mais se afirma.</p>
+</li>
+<li>
+<p><code>cmpo.artifact_copy</code> (a cópia versionada de cada arquivo) NÃO é coletada: exigiria o diff por arquivo em todo commit, e nada na plataforma o consome. Sem ela, <code>cmpo.commit_sends_copy_to_target_branch</code> fica com o alvo declarado e a cópia ausente — dito, não silenciado.</p>
+</li>
+<li>
+<p><code>cmpo.checkin</code> (o ato composto que inclui verificação de conflito, resolução e remoção de branch) não é derivável de commits isolados: precisaria do PR e do evento de merge juntos. Fica para quando o consumidor existir.</p>
+</li>
+<li>
+<p>Commit de autor sem conta no GitHub (<code>user: null</code>, comum em commits antigos e importados) fica com nome e e-mail preservados e sem vínculo com pessoa — a mesma regra dos designados e dos comentários. E-mail é dado pessoal: não vai para tela.</p>
+</li>
+<li>
+<p>Menção de issue por padrão de texto tem confiança BAIXA e nunca substitui o caminho commit → PR → issue. Quando os dois discordam, a estrutura vence, com a divergência registrada.</p>
+</li>
+</ul>
+<h3 id="githubcommit_filetocmpoartifact_copy"><code>github.commit_file.to.cmpo.artifact_copy</code><a class="headerlink" href="#githubcommit_filetocmpoartifact_copy" title="Permanent link">&para;</a></h3>
+<p><strong>github.commit_file → cmpo.artifact_copy</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Um arquivo alterado por um commit é a cópia daquele artefato na versão que o commit produziu — a definição de cmpo.artifact_copy. A equivalência é PARCIAL, e a palavra é escolhida: a plataforma guarda QUE arquivo mudou e quantas linhas, nunca o CONTEÚDO da cópia. A cópia existe no repositório; aqui existe o registro de que ela passou a existir.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p><strong>O conteúdo não é coletado, e isso é postura, não limitação técnica.</strong> A plataforma registra que o arquivo mudou e quanto; o código vive no repositório. Guardar o diff faria dela um espelho de código, e nada no produto consome isso.</p>
+</li>
+<li>
+<p><strong>A coleta percorre TODOS os commits, e a limitação que existia era nossa.</strong> A primeira versão coletava só dos commits de solicitações com vínculo a issue — 3.558 de 16.416 — por causa do rate limit, e a tela ia declarar "não coletado" para o resto. A REST entrega os arquivos de qualquer commit: o que faltava era esperar a janela. Agora a coleta pausa até ela reabrir, e o checkpoint por commit faz cada execução continuar de onde a anterior parou. Enquanto a primeira passada não termina, o que falta aparece como NÃO COLETADO — nunca como ausência de mudança.</p>
+</li>
+<li>
+<p><strong>Renomeação é delete+add no Git</strong>, e a CMPO trata cópia de artefato, não identidade de arquivo. <code>previous_filename</code> é preservado quando a origem o informa, mas a plataforma NÃO afirma que as duas cópias são do mesmo artefato: afirmar exigiria decidir identidade a partir de heurística de similaridade.</p>
+</li>
+<li>
+<p><code>status: removed</code> registra que a cópia deixou de existir naquele commit — e o registro fica, como toda marca desta casa. Arquivo apagado é fato sobre a mudança.</p>
+</li>
+</ul>
+<h3 id="githubdeploymenttocdrodeployment_activity"><code>github.deployment.to.cdro.deployment_activity</code><a class="headerlink" href="#githubdeploymenttocdrodeployment_activity" title="Permanent link">&para;</a></h3>
+<p><strong>github.deployment → cdro.deployment_activity</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Um deployment do GitHub registra a atividade automatizada que implantou um código em um ambiente. O desfecho vem do deployment status associado, não do objeto deployment em si.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>O código implantado aponta para ciro.candidate_code, e CDRO não declara relação entre cdro.deployment_activity e ciro.candidate_code - a relação existente é com cdro.deployed_code. Nada materializa o vínculo como declarado.</p>
+</li>
+<li>
+<p>O nome do ambiente é texto livre; "production" em um repositório pode não ser produção real.</p>
+</li>
+<li>Um deployment criado não implica implantação concluída; usar o status mais recente.</li>
+<li>Rollbacks aparecem como novos deployments do commit anterior.</li>
+</ul>
+<h3 id="githubissuebugtoosdefdefect"><code>github.issue.bug.to.osdef.defect</code><a class="headerlink" href="#githubissuebugtoosdefdefect" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue → osdef.defect</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Uma issue do tipo Bug registra um defeito percebido no software — uma disposição que pode se manifestar em falha. O registro não é a falha em si: a falha é evento observado, com instante próprio. Uma issue de bug costuma descrever ambos misturados em texto livre, e apenas o defeito é derivável com segurança.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>Issue de bug não é user story e nunca deve entrar no escopo do produto como tal.</li>
+<li>O defeito só vira fault quando há manifestação registrada em uma falha; a issue sozinha não estabelece isso.</li>
+<li>O instante da falha não é derivável de createdAt — a data de abertura é quando alguém reportou, não quando o software falhou.</li>
+<li>Bug fechado como "não reproduzível" ou duplicado não é defeito confirmado; requer regra de exclusão por tenant.</li>
+</ul>
+<h3 id="githubissuetasktosrointended_scrum_development_task"><code>github.issue.task.to.sro.intended_scrum_development_task</code><a class="headerlink" href="#githubissuetasktosrointended_scrum_development_task" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue → sro.intended_scrum_development_task</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>Uma issue do tipo Task descreve trabalho planejado para materializar uma user story — o que corresponde à tarefa pretendida da SRO, e não à executada. A tarefa executada é evento distinto, derivado do histórico de status do item e do fechamento da issue, e é ligada a esta por causação (sro.performed_task_caused_by_intended_task). Colapsar as duas em um registro só destrói a análise de aderência entre planejado e realizado, que é exatamente o que CQ29 pede.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>Tarefa cujo pai é um épico viola sro.rule07; registrar divergência e não criar o vínculo direto com o épico.</li>
+<li>Tarefa sem pai fica sem user story atendida; é escopo órfão e deve aparecer como lacuna, não ser ligada ao sprint por proximidade.</li>
+<li>Esta issue é a tarefa PRETENDIDA. A tarefa executada vem de github.project_item_status e não deste mapeamento.</li>
+<li>Assignee indica quem foi designado, não necessariamente quem executou; a participação real vem de commits e reviews.</li>
+</ul>
+<h3 id="githubissuetoosdefdefect"><code>github.issue.to.osdef.defect</code><a class="headerlink" href="#githubissuetoosdefdefect" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue → osdef.defect</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>Issue do tipo Bug é um defeito — não uma user story. Promover toda issue a user story inflaria o product backlog com correção, e o erro só apareceria quando alguém perguntasse por que o backlog cresce sem funcionalidade nova.
+Este mapeamento NÃO tem <code>structural_requirements</code>. Ao contrário de épico e atômica, ser defeito não depende de composição: um bug com sub-issues continua sendo um bug. A ausência do bloco é decisão, não esquecimento.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Defeito NÃO é falta nem falha. OSDEF distingue defect, fault e failure, e o GitHub não dá base para separá-los: uma issue de bug descreve o que alguém observou, sem dizer se é a causa no artefato, o estado errado em execução, ou o desvio percebido. Só <code>defect</code> é afirmável.</p>
+</li>
+<li>
+<p>Severidade não é coletada. O que existe é label de texto livre, e mapear label para severidade por semelhança de nome é o antipadrão declarado.</p>
+</li>
+<li>
+<p>Um bug pode ser tipado como Task por times que não usam o tipo Bug. A regra é sobrescrita por tenant, e a lacuna aparece contada em vez de suposta.</p>
+</li>
+</ul>
+<h3 id="githubissuetosroepic"><code>github.issue.to.sro.epic</code><a class="headerlink" href="#githubissuetosroepic" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue → sro.epic</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>Épico é uma user story que TEM PARTES — sro.rule05. Não é um rótulo: é consequência da composição. Por isso <code>values</code> aqui inclui tanto os nomes de tipo "Epic" quanto os de "User Story": o que decide é <code>structural_requirements</code>, e o tipo declarado apenas informa a intenção do time.
+<code>children_of_concept: sro.user_story</code> é a parte que não se pode omitir. As partes têm de ser user stories para haver composição. Se as sub-issues são todas do tipo <code>Task</code>, elas ATENDEM a user story em vez de compô-la, e a issue permanece atômica.
+Quando declaração e estrutura divergem, a estrutura vence e a divergência é registrada. Ela normalmente significa uma de duas coisas, e as duas interessam a quem administra o processo: épico abandonado sem decomposição, ou user story que cresceu e virou épico sem ninguém retipar.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Um vínculo de composição que fecharia CICLO é recusado, e a recusa nomeia o caminho — sro.rule04. As duas issues permanecem coletadas: a issue existe no GitHub, e esconder dado observado por causa de relação inválida seria pior.</p>
+</li>
+<li>
+<p>Sub-issue em repositório fora do escopo observado é registrada como referência externa. A relação existe; a parte não é promovida.</p>
+</li>
+<li>
+<p>A classificação como épico é derivada da coleta, e não materializada em coluna. Uma issue que perde todas as partes deixa de ser épico — gravar o valor faria o registro divergir da estrutura no instante seguinte (ADR 0004 D7).</p>
+</li>
+<li>
+<p><code>importance</code> e <code>complexity</code> ficam nulas, pela mesma razão do mapeamento da user story atômica.</p>
+</li>
+</ul>
+<h3 id="githubissueuser_storytosroatomic_user_story"><code>github.issue.user_story.to.sro.atomic_user_story</code><a class="headerlink" href="#githubissueuser_storytosroatomic_user_story" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue → sro.atomic_user_story</strong> · equivalência <em>derived</em> · versão 2 · status <em>proposed</em></p>
+<p>Uma issue promovida a user story atômica descreve um requisito do produto e não é decomposta em outras user stories. É o nível em que tarefas de desenvolvimento se ligam ao escopo (sro.rule07) e em que entregáveis materializam requisitos — por isso a distinção entre atômica e épico não é cosmética.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>Issue com sub-issues que também são user stories é épico, não atômica — a estrutura vence o tipo declarado.</li>
+<li>Sub-issues do tipo Task não descaracterizam a user story como atômica; tarefas a atendem, não a compõem.</li>
+<li>Critérios de aceitação escritos no corpo em texto livre não são sro.acceptance_criterion até serem extraídos e validados; a extração não faz parte deste mapeamento.</li>
+<li>
+<p><code>importance</code> e <code>complexity</code> ficam NULAS, e a versão 1 deste mapeamento as lia de <code>fieldValueByName(Priority)</code> e <code>fieldValueByName(Estimate)</code>. Duas coisas erradas ali, corrigidas na versão 2.
+A primeira: <code>Priority</code> NÃO é <code>importance</code>. Importance é decimal com escala declarada — "quão valiosa a user story é para a organização" —, e Priority é seleção única cujos valores o tenant inventou (P0, P1, P2). Converter um no outro é mapeamento por semelhança de nome, que o princípio I proíbe e o AGENTS.md §7.7 nomeia como antipadrão. O quadro real deste tenant não tem campo numérico de importância, e a ausência fica declarada em vez de substituída.
+A segunda: <code>fieldValueByName</code> identifica o campo pelo NOME. Renomear "Priority" para "Prioridade" quebraria o mapeamento em silêncio. A identidade de um campo configurável é o identificador dele — FR-027 da feature 004 —, e o mapeamento campo→atributo passa a ser declarado por tenant em <code>rules/tenants/</code>.</p>
+</li>
+<li>
+<p>Uma issue marcada <code>Epic</code> SEM sub-issues cai aqui, e a divergência entre tipo declarado e conceito derivado fica registrada. Não existe épico sem partes (sro.rule05), e a divergência costuma significar épico abandonado sem decomposição.</p>
+</li>
+<li>
+<p>Sub-issues do tipo <code>Task</code> NÃO tornam a issue épica: tarefa ATENDE user story (sro.intended_task_planned_to_meet_user_story), não a compõe. É o erro mais fácil de cometer nesta regra.</p>
+</li>
+<li>
+<p>Sem a API de sub-issues — GitHub Enterprise Server antigo — a distinção épico/atômica NÃO é feita, e isso é declarado em vez de suprido por heurística de lista em markdown.</p>
+</li>
+<li>
+<p>Critério de aceitação não é extraído do corpo. <code>sro.acceptance_criterion</code> consta como não observável na matriz de cobertura; extrair por heurística produziria critério plausível e errado.</p>
+</li>
+<li>
+<p>Feature e User Story são tratadas como o mesmo destino, o que pode ser incorreto em organizações que usam Feature como agrupador — confirmar por tenant.</p>
+</li>
+</ul>
+<h3 id="githubissue_commenttocmocomment"><code>github.issue_comment.to.cmo.comment</code><a class="headerlink" href="#githubissue_commenttocmocomment" title="Permanent link">&para;</a></h3>
+<p><strong>github.issue_comment → cmo.comment</strong> · equivalência <em>total</em> · versão 1 · status <em>proposed</em></p>
+<p>Um IssueComment do GitHub é exatamente uma manifestação escrita, unicamente identificada, publicada por um agente no fio de discussão de um artefato do projeto — a definição de cmo.comment. A equivalência é total porque o conceito foi criado reconhecendo esta classe de coisa, e não o contrário: a CMO nasceu da lacuna que este dado expôs.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>relations.author liga o comentário a eo.person como ATALHO materializado da cadeia ontológica agente → ato de comentar → comentário (cmo.agent_performed_commenting_act + cmo.commenting_act_published_comment): a origem entrega o comentário com autor, não o ato — o ato é derivado deste registro, um por comentário, no published_at.</p>
+</li>
+<li>
+<p>relations.discussion_of liga o comentário a spo.artifact como atalho da cadeia comentário → discussão → artefato (cmo.comment_belonged_to_discussion + cmo.discussion_was_about_artifact): a discussão não é gravada como entidade — ela É o conjunto dos comentários do artefato.</p>
+</li>
+<li>
+<p>Edição e apagamento na origem: o GitHub entrega o corpo ATUAL e lastEditedAt, não o histórico de versões — o que se afirma é "o texto como estava na coleta". Comentário apagado na origem some da API; a marca no coletado é no_longer_observed_at, nunca DELETE (marca, nunca apaga).</p>
+</li>
+<li>
+<p>Reações (👍 etc.) ficam fora desta versão: são outro ato comunicativo, mais fraco, e entrariam como conceito próprio se um dia sustentarem decisão.</p>
+</li>
+<li>
+<p>Comentário de pull request review NÃO entra aqui: é outro fio (review thread), com âncora em código, e exigiria conceito próprio — registrado como lacuna.</p>
+</li>
+<li>
+<p>bodyText é texto plano: formatação, menções e links do markdown são achatados. Menção (@pessoa) como relação é derivação futura possível, não afirmada.</p>
+</li>
+</ul>
+<h3 id="githuborganizationtoeoorganization"><code>github.organization.to.eo.organization</code><a class="headerlink" href="#githuborganizationtoeoorganization" title="Permanent link">&para;</a></h3>
+<p><strong>github.organization → eo.organization</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Uma organização do GitHub é um agrupamento administrativo de repositórios e pessoas. Corresponde parcialmente à organização de EO: não representa a estrutura organizacional real, apenas o recorte visível na ferramenta.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>Uma organização no GitHub pode representar apenas uma unidade organizacional, não a organização inteira.</li>
+<li>Times do GitHub não correspondem necessariamente a equipes de projeto (eo.project_team).</li>
+</ul>
+<h3 id="githubproject_itemstosrobacklogs"><code>github.project_items.to.sro.backlogs</code><a class="headerlink" href="#githubproject_itemstosrobacklogs" title="Permanent link">&para;</a></h3>
+<p><strong>github.project_v2_item → sro.product_backlog</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>Nem o product backlog nem o sprint backlog são objetos que o GitHub tenha. Os dois são CONJUNTOS de itens, e o que separa um do outro é uma única coisa: a atribuição de iteração.</p>
+<p>sem iteração atribuída          → product backlog
+  iteração atribuída, já iniciada → sprint backlog daquele sprint</p>
+<p>A composição é derivada da atribuição, e NUNCA gravada como pertencimento escolhido por quem coleta. Gravá-la seria o mesmo erro que materializar a classificação épico/atômica: no instante em que alguém arrastasse um item no quadro, o registro divergiria da origem.
+Consequência verificável: a soma dos itens no product backlog e nos sprint backlogs de um projeto é igual ao total de itens dele. Nenhum item nos dois conjuntos, nenhum fora dos dois.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Item RASCUNHO não tem issue por trás, e não é promovido a nada. Ele é registrado como item sem trabalho associado — um rascunho no quadro é intenção de alguém, não escopo do produto.</p>
+</li>
+<li>
+<p>A ordem DENTRO do backlog não é coletada como ordem. sro.user_story.importance é decimal, e o quadro deste tenant não tem campo numérico — a ausência fica declarada, e nenhum outro campo é usado como substituto.</p>
+</li>
+<li>
+<p>O MOMENTO em que o item entrou na iteração não é coletado, e é ele que a matriz de cobertura pede para derivar sro.intended_scrum_development_task com confiança baixa. Exigiria o histórico de itens, fora de escopo por custo.</p>
+</li>
+<li>
+<p>Um item pode estar em mais de um quadro. Nesse caso a mesma user story aparece em mais de um backlog, o que a SRO não proíbe e ninguém deveria interpretar como duplicação.</p>
+</li>
+<li>
+<p>Iteração removida da configuração deixa seus itens sem iteração vigente. Eles NÃO voltam ao product backlog automaticamente: voltar afirmaria uma decisão de replanejamento que ninguém tomou.</p>
+</li>
+</ul>
+<h3 id="githubproject_iterationtospospecific_intended_project_process"><code>github.project_iteration.to.spo.specific_intended_project_process</code><a class="headerlink" href="#githubproject_iterationtospospecific_intended_project_process" title="Permanent link">&para;</a></h3>
+<p><strong>github.project_v2_iteration → spo.specific_intended_project_process</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>Decisão da pessoa mantenedora, 2026-08-11: "interações futuras são plannings que não foram feitas".
+Uma iteração cuja data de início ainda não chegou é intenção, não ocorrência — e é exatamente o que <code>spo.intended_project_process</code> define: "processo planejado para ser executado no projeto — uma intenção, não uma ocorrência". A categoria UFO é <code>intention</code>, e não <code>complex_action</code>.
+O par é simétrico e é o que dá sentido aos dois mapeamentos:</p>
+<p>iteração já iniciada  → sro.sprint                            ocorreu
+  iteração futura       → spo.specific_intended_project_process pretendida</p>
+<p>Sem este mapeamento, a iteração futura ficaria só no payload, e a pergunta "o que este time planejou e ainda não executou" não teria resposta. Com ele, a resposta existe e é honesta sobre o que é: plano, não fato.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>A transição de pretendida para ocorrida acontece na COLETA seguinte ao início, não no instante do início. Uma iteração que começou hoje e cuja coleta rodou ontem continua registrada como pretendida até a próxima coleta. A plataforma afirma o que observou.</p>
+</li>
+<li>
+<p><code>spo.specific_intended_project_process</code> não é <code>sro.planning_meeting</code>. A cerimônia de planejamento é <code>action</code> — ocorreu, com pessoas, num instante — e o GitHub não a registra. Uma iteração pretendida é o RESULTADO planejado, não a reunião.</p>
+</li>
+<li>
+<p>Iteração pretendida não tem itens contados como sprint backlog. Itens atribuídos a ela permanecem no product backlog, porque o sprint dela não existe — regra github.item_iteration_assignment.</p>
+</li>
+<li>
+<p>Iteração excluída da configuração antes de começar desaparece da origem sem ter ocorrido. Ela permanece consultável, marcada como não mais presente: o plano existiu, e foi abandonado. Apagar destruiria a resposta a "o que foi planejado e nunca aconteceu".</p>
+</li>
+</ul>
+<h3 id="githubproject_iterationtosrosprint"><code>github.project_iteration.to.sro.sprint</code><a class="headerlink" href="#githubproject_iterationtosrosprint" title="Permanent link">&para;</a></h3>
+<p><strong>github.project_v2_iteration → sro.sprint</strong> · equivalência <em>derived</em> · versão 1 · status <em>proposed</em></p>
+<p>A iteração do Projects v2 é o que mais se aproxima de um sprint, e não é a mesma coisa. Iteração é CONFIGURAÇÃO do quadro; sprint é processo EXECUTADO — sro.sprint é complex_action, algo que ocorreu.
+Daí a condição: só iteração cuja data de início já passou é promovida. Promover uma iteração futura afirmaria um sprint que não aconteceu, e toda medida de vazão passaria a incluir sprints com zero entregas.
+A promoção é derivada, não observada, e a proveniência diz isso: a origem é configuração de projeto.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Só iteração JÁ INICIADA vem para cá. A futura é pretendida, e tem mapeamento próprio para spo.specific_intended_project_process — "interações futuras são plannings que não foram feitas". A mesma iteração troca de registro ao começar.</p>
+</li>
+<li>
+<p>A data de início é PLANEJAMENTO, não observação. Um sprint que começou atrasado terá a data que o quadro dizia. Este repositório já produziu essa divergência duas vezes: sprints declarados de sete dias, aceitos no primeiro. A data ocorrida exigiria o histórico de itens, fora de escopo por custo de consumo.</p>
+</li>
+<li>
+<p><code>end_date</code> é calculada de <code>startDate + duration</code>, e é a data PREVISTA de término. O GitHub não registra quando a iteração de fato terminou.</p>
+</li>
+<li>
+<p>Iteração removida da configuração depois de ter tido itens permanece consultável, marcada como não mais presente na origem — apagar destruiria a resposta a "o que foi feito naquele sprint".</p>
+</li>
+<li>
+<p>Iteração NÃO é release. O mesmo campo é usado por times para as duas coisas, e distinguir exigiria declaração do tenant.</p>
+</li>
+<li>
+<p>sro.scrum_process, que a matriz de cobertura lista como derivável da existência de sprints, NÃO é derivado aqui. A confiança declarada é baixa, e inferir processo a partir de configuração de quadro seria afirmar demais.</p>
+</li>
+</ul>
+<h3 id="githubpull_requesttocmpochange_request"><code>github.pull_request.to.cmpo.change_request</code><a class="headerlink" href="#githubpull_requesttocmpochange_request" title="Permanent link">&para;</a></h3>
+<p><strong>github.pull_request → cmpo.change_request</strong> · equivalência <em>total</em> · versão 1 · status <em>proposed</em></p>
+<p>Um Pull Request é a solicitação formal de que alterações em cópias de artefato sob controle de versão sejam avaliadas e integradas a uma branch de destino — a definição literal de cmpo.change_request, que cita o Pull Request como o exemplo. A equivalência é total porque o conceito foi escrito reconhecendo esta classe de coisa.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p><strong>As relações que faltavam foram declaradas</strong> (2026-08-17, issue #426): o módulo cmpo.change_traceability traz as participações (submeter, integrar, commitar) e o módulo sro.scope_traceability traz o atendimento ao item de escopo. Antes disso este mapeamento afirmava os vínculos sem lastro; agora cada um materializa relação declarada, e a nota de cada campo diz qual.</p>
+</li>
+<li>
+<p><code>requested_by</code> liga a solicitação a eo.person como ATALHO materializado da cadeia declarada — spo.project_stakeholder → cmpo.change_request_submission (participação) → cmpo.change_request (causação). Não há, e não deve haver, relação direta entre cmpo.change_request e eo.person: participação é entre agente e EVENTO, e a solicitação é objeto social. O atalho existe porque a origem entrega o PR com autor, não o ato de submeter.</p>
+</li>
+<li>
+<p><code>integrated_by</code> liga a solicitação a eo.person pelo mesmo tipo de atalho, sobre outra cadeia — spo.project_stakeholder → cmpo.checkin (participação) → cmpo.change_request (associação). Guardar os dois como atributos da solicitação é decisão de coleta, e a derivação dos atos fica para quando algo os consumir.</p>
+</li>
+<li>
+<p><strong>Continua sem relação entre cmpo.change_request e as branches</strong> (cmpo.source_branch, cmpo.target_branch): a única declarada é cmpo.commit_sends_copy_to_target_branch, que parte do ato de commitar e não da solicitação. Os dois nomes ficam como atributos com o papel nomeado — não foi declarada porque nada na plataforma consome o vínculo, e declarar relação sem consumidor é infraestrutura sem consumidor visível.</p>
+</li>
+<li>
+<p><strong>PR mergeado não é cmpo.change_request "concluída": o merge é outra coisa.</strong> O ato de integrar é cmpo.checkin (composto de cmpo.commit_artifact_copy e, quando a branch é apagada, cmpo.delete_branch), e o fechamento aprovado é cmpo.change_request_closing. Este mapeamento grava <code>merged_at</code> e <code>integrated_by</code> como atributos da solicitação, e a derivação dos dois atos fica para quando algo os consumir — declarar isso é o que impede tratar "mergeado" como propriedade do pedido.</p>
+</li>
+<li>
+<p>Revisões (approvals, change requests, review threads) NÃO entram: são <code>cmpo.change_control</code> em outra atividade, e review thread tem âncora em código — a mesma lacuna já declarada no mapeamento de comentário.</p>
+</li>
+<li>
+<p>Conflito (cmpo.conflict, cmpo.artifact_copy_with_conflict) não é coletável pela API de PR: o GitHub expõe <code>mergeable</code>, que é o estado de AGORA, não o histórico de conflitos resolvidos. Afirmar cmpo.resolve_conflict a partir dele seria inventar.</p>
+</li>
+<li>
+<p><code>closingIssuesReferences</code> só existe no GraphQL. A API REST de PR não traz o vínculo com issue — quem coletar por REST fica sem o elo, e a ausência precisa ser dita em vez de virar "PR sem issue".</p>
+</li>
+<li>
+<p>Menção de issue no corpo sem closing keyword (<code>Refs #318</code>) é vínculo mais fraco e fica FORA: promovê-lo ao mesmo conceito faria "mencionou" e "atende" a mesma coisa. Se um dia sustentar decisão, é conceito próprio.</p>
+</li>
+</ul>
+<h3 id="githubpull_request_reviewtoqapoartifact_evaluation"><code>github.pull_request_review.to.qapo.artifact_evaluation</code><a class="headerlink" href="#githubpull_request_reviewtoqapoartifact_evaluation" title="Permanent link">&para;</a></h3>
+<p><strong>github.pull_request_review → qapo.artifact_evaluation</strong> · equivalência <em>partial</em> · versão 3 · status <em>proposed</em></p>
+<p>Uma review de Pull Request é uma avaliação de artefato: alguém avalia objetivamente a aderência das alterações a critérios aplicáveis. O estado CHANGES_REQUESTED indica não conformidades identificadas; APPROVED indica conformidade na avaliação daquele revisor.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>RESOLVIDA na versão 2 — "a participação de agente em avaliação ainda não é modelada": o módulo de projeto <code>qapo.evaluation_participation</code> declara <code>qapo.stakeholder_performed_artifact_evaluation</code> e <code>qapo.artifact_evaluation_evaluates</code>. A relação aponta para <code>spo.project_stakeholder</code> e para o papel <code>qapo.evaluated_artifact</code>, e não para <code>eo.person</code> nem para <code>cmpo.change_request</code> — é o que a mantém dentro das dependências declaradas da QAPO (<code>[ufo, spo]</code>), sem inverter a rede.</p>
+</li>
+<li>
+<p>Aprovação não implica ausência de não conformidades, apenas ausência de bloqueio. O <code>state</code> é preservado CRU <strong>e</strong> interpretado por <code>value_map</code>; nenhuma das duas colunas afirma conformidade. <code>qapo.endorsing_verdict</code> é definido como "apto a seguir", e não como "sem problema" — a relação <code>artifact_evaluation_identified_noncompliance</code> declara <code>many</code> no destino justamente porque inclui zero e não o exige.</p>
+</li>
+<li>
+<p>O veredito é a posição de UM avaliador, e não o estado da solicitação. Três endossos e uma objeção são quatro avaliações com quatro vereditos; se a mudança entrou ou não é outra pergunta, e quem a responde é <code>cmpo.stakeholder_performed_checkin</code>.</p>
+</li>
+<li>
+<p>RESOLVIDA na versão 2 — "reviews automáticas devem ser classificadas separadamente": <code>author_type</code> guarda o <code>__typename</code> da origem, e toda contagem separa <code>User</code> de <code>Bot</code>. Sem isso a medida de tempo até a primeira revisão mediria o robô.</p>
+</li>
+<li>
+<p>RESOLVIDA na versão 2 — "um comentário isolado não é uma review": a coleta usa a conexão <code>reviews</code>, e não <code>reviewThreads</code>. Só evento de review submetida entra.</p>
+</li>
+<li>
+<p>Review em rascunho (<code>PENDING</code>) vem sem <code>submittedAt</code>. É gravada com nulo — existe e não foi submetida —, e a medida de tempo até a primeira revisão a exclui.</p>
+</li>
+<li>
+<p><code>reviews.totalCount</code> é comparado com o que chegou, e o total fica em <code>collected_change_requests.reviews_total</code>: truncamento nunca é silencioso.</p>
+</li>
+</ul>
+<h3 id="githubreftocmpobranch"><code>github.ref.to.cmpo.branch</code><a class="headerlink" href="#githubreftocmpobranch" title="Permanent link">&para;</a></h3>
+<p><strong>github.ref → cmpo.branch</strong> · equivalência <em>partial</em> · versão 2 · status <em>proposed</em></p>
+<p>Uma ref do tipo branch é o coletivo dos artefatos de um repositório em uma linha de desenvolvimento — a Branch de CMPO. Branch de origem e de destino são papéis assumidos em um check-in, e não tipos de branch.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>RESOLVIDA na versão 2 — "tags também são refs": a consulta usa <code>refPrefix: "refs/heads/"</code>, e tag não entra.</p>
+</li>
+<li>
+<p>Branch protegida ou default é configuração da ferramenta, não distinção ontológica. As duas são guardadas porque descrevem POLÍTICA, e política é o que se compara com o que de fato aconteceu — não porque criem subtipos de branch.</p>
+</li>
+<li>
+<p><code>branchProtectionRule</code> exige escopo de administração. Sem ele o campo não vem, e a coleta grava <code>false</code> <strong>contando separadamente</strong> em <code>branch_protection_unknown</code>: "não soubemos dizer" nunca vira "não protegida".</p>
+</li>
+<li>
+<p><strong>Esta coleta não é incremental</strong>, ao contrário das demais. A pergunta é "que branches existem agora", e responder exige o conjunto inteiro para saber o que deixou de existir.</p>
+</li>
+<li>
+<p>Branch mergeada é APAGADA na origem, e o histórico dela não está aqui: está no <code>source_branch</code> das solicitações de mudança. Medido em 2026-08-19, 2.461 nomes de branch de origem distintos contra 6, 63 e 47 branches vivas nos repositórios do piloto. A solicitação aponta para um nome que pode não ter entidade, e a tela precisa dizer isso.</p>
+</li>
+<li>
+<p>Branch que sumiu é MARCADA, nunca removida: ela existiu, e o check-in que aconteceu nela continua sendo fato sobre o processo.</p>
+</li>
+</ul>
+<h3 id="githubrepositorytocmposource_repository"><code>github.repository.to.cmpo.source_repository</code><a class="headerlink" href="#githubrepositorytocmposource_repository" title="Permanent link">&para;</a></h3>
+<p><strong>github.repository → cmpo.source_repository</strong> · equivalência <em>partial</em> · versão 3 · status <em>proposed</em></p>
+<p>Um repositório do GitHub é uma cópia carregada de sistema de software cujo propósito é tratar mudanças de cópias de artefato — exatamente o papel do Source Repository em CMPO. Não é o projeto de software (SPO) nem o produto (SysSwO); um projeto pode ter vários repositórios.
+Parcial, e não total: um repositório do GitHub também hospeda issues, wiki e execuções de CI, que estão fora do que o conceito cobre. O que sobra é mapeado por outros mapeamentos — issue vai para SRO —, e o que não é mapeado por nenhum permanece só no payload preservado.
+Atravessa a fronteira de ontologia: cmpo.source_repository é subkind de sys_swo.loaded_software_system_copy, logo materializa por REFERÊNCIA — valor de discriminador na tabela daquele kind, com extensão em CMPO para os atributos próprios. Constituição IX, a regra da fronteira.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>O proprietário aponta para eo.organization, e a relação entre cmpo.source_repository e eo.organization AINDA não está declarada na base. A direção CMPO → EO é permitida — vai do específico para o geral —, mas declarar a relação é passo próprio, como foi eo.organizational_team_belongs_to_organization na feature 002. Até lá o vínculo existe no mapeamento e não no modelo derivado.</p>
+</li>
+<li>
+<p>Repositório NÃO é projeto; não derivar spo.software_project automaticamente daqui. O projeto de software vem do Projects v2, por mapeamento próprio — um projeto pode ter vários repositórios, e um repositório pode servir a vários projetos.</p>
+</li>
+<li>
+<p>Forks e mirrors representam o mesmo item de configuração em instâncias diferentes.</p>
+</li>
+<li>
+<p><code>isFork</code> NÃO é coletado como booleano, de propósito. Ser fork é dizer que esta cópia deriva de OUTRA cópia — é relação, não propriedade. Um booleano seria o antipadrão "booleano no lugar do relator" nomeado no AGENTS.md §7.7: guardaria que existe origem e perderia qual é. Fica pendente até a relação cópia-deriva-de-cópia ser declarada em CMPO.</p>
+</li>
+<li>
+<p><code>languages</code> — a lista com todas as linguagens — não é coletada. Só <code>primaryLanguage</code> é, e como atributo do repositório. A lista completa exigiria um conceito próprio para linguagem, e uma relação com peso por linguagem; sem isso seria um array sem semântica declarada.</p>
+</li>
+<li>
+<p><code>primary_language</code> é calculada pela ORIGEM sobre o código, e não é propriedade da cópia carregada em si. Registrada no repositório porque é onde a origem a fornece, com a atribuição declarada aqui em vez de presumida.</p>
+</li>
+<li>
+<p><code>licenseInfo</code> e <code>diskUsage</code> não são coletados: licença é conceito de outra ontologia, e tamanho em disco é métrica da hospedagem, não do item de configuração.</p>
+</li>
+<li>
+<p><code>default_branch</code> guarda o NOME do ramo, não uma referência a <code>cmpo.branch</code>. A relação existiria — <code>cmpo.branch_belongs_to_repository</code> já está declarada —, mas apontar para ela exigiria coletar ramos, que está fora do escopo desta feature.</p>
+</li>
+<li>
+<p><code>archivedAt</code> diz que a ORIGEM arquivou, e isso não é ausência. Repositório arquivado continua observado, e suas issues continuam consultáveis. Confundir os dois faria a plataforma marcar como não mais observado o que ela vê muito bem — e a exclusão decidida pelo tenant é uma TERCEIRA coisa, que vive na camada de plataforma porque é decisão e não fato do mundo.</p>
+</li>
+</ul>
+<h3 id="githubteamtoeoorganizational_team"><code>github.team.to.eo.organizational_team</code><a class="headerlink" href="#githubteamtoeoorganizational_team" title="Permanent link">&para;</a></h3>
+<p><strong>github.team → eo.organizational_team</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Um time do GitHub é um coletivo de pessoas mantido pela organização, com acesso comum a um conjunto de repositórios. Corresponde a eo.organizational_team, que é a equipe ligada à organização — e não a eo.project_team, que é ligada a um projeto.
+A API oferece os campos repositories e projectsV2 no time, o que permitiria derivar eo.project_team quando houver vínculo. Mas o vínculo é opcional e frequentemente não é usado: na organização verificada, os dois times têm zero repositórios e zero projetos associados, servindo apenas para agrupar pessoas. Por isso o alvo padrão é eo.organizational_team, e a promoção a eo.project_team exige vínculo efetivamente presente ou declaração do tenant.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Este mapeamento cobre apenas equipe OBSERVADA no GitHub. A equipe derivada, que a plataforma cria com o nome da organização para acolher quem não está em time algum, não vem de payload nenhum e por isso não tem mapeamento: é produzida pela regra github.default_team. Declarar aquela regra aqui, em derivation.rule_id, marcaria toda equipe observada como derivada.</p>
+</li>
+<li>
+<p>Os repositórios concedidos apontam para cmpo.source_repository, e EO não declara relação entre eo.organizational_team e cmpo.source_repository. EO não depende de CMPO, e criar a relação inverteria a direção de dependência entre as ontologias - decisão que precede a coluna.</p>
+</li>
+<li>
+<p>Time do GitHub é agrupamento de permissão de acesso; não implica que seus membros trabalhem juntos em um projeto.</p>
+</li>
+<li>Os campos repositories e projectsV2 existem mas são opcionais; quando vazios, não há como distinguir equipe de projeto de equipe organizacional pelos dados.</li>
+<li>A correspondência entre um time e um projeto de software precisa ser declarada pelo tenant quando o vínculo não existe na API; nomes coincidentes não bastam.</li>
+<li>A hierarquia de times (parentTeam, childTeams, ancestors) existe na API, mas EO não define composição entre equipes; a hierarquia é registrada como atributo e não como relação ontológica.</li>
+<li>Uma pessoa pode integrar vários times, e os conjuntos de membros de time, de organização e de colaboradores de repositório são distintos entre si.</li>
+</ul>
+<h3 id="githubteam_membertoeoperson"><code>github.team_member.to.eo.person</code><a class="headerlink" href="#githubteam_membertoeoperson" title="Permanent link">&para;</a></h3>
+<p><strong>github.team_member → eo.person</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>A associação entre um time do GitHub e uma conta identifica a pessoa que integra aquele time. É por isso que este mapeamento tem como alvo eo.person, e não eo.team_membership: a alocação exige um papel organizacional, que o GitHub não fornece.
+O vínculo pessoa-time observado é preservado como evidência, com o nível de acesso na plataforma (MAINTAINER ou MEMBER) registrado como atributo do vínculo — não como papel. A promoção a eo.team_membership ocorre quando o tenant atribui o papel organizacional, conforme github.team_membership_evidence.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>MAINTAINER e MEMBER são níveis de acesso na plataforma, não papéis organizacionais; não devem virar eo.organizational_role.</li>
+<li>Sem papel atribuído pelo tenant, o vínculo não é promovido a eo.team_membership e CQ14 e CQ16 permanecem sem resposta.</li>
+<li>A API não informa quando a pessoa entrou no time; started_at e ended_at ficam nulos e o histórico de alocação não é reconstituível.</li>
+<li>Contas do tipo Bot podem integrar times e não são pessoas; devem ser classificadas separadamente.</li>
+<li>
+<p>Um vínculo deixa de ser vigente por DUAS causas, e elas significam coisas diferentes. PRIMEIRA - a origem mudou: remoção de uma pessoa do time no GitHub não gera evento, e só é detectável por comparação entre coletas. SEGUNDA - a plataforma parou de olhar: o tenant encerrou a observação daquela organização, e a decisão é da plataforma, não fato sobre a origem.</p>
+</li>
+<li>
+<p>A distinção decide o que a retomada faz. Vínculo marcado pela SEGUNDA causa volta a ser vigente na coleta seguinte, se a origem ainda o mostrar. Vínculo marcado pela PRIMEIRA só volta se a origem passar a mostrá-lo de novo. Tratar as duas iguais faria a retomada ressuscitar vínculo que a origem já não tem, e a plataforma afirmaria observação que não ocorreu.</p>
+</li>
+<li>
+<p>A causa não é coluna: é derivável. Registro marcado cuja ferramenta tem evento de encerramento posterior à última coleta foi marcado pela segunda causa; os demais, pela primeira. Acrescentar coluna em pessoas, equipes e vínculos criaria três lugares para discordarem sobre o mesmo fato.</p>
+</li>
+<li>
+<p>O e-mail não é coletado, pela mesma razão declarada em github.user.to.eo.person - exigiria escopo mais amplo do que a coleta precisa.</p>
+</li>
+</ul>
+<h3 id="githubusertoeoperson"><code>github.user.to.eo.person</code><a class="headerlink" href="#githubusertoeoperson" title="Permanent link">&para;</a></h3>
+<p><strong>github.user → eo.person</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Uma conta de usuário do GitHub identifica um agente que atuou no repositório. Não é a pessoa: uma pessoa pode ter várias contas, e uma conta pode ser um bot ou uma conta de serviço. A identidade de pessoa exige reconciliação explícita.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>Não existe vínculo direto entre pessoa e organização, e este mapeamento não o declara. A versão anterior declarava relations.organization apontando para eo.organization, e EO não tem nem deve ter essa relação - o vínculo com organização passaria por papel organizacional, que o GitHub não fornece. O caminho respondível é pessoa -&gt; equipe -&gt; organização, e quem não está em equipe alguma não aparece em organização alguma. Ver eo.cq02.</p>
+</li>
+<li>
+<p>O caminho organization.id não existe no payload de um membro - a organização é o pai da consulta, não campo do nó. Declará-lo produziu eo_people.organization_id nula em 100% dos registros. Achados F3 e F6 da feature 002.</p>
+</li>
+<li>
+<p>Contas do tipo Bot e App não são pessoas e devem ser classificadas separadamente.</p>
+</li>
+<li>A mesma pessoa pode ter múltiplas contas; a unificação exige regra explícita, nunca heurística de nome.</li>
+<li>O e-mail não é coletado. O campo existe na API, mas exige o escopo read:user ou user:email, mais amplo do que a coleta precisa, e costuma vir nulo por configuração de privacidade. Pedir escopo maior por um campo quase sempre vazio amplia a superfície de acesso sem contrapartida. Consequência - eo.person.email permanece nulo quando a fonte é o GitHub, e qualquer análise que dependa de e-mail não é respondível a partir dela.</li>
+</ul>
+<h3 id="githubworkflow_jobtociroci_component_process"><code>github.workflow_job.to.ciro.ci_component_process</code><a class="headerlink" href="#githubworkflow_jobtociroci_component_process" title="Permanent link">&para;</a></h3>
+<p><strong>github.workflow_job → ciro.continuous_build_process</strong> · equivalência <em>partial</em> · versão 1 · status <em>proposed</em></p>
+<p>Um job é um processo automatizado com participação do servidor de CI, executado como parte do processo de CI — a forma dos três componentes da CIRO. A equivalência é PARCIAL, e a palavra é escolhida: qual dos três um job é depende de regra sobre o nome e as etapas, e um job pode materializar mais de um. O <code>target.concept</code> acima é o padrão da regra; a classificação real vai no registro, com a confiança.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p><strong>A granularidade da origem é mais grossa que a da ontologia, e isso virou antipadrão</strong> (<code>ci.ap01.monolithic_job</code>, decidido em 2026-08-18). A CIRO distingue build, teste e inspeção; um job do GitHub pode ser os três — o <code>quality-gates</code> deste repositório roda formatação, Credo, Sobelow, Dialyzer e os testes numa etapa só. A classificação registra TODOS os componentes reconhecidos, nunca escolhe um; e o agrupamento é REPORTADO, porque o custo dele é "quebrou" deixar de dizer o quê.</p>
+</li>
+<li>
+<p>A confiança é <code>low</code> de propósito: o nome do job é convenção de quem escreveu o workflow, não tipo declarado. Nome irreconhecível NÃO vira build por padrão — o job fica coletado sem classificação, e isso também é antipadrão nomeado (<code>ci.ap02.unnamed_components</code>): a verificação existe e a plataforma não sabe o que ela verifica.</p>
+</li>
+<li>
+<p>As fases do job seguem as do processo, incluindo as três de <code>ciro.interrupted_verification</code>: job <code>skipped</code> é ciro.unperformed_continuous_integration_process, e é comum — pular porque o anterior falhou é fato sobre o processo, não sobre a qualidade do código.</p>
+</li>
+<li>
+<p>ciro.build_problem e ciro.ci_test_result exigem os logs, que não são coletados aqui — job que falhou é malsucedido sem o problema descrito, e a tela diz isso em vez de inventar a causa.</p>
+</li>
+<li>
+<p>Etapas (steps) NÃO são mapeadas para ciro.build_composed_of_code_checkout / _environment_creation / _candidate_code_building, embora a CIRO os tenha: a correspondência exigiria reconhecer semanticamente cada etapa, e nada consome isso hoje. Os nomes ficam preservados para quando consumir.</p>
+</li>
+</ul>
+<h3 id="githubworkflow_runtocirocontinuous_integration_process"><code>github.workflow_run.to.ciro.continuous_integration_process</code><a class="headerlink" href="#githubworkflow_runtocirocontinuous_integration_process" title="Permanent link">&para;</a></h3>
+<p><strong>github.workflow_run → ciro.continuous_integration_process</strong> · equivalência <em>partial</em> · versão 2 · status <em>proposed</em></p>
+<p>Uma execução de workflow do GitHub Actions <strong>pode ser</strong> uma ocorrência automatizada de processo de integração contínua — e a versão 1 deste mapeamento afirmava que sempre é. O dado desmentiu: das 1.051 execuções coletadas em 2026-08-18, 399 não são nem verificação nem implantação (<code>Sync to GitLab</code>, <code>Sprint Rollover</code>, <code>Card de promoção</code>).
+O tipo é <strong>derivado dos componentes dos jobs</strong>, nunca assumido pela entidade de origem. Sem componente reconhecido, a execução fica sem tipo — a rede não tem conceito para automação de quadro, e dizê-lo é mais honesto que forçá-la num de verificação.
+O gatilho decide o SUBTIPO (check-in, agendado, sob demanda) e é eixo independente do tipo e da fase.</p>
+<p><strong>Limitações</strong></p>
+<ul>
+<li>
+<p>A execução aponta para cmpo.source_repository, e CIRO não declara relação entre ciro.continuous_integration_process e cmpo.source_repository. Nada materializa o vínculo.</p>
+</li>
+<li>
+<p>RESOLVIDA na versão 2 — "nem todo workflow é integração contínua": o tipo passou a ser derivado dos componentes, e <code>cdro.continuous_deployment_process</code> é um dos resultados. A limitação estava declarada aqui desde a versão 1 e o código a ignorava; foi o dado real que a cobrou.</p>
+</li>
+<li>
+<p>RESOLVIDA na versão 2 — "cancelled e skipped não são insucesso": viraram <code>ciro.interrupted_*</code> e <code>ciro.unperformed_*</code>, e <code>timed_out</code> virou <code>ciro.expired_*</code>.</p>
+</li>
+<li>
+<p>A execução sem componente reconhecido fica <strong>sem tipo</strong>. Isso é ausência nomeada, não falha de coleta — e a tela nunca as escreve com a mesma frase.</p>
+</li>
+<li>
+<p>updated_at aproxima o término, mas não é o instante exato de fim.</p>
+</li>
+<li>RESOLVIDA na versão 2 — o job vem da rota <code>/actions/runs/{id}/jobs</code>, com as etapas, e <code>github.ci_job_routing</code> o classifica. Não exigiu <code>check_run</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The Band — base científica na tese de Paulo Sérgio dos Santos Júnior (UFES, 2023)
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,7115 @@
+
+<!doctype html>
+<html lang="pt" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Integração semântica de dados de Engenharia de Software: coleta das ferramentas, harmonização contra ontologias de referência, proveniência preservada.">
+      
+      
+      
+        <link rel="canonical" href="https://theband.dev/docs/architecture/modelo-de-dados/">
+      
+      
+        <link rel="prev" href="../overview/">
+      
+      
+        <link rel="next" href="../../design-system/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Modelo de dados - The Band — Documentação</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#modelo-de-dados-do-the-band" class="md-skip">
+          Pular para conteúdo
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Cabeçalho">
+    <a href="../.." title="The Band — Documentação" class="md-header__button md-logo" aria-label="The Band — Documentação" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            The Band — Documentação
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Modelo de dados
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Seguir o sistema"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Seguir o sistema" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Modo escuro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Modo escuro" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Modo claro"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Modo claro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Buscar" placeholder="Buscar" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Pesquisar">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Limpar" aria-label="Limpar" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inicializando busca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/The-Band-Solution/theband" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    The-Band-Solution/theband
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navegação" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="The Band — Documentação" class="md-nav__button md-logo" aria-label="The Band — Documentação" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    The Band — Documentação
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/The-Band-Solution/theband" title="Ir para repositório" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    The-Band-Solution/theband
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Início
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arquitetura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Arquitetura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Visão geral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo de dados
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo de dados
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-a-coisa-que-mais-confunde-quem-chega" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. A coisa que mais confunde quem chega
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. A coisa que mais confunde quem chega">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-acontece-quando-alguém-ignora-isso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que acontece quando alguém ignora isso
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-duas-metades-que-não-se-misturam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Duas metades que não se misturam
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Duas metades que não se misturam">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inventário-das-tabelas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inventário das tabelas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-application-reference-a-identidade-que-sustenta-a-idempotência" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Application Reference: a identidade que sustenta a idempotência
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Application Reference: a identidade que sustenta a idempotência">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal_id-e-record_version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        internal_id e record_version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-papel-nunca-é-coluna-o-relator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Papel nunca é coluna: o relator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Papel nunca é coluna: o relator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#por-que-existe-uma-tabela-de-evidência-separada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que existe uma tabela de evidência separada
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-evento-é-append-only-situação-é-derivada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Evento é append-only; situação é derivada
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Evento é append-only; situação é derivada">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-microssegundo-e-por-que-ele-está-ali" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O microssegundo, e por que ele está ali
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-dívida-que-contradiz-esta-seção" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A dívida que contradiz esta seção
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-ausência-marca-nunca-apaga" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Ausência marca, nunca apaga
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Ausência marca, nunca apaga">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-escopo-que-é-a-parte-fácil-de-errar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O escopo, que é a parte fácil de errar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-ordem-dentro-do-encerramento-também-é-regra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A ordem dentro do encerramento também é regra
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-credencial-cifrada-pelo-tipo-não-pelo-código" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Credencial cifrada pelo tipo, não pelo código
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-tenant_id-explícito-em-toda-tabela-de-domínio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. tenant_id explícito em toda tabela de domínio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-schemas-privados-e-por-que-a-fronteira-é-o-módulo-raiz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Schemas privados, e por que a fronteira é o módulo raiz
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Schemas privados, e por que a fronteira é o módulo raiz">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#por-que-o-módulo-raiz-e-não-o-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que o módulo raiz e não o schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-api-deliberadamente-não-expõe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a API deliberadamente não expõe
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-discriminador-de-subtipo-e-a-restrição-que-o-acompanha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Discriminador de subtipo, e a restrição que o acompanha
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-coleta-o-que-cada-tabela-responde" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Coleta: o que cada tabela responde
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-como-acrescentar-algo-ao-modelo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Como acrescentar algo ao modelo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Como acrescentar algo ao modelo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-faz-o-derivador-recusar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que faz o derivador recusar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-que-este-documento-não-cobre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que este documento não cobre
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manutenção-deste-documento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manutenção deste documento
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../funcionalidades/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Funcionalidades
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Funcionalidades
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../funcionalidades/tela-da-equipe/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A tela da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../ontology/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ontologias
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Ontologias
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/concept-index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Índice de conceitos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/eo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EO — organização e pessoas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/spo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SPO — projetos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/sro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SRO — processo e trabalho
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cmpo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CMPO — mudanças
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cmo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CMO — configuração
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/cdro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDRO — dependências
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/ciro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CIRO — integração contínua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/rsro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RSRO — release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/qapo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QAPO — qualidade
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/smpo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SMPO — medição
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/roost/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ROoST — testes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/osdef/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSDeF — código
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/ufo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UFO — fundamentação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ontology/sys_swo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SysSwO — sistema e software
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dados externos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Dados externos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/mappings/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mapeamentos semânticos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/verificacao-continua/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Verificação contínua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research/extensions-to-one-table-per-kind/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extensões ao one-table-per-kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../metrics/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Medidas
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Medidas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../adr/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisões
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisões
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-monolito-modular-elixir/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0001 monolito modular elixir
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0002-yaml-como-base-de-conhecimento/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0002 yaml como base de conhecimento
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0003-organizacao-por-ontologias/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0003 organizacao por ontologias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0004-modelo-de-informacao-one-table-per-kind/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0004 modelo de informacao one table per kind
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0005-telemetria-da-jornada/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0005 telemetria da jornada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0006-coleta-paralela/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0006 coleta paralela
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0007-gestor-de-cotas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0007 gestor de cotas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0008-vinculo-observado/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    0008 vinculo observado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rfc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RFCs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../rfc/0001-derivacao-do-modelo-de-informacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RFC 0001 — derivação do modelo de informação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operação
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operação
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../producao/runbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runbook de produção
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../processes/feature-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fluxo de uma feature
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releases
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_9" id="__nav_9_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Releases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.6.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.6.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.3.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.3.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../releases/v0.1.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v0.1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../backlog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backlog
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/burn-da-pessoa-sem-linha-de-base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Burn da pessoa sem linha de base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/crud-entities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crud entities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/decisoes-pendentes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisoes pendentes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/github-to-sro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Github to sro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/papeis-scrum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Papeis scrum
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/portugues-na-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Portugues na interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/projeto-pertence-a-organizacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Projeto pertence a organizacao
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/servidor-mcp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Servidor mcp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/setup-inicial-e-multiempresa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup inicial e multiempresa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/tela-da-equipe-complexa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tela da equipe complexa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backlog/tooling-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tooling library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sprints
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sprints
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/RETOMAR/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retomar — estado atual
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/licoes-aprendidas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lições aprendidas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3" id="__nav_11_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Por sprint
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_11_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Por sprint
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_1" id="__nav_11_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    001 — Fundacao e coleta eo
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    001 — Fundacao e coleta eo
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/001-fundacao-e-coleta-eo/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_2" id="__nav_11_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    002 — Escopo por organizacao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    002 — Escopo por organizacao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/002-escopo-por-organizacao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_3" id="__nav_11_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    003 — Corrigir e encerrar observacao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    003 — Corrigir e encerrar observacao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/003-corrigir-e-encerrar-observacao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_4" id="__nav_11_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    004 — Issues e projetos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    004 — Issues e projetos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/004-issues-e-projetos/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_5" id="__nav_11_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    005 — Mapeamento e detalhe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    005 — Mapeamento e detalhe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/aceitacao-005/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitacao 005
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/005-mapeamento-e-detalhe/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_6" id="__nav_11_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    006 — Marca de issues
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    006 — Marca de issues
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/006-marca-de-issues/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/006-marca-de-issues/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_7" id="__nav_11_3_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    007 — Destravar sync presa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    007 — Destravar sync presa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/007-destravar-sync-presa/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/007-destravar-sync-presa/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_8" id="__nav_11_3_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    008 — Marca que se cura
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    008 — Marca que se cura
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/008-marca-que-se-cura/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/008-marca-que-se-cura/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_9" id="__nav_11_3_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    009 — Detalhe da pessoa
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    009 — Detalhe da pessoa
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/009-detalhe-da-pessoa/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/009-detalhe-da-pessoa/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_10" id="__nav_11_3_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    010 — De quem a issue e parte
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    010 — De quem a issue e parte
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/010-de-quem-a-issue-e-parte/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/010-de-quem-a-issue-e-parte/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_11" id="__nav_11_3_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    011 — Vinculo que sumiu na origem
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    011 — Vinculo que sumiu na origem
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/011-vinculo-que-sumiu-na-origem/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/011-vinculo-que-sumiu-na-origem/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_12" id="__nav_11_3_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    012 — Pagina da pessoa mais rapida
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    012 — Pagina da pessoa mais rapida
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/012-pagina-da-pessoa-mais-rapida/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/012-pagina-da-pessoa-mais-rapida/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_13" id="__nav_11_3_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    013 — Clicar e quem escreveu
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    013 — Clicar e quem escreveu
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/013-clicar-e-quem-escreveu/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/013-clicar-e-quem-escreveu/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/014-design-system/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    014 — Design system
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_15" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_15" id="__nav_11_3_15_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    016 — Geracao mensal de perfis
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    016 — Geracao mensal de perfis
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/016-geracao-mensal-de-perfis/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/016-geracao-mensal-de-perfis/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/017-quadros-campos-e-backlogs/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    017 — Quadros campos e backlogs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/018-competencias-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    018 — Competencias da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/019-comentarios-das-issues/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    019 — Comentarios das issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/020-coleta-de-mudancas/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    020 — Coleta de mudancas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/021-coleta-do-ci/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    021 — Coleta do ci
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_21" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_21" id="__nav_11_3_21_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    022 — Menu por entidades
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_21_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_21">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    022 — Menu por entidades
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/022-menu-por-entidades/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/022-menu-por-entidades/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_22" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_22" id="__nav_11_3_22_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    023 — Autenticacao e acesso
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_22_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_22">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    023 — Autenticacao e acesso
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/023-autenticacao-e-acesso/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/023-autenticacao-e-acesso/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_23" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_23" id="__nav_11_3_23_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    024 — Mensagens e o botao da chave
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_23_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_23">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    024 — Mensagens e o botao da chave
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/024-mensagens-e-o-botao-da-chave/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_24" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_24" id="__nav_11_3_24_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    025 — Contas e o elo do github
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_24_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_24">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    025 — Contas e o elo do github
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/025-contas-e-o-elo-do-github/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_25" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_25" id="__nav_11_3_25_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    026 — Heranca e a producao
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_25_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_25">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    026 — Heranca e a producao
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/aceitacao/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aceitação
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/026-heranca-e-a-producao/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_26" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_26" id="__nav_11_3_26_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    027 — Equipes declaradas
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_26_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_26">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    027 — Equipes declaradas
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/027-equipes-declaradas/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/027-equipes-declaradas/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11_3_27" >
+        
+          
+          <label class="md-nav__link" for="__nav_11_3_27" id="__nav_11_3_27_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    028 — A tela da equipe
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_11_3_27_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11_3_27">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    028 — A tela da equipe
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/028-a-tela-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog do sprint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/028-a-tela-da-equipe/sprint-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sprints/029-medidas-da-equipe/sprint-backlog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    029 — Medidas da equipe
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Índice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Índice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-a-coisa-que-mais-confunde-quem-chega" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. A coisa que mais confunde quem chega
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. A coisa que mais confunde quem chega">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-acontece-quando-alguém-ignora-isso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que acontece quando alguém ignora isso
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-duas-metades-que-não-se-misturam" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Duas metades que não se misturam
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Duas metades que não se misturam">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inventário-das-tabelas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inventário das tabelas
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-application-reference-a-identidade-que-sustenta-a-idempotência" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Application Reference: a identidade que sustenta a idempotência
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Application Reference: a identidade que sustenta a idempotência">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#internal_id-e-record_version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        internal_id e record_version
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-papel-nunca-é-coluna-o-relator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Papel nunca é coluna: o relator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Papel nunca é coluna: o relator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#por-que-existe-uma-tabela-de-evidência-separada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que existe uma tabela de evidência separada
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-evento-é-append-only-situação-é-derivada" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Evento é append-only; situação é derivada
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Evento é append-only; situação é derivada">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-microssegundo-e-por-que-ele-está-ali" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O microssegundo, e por que ele está ali
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-dívida-que-contradiz-esta-seção" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A dívida que contradiz esta seção
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-ausência-marca-nunca-apaga" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Ausência marca, nunca apaga
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Ausência marca, nunca apaga">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-escopo-que-é-a-parte-fácil-de-errar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O escopo, que é a parte fácil de errar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-ordem-dentro-do-encerramento-também-é-regra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A ordem dentro do encerramento também é regra
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-credencial-cifrada-pelo-tipo-não-pelo-código" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Credencial cifrada pelo tipo, não pelo código
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-tenant_id-explícito-em-toda-tabela-de-domínio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. tenant_id explícito em toda tabela de domínio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-schemas-privados-e-por-que-a-fronteira-é-o-módulo-raiz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Schemas privados, e por que a fronteira é o módulo raiz
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Schemas privados, e por que a fronteira é o módulo raiz">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#por-que-o-módulo-raiz-e-não-o-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Por que o módulo raiz e não o schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o-que-a-api-deliberadamente-não-expõe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que a API deliberadamente não expõe
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-discriminador-de-subtipo-e-a-restrição-que-o-acompanha" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Discriminador de subtipo, e a restrição que o acompanha
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-coleta-o-que-cada-tabela-responde" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Coleta: o que cada tabela responde
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-como-acrescentar-algo-ao-modelo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Como acrescentar algo ao modelo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Como acrescentar algo ao modelo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#o-que-faz-o-derivador-recusar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que faz o derivador recusar
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-que-este-documento-não-cobre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que este documento não cobre
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manutenção-deste-documento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manutenção deste documento
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/The-Band-Solution/theband/edit/development/docs/architecture/modelo-de-dados.md" title="Editar esta página" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="modelo-de-dados-do-the-band">Modelo de dados do The Band<a class="headerlink" href="#modelo-de-dados-do-the-band" title="Permanent link">&para;</a></h1>
+<p>Como o banco e os schemas Ecto estão organizados, e <strong>por que têm essa forma</strong>.</p>
+<p>Companheiro de <a href="../overview/">overview.md</a>, que trata da arquitetura. Este trata
+das tabelas e das classes.</p>
+<p><strong>Estado do documento</strong>: escrito em 2026-08-11, a partir das 16 migrações e dos 13
+schemas Ecto que existem no repositório. O que não foi conferido está declarado na
+<a href="#o-que-este-documento-não-cobre">última seção</a>.</p>
+<hr />
+<h2 id="1-a-coisa-que-mais-confunde-quem-chega">1. A coisa que mais confunde quem chega<a class="headerlink" href="#1-a-coisa-que-mais-confunde-quem-chega" title="Permanent link">&para;</a></h2>
+<p><strong>A maior parte deste esquema não foi escrita à mão. Foi derivada.</strong></p>
+<p>Existe um script — <code>scripts/derive_information_model.py</code> — que lê a base de
+conhecimento em <code>priv/knowledge_base/</code> e produz o modelo de informação: quais
+conceitos viram tabela, quais viram coluna discriminadora, quais viram chave
+estrangeira, e quais não viram nada.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>python3<span class="w"> </span>scripts/derive_information_model.py<span class="w"> </span>--ontology<span class="w"> </span>eo
+</code></pre></div>
+<p>A migração é escrita <strong>a partir dessa saída</strong>. Isso inverte o instinto normal:
+você não decide que <code>eo_teams</code> precisa de uma coluna de organização e a
+acrescenta. Você declara a relação na ontologia, roda o derivador, e a coluna
+aparece — ou não aparece, e aí a resposta é que ela não devia existir.</p>
+<p>A regra tem nome: <strong>ADR 0004, decisão D4</strong> — o modelo de informação é derivado,
+nunca escrito à mão.</p>
+<h3 id="o-que-acontece-quando-alguém-ignora-isso">O que acontece quando alguém ignora isso<a class="headerlink" href="#o-que-acontece-quando-alguém-ignora-isso" title="Permanent link">&para;</a></h3>
+<p>Aconteceu, e está registrado numa migração que existe só para desfazer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>priv/repo/migrations/20260810140000_drop_hand_written_organization_columns.exs
+</code></pre></div>
+<p>Na feature 001, <code>eo_people.organization_id</code> e <code>eo_teams.organization_id</code> foram
+acrescentadas à mão porque a relação não estava declarada em EO — e declarar não
+bastaria, porque o derivador ainda não gerava chave estrangeira a partir de
+associação. Escrever a coluna foi o atalho.</p>
+<p>O resultado, medido antes de remover:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>tabela    | total | com organization_id
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>----------+-------+--------------------
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>eo_people |    72 |                   0
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>eo_teams  |    10 |                   0
+</code></pre></div>
+<p><strong>Zero em 100% dos registros.</strong> Nenhum código preenchia as colunas, porque nenhum
+comando derivado da ontologia sabia que elas existiam. Uma coluna fora do modelo
+derivado não é apenas irregular: ela não tem quem a escreva.</p>
+<p>E <code>eo_people.organization_id</code> não voltou, por um motivo mais forte que
+procedimento: <strong>ela é semanticamente errada</strong>. A mesma conta do GitHub aparece em
+mais de uma organização, e a pessoa é uma linha só, porque a identidade dela é a
+Application Reference. Uma coluna simples alternaria de valor a cada coleta, e a
+última organização sincronizada apagaria a anterior. O caminho correto é pessoa →
+equipe → organização.</p>
+<p><code>eo_teams.organization_id</code> voltou na migração seguinte — <strong>derivada</strong>, anulável, e
+com a restrição que o derivador pediu.</p>
+<hr />
+<h2 id="2-duas-metades-que-não-se-misturam">2. Duas metades que não se misturam<a class="headerlink" href="#2-duas-metades-que-não-se-misturam" title="Permanent link">&para;</a></h2>
+<p>O banco tem duas naturezas, e a fronteira entre elas é o <strong>princípio II da
+constituição</strong>: <em>fonte externa não é domínio</em>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>│  INFRAESTRUTURA DA PLATAFORMA                                   │
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>│  o que a plataforma precisa para funcionar                      │
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│                                                                  │
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│  tenants ─── users                                               │
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│     │                                                            │
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>│     ├── connected_tools ─── tool_credentials                     │
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│     │         │                                                  │
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│     │         ├── tool_observation_events   (append-only)        │
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│     │         └── syncs ─── sync_checkpoints                     │
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│     │                  └── raw_payloads     (payload preservado) │
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>│     │                                                            │
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>└─────┼────────────────────────────────────────────────────────────┘
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>      │  a travessia acontece aqui: semantic_integration/
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>      │  lê raw_payloads e chama a API pública do módulo ontológico
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>┌─────┼────────────────────────────────────────────────────────────┐
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│     ▼   DOMÍNIO — derivado das ontologias                        │
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>│                                                                  │
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>│  eo_organizations ──┬── eo_teams ──┐                             │
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>│                     │              ├── eo_team_memberships       │
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>│                     └── eo_people ─┤        (relator)            │
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>│                                    └── eo_team_membership_       │
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>│  eo_organizational_roles ───────────────────  evidence           │
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>│                                                                  │
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>└──────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<p><strong>Por que a separação importa.</strong> Um <code>raw_payload</code> é o que o GitHub respondeu — com
+o vocabulário do GitHub, os campos do GitHub e os erros do GitHub. Uma linha de
+<code>eo_people</code> é uma pessoa no sentido da Enterprise Ontology. Misturar as duas faria
+o domínio herdar o modelo de dados de cada fonte, que é exatamente o problema que
+a plataforma existe para resolver.</p>
+<p>Consequência prática: <strong>nenhuma tabela <code>eo_*</code> tem coluna que só faça sentido para
+o GitHub.</strong> Se você precisar de uma, o lugar dela é o payload preservado.</p>
+<h3 id="inventário-das-tabelas">Inventário das tabelas<a class="headerlink" href="#inventário-das-tabelas" title="Permanent link">&para;</a></h3>
+<p>Verificado nas 16 migrações. Oban tem tabela própria, criada pela biblioteca.</p>
+<table>
+<thead>
+<tr>
+<th>Tabela</th>
+<th>Natureza</th>
+<th>O que guarda</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tenants</code></td>
+<td>plataforma</td>
+<td>o tenant; toda tabela de domínio aponta para cá</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td>plataforma</td>
+<td>pessoa que usa a plataforma — <strong>não</strong> é <code>eo_people</code></td>
+</tr>
+<tr>
+<td><code>connected_tools</code></td>
+<td>plataforma</td>
+<td>uma organização observada numa instância de ferramenta</td>
+</tr>
+<tr>
+<td><code>tool_credentials</code></td>
+<td>plataforma</td>
+<td>credencial cifrada em repouso</td>
+</tr>
+<tr>
+<td><code>tool_observation_events</code></td>
+<td>plataforma</td>
+<td>transições <code>ended</code> / <code>resumed</code>, append-only</td>
+</tr>
+<tr>
+<td><code>syncs</code></td>
+<td>plataforma</td>
+<td>uma execução de coleta, com o relatório</td>
+</tr>
+<tr>
+<td><code>sync_checkpoints</code></td>
+<td>plataforma</td>
+<td>cursor por tipo de entidade, para retomar</td>
+</tr>
+<tr>
+<td><code>raw_payloads</code></td>
+<td>plataforma</td>
+<td>o que a origem respondeu, preservado</td>
+</tr>
+<tr>
+<td><code>eo_organizations</code></td>
+<td>domínio (EO)</td>
+<td><code>eo.organization</code></td>
+</tr>
+<tr>
+<td><code>eo_people</code></td>
+<td>domínio (EO)</td>
+<td><code>eo.person</code></td>
+</tr>
+<tr>
+<td><code>eo_teams</code></td>
+<td>domínio (EO)</td>
+<td><code>eo.team</code>, com discriminador de subtipo</td>
+</tr>
+<tr>
+<td><code>eo_organizational_units</code></td>
+<td>domínio (EO)</td>
+<td><code>eo.organizational_unit</code> — antes <code>eo_sectors</code></td>
+</tr>
+<tr>
+<td><code>eo_organizational_roles</code></td>
+<td>domínio (EO)</td>
+<td><code>eo.organizational_role</code></td>
+</tr>
+<tr>
+<td><code>eo_team_memberships</code></td>
+<td>domínio (EO)</td>
+<td>o <strong>relator</strong> da alocação</td>
+</tr>
+<tr>
+<td><code>eo_team_membership_evidence</code></td>
+<td>domínio (EO)</td>
+<td>o que foi observado e ainda não virou alocação</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>users</code> contra <code>eo_people</code> é a confusão mais comum.</strong> <code>users</code> é quem faz login.
+<code>eo_people</code> é quem aparece nos dados coletados. A mesma pessoa física pode estar
+nas duas, e as duas linhas não se ligam: ligá-las exigiria decidir que a conta do
+GitHub e o e-mail de login são a mesma identidade, e isso é uma afirmação sobre o
+mundo que ninguém declarou.</p>
+<hr />
+<h2 id="3-application-reference-a-identidade-que-sustenta-a-idempotência">3. Application Reference: a identidade que sustenta a idempotência<a class="headerlink" href="#3-application-reference-a-identidade-que-sustenta-a-idempotência" title="Permanent link">&para;</a></h2>
+<p>Toda tabela de domínio que vem de fonte externa tem estas três colunas:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">add</span><span class="w"> </span><span class="ss">:source_system</span><span class="p">,</span><span class="w">   </span><span class="ss">:string</span><span class="p">,</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="w">   </span><span class="c1"># "github"</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">add</span><span class="w"> </span><span class="ss">:source_instance</span><span class="p">,</span><span class="w"> </span><span class="ss">:string</span><span class="p">,</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="w">   </span><span class="c1"># "https://github.com"</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">add</span><span class="w"> </span><span class="ss">:external_id</span><span class="p">,</span><span class="w">     </span><span class="ss">:string</span><span class="p">,</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="w">   </span><span class="c1"># o id global na origem</span>
+</code></pre></div>
+<p>E um índice único sobre elas, com o tenant:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">create</span><span class="w"> </span><span class="n">unique_index</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="ss">:eo_people</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="p">[</span><span class="ss">:tenant_id</span><span class="p">,</span><span class="w"> </span><span class="ss">:source_system</span><span class="p">,</span><span class="w"> </span><span class="ss">:source_instance</span><span class="p">,</span><span class="w"> </span><span class="ss">:external_id</span><span class="p">],</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="ss">name</span><span class="p">:</span><span class="w"> </span><span class="ss">:eo_people_application_reference_index</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">)</span>
+</code></pre></div>
+<p><strong>Por que três colunas e não uma.</strong> O mesmo identificador pode existir em duas
+instâncias diferentes da mesma ferramenta — <code>github.com</code> e um GitHub Enterprise
+Server interno. Sem <code>source_instance</code>, as duas colidiriam; e a colisão apareceria
+como uma pessoa com dois nomes, não como um erro.</p>
+<p><strong>O que isso compra: idempotência.</strong> Coletar duas vezes não duplica nada, porque
+o upsert reconhece a linha pela Application Reference. A constituição trata isso
+como não negociável (princípio III), e o teste que o prova compara as contagens
+antes e depois de uma segunda coleta idêntica.</p>
+<p><strong>Por que não usar o número que a origem mostra.</strong> O número de uma issue é único
+dentro do repositório, e mover a issue entre repositórios cria outro. O
+identificador global não muda. A regra vale para toda entidade: a identidade é o
+identificador global, nunca o número apresentado na interface.</p>
+<h3 id="internal_id-e-record_version"><code>internal_id</code> e <code>record_version</code><a class="headerlink" href="#internal_id-e-record_version" title="Permanent link">&para;</a></h3>
+<p>Duas colunas em toda tabela de domínio que vêm da tese, não do GitHub:</p>
+<table>
+<thead>
+<tr>
+<th>Coluna</th>
+<th>Para que serve</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>internal_id</code></td>
+<td>identidade estável do dado <strong>entre módulos ontológicos</strong> — um módulo referencia o dado de outro por aqui, nunca pela chave primária</td>
+</tr>
+<tr>
+<td><code>record_version</code></td>
+<td>versão do registro, para reprocessamento e retrofito</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-papel-nunca-é-coluna-o-relator">4. Papel nunca é coluna: o relator<a class="headerlink" href="#4-papel-nunca-é-coluna-o-relator" title="Permanent link">&para;</a></h2>
+<p>Esta é a decisão que mais surpreende, e é a que mais economiza refatoração
+depois.</p>
+<p><strong>A pergunta errada</strong>: "qual o papel desta pessoa?" — que sugere uma coluna
+<code>eo_people.role</code>.</p>
+<p><strong>Por que ela é errada</strong>: a resposta é sempre <em>depende</em>. Depende do time, do
+período, e pode haver mais de uma. Uma coluna guarda um valor e perde as três
+coisas:</p>
+<table>
+<thead>
+<tr>
+<th>A coluna perde</th>
+<th>Exemplo concreto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>o contexto</strong></td>
+<td>a mesma pessoa é Product Owner num time e desenvolvedora em outro</td>
+</tr>
+<tr>
+<td><strong>o período</strong></td>
+<td>"quem era o PO no sprint 3" é pergunta legítima, e a coluna só sabe o hoje</td>
+</tr>
+<tr>
+<td><strong>a multiplicidade</strong></td>
+<td>duas alocações simultâneas são normais</td>
+</tr>
+</tbody>
+</table>
+<p>A forma correta é uma tabela própria — o <strong>relator</strong>, que reifica a relação:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">create</span><span class="w"> </span><span class="n">table</span><span class="p">(</span><span class="ss">:eo_team_memberships</span><span class="p">,</span><span class="w"> </span><span class="ss">primary_key</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="p">)</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:person_id</span><span class="p">,</span><span class="w">              </span><span class="n">references</span><span class="p">(</span><span class="ss">:eo_people</span><span class="p">),</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:team_id</span><span class="p">,</span><span class="w">                </span><span class="n">references</span><span class="p">(</span><span class="ss">:eo_teams</span><span class="p">),</span><span class="w">  </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:organizational_role_id</span><span class="p">,</span><span class="w"> </span><span class="n">references</span><span class="p">(</span><span class="ss">:eo_organizational_roles</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:started_at</span><span class="p">,</span><span class="w"> </span><span class="ss">:utc_datetime</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:ended_at</span><span class="p">,</span><span class="w">   </span><span class="ss">:utc_datetime</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">end</span>
+</code></pre></div>
+<p><code>started_at</code> e <code>ended_at</code> são o que uma coluna nunca teria. É a <strong>ADR 0004, D5</strong>.</p>
+<p>O derivador aplica essa regra sozinho. Rodando a derivação da SRO, ele imprime
+uma linha por papel:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>sro.product_owner: role elevado a eo.person [outra ontologia];
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>                   materializa pelo relator, não por discriminador
+</code></pre></div>
+<p>E ela quase não foi aplicada. Até 2026-08-10 a guarda só valia quando o alvo
+estava na mesma ontologia, e CMPO e SPO já produziam <code>eo.person.type +=
+{project_person_stakeholder}</code> com o CI verde. Nenhuma dessas colunas chegou ao
+banco, e a correção está registrada na <a href="../../sprints/licoes-aprendidas/">L22</a>.</p>
+<h3 id="por-que-existe-uma-tabela-de-evidência-separada">Por que existe uma tabela de <em>evidência</em> separada<a class="headerlink" href="#por-que-existe-uma-tabela-de-evidência-separada" title="Permanent link">&para;</a></h3>
+<p><code>eo_team_membership_evidence</code> existe porque <strong>o GitHub não fornece papel
+organizacional</strong>. Ele fornece nível de acesso na plataforma — <code>MEMBER</code>,
+<code>MAINTAINER</code> — que é outra coisa: diz o que a pessoa pode fazer na ferramenta, não
+o papel dela na organização.</p>
+<p>Sem papel, não é possível criar a alocação: <code>organizational_role_id</code> faria parte
+de uma afirmação que ninguém tem como sustentar. Então o que foi observado é
+guardado como <strong>evidência</strong>, com o nível de acesso da plataforma nomeado como
+tal:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">add</span><span class="w"> </span><span class="ss">:platform_access_level</span><span class="p">,</span><span class="w">  </span><span class="ss">:string</span><span class="w">        </span><span class="c1"># MEMBER, MAINTAINER — o que o GitHub dá</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">add</span><span class="w"> </span><span class="ss">:promoted_membership_id</span><span class="p">,</span><span class="w"> </span><span class="n">references</span><span class="p">(</span><span class="ss">:eo_team_memberships</span><span class="p">)</span><span class="w">   </span><span class="c1"># nulo até haver papel</span>
+</code></pre></div>
+<p><code>promoted_membership_id</code> fica nulo enquanto a evidência não virar alocação. A
+coluna existe para que a promoção, quando acontecer, seja rastreável — e para que
+<code>count_evidence_pending_role/2</code> possa dizer quantas estão esperando.</p>
+<p><strong>A tabela <code>eo_team_memberships</code> existe no banco e ainda não tem schema Ecto.</strong>
+Isso é intencional e não é omissão: o relator só se materializa quando houver
+papel declarado, e é justamente o que as issues
+<a href="https://github.com/The-Band-Solution/theband/issues/99">#99 e #100</a> vão fazer.</p>
+<hr />
+<h2 id="5-evento-é-append-only-situação-é-derivada">5. Evento é append-only; situação é derivada<a class="headerlink" href="#5-evento-é-append-only-situação-é-derivada" title="Permanent link">&para;</a></h2>
+<p><strong>ADR 0004, D7.</strong> Eventos são registrados e nunca alterados. Situações não são
+materializadas — saem de consulta sobre os eventos.</p>
+<p>O caso concreto é o ciclo de observação de uma ferramenta. Encerrar e retomar
+<strong>ocorreram</strong>, num instante, por alguém: são eventos.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">create</span><span class="w"> </span><span class="n">table</span><span class="p">(</span><span class="ss">:tool_observation_events</span><span class="p">,</span><span class="w"> </span><span class="ss">primary_key</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="p">)</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:connected_tool_id</span><span class="p">,</span><span class="w"> </span><span class="n">references</span><span class="p">(</span><span class="ss">:connected_tools</span><span class="p">),</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:event</span><span class="p">,</span><span class="w">       </span><span class="ss">:string</span><span class="p">,</span><span class="w">        </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="w">     </span><span class="c1"># "ended" | "resumed"</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:occurred_at</span><span class="p">,</span><span class="w"> </span><span class="ss">:utc_datetime</span><span class="p">,</span><span class="w">  </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:actor_user_id</span><span class="p">,</span><span class="w"> </span><span class="n">references</span><span class="p">(</span><span class="ss">:users</span><span class="p">)</span><span class="w">            </span><span class="c1"># anulável de propósito</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:reason</span><span class="p">,</span><span class="w">  </span><span class="ss">:text</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="n">add</span><span class="w"> </span><span class="ss">:impact</span><span class="p">,</span><span class="w">  </span><span class="ss">:map</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="w">  </span><span class="n">timestamps</span><span class="p">(</span><span class="ss">type</span><span class="p">:</span><span class="w"> </span><span class="ss">:utc_datetime_usec</span><span class="p">,</span><span class="w"> </span><span class="ss">updated_at</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="p">)</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="k">end</span>
+</code></pre></div>
+<p>Três decisões dentro dessas linhas:</p>
+<p><strong>Sem <code>updated_at</code>.</strong> Não existe caminho para alterar um evento, e o schema Ecto
+também não tem <code>update_changeset</code>. Se um encerramento foi registrado errado, a
+correção é um evento novo — atualizar reescreveria o passado. Ter a coluna
+convidaria a isso.</p>
+<p><strong><code>impact</code> guarda o que foi contado no instante.</strong> Não o que uma consulta de hoje
+devolveria. As duas coisas divergem: uma coleta posterior muda os números, e o que
+interessa no registro é o que a pessoa viu antes de confirmar.</p>
+<p><strong><code>actor_user_id</code> é anulável.</strong> Uma retomada pode vir de processo, e inventar um
+autor seria pior que declarar que não há.</p>
+<p>O estado sai de uma função, não de uma coluna:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kd">def</span><span class="w"> </span><span class="n">observation_ended?</span><span class="p">(%</span><span class="nc">ConnectedTool</span><span class="p">{</span><span class="ss">id</span><span class="p">:</span><span class="w"> </span><span class="n">tool_id</span><span class="p">})</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nc">Repo</span><span class="o">.</span><span class="n">one</span><span class="p">(</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="n">from</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="nc">ObservationEvent</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">      </span><span class="ss">where</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">connected_tool_id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">^</span><span class="n">tool_id</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">      </span><span class="ss">order_by</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="ss">desc</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">occurred_at</span><span class="p">,</span><span class="w"> </span><span class="ss">desc</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">inserted_at</span><span class="p">],</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">      </span><span class="ss">limit</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="ss">select</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">event</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">"ended"</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="k">end</span>
+</code></pre></div>
+<p><strong>Um caminho só.</strong> A tela e o filtro de coleta usam a mesma função. Dois caminhos
+discordariam, e a tela mostraria como encerrado o que a plataforma continua
+coletando.</p>
+<h3 id="o-microssegundo-e-por-que-ele-está-ali">O microssegundo, e por que ele está ali<a class="headerlink" href="#o-microssegundo-e-por-que-ele-está-ali" title="Permanent link">&para;</a></h3>
+<p><code>timestamps(type: :utc_datetime_usec)</code> não é preciosismo. Com precisão de segundo,
+um <code>ended</code> e um <code>resumed</code> no mesmo segundo <strong>empatavam</strong>, e o "último evento"
+passava a depender do plano de execução do Postgres. O efeito observado: retomar
+com sucesso e a tela continuar dizendo "encerrada".</p>
+<p><code>occurred_at</code> continua em segundos — é quando a coisa <em>ocorreu</em>, e segundo basta.
+<code>inserted_at</code> é a <strong>ordem de gravação</strong>, e é ela que desempata. Separar os dois
+papéis é o que torna a ordem definida sem fingir precisão que o evento não tem.</p>
+<p>Foi a segunda ocorrência do mesmo defeito no projeto — a primeira foi na escolha
+de credencial — e reincidiu porque a primeira lição foi registrada sobre
+<em>credenciais</em> em vez de sobre <em>derivar estado de conjunto ordenado</em>. Está na
+<a href="../../sprints/licoes-aprendidas/">L20</a>.</p>
+<h3 id="a-dívida-que-contradiz-esta-seção">A dívida que contradiz esta seção<a class="headerlink" href="#a-dívida-que-contradiz-esta-seção" title="Permanent link">&para;</a></h3>
+<p><code>connected_tools.status</code> <strong>materializa uma situação</strong>, contra a D7. É dívida da
+feature 001, está declarada, e a feature 003 não a ampliou — ela apenas parou de
+exibi-la quando contradiz o estado derivado.</p>
+<hr />
+<h2 id="6-ausência-marca-nunca-apaga">6. Ausência marca, nunca apaga<a class="headerlink" href="#6-ausência-marca-nunca-apaga" title="Permanent link">&para;</a></h2>
+<p>Três tabelas de domínio têm este par:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">add</span><span class="w"> </span><span class="ss">:last_observed_at</span><span class="p">,</span><span class="w">      </span><span class="ss">:utc_datetime</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">add</span><span class="w"> </span><span class="ss">:no_longer_observed_at</span><span class="p">,</span><span class="w"> </span><span class="ss">:utc_datetime</span>
+</code></pre></div>
+<p><strong>Por que não <code>DELETE</code>.</strong> O GitHub não emite evento quando alguém sai de um time.
+A plataforma percebe a ausência <strong>por comparação entre coletas</strong>: quem estava lá
+antes e não apareceu agora. E "não apareceu" não é o mesmo que "não existe" —
+pode ser permissão, pode ser falha parcial, pode ser mudança de escopo.</p>
+<p>Apagar transformaria uma inferência em fato irreversível. Marcar preserva a
+resposta a "quem estava neste time em março".</p>
+<h3 id="o-escopo-que-é-a-parte-fácil-de-errar">O escopo, que é a parte fácil de errar<a class="headerlink" href="#o-escopo-que-é-a-parte-fácil-de-errar" title="Permanent link">&para;</a></h3>
+<p>A marca precisa ser escopada pelo <strong>que foi realmente observado naquela coleta</strong>.
+Esta versão está errada:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># ERRADO — foi a L19</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="ss">where</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">tenant_id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">^</span><span class="n">tenant_id</span><span class="w"> </span><span class="ow">and</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">       </span><span class="n">e</span><span class="o">.</span><span class="n">last_observed_at</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="o">^</span><span class="n">collection_started_at</span>
+</code></pre></div>
+<p>Coletar <em>uma</em> organização marcava os vínculos de <em>todas</em>: as outras não haviam
+aparecido naquela coleta, e nunca apareceriam. O efeito real, no banco de
+desenvolvimento: os 7 vínculos de uma organização e 55 dos 70 de outra marcados
+no mesmo instante, <code>00:44:30</code>, enquanto a coleta em execução era de uma terceira.</p>
+<p>A forma correta restringe ao escopo observado:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">equipes_da_org</span><span class="w"> </span><span class="o">=</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="n">from</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="nc">Team</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="ss">where</span><span class="p">:</span><span class="w"> </span><span class="n">t</span><span class="o">.</span><span class="n">tenant_id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">^</span><span class="n">tenant_id</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">t</span><span class="o">.</span><span class="n">organization_id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">^</span><span class="n">organization_id</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="ss">select</span><span class="p">:</span><span class="w"> </span><span class="n">t</span><span class="o">.</span><span class="n">id</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">from</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="nc">TeamMembershipEvidence</span><span class="p">,</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="ss">where</span><span class="p">:</span><span class="w"> </span><span class="n">e</span><span class="o">.</span><span class="n">tenant_id</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="o">^</span><span class="n">tenant_id</span><span class="w"> </span><span class="ow">and</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">         </span><span class="n">e</span><span class="o">.</span><span class="n">team_id</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">subquery</span><span class="p">(</span><span class="n">equipes_da_org</span><span class="p">)</span><span class="w"> </span><span class="ow">and</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">         </span><span class="n">e</span><span class="o">.</span><span class="n">last_observed_at</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="o">^</span><span class="n">collection_started_at</span><span class="w"> </span><span class="ow">and</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">         </span><span class="n">is_nil</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">no_longer_observed_at</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>A regra geral, para quem for escrever a próxima coleta</strong>: o filtro de ausência
+tem que ter o mesmo recorte da coleta. Se a coleta olhou uma organização, o filtro
+é por organização. Se olhar um repositório, será por repositório — e é por isso
+que a feature 004 traz isso como requisito e não como lembrete.</p>
+<h3 id="a-ordem-dentro-do-encerramento-também-é-regra">A ordem dentro do encerramento também é regra<a class="headerlink" href="#a-ordem-dentro-do-encerramento-também-é-regra" title="Permanent link">&para;</a></h3>
+<p>Em <code>end_observation/3</code>, a marcação é: <strong>equipes, depois vínculos, depois
+pessoas</strong>. As pessoas por último porque a decisão sobre a pessoa depende dos
+vínculos já marcados — ela só perde vigência se <em>nenhum</em> vínculo dela sobrou.
+Inverter marcaria quem ainda tinha vínculo em outra organização.</p>
+<hr />
+<h2 id="7-credencial-cifrada-pelo-tipo-não-pelo-código">7. Credencial cifrada pelo tipo, não pelo código<a class="headerlink" href="#7-credencial-cifrada-pelo-tipo-não-pelo-código" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kd">defmodule</span><span class="w"> </span><span class="nc">TheBand.Encrypted.Binary</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="kn">use</span><span class="w"> </span><span class="nc">Cloak.Ecto.Binary</span><span class="p">,</span><span class="w"> </span><span class="ss">vault</span><span class="p">:</span><span class="w"> </span><span class="nc">TheBand.Vault</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">end</span>
+</code></pre></div>
+<p>E no schema:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="na">@derive</span><span class="w"> </span><span class="p">{</span><span class="nc">Inspect</span><span class="p">,</span><span class="w"> </span><span class="ss">except</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="ss">:secret</span><span class="p">]}</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">schema</span><span class="w"> </span><span class="s2">"tool_credentials"</span><span class="w"> </span><span class="k">do</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="n">field</span><span class="w"> </span><span class="ss">:secret</span><span class="p">,</span><span class="w"> </span><span class="nc">TheBand.Encrypted.Binary</span><span class="p">,</span><span class="w"> </span><span class="ss">redact</span><span class="p">:</span><span class="w"> </span><span class="no">true</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="n">field</span><span class="w"> </span><span class="ss">:last_four</span><span class="p">,</span><span class="w"> </span><span class="ss">:string</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="n">...</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="k">end</span>
+</code></pre></div>
+<p><strong>Por que no tipo Ecto e não no changeset.</strong> Um campo declarado com este tipo não
+tem como ser gravado em claro por esquecimento de quem escreve o comando. Se a
+cifragem morasse no changeset, cada caminho de escrita novo precisaria lembrar —
+e um deles não vai lembrar.</p>
+<p>Três camadas, cada uma cobrindo o vazamento de um lugar diferente:</p>
+<table>
+<thead>
+<tr>
+<th>Mecanismo</th>
+<th>O que impede</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TheBand.Encrypted.Binary</code></td>
+<td>gravar em claro no banco</td>
+</tr>
+<tr>
+<td><code>@derive {Inspect, except: [:secret]}</code></td>
+<td>vazar em log, em <code>IO.inspect</code>, em stacktrace</td>
+</tr>
+<tr>
+<td><code>last_four</code></td>
+<td>exibir algo útil na tela sem exibir o segredo</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Como se verifica</strong>: lendo a tabela direto. O teste não afirma que a cifragem
+funciona — ele procura o texto claro no valor gravado e exige não encontrar. Para
+qualquer invariante de segurança, o teste é a violação.</p>
+<p>A chave mestra vem do ambiente (<code>THE_BAND_MASTER_KEY</code>) e a aplicação <strong>recusa
+subir sem ela</strong>. Consequência que vale saber antes de tropeçar: uma credencial
+cifrada com uma chave não é decifrável com outra — trocar a chave exige
+<code>mix the_band.rotate_key</code>, e uma chave descartável não abre dado real.</p>
+<hr />
+<h2 id="8-tenant_id-explícito-em-toda-tabela-de-domínio">8. <code>tenant_id</code> explícito em toda tabela de domínio<a class="headerlink" href="#8-tenant_id-explícito-em-toda-tabela-de-domínio" title="Permanent link">&para;</a></h2>
+<p>Não há schema por tenant, não há <code>WHERE</code> implícito, não há middleware que injeta o
+filtro. <strong>A coluna está lá e cada consulta a usa.</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">add</span><span class="w"> </span><span class="ss">:tenant_id</span><span class="p">,</span><span class="w"> </span><span class="n">references</span><span class="p">(</span><span class="ss">:tenants</span><span class="p">,</span><span class="w"> </span><span class="ss">type</span><span class="p">:</span><span class="w"> </span><span class="ss">:uuid</span><span class="p">,</span><span class="w"> </span><span class="ss">on_delete</span><span class="p">:</span><span class="w"> </span><span class="ss">:restrict</span><span class="p">),</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span>
+</code></pre></div>
+<p><code>on_delete: :restrict</code> de propósito: apagar um tenant com dado dentro é recusado
+pelo banco.</p>
+<p><strong>Por que explícito.</strong> É o princípio V da constituição. Um filtro implícito
+funciona até a primeira consulta que o contorna — um <code>join</code>, um <code>subquery</code>, uma
+função nova — e o vazamento que resulta é silencioso: os dados aparecem, ninguém
+percebe que são de outro tenant.</p>
+<p>Com a coluna explícita, a violação é <strong>textual</strong>, e por isso pega em revisão: uma
+consulta sobre tabela de domínio sem <code>tenant_id</code> no <code>where</code> está errada, e dá para
+ver lendo.</p>
+<p><strong>Como o erro se apresenta ao usuário</strong>: recurso de outro tenant devolve <strong>"não
+encontrado"</strong>, nunca "sem permissão". Dizer "sem permissão" já entrega que o
+recurso existe.</p>
+<hr />
+<h2 id="9-schemas-privados-e-por-que-a-fronteira-é-o-módulo-raiz">9. Schemas privados, e por que a fronteira é o módulo raiz<a class="headerlink" href="#9-schemas-privados-e-por-que-a-fronteira-é-o-módulo-raiz" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>lib/the_band/ontology/seon/eo.ex          ← a fronteira
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>lib/the_band/ontology/seon/eo/
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    commands.ex                            ← escritas
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    queries.ex                             ← leituras
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    constraints.ex                         ← verificações
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    schemas/
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>        organization.ex                    ← privados
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>        person.ex
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>        team.ex
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>        organizational_role.ex
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>        team_membership_evidence.ex
+</code></pre></div>
+<p>O módulo raiz contém <strong>apenas <code>defdelegate</code></strong> (ADR 0003):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kd">defdelegate</span><span class="w"> </span><span class="n">upsert_person_from_source</span><span class="p">(</span><span class="n">tenant</span><span class="p">,</span><span class="w"> </span><span class="n">attrs</span><span class="p">),</span><span class="w"> </span><span class="ss">to</span><span class="p">:</span><span class="w"> </span><span class="nc">Commands</span>
+</code></pre></div>
+<p><strong>A regra</strong>: nenhum módulo fora de <code>eo/</code> alcança <code>EO.Schemas.*</code>, e nenhum módulo
+fora de <code>eo/</code> chama <code>Repo</code> sobre as tabelas <code>eo_*</code>.</p>
+<h3 id="por-que-o-módulo-raiz-e-não-o-schema">Por que o módulo raiz e não o schema<a class="headerlink" href="#por-que-o-módulo-raiz-e-não-o-schema" title="Permanent link">&para;</a></h3>
+<p>O instinto é fazer do schema a unidade pública — é o que ele parece ser. Mas o
+schema é a <strong>forma da tabela</strong>, e a tabela é derivada: ela muda quando a ontologia
+muda. Se outros módulos dependessem do schema, cada mudança de derivação
+quebraria consumidores em toda a aplicação, e a pressão para não mexer na
+derivação venceria a semântica.</p>
+<p>Um segundo motivo, mais imediato: <strong>uma função que devolve <code>Ecto.Query</code> vaza a
+fronteira</strong>. Quem recebe a query pode compor sobre ela e, ao compor, contornar o
+filtro de tenant. Por isso nenhuma função pública devolve query — devolvem dados.</p>
+<h3 id="o-que-a-api-deliberadamente-não-expõe">O que a API deliberadamente não expõe<a class="headerlink" href="#o-que-a-api-deliberadamente-não-expõe" title="Permanent link">&para;</a></h3>
+<p>Documentado no próprio módulo, e vale ler antes de acrescentar função:</p>
+<table>
+<thead>
+<tr>
+<th>Ausente</th>
+<th>Por quê</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>create_person/2</code>, <code>create_team/2</code></td>
+<td>não há cadastro manual nesta feature, e expor convidaria a criar registro sem proveniência</td>
+</tr>
+<tr>
+<td><code>delete_*</code></td>
+<td>ausência marca <code>no_longer_observed_at</code>; a plataforma existe para preservar rastreabilidade</td>
+</tr>
+<tr>
+<td><code>create_team_membership/2</code></td>
+<td>exige papel organizacional, que nenhuma fonte atual fornece</td>
+</tr>
+<tr>
+<td>qualquer função que devolva <code>Ecto.Query</code></td>
+<td>vaza o schema interno e permite contornar o filtro de tenant</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ausência documentada com motivo é decisão. Ausência silenciosa é esquecimento.</strong>
+As duas parecem iguais no código, e é por isso que o motivo está escrito.</p>
+<hr />
+<h2 id="10-discriminador-de-subtipo-e-a-restrição-que-o-acompanha">10. Discriminador de subtipo, e a restrição que o acompanha<a class="headerlink" href="#10-discriminador-de-subtipo-e-a-restrição-que-o-acompanha" title="Permanent link">&para;</a></h2>
+<p><code>eo_teams</code> tem uma coluna que parece um enum banal:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">add</span><span class="w"> </span><span class="ss">:type</span><span class="p">,</span><span class="w"> </span><span class="ss">:string</span><span class="p">,</span><span class="w"> </span><span class="ss">null</span><span class="p">:</span><span class="w"> </span><span class="no">false</span><span class="p">,</span><span class="w"> </span><span class="ss">default</span><span class="p">:</span><span class="w"> </span><span class="s2">"organizational_team"</span>
+</code></pre></div>
+<p>Ela é a materialização de <code>subkind</code> — um subtipo rígido não ganha tabela própria,
+ganha um valor de discriminador na tabela do kind. <code>eo.organizational_team</code> e
+<code>eo.project_team</code> são as duas linhas possíveis.</p>
+<p>E a restrição que veio com ela mostra por que o discriminador não é decorativo:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">check</span><span class="p">:</span><span class="w"> </span><span class="n">organization_id</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="k">type</span><span class="w"> </span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="s1">'organizational_team'</span>
+</code></pre></div>
+<p>Equipe <strong>organizacional</strong> precisa de organização. Equipe <strong>de projeto</strong> não — ela
+pode atravessar organizações, e obrigar a coluna para todo subtipo afirmaria o
+contrário. É o que separa isso de um <code>NOT NULL</code>: a obrigatoriedade é do subtipo, e
+o discriminador é quem diz qual subtipo a linha é.</p>
+<p><strong>Detalhe operacional que custou uma migração</strong>: criar coluna e restrição juntas
+não funciona em banco povoado. As equipes já coletadas eram todas
+<code>organizational_team</code> sem organização, e o Postgres recusou com
+<code>ERROR 23514 (check_violation)</code>. A separação virou vantagem — a migração da
+restrição passou a ser <strong>a verificação do retrofito</strong>: se qualquer equipe
+organizacional ficar sem organização, ela se recusa a aplicar.</p>
+<hr />
+<h2 id="11-coleta-o-que-cada-tabela-responde">11. Coleta: o que cada tabela responde<a class="headerlink" href="#11-coleta-o-que-cada-tabela-responde" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>connected_tools ──┬── syncs ──┬── sync_checkpoints   (onde parei, por entidade)
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>                  │           └── raw_payloads       (o que a origem respondeu)
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>                  └── tool_observation_events        (encerrei / retomei)
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Tabela</th>
+<th>Pergunta que responde</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>syncs</code></td>
+<td>esta execução coletou quanto, criou quanto, atualizou quanto, e por que pulou o que pulou</td>
+</tr>
+<tr>
+<td><code>sync_checkpoints</code></td>
+<td>onde parei em cada tipo de entidade, para retomar sem recoletar</td>
+</tr>
+<tr>
+<td><code>raw_payloads</code></td>
+<td>o que exatamente a origem respondeu, para reprocessar quando a regra mudar</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>raw_payloads</code> é o que torna o erro recuperável.</strong> As regras de classificação
+vão estar erradas na primeira tentativa. Se corrigir exigisse nova coleta completa
+da origem, ninguém corrigiria — e a plataforma acumularia dado classificado errado
+que ninguém tem coragem de reprocessar.</p>
+<p>Ele guarda também <code>mapping_id</code> e <code>mapping_version</code>: qual mapeamento processou
+aquele payload e em que versão. Payload gravado antes de o campo existir aparece
+no reprocessamento como registro ignorado com motivo nomeado, e não como falha
+silenciosa.</p>
+<p><strong><code>syncs</code> tem índice único parcial sobre <code>connected_tool_id</code></strong> para as execuções
+em andamento — duas coletas simultâneas da mesma ferramenta produziriam contagens
+que nenhuma das duas explicaria.</p>
+<hr />
+<h2 id="12-como-acrescentar-algo-ao-modelo">12. Como acrescentar algo ao modelo<a class="headerlink" href="#12-como-acrescentar-algo-ao-modelo" title="Permanent link">&para;</a></h2>
+<p>A ordem importa, e ela é o inverso do instinto.</p>
+<ol>
+<li><strong>Declare na ontologia</strong>, em <code>priv/knowledge_base/ontology/&lt;rede&gt;/&lt;ont&gt;/modules/</code>.
+   Conceito precisa de <code>ufo_category</code> <strong>e</strong> <code>ontouml_stereotype</code> — sem os dois, o
+   derivador recusa derivar em vez de adivinhar.</li>
+<li><strong>Rode o derivador</strong> e leia a saída:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>python3<span class="w"> </span>scripts/derive_information_model.py<span class="w"> </span>--ontology<span class="w"> </span>eo
+</code></pre></div>
+   Ela diz a tabela, as colunas, os discriminadores e o que foi absorvido para
+   onde. Se a coluna que você esperava não apareceu, a resposta é que ela não
+   devia existir — não que o derivador está incompleto.</li>
+<li><strong>Escreva a migração a partir dessa saída</strong>, e explique no <code>@moduledoc</code> por que
+   a forma é essa. As migrações deste projeto são longas de propósito: o motivo é
+   a parte que ninguém recupera depois.</li>
+<li><strong>Schemas em <code>schemas/</code></strong>, privados. A API pública é <code>defdelegate</code> no módulo
+   raiz.</li>
+<li><strong>Nove quality gates</strong>, incluindo <code>mix knowledge.validate</code>, o validador Python
+   e a reprodutibilidade da derivação.</li>
+</ol>
+<h3 id="o-que-faz-o-derivador-recusar">O que faz o derivador recusar<a class="headerlink" href="#o-que-faz-o-derivador-recusar" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>não é possível derivar sro: 43 conceito(s) sem ontouml_stereotype
+</code></pre></div>
+<p>Isso é comportamento correto, não bug. <code>ufo_category</code> é a categoria de topo e
+<strong>não expressa sortalidade nem rigidez</strong> — as duas meta-propriedades que decidem
+se o conceito vira tabela, discriminador ou relator. Sem elas, adivinhar produz
+esquema plausível e errado, que é pior que esquema ausente.</p>
+<p>Como cada estereótipo se materializa:</p>
+<table>
+<thead>
+<tr>
+<th>Estereótipo</th>
+<th>Vira</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind</code></td>
+<td>tabela</td>
+</tr>
+<tr>
+<td><code>subkind</code></td>
+<td>valor de discriminador <code>type</code> na tabela do kind</td>
+</tr>
+<tr>
+<td><code>phase</code></td>
+<td>valor de discriminador <code>status</code> na tabela do kind</td>
+</tr>
+<tr>
+<td><code>role</code></td>
+<td><strong>nada</strong> — materializa pelo relator</td>
+</tr>
+<tr>
+<td><code>relator</code></td>
+<td>tabela</td>
+</tr>
+<tr>
+<td><code>category</code>, <code>role_mixin</code>, <code>mixin</code></td>
+<td>achatado</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="o-que-este-documento-não-cobre">O que este documento não cobre<a class="headerlink" href="#o-que-este-documento-não-cobre" title="Permanent link">&para;</a></h2>
+<p>Declarado em vez de omitido.</p>
+<table>
+<thead>
+<tr>
+<th>Não coberto</th>
+<th>Onde procurar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>As 11 ontologias sem tabela</td>
+<td>só 4 têm <code>ontouml_stereotype</code> — EO, SPO, CMPO e SRO. RSRO e SYS_SWO têm 16 conceitos sem estereótipo</td>
+</tr>
+<tr>
+<td>Tabelas da SRO</td>
+<td>a derivação passou a existir no sprint 003; <strong>nenhuma migração SRO foi escrita ainda</strong></td>
+</tr>
+<tr>
+<td>Oban</td>
+<td>tabela criada pela biblioteca; não a inspecionei</td>
+</tr>
+<tr>
+<td>Índices completos</td>
+<td>listei os únicos que sustentam a Application Reference; não auditei todos</td>
+</tr>
+<tr>
+<td>Colunas de <code>eo_organizational_units</code></td>
+<td>tabela renomeada de <code>eo_sectors</code>; não reli a migração original</td>
+</tr>
+<tr>
+<td>Regras de derivação em detalhe</td>
+<td><code>scripts/derive_information_model.py</code> e a <a href="../../adr/">ADR 0004</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="manutenção-deste-documento">Manutenção deste documento<a class="headerlink" href="#manutenção-deste-documento" title="Permanent link">&para;</a></h2>
+<p>Reescrever quando: uma migração nova mudar a forma de uma tabela de domínio; o
+derivador passar a produzir outra forma; uma ontologia nova ganhar estereótipos e
+virar tabela.</p>
+<p>O critério é: <strong>se alguém que lesse este documento e depois o banco encontrasse
+divergência, ele está desatualizado.</strong> As contagens citadas são de 2026-08-11.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Voltar para o topo
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      The Band — base científica na tese de Paulo Sérgio dos Santos Júnior (UFES, 2023)
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiado para \u00e1rea de transfer\u00eancia", "clipboard.copy": "Copiar para \u00e1rea de transfer\u00eancia", "search.result.more.one": "mais 1 nesta p\u00e1gina", "search.result.more.other": "# mais nesta p\u00e1gina", "search.result.none": "Nenhum documento encontrado", "search.result.one": "1 documento encontrado", "search.result.other": "# documentos encontrados", "search.result.placeholder": "Digite para iniciar a busca", "search.result.term.missing": "Ausente", "select.version": "Selecione a vers\u00e3o"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
