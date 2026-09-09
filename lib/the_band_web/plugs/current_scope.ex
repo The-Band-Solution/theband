@@ -35,7 +35,13 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   end
 
   defp com_token_valido(conn, user) do
-    if user.session_token == get_session(conn, :session_token) do
+    # A ORGANIZAÇÃO SUSPENSA DERRUBA A SESSÃO — achado H3, parte A.
+    #
+    # Recusar quem entra não basta: quem já estava dentro continuaria dentro, e
+    # suspender uma organização é ato que precisa valer **agora**. Cai pelo mesmo
+    # caminho do token girado — `sem_sessao/1` —, e de propósito: a pessoa é devolvida à
+    # entrada sem que a tela diga qual das duas coisas aconteceu.
+    if user.session_token == get_session(conn, :session_token) and organizacao_ativa?(user) do
       conn
       |> assign(:current_user, user)
       |> assign(:current_tenant, user.tenant)
@@ -43,6 +49,10 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       sem_sessao(conn)
     end
   end
+
+  # `fetch_user/1` já pré-carrega o tenant, então isto não custa consulta nenhuma.
+  defp organizacao_ativa?(%{tenant: %{status: status}}), do: status == "active"
+  defp organizacao_ativa?(_), do: false
 
   defp sem_sessao(conn) do
     conn

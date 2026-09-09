@@ -20,6 +20,12 @@ defmodule TheBandWeb.Live.Hooks do
   def on_mount(:current_scope, _params, session, socket) do
     with {:ok, user} <- buscar(session["user_id"]),
          :ok <- token_confere(user, session["session_token"]),
+         # A ORGANIZAÇÃO SUSPENSA DERRUBA O LIVEVIEW TAMBÉM — achado H3, parte A.
+         #
+         # O plug cobre a requisição HTTP; esta hook cobre o socket. Sem as duas, a
+         # suspensão valeria na navegação e não no LiveView já conectado — e é o
+         # LiveView que a plataforma inteira usa.
+         :ok <- organizacao_ativa(user),
          :ok <- dentro_da_validade(user) do
       case gate_de_senha(user, socket) do
         :ok ->
@@ -37,9 +43,14 @@ defmodule TheBandWeb.Live.Hooks do
           {:halt, redirect(socket, to: destino)}
       end
     else
-      # Sessão ausente, token girado (senha trocada em outro navegador — FR-015)
-      # ou validade vencida: o caminho é a entrada. O destino pretendido foi
-      # guardado pelo plug `salvar_destino` do roteador (FR-005).
+      # Sessão ausente, token girado (senha trocada em outro navegador — FR-015),
+      # validade vencida, ou **organização suspensa** (H3, parte A): o caminho é a
+      # entrada. O destino pretendido foi guardado pelo plug `salvar_destino` do
+      # roteador (FR-005).
+      #
+      # Os quatro caem no mesmo lugar de propósito: a tela não diz qual dos quatro
+      # aconteceu, e quem foi devolvido à entrada não recebe informação sobre o estado
+      # da conta nem da organização.
       _ -> {:halt, redirect(socket, to: "/sign-in")}
     end
   end
@@ -109,6 +120,10 @@ defmodule TheBandWeb.Live.Hooks do
        do: :ok
 
   defp token_confere(_, _), do: :token_girado
+
+  # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.
+  defp organizacao_ativa(%User{tenant: %{status: "active"}}), do: :ok
+  defp organizacao_ativa(_), do: :organizacao_suspensa
 
   defp dentro_da_validade(%User{logged_in_at: nil}), do: :ok
 
