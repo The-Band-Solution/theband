@@ -16,6 +16,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Profiles.Material
   alias TheBand.Quality
   alias TheBand.Teams.ProblemsNow
   alias TheBand.Tenants
@@ -1281,8 +1282,20 @@ defmodule TheBandWeb.TeamsLive.Show do
       )
 
     aberto_inicial = WorkItems.team_open_at(tenant, team.id, janela.desde, fluxo)
-    tarefas = WorkItems.team_open_tasks_by_person(tenant, team.id, agora)
-    membros = EO.team_members_at(tenant, team.id, agora)
+    membros = EO.team_members_at(tenant, team.id, agora, escopo: socket.assigns.escopo_do_roster)
+
+    # AS TAREFAS SOBRE AS MESMAS PESSOAS que a seção lista — e não sobre um conjunto menor.
+    #
+    # `open_tasks_by_person/4` monta os ids sozinho quando não os recebe, e ali eles saem só
+    # dos vínculos DIRETOS. Numa equipe composta isso produzia duas listas divergentes na
+    # mesma tela: a de pessoas com o conjunto inteiro, a de tarefas com os diretos.
+    tarefas =
+      WorkItems.team_open_tasks_by_person(
+        tenant,
+        team.id,
+        agora,
+        Enum.map(membros, & &1.person_id)
+      )
 
     assign(socket,
       janela: janela,
@@ -1619,7 +1632,8 @@ defmodule TheBandWeb.TeamsLive.Show do
       >
         <% {:sem_historico, falta} = @detalhe.previsao %> The gap is
         <strong class="font-mono tabular-nums">{@pontos.aberto_final}</strong>
-        items still open, and <strong>no horizon is shown</strong>: this window has {falta.semanas} of the {falta.semanas_exigidas} periods and {falta.fechadas} of the {falta.fechadas_exigidas} closed items the forecast needs. A pace read from less than
+        items still open, and <strong>no horizon is shown</strong>: the forecast needs {falta.semanas_exigidas} periods and {falta.fechadas_exigidas} closed items, and this
+        window has {falta.semanas} and {falta.fechadas}. A pace read from less than
         that would be a guess wearing the clothes of a measure.
       </p>
 
@@ -2276,7 +2290,12 @@ defmodule TheBandWeb.TeamsLive.Show do
           <span class={["font-mono text-xs tabular-nums", t.parada? && "font-semibold text-warning"]}>
             {t.aberta_ha_dias}d
           </span>
-          <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">stale</span>
+          <%!-- O LIMIAR É PARTE DA MEDIDA (protótipo, decisão 18). "stale" sozinho não diz
+                sobre o que a contagem foi feita — e é o mesmo argumento dos cartões de
+                *Problems now*, onde o limiar está escrito em cada um. --%>
+          <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">
+            stopped · over {Material.stale_days()} d
+          </span>
         </div>
 
         <%!-- AS HABILIDADES — feature 057, FR-022 a FR-024. Mesma gramática da
@@ -2748,7 +2767,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     # mantenedora em 2026-09-06 ("2 e 3"): o vínculo observado conta como membro, e a tela
     # diz quantos dos membros são observados sem papel declarado e quantos foram declarados.
     # Uma definição de membro; a transparência é sobre a origem de cada um.
-    membros = EO.team_members_at(tenant, team.id, agora)
+    membros = EO.team_members_at(tenant, team.id, agora, escopo: socket.assigns.escopo_do_roster)
 
     socket =
       assign(socket,
@@ -3398,26 +3417,38 @@ defmodule TheBandWeb.TeamsLive.Show do
             </div>
           </:col>
 
+          <%!-- A MATIZ ESTAVA INVERTIDA na distinção central do produto — achado do QA em
+                2026-09-08, conferindo contra o protótipo aprovado.
+
+                A tela dizia verdete para *declared* e cinza para *observed*. O verdete
+                significa **"a origem mostrou"** nesta plataforma, e o azul `info` significa
+                **"a organização declarou"** — as duas trocadas faziam a tela afirmar o
+                contrário do que o modelo separa.
+
+                Não é preferência de cor: é a tese do produto lida ao avesso. --%>
           <:col :let={pessoa} label="link">
             <div :for={v <- pessoa.vinculos} class="py-0.5 text-xs">
               <span :if={v.equivoco} class="badge badge-sm badge-error badge-outline">
                 mistake
               </span>
+              <%!-- `left` em NEUTRO, e não âmbar: âmbar é *derivado e aviso* nesta casa —
+                    é o `stale` e a habilidade derivada. Um vínculo encerrado não é aviso;
+                    é um período que terminou. --%>
               <span
                 :if={is_nil(v.equivoco) and v.fim}
-                class="badge badge-sm badge-warning badge-outline"
+                class="badge badge-sm badge-neutral badge-outline"
               >
                 left
               </span>
               <span
                 :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :declarado}
-                class="badge badge-sm badge-success badge-outline"
+                class="badge badge-sm badge-info badge-outline"
               >
                 declared
               </span>
               <span
                 :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :observado}
-                class="badge badge-sm badge-ghost"
+                class="badge badge-sm badge-success badge-outline"
               >
                 observed
               </span>
@@ -3539,9 +3570,16 @@ defmodule TheBandWeb.TeamsLive.Show do
               <tbody>
                 <tr :for={papel <- @papeis_da_organizacao} class={papel.hidden_at && "opacity-50"}>
                   <td>
-                    <span :if={@renomeando != papel.id}>{papel.name}</span>
+                    <%!-- `@renomeando` nasce `nil`, e papel do CATÁLOGO ainda não
+                          materializado tem `id` nulo. `nil == nil` é verdade — e os quatro
+                          papéis do catálogo abriam o formulário de renomear com o nome
+                          sumido da célula, quatro caixas de texto onde deviam estar nomes.
+                          Achado pelo QA em 2026-09-08, renderizando a tela. --%>
+                    <span :if={is_nil(@renomeando) or @renomeando != papel.id}>
+                      {papel.name}
+                    </span>
                     <form
-                      :if={@renomeando == papel.id}
+                      :if={not is_nil(@renomeando) and @renomeando == papel.id}
                       phx-submit="renomear_papel"
                       class="flex items-center gap-1"
                     >
@@ -3834,9 +3872,13 @@ defmodule TheBandWeb.TeamsLive.Show do
               </div>
 
               <div class="mt-2 grid gap-2 sm:grid-cols-2">
-                <%!-- A afirmação da COLETA, com a origem nomeada. --%>
-                <div class="border-l-2 border-info pl-2">
-                  <div class="text-xs font-semibold tracking-wide text-info uppercase">
+                <%!-- A afirmação da COLETA, com a origem nomeada.
+
+                      VERDETE, e não azul: neste painel as duas matizes estavam trocadas pelo
+                      mesmo motivo da coluna *link* — e aqui doía mais, porque o trabalho
+                      deste painel é justamente separar as duas afirmações. --%>
+                <div class="border-l-2 border-success pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-success uppercase">
                     collected from the source
                   </div>
                   <p :if={d.observado.presente?} class="text-sm">
@@ -3856,8 +3898,8 @@ defmodule TheBandWeb.TeamsLive.Show do
                 <%!-- A afirmação da DECLARAÇÃO, com a origem nomeada. O equívoco é
                     caso próprio: "saiu em março" e "nunca esteve" pedem conversas
                     diferentes, e colapsá-los perderia justamente a diferença. --%>
-                <div class="border-l-2 border-warning pl-2">
-                  <div class="text-xs font-semibold tracking-wide text-warning uppercase">
+                <div class="border-l-2 border-info pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-info uppercase">
                     declared by the organisation
                   </div>
                   <p :if={d.declarado.equivoco?} class="text-sm">

@@ -255,7 +255,9 @@ defmodule TheBandWeb.DetalheDaSubequipeTest do
       {:ok, _view, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
       t = texto(html)
-      assert t =~ "stale"
+      # O rótulo passou a carregar o LIMIAR (protótipo, decisão 18): "stale" sozinho não diz
+      # sobre o que a contagem foi feita.
+      assert t =~ "stopped · over"
       assert t =~ "invitation to ask, not a verdict"
       assert html =~ "95d"
       assert html =~ "85d"
