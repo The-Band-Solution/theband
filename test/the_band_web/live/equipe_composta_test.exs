@@ -239,7 +239,9 @@ defmodule TheBandWeb.EquipeCompostaTest do
       refute tabela =~ "<svg", """
       Gráfico DENTRO da tabela por subequipe contraria a decisão que a 057 tomou e a 060
       manteve: a tabela é para comparar, e comparação se faz em números alinhados. O gráfico
-      pequeno por subequipe é a FR-084, e vive no CARTÃO da US7 — que ainda não existe.
+      pequeno por subequipe é a FR-084, e vive no CARTÃO — que existe, e está medido pelo
+      teste "FR-041/FR-084" acima. Esta asserção é sobre a TABELA, e as duas convivem na
+      mesma seção: uma para comparar em números alinhados, a outra para responder a forma.
       """
 
       # E o fluxo da equipe inteira agora existe, com a frase que a FR-060 exige.

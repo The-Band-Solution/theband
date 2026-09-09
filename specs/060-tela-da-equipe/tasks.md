@@ -250,15 +250,29 @@ FR-078) e **sem nenhuma tarefa** — e por isso nada foi construído.
   - **Bloqueio conhecido**: o banco de desenvolvimento não tem equipe com duas partes, então
     a medida real precisa de cenário construído.
 
-- [ ] **T029 [US9]** O gráfico pequeno no cartão da subequipe — **BLOQUEADA, e não esquecida**
-  - FR-084. **Depende da US7**, que entrega o cartão e ainda não tem tarefa.
-  - **Por que não a fiz junto com a T028** (2026-09-08): o cartão de subequipe não existe. O
-    que existe é a **tabela** por subequipe, e a 057 FR-011 — mantida pela 060 FR-058 — proíbe
-    gráfico nela: a tabela é para comparar, e comparação se faz em números alinhados. Pôr o
-    gráfico ali seria contrariar a decisão que a própria FR-058 preservou ao emendá-la.
-  - Construir o cartão aqui seria implementar a US7 sem tarefa e **sem protótipo aprovado**, e
-    o protótipo da 060 não o cobre. Tela sem protótipo aprovado não é entrega desta casa.
-  - **Destrava quando**: a US7 for planejada e o cartão desenhado pelo papel de Design.
+- [x] **T029 [US9]** O gráfico pequeno no cartão da subequipe — **destravada, e feita**
+  - FR-084. A faísca vive DENTRO do cartão, e o cartão inteiro é a porta (FR-041): clicar no
+    gráfico abre o painel daquela subequipe. `faisca_do_cartao/1` e `faiscas_dos_cartoes/4`
+    em `teams_live/show.ex`.
+  - **Duas consultas agrupadas para qualquer número de subequipes**, e não uma por cartão:
+    `state_changes_by_team/4` e `open_at_by_team/3`. A primeira versão fazia 7 consultas por
+    subequipe e foi **reprovada pelo teto de consultas** antes de subir.
+  - **Ausência escrita, nunca reta em zero**: subequipe sem série na janela diz em palavras
+    que nada abriu nem fechou. Uma linha reta em zero afirmaria "abriu zero e fechou zero",
+    quando o que houve foi não ter o que observar.
+  - **Por que a nota de bloqueio caiu** (2026-09-09): ela dizia *"o cartão de subequipe não
+    existe"* e *"o protótipo da 060 não o cobre"*. As duas deixaram de ser verdade — o
+    protótipo ganhou *Squads at a glance* em `2a6a966` (*"o cartão é a porta para o detalhe"*),
+    e o cartão foi construído com a T028. A **tabela** continua sem gráfico, que é o que a
+    057 FR-011 protegia: ela é para comparar, e comparação se faz em números alinhados. Os
+    dois convivem na mesma seção.
+  - **Teste**: `equipe_composta_test.exs`, *"FR-041/FR-084: cada subequipe é um CARTÃO, com
+    faísca, e o cartão é porta"* — mais a asserção de que a tabela **não** tem `<svg>`.
+  - **Aberto ainda, e não é esta tarefa**: os três números do cartão divergem do protótipo
+    (`open items`/`median wait`/`pipeline` contra `members`/`open`/`stopped`), falta a mistura
+    de conceitos, e a matiz por subequipe é decisão de Design pendente — `median wait` por
+    subequipe exige consulta agrupada que não existe, e definir uma segunda mediana daria dois
+    números com o mesmo rótulo (L67).
 
 ---
 
