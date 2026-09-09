@@ -219,10 +219,50 @@ defmodule TheBandWeb.EquipeCompostaTest do
                "achei um cabeçalho com #{proibido} — FR-044 e SC-008 proíbem total"
       end
 
-      # E nos cartões, as três medidas sem nenhuma soma.
-      assert html =~ ">members<"
-      assert html =~ ">open<"
-      assert html =~ ">stopped<"
+      # A RÉGUA, e não "as mesmas medidas" ao pé da letra (Design, 2026-09-09, §5): todo
+      # número do cartão aparece na tabela com o mesmo valor e definição; o cartão não mostra
+      # número que a tabela não tenha. Subconjunto é permitido, divergência é defeito.
+      [_antes, grade] = String.split(html, "One card per sub-team", parts: 2)
+      [grade, tabela] = String.split(grade, "The same numbers, side by side", parts: 2)
+
+      rotulos_do_cartao =
+        Regex.scan(~r|<dt[^>]*>(.*?)</dt>|s, grade)
+        |> Enum.map(&(&1 |> List.last() |> String.trim()))
+        |> Enum.uniq()
+
+      assert rotulos_do_cartao == ["open items", "median wait"], """
+      O cartão tem DOIS vãos, e são as medidas herdadas da tabela aprovada da 057 —
+      `1st review` virou `median wait`. `members` subiu para o cabeçalho porque não é medida
+      do trabalho, e `stopped` desceu para a tabela porque o número sem o limiar não é
+      interpretável. `pipeline` não entra: não há vínculo projeto→subequipe, e a taxa seria
+      "no project" em todos os cartões — a recusa já tem lugar próprio na tela.
+
+      Achei: #{inspect(rotulos_do_cartao)}
+      """
+
+      for rotulo <- rotulos_do_cartao do
+        assert tabela =~ rotulo, """
+        `#{rotulo}` está no cartão e não na tabela. O cartão não pode mostrar número que a
+        tabela não tenha — quem compara as duas apresentações precisa achar o mesmo.
+        """
+      end
+
+      # `members` está no CABEÇALHO do cartão, não nos vãos — e continua na tabela.
+      assert grade =~ "members"
+      assert tabela =~ ">members<"
+
+      # O LIMIAR viaja com o número (FR-069): "stopped" sozinho não é interpretável.
+      assert tabela =~ "stopped · open &gt; 90 d"
+
+      # E o âmbar saiu: estava ligado nas TRÊS subequipes, e condição sempre verdadeira é
+      # mancha, não informação.
+      [corpo, _] = String.split(tabela, "</table>", parts: 2)
+
+      refute corpo =~ "text-warning", """
+      O âmbar no número de paradas estava ligado em todas as linhas (214/183/151 no banco de
+      desenvolvimento). Cor que não distingue nenhuma linha não informa nada, e gasta a matiz
+      que nesta casa significa derivado/obsoleto.
+      """
     end
 
     test "057 FR-011, EMENDADA: a TABELA continua sem gráfico, e o fluxo da equipe tem", ctx do
