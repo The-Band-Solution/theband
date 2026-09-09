@@ -17,6 +17,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   import Phoenix.Controller, only: [redirect: 2]
 
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
 
   def init(opts), do: opts
@@ -29,11 +30,19 @@ defmodule TheBandWeb.Plugs.CurrentScope do
       user_id ->
         case Tenants.fetch_user(user_id) do
           {:ok, user} -> com_token_valido(conn, user)
-          {:error, :not_found} -> sem_sessao(conn)
+          # Conta que não existe mais: a sessão aponta para uma linha que sumiu. Não há
+          # `user` para nomear, e o log diz isso em vez de omitir a linha.
+          {:error, :not_found} -> sem_sessao(conn, nil, :conta_inexistente)
         end
     end
   end
 
+  # O MOTIVO DA QUEDA, e não só a queda — achado H4, 2026-09-09.
+  #
+  # `sem_sessao/1` derrubava sem dizer por quê. Os quatro motivos caem no mesmo destino na
+  # tela — `/sign-in`, sem distinguir —, e é deliberado: quem foi devolvido à entrada não
+  # recebe informação sobre o estado da conta. **No log eles se distinguem**, porque é onde
+  # a distinção serve a quem reconstrói um incidente.
   defp com_token_valido(conn, user) do
     # A ORGANIZAÇÃO SUSPENSA DERRUBA A SESSÃO — achado H3, parte A.
     #
@@ -41,19 +50,38 @@ defmodule TheBandWeb.Plugs.CurrentScope do
     # suspender uma organização é ato que precisa valer **agora**. Cai pelo mesmo
     # caminho do token girado — `sem_sessao/1` —, e de propósito: a pessoa é devolvida à
     # entrada sem que a tela diga qual das duas coisas aconteceu.
-    if user.session_token == get_session(conn, :session_token) and organizacao_ativa?(user) and
-         User.ativa?(user) do
-      conn
-      |> assign(:current_user, user)
-      |> assign(:current_tenant, user.tenant)
-    else
-      sem_sessao(conn)
+    cond do
+      user.session_token != get_session(conn, :session_token) ->
+        sem_sessao(conn, user, :token_girado)
+
+      not organizacao_ativa?(user) ->
+        sem_sessao(conn, user, :organizacao_suspensa)
+
+      not User.ativa?(user) ->
+        sem_sessao(conn, user, :conta_desativada)
+
+      true ->
+        # OS CAMPOS DE OBSERVABILIDADE, uma vez por requisição — `AGENTS.md` §15.
+        #
+        # `Logger.metadata` vale para **toda** linha de log daquela requisição, e não só
+        # para as de acesso: o log do Phoenix passa a dizer de quem e de qual tenant era a
+        # requisição, que era a lacuna do `metadata: [:request_id]`.
+        Logger.metadata(user_id: user.id, tenant_id: user.tenant_id)
+
+        conn
+        |> assign(:current_user, user)
+        |> assign(:current_tenant, user.tenant)
     end
   end
 
   # `fetch_user/1` já pré-carrega o tenant, então isto não custa consulta nenhuma.
   defp organizacao_ativa?(%{tenant: %{status: status}}), do: status == "active"
   defp organizacao_ativa?(_), do: false
+
+  defp sem_sessao(conn, user, motivo) do
+    AccessEvents.sessao_derrubada(user && user.id, user && user.tenant_id, motivo)
+    sem_sessao(conn)
+  end
 
   defp sem_sessao(conn) do
     conn
