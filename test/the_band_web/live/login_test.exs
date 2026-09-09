@@ -106,6 +106,73 @@ defmodule TheBandWeb.LoginTest do
     assert {:ok, _view, _html} = live(conn, ~p"/people")
   end
 
+  test "H1: /set-password NÃO troca a senha de conta em regime normal", ctx do
+    # A GUARDA DO CENÁRIO, e sem ela este teste mediria o fluxo legítimo da
+    # temporária — que é justamente o que o teste acima cobre.
+    refute ctx.member.must_change_password, """
+    O cenário deste teste é a conta em REGIME NORMAL. Se `must_change_password`
+    fosse verdadeiro aqui, o POST abaixo estaria certo em funcionar, e o teste
+    passaria a verde afirmando o contrário do que diz.
+    """
+
+    conn = log_in(ctx.conn, ctx.member)
+
+    # O caminho do achado H1: quem alcança uma sessão válida — navegador esquecido
+    # aberto, máquina compartilhada, cookie capturado — postava aqui e trocava a
+    # senha SEM apresentar a antiga em momento nenhum. E o giro do `session_token`
+    # derrubava a pessoa legítima: acesso temporário virava posse da conta.
+    conn =
+      post(conn, ~p"/set-password", %{
+        "password" => "tomada-de-conta-123456",
+        "password_confirmation" => "tomada-de-conta-123456"
+      })
+
+    assert redirected_to(conn) == ~p"/sign-in", """
+    A recusa derruba a sessão e manda para a entrada. Redirecionar para `/profile`
+    com uma frase seria o caminho gentil, e daria a quem chegou com a sessão de
+    outra pessoa uma dica do que tentar em seguida.
+    """
+
+    # E A ASSERÇÃO QUE IMPORTA, que não é o destino: o destino podia estar certo e
+    # a senha ter mudado do mesmo jeito.
+    assert {:error, :invalid_credentials} =
+             Tenants.authenticate(ctx.member.email, "tomada-de-conta-123456"),
+           "a senha nova passou a valer — a troca aconteceu apesar da recusa"
+
+    assert {:ok, _} = Tenants.authenticate(ctx.member.email, @senha),
+           "a senha original deixou de valer — a conta foi tomada"
+  end
+
+  test "H1: e a porta legítima continua abrindo — o par que impede o conserto de mais", ctx do
+    # SEM ESTE PAR, o conserto do H1 podia ter fechado o fluxo da temporária
+    # (FR-013) e ninguém saberia: a suíte ficaria verde afirmando segurança onde
+    # havia uma porta legítima trancada.
+    {:ok, temporaria} = Tenants.reset_password(ctx.tenant, ctx.member.id, ctx.admin.id)
+
+    {:ok, recarregada} = Tenants.fetch_user(ctx.member.id)
+
+    assert recarregada.must_change_password, """
+    O reinício de senha põe a conta no fluxo da temporária. Se isto falhar, o teste
+    abaixo não está medindo a porta legítima.
+    """
+
+    conn =
+      post(ctx.conn, ~p"/session", %{
+        "identifier" => ctx.member.email,
+        "password" => temporaria
+      })
+
+    conn =
+      post(conn, ~p"/set-password", %{
+        "password" => "definitiva-bem-comprida-9",
+        "password_confirmation" => "definitiva-bem-comprida-9"
+      })
+
+    assert redirected_to(conn) == ~p"/people", "o fluxo da temporária foi fechado pelo conserto"
+
+    assert {:ok, _} = Tenants.authenticate(ctx.member.email, "definitiva-bem-comprida-9")
+  end
+
   test "trocar a senha derruba a outra sessão na próxima ação (FR-015)", %{
     conn: conn,
     tenant: tenant,
