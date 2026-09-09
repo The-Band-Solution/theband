@@ -251,39 +251,51 @@ defmodule Mix.Tasks.Gates do
   exceção **com o motivo escrito**, e não de ser desligado.
   """
   def sem_link_simbolico do
-    {saida, codigo} = System.cmd("git", ["ls-files", "-s"], stderr_to_stdout: true)
+    # `case` com o código no padrão, e não `if` sobre a variável: o Credo reprovou a
+    # primeira versão por aninhamento de profundidade 4, e ele estava certo — a lógica
+    # cabia em cláusulas, e cláusulas se leem sem contar níveis.
+    case System.cmd("git", ["ls-files", "-s"], stderr_to_stdout: true) do
+      {saida, 0} ->
+        avaliar_links(links_rastreados(saida))
 
-    # Sem esta conferência, um `git` que falhasse devolveria saída vazia e o gate
-    # passaria dizendo que não há links — o sucesso silencioso outra vez.
-    if codigo != 0 do
-      {:error, "git ls-files falhou com código #{codigo}"}
-    else
-      links =
-        saida
-        |> String.split("\n", trim: true)
-        |> Enum.filter(&String.starts_with?(&1, "120000 "))
-        |> Enum.map(fn linha -> linha |> String.split("\t", parts: 2) |> List.last() end)
+      # Sem esta cláusula, um `git` que falhasse devolveria saída vazia e o gate
+      # passaria dizendo que não há links — o sucesso silencioso dentro do gate que
+      # existe para pegá-lo.
+      {_saida, codigo} ->
+        {:error, "git ls-files falhou com código #{codigo}"}
+    end
+  end
 
-      case links do
-        [] ->
-          Mix.shell().info("   nenhum link simbólico rastreado")
-          :ok
+  # O alvo é o **modo** `120000`, e não o conteúdo: pega qualquer link, inclusive um que
+  # aponte para fora da árvore ou para um caminho que existe hoje e não amanhã — que é o
+  # caso que dói e o que ninguém prevê.
+  defp links_rastreados(saida) do
+    saida
+    |> String.split("\n", trim: true)
+    |> Enum.filter(&String.starts_with?(&1, "120000 "))
+    |> Enum.map(fn linha -> linha |> String.split("\t", parts: 2) |> List.last() end)
+  end
 
-        _ ->
-          Enum.each(links, fn caminho ->
-            destino =
-              case System.cmd("git", ["cat-file", "-p", ":#{caminho}"], stderr_to_stdout: true) do
-                {d, 0} -> String.trim(d)
-                _ -> "destino ilegível"
-              end
+  defp avaliar_links([]) do
+    Mix.shell().info("   nenhum link simbólico rastreado")
+    :ok
+  end
 
-            Mix.shell().error(
-              "   #{caminho} é link simbólico para #{destino} — troca de branch apaga o caminho"
-            )
-          end)
+  defp avaliar_links(links) do
+    Enum.each(links, &reportar_link/1)
+    {:error, "#{length(links)} link(s) simbólico(s) rastreado(s)"}
+  end
 
-          {:error, "#{length(links)} link(s) simbólico(s) rastreado(s)"}
-      end
+  defp reportar_link(caminho) do
+    Mix.shell().error(
+      "   #{caminho} é link simbólico para #{destino_do_link(caminho)} — troca de branch apaga o caminho"
+    )
+  end
+
+  defp destino_do_link(caminho) do
+    case System.cmd("git", ["cat-file", "-p", ":#{caminho}"], stderr_to_stdout: true) do
+      {destino, 0} -> String.trim(destino)
+      _ -> "destino ilegível"
     end
   end
 
