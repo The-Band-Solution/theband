@@ -54,6 +54,31 @@ defmodule TheBand.Tenants.Auth do
   defp verificar(%User{} = user, senha) do
     with :ok <- fora_da_janela(user) do
       cond do
+        # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
+        #
+        # `tenants.status` existia com `default: "active"`, era castável no changeset, e
+        # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
+        # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
+        # parecia um controle e não era: quem a marcasse acharia que suspendeu.
+        #
+        # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
+        #
+        # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
+        # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
+        # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
+        #
+        # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
+        # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
+        # distingue "organização suspensa" de "senha errada".
+        #
+        # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
+        # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
+        # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
+        # crescente no dia em que a organização voltasse.
+        not organizacao_ativa?(user.tenant_id) ->
+          Bcrypt.no_user_verify()
+          {:error, :invalid_credentials}
+
         is_nil(user.password_hash) ->
           # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
           # público, nunca na resposta do formulário.
@@ -69,6 +94,13 @@ defmodule TheBand.Tenants.Auth do
           {:error, :invalid_credentials}
       end
     end
+  end
+
+  # Uma consulta, e só quando o identificador resolveu para uma conta. `resolver/1` não
+  # pré-carrega o tenant — e pré-carregá-lo mudaria o custo de toda tentativa,
+  # inclusive as que não resolvem, que é onde o tempo constante importa.
+  defp organizacao_ativa?(tenant_id) do
+    Repo.one(from t in Tenant, where: t.id == ^tenant_id, select: t.status) == "active"
   end
 
   defp fora_da_janela(%User{failed_attempts: n, last_failed_at: em}) do
