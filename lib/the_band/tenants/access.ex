@@ -233,6 +233,79 @@ defmodule TheBand.Tenants.Access do
   end
 
   @doc """
+  As pessoas que esta conta alcança — decisão da pessoa mantenedora, 2026-09-09.
+
+  > *"Quem tem o escopo de team, organization e admin podem ver. E a pessoa vê o seu
+  > perfil."*
+
+  É o mesmo regime que `pode_ver/3` já aplica, respondido para um **conjunto** em vez
+  de para um alvo. Existe porque `pode_ver/3` consulta as equipes do alvo — perguntar
+  por linha numa lista de pessoas é a **L38**, o antipadrão que este módulo existe para
+  evitar.
+
+  ## O que devolve
+
+  - `:todas` — administração do tenant. FR-023 continua de pé: ver não exige
+    administrar, mas administrar alcança;
+  - `{:algumas, MapSet}` — a união das pessoas das equipes em escopo, das equipes das
+    organizações em escopo, e **a própria pessoa**, sempre.
+
+  O conjunto pode vir **vazio** para conta sem elo declarado e sem concessão. Vazio não
+  é erro nem é zero: é *nenhuma pessoa alcançada*, e quem apresenta MUST dizer isso em
+  palavras.
+
+  ## O custo
+
+  Três consultas, e não uma por pessoa: as equipes das organizações em escopo numa
+  consulta por organização em escopo (são poucas, e vêm de `scopes/2`), e os
+  integrantes de **todas** as equipes numa só, via `escopo:` de
+  `team_member_ids_at/4`.
+
+  ## O que NÃO entra
+
+  O escopo `project` — pela mesma razão de `pode_ver_equipe/3`: ele nomeia um projeto,
+  e uma equipe pode trabalhar em vários. Deixá-lo passar faria autoridade subir de
+  lado, e este documento prefere repetir a razão a deixá-la implícita.
+  """
+  @spec pessoas_alcancadas(Tenant.t(), User.t()) :: :todas | {:algumas, MapSet.t()}
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user) do
+    if User.admin?(user) do
+      :todas
+    else
+      meus = scopes(tenant, user)
+      agora = DateTime.utc_now()
+
+      equipes_diretas = for s <- meus, s.level == :team, s.target_id, do: s.target_id
+
+      equipes_das_orgs =
+        for s <- meus,
+            s.level == :organization,
+            s.target_id,
+            t <- EO.list_teams(tenant, organization_id: s.target_id),
+            do: t.id
+
+      equipes = Enum.uniq(equipes_diretas ++ equipes_das_orgs)
+
+      pessoas =
+        case equipes do
+          [] -> []
+          _ -> EO.team_member_ids_at(tenant, hd(equipes), agora, escopo: equipes)
+        end
+
+      # A PRÓPRIA PESSOA ENTRA SEMPRE, e não pelo escopo: quem não tem escopo nenhum
+      # continua vendo o seu — é a segunda metade da decisão, e sem esta linha ela
+      # ficaria por escrever.
+      propria =
+        case Tenants.person_of_user(user) do
+          {:ok, person_id} -> [person_id]
+          _ -> []
+        end
+
+      {:algumas, MapSet.new(pessoas ++ propria)}
+    end
+  end
+
+  @doc """
   Esta conta alcança **esta equipe**? — feature 058, FR-024.
 
   A pergunta é da equipe, e não de cada pessoa dentro dela. A tela mostra a quebra
