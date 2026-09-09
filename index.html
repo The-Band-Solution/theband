@@ -74,8 +74,14 @@
 
   .barra-topo {
     position: fixed; top: 1rem; right: 1rem; z-index: 10;
-    display: flex; align-items: center; gap: .6rem;
+    /* QUATRO itens agora, e não dois: os dois links de documentação, o botão de
+       entrar e a troca de idioma. `flex-wrap` e o vão menor existem para que em
+       tela estreita a barra quebre em duas linhas em vez de cobrir o título —
+       que é a razão do `.amplo` desta casa. */
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: .4rem; flex-wrap: wrap; max-width: calc(100vw - 2rem);
   }
+  @media (min-width: 42rem) { .barra-topo { gap: .6rem; } }
   .entrar {
     display: none; background: var(--verdete); color: var(--papel);
     text-decoration: none; font-weight: 600; font-size: .85rem;
@@ -213,9 +219,13 @@
 
 <div class="barra-topo">
   <a class="link-topo" data-lang="pt" href="/docs/"
-     aria-label="O produto: para quem é, o que faz e em que versão está">O produto</a>
+     aria-label="Documentação: para quem é, o que o produto faz, os conceitos e as versões">Documentação</a>
   <a class="link-topo" data-lang="en" href="/docs/"
-     aria-label="The product: who it is for, what it does, which version is live">The product</a>
+     aria-label="Docs: who it is for, what the product does, the concepts and the versions">Docs</a>
+  <a class="link-topo" data-lang="pt" href="/developers/"
+     aria-label="Documentação técnica: arquitetura, ontologias, decisões e operação">Doc.<span class="amplo"> técnica</span></a>
+  <a class="link-topo" data-lang="en" href="/developers/"
+     aria-label="Developer docs: architecture, ontologies, decisions and operations">Dev<span class="amplo"> docs</span></a>
   <a class="entrar" data-lang="pt" href="https://app.theband.dev/sign-in"
      aria-label="Entrar na plataforma">Entrar<span class="amplo"> na plataforma</span></a>
   <a class="entrar" data-lang="en" href="https://app.theband.dev/sign-in"
@@ -522,6 +532,11 @@
       </p>
       <div class="botoes">
         <a class="botao cheio" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+        <!-- Os dois destinos de leitura ficam AQUI, e não só na barra do topo: a barra
+             é fixa e se lê antes de haver interesse; este é o lugar onde chega quem já
+             leu a página inteira e quer saber mais. -->
+        <a class="botao vazado" href="/docs/">Documentação</a>
+        <a class="botao vazado" href="/developers/">Documentação técnica</a>
         <a class="botao vazado" href="https://github.com/The-Band-Solution/theband">Ver o repositório</a>
       </div>
     </div>
@@ -819,6 +834,8 @@
       </p>
       <div class="botoes">
         <a class="botao cheio" href="https://app.theband.dev/sign-in">Sign in to the platform</a>
+        <a class="botao vazado" href="/docs/">Docs</a>
+        <a class="botao vazado" href="/developers/">Developer docs</a>
         <a class="botao vazado" href="https://github.com/The-Band-Solution/theband">View the repository</a>
       </div>
     </div>
