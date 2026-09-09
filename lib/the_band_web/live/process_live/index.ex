@@ -30,8 +30,8 @@ defmodule TheBandWeb.ProcessLive.Index do
 
   use TheBandWeb, :live_view
 
-  alias TheBand.Tenants
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Tenants
 
   @impl true
   def mount(_params, _session, socket) do
