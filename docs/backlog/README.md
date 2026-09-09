@@ -43,7 +43,48 @@ distintas, e o documento é explícito ao dizer que H1, H2 e H3 são **recomenda
 da próxima release, não bloqueio declarado. **Assumo a recomendação**: os três entram à frente
 de qualquer funcionalidade nova, e a razão está na coluna de posição.
 
+### O que a v0.7.0 fechou, e o que a fila abaixo passa a ser
+
+**Escrito em 2026-09-09T23:19Z, depois de derivar os vereditos em
+[`docs/releases/v0.7.0.md`](../releases/v0.7.0.md).** A fila que vem a seguir foi escrita mais
+cedo no mesmo dia e **continua abaixo como estava** — não a reescrevo, corrijo-a aqui, que é
+como esta casa trata registro que envelheceu.
+
+| Item da fila | O que aconteceu |
+|---|---|
+| **1 — H1** | **fechado e ACEITO** ([#835](https://github.com/The-Band-Solution/theband/pull/835)) |
+| **2 — H3** | **parte A fechada e ACEITA** ([#837](https://github.com/The-Band-Solution/theband/pull/837)); **parte B fechada e NÃO ACEITA** ([#844](https://github.com/The-Band-Solution/theband/pull/844)) — ver [a conta desativada](conta-desativada.md) |
+| **3 — H2** | **decidido e fechado, ACEITO** ([#838](https://github.com/The-Band-Solution/theband/pull/838), [#845](https://github.com/The-Band-Solution/theband/pull/845)). A decisão **D-d** virou a **FR-024** da spec 045, e a resposta foi mais fina que a recomendação: **três naturezas**, e só o *agregado* segue o veredito |
+| **4 — a versão na página** | **não feito**, e **dispensado para a v0.7.0** com o custo declarado. **Pré-condição da v0.8.0** — ver o item |
+| **5 — cronometrar a US3** | **não feito.** A 060/US3 continua `sro.not_accepted_deliverable`, pela segunda release |
+| **6 — H7 e H8** | **não feitos.** Continuam sendo os dois que se consertam **sem release**, e por isso não há razão para esperar por uma |
+| **7 — SC-004 e SC-005** | **não feitos**, pela quarta release. Continuam recuperáveis **agora** |
+| **8 — H4 e H5** | **H4 fechado e NÃO ACEITO** ([#849](https://github.com/The-Band-Solution/theband/pull/849)) — cinco dos oito eventos continuam sem registro, e **duas funções foram escritas e nunca chamadas**. **H5 não feito** |
+| **9 — os pedidos de revisão** | **não feito, e piorou**: os 21 PRs da v0.7.0 nasceram **todos** sem revisor pedido. São 27 PRs a recuperar |
+| **10 a 14** | inalterados |
+
+**Três itens novos, e os três nascem de recusa de aceitação:**
+
+| # | O quê | Fecha com | Por que está alto |
+|---|---|---|---|
+| **N1** | **os três registros do H6** — o `@moduledoc` de `access.ex` ainda diz *"nenhum ramo aqui olha `users.role`"* e `pode_ver/3` passou a olhar; a **FR-012j** da spec 023 continua sem marca; e a **US2** da spec 045 ainda afirma *"ser administrador não abre painel nenhum"* | **três edições de texto**, nenhuma linha de código | o achado H6 **era** a divergência entre o que a plataforma afirma e o que aplica. O conserto mudou o código e deixou a afirmação, e a contradição **aumentou**: antes uma função desmentia o cabeçalho, agora duas |
+| **N2** | **as duas chamadas que faltam ao H4** — `AccessEvents.painel_recusado/4` e `espera_acionada/3` existem, estão documentadas e **não têm nenhum chamador** | chamar em `Access.pode_ver/3` no ramo `{:nao, motivo}` e em `Auth` no ramo `{:throttled, s}` | a **FR-024** apoia a mitigação do risco de agregação no H4. Com `painel_recusado/4` órfã, **o H4 não existe para o efeito de que a FR precisava**. E função escrita sem chamador é pior que ausente: quem fizer `grep` conclui que está registrado |
+| **N3** | **o que falta à conta desativada** — a razão em desativar **e** em reativar, o ator na reativação, o teste de que roster e medidas não mudam, o texto do *revoke* dizendo que **não remove acesso**, e o **protótipo** da superfície de `/accounts` | ver [a conta desativada](conta-desativada.md) | está **em produção sem aceitação**, com migração de esquema, tela sem protótipo e quatro decisões de produto tomadas pelo código |
+| **N4** | **`/deps/` no `.gitignore` não ignora um link simbólico chamado `deps`** — padrão terminado em barra só casa com **diretório**, e `git check-ignore -v deps` sai com **1** | trocar `/deps/` por `/deps` — **uma linha** | é o mecanismo pelo qual o **H12** nasceu, e ele continua de pé: a entrada sai do índice, mas nada impede um `git add -A` de a repor. O gate do #836 **pega** — depois, no `mix gates`, e não no `git add`. Prioridade **média**: há defesa, e ela é de segunda linha |
+
+**A decisão D-e foi tomada, e contra a recomendação deste papel.** Eu recomendava *"não
+concede, e corrige-se o ramo em vez do cabeçalho"*; a pessoa mantenedora escolheu **conceder**,
+e a razão dela é melhor que a minha: `pode_ver_equipe/3` já concedia, o booleano dela libera a
+quebra por pessoa nomeada, e portanto **administração já lia pessoa nomeada pela porta ao
+lado** — enquanto a tela da pessoa recusava afirmando o contrário. Retirar a cláusula faria a
+administração perder o que hoje usa. Registro a divergência e a razão em vez de reescrever a
+recomendação como se eu sempre tivesse dito isso.
+
 ### O que decidi sobre a próxima release
+
+> **Cumprido, e com uma ressalva.** Os três altos foram fechados **como código** na v0.7.0.
+> O **H3-B não foi aceito**, e embarca como exceção declarada em
+> [`docs/releases/v0.7.0.md`](../releases/v0.7.0.md) — que é o registro que esta decisão exigia.
 
 **A v0.7.0 não sai com H1, H2 e H3 abertos.** Não é bloqueio herdado de outro papel — é decisão
 deste, e a razão é uma só: os três têm caminho de exploração **medido** contra o código que está
