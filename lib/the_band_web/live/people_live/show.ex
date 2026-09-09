@@ -42,8 +42,8 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
   alias TheBand.Quality.Verdict
-  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
   alias TheBand.Verification
   alias TheBand.WorkItems
