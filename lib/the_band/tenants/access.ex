@@ -208,13 +208,43 @@ defmodule TheBand.Tenants.Access do
   @spec pode_ver(Tenant.t(), User.t(), Ecto.UUID.t()) ::
           {:ok, atom()} | {:nao, atom()}
   def pode_ver(%Tenant{} = tenant, %User{} = user, alvo_person_id) do
-    # A própria pessoa decide em memória, ANTES de montar a união: é o caso mais
-    # comum da página da pessoa, e o teto de consultas dela é guardado por teste
-    # (L38 — o guardião reprovou a primeira versão, que montava tudo sempre).
-    if propria_pessoa?(user, alvo_person_id) do
-      {:ok, :propria_pessoa}
-    else
-      pela_uniao(tenant, user, alvo_person_id)
+    cond do
+      # A própria pessoa decide em memória, ANTES de montar a união: é o caso mais
+      # comum da página da pessoa, e o teto de consultas dela é guardado por teste
+      # (L38 — o guardião reprovou a primeira versão, que montava tudo sempre).
+      propria_pessoa?(user, alvo_person_id) ->
+        {:ok, :propria_pessoa}
+
+      # ADMINISTRAÇÃO ALCANÇA — achado H6, decisão da pessoa mantenedora em 2026-09-09.
+      #
+      # ## A contradição que esta cláusula fecha, e ela era de COMPORTAMENTO
+      #
+      # `pode_ver_equipe/3` já concedia ao admin explicitamente, e o booleano que ela
+      # produz (`ve_por_pessoa?` em `teams_live/show.ex`) libera
+      # `Quality.agrupar_por_pessoa/1` — **a quebra por pessoa nomeada**: login, itens
+      # abertos e mediana individual de cada uma.
+      #
+      # Então administração já lia pessoa nomeada pela tela da EQUIPE, enquanto a tela
+      # da PESSOA a recusava afirmando que *"being an administrator manages the
+      # platform, it does not open panels"*. A frase era falsa — e não por um furo: o
+      # mesmo dado saía pela porta ao lado, por decisão explícita do outro veredito.
+      #
+      # Não era inconsistência a arrumar: era a plataforma **afirmando um regime que
+      # ela não aplicava**, que é pior que qualquer dos dois regimes.
+      #
+      # ## O que esta cláusula emenda
+      #
+      # A spec 023, FR-012, dizia deliberadamente que administrar não abre painel. A
+      # emenda é da pessoa mantenedora, registrada em 2026-09-09, e o texto da recusa na
+      # tela mudou junto — deixar a frase para trás seria trocar uma mentira por outra.
+      #
+      # `user.tenant_id == tenant.id` está aqui pela mesma razão de `pode_ver_equipe/3`:
+      # administração de OUTRO tenant não é administração deste.
+      User.admin?(user) and user.tenant_id == tenant.id ->
+        {:ok, :admin}
+
+      true ->
+        pela_uniao(tenant, user, alvo_person_id)
     end
   end
 
