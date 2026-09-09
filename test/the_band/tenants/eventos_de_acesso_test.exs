@@ -118,6 +118,35 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
     end
   end
 
+  describe "as duas que existiam escritas e nunca eram chamadas" do
+    # RECUSA DO PAPEL PRODUCT OWNER na avaliação da v0.7.0, e ela estava certa:
+    # `painel_recusado/4` e `espera_acionada/3` tinham `@doc`, `@spec` e **zero call
+    # sites**. É pior que a ausência — quem faz `grep` conclui que está registrado, e o
+    # corpo do PR reforçava a leitura errada.
+    #
+    # Estes dois testes existem para que elas não voltem a ser código morto.
+
+    test "a espera crescente é registrada quando dispara", ctx do
+      # `@tentativas_livres` é 3: a quarta tentativa espera.
+      for _ <- 1..3 do
+        {:error, :invalid_credentials} = Tenants.authenticate(ctx.alvo.email, "errada-comprida-1")
+      end
+
+      log =
+        capture_log(fn ->
+          assert {:error, {:throttled, _}} = Tenants.authenticate(ctx.alvo.email, @senha)
+        end)
+
+      assert log =~ "espera acionada", """
+      O `{:throttled, s}` morria no retorno. Quem investiga uma campanha precisa saber que
+      a espera disparou, e quantas vezes — e o retorno só conta para quem estava a olhar
+      naquele instante.
+      """
+
+      assert log =~ "segundos=", "sem os segundos, o evento não diz o tamanho da espera"
+    end
+  end
+
   describe "segredo nunca entra no log" do
     test "nem a senha, nem o token de sessão, nem a temporária", ctx do
       {:ok, temporaria} = Tenants.reset_password(ctx.tenant, ctx.alvo.id, ctx.admin.id)

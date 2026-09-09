@@ -271,6 +271,15 @@ que mais se aproxima de julgamento, e por isso vem depois de a US2 estar firme.
 - **FR-012j**: Quem tem `admin` de plataforma MUST ver todos os painéis do tenant.
   Decisão da pessoa mantenedora em 2026-08-27.
 
+  > **Esta FR foi revogada e restaurada, e sem esta nota ninguém saberia.** A **FR-022 da
+  > spec 045** a reverteu em 2026-08-29 — *"ser administrador MUST NOT abrir painel nenhum
+  > por si"* —, e a **emenda de 2026-09-09** à mesma FR-022 a restaurou, sobre o achado
+  > **H6**: `pode_ver_equipe/3` já concedia ao admin, e a plataforma afirmava um regime que
+  > não aplicava.
+  >
+  > **O que vale hoje é esta FR-012j**, com um limite que ela não dizia e a emenda diz:
+  > administrar **outro** tenant não abre nada.
+
   Isto **junta** o que a `FR-012f` separa: `users.role` diz quem pode mexer na plataforma,
   e passa a decidir também quem lê o trabalho de quem. A consequência declarada é que
   administrar ferramentas inclui ler o painel de todas as pessoas — um privilégio que não

@@ -30,6 +30,7 @@ defmodule TheBandWeb.H2ParidadeDasRotasTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  import ExUnit.CaptureLog
   import Phoenix.LiveViewTest
   import TheBand.WorkItemsFixtures, only: [cenario_real: 1]
 
@@ -157,6 +158,30 @@ defmodule TheBandWeb.H2ParidadeDasRotasTest do
         """
       end
     end
+  end
+
+  test "a recusa do painel é REGISTRADA — a FR-024 depende disto", ctx do
+    # RECUSA DO PAPEL PRODUCT OWNER na v0.7.0: `AccessEvents.painel_recusado/4` tinha
+    # `@doc`, `@spec` e **zero call sites**. Função documentada e nunca chamada é pior que
+    # ausência — quem faz `grep` conclui que está registrado.
+    #
+    # E há uma razão que a torna obrigatória, e não apenas desejável: a **FR-024 da spec
+    # 045** aceita o risco de agregação — quem alcança muitos itens reconstrói por
+    # acumulação o que o veredito recusa direto — e aponta o **registro de acesso** como o
+    # caminho dele. Sem esta chamada, o H4 não existe para o efeito de que aquela FR
+    # precisa, e a FR fica apoiada em nada.
+    conn = log_in(ctx.conn, ctx.estranha)
+
+    log = capture_log(fn -> {:ok, _live, _html} = live(conn, ~p"/people/#{ctx.alvo.id}") end)
+
+    assert log =~ "painel recusado", """
+    A conta estranha abriu o painel de uma pessoa que o veredito recusa, e o evento não
+    foi registrado. Amanhã, à pergunta "esta conta tentou ler o painel de alguém?", a
+    resposta continua sendo "não se sabe" — que é exactamente o que o H4 existe para
+    mudar.
+    """
+
+    assert log =~ ctx.alvo.id, "sem o alvo, o registro não diz de quem era o painel"
   end
 
   test "a administração VÊ o login em todas — e é o que prova que o refute acima não é vazio",

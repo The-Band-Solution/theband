@@ -133,7 +133,7 @@ defmodule TheBand.Tenants.Auth do
     Repo.one(from t in Tenant, where: t.id == ^tenant_id, select: t.status) == "active"
   end
 
-  defp fora_da_janela(%User{failed_attempts: n, last_failed_at: em}) do
+  defp fora_da_janela(%User{failed_attempts: n, last_failed_at: em} = user) do
     espera = espera_segundos(n)
 
     if espera > 0 and em != nil do
@@ -141,6 +141,14 @@ defmodule TheBand.Tenants.Auth do
       restante = DateTime.diff(liberacao, DateTime.utc_now(:second), :second)
 
       if restante > 0 do
+        # A ESPERA REGISTRADA — achado H4, e ela faltava.
+        #
+        # O `{:throttled, s}` morria no retorno: quem investiga uma campanha precisa saber
+        # que a espera crescente disparou, e quantas vezes. `AccessEvents.espera_acionada/3`
+        # existia escrita e **nunca era chamada** — recusa do papel Product Owner na
+        # avaliação da v0.7.0, e ela estava certa: função documentada e sem call site é
+        # pior que ausência, porque quem faz `grep` conclui que está registrado.
+        AccessEvents.espera_acionada(user.id, user.tenant_id, restante)
         {:error, {:throttled, restante}}
       else
         :ok

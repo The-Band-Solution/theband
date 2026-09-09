@@ -42,6 +42,7 @@ defmodule TheBandWeb.PeopleLive.Show do
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
   alias TheBand.Quality.Verdict
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants
   alias TheBand.Tenants.User
   alias TheBand.Verification
@@ -278,6 +279,25 @@ defmodule TheBandWeb.PeopleLive.Show do
     # liderança declarada (#369) somada por último. O Visibility continua dono da
     # regra de liderança; quem decide acesso nas telas é o Access (FR-010/022).
     {alcance, motivo} = Tenants.pode_ver(tenant, socket.assigns.current_user, pessoa.id)
+
+    # A RECUSA REGISTRADA — achado H4, e ela faltava aqui.
+    #
+    # `AccessEvents.painel_recusado/4` existia escrita, documentada e **sem nenhum call
+    # site** — recusa do papel Product Owner na avaliação da v0.7.0. Função documentada e
+    # nunca chamada é pior que ausência: quem faz `grep` conclui que está registrado.
+    #
+    # E há uma razão específica que a torna obrigatória: a **FR-024 da spec 045** aceita o
+    # risco de agregação — alguém que alcança muitos itens reconstrói por acumulação o que
+    # o veredito recusa direto — e aponta o registro de acesso como o caminho dele. Sem
+    # esta chamada, o H4 não existe para o efeito de que aquela FR precisa.
+    if alcance == :nao do
+      AccessEvents.painel_recusado(
+        socket.assigns.current_user.id,
+        tenant.id,
+        pessoa.id,
+        motivo
+      )
+    end
 
     serie =
       if alcance == :ok,

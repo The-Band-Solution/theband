@@ -100,7 +100,9 @@ nenhum escopo subtrai outro.
   a organização como alvo — nunca derivado. É o "dono da organização" no vocabulário
   da plataforma.
 - **administrador** sai do eixo da visão: é quem **mexe** — contas, concessões,
-  ferramentas, credenciais. Ser administrador não abre painel nenhum; quem administra
+  ferramentas, credenciais. ~~Ser administrador não abre painel nenhum~~ — **a FR-022 foi
+  emendada em 2026-09-09**, e administração do próprio tenant passou a abrir painel de
+  pessoa; ver a emenda. Quem administra
   e também precisa ver recebe organization por concessão, como qualquer conta.
 
 A tela de gestão mostra, por conta, todos os escopos vigentes — derivados com hachura
@@ -405,7 +407,9 @@ e senha, sair, e entrar de novo com a senha nova.
   e quando). person é piso implícito do elo vigente, não um registro. Vocabulário da
   plataforma — não é o papel organizacional da ontologia.
 - **Papel de administrador**: marca da conta que pode mexer — contas, concessões,
-  ferramentas, credenciais. Não abre painel nenhum (FR-022).
+  ferramentas, credenciais. ~~Não abre painel nenhum (FR-022)~~ — **emendada em
+  2026-09-09**: administração do próprio tenant abre painel de pessoa, e a razão está na
+  emenda da FR-022.
 - **Sessão**: o período entre entrada e saída de uma conta. Expira por tempo, encerra
   por logout, e cai quando a senha da conta muda.
 - **Elo com pessoa observada**: já existe (declarado, revogável, com proveniência). O
