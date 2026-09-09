@@ -22,7 +22,7 @@ IMAGEM ?= theband:dev
 .PHONY: ajuda run down setup servidor teste gates gates-log formatar mensagens \
         chave banco-sobe banco-derruba imagem imagem-sem-env producao-sobe \
         producao-derruba producao-logs producao-confere producao-sem-chave \
-        ensaio-restauracao limpar
+        ensaio-restauracao docs docs-servir limpar
 
 ajuda:
 	@echo ""
@@ -42,6 +42,10 @@ ajuda:
 	@echo "    make gates-log            idem, com o log em $(LOG_GATES) e o EXIT na última linha"
 	@echo "    make formatar             mix format"
 	@echo "    make mensagens            literais fora do catálogo + lacunas de tradução"
+	@echo ""
+	@echo "  documentação"
+	@echo "    make docs                 constrói o site em MODO ESTRITO — link quebrado reprova"
+	@echo "    make docs-servir          serve o site em localhost:8000, recarregando"
 	@echo ""
 	@echo "  produção (ensaio local da MESMA imagem que o CD publica)"
 	@echo "    make imagem               builda a imagem, log em $(LOG_BUILD)"
@@ -188,6 +192,29 @@ ensaio-restauracao:
 	@docker compose --profile producao exec -T postgres_prod \
 	  psql -U postgres -d band_restore -t \
 	  -c "select 'eo_people='||(select count(*) from eo_people)||' eo_teams='||(select count(*) from eo_teams)||' eo_organizations='||(select count(*) from eo_organizations);"
+
+# ── documentação ──────────────────────────────────────────────────────────────
+
+# O MESMO comando do workflow `.github/workflows/docs.yml`. `--strict` transforma
+# link quebrado em falha de build, e não é rigor decorativo: foi ele que encontrou
+# os 118 links que ninguém via. Sem ele o site publica os 404 em silêncio.
+#
+# As dependências são as de `requirements-docs.txt`, fixadas com `==` porque o
+# site é publicado por workflow e versão flutuante quebra o build num dia em que
+# ninguém tocou na documentação. Fora de um ambiente com elas instaladas, o alvo
+# recusa NOMEANDO o que falta — em vez de reprovar por "tema não reconhecido",
+# que é a mensagem que o MkDocs dá quando falta o `mkdocs-material`.
+docs:
+	@command -v mkdocs >/dev/null 2>&1 || { \
+	  echo "mkdocs não está no PATH. Instale as dependências fixadas:"; \
+	  echo "  python3 -m venv .venv && .venv/bin/pip install -r requirements-docs.txt"; \
+	  echo "  .venv/bin/mkdocs build --strict"; \
+	  exit 1; \
+	}
+	mkdocs build --strict
+
+docs-servir:
+	mkdocs serve
 
 limpar:
 	rm -rf _build deps

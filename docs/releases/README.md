@@ -12,6 +12,31 @@ A versão vive no `mix.exs` — fonte única (contrato do pipeline). O CD lê, p
 `ghcr.io/the-band-solution/theband:vX.Y.Z`, cria a tag git e chama o webhook do
 Dokploy. Tag e imagem NASCEM do merge: não se tagueia à mão.
 
+## A lacuna: a v0.4.0 e a v0.5.0 saíram sem nota
+
+**Não existe `v0.4.0.md` nem `v0.5.0.md`.** As duas releases foram publicadas — a
+tag existe, a imagem existe, o merge na `main` aconteceu — e o registro que este
+diretório pede **não foi escrito**. A ausência fica aqui em vez de num arquivo
+inventado: escrever agora uma nota com o que se deduz do histórico produziria uma
+decisão do Product Owner que ninguém tomou, com a mesma aparência das outras
+quatro.
+
+O que existe no lugar, e é o que se pode afirmar:
+
+| Release | Tag | Data | PR de release | Também | Commits |
+|---|---|---|---|---|---|
+| **v0.4.0** | `v0.4.0` em `1b04c53` | 2026-09-03 | [#791](https://github.com/The-Band-Solution/theband/pull/791) — *"equipes declaradas, a tela da equipe complexa, e a 058 parcial (055, 056, 057, 058)"*, entrou por **squash** | back-merge [#793](https://github.com/The-Band-Solution/theband/pull/793) | 1 (o squash) |
+| **v0.5.0** | `v0.5.0` em `dda6239` | 2026-09-03 | [#795](https://github.com/The-Band-Solution/theband/pull/795) (`development → main`) | o bump e as pendências em [#794](https://github.com/The-Band-Solution/theband/pull/794); back-merge [#796](https://github.com/The-Band-Solution/theband/pull/796) | 64 desde a `v0.4.0` |
+
+O que **falta**, e é o que a nota existiria para dizer: o veredito de aceitação
+por user story, o que ficou de fora e por quê, a evidência do que o CD fez, as
+medidas do runbook §7, e o que se observou nas primeiras horas em produção.
+
+Parte disso é recuperável do registro da [v0.6.0](v0.6.0.md), que declara que a
+v0.4.0 subiu **sem a T014** com a issue já fechada, e que a v0.4.0 levou a
+feature 058 **parcial**. Recuperável não é escrito: quem retomar isto decide se
+escreve as duas notas em atraso, ou se registra que não serão escritas.
+
 ## O bump vive na `development`, e não numa branch de release
 
 **O commit que sobe a versão no `mix.exs` é feito na `development`, antes de

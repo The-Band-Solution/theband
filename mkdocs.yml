@@ -102,6 +102,10 @@ nav:
       - Modelo de dados: architecture/modelo-de-dados.md
       - Design system: design-system.md
 
+  - Funcionalidades:
+      - O que o produto faz: funcionalidades/README.md
+      - A tela da equipe: funcionalidades/tela-da-equipe.md
+
   - Ontologias:
       - Rede de ontologias: ontology/README.md
       - Índice de conceitos: ontology/concept-index.md
@@ -148,6 +152,7 @@ nav:
 
   - Releases:
       - Histórico: releases/README.md
+      - v0.6.0: releases/v0.6.0.md
       - v0.3.0: releases/v0.3.0.md
       - v0.2.0: releases/v0.2.0.md
       - v0.1.0: releases/v0.1.0.md
