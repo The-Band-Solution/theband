@@ -180,7 +180,11 @@ defmodule TheBandWeb.EquipeCompostaTest do
       assert has_element?(live, ~s|a[href="/teams/#{ctx.dados.id}"]|),
              "o cartão sem faísca continua porta"
 
-      assert html =~ "No work observed in this window"
+      assert html =~ "Nothing opened or closed in this window", """
+      A frase é sobre MOVIMENTO, e o cartão mostra estoque ao lado. Dizer "no work observed"
+      num cartão com `open 2` parece contradição — e as duas coisas são verdadeiras: há dois
+      itens abertos, e nenhum se moveu na janela.
+      """
     end
 
     test "o cartão dos membros DIRETOS não é porta — já estamos nesta tela", ctx do

@@ -32,6 +32,15 @@ defmodule TheBandWeb.TeamsLive.Show do
   # DIZ quando corta: mediana sobre 200 de 500 é outra medida com o mesmo rótulo.
   @limite_de_esperas 200
 
+  # Quantas tarefas por pessoa a seção lista antes de cortar — protótipo, decisão 20.
+  #
+  # Não é paginação: a pergunta é *o que cada um está fazendo*, e oito itens já a respondem.
+  # Sem o corte, uma pessoa com 114 abertas — existe — empurra as outras para fora da tela.
+  # **Função, e não atributo**: dentro de `~H` o `@` lê **assign**, e um atributo com o mesmo
+  # nome fica silenciosamente não usado enquanto o template levanta `KeyError` no render.
+  @teto_de_tarefas 8
+  defp teto_de_tarefas, do: @teto_de_tarefas
+
   # O teto de períodos que a pessoa pode pedir. Não é desconfiança: `?periodos=100000` em
   # granulação de semana pediria duas mil consultas de eixo e um SVG que nenhum navegador
   # desenha. Acima do teto, cai no padrão da granulação.
@@ -1159,8 +1168,18 @@ defmodule TheBandWeb.TeamsLive.Show do
         />
       </svg>
 
+      <%!-- A FRASE É SOBRE MOVIMENTO, e o cartão mostra ESTOQUE ao lado.
+
+            Dizia *"No work observed in this window — which is not the same as zero"* num
+            cartão que, na mesma caixa, exibia `open 2 · stopped 2`. As duas coisas são
+            verdadeiras e parecem contradição: há dois itens abertos, e **nenhum se moveu**
+            na janela — nada abriu nem fechou. Achado pelo QA em 2026-09-08.
+
+            A frase passou a dizer **o que de facto não houve**: movimento. O estoque continua
+            nos números, e é justamente a distância entre os dois que interessa — trabalho
+            parado é estoque sem movimento. --%>
       <p :if={is_nil(@faisca)} class="text-xs opacity-60">
-        No work observed in this window — which is not the same as zero.
+        Nothing opened or closed in this window — the items below are stock, not movement.
       </p>
     </div>
     """
@@ -1669,6 +1688,11 @@ defmodule TheBandWeb.TeamsLive.Show do
           the items already open when the window began. Starting from zero would measure only
           the items born inside this window, and call that the open work.
         </p>
+        <%!-- A IDENTIDADE, escrita (protótipo, decisão 19). A distância entre as curvas é
+              derivada, e a fórmula é o que permite conferi-la sem confiar no desenho. --%>
+        <p class="mt-1 font-mono text-xs opacity-70">
+          open(t) = {@detalhe.aberto_inicial} + opened(t) − closed(t)
+        </p>
         <p class="mt-2 opacity-80">
           There is <strong>no committed scope</strong> here, so this does not answer whether a
           sprint finishes. And <em>closed</em> is the issue being closed at the source — an act
@@ -1908,6 +1932,25 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp destino_do_problema(team_id, "?tab=" <> _ = aba), do: ~p"/teams/#{team_id}" <> aba
   defp destino_do_problema(team_id, ancora), do: ~p"/teams/#{team_id}" <> ancora
 
+  # O DESTAQUE `**assim**` da base de conhecimento, sem injetar HTML.
+  #
+  # Devolve pares `{texto, forte?}` para a tela montar a marcação. É deliberado não devolver
+  # HTML: o texto vem de YAML que quem mantém a base edita, e transformá-lo em markup faria
+  # de um arquivo de conhecimento uma porta de injeção — mesmo sendo hoje um arquivo do
+  # repositório.
+  #
+  # Ímpar/par: fora dos `**` é texto normal, dentro é forte. `**` desemparelhado deixa o resto
+  # normal, que é a degradação certa — pior seria engolir o texto.
+  defp com_enfase(nil), do: []
+
+  defp com_enfase(texto) do
+    texto
+    |> String.split("**")
+    |> Enum.with_index()
+    |> Enum.reject(fn {parte, _i} -> parte == "" end)
+    |> Enum.map(fn {parte, i} -> {parte, rem(i, 2) == 1} end)
+  end
+
   # A MARCA DO CONCEITO — o que o item É, em três letras, antes do título.
   #
   # As quatro que aparecem no dado real: `TASK`, `US`, `EPIC` e `BUG`. A quarta não estava no
@@ -1930,11 +1973,18 @@ defmodule TheBandWeb.TeamsLive.Show do
     assigns = assign(assigns, :marca, marca(assigns.conceito))
 
     ~H"""
-    <span
-      class={["badge badge-sm shrink-0 font-mono text-[0.65rem]", @marca.classe]}
-      title={@marca.titulo}
-    >
-      {@marca.texto}
+    <%!-- VÃO FIXO de 3.5 rem, com o chip à direita — protótipo, decisão 17.
+
+          Sem ele, as cinco marcas têm larguras diferentes e cada título começa num x
+          diferente: quinze itens, quinze bordas esquerdas irregulares. O vão custa alguns
+          pixels e devolve uma coluna de títulos que o olho percorre em linha reta. --%>
+    <span class="inline-flex w-14 shrink-0 justify-end">
+      <span
+        class={["badge badge-sm font-mono text-[0.65rem]", @marca.classe]}
+        title={@marca.titulo}
+      >
+        {@marca.texto}
+      </span>
     </span>
     """
   end
@@ -2270,7 +2320,19 @@ defmodule TheBandWeb.TeamsLive.Show do
         <%!-- Ausência DITA, e a pessoa não some da lista (FR-021). --%>
         <p :if={p.tarefas == []} class="ml-4 text-sm opacity-70">No open task assigned</p>
 
-        <div :for={t <- p.tarefas} class="ml-4 flex flex-wrap items-baseline gap-2 text-sm">
+        <%!-- A LISTA CORTA EM OITO, e diz quantas ficaram (protótipo, decisão 20).
+
+              Sem o corte, uma pessoa com 114 itens abertos — existe, no SQUAD PINK — empurra
+              a seção inteira para fora da tela, e as outras quatro pessoas da equipe deixam
+              de ser vistas. O corte não esconde: diz o número que ficou e leva ao perfil, que
+              é onde a lista inteira mora.
+
+              **Não** é paginação: a pergunta desta seção é *o que cada um está fazendo*, e
+              oito itens já a respondem. Quem precisa dos 114 precisa da tela da pessoa. --%>
+        <div
+          :for={t <- Enum.take(p.tarefas, teto_de_tarefas())}
+          class="ml-4 flex flex-wrap items-baseline gap-2 text-sm"
+        >
           <%!-- A MARCA DO CONCEITO, no lugar do identificador da origem — pedido da pessoa
                 mantenedora em 2026-09-08.
 
@@ -2297,6 +2359,13 @@ defmodule TheBandWeb.TeamsLive.Show do
             stopped · over {Material.stale_days()} d
           </span>
         </div>
+
+        <p :if={length(p.tarefas) > teto_de_tarefas()} class="ml-4 text-xs opacity-70">
+          … {length(p.tarefas) - teto_de_tarefas()} more open items ·
+          <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover">
+            open the person →
+          </.link>
+        </p>
 
         <%!-- AS HABILIDADES — feature 057, FR-022 a FR-024. Mesma gramática da
               tela de pessoa: pílulas âmbar tracejadas e hachuradas, porque são
@@ -2532,8 +2601,11 @@ defmodule TheBandWeb.TeamsLive.Show do
     x_de = fn semana -> Float.round((semana - 1) * largura, 2) end
 
     [
-      {p.congelado, "if nothing new opened", "text-primary", "congelado"},
-      {p.vivo, "if work keeps arriving as it has", "text-warning", "vivo"}
+      # Os nomes entre parênteses são os DECLARADOS em `flow.completion.forecast`. Sem eles,
+      # a tela descreve as hipóteses e não as nomeia — e quem procurar a medida na base não
+      # acha o que está vendo (princípio IV).
+      {p.congelado, "if nothing new opened · frozen scope", "text-primary", "congelado"},
+      {p.vivo, "if work keeps arriving as it has · live scope", "text-warning", "vivo"}
     ]
     |> Enum.map(fn {hipotese, rotulo, classe, chave} ->
       barras = barras_do_histograma(hipotese, horizonte, largura, x_de)
@@ -4076,8 +4148,26 @@ defmodule TheBandWeb.TeamsLive.Show do
           <div :for={a <- @antipadroes_da_estrutura} class="alert alert-warning items-start text-sm">
             <div>
               <div class="font-semibold">{a.nome}</div>
-              <p class="mt-1 opacity-90">{a.afirmacao}</p>
-              <p class="mt-1 opacity-80">{a.consequencia}</p>
+              <%!-- O texto vem da base de conhecimento, e lá o destaque é `**assim**`. A tela
+                    imprimia os asteriscos crus — quatro caracteres que se leem como texto de
+                    debug esquecido. `com_enfase/1` os converte em `<strong>` **sem** injetar
+                    HTML: parte a string e a tela decide a marcação, então texto da base nunca
+                    vira markup.
+
+                    A LÍNGUA é outro problema, e não é deste commit: a regra só tem `pt-BR`,
+                    nenhuma regra da base tem tradução, e a interface serve em inglês. Está
+                    registrado desde 2026-09-01 em `docs/backlog/portugues-na-interface.md`.
+                    Traduzir só esta regra deixaria a base inconsistente. --%>
+              <p class="mt-1 opacity-90">
+                <span :for={{texto, forte?} <- com_enfase(a.afirmacao)}>
+                  <strong :if={forte?}>{texto}</strong><span :if={not forte?}>{texto}</span>
+                </span>
+              </p>
+              <p class="mt-1 opacity-80">
+                <span :for={{texto, forte?} <- com_enfase(a.consequencia)}>
+                  <strong :if={forte?}>{texto}</strong><span :if={not forte?}>{texto}</span>
+                </span>
+              </p>
               <div class="mt-1 font-mono text-xs opacity-60">
                 {a.id} · {a.membros_vigentes} active membership(s)
               </div>

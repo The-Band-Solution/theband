@@ -219,7 +219,7 @@ defmodule TheBandWeb.MarcaDoConceitoTest do
       # do próprio item. Afirmar sobre a seção afirmava sobre badges que não são o conceito.
       #
       # A marca tem prefixo de classe próprio, e é sobre ele que se afirma.
-      marcas = Regex.scan(~r/class="(badge badge-sm shrink-0 font-mono[^"]*)"/, html)
+      marcas = Regex.scan(~r/class="(badge badge-sm font-mono[^"]*)"/, html)
       assert marcas != [], "não achei nenhuma marca de conceito na página"
 
       classes = Enum.map_join(marcas, " ", &List.last/1)
@@ -250,7 +250,7 @@ defmodule TheBandWeb.MarcaDoConceitoTest do
       {:ok, _live, html} = painel(ctx)
 
       classes =
-        Regex.scan(~r/class="(badge badge-sm shrink-0 font-mono[^"]*)"/, html)
+        Regex.scan(~r/class="(badge badge-sm font-mono[^"]*)"/, html)
         |> Enum.map_join(" ", &List.last/1)
 
       refute classes =~ "badge-ghost", """
