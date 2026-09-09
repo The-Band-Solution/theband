@@ -203,6 +203,9 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       archived_at: parse_datetime(node["archivedAt"]),
       external_created_at: parse_datetime(node["createdAt"]),
       last_pushed_at: parse_datetime(node["pushedAt"]),
+      # O sinal do corte das issues — ver `percorrer?/2`. `nil` quando o repositório não
+      # tem issue nenhuma, e aí o corte responde `:sim`, como para qualquer data ausente.
+      last_issue_activity_at: atividade_de_issue(node),
       source_system: "github",
       source_instance: ctx.tool.instance_url,
       external_id: node["id"]
@@ -212,24 +215,70 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # ------------------------------------------------------------------------ issues
 
   @doc false
+  # A issue mais recentemente atualizada do repositório, ou `nil`.
+  #
+  # `last: 1` com ordem ASC devolve a última da lista ascendente — a mais recente. Um
+  # repositório sem issue devolve lista vazia, e `nil` faz o corte responder `:sim`.
+  defp atividade_de_issue(node) do
+    node
+    |> get_in(["issues", "nodes"])
+    |> case do
+      [%{"updatedAt" => quando} | _] -> parse_datetime(quando)
+      _ -> nil
+    end
+  end
+
   # O repositório é percorrido, ou pulado com motivo — FR-005, FR-006, contrato seção 3.
   #
-  # A comparação é entre o **último push na origem** e a **última revisão completa** das issues
-  # daquele repositório. Se ninguém empurrou nada desde que a plataforma leu, nada pode ter
-  # mudado, e a consulta é gasto sem retorno: medido em 2026-08-14, **106 dos 121**
-  # repositórios da `leds-conectafapes` estavam nessa situação.
+  # A comparação é entre a **atividade de issue mais recente na origem** e a **última revisão
+  # completa** das issues daquele repositório.
+  #
+  # ## Era `pushedAt`, e a premissa estava errada — corrigido em 2026-09-09
+  #
+  # O corte comparava com o último **push de código**, sob a premissa escrita de que *"se
+  # ninguém empurrou nada desde que a plataforma leu, nada pode ter mudado"*.
+  #
+  # **Atividade de issue não é push.** Abrir, fechar, comentar e apagar não mexem no
+  # `pushedAt`. Então um repositório de **quadro** — onde se trabalha em issue e ninguém
+  # empurra código — era pulado para sempre, e as issues dele congelavam no último estado
+  # lido.
+  #
+  # Medido em 2026-09-09 contra a API, e é o que sustenta esta mudança:
+  #
+  #     plataformas-project    pushedAt=21/jul   issue fechada no dia da medição
+  #     conectafapes-project   pushedAt=hoje     (este não sofria)
+  #
+  # São **712** e **2 669** issues nos dois. A pessoa mantenedora achou por dois casos: uma
+  # issue apagada na origem que a tela mostrava aberta, e uma fechada que a tela mostrava
+  # aberta. **Um mecanismo, dois sintomas.**
+  #
+  # ## E `updatedAt` do repositório NÃO serve — também medido
+  #
+  # Nos dois repositórios ele estava **mais antigo** que o `pushedAt`: 28/abr e 03/set. Trocar
+  # um pelo outro teria piorado o corte, com o teste continuando verde. Foi a medida que
+  # impediu.
+  #
+  # O sinal que serve é a issue mais recentemente atualizada, que vem **na mesma consulta** de
+  # repositórios (`issues(last: 1, orderBy: UPDATED_AT ASC)`) — então não custa requisição.
   #
   # **Data ausente responde `:sim`, nas duas pontas.** Repositório nunca revisto tem de ser
-  # percorrido, e origem que não informou push não autoriza concluir que não houve — ausência
-  # de data não é ausência de mudança, que é a L47.
+  # percorrido; repositório sem issue nenhuma não autoriza concluir nada — ausência de data não
+  # é ausência de mudança, que é a L47.
   #
-  # **O falso positivo é aceito e o falso negativo não.** Um commit que não mexe em issue muda
-  # o `pushedAt` e faz o repositório ser lido à toa: custa uma consulta. O contrário custaria
-  # dado que não chega.
-  def percorrer?(%{last_pushed_at: nil}, _observado), do: :sim
+  # **O falso positivo é aceito e o falso negativo não.** Um comentário que não muda estado
+  # move a data e faz o repositório ser lido à toa: custa uma consulta. O contrário custa dado
+  # que não chega — e era o que estava acontecendo.
+  #
+  # ## O resíduo, declarado
+  #
+  # **Apagar uma issue não move o sinal** — ela deixou de existir. Qualquer outra atividade no
+  # repositório o move, e aí `mark_issues_no_longer_observed/3` pega a apagada. O que fica é o
+  # repositório onde uma issue é apagada e **nada mais acontece nunca**: ver
+  # `docs/backlog/revisao-periodica-completa.md`.
+  def percorrer?(%{last_issue_activity_at: nil}, _observado), do: :sim
   def percorrer?(_source, %{issues_collected_at: nil}), do: :sim
 
-  def percorrer?(%{last_pushed_at: push}, observado) do
+  def percorrer?(%{last_issue_activity_at: atividade}, observado) do
     # Issue #452 aplicada a esta fase pela #368. O corte responde "já percorri este
     # repositório"; quando a consulta ganha um campo, a pergunta vira "já percorri COM ESTA
     # CONSULTA", e as duas só coincidem até alguém acrescentar campo.
@@ -242,8 +291,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
       not QueryVersion.corte_vale?(Map.get(observado, :query_versions), "issues") ->
         :sim
 
-      DateTime.compare(push, observado.issues_collected_at) == :lt ->
-        {:nao, :sem_push_desde_a_revisao}
+      DateTime.compare(atividade, observado.issues_collected_at) == :lt ->
+        {:nao, :sem_atividade_de_issue_desde_a_revisao}
 
       true ->
         :sim
@@ -256,7 +305,18 @@ defmodule TheBand.Ingestion.GithubWorkItems do
          observado: observado,
          node: node
        }) do
-    case percorrer?(repo, observado) do
+    # O SINAL VEM DO NÓ RECÉM-LIDO, e não do repositório persistido — e é a diferença
+    # que faz o corte funcionar.
+    #
+    # `repo` é o `SourceRepository` gravado, e ele **não** guarda a atividade de issue:
+    # persistir esse campo seria uma coluna que só o corte lê, e que envelhece entre
+    # coletas. A pergunta do corte é *"a origem mudou desde que eu li?"* — e o lado
+    # "origem" é o nó que acabou de chegar.
+    #
+    # A primeira versão desta mudança passava `repo`, e o teste de integração reprovou com
+    # `FunctionClauseError` — o struct não tem a chave. Foi o teste que apontou o lugar
+    # certo de ler.
+    case percorrer?(%{last_issue_activity_at: atividade_de_issue(node)}, observado) do
       {:nao, motivo} -> pular(ctx, repo, observado_id, motivo)
       :sim -> percorrer_issues(ctx, repo, observado_id, node)
     end
