@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Band — o produto: para quem é, o que faz, e em que versão está</title>
+<meta name="description" content="Para quem é o The Band, as funcionalidades que já existem, os conceitos da rede de ontologias, e o histórico de versões em produção.">
+<link rel="canonical" href="https://theband.dev/produto/">
+<style>
+  :root {
+    --papel: #f1f4f2;
+    --tinta: #17211c;
+    --tinta-2: #4c5c55;
+    --verdete: #2c6b60;
+    --verdete-forte: #1d5a50;
+    --verdete-fundo: #e3ece8;
+    --latao: #96731f;
+    --latao-fundo: #f4eddb;
+    --pauta: #c9d4ce;
+    --cartao: #fafcfa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --papel: #101816;
+      --tinta: #dee8e2;
+      --tinta-2: #93a69d;
+      --verdete: #5fa294;
+      --verdete-forte: #7dbcae;
+      --verdete-fundo: #16241f;
+      --latao: #c9a24b;
+      --latao-fundo: #241d0f;
+      --pauta: #26332d;
+      --cartao: #151f1b;
+    }
+  }
+
+  :root[data-tema="escuro"] {
+    --papel: #101816;
+    --tinta: #dee8e2;
+    --tinta-2: #93a69d;
+    --verdete: #5fa294;
+    --verdete-forte: #7dbcae;
+    --verdete-fundo: #16241f;
+    --latao: #c9a24b;
+    --latao-fundo: #241d0f;
+    --pauta: #26332d;
+    --cartao: #151f1b;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { color-scheme: light dark; }
+
+  body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: Seravek, "Gill Sans Nova", "Gill Sans", Calibri, "Segoe UI", sans-serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .serif { font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Book Antiqua", Georgia, serif; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  .env { width: 100%; max-width: 58rem; margin: 0 auto; padding: 0 1.5rem; }
+
+  a { color: var(--verdete); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  ::selection { background: var(--verdete); color: var(--papel); }
+  abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+
+  /* ── barra do topo ── */
+
+  .barra-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: .9rem 1.5rem;
+    border-bottom: 1px solid var(--pauta);
+    background: var(--cartao);
+  }
+
+  .barra-topo nav { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; font-size: .88rem; }
+  .barra-topo .marca { font-weight: 600; color: var(--tinta); text-decoration: none; }
+  .barra-topo .marca:hover { color: var(--verdete); }
+  .barra-topo .aqui { color: var(--tinta-2); }
+
+  .entrar {
+    display: inline-block;
+    padding: .42rem .95rem;
+    border-radius: 999px;
+    background: var(--verdete);
+    color: var(--papel);
+    font-size: .86rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .entrar:hover { background: var(--verdete-forte); }
+
+  /* ── abertura ── */
+
+  header.abre { padding: 3.2rem 0 2.2rem; }
+
+  .assinatura {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--tinta-2);
+    margin-bottom: 1.1rem;
+  }
+
+  h1 {
+    font-size: clamp(2.1rem, 5.4vw, 3.3rem);
+    line-height: 1.06;
+    font-weight: 500;
+    margin: 0 0 1rem;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+  }
+
+  h1 em { font-style: italic; color: var(--verdete); }
+
+  .chamada { font-size: 1.16rem; line-height: 1.55; color: var(--tinta-2); max-width: 40rem; margin: 0; }
+
+  /* ── seções ── */
+
+  section { padding: 2.6rem 0 0; }
+
+  h2 {
+    font-size: clamp(1.45rem, 3.2vw, 1.95rem);
+    font-weight: 500;
+    line-height: 1.18;
+    margin: 0 0 .5rem;
+    letter-spacing: -.012em;
+    text-wrap: balance;
+  }
+
+  h2 .num { color: var(--latao); margin-right: .55rem; font-style: italic; }
+  h2 em { font-style: italic; color: var(--verdete); }
+
+  .sub { color: var(--tinta-2); margin: 0 0 1.2rem; max-width: 44rem; }
+
+  h3 { font-size: 1.02rem; font-weight: 600; margin: 0 0 .3rem; }
+
+  p { max-width: 44rem; }
+
+  strong { font-weight: 600; }
+
+  /* ── público ── */
+
+  .publico { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; margin-top: 1.3rem; }
+
+  .quem {
+    background: var(--cartao);
+    border: 1px solid var(--pauta);
+    border-left: 3px solid var(--verdete);
+    border-radius: 5px;
+    padding: 1.15rem 1.25rem;
+  }
+
+  .quem .papel {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .68rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--verdete);
+    display: block;
+    margin-bottom: .35rem;
+  }
+
+  .quem p { font-size: .93rem; margin: 0; color: var(--tinta-2); max-width: none; }
+  .quem .pergunta { font-family: "Iowan Old Style", Palatino, Georgia, serif; color: var(--tinta); font-size: 1rem; margin-bottom: .45rem; }
+
+  .nao-e {
+    margin-top: 1.4rem;
+    border: 1px dashed var(--pauta);
+    border-radius: 5px;
+    padding: 1.1rem 1.25rem;
+    background: transparent;
+  }
+
+  .nao-e h3 { color: var(--latao); }
+  .nao-e ul { margin: .5rem 0 0; padding-left: 1.15rem; }
+  .nao-e li { font-size: .93rem; color: var(--tinta-2); margin-bottom: .3rem; }
+
+  /* ── funcionalidades ── */
+
+  .funcs { display: flex; flex-direction: column; gap: 1.1rem; margin-top: 1.3rem; }
+
+  .func {
+    background: var(--cartao);
+    border: 1px solid var(--pauta);
+    border-radius: 5px;
+    padding: 1.2rem 1.35rem;
+  }
+
+  .func > .cabeca { display: flex; align-items: baseline; justify-content: space-between; gap: .8rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  .func h3 { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.2rem; font-weight: 500; margin: 0; }
+  .func .tela { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .74rem; color: var(--verdete); background: var(--verdete-fundo); padding: .12rem .45rem; border-radius: 3px; }
+  .func p { font-size: .95rem; margin: 0 0 .6rem; }
+  .func ul { margin: .5rem 0 0; padding-left: 1.15rem; }
+  .func li { font-size: .93rem; color: var(--tinta-2); margin-bottom: .28rem; }
+  .func li strong { color: var(--tinta); }
+
+  /* ── números ── */
+
+  .placa { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); border: 1px solid var(--pauta); border-radius: 5px; overflow: hidden; margin: 1.3rem 0; }
+  .placa > div { padding: .95rem 1.1rem; border-right: 1px solid var(--pauta); background: var(--cartao); }
+  .placa > div:last-child { border-right: 0; }
+  .placa b { display: block; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; font-size: 1.45rem; font-weight: 500; color: var(--verdete); line-height: 1.1; }
+  .placa span { font-size: .8rem; color: var(--tinta-2); }
+
+  /* ── tabelas ── */
+
+  .rolo { overflow-x: auto; margin: 1.2rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 28rem; }
+  th { text-align: left; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .68rem; letter-spacing: .07em; text-transform: uppercase; color: var(--tinta-2); font-weight: 500; padding: .5rem .8rem .5rem 0; border-bottom: 1px solid var(--pauta); white-space: nowrap; }
+  td { padding: .55rem .8rem .55rem 0; border-bottom: 1px solid var(--pauta); vertical-align: top; color: var(--tinta-2); }
+  td:first-child { color: var(--tinta); }
+  td.n { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; text-align: right; padding-right: 1.2rem; }
+
+  /* ── as três proveniências ── */
+
+  .prov { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: .9rem; margin: 1.3rem 0; }
+  .p1, .p2, .p3 { border-radius: 5px; padding: 1rem 1.15rem; border: 1px solid var(--pauta); }
+  .p1 { background: var(--verdete-fundo); border-color: var(--verdete); }
+  .p2 { background: var(--cartao); }
+  .p3 { background: var(--latao-fundo); border-color: var(--latao); border-style: dashed; }
+  .prov h3 { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
+  .p1 h3 { color: var(--verdete); }
+  .p2 h3 { color: var(--tinta-2); }
+  .p3 h3 { color: var(--latao); }
+  .prov p { font-size: .9rem; margin: 0; color: var(--tinta-2); max-width: none; }
+
+  /* ── versões ── */
+
+  .versoes { margin-top: 1.3rem; }
+
+  .versao {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 1.2rem;
+    padding: 1.05rem 0;
+    border-top: 1px solid var(--pauta);
+    align-items: start;
+  }
+  .versao:last-child { border-bottom: 1px solid var(--pauta); }
+
+  .versao .tag { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .92rem; color: var(--verdete); font-weight: 600; }
+  .versao .data { display: block; font-size: .72rem; color: var(--tinta-2); font-weight: 400; margin-top: .1rem; }
+  .versao h3 { font-family: "Iowan Old Style", Palatino, Georgia, serif; font-size: 1.08rem; font-weight: 500; margin: 0 0 .25rem; }
+  .versao p { font-size: .93rem; margin: 0; color: var(--tinta-2); max-width: none; }
+  .versao.atual .tag { color: var(--latao); }
+  .versao.atual h3::after { content: " · no ar"; font-family: ui-monospace, monospace; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--latao); font-weight: 500; }
+  .versao.sem-nota .tag { color: var(--tinta-2); }
+
+  /* ── citação ── */
+
+  blockquote {
+    margin: 1.5rem 0;
+    padding: 0 0 0 1.2rem;
+    border-left: 3px solid var(--verdete);
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    max-width: 40rem;
+  }
+
+  /* ── fecho ── */
+
+  .fecho { margin-top: 2.8rem; background: var(--cartao); border: 1px solid var(--pauta); border-radius: 5px; padding: 1.8rem; }
+  .fecho h2 { margin-bottom: .6rem; }
+  .acao { margin: 1.4rem 0 0; display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+  .botao { display: inline-block; padding: .58rem 1.2rem; border-radius: 999px; background: var(--verdete); color: var(--papel); font-weight: 600; font-size: .94rem; text-decoration: none; }
+  .botao:hover { background: var(--verdete-forte); }
+  .botao.vazado { background: transparent; border: 1.5px solid var(--verdete); color: var(--verdete); }
+
+  footer { margin-top: 2.6rem; border-top: 1px solid var(--pauta); padding: 1.5rem 0 2.4rem; font-size: .85rem; color: var(--tinta-2); }
+  footer .faixa { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  footer p { max-width: 46rem; margin: .4rem 0 0; }
+</style>
+</head>
+<body>
+
+<div class="barra-topo">
+  <nav>
+    <a class="marca" href="/">The Band</a>
+    <span class="aqui">·&nbsp; o produto</span>
+    <a href="/docs/">Documentação técnica</a>
+    <span class="aqui" lang="en">· English version pending</span>
+  </nav>
+  <a class="entrar" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+</div>
+
+<div class="env">
+
+  <header class="abre">
+    <div class="assinatura">The Band · integração semântica de dados de engenharia</div>
+    <h1 class="serif">Uma pergunta de gestão, respondida com <em>dado que se pode conferir.</em></h1>
+    <p class="chamada">
+      O The Band coleta os dados das ferramentas que a sua equipe já usa, traduz todas para
+      <strong>uma linguagem só</strong>, e responde as perguntas de quem gerencia — dizendo, em
+      cada número, <strong>de onde ele veio</strong>.
+    </p>
+  </header>
+
+  <section>
+    <h2 class="serif"><span class="num">I.</span>Para quem é</h2>
+    <p class="sub">
+      Três pessoas fazem perguntas diferentes sobre o mesmo trabalho. Hoje cada uma abre uma
+      ferramenta diferente, e nenhuma das três respostas conversa com as outras.
+    </p>
+
+    <div class="publico">
+      <div class="quem">
+        <span class="papel">quem gerencia a equipe</span>
+        <p class="pergunta serif">“Quem está na equipe, e o que cada um está fazendo?”</p>
+        <p>
+          Não a lista de quem tem acesso ao repositório: quem <strong>de facto</strong> aparece
+          no trabalho, com o papel que a organização declarou, e o que está aberto em nome de
+          cada um.
+        </p>
+      </div>
+      <div class="quem">
+        <span class="papel">quem responde pela entrega</span>
+        <p class="pergunta serif">“O que precisa do meu olhar hoje?”</p>
+        <p>
+          Itens que atravessaram o limiar, revisão que ninguém leu, trabalho parado, gente sem
+          tarefa — cada um com o limiar escrito ao lado, para o número poder ser questionado.
+        </p>
+      </div>
+      <div class="quem">
+        <span class="papel">quem responde pela organização</span>
+        <p class="pergunta serif">“As várias equipes cabem numa mesma leitura?”</p>
+        <p>
+          Uma equipe feita de equipes, comparada medida a medida — e <strong>sem
+          somar</strong>, porque a mesma pessoa está em duas subequipes e a mesma tarefa
+          aparece nas duas.
+        </p>
+      </div>
+    </div>
+
+    <div class="nao-e">
+      <h3>E para quem <em>não</em> é — dito antes de você descobrir</h3>
+      <ul>
+        <li>
+          <strong>não é ferramenta de trabalho.</strong> Ninguém abre issue, move cartão nem
+          revisa código aqui. A sua equipe continua nas ferramentas dela;
+        </li>
+        <li>
+          <strong>não é painel de produtividade individual.</strong> A leitura por pessoa
+          nomeada existe, e é restrita por decisão registrada: a própria pessoa, quem lidera a
+          equipe dela, e quem responde pela organização;
+        </li>
+        <li>
+          <strong>não mede atraso.</strong> A origem não registra prazo. Quando o The Band diz
+          “aberta há mais de 30 dias”, é uma linha que a organização escolheu — não uma
+          acusação;
+        </li>
+        <li>
+          <strong>não é para uma pessoa só.</strong> Numa equipe de um, a mediana da equipe
+          <em>é</em> a mediana daquela pessoa, com outro nome. A plataforma reconhece isso e
+          diz.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="serif"><span class="num">II.</span>O que já existe</h2>
+    <p class="sub">
+      <strong>27 telas em produção</strong>, agrupadas pela pergunta que respondem. Isto é o
+      que está no ar hoje — não um roteiro.
+    </p>
+
+    <div class="funcs">
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>A equipe: quem está nela, e o que cada um faz</h3>
+          <span class="tela mono">/teams/:id</span>
+        </div>
+        <p>
+          A tela mais completa da plataforma, e a que a versão em produção acabou de entregar.
+        </p>
+        <ul>
+          <li>
+            <strong>quem está na equipe</strong>, com a origem de cada afirmação: participação
+            observada na ferramenta, papel declarado por alguém, ou as duas lado a lado quando
+            discordam;
+          </li>
+          <li>
+            <strong>problemas agora</strong> — oito perguntas contadas, cada uma com o limiar e
+            a regra que o declara. E duas delas dizem <em>“não conferido”</em> em vez de zero,
+            porque a plataforma ainda não coleta o insumo;
+          </li>
+          <li>
+            <strong>o fluxo</strong> — abertos e fechados acumulados, em semana, mês ou ano, com
+            a identidade escrita para você conferir a distância entre as curvas;
+          </li>
+          <li>
+            <strong>prometido × entregue</strong>, com a definição operacional junto do título, e
+            a <strong>previsão de entrega</strong> como histograma de Monte Carlo — duas
+            hipóteses nomeadas, escopo congelado e escopo vivo;
+          </li>
+          <li>
+            <strong>papéis</strong>: declarar, trocar, encerrar e registrar equívoco. Nada é
+            apagado — saída tem data e autor, equívoco tem razão e autor.
+          </li>
+        </ul>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>A equipe feita de equipes</h3>
+          <span class="tela mono">/teams</span>
+        </div>
+        <p>
+          Um cartão por subequipe, mais os membros diretos. Cada cartão é porta para o painel
+          daquela subequipe, e traz o gráfico pequeno que responde <em>a forma</em> — abriu e
+          fechou junto, ou a distância cresceu?
+        </p>
+        <ul>
+          <li><strong>nenhum total</strong>, e a razão escrita na própria tela;</li>
+          <li>a tabela ao lado, para comparar em números alinhados — e ela continua sem gráfico, de propósito.</li>
+        </ul>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>A pessoa, e a competência lida do que ela fez</h3>
+          <span class="tela mono">/people/:id</span>
+        </div>
+        <p>
+          Habilidade <strong>derivada</strong> do trabalho concluído, e marcada como derivada —
+          nunca uma lista que alguém digitou sobre si mesmo.
+        </p>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>O trabalho, item a item, com a marca do que ele é</h3>
+          <span class="tela mono">/work</span>
+        </div>
+        <p>
+          Issues, solicitações de mudança, arquivos, repositórios e execuções de verificação.
+          Cada item traz o conceito que a regra de mapeamento lhe atribuiu — épico, história,
+          tarefa ou defeito — e não o rótulo cru da ferramenta.
+        </p>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>A coleta, e o que ela alcançou</h3>
+          <span class="tela mono">/syncs · /tools</span>
+        </div>
+        <p>
+          A ferramenta conectada com a credencial cifrada, a coleta que volta de onde parou
+          quando a origem impõe limite de taxa, e a execução com o que foi coletado,
+          transformado, rejeitado e duplicado.
+        </p>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>Quem vê o quê</h3>
+          <span class="tela mono">/access-scopes · /accounts · /roles</span>
+        </div>
+        <p>
+          O alcance de cada conta é <strong>derivado das relações vigentes</strong> — pessoa,
+          equipes, projetos declarados — e recalculado a cada acesso. Encerrou o vínculo, fechou
+          o escopo: sem tarefa noturna, sem coluna, sem segunda verdade.
+        </p>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2 class="serif"><span class="num">III.</span>Os conceitos: por que “issue” não é <em>uma</em> coisa</h2>
+    <p class="sub">
+      Cada ferramenta tem o seu vocabulário, e eles não coincidem. Somar números de ferramentas
+      diferentes sem resolver isso produz um painel que parece certo e responde outra pergunta.
+    </p>
+
+    <div class="placa">
+      <div><b>14</b><span>ontologias na rede</span></div>
+      <div><b>238</b><span>conceitos</span></div>
+      <div><b>175</b><span>relações</span></div>
+      <div><b>77</b><span>perguntas de competência</span></div>
+    </div>
+
+    <p>
+      A rede é <abbr title="Continuum de ontologias de Engenharia de Software da tese">Continuum</abbr>
+      + <abbr title="Software Engineering Ontology Network">SEON</abbr> sobre
+      <abbr title="Unified Foundational Ontology">UFO</abbr>, e vem de uma tese de doutorado
+      — não de um esquema desenhado para o produto.
+    </p>
+
+    <h3 style="margin-top:1.6rem">O que a rede não deixa confundir</h3>
+    <div class="rolo">
+      <table>
+        <thead>
+          <tr><th>não confunda</th><th>por quê</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pull request ≠ merge</td><td>um é solicitação de mudança; o outro é um evento distinto</td></tr>
+          <tr><td>Pessoa ≠ membro de equipe</td><td>membro é papel; participação é a relação contextual</td></tr>
+          <tr><td>Processo planejado ≠ executado</td><td>o que se pretendeu e o que aconteceu são registros separados</td></tr>
+          <tr><td>Caso de teste ≠ execução de teste</td><td>planejamento e execução não se somam</td></tr>
+          <tr><td>Code smell ≠ defeito</td><td>não conformidade não é defeito</td></tr>
+          <tr><td>Defect ≠ fault ≠ failure</td><td>falha é evento; defeito é disposição; o terceiro é o defeito manifestado</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:1.6rem">O caso que mais ensina</h3>
+    <p>
+      Uma <strong>issue do GitHub</strong> pode ser quatro coisas diferentes, e o rótulo da
+      origem não decide. Quem decide é uma regra declarada, com precedência escrita: um item com
+      partes que são histórias é <strong>épico</strong>; o mesmo item sem partes é
+      <strong>história atômica</strong>. Nesta base o tipo declarado na origem é
+      <strong>nulo em 778 de 1.154</strong> itens abertos — e a regra classifica todos.
+    </p>
+
+    <h3 style="margin-top:1.6rem">Nenhum dado externo entra sem mapeamento declarado</h3>
+    <p class="sub">
+      Com grau de equivalência, justificativa e limitações explícitas. Semelhança de nome nunca
+      basta. São <strong>22 mapeamentos</strong> hoje, e o grau de cada um está escrito:
+    </p>
+    <div class="rolo">
+      <table>
+        <thead><tr><th>equivalência</th><th class="n">qtd.</th><th>o que a marca afirma</th></tr></thead>
+        <tbody>
+          <tr><td>total</td><td class="n">3</td><td>a origem e o conceito da rede dizem a mesma coisa</td></tr>
+          <tr><td>parcial</td><td class="n">12</td><td>a origem cobre parte do conceito — e a parte que falta está escrita</td></tr>
+          <tr><td>derivada</td><td class="n">7</td><td>não há correspondência direta: uma regra decide, e a regra tem nome e versão</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:1.6rem">As três proveniências, nunca misturadas</h3>
+    <div class="prov">
+      <div class="p1">
+        <h3>observado</h3>
+        <p>a ferramenta mostra. Coletado, com data e origem.</p>
+      </div>
+      <div class="p2">
+        <h3>declarado</h3>
+        <p>alguém afirmou. Com quem afirmou, e quando.</p>
+      </div>
+      <div class="p3">
+        <h3>derivado</h3>
+        <p>uma regra concluiu. Com o nome e a versão da regra.</p>
+      </div>
+    </div>
+    <p>
+      A distinção nunca é feita só por cor: quem não distingue matiz continua lendo as três,
+      porque forma e texto também as separam.
+    </p>
+  </section>
+
+  <section>
+    <h2 class="serif"><span class="num">IV.</span>As versões</h2>
+    <p class="sub">
+      Cada release tem registro próprio, com o veredito de cada entregável — inclusive o que
+      embarcou <em>sem</em> aceitação, que fica dito e não escondido.
+    </p>
+
+    <div class="versoes">
+      <div class="versao atual">
+        <div class="tag mono">v0.6.0<span class="data">9 set 2026</span></div>
+        <div>
+          <h3>A tela da equipe</h3>
+          <p>
+            Quem está nela e de onde veio cada afirmação; declarar, trocar e encerrar papel; o
+            equívoco que nunca foi vínculo; <em>problemas agora</em> com os oito cartões; e o
+            fluxo em três granulações, com previsão por Monte Carlo. 124 commits, 24 solicitações
+            de mudança.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao sem-nota">
+        <div class="tag mono">v0.5.0<span class="data">3 set 2026</span></div>
+        <div>
+          <h3>Publicada sem nota de release</h3>
+          <p>
+            A tag existe e o que embarcou não foi escrito. A lacuna está registrada no histórico
+            em vez de preenchida com suposição — 64 commits desde a anterior, e o detalhe do que
+            eles traziam não se recupera com honestidade agora.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao sem-nota">
+        <div class="tag mono">v0.4.0<span class="data">3 set 2026</span></div>
+        <div>
+          <h3>Equipes declaradas e a equipe complexa — também sem nota</h3>
+          <p>
+            Entrou por <em>squash</em>, o que apagou o histórico dos commits individuais. O que
+            se sabe vem do título da solicitação de mudança e do registro da versão seguinte.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.3.0<span class="data">2026</span></div>
+        <div>
+          <h3>A origem declarada, e a barra que não mente</h3>
+          <p>Progresso de coleta que corresponde ao que de facto foi coletado.</p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.2.0<span class="data">2026</span></div>
+        <div>
+          <h3>A primeira conta nasce do ambiente</h3>
+          <p>Nenhuma senha inicial no código, e nenhuma conta padrão.</p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.1.0<span class="data">2026</span></div>
+        <div>
+          <h3>A primeira produção</h3>
+          <p>A plataforma no ar, com coleta, ontologias e as primeiras telas.</p>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:.9rem;color:var(--tinta-2)">
+      Duas releases saíram sem nota, e isso está escrito aqui pela mesma razão que a plataforma
+      escreve <em>“não conferido”</em> em vez de zero: a ausência de registro é informação, e
+      preenchê-la de memória seria inventar.
+      <a href="/docs/releases/">Ver o histórico completo →</a>
+    </p>
+  </section>
+
+  <section class="fecho">
+    <h2 class="serif">Notas não são <em>música.</em></h2>
+    <p>
+      Um número sem a origem é uma nota solta: pode estar certa e não se pode conferir. O The
+      Band existe para que cada resposta carregue de onde veio — o que a ferramenta
+      <strong>observou</strong>, o que alguém <strong>declarou</strong>, e o que uma regra
+      <strong>derivou</strong>, com o nome da regra ao lado.
+    </p>
+    <blockquote class="serif">
+      Zero e “não conferido” aparecem como o mesmo zero em qualquer painel. São afirmações
+      opostas: uma diz que se olhou e não se achou; a outra, que ninguém olhou.
+    </blockquote>
+    <p>
+      É por isso que esta plataforma escreve a ausência em palavras, não soma o que não forma
+      partição, e mostra as duas afirmações lado a lado quando a coleta e a declaração
+      discordam.
+    </p>
+    <div class="acao">
+      <a class="botao" href="https://app.theband.dev/sign-in">Entrar na plataforma</a>
+      <a class="botao vazado" href="/docs/">Documentação técnica</a>
+      <a class="botao vazado" href="https://github.com/The-Band-Solution/theband">Código no GitHub</a>
+    </div>
+  </section>
+
+  <footer>
+    <div class="faixa">
+      <span>
+        <abbr title="Continuum de ontologias de Engenharia de Software da tese">Continuum</abbr>
+        + <abbr title="Software Engineering Ontology Network">SEON</abbr> sobre
+        <abbr title="Unified Foundational Ontology">UFO</abbr>
+      </span>
+      <span><a href="/">Início</a> · <a href="/docs/">Documentação técnica</a></span>
+    </div>
+    <p>
+      Base científica: Paulo Sérgio dos Santos Júnior, <em>From Continuous Software Engineering
+      Reference Ontologies to the Integration of Data for Data-Driven Software Development</em>,
+      UFES, 2023.
+    </p>
+    <p>
+      Os números desta página vêm do repositório e do banco de desenvolvimento, e não de
+      estimativa: 14 ontologias, 238 conceitos, 175 relações e 77 perguntas de competência
+      somados do índice da rede; 22 mapeamentos contados na tabela de mapeamentos semânticos; 27
+      telas contadas nas rotas da aplicação.
+    </p>
+  </footer>
+
+</div>
+</body>
+</html>

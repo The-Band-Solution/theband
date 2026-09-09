@@ -83,6 +83,18 @@
   }
   html[lang="pt-BR"] .entrar[data-lang="pt"],
   html[lang="en"] .entrar[data-lang="en"] { display: inline-block; }
+
+  /* O LINK PARA A PÁGINA DO PRODUTO.
+     Vazado, e não cheio: `Entrar` é a ação principal desta página, e dois botões
+     preenchidos lado a lado disputariam a mesma atenção. */
+  .link-topo {
+    display: none; border: 1.5px solid var(--verdete); color: var(--verdete);
+    text-decoration: none; font-weight: 600; font-size: .85rem;
+    padding: .34rem .82rem; border-radius: 4px; white-space: nowrap;
+    background: var(--papel);
+  }
+  html[lang="pt-BR"] .link-topo[data-lang="pt"],
+  html[lang="en"] .link-topo[data-lang="en"] { display: inline-block; }
   /* em tela estreita fica só o verbo: a barra não pode cobrir o título */
   .amplo { display: none; }
   @media (min-width: 42rem) { .amplo { display: inline; } }
@@ -200,6 +212,10 @@
 </style>
 
 <div class="barra-topo">
+  <a class="link-topo" data-lang="pt" href="/produto/"
+     aria-label="O produto: para quem é, o que faz e em que versão está">O produto</a>
+  <a class="link-topo" data-lang="en" href="/produto/"
+     aria-label="The product: who it is for, what it does, which version is live">The product</a>
   <a class="entrar" data-lang="pt" href="https://app.theband.dev/sign-in"
      aria-label="Entrar na plataforma">Entrar<span class="amplo"> na plataforma</span></a>
   <a class="entrar" data-lang="en" href="https://app.theband.dev/sign-in"
