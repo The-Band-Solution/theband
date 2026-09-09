@@ -30,6 +30,7 @@ defmodule TheBandWeb.ProcessLive.Index do
 
   use TheBandWeb, :live_view
 
+  alias TheBand.Tenants
   alias TheBand.Ontology.SEON.SPO
 
   @impl true
@@ -47,7 +48,24 @@ defmodule TheBandWeb.ProcessLive.Index do
        duplicados: duplicados(estados),
        # Issue #508: atividade registrada por pessoa e por mês. NÃO é throughput, e a tela
        # é obrigada a dizer o que conta.
-       atividade: SPO.activity_by_person_month(tenant)
+       #
+       # E FILTRA PELO ALCANCE — achado H2, 2026-09-09.
+       #
+       # Esta tabela é um **ranking de atividade por pessoa nomeada**, ordenado por total
+       # decrescente, com os meses de cada uma. É a mesma classe de leitura que
+       # `/work/verifications/people` — e a decisão da pessoa mantenedora em 2026-09-09
+       # vale por igual: *"quem tem o escopo de team, organization e admin podem ver; e a
+       # pessoa vê o seu"*.
+       #
+       # **A lacuna dos não classificados NÃO é filtrada**, e é deliberado: aqueles logins
+       # são de automação, aplicação ou de quem a plataforma nunca coletou como pessoa —
+       # não há pessoa a alcançar, e esconder o tamanho da lacuna faria a soma parecer
+       # completa, que é o que aquele bloco existe para impedir.
+       atividade:
+         so_alcancadas(
+           SPO.activity_by_person_month(tenant),
+           Tenants.pessoas_alcancadas(tenant, socket.assigns.current_user)
+         )
      )}
   end
 
@@ -261,6 +279,15 @@ defmodule TheBandWeb.ProcessLive.Index do
   # Deliberadamente estreito. Um critério de similaridade acharia `Refinamento` parecido
   # com `Refinado` e a tela passaria a sugerir fusões erradas, que é pior que não sugerir:
   # sugestão errada custa a confiança de quem lê as certas.
+  # A MESMA forma do filtro de `/work/verifications/people`, e de propósito: duas telas
+  # que servem ranking por pessoa nomeada respondendo diferente é como a assimetria do H2
+  # nasceu.
+  defp so_alcancadas(atividade, :todas), do: atividade
+
+  defp so_alcancadas(atividade, {:algumas, ids}) do
+    %{atividade | pessoas: Enum.filter(atividade.pessoas, &MapSet.member?(ids, &1.person_id))}
+  end
+
   defp duplicados(estados) do
     estados
     |> Enum.group_by(&normalizar(&1.state))
