@@ -28,6 +28,7 @@ defmodule TheBand.Tenants.Auth do
 
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Repo
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -44,11 +45,25 @@ defmodule TheBand.Tenants.Auth do
       nil ->
         # O custo do hash roda mesmo sem conta — tempo constante.
         Bcrypt.no_user_verify()
-        {:error, :invalid_credentials}
+        recusar(nil, :identificador_nao_resolveu)
 
       %User{} = user ->
         verificar(user, senha)
     end
+  end
+
+  # A RECUSA REGISTRADA COM O MOTIVO INTERNO — achado H4.
+  #
+  # Na resposta a recusa é **única** (FR-002): motivo distinto ali seria enumeração. Aqui
+  # o motivo é o que permite distinguir depois "senha errada" de "conta desativada" de
+  # "organização suspensa" — a pergunta de quem reconstrói um incidente.
+  #
+  # E a decisão continua no RETORNO: esta função devolve o mesmo `{:error, ...}` que
+  # devolvia, e só acrescenta o registro. É a L69 — defeito dentro de `Logger.info` é
+  # invisível a teste, então o log nunca é o único lugar onde algo é dito.
+  defp recusar(user, motivo) do
+    AccessEvents.entrada_recusada(user && user.id, user && user.tenant_id, motivo)
+    {:error, :invalid_credentials}
   end
 
   defp verificar(%User{} = user, senha) do
@@ -77,7 +92,7 @@ defmodule TheBand.Tenants.Auth do
         # crescente no dia em que a organização voltasse.
         not organizacao_ativa?(user.tenant_id) ->
           Bcrypt.no_user_verify()
-          {:error, :invalid_credentials}
+          recusar(user, :organizacao_suspensa)
 
         # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
         #
@@ -92,21 +107,21 @@ defmodule TheBand.Tenants.Auth do
         # está desativada.
         not User.ativa?(user) ->
           Bcrypt.no_user_verify()
-          {:error, :invalid_credentials}
+          recusar(user, :conta_desativada)
 
         is_nil(user.password_hash) ->
           # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
           # público, nunca na resposta do formulário.
           Bcrypt.no_user_verify()
           registrar_falha(user)
-          {:error, :invalid_credentials}
+          recusar(user, :conta_sem_senha)
 
         Bcrypt.verify_pass(senha, user.password_hash) ->
           {:ok, registrar_sucesso(user)}
 
         true ->
           registrar_falha(user)
-          {:error, :invalid_credentials}
+          recusar(user, :senha_errada)
       end
     end
   end
@@ -124,7 +139,12 @@ defmodule TheBand.Tenants.Auth do
     if espera > 0 and em != nil do
       liberacao = DateTime.add(em, espera, :second)
       restante = DateTime.diff(liberacao, DateTime.utc_now(:second), :second)
-      if restante > 0, do: {:error, {:throttled, restante}}, else: :ok
+
+      if restante > 0 do
+        {:error, {:throttled, restante}}
+      else
+        :ok
+      end
     else
       :ok
     end
@@ -145,6 +165,16 @@ defmodule TheBand.Tenants.Auth do
   end
 
   defp registrar_sucesso(%User{} = user) do
+    # O RASTRO ANTES DE O APAGAR — achado H4, 2026-09-09.
+    #
+    # `failed_attempts` e `last_failed_at` eram o **único** rastro de tentativa falha, e
+    # são um contador de estado, não um histórico. Zerá-los no sucesso significava que
+    # **uma campanha de adivinhação que dá certo apagava a própria evidência**.
+    #
+    # Registrar quantas foram apagadas transforma o contador num rastro, sem tabela nova.
+    # Zero é o caso normal; número alto num sucesso é o sinal que não existia.
+    AccessEvents.entrada_aceita(user.id, user.tenant_id, user.failed_attempts)
+
     user
     |> Ecto.Changeset.change(
       failed_attempts: 0,
