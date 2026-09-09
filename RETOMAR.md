@@ -1,279 +1,210 @@
-# Retomar
+# Retomar — estado em 2026-09-09, a v0.6.0 no ar e cinco achados de segurança fechados
 
-**Última sessão**: 2026-08-26, noite/madrugada.
+**Este é o único documento de estado.** Havia dois — este e
+`docs/sprints/RETOMAR.md` —, e eles divergiram: em 2026-09-09 um estava em 26/08 e o
+outro em 03/09, cada um descrevendo um produto diferente. O de `docs/` passou a apontar
+para cá.
 
-A sessão inteira foi sobre **uma decisão aplicada quatro vezes**: a organização declara, e
-a plataforma não escolhe pelo nome. Quatro issues, quatro mecanismos, a mesma forma.
+Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
 ---
 
-## Conferir primeiro
+## Onde parei, em uma frase
 
-| PR | issue | estado quando parei |
-|---|---|---|
-| [#523](https://github.com/The-Band-Solution/theband/pull/523) | #514 | **mergeado** ✅ |
-| [#524](https://github.com/The-Band-Solution/theband/pull/524) | #368 | **mergeado** ✅ |
-| [#525](https://github.com/The-Band-Solution/theband/pull/525) | #369 | **aberto** — confere o CI |
+**A v0.6.0 está em produção** com a tela da equipe inteira, o site ganhou três endereços,
+e uma avaliação de segurança de 16 achados foi feita — **cinco fechados, quatro PRs
+esperando merge, e o H2 explicitamente incompleto.**
 
-**Confere se a #525 mergeou.** Ela fecha a #369 e traz também os dois gráficos da
-página da pessoa.
-
-## E o que está NÃO COMMITADO
-
-Duas frentes feitas depois do PR #525, e **nenhuma commitada**:
-
-### 1. Implantação em VPS — o contêiner SOBE e SERVE
-
-```
-Dockerfile                  multi-stage; compile ANTES de assets.deploy
-.dockerignore               .env excluído — ele tem a chave mestra
-rel/entrypoint.sh           confere as 4 variáveis, migra, e só então sobe
-lib/the_band/release.ex     TheBand.Release.migrate/0
-mix.exs                     releases() acrescentado
-lib/the_band/ontology/yaml_loader.ex   caminho `priv/` resolve por :code.priv_dir
-```
-
-Verificado em 2026-08-27: `docker build` verde, contêiner de pé contra o Postgres
-local, `base de conhecimento carregada: 119 artefatos`, e `/sign-in` respondendo
-**HTTP 200** com "The Band". Imagem de **231 MB**.
-
-**Três defeitos foram encontrados construindo, e nenhum apareceria sem construir:**
-
-1. `OTP 29.0` e a data do Debian **inventadas** — não existem no registro;
-2. `assets.deploy` antes de `compile` — `app.css` importa
-   `phoenix-colocated/the_band/colocated.css`, gerado pelo COMPILADOR, e o alias
-   `assets.deploy` deste projeto não inclui `compile`;
-3. **`Path.expand("priv/knowledge_base", File.cwd!())`** — em dev o cwd é a raiz do
-   projeto; no release é `/app`, e o `priv` fica em `lib/the_band-<versão>/priv`. Os
-   119 YAML estavam na imagem, três diretórios acima de onde o loader procurava.
-
-⚠️ **A recusa de subir estava CERTA** — foi ela que impediu o contêiner de servir telas
-vazias como se fossem resposta. Errado era o caminho.
-
-E a primeira correção do (3) **não funcionou**: mudou só o valor padrão, e o
-`config.exs` preenche `path` explicitamente. A correção que vale: caminho começando por
-`priv/` resolve contra `:code.priv_dir/1`.
-
-### 2. O perfil passa a ler quem ABRIU, e não só quem foi designado
-
-`lib/the_band/profiles/material.ex` — `tarefas/3` agora aceita designada **ou** autora,
-e cada item carrega `relacao`: `designada`, `abriu` ou `ambas`.
-
-A pergunta "somadas ou separadas" foi decidida pela própria base: **separadas**. A rede
-distingue submeter de executar, e a página mostra três cartões para ninguém somar.
-
-Medido no banco de desenvolvimento:
-
-| pessoa | concluídas | por relação |
-|---|---:|---|
-| **fatasy** | **33** (era ~8) | **100% `abriu`** — nunca designado |
-| vinicius-je | 335 (era 199) | 136 `abriu`, 163 `ambas`, 36 `designada` |
-| CaioLessaSimao | 89 (era 87) | 2 `abriu`, 37 `ambas`, 50 `designada` |
-
-Cinco injeções, cinco pegas. Três testes novos em `material_test.exs`.
-
-### 3. Correção do rótulo dos gráficos
-
-A pessoa mantenedora encontrou: `fatasy` mostrava **8** no gráfico e **233** no cartão
-abaixo. As contas estavam certas; **o rótulo estava errado** — eu chamei a série de
-"opened", e a página já usava "opened by" para AUTORIA.
-
-Corrigido: série `created`, título "Issues assigned to them, over time", e a frase
-"Issues they opened are a different number — the card below". Dois testes que reprovam
-se a palavra voltar.
-
-### Como retomar
+## O primeiro comando
 
 ```bash
-grep CODIGO_DE_SAIDA_DO_GATE /tmp/gf.log     # gates rodando quando a sessão terminou
-docker build -t the_band:teste .              # já verde
+git checkout development && git pull
+mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-⚠️ **A chave mestra.** `THE_BAND_MASTER_KEY` está só no `.env` desta máquina, e cifra as
-credenciais de todas as ferramentas. Antes de implantar, garanta que existe em outro
-lugar — ver [[chave-mestra-perdida-e-o-caminho-de-volta]].
+Estava **0** em 2026-09-09, com **1 981 testes** passando.
 
-## Sobre a skill de devops
-
-Procurei com a skill `find-skills` (`npx skills find`). **Nenhuma serve**:
-
-- as de `elixir` têm 745, 305 e 270 instalações — abaixo do piso que a própria
-  skill recomenda, e de autores desconhecidos;
-- as de `vps` têm 131 ou menos;
-- as de deploy com volume são amarradas a plataforma: Azure (549K), Vercel (115K),
-  Cloudflare, Expo. Nenhuma cobre release Elixir em VPS.
-
-A única com massa e alguma serventia é `github/awesome-copilot@multi-stage-dockerfile`
-(22K), e é genérica. **Não instalei nenhuma** — skill de autor desconhecido é código
-que passa a rodar na sessão, e o ganho aqui era zero.
-
-## O que ficou pronto
-
-### #514 — o trimestre deixa de ser lido como sprint ✅ fechada
-
-`sro_sprints` promovia **todo** campo de iteração a `sro.sprint`. Medido: `Quarter` tem 27
-iterações de 61 a 92 dias contra `Sprint` com 171 de 3 a 26. **669 dos 2.685 vínculos de
-issue — 25% — eram trimestre lido como sprint.**
-
-A organização declara o papel do par (quadro, campo). Resolve **na leitura, nunca
-materializa**: as 27 iterações já coletadas mudam de leitura no instante da declaração,
-sem recoleta e sem migração.
-
-### #368 — de onde vem o prazo (PR #524)
-
-O GitHub **não tem campo de prazo na issue**. 33 pares (quadro, campo) de data, 13 nomes,
-duas línguas. Decisão tua: além do campo do quadro, o prazo pode vir do **sprint** ou do
-**marco** — e *"se uma task está dentro do sprint, o prazo dela é do sprint E do
-milestone"*.
-
-**As três origens se somam.** A resolução devolve **lista com proveniência**, nunca um
-valor. Medido sobre 5.216 issues: 304 têm marco e caixa ao mesmo tempo, 640 estão em mais
-de uma caixa, 2.251 (43%) não alcançam origem alguma.
-
-A #514 aparece dentro dela — verificado no quadro DevOps, 400 issues:
-
-```
-SEM papel declarado ..... %{sprint: 546}
-COM Quarter = horizonte .. %{planning_horizon: 175, sprint: 371}
-```
-
-**175 de 546 — 32% — eram trimestre lido como sprint.**
-
-⚠️ **A próxima sincronização repagina as issues uma vez por repositório.** É intencional:
-`milestone { dueOn }` passou a ser coletado, e sem reabrir o corte as 5.216 issues ficariam
-com `milestone_due_on` nulo para sempre — o corte pula o repositório *inteiro* quando não
-houve push novo, e "sem push" é o estado normal da maioria. O teste de impressão digital da
-#452 pegou isso e obrigou a decidir.
-
-### #367 — a evidência para escolher o quadro (no PR #524, não fecha a issue)
-
-O picker de quadro agora mostra volume, abertas e período:
-
-```
-#43 Conecta Fapes                938 itens · 785 abertas · Dec/2025 a Aug/2026
-#19 Conecta Fapes - Delivery     730 itens · 565 abertas · Jun/2025 a Jun/2026
-#7  [DEPRECATED] ConectaFapes    196 itens ·  49 abertas · Feb/2025 a Jul/2025
-```
-
-**Tu já vinculou 4 quadros ao projeto "Conecta Fapes 042".** O `#7 [DEPRECATED]` — que
-carrega o período **mais antigo** — segue fora. Agora a tela te mostra o que ele carrega, e
-o vínculo é gesto teu.
-
-### #506 — as duas decisões viraram declaração (no PR #524, não fecha a issue)
-
-`flow.wip.count` → `period: weekly`.
-
-`rework.not_accepted_deliverable_ratio` ganhou **`proxies`**, campo novo no schema de
-medida, com as origens que tu nomeou:
-
-| aproximação | medido |
-|---|---:|
-| PR fechado sem integrar | 668 |
-| verificação que quebrou | 2.987 de 15.671 (19%) |
-| PR integrado com check quebrado | 261 |
-
-Cada uma é **obrigada** a declarar o que NÃO diz. E a limitação que o denominador exige:
-**2.024 das integradas (41%) não têm estado de verificação registrado.**
+> **`mix deps.get` já não é necessário depois de trocar de branch.** O `deps` estava
+> commitado como link simbólico absoluto apontando para si mesmo, e apagava as
+> dependências a cada `git checkout` — seis vezes num dia. Corrigido no #836, com gate que
+> impede a volta.
 
 ---
 
-## Onde parei: #369 — quem vê o painel de quem
+## O que está no ar
 
-**Branch `feat/369-quem-ve-o-painel-de-quem` enviada, 13/13 gates, sem PR ainda.**
+A **v0.6.0**, publicada em 2026-09-09 às 13:39Z. PR **#828** (`development → main`), CD
+verde nos sete passos, tag `v0.6.0` em `43cb7c0`, imagem em
+`ghcr.io/the-band-solution/theband`, e o Dokploy respondeu
+`{"message":"Application deployed successfully"}`.
 
-Tua decisão: **a própria pessoa, o líder da equipe dela, e o responsável da organização.**
-E depois: os papéis de liderança são `Tech Leader` e `Team Leader`.
+**124 commits, 24 PRs (#796 a #827).** O grosso é a feature 060 — a tela da equipe: quem
+está nela e de onde veio cada afirmação, declarar/trocar/encerrar papel, o equívoco que
+nunca foi vínculo, *Problems now* com oito cartões, e o fluxo em três granulações com
+previsão por Monte Carlo.
 
-### O bloqueio que a issue não previa
+> ⚠️ **Webhook aceito não prova que o contêiner roda a 0.6.0.** Não há endpoint de versão
+> nem versão na página — `/health`, `/version` e `/api/version` devolvem 404. Confirmar
+> exige olhar o Dokploy. É a lacuna que a regra nova do PO e do Design fecha, e ela nasceu
+> **junto** com esta release, não antes dela.
 
-Ao implementar, medi: **`eo_people` tem 88 pessoas e NENHUMA com e-mail** — o GitHub não
-entrega, por privacidade —, e `users` não tinha coluna alguma que apontasse para pessoa
-observada. **Nem "cada pessoa vê a si" nem "o líder vê o time" eram computáveis.**
+### O site tem três endereços, e cada um serve a alguém
 
-Tua decisão: **usar o id do GitHub.** E o número mostra por quê — medido sobre as 88:
+| endereço | o que é | mantido por |
+|---|---|---|
+| `theband.dev` | a landing — o argumento | à mão, na raiz da `gh-pages` |
+| `theband.dev/docs/` | a página do produto: para quem é, o que faz, os conceitos, as versões | à mão, na raiz da `gh-pages` |
+| `theband.dev/developers/` | a referência técnica | gerado pelo MkDocs, workflow `docs.yml` |
 
-| campo | preenchido |
-|---|---:|
-| `external_id` (o id do GitHub) | **88** |
-| `login` | **88** |
-| `email` | **0** |
-
-Com e-mail, os **dois** lados do elo teriam que ser digitados. Com o id, o lado observado já
-vem pronto — e na tela a escolha virou uma **lista de contas**, não um `U_kgDOABFnGA` para
-transcrever.
-
-### O que está feito nessa branch (commit `9c38af0`, 13/13 gates)
-
-- migração `20260827050000_qual_pessoa_observada_e_a_conta.exs` — `users.person_id` aponta
-  para `eo_people`, com autor, data e revogação; índice parcial único entre os vigentes
-- `Tenants.declare_person/4`, `revoke_person/3`, `user_for_person/2`, `person_of_user/1`,
-  `elo_coverage/1`; `User.elo_vigente?/1`
-- seção na tela da pessoa com **lista de contas para escolher**, e **só admin declara**
-- 11 testes de lógica + 7 de tela, **10 injeções, 10 pegas**
-- spec: FR-012c a FR-012g
-
-Dois defeitos meus que as injeções revelaram na primeira versão (a do e-mail), e que a
-versão por id já nasceu sem:
-
-1. **revogar zerava o identificador** — perdia *quem* a conta era, sobrava só *desde
-   quando*. O índice parcial já exclui a linha revogada; zerar era desnecessário.
-2. **struct velha entre revogar e declarar** — `update_all` não atualiza a struct em
-   memória, e um campo cujo valor novo é igual ao da struct velha **não entra nas mudanças**
-   do changeset. `person_declared_by_user_id` ficaria nulo com `person_id` preenchido,
-   violando a CHECK. Resolvido recarregando entre as duas.
-
-### O que FALTA na #369
-
-1. **Rebasear na `main`** depois que a #524 mergear, e abrir o PR
-2. **A concessão de visibilidade**: tabela `eo_role_visibility_grants` ligando papel a
-   escopo (`team` / `organization`), revogável, com autor — relator e nunca booleano, pelo
-   motivo de sempre: um `is_leader` perde quem concedeu e quando, e numa decisão de
-   visibilidade essa é a pergunta que mais se faz depois
-3. **Criar os papéis** `Tech Leader` e `Team Leader` na tela `/roles` e marcá-los escopo
-   `team` — hoje só existem **2 papéis, ambos `Developer Role`**
-4. **A regra de visibilidade em si** na rota `/people/:id` — hoje é `require_user` + tenant,
-   ou seja, toda pessoa autenticada vê qualquer outra
-5. **Quem é o responsável da organização** — tu não nomeou o papel; escopo `organization`
-   fica sem ninguém até nomear
-
-**A plataforma não deve casar `"Tech Leader"` por string.** Papel é renomeável, e conceder
-visibilidade por padrão de nome erra para o lado que ninguém reclama — o excesso concedido.
-A concessão é ato declarado, com autor. Está escrito como FR-012a na spec.
+A landing liga para os dois em **três lugares**: barra do topo, fecho da página e pé. E o
+guarda do `docs.yml` confere `CNAME`, o `index.html` da raiz **e** `/docs/index.html` — o
+último porque `/docs/` deixou de ser gerado, e um deploy que o apagasse publicaria com
+sucesso derrubando um endereço anunciado.
 
 ---
 
-## Decisões tuas que continuam esperando
+## Os quatro PRs abertos, e a ordem de merge
 
-| issue | o que falta |
+| PR | o que | tipo de merge |
+|---|---|---|
+| **#837** | **H3-A** — `tenants.status` passa a ser lido, em três portas | squash |
+| **#838** | **H2** — o veredito nas duas rotas sobre pessoa nomeada, e o procedimento de desligamento escrito | **merge commit** — o H6 é empilhado |
+| **#839** | a investigação do estado divergente da issue, e o RETOMAR do site | squash |
+| — | **H6** — `fix/admin-alcanca-pessoa`, commitada e empurrada, **sem PR aberto** | merge commit |
+
+### E duas branches sem PR que precisam entrar
+
+```
+docs/po-release-v0.6.0-e-fila-de-seguranca
+security/o-que-consertar-agora-2026-09-09
+```
+
+**Cinco PRs meus citam o documento do Security como "lacuna declarada".** Enquanto ele não
+entrar no `development`, a referência não resolve.
+
+---
+
+## A avaliação de segurança: 16 achados, dez de severidade alta
+
+`docs/seguranca/2026-09-09-o-que-consertar-agora.md`, na branch do Security. Cada achado
+tem cenário de ataque no formato que o QA transforma em teste, e quatro foram **medidos com
+teste**, não deduzidos.
+
+### Fechados
+
+| # | o que era | onde |
+|---|---|---|
+| **H1** | `POST /set-password` trocava a senha **sem exigir a atual** — acesso temporário virava posse da conta | #835 |
+| **H12** | `deps` commitado como link simbólico absoluto para si mesmo | #836 |
+| **H3-A** | `tenants.status` existia e **ninguém o lia** — tenant suspenso autenticava | #837 |
+| **H2** *(parcial)* | duas rotas sobre pessoa nomeada sem veredito nenhum | #838 |
+| **H6** | `pode_ver_equipe/3` concedia ao admin e `pode_ver/3` não — a tela afirmava um regime que não aplicava | sem PR |
+
+**A FR-022 da spec 045 foi emendada** pelo H6 — *"ser administrador MUST NOT abrir painel
+nenhum por si"* deixou de valer, com o texto original preservado riscado e a razão ao lado.
+
+### Abertos, na ordem que o Product Owner decidiu
+
+1. **H3-B — `users.disabled_at`.** Não existe estado de conta desativada. **Tem migração**,
+   e o ensaio de restauração do §6 do runbook está adiado porque a conta S3 não existe —
+   **bloqueio de recurso, não de agenda**, e confundir os dois é o que fez esse item ser
+   replanejado por cinco releases;
+2. **H4 — nenhum evento de autenticação ou autorização é registrado.** É o que responde
+   *"isto já aconteceu?"*, e hoje a resposta para H1, H2 e H3 é **não se sabe**. O Security
+   registrou isso como **resultado**, não como lacuna dele;
+3. **H7 e H8 — sem release nenhum.** O Dokploy implanta `latest`, e as ações do CI usam tag
+   mutável. Os únicos que se consertam sem código nem deploy;
+4. **H9 — `ssl: true` comentado.** A severidade depende da **topologia de produção**, e é
+   pergunta para quem opera. Verificado na fonte: o `Ecto` aceita `?ssl=true` na URL, mas o
+   `postgrex` usa `verify_peer` com CAs do sistema — **certificado autoassinado quebraria o
+   boot**;
+5. **H5, H10, H11, H13 a H16** — média e baixa.
+
+### ⚠️ O H2 **não** está resolvido, e não deve parecer
+
+O inventário do Security é **piso, não total**: **8 dos 26** LiveViews autenticados foram
+examinados quanto ao que exibem. As duas rotas medidas foram consertadas; as outras 18
+ninguém olhou.
+
+E dentro da própria página da pessoa a assimetria é fina — o perfil escrito por modelo e a
+proveniência (com os PRs e commits) **não** são gateados.
+
+---
+
+## O achado da pessoa mantenedora que virou investigação
+
+**O estado da issue no The Band divergindo do GitHub** —
+`docs/backlog/investigar-estado-divergente-da-issue.md`, PR #839. Dois casos reais, com URL
+nos dois lados, e **são defeitos diferentes com o mesmo sintoma**:
+
+- **apagada** na origem, aberta na tela. `collected_issues` **tem**
+  `no_longer_observed_at`, e o `grep` por quem o marca encontra só designações e etiquetas
+  — nada, aparentemente, marca a issue em si;
+- **fechada** na origem, aberta na tela. **Mais grave**: a issue continua existindo com o
+  estado novo, e a coleta tinha tudo o que precisava. Se mudança de estado não chega,
+  nenhuma medida de fluxo é confiável.
+
+**Comece pelo banco de produção**, e não pelo código: o `state` e o `collected_at` da linha
+contra a data do fechamento no GitHub distinguem as quatro hipóteses.
+
+---
+
+## O que o Product Owner decidiu e ainda não foi mergeado
+
+**US9 e US1 passam a aceitas**, com evidência **executada** — não com a existência da
+asserção. **US3 continua recusada**: o SC-013 nunca foi cronometrado.
+
+E ele assumiu uma decisão de papel: **a v0.7.0 não sai com H1, H2 e H3 abertos.**
+
+O achado de decomposição continua de pé: a US9 só pôde ser aceita porque **o artefato da
+US7 foi construído fora de ordem** — a US7 não tem tarefa alguma, e a US8 também tem código
+em produção sem tarefa.
+
+---
+
+## As features especificadas e sem código
+
+| spec | estado |
 |---|---|
-| **#506** | **as perguntas do painel da equipe**, com *quem decide o quê* em cada uma. É o que impede o painel; duas das cinco medidas já calculam |
-| **#367** | vincular (ou não) o `[DEPRECATED] ConectaFapes`; coletar a timeline do `conectafapes-project`; e quais colunas de cada quadro significam "concluído" |
-| **#442** | quatro escolhas técnicas do conector ArgoCD — qual API, como a ferramenta entra em `connected_tools`, onde o ambiente encontra o repositório, e se `drift` vira conceito |
-| **#397, #363, #356** | sem trabalho iniciado |
-| **#504, #507** | bloqueadas pela #506 |
+| **061 — API pública com token** | spec completa, as oito perguntas respondidas, **ADR 0009 proposta**. Falta `plan.md`, `tasks.md`, sprint backlog e a confirmação da ADR |
+| **062 — servidor MCP** | spec escrita. **Desbloqueada** pela 061 — o item de backlog dizia *"depende de decidir autenticação e tenant"*, e está decidido |
+
+**A decisão que carrega as duas**: o token guarda *quem* e *onde*, e **nenhum veredito**.
+JWT com *claims* está proibido — cria a segunda verdade que `access.ex` foi escrito para
+não ter, e ela envelhece no bolso de quem saiu.
+
+E o segredo **não se guarda**: hash irreversível, mostrado uma vez, sem recuperação. A tela
+avisa **antes** de gerar.
 
 ---
 
-## Achados que valem lembrar
+## Decisões da pessoa mantenedora que continuam esperando
 
-**A #367 tem premissa vencida.** Ela diz que a plataforma não lê campo de quadro. **Lê** —
-a #181 entregou. Medi 3.601 itens com coluna e issue por trás: **409 marcados concluídos na
-coluna seguem abertos**, 87 fechados nunca saíram de coluna de início — 496 em 2.945
-comparáveis, **16,8%**. A issue estimava 11% sobre 25 itens.
+Conferido em 2026-09-09 — as quatro que estavam nesta lista desde 26/08 (**#506**, **#367**,
+**#442**, **#369**) **fecharam**. Estas cinco seguem abertas:
 
-⚠️ **Ressalva**: classifiquei "coluna de início" **pelo nome**, que é exatamente o erro que
-estas quatro features existem para não cometer. Há 33 nomes de coluna em duas línguas. É
-primeira medida, **não resposta** — quais colunas significam concluído é declaração que
-ainda não foi feita.
+| issue | o que é |
+|---|---|
+| **#397** | equipe composta por equipes — hierarquia, com o rollup |
+| **#363** | a competência como unidade do perfil, com a tarefa que a demonstra |
+| **#356** | T024 — medir o custo real de uma rodada |
+| **#504** | dashboards na tela da equipe — throughput e período |
+| **#507** | o painel da equipe — depende do critério de início |
 
-**Defesa em profundidade que parece redundância.** Os dois filtros de tenant da resolução de
-prazo se cobrem: remover um sozinho não quebra teste nenhum, remover os dois quebra. Está
-registrado no moduledoc do teste para ninguém "simplificar" um deles.
+---
 
-**Duas injeções passaram na primeira tentativa nesta sessão, e nenhuma era defeito ausente
-no código** — as duas eram cenário fino demais no teste. O padrão: um campo declarado
-*em branco* passa por qualquer defeito de join, porque não há linha para o join achar. O
-caso que prova é o campo declarado **explicitamente com o outro valor**.
+## Duas armadilhas que 2026-09-09 ensinou, e as duas são de processo
+
+**`git add -A` numa árvore compartilhada com subagentes.** O commit `5d02075` varreu
+**1.450 linhas** de dois outros papéis para dentro de um PR de documentação que dizia mudar
+três arquivos. Refeito. **Usar caminhos explícitos** quando há agentes em paralelo.
+
+**Anunciar número de PR sem ter aberto o PR.** Aconteceu duas vezes: a branch foi empurrada
+e o PR não. Conferir com `gh pr list --head <branch>` antes de citar número.
+
+E uma que virou gate: **dos oito PRs abertos naquele dia, zero declararam o tipo de merge**
+— `gh pr create --body` substitui o template inteiro, e a exigência desaparece em silêncio.
+O #834 fechou isso: PR sem declaração agora reprova no CI.
 
 ---
 
@@ -283,6 +214,20 @@ caso que prova é o campo declarado **explicitamente com o outro valor**.
 mix gates > /tmp/gates.log 2>&1; echo "CODIGO_DE_SAIDA_DO_GATE=$?" >> /tmp/gates.log
 grep CODIGO_DE_SAIDA_DO_GATE /tmp/gates.log     # o veredito é o número, lido num comando separado
 
-set -a; . ./.env; set +a                        # a chave mestra vem do .env
+set -a; . ./.env >/dev/null 2>&1; set +a        # a chave mestra vem do .env, sem imprimir
 MIX_ENV=dev mix run script.exs                  # medir contra o banco de desenvolvimento
 ```
+
+⚠️ **A chave mestra.** `THE_BAND_MASTER_KEY` cifra as credenciais de todas as ferramentas.
+Ver `docs/producao/runbook.md` e a memória sobre o caminho de volta se ela se perder.
+
+---
+
+## Referências
+
+- `docs/releases/v0.6.0.md` — a nota da release, com o veredito por user story;
+- `docs/seguranca/2026-09-09-o-que-consertar-agora.md` — os 16 achados (branch do Security);
+- `docs/seguranca/2026-09-09-api-com-token.md` — a superfície da API, 18 achados;
+- `docs/producao/desligar-alguem.md` — o procedimento que **de facto** desliga alguém hoje;
+- `docs/producao/runbook.md` — o resto da operação;
+- `docs/backlog/README.md` — a fila priorizada de 14 posições (branch do PO).

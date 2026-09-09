@@ -181,7 +181,7 @@ nav:
       - Tooling library: backlog/tooling-library.md
 
   - Sprints:
-      - Retomar — estado atual: sprints/RETOMAR.md
+      - Retomar — onde vive o estado: sprints/RETOMAR.md
       - Lições aprendidas: sprints/licoes-aprendidas.md
       - Por sprint:
           - 001 — Fundacao e coleta eo:
