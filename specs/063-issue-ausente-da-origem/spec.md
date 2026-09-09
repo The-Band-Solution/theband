@@ -549,6 +549,42 @@ hoje é a tela silenciar, e silêncio sobre ator é lido como *"não teve ator"*
   para que a chegada do log seja acréscimo e não redesenho. As duas datas — do ato e da
   constatação — MUST poder coexistir.
 
+- **FR-022a**: A plataforma MUST apresentar o **intervalo** em que a ausência aconteceu, e
+  não uma data única. As duas pontas são observadas e nenhuma é inventada:
+
+  | ponta | de onde vem | o que afirma |
+  |---|---|---|
+  | início | `last_observed_at` | a última coleta em que a issue **ainda estava lá** |
+  | fim | `no_longer_observed_at` | a coleta em que **já não estava** |
+
+  A frase é *"deixou de ser observada entre X e Y"*, e **MUST NOT** ser *"apagada em Y"* —
+  pela mesma razão da FR-021. O que aconteceu no meio do intervalo a plataforma não viu.
+
+  **Decisão da pessoa mantenedora, 2026-09-09.** Uma data única obrigaria a escolher entre
+  duas mentiras: `last_observed_at` sugere que ainda estava lá quando já não estava, e
+  `no_longer_observed_at` sugere que o ato foi naquele instante. O intervalo é o cerco, e é
+  o que de facto se sabe.
+
+- **FR-022b**: A **largura** do intervalo MUST ser legível, porque ela mede a qualidade da
+  observação e não o comportamento de quem apagou.
+
+  Com coleta diária são horas. Com o corte quebrado — o defeito que o PR #847 consertou, em
+  que repositório de quadro era pulado por não receber push de código — eram **semanas ou
+  meses**: a issue 703 ficou desatualizada de 04/09 até 09/09, e só porque alguém reparou.
+
+  **Um intervalo largo é uma afirmação sobre a plataforma**, e não sobre a issue: diz por
+  quanto tempo ela esteve cega naquele repositório. Apresentá-lo sem isso convidaria a ler
+  demora de coleta como demora de quem trabalha.
+
+- **FR-022c**: Quando o log de auditoria for alcançável (FR-019), o **instante do ato** entra
+  ao lado e o intervalo **continua** — as duas coisas respondem perguntas diferentes:
+
+  - o instante responde *"quando foi apagada"*;
+  - o intervalo responde *"por quanto tempo a plataforma afirmou algo errado"*.
+
+  Substituir o segundo pelo primeiro apagaria a única medida que a plataforma tem da própria
+  cegueira, e é justamente a que ninguém pede e todos precisam depois.
+
 ### A história da ausência
 
 - **FR-023**: Reobservar uma issue marcada MUST preservar o registro de que houve ausência,
