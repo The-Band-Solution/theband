@@ -413,7 +413,8 @@ defmodule TheBand.Tenants.Access do
     match?({:ok, ^alvo_person_id}, Tenants.person_of_user(user))
   end
 
-  # Devolve o motivo (:escopo_de_equipe | :escopo_de_projeto | :escopo_da_organizacao)
+  # Devolve o motivo (:escopo_de_equipe | :escopo_da_organizacao) — projeto NÃO entra,
+  # e a razão está na cláusula que o recusa.
   # ou nil. Uma leitura das relações do ALVO, comparada aos meus alvos por nível —
   # e nenhuma leitura quando não tenho alvo nenhum (L38: o lado do alvo custa
   # duas consultas, e sem escopo com alvo elas não decidem nada).
@@ -439,20 +440,44 @@ defmodule TheBand.Tenants.Access do
       |> MapSet.delete(nil)
       |> MapSet.union(MapSet.new(observed_orgs(tenant, meus, alvo_person_id)))
 
-    alvo_project_ids =
-      tenant
-      |> projetos_das_equipes(alvo_equipes)
-      |> MapSet.new(& &1.project_id)
+    # E A CONSULTA DOS PROJETOS DO ALVO SAIU JUNTO.
+    #
+    # Ela existia só para o ramo do escopo de projeto, que deixou de abrir painel. Uma
+    # consulta por veredito de pessoa, removida — e `projetos_das_equipes/2` continua
+    # servindo `scopes/2`, onde o escopo derivado de projeto **continua existindo** para o
+    # que ele nomeia: o trabalho daquele projeto.
 
     alvos = fn nivel ->
       for s <- meus, s.level == nivel, s.target_id, into: MapSet.new(), do: s.target_id
     end
 
     cond do
-      not MapSet.disjoint?(alvos.(:team), alvo_team_ids) -> :escopo_de_equipe
-      not MapSet.disjoint?(alvos.(:project), alvo_project_ids) -> :escopo_de_projeto
-      not MapSet.disjoint?(alvos.(:organization), alvo_org_ids) -> :escopo_da_organizacao
-      true -> nil
+      not MapSet.disjoint?(alvos.(:team), alvo_team_ids) ->
+        :escopo_de_equipe
+
+      # ESCOPO DE PROJETO **NÃO** ABRE PAINEL DE PESSOA — decisão da pessoa mantenedora
+      # em 2026-09-09, e a razão já estava escrita no veredito ao lado.
+      #
+      # `pode_ver_equipe/3` recusava este mesmo escopo, com estas palavras: *"ele nomeia
+      # um projeto, e uma equipe pode trabalhar em vários; deixá-lo passar faria
+      # autoridade subir de lado"*.
+      #
+      # A razão vale igual aqui, e aqui vale MAIS: quem tinha escopo de um projeto
+      # alcançava o painel **completo** de qualquer pessoa cuja equipe tocasse aquele
+      # projeto — incluindo o trabalho dela em **outros** projetos, que aquele escopo não
+      # nomeia. Era exactamente a autoridade subindo de lado, com um alcance maior que o
+      # que o outro veredito recusava.
+      #
+      # **Não havia teste afirmando este caminho.** Ele existia sem ninguém o ter medido —
+      # e é por isso que a correção vem com o teste que o guarda fechado.
+      #
+      # Quem tem escopo de projeto continua vendo **o trabalho daquele projeto**. O que
+      # deixa de alcançar é a pessoa.
+      not MapSet.disjoint?(alvos.(:organization), alvo_org_ids) ->
+        :escopo_da_organizacao
+
+      true ->
+        nil
     end
   end
 

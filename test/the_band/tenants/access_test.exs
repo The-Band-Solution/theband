@@ -253,6 +253,56 @@ defmodule TheBand.Tenants.AccessTest do
       assert {:ok, :escopo_da_organizacao} = Tenants.pode_ver(ctx.tenant, diretora, bia.id)
     end
 
+    test "escopo de PROJETO não abre painel de pessoa — decisão de 2026-09-09", ctx do
+      time = equipe(ctx, "Plataforma")
+      dev = papel(ctx, "developer", "Developer Role")
+      bia = pessoa(ctx, "bia")
+      aloca(ctx, bia, time, dev)
+
+      projeto = projeto_ligado(ctx, time, "Conecta")
+
+      de_projeto = user_fixture(ctx.tenant, "member")
+      {:ok, _} = Tenants.grant_scope(ctx.tenant, de_projeto.id, :project, projeto.id, ctx.admin)
+
+      # A GUARDA: a concessão foi de facto feita, e alcança o projeto. Sem isto, o
+      # `refute` abaixo passaria por não haver escopo nenhum.
+      assert Enum.any?(Tenants.scopes(ctx.tenant, de_projeto), &(&1.level == :project)), """
+      A conta tem de ter escopo de projeto vigente. Se a concessão não pegou, este teste
+      mediria uma conta sem escopo — e a recusa seria por outra razão.
+      """
+
+      assert {:nao, _motivo} = Tenants.pode_ver(ctx.tenant, de_projeto, bia.id), """
+      Escopo de projeto NÃO abre painel de pessoa. A razão já estava escrita em
+      `pode_ver_equipe/3`, que recusa este mesmo escopo: *"ele nomeia um projeto, e uma
+      equipe pode trabalhar em vários; deixá-lo passar faria autoridade subir de lado"*.
+
+      Aqui valia mais: quem tinha escopo de UM projeto alcançava o painel **completo** de
+      qualquer pessoa cuja equipe tocasse aquele projeto — incluindo o trabalho dela em
+      **outros** projetos, que aquele escopo não nomeia.
+
+      Este caminho existia **sem teste nenhum** até 2026-09-09. Este é o teste que o
+      guarda fechado.
+      """
+    end
+
+    test "e o escopo de projeto continua existindo em scopes/2 — o par", ctx do
+      time = equipe(ctx, "Plataforma")
+      projeto = projeto_ligado(ctx, time, "Conecta")
+
+      de_projeto = user_fixture(ctx.tenant, "member")
+      {:ok, _} = Tenants.grant_scope(ctx.tenant, de_projeto.id, :project, projeto.id, ctx.admin)
+
+      escopos = Tenants.scopes(ctx.tenant, de_projeto)
+
+      assert Enum.any?(escopos, &(&1.level == :project and &1.target_id == projeto.id)), """
+      O conserto fecha o painel de PESSOA para escopo de projeto, e **não** remove o
+      escopo de projeto. Ele continua servindo o que nomeia: o trabalho daquele projeto.
+
+      Sem este par, a correção poderia ter apagado o escopo inteiro e a suíte ficaria
+      verde afirmando segurança onde havia uma concessão inútil.
+      """
+    end
+
     test "organization alcança quem a organização OBSERVA, mesmo sem vínculo promovido", ctx do
       # O dado real: 101 evidências, 0 promoções. Só a equipe promovida deixava o
       # escopo organization alcançar 4 de 88 pessoas — a pertença observada (evidência
