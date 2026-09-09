@@ -212,6 +212,77 @@ defmodule TheBand.Tenants do
   end
 
   @doc """
+  Desativa uma conta — achado **H3, parte B**, 2026-09-09.
+
+  ## O que este ato é, e o que ele NÃO é
+
+  É *"esta conta não entra mais"*. **Não** é `revoke_person/3`, que significa *"não
+  sabemos mais qual pessoa observada é esta conta"* — e o H3 mediu que aquele **não
+  remove acesso**: com o elo revogado, o login por e-mail continua funcionando e as
+  telas do tenant continuam abrindo.
+
+  Juntar os dois seria o erro que a FR-012f já separou.
+
+  ## Marca, e nunca `delete`
+
+  `disabled_at` e `disabled_by_user_id`, na forma de `ScopeGrant.revoke_changeset/2`.
+  A linha fica — histórico de acesso é dado de auditoria (SC-005 da 045), e é
+  exactamente o que um incidente precisa reconstruir.
+
+  ## E gira o token de sessão
+
+  Sem o giro, a sessão aberta continuaria servindo até expirar por inatividade, e
+  "desativar" significaria "desativar daqui a sete dias".
+
+  ## Quem não pode ser desativada
+
+  **A própria conta que executa o ato** — desativar-se a si é ficar de fora sem ter a
+  quem pedir de volta, e num tenant com uma administração só isso tranca a organização
+  inteira. Devolve `{:error, :nao_pode_desativar_a_si}`.
+  """
+  @spec disable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, User.t()}
+          | {:error, :not_found | :ja_desativada | :nao_pode_desativar_a_si}
+  def disable_user(%Tenant{id: tenant_id}, user_id, actor_id) do
+    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
+         :ok <- nao_e_a_si(user_id, actor_id),
+         :ok <- ainda_ativa(user) do
+      user
+      |> User.desativar_changeset(actor_id)
+      |> Repo.update()
+    end
+  end
+
+  @doc """
+  Reativa uma conta desativada.
+
+  **Não devolve a senha.** Se a desativação foi feita junto de um reinício — o caminho
+  que `docs/producao/desligar-alguem.md` descrevia antes desta coluna existir —, a senha
+  continua sendo a temporária que ninguém entregou, e quem administra reinicia de novo.
+  Fazer as duas coisas num ato só juntaria decisões diferentes.
+  """
+  @spec enable_user(Tenant.t(), Ecto.UUID.t()) ::
+          {:ok, User.t()} | {:error, :not_found | :ja_ativa}
+  def enable_user(%Tenant{id: tenant_id}, user_id) do
+    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id) do
+      if User.ativa?(user) do
+        {:error, :ja_ativa}
+      else
+        user |> User.reativar_changeset() |> Repo.update()
+      end
+    end
+  end
+
+  defp nao_e_a_si(user_id, actor_id) when user_id == actor_id,
+    do: {:error, :nao_pode_desativar_a_si}
+
+  defp nao_e_a_si(_user_id, _actor_id), do: :ok
+
+  defp ainda_ativa(user) do
+    if User.ativa?(user), do: :ok, else: {:error, :ja_desativada}
+  end
+
+  @doc """
   Qual conta é esta pessoa observada — issue #369.
 
   Devolve `{:ok, user}` ou `:not_declared`, e **nunca `nil`**: a tela precisa distinguir

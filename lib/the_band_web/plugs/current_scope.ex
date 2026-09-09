@@ -41,7 +41,8 @@ defmodule TheBandWeb.Plugs.CurrentScope do
     # suspender uma organização é ato que precisa valer **agora**. Cai pelo mesmo
     # caminho do token girado — `sem_sessao/1` —, e de propósito: a pessoa é devolvida à
     # entrada sem que a tela diga qual das duas coisas aconteceu.
-    if user.session_token == get_session(conn, :session_token) and organizacao_ativa?(user) do
+    if user.session_token == get_session(conn, :session_token) and organizacao_ativa?(user) and
+         User.ativa?(user) do
       conn
       |> assign(:current_user, user)
       |> assign(:current_tenant, user.tenant)
