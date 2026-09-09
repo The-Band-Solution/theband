@@ -5,7 +5,7 @@
 # https://theband.dev com um `index.html` de 53 KB e um `CNAME`. `mkdocs gh-deploy`
 # APAGA a branch inteira — a landing page e o domínio junto.
 #
-# Por isso o site é publicado em `theband.dev/docs/` por um workflow que preserva
+# Por isso o site é publicado em `theband.dev/developers/` por um workflow que preserva
 # o que já existe na raiz. Ver `.github/workflows/docs.yml`, e nunca rodar
 # `mkdocs gh-deploy` neste repositório.
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -14,7 +14,7 @@ site_name: The Band — Documentação
 site_description: >-
   Integração semântica de dados de Engenharia de Software: coleta das ferramentas,
   harmonização contra ontologias de referência, proveniência preservada.
-site_url: https://theband.dev/docs/
+site_url: https://theband.dev/developers/
 repo_url: https://github.com/The-Band-Solution/theband
 repo_name: The-Band-Solution/theband
 edit_uri: edit/development/docs/

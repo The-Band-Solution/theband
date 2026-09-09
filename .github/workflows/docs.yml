@@ -1,12 +1,13 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# Publica o site da documentação em https://theband.dev/docs/
+# Publica o site da documentação em https://theband.dev/developers/
 #
 # ⚠️ A `gh-pages` NÃO é deste site sozinha. Ela serve a landing page em
 # `index.html` (53 KB) e carrega o `CNAME` do domínio. Por isso:
 #
 #   • `mkdocs gh-deploy` NUNCA é usado — ele APAGA a branch inteira;
-#   • a publicação escreve APENAS em `docs/`, e o passo de guarda aborta se o
-#     `CNAME` ou o `index.html` da raiz sumirem.
+#   • a publicação escreve APENAS em `developers/`, e o passo de guarda aborta se o
+#     `CNAME`, o `index.html` da raiz ou a página do produto em `/docs/`
+#     sumirem.
 #
 # O guarda existe porque um deploy que destrói o domínio não dá erro: ele
 # publica com sucesso um site sem CNAME, e o domínio cai em silêncio. É a
@@ -35,7 +36,7 @@ concurrency:
 
 jobs:
   publicar:
-    name: construir e publicar em /docs
+    name: construir e publicar em /developers
     runs-on: ubuntu-latest
 
     steps:
@@ -55,7 +56,7 @@ jobs:
         # inclusive no GitHub. Sem ele o site publica os 404 em silêncio.
         run: mkdocs build --strict
 
-      - name: publicar em gh-pages/docs, preservando a raiz
+      - name: publicar em gh-pages/developers, preservando a raiz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -65,15 +66,20 @@ jobs:
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" publicacao
 
           # Só a subpasta é substituída. A raiz não é tocada por comando nenhum.
-          rm -rf publicacao/docs
-          cp -r site publicacao/docs
+          rm -rf publicacao/developers
+          cp -r site publicacao/developers
 
           # ── O GUARDA ──
           # Um deploy que perdeu o CNAME publica com sucesso e derruba o domínio
           # sem erro nenhum. Conferir é mais barato que descobrir.
           test -f publicacao/CNAME || { echo "::error::CNAME sumiu da gh-pages — abortando"; exit 1; }
           test -f publicacao/index.html || { echo "::error::index.html da raiz sumiu — abortando"; exit 1; }
-          test -f publicacao/docs/index.html || { echo "::error::o site não gerou docs/index.html"; exit 1; }
+          test -f publicacao/developers/index.html || { echo "::error::o site não gerou developers/index.html"; exit 1; }
+          # `/docs/` deixou de ser este site e passou a ser a página do produto,
+          # mantida à mão na raiz da `gh-pages`. Se ela sumir, o deploy "funciona"
+          # e um dos endereços que a landing anuncia cai sem erro nenhum — a mesma
+          # família do sucesso silencioso que o guarda do CNAME já cobre.
+          test -f publicacao/docs/index.html || { echo "::error::a página do produto em /docs/ sumiu — abortando"; exit 1; }
 
           echo "CNAME preservado: $(cat publicacao/CNAME)"
 
@@ -91,4 +97,4 @@ jobs:
           git push
 
       - name: onde ficou
-        run: echo "### Site publicado em https://theband.dev/docs/" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "### Site publicado em https://theband.dev/developers/" >> "$GITHUB_STEP_SUMMARY"
