@@ -160,6 +160,40 @@ defmodule TheBandWeb.H2ParidadeDasRotasTest do
     end
   end
 
+  test "a tela DIZ que a lista está filtrada — e não deixa parecer que o dado sumiu", ctx do
+    # DECISÃO DA PESSOA MANTENEDORA em 2026-09-09, sobre o custo que o papel Product Owner
+    # nomeou ao avaliar a v0.7.0: a release **retira alcance de três maneiras**, e quem
+    # ontem via a lista inteira e hoje vê parte dela concluiria que o dado sumiu, ou que a
+    # coleta falhou.
+    #
+    # Dizer que há filtro **não vaza nada**: não revela quantas linhas ficaram de fora nem
+    # quem são. É a diferença entre um recorte declarado e uma ausência que parece defeito.
+    conn = log_in(ctx.conn, ctx.estranha)
+
+    for {rota, _marca} <- @rotas_com_ranking do
+      {:ok, _live, html} = live(conn, rota)
+
+      assert html =~ "only the people you reach", """
+      #{rota} filtra pelo alcance e **não diz que filtrou**. Quem lê vê uma lista curta sem
+      saber por quê — e a conclusão natural é que a plataforma perdeu o dado.
+      """
+
+      assert html =~ "9 September 2026", """
+      A data é o que permite a alguém ligar a lista curta de hoje à lista longa de ontem. Sem
+      ela, a frase explica a regra e não explica a MUDANÇA.
+      """
+    end
+  end
+
+  test "e quem alcança tudo NÃO vê a ressalva — ela seria ruído", ctx do
+    {:ok, _live, html} = live(log_in(ctx.conn, ctx.admin), "/process")
+
+    refute html =~ "only the people you reach", """
+    A administração alcança tudo, então a lista não está filtrada e a frase seria falsa —
+    além de treinar quem lê a ignorar as ressalvas que importam.
+    """
+  end
+
   test "a recusa do painel é REGISTRADA — a FR-024 depende disto", ctx do
     # RECUSA DO PAPEL PRODUCT OWNER na v0.7.0: `AccessEvents.painel_recusado/4` tinha
     # `@doc`, `@spec` e **zero call sites**. Função documentada e nunca chamada é pior que

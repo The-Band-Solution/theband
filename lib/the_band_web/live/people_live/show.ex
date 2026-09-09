@@ -633,9 +633,37 @@ defmodule TheBandWeb.PeopleLive.Show do
             kind={:refused}
             title="This panel is not yours to see"
           >
-            A panel is reachable by the person themselves, by a team or project scope that
-            includes them, by an organization scope, by declared leadership, or by
-            administering this tenant — and none of those covers you here. Scopes are <strong>declared or derived from relations</strong>, never guessed.
+            A panel is reachable by the person themselves, by a team scope that includes
+            them, by an organization scope, by declared leadership, or by administering
+            this tenant — and none of those covers you here. Scopes are <strong>declared
+            or derived from relations</strong>, never guessed.
+          </.notice>
+
+          <%!-- A REGRA MUDOU, E A TELA DIZ QUE MUDOU — decisão da pessoa mantenedora em
+                2026-09-09, sobre o custo que o papel Product Owner nomeou ao avaliar a
+                v0.7.0.
+
+                Aquela release **retira alcance de três maneiras**, e quem ontem abria um
+                painel e hoje não abre encontraria uma recusa e **nenhuma explicação de que
+                a regra mudou** — concluiria que perdeu permissão, ou que a plataforma
+                quebrou.
+
+                Dizer que a regra mudou **não vaza nada**: não revela se a pessoa existe,
+                nem qual escopo falta. É a diferença entre uma recusa que informa e uma que
+                deixa a pessoa a adivinhar.
+
+                Sai quando deixar de haver quem se lembre do regime anterior — e a data no
+                texto é o que torna essa decisão possível depois. --%>
+          <.notice
+            :if={@motivo_do_alcance in [:sem_alcance_declarado, :fora_dos_escopos]}
+            kind={:gap}
+            title="This rule changed on 9 September 2026"
+          >
+            A <strong>project scope no longer opens a person's panel</strong>. It named a
+            project, and a team can work on several — letting it through made authority
+            travel sideways. The work of that project is still yours to read; the person's
+            panel now needs a team scope, an organization scope, declared leadership, or
+            administering this tenant.
           </.notice>
 
           <%!-- A concessão existe mas o alvo dela sumiu: remédio diferente dos outros

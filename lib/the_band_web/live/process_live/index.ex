@@ -37,6 +37,7 @@ defmodule TheBandWeb.ProcessLive.Index do
   def mount(_params, _session, socket) do
     tenant = socket.assigns.current_tenant
     estados = SPO.count_board_states(tenant)
+    alcance = Tenants.pessoas_alcancadas(tenant, socket.assigns.current_user)
 
     {:ok,
      socket
@@ -64,8 +65,11 @@ defmodule TheBandWeb.ProcessLive.Index do
        atividade:
          so_alcancadas(
            SPO.activity_by_person_month(tenant),
-           Tenants.pessoas_alcancadas(tenant, socket.assigns.current_user)
-         )
+           alcance
+         ),
+       # A tela precisa saber que FILTROU, e não só o resultado filtrado — senão quem vê
+       # menos linhas conclui que o dado sumiu.
+       alcance_parcial?: alcance != :todas
      )}
   end
 
@@ -156,6 +160,22 @@ defmodule TheBandWeb.ProcessLive.Index do
           <p :if={@atividade.pessoas == []} class="text-sm opacity-70">
             No activity collected yet. This is absence, not zero.
           </p>
+
+          <%!-- A LISTA ESTÁ FILTRADA, E A TELA DIZ QUE ESTÁ — decisão da pessoa
+                mantenedora em 2026-09-09. Quem ontem via todas as pessoas e hoje vê parte
+                delas concluiria que o dado sumiu, ou que a coleta falhou.
+
+                Não diz quantas ficaram de fora: o número seria uma medida sobre pessoas
+                que quem lê não alcança. --%>
+          <div :if={@alcance_parcial?} class="alert alert-info mb-3 block text-sm">
+            <p>
+              <strong>This table shows only the people you reach.</strong>
+              Since <strong>9 September 2026</strong>, activity by named person follows the
+              same rule as a person's panel — your own record, the people on your teams,
+              whoever you lead by declared role, an organization scope, or administering
+              this tenant.
+            </p>
+          </div>
 
           <table :if={@atividade.pessoas != []} class="table table-sm mt-1">
             <thead>
