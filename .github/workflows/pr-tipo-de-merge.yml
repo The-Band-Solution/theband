@@ -1,0 +1,106 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# O TIPO DE MERGE É DECLARADO NO PR, E AGORA É CONFERIDO.
+#
+# `.github/pull_request_template.md` pede a declaração desde 2026-09-02, e ela
+# nasceu de três lições — L75, L83 e L92. A terceira aconteceu DEPOIS de as duas
+# primeiras estarem escritas, e a conclusão registrada foi: "lembrar da regra no
+# momento de clicar o botão não funcionou".
+#
+# Medido em 2026-09-09: dos oito PRs abertos naquele dia, ZERO declararam o tipo.
+# A causa é mecânica e não é desatenção — `gh pr create --body` SUBSTITUI o
+# template inteiro, e a seção desaparece sem que nada avise. Um template é um
+# pedido; o que torna a regra obrigatória é a conferência.
+#
+# Este workflow não escolhe o merge por ninguém. Ele recusa PR que não diga.
+# ═══════════════════════════════════════════════════════════════════════════════
+name: Tipo de merge
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  declarado:
+    name: o PR declara squash ou merge commit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: a declaração existe, e é uma só
+        env:
+          CORPO: ${{ github.event.pull_request.body }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          TITULO: ${{ github.event.pull_request.title }}
+        run: |
+          set -uo pipefail
+
+          # `grep -c` devolve 1 quando não acha, e `set -e` mataria o passo antes
+          # de a mensagem ser escrita. Por isso a contagem é tolerante e o
+          # veredito é explícito no fim.
+          conta() { printf '%s' "$CORPO" | grep -ciE "$1" || true; }
+
+          SQUASH=$(conta '^[[:space:]]*-[[:space:]]*\[[xX]\][[:space:]]*\*{0,2}squash')
+          MERGE=$(conta '^[[:space:]]*-[[:space:]]*\[[xX]\][[:space:]]*\*{0,2}merge commit')
+
+          # A forma livre também vale: quem escreve o corpo à mão não deve ser
+          # obrigado a reproduzir a caixinha do template.
+          LIVRE_SQUASH=$(conta '^\**tipo de merge\**:?\**[[:space:]]*\**squash')
+          LIVRE_MERGE=$(conta '^\**tipo de merge\**:?\**[[:space:]]*\**merge commit')
+
+          S=$(( SQUASH + LIVRE_SQUASH ))
+          M=$(( MERGE + LIVRE_MERGE ))
+
+          echo "declarações encontradas — squash: $S · merge commit: $M"
+
+          if [ "$S" -eq 0 ] && [ "$M" -eq 0 ]; then
+            echo "::error title=O PR não declara o tipo de merge::Marque UMA das caixas da seção 'Tipo de merge' do template, ou escreva 'Tipo de merge: squash' / 'Tipo de merge: merge commit' no corpo. Um corpo escrito com 'gh pr create --body' substitui o template inteiro, e é assim que a declaração desaparece."
+            exit 1
+          fi
+
+          if [ "$S" -gt 0 ] && [ "$M" -gt 0 ]; then
+            echo "::error title=O PR declara os dois::Squash e merge commit estão ambos marcados. Apague o que não vale — a declaração existe para ser seguida por quem clica, e duas não decidem nada."
+            exit 1
+          fi
+
+          # ── O MOTIVO ──
+          # Sem ele a declaração é uma caixa marcada. Com ele, quem revisa pode
+          # discordar da escolha — que é o ponto.
+          # A ORDEM AQUI É O QUE FAZ A CONFERÊNCIA VALER, e a primeira versão errou:
+          # cortar no primeiro `:` deixava `** <!-- ex.: algo -->` de pé, porque o
+          # comentário do template tem `:` dentro. Sobrava `**`, que não é vazio, e
+          # o motivo em branco passava. Comentário sai PRIMEIRO, rótulo depois, e
+          # no fim só o que é letra ou número conta como motivo escrito.
+          MOTIVO=$(printf '%s' "$CORPO" | grep -iE '^\**motivo' | head -1 || true)
+          MOTIVO=$(printf '%s' "$MOTIVO" | sed -E 's/<!--[^>]*-->//g; s/<!--.*//')
+          MOTIVO=$(printf '%s' "$MOTIVO" | sed -E 's/^\**[Mm]otivo\**:?\**//')
+          MOTIVO=$(printf '%s' "$MOTIVO" | tr -cd '[:alnum:]')
+
+          if [ -z "$MOTIVO" ]; then
+            echo "::error title=A declaração não tem motivo::Escreva 'Motivo:' com a razão — 'branch empilhada sobre a #NNN', 'release para main', 'back-merge', 'os commits carregam decisão'. Caixa marcada sem motivo não deixa ninguém discordar da escolha."
+            exit 1
+          fi
+
+          # ── A TABELA DA SEÇÃO 12 DO AGENTS.md, APLICADA ──
+          # Quatro casos em que merge commit é obrigatório. O squash cria um commit
+          # novo, SEM OS PAIS ORIGINAIS: o Git perde a informação de que aquele
+          # trabalho já foi integrado, e volta a oferecê-lo como inédito.
+          OBRIGA=""
+          [ "$BASE" = "main" ] && OBRIGA="release ou hotfix para \`main\`"
+          printf '%s' "$TITULO" | grep -qiE 'back-?merge' && OBRIGA="back-merge"
+          printf '%s' "$TITULO" | grep -qiE 'hotfix' && OBRIGA="hotfix"
+
+          if [ -n "$OBRIGA" ] && [ "$S" -gt 0 ]; then
+            echo "::error title=Squash declarado onde merge commit é obrigatório::Este PR é $OBRIGA, e a seção 12 do AGENTS.md exige merge commit. O squash faria as duas linhas divergirem, e a divergência não se desfaz — L83 e L92."
+            exit 1
+          fi
+
+          if [ -n "$OBRIGA" ]; then
+            echo "✓ $OBRIGA, com merge commit declarado — como a seção 12 exige"
+          elif [ "$S" -gt 0 ]; then
+            echo "✓ squash declarado · motivo: $MOTIVO"
+          else
+            echo "✓ merge commit declarado · motivo: $MOTIVO"
+          fi
