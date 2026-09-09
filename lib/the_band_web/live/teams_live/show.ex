@@ -16,7 +16,9 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
+  alias TheBand.Profiles.Material
   alias TheBand.Quality
+  alias TheBand.Teams.ProblemsNow
   alias TheBand.Tenants
   alias TheBand.Verification
   alias TheBand.WorkItems
@@ -29,6 +31,15 @@ defmodule TheBandWeb.TeamsLive.Show do
   # O teto de solicitações que a seção da espera carrega. Cortar é decisão, e a tela
   # DIZ quando corta: mediana sobre 200 de 500 é outra medida com o mesmo rótulo.
   @limite_de_esperas 200
+
+  # Quantas tarefas por pessoa a seção lista antes de cortar — protótipo, decisão 20.
+  #
+  # Não é paginação: a pergunta é *o que cada um está fazendo*, e oito itens já a respondem.
+  # Sem o corte, uma pessoa com 114 abertas — existe — empurra as outras para fora da tela.
+  # **Função, e não atributo**: dentro de `~H` o `@` lê **assign**, e um atributo com o mesmo
+  # nome fica silenciosamente não usado enquanto o template levanta `KeyError` no render.
+  @teto_de_tarefas 8
+  defp teto_de_tarefas, do: @teto_de_tarefas
 
   # O teto de períodos que a pessoa pode pedir. Não é desconfiança: `?periodos=100000` em
   # granulação de semana pediria duas mil consultas de eixo e um SVG que nenhum navegador
@@ -817,6 +828,38 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp aba_no_endereco(%{assigns: %{aba: :structure}}), do: "structure"
   defp aba_no_endereco(_socket), do: nil
 
+  # *PROBLEMAS AGORA* — spec 060, FR-065 (US8). Vem ANTES das medidas de propósito: quem abre
+  # o painel pergunta primeiro "o que precisa de mim hoje", e a medida responde outra coisa.
+  defp carregar_problemas_agora(socket) do
+    tenant = socket.assigns.current_tenant
+
+    # `@janela_em_dias` é atributo de MÓDULO; dentro de `~H` o `@` lê **assign**. Sem esta
+    # linha o template levantaria `KeyError` no render — e o compilador não avisa.
+    # O QUE A TELA JÁ TEM, entregue aos cartões em vez de reconsultado.
+    #
+    # A primeira versão consultava tudo, e o teto acusou: 32 consultas acrescentadas contra as
+    # 21 declaradas, com o número **crescendo por pessoa**. A causa não era desempenho — era
+    # duplicação: o painel já carrega as tarefas por pessoa, as anomalias, a espera por revisão
+    # e a contagem de vínculos sem papel.
+    insumos = %{
+      pessoas: get_in(socket.assigns, [Access.key(:detalhe), Access.key(:pessoas)]),
+      esperas: get_in(socket.assigns, [Access.key(:espera_por_revisao), Access.key(:esperas)]),
+      antipadroes: socket.assigns[:antipadroes_da_estrutura],
+      pending_role: socket.assigns[:pending_role]
+    }
+
+    assign(socket,
+      janela_em_dias: @janela_em_dias,
+      problemas:
+        ProblemsNow.cartoes(
+          tenant,
+          socket.assigns.escopo_do_roster,
+          insumos,
+          janela_em_dias: @janela_em_dias
+        )
+    )
+  end
+
   # O CABEÇALHO É DAS DUAS ABAS (FR-004), e por isso carrega antes de qualquer uma delas.
   #
   # Os três números saem de `team_roster_totals/2`, que usa a mesma agregação da listagem da
@@ -852,6 +895,10 @@ defmodule TheBandWeb.TeamsLive.Show do
     socket
     |> carregar_composicao()
     |> carregar_competencias()
+    # POR ÚLTIMO, de propósito: cinco dos oito cartões derivam do que as duas linhas acima
+    # carregaram. Montá-los antes exigiria consultar de novo — e dois caminhos para o mesmo
+    # número divergem.
+    |> carregar_problemas_agora()
   end
 
   defp carregar_aba(socket, :structure) do
@@ -1049,11 +1096,24 @@ defmodule TheBandWeb.TeamsLive.Show do
         agora
       )
 
+    # A ESPERA MEDIANA DE CADA SUBEQUIPE — Design, 2026-09-09, decisão 5.
+    #
+    # A FR-041 manda o cartão trazer **as mesmas medidas da tabela**, e a tabela aprovada da
+    # 057 é `team | people | closed 8w | CI success | 1st review`. A implementação tinha
+    # descartado as duas últimas e posto `stopped` no lugar — o cartão não estava incompleto,
+    # estava mostrando outra coisa.
+    esperas = esperas_dos_cartoes(tenant, [team.id | Enum.map(partes, & &1.team_id)], agora)
+
     subequipes =
       Enum.map(partes, fn p ->
         tenant
         |> WorkItems.team_snapshot(p.team_id, agora)
-        |> Map.merge(%{nome: p.name, direta?: false, faisca: faiscas[p.team_id]})
+        |> Map.merge(%{
+          nome: p.name,
+          direta?: false,
+          faisca: faiscas[p.team_id],
+          espera: esperas[p.team_id]
+        })
       end)
 
     diretos =
@@ -1062,7 +1122,8 @@ defmodule TheBandWeb.TeamsLive.Show do
       |> Map.merge(%{
         nome: team.name <> " · direct members",
         direta?: true,
-        faisca: faiscas[team.id]
+        faisca: faiscas[team.id],
+        espera: esperas[team.id]
       })
 
     linhas = Enum.sort_by(subequipes, & &1.paradas, :desc) ++ [diretos]
@@ -1103,26 +1164,49 @@ defmodule TheBandWeb.TeamsLive.Show do
         role="img"
         aria-label={"Cumulative opened and closed, #{@janela.rotulo}. #{@faisca.aberto_final} still open at the end."}
       >
+        <%!-- O ÂMBAR SAI DA FAÍSCA — Design, 2026-09-09, decisão 6.
+              Estava invertido: escopo em `text-primary` e feito em `text-warning`, o oposto
+              do protótipo. Âmbar nesta casa é **derivado e obsoleto**, e trabalho fechado não
+              é nem um nem outro — é o ato observado da ferramenta, que é o que verdete
+              significa. A distinção **não é só cor** (055 FR-002): a largura difere, e só a
+              curva do fechado tem o ponto final. --%>
         <polyline
           points={@faisca.escopo}
           fill="none"
           stroke="currentColor"
-          stroke-width="1.6"
+          stroke-width="1.2"
           vector-effect="non-scaling-stroke"
-          class="text-primary"
+          class="text-base-content/50"
         />
         <polyline
           points={@faisca.feito}
           fill="none"
           stroke="currentColor"
-          stroke-width="1.6"
+          stroke-width="1.8"
           vector-effect="non-scaling-stroke"
-          class="text-warning"
+          class="text-primary"
+        />
+        <circle
+          :if={@faisca.ponto_final}
+          cx={elem(@faisca.ponto_final, 0)}
+          cy={elem(@faisca.ponto_final, 1)}
+          r="1.6"
+          class="fill-primary"
         />
       </svg>
 
+      <%!-- A FRASE É SOBRE MOVIMENTO, e o cartão mostra ESTOQUE ao lado.
+
+            Dizia *"No work observed in this window — which is not the same as zero"* num
+            cartão que, na mesma caixa, exibia `open 2 · stopped 2`. As duas coisas são
+            verdadeiras e parecem contradição: há dois itens abertos, e **nenhum se moveu**
+            na janela — nada abriu nem fechou. Achado pelo QA em 2026-09-08.
+
+            A frase passou a dizer **o que de facto não houve**: movimento. O estoque continua
+            nos números, e é justamente a distância entre os dois que interessa — trabalho
+            parado é estoque sem movimento. --%>
       <p :if={is_nil(@faisca)} class="text-xs opacity-60">
-        No work observed in this window — which is not the same as zero.
+        Nothing opened or closed in this window — the items below are stock, not movement.
       </p>
     </div>
     """
@@ -1132,23 +1216,62 @@ defmodule TheBandWeb.TeamsLive.Show do
   #
   # Duas apresentações do mesmo dado precisam dizer o mesmo, senão quem compara o cartão com a
   # linha encontra dois números e não sabe qual seguir. E **nenhum total** (FR-044, SC-008).
+  #
+  # ## Por que estes DOIS, e não os três de antes — Design, 2026-09-09
+  #
+  # A FR-041 manda o cartão trazer as mesmas medidas da tabela, e a tabela aprovada da 057 é
+  # `team | people | closed 8w | CI success | 1st review`. Estavam aqui `members`, `open` e
+  # `stopped`; as duas medidas herdadas tinham sido descartadas.
+  #
+  # - `members` subiu para o CABEÇALHO: não é medida do trabalho, é propriedade da subequipe,
+  #   e no vão numérico obrigava a ler três rótulos para achar os dois sobre trabalho;
+  # - `stopped` saiu: não há lugar para o limiar num vão deste tamanho, e o número sem o
+  #   limiar não é interpretável. Ficou na TABELA, com o limiar no cabeçalho — e é lá que
+  #   precisa estar, porque a FR-044 ordena por ele;
+  # - `pipeline` **não** entra: `spo_project_teams` não tem vínculo para nenhuma das
+  #   subequipes, então a taxa seria `no project` em todos os cartões. A recusa já tem lugar
+  #   próprio na tela, com a razão anexada — repeti-la aqui seria a quarta vez.
+  #
+  # São **dois vãos, não três com uma ausência**: ausência é o valor que falta, não a medida
+  # que não existe. E três cartões com 3/3/2 vãos não alinham.
+  attr :linha, :map, required: true
+
+  # O CABEÇALHO: nome, e `N members` à direita — Design, 2026-09-09, decisão 3.
+  #
+  # `members` não é medida do trabalho, é propriedade da subequipe. No vão numérico obrigava
+  # a ler três rótulos para achar os dois que respondem *como vai o trabalho*.
+  #
+  # A forma CURTA de propósito: a quebra observados/declarados da FR-043 vive na coluna `team`
+  # da tabela e sob cada medida da espera. Repeti-la aqui encheria o cabeçalho e daria ao QA
+  # um falso defeito para marcar.
+  defp cabecalho_do_cartao(assigns) do
+    ~H"""
+    <span class="flex items-baseline justify-between gap-2">
+      <span class={["text-sm font-semibold", @linha.direta? && "opacity-80"]}>{@linha.nome}</span>
+      <span class="font-mono text-[0.67rem] tracking-[0.06em] text-base-content/70 uppercase">
+        {@linha.membros} {if @linha.membros == 1, do: "member", else: "members"}
+      </span>
+    </span>
+    """
+  end
+
   attr :linha, :map, required: true
 
   defp numeros_do_cartao(assigns) do
     ~H"""
-    <dl class="grid grid-cols-3 gap-1 text-xs">
+    <dl class="grid grid-cols-2 gap-2 text-xs">
       <div>
-        <dt class="opacity-60">members</dt>
-        <dd class="font-mono tabular-nums">{@linha.membros}</dd>
-      </div>
-      <div>
-        <dt class="opacity-60">open</dt>
+        <dt class="opacity-60">open items</dt>
         <dd class="font-mono tabular-nums">{@linha.abertas}</dd>
       </div>
       <div>
-        <dt class="opacity-60">stopped</dt>
-        <dd class={["font-mono tabular-nums", @linha.paradas > 0 && "text-warning"]}>
-          {@linha.paradas}
+        <dt class="opacity-60">median wait</dt>
+        <%!-- `no review yet`, e NUNCA `0 h`: zero afirmaria revisão instantânea. --%>
+        <dd :if={@linha.espera.mediana} class="font-mono tabular-nums">
+          {@linha.espera.mediana}h
+        </dd>
+        <dd :if={is_nil(@linha.espera.mediana)} class="text-[0.7rem] opacity-70">
+          no review yet
         </dd>
       </div>
     </dl>
@@ -1172,6 +1295,51 @@ defmodule TheBandWeb.TeamsLive.Show do
   #
   # `nil` quando a janela não tem série, e o cartão diz isso em palavras: uma faísca reta em
   # zero afirmaria "abriu zero e fechou zero", quando o que houve foi não ter o que observar.
+  # A ESPERA MEDIANA POR SUBEQUIPE — Design, 2026-09-09, decisão 5.
+  #
+  # ## Por que UMA consulta por subequipe, e não uma agrupada
+  #
+  # `team_time_to_first_review/3` traz as LINHAS, e a mediana sai em Elixir. Agrupada, o
+  # `limit` seria **compartilhado**: a subequipe movimentada comeria o orçamento das outras e
+  # a mediana sairia sobre um pedaço sem que nada dissesse — o corte silencioso que a revisão
+  # de segurança do PR #798 apontou. Uma das subequipes já está em 183 das 200.
+  #
+  # O teto de consultas da tela **permite** este crescimento, e de propósito: ele mede o passo
+  # POR subequipe, porque somar contaria a mesma pessoa duas vezes. O custo medido em
+  # 2026-09-09 é de 4 consultas por subequipe contra as 6 declaradas — a mediana cabe.
+  #
+  # ## E é a MESMA medida da seção, não uma segunda
+  #
+  # Mesma janela, mesma separação por natureza e a mesma `mediana_em_horas/1`. Redefinir aqui
+  # daria dois números com o rótulo `median wait` na mesma tela, que é a L67 — e é o que
+  # `quality.ex` já evita ao agrupar em memória em vez de reconsultar.
+  #
+  # `nil` é **ausência dita**: zero afirmaria revisão instantânea, e o cartão escreve
+  # `no review yet`.
+  defp esperas_dos_cartoes(tenant, equipes, agora) do
+    desde = DateTime.add(agora, -@janela_em_dias, :day)
+
+    Map.new(equipes, fn team_id ->
+      # Uma a mais que o limite, para saber se cortou — o mesmo que a seção faz.
+      carregadas =
+        Quality.team_time_to_first_review(tenant, team_id,
+          desde: desde,
+          ate: agora,
+          limit: @limite_de_esperas + 1
+        )
+
+      %{trabalho: trabalho} =
+        carregadas |> Enum.take(@limite_de_esperas) |> Quality.separar_por_natureza()
+
+      {team_id,
+       %{
+         mediana: Quality.mediana_em_horas(trabalho),
+         esperando: Enum.count(trabalho, &match?({:aguardando, _}, &1.estado)),
+         truncou?: length(carregadas) > @limite_de_esperas
+       }}
+    end)
+  end
+
   defp faiscas_dos_cartoes(tenant, equipes, janela, agora) do
     series =
       WorkItems.team_state_changes_by_team(tenant, equipes, janela.granulacao,
@@ -1201,17 +1369,29 @@ defmodule TheBandWeb.TeamsLive.Show do
     limite = max(Enum.max(Enum.map(burn, & &1.escopo)), 1)
     passo = if length(burn) > 1, do: 100 / (length(burn) - 1), else: 0
 
+    # `xy` devolve o PAR, e `coord` a cadeia de pontos — o ponto final precisa dos números,
+    # e reextraí-los de uma string seria escrever um parser para o que já foi calculado.
+    xy = fn v, i ->
+      {Float.round(i * passo, 1), Float.round(26 - v / limite * 24, 1)}
+    end
+
     coord = fn valores ->
       valores
       |> Enum.with_index()
       |> Enum.map_join(" ", fn {v, i} ->
-        "#{Float.round(i * passo, 1)},#{Float.round(26 - v / limite * 24, 1)}"
+        {x, y} = xy.(v, i)
+        "#{x},#{y}"
       end)
     end
 
+    feito = Enum.map(burn, & &1.feito)
+
     %{
       escopo: coord.(Enum.map(burn, & &1.escopo)),
-      feito: coord.(Enum.map(burn, & &1.feito)),
+      feito: coord.(feito),
+      # O PONTO FINAL da curva do fechado — Design, 2026-09-09, decisão 6: é o que distingue
+      # as duas curvas sem depender de cor (055 FR-002).
+      ponto_final: xy.(List.last(feito), length(feito) - 1),
       aberto_final: List.last(burn).aberto
     }
   end
@@ -1244,8 +1424,20 @@ defmodule TheBandWeb.TeamsLive.Show do
       )
 
     aberto_inicial = WorkItems.team_open_at(tenant, team.id, janela.desde, fluxo)
-    tarefas = WorkItems.team_open_tasks_by_person(tenant, team.id, agora)
-    membros = EO.team_members_at(tenant, team.id, agora)
+    membros = EO.team_members_at(tenant, team.id, agora, escopo: socket.assigns.escopo_do_roster)
+
+    # AS TAREFAS SOBRE AS MESMAS PESSOAS que a seção lista — e não sobre um conjunto menor.
+    #
+    # `open_tasks_by_person/4` monta os ids sozinho quando não os recebe, e ali eles saem só
+    # dos vínculos DIRETOS. Numa equipe composta isso produzia duas listas divergentes na
+    # mesma tela: a de pessoas com o conjunto inteiro, a de tarefas com os diretos.
+    tarefas =
+      WorkItems.team_open_tasks_by_person(
+        tenant,
+        team.id,
+        agora,
+        Enum.map(membros, & &1.person_id)
+      )
 
     assign(socket,
       janela: janela,
@@ -1582,7 +1774,8 @@ defmodule TheBandWeb.TeamsLive.Show do
       >
         <% {:sem_historico, falta} = @detalhe.previsao %> The gap is
         <strong class="font-mono tabular-nums">{@pontos.aberto_final}</strong>
-        items still open, and <strong>no horizon is shown</strong>: this window has {falta.semanas} of the {falta.semanas_exigidas} periods and {falta.fechadas} of the {falta.fechadas_exigidas} closed items the forecast needs. A pace read from less than
+        items still open, and <strong>no horizon is shown</strong>: the forecast needs {falta.semanas_exigidas} periods and {falta.fechadas_exigidas} closed items, and this
+        window has {falta.semanas} and {falta.fechadas}. A pace read from less than
         that would be a guess wearing the clothes of a measure.
       </p>
 
@@ -1617,6 +1810,11 @@ defmodule TheBandWeb.TeamsLive.Show do
           —
           the items already open when the window began. Starting from zero would measure only
           the items born inside this window, and call that the open work.
+        </p>
+        <%!-- A IDENTIDADE, escrita (protótipo, decisão 19). A distância entre as curvas é
+              derivada, e a fórmula é o que permite conferi-la sem confiar no desenho. --%>
+        <p class="mt-1 font-mono text-xs opacity-70">
+          open(t) = {@detalhe.aberto_inicial} + opened(t) − closed(t)
         </p>
         <p class="mt-2 opacity-80">
           There is <strong>no committed scope</strong> here, so this does not answer whether a
@@ -1793,6 +1991,89 @@ defmodule TheBandWeb.TeamsLive.Show do
     end
   end
 
+  # O CARTÃO DE UM PROBLEMA — FR-066 a FR-068.
+  #
+  # Três coisas que ele nunca omite: **sobre o que** foi contado (o limiar), **de onde vem** o
+  # limiar (a regra na base), e **para onde levar** quando o número é maior que zero.
+  #
+  # A quarta, e a que separa este cartão de um contador qualquer: a diferença entre *conferido,
+  # nada encontrado* e *não conferido*. Os dois seriam zero num inteiro solto, e são afirmações
+  # opostas — uma diz que a plataforma olhou, a outra que ela não pôde olhar.
+  attr :problema, :map, required: true
+  attr :team_id, :string, required: true
+
+  defp cartao_de_problema(assigns) do
+    ~H"""
+    <div class={[
+      "card border p-3",
+      case @problema.resultado do
+        {:contado, 0, _} -> "border-base-300 bg-base-100"
+        {:contado, _, _} -> "border-warning bg-base-100"
+        {:nao_conferido, _} -> "border-dashed border-base-300 bg-base-100"
+      end
+    ]}>
+      <span class="text-xs font-semibold">{@problema.titulo}</span>
+
+      <%!-- CONTADO, e maior que zero: o número, e o caminho para a lista que o produziu. --%>
+      <div :if={match?({:contado, n, _} when n > 0, @problema.resultado)} class="mt-1">
+        <% {:contado, n, _} = @problema.resultado %>
+        <span class="font-mono text-2xl tabular-nums text-warning">{n}</span>
+        <.link
+          :if={@problema.destino}
+          navigate={destino_do_problema(@team_id, @problema.destino)}
+          class="link link-hover ml-2 text-xs"
+        >
+          see the list
+        </.link>
+      </div>
+
+      <%!-- CONTADO ZERO: *conferido, nada encontrado*. Não é um zero mudo — a frase é o que o
+            separa do cartão sem insumo, logo abaixo. --%>
+      <p :if={match?({:contado, 0, _}, @problema.resultado)} class="mt-1 text-xs opacity-70">
+        <span class="font-mono text-2xl tabular-nums opacity-60">0</span>
+        <span class="ml-1">checked, nothing found</span>
+      </p>
+
+      <%!-- NÃO CONFERIDO: sem número, e com o que falta. Um zero aqui afirmaria que a
+            plataforma olhou — e ela não pôde. --%>
+      <div :if={match?({:nao_conferido, _}, @problema.resultado)} class="mt-1">
+        <% {:nao_conferido, falta} = @problema.resultado %>
+        <span class="badge badge-dash badge-sm text-base-content/70">not checked</span>
+        <p class="mt-1 text-xs opacity-70">{falta}</p>
+      </div>
+
+      <p class="mt-2 text-[0.65rem] opacity-60">
+        {@problema.limiar}<br />
+        <span class="font-mono">{@problema.origem}</span>
+      </p>
+    </div>
+    """
+  end
+
+  # O destino é uma âncora nesta tela, ou a outra aba. As duas formas existem porque os fatos
+  # moram em lugares diferentes: o papel não declarado é da Estrutura, a espera é do painel.
+  defp destino_do_problema(team_id, "?tab=" <> _ = aba), do: ~p"/teams/#{team_id}" <> aba
+  defp destino_do_problema(team_id, ancora), do: ~p"/teams/#{team_id}" <> ancora
+
+  # O DESTAQUE `**assim**` da base de conhecimento, sem injetar HTML.
+  #
+  # Devolve pares `{texto, forte?}` para a tela montar a marcação. É deliberado não devolver
+  # HTML: o texto vem de YAML que quem mantém a base edita, e transformá-lo em markup faria
+  # de um arquivo de conhecimento uma porta de injeção — mesmo sendo hoje um arquivo do
+  # repositório.
+  #
+  # Ímpar/par: fora dos `**` é texto normal, dentro é forte. `**` desemparelhado deixa o resto
+  # normal, que é a degradação certa — pior seria engolir o texto.
+  defp com_enfase(nil), do: []
+
+  defp com_enfase(texto) do
+    texto
+    |> String.split("**")
+    |> Enum.with_index()
+    |> Enum.reject(fn {parte, _i} -> parte == "" end)
+    |> Enum.map(fn {parte, i} -> {parte, rem(i, 2) == 1} end)
+  end
+
   # A MARCA DO CONCEITO — o que o item É, em três letras, antes do título.
   #
   # As quatro que aparecem no dado real: `TASK`, `US`, `EPIC` e `BUG`. A quarta não estava no
@@ -1815,40 +2096,66 @@ defmodule TheBandWeb.TeamsLive.Show do
     assigns = assign(assigns, :marca, marca(assigns.conceito))
 
     ~H"""
-    <span
-      class={["badge badge-sm shrink-0 font-mono text-[0.65rem]", @marca.classe]}
-      title={@marca.titulo}
-    >
-      {@marca.texto}
+    <%!-- VÃO FIXO de 3.5 rem, com o chip à direita — protótipo, decisão 17.
+
+          Sem ele, as cinco marcas têm larguras diferentes e cada título começa num x
+          diferente: quinze itens, quinze bordas esquerdas irregulares. O vão custa alguns
+          pixels e devolve uma coluna de títulos que o olho percorre em linha reta. --%>
+    <span class="inline-flex w-14 shrink-0 justify-end">
+      <span
+        class={["badge badge-sm font-mono text-[0.65rem]", @marca.classe]}
+        title={@marca.titulo}
+      >
+        {@marca.texto}
+      </span>
     </span>
     """
   end
 
+  # A ESCADA DO ESCOPO em peso e preenchimento, e não em matiz: neutro cheio no mais largo,
+  # fundo da família um degrau abaixo, peso normal no mais frequente.
   defp marca("sro.epic"),
-    do: %{texto: "EPIC", classe: "badge-secondary", titulo: "epic — a user story with parts"}
+    do: %{
+      texto: "EPIC",
+      classe: "badge-neutral font-semibold",
+      titulo: "epic — a user story with parts"
+    }
 
   defp marca("sro.atomic_user_story"),
-    do: %{texto: "US", classe: "badge-primary", titulo: "atomic user story — no parts"}
+    do: %{
+      texto: "US",
+      classe: "badge-soft font-semibold",
+      titulo: "atomic user story — no parts"
+    }
 
+  # Peso normal porque são 760 de 1154: negrito aqui pintaria dois terços da tela e apagaria
+  # o destaque de `EPIC` e `BUG`, que são os raros e os que pedem atenção.
   defp marca("sro.intended_scrum_development_task"),
     do: %{
       texto: "TASK",
-      classe: "badge-ghost",
+      classe: "badge-soft",
       titulo: "intended development task — declared, not necessarily executed"
     }
 
+  # A ÚNICA matiz da família. O clay significa "equívoco **e gravidade**" nesta casa, e
+  # defeito é o caso da gravidade — o que separa `BUG` de `mistake` é a forma: aquele fica no
+  # `outline`, este toma o `soft`.
   defp marca("osdef.defect"),
-    do: %{texto: "BUG", classe: "badge-error badge-outline", titulo: "defect"}
+    do: %{texto: "BUG", classe: "badge-error badge-soft font-semibold", titulo: "defect"}
 
-  # Conceito novo na base aparece com o identificador, e não em branco: desaparecer da tela
-  # seria pior que aparecer sem tradução. É a mesma decisão de `ConceptLabel`.
+  # DUAS cláusulas para duas ignorâncias diferentes, que antes dividiam `badge-ghost`.
+  #
+  # Aqui o conceito EXISTE e ninguém o traduziu: aparece com o identificador, e não em branco
+  # — desaparecer da tela é pior que aparecer sem tradução (a decisão de `ConceptLabel`).
+  # Tracejado porque tracejado é o *absent* desta casa.
   defp marca(conceito) when is_binary(conceito),
-    do: %{texto: conceito, classe: "badge-ghost", titulo: conceito}
+    do: %{texto: conceito, classe: "badge-dash text-base-content/80", titulo: conceito}
 
+  # E aqui não há conceito: a regra não classificou. Mesma lacuna, mais apagada.
   defp marca(nil),
     do: %{
       texto: "—",
-      classe: "badge-ghost opacity-60",
+      classe: "badge-dash text-base-content/60",
       titulo:
         "the mapping rule did not classify this item — no type at the source, and the structure does not decide"
     }
@@ -2113,7 +2420,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp pessoas_da_equipe(assigns) do
     ~H"""
     <section class="card bg-base-200 p-4">
-      <h2 class="text-sm font-semibold">What each person is on</h2>
+      <h2 id="what-each-person-is-on" class="text-sm font-semibold">What each person is on</h2>
       <p class="mt-1 text-xs opacity-70">
         Every open task assigned, with how long it has been open. Time counts from when the
         item was opened — the source does not record when someone took it on.
@@ -2136,7 +2443,19 @@ defmodule TheBandWeb.TeamsLive.Show do
         <%!-- Ausência DITA, e a pessoa não some da lista (FR-021). --%>
         <p :if={p.tarefas == []} class="ml-4 text-sm opacity-70">No open task assigned</p>
 
-        <div :for={t <- p.tarefas} class="ml-4 flex flex-wrap items-baseline gap-2 text-sm">
+        <%!-- A LISTA CORTA EM OITO, e diz quantas ficaram (protótipo, decisão 20).
+
+              Sem o corte, uma pessoa com 114 itens abertos — existe, no SQUAD PINK — empurra
+              a seção inteira para fora da tela, e as outras quatro pessoas da equipe deixam
+              de ser vistas. O corte não esconde: diz o número que ficou e leva ao perfil, que
+              é onde a lista inteira mora.
+
+              **Não** é paginação: a pergunta desta seção é *o que cada um está fazendo*, e
+              oito itens já a respondem. Quem precisa dos 114 precisa da tela da pessoa. --%>
+        <div
+          :for={t <- Enum.take(p.tarefas, teto_de_tarefas())}
+          class="ml-4 flex flex-wrap items-baseline gap-2 text-sm"
+        >
           <%!-- A MARCA DO CONCEITO, no lugar do identificador da origem — pedido da pessoa
                 mantenedora em 2026-09-08.
 
@@ -2156,8 +2475,20 @@ defmodule TheBandWeb.TeamsLive.Show do
           <span class={["font-mono text-xs tabular-nums", t.parada? && "font-semibold text-warning"]}>
             {t.aberta_ha_dias}d
           </span>
-          <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">stale</span>
+          <%!-- O LIMIAR É PARTE DA MEDIDA (protótipo, decisão 18). "stale" sozinho não diz
+                sobre o que a contagem foi feita — e é o mesmo argumento dos cartões de
+                *Problems now*, onde o limiar está escrito em cada um. --%>
+          <span :if={t.parada?} class="badge badge-outline badge-xs text-warning">
+            stopped · over {Material.stale_days()} d
+          </span>
         </div>
+
+        <p :if={length(p.tarefas) > teto_de_tarefas()} class="ml-4 text-xs opacity-70">
+          … {length(p.tarefas) - teto_de_tarefas()} more open items ·
+          <.link navigate={~p"/people/#{p.person_id}"} class="link link-hover">
+            open the person →
+          </.link>
+        </p>
 
         <%!-- AS HABILIDADES — feature 057, FR-022 a FR-024. Mesma gramática da
               tela de pessoa: pílulas âmbar tracejadas e hachuradas, porque são
@@ -2393,8 +2724,11 @@ defmodule TheBandWeb.TeamsLive.Show do
     x_de = fn semana -> Float.round((semana - 1) * largura, 2) end
 
     [
-      {p.congelado, "if nothing new opened", "text-primary", "congelado"},
-      {p.vivo, "if work keeps arriving as it has", "text-warning", "vivo"}
+      # Os nomes entre parênteses são os DECLARADOS em `flow.completion.forecast`. Sem eles,
+      # a tela descreve as hipóteses e não as nomeia — e quem procurar a medida na base não
+      # acha o que está vendo (princípio IV).
+      {p.congelado, "if nothing new opened · frozen scope", "text-primary", "congelado"},
+      {p.vivo, "if work keeps arriving as it has · live scope", "text-warning", "vivo"}
     ]
     |> Enum.map(fn {hipotese, rotulo, classe, chave} ->
       barras = barras_do_histograma(hipotese, horizonte, largura, x_de)
@@ -2628,7 +2962,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     # mantenedora em 2026-09-06 ("2 e 3"): o vínculo observado conta como membro, e a tela
     # diz quantos dos membros são observados sem papel declarado e quantos foram declarados.
     # Uma definição de membro; a transparência é sobre a origem de cada um.
-    membros = EO.team_members_at(tenant, team.id, agora)
+    membros = EO.team_members_at(tenant, team.id, agora, escopo: socket.assigns.escopo_do_roster)
 
     socket =
       assign(socket,
@@ -2931,6 +3265,45 @@ defmodule TheBandWeb.TeamsLive.Show do
       </nav>
 
       <div :if={@aba == :dashboard} class="space-y-4">
+        <%!-- ═══ PROBLEMAS AGORA — FR-065 a FR-069 (US8) ═══
+
+              Vem ANTES das medidas, e a ordem é o requisito: quem abre o painel pergunta
+              primeiro *o que precisa do meu olhar hoje*, e uma medida de fluxo responde outra
+              coisa. Pôr isto depois faria quem gerencia rolar a página para chegar ao que
+              veio buscar.
+
+              ## Um cartão é uma CONTAGEM, e o limiar está escrito nele
+
+              O número sem o limiar é um número sem pergunta: "46 issues" não diz nada; "46
+              issues abertas há mais de 30 dias" diz. E cada cartão nomeia a **origem** do
+              limiar na base de conhecimento, porque a FR-069 proíbe limiar em constante — em
+              constante, ele muda num diff e ninguém percebe que a plataforma passou a afirmar
+              outra coisa.
+
+              ## Zero não é a mesma coisa que não conferido
+
+              `conferido, nada encontrado` é informação: a plataforma tinha o insumo, olhou, e
+              não achou. `não conferido` é lacuna: o insumo não é coletado. Apresentados como
+              número, os dois seriam **zero** — e são afirmações opostas. A FR-067 obriga a
+              distingui-los em texto, e é por isso que dois dos oito cartões não têm número. --%>
+        <section class="card bg-base-200 p-4">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-sm font-semibold">Problems now</h2>
+            <span class="text-xs opacity-70">
+              counted over the whole team · window of {@janela_em_dias} days where a window applies
+            </span>
+          </div>
+          <p class="mt-1 text-xs opacity-70">
+            Each card counts a <strong>fact</strong>, never an inference, and carries the
+            threshold that decided the count. Nothing here is ordered by severity — counting is
+            what the platform can do; deciding what is urgent is yours.
+          </p>
+
+          <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <.cartao_de_problema :for={p <- @problemas} problema={p} team_id={@team.id} />
+          </div>
+        </section>
+
         <%!-- A EQUIPE COMPOSTA — feature 057, US2. Uma linha por subequipe, mais a
             dos membros diretos, e NENHUM total.
 
@@ -2968,36 +3341,74 @@ defmodule TheBandWeb.TeamsLive.Show do
           </p>
 
           <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <%!-- O TRILHO NÃO TEM MATIZ — Design, 2026-09-09, decisão 1.
+                  A matiz por subequipe foi recusada, e a razão que fecha o caso é o dado
+                  real: as subequipes chamam-se SQUAD BLUE, GREEN e PINK, e a paleta do
+                  protótipo daria verde-azulado a BLUE e marrom a GREEN — a cor contradiria o
+                  nome na própria tela. Some-se que o número de subequipes é aberto e nenhuma
+                  geração para N sobrevive: ciclo repete matiz e afirma identidade falsa, e a
+                  ordem aqui é por trabalho parado, que MUDA — matiz que se move não é
+                  identidade.
+                  O trilho ficou, sem cor, e passou a significar uma coisa: **a composição
+                  declara esta parte**. É por isso que o cartão dos membros diretos não o tem.
+                  Não acrescente `--s1/--s2/--s3` ao CSS: é a mesma resposta que a marca do
+                  conceito recebeu ontem, e duas respostas opostas em dois dias é como um
+                  design system deixa de ser um. --%>
             <div
               :for={l <- @linhas}
               class={[
                 "card border border-base-300 bg-base-100 p-3",
-                not l.direta? && "transition hover:border-primary"
+                not l.direta? && "border-l-4 border-l-base-300 transition hover:border-primary"
               ]}
             >
-              <%!-- O cartão da própria equipe NÃO é porta: já estamos nela. Um link para a
-                    tela em que a pessoa está é um clique que não leva a lugar nenhum. --%>
+              <%!-- O cartão da própria equipe NÃO é porta para `/teams/:id`: já estamos nela.
+                    Um link para a tela em que a pessoa está é um clique que não leva a lugar
+                    nenhum — e por isso ele aponta para as pessoas, que é o que ele resume. --%>
               <.link
                 :if={not l.direta?}
                 navigate={~p"/teams/#{l.team_id}"}
                 class="flex flex-col gap-2"
               >
-                <span class="text-sm font-semibold">{l.nome}</span>
+                <.cabecalho_do_cartao linha={l} />
                 <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
                 <.numeros_do_cartao linha={l} />
+                <span class="font-sans text-[0.72rem] text-primary">open {l.nome} →</span>
               </.link>
 
               <div :if={l.direta?} class="flex flex-col gap-2">
-                <span class="text-sm font-semibold opacity-80">{l.nome}</span>
+                <.cabecalho_do_cartao linha={l} />
                 <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
                 <.numeros_do_cartao linha={l} />
+                <a href="#what-each-person-is-on" class="font-sans text-[0.72rem] text-primary">
+                  see the {l.membros} {if l.membros == 1, do: "person", else: "people"} →
+                </a>
               </div>
             </div>
           </div>
 
+          <%!-- A LEGENDA, uma vez sob a grade e não por cartão — Design, 2026-09-09, §6.
+                Duas curvas sem rótulo numa caixa de 100 × 28 não se leem, e repeti-la em cada
+                cartão gastaria a altura que o gráfico ocupa. --%>
+          <p class="mt-2 flex flex-wrap items-center gap-3 text-[0.7rem] opacity-70">
+            <span class="flex items-center gap-1">
+              <svg viewBox="0 0 12 4" class="h-1 w-3 text-base-content/50" aria-hidden="true">
+                <line x1="0" y1="2" x2="12" y2="2" stroke="currentColor" stroke-width="1.2" />
+              </svg>
+              opened, cumulative
+            </span>
+            <span class="flex items-center gap-1">
+              <svg viewBox="0 0 12 4" class="h-1 w-3 text-primary" aria-hidden="true">
+                <line x1="0" y1="2" x2="12" y2="2" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+              closed, cumulative
+            </span>
+          </p>
+
           <h2 class="mt-6 text-sm font-semibold">The same numbers, side by side</h2>
           <p class="mt-1 text-xs opacity-70">
-            Ordered by stopped work, so the row that needs a conversation comes first.
+            Ordered by stopped work — open for more than {Material.stale_days()} days —, so
+            the row that needs a conversation comes first. It does not say anyone is late: the
+            source records no deadline.
           </p>
 
           <table class="table table-sm mt-3">
@@ -3005,9 +3416,16 @@ defmodule TheBandWeb.TeamsLive.Show do
               <tr>
                 <th>team</th>
                 <th class="text-right">members</th>
-                <th class="text-right">open</th>
+                <%!-- `open items`, e não `open`: o cartão e a tabela mostram o MESMO número,
+                      e duas etiquetas para ele na mesma tela é a L67 em miniatura — quem
+                      compara as duas apresentações não sabe se são a mesma medida. --%>
+                <th class="text-right">open items</th>
                 <th class="text-right">closed · 8w</th>
-                <th class="text-right">stopped</th>
+                <th class="text-right">median wait</th>
+                <%!-- O LIMIAR NO CABEÇALHO, e não numa nota — o número sem ele não é
+                      interpretável, e a base é explícita sobre o que ele não diz: não afirma
+                      atraso nem culpa, porque a origem não registra prazo. --%>
+                <th class="text-right">stopped · open &gt; {Material.stale_days()} d</th>
               </tr>
             </thead>
             <tbody>
@@ -3021,7 +3439,7 @@ defmodule TheBandWeb.TeamsLive.Show do
                 <%!-- Ausência NOMEADA, nunca zero (FR-012). Uma subequipe sem trabalho
                     no período não teve zero itens: não houve o que observar, e as
                     duas coisas levam a decisões diferentes. --%>
-                <td :if={l.sem_trabalho?} colspan="4" class="text-xs opacity-70">
+                <td :if={l.sem_trabalho?} colspan="5" class="text-xs opacity-70">
                   No work observed in the period — which is not the same as zero.
                 </td>
                 <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
@@ -3033,8 +3451,19 @@ defmodule TheBandWeb.TeamsLive.Show do
                 <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
                   {l.fechadas_na_janela}
                 </td>
+                <%!-- A MESMA medida do cartão, e o mesmo valor: o cartão não mostra número
+                      que a tabela não tenha. Subconjunto é permitido; divergência é defeito. --%>
                 <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
-                  <span class={if l.paradas > 0, do: "text-warning font-semibold"}>{l.paradas}</span>
+                  {if l.espera.mediana,
+                    do: "#{l.espera.mediana}h",
+                    else: "no review yet"}
+                </td>
+                <%!-- O ÂMBAR SAI DO NÚMERO — Design, 2026-09-09, decisão 2.
+                      `text-warning` estava ligado nas TRÊS subequipes (214/183/151), e
+                      condição sempre verdadeira não é informação: é mancha. A cor voltaria a
+                      significar algo se distinguisse alguma linha, e não distingue nenhuma. --%>
+                <td :if={not l.sem_trabalho?} class="text-right font-mono tabular-nums">
+                  {l.paradas}
                 </td>
               </tr>
             </tbody>
@@ -3239,26 +3668,38 @@ defmodule TheBandWeb.TeamsLive.Show do
             </div>
           </:col>
 
+          <%!-- A MATIZ ESTAVA INVERTIDA na distinção central do produto — achado do QA em
+                2026-09-08, conferindo contra o protótipo aprovado.
+
+                A tela dizia verdete para *declared* e cinza para *observed*. O verdete
+                significa **"a origem mostrou"** nesta plataforma, e o azul `info` significa
+                **"a organização declarou"** — as duas trocadas faziam a tela afirmar o
+                contrário do que o modelo separa.
+
+                Não é preferência de cor: é a tese do produto lida ao avesso. --%>
           <:col :let={pessoa} label="link">
             <div :for={v <- pessoa.vinculos} class="py-0.5 text-xs">
               <span :if={v.equivoco} class="badge badge-sm badge-error badge-outline">
                 mistake
               </span>
+              <%!-- `left` em NEUTRO, e não âmbar: âmbar é *derivado e aviso* nesta casa —
+                    é o `stale` e a habilidade derivada. Um vínculo encerrado não é aviso;
+                    é um período que terminou. --%>
               <span
                 :if={is_nil(v.equivoco) and v.fim}
-                class="badge badge-sm badge-warning badge-outline"
+                class="badge badge-sm badge-neutral badge-outline"
               >
                 left
               </span>
               <span
                 :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :declarado}
-                class="badge badge-sm badge-success badge-outline"
+                class="badge badge-sm badge-info badge-outline"
               >
                 declared
               </span>
               <span
                 :if={is_nil(v.equivoco) and is_nil(v.fim) and v.origem == :observado}
-                class="badge badge-sm badge-ghost"
+                class="badge badge-sm badge-success badge-outline"
               >
                 observed
               </span>
@@ -3380,9 +3821,16 @@ defmodule TheBandWeb.TeamsLive.Show do
               <tbody>
                 <tr :for={papel <- @papeis_da_organizacao} class={papel.hidden_at && "opacity-50"}>
                   <td>
-                    <span :if={@renomeando != papel.id}>{papel.name}</span>
+                    <%!-- `@renomeando` nasce `nil`, e papel do CATÁLOGO ainda não
+                          materializado tem `id` nulo. `nil == nil` é verdade — e os quatro
+                          papéis do catálogo abriam o formulário de renomear com o nome
+                          sumido da célula, quatro caixas de texto onde deviam estar nomes.
+                          Achado pelo QA em 2026-09-08, renderizando a tela. --%>
+                    <span :if={is_nil(@renomeando) or @renomeando != papel.id}>
+                      {papel.name}
+                    </span>
                     <form
-                      :if={@renomeando == papel.id}
+                      :if={not is_nil(@renomeando) and @renomeando == papel.id}
                       phx-submit="renomear_papel"
                       class="flex items-center gap-1"
                     >
@@ -3675,9 +4123,13 @@ defmodule TheBandWeb.TeamsLive.Show do
               </div>
 
               <div class="mt-2 grid gap-2 sm:grid-cols-2">
-                <%!-- A afirmação da COLETA, com a origem nomeada. --%>
-                <div class="border-l-2 border-info pl-2">
-                  <div class="text-xs font-semibold tracking-wide text-info uppercase">
+                <%!-- A afirmação da COLETA, com a origem nomeada.
+
+                      VERDETE, e não azul: neste painel as duas matizes estavam trocadas pelo
+                      mesmo motivo da coluna *link* — e aqui doía mais, porque o trabalho
+                      deste painel é justamente separar as duas afirmações. --%>
+                <div class="border-l-2 border-success pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-success uppercase">
                     collected from the source
                   </div>
                   <p :if={d.observado.presente?} class="text-sm">
@@ -3697,8 +4149,8 @@ defmodule TheBandWeb.TeamsLive.Show do
                 <%!-- A afirmação da DECLARAÇÃO, com a origem nomeada. O equívoco é
                     caso próprio: "saiu em março" e "nunca esteve" pedem conversas
                     diferentes, e colapsá-los perderia justamente a diferença. --%>
-                <div class="border-l-2 border-warning pl-2">
-                  <div class="text-xs font-semibold tracking-wide text-warning uppercase">
+                <div class="border-l-2 border-info pl-2">
+                  <div class="text-xs font-semibold tracking-wide text-info uppercase">
                     declared by the organisation
                   </div>
                   <p :if={d.declarado.equivoco?} class="text-sm">
@@ -3875,8 +4327,26 @@ defmodule TheBandWeb.TeamsLive.Show do
           <div :for={a <- @antipadroes_da_estrutura} class="alert alert-warning items-start text-sm">
             <div>
               <div class="font-semibold">{a.nome}</div>
-              <p class="mt-1 opacity-90">{a.afirmacao}</p>
-              <p class="mt-1 opacity-80">{a.consequencia}</p>
+              <%!-- O texto vem da base de conhecimento, e lá o destaque é `**assim**`. A tela
+                    imprimia os asteriscos crus — quatro caracteres que se leem como texto de
+                    debug esquecido. `com_enfase/1` os converte em `<strong>` **sem** injetar
+                    HTML: parte a string e a tela decide a marcação, então texto da base nunca
+                    vira markup.
+
+                    A LÍNGUA é outro problema, e não é deste commit: a regra só tem `pt-BR`,
+                    nenhuma regra da base tem tradução, e a interface serve em inglês. Está
+                    registrado desde 2026-09-01 em `docs/backlog/portugues-na-interface.md`.
+                    Traduzir só esta regra deixaria a base inconsistente. --%>
+              <p class="mt-1 opacity-90">
+                <span :for={{texto, forte?} <- com_enfase(a.afirmacao)}>
+                  <strong :if={forte?}>{texto}</strong><span :if={not forte?}>{texto}</span>
+                </span>
+              </p>
+              <p class="mt-1 opacity-80">
+                <span :for={{texto, forte?} <- com_enfase(a.consequencia)}>
+                  <strong :if={forte?}>{texto}</strong><span :if={not forte?}>{texto}</span>
+                </span>
+              </p>
               <div class="mt-1 font-mono text-xs opacity-60">
                 {a.id} · {a.membros_vigentes} active membership(s)
               </div>

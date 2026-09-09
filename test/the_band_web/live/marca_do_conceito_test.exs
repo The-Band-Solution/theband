@@ -204,6 +204,74 @@ defmodule TheBandWeb.MarcaDoConceitoTest do
       refute html =~ "TASK", "a ausência foi lida como tarefa"
     end
 
+    test "a família do conceito não usa MATIZ de origem nem de estado (Design, 2026-09-08)",
+         ctx do
+      issue(ctx, "I_us", "sro.atomic_user_story")
+      issue(ctx, "I_epic", "sro.epic")
+      issue(ctx, "I_task", "sro.intended_scrum_development_task")
+
+      {:ok, _live, html} = painel(ctx)
+
+      # O RECORTE É A MARCA, e não a seção.
+      #
+      # A primeira versão desta asserção cortava em "What each person is on" e ia até o fim da
+      # página — e falhava em `badge-warning`, que está ali de facto: é a marca de **parada**
+      # do próprio item. Afirmar sobre a seção afirmava sobre badges que não são o conceito.
+      #
+      # A marca tem prefixo de classe próprio, e é sobre ele que se afirma.
+      marcas = Regex.scan(~r/class="(badge badge-sm font-mono[^"]*)"/, html)
+      assert marcas != [], "não achei nenhuma marca de conceito na página"
+
+      classes = Enum.map_join(marcas, " ", &List.last/1)
+
+      # A regra que o Design fixou: **matiz pertence à origem e ao estado**. Não havia matiz
+      # livre — azul `info` é *declared*, âmbar é *stale* e habilidade derivada, verdete é
+      # *observado/declarado*. Tomar uma delas faria 760 chips afirmarem sobre a taxonomia o
+      # que a cor afirma sobre a origem.
+      #
+      # A distinção é por FORMA: `badge-soft`, que não era usado em lugar nenhum de
+      # `lib/the_band_web/`, é a família inteira do conceito.
+      assert classes =~ "badge-soft", "a família do conceito perdeu a forma que a distingue"
+
+      for matiz <- ["badge-info", "badge-primary", "badge-success", "badge-warning"] do
+        refute classes =~ matiz, """
+        `#{matiz}` na marca do conceito toma uma matiz que já significa origem ou estado nesta
+        plataforma. A escada do escopo é peso e preenchimento, não cor.
+
+        As classes das marcas nesta página: #{classes}
+        """
+      end
+    end
+
+    test "badge-ghost saiu da marca — era a queixa, e o motivo é mecânico", ctx do
+      issue(ctx, "I_task", "sro.intended_scrum_development_task")
+      issue(ctx, "I_sem", nil)
+
+      {:ok, _live, html} = painel(ctx)
+
+      classes =
+        Regex.scan(~r/class="(badge badge-sm font-mono[^"]*)"/, html)
+        |> Enum.map_join(" ", &List.last/1)
+
+      refute classes =~ "badge-ghost", """
+      `badge-ghost` é `base-200` sobre `base-100`: 3% de diferença no tema claro, e no escuro o
+      chip fica **mais escuro** que a base e lê como buraco. Era exatamente a queixa da pessoa
+      mantenedora — "tá sem cor".
+      """
+    end
+
+    test "as duas ignorâncias têm cláusulas diferentes, e antes dividiam a mesma", ctx do
+      issue(ctx, "I_novo", "sro.conceito_que_ninguem_traduziu")
+      issue(ctx, "I_sem", nil)
+
+      {:ok, _live, html} = painel(ctx)
+
+      # Conceito que existe e ninguém traduziu ≠ item que a regra não classificou. As duas são
+      # tracejadas — tracejado é o *absent* da casa — e se separam pela opacidade.
+      assert html =~ "badge-dash text-base-content/80", "o conceito sem tradução"
+      assert html =~ "badge-dash text-base-content/60", "o item sem classificação"
+    end
+
     test "conceito novo na base aparece com o identificador, e não em branco", ctx do
       issue(ctx, "I_novo", "sro.conceito_que_ninguem_traduziu")
 

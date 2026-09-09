@@ -1,16 +1,16 @@
 <title>Team Dashboard and Structure</title>
 <style>
-:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
 --verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
 --s1:#00897a;--s2:#a35c00;--s3:#4a5bbf;--grade:#e3e7e4;--eixo:#c9d0cb;
 --grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
 --serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 --hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
---tinta:#dfe7e4;--tinta-2:#93a69d;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
 --info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}}
 :root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
---tinta:#dfe7e4;--tinta-2:#93a69d;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
 --info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}
 *{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
 ::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
@@ -95,9 +95,27 @@ svg.g{width:100%;height:auto;display:block;overflow:visible}
 .leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
 .leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
 .leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
-.tarefa{display:block;font-size:.8rem;line-height:1.35;margin-top:.15rem}
+.tarefa{display:flex;gap:.45rem;align-items:baseline;font-size:.8rem;line-height:1.35;margin-top:.2rem}
+.tarefa .t{flex:1 1 auto;min-width:0}
+.vao{flex:0 0 auto;min-width:3.5rem;text-align:right}
 .tarefa .num{font-family:var(--mono);color:var(--verdete-deep)}.tarefa .idade{font-family:var(--mono);font-size:.7rem;color:var(--tinta-2)}
-.parada{color:var(--clay);font-family:var(--grot);font-size:.68rem;border:1.5px dashed var(--clay);border-radius:.25rem;padding:0 .35rem;margin-left:.3rem}
+.tarefa .idade{white-space:nowrap}.tarefa .idade.parou{color:var(--amber);font-weight:600}
+.parada{color:var(--amber);font-family:var(--grot);font-size:.68rem;border:1.5px dashed var(--amber);border-radius:.25rem;padding:0 .35rem;margin-left:.3rem;white-space:nowrap}
+.cc{font-family:var(--mono);font-size:.65rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
+.cc-epic{background:var(--tinta);color:var(--papel);font-weight:700}
+.cc-us{background:var(--tinta-soft);color:var(--tinta);font-weight:700}
+.cc-task{background:var(--tinta-soft);color:var(--tinta)}
+.cc-bug{background:var(--clay-soft);color:var(--clay);font-weight:700}
+.cc-raw{border-color:var(--linha);border-style:dashed;color:var(--tinta-3)}
+.cc-nil{border-color:var(--linha);border-style:dashed;color:var(--tinta-2)}
+.cc-legenda{display:grid;gap:.4rem 1.2rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.8rem;font-family:var(--grot);font-size:.78rem}
+.cc-legenda span{display:flex;align-items:baseline;gap:.4rem;color:var(--tinta-2)}
+.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
+.mix b{font-weight:400;margin-left:-.28rem}
+.mix .tot{color:var(--tinta-2);margin-right:.2rem}
+.problema .recusa-t{font-family:var(--grot);font-size:.92rem;line-height:1.25;color:var(--amber);margin-top:.15rem}
+.cab-g{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.cab-g h3 .rot{font-weight:400}
 .skill{display:inline-block;font-family:var(--grot);font-size:.68rem;padding:.02rem .4rem;border-radius:.25rem;background:var(--verdete-soft);color:var(--verdete-deep);margin:.1rem .15rem 0 0;white-space:nowrap}
 .skill.fraca{background:transparent;border:1px dashed var(--linha);color:var(--tinta-2)}
 .problemas{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin-top:1rem}
@@ -136,7 +154,8 @@ a.squad .ir{font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep);m
 <span class="tela" id="dashboard">screen 1 · dashboard</span>
 
 <div class="nota-de-tela"><span class="rot">what this screen is</span>
-The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). Visible in full — names, tasks, profiles — to administrators, to whoever holds a scope over the team, and to <strong>the team's own members</strong>; everyone else sees the aggregates (decided 7 Sep). For the manager, in this order: one card per squad (a summary and a door to the squad's own page); <strong>problems now</strong>; the measures, one row per squad; the team's <strong>flow charts</strong>; <strong>the people</strong> — direct and through the squads — with what each is on now and what each has demonstrated; the projects. The <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.</div>
+The measures, and under each one <em>who</em> it was measured over. A composed team shows one row per squad and <strong>never a total</strong> — the same person can be in two squads and the same task would be counted twice (057, FR-008). Visible in full — names, tasks, profiles — to administrators, to whoever holds a scope over the team, and to <strong>the team's own members</strong>; everyone else sees the aggregates (decided 7 Sep). For the manager, in this order: one card per squad (a summary and a door to the squad's own page); <strong>problems now</strong>; the measures, one row per squad; the team's <strong>flow charts</strong>; <strong>the people</strong> — direct and through the squads — with what each is on now and what each has demonstrated; the projects. The <strong>flow charts</strong> — burn-up/burn-down, committed × delivered, Monte Carlo — by week, month or year. This amends 057 FR-011 ("no charts on the composed team"), by decision of the maintainer on 7 Sep.
+<strong>New on 8 Sep:</strong> every work item on this screen opens with <strong>the mark of what it is</strong> — <span class="cc cc-epic">EPIC</span> <span class="cc cc-us">US</span> <span class="cc cc-task">TASK</span> <span class="cc cc-bug">BUG</span> — in a fixed slot, where the source's <span class="login" style="display:inline">node_id</span> used to sit.</div>
 
 <section class="sec">
   <div class="sec-cab"><h2>Squads at a glance</h2><span class="rot">one card per squad · click a card or its chart to open the squad</span></div>
@@ -144,30 +163,35 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
   <div class="squads">
     <a class="squad" href="#" style="border-left-color:var(--s1)">
       <div class="cab"><h3>SQUAD BLUE</h3><span class="rot">6 members</span></div>
-      <div class="nums"><div><b>22</b><span>open items</span></div><div><b>0.8 h</b><span>median wait</span></div><div><b>91%</b><span>pipeline</span></div></div>
+      <div class="nums"><div><b>235</b><span>open items</span></div><div><b>0.8 h</b><span>median wait</span></div><div><b>91%</b><span>pipeline</span></div></div>
+      <div class="mix"><span class="tot">235 open</span><span class="cc cc-task">TASK</span><b>154</b><span class="cc cc-us">US</span><b>61</b><span class="cc cc-bug">BUG</span><b>14</b><span class="cc cc-epic">EPIC</span><b>6</b> <span class="ex-mark">example</span></div>
       <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD BLUE opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,30 34,26 64,22 94,19 124,15 154,11 184,8 214,5"/><polyline fill="none" stroke="var(--s1)" stroke-width="2" points="4,38 34,35 64,31 94,27 124,25 154,21 184,17 214,14"/><circle cx="214" cy="14" r="2.5" fill="var(--s1)"/></svg>
       <span class="ir">open SQUAD BLUE →</span>
     </a>
     <a class="squad" href="#" style="border-left-color:var(--s2)">
       <div class="cab"><h3>SQUAD GREEN</h3><span class="rot">8 members</span></div>
-      <div class="nums"><div><b>37</b><span>open items</span></div><div><b>0.4 h</b><span>median wait</span></div><div><b>82%</b><span>pipeline</span></div></div>
+      <div class="nums"><div><b>343</b><span>open items</span></div><div><b>0.4 h</b><span>median wait</span></div><div><b>82%</b><span>pipeline</span></div></div>
+      <div class="mix"><span class="tot">343 open</span><span class="cc cc-task">TASK</span><b>231</b><span class="cc cc-us">US</span><b>84</b><span class="cc cc-bug">BUG</span><b>19</b><span class="cc cc-epic">EPIC</span><b>9</b> <span class="ex-mark">example</span></div>
       <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD GREEN opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,28 34,24 64,18 94,14 124,12 154,9 184,6 214,4"/><polyline fill="none" stroke="var(--s2)" stroke-width="2" points="4,40 34,36 64,33 94,30 124,26 154,22 184,20 214,17"/><circle cx="214" cy="17" r="2.5" fill="var(--s2)"/></svg>
       <span class="ir">open SQUAD GREEN →</span>
     </a>
     <a class="squad" href="#" style="border-left-color:var(--s3)">
       <div class="cab"><h3>SQUAD PINK</h3><span class="rot">5 members</span></div>
-      <div class="nums"><div><b>20</b><span>open items</span></div><div><b>1.9 h</b><span>median wait</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">no project</b><span>pipeline</span></div></div>
+      <div class="nums"><div><b>297</b><span>open items</span></div><div><b>1.9 h</b><span>median wait</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">no project</b><span>pipeline</span></div></div>
+      <div class="mix"><span class="tot">297 open</span><span class="cc cc-task">TASK</span><b>180</b><span class="cc cc-us">US</span><b>78</b><span class="cc cc-bug">BUG</span><b>21</b><span class="cc cc-epic">EPIC</span><b>18</b></div>
       <svg class="g" viewBox="0 0 220 44" role="img" aria-label="SQUAD PINK opened and closed, cumulative, eight weeks"><polyline fill="none" stroke="var(--tinta-2)" stroke-width="1.5" points="4,32 34,30 64,26 94,24 124,20 154,18 184,14 214,12"/><polyline fill="none" stroke="var(--s3)" stroke-width="2" points="4,40 34,39 64,37 94,35 124,33 154,30 184,28 214,26"/><circle cx="214" cy="26" r="2.5" fill="var(--s3)"/></svg>
       <span class="ir">open SQUAD PINK →</span>
     </a>
     <a class="squad" href="#" style="border-left-color:var(--linha)">
       <div class="cab"><h3>Direct members</h3><span class="rot">2 members</span></div>
       <div class="nums"><div><b>0</b><span>open items</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">no value</b><span>median wait</span></div><div><b class="aus" style="font-size:.8rem;font-family:var(--grot)">—</b><span>pipeline</span></div></div>
+      <div class="mix"><span class="tot">no open item — nothing to break down</span></div>
       <div class="vazio" style="margin-top:.5rem;padding:.5rem .7rem;font-size:.78rem">No work in the period — absence, not zero.</div>
       <span class="ir">see the two people →</span>
     </a>
   </div>
   <div class="leg-g"><span><i style="background:var(--tinta-2)"></i>opened, cumulative</span><span><i style="background:var(--verdete)"></i>closed, cumulative (in the squad's colour)</span><span><span class="ex-mark">example data</span> for the curves</span></div>
+  <p class="sub">Each card carries the <strong>concept mix</strong> of its open items — what the work <em>is</em>, before how much of it there is. SQUAD PINK's four counts are real (development base, 8 Sep); BLUE and GREEN are <span class="ex-mark">example</span> in the same shape. <strong>The spark answers the shape, never the amount</strong> — reading a value off 40 pixels would be guessing —, and that is why the table below carries no chart: a table is for comparing, and comparison is made in aligned numbers (057 FR-011).</p>
 </section>
 
 <section class="sec">
@@ -175,14 +199,14 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
   <p class="sub">Each card is a fact with a threshold the platform declares (the knowledge base names it). A card in green means the fact was checked and found nothing — which is different from not having looked.</p>
   <div class="problemas">
     <div class="problema grave"><span class="rot">issues open · over 30 days</span><div class="grande grave">46</div>
-      <ul><li><span class="chip s2">GREEN</span> 21 · oldest 112 d</li><li><span class="chip s1">BLUE</span> 17 · oldest 84 d</li><li><span class="chip s3">PINK</span> 8</li></ul>
+      <ul><li><span class="chip s2">GREEN</span> 21 · oldest 112 d</li><li><span class="chip s1">BLUE</span> 17 · oldest 84 d</li><li><span class="chip s3">PINK</span> 8</li><li>population: issues in the boards of the declared project</li></ul>
       <a class="ir" href="#" style="font-family:var(--grot);font-size:.74rem;color:var(--verdete-deep)">see the 46 →</a></div>
     <div class="problema grave"><span class="rot">code changes waiting review · over 7 days</span><div class="grande grave">38</div>
       <ul><li>median wait <span class="n">38 d</span></li><li>46 older than 30 days</li></ul></div>
     <div class="problema"><span class="rot">pipeline failing on main · now</span><div class="grande">3 <span style="font-size:.9rem;color:var(--tinta-2)">repos</span></div>
       <ul><li>conecta-api · failing for 4 d</li><li>conecta-web · 2 d</li><li>infra-scripts · 6 h</li></ul></div>
-    <div class="problema"><span class="rot">tasks open beyond the stop threshold</span><div class="grande">9</div>
-      <ul><li>threshold: 90 d open — the one the base declares today</li><li>5 people involved</li></ul></div>
+    <div class="problema grave"><span class="rot">work items open beyond the stop threshold</span><div class="recusa-t">one row per squad — no total</div>
+      <ul><li><span class="chip s1">BLUE</span> <span class="n">228</span> of 235 <span class="ex-mark">example</span></li><li><span class="chip s2">GREEN</span> <span class="n">330</span> of 343 <span class="ex-mark">example</span></li><li><span class="chip s3">PINK</span> <span class="n">297</span> of 297 — every one of them</li><li>threshold: 90 d open — the one the base declares today</li><li>oldest <span class="n">550 d</span> · the newest one still open is <span class="n">217 d</span></li><li>population: items assigned to members of this team. A person in two squads would be counted twice, so the card refuses a total (057, FR-008)</li></ul></div>
     <div class="problema"><span class="rot">people with no open task</span><div class="grande">3</div>
       <ul><li>Caio Prado, Hugo Dias, Íris Melo <span class="ex-mark">example</span></li><li>absence of assignment, not idleness</li></ul></div>
     <div class="problema"><span class="rot">members without a declared role</span><div class="grande">17 <span style="font-size:.9rem;color:var(--tinta-2)">of 19</span></div>
@@ -192,7 +216,7 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <div class="problema ok"><span class="rot">structure anomalies</span><div class="grande ok">0</div>
       <ul><li>no team of one, no team without members</li></ul></div>
   </div>
-  <p class="sub"><span class="ex-mark">example data</span> for the counts; the 46 and the 38 d are real (2026-09-05, leds-conectafapes).</p>
+  <p class="sub"><span class="ex-mark">example data</span> for the counts; the 46 and the 38 d are real (2026-09-05, leds-conectafapes), and the item counts are real for SQUAD PINK (development base, 2026-09-08). <strong>The 46 and the 297 are not the same population</strong> — issues in a project board on one side, items assigned to members on the other — and this screen does not claim how far the two overlap, because that was not measured.</p>
 </section>
 
 <section class="sec">
@@ -224,18 +248,36 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 
 <section class="sec">
   <div class="sec-cab"><h2>People — direct and through the squads</h2><span class="rot">19 people · what each is on now, and what each has shown</span></div>
-  <p class="sub">Every member of the composed team, grouped by squad; a person in two squads appears under each (and is counted once in the 19). <strong>Now</strong> lists every open task assigned — the platform does not elect a "current" one (057, FR-018) — with how long it has been open. <strong>Profile</strong> is what the person has demonstrated in closed work; below the floor of material it says so instead of guessing.</p>
+  <p class="sub">Every member of the composed team, grouped by squad; a person in two squads appears under each (and is counted once in the 19). <strong>Now</strong> lists every open task assigned — the platform does not elect a "current" one (057, FR-018) — with how long it has been open. <strong>Profile</strong> is what the person has demonstrated in closed work; below the floor of material it says so instead of guessing. The list is ordered by <strong>age, oldest first</strong> — an order, not an election.</p>
+
+  <div class="cartao">
+    <span class="rot">the mark of the concept · what the item is, before its title</span>
+    <div class="cc-legenda">
+      <span><span class="cc cc-epic">EPIC</span> a user story with parts</span>
+      <span><span class="cc cc-us">US</span> atomic user story — no parts</span>
+      <span><span class="cc cc-task">TASK</span> intended development task — declared, not necessarily executed</span>
+      <span><span class="cc cc-bug">BUG</span> defect</span>
+      <span><span class="cc cc-raw">sro.sprint_backlog</span> a concept this screen has no label for — the identifier, never a blank</span>
+      <span><span class="cc cc-nil">—</span> the routing rule did not classify it</span>
+    </div>
+    <p class="sub" style="font-size:.84rem"><strong>Hue belongs to origin and state</strong> — blue is declared, verdigris observed, amber derived, clay mistake and gravity. The concept is a different family and carries its identity in the <strong>text</strong>: no square, no hue, the scale of scope in weight and fill. It borrows exactly one hue, <strong>clay for the defect</strong>, because clay means gravity here — and it keeps a different form from <span class="marca eqv"><span class="am"></span>mistake</span>, which stays outlined. Read in greyscale, the four still read: EPIC, US, TASK, BUG (055, FR-002).</p>
+    <p class="sub" style="font-size:.84rem">The mark comes from the <strong>promotion</strong>, not from the type declared at the source: the rule <span class="login" style="display:inline">github.issue_type_routing</span> has precedence <em>structure over declaration</em>, so an item with parts that are user stories is an epic, and the same item without parts is an atomic user story. In this base the declared type is <strong>null in 778 of the 1 154 open items</strong>, and the promotion classifies all of them.</p>
+    <p class="sub" style="font-size:.84rem">The mark sits in a slot <strong>3.5 rem wide, right-aligned</strong>, so fifteen items of one person begin on one left edge instead of fifteen. The untranslated identifier is the only mark that can outgrow the slot, and it pushes its own line only. No open item of this team falls in the last two marks today — that is what was measured on 8 Sep, not a promise that they cannot happen.</p>
+  </div>
 
   <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--s1)"></span>SQUAD BLUE <span class="rot">6 people</span></h3>
   <div class="scroll"><table>
     <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
     <tbody>
       <tr><td><span class="pessoa">Ana Souza</span><span class="login">@ana-souza <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
-        <td class="esq"><span class="tarefa"><span class="num">#812</span> Retry on nxdomain <span class="idade">open 3 d</span></span><span class="tarefa"><span class="num">#790</span> Quota manager panel <span class="idade">open 19 d</span></span></td>
+        <td class="esq"><div class="mix"><span class="tot">2 open</span><span class="cc cc-task">TASK</span><b>1</b><span class="cc cc-us">US</span><b>1</b><span class="cc cc-bug">BUG</span><b>0</b><span class="cc cc-epic">EPIC</span><b>0</b> <span class="ex-mark">example</span></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#790</span> Quota manager panel <span class="idade">open 19 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#812</span> Retry on nxdomain <span class="idade">open 3 d</span></span></span></td>
         <td class="esq"><span class="skill">elixir</span><span class="skill">postgres</span><span class="skill">oban</span><span class="skill fraca">ci · 1 task</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
       <tr><td><span class="pessoa">Davi Rocha</span><span class="login">@davirocha <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
-        <td class="esq"><span class="tarefa"><span class="num">#801</span> Oban stalls silently <span class="idade">open 6 d</span></span></td>
+        <td class="esq"><div class="mix"><span class="tot">1 open</span><span class="cc cc-task">TASK</span><b>0</b><span class="cc cc-us">US</span><b>0</b><span class="cc cc-bug">BUG</span><b>1</b><span class="cc cc-epic">EPIC</span><b>0</b> <span class="ex-mark">example</span></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-bug" title="defect">BUG</span></span><span class="t"><span class="num">#801</span> Oban stalls silently <span class="idade">open 6 d</span></span></span></td>
         <td class="esq"><span class="skill">elixir</span><span class="skill">observability</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
       <tr><td><span class="pessoa">Hugo Dias</span><span class="login">@hugodias <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
@@ -252,16 +294,79 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
     <tbody>
       <tr><td><span class="pessoa">Bia Lemos</span><span class="login">@bialemos · also in PINK <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
-        <td class="esq"><span class="tarefa"><span class="num">#805</span> Ceremony vs code review <span class="idade">open 2 d</span></span><span class="tarefa"><span class="num">#777</span> Team page: participation period <span class="idade">open 11 d</span></span><span class="tarefa"><span class="num">#760</span> Export CSV <span class="idade">open 112 d</span><span class="parada">stopped · over 90 d</span></span></td>
+        <td class="esq"><div class="mix"><span class="tot">22 open</span><span class="cc cc-task">TASK</span><b>12</b><span class="cc cc-us">US</span><b>8</b><span class="cc cc-bug">BUG</span><b>1</b><span class="cc cc-epic">EPIC</span><b>1</b> <span class="ex-mark">example</span></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#760</span> Export CSV <span class="idade parou">open 112 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#777</span> Team page: participation period <span class="idade">open 11 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#805</span> Ceremony vs code review <span class="idade">open 2 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 19 more. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span></td>
         <td class="esq"><span class="skill">liveview</span><span class="skill">elixir</span><span class="skill">sql</span><span class="skill">design</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
-        <td><span class="marca der"><span class="am"></span>1 stopped</span></td></tr>
+        <td><span class="marca der"><span class="am"></span>19 stopped</span></td></tr>
       <tr><td><span class="pessoa">Gil Costa</span><span class="login">@gilcosta <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
-        <td class="esq"><span class="tarefa"><span class="num">#799</span> Team of one is an anomaly <span class="idade">open 5 d</span></span></td>
+        <td class="esq"><div class="mix"><span class="tot">1 open</span><span class="cc cc-task">TASK</span><b>1</b><span class="cc cc-us">US</span><b>0</b><span class="cc cc-bug">BUG</span><b>0</b><span class="cc cc-epic">EPIC</span><b>0</b> <span class="ex-mark">example</span></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#799</span> Team of one is an anomaly <span class="idade">open 5 d</span></span></span></td>
         <td class="esq"><span class="skill">elixir</span><span class="skill fraca">yaml · 1 task</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
         <td></td></tr>
     </tbody>
   </table></div>
   <p class="sub" style="font-size:.78rem">… 6 more in SQUAD GREEN. <a href="#" style="color:var(--verdete-deep)">open the squad →</a></p>
+  </div>
+
+  <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--s3)"></span>SQUAD PINK <span class="rot">5 people · 297 open items, and the four counts below are real</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">now · open tasks</th><th class="esq">profile · demonstrated</th><th>flags</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pessoa">Lia Moraes</span><span class="login">@liamoraes <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><div class="mix"><span class="tot">114 open</span><span class="cc cc-task">TASK</span><b>71</b><span class="cc cc-us">US</span><b>28</b><span class="cc cc-bug">BUG</span><b>8</b><span class="cc cc-epic">EPIC</span><b>7</b></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-epic" title="epic — a user story with parts">EPIC</span></span><span class="t"><span class="num">#118</span> Módulo de prestação de contas <span class="idade parou">open 550 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#121</span> Importar planilha de bolsistas <span class="idade parou">open 548 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#147</span> Validar CPF na inscrição <span class="idade parou">open 521 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#163</span> Pesquisador acompanha o parecer <span class="idade parou">open 498 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#189</span> Migrar anexos para o storage <span class="idade parou">open 474 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#214</span> Fila de e-mails do edital <span class="idade parou">open 431 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-bug" title="defect">BUG</span></span><span class="t"><span class="num">#246</span> Edital duplicado ao reenviar <span class="idade parou">open 388 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#288</span> Relatório mensal por chamada <span class="idade parou">open 342 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 106 more, every one of them opened before this window. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">postgres</span><span class="skill">liveview</span><span class="skill fraca">etl · 2 tasks</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
+        <td><span class="marca der"><span class="am"></span>114 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Rui Barreto</span><span class="login">@ruibarreto <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><div class="mix"><span class="tot">77 open</span><span class="cc cc-task">TASK</span><b>47</b><span class="cc cc-us">US</span><b>20</b><span class="cc cc-bug">BUG</span><b>6</b><span class="cc cc-epic">EPIC</span><b>4</b></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#133</span> Autenticar pelo gov.br <span class="idade parou">open 533 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#152</span> Avaliador recebe a distribuição <span class="idade parou">open 509 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#178</span> Exportar parecer em PDF <span class="idade parou">open 487 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#205</span> Cache do catálogo de editais <span class="idade parou">open 455 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#259</span> Coordenador vê a fila de análise <span class="idade parou">open 402 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#301</span> Agendar lembrete de prazo <span class="idade parou">open 361 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 71 more, every one of them opened before this window. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span></td>
+        <td class="esq"><span class="skill">elixir</span><span class="skill">oauth</span><span class="skill">sql</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
+        <td><span class="marca der"><span class="am"></span>77 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Nina Kalil</span><span class="login">@ninakalil <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
+        <td class="esq"><div class="mix"><span class="tot">46 open</span><span class="cc cc-task">TASK</span><b>27</b><span class="cc cc-us">US</span><b>12</b><span class="cc cc-bug">BUG</span><b>4</b><span class="cc cc-epic">EPIC</span><b>3</b></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#141</span> Máscara de moeda no formulário <span class="idade parou">open 517 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#186</span> Paginação da lista de projetos <span class="idade parou">open 468 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#231</span> Secretaria corrige dado do inscrito <span class="idade parou">open 423 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#336</span> Log de alteração de parecer <span class="idade parou">open 298 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 42 more, every one of them opened before this window. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span></td>
+        <td class="esq"><span class="skill">liveview</span><span class="skill">design</span><span class="skill fraca">a11y · 1 task</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
+        <td><span class="marca der"><span class="am"></span>46 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Téo Franco</span><span class="login">@teofranco <span class="ex-mark">example</span></span></td><td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><div class="mix"><span class="tot">38 open</span><span class="cc cc-task">TASK</span><b>23</b><span class="cc cc-us">US</span><b>10</b><span class="cc cc-bug">BUG</span><b>2</b><span class="cc cc-epic">EPIC</span><b>3</b></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#156</span> Backup diário do banco <span class="idade parou">open 505 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#268</span> Fila de reprocessamento <span class="idade parou">open 392 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#372</span> Gestor exporta o painel <span class="idade parou">open 261 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 35 more, every one of them opened before this window. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span></td>
+        <td class="esq"><span class="sub" style="font-size:.78rem">no profile yet — 9 closed tasks, floor is 15</span></td>
+        <td><span class="marca der"><span class="am"></span>38 stopped</span></td></tr>
+      <tr><td><span class="pessoa">Bia Lemos</span><span class="login">@bialemos · also in GREEN <span class="ex-mark">example</span></span></td><td class="esq papel-cel">Developer</td>
+        <td class="esq"><div class="mix"><span class="tot">22 open</span><span class="cc cc-task">TASK</span><b>12</b><span class="cc cc-us">US</span><b>8</b><span class="cc cc-bug">BUG</span><b>1</b><span class="cc cc-epic">EPIC</span><b>1</b> <span class="ex-mark">example</span></div>
+          <span class="tarefa"><span class="vao"><span class="cc cc-us" title="atomic user story — no parts">US</span></span><span class="t"><span class="num">#760</span> Export CSV <span class="idade parou">open 112 d</span><span class="parada">stopped · over 90 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#777</span> Team page: participation period <span class="idade">open 11 d</span></span></span>
+          <span class="tarefa"><span class="vao"><span class="cc cc-task" title="intended development task — declared, not necessarily executed">TASK</span></span><span class="t"><span class="num">#805</span> Ceremony vs code review <span class="idade">open 2 d</span></span></span>
+          <span class="sub" style="font-size:.75rem;display:block;margin-top:.3rem">… 19 more. <a href="#" style="color:var(--verdete-deep)">open the person →</a></span><span class="sub" style="font-size:.75rem;display:block">The same list as under SQUAD GREEN: the tasks are the person's, not the squad's — which is why no measure of this team is ever summed.</span></td>
+        <td class="esq"><span class="skill">liveview</span><span class="skill">elixir</span><span class="skill">sql</span><span class="skill">design</span> <a href="#" class="ir" style="display:inline;font-family:var(--grot);font-size:.72rem;color:var(--verdete-deep)">full profile →</a></td>
+        <td><span class="marca der"><span class="am"></span>19 stopped</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub" style="font-size:.78rem">The squad totals — <span class="n">180</span> TASK, <span class="n">78</span> US, <span class="n">21</span> BUG, <span class="n">18</span> EPIC — are real (development base, 8 Sep); the split between the five people and every title, login and number below is <span class="ex-mark">example</span>. <strong>Every open item of this squad is past the 90-day threshold</strong>, which is why the badge is on every line — see the open question about that at the end of the page.</p>
   </div>
 
   <div class="grupo-sq"><h3><span class="pill-sq" style="background:var(--linha)"></span>Direct members <span class="rot">2 people · in no squad</span></h3>
@@ -284,9 +389,9 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
   <div class="scroll"><table>
     <thead><tr><th class="esq">project</th><th class="esq">squads on it</th><th>open items</th><th>closed · 56 d</th><th>waiting review</th><th>pipeline</th><th>link</th></tr></thead>
     <tbody>
-      <tr><td><a class="eq" href="#">Conecta Fapes · plataforma</a><span class="eq-sub">board "Conecta Fapes" · 3 iterations in the period</span></td><td class="esq"><span class="chip s1">BLUE</span> <span class="chip s2">GREEN</span></td><td class="v">27</td><td class="v">148</td><td class="v">61</td><td class="v">85.3%</td><td class="v">since 12 Jun 2026</td></tr>
-      <tr><td><a class="eq" href="#">Conecta Fapes · dados</a><span class="eq-sub">board "Dados" · no iterations <span class="ex-mark">example</span></span></td><td class="esq"><span class="chip s3">PINK</span></td><td class="v">6</td><td class="v">34</td><td class="v">18</td><td class="v aus">no declared path</td><td class="v">since 02 Sep 2026</td></tr>
-      <tr class="apagada"><td><span class="pessoa">Portal do Pesquisador</span><span class="eq-sub">link ended <span class="ex-mark">example</span></span></td><td class="esq"><span class="chip">—</span></td><td class="v">—</td><td class="v">12</td><td class="v">—</td><td class="v">—</td><td class="v">03 Mar → 30 Jun 2026</td></tr>
+      <tr><td><a class="eq" href="#">Conecta Fapes · plataforma</a><span class="eq-sub">board "Conecta Fapes" · 3 iterations in the period</span></td><td class="esq"><span class="chip s1">BLUE</span> <span class="chip s2">GREEN</span></td><td class="v">588</td><td class="v">26</td><td class="v">61</td><td class="v">85.3%</td><td class="v">since 12 Jun 2026</td></tr>
+      <tr><td><a class="eq" href="#">Conecta Fapes · dados</a><span class="eq-sub">board "Dados" · no iterations <span class="ex-mark">example</span></span></td><td class="esq"><span class="chip s3">PINK</span></td><td class="v">264</td><td class="v">8</td><td class="v">18</td><td class="v aus">no declared path</td><td class="v">since 02 Sep 2026</td></tr>
+      <tr class="apagada"><td><span class="pessoa">Portal do Pesquisador</span><span class="eq-sub">link ended <span class="ex-mark">example</span></span></td><td class="esq"><span class="chip">—</span></td><td class="v">—</td><td class="v aus">outside the window</td><td class="v">—</td><td class="v">—</td><td class="v">03 Mar → 30 Jun 2026</td></tr>
     </tbody>
   </table></div>
   <div class="aviso"><span class="rot">why no total</span><p>Two squads on the same project share items; a person in two squads would be counted twice. Each row is that project's own count. The team's total flow is the "Flow" section above.</p></div>
@@ -297,8 +402,8 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
     <div class="scroll"><table style="margin-top:.5rem">
       <thead><tr><th class="esq">where</th><th class="esq">who</th><th>open items</th><th>closed · 56 d</th></tr></thead>
       <tbody>
-        <tr><td class="esq"><a class="eq" href="#">leds-conectafapes/infra-scripts</a><span class="eq-sub">repository · in no board</span></td><td class="esq"><span class="chip s1">BLUE</span> Ana Souza, Davi Rocha</td><td class="v">15</td><td class="v">31</td></tr>
-        <tr><td class="esq"><a class="eq" href="#">board "Experimentos IA"</a><span class="eq-sub">board · linked to no declared project</span></td><td class="esq"><span class="chip s3">PINK</span> Bia Lemos, Gil Costa</td><td class="v">8</td><td class="v">6</td></tr>
+        <tr><td class="esq"><a class="eq" href="#">leds-conectafapes/infra-scripts</a><span class="eq-sub">repository · in no board</span></td><td class="esq"><span class="chip s1">BLUE</span> Ana Souza, Davi Rocha</td><td class="v">15</td><td class="v">4</td></tr>
+        <tr><td class="esq"><a class="eq" href="#">board "Experimentos IA"</a><span class="eq-sub">board · linked to no declared project</span></td><td class="esq"><span class="chip s3">PINK</span> Bia Lemos, Gil Costa</td><td class="v">8</td><td class="v">2</td></tr>
       </tbody>
     </table></div>
     <p class="sub">The team is doing something the organisation has not named. Either declare the project (and link this team to it) or accept it as unplanned work — the alert stays until one of the two happens. It is an alert, not a project row: nothing here is inferred as "the team's project".</p>
@@ -318,85 +423,91 @@ The measures, and under each one <em>who</em> it was measured over. A composed t
 </section>
 
 <section class="sec">
-  <div class="sec-cab"><h2>Flow</h2><span class="rot">whole team · last 8 weeks (default for this grain)</span>
-    <span class="seg"><span class="on">week</span><span>month</span><span>year</span></span>
-    <span class="seg" title="Default window per grain: 8 weeks · 12 months · all collected years. Choose another period here."><span>from <input type="date" value="2026-07-14" style="font:inherit;font-size:.72rem;border:0;background:transparent;color:inherit;width:8.2rem"></span><span>to <input type="date" value="2026-09-06" style="font:inherit;font-size:.72rem;border:0;background:transparent;color:inherit;width:8.2rem"></span></span>
-  </div>
-  <p class="sub">The grain switch changes the axis, never the measure: a month is the same items counted by month. Each grain opens with its <strong>default window</strong> — 8 weeks, 12 months, all collected years — and the period can be changed here; the title always says which window is shown (decided 7 Sep). "Closed" is the act recorded at the tool, not a judgement of done (057, FR-030). <span class="ex-mark">example data</span> for the curves.</p>
+  <div class="sec-cab"><h2>Flow</h2><span class="rot">whole team · every chart names its own window and carries its own grain</span></div>
+  <p class="sub">The grain switch changes the axis, never the measure: a month is the same items counted by month. It sits <strong>in the header of each chart</strong>, beside the title that names the window shown — 8 weeks, 12 months, all collected years by default, and the period can be changed there (decided 7 Sep; moved into the headers 8 Sep). The <strong>forecast has no grain switch</strong>: its samples are weeks, and it stays weekly whatever the other charts show (057, FR-064). "Closed" is the act recorded at the tool, not a judgement of done (057, FR-030). <span class="ex-mark">example data</span> for the curves; the stock behind them is the real order of magnitude.</p>
 
   <div class="grade-g">
     <!-- BURN-UP / BURN-DOWN -->
     <div class="cartao" style="margin-top:0">
-      <h3>Burn-up and burn-down</h3>
-      <p class="sub" style="font-size:.8rem">Opened, cumulative (up) and closed, cumulative (up). What is still open is the <strong>hatched region</strong> between them — a distance, not a third line (057, FR-027). No committed scope line: the team has not declared one.</p>
-      <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Burn-up and burn-down over eight weeks">
+      <div class="cab-g"><h3>Burn-up and burn-down <span class="rot">· by week · 14 Jul → 8 Sep</span></h3><span class="seg" title="Default window per grain: 8 weeks · 12 months · all collected years. The window shown is always in the title."><span class="on">week</span><span>month</span><span>year</span></span></div>
+      <p class="sub" style="font-size:.8rem">The scope line starts at <strong>what was already open when the window opened</strong>. Without that baseline the cumulative counts only the items <em>born</em> inside the window, and a team with 834 old items and few new ones would show a distance of zero. What is still open is the <strong>hatched region</strong> between the two lines — a distance, not a third line (057, FR-027). No committed scope line: the team has not declared one.</p>
+      <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Burn-up and burn-down over eight weeks, opening from a baseline of 834 items already open">
         <defs><marker id="a" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="var(--amber)"/></marker><pattern id="hatchP" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--papel-2)"/><rect width="2" height="6" fill="var(--eixo)"/></pattern></defs>
-        <!-- grid & axes: 0..240 mapped to y 150..20 -->
         <g stroke="var(--grade)" stroke-width="1">
           <line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="117.5" x2="300" y2="117.5"/><line x1="40" y1="85" x2="300" y2="85"/><line x1="40" y1="52.5" x2="300" y2="52.5"/><line x1="40" y1="20" x2="300" y2="20"/>
         </g>
-        <g class="ey"><text x="36" y="153">0</text><text x="36" y="120.5">60</text><text x="36" y="88">120</text><text x="36" y="55.5">180</text><text x="36" y="23">240</text></g>
-        <!-- region between opened and closed -->
-        <polygon fill="url(#hatchP)" stroke="none" points="40,85 77,76.9 114,68.8 151,63.3 188,55.2 225,47.1 262,39 300,33.5 300,51.4 262,57.9 225,68.8 188,79.6 151,86.1 114,98.5 77,106.7 40,117.5"/>
-        <!-- opened cumulative: 120,135,150,160,175,190,205,215 -->
-        <polyline fill="none" stroke="var(--tinta-2)" stroke-width="2" points="40,85 77,76.9 114,68.8 151,63.3 188,55.2 225,47.1 262,39 300,33.5"/>
-        <!-- closed cumulative: 60,80,95,118,130,150,170,182 -->
-        <polyline fill="none" stroke="var(--verdete)" stroke-width="2.5" points="40,117.5 77,106.7 114,98.5 151,86.1 188,79.6 225,68.8 262,57.9 300,51.4"/>
-        <circle cx="300" cy="33.5" r="3" fill="var(--tinta-2)"/><circle cx="300" cy="51.4" r="3" fill="var(--verdete)"/>
-        <text class="rd" x="300" y="27">215</text><text class="rd" x="300" y="64">182</text>
-        <!-- still open arrow -->
-        <line x1="288" y1="35" x2="288" y2="50" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#a)"/>
-        <text class="rd" x="276" y="46" style="fill:var(--amber)">33 open</text>
-        <g class="ex"><text x="40" y="163">14 Jul</text><text x="114" y="163">28 Jul</text><text x="188" y="163">11 Aug</text><text x="262" y="163">25 Aug</text><text x="300" y="163">6 Sep</text></g>
+        <g class="ey"><text x="36" y="153">0</text><text x="36" y="120.5">225</text><text x="36" y="88">450</text><text x="36" y="55.5">675</text><text x="36" y="23">900</text></g>
+        <polygon fill="url(#hatchP)" stroke="none" points="40,29.0 77,27.9 114,27.2 151,25.9 188,25.1 225,23.9 262,23.2 300,22.7 300,144.2 262,144.8 225,145.5 188,146.4 151,147.0 114,148.0 77,148.8 40,149.6"/>
+        <line x1="40" y1="29.5" x2="300" y2="29.5" stroke="var(--tinta-2)" stroke-width="1" stroke-dasharray="2 3"/>
+        <text class="ex" x="44" y="42.5" style="text-anchor:start;paint-order:stroke;stroke:var(--papel-2);stroke-width:3px">834 already open when the window opened</text>
+        <polyline fill="none" stroke="var(--tinta-2)" stroke-width="2" points="40,29.0 77,27.9 114,27.2 151,25.9 188,25.1 225,23.9 262,23.2 300,22.7"/>
+        <polyline fill="none" stroke="var(--verdete)" stroke-width="2.5" points="40,149.6 77,148.8 114,148.0 151,147.0 188,146.4 225,145.5 262,144.8 300,144.2"/>
+        <circle cx="300" cy="22.7" r="3" fill="var(--tinta-2)"/><circle cx="300" cy="144.2" r="3" fill="var(--verdete)"/>
+        <text class="rd" x="300" y="16.7">881</text><text class="rd" x="300" y="156.2">40</text>
+        <line x1="286" y1="27.7" x2="286" y2="139.2" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#a)"/>
+        <text class="rd" x="264" y="88" style="fill:var(--amber)">841 open</text>
+        <g class="ex"><text x="40" y="163">14 Jul</text><text x="114" y="163">28 Jul</text><text x="188" y="163">11 Aug</text><text x="262" y="163">25 Aug</text><text x="300" y="163">8 Sep</text></g>
       </svg>
-      <div class="leg-g"><span><i style="background:var(--tinta-2)"></i>opened, cumulative</span><span><i style="background:var(--verdete)"></i>closed, cumulative</span><span><i class="hach"></i>still open = distance</span></div>
+      <div class="leg-g"><span><i style="background:var(--tinta-2)"></i>scope · open at the start, plus opened since</span><span><i style="background:var(--verdete)"></i>closed, cumulative in the window</span><span><i class="hach"></i>still open = distance</span></div>
+      <p class="sub" style="font-size:.8rem"><strong>open(t) = 834 + opened(t₀…t) − closed(t₀…t)</strong> — the identity the chart draws, and the reason the baseline is on it.</p>
+      <p class="sub" style="font-size:.8rem">The gap is <span class="n">841</span> items still open. At the closing pace observed in this window — <span class="n">5.0</span> closed per week — <strong>most runs never reach zero</strong> inside the 12-week horizon: the pace does not keep up with what is open. A range with its confidence, <strong>never a date</strong> (asked for on 8 Sep).</p>
     </div>
 
-    <!-- COMMITTED vs DELIVERED -->
+    <!-- PROMISED × DELIVERED -->
     <div class="cartao" style="margin-top:0">
-      <h3>Committed × delivered</h3>
-      <p class="sub" style="font-size:.8rem"><strong>Committed</strong> = items <em>opened</em> in the period; <strong>delivered</strong> = items moved to <em>done</em> in the period (decision of 7 Sep). Same items as the burn chart, per period instead of cumulative: the burn shows the stock, this shows the flow in and out.</p>
-      <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Committed versus delivered per iteration">
-        <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="107" x2="300" y2="107"/><line x1="40" y1="64" x2="300" y2="64"/><line x1="40" y1="21" x2="300" y2="21"/></g>
-        <g class="ey"><text x="36" y="153">0</text><text x="36" y="110">10</text><text x="36" y="67">20</text><text x="36" y="24">30</text></g>
-        <!-- 6 iterations; committed (grey) 20,25,22,30,28,26 ; delivered (verdete) 15,22,18,24,26,20 ; scale 4.3px per item -->
-        <g fill="var(--eixo)">
-          <rect x="48" y="64" width="14" height="86"/><rect x="90" y="42.5" width="14" height="107.5"/><rect x="132" y="55.4" width="14" height="94.6"/><rect x="174" y="21" width="14" height="129"/><rect x="216" y="29.6" width="14" height="120.4"/><rect x="258" y="38.2" width="14" height="111.8"/>
-        </g>
-        <g fill="var(--verdete)">
-          <rect x="63" y="85.5" width="14" height="64.5"/><rect x="105" y="55.4" width="14" height="94.6"/><rect x="147" y="72.6" width="14" height="77.4"/><rect x="189" y="46.8" width="14" height="103.2"/><rect x="231" y="38.2" width="14" height="111.8"/><rect x="273" y="64" width="14" height="86"/>
-        </g>
-        <g class="rd"><text x="70" y="81">15/20</text><text x="112" y="51">22/25</text><text x="154" y="68">18/22</text><text x="196" y="42">24/30</text><text x="238" y="33">26/28</text><text x="280" y="59">20/26</text></g>
-        <g class="ex"><text x="62" y="163">28 Jul</text><text x="104" y="163">4 Aug</text><text x="146" y="163">11 Aug</text><text x="188" y="163">18 Aug</text><text x="230" y="163">25 Aug</text><text x="272" y="163">1 Sep</text></g>
+      <div class="cab-g"><h3>Promised × Delivered <span class="rot">· by week · 14 Jul → 8 Sep</span></h3><span class="seg" title="Default window per grain: 8 weeks · 12 months · all collected years. The window shown is always in the title."><span class="on">week</span><span>month</span><span>year</span></span></div>
+      <p style="font-size:.84rem;margin-top:.4rem"><strong>promised</strong> = opened in the period · <strong>delivered</strong> = closed in the period.</p>
+      <p class="sub" style="font-size:.8rem">There is <strong>no committed scope</strong> in the platform, so this is not a sprint commitment against a sprint result (decision of 7 Sep; the definition moved next to the title on 8 Sep). <em>Closed</em> is the issue being closed at the source — an act of the tool, not a declared end criterion.</p>
+      <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Promised versus delivered, by week">
+        <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/><line x1="40" y1="85.5" x2="300" y2="85.5"/><line x1="40" y1="21" x2="300" y2="21"/></g>
+        <g class="ey"><text x="36" y="153">0</text><text x="36" y="88.5">5</text><text x="36" y="24">10</text></g>
+        <g fill="var(--eixo)"><rect x="46" y="98.4" width="13" height="51.6"/><rect x="78" y="59.7" width="13" height="90.3"/><rect x="110" y="85.5" width="13" height="64.5"/><rect x="142" y="33.9" width="13" height="116.1"/><rect x="174" y="72.6" width="13" height="77.4"/><rect x="206" y="46.8" width="13" height="103.2"/><rect x="238" y="85.5" width="13" height="64.5"/><rect x="270" y="111.3" width="13" height="38.7"/></g>
+        <g fill="var(--verdete)"><rect x="59" y="111.3" width="13" height="38.7"/><rect x="91" y="85.5" width="13" height="64.5"/><rect x="123" y="72.6" width="13" height="77.4"/><rect x="155" y="59.7" width="13" height="90.3"/><rect x="187" y="98.4" width="13" height="51.6"/><rect x="219" y="72.6" width="13" height="77.4"/><rect x="251" y="85.5" width="13" height="64.5"/><rect x="283" y="98.4" width="13" height="51.6"/></g>
+        <g class="rd"><text x="59" y="94.4">3/4</text><text x="91" y="55.7">5/7</text><text x="123" y="68.6">6/5</text><text x="155" y="29.9">7/9</text><text x="187" y="68.6">4/6</text><text x="219" y="42.8">6/8</text><text x="251" y="81.5">5/5</text><text x="283" y="94.4">4/3</text></g>
+        <g class="ex"><text x="59" y="163">14 Jul</text><text x="123" y="163">28 Jul</text><text x="187" y="163">11 Aug</text><text x="251" y="163">25 Aug</text></g>
       </svg>
-      <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened in the week</span><span><i style="background:var(--verdete)"></i>done in the week</span><span>8 weeks: <span class="n">165</span> opened · <span class="n">125</span> done</span></div>
+      <div class="leg-g"><span><i style="background:var(--eixo)"></i>opened in the week</span><span><i style="background:var(--verdete)"></i>closed in the week</span><span>8 weeks: <span class="n">47</span> promised · <span class="n">40</span> delivered</span></div>
+      <p class="sub" style="font-size:.78rem">Read it against the burn: inside the window the two bars almost match, and <strong>834 items older than the window did not move</strong>. A window-shaped measure cannot see the stock behind it — the baseline on the burn can, and that is why both charts are here.</p>
     </div>
+  </div>
 
-    <!-- MONTE CARLO -->
-    <div class="cartao" style="margin-top:0">
-      <h3>Monte Carlo forecast</h3>
-      <p class="sub" style="font-size:.8rem">How many weeks to close the <span class="n">33</span> items open today, simulated 10 000 times over the team's own weekly throughput. Two hypotheses, each with its confidence — the chart does not pick one (057, FR-032, FR-033).</p>
-      <svg class="g" viewBox="0 0 320 170" role="img" aria-label="Monte Carlo forecast distribution">
-        <g stroke="var(--grade)" stroke-width="1"><line x1="40" y1="150" x2="300" y2="150"/></g>
-        <!-- histogram of weeks-to-finish, 8-week history: weeks 2..9 -->
-        <g fill="var(--verdete-soft)" stroke="var(--verdete)" stroke-width="1">
-          <rect x="52" y="138" width="26" height="12"/><rect x="82" y="96" width="26" height="54"/><rect x="112" y="52" width="26" height="98"/><rect x="142" y="70" width="26" height="80"/><rect x="172" y="104" width="26" height="46"/><rect x="202" y="128" width="26" height="22"/><rect x="232" y="142" width="26" height="8"/><rect x="262" y="147" width="26" height="3"/>
-        </g>
-        <!-- P50 and P85 markers -->
-        <line x1="125" y1="40" x2="125" y2="150" stroke="var(--verdete-deep)" stroke-width="1.5" stroke-dasharray="3 3"/>
-        <text class="rd" x="125" y="34" style="fill:var(--verdete-deep)">P50 · 4 wk</text>
-        <line x1="215" y1="60" x2="215" y2="150" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="3 3"/>
-        <text class="rd" x="215" y="54" style="fill:var(--amber)">P85 · 7 wk</text>
-        <g class="ex"><text x="65" y="163">2</text><text x="95" y="163">3</text><text x="125" y="163">4</text><text x="155" y="163">5</text><text x="185" y="163">6</text><text x="215" y="163">7</text><text x="245" y="163">8</text><text x="275" y="163">9 wk</text></g>
-      </svg>
-      <div class="scroll"><table style="margin-top:.5rem">
-        <thead><tr><th class="esq">hypothesis</th><th>P50</th><th>P85</th><th>confidence</th></tr></thead>
-        <tbody>
-          <tr><td class="esq">throughput of the last 8 weeks</td><td class="v">4 wk</td><td class="v">7 wk</td><td class="v">medium · 8 samples</td></tr>
-          <tr><td class="esq">throughput of the last 4 weeks</td><td class="v">3 wk</td><td class="v">6 wk</td><td class="v">low · 4 samples</td></tr>
-        </tbody>
-      </table></div>
-      <p class="sub" style="font-size:.78rem">Below the floor of 6 weeks of history the forecast is not shown at all — a number over four samples looks like information and is not.</p>
+  <!-- DELIVERY FORECAST -->
+  <div class="cartao">
+    <div class="cab-g"><h3>Delivery forecast <span class="rot">· weekly, whatever grain the charts show · 12-week horizon · 10 000 runs</span></h3></div>
+    <p class="sub" style="font-size:.82rem">How long to close the <span class="n">841</span> items open today, sampling this team's own weekly closing history (<span class="login" style="display:inline">flow.completion.forecast</span>). Renamed from "Monte Carlo forecast" on 8 Sep: the method is not the answer, and the maintainer asked what the card was.</p>
+    <p class="sub" style="font-size:.82rem"><strong>Two hypotheses, stacked, on the same x axis</strong> — never overlaid: two translucent shapes on one pair of axes make a third shape that does not exist. Stacked, each with its own y, the horizontal distance between the peaks is the cost of the new work arriving. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other.</p>
+
+    <div class="cartao" style="background:var(--papel);margin-top:.8rem">
+      <div class="cab-g"><span class="rot">if nothing new opened · frozen scope</span><span class="rot">10 000 of 10 000 runs did not finish</span></div>
+      <svg class="g" viewBox="0 0 560 96" role="img" aria-label="No run reached zero inside the 12-week horizon; 10 000 runs never finished."><defs><pattern id="hna" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--verdete)" stroke-width="1.4"/></pattern></defs><rect x="520" y="6" width="32" height="64" fill="url(#hna)" stroke="var(--verdete)" stroke-width="0.8"/><text x="536.0" y="82" class="ex">never</text><line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/><g class="ex"><text x="16.0" y="82">1</text><text x="136.0" y="82">4</text><text x="296.0" y="82">8</text><text x="456.0" y="82">12</text><text x="270" y="94">weeks to reach zero</text></g><text x="4" y="40" class="ex" style="text-anchor:start;fill:var(--tinta)">no run reached zero inside the horizon — the whole distribution is “never”</text></svg>
+    </div>
+    <div class="cartao" style="background:var(--papel);margin-top:.6rem">
+      <div class="cab-g"><span class="rot">if work keeps arriving as it has · live scope</span><span class="rot">10 000 of 10 000 runs did not finish</span></div>
+      <svg class="g" viewBox="0 0 560 96" role="img" aria-label="No run reached zero inside the 12-week horizon; 10 000 runs never finished."><defs><pattern id="hnb" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--amber)" stroke-width="1.4"/></pattern></defs><rect x="520" y="6" width="32" height="64" fill="url(#hnb)" stroke="var(--amber)" stroke-width="0.8"/><text x="536.0" y="82" class="ex">never</text><line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/><g class="ex"><text x="16.0" y="82">1</text><text x="136.0" y="82">4</text><text x="296.0" y="82">8</text><text x="456.0" y="82">12</text><text x="270" y="94">weeks to reach zero</text></g><text x="4" y="40" class="ex" style="text-anchor:start;fill:var(--tinta)">no run reached zero inside the horizon — the whole distribution is “never”</text></svg>
+    </div>
+    <div class="leg-g"><span><i style="background:var(--verdete)"></i>runs finishing in that week</span><span><i style="width:.2rem;height:.8rem;background:var(--verdete)"></i>50% and 85% marks</span><span><i class="hach"></i>runs that never reached zero</span></div>
+
+    <div class="scroll"><table style="margin-top:.6rem">
+      <thead><tr><th class="esq">hypothesis</th><th>50%</th><th>85%</th><th>runs that never reached zero</th></tr></thead>
+      <tbody>
+        <tr><td class="esq">if nothing new opened <span class="sub" style="font-size:.76rem">· the optimistic bound</span></td><td class="v aus">not reported</td><td class="v aus">not reported</td><td class="v">10 000 of 10 000</td></tr>
+        <tr><td class="esq">if work keeps arriving as it has</td><td class="v aus">not reported</td><td class="v aus">not reported</td><td class="v">10 000 of 10 000</td></tr>
+      </tbody>
+    </table></div>
+    <div class="aviso"><span class="rot">why there is no number here</span><p>A percentile of a hypothesis whose runs did not finish is <strong>null, never a large number</strong>: a large number would be read as a date. And when most runs do not finish, the percentiles would describe a <em>minority</em> — so <strong>the proportion that did not finish is part of the result</strong>, not a footnote (<span class="login" style="display:inline">flow.completion.forecast</span>, limitations). Below the floor — 6 periods in the series and 10 closed items — the forecast is not produced at all.</p></div>
+    <p class="sub" style="font-size:.78rem">Both hypotheses sample a pace made almost entirely of items opened <em>inside</em> the window, while the 834 older ones did not move. So the card answers "how long at this pace", and not "when the stock goes" — see the open question at the end of the page.</p>
+
+    <div class="cartao" style="border-style:dashed;margin-top:1rem">
+      <span class="rot">the same card when a pace does reach zero — <span class="ex-mark">example</span>, another team, so the shape and the marks are on record</span>
+      <div class="cartao" style="background:var(--papel);margin-top:.6rem">
+        <div class="cab-g"><span class="rot">if nothing new opened · frozen scope</span><span class="rot">34 items open · 4.1 closed per week</span></div>
+        <svg class="g" viewBox="0 0 560 96" role="img" aria-label="Distribution of run lengths, with the 50% and 85% marks and the column of runs that never reached zero."><defs><pattern id="hfc" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--verdete)" stroke-width="1.4"/></pattern></defs><rect x="80" y="60" width="32" height="10" fill="var(--verdete)" opacity="0.55"/><rect x="120" y="46" width="32" height="24" fill="var(--verdete)" opacity="0.55"/><rect x="160" y="26" width="32" height="44" fill="var(--verdete)" opacity="0.55"/><rect x="200" y="14" width="32" height="56" fill="var(--verdete)" opacity="0.55"/><rect x="240" y="24" width="32" height="46" fill="var(--verdete)" opacity="0.55"/><rect x="280" y="40" width="32" height="30" fill="var(--verdete)" opacity="0.55"/><rect x="320" y="53" width="32" height="17" fill="var(--verdete)" opacity="0.55"/><rect x="360" y="60" width="32" height="10" fill="var(--verdete)" opacity="0.55"/><rect x="400" y="65" width="32" height="5" fill="var(--verdete)" opacity="0.55"/><rect x="440" y="67" width="32" height="3" fill="var(--verdete)" opacity="0.55"/><rect x="520" y="58" width="32" height="12" fill="url(#hfc)" stroke="var(--verdete)" stroke-width="0.8"/><text x="536.0" y="82" class="ex">never</text><text x="536.0" y="54" class="rd" style="fill:var(--verdete)">4%</text><line x1="216.0" y1="10" x2="216.0" y2="70" stroke="var(--verdete)" stroke-width="1.5" stroke-dasharray="0"/><text x="216.0" y="7" class="rd" style="fill:var(--verdete)">50%</text><line x1="336.0" y1="10" x2="336.0" y2="70" stroke="var(--verdete)" stroke-width="1.5" stroke-dasharray="3 2"/><text x="336.0" y="7" class="rd" style="fill:var(--verdete)">85%</text><line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/><g class="ex"><text x="16.0" y="82">1</text><text x="136.0" y="82">4</text><text x="296.0" y="82">8</text><text x="456.0" y="82">12</text><text x="270" y="94">weeks to reach zero</text></g></svg>
+      </div>
+      <div class="cartao" style="background:var(--papel);margin-top:.6rem">
+        <div class="cab-g"><span class="rot">if work keeps arriving as it has · live scope</span><span class="rot">no 85% figure — more than 15% of the runs did not reach zero</span></div>
+        <svg class="g" viewBox="0 0 560 96" role="img" aria-label="Distribution of run lengths, with the 50% and 85% marks and the column of runs that never reached zero."><defs><pattern id="hfd" width="6" height="6" patternTransform="rotate(135)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--amber)" stroke-width="1.4"/></pattern></defs><rect x="200" y="60" width="32" height="10" fill="var(--amber)" opacity="0.55"/><rect x="240" y="50" width="32" height="20" fill="var(--amber)" opacity="0.55"/><rect x="280" y="36" width="32" height="34" fill="var(--amber)" opacity="0.55"/><rect x="320" y="20" width="32" height="50" fill="var(--amber)" opacity="0.55"/><rect x="360" y="28" width="32" height="42" fill="var(--amber)" opacity="0.55"/><rect x="400" y="42" width="32" height="28" fill="var(--amber)" opacity="0.55"/><rect x="440" y="54" width="32" height="16" fill="var(--amber)" opacity="0.55"/><rect x="520" y="6" width="32" height="64" fill="url(#hfd)" stroke="var(--amber)" stroke-width="0.8"/><text x="536.0" y="82" class="ex">never</text><text x="536.0" y="2" class="rd" style="fill:var(--amber)">22%</text><line x1="336.0" y1="10" x2="336.0" y2="70" stroke="var(--amber)" stroke-width="1.5" stroke-dasharray="0"/><text x="336.0" y="7" class="rd" style="fill:var(--amber)">50%</text><line x1="0" y1="70" x2="560" y2="70" stroke="var(--eixo)" stroke-width="1"/><g class="ex"><text x="16.0" y="82">1</text><text x="136.0" y="82">4</text><text x="296.0" y="82">8</text><text x="456.0" y="82">12</text><text x="270" y="94">weeks to reach zero</text></g></svg>
+      </div>
+      <p class="sub" style="font-size:.78rem">Same axis, same horizon, two shapes: the distance between the peaks — three weeks — is what the incoming work costs. On the live hypothesis there is <strong>no 85% figure</strong>, because more than 15% of the runs did not reach zero inside the horizon; writing a number there would invent a percentile that does not exist.</p>
     </div>
   </div>
 </section>
@@ -421,6 +532,7 @@ Who is in the team, in which squad, in which role — and the five things <stron
   <span><span class="marca saiu"><span class="am"></span>left</span> ended on a date, kept in history</span>
   <span><span class="marca eqv"><span class="am"></span>mistake</span> never belonged; reason recorded</span>
 </div>
+<p class="sub" style="font-size:.84rem">Every mark of this family carries the <strong>0.6 rem square</strong>, and the square's fill is the channel: solid for what someone stated or the source showed, hatched for what was concluded, dashed for what is absent. The <strong>concept marks</strong> of the Dashboard are another family and take no square and no hue — see the legend there.</p>
 
 <section class="sec">
   <div class="sec-cab"><h2>Squads</h2><span class="rot">3 composed · one declared end</span><button class="btn p">＋ Add squad to this team</button></div>
@@ -592,7 +704,30 @@ Who is in the team, in which squad, in which role — and the five things <stron
       <li><strong>Who sees and who acts.</strong> <em>Decided 7 Sep:</em> names, tasks and profiles for administrators, scope holders and the team's own members; structure actions for administrators and for a team-manager role granted "manage team structure".</li>
       <li><strong>Work outside a declared project</strong> = open issues and change requests in repositories that belong to no board of a declared project, plus boards linked to no project. <em>Decided 7 Sep.</em></li>
       <li><strong>Roles here and at <kbd>/roles</kbd>.</strong> The prototype creates roles from the team's structure screen — the same command, the same organisation scope. Does <kbd>/roles</kbd> stay as the organisation-wide view (grants of visibility live there), or does it fold into this screen?</li>
+      <li><strong>The mark of the concept.</strong> <em>Decided 8 Sep:</em> every work item opens with what it is, in the place of the source's <span class="login" style="display:inline">node_id</span>. Six clauses, because two different ignorances are two different statements. Hue stays with origin and state; the concept family is told apart by <strong>form</strong> — and borrows one hue, clay, for the defect alone.</li>
+      <li><strong>A fixed 3.5 rem slot for the mark</strong>, right-aligned. <em>Decided 8 Sep:</em> fifteen items of one person began on fifteen different left edges. Only the untranslated identifier may outgrow the slot, and it pushes its own line.</li>
+      <li><strong>Stale moves from clay to amber.</strong> <em>Decided 8 Sep, and this one goes the implementation's way.</em> Three reasons: the flags column of this very screen already marks the same fact in amber; the house grammar reads amber as "derived and warning", which is what a threshold crossing is; and with the defect now taking clay, and nearly every item past the threshold, clay would paint the whole list and stop meaning gravity. The <em>text</em> stays <span class="parada">stopped · over 90 d</span> — a threshold is part of its measure.</li>
+      <li><strong>The burn opens at the window's opening balance.</strong> <em>Decided 8 Sep:</em> the identity <span class="login" style="display:inline">open(t) = open(t₀) + opened − closed</span> is written under the chart, because without the baseline a team with a large old stock shows a distance of zero.</li>
+      <li><strong>Items past the threshold: one row per squad, no total.</strong> <em>Decided 8 Sep:</em> an item of a person in two squads would be counted twice (057, FR-008), so that card refuses the total the way every other measure of a composed team does.</li>
+      <li><strong>Names of the flow charts.</strong> <em>Decided 8 Sep:</em> "Committed × delivered" becomes <strong>Promised × Delivered</strong> — the maintainer's own word, and "committed" claimed a commitment the platform does not hold — and "Monte Carlo forecast" becomes <strong>Delivery forecast</strong>: the method is not the answer. The grain switch moves into each chart's header, and the window is always in the title.</li>
+      <li><strong>The two hypotheses of the forecast</strong> are <em>frozen scope</em> and <em>live scope</em>, as <span class="login" style="display:inline">flow.completion.forecast</span> declares. <em>Corrected 8 Sep:</em> the approved prototype named "last 8 weeks / last 4 weeks", which is not the declared pair — and nothing may be on the screen that the base does not declare (constitution, principle IV).</li>
     </ol>
+    <p class="sub"><strong>Open, and each one is the maintainer's to settle.</strong></p>
+    <ol start="23" style="margin:.4rem 0 0;padding-left:1.2rem;font-size:.92rem">
+      <li><strong>The badge on every line.</strong> Every open item of SQUAD PINK is past the 90-day threshold, and a badge that everything carries stops being a signal. <em>(a)</em> keep one badge per line, as approved; <em>(b)</em> say it once per person — "all 114 open beyond 90 d" — and badge the <strong>exceptions</strong>, the few items still inside the threshold. <em>Recommended: (b)</em> — mark the rare, not the common; the screen above shows (a), so both can be compared.</li>
+      <li><strong>What the forecast forecasts.</strong> Its pace comes almost entirely from items opened inside the window, while 834 older ones did not move; the answer is "how long at this pace", not "when the stock goes". <em>(a)</em> one forecast, as now, with the caveat written; <em>(b)</em> two populations — new work and the standing stock — each with its own; <em>(c)</em> forecast the stock alone. <em>Recommended: (b)</em>, because the two have different pace and different owners.</li>
+      <li><strong>The two clays, when a defect is also stopped.</strong> Resolved for now by moving stale to amber (decision 18). If the maintainer prefers stale in clay, then <span class="cc cc-bug">BUG</span> has to give the hue back and be told apart by weight alone. <em>Recommended: keep it as republished.</em></li>
+    </ol>
+    <p class="sub" style="margin-top:1rem"><strong>Where the screen of 8 Sep drifted from this prototype</strong> — defects to be raised, not changes to be adopted. The rule of the house is that the implemented screen is exactly the approved screen; when the implementation finds that something is impossible or dishonest, the way back is this prototype, republished.</p>
+    <div class="scroll"><table>
+      <thead><tr><th class="esq">on the screen of 8 Sep</th><th class="esq">in this prototype, approved 7 Sep</th></tr></thead>
+      <tbody>
+        <tr><td class="esq"><span class="marca obs"><span class="am"></span>declared</span> in verdigris (<span class="login" style="display:inline">badge-success</span>)</td><td class="esq"><span class="marca dec"><span class="am"></span>declared</span> in info blue — verdigris means "the source showed it", and one hue cannot mean both</td></tr>
+        <tr><td class="esq">the four link marks with no square</td><td class="esq">the square of 0.6 rem is the channel of the family, and without it the two families fight over the same six colours</td></tr>
+        <tr><td class="esq">the badge reads <span class="chip">stale</span></td><td class="esq"><span class="parada">stopped · over 90 d</span> — the threshold belongs to the measure that uses it</td></tr>
+        <tr><td class="esq">the squad card spark in primary and warning</td><td class="esq">opened in ink-2, closed <strong>in the squad's own colour</strong> — on a card whose job is to be a door, the colour says which squad</td></tr>
+      </tbody>
+    </table></div>
   </div>
 </section>
 </div>

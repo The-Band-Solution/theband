@@ -211,10 +211,25 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   Somá-los aqui apagaria a diferença entre o que a organização declarou e o que a
   ferramenta mostrou.
   """
-  @spec team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [map()]
-  def team_members_at(%Tenant{id: tenant_id}, team_id, quando) do
+  @spec team_members_at(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: [map()]
+  def team_members_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    # O ALCANCE pode ser o conjunto da EQUIPE INTEIRA — feature 060, FR-056.
+    #
+    # Sem `opts[:escopo]` continua sendo só a equipe própria, que é o comportamento de quem
+    # chama de fora. Com ele, inclui as partes com composição vigente.
+    #
+    # A falta disto produziu o defeito mais caro que o QA achou em 2026-09-08: numa equipe
+    # composta, o cartão *tarefas paradas* dizia **"conferido, nada encontrado"** enquanto o
+    # cartão da subequipe, duas seções abaixo, dizia **"stopped 2"**. Quem gerencia lia um
+    # falso negativo sobre itens parados há 400 e 120 dias — exatamente o que a seção
+    # *Problemas agora* existe para impedir.
+    #
+    # A mesma lacuna fazia a seção de pessoas listar **1 de 3**, e o rodapé das medidas dizer
+    # *"measured over 1 member"* no mesmo scroll em que o cabeçalho dizia *"3 people here"*.
+    equipes = opts[:escopo] || [team_id]
+
     TeamMembership
-    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> vigente_em(quando)
     |> join(:inner, [m], p in Person, on: p.id == m.person_id)
     # `person_id` na ordenação não é enfeite: `uma_linha_por_pessoa/1` agrupa por adjacência,
@@ -236,6 +251,10 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> Repo.all()
     |> uma_linha_por_pessoa()
   end
+
+  # A ordenação por `p.name` já põe os vínculos da mesma pessoa lado a lado, mesmo vindo de
+  # equipes diferentes do conjunto — é o que `uma_linha_por_pessoa/1` precisa para agrupar por
+  # adjacência, e a razão de `person_id` estar no `order_by`.
 
   # UMA LINHA POR PESSOA, pelo mesmo motivo de `count_team_members_at/3`.
   #
@@ -288,13 +307,20 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   seria juntar `eo_people` em toda chamada da série para descartar o resultado.
   """
   @spec team_member_ids_at(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: [Ecto.UUID.t()]
-  def team_member_ids_at(%Tenant{id: tenant_id}, team_id, quando) do
+  def team_member_ids_at(%Tenant{id: tenant_id}, team_id, quando, opts \\ []) do
+    equipes = opts[:escopo] || [team_id]
+
+    # DISTINCT porque a pessoa em duas partes do conjunto tem dois vínculos, e é UMA pessoa.
+    #
+    # A junção com `Person` e a ordenação por nome saíram: existiam só para ordenar, e o
+    # Postgres recusa `SELECT DISTINCT` com `ORDER BY` sobre coluna fora do select. Ordem de
+    # uma lista de identificadores não é informação — quem precisa de ordem usa
+    # `team_members_at/4`, que traz o nome.
     TeamMembership
-    |> where([m], m.tenant_id == ^tenant_id and m.team_id == ^team_id)
+    |> where([m], m.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> vigente_em(quando)
-    |> join(:inner, [m], p in Person, on: p.id == m.person_id)
-    |> order_by([_m, p], asc: p.name, asc: p.login)
     |> select([m], m.person_id)
+    |> distinct(true)
     |> Repo.all()
   end
 

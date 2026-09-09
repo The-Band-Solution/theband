@@ -1,0 +1,116 @@
+derivation_rule:
+  id: team.dashboard.thresholds
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: medium
+
+  name:
+    pt-BR: "Os limiares que decidem o que a seção *Problemas agora* conta"
+
+  description:
+    pt-BR: >
+      A seção *Problemas agora* do painel da equipe (spec 060, FR-065) apresenta um cartão
+      **contado** por fato. Cada contagem depende de um limiar — *aberta há mais de quanto?*,
+      *esperando há mais de quanto?* —, e o limiar decide o número.
+
+      Moram aqui, e não em constante de módulo, pela mesma razão de `profile.thresholds`: um
+      limiar é **decisão sobre o que a plataforma afirma**, e mudá-lo muda o número que quem
+      gerencia vê sem que nada mais mude. A FR-069 é explícita — *"nenhum limiar MUST viver em
+      constante de módulo"* — e a razão é operacional: em constante, o limiar muda num diff de
+      template, e ninguém percebe que a plataforma passou a afirmar outra coisa.
+
+      Um limiar **não** é atraso. A origem não registra prazo, e nenhum destes números
+      significa que alguém demorou: significam que o item cruzou uma linha que a organização
+      escolheu, e que alguém precisa olhar.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: "spec 060, decisão da pessoa mantenedora em 2026-09-07 (decisão 4)"
+    note: >
+      Os dois valores foram **confirmados** pela pessoa mantenedora em 2026-09-07, sobre a
+      proposta do protótipo. Um terceiro que o protótipo sugeria — "14 dias sem mudança de
+      estado" — foi **recusado** na mesma conversa: a parada usa o limiar já declarado em
+      `profile.thresholds.stale_open_work`, que são 90 dias desde a abertura. Registrar a
+      recusa aqui evita que ela seja reproposta como novidade.
+
+  rules:
+    open_issue_age:
+      name:
+        pt-BR: "Issue aberta há mais de trinta dias entra na contagem"
+      statement:
+        pt-BR: >
+          Issues **abertas** há mais de **30 dias** são contadas no cartão (a) de *Problemas
+          agora*. A idade conta da abertura na ferramenta (`external_created_at`), e não da
+          designação — a origem não registra quando a atribuição aconteceu.
+      note:
+        pt-BR: >
+          Trinta dias não afirmam atraso: afirmam que o item atravessou um mês sem fechar, e
+          que vale perguntar se ainda é o que se quer fazer. O cartão diz o limiar, e é o
+          limiar que torna o número interpretável — "46 issues" sem "há mais de 30 dias" é um
+          número sem pergunta.
+      values:
+        open_days: 30
+
+    review_wait:
+      name:
+        pt-BR: "Solicitação de código esperando revisão humana há mais de sete dias"
+      statement:
+        pt-BR: >
+          Solicitações de mudança **de código** ainda sem a primeira revisão **humana**, há
+          mais de **7 dias**, são contadas no cartão (b). A janela conta da abertura da
+          solicitação.
+      note:
+        pt-BR: >
+          **Humana** é parte da definição, e não detalhe: revisão de robô não substitui a
+          leitura de alguém, e contá-la faria a espera desaparecer justamente onde ela dói.
+          A medida de origem é `review.time_to_first_review.duration` (spec 058), que já
+          declara essa exclusão; aqui o que se acrescenta é o corte que transforma duração em
+          contagem.
+
+          Sete dias é uma semana de trabalho: o item atravessou uma iteração inteira sem que
+          ninguém o lesse.
+      values:
+        wait_days: 7
+
+  # ---------------------------------------------------------------------------
+  # O que NÃO é declarado aqui, e onde vive
+  # ---------------------------------------------------------------------------
+  reuses:
+    - threshold: profile.thresholds.stale_open_work.stale_days
+      value: 90
+      used_by:
+        pt-BR: >
+          O cartão (d), *tarefas abertas além do limiar de parada*. **Não se declara um
+          segundo limiar de parada**: a mesma pergunta com dois números em telas diferentes é
+          a plataforma discordando de si mesma. `TeamWork` tinha `@parada_em_dias 90` em
+          constante — duplicata silenciosa do valor declarado, e exatamente o que a FR-069
+          proíbe.
+
+  refuses:
+    - proposal: "14 dias sem mudança de estado"
+      by:
+        pt-BR: "protótipo de 2026-09-07"
+      reason:
+        pt-BR: >
+          Recusado pela pessoa mantenedora na mesma conversa. Mede outra coisa — *silêncio no
+          registro* — e não *idade do trabalho aberto*; e a plataforma não coleta mudança de
+          estado com fidelidade suficiente para afirmar silêncio. A parada continua sendo os
+          90 dias desde a abertura.
+
+  misinterpretations:
+    - claim:
+        pt-BR: "o número do cartão é a quantidade de itens atrasados"
+      why_wrong:
+        pt-BR: >
+          Não há prazo na origem. O número é a quantidade de itens que cruzaram o limiar
+          escolhido — nada mais. Um item de 400 dias pode estar exatamente onde deveria, e
+          um de 20 pode estar perdido.
+    - claim:
+        pt-BR: "cartão com zero significa que a equipe está bem"
+      why_wrong:
+        pt-BR: >
+          Zero significa **conferido, nada encontrado** — e é diferente de **não conferido**,
+          que é o que a tela diz quando o insumo não é coletado (FR-067). Os dois estados
+          aparecem em texto, e nenhum é um zero mudo.
