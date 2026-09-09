@@ -770,6 +770,43 @@ Cada uma tem de ser reconstruída ou **explicitamente dispensada com motivo escr
 - **FR-078**: o log MUST carregar os campos de observabilidade do `AGENTS.md` §15 e MUST NOT
   carregar o segredo do token, nem qualquer parte dele além do prefixo público.
 
+### O que a plataforma NÃO guarda — decisão da pessoa mantenedora, 2026-09-09
+
+> *"O sistema não deve guardar. A tela mostra o token, e uma vez gerado na tela o usuário sai
+> da tela — precisa gerar outro se ele perder."*
+
+Confirma o que a FR-003 e a FR-006 já exigiam, e acrescenta a consequência de fluxo, que não
+estava escrita.
+
+**A distinção que precisa ficar clara, porque "não guardar" é ambíguo:** a plataforma guarda um
+**hash** do segredo, e um hash **não é** o token. Não se reverte, não se recupera e não serve
+para autenticar em lugar nenhum — serve só para decidir se o valor que alguém apresentou é o
+mesmo. Guardar nada seria não ter como verificar, e a API não existiria. O que a plataforma
+**não** guarda é o **segredo**, e é isso que a decisão afirma.
+
+- **FR-079**: Não existe, em nenhum lugar do sistema, o valor em claro do token depois da
+  resposta de criação. Não em coluna, não em coluna cifrada, não em log, não em cache, não em
+  sessão, não em telemetria, não em mensagem de erro. Os únicos vestígios permitidos são o
+  **hash** (FR-003), os **quatro últimos caracteres** (FR-007) e o **prefixo público**
+  (FR-001).
+- **FR-080**: **Não há recuperação.** Nenhum endpoint, tela, exportação, consulta de suporte
+  ou procedimento administrativo mostra o segredo de novo — nem para quem administra o tenant,
+  nem para quem administra a plataforma. Perdeu, **gera outro**: cria um token novo e revoga o
+  antigo.
+- **FR-081**: A tela MUST avisar **antes** de gerar, e não depois: que o valor aparece uma vez
+  só, que sair da tela o destrói, e que a recuperação não existe. Avisar depois de o segredo
+  estar na tela é avisar quem já pode ter fechado a aba — e a pessoa descobre a regra no dia em
+  que precisa do token, não no dia em que o criou.
+- **FR-082**: A tela MUST oferecer **copiar** com confirmação visível de que copiou, e MUST NOT
+  depender de a pessoa selecionar o texto com o rato. É a diferença entre um requisito de
+  segurança que se cumpre e um que empurra a pessoa para colar o segredo num arquivo de rascunho
+  para "não perder".
+
+**O que esta decisão custa, e é aceito**: uma integração que perdeu o token precisa ser
+reconfigurada, e quem a mantém pode não ser quem a criou. A alternativa — poder mostrar de novo
+— significaria que a plataforma tem o segredo, e então um vazamento do banco vaza todas as
+integrações de todos os tenants. A troca é deliberada, e o lado escolhido é o que limita o dano.
+
 ### A limitação que fica escrita, e não presumida
 
 **Não existe estado de conta desativada nesta plataforma.** `users` tem `email`, `name`,
