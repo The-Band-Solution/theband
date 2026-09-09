@@ -167,6 +167,49 @@ defmodule TheBandWeb.AccountsLive.Index do
     end
   end
 
+  def handle_event("desativar", %{"id" => user_id}, socket) do
+    case Tenants.disable_user(
+           socket.assigns.current_tenant,
+           user_id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply, socket |> assign(erro: nil, temporaria: nil) |> carregar()}
+
+      # As três recusas têm mensagens DIFERENTES, e de propósito: aqui quem lê é quem
+      # administra o próprio tenant, e cada uma tem remédio distinto. É o oposto da
+      # recusa da entrada, onde a mensagem é única para não enumerar.
+      {:error, :nao_pode_desativar_a_si} ->
+        {:noreply,
+         assign(socket,
+           erro:
+             dgettext(
+               "errors",
+               "Não é possível desativar a própria conta — pede a outra pessoa que administra."
+             ),
+           temporaria: nil
+         )}
+
+      {:error, :ja_desativada} ->
+        {:noreply,
+         assign(socket, erro: dgettext("errors", "Já estava desativada."), temporaria: nil)}
+
+      {:error, _} ->
+        {:noreply,
+         assign(socket, erro: dgettext("errors", "Conta não encontrada."), temporaria: nil)}
+    end
+  end
+
+  def handle_event("reativar", %{"id" => user_id}, socket) do
+    case Tenants.enable_user(socket.assigns.current_tenant, user_id) do
+      {:ok, _} ->
+        {:noreply, socket |> assign(erro: nil, temporaria: nil) |> carregar()}
+
+      {:error, _} ->
+        {:noreply, assign(socket, erro: dgettext("errors", "Nada a reativar."), temporaria: nil)}
+    end
+  end
+
   # 047/T014 (#617): mesma classe do primeira_mensagem — o catálogo traduz o
   # erro do Ecto; montado à mão, os msgids que errors.po já tem eram descartados.
   defp motivo(changeset) do
@@ -324,17 +367,58 @@ defmodule TheBandWeb.AccountsLive.Index do
                 <span :if={user.role != "admin"} class="opacity-50">—</span>
               </td>
               <td>
-                <span :if={user.password_hash && !user.must_change_password}>definida</span>
-                <span :if={user.password_hash && user.must_change_password} class="text-warning">
-                  temporária pendente
+                <%!-- DESATIVADA VEM PRIMEIRO, e é o achado do Product Owner sobre o H3.
+                      Antes desta coluna existir, a conta desligada aparecia como
+                      `temporária pendente` — **igual à recém-criada** —, e o ato de
+                      rotina para a segunda (reiniciar a senha) reativava a primeira. O
+                      estado do desligamento era indistinguível do estado de quem acabou
+                      de entrar na organização. --%>
+                <span :if={not is_nil(user.disabled_at)} class="badge badge-error badge-sm">
+                  desativada
                 </span>
-                <span :if={!user.password_hash} class="opacity-60">
-                  sem senha — a entrada recusa
+                <span :if={is_nil(user.disabled_at)}>
+                  <span :if={user.password_hash && !user.must_change_password}>definida</span>
+                  <span :if={user.password_hash && user.must_change_password} class="text-warning">
+                    temporária pendente
+                  </span>
+                  <span :if={!user.password_hash} class="opacity-60">
+                    sem senha — a entrada recusa
+                  </span>
                 </span>
               </td>
               <td class="text-right">
-                <button phx-click="reset" phx-value-id={user.id} class="btn btn-ghost btn-xs">
+                <button
+                  :if={is_nil(user.disabled_at)}
+                  phx-click="reset"
+                  phx-value-id={user.id}
+                  class="btn btn-ghost btn-xs"
+                >
                   Reset password
+                </button>
+                <%!-- O ATO QUE FALTAVA — achado H3, parte B.
+                      A tela oferecia criar, reiniciar senha, associar e revogar elo, e
+                      **não oferecia desativar**. Quem desligava alguém usava o reinício de
+                      senha, que funciona e não diz que funciona.
+                      A própria conta não aparece: desativar-se a si é ficar de fora sem ter
+                      a quem pedir de volta, e num tenant com uma administração só isso
+                      tranca a organização inteira. O domínio também recusa — a tela
+                      esconder não é a defesa, é a cortesia. --%>
+                <button
+                  :if={is_nil(user.disabled_at) and user.id != @current_user.id}
+                  phx-click="desativar"
+                  phx-value-id={user.id}
+                  data-confirm="Desativar esta conta? Ela deixa de entrar, e a sessão aberta cai na ação seguinte. A linha continua no histórico."
+                  class="btn btn-ghost btn-xs text-error"
+                >
+                  Desativar
+                </button>
+                <button
+                  :if={not is_nil(user.disabled_at)}
+                  phx-click="reativar"
+                  phx-value-id={user.id}
+                  class="btn btn-ghost btn-xs"
+                >
+                  Reativar
                 </button>
               </td>
             </tr>

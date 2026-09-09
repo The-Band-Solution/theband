@@ -26,6 +26,9 @@ defmodule TheBandWeb.Live.Hooks do
          # suspensão valeria na navegação e não no LiveView já conectado — e é o
          # LiveView que a plataforma inteira usa.
          :ok <- organizacao_ativa(user),
+         # A conta desativada cai pelo mesmo caminho — H3, parte B. O plug cobre a
+         # requisição; esta hook cobre o socket, e a plataforma inteira é LiveView.
+         :ok <- conta_ativa(user),
          :ok <- dentro_da_validade(user) do
       case gate_de_senha(user, socket) do
         :ok ->
@@ -122,6 +125,9 @@ defmodule TheBandWeb.Live.Hooks do
   defp token_confere(_, _), do: :token_girado
 
   # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.
+  defp conta_ativa(%User{disabled_at: nil}), do: :ok
+  defp conta_ativa(_), do: :conta_desativada
+
   defp organizacao_ativa(%User{tenant: %{status: "active"}}), do: :ok
   defp organizacao_ativa(_), do: :organizacao_suspensa
 

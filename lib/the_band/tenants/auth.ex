@@ -79,6 +79,21 @@ defmodule TheBand.Tenants.Auth do
           Bcrypt.no_user_verify()
           {:error, :invalid_credentials}
 
+        # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
+        #
+        # Até esta coluna existir, o desligamento era **implícito**: quem administra
+        # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
+        # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
+        # reinício legítimo no histórico, e **para de funcionar no dia em que existir
+        # token**, porque o token não é a senha.
+        #
+        # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
+        # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
+        # está desativada.
+        not User.ativa?(user) ->
+          Bcrypt.no_user_verify()
+          {:error, :invalid_credentials}
+
         is_nil(user.password_hash) ->
           # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
           # público, nunca na resposta do formulário.
