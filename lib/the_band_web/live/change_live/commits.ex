@@ -11,6 +11,7 @@ defmodule TheBandWeb.ChangeLive.Commits do
 
   alias TheBand.Changes
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Tenants
   alias TheBandWeb.TabelaLive, as: Tabela
 
   @por_pagina 50
@@ -22,8 +23,43 @@ defmodule TheBandWeb.ChangeLive.Commits do
 
     case EO.fetch_person(tenant, id) do
       {:ok, pessoa} ->
-        {:ok,
-         assign(socket, page_title: "Commits · #{pessoa.name || pessoa.login}", pessoa: pessoa)}
+        # O VEREDITO, e ele não existia aqui — achado H2, 2026-09-09.
+        #
+        # Esta rota mostra os commits de uma PESSOA NOMEADA, e filtrava só por tenant:
+        # qualquer conta autenticada lia a identidade e o trabalho de qualquer outra.
+        # A decisão da pessoa mantenedora em 2026-09-09: *"quem tem o escopo de team,
+        # organization e admin podem ver; e a pessoa vê o seu"*.
+        #
+        # **Usa `pessoas_alcancadas/2`, e não `pode_ver/3`, e a razão é uma contradição
+        # que existe no código e não foi criada aqui**: `pode_ver_equipe/3` concede ao
+        # admin explicitamente (`{:ok, :admin}`), e `pode_ver/3` **não** — ele passa por
+        # `scopes/2`, e o texto que a tela da pessoa mostra ao recusar afirma que
+        # *"being an administrator manages the platform, it does not open panels"*.
+        #
+        # A decisão de hoje inclui admin. Aplicá-la por `pode_ver/3` exigiria mudar o
+        # regime da página da pessoa, que é decisão registrada da spec 023 (FR-012) e
+        # não estava em discussão. Então as duas rotas que não tinham veredito nenhum
+        # passam a seguir **uma regra só**, alinhada com a decisão de hoje, e a
+        # divergência entre os dois vereditos fica **declarada** — é o achado H6, e é da
+        # pessoa mantenedora resolver.
+        #
+        # A recusa devolve à lista com a mesma frase de "não encontrada", de propósito:
+        # distinguir *"existe e você não alcança"* de *"não existe"* diria a quem tenta
+        # que aquela pessoa está no tenant.
+        case alcanca?(tenant, socket.assigns.current_user, pessoa.id) do
+          true ->
+            {:ok,
+             assign(socket,
+               page_title: "Commits · #{pessoa.name || pessoa.login}",
+               pessoa: pessoa
+             )}
+
+          false ->
+            {:ok,
+             socket
+             |> put_flash(:error, dgettext("errors", "Person not found."))
+             |> push_navigate(to: ~p"/people")}
+        end
 
       # Id de outro tenant devolve "não encontrada", nunca "sem permissão".
       {:error, :not_found} ->
@@ -31,6 +67,15 @@ defmodule TheBandWeb.ChangeLive.Commits do
          socket
          |> put_flash(:error, dgettext("errors", "Person not found."))
          |> push_navigate(to: ~p"/people")}
+    end
+  end
+
+  # A MESMA regra do ranking de `/work/verifications/people`, e de propósito: duas
+  # rotas sobre pessoa nomeada respondendo diferente é como a assimetria do H2 nasceu.
+  defp alcanca?(tenant, user, person_id) do
+    case Tenants.pessoas_alcancadas(tenant, user) do
+      :todas -> true
+      {:algumas, ids} -> MapSet.member?(ids, person_id)
     end
   end
 

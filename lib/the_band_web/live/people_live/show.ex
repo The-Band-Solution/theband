@@ -614,10 +614,8 @@ defmodule TheBandWeb.PeopleLive.Show do
             title="This panel is not yours to see"
           >
             A panel is reachable by the person themselves, by a team or project scope that
-            includes them, by an organization scope, or by declared leadership — and none
-            of those covers you here. Scopes are <strong>declared or derived from
-            relations</strong>, never guessed; being an administrator manages the
-            platform, it does not open panels.
+            includes them, by an organization scope, by declared leadership, or by
+            administering this tenant — and none of those covers you here. Scopes are <strong>declared or derived from relations</strong>, never guessed.
           </.notice>
 
           <%!-- A concessão existe mas o alvo dela sumiu: remédio diferente dos outros

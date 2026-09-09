@@ -6,7 +6,8 @@ defmodule TheBand.Tenants.AccessTest do
   ## As asserções que carregam este arquivo (violação primeiro — L03)
 
   1. **nada de outro tenant**, em scopes e em pode_ver;
-  2. **admin puro não vê painel** (FR-022) — mas gerencia;
+  2. **admin do próprio tenant vê painel** — FR-022 **emendada** em 2026-09-09 (achado
+     H6); administração de outro tenant continua sem ver nada;
   3. **derivado fecha com o fato**: vínculo encerrado e ligação desfeita somem;
   4. **a liderança declarada (#369) continua valendo** — FR-018, a regressão;
   5. **concessão exige admin e alvo existente**; revogar é marca com autor;
@@ -179,9 +180,35 @@ defmodule TheBand.Tenants.AccessTest do
   end
 
   describe "pode_ver/3 — o veredito" do
-    test "admin puro não vê painel (FR-022), com motivo de remédio certo", ctx do
+    test "admin do PRÓPRIO tenant vê painel — FR-022 emendada em 2026-09-09", ctx do
       p = pessoa(ctx, "ana")
-      assert {:nao, :sem_elo_declarado} = Tenants.pode_ver(ctx.tenant, ctx.admin, p.id)
+
+      assert {:ok, :admin} = Tenants.pode_ver(ctx.tenant, ctx.admin, p.id), """
+      Este teste asseria o CONTRÁRIO até 2026-09-09: `{:nao, :sem_elo_declarado}`, pela
+      FR-022 da spec 045 — *"ser administrador MUST NOT abrir painel nenhum por si"*.
+
+      A FR foi **emendada** pela pessoa mantenedora, sobre o achado H6, e a razão não é
+      conveniência: a regra original **já não valia**. `pode_ver_equipe/3` concedia ao
+      admin explicitamente, e o booleano dela libera a quebra por pessoa nomeada na tela
+      da equipe — login, itens abertos e mediana de cada pessoa. Administração já lia
+      pessoa nomeada pela porta da equipe, enquanto esta função a recusava.
+
+      A plataforma afirmava um regime que não aplicava, o que é pior que qualquer dos
+      dois regimes: quem lia a recusa concluía que o dado estava protegido.
+      """
+    end
+
+    test "e administração de OUTRO tenant não vê nada — o que sobrou da FR-022", ctx do
+      p = pessoa(ctx, "ana")
+
+      outro = tenant_fixture()
+      admin_de_fora = user_fixture(outro)
+
+      assert {:nao, _motivo} = Tenants.pode_ver(ctx.tenant, admin_de_fora, p.id), """
+      A emenda concede ao admin **do próprio tenant**. Sem esta asserção, a cláusula
+      poderia ter sido escrita sem `user.tenant_id == tenant.id` e o isolamento por
+      tenant — princípio V — cairia junto com a FR-022.
+      """
     end
 
     test "piso: a própria pessoa; colega sem escopo: fora dos escopos", ctx do

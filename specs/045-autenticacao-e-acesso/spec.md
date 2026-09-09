@@ -281,10 +281,37 @@ e senha, sair, e entrar de novo com a senha nova.
 - **FR-021**: Escopo derivado MUST NOT ser concedido nem revogado à mão — a tela de
   gestão o exibe, nomeia a origem, e não oferece revogação; o caminho para fechá-lo é
   o fato (fim do vínculo ou da alocação) ou a revogação do elo.
-- **FR-022**: Ser administrador MUST NOT abrir painel nenhum por si — administrar é
-  mexer, ver é escopo. Quem administra e precisa ver recebe concessão como qualquer
-  conta. Isto revê a decisão de 2026-08-27 ("admin da plataforma vê tudo"), que
-  existia por falta do vocabulário que organization agora dá.
+- **FR-022**: ~~Ser administrador MUST NOT abrir painel nenhum por si~~ — **EMENDADA em
+  2026-09-09**. Ver a emenda abaixo.
+
+  O texto original: *"administrar é mexer, ver é escopo. Quem administra e precisa ver
+  recebe concessão como qualquer conta. Isto revê a decisão de 2026-08-27 ('admin da
+  plataforma vê tudo'), que existia por falta do vocabulário que organization agora
+  dá."*
+
+- **FR-022 (emenda de 2026-09-09)**: Ser administrador **do próprio tenant** MUST abrir
+  painel de pessoa. Decisão da pessoa mantenedora, sobre o achado **H6** da avaliação de
+  segurança do mesmo dia.
+
+  **A razão não é conveniência: é que a regra original já não valia, e a plataforma
+  afirmava que valia.** `Access.pode_ver_equipe/3` concedia ao admin explicitamente, e o
+  booleano que ela produz libera a **quebra por pessoa nomeada** na tela da equipe —
+  login, itens abertos e mediana individual de cada pessoa. Administração já lia pessoa
+  nomeada pela porta da equipe, enquanto a tela da pessoa a recusava com a frase *"being
+  an administrator manages the platform, it does not open panels"*.
+
+  A frase era falsa, e não por um furo: o mesmo dado saía pela porta ao lado, por
+  decisão explícita do outro veredito. **Uma plataforma que afirma um regime que não
+  aplica é pior que qualquer dos dois regimes** — quem lê a recusa conclui que o dado
+  está protegido, e ele não está.
+
+  As duas saídas foram medidas e apresentadas: conceder ao admin em `pode_ver/3` (emendar
+  esta FR), ou retirar a cláusula de `pode_ver_equipe/3` — o que faria administração
+  perder a quebra por pessoa que hoje usa. A pessoa mantenedora escolheu a primeira.
+
+  **O que continua valendo da FR-022 original**: administrar outro tenant não abre nada
+  (`user.tenant_id == tenant.id` é parte da cláusula), e a **FR-023** segue intacta — ver
+  não exige administrar, e escopo continua sendo o caminho de quem não administra.
 - **FR-023**: As telas operacionais — Syncs, Tools, AI — MUST exigir marca de
   administrador ou concessão organization vigente: administrador alcança tudo no
   tenant; organization alcança o que pertence à organização-alvo. Conta fora dessas
