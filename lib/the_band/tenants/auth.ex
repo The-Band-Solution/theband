@@ -27,8 +27,8 @@ defmodule TheBand.Tenants.Auth do
   import Ecto.Query
 
   alias TheBand.Ontology.SEON.EO.Schemas.Person
-  alias TheBand.Tenants.AccessEvents
   alias TheBand.Repo
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 

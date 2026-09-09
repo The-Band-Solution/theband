@@ -12,6 +12,7 @@ defmodule TheBandWeb.Live.Hooks do
   import Phoenix.LiveView
 
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
 
   # Sete dias de inatividade encerram a sessão (assumption da spec 045).
@@ -32,6 +33,13 @@ defmodule TheBandWeb.Live.Hooks do
          :ok <- dentro_da_validade(user) do
       case gate_de_senha(user, socket) do
         :ok ->
+          # OS CAMPOS DE OBSERVABILIDADE no socket — achado H4.
+          #
+          # O plug cobre a requisição HTTP; esta linha cobre o processo do LiveView, que é
+          # onde a plataforma passa a maior parte do tempo. Sem ela, toda linha de log
+          # emitida durante uma sessão de LiveView sairia sem dizer de quem era.
+          Logger.metadata(user_id: user.id, tenant_id: user.tenant_id)
+
           {:cont,
            socket
            |> assign(:current_user, user)
@@ -54,7 +62,17 @@ defmodule TheBandWeb.Live.Hooks do
       # Os quatro caem no mesmo lugar de propósito: a tela não diz qual dos quatro
       # aconteceu, e quem foi devolvido à entrada não recebe informação sobre o estado
       # da conta nem da organização.
-      _ -> {:halt, redirect(socket, to: "/sign-in")}
+      # O MOTIVO REGISTRADO — achado H4. Os quatro caem no mesmo destino na tela, de
+      # propósito; no log se distinguem, porque é onde a distinção serve a quem
+      # reconstrói um incidente.
+      motivo ->
+        AccessEvents.sessao_derrubada(
+          session["user_id"],
+          nil,
+          if(is_atom(motivo), do: motivo, else: :sem_sessao)
+        )
+
+        {:halt, redirect(socket, to: "/sign-in")}
     end
   end
 

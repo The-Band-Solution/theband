@@ -131,15 +131,33 @@ defmodule TheBand.Tenants.AccessEvents do
     )
   end
 
-  # `warning` para recusa e para ato administrativo; `info` para o resto.
+  # `warning` para recusa, ato administrativo, espera acionada — e para **entrada aceita
+  # que apagou tentativa falha**. `info` para o resto.
   #
-  # Não é estética: em produção o nível é `:info` (`config/prod.exs`), e um incidente se
-  # investiga filtrando. Recusa e ato administrativo são o que se filtra primeiro.
+  # Não é estética: um incidente se investiga **filtrando**, e o que se filtra primeiro é
+  # recusa, ato administrativo e sucesso que apagou rastro.
+  #
+  # A última é a que dá severidade ao achado H4: um sucesso com `falhas_apagadas=0` é o
+  # login de todos os dias; com `falhas_apagadas=17` é uma campanha que deu certo. Deixar
+  # os dois no mesmo nível faria a linha que importa afogar-se nas que não importam.
+  #
+  # **E há uma razão de teste, que a L69 explica**: no ambiente de teste o nível é
+  # `:warning` (`config/test.exs`), e um evento em `:info` **não é observável por teste
+  # nenhum**. A primeira versão deste módulo punha a entrada aceita em `:info`, e o teste
+  # que assere `falhas_apagadas` reprovava com o log vazio — não por o registro faltar, mas
+  # por o nível o esconder. Elevar o que importa é o que o torna verificável.
   defp registrar(evento, campos) do
     nivel =
-      if evento in ["entrada recusada", "painel recusado", "ato administrativo"],
-        do: :warning,
-        else: :info
+      cond do
+        evento in ["entrada recusada", "painel recusado", "ato administrativo", "espera acionada"] ->
+          :warning
+
+        evento == "entrada aceita" and Keyword.get(campos, :falhas_apagadas, 0) > 0 ->
+          :warning
+
+        true ->
+          :info
+      end
 
     Logger.log(nivel, fn ->
       "acesso: #{evento} · " <>

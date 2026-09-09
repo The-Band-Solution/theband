@@ -65,9 +65,19 @@ config :tailwind,
   ]
 
 # Configure Elixir's Logger
+# OS CAMPOS DE OBSERVABILIDADE — `AGENTS.md` §15, achado H4 de 2026-09-09.
+#
+# Era só `request_id`, e `Logger.metadata` não era chamado em lugar nenhum de `lib/`.
+# Sem `tenant_id` e `user_id`, o log do Phoenix registrava método, caminho e status — e
+# **nenhuma linha dizia de quem era a requisição**. Reconstruir um incidente de acesso era
+# impossível, e é o que dava severidade ao achado.
+#
+# Um campo listado aqui e ausente na linha simplesmente não aparece: pôr os três não
+# obriga ninguém a preenchê-los, e quem os preenche é `CurrentScope` e a hook do LiveView,
+# uma vez por requisição.
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [:request_id, :tenant_id, :user_id]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
