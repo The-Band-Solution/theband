@@ -329,10 +329,12 @@ presente mudaram.
 7. **Given** a issue marcada, **When** alguém a procura no catálogo `/work/issues`, **Then**
    ela **continua lá**, marcada. Sair da medida não é sair do registro.
 
-> **Um subconjunto desta história depende da pergunta aberta 1** — se a ausência é retroativa
-> nas séries de período passado (burn, *Promised × Delivered*, `closed_by_month`, `lead_time`).
-> Os sete cenários acima são todos sobre **trabalho presente** e não dependem dela. Os
-> requisitos que dependem estão marcados **PENDENTE** em *Requirements*.
+> **O período passado foi decidido em 2026-09-09**, e a FR-018 deixou de estar pendente: a
+> série antiga **mantém** o que foi observado — o burn de agosto continua mostrando os 50 que
+> mostrava — e **diz quantos dos seus itens estão hoje ausentes da origem**. Só o número do
+> presente cai.
+>
+> Os sete cenários acima são todos sobre **trabalho presente**, e nunca dependeram dela.
 
 ---
 
@@ -513,10 +515,27 @@ hoje é a tela silenciar, e silêncio sobre ator é lido como *"não teve ator"*
 - **FR-017**: Nenhuma medida nova e nenhuma necessidade de informação nova MUST nascer desta
   feature. A contagem de issues ausentes exibida na tela é **número de tela**, como
   `memberships_pending_role` (055, FR-018), e MUST NOT ser apresentada como medida.
-- **FR-018** *(**PENDENTE** da pergunta aberta 1)*: o tratamento da issue marcada nas séries
-  de **período passado** — `state_changes_by_period`, `por_evento/6`, `fechadas_entre/4`,
-  `closed_by_month/2`, `lead_time/2`, e a linha de base `open_at/4` num instante passado.
-  Este requisito MUST NOT ser implementado antes da decisão.
+- **FR-018**: A issue marcada MUST NOT ser removida das séries de **período passado** —
+  `state_changes_by_period`, `por_evento/6`, `fechadas_entre/4`, `closed_by_month/2`,
+  `lead_time/2` e a linha de base `open_at/4` num instante passado mantêm o que foi
+  observado naquele período.
+
+  **E a série passada MUST dizer quantos dos seus itens estão hoje ausentes da origem.**
+  Sem essa ressalva, manter o número vira silêncio sobre um valor que se sabe contaminado —
+  e quem compara o passado com o presente não consegue reconciliar a diferença.
+
+  **Decisão da pessoa mantenedora, 2026-09-09** (leitura B da pergunta aberta 1, agora
+  fechada). A razão, com o caso concreto: em agosto o burn mostrava 50 itens abertos, e um
+  deles era a issue apagada em setembro. O gráfico de agosto continua mostrando **50**,
+  porque naquele dia ela **estava** no quadro e as pessoas a viam — a série registra o que
+  era verdade então. Só o número de **hoje** cai para 49.
+
+  Recalcular o passado faria gráficos já vistos mudarem sozinhos, e dois relatórios do mesmo
+  mês discordarem sem nada explicando. É coerente com a **055 FR-005** — *"registrar a saída
+  MUST NOT alterar nenhum número de período anterior"* — e com *"nada é apagado"*.
+
+  **As duas perguntas são diferentes**: *"o que estava aberto naquele momento"* e *"o que
+  está aberto agora"*. A ausência responde só a segunda.
 
 ### O ato, e o que dele se pode dizer
 
@@ -633,17 +652,20 @@ hoje é a tela silenciar, e silêncio sobre ator é lido como *"não teve ator"*
 
 ## Perguntas abertas — para a pessoa mantenedora
 
-### 1. A ausência é retroativa nas séries de período passado? **BLOQUEIA a FR-018**
+### 1. ~~A ausência é retroativa nas séries de período passado?~~ **DECIDIDA em 2026-09-09**
 
-É a decisão que dá forma à feature, e as duas leituras aceitam e recusam o mesmo entregável —
-por isso está aqui em vez de decidida.
+**Leitura B, com a ressalva na tela** — a recomendação deste papel, escolhida pela pessoa
+mantenedora. Está na **FR-018**, que deixou de estar pendente.
+
+O registro das duas leituras fica abaixo, porque a decisão se lê melhor com a alternativa
+que ela recusou ao lado.
 
 | Leitura | O que faz | Coerente com |
 |---|---|---|
 | **A — retroativa** | a issue sai de **toda** série, inclusive de períodos passados. Gráficos antigos mudam | *"a origem diz que aquilo não existe"* — e o caso real: *"não tinha sentido nenhum"* |
 | **B — da marca para a frente** | *Promised × Delivered*, `closed_by_month` e `lead_time` **mantêm** o que foi observado no período; só o trabalho presente perde a issue | 055 FR-005 — *"registrar a saída MUST NOT alterar nenhum número de período anterior"* — e *"nada é apagado"* |
 
-**Recomendação deste papel: B, com uma ressalva na tela.** As duas perguntas são diferentes
+**Foi esta a escolhida: B, com uma ressalva na tela.** As duas perguntas são diferentes
 — *"o que estava aberto naquele momento"* e *"o que está aberto agora"* —, e a segunda é a
 única que a ausência responde. Mas a série passada MUST então dizer **quantos dos seus itens
 estão hoje ausentes da origem**; sem isso, B vira silêncio sobre um número que se sabe
