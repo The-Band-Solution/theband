@@ -200,17 +200,20 @@ defmodule TheBandWeb.TeamsLive.Show do
       mae = socket.assigns.team
       ator = socket.assigns.current_user
 
-      with {:ok, filha} <-
-             EO.declare_structural_team(tenant, mae.organization_id, String.trim(nome), ator.id),
-           {:ok, _} <- EO.compose_teams(tenant, filha.id, mae.id, ator.id) do
-        socket
-        |> put_flash(
-          :info,
-          dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
-        )
-        |> recarregar()
-      else
-        {:error, motivo} when is_binary(motivo) -> put_flash(socket, :error, motivo)
+      # UM ato, UMA transação. A versão anterior fazia as duas escritas em sequência: se a
+      # composição falhasse, a equipe ficava **criada e solta** na organização, e a mensagem
+      # de erro falava do segundo passo sem dizer que o primeiro ficou feito.
+      case EO.declare_subteam(tenant, mae, nome, ator.id) do
+        {:ok, filha} ->
+          socket
+          |> put_flash(
+            :info,
+            dgettext("sistema", "Team %{nome} declared inside this one.", nome: filha.name)
+          )
+          |> recarregar()
+
+        {:error, motivo} when is_binary(motivo) ->
+          put_flash(socket, :error, motivo)
       end
     end)
   end

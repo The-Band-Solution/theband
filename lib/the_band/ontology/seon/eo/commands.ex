@@ -311,6 +311,45 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
   end
 
   @doc """
+  Declara uma equipe **dentro** de outra, numa transação — feature 055.
+
+  ## O defeito que esta função existe para impedir
+
+  A tela fazia as duas escritas em sequência, num `with` sem transação:
+  `declare_structural_team/4` e depois `compose_teams/4`. Se a segunda falhasse — e o
+  `Repo.insert` da composição pode falhar por constraint —, **a equipe ficava criada e
+  solta na organização**, sem composição nenhuma. E a mensagem de erro falava do segundo
+  passo sem dizer que o primeiro ficou feito, o que é a pior parte: quem lê conclui que
+  nada aconteceu.
+
+  Aqui as duas acontecem juntas ou nenhuma acontece, e a invariante mora no domínio em vez
+  de depender de cada chamador se lembrar dela.
+
+  ## A subequipe HERDA a organização da mãe
+
+  E isso não é conveniência: quem tem escopo nesta equipe declara **dentro** dela, e não em
+  qualquer lugar da organização. Receber um `organization_id` aqui faria a autoridade subir.
+
+  ## Devolve a equipe filha
+
+  E não a composição: quem chama acabou de pedir *"declare uma equipe aqui dentro"*, e o
+  nome dela é o que a tela precisa para dizer o que aconteceu.
+  """
+  @spec declare_subteam(Tenant.t(), Team.t(), String.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, String.t()}
+  def declare_subteam(%Tenant{} = tenant, %Team{} = mae, name, actor_id) do
+    Repo.transaction(fn ->
+      with {:ok, filha} <-
+             declare_structural_team(tenant, mae.organization_id, String.trim(name), actor_id),
+           {:ok, _composicao} <- compose_teams(tenant, filha.id, mae.id, actor_id) do
+        filha
+      else
+        {:error, motivo} -> Repo.rollback(motivo)
+      end
+    end)
+  end
+
+  @doc """
   Encerra a composição — feature 055, FR-008.
 
   **A equipe não é tocada.** O período é da relação: quem deixou de ser parte de

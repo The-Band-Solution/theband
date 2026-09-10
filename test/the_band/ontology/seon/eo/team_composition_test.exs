@@ -68,6 +68,54 @@ defmodule TheBand.Ontology.SEON.EO.TeamCompositionTest do
     end
   end
 
+  describe "declarar uma equipe DENTRO de outra é UM ato, numa transação" do
+    test "a filha nasce composta na mãe, e herda a organização dela" do
+      c = cenario()
+
+      {:ok, filha} = EO.declare_subteam(c.tenant, c.e["A"], "  Squad Azul  ", c.autor.id)
+
+      assert filha.name == "Squad Azul", "o nome é aparado — espaço na ponta não é nome"
+
+      assert filha.organization_id == c.e["A"].organization_id, """
+      A subequipe HERDA a organização da mãe, e não é conveniência: quem tem escopo nesta
+      equipe declara DENTRO dela. Um seletor de organização aqui faria a autoridade subir.
+      """
+
+      assert Enum.any?(EO.list_teams(c.tenant, organization_id: c.org.id), &(&1.id == filha.id)),
+             "a guarda do cenário: a filha existe de facto"
+
+      partes = EO.team_parts(c.tenant, c.e["A"].id)
+      assert Enum.any?(partes, &(&1.team_id == filha.id)), "e está composta na mãe"
+    end
+
+    test "se a composição falha, a equipe NÃO fica criada e solta" do
+      c = cenario()
+
+      # A mãe que não existe no banco — o caso real é o formulário aberto sobre uma equipe
+      # que saiu no meio. `organization_id` é válido, então o PRIMEIRO passo passa; o
+      # segundo bate na chave estrangeira `whole_team_id`.
+      mae_fantasma = %{c.e["A"] | id: Ecto.UUID.generate()}
+
+      antes = length(EO.list_teams(c.tenant, organization_id: c.org.id))
+
+      assert_raise Ecto.ConstraintError, fn ->
+        EO.declare_subteam(c.tenant, mae_fantasma, "Squad Órfã", c.autor.id)
+      end
+
+      depois = EO.list_teams(c.tenant, organization_id: c.org.id)
+
+      assert length(depois) == antes, """
+      A INVARIANTE. Sem a transação, `declare_structural_team/4` já tinha gravado quando
+      `compose_teams/4` falhou, e a equipe ficava CRIADA E SOLTA na organização — sem
+      composição, e com a mensagem de erro falando do segundo passo sem dizer que o
+      primeiro ficou feito. Quem lê conclui que nada aconteceu.
+      """
+
+      refute Enum.any?(depois, &(&1.name == "Squad Órfã")),
+             "e a órfã não está lá nem com outro nome de busca"
+    end
+  end
+
   describe "compor e descompor (FR-008)" do
     test "a composição vale, com autor e início" do
       %{tenant: t, autor: a, e: e} = cenario()
