@@ -15,15 +15,15 @@
 *{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
 ::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
 h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
-h1{font-size:1.85rem}h2{font-size:1.1rem}h3{font-size:.92rem}h4{font-size:.85rem}
+h1{font-size:1.875rem}h2{font-size:1.125rem}h3{font-size:0.875rem}h4{font-size:0.875rem}
 .faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
-.mig{font-family:var(--grot);font-size:.8rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
-.rot{font-family:var(--mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
-.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:.95rem}
-p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
+.mig{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:1rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:0.875rem}
 .ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
-.marca{font-family:var(--grot);font-size:.7rem;padding:.05rem .45rem;border-radius:.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
-.marca .am{width:.6rem;height:.6rem;border-radius:2px;border:1px solid currentColor}
+.marca{font-family:var(--grot);font-size:0.6875rem;padding:.05rem .45rem;border-radius:0.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.marca .am{width:.6rem;height:.6rem;border-radius:0.125rem;border:1px solid currentColor}
 .dec{color:var(--info)}.dec .am{background:currentColor}
 .obs{color:var(--verdete)}.obs .am{background:currentColor}
 .der{color:var(--amber)}.der .am{background-image:var(--hatch)}
@@ -34,109 +34,110 @@ p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
 .sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
 .sec-cab h2{flex:1 1 auto}
 table{width:100%;border-collapse:collapse;margin-top:.8rem}
-th{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+th{font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
 th:first-child,th.esq{text-align:left}
-td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:.93rem}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:0.875rem}
 td:first-child,td.esq{text-align:left} tbody tr:hover{background:var(--verdete-soft)}
-.pessoa{font-family:var(--grot);font-weight:650;font-size:.88rem}
-.login{font-family:var(--mono);font-size:.72rem;color:var(--tinta-2);display:block}
-.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:1.15rem;margin-top:1rem}
-.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:.5rem;background:var(--papel)}
-.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:.89rem;margin:0}
-.vazio{border:1.5px dashed var(--linha);border-radius:.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
-.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:.25rem;width:max-content}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.login{font-family:var(--mono);font-size:0.75rem;color:var(--tinta-2);display:block}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:1.15rem;margin-top:1rem}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:0.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:0.875rem;margin:0}
+.vazio{border:1.5px dashed var(--linha);border-radius:0.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:0.25rem;width:max-content}
 .abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);margin-top:1.2rem}
-.aba{font-family:var(--grot);font-size:.85rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
+.aba{font-family:var(--grot);font-size:0.875rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
 .aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
-.btn{font-family:var(--grot);font-size:.74rem;font-weight:650;padding:.25rem .6rem;border-radius:.3rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn{font-family:var(--grot);font-size:0.75rem;font-weight:650;padding:.25rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
 .btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
 .btn.q{color:var(--tinta-2)}
-.chip{font-family:var(--grot);font-size:.7rem;padding:.02rem .45rem;border-radius:.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
+.chip{font-family:var(--grot);font-size:0.6875rem;padding:.02rem .45rem;border-radius:0.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
 .chip.s3{border-color:var(--s3);color:var(--s3)}
-.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:.78rem;flex-wrap:wrap}
-.ex-mark{font-family:var(--mono);font-size:.62rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
-.re-mark{font-family:var(--mono);font-size:.62rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
+.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:0.75rem;flex-wrap:wrap}
+.ex-mark{font-family:var(--mono);font-size:0.625rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
+.re-mark{font-family:var(--mono);font-size:0.625rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
 .scroll{overflow-x:auto}
-.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:.5rem;background:var(--verdete-soft);font-size:.86rem}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft);font-size:0.875rem}
 .nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
-kbd{font-family:var(--mono);font-size:.72rem;border:1px solid var(--linha);border-radius:.2rem;padding:0 .3rem;background:var(--papel-2)}
-.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:.35rem;overflow:hidden;font-family:var(--grot);font-size:.76rem}
+kbd{font-family:var(--mono);font-size:0.75rem;border:1px solid var(--linha);border-radius:0.25rem;padding:0 .3rem;background:var(--papel-2)}
+.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:0.25rem;overflow:hidden;font-family:var(--grot);font-size:0.75rem}
 .seg span{padding:.2rem .7rem;color:var(--tinta-2);border-right:1.5px solid var(--linha)}.seg span:last-child{border-right:0}
 .seg span.on{background:var(--verdete);color:var(--papel);font-weight:650}
 svg.g{width:100%;height:auto;display:block;overflow:visible}
-.ex{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:middle}
-.ey{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:end}
-.rd{font-family:var(--mono);font-size:9px;text-anchor:middle;font-variant-numeric:tabular-nums;fill:var(--tinta)}
-.leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
-.leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
+.ex{font-family:var(--mono);font-size:0.625rem;fill:var(--tinta-2);text-anchor:middle}
+.ey{font-family:var(--mono);font-size:0.625rem;fill:var(--tinta-2);text-anchor:end}
+.rd{font-family:var(--mono);font-size:0.625rem;text-anchor:middle;font-variant-numeric:tabular-nums;fill:var(--tinta)}
+.leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.4rem}
+.leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:0.125rem;margin-right:.3rem;vertical-align:middle}
 .leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
 .cab-g{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
-.cc{font-family:var(--mono);font-size:.65rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
+.cc{font-family:var(--mono);font-size:0.625rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:0.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
 .cc-epic{background:var(--tinta);color:var(--papel);font-weight:700}
 .cc-us{background:var(--tinta-soft);color:var(--tinta);font-weight:700}
 .cc-task{background:var(--tinta-soft);color:var(--tinta)}
 .cc-bug{background:var(--clay-soft);color:var(--clay);font-weight:700}
 .cc-nil{border-color:var(--linha);border-style:dashed;color:var(--tinta-2)}
-.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
+.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:0.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
 .mix b{font-weight:400;margin-left:-.28rem}.mix .tot{color:var(--tinta-2);margin-right:.2rem}
 
 /* ── new for this screen ───────────────────────────────────────── */
 .antes{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(23rem,1fr));margin-top:1.1rem}
-.antes .bl{border:1.5px solid var(--linha);border-left-width:4px;border-radius:.4rem;padding:.85rem 1rem}
-.antes .bl.grave{border-left-color:var(--clay);background:var(--clay-soft)}
-.antes .bl.lim{border-left-color:var(--amber);background:var(--amber-soft)}
-.antes h3{margin-bottom:.25rem}.antes p{font-size:.85rem;max-width:none}
-.conta{margin-top:1.1rem;font-family:var(--grot);font-size:.9rem;border-left:3px solid var(--amber);padding:.35rem .8rem}
-.conta b{font-weight:650}.conta span{color:var(--tinta-2);font-size:.84rem;display:block}
-.ordem{font-family:var(--grot);font-size:.74rem;color:var(--tinta-2);margin-top:.35rem}
+.antes .bl{border:1.5px solid var(--linha);border-radius:0.5rem;padding:.85rem 1rem}
+.antes .bl.grave{border-color:var(--clay);background:var(--clay-soft)}
+.antes .bl.lim{border-color:var(--amber);background:var(--amber-soft)}
+.antes h3{margin-bottom:.25rem}.antes p{font-size:0.875rem;max-width:none}
+.conta{margin-top:1.1rem;font-family:var(--grot);font-size:0.875rem;padding:.35rem 0}
+    .conta::before{content:"";display:inline-block;width:.6rem;height:.6rem;margin-right:.4rem;border-radius:0.125rem;background:var(--amber);vertical-align:middle}
+.conta b{font-weight:650}.conta span{color:var(--tinta-2);font-size:0.8125rem;display:block}
+.ordem{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.35rem}
 .tp{table-layout:auto}
 .tp td{padding:.6rem .5rem}
 .tp th:first-child,.tp td:first-child{min-width:15rem}
 .tp th:nth-child(2),.tp td:nth-child(2){min-width:9rem}
 .tp th:nth-child(3),.tp td:nth-child(3),.tp th:nth-child(4),.tp td:nth-child(4){min-width:6rem}
 .tp th:nth-child(5),.tp td:nth-child(5){min-width:5.5rem}
-.tp td.agora .n2{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums;line-height:1.1}
-.tp td.agora .dir{display:block;font-family:var(--grot);font-size:.7rem;color:var(--tinta-2);margin-top:.1rem}
-.tp td.agora .nc{display:block;font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);margin-top:.15rem}
-.aus-cel{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);border-bottom:1.5px dashed var(--tinta-2);padding-bottom:.05rem;white-space:nowrap}
+.tp td.agora .n2{font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.tp td.agora .dir{display:block;font-family:var(--grot);font-size:0.6875rem;color:var(--tinta-2);margin-top:.1rem}
+.tp td.agora .nc{display:block;font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);margin-top:.15rem}
+.aus-cel{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);border-bottom:1.5px dashed var(--tinta-2);padding-bottom:.05rem;white-space:nowrap}
 td.prev{background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(--tinta-soft) 6px 7px);min-width:12.5rem}
-.prev-rec{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);display:block}
-.prev-ok{font-family:var(--mono);font-size:.8rem;color:var(--amber);font-variant-numeric:tabular-nums;display:block}
-.piso{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;font-variant-numeric:tabular-nums}
+.prev-rec{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block}
+.prev-ok{font-family:var(--mono);font-size:0.8125rem;color:var(--amber);font-variant-numeric:tabular-nums;display:block}
+.piso{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);display:block;margin-top:.12rem;font-variant-numeric:tabular-nums}
 .piso .curto{color:var(--amber);border-bottom:1.5px dashed var(--amber)}
-.pes-sub{font-family:var(--grot);font-size:.72rem;color:var(--tinta-2);display:block;margin-top:.12rem}
-.cob{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
+.pes-sub{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block;margin-top:.12rem}
+.cob{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
 tr.aberta>td{background:var(--verdete-soft)}
 tr.aberta>td:first-child{box-shadow:inset 3px 0 0 var(--verdete)}
 tr.saiu-l .pessoa{color:var(--tinta-2)}
 tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
-.bloco{border-left:4px solid var(--verdete);background:var(--papel-2);padding:1rem 1.1rem}
+.bloco{border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel-2);padding:1rem 1.1rem}
 .bloco-cab{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
 .defs{margin-top:.7rem;display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
-.defs div{font-size:.82rem;border-left:3px solid var(--linha);padding:.1rem .7rem}
+.defs div{font-size:0.8125rem;border-left:1px solid var(--linha);padding:.1rem .7rem}
 .defs div.lim{border-left-color:var(--amber)}
 .grade-4{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));margin-top:.9rem}
-.g-cart{background:var(--papel);border:1.5px solid var(--linha);border-radius:.45rem;padding:.75rem .85rem}
+.g-cart{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.75rem .85rem}
 .g-cart h4{display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap}
-.g-cart h4 .ord{font-family:var(--mono);font-size:.7rem;color:var(--tinta-2);font-weight:400}
-.g-cart .def{font-size:.78rem;color:var(--tinta-2);margin-top:.15rem}
+.g-cart h4 .ord{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);font-weight:400}
+.g-cart .def{font-size:0.75rem;color:var(--tinta-2);margin-top:.15rem}
 .g-cart.der-c{border-color:var(--amber);border-style:dashed}
-.recusa-c{border:1.5px dashed var(--linha);border-radius:.4rem;padding:.7rem .8rem;margin-top:.5rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
-.recusa-c .t{font-family:var(--grot);font-size:.86rem;font-weight:650;color:var(--tinta-2)}
-.recusa-c p{font-size:.8rem;margin-top:.3rem}
+.recusa-c{border:1.5px dashed var(--linha);border-radius:0.5rem;padding:.7rem .8rem;margin-top:.5rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.recusa-c .t{font-family:var(--grot);font-size:0.875rem;font-weight:650;color:var(--tinta-2)}
+.recusa-c p{font-size:0.8125rem;margin-top:.3rem}
 .par-linha{margin-top:1.1rem}
 .par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.4rem}
 .par-cab{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
-.par-cab .h{font-family:var(--grot);font-weight:650;font-size:.88rem;border-bottom:3px solid var(--verdete);padding-bottom:.25rem}
+.par-cab .h{font-family:var(--grot);font-weight:650;font-size:0.875rem;border-bottom:3px solid var(--verdete);padding-bottom:.25rem}
 .par-cab .h.b{border-bottom-color:var(--s3)}
-.escala{font-family:var(--grot);font-size:.76rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:.3rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
+.escala{font-family:var(--grot);font-size:0.75rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:0.25rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
 .tres{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:1rem}
-.tres .a{border:1.5px solid var(--linha);border-top-width:4px;border-radius:.45rem;padding:.8rem .9rem;background:var(--papel-2)}
-.tres .a.a1{border-top-color:var(--tinta-2)}.tres .a.a2{border-top-color:var(--amber)}.tres .a.a3{border-top-style:dashed;border-top-color:var(--linha)}
-.tres .a h4{margin-bottom:.3rem}.tres .a p{font-size:.82rem}
-.tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:.35rem}
-.dens{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);margin-top:.5rem}
-ol.dec-l{margin:0;padding-left:1.2rem;font-size:.92rem}ol.dec-l li{margin-top:.35rem}
+.tres .a{border:1.5px solid var(--linha);border-radius:0.5rem;padding:.8rem .9rem;background:var(--papel-2)}
+.tres .a.a1{border-color:var(--tinta-2)}.tres .a.a2{border-color:var(--amber)}.tres .a.a3{border-style:dashed}
+.tres .a h4{margin-bottom:.3rem}.tres .a p{font-size:0.8125rem}
+.tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:0.25rem}
+.dens{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.5rem}
+ol.dec-l{margin:0;padding-left:1.2rem;font-size:0.875rem}ol.dec-l li{margin-top:.35rem}
 </style>
 <div class="faixa">
 <h1>Flow per person</h1>
@@ -222,9 +223,9 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
       <tr class="bloco-l"><td colspan="7"><div class="bloco">
         <div class="bloco-cab">
           <h3>Lia Moraes · the four charts <span class="rot">· 14 Jul → 8 Sep · by week</span></h3>
-          <a href="#" style="font-family:var(--grot);font-size:.78rem;color:var(--verdete-deep)">open her full page → <kbd>/people/liamoraes</kbd></a>
+          <a href="#" style="font-family:var(--grot);font-size:0.75rem;color:var(--verdete-deep)">open her full page → <kbd>/people/liamoraes</kbd></a>
         </div>
-        <p class="sub" style="font-size:.82rem;margin-top:.45rem">Read in this order, and the numbers are the order: <strong>1</strong> what is there, <strong>2</strong> what moved in and out, <strong>3</strong> at what pace, <strong>4</strong> what that pace implies. Three of the four are <span class="marca obs" style="font-size:.66rem"><span class="am"></span>observed</span>; the fourth is <span class="marca der" style="font-size:.66rem"><span class="am"></span>derived</span> and its card is dashed, so a simulation is never read as a count.</p>
+        <p class="sub" style="font-size:0.8125rem;margin-top:.45rem">Read in this order, and the numbers are the order: <strong>1</strong> what is there, <strong>2</strong> what moved in and out, <strong>3</strong> at what pace, <strong>4</strong> what that pace implies. Three of the four are <span class="marca obs" style="font-size:0.6875rem"><span class="am"></span>observed</span>; the fourth is <span class="marca der" style="font-size:0.6875rem"><span class="am"></span>derived</span> and its card is dashed, so a simulation is never read as a count.</p>
         <div class="defs">
           <div><strong>promised</strong> = opened in the period · <strong>delivered</strong> = closed in the period. There is <strong>no committed scope</strong> in the platform: this is not a sprint commitment against a sprint result. <em>Closed</em> is the issue being closed at the source — an act of the tool, not a declared end criterion, and the count ignores the size of the item: splitting finer raises it without more work done.</div>
           <div class="lim"><strong>working in progress</strong> here = items assigned to her and still open at each sample. Not <span class="login" style="display:inline">flow.wip.count</span>, whose formula needs an end criterion that does not exist (issue <span class="login" style="display:inline">#506</span>). No WIP limit is drawn: none is declared.</div>
@@ -232,7 +233,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
         <div class="mix">
           <span class="tot">114 open, by concept</span><span class="cc cc-task">TASK</span><b>71</b><span class="cc cc-us">US</span><b>28</b><span class="cc cc-bug">BUG</span><b>8</b><span class="cc cc-epic">EPIC</span><b>7</b> <span class="ex-mark">example split</span>
         </div>
-        <p class="sub" style="font-size:.78rem">The composition of the number, not the list of items — the list is on the Dashboard, and this tab does not repeat it (FR-088).</p>
+        <p class="sub" style="font-size:0.75rem">The composition of the number, not the list of items — the list is on the Dashboard, and this tab does not repeat it (FR-088).</p>
 
         <div class="grade-4">
           <!-- 1 · WORKING IN PROGRESS -->
@@ -294,7 +295,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
             <p class="def">Derived, not observed: 10 000 simulated runs over her own weekly closing history. Weekly whatever the grain switch says, because its samples are weeks.</p>
             <div class="recusa-c">
               <span class="t">No forecast — below the floor of the method.</span>
-              <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>0</b> of <b>10</b> items — short by 10</span></div>
+              <div class="piso" style="font-size:0.75rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>0</b> of <b>10</b> items — short by 10</span></div>
               <p>The floor is the method's: without at least ten closed items the sampled history is not a history, and a distribution drawn from nothing would be a shape with no content. <strong>This is a gap in the observed record, never a statement about the person.</strong></p>
               <p>Her squad's history is <strong>not borrowed</strong> to fill it (FR-101): without this person's own closings there is no forecast about this person's work, and lending the squad's pace would fabricate a number about someone.</p>
               <p>What it would have answered, had the floor been met, is a question about <strong>the work</strong>: when what is in her hands runs out, at the pace observed for it. Never a capacity, a commitment, or a date.</p>
@@ -328,7 +329,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
   <div class="aviso"><span class="rot">what this table says about this squad, and what it does not</span>
   <p><strong>Nothing here moved in this window.</strong> Five rows, 297 open items, and not one opening or closing in eight weeks. That is an observation about <em>the work</em> — the same observation the Dashboard makes when it counts 297 of 297 items past the 90-day threshold — and it is not an observation about the five people: a stalled board, a project waiting on someone outside the team, and five people reassigned elsewhere all produce this exact table, and the platform cannot tell them apart from what it collects.</p>
   <p style="margin-top:.5rem"><strong>Two rows are not comparable when their collection is not.</strong> Six repositories were observed for one person and two for another; how many exist for either is not known, so the columns above compare <em>records</em> before they compare anything else. Until the platform has that denominator, that sentence stays next to the numbers and not in a footnote (FR-111, FR-112).</p></div>
-  <p class="sub" style="font-size:.8rem"><span class="re-mark">real</span> the five members, and 114, 77, 54 open (development base, 8 Sep), summing with the other two rows to the squad's real 297 — 180 TASK · 78 US · 21 BUG · 18 EPIC. <span class="ex-mark">example</span> the split of the remaining 52 between Bia and Téo, the names, the roles, the repository counts, and every opened/closed/forecast figure. <strong>The zeros in the three middle columns are an assumption, not a measurement</strong>: the newest still-open item of this squad is 217 days old, so nothing opened inside the window is still open — but an item opened <em>and</em> closed inside the window would not appear in that sample, and none was counted here. Stated as an assumption because it is one.</p>
+  <p class="sub" style="font-size:0.8125rem"><span class="re-mark">real</span> the five members, and 114, 77, 54 open (development base, 8 Sep), summing with the other two rows to the squad's real 297 — 180 TASK · 78 US · 21 BUG · 18 EPIC. <span class="ex-mark">example</span> the split of the remaining 52 between Bia and Téo, the names, the roles, the repository counts, and every opened/closed/forecast figure. <strong>The zeros in the three middle columns are an assumption, not a measurement</strong>: the newest still-open item of this squad is 217 days old, so nothing opened inside the window is still open — but an item opened <em>and</em> closed inside the window would not appear in that sample, and none was counted here. Stated as an assumption because it is one.</p>
 </section>
 <!-- ═══════════════════════════════ SCREEN 4 ═══════════════════════════════ -->
 <span class="tela">screen 4 · the same tab, a team that moves · and two people opened side by side</span>
@@ -383,7 +384,7 @@ The same tab on a team where work does move, and where the rows are not all alik
         <td><button class="btn q">charts ▾</button></td>
       </tr>
       <tr class="saiu-l">
-        <td><span class="pessoa">Sara Beltrão</span><span class="login">@sarabeltrao <span class="ex-mark">example</span></span><span class="pes-sub">Tech Lead · declared · <span class="marca saiu" style="font-size:.66rem"><span class="am"></span>left 14 Aug</span> declared by @paulo, 15 Aug</span><span class="cob">4 repos observed · denominator unknown</span></td>
+        <td><span class="pessoa">Sara Beltrão</span><span class="login">@sarabeltrao <span class="ex-mark">example</span></span><span class="pes-sub">Tech Lead · declared · <span class="marca saiu" style="font-size:0.6875rem"><span class="am"></span>left 14 Aug</span> declared by @paulo, 15 Aug</span><span class="cob">4 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">9</span><span class="dir">unchanged since 14 Aug · still assigned to her at the source</span></td>
         <td class="v">2</td><td class="v">5</td><td class="v">3 of 5</td>
         <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history <span class="curto">5 of 6 short</span> · closed <span class="curto">5 of 10 short</span></span></td>
@@ -435,8 +436,8 @@ The same tab on a team where work does move, and where the rows are not all alik
   </div>
 
   <div class="par-cab" style="margin-top:1rem">
-    <div class="h">Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
-    <div class="h b">Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h">Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h b">Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
   </div>
 
   <!-- ROW 1 · WIP -->
@@ -542,7 +543,7 @@ The same tab on a team where work does move, and where the rows are not all alik
 <section class="sec" style="margin-top:1.4rem">
   <div class="par-linha" style="margin-top:0">
     <h3><span class="rot">4 ·</span> Delivery forecast <span class="rot">· weekly whatever grain the others show · 12-week horizon · 10 000 runs</span></h3>
-    <p class="sub" style="font-size:.82rem">Derived, not observed — both cards below are dashed for that reason. Two hypotheses, <strong>stacked and never overlaid</strong>: two translucent shapes on one pair of axes make a third shape that does not exist. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other. And the question is about <strong>the work</strong> — when what is in this person's hands runs out, at the pace observed for it — never about capacity, commitment or a date.</p>
+    <p class="sub" style="font-size:0.8125rem">Derived, not observed — both cards below are dashed for that reason. Two hypotheses, <strong>stacked and never overlaid</strong>: two translucent shapes on one pair of axes make a third shape that does not exist. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other. And the question is about <strong>the work</strong> — when what is in this person's hands runs out, at the pace observed for it — never about capacity, commitment or a date.</p>
     <div class="par">
       <div class="g-cart der-c">
         <div class="cab-g"><span class="rot">if nothing new opened · frozen scope</span><span class="rot">11 open · 1.4 closed per week</span></div>
@@ -581,7 +582,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       <div class="g-cart der-c">
         <div class="recusa-c" style="margin-top:0">
           <span class="t">Pedro Assis · no forecast — below the floor of the method.</span>
-          <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>4</b> of <b>10</b> items — short by 6</span></div>
+          <div class="piso" style="font-size:0.75rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>4</b> of <b>10</b> items — short by 6</span></div>
           <p>Four closings across eight weeks is a record, not a history: ten is the floor the method needs before a distribution drawn from it means anything. <strong>A gap in the observed record, never a statement about the person.</strong></p>
           <p>Noa's history, on the other side of this row, is <strong>not</strong> borrowed to fill it. Two people on one screen make that borrowing look natural, which is exactly why the refusal says it here.</p>
         </div>
@@ -605,7 +606,7 @@ The same tab on a team where work does move, and where the rows are not all alik
         <div class="pes-sub" style="margin-top:.2rem">and none observed at any sample of this window</div>
         <div class="piso" style="margin-top:.3rem">forecast: <span style="color:var(--tinta-2)">nothing to forecast — no open item to reach zero</span></div>
       </div>
-      <p style="margin-top:.5rem">Its mark is <span class="marca aus" style="font-size:.66rem"><span class="am"></span>dashed</span> — absent, not zero. It is <strong>absence of an observed assignment</strong>, and it is not idleness: two repositories were observed for her, and how many she actually works in is not known.</p>
+      <p style="margin-top:.5rem">Its mark is <span class="marca aus" style="font-size:0.6875rem"><span class="am"></span>dashed</span> — absent, not zero. It is <strong>absence of an observed assignment</strong>, and it is not idleness: two repositories were observed for her, and how many she actually works in is not known.</p>
       <p><strong>A different case wears different words:</strong> a person who has items but none open right now reads <em>“nothing open at any sample — her items in this window were all closed”</em>. That is a measured zero of a series that exists, and it must not borrow this cell's sentence.</p>
     </div>
     <div class="a a2">
@@ -624,7 +625,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       <h4>3 · The item the rule did not classify</h4>
       <p>Not an absent measure — an absent <em>label</em>. The item counts in every number on the row; what it <em>is</em> is unknown. It appears where the count is, never as a footnote:</p>
       <div class="amostra">
-        <span class="n2" style="font-family:var(--mono);font-size:1.05rem">18</span>
+        <span class="n2" style="font-family:var(--mono);font-size:1rem">18</span>
         <div class="pes-sub">16 at the first sample · +2 across the window</div>
         <div class="piso" style="margin-top:.2rem"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</div>
       </div>
@@ -936,7 +937,7 @@ Thirty-one members is the team that fails any design which does not make a cut �
   <div class="cartao">
     <h3>What was not verified, and must not be read as measured</h3>
     <p class="sub">Written here rather than in a report, because the screen is what gets read.</p>
-    <ul style="font-size:.9rem;margin:.4rem 0 0;padding-left:1.1rem">
+    <ul style="font-size:0.875rem;margin:.4rem 0 0;padding-left:1.1rem">
       <li><strong>No closing was measured.</strong> Every <em>opened in the window</em>, <em>closed in the window</em>, <em>weeks with a close</em> and forecast figure on all three bands is invented. What was measured on 8 Sep is the count of <strong>open</strong> items: 760 TASK · 288 US · 71 BUG · 35 EPIC across everyone in a team; SQUAD PINK's 180 · 78 · 21 · 18; and per person, 114, 77 and 54 in PINK and 11, 3 and 0 in Equipe IA.</li>
       <li><strong>SQUAD PINK's zeros are an inference, not a reading.</strong> The newest still-open item is 217 days old, so nothing opened inside the window remains open — but an item opened <em>and</em> closed inside the window leaves no trace in that sample. Nobody counted those.</li>
       <li><strong>The split of the remaining open items</strong> — 52 between two people in PINK, 69 between four in Equipe IA — is invented to make the rows sum to the squad's real total.</li>

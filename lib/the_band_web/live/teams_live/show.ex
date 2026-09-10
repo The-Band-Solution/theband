@@ -1248,7 +1248,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     ~H"""
     <span class="flex items-baseline justify-between gap-2">
       <span class={["text-sm font-semibold", @linha.direta? && "opacity-80"]}>{@linha.nome}</span>
-      <span class="font-mono text-[0.67rem] tracking-[0.06em] text-base-content/70 uppercase">
+      <span class="font-mono text-[11px] tracking-[0.06em] text-base-content/70 uppercase">
         {@linha.membros} {if @linha.membros == 1, do: "member", else: "members"}
       </span>
     </span>
@@ -1270,7 +1270,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         <dd :if={@linha.espera.mediana} class="font-mono tabular-nums">
           {@linha.espera.mediana}h
         </dd>
-        <dd :if={is_nil(@linha.espera.mediana)} class="text-[0.7rem] opacity-70">
+        <dd :if={is_nil(@linha.espera.mediana)} class="text-[11px] opacity-70">
           no review yet
         </dd>
       </div>
@@ -2042,7 +2042,7 @@ defmodule TheBandWeb.TeamsLive.Show do
         <p class="mt-1 text-xs opacity-70">{falta}</p>
       </div>
 
-      <p class="mt-2 text-[0.65rem] opacity-60">
+      <p class="mt-2 text-[10px] opacity-60">
         {@problema.limiar}<br />
         <span class="font-mono">{@problema.origem}</span>
       </p>
@@ -2103,7 +2103,7 @@ defmodule TheBandWeb.TeamsLive.Show do
           pixels e devolve uma coluna de títulos que o olho percorre em linha reta. --%>
     <span class="inline-flex w-14 shrink-0 justify-end">
       <span
-        class={["badge badge-sm font-mono text-[0.65rem]", @marca.classe]}
+        class={["badge badge-sm font-mono text-[10px]", @marca.classe]}
         title={@marca.titulo}
       >
         {@marca.texto}
@@ -3366,7 +3366,7 @@ defmodule TheBandWeb.TeamsLive.Show do
               :for={l <- @linhas}
               class={[
                 "card border border-base-300 bg-base-100 p-3",
-                not l.direta? && "border-l-4 border-l-base-300 transition hover:border-primary"
+                not l.direta? && "border-l border-l-base-300 transition hover:border-primary"
               ]}
             >
               <%!-- O cartão da própria equipe NÃO é porta para `/teams/:id`: já estamos nela.
@@ -3380,14 +3380,14 @@ defmodule TheBandWeb.TeamsLive.Show do
                 <.cabecalho_do_cartao linha={l} />
                 <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
                 <.numeros_do_cartao linha={l} />
-                <span class="font-sans text-[0.72rem] text-primary">open {l.nome} →</span>
+                <span class="font-sans text-xs text-primary">open {l.nome} →</span>
               </.link>
 
               <div :if={l.direta?} class="flex flex-col gap-2">
                 <.cabecalho_do_cartao linha={l} />
                 <.faisca_do_cartao faisca={l.faisca} janela={@janela_dos_cartoes} />
                 <.numeros_do_cartao linha={l} />
-                <a href="#what-each-person-is-on" class="font-sans text-[0.72rem] text-primary">
+                <a href="#what-each-person-is-on" class="font-sans text-xs text-primary">
                   see the {l.membros} {if l.membros == 1, do: "person", else: "people"} →
                 </a>
               </div>
@@ -3397,7 +3397,7 @@ defmodule TheBandWeb.TeamsLive.Show do
           <%!-- A LEGENDA, uma vez sob a grade e não por cartão — Design, 2026-09-09, §6.
                 Duas curvas sem rótulo numa caixa de 100 × 28 não se leem, e repeti-la em cada
                 cartão gastaria a altura que o gráfico ocupa. --%>
-          <p class="mt-2 flex flex-wrap items-center gap-3 text-[0.7rem] opacity-70">
+          <p class="mt-2 flex flex-wrap items-center gap-3 text-[11px] opacity-70">
             <span class="flex items-center gap-1">
               <svg viewBox="0 0 12 4" class="h-1 w-3 text-base-content/50" aria-hidden="true">
                 <line x1="0" y1="2" x2="12" y2="2" stroke="currentColor" stroke-width="1.2" />

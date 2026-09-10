@@ -167,7 +167,7 @@ defmodule TheBandWeb.UI do
     <div
       role="note"
       class={[
-        "flex gap-3 rounded border-l-4 p-3 sm:p-4",
+        "flex gap-3 rounded border p-3 sm:p-4",
         @kind == :gap && "border-base-content/40 border border-dashed",
         @kind == :divergence && "border-warning bg-warning/10",
         @kind == :refused && "border-error bg-error/10"
