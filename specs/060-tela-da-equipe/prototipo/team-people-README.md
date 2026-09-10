@@ -117,6 +117,32 @@ argumento virou número.
 | **23** | a pessoa vê a própria linha sem alcançar a equipe | **não** — o veredito da equipe decide tudo | `pode_ver_equipe/3` **não** ganha um quinto caminho. O fluxo da própria pessoa continua em `/people/:id`, que ela alcança por ser ela |
 | **24** | onde os quatro gráficos moram no longo prazo | **(a) agora, (b) depois** | e nunca (c): dois lugares com os mesmos quatro gráficos, mantidos em sincronia à mão, é deriva por construção |
 
+## Q25 — a terceira pessoa: respondida em 2026-09-10
+
+A pergunta nasceu da transcrição dos requisitos, e não da tela: **o teto é duas, e o
+protótipo aprovado não desenhou o que acontece ao escolher a terceira.**
+
+**Resposta da pessoa mantenedora: nem recusar, nem escolher por ela — a tela PERGUNTA qual
+das duas abertas fechar.**
+
+E a razão de cada alternativa ter caído:
+
+| alternativa | por que não |
+|---|---|
+| **recusar** a terceira | transformaria o teto numa parede sem caminho. Quem quer comparar A com C teria de descobrir sozinho que precisa fechar B primeiro — e a recusa que não oferece o ato certo é exatamente o que esta casa recusa em toda parte |
+| **fechar a mais antiga**, sozinha | decide por quem está comparando, e decide em silêncio. A pessoa escolheu a terceira **deliberadamente**; qual das duas primeiras deixa de interessar é informação que só ela tem |
+| **perguntar qual fechar** | mantém o teto de duas **e** deixa a escolha com quem compara. Custa um estado a mais na tela e uma interação a mais — e é o preço de não decidir pela pessoa |
+
+**O que isto acrescenta ao desenho**, e volta ao protótipo antes de voltar ao código:
+
+- um **estado novo**: duas pessoas abertas, a terceira pedida, e a pergunta de qual fechar
+  — com as duas abertas **nomeadas**, porque *"feche uma"* sem dizer quais são não é
+  pergunta;
+- o que acontece ao **desistir**: a terceira **não** abre, e as duas continuam como
+  estavam. Desistir tem de ser um caminho de volta, e não um estado terceiro;
+- e a razão do teto continua **escrita na tela**, como já estava: dois eixos diferentes
+  comparam formas e não alturas, e três escalas seriam galeria e não comparação.
+
 ## As perguntas que ficam para a pessoa mantenedora
 
 Estão na tela, itens 18 a 24, cada uma com opções e recomendação. Em resumo:
