@@ -250,9 +250,20 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     |> Repo.one()
   end
 
+  # A INTERPOLAÇÃO É PARTE DA MENSAGEM, e descartá-la vaza `%{count}` para a tela.
+  #
+  # `traverse_errors` entrega `{mensagem, opções}`, e as opções carregam os valores que a
+  # mensagem referencia. A versão anterior descartava as opções com `{msg, _}` — e
+  # `validate_length(:name, max: 255)` chegava à tela como
+  # *"should be at most %{count} character(s)"*, literalmente, com as chaves.
+  #
+  # Medido em 2026-09-10, ao exercitar os caminhos infelizes de `declare_subteam/4`.
+  # `translate_error/1` é o mesmo tradutor que as telas usam, e é o que resolve tanto a
+  # interpolação quanto o catálogo — mensagem montada à mão descarta os msgids que o
+  # `errors.po` já tem (a mesma classe da 047/T014).
   defp motivo_do_changeset(%Ecto.Changeset{} = changeset) do
     changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Ecto.Changeset.traverse_errors(&TheBandWeb.CoreComponents.translate_error/1)
     |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
   end
 

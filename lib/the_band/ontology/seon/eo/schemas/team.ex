@@ -75,6 +75,12 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
       :external_created_at
     ])
     |> validate_required([:tenant_id, :internal_id, :name])
+    # O TAMANHO É DO BANCO, e sem esta linha ele chega lá cru.
+    #
+    # Medido em 2026-09-10: declarar equipe com nome de 300 caracteres levantava
+    # `Postgrex.Error` — `ERROR 22001 (string_data_right_truncation)` —, e a tela morria.
+    # A coluna é `varchar(255)`; o número aqui é o dela, e não uma preferência.
+    |> validate_length(:name, max: 255)
     |> validate_inclusion(:type, @types)
     |> validate_application_reference()
     |> unique_constraint([:tenant_id, :source_system, :source_instance, :external_id],
@@ -90,6 +96,13 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.Team do
     # violação em changeset em vez de exceção. Sem ela, gravar equipe organizacional
     # sem organização derruba o processo com `Ecto.ConstraintError` — o
     # comportamento é o mesmo, a mensagem é que deixa de dizer o que fazer.
+    # AS DUAS CHAVES ESTRANGEIRAS, pela mesma razão do `check_constraint` abaixo: sem elas
+    # a violação LEVANTA em vez de virar relator. Medido em 2026-09-10 — organização
+    # inexistente e autor inexistente derrubavam o processo com `Ecto.ConstraintError`, e
+    # em `handle_event` de LiveView derrubar o processo é a tela cair na cara de quem
+    # administra.
+    |> foreign_key_constraint(:organization_id)
+    |> foreign_key_constraint(:declared_by_user_id)
     |> check_constraint(:organization_id,
       name: :eo_teams_organizational_team_has_organization,
       message: "equipe organizacional precisa da organização a que pertence"
