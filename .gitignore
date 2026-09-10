@@ -46,6 +46,11 @@ the_band-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# As dependências do verificador de design. O `package.json` e o `package-lock.json`
+# ENTRAM — são a provisão declarada, e sem elas o detector roda cego e aprova por não
+# olhar (lição L104). O `node_modules` não entra, como nenhum outro.
+/.claude/skills/impeccable/node_modules/
+
 
 # Ambiente — nunca commitar credenciais
 .env

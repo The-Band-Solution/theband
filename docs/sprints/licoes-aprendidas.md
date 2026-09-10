@@ -3692,3 +3692,101 @@ alguém o revisar**, porque a revisão pelo corpo do PR é a que de facto aconte
 
 **Aplicada em**: 2026-09-09 — o commit foi refeito com os três arquivos, e a remoção
 do link simbólico virou PR próprio (#836), com a razão escrita.
+
+---
+
+## L103
+
+**O protótipo não faz parte do projeto. Ele é o desenho usado para construir.**
+
+**Onde apareceu.** 2026-09-10. Rodei o verificador de design no repositório inteiro, achei
+**262** problemas, consertei todos e apresentei o resultado como qualidade do produto. Os 262
+estavam **inteiros** nos cinco arquivos HTML de protótipo. O código do produto — `lib` e
+`assets` — tinha **zero** desde o começo.
+
+Depois, com a ferramenta rodando completa, os mesmos cinco arquivos deram **1.606**. E a
+separação diz tudo:
+
+| família | quantos | de quem é a propriedade |
+|---|---|---|
+| contraste, texto pequeno, caixa alta, espaçamento apertado | **1.560** | da **tela entregue** — e quem entrega tela é o código |
+| cor fora da paleta, borda de acento | 46 | e mesmo aí: as cores `--s1/--s2/--s3` são cores que o produto **decidiu não ter**, com a decisão escrita em `teams_live/show.ex`; o resto é token de tema escuro medido contra a paleta clara |
+
+**Por que a confusão é fácil de fazer.** O protótipo é HTML, tem CSS, abre no navegador e
+parece uma tela. A ferramenta o trata como tela porque é o que ele parece. E o número que sai
+dali é grande, o que dá a sensação de trabalho útil.
+
+**Por que o número engana.** O protótipo existe para uma coisa: **ser a régua contra a qual o
+código é conferido**. A régua não precisa de contraste acessível — precisa de dizer, sem
+ambiguidade, o que a tela tem de fazer. Um protótipo com texto de 10px e contraste 3:1 pode ser
+uma régua perfeita, e uma tela inaceitável. As duas afirmações são sobre objetos diferentes.
+
+**O que fazer diferente.**
+
+1. **O gate de design é o código do produto** — `lib` e `assets`. Protótipo isento, e a isenção
+   está escrita em `.impeccable/config.json` com a razão, não como conveniência;
+2. **a concordância entre protótipo e código é conferida por gente**, não por ferramenta: o QA
+   lê a tela implementada contra a seção 3 do `PROMPT.md` do protótipo, item a item. É o método
+   que esta casa já declara, e ele não delega para detector nenhum;
+3. **o que vale conservar no protótipo é o SISTEMA, não a qualidade** — a ramp tipográfica, os
+   raios, a ausência de borda de acento. Porque o código reproduz o protótipo: se o protótipo
+   usa trinta e quatro tamanhos de fonte, o código passa a usar trinta e quatro. Aquele
+   conserto foi útil por essa razão, e não pela que eu dei.
+
+**A parte que continua verdadeira do trabalho errado.** As 34 escalas de fonte e as bordas
+coloridas de 3–4px **eram** deriva real, e consertá-las manteve protótipo e código no mesmo
+sistema. O que estava errado era a conclusão anunciada — *"a qualidade do repositório foi de 262
+a zero"* —, não o conserto.
+
+---
+
+## L104
+
+**Silenciei o aviso da ferramenta e chamei subcontagem de atestado.**
+
+**Onde apareceu.** 2026-09-10, na mesma sessão da L103. O verificador de design precisa de
+quatro bibliotecas para avaliar cor, contraste e tamanho de texto de interface. Nesta máquina
+elas não estavam instaladas, e ele imprimia, **em toda execução**:
+
+```
+impeccable detect: DEGRADED - HTML parser modules unavailable.
+Falling back to regex matching. Custom properties, selector matching and computed contrast
+are NOT evaluated; findings are an undercount, not a clean bill of health.
+```
+
+Eu rodei todos os comandos com `2>/dev/null`, porque a saída de erro trazia ruído de
+compilação. **O aviso estava lá todas as vezes, e eu o joguei no lixo todas as vezes.** Depois
+escrevi *"0 achados"* em três mensagens, num commit e em dois corpos de PR.
+
+Instaladas as quatro bibliotecas: **1.606** achados onde eu havia anunciado zero.
+
+**Por que nenhum gate pegou.** O código de saída era **0** — legitimamente, porque nenhuma
+regra avaliável falhou. A ferramenta não mentiu em nada: ela disse exatamente o que não estava
+fazendo, no canal que eu apaguei. O defeito é inteiro meu, e é o oposto do que parece: não
+faltou informação, faltou não descartá-la.
+
+**A relação com o sucesso silencioso.** É a mesma família — ausência de erro lida como
+resultado —, com um agravante: aqui **havia** um aviso explícito, escrito em inglês claro,
+dizendo *"not a clean bill of health"*. Eu construí o silêncio.
+
+**O que fazer diferente.**
+
+1. **Nunca `2>/dev/null` numa ferramenta de veredito.** Se a saída de erro tem ruído, filtre o
+   ruído (`grep -v`), não o canal. O canal é onde a ferramenta avisa que não está funcionando;
+2. **provisão da ferramenta é parte do gate.** As quatro bibliotecas passaram a ter
+   `package.json` em `.claude/skills/impeccable/`, com a razão escrita — ferramenta que roda
+   cega por falta de dependência é gate que aprova por não olhar.
+
+   E a provisão entrou no **`make setup`**, não na documentação: o `node_modules` é ignorado
+   pelo git, como todo `node_modules`, então **cada worktree precisa instalar uma vez**. Este
+   projeto tinha cinco worktrees abertos no dia, e quatro continuaram cegos depois do
+   conserto no primeiro. O alvo `detector-provisiona` instala **e confere**, falhando se o
+   `DEGRADED` persistir — provisão que vive só em documento é a que ninguém roda;
+3. **"0 achados" só se escreve com o modo confirmado.** Sem isso, a frase é *"0 das regras
+   avaliáveis, com o verificador em modo reduzido"* — e essa frase, escrita, teria feito
+   qualquer leitor perguntar quais regras ficaram de fora.
+
+**A relação com a L23.** Aquela lição diz: *aviso de verificação pulada é reprovação, não
+observação*. Está escrita neste arquivo desde antes, sobre o validador Python da base de
+conhecimento. Eu a repeti do outro lado — não ignorando o aviso, mas **apagando-o antes de ele
+poder ser ignorado**.
