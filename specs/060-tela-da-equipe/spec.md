@@ -12,7 +12,13 @@ acrescentada no mesmo dia depois do início desta escrita: o Dashboard é a **vi
 geral do gestor**, com *Problemas agora* e *Pessoas*. As quatro perguntas que esta
 escrita deixou abertas, e seis outras levantadas pela coordenação, foram
 **respondidas pela pessoa mantenedora em 2026-09-07** — ver *Decisões de
-2026-09-07*. Nenhuma pergunta segue em aberto.
+2026-09-07*. Nenhuma pergunta da escrita de 2026-09-07 segue em aberto.
+
+**Emenda de 2026-09-10 — a aba *Flow per person*.** Esta spec passou a carregar os requisitos
+da terceira aba (US10 a US12, FR-085 a FR-131, SC-022 a SC-038), transcritos do protótipo
+aprovado em 2026-09-08 e da escrita de 2026-09-08 que o antecedeu. **Nove decisões seguem
+abertas** para essa aba — Q18 a Q26, na seção *Decisões do protótipo da aba Flow per person* —,
+e três delas bloqueiam: Q20 o código de duas colunas, Q21 e Q25 a aceitação.
 
 **Input**: User description, na ordem em que veio: "Vamos projetar a tela de
 equipes. Uma equipe tem um dashboard com as métricas, uma tela de estrutura
@@ -29,6 +35,53 @@ membros, depois definir subequipes.**
 **Referência visual**: [`prototipo/team-dashboard-structure.html`](prototipo/team-dashboard-structure.html).
 Onde o protótipo e esta spec divergirem, **a spec vence** — e a divergência é
 registrada na seção *Premissas*.
+
+**Referência visual da aba *Flow per person***:
+[`prototipo/team-people.html`](prototipo/team-people.html), publicada em
+`https://claude.ai/code/artifact/a8c7e08c-e9df-4a28-94ea-0800087f9751` em **2026-09-08** —
+**terceira tela** da mesma feature, com endereço próprio, e que **não altera** o protótipo de
+2026-09-07. A régua da aceitação é a **seção 3** de
+[`prototipo/team-people-PROMPT.md`](prototipo/team-people-PROMPT.md), 26 itens; as decisões
+estão em [`prototipo/team-people-README.md`](prototipo/team-people-README.md).
+
+### A aba *Flow per person* — de onde vieram FR-085 a FR-131, e por que os números são estes
+
+**Transcrição de 2026-09-10.** Os requisitos desta aba nasceram fora desta spec, em
+[`spec-graficos-por-membro.md`](spec-graficos-por-membro.md), escrita em 2026-09-08 **antes**
+do protótipo — ordem invertida em relação à decisão de 2026-09-07, *a tela implementada é
+exatamente a tela aprovada*. O protótipo veio depois, foi aprovado, e **derrubou quatro
+pontos** daquela escrita. Requisito aprovado que mora em arquivo à parte, ainda com o texto
+anterior à aprovação, é declaração que ninguém confere: por isso FR-085 a FR-112 passam a
+viver **aqui**, com as emendas aplicadas, e FR-113 a FR-131 nascem da aprovação.
+
+**Os números foram preservados, não renumerados.** FR-085 a FR-112 são exatamente os de
+2026-09-08, e são os que já são citados por cinco documentos: o próprio protótipo (FR-087,
+FR-088, FR-089, FR-091, FR-101, FR-104, FR-111, FR-112), o `team-people-PROMPT.md`, o
+`team-people-README.md`, o [`tasks.md`](tasks.md) — *"FR-085 a FR-112 (os quatro gráficos por
+membro, US10 a US12) — sem tarefa"* — e
+[`decisoes-do-cartao-de-subequipe.md`](decisoes-do-cartao-de-subequipe.md) (FR-088).
+Renumerar tornaria cinco documentos errados de uma vez para produzir uma sequência mais
+bonita. Número é contrato; contrato preservado continua contrato. A sequência é contínua a
+partir de FR-084 porque a escrita de 2026-09-08 já a continuava, e nenhum buraco é aberto.
+
+**Onde o protótipo aprovado venceu o texto de 2026-09-08**, a emenda está no próprio
+requisito, no formato desta casa — `~~texto vencido~~` mais a emenda datada:
+
+| Requisito | O que dizia | O que passa a valer |
+|---|---|---|
+| **FR-087** | pessoas abertas ao mesmo tempo, *proposto: três* | **duas**, e a segunda troca o layout — FR-124 |
+| **FR-104** | mesma janela e granulação do Dashboard, sem seletor por pessoa | continua, **e** o controle é **um só**, no cabeçalho da seção — FR-115 |
+| **FR-106** | a ordem padrão não é por medida | continua, **e** nenhum cabeçalho **se oferece** para ordenar — FR-117 |
+| **SC-022**, **SC-031** | teto de doze gráficos; abrir três pessoas | **oito** gráficos; abrir **duas** |
+
+**A aprovação está atestada, e não registrada.** A afirmação de que a pessoa mantenedora
+aprovou o protótipo em **2026-09-08** chegou na tarefa de **2026-09-10**, de quem coordena o
+trabalho. Nenhum arquivo traz a marca da aprovação: `team-people-PROMPT.md` e
+`team-people-README.md` ainda dizem *"aguardando aprovação"*. Esta transcrição assume a
+atestação e a declara como tal — é **lacuna de prova**, não de aprovação. Fecha-se com o
+Design marcando *Approved 2026-09-08* e republicando no mesmo endereço, e com a pessoa
+mantenedora confirmando. Até lá, nenhum entregável desta aba é aceito contra uma régua cuja
+aprovação só existe de memória.
 
 ## O que esta feature resolve
 
@@ -521,6 +574,143 @@ clicar nele chega ao `/teams/:id` da subequipe.
    exibidos, **Then** cada um traz o **gráfico pequeno** (FR-058, FR-084), e clicar
    no gráfico abre o Dashboard daquela subequipe — a mesma porta do cartão (FR-041).
 
+### User Story 10 - O fluxo de cada membro, comparável na mesma janela (Priority: P3)
+
+Quem alcança a equipe abre a aba *Flow per person* e vê uma linha por membro, com as medidas
+na **mesma janela** dos gráficos do Dashboard: o trabalho aberto agora e a direção da série, os
+abertos e os fechados na janela, os períodos com fechamento, e o estado da previsão. Sem
+gráfico em nenhuma linha, sem ordenação por medida, e com a janela escrita no cabeçalho.
+
+**Why this priority**: P3, a mesma da US9, e **depois** dela. As definições (FR-062), a
+ressalva (FR-063), a granulação e a janela no endereço (FR-078, FR-079) nascem na US9;
+construir isto antes obrigaria a inventá-las duas vezes. E o conjunto de membros que alimenta
+as linhas é o que as cinco P1 decidem.
+
+**Independent Test**: com uma equipe de série conhecida, conferir que a soma da coluna *closed
+in the window* das linhas é **maior ou igual** à vazão da equipe no mesmo período (maior quando
+há item com dois responsáveis), que trocar a granulação ou a janela no endereço muda **todas**
+as linhas ao mesmo tempo por um **único** controle, e que nenhuma coluna de medida ordena a
+tabela nem se oferece para ordenar.
+
+**Acceptance Scenarios**:
+
+1. **Given** uma equipe com membros vigentes, **When** a aba abre, **Then** há uma linha por
+   membro do **mesmo conjunto** que alimenta o Dashboard (FR-057), o cabeçalho da seção diz
+   `N members · <janela> · by <granulação>`, e nenhuma linha traz gráfico.
+2. **Given** a granulação em semana, **When** quem lê troca para mês, **Then** a troca acontece
+   por **um único** controle, no cabeçalho da seção, reescreve o endereço e reagrupa **todas**
+   as linhas ao mesmo tempo; nenhum gráfico traz controle próprio, e cada gráfico continua
+   nomeando a janela no seu título (FR-115).
+3. **Given** um item com **duas** pessoas responsáveis da mesma equipe, **When** as linhas são
+   lidas, **Then** o item conta **uma vez para cada** pessoa, e o bloco acima da tabela declara
+   que somar as linhas não dá a vazão da equipe.
+4. **Given** a tabela recém-aberta, **When** a ordem é observada, **Then** ela é por papel
+   declarado e depois por nome — **nunca** por uma das medidas —, a ordem está escrita abaixo
+   da tabela, e nenhum cabeçalho de coluna se oferece para ordenar.
+5. **Given** uma pessoa cujo vínculo começou dentro da janela, **When** a linha dela é lida,
+   **Then** a data de início aparece (ou *start date unknown*, 057 FR-006), o denominador de
+   *weeks with a close* é o reduzido (`2 of 3`), e o texto diz que menos períodos com dado é
+   história mais curta dentro da mesma janela, e não menos trabalho.
+6. **Given** qualquer equipe e qualquer tamanho, **When** a aba abre, **Then** os **dois**
+   blocos — *a table of work items, not a table of people* e *"working in progress" here is not
+   `flow.wip.count`* — estão acima da tabela, não colapsados, e nenhuma média, mediana ou taxa
+   por pessoa aparece em lugar algum da aba (FR-116, FR-118).
+
+---
+
+### User Story 11 - Os quatro gráficos de uma pessoa, abertos sob demanda (Priority: P3)
+
+Quem lê escolhe uma linha e os quatro gráficos daquela pessoa abrem ali mesmo, sob a própria
+linha: a série do trabalho aberto, *Promised × Delivered* por período, a vazão por período, e a
+previsão de Monte Carlo — ou a recusa dela. Os quatro sobre a mesma janela dos gráficos da
+equipe, numerados na ordem de leitura. Uma **segunda** pessoa aberta tira as duas das linhas e
+põe os gráficos lado a lado, uma linha por medida. O bloco aberto leva a `/people/:id`.
+
+**Why this priority**: P3, e é **o pedido literal** da pessoa mantenedora. Vai depois da US12 e
+não antes: sem a ausência dita por pessoa, a primeira versão destes gráficos mostra branco para
+a maioria das pessoas de uma equipe real, e branco é a afirmação que a plataforma recusa.
+
+**Independent Test**: com uma pessoa de série conhecida, conferir que a série de trabalho aberto
+em qualquer instante é o número de itens dela abertos ali, que a soma de abertos e a de fechados
+na janela são iguais nas três granulações, que a previsão é idêntica em duas consultas, e que
+abrir **duas** pessoas não passa do teto de consultas da página.
+
+**Acceptance Scenarios**:
+
+1. **Given** a tabela, **When** quem lê escolhe uma pessoa, **Then** os quatro gráficos dela
+   abrem **sob a própria linha**, em duas por duas, sem trocar de tela, numerados **1 → 4** como
+   ordem de leitura, com os três primeiros marcados como observados e o quarto como derivado, e
+   o bloco traz o caminho para `/people/:id`.
+2. **Given** uma pessoa já aberta, **When** quem lê abre uma **segunda**, **Then** as duas saem
+   das linhas, os gráficos viram **quatro linhas de duas colunas** abaixo da tabela, as duas
+   linhas da tabela ficam marcadas, cada gráfico mantém a **sua** escala rotulada, e a linha diz
+   que os eixos diferem — *as formas comparam, as alturas não* (FR-124, FR-129).
+3. **Given** duas pessoas abertas, **When** quem lê escolhe uma terceira, **Then** a plataforma
+   MUST NOT apresentar três ao mesmo tempo e MUST dizer o teto na tela; **qual dos dois
+   comportamentos** — recusar a terceira ou fechar a mais antiga — é **decisão pendente** (Q25),
+   e este cenário não é avaliável antes dela.
+4. **Given** o bloco de uma pessoa aberto, **When** *Promised × Delivered* dela é lido, **Then**
+   a definição operacional, a declaração de que **não há escopo comprometido** e a substituição
+   do WIP estão **dentro** do bloco, junto do título do gráfico (FR-097, FR-090).
+5. **Given** a previsão de uma pessoa acima do piso, **When** é exibida, **Then** é **semanal**
+   independentemente da granulação escolhida para os outros gráficos, com as duas hipóteses e a
+   proporção de rodadas que não concluíram (FR-064, FR-098).
+6. **Given** uma pessoa sem nada aberto nem fechado na janela, **When** os gráficos dela abrem,
+   **Then** cada gráfico vazio é **desenhado** — eixos, escala e a frase na própria área de
+   plotagem —, e nenhum retângulo em branco aparece (FR-128).
+7. **Given** a mesma consulta duas vezes, **When** os quatro gráficos são comparados, **Then**
+   são idênticos (057 FR-036).
+
+---
+
+### User Story 12 - A ausência dita, pessoa por pessoa (Priority: P3)
+
+Numa equipe real, a maioria das pessoas **não** alcança o piso da previsão, e algumas não
+fecharam nada na janela. A tela diz isso por pessoa, com o que falta, e nunca com branco, zero
+ou coluna escondida. Acima da tabela, quantas pessoas têm previsão e de quantas — para que a
+maioria de recusas se leia como estado do registro, e não como defeito da tela.
+
+**Why this priority**: P3, e **antes da US11** na ordem de entrega. `Forecast.monte_carlo/2`
+exige 6 períodos de história e 10 itens fechados; para a equipe isso é comum, para uma pessoa
+muitas vezes não. Uma tela que mostra 27 espaços vazios em 31 é pior do que nenhuma tela: cada
+vazio é uma afirmação sobre uma pessoa que a plataforma não fez.
+
+**Independent Test**: com uma equipe em que uma pessoa está acima do piso e as outras abaixo,
+conferir que cada pessoa abaixo traz os **quatro** números, que nenhuma célula fica vazia, e que
+a contagem acima da tabela diz *1 de N* — inclusive quando N é 0 e quando N é M.
+
+**Acceptance Scenarios**:
+
+1. **Given** uma pessoa com 3 semanas de história e 6 fechadas, **When** a previsão dela é lida,
+   **Then** nenhuma previsão aparece e a célula traz os **quatro** números com as palavras que
+   carregam a diferença — `history 3 of 6 short · closed 6 of 10 short` —, e os **dois** modos de
+   bloqueio ficam distinguíveis sem depender de cor (FR-099, FR-123).
+2. **Given** a mesma pessoa, **When** o texto da recusa é lido, **Then** ele diz que é **lacuna
+   do registro observado**, e nunca afirmação sobre a pessoa (FR-102), e a história da **equipe**
+   MUST NOT ser emprestada para preencher a lacuna (FR-101).
+3. **Given** uma pessoa sem nenhum item fechado na janela, **When** a linha dela é lida, **Then**
+   a célula diz *none closed*, e **não** `0`; e *weeks with a close* diz `0 of 8`.
+4. **Given** uma pessoa sem **nenhum** item observado em nenhuma amostra da janela, **When** a
+   linha dela é lida, **Then** ela diz de que a ausência é — *no open item assigned · and none
+   observed at any sample of this window* —, a marca é **tracejada**, a pessoa **não** sai da
+   tabela (FR-021), e a previsão diz *nothing to forecast*, porque o piso **não** é a razão ali.
+5. **Given** uma pessoa que tem itens mas nenhum aberto agora, **When** a linha dela é lida,
+   **Then** ela diz *nothing open at any sample — her items in this window were all closed* — um
+   zero **medido** de uma série que existe —, e **não** empresta a frase do caso anterior
+   (FR-131).
+6. **Given** uma equipe em que 4 de 31 pessoas alcançam o piso, **When** a aba abre, **Then**
+   acima da tabela está *delivery forecast produced for 4 of 31 people in this window*, com a
+   frase de que o piso é do método; a linha aparece **também** quando N = 0 e quando N = M
+   (FR-100, SC-028).
+7. **Given** um item que a regra de roteamento não classificou, **When** a linha da pessoa é
+   lida, **Then** ele aparece com a marca `—` **junto da contagem de que faz parte**, nunca em
+   rodapé, e o que ele **é** fica declarado como desconhecido (FR-121).
+8. **Given** uma pessoa cujos repositórios podem não ter sido coletados, **When** os números dela
+   são lidos, **Then** a cobertura aparece **junto** deles, no formato *N repos observed ·
+   denominator unknown*, e a não-comparabilidade fica ao lado da tabela (FR-111, FR-112).
+
+---
+
 ### Edge Cases
 
 - **Pessoa direta e em subequipe.** Uma linha, dois marcadores; conta **uma vez** no
@@ -562,6 +752,43 @@ clicar nele chega ao `/teams/:id` da subequipe.
 - **Equipe sem projeto declarado e com trabalho.** Todo o trabalho é alerta, e a
   taxa do pipeline não existe (058 FR-013a) — os dois dizem a mesma lacuna, com
   palavras diferentes.
+
+**Da aba *Flow per person*** (transcritos de `spec-graficos-por-membro.md`, com os dois últimos
+acrescentados pelo protótipo aprovado):
+
+- **Item com dois responsáveis, ambos da equipe.** Conta **uma vez para cada** na tabela por
+  pessoa; conta **uma vez** nos gráficos da equipe (`DISTINCT`, FR-060). É por isso que somar as
+  linhas não dá o número da equipe, e é por isso que a tela diz.
+- **Item com dois responsáveis, um de fora da equipe.** A linha da pessoa de dentro conta o
+  item; a de fora não tem linha. A tela **não** declara que existe alguém de fora — isso é
+  vínculo, não item.
+- **Pessoa que entrou no meio da janela.** Mesma janela, história mais curta. A data de início
+  aparece; sem ela, *start date unknown* (057 FR-006). O denominador de *weeks with a close* é o
+  reduzido.
+- **Pessoa que saiu com data declarada.** O que ela fez continua contando na janela (US3), a
+  linha diz a saída e o autor dela, os itens continuam designados a ela na origem, e ela **não**
+  desaparece da tabela retroativamente.
+- **Pessoa em duas subequipes da mesma equipe composta.** Uma linha só na aba da equipe composta
+  — a aba é por pessoa, não por vínculo —, com os chips de subequipe na célula da pessoa e sem
+  total algum.
+- **Item reaberto.** Aparece como abertura no período em que reabriu e mantém o fechamento
+  anterior, nos quatro gráficos — a limitação já declarada em `flow.open_work.cumulative` e em
+  `flow.wip.count`.
+- **Granulação ano com um só período.** Um ponto não é uma série. A tela apresenta o ponto e diz
+  que uma série de um ponto não descreve fluxo — a limitação declarada em `flow.wip.count`.
+- **Equipe com exatamente um membro vigente.** A tabela tem uma linha, e ela **é** a equipe com
+  outro rótulo. A fronteira de 058 FR-025 vale: quem não alcança a equipe não vê a linha.
+- **Equipe sem membro vigente.** A tabela não existe, e a tela diz *no one has a declared
+  membership in this team right now* — o mesmo texto da seção do Dashboard.
+- **Pessoa cujo trabalho está todo em repositório não coletado.** Números baixos por uma razão
+  que não é o trabalho dela. É o caso que FR-111 e FR-112 existem para cobrir, e o mais perigoso
+  da aba inteira.
+- **Pessoa com itens, nenhum aberto agora.** É zero **medido** de uma série que existe, e MUST
+  NOT usar a frase de quem não tem nada observado — duas ausências diferentes, duas frases
+  diferentes (FR-131).
+- **A terceira pessoa aberta.** O teto é duas (FR-124). O protótipo aprovado **não desenhou** o
+  que acontece ao escolher a terceira: recusar, ou fechar a mais antiga. **Decisão pendente
+  (Q25)**, e nenhum entregável deste ponto é avaliável antes dela.
 
 ## Requirements *(mandatory)*
 
@@ -974,6 +1201,367 @@ clicar nele chega ao `/teams/:id` da subequipe.
   FR-058). **Cobrado na US9**, não na US6: o gráfico é fluxo, e chega quando o fluxo
   chega (decisão 11).
 
+### A aba *Flow per person* — onde ela vive
+
+*FR-085 a FR-112 foram transcritos em 2026-09-10 de
+[`spec-graficos-por-membro.md`](spec-graficos-por-membro.md) (2026-09-08), com as emendas do
+protótipo aprovado. De FR-113 em diante, cada requisito nomeia o **item da seção 3** do
+[`team-people-PROMPT.md`](prototipo/team-people-PROMPT.md) de onde saiu — a mesma seção que o QA
+confere item a item.*
+
+- **FR-085** *(§3.1)*: `/teams/:id` MUST ganhar uma **terceira aba**, com o valor `people` no
+  mesmo parâmetro de aba da FR-001, e MUST NOT ganhar rota nova. A aba MUST ser nomeada pelo que
+  responde — o fluxo de cada pessoa —, e não por "métricas".
+- **FR-086** *(§3.5)*: O conteúdo **padrão** da aba MUST ser uma **tabela**, uma linha por membro
+  do mesmo conjunto que alimenta o Dashboard (FR-057), **sem gráfico em nenhuma linha**. O que a
+  057 FR-011 protegia — comparação em números alinhados — vale aqui com pessoas no lugar de
+  subequipes.
+- **FR-087**: ~~Os quatro gráficos de uma pessoa MUST abrir sob demanda, no lugar, e o número
+  máximo de pessoas abertas ao mesmo tempo MUST ser limitado — *proposto: três*.~~ — **EMENDADA
+  pelo protótipo aprovado em 2026-09-08**. O teto é **duas**, e a segunda troca o layout: ver
+  **FR-124**. Continuam valendo desta redação: os gráficos MUST abrir **sob demanda**, e o bloco
+  aberto MUST levar a `/people/:id`.
+
+  O texto original: *"o número máximo de pessoas abertas ao mesmo tempo MUST ser limitado —
+  proposto: três. (O número está entre as perguntas abertas; o limite não está.)"* A razão da
+  emenda está na tela e no `team-people-README.md`: três gráficos lado a lado nesta coluna dão
+  ~19 rem cada, abaixo do que uma série de oito pontos com rótulos de eixo carrega, e três
+  escalas simultâneas não são comparação.
+- **FR-088** *(§3.6, item 17)*: A seção *What each person is on* do Dashboard MUST permanecer
+  onde está, MUST ganhar o caminho para a aba nova, e as duas MUST NOT ser fundidas. A do
+  Dashboard responde **o que está na mão de alguém agora**; a aba nova responde **como o fluxo
+  de cada um se comportou na janela**. A aba MUST NOT repetir a lista de tarefas abertas.
+
+### Working in progress — a definição
+
+- **FR-089** *(§3.6, item 18)*: *Working in progress* por pessoa MUST ser a **série** do número
+  de itens designados a ela e abertos em cada instante amostrado da janela, na granulação em uso
+  — e MUST NOT ser um número solto. O valor de agora MAY aparecer como o último ponto, rotulado
+  com o instante em que foi amostrado.
+
+  *Das três leituras possíveis — o número de agora, a série, ou o limite de WIP do quadro — a
+  base já escolheu a segunda: `flow.wip.count` declara `period: weekly` e a limitação "o painel
+  da equipe da issue #506 lê a série, e nunca um valor solto". Um valor solto é a má leitura que
+  a própria medida enumera.*
+- **FR-090** *(§3.3, item 4)*: A tela MUST declarar que *aberto* aqui é `external_created_at`
+  presente e `external_closed_at` nulo no instante observado, e que isso **não é**
+  `flow.wip.count` como a base a define: aquela fórmula exige `start_date` e `end_date` da tarefa
+  executada, o **critério de fim não existe** (limitação declarada na própria medida, issue
+  #506), e o tempo aqui conta de quando o **item** foi aberto, não de quando a pessoa o assumiu —
+  a origem não registra isso. A declaração MUST aparecer no bloco acima da tabela **e** dentro de
+  cada bloco de pessoa aberto.
+
+  *Apresentar esta série sob o nome `flow.wip.count` seria reivindicar uma medida que a coleta
+  não sustenta. A substituição é legítima e é a mesma que o burn da equipe já faz; o que não é
+  legítimo é não dizer.*
+- **FR-091** *(§3.3, item 4)*: A plataforma MUST NOT apresentar **limite de WIP** em lugar algum
+  da aba. Não há limite declarado na coleta e não há escopo comprometido (057 FR-029, FR-063). A
+  tela MUST NOT desenhar linha de limiar que insinue um.
+- **FR-092** *(§3.3, item 4)*: As más interpretações que `flow.wip.count` declara MUST aparecer
+  junto da série, **copiadas e não resumidas** — em especial: WIP baixo não significa fluxo
+  saudável; WIP alto não é sinônimo de produtividade; e comparar entre pessoas sem normalizar
+  transforma a medida em outra coisa.
+
+### Throughput — a definição
+
+- **FR-093** *(§3.6, item 18)*: *Throughput* por pessoa MUST ser a contagem de itens designados a
+  ela com `external_closed_at` dentro de cada período da janela, na granulação em uso — o nível
+  **person** de `flow.throughput.rate`, que a medida já declara em `scope.levels`.
+- **FR-094** *(§3.3, item 3)*: Item com **duas pessoas responsáveis** MUST contar **uma vez para
+  cada** aqui, e a seção MUST declarar que somar as linhas **não** dá a vazão da equipe: a da
+  equipe é medida sobre o conjunto distinto (FR-060), e não derivada destas linhas.
+
+  *É a regra da 057 — "aparece uma vez para cada" — e a limitação que `flow.throughput.rate` já
+  declara: "no nível person, a mesma tarefa aparece uma vez por participante, e a soma dos níveis
+  person não é igual ao nível sprint". A unidade desta seção é a pessoa, então vale a regra da
+  pessoa. A regra da equipe continua valendo onde a unidade é a equipe, e as duas nunca se
+  somam.*
+- **FR-095** *(§3.6, item 16)*: *Fechado* MUST ser declarado como `external_closed_at` — ato da
+  ferramenta, e não coluna de quadro nem critério de término declarado (FR-062, 057 FR-030). E a
+  limitação de que a contagem **ignora o tamanho do item** MUST aparecer junto do número:
+  decompor mais fino eleva a vazão sem mais trabalho feito.
+
+### Prometido × Realizado, por pessoa
+
+- **FR-096** *(§3.5, itens 8 e 9; §3.6, item 18)*: *Promised × Delivered* por pessoa MUST
+  apresentar, por período da mesma janela, os itens **abertos** no período e os **fechados** no
+  período, **sem acumular** — as mesmas duas contagens da FR-062, restritas às designações da
+  pessoa.
+- **FR-097** *(§3.6, item 16)*: A definição operacional — *prometido = aberto no período;
+  entregue = fechado no período* — e a declaração de que **não há escopo comprometido** MUST
+  aparecer **uma vez no cabeçalho da seção**, acima da tabela, **e outra vez dentro de cada bloco
+  de pessoa aberto**. MUST NOT ser repetida por linha fechada. As colunas da tabela fechada MUST
+  usar as palavras operacionais — *opened in the window*, *closed in the window* — de modo que a
+  palavra "prometido" nunca apareça sem a definição ao lado.
+
+  *A FR-063 exige que "prometido" nunca apareça sem a definição **ao lado**. Repetir a ressalva
+  31 vezes é ruído que ninguém lê, e omiti-la é a FR-063 violada. A saída é não usar a palavra
+  onde a definição não cabe, e usá-la onde ela cabe. Esta é uma das duas leituras possíveis da
+  FR-063, e o protótipo implementa a leitura (a) — ver **Q21**, pendente.*
+
+### Monte Carlo, por pessoa
+
+- **FR-098** *(§3.6, item 18)*: A previsão por pessoa MUST usar `Forecast.monte_carlo/2` com o
+  **mesmo piso** — 6 períodos de história e 10 itens fechados, os valores que `Forecast.piso/0`
+  devolve — e MUST ser **semanal** independentemente da granulação escolhida para os outros
+  gráficos (FR-064). A tela MUST dizer isso.
+- **FR-099** *(§3.5, item 11; §3.6, item 20; §3.8, item 25.2)*: Abaixo do piso, a tela MUST
+  **recusar e dizer o que falta, por pessoa**, com os **quatro** números — as semanas que a
+  pessoa tem, as exigidas, as fechadas que ela tem, as exigidas —, que o código já devolve em
+  `{:sem_historico, %{semanas, semanas_exigidas, fechadas, fechadas_exigidas}}`. As palavras
+  **met** e **short** MUST carregar a diferença, de modo que a distinção não dependa de cor.
+  Célula vazia, `0`, "N/A", traço e coluna escondida MUST NOT ser usados.
+- **FR-100** *(§3.4, item 5)*: A seção MUST declarar, **acima da tabela**, para quantas pessoas
+  há previsão e de quantas, e MUST dizer que o piso é do **método** e nunca das pessoas abaixo
+  dele. A linha MUST aparecer inclusive quando **N = 0** e quando **N = M**. Numa equipe real a
+  maioria fica abaixo do piso, e sem esta linha a tela é lida como quebrada.
+- **FR-101** *(§3.6, item 20; §3.8, item 25.2)*: A previsão de uma pessoa abaixo do piso MUST NOT
+  ser calculada a partir da história da **equipe**. Sem história da pessoa, não há previsão sobre
+  a pessoa — emprestar o ritmo da equipe fabricaria um número sobre alguém.
+- **FR-102** *(§3.6, item 20)*: A recusa MUST ser dita como **lacuna do registro observado**,
+  nunca como afirmação sobre a pessoa — a mesma gramática que a FR-023 já usa para habilidades:
+  *"That is a gap in the record, never a statement about the person."*
+- **FR-103** *(§3.6, item 20)*: A previsão por pessoa MUST ser enunciada como pergunta sobre **o
+  trabalho** — quando o que está na mão dela termina, ao ritmo observado dela —, e MUST NOT ser
+  enunciada como capacidade, compromisso ou prazo da pessoa.
+
+### A janela, a granulação e a ordem
+
+- **FR-104** *(§3.2, item 2)*: Os gráficos e as colunas por pessoa MUST usar a **mesma** janela e
+  a mesma granulação dos gráficos do Dashboard, lidas do endereço (FR-078, FR-079), e MUST NOT
+  oferecer seletor por pessoa. Trocar qualquer uma das duas MUST reagrupar **todas** as pessoas
+  ao mesmo tempo. **Estendida pelo protótipo aprovado em 2026-09-08**: o controle é **um só** e
+  fica no cabeçalho da seção — ver FR-115.
+
+  *A FR-079 exige que toda comparação na mesma tela use a mesma janela. Comparação entre pessoas
+  é exatamente isso; janela por pessoa faria duas colunas vizinhas medirem períodos diferentes, e
+  a seção perderia a única coisa que ela acrescenta.*
+- **FR-105** *(§3.5, itens 6 e 10)*: Pessoa cujo vínculo começou dentro da janela MUST ter a data
+  de início junto da linha, ou *start date unknown* (057 FR-006), e a seção MUST declarar que
+  menos períodos com dado é história mais curta dentro da mesma janela, e **não** menos trabalho.
+- **FR-106** *(§3.5, item 13)*: A ordem padrão da tabela MUST NOT ser nenhuma das medidas. MUST
+  ser por **papel declarado e depois por nome**. **Estendida pelo protótipo aprovado em
+  2026-09-08**: nenhum cabeçalho de coluna **se oferece** para ordenar, e a ordem é escrita
+  abaixo da tabela — ver FR-117.
+
+### Quem vê
+
+- **FR-107** *(§3.1)*: A aba inteira **é** a quebra por pessoa nomeada, então MUST ser
+  apresentada apenas a quem alcança a equipe pelo veredito de acesso vigente (058 FR-024), e a
+  decisão MUST vir **antes** da carga. O veredito é `Tenants.Access.pode_ver_equipe/3`, e os
+  caminhos são **quatro**, confirmados no código em 2026-09-08: `:admin`, `:escopo_de_equipe`,
+  `:escopo_da_organizacao` e `:vinculo_vigente`. O escopo `project` **não** entra — a razão está
+  declarada no próprio módulo: *"ele nomeia um projeto, e uma equipe pode trabalhar em vários;
+  deixá-lo passar faria autoridade subir de lado."*
+- **FR-108** *(§3.1)*: A recusa MUST nomear o motivo (058 FR-024a) — `:fora_do_alcance` é o que o
+  veredito devolve. A aba MUST NOT ser escondida em silêncio, e MUST NOT ser apresentada vazia
+  como se a equipe não tivesse pessoas.
+
+### O que esta aba NÃO pode fazer
+
+- **FR-109** *(§3.3, item 3)*: A seção MUST declarar, em palavras e não em rodapé, que **não é
+  avaliação de desempenho e não é ranking de pessoas**: as medidas descrevem o **trabalho
+  observado**, e não a pessoa.
+- **FR-110** *(§3.5, item 14)*: A tela MUST NOT derivar nenhum número da equipe destas linhas, e
+  MUST NOT apresentar média por pessoa como medida da equipe. O número da equipe é medido
+  separadamente (FR-060), e a tela já diz isso na seção *What each person is on*.
+- **FR-111** *(§3.5, item 6)*: A **cobertura da coleta relativa à pessoa** MUST aparecer junto dos
+  números dela, e não em nota de pé. Número baixo de quem tem repositório não coletado é lacuna
+  de coleta, e a tela MUST dizer qual dos dois é. O protótipo aprovado implementa a forma *N repos
+  observed · denominator unknown* — a leitura (a) de **Q22**, que segue **pendente**.
+
+  *`PersonWork.timeline_coverage/2` responde cobertura de **timeline**, e as medidas desta aba não
+  dependem de timeline — saem de `external_created_at` e `external_closed_at`, que o próprio
+  módulo declara com cobertura completa. A cobertura que importa aqui é outra: se os repositórios
+  em que a pessoa trabalha foram coletados.* **[NEEDS CLARIFICATION: existe hoje um número de
+  cobertura de repositórios por pessoa? `WorkItems.repositories_of_person/2` lista os observados;
+  não há como saber os não observados.]**
+- **FR-112** *(§3.5, item 14)*: Comparar duas pessoas cuja cobertura difere MUST ser declarado
+  como **não comparável**, junto da tabela. Duas colunas alinhadas convidam à comparação; quando o
+  denominador difere, a comparação é ilusão e a tela precisa dizê-lo antes de alguém fazê-la.
+
+### O cabeçalho da aba e o controle de granulação — do protótipo aprovado
+
+- **FR-113** *(§3.1)*: O rótulo da aba MUST ser exatamente ***Flow per person*** e o valor no
+  endereço MUST ser exatamente `people`. O rótulo nomeia o que a aba responde; o valor é curto
+  porque vive na URL.
+- **FR-114** *(§3.2, item 1)*: O cabeçalho da seção MUST trazer o título *Flow per person* com
+  `N members · <janela> · by <granulação>` — os três juntos, no mesmo lugar, e nenhum número da
+  aba MUST aparecer sem que a janela esteja escrita (FR-079, SC-020).
+- **FR-115** *(§3.2, item 2)*: A aba MUST ter **um único** controle de granulação `week · month ·
+  year`, no **cabeçalho da seção**, e MUST NOT repeti-lo no cabeçalho de cada gráfico. Trocá-lo
+  MUST reescrever o endereço e reagrupar **todas** as linhas e todos os gráficos abertos ao mesmo
+  tempo. Cada gráfico MUST continuar nomeando a janela no próprio título.
+
+  *É **divergência deliberada** do Dashboard, onde o controle mora no cabeçalho de cada gráfico:
+  dois gráficos de duas pessoas não podem ficar em janelas diferentes (FR-079, FR-104), e um
+  controle repetido oito vezes afirma oito controles independentes. Decisão do desenho em
+  2026-09-08, reversível pela pessoa mantenedora.*
+
+### Os dois blocos antes dos números — do protótipo aprovado
+
+- **FR-116** *(§3.3, itens 3 e 4)*: A aba MUST apresentar, **acima da tabela** e **sem colapsar**,
+  **dois** blocos, na ordem: (1) *a table of work items, not a table of people* — o item com dois
+  responsáveis, a ausência de denominador comum entre linhas, *open now* como trabalho que **não**
+  se moveu, a ordem declarada, a ausência de ordenação e a ausência de média; e (2) *"working in
+  progress" here is not `flow.wip.count`* — a substituição da FR-090, a ausência de limite da
+  FR-091 e as más leituras copiadas da FR-092. Os dois MUST aparecer em **toda** equipe e em
+  **todo** tamanho de equipe, e MUST NOT ser rodapé, nota, *tooltip* nem bloco recolhível.
+- **FR-117** *(§3.5, item 13)*: Nenhum cabeçalho de coluna de medida MUST oferecer ordenação —
+  nem afordância, nem seta, nem cursor de clique —, e a ordem em uso MUST estar **escrita** abaixo
+  da tabela, nomeando o critério (papel declarado, depois nome). Ordenar pessoas por medida é o
+  ranking que esta aba recusa, a um clique de distância.
+- **FR-118** *(§3.3, item 3; §3.7, item 23)*: A aba MUST NOT apresentar **média, mediana, taxa ou
+  número único por pessoa** em lugar algum — nem na tabela, nem no bloco de uma pessoa, nem no de
+  duas, nem em gráfico. Um número por pessoa é exatamente a figura de produtividade que a
+  plataforma não sustenta.
+
+### A tabela — as seis colunas do protótipo aprovado
+
+- **FR-119** *(§3.5, item 6)*: A primeira coluna MUST ser `person · role · collection`, e MUST
+  trazer, na mesma célula: nome e login; o papel declarado ou ***role not declared*** com a
+  origem (*observed at the source*); desde quando, ou ***start date unknown***; a marca
+  ***left \<data\>*** com quem declarou e quando, para quem tem saída (FR-021, FR-022); e a
+  **cobertura da coleta** (FR-111). Nenhum destes MUST ser omitido por falta de espaço.
+- **FR-120** *(§3.5, item 7)*: A segunda coluna MUST ser `open now · and the change across the
+  window`: o valor no **último instante amostrado** e a **variação entre a primeira e a última
+  amostra** da janela, dita em palavras — *no change across the 8 samples*, *9 at the first sample
+  · +2 across the window*, *first sample 20 Aug · +24 since joining*, *unchanged since 14 Aug ·
+  still assigned to her at the source*. A variação MUST ser declarada como **leitura** da série
+  (FR-089), e MUST NOT ser apresentada como medida nova nem como tendência. **Depende de Q20**: se
+  a leitura não for declarada na base, a coluna sai (princípio IV).
+- **FR-121** *(§3.5, item 7; §3.8, item 25.3)*: Item que a regra `github.issue_type_routing` não
+  classificou MUST aparecer **junto da contagem de que faz parte**, com a marca `—` tracejada e
+  distinta em escala de cinza de `TASK`, `US`, `BUG` e `EPIC`, e com a contagem própria — *— n the
+  routing rule did not classify*. MUST NOT ser rodapé, MUST NOT ser omitido e MUST NOT ser
+  reclassificado por suposição: o item conta em todos os números da linha, e o que ele **é**
+  permanece desconhecido.
+- **FR-122** *(§3.5, item 10)*: A coluna `weeks with a close` MUST ser a contagem de períodos da
+  janela com **ao menos um** fechamento, apresentada como `n of N` — e `N` MUST ser **reduzido**
+  para quem entrou dentro da janela (`2 of 3`) ou saiu dentro dela (`3 of 5`), porque o
+  denominador é a parte da janela em que a plataforma tem o que dizer sobre a pessoa. MUST ser
+  declarada como **leitura** de `flow.throughput.rate`, e **depende de Q20** pela mesma razão da
+  FR-120.
+- **FR-123** *(§3.5, item 11)*: A coluna `delivery forecast · 12 weeks · weekly` MUST ser **coluna
+  de estado, e não de valor**, com fundo hachurado leve em toda a coluna — para que a maioria de
+  recusas se leia como **uma região medida**, e não como células que falharam em carregar. Os
+  estados MUST ser exatamente **quatro**, e cada um com as suas palavras:
+
+  1. **acima do piso** — `p50 n wk · no p85` e a hipótese, com a proporção de rodadas que
+     **nunca zeraram** (FR-098);
+  2. **abaixo do piso** — `no forecast · below the floor` e os **quatro** números, com *met* e
+     *short* (FR-099);
+  3. **sem item aberto** — `nothing to forecast · no open item to reach zero`; **o piso não é a
+     razão ali**, e usar as palavras do piso seria outra afirmação falsa;
+  4. **sem nada observado** — a marca tracejada do §3.8 item 25.1, com *nothing to forecast* pela
+     mesma razão.
+
+  Percentil de rodadas que não concluíram MUST ser **nulo**, nunca um número grande (057 FR-032 a
+  FR-035, corrigido em 2026-09-08).
+
+### O bloco de uma pessoa, e o de duas — do protótipo aprovado
+
+- **FR-124** *(§3.5, item 12; §3.6, item 15; §3.7, itens 21 e 24)*: **Emenda a FR-087.** Cada
+  linha MUST ter a ação `charts ▾` / `close ▴`. **Uma** pessoa aberta MUST abrir **sob a própria
+  linha**, em duas por duas, com faixa à esquerda e cabeçalho com o nome, a janela e o caminho
+  para `/people/:id`. **Duas** pessoas abertas MUST **tirar as duas das linhas** e montar **quatro
+  linhas de duas colunas** abaixo da tabela, uma linha por medida, com as duas linhas da tabela
+  marcadas. O teto MUST ser **duas**, e a razão MUST estar escrita na própria tela. A plataforma
+  MUST NOT apresentar três pessoas abertas ao mesmo tempo.
+
+  *O comportamento ao escolher a **terceira** pessoa — recusar, ou fechar a mais antiga — **não
+  foi desenhado** no protótipo aprovado. Q25, pendente.*
+- **FR-125** *(§3.5, item 14)*: Ao lado da tabela MUST estar (a) a não-comparabilidade da FR-112 e
+  (b) **o que a tabela diz e o que não diz da equipe** — a observação sobre **o trabalho**, com as
+  leituras que produzem aquela tabela enumeradas e **nenhuma escolhida**. A tela MUST relatar a
+  observação e MUST NOT apresentar conclusão: um quadro parado, uma dependência travada e cinco
+  pessoas trabalhando em outro lugar produzem a mesma tabela, e a coleta não as distingue.
+- **FR-126** *(§3.6, item 17)*: O bloco de uma pessoa aberta MUST trazer a **composição** do
+  número de itens abertos por conceito — `TASK n · US n · BUG n · EPIC n`, com a marca do conceito
+  —, e MUST NOT trazer a lista de itens, que é do Dashboard (FR-088). A composição é a mistura de
+  conceitos sobre a qual a medida foi calculada (ADR 0008).
+- **FR-127** *(§3.6, item 18)*: Os quatro gráficos MUST ser numerados **1 → 4**, e os números MUST
+  ser a ordem de leitura: *1* o que está lá, *2* o que entrou e saiu, *3* a que ritmo, *4* o que o
+  ritmo implica. Os três primeiros MUST ser marcados como **observados** e o quarto como
+  **derivado**, com o cartão tracejado, para que uma simulação nunca seja lida como contagem.
+- **FR-128** *(§3.6, item 19)*: Gráfico sem dado MUST ser **desenhado** — eixos, escala e a frase
+  na própria área de plotagem, sobre fundo tracejado —, dizendo de que a ausência é. Área em
+  branco MUST NOT ser usada: é indistinguível de gráfico que não renderizou, e há equipes inteiras
+  cujos gráficos estão vazios.
+- **FR-129** *(§3.7, item 22)*: No bloco de duas pessoas, cada gráfico MUST manter a **sua**
+  escala, com o intervalo **rotulado**, e a linha da medida MUST dizer que os eixos diferem — *as
+  formas comparam, as alturas não*. Escala compartilhada MUST NOT ser imposta: ela achataria a
+  série menor numa linha no rodapé e chamaria isso de comparação.
+- **FR-130** *(§3.7, item 23)*: A linha do *throughput* no bloco de duas pessoas MUST declarar que
+  aquelas barras são as barras *delivered* da linha anterior lidas como ritmo — **os mesmos
+  números, duas perguntas** —, e MUST declarar que **nenhuma média e nenhuma mediana por pessoa** é
+  desenhada. A redundância MUST estar escrita na tela enquanto os quatro gráficos existirem
+  (**Q19**, pendente).
+
+### As três ausências — do protótipo aprovado
+
+- **FR-131** *(§3.8, item 25)*: A aba MUST apresentar as **três** ausências como casos distintos,
+  cada um com **forma, palavras e lugar próprios**, e MUST NOT usar uma frase só para as três:
+
+  1. **nada observado para a pessoa** — marca **tracejada**, a frase que diz de que a ausência é
+     (*no open item assigned · and none observed at any sample of this window*), a linha
+     **permanece** na tabela (FR-021), e a distinção explícita do caso vizinho: quem tem itens mas
+     nenhum aberto agora é um zero **medido** de uma série que existe, e MUST NOT herdar esta
+     frase;
+  2. **abaixo do piso da previsão** — os **quatro** números, e os **dois** modos de bloqueio,
+     *closed short* e *history short*, mostrados de modo que se distinga qual bloqueia, ou os dois
+     (FR-099);
+  3. **o item que a regra não classificou** — ausência de **rótulo**, não de medida: `—` tracejado
+     junto da contagem de que faz parte, nunca em rodapé (FR-121).
+
+  E a **quarta**, que o protótipo acrescentou e a escrita de 2026-09-08 não previa: *nothing to
+  forecast*, para quem não tem item aberto — o piso **não** é a razão ali (FR-123).
+
+### A régua do QA — os 26 itens da seção 3, e o requisito de cada um
+
+*A conferência da aceitação é contra a seção 3 do
+[`team-people-PROMPT.md`](prototipo/team-people-PROMPT.md), item a item. Esta tabela é o caminho
+de volta: item do prompt → requisito desta spec. Item sem requisito é lacuna; requisito sem item
+é invenção — e não há nenhum dos dois.*
+
+| Item da §3 | O que o item exige | Requisito |
+|---|---|---|
+| §3.1 | `people` no mesmo parâmetro, sem rota nova; rótulo *Flow per person*; só a quem alcança a equipe, com recusa nomeada | FR-085, FR-113, FR-107, FR-108 |
+| 1 | título com `N members · <janela> · by <granulação>` | FR-114 |
+| 2 | **um** controle de granulação, no cabeçalho da seção; cada gráfico nomeia a janela | FR-115, FR-104 |
+| 3 | o bloco *a table of work items, not a table of people*, com os seis pontos | FR-116, FR-094, FR-106, FR-109, FR-112, FR-117, FR-118, FR-120 |
+| 4 | o bloco *"working in progress" here is not `flow.wip.count`*, com as más leituras copiadas | FR-116, FR-090, FR-091, FR-092 |
+| 5 | *forecast produced for N of M people*, acima da tabela, inclusive N = 0 e N = M | FR-100 |
+| §3.5 | a tabela é o conteúdo padrão: uma linha por membro, **nenhum gráfico em nenhuma linha** | FR-086 |
+| 6 | `person · role · collection` — papel, início, saída com autor, cobertura | FR-119, FR-105, FR-111 |
+| 7 | `open now` e a variação em palavras; a sub-linha do item não classificado | FR-120, FR-121, FR-089 |
+| 8 | `opened in the window`, com `none opened` | FR-096 |
+| 9 | `closed in the window`, com `none closed` | FR-096, FR-095 |
+| 10 | `weeks with a close`, `n of N`, com denominador reduzido | FR-122, FR-105 |
+| 11 | a previsão como **coluna de estado**, hachurada, com os estados e os quatro números | FR-123, FR-098, FR-099 |
+| 12 | a ação `charts ▾` / `close ▴` por linha — os gráficos abrem **sob demanda** | FR-124, FR-087 |
+| 13 | a linha da ordem abaixo da tabela; nenhuma coluna ordena | FR-106, FR-117 |
+| 14 | a não-comparabilidade e o que a tabela diz e não diz da equipe | FR-112, FR-125, FR-110 |
+| 15 | o bloco de uma pessoa sob a própria linha, com o caminho para `/people/:id` | FR-124, FR-087 |
+| 16 | as duas definições e a substituição do WIP **dentro** do bloco | FR-097, FR-090, FR-095 |
+| 17 | a composição por conceito, e **nunca** a lista de itens | FR-126, FR-088 |
+| 18 | quatro gráficos numerados 1 → 4; três observados, o quarto derivado e tracejado | FR-127, FR-089, FR-093, FR-096, FR-098 |
+| 19 | **gráfico vazio é desenhado**, nunca em branco | FR-128 |
+| 20 | a recusa com os quatro números, a lacuna do registro, sem emprestar a equipe, e a pergunta sobre o trabalho | FR-099, FR-101, FR-102, FR-103 |
+| 21 | duas pessoas abertas saem das linhas: quatro linhas de duas colunas, com as linhas marcadas | FR-124 |
+| 22 | cada gráfico com a sua escala rotulada; *as formas comparam, as alturas não* | FR-129 |
+| 23 | nenhuma média nem mediana por pessoa; as barras do gráfico 3 são as de *delivered* | FR-118, FR-130 |
+| 24 | teto de **duas** pessoas, com a razão na tela | FR-124 |
+| 25 | as três ausências, cada uma com forma, palavras e lugar; e a quarta | FR-131, FR-099, FR-121, FR-123 |
+| 26 | o cartão *Decisions and open questions* | **nenhum** — declarado **aparato do protótipo**, ver **Q26** |
+
+**O item 26 é o único sem requisito, e a razão está escrita.** O cartão de decisões, as faixas de
+narração (*what this screen is*), as marcas `real`/`example` e as faixas `screen N` existem para
+quem lê o protótipo, não para quem usa o produto. Tratá-los como tela criaria requisito de
+apresentar decisões de desenho a quem abre `/teams/:id`. **Se essa leitura estiver errada, a régua
+passa a ter 26 itens e nasce requisito novo** — é o que Q26 pergunta, e este papel não decide por
+conta própria o que a régua cobra.
+
 ### O que da 055 esta spec só reutiliza
 
 | 055 | O que é | Aqui |
@@ -1086,6 +1674,56 @@ clicar nele chega ao `/teams/:id` da subequipe.
   a lista com os vínculos projeto ↔ repositório e projeto ↔ quadro; **0** itens
   fechados no alerta.
 
+**Da aba *Flow per person*** — SC-022 a SC-032 transcritos de `spec-graficos-por-membro.md` em
+2026-09-10, com duas emendas do protótipo aprovado; SC-033 a SC-038 nascem dele.
+
+- **SC-022**: Numa equipe de 31 membros, a aba aberta apresenta **31 linhas e zero gráficos**; o
+  número de gráficos na tela é igual a quatro vezes o número de pessoas abertas, e nunca passa de
+  ~~doze~~ **oito** — **emendado em 2026-09-08**, porque o teto passou de três pessoas para duas
+  (FR-124).
+- **SC-023**: A soma da coluna *closed in the window* das linhas é **maior ou igual** à vazão da
+  equipe no mesmo período, e a diferença é exatamente o número de itens com mais de um
+  responsável da equipe.
+- **SC-024**: Trocar a granulação ou a janela no endereço muda **todas** as linhas; não existe
+  estado da tela em que duas linhas mostrem janelas diferentes.
+- **SC-025**: A soma de abertos e a soma de fechados na janela, para uma mesma pessoa, são
+  **iguais** nas três granulações.
+- **SC-026**: Em nenhuma célula de medida aparece célula vazia, `0` sem contexto, "N/A" ou traço:
+  cada ausência é uma frase que diz do que ela é ausência.
+- **SC-027**: A recusa da previsão por pessoa traz os **quatro** números — semanas que tem,
+  semanas exigidas, fechadas que tem, fechadas exigidas — em 100% das pessoas abaixo do piso, com
+  *met* e *short* escritos.
+- **SC-028**: A contagem *delivery forecast produced for N of M people* aparece acima da tabela em
+  toda equipe, inclusive quando **N = M** e quando **N = 0**.
+- **SC-029**: A palavra "prometido"/"promised" não aparece em nenhum estado da tela sem a
+  definição operacional visível no mesmo bloco.
+- **SC-030**: Conta que não alcança a equipe recebe recusa com motivo nomeado, e **zero linhas**
+  por pessoa: nenhum login, nenhum nome, nenhum número individual chega ao navegador. Conferido
+  pela revisão de segurança, como no PR #798.
+- **SC-031**: Abrir ~~três~~ **duas** pessoas não passa do teto de consultas por render que o
+  teste guarda hoje para a tela da equipe — **emendado em 2026-09-08** (FR-124). O protótipo
+  registra que o teto **não foi medido**: é argumento até haver teste.
+- **SC-032**: A tabela recém-carregada nunca está ordenada por uma das medidas, em nenhuma equipe.
+- **SC-033**: A aba tem **exatamente um** controle de granulação, no cabeçalho da seção; **0**
+  controles no cabeçalho de gráfico; acioná-lo reagrupa **100%** das linhas e dos gráficos abertos
+  numa só ação, e **100%** dos gráficos continuam nomeando a janela no próprio título (FR-115).
+- **SC-034**: **0** áreas de plotagem em branco em qualquer estado da aba; **100%** dos gráficos
+  sem dado trazem eixos, escala e a frase na própria área de plotagem — verificável abrindo uma
+  pessoa sem nada aberto nem fechado na janela (FR-128).
+- **SC-035**: **0** estados da tela com três ou mais pessoas abertas; **100%** das aberturas de
+  duas pessoas usam o layout pareado — quatro linhas de duas colunas, fora da tabela, com as duas
+  linhas marcadas — e **100%** dos gráficos pareados têm o intervalo do eixo **rotulado** e a
+  frase de que os eixos diferem (FR-124, FR-129).
+- **SC-036**: **0** médias, medianas, taxas ou números únicos por pessoa em qualquer estado da aba;
+  **0** cabeçalhos de coluna com afordância de ordenação; **100%** das telas trazem a ordem escrita
+  abaixo da tabela (FR-117, FR-118).
+- **SC-037**: **100%** das células da coluna de previsão estão em **um** dos quatro estados
+  declarados na FR-123; **0** células vazias na coluna, e o fundo hachurado cobre a coluna inteira
+  e não célula a célula.
+- **SC-038**: Os **dois** blocos acima da tabela aparecem em **100%** das equipes e em todos os
+  tamanhos, **0** deles colapsáveis, e as más leituras de `flow.wip.count` estão **copiadas** —
+  verificável comparando o texto da tela com o YAML da medida (FR-116, FR-092).
+
 ## Fora de escopo
 
 - **Rollup de competências pela hierarquia** (#397). Depende da composição; é outra
@@ -1110,6 +1748,23 @@ clicar nele chega ao `/teams/:id` da subequipe.
   o número do protótipo não é calculável, e o cartão não o mostra até haver coleta.
 - **Silenciar ou adiar um cartão** de *Problemas agora*. Não há conceito na base para
   "problema reconhecido"; o cartão fica enquanto o fato durar.
+
+**Da aba *Flow per person***:
+
+- **Limite de WIP.** Não existe na coleta e não é derivável; seria declaração (FR-091).
+- **Ordenar a tabela por medida**, e qualquer afordância que a ofereça. Ordenar por vazão
+  decrescente **é** um ranking, a um clique de distância (FR-106, FR-117).
+- **Janela ou granulação por pessoa.** Quebra a comparação, que é a razão da aba (FR-104, FR-115).
+- **Três ou mais pessoas abertas ao mesmo tempo** (FR-124).
+- **Média, mediana ou taxa por pessoa**, em qualquer forma (FR-118).
+- **Repetir a lista de tarefas abertas** — é do Dashboard (FR-088).
+- **Medidas que dependem de timeline** — tempo em cada estado, tempo até a primeira revisão por
+  pessoa. A cobertura de timeline era de 5 repositórios em 53 (medido em 2026-08-15), e as quatro
+  medidas desta aba foram escolhidas por não dependerem dela.
+- **Redesenho de `/people/:id`.** Continua a casa da leitura profunda; a aba só aponta para ela.
+- **Comparar pessoas de equipes diferentes.** A aba é de uma equipe.
+- **Avaliação de desempenho individual, em qualquer forma.** Não é fora de escopo por ser
+  difícil: é fora de escopo por decisão (FR-109).
 
 ## Premissas
 
@@ -1159,6 +1814,32 @@ contestadas:
   desde a abertura; (g) o protótipo lista o perfil sem teto — a coluna mostra até
   quatro, com link. A spec vence nos sete.
 
+**Da aba *Flow per person*** (protótipo de 2026-09-08):
+
+- **A aprovação do protótipo desta aba está atestada e não registrada** — ver o bloco no início
+  desta spec. Toda a transcrição de FR-085 a FR-131 assume a atestação de 2026-09-10 citando
+  2026-09-08.
+- **`Forecast.monte_carlo/2` serve por pessoa sem alteração.** Recebe uma série de
+  `%{criadas, fechadas}` e o número de abertos; nada nela é da equipe. Verificado em 2026-09-08
+  lendo a assinatura e o piso.
+- **O conjunto de membros é o da FR-057**: vínculo vigente, invalidado excluído, saída declarada
+  respeitada. Esta aba não decide quem é membro.
+- **A US9 vem antes.** A janela no endereço, o controle de granulação, as definições da FR-062 e a
+  ressalva da FR-063 nascem nela. Se a US9 mudar qualquer uma, esta aba muda com ela.
+- **Equipe de referência para a conferência**: LEDS - ConectaFapes, 31 membros — o caso que
+  reprova qualquer desenho que não faça o recorte.
+- **Nada do protótipo desta aba é medida, com quatro exceções declaradas nele**: os itens abertos
+  de quem está em equipe (760 TASK · 288 US · 71 BUG · 35 EPIC, 1 154), a composição de SQUAD PINK
+  (297) e da Equipe IA (83), os tamanhos das três equipes, e as idades do item aberto mais novo
+  (217 dias) e do mais velho (550) — medidos na base de desenvolvimento em 2026-09-08. **Nenhum
+  fechamento foi medido**: todo número de *opened*, *closed*, *weeks with a close* e previsão do
+  protótipo é exemplo, e os zeros do SQUAD PINK são **inferência**. A faixa de 31 linhas é exemplo
+  por inteiro. O teto de consultas (SC-031) **não foi medido**.
+- **Onde o protótipo desta aba diverge desta spec**: nada, por construção — a spec foi escrita
+  **a partir** dele em 2026-09-10, e onde o texto de 2026-09-08 divergia, a emenda está no
+  requisito. O que resta são as **oito decisões pendentes** da seção seguinte, e nenhuma delas é
+  divergência: são pontos que ninguém decidiu ainda.
+
 ## Decisões de 2026-09-07
 
 As quatro perguntas que esta escrita deixou abertas (1 a 4), seis levantadas pela
@@ -1182,6 +1863,69 @@ mantenedora em 2026-09-07)*.
 | 11 | em que história o cartão da subequipe é cobrado | **mover**: o cartão e a porta viram requisito e aceitação da **US7**; o gráfico pequeno, da **US9**; a US6 fica com a composição, o histórico, os membros diretos e o *faz parte de*. A DSM mostrou a dependência para frente — o cenário da US6 pedia artefato de entrega posterior, e não seria avaliável ao fim dela | FR-041, FR-084, US6, US7 c9, US9 c7 |
 
 O que estas decisões deslocam em outras specs está na tabela *Emendas*, no início.
+
+## Decisões do protótipo da aba *Flow per person* (2026-09-08), e as nove que seguem abertas
+
+O protótipo [`team-people.html`](prototipo/team-people.html) traz, na própria tela, quatro
+cartões de decisão. Os três primeiros estão **incorporados** a FR-085 a FR-131; o quarto é o que
+segue em aberto. Nenhuma das decisões de 2026-09-07 é reaberta.
+
+### Carregadas, já decididas antes desta tela (itens 1 a 6)
+
+| # | Decisão | Data | Onde nesta spec |
+|---|---|---|---|
+| 1 | a aba vive no endereço: `?tab=people`, com o rótulo dizendo o que responde | 7 Sep | FR-085, FR-113 |
+| 2 | *promised = opened in the period; delivered = closed in the period*, sem escopo comprometido | 7 Sep | FR-096, FR-097 |
+| 3 | a previsão continua **semanal** qualquer que seja a granulação dos outros gráficos | 7 Sep | FR-098 |
+| 4 | duas hipóteses, empilhadas e nunca sobrepostas; percentil de rodada que não concluiu é **nulo** | 8 Sep | FR-123 |
+| 5 | nada é apagado: a saída tem data e autor, a linha permanece, e o que a pessoa fez continua contando | 7 Sep | FR-119, FR-131 |
+| 6 | a marca do conceito e a sua casa fixa; esta aba usa só `—` e as contagens de uma composição | 8 Sep | FR-121, FR-126 |
+
+### Tomadas pelo desenho, e aprovadas com a tela (itens 7 a 17)
+
+A aprovação da tela aprova estas onze — é o que aprovar uma tela significa nesta casa. A pessoa
+mantenedora pode revertê-las; reverter qualquer uma **emenda o requisito** que a carrega.
+
+| # | Decisão do desenho | Onde virou requisito |
+|---|---|---|
+| 7 | a aba responde **distribuição e história**, não triagem nem profundidade | FR-085, FR-088 |
+| 8 | seis colunas, e a quarta medida é **estado**, não valor | FR-119 a FR-123 |
+| 9 | "working in progress" não aparece na tabela; a coluna se chama *open now* | FR-090, FR-120 |
+| 10 | a frase anti-ranking é **bloco acima dos números**, não colapsa, e vem com quatro recursos | FR-116 a FR-118 |
+| 11 | **um** controle de granulação, no cabeçalho da seção — divergência deliberada do Dashboard | FR-115 |
+| 12 | **duas** pessoas abertas, e a segunda troca o layout | FR-124 (emenda a FR-087) |
+| 13 | três ausências, três tratamentos, e uma quarta: *nothing to forecast* | FR-131, FR-123 |
+| 14 | gráfico vazio é **desenhado**, nunca em branco | FR-128 |
+| 15 | a coluna da previsão tem fundo hachurado: 27 recusas em 31 linhas são **uma região medida** | FR-123 |
+| 16 | a cobertura fica na célula da pessoa, como *N repos observed · denominator unknown* | FR-111, FR-119 |
+| 17 | a tela relata a **observação**, nunca a conclusão | FR-125 |
+
+**O desenho também respondeu, ao renderizar, a pergunta 4 da escrita de 2026-09-08** — *a previsão
+por pessoa vale a pena se o piso raramente é atingido?* A coluna existe, e a recusa **é**
+informação, com a moldura da FR-103. Reverter isto tira a coluna.
+
+### Abertas — cada uma é da pessoa mantenedora (itens 18 a 24, mais duas desta transcrição)
+
+Os números 18 a 24 são os do cartão de decisões da própria tela. Q25 e Q26 nasceram **desta
+transcrição**, em 2026-09-10, e não estão na tela.
+
+| # | Pergunta | As leituras | Recomendação do desenho / deste papel | O que muda se a resposta for outra |
+|---|---|---|---|---|
+| **Q18** | quantas pessoas abertas ao mesmo tempo? | (a) uma, e a comparação fica na tabela; (b) **duas**, com o layout pareado; (c) três, no lugar, como a FR-087 propunha | **(b)** — três gráficos lado a lado dão ~19 rem cada, abaixo do que uma série de oito pontos com rótulos carrega, e três escalas não são comparação | emenda FR-124, SC-022, SC-031, SC-035 |
+| **Q19** | *throughput* e *delivered* são os mesmos números — quatro gráficos ou três? | (a) **quatro**, com a redundância escrita na tela; (b) três, com o ritmo dobrado dentro de *Promised × Delivered*; (c) quatro, tirando as barras *opened* do gráfico 2 | **(a)** na primeira versão — derrubar um gráfico pedido nominalmente não é decisão do desenho nem deste papel | emenda FR-127, FR-130, SC-022 |
+| **Q20** | as **duas derivações** que a tabela introduz precisam de nome na base antes do código | (a) **declarar as duas** como leituras de `flow.open_work.cumulative` e `flow.throughput.rate`; (b) derrubar as duas colunas | **(a)** — sem elas a tabela mostra um estoque sem direção e um total sem regularidade, e a FR-089 exige a série | **bloqueia o código** de FR-120 e FR-122 (princípio IV). Recusada, as duas colunas saem |
+| **Q21** | o cabeçalho da seção conta como "ao lado" da palavra *promised* (FR-063)? | (a) sim, e a palavra não aparece na tabela — o que a tela faz; (b) não: cada gráfico que traz a palavra traz a definição | **(a)** | **bloqueia a aceitação**: a leitura (b) recusa o entregável que a (a) aceita (FR-097, SC-029) |
+| **Q22** | cobertura sem denominador (FR-111) | (a) a contagem dizendo que o denominador é desconhecido — o que a tela faz; (b) nenhum número, só a frase da não-comparabilidade; (c) segurar a aba até haver denominador | **(a)** — contagem que nomeia o próprio denominador ausente é mais honesta que silêncio | emenda FR-111, FR-119; a `[NEEDS CLARIFICATION]` da FR-111 só fecha aqui |
+| **Q23** | a pessoa vê a **própria** linha quando não alcança a equipe? | `pode_ver_equipe/3` tem quatro caminhos, e nenhum é "é sobre mim"; a 023 FR-012 diz que o trabalho de alguém é visível para a própria pessoa | levar à pessoa mantenedora; se a resposta for sim, é **quinto caminho** no veredito — decisão de acesso, do Arquiteto, não de tela | emenda FR-107 e a fronteira de 058 FR-024 |
+| **Q24** | de quem são os quatro gráficos no longo prazo? | (a) desta aba, como está; (b) de `/people/:id`, e a aba aponta; (c) os dois | **(a) agora, (b) depois** — e nunca (c), que são duas telas divergindo por construção | não muda requisito hoje; decide o destino de FR-124 a FR-130 |
+| **Q25** | o que acontece ao escolher a **terceira** pessoa: recusar com motivo, ou fechar a mais antiga? | (a) recusar, dizendo o teto; (b) fechar a mais aberta há mais tempo e abrir a nova | **nenhuma** — o protótipo aprovado **não desenhou** este estado, e escolher aqui seria desenhar sem o Design e sem aprovação | **bloqueia a aceitação** do cenário 3 da US11; completa FR-124 |
+| **Q26** | o que da **seção 3** do `PROMPT.md` é tela e o que é aparato do protótipo? | os itens 1 a 25 são estrutura de tela; o **item 26** — o cartão *Decisions and open questions* — e as faixas de narração (*what this screen is*), as marcas `real`/`example` e as faixas `screen N` são **aparato da página do protótipo** | **(a)** aparato, e por isso o item 26 **não** virou requisito | se for tela, nasce requisito novo, e a régua do QA passa a cobrar 26 itens contra 25 |
+
+**Três destas bloqueiam, e por motivos diferentes**: Q20 bloqueia o **código** de duas colunas
+(nada na tela sem declaração na base); Q21 e Q25 bloqueiam a **aceitação**, porque decidem se um
+entregável específico é aceito ou recusado. As demais podem ser respondidas depois sem invalidar o
+que já estiver escrito — mas cada resposta diferente da recomendação **emenda** os requisitos
+listados na última coluna.
 
 ## Impacto
 
@@ -1239,6 +1983,47 @@ dizer.
 | **pipeline falhando agora na branch padrão** | regra/anomalia (estado, não taxa) | a necessidade acima | `ci.pipeline_success_rate.ratio` é taxa sobre a janela; "falhando agora" é a última verificação concluída na branch padrão — outra afirmação, que precisa de nome |
 | cartões (e) a (h) | — | — | reusam declarações existentes: 057 FR-021, 055 FR-018, a regra do alerta (linha acima), `structure_antipatterns.yaml`; sem YAML novo além da necessidade |
 
+### A aba *Flow per person* — módulos, base de conhecimento e o que exige outro papel
+
+**Telas**: `lib/the_band_web/live/teams_live/show.ex` ganha a terceira aba — a máquina de abas já
+existe (`?tab=structure`, FR-001), e a janela e a granulação já vivem no endereço; a seção *What
+each person is on* ganha o caminho para a aba nova (FR-088). A tela da pessoa **não muda**: o
+bloco aberto aponta para ela.
+
+**Módulos** — estado verificado em 2026-09-08:
+
+| O que | Estado hoje | Requisitos |
+|---|---|---|
+| abertos e fechados por período, por pessoa | `WorkItems.state_changes_by_period(tenant, person_id, escala)` **existe** e é exatamente isto, mas tem **aridade 3 e não recebe janela**. A da equipe é `team_state_changes_by_period(tenant, team_id, escala, opts)`. Precisa receber `desde`/`ate`, ou a FR-104 é impossível | FR-093, FR-096, FR-104 |
+| série do trabalho aberto por pessoa | **não existe**. `TeamWork.open_tasks_by_person(tenant, team_id, quando, ids)` devolve a **lista** de tarefas abertas num **instante**; chamá-la por instante devolveria a lista inteira 8 vezes para 31 pessoas. Consulta nova, contando por pessoa e por período numa passagem | FR-089, FR-120 |
+| previsão por pessoa | `Forecast.monte_carlo/2` serve **sem alteração**; `Forecast.piso/0` já expõe os dois números da recusa | FR-098, FR-099 |
+| períodos com ao menos um fechamento | leitura da série de fechamento; **não existe** como consulta, e o denominador reduzido por vínculo depende do período do vínculo | FR-122 |
+| cobertura de repositórios por pessoa | **não existe**. `PersonWork.timeline_coverage/2` responde timeline, que estas medidas não usam; `WorkItems.repositories_of_person/2` lista os observados, sem denominador | FR-111 **[NEEDS CLARIFICATION]**, Q22 |
+| teto de consultas | há teste-guarda de consultas por render nesta tela (a L38 já reprovou uma versão). Duas pessoas abertas × quatro medidas precisa caber, e o número de consultas MUST NOT crescer com o número de membros | SC-031 |
+
+**Base de conhecimento — antes da tela (princípio IV).** Nenhuma medida nova; **cinco
+declarações** faltam:
+
+| Medida | `scope.levels` hoje | O que falta |
+|---|---|---|
+| `flow.wip.count` | `[sprint, project, team, person]` | nada no escopo. Falta declarar a **substituição** da FR-090 — a fórmula exige `start_date`/`end_date` da tarefa, e o critério de fim não existe (#506) |
+| `flow.throughput.rate` | `[sprint, project, team, person]` | nada. A não-aditividade no nível `person` **já está declarada** |
+| `flow.open_work.cumulative` | `[team, project]` — **sem `person`** | declarar o nível `person`, com a regra de contagem (uma vez por participante) e a não-aditividade |
+| `flow.completion_forecast` | `[team]` — **sem `person`** | declarar o nível `person`, com o piso e a limitação de que a história da equipe **não** substitui a da pessoa (FR-101) |
+| as **duas leituras** de FR-120 e FR-122 | não declaradas | a variação entre a primeira e a última amostra da janela, e os períodos com ao menos um fechamento — **Q20**, e é o que bloqueia o código das duas colunas |
+
+**O que exige decisão de outro papel**:
+
+| O quê | De quem | Por quê |
+|---|---|---|
+| declarar `person` em `flow.open_work.cumulative` e em `flow.completion_forecast` | **Ontologia** | escopo de medida é semântica, e ampliá-lo muda o que a medida afirma |
+| onde as duas leituras de FR-120 e FR-122 são declaradas, e sob que id | **Ontologia** | Q20 |
+| onde a substituição do WIP é declarada | **Ontologia** | limitação nova em `flow.wip.count`, ou medida com id próprio para "itens abertos por instante" |
+| **candidato a ADR**: o que a plataforma chama de WIP enquanto o critério de fim não existe | **Arquiteto** | a substituição já acontece no burn da equipe, e esta aba a espalha para 31 pessoas por equipe. Este papel aponta; não decide, e não abre ADR |
+| a consulta nova da série de trabalho aberto por pessoa | **Desenvolvedor** | ver a tabela de módulos |
+| quinto caminho no veredito de acesso, se Q23 for "sim" | **Arquiteto** + pessoa mantenedora | acesso, não tela |
+| o estado da terceira pessoa aberta | **Design** + pessoa mantenedora | Q25 — não foi desenhado, e implementar sem desenho contraria a decisão de 2026-09-07 |
+
 ### Documentos de outros papéis que esta spec afeta, sem alterá-los
 
 - **Spec 057**: FR-011 e FR-029 (emendas), FR-008 (esclarecimento) — pela tabela
@@ -1256,3 +2041,14 @@ dizer.
 - **`docs/backlog/perguntas-do-painel-da-equipe.md`**: P1 a P3 (vazão, WIP,
   concentração) **não** entram aqui; a lista de perguntas continua à espera de
   aprovação.
+- **`specs/060-tela-da-equipe/spec-graficos-por-membro.md`**: **superada** por esta spec em
+  2026-09-10, quando FR-085 a FR-112, US10 a US12, SC-022 a SC-032 e os *edge cases* foram
+  transcritos para cá com as emendas do protótipo aprovado. O arquivo permanece como registro do
+  que foi escrito em 2026-09-08 — nada é apagado —, e deixa de ser normativo.
+- **`specs/060-tela-da-equipe/tasks.md`**: a linha *"FR-085 a FR-112 … sem tarefa"* continua
+  verdadeira, e passa a apontar para esta spec; US10 a US12 seguem **sem tarefa**, e agora com
+  requisito escrito.
+- **`docs/metrics/indicadores.md`**: se a aba entrar, `flow.wip.count` e `flow.throughput.rate`
+  passam a ter leitura no nível `person`, com as limitações copiadas.
+- **`docs/backlog/tela-da-equipe-fluxo-por-pessoa.md`**: o item do backlog desta aba, com o
+  endereço do protótipo, o prompt e o registro das decisões.

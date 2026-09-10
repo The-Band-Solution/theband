@@ -1,5 +1,14 @@
 # Extensão da 060 — os quatro gráficos de fluxo, por membro da equipe
 
+> **SUPERADA em 2026-09-10 por [`spec.md`](spec.md).** FR-085 a FR-112, US10 a US12, SC-022 a
+> SC-032 e os *edge cases* deste arquivo foram **transcritos** para a spec.md — o lugar normativo
+> —, com os **mesmos números** e com as emendas que o protótipo aprovado em 2026-09-08 impôs a
+> FR-087, FR-104, FR-106, SC-022 e SC-031. Este arquivo permanece como registro do que foi
+> escrito em 2026-09-08, **antes** do protótipo; nada foi apagado. **Ele deixou de ser
+> normativo**: onde este texto e a spec.md divergirem, vale a spec.md. As sete perguntas abertas
+> daqui foram reagrupadas em Q18 a Q26 na seção *Decisões do protótipo da aba Flow per person* da
+> spec.md.
+
 **Esta é uma EXTENSÃO da feature 060, não uma spec nova.** A pessoa mantenedora não
 pediu feature: pediu **acrescentar** à tela que já existe. Tudo aqui se prende a
 [`spec.md`](spec.md) — as user stories continuam a numeração dela (US10 a US12), os

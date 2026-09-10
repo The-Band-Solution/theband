@@ -29,7 +29,12 @@ está nas tabelas de contagem é dado real de 2026-09-06.
 - **os quatro gráficos por membro** — WIP, prometido × realizado, throughput e Monte Carlo —
   pedidos em 2026-09-08 e especificados em
   [`spec-graficos-por-membro.md`](../../specs/060-tela-da-equipe/spec-graficos-por-membro.md)
-  como US10 a US12. **Sem protótipo aprovado**, e a casa não implementa tela sem ele.
+  como US10 a US12. ~~**Sem protótipo aprovado**, e a casa não implementa tela sem ele.~~ —
+  **atualizado em 2026-09-10**: o protótipo existe (`team-people.html`, endereço próprio,
+  atestado como aprovado em 2026-09-08), os requisitos foram escritos na `spec.md` (FR-085 a
+  FR-131), e o item passou a ter documento próprio:
+  [A aba *Flow per person*](tela-da-equipe-fluxo-por-pessoa.md). **Continua sem tarefa**, e o
+  veredito de decomposição está lá: falta o **registro** da aprovação, e três decisões travam.
 
 **Três defeitos anteriores à feature, achados ao construí-la:**
 
