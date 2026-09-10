@@ -3,29 +3,63 @@
 **Escrito em 2026-09-09**, a partir do achado **H3** da avaliação de segurança
 (`docs/seguranca/2026-09-09-o-que-consertar-agora.md`).
 
-> **Este documento existe porque o gesto que parece desligar não desliga, e o que
-> desliga não parece desligar.** Enquanto o conserto do H3 não entrar, ele é o único
-> controle que a organização tem — e um controle que ninguém sabe usar não é um
-> controle.
+> **Este documento existe porque o gesto que parece desligar não desligava, e o que
+> desligava não parecia desligar.** Ele nasceu como o único controle que a organização
+> tinha — e um controle que ninguém sabe usar não é um controle.
+
+> **ATUALIZADO EM 2026-09-10.** O conserto entrou: `/accounts` tem o ato de desativar, ele
+> **exige razão**, e a tela carrega o procedimento. O que segue é a versão longa; a versão
+> curta está na própria tela, no ponto de agir — que é onde este documento provou que ela
+> precisava estar.
 
 ---
 
 ## O que fazer, hoje
 
-**Reinicie a senha da conta e não entregue a temporária.**
+**Em `/accounts`, `Disable…` na linha da pessoa.** Escolha a razão e confirme.
 
-Em `/accounts`, ação **`reset`** na conta da pessoa. A temporária aparece **uma vez**
-para quem administra. Não a passe a ninguém.
+A razão é **lista fechada**: `left_the_organisation`, `access_no_longer_needed`,
+`duplicate_account`, `suspected_compromise`, `other`. Ela é o que a plataforma **lê** — a
+suspeita de comprometimento muda o que a tela mostra em seguida, e é a pergunta que um
+incidente faz por contagem. A **nota** é o que você escreve, e é obrigatória para
+`suspected_compromise` e `other`.
 
-Isso corta o acesso, e corta de verdade: `gravar_temporaria` gira o `session_token`, e
-o giro derruba **todas** as sessões abertas daquela conta na ação seguinte. A pessoa
-não entra mais porque não sabe a senha nova, e as sessões que ela tinha abertas param
-de valer.
+Isso corta o acesso, e corta de verdade: `desativar_changeset/2` gira o `session_token`, e
+o giro derruba **todas** as sessões abertas daquela conta na ação seguinte. A entrada passa
+a recusar com a mensagem única, e o registro guarda o motivo interno.
 
-**Registre em outro lugar que este reinício foi um desligamento.** No histórico da
-plataforma ele é indistinguível de um reinício legítimo — alguém que esqueceu a senha
-recebe exactamente o mesmo registro. Sem uma anotação fora da plataforma, ninguém
-reconstrói depois o que aconteceu.
+**Não é preciso anotar nada fora da plataforma.** Era a parte mais frágil do procedimento
+antigo, e deixou de existir: o ato grava **quem, quando, por quê** e a sua nota, num
+episódio que a reativação **fecha** em vez de apagar. A linha da conta mostra as duas
+pontas.
+
+### Reativar
+
+`Reactivate…` na linha, com ator e razão. `disabled_by_mistake` marca o episódio como
+equívoco — ele **deixa de contar** como desligamento e continua visível.
+
+**Reativar não devolve a senha.** Se o desligamento foi feito do jeito antigo — um reinício
+cuja temporária ninguém entregou —, a senha continua sendo aquela temporária, e o reinício
+vem **depois** da reativação, nunca antes. A tela recusa o reinício na conta desativada e
+diz essa ordem.
+
+---
+
+## O jeito antigo, e por que não usar mais
+
+**Reiniciar a senha e não entregar a temporária.** Funcionava — o giro do token derruba as
+sessões — e era frágil por três razões, todas medidas:
+
+1. **não estava escrito em lugar nenhum**, e dependia de quem administra saber;
+2. **era indistinguível de um reinício legítimo**: a conta desligada aparecia como
+   `temporária pendente`, **igual à recém-criada**, e o ato de rotina para a segunda
+   **reativava** a primeira;
+3. **para de funcionar no dia em que existir token de API** — o token não é a senha, e
+   trocar a senha não o invalida.
+
+As duas colunas de `/accounts` fecham a segunda: `Account` responde *pode entrar?* e
+`Sign-in credential` responde *entraria com o quê?*, e as duas temporárias se distinguem em
+palavras — `from creation` contra `from a reset`.
 
 ---
 
@@ -48,31 +82,37 @@ elo. Então quem tem a senha continua entrando.
 **Revogar o elo continua sendo o gesto certo para o que ele significa** — a conta deixa
 de ser aquela pessoa. Ele só não é desligamento, e a tela não diz isso.
 
-### Marcar a organização como suspensa não faz nada
+### ~~Marcar a organização como suspensa não faz nada~~ — corrigido em 2026-09-09
 
-`tenants.status` existe, aceita `"suspended"`, e **nenhum código o lê**. Medido: um
-tenant marcado como suspenso autentica e abre as telas normalmente. É uma coluna que
-parece um controle.
+`tenants.status` existia, aceitava `"suspended"` e **nenhum código o lia**: um tenant
+suspenso autenticava e abria as telas normalmente. Era uma coluna que parecia um controle.
+
+**Desde a v0.7.0 a porta lê.** `Auth.verificar/2` recusa a entrada quando a organização não
+está ativa, e `/accounts` mostra uma faixa dizendo que ninguém entra hoje. Suspender a
+organização **é** um controle — e continua não sendo o ato para desligar **uma** pessoa.
 
 ---
 
-## O que falta, e é o conserto de verdade
+## O que faltava, e o que entrou
 
-Está na fila do product backlog como **`conta-desativada`**, e tem duas partes:
+O item `conta-desativada` do product backlog tinha duas partes, e as duas entraram:
 
-1. **`tenants.status` passa a ser lido** — organização não ativa não autentica. Sem
-   migração: a coluna já existe. (Ou a coluna sai, se suspensão de organização nunca foi
-   a intenção — as duas saídas são melhores que a de hoje.)
-2. **`users.disabled_at`** — coluna nova, em **marca** e nunca `delete`, com o ato
-   correspondente em `/accounts` e a regra de que conta desativada **não autentica nem
-   por senha nem por token**. Esta tem migração.
+1. **`tenants.status` passa a ser lido** — entrou na **v0.7.0**. Organização não ativa não
+   autentica, e `/accounts` mostra a faixa.
+2. **`users.disabled_at`** com o ato em `/accounts` — entrou na **v0.7.0**, e a entrega foi
+   **recusada** pelo papel de Product Owner por três razões: o ato não gravava razão,
+   `enable_user/2` reativava sem ator nem razão, e a tela mudou sem protótipo aprovado. O
+   protótipo veio em **2026-09-10**
+   ([`accounts-disable.html`](../../specs/045-autenticacao-e-acesso/prototipo/accounts-disable.html)),
+   e o conserto das três é o que este documento passou a descrever: razão de lista fechada
+   mais nota (FR-025), episódio com as duas pontas (FR-026), e a recusa que fica na tela
+   (FR-028).
 
-**A segunda parte tem prazo, e não é escolha nossa.** Hoje o desligamento implícito
-funciona porque quem não sabe a senha não entra. No dia em que a API com token existir
-([spec 061](../../specs/061-api-publica/spec.md)), **o token não é a senha** — reiniciar
-a senha deixa de invalidá-lo, e o único caminho passa a ser achar e revogar cada token,
-um a um. É por isso que a spec 061 registra `users.disabled_at` como item **anterior**
-a ela.
+**O que continua em aberto tem prazo, e não é escolha nossa.** Conta desativada **não
+autentica por senha** — medido, com teste. **Por token, não se pode afirmar ainda**: o token
+não existe ([spec 061](../../specs/061-api-publica/spec.md)). No dia em que existir,
+desativar tem de fechá-lo também; até então, a linha da tela que promete isso é **promessa e
+não controle**, e está escrita assim.
 
 ---
 

@@ -1,0 +1,254 @@
+derivation_rule:
+  id: access.account_lifecycle
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "O ciclo de vida da conta — as razões de desativar e reativar, e os estados que a tela mostra"
+
+  description:
+    pt-BR: >
+      A tela `/accounts` (spec 045) mostra **quem pode entrar hoje**, e o ato de desativar e o de
+      reativar são as duas pontas do mesmo episódio. Este arquivo declara o vocabulário dos dois:
+      as cláusulas de razão, quais delas exigem nota escrita, e os estados que a tela nomeia.
+
+      Moram aqui, e não em constante de módulo nem em `case` de template, pela mesma razão de
+      `team.dashboard.thresholds`: uma cláusula de razão é **decisão sobre o que a plataforma
+      afirma** sobre uma pessoa. *"Saiu da organização"*, *"conta duplicada"* e *"suspeita de
+      comprometimento"* levam a decisões diferentes de quem lê o histórico depois — e a terceira
+      exige agir sobre mais coisas. Em constante, a lista muda num diff de template e ninguém
+      percebe que a plataforma passou a afirmar outra coisa.
+
+      **Os estados são dois vocabulários separados, e é o ponto.** O estado da conta responde
+      *pode entrar?*; o estado da credencial responde *entraria com o quê?*. Eram uma célula só,
+      e uma célula só é o que fez um desligamento parecer um primeiro dia — o achado que este
+      arquivo existe para não deixar recriar.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 045, protótipo `specs/045-autenticacao-e-acesso/prototipo/accounts-disable.html`
+      (2026-09-10), decisões 1, 2, 3, 4 e 5; recusa do entregável D06 da v0.7.0 pelo papel de
+      Product Owner
+    note: >
+      As cinco cláusulas de desativar e as quatro de reativar vêm do protótipo de 2026-09-10, que
+      nasceu de uma recusa: o ato gravava **quem** e **quando**, e nenhuma razão. A pergunta
+      aberta 12 do protótipo — *onde este vocabulário mora* — foi respondida com a recomendação
+      (a): um arquivo de regra ao lado de `team.dashboard.thresholds`, porque o precedente existe,
+      o validador já é gate, e *declarado, versionado, revisável* é a propriedade que importa.
+
+  rules:
+    disable_reasons:
+      name:
+        pt-BR: "As cláusulas da razão de desativar — lista fechada, e a nota ao lado"
+      statement:
+        pt-BR: >
+          Desativar uma conta **exige** uma cláusula desta lista. A cláusula é o que a plataforma
+          **lê**: `suspected_compromise` muda o que a tela mostra em seguida, e é a pergunta que um
+          incidente faz por contagem. Texto livre não se conta nem se roteia.
+
+          A nota é o que a pessoa **escreve**, e faz trabalho diferente: uma cláusula sozinha se
+          repete idêntica para quarenta pessoas sem dizer quem decidiu nem o que aconteceu.
+      note:
+        pt-BR: >
+          `not_recorded` **não é oferecida no formulário**. Existe para as desativações feitas
+          antes de a razão ser pedida — a migração as escreve com ela, em vez de inventar uma
+          cláusula que ninguém escolheu, e a tela diz *"the reason was not recorded"*.
+      values:
+        offered:
+          - code: left_the_organisation
+            label: "Left the organisation"
+            meaning:
+              pt-BR: "A pessoa não trabalha mais aqui. É o desligamento comum, e não implica incidente."
+          - code: access_no_longer_needed
+            label: "Access is no longer needed"
+            meaning:
+              pt-BR: >
+                Continua na organização, e não precisa mais entrar na plataforma. Distinguir do
+                anterior importa: o roster não muda, e a pessoa segue contando nas medidas.
+          - code: duplicate_account
+            label: "Duplicate account"
+            meaning:
+              pt-BR: >
+                A mesma pessoa tem duas contas. Desativar é o ato; **fundir não existe**, e o
+                histórico das duas fica.
+          - code: suspected_compromise
+            label: "Suspected compromise"
+            meaning:
+              pt-BR: >
+                Alguém pode ter entrado como esta pessoa. É a única que **acrescenta uma lista** na
+                tela — o que este ato alcança e o que não alcança —, e a única que abre
+                `investigation_closed_no_compromise` na reativação.
+          - code: other
+            label: "Other"
+            meaning:
+              pt-BR: "Nenhuma das anteriores. A nota passa a ser obrigatória, e é ela que carrega a razão."
+        recorded_only:
+          - code: not_recorded
+            label: "The reason was not recorded"
+            meaning:
+              pt-BR: >
+                Desativação feita antes de a razão existir no ato. Não é escolha de ninguém: é
+                ausência dita, e a tela a escreve como ausência.
+
+    enable_reasons:
+      name:
+        pt-BR: "As cláusulas da razão de reativar — o ato mais sensível dos dois"
+      statement:
+        pt-BR: >
+          Reativar **exige** ator e cláusula, e **não apaga** a desativação: fecha o episódio com
+          nome, instante e razão. Reativar é o ato mais sensível dos dois, e era o que tinha menos
+          registro — `enable_user/2` recebia tenant e id, e nada mais.
+      note:
+        pt-BR: >
+          `disabled_by_mistake` marca o episódio como **equívoco** e ele **deixa de contar** como
+          desligamento — sem ser apagado. É a forma que `TeamMembership.invalidated_at` já usa: o
+          equívoco é dito, não removido.
+      values:
+        offered:
+          - code: returned_to_the_organisation
+            label: "Returned to the organisation"
+            meaning:
+              pt-BR: "A pessoa voltou. O episódio fecha, e fica no registro como episódio encerrado."
+          - code: disabled_by_mistake
+            label: "Disabled by mistake"
+            meaning:
+              pt-BR: >
+                A desativação não devia ter acontecido. Marca o episódio `mistake`, que **para de
+                contar** como desligamento e continua visível.
+          - code: investigation_closed_no_compromise
+            label: "Investigation closed — no compromise found"
+            meaning:
+              pt-BR: >
+                Oferecida **só** contra uma desativação por `suspected_compromise`. Oferecê-la
+                sempre faria a plataforma sugerir que houve investigação onde não houve.
+            offered_only_against: suspected_compromise
+          - code: other
+            label: "Other"
+            meaning:
+              pt-BR: "Nenhuma das anteriores. A nota passa a ser obrigatória."
+
+    note_required:
+      name:
+        pt-BR: "Quais razões exigem nota escrita, e a frase de quando não há uma"
+      statement:
+        pt-BR: >
+          A nota é **obrigatória** para `suspected_compromise` e `other` ao desativar, e para
+          `other` ao reativar. Nas demais é opcional, e onde é omitida o registro escreve
+          *"no note"* — ausência dita, nunca célula vazia.
+      note:
+        pt-BR: >
+          Obrigatória em toda parte produz `asdf`, que é **pior que ausência** porque parece
+          registro. Onde a cláusula já diz o suficiente, exigir prosa só ensina a preencher lixo.
+      values:
+        on_disable:
+          - suspected_compromise
+          - other
+        on_enable:
+          - other
+        absent_phrase: "no note"
+
+    states:
+      name:
+        pt-BR: "Os estados — dois vocabulários separados, e nunca uma célula só"
+      statement:
+        pt-BR: >
+          O estado da **conta** responde *pode entrar?* e tem dois valores. O estado da
+          **credencial** responde *entraria com o quê?* e tem quatro. São **vocabulários
+          separados**: nenhum valor de um pertence ao outro, e nenhuma tela os junta numa célula.
+      note:
+        pt-BR: >
+          As duas temporárias se distinguem **em palavras**, e não só pela cor: `from creation ·
+          never signed in` contra `from a reset · last signed in <data>`. Era a colisão do achado —
+          a conta desligada aparecia como `temporary pending`, **igual à recém-criada**, e o ato de
+          rotina para a segunda reativava a primeira. Separar a coluna resolve metade; o texto
+          resolve a outra.
+
+          O quinto valor, `temporary_source_not_recorded`, não é estado novo: é a mesma
+          temporária pendente **sem a proveniência** que a coluna `users.password_source` passou
+          a gravar em 2026-09-10. Some sozinho conforme as contas antigas reiniciam a senha.
+      values:
+        account:
+          - code: active
+            label: "active"
+            marking:
+              pt-BR: "palavra, sem marca — marcar o raro, não o comum"
+          - code: disabled
+            label: "disabled"
+            marking:
+              pt-BR: >
+                cinza cheio, que é a marca da casa para *ended, and the record stays* — a mesma da
+                saída declarada. Matiz nova foi recusada em 2026-09-08 por não haver livre na paleta.
+        credential:
+          - code: password_set
+            label: "password set"
+            meaning:
+              pt-BR: "Senha própria, definida pela pessoa. Entra com ela."
+          - code: temporary_from_creation
+            label: "temporary · from creation"
+            meaning:
+              pt-BR: "A temporária que nasceu com a conta, e a pessoa nunca entrou. É o primeiro dia."
+          - code: temporary_from_reset
+            label: "temporary · from a reset"
+            meaning:
+              pt-BR: >
+                A temporária de um reinício, e a pessoa **já entrou antes**. É o estado que o
+                desligamento implícito produzia, e o que não se pode confundir com o primeiro dia.
+          - code: temporary_source_not_recorded
+            label: "temporary · source not recorded"
+            meaning:
+              pt-BR: >
+                Temporária pendente emitida **antes** de a plataforma registrar de qual ato a
+                credencial veio. Não se sabe se foi do cadastro ou de um reinício, e a tela diz
+                isso — escolher uma das duas seria afirmar o que ninguém registrou.
+          - code: no_password
+            label: "no password"
+            meaning:
+              pt-BR: >
+                Conta sem senha nenhuma — criada antes de haver senha. A entrada **recusa**, e a
+                conta **não está desativada**: ninguém decidiu nada sobre ela.
+
+  # ---------------------------------------------------------------------------
+  # O que NÃO é declarado aqui, e por quê
+  # ---------------------------------------------------------------------------
+  refuses:
+    - proposal: "um campo apontando quem assumiu o trabalho de quem saiu"
+      by:
+        pt-BR: "protótipo de 2026-09-10, pergunta aberta 13"
+      reason:
+        pt-BR: >
+          Fica na nota por ora. Um campo é uma segunda relação a manter verdadeira, e ninguém ainda
+          fez a pergunta que ela responde — *"quem assumiu isto"* consultável não tem consumidor.
+    - proposal: "razão em texto livre, sem cláusula"
+      by:
+        pt-BR: "protótipo de 2026-09-10, decisão 1"
+      reason:
+        pt-BR: >
+          Texto livre é honesto e **não se conta**. A pergunta de um incidente é *"quantas contas
+          foram desativadas por suspeita este mês"*, e prosa não a responde. As duas coisas juntas,
+          e não uma no lugar da outra.
+
+  misinterpretations:
+    - claim:
+        pt-BR: "reativar desfaz a desativação"
+      why_wrong:
+        pt-BR: >
+          Reativar **fecha** o episódio; a desativação fica exatamente como estava, com autor,
+          instante e razão. E não devolve a senha: se o desligamento foi feito do jeito antigo, a
+          senha continua sendo a temporária que ninguém entregou.
+    - claim:
+        pt-BR: "conta sem senha está desativada"
+      why_wrong:
+        pt-BR: >
+          Não está. A entrada recusa porque **não há credencial**, e ninguém decidiu nada sobre a
+          conta. Desativá-la é como a decisão fica registrada — e são estados diferentes, em
+          vocabulários diferentes.
+    - claim:
+        pt-BR: "`disabled` na coluna da conta significa que a credencial foi apagada"
+      why_wrong:
+        pt-BR: >
+          A credencial fica, e a coluna dela continua dizendo qual é. O que muda é a resposta a
+          *pode entrar?* — e é por isso que são duas colunas.

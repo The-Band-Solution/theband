@@ -60,6 +60,63 @@ escrita; as quatro perguntas abertas são do Product Owner para levar, e este pa
 | **14** | **Onde aparece uma organização suspensa.** `tenants.status` existe e ninguém o lê, então o `4 can sign in today` do cabeçalho é afirmação sobre contas e não sobre a porta | (a) faixa nesta tela quando a organização não estiver ativa; (b) tela própria, por ser afirmação sobre a organização; (c) a coluna sai, se suspender organização nunca foi a intenção | **(a) e (c) decidida noutro lugar** — esta tela não pode afirmar que alguém entra quando a organização está fechada, e coluna que parece controle e não é é pior que coluna nenhuma |
 | **15** | **Quanto histórico a linha mostra antes de precisar de porta.** Quatro episódios leem bem; uma conta de cinco anos com uma dúzia abriria a tabela ao meio | (a) mostrar todos, sempre; (b) o episódio aberto mais o último fechado, e um link para o resto; (c) tela própria de registro de acesso por conta | **(b)**, com a contagem sempre escrita — *"2 earlier disablements"* — para que o que não é mostrado continue sendo dito |
 
+## O que foi decidido e implementado em 2026-09-10
+
+A pessoa mantenedora respondeu **"pode implementar"**. As quatro perguntas abertas foram
+fechadas **pelas recomendações deste documento**, e as recomendações estão registradas acima —
+quem discordar de alguma discorda de uma escolha escrita, e não de uma omissão.
+
+| # | fechada como | onde vive agora |
+|---|---|---|
+| **12** | **(a)** — arquivo de regra na base de conhecimento | `priv/knowledge_base/rules/access_account_lifecycle.yaml`, id `access.account_lifecycle`, `provider: platform`. Lido por `TheBand.Tenants.AccountLifecycle`, que **não tem lista nenhuma escrita dentro** |
+| **13** | **(a)** — fica na nota | nenhum campo de sucessor; a recusa está registrada em `refuses:` no próprio YAML, para não ser reproposta como novidade |
+| **14** | **(a)** — faixa nesta tela | `faixa_da_organizacao/1` aparece quando `tenants.status != "active"` |
+| **15** | **(b)** — o aberto mais o último fechado, e a contagem do resto sempre escrita | `Tenants.historico_de_acesso/2` devolve `aberto`, `ultimo_fechado`, `anteriores` e `desligamentos`; a linha escreve *"N earlier disablements not shown here"* |
+
+### Duas coisas que a implementação descobriu, e que corrigem este protótipo
+
+A regra da casa é que quem implementa **volta ao protótipo** quando descobre que algo aqui não
+é possível ou não é honesto com o dado. As duas voltas:
+
+1. **`tenants.status` passou a ser lido.** Este protótipo escreveu que ele *"existe, aceita
+   `"suspended"` e **não é lido em lugar nenhum**"*, medido em 9 Sep. Desde a v0.7.0
+   `Auth.verificar/2` recusa a entrada quando a organização não está ativa — o H3 parte A foi
+   fechado entre o desenho e a implementação. A tela **não** repete a frase antiga: diz que a
+   contagem é sobre contas e que a porta também pergunta pela organização, e a faixa aparece
+   quando as duas discordam. Afirmar na tela um defeito já corrigido seria o mesmo erro de
+   sinal, do outro lado.
+
+2. **`issued 9 Sep by Paulo` não tinha o Paulo, e `from creation` × `from a reset` não tinha
+   como se distinguir.** `reset_password/3` recebia `actor_id` e o **descartava**, e nada no
+   banco dizia de qual ato a temporária veio. Derivar de `logged_in_at` acerta na maioria e
+   erra no reinício de quem nunca entrou; derivar de `password_set_at ≈ inserted_at` é
+   heurística com cara de fato. Duas colunas novas gravam a proveniência **no momento em que
+   se sabe**: `users.password_source` (`creation` / `reset` / `self`) e
+   `users.password_set_by_user_id`.
+
+   E disso nasceu um **quinto** estado de credencial, declarado como os outros:
+   `temporary_source_not_recorded` — a temporária pendente emitida antes da coluna existir.
+   Chamá-la de `from creation` seria afirmar o que ninguém registrou. Some sozinho conforme as
+   contas antigas reiniciam a senha.
+
+### O que ficou onde
+
+| coisa | arquivo |
+|---|---|
+| o vocabulário (nove cláusulas, os cinco estados de credencial, os dois de conta, quem exige nota) | `priv/knowledge_base/rules/access_account_lifecycle.yaml` |
+| o leitor, sem lista dentro | `lib/the_band/tenants/account_lifecycle.ex` |
+| o episódio — aberto e fechado, nunca apagado | `lib/the_band/tenants/account_disablement.ex` |
+| a migração: a tabela, o índice de **um aberto por conta**, o backfill com `not_recorded`, e as duas colunas da credencial | `priv/repo/migrations/20260910050000_episodio_de_desativacao.exs` |
+| `disable_user/4` e `enable_user/4` — ator, razão e nota, as duas escritas numa transação | `lib/the_band/tenants.ex` |
+| a tela | `lib/the_band_web/live/accounts_live/index.ex` |
+| os testes, com os três defeitos reinjetados e pegos | `test/the_band/tenants/conta_desativada_test.exs` |
+
+O **backfill não inventa razão**: cada conta hoje desativada ganha um episódio aberto com
+`disable_reason = 'not_recorded'`, uma cláusula que existe no vocabulário e **não é oferecida no
+formulário**. E `disabled_by_user_id` do episódio aceita nulo, porque o backfill pode não ter
+autor — `COALESCE(disabled_by_user_id, user_id)` faria a plataforma afirmar que a pessoa se
+desativou a si.
+
 ## Onde a tela da v0.7.0 diverge deste protótipo
 
 Dez linhas, na tabela do fim do protótipo. São **defeitos a corrigir**, e não ajustes a adotar —
