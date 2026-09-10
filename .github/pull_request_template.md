@@ -19,6 +19,9 @@
 > back-merge e hotfix. O squash cria um commit **novo, sem os pais originais** — o
 > Git perde a informação de que aquele trabalho já foi integrado, e volta a
 > oferecê-lo como se fosse inédito. Ver `AGENTS.md`, seção 12.
+>
+> **E o merge se faz por comando** — `gh pr merge <n> --squash` ou `--merge` —, não pelo
+> botão: o GitHub não tem método default, e a pré-seleção dele é sempre *merge commit*.
 
 ---
 
