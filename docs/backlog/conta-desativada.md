@@ -19,6 +19,50 @@ justamente por ter sido medida.
 
 ---
 
+## Estado em 2026-09-10 — o protótipo veio, e as seis lacunas fecharam
+
+A pessoa mantenedora pediu o protótipo e depois **"pode implementar"**. O protótipo é
+[`accounts-disable.html`](../../specs/045-autenticacao-e-acesso/prototipo/accounts-disable.html),
+com o prompt que o gerou e as decisões em
+[`PROMPT.md`](../../specs/045-autenticacao-e-acesso/prototipo/PROMPT.md) e
+[`README.md`](../../specs/045-autenticacao-e-acesso/prototipo/README.md). A tela foi
+reimplementada **contra a seção 3 do PROMPT**, que é a régua do QA.
+
+| O que faltava (tabela abaixo) | fechado como |
+|---|---|
+| **a razão ao desativar** | lista fechada **e** nota, com o vocabulário em `access.account_lifecycle` na base de conhecimento. FR-025 |
+| **o ator e a razão ao reativar** | `enable_user/4` — tenant, conta, **ator** e mapa de razão. FR-026 |
+| **o teste de que nada muda na pessoa** | `test "a pessoa, o elo e os escopos ficam — e os escopos ficam INERTES"`, com a guarda que impede o verde contra zero. Prova medida: injetei a revogação do elo dentro do desativar, e o teste reprovou |
+| **o texto do *revoke*** | passou a dizer *"Does not remove access"*, em **dois** lugares — na confirmação e no painel dos três atos, acima da tabela, para ser lido **antes** do ato. FR-029 |
+| **o teste que reprova** se revogar o elo voltar a ser o único ato | `test "revogar o elo NÃO é o único ato oferecido a quem desliga"` |
+| **o protótipo aprovado** | existe, e a tela é a dele |
+
+### A decisão 1 foi tomada pela recomendação, e não pela omissão
+
+Esta página recomendava **(b) relator próprio**, e o código da v0.7.0 tomou **(a)** sozinho. A
+implementação de 2026-09-10 **migrou para (b)**: `account_disablements`, um episódio por
+desativação, com índice único parcial garantindo **um aberto por conta**.
+
+`users.disabled_at` **fica** — é a resposta rápida a *"pode entrar?"*, lida a cada entrada —, e as
+duas escritas acontecem na **mesma transação**. Não são duas fontes discordando: é denormalização
+declarada, e o estado inválido (marca sem episódio) é impedido pela transação e **nomeado** pela
+recusa `:sem_episodio_aberto` quando aparecer.
+
+O que a forma (b) resolveu, e (a) não resolvia: **o par de colunas cabia um episódio**. Uma conta
+desativada duas vezes perdia a primeira, e `reativar_changeset/1` **apagava** a que havia.
+
+### O que continua aberto, e é do papel de Product Owner
+
+**A reclassificação do D06.** Duas das três recusas foram consertadas depois da avaliação, e a
+terceira — *"a tela mudou sem protótipo aprovado"* — deixou de valer. Quem tem o papel
+reclassifica; não é decisão de quem implementou.
+
+**Conta desativada não autentica por token** continua sendo critério que **não se pode avaliar
+ainda**: o token não existe (spec 061 sem código). A tela escreve isso como **promessa e não
+controle**, em vez de o omitir.
+
+---
+
 ## Estado em 2026-09-09T23:19Z — construída, em produção, e **NÃO ACEITA**
 
 O [#844](https://github.com/The-Band-Solution/theband/pull/844) construiu isto e foi mergeado na

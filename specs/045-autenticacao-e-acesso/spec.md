@@ -415,6 +415,87 @@ e senha, sair, e entrar de novo com a senha nova.
 - **Elo com pessoa observada**: já existe (declarado, revogável, com proveniência). O
   nível person depende dele para alcançar o próprio painel.
 
+
+- **FR-025**: Desativar uma conta MUST exigir uma **razão de lista fechada**, e a lista MUST
+  vir da base de conhecimento (`access.account_lifecycle.disable_reasons`) — nunca de
+  constante de módulo nem de `case` em template. Sem o vocabulário declarado, o ato MUST
+  **recusar**, e não gravar razão vazia.
+
+  Decisão da pessoa mantenedora em 2026-09-10, sobre o protótipo
+  [`accounts-disable.html`](prototipo/accounts-disable.html) e a **primeira recusa** do papel
+  de Product Owner ao entregável D06 da v0.7.0: *o ato gravava quem e quando, e nenhuma razão*.
+
+  **A cláusula e a nota fazem trabalhos diferentes, e as duas são exigidas onde importa.** A
+  cláusula é o que a plataforma **lê** — `suspected_compromise` muda o que a tela mostra em
+  seguida, e é a pergunta que um incidente faz por contagem; texto livre não se conta nem se
+  roteia. A nota é o que a pessoa **escreve** — uma cláusula sozinha se repete idêntica para
+  quarenta pessoas sem dizer quem decidiu.
+
+  A nota MUST ser obrigatória **apenas** para as razões declaradas em
+  `access.account_lifecycle.note_required` — hoje `suspected_compromise` e `other`. Obrigatória
+  em toda parte produz `asdf`, que é **pior que ausência** porque parece registro. Onde é
+  omitida, o registro MUST escrever a frase de ausência declarada, e nunca célula vazia.
+
+- **FR-026**: Reativar uma conta MUST exigir **ator e razão**, e MUST NOT apagar a desativação.
+  A desativação é **episódio**: aberto com autor, instante e razão, e **fechado** com autor,
+  instante e razão.
+
+  Decisão da mesma data, sobre a **segunda recusa** do Product Owner: `enable_user/2` recebia
+  tenant e id, e nada mais — *reativar é o ato mais sensível dos dois, e era o que tinha menos
+  registro*. E `reativar_changeset/1` fazia `disabled_at: nil, disabled_by_user_id: nil`: um
+  `delete` escrito como `update`, depois do qual **ninguém tinha desativado aquela conta nunca**.
+
+  **Um episódio aberto por conta**, garantido por índice único parcial — a forma do
+  `access_scope_grants_vigente_index`. O histórico de fechados é livre: o par de colunas em
+  `users` cabia **um** episódio, e uma conta desativada duas vezes perdia a primeira.
+
+  `users.disabled_at` MAY continuar existindo como a resposta rápida a *"pode entrar?"*, lida a
+  cada entrada — e as duas escritas MUST acontecer na **mesma transação**, para que a marca não
+  possa discordar do registro.
+
+  A razão `disabled_by_mistake` MUST marcar o episódio como equívoco: ele **deixa de contar**
+  como desligamento e **continua visível**, na forma de `TeamMembership.invalidated_at`.
+
+  A razão `investigation_closed_no_compromise` MUST ser oferecida **só** contra uma desativação
+  por `suspected_compromise`, e o domínio MUST recusá-la nos demais casos — esconder na tela não
+  é a defesa. Oferecê-la sempre faria a plataforma sugerir que houve investigação onde não houve.
+
+- **FR-027**: O estado da **conta** e o estado da **credencial** MUST ser dois vocabulários
+  separados, em duas colunas, e MUST NOT ser juntados numa célula com precedência.
+
+  A conta responde *pode entrar?* (dois valores); a credencial responde *entraria com o quê?*
+  (cinco). Eram uma célula só, e uma célula só é o **achado**: a conta desligada aparecia como
+  `temporary pending` — **igual à recém-criada** —, e o ato de rotina para a segunda (reiniciar
+  a senha) **reativava** a primeira.
+
+  As duas temporárias MUST se distinguir **em palavras**, e não só por cor: `temporary · from
+  creation` contra `temporary · from a reset`. Para isso, a plataforma MUST gravar de qual ato a
+  credencial veio, **no momento em que se sabe** (`users.password_source`), e quem a emitiu
+  (`users.password_set_by_user_id`). Derivar de `logged_in_at` erra no reinício de quem nunca
+  entrou; derivar de `password_set_at ≈ inserted_at` é heurística com cara de fato.
+
+  Credencial cuja proveniência não foi registrada MUST ser dita como tal
+  (`temporary_source_not_recorded`), e MUST NOT ser chamada de nenhuma das duas.
+
+- **FR-028**: Ação recusada MUST **ficar na tela**, inerte, com a razão ao lado — e MUST NOT
+  desaparecer. Vale para `Reset password` na conta desativada e para `Disable` na própria linha.
+
+  Decisão da mesma data. Botão que desaparece faz quem procura concluir que a plataforma não
+  sabe fazer aquilo, e foi **exatamente** o que produziu o desligamento improvisado que este
+  conjunto de requisitos existe para fechar. A razão do reset MUST nomear a **ordem**: reativar
+  primeiro, e reativar não devolve a senha, logo o reinício vem **depois**, nunca em vez de.
+
+  A conta desativada MUST NOT ser filtrada da lista por omissão: conta que não se vê é conta que
+  não se audita.
+
+- **FR-029**: A tela que administra contas MUST carregar o **procedimento** — o que cada um dos
+  três atos faz **e o que não faz** —, e MUST NOT depender de o procedimento viver só em
+  documento.
+
+  `docs/producao/desligar-alguem.md` existe **porque** o ato que funcionava não estava escrito.
+  Quem administra faz o que a interface oferece; procedimento que vive só na documentação é o que
+  este achado já provou não funcionar. O texto do *revogar elo* MUST dizer que ele **não remove
+  acesso** — medido no H3 —, e é a **terceira recusa** do Product Owner.
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes

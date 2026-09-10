@@ -116,7 +116,13 @@ defmodule TheBand.Tenants.Bootstrap do
     Repo.transaction(fn ->
       with {:ok, tenant} <- organizacao(valores),
            {:ok, user} <- Repo.insert(conta(tenant, valores)),
-           {:ok, _} <- Repo.update(User.senha_changeset(user, %{password: valores.senha})) do
+           {:ok, _} <-
+             Repo.update(
+               User.senha_changeset(user, %{password: valores.senha},
+                 source: "self",
+                 by: user.id
+               )
+             ) do
         %{email: valores.email, slug: valores.slug}
       else
         {:error, %Ecto.Changeset{} = changeset} -> Repo.rollback(changeset)

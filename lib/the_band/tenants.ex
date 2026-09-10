@@ -11,7 +11,10 @@ defmodule TheBand.Tenants do
 
   alias TheBand.Repo
   alias TheBand.Tenants.Access
+  alias TheBand.Tenants.Access.ScopeGrant
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.AccountDisablement
+  alias TheBand.Tenants.AccountLifecycle
   alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -224,11 +227,21 @@ defmodule TheBand.Tenants do
 
   Juntar os dois seria o erro que a FR-012f já separou.
 
-  ## Marca, e nunca `delete`
+  ## Episódio, e nunca marca solta
 
-  `disabled_at` e `disabled_by_user_id`, na forma de `ScopeGrant.revoke_changeset/2`.
-  A linha fica — histórico de acesso é dado de auditoria (SC-005 da 045), e é
-  exactamente o que um incidente precisa reconstruir.
+  Abre uma linha em `account_disablements` com autor, instante, **razão** e nota; a
+  reativação **fecha** a mesma linha, sem tocar na abertura. `users.disabled_at`
+  continua existindo como a resposta rápida a *"pode entrar?"*, lida a cada entrada —
+  as duas escritas acontecem na mesma transação, e por isso não podem discordar.
+
+  O par de colunas sozinho cabia **um** episódio, e a reativação o **apagava**.
+
+  ## A razão é exigida, e vem do vocabulário declarado
+
+  `razao` é um mapa com `"reason"` e `"note"`. A cláusula tem de estar em
+  `access.account_lifecycle`, e a nota é obrigatória para as que aquele arquivo declara —
+  hoje `suspected_compromise` e `other`. Sem o vocabulário carregado, o ato recusa com
+  `{:error, :vocabulario_nao_declarado}` em vez de gravar razão nenhuma.
 
   ## E gira o token de sessão
 
@@ -241,41 +254,212 @@ defmodule TheBand.Tenants do
   quem pedir de volta, e num tenant com uma administração só isso tranca a organização
   inteira. Devolve `{:error, :nao_pode_desativar_a_si}`.
   """
-  @spec disable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
+  @spec disable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
           {:ok, User.t()}
-          | {:error, :not_found | :ja_desativada | :nao_pode_desativar_a_si}
-  def disable_user(%Tenant{id: tenant_id}, user_id, actor_id) do
+          | {:error,
+             :not_found
+             | :ja_desativada
+             | :nao_pode_desativar_a_si
+             | :vocabulario_nao_declarado
+             | Ecto.Changeset.t()}
+  def disable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
     with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
          :ok <- nao_e_a_si(user_id, actor_id),
-         :ok <- ainda_ativa(user) do
-      # O ATO REGISTRADO — achado H4. `ScopeGrant` guarda o ESTADO da concessão; nenhum
-      # ato de acesso guardava o EVENTO. A pergunta *"quem desativou esta conta, e
-      # quando"* tem resposta na linha; *"quantas contas foram desativadas esta semana"*
-      # não tinha, e é a que se faz num incidente.
-      with {:ok, desativada} <- user |> User.desativar_changeset(actor_id) |> Repo.update() do
-        AccessEvents.ato_administrativo(:conta_desativada, user_id, tenant_id)
-        {:ok, desativada}
+         :ok <- ainda_ativa(user),
+         :ok <- vocabulario_declarado() do
+      desativar_na_transacao(user, tenant_id, actor_id, razao)
+    end
+  end
+
+  # As duas escritas na MESMA transação, e é o que impede o estado inválido: `disabled_at`
+  # nulo com episódio aberto, ou episódio nenhum com a conta desativada. A coluna é a
+  # resposta rápida a *"pode entrar?"*; o episódio é o registro.
+  defp desativar_na_transacao(user, tenant_id, actor_id, razao) do
+    Repo.transaction(fn ->
+      episodio =
+        AccountDisablement.abrir_changeset(%{
+          "tenant_id" => tenant_id,
+          "user_id" => user.id,
+          "disabled_by_user_id" => actor_id,
+          "disable_reason" => razao["reason"],
+          "disable_note" => razao["note"]
+        })
+
+      with {:ok, _episodio} <- Repo.insert(episodio),
+           {:ok, desativada} <- user |> User.desativar_changeset(actor_id) |> Repo.update() do
+        # O ATO REGISTRADO — achado H4. `ScopeGrant` guarda o ESTADO da concessão; nenhum
+        # ato de acesso guardava o EVENTO. A pergunta *"quem desativou esta conta, e
+        # quando"* tem resposta na linha; *"quantas contas foram desativadas esta semana,
+        # e por quê"* não tinha, e é a que se faz num incidente.
+        AccessEvents.ato_administrativo(:conta_desativada, user.id, tenant_id,
+          razao: razao["reason"]
+        )
+
+        desativada
+      else
+        {:error, erro} -> Repo.rollback(erro)
       end
+    end)
+  end
+
+  @doc """
+  Reativa uma conta desativada — com ator e razão, e **fechando** o episódio.
+
+  ## O que mudou, e por que era defeito
+
+  A versão anterior recebia tenant e id, e nada mais: reativar era o ato mais sensível dos
+  dois e o que tinha **menos** registro. E `reativar_changeset/1` fazia
+  `disabled_at: nil, disabled_by_user_id: nil` — um `delete` escrito como `update`: depois
+  dele, ninguém desativou aquela conta nunca.
+
+  Agora a reativação **fecha** o episódio com nome, instante e razão, e a abertura fica
+  exatamente como estava.
+
+  ## `disabled_by_mistake`
+
+  Marca o episódio como equívoco: ele **deixa de contar** como desligamento e continua
+  visível, na forma de `TeamMembership.invalidated_at`. Equívoco é dito, não removido.
+
+  ## E não devolve a senha
+
+  Se a desativação foi feita junto de um reinício — o caminho que
+  `docs/producao/desligar-alguem.md` descrevia antes da coluna existir —, a senha continua
+  sendo a temporária que ninguém entregou, e quem administra reinicia **depois**. Fazer as
+  duas coisas num ato só juntaria decisões diferentes.
+  """
+  @spec enable_user(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t(), map()) ::
+          {:ok, User.t()}
+          | {:error, :not_found | :ja_ativa | :sem_episodio_aberto | Ecto.Changeset.t()}
+  def enable_user(%Tenant{id: tenant_id}, user_id, actor_id, razao) when is_map(razao) do
+    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
+         :ok <- ja_desativada(user),
+         {:ok, episodio} <- episodio_aberto(tenant_id, user_id) do
+      reativar_na_transacao(user, episodio, tenant_id, actor_id, razao)
+    end
+  end
+
+  defp reativar_na_transacao(user, episodio, tenant_id, actor_id, razao) do
+    Repo.transaction(fn ->
+      fechamento =
+        AccountDisablement.fechar_changeset(episodio, %{
+          "enabled_by_user_id" => actor_id,
+          "enable_reason" => razao["reason"],
+          "enable_note" => razao["note"]
+        })
+
+      with {:ok, _fechado} <- Repo.update(fechamento),
+           {:ok, reativada} <- user |> User.reativar_changeset() |> Repo.update() do
+        AccessEvents.ato_administrativo(:conta_reativada, user.id, tenant_id,
+          razao: razao["reason"]
+        )
+
+        reativada
+      else
+        {:error, erro} -> Repo.rollback(erro)
+      end
+    end)
+  end
+
+  @doc """
+  O episódio aberto de uma conta, se houver.
+
+  Recusa quando não há: uma conta com `disabled_at` e sem episódio aberto é o estado que a
+  transação de `disable_user/4` existe para impedir, e reativar sem fechar nada deixaria a
+  marca contradizendo o registro. Só o backfill da migração pode tê-lo criado, e ele criou.
+  """
+  @spec episodio_aberto(Ecto.UUID.t(), Ecto.UUID.t()) ::
+          {:ok, AccountDisablement.t()} | {:error, :sem_episodio_aberto}
+  def episodio_aberto(tenant_id, user_id) do
+    AccountDisablement
+    |> where([e], e.tenant_id == ^tenant_id and e.user_id == ^user_id and is_nil(e.enabled_at))
+    |> Repo.one()
+    |> case do
+      nil -> {:error, :sem_episodio_aberto}
+      episodio -> {:ok, episodio}
     end
   end
 
   @doc """
-  Reativa uma conta desativada.
+  O histórico de acesso das contas — o episódio aberto, o último fechado, e a contagem
+  do resto.
 
-  **Não devolve a senha.** Se a desativação foi feita junto de um reinício — o caminho
-  que `docs/producao/desligar-alguem.md` descrevia antes desta coluna existir —, a senha
-  continua sendo a temporária que ninguém entregou, e quem administra reinicia de novo.
-  Fazer as duas coisas num ato só juntaria decisões diferentes.
+  **Uma consulta para todas as contas da página**, e nunca uma por linha (L38). A forma é
+  a de `esperas_dos_cartoes/3`: quem chama passa o conjunto, e recebe um mapa por
+  `user_id`.
+
+  Mostra o aberto mais o último fechado, com a contagem do que não é mostrado sempre
+  escrita — *"2 earlier disablements"*. É a recomendação (b) da pergunta 15 do protótipo:
+  quatro episódios leem bem, e uma conta de cinco anos com uma dúzia abriria a tabela ao
+  meio; o que não aparece continua sendo **dito**.
   """
-  @spec enable_user(Tenant.t(), Ecto.UUID.t()) ::
-          {:ok, User.t()} | {:error, :not_found | :ja_ativa}
-  def enable_user(%Tenant{id: tenant_id}, user_id) do
-    with {:ok, user} <- usuaria_do_tenant(tenant_id, user_id),
-         :ok <- ja_desativada(user),
-         {:ok, reativada} <- user |> User.reativar_changeset() |> Repo.update() do
-      AccessEvents.ato_administrativo(:conta_reativada, user_id, tenant_id)
-      {:ok, reativada}
+  @spec historico_de_acesso(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          optional(Ecto.UUID.t()) => %{
+            aberto: AccountDisablement.t() | nil,
+            ultimo_fechado: AccountDisablement.t() | nil,
+            anteriores: non_neg_integer(),
+            desligamentos: non_neg_integer()
+          }
+        }
+  def historico_de_acesso(%Tenant{id: tenant_id}, user_ids) when is_list(user_ids) do
+    if user_ids == [] do
+      %{}
+    else
+      AccountDisablement
+      |> where([e], e.tenant_id == ^tenant_id and e.user_id in ^user_ids)
+      |> order_by([e], desc: e.disabled_at)
+      |> Repo.all()
+      |> Enum.group_by(& &1.user_id)
+      |> Map.new(fn {user_id, episodios} -> {user_id, resumir(episodios)} end)
     end
+  end
+
+  # `desligamentos` EXCLUI os equívocos: a desativação não devia ter acontecido, e contá-la
+  # faria a medida afirmar um desligamento que ninguém decidiu. O episódio continua na
+  # lista — o que muda é a contagem, não a visibilidade.
+  defp resumir(episodios) do
+    aberto = Enum.find(episodios, &AccountDisablement.aberto?/1)
+    fechados = Enum.reject(episodios, &AccountDisablement.aberto?/1)
+
+    %{
+      aberto: aberto,
+      ultimo_fechado: List.first(fechados),
+      anteriores: max(length(fechados) - 1, 0),
+      desligamentos: Enum.count(episodios, &(not AccountDisablement.equivoco?(&1)))
+    }
+  end
+
+  @doc """
+  Quantas concessões de escopo **vigentes** cada conta tem — uma consulta, nunca uma por
+  linha (L38).
+
+  A tela da conta desativada precisa do número para dizer o que a conta alcançava, e que
+  aquilo ficou **mantido e inerte**: desativar não remove escopo nenhum, e é por isso que
+  reativar devolve exatamente o que havia. Sem o número, a frase seria promessa.
+  """
+  @spec concessoes_vigentes_por_conta(Tenant.t(), [Ecto.UUID.t()]) :: %{
+          optional(Ecto.UUID.t()) => non_neg_integer()
+        }
+  def concessoes_vigentes_por_conta(%Tenant{id: tenant_id}, user_ids) when is_list(user_ids) do
+    if user_ids == [] do
+      %{}
+    else
+      ScopeGrant
+      |> where([g], g.tenant_id == ^tenant_id and g.user_id in ^user_ids)
+      |> where([g], is_nil(g.revoked_at))
+      |> group_by([g], g.user_id)
+      |> select([g], {g.user_id, count(g.id)})
+      |> Repo.all()
+      |> Map.new()
+    end
+  end
+
+  # Sem o vocabulário declarado, o ato RECUSA — é a forma de `ProblemsNow.issue_open_days/0`.
+  # A alternativa seria uma lista de reserva no código, que é a duplicata silenciosa que a
+  # FR-069 proíbe e faria a plataforma continuar afirmando com a base fora do ar.
+  defp vocabulario_declarado do
+    if AccountLifecycle.vocabulario_declarado?(),
+      do: :ok,
+      else: {:error, :vocabulario_nao_declarado}
   end
 
   # A recusa vira cláusula do `with` em vez de `else` de um `if` — o Credo reprovou a

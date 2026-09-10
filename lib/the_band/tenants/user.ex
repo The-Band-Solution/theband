@@ -48,6 +48,19 @@ defmodule TheBand.Tenants.User do
     field :password_hash, :string, redact: true
     field :password_set_at, :utc_datetime
     field :must_change_password, :boolean, default: false
+
+    # DE QUAL ATO a credencial veio, e QUEM a emitiu — 2026-09-10.
+    #
+    # `"creation"`, `"reset"` ou `"self"`. Gravado no momento em que se sabe: o cadastro
+    # sabe que é cadastro, o reinício sabe que é reinício, a pessoa sabe que é ela. Nulo é
+    # a conta cuja credencial foi emitida antes desta coluna existir — e a tela diz isso,
+    # em vez de escolher uma das duas.
+    #
+    # Sem ele, `temporary · from creation` e `temporary · from a reset` só se distinguiam
+    # por heurística: `logged_in_at` erra no reinício de quem nunca entrou, e
+    # `password_set_at ≈ inserted_at` é heurística com cara de fato.
+    field :password_source, :string
+    field :password_set_by_user_id, :binary_id
     field :session_token, :string, redact: true
     field :logged_in_at, :utc_datetime
     field :failed_attempts, :integer, default: 0
@@ -125,7 +138,15 @@ defmodule TheBand.Tenants.User do
   end
 
   @doc """
-  Reativa a conta — limpa a marca, e **não devolve a senha**.
+  Reativa a conta — zera a marca, e **não devolve a senha**.
+
+  **Zerar a marca não é apagar o registro.** O registro é o episódio em
+  `account_disablements`, que a reativação **fecha** com autor, instante e razão; esta
+  coluna é só a resposta rápida a *"pode entrar?"*, lida a cada entrada. As duas escritas
+  acontecem na mesma transação de `Tenants.enable_user/4`, e por isso não podem discordar.
+
+  A versão anterior deste changeset era a única guarda do fato, e zerá-la **era** apagá-lo:
+  depois de reativar, ninguém tinha desativado aquela conta nunca.
 
   Reativar é dizer *"esta conta entra de novo"*, e não *"esta conta lembra a senha"*. Se
   a desativação foi feita junto de um reinício de senha — o caminho que o
@@ -182,10 +203,47 @@ defmodule TheBand.Tenants.User do
         |> put_change(:password_hash, Bcrypt.hash_pwd_salt(password))
         |> put_change(:password_set_at, DateTime.utc_now(:second))
         |> put_change(:must_change_password, Keyword.get(opts, :temporary, false))
+        |> put_change(:password_source, Keyword.get(opts, :source))
+        |> put_change(:password_set_by_user_id, Keyword.get(opts, :by))
         |> put_change(:session_token, novo_token())
         |> delete_change(:password)
     end
   end
+
+  @doc """
+  O estado da CREDENCIAL — `entraria com o quê?`.
+
+  Vocabulário **separado** do estado da conta, que responde `pode entrar?`. Eram uma
+  célula só, e uma célula só é o que fez um desligamento parecer um primeiro dia: a conta
+  desligada aparecia como `temporary pending`, **igual à recém-criada**, e o reinício de
+  rotina para a segunda reativava a primeira.
+
+  Os cinco códigos vivem em `access.account_lifecycle.states.credential`. Esta função
+  **decide qual é**, e não como se escreve — o rótulo vem da base.
+
+  `:temporary_source_not_recorded` é a temporária cuja proveniência ninguém gravou, por ser
+  anterior à coluna `password_source`. Chamá-la de `from creation` seria afirmar o que não
+  se registrou.
+  """
+  @spec estado_da_credencial(t()) ::
+          :no_password
+          | :password_set
+          | :temporary_from_creation
+          | :temporary_from_reset
+          | :temporary_source_not_recorded
+  def estado_da_credencial(%__MODULE__{password_hash: nil}), do: :no_password
+
+  def estado_da_credencial(%__MODULE__{must_change_password: false}), do: :password_set
+
+  def estado_da_credencial(%__MODULE__{password_source: "creation"}),
+    do: :temporary_from_creation
+
+  def estado_da_credencial(%__MODULE__{password_source: "reset"}), do: :temporary_from_reset
+
+  # `"self"` com troca pendente não deveria existir — a pessoa que define a própria senha
+  # sai do estado pendente no mesmo changeset. Se aparecer, a proveniência não explica a
+  # pendência, e dizer *não registrado* é o que resta de verdadeiro.
+  def estado_da_credencial(%__MODULE__{}), do: :temporary_source_not_recorded
 
   @doc "Token de sessão novo — girá-lo derruba as outras sessões (FR-015)."
   @spec novo_token() :: String.t()
