@@ -1,0 +1,630 @@
+<title>Accounts and Access Removal</title>
+<style>
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--info-soft:#e0eaf0;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--s1:#00897a;--s2:#a35c00;--s3:#4a5bbf;--grade:#e3e7e4;--eixo:#c9d0cb;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#122029;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#122029;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--grade:#1d2724;--s3:#8b98e8;--eixo:#33433f;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
+::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.85rem}h2{font-size:1.1rem}h3{font-size:.92rem}h4{font-size:.82rem}
+.faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+.mig{font-family:var(--grot);font-size:.8rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
+.ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
+.marca{font-family:var(--grot);font-size:.7rem;padding:.05rem .45rem;border-radius:.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.marca .am{width:.6rem;height:.6rem;border-radius:2px;border:1px solid currentColor;flex:0 0 auto}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.saiu{color:var(--tinta-2)}.saiu .am{background:var(--linha)}
+.eqv{color:var(--clay)}.eqv .am{background-image:var(--hatch)}
+.sec{margin-top:2.5rem}
+.sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
+.sec-cab h2{flex:1 1 auto}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:left;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+th.dir{text-align:right}
+td{padding:.6rem .5rem;border-bottom:1px solid var(--linha);text-align:left;vertical-align:top;font-size:.93rem}
+td.dir{text-align:right}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:.88rem;display:block}
+.login{font-family:var(--mono);font-size:.72rem;color:var(--tinta-2);display:block}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:1.15rem;margin-top:1rem}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:.89rem;margin:0}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:.25rem;width:max-content}
+.acoes{display:flex;gap:.35rem;justify-content:flex-end;flex-wrap:wrap}
+.btn{font-family:var(--grot);font-size:.74rem;font-weight:650;padding:.25rem .6rem;border-radius:.3rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn.q{color:var(--tinta-2)}
+.btn.perigo{color:var(--clay);border-color:var(--clay)}
+.btn.rec{border-style:dashed;color:var(--tinta-2);background:transparent;cursor:not-allowed;font-weight:400}
+.porque{font-family:var(--grot);font-size:.72rem;color:var(--amber);line-height:1.35;text-align:right;margin-top:.25rem;max-width:15rem;margin-left:auto}
+.observ{font-family:var(--grot);font-size:.72rem;color:var(--tinta-2);line-height:1.35;text-align:right;margin-top:.25rem;max-width:15rem;margin-left:auto}
+.form-inline{margin-top:.8rem;padding:.9rem 1.1rem;border-left:3px solid var(--verdete);background:var(--papel-2);border-radius:0 .4rem .4rem 0;font-size:.88rem}
+.form-inline.perigo{border-left-color:var(--clay);background:var(--clay-soft)}
+.form-inline.volta{border-left-color:var(--info);background:var(--info-soft)}
+.form-inline h4{margin-bottom:.15rem}
+.form-inline label{display:block;font-family:var(--grot);font-size:.74rem;color:var(--tinta-2);margin-top:.6rem}
+.form-inline input[type=text],.form-inline textarea,.form-inline select{font:inherit;font-size:.86rem;padding:.3rem .45rem;border:1.5px solid var(--linha);border-radius:.3rem;background:var(--papel);color:var(--tinta);margin-top:.15rem;width:100%;max-width:34rem;font-family:var(--serif)}
+.form-inline textarea{min-height:3.6rem;resize:vertical}
+.form-inline .nota{font-size:.82rem;color:var(--tinta-2);margin-top:.6rem}
+.razoes{display:grid;gap:.3rem;margin-top:.45rem}
+.razao{display:flex;gap:.5rem;align-items:flex-start;padding:.35rem .5rem;border:1.5px solid var(--linha);border-radius:.35rem;background:var(--papel);cursor:pointer}
+.razao.on{border-color:var(--clay);background:var(--papel)}
+.form-inline.volta .razao.on{border-color:var(--info)}
+.razao input{margin-top:.35rem;flex:0 0 auto}
+.razao .t{font-family:var(--grot);font-size:.82rem;font-weight:650;display:block}
+.razao .d{font-size:.8rem;color:var(--tinta-2);display:block;line-height:1.4}
+.razao .cod{font-family:var(--mono);font-size:.65rem;color:var(--tinta-2);letter-spacing:.03em}
+.consq{margin:.6rem 0 0;padding-left:1.05rem;font-size:.84rem}
+.consq li{margin-top:.2rem}
+.consq .nao{color:var(--tinta-2)}
+.hist{margin-top:0;padding:.5rem 0 .2rem .9rem;border-left:2px solid var(--linha)}
+.hist .rot{display:block;margin-bottom:.3rem}
+.ep{display:grid;grid-template-columns:7.4rem 6.2rem 1fr;gap:.15rem .6rem;font-size:.82rem;padding:.3rem 0;border-bottom:1px dotted var(--linha)}
+.ep:last-child{border-bottom:0}
+.ep .quando{font-family:var(--mono);font-size:.72rem;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+.ep .oque{font-family:var(--grot);font-size:.75rem;font-weight:650}
+.ep .quem{line-height:1.4}
+.ep .obs-ep{grid-column:2 / -1;font-size:.79rem;color:var(--tinta-2);line-height:1.4}
+.ep.err .oque{color:var(--clay)}
+.cred{font-family:var(--mono);font-size:.76rem;line-height:1.5;font-variant-numeric:tabular-nums;display:block;white-space:nowrap}
+.cred.pend{color:var(--amber)}
+.cred.nula{color:var(--tinta-2)}
+.cred .seg2{display:block;color:var(--tinta-2);font-size:.72rem;white-space:normal}
+th.col-cred,td.col-cred{min-width:12.5rem}
+.cred.inerte{color:var(--tinta-2)}
+.estado{font-family:var(--grot);font-size:.84rem;font-weight:650;display:block}
+.desde{font-family:var(--mono);font-size:.71rem;color:var(--tinta-2);display:block;line-height:1.5;font-variant-numeric:tabular-nums}
+.razao-linha{font-family:var(--grot);font-size:.76rem;color:var(--tinta-3);display:block;line-height:1.4;margin-top:.1rem}
+tr.desativada{background:repeating-linear-gradient(135deg,transparent 0 7px,var(--papel-2) 7px 8px)}
+tr.eu td:first-child{box-shadow:inset 3px 0 0 var(--verdete)}
+.atos{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(16.5rem,1fr));margin-top:1rem}
+.ato{border:1.5px solid var(--linha);border-radius:.5rem;padding:.9rem 1rem;background:var(--papel-2);display:flex;flex-direction:column;gap:.35rem}
+.ato.corta{border-top:4px solid var(--clay)}
+.ato.naocorta{border-top:4px solid var(--linha)}
+.ato h3{font-family:var(--grot)}
+.ato .faz,.ato .naofaz{font-size:.83rem;line-height:1.45}
+.ato .faz b,.ato .naofaz b{font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;display:block;font-weight:400}
+.ato .faz b{color:var(--verdete-deep)}
+.ato .naofaz b{color:var(--clay)}
+.ato .naofaz{border-top:1px dashed var(--linha);padding-top:.4rem}
+.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:.35rem;overflow:hidden;font-family:var(--grot);font-size:.76rem}
+.seg span{padding:.2rem .7rem;color:var(--tinta-2);border-right:1.5px solid var(--linha)}.seg span:last-child{border-right:0}
+.seg span.on{background:var(--verdete);color:var(--papel);font-weight:650}
+.legenda{display:grid;gap:.55rem 1.4rem;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));margin-top:.7rem;font-family:var(--grot);font-size:.78rem}
+.legenda>div{color:var(--tinta-2);line-height:1.45}
+.legenda>div>:first-child{margin-right:.35rem}
+.ex-mark{font-family:var(--mono);font-size:.62rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
+.scroll{overflow-x:auto}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:.5rem;background:var(--verdete-soft);font-size:.86rem}
+.nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
+kbd{font-family:var(--mono);font-size:.72rem;border:1px solid var(--linha);border-radius:.2rem;padding:0 .3rem;background:var(--papel-2)}
+code{font-family:var(--mono);font-size:.78rem;color:var(--tinta-3)}
+.duas{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));margin-top:.7rem}
+.afirm{border-left:3px solid var(--verdete);padding:.4rem .85rem;font-size:.88rem}
+.afirm.porta{border-left-color:var(--clay)}.afirm.log{border-left-color:var(--info)}
+.afirm .rot{display:block;margin-bottom:.15rem}
+.porta-falsa{border:1.5px solid var(--linha);border-radius:.5rem;background:var(--papel-2);padding:1.4rem 1.5rem;max-width:26rem;margin-top:1rem}
+.porta-falsa h3{margin-bottom:.6rem}
+.porta-falsa .campo{display:block;font-family:var(--grot);font-size:.74rem;color:var(--tinta-2);margin-top:.7rem}
+.porta-falsa input{font:inherit;font-size:.88rem;padding:.35rem .5rem;border:1.5px solid var(--linha);border-radius:.3rem;background:var(--papel);color:var(--tinta);width:100%;margin-top:.15rem}
+.alerta{border:1.5px solid var(--clay);background:var(--clay-soft);color:var(--clay);border-radius:.4rem;padding:.5rem .7rem;font-size:.86rem;font-family:var(--grot);margin-bottom:.8rem}
+.temp{border:2px solid var(--amber);background:var(--papel-2);border-radius:.5rem;padding:.9rem 1.1rem;margin-top:1rem}
+.temp .senha{font-family:var(--mono);font-size:1.25rem;letter-spacing:.04em;margin-top:.2rem}
+ol.dec-list{margin:0;padding-left:1.25rem;font-size:.92rem}
+ol.dec-list li{margin-top:.5rem}
+.tag-dec{font-family:var(--mono);font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;color:var(--verdete-deep);border:1px solid var(--verdete);border-radius:.2rem;padding:0 .25rem;white-space:nowrap}
+.tag-open{color:var(--amber);border-color:var(--amber)}
+.vao-nome{min-width:11rem}
+@media (max-width:640px){.ep{grid-template-columns:1fr}.ep .obs-ep{grid-column:1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="faixa">
+<div class="mig"><a href="#">Settings</a> › Accounts</div>
+<h1>Accounts</h1>
+<div class="ident">
+  <span class="marca dec"><span class="am"></span>everything here is declared by the administration</span>
+  <span class="marca obs"><span class="am"></span>the GitHub login comes from collection</span>
+  <span class="sub"><span class="n">6</span> accounts · <span class="n">4</span> can sign in today · <span class="n">1</span> disabled · <span class="n">1</span> has no password</span>
+</div>
+<p class="sub">Who signs in to this organisation, which GitHub account belongs to whom, and <strong>how someone's access is removed</strong>. There is no self-registration: an account is created here, and it is disabled here. <span class="ex-mark">example data</span> marks the rows invented for this prototype — the development database on 10 Sep holds 3 accounts (2 with a password set, 1 with none, 0 disabled, 0 linked to a collected person), and every state below needs a row to be designed against.</p>
+
+<p class="sub" style="font-size:.84rem"><strong>Two screens on one page</strong>, separated by the band below. <kbd>/accounts</kbd> has no tabs, and this prototype does not invent any: screen 2 is the sign-in page seen from the other side, and it is here because the refusal it shows is part of this design. Everything is visible on load — the forms are open as examples, and nothing needs a click to be read.</p>
+
+<!-- ════════════════════════════ SCREEN 1 ════════════════════════════ -->
+<span class="tela" id="accounts">screen 1 · accounts</span>
+
+<div class="nota-de-tela"><span class="rot">what this screen is, and the finding it exists to close</span>
+Before this design, the shutdown was <strong>implicit</strong>: whoever administered reset the password and did not hand the temporary over. The account of someone who had left then read <strong>temporary pending</strong> — <strong>the same words as an account created yesterday</strong> — and the routine act for the second one (reset the password) <strong>brought the first one back</strong>. The state of a shutdown was indistinguishable from the state of someone who had just joined the organisation.
+<br><br>Three things follow from that, and this screen is built on them: <strong>the account's state and the credential's state are two facts, so they are two columns</strong>; <strong>every act says what it does and what it does not do</strong>, in place, because the act that looked like a shutdown was not one; and <strong>nothing is erased</strong> — a disablement is an episode with an author, a date and a reason, and bringing the account back closes the episode instead of deleting it.</div>
+
+<!-- ─────────── the written procedure, in the screen ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>Removing someone's access</h2><span class="rot">three acts · only one of them removes access</span></div>
+  <p class="sub">Someone left the organisation. These are the three acts this screen offers, side by side, with what each one does <strong>and what it does not do</strong>. Read this before acting: the act that reads like a shutdown is not the one that shuts anyone out.</p>
+  <div class="atos">
+    <div class="ato corta">
+      <h3>Disable account</h3>
+      <p class="faz"><b>what it does</b>The account stops signing in — by password today, and by API token when tokens exist. The open session drops at the next action. The row stays, with who disabled it, when, and why.</p>
+      <p class="naofaz"><b>what it does not do</b>Does not delete anything. Does not remove the person from the roster, from any team, or from any measure. Does not change the password.</p>
+    </div>
+    <div class="ato naocorta">
+      <h3>Reset password</h3>
+      <p class="faz"><b>what it does</b>Issues a new temporary password, shown once, and drops the open sessions. It is how someone who forgot their password gets back in.</p>
+      <p class="naofaz"><b>what it does not do</b><strong>This is not a shutdown.</strong> The account stays able to sign in, and the next reset — a routine act — hands it back. Not handing the temporary over is a habit, not a control.</p>
+    </div>
+    <div class="ato naocorta">
+      <h3>Revoke GitHub link</h3>
+      <p class="faz"><b>what it does</b>The account stops being that observed person: their own dashboard closes, and signing in by GitHub username stops working. The history of the link stays.</p>
+      <p class="naofaz"><b>what it does not do</b><strong>Does not remove access.</strong> Signing in by e-mail does not need the link, and the organisation's screens keep opening. Measured on 9 Sep.</p>
+    </div>
+  </div>
+  <div class="aviso"><span class="rot">why this panel is on the screen and not only in a document</span>
+    <p>The written procedure exists — <code>docs/producao/desligar-alguem.md</code> — and it exists <em>because</em> the act that worked was not written anywhere. A procedure that lives only in the documentation is exactly what this finding proved does not work: whoever administers does what the interface offers. So the interface says it, at the point of acting, and the document keeps the long version.</p>
+  </div>
+</section>
+
+<!-- ─────────── create ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>Create an account</h2><span class="rot">creating is an administrative act — there is no self-registration</span></div>
+  <div class="cartao">
+    <div style="display:flex;flex-wrap:wrap;gap:.8rem;align-items:flex-end">
+      <label style="display:flex;flex-direction:column;gap:.15rem"><span class="rot">Name</span><input type="text" value="Marina Alves" style="font:inherit;font-size:.88rem;padding:.3rem .5rem;border:1.5px solid var(--linha);border-radius:.3rem;background:var(--papel);color:var(--tinta)"></label>
+      <label style="display:flex;flex-direction:column;gap:.15rem"><span class="rot">E-mail</span><input type="text" value="marina.alves@example.org" style="font:inherit;font-size:.88rem;padding:.3rem .5rem;border:1.5px solid var(--linha);border-radius:.3rem;background:var(--papel);color:var(--tinta);min-width:16rem"></label>
+      <button class="btn p" type="button">Create</button>
+    </div>
+    <p class="sub" style="font-size:.84rem">The account is born with a temporary password, shown once, below. The GitHub link is made on the row.</p>
+  </div>
+  <div class="temp" role="status">
+    <span class="rot">temporary password — shown only now</span>
+    <div class="senha">brave-otter-4193</div>
+    <p class="sub" style="font-size:.85rem;margin-top:.3rem">Hand it over through your own channel. The first sign-in with it forces a new password. It is not stored in the clear and it is not written to any log — <strong>if you leave this screen it is gone, and the way back is another reset</strong>.</p>
+  </div>
+</section>
+
+<!-- ─────────── the table ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>The accounts</h2><span class="rot">6 rows · disabled last, and never hidden</span></div>
+  <p class="sub">Two columns for two facts. <strong>Account</strong> answers <em>can this person sign in at all?</em>; <strong>Sign-in credential</strong> answers <em>what would they sign in with?</em>. They used to be one cell, and one cell is what made a shutdown look like a first day.</p>
+  <div style="margin-top:.7rem;display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap">
+    <span class="seg"><span class="on">all 6</span><span>can sign in 4</span><span>disabled 1</span></span>
+    <span class="sub" style="font-size:.8rem">A disabled account is never filtered out by default — an account you cannot see is an account you cannot audit.</span>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead>
+      <tr>
+        <th class="vao-nome">Person</th>
+        <th>GitHub</th>
+        <th>Management</th>
+        <th>Account</th>
+        <th class="col-cred">Sign-in credential</th>
+        <th class="dir">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- a — active, password set, admin -->
+      <tr>
+        <td>
+          <span class="pessoa">Paulo Junior <span class="ex-mark">example</span></span>
+          <span class="login">paulo@example.org</span>
+        </td>
+        <td><span class="marca obs"><span class="am"></span>paulossjunior</span> <button class="btn q" type="button">revoke link…</button></td>
+        <td><span class="marca dec"><span class="am"></span>administrator</span></td>
+        <td>
+          <span class="estado">active</span>
+          <span class="desde">no disablement recorded</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred">password set · 26 Aug<span class="seg2">last signed in 10 Sep 09:12</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn" type="button">Reset password</button>
+            <button class="btn rec" type="button" disabled>Disable</button>
+          </div>
+          <p class="porque">This is your own account — ask another administrator. The platform refuses it too, so that one administration cannot lock the organisation out of itself.</p>
+        </td>
+      </tr>
+
+      <!-- b — active, temporary from creation, never signed in -->
+      <tr>
+        <td>
+          <span class="pessoa">Marina Alves <span class="ex-mark">example</span></span>
+          <span class="login">marina.alves@example.org</span>
+        </td>
+        <td><span class="marca aus"><span class="am"></span>no GitHub account linked</span> <button class="btn q" type="button">link…</button></td>
+        <td><span class="sub">—</span></td>
+        <td>
+          <span class="estado">active</span>
+          <span class="desde">no disablement recorded</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred pend">temporary · from creation<span class="seg2">issued 10 Sep by Paulo · never signed in</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn" type="button">Reset password</button>
+            <button class="btn perigo" type="button">Disable…</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- c — active, temporary from a reset -->
+      <tr>
+        <td>
+          <span class="pessoa">Ana Vieira <span class="ex-mark">example</span></span>
+          <span class="login">ana.vieira@example.org</span>
+        </td>
+        <td><span class="marca obs"><span class="am"></span>anavieira</span> <button class="btn q" type="button">revoke link…</button></td>
+        <td><span class="marca dec"><span class="am"></span>administrator</span></td>
+        <td>
+          <span class="estado">active</span>
+          <span class="desde">disabled once before, on 2 Sep — reactivated the same day</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred pend">temporary · from a reset<span class="seg2">issued 9 Sep by Paulo · last signed in 2 Sep</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn" type="button">Reset password</button>
+            <button class="btn perigo" type="button">Disable…</button>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="6" style="padding-top:0;border-bottom:1.5px solid var(--linha)">
+          <div class="hist">
+            <span class="rot">access history · Ana Vieira — nothing here is deleted</span>
+            <div class="ep">
+              <span class="quando">2 Sep · 11:40</span><span class="oque">reactivated</span>
+              <span class="quem">by <strong>Paulo Junior</strong> — <em>investigation closed, no compromise found</em></span>
+              <span class="obs-ep">note: “the alert was a shared VPN address, not a stolen password.”</span>
+            </div>
+            <div class="ep">
+              <span class="quando">2 Sep · 09:05</span><span class="oque">disabled</span>
+              <span class="quem">by <strong>Paulo Junior</strong> — <em>suspected compromise</em></span>
+              <span class="obs-ep">note: “three sign-ins from two countries within an hour.” The open session dropped at the next action.</span>
+            </div>
+            <div class="ep err">
+              <span class="quando">12 Aug · 16:12</span><span class="oque">reactivated</span>
+              <span class="quem">by <strong>Paulo Junior</strong> — <em>disabled by mistake</em> <span class="marca eqv"><span class="am"></span>mistake</span></span>
+              <span class="obs-ep">note: “wrong row — I meant the account below.” The episode above stays on the record and is <strong>not counted as a shutdown</strong>.</span>
+            </div>
+            <div class="ep err">
+              <span class="quando">12 Aug · 16:10</span><span class="oque">disabled</span>
+              <span class="quem">by <strong>Paulo Junior</strong> — <em>left the organisation</em></span>
+            </div>
+          </div>
+        </td>
+      </tr>
+
+      <!-- d — DISABLED -->
+      <tr class="desativada">
+        <td>
+          <span class="pessoa">Rafael Duarte <span class="ex-mark">example</span></span>
+          <span class="login">rafael.duarte@example.org</span>
+        </td>
+        <td><span class="marca obs"><span class="am"></span>rafduarte</span> <span class="sub" style="font-size:.76rem;display:block">link kept — the account is still that person on the record</span></td>
+        <td><span class="sub">—</span></td>
+        <td>
+          <span class="marca saiu"><span class="am"></span>disabled</span>
+          <span class="desde">since 9 Sep 14:20 · by Paulo Junior</span>
+          <span class="razao-linha">left the organisation</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred inerte">password set · 14 Aug<span class="seg2">kept, and it opens nothing while the account is disabled · last signed in 8 Sep 17:44</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn rec" type="button" disabled>Reset password</button>
+            <button class="btn" type="button">Reactivate…</button>
+          </div>
+          <p class="porque">Reset is unavailable while the account is disabled. Reactivate first — and reactivating does not hand the password back, so a reset comes after, not instead.</p>
+        </td>
+      </tr>
+      <tr class="desativada">
+        <td colspan="6" style="padding-top:0">
+          <div class="hist">
+            <span class="rot">access history · Rafael Duarte — nothing here is deleted</span>
+            <div class="ep">
+              <span class="quando">9 Sep · 14:20</span><span class="oque">disabled</span>
+              <span class="quem">by <strong>Paulo Junior</strong> — <em>left the organisation</em> · <span class="rot" style="text-transform:none;letter-spacing:0">open, no reactivation</span></span>
+              <span class="obs-ep">note: “last day was 8 Sep; handover to Marina done.” The open session dropped at the next action.</span>
+            </div>
+            <p class="sub" style="font-size:.82rem;margin-top:.4rem">What this account could reach is <strong>kept and inert</strong>: 1 organisation scope, granted 14 Aug by Paulo Junior. Nothing was revoked, so reactivating restores exactly what was there — and the record says what that was.</p>
+          </div>
+        </td>
+      </tr>
+
+      <!-- e — no password -->
+      <tr>
+        <td>
+          <span class="pessoa">Beatriz Nunes <span class="ex-mark">example</span></span>
+          <span class="login">beatriz.nunes@example.org</span>
+        </td>
+        <td><span class="marca aus"><span class="am"></span>no GitHub account linked</span> <button class="btn q" type="button">link…</button></td>
+        <td><span class="sub">—</span></td>
+        <td>
+          <span class="estado">active</span>
+          <span class="desde">no disablement recorded</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred nula">no password<span class="seg2">sign-in refuses · account created 9 Aug, before passwords existed</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn" type="button">Issue a temporary</button>
+            <button class="btn perigo" type="button">Disable…</button>
+          </div>
+          <p class="observ">This account cannot sign in and it is <strong>not</strong> disabled — nobody decided anything about it. Disabling it is how the decision gets recorded.</p>
+        </td>
+      </tr>
+
+      <!-- f — active, plain member -->
+      <tr>
+        <td>
+          <span class="pessoa">Caio Ferreira <span class="ex-mark">example</span></span>
+          <span class="login">caio.ferreira@example.org</span>
+        </td>
+        <td><span class="marca saiu"><span class="am"></span>link revoked 1 Sep</span> <button class="btn q" type="button">link…</button></td>
+        <td><span class="sub">—</span></td>
+        <td>
+          <span class="estado">active</span>
+          <span class="desde">no disablement recorded</span>
+        </td>
+        <td class="col-cred">
+          <span class="cred">password set · 3 Sep<span class="seg2">last signed in 10 Sep 08:30</span></span>
+        </td>
+        <td class="dir">
+          <div class="acoes">
+            <button class="btn" type="button">Reset password</button>
+            <button class="btn perigo" type="button">Disable…</button>
+          </div>
+          <p class="observ">The link was revoked and this account <strong>still signs in</strong>. That is the pair the finding measured — if the intent was to remove access, disable is the act.</p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="legenda">
+    <div><span class="marca saiu"><span class="am"></span>disabled</span> the account is closed — recorded, with author, date and reason. Grey and filled, the same mark this house uses for anything that <em>ended and stayed on the record</em>.</div>
+    <div><strong style="font-family:var(--grot);font-size:.82rem;color:var(--tinta)">active</strong> plain words, no badge: it is the common case, and a badge every row carries stops being a signal.</div>
+    <div><span class="marca eqv"><span class="am"></span>mistake</span> a disablement recorded as an error of the hand. The episode stays; it stops counting as a shutdown.</div>
+    <div><span class="cred pend" style="display:inline">temporary</span> amber, and the text says <em>which</em> temporary — from creation, or from a reset. The two ask for opposite next acts.</div>
+    <div><span class="cred nula" style="display:inline">no password</span> written absence, never an empty cell and never a zero.</div>
+    <div><button class="btn rec" type="button" disabled>refused</button> a refused action stays where it was, with the reason beside it. A button that disappears teaches nobody anything.</div>
+  </div>
+  <p class="sub" style="font-size:.82rem">Every state above survives being printed in black and white: the word is in its own column, and the mark carries a fill pattern as well as a hue.</p>
+</section>
+
+<!-- ─────────── disable form ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>Disable an account</h2><span class="rot">shown open, as the form appears after “Disable…” on Rafael Duarte's row</span></div>
+  <div class="form-inline perigo">
+    <h4>Disable <strong>Rafael Duarte</strong> — rafael.duarte@example.org</h4>
+    <p class="sub" style="font-size:.83rem;color:var(--tinta-3)">Disabled, not deleted. The row stays, and so does everything this person did.</p>
+
+    <label for="r-reason">Why <span style="color:var(--clay)">— required</span></label>
+    <div class="razoes" id="r-reason">
+      <label class="razao on"><input type="radio" name="motivo" checked>
+        <span><span class="t">Left the organisation</span><span class="d">The person no longer works here. <span class="cod">left_the_organisation</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo">
+        <span><span class="t">Access no longer needed</span><span class="d">The person stays; this account's access does not — a contract ended, a role changed. <span class="cod">access_no_longer_needed</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo">
+        <span><span class="t">Duplicate account</span><span class="d">The same person has another account here, and that one is the good one. <span class="cod">duplicate_account</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo">
+        <span><span class="t">Suspected compromise</span><span class="d">The credential may be in someone else's hands. <strong>Choosing this one adds a checklist below</strong> — it is the reason that asks for more than this act. <span class="cod">suspected_compromise</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo">
+        <span><span class="t">Something else</span><span class="d">A note is required when you pick this one — the reason has to be readable by whoever opens the record next year. <span class="cod">other</span></span></span></label>
+    </div>
+
+    <label for="r-note">Note <span class="sub">— optional here; required for “Suspected compromise” and “Something else”</span></label>
+    <textarea id="r-note">last day was 8 Sep; handover to Marina done</textarea>
+
+    <p class="rot" style="margin-top:.8rem">what happens when you confirm</p>
+    <ul class="consq">
+      <li>The account stops signing in — by password now, and by API token when tokens exist.</li>
+      <li>The open session drops <strong>at the next action</strong>, not seven days from now.</li>
+      <li>The record keeps <strong>who, when, why</strong> and this note, and it stays after any reactivation.</li>
+      <li class="nao">The password is <strong>not</strong> changed, the GitHub link is <strong>not</strong> revoked, and the scopes are <strong>not</strong> removed — they are kept and inert, so that bringing the account back restores exactly what was there.</li>
+      <li class="nao">The roster, the measures and this person's history do <strong>not</strong> change. Disabling an account changes who signs in, not what happened.</li>
+    </ul>
+    <div class="acoes" style="justify-content:flex-start;margin-top:.8rem">
+      <button class="btn perigo" type="button">Disable the account</button>
+      <button class="btn q" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <div class="form-inline perigo" style="margin-top:1.2rem">
+    <h4>The same form with <strong>Suspected compromise</strong> chosen <span class="ex-mark">second state, shown so the checklist is on the page</span></h4>
+    <p class="rot" style="margin-top:.6rem">disabling closes the door — these are the things it does not close</p>
+    <ul class="consq">
+      <li><strong>The open session</strong> — closed by this act, at the next action. Nothing else to do.</li>
+      <li><strong>The password</strong> — unchanged, and you do not know who else knows it. While the account is disabled it opens nothing; reset it <em>after</em> any reactivation, never before.</li>
+      <li><strong>API tokens</strong> — <span style="color:var(--amber)">the platform has none yet</span>. When it does (spec 061), disabling has to close them too, and until then this line is a promise and not a control.</li>
+      <li><strong>What was read before now</strong> — nothing here is retroactive. What the person saw, they know.</li>
+      <li><strong>The access record</strong> — <a href="#" style="color:var(--verdete-deep)">what this account did, from the sign-in log</a>. It starts on 9 Sep, when the platform began recording access events; before that date there is nothing, and the screen says so rather than showing an empty list.</li>
+    </ul>
+    <label>Note <span style="color:var(--clay)">— required for this reason</span></label>
+    <textarea>three sign-ins from two countries within an hour</textarea>
+  </div>
+</section>
+
+<!-- ─────────── reactivate form ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>Reactivate an account</h2><span class="rot">the more sensitive of the two acts, and the one with the thinner record today</span></div>
+  <p class="sub">Disabling closes a door; reactivating <strong>opens</strong> one. It asks for the same author and the same reason, and it does not erase the disablement — it closes the episode, and both halves stay side by side on the row.</p>
+  <div class="form-inline volta">
+    <h4>Reactivate <strong>Rafael Duarte</strong> — disabled 9 Sep 14:20 by Paulo Junior, <em>left the organisation</em></h4>
+
+    <label>Why <span style="color:var(--info)">— required</span></label>
+    <div class="razoes">
+      <label class="razao on"><input type="radio" name="motivo2" checked>
+        <span><span class="t">Came back to the organisation</span><span class="d">The person is back, and this account is theirs again. <span class="cod">returned_to_the_organisation</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo2">
+        <span><span class="t">Disabled by mistake</span><span class="d">The disablement was an error of the hand — the wrong row, the wrong person. The episode is marked <span class="marca eqv"><span class="am"></span>mistake</span> and <strong>stops counting as a shutdown</strong>, without being deleted. <span class="cod">disabled_by_mistake</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo2">
+        <span><span class="t">Investigation closed — no compromise found</span><span class="d">Only offered when the disablement's reason was <em>suspected compromise</em>: it is the answer to that reason, and it belongs next to it. <span class="cod">investigation_closed_no_compromise</span></span></span></label>
+      <label class="razao"><input type="radio" name="motivo2">
+        <span><span class="t">Something else</span><span class="d">A note is required. <span class="cod">other</span></span></span></label>
+    </div>
+
+    <label>Note <span class="sub">— optional here; required for “Something else”</span></label>
+    <textarea>back on a six-month contract, starting 15 Sep</textarea>
+
+    <p class="rot" style="margin-top:.8rem">what happens when you confirm</p>
+    <ul class="consq">
+      <li>The account signs in again, with the credential it already had — <strong>password set · 14 Aug</strong>.</li>
+      <li>The scopes it had are live again: <strong>1 organisation scope</strong>, granted 14 Aug by Paulo Junior. Nothing new is granted.</li>
+      <li>The episode closes with <strong>your name, this instant and this reason</strong>. The disablement above it stays exactly as it was.</li>
+      <li class="nao">Reactivating does <strong>not</strong> hand the password back. If the shutdown was done the old way — a reset whose temporary was never delivered — the password is still that undelivered temporary, and a fresh reset comes after this act.</li>
+    </ul>
+    <div class="acoes" style="justify-content:flex-start;margin-top:.8rem">
+      <button class="btn p" type="button">Reactivate the account</button>
+      <button class="btn q" type="button">Cancel</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── what disabling does not do ─────────── -->
+<section class="sec">
+  <div class="sec-cab"><h2>What disabling does not touch</h2><span class="rot">written on the screen, because the opposite is what people assume</span></div>
+  <div class="duas">
+    <div class="afirm log"><span class="rot">the person, in the organisation's data</span>
+      Everything this person did stays: the roster, the team memberships, the work items, the demonstrated profile, every measure over any period. <strong>Disabling an account is a statement about signing in, not about the past.</strong> Someone who worked here in July still counts in July.</div>
+    <div class="afirm porta"><span class="rot">the account, on this screen</span>
+      The row stays, the link stays, the scopes stay and go inert, the credential stays as it was. <strong>Nothing is deleted, ever.</strong> The one thing that changes is the answer to “can this person sign in?”, and it changes with an author, an instant and a reason attached.</div>
+  </div>
+  <div class="aviso"><span class="rot">and one claim this screen cannot make on its own</span>
+    <p>“4 can sign in today”, at the top, is true <strong>while the organisation itself is active</strong>. A suspended organisation should sign nobody in — and <code>tenants.status</code> exists, accepts <code>"suspended"</code> and <strong>is read nowhere</strong> (measured 9 Sep, finding H3 part A). Until that is closed, the number above is about accounts and not about the door. Where that belongs on a screen is open question 14.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════ SCREEN 2 ════════════════════════════ -->
+<span class="tela" id="refused">screen 2 · what the disabled person sees</span>
+
+<div class="nota-de-tela"><span class="rot">what this screen is</span>
+The sign-in page, from the other side, on the day after being disabled. It is here because the refusal has a rule of its own and the rule is easy to break by being helpful: <strong>the door never names the state of the account</strong>. Whoever did not get in must not learn from the answer whether the address exists, whether the password was the wrong one, or whether the account was disabled — that is enumeration, and it is what an attacker asks the door for.</div>
+
+<div class="porta-falsa">
+  <div class="alerta" role="alert">Invalid credentials.</div>
+  <h3>Sign in</h3>
+  <label class="campo">E-mail or GitHub username<input type="text" value="rafael.duarte@example.org"></label>
+  <label class="campo">Password<input type="text" value="••••••••••••"></label>
+  <div class="acoes" style="justify-content:flex-start;margin-top:.9rem"><button class="btn p" type="button">Sign in</button></div>
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>The two statements</h2><span class="rot">the door says one thing; the record keeps another</span></div>
+  <div class="duas">
+    <div class="afirm porta"><span class="rot">what the door says</span>
+      <strong>“Invalid credentials.”</strong> — byte for byte the same sentence a wrong password gets, and the same one an address that belongs to nobody gets. One sentence, built in one place, so it cannot drift apart into three.</div>
+    <div class="afirm log"><span class="rot">what the record keeps</span>
+      <code>sign-in refused · reason: account_disabled · user … · tenant …</code> — the internal reason, in the access log, where reconstructing an incident needs it. The distinction the door refuses to make is made here, for the people who are entitled to it.</div>
+  </div>
+  <p class="sub">This is the same shape as everywhere else in this product: <strong>two statements side by side, and neither one pretending to be the other</strong>. What changes is who is allowed to read which.</p>
+  <div class="aviso"><span class="rot">what the person is not told, and who has to tell them</span>
+    <p>Nothing on this page says “your account was disabled”, and nothing should. The person finds out from a human being — which is why the disable form asks for a note, and why the reason is written down: somebody will have to answer “what happened?” and the answer should not be reconstructed from memory.</p>
+  </div>
+</section>
+
+<!-- ════════════════════════════ DECISIONS ════════════════════════════ -->
+<section class="sec">
+  <div class="sec-cab"><h2>Decisions and open questions</h2><span class="rot">10 Sep 2026</span></div>
+  <p class="sub">The code for this screen is <strong>already in production</strong>, shipped in v0.7.0 with the delivery refused. This prototype is not here to ratify what exists — it says what should exist, and the difference between the two is work. The table at the end names every difference.</p>
+
+  <div class="cartao">
+    <ol class="dec-list">
+      <li><strong>The reason is a closed list <em>and</em> a note.</strong> <span class="tag-dec">decided 10 sep</span> Five clauses — <code>left_the_organisation</code>, <code>access_no_longer_needed</code>, <code>duplicate_account</code>, <code>suspected_compromise</code>, <code>other</code> — plus a free note. <em>Why both:</em> the clause is what the platform <strong>reads</strong> — “suspected compromise” changes what the screen shows next and is the one question an incident asks by count — and free text alone cannot be counted or routed. The note is what the person <strong>writes</strong>, and a clause alone repeats identically for forty people without saying who decided or on what basis. This house has precedent on both sides: the membership mistake demands written text, the concept promotion uses declared vocabulary. Here the two do different jobs, so both are present.</li>
+
+      <li><strong>The note is required for <code>suspected_compromise</code> and <code>other</code>, optional for the rest.</strong> <span class="tag-dec">decided 10 sep</span> Required everywhere produces “asdf”, which is worse than absence because it looks like a record. <code>other</code> has no meaning at all without the note; <code>suspected_compromise</code> is the one whose next reader has to act. Where it is omitted, the record says <em>no note</em> — absence written, never a blank.</li>
+
+      <li><strong>Reactivating asks for an author and a reason, and it does not erase the disablement.</strong> <span class="tag-dec">decided 10 sep</span> Four clauses: <code>returned_to_the_organisation</code>, <code>disabled_by_mistake</code>, <code>investigation_closed_no_compromise</code> (offered only against a compromise disablement), <code>other</code>. Reactivating is the <strong>more sensitive</strong> of the two acts — one adds a person to the set of people who can read the organisation — and today it is the one with the thinner record. A disablement is an <strong>episode</strong>: opened with author, instant and reason; closed with author, instant and reason. The account's state is derived from “is there an open episode?”, and the row shows both halves.</li>
+
+      <li><strong>Two columns, not one cell with precedence.</strong> <span class="tag-dec">decided 10 sep</span> <em>Account</em> and <em>Sign-in credential</em> are two facts and get two columns. The screen in production puts <code>desativada</code> first inside the credential cell, which is precedence rather than separation: the credential fact <strong>disappears</strong> when the account is disabled, and it is exactly the fact you need on the day someone asks for the account back. One cell for two facts is the shape that made a shutdown read like a first day.</li>
+
+      <li><strong>The two temporaries are told apart in words.</strong> <span class="tag-dec">decided 10 sep</span> <code>temporary · from creation · never signed in</code> against <code>temporary · from a reset · last signed in 2 Sep</code>. Separating the account column solves half the finding; this solves the other half. The two look identical today and ask for opposite acts — hand this one over, do not hand that one over — and both facts are already in the database (<code>password_set_at</code>, <code>logged_in_at</code>, <code>must_change_password</code>).</li>
+
+      <li><strong>A refused action is shown refused, never hidden.</strong> <span class="tag-dec">decided 10 sep</span> <em>Reset password</em> on a disabled account keeps its place, inert, with the reason beside it and the correct order named: reactivate first, and reactivating does not hand the password back. <em>Disable</em> on your own row does the same, and it names the domain's refusal — <code>:nao_pode_desativar_a_si</code> — before it can be triggered. A button that vanishes is the mute absence this house refuses; and here it is worse than mute, because whoever looks for it concludes the platform cannot do it.</li>
+
+      <li><strong>The row carries the history.</strong> <span class="tag-dec">decided 10 sep</span> Who disabled, when, why, with the note; who reactivated, when, why. Plus <em>last signed in</em>, which is what says whether a live session was cut. An account that was never disabled says <em>no disablement recorded</em> — written, not blank. The precedent is <code>ScopeGrant</code>: revocation is a mark with authorship, never a delete.</li>
+
+      <li><strong>The written procedure is on the screen.</strong> <span class="tag-dec">decided 10 sep</span> Three act cards — <em>Disable account</em>, <em>Reset password</em>, <em>Revoke GitHub link</em> — each with what it does <strong>and what it does not do</strong>, above the table, always visible. <code>docs/producao/desligar-alguem.md</code> exists precisely because the act that worked was written nowhere; a procedure that lives only in a document is what this finding already proved fails, because whoever administers does what the interface offers.</li>
+
+      <li><strong>Disabling touches nothing else.</strong> <span class="tag-dec">decided 10 sep</span> The password is not changed, the GitHub link is not revoked, the scopes are not removed — they are kept and <em>inert</em>, and the row says so. Joining any of them into one act is the error <code>FR-012f</code> already separated, and it would make reactivation guess at what to restore. The roster, the measures and the person's history do not move: this is a statement about signing in, not about the past.</li>
+
+      <li><strong>Disabled accounts stay in the same table, sorted last, never filtered out by default.</strong> <span class="tag-dec">decided 10 sep</span> An account you cannot see is an account you cannot audit, and a second screen for “former accounts” is where the record goes to be forgotten. The filter exists and starts on <em>all</em>; the count is in the header.</li>
+
+      <li><strong>Marks: grey filled for <em>disabled</em>, clay hatched for <em>mistake</em>, plain words for <em>active</em>.</strong> <span class="tag-dec">decided 10 sep</span> No new hue — the decision of 8 Sep found none free in this palette, and it still holds. Grey-filled is this house's mark for <em>ended, and the record stays</em>, which is what a correct disablement is; clay is gravity and error, which a disablement by mistake is; amber stays with the pending temporary, where it already lives. <em>Active</em> gets no badge at all: it is the common case, and a badge every row carries stops being a signal.</li>
+    </ol>
+
+    <p class="sub" style="margin-top:1.1rem"><strong>Open, and each one is the maintainer's to settle.</strong> Written with the options and this role's recommendation; the Product Owner takes them.</p>
+    <ol class="dec-list" start="12">
+      <li><strong>Where the reason vocabulary is declared.</strong> <span class="tag-dec tag-open">open</span> Nothing may be on the screen that the base does not declare (constitution, principle IV), and these nine clauses are declared vocabulary. <em>(a)</em> a rule file beside <code>team.dashboard.thresholds</code>, which is already a screen decision living in the knowledge base with <code>provider: platform</code>; <em>(b)</em> outside <code>priv/knowledge_base/</code>, because that base is the SEON network about observed engineering data and an account's lifecycle is platform administration. <em>Recommended: (a)</em> — the precedent exists, the validator already gates it, and “declared, versioned, reviewable” is the property that matters. If (b), it needs the same three properties somewhere else, not none.</li>
+
+      <li><strong>Whether a disablement can name a successor.</strong> <span class="tag-dec tag-open">open</span> The example note says “handover to Marina done”, in free text. <em>(a)</em> leave it in the note; <em>(b)</em> an optional field pointing at another account, so “who took this over” is answerable by query. <em>Recommended: (a) for now</em> — (b) is a second relationship to keep true, and nobody has yet asked the question it answers.</li>
+
+      <li><strong>Where a suspended organisation appears.</strong> <span class="tag-dec tag-open">open</span> <code>tenants.status</code> exists and nothing reads it, so the header's “4 can sign in today” is a claim about accounts and not about the door. <em>(a)</em> a banner on this screen when the organisation is not active; <em>(b)</em> its own screen, since it is a statement about the organisation and this screen is about people; <em>(c)</em> remove the column, if suspending an organisation was never the intent. <em>Recommended: (a) plus (c) decided elsewhere</em> — this screen must not claim someone can sign in when the organisation is closed, and a column that looks like a control and is not is worse than no column.</li>
+
+      <li><strong>How much history the row shows before it needs a door.</strong> <span class="tag-dec tag-open">open</span> Four episodes read well; a five-year-old account with a dozen would push the table apart. <em>(a)</em> show them all, always; <em>(b)</em> show the open episode plus the last closed one, and a link to the rest; <em>(c)</em> a separate access-record screen per account. <em>Recommended: (b)</em>, with the count always written — <em>“2 earlier disablements”</em> — so that what is not shown is still stated.</li>
+    </ol>
+
+    <p class="sub" style="margin-top:1.2rem"><strong>Where the screen shipped in v0.7.0 differs from this prototype</strong> — not implementation detail, and not adjustments to adopt. The rule of this house is that the implemented screen is exactly the approved screen; these are the changes the code has to make.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>on the screen shipped in v0.7.0</th><th>in this prototype</th><th class="dir">weight</th></tr></thead>
+      <tbody>
+        <tr><td>disabling records <strong>who</strong> and <strong>when</strong>, and no reason at all</td><td>a required clause from a closed list, plus a note — and the reason is on the row, not only in the record</td><td class="dir">refusal 1</td></tr>
+        <tr><td><code>enable_user/2</code> takes tenant and user id — <strong>no actor, no reason</strong></td><td>reactivating asks for both, and the more sensitive of the two acts stops being the one with less record</td><td class="dir">refusal 2</td></tr>
+        <tr><td><code>reativar_changeset/1</code> sets <code>disabled_at: nil, disabled_by_user_id: nil</code> — <strong>the mark is erased</strong></td><td>the disablement is an episode that <strong>closes</strong>; both halves stay on the row. This is a delete written as an update, and “nothing is deleted” is not a preference here</td><td class="dir">house rule</td></tr>
+        <tr><td>the state lives in <strong>one cell</strong>, with <code>desativada</code> taking precedence over the credential</td><td>two columns for two facts — and the credential of a disabled account stays readable, because it is what the reactivation needs</td><td class="dir">the finding</td></tr>
+        <tr><td><em>Reset password</em> <strong>disappears</strong> from a disabled row</td><td>it stays, refused, with the reason and the correct order beside it</td><td class="dir">mute absence</td></tr>
+        <tr><td><em>Desativar</em> <strong>disappears</strong> from your own row</td><td>it stays, refused, naming what the domain already refuses</td><td class="dir">mute absence</td></tr>
+        <tr><td>the revoke-link confirmation: <em>“the person stops signing in by GitHub username; the history of the link stays”</em></td><td>and, in the same breath, <strong>“this does not remove access”</strong> — plus the three-act panel above the table, so the sentence is read before the act and not during it</td><td class="dir">refusal 3</td></tr>
+        <tr><td>the two temporaries are the same words</td><td><em>from creation</em> against <em>from a reset</em>, with the last sign-in beside each</td><td class="dir">the finding</td></tr>
+        <tr><td>the interface copy is in <strong>Portuguese</strong> — <code>desativada</code>, <code>Desativar</code>, <code>Reativar</code>, <code>definida</code>, <code>temporária pendente</code>, <code>sem senha — a entrada recusa</code></td><td>English, like the rest of the product. Portuguese belongs to <code>README.md</code> and <code>PROMPT.md</code>, not to the screen</td><td class="dir">house rule</td></tr>
+        <tr><td>the account's state has no history on the row: <em>who reactivated this, and why?</em> has no answer in the interface</td><td>the access history, open on the row, with the episodes and their notes</td><td class="dir">audit</td></tr>
+      </tbody>
+    </table></div>
+
+    <p class="sub" style="margin-top:1.1rem"><strong>The names the base needs before the code.</strong> None of these is a new measure over observed data — they are vocabulary and state that this screen shows, and principle IV asks for them to be declared, versioned and validated all the same.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>proposed name</th><th>what it is</th></tr></thead>
+      <tbody>
+        <tr><td><code>access.account_lifecycle.disable_reasons</code></td><td>the five clauses of the disable reason, each with what it means and what it changes downstream</td></tr>
+        <tr><td><code>access.account_lifecycle.enable_reasons</code></td><td>the four clauses of the reactivation reason, including the one only offered against a compromise disablement</td></tr>
+        <tr><td><code>access.account_lifecycle.states</code></td><td>the account's two states and the credential's four, declared as separate vocabularies — so that the collision this screen exists to fix cannot be re-created by a template</td></tr>
+        <tr><td><code>access.account_lifecycle.note_required</code></td><td>which reasons demand a written note, and the sentence that says why when one is missing</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+</div>
+
+<script>
+(function(){
+  document.querySelectorAll('.razoes').forEach(function(g){
+    g.addEventListener('change',function(){
+      g.querySelectorAll('.razao').forEach(function(r){
+        r.classList.toggle('on',r.querySelector('input').checked);
+      });
+    });
+  });
+})();
+</script>
