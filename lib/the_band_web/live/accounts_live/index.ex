@@ -794,7 +794,7 @@ defmodule TheBandWeb.AccountsLive.Index do
 
   defp nota_da_tela(assigns) do
     ~H"""
-    <div class="card border-l-4 border-l-primary bg-base-200 p-5">
+    <div class="card border border-base-300 bg-base-200 p-5">
       <p class="font-mono text-xs uppercase tracking-wide opacity-60">
         what this screen is, and the finding it exists to close
       </p>
@@ -889,11 +889,18 @@ defmodule TheBandWeb.AccountsLive.Index do
   defp cartao_do_ato(assigns) do
     ~H"""
     <div class={[
-      "card bg-base-200 p-4",
-      @enfase? && "border-t-4 border-t-error",
-      not @enfase? && "border-t-4 border-t-base-300"
+      "card border bg-base-200 p-4",
+      @enfase? && "border-error/40",
+      not @enfase? && "border-base-300"
     ]}>
-      <h3 class="text-sm font-semibold">{@titulo}</h3>
+      <h3 class="flex items-center gap-2 text-sm font-semibold">
+        <span class={[
+          "inline-block size-2.5 shrink-0 rounded-sm",
+          @enfase? && "bg-error",
+          not @enfase? && "bg-base-content/30"
+        ]}></span>
+        {@titulo}
+      </h3>
       <p class="mt-2 font-mono text-[11px] uppercase tracking-wide opacity-60">what it does</p>
       <p class="font-serif text-sm">{@faz}</p>
       <p class="mt-2 font-mono text-[11px] uppercase tracking-wide opacity-60">
@@ -1013,7 +1020,7 @@ defmodule TheBandWeb.AccountsLive.Index do
 
   defp historico_da_conta(assigns) do
     ~H"""
-    <div class="border-l-4 border-l-base-300 pl-3">
+    <div class="border-l border-base-300 pl-3">
       <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
         access history · {@user.name || @user.email} — nothing here is deleted
       </p>
@@ -1132,7 +1139,7 @@ defmodule TheBandWeb.AccountsLive.Index do
   # uma cláusula sozinha se repete idêntica para quarenta pessoas sem dizer quem decidiu.
   defp formulario_de_desativacao(assigns) do
     ~H"""
-    <div class="card border-l-4 border-l-error bg-base-200 p-5">
+    <div class="card border border-error/40 bg-base-200 p-5">
       <p class="font-mono text-xs uppercase tracking-wide opacity-60">Disable an account</p>
       <h2 class="mt-1 text-sm font-semibold">
         Disable {@user && @user.name}
@@ -1289,7 +1296,7 @@ defmodule TheBandWeb.AccountsLive.Index do
   # tenant e id, e nada mais. Agora abre nomeando o episódio que vai fechar.
   defp formulario_de_reativacao(assigns) do
     ~H"""
-    <div class="card border-l-4 border-l-info bg-base-200 p-5">
+    <div class="card border border-info/40 bg-base-200 p-5">
       <p class="font-mono text-xs uppercase tracking-wide opacity-60">Reactivate an account</p>
       <p class="max-w-3xl font-serif text-sm opacity-80">
         Disabling closes a door; reactivating <strong>opens</strong> one. It asks for the

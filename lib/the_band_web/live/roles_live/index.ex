@@ -489,7 +489,7 @@ defmodule TheBandWeb.RolesLive.Index do
               sabe se `scrum_master` veio da rede ou alguém digitou. FR-003. --%>
         <:col :let={papel} label="origin">
           <span :if={elem(papel.origem, 0) == :catalogo} class="badge badge-outline badge-sm gap-1">
-            ontology <span class="font-mono text-[0.65rem] opacity-60">{elem(papel.origem, 1)}</span>
+            ontology <span class="font-mono text-[10px] opacity-60">{elem(papel.origem, 1)}</span>
           </span>
           <span
             :if={elem(papel.origem, 0) == :catalogo_removido}

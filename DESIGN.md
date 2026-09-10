@@ -12,6 +12,17 @@ colors:
   amber-divergence: "#8a5a0c"
   clay-refusal: "#8c3327"
 typography:
+  scale:
+    tick: "0.625rem"
+    micro: "0.6875rem"
+    label: "0.75rem"
+    meta: "0.8125rem"
+    body: "0.875rem"
+    prose: "1rem"
+    lead: "1.125rem"
+    title: "1.25rem"
+    section: "1.5rem"
+    hero: "1.875rem"
   display:
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
     fontWeight: 650
@@ -25,8 +36,10 @@ typography:
     fontFamily: "ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace"
     letterSpacing: "0.06em"
 rounded:
+  mark: "0.125rem"
   field: "0.25rem"
   box: "0.5rem"
+  pill: "9999px"
 components:
   button-primary:
     backgroundColor: "{colors.verdete}"
@@ -91,6 +104,32 @@ Paleta de instrumento medido sobre papel técnico: um verde-azulado calmo faz to
 - **Body** (400, 1rem, entrelinha 1.6): toda a prosa — explicações, motivos, axiomas.
 - **Label** (mono ou caixa alta com tracking 0.06em): cabeçalho de coluna, identificador, chave de regra, contagem alinhada.
 
+### A ramp — dez passos, cada um com um trabalho
+
+Declarada em `typography.scale`, e medida em 2026-09-10: o código do produto usava **oito**
+tamanhos arbitrários e os quatro protótipos usavam **trinta e quatro**. Trinta e quatro
+tamanhos não são uma escala — são um valor escolhido por elemento, e a diferença aparece como
+desalinho que ninguém consegue nomear.
+
+| passo | rem | px | o trabalho |
+|---|---|---|---|
+| `tick` | 0.625 | 10 | rótulo de eixo **dentro de gráfico SVG** — o único lugar abaixo de 11px |
+| `micro` | 0.6875 | 11 | rótulo mono em caixa alta, legenda, texto de marca |
+| `label` | 0.75 | 12 | cabeçalho de coluna, chave de regra, identificador |
+| `meta` | 0.8125 | 13 | segunda linha da célula, nota da linha, texto de apoio |
+| `body` | 0.875 | 14 | o corpo de tela — prosa densa de ferramenta |
+| `prose` | 1 | 16 | prosa de documento e de protótipo |
+| `lead` | 1.125 | 18 | subtítulo, primeira linha de seção |
+| `title` | 1.25 | 20 | título de seção |
+| `section` | 1.5 | 24 | `h2` de tela |
+| `hero` | 1.875 | 30 | `h1` de documento — protótipo e página longa, nunca tela de ferramenta |
+
+**The One-Ramp Rule.** Nenhum tamanho fora destes dez, e a ramp é a mesma no código e no
+protótipo — um protótipo com escala própria não é a tela que o código deve reproduzir. Onde o
+Tailwind já tem classe para o passo (`text-xs` 12, `text-sm` 14, `text-base` 16), ela ganha do
+literal: `text-xs` diz o passo, `text-[12px]` diz um número. Onde não tem — 10, 11 e 13 —, o
+literal fica e nomeia um passo declarado.
+
 **The No-Webfont Rule.** Nenhuma família baixada: ferramenta interna aberta dezenas de vezes por dia; a pilha do sistema entrega a hierarquia sem custo de rede.
 
 **The Tabular Numbers Rule.** Número em coluna leva `tabular-nums`, sempre.
@@ -107,9 +146,22 @@ Mobile-first por doutrina: empilhado por padrão, colunas a partir de `sm:` — 
 
 ## Shapes
 
-Cantos discretos: 0.25rem em campos, seletores e botões; 0.5rem em cartões e caixas. Bordas de 1.5px na cor Linha de Papel. A forma característica do sistema não é o canto — é o **preenchimento**: sólido (observado), hachura de 135° em `currentColor` (derivado — `repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px)` com contorno de 1px), tracejado (ausente). `currentColor` faz um utilitário só servir a todos os papéis de cor.
+Cantos discretos, quatro passos declarados em `rounded`: **0.125rem** (`mark`) na marca de evidência e no anel de foco, **0.25rem** (`field`) em campos, seletores e botões, **0.5rem** (`box`) em cartões e caixas, e **9999px** (`pill`) na pílula. Nenhum valor fora destes quatro — a medição de 2026-09-10 achou 3.2px, 4.8px, 5.6px, 6.4px e 7.2px espalhados, todos a poucos décimos de um passo declarado e nenhum deles escolhido. Bordas de 1.5px na cor Linha de Papel. A forma característica do sistema não é o canto — é o **preenchimento**: sólido (observado), hachura de 135° em `currentColor` (derivado — `repeating-linear-gradient(135deg, currentColor 0 2px, transparent 2px 4px)` com contorno de 1px), tracejado (ausente). `currentColor` faz um utilitário só servir a todos os papéis de cor.
 
 **The Fill Carries Provenance Rule.** A gramática sólido/hachurado/tracejado nunca aparece sem os outros dois canais: texto visível e `title` para leitor de tela. Remover um canal não remove a informação.
+
+**The No-Accent-Edge Rule** (2026-09-10). **Nenhuma borda colorida acima de 1px num lado só** —
+cartão, item de lista, aviso ou chamada. Uma barra grossa de um lado é o tique mais reconhecível
+de interface gerada, e aqui era também um **segundo dispositivo fazendo o trabalho do primeiro**:
+o sistema já diz de que natureza é uma afirmação, e diz no **preenchimento**. A medição achou dez
+ocorrências — 3px e 4px, à esquerda e no topo, em três protótipos e em nove pontos do código,
+inclusive no componente de aviso da casa.
+
+O que fica no lugar, e é o que o sistema já declarava: **camada tonal** para separar, **borda
+uniforme de 1.5px** quando precisa de mais separação, e a **cor semântica na borda inteira** ou
+no **quadrado de 0.6rem** quando ela carrega sentido. Fio de **1px** continua valendo como régua
+de indentação — régua não é acento. Onde a cor era o canal, o quadrado passa a ser: é o
+componente-assinatura, e usa `currentColor`, de forma que um modificador de cor basta.
 
 ## Components
 
