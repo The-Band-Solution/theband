@@ -6,8 +6,11 @@ pelas faixas `screen 3` · `screen 4` · `screen 5`, continuando a numeração d
 
 - **Endereço**: `https://claude.ai/code/artifact/a8c7e08c-e9df-4a28-94ea-0800087f9751`
 - **Publicado**: 2026-09-08. **Endereço novo**, porque é **tela nova** — não republicação.
-- **Status**: **aguardando aprovação da pessoa mantenedora.** Sem ela, a extensão
-  [`spec-graficos-por-membro.md`](../spec-graficos-por-membro.md) não vai a `/speckit-plan`.
+  **Republicado no mesmo endereço em 2026-09-10**, com a ramp tipográfica declarada e a borda
+  colorida de um lado removida (`DESIGN.md`, *The One-Ramp Rule* e *The No-Accent-Edge Rule*).
+  O conteúdo não mudou.
+- **Status**: **APROVADO pela pessoa mantenedora em 2026-09-08**, registrado em **2026-09-10**
+  junto das respostas às sete perguntas abertas — ver *As sete perguntas, respondidas*, abaixo.
 - **Não altera** o protótipo aprovado em 2026-09-07,
   [`team-dashboard-structure.html`](team-dashboard-structure.html)
   (`.../0be1668f-3afa-4668-bfb2-c77fae11d941`), que continua valendo como está. Este herda dele
@@ -98,6 +101,22 @@ desenho**, reversíveis por ela, e estão na própria tela (itens 7 a 17).
 | 3 | *open now* como coluna da tabela | ela é a coluna que mais se parece com ranking **e é a mais enganosa**: na equipe real, o número grande é trabalho parado. Por isso a frase *"a high number here is work that has not moved"* está no bloco anti-ranking, e não em rodapé |
 | 4 | a aba responde "quem precisa de olhar" | isso é *Problems now*, e com limiares declarados. Reenquadrada: a aba responde **distribuição e história**. Sem esse reenquadramento a aba duplica uma seção que já existe |
 
+## As sete perguntas, respondidas em 2026-09-10
+
+Todas as sete foram respondidas **pela recomendação do desenho**. E três delas mudaram de
+terreno antes de serem respondidas, porque a camada de medida passou a existir e o que era
+argumento virou número.
+
+| # | pergunta | resposta | o que a medição acrescentou |
+|---|---|---|---|
+| **18** | quantas pessoas abrem ao mesmo tempo | **(b) duas**, com o layout emparelhado | **o argumento de custo caiu.** A aba inteira custa **5 consultas para 31 membros** — 3 da série por pessoa e 2 das tarefas abertas —, e abrir 1, 2 ou 3 pessoas custa **zero consulta extra**: os quatro gráficos e a mistura de conceitos saem de consultas que a tabela já faz. Sobrou só a legibilidade, e ela decidiu: três gráficos a ~19 rem cada não carregam uma série de oito pontos com rótulo de eixo |
+| **19** | throughput redesenha as barras de *delivered* | **(a) quatro gráficos, e a tela diz que são os mesmos números** | — |
+| **20** | as duas leituras precisam de nome na base | **(a) declarar as duas como leituras** das medidas já declaradas | escrito em `priv/knowledge_base/measurements/flow_per_person_readings.yaml`, id `flow.per_person.readings`. O validador **recusou** a primeira versão: eu inventei um campo `reads`, que o schema não declara — a relação passou para a fórmula e a proveniência, e mudar o schema é decisão maior do que esta pergunta pedia |
+| **21** | o cabeçalho conta como *"ao lado"* da palavra `promised` | **(a) no topo**, e a palavra nunca aparece na tabela | — |
+| **22** | cobertura sem denominador | **(a) o número, com *denominator unknown*** | **o numerador EXISTE.** `repositories_of_person/2` devolve de **0 a 6** repos por pessoa nas 31 da ConectaFapes, soma 51, e **4 pessoas com zero** — que é um fato útil e estava sendo inventado. O denominador continua não existindo, e é a lacuna real |
+| **23** | a pessoa vê a própria linha sem alcançar a equipe | **não** — o veredito da equipe decide tudo | `pode_ver_equipe/3` **não** ganha um quinto caminho. O fluxo da própria pessoa continua em `/people/:id`, que ela alcança por ser ela |
+| **24** | onde os quatro gráficos moram no longo prazo | **(a) agora, (b) depois** | e nunca (c): dois lugares com os mesmos quatro gráficos, mantidos em sincronia à mão, é deriva por construção |
+
 ## As perguntas que ficam para a pessoa mantenedora
 
 Estão na tela, itens 18 a 24, cada uma com opções e recomendação. Em resumo:
@@ -130,6 +149,22 @@ E uma terceira, qualitativa, que a FR-111 já marca como `[NEEDS CLARIFICATION]`
 
 Se qualquer uma das três for recusada, a coluna correspondente sai da tabela — e a tabela passa
 a mostrar um estoque sem direção e um total sem regularidade, o que contraria a FR-089.
+
+## O que foi VERIFICADO em 2026-09-10, e deixou de ser invenção
+
+A seção seguinte é de 2026-09-08 e **continua valendo no que não foi medido**. Quatro dos seus
+itens caíram, medidos contra o banco de desenvolvimento com a camada
+`TheBand.Teams.FlowPerPerson`:
+
+| a seção dizia | medido em 2026-09-10 |
+|---|---|
+| *"No closing was measured"* | **falso.** Há **4 fechamentos** na janela de 56 dias da ConectaFapes, em **3 das 31** pessoas. `weeks with a close` é medível e não-zero para três delas |
+| *"No repository-coverage number exists for any person"* | **falso** quanto ao numerador: **0 a 6** repos por pessoa, soma 51, **4 com zero**. O **denominador** é que não existe — e é a lacuna que a coluna nomeia |
+| *"The query ceiling was not measured"* | **medido.** **5 consultas para 31 membros**, e abrir pessoas custa **zero extra**. O teto deixou de ser argumento |
+| *"Nothing was measured for LEDS - ConectaFapes"* | **medido.** 31 membros, 26 itens abertos, 4 criadas e 4 fechadas na janela, **21 pessoas sem item nenhum**, e a mistura real de conceitos: **15 TASK · 9 US · 2 EPIC · 0 BUG** |
+
+**O que continua não verificado**: a inferência dos zeros da SQUAD PINK, a divisão dos abertos
+restantes entre pessoas, e o caso da equipe composta — que segue **descrito e não desenhado**.
 
 ## O que **não** foi verificado
 

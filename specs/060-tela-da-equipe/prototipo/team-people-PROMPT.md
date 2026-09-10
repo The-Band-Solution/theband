@@ -9,8 +9,15 @@ tela** da mesma feature, na mesma linguagem visual, e ela **não altera** o prot
 em 2026-09-07 — as duas abas de lá continuam exatamente como estão. Toda mudança nesta tela é
 republicação **neste** endereço.
 
-**Status: aguardando aprovação.** Enquanto não houver aprovação, a extensão
-`spec-graficos-por-membro.md` não vai a `/speckit-plan`.
+**Status: APROVADO pela pessoa mantenedora.** A aprovação foi dada em **2026-09-08** e
+**registrada em 2026-09-10**, junto das respostas às sete perguntas abertas (seção 5).
+
+> **O registro atrasou dois dias, e o atraso tem consequência escrita.** Em 2026-09-10 o papel
+> de Product Owner avaliou esta aba e **recusou decompô-la** — não por falta da aprovação, mas
+> por falta do **registro** dela: `grep -rn "a8c7e08c" --include="*.md" .` não achava nenhuma
+> linha dizendo *aprovado*. É a mesma distinção que esta casa cobra de revisão de código:
+> vazio prova ausência de registro, não ausência do fato. Aprovação que vive de memória não
+> passa por portão nenhum.
 
 ## 1. Os pedidos da pessoa mantenedora, textuais e em ordem
 
