@@ -59,7 +59,17 @@ defmodule TheBand.Teams.FlowPerPersonTest do
   # as duas datas e a designação — `external_created_at` presente e `external_closed_at` nulo é
   # a substituição declarada do WIP.
   defp item(ctx, designados, criada, fechada \\ nil) do
-    externo = "I_#{System.unique_integer([:positive])}"
+    # O PREFIXO NÃO PODE SER `I_`, e é um teste instável que ensinou.
+    #
+    # `cenario_real/1` grava as issues do cenário com `external_id: "I_#{numero}"` — `I_1`,
+    # `I_3`, `I_5`, `I_79`, `I_98`, `I_200`. E `System.unique_integer([:positive])` devolve
+    # inteiros pequenos: podia devolver exatamente 1, 3, 5 ou 79, e o insert batia no
+    # `collected_issues_application_reference_index`.
+    #
+    # Falhava em cerca de uma execução em cinco, sempre num teste diferente, e o erro
+    # apontava para a linha do `item/4` como se o cenário estivesse errado. Prefixo próprio
+    # mais `:monotonic` fecha as duas portas.
+    externo = "FPP_#{System.unique_integer([:positive, :monotonic])}"
 
     {:ok, i} =
       Repo.insert(%CollectedIssue{
