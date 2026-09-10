@@ -818,6 +818,27 @@ Três lições nasceram disso — **L75**, **L83** e **L92** —, e a terceira a
 depois de as duas primeiras já estarem escritas. É por isso que a declaração é do
 PR: lembrar da lição no momento de clicar não funcionou.
 
+### O merge se faz por comando, e o método vem da declaração
+
+```bash
+gh pr merge <n> --squash    # feature que mira development
+gh pr merge <n> --merge     # os cinco casos da tabela acima
+```
+
+**Não pelo botão.** O GitHub **não tem** configuração de método default: os três
+booleanos do repositório só habilitam ou desabilitam, e a pré-seleção do botão é ordem
+fixa — *merge commit* primeiro, sempre. Deixar squash como default exigiria **desabilitar
+merge commit**, que quebraria release, back-merge, hotfix e branch empilhada. Medido em
+2026-09-10.
+
+Então a lacuna não é de configuração e não se fecha com uma: o gate
+`pr-tipo-de-merge.yml` obriga o PR a **dizer** o método, e nada obriga o clique a
+**obedecer**. O comando obedece, porque o método está escrito nele.
+
+O `rebase merge` continua habilitado no repositório e **a tabela acima não o prevê em caso
+nenhum**. Método habilitado que a regra não cobre é caminho aberto sem regra — desabilitá-lo
+é decisão da pessoa mantenedora, e está registrada como pendente.
+
 **Definition of Done**: critérios de aceitação atendidos, issues atualizadas, YAMLs validados, perguntas de competência testadas, testes passando, Credo e Dialyzer aprovados, migrações testadas, mapeamento semântico revisado, documentação atualizada, PR aprovado por outro agente/pessoa, pipeline verde, merge feito, issues encerradas.
 
 ---

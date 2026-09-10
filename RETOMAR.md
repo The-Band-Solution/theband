@@ -1,9 +1,6 @@
-# Retomar — estado em 2026-09-09, a v0.6.0 no ar e cinco achados de segurança fechados
+# Retomar — estado em 2026-09-10, a v0.7.0 no ar e a conta desativada conforme o protótipo
 
-**Este é o único documento de estado.** Havia dois — este e
-`docs/sprints/RETOMAR.md` —, e eles divergiram: em 2026-09-09 um estava em 26/08 e o
-outro em 03/09, cada um descrevendo um produto diferente. O de `docs/` passou a apontar
-para cá.
+**Este é o único documento de estado.** `docs/sprints/RETOMAR.md` aponta para cá (AGENTS.md §5).
 
 Escrito para a sessão seguinte começar trabalhando, não reconstruindo contexto.
 
@@ -11,9 +8,10 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 
 ## Onde parei, em uma frase
 
-**A v0.6.0 está em produção** com a tela da equipe inteira, o site ganhou três endereços,
-e uma avaliação de segurança de 16 achados foi feita — **cinco fechados, quatro PRs
-esperando merge, e o H2 explicitamente incompleto.**
+**A v0.7.0 está em produção**, a conta desativada foi reimplementada conforme o protótipo
+aprovado (#853, mergeado), e a deriva de design do repositório foi de **262 achados a zero**
+(#854, aberto). O que sobra é uma lista curta, e o item mais grave dela é um requisito
+**MUST** de 2026-09-06 que nunca ganhou tela.
 
 ## O primeiro comando
 
@@ -22,212 +20,188 @@ git checkout development && git pull
 mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-Estava **0** em 2026-09-09, com **1 981 testes** passando.
-
-> **`mix deps.get` já não é necessário depois de trocar de branch.** O `deps` estava
-> commitado como link simbólico absoluto apontando para si mesmo, e apagava as
-> dependências a cada `git checkout` — seis vezes num dia. Corrigido no #836, com gate que
-> impede a volta.
+Estava **0** em 2026-09-10, com **2 026 testes** passando.
 
 ---
 
 ## O que está no ar
 
-A **v0.6.0**, publicada em 2026-09-09 às 13:39Z. PR **#828** (`development → main`), CD
-verde nos sete passos, tag `v0.6.0` em `43cb7c0`, imagem em
-`ghcr.io/the-band-solution/theband`, e o Dokploy respondeu
-`{"message":"Application deployed successfully"}`.
+A **v0.7.0**, mergeada em `main` por `dd4272f4` às 04:11Z de 2026-09-10. CD verde nos sete
+passos, tag `v0.7.0` apontando para o merge, imagem em `ghcr.io/the-band-solution/theband`, e
+o Dokploy respondeu `{"message":"Application deployed successfully"}`.
+`app.theband.dev/sign-in` responde **HTTP 200**.
 
-**124 commits, 24 PRs (#796 a #827).** O grosso é a feature 060 — a tela da equipe: quem
-está nela e de onde veio cada afirmação, declarar/trocar/encerrar papel, o equívoco que
-nunca foi vínculo, *Problems now* com oito cartões, e o fluxo em três granulações com
-previsão por Monte Carlo.
+> **Ressalva que vale repetir:** webhook aceito **não prova** container rodando 0.7.0. Não há
+> endpoint de versão — `/health`, `/version` e `/api/version` devolvem 404. É a lacuna que a
+> regra *"a versão e as features na página"* (agentes de Design e PO) existe para fechar, e
+> ela ainda não foi implementada.
 
-> ⚠️ **Webhook aceito não prova que o contêiner roda a 0.6.0.** Não há endpoint de versão
-> nem versão na página — `/health`, `/version` e `/api/version` devolvem 404. Confirmar
-> exige olhar o Dokploy. É a lacuna que a regra nova do PO e do Design fecha, e ela nasceu
-> **junto** com esta release, não antes dela.
+### Depois da v0.7.0, na `development` e ainda não em produção
 
-### O site tem três endereços, e cada um serve a alguém
-
-| endereço | o que é | mantido por |
-|---|---|---|
-| `theband.dev` | a landing — o argumento | à mão, na raiz da `gh-pages` |
-| `theband.dev/docs/` | a página do produto: para quem é, o que faz, os conceitos, as versões | à mão, na raiz da `gh-pages` |
-| `theband.dev/developers/` | a referência técnica | gerado pelo MkDocs, workflow `docs.yml` |
-
-A landing liga para os dois em **três lugares**: barra do topo, fecho da página e pé. E o
-guarda do `docs.yml` confere `CNAME`, o `index.html` da raiz **e** `/docs/index.html` — o
-último porque `/docs/` deixou de ser gerado, e um deploy que o apagasse publicaria com
-sucesso derrubando um endereço anunciado.
+- **#853** — a conta desativada conforme o protótipo: razão de lista fechada mais nota,
+  episódio com as duas pontas, a recusa que fica na tela, o vocabulário na base de
+  conhecimento. FR-025 a FR-029 da spec 045.
 
 ---
 
-## Os quatro PRs abertos, e a ordem de merge
+## O que fazer, em ordem
 
-| PR | o que | tipo de merge |
-|---|---|---|
-| **#837** | **H3-A** — `tenants.status` passa a ser lido, em três portas | squash |
-| **#838** | **H2** — o veredito nas duas rotas sobre pessoa nomeada, e o procedimento de desligamento escrito | **merge commit** — o H6 é empilhado |
-| **#839** | a investigação do estado divergente da issue, e o RETOMAR do site | squash |
-| — | **H6** — `fix/admin-alcanca-pessoa`, commitada e empurrada, **sem PR aberto** | merge commit |
+### 1. O back-merge, e é o primeiro porque atrasa tudo o resto
 
-### E duas branches sem PR que precisam entrar
+`dd4272f` — o merge de release da v0.7.0 em `main` — **não está na `development`**. É a lição
+L83/L92: back-merge depois de **cada** release, senão os conflitos crescem e a divergência não
+se desfaz.
 
-```
-docs/po-release-v0.6.0-e-fila-de-seguranca
-security/o-que-consertar-agora-2026-09-09
+```bash
+git checkout development && git pull
+git merge --no-ff origin/main -m "chore: back-merge da v0.7.0"
 ```
 
-**Cinco PRs meus citam o documento do Security como "lacuna declarada".** Enquanto ele não
-entrar no `development`, a referência não resolve.
+### 2. O #854, e o que ele muda em produção
 
----
+A ramp tipográfica declarada e a borda colorida de um lado removida. Toca `ui.ex`
+(`notice/1`), `teams_live/show.ex`, `sync_live/mapping_rules.ex` e `accounts_live/index.ex`.
+Gates verdes, detector em zero. **Não foi visto renderizado** — o `puppeteer` não está
+instalado; a inspeção computada (contraste, sobreposição, estouro em 390px) depende de
+`npm install puppeteer`.
 
-## A avaliação de segurança: 16 achados, dez de severidade alta
+### 3. FR-003 da spec 055 — vincular pessoa a equipe NÃO TEM TELA
 
-`docs/seguranca/2026-09-09-o-que-consertar-agora.md`, na branch do Security. Cada achado
-tem cenário de ataque no formato que o QA transforma em teste, e quatro foram **medidos com
-teste**, não deduzidos.
+**É o achado da revisão de 2026-09-10, e é o mais grave da lista.**
 
-### Fechados
+A spec 055 diz, em cláusula **MUST**:
 
-| # | o que era | onde |
+> **FR-003**: Quem administra MUST poder vincular uma pessoa a uma equipe, com papel e data de
+> início, e o vínculo MUST guardar quem o declarou.
+
+E a emenda de 2026-09-06 é explícita: *"Vincular do zero continua existindo para quem a origem
+não mostra."*
+
+**Medido:** `EO.declare_team_membership/5` existe, tem `@spec`, tem `@doc`, tem **11 testes** —
+e **zero chamadas em `lib/`**. Nenhuma tela do produto a alcança. Os únicos atos de vínculo que
+a interface oferece são:
+
+| ato na tela | o que faz | função |
 |---|---|---|
-| **H1** | `POST /set-password` trocava a senha **sem exigir a atual** — acesso temporário virava posse da conta | #835 |
-| **H12** | `deps` commitado como link simbólico absoluto para si mesmo | #836 |
-| **H3-A** | `tenants.status` existia e **ninguém o lia** — tenant suspenso autenticava | #837 |
-| **H2** *(parcial)* | duas rotas sobre pessoa nomeada sem veredito nenhum | #838 |
-| **H6** | `pode_ver_equipe/3` concedia ao admin e `pode_ver/3` não — a tela afirmava um regime que não aplicava | sem PR |
+| `promover` | transforma **evidência já coletada** em papel declarado | `EO.promote_evidence` |
+| `registrar_equivoco` | marca que o vínculo nunca existiu | `EO.record_team_membership_mistake` |
+| `registrar_saida` | encerra o vínculo com data | (via `show.ex`) |
+| `registrar_papel` / `abrir_papel` | declara ou troca o papel de um vínculo existente | — |
 
-**A FR-022 da spec 045 foi emendada** pelo H6 — *"ser administrador MUST NOT abrir painel
-nenhum por si"* deixou de valer, com o texto original preservado riscado e a razão ao lado.
+Ou seja: **a saída é declarável e a entrada não.** Quem a origem não mostra não entra em equipe
+nenhuma pela interface — e é exatamente o caso que a emenda nomeou.
 
-### Abertos, na ordem que o Product Owner decidiu
+É o mesmo padrão que o papel de Product Owner recusou duas vezes neste ciclo: função escrita,
+documentada, testada, **sem consumidor visível**. A regra da casa é *vertical slice* — nunca
+infraestrutura sem consumidor na tela.
 
-1. **H3-B — `users.disabled_at`.** Não existe estado de conta desativada. **Tem migração**,
-   e o ensaio de restauração do §6 do runbook está adiado porque a conta S3 não existe —
-   **bloqueio de recurso, não de agenda**, e confundir os dois é o que fez esse item ser
-   replanejado por cinco releases;
-2. **H4 — nenhum evento de autenticação ou autorização é registrado.** É o que responde
-   *"isto já aconteceu?"*, e hoje a resposta para H1, H2 e H3 é **não se sabe**. O Security
-   registrou isso como **resultado**, não como lacuna dele;
-3. **H7 e H8 — sem release nenhum.** O Dokploy implanta `latest`, e as ações do CI usam tag
-   mutável. Os únicos que se consertam sem código nem deploy;
-4. **H9 — `ssl: true` comentado.** A severidade depende da **topologia de produção**, e é
-   pergunta para quem opera. Verificado na fonte: o `Ecto` aceita `?ssl=true` na URL, mas o
-   `postgrex` usa `verify_peer` com CAs do sistema — **certificado autoassinado quebraria o
-   boot**;
-5. **H5, H10, H11, H13 a H16** — média e baixa.
+**O que fazer**: protótipo primeiro (a tela muda), depois o código. O formulário precisa de
+busca entre as pessoas coletadas — o mesmo padrão que `/accounts` já usa para o elo —, papel
+opcional e data de início opcional (FR-016 da 060: em branco, a tela diz o que assume).
 
-### ⚠️ O H2 **não** está resolvido, e não deve parecer
+### 4. O ato de criar subequipe — dois defeitos, um deles real
 
-O inventário do Security é **piso, não total**: **8 dos 26** LiveViews autenticados foram
-examinados quanto ao que exibem. As duas rotas medidas foram consertadas; as outras 18
-ninguém olhou.
+Revisado em 2026-09-10. O ato **existe e funciona**: `criar_subequipe` em
+[teams_live/show.ex:197](lib/the_band_web/live/teams_live/show.ex#L197) chama
+`EO.declare_structural_team/4` e depois `EO.compose_teams/4`.
 
-E dentro da própria página da pessoa a assimetria é fina — o perfil escrito por modelo e a
-proveniência (com os PRs e commits) **não** são gateados.
+| # | achado | gravidade |
+|---|---|---|
+| a | **duas escritas sem transação** — se `compose_teams/4` falhar, a equipe **fica criada e solta** na organização, sem composição. O `Repo.insert` da composição pode falhar por constraint, e a mensagem de erro fala do segundo passo sem dizer que o primeiro ficou feito | **real** — uma linha de `Repo.transaction` resolve |
+| b | o `else` do `with` trata só `{:error, motivo} when is_binary(motivo)` | **não é defeito**: as duas funções declaram `{:error, String.t()}` no `@spec`, e a cláusula é exaustiva por contrato. Fica registrado para não ser "consertado" de novo |
 
----
+O ciclo **é** recusado, e a recusa **nomeia o caminho** (*"Equipe A faz parte de Equipe B, que
+faz parte de Equipe C"*). A homônima entre declaradas é recusada por índice único, e a homônima
+de uma observada é permitida — fato do mundo, não erro.
 
-## O achado da pessoa mantenedora que virou investigação
+### 5. A reclassificação do D06 — é do papel de Product Owner
 
-**O estado da issue no The Band divergindo do GitHub** —
-`docs/backlog/investigar-estado-divergente-da-issue.md`, PR #839. Dois casos reais, com URL
-nos dois lados, e **são defeitos diferentes com o mesmo sintoma**:
+O entregável D06 da v0.7.0 está classificado **`sro.not_accepted_deliverable`** em
+[docs/releases/v0.7.0.md](docs/releases/v0.7.0.md). Das três razões, duas foram consertadas
+pelo #853 e a terceira deixou de valer. **Quem conserta não é quem aceita**: trocar o veredito
+é reavaliar cada critério contra a evidência nova e reescrever o registro, e é ato do papel.
 
-- **apagada** na origem, aberta na tela. `collected_issues` **tem**
-  `no_longer_observed_at`, e o `grep` por quem o marca encontra só designações e etiquetas
-  — nada, aparentemente, marca a issue em si;
-- **fechada** na origem, aberta na tela. **Mais grave**: a issue continua existindo com o
-  estado novo, e a coleta tinha tudo o que precisava. Se mudança de estado não chega,
-  nenhuma medida de fluxo é confiável.
+### 6. A lacuna de revisão: 21 PRs sem revisor
 
-**Comece pelo banco de produção**, e não pelo código: o `state` e o `collected_at` da linha
-contra a data do fechamento no GitHub distinguem as quatro hipóteses.
+Vinte e um dos 21 PRs desta janela foram abertos sem revisor solicitado. A API do GitHub aceita
+solicitação em PR já mergeado, então a lacuna é recuperável.
 
----
+### 7. Segurança — o que sobra dos 16 achados
 
-## O que o Product Owner decidiu e ainda não foi mergeado
+Fechados: **H1, H2, H3, H4, H6, H12** e o vazamento de escopo de projeto.
 
-**US9 e US1 passam a aceitas**, com evidência **executada** — não com a existência da
-asserção. **US3 continua recusada**: o SC-013 nunca foi cronometrado.
-
-E ele assumiu uma decisão de papel: **a v0.7.0 não sai com H1, H2 e H3 abertos.**
-
-O achado de decomposição continua de pé: a US9 só pôde ser aceita porque **o artefato da
-US7 foi construído fora de ordem** — a US7 não tem tarefa alguma, e a US8 também tem código
-em produção sem tarefa.
+| achado | o que é | precisa de release? |
+|---|---|---|
+| **H7** | Dokploy implanta `latest` | **não** — ajuste no passo de delivery do `cd.yml` |
+| **H8** | ações de CI em tag móvel | **não** — SHA nas ações, `permissions: contents: read` |
+| **H9** | `ssl: true` comentado | **depende da topologia** — pergunta para quem opera |
+| **H13** | `PHX_HOST` com fallback | **parcial** — a variável no Dokploy remove o caminho hoje |
+| **H5, H10, H11, H14–H16** | média e baixa | — |
 
 ---
 
-## As features especificadas e sem código
+## Features especificadas e sem código
 
-| spec | estado |
+| spec | o que é |
 |---|---|
-| **061 — API pública com token** | spec completa, as oito perguntas respondidas, **ADR 0009 proposta**. Falta `plan.md`, `tasks.md`, sprint backlog e a confirmação da ADR |
-| **062 — servidor MCP** | spec escrita. **Desbloqueada** pela 061 — o item de backlog dizia *"depende de decidir autenticação e tenant"*, e está decidido |
+| **061** | API pública com token e controle de acesso a dado por tenant. **Bloqueia o critério** *"conta desativada não autentica por token"*, que hoje não se pode avaliar |
+| **062** | MCP |
+| **063** | issue ausente da origem — o achado da pessoa mantenedora, já corrigido na coleta; a spec cobre o estado `deleted` na issue |
 
-**A decisão que carrega as duas**: o token guarda *quem* e *onde*, e **nenhum veredito**.
-JWT com *claims* está proibido — cria a segunda verdade que `access.ex` foi escrito para
-não ter, e ela envelhece no bolso de quem saiu.
-
-E o segredo **não se guarda**: hash irreversível, mostrado uma vez, sem recuperação. A tela
-avisa **antes** de gerar.
-
----
-
-## Decisões da pessoa mantenedora que continuam esperando
-
-Conferido em 2026-09-09 — as quatro que estavam nesta lista desde 26/08 (**#506**, **#367**,
-**#442**, **#369**) **fecharam**. Estas cinco seguem abertas:
-
-| issue | o que é |
-|---|---|
-| **#397** | equipe composta por equipes — hierarquia, com o rollup |
-| **#363** | a competência como unidade do perfil, com a tarefa que a demonstra |
-| **#356** | T024 — medir o custo real de uma rodada |
-| **#504** | dashboards na tela da equipe — throughput e período |
-| **#507** | o painel da equipe — depende do critério de início |
+Issues abertas que pesam: **#397** (equipe composta por equipes — hierarquia com rollup de
+competências, e é vizinha do item 3 acima), **#568** (gestão da marca de administrador, com o
+guarda do último admin), **#801** (o Oban pode parar sem erro nenhum), **#802** (observabilidade
+com OpenTelemetry).
 
 ---
 
-## Duas armadilhas que 2026-09-09 ensinou, e as duas são de processo
+## Decisões esperando a pessoa mantenedora
 
-**`git add -A` numa árvore compartilhada com subagentes.** O commit `5d02075` varreu
-**1.450 linhas** de dois outros papéis para dentro de um PR de documentação que dizia mudar
-três arquivos. Refeito. **Usar caminhos explícitos** quando há agentes em paralelo.
+1. **Instalar o `puppeteer`?** Sem ele não há inspeção computada de tela — contraste,
+   sobreposição, estouro em 390px. É `npm install puppeteer`.
+2. **O *eyebrow* (rótulo mono em caixa alta acima do título).** O `craft-floor` do `impeccable`
+   o proíbe sem exceção; o `DESIGN.md` declara a voz mono como uma das três da casa, e os quatro
+   protótipos e várias telas o usam como estrutura. Remover é **redesenho**, não conserto — e
+   por isso não foi feito. Precisa de decisão.
+3. **H9** — a topologia do banco em produção decide se `ssl: true` entra.
+4. **Sucessor de quem sai** — fica na nota (recomendação aceita), ou vira campo consultável?
+5. **Desabilitar o `rebase merge`?** Está habilitado no repositório, e a tabela da seção 12
+   do `AGENTS.md` **não o prevê em caso nenhum**. Método habilitado que a regra não cobre é
+   caminho aberto sem regra.
 
-**Anunciar número de PR sem ter aberto o PR.** Aconteceu duas vezes: a branch foi empurrada
-e o PR não. Conferir com `gh pr list --head <branch>` antes de citar número.
+---
 
-E uma que virou gate: **dos oito PRs abertos naquele dia, zero declararam o tipo de merge**
-— `gh pr create --body` substitui o template inteiro, e a exigência desaparece em silêncio.
-O #834 fechou isso: PR sem declaração agora reprova no CI.
+## Três armadilhas que este ciclo ensinou
+
+1. **`git add -A` num worktree compartilhado commita o trabalho de outro agente** (L102).
+   Caminhos explícitos, sempre.
+2. **`gh pr create --body` substitui o template inteiro** — e a declaração do tipo de merge
+   desaparece sem aviso. O gate `pr-tipo-de-merge.yml` recusa o PR que não diga, e exige a linha
+   `Motivo:`. Ele pegou o meu próprio PR #853.
+
+   E o gate obriga o PR a **dizer** o método, mas nada obriga o **clique** a obedecer: o
+   GitHub não tem configuração de método default, e a pré-seleção do botão é sempre *merge
+   commit*. Por isso o merge passou a se fazer por comando — `gh pr merge <n> --squash` ou
+   `--merge` —, onde o método está escrito (seção 12 do `AGENTS.md`).
+3. **Sucesso silencioso continua sendo o defeito que mais reincide.** Neste ciclo:
+   `.problema>h4::before` num cartão que não tem `h4` — o seletor não casava nada, e o canal da
+   cor foi perdido **sem erro nenhum**. Pior que a barra que ele substituía.
 
 ---
 
 ## Comandos
 
 ```bash
-mix gates > /tmp/gates.log 2>&1; echo "CODIGO_DE_SAIDA_DO_GATE=$?" >> /tmp/gates.log
-grep CODIGO_DE_SAIDA_DO_GATE /tmp/gates.log     # o veredito é o número, lido num comando separado
-
-set -a; . ./.env >/dev/null 2>&1; set +a        # a chave mestra vem do .env, sem imprimir
-MIX_ENV=dev mix run script.exs                  # medir contra o banco de desenvolvimento
+set -a; . ./.env >/dev/null 2>&1; set +a   # segredos, sem imprimir
+mix gates                                  # a definição única de verde
+node .claude/skills/impeccable/scripts/detect.mjs specs assets lib docs site   # deriva de design
+gh pr checks <n>                            # o veredito da CI
 ```
-
-⚠️ **A chave mestra.** `THE_BAND_MASTER_KEY` cifra as credenciais de todas as ferramentas.
-Ver `docs/producao/runbook.md` e a memória sobre o caminho de volta se ela se perder.
-
----
 
 ## Referências
 
-- `docs/releases/v0.6.0.md` — a nota da release, com o veredito por user story;
-- `docs/seguranca/2026-09-09-o-que-consertar-agora.md` — os 16 achados (branch do Security);
-- `docs/seguranca/2026-09-09-api-com-token.md` — a superfície da API, 18 achados;
-- `docs/producao/desligar-alguem.md` — o procedimento que **de facto** desliga alguém hoje;
-- `docs/producao/runbook.md` — o resto da operação;
-- `docs/backlog/README.md` — a fila priorizada de 14 posições (branch do PO).
+- Protótipo da conta desativada: `specs/045-autenticacao-e-acesso/prototipo/` — o `PROMPT.md`
+  seção 3 é a régua do QA
+- `DESIGN.md` — a ramp de dez passos, os quatro raios, e a regra da borda de acento
+- `docs/producao/desligar-alguem.md` — o procedimento, atualizado para o ato que existe
+- `docs/backlog/conta-desativada.md` — o item, com as seis lacunas fechadas
