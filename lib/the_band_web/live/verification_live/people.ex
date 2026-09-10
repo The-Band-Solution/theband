@@ -144,6 +144,24 @@ defmodule TheBandWeb.VerificationLive.People do
         </:subtitle>
       </.header>
 
+      <%!-- A LISTA ESTÁ FILTRADA, E A TELA DIZ QUE ESTÁ — decisão da pessoa mantenedora em
+            2026-09-09, sobre o custo que o Product Owner nomeou: quem ontem via a lista
+            inteira e hoje vê parte dela concluiria que o dado sumiu, ou que a coleta
+            falhou.
+
+            **Não diz quantas linhas ficaram de fora**, e isso é deliberado: o número seria
+            uma medida sobre pessoas que quem lê não alcança. Diz que há filtro, e qual é a
+            regra — o suficiente para não confundir recorte com ausência. --%>
+      <div :if={@alcance_parcial?} class="alert alert-info block text-sm">
+        <p>
+          <strong>This list shows only the people you reach.</strong>
+          Since <strong>9 September 2026</strong>, a named ranking follows the same rule as
+          a person's panel: your own record, the people on your teams, whoever you lead by
+          declared role, an organization scope, or administering this tenant. What you see
+          is a slice, not the whole.
+        </p>
+      </div>
+
       <%!-- A RESSALVA VEM ANTES DA TABELA, e não em nota de pé. Quem lê a tabela primeiro já
             formou juízo; quem lê isto primeiro sabe o que a tabela não diz. --%>
       <div class="alert block text-sm">

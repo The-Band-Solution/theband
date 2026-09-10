@@ -17,11 +17,27 @@ defmodule TheBand.Tenants.Access do
   sem job, sem coluna, sem segunda verdade (FR-020/021). Só a concessão vira
   linha, com proveniência e revogação por marca.
 
-  ## Administrar não é ver (FR-022)
+  ## Administrar VÊ, desde 2026-09-09 — a FR-022 foi emendada
 
-  Nenhum ramo aqui olha `users.role` para conceder visão. O ramo "admin vê tudo"
-  saiu do `EO.Visibility` nesta feature; quem administra e precisa ver recebe
-  concessão organization — a migração deu essa concessão aos admins de então.
+  Este cabeçalho dizia *"nenhum ramo aqui olha `users.role` para conceder visão"*, e
+  **deixou de ser verdade** quando `pode_ver/3` ganhou a cláusula do admin. A recusa do
+  papel Product Owner na avaliação da v0.7.0 apanhou-o, e com a observação que dói: era o
+  **H6 dentro do arquivo que o H6 corrigiu** — antes uma função desmentia o cabeçalho,
+  depois duas, e uma delas é a que o cabeçalho nomeia.
+
+  **O que vale agora**: administração **do próprio tenant** abre painel de pessoa
+  (`pode_ver/3`) e alcança a quebra por pessoa na equipe (`pode_ver_equipe/3`). As duas,
+  e pela mesma razão.
+
+  A emenda está na **FR-022 da spec 045**, com o texto original preservado riscado. A razão
+  não foi conveniência: `pode_ver_equipe/3` já concedia ao admin, e o booleano dela libera a
+  quebra por pessoa nomeada na tela da equipe. **Administração já lia pessoa nomeada pela
+  porta da equipe** enquanto a tela da pessoa a recusava — a plataforma afirmava um regime
+  que não aplicava, o que é pior que qualquer dos dois regimes.
+
+  **O que continua valendo da FR-022 original**: administrar **outro** tenant não abre
+  nada, e a FR-023 segue intacta — ver não exige administrar, e escopo continua sendo o
+  caminho de quem não administra.
 
   ## O motivo importa
 

@@ -5,7 +5,18 @@
 /cover/
 
 # The directory Mix downloads your dependencies sources to.
-/deps/
+# Sem a barra final, de propósito — resíduo do achado H12, medido em 2026-09-09.
+#
+# `/deps/` com barra **só casa com diretório**. Um LINK SIMBÓLICO chamado `deps` não era
+# ignorado, e um `git add -A` o repunha no índice — que é exactamente como o H12 nasceu:
+# um link absoluto apontando para si mesmo, commitado, que apagava as dependências a cada
+# `git checkout`.
+#
+# Medido:  `/deps/` sobre um link → NÃO ignorado.  `/deps` → ignorado.
+#
+# O gate `sem link simbólico rastreado` (`mix gates`) pega se voltar; esta linha impede que
+# volte. A diferença entre os dois é **quando** se descobre.
+/deps
 
 # Where 3rd-party dependencies like ExDoc output generated docs.
 /doc/
