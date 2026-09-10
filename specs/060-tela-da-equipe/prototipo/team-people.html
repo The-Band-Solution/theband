@@ -108,8 +108,8 @@ td.prev{background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(
 .pes-sub{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block;margin-top:.12rem}
 .cob{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
 tr.aberta>td{background:var(--verdete-soft)}
-tr.aberta>td:first-child{box-shadow:inset 3px 0 0 var(--verdete)}
 tr.saiu-l .pessoa{color:var(--tinta-2)}
+tr.pedida>td{border-bottom:0}
 tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
 .bloco{border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel-2);padding:1rem 1.1rem}
 .bloco-cab{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
@@ -128,8 +128,8 @@ tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
 .par-linha{margin-top:1.1rem}
 .par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.4rem}
 .par-cab{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
-.par-cab .h{font-family:var(--grot);font-weight:650;font-size:0.875rem;border-bottom:3px solid var(--verdete);padding-bottom:.25rem}
-.par-cab .h.b{border-bottom-color:var(--s3)}
+.par-cab .h{font-family:var(--grot);font-weight:650;font-size:0.875rem;border-bottom:1px solid var(--linha);padding-bottom:.25rem}
+.quad{display:inline-block;width:.6rem;height:.6rem;border-radius:0.125rem;background:currentColor;border:1px solid currentColor;margin-right:.4rem;vertical-align:middle}
 .escala{font-family:var(--grot);font-size:0.75rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:0.25rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
 .tres{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:1rem}
 .tres .a{border:1.5px solid var(--linha);border-radius:0.5rem;padding:.8rem .9rem;background:var(--papel-2)}
@@ -138,6 +138,21 @@ tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
 .tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:0.25rem}
 .dens{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.5rem}
 ol.dec-l{margin:0;padding-left:1.2rem;font-size:0.875rem}ol.dec-l li{margin-top:.35rem}
+
+/* ── the third person asked for, while two are open ───────────── */
+.btn.esp{border-color:var(--verdete);color:var(--verdete-deep);background:var(--papel)}
+.btn.larga{white-space:normal;text-align:center;line-height:1.25}
+.pend{display:block;font-family:var(--grot);font-size:0.6875rem;color:var(--tinta-2);margin-top:.25rem;max-width:8.5rem}
+.esc-par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.85rem}
+.op{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.25rem}
+.op .nome{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.op .val{font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums;margin-top:.2rem;display:block}
+.op .onde{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.15rem}
+.op .nao{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.3rem}
+.op>button{margin-top:.5rem}
+.volta{display:flex;gap:.75rem;align-items:flex-start;flex-wrap:wrap;margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--linha)}
+.volta span{font-size:0.8125rem;color:var(--tinta-2);flex:1 1 20rem;max-width:none}
+.esc-nota{font-size:0.8125rem;color:var(--tinta-2);max-width:none;margin-top:.7rem}
 </style>
 <div class="faixa">
 <h1>Flow per person</h1>
@@ -338,7 +353,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
 <nav class="abas"><a class="aba" href="#">Dashboard</a><a class="aba" href="#">Structure</a><a class="aba ativa" href="#">Flow per person</a></nav>
 
 <div class="nota-de-tela"><span class="rot">what this screen adds</span>
-The same tab on a team where work does move, and where the rows are not all alike: one person above the forecast floor and five below it for two different reasons, one who joined inside the window, one who left with a declared date, one with <strong>no observed item at all</strong>, and one holding items the routing rule did not classify. And the second mode of the tab: <strong>two people opened at once</strong>, which takes both out of their rows and puts the four measures side by side, one row per measure.
+The same tab on a team where work does move, and where the rows are not all alike: one person above the forecast floor and five below it for two different reasons, one who joined inside the window, one who left with a declared date, one with <strong>no observed item at all</strong>, and one holding items the routing rule did not classify. And the second mode of the tab: <strong>two people opened at once</strong>, which takes both out of their rows and puts the four measures side by side, one row per measure. And the state the ceiling produces: a <strong>third person asked for while two are open</strong>, and the question of which of the two closes — drawn under the row that asked, with both open people named.
 </div>
 
 <section class="sec">
@@ -390,13 +405,53 @@ The same tab on a team where work does move, and where the rows are not all alik
         <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history <span class="curto">5 of 6 short</span> · closed <span class="curto">5 of 10 short</span></span></td>
         <td><button class="btn q">charts ▾</button></td>
       </tr>
-      <tr>
+      <tr class="pedida">
         <td><span class="pessoa">Duda Cordeiro</span><span class="login">@dudacordeiro <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · since 9 Sep 2024</span><span class="cob">3 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">18</span><span class="dir">16 at the first sample · +2 across the window</span><span class="nc"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</span></td>
         <td class="v">5</td><td class="v">3</td><td class="v">3 of 8</td>
         <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
-        <td><button class="btn q">charts ▾</button></td>
+        <td><button class="btn esp">charts asked ▾</button><span class="pend">not open · waiting for your choice</span></td>
       </tr>
+
+      <tr class="bloco-l"><td colspan="7"><div class="bloco">
+        <div class="bloco-cab">
+          <h3>Two sets of charts are open. Duda Cordeiro's would be the third — which one closes?</h3>
+          <span class="rot">nothing has changed yet</span>
+        </div>
+        <p class="sub" style="font-size:0.8125rem;margin-top:.45rem;max-width:none">This is a question, not a change. <strong>Duda's charts are not open</strong>, and Noa's and Pedro's are exactly as they were — same rows, same numbers, same forecast, same window and grain. Choosing below closes one person's charts and opens Duda's in that place. It is not a modal and it traps nothing: the question sits under the row that asked it, the table above stays readable, and it waits.</p>
+        <div class="esc-par">
+          <div class="op">
+            <span class="rot">open first · her charts are the left-hand column below</span>
+            <div><span class="quad" style="color:var(--verdete)" title="the colour her series carries in the charts below"></span><span class="nome">Noa Vidal</span></div>
+            <span class="login">@noavidal <span class="ex-mark">example</span></span>
+            <span class="pes-sub">Developer · declared</span>
+            <span class="val">11 <span class="rot" style="font-weight:400">open now</span></span>
+            <span class="piso">9 at the first sample · +2 across the window</span>
+            <span class="piso">forecast: p50 11 wk · no p85</span>
+            <span class="onde">Her row is three rows above this question, marked.</span>
+            <button class="btn p larga">close Noa's charts · open Duda's</button>
+            <span class="nao">Closes her charts only. Her row stays in the table, her numbers do not change, and nothing about her is deleted — she can be opened again from her row.</span>
+          </div>
+          <div class="op">
+            <span class="rot">open second · his charts are the right-hand column below</span>
+            <div><span class="quad" style="color:var(--s3)" title="the colour his series carries in the charts below"></span><span class="nome">Pedro Assis</span></div>
+            <span class="login">@pedroassis <span class="ex-mark">example</span></span>
+            <span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source</span>
+            <span class="val">3 <span class="rot" style="font-weight:400">open now</span></span>
+            <span class="piso">5 at the first sample · −2 across the window</span>
+            <span class="piso">forecast: no forecast · closed <span class="curto">4 of 10 short</span></span>
+            <span class="onde">His row is the one directly below this question, marked.</span>
+            <button class="btn p larga">close Pedro's charts · open Duda's</button>
+            <span class="nao">Closes his charts only. His row stays in the table, his numbers do not change, and nothing about him is deleted — he can be opened again from his row.</span>
+          </div>
+        </div>
+        <div class="volta">
+          <button class="btn">keep Noa and Pedro · do not open Duda</button>
+          <span>The way out is the way back. The question closes, <strong>Duda's charts do not open</strong>, and the two that are open stay open on the same window and the same grain. There is no third state here: either the pair changes or it does not.</span>
+        </div>
+        <p class="esc-nota"><strong>The two closing buttons carry the same weight on purpose.</strong> Electing one of them as the primary would be the screen choosing which comparison still matters, one shade at a time — and which of the two has stopped being interesting is the one thing only the person who asked for the third knows. Neither button is <em>close both</em>: keeping one of them is what makes this a comparison at all. To end with Duda alone, close the other from its row afterwards.</p>
+        <p class="esc-nota"><strong>Why two at all:</strong> two y axes compare shapes, not heights, and a third scale in this column would be a gallery instead of a comparison. The full argument is one screen down, under the pair — <em>why two, and why the pair leaves the table</em> — and it is repeated here in one line rather than in full, because a reader stopped by a limit needs the reason, not the essay. What the limit is <strong>not</strong> is cost: measured on 10 Sep, the whole tab is <span class="n">5</span> queries for 31 members and opening a person costs <strong>no extra query</strong>. The limit is legibility, and only that.</p>
+      </div></td></tr>
       <tr class="aberta">
         <td><span class="pessoa">Pedro Assis</span><span class="login">@pedroassis <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">2 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">3</span><span class="dir">5 at the first sample · −2 across the window</span></td>
@@ -422,7 +477,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       </tr>
     </tbody>
   </table></div>
-  <div class="ordem">Ordered by declared role, then by name: Developer, Developer, Tech Lead, then the four the source only observed. <strong>No column header sorts.</strong> Two rows are open, so their charts left the table and sit below it, side by side.</div>
+  <div class="ordem">Ordered by declared role, then by name: Developer, Developer, Tech Lead, then the four the source only observed. <strong>No column header sorts.</strong> Three states are on this table at once: <strong>two rows open</strong>, whose charts left the table and sit below it side by side; <strong>one row that asked</strong> for a third and is <em>not</em> open, with the question of which of the two to close drawn under it; and four rows closed.</div>
 
   <div class="aviso"><span class="rot">the window is the same for everyone; the history inside it is not</span>
   <p>Otávio joined on <strong>20 Aug</strong> and Sara left on <strong>14 Aug</strong>. Their windows are the team's — 14 Jul → 8 Sep — but the part of it in which the platform has anything to say about them is shorter, and that is written in their rows. <strong>Fewer periods with data is a shorter history inside the same window, and not less work.</strong> Sara's row stays: what she did inside the window still counts (US3), her open items are still assigned to her at the source, and nothing is deleted retroactively. Zeca's start date is unknown, so the row says so instead of guessing one.</p></div>
@@ -436,8 +491,8 @@ The same tab on a team where work does move, and where the rows are not all alik
   </div>
 
   <div class="par-cab" style="margin-top:1rem">
-    <div class="h">Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
-    <div class="h b">Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h"><span class="quad" style="color:var(--verdete)" title="the colour her series carries in the four charts below"></span>Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h b"><span class="quad" style="color:var(--s3)" title="the colour his series carries in the four charts below"></span>Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
   </div>
 
   <!-- ROW 1 · WIP -->
@@ -591,7 +646,8 @@ The same tab on a team where work does move, and where the rows are not all alik
   </div>
 
   <div class="aviso"><span class="rot">why two, and why the pair leaves the table</span>
-  <p>Four charts and their caveats are roughly <span class="n">700 px</span> tall. Two blocks opened in place, six rows apart, put <span class="n">1 400 px</span> between the two things being compared and push the table itself off the screen — so opening a second person is not a second block, it is a <strong>mode</strong>: both leave the table, and the four measures line up one per row. Three would give each chart about <span class="n">19 rem</span> in this column, below what an eight-point series with its axis labels can carry, and would ask the reader to hold three scales at once. <strong>The limit here is two, against the three proposed in FR-087</strong> — open question 1.</p></div>
+  <p>Four charts and their caveats are roughly <span class="n">700 px</span> tall. Two blocks opened in place, six rows apart, put <span class="n">1 400 px</span> between the two things being compared and push the table itself off the screen — so opening a second person is not a second block, it is a <strong>mode</strong>: both leave the table, and the four measures line up one per row. Three would give each chart about <span class="n">19 rem</span> in this column, below what an eight-point series with its axis labels can carry, and would ask the reader to hold three scales at once. <strong>The limit here is two, against the three proposed in FR-087</strong> — open question 1, <strong>settled on 10 Sep at two</strong>.</p>
+  <p><strong>And the limit is not a cost.</strong> Measured on 10 Sep, the whole tab is <span class="n">5</span> queries for 31 members — 3 for the per-person series and 2 for the open items — and opening one, two or three people costs <strong>no extra query</strong>: the four charts and the composition come out of queries the table already makes. The cost half of this argument is gone, and what is left is the reader. What happens when a third person is asked for is in the table above, under Duda's row.</p></div>
 </section>
 
 <section class="sec">
@@ -923,14 +979,29 @@ Thirty-one members is the team that fails any design which does not make a cut �
 
   <div class="cartao">
     <h3>Open — each one is the maintainer's to settle</h3>
+    <p class="sub">All seven were settled on <strong>10 Sep</strong>, each by the recommendation it carries; the answers and their reasons are on record in <span class="login" style="display:inline">team-people-README.md</span>. Item 18 is rewritten below, because half of its reason turned out to be false and because its answer left one state undesigned — that state is decision 25.</p>
     <ol class="dec-l" start="18">
-      <li><strong>How many people open at once?</strong> FR-087 proposes three, and says the number is proposed and not measured. <em>(a)</em> one, and comparison stays in the table; <em>(b)</em> <strong>two, with the paired layout on this page</strong>; <em>(c)</em> three, in place, as proposed. <em>Recommended: (b).</em> Three charts abreast in this column are about 19 rem each — below what an eight-point series with axis labels carries — and three scales is not a comparison, it is a gallery. Two also keeps the query ceiling (SC-031) comfortable rather than tight.</li>
+      <li><strong>How many people open at once?</strong> FR-087 proposes three, and says the number is proposed and not measured. <em>(a)</em> one, and comparison stays in the table; <em>(b)</em> <strong>two, with the paired layout on this page</strong>; <em>(c)</em> three, in place, as proposed. <em>Recommended: (b).</em> <strong>Decided 10 Sep: (b), two.</strong> Three charts abreast in this column are about 19 rem each — below what an eight-point series with axis labels carries — and three scales is not a comparison, it is a gallery. <span class="marca eqv" style="font-size:0.6875rem"><span class="am"></span>corrected 10 Sep</span> The clause that used to close this item — that two also keeps the query ceiling (SC-031) comfortable rather than tight — <strong>was wrong</strong>. The tab was measured at <span class="n">5</span> queries for 31 members, and opening one, two or three people costs <strong>no extra query</strong>. The ceiling is a legibility decision and never was a cost one. What the third request does is decision 25.</li>
       <li><strong>Throughput and <em>delivered</em> are the same numbers.</strong> Chart 3 draws the bars of chart 2 again, read as a pace instead of against what was opened. Both were asked for by name. <em>(a)</em> keep four charts and say so on the screen, as here; <em>(b)</em> three charts, with the pace reading folded into Promised × Delivered; <em>(c)</em> four, and drop the <em>opened</em> bars from chart 2 so the two stop overlapping. <em>Recommended: (a) for the first version</em> — the redundancy is visible and named, and dropping a chart the maintainer asked for by name is not the design's call.</li>
       <li><strong>The two derivations this table introduces need a name in the knowledge base before the code.</strong> The <em>change across the window</em> (first sample against last) and <em>weeks with a close</em> (periods with a non-zero value) are readings of declared measures, not new measures — but nothing reaches the screen without a declaration (constitution, principle IV). <em>(a)</em> declare both as readings on <span class="login" style="display:inline">flow.open_work.cumulative</span> and <span class="login" style="display:inline">flow.throughput.rate</span>; <em>(b)</em> drop both columns and leave the table with three numbers. <em>Recommended: (a)</em> — without them the table shows a stock with no direction and a total with no regularity, and FR-089 requires the series and not a lone value.</li>
       <li><strong>Does the "promised" caveat at the top of the section count as "beside" the word?</strong> The reading of FR-063 that accepts this screen and the one that rejects it. This design implements <em>(a)</em>: the word never appears in the table at all, and appears in each open block with the definition attached. <em>(b)</em> would require it inside every chart, and there is one chart per open person, so (b) costs little here — it costs a lot only if the word returns to the table. <em>Recommended: (a).</em></li>
       <li><strong>Coverage without a denominator.</strong> FR-111 wants collection coverage beside the numbers; <span class="login" style="display:inline">repositories_of_person/2</span> lists what was observed and nothing counts what was not. <em>(a)</em> show the count with "denominator unknown", as here; <em>(b)</em> show no number and keep only the sentence about non-comparability; <em>(c)</em> hold the tab until a denominator exists. <em>Recommended: (a)</em> — a count that names its own missing denominator is more honest than silence, and the sentence stays either way.</li>
       <li><strong>Does a person see their own row when they do not reach the team?</strong> Inherited from the spec, and untouched by this design: <span class="login" style="display:inline">pode_ver_equipe/3</span> has four paths and none of them is "it is about me". If the answer is yes, it is a fifth path in the access verdict, decided by the architect and not by this screen.</li>
       <li><strong>Whose page carries the four charts in the long run?</strong> <kbd>/people/:id</kbd> already holds closings by month, open-age buckets and lead time. If it grows these four, this tab keeps only the table and the comparison of two — which may be the right shape. <em>(a)</em> as designed here; <em>(b)</em> the four charts move to the person's page and this tab links to them; <em>(c)</em> both, and the two screens are kept in step by hand. <em>Recommended: (a) now, (b) later</em> — but not (c), which is two screens drifting apart by construction.</li>
+    </ol>
+  </div>
+
+  <div class="cartao">
+    <h3>Decided by the maintainer on 10 Sep — the third person, and how the screen answers it</h3>
+    <p class="sub">The ceiling is two, and the approved screen did not draw what happens when someone asks for a third. Item 25 is the maintainer's; 26 to 31 are the design's, with the reason, and hers to overturn.</p>
+    <ol class="dec-l" start="25">
+      <li><strong>The screen asks which of the two open should close.</strong> <em>Decided 10 Sep.</em> Two alternatives were put and both fell. <strong>Refusing</strong> the third would make the ceiling a wall with no way through: whoever wants to compare A with C would have to work out alone that B has to close first, and a refusal that does not offer the right act is what this house refuses everywhere else. <strong>Closing the oldest</strong> would decide for the person comparing, and decide in silence: the third person was chosen deliberately, and which of the first two has stopped being interesting is information only she has. Asking costs one more state and one more interaction, and that is the price of not deciding for her.</li>
+      <li><strong>The question lands where the answer would have gone</strong> — under the row that asked, in the same full-width block that row's four charts would have occupied, and in <strong>exactly one place</strong>. The act started in the table, so the question belongs there: drawn a screen away, under the pair, it would look as if it came from nowhere and would leave the click looking ineffective. A question in two places is two questions.</li>
+      <li><strong>The two open people are named, with what helps choose.</strong> <em>“Close one”</em> without saying which two is not a question. Each card carries the colour square of the series its charts use below, the name and login, the declared role or its absence, <em>open now</em> with its change across the window, the forecast state, and <strong>where that person's marked row is</strong> — so the mark in the table and the words in the question point at each other. Nothing here is a figure the row did not already carry: the order the two were opened in is a fact of the interaction, not a measure, which is why it reads <em>open first</em> / <em>open second</em> and not a duration. A duration would be a new number, and a new number needs a name in the knowledge base before it reaches a screen.</li>
+      <li><strong>The two closing buttons carry the same weight</strong>, and each says what it does <em>and</em> what it does not: it closes charts, and the row, the numbers and the forecast stay where they are. Electing a primary between them would be the screen choosing. The way back is a single button in the quiet variant, because it is a <strong>return</strong> and not a third outcome.</li>
+      <li><strong>The row that asked shows “asked, not open”</strong>, and it is a third weight of the same control: <em>charts asked ▾</em> outlined in verdete, where an open row's <em>close ▴</em> is filled verdete and a closed row's <em>charts ▾</em> is neutral — plus the words <em>not open · waiting for your choice</em>, so the state never rests on weight alone. The row shares no rule with the question below it, which is how the two read as one object without a coloured edge. And <strong>the two open rows change in nothing at all</strong>: while the question is on the screen nothing has been changed, and re-marking them would report a change that has not happened. The provenance grammar — solid, hatched, dashed — is never borrowed for an interaction state; it belongs to the data.</li>
+      <li><strong>The reason for the ceiling appears in the question in one line, and points to the full argument</strong> under the pair rather than repeating it: a reader stopped by a limit needs the reason, not the essay, and the essay would push the two names — the thing to be read — below the fold of the block. The line also says what the limit is <strong>not</strong>: measured on 10 Sep, the tab is 5 queries for 31 members and opening a person costs no extra query.</li>
+      <li><strong>The open rows' mark is a tonal layer, with no accent edge and no shadow.</strong> They carried a 3px verdete edge drawn as an inset shadow; both devices are out (<span class="login" style="display:inline">DESIGN.md</span> — <em>The No-Accent-Edge Rule</em>, and flat by doctrine). The verdete ground, the filled <em>close ▴</em> and the sentence under the table are the three channels that remain, and they survive greyscale. The same rule took the 3px underline off the two column headings of the pair: the person's series colour is now the <strong>0.6rem square</strong> beside the name — the remedy the rule names — and it is the same square the question above uses for the same two people, so the pair and the question mark them alike.</li>
     </ol>
   </div>
 
@@ -943,7 +1014,7 @@ Thirty-one members is the team that fails any design which does not make a cut �
       <li><strong>The split of the remaining open items</strong> — 52 between two people in PINK, 69 between four in Equipe IA — is invented to make the rows sum to the squad's real total.</li>
       <li><strong>No repository-coverage number exists</strong> for any person; every "<em>N repos observed</em>" on this page is invented, and the missing denominator is real.</li>
       <li><strong>Nothing was measured for LEDS - ConectaFapes.</strong> The 31-row band is a density test with invented people; the team's size is the only real thing in it.</li>
-      <li><strong>The query ceiling was not measured.</strong> Whether two people open stays inside the per-render limit the team screen's guard test holds is an argument here, not a measurement (SC-031).</li>
+      <li><span class="marca eqv" style="font-size:0.6875rem"><span class="am"></span>corrected 10 Sep</span> <strong>“The query ceiling was not measured.”</strong> It has been. The tab costs <span class="n">5</span> queries for 31 members — 3 for the per-person series and 2 for the open items — and each person opened costs <strong>no extra query</strong>. The claim stays on the record with its correction rather than being deleted, and the ceiling of two now rests on legibility alone (SC-031, decision 18).</li>
       <li><strong>The composed-team case is described, not drawn.</strong> On a composed team the tab still has one row per person — the tab is per person, not per membership — with the squad chips in the person cell and still no total. No band on this page shows it.</li>
     </ul>
   </div>

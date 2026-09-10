@@ -9,6 +9,12 @@ pelas faixas `screen 3` · `screen 4` · `screen 5`, continuando a numeração d
   **Republicado no mesmo endereço em 2026-09-10**, com a ramp tipográfica declarada e a borda
   colorida de um lado removida (`DESIGN.md`, *The One-Ramp Rule* e *The No-Accent-Edge Rule*).
   O conteúdo não mudou.
+  **Republicado outra vez no mesmo endereço em 2026-09-10**, com **um estado acrescentado** — a
+  pergunta de qual das duas abertas fechar quando se pede a terceira, resposta da pessoa
+  mantenedora à Q25 —, com o argumento de **custo** do teto corrigido onde ele aparecia, e com as
+  **três bordas de acento** que a republicação anterior não pegou. Ver *A terceira pessoa: como
+  ela foi desenhada*, abaixo. Nenhuma faixa foi redesenhada, nenhuma seção mudou de lugar, e
+  nenhum número medido mudou.
 - **Status**: **APROVADO pela pessoa mantenedora em 2026-09-08**, registrado em **2026-09-10**
   junto das respostas às sete perguntas abertas — ver *As sete perguntas, respondidas*, abaixo.
 - **Não altera** o protótipo aprovado em 2026-09-07,
@@ -143,7 +149,65 @@ E a razão de cada alternativa ter caído:
 - e a razão do teto continua **escrita na tela**, como já estava: dois eixos diferentes
   comparam formas e não alturas, e três escalas seriam galeria e não comparação.
 
+## A terceira pessoa: como ela foi desenhada, e a razão de cada escolha
+
+Desenhada em 2026-09-10 e republicada no mesmo endereço. Está **em repouso** na faixa
+`screen 4`, sob a linha de **Duda Cordeiro** — a única linha da faixa que tinha `charts ▾` entre
+as duas abertas (Noa Vidal, linha 1, e Pedro Assis, linha 5). A régua item a item é o
+`team-people-PROMPT.md`, seção **3.7-a**, itens **27 a 36**.
+
+| # | decisão | a razão |
+|---|---|---|
+| 1 | **A pergunta aparece sob a linha que a pediu**, no mesmo bloco de largura inteira que os quatro gráficos daquela pessoa ocupariam — e em **um lugar só** | o ato começou na tabela, e a pergunta tem de pousar **onde a resposta pousaria**. Desenhada no bloco do par, uma tela abaixo, ela pareceria vir do nada e deixaria o clique com cara de sem efeito. E pergunta em dois lugares são duas perguntas: a segunda cópia teria de dizer se responde pela primeira |
+| 2 | **linha e pergunta sem fio entre elas** (`tr.pedida > td { border-bottom: 0 }`) | é o laço estrutural que substitui o laço por cor. Sem borda de acento, sem fundo emprestado do estado "aberta": o que une os dois é a ausência do divisor, e ela não afirma nada sobre o dado |
+| 3 | **as duas abertas nomeadas, com o que ajuda a escolher**: quadrado de 0.6rem na cor da série, nome, login, papel, `open now` e a variação, o estado da previsão, e **onde está a linha marcada** dela | *"feche uma"* sem dizer quais não é pergunta. E a marca na tabela só identifica se as palavras apontarem para ela — por isso o cartão diz *three rows above* e *directly below*, e a marca e o texto passam a se conferir um ao outro |
+| 4 | **nada de novo é medido para a pergunta**: a ordem em que as duas foram abertas é *open first* / *open second*, e **não** uma duração | ordem é fato da interação; duração seria **número novo**, e número novo precisa de nome na base antes de chegar à tela (princípio IV). Foi a informação que o "fechar a mais antiga" usaria em silêncio — mostrada, ela deixa a escolha com quem compara |
+| 5 | **os dois botões de fechar com o mesmo peso**, ambos primários, cada um dizendo o que faz e o que **não** faz | eleger um primário seria a tela escolhendo qual comparação ainda importa, uma tonalidade por vez. É a mesma recusa da alternativa "fechar a mais antiga", só que na hierarquia visual em vez de no comportamento |
+| 6 | **nenhum dos dois é *close both***, e a tela escreve o caminho para ficar só com a terceira | manter uma das duas é o que faz disto uma comparação. Um terceiro botão para um caminho que já são dois cliques dos que existem seria oferecer o que a aba não é |
+| 7 | **o caminho de volta é um botão só**, contornado, com a frase de que a pergunta fecha, a terceira **não** abre e as duas ficam como estavam | desistir é **volta**, não terceiro resultado — e a variante contornada diz isso sem apagar o botão. O texto de estado antes das opções (`nothing has changed yet`) é o que faz da volta uma volta: se nada mudou, não há o que desfazer |
+| 8 | **a pergunta não é modal**, e a tela diz isso: ela espera, e a tabela acima continua legível | prender a tela para cobrar uma resposta seria a recusa disfarçada que a pessoa mantenedora recusou. Quem pediu a terceira pode ler as duas linhas marcadas antes de decidir — e é para isso que a pergunta nomeia onde elas estão |
+| 9 | **a linha que pediu mostra `charts asked ▾` contornado em verdete, mais *not open · waiting for your choice*** | três estados, três pesos do **mesmo** controle e três palavras: preenchido é "os gráficos dela estão na tela", contornado é "pedido, não aberto", neutro é "fechado". A gramática de proveniência — sólido, hachurado, tracejado — **não** é emprestada para estado de interação: ela é do dado |
+| 10 | **as duas linhas abertas não mudam em nada** — nem marca, nem número, nem botão | enquanto a pergunta está na tela **nada foi mudado**. Remarcá-las seria a tela relatando uma mudança que não aconteceu, e a tela desta casa relata a observação |
+| 11 | **a razão do teto aparece na pergunta em uma linha e aponta para o aviso completo** sob o par | quem é parado por um limite precisa da razão, não do ensaio; e o ensaio empurraria os dois nomes — a coisa a ser lida — para fora do bloco. A pergunta diz por que aponta, em vez de só apontar |
+| 12 | **a pergunta diz o que o teto NÃO é**: 5 consultas para 31 membros, zero consulta extra por pessoa aberta | metade do argumento antigo era custo, e essa metade caiu com a medição de 2026-09-10. Deixar a justificativa velha em pé seria a tela sustentando um número que não existe mais |
+
+### O que foi corrigido junto, porque tinha deixado de ser verdade
+
+1. **Pergunta 18, na tela.** A cláusula final — *"two also keeps the query ceiling (SC-031)
+   comfortable rather than tight"* — **era falsa**. Ela ganhou a marca `mistake` com
+   `corrected 10 Sep`, o número medido, e a frase de que o teto é decisão de legibilidade e nunca
+   foi de custo. O item também traz `Decided 10 Sep: (b), two`.
+2. **O aviso *why two, and why the pair leaves the table*** ganhou um parágrafo com a medição e
+   com a frase de que o custo saiu do argumento — e aponta para onde o estado novo está.
+3. **O cartão *What was not verified*** tinha *"The query ceiling was not measured"*. Foi medido.
+   O item **não foi apagado**: ficou com a marca `mistake`, `corrected 10 Sep` e o número. Nada é
+   apagado nesta casa, e equívoco tem data.
+4. **Três bordas de acento que a republicação anterior não pegou**, e o detector em modo completo
+   confirmou: o fio de 3px em verdete das linhas abertas, desenhado como `box-shadow: inset`
+   (proibido duas vezes — *The No-Accent-Edge Rule* e plano por doutrina), e os dois fios de 3px
+   sob os cabeçalhos de coluna do par. A camada tonal, o botão preenchido e a frase da ordem
+   ficaram como os três canais da linha aberta; a cor da série passou para o **quadrado de
+   0.6rem** — o remédio que a regra nomeia —, e é o **mesmo quadrado** que a pergunta usa para as
+   mesmas duas pessoas, de modo que o par e a pergunta marcam igual.
+5. **A nota da faixa `screen 4`** e **a linha da ordem** abaixo da tabela passaram a registrar os
+   três estados simultâneos: duas abertas, uma pedida e não aberta, e as fechadas.
+
+### O que este estado NÃO precisa da base de conhecimento
+
+**Nenhum nome novo.** Tudo que a pergunta mostra a linha já mostrava — `open now` e a variação da
+janela, o estado da previsão, o papel declarado, a cobertura da coleta —, e as três derivações
+que a tabela introduz continuam sendo as mesmas três já listadas neste arquivo. Foi por isso que
+a ordem das duas abertas ficou em *open first* / *open second* e **não** em duração: uma duração
+seria medida nova, e medida nova pede declaração antes do código.
+
 ## As perguntas que ficam para a pessoa mantenedora
+
+**Todas foram respondidas em 2026-09-10** — ver *As sete perguntas, respondidas*, acima, e a Q25
+depois delas. O quadro abaixo é o registro das opções e das recomendações com que cada uma foi
+levada. Na **tela**, os itens 19 a 24 continuam impressos no cartão *Open* com a nota de que os
+sete foram respondidos e onde as respostas estão; transcrevê-los para a tela é republicação
+seguinte, e é do Product Owner pedir. O item 18 já está reescrito na tela: decidido em duas, com
+a metade de custo do argumento marcada como equívoco.
 
 Estão na tela, itens 18 a 24, cada uma com opções e recomendação. Em resumo:
 
