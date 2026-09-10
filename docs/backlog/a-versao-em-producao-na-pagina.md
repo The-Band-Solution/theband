@@ -10,6 +10,38 @@ sempre carrega a versão da aplicação em produção e as funcionalidades novas
 às 13:39:49Z e o #829 entrou às 14:26:01Z. Então este item não é uma correção de algo que foi
 feito errado: é a primeira vez que a regra existe.
 
+> ## A v0.7.0 também sai sem isto — **dispensa explícita, e não redefinição da regra**
+>
+> **Decidido em 2026-09-09T23:19Z**, e registrado em
+> [`docs/releases/v0.7.0.md`](../releases/v0.7.0.md), seção *A terceira pergunta que fecha a
+> release*.
+>
+> A resposta à pergunta *"é pré-condição desta release?"* é **sim, pela regra como está
+> escrita**. O que proponho é **dispensa**, com o custo declarado — não a leitura conveniente
+> de que a regra não se aplicaria a uma release de segurança.
+>
+> **As três razões**: o item está bloqueado no Design (não há protótipo, e as três perguntas
+> abaixo continuam sem resposta — **levá-las é meu, e não o fiz**); há um bloqueio de primeira
+> ordem antes do Design (a aplicação não sabe a própria versão, e imprimir a do `mix.exs` é
+> justamente o que a regra proíbe); e o conteúdo da v0.7.0 é, em maioria, conserto de defeito
+> **medido em produção**, três deles altos — segurar a entrega manteria o defeito no ar por mais
+> um ciclo.
+>
+> **O que a dispensa custa, exatamente**: a v0.7.0 **retira alcance de três maneiras** — tenant
+> suspenso, escopo de projeto e ranking sem escopo. Quem abria um painel ontem e não abre hoje
+> vai encontrar uma recusa e **nenhuma explicação de que a regra mudou**. Não é um aviso que
+> faltou: é uma pessoa concluindo que a plataforma quebrou. **É o caso mais forte que esta regra
+> existe para cobrir, e é justamente o que esta release não entrega.**
+>
+> **A dispensa não se repete: a v0.8.0 não sai sem isto**, e a ordem é (a) as três perguntas
+> abaixo respondidas; (b) como a aplicação lê a própria versão, decidido; (c) o Design desenha e
+> publica; (d) o código; (e) a conferência do QA.
+>
+> **E uma consequência de conteúdo**: como a **conta desativada** — a única funcionalidade nova
+> para quem usa nesta release — **não foi aceita**, a v0.7.0 não teria linha nenhuma na seção
+> *funcionalidades*. A página anunciaria a versão e diria, honestamente, que nada novo foi
+> entregue a quem usa. Isso é verdade, e é desconfortável o bastante para ficar escrito.
+
 ## Por que o `docs/releases/` não basta
 
 O arquivo serve a quem tem o repositório. A página serve a quem **usa** o produto, e é a

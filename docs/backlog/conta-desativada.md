@@ -17,6 +17,55 @@ justamente por ter sido medida.
 > É a lição *"limitação declarada sem olhar o dado"* aplicada a mim: ler o código da tela não
 > diz o que a tela deixa fazer.
 
+---
+
+## Estado em 2026-09-09T23:19Z — construída, em produção, e **NÃO ACEITA**
+
+O [#844](https://github.com/The-Band-Solution/theband/pull/844) construiu isto e foi mergeado na
+`development` às 20:24Z. O veredito de aceitação está em
+[`docs/releases/v0.7.0.md`](../releases/v0.7.0.md), entregável **D06**:
+**`sro.not_accepted_deliverable`** — quatro critérios não conformes, um sem evidência.
+
+**O que este item passa a ser**: não é mais *"o que construir"*. É **o que falta** para que o
+que já está em produção possa ser aceito e anunciado.
+
+| O que falta | Critério desta página que fica aberto |
+|---|---|
+| **a razão ao desativar** | *"o registro diz **quem** desativou, **quando** e **por quê**"* — a migração dá `disabled_at` e `disabled_by_user_id`; **o porquê não existe** |
+| **o ator e a razão ao reativar** | *"reativar é ato registrado, com autor e razão"* — `enable_user/2` recebe tenant e `user_id`, e mais nada. Desativar deixa autor; **reativar não deixa** |
+| **o teste de que nada muda na pessoa** | *"o roster, as medidas e o histórico da pessoa **não mudam** ao desativar a conta"* — **sem evidência**: nenhum teste compara medida antes e depois |
+| **o texto do *revoke*** | Parte C — hoje diz *"a pessoa deixa de entrar pelo username do GitHub; a história do elo fica"*, e **não** diz que não remove acesso |
+| **o teste que reprova** se revogar o elo voltar a ser o único ato oferecido a quem desliga | Parte C — não existe |
+| **o protótipo aprovado** da superfície de `/accounts` | a seção *Tem tela, logo tem protótipo*, abaixo, que **eu escrevi antes do código e o código não seguiu** |
+
+### As quatro decisões foram tomadas pelo código, e uma contraria a recomendação
+
+Esta página diz, textualmente: *"Não decomponho antes destas respostas — decidir depois de
+construir é o que produz retrabalho."* As quatro foram decididas na implementação, sem registro
+de escolha da pessoa mantenedora. A que importa é a **decisão 1**:
+
+| | |
+|---|---|
+| **recomendação** | **(b) relator próprio**, *"porque um `disabled_at` solto repete o `connected_tools.status` da ADR 0004 D7, que já é dívida declarada"* |
+| **implementado** | **(a) `disabled_at` + autor na própria `users`** |
+| **consequência** | a dívida da [#178](https://github.com/The-Band-Solution/theband/issues/178) ganha uma segunda ocorrência, e o campo de **razão** — que um relator carregaria naturalmente — é justamente o que ficou de fora |
+
+**Isto não é motivo para desfazer**, e não é o que proponho: a migração é só-acréscimo, foi
+ensaiada contra dado real, e desfazê-la custaria mais do que a dívida. É motivo para a decisão
+ser **tomada** — confirmar (a) com a razão escrita, ou decidir migrar para (b) — em vez de ficar
+como está, que é a forma vencendo por omissão.
+
+### O que **não** está em causa
+
+A migração `20260909180000` está em ordem, e a recusa não a alcança: colunas nulas, sem
+backfill, sem CHECK, **ensaiada contra cópia do banco real** com **0 contas desativadas por
+acidente** —
+[`docs/producao/ensaio-2026-09-09-migracao-conta-desativada.md`](../producao/ensaio-2026-09-09-migracao-conta-desativada.md).
+E as regras de recusa que existem — não se desativa a si, nem conta de outro tenant, nem duas
+vezes; reativar não devolve a senha — têm asserção nomeada.
+
+---
+
 ## O fato, verificado no esquema e não na prosa
 
 **Não existe estado de conta desativada nesta plataforma.**
