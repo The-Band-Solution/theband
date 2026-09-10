@@ -140,7 +140,7 @@ volta.
 
 ```text
 the-band/
-├── AGENTS.md, CLAUDE.md, README.md, mix.exs, compose.yaml
+├── AGENTS.md, CLAUDE.md, README.md, RETOMAR.md, mix.exs, compose.yaml
 ├── .github/            workflows (ci, security, spec-validation, release), templates, CODEOWNERS
 ├── .specify/           constitution.md, scripts, templates (Spec Kit)
 ├── specs/<n>-<feature>/  spec.md, plan.md, tasks.md, research.md, data-model.md, contracts/
@@ -168,6 +168,42 @@ the-band/
 ```
 
 **Não crie pastas vazias antecipadamente.** Cada diretório nasce quando uma feature o justifica.
+
+### O estado da sessão vive em UM documento: `RETOMAR.md`, na raiz
+
+**Regra: existe um só.** Quem retoma o trabalho lê `RETOMAR.md` na raiz do repositório —
+o que está no ar, o que está aberto, o que espera decisão — e não procura em mais lugar
+nenhum.
+
+**A razão é medida, e é de 2026-09-09.** Havia dois: `RETOMAR.md` na raiz, parado em
+26/08, e `docs/sprints/RETOMAR.md`, parado em 03/09. Um descrevia a v0.4.0 e o outro a
+#369 em aberto — **produtos diferentes**, catorze e seis dias atrás. E o pior não é o
+desatualizado: é que **quem lê um dos dois não sabe que o outro existe**, e conclui que
+leu o estado.
+
+Foi normalizado: a raiz ficou com o conteúdo, e `docs/sprints/RETOMAR.md` virou ponteiro.
+
+**Por que na raiz, e não em `docs/`:**
+
+| documento | onde | por quê |
+|---|---|---|
+| **o estado da sessão** | `RETOMAR.md`, raiz | é o primeiro arquivo que se abre, e **não pertence a um site publicado** — nomeia branches não mergeadas, PRs abertos e achados de segurança em aberto. É o caderno da sessão, não referência |
+| **as lições** | `docs/sprints/licoes-aprendidas.md` | atravessam sprints e **não caducam** |
+| **o registro do sprint** | `docs/sprints/NNN/` | backlog, review e aceitação, permanentes |
+| **a nota da release** | `docs/releases/vX.Y.Z.md` | permanente, e é o registro de aceitação |
+
+A diferença é de **natureza**: o estado muda a cada sessão e caduca em dias; a lição e o
+registro do sprint são permanentes. Misturá-los faz o permanente parecer volátil e o
+volátil parecer confiável.
+
+**Ao encerrar uma sessão que mudou o estado, `RETOMAR.md` é atualizado — e a lista de
+pendências é CONFERIDA, não copiada.** Em 2026-09-09, das oito issues que ele listava
+como esperando decisão, **quatro já estavam fechadas**. Copiar a lista sem conferir com
+`gh issue view` faria o documento novo nascer com metade das pendências falsas, que é
+exactamente o defeito que ele existe para não ter.
+
+**Nenhum gate confere que ele está atualizado**, e é a razão de ele ter caducado duas
+vezes. A disciplina é de quem encerra a sessão.
 
 ---
 

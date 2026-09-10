@@ -31,11 +31,13 @@ defmodule TheBandWeb.ProcessLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Tenants
 
   @impl true
   def mount(_params, _session, socket) do
     tenant = socket.assigns.current_tenant
     estados = SPO.count_board_states(tenant)
+    alcance = Tenants.pessoas_alcancadas(tenant, socket.assigns.current_user)
 
     {:ok,
      socket
@@ -47,7 +49,27 @@ defmodule TheBandWeb.ProcessLive.Index do
        duplicados: duplicados(estados),
        # Issue #508: atividade registrada por pessoa e por mês. NÃO é throughput, e a tela
        # é obrigada a dizer o que conta.
-       atividade: SPO.activity_by_person_month(tenant)
+       #
+       # E FILTRA PELO ALCANCE — achado H2, 2026-09-09.
+       #
+       # Esta tabela é um **ranking de atividade por pessoa nomeada**, ordenado por total
+       # decrescente, com os meses de cada uma. É a mesma classe de leitura que
+       # `/work/verifications/people` — e a decisão da pessoa mantenedora em 2026-09-09
+       # vale por igual: *"quem tem o escopo de team, organization e admin podem ver; e a
+       # pessoa vê o seu"*.
+       #
+       # **A lacuna dos não classificados NÃO é filtrada**, e é deliberado: aqueles logins
+       # são de automação, aplicação ou de quem a plataforma nunca coletou como pessoa —
+       # não há pessoa a alcançar, e esconder o tamanho da lacuna faria a soma parecer
+       # completa, que é o que aquele bloco existe para impedir.
+       atividade:
+         so_alcancadas(
+           SPO.activity_by_person_month(tenant),
+           alcance
+         ),
+       # A tela precisa saber que FILTROU, e não só o resultado filtrado — senão quem vê
+       # menos linhas conclui que o dado sumiu.
+       alcance_parcial?: alcance != :todas
      )}
   end
 
@@ -138,6 +160,22 @@ defmodule TheBandWeb.ProcessLive.Index do
           <p :if={@atividade.pessoas == []} class="text-sm opacity-70">
             No activity collected yet. This is absence, not zero.
           </p>
+
+          <%!-- A LISTA ESTÁ FILTRADA, E A TELA DIZ QUE ESTÁ — decisão da pessoa
+                mantenedora em 2026-09-09. Quem ontem via todas as pessoas e hoje vê parte
+                delas concluiria que o dado sumiu, ou que a coleta falhou.
+
+                Não diz quantas ficaram de fora: o número seria uma medida sobre pessoas
+                que quem lê não alcança. --%>
+          <div :if={@alcance_parcial?} class="alert alert-info mb-3 block text-sm">
+            <p>
+              <strong>This table shows only the people you reach.</strong>
+              Since <strong>9 September 2026</strong>, activity by named person follows the
+              same rule as a person's panel — your own record, the people on your teams,
+              whoever you lead by declared role, an organization scope, or administering
+              this tenant.
+            </p>
+          </div>
 
           <table :if={@atividade.pessoas != []} class="table table-sm mt-1">
             <thead>
@@ -261,6 +299,15 @@ defmodule TheBandWeb.ProcessLive.Index do
   # Deliberadamente estreito. Um critério de similaridade acharia `Refinamento` parecido
   # com `Refinado` e a tela passaria a sugerir fusões erradas, que é pior que não sugerir:
   # sugestão errada custa a confiança de quem lê as certas.
+  # A MESMA forma do filtro de `/work/verifications/people`, e de propósito: duas telas
+  # que servem ranking por pessoa nomeada respondendo diferente é como a assimetria do H2
+  # nasceu.
+  defp so_alcancadas(atividade, :todas), do: atividade
+
+  defp so_alcancadas(atividade, {:algumas, ids}) do
+    %{atividade | pessoas: Enum.filter(atividade.pessoas, &MapSet.member?(ids, &1.person_id))}
+  end
+
   defp duplicados(estados) do
     estados
     |> Enum.group_by(&normalizar(&1.state))

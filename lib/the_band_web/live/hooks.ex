@@ -12,6 +12,7 @@ defmodule TheBandWeb.Live.Hooks do
   import Phoenix.LiveView
 
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
 
   # Sete dias de inatividade encerram a sessão (assumption da spec 045).
@@ -20,9 +21,25 @@ defmodule TheBandWeb.Live.Hooks do
   def on_mount(:current_scope, _params, session, socket) do
     with {:ok, user} <- buscar(session["user_id"]),
          :ok <- token_confere(user, session["session_token"]),
+         # A ORGANIZAÇÃO SUSPENSA DERRUBA O LIVEVIEW TAMBÉM — achado H3, parte A.
+         #
+         # O plug cobre a requisição HTTP; esta hook cobre o socket. Sem as duas, a
+         # suspensão valeria na navegação e não no LiveView já conectado — e é o
+         # LiveView que a plataforma inteira usa.
+         :ok <- organizacao_ativa(user),
+         # A conta desativada cai pelo mesmo caminho — H3, parte B. O plug cobre a
+         # requisição; esta hook cobre o socket, e a plataforma inteira é LiveView.
+         :ok <- conta_ativa(user),
          :ok <- dentro_da_validade(user) do
       case gate_de_senha(user, socket) do
         :ok ->
+          # OS CAMPOS DE OBSERVABILIDADE no socket — achado H4.
+          #
+          # O plug cobre a requisição HTTP; esta linha cobre o processo do LiveView, que é
+          # onde a plataforma passa a maior parte do tempo. Sem ela, toda linha de log
+          # emitida durante uma sessão de LiveView sairia sem dizer de quem era.
+          Logger.metadata(user_id: user.id, tenant_id: user.tenant_id)
+
           {:cont,
            socket
            |> assign(:current_user, user)
@@ -37,10 +54,25 @@ defmodule TheBandWeb.Live.Hooks do
           {:halt, redirect(socket, to: destino)}
       end
     else
-      # Sessão ausente, token girado (senha trocada em outro navegador — FR-015)
-      # ou validade vencida: o caminho é a entrada. O destino pretendido foi
-      # guardado pelo plug `salvar_destino` do roteador (FR-005).
-      _ -> {:halt, redirect(socket, to: "/sign-in")}
+      # Sessão ausente, token girado (senha trocada em outro navegador — FR-015),
+      # validade vencida, ou **organização suspensa** (H3, parte A): o caminho é a
+      # entrada. O destino pretendido foi guardado pelo plug `salvar_destino` do
+      # roteador (FR-005).
+      #
+      # Os quatro caem no mesmo lugar de propósito: a tela não diz qual dos quatro
+      # aconteceu, e quem foi devolvido à entrada não recebe informação sobre o estado
+      # da conta nem da organização.
+      # O MOTIVO REGISTRADO — achado H4. Os quatro caem no mesmo destino na tela, de
+      # propósito; no log se distinguem, porque é onde a distinção serve a quem
+      # reconstrói um incidente.
+      motivo ->
+        AccessEvents.sessao_derrubada(
+          session["user_id"],
+          nil,
+          if(is_atom(motivo), do: motivo, else: :sem_sessao)
+        )
+
+        {:halt, redirect(socket, to: "/sign-in")}
     end
   end
 
@@ -109,6 +141,13 @@ defmodule TheBandWeb.Live.Hooks do
        do: :ok
 
   defp token_confere(_, _), do: :token_girado
+
+  # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.
+  defp conta_ativa(%User{disabled_at: nil}), do: :ok
+  defp conta_ativa(_), do: :conta_desativada
+
+  defp organizacao_ativa(%User{tenant: %{status: "active"}}), do: :ok
+  defp organizacao_ativa(_), do: :organizacao_suspensa
 
   defp dentro_da_validade(%User{logged_in_at: nil}), do: :ok
 

@@ -5,7 +5,7 @@
 # https://theband.dev com um `index.html` de 53 KB e um `CNAME`. `mkdocs gh-deploy`
 # APAGA a branch inteira — a landing page e o domínio junto.
 #
-# Por isso o site é publicado em `theband.dev/docs/` por um workflow que preserva
+# Por isso o site é publicado em `theband.dev/developers/` por um workflow que preserva
 # o que já existe na raiz. Ver `.github/workflows/docs.yml`, e nunca rodar
 # `mkdocs gh-deploy` neste repositório.
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -14,7 +14,7 @@ site_name: The Band — Documentação
 site_description: >-
   Integração semântica de dados de Engenharia de Software: coleta das ferramentas,
   harmonização contra ontologias de referência, proveniência preservada.
-site_url: https://theband.dev/docs/
+site_url: https://theband.dev/developers/
 repo_url: https://github.com/The-Band-Solution/theband
 repo_name: The-Band-Solution/theband
 edit_uri: edit/development/docs/
@@ -157,8 +157,17 @@ nav:
       - v0.2.0: releases/v0.2.0.md
       - v0.1.0: releases/v0.1.0.md
 
+  - Segurança:
+      - O que consertar agora: seguranca/2026-09-09-o-que-consertar-agora.md
+      - A API com token: seguranca/2026-09-09-api-com-token.md
+      - Decimal com expoente ilimitado: seguranca/2026-09-08-decimal-expoente-ilimitado.md
+
   - Backlog:
       - Visão geral: backlog/README.md
+      - A conta desativada: backlog/conta-desativada.md
+      - A versão em produção na página: backlog/a-versao-em-producao-na-pagina.md
+      - O backup restaurado de verdade: backlog/backup-restaurado-de-verdade.md
+      - A API pública com token: backlog/api-publica.md
       - Burn da pessoa sem linha de base: backlog/burn-da-pessoa-sem-linha-de-base.md
       - Crud entities: backlog/crud-entities.md
       - Decisoes pendentes: backlog/decisoes-pendentes.md
@@ -172,7 +181,7 @@ nav:
       - Tooling library: backlog/tooling-library.md
 
   - Sprints:
-      - Retomar — estado atual: sprints/RETOMAR.md
+      - Retomar — onde vive o estado: sprints/RETOMAR.md
       - Lições aprendidas: sprints/licoes-aprendidas.md
       - Por sprint:
           - 001 — Fundacao e coleta eo:

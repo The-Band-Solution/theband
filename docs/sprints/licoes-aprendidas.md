@@ -11,7 +11,7 @@ mesmos erros — e é o erro repetido que custa mais caro, porque já era conhec
 
 ## Como usar este registro
 
-São **99 lições** em 28 sprints. Ninguém lê noventa e nove blocos ao abrir um
+São **101 lições** em 29 sprints. Ninguém lê cento e uma ao abrir um
 sprint — e foi por não serem lidos que a **L92** reincidiu com a L75 e a L83 já
 escritas, e a **L95** reincidiu no sprint seguinte ao que a criou.
 
@@ -3646,3 +3646,49 @@ dia, e por isso as duas apontam para a mesma medida.
 
 **Aplicada em**: Sprint 029 — a T014 ficou fora da v0.4.0, e a #700 fechada
 enquanto a produção não a tem.
+
+---
+
+## L102 — `git add -A` numa árvore compartilhada por agentes commita o trabalho dos outros
+
+**Tipo**: processo · **Origem**: 2026-09-09 · **Estado**: aberta
+
+**O que aconteceu.** O commit `5d02075` dizia mudar três arquivos — o workflow do
+MkDocs, o `mkdocs.yml` e o `docs/README.md` — e mudou seis. Levou consigo **1.450
+linhas de dois outros papéis** que trabalhavam na mesma árvore ao mesmo tempo:
+
+| arquivo | linhas | de quem |
+|---|---:|---|
+| `docs/seguranca/2026-09-09-api-com-token.md` | +1 220 | Security, em curso |
+| `docs/releases/v0.6.0.md` | +230 | Product Owner, em curso |
+| `deps` | −1 | remoção de um link simbólico, decisão à parte |
+
+O corpo do PR descrevia os três. **Quem revisasse pelo corpo aprovaria 1.450 linhas
+que ninguém apresentou** — e o papel Security relatou depois que o documento dele foi
+arrastado para um commit alheio e, quando esse commit foi desfeito, **apagado do disco
+e do histórico**. Recuperou de cópia própria.
+
+**Por que aconteceu.** `git add -A` encena tudo o que mudou na árvore, e a árvore não
+é minha sozinho quando há subagentes em paralelo. O comando não distingue trabalho meu
+de trabalho de outro papel — e não existe aviso: o `git status` mostra os arquivos, e
+quem já sabe o que fez não os lê.
+
+Nenhum gate pega. A suíte passa, o Credo passa, o formato passa — o PR está
+**tecnicamente correto e materialmente desonesto**.
+
+**O que fazer diferente.**
+
+1. **Caminhos explícitos no `git add`**, sempre que houver agente em paralelo:
+   `git add lib/x.ex test/x_test.exs`. Nunca `-A`, nunca `.`;
+2. **Conferir `git show --stat` antes de empurrar**, e comparar com o que o corpo do
+   PR promete. Um arquivo a mais é sinal, não detalhe;
+3. **Quem delega a subagente que escreve na árvore assume o risco de colisão** — e a
+   forma de o eliminar é dar worktree próprio a cada um, não confiar na disciplina do
+   `add`.
+
+**A relação com a L95.** Revisão independente pegaria isto, e não havia. Mas a lição
+não é "peça revisão": é que **o commit deve dizer a verdade sobre si mesmo antes de
+alguém o revisar**, porque a revisão pelo corpo do PR é a que de facto acontece.
+
+**Aplicada em**: 2026-09-09 — o commit foi refeito com os três arquivos, e a remoção
+do link simbólico virou PR próprio (#836), com a razão escrita.

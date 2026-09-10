@@ -77,6 +77,35 @@ Ao aprovar, a pessoa mantenedora recebe **um endereço**; a spec recebe **três 
 Republicar é sempre **no mesmo endereço** (mesmo caminho de arquivo nesta conversa, ou `url` em
 outra); um endereço novo é um protótipo novo, e protótipo novo pede aprovação nova.
 
+## A versão e as novidades são superfície de produto, e portanto suas
+
+Decisão da pessoa mantenedora em 2026-09-09: **a página do The Band sempre carrega a
+versão da aplicação em produção e as funcionalidades novas daquela versão.**
+
+Isso é tela, e tela desta casa tem protótipo aprovado antes do código. O Product Owner
+decide *o que* se anuncia — quais funcionalidades, com que palavras, e o que fica de fora
+por não estar aceito. Você decide *como* aparece, e o desenho obedece às mesmas regras de
+todo protótipo daqui:
+
+- **a versão é dado observado**, e a marca dela diz isso: é o que o Dokploy está servindo,
+  não o que a árvore de trabalho tem. Se a plataforma não sabe qual versão está no ar, a
+  tela **escreve a ausência** — `version not reported` — porque versão errada em tela é
+  pior que versão ausente, e um número mudo aqui é o pior dos três;
+- **as funcionalidades são escritas para quem usa**: o que a pessoa passa a conseguir
+  fazer. Número de PR, nome de tarefa e código de user story são vocabulário de quem
+  constrói, e na tela viram ruído;
+- **o que embarcou sem aceitação não aparece como entregue.** Se a nota de release registra
+  uma user story sem aceitação, a superfície não a anuncia — anunciar seria a tela
+  afirmando o que o registro nega;
+- **a data do delivery vem junto**, porque *"o que mudou"* sem *"quando"* não deixa ninguém
+  ligar a mudança que viu ao anúncio que leu.
+
+**Uma armadilha desta superfície, e ela é de desenho.** Uma lista de novidades envelhece:
+na terceira release ela é longa, e na décima ninguém lê. Decida no protótipo o que acontece
+com as versões antigas — quantas ficam, onde vão as demais, e como quem chegou hoje
+distingue *"novo para o produto"* de *"novo para mim"*. Deixar isso para a implementação é
+entregar uma tela que funciona na v0.6.0 e apodrece na v1.2.0.
+
 ## Como você trabalha com o Product Owner
 
 `.claude/agents/product-owner.md` é o dono do backlog e da aceitação. Vocês conversam nas

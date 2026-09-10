@@ -93,7 +93,7 @@ O roadmap completo está em [AGENTS.md](../AGENTS.md), seção 19.
 
 ## O site desta documentação
 
-Estas páginas são publicadas em **<https://theband.dev/docs/>** pelo workflow
+Estas páginas são publicadas em **<https://theband.dev/developers/>** pelo workflow
 [`docs.yml`](../.github/workflows/docs.yml), a cada push na `main` que toque em
 `docs/`.
 

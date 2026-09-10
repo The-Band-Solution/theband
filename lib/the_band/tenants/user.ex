@@ -61,6 +61,19 @@ defmodule TheBand.Tenants.User do
     field :person_revoked_by_user_id, :binary_id
     field :person_revoked_at, :utc_datetime
 
+    # A CONTA DESATIVADA — achado H3, parte B, 2026-09-09.
+    #
+    # **Marca, e nunca `delete`**, na forma de `ScopeGrant.revoke_changeset/2`: apagar a
+    # linha apagaria o registro de que a conta existiu, e é exactamente o que um
+    # incidente de acesso precisa reconstruir (SC-005 da 045).
+    #
+    # **E não é `revogar_elo`.** Aquele significa *"não sabemos mais qual pessoa
+    # observada é esta conta"*; este significa *"esta conta não entra mais"*. Juntar as
+    # duas seria o erro que a FR-012f já separou — e o H3 mediu que revogar o elo **não
+    # remove acesso**, o que torna a distinção prática e não teórica.
+    field :disabled_at, :utc_datetime
+    field :disabled_by_user_id, :binary_id
+
     belongs_to :tenant, TheBand.Tenants.Tenant
 
     timestamps(type: :utc_datetime)
@@ -94,6 +107,41 @@ defmodule TheBand.Tenants.User do
     |> validate_required([:person_id, :person_declared_by_user_id, :person_declared_at])
     |> unique_constraint(:person_id, name: :users_pessoa_observada_vigente_index)
   end
+
+  @doc """
+  Desativa a conta — marca com autoria e data, e **gira o token de sessão**.
+
+  O giro é o que faz a desativação valer **agora**: sem ele, a sessão aberta continuaria
+  servindo até expirar por inatividade, e "desativar" significaria "desativar daqui a
+  sete dias". É o mesmo mecanismo que `senha_changeset/3` usa, e pela mesma razão.
+  """
+  @spec desativar_changeset(t(), Ecto.UUID.t()) :: Ecto.Changeset.t()
+  def desativar_changeset(user, actor_id) do
+    change(user,
+      disabled_at: DateTime.utc_now(:second),
+      disabled_by_user_id: actor_id,
+      session_token: novo_token()
+    )
+  end
+
+  @doc """
+  Reativa a conta — limpa a marca, e **não devolve a senha**.
+
+  Reativar é dizer *"esta conta entra de novo"*, e não *"esta conta lembra a senha"*. Se
+  a desativação foi feita junto de um reinício de senha — o caminho que o
+  `docs/producao/desligar-alguem.md` descrevia antes desta coluna existir —, a senha
+  continua sendo a temporária que ninguém entregou, e quem administra precisa reiniciar
+  de novo. Fazer as duas coisas num ato só juntaria decisões diferentes.
+  """
+  @spec reativar_changeset(t()) :: Ecto.Changeset.t()
+  def reativar_changeset(user) do
+    change(user, disabled_at: nil, disabled_by_user_id: nil)
+  end
+
+  @doc "A conta está ativa? — `disabled_at` nulo, na forma de `ScopeGrant.vigente?/1`."
+  @spec ativa?(t()) :: boolean()
+  def ativa?(%__MODULE__{disabled_at: nil}), do: true
+  def ativa?(_), do: false
 
   @doc "O elo está vigente? Declarado e não revogado — as duas coisas, e não só a primeira."
   @spec elo_vigente?(t()) :: boolean()

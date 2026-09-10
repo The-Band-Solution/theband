@@ -61,6 +61,7 @@ defmodule TheBandWeb.VerificationLive.People do
   """
   use TheBandWeb, :live_view
 
+  alias TheBand.Tenants
   alias TheBand.Verification
 
   # Abaixo disto a tela mostra contagem e omite a taxa. Dez é o mínimo em que uma porcentagem
@@ -72,14 +73,49 @@ defmodule TheBandWeb.VerificationLive.People do
   def mount(_params, _session, socket) do
     tenant = socket.assigns.current_tenant
 
+    # O ALCANCE, e ele não existia aqui — achado H2, 2026-09-09.
+    #
+    # Esta tela é um RANKING NOMINAL de quem integrou com a verificação vermelha, e
+    # filtrava só por tenant: qualquer conta autenticada lia a lista inteira, com login
+    # de cada pessoa. Decisão da pessoa mantenedora em 2026-09-09 — *"quem tem o escopo
+    # de team, organization e admin podem ver; e a pessoa vê o seu"*.
+    #
+    # **Filtra, não fecha**: quem alcança parte das pessoas vê essa parte. Fechar a
+    # página inteira faria quem tem escopo de uma equipe perder a leitura da própria
+    # equipe, e a decisão não diz isso.
+    #
+    # E o alcance vem de UMA chamada, não de uma por linha: `pessoas_alcancadas/2`
+    # devolve o conjunto em três consultas. Perguntar `pode_ver/3` por pessoa aqui
+    # seria a L38, com a lista inteira do tenant como multiplicador.
+    alcance = Tenants.pessoas_alcancadas(tenant, socket.assigns.current_user)
+
     {:ok,
      socket
      |> assign(page_title: "Who merged red")
      |> assign(minimo_para_taxa: @minimo_para_taxa)
      |> assign(papel: "author")
+     |> assign(alcance_parcial?: alcance != :todas)
      |> assign(cobertura: Verification.cobertura_pela_ponta(tenant))
-     |> assign(autores: Verification.red_by_person(tenant))
-     |> assign(integradores: Verification.red_by_integrator(tenant))}
+     |> assign(autores: so_alcancadas(Verification.red_by_person(tenant), alcance))
+     |> assign(integradores: so_alcancadas(Verification.red_by_integrator(tenant), alcance))}
+  end
+
+  # O FILTRO É POR `person_id`, e a consulta garante que ele existe.
+  #
+  # `por_participacao/2` já exige `not is_nil(field(c, ^campo_id))` no `where` e devolve
+  # `person_id` no select — então a cláusula do `nil` abaixo não dispara hoje. Ela fica
+  # por uma razão: se aquela consulta algum dia passar a trazer linha sem pessoa ligada,
+  # o padrão seguro é **não mostrar**. Vazar identidade por falta de vínculo seria o pior
+  # jeito de essa mudança acontecer — em silêncio, e a favor de mostrar.
+  defp so_alcancadas(linhas, :todas), do: linhas
+
+  defp so_alcancadas(linhas, {:algumas, ids}) do
+    Enum.filter(linhas, fn linha ->
+      case Map.get(linha, :person_id) do
+        nil -> false
+        id -> MapSet.member?(ids, id)
+      end
+    end)
   end
 
   @impl true
@@ -107,6 +143,24 @@ defmodule TheBandWeb.VerificationLive.People do
           integration run — the maxim <span class="font-mono">ci.ap03</span>
         </:subtitle>
       </.header>
+
+      <%!-- A LISTA ESTÁ FILTRADA, E A TELA DIZ QUE ESTÁ — decisão da pessoa mantenedora em
+            2026-09-09, sobre o custo que o Product Owner nomeou: quem ontem via a lista
+            inteira e hoje vê parte dela concluiria que o dado sumiu, ou que a coleta
+            falhou.
+
+            **Não diz quantas linhas ficaram de fora**, e isso é deliberado: o número seria
+            uma medida sobre pessoas que quem lê não alcança. Diz que há filtro, e qual é a
+            regra — o suficiente para não confundir recorte com ausência. --%>
+      <div :if={@alcance_parcial?} class="alert alert-info block text-sm">
+        <p>
+          <strong>This list shows only the people you reach.</strong>
+          Since <strong>9 September 2026</strong>, a named ranking follows the same rule as
+          a person's panel: your own record, the people on your teams, whoever you lead by
+          declared role, an organization scope, or administering this tenant. What you see
+          is a slice, not the whole.
+        </p>
+      </div>
 
       <%!-- A RESSALVA VEM ANTES DA TABELA, e não em nota de pé. Quem lê a tabela primeiro já
             formou juízo; quem lê isto primeiro sabe o que a tabela não diz. --%>

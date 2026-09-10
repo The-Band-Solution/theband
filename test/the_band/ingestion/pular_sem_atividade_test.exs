@@ -38,11 +38,73 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
     %{tenant: tenant, tool: ferramenta(tenant)}
   end
 
-  describe "a decisão" do
-    test "sem push desde a revisão E já percorrido com esta consulta, não percorre" do
-      assert {:nao, :sem_push_desde_a_revisao} =
+  describe "o caso que o corte errava, e que nenhum teste cobria" do
+    # ESTE É O TESTE QUE FALTAVA, e a ausência dele é a razão de o defeito ter durado.
+    #
+    # O corte comparava com `pushedAt` — o último **push de código** — sob a premissa
+    # escrita de que *"se ninguém empurrou nada desde que a plataforma leu, nada pode ter
+    # mudado"*. A premissa é falsa: **atividade de issue não é push**.
+    #
+    # Medido em 2026-09-09 contra a API: `plataformas-project` tinha push de **21 de
+    # julho** e uma issue **fechada no dia da medição**. O repositório era pulado desde
+    # julho, e as **712** issues dele estavam congeladas no último estado lido.
+    #
+    # A pessoa mantenedora achou por dois casos: uma issue **apagada** que a tela mostrava
+    # aberta, e uma **fechada** que a tela mostrava aberta. Um mecanismo, dois sintomas.
+    test "issue mexida sem push nenhum: PERCORRE" do
+      assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 # O repositório de quadro: ninguém empurra código, e as issues andam.
+                 %{last_issue_activity_at: ~U[2026-09-09 17:53:00Z]},
+                 %{
+                   issues_collected_at: ~U[2026-09-07 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues")}
+                 }
+               ),
+             """
+             Este é o caso do achado: atividade de issue posterior à última revisão, e o
+             repositório TEM de ser percorrido.
+
+             Com o corte antigo — que lia `pushedAt` — este caso respondia
+             `{:nao, :sem_push_desde_a_revisao}` e a issue fechada nunca era relida.
+             """
+    end
+
+    # E O PAR, que impede o conserto de virar "percorre sempre": a economia tem de
+    # continuar existindo. Medido em 2026-08-14: 106 dos 121 repositórios da organização
+    # não precisavam ser lidos.
+    test "sem atividade de issue nenhuma desde a revisão: continua pulando" do
+      assert {:nao, :sem_atividade_de_issue_desde_a_revisao} =
+               GithubWorkItems.percorrer?(
+                 %{last_issue_activity_at: ~U[2026-07-01 00:00:00Z]},
+                 %{
+                   issues_collected_at: ~U[2026-09-07 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues")}
+                 }
+               ),
+             """
+             Sem este par, o conserto poderia ter removido o corte inteiro — e a
+             plataforma voltaria a gastar 121 consultas por coleta, com a suíte verde.
+             """
+    end
+
+    test "repositório sem issue nenhuma percorre — ausência de data não é ausência de mudança" do
+      assert :sim =
+               GithubWorkItems.percorrer?(
+                 %{last_issue_activity_at: nil},
+                 %{
+                   issues_collected_at: ~U[2026-09-07 00:00:00Z],
+                   query_versions: %{"issues" => QueryVersion.atual("issues")}
+                 }
+               )
+    end
+  end
+
+  describe "a decisão" do
+    test "sem ATIVIDADE DE ISSUE desde a revisão e já percorrido com esta consulta, não percorre" do
+      assert {:nao, :sem_atividade_de_issue_desde_a_revisao} =
+               GithubWorkItems.percorrer?(
+                 %{last_issue_activity_at: ~U[2026-05-01 00:00:00Z]},
                  %{
                    issues_collected_at: ~U[2026-08-01 00:00:00Z],
                    query_versions: %{"issues" => QueryVersion.atual("issues")}
@@ -54,10 +116,10 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
     # repositório"; a consulta que ganha um campo muda a pergunta para "já percorri COM
     # ESTA CONSULTA". Aqui o silêncio seria o pior dos três cortes, porque este pula o
     # repositório INTEIRO — e "sem push" é o estado normal da maioria.
-    test "sem push, mas a consulta ganhou campo: percorre uma vez", _ctx do
+    test "sem atividade, mas a consulta ganhou campo: percorre uma vez", _ctx do
       assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 %{last_issue_activity_at: ~U[2026-05-01 00:00:00Z]},
                  %{
                    issues_collected_at: ~U[2026-08-01 00:00:00Z],
                    query_versions: %{"issues" => QueryVersion.atual("issues") - 1}
@@ -68,7 +130,7 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
     test "repositório nunca marcado com versão nenhuma percorre", _ctx do
       assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 %{last_issue_activity_at: ~U[2026-05-01 00:00:00Z]},
                  %{issues_collected_at: ~U[2026-08-01 00:00:00Z], query_versions: %{}}
                ),
              """
@@ -80,10 +142,10 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
              """
     end
 
-    test "com push depois da revisão, percorre" do
+    test "com atividade de issue depois da revisão, percorre" do
       assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: ~U[2026-08-10 00:00:00Z]},
+                 %{last_issue_activity_at: ~U[2026-08-10 00:00:00Z]},
                  %{
                    issues_collected_at: ~U[2026-08-01 00:00:00Z],
                    query_versions: %{"issues" => QueryVersion.atual("issues")}
@@ -94,15 +156,15 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
     test "nunca revisto percorre" do
       assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: ~U[2026-05-01 00:00:00Z]},
+                 %{last_issue_activity_at: ~U[2026-05-01 00:00:00Z]},
                  %{issues_collected_at: nil}
                )
     end
 
-    test "sem data de push percorre", _ctx do
+    test "sem data de atividade percorre", _ctx do
       assert :sim =
                GithubWorkItems.percorrer?(
-                 %{last_pushed_at: nil},
+                 %{last_issue_activity_at: nil},
                  %{issues_collected_at: ~U[2026-08-01 00:00:00Z]}
                )
 
@@ -123,8 +185,14 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
       #
       # **A asserção é a função de resposta**: pedir issues aqui reprova o teste.
       responder(ctx, fn query ->
-        if String.contains?(query, "issues("),
-          do: flunk("a coleta pediu as issues de um repositório sem push desde a revisão"),
+        # `issues(first:`, e não `issues(`: a consulta de repositórios passou a conter
+        # `issues(last: 1, ...)` — o sinal do corte, acrescentado em 2026-09-09 —, e o
+        # guarda antigo disparava nela. O teste reprovava sem haver defeito.
+        if String.contains?(query, "issues(first:"),
+          do:
+            flunk(
+              "a coleta pediu as issues de um repositório sem atividade de issue desde a revisão"
+            ),
           else: :normal
       end)
 
@@ -142,7 +210,16 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
       %{"um" => antes} = observados(ctx.tenant)
 
       responder(ctx, fn query ->
-        if String.contains?(query, "issues("), do: flunk("pediu issues"), else: :normal
+        # O DISCRIMINADOR TEM DE SER PRECISO, e este quase mentiu.
+        #
+        # Era `"issues("`, e a consulta de **repositórios** passou a conter
+        # `issues(last: 1, ...)` — o sinal do corte, acrescentado em 2026-09-09. O guarda
+        # disparava na consulta de repositórios e o teste reprovava sem haver defeito.
+        #
+        # `issues(first:` é o marcador da paginação de issues, e não aparece na outra.
+        if String.contains?(query, "issues(first:"),
+          do: flunk("pediu issues"),
+          else: :normal
       end)
 
       _segunda = coletar(ctx)
@@ -164,7 +241,7 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
       """
     end
 
-    test "volta a percorrer quando a origem recebe push", ctx do
+    test "volta a percorrer quando a origem recebe atividade de issue", ctx do
       responder(ctx, fn _query -> :normal end)
       _primeira = coletar(ctx)
 
@@ -177,7 +254,7 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
 
       responder(ctx, fn query ->
         if String.contains?(query, "issues("), do: send(pai, :pediu_issues)
-        :com_push_novo
+        :com_atividade_nova
       end)
 
       _segunda = coletar(ctx)
@@ -223,14 +300,14 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
       data =
         case fun.(query) do
           :normal -> pagina(query, "2026-08-01T00:00:00Z")
-          :com_push_novo -> pagina(query, "2030-01-01T00:00:00Z")
+          :com_atividade_nova -> pagina(query, "2030-01-01T00:00:00Z")
         end
 
       {:ok, %{status: 200, body: %{"data" => Map.put(data, "rateLimit", @rate_limit)}}}
     end)
   end
 
-  defp pagina(query, pushed_at) do
+  defp pagina(query, atividade) do
     if String.contains?(query, "repositories(") do
       %{
         "organization" => %{
@@ -249,7 +326,13 @@ defmodule TheBand.Ingestion.PularSemAtividadeTest do
                 "defaultBranchRef" => %{"name" => "main"},
                 "archivedAt" => nil,
                 "createdAt" => "2026-01-01T00:00:00Z",
-                "pushedAt" => pushed_at
+                # O `pushedAt` continua vindo — ele responde a pergunta dele, e é gravado
+                # no repositório observado. O que mudou é o que o CORTE lê.
+                "pushedAt" => "2026-08-01T00:00:00Z",
+                # A ATIVIDADE DE ISSUE, que é o sinal do corte desde 2026-09-09. O duplo
+                # tem de devolvê-la, senão o corte lê `nil` e responde `:sim` sempre — e o
+                # teste do "não percorre" passaria a medir outra coisa.
+                "issues" => %{"nodes" => [%{"updatedAt" => atividade}]}
               }
             ]
           }

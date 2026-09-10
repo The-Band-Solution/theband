@@ -88,6 +88,18 @@ defmodule Mix.Tasks.Gates do
     # Este passo não substitui nem enfraquece o Sobelow: acrescenta a busca que ele não
     # faz.
     {"raw() fora dos templates", {:fun, :sem_raw_no_web}},
+    # A ÁRVORE NÃO CARREGA LINK SIMBÓLICO — achado H12, 2026-09-09.
+    #
+    # `deps` esteve commitada como link **absoluto apontando para si mesma**
+    # (`/Users/paulossjunior/projects/theband/deps`), e o dano medido foi maior que a
+    # estimativa: uma troca de branch entre uma que tem a entrada e uma que não tem faz o
+    # git tratar o caminho como o link que registrou, **apaga as dependências**, e o
+    # repositório fica não-construível. Aconteceu três vezes num único dia.
+    #
+    # E o CI não pegava: o passo de cache usa `path: deps`, e no Linux o caminho absoluto
+    # da outra máquina simplesmente não existe — a build passava dependendo de um caminho
+    # acidental. Verde por acidente é o pior estado de um gate.
+    {"sem link simbólico rastreado", {:fun, :sem_link_simbolico}},
     {"dialyzer", {:mix, ["dialyzer"]}},
     # Subprocesso, e não `Mix.Task.run`: `mix test` exige `MIX_ENV=test`, e mudar o
     # ambiente no meio de uma execução recompilaria tudo com as outras tasks já
@@ -216,6 +228,74 @@ defmodule Mix.Tasks.Gates do
       _ ->
         Enum.each(achados, &Mix.shell().error("   #{&1}: raw() desliga o escape do HEEx"))
         {:error, "raw() em #{length(achados)} lugar(es)"}
+    end
+  end
+
+  @doc """
+  Nenhum caminho rastreado é link simbólico — achado H12.
+
+  ## Por que é gate, e não uma nota no `.gitignore`
+
+  `deps/` **já estava** no `.gitignore` quando `deps` foi commitada como link. Ignorar
+  não desfaz o que já está rastreado, e a entrada sobreviveu à regra que devia
+  impedi-la. O que impede é conferir.
+
+  ## Por que o alvo é o modo, e não o conteúdo
+
+  O git guarda link simbólico com modo `120000`, e o **conteúdo do blob é o destino**.
+  Conferir o modo pega qualquer link, inclusive um que aponte para fora da árvore ou
+  para um caminho que existe hoje e não existirá amanhã — que é o caso que dói e o que
+  ninguém prevê.
+
+  Se algum dia um link legítimo for necessário, este gate é o lugar de declarar a
+  exceção **com o motivo escrito**, e não de ser desligado.
+  """
+  def sem_link_simbolico do
+    # `case` com o código no padrão, e não `if` sobre a variável: o Credo reprovou a
+    # primeira versão por aninhamento de profundidade 4, e ele estava certo — a lógica
+    # cabia em cláusulas, e cláusulas se leem sem contar níveis.
+    case System.cmd("git", ["ls-files", "-s"], stderr_to_stdout: true) do
+      {saida, 0} ->
+        avaliar_links(links_rastreados(saida))
+
+      # Sem esta cláusula, um `git` que falhasse devolveria saída vazia e o gate
+      # passaria dizendo que não há links — o sucesso silencioso dentro do gate que
+      # existe para pegá-lo.
+      {_saida, codigo} ->
+        {:error, "git ls-files falhou com código #{codigo}"}
+    end
+  end
+
+  # O alvo é o **modo** `120000`, e não o conteúdo: pega qualquer link, inclusive um que
+  # aponte para fora da árvore ou para um caminho que existe hoje e não amanhã — que é o
+  # caso que dói e o que ninguém prevê.
+  defp links_rastreados(saida) do
+    saida
+    |> String.split("\n", trim: true)
+    |> Enum.filter(&String.starts_with?(&1, "120000 "))
+    |> Enum.map(fn linha -> linha |> String.split("\t", parts: 2) |> List.last() end)
+  end
+
+  defp avaliar_links([]) do
+    Mix.shell().info("   nenhum link simbólico rastreado")
+    :ok
+  end
+
+  defp avaliar_links(links) do
+    Enum.each(links, &reportar_link/1)
+    {:error, "#{length(links)} link(s) simbólico(s) rastreado(s)"}
+  end
+
+  defp reportar_link(caminho) do
+    Mix.shell().error(
+      "   #{caminho} é link simbólico para #{destino_do_link(caminho)} — troca de branch apaga o caminho"
+    )
+  end
+
+  defp destino_do_link(caminho) do
+    case System.cmd("git", ["cat-file", "-p", ":#{caminho}"], stderr_to_stdout: true) do
+      {destino, 0} -> String.trim(destino)
+      _ -> "destino ilegível"
     end
   end
 

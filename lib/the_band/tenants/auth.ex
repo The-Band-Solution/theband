@@ -28,6 +28,7 @@ defmodule TheBand.Tenants.Auth do
 
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Repo
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -44,40 +45,114 @@ defmodule TheBand.Tenants.Auth do
       nil ->
         # O custo do hash roda mesmo sem conta — tempo constante.
         Bcrypt.no_user_verify()
-        {:error, :invalid_credentials}
+        recusar(nil, :identificador_nao_resolveu)
 
       %User{} = user ->
         verificar(user, senha)
     end
   end
 
+  # A RECUSA REGISTRADA COM O MOTIVO INTERNO — achado H4.
+  #
+  # Na resposta a recusa é **única** (FR-002): motivo distinto ali seria enumeração. Aqui
+  # o motivo é o que permite distinguir depois "senha errada" de "conta desativada" de
+  # "organização suspensa" — a pergunta de quem reconstrói um incidente.
+  #
+  # E a decisão continua no RETORNO: esta função devolve o mesmo `{:error, ...}` que
+  # devolvia, e só acrescenta o registro. É a L69 — defeito dentro de `Logger.info` é
+  # invisível a teste, então o log nunca é o único lugar onde algo é dito.
+  defp recusar(user, motivo) do
+    AccessEvents.entrada_recusada(user && user.id, user && user.tenant_id, motivo)
+    {:error, :invalid_credentials}
+  end
+
   defp verificar(%User{} = user, senha) do
     with :ok <- fora_da_janela(user) do
       cond do
+        # A ORGANIZAÇÃO SUSPENSA NÃO AUTENTICA — achado H3, parte A, 2026-09-09.
+        #
+        # `tenants.status` existia com `default: "active"`, era castável no changeset, e
+        # **nenhum código o lia**. Medido: marcar um tenant como `"suspended"` e
+        # autenticar — as duas coisas funcionavam, e as telas abriam. Era uma coluna que
+        # parecia um controle e não era: quem a marcasse acharia que suspendeu.
+        #
+        # Decisão da pessoa mantenedora em 2026-09-09: passa a ser lida.
+        #
+        # **A recusa é a mesma**, byte a byte. Um motivo novo aqui — "organização
+        # suspensa" — seria enumeração: diria a quem tenta que a conta existe e que o
+        # e-mail está certo. `auth.ex` tem um ponto único de recusa de propósito.
+        #
+        # **E o custo do hash roda igual**, como na cláusula da conta pré-feature abaixo.
+        # Recusar antes de gastar o tempo do Bcrypt criaria um oráculo de tempo que
+        # distingue "organização suspensa" de "senha errada".
+        #
+        # **Não registra falha**, e a diferença é deliberada: a credencial pode estar
+        # perfeitamente correta, e é a organização que está suspensa. Gravar tentativa
+        # falha aqui afirmaria algo falso sobre a senha, e deixaria a conta em espera
+        # crescente no dia em que a organização voltasse.
+        not organizacao_ativa?(user.tenant_id) ->
+          Bcrypt.no_user_verify()
+          recusar(user, :organizacao_suspensa)
+
+        # A CONTA DESATIVADA NÃO AUTENTICA — achado H3, parte B, 2026-09-09.
+        #
+        # Até esta coluna existir, o desligamento era **implícito**: quem administra
+        # reiniciava a senha e não entregava a temporária. Funcionava, e o H3 mostrou por
+        # que era frágil — não estava escrito em lugar nenhum, era indistinguível de um
+        # reinício legítimo no histórico, e **para de funcionar no dia em que existir
+        # token**, porque o token não é a senha.
+        #
+        # Mesma forma da cláusula acima: recusa idêntica, custo do hash pago, e **nenhuma
+        # tentativa falha registrada** — a credencial pode estar correta, e é a conta que
+        # está desativada.
+        not User.ativa?(user) ->
+          Bcrypt.no_user_verify()
+          recusar(user, :conta_desativada)
+
         is_nil(user.password_hash) ->
           # Conta pré-feature (FR-014): recusa idêntica; a tela orienta em texto
           # público, nunca na resposta do formulário.
           Bcrypt.no_user_verify()
           registrar_falha(user)
-          {:error, :invalid_credentials}
+          recusar(user, :conta_sem_senha)
 
         Bcrypt.verify_pass(senha, user.password_hash) ->
           {:ok, registrar_sucesso(user)}
 
         true ->
           registrar_falha(user)
-          {:error, :invalid_credentials}
+          recusar(user, :senha_errada)
       end
     end
   end
 
-  defp fora_da_janela(%User{failed_attempts: n, last_failed_at: em}) do
+  # Uma consulta, e só quando o identificador resolveu para uma conta. `resolver/1` não
+  # pré-carrega o tenant — e pré-carregá-lo mudaria o custo de toda tentativa,
+  # inclusive as que não resolvem, que é onde o tempo constante importa.
+  defp organizacao_ativa?(tenant_id) do
+    Repo.one(from t in Tenant, where: t.id == ^tenant_id, select: t.status) == "active"
+  end
+
+  defp fora_da_janela(%User{failed_attempts: n, last_failed_at: em} = user) do
     espera = espera_segundos(n)
 
     if espera > 0 and em != nil do
       liberacao = DateTime.add(em, espera, :second)
       restante = DateTime.diff(liberacao, DateTime.utc_now(:second), :second)
-      if restante > 0, do: {:error, {:throttled, restante}}, else: :ok
+
+      if restante > 0 do
+        # A ESPERA REGISTRADA — achado H4, e ela faltava.
+        #
+        # O `{:throttled, s}` morria no retorno: quem investiga uma campanha precisa saber
+        # que a espera crescente disparou, e quantas vezes. `AccessEvents.espera_acionada/3`
+        # existia escrita e **nunca era chamada** — recusa do papel Product Owner na
+        # avaliação da v0.7.0, e ela estava certa: função documentada e sem call site é
+        # pior que ausência, porque quem faz `grep` conclui que está registrado.
+        AccessEvents.espera_acionada(user.id, user.tenant_id, restante)
+        {:error, {:throttled, restante}}
+      else
+        :ok
+      end
     else
       :ok
     end
@@ -98,6 +173,16 @@ defmodule TheBand.Tenants.Auth do
   end
 
   defp registrar_sucesso(%User{} = user) do
+    # O RASTRO ANTES DE O APAGAR — achado H4, 2026-09-09.
+    #
+    # `failed_attempts` e `last_failed_at` eram o **único** rastro de tentativa falha, e
+    # são um contador de estado, não um histórico. Zerá-los no sucesso significava que
+    # **uma campanha de adivinhação que dá certo apagava a própria evidência**.
+    #
+    # Registrar quantas foram apagadas transforma o contador num rastro, sem tabela nova.
+    # Zero é o caso normal; número alto num sucesso é o sinal que não existia.
+    AccessEvents.entrada_aceita(user.id, user.tenant_id, user.failed_attempts)
+
     user
     |> Ecto.Changeset.change(
       failed_attempts: 0,

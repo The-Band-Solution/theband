@@ -6,7 +6,8 @@ defmodule TheBand.Tenants.AccessTest do
   ## As asserções que carregam este arquivo (violação primeiro — L03)
 
   1. **nada de outro tenant**, em scopes e em pode_ver;
-  2. **admin puro não vê painel** (FR-022) — mas gerencia;
+  2. **admin do próprio tenant vê painel** — FR-022 **emendada** em 2026-09-09 (achado
+     H6); administração de outro tenant continua sem ver nada;
   3. **derivado fecha com o fato**: vínculo encerrado e ligação desfeita somem;
   4. **a liderança declarada (#369) continua valendo** — FR-018, a regressão;
   5. **concessão exige admin e alvo existente**; revogar é marca com autor;
@@ -179,9 +180,35 @@ defmodule TheBand.Tenants.AccessTest do
   end
 
   describe "pode_ver/3 — o veredito" do
-    test "admin puro não vê painel (FR-022), com motivo de remédio certo", ctx do
+    test "admin do PRÓPRIO tenant vê painel — FR-022 emendada em 2026-09-09", ctx do
       p = pessoa(ctx, "ana")
-      assert {:nao, :sem_elo_declarado} = Tenants.pode_ver(ctx.tenant, ctx.admin, p.id)
+
+      assert {:ok, :admin} = Tenants.pode_ver(ctx.tenant, ctx.admin, p.id), """
+      Este teste asseria o CONTRÁRIO até 2026-09-09: `{:nao, :sem_elo_declarado}`, pela
+      FR-022 da spec 045 — *"ser administrador MUST NOT abrir painel nenhum por si"*.
+
+      A FR foi **emendada** pela pessoa mantenedora, sobre o achado H6, e a razão não é
+      conveniência: a regra original **já não valia**. `pode_ver_equipe/3` concedia ao
+      admin explicitamente, e o booleano dela libera a quebra por pessoa nomeada na tela
+      da equipe — login, itens abertos e mediana de cada pessoa. Administração já lia
+      pessoa nomeada pela porta da equipe, enquanto esta função a recusava.
+
+      A plataforma afirmava um regime que não aplicava, o que é pior que qualquer dos
+      dois regimes: quem lia a recusa concluía que o dado estava protegido.
+      """
+    end
+
+    test "e administração de OUTRO tenant não vê nada — o que sobrou da FR-022", ctx do
+      p = pessoa(ctx, "ana")
+
+      outro = tenant_fixture()
+      admin_de_fora = user_fixture(outro)
+
+      assert {:nao, _motivo} = Tenants.pode_ver(ctx.tenant, admin_de_fora, p.id), """
+      A emenda concede ao admin **do próprio tenant**. Sem esta asserção, a cláusula
+      poderia ter sido escrita sem `user.tenant_id == tenant.id` e o isolamento por
+      tenant — princípio V — cairia junto com a FR-022.
+      """
     end
 
     test "piso: a própria pessoa; colega sem escopo: fora dos escopos", ctx do
@@ -224,6 +251,56 @@ defmodule TheBand.Tenants.AccessTest do
         Tenants.grant_scope(ctx.tenant, diretora.id, :organization, ctx.org.id, ctx.admin)
 
       assert {:ok, :escopo_da_organizacao} = Tenants.pode_ver(ctx.tenant, diretora, bia.id)
+    end
+
+    test "escopo de PROJETO não abre painel de pessoa — decisão de 2026-09-09", ctx do
+      time = equipe(ctx, "Plataforma")
+      dev = papel(ctx, "developer", "Developer Role")
+      bia = pessoa(ctx, "bia")
+      aloca(ctx, bia, time, dev)
+
+      projeto = projeto_ligado(ctx, time, "Conecta")
+
+      de_projeto = user_fixture(ctx.tenant, "member")
+      {:ok, _} = Tenants.grant_scope(ctx.tenant, de_projeto.id, :project, projeto.id, ctx.admin)
+
+      # A GUARDA: a concessão foi de facto feita, e alcança o projeto. Sem isto, o
+      # `refute` abaixo passaria por não haver escopo nenhum.
+      assert Enum.any?(Tenants.scopes(ctx.tenant, de_projeto), &(&1.level == :project)), """
+      A conta tem de ter escopo de projeto vigente. Se a concessão não pegou, este teste
+      mediria uma conta sem escopo — e a recusa seria por outra razão.
+      """
+
+      assert {:nao, _motivo} = Tenants.pode_ver(ctx.tenant, de_projeto, bia.id), """
+      Escopo de projeto NÃO abre painel de pessoa. A razão já estava escrita em
+      `pode_ver_equipe/3`, que recusa este mesmo escopo: *"ele nomeia um projeto, e uma
+      equipe pode trabalhar em vários; deixá-lo passar faria autoridade subir de lado"*.
+
+      Aqui valia mais: quem tinha escopo de UM projeto alcançava o painel **completo** de
+      qualquer pessoa cuja equipe tocasse aquele projeto — incluindo o trabalho dela em
+      **outros** projetos, que aquele escopo não nomeia.
+
+      Este caminho existia **sem teste nenhum** até 2026-09-09. Este é o teste que o
+      guarda fechado.
+      """
+    end
+
+    test "e o escopo de projeto continua existindo em scopes/2 — o par", ctx do
+      time = equipe(ctx, "Plataforma")
+      projeto = projeto_ligado(ctx, time, "Conecta")
+
+      de_projeto = user_fixture(ctx.tenant, "member")
+      {:ok, _} = Tenants.grant_scope(ctx.tenant, de_projeto.id, :project, projeto.id, ctx.admin)
+
+      escopos = Tenants.scopes(ctx.tenant, de_projeto)
+
+      assert Enum.any?(escopos, &(&1.level == :project and &1.target_id == projeto.id)), """
+      O conserto fecha o painel de PESSOA para escopo de projeto, e **não** remove o
+      escopo de projeto. Ele continua servindo o que nomeia: o trabalho daquele projeto.
+
+      Sem este par, a correção poderia ter apagado o escopo inteiro e a suíte ficaria
+      verde afirmando segurança onde havia uma concessão inútil.
+      """
     end
 
     test "organization alcança quem a organização OBSERVA, mesmo sem vínculo promovido", ctx do

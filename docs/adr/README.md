@@ -17,6 +17,7 @@ revisitada com a informação que existia quando foi tomada.
 | [0006](0006-coleta-paralela.md) | Coleta paralela: concorrência por repositório, contador atômico antes, e o rate limit que hiberna sem dormir | **Proposta** |
 | [0007](0007-gestor-de-cotas.md) | Gestor de cotas: a cota é do usuário do GitHub, um processo a governa, e a coleta volta de onde parou | Aceita |
 | [0008](0008-vinculo-observado.md) | O vínculo observado: a participação que a ferramenta mostra conta como membro, e o papel é o que se declara | Aceita |
+| [0009](0009-api-publica-com-token.md) | A API pública: o token identifica quem, e o veredito continua sendo um só | **Proposta** |
 
 ## Quando escrever uma ADR
 

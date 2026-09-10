@@ -100,7 +100,9 @@ nenhum escopo subtrai outro.
   a organização como alvo — nunca derivado. É o "dono da organização" no vocabulário
   da plataforma.
 - **administrador** sai do eixo da visão: é quem **mexe** — contas, concessões,
-  ferramentas, credenciais. Ser administrador não abre painel nenhum; quem administra
+  ferramentas, credenciais. ~~Ser administrador não abre painel nenhum~~ — **a FR-022 foi
+  emendada em 2026-09-09**, e administração do próprio tenant passou a abrir painel de
+  pessoa; ver a emenda. Quem administra
   e também precisa ver recebe organization por concessão, como qualquer conta.
 
 A tela de gestão mostra, por conta, todos os escopos vigentes — derivados com hachura
@@ -281,10 +283,37 @@ e senha, sair, e entrar de novo com a senha nova.
 - **FR-021**: Escopo derivado MUST NOT ser concedido nem revogado à mão — a tela de
   gestão o exibe, nomeia a origem, e não oferece revogação; o caminho para fechá-lo é
   o fato (fim do vínculo ou da alocação) ou a revogação do elo.
-- **FR-022**: Ser administrador MUST NOT abrir painel nenhum por si — administrar é
-  mexer, ver é escopo. Quem administra e precisa ver recebe concessão como qualquer
-  conta. Isto revê a decisão de 2026-08-27 ("admin da plataforma vê tudo"), que
-  existia por falta do vocabulário que organization agora dá.
+- **FR-022**: ~~Ser administrador MUST NOT abrir painel nenhum por si~~ — **EMENDADA em
+  2026-09-09**. Ver a emenda abaixo.
+
+  O texto original: *"administrar é mexer, ver é escopo. Quem administra e precisa ver
+  recebe concessão como qualquer conta. Isto revê a decisão de 2026-08-27 ('admin da
+  plataforma vê tudo'), que existia por falta do vocabulário que organization agora
+  dá."*
+
+- **FR-022 (emenda de 2026-09-09)**: Ser administrador **do próprio tenant** MUST abrir
+  painel de pessoa. Decisão da pessoa mantenedora, sobre o achado **H6** da avaliação de
+  segurança do mesmo dia.
+
+  **A razão não é conveniência: é que a regra original já não valia, e a plataforma
+  afirmava que valia.** `Access.pode_ver_equipe/3` concedia ao admin explicitamente, e o
+  booleano que ela produz libera a **quebra por pessoa nomeada** na tela da equipe —
+  login, itens abertos e mediana individual de cada pessoa. Administração já lia pessoa
+  nomeada pela porta da equipe, enquanto a tela da pessoa a recusava com a frase *"being
+  an administrator manages the platform, it does not open panels"*.
+
+  A frase era falsa, e não por um furo: o mesmo dado saía pela porta ao lado, por
+  decisão explícita do outro veredito. **Uma plataforma que afirma um regime que não
+  aplica é pior que qualquer dos dois regimes** — quem lê a recusa conclui que o dado
+  está protegido, e ele não está.
+
+  As duas saídas foram medidas e apresentadas: conceder ao admin em `pode_ver/3` (emendar
+  esta FR), ou retirar a cláusula de `pode_ver_equipe/3` — o que faria administração
+  perder a quebra por pessoa que hoje usa. A pessoa mantenedora escolheu a primeira.
+
+  **O que continua valendo da FR-022 original**: administrar outro tenant não abre nada
+  (`user.tenant_id == tenant.id` é parte da cláusula), e a **FR-023** segue intacta — ver
+  não exige administrar, e escopo continua sendo o caminho de quem não administra.
 - **FR-023**: As telas operacionais — Syncs, Tools, AI — MUST exigir marca de
   administrador ou concessão organization vigente: administrador alcança tudo no
   tenant; organization alcança o que pertence à organização-alvo. Conta fora dessas
@@ -295,6 +324,75 @@ e senha, sair, e entrar de novo com a senha nova.
   como escrito — a chave do provedor continua UMA por tenant, e quem responde por
   organização a opera; o recorte de organização vale para Syncs/Tools (ferramentas e
   coletas têm dono), não para a chave, que é indivisível.*
+
+- **FR-024**: O veredito de acesso a dado de pessoa nomeada MUST cobrir **agregado sobre
+  a pessoa**, e MUST NOT cobrir **atribuição no item** nem o **diretório de pessoas**.
+  Decisão da pessoa mantenedora em 2026-09-09, sobre o achado **H2** e o inventário
+  medido em [`docs/seguranca/2026-09-09-inventario-do-h2.md`](../../docs/seguranca/2026-09-09-inventario-do-h2.md).
+
+  **As três naturezas, e o que cada uma decide:**
+
+  | natureza | exemplo | segue o veredito? |
+  |---|---|---|
+  | **agregado** sobre a pessoa | ranking de quem integrou vermelho; contagem de eventos por pessoa; mediana individual | **sim** |
+  | **atribuição** no item | quem abriu a issue, quem revisou a solicitação, quem tocou o arquivo | **não** |
+  | **diretório** de pessoas | nome e `@login` de quem está na organização | **não** |
+
+  **A razão da atribuição**: a autoria é parte do trabalho, e não uma medida sobre a
+  pessoa — issue sem quem a abriu não se lê, e solicitação sem revisor não se avalia.
+  Quem alcança o item já vê o trabalho.
+
+  **A razão do diretório**: um tenant é uma organização, e quem está dentro saber quem
+  mais está é o que uma lista de ramais faz. O diretório afirma que a pessoa **existe**;
+  as medidas sobre ela seguem o veredito.
+
+  **O risco que esta FR aceita, e para onde ele vai.** Com acesso a muitos itens, alguém
+  reconstrói **por acumulação** o agregado que o veredito recusa direto. É o *risco de
+  agregação*, e ele é real. Esconder a atribuição não o fecha — quem quer acumular
+  acumula devagar — e paga um preço alto de produto por uma proteção que não protege.
+
+  O caminho é **registro de acesso** (achado **H4**: nenhum evento de autenticação ou
+  autorização é registrado hoje, e é por isso que não se sabe se algo já aconteceu) e
+  **limite de taxa**. Enquanto o H4 não existir, este risco está **aceito e declarado**,
+  e não mitigado.
+
+  ### Quem alcança o agregado — a definição do regime
+
+  Confirmada pela pessoa mantenedora em 2026-09-09, ao reler o que o código faz:
+
+  | quem | alcança | de onde vem |
+  |---|---|---|
+  | **a própria pessoa** | o que ela fez | `propria_pessoa?/2`, decidido em memória antes de qualquer consulta |
+  | **colega da mesma equipe** | os colegas | escopo de equipe **derivado** dos vínculos vigentes (`scopes/2`) |
+  | **liderança declarada** | quem ela lidera, **mesmo sem ser colega** | `EO.Visibility`, FR-018 (#369) |
+  | **escopo de organização** | as pessoas das equipes **daquela** organização | concessão declarada |
+  | **administração do tenant** | tudo no tenant | FR-022, emendada em 2026-09-09 |
+
+  **Não é só o líder.** Todo membro de uma equipe alcança os colegas dela, porque
+  `scopes/2` deriva escopo de equipe dos vínculos vigentes da própria pessoa. Confirmado
+  como intencional em 2026-09-09 — quem trabalha junto vê o trabalho de quem trabalha
+  junto, e a liderança declarada existe para alcançar quem **não** é colega.
+
+  **Organização não é tenant.** Um tenant pode ter várias organizações, e o escopo
+  `organization` alcança **a sua**. Só administração alcança o tenant inteiro.
+
+  **E escopo de PROJETO não abre painel de pessoa** — decidido em 2026-09-09, e a razão já
+  estava escrita em `pode_ver_equipe/3`, que recusa este mesmo escopo: *"ele nomeia um
+  projeto, e uma equipe pode trabalhar em vários; deixá-lo passar faria autoridade subir de
+  lado"*.
+
+  Em `pode_ver/3` valia **mais**: quem tinha escopo de um projeto alcançava o painel
+  completo de qualquer pessoa cuja equipe tocasse aquele projeto — incluindo o trabalho
+  dela em **outros** projetos, que aquele escopo não nomeia. **O caminho existia sem teste
+  nenhum.** Corrigido com o teste que o guarda fechado e o par que prova que o escopo
+  continua existindo para o que ele nomeia.
+
+  **Por que esta FR existe, e não uma linha de conversa.** O regime anterior vigorava
+  **por omissão** — a spec 023 registra que *"toda pessoa autenticada do tenant vê
+  qualquer outra"* valia porque *"o roteador exigia `require_user` e nada além"*. Cada
+  seção construída depois herdou a omissão sem ninguém decidir, e foi assim que o H2
+  nasceu. Escrita como FR, a decisão passa a ser herdada **de propósito**, e
+  `test/the_band_web/live/h2_paridade_das_rotas_test.exs` a cobra por enumeração.
 
 ### Key Entities
 
@@ -309,7 +407,9 @@ e senha, sair, e entrar de novo com a senha nova.
   e quando). person é piso implícito do elo vigente, não um registro. Vocabulário da
   plataforma — não é o papel organizacional da ontologia.
 - **Papel de administrador**: marca da conta que pode mexer — contas, concessões,
-  ferramentas, credenciais. Não abre painel nenhum (FR-022).
+  ferramentas, credenciais. ~~Não abre painel nenhum (FR-022)~~ — **emendada em
+  2026-09-09**: administração do próprio tenant abre painel de pessoa, e a razão está na
+  emenda da FR-022.
 - **Sessão**: o período entre entrada e saída de uma conta. Expira por tempo, encerra
   por logout, e cai quando a senha da conta muda.
 - **Elo com pessoa observada**: já existe (declarado, revogável, com proveniência). O

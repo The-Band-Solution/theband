@@ -201,7 +201,7 @@ defmodule TheBand.Ingestion.TimelineTest do
   end
 
   describe "o custo" do
-    test "repositório sem push desde a revisão não tem timeline pedida", ctx do
+    test "repositório sem atividade de issue desde a revisão não tem timeline pedida", ctx do
       # A primeira coleta pede a timeline, e deve mesmo: o repositório nunca foi revisto.
       responder_com(@eventos)
       {:ok, _} = coletar(ctx)
@@ -219,7 +219,7 @@ defmodule TheBand.Ingestion.TimelineTest do
            %{status: 200, body: %{"data" => Map.put(repositorios(), "rateLimit", @rate_limit)}}}
         else
           flunk("""
-          A timeline foi pedida para um repositório sem push desde a última revisão.
+          A timeline foi pedida para um repositório sem atividade de issue desde a última revisão.
 
           FR-011: repositório que a coleta pula não tem timeline consultada. A janela da
           feature 020 pulou 106 de 121 repositórios medidos, e pedir timeline neles
@@ -230,7 +230,7 @@ defmodule TheBand.Ingestion.TimelineTest do
 
       {:ok, resultado} = coletar(ctx)
 
-      assert resultado.skipped[:sem_push_desde_a_revisao] == 1
+      assert resultado.skipped[:sem_atividade_de_issue_desde_a_revisao] == 1
     end
   end
 
@@ -291,7 +291,14 @@ defmodule TheBand.Ingestion.TimelineTest do
               "defaultBranchRef" => %{"name" => "main"},
               "archivedAt" => nil,
               "createdAt" => "2026-01-01T00:00:00Z",
-              "pushedAt" => "2026-08-01T00:00:00Z"
+              "pushedAt" => "2026-08-01T00:00:00Z",
+              # A ATIVIDADE DE ISSUE, que desde 2026-09-09 é o sinal do corte desta fase.
+              #
+              # Sem ela o corte lê `nil` e responde `:sim` — e este teste, cuja intenção é
+              # "repositório sem nada novo", passaria a medir um repositório percorrido.
+              # A data é a mesma do push de propósito: o cenário é o mesmo, com o sinal
+              # certo.
+              "issues" => %{"nodes" => [%{"updatedAt" => "2026-08-01T00:00:00Z"}]}
             }
           ]
         }

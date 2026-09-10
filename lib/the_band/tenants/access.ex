@@ -17,11 +17,27 @@ defmodule TheBand.Tenants.Access do
   sem job, sem coluna, sem segunda verdade (FR-020/021). Só a concessão vira
   linha, com proveniência e revogação por marca.
 
-  ## Administrar não é ver (FR-022)
+  ## Administrar VÊ, desde 2026-09-09 — a FR-022 foi emendada
 
-  Nenhum ramo aqui olha `users.role` para conceder visão. O ramo "admin vê tudo"
-  saiu do `EO.Visibility` nesta feature; quem administra e precisa ver recebe
-  concessão organization — a migração deu essa concessão aos admins de então.
+  Este cabeçalho dizia *"nenhum ramo aqui olha `users.role` para conceder visão"*, e
+  **deixou de ser verdade** quando `pode_ver/3` ganhou a cláusula do admin. A recusa do
+  papel Product Owner na avaliação da v0.7.0 apanhou-o, e com a observação que dói: era o
+  **H6 dentro do arquivo que o H6 corrigiu** — antes uma função desmentia o cabeçalho,
+  depois duas, e uma delas é a que o cabeçalho nomeia.
+
+  **O que vale agora**: administração **do próprio tenant** abre painel de pessoa
+  (`pode_ver/3`) e alcança a quebra por pessoa na equipe (`pode_ver_equipe/3`). As duas,
+  e pela mesma razão.
+
+  A emenda está na **FR-022 da spec 045**, com o texto original preservado riscado. A razão
+  não foi conveniência: `pode_ver_equipe/3` já concedia ao admin, e o booleano dela libera a
+  quebra por pessoa nomeada na tela da equipe. **Administração já lia pessoa nomeada pela
+  porta da equipe** enquanto a tela da pessoa a recusava — a plataforma afirmava um regime
+  que não aplicava, o que é pior que qualquer dos dois regimes.
+
+  **O que continua valendo da FR-022 original**: administrar **outro** tenant não abre
+  nada, e a FR-023 segue intacta — ver não exige administrar, e escopo continua sendo o
+  caminho de quem não administra.
 
   ## O motivo importa
 
@@ -208,13 +224,43 @@ defmodule TheBand.Tenants.Access do
   @spec pode_ver(Tenant.t(), User.t(), Ecto.UUID.t()) ::
           {:ok, atom()} | {:nao, atom()}
   def pode_ver(%Tenant{} = tenant, %User{} = user, alvo_person_id) do
-    # A própria pessoa decide em memória, ANTES de montar a união: é o caso mais
-    # comum da página da pessoa, e o teto de consultas dela é guardado por teste
-    # (L38 — o guardião reprovou a primeira versão, que montava tudo sempre).
-    if propria_pessoa?(user, alvo_person_id) do
-      {:ok, :propria_pessoa}
-    else
-      pela_uniao(tenant, user, alvo_person_id)
+    cond do
+      # A própria pessoa decide em memória, ANTES de montar a união: é o caso mais
+      # comum da página da pessoa, e o teto de consultas dela é guardado por teste
+      # (L38 — o guardião reprovou a primeira versão, que montava tudo sempre).
+      propria_pessoa?(user, alvo_person_id) ->
+        {:ok, :propria_pessoa}
+
+      # ADMINISTRAÇÃO ALCANÇA — achado H6, decisão da pessoa mantenedora em 2026-09-09.
+      #
+      # ## A contradição que esta cláusula fecha, e ela era de COMPORTAMENTO
+      #
+      # `pode_ver_equipe/3` já concedia ao admin explicitamente, e o booleano que ela
+      # produz (`ve_por_pessoa?` em `teams_live/show.ex`) libera
+      # `Quality.agrupar_por_pessoa/1` — **a quebra por pessoa nomeada**: login, itens
+      # abertos e mediana individual de cada uma.
+      #
+      # Então administração já lia pessoa nomeada pela tela da EQUIPE, enquanto a tela
+      # da PESSOA a recusava afirmando que *"being an administrator manages the
+      # platform, it does not open panels"*. A frase era falsa — e não por um furo: o
+      # mesmo dado saía pela porta ao lado, por decisão explícita do outro veredito.
+      #
+      # Não era inconsistência a arrumar: era a plataforma **afirmando um regime que
+      # ela não aplicava**, que é pior que qualquer dos dois regimes.
+      #
+      # ## O que esta cláusula emenda
+      #
+      # A spec 023, FR-012, dizia deliberadamente que administrar não abre painel. A
+      # emenda é da pessoa mantenedora, registrada em 2026-09-09, e o texto da recusa na
+      # tela mudou junto — deixar a frase para trás seria trocar uma mentira por outra.
+      #
+      # `user.tenant_id == tenant.id` está aqui pela mesma razão de `pode_ver_equipe/3`:
+      # administração de OUTRO tenant não é administração deste.
+      User.admin?(user) and user.tenant_id == tenant.id ->
+        {:ok, :admin}
+
+      true ->
+        pela_uniao(tenant, user, alvo_person_id)
     end
   end
 
@@ -229,6 +275,79 @@ defmodule TheBand.Tenants.Access do
         {:ok, motivo} -> {:ok, motivo}
         {:nao, _} -> {:nao, motivo_da_recusa(meus)}
       end
+    end
+  end
+
+  @doc """
+  As pessoas que esta conta alcança — decisão da pessoa mantenedora, 2026-09-09.
+
+  > *"Quem tem o escopo de team, organization e admin podem ver. E a pessoa vê o seu
+  > perfil."*
+
+  É o mesmo regime que `pode_ver/3` já aplica, respondido para um **conjunto** em vez
+  de para um alvo. Existe porque `pode_ver/3` consulta as equipes do alvo — perguntar
+  por linha numa lista de pessoas é a **L38**, o antipadrão que este módulo existe para
+  evitar.
+
+  ## O que devolve
+
+  - `:todas` — administração do tenant. FR-023 continua de pé: ver não exige
+    administrar, mas administrar alcança;
+  - `{:algumas, MapSet}` — a união das pessoas das equipes em escopo, das equipes das
+    organizações em escopo, e **a própria pessoa**, sempre.
+
+  O conjunto pode vir **vazio** para conta sem elo declarado e sem concessão. Vazio não
+  é erro nem é zero: é *nenhuma pessoa alcançada*, e quem apresenta MUST dizer isso em
+  palavras.
+
+  ## O custo
+
+  Três consultas, e não uma por pessoa: as equipes das organizações em escopo numa
+  consulta por organização em escopo (são poucas, e vêm de `scopes/2`), e os
+  integrantes de **todas** as equipes numa só, via `escopo:` de
+  `team_member_ids_at/4`.
+
+  ## O que NÃO entra
+
+  O escopo `project` — pela mesma razão de `pode_ver_equipe/3`: ele nomeia um projeto,
+  e uma equipe pode trabalhar em vários. Deixá-lo passar faria autoridade subir de
+  lado, e este documento prefere repetir a razão a deixá-la implícita.
+  """
+  @spec pessoas_alcancadas(Tenant.t(), User.t()) :: :todas | {:algumas, MapSet.t()}
+  def pessoas_alcancadas(%Tenant{} = tenant, %User{} = user) do
+    if User.admin?(user) do
+      :todas
+    else
+      meus = scopes(tenant, user)
+      agora = DateTime.utc_now()
+
+      equipes_diretas = for s <- meus, s.level == :team, s.target_id, do: s.target_id
+
+      equipes_das_orgs =
+        for s <- meus,
+            s.level == :organization,
+            s.target_id,
+            t <- EO.list_teams(tenant, organization_id: s.target_id),
+            do: t.id
+
+      equipes = Enum.uniq(equipes_diretas ++ equipes_das_orgs)
+
+      pessoas =
+        case equipes do
+          [] -> []
+          _ -> EO.team_member_ids_at(tenant, hd(equipes), agora, escopo: equipes)
+        end
+
+      # A PRÓPRIA PESSOA ENTRA SEMPRE, e não pelo escopo: quem não tem escopo nenhum
+      # continua vendo o seu — é a segunda metade da decisão, e sem esta linha ela
+      # ficaria por escrever.
+      propria =
+        case Tenants.person_of_user(user) do
+          {:ok, person_id} -> [person_id]
+          _ -> []
+        end
+
+      {:algumas, MapSet.new(pessoas ++ propria)}
     end
   end
 
@@ -310,7 +429,8 @@ defmodule TheBand.Tenants.Access do
     match?({:ok, ^alvo_person_id}, Tenants.person_of_user(user))
   end
 
-  # Devolve o motivo (:escopo_de_equipe | :escopo_de_projeto | :escopo_da_organizacao)
+  # Devolve o motivo (:escopo_de_equipe | :escopo_da_organizacao) — projeto NÃO entra,
+  # e a razão está na cláusula que o recusa.
   # ou nil. Uma leitura das relações do ALVO, comparada aos meus alvos por nível —
   # e nenhuma leitura quando não tenho alvo nenhum (L38: o lado do alvo custa
   # duas consultas, e sem escopo com alvo elas não decidem nada).
@@ -336,20 +456,44 @@ defmodule TheBand.Tenants.Access do
       |> MapSet.delete(nil)
       |> MapSet.union(MapSet.new(observed_orgs(tenant, meus, alvo_person_id)))
 
-    alvo_project_ids =
-      tenant
-      |> projetos_das_equipes(alvo_equipes)
-      |> MapSet.new(& &1.project_id)
+    # E A CONSULTA DOS PROJETOS DO ALVO SAIU JUNTO.
+    #
+    # Ela existia só para o ramo do escopo de projeto, que deixou de abrir painel. Uma
+    # consulta por veredito de pessoa, removida — e `projetos_das_equipes/2` continua
+    # servindo `scopes/2`, onde o escopo derivado de projeto **continua existindo** para o
+    # que ele nomeia: o trabalho daquele projeto.
 
     alvos = fn nivel ->
       for s <- meus, s.level == nivel, s.target_id, into: MapSet.new(), do: s.target_id
     end
 
     cond do
-      not MapSet.disjoint?(alvos.(:team), alvo_team_ids) -> :escopo_de_equipe
-      not MapSet.disjoint?(alvos.(:project), alvo_project_ids) -> :escopo_de_projeto
-      not MapSet.disjoint?(alvos.(:organization), alvo_org_ids) -> :escopo_da_organizacao
-      true -> nil
+      not MapSet.disjoint?(alvos.(:team), alvo_team_ids) ->
+        :escopo_de_equipe
+
+      # ESCOPO DE PROJETO **NÃO** ABRE PAINEL DE PESSOA — decisão da pessoa mantenedora
+      # em 2026-09-09, e a razão já estava escrita no veredito ao lado.
+      #
+      # `pode_ver_equipe/3` recusava este mesmo escopo, com estas palavras: *"ele nomeia
+      # um projeto, e uma equipe pode trabalhar em vários; deixá-lo passar faria
+      # autoridade subir de lado"*.
+      #
+      # A razão vale igual aqui, e aqui vale MAIS: quem tinha escopo de um projeto
+      # alcançava o painel **completo** de qualquer pessoa cuja equipe tocasse aquele
+      # projeto — incluindo o trabalho dela em **outros** projetos, que aquele escopo não
+      # nomeia. Era exactamente a autoridade subindo de lado, com um alcance maior que o
+      # que o outro veredito recusava.
+      #
+      # **Não havia teste afirmando este caminho.** Ele existia sem ninguém o ter medido —
+      # e é por isso que a correção vem com o teste que o guarda fechado.
+      #
+      # Quem tem escopo de projeto continua vendo **o trabalho daquele projeto**. O que
+      # deixa de alcançar é a pessoa.
+      not MapSet.disjoint?(alvos.(:organization), alvo_org_ids) ->
+        :escopo_da_organizacao
+
+      true ->
+        nil
     end
   end
 

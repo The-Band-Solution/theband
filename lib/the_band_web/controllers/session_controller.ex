@@ -83,7 +83,25 @@ defmodule TheBandWeb.SessionController do
   def set_password(conn, %{"password" => senha, "password_confirmation" => confirmacao}) do
     with user_id when is_binary(user_id) <- get_session(conn, :user_id),
          {:ok, user} <- Tenants.fetch_user(user_id),
-         true <- user.session_token == get_session(conn, :session_token) do
+         true <- user.session_token == get_session(conn, :session_token),
+         # ESTA PORTA SERVE **SÓ** AO FLUXO DA TEMPORÁRIA — achado H1, 2026-09-09.
+         #
+         # Sem esta cláusula, quem alcança uma sessão válida por alguns minutos — o
+         # navegador esquecido aberto, a máquina compartilhada, o cookie capturado —
+         # trocava a senha **sem apresentar a antiga em momento nenhum**, e o giro do
+         # `session_token` derrubava a pessoa legítima. Acesso temporário virava posse
+         # permanente da conta.
+         #
+         # A guarda de `/profile/password` já exigia a senha atual, e estava certa. O
+         # defeito era haver uma SEGUNDA porta sem ela — o antipadrão que este
+         # repositório persegue nos próprios dados, dentro de casa.
+         #
+         # A conta em regime normal cai no `else` que já existia: sessão derrubada e
+         # `/sign-in`. Derrubar, e não redirecionar para `/profile` com uma frase, é a
+         # escolha segura — quem chegou aqui com sessão de outra pessoa não deve ganhar
+         # uma dica do que tentar em seguida. Se o gentil for preferido, é decisão de
+         # produto, e está registrada no achado.
+         true <- user.must_change_password do
       if senha == confirmacao do
         aplicar_definicao(conn, user, senha)
       else

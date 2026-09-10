@@ -26,6 +26,24 @@ query($organization: String!, $page_size: Int = 50, $after: String) {
         archivedAt
         createdAt
         pushedAt
+        # A ATIVIDADE DE ISSUE MAIS RECENTE — o sinal do corte das issues.
+        #
+        # `pushedAt` responde "houve push de código", e **atividade de issue não é push**:
+        # abrir, fechar, comentar e apagar não mexem naquela data. Medido em 2026-09-09:
+        # `plataformas-project` tinha push de 21/jul e issue fechada **no mesmo dia da
+        # medição** — o corte pulava o repositório desde julho, e as 712 issues dele
+        # estavam congeladas.
+        #
+        # `updatedAt` do repositório **também não serve**, e foi medido: nos dois
+        # repositórios ele estava MAIS ANTIGO que o `pushedAt` (28/abr e 03/set). Trocar
+        # um pelo outro teria piorado o corte com o teste continuando verde.
+        #
+        # `last: 1` com ordem ASC devolve a issue mais recentemente atualizada — o próprio
+        # fato que a pergunta faz, e não um proxy dele. Vem **nesta consulta**, então não
+        # custa requisição nenhuma.
+        issues(last: 1, orderBy: { field: UPDATED_AT, direction: ASC }) {
+          nodes { updatedAt }
+        }
         primaryLanguage { name }
         defaultBranchRef { name }
         owner { id }
