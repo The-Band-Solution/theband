@@ -250,9 +250,20 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     |> Repo.one()
   end
 
+  # A INTERPOLAÇÃO É PARTE DA MENSAGEM, e descartá-la vaza `%{count}` para a tela.
+  #
+  # `traverse_errors` entrega `{mensagem, opções}`, e as opções carregam os valores que a
+  # mensagem referencia. A versão anterior descartava as opções com `{msg, _}` — e
+  # `validate_length(:name, max: 255)` chegava à tela como
+  # *"should be at most %{count} character(s)"*, literalmente, com as chaves.
+  #
+  # Medido em 2026-09-10, ao exercitar os caminhos infelizes de `declare_subteam/4`.
+  # `translate_error/1` é o mesmo tradutor que as telas usam, e é o que resolve tanto a
+  # interpolação quanto o catálogo — mensagem montada à mão descarta os msgids que o
+  # `errors.po` já tem (a mesma classe da 047/T014).
   defp motivo_do_changeset(%Ecto.Changeset{} = changeset) do
     changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, _} -> msg end)
+    |> Ecto.Changeset.traverse_errors(&TheBandWeb.CoreComponents.translate_error/1)
     |> Enum.map_join("; ", fn {campo, msgs} -> "#{campo}: #{Enum.join(msgs, ", ")}" end)
   end
 
@@ -308,6 +319,45 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
     if nome_repetido?(changeset),
       do: "esta composição já vale",
       else: motivo_do_changeset(changeset)
+  end
+
+  @doc """
+  Declara uma equipe **dentro** de outra, numa transação — feature 055.
+
+  ## O defeito que esta função existe para impedir
+
+  A tela fazia as duas escritas em sequência, num `with` sem transação:
+  `declare_structural_team/4` e depois `compose_teams/4`. Se a segunda falhasse — e o
+  `Repo.insert` da composição pode falhar por constraint —, **a equipe ficava criada e
+  solta na organização**, sem composição nenhuma. E a mensagem de erro falava do segundo
+  passo sem dizer que o primeiro ficou feito, o que é a pior parte: quem lê conclui que
+  nada aconteceu.
+
+  Aqui as duas acontecem juntas ou nenhuma acontece, e a invariante mora no domínio em vez
+  de depender de cada chamador se lembrar dela.
+
+  ## A subequipe HERDA a organização da mãe
+
+  E isso não é conveniência: quem tem escopo nesta equipe declara **dentro** dela, e não em
+  qualquer lugar da organização. Receber um `organization_id` aqui faria a autoridade subir.
+
+  ## Devolve a equipe filha
+
+  E não a composição: quem chama acabou de pedir *"declare uma equipe aqui dentro"*, e o
+  nome dela é o que a tela precisa para dizer o que aconteceu.
+  """
+  @spec declare_subteam(Tenant.t(), Team.t(), String.t(), Ecto.UUID.t()) ::
+          {:ok, Team.t()} | {:error, String.t()}
+  def declare_subteam(%Tenant{} = tenant, %Team{} = mae, name, actor_id) do
+    Repo.transaction(fn ->
+      with {:ok, filha} <-
+             declare_structural_team(tenant, mae.organization_id, String.trim(name), actor_id),
+           {:ok, _composicao} <- compose_teams(tenant, filha.id, mae.id, actor_id) do
+        filha
+      else
+        {:error, motivo} -> Repo.rollback(motivo)
+      end
+    end)
   end
 
   @doc """
