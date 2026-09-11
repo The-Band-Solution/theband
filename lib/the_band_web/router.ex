@@ -49,6 +49,16 @@ defmodule TheBandWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    # A VERSÃO QUE ESTA INSTÂNCIA SERVE — achado H7, e a lacuna que toda release desta base
+    # teve de declarar à mão: o webhook responde `deployed successfully` e nada prova que o
+    # container subiu a versão publicada. A CD passou a perguntar aqui e a FALHAR quando a
+    # resposta não for a do merge.
+    #
+    # Sem autenticação, de propósito: a versão já é pública na tag git, no registro da release
+    # e no nome da imagem — e o único consumidor da rota roda antes de haver sessão.
+    get "/version", VersionController, :show
+
     live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
