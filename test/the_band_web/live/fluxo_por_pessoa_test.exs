@@ -23,7 +23,14 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
     {:ok, papel} =
       EO.create_role(tenant, cen.organization.id, %{code: "dev", name: "Dev"}, admin.id)
 
-    %{conn: log_in(conn, admin), tenant: tenant, admin: admin, equipe: equipe, papel: papel}
+    %{
+      conn: log_in(conn, admin),
+      tenant: tenant,
+      admin: admin,
+      equipe: equipe,
+      papel: papel,
+      repo_id: cen.observed_repository_id
+    }
   end
 
   defp membro(ctx, login, opts \\ []) do
@@ -54,7 +61,41 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
     html
     |> String.replace(~r/<script.*?<\/script>/s, " ")
     |> String.replace(~r/<[^>]*>/, " ")
+    # E DESESCAPA: a pessoa lê `team's`, e o HTML traz `team&#39;s`. Sem isto, toda asserção
+    # com apóstrofo, `&` ou aspas falha contra uma tela que está certa.
+    |> String.replace("&#39;", "'")
+    |> String.replace("&quot;", "\"")
+    |> String.replace("&amp;", "&")
     |> String.replace(~r/\s+/, " ")
+  end
+
+  # Um item ABERTO, designado à pessoa: `external_created_at` presente e `external_closed_at`
+  # nulo é a substituição declarada do WIP.
+  defp item_aberto(ctx, pessoa) do
+    externo = "FPPW_#{System.unique_integer([:positive, :monotonic])}"
+
+    {:ok, i} =
+      TheBand.Repo.insert(%TheBand.WorkItems.Schemas.CollectedIssue{
+        tenant_id: ctx.tenant.id,
+        observed_repository_id: ctx.repo_id,
+        external_id: externo,
+        number: :erlang.phash2(externo, 1_000_000),
+        source_system: "github",
+        source_instance: "https://github.com",
+        title: "item #{externo}",
+        state: "OPEN",
+        external_created_at: DateTime.add(DateTime.utc_now(:second), -10, :day),
+        collected_at: DateTime.utc_now(:second)
+      })
+
+    TheBand.Repo.insert!(%TheBand.WorkItems.Schemas.IssueAssignee{
+      tenant_id: ctx.tenant.id,
+      collected_issue_id: i.id,
+      login: pessoa.login,
+      person_id: pessoa.id
+    })
+
+    i
   end
 
   defp abrir(ctx, extra \\ []), do: texto(abrir_html(ctx, extra))
@@ -195,6 +236,139 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
       refute html =~ ~s|phx-click="ordenar" phx-value-coluna="open|, """
       Ordenar pessoas por medida é o ranking que esta tela recusa. Oferecer o clique seria
       recusá-lo em palavras e permiti-lo em ato.
+      """
+    end
+  end
+
+  describe "o bloco de uma pessoa (§3.6)" do
+    setup ctx do
+      p = membro(ctx, "ana")
+      {:ok, view, _} = live(ctx.conn, "/teams/#{ctx.equipe.id}?tab=people")
+      %{pessoa: p, view: view}
+    end
+
+    test "abre sob a linha, com as duas definições e a ordem de leitura", %{view: view, pessoa: p} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => p.id}))
+
+      assert html =~ "promised = opened in the period", """
+      A definição vive DENTRO do bloco. A palavra `promised` só aparece onde ela está: sem a
+      definição, "prometido" é lido como compromisso, e não há escopo comprometido aqui.
+      """
+
+      assert html =~ "no committed scope"
+      assert html =~ "what is there"
+      assert html =~ "what came in and went out"
+      assert html =~ "at what pace"
+      assert html =~ "what the pace implies"
+    end
+
+    test "o gráfico vazio é DESENHADO, e diz que se conferiu", %{view: view, pessoa: p} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => p.id}))
+
+      assert html =~ "nothing in this window — checked, and there was none", """
+      Área em branco é lida como "a tela quebrou"; a frase dentro da área é lida como
+      "conferido, nada aqui". São duas afirmações diferentes, e a segunda é a verdadeira.
+      """
+
+      assert html =~ "scale 0–", "e a escala aparece mesmo sem barra nenhuma"
+    end
+
+    test "a recusa da previsão NÃO empresta a história da equipe", ctx do
+      # Item ABERTO e sem história: é o que leva ao estado `abaixo do piso`. Sem item, o
+      # estado é `nothing to forecast` — e o piso NÃO é a razão ali.
+      item_aberto(ctx, ctx.pessoa)
+      {:ok, view, _} = live(ctx.conn, "/teams/#{ctx.equipe.id}?tab=people")
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => ctx.pessoa.id}))
+
+      assert html =~ "gap in the observed record, never a statement about the person"
+
+      assert html =~ "team's history is not borrowed", """
+      Emprestar a série da equipe atribuiria a alguém um ritmo que não é dela — e a pergunta
+      que o piso bloqueia é sobre O TRABALHO, não sobre quem o carrega.
+      """
+    end
+
+    test "a redundância entre os gráficos 2 e 3 é NOMEADA, e não escondida", %{
+      view: view,
+      pessoa: p
+    } do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => p.id}))
+
+      assert html =~ "same numbers as chart 2", """
+      Os dois foram pedidos pelo nome. Esconder a redundância seria decidir por quem pediu;
+      nomeá-la deixa a decisão de tirar um deles com quem a tomou.
+      """
+    end
+
+    test "fechar tira o bloco, e a linha fica", %{view: view, pessoa: p} do
+      render_click(view, "abrir_graficos", %{"person-id" => p.id})
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => p.id}))
+
+      refute html =~ "promised = opened in the period"
+      assert html =~ "Ana", "a linha da pessoa continua na tabela"
+    end
+  end
+
+  describe "o teto de duas, e a terceira pessoa (Q25)" do
+    setup ctx do
+      pessoas = for l <- ~w(ana bruno caio), do: membro(ctx, l)
+      {:ok, view, _} = live(ctx.conn, "/teams/#{ctx.equipe.id}?tab=people")
+      %{pessoas: pessoas, view: view}
+    end
+
+    test "duas abrem sem pergunta nenhuma", %{view: view, pessoas: [a, b, _]} do
+      render_click(view, "abrir_graficos", %{"person-id" => a.id})
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => b.id}))
+
+      refute html =~ "nothing has changed yet", "com duas, não há o que perguntar"
+    end
+
+    test "a terceira PERGUNTA qual fechar, e nomeia as duas", %{view: view, pessoas: [a, b, c]} do
+      render_click(view, "abrir_graficos", %{"person-id" => a.id})
+      render_click(view, "abrir_graficos", %{"person-id" => b.id})
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => c.id}))
+
+      assert html =~ "nothing has changed yet", """
+      O estado é dito ANTES das opções: se nada mudou, não há o que desfazer — e é isso que
+      faz da volta uma volta, e não um terceiro estado.
+      """
+
+      assert html =~ "Which one?"
+      assert html =~ "close Ana", "as duas abertas são NOMEADAS — 'feche uma' não é pergunta"
+      assert html =~ "close Bruno"
+      assert html =~ "open first"
+      assert html =~ "open second"
+
+      assert html =~ "the ceiling is legibility, and it was never cost", """
+      A razão do teto está na tela — e é a corrigida: medi que abrir pessoas custa zero
+      consulta extra, então o argumento de custo saiu.
+      """
+    end
+
+    test "escolher qual fechar abre a terceira", %{view: view, pessoas: [a, b, c]} do
+      render_click(view, "abrir_graficos", %{"person-id" => a.id})
+      render_click(view, "abrir_graficos", %{"person-id" => b.id})
+      render_click(view, "abrir_graficos", %{"person-id" => c.id})
+
+      html = texto(render_click(view, "fechar_e_abrir", %{"fechar" => a.id}))
+
+      refute html =~ "nothing has changed yet", "a pergunta fecha"
+      assert html =~ "Caio", "e a terceira está na tabela"
+    end
+
+    test "desistir NÃO abre a terceira, e as duas ficam como estavam", %{
+      view: view,
+      pessoas: [a, b, c]
+    } do
+      render_click(view, "abrir_graficos", %{"person-id" => a.id})
+      render_click(view, "abrir_graficos", %{"person-id" => b.id})
+      render_click(view, "abrir_graficos", %{"person-id" => c.id})
+
+      html = texto(render_click(view, "desistir_da_terceira", %{}))
+
+      refute html =~ "nothing has changed yet", """
+      Desistir é VOLTA, e não um terceiro estado: a pergunta fecha, a terceira não abre, e as
+      duas continuam exatamente como estavam.
       """
     end
   end
