@@ -16,6 +16,12 @@
         "ext": ".ex",
         "engine": "html"
       }
-    ]
+    ],
+    "ignoreRules": [],
+    "ignoreFiles": [
+      "specs/**/prototipo/**"
+    ],
+    "ignoreValues": [],
+    "ignoreFilesReason": "O PROTÓTIPO NÃO FAZ PARTE DO PROJETO — é o desenho usado para construir. Regra da pessoa mantenedora, 2026-09-10 (lição L103). O gate de design é o CÓDIGO DO PRODUTO: `lib` e `assets` dão 0 achados em modo completo. Medido no mesmo dia: os cinco HTML de protótipo davam 1.606 achados em modo completo, e 1.560 deles são propriedades da TELA ENTREGUE — contraste, tamanho de texto de interface, caixa alta — que quem entrega é o código, não o rascunho. Dos 46 restantes, as cores de squad `--s1/--s2/--s3` são cores que o produto DECIDIU NÃO TER (a decisão está escrita em teams_live/show.ex), e o resto é token de tema escuro medido contra a paleta clara. A concordância entre protótipo e código NÃO é conferida por esta ferramenta: é o QA conferindo a tela implementada contra a seção 3 do PROMPT do protótipo, item a item."
   }
 }

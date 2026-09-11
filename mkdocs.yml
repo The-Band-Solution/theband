@@ -165,6 +165,7 @@ nav:
   - Backlog:
       - Visão geral: backlog/README.md
       - A conta desativada: backlog/conta-desativada.md
+      - As recusas falam português: backlog/recusas-em-portugues-e-o-nome-da-coluna.md
       - A versão em produção na página: backlog/a-versao-em-producao-na-pagina.md
       - O backup restaurado de verdade: backlog/backup-restaurado-de-verdade.md
       - A API pública com token: backlog/api-publica.md

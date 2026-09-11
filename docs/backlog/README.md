@@ -7,6 +7,7 @@ escopo — não só a lista.
 |---|---|---|
 | [O backup restaurado de verdade](backup-restaurado-de-verdade.md) | o §6 do runbook — bloqueado na conta do S3, que ainda não existe; a 050/US2 segue não aceita | **alta — bloqueada em recurso** |
 | [A conta desativada](conta-desativada.md) | não existe estado de conta desativada: o desligamento é implícito, e na tela a conta desligada é indistinguível da recém-criada — risco em produção **hoje** | **alta — à frente da 061**, proposta de 2026-09-09 |
+| [As recusas falam português, e a tela fala inglês](recusas-em-portugues-e-o-nome-da-coluna.md) | dez recusas dos atos da 055 chegam ao flash em português, e todas começam com o nome da coluna (`name: can't be blank`) — achado em 2026-09-10 ao ler o `flash-error` de cada caminho infeliz | média — é copy, não comportamento; o conteúdo das recusas está certo |
 | [A versão em produção, e as novidades dela, na página](a-versao-em-producao-na-pagina.md) | a página tem de dizer que versão está no ar e o que a versão trouxe; hoje a aplicação **não sabe** a própria versão. Regra nova do papel ([#829](https://github.com/The-Band-Solution/theband/pull/829)) | **alta**, proposta de 2026-09-09 |
 | [Entidades e CRUD](crud-entities.md) | como 220 conceitos viram ~94 entidades, e a ordem de construção | alta |
 | [GitHub → SRO](github-to-sro.md) | ingestão do GitHub para a Scrum Reference Ontology, em fatias verticais | alta |
