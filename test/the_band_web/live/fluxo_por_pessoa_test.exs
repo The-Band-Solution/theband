@@ -373,6 +373,92 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
     end
   end
 
+  describe "o bloco de duas pessoas (§3.7)" do
+    setup ctx do
+      [a, b] = for l <- ~w(ana bruno), do: membro(ctx, l)
+      {:ok, view, _} = live(ctx.conn, "/teams/#{ctx.equipe.id}?tab=people")
+      render_click(view, "abrir_graficos", %{"person-id" => a.id})
+      %{a: a, b: b, view: view}
+    end
+
+    test "abrir a segunda TIRA as duas da tabela e monta o par", %{view: view, b: b} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => b.id}))
+
+      assert html =~ "Ana × Bruno", "o par existe, e nomeia as duas"
+      assert html =~ "same window for both"
+
+      refute html =~ "promised = opened in the period", """
+      O bloco de UMA sai quando a segunda abre: dois blocos empilhados seriam duas leituras da
+      mesma medida sem que nada dissesse qual comparar com qual.
+      """
+    end
+
+    test "cada gráfico mantém a SUA escala, e a linha diz o que se compara", %{view: view, b: b} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => b.id}))
+
+      assert html =~ "Each chart keeps its own scale"
+
+      assert html =~ "The shapes compare; the heights do not", """
+      Escala comum pareceria mais justa e seria o contrário: quem tem três itens e quem tem
+      quarenta leriam na mesma altura, ou uma delas sumiria.
+      """
+
+      assert html =~ "its own scale"
+    end
+
+    test "a linha 3 diz que NENHUMA média ou mediana por pessoa é desenhada", %{view: view, b: b} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => b.id}))
+
+      assert html =~ "No average and no median per person is drawn anywhere", """
+      Um número único por pessoa é a figura de produtividade que esta plataforma não guarda —
+      e a frase fica na linha onde ela seria mais tentadora.
+      """
+
+      assert html =~ "delivered` bars of row 2" or html =~ "delivered bars of row 2",
+             "e diz que são as mesmas barras da linha 2, lidas como ritmo"
+    end
+
+    test "a razão do teto está na tela, e diz o que ele NÃO é", %{view: view, b: b} do
+      html = texto(render_click(view, "abrir_graficos", %{"person-id" => b.id}))
+
+      assert html =~ "three scales is a gallery, not a comparison"
+
+      assert html =~ "The ceiling is legibility, and it is not cost", """
+      A razão de custo que o protótipo trazia deixou de ser verdadeira: medi em 2026-09-10 e
+      abrir pessoas não acrescenta consulta nenhuma. A tela diz o número.
+      """
+
+      assert html =~ "no extra query at all"
+    end
+  end
+
+  describe "as três ausências (§3.8)" do
+    test "são TRÊS, e cada uma com o tratamento e a razão", ctx do
+      membro(ctx, "ana")
+      html = abrir(ctx)
+
+      assert html =~ "The three absences, and they are not the same absence"
+
+      assert html =~ "nothing observed for this person"
+      assert html =~ "The row stays", "quem some da tabela é quem ninguém pergunta"
+
+      assert html =~ "One is silence; the other is work that finished", """
+      A distinção com o caso vizinho — pessoa com itens e nenhum aberto agora — é o que impede
+      a tela de dizer zero onde devia dizer "não sei".
+      """
+
+      assert html =~ "Two distinct blocking modes, shown side by side"
+      assert html =~ "never a statement about the person"
+
+      assert html =~ "the routing rule did not classify it"
+
+      assert html =~ "would assert a promotion nobody made", """
+      Chamar o item sem tipo de TASK afirmaria uma promoção que ninguém fez — e foi o defeito
+      que derrubava a tela antes de `sigla_do_conceito(nil)` existir.
+      """
+    end
+  end
+
   describe "o teto de consultas (SC-031)" do
     test "o custo NÃO cresce com o número de membros", ctx do
       for n <- 1..6, do: membro(ctx, "p#{n}")
