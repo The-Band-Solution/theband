@@ -28,7 +28,7 @@ jobs:
     name: imagem, tag e delivery
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0 # as tags existentes decidem o passo 1
 
@@ -53,12 +53,24 @@ jobs:
 
       - name: login no ghcr
         if: steps.versao.outputs.ja_publicada == 'false'
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # AS DUAS TAGS CONTINUAM — e o achado H7 se fecha do outro lado.
+      #
+      # `latest` não identifica nada: aponta para a última publicação, e "a última" muda sem
+      # que nenhum registro mude junto. A tentação é parar de publicá-la — e seria **pior**:
+      # a aplicação no Dokploy declara qual imagem puxa, essa declaração vive lá e não aqui, e
+      # tirar a tag faria a próxima release **não implantar** enquanto o webhook continuasse
+      # respondendo `deployed successfully`. Trocaria uma lacuna de verificação por uma queda
+      # silenciosa, que é a família de defeito que esta casa mais combate.
+      #
+      # O que fecha o achado é **poder verificar**, e é o passo `a produção confirma a versão`
+      # abaixo: depois do delivery, a CD pergunta à produção qual versão ela está servindo e
+      # **falha** se não for esta. Com ele, `latest` deixa de ser uma afirmação sem prova.
       - name: build e publicação da imagem
         if: steps.versao.outputs.ja_publicada == 'false'
         run: |
@@ -87,4 +99,45 @@ jobs:
             exit 1
           fi
           curl --fail --silent --show-error -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
-          echo "webhook aceito — o Dokploy puxa $IMAGEM:latest e reimplanta."
+          echo "webhook aceito — o Dokploy reimplanta a imagem que a aplicação dele declara."
+
+      # A PRODUÇÃO CONFIRMA A VERSÃO — e é isto que fecha o H7.
+      #
+      # Antes deste passo, o delivery terminava em `deployed successfully` e **nada provava**
+      # que o container subiu a versão do merge: `latest` responde *"o que foi publicado por
+      # último"*, que não é a mesma pergunta. Em toda release desta sessão foi preciso escrever
+      # a ressalva à mão, porque não havia como medir.
+      #
+      # Agora a CD **pergunta à produção** e falha quando a resposta não é esta versão. Falhar
+      # é o ponto: um delivery que não chegou tem de parecer um delivery que não chegou.
+      #
+      # A espera é por tentativas e não por `sleep` fixo — o container leva de segundos a um
+      # par de minutos para subir, e um número fixo ou espera demais em todo release ou de
+      # menos justamente no que falhar.
+      - name: a produção confirma a versão — resposta diferente FALHA
+        if: steps.versao.outputs.ja_publicada == 'false'
+        env:
+          ENDERECO: ${{ secrets.PRODUCAO_URL }}
+          ESPERADA: ${{ steps.versao.outputs.versao }}
+        run: |
+          if [ -z "$ENDERECO" ]; then
+            echo "PRODUCAO_URL ausente nos Secrets — o delivery aconteceu e NÃO foi" >&2
+            echo "verificado. É o achado H7 em aberto: sem endereço, 'está no ar' é" >&2
+            echo "afirmação sem prova. Configure o Secret; o runbook §2 diz onde." >&2
+            exit 1
+          fi
+
+          for tentativa in $(seq 1 30); do
+            VERSAO=$(curl --silent --max-time 10 "$ENDERECO/version" | tr -d '[:space:]' || true)
+            if [ "$VERSAO" = "$ESPERADA" ]; then
+              echo "a produção serve $VERSAO — igual à publicada."
+              exit 0
+            fi
+            echo "tentativa $tentativa/30: a produção responde '${VERSAO:-nada}', esperado $ESPERADA"
+            sleep 10
+          done
+
+          echo "A PRODUÇÃO NÃO CONFIRMOU $ESPERADA em cinco minutos." >&2
+          echo "A imagem e a tag existem; o webhook foi aceito; e o que está servindo" >&2
+          echo "NÃO é esta versão. Ver o achado H7 e o runbook §7 (rollback)." >&2
+          exit 1
