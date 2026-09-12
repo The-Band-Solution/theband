@@ -102,6 +102,29 @@ nav:
       - Modelo de dados: architecture/modelo-de-dados.md
       - Design system: design-system.md
 
+  - Modelos:
+      - Índice: modelos/README.md
+      - Arquitetura:
+          - Visão geral: modelos/arquitetura/visao-geral.md
+      - Classes (UML):
+          - EO — estrutura organizacional: modelos/classes/eo-estrutura-organizacional.md
+          - Ingestão e observação: modelos/classes/ingestao-e-observacao.md
+          - Perfis e modelo: modelos/classes/perfis-e-modelo.md
+          - Projetos e processo: modelos/classes/projetos-e-processo.md
+          - Tenants e acesso: modelos/classes/tenants-e-acesso.md
+          - Trabalho e mudança: modelos/classes/trabalho-e-mudanca.md
+      - Banco (ERD):
+          - EO e acesso: modelos/banco/eo-e-acesso.md
+          - Ingestão e observação: modelos/banco/ingestao-e-observacao.md
+          - Mapa das tabelas: modelos/banco/mapa-das-tabelas.md
+          - Perfis e modelo: modelos/banco/perfis-e-modelo.md
+          - Projetos e processo: modelos/banco/projetos-e-processo.md
+          - Trabalho e mudança: modelos/banco/trabalho-e-mudanca.md
+      - Estados:
+          - Vínculo de equipe: modelos/estados/vinculo-de-equipe.md
+      - DSM:
+          - 060 — a tela da equipe: modelos/dsm/060-tela-da-equipe.md
+
   - Funcionalidades:
       - O que o produto faz: funcionalidades/README.md
       - A tela da equipe: funcionalidades/tela-da-equipe.md
