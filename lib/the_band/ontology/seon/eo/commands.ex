@@ -67,7 +67,21 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
           Ecto.UUID.t()
         ) :: {:ok, TeamMembership.t()} | {:error, String.t()}
   def declare_team_membership(%Tenant{id: tenant_id}, team_id, person_id, attrs, actor_id) do
-    inicio = attrs |> Map.get(:started_at, DateTime.utc_now()) |> DateTime.truncate(:second)
+    # A DATA EM BRANCO FICA DESCONHECIDA, e NÃO vira hoje.
+    #
+    # A versão anterior tinha `Map.get(attrs, :started_at, DateTime.utc_now())`: quem não
+    # sabia desde quando a pessoa está na equipe ganhava **hoje** gravado como início. Isso é
+    # afirmar um começo que ninguém declarou — e a plataforma passaria a medir períodos
+    # anteriores como se a pessoa não estivesse lá.
+    #
+    # Nulo é **desconhecido**, e o banco já sabe lê-lo assim: `vigente_em/2` inclui vínculo
+    # com `started_at` nulo, exatamente porque nulo nunca significou "nunca pertenceu". E é o
+    # caso mais comum do dado real — 87 dos 90 vínculos vigentes, medido em 2026-09-10.
+    inicio =
+      case Map.get(attrs, :started_at) do
+        nil -> nil
+        %DateTime{} = quando -> DateTime.truncate(quando, :second)
+      end
 
     case vigente(tenant_id, team_id, person_id) do
       nil ->
@@ -83,6 +97,15 @@ defmodule TheBand.Ontology.SEON.EO.Commands do
         })
         |> Repo.insert()
         |> relator()
+
+      # A RECUSA NOMEIA DESDE QUANDO — e sobrevive ao início desconhecido.
+      #
+      # `DateTime.to_date(nil)` LEVANTA, e nulo é o caso mais comum: 87 dos 90 vínculos
+      # vigentes do banco de desenvolvimento, medido em 2026-09-10. A recusa mais frequente
+      # deste ato morria em vez de recusar — e só não aparecia porque nenhuma tela chamava a
+      # função ainda.
+      %TeamMembership{started_at: nil} ->
+        {:error, "esta pessoa já tem vínculo vigente nesta equipe, com início desconhecido"}
 
       %TeamMembership{started_at: desde} ->
         {:error,

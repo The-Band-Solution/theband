@@ -37,6 +37,71 @@ defmodule TheBand.Ontology.SEON.EO.TeamMembershipTest do
     %{tenant: tenant, autor: autor, equipe: equipe, pessoa: pessoa, papel: papel}
   end
 
+  # ── OS DOIS DEFEITOS QUE A FR-003 ESBARRAVA, e que só não apareciam porque nenhuma tela
+  #    chamava esta função ──
+  describe "o início desconhecido" do
+    test "data em branco fica NULA, e não vira hoje" do
+      %{tenant: t, autor: a, equipe: e, pessoa: p, papel: papel} = cenario()
+
+      {:ok, vinculo} =
+        EO.declare_team_membership(t, e.id, p.id, %{organizational_role_id: papel.id}, a.id)
+
+      assert is_nil(vinculo.started_at), """
+      A versão anterior tinha `Map.get(attrs, :started_at, DateTime.utc_now())`: quem não sabia
+      desde quando a pessoa está na equipe ganhava HOJE gravado como início. Isso afirma um
+      começo que ninguém declarou — e faz a plataforma medir períodos anteriores como se a
+      pessoa não estivesse lá.
+      """
+    end
+
+    test "o vínculo de início desconhecido CONTA como vigente" do
+      %{tenant: t, autor: a, equipe: e, pessoa: p, papel: papel} = cenario()
+
+      {:ok, _} =
+        EO.declare_team_membership(t, e.id, p.id, %{organizational_role_id: papel.id}, a.id)
+
+      agora = DateTime.utc_now(:second)
+
+      assert EO.count_team_members_at(t, e.id, agora) == 1, """
+      Nulo é DESCONHECIDO, e nunca "nunca pertenceu". `vigente_em/2` já o lia assim — e é o
+      caso mais comum do dado real: 87 dos 90 vínculos vigentes, medido em 2026-09-10.
+      """
+    end
+
+    test "a recusa de vínculo repetido NÃO levanta quando o início é desconhecido" do
+      %{tenant: t, autor: a, equipe: e, pessoa: p, papel: papel} = cenario()
+
+      {:ok, _} =
+        EO.declare_team_membership(t, e.id, p.id, %{organizational_role_id: papel.id}, a.id)
+
+      assert {:error, motivo} =
+               EO.declare_team_membership(
+                 t,
+                 e.id,
+                 p.id,
+                 %{organizational_role_id: papel.id},
+                 a.id
+               ),
+             """
+             `DateTime.to_date(nil)` LEVANTAVA — e nulo é o caso mais comum. A recusa mais
+             frequente deste ato morria em vez de recusar, e só não aparecia porque nenhuma tela
+             chamava a função.
+             """
+
+      assert motivo =~ "início desconhecido", "e a recusa DIZ que o início é desconhecido"
+    end
+
+    test "com início declarado, a recusa nomeia a data" do
+      %{tenant: t, autor: a, equipe: e, pessoa: p, papel: papel} = cenario()
+      attrs = %{started_at: @dia_1, organizational_role_id: papel.id}
+
+      {:ok, _} = EO.declare_team_membership(t, e.id, p.id, attrs, a.id)
+
+      assert {:error, motivo} = EO.declare_team_membership(t, e.id, p.id, attrs, a.id)
+      assert motivo =~ "desde #{DateTime.to_date(@dia_1)}"
+    end
+  end
+
   describe "registrar a saída NÃO apaga o passado (SC-003)" do
     test "o número do período anterior é o mesmo antes e depois da saída" do
       %{tenant: t, autor: a, equipe: e, pessoa: p, papel: papel} = cenario()
