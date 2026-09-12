@@ -5,6 +5,7 @@ escopo — não só a lista.
 
 | Documento | Do que trata | Prioridade |
 |---|---|---|
+| [Rotacionar o token do GitHub que vazou](rotacionar-o-token-que-vazou.md) | um token esteve em **texto claro** em `oban_jobs.errors` de 2026-09-04 a 2026-09-12 — oito dias. A linha foi redigida e o banco varrido (259 colunas, zero), mas limpar o banco não alcança dump nenhum já tirado: **só a rotação invalida o valor exposto**. Ação da pessoa mantenedora, no GitHub | **alta — aberta em 2026-09-12, e a causa no código segue de pé ([spec 064](../../specs/064-segredo-em-repouso/spec.md), FR-006)** |
 | [O backup restaurado de verdade](backup-restaurado-de-verdade.md) | o §6 do runbook — bloqueado na conta do S3, que ainda não existe; a 050/US2 segue não aceita | **alta — bloqueada em recurso** |
 | [MinIO como destino do ensaio de backup](minio-como-destino-do-ensaio-de-backup.md) | o ensaio do §6 deixa de esperar conta em provedor: MinIO fala o protocolo do S3, sobe no `compose.yaml` (profile `backup`) e foi medido em 2026-09-12 — escreve e devolve idêntico | **alta — destrava o item acima** |
 | [A conta desativada](conta-desativada.md) | não existe estado de conta desativada: o desligamento é implícito, e na tela a conta desligada é indistinguível da recém-criada — risco em produção **hoje** | **alta — à frente da 061**, proposta de 2026-09-09 |

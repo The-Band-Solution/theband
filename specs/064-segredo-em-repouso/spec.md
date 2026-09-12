@@ -63,6 +63,23 @@ Ou seja, a proteção que se poderia supor **não existe em dois níveis**: ela 
 cópias já tiradas, e neste caso não alcança nem o banco. O que passa para uma cópia não se
 desfaz — e aqui o original também não sai sozinho.
 
+### O que já foi feito nessa linha, em 2026-09-12
+
+A pessoa mantenedora decidiu **manter o registro e tirar o segredo**. Feito: os 40 caracteres
+foram trocados por uma marca de redação, e o registro do erro continua inteiro — mesmo estado,
+mesma linha, 8 766 → 8 754 bytes. O banco inteiro foi varrido em seguida (259 colunas de
+texto), zero ocorrências, e a varredura foi **provada com um caso positivo plantado e
+desfeito** — sem isso ela não distinguiria limpo de cego.
+
+Duas coisas que isso **não** resolve, e são o motivo de a spec existir:
+
+1. **O valor esteve legível por oito dias.** Redigir alcança o banco, não alcança dump nenhum
+   já tirado. A rotação é o único ato que invalida o que foi exposto, e é ação de quem tem
+   acesso ao GitHub — registrada em
+   [`docs/backlog/rotacionar-o-token-que-vazou.md`](../../docs/backlog/rotacionar-o-token-que-vazou.md).
+2. **A causa continua de pé.** A redação tratou a ocorrência. Na próxima exceção daquela
+   chamada, o token é escrito de novo — é o que a FR-006 proíbe, e nenhuma limpeza substitui.
+
 ---
 
 ## User Scenarios & Testing *(mandatory)*
