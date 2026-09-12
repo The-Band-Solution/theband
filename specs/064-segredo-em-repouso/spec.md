@@ -52,8 +52,16 @@ chamada, a lista de argumentos vai no quadro de pilha, `Exception.format/3` a im
 Oban grava o texto. O `redact: true` do schema protege o `inspect` da **struct**, e não o
 argumento solto que já foi decifrado.
 
-**A consequência de ordem**: o Pruner de 7 dias tira a linha do banco, **não do backup**. O que
-passa para uma cópia não se desfaz.
+**A consequência de ordem**: a faxina automática de registros antigos está configurada para 7
+dias, e **esta linha ela nunca vai apagar**. Medido em 2026-09-12: a linha tem 8 dias, está no
+estado *cancelada*, e a data de cancelamento dela está **vazia**. A faxina pergunta *"data de
+cancelamento é anterior ao prazo?"* — e essa pergunta, feita sobre um campo vazio, nunca
+responde sim. A linha é permanente. As outras três canceladas do mesmo dia estão na mesma
+situação.
+
+Ou seja, a proteção que se poderia supor **não existe em dois níveis**: ela não alcança as
+cópias já tiradas, e neste caso não alcança nem o banco. O que passa para uma cópia não se
+desfaz — e aqui o original também não sai sozinho.
 
 ---
 
@@ -187,8 +195,14 @@ registro guardado **não** o contém — e que contém o suficiente para investi
   resultado MUST ficar registrado com a data. O que passa para uma cópia não se desfaz.
 - **FR-011**: Achada uma ocorrência, a credencial MUST ser **rotacionada**, e apagar a linha
   MUST NOT ser tratado como substituto: segredo que apareceu, apareceu.
-- **FR-012**: A remoção automática de registros antigos MUST NOT ser contada como proteção: ela
-  alcança o banco e **não** as cópias já tiradas.
+- **FR-012**: A remoção automática de registros antigos MUST NOT ser contada como proteção,
+  por duas razões independentes: ela não alcança as cópias já tiradas, e ela **não alcança
+  todo registro que se supõe alcançar** — um registro sem a data que a regra de idade consulta
+  fica fora dela para sempre. Medido em 2026-09-12: quatro registros de 8 dias permanentes sob
+  uma política de 7, um deles carregando o segredo.
+- **FR-015**: Um registro que a plataforma dá por encerrado MUST carregar a data do
+  encerramento. Sem ela, toda regra que apaga por idade o ignora em silêncio — e o registro
+  que escapa por esse caminho é justamente o que falhou, que é o que tende a carregar segredo.
 - **FR-013**: O efeito de uma restauração sobre as sessões vivas MUST estar escrito no
   procedimento de restauração, e MUST NOT ser descoberto durante um desastre.
 - **FR-014**: Segredo novo acrescentado ao sistema MUST declarar a que tipo pertence — resumo,
@@ -226,6 +240,8 @@ registro guardado **não** o contém — e que contém o suficiente para investi
   que nunca o leu chega à resposta certa em menos de um minuto.
 - **SC-007**: Nenhuma senha de conta é recuperável a partir do banco, nem por quem tem todas
   as chaves da plataforma.
+- **SC-008**: Nenhum registro encerrado existe sem a data do encerramento — a consulta que os
+  procura devolve **zero**, e uma regra de idade aplicada à tabela não deixa nenhum para trás.
 
 ---
 

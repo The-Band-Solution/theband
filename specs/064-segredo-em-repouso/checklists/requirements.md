@@ -73,6 +73,20 @@ A FR-011 exige **rotação** da credencial encontrada. É ato de quem tem acesso
 nenhum plano a executa. Ela está na spec porque, sem ela, alguém apagaria a linha e daria o
 problema por resolvido — e o token continuaria válido.
 
+### Uma correção feita depois da primeira validação
+
+A primeira redação dizia que a faxina de 7 dias *"tira a linha do banco, não do backup"* — e
+apresentava como fato algo que eu não tinha medido. Ao medir: a linha tem 8 dias e continua
+lá.
+
+Minha primeira explicação também estava errada — supus que a plataforma estivesse parada. Ela
+não está: há líder vivo. O mecanismo real é outro, e é pior: a regra de idade consulta a
+**data de encerramento** do registro, e essa data está **vazia** nos quatro registros
+cancelados daquele dia. Campo vazio comparado com prazo nunca responde sim. Os quatro são
+permanentes, e um deles carrega o segredo.
+
+Daí as FR-012 reescrita, a FR-015 e o SC-008 — que não estavam na primeira redação.
+
 ### A ordem é o requisito
 
 A FR-010 (varredura **antes** da primeira cópia) é a única que o tempo torna impossível de
