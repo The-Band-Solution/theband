@@ -3790,3 +3790,51 @@ dizendo *"not a clean bill of health"*. Eu construí o silêncio.
 observação*. Está escrita neste arquivo desde antes, sobre o validador Python da base de
 conhecimento. Eu a repeti do outro lado — não ignorando o aviso, mas **apagando-o antes de ele
 poder ser ignorado**.
+
+---
+
+## L105
+
+**O segredo chegou ao texto sem ninguém o registrar — e meu primeiro teste não reproduzia isso.**
+
+**Onde apareceu.** 2026-09-12. Um token de acesso do GitHub ficou em texto claro dentro de
+`oban_jobs.errors` de 2026-09-04 a 2026-09-12 — oito dias. Nenhuma linha de código o registrou:
+não há `Logger.error(token)` em lugar nenhum, e o `redact: true` do schema da credencial estava
+lá, funcionando, protegendo o `inspect` da struct.
+
+**O mecanismo.** O token era o segundo argumento de `Client.graphql/5`, um `binary` nu. Quando o
+erro nasce da **própria chamada** — nenhuma cláusula casou —, a máquina virtual guarda a lista
+de argumentos no quadro de pilha. `Exception.format/3` chama `inspect/1` em cada um, e o
+executor de tarefas grava o texto resultante. A forma no banco era exatamente:
+
+```
+graphql("https://github.com", "<40 caracteres>", "# As linhas de ...")
+```
+
+**O que quase me enganou.** Escrevi o teste primeiro, como sempre, e ele **falhou na
+reinjeção**: com binário nu no mesmo caminho, o segredo não aparecia. Estava prestes a tratar
+isso como ruído do teste.
+
+Era informação. Meu teste usava `raise` dentro do corpo da função, e **`raise` não põe os
+argumentos no quadro de pilha** — a captura só acontece quando o erro vem da chamada em si
+(`FunctionClauseError`, `badarg`, `badarith`). Uma sonda de dez linhas separou os dois casos:
+com `raise`, o quadro mostra `Sonda.graphql/3` e nada mais; com cláusula que não casa, mostra
+os três argumentos por extenso.
+
+Se eu tivesse ajustado o teste para passar em vez de perguntar por que ele falhava, teria
+escrito uma proteção contra um mecanismo que não era o mecanismo.
+
+**A regra.** *Quando a reinjeção não reproduz o defeito, o errado é a minha hipótese sobre o
+defeito, não o teste.* Reinjetar existe para responder **"o teste enxerga?"** — e a resposta
+"não" é a mais valiosa das duas, porque diz que eu estava mirando no lugar errado. Ajustar o
+teste até ele passar transforma essa resposta em silêncio.
+
+**O corolário sobre segredos.** Proibir *registrar* um segredo não protege nada: o valor chega
+ao texto por um caminho que nenhuma revisão de código que procure chamadas de log encontraria.
+A proibição tem de vir do **tipo** — um valor que, perguntado por sua forma textual, responde
+com uma marca. É o que `TheBand.Segredo` faz, e é a FR-006 da spec 064.
+
+**O corolário sobre limpeza.** Redigir a linha alcança o banco. Não alcança nenhum dump já
+tirado, nenhum terminal, nenhuma cópia. **Só a rotação invalida um valor que esteve legível** —
+e tratar a limpeza como resolução é a mesma família da L104: chamar de atestado o que é apenas
+o que eu consegui alcançar.

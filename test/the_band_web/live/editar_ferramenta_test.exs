@@ -9,6 +9,8 @@ defmodule TheBandWeb.EditarFerramentaTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  alias TheBand.Segredo
+
   import Mox
   import Phoenix.LiveViewTest
 
@@ -93,7 +95,9 @@ defmodule TheBandWeb.EditarFerramentaTest do
       organizacao = organization_fixture(ctx.tenant, "acme")
       equipe = team_fixture(ctx.tenant, "T_a", %{organization: organizacao})
 
-      expect(TheBand.GitHubHTTPMock, :get, fn _url, "ghp_token_novo_9876" ->
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, token ->
+        assert Segredo.expor(token) == "ghp_token_novo_9876"
+
         {:ok,
          %{status: 200, body: %{"login" => "conta"}, headers: %{"x-oauth-scopes" => ["read:org"]}}}
       end)
@@ -119,7 +123,8 @@ defmodule TheBandWeb.EditarFerramentaTest do
       # A antiga continua lá e legível — trocar não é destruir.
       antiga = Enum.find(tool.credentials, &(&1.id == ctx.primeira.id))
       assert antiga
-      assert {:ok, @segredo} = Sources.fetch_secret(antiga)
+      assert {:ok, segredo} = Sources.fetch_secret(antiga)
+      assert Segredo.expor(segredo) == @segredo
 
       # E a observação segue vigente, com a equipe intacta.
       refute Sources.observation_ended?(tool)
@@ -160,7 +165,8 @@ defmodule TheBandWeb.EditarFerramentaTest do
       # Recusar não pode ter meio-efeito: ela continua lá, e legível.
       credencial = Sources.active_credential(ctx.tool)
       assert credencial.id == ctx.primeira.id
-      assert {:ok, @segredo} = Sources.fetch_secret(credencial)
+      assert {:ok, segredo} = Sources.fetch_secret(credencial)
+      assert Segredo.expor(segredo) == @segredo
     end
 
     test "com outra ativa, remover destrói o segredo", ctx do

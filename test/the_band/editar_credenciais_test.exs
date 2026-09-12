@@ -10,6 +10,8 @@ defmodule TheBand.EditarCredenciaisTest do
   """
   use TheBand.DataCase, async: false
 
+  alias TheBand.Segredo
+
   import Mox
 
   alias TheBand.Sources
@@ -62,7 +64,8 @@ defmodule TheBand.EditarCredenciaisTest do
       assert depois.last_four == credential.last_four
 
       # E o segredo continua lá, legível — renomear não pode destruí-lo por descuido.
-      assert {:ok, "token-um"} = Sources.fetch_secret(depois)
+      assert {:ok, segredo} = Sources.fetch_secret(depois)
+      assert Segredo.expor(segredo) == "token-um"
     end
 
     test "rótulo em branco é recusado, e o anterior permanece" do
@@ -114,7 +117,8 @@ defmodule TheBand.EditarCredenciaisTest do
 
       # E ela continua lá, funcionando — a recusa não pode ter meio-efeito.
       assert Sources.active_credential(tool).id == credential.id
-      assert {:ok, "token-um"} = Sources.fetch_secret(Sources.active_credential(tool))
+      assert {:ok, segredo} = Sources.fetch_secret(Sources.active_credential(tool))
+      assert Segredo.expor(segredo) == "token-um"
     end
 
     test "inativa pode ser removida mesmo sendo a única" do
@@ -153,7 +157,8 @@ defmodule TheBand.EditarCredenciaisTest do
 
       assert corrigida.organization_login == "acme"
       # A credencial não é tocada: corrigir o cadastro não é reconectar.
-      assert {:ok, "token-um"} = Sources.fetch_secret(Sources.active_credential(tool))
+      assert {:ok, segredo} = Sources.fetch_secret(Sources.active_credential(tool))
+      assert Segredo.expor(segredo) == "token-um"
     end
 
     test "o campo não informado permanece" do

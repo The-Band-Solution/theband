@@ -77,8 +77,23 @@ Duas coisas que isso **não** resolve, e são o motivo de a spec existir:
    já tirado. A rotação é o único ato que invalida o que foi exposto, e é ação de quem tem
    acesso ao GitHub — registrada em
    [`docs/backlog/rotacionar-o-token-que-vazou.md`](../../docs/backlog/rotacionar-o-token-que-vazou.md).
-2. **A causa continua de pé.** A redação tratou a ocorrência. Na próxima exceção daquela
-   chamada, o token é escrito de novo — é o que a FR-006 proíbe, e nenhuma limpeza substitui.
+2. **A causa foi corrigida no caminho do GitHub, e não nos demais.** `TheBand.Segredo`
+   embrulha o valor assim que ele sai do cofre e só se abre na montagem do cabeçalho HTTP —
+   é a FR-006 atendida ali. O caminho do provedor de modelos ainda passa o segredo como
+   binário nu; nenhuma ocorrência foi medida nele, e ausência de medida não é ausência de
+   risco.
+
+### O mecanismo exato, que custou um teste falhando para ser encontrado
+
+O primeiro teste que escrevi levantava uma exceção com `raise` dentro da função e **não
+reproduzia nada**: os argumentos não apareciam no texto formatado. A máquina virtual só
+guarda a lista de argumentos no quadro de pilha quando o erro nasce da **própria chamada** —
+nenhuma cláusula casou. É essa a forma gravada em `oban_jobs.errors`, com os argumentos
+impressos um a um.
+
+Isso muda o que o requisito precisa dizer: não basta *"não registre o segredo"*. O valor
+chega ao texto **sem ninguém o registrar**, por um caminho que nenhuma revisão de código
+que procure chamadas de log encontraria.
 
 ---
 
