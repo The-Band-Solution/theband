@@ -168,6 +168,7 @@ nav:
       - As recusas falam português: backlog/recusas-em-portugues-e-o-nome-da-coluna.md
       - A versão em produção na página: backlog/a-versao-em-producao-na-pagina.md
       - O backup restaurado de verdade: backlog/backup-restaurado-de-verdade.md
+      - MinIO como destino do ensaio: backlog/minio-como-destino-do-ensaio-de-backup.md
       - A API pública com token: backlog/api-publica.md
       - Burn da pessoa sem linha de base: backlog/burn-da-pessoa-sem-linha-de-base.md
       - Crud entities: backlog/crud-entities.md
