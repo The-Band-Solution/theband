@@ -9,8 +9,15 @@ tela** da mesma feature, na mesma linguagem visual, e ela **não altera** o prot
 em 2026-09-07 — as duas abas de lá continuam exatamente como estão. Toda mudança nesta tela é
 republicação **neste** endereço.
 
-**Status: aguardando aprovação.** Enquanto não houver aprovação, a extensão
-`spec-graficos-por-membro.md` não vai a `/speckit-plan`.
+**Status: APROVADO pela pessoa mantenedora.** A aprovação foi dada em **2026-09-08** e
+**registrada em 2026-09-10**, junto das respostas às sete perguntas abertas (seção 5).
+
+> **O registro atrasou dois dias, e o atraso tem consequência escrita.** Em 2026-09-10 o papel
+> de Product Owner avaliou esta aba e **recusou decompô-la** — não por falta da aprovação, mas
+> por falta do **registro** dela: `grep -rn "a8c7e08c" --include="*.md" .` não achava nenhuma
+> linha dizendo *aprovado*. É a mesma distinção que esta casa cobra de revisão de código:
+> vazio prova ausência de registro, não ausência do fato. Aprovação que vive de memória não
+> passa por portão nenhum.
 
 ## 1. Os pedidos da pessoa mantenedora, textuais e em ordem
 
@@ -133,7 +140,60 @@ abertas da spec continuam abertas, e o protótipo acrescenta as suas — todas n
     formas comparam, as alturas não*.
 23. Na linha 3, a frase de que **nenhuma média e nenhuma mediana por pessoa** é desenhada, e que
     aquelas barras são as barras *delivered* da linha 2 lidas como ritmo.
-24. Teto: **duas** pessoas. A razão está escrita na própria tela.
+24. Teto: **duas** pessoas. A razão está escrita na própria tela, e ela é **legibilidade**: dois
+    eixos comparam formas e não alturas, e três escalas seriam galeria. O aviso *why two, and why
+    the pair leaves the table* diz também o que o teto **não** é — medido em 2026-09-10, a aba
+    inteira custa 5 consultas para 31 membros e abrir uma pessoa custa **zero consulta extra**.
+
+### 3.7-a A terceira pessoa pedida — a pergunta de qual fechar
+
+> Estado acrescentado em 2026-09-10, resposta da pessoa mantenedora à pergunta 25. Desenhado
+> **em repouso**, na faixa `screen 4`, sob a linha de Duda Cordeiro.
+>
+> **Os números continuam a lista (27 a 36) e por isso não estão em ordem de leitura**: os itens
+> 25 e 26 são das seções 3.8 e 3.9, que vêm depois desta na tela. Quem confere segue a **ordem
+> das seções**, não a dos números — renumerar quebraria as referências já citadas na spec.
+
+27. **Pedir a terceira não abre nada e não recusa nada.** A linha que pediu mostra
+    `charts asked ▾` — botão **contornado** em verdete — mais a sub-linha
+    `not open · waiting for your choice`. Três pesos do mesmo controle, e cada um com palavra
+    própria: `close ▴` preenchido (aberta), `charts asked ▾` contornado (pedida), `charts ▾`
+    neutro (fechada). **As duas linhas abertas não mudam em nada** — nem marca, nem número, nem
+    botão —, porque enquanto a pergunta está na tela nada foi mudado.
+28. **A pergunta aparece sob a linha que a pediu**, no mesmo bloco de largura inteira que os
+    quatro gráficos daquela pessoa ocupariam, e em **um lugar só**: não há cópia no bloco do par,
+    no cabeçalho da seção nem em faixa de topo. A linha da pergunta **não tem fio inferior**, de
+    modo que linha e pergunta leem como um objeto.
+29. **A frase de estado vem antes das opções**: rótulo `nothing has changed yet`, e o texto de que
+    os gráficos da terceira **não** estão abertos, os das duas abertas estão exatamente como
+    estavam — mesma linha, mesmos números, mesma previsão, mesma janela e granulação —, e que a
+    pergunta **não é modal**: não prende, a tabela acima continua legível, e ela espera.
+30. **As duas abertas são NOMEADAS**, uma por cartão, e cada cartão carrega: **quadrado de
+    0.6rem** na cor da série que os gráficos dela usam abaixo (com `title`), nome, login, papel
+    declarado ou `role not declared`, `open now` com a variação da janela, o estado da previsão,
+    e **onde está a linha marcada** dela na tabela (*three rows above*, *directly below*).
+31. **Os dois botões de fechar têm o mesmo peso** — ambos primários — e cada um diz o que faz e o
+    que **não** faz: fecha os gráficos dela; a linha fica na tabela, os números não mudam, nada é
+    apagado, e ela pode ser aberta de novo pela própria linha. A tela **escreve por que** os dois
+    pesam igual: eleger um primário seria a tela escolhendo. E escreve que **nenhum** dos dois é
+    *close both* — para ficar só com a terceira, fecha-se a outra depois, pela linha dela.
+32. **O caminho de volta é um botão só**, `keep <A> and <B> · do not open <C>`, em variante
+    contornada (é volta, não terceiro resultado), com a frase de que a pergunta fecha, a terceira
+    **não** abre, e as duas ficam abertas na mesma janela e granulação — **e não há terceiro
+    estado**.
+33. **A razão do teto aparece na pergunta em uma linha** — dois eixos comparam formas e não
+    alturas; uma terceira escala seria galeria — e **aponta** para o aviso completo sob o par em
+    vez de repeti-lo, dizendo por que aponta. E diz o que o teto **não** é: 5 consultas para 31
+    membros, zero consulta extra por pessoa aberta, medido em 2026-09-10.
+34. **A linha da ordem, abaixo da tabela**, registra os três estados presentes ao mesmo tempo:
+    duas abertas com os gráficos abaixo, **uma pedida e não aberta** com a pergunta sob a própria
+    linha, e as fechadas.
+35. **A nota da faixa `screen 4`** anuncia o estado, junto dos dois modos que ela já anunciava.
+36. **A marca das linhas abertas é camada tonal, sem borda de acento e sem sombra**
+    (`DESIGN.md`, *The No-Accent-Edge Rule*, e plano por doutrina): fundo verdete-soft, botão
+    `close ▴` preenchido e a frase da ordem são os três canais. O mesmo vale para os dois
+    cabeçalhos de coluna do par, onde a cor da série passou do fio de 3px para o **quadrado de
+    0.6rem** — o mesmo quadrado que a pergunta usa para as mesmas duas pessoas.
 
 ### 3.8 *The three absences, and they are not the same absence*
 
@@ -145,16 +205,23 @@ abertas da spec continuam abertas, e o protótipo acrescenta as suas — todas n
 
 ### 3.9 *Decisions and open questions*
 
-26. Quatro cartões: o que vem decidido de 7 e 8 de setembro (1–6); o que **o desenho** decidiu,
-    com a razão, reversível pela pessoa mantenedora (7–17); o que está **aberto** (18–24), cada
-    um com opções e recomendação; e **o que não foi verificado** — escrito na tela, não só no
-    relatório.
+26. **Cinco** cartões, nesta ordem: o que vem decidido de 7 e 8 de setembro (1–6); o que **o
+    desenho** decidiu, com a razão, reversível pela pessoa mantenedora (7–17); o que estava
+    **aberto** (18–24), cada um com opções e recomendação, com a nota de que os sete foram
+    respondidos em 10 de setembro e com o **item 18 reescrito** — decidido em duas, e a metade do
+    argumento que era custo de consulta marcada `corrected 10 Sep` com o número medido; o cartão
+    de **10 de setembro** (25–31): a decisão da pessoa mantenedora sobre a terceira pessoa, com
+    as duas alternativas recusadas e a razão de cada uma, e as seis decisões de desenho do estado
+    novo; e **o que não foi verificado** — escrito na tela, não só no relatório, com o item do
+    teto de consultas trazendo a marca `mistake` e `corrected 10 Sep` em vez de ser apagado.
 
 ## 4. Como usar este arquivo
 
 - O **Design** parte daqui para qualquer mudança nesta aba e republica **no mesmo endereço**.
 - O **Product Owner** cita o endereço, este prompt e `team-people-README.md` no item do backlog
-  e na spec, leva as perguntas 18 a 24 à pessoa mantenedora, e só aceita a entrega conferida
-  contra a seção 3.
+  e na spec, e só aceita a entrega conferida contra a seção 3. As perguntas 18 a 24 foram
+  respondidas em 2026-09-10, e a 25 também; **o que ainda é dele para levar** é a transcrição
+  das respostas 19 a 24 para a própria tela — o registro delas está no `README.md`, e a tela
+  ainda as imprime como abertas com a nota de que foram respondidas.
 - O **QA** confere a tela entregue contra a seção 3, item a item: existe, na ordem, com o texto,
   com a marca, com a ação e com a recusa. Divergência é defeito.

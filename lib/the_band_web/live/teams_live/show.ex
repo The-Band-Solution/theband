@@ -18,10 +18,12 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
   alias TheBand.Quality
+  alias TheBand.Teams.FlowPerPerson
   alias TheBand.Teams.ProblemsNow
   alias TheBand.Tenants
   alias TheBand.Verification
   alias TheBand.WorkItems
+  alias TheBand.WorkItems.TeamWork
   alias TheBandWeb.TabelaLive, as: Tabela
 
   # Oito semanas. Escolher o período é trabalho separado, e um seletor sem
@@ -146,6 +148,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   # cria átomo a partir de entrada de fora, que não é coletado pelo garbage collector.
   defp aba_pedida(%{"tab" => "dashboard"}, socket), do: {:dashboard, socket}
   defp aba_pedida(%{"tab" => "structure"}, socket), do: {:structure, socket}
+  defp aba_pedida(%{"tab" => "people"}, socket), do: {:people, socket}
 
   defp aba_pedida(%{"tab" => outra}, socket) when is_binary(outra) and outra != "" do
     {:dashboard,
@@ -493,6 +496,51 @@ defmodule TheBandWeb.TeamsLive.Show do
   # A escolha do formulário vira `papel_escolhido()`. "＋ new role…" cria o papel **aqui**,
   # na organização da equipe, e a declaração usa o id recém-criado — é o "sem sair da linha"
   # da FR-034.
+  # ABRIR E FECHAR OS GRÁFICOS DE UMA PESSOA — §3.6 da régua.
+  #
+  # O estado é uma LISTA, e não um booleano: o teto é **duas** pessoas ao mesmo tempo, e a
+  # terceira **pergunta qual fechar** em vez de recusar ou de escolher sozinha (Q25, decidida
+  # pela pessoa mantenedora em 2026-09-10). Booleano não teria onde guardar a pergunta.
+  #
+  # E abrir **não custa consulta nenhuma**: os quatro gráficos saem do que a tabela já
+  # carregou. Foi o que derrubou metade do argumento do teto — ele é legibilidade, e nunca
+  # foi custo.
+  def handle_event("abrir_graficos", %{"person-id" => id}, socket) do
+    abertas = socket.assigns.fluxo_abertas
+
+    cond do
+      id in abertas ->
+        {:noreply, assign(socket, fluxo_abertas: List.delete(abertas, id), fluxo_terceira: nil)}
+
+      length(abertas) < 2 ->
+        {:noreply, assign(socket, fluxo_abertas: abertas ++ [id], fluxo_terceira: nil)}
+
+      true ->
+        # A TERCEIRA: nem recusa, nem fecha a mais antiga sozinha. Recusar faria do teto uma
+        # parede sem caminho; fechar a mais antiga decidiria por quem compara, e em silêncio —
+        # a pessoa escolheu a terceira deliberadamente.
+        {:noreply, assign(socket, fluxo_terceira: id)}
+    end
+  end
+
+  # A resposta à pergunta: fecha a escolhida, e abre a que estava esperando.
+  def handle_event("fechar_e_abrir", %{"fechar" => fechar}, socket) do
+    terceira = socket.assigns.fluxo_terceira
+
+    abertas =
+      socket.assigns.fluxo_abertas
+      |> List.delete(fechar)
+      |> Kernel.++([terceira])
+
+    {:noreply, assign(socket, fluxo_abertas: abertas, fluxo_terceira: nil)}
+  end
+
+  # DESISTIR É VOLTA, e não um terceiro estado: a terceira NÃO abre, e as duas ficam
+  # exatamente como estavam.
+  def handle_event("desistir_da_terceira", _params, socket) do
+    {:noreply, assign(socket, fluxo_terceira: nil)}
+  end
+
   defp papel_do_formulario(_socket, %{"papel" => ""}),
     do:
       {:error,
@@ -829,6 +877,7 @@ defmodule TheBandWeb.TeamsLive.Show do
       ~p"/teams/#{socket.assigns.team.id}?#{Tabela.query(socket, id, mudancas, tab: aba_no_endereco(socket))}"
 
   defp aba_no_endereco(%{assigns: %{aba: :structure}}), do: "structure"
+  defp aba_no_endereco(%{assigns: %{aba: :people}}), do: "people"
   defp aba_no_endereco(_socket), do: nil
 
   # *PROBLEMAS AGORA* — spec 060, FR-065 (US8). Vem ANTES das medidas de propósito: quem abre
@@ -930,6 +979,51 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> carregar_papeis_da_organizacao()
   end
 
+  # A ABA *FLOW PER PERSON* — feature 060, protótipo aprovado em 2026-09-08.
+  #
+  # ## Cinco consultas para qualquer número de membros
+  #
+  # Três de `FlowPerPerson.linhas/4` — criadas, fechadas, e o aberto no início da janela — e
+  # duas de `open_tasks_by_person/4`, que traz a mistura de conceitos. Medido em 2026-09-10
+  # com 31 membros: cinco. A forma óbvia, uma chamada por linha, custaria noventa e três.
+  #
+  # E abrir os gráficos de uma ou de duas pessoas **não acrescenta consulta nenhuma**: tudo o
+  # que os quatro gráficos desenham já está no que a tabela carregou. Foi o que derrubou
+  # metade do argumento do teto de duas pessoas — o teto é legibilidade, e nunca foi custo.
+  #
+  # ## O alcance é o do roster
+  #
+  # Numa equipe composta, o conjunto é a equipe e as partes com composição vigente. Reusar o
+  # alcance do roster é o que impede a tela de ter duas definições de *quem é desta equipe* —
+  # a mesma razão que `carregar_detalhe/1` já dá.
+  defp carregar_aba(socket, :people) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+    agora = DateTime.utc_now(:second)
+    granulacao = socket.assigns.granulacao
+    escopo = socket.assigns.escopo_do_roster
+
+    membros = EO.team_members_at(tenant, team.id, agora, escopo: escopo)
+    ids = Enum.map(membros, & &1.person_id)
+
+    janela =
+      janela_do_fluxo(tenant, team, granulacao, socket.assigns.periodos, agora, equipes: escopo)
+
+    linhas = FlowPerPerson.linhas(tenant, ids, granulacao, desde: janela.desde, ate: agora)
+
+    socket
+    |> assign(
+      fluxo_membros: membros,
+      fluxo_linhas: linhas,
+      fluxo_janela: janela,
+      fluxo_agora: agora,
+      fluxo_tarefas: TeamWork.open_tasks_by_person(tenant, team.id, agora, ids),
+      fluxo_previsao: FlowPerPerson.quantas_com_previsao(linhas)
+    )
+    |> assign_new(:fluxo_abertas, fn -> [] end)
+    |> assign_new(:fluxo_terceira, fn -> nil end)
+  end
+
   # OS PAPÉIS DA ORGANIZAÇÃO e quantas pessoas os desempenham — T021, T022.
   #
   # Duas consultas para a seção inteira: a lista de papéis (que já compõe catálogo e criados)
@@ -1000,6 +1094,841 @@ defmodule TheBandWeb.TeamsLive.Show do
   # `%d %b %Y` — "30 Jan 2026". O formato ISO num painel lido por gestor troca uma data por
   # uma sequência que ninguém lê em voz alta, e o mês por extenso remove a ambiguidade
   # dia/mês que a notação numérica carrega entre países.
+
+  # ── OS COMPONENTES DA ABA *FLOW PER PERSON* ──
+  #
+  # A régua é a seção 3 de `specs/060-tela-da-equipe/prototipo/team-people-PROMPT.md`, e
+  # divergência dela é defeito e não melhoria de implementação.
+
+  # §3.2 — o cabeçalho, com UM controle de granulação para a aba inteira.
+  #
+  # No Dashboard o controle fica no cabeçalho de CADA gráfico (decidido em 8 Sep). Aqui não, e
+  # a razão é o que a aba faz: os gráficos de duas pessoas nunca podem ficar em janelas
+  # diferentes, porque a comparação passaria a ser entre coisas diferentes sem dizer.
+  defp fluxo_cabecalho(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <h2 class="text-lg font-semibold">Flow per person</h2>
+      <p class="font-mono text-[11px] opacity-60">
+        {length(@membros)} {if length(@membros) == 1, do: "member", else: "members"} · {data_curta(
+          @janela.desde
+        )} → {data_curta(@janela.ate)} · by {granulacao_em_palavra(@granulacao)}
+      </p>
+
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        <.link
+          :for={{valor, rotulo} <- [{"semana", "week"}, {"mes", "month"}, {"ano", "year"}]}
+          patch={~p"/teams/#{@team.id}?tab=people&granulacao=#{valor}"}
+          class={[
+            "btn btn-xs font-mono",
+            granulacao_em_palavra(@granulacao) == rotulo && "btn-primary",
+            granulacao_em_palavra(@granulacao) != rotulo && "btn-ghost"
+          ]}
+        >
+          {rotulo}
+        </.link>
+        <p class="text-[11px] opacity-60">
+          One grain control for the whole tab — two people's charts must never sit on two
+          different windows.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp granulacao_em_palavra(:semana), do: "week"
+  defp granulacao_em_palavra(:mes), do: "month"
+  defp granulacao_em_palavra(:ano), do: "year"
+
+  # §3.3 — os dois blocos de leitura, acima da tabela e SEM colapsar.
+  #
+  # Colapsados, quem lê a tabela lê os números sem eles — e os números desta tabela são
+  # exatamente os que se leem errado por omissão.
+  defp fluxo_leia_antes(assigns) do
+    ~H"""
+    <div class="grid gap-3 md:grid-cols-2">
+      <div class="card border border-error/40 bg-base-200 p-4">
+        <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+          read this before the numbers
+        </p>
+        <p class="mt-1 font-serif text-sm">
+          <strong>A table of work items, not a table of people.</strong>
+          Four measures beside a person's name is the shape of a ranking.
+          <strong>It is not one, and it cannot support one.</strong>
+        </p>
+        <ul class="mt-2 list-disc space-y-1 pl-5 font-serif text-sm opacity-80">
+          <li>
+            An item with two assignees counts once for each, so <strong>no column sums to the
+            team's flow</strong> — the team's numbers are measured separately, over the distinct
+            set, and live on the Dashboard.
+          </li>
+          <li>
+            What was collected differs from row to row, so <strong>two rows do not share a
+            denominator</strong>.
+          </li>
+          <li>
+            The largest number here, <span class="font-mono text-xs">open now</span>, counts work
+            that has <strong>not moved</strong>: read as a ranking, it would put the most stalled
+            person on top.
+          </li>
+          <li>
+            The table is ordered by <strong>declared role, then name</strong>. No measure column
+            sorts it, and none offers to.
+          </li>
+          <li>
+            <strong>No average and no rate per person</strong> is reported either — a single
+            number per person is exactly the productivity figure the platform does not hold.
+          </li>
+        </ul>
+      </div>
+
+      <div class="card border border-warning/40 bg-base-200 p-4">
+        <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+          what this measure is not
+        </p>
+        <p class="mt-1 font-serif text-sm">
+          <strong>“Working in progress” here is not <span class="font-mono text-xs">flow.wip.count</span>.</strong>
+          The declared formula needs the start and the end of the executed task, and
+          <strong>the end criterion does not exist</strong>
+          in what is collected (issue #506).
+        </p>
+        <p class="mt-2 font-serif text-sm opacity-80">
+          What is computed instead is the substitution the team's burn already makes: an item is
+          <strong>open</strong>
+          when <span class="font-mono text-xs">external_created_at</span>
+          is present and <span class="font-mono text-xs">external_closed_at</span>
+          is null at the
+          instant sampled. Two consequences: the clock starts when the <strong>item</strong>
+          was
+          opened, not when the person picked it up — the source does not record that; and there
+          is <strong>no WIP limit</strong>
+          anywhere on this screen, because none is declared and
+          a threshold line would invent one.
+        </p>
+        <p class="mt-2 font-serif text-sm opacity-70">
+          The measure's own declared misreadings, copied and not summarised: a low number does
+          not mean healthy flow; a high number is not productivity; and comparing people without
+          normalising turns it into a different measure.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  # §3.5 — a tabela: seis colunas, uma linha por membro, NENHUM gráfico na linha.
+  #
+  # Tabela é para comparar, e comparação se faz em número alinhado. Gráfico dentro da linha
+  # daria quarenta e oito gráficos de quarenta pixels, que não comparam nada.
+  #
+  # A ordem é papel declarado e depois nome, e **nenhuma coluna de medida ordena** — ordenar
+  # pessoas por medida é o ranking que esta tela recusa, a um clique de distância.
+  defp fluxo_tabela(assigns) do
+    assigns = assign(assigns, :ordenados, fluxo_ordem(assigns.membros))
+
+    ~H"""
+    <div class="card bg-base-200 overflow-x-auto p-0">
+      <table class="table table-sm">
+        <thead>
+          <tr>
+            <th>person · role · collection</th>
+            <th>
+              open now <span class="font-normal opacity-60">and the change across the window</span>
+            </th>
+            <th>opened <span class="font-normal opacity-60">in the window</span></th>
+            <th>closed <span class="font-normal opacity-60">in the window</span></th>
+            <th>periods with a close</th>
+            <th>delivery forecast</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%!-- As três linhas da pessoa — a dela, o bloco dos gráficos e a pergunta da
+                terceira — vivem na MESMA iteração: `:for` no `<tr>` faria de cada uma um laço
+                próprio, e as duas últimas perderiam o `m`. --%>
+          <%= for m <- @ordenados do %>
+            <tr>
+              <td>
+                <p class="font-semibold">{m.name}</p>
+                <p class="font-mono text-[11px] opacity-60">
+                  {m.login} · {m.papel || "role not declared"}
+                </p>
+              </td>
+
+              <%!-- O valor na ÚLTIMA amostra, e a variação EM PALAVRAS. Um `+2` solto não diz
+                  nem de onde saiu nem em quantas amostras se conferiu. --%>
+              <td>
+                <p class="font-mono tabular-nums">
+                  {FlowPerPerson.aberto_agora(@linhas[m.person_id])}
+                </p>
+                <p class="text-[11px] opacity-70">
+                  {fluxo_variacao_em_palavras(@linhas[m.person_id])}
+                </p>
+              </td>
+
+              <%!-- AUSÊNCIA ESCRITA, nunca zero mudo: `none opened` diz que se conferiu. --%>
+              <td class="font-mono tabular-nums">
+                <span :if={@linhas[m.person_id].criadas_na_janela > 0}>
+                  {@linhas[m.person_id].criadas_na_janela}
+                </span>
+                <span :if={@linhas[m.person_id].criadas_na_janela == 0} class="text-[11px] opacity-70">
+                  none opened
+                </span>
+              </td>
+
+              <td class="font-mono tabular-nums">
+                <span :if={@linhas[m.person_id].fechadas_na_janela > 0}>
+                  {@linhas[m.person_id].fechadas_na_janela}
+                </span>
+                <span
+                  :if={@linhas[m.person_id].fechadas_na_janela == 0}
+                  class="text-[11px] opacity-70"
+                >
+                  none closed
+                </span>
+              </td>
+
+              <td class="font-mono tabular-nums">
+                {@linhas[m.person_id].periodos_com_fechamento} of {@linhas[m.person_id].periodos}
+              </td>
+
+              <%!-- COLUNA DE ESTADO, e não de valor — hachurada, e os três estados do protótipo.
+                  A ordem entre eles é a decisão: quem não tem item aberto não é "abaixo do
+                  piso", e dizê-lo culparia o método por uma ausência de trabalho. --%>
+              <td class="bg-base-300/40">
+                <.fluxo_previsao_celula previsao={FlowPerPerson.previsao(@linhas[m.person_id])} />
+              </td>
+
+              <td class="text-right">
+                <button
+                  phx-click="abrir_graficos"
+                  phx-value-person-id={m.person_id}
+                  class={[
+                    "btn btn-xs font-mono",
+                    m.person_id in @abertas && "btn-primary",
+                    m.person_id not in @abertas && "btn-ghost",
+                    m.person_id == @terceira && "btn-outline"
+                  ]}
+                >
+                  {cond do
+                    m.person_id in @abertas -> "close ▴"
+                    m.person_id == @terceira -> "charts asked ▾"
+                    true -> "charts ▾"
+                  end}
+                </button>
+              </td>
+            </tr>
+
+            <%!-- O BLOCO ABRE SOB A PRÓPRIA LINHA — §3.6. A ligação entre os dois é a posição,
+                e não um fio colorido: o `DESIGN.md` recusa borda de acento desde 10 Sep. --%>
+            <tr :if={m.person_id in @abertas and length(@abertas) == 1}>
+              <td colspan="7" class="pt-0">
+                <.fluxo_bloco_de_uma
+                  membro={m}
+                  linha={@linhas[m.person_id]}
+                  tarefas={Map.get(@tarefas, m.person_id, [])}
+                  janela={@janela}
+                />
+              </td>
+            </tr>
+
+            <%!-- A TERCEIRA PESSOA: nem recusa, nem fecha a mais antiga sozinha (Q25). --%>
+            <tr :if={m.person_id == @terceira}>
+              <td colspan="7" class="pt-0">
+                <.fluxo_terceira_pergunta
+                  pedida={m}
+                  abertas={@abertas}
+                  membros={@ordenados}
+                />
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-2 font-serif text-xs opacity-70">
+      Ordered by <strong>declared role, then name</strong>. No measure column sorts this table,
+      and none offers to — and the rows do not share a denominator, so the columns compare work
+      items and never people.
+    </p>
+
+    <%!-- §3.7 — COM DUAS ABERTAS o par sai da tabela: dentro dela cada gráfico ficaria com
+          metade de uma célula. As duas linhas continuam marcadas acima. --%>
+    <div :if={length(@abertas) == 2} class="mt-3">
+      <.fluxo_par
+        a={fluxo_lado(@ordenados, @linhas, @tarefas, Enum.at(@abertas, 0))}
+        b={fluxo_lado(@ordenados, @linhas, @tarefas, Enum.at(@abertas, 1))}
+        janela={@janela}
+      />
+    </div>
+    """
+  end
+
+  # Um lado do par: a pessoa, a série dela e as tarefas abertas dela.
+  defp fluxo_lado(membros, linhas, tarefas, person_id) do
+    %{
+      membro: Enum.find(membros, &(&1.person_id == person_id)),
+      linha: linhas[person_id],
+      tarefas: Map.get(tarefas, person_id, [])
+    }
+  end
+
+  # A ordem: papel declarado, depois nome. Quem não tem papel vai depois de quem tem — e
+  # continua na tabela, porque *papel não declarado* é ausência dita e nunca exclusão.
+  defp fluxo_ordem(membros) do
+    Enum.sort_by(membros, fn m -> {is_nil(m.papel), m.papel || "", m.name || m.login || ""} end)
+  end
+
+  defp fluxo_variacao_em_palavras(linha) do
+    case FlowPerPerson.variacao(linha) do
+      {:sem_amostra, _} ->
+        "no sample in this window"
+
+      {:sem_mudanca, n} ->
+        "no change across the #{n} samples"
+
+      {:mudou, primeiro, delta, n} ->
+        "#{primeiro} at the first sample · #{sinal(delta)} across the #{n} samples"
+    end
+  end
+
+  defp sinal(n) when n > 0, do: "+#{n}"
+  defp sinal(n), do: "#{n}"
+
+  defp fluxo_previsao_celula(%{previsao: {:ok, p}} = assigns) do
+    assigns = assign(assigns, :p, p)
+
+    ~H"""
+    <p class="font-mono text-xs tabular-nums">p50 {@p.p50} wk</p>
+    <p class="text-[11px] opacity-70">
+      {if @p[:p85], do: "p85 #{@p.p85} wk", else: "no p85"}
+    </p>
+    """
+  end
+
+  # O PISO NÃO É A RAZÃO AQUI, e dizer que é culparia o método por uma ausência de trabalho.
+  defp fluxo_previsao_celula(%{previsao: {:nada_a_prever, _}} = assigns) do
+    ~H"""
+    <p class="font-mono text-[11px] opacity-70">nothing to forecast</p>
+    <p class="text-[11px] opacity-60">no open item</p>
+    """
+  end
+
+  # OS QUATRO NÚMEROS, e as palavras *met* e *short* carregando a diferença: são dois modos
+  # de bloqueio distintos, e um pode estar atendido enquanto o outro não.
+  defp fluxo_previsao_celula(%{previsao: {:sem_historico, f}} = assigns) do
+    assigns = assign(assigns, :f, f)
+
+    ~H"""
+    <p class="font-mono text-[11px] opacity-70">no forecast · below the floor</p>
+    <p class="font-mono text-[11px] tabular-nums opacity-60">
+      history {@f.semanas} of {@f.semanas_exigidas}
+      {if @f.semanas >= @f.semanas_exigidas, do: "met", else: "short"} · closed {@f.fechadas} of {@f.fechadas_exigidas}
+      {if @f.fechadas >= @f.fechadas_exigidas, do: "met", else: "short"}
+    </p>
+    """
+  end
+
+  # A TERCEIRA PESSOA — decisão da pessoa mantenedora em 2026-09-10 (Q25).
+  #
+  # Nem recusar, nem fechar a mais antiga sozinha:
+  #
+  #   * **recusar** faria do teto uma parede sem caminho — quem quer comparar A com C teria de
+  #     descobrir sozinho que precisa fechar B antes, e recusa que não oferece o ato certo é o
+  #     que esta casa recusa em toda parte;
+  #   * **fechar a mais antiga** decidiria por quem compara, e em silêncio: a pessoa escolheu a
+  #     terceira deliberadamente, e qual das duas primeiras deixa de interessar é informação que
+  #     só ela tem.
+  #
+  # Os dois botões têm o MESMO peso. Eleger um primário seria a tela escolhendo qual comparação
+  # ainda importa.
+  defp fluxo_terceira_pergunta(assigns) do
+    assigns =
+      assign(assigns, :nomes, Map.new(assigns.membros, &{&1.person_id, &1.name || &1.login}))
+
+    ~H"""
+    <div class="card border border-base-300 bg-base-200 p-4">
+      <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+        two are already open · nothing has changed yet
+      </p>
+
+      <p class="mt-1 max-w-3xl font-serif text-sm">
+        Opening <strong>{@pedida.name}</strong>
+        needs one of the two open people to close. <strong>Which one?</strong>
+        Two charts abreast compare shapes; a third scale would be a gallery and not a
+        comparison — the ceiling is legibility, and it was never cost.
+      </p>
+
+      <div class="mt-3 grid gap-2 md:grid-cols-2">
+        <button
+          :for={{id, ordem} <- Enum.with_index(@abertas, 1)}
+          phx-click="fechar_e_abrir"
+          phx-value-fechar={id}
+          class="btn btn-primary btn-sm justify-start text-left"
+        >
+          close {@nomes[id]}
+          <span class="font-mono text-[10px] opacity-70">
+            open {if ordem == 1, do: "first", else: "second"}
+          </span>
+        </button>
+      </div>
+
+      <p class="mt-2 font-serif text-[11px] opacity-70">
+        Closing hides the charts. <strong>The row stays</strong>, the numbers do not change,
+        nothing is deleted, and the person can be opened again from her own row.
+      </p>
+
+      <button phx-click="desistir_da_terceira" class="btn btn-outline btn-xs mt-3">
+        keep both · do not open {@pedida.name}
+      </button>
+    </div>
+    """
+  end
+
+  # §3.6 — O BLOCO DE UMA PESSOA, sob a própria linha.
+  #
+  # Sem faixa de acento à esquerda: o `DESIGN.md` passou a recusar borda colorida acima de 1px
+  # num lado só (2026-09-10). A separação é camada tonal mais borda uniforme de 1.5px, e o que
+  # liga o bloco à linha é a posição — ele abre debaixo dela.
+  defp fluxo_bloco_de_uma(assigns) do
+    ~H"""
+    <div class="card border border-base-300 bg-base-200 p-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-sm font-semibold">
+          {@membro.name}
+          <span class="font-mono text-[11px] font-normal opacity-60">{@membro.login}</span>
+        </h3>
+        <p class="font-mono text-[11px] opacity-60">
+          {data_curta(@janela.desde)} → {data_curta(@janela.ate)} ·
+          <.link navigate={~p"/people/#{@membro.person_id}"} class="link">full profile →</.link>
+        </p>
+      </div>
+
+      <%!-- AS DUAS DEFINIÇÕES, DENTRO DO BLOCO — e não num rodapé de página. A palavra
+            `promised` só aparece onde a definição a acompanha: sem ela, "prometido" é lido
+            como compromisso, e não há escopo comprometido nesta plataforma. --%>
+      <p class="mt-2 font-serif text-xs opacity-80">
+        <strong>promised</strong> = opened in the period; <strong>delivered</strong> = closed in
+        the period. There is <strong>no committed scope</strong> — “promised” is a label for
+        what was opened, never a commitment. “Closed” is the act registered in the tool, and the
+        count ignores the size of the item.
+      </p>
+
+      <%!-- A MISTURA DE CONCEITOS — a composição do número, e NUNCA a lista de tarefas, que é
+            do Dashboard. Duas telas com a mesma lista divergem no dia em que uma mudar. --%>
+      <p class="mt-1 font-mono text-[11px] tabular-nums opacity-70">
+        {fluxo_mistura(@tarefas)}
+      </p>
+
+      <div class="mt-3 grid gap-3 md:grid-cols-2">
+        <.fluxo_grafico
+          numero="1"
+          titulo="what is there"
+          subtitulo="open work, sampled at the end of each period"
+          serie={Enum.map(@linha.abertos, & &1.aberto)}
+          rotulos={Enum.map(@linha.abertos, & &1.periodo)}
+          derivado?={false}
+          vazio_quando={@linha.abertos == []}
+        />
+        <.fluxo_grafico
+          numero="2"
+          titulo="what came in and went out"
+          subtitulo="promised × delivered, per period"
+          serie={Enum.map(@linha.serie, & &1.criadas)}
+          serie_b={Enum.map(@linha.serie, & &1.fechadas)}
+          rotulos={Enum.map(@linha.serie, & &1.periodo)}
+          derivado?={false}
+          vazio_quando={@linha.criadas_na_janela == 0 and @linha.fechadas_na_janela == 0}
+        />
+        <.fluxo_grafico
+          numero="3"
+          titulo="at what pace"
+          subtitulo="the delivered bars of 2, read as a pace"
+          serie={Enum.map(@linha.serie, & &1.fechadas)}
+          rotulos={Enum.map(@linha.serie, & &1.periodo)}
+          derivado?={false}
+          vazio_quando={@linha.fechadas_na_janela == 0}
+          nota="These are the same numbers as chart 2, read against time instead of against what was opened. Both were asked for by name, and the redundancy is named rather than hidden."
+        />
+        <.fluxo_previsao_grafico previsao={FlowPerPerson.previsao(@linha)} />
+      </div>
+    </div>
+    """
+  end
+
+  # A composição do número, em três letras — a mesma gramática de conceito do Dashboard.
+  defp fluxo_mistura(tarefas) do
+    tarefas
+    |> Enum.frequencies_by(& &1.conceito)
+    |> Enum.map(fn {conceito, n} -> "#{sigla_do_conceito(conceito)} #{n}" end)
+    |> Enum.sort()
+    |> case do
+      [] -> "no open item in this window"
+      partes -> Enum.join(partes, " · ")
+    end
+  end
+
+  # A SIGLA do conceito, em texto. Nome próprio porque `marca_do_conceito/1` já existe neste
+  # módulo e é o COMPONENTE que desenha o selo — mesma aridade, e o Elixir funde as cláusulas
+  # num só `defp` se os nomes coincidirem. Aqui o que se quer é a sigla para compor a mistura
+  # numa frase, e não o selo.
+  # AUSÊNCIA TEM NOME. Item sem tipo declarado na origem chega com `conceito` nulo, e
+  # `String.split(nil, ".")` levantava — a tela morria no bloco de quem tivesse um. E chamá-lo
+  # de TASK seria pior que o erro: afirmaria uma promoção que ninguém fez.
+  defp sigla_do_conceito(nil), do: "no type"
+
+  defp sigla_do_conceito("sro.intended_scrum_development_task"), do: "TASK"
+  defp sigla_do_conceito("sro.atomic_user_story"), do: "US"
+  defp sigla_do_conceito("sro.epic"), do: "EPIC"
+  defp sigla_do_conceito("sro.bug"), do: "BUG"
+  defp sigla_do_conceito(outro), do: outro |> String.split(".") |> List.last() |> String.upcase()
+
+  # §3.6, item 19 — GRÁFICO VAZIO É DESENHADO, nunca deixado em branco.
+  #
+  # Área em branco é lida como "a tela quebrou"; eixos com a frase dentro são lidos como
+  # "conferido, nada aqui". São duas afirmações diferentes, e a segunda é a verdadeira.
+  attr :numero, :string, required: true
+  attr :titulo, :string, required: true
+  attr :subtitulo, :string, required: true
+  attr :serie, :list, required: true
+  attr :serie_b, :list, default: nil
+  attr :rotulos, :list, required: true
+  attr :derivado?, :boolean, required: true
+  attr :vazio_quando, :boolean, required: true
+  attr :nota, :string, default: nil
+
+  defp fluxo_grafico(assigns) do
+    assigns = assign(assigns, :maximo, Enum.max([1 | assigns.serie ++ (assigns.serie_b || [])]))
+
+    ~H"""
+    <div class={[
+      "card border bg-base-100 p-3",
+      @derivado? && "border-dashed",
+      !@derivado? && "border-base-300"
+    ]}>
+      <p class="font-mono text-[11px] uppercase tracking-wide">
+        <span class="opacity-50">{@numero}</span> {@titulo}
+      </p>
+      <p class="font-mono text-[10px] opacity-60">{@subtitulo}</p>
+
+      <%!-- O VAZIO, desenhado: eixos, escala e a frase na própria área de plotagem. --%>
+      <div :if={@vazio_quando} class="mt-2 rounded border border-dashed border-base-300 p-4">
+        <p class="text-center font-serif text-xs opacity-70">
+          nothing in this window — checked, and there was none
+        </p>
+        <p class="mt-1 text-center font-mono text-[10px] opacity-50">
+          {List.first(@rotulos) || "—"} → {List.last(@rotulos) || "—"} · scale 0–{@maximo}
+        </p>
+      </div>
+
+      <div :if={!@vazio_quando} class="mt-2">
+        <div class="flex h-16 items-end gap-px" aria-hidden="true">
+          <div :for={{v, i} <- Enum.with_index(@serie)} class="flex-1">
+            <div
+              :if={@serie_b}
+              class="w-full bg-base-content/25"
+              style={"height: #{trunc(Enum.at(@serie_b, i, 0) / @maximo * 40)}px"}
+            >
+            </div>
+            <div class="w-full bg-primary" style={"height: #{trunc(v / @maximo * 40)}px"}></div>
+          </div>
+        </div>
+        <p class="mt-1 font-mono text-[10px] tabular-nums opacity-60">
+          {List.first(@rotulos)} → {List.last(@rotulos)} · scale 0–{@maximo}
+        </p>
+      </div>
+
+      <p :if={@nota} class="mt-2 font-serif text-[11px] opacity-70">{@nota}</p>
+    </div>
+    """
+  end
+
+  # §3.6, item 20 — o quarto gráfico: DERIVADO, com o cartão tracejado.
+  #
+  # E a recusa traz os quatro números, a frase de que é lacuna do REGISTRO e não afirmação
+  # sobre a pessoa, e a proibição de emprestar a história da equipe.
+  defp fluxo_previsao_grafico(%{previsao: {:ok, p}} = assigns) do
+    assigns = assign(assigns, :p, p)
+
+    ~H"""
+    <div class="card border border-dashed border-base-300 bg-base-100 p-3">
+      <p class="font-mono text-[11px] uppercase tracking-wide">
+        <span class="opacity-50">4</span> what the pace implies
+      </p>
+      <p class="font-mono text-[10px] opacity-60">
+        derived — Monte Carlo over this person's own history
+      </p>
+      <p class="mt-2 font-mono text-sm tabular-nums">p50 {@p.p50} wk</p>
+      <p class="font-mono text-[11px] opacity-70">
+        {if @p[:p85], do: "p85 #{@p.p85} wk", else: "no p85"}
+      </p>
+      <p class="mt-2 font-serif text-[11px] opacity-70">
+        A range, and never a promised date.
+      </p>
+    </div>
+    """
+  end
+
+  defp fluxo_previsao_grafico(%{previsao: {:nada_a_prever, _}} = assigns) do
+    ~H"""
+    <div class="card border border-dashed border-base-300 bg-base-100 p-3">
+      <p class="font-mono text-[11px] uppercase tracking-wide">
+        <span class="opacity-50">4</span> what the pace implies
+      </p>
+      <p class="mt-2 font-mono text-[11px] opacity-70">nothing to forecast</p>
+      <p class="mt-1 font-serif text-[11px] opacity-70">
+        This person has no open item. <strong>The floor is not the reason here</strong> — there
+        is nothing to finish, and saying “below the floor” would blame the method for an absence
+        of work.
+      </p>
+    </div>
+    """
+  end
+
+  defp fluxo_previsao_grafico(%{previsao: {:sem_historico, f}} = assigns) do
+    assigns = assign(assigns, :f, f)
+
+    ~H"""
+    <div class="card border border-dashed border-base-300 bg-base-100 p-3">
+      <p class="font-mono text-[11px] uppercase tracking-wide">
+        <span class="opacity-50">4</span> what the pace implies
+      </p>
+      <p class="mt-2 font-mono text-[11px] opacity-70">no forecast · below the floor</p>
+      <p class="font-mono text-[11px] tabular-nums opacity-60">
+        history {@f.semanas} of {@f.semanas_exigidas}
+        {if @f.semanas >= @f.semanas_exigidas, do: "met", else: "short"} · closed {@f.fechadas} of {@f.fechadas_exigidas}
+        {if @f.fechadas >= @f.fechadas_exigidas, do: "met", else: "short"}
+      </p>
+      <p class="mt-2 font-serif text-[11px] opacity-70">
+        This is a <strong>gap in the observed record, never a statement about the person</strong>.
+        The team's history is <strong>not</strong>
+        borrowed to fill it: a pace that is not hers
+        would be attributed to her. And the question the floor blocks is about
+        <strong>the work</strong>
+        — when these items finish —, not about who is carrying them.
+      </p>
+    </div>
+    """
+  end
+
+  # §3.7 — O BLOCO DE DUAS PESSOAS: quatro linhas de duas colunas, abaixo da tabela.
+  #
+  # Abrir a segunda **tira as duas das linhas**: lado a lado dentro da tabela, cada par ficaria
+  # com metade da largura de uma célula, e os quatro gráficos de cada uma não caberiam em nada
+  # legível. Fora dela, cada medida ganha uma linha e cada pessoa uma coluna — e a comparação
+  # passa a ser entre a mesma medida, que é a única comparação que esta tela admite.
+  #
+  # **Cada gráfico mantém a SUA escala**, rotulada. Escala comum acharia a comparação mais
+  # honesta e seria o contrário: quem tem 3 itens e quem tem 40 apareceriam na mesma altura ou
+  # uma delas sumiria. A linha diz o que se compara — **as formas, e não as alturas**.
+  defp fluxo_par(assigns) do
+    ~H"""
+    <div class="card border border-base-300 bg-base-200 p-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 class="text-sm font-semibold">
+          {@a.membro.name} <span class="opacity-50">×</span> {@b.membro.name}
+        </h3>
+        <p class="font-mono text-[11px] opacity-60">
+          {data_curta(@janela.desde)} → {data_curta(@janela.ate)} · same window for both
+        </p>
+      </div>
+
+      <p class="mt-1 max-w-3xl font-serif text-xs opacity-80">
+        <strong>Each chart keeps its own scale, and the scale is labelled.</strong>
+        A shared scale would look fairer and be the opposite: the person with three items and
+        the person with forty would read at the same height, or one of them would vanish.
+        <strong>The shapes compare; the heights do not.</strong>
+      </p>
+
+      <div class="mt-3 space-y-3">
+        <.fluxo_par_linha
+          numero="1"
+          titulo="what is there"
+          a={@a}
+          b={@b}
+          serie={fn l -> Enum.map(l.abertos, & &1.aberto) end}
+        />
+        <.fluxo_par_linha
+          numero="2"
+          titulo="what came in and went out"
+          a={@a}
+          b={@b}
+          serie={fn l -> Enum.map(l.serie, & &1.criadas) end}
+          serie_b={fn l -> Enum.map(l.serie, & &1.fechadas) end}
+        />
+        <.fluxo_par_linha
+          numero="3"
+          titulo="at what pace"
+          a={@a}
+          b={@b}
+          serie={fn l -> Enum.map(l.serie, & &1.fechadas) end}
+          nota="These are the `delivered` bars of row 2, read as a pace. No average and no median per person is drawn anywhere — a single number per person is the productivity figure this platform does not hold."
+        />
+
+        <div>
+          <p class="font-mono text-[11px] uppercase tracking-wide">
+            <span class="opacity-50">4</span> what the pace implies
+          </p>
+          <div class="mt-1 grid gap-3 md:grid-cols-2">
+            <.fluxo_previsao_grafico previsao={FlowPerPerson.previsao(@a.linha)} />
+            <.fluxo_previsao_grafico previsao={FlowPerPerson.previsao(@b.linha)} />
+          </div>
+        </div>
+      </div>
+
+      <%!-- §3.7, item 24 — POR QUE DUAS, e o que o teto NÃO é. A segunda frase existe porque a
+            razão de custo que o protótipo trazia deixou de ser verdadeira: medi em 2026-09-10 e
+            abrir pessoas não acrescenta consulta nenhuma. --%>
+      <div class="mt-4 rounded border border-base-300 p-3 text-xs">
+        <p class="font-mono uppercase tracking-wide opacity-60">
+          why two, and why the pair leaves the table
+        </p>
+        <p class="mt-1 max-w-3xl font-serif">
+          Two charts abreast carry an eight-point series with its axis labels; three would be
+          about 19 rem each, and <strong>three scales is a gallery, not a comparison</strong>.
+          And the pair leaves the table because inside it each chart would get half a cell.
+        </p>
+        <p class="mt-1 max-w-3xl font-serif opacity-70">
+          <strong>The ceiling is legibility, and it is not cost.</strong>
+          Measured on 10 Sep: the whole tab costs five queries for 31 members, and opening a
+          person costs <strong>no extra query at all</strong>
+          — the four charts come from what
+          the table already loaded.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  attr :numero, :string, required: true
+  attr :titulo, :string, required: true
+  attr :a, :map, required: true
+  attr :b, :map, required: true
+  attr :serie, :any, required: true
+  attr :serie_b, :any, default: nil
+  attr :nota, :string, default: nil
+
+  defp fluxo_par_linha(assigns) do
+    ~H"""
+    <div>
+      <p class="font-mono text-[11px] uppercase tracking-wide">
+        <span class="opacity-50">{@numero}</span> {@titulo}
+      </p>
+      <div class="mt-1 grid gap-3 md:grid-cols-2">
+        <.fluxo_grafico
+          :for={lado <- [@a, @b]}
+          numero=""
+          titulo={lado.membro.name}
+          subtitulo="its own scale"
+          serie={@serie.(lado.linha)}
+          serie_b={@serie_b && @serie_b.(lado.linha)}
+          rotulos={Enum.map(lado.linha.serie, & &1.periodo)}
+          derivado?={false}
+          vazio_quando={Enum.all?(@serie.(lado.linha), &(&1 == 0))}
+        />
+      </div>
+      <p :if={@nota} class="mt-1 font-serif text-[11px] opacity-70">{@nota}</p>
+    </div>
+    """
+  end
+
+  # §3.8 — AS TRÊS AUSÊNCIAS, e elas não são a mesma ausência.
+  #
+  # Três cartões, cada um com o tratamento renderizado ao lado da explicação: ler *"pessoa sem
+  # nada observado"* e *"pessoa com itens e nenhum aberto agora"* como a mesma coisa é o que faz
+  # uma tela dizer zero onde devia dizer *não sei*.
+  defp fluxo_ausencias(assigns) do
+    ~H"""
+    <div class="space-y-2">
+      <h3 class="text-sm font-semibold">The three absences, and they are not the same absence</h3>
+
+      <div class="grid gap-3 md:grid-cols-3">
+        <div class="card border border-dashed border-base-300 bg-base-200 p-3">
+          <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+            nothing observed for this person
+          </p>
+          <p class="mt-1 font-mono text-[11px] opacity-70">none opened · none closed</p>
+          <p class="mt-2 font-serif text-xs">
+            The collection found no item assigned to her in this window. <strong>The row
+            stays</strong> — a person who disappears from the table is a person nobody asks
+            about.
+          </p>
+          <p class="mt-1 font-serif text-xs opacity-70">
+            Different from the neighbour case: someone with items and <strong>none open
+            now</strong> reads <span class="font-mono">0</span> in <em>open now</em> and a
+            number in <em>closed</em>. One is silence; the other is work that finished.
+          </p>
+        </div>
+
+        <div class="card border border-dashed border-base-300 bg-base-200 p-3">
+          <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+            below the floor
+          </p>
+          <p class="mt-1 font-mono text-[11px] opacity-70">
+            history a of {Forecast.piso().periodos} · closed b of {Forecast.piso().fechadas}
+          </p>
+          <p class="mt-2 font-serif text-xs">
+            <strong>Two distinct blocking modes, shown side by side</strong>: <em>history
+            short</em> and <em>closed short</em>. One can be met while the other is not, and a
+            single “below the floor” would hide which.
+          </p>
+          <p class="mt-1 font-serif text-xs opacity-70">
+            It is a gap in the observed record, <strong>never a statement about the
+            person</strong>.
+          </p>
+        </div>
+
+        <div class="card border border-dashed border-base-300 bg-base-200 p-3">
+          <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+            the routing rule did not classify it
+          </p>
+          <p class="mt-1 font-mono text-[11px] opacity-70">no type</p>
+          <p class="mt-2 font-serif text-xs">
+            The item exists and its concept was not declared at the source. It appears <strong>inside the count it belongs to</strong>, with its own word — never in a
+            footnote, and never renamed to the most common type.
+          </p>
+          <p class="mt-1 font-serif text-xs opacity-70">
+            Calling it <span class="font-mono">TASK</span> would assert a promotion nobody made.
+          </p>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp fluxo_legenda(assigns) do
+    ~H"""
+    <div class="rounded border border-base-300 p-3 text-xs">
+      <dl class="grid gap-x-6 gap-y-2 md:grid-cols-2">
+        <div class="flex gap-2">
+          <dt class="shrink-0 font-mono">none opened / none closed</dt>
+          <dd class="opacity-70">written absence, never a mute zero: it says the window was
+            checked and nothing happened in it.</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="shrink-0 font-mono">nothing to forecast</dt>
+          <dd class="opacity-70">the person has no open item. <strong>The floor is not the
+            reason here</strong> — saying “below the floor” would blame the method for an
+            absence of work.</dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="shrink-0 font-mono">history a of 6 · closed b of 10</dt>
+          <dd class="opacity-70">
+            two distinct blocking modes — <em>met</em>
+            and <em>short</em>
+            carry the difference, and one can be met while the other is not.
+          </dd>
+        </div>
+        <div class="flex gap-2">
+          <dt class="shrink-0 font-mono">role not declared</dt>
+          <dd class="opacity-70">the person is in the team and the role was never declared. The
+            row stays: absence is named, never removed.</dd>
+        </div>
+      </dl>
+    </div>
+    """
+  end
+
   defp data_curta(nil), do: "—"
   defp data_curta(%DateTime{} = d), do: Calendar.strftime(d, "%d %b %Y")
   defp data_curta(%Date{} = d), do: Calendar.strftime(d, "%d %b %Y")
@@ -3273,6 +4202,19 @@ defmodule TheBandWeb.TeamsLive.Show do
         >
           Structure
         </.link>
+        <%!-- A TERCEIRA ABA — feature 060, protótipo aprovado em 2026-09-08.
+              `people` no MESMO parâmetro das outras duas, e sem rota nova: a aba é um recorte
+              da mesma equipe, e rota própria faria parecer outra coisa. O rótulo nomeia o que
+              ela RESPONDE — "Flow per person" —, e não a família da medida: "Metrics" diria
+              onde o número mora, e não o que ele decide. --%>
+        <.link
+          patch={~p"/teams/#{@team.id}?tab=people"}
+          role="tab"
+          aria-selected={if @aba == :people, do: "true", else: "false"}
+          class={["tab", @aba == :people && "tab-active"]}
+        >
+          Flow per person
+        </.link>
       </nav>
 
       <div :if={@aba == :dashboard} class="space-y-4">
@@ -3508,6 +4450,47 @@ defmodule TheBandWeb.TeamsLive.Show do
             habilidades={Profiles.team_skills_by_person(@cobertura)}
           />
         </div>
+      </div>
+
+      <%!-- ═══ FLOW PER PERSON — a terceira aba, protótipo aprovado em 2026-09-08 ═══ --%>
+      <div :if={@aba == :people} class="space-y-4">
+        <.fluxo_cabecalho
+          team={@team}
+          membros={@fluxo_membros}
+          janela={@fluxo_janela}
+          granulacao={@granulacao}
+        />
+
+        <.fluxo_leia_antes />
+
+        <%!-- A CONTAGEM DA PREVISÃO, acima da tabela e presente INCLUSIVE quando é 0 de N.
+              "produced for 0 of 5" diz que se conferiu; a linha ausente não diz nada. E o
+              piso é do MÉTODO, nunca das pessoas abaixo dele. --%>
+        <p class="font-serif text-sm">
+          <span class="font-mono tabular-nums">
+            Delivery forecast produced for {elem(@fluxo_previsao, 0)} of {elem(
+              @fluxo_previsao,
+              1
+            )} people
+          </span>
+          in this window.
+          <span class="opacity-70">
+            The floor belongs to the method — {Forecast.piso().periodos} periods of history and {Forecast.piso().fechadas} closed items — and never to the people below it.
+          </span>
+        </p>
+
+        <.fluxo_tabela
+          membros={@fluxo_membros}
+          linhas={@fluxo_linhas}
+          tarefas={@fluxo_tarefas}
+          janela={@fluxo_janela}
+          abertas={@fluxo_abertas}
+          terceira={@fluxo_terceira}
+        />
+
+        <.fluxo_legenda />
+
+        <.fluxo_ausencias />
       </div>
 
       <div :if={@aba == :structure} class="space-y-4">
