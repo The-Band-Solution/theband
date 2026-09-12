@@ -86,6 +86,28 @@ O que isto acrescenta ao item, e **nada disto o ensaio local resolve**:
 | **retenção declarada** | quantas cópias, por quanto tempo, e o que acontece quando o host encher |
 | **o caminho de volta do próprio destino** | se o host de backup morrer, o que se perde e o que se faz |
 
+### A chave mestra NÃO viaja no dump — medido em 2026-09-12
+
+A pergunta que mais pesa num destino de backup: se o dump vaza, o que dá para ler?
+
+| conferido | resultado |
+|---|---|
+| `tool_credentials.secret` | **`bytea`** — 86 bytes opacos, sem prefixo legível e **sem marca de token em claro** (`ghp_`, `github_pat_`) |
+| alguma tabela guarda a chave mestra? | **nenhuma.** A consulta por coluna `%master%` ou `%vault%` em todo o schema devolveu **zero** |
+| onde a chave vive | só no ambiente — `THE_BAND_MASTER_KEY`, lida em `config/runtime.exs:14` |
+
+**O dump carrega texto cifrado, e a chave fica fora dele.** É o caso bom, e ele **endurece um
+requisito em vez de relaxar**:
+
+> **A chave mestra não pode estar no host de backup.** Enquanto ela viver só no Dokploy da
+> produção, um comprometimento do destino entrega dados pessoais e hashes — mas **não** as
+> credenciais de ferramenta. Pôr a chave lá, por conveniência de restauração, apagaria
+> exatamente a proteção que esta medição encontrou.
+
+E o que o dump **entrega mesmo cifrado** continua sendo muito: contas, `password_hash`,
+`session_token`, o elo conta↔pessoa e os escopos de acesso. Cifra de credencial não é cifra do
+banco.
+
 ### A pergunta que a decisão deixa aberta, e é de topologia
 
 *Segundo host* tem leitura **fraca** e **forte**:
