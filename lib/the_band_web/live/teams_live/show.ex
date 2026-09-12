@@ -14,6 +14,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Forecast
   alias TheBand.Mapping.Antipatterns
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.EO.VinculoPossivel
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
@@ -541,6 +542,93 @@ defmodule TheBandWeb.TeamsLive.Show do
     {:noreply, assign(socket, fluxo_terceira: nil)}
   end
 
+  # ── VINCULAR UMA PESSOA A ESTA EQUIPE — FR-003, protótipo aprovado em 2026-09-11 ──
+  #
+  # O ato existia no domínio desde a 055 e **nunca teve tela**: `declare_team_membership/5`
+  # tinha `@spec`, `@doc` e onze testes, e zero chamadas em `lib/`. A saída era declarável e a
+  # entrada não — e quem a origem não mostra não entrava em equipe nenhuma pela interface, que
+  # é exatamente o caso para o qual a FR-003 existe.
+  def handle_event("abrir_vinculo", _params, socket) do
+    {:noreply, assign(socket, vinculo: %{q: "", resultados: [], vereditos: %{}, escolhida: nil})}
+  end
+
+  def handle_event("fechar_vinculo", _params, socket) do
+    {:noreply, assign(socket, vinculo: nil)}
+  end
+
+  # A BUSCA roda no evento da digitação, e traz o VEREDITO junto — o protótipo decidiu que ele
+  # vem **antes** do botão, e não depois do clique. Duas consultas para até oito resultados;
+  # uma por resultado custaria oito idas ao banco por tecla.
+  def handle_event("buscar_para_vincular", %{"q" => q}, socket) do
+    tenant = socket.assigns.current_tenant
+    team = socket.assigns.team
+
+    {resultados, vereditos} =
+      if String.trim(q) == "" do
+        {[], %{}}
+      else
+        pessoas = EO.list_people(tenant, search: q, limit: 8)
+        {pessoas, VinculoPossivel.vereditos(tenant, team.id, pessoas)}
+      end
+
+    {:noreply,
+     assign(socket,
+       vinculo: %{socket.assigns.vinculo | q: q, resultados: resultados, vereditos: vereditos}
+     )}
+  end
+
+  def handle_event("escolher_para_vincular", %{"person-id" => id}, socket) do
+    escolhida = Enum.find(socket.assigns.vinculo.resultados, &(&1.id == id))
+    {:noreply, assign(socket, vinculo: %{socket.assigns.vinculo | escolhida: escolhida})}
+  end
+
+  def handle_event("trocar_pessoa_do_vinculo", _params, socket) do
+    {:noreply, assign(socket, vinculo: %{socket.assigns.vinculo | escolhida: nil})}
+  end
+
+  # O PAPEL É OBRIGATÓRIO, e a data NÃO. A razão do papel não é de formulário: um vínculo
+  # vigente sem papel e sem origem é a única forma que a plataforma não distingue do
+  # observado — e o índice parcial `eo_team_memberships_observado_vigente_index` prova o
+  # custo, porque ele OCUPA a vaga que a coleta precisa para materializar a observação depois.
+  #
+  # Data em branco fica **desconhecida**, e nunca vira hoje: preenchê-la afirmaria um começo
+  # que ninguém declarou.
+  def handle_event("declarar_vinculo", %{"role_id" => papel} = params, socket) do
+    com_gestao(socket, fn ->
+      escolhida = socket.assigns.vinculo.escolhida
+
+      attrs = %{
+        organizational_role_id: papel_ou_nil(papel),
+        started_at: data_ou_nil(Map.get(params, "since"))
+      }
+
+      case EO.declare_team_membership(
+             socket.assigns.current_tenant,
+             socket.assigns.team.id,
+             escolhida.id,
+             attrs,
+             socket.assigns.current_user.id
+           ) do
+        {:ok, _} ->
+          socket
+          |> put_flash(
+            :info,
+            dgettext("sistema", "%{nome} is now linked to this team.",
+              nome: escolhida.name || escolhida.login
+            )
+          )
+          |> assign(vinculo: nil)
+          |> recarregar()
+
+        {:error, motivo} when is_binary(motivo) ->
+          put_flash(socket, :error, motivo)
+      end
+    end)
+  end
+
+  defp papel_ou_nil(""), do: nil
+  defp papel_ou_nil(id), do: id
+
   defp papel_do_formulario(_socket, %{"papel" => ""}),
     do:
       {:error,
@@ -977,6 +1065,7 @@ defmodule TheBandWeb.TeamsLive.Show do
     |> assign(encontradas: EO.count_team_roster(tenant, team.id, opts))
     |> carregar_promocao()
     |> carregar_papeis_da_organizacao()
+    |> assign_new(:vinculo, fn -> nil end)
   end
 
   # A ABA *FLOW PER PERSON* — feature 060, protótipo aprovado em 2026-09-08.
@@ -1925,6 +2014,334 @@ defmodule TheBandWeb.TeamsLive.Show do
             row stays: absence is named, never removed.</dd>
         </div>
       </dl>
+    </div>
+    """
+  end
+
+  # ── §3.4/§3.5 — VINCULAR UMA PESSOA A ESTA EQUIPE ──
+  #
+  # Seção própria, entre *Roles* e *Members*, e a razão é o sujeito do ato: **quem não está na
+  # lista**. Não há linha onde o ato pudesse morar, e as seis recusas não caberiam num popover
+  # de cabeçalho. A seção que acrescenta fica imediatamente acima da lista que ela muda.
+  defp vincular_secao(assigns) do
+    ~H"""
+    <section class="card border border-base-300 bg-base-200 p-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <div>
+          <h2 class="text-sm font-semibold">Link a person to this team</h2>
+          <p class="font-mono text-[11px] opacity-60">
+            for someone the source does not show
+          </p>
+        </div>
+        <button :if={!@vinculo} phx-click="abrir_vinculo" class="btn btn-primary btn-sm">
+          ＋ Link a person…
+        </button>
+        <button :if={@vinculo} phx-click="fechar_vinculo" class="btn btn-ghost btn-sm">
+          close
+        </button>
+      </div>
+
+      <p class="mt-2 max-w-3xl font-serif text-xs opacity-80">
+        A person the collection already saw, but who has no link here. The act has
+        <strong>no row to live in</strong>
+        — that is why it has a section of its own, and why
+        it sits right above the list it changes.
+      </p>
+
+      <div :if={@vinculo} class="mt-3 space-y-3">
+        <%!-- PASSO 1 — a busca. O escopo e o que ela NÃO faz ficam escritos: a tela não cria
+              pessoa, e não achar alguém não é erro. --%>
+        <div>
+          <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+            step 1 · find the person
+          </p>
+          <form phx-change="buscar_para_vincular" phx-submit="buscar_para_vincular" class="mt-1">
+            <input
+              type="text"
+              name="q"
+              value={@vinculo.q}
+              placeholder="name or GitHub login…"
+              aria-label="Search collected people by name or GitHub login"
+              phx-debounce="300"
+              autocomplete="off"
+              class="input input-bordered input-sm w-full max-w-md"
+            />
+          </form>
+          <p class="mt-1 font-serif text-[11px] opacity-70">
+            Searches the <strong>people already collected</strong> for this organisation, by
+            name or GitHub login. This screen <strong>does not create a person</strong> — a
+            person exists because a collection saw them, and not finding someone <strong>is not an error</strong>.
+          </p>
+        </div>
+
+        <.vincular_resultados :if={@vinculo.q != ""} vinculo={@vinculo} />
+
+        <%!-- PASSO 2 — o formulário, que só abre com a pessoa escolhida. --%>
+        <.vincular_formulario :if={@vinculo.escolhida} vinculo={@vinculo} papeis={@papeis} />
+      </div>
+    </section>
+    """
+  end
+
+  # §3.5 — cada resultado em três colunas: quem, o que ela já tem, e o VEREDITO.
+  #
+  # O veredito vem **antes** do botão, e não depois do clique: duas das seis situações seriam
+  # erro na cara de quem clica, e uma terceira é pior — vínculo direto numa equipe composta
+  # **não muda a contagem de membros**, e descobrir isso depois é ver o número não mexer sem
+  # saber por quê.
+  defp vincular_resultados(assigns) do
+    ~H"""
+    <div>
+      <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+        Results for “{@vinculo.q}” · {length(@vinculo.resultados)} shown · at most 8
+      </p>
+
+      <%!-- A BUSCA VAZIA NÃO É ERRO, e por isso não leva vermelho: diz o que faria achar
+            alguém. --%>
+      <div
+        :if={@vinculo.resultados == []}
+        class="mt-1 rounded border border-dashed border-base-300 p-3"
+      >
+        <p class="font-serif text-xs">
+          No collected person matches “{@vinculo.q}”.
+        </p>
+        <p class="mt-1 font-serif text-[11px] opacity-70">
+          What would make the search find someone: a collection that reaches the tool where
+          this person works, or the account link in <span class="font-mono">/accounts</span>.
+          <strong>An empty result is not an error</strong>
+          — the person may simply not have
+          been collected yet.
+        </p>
+      </div>
+
+      <ul class="mt-1 space-y-2">
+        <li :for={p <- @vinculo.resultados} class="rounded border border-base-300 p-2">
+          <div class="grid gap-2 md:grid-cols-3">
+            <div>
+              <p class="text-sm font-semibold">{p.name}</p>
+              <p class="font-mono text-[11px] opacity-60">{p.login}</p>
+              <p :if={p.no_longer_observed_at} class="font-mono text-[11px] text-warning">
+                no longer observed
+              </p>
+            </div>
+            <.vincular_veredito veredito={@vinculo.vereditos[p.id]} pessoa={p} />
+          </div>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+  # OS SEIS VEREDITOS, cada um com o seu texto, o seu ato e a sua consequência.
+  defp vincular_veredito(%{veredito: {:recusado_ja_e_membro, ctx}} = assigns) do
+    assigns = assign(assigns, :ctx, ctx)
+
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-error align-middle"></span> link refused
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <button type="button" disabled class="btn btn-outline btn-dash btn-xs">
+          Link to this team
+        </button>
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          She is <strong>already a member</strong>
+          of this team. What is missing is the <strong>role</strong>
+          — declaring it completes <em>that</em>
+          link, and does not create
+          a second one.
+        </p>
+      </div>
+      <button
+        :if={!@ctx.papel_declarado?}
+        phx-click="abrir_papel"
+        phx-value-person-id={@pessoa.id}
+        class="btn btn-primary btn-xs mt-1"
+      >
+        Declare her role ↓
+      </button>
+    </div>
+    """
+  end
+
+  defp vincular_veredito(%{veredito: {:permitido_fato_diferente, ctx}} = assigns) do
+    assigns = assign(assigns, :ctx, ctx)
+
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-warning align-middle"></span>
+        allowed — a different fact
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <.vincular_botao pessoa={@pessoa} rotulo="Link directly anyway" />
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          She is in {Enum.join(@ctx.squads, ", ")}, which is part of this team. Direct and
+          via-squad are <strong>different statements</strong>
+          — and <strong>the member count does not change</strong>, because she was already counted
+          through the squad.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp vincular_veredito(%{veredito: {:permitido_vinculo_novo, _}} = assigns) do
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-primary align-middle"></span>
+        link allowed — a new link
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <.vincular_botao pessoa={@pessoa} rotulo="Link to this team" />
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          She was here and <strong>left</strong>. This creates a <strong>new</strong> link; the
+          two periods coexist, and nothing already counted changes.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp vincular_veredito(%{veredito: {:permitido_equivoco_fica, _}} = assigns) do
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-error/60 align-middle"></span>
+        link allowed — the mistake stays
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <.vincular_botao pessoa={@pessoa} rotulo="Link to this team" />
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          A link here was recorded as a <strong>mistake</strong>. The new link does not erase it
+          and does not contradict it — <em>mistake</em> and <em>departure</em> never collapse
+          into one.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp vincular_veredito(%{veredito: {:permitido_leia_a_marca, ctx}} = assigns) do
+    assigns = assign(assigns, :ctx, ctx)
+
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-warning align-middle"></span>
+        allowed — read the mark first
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <.vincular_botao pessoa={@pessoa} rotulo="Link to this team" />
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          The source <strong>stopped showing</strong> this person ({data_curta(@ctx.desde)}).
+          Nothing will confirm or end this link — it is legitimate, and it is <strong>the case FR-003 exists for</strong>.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp vincular_veredito(assigns) do
+    ~H"""
+    <div class="md:col-span-2">
+      <p class="font-mono text-[11px]">
+        <span class="mr-1 inline-block size-2.5 rounded-sm bg-primary align-middle"></span>
+        link allowed
+      </p>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <.vincular_botao pessoa={@pessoa} rotulo="Link to this team" />
+        <p class="max-w-md font-serif text-[11px] opacity-70">
+          A person can be in more than one team, and the counts <strong>do not add up across teams</strong>.
+        </p>
+      </div>
+    </div>
+    """
+  end
+
+  defp vincular_botao(assigns) do
+    ~H"""
+    <button
+      phx-click="escolher_para_vincular"
+      phx-value-person-id={@pessoa.id}
+      class="btn btn-primary btn-xs"
+    >
+      {@rotulo}
+    </button>
+    """
+  end
+
+  # §3.5, passo 2 — o formulário. Papel OBRIGATÓRIO, data OPCIONAL.
+  defp vincular_formulario(assigns) do
+    ~H"""
+    <div class="rounded border border-primary p-3">
+      <p class="font-mono text-[11px] uppercase tracking-wide opacity-60">
+        step 2 · declare the link
+      </p>
+
+      <form phx-submit="declarar_vinculo" class="mt-2 space-y-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[13px] font-semibold">person</span>
+          <span class="text-sm">{@vinculo.escolhida.name}</span>
+          <span class="font-mono text-[11px] opacity-60">{@vinculo.escolhida.login}</span>
+          <button type="button" phx-click="trocar_pessoa_do_vinculo" class="btn btn-ghost btn-xs">
+            change
+          </button>
+        </div>
+
+        <%!-- O PAPEL É OBRIGATÓRIO, e a razão não é de formulário: um vínculo vigente sem
+              papel e sem origem é a única forma que a plataforma não distingue do observado —
+              e ele OCUPA a vaga do índice parcial que a coleta precisa para materializar a
+              observação depois. --%>
+        <label class="flex flex-col gap-1">
+          <span class="text-[13px] font-semibold">
+            role in this team <span class="font-mono text-xs opacity-60">— required</span>
+          </span>
+          <select name="role_id" required class="select select-bordered select-sm max-w-xs">
+            <option value="">choose a role…</option>
+            <option :for={papel <- @papeis} value={papel.id}>{papel.name}</option>
+          </select>
+          <span class="font-serif text-[11px] opacity-70">
+            A link with no role is the one shape the platform cannot tell apart from an
+            observed one — and it would take the slot the collection needs later.
+          </span>
+        </label>
+
+        <label class="flex flex-col gap-1">
+          <span class="text-[13px] font-semibold">
+            member since
+            <span class="font-mono text-xs opacity-60">— optional · empty = start unknown</span>
+          </span>
+          <input type="date" name="since" class="input input-bordered input-sm max-w-xs" />
+          <span class="font-serif text-[11px] opacity-70">
+            Left empty, the start stays <strong>unknown</strong>. It is <strong>never filled with today</strong>: that would assert a beginning nobody
+            declared.
+          </span>
+        </label>
+
+        <div class="rounded border border-base-300 p-2 text-[11px]">
+          <p class="font-mono uppercase tracking-wide opacity-60">what this creates</p>
+          <p class="mt-1 font-serif">
+            A <strong>current link</strong>, with <strong>your name</strong> and today's date as
+            the declaration — the link's own start is the date above, or unknown.
+          </p>
+          <p class="mt-1 font-serif opacity-70">
+            <strong>What it does not do</strong>: it changes nothing at the source, it does not
+            confirm any evidence, and it does not become an observed link. The collection may
+            later see this person here — and that will be a <em>second</em> fact, recorded
+            beside this one.
+          </p>
+        </div>
+
+        <div class="flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm">Declare the link</button>
+          <button type="button" phx-click="fechar_vinculo" class="btn btn-ghost btn-sm">
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
     """
   end
@@ -4930,6 +5347,11 @@ defmodule TheBandWeb.TeamsLive.Show do
             <button type="submit" class="btn btn-sm">＋ New role</button>
           </form>
         </section>
+
+        <%!-- ═══ VINCULAR UMA PESSOA A ESTA EQUIPE — FR-003 ═══
+              Entre *Roles* e *Members*, e a razão é o sujeito do ato: quem NÃO está na lista.
+              Acima da lista que ela muda, e abaixo dos papéis que o formulário oferece. --%>
+        <.vincular_secao vinculo={@vinculo} papeis={@papeis_da_organizacao} />
 
         <%!-- ═══ DECLARAR OU ALTERAR O PAPEL — T019, FR-015 a FR-018 e FR-034 ═══
               O texto é o do protótipo aprovado em 2026-09-07.
