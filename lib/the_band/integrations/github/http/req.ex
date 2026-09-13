@@ -9,6 +9,8 @@ defmodule TheBand.Integrations.GitHub.HTTP.Req do
 
   @behaviour TheBand.Integrations.GitHub.HTTP
 
+  alias TheBand.Segredo
+
   @impl true
   def post(url, body, token) do
     [
@@ -32,9 +34,16 @@ defmodule TheBand.Integrations.GitHub.HTTP.Req do
     |> normalize()
   end
 
+  # O ÚNICO `expor/1` do caminho do GitHub, e é aqui de propósito: o último instante antes
+  # de o valor virar byte na rede. Todo o resto — `Client`, os coletores, o job — repassa o
+  # `Segredo` fechado, porque binário nu na lista de argumentos foi o que vazou em
+  # 2026-09-04 (ver `TheBand.Segredo`).
+  # SEM padrão `%Segredo{}` aqui: casar a struct fora do módulo quebra a opacidade do tipo,
+  # e o Dialyzer reprova. Quem exige o tipo é `expor/1`, que recusa qualquer outra coisa sem
+  # mostrar o valor recusado.
   defp headers(token) do
     [
-      {"authorization", "Bearer #{token}"},
+      {"authorization", "Bearer " <> Segredo.expor(token)},
       {"accept", "application/vnd.github+json"},
       {"user-agent", "the-band/0.1"},
       # `GraphQL-Features` habilita os campos de tipo de issue usados adiante.

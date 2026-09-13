@@ -8,6 +8,8 @@ defmodule TheBand.DonoDoTokenTest do
   """
   use TheBand.DataCase, async: false
 
+  alias TheBand.Segredo
+
   import Mox
 
   alias TheBand.Repo
@@ -179,7 +181,7 @@ defmodule TheBand.DonoDoTokenTest do
       expect(TheBand.GitHubHTTPMock, :get, fn url, token ->
         assert String.ends_with?(url, "/user"), "o dono do token é quem `/user` devolve"
 
-        assert token == @segredo,
+        assert Segredo.expor(token) == @segredo,
                "a chamada tem de ir com o segredo decifrado — é ele que identifica o dono"
 
         resposta_do_user("octocat")

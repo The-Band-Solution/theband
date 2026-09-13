@@ -9,10 +9,10 @@ defmodule TheBand.Integrations.GitHub.HTTP do
 
   @type response :: %{status: integer(), body: map() | binary(), headers: map()}
 
-  @callback post(url :: String.t(), body :: map(), token :: String.t()) ::
+  @callback post(url :: String.t(), body :: map(), token :: TheBand.Segredo.t()) ::
               {:ok, response()} | {:error, term()}
 
-  @callback get(url :: String.t(), token :: String.t()) ::
+  @callback get(url :: String.t(), token :: TheBand.Segredo.t()) ::
               {:ok, response()} | {:error, term()}
 
   @doc "Implementação configurada. Em teste, o Mox."

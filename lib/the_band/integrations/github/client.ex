@@ -10,6 +10,7 @@ defmodule TheBand.Integrations.GitHub.Client do
 
   alias TheBand.Ingestion.Cota
   alias TheBand.Integrations.GitHub.HTTP
+  alias TheBand.Segredo
 
   @required_scopes ~w(read:org)
 
@@ -20,7 +21,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   zero times — o que é pior que falhar, porque a organização apareceria vazia
   sem que ninguém soubesse por quê.
   """
-  @spec verify_credential(String.t(), String.t()) ::
+  @spec verify_credential(String.t(), Segredo.t()) ::
           {:ok, %{login: String.t(), scopes: [String.t()]}}
           | {:error, :unauthorized | {:missing_scopes, [String.t()]} | term()}
   def verify_credential(instance_url, token) do
@@ -59,7 +60,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   arquivos alterados só existe na REST, e é uma requisição por commit — o que decidiu o
   escopo da coleta (issue #429).
   """
-  @spec commit_files(String.t(), String.t(), String.t(), String.t(), keyword()) ::
+  @spec commit_files(String.t(), Segredo.t(), String.t(), String.t(), keyword()) ::
           {:ok, [map()]} | {:error, term()}
   def commit_files(instance_url, token, repositorio, sha, opcoes \\ []) do
     url = api_base(instance_url) <> "/repos/#{repositorio}/commits/#{sha}"
@@ -80,7 +81,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   `created` aceita o filtro `>=AAAA-MM-DD`, e é o incremental: ao contrário de
   `pullRequests`, aqui a origem filtra por data e não é preciso parar cedo na paginação.
   """
-  @spec workflow_runs(String.t(), String.t(), String.t(), keyword()) ::
+  @spec workflow_runs(String.t(), Segredo.t(), String.t(), keyword()) ::
           {:ok, %{total: integer(), runs: [map()]}} | {:error, term()}
   def workflow_runs(instance_url, token, repositorio, opcoes \\ []) do
     pagina = Keyword.get(opcoes, :page, 1)
@@ -107,7 +108,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   `filter=latest` é deliberado: numa reexecução, o que interessa é a tentativa vigente.
   Trazer todas faria o mesmo job aparecer duas vezes e a contagem de componentes mentir.
   """
-  @spec run_jobs(String.t(), String.t(), String.t(), integer(), keyword()) ::
+  @spec run_jobs(String.t(), Segredo.t(), String.t(), integer(), keyword()) ::
           {:ok, %{total: integer(), jobs: [map()]}} | {:error, term()}
   def run_jobs(instance_url, token, repositorio, run_id, opcoes \\ []) do
     url =
@@ -247,7 +248,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   Devolve também a informação de rate limit, para que quem pagina possa pausar
   **antes** de esgotar a janela.
   """
-  @spec graphql(String.t(), String.t(), String.t(), map(), keyword()) ::
+  @spec graphql(String.t(), Segredo.t(), String.t(), map(), keyword()) ::
           {:ok, %{data: map(), rate_limit: map() | nil}} | {:error, term()}
   def graphql(instance_url, token, query, variables \\ %{}, opcoes \\ []) do
     url = graphql_endpoint(instance_url)
@@ -455,7 +456,7 @@ defmodule TheBand.Integrations.GitHub.Client do
   quando não há gestor (scripts avulsos) ou ele nunca viu o balde. Quando ela própria falha,
   devolve o padrão em vez de levantar: não saber quanto falta não é motivo para desistir.
   """
-  @spec segundos_ate_reabrir(String.t(), String.t(), non_neg_integer()) :: non_neg_integer()
+  @spec segundos_ate_reabrir(String.t(), Segredo.t(), non_neg_integer()) :: non_neg_integer()
   def segundos_ate_reabrir(instance_url, token, padrao \\ 900) do
     case HTTP.impl().get(api_base(instance_url) <> "/rate_limit", token) do
       {:ok, %{status: 200, body: %{"resources" => %{"graphql" => %{"reset" => reset}}}}} ->

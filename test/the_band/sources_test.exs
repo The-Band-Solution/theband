@@ -1,6 +1,8 @@
 defmodule TheBand.SourcesTest do
   use TheBand.DataCase, async: false
 
+  alias TheBand.Segredo
+
   import Mox
 
   alias TheBand.Sources
@@ -12,7 +14,10 @@ defmodule TheBand.SourcesTest do
     test "credencial válida com escopo suficiente conecta e grava" do
       tenant = tenant_fixture()
 
-      expect(TheBand.GitHubHTTPMock, :get, fn _url, "token-valido" ->
+      expect(TheBand.GitHubHTTPMock, :get, fn _url, token ->
+        # O mock recebe um `Segredo`, não um binário: é o contrato real desde 2026-09-12.
+        assert Segredo.expor(token) == "token-valido"
+
         {:ok,
          %{
            status: 200,

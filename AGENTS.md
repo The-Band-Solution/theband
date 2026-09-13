@@ -793,6 +793,38 @@ docs(ontology): document review semantics
 
 A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
 
+### O corpo do PR SAI DO TEMPLATE — sempre, sem exceção
+
+`.github/pull_request_template.md` é o padrão. Todo PR **MUST** ser aberto com as seções
+dele, na ordem dele: *Tipo de merge* com motivo, *O que muda*, *Por quê*, *Evidência* com
+o código de saída, *Issues*, *Revisão*, *O que este PR não resolve*.
+
+**A armadilha é mecânica, e não de memória**: `gh pr create --body` e `--body-file`
+**substituem o template inteiro**. Quem escreve um corpo bonito à mão apaga, sem perceber,
+a declaração de tipo de merge, a seção de revisão e a de limitações — e o PR nasce
+reprovado no check `pr-tipo-de-merge`, ou pior, passa carecendo das seções que ninguém
+verifica.
+
+Foi exatamente o que aconteceu no **PR #864**, aberto em 2026-09-12: corpo escrito à mão,
+check reprovado, e faltavam também *Revisão* e *O que este PR não resolve* — as duas seções
+cuja ausência faz um PR incompleto parecer completo.
+
+**Como abrir, então:**
+
+```bash
+# 1. o template é o ponto de partida, não uma sugestão
+cp .github/pull_request_template.md /tmp/corpo.md
+
+# 2. preencha as seções NO ARQUIVO, mantendo todas — inclusive as que vão dizer
+#    "não obtida" ou "nada a declarar". Seção apagada é informação perdida.
+
+# 3. só então
+gh pr create --body-file /tmp/corpo.md --reviewer <login> ...
+```
+
+Seção que não se aplica **fica**, com a razão escrita. *Revisão* sem revisor diz **"não
+obtida"** — nunca some, porque some é o que faz a lacuna desaparecer do PR e da conversa.
+
 ### O tipo de merge é declarado NO PR, e não escolhido no botão
 
 Todo PR **MUST** trazer, no corpo, qual dos dois usar — e o motivo. Quem clica o

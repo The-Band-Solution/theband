@@ -13,6 +13,8 @@ defmodule TheBand.CredencialIlegivelTest do
   """
   use TheBand.DataCase, async: false
 
+  alias TheBand.Segredo
+
   import Mox
 
   alias TheBand.Repo
@@ -124,7 +126,8 @@ defmodule TheBand.CredencialIlegivelTest do
 
       credencial = Sources.active_credential(tool)
 
-      assert {:ok, "token-legivel"} = Sources.fetch_secret(credencial)
+      assert {:ok, segredo} = Sources.fetch_secret(credencial)
+      assert Segredo.expor(segredo) == "token-legivel"
     end
   end
 end
