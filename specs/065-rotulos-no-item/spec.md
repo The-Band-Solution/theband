@@ -189,6 +189,10 @@ conferir que a classificação **não muda**.
   número de itens listados.
 - **FR-014**: Onde a plataforma mostra divergência entre o declarado e o derivado, ela MUST
   mostrar **os dois**, e MUST dizer qual deles seguiu.
+- **FR-016**: Um item de trabalho MUST ser identificável na tela sem ambiguidade. O número
+  sozinho MUST NOT servir de identificação visível — ele se repete entre repositórios.
+- **FR-017**: A identificação visível MUST nomear o repositório, e o nome MUST trazer a
+  organização junto.
 - **FR-015**: A tela entregue MUST ser a do protótipo aprovado. Divergência do protótipo é
   **defeito**, e a mudança volta ao protótipo antes do código.
 
@@ -221,6 +225,8 @@ conferir que a classificação **não muda**.
 - **SC-007**: Item sem rótulo nenhum mostra a ausência escrita — nunca célula vazia.
 - **SC-008**: Quem investiga uma divergência vê a alegação do time e o veredito da plataforma
   na mesma linha, e diz qual foi seguido sem abrir mais nada.
+- **SC-009**: Duas issues de repositórios diferentes com o mesmo número são distinguíveis na
+  listagem, sem abrir nenhuma das duas.
 
 ---
 
@@ -236,6 +242,23 @@ conferir que a classificação **não muda**.
 - **Rótulo vindo do prefixo não tem cor** — ninguém a escolheu. A forma o distingue.
 - **O detalhe do item já mostra rótulos**, e continua mostrando. Esta feature acrescenta a
   origem e estende o alcance; não refaz o que existe.
+
+### A identificação do item, acrescentada em 2026-09-13
+
+A pessoa mantenedora apontou que o número da issue é **por repositório**, e que a identificação
+deve ser organização + repositório + número.
+
+**Medido antes de virar requisito**: no armazenamento **isso já vale**. São 5 033 issues com
+5 033 identificadores externos distintos, e o índice único impede confusão. A rota também usa
+identificador interno, não número.
+
+O defeito é de **leitura**: são 5 033 issues em apenas **2 699 números distintos**, e a tela
+mostra `#2` sem dizer de qual repositório. Duas issues diferentes ficam indistinguíveis para
+quem lê, mesmo o banco sabendo que são duas.
+
+Daí as FR-016 e FR-017 serem sobre a tela, e **nenhuma migração** ser necessária. O nome
+qualificado do repositório já traz a organização — `leds-conectafapes/conectafapes-project` —,
+então é um campo, e não dois.
 
 ## Dependencies
 
