@@ -124,6 +124,36 @@ decisão de revisão no próprio PR.
 O que passa a ser exigido de quem já seguia a versão anterior: escrever a seção de
 issues nesse formato em todo PR de feature, a partir desta data.
 
+Emenda 1.8.0 — 2026-09-13
+=========================
+Versão: 1.7.0 → 1.8.0 (MINOR: princípio VII materialmente ampliado em duas frentes;
+nenhum princípio removido ou redefinido).
+
+O princípio VII ganha **onde a evidência mora** e **a auditoria contra a origem**.
+
+Motivo, parte 1 — a evidência existia e não ficava. A versão anterior já exigia
+"sucesso declarado com evidência", e não dizia onde ela vive. O `tasks.md` de cada
+spec exige um campo `Teste` por tarefa; ninguém o transportava para a issue, e a
+issue era fechada sem que nada registrasse o que provou a conclusão. Quem lesse a
+issue seis meses depois via "closed" e mais nada.
+
+Motivo, parte 2 — ler a própria árvore não é conferir. Em 2026-09-13 foram criadas
+19 issues (#866–#884) apontando para requisitos **FR-016 a FR-019 que existiam
+apenas na máquina de quem as criou**: três commits nunca empurrados. Quem criou não
+percebeu, porque conferiu contra a árvore local, onde estava tudo certo. Quem
+percebeu foi o papel de Product Owner, lendo `origin/development` — e só por isso.
+
+A generalização é a que importa: **toda conferência feita contra a árvore local
+confirma o trabalho de quem a fez, e não o que os outros vão receber.** O mesmo vale
+para issue que cita requisito, para PR que cita issue, e para commit pressuposto por
+outro.
+
+O que passa a ser exigido de quem já seguia a versão anterior:
+
+  1. comentar na issue, ao concluí-la, o comando e o **código de saída** que provam a
+     conclusão — e não o texto do fim do comando;
+  2. auditar contra `origin/`, e não contra a árvore local, antes de abrir PR.
+
 -->
 
 # Constituição do The Band
@@ -277,12 +307,27 @@ Quem implementa MUST NOT ser quem valida sozinho.
   como cumprida.
 - Sucesso MUST ser declarado com evidência: saída de teste, log ou captura de tela. Tarefa
   marcada como concluída sem evidência MUST NOT ser aceita.
+- A evidência MUST ficar **na issue**, em comentário, e MUST trazer o comando e o **código
+  de saída**. O texto do fim do comando MUST NOT servir de prova: `mix gates` é a definição
+  única, e qualquer comando depois dele substitui o veredito — em 2026-09-12 oito falhas
+  passaram por verdes porque `mix test | tail -25` devolveu `0`.
+- Issue fechada sem esse comentário MUST NOT ser tratada como concluída. O campo `Teste` do
+  `tasks.md` diz **como** provar; o comentário diz **que foi provado**, e as duas coisas não
+  se substituem.
+- Antes de abrir PR, uma **auditoria contra a origem** MUST acontecer, e MUST conferir, no
+  mínimo: que o que o PR afirma entregar existirá em `origin/development` depois do merge;
+  que as issues citadas existem e apontam para conteúdo que existe; e que nenhum commit
+  pressuposto ficou para trás.
+- A auditoria MUST ler `origin/`, e MUST NOT se satisfazer com a árvore local. Conferir
+  contra a própria árvore confirma o trabalho de quem o fez, e não o que os outros vão
+  receber — foi assim que 19 issues nasceram apontando para requisitos não empurrados.
 - Push direto em `main` ou em `development` MUST NOT acontecer — as duas só recebem merge de PR.
 - Erro MUST NOT ser escondido com mock excessivo ou valor fixo. Mock somente na borda HTTP;
   módulo de domínio próprio MUST NOT ser mockado.
 
 **Razão**: o custo de um gate vermelho é minutos; o de um dado errado em produção é a
-confiança na plataforma inteira.
+confiança na plataforma inteira. E a evidência que não fica escrita onde alguém a procura
+é indistinguível de evidência que nunca existiu.
 
 ### VIII. Desenho que o problema justifica
 
@@ -565,4 +610,4 @@ simples e a razão de tê-la rejeitado. Violação sem registro MUST bloquear o 
 `AGENTS.md` permanece como guia operacional de runtime — comandos, estrutura de diretórios,
 convenções de código e perfis de agente.
 
-**Version**: 1.7.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-08-29
+**Version**: 1.8.0 | **Ratified**: 2026-08-09 | **Last Amended**: 2026-09-13
