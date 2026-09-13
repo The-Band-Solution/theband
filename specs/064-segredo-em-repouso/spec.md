@@ -251,6 +251,17 @@ registro guardado **não** o contém — e que contém o suficiente para investi
   todo registro que se supõe alcançar** — um registro sem a data que a regra de idade consulta
   fica fora dela para sempre. Medido em 2026-09-12: quatro registros de 8 dias permanentes sob
   uma política de 7, um deles carregando o segredo.
+- **FR-016**: Toda credencial de terceiro MUST ter **idade conhecida**, e a plataforma MUST
+  **pedir a troca** quando ela passar de **três meses** sem ser trocada. Pedir, e não impedir:
+  a coleta continua, e quem decide trocar é a pessoa mantenedora.
+- **FR-017**: O pedido de troca MUST ser visível **onde a credencial é administrada**, e MUST
+  dizer **há quanto tempo** ela está em uso — não apenas que está velha. *"Registrada há 4
+  meses"* é acionável; *"credencial antiga"* não.
+- **FR-018**: Trocar a credencial MUST zerar a contagem, e a data da troca MUST ficar
+  registrada. Sem o registro, a próxima cobrança não sabe se a anterior foi atendida.
+- **FR-019**: Uma credencial cuja idade **não se sabe** MUST ser mostrada como *idade
+  desconhecida*, e MUST NOT ser contada como dentro do prazo. Ausência de data não é prova de
+  juventude — é a mesma família do registro sem data de encerramento da FR-015.
 - **FR-015**: Um registro que a plataforma dá por encerrado MUST carregar a data do
   encerramento. Sem ela, toda regra que apaga por idade o ignora em silêncio — e o registro
   que escapa por esse caminho é justamente o que falhou, que é o que tende a carregar segredo.
@@ -292,10 +303,30 @@ registro guardado **não** o contém — e que contém o suficiente para investi
   que nunca o leu chega à resposta certa em menos de um minuto.
 - **SC-007**: Nenhuma senha de conta é recuperável a partir do banco, nem por quem tem todas
   as chaves da plataforma.
+- **SC-009**: Nenhuma credencial com mais de três meses de uso passa despercebida: a tela que
+  a administra pede a troca, e diz há quanto tempo ela está lá.
+- **SC-010**: Uma credencial sem data conhecida aparece como **idade desconhecida**, e não
+  como dentro do prazo — quem olha a tela consegue dizer quais são os dois casos.
 - **SC-008**: Nenhum registro encerrado existe sem a data do encerramento — a consulta que os
   procura devolve **zero**, e uma regra de idade aplicada à tabela não deixa nenhum para trás.
 
 ---
+
+### O que esta política NÃO é
+
+**Não é expiração.** A credencial continua funcionando depois dos três meses, e a coleta não
+para. Expirar automaticamente transformaria uma boa prática em queda de serviço num dia que
+ninguém escolheu — e a plataforma coleta de fonte de terceiro, onde uma parada silenciosa
+vira dado faltando que só se descobre depois.
+
+**Não é substituto da rotação por exposição.** Três meses é o prazo do que **não** aconteceu
+nada. Um segredo que apareceu em claro precisa ser trocado **agora**, e é o caso aberto em
+`docs/backlog/rotacionar-o-token-que-vazou.md`. Confundir os dois faria alguém adiar a
+urgente até o vencimento da rotineira.
+
+**O prazo teria pegado o caso real**: a credencial `…omAX` foi registrada em 2026-09-04. Em
+2026-12-04 ela venceria por esta política — mas ela já precisava de troca em 2026-09-12, por
+exposição. São gatilhos diferentes.
 
 ## Assumptions
 

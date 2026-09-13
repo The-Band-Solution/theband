@@ -141,7 +141,33 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
 
 ---
 
-## Fase 5 — O que fica escrito
+## Fase 5 — A idade da credencial (FR-016 a FR-019)
+
+**Objetivo**: quem administra vê há quanto tempo cada credencial está em uso, e é **pedido** a
+trocar depois de três meses. Pedir, não impedir.
+
+**Teste independente**: uma credencial com data de quatro meses atrás faz a tela pedir a
+troca; uma de ontem, não; uma sem data aparece como **idade desconhecida**.
+
+- [ ] **T017** Saber a idade de cada credencial — [#882](https://github.com/The-Band-Solution/theband/issues/882)
+  - **Pronta quando**: nada além do repositório — `validated_at` já existe nos dois schemas
+  - **Descrição**: função única que classifica uma credencial em `:no_prazo`, `:vencida` ou `:idade_desconhecida`, a partir de `validated_at` e da data da última troca. Vale para `tool_credentials` **e** `ai_provider_credentials` — são o mesmo tipo de segredo (FR-002) e a política é a mesma. Sem data, é `:idade_desconhecida`, **nunca** `:no_prazo`: ausência de data não é prova de juventude — FR-019, mesma família da FR-015
+  - **Feita quando**: os três estados são distinguíveis; o limite de três meses vive num lugar só, não espalhado por tela
+  - **Teste**: `test/the_band/credenciais/idade_test.exs` — data de 4 meses atrás dá `:vencida`; de ontem, `:no_prazo`; **`nil` dá `:idade_desconhecida`, e o teste afirma explicitamente que não é `:no_prazo`**. É a violação, não o caminho feliz
+
+- [ ] **T018** Pedir a troca na tela que administra — [#883](https://github.com/The-Band-Solution/theband/issues/883)
+  - **Pronta quando**: T017 concluída
+  - **Descrição**: nas telas de credencial de ferramenta e de provedor de modelos, mostrar o pedido com **há quanto tempo** ela está em uso — *"registrada há 4 meses"*, não *"credencial antiga"*. O primeiro é acionável; o segundo, não. A coleta **não para**: é pedido, não bloqueio. FR-016, FR-017
+  - **Feita quando**: a tela distingue os três estados; nenhuma ação é impedida pelo estado `:vencida`
+  - **Teste**: `test/the_band_web/live/idade_da_credencial_test.exs` — com credencial de 4 meses, o HTML traz o pedido **e o tempo**; com a de ontem, não traz nada; e uma coleta disparada com credencial vencida **continua funcionando**. O último é o que impede a política virar queda de serviço
+
+- [ ] **T019** [P] Registrar a data da troca — [#884](https://github.com/The-Band-Solution/theband/issues/884)
+  - **Pronta quando**: T017 concluída
+  - **Descrição**: trocar o segredo grava a data e zera a contagem. Sem esse registro, a próxima cobrança não sabe se a anterior foi atendida, e a tela pede de novo a quem acabou de trocar. FR-018
+  - **Feita quando**: depois da troca, o estado volta a `:no_prazo`; a data anterior não é perdida
+  - **Teste**: no mesmo arquivo da T017 — credencial vencida, troca, e o estado vira `:no_prazo`; a data da troca fica gravada
+
+## Fase 6 — O que fica escrito
 
 - [ ] **T015** Documentar o efeito de uma restauração sobre as sessões — [#880](https://github.com/The-Band-Solution/theband/issues/880)
   - **Pronta quando**: T013 concluída — a resposta decorre do desenho
@@ -179,6 +205,9 @@ Criadas por `/speckit-taskstoissues` em 2026-09-13. **Tarefa sem issue é pendê
 | T014 | [#879](https://github.com/The-Band-Solution/theband/issues/879) |
 | T015 | [#880](https://github.com/The-Band-Solution/theband/issues/880) |
 | T016 | [#881](https://github.com/The-Band-Solution/theband/issues/881) |
+| T017 | [#882](https://github.com/The-Band-Solution/theband/issues/882) |
+| T018 | [#883](https://github.com/The-Band-Solution/theband/issues/883) |
+| T019 | [#884](https://github.com/The-Band-Solution/theband/issues/884) |
 
 A convenção do repositório é `NNN/TXXX`, e o prefixo da spec **não é enfeite**: sem ele, deduplicar por `T001` casaria as 354 issues das specs anteriores e a próxima execução não criaria nada.
 
