@@ -35,6 +35,7 @@ defmodule TheBandWeb.WorkItemLive.Index do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.WorkItems
+  alias TheBand.WorkItems.Rotulos
   alias TheBandWeb.ConceptLabel
   alias TheBandWeb.TabelaLive, as: Tabela
 
@@ -361,6 +362,16 @@ defmodule TheBandWeb.WorkItemLive.Index do
               <div :if={i.divergence_kind} class="text-xs text-warning">
                 {ConceptLabel.divergencia(i.divergence_kind)}
               </div>
+            </:col>
+            <%!-- OS RÓTULOS, por último e de propósito: a alegação do time lê depois do
+                  veredito da plataforma. E são duas origens no mesmo lugar — o campo da
+                  ferramenta e o prefixo do título —, distinguidas pelo preenchimento,
+                  nunca só pela cor. Ver spec 065 e o protótipo aprovado em 2026-09-13. --%>
+            <:col :let={i} label="labels">
+              <.rotulos
+                rotulos={Rotulos.de(i.rotulos_do_campo, i.title)}
+                href={~p"/work/issues/#{i.id}"}
+              />
             </:col>
           </.data_table>
         </section>

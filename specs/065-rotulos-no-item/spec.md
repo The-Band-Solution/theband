@@ -8,7 +8,19 @@
 
 **Input**: *"as labels podem vir do campo label do github ou do titulo `[Devops]`, por exemplo"*
 
-**Protótipo aprovado**: <https://claude.ai/code/artifact/e52ca895-fa21-40b2-bbbc-bab0b4a711b0> — aprovado em 2026-09-13. A tela implementada é **exatamente** a aprovada; mudança volta ao protótipo antes do código.
+**Protótipos aprovados**, todos em 2026-09-13. A tela implementada é **exatamente** a aprovada; mudança volta ao protótipo antes do código.
+
+| protótipo | o que cobre |
+|---|---|
+| <https://claude.ai/code/artifact/e52ca895-fa21-40b2-bbbc-bab0b4a711b0> | o conceito: as duas origens de rótulo, e quais prefixos qualificam |
+| <https://claude.ai/code/artifact/cd7d0245-b8bf-459b-9e90-8089a2fc0339> | a listagem `/work` — a coluna dentro da tela real, três rótulos e `+N` que abre a issue |
+| <https://claude.ai/code/artifact/c64bcdd4-0e33-437b-bf83-110ad12c3e9f> | as sub-listas do detalhe — repositório sempre visível, e a ontologia no desenho |
+
+**Decisões tomadas pela pessoa mantenedora, uma a uma, em 2026-09-13**: a coluna fica por
+último; três rótulos e um `+N` que **abre a issue** (não uma dica de ferramenta, que mostra o
+resto ao mouse e esconde do teclado, do telefone e do leitor de tela); a cor do GitHub **não**
+é usada, porque o preenchimento já carrega a proveniência; o repositório aparece **sempre**
+nas sub-listas; e a ontologia entra no desenho das duas relações.
 
 ---
 
@@ -189,10 +201,15 @@ conferir que a classificação **não muda**.
   número de itens listados.
 - **FR-014**: Onde a plataforma mostra divergência entre o declarado e o derivado, ela MUST
   mostrar **os dois**, e MUST dizer qual deles seguiu.
-- **FR-016**: Um item de trabalho MUST ser identificável na tela sem ambiguidade. O número
-  sozinho MUST NOT servir de identificação visível — ele se repete entre repositórios.
-- **FR-017**: A identificação visível MUST nomear o repositório, e o nome MUST trazer a
-  organização junto.
+- **FR-016**: Onde a plataforma lista itens **ligados** a outro — composição, atendimento — o
+  repositório de cada um MUST aparecer, **sempre**, e não só quando difere. Campo que aparece
+  às vezes é campo que ninguém lê, e aí o caso raro passa junto.
+- **FR-017**: Quando o item ligado vem de **outro** repositório, isso MUST ser dito por marca
+  própria. O caminho diz **onde**; a marca diz que uma **fronteira foi atravessada** — e
+  comparar dois caminhos longos a olho é trabalho que a tela pode fazer no lugar de quem lê.
+- **FR-018**: As duas relações — *composição* e *atendimento* — MUST ser distinguíveis pelo
+  **desenho**, e não apenas pelo título da seção. Elas são de tipos ontológicos diferentes
+  (`part_whole` e `association`), e é isso que proíbe somá-las.
 - **FR-015**: A tela entregue MUST ser a do protótipo aprovado. Divergência do protótipo é
   **defeito**, e a mudança volta ao protótipo antes do código.
 
@@ -225,8 +242,10 @@ conferir que a classificação **não muda**.
 - **SC-007**: Item sem rótulo nenhum mostra a ausência escrita — nunca célula vazia.
 - **SC-008**: Quem investiga uma divergência vê a alegação do time e o veredito da plataforma
   na mesma linha, e diz qual foi seguido sem abrir mais nada.
-- **SC-009**: Duas issues de repositórios diferentes com o mesmo número são distinguíveis na
-  listagem, sem abrir nenhuma das duas.
+- **SC-009**: Numa lista de itens ligados, quem lê diz de qual repositório é cada um sem
+  abrir nenhum — e reconhece, sem comparar caminhos, quais vieram de fora.
+- **SC-010**: Quem olha as duas seções do detalhe diz qual é composição e qual é atendimento
+  **sem ler os títulos**, e não tenta somar as contagens.
 
 ---
 
@@ -243,7 +262,31 @@ conferir que a classificação **não muda**.
 - **O detalhe do item já mostra rótulos**, e continua mostrando. Esta feature acrescenta a
   origem e estende o alcance; não refaz o que existe.
 
-### A identificação do item, acrescentada em 2026-09-13
+### A identificação do item — a correção de 2026-09-13
+
+**A primeira redação estava errada.** Eu escrevi que a listagem mostra `#2` sem dizer de qual
+repositório, e que por isso o número era ambíguo ali.
+
+Medido depois: a listagem **já tem** colunas de organização e de repositório, resolvidas por
+um mapa que evita segunda consulta por linha. Eu tinha visto a consulta devolver um
+identificador interno e concluí que a tela mostrava só o número — ela o resolve em outro
+lugar.
+
+**Onde o defeito está, de verdade**: nas **sub-listas do detalhe**. O componente que lista
+composição e atendimento mostra `#N` e o título, sem repositório. E medido: **5 vínculos têm
+pai e filha em repositórios diferentes**, de 1 953 no total. Abrindo a issue `#2393`, a
+composição lista `#205` e `#512` — de outros dois repositórios, sem dizer isso. Quem lê
+conclui que são do mesmo, e elas existem e são outra coisa.
+
+**O que os 5 casos revelam**, e muda a leitura: eles não são sujeira. A organização usa
+**repositório de planejamento separado dos de código** — medido pela razão issues/commits:
+`conectafapes-project` tem 2 669 issues e 160 commits; `backend-admin` tem 8 issues e 2 001
+commits. O cruzamento acontece na **fronteira entre o backlog do produto e a implementação**,
+e é a arquitetura do time aparecendo no grafo.
+
+São poucos **porque** a fronteira é atravessada raramente — não porque sejam ruído.
+
+### A decisão anterior, preservada
 
 A pessoa mantenedora apontou que o número da issue é **por repositório**, e que a identificação
 deve ser organização + repositório + número.

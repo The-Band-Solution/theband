@@ -50,6 +50,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
   alias TheBand.WorkItems
+  alias TheBand.WorkItems.Rotulos
   alias TheBandWeb.ConceptLabel
 
   @impl true
@@ -186,7 +187,13 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <p :if={@composicao == []} class="text-sm text-base-content/70">
                 None. {sem_composicao(@issue)}
               </p>
-              <.lista_de_issues :if={@composicao != []} issues={@composicao} />
+              <.lista_de_issues
+                :if={@composicao != []}
+                issues={@composicao}
+                relacao={:part_whole}
+                onde={@onde}
+                repositorio_do_pai={@repositorio_nome}
+              />
             </div>
           </div>
 
@@ -205,7 +212,13 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <p :if={@atendimento == []} class="text-sm text-base-content/70">
                 No task attends this issue.
               </p>
-              <.lista_de_issues :if={@atendimento != []} issues={@atendimento} />
+              <.lista_de_issues
+                :if={@atendimento != []}
+                issues={@atendimento}
+                relacao={:association}
+                onde={@onde}
+                repositorio_do_pai={@repositorio_nome}
+              />
             </div>
           </div>
 
@@ -218,7 +231,12 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 The source declares the relation and the platform has not decided what these parts
                 are. They are collected: what is missing is a mapping rule.
               </p>
-              <.lista_de_issues issues={@sem_promocao} />
+              <.lista_de_issues
+                issues={@sem_promocao}
+                relacao={:part_whole}
+                onde={@onde}
+                repositorio_do_pai={@repositorio_nome}
+              />
             </div>
           </div>
 
@@ -238,7 +256,12 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 attendance — and inventing a name for the relation would be inference by
                 resemblance.
               </p>
-              <.lista_de_issues issues={@relacao_sem_nome} />
+              <.lista_de_issues
+                issues={@relacao_sem_nome}
+                relacao={:association}
+                onde={@onde}
+                repositorio_do_pai={@repositorio_nome}
+              />
             </div>
           </div>
 
@@ -817,17 +840,57 @@ defmodule TheBandWeb.WorkItemLive.Show do
         "answers a different question."
 
   attr :issues, :list, required: true
+  attr :onde, :map, default: %{}
+  attr :repositorio_do_pai, :string, default: nil
+
+  # `relacao` decide o desenho, e ele carrega a ONTOLOGIA, não decoração:
+  #
+  #   * `:part_whole` (`sro.epic_composed_of_user_story`) ganha régua à esquerda. As partes
+  #     ficam DENTRO do todo, porque somadas elas SÃO o todo;
+  #   * `:association` (`sro.intended_task_planned_to_meet_user_story`) ganha seta. A tarefa
+  #     APONTA para a user story; não está dentro dela, e a story continua inteira sem ela.
+  #
+  # É por isso que as duas contagens nunca somam — e a tela passa a MOSTRAR essa diferença
+  # em vez de só nomeá-la.
+  attr :relacao, :atom, values: [:part_whole, :association], required: true
 
   defp lista_de_issues(assigns) do
     ~H"""
-    <table class="table table-sm mt-1">
+    <table class={[
+      "table table-sm mt-1",
+      @relacao == :part_whole && "border-l-[3px] border-success pl-2"
+    ]}>
       <tbody>
         <tr :for={i <- @issues}>
+          <td :if={@relacao == :association} class="w-4 font-mono text-info" aria-hidden="true">
+            →
+          </td>
           <td class="font-mono w-16">#{i.number}</td>
           <td>
             <.link navigate={~p"/work/issues/#{i.id}"} class="link link-hover">
               {i.title}
             </.link>
+            <%!-- O REPOSITÓRIO, SEMPRE. Cinco vínculos cruzam repositório e 1948 não —
+                  mostrar só nos cinco ensinaria quem lê a pular o campo, e aí os cinco
+                  passariam despercebidos também. A marca abaixo é que é condicional: o
+                  caminho diz ONDE, a marca diz que uma fronteira foi atravessada. --%>
+            <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+              <span class="font-mono text-[0.625rem] opacity-60">
+                {repositorio_de(@onde, i)}
+              </span>
+              <span
+                :if={fora_do_pai?(@onde, i, @repositorio_do_pai)}
+                class="rounded-[1px] border border-current px-1 font-mono text-[0.625rem] font-semibold text-warning"
+                title="this part lives in a different repository from the issue you are reading"
+              >
+                other repository
+              </span>
+            </div>
+            <.rotulos
+              rotulos={Rotulos.de(i[:rotulos_do_campo], i.title)}
+              href={~p"/work/issues/#{i.id}"}
+              class="mt-0.5"
+            />
           </td>
           <td class="text-xs opacity-70 w-40">
             {ConceptLabel.rotulo(i.derived_concept) ||
@@ -861,6 +924,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
     # está em memória responde a mesma pergunta sem voltar ao banco.
     composicao = WorkItems.list_composition(tenant, issue.id)
     atendimento = WorkItems.list_attendance(tenant, issue.id)
+    repositorios_das_partes = mapa_de_repositorios(tenant)
     sem_promocao = WorkItems.list_unpromoted_parts(tenant, issue.id)
     relacao_sem_nome = WorkItems.list_unnamed_relation_parts(tenant, issue.id)
 
@@ -906,6 +970,7 @@ defmodule TheBandWeb.WorkItemLive.Show do
       mudancas_coletadas?: mudancas_coletadas?(repositorio)
     )
     |> assign(onde(tenant, repositorio, issue))
+    |> assign(:onde, repositorios_das_partes)
   end
 
   # `fetch_observed/2` devolve `{:ok, _}` ou `{:error, :not_found}`, e a tela trata a
@@ -1048,6 +1113,34 @@ defmodule TheBandWeb.WorkItemLive.Show do
     end
   end
 
+  # O mapa de repositório observado → nome, para as sub-listas. Duas consultas fixas — a
+  # lista de repositórios e a de organizações —, e não uma por linha: a composição de um
+  # épico pode ter dezenas de partes, e é a L38.
+  #
+  # Existe porque a parte pode ser de OUTRO repositório: cinco vínculos no dado real têm pai
+  # e filha em repositórios diferentes, e ali `#205` sozinho nomeia uma issue que existe e é
+  # outra.
+  defp mapa_de_repositorios(tenant) do
+    orgs = Map.new(EO.list_organizations(tenant), &{&1.id, &1.login || &1.name})
+
+    tenant
+    |> CMPO.list_observed()
+    |> Map.new(fn r ->
+      {r.observed_repository_id, "#{Map.get(orgs, r.organization_id, "—")}/#{r.name}"}
+    end)
+  end
+
+  defp repositorio_de(onde, issue),
+    do: Map.get(onde, issue.observed_repository_id, "repository not found")
+
+  # A marca só aparece quando a parte vem de fora. O caminho diz ONDE; a marca diz que uma
+  # fronteira foi atravessada — e comparar dois caminhos longos a olho é trabalho que a tela
+  # pode fazer no lugar de quem lê.
+  defp fora_do_pai?(_onde, _issue, nil), do: false
+
+  defp fora_do_pai?(onde, issue, repositorio_do_pai),
+    do: repositorio_de(onde, issue) != repositorio_do_pai
+
   defp onde(_tenant, nil, _issue),
     do: %{repositorio_nome: "repository not found", organizacao: "—", url_origem: nil}
 
@@ -1058,7 +1151,11 @@ defmodule TheBandWeb.WorkItemLive.Show do
       |> Enum.find(&(&1.id == repositorio.organization_id))
 
     %{
-      repositorio_nome: repositorio.name,
+      # `organizacao/nome`, e não só o nome: é a forma que `mapa_de_repositorios/1` usa, e
+      # comparar duas grafias diferentes do mesmo repositório marcaria toda parte como
+      # sendo de fora.
+      repositorio_nome:
+        "#{(organizacao && (organizacao.login || organizacao.name)) || "—"}/#{repositorio.name}",
       organizacao: (organizacao && (organizacao.login || organizacao.name)) || "—",
       # A URL da issue é composta do repositório e do número. O número serve para exibir
       # e localizar — nunca para identificar —, e aqui é exatamente o caso de localizar.

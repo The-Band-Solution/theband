@@ -36,6 +36,72 @@ defmodule TheBandWeb.UI do
   alias TheBandWeb.ConceptLabel
 
   @doc """
+  Os rótulos de um item, com a origem de cada um no preenchimento.
+
+  Mesma gramática da marca de evidência, aplicada a outra coisa: **sólido** é o rótulo que
+  alguém pôs no campo da ferramenta, **hachurado** é o que foi lido do prefixo do título.
+  A distinção não depende de cor — a forma e o `title` a carregam também.
+
+  ## Por que três, e depois um link
+
+  Três é o maior número que mantém toda linha da tabela com uma altura só. O que passa disso
+  vira `+N`, e o `+N` é **link para a issue**, onde todos aparecem.
+
+  Link, e não dica de ferramenta: uma dica mostra o resto para o mouse e esconde do teclado,
+  do telefone e do leitor de tela. A página da issue já lista todos os rótulos.
+
+  ## A ausência é escrita
+
+  Item sem rótulo nenhum diz isso em palavras. Célula vazia se confunde com "ainda não
+  carregou", e quem lê não tem como saber qual dos dois é.
+  """
+  attr :rotulos, :list, default: []
+  attr :href, :string, default: nil
+  attr :limite, :integer, default: 3
+  attr :class, :string, default: nil
+
+  def rotulos(assigns) do
+    assigns =
+      assigns
+      |> assign(:mostrados, Enum.take(assigns.rotulos, assigns.limite))
+      |> assign(:restantes, max(length(assigns.rotulos) - assigns.limite, 0))
+
+    ~H"""
+    <div class={["flex flex-wrap items-center gap-1", @class]}>
+      <span
+        :for={r <- @mostrados}
+        class={[
+          "inline-flex items-center rounded-[1px] px-1 py-px font-mono text-[0.6875rem]",
+          r.origem == :campo && "bg-success text-success-content",
+          r.origem == :titulo &&
+            "text-info outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+        ]}
+        title={origem_do_rotulo(r.origem)}
+      >
+        <%!-- O texto do rótulo hachurado vai sobre fundo próprio: a hachura atrás de letras
+              de 11px as torna ilegíveis, e legibilidade não é negociável para poder
+              carregar proveniência. --%>
+        <span class={r.origem == :titulo && "bg-base-100 px-0.5 rounded-[1px]"}>{r.texto}</span>
+      </span>
+
+      <.link
+        :if={@restantes > 0 && @href}
+        navigate={@href}
+        class="inline-flex items-center rounded-[1px] border border-current px-1 py-px font-mono text-[0.6875rem] font-semibold text-success hover:bg-success hover:text-success-content"
+        title={"see all #{length(@rotulos)} labels on this issue"}
+      >
+        +{@restantes}
+      </.link>
+
+      <span :if={@rotulos == []} class="text-xs italic opacity-60">no label</span>
+    </div>
+    """
+  end
+
+  defp origem_do_rotulo(:campo), do: "observed — set on the label field at the source"
+  defp origem_do_rotulo(:titulo), do: "derived — read from the bracketed prefix in the title"
+
+  @doc """
   A marca de evidência: o conceito, com a origem dele legível sem cor.
 
   `source` é `"declared_type"`, `"title"`, `"structure"` ou `nil`. `nil` significa que a
