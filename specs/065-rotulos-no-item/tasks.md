@@ -137,7 +137,7 @@ leitura, não ausência de informação.
   - **Feita quando**: cada elemento do protótipo tem correspondente na tela; as divergências encontradas estão listadas com o que se decidiu sobre cada uma
   - **Teste**: conferência item a item, escrita. Item que não puder ser conferido fica declarado como **não verificado** — nunca marcado como conforme
 
-- [ ] **T014** Fechar os gates — [#903](https://github.com/The-Band-Solution/theband/issues/903)
+- [x] **T014** Fechar os gates — [#903](https://github.com/The-Band-Solution/theband/issues/903)
   - **Pronta quando**: T013 concluída
   - **Descrição**: `mix gates` é a definição única, e o veredito é o **código de saída dela**. PR a partir do template, com o tipo de merge declarado, a lacuna de revisão dita se não puder ser obtida, e as **issues que o PR fecha** com a closing keyword em inglês — "Fecha #N" não fecha nada
   - **Feita quando**: `mix gates` sai com 0; o PR está aberto com todas as seções do template preenchidas
