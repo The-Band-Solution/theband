@@ -793,6 +793,63 @@ docs(ontology): document review semantics
 
 A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
 
+### Toda issue declara UM tipo da ontologia, e pode ter labels que a caracterizam
+
+Duas coisas diferentes, e confundi-las é o erro que a própria base de conhecimento nomeia.
+
+**1. O tipo é UM, e vem da ontologia.** Todo issue **MUST** carregar exatamente um destes,
+que são os conceitos de item de trabalho da rede `continuum`:
+
+| label | conceito | o que é |
+|---|---|---|
+| `epic` | `sro.epic` | user story **composta de** outras user stories |
+| `us` | `sro.user_story` / `sro.atomic_user_story` | artefato de requisito; atômica é a que não se decompõe |
+| `task` | `sro.intended_scrum_development_task` | atividade que materializa uma user story |
+| `bug` | `osdef.defect` | defeito |
+
+**2. Os labels que caracterizam são ZERO OU MAIS.** `security`, `documentation`,
+`enhancement` e os demais dizem **sobre o quê** a issue é, e não **o que ela é**. Uma issue
+pode ter vários, ou nenhum.
+
+#### A regra que a base de conhecimento já escreveu, e vale aqui
+
+`priv/knowledge_base/rules/github_issue_pattern_catalog.yaml` tem uma seção
+`not_type_patterns` com 1 274 issues cujos prefixos — `[Devops]`, `[Back-end]`, `[QA]` —
+**existem no catálogo para serem recusados**:
+
+> Estes prefixos dizem **quem** faz ou **em que área**, não **o que** a issue é. (…)
+> Conceito errado é pior que conceito ausente: a medida passa a existir e a mentir, e
+> ninguém tem como notar.
+
+É a mesma distinção. `security` não é tipo — é característica. Tratá-lo como tipo produziria
+o erro que aquela seção existe para impedir.
+
+#### O tipo declarado pode estar errado, e a plataforma diz isso
+
+`epic` **não é um rótulo**: é consequência de ter partes (`sro.rule05`). A regra
+`github.issue_type_routing` dá `precedence: structure_over_declaration` — issue tipada
+`Epic` sem sub-issues é promovida a `atomic_user_story`, **com a divergência registrada**.
+
+Então o label de tipo é **intenção**, e a estrutura é o **fato**. Quando divergem, o fato
+vence, e a divergência é sinal para o time — normalmente épico abandonado sem decomposição,
+ou user story que cresceu e ninguém retipou.
+
+**O classificador NÃO lê labels.** `MappingRule` aceita `where` em `declared_type` e
+`title` apenas (`lib/the_band/mapping/schemas/mapping_rule.ex:22`). O label serve a quem
+olha o board; a derivação ontológica vem de outro lugar. Fazer `label` virar uma terceira
+fonte de classificação **é feature, não convenção** — e precisa de spec própria.
+
+#### Na prática, ao criar as issues de uma spec
+
+```
+ÉPICO: <nome>                    epic + as características
+NNN/USx: <nome>                  us   + as características
+NNN/TXXX: <nome>                 task + as características
+```
+
+O prefixo `NNN/` **não é enfeite**: sem ele, deduplicar por `T001` casaria as centenas de
+issues das specs anteriores, e `/speckit-taskstoissues` não criaria nada.
+
 ### O corpo do PR SAI DO TEMPLATE — sempre, sem exceção
 
 `.github/pull_request_template.md` é o padrão. Todo PR **MUST** ser aberto com as seções

@@ -213,6 +213,25 @@ A convenção do repositório é `NNN/TXXX`, e o prefixo da spec **não é enfei
 
 ---
 
+## As issues de história e de épico
+
+Criadas em 2026-09-13, depois das de tarefa — a convenção `NNN/USx:` e `ÉPICO:` já existia no
+repositório (ver `058/US1`, `058/US2`, `058/US3`) e eu não a tinha seguido.
+
+| nível | issue | labels |
+|---|---|---|
+| épico | [#888](https://github.com/The-Band-Solution/theband/issues/888) — segredo em repouso | `epic` `security` |
+| US1 (P1, escopo mínimo) | [#885](https://github.com/The-Band-Solution/theband/issues/885) | `us` `security` |
+| US2 | [#886](https://github.com/The-Band-Solution/theband/issues/886) | `us` `security` |
+| US3 | [#887](https://github.com/The-Band-Solution/theband/issues/887) | `us` `security` |
+
+**Um tipo, várias características.** O tipo vem da ontologia `continuum` — `sro.epic`,
+`sro.user_story`, `sro.intended_scrum_development_task` —, e é **um só**. Os demais dizem
+sobre o quê a issue é: `security` nas 23, mais `bug` na T007 (defeito medido), `enhancement`
+na T008 e nas T017–T019, e `documentation` nas T015–T016.
+
+A regra está no `AGENTS.md`, seção 12.
+
 ## Dependências
 
 ```
