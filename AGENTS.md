@@ -850,6 +850,28 @@ NNN/TXXX: <nome>                 task + as características
 O prefixo `NNN/` **não é enfeite**: sem ele, deduplicar por `T001` casaria as centenas de
 issues das specs anteriores, e `/speckit-taskstoissues` não criaria nada.
 
+### A auditoria antes do PR começa por `git status`
+
+A constituição (princípio VII) exige auditoria contra a origem antes de abrir PR. **O
+primeiro item é o diretório de trabalho limpo**, e ele vem primeiro por uma razão medida:
+
+```bash
+git status --short          # 1. nada modificado fora de commit
+git log --oneline origin/development..HEAD   # 2. o que realmente vai
+git log --oneline origin/<branch>..HEAD      # 3. nada por empurrar
+```
+
+Arquivo modificado e não commitado é a forma **mais barata** de a árvore local divergir do
+que os outros recebem, e a que mais engana: `mix gates` roda sobre ele e fica verde.
+
+Aconteceu em 2026-09-13, no PR #907. A correção de um teste de custo foi escrita, `mix gates`
+deu 0, a auditoria conferiu commits e issues — e o `git add` do commit anterior apontava só
+para `specs/`. Os dois arquivos de `lib/` ficaram no diretório, o CI rodou o código antigo, e
+reprovou com o teste que já passava aqui.
+
+**`git add -A` não é a lição** — ele traz junto o que não devia (L102, árvore compartilhada).
+A lição é conferir o `git status` **depois** de commitar e **antes** de abrir o PR.
+
 ### O corpo do PR SAI DO TEMPLATE — sempre, sem exceção
 
 `.github/pull_request_template.md` é o padrão. Todo PR **MUST** ser aberto com as seções
