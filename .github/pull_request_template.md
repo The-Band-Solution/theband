@@ -50,6 +50,34 @@ mix gates
      com issue, ID e O RESUMO DO QUE ENTREGOU. Lista de números sem resumo não
      passa (constituição 1.6.0, padrão do PR #543). -->
 
+### Issues que este PR FECHA
+
+<!-- Uma linha por issue, com a closing keyword EM INGLÊS e o resumo do que ela
+     entregou:
+
+         Closes #123 — a varredura passa a recusar sem o controle positivo
+         Closes #124 — a data de encerramento deixa de faltar
+
+     **"Fecha #123" NÃO FECHA NADA.** O GitHub só reconhece close/closes/closed,
+     fix/fixes/fixed, resolve/resolves/resolved — em inglês. Português é texto
+     comum, e a issue fica aberta com o trabalho já mergeado: é assim que este
+     repositório acumulou issues abertas cujo entregável está no código há meses.
+
+     Três coisas mais que fazem a palavra falhar mesmo em inglês:
+
+       1. **PR empilhado**: PR cuja base NÃO é o branch padrão não fecha issue
+          nenhuma, com ou sem a palavra. Se este PR mira `development` e
+          `development` ainda não foi para `main`, DECLARE as issues aqui e
+          feche-as à mão depois do merge — e diga aqui que é isso que vai
+          acontecer;
+       2. **uma palavra por issue**: `Closes #1, #2` fecha só a #1. Escreva
+          `Closes #1` e `Closes #2`, em linhas separadas;
+       3. **outro repositório** exige a forma completa `owner/repo#123`.
+
+     Se este PR não fecha issue nenhuma, escreva **"Nenhuma"** e por quê —
+     entrega parcial, spec sem tarefas, ou trabalho que ainda não conclui nada.
+     Seção vazia é indistinguível de seção esquecida. -->
+
 ## Revisão
 
 <!-- Se a revisão independente não puder ser obtida, DECLARE a lacuna aqui.

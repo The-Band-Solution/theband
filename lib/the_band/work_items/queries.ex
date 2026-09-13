@@ -243,13 +243,22 @@ defmodule TheBand.WorkItems.Queries do
     tenant
     |> escopo(opts)
     |> join(:left_lateral, [i], p in subquery(vigente_da_issue(tenant.id)), on: true)
+    |> join(:left_lateral, [i, _p], r in subquery(rotulos_vigentes(tenant.id)), on: true)
     |> por_texto(Keyword.get(opts, :search))
     |> ordenar(Keyword.get(opts, :order_by))
     |> limit(^limite)
     |> offset(^deslocamento)
-    |> select([i, p], %{
+    |> select([i, p, r], %{
       id: i.id,
       number: i.number,
+      # OS RÓTULOS DA ORIGEM, e **não** o conceito.
+      #
+      # `Commands.replace_labels/3` já declara a regra: "o rótulo é preservado e não
+      # promovido — um rótulo `bug` não faz a issue um defeito". Este campo é o que o time
+      # escreveu na ferramenta; `derived_concept`, abaixo, é o que a ontologia decidiu. Os
+      # dois viajam juntos de propósito: quando divergem, a divergência é informação, e ela
+      # some se só um dos lados chega à tela.
+      rotulos_do_campo: r.nomes,
       observed_repository_id: i.observed_repository_id,
       title: i.title,
       state: i.state,
@@ -679,6 +688,18 @@ defmodule TheBand.WorkItems.Queries do
       where:
         l.tenant_id == ^tenant_id and l.parent_issue_id == ^issue_id and
           is_nil(l.no_longer_observed_at),
+      left_lateral_join: r in subquery(rotulos_vigentes(tenant_id)),
+      on: true,
+      # O NOME DO REPOSITÓRIO DA PARTE, na mesma consulta.
+      #
+      # A primeira versão carregava um mapa de todos os repositórios do tenant e resolvia em
+      # memória — e o teste de custo da tela de detalhe pegou: 46 consultas viraram 50.
+      # Junção resolve com zero consultas a mais, e é o dado indo junto com a linha a que
+      # pertence, em vez de ser reconstituído depois.
+      left_join: obs in "observed_repositories",
+      on: obs.id == c.observed_repository_id,
+      left_join: src in "cmpo_source_repositories",
+      on: src.id == obs.source_repository_id,
       order_by: [asc: c.number],
       select: %{
         id: c.id,
@@ -687,6 +708,13 @@ defmodule TheBand.WorkItems.Queries do
         state: c.state,
         issue_type: c.issue_type,
         sub_issue_count: c.sub_issue_count,
+        # O REPOSITÓRIO DA PARTE, e não o da issue aberta. Cinco vínculos no dado real têm
+        # pai e filha em repositórios diferentes — é o backlog do produto encontrando o
+        # código, e nessas linhas `#205` sozinho nomeia uma issue que existe e é outra.
+        observed_repository_id: c.observed_repository_id,
+        # `qualified_name` já traz a organização — `org/repo` —, então é um campo e não dois.
+        repositorio: src.qualified_name,
+        rotulos_do_campo: r.nomes,
         derived_concept: p.derived_concept,
         skip_reason: p.skip_reason,
         skip_detail: p.skip_detail,
@@ -949,6 +977,28 @@ defmodule TheBand.WorkItems.Queries do
   # Quem compõe sobre `escopo/2` recebe `as: :issue` no binding zero. Nomear em vez de contar
   # posição é a **L39**: um `join` novo desloca os bindings posicionais de quem compõe por cima, e
   # o `select` passa a ler o campo errado sem que nada falhe.
+  # Os rótulos que a origem mostra HOJE, agregados numa consulta só.
+  #
+  # `no_longer_observed_at is nil` é o recorte: `replace_labels/3` **marca** o que saiu em vez
+  # de apagar, porque o rótulo que a issue teve é fato sobre como o time a classificou. O
+  # campo mostra o vigente; o histórico continua na tabela, de onde ninguém o perdeu.
+  #
+  # JUNÇÃO LATERAL, e não `preload`: um `preload` por item devolveria a lista certa e faria
+  # uma consulta por linha — L38. Uma listagem de 100 itens custaria 101 consultas, e a medida
+  # de custo da tela deixaria de valer.
+  #
+  # `ORDER BY` DENTRO do agregado, e isso não é preferência: sem ordenação declarada a ordem
+  # vem do plano de execução e muda entre execuções. O teste passa hoje e falha na semana que
+  # vem, sem ninguém tocar em nada — e a tela que se reordena sozinha faz quem compara duas
+  # capturas concluir que algo mudou.
+  defp rotulos_vigentes(tenant_id) do
+    from l in IssueLabel,
+      where:
+        l.tenant_id == ^tenant_id and l.collected_issue_id == parent_as(:issue).id and
+          is_nil(l.no_longer_observed_at),
+      select: %{nomes: fragment("array_agg(? ORDER BY ?)", l.name, l.name)}
+  end
+
   defp vigente_da_issue(tenant_id) do
     from p in IssuePromotion,
       where: p.tenant_id == ^tenant_id and p.collected_issue_id == parent_as(:issue).id,

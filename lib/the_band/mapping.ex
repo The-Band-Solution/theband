@@ -70,6 +70,7 @@ defmodule TheBand.Mapping do
   defdelegate issues_for_decision(tenant, organization_id), to: Queries
   defdelegate list_proposals(tenant, organization_id), to: Catalog
   defdelegate not_type_patterns(tenant, organization_id), to: Catalog
+  defdelegate prefixos_recusados_como_tipo(), to: Catalog
   defdelegate not_type_reason(), to: Catalog
   defdelegate gap_summary(tenant, organization_id), to: Queries
   defdelegate decidir_lote(tenant, organization_id, regras), to: Decision
