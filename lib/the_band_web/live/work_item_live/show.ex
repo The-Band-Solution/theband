@@ -191,7 +191,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 :if={@composicao != []}
                 issues={@composicao}
                 relacao={:part_whole}
-                onde={@onde}
                 repositorio_do_pai={@repositorio_nome}
               />
             </div>
@@ -216,7 +215,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
                 :if={@atendimento != []}
                 issues={@atendimento}
                 relacao={:association}
-                onde={@onde}
                 repositorio_do_pai={@repositorio_nome}
               />
             </div>
@@ -234,7 +232,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <.lista_de_issues
                 issues={@sem_promocao}
                 relacao={:part_whole}
-                onde={@onde}
                 repositorio_do_pai={@repositorio_nome}
               />
             </div>
@@ -259,7 +256,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
               <.lista_de_issues
                 issues={@relacao_sem_nome}
                 relacao={:association}
-                onde={@onde}
                 repositorio_do_pai={@repositorio_nome}
               />
             </div>
@@ -840,7 +836,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
         "answers a different question."
 
   attr :issues, :list, required: true
-  attr :onde, :map, default: %{}
   attr :repositorio_do_pai, :string, default: nil
 
   # `relacao` decide o desenho, e ele carrega a ONTOLOGIA, não decoração:
@@ -876,10 +871,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
                   caminho diz ONDE, a marca diz que uma fronteira foi atravessada. --%>
             <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
               <span class="font-mono text-[0.625rem] opacity-60">
-                {repositorio_de(@onde, i)}
+                {repositorio_de(i)}
               </span>
               <span
-                :if={fora_do_pai?(@onde, i, @repositorio_do_pai)}
+                :if={fora_do_pai?(i, @repositorio_do_pai)}
                 class="rounded-[1px] border border-current px-1 font-mono text-[0.625rem] font-semibold text-warning"
                 title="this part lives in a different repository from the issue you are reading"
               >
@@ -924,7 +919,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
     # está em memória responde a mesma pergunta sem voltar ao banco.
     composicao = WorkItems.list_composition(tenant, issue.id)
     atendimento = WorkItems.list_attendance(tenant, issue.id)
-    repositorios_das_partes = mapa_de_repositorios(tenant)
     sem_promocao = WorkItems.list_unpromoted_parts(tenant, issue.id)
     relacao_sem_nome = WorkItems.list_unnamed_relation_parts(tenant, issue.id)
 
@@ -970,7 +964,6 @@ defmodule TheBandWeb.WorkItemLive.Show do
       mudancas_coletadas?: mudancas_coletadas?(repositorio)
     )
     |> assign(onde(tenant, repositorio, issue))
-    |> assign(:onde, repositorios_das_partes)
   end
 
   # `fetch_observed/2` devolve `{:ok, _}` ou `{:error, :not_found}`, e a tela trata a
@@ -1113,33 +1106,16 @@ defmodule TheBandWeb.WorkItemLive.Show do
     end
   end
 
-  # O mapa de repositório observado → nome, para as sub-listas. Duas consultas fixas — a
-  # lista de repositórios e a de organizações —, e não uma por linha: a composição de um
-  # épico pode ter dezenas de partes, e é a L38.
-  #
-  # Existe porque a parte pode ser de OUTRO repositório: cinco vínculos no dado real têm pai
-  # e filha em repositórios diferentes, e ali `#205` sozinho nomeia uma issue que existe e é
-  # outra.
-  defp mapa_de_repositorios(tenant) do
-    orgs = Map.new(EO.list_organizations(tenant), &{&1.id, &1.login || &1.name})
-
-    tenant
-    |> CMPO.list_observed()
-    |> Map.new(fn r ->
-      {r.observed_repository_id, "#{Map.get(orgs, r.organization_id, "—")}/#{r.name}"}
-    end)
-  end
-
-  defp repositorio_de(onde, issue),
-    do: Map.get(onde, issue.observed_repository_id, "repository not found")
+  # A parte já traz o nome do repositório dela, vindo da consulta — `Queries.partes/3` o
+  # junta na mesma leitura. Resolver aqui, em memória, custou 4 consultas a mais na tela e o
+  # teste de custo pegou.
+  defp repositorio_de(issue), do: issue[:repositorio] || "repository not found"
 
   # A marca só aparece quando a parte vem de fora. O caminho diz ONDE; a marca diz que uma
   # fronteira foi atravessada — e comparar dois caminhos longos a olho é trabalho que a tela
   # pode fazer no lugar de quem lê.
-  defp fora_do_pai?(_onde, _issue, nil), do: false
-
-  defp fora_do_pai?(onde, issue, repositorio_do_pai),
-    do: repositorio_de(onde, issue) != repositorio_do_pai
+  defp fora_do_pai?(_issue, nil), do: false
+  defp fora_do_pai?(issue, repositorio_do_pai), do: repositorio_de(issue) != repositorio_do_pai
 
   defp onde(_tenant, nil, _issue),
     do: %{repositorio_nome: "repository not found", organizacao: "—", url_origem: nil}

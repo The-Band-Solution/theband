@@ -690,6 +690,16 @@ defmodule TheBand.WorkItems.Queries do
           is_nil(l.no_longer_observed_at),
       left_lateral_join: r in subquery(rotulos_vigentes(tenant_id)),
       on: true,
+      # O NOME DO REPOSITÓRIO DA PARTE, na mesma consulta.
+      #
+      # A primeira versão carregava um mapa de todos os repositórios do tenant e resolvia em
+      # memória — e o teste de custo da tela de detalhe pegou: 46 consultas viraram 50.
+      # Junção resolve com zero consultas a mais, e é o dado indo junto com a linha a que
+      # pertence, em vez de ser reconstituído depois.
+      left_join: obs in "observed_repositories",
+      on: obs.id == c.observed_repository_id,
+      left_join: src in "cmpo_source_repositories",
+      on: src.id == obs.source_repository_id,
       order_by: [asc: c.number],
       select: %{
         id: c.id,
@@ -702,6 +712,8 @@ defmodule TheBand.WorkItems.Queries do
         # pai e filha em repositórios diferentes — é o backlog do produto encontrando o
         # código, e nessas linhas `#205` sozinho nomeia uma issue que existe e é outra.
         observed_repository_id: c.observed_repository_id,
+        # `qualified_name` já traz a organização — `org/repo` —, então é um campo e não dois.
+        repositorio: src.qualified_name,
         rotulos_do_campo: r.nomes,
         derived_concept: p.derived_concept,
         skip_reason: p.skip_reason,
