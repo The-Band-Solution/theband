@@ -35,8 +35,23 @@ segredo em claro no banco**, e o achado é outro do que se pensava.
 
 ### 1. `users.session_token` em texto claro
 
-É **credencial ao portador**: quem a tem entra como aquela pessoa, sem senha e sem segundo
-fator. Ela está em claro numa coluna que qualquer `pg_dump` leva inteira.
+**Correção de 2026-09-13.** A primeira redação dizia *"quem a tem entra como aquela pessoa,
+sem senha e sem segundo fator"*. **Está errado**, e foi escrito sem ler o caminho inteiro.
+
+Medido depois: a sessão é um **cookie assinado** com o `SECRET_KEY_BASE`, que **não está no
+banco**. O valor desta coluna é comparado com o que veio nesse cookie — não com algo que o
+cliente apresente direto. Quem lê um dump **não** entra: falta a assinatura.
+
+O que é verdade, e continua bastando para a correção: o valor é **metade** de uma credencial
+de duas partes. A outra metade é o `SECRET_KEY_BASE`, que vive no ambiente. Quem tem **as
+duas** assume qualquer conta; quem tem só uma, não assume nenhuma.
+
+E as duas metades estão hoje em lugares com exposições muito diferentes — uma no ambiente, a
+outra legível em **toda cópia do banco**. Um vazamento do `SECRET_KEY_BASE` tornaria cada
+backup suficiente para assumir todas as contas.
+
+Isso **rebaixa a severidade** e **não dispensa o conserto**. O detalhe da medição está em
+[research.md, R1](research.md#r1--o-que-o-session_token-é-de-fato).
 
 E a decisão de 2026-09-12 manda o backup para um **segundo host** — ou seja, essa coluna passa
 a existir em mais um lugar, fora da máquina que a produção protege.
@@ -140,8 +155,12 @@ entrada **recusar** — com a mensagem única de sempre, sem nomear o motivo.
 **Acceptance Scenarios**:
 
 1. **Given** uma sessão viva, **When** alguém lê a coluna diretamente no banco e apresenta o
-   valor lido, **Then** a plataforma **recusa**, e a recusa é a mensagem única — não dizer
-   *"token inválido"* é o que impede enumerar.
+   valor lido **junto com a chave que assina o cookie**, **Then** a plataforma **recusa**, e a
+   recusa é a mensagem única — não dizer *"token inválido"* é o que impede enumerar.
+
+   *A chave faz parte do cenário de propósito*: sem ela a recusa já acontece hoje, e o teste
+   passaria sem medir nada. O que se exige é que ler o banco não baste **nem para quem tem a
+   outra metade**.
 2. **Given** a mudança aplicada, **When** uma pessoa com sessão aberta age, **Then** a sessão
    dela continua valendo **ou** é encerrada de forma anunciada; o que **não** pode é ela cair
    sem explicação.
@@ -262,8 +281,9 @@ registro guardado **não** o contém — e que contém o suficiente para investi
   de segredo em claro, e o relatório nomeia cada padrão procurado.
 - **SC-002**: A mesma varredura, com um segredo plantado, o **encontra** — em cem por cento
   das execuções de verificação.
-- **SC-003**: Quem lê o banco diretamente **não consegue** assumir a sessão de ninguém: a
-  tentativa é recusada, com a mensagem única.
+- **SC-003**: Quem lê o banco diretamente **não consegue** assumir a sessão de ninguém —
+  **nem tendo a chave que assina o cookie**. A tentativa é recusada, com a mensagem única.
+  Sem a cláusula da chave, este critério já estaria satisfeito hoje e não mediria nada.
 - **SC-004**: Forçada uma falha em cada caminho que usa credencial, **nenhum** registro de
   erro contém o valor da credencial — e **todos** permitem identificar qual delas era.
 - **SC-005**: Existe um registro datado da varredura feita **antes** da primeira cópia para
