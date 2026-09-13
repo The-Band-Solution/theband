@@ -152,7 +152,8 @@ O que passa a ser exigido de quem já seguia a versão anterior:
 
   1. comentar na issue, ao concluí-la, o comando e o **código de saída** que provam a
      conclusão — e não o texto do fim do comando;
-  2. auditar contra `origin/`, e não contra a árvore local, antes de abrir PR.
+  2. auditar contra `origin/`, e não contra a árvore local, antes de abrir PR — começando
+     por conferir que não há arquivo modificado fora de commit.
 
 -->
 
@@ -315,9 +316,14 @@ Quem implementa MUST NOT ser quem valida sozinho.
   `tasks.md` diz **como** provar; o comentário diz **que foi provado**, e as duas coisas não
   se substituem.
 - Antes de abrir PR, uma **auditoria contra a origem** MUST acontecer, e MUST conferir, no
-  mínimo: que o que o PR afirma entregar existirá em `origin/development` depois do merge;
+  mínimo e **nesta ordem**: que o **diretório de trabalho está limpo** — nada modificado fora
+  de commit; que o que o PR afirma entregar existirá em `origin/development` depois do merge;
   que as issues citadas existem e apontam para conteúdo que existe; e que nenhum commit
   pressuposto ficou para trás.
+- A ordem não é arbitrária. **Arquivo modificado e não commitado é a forma mais barata de a
+  árvore local divergir do que os outros recebem, e a que mais engana** — os gates rodam
+  sobre ele e ficam verdes. Em 2026-09-13 uma auditoria conferiu commits e issues, não
+  conferiu isto, e o CI reprovou com um teste que já passava na máquina de quem auditou.
 - A auditoria MUST ler `origin/`, e MUST NOT se satisfazer com a árvore local. Conferir
   contra a própria árvore confirma o trabalho de quem o fez, e não o que os outros vão
   receber — foi assim que 19 issues nasceram apontando para requisitos não empurrados.
