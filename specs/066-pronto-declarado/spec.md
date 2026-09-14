@@ -4,8 +4,9 @@
 
 **Created**: 2026-09-14
 
-**Status**: Draft — emendada em 2026-09-14 (destinos com id da ontologia; `rule03`;
-`github.project_item_status`), depois da análise da SRO/SPO pedida pela pessoa mantenedora
+**Status**: Draft — emendada em 2026-09-14 duas vezes: (1) destinos com id da ontologia,
+`rule03`, `github.project_item_status`, depois da análise da SRO/SPO; (2) o **estágio do quadro**
+preservado ao lado da fase (FR-023/024) e *Desaprovado* decidido — aceite declarado, spec 067
 
 **Input**: *"podemos criar um mapeamento para done com os status do board. Por exemplo, mapear
 concluído pra done e isso contar como Done — igual fizemos com o tipo de issues. Podemos ter
@@ -131,6 +132,9 @@ origem · concluída pelo quadro (Done, quadro Conecta Fapes)"*. Sem a regra, le
 2. **Given** regra ativa, **When** abro um item com issue fechada e `Status` fora do mapeamento,
    **Then** vejo *"fechada na origem · não concluída pelo quadro (Homologation)"* — o valor atual
    do `Status` aparece, porque é ele que explica a discordância.
+2b. **Given** regra ativa com *Homologation → em andamento*, **When** abro um item nesse estágio,
+   **Then** vejo *"aberta na origem · em andamento pelo quadro — Homologation"*: a fase e o
+   estágio, lado a lado, e o estágio com a palavra da organização, não traduzida.
 3. **Given** item em **dois** quadros com declarações diferentes, **When** abro o detalhe,
    **Then** vejo uma linha por quadro, nomeado, e nenhuma síntese entre eles.
 4. **Given** item que **não** está em quadro nenhum, **When** abro o detalhe, **Then** a segunda
@@ -213,9 +217,10 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
    as opções são exatamente as da FR-001 — *planejada, não começou* · *em andamento* ·
    *concluída* · *esta coluna não diz fase* · *sem decisão* —, cada uma com o conceito da
    ontologia escrito ao lado, e *sem decisão* é o padrão de todo valor não declarado.
-2. **Given** *Homologation → em andamento*, **When** abro o painel da pessoa, **Then** o número
-   *em andamento pelo quadro* aparece com o valor de `Status` que o compõe, e **não** altera o
-   total de abertos nem o burn.
+2. **Given** *Homologation → em andamento* e *In Validation → em andamento*, **When** abro o
+   painel da pessoa, **Then** leio *"24 em andamento pelo quadro — 22 Homologation · 2 In
+   Validation"*: a fase agrupa, o estágio explica; e o número **não** altera o total de abertos
+   nem o burn.
 
 ---
 
@@ -243,6 +248,9 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   houver, o item conta em *"concluídos sem data"*, nunca é datado por palpite.
 - **Declaração encerrada e reativada**: cada período é um registro; as medidas de um instante
   usam a declaração vigente **naquele instante**, não a atual.
+- **Estágios homônimos ou quase** (*To Do* e *Todo*; *Homologation* e *Homologação* em quadros
+  diferentes): nunca fundidos. No mesmo quadro é o antipadrão `ap06`, sinalizado; entre quadros,
+  a comparação é pela fase declarada, e o estágio fica como está.
 
 ## Requirements *(mandatory)*
 
@@ -333,6 +341,19 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   recusa (autor, instante), MUST NOT gerar afirmação de fase, e MUST tirar o valor da lista de
   propostas — como a recusa "não é tipo" faz hoje com os prefixos de área.
 
+**O estágio do quadro — preservado, não promovido**
+
+- **FR-023**: O **estágio** — o valor de `Status` como a organização o chama (*Homologation*,
+  *Refinamento*, *In Validation*…) — MUST ser preservado e mostrado **ao lado** da fase declarada
+  em toda tela que mostra a fase; MUST NOT ser promovido a conceito da ontologia; a **ordem** dos
+  estágios MUST vir da ordem observada das opções do campo no quadro, sem declaração; e estágios
+  MUST NOT ser normalizados nem fundidos entre quadros — *To Do* e *Todo* no mesmo quadro é o
+  antipadrão que a plataforma **sinaliza**, nunca resolve. Medida por estágio é **por quadro**;
+  entre quadros e organizações, só por fase.
+- **FR-024**: Quando o instante em que o valor atual passou a valer for conhecido (FR-018), a
+  plataforma MUST dizer **há quanto tempo** o item está no estágio atual; sem o instante, MUST
+  dizer *"idade no estágio desconhecida"* — nunca contar a partir da coleta.
+
 ### Key Entities
 
 - **Declaração de fase por valor de campo**: a regra da organização — quadro, campo de seleção
@@ -351,6 +372,9 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   vigente), com a natureza de cada uma.
 - **Instante do valor atual de `Status`**: quando o card passou a ter o valor que tem; coletado
   da origem, ausente quando ela não oferece.
+- **Estágio do quadro**: o valor atual de `Status` com o nome que a organização lhe dá e a
+  **posição** observada entre as opções do campo — observado, cru, por quadro. Não é conceito;
+  é a palavra do processo da organização, preservada como os rótulos da 065.
 
 ## Success Criteria *(mandatory)*
 
@@ -397,13 +421,15 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   escrita em `ciro/interrupted_verification.yaml`: *"fase é resultado, e em andamento não é
   resultado"*. Por isso os destinos são o par intenção × ocorrência da SRO/SPO, e "em andamento"
   é a ocorrência sem fim.
-- **Desaprovado — decisão pendente da pessoa mantenedora.** O destino natural seria
-  `sro.not_accepted_deliverable`, e a `rule03` o proíbe sem avaliação de critérios. Duas saídas:
-  (a) tratar *Desaprovado* como *em andamento* (o item volta), com a recusa da homologação como
-  ausência nomeada — recomendada para a primeira fatia; (b) modelar a homologação como
-  **avaliação de artefato** da QAPO — `qapo.artifact_evaluation` com `qapo.evaluation_verdict`
-  (*endorsing* · *objecting* · *abstaining*) —, que é posição declarada, não fase de aceitação, e
-  não fere a `rule03`. A (b) é feature própria.
+- **Desaprovado — decidido em 2026-09-14: é aceite declarado, spec própria (067).** O destino
+  natural seria `sro.not_accepted_deliverable`, e a `rule03` o proíbe sem avaliação de critérios.
+  Medido no quadro 43: 248 dos 335 em *Homologation* já têm PR mergeado, e **os 5 Desaprovado têm
+  PR mergeado e aprovado** — o PR não decide aceite; quem avalia é o cliente, na homologação. A
+  pessoa mantenedora decidiu o caminho (c): a organização **declara** qual transição do quadro é a
+  avaliação de aceite (*Homologation → Done* aceita; *→ Desaprovado* recusa), como objeto social
+  no molde de `spo.activity_start_criterion` — conceito novo na rede, resolvido na leitura, com
+  autor e data. Nesta spec, *Desaprovado* fica como **estágio** (FR-023) sob a fase que a
+  organização declarar; a fase de aceitação vem da 067.
 - **A tabela de atividades executadas não tem colunas de data hoje** — `start_date`/`end_date`
   estão na ontologia e não no schema, porque o critério de início resolve na leitura. Esta spec
   segue o mesmo desenho: a fase do item é **derivada a cada leitura** da declaração vigente e do
@@ -439,8 +465,9 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 
 - **O critério de início** (042, sobre a FR-007 da 022): qual transição marca o começo do
   trabalho. Aqui só o valor **atual** e o instante em que passou a valer.
-- **A homologação como avaliação de artefato** (QAPO, verdicts *endorsing*/*objecting*): a saída
-  (b) para *Desaprovado*, se a pessoa mantenedora a escolher.
+- **O critério de aceite declarado** (spec 067): qual transição do quadro é a avaliação de
+  aceite, e as fases `sro.accepted_deliverable` / `sro.not_accepted_deliverable` daí derivadas —
+  decisão de 2026-09-14. Esta spec entrega a fase de execução; aquela, a de aceitação.
 - **O recorte por sprint** — atrasou, não realizada, concluída por sprint — e a regra *"a issue
   é da pessoa"*: outra spec, com as decisões 2 e 3 já tomadas.
 - **Duplicatas** (`stateReason = DUPLICATE`) fora da carga da pessoa: outra spec.

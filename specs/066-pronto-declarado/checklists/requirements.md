@@ -48,9 +48,10 @@
   sem `end_date`, `sro.performed_scrum_development_task`); aceitação **excluída** dos destinos pela
   `sro.rule03`; a regra ganha o id `github.project_item_status`, que `issue_task.yaml` já citava
   sem existir (FR-021); a recusa *"esta coluna não diz fase"* vira destino registrado (FR-022).
-- **Uma decisão fica com a pessoa mantenedora, escrita em Assumptions**: o destino de
-  *Desaprovado* — (a) em andamento, recomendada; (b) avaliação de artefato da QAPO, feature
-  própria. Não bloqueia o `/speckit-plan`: a (a) é o padrão até a decisão.
+- **Segunda emenda, 2026-09-14**: o estágio do quadro preservado ao lado da fase (FR-023), a
+  idade no estágio (FR-024), a entidade *Estágio do quadro* e o edge case dos homônimos. E a
+  decisão do *Desaprovado* foi tomada pela pessoa mantenedora — caminho (c), critério de aceite
+  declarado, spec 067. Nenhuma decisão pendente resta nesta spec.
 - **Protótipo antes do código** (FR-015 da casa): as telas tocadas (declaração no quadro,
   detalhe, listagem, painel da pessoa, tela da equipe, quadro) passam pelo papel de Design
   depois desta spec e antes do plano de implementação.
