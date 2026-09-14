@@ -1,6 +1,7 @@
 # Paridade entre o `compose.yaml` e o Dokploy
 
-**Aberto em**: 2026-09-13 · **Proposto pela pessoa mantenedora**
+**Aberto em**: 2026-09-13 · **Proposto pela pessoa mantenedora** · **Estreitado em 2026-09-14**:
+a leitura (b) já estava decidida desde 2026-09-12, e este item dizia que não
 
 **A ideia**: o que o `compose.yaml` declara deve existir também no servidor. O que roda aqui
 roda lá, e a diferença entre os dois ambientes deixa de ser uma coisa que só se descobre
@@ -55,8 +56,10 @@ a rodar contra o servidor.
 
 ### (b) Só o backup funcionando
 
-MinIO — ou qualquer destino S3 — **em outro host**. É a decisão já tomada em 2026-09-12:
-*"destino de produção em um segundo host"*.
+MinIO — ou qualquer destino S3 — **em outro host**. **É a decisão já tomada em 2026-09-12**
+pela pessoa mantenedora — *"o MinIO vira também o destino de produção, num segundo host"* —,
+registrada em [MinIO como destino do ensaio e da produção](minio-como-destino-do-ensaio-de-backup.md)
+(PR #914). Esta leitura não está em aberto: é o **piso**.
 
 **Não dá paridade**: o `compose.yaml` continua declarando um serviço que o servidor não tem.
 
@@ -73,17 +76,26 @@ painel seja a verdadeira.
 
 ## O que precisa ser decidido antes de executar
 
-1. **Qual das três leituras vale.**
-2. Se (a) ou (c): **o MinIO do VPS é ensaio ou é o destino real?** A resposta muda o nome do
-   serviço, e o nome é o que impede a conclusão errada.
-3. Se (b) ou (c): **onde fica o segundo host**, e quem paga.
+A primeira versão deste item (2026-09-13) punha as três leituras em aberto. **Estava errado**: a
+(b) já tinha sido decidida um dia antes, e o item de backlog do MinIO registrava isso. Duas
+fontes dizendo coisas diferentes sobre a mesma decisão é o defeito que este diretório existe
+para evitar. Corrigido em 2026-09-14 — o que resta decidir é menor:
+
+1. ~~Qual das três leituras vale~~ — **(b) está decidida** (2026-09-12, #914): produção num
+   segundo host. **O que resta**: se a (c) se soma a ela — um MinIO **também** no VPS, para o
+   ensaio. É pergunta de paridade, não de backup;
+2. **Se houver MinIO no VPS, o nome dele é `minio-ensaio`**, nunca `minio-backup`. O nome é o
+   que impede quem abre o painel de ler presença como suficiência;
+3. **Onde fica o segundo host, e quem paga.** Continua aberto — a decisão de 2026-09-12 diz
+   *segundo host*, e não diz qual.
 
 ---
 
 ## O que já está provado, e não precisa ser refeito
 
 O caminho completo foi exercitado localmente em 2026-09-13 e está em
-`docs/seguranca/2026-09-13-o-caminho-completo-do-backup.md`:
+`docs/seguranca/2026-09-13-o-caminho-completo-do-backup.md` — **na branch de release** (PR
+#916), e chega a `development` com o bump da v0.8.0; até lá o link não resolve aqui:
 
 ```
 pg_dump 259.938.022 B → varredura ANTES (0 ocorrências, controle positivo ok)
