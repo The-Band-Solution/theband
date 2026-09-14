@@ -4,7 +4,8 @@
 
 **Created**: 2026-09-14
 
-**Status**: Draft
+**Status**: Draft — emendada em 2026-09-14 (destinos com id da ontologia; `rule03`;
+`github.project_item_status`), depois da análise da SRO/SPO pedida pela pessoa mantenedora
 
 **Input**: *"podemos criar um mapeamento para done com os status do board. Por exemplo, mapear
 concluído pra done e isso contar como Done — igual fizemos com o tipo de issues. Podemos ter
@@ -209,8 +210,9 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 **Acceptance Scenarios**:
 
 1. **Given** a declaração do quadro, **When** a pessoa escolhe o destino de um valor, **Then**
-   as opções são exatamente *concluído*, *em andamento*, *não iniciado* e *sem decisão* — e *sem
-   decisão* é o padrão de todo valor não declarado.
+   as opções são exatamente as da FR-001 — *planejada, não começou* · *em andamento* ·
+   *concluída* · *esta coluna não diz fase* · *sem decisão* —, cada uma com o conceito da
+   ontologia escrito ao lado, e *sem decisão* é o padrão de todo valor não declarado.
 2. **Given** *Homologation → em andamento*, **When** abro o painel da pessoa, **Then** o número
    *em andamento pelo quadro* aparece com o valor de `Status` que o compõe, e **não** altera o
    total de abertos nem o burn.
@@ -249,8 +251,20 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 **A regra**
 
 - **FR-001**: A organização MUST poder declarar, **por quadro e por campo de seleção única**,
-  para cada valor observado, um destino entre *concluído*, *em andamento*, *não iniciado* e *sem
-  decisão*; *sem decisão* é o padrão de todo valor não declarado.
+  para cada valor observado, um destino da **ontologia** — e só estes:
+
+  | destino (texto da tela) | conceito | o que afirma |
+  |---|---|---|
+  | *planejada, não começou* | `sro.intended_scrum_development_task` (intenção; pai `spo.intended_project_activity`) | há intenção de fazer; nada foi executado |
+  | *em andamento* | `spo.performed_project_activity` com `start_date` e **sem** `end_date` | a atividade corre — a própria ontologia define "em andamento" assim, e não como fase |
+  | *concluída* | `spo.performed_project_activity` com `end_date`; quando a issue é tarefa, `sro.performed_scrum_development_task` (causada pela pretendida, `sro.rule02`) | o trabalho terminou — **não** que foi aceito |
+  | *esta coluna não diz fase* | nenhum — recusa registrada, no molde de "não é tipo" | a coluna diz outra coisa (área, pausa, refinamento) |
+  | *sem decisão* | nenhum — padrão | ninguém declarou |
+
+  A tela MUST NOT oferecer `sro.accepted_deliverable` nem `sro.not_accepted_deliverable` como
+  destino: pela regra `sro.rule03`, aceitação decorre da avaliação dos critérios e **nunca de
+  marcação manual**; o quadro pode dizer que o trabalho terminou, não que o entregável passou.
+  A tela MUST dizer isso, com a regra, onde a pessoa procuraria "aceito".
 - **FR-002**: A declaração MUST referenciar o **identificador** da opção na origem, e guardar o
   **nome** da opção no momento da declaração; o nome atual vem da coleta.
 - **FR-003**: Toda ativação e todo encerramento de declaração MUST gravar **quem** e **quando**;
@@ -308,16 +322,25 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 
 **O em andamento**
 
-- **FR-020**: Com valores mapeados para *em andamento*, o painel da pessoa MUST mostrar *"N em
-  andamento pelo quadro"* com os valores que o compõem, sem alterar o total de abertos nem
-  nenhuma medida de conclusão.
+- **FR-020**: Com valores mapeados para *em andamento* (`spo.performed_project_activity` sem
+  `end_date`), o painel da pessoa MUST mostrar *"N em andamento pelo quadro"* com os valores que
+  o compõem, sem alterar o total de abertos nem nenhuma medida de conclusão.
+- **FR-021**: A regra MUST viver na base de conhecimento com o id **`github.project_item_status`**
+  — o id que `mappings/github/sro/issue_task.yaml` já cita como origem da tarefa executada e que
+  **não existe** —, declarando os destinos admitidos, o vocabulário que gera propostas, e o que
+  ela **não materializa** (`sro.accepted_deliverable`, `sro.sprint_deliverable`), com a razão.
+- **FR-022**: A declaração de um valor como *esta coluna não diz fase* MUST ser gravada como
+  recusa (autor, instante), MUST NOT gerar afirmação de fase, e MUST tirar o valor da lista de
+  propostas — como a recusa "não é tipo" faz hoje com os prefixos de área.
 
 ### Key Entities
 
 - **Declaração de fase por valor de campo**: a regra da organização — quadro, campo de seleção
-  única, identificador da opção, nome no momento da declaração, destino (*concluído* · *em
-  andamento* · *não iniciado* · *sem decisão*), quem ativou e quando, quem encerrou e quando. Uma
-  por opção por período.
+  única, identificador da opção, nome no momento da declaração, destino (um dos cinco da FR-001,
+  gravado pelo **id do conceito** quando há conceito, e como recusa nomeada quando não há), quem
+  ativou e quando, quem encerrou e quando. Uma por opção por período. O molde é o critério de
+  início (`spo_activity_start_criteria`: por quadro, declarado/revogado com autor, revogar marca
+  e nunca apaga) somado ao gesto do catálogo de mapeamento (proposta → ativação).
 - **Vocabulário reconhecido de pronto**: lista versionada na base de conhecimento dos nomes que
   costumam significar concluído (*Done*, *Concluído*, *Closed*…), com proveniência; serve **só
   para propor**, nunca decide.
@@ -366,8 +389,25 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   desacordo e a escolha; a série temporal por definição de quadro depende da FR-018 — o
   instante em que o valor passou a valer, que a origem oferece por valor de campo. Até ele ser
   coletado, os concluídos pelo quadro entram em *"sem data conhecida"*.
-- **Homologation é em andamento**, por decisão da pessoa mantenedora em 2026-09-14; a spec não
-  a mapeia automaticamente — a organização declara.
+- **Homologation é em andamento** (`spo.performed_project_activity` sem `end_date`), por decisão
+  da pessoa mantenedora em 2026-09-14; a spec não a mapeia automaticamente — a organização
+  declara. E hoje *Homologation* **não está** em `recognized_in_progress_states`: nem o antipadrão
+  `ap05` a reconhece como andamento.
+- **"Em andamento" e "não iniciado" não são conceitos da rede, de propósito.** A doutrina está
+  escrita em `ciro/interrupted_verification.yaml`: *"fase é resultado, e em andamento não é
+  resultado"*. Por isso os destinos são o par intenção × ocorrência da SRO/SPO, e "em andamento"
+  é a ocorrência sem fim.
+- **Desaprovado — decisão pendente da pessoa mantenedora.** O destino natural seria
+  `sro.not_accepted_deliverable`, e a `rule03` o proíbe sem avaliação de critérios. Duas saídas:
+  (a) tratar *Desaprovado* como *em andamento* (o item volta), com a recusa da homologação como
+  ausência nomeada — recomendada para a primeira fatia; (b) modelar a homologação como
+  **avaliação de artefato** da QAPO — `qapo.artifact_evaluation` com `qapo.evaluation_verdict`
+  (*endorsing* · *objecting* · *abstaining*) —, que é posição declarada, não fase de aceitação, e
+  não fere a `rule03`. A (b) é feature própria.
+- **A tabela de atividades executadas não tem colunas de data hoje** — `start_date`/`end_date`
+  estão na ontologia e não no schema, porque o critério de início resolve na leitura. Esta spec
+  segue o mesmo desenho: a fase do item é **derivada a cada leitura** da declaração vigente e do
+  valor atual; nada de fase é gravado no item.
 - **A tela de declaração vive junto do quadro**, e não numa página própria — a lacuna nasce ao
   olhar o quadro; a mesma razão que pôs as regras de mapeamento na tela de sincronização.
   Protótipo antes do código, como toda tela desta casa.
@@ -381,16 +421,26 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   crus por item, que esta spec passa a interpretar por declaração.
 - **028 — gestão do projeto declarado**: a escolha de quadro por evidência; o quadro que a
   organização declara como seu é o primeiro a receber declaração de pronto.
+- **022 — timeline das issues, FR-007/FR-008/FR-010b**: a plataforma não escolhe sozinha qual
+  evento marca o início; quando nenhum estado significa "em andamento", sinaliza.
 - **042 — critério de início**: a irmã — qual movimentação marca o começo; esta marca o fim.
-  As duas usam o mesmo vocabulário observado de `Status` e a mesma recusa de inferir.
+  Mesmo desenho: por quadro, autor e data, resolução na leitura, revogar marca. E a mesma
+  limitação declarada: **o quadro não é conceito da rede** (`observed_projects` é coleta), então a
+  declaração aponta para o quadro observado, como o critério de início já faz.
+- **A regra por tenant `the_band_solution.yaml`** lista o `Status` em `unmapped_fields` com a
+  razão *"exigiria o histórico de itens"*; esta spec a supera pela FR-018 (o instante do valor
+  atual) e pela FR-001 (a declaração), e a entrada de `unmapped_fields` MUST ser atualizada
+  quando a regra existir.
 - **A tela de sincronização e suas regras de mapeamento**: o gesto de propor a partir do
   observado e ativar com autor, que esta spec reutiliza.
 - **A marca de proveniência** da casa (observado · declarado · derivado · ausente).
 
 ## Out of Scope
 
-- **O critério de início** (042): qual transição marca o começo do trabalho. Aqui só o valor
-  **atual** e o instante em que passou a valer.
+- **O critério de início** (042, sobre a FR-007 da 022): qual transição marca o começo do
+  trabalho. Aqui só o valor **atual** e o instante em que passou a valer.
+- **A homologação como avaliação de artefato** (QAPO, verdicts *endorsing*/*objecting*): a saída
+  (b) para *Desaprovado*, se a pessoa mantenedora a escolher.
 - **O recorte por sprint** — atrasou, não realizada, concluída por sprint — e a regra *"a issue
   é da pessoa"*: outra spec, com as decisões 2 e 3 já tomadas.
 - **Duplicatas** (`stateReason = DUPLICATE`) fora da carga da pessoa: outra spec.

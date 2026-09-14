@@ -43,11 +43,14 @@
 ## Notes
 
 - Validado em 2026-09-14 numa iteração. Nenhum item reprovado.
-- **Pendência declarada, não da spec**: os destinos da declaração (*concluído · em andamento ·
-  não iniciado · sem decisão*) são palavras desta spec; a pessoa mantenedora pediu, em paralelo,
-  que a tela use **conceitos da ontologia** (SRO) para pronto/aberto/em andamento. A análise
-  está em curso; se a ontologia oferecer os conceitos, a FR-001 e a entidade *Declaração de
-  fase* passam a citá-los pelo id — emenda antes do `/speckit-plan`.
+- **Emenda de 2026-09-14, feita**: a análise da SRO/SPO trouxe os conceitos, e a FR-001 passou a
+  citá-los pelo id (`sro.intended_scrum_development_task`, `spo.performed_project_activity` com e
+  sem `end_date`, `sro.performed_scrum_development_task`); aceitação **excluída** dos destinos pela
+  `sro.rule03`; a regra ganha o id `github.project_item_status`, que `issue_task.yaml` já citava
+  sem existir (FR-021); a recusa *"esta coluna não diz fase"* vira destino registrado (FR-022).
+- **Uma decisão fica com a pessoa mantenedora, escrita em Assumptions**: o destino de
+  *Desaprovado* — (a) em andamento, recomendada; (b) avaliação de artefato da QAPO, feature
+  própria. Não bloqueia o `/speckit-plan`: a (a) é o padrão até a decisão.
 - **Protótipo antes do código** (FR-015 da casa): as telas tocadas (declaração no quadro,
   detalhe, listagem, painel da pessoa, tela da equipe, quadro) passam pelo papel de Design
   depois desta spec e antes do plano de implementação.
