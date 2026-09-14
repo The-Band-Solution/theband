@@ -1,4 +1,4 @@
-# Retomar — estado em 2026-09-13, a v0.8.0 preparada e a aceitação da 065 proposta
+# Retomar — estado em 2026-09-14, a v0.8.0 preparada e três sprints registrados depois do fato
 
 **Este é o único documento de estado.** `docs/sprints/RETOMAR.md` aponta para cá (AGENTS.md §5).
 
@@ -66,7 +66,23 @@ constituição 1.8.0, **#861** MinIO como destino do ensaio, **#856** back-merge
    `curl -s https://app.theband.dev/version`. Depois `deploy-producao` (plataforma) e
    `aceitacao-em-producao` (o que quem usa vê) — são medidas diferentes.
 
-### 2. Os vereditos da 065 — confirmar ou recusar
+### 2. Os vereditos — confirmar ou recusar (PR #918)
+
+**Doze fases propostas esperam a pessoa alocada ao papel**: nove no sprint 030 (060 e a
+herança) e três no 032 (065). Registro em `docs/sprints/030-a-tela-da-equipe-por-vinculo/aceitacao.md`
+e `docs/sprints/032-rotulos-no-item/aceitacao.md`.
+
+| Sprint 030 | fase proposta | o que fecha |
+|---|---|---|
+| 060/US4 · #857 subequipe numa transação | **aceitos** | — |
+| 060/US2, US3, US5 | não aceitas — **critério não medido** | medir na confirmação (SC-013 cronometrado; AC2 decidida; SC-005/FR-081 com duas equipes) |
+| 060/US1 | não aceita — três testes prometidos **não existem** (T010–T012 marcadas `[x]`) | tarefa nova; a sonda do papel é o esqueleto |
+| 060/US9 | não aceita — **defeito**: cartão *Squads at a glance* ≠ protótipo (T029 confessa) | Design antes; depois o cartão |
+| #853 (D06 refeito) | não aceito — os 5 pontos da v0.7.0 **fecharam**; restam 4 cláusulas sem teste e a conferência do QA | quatro testes + §3 com captura; a 045 declara a US que falta |
+| #863 (FR-003 com tela) | não aceito — o README do protótipo diz **"aprovação pendente"**, o código diz "aprovado"; §3.4/§3.7 furadas; recusa em **português** no flash | P1–P3 respondidas → republicação → §3 → catálogo → testes → QA |
+| #860 (aba *Flow per person*) | **não avaliado** — não é T026–T029; é US10–US12 da extensão, **sem tarefa** | registro próprio depois do #913 |
+
+#### Os vereditos da 065 (sprint 032)
 
 Propostos pelo papel em 2026-09-13, com evidência executada, nos comentários de
 [#904](https://github.com/The-Band-Solution/theband/issues/904),
@@ -175,9 +191,9 @@ a aceitação é do papel).
 5. **O agente de Product Owner travou uma vez (600s) e escreveu na segunda.** A avaliação
    direta é ponte, e o documento **diz** que foi feita assim — quatro afirmações dela estavam
    erradas, e foi o papel que as pegou.
-6. **`sprint-backlog` não rodou para 060, 064 e 065** — não há `docs/sprints/030+`, e por isso
-   a aceitação da 065 não tem `aceitacao.md` onde morar. Os comentários nas issues carregam o
-   veredito até o registro existir.
+6. **`sprint-backlog` não rodou para 060, 064 e 065.** Os sprints **030, 031 e 032** foram
+   escritos depois, em 2026-09-13/14 (PR **#918**), e dizem isso no topo: backlog, review e
+   aceitação **proposta** pelo papel. O que a aceitação achou está lá — e pede confirmação (L108).
 
 ---
 
