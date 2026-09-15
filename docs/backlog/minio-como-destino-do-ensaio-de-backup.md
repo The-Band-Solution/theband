@@ -3,9 +3,13 @@
 **Decisão da pessoa mantenedora em 2026-09-12**: o ensaio do §6 do runbook deixa de esperar
 uma conta em provedor de S3. O destino passa a ser **MinIO**, que fala o mesmo protocolo.
 
-> **O que este item NÃO decide**: o destino de **produção**. Ele continua sendo o do runbook
-> §4 — agendado no Dokploy, e **fora da máquina que ele protege**. Um MinIO no mesmo host não
-> serviria: o incêndio que leva o banco leva o backup junto.
+> **~~O que este item NÃO decide~~: ~~o destino de produção~~** — o texto original dizia que a
+> produção ficava de fora. **DECIDIDO em 2026-09-12 pela pessoa mantenedora: o MinIO vira
+> também o destino de produção, num SEGUNDO HOST.**
+>
+> A regra que não muda é a que dá sentido ao backup: **fora da máquina que ele protege**. O
+> incêndio que leva o banco não pode levar o backup junto — e é por isso que a decisão diz
+> *segundo host*, e não *outro contêiner*.
 
 ## O que estava travado, e por quê
 
@@ -68,6 +72,60 @@ paráfrase.
 **Continua aberto**: o destino de produção. O ensaio contra MinIO prova o **formato, o
 comando e o tempo**; não prova que o job do Dokploy escreve no lugar certo nem que o lugar
 certo sobrevive ao host. São duas afirmações diferentes, e só a primeira fica provada aqui.
+
+## A decisão de 2026-09-12: produção também, num segundo host
+
+O que isto acrescenta ao item, e **nada disto o ensaio local resolve**:
+
+| o que | por quê |
+|---|---|
+| **um segundo host** | é a dependência nova, e é do mesmo tipo da que travava antes: infraestrutura que ainda não existe. A diferença é que agora é um host, e não uma conta em provedor |
+| **TLS no transporte** | o backup atravessa a rede. O `compose.yaml` de hoje sobe `http://minio:9000` — correto para o ensaio local, **errado** para produção: seria o dump em claro no caminho |
+| **credenciais de produção fora do repositório** | as do `.env.example` são explicitamente de desenvolvimento (`theband` / `theband-ensaio-local`). As de produção entram no Dokploy, como a chave mestra já entra |
+| **a credencial que escreve não apaga** | o job precisa **escrever**; não precisa ler nem apagar. Credencial que apaga o balde transforma um comprometimento da produção em **perda do caminho de volta** — o oposto do que o backup garante |
+| **retenção declarada** | quantas cópias, por quanto tempo, e o que acontece quando o host encher |
+| **o caminho de volta do próprio destino** | se o host de backup morrer, o que se perde e o que se faz |
+
+### A chave mestra NÃO viaja no dump — medido em 2026-09-12
+
+A pergunta que mais pesa num destino de backup: se o dump vaza, o que dá para ler?
+
+| conferido | resultado |
+|---|---|
+| `tool_credentials.secret` | **`bytea`** — 86 bytes opacos, sem prefixo legível e **sem marca de token em claro** (`ghp_`, `github_pat_`) |
+| alguma tabela guarda a chave mestra? | **nenhuma.** A consulta por coluna `%master%` ou `%vault%` em todo o schema devolveu **zero** |
+| onde a chave vive | só no ambiente — `THE_BAND_MASTER_KEY`, lida em `config/runtime.exs:14` |
+
+**O dump carrega texto cifrado, e a chave fica fora dele.** É o caso bom, e ele **endurece um
+requisito em vez de relaxar**:
+
+> **A chave mestra não pode estar no host de backup.** Enquanto ela viver só no Dokploy da
+> produção, um comprometimento do destino entrega dados pessoais e hashes — mas **não** as
+> credenciais de ferramenta. Pôr a chave lá, por conveniência de restauração, apagaria
+> exatamente a proteção que esta medição encontrou.
+
+E o que o dump **entrega mesmo cifrado** continua sendo muito: contas, `password_hash`,
+`session_token`, o elo conta↔pessoa e os escopos de acesso. Cifra de credencial não é cifra do
+banco.
+
+### A pergunta que a decisão deixa aberta, e é de topologia
+
+*Segundo host* tem leitura **fraca** e **forte**:
+
+- **fraca**: outra máquina, mesmo provedor, mesma conta, mesma região;
+- **forte**: outro **domínio de falha** — outro provedor, outra conta, outra credencial.
+
+A leitura fraca protege de *o disco do banco morrer*. **Não protege** de a conta ser suspensa,
+de a região cair, nem de a credencial do provedor vazar — e nos três o backup vai junto. Qual
+das duas vale é decisão de operação, e está sendo avaliada pelo papel de Security junto do
+resto da superfície de risco.
+
+### O que o host guarda, e por que a pergunta acima não é teórica
+
+Um dump do banco de produção é **tudo**: contas, `password_hash`, `session_token`, o elo
+conta↔pessoa, os escopos de acesso, e as credenciais de ferramenta cifradas. Comprometer o
+destino de backup é comprometer a produção inteira — com o agravante de que **ninguém
+percebe**: não há sessão, não há log de aplicação, não há tela.
 
 ## Uma pergunta para a pessoa mantenedora
 
