@@ -657,8 +657,14 @@ defmodule TheBandWeb.BoardLive.Index do
               <span class="label-text text-xs">event that marks the start</span>
               <select name="event_type" class="select select-sm select-bordered" required>
                 <option value="">choose…</option>
+                <%!-- O nome cru é a IDENTIDADE — é ele que se grava. A leitura e o conceito
+                      vêm declarados em `github.timeline_event_vocabulary`, e existem para que
+                      escolher não dependa de decorar a API do GitHub. Tipo sem declaração
+                      aparece com o nome sozinho: ausência, nunca recusa. --%>
                 <option :for={t <- @detalhe.tipos_de_evento} value={t.event_type}>
-                  {t.event_type} — {t.occurrences} observed
+                  {t.reads || t.event_type} — {t.occurrences} observed{if t.concept,
+                    do: " · #{t.concept}",
+                    else: " · the network does not name this one"}
                 </option>
               </select>
             </label>
@@ -781,7 +787,9 @@ defmodule TheBandWeb.BoardLive.Index do
                           value={d.id}
                           selected={o.proposta == d.id}
                         >
-                          {d.rotulo}
+                          <%!-- O rótulo é para ler; o id do conceito é o que a declaração
+                                grava, e mostrá-lo é o que liga a tela à rede. --%>
+                          {d.rotulo}{if d.id != "nao_diz_fase", do: " · #{d.id}"}
                         </option>
                       </select>
                       <.button type="submit" variant="primary" class="btn-xs">

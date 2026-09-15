@@ -1,0 +1,142 @@
+derivation_rule:
+  id: github.timeline_event_vocabulary
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "O que cada evento da timeline do GitHub é, e o que a rede nomeia nele"
+
+  description:
+    pt-BR: >
+      Os nomes que o GitHub dá aos eventos da timeline — `ProjectV2ItemStatusChangedEvent`,
+      `AddedToProjectV2Event` — são identidade, não leitura: dizem o que a origem chama, e
+      nada sobre o que aconteceu para quem olha a tela.
+
+      Esta regra acrescenta a leitura, sem substituir o nome: o tipo cru continua sendo a
+      identidade (declarar um critério de início grava o tipo, não a frase), e a frase existe
+      para que a escolha não dependa de decorar a API do GitHub.
+
+      E declara o que a rede **nomeia** em cada um. Cinco eventos são
+      `spo.performed_project_activity` — ocorrências de trabalho; os demais são registrados
+      com `concept_id` nulo, e **nulo é informação**: significa que a rede não nomeia aquele
+      tipo, não que o dado falte. Até 2026-09-15 essa lista de cinco vivia **escrita no
+      código**, que é o princípio IV cumprido pela metade.
+
+  inputs:
+    - timelineItems.__typename
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Os tipos observados nesta instalação, com a contagem medida em 2026-09-15.
+  # A lista NÃO é fechada: tipo novo do GitHub aparece na tela com o nome cru e
+  # sem leitura — ausência declarada, e nunca recusa.
+  # ───────────────────────────────────────────────────────────────────────────
+  events:
+    - type: ProjectV2ItemStatusChangedEvent
+      concept: spo.performed_project_activity
+      reads:
+        en: "the card moved to another column"
+        pt-BR: "o cartão mudou de coluna"
+
+    - type: AddedToProjectV2Event
+      concept: null
+      concept_absence:
+        pt-BR: >
+          Entrar num quadro não é trabalho executado: é o item passar a ser acompanhado.
+          A rede não nomeia o ato, e dizer que é atividade faria "alguém trabalhou nisto"
+          contar toda vez que um cartão fosse criado.
+      reads:
+        en: "the item was added to a board"
+        pt-BR: "o item entrou num quadro"
+
+    - type: AssignedEvent
+      concept: spo.performed_project_activity
+      reads:
+        en: "someone became responsible for the item"
+        pt-BR: "alguém passou a ser responsável pelo item"
+
+    - type: UnassignedEvent
+      concept: spo.performed_project_activity
+      reads:
+        en: "someone stopped being responsible for the item"
+        pt-BR: "alguém deixou de ser responsável pelo item"
+
+    - type: ClosedEvent
+      concept: spo.performed_project_activity
+      reads:
+        en: "the issue was closed at the source"
+        pt-BR: "a issue foi fechada na origem"
+
+    - type: ReopenedEvent
+      concept: spo.performed_project_activity
+      reads:
+        en: "the issue was reopened at the source"
+        pt-BR: "a issue foi reaberta na origem"
+
+    - type: IssueTypeAddedEvent
+      concept: null
+      concept_absence:
+        pt-BR: "Declarar o tipo é classificar, não executar."
+      reads:
+        en: "the item was given a type"
+        pt-BR: "o item ganhou um tipo"
+
+    - type: LabeledEvent
+      concept: null
+      concept_absence:
+        pt-BR: "Rotular caracteriza o item; não é trabalho sobre ele."
+      reads:
+        en: "a label was put on the item"
+        pt-BR: "um rótulo foi posto no item"
+
+    - type: UnlabeledEvent
+      concept: null
+      concept_absence:
+        pt-BR: "Mesma razão do rótulo posto."
+      reads:
+        en: "a label was taken off the item"
+        pt-BR: "um rótulo foi tirado do item"
+
+    - type: ParentIssueAddedEvent
+      concept: null
+      concept_absence:
+        pt-BR: >
+          Compor é estrutura, não execução — e é dela que o roteamento de tipos deriva épico
+          e user story.
+      reads:
+        en: "the item became part of another"
+        pt-BR: "o item passou a compor outro"
+
+    - type: SubIssueAddedEvent
+      concept: null
+      concept_absence:
+        pt-BR: "O outro lado da mesma composição."
+      reads:
+        en: "another item became part of this one"
+        pt-BR: "outro item passou a compor este"
+
+    - type: CrossReferencedEvent
+      concept: null
+      concept_absence:
+        pt-BR: >
+          Ser citado noutro lugar não diz que alguém trabalhou aqui, e a citação pode vir de
+          fora do projeto.
+      reads:
+        en: "the item was mentioned somewhere else"
+        pt-BR: "o item foi citado em outro lugar"
+
+  limitations:
+    - pt-BR: >
+        A leitura é para a tela. A **identidade continua sendo o tipo cru**: o critério de
+        início grava `event_type`, e trocar isso pela frase faria uma tradução mudar o que a
+        organização declarou.
+    - pt-BR: >
+        Tipo que o GitHub crie amanhã não está aqui, e a tela o mostra **com o nome cru e sem
+        leitura** — ausência declarada. Recusá-lo seria tratar dado novo como erro.
+
+  provenance:
+    source_type: measurement
+    reference: >
+      12 tipos observados em spo_performed_project_activities em 2026-09-15; os cinco com
+      conceito são os que github_work_items.ex já promovia, e que agora ficam declarados.
