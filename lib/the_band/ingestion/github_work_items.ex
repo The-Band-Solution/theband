@@ -61,7 +61,48 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   alias TheBand.SemanticIntegration.Mapper
   alias TheBand.WorkItems
 
-  @page_size 50
+  # Quantos nós a consulta pede por página, por fase.
+  #
+  # ## Por que a fase de issues pede 10, e não 50 — corrigido em 2026-09-15
+  #
+  # A conexão `issues` traz a timeline junto, e o GitHub **corta a timeline sem dizer** quando
+  # a consulta pede muitos nós: ele devolve menos itens **e declara `totalCount` igual ao que
+  # cortou**, com `hasNextPage: false`. A guarda `avisar_se_truncou/4` está correta e nunca
+  # dispara, porque só pode olhar o que a origem afirma.
+  #
+  # Medido na issue #1828 do `conectafapes-project`, que tem **14** itens de timeline:
+  #
+  #     page_size = 50 ....... totalCount 12   (custo 108 para o repositório)
+  #     page_size = 25 ....... totalCount 13   (custo  71)
+  #     page_size = 10 ....... totalCount 14   (custo 176)  ← completo
+  #
+  # O corte é proporcional aos nós pedidos — `page_size × timeline_size` —, e não um teto fixo.
+  # A 10 a resposta fica íntegra, ao preço de mais consultas: 176 pontos contra uma cota de
+  # 5 000 por hora.
+  #
+  # **O que isso custou até ser achado**: no quadro 43 do Conecta Fapes, 282 das 377 entregas
+  # marcadas como concluídas têm o evento de conclusão na origem e **não** no banco — 152 só em
+  # julho. Ver `docs/backlog/timeline-truncada-na-origem.md`.
+  @page_size_por_fase %{"issues" => 10, "repositories" => 50}
+  @page_size_padrao 50
+
+  # A partir de quantos itens de timeline a resposta é suspeita de corte. Medido em
+  # 2026-09-15: com `page_size = 50`, as issues cortadas vieram com exatamente 10, 12 e 13
+  # itens; a maior íntegra da base tem 72. O limiar erra para o lado de avisar.
+  @suspeita_de_corte 50
+
+  @doc """
+  Os tamanhos de página por fase, para que a decisão seja consultável — e testável.
+
+  A fase de issues pede 10 porque acima disso a origem corta a timeline sem sinalizar; ver a
+  nota em `@page_size_por_fase`.
+  """
+  @spec page_sizes() :: %{String.t() => pos_integer()}
+  def page_sizes, do: @page_size_por_fase
+
+  @doc "A partir de quantos itens a timeline é suspeita de corte."
+  @spec limiar_de_suspeita() :: pos_integer()
+  def limiar_de_suspeita, do: @suspeita_de_corte
 
   @doc """
   Coleta repositórios e issues, como fase da sincronização em andamento.
@@ -676,6 +717,32 @@ defmodule TheBand.Ingestion.GithubWorkItems do
           "A página não cobre esta issue, e o que falta não foi coletado."
       )
     end
+
+    avisar_se_no_teto(issue, recebidos)
+  end
+
+  # A segunda guarda, e a que teria pego o defeito de 2026-09-15.
+  #
+  # A primeira confia em `hasNextPage`, e a origem responde `false` **enquanto corta**: ela
+  # devolve menos itens e declara `totalCount` igual ao que cortou. Nada no que ela afirma
+  # denuncia a falta — foi assim que 282 entregas ficaram sem data sem ninguém notar.
+  #
+  # O sinal que sobra é a **forma** da resposta: quando o corte acontece, o número de itens
+  # bate exatamente no tamanho da página pedida. Uma issue com exatamente esse número **pode**
+  # estar inteira por coincidência, e por isso o aviso não afirma corte — afirma **suspeita**,
+  # e diz o que fazer. Falso positivo aqui custa uma linha de log; falso negativo custou um
+  # trimestre de entregas invisíveis.
+  defp avisar_se_no_teto(issue, recebidos) do
+    teto = Map.get(@page_size_por_fase, "issues", @page_size_padrao)
+
+    if recebidos >= @suspeita_de_corte do
+      Logger.warning(
+        "timeline da issue ##{issue.number} veio com #{recebidos} itens, no teto da página " <>
+          "(#{teto} issues por consulta). A origem já cortou em silêncio uma vez, declarando " <>
+          "totalCount igual ao cortado — conferir com uma consulta direta a esta issue antes " <>
+          "de confiar na contagem. Ver docs/backlog/timeline-truncada-na-origem.md."
+      )
+    end
   end
 
   defp gravar_atividade(ctx, issue, item) do
@@ -806,7 +873,8 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   # `nil` quando a origem não o informa, e nesse caso a tela mostra contagem em vez de
   # percentual.
   defp paginar(ctx, query_name, variables, cursor \\ nil, acumulado \\ [], total \\ nil) do
-    vars = Map.merge(variables, %{page_size: @page_size, after: cursor})
+    tamanho = Map.get(@page_size_por_fase, query_name, @page_size_padrao)
+    vars = Map.merge(variables, %{page_size: tamanho, after: cursor})
 
     case Client.graphql(ctx.tool.instance_url, ctx.token, read_query(query_name), vars,
            cota: ctx[:cota]
