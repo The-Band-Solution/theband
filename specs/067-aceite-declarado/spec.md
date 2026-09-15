@@ -4,8 +4,9 @@
 
 **Created**: 2026-09-14
 
-**Status**: Draft — emendada em 2026-09-14: o gesto da declaração em dois passos (estágio de
-avaliação + sentido de cada saída), com a saída *sem veredito*; o modelo por transições não muda
+**Status**: Draft — emendada em 2026-09-14 (o gesto em dois passos: estágio de avaliação +
+sentido de cada saída, com a saída *sem veredito*; o modelo por transições não muda) e em
+2026-09-15 (o protótipo, e os links para a 066 que passaram a resolver com o merge dela)
 
 **Input**: a pessoa mantenedora, em 2026-09-14, concordou com o caminho (c) da spec 066: *"o
 caminho honesto é um critério de aceitação declarado: a organização declara que Homologation →
@@ -13,11 +14,21 @@ Done é a avaliação de aceite e → Desaprovado a recusa — objeto social com
 `spo.activity_start_criterion`, declarado com autor e data, resolvido na leitura. Estou de
 acordo."*
 
-**Irmãs**: a **042** declara qual movimentação marca o **começo** do trabalho; a **066** declara
+**Irmãs**: a **042** declara qual movimentação marca o **começo** do trabalho; a
+[**066**](../066-pronto-declarado/spec.md) — **mergeada em 2026-09-15** — declara
 qual estágio marca o **fim** da execução e preserva o estágio como período; esta declara qual
 transição é a **avaliação de aceite** do entregável. As três têm o mesmo desenho: por quadro,
 autor e data, revogar marca, resolução na leitura, e o quadro apontado como coleta — porque não é
 conceito da rede.
+
+**Protótipo, 2026-09-14** — <https://claude.ai/artifact/Gi7gtFR9uJfynPbuEuAU9g>, com a cópia
+que vale em [`../066-pronto-declarado/prototipo/board-declarations.html`](../066-pronto-declarado/prototipo/board-declarations.html)
+(mergeado com a 066, porque as três declarações vivem na **mesma tela**). **O cartão C — *Where
+evaluation happens* — é desta spec**: o estágio de avaliação escolhido, as seis saídas com
+contagem, os três sentidos, a cláusula do robô e a cobertura. A régua do QA é a seção 3 do
+[`PROMPT.md`](../066-pronto-declarado/prototipo/PROMPT.md); as decisões e as cinco perguntas em
+aberto, o [`README.md`](../066-pronto-declarado/prototipo/README.md). **Aprovação: aguardando a
+pessoa mantenedora.** A tela implementada é **exatamente** a aprovada.
 
 **Decisões da pessoa mantenedora que esta spec respeita**: a issue é da pessoa pelo responsável;
 *Homologation* é em andamento e trabalho da pessoa (066); o estágio é período no item (066,
@@ -435,13 +446,21 @@ critério de aceite não declarado"*.
 - **Sem critério, `unknown`.** A plataforma não infere aceite do PR, do fechamento, nem do
   estágio *Done* — a ausência continua escrita.
 - **A tela vive no quadro**, ao lado do critério de início e da definição de pronto: três
-  declarações, três componentes, uma pergunta cada (princípio X). Protótipo antes do código.
+  declarações, três componentes, uma pergunta cada (princípio X). **O protótipo existe** desde
+  2026-09-14 e cobre o cartão desta spec — ver o cabeçalho. Duas perguntas do Design tocam a
+  067: **Q4** (a cláusula *só pessoas* nasce desmarcada, com o ator sempre visível — recomendada
+  como a FR-005 já diz) e **Q2** (proposta só sai por recusa registrada). A **D7** do Design
+  recusou exibir o número de itens *sem avaliação declarada* no protótipo: os 119 e os 80 são
+  **movimentações**, não itens, e somá-los a 459 misturaria populações — a implementação conta
+  itens, e a FR-012 continua exigindo a contagem.
 
 ## Dependencies
 
-- **066 — a definição de pronto declarada**: *concluída pelo quadro*, o estágio como período
-  (FR-024) e o instante do valor atual (FR-018); esta spec lê os períodos para datar a avaliação
-  e o tempo em homologação.
+- **[066 — a definição de pronto declarada](../066-pronto-declarado/spec.md)**, mergeada em
+  2026-09-15: *concluída pelo quadro*, o estágio como período (FR-024) e o instante do valor
+  atual (FR-018); esta spec lê os períodos para datar a avaliação e o tempo em homologação. O
+  **plano da 067 vem depois do da 066**, por isso o arquivo de feature corrente continua
+  apontando para ela.
 - **042 — critério de início**: o molde do objeto social declarado por quadro, com a limitação
   escrita de que o quadro não é conceito.
 - **022 — timeline das issues**: os eventos de mudança de estágio, já coletados como atividade
