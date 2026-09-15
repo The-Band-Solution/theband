@@ -4,6 +4,14 @@
 
 **Created**: 2026-09-14
 
+**Protótipo, 2026-09-14** — <https://claude.ai/artifact/Gi7gtFR9uJfynPbuEuAU9g>, com a cópia
+que vale em [`prototipo/board-declarations.html`](prototipo/board-declarations.html). Cobre as
+**três** declarações do quadro (042 existente, 066 e 067) numa tela só, mais o detalhe do item e
+o painel da pessoa. A régua do QA é a seção 3 do [`prototipo/PROMPT.md`](prototipo/PROMPT.md);
+as decisões e as cinco perguntas em aberto estão no [`prototipo/README.md`](prototipo/README.md).
+**Aprovação: aguardando a pessoa mantenedora.** A tela implementada é **exatamente** a aprovada;
+divergência volta ao protótipo antes do código.
+
 **Status**: Draft — emendada em 2026-09-14 duas vezes: (1) destinos com id da ontologia,
 `rule03`, `github.project_item_status`, depois da análise da SRO/SPO; (2) o **estágio do quadro**
 preservado ao lado da fase (FR-023/024) e *Desaprovado* decidido — aceite declarado, spec 067
