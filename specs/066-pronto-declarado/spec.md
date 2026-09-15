@@ -423,12 +423,13 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 - **A escolha de qual definição alimenta as medidas é por organização.** Uma medida da equipe
   atravessa quadros; escolher por quadro obrigaria a somar definições diferentes num mesmo
   gráfico, que é o que a casa recusa.
-- **Só o valor atual do `Status` é conhecido hoje, na maior parte dos repositórios.** Os
-  eventos de mudança de estágio já são coletados como atividade executada (com estágio anterior
-  e novo, e instante) onde a timeline foi coletada — **e o `conectafapes-project` tem zero**. A
-  primeira fatia entrega as afirmações, o desacordo e a escolha; os períodos exatos e a série
-  temporal dependem de coletar a timeline daquele repositório (dependência operacional) ou da
-  FR-018. Até lá, os concluídos pelo quadro entram em *"sem data conhecida"*.
+- **Os eventos de mudança de estágio já estão coletados** como atividade executada — estágio
+  anterior, estágio novo, ator e instante — para os repositórios cuja timeline foi coletada:
+  **9 863 eventos**, dos quais **5 503 do `conectafapes-project`** (medido em 2026-09-14; a nota
+  de agosto que dizia "zero" para esse repositório estava vencida). Os períodos exatos da FR-024
+  saem deles; onde a timeline não foi coletada, só o valor atual (FR-018), e o período fica com a
+  saída em aberto. Concluídos pelo quadro sem instante conhecido entram em *"sem data
+  conhecida"*.
 - **Homologation é em andamento** (`spo.performed_project_activity` sem `end_date`), por decisão
   da pessoa mantenedora em 2026-09-14; a spec não a mapeia automaticamente — a organização
   declara. E hoje *Homologation* **não está** em `recognized_in_progress_states`: nem o antipadrão
