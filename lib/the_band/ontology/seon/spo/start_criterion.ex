@@ -42,6 +42,7 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
   import Ecto.Query
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.SPO.EventConcept
   alias TheBand.Ontology.SEON.SPO.Schemas.ActivityStartCriterion
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
@@ -158,8 +159,9 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
             concept: String.t() | nil
           }
         ]
-  def collected_event_types(%Tenant{id: tenant_id}) do
+  def collected_event_types(%Tenant{id: tenant_id} = tenant) do
     vocabulario = vocabulario_dos_eventos()
+    declaracoes = Map.new(EventConcept.vigentes(tenant), &{&1.event_type, &1})
 
     Repo.all(
       from a in "spo_performed_project_activities",
@@ -170,13 +172,24 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
     )
     |> Enum.map(fn tipo ->
       entrada = Map.get(vocabulario, tipo.event_type, %{})
+      declarado = Map.get(declaracoes, tipo.event_type)
 
       Map.merge(tipo, %{
         reads: entrada[:reads],
-        concept: entrada[:concept]
+        # O padrão da casa, e o que a organização declarou por cima dele. A tela mostra os
+        # dois quando divergem: a discordância é informação, não erro.
+        concept_default: entrada[:concept],
+        concept:
+          if(declarado, do: conceito_ou_nil(declarado.target_concept), else: entrada[:concept]),
+        declaracao: declarado
       })
     end)
   end
+
+  # `nao_nomeado` é a recusa registrada — vira nulo na leitura, e a tela a distingue de
+  # "ninguém decidiu" pela presença da declaração.
+  defp conceito_ou_nil("nao_nomeado"), do: nil
+  defp conceito_ou_nil(conceito), do: conceito
 
   @doc """
   A leitura de cada tipo de evento, e o conceito que a rede nomeia nele — declarados em

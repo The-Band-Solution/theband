@@ -21,7 +21,9 @@ defmodule TheBandWeb.BoardLive.Index do
   alias TheBand.Ontology.Continuum.SMPO
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Ontology.SEON.SPO.EventConcept
   alias TheBand.Ontology.SEON.SPO.ItemPhase
+  alias TheBand.Ontology.SEON.SPO.Schemas.EventConceptDeclaration, as: EventDeclaracao
   alias TheBand.Ontology.SEON.SPO.Schemas.ItemPhaseDeclaration, as: Declaracao
   alias TheBand.Projects
 
@@ -279,6 +281,56 @@ defmodule TheBandWeb.BoardLive.Index do
     end
   end
 
+  @doc false
+  # Feature 066 — o que cada evento materializa. Declaração da ORGANIZAÇÃO, não do quadro:
+  # `ClosedEvent` não muda de significado conforme o quadro.
+  def handle_event(
+        "declarar_conceito_do_evento",
+        %{"event_type" => tipo, "target_concept" => conceito},
+        socket
+      ) do
+    case EventConcept.declarar(
+           socket.assigns.current_tenant,
+           tipo,
+           conceito,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Declared for the whole organisation."))
+         |> recarregar()}
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        motivo = Enum.map_join(cs.errors, "; ", fn {c, {m, _}} -> "#{c}: #{m}" end)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{motivo}", motivo: motivo)
+         )}
+    end
+  end
+
+  def handle_event("revogar_conceito_do_evento", %{"id" => id}, socket) do
+    case EventConcept.revogar(
+           socket.assigns.current_tenant,
+           id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Revoked. The house default applies again."))
+         |> recarregar()}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no declaration to revoke."))}
+    end
+  end
+
   def handle_event("revogar_criterio", _params, socket) do
     quadro = socket.assigns.selecionado
 
@@ -368,6 +420,7 @@ defmodule TheBandWeb.BoardLive.Index do
       # Feature 066: o vocabulário de cada campo de seleção única, com a declaração vigente,
       # as revogadas e a proposta; e o desacordo, que só existe se alguém declarou conclusão.
       vocabularios: vocabularios(tenant, quadro),
+      conceitos_de_evento: EventConcept.conceitos_admitidos(),
       destinos: destinos(),
       desacordo: ItemPhase.desacordo(tenant, quadro.id),
       campos: Projects.list_field_definitions(tenant, quadro.id),
@@ -447,6 +500,86 @@ defmodule TheBandWeb.BoardLive.Index do
           #{@selecionado.number} · {@selecionado.title}
           <:subtitle>collected board — nothing here is a project of its own</:subtitle>
         </.header>
+
+        <%!-- ═══ POR QUE ESTA PÁGINA PERGUNTA TANTO ═══
+              A pessoa que chega aqui vê cinco cartões de declaração e não sabe o que eles
+              destravam. Sem esta abertura, declarar parece burocracia; com ela, cada
+              pergunta tem consequência escrita. --%>
+        <div class="card border border-base-content/10 bg-base-100 p-6">
+          <h3 class="mb-2 text-sm font-semibold">Why this page asks you things</h3>
+
+          <p class="mb-3 text-sm">
+            A board is <strong>vocabulary</strong>, not meaning. The source tells us a card sits
+            in a column called <em>Homologation</em>
+            and that an event called <code class="text-xs">ProjectV2ItemStatusChangedEvent</code>
+            happened — and nothing about whether work started, is running, or ended. Those words
+            mean different things in different organisations, and none of them is wrong.
+          </p>
+
+          <p class="mb-3 text-sm">
+            So the platform <strong>does not guess</strong>. It asks you once, records who
+            decided and when, and reads your answer every time — never overwriting the source,
+            never writing the conclusion into the items. Revoking marks; it does not erase.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>what you declare</th>
+                  <th>what it unlocks</th>
+                  <th>if nobody declares</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>when work starts</strong></td>
+                  <td>cycle time, and how long things really take</td>
+                  <td>
+                    every issue has <strong>no start instant</strong>, and cycle time is refused
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each column means</strong></td>
+                  <td>“completed by the board”, next to “closed at the source”</td>
+                  <td>
+                    completed stays <strong>“the issue is closed”</strong>
+                    — and on this board that hides
+                    <strong>{case @detalhe.desacordo do
+                      :nao_declarado -> "hundreds of"
+                      d -> d.concluidas_abertas
+                    end}</strong>
+                    cards already done whose issue never closed
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each event materialises</strong></td>
+                  <td>what counts as work that happened, in every measure</td>
+                  <td>
+                    the platform uses <strong>the house default</strong>, which may not be yours
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each iteration field is</strong></td>
+                  <td>sprint apart from planning horizon</td>
+                  <td>a quarter read as a sprint makes throughput look six times bigger</td>
+                </tr>
+                <tr>
+                  <td><strong>where the deadline comes from</strong></td>
+                  <td>lateness measured, instead of assumed</td>
+                  <td>no deadline at all — and <strong>no invented one</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="mt-3 text-xs opacity-70">
+            None of these five is filled in by default, and none is guessed from the data. An
+            undeclared answer is written on the screen as <em>not declared</em> — never as zero,
+            because <strong>“nobody said” and “it is none” are different facts</strong>, and only
+            one of them is a measurement.
+          </p>
+        </div>
 
         <%!-- ═══ O QUE CADA CAMPO DE ITERAÇÃO SIGNIFICA — issue #514 ═══
               A coleta promovia TODO campo de iteração a `sro.sprint`. Medido em 2026-08-26:
@@ -694,6 +827,106 @@ defmodule TheBandWeb.BoardLive.Index do
             If two boards were linked at the very same instant — which batch association does —
             the platform <strong>does not pick one</strong>. It names the tie and leaves the
             decision, because picking silently would be choosing where nobody would look.
+          </p>
+        </div>
+
+        <%!-- ═══ O QUE CADA EVENTO MATERIALIZA — feature 066 ═══
+              Declaração da ORGANIZAÇÃO, não do quadro: `ClosedEvent` não muda de significado
+              conforme o quadro. A lista dos cinco que viravam atividade executada vivia
+              escrita numa cláusula de função desde a 004. --%>
+        <div class="card bg-base-200 p-6">
+          <h3 class="mb-1 text-sm font-semibold">What each event materialises</h3>
+
+          <p class="mb-3 text-xs opacity-70">
+            Every event type the collection brought, with how many times it happened. The
+            <strong>house default</strong>
+            is what the platform assumes; your declaration wins over it, for the
+            <strong>whole organisation</strong>
+            — these events do not change meaning from board to board. Nothing is rewritten: the
+            declaration is applied when reading.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>what happened</th>
+                  <th class="text-right">times</th>
+                  <th>materialises</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={t <- @detalhe.tipos_de_evento} class="align-top">
+                  <td>
+                    <div class="font-medium">{t.reads || t.event_type}</div>
+                    <div class="font-mono text-xs opacity-50">{t.event_type}</div>
+                  </td>
+                  <td class="text-right tabular-nums">{t.occurrences}</td>
+                  <td>
+                    <%= cond do %>
+                      <% t.declaracao -> %>
+                        <span class="badge badge-info badge-sm">
+                          {EventDeclaracao.rotulo(t.declaracao.target_concept)}
+                        </span>
+                        <div class="mt-1 text-xs opacity-60">
+                          declared {Calendar.strftime(t.declaracao.declared_at, "%d %b %Y")}
+                          <span :if={
+                            t.concept_default && t.declaracao.target_concept != t.concept_default
+                          }>
+                            · house default was <code class="text-xs">{t.concept_default}</code>
+                          </span>
+                        </div>
+                      <% t.concept_default -> %>
+                        <span class="badge badge-ghost badge-sm">{t.concept_default}</span>
+                        <div class="mt-1 text-xs opacity-60">house default — nobody declared</div>
+                      <% true -> %>
+                        <span class="text-xs italic opacity-60">
+                          the network does not name this one
+                        </span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <form
+                      id={"declarar-evento-#{identificador(t.event_type)}"}
+                      phx-submit="declarar_conceito_do_evento"
+                      class="flex flex-wrap items-center gap-1"
+                    >
+                      <input type="hidden" name="event_type" value={t.event_type} />
+                      <select name="target_concept" class="select select-xs select-bordered" required>
+                        <option value="">choose…</option>
+                        <option
+                          :for={c <- @detalhe.conceitos_de_evento}
+                          value={c.id}
+                          selected={t.declaracao && t.declaracao.target_concept == c.id}
+                        >
+                          {c.rotulo}{if c.id != "nao_nomeado", do: " · #{c.id}"}
+                        </option>
+                      </select>
+                      <.button type="submit" variant="primary" class="btn-xs">
+                        {if t.declaracao, do: "Replace", else: "Declare"}
+                      </.button>
+                      <button
+                        :if={t.declaracao}
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        phx-click="revogar_conceito_do_evento"
+                        phx-value-id={t.declaracao.id}
+                        data-confirm="Revoke it? The house default applies again."
+                      >
+                        revoke
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="mt-3 text-xs opacity-70">
+            <strong>Declaring for the organisation, not for this board.</strong>
+            And the raw name stays the identity — the start criterion above records <code class="text-xs">ProjectV2ItemStatusChangedEvent</code>, not the sentence, so a
+            better wording never changes what was declared.
           </p>
         </div>
 

@@ -22,6 +22,7 @@ defmodule TheBandWeb.DeclararFaseTest do
   import TheBand.WorkItemsFixtures
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.SPO.EventConcept
   alias TheBand.Ontology.SEON.SPO.ItemPhase
   alias TheBand.Projects
 
@@ -73,9 +74,13 @@ defmodule TheBandWeb.DeclararFaseTest do
 
     assert html =~ "What each column means"
 
+    # A ordem é conferida DENTRO do cartão: a explicação do topo da página cita nomes de
+    # coluna como exemplo, e medir a página inteira mediria o texto, não a tabela.
+    [_, cartao] = String.split(html, "What each column means", parts: 2)
+
     posicoes =
       for nome <- ["Backlog", "Refinamento", "Homologation", "Done"] do
-        {nome, :binary.match(html, nome) |> elem(0)}
+        {nome, :binary.match(cartao, nome) |> elem(0)}
       end
 
     assert posicoes == Enum.sort_by(posicoes, &elem(&1, 1)),
@@ -210,5 +215,66 @@ defmodule TheBandWeb.DeclararFaseTest do
 
     assert html =~ "Disagreement: not declared"
     assert ItemPhase.desacordo(ctx.tenant, ctx.quadro.id) == :nao_declarado
+  end
+
+  test "a página diz POR QUE pergunta, e o que acontece se ninguém declarar", ctx do
+    {:ok, _live, html} = live(ctx.conn, ~p"/boards?id=#{ctx.quadro.id}")
+
+    assert html =~ "Why this page asks you things"
+    assert html =~ "A board is"
+    # Cada declaração diz a consequência de não ser feita — e a ausência nunca vira zero.
+    assert html =~ "no start instant"
+    assert html =~ "the house default"
+    assert html =~ "not declared"
+  end
+
+  test "o evento aparece por extenso, com o padrão da casa, e a organização declara", ctx do
+    {:ok, live, html} = live(ctx.conn, ~p"/boards?id=#{ctx.quadro.id}")
+
+    assert html =~ "What each event materialises"
+
+    # Sem eventos coletados no cenário, a tabela existe e não inventa linha.
+    refute html =~ "house default — nobody declared"
+
+    # E o conceito é oferecido pela regra, nunca escrito na tela.
+    assert Enum.map(EventConcept.conceitos_admitidos(), & &1.id) == [
+             "spo.performed_project_activity",
+             "cmpo.change_request",
+             "sro.performed_scrum_development_task",
+             "nao_nomeado"
+           ]
+
+    # A declaração vale para a organização inteira, e a tela o diz.
+    assert render(live) =~ "Declaring for the organisation, not for this board"
+  end
+
+  test "declarar um evento grava autor, e revogar devolve o padrão da casa", ctx do
+    {:ok, d} =
+      EventConcept.declarar(
+        ctx.tenant,
+        "AddedToProjectV2Event",
+        "spo.performed_project_activity",
+        ctx.admin.id
+      )
+
+    assert d.declared_by_user_id == ctx.admin.id
+    assert [vigente] = EventConcept.vigentes(ctx.tenant)
+    assert vigente.event_type == "AddedToProjectV2Event"
+
+    {:ok, _} = EventConcept.revogar(ctx.tenant, d.id, ctx.admin.id)
+    assert EventConcept.vigentes(ctx.tenant) == []
+  end
+
+  test "conceito fora da regra é recusado", ctx do
+    assert {:error, changeset} =
+             EventConcept.declarar(
+               ctx.tenant,
+               "ClosedEvent",
+               "sro.accepted_deliverable",
+               ctx.admin.id
+             )
+
+    assert {"não é um conceito admitido em github.timeline_event_vocabulary", _} =
+             changeset.errors[:target_concept]
   end
 end

@@ -126,6 +126,40 @@ derivation_rule:
         en: "the item was mentioned somewhere else"
         pt-BR: "o item foi citado em outro lugar"
 
+  # ───────────────────────────────────────────────────────────────────────────
+  # Os conceitos que a ORGANIZAÇÃO pode escolher na tela para um tipo de evento.
+  # A lista é curta e declarada: oferecer os ~220 conceitos da rede faria a
+  # escolha virar busca, e escolher errado é pior do que não escolher.
+  # O `concept` de cada evento acima é o PADRÃO da casa; a declaração da
+  # organização prevalece sobre ele, na leitura, com autor e instante.
+  # ───────────────────────────────────────────────────────────────────────────
+  admissible_concepts:
+    - id: spo.performed_project_activity
+      label: { en: "work that happened", pt-BR: "trabalho que aconteceu" }
+      means:
+        pt-BR: >
+          Ocorrência de trabalho no projeto. É o que alimenta "alguém trabalhou nisto" e o
+          critério de início.
+
+    - id: cmpo.change_request
+      label: { en: "a change request", pt-BR: "um pedido de mudança" }
+      means:
+        pt-BR: "O item é um pedido de mudança na configuração — não a execução dele."
+
+    - id: sro.performed_scrum_development_task
+      label: { en: "a development task that was performed", pt-BR: "tarefa de desenvolvimento executada" }
+      means:
+        pt-BR: >
+          Tarefa executada, no sentido da SRO. Só quando o evento marca o **fim** do trabalho
+          — e ainda assim não diz nada sobre aceitação (`sro.rule03`).
+
+    - id: nao_nomeado
+      label: { en: "the network does not name this", pt-BR: "a rede não nomeia este" }
+      means:
+        pt-BR: >
+          Recusa registrada. O evento é coletado e continua consultável; simplesmente não
+          materializa conceito nenhum. Registrar a recusa é diferente de nunca ter decidido.
+
   limitations:
     - pt-BR: >
         A leitura é para a tela. A **identidade continua sendo o tipo cru**: o critério de
