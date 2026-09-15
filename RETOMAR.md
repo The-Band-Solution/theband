@@ -1,4 +1,4 @@
-# Retomar — estado em 2026-09-10, a v0.7.0 no ar e a conta desativada conforme o protótipo
+# Retomar — estado em 2026-09-14, a v0.8.0 preparada e três sprints registrados depois do fato
 
 **Este é o único documento de estado.** `docs/sprints/RETOMAR.md` aponta para cá (AGENTS.md §5).
 
@@ -8,135 +8,142 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 
 ## Onde parei, em uma frase
 
-**A v0.7.0 está em produção**, a conta desativada foi reimplementada conforme o protótipo
-aprovado (#853, mergeado), e a deriva de design do repositório foi de **262 achados a zero**
-(#854, aberto). O que sobra é uma lista curta, e o item mais grave dela é um requisito
-**MUST** de 2026-09-06 que nunca ganhou tela.
+**A v0.8.0 está avaliada, ratificada pelo papel de Product Owner e à espera de dois merges**
+— o bump (#916, `chore/release-v0.8.0 → development`) e depois o PR de release
+(`development → main`, que ainda não existe e é `/release --executar`). A 065 tem as três user
+stories com veredito **proposto** nas issues: US1 e US2 **não aceitas**, US3 aceita pendente de
+confirmação. Sete PRs de docs (#909–#915) estão verdes esperando revisão.
 
 ## O primeiro comando
 
 ```bash
+git fetch origin --prune && git status --short     # 1. NADA fora de commit — antes de tudo
 git checkout development && git pull
-mix gates          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
+mix gates                                          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
 ```
 
-Estava **0** em 2026-09-10, com **2 026 testes** passando.
+O CI estava verde em `development` em `0ccf02b` (run 34779226200) em 2026-09-13. A contagem
+"16 gates, 2149 testes" **não foi remedida** hoje — o servidor dev estava de pé na porta 4000 e
+a suíte com ele fica inviável. Se ainda estiver: `pgrep -fl phx.server`.
 
 ---
 
 ## O que está no ar
 
-A **v0.7.0**, mergeada em `main` por `dd4272f4` às 04:11Z de 2026-09-10. CD verde nos sete
-passos, tag `v0.7.0` apontando para o merge, imagem em `ghcr.io/the-band-solution/theband`, e
-o Dokploy respondeu `{"message":"Application deployed successfully"}`.
-`app.theband.dev/sign-in` responde **HTTP 200**.
+A **v0.7.0** (`dd4272f`, 2026-09-10). **`GET https://app.theband.dev/version` devolve 404** —
+a produção não sabe dizer que versão serve. O endpoint existe em `development` desde o #859 e
+sobe com a v0.8.0; o CD passa a **falhar** se a produção responder outra versão.
 
-> **Ressalva que vale repetir:** webhook aceito **não prova** container rodando 0.7.0. Não há
-> endpoint de versão — `/health`, `/version` e `/api/version` devolvem 404. É a lacuna que a
-> regra *"a versão e as features na página"* (agentes de Design e PO) existe para fechar, e
-> ela ainda não foi implementada.
+### Em `development` e ainda não em produção — 16 PRs desde a v0.7.0
 
-### Depois da v0.7.0, na `development` e ainda não em produção
-
-- **#853** — a conta desativada conforme o protótipo: razão de lista fechada mais nota,
-  episódio com as duas pontas, a recusa que fica na tela, o vocabulário na base de
-  conhecimento. FR-025 a FR-029 da spec 045.
+Medidos por `git log origin/main..origin/development` lendo `(#NNN)` (squash) e `#NNN from`
+(merge commit) — **`--merges` perde metade**. Funcionalidade visível: **#853** conta desativada
+conforme o protótipo, **#860** aba Flow per person, **#863** vincular pessoa a equipe (FR-003 da
+055, o achado de 2026-09-10 — fechado), **#907** rótulos no item. Segurança: **#864**
+`TheBand.Segredo`, **#859** `/version` + verificação no CD (H7, H8). Processo: **#889**
+constituição 1.8.0, **#861** MinIO como destino do ensaio, **#856** back-merge da v0.7.0,
+#854, #855, #857 (subequipe numa transação — o defeito *a* de 2026-09-10, fechado), #858,
+#862, #865, #908. Lista completa em `docs/releases/v0.8.0.md`, na branch do #916.
 
 ---
 
 ## O que fazer, em ordem
 
-### 1. O back-merge, e é o primeiro porque atrasa tudo o resto
+### 1. A release — e a decisão que ela pede
 
-`dd4272f` — o merge de release da v0.7.0 em `main` — **não está na `development`**. É a lição
-L83/L92: back-merge depois de **cada** release, senão os conflitos crescem e a divergência não
-se desfaz.
+1. **Mergear o #916** (squash, por comando: `gh pr merge 916 --squash`). Leva `mix.exs` a
+   0.8.0, `docs/releases/v0.8.0.md` com o veredito do PO, o agente `aceitacao-em-producao`, o
+   §6 do runbook exercitado de ponta a ponta (260 MB → MinIO em 16 partes → restaurado, sha256
+   igual) e as `MINIO_*` declaradas opcionais;
+2. **`/release --executar`** (skill no #910 — se ainda não mergeado, o procedimento é a seção
+   *Como executar* do doc da release): PR `development → main`, **merge commit**, nunca squash.
+   **Não criar a tag** — o CD a cria e reprova se ela já existir;
+3. **A decisão que só a pessoa mantenedora toma (FR-016):** o #907 embarca com a **US1 não
+   aceita** e a **US2 conceitualmente errada**, e o #853 é retrabalho da D06 recusada na v0.7.0
+   **sem reavaliação do papel**. Ou embarca como **exceção nomeada** (como v0.4.0 e v0.5.0), com
+   a página da aplicação não anunciando o que não foi aceito — ou aceita-se antes;
+4. **Depois do deploy, a primeira medida é sempre**
+   `curl -s https://app.theband.dev/version`. Depois `deploy-producao` (plataforma) e
+   `aceitacao-em-producao` (o que quem usa vê) — são medidas diferentes.
 
-```bash
-git checkout development && git pull
-git merge --no-ff origin/main -m "chore: back-merge da v0.7.0"
-```
+### 2. Os vereditos — confirmar ou recusar (PR #918)
 
-### 2. O #854, e o que ele muda em produção
+**Doze fases propostas esperam a pessoa alocada ao papel**: nove no sprint 030 (060 e a
+herança) e três no 032 (065). Registro em `docs/sprints/030-a-tela-da-equipe-por-vinculo/aceitacao.md`
+e `docs/sprints/032-rotulos-no-item/aceitacao.md`.
 
-A ramp tipográfica declarada e a borda colorida de um lado removida. Toca `ui.ex`
-(`notice/1`), `teams_live/show.ex`, `sync_live/mapping_rules.ex` e `accounts_live/index.ex`.
-Gates verdes, detector em zero. **Não foi visto renderizado** — o `puppeteer` não está
-instalado; a inspeção computada (contraste, sobreposição, estouro em 390px) depende de
-`npm install puppeteer`.
-
-### 3. FR-003 da spec 055 — vincular pessoa a equipe NÃO TEM TELA
-
-**É o achado da revisão de 2026-09-10, e é o mais grave da lista.**
-
-A spec 055 diz, em cláusula **MUST**:
-
-> **FR-003**: Quem administra MUST poder vincular uma pessoa a uma equipe, com papel e data de
-> início, e o vínculo MUST guardar quem o declarou.
-
-E a emenda de 2026-09-06 é explícita: *"Vincular do zero continua existindo para quem a origem
-não mostra."*
-
-**Medido:** `EO.declare_team_membership/5` existe, tem `@spec`, tem `@doc`, tem **11 testes** —
-e **zero chamadas em `lib/`**. Nenhuma tela do produto a alcança. Os únicos atos de vínculo que
-a interface oferece são:
-
-| ato na tela | o que faz | função |
+| Sprint 030 | fase proposta | o que fecha |
 |---|---|---|
-| `promover` | transforma **evidência já coletada** em papel declarado | `EO.promote_evidence` |
-| `registrar_equivoco` | marca que o vínculo nunca existiu | `EO.record_team_membership_mistake` |
-| `registrar_saida` | encerra o vínculo com data | (via `show.ex`) |
-| `registrar_papel` / `abrir_papel` | declara ou troca o papel de um vínculo existente | — |
+| 060/US4 · #857 subequipe numa transação | **aceitos** | — |
+| 060/US2, US3, US5 | não aceitas — **critério não medido** | medir na confirmação (SC-013 cronometrado; AC2 decidida; SC-005/FR-081 com duas equipes) |
+| 060/US1 | não aceita — três testes prometidos **não existem** (T010–T012 marcadas `[x]`) | tarefa nova; a sonda do papel é o esqueleto |
+| 060/US9 | não aceita — **defeito**: cartão *Squads at a glance* ≠ protótipo (T029 confessa) | Design antes; depois o cartão |
+| #853 (D06 refeito) | não aceito — os 5 pontos da v0.7.0 **fecharam**; restam 4 cláusulas sem teste e a conferência do QA | quatro testes + §3 com captura; a 045 declara a US que falta |
+| #863 (FR-003 com tela) | não aceito — o README do protótipo diz **"aprovação pendente"**, o código diz "aprovado"; §3.4/§3.7 furadas; recusa em **português** no flash | P1–P3 respondidas → republicação → §3 → catálogo → testes → QA |
+| #860 (aba *Flow per person*) | **não avaliado** — não é T026–T029; é US10–US12 da extensão, **sem tarefa** | registro próprio depois do #913 |
 
-Ou seja: **a saída é declarável e a entrada não.** Quem a origem não mostra não entra em equipe
-nenhuma pela interface — e é exatamente o caso que a emenda nomeou.
+#### Os vereditos da 065 (sprint 032)
 
-É o mesmo padrão que o papel de Product Owner recusou duas vezes neste ciclo: função escrita,
-documentada, testada, **sem consumidor visível**. A regra da casa é *vertical slice* — nunca
-infraestrutura sem consumidor na tela.
+Propostos pelo papel em 2026-09-13, com evidência executada, nos comentários de
+[#904](https://github.com/The-Band-Solution/theband/issues/904),
+[#905](https://github.com/The-Band-Solution/theband/issues/905) e
+[#906](https://github.com/The-Band-Solution/theband/issues/906). **Nenhuma fechada** — a
+aceitação é ato da pessoa alocada ao papel.
 
-**O que fazer**: protótipo primeiro (a tela muda), depois o código. O formulário precisa de
-busca entre as pessoas coletadas — o mesmo padrão que `/accounts` já usa para o elo —, papel
-opcional e data de início opcional (FR-016 da 060: em branco, a tela diz o que assume).
+| US | veredito proposto | por quê | destino proposto |
+|---|---|---|---|
+| **US1** rótulos na lista | **não aceita** | a listagem cumpre; o campo `labels` do **detalhe** (`work_item_live/show.ex`) mostra só o observado, sem origem e sem o derivado — e nenhum dos três protótipos cobre esse campo | próximo sprint, em primeiro: protótipo do campo **antes** do código; testes de tela devidos (T005, T007, T012); decisão sobre as **47 variantes de caixa** |
+| **US2** alegação ao lado do veredito | **não aceita** | "rótulo" na spec é o label do GitHub; "label" no mecanismo de divergência é o **tipo declarado**. A plataforma **nunca produz** `label_vs_structure` — as 512 divergências reais são todas `user_story_without_parts`. A tela mostra os dois lados e não diz que divergem nem qual foi seguido | **product backlog**, até três decisões (abaixo) |
+| **US3** rótulo nunca vira conceito | **aceita** | 8 de 8 critérios conformes, `prefixo_vira_rotulo_test.exs` 9 passed | fechar **depois** da confirmação e da revisão pós-merge do #907 (ou atestado datado com exceção) |
 
-### 4. O ato de criar subequipe — dois defeitos, um deles real
+Mais três coisas que a avaliação achou: **SC-002 não reproduz** — a spec diz 1 519 issues com
+prefixo, a função entregue mede **1 489** sobre os 5 033 títulos reais (`[backend]`, `[DADOS]`,
+`[DevOps]`… não derivam: comparação sensível a caixa, coerente com o catálogo); **cinco arquivos
+de teste prometidos no `tasks.md` não existem** (`prefixos_test.exs`, os de tela de T005/T007/T012,
+`divergencia_com_rotulo_test.exs`); e **não há `prototipo/PROMPT.md` nem item em `docs/backlog/`**
+para a 065 — a T013 leu código, não tela, e foi feita por quem implementou.
 
-Revisado em 2026-09-10. O ato **existe e funciona**: `criar_subequipe` em
-[teams_live/show.ex:197](lib/the_band_web/live/teams_live/show.ex#L197) chama
-`EO.declare_structural_team/4` e depois `EO.compose_teams/4`.
+**T014 (#903) está fechada** com a evidência do CI; a caixa em `tasks.md` foi marcada neste PR.
 
-| # | achado | gravidade |
+### 3. Sete PRs de docs esperando revisão
+
+Todos verdes, todos com revisor `the-band` pedido e no projeto (feito em 2026-09-13 — tinham
+nascido sem, os oito, contra a regra do `AGENTS.md`):
+
+| PR | o quê | pede decisão? |
 |---|---|---|
-| a | **duas escritas sem transação** — se `compose_teams/4` falhar, a equipe **fica criada e solta** na organização, sem composição. O `Repo.insert` da composição pode falhar por constraint, e a mensagem de erro fala do segundo passo sem dizer que o primeiro ficou feito | **real** — uma linha de `Repo.transaction` resolve |
-| b | o `else` do `with` trata só `{:error, motivo} when is_binary(motivo)` | **não é defeito**: as duas funções declaram `{:error, String.t()}` no `@spec`, e a cláusula é exaustiva por contrato. Fica registrado para não ser "consertado" de novo |
+| #909 | 17 specs sem issue — decidido **não** preencher | não |
+| #910 | fluxo de release ponta a ponta + skill `/release` | não |
+| #911 | paridade compose–Dokploy | **sim** — bloqueada em decisão |
+| #912 | superfície de risco do destino de backup em segundo host | não |
+| #913 | requisitos da aba Flow per person, transcritos do protótipo | não |
+| #914 | MinIO como destino de **produção**, e a chave mestra que não viaja no dump | **sim** |
+| #915 | protótipo do vínculo declarado e os requisitos que gerou | não |
 
-O ciclo **é** recusado, e a recusa **nomeia o caminho** (*"Equipe A faz parte de Equipe B, que
-faz parte de Equipe C"*). A homônima entre declaradas é recusada por índice único, e a homônima
-de uma observada é permitida — fato do mundo, não erro.
+### 4. A spec 064 — segredo em repouso
 
-### 5. A reclassificação do D06 — é do papel de Product Owner
+**O token de sessão continua em claro no banco** (`users.session_token`, `character varying`).
+22 issues abertas (T001–T019, US1–US3) mais o épico #888. A rotação do token `…omAX` foi adiada
+para **2026-10-12**; ele esteve legível de 2026-09-04 a 2026-09-12. O objeto no balde do MinIO
+tem o banco de desenvolvimento inteiro com dois tokens de sessão em claro.
 
-O entregável D06 da v0.7.0 está classificado **`sro.not_accepted_deliverable`** em
-[docs/releases/v0.7.0.md](docs/releases/v0.7.0.md). Das três razões, duas foram consertadas
-pelo #853 e a terceira deixou de valer. **Quem conserta não é quem aceita**: trocar o veredito
-é reavaliar cada critério contra a evidência nova e reescrever o registro, e é ato do papel.
+### 5. Limpeza local — o classificador negou apagar
 
-### 6. A lacuna de revisão: 21 PRs sem revisor
+Branches redundantes: `065-divergencias` (idêntica a `origin/docs/specs-antigas-sem-issue`) e
+`docs/065-escopo-reescrito` (mergeada). Worktrees limpos de branches mergeadas: `theband-api`,
+`theband-docs`, `theband-fluxo`, `theband-fr041`, `theband-modelos`, `theband-release`,
+`theband-subequipe`, `theband-t001`, `theband-vinculo`. Comandos na seção *Comandos*.
 
-Vinte e um dos 21 PRs desta janela foram abertos sem revisor solicitado. A API do GitHub aceita
-solicitação em PR já mergeado, então a lacuna é recuperável.
+**Não tocar em `theband-relnote`**: `docs/releases/v0.6.0.md` modificado sem commit (461+/169−),
+sem PR — reescrita da nota da v0.6.0 que ninguém decidiu. Olhar antes.
 
-### 7. Segurança — o que sobra dos 16 achados
+### 6. O que sobra de 2026-09-10
 
-Fechados: **H1, H2, H3, H4, H6, H12** e o vazamento de escopo de projeto.
-
-| achado | o que é | precisa de release? |
-|---|---|---|
-| **H7** | Dokploy implanta `latest` | **não** — ajuste no passo de delivery do `cd.yml` |
-| **H8** | ações de CI em tag móvel | **não** — SHA nas ações, `permissions: contents: read` |
-| **H9** | `ssl: true` comentado | **depende da topologia** — pergunta para quem opera |
-| **H13** | `PHX_HOST` com fallback | **parcial** — a variável no Dokploy remove o caminho hoje |
-| **H5, H10, H11, H14–H16** | média e baixa | — |
+- **a reavaliação da D06** (#853) — ato do papel, ainda não feito;
+- **revisão pós-merge**: 21 PRs da v0.7.0 e 16 da v0.8.0 sem revisão registrada. A API não
+  aceita pedido em PR mergeado — é **resíduo**; o que se recupera é o atestado datado;
+- **segurança**: H9 (`ssl: true`, depende da topologia — pergunta para quem opera), H13
+  (`PHX_HOST` com fallback), H5, H10, H11, H14–H16. H7 e H8 fecham com a v0.8.0.
 
 ---
 
@@ -144,48 +151,49 @@ Fechados: **H1, H2, H3, H4, H6, H12** e o vazamento de escopo de projeto.
 
 | spec | o que é |
 |---|---|
-| **061** | API pública com token e controle de acesso a dado por tenant. **Bloqueia o critério** *"conta desativada não autentica por token"*, que hoje não se pode avaliar |
+| **061** | API pública com token — bloqueia *"conta desativada não autentica por token"* |
 | **062** | MCP |
-| **063** | issue ausente da origem — o achado da pessoa mantenedora, já corrigido na coleta; a spec cobre o estado `deleted` na issue |
+| **063** | issue ausente da origem (estado `deleted`) |
+| **064** | segredo em repouso — **em curso**, só `TheBand.Segredo` e a redação entregues |
 
-Issues abertas que pesam: **#397** (equipe composta por equipes — hierarquia com rollup de
-competências, e é vizinha do item 3 acima), **#568** (gestão da marca de administrador, com o
-guarda do último admin), **#801** (o Oban pode parar sem erro nenhum), **#802** (observabilidade
-com OpenTelemetry).
+Issues abertas que pesam: **#397** (equipe composta por equipes), **#568** (marca de
+administrador com guarda do último), **#801** (Oban pode parar sem erro), **#802**
+(OpenTelemetry), **#621** (050/US2: os dados sobrevivem — a evidência do §6 está no #916;
+a aceitação é do papel).
 
 ---
 
 ## Decisões esperando a pessoa mantenedora
 
-1. **Instalar o `puppeteer`?** Sem ele não há inspeção computada de tela — contraste,
-   sobreposição, estouro em 390px. É `npm install puppeteer`.
-2. **O *eyebrow* (rótulo mono em caixa alta acima do título).** O `craft-floor` do `impeccable`
-   o proíbe sem exceção; o `DESIGN.md` declara a voz mono como uma das três da casa, e os quatro
-   protótipos e várias telas o usam como estrutura. Remover é **redesenho**, não conserto — e
-   por isso não foi feito. Precisa de decisão.
-3. **H9** — a topologia do banco em produção decide se `ssl: true` entra.
-4. **Sucessor de quem sai** — fica na nota (recomendação aceita), ou vira campo consultável?
-5. **Desabilitar o `rebase merge`?** Está habilitado no repositório, e a tabela da seção 12
-   do `AGENTS.md` **não o prevê em caso nenhum**. Método habilitado que a regra não cobre é
-   caminho aberto sem regra.
+1. **A exceção da release** (seção 1.3) — embarcar sem aceitação registrada, ou aceitar antes;
+2. **US2 da 065**: rótulo × conceito é divergência que a plataforma computa? a linha diz qual
+   lado seguiu? "no label" basta para a AC2?
+3. **As 47 variantes de caixa** do prefixo — manter sensível a caixa e corrigir o SC-002 para
+   1 489 (recomendado), ou normalizar;
+4. **MinIO em produção** (#914) e a paridade compose–Dokploy (#911);
+5. **H9** — a topologia do banco decide se `ssl: true` entra;
+6. Sem resposta registrada desde 2026-09-10: instalar `puppeteer`; o *eyebrow* mono;
+   sucessor de quem sai como campo; desabilitar o *rebase merge* no repositório.
 
 ---
 
-## Três armadilhas que este ciclo ensinou
+## O que este ciclo ensinou
 
-1. **`git add -A` num worktree compartilhado commita o trabalho de outro agente** (L102).
-   Caminhos explícitos, sempre.
-2. **`gh pr create --body` substitui o template inteiro** — e a declaração do tipo de merge
-   desaparece sem aviso. O gate `pr-tipo-de-merge.yml` recusa o PR que não diga, e exige a linha
-   `Motivo:`. Ele pegou o meu próprio PR #853.
-
-   E o gate obriga o PR a **dizer** o método, mas nada obriga o **clique** a obedecer: o
-   GitHub não tem configuração de método default, e a pré-seleção do botão é sempre *merge
-   commit*. Por isso o merge passou a se fazer por comando — `gh pr merge <n> --squash` ou
-   `--merge` —, onde o método está escrito (seção 12 do `AGENTS.md`).
-3. **Sucesso silencioso continua sendo o defeito que mais reincide.** Neste ciclo:
-   `.problema>h4::before` num cartão que não tem `h4` — o seletor não casava nada, e o canal da
-   cor foi perdido **sem erro nenhum**. Pior que a barra que ele substituía.
+1. **A verificação rodou, deu a resposta certa, e ninguém a leu.** O `sed` do bump casava
+   `"0.7.0"$` e a linha termina em vírgula; o `grep` na mesma saída mostrou `0.7.0`; o commit
+   saiu dizendo que a versão tinha mudado. **Ler a saída é o passo**, não rodar o comando.
+2. **`git log --merges` perde os squash.** Contei 10 PRs; eram 15, depois 16. Ler `(#NNN)`.
+3. **Oito PRs abertos no mesmo dia sem revisor e fora do projeto** — a regra existe desde o
+   #89 e está no `AGENTS.md`. Reincidiu porque `gh pr create` não a exige. Conferir com
+   `gh pr view <n> --json reviewRequests,projectItems` **ao abrir**.
+4. **"Criar a tag depois do merge" reprovaria o próprio deploy.** O CD cria a tag e falha
+   nomeando se ela já existir. O doc da release mandava criá-la à mão; corrigido.
+5. **O agente de Product Owner travou uma vez (600s) e escreveu na segunda.** A avaliação
+   direta é ponte, e o documento **diz** que foi feita assim — quatro afirmações dela estavam
+   erradas, e foi o papel que as pegou.
+6. **`sprint-backlog` não rodou para 060, 064 e 065.** Os sprints **030, 031 e 032** foram
+   escritos depois, em 2026-09-13/14 (PR **#918**), e dizem isso no topo: backlog, review e
+   aceitação **proposta** pelo papel. O que a aceitação achou está lá — e pede confirmação (L108).
 
 ---
 
@@ -194,14 +202,25 @@ com OpenTelemetry).
 ```bash
 set -a; . ./.env >/dev/null 2>&1; set +a   # segredos, sem imprimir
 mix gates                                  # a definição única de verde
-node .claude/skills/impeccable/scripts/detect.mjs specs assets lib docs site   # deriva de design
-gh pr checks <n>                            # o veredito da CI
+gh pr checks <n>                           # o veredito da CI
+gh pr view <n> --json reviewRequests,projectItems   # vazio = a regra foi violada
+curl -s -o /dev/null -w '%{http_code}' https://app.theband.dev/version   # 404 até a v0.8.0
+
+# revisor e projeto, para PR que nasceu sem
+gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers -f 'team_reviewers[]=the-band'
+gh project item-add 2 --owner The-Band-Solution --url <url do PR>
+# Status: PVTSSF_lADODHSRm84BAAnTzgy8XSQ, In review = aba860b9 · Iteration: PVTIF_lADODHSRm84BAAnTzgy8XUE
+
+# limpeza negada ao agente
+git branch -D 065-divergencias docs/065-escopo-reescrito
+for wt in theband-api theband-docs theband-fluxo theband-fr041 theband-modelos theband-release theband-subequipe theband-t001 theband-vinculo; do git worktree remove "/Users/paulossjunior/projects/$wt"; done
 ```
 
 ## Referências
 
-- Protótipo da conta desativada: `specs/045-autenticacao-e-acesso/prototipo/` — o `PROMPT.md`
-  seção 3 é a régua do QA
-- `DESIGN.md` — a ramp de dez passos, os quatro raios, e a regra da borda de acento
-- `docs/producao/desligar-alguem.md` — o procedimento, atualizado para o ato que existe
-- `docs/backlog/conta-desativada.md` — o item, com as seis lacunas fechadas
+- `docs/releases/v0.8.0.md` (no #916) — a avaliação, o veredito do PO, e *Como executar*
+- `docs/producao/fluxo-de-release.md` e `.claude/skills/release/SKILL.md` (no #910)
+- `.claude/agents/aceitacao-em-producao.md` (no #916) — quem mede a funcionalidade no ar
+- `docs/seguranca/2026-09-13-o-caminho-completo-do-backup.md` (no #916) — o §6 exercitado
+- `docs/seguranca/2026-09-09-o-que-consertar-agora.md` — os 16 achados
+- `specs/065-rotulos-no-item/` — spec, plan, tasks, research; protótipos linkados no #903

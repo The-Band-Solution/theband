@@ -1,0 +1,381 @@
+<title>Conecta Fapes Board Declarations</title>
+<style>
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--info-soft:#e3ecf1;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#14232c;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#14232c;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;}
+*{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6;font-size:1rem}
+::selection{background:var(--verdete);color:var(--papel)} :focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.875rem}h2{font-size:1.5rem}h3{font-size:1.125rem}h4{font-size:0.875rem}
+.faixa{max-width:62rem;margin:0 auto;padding-block:1.5rem 4rem;padding-inline:1.25rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:0.875rem}
+.rot{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:0.75rem}
+.id{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);letter-spacing:.02em}
+.ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
+.marca{font-family:var(--grot);font-size:0.6875rem;padding:.05rem .45rem;border-radius:0.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap;vertical-align:middle}
+.marca .am{width:.6rem;height:.6rem;border-radius:0.125rem;border:1px solid currentColor;flex:0 0 auto}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.saiu{color:var(--tinta-2)}.saiu .am{background:var(--linha)}
+.eqv{color:var(--clay)}.eqv .am{background-image:var(--hatch)}
+.ex-mark{font-family:var(--mono);font-size:0.625rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+/* the product chrome */
+.nav{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);border-bottom:1.5px solid var(--linha);padding-bottom:.55rem}
+.nav b{color:var(--tinta);font-weight:650}.nav .dir{margin-left:auto;font-family:var(--mono);font-size:0.75rem}
+.abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);margin-top:1.2rem;flex-wrap:wrap}
+.aba{font-family:var(--grot);font-size:0.875rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
+.aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:0.25rem;width:max-content;max-width:100%}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:1.25rem;margin-top:1rem}
+.cartao.quieto{padding:.8rem 1.25rem;color:var(--tinta-2)}
+.cartao.quieto h4{color:var(--tinta)}
+.cartao .cab{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.cartao .cab h4{font-size:1rem}
+.cartao .cab .rot{margin-left:auto}
+.cartao p{font-size:0.875rem}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:left;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha)}
+th.dir,td.dir{text-align:right}
+td{padding:.5rem .5rem;border-bottom:1px solid var(--linha);vertical-align:top;font-size:0.875rem}
+tbody tr:hover{background:var(--verdete-soft)}
+tr.ativa td{background:var(--info-soft)}
+tr.ativa:hover td{background:var(--info-soft)}
+.est{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.est small{display:block;font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);font-weight:400;margin-top:.1rem}
+.contagem{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:0.875rem;white-space:nowrap}
+.contagem small{display:block;font-size:0.6875rem;color:var(--tinta-2)}
+.dest{font-family:var(--grot);font-size:0.875rem}
+.dest .id{display:block;margin-top:.1rem}
+.dest.vazio{color:var(--tinta-2);font-style:italic}
+.dest.recusa{color:var(--tinta-3)}
+.quem{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2)}
+.quem b{color:var(--tinta);font-weight:650}
+.hist{display:block;font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.3rem;padding-left:.5rem;border-left:1px solid var(--linha)}
+.acoes{display:flex;gap:.35rem;justify-content:flex-end;flex-wrap:wrap}
+.btn{font-family:var(--grot);font-size:0.75rem;font-weight:650;padding:.25rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn.s{background:var(--verdete-soft);border-color:var(--verdete-soft);color:var(--verdete-deep)}
+.btn.q{color:var(--tinta-2)}
+.btn.inerte{border-style:dashed;color:var(--tinta-2);cursor:not-allowed;background:transparent}
+select.sel{font:inherit;font-family:var(--grot);font-size:0.75rem;padding:.2rem .4rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel);color:var(--tinta)}
+.form-inline{margin-top:.9rem;padding:.9rem 1.1rem;border:1.5px solid var(--linha);background:var(--papel);border-radius:0.5rem;font-size:0.875rem}
+.form-inline h4{font-size:0.875rem}
+.form-inline .nota{font-size:0.8125rem;color:var(--tinta-2);margin-top:.4rem}
+.radios{display:grid;gap:.45rem;margin-top:.6rem}
+.radios label{display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:start;font-family:var(--grot);font-size:0.875rem;padding:.45rem .6rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel-2)}
+.radios label.on{border-color:var(--info)}
+.radios input{margin-top:.25rem}
+.radios .id{display:block}
+.radios .oque{display:block;font-family:var(--serif);font-size:0.8125rem;color:var(--tinta-2);margin-top:.1rem}
+.nao-ofer{margin-top:.6rem;padding:.55rem .7rem;border:1.5px dashed var(--linha);border-radius:0.25rem;font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2)}
+.nao-ofer b{color:var(--tinta)}
+.botoes{display:flex;gap:.5rem;margin-top:.8rem;flex-wrap:wrap;align-items:center}
+.duas{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));margin-top:.8rem}
+.tres{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin-top:.8rem}
+.medida{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.medida .rot{display:block}
+.medida .grande{font-family:var(--mono);font-size:1.875rem;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--verdete-deep)}
+.medida .grande a{color:inherit;text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:4px}
+.medida .contra{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2)}
+.medida .base{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.35rem;border-top:1px dashed var(--linha);padding-top:.35rem}
+.medida.recusa .grande{color:var(--amber);font-size:1rem;font-family:var(--grot);line-height:1.3}
+.medida.decl .grande{color:var(--info)}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:0.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:0.875rem;margin:0}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft);font-size:0.875rem}
+.nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
+.passo{display:flex;gap:.7rem;align-items:baseline;margin-top:1.1rem}
+.passo .num{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;color:var(--papel);background:var(--tinta);border-radius:0.25rem;padding:.1rem .45rem;white-space:nowrap}
+.passo h4{font-size:1rem}
+.chips{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.6rem}
+.chip{font-family:var(--grot);font-size:0.75rem;padding:.15rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);background:var(--papel);white-space:nowrap}
+.chip.on{background:var(--info);border-color:var(--info);color:var(--papel);font-weight:650}
+.chip .n{font-size:0.6875rem;margin-left:.3rem;opacity:.8}
+.cobertura{margin-top:.9rem;padding:.6rem .8rem;border:1.5px solid var(--linha);border-radius:0.25rem;font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);background:var(--papel)}
+.cobertura b{color:var(--tinta);font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.afirm{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.9rem 1rem;min-width:0}
+.afirm .rot{display:block}
+.afirm .valor{font-family:var(--grot);font-weight:650;font-size:1.125rem;margin-top:.3rem;line-height:1.25}
+.afirm .valor.aus-t{color:var(--tinta-2);font-weight:500;font-style:italic}
+.afirm .prov{font-size:0.8125rem;color:var(--tinta-2);margin-top:.35rem}
+.afirm .prov b{color:var(--tinta);font-weight:600}
+.hdr{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem}
+.hdr .num{font-family:var(--mono);color:var(--verdete-deep)}
+.cc{font-family:var(--mono);font-size:0.625rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:0.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block;background:var(--clay-soft);color:var(--clay);font-weight:700;vertical-align:middle}
+.legenda{display:flex;gap:1rem;margin-top:.8rem;font-family:var(--grot);font-size:0.75rem;flex-wrap:wrap}
+.legenda span{display:inline-flex;align-items:center;gap:.35rem;color:var(--tinta-2)}
+.scroll{overflow-x:auto}
+.check{display:flex;gap:.6rem;align-items:flex-start;font-family:var(--grot);font-size:0.875rem;margin-top:.9rem;padding:.7rem .9rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel)}
+.check input{margin-top:.3rem}
+.check small{display:block;font-family:var(--serif);font-size:0.8125rem;color:var(--tinta-2);margin-top:.15rem}
+.dq{margin-top:1rem}
+.dq ol{padding-left:1.2rem;font-size:0.875rem}.dq li{margin-top:.5rem}
+.dq .dd{font-family:var(--mono);font-size:0.6875rem;color:var(--verdete-deep);letter-spacing:.04em;margin-right:.3rem}
+.dq .qq{font-family:var(--mono);font-size:0.6875rem;color:var(--amber);letter-spacing:.04em;margin-right:.3rem}
+.dq table td{font-size:0.8125rem}
+.lista-q{margin-top:.6rem;padding-left:1.2rem;font-size:0.875rem}
+.lista-q li{margin-top:.25rem}
+.link{color:var(--verdete-deep);text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:3px}
+.pequeno{font-size:0.8125rem}
+.exits{font-family:var(--grot);font-size:0.875rem;font-weight:650}
+.exits .seta{color:var(--tinta-2);font-weight:400;margin-right:.3rem}
+@media (max-width:40rem){
+  table.stacked thead{display:none}
+  table.stacked tr{display:block;border-bottom:1.5px solid var(--linha);padding:.5rem 0}
+  table.stacked td{display:grid;grid-template-columns:7rem 1fr;gap:.6rem;border:0;padding:.2rem .3rem;text-align:left}
+  table.stacked td::before{content:attr(data-label);font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);padding-top:.15rem}
+  table.stacked td.dir{text-align:left}
+  .acoes{justify-content:flex-start}
+  .cartao{padding:1rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="faixa">
+
+<div class="nav"><span>People</span><span>Teams</span><b>Work</b><span>Projects</span><span>Process</span><span>Syncs</span><span>Tools</span><span>AI</span><span>Profiles</span><span class="dir">leds-conectafapes · admin</span></div>
+
+<h1 style="margin-top:1.4rem">What this board declares</h1>
+<p class="sub">Prototype of the <strong>board screen</strong> (<span class="mono">/boards/43</span>) with the three declarations an organisation makes about a board, one component per question: <em>when work starts</em> (042, already on the screen), <em>what each column means</em> (066, new), <em>where evaluation happens</em> (067, new). A second screen shows where the statements land — the item detail and the person's panel. Counts are real, measured on <strong>14 Sep 2026</strong> on board <strong>#43 Conecta Fapes</strong>; stage-change events are collected up to <strong>9 Sep 2026</strong>. <span class="ex-mark">example</span> marks what was invented — the declarations themselves, their authors and instants — because none has been made yet.</p>
+<div class="legenda">
+  <span><span class="marca obs"><span class="am"></span>observed</span> the source said it</span>
+  <span><span class="marca dec"><span class="am"></span>declared</span> a person in this organisation said it, with author and instant</span>
+  <span><span class="marca der"><span class="am"></span>proposed</span> derived by the platform from recognised vocabulary — worth nothing until activated</span>
+  <span><span class="marca aus"><span class="am"></span>absent</span> nobody decided, or nothing was collected — always written, never a blank</span>
+  <span><span class="marca saiu"><span class="am"></span>revoked</span> ended and kept on the record</span>
+</div>
+
+<!-- ═══════════════════════════════ SCREEN 1 ═══════════════════════════════ -->
+<span class="tela" id="board">screen 1 · the board</span>
+
+<div class="abas"><a class="aba" href="#">Items</a><a class="aba" href="#">Projects</a><a class="aba ativa" href="#">Boards</a><a class="aba" href="#">Process</a></div>
+
+<div class="hdr"><h2>Boards</h2></div>
+<p class="sub">What the source declares in each board — fields, items and the derived backlogs. The board itself is planning and visualisation; it is never promoted to a concept.</p>
+
+<div class="scroll"><table class="stacked">
+  <thead><tr><th>#</th><th>title</th><th>state</th></tr></thead>
+  <tbody>
+    <tr style="background:var(--verdete-soft)"><td data-label="#" class="mono">43</td><td data-label="title"><a class="link" href="#board">Conecta Fapes</a> <span class="rot" style="margin-left:.4rem">selected</span></td><td data-label="state"><span class="marca obs"><span class="am"></span>open</span></td></tr>
+    <tr><td colspan="3" class="sub" style="font-style:italic">The organisation's other boards are listed here on the real screen; this prototype shows only the one it is about.</td></tr>
+  </tbody>
+</table></div>
+
+<div class="hdr"><h2><span class="num">#43</span> · Conecta Fapes</h2></div>
+<p class="sub">collected board — nothing here is a project of its own · <span class="n">1 194</span> items · <span class="n">1 101</span> issues + drafts · counted 14 Sep 2026</p>
+
+<div class="nota-de-tela"><span class="rot">what changes on this screen</span>
+Two cards are new, and they sit right after <strong>Start criterion</strong>: <strong>What each column means</strong> and <strong>Where evaluation happens</strong>. Everything else — iteration fields, deadline, fields, backlogs — stays exactly as it is on the screen of 14 Sep. The three declaration cards share one shape: the observed vocabulary in the observed order, a count beside every option, who declared and when, and a <em>revoke</em> that marks an end and deletes nothing.</div>
+
+<div class="cartao quieto"><h4>What each iteration field means</h4><p class="pequeno" style="margin-top:.2rem">unchanged — as on the screen of 14 Sep 2026</p></div>
+<div class="cartao quieto"><h4>Where the deadline comes from</h4><p class="pequeno" style="margin-top:.2rem">unchanged — as on the screen of 14 Sep 2026</p></div>
+
+<!-- ─────────── A · START CRITERION (042, existing) ─────────── -->
+<div class="cartao" id="start">
+  <div class="cab"><h4>Start criterion</h4><span class="rot">042 · existing · reproduced, not redesigned</span></div>
+  <p><span style="color:var(--tinta-2)">No criterion of its own. Issues on this board follow the <strong>project's</strong> criterion — and if no project declared one, they have no start instant.</span> <span class="ex-mark">example — state not measured for #43</span></p>
+  <div class="form-inline" style="display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-end;margin-top:.8rem">
+    <label style="font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2)">event that marks the start<br>
+      <select class="sel" id="start-event" style="margin-top:.2rem"><option>choose…</option><option>assigned — N observed</option><option>moved_to_in_progress — N observed</option><option>first_commit — N observed</option></select></label>
+    <span class="ex-mark">example — event types and counts come from the base</span>
+    <button class="btn p" type="button">Declare</button>
+  </div>
+  <p class="sub"><strong>When an issue sits on more than one board</strong> — 13% of them do — the criterion that applies is the one from the board <strong>most recently linked to the project</strong>. Linking the new board last is already the gesture that says which one is current, so the platform reads that instead of asking twice.</p>
+  <p class="sub">If two boards were linked at the very same instant — which batch association does — the platform <strong>does not pick one</strong>. It names the tie and leaves the decision, because picking silently would be choosing where nobody would look.</p>
+</div>
+
+<!-- ─────────── B · WHAT EACH COLUMN MEANS (066, new) ─────────── -->
+<div class="cartao" id="columns">
+  <div class="cab"><h4>What each column means</h4><span class="marca dec"><span class="am"></span>declared by this organisation</span><span class="rot">066 · new</span></div>
+  <p>The field <span class="mono">Status</span> of this board has <strong>12 options</strong>, listed here in the order the source lists them, each with the items carrying it today. For each one the organisation says what it <em>means</em> — a phase of the work, or that the column says no phase at all. The platform <strong>proposes</strong> where the name matches recognised vocabulary and <strong>decides nothing</strong>: a proposal is worth nothing until someone here activates it. <em>Closed at the source</em> is a different statement, made by the source; it stays beside this one and is never summed with it.</p>
+
+  <div class="scroll"><table class="stacked">
+    <thead><tr><th>#</th><th>stage · as the organisation calls it</th><th class="dir">items today<br>open · closed</th><th>means</th><th>declared</th><th class="dir">action</th></tr></thead>
+    <tbody>
+      <tr><td data-label="#" class="mono">1</td><td data-label="stage"><span class="est">Backlog</span></td><td data-label="items" class="dir"><span class="contagem">115<small>109 · 6</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-1"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">2</td><td data-label="stage"><span class="est">Refinamento</span></td><td data-label="items" class="dir"><span class="contagem">59<small>57 · 2</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-2"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">3</td><td data-label="stage"><span class="est">Pronto para desenvolvimento</span></td><td data-label="items" class="dir"><span class="contagem">5<small>5 · 0</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-3"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">4</td><td data-label="stage"><span class="est">To Do</span></td><td data-label="items" class="dir"><span class="contagem">50<small>49 · 1</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-4"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">5</td><td data-label="stage"><span class="est">Paused</span></td><td data-label="items" class="dir"><span class="contagem">10<small>10 · 0</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-5"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">6</td><td data-label="stage"><span class="est">In Progress</span></td><td data-label="items" class="dir"><span class="contagem">23<small>23 · 0</small></span></td><td data-label="means"><span class="dest">in progress <span class="id">spo.performed_project_activity · no end_date</span></span></td><td data-label="declared"><span class="marca der"><span class="am"></span>proposed — not active</span><span class="hist">from recognised vocabulary: <span class="mono">In Progress</span> · nobody has activated it, so no item reads <em>in progress by the board</em> from this row</span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn s" type="button">Activate</button><select class="sel" id="d-6"><option>or declare another…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">7</td><td data-label="stage"><span class="est">In Validation</span></td><td data-label="items" class="dir"><span class="contagem">20<small>19 · 1</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-7"><option>declare… (form open below)</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">8</td><td data-label="stage"><span class="est">Dependencies</span></td><td data-label="items" class="dir"><span class="contagem">2<small>2 · 0</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-8"><option>declare…</option></select></div></td></tr>
+      <tr class="ativa"><td data-label="#" class="mono">9</td><td data-label="stage"><span class="est">Homologation<small>the person's work, shared with whoever homologates — decision of 14 Sep</small></span></td><td data-label="items" class="dir"><span class="contagem">335<small>309 · 26</small></span></td><td data-label="means"><span class="dest">in progress <span class="id">spo.performed_project_activity · no end_date</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 2026 09:10 <span class="ex-mark">example</span></span><span class="hist"><span class="marca saiu"><span class="am"></span>revoked</span> earlier: <em>completed</em> · declared 14 Sep 09:02 · revoked 14 Sep 09:10 by Ana Vieira — "homologation is still the person's work" <span class="ex-mark">example</span></span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button" title="Revoking marks an end with author and instant. Nothing is deleted.">revoke</button></div></td></tr>
+      <tr><td data-label="#" class="mono">10</td><td data-label="stage"><span class="est">Homologation In Progress</span></td><td data-label="items" class="dir"><span class="contagem">7<small>7 · 0</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-10"><option>declare…</option></select></div></td></tr>
+      <tr><td data-label="#" class="mono">11</td><td data-label="stage"><span class="est">Desaprovado<small>looking for "not accepted"? it is not a phase of the work — see the card below</small></span></td><td data-label="items" class="dir"><span class="contagem">8<small>8 · 0</small></span></td><td data-label="means"><span class="dest vazio">no decision</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody declared</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="d-11"><option>declare…</option></select></div></td></tr>
+      <tr class="ativa"><td data-label="#" class="mono">12</td><td data-label="stage"><span class="est">Done</span></td><td data-label="items" class="dir"><span class="contagem">459<small>294 · 165</small></span></td><td data-label="means"><span class="dest">completed <span class="id">spo.performed_project_activity · with end_date · sro.performed_scrum_development_task when the issue is a task</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 2026 09:02 <span class="ex-mark">example</span></span><span class="hist">was <span class="marca der"><span class="am"></span>proposed</span> from recognised vocabulary (<span class="mono">Done</span>) · reaches <b class="n">459</b> items today — completed means the work ended, <strong>not</strong> that it was accepted</span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button" title="Revoking marks an end with author and instant. Nothing is deleted.">revoke</button></div></td></tr>
+      <tr><td data-label="#" class="mono">—</td><td data-label="stage"><span class="est" style="color:var(--tinta-2)">no Status value</span></td><td data-label="items" class="dir"><span class="contagem">8<small>3 · 5</small></span></td><td data-label="means"><span class="dest recusa">not a column — nothing to declare</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>no value at the source</span></td><td data-label="action" class="dir"><span class="quem">these items read <em>no stage on this board</em></span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub">Stage names are the organisation's words, untranslated and never merged with another board's — <em>To Do</em> and <em>Todo</em> on the same board is an anomaly the platform flags, not one it fixes. Someone who does not administer this organisation sees this table without the <em>action</em> column.</p>
+
+  <div class="form-inline" id="declare-7">
+    <h4>Declare what <span class="mono">In Validation</span> means <span class="rot" style="font-weight:400;margin-left:.4rem">shown open as example · 20 items carry it today</span></h4>
+    <div class="radios">
+      <label><input type="radio" name="dest7" id="dest7-a"><span>planned, not started<span class="id">sro.intended_scrum_development_task</span><span class="oque">there is intention to do it; nothing was executed</span></span></label>
+      <label class="on"><input type="radio" name="dest7" id="dest7-b" checked><span>in progress<span class="id">spo.performed_project_activity · start_date, no end_date</span><span class="oque">the activity is running — the ontology defines "in progress" this way, not as a phase</span></span></label>
+      <label><input type="radio" name="dest7" id="dest7-c"><span>completed<span class="id">spo.performed_project_activity · with end_date</span><span class="oque">the work ended — <strong>not</strong> that it was accepted</span></span></label>
+      <label><input type="radio" name="dest7" id="dest7-d"><span>this column says no phase<span class="id">no concept — a recorded refusal, like "not a type"</span><span class="oque">the column says something else: an area, a pause, a refinement. Recorded with author and instant; removes the option from proposals</span></span></label>
+      <label><input type="radio" name="dest7" id="dest7-e"><span>no decision<span class="id">no concept — the default</span><span class="oque">nobody declared; items keep reading <em>not declared</em></span></span></label>
+    </div>
+    <div class="nao-ofer"><b>Not offered here: accepted / not accepted.</b> By <span class="mono">sro.rule03</span> acceptance follows from evaluating the acceptance criteria and is never assigned by marking an item. A column can say the work <em>ended</em>; it cannot say the deliverable <em>passed</em>. Where the evaluation happens in this board's process is declared in the next card, <a class="link" href="#evaluation">Where evaluation happens</a>.</div>
+    <div class="botoes"><button class="btn p" type="button">Declare</button><button class="btn q" type="button">Cancel</button><span class="quem">records <b>your name</b> and <b>the instant</b>; the option is referenced by its identifier, so renaming it at the source changes nothing</span></div>
+  </div>
+
+  <h4 style="margin-top:1.4rem">Where the two statements disagree</h4>
+  <p class="sub">Two statements about the same item, from two authors — the board and the source. Where they disagree, the disagreement is information about the process, never an error of the item or of the person. Each number opens its list.</p>
+  <div class="duas">
+    <div class="medida decl"><span class="rot">completed by the board · open at the source</span><span class="grande"><a href="#">294</a></span><span class="contra">Done on this board, issue still open — 64% of the 459 in Done</span><span class="base">board rule <em>Done → completed</em> · source state <span class="mono">OPEN</span></span></div>
+    <div class="medida decl"><span class="rot">closed at the source · not completed by the board</span><span class="grande"><a href="#">41</a></span><span class="contra">issue closed, card in a stage not declared completed — the current stage is shown on each</span><span class="base">source state <span class="mono">CLOSED</span> · stage outside the rule</span></div>
+  </div>
+  <div class="aviso"><span class="rot">observed at the source · 14 Sep 2026</span><p>The board's native workflows <strong>Auto-close issue</strong> and <strong>Item closed</strong> are <strong>off</strong> (<em>Auto-add sub-issues</em> is on). The card and the issue were disconnected <em>on purpose</em>: a card reaches Done and the issue stays open. That is why the first number exists, and why no measure here may treat the two statements as one.</p></div>
+  <p class="sub">Before any rule is active, both numbers read <em>not declared — declare what completed means on this board</em>, with the path here.</p>
+</div>
+
+<!-- ─────────── C · WHERE EVALUATION HAPPENS (067, new) ─────────── -->
+<div class="cartao" id="evaluation">
+  <div class="cab"><h4>Where evaluation happens</h4><span class="marca dec"><span class="am"></span>declared by this organisation</span><span class="rot">067 · new</span></div>
+  <p>The platform never marks an item accepted (<span class="mono">sro.rule03</span>). What the organisation can say is <strong>which event of its own process is the evaluation</strong> — here, the client moving a card out of <em>Homologation</em>. Two steps: choose the stage where evaluation happens, then say what each exit from it means. Acceptance is derived at read time from the transitions each item actually made, always with the criterion, the instant and the actor beside it. <strong>Nothing here is proposed</strong> — recommending would be choosing (042).</p>
+
+  <div class="passo"><span class="num">step 1</span><h4>The stage where evaluation happens</h4></div>
+  <p class="sub">The board's stages in the observed order, none pre-selected. A board may have more than one evaluation stage, each with its own exits.</p>
+  <div class="chips">
+    <span class="chip">Backlog</span><span class="chip">Refinamento</span><span class="chip">Pronto para desenvolvimento</span><span class="chip">To Do</span><span class="chip">Paused</span><span class="chip">In Progress</span><span class="chip">In Validation</span><span class="chip">Dependencies</span><span class="chip on">Homologation<span class="n">335 today</span></span><span class="chip">Homologation In Progress</span><span class="chip">Desaprovado</span><span class="chip">Done</span>
+  </div>
+  <p class="quem" style="margin-top:.5rem"><span class="marca dec"><span class="am"></span>chosen</span> <b>Homologation</b> · by <b>Ana Vieira</b> · 14 Sep 2026 09:20 <span class="ex-mark">example</span> · <a class="link" href="#">+ add another evaluation stage</a></p>
+
+  <div class="passo"><span class="num">step 2</span><h4>What each exit from Homologation means</h4></div>
+  <p class="sub">Every exit observed in the collected events, with how many times it happened. Each one gets one of three meanings — <strong>accepted</strong> · <strong>not accepted</strong> · <strong>no verdict</strong> (it went back without a decision) — or stays <em>not declared</em>: an exit nobody classified never receives a meaning by omission.</p>
+  <div class="scroll"><table class="stacked">
+    <thead><tr><th>exit</th><th class="dir">times in events</th><th>means</th><th>declared</th><th class="dir">action</th></tr></thead>
+    <tbody>
+      <tr class="ativa"><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>Done</span></td><td data-label="times" class="dir"><span class="contagem">10<small>May–Jul 2026</small></span></td><td data-label="means"><span class="dest">accepted <span class="id">sro.accepted_deliverable · derived at read time</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 09:22 <span class="ex-mark">example</span></span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button" title="Revoking marks an end with author and instant. Evaluations before the revocation keep their phase.">revoke</button></div></td></tr>
+      <tr><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>In Validation</span></td><td data-label="times" class="dir"><span class="contagem">2<small>Jul–Sep 2026</small></span></td><td data-label="means"><span class="dest vazio">not declared</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody classified</span><span class="hist">an item taking this exit reads <em>exit not declared</em> — never "no verdict" by default</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="e-2"><option>classify… (form open below)</option></select></div></td></tr>
+      <tr><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>Homologation In Progress</span></td><td data-label="times" class="dir"><span class="contagem">2<small>Jul–Sep 2026</small></span></td><td data-label="means"><span class="dest vazio">not declared</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody classified</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="e-3"><option>classify…</option></select></div></td></tr>
+      <tr class="ativa"><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>To Do</span></td><td data-label="times" class="dir"><span class="contagem">1</span></td><td data-label="means"><span class="dest">no verdict <span class="id">no phase · counts as a return</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 09:23 <span class="ex-mark">example</span></span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button">revoke</button></div></td></tr>
+      <tr class="ativa"><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>Dependencies</span></td><td data-label="times" class="dir"><span class="contagem">1</span></td><td data-label="means"><span class="dest">no verdict <span class="id">no phase · counts as a return</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 09:23 <span class="ex-mark">example</span></span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button">revoke</button></div></td></tr>
+      <tr class="ativa"><td data-label="exit"><span class="exits"><span class="seta">Homologation →</span>Desaprovado</span></td><td data-label="times" class="dir"><span class="contagem">0<small>collected · up to 9 Sep</small></span></td><td data-label="means"><span class="dest">not accepted <span class="id">sro.not_accepted_deliverable · derived at read time</span></span></td><td data-label="declared"><span class="marca dec"><span class="am"></span>active</span><span class="quem"> by <b>Ana Vieira</b> · 14 Sep 09:22 <span class="ex-mark">example</span></span><span class="hist"><b>zero is a count, not a missing criterion</b> — the only card in Desaprovado came from In Progress (4 May 2026), so no item has been refused <em>by this criterion</em> yet</span></td><td data-label="action" class="dir"><div class="acoes"><button class="btn q" type="button">revoke</button></div></td></tr>
+      <tr><td data-label="exit"><span class="exits" style="font-weight:400;color:var(--tinta-2)"><span class="seta">Homologation →</span>Backlog · Refinamento · Pronto para desenvolvimento · Paused · In Progress</span></td><td data-label="times" class="dir"><span class="contagem">0<small>no exit recorded</small></span></td><td data-label="means"><span class="dest vazio">not declared</span></td><td data-label="declared"><span class="marca aus"><span class="am"></span>nobody classified</span><span class="hist">listed so that a first occurrence is not a surprise — a new exit that appears after the declaration stays <em>not declared</em>, counted and shown, until someone classifies it</span></td><td data-label="action" class="dir"><div class="acoes"><select class="sel" id="e-7"><option>classify one…</option></select></div></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="form-inline" id="classify-2">
+    <h4>Classify <span class="mono">Homologation → In Validation</span> <span class="rot" style="font-weight:400;margin-left:.4rem">shown open as example · 2 occurrences collected</span></h4>
+    <div class="radios">
+      <label><input type="radio" name="ex2" id="ex2-a"><span>accepted<span class="id">sro.accepted_deliverable</span><span class="oque">the evaluation passed; the task that produced it reads <em>performed successfully — by declaration</em></span></span></label>
+      <label><input type="radio" name="ex2" id="ex2-b"><span>not accepted<span class="id">sro.not_accepted_deliverable</span><span class="oque">the evaluation refused; the task reads <em>performed without success — by declaration</em></span></span></label>
+      <label class="on"><input type="radio" name="ex2" id="ex2-c" checked><span>no verdict<span class="id">no phase</span><span class="oque">it went back without a decision; the item returns to <em>no declared evaluation</em> and the pass counts as a return</span></span></label>
+    </div>
+    <div class="botoes"><button class="btn p" type="button">Classify</button><button class="btn q" type="button">Cancel</button><span class="quem">records <b>your name</b> and <b>the instant</b> · both options referenced by identifier</span></div>
+  </div>
+
+  <label class="check"><input type="checkbox" id="humans-only"><span>Only transitions made by a person count as evaluation<small>Without this clause, moves by the board's automation count and the actor is always shown. On this board <strong class="n">80</strong> moves to Done were made by <span class="mono">github-project-automation</span>, the robot that moves the card when the issue closes. With the clause, those read <em>moved by automation, not evaluated</em>. The clause is recorded with the declaration.</small></span></label>
+
+  <div class="cobertura"><span class="rot">coverage · always shown</span><br><b>147</b> issues went through Homologation according to the collected events (<b>2</b> of them twice) · <b>335</b> sit there today · about <b>188</b> of those have no entry event — they reached the board already in that stage, or the events are not collected yet · events collected up to <b>9 Sep 2026</b></div>
+
+  <h4 style="margin-top:1.4rem">What follows on this board</h4>
+  <p class="sub">Three counts, always the three, never summed with <em>closed at the source</em> nor with <em>completed by the board</em>. Each opens its list.</p>
+  <div class="tres">
+    <div class="medida decl"><span class="rot">accepted by the organisation's criterion</span><span class="grande"><a href="#">10</a></span><span class="contra">Homologation → Done · May–Jul 2026 · each with instant and actor</span><span class="base">declared criterion · derived at read time · never "verified"</span></div>
+    <div class="medida decl"><span class="rot">not accepted</span><span class="grande"><a href="#">0</a></span><span class="contra">Homologation → Desaprovado · zero occurrences collected</span><span class="base">a count, not an absence of criterion · up to 9 Sep 2026</span></div>
+    <div class="medida recusa"><span class="rot">no declared evaluation</span><span class="grande">the rest of Done — item count not measured for this prototype</span><span class="contra">Done was reached by moves the criterion does not name: In Progress → Done 197 · Backlog → Done 119 · To Do → Done 58 · entered already Done 48 · In Validation → Done 9 · Refinamento 5 · Dependencies 4 · Pronto para desenvolvimento 2 — and 80 of all moves to Done were the robot's</span><span class="base">these are moves, not items; the screen counts items — <em>completed by the board · no declared evaluation</em>, never <em>accepted</em></span></div>
+  </div>
+  <p class="sub">Set apart, never inside the three: issues closed as <em>not planned</em> or <em>duplicate</em> read <em>outside evaluation — closed as &lt;reason&gt;</em>. Count for this board: not measured for this prototype.</p>
+  <p class="sub">Without a chosen stage, this whole card reads <em>acceptance criterion not declared</em> and every item says the same — which is a different absence from <em>no declared evaluation</em>, and the screens keep the two apart.</p>
+</div>
+
+<div class="cartao quieto"><h4>Fields</h4><p class="pequeno" style="margin-top:.2rem">unchanged — as on the screen of 14 Sep 2026</p></div>
+<div class="cartao quieto"><h4>Backlogs <span class="mono" style="color:var(--tinta-2)">1 194 items</span></h4><p class="pequeno" style="margin-top:.2rem">unchanged — as on the screen of 14 Sep 2026</p></div>
+
+<!-- ═══════════════════════════════ SCREEN 2 ═══════════════════════════════ -->
+<span class="tela" id="landing">screen 2 · where the statements land</span>
+<p class="sub">Two places that already exist on the product, each gaining the statements declared above. Nothing collapses into a single "state".</p>
+
+<!-- (i) item detail -->
+<div class="hdr"><h2><span class="num">#2107</span> <span class="cc">BUG</span> [BUG][Frontend] Filtro "Data de Início (a partir de)" não filtra corretamente na listagem de Programas</h2></div>
+<p class="sub">created 1 Jun 2026 · assignee <span class="mono">@harianadm</span> · no sprint · on board <strong>Conecta Fapes #43</strong></p>
+
+<div class="tres">
+  <div class="afirm"><span class="rot">at the source</span><span class="marca obs" style="margin-top:.4rem"><span class="am"></span>observed</span><div class="valor">open</div><div class="prov">state <span class="mono">OPEN</span> · not closed · reason: none</div></div>
+  <div class="afirm"><span class="rot">by the board · Conecta Fapes #43</span><span class="marca dec" style="margin-top:.4rem"><span class="am"></span>declared</span><div class="valor">completed — <span class="mono" style="font-size:0.875rem">Done</span></div><div class="prov">by the rule <b>Done → completed</b>, declared by Ana Vieira on 14 Sep 2026 <span class="ex-mark">example</span> · stage as the board calls it: <b>Done</b></div><div class="prov">in Done since: <span class="marca aus"><span class="am"></span>instant unknown</span> — no stage-change event collected for this item; only the current value is known</div></div>
+  <div class="afirm"><span class="rot">acceptance · Conecta Fapes #43</span><span class="marca dec" style="margin-top:.4rem"><span class="am"></span>declared</span><div class="valor aus-t">no declared evaluation</div><div class="prov">the criterion exists — <b>Homologation → Done = accepted</b> — and this item has <b>no Homologation → Done event</b> collected. Not accepted, not refused: not evaluated, as far as the collection knows</div><div class="prov">evaluation history: <span class="marca aus"><span class="am"></span>none collected</span></div></div>
+</div>
+<div class="aviso"><span class="rot">three statements, three authors</span><p>The source says <em>open</em>; the board says <em>completed</em>; the criterion says <em>not evaluated</em>. Today's screen says only <em>open</em>. <strong>Open at the source and completed by the board</strong> is the pattern this board produces on purpose — 294 items today — and this card shows the pattern instead of hiding it in a single word.</p></div>
+
+<div class="cartao">
+  <div class="cab"><h4>Stage periods on Conecta Fapes #43</h4><span class="rot">066 FR-024 · one row per pass</span></div>
+  <div class="scroll"><table class="stacked">
+    <thead><tr><th>stage</th><th>entered</th><th>left</th><th>source of the period</th></tr></thead>
+    <tbody><tr><td data-label="stage"><span class="est">Done</span></td><td data-label="entered"><span class="marca aus"><span class="am"></span>unknown</span></td><td data-label="left">still there</td><td data-label="source"><span class="marca obs"><span class="am"></span>current value</span> · no event</td></tr></tbody>
+  </table></div>
+  <p class="sub">Age in the current stage: <em>unknown</em> — never counted from the collection date. Passes through stages: <em>unknown — no events collected for this item</em>. Where events exist, this table has one row per pass, with exact entry and exit and the source <em>stage-change event</em>.</p>
+</div>
+
+<!-- (ii) person panel -->
+<div class="hdr" style="margin-top:2.4rem"><h2><span class="mono" style="font-size:1.25rem">@harianadm</span></h2><span class="sub">56 cards on Conecta Fapes #43 · the person who gave the feedback</span></div>
+<p class="sub">Her cards, said three ways. Numbers in this panel are real (14 Sep 2026) where measured, and say so where not.</p>
+
+<div class="tres">
+  <div class="afirm"><span class="rot">at the source</span><span class="marca obs" style="margin-top:.4rem"><span class="am"></span>observed</span><div class="valor">4 closed</div><div class="prov">all four among her Done cards · open/closed split of the other 29 cards: <em>not measured for this prototype</em></div></div>
+  <div class="afirm"><span class="rot">by the board · Conecta Fapes #43</span><span class="marca dec" style="margin-top:.4rem"><span class="am"></span>declared</span><div class="valor">27 completed · 25 in progress</div><div class="prov"><b>27 completed by the board</b> — 23 open at the source, 4 closed · <b>25 in progress by the board</b> — 24 Homologation · 1 In Progress</div><div class="prov">4 cards in stages with no decision — To Do 3 · Refinamento 1 — read <em>not declared</em>, not "not completed"</div></div>
+  <div class="afirm"><span class="rot">acceptance · Conecta Fapes #43</span><span class="marca dec" style="margin-top:.4rem"><span class="am"></span>declared</span><div class="valor aus-t">not measured for this prototype</div><div class="prov">the screen shows, for her: <b>accepted</b> · <b>not accepted</b> · <b>no declared evaluation</b> — three counts, each opening its list — and, apart, <em>outside evaluation</em></div></div>
+</div>
+<div class="cobertura"><span class="rot">coverage · her cards</span><br><b>24</b> in Homologation today · with an entry event: <em>not measured for this prototype</em> · events collected up to <b>9 Sep 2026</b></div>
+<div class="duas">
+  <div class="medida decl"><span class="rot">completed by the board · open at the source</span><span class="grande"><a href="#">23</a></span><span class="contra">of her 27 Done — the 23 the feedback called "treated as open"</span><span class="base">a disagreement between two statements, not an error of hers</span></div>
+  <div class="medida recusa"><span class="rot">closed at the source · not completed by the board</span><span class="grande">not measured for this prototype</span><span class="contra">the screen counts it as on the board card</span><span class="base">same definition, her cards only</span></div>
+</div>
+<p class="sub">Her <em>open now</em>, burn and throughput keep the definition they use today — <em>closed at the source</em> — and each says so on its label (066 FR-015). Switching the measures to <em>completed by the board</em> is an organisation-level choice, recorded with author and instant, and is not on this screen.</p>
+
+<!-- ═══════════════════════════════ DECISIONS ═══════════════════════════════ -->
+<span class="tela" id="decisions">decisions and open questions</span>
+<div class="dq">
+  <h3>Decisions taken in this prototype</h3>
+  <ol>
+    <li><span class="dd">D1</span><strong>The two new cards sit right after Start criterion, in the order 042 → 066 → 067, each with its own heading and one question.</strong> Nothing else on the screen moves. A question-shaped heading in the house voice already on this screen ("What each iteration field means", "Where the deadline comes from").</li>
+    <li><span class="dd">D2</span><strong>Proposal is amber hatched; active is info solid; no decision is dashed; revoked is grey solid.</strong> A proposal is <em>derived</em> from recognised vocabulary — the house mark for derived is amber hatch, so no new hue and no new form. The row for In Progress shows a proposal at rest; the row for Done shows an active rule and the proposal it came from.</li>
+    <li><span class="dd">D3</span><strong>The five destinations are radios with the ontology id and one line saying what each asserts</strong>, and the list carries a dashed box <em>Not offered here: accepted / not accepted</em> citing <span class="mono">sro.rule03</span> and linking to the evaluation card. The Desaprovado row carries the same pointer, because that is where a person would look for "not accepted".</li>
+    <li><span class="dd">D4</span><strong>Revoke is shown as a mark on the record</strong>: the Homologation row keeps its earlier, revoked <em>completed</em> rule with author, instant and the one-line reason. The QA checks that revoking produces this row, never an empty cell.</li>
+    <li><span class="dd">D5</span><strong>The evaluation card is two steps on one card</strong> — chips for the stage, a table for the exits — rather than two cards, because the exits have no meaning without the stage. Every observed exit is listed with its count; stages with no recorded exit are one collapsed row, so that a first occurrence has a place to land.</li>
+    <li><span class="dd">D6</span><strong>Zero is written as a count</strong> — "0 · collected · up to 9 Sep" — and the Desaprovado row says why it is zero. Coverage is a fixed box under the table, on every screen that carries a count from 067.</li>
+    <li><span class="dd">D7</span><strong>The third count, "no declared evaluation", refuses an item number in this prototype</strong> and lists the moves instead. The data measured is moves, not items; inventing an item count from 459 − 10 would sum two different populations. The implementation counts items.</li>
+    <li><span class="dd">D8</span><strong>The item detail shows three statement cards side by side with their marks</strong>, plus a stage-period table with one row per pass and the source of each period; the person panel shows the same three, then coverage, then the two disagreement numbers. Where a figure was not measured today the tile says so instead of carrying an example number against a real person.</li>
+    <li><span class="dd">D9</span><strong>Authors and instants of declarations are a fictitious administrator marked <span class="ex-mark">example</span></strong> — no declaration has been made yet, and the prototype does not attribute one to a real person.</li>
+    <li><span class="dd">D10</span><strong>Unchanged cards appear as quiet stubs</strong> ("unchanged — as on the screen of 14 Sep 2026") to keep the order verifiable without redrawing what the QA compares to today's screen.</li>
+  </ol>
+
+  <h3 style="margin-top:1.6rem">Open questions for the maintainer</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>question</th><th>options</th><th>recommendation</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Q1</td><td>Should the 042 card be renamed from <em>Start criterion</em> to a question in the same voice — <em>When work starts</em> — so the three declarations read as three answers?</td><td>(a) keep <em>Start criterion</em>, no change to 042 · (b) rename in the same PR, text otherwise untouched</td><td><strong>(b)</strong> — a heading change only, and it is the reason principle X gives each component a heading</td></tr>
+      <tr><td class="mono">Q2</td><td>Should a proposal be dismissable without declaring a destination — an <em>Ignore</em> that hides it — or is the only way to remove a proposal declaring <em>this column says no phase</em>?</td><td>(a) no ignore: refusal is the recorded way (FR-022) · (b) an ignore per account, not recorded</td><td><strong>(a)</strong> — an unrecorded ignore is a decision nobody can find later</td></tr>
+      <tr><td class="mono">Q3</td><td>Where does the organisation choose which definition feeds the flow measures (066 FR-016)? It is an organisation-level choice, not a board one.</td><td>(a) a line in this board card with a link to the organisation screen · (b) only on the organisation screen</td><td><strong>(a)</strong> — the person who just declared <em>Done → completed</em> will look here for why the burn did not change</td></tr>
+      <tr><td class="mono">Q4</td><td>The "humans only" clause: default unchecked (robot counts, actor shown — FR-005) or checked?</td><td>(a) unchecked, as FR-005 states · (b) checked</td><td><strong>(a)</strong> — the platform does not decide that automation "does not evaluate"; the actor is always visible</td></tr>
+      <tr><td class="mono">Q5</td><td>Should the disagreement numbers (294 · 41) be repeated at the top of the board section, above the cards, or only inside the 066 card?</td><td>(a) only in the card · (b) also in the board header line</td><td><strong>(a)</strong> — they have no meaning without the rule that produces them, and the rule lives in the card</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:1.6rem">Names the knowledge base needs before code</h3>
+  <ul class="lista-q">
+    <li><span class="mono">github.project_item_status</span> — the rule 066 FR-021 names: destinations admitted, vocabulary that generates proposals, and what it does not materialise (<span class="mono">sro.accepted_deliverable</span>, <span class="mono">sro.sprint_deliverable</span>) with the reason.</li>
+    <li>the recognised vocabulary of "done" (<em>Done</em>, <em>Concluído</em>, <em>Closed</em>…) — versioned, with provenance; proposes, never decides.</li>
+    <li>the acceptance-evaluation criterion — social object of the SRO in the mould of <span class="mono">spo.activity_start_criterion</span> (067 FR-016), with the clause <em>humans only</em> and the three exit meanings.</li>
+    <li>measure names for: <em>completed by the board and open at the source</em>; <em>closed at the source and not completed by the board</em>; <em>accepted by criterion</em>; <em>not accepted</em>; <em>no declared evaluation</em>; <em>outside evaluation</em>; <em>coverage of stage-change events</em>; <em>age in current stage</em> and <em>passes through stage</em> (066 FR-025).</li>
+  </ul>
+  <p class="sub" style="margin-top:1.2rem">Approval: <strong>awaiting the maintainer</strong>. Republishing after a decision keeps this address; a new address is a new prototype.</p>
+</div>
+
+</div>
