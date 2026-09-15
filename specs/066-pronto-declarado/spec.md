@@ -248,6 +248,9 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   houver, o item conta em *"concluídos sem data"*, nunca é datado por palpite.
 - **Declaração encerrada e reativada**: cada período é um registro; as medidas de um instante
   usam a declaração vigente **naquele instante**, não a atual.
+- **Períodos com buraco**: o evento de saída existe e o de entrada não (coleta parcial da
+  timeline) — o período fica com entrada desconhecida, dito; nunca preenchido com a criação da
+  issue.
 - **Estágios homônimos ou quase** (*To Do* e *Todo*; *Homologation* e *Homologação* em quadros
   diferentes): nunca fundidos. No mesmo quadro é o antipadrão `ap06`, sinalizado; entre quadros,
   a comparação é pela fase declarada, e o estágio fica como está.
@@ -350,9 +353,17 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   MUST NOT ser normalizados nem fundidos entre quadros — *To Do* e *Todo* no mesmo quadro é o
   antipadrão que a plataforma **sinaliza**, nunca resolve. Medida por estágio é **por quadro**;
   entre quadros e organizações, só por fase.
-- **FR-024**: Quando o instante em que o valor atual passou a valer for conhecido (FR-018), a
-  plataforma MUST dizer **há quanto tempo** o item está no estágio atual; sem o instante, MUST
-  dizer *"idade no estágio desconhecida"* — nunca contar a partir da coleta.
+- **FR-024**: O estágio MUST ser guardado no item como **período** — *entrou em*, *saiu em* —,
+  no molde do rótulo da 065 (decisão da pessoa mantenedora, 2026-09-14): um registro por passagem
+  do item por um estágio de um quadro. O período MUST vir dos **eventos de mudança de estágio**
+  quando coletados (entrada e saída exatas); onde só o **valor atual** é conhecido, MUST existir
+  um único período com a entrada no instante do valor (FR-018) e a saída em aberto; e cada
+  período MUST dizer de qual das duas fontes veio. Nada é datado por palpite.
+- **FR-025**: Da sequência de períodos a plataforma MUST derivar, por item, **há quanto tempo**
+  está no estágio atual e **quantas vezes** passou por cada estágio (*voltou para Refinamento 2
+  vezes*); sem período conhecido, MUST dizer *"idade no estágio desconhecida"* — nunca contar a
+  partir da coleta. Medidas por estágio (tempo médio em *Homologation*, retornos) MUST ser por
+  quadro, e MUST dizer quantos itens têm período conhecido e quantos não.
 
 ### Key Entities
 
@@ -372,9 +383,12 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
   vigente), com a natureza de cada uma.
 - **Instante do valor atual de `Status`**: quando o card passou a ter o valor que tem; coletado
   da origem, ausente quando ela não oferece.
-- **Estágio do quadro**: o valor atual de `Status` com o nome que a organização lhe dá e a
-  **posição** observada entre as opções do campo — observado, cru, por quadro. Não é conceito;
-  é a palavra do processo da organização, preservada como os rótulos da 065.
+- **Estágio do quadro**: o valor de `Status` com o nome que a organização lhe dá e a **posição**
+  observada entre as opções do campo — observado, cru, por quadro. Não é conceito; é a palavra do
+  processo da organização, preservada como os rótulos da 065.
+- **Período no estágio**: item × quadro × estágio × *entrou em* × *saiu em* (aberto enquanto o
+  item está lá) × fonte (evento de mudança · valor atual). Um por passagem. É o que dá tempo no
+  estágio e retornos — e é do que a 067 deriva o instante da avaliação de aceite.
 
 ## Success Criteria *(mandatory)*
 
@@ -409,10 +423,12 @@ pessoa com 24 cards ali, *"24 em andamento pelo quadro (Homologation)"* ao lado 
 - **A escolha de qual definição alimenta as medidas é por organização.** Uma medida da equipe
   atravessa quadros; escolher por quadro obrigaria a somar definições diferentes num mesmo
   gráfico, que é o que a casa recusa.
-- **Só o valor atual do `Status` é conhecido hoje.** A primeira fatia entrega as afirmações, o
-  desacordo e a escolha; a série temporal por definição de quadro depende da FR-018 — o
-  instante em que o valor passou a valer, que a origem oferece por valor de campo. Até ele ser
-  coletado, os concluídos pelo quadro entram em *"sem data conhecida"*.
+- **Só o valor atual do `Status` é conhecido hoje, na maior parte dos repositórios.** Os
+  eventos de mudança de estágio já são coletados como atividade executada (com estágio anterior
+  e novo, e instante) onde a timeline foi coletada — **e o `conectafapes-project` tem zero**. A
+  primeira fatia entrega as afirmações, o desacordo e a escolha; os períodos exatos e a série
+  temporal dependem de coletar a timeline daquele repositório (dependência operacional) ou da
+  FR-018. Até lá, os concluídos pelo quadro entram em *"sem data conhecida"*.
 - **Homologation é em andamento** (`spo.performed_project_activity` sem `end_date`), por decisão
   da pessoa mantenedora em 2026-09-14; a spec não a mapeia automaticamente — a organização
   declara. E hoje *Homologation* **não está** em `recognized_in_progress_states`: nem o antipadrão

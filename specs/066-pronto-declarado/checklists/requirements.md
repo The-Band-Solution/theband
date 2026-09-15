@@ -52,6 +52,8 @@
   idade no estágio (FR-024), a entidade *Estágio do quadro* e o edge case dos homônimos. E a
   decisão do *Desaprovado* foi tomada pela pessoa mantenedora — caminho (c), critério de aceite
   declarado, spec 067. Nenhuma decisão pendente resta nesta spec.
+- **Terceira emenda, 2026-09-14**: o estágio vira **período no item** (entrou/saiu, fonte),
+  como o rótulo da 065 — FR-024/025, entidade *Período no estágio*, edge case do buraco.
 - **Protótipo antes do código** (FR-015 da casa): as telas tocadas (declaração no quadro,
   detalhe, listagem, painel da pessoa, tela da equipe, quadro) passam pelo papel de Design
   depois desta spec e antes do plano de implementação.
