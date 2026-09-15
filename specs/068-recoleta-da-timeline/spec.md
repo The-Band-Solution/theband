@@ -10,9 +10,14 @@
 não tinham data de conclusão: *"temos que coletar esses dados… precisa aparecer no gráfico do
 mês"*.
 
-**O conserto já foi feito; isto é o que ficou para trás.** O commit `3b63587` fez a fase de
-issues pedir 10 por página e acrescentou a guarda que faltava — vale para as **próximas**
-coletas. O dado que já está no banco continua truncado, e o corte não deixou marca.
+**O conserto está em revisão; isto é o que ficou para trás.** O PR
+[#923](https://github.com/The-Band-Solution/theband/pull/923) faz a fase de issues pedir 10 por
+página e acrescenta a guarda que faltava — vale para as **próximas** coletas, e **ainda não está
+em `development`**. O dado que já está no banco continua truncado, e o corte não deixou marca.
+
+> **Correção de 2026-09-15**: a primeira versão desta spec afirmava que o conserto já estava em
+> `development`. Não estava — o commit tinha ficado numa branch de feature. A afirmação foi
+> corrigida, e o conserto extraído para PR próprio.
 
 ---
 
@@ -242,8 +247,9 @@ quadro.
 
 ## Assumptions
 
-- **O conserto do `page_size` já está em vigor** (`3b63587`), e a recoleta o usa. Recoletar com
-  o defeito de pé traria o mesmo corte.
+- **O conserto do `page_size` precisa estar mergeado antes** (PR #923). Recoletar com o defeito
+  de pé traria o mesmo corte — e a recoleta busca por `issue(number:)`, que é o caminho íntegro,
+  mas a conferência usa a conexão e dependeria do tamanho corrigido.
 - **A segunda leitura da conferência usa caminho diferente** do da recoleta — se usasse o mesmo,
   provaria apenas que a origem é consistente consigo mesma, não que entregou tudo.
 - **A amostra da conferência é pequena e sorteada**, não a totalidade: conferir tudo dobraria o
@@ -262,7 +268,7 @@ quadro.
 
 ## Dependencies
 
-- **O conserto da coleta** (`3b63587`): o tamanho de página por fase e a guarda do teto.
+- **O conserto da coleta** (PR #923, **em revisão**): o tamanho de página por fase e a guarda do teto.
 - **022 — timeline das issues**: os eventos, a identidade da atividade e a gravação idempotente.
 - **004 — issues e projetos**: as issues e os repositórios observados.
 - **066 e 067**: as consumidoras do dado recuperado — sem elas, a data existe e ninguém a usa.
@@ -270,7 +276,7 @@ quadro.
 
 ## Out of Scope
 
-- **O conserto do `page_size`** — já feito.
+- **O conserto do `page_size`** — é o PR #923, e não esta spec.
 - **A definição de pronto** (066) e **o critério de aceite** (067).
 - **Mudar a identidade da atividade** para incluir a issue: é emenda à ontologia mais migração de
   dezessete mil registros, e item próprio. Esta feature **declara** a colisão, não a conserta.
