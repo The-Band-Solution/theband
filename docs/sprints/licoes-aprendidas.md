@@ -71,7 +71,8 @@ Denominador móvel, medida em curso, total que esconde fenômeno. **Comparar sob
 | [L86](#l86--denominador-móvel-mente-igual-a-denominador-inventado) | Denominador móvel mente igual a denominador inventado | técnica | 026 |
 | [L90](#l90--contar-só-o-vencedor-da-corrida-não-prova-o-perdedor) | Contar só o vencedor da corrida não prova o perdedor | técnica | 026 |
 
-**11 abertas**
+| [L107](#l107--git-log---merges-conta-metade-dos-prs) | `git log --merges` conta metade dos PRs | técnica | 030 |
+**12 abertas**
 
 ### Afirmar sem medir na origem
 
@@ -91,7 +92,9 @@ Painel, HTTP e log dizem o que a origem contradiz. **Uma consulta à origem** ac
 | [L93](#l93--durante-o-deploy-duas-versões-atendem-e-a-medida-de-fora-não-diz-qual-respondeu) | Durante o deploy, duas versões atendem, e a medida de fora não diz qual respondeu | técnica | 026 |
 | [L94](#l94--mensagem-que-afirma-a-causa-sem-conferir-manda-procurar-no-lugar-errado) | Mensagem que afirma a causa sem conferir manda procurar no lugar errado | técnica | 027 |
 
-**11 abertas** · encerradas ou fundidas: L35
+| [L106](#l106--a-verificação-rodou-deu-a-resposta-certa-e-ninguém-a-leu) | A verificação rodou, deu a resposta certa, e ninguém a leu | processo | 030 |
+| [L110](#l110--a-spec-usou-a-palavra-do-mecanismo-com-outro-sentido-e-o-exemplo-nunca-foi-olhado-no-dado) | A spec usou a palavra do mecanismo com outro sentido, e o exemplo nunca foi olhado no dado | conhecimento | 032 |
+**13 abertas** · encerradas ou fundidas: L35
 
 ### Teste que não prova o que diz provar
 
@@ -187,7 +190,9 @@ O que não tem gate some. Conferir **issue por issue** antes de declarar entregu
 | [L99](#l99--conferir-issue-por-issue-achou-o-que-planejar-não-achou) | Conferir issue por issue achou o que planejar não achou | processo | 028 |
 | [L100](#l100--branch-de-documentação-sem-pr-faz-o-código-chegar-sem-a-spec) | Branch de documentação sem PR faz o código chegar sem a spec | processo | 028 |
 
-**30 abertas**
+| [L108](#l108--três-features-seguidas-sem-sprint-backlog-e-a-aceitação-sem-lugar) | Três features seguidas sem sprint backlog, e a aceitação sem lugar | processo | 032 |
+| [L109](#l109--tarefa-fechada-sem-código-com-o-critério-da-spec-intacto) | Tarefa fechada "sem código" com o critério da spec intacto | processo | 032 |
+**32 abertas**
 
 ---
 
@@ -3378,6 +3383,22 @@ o que se fez aqui, tarde.
 
 **Aplicada em**: Sprint 028 — condição de entrada dos PRs da feature 057.
 
+### REINCIDIU — 2026-09-13, dezesseis de dezesseis
+
+Na janela da v0.8.0 (v0.7.0 → `0ccf02b`), **16 PRs mergeados em `development` e 16 sem revisão
+registrada**: `gh pr view --json reviews,reviewRequests` devolve `0` e vazio para cada um. Nove
+deles **nem pediram** (#853, #857, #860, #863, #864, #865, #889, #907, #908). E no mesmo dia
+**oito PRs abertos** (#909–#916) nasceram sem revisor e fora do projeto — a regra está no
+`AGENTS.md` desde o #89, e o autor da regra a violou oito vezes em doze horas. Consertado à mão
+às 21:00Z, com a leitura de volta.
+
+O padrão da L98: a lição existe, a regra existe, e nada no caminho **pergunta**. `gh pr create`
+aceita PR sem revisor e imprime a URL. **A próxima medida não é outra lição**: é um check no
+CI, `pr-revisor-pedido`, disparado em `pull_request` (`opened`, `synchronize`,
+`review_requested`), que **reprova** enquanto `reviewRequests` estiver vazio — o mesmo desenho
+do `pr-tipo-de-merge`, que já parou um PR meu. O check falha na abertura e passa quando o
+pedido chega; o merge espera pelos dois.
+
 ---
 
 ## L96 — Issue que ninguém fecha faz o sprint parecer não entregue
@@ -3838,3 +3859,154 @@ com uma marca. É o que `TheBand.Segredo` faz, e é a FR-006 da spec 064.
 tirado, nenhum terminal, nenhuma cópia. **Só a rotação invalida um valor que esteve legível** —
 e tratar a limpeza como resolução é a mesma família da L104: chamar de atestado o que é apenas
 o que eu consegui alcançar.
+
+---
+
+## L106 — A verificação rodou, deu a resposta certa, e ninguém a leu
+
+**Tipo**: processo · **Origem**: Sprint 030 (2026-09-13) · **Estado**: aberta
+
+**O que aconteceu.** Duas vezes em dois dias, nas duas direções.
+
+Em 2026-09-13, o bump da v0.8.0: o `sed` casava `version: "0.7.0"$` com âncora de fim de
+linha, e a linha real termina em vírgula. O `grep` de verificação estava **no mesmo comando**,
+mostrou `0.7.0`, e o commit saiu dizendo que a versão tinha mudado. A verificação rodou, deu
+a resposta certa, e ninguém a leu — o comando seguinte não dependia dela.
+
+Em 2026-09-14, um conflito de merge resolvido por script: o `assert` do python **falhou**
+(o outro lado do conflito era outra linha), o python saiu com 1 — e o `git add && git commit`
+que vinha depois do heredoc, no mesmo comando, rodou assim mesmo. O `README.md` foi commitado
+**com os marcadores `<<<<<<<`**. Local; amendado antes de empurrar.
+
+**Por que aconteceu.** Nos dois casos a verificação existia e estava certa. O que faltou foi a
+**dependência**: o passo seguinte não esperava o veredito. Um `grep` informativo imprime e
+segue; um `python3 - <<'PY' … PY` seguido de nova linha é outro comando, e o exit dele se perde.
+É a família do sucesso silencioso com um agravante — aqui o aviso foi produzido, e o fluxo o
+atropelou.
+
+**O que fazer diferente.**
+
+1. **a verificação é um comando que falha**, não um que imprime: `grep -q` com `|| exit 1`,
+   `test "$c" = "0" || exit 1`, `set -e` no topo de todo script de edição;
+2. **conferir o artefato final, não o passo**: antes de `git commit` de merge,
+   `grep -c '^<<<<<<<'` igual a zero; antes de commitar bump, `grep 'version: "'` **lido**;
+3. o passo 5 da skill `/release` já diz "leia a saída antes de seguir". Não bastou; por isso o
+   item 1 transforma a leitura em bloqueio.
+
+---
+
+## L107 — `git log --merges` conta metade dos PRs
+
+**Tipo**: técnica · **Origem**: Sprint 030 (2026-09-13) · **Estado**: aberta
+
+**O que aconteceu.** Ao avaliar a v0.8.0, contei os PRs entre `main` e `development` com
+`git log --merges`: **10**. Eram **15** naquele momento, e **16** ao fim do dia. O papel de
+Product Owner, ratificando, achou os que faltavam.
+
+**Por que aconteceu.** Squash merge **não deixa commit de merge** — deixa um commit comum com
+`(#NNN)` no assunto. Neste repositório metade dos PRs entra por squash (por regra: branch que
+morre no merge), então `--merges` vê só a outra metade. O número parecia completo e não dizia
+que não era — a família da L40 e da L70.
+
+**O que fazer diferente.** Contar PRs por `git log origin/main..origin/development
+--format='%s' | grep -oE '\(#[0-9]+\)|#[0-9]+ from'`, e **cruzar** com
+`gh pr list --state merged --base development` no mesmo intervalo. Dois caminhos que precisam
+dar o mesmo conjunto; se não dão, um deles está perdendo. Está no passo 2 da skill `/release`.
+
+---
+
+## L108 — Três features seguidas sem sprint backlog, e a aceitação sem lugar
+
+**Tipo**: processo · **Origem**: Sprint 032 (2026-09-13) · **Estado**: aberta
+
+**O que aconteceu.** As features **060**, **064** e **065** foram de spec a implementação sem
+`sprint-backlog.md`. A skill é "obrigatória antes de implementar" e está no ciclo do
+`AGENTS.md` — e não rodou três vezes seguidas. Consequências medidas em 2026-09-13:
+
+- a **060 não tem issue nenhuma** — nem épico, nem user story, nem tarefa; 29 tarefas
+  executadas sem rastro no board;
+- as **40 issues** da 064 e da 065 existiam com labels e **sem tipo, sem hierarquia, fora do
+  projeto, sem iteration**;
+- a **aceitação da 065** nasceu como **comentário em issue**, porque não havia
+  `docs/sprints/NNN/aceitacao.md` onde morar;
+- **nenhum dos quatro entregáveis visíveis da v0.8.0** tinha fase registrada quando a release
+  foi avaliada — o último `aceitacao.md` era o do sprint 026.
+
+Os sprints 030, 031 e 032 foram escritos **depois**, em 2026-09-13/14, e dizem isso no topo.
+A análise de aderência entre plano e execução — a razão de o backlog existir separado da
+review — **não pode ser feita** para eles.
+
+**Por que aconteceu.** É a L98 de novo: lição que não vira regra reincide. A obrigação vive
+numa skill e numa frase do `AGENTS.md`; nada no caminho de `feat/*` → PR → merge **pergunta**
+pelo sprint. A 052 já tinha passado sem issues no sprint 026, e a lacuna foi registrada como
+lacuna — não como mecanismo.
+
+**O que fazer diferente.**
+
+1. **mecanismo, não outra lição**: o template de PR ganha o campo **`Sprint:`** (a pasta
+   `docs/sprints/NNN`), obrigatório em PR cujo título começa por `feat`; o gate que já lê o
+   corpo do PR (`pr-tipo-de-merge`) recusa quando falta. Quem abre o PR sem sprint é parado no
+   momento em que ainda dá para abrir;
+2. **`/speckit-taskstoissues` e `/sprint-backlog` são um passo só** — tarefa sem issue não
+   entra em backlog, e backlog sem issue não existe. A 060 mostrou que dá para pular os dois;
+3. a criação retroativa de issues (como a 052) **não conserta** o que a lacuna custou —
+   `flow.wip.count` subcontou três sprints. Recupera rastreabilidade daqui para a frente, e só.
+
+---
+
+## L109 — Tarefa fechada "sem código" com o critério da spec intacto
+
+**Tipo**: processo · **Origem**: Sprint 032 (2026-09-13) · **Estado**: aberta
+
+**O que aconteceu.** As tarefas T011 e T012 da 065 (US2 — a alegação ao lado do veredito)
+foram fechadas no PR #907 **sem código**, com a justificativa de que a divergência "já aparece
+por linha na tabela principal". A aceitação mediu: a linha mostra os dois lados e **não diz que
+divergem nem qual foi seguido** — AC1(b), AC3 e SC-008 da spec, como escritos, não se cumprem.
+O critério não tinha mudado; a tarefa foi redefinida até caber no que existia.
+
+A 060 tem a mesma marca, vista na aceitação retroativa de 2026-09-14: a **T029** está marcada
+`[x]` com o próprio texto da tarefa confessando ("Aberto ainda") que o cartão *Squads at a
+glance* diverge do protótipo; **T010, T011 e T012** estão marcadas `[x]` sem que os três
+arquivos de teste prometidos existam. Marcar `[x]` é marcação manual de "feito" — exatamente o
+que `sro.rule03` proíbe para aceitação.
+
+**Por que aconteceu.** Fechar tarefa é ato de quem implementa, e quem implementa lê o critério
+com o código na frente. "Já existe" é a conclusão mais barata, e ninguém entre o fechamento e a
+aceitação conferiu o critério **como escrito**. A fase da tarefa foi lida como `feita` quando
+era `executada sem sucesso`.
+
+**O que fazer diferente.** Fechar tarefa sem código exige, **no mesmo PR**, uma de duas coisas:
+a **emenda da spec** (o critério mudou, e está escrito por quê), ou a **evidência do critério
+como escrito** (teste, HTML, dado). Sem uma das duas, a fase é
+`sro.non_successfully_performed_scrum_development_task` e a issue **não fecha** — fica aberta
+com o motivo. O papel de Product Owner passa a procurar, em toda aceitação, as tarefas fechadas
+sem diff.
+
+---
+
+## L110 — A spec usou a palavra do mecanismo com outro sentido, e o exemplo nunca foi olhado no dado
+
+**Tipo**: conhecimento · **Origem**: Sprint 032 (2026-09-13) · **Estado**: aberta
+
+**O que aconteceu.** A US2 da 065 fala de "rótulo" — o *label* do GitHub — ao lado do
+"veredito" da plataforma, e escolhe como exemplo a issue do Bot: rótulo `task`, conceito
+derivado *defeito*. O mecanismo de divergência que a US pretendia usar (`ConceptLabel`,
+`list_divergences/2`) chama "label" o **tipo declarado** (`issue_type`), e divergência ali é
+*tipo declarado × estrutura*. A issue-exemplo tem `divergence_kind: nil`: **para a plataforma
+ela não é divergência**. Nas 512 divergências reais do tenant, nenhuma é do tipo que a US
+descreve; `label_vs_structure` existe no código e nunca é produzido.
+
+**Por que aconteceu.** Duas coisas, e as duas eram baratas de evitar. A spec nomeou um
+mecanismo existente sem citar o módulo — e a palavra que ele usa tinha outro sentido. E o
+exemplo da US foi escrito **sem uma consulta** ao registro dele: uma linha de SQL teria
+mostrado o `nil`. É a L30 dentro da spec: afirmar sobre o dado sem olhar o dado.
+
+**O que fazer diferente.**
+
+1. **quando a US cita um exemplo real, o `research.md` traz o registro dele** — a linha, com
+   os campos que a US usa. Exemplo que a plataforma classifica diferente do que a US supõe é
+   achado de spec, não de implementação;
+2. **quando a spec nomeia um conceito que já existe no código, cita o módulo** e confirma o
+   sentido da palavra lá. "Label" neste repositório já significava uma coisa antes da 065;
+3. o `/speckit-clarify` passa a perguntar, para toda US com exemplo: *"este exemplo foi
+   consultado no dado?"*.

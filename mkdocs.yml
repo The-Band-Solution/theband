@@ -289,3 +289,15 @@ nav:
               - Backlog do sprint: sprints/028-a-tela-da-equipe/sprint-backlog.md
               - Review: sprints/028-a-tela-da-equipe/sprint-review.md
           - 029 — Medidas da equipe: sprints/029-medidas-da-equipe/sprint-backlog.md
+          - 030 — A tela da equipe por vínculo:
+              - Aceitação: sprints/030-a-tela-da-equipe-por-vinculo/aceitacao.md
+              - Backlog do sprint: sprints/030-a-tela-da-equipe-por-vinculo/sprint-backlog.md
+              - Review: sprints/030-a-tela-da-equipe-por-vinculo/sprint-review.md
+          - 031 — Segredo em repouso:
+              - Backlog do sprint: sprints/031-segredo-em-repouso/sprint-backlog.md
+              - GitHub: sprints/031-segredo-em-repouso/github.md
+          - 032 — Rótulos no item:
+              - Aceitação: sprints/032-rotulos-no-item/aceitacao.md
+              - Backlog do sprint: sprints/032-rotulos-no-item/sprint-backlog.md
+              - Review: sprints/032-rotulos-no-item/sprint-review.md
+              - GitHub: sprints/032-rotulos-no-item/github.md
