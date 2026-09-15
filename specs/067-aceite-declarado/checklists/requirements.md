@@ -40,6 +40,9 @@
 ## Notes
 
 - Validado em 2026-09-14 numa iteração. Nenhum item reprovado; nenhuma decisão pendente.
+- **Emenda do mesmo dia**: a US1 e a FR-001/003/006 passam ao gesto em dois passos — estágio de
+  avaliação + sentido de cada saída (aceito · não aceito · sem veredito); saída não classificada
+  fica *não declarada*. Revalidado: os cenários continuam Given/When/Then e testáveis.
 - **Dependência de ordem**: o plano desta spec vem depois do da 066 (períodos de estágio) — a
   avaliação é datada pelos períodos.
 - **Protótipo antes do código** para a declaração no quadro, o detalhe do item, o painel da

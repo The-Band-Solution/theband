@@ -4,7 +4,8 @@
 
 **Created**: 2026-09-14
 
-**Status**: Draft
+**Status**: Draft — emendada em 2026-09-14: o gesto da declaração em dois passos (estágio de
+avaliação + sentido de cada saída), com a saída *sem veredito*; o modelo por transições não muda
 
 **Input**: a pessoa mantenedora, em 2026-09-14, concordou com o caminho (c) da spec 066: *"o
 caminho honesto é um critério de aceitação declarado: a organização declara que Homologation →
@@ -106,33 +107,43 @@ ausências diferentes, e a tela distingue.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Declarar qual transição é a avaliação de aceite (Priority: P1)
+### User Story 1 - Declarar onde a avaliação acontece, e o que cada saída significa (Priority: P1)
 
-Quem administra a organização abre o quadro e declara, entre os estágios observados dele, as
-transições que significam **avaliado e aceito** (*Homologation → Done*) e as que significam
-**avaliado e não aceito** (*Homologation → Desaprovado*). Pode declarar mais de uma de cada. A
-plataforma **não propõe nem sugere** — como na 042, recomendar seria escolher com passos a mais.
-A declaração fica com autor e instante; pode ser **revogada**, nunca apagada.
+Quem administra a organização abre o quadro e declara em **dois passos** (decisão da pessoa
+mantenedora, 2026-09-14): (1) **qual estágio é a avaliação** neste quadro — *Homologation*; (2)
+**o que cada saída dele significa** — → *Done* é **aceito**, → *Desaprovado* é **não aceito**,
+→ *To Do* e → *Dependencies* é **voltou sem veredito**. O modelo por baixo é o mesmo: cada saída
+classificada é uma transição (de → para) com um sentido. Um quadro pode ter mais de um estágio de
+avaliação (*In Validation* e *Homologation*), cada um com as suas saídas. A plataforma **não
+propõe nem sugere** — como na 042, recomendar seria escolher com passos a mais; ela mostra, ao
+lado de cada saída, quantas vezes ocorreu nos eventos coletados. A declaração fica com autor e
+instante; pode ser **revogada**, nunca apagada.
 
 **Why this priority**: sem a declaração não há aceitação na plataforma — é a fundação, e é a
 decisão que a `rule03` exige que seja de quem conhece o processo.
 
-**Independent Test**: no quadro 43, declarar *Homologation → Done* como aceite e *Homologation →
-Desaprovado* como recusa, e ler ao lado de cada uma quantas vezes a transição ocorreu nos eventos
-coletados — **10** e **0** — e quantos itens estão hoje em *Homologation* sem evento de entrada.
+**Independent Test**: no quadro 43, escolher *Homologation* como estágio de avaliação, ver as
+saídas observadas dele com as contagens — → *Done* **10**, → *In Validation* 2, → *To Do* 1, →
+*Dependencies* 1, → *Desaprovado* **0** —, classificar *Done* = aceito, *Desaprovado* = não
+aceito, as outras = sem veredito, e ler quantos itens estão hoje em *Homologation* sem evento
+de entrada.
 
 **Acceptance Scenarios**:
 
 1. **Given** um quadro com estágios observados, **When** a pessoa que administra abre a
-   declaração de aceite, **Then** vê os estágios do quadro na ordem observada, escolhe uma
-   transição (de → para) e um sentido (aceito · não aceito), e **nenhuma** vem pré-marcada nem
-   sugerida.
-2. **Given** a declaração *Homologation → Done = aceito*, **When** a pessoa a ativa, **Then** a
-   regra vale com autor e instante, e a tela diz quantas ocorrências dessa transição existem nos
-   eventos coletados e quantos itens têm o estágio de chegada **sem** a transição (chegaram a
-   *Done* por outro caminho — 119 do *Backlog*, 80 pelo robô).
-3. **Given** a declaração *Homologation → Desaprovado = não aceito*, **When** ativada, **Then** a
-   tela diz **zero ocorrências coletadas** — e que zero é contagem, não ausência de critério.
+   declaração de aceite, **Then** vê os estágios na ordem observada e escolhe **qual é a
+   avaliação**; **nenhum** vem pré-marcado nem sugerido.
+2. **Given** *Homologation* escolhido como avaliação, **When** a tela mostra as saídas, **Then**
+   lista **toda** saída observada desse estágio nos eventos (e os estágios do quadro ainda sem
+   saída registrada), cada uma com a contagem e sem sentido pré-atribuído; a pessoa dá a cada
+   saída um de três sentidos — **aceito** · **não aceito** · **sem veredito**.
+3. **Given** *→ Done = aceito* ativado, **When** a pessoa lê a regra, **Then** vê autor e
+   instante, as **10** ocorrências coletadas, e quantos itens estão em *Done* **sem** ter saído
+   da avaliação (119 do *Backlog*, 80 pelo robô) — que **não** são aceitos.
+3b. **Given** *→ Desaprovado = não aceito* ativado, **When** a pessoa lê a regra, **Then** vê
+   **zero ocorrências coletadas** — e que zero é contagem, não ausência de critério.
+3c. **Given** uma saída observada que a pessoa **não classificou**, **When** um item a percorre,
+   **Then** a tela diz *"saída não declarada"* — nunca assume veredito nem "sem veredito".
 4. **Given** uma declaração ativa, **When** a pessoa a revoga, **Then** ela ganha fim, autor e
    instante; segue listada como revogada; e as fases derivadas de avaliações **anteriores à
    revogação** continuam a existir, porque usam o critério vigente no instante da avaliação.
@@ -275,8 +286,10 @@ critério de aceite não declarado"*.
 - **Evento de saída sem evento de entrada** (coleta parcial): a avaliação vale — a transição
   ocorreu —, e o tempo em homologação fica *"desconhecido"* para esse item.
 - **Issue fechada como *não planejada* ou *duplicada***: fora da avaliação, à parte, dita.
-- **Duas transições declaradas para o mesmo sentido** (*Homologation → Done* e *In Validation →
-  Done*): um item pode ter as duas no histórico; cada avaliação nomeia a sua transição.
+- **Dois estágios de avaliação** (*In Validation* e *Homologation*, ambos com saída → *Done* =
+  aceito): um item pode ter as duas no histórico; cada avaliação nomeia o estágio de que saiu.
+- **Saída nova que surge depois da declaração** (o quadro ganha *Reprovado* e um item sai de
+  *Homologation* para lá): fica *não declarada*, contada e mostrada até alguém classificá-la.
 
 ## Requirements *(mandatory)*
 
@@ -284,15 +297,17 @@ critério de aceite não declarado"*.
 
 **A declaração**
 
-- **FR-001**: A organização MUST poder declarar, **por quadro**, uma ou mais **transições** entre
-  estágios observados (de → para) como *avaliação de aceite* — com o sentido **aceito** ou **não
-  aceito** —; a declaração MUST referenciar os **identificadores** das opções, guardando os
-  nomes no momento da declaração.
+- **FR-001**: A organização MUST poder declarar, **por quadro**, um ou mais **estágios de
+  avaliação** e, para cada saída observada deles, um sentido — **aceito** · **não aceito** ·
+  **sem veredito**. Cada saída classificada é uma **transição** (de → para) com sentido; a
+  declaração MUST referenciar os **identificadores** das opções, guardando os nomes no momento.
+  Saída não classificada MUST ficar *não declarada* — nunca recebe sentido por omissão.
 - **FR-002**: Toda declaração e toda revogação MUST gravar quem e quando; revogar MUST marcar,
   nunca apagar; períodos de vigência MUST ficar consultáveis.
-- **FR-003**: A plataforma MUST NOT propor nem sugerir transições de aceite; MUST apenas
-  oferecer os estágios observados do quadro, na ordem observada, com a contagem de ocorrências
-  de cada transição nos eventos coletados.
+- **FR-003**: A plataforma MUST NOT propor nem sugerir estágio de avaliação nem sentido de saída;
+  MUST apenas oferecer os estágios observados do quadro, na ordem observada, e — escolhido o
+  estágio de avaliação — **toda** saída observada dele com a contagem nos eventos coletados,
+  mais os estágios sem saída registrada.
 - **FR-004**: Só quem administra a organização MUST poder declarar ou revogar; quem não
   administra MUST ver a declaração e MUST NOT ver ação.
 - **FR-005**: A declaração MAY carregar a cláusula *"só transições feitas por pessoa"*; sem a
@@ -301,9 +316,10 @@ critério de aceite não declarado"*.
 **A derivação**
 
 - **FR-006**: A fase de aceite de um entregável — `sro.accepted_deliverable` ou
-  `sro.not_accepted_deliverable` — MUST ser **derivada na leitura** da última transição declarada
-  ocorrida no item, sob o critério vigente **no instante da transição**; nada de fase MUST ser
-  gravado no item.
+  `sro.not_accepted_deliverable` — MUST ser **derivada na leitura** da última saída com sentido
+  *aceito* ou *não aceito* ocorrida no item, sob o critério vigente **no instante da transição**;
+  uma saída *sem veredito* MUST NOT produzir fase — o item volta a *sem avaliação declarada*, e a
+  passagem conta como retorno (FR-014); nada de fase MUST ser gravado no item.
 - **FR-007**: Toda fase derivada MUST carregar a proveniência **declarado pela organização**: o
   critério, a transição, o instante, o ator, e quem declarou o critério e quando; MUST NOT ser
   apresentada como verificação da plataforma.
@@ -355,9 +371,10 @@ critério de aceite não declarado"*.
 
 ### Key Entities
 
-- **Critério de aceite declarado**: quadro, transição (estágio de origem e de destino, por
-  identificador, com os nomes no momento), sentido (aceito · não aceito), cláusula de ator
-  (todos · só pessoas), quem declarou e quando, quem revogou e quando. Vários por quadro.
+- **Critério de aceite declarado**: quadro, **estágio de avaliação**, e por saída dele o
+  sentido — aceito · não aceito · sem veredito — (cada saída é uma transição de → para, por
+  identificador, com os nomes no momento), cláusula de ator (todos · só pessoas), quem declarou
+  e quando, quem revogou e quando. Vários estágios de avaliação por quadro.
 - **Avaliação de aceite** (derivada): item, quadro, transição, instante, ator, veredito e o
   critério que a tornou avaliação — uma por ocorrência, reconstituída dos eventos de mudança de
   estágio e dos períodos da 066. Nunca gravada como fase.
@@ -399,7 +416,11 @@ critério de aceite não declarado"*.
   trabalho de ontologia no plano; a spec fixa a natureza (social, declarado, resolvido na
   leitura) e a relação.
 - **O critério é a transição, não o estágio.** *Done* é alcançado de sete origens diferentes e
-  por robô; só a transição diz que houve avaliação. Por isso a declaração pede *de → para*.
+  por robô; só a transição diz que houve avaliação. **O gesto na tela é em dois passos** —
+  escolher o estágio de avaliação e dar sentido a cada saída dele — porque é a mesma regra com
+  uma decisão a menos para digitar e uma saída a mais nomeada, *sem veredito*, que o dado tem
+  (→ *To Do* 1, → *Dependencies* 1, → *In Validation* 2). Decisão da pessoa mantenedora,
+  2026-09-14.
 - **Mais de uma transição por sentido é permitida** (*In Validation → Done* também pode ser
   aceite, se a organização disser); cada avaliação nomeia a sua.
 - **O robô conta por padrão**, com o ator sempre visível; a cláusula de atores humanos é opção
