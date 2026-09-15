@@ -282,6 +282,71 @@ defmodule TheBandWeb.BoardLive.Index do
   end
 
   @doc false
+  # Feature 066 — o critério de FIM, simétrico ao de início e pela mesma razão: quadros
+  # terminam de maneiras diferentes, e assumir uma para todos mentiria para metade.
+  def handle_event("declarar_fim", %{"event_type" => tipo}, socket) do
+    quadro = socket.assigns.selecionado
+
+    case SPO.declare_end_criterion(
+           socket.assigns.current_tenant,
+           {:board, quadro.id},
+           tipo,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "End criterion declared for this board: %{tipo}.", tipo: tipo)
+         )
+         |> recarregar()}
+
+      {:error, :unknown_event_type} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext(
+             "errors",
+             "The platform has not collected that event. Only what it observes can be declared."
+           )
+         )}
+
+      {:error, motivo} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{inspect}", inspect: inspect(motivo))
+         )}
+    end
+  end
+
+  def handle_event("revogar_fim", _params, socket) do
+    quadro = socket.assigns.selecionado
+
+    case SPO.revoke_end_criterion(
+           socket.assigns.current_tenant,
+           {:board, quadro.id},
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Criterion revoked. Work here ends when the issue closes again.")
+         )
+         |> recarregar()}
+
+      {:error, :not_found} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no criterion to revoke."))}
+    end
+  end
+
+  @doc false
   # Feature 066 — o que cada evento materializa. Declaração da ORGANIZAÇÃO, não do quadro:
   # `ClosedEvent` não muda de significado conforme o quadro.
   def handle_event(
@@ -416,6 +481,7 @@ defmodule TheBandWeb.BoardLive.Index do
       campos_de_data: Projects.date_fields(tenant, quadro.id),
       # Issue #370: o critério DESTE quadro, e os tipos que a coleta oferece.
       criterio: SPO.start_criterion_for(tenant, {:board, quadro.id}),
+      criterio_fim: SPO.end_criterion_for(tenant, {:board, quadro.id}),
       tipos_de_evento: SPO.collected_event_types(tenant),
       # Feature 066: o vocabulário de cada campo de seleção única, com a declaração vigente,
       # as revogadas e a proposta; e o desacordo, que só existe se alguém declarou conclusão.
@@ -827,6 +893,65 @@ defmodule TheBandWeb.BoardLive.Index do
             If two boards were linked at the very same instant — which batch association does —
             the platform <strong>does not pick one</strong>. It names the tie and leaves the
             decision, because picking silently would be choosing where nobody would look.
+          </p>
+        </div>
+
+        <%!-- ═══ QUANDO O TRABALHO TERMINA — feature 066, simétrico à 042 ═══
+              A 042 declarou o começo e deixou o fim implícito: a plataforma assumia "a issue
+              fechou". Medido em 2026-09-15: 10% das issues do #43 fecham na origem, contra 95%
+              do #31. Uma definição para todos mentiria para metade dos quadros. --%>
+        <div class="card bg-base-200 p-6">
+          <h3 class="mb-1 text-sm font-semibold">End criterion</h3>
+
+          <p class="mb-3 text-sm">
+            <span :if={@detalhe.criterio_fim}>
+              Work on this board ends when
+              <span class="badge badge-outline badge-sm font-mono">
+                {@detalhe.criterio_fim.event_type}
+              </span>
+              happens.
+            </span>
+            <span :if={is_nil(@detalhe.criterio_fim)} class="opacity-70">
+              No end criterion. The platform falls back to <strong>the issue being closed</strong>
+              — which on this board may almost never happen: boards here range from
+              <strong>4%</strong>
+              of their issues closed at the source to <strong>95%</strong>.
+            </span>
+          </p>
+
+          <form phx-submit="declarar_fim" class="flex flex-wrap items-end gap-2">
+            <label class="fieldset">
+              <span class="label-text text-xs">event that marks the end</span>
+              <select name="event_type" class="select select-sm select-bordered" required>
+                <option value="">choose…</option>
+                <option :for={t <- @detalhe.tipos_de_evento} value={t.event_type}>
+                  {t.reads || t.event_type} — {t.occurrences} observed
+                </option>
+              </select>
+            </label>
+            <.button type="submit" variant="primary" class="btn-sm">
+              {if @detalhe.criterio_fim, do: "Replace", else: "Declare"}
+            </.button>
+            <button
+              :if={@detalhe.criterio_fim}
+              type="button"
+              class="btn btn-ghost btn-sm"
+              phx-click="revogar_fim"
+              data-confirm="Revoke it? Work here goes back to ending when the issue closes."
+            >
+              revoke
+            </button>
+          </form>
+
+          <p class="mt-3 text-xs opacity-70">
+            <strong>This gives the instant, not the acceptance.</strong>
+            It closes cycle time the way the start criterion opens it — and says nothing about
+            the deliverable having passed, which follows from acceptance criteria
+            (<code class="text-xs">sro.rule03</code>).
+          </p>
+          <p class="mt-1 text-xs opacity-70">
+            Boards with a final column declare it below instead, in <em>What each column means</em>. This card is for the ones without: on this
+            installation, <strong>13 single-select fields have no column meaning completed</strong>.
           </p>
         </div>
 

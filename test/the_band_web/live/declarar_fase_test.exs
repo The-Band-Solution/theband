@@ -22,6 +22,7 @@ defmodule TheBandWeb.DeclararFaseTest do
   import TheBand.WorkItemsFixtures
 
   alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.SPO
   alias TheBand.Ontology.SEON.SPO.EventConcept
   alias TheBand.Ontology.SEON.SPO.ItemPhase
   alias TheBand.Projects
@@ -263,6 +264,35 @@ defmodule TheBandWeb.DeclararFaseTest do
 
     {:ok, _} = EventConcept.revogar(ctx.tenant, d.id, ctx.admin.id)
     assert EventConcept.vigentes(ctx.tenant) == []
+  end
+
+  test "o critério de fim é por quadro, e sem ele a plataforma diz o que assume", ctx do
+    {:ok, live, html} = live(ctx.conn, ~p"/boards?id=#{ctx.quadro.id}")
+
+    assert html =~ "End criterion"
+    assert html =~ "No end criterion"
+    # A ausência diz o que a plataforma assume no lugar — nunca fica em silêncio.
+    assert html =~ "the issue being closed"
+    # E diz que dá o instante, não a aceitação.
+    assert html =~ "not the acceptance"
+
+    # Declarar um evento que a coleta NÃO traz é recusado: critério que nunca resolve faria a
+    # ausência parecer defeito.
+    assert {:error, :unknown_event_type} =
+             SPO.declare_end_criterion(
+               ctx.tenant,
+               {:board, ctx.quadro.id},
+               "EventoQueNinguemColetou",
+               ctx.admin.id
+             )
+
+    refute render(live) =~ "EventoQueNinguemColetou"
+  end
+
+  test "o fim e o início são critérios distintos do mesmo quadro", ctx do
+    # Não se confundem: declarar um não toca o outro.
+    assert SPO.end_criterion_for(ctx.tenant, {:board, ctx.quadro.id}) == nil
+    assert SPO.start_criterion_for(ctx.tenant, {:board, ctx.quadro.id}) == nil
   end
 
   test "conceito fora da regra é recusado", ctx do

@@ -30,6 +30,7 @@ defmodule TheBand.Ontology.SEON.SPO do
 
   alias TheBand.Ontology.SEON.SPO.Commands
   alias TheBand.Ontology.SEON.SPO.DeadlineCriterion
+  alias TheBand.Ontology.SEON.SPO.EndCriterion
   alias TheBand.Ontology.SEON.SPO.Projects
   alias TheBand.Ontology.SEON.SPO.Queries
   alias TheBand.Ontology.SEON.SPO.StartCriterion
@@ -102,6 +103,16 @@ defmodule TheBand.Ontology.SEON.SPO do
 
   defdelegate revoke_start_criterion(tenant, alvo, actor_id), to: StartCriterion, as: :revoke
   defdelegate start_criterion_for(tenant, alvo), to: StartCriterion, as: :current
+
+  # O critério de FIM — feature 066, simétrico ao de início. Quadros da mesma organização
+  # terminam de maneiras diferentes: medido em 2026-09-15, 10% das issues do #43 fecham na
+  # origem contra 95% do #31. Assumir uma definição para todos mentiria para metade.
+  defdelegate declare_end_criterion(tenant, alvo, event_type, actor_id),
+    to: EndCriterion,
+    as: :declare
+
+  defdelegate revoke_end_criterion(tenant, alvo, actor_id), to: EndCriterion, as: :revoke
+  defdelegate end_criterion_for(tenant, alvo), to: EndCriterion, as: :current
 
   # Issue #368: o prazo é LISTA, e não um valor. 304 issues têm marco e caixa de tempo ao
   # mesmo tempo, e 640 estão em mais de uma caixa — devolver um só escolheria em silêncio.
