@@ -56,6 +56,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
           issues_com_eventos_novos: non_neg_integer(),
           eventos_inseridos: non_neg_integer(),
           eventos_promovidos: non_neg_integer(),
+          eventos_completados: non_neg_integer(),
           issues_no_teto: non_neg_integer(),
           nao_encontradas: [integer()],
           custo: non_neg_integer(),
@@ -180,6 +181,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
       issues_com_eventos_novos: 0,
       eventos_inseridos: 0,
       eventos_promovidos: 0,
+      eventos_completados: 0,
       issues_no_teto: 0,
       nao_encontradas: [],
       custo: 0,
@@ -291,6 +293,11 @@ defmodule TheBand.Ingestion.TimelineRecollection do
       # ocorrências que já estavam medidas.
       {:ok, %{outcome: :promoted}} ->
         %{acc | eventos_promovidos: acc.eventos_promovidos + 1}
+
+      # A linha já existia e recebeu um campo que a consulta não pedia antes — o quadro,
+      # a coluna. Também não é evento novo, e fica fora de `por_mes`.
+      {:ok, %{outcome: :completed}} ->
+        %{acc | eventos_completados: acc.eventos_completados + 1}
 
       _ ->
         acc

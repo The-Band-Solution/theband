@@ -17,6 +17,18 @@ defmodule TheBand.Ontology.SEON.SPO.Commands do
   `outcome: :unchanged` sem tocar na linha — uma ocorrência não muda, ela aconteceu.
   É o que faz reprocessar a mesma origem produzir uma linha (FR-003).
 
+  ## Duas exceções aparentes, e por que não são
+
+  As duas escrevem em linha existente, e nenhuma muda o que aconteceu. A ocorrência é a
+  mesma — mesmo tipo, mesmo ator, mesmo instante, mesmo sujeito. O que muda é o que
+  sabemos escrever sobre ela.
+
+  A **complementação** preenche campo nulo com o que a origem sempre disse e a consulta
+  não pedia. Nulo é pergunta sem resposta; preencher é responder pela primeira vez, e
+  trocar valor existente segue proibido. Sem ela, acrescentar campo à consulta não alcança
+  o histórico: em 2026-09-16 uma recoleta de 25 repositórios passou inteira sem gravar um
+  único quadro, porque toda ocorrência já existia e `:unchanged` não escreve nada.
+
   ## A promoção, e por que ela não é uma exceção à frase acima
 
   Até 2026-09-15 a coleta não pedia à origem o identificador do evento de timeline,
@@ -57,7 +69,39 @@ defmodule TheBand.Ontology.SEON.SPO.Commands do
 
     case Repo.get_by(Activity, tenant_id: tenant_id, internal_id: internal_id) do
       nil -> promover_ou_inserir(attrs)
-      existente -> {:ok, %{existente | outcome: :unchanged}}
+      existente -> completar(existente, attrs)
+    end
+  end
+
+  # Observações da origem que a consulta pode passar a pedir depois de a ocorrência já
+  # estar gravada. Só entram campos que a ORIGEM diz — nada derivado por nós.
+  @completaveis [:board_id, :board_external_id, :status_name]
+
+  # **Nulo é pergunta sem resposta, e não resposta.** Preencher um campo nulo com o que a
+  # origem sempre disse é responder pela primeira vez; trocar um valor existente seria
+  # mudar uma resposta, e isso segue proibido — por isso a lista de campos é fechada e a
+  # condição exige `is_nil` dos dois lados da comparação.
+  #
+  # Sem isto, acrescentar campo à consulta não alcança o histórico. Medido em 2026-09-16:
+  # a recoleta de 25 repositórios passou inteira sem gravar um único quadro, porque toda
+  # ocorrência já existia e `:unchanged` não escreve nada.
+  defp completar(existente, attrs) do
+    faltando =
+      for campo <- @completaveis,
+          is_nil(Map.get(existente, campo)),
+          valor = attrs[campo],
+          not is_nil(valor),
+          do: {campo, valor}
+
+    if faltando == [] do
+      {:ok, %{existente | outcome: :unchanged}}
+    else
+      {1, _} =
+        Activity
+        |> where(id: ^existente.id)
+        |> Repo.update_all(set: [{:updated_at, DateTime.utc_now(:second)} | faltando])
+
+      {:ok, %{struct(existente, faltando) | outcome: :completed}}
     end
   end
 

@@ -155,6 +155,7 @@ defmodule Mix.Tasks.TheBand.RecollectTimeline do
       com eventos novos ......... #{r.issues_com_eventos_novos}
       eventos inseridos ......... #{r.eventos_inseridos}
       eventos promovidos ........ #{r.eventos_promovidos}
+      eventos completados ....... #{r.eventos_completados}
       issues não encontradas .... #{length(r.nao_encontradas)}
       issues ainda no teto ...... #{r.issues_no_teto}
       custo em pontos de cota ... #{r.custo}

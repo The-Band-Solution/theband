@@ -353,4 +353,64 @@ defmodule TheBand.Ontology.SEON.SPO.AtividadeTest do
       """
     end
   end
+
+  describe "a complementação — o campo que a consulta não pedia antes" do
+    test "a ocorrência já gravada recebe o quadro sem virar linha nova", ctx do
+      sem =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_x"
+        })
+
+      {:ok, antes} = SPO.record_activity(ctx.tenant, sem)
+      assert antes.outcome == :created
+      assert is_nil(antes.board_external_id)
+
+      com = Map.merge(sem, %{board_external_id: "PVT_um", status_name: "Done"})
+      {:ok, depois} = SPO.record_activity(ctx.tenant, com)
+
+      assert depois.outcome == :completed, """
+      A ocorrência já existia e a consulta passou a pedir o quadro. Ela devolveu
+      `:unchanged` e não gravou nada.
+
+      É o que fez uma recoleta de 25 repositórios passar inteira sem gravar um quadro.
+      """
+
+      assert depois.id == antes.id
+      assert depois.board_external_id == "PVT_um"
+      assert depois.status_name == "Done"
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+
+    test "campo já preenchido não é trocado", ctx do
+      base =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_y",
+          status_name: "Done"
+        })
+
+      {:ok, _} = SPO.record_activity(ctx.tenant, base)
+      {:ok, depois} = SPO.record_activity(ctx.tenant, %{base | status_name: "Backlog"})
+
+      assert depois.outcome == :unchanged, "trocou uma resposta que a origem já tinha dado"
+      assert depois.status_name == "Done"
+    end
+
+    test "nada a completar devolve :unchanged", ctx do
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_z",
+          board_external_id: "PVT_um",
+          status_name: "Done"
+        })
+
+      {:ok, _} = SPO.record_activity(ctx.tenant, attrs)
+      {:ok, repetida} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert repetida.outcome == :unchanged
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+  end
 end

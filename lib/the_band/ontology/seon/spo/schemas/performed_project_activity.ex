@@ -74,7 +74,9 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
     # atualizada. Ver o moduledoc.
     # `:promoted` é transitório — a linha já existia e recebeu o identificador que a
     # origem sempre deu. Ver a nota em `Commands.record_activity/2`.
-    field :outcome, Ecto.Enum, values: [:created, :unchanged, :promoted], virtual: true
+    field :outcome, Ecto.Enum,
+      values: [:created, :unchanged, :promoted, :completed],
+      virtual: true
 
     timestamps(type: :utc_datetime)
   end
