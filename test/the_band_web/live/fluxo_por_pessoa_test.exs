@@ -98,6 +98,47 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
     i
   end
 
+  # Um item FECHADO em `semanas_atras`, designado à pessoa. É o que constrói história: o
+  # piso da previsão exige 6 períodos e 10 fechadas, e sem ele nenhuma pessoa deste arquivo
+  # chegava a `{:ok, _}` — foi por isso que a célula da previsão passou quebrada.
+  defp item_fechado(ctx, pessoa, semanas_atras) do
+    externo = "FPPF_#{System.unique_integer([:positive, :monotonic])}"
+    agora = DateTime.utc_now(:second)
+    fechado_em = DateTime.add(agora, -semanas_atras * 7, :day)
+
+    {:ok, i} =
+      TheBand.Repo.insert(%TheBand.WorkItems.Schemas.CollectedIssue{
+        tenant_id: ctx.tenant.id,
+        observed_repository_id: ctx.repo_id,
+        external_id: externo,
+        number: :erlang.phash2(externo, 1_000_000),
+        source_system: "github",
+        source_instance: "https://github.com",
+        title: "item #{externo}",
+        state: "CLOSED",
+        external_created_at: DateTime.add(fechado_em, -7, :day),
+        external_closed_at: fechado_em,
+        collected_at: agora
+      })
+
+    TheBand.Repo.insert!(%TheBand.WorkItems.Schemas.IssueAssignee{
+      tenant_id: ctx.tenant.id,
+      collected_issue_id: i.id,
+      login: pessoa.login,
+      person_id: pessoa.id
+    })
+
+    i
+  end
+
+  # Uma pessoa COM previsão: história acima do piso e trabalho aberto agora.
+  defp com_previsao(ctx, login) do
+    pessoa = membro(ctx, login)
+    for semana <- 1..8, _ <- 1..2, do: item_fechado(ctx, pessoa, semana)
+    item_aberto(ctx, pessoa)
+    pessoa
+  end
+
   defp abrir(ctx, extra \\ []), do: texto(abrir_html(ctx, extra))
 
   # O HTML cru, para o que só existe em ATRIBUTO — o endereço da aba está no `href`, e o
@@ -495,6 +536,59 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
       :consulta -> drenar(n + 1)
     after
       0 -> n
+    end
+  end
+
+  describe "a previsão na tabela — as duas hipóteses (§3.5)" do
+    test "a aba ABRE quando alguém tem previsão", ctx do
+      com_previsao(ctx, "ana")
+
+      html = abrir(ctx)
+
+      assert html =~ "Delivery forecast produced for", """
+      A aba quebrou com `KeyError` em vez de renderizar.
+
+      Foi o defeito de 2026-09-16: a célula lia `@p.p50`, que é a forma de UMA hipótese, e
+      o contrato passou a devolver duas — `congelado` e `vivo`. Nenhum teste deste arquivo
+      produzia uma pessoa ACIMA do piso, e por isso o caminho `{:ok, _}` nunca rodava.
+      """
+
+      assert html =~ "1 of 1", "a contagem não viu a pessoa com previsão"
+    end
+
+    test "mostra as DUAS hipóteses, e nunca escolhe uma", ctx do
+      com_previsao(ctx, "ana")
+
+      html = abrir(ctx)
+
+      assert html =~ "frozen", "falta a hipótese de escopo congelado"
+      assert html =~ "live", "falta a hipótese de escopo vivo"
+
+      assert html =~ ~r/frozen\s+p50 \d+ wk/, """
+      A hipótese de escopo congelado não trouxe percentil.
+      """
+
+      assert html =~ "frozen = if nothing new opens" or
+               html =~ "if nothing new opened",
+             """
+             As duas hipóteses aparecem sem dizer o que cada uma supõe. Um número sem a
+             suposição que o produz não é previsão, é palpite com casas decimais.
+             """
+    end
+
+    test "p85 ausente é escrito, e não omitido", ctx do
+      pessoa = membro(ctx, "bruno")
+      # Fechamentos raros e muitos abertos: metade das rodadas zera, 85% não.
+      for semana <- 1..6, do: item_fechado(ctx, pessoa, semana)
+      for _ <- 1..4, do: item_fechado(ctx, pessoa, 7)
+      for _ <- 1..12, do: item_aberto(ctx, pessoa)
+
+      html = abrir(ctx)
+
+      assert html =~ "no p85" or html =~ "no p50 inside the horizon", """
+      A simulação em que 85% das rodadas não zeram dentro do horizonte é um RESULTADO, e
+      some da tela se ninguém o escrever.
+      """
     end
   end
 end

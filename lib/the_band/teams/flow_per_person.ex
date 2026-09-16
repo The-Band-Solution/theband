@@ -173,8 +173,12 @@ defmodule TheBand.Teams.FlowPerPerson do
 
   A coluna do protótipo é **coluna de estado, não de valor** (item 11 da régua):
 
-    * `{:ok, previsao}` — tem previsão; a tela mostra o p50, diz quando não há p85, e mostra
-      a proporção das rodadas que nunca zeraram;
+    * `{:ok, previsao}` — tem previsão. **São DUAS hipóteses**, `congelado` e `vivo`, cada
+      uma com os seus percentis: a primeira supõe que nada novo abre, a segunda que o
+      trabalho continua chegando como chegou. A tela mostra as duas lado a lado, diz quando
+      não há p85, e mostra a proporção das rodadas que nunca zeraram. Escolher uma delas em
+      silêncio daria um número sem a suposição que o produz, e a média entre elas não
+      significa nada — são mundos diferentes, não amostras do mesmo;
     * `{:nada_a_prever, _}` — a pessoa **não tem item aberto**. O piso **não** é a razão
       aqui, e dizer *"below the floor"* nesse caso culparia o método por uma ausência de
       trabalho;
