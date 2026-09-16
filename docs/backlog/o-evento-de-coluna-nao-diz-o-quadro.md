@@ -37,6 +37,57 @@ quadro: os dois têm coluna chamada `Done`, e o evento não distingue.
 A medida por mês fica com a mesma ressalva. Ela hoje diz: abril 11, maio 82, junho 39,
 julho 240, agosto 5.
 
+## Uma issue pode ter mais de uma conclusão, e isso é legítimo
+
+Levantado pela pessoa mantenedora em 2026-09-16, e medido em seguida. Uma issue em dois
+quadros pode chegar a `Done` nos dois, em datas diferentes — são duas conclusões
+verdadeiras, e não uma duplicata. Hoje elas se somam numa contagem só.
+
+Das 3 091 issues com chegada a `Done`, 191 têm mais de uma:
+
+| chegadas a Done | issues | dias entre a primeira e a última (média / máximo) |
+|---|---|---|
+| 1 | 2 900 | — |
+| 2 | 179 | 48,6 / 342 |
+| 3 | 12 | 31,6 / 155 |
+
+**A causa dominante não é o segundo quadro — é o retorno.** Cruzando com o número de
+quadros de cada issue:
+
+| quadros | chegadas a Done | issues |
+|---|---|---|
+| 1 | 1 | 1 793 |
+| 1 | 2 | 144 |
+| 1 | 3 | 7 |
+| 2 | 1 | **286** |
+| 2 | 2 | 13 |
+| 2 | 3 | 2 |
+
+151 issues têm várias conclusões num quadro só: o cartão foi a `Done`, voltou, e foi de
+novo. Isso é pergunta do critério de fim (066), não deste item.
+
+**As 286 são o problema deste item.** Estão em dois quadros e têm **uma** chegada a
+`Done`. Essa chegada é de um dos dois, e a plataforma credita aos dois.
+
+## O erro que isso já produz, medido
+
+No quadro 43, cartões que **não** estão em `Done` e mesmo assim carregam um evento de
+chegada a `Done`:
+
+| coluna no quadro 43 | cartões | com evento de Done |
+|---|---|---|
+| In Validation | 37 | 16 |
+| Homologation | 279 | 13 |
+| In Progress | 25 | 7 |
+| To Do | 32 | 5 |
+| Backlog | 73 | 3 |
+| Paused | 15 | 1 |
+| Desaprovado | 8 | 1 |
+
+São 46 cartões. Cada um admite duas leituras que os dados não separam: o cartão foi a
+`Done` neste quadro e voltou, ou a conclusão é do outro quadro e nunca aconteceu aqui. A
+primeira é histórico; a segunda é entrega creditada que não existiu.
+
 ## A origem dá o campo
 
 Introspecção feita em 2026-09-16 contra a API do GitHub:
