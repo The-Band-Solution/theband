@@ -1,0 +1,118 @@
+derivation_rule:
+  id: github.project_item_status
+  version: 1
+  provider: github
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "O que cada valor de Status do quadro significa — declarado pela organização"
+
+  description:
+    pt-BR: >
+      O `issue_task.yaml` já dizia que a tarefa EXECUTADA vem de `github.project_item_status`
+      — e esta regra não existia. É ela.
+
+      A plataforma não escolhe o que "Done" significa. Cada organização declara, por quadro e
+      por opção do campo de seleção única, qual fase de atividade aquele valor exprime. Sem
+      declaração, nada muda: concluído continua sendo a issue fechada, e a tela diz "não
+      declarado".
+
+      Medido no quadro 43 da leds-conectafapes em 2026-09-14: 459 cartões em `Done`, dos quais
+      294 com a issue ABERTA na origem; os dois workflows que ligariam quadro e issue estão
+      desligados. Para essa organização, toda medida de entrega da plataforma subconta — e a
+      correção não é escolher por ela, é registrar a escolha dela.
+
+  inputs:
+    - project_field_definitions.options
+    - item_field_values.raw_value.optionId
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Os destinos admitidos. Um valor de Status só pode apontar para um destes — e
+  # nenhum deles é aceitação, pela razão escrita em `does_not_materialize`.
+  # ─────────────────────────────────────────────────────────────────────────────
+  targets:
+    - id: sro.intended_scrum_development_task
+      label: { pt-BR: "planejada, não começou", en: "planned, not started" }
+      means:
+        pt-BR: "Há intenção de fazer; nada foi executado."
+
+    - id: spo.performed_project_activity.em_andamento
+      concept: spo.performed_project_activity
+      label: { pt-BR: "em andamento", en: "in progress" }
+      means:
+        pt-BR: >
+          A atividade corre: `start_date` presente e `end_date` NULO. "Em andamento" não é fase
+          na rede — fase é resultado, e em andamento não é resultado. É a ocorrência sem fim.
+
+    - id: spo.performed_project_activity.concluida
+      concept: spo.performed_project_activity
+      label: { pt-BR: "concluída", en: "completed" }
+      means:
+        pt-BR: >
+          A atividade terminou: `end_date` presente. Quando a issue é tarefa, também
+          `sro.performed_scrum_development_task`. Diz que o trabalho terminou — NÃO que o
+          entregável foi aceito.
+
+    - id: nao_diz_fase
+      label: { pt-BR: "esta coluna não diz fase", en: "this column says no phase" }
+      means:
+        pt-BR: >
+          Recusa registrada. A coluna diz outra coisa — área, pausa, refinamento — e registrar
+          a recusa a tira da lista de propostas, como a recusa "não é tipo" faz com os prefixos.
+
+  # Sem declaração. Não é um destino: é a ausência, e ela é escrita na tela.
+  default: sem_decisao
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # O vocabulário que gera PROPOSTA. Propor não é decidir: a proposta aparece como
+  # proposta, e nada vale até alguém ativar, com autor e instante.
+  # ─────────────────────────────────────────────────────────────────────────────
+  proposes:
+    match: case_and_accent_insensitive
+    values:
+      spo.performed_project_activity.concluida:
+        [done, concluido, concluida, concluído, concluída, closed, finalizado, finalizada,
+         entregue, complete, completed]
+      spo.performed_project_activity.em_andamento:
+        ["in progress", "in-progress", doing, wip, "work in progress", started,
+         "em andamento", "em progresso", "em desenvolvimento", desenvolvendo, executando]
+      sro.intended_scrum_development_task:
+        [backlog, "to do", todo, "a fazer", "pronto para desenvolvimento", ready]
+    note:
+      pt-BR: >
+        A lista é curta de propósito e erra para o lado de NÃO propor. `Homologation`,
+        `In Validation`, `Refinamento`, `Paused` e `Desaprovado` ficam de fora: cada uma
+        significa coisas diferentes conforme a casa, e propor ali seria escolher.
+
+  does_not_materialize:
+    - concept: sro.accepted_deliverable
+      reason:
+        pt-BR: >
+          Aceitação decorre da conformidade com os critérios de aceitação (`sro.rule03`), e a
+          classificação NUNCA é atribuída sem essa avaliação. O quadro pode dizer que o
+          trabalho terminou; não que o entregável passou. Qual transição É a avaliação é o que
+          a organização declara na feature 067.
+    - concept: sro.not_accepted_deliverable
+      reason:
+        pt-BR: "Mesma razão, do outro lado."
+    - concept: sro.sprint_deliverable
+      reason:
+        pt-BR: "É composto SÓ de entregáveis aceitos, e aceitação não se deriva daqui."
+
+  limitations:
+    - pt-BR: >
+        O quadro NÃO é conceito da rede: `observed_projects` é tabela de coleta. A declaração
+        aponta para o quadro observado, como o critério de início já faz, e isto fica dito em
+        vez de modelado por conveniência.
+    - pt-BR: >
+        A identidade da opção é o `optionId` da origem, não o nome: renomear no quadro não
+        pode desfazer uma decisão. O nome no momento da declaração fica guardado para a tela
+        mostrar quando divergirem.
+    - pt-BR: >
+        Esta regra classifica o valor ATUAL. O instante em que ele passou a valer, e os
+        períodos de passagem por cada estágio, são a fatia seguinte (FR-018, FR-024).
+
+  provenance:
+    source_type: maintainer_decision
+    reference: "spec 066, decisões de 2026-09-14; medição do quadro 43 em 2026-09-14"
