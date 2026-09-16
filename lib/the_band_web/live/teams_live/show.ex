@@ -3231,6 +3231,13 @@ defmodule TheBandWeb.TeamsLive.Show do
             diferentes. --%>
       <div :if={@barras != []} class="mt-3 flex items-end gap-2 overflow-x-auto pb-1">
         <div :for={b <- @barras} class="flex min-w-12 flex-col items-center gap-1">
+          <%!-- OS DOIS VALORES, escritos. Separados pelo ponto e nunca somados: prometido e
+                entregue são contagens completas em si, e o vão entre as barras não é saldo. --%>
+          <div class="flex items-baseline gap-1 font-mono text-[10px] tabular-nums leading-none">
+            <span class="text-primary">{b.criadas}</span>
+            <span class="opacity-30">·</span>
+            <span class="text-warning">{b.fechadas}</span>
+          </div>
           <div class="flex h-28 items-end gap-0.5">
             <div
               class="w-3 rounded-t bg-primary"
@@ -3618,6 +3625,22 @@ defmodule TheBandWeb.TeamsLive.Show do
                 class={h.classe}
                 opacity="0.55"
               />
+
+              <%!-- O VALOR DE CADA BARRA, em PROPORÇÃO das rodadas e não em contagem bruta:
+                    "184 de 1000" não é o que alguém lê num histograma de previsão, e a
+                    pergunta é com que frequência aquela semana saiu. --%>
+              <text
+                :for={b <- h.barras}
+                x={b.x + h.largura_da_barra / 2}
+                y={b.y - 3}
+                font-size="8"
+                fill="currentColor"
+                text-anchor="middle"
+                class={h.classe}
+                opacity="0.85"
+              >
+                {b.percentual}%
+              </text>
 
               <%!-- A COLUNA DO QUE NÃO CONCLUIU, hachurada e separada por um vão. Não é a
                     semana seguinte à última: é "nunca, dentro deste horizonte", e desenhá-la
@@ -4088,7 +4111,7 @@ defmodule TheBandWeb.TeamsLive.Show do
       {p.vivo, "if work keeps arriving as it has · live scope", "text-warning", "vivo"}
     ]
     |> Enum.map(fn {hipotese, rotulo, classe, chave} ->
-      barras = barras_do_histograma(hipotese, horizonte, largura, x_de)
+      barras = barras_do_histograma(hipotese, horizonte, largura, x_de, p.rodadas)
 
       %{
         chave: chave,
@@ -4108,11 +4131,11 @@ defmodule TheBandWeb.TeamsLive.Show do
   # `[]` quando nenhuma rodada concluiu, e a tela escreve isso em palavras: um eixo com doze
   # barras de altura zero afirmaria que a simulação rodou e não achou nada, quando o que ela
   # achou foi "nunca" em todas as rodadas.
-  defp barras_do_histograma(%{distribuicao: distribuicao}, _horizonte, _largura, _x_de)
+  defp barras_do_histograma(%{distribuicao: distribuicao}, _horizonte, _largura, _x_de, _rodadas)
        when distribuicao == %{},
        do: []
 
-  defp barras_do_histograma(%{distribuicao: distribuicao}, horizonte, largura, x_de) do
+  defp barras_do_histograma(%{distribuicao: distribuicao}, horizonte, largura, x_de, rodadas) do
     pico = max(Enum.max(Map.values(distribuicao)), 1)
 
     for semana <- 1..horizonte do
@@ -4122,6 +4145,9 @@ defmodule TheBandWeb.TeamsLive.Show do
       %{
         semana: semana,
         quantas: quantas,
+        # A altura é contra o PICO, e o rótulo é contra as RODADAS. São perguntas
+        # diferentes: a forma compara semanas entre si, o número diz a frequência.
+        percentual: if(rodadas > 0, do: round(quantas / rodadas * 100), else: 0),
         x: x_de.(semana) + largura * 0.1,
         y: Float.round(70 - altura, 2),
         altura: altura
