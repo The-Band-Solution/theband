@@ -24,6 +24,23 @@ defmodule TheBand.Projects.Queries do
     )
   end
 
+  @doc """
+  Mapa `source_external_id` → id do quadro observado.
+
+  **Uma vez, e não por evento.** O evento de mudança de coluna diz de que quadro veio pelo
+  identificador da origem, e resolver isso por consulta a cada evento seriam dezenas de
+  milhares de idas ao banco. Mesma forma de `EO.person_ids_by_login/1`.
+  """
+  @spec board_ids_by_external_id(Tenant.t()) :: %{String.t() => Ecto.UUID.t()}
+  def board_ids_by_external_id(%Tenant{id: tenant_id}) do
+    Repo.all(
+      from p in ObservedProject,
+        where: p.tenant_id == ^tenant_id and not is_nil(p.source_external_id),
+        select: {p.source_external_id, p.id}
+    )
+    |> Map.new()
+  end
+
   @doc "Um quadro pelo id. De outro tenant devolve `:not_found`, nunca 'sem permissão'."
   @spec get_project(Tenant.t(), Ecto.UUID.t()) ::
           {:ok, ObservedProject.t()} | {:error, :not_found}

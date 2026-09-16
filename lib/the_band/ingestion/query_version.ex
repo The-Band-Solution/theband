@@ -89,7 +89,28 @@ defmodule TheBand.Ingestion.QueryVersion do
     # **depois** de o corte deixar passar, e o corte antigo não deixava. Com ele,
     # `corte_vale?/2` devolve `false` uma vez por repositório, todos são percorridos, e o
     # estado congelado é relido.
-    "issues" => 3
+    #
+    # 4: `id` entrou em cada fragmento de evento de timeline em 2026-09-15. A consulta não
+    # pedia o identificador do evento, porque o código afirmava que a origem não dava um —
+    # afirmação medida e falsa. Sem ele, o critério de identidade caía em tipo, ator e
+    # instante, e dois eventos da mesma issue no mesmo segundo viravam uma linha só:
+    # medido na issue #2607, quatro rótulos em dois segundos, dois descartados.
+    #
+    # É campo novo, então é reabrir o corte: as 41 863 atividades já gravadas não têm o
+    # identificador, e só o reencontro com a origem o traz. A gravação promove a linha
+    # existente em vez de duplicá-la — ver `SPO.Commands.record_activity/2`.
+    #
+    # 5: `project { id number title }` entrou no evento de mudança de coluna, e `id` na
+    # `AssignedEvent`, que tinha escapado da passagem anterior — em 2026-09-16.
+    #
+    # O evento dizia o nome da coluna e não o quadro. Doze quadros têm coluna chamada
+    # `Done`, e 286 issues estão em dois quadros com uma só chegada a `Done`: a conclusão
+    # era creditada aos dois. Medido no quadro 43 — 46 cartões que NÃO estão em `Done`
+    # carregavam evento de chegada a `Done`.
+    #
+    # `AssignedEvent` é a terceira maior categoria, com 4 939 ocorrências, e sem `id`
+    # continuaria colapsando duas designações feitas no mesmo segundo.
+    "issues" => 5
   }
 
   # A impressão digital de cada arquivo de consulta. Muda o arquivo, muda o número, e o
@@ -99,7 +120,7 @@ defmodule TheBand.Ingestion.QueryVersion do
     "change_requests" => "1dd8e96a07a3d4ad",
     "issue_comments" => "c3cea59315496c95",
     "issue_types" => "02dd1d6214a74ba7",
-    "issues" => "fdb882a84adb80b4",
+    "issues" => "6da1112d494b1fde",
     "organization" => "47dedb4ec75486a8",
     "organization_members" => "d659d90c384e064b",
     "project_boards" => "f274aa21a5d98649",
