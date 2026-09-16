@@ -94,14 +94,18 @@ defmodule TheBandWeb.WorkCharts do
           >
             <title>{d.count} em {d.month}</title>
           </rect>
+          <%!-- O valor em TODA barra, inclusive no zero. Marcar só a maior e a última
+                obrigava a ler altura contra o eixo para saber qualquer outra, e o zero
+                escrito é o mesmo princípio do período vazio que não se omite. --%>
           <text
-            :if={(i == @i_max or i == @ultimo) and d.count > 0}
             x={26 + i * @bw + (@bw - 4) / 2}
-            y={y(d.count, @max) - 4}
+            y={if d.count > 0, do: y(d.count, @max) - 4, else: 133}
             text-anchor="middle"
-            class="fill-base-content/70 tabular"
+            class={
+              if i == @i_max, do: "fill-base-content tabular", else: "fill-base-content/70 tabular"
+            }
             font-size="10"
-            font-weight="600"
+            font-weight={if i == @i_max, do: "700", else: "600"}
           >
             {d.count}
           </text>
@@ -239,6 +243,28 @@ defmodule TheBandWeb.WorkCharts do
             >
               <title>{d.fechadas} closed in {d.periodo}</title>
             </rect>
+            <%!-- O valor de cada marco, sempre. São duas contagens completas, e ler
+                  altura contra o eixo para compará-las é trabalho que o número poupa. --%>
+            <text
+              x={26 + i * @grupo + 2 + @bw / 2}
+              y={if d.criadas > 0, do: y(d.criadas, @max) - 4, else: 133}
+              text-anchor="middle"
+              class="fill-base-content/70 tabular"
+              font-size="9"
+              font-weight="600"
+            >
+              {d.criadas}
+            </text>
+            <text
+              x={26 + i * @grupo + 4 + @bw * 1.5}
+              y={if d.fechadas > 0, do: y(d.fechadas, @max) - 4, else: 133}
+              text-anchor="middle"
+              class="fill-base-content/70 tabular"
+              font-size="9"
+              font-weight="600"
+            >
+              {d.fechadas}
+            </text>
             <%!-- Rótulo do eixo a cada `passo`, e sempre no último: com 60 semanas, um
                   rótulo por barra vira uma faixa preta ilegível. --%>
             <text
@@ -365,22 +391,42 @@ defmodule TheBandWeb.WorkCharts do
           <polyline points={@escopo} fill="none" class="stroke-primary" stroke-width="2" />
           <polyline points={@feito} fill="none" class="stroke-secondary" stroke-width="2" />
 
-          <%!-- Ponto no fim de cada linha: dá âncora ao olho e alvo ao toque. --%>
+          <%!-- Ponto em cada período, maior no fim: dá âncora ao olho e alvo ao toque, e
+                é onde o valor se apoia. O de escopo vai ACIMA da linha e o de feito
+                ABAIXO — quando as duas se encontram, os números não se sobrepõem. --%>
           <g :for={{d, i} <- @serie}>
             <circle
-              :if={i == @ultimo}
               cx={26 + i * @passo}
               cy={y(d.escopo, @max)}
-              r="3.5"
+              r={if i == @ultimo, do: "3.5", else: "2"}
               class="fill-primary"
             />
             <circle
-              :if={i == @ultimo}
               cx={26 + i * @passo}
               cy={y(d.feito, @max)}
-              r="3.5"
+              r={if i == @ultimo, do: "3.5", else: "2"}
               class="fill-secondary"
             />
+            <text
+              x={26 + i * @passo}
+              y={y(d.escopo, @max) - 6}
+              text-anchor="middle"
+              class="fill-base-content/70 tabular"
+              font-size="9"
+              font-weight="600"
+            >
+              {d.escopo}
+            </text>
+            <text
+              x={26 + i * @passo}
+              y={y(d.feito, @max) + 12}
+              text-anchor="middle"
+              class="fill-base-content/70 tabular"
+              font-size="9"
+              font-weight="600"
+            >
+              {d.feito}
+            </text>
             <rect
               x={26 + i * @passo - max(@passo / 2, 4)}
               y="16"
