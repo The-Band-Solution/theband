@@ -1326,7 +1326,15 @@ defmodule TheBandWeb.TeamsLive.Show do
             <th>opened <span class="font-normal opacity-60">in the window</span></th>
             <th>closed <span class="font-normal opacity-60">in the window</span></th>
             <th>periods with a close</th>
-            <th>delivery forecast</th>
+            <%!-- A SUPOSIÇÃO JUNTO DO NÚMERO, e uma vez só. As duas hipóteses aparecem em
+                  cada célula como `frozen` e `live`; repetir a definição linha a linha seria
+                  ruído, e omiti-la deixaria dois números sem o mundo que os produz. --%>
+            <th>
+              delivery forecast
+              <span class="block font-normal text-[10px] leading-tight opacity-60">
+                frozen = if nothing new opens<br />live = if work keeps arriving as it has
+              </span>
+            </th>
             <th></th>
           </tr>
         </thead>
@@ -1484,13 +1492,23 @@ defmodule TheBandWeb.TeamsLive.Show do
   defp sinal(n) when n > 0, do: "+#{n}"
   defp sinal(n), do: "#{n}"
 
+  # AS DUAS HIPÓTESES, LADO A LADO. A previsão tem duas: `congelado` supõe que nada novo
+  # abre, `vivo` supõe que o trabalho continua chegando como chegou. Escolher uma em
+  # silêncio daria à leitora um número sem a suposição que o produz — e a média das duas
+  # não significa nada, porque são mundos diferentes e não amostras do mesmo.
+  #
+  # Até 2026-09-16 esta célula lia `@p.p50`, que é a forma de UMA hipótese. O contrato
+  # passou a devolver duas e esta função não acompanhou: a aba quebrava com `KeyError` em
+  # 4 das 10 equipes — nas outras 6 ninguém tinha previsão, e por isso o defeito passou.
   defp fluxo_previsao_celula(%{previsao: {:ok, p}} = assigns) do
     assigns = assign(assigns, :p, p)
 
     ~H"""
-    <p class="font-mono text-xs tabular-nums">p50 {@p.p50} wk</p>
-    <p class="text-[11px] opacity-70">
-      {if @p[:p85], do: "p85 #{@p.p85} wk", else: "no p85"}
+    <p class="font-mono text-[11px] tabular-nums">
+      <span class="opacity-60">frozen</span> {percentis(@p.congelado)}
+    </p>
+    <p class="font-mono text-[11px] tabular-nums">
+      <span class="opacity-60">live</span> {percentis(@p.vivo)}
     </p>
     """
   end
@@ -1747,12 +1765,21 @@ defmodule TheBandWeb.TeamsLive.Show do
       <p class="font-mono text-[10px] opacity-60">
         derived — Monte Carlo over this person's own history
       </p>
-      <p class="mt-2 font-mono text-sm tabular-nums">p50 {@p.p50} wk</p>
-      <p class="font-mono text-[11px] opacity-70">
-        {if @p[:p85], do: "p85 #{@p.p85} wk", else: "no p85"}
+      <%!-- As duas hipóteses, e NUNCA uma só. `frozen` supõe que nada novo abre; `live`,
+            que o trabalho continua chegando como chegou. A distância entre elas é a
+            informação: quando são iguais, o que chega não muda o fim. --%>
+      <dl class="mt-2 grid grid-cols-[max-content_1fr] gap-x-3 font-mono text-xs tabular-nums">
+        <dt class="opacity-60">frozen</dt>
+        <dd>{percentis(@p.congelado)}</dd>
+        <dt class="opacity-60">live</dt>
+        <dd>{percentis(@p.vivo)}</dd>
+      </dl>
+      <p class="mt-1 font-mono text-[10px] opacity-60">
+        frozen = if nothing new opens · live = if work keeps arriving as it has
       </p>
       <p class="mt-2 font-serif text-[11px] opacity-70">
-        A range, and never a promised date.
+        A range, and never a promised date. The two are different worlds, not two samples of
+        one — they do not average.
       </p>
     </div>
     """
@@ -4183,6 +4210,13 @@ defmodule TheBandWeb.TeamsLive.Show do
   end
 
   # Traço, e não um número grande: nulo diz desconhecido.  # Traço, e não um número grande: nulo diz desconhecido.
+  # Os percentis de UMA hipótese, numa linha. `p85` ausente é escrito, e não omitido: a
+  # simulação em que 85% das rodadas não zeram dentro do horizonte é um resultado.
+  defp percentis(%{p50: nil}), do: "no p50 inside the horizon"
+
+  defp percentis(%{p50: p50, p85: p85}),
+    do: "p50 #{p50} wk · " <> if(p85, do: "p85 #{p85} wk", else: "no p85")
+
   defp semana_ou_traco(nil), do: "—"
   defp semana_ou_traco(n), do: "week #{n}"
 
