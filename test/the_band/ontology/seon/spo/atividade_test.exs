@@ -212,4 +212,69 @@ defmodule TheBand.Ontology.SEON.SPO.AtividadeTest do
       assert Repo.aggregate(Activity, :count) == 2
     end
   end
+
+  describe "a promoção — a linha antiga recebe o identificador da origem" do
+    test "a ocorrência gravada sem identificador não duplica quando a origem o traz", ctx do
+      sem = evento(ctx.issue_id, %{source_external_id: nil})
+      {:ok, antes} = SPO.record_activity(ctx.tenant, sem)
+      assert antes.outcome == :created
+      assert is_nil(antes.source_external_id)
+
+      com = evento(ctx.issue_id, %{source_external_id: "CE_evento_1"})
+      {:ok, depois} = SPO.record_activity(ctx.tenant, com)
+
+      assert depois.outcome == :promoted, """
+      A mesma ocorrência, relida da origem com o identificador que ela sempre deu,
+      entrou como linha nova em vez de promover a que já existia.
+
+      É o que duplicaria as 41 863 atividades gravadas antes de 2026-09-15.
+      """
+
+      assert depois.id == antes.id, "a promoção trocou a linha em vez de completá-la"
+      assert depois.source_external_id == "CE_evento_1"
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+
+    test "dois eventos colados no mesmo segundo viram duas linhas", ctx do
+      colado = evento(ctx.issue_id, %{source_external_id: nil})
+      {:ok, _} = SPO.record_activity(ctx.tenant, colado)
+
+      {:ok, primeiro} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_a"}))
+
+      {:ok, segundo} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_b"}))
+
+      assert primeiro.outcome == :promoted
+
+      assert segundo.outcome == :created, """
+      O segundo evento não entrou. Mesmo tipo, mesmo ator, mesmo instante, mesma issue —
+      só o identificador da origem os separa, e é por isso que ele entrou na identidade.
+
+      Medido na issue #2607: quatro rótulos em dois segundos, dois descartados.
+      """
+
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "a linha que já tem identificador não é promovida por outra", ctx do
+      {:ok, _} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_a"}))
+
+      {:ok, outra} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_b"}))
+
+      assert outra.outcome == :created, "promoveu uma linha que já carregava identificador"
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "reprocessar com o identificador devolve :unchanged, e não promove de novo", ctx do
+      com = evento(ctx.issue_id, %{source_external_id: "CE_evento_1"})
+      {:ok, _} = SPO.record_activity(ctx.tenant, com)
+      {:ok, repetida} = SPO.record_activity(ctx.tenant, com)
+
+      assert repetida.outcome == :unchanged
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+  end
 end

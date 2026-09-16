@@ -58,7 +58,9 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
 
     # Só dois valores, e a ausência do terceiro é a decisão: uma ocorrência não é
     # atualizada. Ver o moduledoc.
-    field :outcome, Ecto.Enum, values: [:created, :unchanged], virtual: true
+    # `:promoted` é transitório — a linha já existia e recebeu o identificador que a
+    # origem sempre deu. Ver a nota em `Commands.record_activity/2`.
+    field :outcome, Ecto.Enum, values: [:created, :unchanged, :promoted], virtual: true
 
     timestamps(type: :utc_datetime)
   end
@@ -109,6 +111,16 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
   ontologia explica: `end_date` é nulo enquanto a atividade corre e preenchido ao
   terminar, e incluí-lo faria o hash mudar no encerramento, quebrando toda referência
   existente.
+
+  ## Versão 2 — o sujeito entra, em 2026-09-15
+
+  A versão 1 não incluía `subject_type` e `subject_id`, e a consequência foi medida: a issue
+  `#2539` do `conectafapes-project` tem 12 eventos na origem e **7** no banco; o de
+  `2026-08-12 15:12:16` não entrou porque a identidade estava ocupada pela `#2536`, que mudou
+  de coluna no mesmo instante, pelo mesmo ator.
+
+  Mover o cartão de uma issue e o de outra são **dois atos**. Sem o sujeito, o critério
+  afirmava o contrário — e a migração `20260915220000` recalculou toda a base.
   """
   @spec internal_id(map()) :: String.t()
   def internal_id(attrs) do
@@ -119,7 +131,12 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
       attrs[:activity_type],
       attrs[:performer_id],
       attrs[:occurred_at],
-      attrs[:source_external_id]
+      attrs[:source_external_id],
+      # Versão 2 do critério, emenda de 2026-09-15: o SUJEITO individua a ocorrência.
+      # Sem ele, mover o cartão da issue A e o da issue B no mesmo segundo, pelo mesmo
+      # ator, eram a mesma atividade — e a segunda era descartada como duplicata.
+      attrs[:subject_type],
+      attrs[:subject_id]
     ]
     |> Enum.map_join("|", &canonico/1)
     |> then(&:crypto.hash(:sha256, &1))

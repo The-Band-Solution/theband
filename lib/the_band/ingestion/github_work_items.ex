@@ -766,10 +766,20 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         performer_login: login,
         source_system: "github",
         source_instance: ctx.tool.instance_url,
-        # A timeline do GitHub não dá identificador ao evento; o critério de identidade
-        # da ontologia prevê esse componente ausente, e o hash tem representação
-        # canônica para ele.
-        source_external_id: nil,
+        # O identificador que a origem dá ao evento — `LE_…`, `PVTISC_…`.
+        #
+        # **A premissa anterior estava errada, e custou caro.** O comentário que estava aqui
+        # dizia que "a timeline do GitHub não dá identificador ao evento", e por isso este
+        # campo ia sempre nulo. Sem ele, a identidade caía em tipo, ator e instante — e dois
+        # rótulos postos na mesma issue, pelo mesmo ator, no mesmo segundo viravam um só.
+        #
+        # Medido em 2026-09-15 na issue #2607: quatro `LabeledEvent` em dois segundos, com
+        # ids distintos (`…zpiPwA`, `…zpiQhQ`, `…zpiRNg`, `…zpiR8g`), dos quais dois eram
+        # descartados como duplicata.
+        #
+        # É o que a própria ontologia já mandava: *"source_external_id preserva a identidade
+        # da fonte quando ela existe"*. Ela existe.
+        source_external_id: item["id"],
         payload: item
       })
   end
