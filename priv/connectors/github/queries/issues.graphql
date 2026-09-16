@@ -84,25 +84,25 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $timeline_size: Int
             # como a origem o nomeia — nunca traduzido.
             __typename
             ... on AssignedEvent { createdAt actor { login } assignee { ... on User { id login } } }
-            ... on UnassignedEvent { createdAt actor { login } }
-            ... on ClosedEvent { createdAt actor { login } }
-            ... on ReopenedEvent { createdAt actor { login } }
-            ... on LabeledEvent { createdAt actor { login } label { name } }
-            ... on UnlabeledEvent { createdAt actor { login } label { name } }
+            ... on UnassignedEvent { id createdAt actor { login } }
+            ... on ClosedEvent { id createdAt actor { login } }
+            ... on ReopenedEvent { id createdAt actor { login } }
+            ... on LabeledEvent { id createdAt actor { login } label { name } }
+            ... on UnlabeledEvent { id createdAt actor { login } label { name } }
             # `previousStatus` vem VAZIO na primeira transição, e não nulo — medido em
             # 2026-08-14. Quem tratar só o nulo vai ler `""` como um estado chamado
             # vazio.
-            ... on ProjectV2ItemStatusChangedEvent {
+            ... on ProjectV2ItemStatusChangedEvent { id
               createdAt
               actor { login }
               previousStatus
               status
             }
-            ... on AddedToProjectV2Event { createdAt actor { login } }
-            ... on CrossReferencedEvent { createdAt actor { login } }
-            ... on SubIssueAddedEvent { createdAt actor { login } }
-            ... on ParentIssueAddedEvent { createdAt actor { login } }
-            ... on IssueTypeAddedEvent { createdAt actor { login } }
+            ... on AddedToProjectV2Event { id createdAt actor { login } }
+            ... on CrossReferencedEvent { id createdAt actor { login } }
+            ... on SubIssueAddedEvent { id createdAt actor { login } }
+            ... on ParentIssueAddedEvent { id createdAt actor { login } }
+            ... on IssueTypeAddedEvent { id createdAt actor { login } }
           }
         }
       }

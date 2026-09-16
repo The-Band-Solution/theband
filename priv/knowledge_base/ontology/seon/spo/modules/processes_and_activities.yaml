@@ -120,6 +120,7 @@ concepts:
     classification: { ufo_category: action, ontouml_stereotype: kind }
     identity_criterion:
       form: composite_hash
+      version: 2
       components:
         - tenant_id
         - organization_id
@@ -128,9 +129,13 @@ concepts:
         - performer_id
         - occurred_at
         - source_external_id
+        - subject_type
+        - subject_id
       nullable_components:
         - performer_id
         - source_external_id
+        - subject_type
+        - subject_id
       inherited_by_subtypes: true
       note: >
         Somente componentes identificadores. start_date e end_date ficam de fora
@@ -145,6 +150,43 @@ concepts:
 
         source_external_id preserva a identidade da fonte quando ela existe, o
         que evita que duas coletas do mesmo commit gerem ocorrências distintas.
+
+        EMENDA DE 2026-09-15 — versão 2: o SUJEITO entra na identidade.
+
+        A versão 1 não o incluía, e a consequência foi medida: duas issues que
+        mudam de coluna no mesmo segundo, pelo mesmo ator, compartilhavam uma
+        identidade só, e a segunda ocorrência era descartada como duplicata.
+        Medido no repositório conectafapes-project: a issue #2539 tem 12 eventos
+        na origem e 7 no banco; o evento de 2026-08-12 15:12:16 não entrou porque
+        a identidade estava ocupada pela issue #2536, que mudou de coluna no
+        mesmo instante, pelo mesmo ator.
+
+        O argumento de origem da versão 1 era que source_external_id preservaria
+        a identidade da fonte, e ele está certo: onde o identificador da origem
+        existe, ele basta. O que falhava era a coleta, que o descartava.
+
+        RETIFICAÇÃO, no mesmo dia: esta emenda foi escrita afirmando que a
+        timeline do GitHub "não identifica" seus eventos, repetindo um comentário
+        do código da coleta. A afirmação foi medida e é falsa. Cada item de
+        timeline traz id próprio — na issue #2607, quatro rótulos postos em dois
+        segundos vieram com ids distintos, dos quais dois eram descartados. A
+        coleta não pedia o campo, gravava source_external_id nulo, e o hash caía
+        em tipo, ator e instante, que não individuam a ocorrência.
+
+        As duas correções ficam, e por motivos diferentes. source_external_id
+        passou a ser pedido e gravado: individua eventos da mesma issue, no mesmo
+        segundo, que só o id distingue. O sujeito entra na identidade porque a
+        ocorrência é de uma atividade SOBRE alguma coisa, e isso vale mesmo onde
+        a origem não dá identificador algum — o que o corpo desta emenda sustenta
+        sozinho.
+
+        A ocorrência é de uma atividade SOBRE alguma coisa: mover o cartão da
+        issue A e mover o da issue B são dois atos, não um. Sem o sujeito, o
+        critério afirmava o contrário.
+
+        Os dois componentes são anuláveis: atividades que não têm sujeito
+        registrado continuam válidas, e a ausência tem a mesma representação
+        canônica dos demais.
     attributes:
       - { name: occurred_at, type: datetime, required: true }
       - { name: start_date, type: datetime, required: false }
