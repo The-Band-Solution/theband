@@ -57,6 +57,7 @@ defmodule TheBand.Ingestion.GithubWorkItems do
   alias TheBand.Ontology.SEON.CMPO
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Projects
   alias TheBand.RawData
   alias TheBand.SemanticIntegration.Mapper
   alias TheBand.WorkItems
@@ -120,6 +121,11 @@ defmodule TheBand.Ingestion.GithubWorkItems do
     # O mapa login → pessoa vem **uma vez**, e não por issue: 4455 issues resolvendo
     # autor e designados por consulta seriam 4455 idas ao banco só para isso.
     ctx = Map.put(ctx, :pessoas, EO.person_ids_by_login(ctx.tenant))
+
+    # E o mapa identificador → quadro, pelo mesmo motivo: o evento de mudança de coluna diz
+    # de que quadro veio, e resolver por consulta a cada evento seriam dezenas de milhares
+    # de idas ao banco.
+    ctx = Map.put(ctx, :quadros, Projects.board_ids_by_external_id(ctx.tenant))
 
     with {:ok, organization} <- organizacao(ctx),
          {:ok, repositorios} <- coletar_repositorios(ctx, organization) do
@@ -780,6 +786,19 @@ defmodule TheBand.Ingestion.GithubWorkItems do
         # É o que a própria ontologia já mandava: *"source_external_id preserva a identidade
         # da fonte quando ela existe"*. Ela existe.
         source_external_id: item["id"],
+        # O QUADRO em que o ato aconteceu, e a COLUNA de destino — ambos só existem no
+        # evento de mudança de coluna, e ficam nulos nos outros tipos.
+        #
+        # Sem o quadro, a conclusão era creditada a quem não a teve: doze quadros têm
+        # coluna chamada `Done`, e 286 issues estão em dois quadros com uma só chegada a
+        # `Done`. Medido em 2026-09-16 no quadro 43 — 46 cartões que NÃO estão em `Done`
+        # carregavam evento de chegada a `Done`.
+        #
+        # `board_id` nulo com `board_external_id` presente é estado legítimo: o quadro
+        # existe na origem e ainda não foi coletado como entidade.
+        board_external_id: get_in(item, ["project", "id"]),
+        board_id: ctx.quadros[get_in(item, ["project", "id"])],
+        status_name: item["status"],
         payload: item
       })
   end

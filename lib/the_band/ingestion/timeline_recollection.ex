@@ -37,6 +37,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
 
   alias TheBand.Integrations.GitHub.Client
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Projects
   alias TheBand.Repo
   alias TheBand.Sources
   alias TheBand.Tenants.Tenant
@@ -91,13 +92,18 @@ defmodule TheBand.Ingestion.TimelineRecollection do
       acesso = {instance_url, token}
       desde = Keyword.get(opcoes, :desde, 0)
       numeros = numeros_de_issue(tenant, observed_repository_id, desde)
-      pessoas = pessoas_por_login(tenant)
+      # As pessoas E os quadros resolvidos ANTES de gravar: os dois entram na ocorrência, e
+      # resolver por evento seriam dezenas de milhares de idas ao banco.
+      resolvidos = %{
+        pessoas: pessoas_por_login(tenant),
+        quadros: Projects.board_ids_by_external_id(tenant)
+      }
 
       estado =
         numeros
         |> Enum.chunk_every(@lote)
         |> Enum.reduce_while(estado_inicial(repo), fn bloco, acc ->
-          processar_bloco(tenant, acesso, repo, observed_repository_id, bloco, pessoas, acc)
+          processar_bloco(tenant, acesso, repo, observed_repository_id, bloco, resolvidos, acc)
         end)
 
       {:ok, conferir(tenant, acesso, repo, numeros, estado)}
@@ -186,11 +192,11 @@ defmodule TheBand.Ingestion.TimelineRecollection do
     }
   end
 
-  defp processar_bloco(tenant, acesso, repo, observado_id, bloco, pessoas, acc) do
+  defp processar_bloco(tenant, acesso, repo, observado_id, bloco, resolvidos, acc) do
     case buscar_timelines(acesso, repo, bloco) do
       {:ok, issues, custo} ->
         acc = %{acc | custo: acc.custo + custo}
-        {:cont, Enum.reduce(issues, acc, &gravar_issue(tenant, observado_id, &1, pessoas, &2))}
+        {:cont, Enum.reduce(issues, acc, &gravar_issue(tenant, observado_id, &1, resolvidos, &2))}
 
       {:error, {:rate_limited, _}} ->
         Logger.warning("recoleta interrompida por cota; retomar de ##{hd(bloco)}")
@@ -208,11 +214,11 @@ defmodule TheBand.Ingestion.TimelineRecollection do
           "lote recusado (#{inspect(motivo)}); refazendo uma a uma a partir de ##{hd(bloco)}"
         )
 
-        {:cont, uma_a_uma(tenant, acesso, repo, observado_id, bloco, pessoas, acc)}
+        {:cont, uma_a_uma(tenant, acesso, repo, observado_id, bloco, resolvidos, acc)}
     end
   end
 
-  defp uma_a_uma(tenant, acesso, repo, observado_id, bloco, pessoas, acc) do
+  defp uma_a_uma(tenant, acesso, repo, observado_id, bloco, resolvidos, acc) do
     Enum.reduce(bloco, acc, fn numero, acc ->
       case buscar_timelines(acesso, repo, [numero]) do
         {:ok, [], custo} ->
@@ -220,7 +226,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
 
         {:ok, issues, custo} ->
           acc = %{acc | custo: acc.custo + custo}
-          Enum.reduce(issues, acc, &gravar_issue(tenant, observado_id, &1, pessoas, &2))
+          Enum.reduce(issues, acc, &gravar_issue(tenant, observado_id, &1, resolvidos, &2))
 
         {:error, _} ->
           %{acc | nao_encontradas: [numero | acc.nao_encontradas]}
@@ -228,14 +234,14 @@ defmodule TheBand.Ingestion.TimelineRecollection do
     end)
   end
 
-  defp gravar_issue(tenant, observado_id, {numero, itens}, pessoas, acc) do
+  defp gravar_issue(tenant, observado_id, {numero, itens}, resolvidos, acc) do
     case issue_por_numero(tenant, observado_id, numero) do
       nil ->
         %{acc | nao_encontradas: [numero | acc.nao_encontradas]}
 
       issue ->
         antes = acc.eventos_inseridos
-        acc = Enum.reduce(itens, acc, &gravar_item(tenant, issue, &1, pessoas, &2))
+        acc = Enum.reduce(itens, acc, &gravar_item(tenant, issue, &1, resolvidos, &2))
         novos = acc.eventos_inseridos - antes
 
         %{
@@ -246,7 +252,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
     end
   end
 
-  defp gravar_item(tenant, issue, item, pessoas, acc) do
+  defp gravar_item(tenant, issue, item, %{pessoas: pessoas, quadros: quadros}, acc) do
     login = get_in(item, ["actor", "login"])
 
     attrs = %{
@@ -263,6 +269,10 @@ defmodule TheBand.Ingestion.TimelineRecollection do
       source_instance: "https://github.com",
       # O id que a origem dá ao evento — ver a nota em `github_work_items.ex`.
       source_external_id: item["id"],
+      # O quadro e a coluna — ver a nota em `github_work_items.ex`.
+      board_external_id: get_in(item, ["project", "id"]),
+      board_id: quadros[get_in(item, ["project", "id"])],
+      status_name: item["status"],
       payload: item
     }
 
@@ -341,7 +351,7 @@ defmodule TheBand.Ingestion.TimelineRecollection do
           "... on UnassignedEvent { id createdAt actor { login } } ... on ClosedEvent { id createdAt actor { login } } " <>
           "... on ReopenedEvent { id createdAt actor { login } } ... on LabeledEvent { id createdAt actor { login } label { name } } " <>
           "... on UnlabeledEvent { id createdAt actor { login } label { name } } " <>
-          "... on ProjectV2ItemStatusChangedEvent { id createdAt actor { login } previousStatus status } " <>
+          "... on ProjectV2ItemStatusChangedEvent { id createdAt actor { login } previousStatus status project { id number title } } " <>
           "... on AddedToProjectV2Event { id createdAt actor { login } } " <>
           "... on CrossReferencedEvent { id createdAt actor { login } } " <>
           "... on SubIssueAddedEvent { id createdAt actor { login } } " <>

@@ -83,7 +83,7 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $timeline_size: Int
             # `__typename` é a identidade do tipo, e é ele que vai para `activity_type`
             # como a origem o nomeia — nunca traduzido.
             __typename
-            ... on AssignedEvent { createdAt actor { login } assignee { ... on User { id login } } }
+            ... on AssignedEvent { id createdAt actor { login } assignee { ... on User { id login } } }
             ... on UnassignedEvent { id createdAt actor { login } }
             ... on ClosedEvent { id createdAt actor { login } }
             ... on ReopenedEvent { id createdAt actor { login } }
@@ -97,6 +97,7 @@ query($owner: String!, $name: String!, $page_size: Int = 50, $timeline_size: Int
               actor { login }
               previousStatus
               status
+              project { id number title }
             }
             ... on AddedToProjectV2Event { id createdAt actor { login } }
             ... on CrossReferencedEvent { id createdAt actor { login } }

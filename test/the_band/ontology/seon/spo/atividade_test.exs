@@ -277,4 +277,80 @@ defmodule TheBand.Ontology.SEON.SPO.AtividadeTest do
       assert Repo.aggregate(Activity, :count) == 1
     end
   end
+
+  describe "o quadro e a coluna — observação, nunca significado" do
+    test "a ocorrência guarda de que quadro veio e para que coluna foi", ctx do
+      quadro = Ecto.UUID.generate()
+
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_a",
+          board_id: quadro,
+          board_external_id: "PVT_kwDO",
+          status_name: "Done"
+        })
+
+      {:ok, gravada} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert gravada.board_id == quadro
+      assert gravada.board_external_id == "PVT_kwDO"
+      assert gravada.status_name == "Done"
+    end
+
+    test "o mesmo instante em quadros diferentes são duas ocorrências", ctx do
+      base = %{activity_type: "ProjectV2ItemStatusChangedEvent", status_name: "Done"}
+
+      {:ok, um} =
+        SPO.record_activity(
+          ctx.tenant,
+          evento(
+            ctx.issue_id,
+            Map.merge(base, %{source_external_id: "PVTISC_a", board_external_id: "PVT_um"})
+          )
+        )
+
+      {:ok, dois} =
+        SPO.record_activity(
+          ctx.tenant,
+          evento(
+            ctx.issue_id,
+            Map.merge(base, %{source_external_id: "PVTISC_b", board_external_id: "PVT_dois"})
+          )
+        )
+
+      assert um.outcome == :created
+
+      assert dois.outcome == :created, """
+      A mesma issue chegou a `Done` em dois quadros, no mesmo segundo, e virou uma linha só.
+
+      São duas conclusões verdadeiras, e não uma duplicata: 286 issues da base estão em dois
+      quadros com uma só chegada a `Done` registrada.
+      """
+
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "o quadro não coletado grava o identificador da origem e deixa o id nulo", ctx do
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_c",
+          board_id: nil,
+          board_external_id: "PVT_nao_coletado",
+          status_name: "Done"
+        })
+
+      {:ok, gravada} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert is_nil(gravada.board_id), "inventou quadro observado que não existe"
+
+      assert gravada.board_external_id == "PVT_nao_coletado", """
+      A origem disse de que quadro veio, e a ocorrência não guardou.
+
+      Ausência de resolução não é ausência de observação — é o mesmo par de
+      `performer_id` nulo com `performer_login` presente.
+      """
+    end
+  end
 end

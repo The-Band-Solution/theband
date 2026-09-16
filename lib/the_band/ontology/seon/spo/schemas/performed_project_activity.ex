@@ -50,6 +50,20 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
     field :subject_type, :string
     field :subject_id, :binary_id
 
+    # O QUADRO em que o ato aconteceu. Duas colunas pelo mesmo motivo de `performer_id` e
+    # `performer_login`: o identificador da origem sempre cabe, e a resolução para o
+    # quadro observado pode não existir ainda.
+    #
+    # Não entra na identidade: `source_external_id` já individua a ocorrência, e um evento
+    # da origem pertence a exatamente um quadro.
+    field :board_id, :binary_id
+    field :board_external_id, :string
+
+    # O nome que a origem deu à coluna de destino. **Observação, nunca significado** — que
+    # `Done` conclua o trabalho é declaração da organização, resolvida na leitura, e
+    # `sro.rule03` proíbe derivar aceite de marcação.
+    field :status_name, :string
+
     field :source_system, :string
     field :source_instance, :string
     field :source_external_id, :string
@@ -83,6 +97,9 @@ defmodule TheBand.Ontology.SEON.SPO.Schemas.PerformedProjectActivity do
       :source_system,
       :source_instance,
       :source_external_id,
+      :board_id,
+      :board_external_id,
+      :status_name,
       :payload
     ])
     |> validate_required([
