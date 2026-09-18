@@ -9,7 +9,7 @@
 # Banco — perfis e modelo de linguagem
 
 **5 tabelas de 63, e zero linhas** no banco de desenvolvimento. Recorte declarado em
-[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-seis-erds-e-o-que-cada-um-cobre).
+[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-sete-erds-e-o-que-cada-um-cobre).
 
 `eo_person_profiles` aparece também no [ERD da EO](eo-e-acesso.md) — é a mesma tabela, e está
 dito nos dois.

@@ -107,6 +107,8 @@ nav:
       - Arquitetura:
           - Visão geral: modelos/arquitetura/visao-geral.md
       - Classes (UML):
+          - Mapa dos schemas: modelos/classes/mapa-dos-schemas.md
+          - Declarações da organização: modelos/classes/declaracoes-da-organizacao.md
           - EO — estrutura organizacional: modelos/classes/eo-estrutura-organizacional.md
           - Ingestão e observação: modelos/classes/ingestao-e-observacao.md
           - Perfis e modelo: modelos/classes/perfis-e-modelo.md
@@ -114,15 +116,24 @@ nav:
           - Tenants e acesso: modelos/classes/tenants-e-acesso.md
           - Trabalho e mudança: modelos/classes/trabalho-e-mudanca.md
       - Banco (ERD):
+          - Mapa das tabelas: modelos/banco/mapa-das-tabelas.md
+          - Declarações da organização: modelos/banco/declaracoes-da-organizacao.md
           - EO e acesso: modelos/banco/eo-e-acesso.md
           - Ingestão e observação: modelos/banco/ingestao-e-observacao.md
-          - Mapa das tabelas: modelos/banco/mapa-das-tabelas.md
           - Perfis e modelo: modelos/banco/perfis-e-modelo.md
           - Projetos e processo: modelos/banco/projetos-e-processo.md
           - Trabalho e mudança: modelos/banco/trabalho-e-mudanca.md
       - Estados:
+          - Mapa dos ciclos de vida: modelos/estados/mapa-dos-ciclos-de-vida.md
+          - Declaração revogável: modelos/estados/declaracao-revogavel.md
+          - Observação: modelos/estados/observacao.md
+          - Atividade executada: modelos/estados/atividade-executada.md
+          - Conta: modelos/estados/conta.md
+          - Coleta: modelos/estados/coleta.md
+          - Projeto declarado: modelos/estados/projeto-declarado.md
           - Vínculo de equipe: modelos/estados/vinculo-de-equipe.md
       - DSM:
+          - Módulos de lib: modelos/dsm/modulos-de-lib.md
           - 060 — a tela da equipe: modelos/dsm/060-tela-da-equipe.md
 
   - Funcionalidades:

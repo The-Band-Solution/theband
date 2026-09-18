@@ -15,7 +15,7 @@
 
 **17 tabelas de 63, e 145 903 linhas** no banco de desenvolvimento — dois terços de tudo o que
 existe ali. Recorte declarado em
-[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-seis-erds-e-o-que-cada-um-cobre).
+[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-sete-erds-e-o-que-cada-um-cobre).
 
 Dois diagramas, porque num só as 17 caixas não se leem.
 

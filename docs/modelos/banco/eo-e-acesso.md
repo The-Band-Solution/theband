@@ -17,7 +17,7 @@
 
 **14 tabelas de 63.** Quem é a organização, quem é a pessoa, o que é a equipe, quem tem conta
 e o que essa conta alcança. Recorte declarado em
-[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-seis-erds-e-o-que-cada-um-cobre).
+[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-sete-erds-e-o-que-cada-um-cobre).
 
 Tenants e EO vêm no mesmo diagrama porque **quase toda tabela da EO tem FK para `users`** —
 quem declarou, quem encerrou, quem revogou. Separá-los deixaria metade das arestas soltas.

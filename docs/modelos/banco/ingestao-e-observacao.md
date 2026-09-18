@@ -13,7 +13,7 @@
 
 **10 tabelas de 63.** A ferramenta conectada, a credencial, a execução da coleta, o checkpoint,
 o cru preservado, e o repositório nas suas três camadas. Recorte declarado em
-[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-seis-erds-e-o-que-cada-um-cobre).
+[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-sete-erds-e-o-que-cada-um-cobre).
 
 ## O diagrama
 

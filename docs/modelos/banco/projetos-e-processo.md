@@ -14,7 +14,7 @@
 # Banco — projetos e processo
 
 **17 tabelas de 63.** Recorte declarado em
-[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-seis-erds-e-o-que-cada-um-cobre).
+[`mapa-das-tabelas.md`](mapa-das-tabelas.md#os-sete-erds-e-o-que-cada-um-cobre).
 
 **A colisão de nome vem antes do diagrama**: `spo_projects` é o **projeto** — o empreendimento
 que uma pessoa declara. `observed_projects` é o **quadro** — o *Projects v2* que a coleta traz.

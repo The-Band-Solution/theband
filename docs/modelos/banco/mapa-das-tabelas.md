@@ -1,4 +1,9 @@
-<!-- DERIVADO de priv/repo/migrations/*.exs (88 migrações aplicadas) confrontadas com
+<!-- ATUALIZADO em 2026-09-18: as 5 migrações de 2026-09-15/16 acrescentaram 3 tabelas e
+     3 colunas; ver "As três tabelas da 066" e "O que mudou depois de 2026-09-12". A
+     atualização saiu da reconstrução das 93 migrações, SEM acesso ao banco — por isso
+     nenhuma contagem de linhas foi remedida.
+
+     DERIVADO de priv/repo/migrations/*.exs (88 migrações aplicadas) confrontadas com
      `information_schema.tables` e `information_schema.columns` do banco de desenvolvimento
      `the_band_dev`, e com todo `schema "..." do` de lib/**/*.ex (62 declarações),
      por comparação automática campo a campo — em 2026-09-12.
@@ -13,14 +18,17 @@ desapareça por não ter cabido.
 
 ## O total, e o recorte
 
-| | Quantas |
-|---|---|
-| tabelas no banco de desenvolvimento | **66** |
-| de infraestrutura — `oban_jobs`, `oban_peers`, `schema_migrations` | 3 |
-| **de domínio** | **63** |
-| com schema Ecto declarado em `lib/` | 62 |
-| **sem** schema Ecto | 1 — `eo_organizational_units` |
-| migrações aplicadas | 88 |
+| | Em 2026-09-12 | **Em 2026-09-18** |
+|---|---:|---:|
+| tabelas no banco | 66 | **69** |
+| de infraestrutura — `oban_jobs`, `oban_peers`, `schema_migrations` | 3 | 3 |
+| **de domínio** | **63** | **66** |
+| com schema Ecto declarado em `lib/` | 62 | **65** |
+| **sem** schema Ecto | 1 — `eo_organizational_units` | 1 — a mesma |
+| migrações aplicadas | 88 | **93** |
+
+> A coluna de 2026-09-12 foi medida no banco de desenvolvimento. A de 2026-09-18 foi
+> **reconstruída das migrações**, sem acesso ao banco: é contagem de estrutura, e não de linhas.
 
 **Critério do recorte dos ERDs**: um diagrama por **contexto de escrita** — o conjunto de
 tabelas que um mesmo comando ou uma mesma etapa da coleta escreve junto. Não por ontologia
@@ -30,20 +38,114 @@ A razão: quem lê um ERD quer saber *o que muda junto numa transação*. Agrupa
 separaria `cmpo_source_repositories` de `observed_repositories`, que a coleta escreve na mesma
 passada — e o diagrama perderia exatamente a informação pela qual foi consultado.
 
-## Os seis ERDs, e o que cada um cobre
+## Os sete ERDs, e o que cada um cobre
 
-| Documento | Tabelas | Linhas no dev |
+| Documento | Tabelas | Linhas no dev (2026-09-12) |
 |---|---:|---:|
 | [`eo-e-acesso.md`](eo-e-acesso.md) | 14 | 282 |
 | [`ingestao-e-observacao.md`](ingestao-e-observacao.md) | 10 | 18 067 |
 | [`trabalho-e-mudanca.md`](trabalho-e-mudanca.md) | 17 | 145 903 |
 | [`projetos-e-processo.md`](projetos-e-processo.md) | 17 | 56 769 |
 | [`perfis-e-modelo.md`](perfis-e-modelo.md) | 5 | 0 |
-| **soma** | **63** | **221 021** |
+| [`declaracoes-da-organizacao.md`](declaracoes-da-organizacao.md) | 9 | não remedido |
+| **soma das colunas** | **72** | — |
 
-A soma da coluna *Tabelas* dá **63** e cobre **62 tabelas distintas**: `eo_person_profiles`
-aparece em dois documentos — é a mesma tabela, e está dito nos dois. A 63ª tabela de domínio,
-`eo_organizational_units`, **não está em ERD nenhum**, e a razão está [abaixo](#a-tabela-que-nenhum-erd-desenha).
+A soma dá **72** e cobre **65 tabelas distintas**. Os **sete** de diferença são **overlap
+declarado**:
+
+- `eo_person_profiles`, em `eo-e-acesso` **e** `perfis-e-modelo` — 1;
+- as **seis** tabelas de declaração anteriores à 066, em `declaracoes-da-organizacao` **e** no
+  ERD do contexto que as escreve (`spo_activity_start_criteria`,
+  `spo_activity_deadline_criteria` e `smpo_iteration_field_roles` em `projetos-e-processo`;
+  `eo_role_visibility_grants`, `eo_role_structure_management_grants` e `access_scope_grants`
+  em `eo-e-acesso`) — 6.
+
+A conta fecha: **65 cobertas + 1 sem ERD = 66 tabelas de domínio.**
+
+Os seis primeiros ERDs agrupam por **contexto de escrita**; o sétimo agrupa por **forma**, e
+existe porque as três tabelas da 066 não cabiam em nenhum dos outros sem quebrar o critério.
+
+A 66ª tabela de domínio, `eo_organizational_units`, **não está em ERD nenhum**, e a razão está
+[abaixo](#a-tabela-que-nenhum-erd-desenha).
+
+## O mapa de alto nível
+
+Antes dos sete ERDs, o desenho que liga os grupos. Cada caixa é um documento; a seta é *"o
+grupo de origem referencia o de destino"*.
+
+```mermaid
+erDiagram
+    TENANTS_E_ACESSO ||--o{ EO_ESTRUTURA : "delimita e autoriza"
+    TENANTS_E_ACESSO ||--o{ INGESTAO : "delimita"
+    TENANTS_E_ACESSO ||--o{ DECLARACOES : "quem declarou"
+    EO_ESTRUTURA ||--o{ PROJETOS_E_PROCESSO : "equipes e pessoas do projeto"
+    INGESTAO ||--o{ TRABALHO_E_MUDANCA : "a coleta grava"
+    INGESTAO ||--o{ PROJETOS_E_PROCESSO : "a coleta grava"
+    INGESTAO ||--o{ EO_ESTRUTURA : "a coleta grava"
+    PROJETOS_E_PROCESSO ||--o{ DECLARACOES : "o alvo da declaracao"
+    TRABALHO_E_MUDANCA ||--o{ PROJETOS_E_PROCESSO : "a issue no quadro"
+    EO_ESTRUTURA ||--o{ PERFIS_E_MODELO : "o perfil da pessoa"
+
+    TENANTS_E_ACESSO {
+        int tabelas "4"
+        string documento "eo-e-acesso.md"
+    }
+    EO_ESTRUTURA {
+        int tabelas "11"
+        string documento "eo-e-acesso.md"
+    }
+    INGESTAO {
+        int tabelas "10"
+        string documento "ingestao-e-observacao.md"
+    }
+    TRABALHO_E_MUDANCA {
+        int tabelas "17"
+        string documento "trabalho-e-mudanca.md"
+    }
+    PROJETOS_E_PROCESSO {
+        int tabelas "17"
+        string documento "projetos-e-processo.md"
+    }
+    PERFIS_E_MODELO {
+        int tabelas "5"
+        string documento "perfis-e-modelo.md"
+    }
+    DECLARACOES {
+        int tabelas "9"
+        string documento "declaracoes-da-organizacao.md"
+    }
+```
+
+**O grupo `DECLARACOES` atravessa os outros**: das suas 9 tabelas, 6 também aparecem em
+`projetos-e-processo` ou `eo-e-acesso`, pelo contexto de escrita. Está dito nos dois lados.
+
+## As três tabelas da 066
+
+Entraram em **2026-09-15**, depois da conferência anterior, e não estavam em ERD nenhum até
+2026-09-18. Colunas contadas na migração que as cria.
+
+| Tabela | col | ERD | Migração |
+|---|---:|---|---|
+| `spo_item_phase_declarations` | 13 | declaracoes-da-organizacao | `20260915120000` |
+| `spo_event_concept_declarations` | 10 | declaracoes-da-organizacao | `20260915180000` |
+| `spo_activity_end_criteria` | 11 | declaracoes-da-organizacao | `20260915200000` |
+
+## O que mudou depois de 2026-09-12
+
+As cinco migrações posteriores à conferência anterior, e o efeito de cada uma no esquema:
+
+| Migração | Efeito |
+|---|---|
+| `20260915120000_declaracao_de_fase_por_coluna` | **+1 tabela** (`spo_item_phase_declarations`) |
+| `20260915180000_declaracao_de_conceito_por_evento` | **+1 tabela** (`spo_event_concept_declarations`) |
+| `20260915200000_criterio_de_fim` | **+1 tabela** (`spo_activity_end_criteria`) |
+| `20260915220000_identidade_da_atividade_v2` | **nenhuma mudança de esquema** — recalcula `internal_id` de toda linha de `spo_performed_project_activities` |
+| `20260916140000_o_quadro_e_a_coluna_na_atividade` | **+3 colunas** em `spo_performed_project_activities`: `board_id`, `board_external_id`, `status_name` |
+
+**`spo_performed_project_activities` passou de 18 para 21 colunas**, e a linha do censo abaixo
+ainda diz 18 — está corrigida aqui, e não lá, porque o censo é a foto de 2026-09-12 e
+reescrevê-lo sem remedir o banco misturaria duas medidas. A distinção importa: **medida em
+curso não é medida final.**
 
 ## O censo completo
 
@@ -199,10 +301,18 @@ registram **ocorrência**, e uma ocorrência não é atualizada.
 
 ## O tenant, no banco
 
-**62 das 63 tabelas de domínio têm `tenant_id`.** A única sem é `tenants`, que é a raiz.
+**65 das 66 tabelas de domínio têm `tenant_id`.** A única sem é `tenants`, que é a raiz.
+*(Remedido em 2026-09-18 sobre as 93 migrações; era 62 de 63 em 2026-09-12, e as três tabelas
+novas da 066 trazem a coluna.)*
 
 Isto não é convenção de nomenclatura: é o princípio V da constituição com forma no esquema.
 Uma tabela de domínio nova sem `tenant_id` é defeito de segurança, e o mapa a denunciaria aqui.
+
+**Mas duas delas não declaram a FK.** `access_scope_grants` e `account_disablements` têm
+`tenant_id` como `:binary_id` **cru**, sem `references(:tenants, ...)` — as outras 63 declaram.
+As duas são tabelas de acesso, e nenhuma migração explica a escolha. O achado, com as duas
+leituras e a quem levar, está em
+[`declaracoes-da-organizacao.md`](declaracoes-da-organizacao.md#achado-1--duas-tabelas-com-tenant_id-sem-fk).
 
 As FKs para `tenants` são quase todas `ON DELETE RESTRICT`. As três exceções —
 `cmpo_branches`, `collected_artifact_evaluations` e as filhas que cascateiam pelo pai —
