@@ -1,0 +1,302 @@
+defmodule TheBand.Tenants.ApiTokensTest do
+  @moduledoc """
+  O token que abre a API pública — spec 061, FR-001 a FR-012.
+
+  **Os testes que importam aqui são os da violação.** "O token é gerado" prova pouco; "o valor
+  não está em lugar nenhum" e "a comparação não é `==`" provam o que a feature existe para
+  garantir. Cinco casos abaixo estão escritos nessa forma, de propósito.
+  """
+  use TheBand.DataCase, async: true
+
+  alias TheBand.Tenants
+  alias TheBand.Tenants.Schemas.ApiAccessToken, as: Token
+
+  setup do
+    tenant = tenant_fixture()
+    admin = user_fixture(tenant)
+    %{tenant: tenant, admin: admin}
+  end
+
+  defp criar(ctx, attrs \\ %{}) do
+    {:ok, token, valor} =
+      Tenants.create_api_token(
+        ctx.tenant,
+        ctx.admin,
+        Map.merge(%{label: "painel"}, attrs),
+        ctx.admin
+      )
+
+    {token, valor}
+  end
+
+  describe "a forma do token" do
+    test "tem o prefixo da base de conhecimento, e três partes", ctx do
+      {_token, valor} = criar(ctx)
+      prefixo = Tenants.api_token_prefix()
+
+      assert String.starts_with?(valor, prefixo), """
+      O token não carrega o prefixo declarado em `api.access.thresholds`.
+
+      Sem ele a varredura de segredo em repositório e em log não reconhece o vazamento.
+      """
+
+      resto = String.replace_prefix(valor, prefixo, "")
+      assert [id_publico, segredo] = String.split(resto, "_", parts: 2)
+      assert byte_size(id_publico) > 0
+      assert byte_size(segredo) >= 40, "o segredo tem menos que os 32 bytes de FR-002"
+    end
+
+    test "o prefixo vem da base, e não de constante deste módulo", _ctx do
+      assert Tenants.api_token_prefix() == "tb_api_"
+
+      refute File.read!("lib/the_band/tenants/api_tokens.ex") =~ ~s|@prefixo "tb_api_"|, """
+      O prefixo virou constante de módulo.
+
+      Duas cópias divergem, e a que fica para trás é a do varredor de segredo — que falha
+      em silêncio. FR-069.
+      """
+    end
+
+    test "dois tokens não compartilham id público nem segredo", ctx do
+      {a, valor_a} = criar(ctx)
+      {b, valor_b} = criar(ctx)
+
+      refute a.public_id == b.public_id
+      refute valor_a == valor_b
+    end
+  end
+
+  describe "o que NÃO é guardado" do
+    test "o valor em claro não está no banco", ctx do
+      {token, valor} = criar(ctx)
+
+      linha = Repo.get!(Token, token.id)
+
+      refute linha.value, "o campo virtual veio preenchido do banco — ele não pode estar lá"
+
+      {:ok, %{rows: rows}} =
+        Repo.query("SELECT * FROM api_access_tokens WHERE id = $1", [Ecto.UUID.dump!(token.id)])
+
+      cru = rows |> List.first() |> Enum.map_join(" ", &inspect/1)
+
+      refute cru =~ valor, """
+      O valor em claro do token apareceu numa coluna da linha.
+
+      É SC-001: zero ocorrências em log, resposta, página e banco.
+      """
+    end
+
+    test "inspect não vaza o hash, nem aninhado", ctx do
+      {token, _valor} = criar(ctx)
+
+      texto = inspect(token)
+      aninhado = inspect(%{carga: %{token: token}})
+
+      refute texto =~ "token_hash", "`inspect/1` mostrou o hash"
+
+      refute aninhado =~ "token_hash", """
+      `inspect/1` escondeu o hash no struct e o mostrou dentro de um mapa.
+
+      Foi assim que um token do GitHub ficou oito dias em claro em `oban_jobs.errors`: um
+      struct com segredo dentro, numa mensagem de erro.
+      """
+    end
+
+    test "a busca não é pelo hash", _ctx do
+      # SÓ O CÓDIGO. A prosa do `@moduledoc` cita o padrão proibido justamente para
+      # explicá-lo, e uma guarda que lesse o documento reprovaria o arquivo por dizer a
+      # coisa certa. Fora comentário e fora documentação.
+      fonte =
+        "lib/the_band/tenants/api_tokens.ex"
+        |> File.read!()
+        |> String.replace(~r/@moduledoc\s+"""..*?"""/s, "")
+        |> String.replace(~r/@doc\s+"""..*?"""/s, "")
+        |> String.split("\n")
+        |> Enum.reject(&(String.trim(&1) == "" or String.starts_with?(String.trim(&1), "#")))
+        |> Enum.join("\n")
+
+      refute fonte =~ "token_hash ==", """
+      Alguma consulta busca pelo `token_hash`.
+
+      Isso entrega a comparação ao Postgres, fora do nosso controle de tempo, e desfaz a
+      garantia de tempo constante no mesmo gesto que parecia cumpri-la. É a razão de o token
+      ter três partes — ADR 0010.
+      """
+
+      assert fonte =~ "secure_compare", "a conferência não usa comparação em tempo constante"
+    end
+  end
+
+  describe "a conferência, e a recusa que é uma só" do
+    test "o valor recém-criado autentica", ctx do
+      {token, valor} = criar(ctx)
+
+      assert {:ok, autenticado} = Tenants.authenticate_api_token(valor)
+      assert autenticado.id == token.id
+    end
+
+    test "as quatro recusas são o mesmo retorno", ctx do
+      {_ativo, valor} = criar(ctx)
+      prefixo = Tenants.api_token_prefix()
+
+      {revogado, valor_revogado} = criar(ctx)
+      {:ok, _} = Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin)
+
+      {_expirado, valor_expirado} = criar(ctx, %{expires_in_days: -1})
+
+      recusas = [
+        Tenants.authenticate_api_token(prefixo <> "naoexiste_" <> "qualquercoisa"),
+        Tenants.authenticate_api_token(valor_revogado),
+        Tenants.authenticate_api_token(valor_expirado),
+        Tenants.authenticate_api_token("sem_prefixo_nenhum")
+      ]
+
+      assert Enum.all?(recusas, &(&1 == {:error, :recusado})), """
+      As recusas não são idênticas.
+
+      Distinguir revogado de expirado de inexistente confirma a quem testa credencial roubada
+      que ela existiu, e quando. FR-016.
+      """
+
+      assert {:ok, _} = Tenants.authenticate_api_token(valor), "o token ativo foi recusado junto"
+    end
+
+    test "o segredo errado com id público certo é recusado", ctx do
+      {token, _valor} = criar(ctx)
+      forjado = Tenants.api_token_prefix() <> token.public_id <> "_" <> "segredoerrado"
+
+      assert {:error, :recusado} = Tenants.authenticate_api_token(forjado)
+    end
+
+    test "entrada malformada não levanta exceção", _ctx do
+      for valor <- ["", "tb_api_", "tb_api_so_um", "qualquer coisa", "tb_api__", nil] do
+        assert {:error, :recusado} = Tenants.authenticate_api_token(valor),
+               "não recusou #{inspect(valor)}"
+      end
+    end
+
+    test "a chamada aceita carimba o último uso; a recusada não", ctx do
+      {token, valor} = criar(ctx)
+      refute token.last_used_at, "nasceu com data de uso — nulo é 'nunca usado'"
+
+      {:ok, usado} = Tenants.authenticate_api_token(valor)
+      assert usado.last_used_at
+
+      {:error, :recusado} = Tenants.authenticate_api_token("tb_api_x_y")
+      {:ok, relido} = Tenants.fetch_api_token(ctx.tenant, token.id)
+      assert relido.last_used_at == usado.last_used_at
+    end
+  end
+
+  describe "o estado é lido, nunca gravado" do
+    test "revogado vence expirado", ctx do
+      {token, _} = criar(ctx, %{expires_in_days: -1})
+      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+
+      assert Token.estado(revogado, DateTime.utc_now(:second)) == :revogado, """
+      Um token revogado que também passou da data foi lido como expirado.
+
+      Revogar foi um ato de alguém; dizer "expirado" apaga o ato e faz parecer que o relógio
+      resolveu.
+      """
+    end
+
+    test "não existe coluna de estado", _ctx do
+      colunas = Token.__schema__(:fields)
+
+      refute :status in colunas
+      refute :state in colunas
+      refute :active in colunas
+    end
+  end
+
+  describe "a revogação marca, e não apaga" do
+    test "a linha continua, e a contagem não muda", ctx do
+      {token, _} = criar(ctx)
+      antes = Repo.aggregate(Token, :count)
+
+      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+
+      assert Repo.aggregate(Token, :count) == antes, "SC-012: zero linhas removidas"
+      assert revogado.revoked_at
+      assert revogado.revoked_by_user_id == ctx.admin.id
+    end
+
+    test "revogar de novo não reescreve quem revogou", ctx do
+      {token, _} = criar(ctx)
+      outro = user_fixture(ctx.tenant)
+
+      {:ok, primeira} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+      {:ok, segunda} = Tenants.revoke_api_token(ctx.tenant, token.id, outro)
+
+      assert segunda.revoked_by_user_id == primeira.revoked_by_user_id
+      assert segunda.revoked_at == primeira.revoked_at
+    end
+
+    test "não existe reativar nem apagar na fronteira", _ctx do
+      funcoes = Tenants.__info__(:functions) |> Keyword.keys() |> Enum.map(&to_string/1)
+
+      refute Enum.any?(funcoes, &String.contains?(&1, "unrevoke"))
+      refute Enum.any?(funcoes, &String.contains?(&1, "reactivate"))
+      refute Enum.any?(funcoes, &(&1 == "delete_api_token"))
+      refute Enum.any?(funcoes, &(&1 == "update_api_token"))
+    end
+  end
+
+  describe "o prazo vem da base de conhecimento" do
+    test "sem pedido, a expiração é o teto declarado", ctx do
+      {token, _} = criar(ctx)
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+
+      dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
+      assert_in_delta dias, maximo, 1
+    end
+
+    test "pedido acima do teto é REDUZIDO ao teto, e não recusado", ctx do
+      {token, _} = criar(ctx, %{expires_in_days: 3650})
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+
+      dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
+
+      assert_in_delta dias, maximo, 1, """
+      Um pedido de dez anos virou dez anos, ou virou erro.
+
+      Quem pede 3 650 dias quer o máximo que puder ter; recusar transforma isso em erro de
+      formulário sem informação nova.
+      """
+    end
+
+    test "o limiar de desuso é declarado e NÃO aplicado", _ctx do
+      assert {30, false} = Tenants.api_token_threshold("token_idle_expiry"), """
+      O limiar de desuso mudou de valor ou passou a ser aplicado.
+
+      Aplicá-lo exige o carimbo de último uso maduro: expirar por desuso um token que nunca
+      teve chance de ser usado derrubaria a integração no dia seguinte ao de gerá-la.
+      """
+    end
+  end
+
+  describe "o isolamento por tenant" do
+    test "o token de outro tenant não é encontrado, e a recusa é :not_found", ctx do
+      {token, _} = criar(ctx)
+      outro = tenant_fixture()
+
+      assert {:error, :not_found} = Tenants.fetch_api_token(outro, token.id)
+      assert {:error, :not_found} = Tenants.revoke_api_token(outro, token.id, ctx.admin)
+    end
+
+    test "a listagem só traz os do tenant", ctx do
+      {meu, _} = criar(ctx)
+      outro = tenant_fixture()
+      admin_outro = user_fixture(outro)
+
+      {:ok, alheio, _} =
+        Tenants.create_api_token(outro, admin_outro, %{label: "outro"}, admin_outro)
+
+      ids = ctx.tenant |> Tenants.list_api_tokens() |> Enum.map(& &1.token.id)
+
+      assert meu.id in ids
+      refute alheio.id in ids
+    end
+  end
+end

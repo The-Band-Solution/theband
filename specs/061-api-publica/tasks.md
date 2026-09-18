@@ -38,31 +38,31 @@ abaixo têm o teste escrito nessa forma, de propósito.
 **Objetivo**: o token existe, é verificável em tempo constante, e a divergência de
 padrão está registrada. Nada disto chega à tela ainda.
 
-- [ ] **T002** [P] Declarar os limiares de acesso na base
+- [x] **T002** [P] Declarar os limiares de acesso na base
   - **Pronta quando**: nada além do repositório
   - **Descrição**: `priv/knowledge_base/rules/api_access_thresholds.yaml`, id `api.access.thresholds`, com `api.access.token_lifetime` (90 dias) e `api.access.token_idle_expiry` (30 dias sem uso). **Nenhum dos dois em constante de módulo** — FR-069, Q8. A regra diz, por limiar, se ele é **aplicado nesta fatia**: o primeiro é, o segundo não. Limiar declarado e não aplicado é pior que limiar ausente se ninguém disser qual é qual
   - **Feita quando**: `mix knowledge.validate` aceita o arquivo; nenhum `90` nem `30` referente a prazo de token aparece em `lib/`; a regra carrega com os dois limiares e com a marca de aplicação de cada um
   - **Teste**: `test/the_band/knowledge/api_access_thresholds_test.exs` — a regra existe com o id declarado, os dois limiares são lidos da base, e **o teste que importa**: `grep -rn "90" lib/the_band/tenants/api_tokens.ex` não encontra o prazo escrito no código
 
-- [ ] **T003** [P] Registrar a ADR do hash do token
+- [x] **T003** [P] Registrar a ADR do hash do token
   - **Pronta quando**: nada além do repositório — a decisão já está tomada em Q1 da spec
   - **Descrição**: ADR em `docs/adr/` registrando que o token de API é guardado como **SHA-256 do segredo**, e não com `TheBand.Encrypted.Binary` como toda outra credencial. FR-004 e FR-005 exigem ADR porque isto é divergência de padrão público. A ADR carrega o par que ensina: Cloak é **reversível** e devolveria todos os tokens em claro com a chave mestra — proteção certa para credencial de **terceiro**, que a plataforma **replica**, e errada para verificador do próprio segredo, que a plataforma só **confere**; bcrypt custa ~100 ms por verificação, que é defesa contra senha humana e auto-negação de serviço numa API. E registra os dois detalhes que a decisão arrasta: comparação em tempo constante, e busca pelo id público e nunca pelo hash
   - **Feita quando**: a ADR está numerada e ligada a partir da spec; o status está declarado; as duas alternativas aparecem com o motivo de cada recusa, e não só a escolhida
   - **Teste**: revisão contra `docs/seguranca/2026-09-09-api-com-token.md` — a ADR não contradiz nenhum achado da avaliação, e quem ler só a ADR entende por que o padrão da casa **continua certo** para credencial de terceiro
 
-- [ ] **T004** A tabela dos tokens de API
+- [x] **T004** A tabela dos tokens de API
   - **Pronta quando**: T002 concluída — o prazo máximo vem da base, e a migração não o inventa
   - **Descrição**: migração criando `api_access_tokens` conforme [data-model.md](data-model.md). `tenant_id` e `user_id` **NOT NULL**; único em `(tenant_id, public_id)`; índice em `(tenant_id, user_id)`. **Nenhum índice em `token_hash`** — buscar por ele é o que a decisão Q1 proíbe. Sem coluna de "ativo": o estado é derivado de `revoked_at` e `expires_at` contra o instante da requisição, porque coluna de estado exigiria job, e job cria a janela entre vencer e ser marcado, que é acesso concedido por atraso de fila. Reversível
   - **Feita quando**: `mix ecto.migrate` e o rollback completam sem erro; a tabela não tem coluna alguma para o valor em claro nem para escopo, papel ou lista de organizações
   - **Teste**: ida e volta — `mix ecto.migrate` seguido de `mix ecto.rollback`, e depois `mix ecto.migrate` de novo; e a consulta a `information_schema.columns` não devolve nenhuma coluna cujo nome contenha `scope`, `role` ou `plain`
 
-- [ ] **T005** O schema que não deixa o hash vazar
+- [x] **T005** O schema que não deixa o hash vazar
   - **Pronta quando**: T004 concluída
   - **Descrição**: `lib/the_band/tenants/schemas/api_access_token.ex`. **Deriva `Inspect` excluindo `token_hash`** e o campo virtual do valor — FR-008. Sem isso, um `IO.inspect` de depuração ou um relatório de erro do Oban despeja o verificador no log, e foi exatamente assim que um token do GitHub ficou oito dias em claro em `oban_jobs.errors`. O valor em claro existe **apenas** como campo virtual, preenchido uma vez no retorno da criação, e nunca lido do banco porque não está lá
   - **Feita quando**: `inspect/1` de um token carregado não contém o hash nem o valor; o changeset recusa `label` vazio e `user_id` nulo
   - **Teste**: `test/the_band/tenants/api_access_token_test.exs` — **o teste é a violação**: `inspect(token)` não contém nenhum byte do hash, e `inspect(%{token: token})` aninhado também não
 
-- [ ] **T006** O formato do token e a verificação em tempo constante
+- [x] **T006** O formato do token e a verificação em tempo constante
   - **Pronta quando**: T003 concluída — a decisão do hash está registrada; T005 concluída
   - **Descrição**: em `lib/the_band/tenants/api_tokens.ex`, a geração e a conferência. Formato `tb_api_<id_publico>_<segredo>` (FR-001, R5): prefixo fixo para varredura de segredo vazado, id público indexado por onde a linha é buscada, e segredo de no mínimo 32 bytes de `:crypto.strong_rand_bytes/1` em Base64 URL-safe sem padding (FR-002). A conferência usa `Plug.Crypto.secure_compare/2` — **nunca `==`**: na sessão o `==` está correto porque o valor vem de cookie assinado pelo próprio servidor, mas aqui o valor vem cru de um cabeçalho controlado por quem chama, e o canal de tempo é alcançável. A busca é pelo id público, **nunca pelo hash**
   - **Feita quando**: dois tokens gerados em sequência não compartilham id público nem segredo; entrada malformada — sem prefixo, com partes a menos, com partes a mais — é recusada sem exceção; nenhuma consulta do módulo tem `token_hash` na cláusula `where`
@@ -78,13 +78,13 @@ o vê.
 **Teste independente**: criar um token, copiar o valor, recarregar a tela, e conferir
 que o valor não aparece na página, no HTML servido, no log nem no banco.
 
-- [ ] **T007** [US1] Gerar o token na fronteira
+- [x] **T007** [US1] Gerar o token na fronteira
   - **Pronta quando**: T006 concluída
   - **Descrição**: `create_api_token/4` em `TheBand.Tenants`, por `defdelegate` (ADR 0003). Recebe tenant, conta dona, atributos e autor; devolve `{:ok, token, valor_em_claro}` — **o valor só aqui**, e nunca mais. Rótulo é obrigatório (FR-009): token sem rótulo é token que ninguém sabe revogar. A expiração respeita o teto de `api.access.token_lifetime`, lido da base. **Não existe** `update_api_token/2` nem `delete_api_token/2`: mudar a expiração de um token vivo é conceder prazo sem gerar credencial nova, e ausência marca em vez de apagar
   - **Feita quando**: o valor devolvido casa com o hash gravado; um segundo `create` da mesma conta gera um token distinto e não toca no primeiro; a fronteira não expõe função de atualizar nem de apagar
   - **Teste**: `test/the_band/tenants/api_tokens_test.exs` — o valor devolvido autentica e o banco não o contém; e a fronteira `TheBand.Tenants` não define `update_api_token` nem `delete_api_token`
 
-- [ ] **T008** [US1] Listar os tokens com o estado lido
+- [x] **T008** [US1] Listar os tokens com o estado lido
   - **Pronta quando**: T007 concluída
   - **Descrição**: `list_api_tokens/1` devolve, por token, rótulo, os quatro últimos, quem criou, quando, último uso, expiração e o **estado lido** — ativo, revogado ou expirado — derivado de `revoked_at` e `expires_at` contra o instante da chamada, e nunca de uma coluna. Último uso nulo é **"nunca usado"**, e expiração nula é **"sem expiração"**: nenhum dos dois vira data vazia nem a data de criação (US1 cenário 3)
   - **Feita quando**: um token recém-criado aparece como ativo e nunca usado; um token com `expires_at` no passado aparece expirado sem nenhuma escrita ter acontecido
@@ -118,7 +118,7 @@ permanece.
 **Teste independente**: chamar com sucesso, revogar, chamar de novo — a segunda
 chamada é recusada, e a lista mostra a revogação sem apagar a linha.
 
-- [ ] **T012** [US3] Revogar marcando, nunca apagando
+- [x] **T012** [US3] Revogar marcando, nunca apagando
   - **Pronta quando**: T008 concluída
   - **Descrição**: `revoke_api_token/3` grava `revoked_at` e `revoked_by_user_id` — FR-012. **Não existe reativar** (US3 cenário 3): revogação é definitiva, e o caminho é gerar outro. Um botão de reativar transformaria a revogação em pausa, e quem revoga por suspeita de vazamento não quer uma pausa. Revogar duas vezes é idempotente e não reescreve o autor da primeira
   - **Feita quando**: a linha continua no banco depois de revogada; não há função de reativar na fronteira; revogar de novo não muda `revoked_at` nem `revoked_by_user_id`

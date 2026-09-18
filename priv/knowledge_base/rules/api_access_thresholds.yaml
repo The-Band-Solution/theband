@@ -1,0 +1,166 @@
+derivation_rule:
+  id: api.access.thresholds
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "Os limiares e o vocabulário do token de API — prazo, aviso, prefixo e os estados"
+
+  description:
+    pt-BR: >
+      A API pública (spec 061) é aberta por um token que alguém gera na área administrativa.
+      Este arquivo declara os números e as palavras desse token: quanto ele vale, quando a
+      tela avisa que vai vencer, que prefixo ele carrega, e como cada estado é lido.
+
+      Moram aqui, e não em constante de módulo, pela razão de FR-069 e pelo precedente de
+      `team.dashboard.thresholds`: um prazo de credencial é **decisão sobre quanto tempo um
+      segredo continua abrindo a porta**. Em constante, ele muda num diff e ninguém percebe.
+
+      **Padrão silencioso de expiração derruba integração meses depois sem ninguém ligar as
+      duas coisas** — e *nenhuma* expiração é superfície que ninguém vigia. A saída é o padrão
+      declarado, dito na tela, com aviso antes do vencimento. É a decisão Q8 da spec.
+
+  provenance:
+    source_type: project_decision
+    reference: "spec 061, perguntas Q1 e Q8; avaliação de Security de 2026-09-09"
+    note: >
+      Q8 fixou os dois primeiros valores. O terceiro — o aviso de vencimento — veio do
+      protótipo da tela em 2026-09-18, que mostra *"expires in 9 days"* e obrigou a pergunta:
+      a tela não pode avisar contra um limiar que não existe.
+
+      O prefixo entra aqui porque **duas coisas precisam da mesma string**: a tela, que a
+      imprime, e o padrão do varredor de segredo, que a procura em repositório e em log. Duas
+      cópias divergem, e a que fica para trás é a do varredor — que falha em silêncio.
+
+  rules:
+    token_lifetime:
+      name:
+        pt-BR: "O token vale no máximo noventa dias"
+      statement:
+        pt-BR: >
+          A expiração de um token novo é no máximo **90 dias** a partir da criação. A tela
+          oferece prazos até esse teto e **não** oferece "sem expiração".
+      note:
+        pt-BR: >
+          **Máximo do qual se abre mão não é máximo.** FR-011 admite token sem expiração, e a
+          ausência continua sendo estado legítimo — para as linhas que já existem, e para
+          qualquer origem futura que as crie. O que esta regra decide é que a **tela não a
+          oferece**: exibida sim, oferecida não.
+      applied: true
+      values:
+        max_days: 90
+
+    token_expiry_warning:
+      name:
+        pt-BR: "A tela avisa quatorze dias antes de vencer"
+      statement:
+        pt-BR: >
+          A partir de **14 dias** antes da expiração, a linha do token diz quantos dias faltam,
+          em vez de só a data.
+      note:
+        pt-BR: >
+          É leitura contra o relógio, feita no render — **não é job**. Job cria janela entre o
+          vencimento e a passagem dele, e essa janela é acesso concedido por atraso de fila; o
+          mesmo argumento da decisão Q3 sobre não cachear o token.
+
+          Quatorze dias é o que cabe numa quinzena de trabalho: quem vê o aviso tem tempo de
+          gerar o novo, trocar na integração, e revogar o velho **nessa ordem**.
+      applied: true
+      values:
+        warning_days: 14
+
+    token_idle_expiry:
+      name:
+        pt-BR: "Trinta dias sem uso — declarado, e ainda NÃO aplicado"
+      statement:
+        pt-BR: >
+          Um token sem chamada aceita há mais de **30 dias** é candidato a expirar por desuso.
+      note:
+        pt-BR: >
+          **Declarado e não aplicado nesta fatia**, e a distinção é o ponto: aplicar exige o
+          carimbo de último uso maduro, e ele nasce com a primeira chamada. Expirar por desuso
+          um token que nunca teve chance de ser usado derrubaria a integração no dia seguinte
+          ao de gerá-la.
+
+          Limiar declarado e não aplicado é pior que limiar ausente **se ninguém disser qual é
+          qual** — por isso `applied` é campo desta regra, e não comentário.
+      applied: false
+      values:
+        idle_days: 30
+
+  vocabulary:
+    token_prefix:
+      name:
+        pt-BR: "O prefixo que identifica o token como desta plataforma"
+      statement:
+        pt-BR: >
+          Todo token começa por `tb_api_`, e a forma inteira é
+          `tb_api_<id_publico>_<segredo>` — três partes separadas por `_`.
+      note:
+        pt-BR: >
+          O prefixo existe para que **varredura de segredo** em repositório, log e histórico de
+          terminal reconheça o vazamento sem saber o valor. Prefixo certo com resto inválido
+          recebe a **mesma recusa** de token inexistente: ele serve para varrer, nunca para
+          triar validade.
+
+          As **três partes** não são estética. A busca no banco é pelo id público, indexado e
+          único, e **nunca pelo hash** — comparar hash é comparação do Postgres, fora do nosso
+          controle de tempo, e a decisão Q1 exige tempo constante. O formato é consequência.
+      values:
+        prefix: "tb_api_"
+        parts: 3
+        separator: "_"
+
+    token_state:
+      name:
+        pt-BR: "Os três estados do token, e como cada um é lido"
+      statement:
+        pt-BR: >
+          O estado **não é coluna**. É leitura contra o instante da requisição, das duas
+          colunas de marca.
+      note:
+        pt-BR: >
+          Coluna de estado exigiria job para virar `expired`, e job cria a janela entre vencer
+          e ser marcado — acesso concedido por atraso de fila.
+
+          **A quarta frase que a tela mostra não é estado de token**: *"chamadas recusadas ·
+          conta dona desativada"* fala da conta, não do token. Misturá-la com as três faria
+          revogar o token parecer o conserto, quando o conserto é reativar a conta.
+      values:
+        active:
+          read_as: "revoked_at nulo E (expires_at nulo OU expires_at no futuro)"
+          declared: false
+        revoked:
+          read_as: "revoked_at presente"
+          declared: true
+        expired:
+          read_as: "expires_at no passado"
+          declared: false
+
+    absence_words:
+      name:
+        pt-BR: "As palavras das duas ausências — e nenhuma delas é uma data"
+      statement:
+        pt-BR: >
+          Último uso nulo é **"nunca usado"**. Expiração nula é **"sem expiração"**.
+      note:
+        pt-BR: >
+          Declaradas aqui para que **tela e API não divirjam**. A API responde em JSON, onde
+          `null` é um valor só — e "nunca usado" e "sem expiração" são coisas diferentes que
+          um `null` cru achataria.
+
+          Último uso nulo **nunca** vira a data de criação: um token recém-gerado e um token
+          que ninguém usou há meses são a mesma coisa para esta coluna, e inventar a data de
+          criação faria o primeiro parecer usado.
+      values:
+        never_used: { pt-BR: "nunca usado", en: "never used" }
+        no_expiration: { pt-BR: "sem expiração", en: "no expiration" }
+
+  reuses:
+    - id: access.account_lifecycle
+      why:
+        pt-BR: >
+          O estado da **conta dona** vem de lá, e não daqui. Um token de conta desativada é
+          recusado, e a razão está no vocabulário daquela regra.
