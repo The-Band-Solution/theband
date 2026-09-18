@@ -168,9 +168,20 @@ defmodule TheBand.Ontology.SEON.SPO.Projects do
       observed_project_id: observed_project_id
     }
 
-    # Reassociar um quadro que saiu **revive o vínculo encerrado** em vez de criar outro: o
-    # índice único é parcial sobre os vigentes, e duas linhas vigentes para o mesmo par não
-    # podem existir. `is_nil` e não `get_by` com nulo — o Ecto proíbe o segundo.
+    # **Idempotente sobre o vínculo VIGENTE**: religar um quadro já ligado devolve a linha que
+    # existe, em vez de criar outra. O índice único é parcial sobre os vigentes, e duas linhas
+    # vigentes para o mesmo par não podem existir.
+    #
+    # Um vínculo **desfeito** não é revivido — o insert cria linha nova, e o índice parcial
+    # permite, porque a antiga não é vigente. É o comportamento certo: limpar `unlinked_at` da
+    # linha antiga apagaria o registro de que o quadro saiu e voltou, e ausência marca, nunca
+    # apaga.
+    #
+    # Até 2026-09-18 este comentário dizia que reassociar *"revive o vínculo encerrado"*. O
+    # corpo nunca fez isso, e a divergência foi achada ao derivar o modelo de estados. O que
+    # estava errado era a frase.
+    #
+    # `is_nil` e não `get_by` com nulo — o Ecto proíbe o segundo.
     vigente =
       Repo.one(
         from v in ProjectBoard,

@@ -117,6 +117,11 @@ Lendo o código: `link_board/4` procura um vínculo **vigente** e, achando, devo
 (`projects.ex:188-190`) — é idempotente. Um vínculo **desfeito** não é revivido por este ramo;
 o insert cria linha nova, e o índice parcial permite, porque a antiga não é vigente.
 
+> ✅ **RESOLVIDO em 2026-09-18 — o comentário foi corrigido, o código não.** A primeira leitura
+> venceu: o corpo entrega idempotência sobre o vigente, que é o comportamento certo. Reviver a
+> linha encerrada apagaria o registro de que o quadro saiu e voltou, e ausência marca, nunca
+> apaga. O que estava errado era a frase.
+
 **A divergência entre o comentário e o código está registrada aqui**, e não resolvida: o
 comentário diz "revive o encerrado", o corpo procura `is_nil(unlinked_at)`. As duas leituras:
 

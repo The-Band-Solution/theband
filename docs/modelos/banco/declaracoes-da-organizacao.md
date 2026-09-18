@@ -262,7 +262,16 @@ As outras oito, fora desta família, para completar o censo:
 | `spo_performed_project_activities` | `project_id` | **sem razão escrita** — ver o achado abaixo |
 | `users` | `password_set_by_user_id` | sem razão escrita |
 
-### Achado 1 — duas tabelas com `tenant_id` sem FK
+### Achado 1 — duas tabelas com `tenant_id` sem FK · ✅ RESOLVIDO em 2026-09-18
+
+> Corrigido em `20260918120000_as_chaves_estrangeiras_que_faltavam`. As duas passaram a declarar
+> a chave, com `ON DELETE RESTRICT` — que é o que **61 das 65** chaves de `tenant_id` já usavam,
+> e o único compatível com a coluna ser `NOT NULL`. Zero órfãos, conferido antes de aplicar.
+>
+> **A leitura de "é descuido" venceu**, pelo argumento que está escrito abaixo: `user_id`, na
+> mesma tabela e na mesma migração, era declarada.
+
+
 
 **63 das 66 tabelas de domínio declaram FK de `tenant_id` para `tenants`.** As exceções:
 
@@ -281,7 +290,15 @@ Não escolho entre as duas. **Levar a quem mantém `Tenants.Access`.** O efeito 
 banco não impede uma concessão apontando para tenant inexistente; a aplicação impede, em
 `Access.grant/5` (`lib/the_band/tenants/access.ex:545, :548`).
 
-### Achado 2 — `organization_id` é FK e `project_id` não, na mesma tabela
+### Achado 2 — `organization_id` é FK e `project_id` não · ✅ RESOLVIDO em 2026-09-18
+
+> Corrigido na mesma migração, com `ON DELETE SET NULL` — a regra de `organization_id`, a irmã
+> declarada na linha de cima, porque esta coluna aceita nulo de propósito.
+>
+> **A leitura da ordem de migração venceu**, e ela está abaixo: `spo_projects` nasceu um dia
+> depois. Não era decisão; era o que dava para fazer naquele dia.
+
+
 
 Em `spo_performed_project_activities`, o comentário da migração trata as duas colunas **juntas**:
 

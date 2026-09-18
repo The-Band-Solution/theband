@@ -226,9 +226,12 @@ As duas leituras:
 - **é outra coisa de propósito** — conceder acesso a uma conta não é declarar um significado
   sobre o processo, e o vocabulário diferente marca a diferença.
 
-Não escolho entre as duas. Fica para quem mantém `Tenants.Access` decidir se vale unificar; o
-efeito prático hoje é zero, e o efeito de leitura é que uma busca por `declared_at` não acha a
-nona tabela.
+**Decidido em 2026-09-18: fica como está.** A segunda leitura vence — conceder acesso a uma
+conta não é declarar um significado sobre o processo, e o vocabulário diferente marca uma
+diferença real. Renomear apagaria essa marca para ganhar uma busca.
+
+O incômodo é de busca, e se resolve aqui: **quem procurar `declared_at` não acha
+`access_scope_grants`**, que usa `granted_at`. As colunas de revogação são idênticas nas nove.
 
 ## O que este modelo não mostra
 
