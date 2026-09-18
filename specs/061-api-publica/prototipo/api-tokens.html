@@ -1,0 +1,447 @@
+<title>The Band API Tokens</title>
+<style>
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--info-soft:#e3ecf1;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#14232c;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#14232c;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;}
+*{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6;font-size:1rem}
+::selection{background:var(--verdete);color:var(--papel)} :focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.875rem}h2{font-size:1.5rem}h3{font-size:1.125rem}h4{font-size:0.875rem}
+.faixa{max-width:62rem;margin:0 auto;padding-block:1.5rem 4rem;padding-inline:1.25rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:0.875rem}
+.rot{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:0.75rem}
+.id{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);letter-spacing:.02em}
+.marca{font-family:var(--grot);font-size:0.6875rem;padding:.05rem .45rem;border-radius:0.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap;vertical-align:middle}
+.marca .am{width:.6rem;height:.6rem;border-radius:0.125rem;border:1px solid currentColor;flex:0 0 auto}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.saiu{color:var(--tinta-2)}.saiu .am{background:var(--linha)}
+.rec{color:var(--clay)}.rec .am{background-image:var(--hatch)}
+.ex-mark{font-family:var(--mono);font-size:0.625rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+/* product chrome */
+.nav{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);border-bottom:1.5px solid var(--linha);padding-bottom:.55rem}
+.nav b{color:var(--tinta);font-weight:650}.nav .dir{margin-left:auto;font-family:var(--mono);font-size:0.75rem}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:0.25rem;width:max-content;max-width:100%}
+.atalhos{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
+.atalhos a{font-family:var(--grot);font-size:0.75rem;padding:.2rem .6rem;border:1.5px solid var(--linha);border-radius:0.25rem;color:var(--tinta-2);text-decoration:none;background:var(--papel-2)}
+.trilha{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:1.4rem}
+.trilha b{color:var(--tinta);font-weight:650}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:1.25rem;margin-top:1rem}
+.cartao .cab{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.cartao .cab h4{font-size:1rem}
+.cartao .cab .rot{margin-left:auto}
+.cartao p{font-size:0.875rem}
+.campos{display:flex;flex-wrap:wrap;gap:.9rem;align-items:flex-end;margin-top:.8rem}
+label.campo{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+label.campo>.rot{white-space:nowrap}
+input.txt,select.sel{font:inherit;font-family:var(--grot);font-size:0.875rem;padding:.3rem .5rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel);color:var(--tinta);max-width:100%}
+input.txt{min-width:14rem}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:left;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);vertical-align:top;font-size:0.875rem}
+tbody tr:hover{background:var(--verdete-soft)}
+.rotulo{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.rotulo small{display:block;font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);font-weight:400;margin-top:.15rem;letter-spacing:.02em}
+.mascara{font-family:var(--mono);font-size:0.8125rem;letter-spacing:.02em;white-space:nowrap}
+.mascara b{font-weight:700}
+.conta{font-family:var(--mono);font-size:0.75rem;word-break:break-all}
+.alcance{display:block;font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.35rem;padding-left:.5rem;border-left:1px solid var(--linha)}
+.alcance b{color:var(--tinta);font-weight:650}
+.quando{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2)}
+.quando b{color:var(--tinta);font-weight:650;font-family:var(--mono);font-size:0.75rem;font-variant-numeric:tabular-nums;display:block}
+.vazio{color:var(--tinta-2);font-style:italic;font-size:0.8125rem}
+.est{display:flex;flex-direction:column;gap:.25rem;align-items:flex-start}
+.est small{font-family:var(--grot);font-size:0.6875rem;color:var(--tinta-2);line-height:1.35}
+.acoes{display:flex;gap:.35rem;justify-content:flex-end;flex-wrap:wrap}
+.btn{font-family:var(--grot);font-size:0.75rem;font-weight:650;padding:.25rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn.s{background:var(--verdete-soft);border-color:var(--verdete-soft);color:var(--verdete-deep)}
+.btn.g{background:var(--clay);border-color:var(--clay);color:var(--papel)}
+.btn.inerte{border-style:dashed;color:var(--tinta-2);cursor:not-allowed;background:transparent}
+.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:0.25rem;overflow:hidden;font-family:var(--grot);font-size:0.75rem}
+.seg span{padding:.2rem .6rem;color:var(--tinta-2);border-right:1px solid var(--linha);white-space:nowrap}
+.seg span:last-child{border-right:0}
+.seg .on{background:var(--verdete);color:var(--papel);font-weight:650}
+.nao-ofer{margin-top:.8rem;padding:.6rem .8rem;border:1.5px dashed var(--linha);border-radius:0.25rem;font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2)}
+.nao-ofer b{color:var(--tinta)}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft);font-size:0.875rem}
+.nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
+.aviso{margin-top:1rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:0.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:0.875rem;margin:0}
+/* the one-time secret */
+.segredo{margin-top:1rem;padding:1.1rem 1.2rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft)}
+.segredo .cab{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.segredo .cab h4{font-size:1rem;color:var(--verdete-deep)}
+.valor{font-family:var(--mono);font-size:1.125rem;line-height:1.5;word-break:break-all;background:var(--papel);border:1.5px solid var(--linha);border-radius:0.25rem;padding:.6rem .7rem;margin-top:.7rem;user-select:all}
+.partes{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:.5rem;margin-top:.6rem}
+.parte{border:1.5px solid var(--linha);border-radius:0.25rem;padding:.45rem .6rem;background:var(--papel);min-width:0}
+.parte .rot{display:block}
+.parte .v{font-family:var(--mono);font-size:0.8125rem;word-break:break-all;margin-top:.1rem}
+.parte .q{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block;margin-top:.15rem}
+.faz,.naofaz{font-size:0.875rem;margin-top:.5rem;display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:baseline}
+.faz b,.naofaz b{font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;padding-top:.1rem}
+.faz b{color:var(--verdete-deep)}.naofaz b{color:var(--clay)}
+pre.cmd{font-family:var(--mono);font-size:0.75rem;background:var(--papel);border:1.5px solid var(--linha);border-radius:0.25rem;padding:.55rem .7rem;margin:.6rem 0 0;overflow-x:auto;line-height:1.7}
+pre.cmd .c{color:var(--tinta-2)}
+/* revoke */
+.confirma{margin-top:1rem;padding:1.1rem 1.2rem;border:1.5px solid var(--clay);border-radius:0.5rem;background:var(--clay-soft)}
+.confirma h4{font-size:1rem;color:var(--clay)}
+.confirma .alvo{font-family:var(--mono);font-size:0.875rem;background:var(--papel);border:1.5px solid var(--linha);border-radius:0.25rem;padding:.5rem .6rem;margin-top:.6rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.botoes{display:flex;gap:.5rem;margin-top:.9rem;flex-wrap:wrap;align-items:center}
+.duas{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(16rem,1fr));margin-top:.8rem}
+.recusa-card{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.9rem 1rem;min-width:0}
+.recusa-card h4{font-size:0.875rem}
+.recusa-card .esp{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);margin-top:.3rem;display:block}
+.recusa-card .diz{font-size:0.8125rem;margin-top:.45rem;border-top:1px dashed var(--linha);padding-top:.45rem}
+.legenda{display:flex;gap:1rem;margin-top:.8rem;font-family:var(--grot);font-size:0.75rem;flex-wrap:wrap}
+.legenda span{display:inline-flex;align-items:center;gap:.35rem;color:var(--tinta-2)}
+.scroll{overflow-x:auto}
+.hdr{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-top:1.4rem}
+.link{color:var(--verdete-deep);text-decoration:underline;text-decoration-color:var(--linha);text-underline-offset:3px}
+.pequeno{font-size:0.8125rem}
+.dq{margin-top:1rem}
+.dq ol{padding-left:1.2rem;font-size:0.875rem}.dq li{margin-top:.5rem}
+.dq .dd{font-family:var(--mono);font-size:0.6875rem;color:var(--verdete-deep);letter-spacing:.04em;margin-right:.3rem}
+.dq table td{font-size:0.8125rem}
+.lista-q{margin-top:.6rem;padding-left:1.2rem;font-size:0.875rem}
+.lista-q li{margin-top:.35rem}
+@media (max-width:52rem){
+  table.stacked thead{display:none}
+  table.stacked tr{display:block;border-bottom:1.5px solid var(--linha);padding:.6rem 0}
+  table.stacked td{display:grid;grid-template-columns:8rem 1fr;gap:.6rem;border:0;padding:.2rem .3rem;text-align:left}
+  table.stacked td::before{content:attr(data-label);font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);padding-top:.2rem}
+  .acoes{justify-content:flex-start}
+  .cartao{padding:1rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="faixa">
+
+<div class="nav"><span>People</span><span>Teams</span><span>Work</span><span>Projects</span><span>Process</span><span>Syncs</span><span>Tools</span><span>AI</span><span>Profiles</span><b>Settings</b><span class="dir">The Band Solution · admin@the-band-solution.example</span></div>
+
+<h1 style="margin-top:1.4rem">API tokens, before the code</h1>
+<p class="sub">Prototype of <span class="mono">/api-tokens</span> — the administrative screen that generates, lists and revokes the credentials a program uses to read this organisation through <span class="mono">/api/v1</span> (feature 061, FR-045 to FR-049). Four screens on one page: the list at rest, the instant after <em>Create</em>, the revocation, and what this screen refuses to do. <strong>Nothing depends on a click</strong> — every form is shown open, as an example.</p>
+<p class="sub">Team, project and account names are <strong>real</strong>, read from the development database on <strong>18 Sep 2026</strong>. The tokens themselves are <span class="ex-mark">example</span>: the table <span class="mono">api_access_tokens</span> does not exist yet, so no row here was measured. <em>Ana Vieira</em> is a fictitious administrator, as in the 066 prototype.</p>
+<div class="legenda">
+  <span><span class="marca obs"><span class="am"></span>observed</span> the platform recorded it — a call it accepted</span>
+  <span><span class="marca dec"><span class="am"></span>declared</span> a person did it, with author and instant</span>
+  <span><span class="marca der"><span class="am"></span>derived</span> read at this instant from current relations — never stored</span>
+  <span><span class="marca aus"><span class="am"></span>absent</span> nothing to show, and the screen says whose absence it is</span>
+  <span><span class="marca saiu"><span class="am"></span>revoked</span> ended, and kept on the record</span>
+</div>
+<div class="atalhos">
+  <a href="#list">screen 1 · the list</a><a href="#create">screen 2 · the value, once</a><a href="#revoke">screen 3 · revoking</a><a href="#refuses">screen 4 · what it refuses</a><a href="#decisions">decisions &amp; open questions</a>
+</div>
+
+<!-- ════════════════════════ SCREEN 1 ════════════════════════ -->
+<span class="tela" id="list">screen 1 · the list at rest</span>
+
+<div class="trilha">Settings › <b>Contas</b> › Accounts · Access scopes · <b>API tokens</b> — the same <span class="mono">require_admin</span> that serves <span class="mono">/accounts</span> and <span class="mono">/access-scopes</span>. Credential is management, not operation.</div>
+
+<div class="hdr"><h2>API tokens</h2></div>
+<p class="sub">A token lets a program read this organisation through the public API. <strong>A token carries no permission of its own</strong>: it sees exactly what its owner account sees, and that reach is read again on <em>every</em> call — so it grows and shrinks with the account's links, with nobody touching the integration.</p>
+
+<div class="nota-de-tela"><span class="rot">what this screen is for</span>
+Generate a token, hand the value over once, and revoke it when the integration ends. <strong>The value is shown a single time, at creation</strong> — the platform keeps a one-way hash and the last four characters, and there is no screen, export or endpoint that shows it again. If it was not copied, the way forward is to revoke this one and create another.</div>
+
+<!-- create -->
+<div class="cartao" id="form">
+  <div class="cab"><h4>New token</h4><span class="rot">shown open as an example</span></div>
+  <div class="campos">
+    <label class="campo"><span class="rot">Label — what integration is this?</span><input class="txt" id="f-label" type="text" value="painel do diretor"></label>
+    <label class="campo"><span class="rot">Owner account</span>
+      <select class="sel" id="f-owner">
+        <option>ana.vieira@the-band-solution.example</option>
+        <option>admin@the-band-solution.example</option>
+        <option>consulta@the-band-solution.example</option>
+      </select></label>
+    <label class="campo"><span class="rot">Expires in</span>
+      <select class="sel" id="f-exp"><option>90 days — the declared maximum</option><option>30 days</option><option>7 days</option></select></label>
+    <button class="btn p" type="button">Create token</button>
+  </div>
+
+  <div class="aviso" style="border-style:solid;background:var(--papel)">
+    <span class="rot">what this token will see today · <span class="marca der" style="vertical-align:baseline"><span class="am"></span>derived</span></span>
+    <p style="font-size:0.875rem"><strong>ana.vieira@the-band-solution.example</strong> reaches, right now: her own person record · team <strong>IA</strong> · projects <strong>ConectaFapes</strong> and <strong>Valida</strong> — the two projects that team IA is linked to. <em>No granted scope on this account</em> — everything above is derived from her current links.</p>
+    <p class="sub" style="font-size:0.8125rem;margin-top:.4rem">This is <strong>today's</strong> reach, not the token's. If she leaves team IA, the next call returns less, and nothing on this screen changes. If her account is ever disabled, every call with this token is refused. That is the trade this platform took, in the open: no second model of access, and a reach that ages with the person instead of in the token.</p>
+  </div>
+
+  <div class="nao-ofer"><b>No expiration is not offered here.</b> This organisation declared a maximum of <span class="mono">90 days</span> (<span class="mono">api.access.token_lifetime</span>), and a credential with no end is a surface nobody watches. Tokens created before that rule still read <em>no expiration</em> in the list below — the column writes the absence rather than leaving a cell blank.</div>
+  <p class="sub" style="font-size:0.8125rem">The platform stores the label, a one-way hash of the secret, the last four characters, who created it, when, and the expiry. <strong>It does not store the value</strong>, and there is no column it could be recovered from.</p>
+</div>
+
+<!-- the list -->
+<div class="hdr" style="margin-top:1.8rem"><h3>6 tokens</h3><span class="rot">revoked and expired are never hidden</span></div>
+<div style="margin-top:.6rem;display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap">
+  <span class="seg"><span class="on">all 6</span><span>active 4</span><span>expired 1</span><span>revoked 1</span></span>
+  <span class="sub pequeno">A credential you cannot see is a credential you cannot audit. <strong>One of the four active is refused at the API today</strong> — its row says why. The two counts are not added up: <em>active</em> is about the record, <em>refused</em> is about the account behind it.</span>
+</div>
+
+<div class="scroll"><table class="stacked">
+  <thead><tr><th>label</th><th>token</th><th>owner account · what it sees today</th><th>created</th><th>last used</th><th>expires</th><th>state</th><th></th></tr></thead>
+  <tbody>
+
+  <!-- 1 · active, used, healthy -->
+  <tr>
+    <td data-label="label"><span class="rotulo">painel do diretor <span class="ex-mark">example</span><small>the person's own words — never translated</small></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>7f3a</b></span></td>
+    <td data-label="owner"><span class="conta">ana.vieira@the-band-solution.example</span>
+      <span class="alcance"><span class="marca der"><span class="am"></span>derived</span> person record · team <b>IA</b> · projects <b>ConectaFapes</b>, <b>Valida</b><br><span class="marca aus"><span class="am"></span>absent</span> no granted scope on this account</span></td>
+    <td data-label="created"><span class="quando"><b>12 Sep 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>18 Sep 2026 09:41</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="expires"><span class="quando"><b>11 Dec 2026</b>in 84 days</span></td>
+    <td data-label="state"><span class="est"><span class="marca der"><span class="am"></span>active</span><small>read against the clock — not a column</small></span></td>
+    <td data-label="" class="acoes"><button class="btn" type="button">Revoke…</button></td>
+  </tr>
+
+  <!-- 2 · active, never used, expiring soon -->
+  <tr>
+    <td data-label="label"><span class="rotulo">planilha do RH <span class="ex-mark">example</span></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>Lq08</b></span></td>
+    <td data-label="owner"><span class="conta">ana.vieira@the-band-solution.example</span>
+      <span class="alcance"><span class="marca der"><span class="am"></span>derived</span> person record · team <b>IA</b> · projects <b>ConectaFapes</b>, <b>Valida</b><br><span class="marca aus"><span class="am"></span>absent</span> no granted scope on this account</span></td>
+    <td data-label="created"><span class="quando"><b>28 Aug 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="vazio">never used</span><br><span class="marca aus"><span class="am"></span>absent</span></td>
+    <td data-label="expires"><span class="quando" style="color:var(--amber)"><b style="color:var(--amber)">27 Sep 2026</b>expires in 9 days</span></td>
+    <td data-label="state"><span class="est"><span class="marca der"><span class="am"></span>active</span><small>warning from <span class="mono">token_expiry_warning</span> — 14 days</small></span></td>
+    <td data-label="" class="acoes"><button class="btn" type="button">Revoke…</button></td>
+  </tr>
+
+  <!-- 3 · active, no expiration, owner with no reach -->
+  <tr>
+    <td data-label="label"><span class="rotulo">leitor de métricas <span class="ex-mark">example</span></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>3Xv1</b></span></td>
+    <td data-label="owner"><span class="conta">consulta@the-band-solution.example</span>
+      <span class="alcance"><span class="marca aus"><span class="am"></span>absent</span> <b>sees nothing today</b> — no person declared for this account, so there is no team, no project, and no floor to inherit. Calls are <em>accepted</em> and come back <b>empty</b>: <em>nothing found</em> is not <em>not collected</em>.</span></td>
+    <td data-label="created"><span class="quando"><b>2 Jul 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>16 Sep 2026 14:02</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="expires"><span class="vazio">no expiration</span><br><span class="marca aus"><span class="am"></span>absent</span><small class="sub pequeno" style="display:block">created before the 90-day rule</small></td>
+    <td data-label="state"><span class="est"><span class="marca der"><span class="am"></span>active</span><small>no end to read — only a revocation ends it</small></span></td>
+    <td data-label="" class="acoes"><button class="btn" type="button">Revoke…</button></td>
+  </tr>
+
+  <!-- 4 · active by the record, refused at the API -->
+  <tr>
+    <td data-label="label"><span class="rotulo">agente de leitura <span class="ex-mark">example</span></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>me52</b></span></td>
+    <td data-label="owner"><span class="conta">integracao@the-band-solution.example <span class="ex-mark">example</span></span>
+      <span class="alcance"><span class="marca saiu"><span class="am"></span>account disabled</span> disabled on <b>10 Sep 2026</b> by admin@the-band-solution.example. A token does not outlive the account it inherits from.</span></td>
+    <td data-label="created"><span class="quando"><b>5 Sep 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>9 Sep 2026 23:10</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="expires"><span class="quando"><b>4 Dec 2026</b>in 77 days</span></td>
+    <td data-label="state"><span class="est"><span class="marca der"><span class="am"></span>active</span><span class="marca rec"><span class="am"></span>calls refused</span><small>two facts, side by side: the record says active, the owner account says no. Neither is the other's summary.</small></span></td>
+    <td data-label="" class="acoes"><button class="btn" type="button">Revoke…</button></td>
+  </tr>
+
+  <!-- 5 · expired -->
+  <tr>
+    <td data-label="label"><span class="rotulo">integração Valida <span class="ex-mark">example</span></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>0Ttd</b></span></td>
+    <td data-label="owner"><span class="conta">ana.vieira@the-band-solution.example</span>
+      <span class="alcance"><span class="marca der"><span class="am"></span>derived</span> person record · team <b>IA</b> · projects <b>ConectaFapes</b>, <b>Valida</b></span></td>
+    <td data-label="created"><span class="quando"><b>5 Jun 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>2 Sep 2026 08:12</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="expires"><span class="quando"><b>3 Sep 2026</b>15 days ago</span></td>
+    <td data-label="state"><span class="est"><span class="marca der"><span class="am"></span>expired</span><small>the way back is a new token — expiry is not extended here</small></span></td>
+    <td data-label="" class="acoes"><button class="btn inerte" type="button" title="an expired token is already refused">Revoke…</button></td>
+  </tr>
+
+  <!-- 6 · revoked, stays on the list -->
+  <tr>
+    <td data-label="label"><span class="rotulo">painel antigo do RH <span class="ex-mark">example</span></span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>Bn94</b></span></td>
+    <td data-label="owner"><span class="conta">admin@the-band-solution.example</span>
+      <span class="alcance"><span class="marca aus"><span class="am"></span>absent</span> <b>sees nothing today</b> — no person declared for this account. <em>Administering is not seeing</em>: the admin mark opens management screens and grants no visibility.</span></td>
+    <td data-label="created"><span class="quando"><b>14 Jul 2026</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>9 Sep 2026 17:33</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="expires"><span class="quando"><b>12 Oct 2026</b>no longer read — revoked first</span></td>
+    <td data-label="state"><span class="est"><span class="marca saiu"><span class="am"></span>revoked</span><span class="marca dec"><span class="am"></span>declared</span><small>10 Sep 2026 11:20 by admin@the-band-solution.example — a person did this, and the row stays</small></span></td>
+    <td data-label="" class="acoes"><span class="sub pequeno" style="font-style:italic">no way back</span></td>
+  </tr>
+  </tbody>
+</table></div>
+
+<div class="aviso">
+  <span class="rot">what this list does not answer, and it is a decision</span>
+  <p><strong>What each integration read is not recorded.</strong> The platform keeps <em>when</em> a token was last accepted — one field, overwritten — and no series of calls. So this screen answers <em>"is anything still using this credential?"</em> and cannot answer <em>"what has this credential been reading?"</em>. That gap is declared, not an oversight: a call-by-call series answers a different question and grows without a ceiling. It gets built when someone needs the answer.</p>
+</div>
+<p class="sub pequeno">Reach is recomputed on every call and on every load of this screen — it is never written into the token. Six rows, no page cut: when a tenant passes a screenful of tokens this list gets paging, and says so here.</p>
+
+<!-- ════════════════════════ SCREEN 2 ════════════════════════ -->
+<span class="tela" id="create">screen 2 · the value, shown once</span>
+<p class="sub">The instant after <em>Create token</em>. This panel is the only place the value ever exists on a screen; the list row below it already shows the mask.</p>
+
+<div class="segredo" role="status">
+  <div class="cab"><h4>Token created · <span class="mono" style="font-size:0.875rem">painel do diretor</span></h4><span class="rot">shown only now</span></div>
+  <div class="valor">tb_api_7Kq2mN8x_Yb3TQ1nS9xJr0Wme6PdVu2Fz8LcKt4HaGqRpXnZ7f3a</div>
+  <div class="botoes"><button class="btn p" type="button">Copy value</button><span class="rot">59 characters · copied nowhere else</span></div>
+
+  <p class="faz"><b>do this now</b>Paste it into the secret manager your team already uses, or into the deployment's environment — the place the integration will read it from. Hand it over through a channel you would hand a password through, never by e-mail or chat.</p>
+  <p class="naofaz"><b>it will not come back</b><strong>Leave this screen and the value is gone.</strong> The platform kept a one-way hash and the last four characters — there is no screen, export, endpoint or support request that recovers it. If it was not copied, revoke this token and create another; that is the only path, and it costs one minute.</p>
+
+  <div class="partes">
+    <div class="parte"><span class="rot">prefix · public</span><span class="v">tb_api_</span><span class="q">so a secret scanner recognises a leak in a repository, a log or a shell history without knowing the value</span></div>
+    <div class="parte"><span class="rot">public id · public</span><span class="v">7Kq2mN8x</span><span class="q">how the platform finds the row — indexed, so the check never searches by the hash</span></div>
+    <div class="parte"><span class="rot">secret · 32 bytes</span><span class="v">Yb3TQ1nS9x…Z7f3a</span><span class="q">compared in constant time, stored only as a hash. This is the part that must not leave the secret manager</span></div>
+  </div>
+
+  <pre class="cmd"><span class="c"># the only accepted place for it — a header, never a query string,</span>
+<span class="c"># which would land in proxy logs and browser history</span>
+curl -H "Authorization: Bearer $TB_API_TOKEN" \
+     https://theband.example/api/v1/teams</pre>
+  <p class="sub pequeno">The example reads the value from an environment variable on purpose: a command with the token typed into it is a token in your shell history.</p>
+  <div class="botoes"><button class="btn s" type="button">Done — back to the list</button></div>
+</div>
+
+<div class="hdr" style="margin-top:2rem"><h3>If you reload this page by mistake</h3></div>
+<p class="sub">The panel above does not come back — not on reload, not on navigation, not with the browser's back button. What is there instead is one quiet line at the top of the list, and it names the way forward rather than pretending the value is somewhere.</p>
+<div class="cartao" style="background:var(--papel)">
+  <p style="margin:0;font-size:0.875rem"><span class="marca dec" style="margin-right:.4rem"><span class="am"></span>declared</span><strong>painel do diretor</strong> was created 2 minutes ago by you, and its value was shown once. <strong>It cannot be shown again.</strong> If it was not copied, <a class="link" href="#revoke">revoke it</a> and create another — an uncopied token is a token nobody can use and nobody can audit.</p>
+</div>
+<div class="scroll"><table class="stacked" style="margin-top:.8rem">
+  <thead><tr><th>label</th><th>token</th><th>created</th><th>last used</th><th>expires</th><th>state</th></tr></thead>
+  <tbody><tr>
+    <td data-label="label"><span class="rotulo">painel do diretor</span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>7f3a</b></span></td>
+    <td data-label="created"><span class="quando"><b>18 Sep 2026 10:14</b>by admin@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="vazio">never used</span><br><span class="marca aus"><span class="am"></span>absent</span></td>
+    <td data-label="expires"><span class="quando"><b>17 Dec 2026</b>in 90 days</span></td>
+    <td data-label="state"><span class="marca der"><span class="am"></span>active</span></td>
+  </tr></tbody>
+</table></div>
+<p class="sub pequeno"><strong>never used</strong> is the words this cell carries until the first accepted call — never the creation date, and never a blank. Two tokens of the same account are told apart by the label and by the last four characters; nothing else on this screen distinguishes them, and nothing else needs to.</p>
+
+<!-- ════════════════════════ SCREEN 3 ════════════════════════ -->
+<span class="tela" id="revoke">screen 3 · revoking, with the label named</span>
+<p class="sub">Revoking the wrong token stops a third party's integration — and that third party is not in the room. So the confirmation names the label, and says what is calling with it right now.</p>
+
+<div class="confirma" role="dialog" aria-label="Revoke token">
+  <h4>Revoke “planilha do RH”?</h4>
+  <div class="alvo">
+    <span>••••••••••••••••<b>Lq08</b></span>
+    <span class="sub pequeno" style="font-family:var(--grot)">owner ana.vieira@the-band-solution.example · created 28 Aug 2026</span>
+    <span class="marca obs"><span class="am"></span>last accepted call 14 minutes ago</span>
+  </div>
+  <p class="sub pequeno" style="margin-top:.5rem">Something is calling with this token today. If you did not expect that, this is the moment to find out what — and if you did, whatever it is stops working the second you confirm.</p>
+
+  <p class="faz"><b>what it does</b>The next call with this token is refused — <strong>immediately</strong>, with no cache and no delay between this click and the refusal. The row stays on the list, marked revoked, with the instant and your name.</p>
+  <p class="naofaz"><b>what it does not do</b>It does not delete anything, it does not touch the other tokens of this account, and <strong>it cannot be undone</strong>. There is no reactivate: a revoked credential is a credential someone decided to stop trusting, and a pause would not be that decision. The way back is to create another token and hand it to whoever integrates.</p>
+  <p class="naofaz"><b>what the client sees</b>The same <span class="mono">401</span> as a token that never existed — same code, same message. The caller is not told that the credential was revoked, because telling them confirms it once existed. Whoever operates this platform finds the real reason in the internal log, by the request id.</p>
+
+  <div class="botoes">
+    <button class="btn g" type="button">Revoke “planilha do RH”</button>
+    <button class="btn" type="button">Cancel</button>
+    <span class="rot">the label is in the button, not only in the title</span>
+  </div>
+</div>
+
+<div class="hdr" style="margin-top:2rem"><h3>The row, after confirming</h3></div>
+<div class="scroll"><table class="stacked">
+  <thead><tr><th>label</th><th>token</th><th>owner account</th><th>last used</th><th>state</th><th></th></tr></thead>
+  <tbody><tr>
+    <td data-label="label"><span class="rotulo">planilha do RH</span></td>
+    <td data-label="token"><span class="mascara">••••••••••••••••<b>Lq08</b></span></td>
+    <td data-label="owner"><span class="conta">ana.vieira@the-band-solution.example</span></td>
+    <td data-label="last used"><span class="quando"><b>18 Sep 2026 10:02</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
+    <td data-label="state"><span class="est"><span class="marca saiu"><span class="am"></span>revoked</span><span class="marca dec"><span class="am"></span>declared</span><small>18 Sep 2026 10:16 by admin@the-band-solution.example</small></span></td>
+    <td data-label="" class="acoes"><span class="sub pequeno" style="font-style:italic">no way back</span></td>
+  </tr></tbody>
+</table></div>
+<p class="sub pequeno">The count at the top of the list goes from <span class="n">active 4</span> to <span class="n">active 3</span> and from <span class="n">revoked 1</span> to <span class="n">revoked 2</span>; <span class="n">all 6</span> does not move, because nothing was removed. That is the check: the number of rows before and after a revocation is the same.</p>
+
+<!-- ════════════════════════ SCREEN 4 ════════════════════════ -->
+<span class="tela" id="refuses">screen 4 · what this screen refuses, and why</span>
+<p class="sub">Each of these is something a person could reasonably come here expecting. A control that is missing without a word makes people conclude the platform cannot do it — so the screen says it, in the place where they would look.</p>
+
+<div class="duas">
+  <div class="recusa-card">
+    <h4>“Let me generate my own token”</h4>
+    <span class="esp">expected: a button on the profile screen</span>
+    <p class="diz"><strong>Only administration generates tokens.</strong> This screen lives behind the same door as accounts and access scopes. Self-service is a later decision, and it is a decision about who may hand out credentials — not a missing button.</p>
+  </div>
+  <div class="recusa-card">
+    <h4>“Let me rename it, or push the expiry out”</h4>
+    <span class="esp">expected: an edit pencil on the row</span>
+    <p class="diz"><strong>A token is not edited after it is created.</strong> Extending the life of a live credential grants time without generating anything anyone had to hand over again. The label is fixed at creation for the same reason the mask is: the row has to keep meaning what it meant.</p>
+  </div>
+  <div class="recusa-card">
+    <h4>“Show me what this integration read”</h4>
+    <span class="esp">expected: a usage log on the row</span>
+    <p class="diz"><strong>Only <em>when</em>, never <em>what</em>.</strong> One field, overwritten by each accepted call. The gap is declared here so nobody reads the last-used column as an audit trail — it answers "is this still in use", and no more.</p>
+  </div>
+  <div class="recusa-card">
+    <h4>“Put it back — I revoked the wrong one”</h4>
+    <span class="esp">expected: a reactivate button on the revoked row</span>
+    <p class="diz"><strong>There is no reactivate, anywhere on this screen.</strong> Revocation is definitive; create another token and hand it over. The revoked row stays visible so the mistake is legible rather than erased.</p>
+  </div>
+  <div class="recusa-card">
+    <h4>“Give this token access to one more team”</h4>
+    <span class="esp">expected: a scope editor on the row</span>
+    <p class="diz"><strong>A token has no scope of its own.</strong> Access is granted to the <em>account</em>, on the access-scopes screen, and the token reads it at every call. A scope stored on the token would be a second answer about access — and it would age in the pocket of whoever left.</p>
+  </div>
+  <div class="recusa-card">
+    <h4>“Show me the value again — I lost it”</h4>
+    <span class="esp">expected: a reveal on the row</span>
+    <p class="diz"><strong>Nothing stored can produce it.</strong> The platform kept a one-way hash, not an encrypted copy, because it never needs the value back — it only ever needs to check one. Revoke and create another.</p>
+  </div>
+</div>
+
+<div class="hdr" style="margin-top:2rem"><h3>And the account that is not an administrator</h3></div>
+<div class="cartao" style="background:var(--papel)">
+  <p style="margin:0;font-size:0.875rem"><span class="marca rec" style="margin-right:.4rem"><span class="am"></span>refused</span><strong>API tokens are managed by administrators.</strong> Your account does not carry the administrator mark in <em>The Band Solution</em>, so this screen is not open to you. Ask someone who administers this organisation to generate a token and hand it over. <span class="sub">— the refusal names the reason and the way forward; it is not a blank page and not a redirect that leaves someone guessing.</span></p>
+</div>
+
+<!-- ════════════════════════ DECISIONS ════════════════════════ -->
+<span class="tela" id="decisions">decisions and open questions</span>
+<div class="dq">
+  <h3>Decisions taken in this prototype</h3>
+  <ol>
+    <li><span class="dd">D1</span><strong>The state chip carries the provenance of the state.</strong> <em>Active</em> and <em>expired</em> are amber hatched — they are <strong>read</strong> against the clock, at this instant, and there is no state column in the database. <em>Revoked</em> is grey filled with a declared mark beside it — a person did it, and the row carries the instant and the author. The screen's own grammar does the teaching: the only state anybody declared looks declared.</li>
+    <li><span class="dd">D2</span><strong>The mask is sixteen bullets and the last four characters</strong>, fixed width, so it never hints at the length of the value. Two tokens of the same account are told apart by the label and by those four characters, and by nothing else. The house helper for tool credentials masks with four bullets; reusing it here would contradict this screen — the token mask is its own.</li>
+    <li><span class="dd">D3</span><strong>Reach is shown on the row, in two lines, split by origin and never summed</strong>: what is <em>derived</em> from the account's current links (person record, teams, projects) and what was <em>granted</em> to it. Where either is empty the cell writes the absence and whose it is — <em>"sees nothing today — no person declared for this account"</em> — with what the API does about it: accepted call, empty collection.</li>
+    <li><span class="dd">D4</span><strong>The reach preview lives inside the create form, under the owner select.</strong> The consequence people get bitten by — the reach changes when the person changes teams — has to be visible while generating, not when a third party's dashboard empties out. It is one paragraph, and it links onward instead of becoming a second grants screen on this page.</li>
+    <li><span class="dd">D5</span><strong>The clear value is a panel, not a modal</strong>, with the copy action, the instruction to put it in a secret manager, and the sentence that it will not come back written as <em>what it does not do</em>. The panel is the only place the value exists, and the list row beneath it already shows the mask — so the difference between "now" and "from now on" is visible in one glance.</li>
+    <li><span class="dd">D6</span><strong>The value is annotated in three parts</strong> — public prefix, public id, secret — because all three are public knowledge except the last, and because it explains, at the only moment someone is looking, why a leaked token is findable by a scanner and why checking one never searches the database by its hash.</li>
+    <li><span class="dd">D7</span><strong>A reload shows one quiet line, not a second chance.</strong> "Created 2 minutes ago, shown once, cannot be shown again — if it was not copied, revoke it and create another." The line names the recovery path, since the mistake it addresses is exactly someone looking for the value.</li>
+    <li><span class="dd">D8</span><strong>The revocation confirmation names the label in the title <em>and</em> in the button</strong>, and carries the fact that actually stops a wrong revocation: when this token was last accepted. "Last accepted call 14 minutes ago" is what tells someone they are about to break something live. No typing of the label is asked — see Q3.</li>
+    <li><span class="dd">D9</span><strong>An account that cannot sign in shows as two marks on one row</strong> — <em>active</em> (the record) and <em>calls refused</em> (the account behind it) — side by side, neither summarising the other. A row that said only "active" would be the screen affirming what the API denies.</li>
+    <li><span class="dd">D10</span><strong>The refusals get a section of their own</strong>, each written as what someone would come here expecting. Six of them, including the declared gap about what an integration read. A missing control with no word next to it reads as a platform that cannot do the thing.</li>
+  </ol>
+
+  <h3 style="margin-top:1.6rem">Open questions for the maintainer</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>question</th><th>options</th><th>recommendation</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">Q1</td><td><strong>May a new token be created with no expiration?</strong> The spec says absence of expiry is permitted and must be explicit on the screen (FR-011); the answered question Q8 declares a <em>maximum</em> validity of 90 days. A maximum that can be opted out of is not a maximum, and the form has to pick one.</td><td>(a) the form offers 7 / 30 / 90 days and explains, in a dashed box, where "no expiration" went — the list still writes <em>no expiration</em> for older rows · (b) the form offers "no expiration" behind a typed confirmation</td><td><strong>(a)</strong>, which is what this prototype draws — and then FR-011's wording is corrected to say the absence is <em>displayed</em>, not <em>offered</em></td></tr>
+      <tr><td class="mono">Q2</td><td><strong>Which prefix does a token carry?</strong> The spec proposes <span class="mono">tbnd_</span> (FR-001); the task list decided <span class="mono">tb_api_&lt;public id&gt;_&lt;secret&gt;</span>. The prototype has to show one, and a secret scanner's pattern is written against it once.</td><td>(a) <span class="mono">tbnd_</span> · (b) <span class="mono">tb_api_</span>, as the tasks say</td><td><strong>(b)</strong> — the later decision, and the one the format's three parts were designed around. Whichever wins, the other document is corrected in the same PR so there is a single answer</td></tr>
+      <tr><td class="mono">Q3</td><td><strong>Should revocation require typing the label</strong>, as destructive acts elsewhere do?</td><td>(a) no: the confirmation names the label in title and button, and shows when the token was last used · (b) yes: type the label to enable the button</td><td><strong>(a)</strong> — there is no bulk revoke and no list of checkboxes here, so the act is already one row at a time; "last accepted call 14 minutes ago" stops a wrong revocation better than typing does, and typing is friction people learn to speed through</td></tr>
+      <tr><td class="mono">Q4</td><td><strong>Does revoking record a reason?</strong> Disabling an account in this product records a clause and a note; revoking a token, as specified, records only who and when.</td><td>(a) no reason, as specified · (b) a short clause list — <em>integration ended</em>, <em>suspected leak</em>, <em>replaced by another token</em>, <em>other</em> — plus a free note</td><td><strong>(b)</strong>, if it is cheap: <em>suspected leak</em> is the one case where the next act differs (rotate everything that account owns), and a revocation with no reason is a decision nobody can reconstruct in six months. It is a new field, so it is the maintainer's call, not the designer's</td></tr>
+      <tr><td class="mono">Q5</td><td><strong>Does the expiry warning ship in this slice?</strong> The screen shows "expires in 9 days" from <span class="mono">api.access.token_expiry_warning</span> (14 days), but the plan only applies <span class="mono">token_lifetime</span> in slice 1.</td><td>(a) yes — the threshold goes into the same YAML and the list reads it; it is a read, not a job · (b) no — the list shows only the date in slice 1</td><td><strong>(a)</strong> — the screen already reads dates against the clock, so the warning costs one comparison, and "expires in N days" is the half of the fact that makes someone act</td></tr>
+      <tr><td class="mono">Q6</td><td><strong>Does anything warn the owner account before a token expires?</strong> The screen tells whoever opens it; nobody opens an admin screen on a Tuesday for no reason.</td><td>(a) nothing in this slice — the screen is the only surface · (b) a line on the operations screen · (c) e-mail to the creator 14 days out</td><td><strong>(a)</strong> for this slice, recorded as a known gap: an integration that stops at 3 a.m. because a credential expired is exactly the silence this platform dislikes, and (c) is the fix — but it is a delivery channel this feature does not open</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:1.6rem">Names the knowledge base needs before the code</h3>
+  <ul class="lista-q">
+    <li><span class="mono">api.access.thresholds</span> — the rule that holds every number this screen shows: <span class="mono">api.access.token_lifetime</span> (90 days, applied), <span class="mono">api.access.token_idle_expiry</span> (30 days without use, <strong>declared and not applied</strong> in this slice — and the rule says which is which), <span class="mono">api.access.token_expiry_warning</span> (14 days, and see Q5).</li>
+    <li><span class="mono">api.access.token_prefix</span> — the public prefix (see Q2). It is printed on this screen, pasted into a scanner's pattern, and must not live as a literal in two places.</li>
+    <li><span class="mono">api.access.token_state</span> — the vocabulary of the state column: <em>active</em>, <em>revoked</em>, <em>expired</em>, each with how it is read and whether a person declared it. The screen shows a fourth line that is <strong>not</strong> a token state — <em>calls refused · owner account disabled</em> — and it needs its own name so the row and the API agree on the words.</li>
+    <li>the words of the two absences, so the screen and the API say the same thing: <em>never used</em> (no accepted call yet) and <em>no expiration</em> (no end declared) — never a blank, never a zero, and never the creation date standing in for a use.</li>
+  </ul>
+  <p class="sub" style="margin-top:1.2rem">Approval: <strong>awaiting the maintainer</strong>. Republishing after a decision keeps this address; a new address would be a new prototype, and a new prototype needs a new approval.</p>
+</div>
+
+</div>
