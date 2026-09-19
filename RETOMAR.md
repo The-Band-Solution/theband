@@ -1,4 +1,4 @@
-# Retomar — estado em 2026-09-14, a v0.8.0 preparada e três sprints registrados depois do fato
+# Retomar — estado em 2026-09-18, a API com token pela metade e a release bloqueada por um comando
 
 **Este é o único documento de estado.** `docs/sprints/RETOMAR.md` aponta para cá (AGENTS.md §5).
 
@@ -8,219 +8,183 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 
 ## Onde parei, em uma frase
 
-**A v0.8.0 está avaliada, ratificada pelo papel de Product Owner e à espera de dois merges**
-— o bump (#916, `chore/release-v0.8.0 → development`) e depois o PR de release
-(`development → main`, que ainda não existe e é `/release --executar`). A 065 tem as três user
-stories com veredito **proposto** nas issues: US1 e US2 **não aceitas**, US3 aceita pendente de
-confirmação. Sete PRs de docs (#909–#915) estão verdes esperando revisão.
+**A API pública está em 12 de 24 tarefas** — o token existe, é gerável na tela e revogável,
+mas **nenhuma rota responde ainda**. Dois branches estão empurrados **sem PR aberto**. E a
+release da v0.8.0 está preparada há quatro dias, bloqueada por **um comando** que só a pessoa
+mantenedora pode dar.
 
 ## O primeiro comando
 
 ```bash
 git fetch origin --prune && git status --short     # 1. NADA fora de commit — antes de tudo
 git checkout development && git pull
-mix gates                                          # o veredito é o CÓDIGO DE SAÍDA, e nada depois dele
+mix gates > /tmp/gates.log 2>&1; echo "EXIT=$?"    # o veredito é o CÓDIGO DE SAÍDA, colado
 ```
 
-O CI estava verde em `development` em `0ccf02b` (run 34779226200) em 2026-09-13. A contagem
-"16 gates, 2149 testes" **não foi remedida** hoje — o servidor dev estava de pé na porta 4000 e
-a suíte com ele fica inviável. Se ainda estiver: `pgrep -fl phx.server`.
+`mix gates` deu **0** em `061-api-tela` em 2026-09-18, com 16 gates. A suíte inteira é inviável
+com o servidor dev de pé — se estiver: `pgrep -fl phx.server`.
+
+> **O servidor local foi reiniciado em 2026-09-18.** O anterior subira em 15/09, antes de
+> `api.access.thresholds` existir, e a base de conhecimento só carrega no boot — a tela de
+> tokens dava 500 por isso. Se acrescentar regra à base, **reinicie o servidor** ou ela não
+> existe para quem está rodando.
+
+---
+
+## ⛔ O bloqueio, e ele é de uma linha
+
+**O secret `PRODUCAO_URL` não existe no repositório.** Só há `DOKPLOY_WEBHOOK_URL` e
+`SONAR_TOKEN`.
+
+```bash
+gh secret set PRODUCAO_URL --body "https://app.theband.dev"
+```
+
+O passo do CD que confirma a versão (`cd.yml:117`) falha explicitamente sem ele — e falha
+**depois de o deploy já ter acontecido**, deixando a versão no ar e o pipeline vermelho, sem
+distinguir deploy quebrado de verificação impossível.
+
+Conferido em 2026-09-18: `https://app.theband.dev` responde `302` para `/sign-in`, servindo a
+aplicação. A rota `/version` devolve **texto puro** (`0.8.0`), que é exatamente o que o CD
+compara — a engrenagem está certa, falta só o endereço.
+
+**Esta é a primeira release em que aquele passo pode funcionar**: a rota entrou no #859, depois
+da v0.7.0, e por isso produção devolve 404 nela hoje.
 
 ---
 
 ## O que está no ar
 
-A **v0.7.0** (`dd4272f`, 2026-09-10). **`GET https://app.theband.dev/version` devolve 404** —
-a produção não sabe dizer que versão serve. O endpoint existe em `development` desde o #859 e
-sobe com a v0.8.0; o CD passa a **falhar** se a produção responder outra versão.
+A **v0.7.0** (`dd4272f`, 2026-09-10). São **92 commits** não publicados e **oito dias** de
+defasagem — nada desta semana está em produção.
 
-### Em `development` e ainda não em produção — 16 PRs desde a v0.7.0
+A avaliação e a reavaliação estão em `docs/releases/v0.8.0.md`. A versão **continua 0.8.0,
+MINOR**, e a reavaliação de 18/09 cobre os 34 commits que entraram depois da avaliação
+original.
 
-Medidos por `git log origin/main..origin/development` lendo `(#NNN)` (squash) e `#NNN from`
-(merge commit) — **`--merges` perde metade**. Funcionalidade visível: **#853** conta desativada
-conforme o protótipo, **#860** aba Flow per person, **#863** vincular pessoa a equipe (FR-003 da
-055, o achado de 2026-09-10 — fechado), **#907** rótulos no item. Segurança: **#864**
-`TheBand.Segredo`, **#859** `/version` + verificação no CD (H7, H8). Processo: **#889**
-constituição 1.8.0, **#861** MinIO como destino do ensaio, **#856** back-merge da v0.7.0,
-#854, #855, #857 (subequipe numa transação — o defeito *a* de 2026-09-10, fechado), #858,
-#862, #865, #908. Lista completa em `docs/releases/v0.8.0.md`, na branch do #916.
+> **O agente de Product Owner travou duas vezes**, aos 600 segundos, sem escrever nada —
+> 13/09 e 18/09. A skill `/release` prevê isso, e as duas avaliações foram feitas por medição
+> direta, com o fato declarado no documento. **Não insista nele sem prever o mesmo.**
+
+### Os três riscos, medidos
+
+| Risco | Veredito |
+|---|---|
+| seis migrações novas | **nenhuma destrutiva ao subir** — todo `drop`/`remove`/`modify` está no bloco `down` |
+| oito variáveis novas | **nenhuma obrigatória** — o `compose.yaml` não exige nenhuma sem padrão |
+| comportamento visível | três: valores nos gráficos, aba da equipe que voltou a abrir, quatro declarações no quadro |
+
+**E um risco novo**: a fase `issues` da coleta foi à **versão 5**, o que reabre o corte
+incremental em **todos** os repositórios na primeira coleta depois do deploy. É intencional —
+torna retroativo o conserto do identificador do evento e do quadro —, mas custa cota: a
+recoleta completa de 33 repositórios custou **858 pontos**. Quem acompanhar em `/syncs` precisa
+saber antes de achar que travou.
+
+**Não medido**: o volume de produção. O documento não promete tempo de migração.
 
 ---
 
 ## O que fazer, em ordem
 
-### 1. A release — e a decisão que ela pede
+### 1. Abrir os dois PRs que ficaram sem PR
 
-1. **Mergear o #916** (squash, por comando: `gh pr merge 916 --squash`). Leva `mix.exs` a
-   0.8.0, `docs/releases/v0.8.0.md` com o veredito do PO, o agente `aceitacao-em-producao`, o
-   §6 do runbook exercitado de ponta a ponta (260 MB → MinIO em 16 partes → restaurado, sha256
-   igual) e as `MINIO_*` declaradas opcionais;
-2. **`/release --executar`** (skill no #910 — se ainda não mergeado, o procedimento é a seção
-   *Como executar* do doc da release): PR `development → main`, **merge commit**, nunca squash.
-   **Não criar a tag** — o CD a cria e reprova se ela já existir;
-3. **A decisão que só a pessoa mantenedora toma (FR-016):** o #907 embarca com a **US1 não
-   aceita** e a **US2 conceitualmente errada**, e o #853 é retrabalho da D06 recusada na v0.7.0
-   **sem reavaliação do papel**. Ou embarca como **exceção nomeada** (como v0.4.0 e v0.5.0), com
-   a página da aplicação não anunciando o que não foi aceito — ou aceita-se antes;
-4. **Depois do deploy, a primeira medida é sempre**
-   `curl -s https://app.theband.dev/version`. Depois `deploy-producao` (plataforma) e
-   `aceitacao-em-producao` (o que quem usa vê) — são medidas diferentes.
+Empurrados em 2026-09-18, verdes, **sem PR**:
 
-### 2. Os vereditos — confirmar ou recusar (PR #918)
-
-**Doze fases propostas esperam a pessoa alocada ao papel**: nove no sprint 030 (060 e a
-herança) e três no 032 (065). Registro em `docs/sprints/030-a-tela-da-equipe-por-vinculo/aceitacao.md`
-e `docs/sprints/032-rotulos-no-item/aceitacao.md`.
-
-| Sprint 030 | fase proposta | o que fecha |
+| branch | commits | o que traz |
 |---|---|---|
-| 060/US4 · #857 subequipe numa transação | **aceitos** | — |
-| 060/US2, US3, US5 | não aceitas — **critério não medido** | medir na confirmação (SC-013 cronometrado; AC2 decidida; SC-005/FR-081 com duas equipes) |
-| 060/US1 | não aceita — três testes prometidos **não existem** (T010–T012 marcadas `[x]`) | tarefa nova; a sonda do papel é o esqueleto |
-| 060/US9 | não aceita — **defeito**: cartão *Squads at a glance* ≠ protótipo (T029 confessa) | Design antes; depois o cartão |
-| #853 (D06 refeito) | não aceito — os 5 pontos da v0.7.0 **fecharam**; restam 4 cláusulas sem teste e a conferência do QA | quatro testes + §3 com captura; a 045 declara a US que falta |
-| #863 (FR-003 com tela) | não aceito — o README do protótipo diz **"aprovação pendente"**, o código diz "aprovado"; §3.4/§3.7 furadas; recusa em **português** no flash | P1–P3 respondidas → republicação → §3 → catálogo → testes → QA |
-| #860 (aba *Flow per person*) | **não avaliado** — não é T026–T029; é US10–US12 da extensão, **sem tarefa** | registro próprio depois do #913 |
+| `061-api-fundacao` | 1 | a regra na base, a ADR 0010, a tabela, o schema, o formato do token |
+| `061-api-tela` | 2 | contém o anterior, mais a tela `/api-tokens` |
 
-#### Os vereditos da 065 (sprint 032)
+**Um PR só resolve os dois** — `061-api-tela` contém `061-api-fundacao`. Base: `development`.
 
-Propostos pelo papel em 2026-09-13, com evidência executada, nos comentários de
-[#904](https://github.com/The-Band-Solution/theband/issues/904),
-[#905](https://github.com/The-Band-Solution/theband/issues/905) e
-[#906](https://github.com/The-Band-Solution/theband/issues/906). **Nenhuma fechada** — a
-aceitação é ato da pessoa alocada ao papel.
+E `fix/divergencias-do-esquema` **já foi mergeado** (#929) — o branch pode ser apagado.
 
-| US | veredito proposto | por quê | destino proposto |
-|---|---|---|---|
-| **US1** rótulos na lista | **não aceita** | a listagem cumpre; o campo `labels` do **detalhe** (`work_item_live/show.ex`) mostra só o observado, sem origem e sem o derivado — e nenhum dos três protótipos cobre esse campo | próximo sprint, em primeiro: protótipo do campo **antes** do código; testes de tela devidos (T005, T007, T012); decisão sobre as **47 variantes de caixa** |
-| **US2** alegação ao lado do veredito | **não aceita** | "rótulo" na spec é o label do GitHub; "label" no mecanismo de divergência é o **tipo declarado**. A plataforma **nunca produz** `label_vs_structure` — as 512 divergências reais são todas `user_story_without_parts`. A tela mostra os dois lados e não diz que divergem nem qual foi seguido | **product backlog**, até três decisões (abaixo) |
-| **US3** rótulo nunca vira conceito | **aceita** | 8 de 8 critérios conformes, `prefixo_vira_rotulo_test.exs` 9 passed | fechar **depois** da confirmação e da revisão pós-merge do #907 (ou atestado datado com exceção) |
+### 2. Terminar a API — faltam 11 tarefas
 
-Mais três coisas que a avaliação achou: **SC-002 não reproduz** — a spec diz 1 519 issues com
-prefixo, a função entregue mede **1 489** sobre os 5 033 títulos reais (`[backend]`, `[DADOS]`,
-`[DevOps]`… não derivam: comparação sensível a caixa, coerente com o catálogo); **cinco arquivos
-de teste prometidos no `tasks.md` não existem** (`prefixos_test.exs`, os de tela de T005/T007/T012,
-`divergencia_com_rotulo_test.exs`); e **não há `prototipo/PROMPT.md` nem item em `docs/backlog/`**
-para a 065 — a T013 leu código, não tela, e foi feita por quem implementou.
+`specs/061-api-publica/tasks.md`. **T001 está feita e não marcada**: o protótipo existe e foi
+aprovado em 18/09.
 
-**T014 (#903) está fechada** com a evidência do CI; a caixa em `tasks.md` foi marcada neste PR.
-
-### 3. Sete PRs de docs esperando revisão
-
-Todos verdes, todos com revisor `the-band` pedido e no projeto (feito em 2026-09-13 — tinham
-nascido sem, os oito, contra a regra do `AGENTS.md`):
-
-| PR | o quê | pede decisão? |
-|---|---|---|
-| #909 | 17 specs sem issue — decidido **não** preencher | não |
-| #910 | fluxo de release ponta a ponta + skill `/release` | não |
-| #911 | paridade compose–Dokploy | **sim** — bloqueada em decisão |
-| #912 | superfície de risco do destino de backup em segundo host | não |
-| #913 | requisitos da aba Flow per person, transcritos do protótipo | não |
-| #914 | MinIO como destino de **produção**, e a chave mestra que não viaja no dump | **sim** |
-| #915 | protótipo do vínculo declarado e os requisitos que gerou | não |
-
-### 4. A spec 064 — segredo em repouso
-
-**O token de sessão continua em claro no banco** (`users.session_token`, `character varying`).
-22 issues abertas (T001–T019, US1–US3) mais o épico #888. A rotação do token `…omAX` foi adiada
-para **2026-10-12**; ele esteve legível de 2026-09-04 a 2026-09-12. O objeto no balde do MinIO
-tem o banco de desenvolvimento inteiro com dois tokens de sessão em claro.
-
-### 5. Limpeza local — o classificador negou apagar
-
-Branches redundantes: `065-divergencias` (idêntica a `origin/docs/specs-antigas-sem-issue`) e
-`docs/065-escopo-reescrito` (mergeada). Worktrees limpos de branches mergeadas: `theband-api`,
-`theband-docs`, `theband-fluxo`, `theband-fr041`, `theband-modelos`, `theband-release`,
-`theband-subequipe`, `theband-t001`, `theband-vinculo`. Comandos na seção *Comandos*.
-
-**Não tocar em `theband-relnote`**: `docs/releases/v0.6.0.md` modificado sem commit (461+/169−),
-sem PR — reescrita da nota da v0.6.0 que ninguém decidiu. Olhar antes.
-
-### 6. O que sobra de 2026-09-10
-
-- **a reavaliação da D06** (#853) — ato do papel, ainda não feito;
-- **revisão pós-merge**: 21 PRs da v0.7.0 e 16 da v0.8.0 sem revisão registrada. A API não
-  aceita pedido em PR mergeado — é **resíduo**; o que se recupera é o atestado datado;
-- **segurança**: H9 (`ssl: true`, depende da topologia — pergunta para quem opera), H13
-  (`PHX_HOST` com fallback), H5, H10, H11, H14–H16. H7 e H8 fecham com a v0.8.0.
-
----
-
-## Features especificadas e sem código
-
-| spec | o que é |
+| Tarefa | O que falta |
 |---|---|
-| **061** | API pública com token — bloqueia *"conta desativada não autentica por token"* |
-| **062** | MCP |
-| **063** | issue ausente da origem (estado `deleted`) |
-| **064** | segredo em repouso — **em curso**, só `TheBand.Segredo` e a redação entregues |
+| T014 | a autenticação na fronteira **já existe em código** (`ApiTokens.autenticar/1`) — falta marcar e cobrir o caso da conta desativada |
+| T015 | o plug da recusa uniforme, em `lib/the_band_web/plugs/api_auth.ex` |
+| T016 | o formato único de erro — o contrato está em `contracts/erro.md` |
+| T017 | `GET /api/v1/teams` — a pipeline `:api` está declarada e **nunca teve rota** |
+| T018 | o serializador com a marca `origin` (`observed` / `declared`) |
+| T019 | paginação por cursor, **sem total**, com a nota dizendo por quê |
+| T020–T023 | os quatro transversais: teto de consultas, nenhum método de escrita, o valor que não existe, os dois tenants |
+| T024 | gates |
 
-Issues abertas que pesam: **#397** (equipe composta por equipes), **#568** (marca de
-administrador com guarda do último), **#801** (Oban pode parar sem erro), **#802**
-(OpenTelemetry), **#621** (050/US2: os dados sobrevivem — a evidência do §6 está no #916;
-a aceitação é do papel).
+**O que já funciona**, conferido em 18/09: gerar token na tela, ver o valor uma vez, a linha
+mascarada, o alcance vigente da conta dona antes de criar, e revogar com o rótulo nomeado.
+Dezesseis itens da régua do QA conferidos contra o HTML servido; zero ocorrências de token na
+página em repouso.
 
----
+### 3. As três decisões que são da pessoa mantenedora
 
-## Decisões esperando a pessoa mantenedora
+**A 066 está entregue ou pela metade?** Ela entregou a **declaração** — a tela onde a
+organização diz o que cada coluna significa. As medidas **ainda não a consomem**: o gráfico por
+mês conta `external_closed_at`, o fechamento da issue na origem, e não a coluna do quadro. As
+**três tabelas de declaração estão zeradas** — ninguém declarou nada —, e as **377 entregas** do
+quadro 43 continuam fora do gráfico do Harian.
 
-1. **A exceção da release** (seção 1.3) — embarcar sem aceitação registrada, ou aceitar antes;
-2. **US2 da 065**: rótulo × conceito é divergência que a plataforma computa? a linha diz qual
-   lado seguiu? "no label" basta para a AC2?
-3. **As 47 variantes de caixa** do prefixo — manter sensível a caixa e corrigir o SC-002 para
-   1 489 (recomendado), ou normalizar;
-4. **MinIO em produção** (#914) e a paridade compose–Dokploy (#911);
-5. **H9** — a topologia do banco decide se `ssl: true` entra;
-6. Sem resposta registrada desde 2026-09-10: instalar `puppeteer`; o *eyebrow* mono;
-   sucessor de quem sai como campo; desabilitar o *rebase merge* no repositório.
+**O Swagger entra agora ou com as oito rotas?** É US4, P2, e o pedido original é literal: *"A
+API precisa de ter Swagger"*. Traz a **única dependência nova** da feature (`open_api_spex`), e
+a CSP (`script-src 'self'`) obriga a servir o ativo do próprio domínio. Com **uma** rota ele é
+quase só esqueleto; com as oito vale muito mais.
 
----
-
-## O que este ciclo ensinou
-
-1. **A verificação rodou, deu a resposta certa, e ninguém a leu.** O `sed` do bump casava
-   `"0.7.0"$` e a linha termina em vírgula; o `grep` na mesma saída mostrou `0.7.0`; o commit
-   saiu dizendo que a versão tinha mudado. **Ler a saída é o passo**, não rodar o comando.
-2. **`git log --merges` perde os squash.** Contei 10 PRs; eram 15, depois 16. Ler `(#NNN)`.
-3. **Oito PRs abertos no mesmo dia sem revisor e fora do projeto** — a regra existe desde o
-   #89 e está no `AGENTS.md`. Reincidiu porque `gh pr create` não a exige. Conferir com
-   `gh pr view <n> --json reviewRequests,projectItems` **ao abrir**.
-4. **"Criar a tag depois do merge" reprovaria o próprio deploy.** O CD cria a tag e falha
-   nomeando se ela já existir. O doc da release mandava criá-la à mão; corrigido.
-5. **O agente de Product Owner travou uma vez (600s) e escreveu na segunda.** A avaliação
-   direta é ponte, e o documento **diz** que foi feita assim — quatro afirmações dela estavam
-   erradas, e foi o papel que as pegou.
-6. **`sprint-backlog` não rodou para 060, 064 e 065.** Os sprints **030, 031 e 032** foram
-   escritos depois, em 2026-09-13/14 (PR **#918**), e dizem isso no topo: backlog, review e
-   aceitação **proposta** pelo papel. O que a aceitação achou está lá — e pede confirmação (L108).
+**As seis perguntas abertas do protótipo**, em
+`specs/061-api-publica/prototipo/README.md`. A mais concreta: **a revogação registra razão?** É
+campo novo, e *suspeita de vazamento* é o único caso em que o ato seguinte muda.
 
 ---
 
-## Comandos
+## O que esta semana descobriu, e que não se deve redescobrir
 
-```bash
-set -a; . ./.env >/dev/null 2>&1; set +a   # segredos, sem imprimir
-mix gates                                  # a definição única de verde
-gh pr checks <n>                           # o veredito da CI
-gh pr view <n> --json reviewRequests,projectItems   # vazio = a regra foi violada
-curl -s -o /dev/null -w '%{http_code}' https://app.theband.dev/version   # 404 até a v0.8.0
+### A cadeia da timeline truncada — quatro defeitos, um dentro do outro
 
-# revisor e projeto, para PR que nasceu sem
-gh api -X POST repos/The-Band-Solution/theband/pulls/<n>/requested_reviewers -f 'team_reviewers[]=the-band'
-gh project item-add 2 --owner The-Band-Solution --url <url do PR>
-# Status: PVTSSF_lADODHSRm84BAAnTzgy8XSQ, In review = aba860b9 · Iteration: PVTIF_lADODHSRm84BAAnTzgy8XUE
+1. **o GitHub cortava a timeline** dentro de `issues(first: 50)` e **declarava `totalCount`
+   igual ao que cortou**, com `hasNextPage: false`. A guarda existente olhava a bandeira errada
+   e nunca disparou;
+2. **o critério de identidade da atividade não tinha o sujeito**, e colava ocorrências
+   distintas — a issue #2539 tinha 12 eventos na origem e 7 no banco;
+3. **um comentário afirmava que a timeline não identifica seus eventos.** Medido: é falso, e a
+   afirmação já tinha virado fundamento numa emenda de ontologia;
+4. **o evento não dizia de que quadro veio**, o que fazia creditar conclusão a quem não a teve
+   — 25 dos 46 cartões fora de `Done` no quadro 43 eram crédito falso.
 
-# limpeza negada ao agente
-git branch -D 065-divergencias docs/065-escopo-reescrito
-for wt in theband-api theband-docs theband-fluxo theband-fr041 theband-modelos theband-release theband-subequipe theband-t001 theband-vinculo; do git worktree remove "/Users/paulossjunior/projects/$wt"; done
-```
+A base inteira foi recolhida: 33 repositórios, veredito `completa` em todos, 858 pontos. As
+chegadas a `Done` foram de **1 794 para 3 294**.
 
-## Referências
+### Três coisas no backlog que são decisão, não código
 
-- `docs/releases/v0.8.0.md` (no #916) — a avaliação, o veredito do PO, e *Como executar*
-- `docs/producao/fluxo-de-release.md` e `.claude/skills/release/SKILL.md` (no #910)
-- `.claude/agents/aceitacao-em-producao.md` (no #916) — quem mede a funcionalidade no ar
-- `docs/seguranca/2026-09-13-o-caminho-completo-do-backup.md` (no #916) — o §6 exercitado
-- `docs/seguranca/2026-09-09-o-que-consertar-agora.md` — os 16 achados
-- `specs/065-rotulos-no-item/` — spec, plan, tasks, research; protótipos linkados no #903
+- **`Done` é alegação, não aceite** — cartão sai de `Done` **193 vezes, em 185 issues**, e em
+  58% quem devolve é outra pessoa. Das 185, **69 não voltaram**;
+- **o evento não diz o quadro** — a origem oferece o campo `project` e a consulta nunca o
+  pediu. Conserto barato, recoleta cara;
+- **o booleano `active`** em duas tabelas, onde nove guardam data e autor.
+
+### Duas armadilhas que me pegaram, e pegam de novo
+
+**Guarda que lê o próprio código reprova a prosa.** Duas vezes: um teste procurou
+`token_hash ==` e achou no `@moduledoc` que explica por que não se faz isso; outro procurou a
+palavra `reactivate` e achou na frase que diz que não existe reativar. **Teste o controle, não
+a palavra** — e ao ler fonte, tire comentário e documentação antes.
+
+**Medir o que a casa faz antes de escolher.** Escrevi `SET NULL` em três chaves estrangeiras
+novas; nas duas de `tenant_id` teria falhado ao apagar um tenant, com violação de nulo, porque
+a coluna é `NOT NULL`. **61 das 65 chaves usam `RESTRICT`** — só apareceu porque fui contar.
+
+---
+
+## O que NÃO foi feito, e é honesto dizer
+
+- **as 12 tarefas da API** acima;
+- **a v0.8.0 não foi publicada**, e o bloqueio é o secret;
+- **a 066 não tem `plan.md` nem `tasks.md`** — foi implementada direto do protótipo aprovado,
+  pulando duas etapas do ciclo. Dívida declarada no #928;
+- **as três declarações da 066 não têm teste de comando** — só teste de tela, enquanto as seis
+  irmãs mais antigas têm os dois. Material para QA;
+- **o diâmetro do grafo da rede não foi medido** — é a única medida que reabriria a decisão de
+  REST contra GraphQL com rigor;
+- **o volume de produção não foi medido**, e por isso nenhum tempo de migração foi prometido.
