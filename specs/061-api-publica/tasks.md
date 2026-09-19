@@ -90,19 +90,19 @@ que o valor não aparece na página, no HTML servido, no log nem no banco.
   - **Feita quando**: um token recém-criado aparece como ativo e nunca usado; um token com `expires_at` no passado aparece expirado sem nenhuma escrita ter acontecido
   - **Teste**: `test/the_band/tenants/api_tokens_test.exs` — o token com expiração no passado é lido como expirado, e a contagem de linhas do banco antes e depois da leitura é a mesma
 
-- [ ] **T009** [US1] A tela de tokens na área administrativa
+- [x] **T009** [US1] A tela de tokens na área administrativa
   - **Pronta quando**: T001 aprovada — a tela implementada é exatamente a aprovada; T008 concluída
   - **Descrição**: LiveView em `/api-tokens`, dentro do `live_session :admin` e do `require_admin` que já servem `/accounts` e `/access-scopes` — FR-045, porque credencial é gestão, não operação. A lista traz o que T008 devolve, na forma do protótipo. Conta não administradora recebe recusa **com motivo nomeado**, e não uma página em branco
   - **Feita quando**: a rota está dentro do escopo administrativo do `router.ex`; a tela mostra, por linha, rótulo, máscara com os quatro últimos, autor, data, último uso e estado; conta comum é recusada com motivo
   - **Teste**: `test/the_band_web/live/tela_de_tokens_test.exs` — conta administradora abre e lê as colunas da régua do protótipo; conta comum recebe recusa com o motivo no texto; e **o teste que importa (SC-013)**: o HTML renderizado tem **0** ocorrências do hash e **0** do valor em claro
 
-- [ ] **T010** [US1] O valor em claro aparece uma vez
+- [x] **T010** [US1] O valor em claro aparece uma vez
   - **Pronta quando**: T009 concluída
   - **Descrição**: a criação apresenta o valor **uma única vez**, com aviso explícito de que não voltará, ação de copiar, e a instrução de guardá-lo em gerenciador de segredo — FR-006, FR-048. O valor vive no `assign` daquele render e some ao navegar ou recarregar; **não** é gravado em nada e **não** volta por `handle_params`
   - **Feita quando**: depois de criar, o valor está na página; depois de qualquer navegação ou recarga, não está; a linha passa a mostrar a máscara com os quatro últimos
   - **Teste**: `test/the_band_web/live/tela_de_tokens_test.exs` — criar, capturar o valor, `render_patch` de volta à listagem, e afirmar que o valor **não** aparece no HTML; e o teste da violação: nenhuma das duas renderizações seguintes contém o valor
 
-- [ ] **T011** [US1] O alcance vigente da conta dona, na lista
+- [x] **T011** [US1] O alcance vigente da conta dona, na lista
   - **Pronta quando**: T009 concluída
   - **Descrição**: cada linha mostra o **alcance vigente da conta dona** do token — FR-047 —, para que a consequência de FR-028 seja visível **antes** de ser reclamada: o alcance da integração muda quando a pessoa muda de equipe, e quem gerou o token precisa ver isso na hora de gerar, não na hora em que o painel de terceiro esvazia. Lê de `Access` na forma que já existe, sem materializar nada no token
   - **Feita quando**: a linha diz o alcance de hoje; encerrar um vínculo da conta dona muda o que a linha diz na carga seguinte, sem job e sem escrita no token
@@ -124,7 +124,7 @@ chamada é recusada, e a lista mostra a revogação sem apagar a linha.
   - **Feita quando**: a linha continua no banco depois de revogada; não há função de reativar na fronteira; revogar de novo não muda `revoked_at` nem `revoked_by_user_id`
   - **Teste**: `test/the_band/tenants/api_tokens_test.exs` — **SC-012**: a contagem de linhas antes e depois da revogação é idêntica; e `TheBand.Tenants` não define nenhuma função cujo nome contenha `reactivate` ou `unrevoke`
 
-- [ ] **T013** [US3] A confirmação que nomeia o rótulo
+- [x] **T013** [US3] A confirmação que nomeia o rótulo
   - **Pronta quando**: T012 concluída; T009 concluída
   - **Descrição**: a revogação na tela pede confirmação **nomeando o rótulo do token** — FR-049 —, porque revogar o token errado interrompe a integração de um terceiro que não está na sala. A linha revogada permanece na lista, marcada, com data e quem revogou
   - **Feita quando**: a confirmação contém o rótulo exato; depois de confirmar, a linha está lá marcada revogada, com data e autor; não há ação de reativar na tela

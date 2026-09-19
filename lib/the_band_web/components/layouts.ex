@@ -140,6 +140,7 @@ defmodule TheBandWeb.Layouts do
                   <li class="menu-title">Contas</li>
                   <li><.link navigate={~p"/accounts"}>Accounts</.link></li>
                   <li><.link navigate={~p"/access-scopes"}>Access scopes</.link></li>
+                  <li><.link navigate={~p"/api-tokens"}>API tokens</.link></li>
                 <% end %>
               </ul>
             </details>
