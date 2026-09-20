@@ -57,6 +57,49 @@ defmodule TheBand.Tenants.ApiTokensTest do
       """
     end
 
+    test "o id público NUNCA contém o separador — o defeito de 2026-09-20", ctx do
+      # **Determinístico, e não por amostragem.** O defeito anterior aparecia em ~11,5% dos
+      # tokens, o que o fazia passar numa execução e reprovar na seguinte. Mil gerações
+      # tornam a ausência de `_` uma afirmação, e não uma sorte.
+      ids =
+        for _ <- 1..1_000 do
+          {token, _valor} = criar(ctx, %{label: "lote"})
+          token.public_id
+        end
+
+      com_separador = Enum.filter(ids, &String.contains?(&1, "_"))
+
+      assert com_separador == [], """
+      #{length(com_separador)} de 1 000 ids públicos contêm `_`, que é o separador das três
+      partes do token.
+
+      Quando isso acontece o parser corta no lugar errado, a busca não acha a linha, e o
+      token nasce inválido — sem erro nenhum na criação. Foi o defeito de 2026-09-20: o id
+      usava Base64 seguro para URL, cujo alfabeto inclui `_`, e 11,5% dos tokens nasciam
+      quebrados.
+      """
+
+      assert Enum.all?(ids, &String.match?(&1, ~r/^[0-9a-f]+$/)),
+             "o id público deixou de ser hexadecimal, e o alfabeto novo pode reintroduzir o `_`"
+    end
+
+    test "mil tokens gerados autenticam, todos", ctx do
+      # O teste anterior prova a causa; este prova o efeito. Os dois juntos porque um id sem
+      # `_` que ainda assim não autenticasse seria outro defeito.
+      falhas =
+        for _ <- 1..1_000, reduce: [] do
+          acc ->
+            {_token, valor} = criar(ctx, %{label: "lote"})
+
+            case Tenants.authenticate_api_token(valor) do
+              {:ok, _} -> acc
+              {:error, _} -> [valor | acc]
+            end
+        end
+
+      assert falhas == [], "#{length(falhas)} de 1 000 tokens recém-criados não autenticaram"
+    end
+
     test "dois tokens não compartilham id público nem segredo", ctx do
       {a, valor_a} = criar(ctx)
       {b, valor_b} = criar(ctx)

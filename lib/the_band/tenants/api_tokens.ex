@@ -100,8 +100,8 @@ defmodule TheBand.Tenants.ApiTokens do
   @spec criar(Tenant.t(), User.t(), map(), User.t()) ::
           {:ok, Token.t(), String.t()} | {:error, Ecto.Changeset.t()}
   def criar(%Tenant{id: tenant_id}, %User{id: dono_id}, attrs, %User{id: autor_id}) do
-    id_publico = gerar(@bytes_do_id)
-    segredo = gerar(@bytes_do_segredo)
+    id_publico = gerar_id_publico(@bytes_do_id)
+    segredo = gerar_segredo(@bytes_do_segredo)
     valor = prefixo() <> id_publico <> "_" <> segredo
 
     %Token{}
@@ -137,7 +137,24 @@ defmodule TheBand.Tenants.ApiTokens do
     end
   end
 
-  defp gerar(bytes), do: bytes |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+  # O SEGREDO em Base64 seguro para URL — alfabeto largo, cabe num cabeçalho sem escape.
+  defp gerar_segredo(bytes),
+    do: bytes |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+
+  # O ID PÚBLICO em hexadecimal, e a diferença de alfabeto é a correção de um defeito real.
+  #
+  # Ele usava o mesmo Base64 seguro para URL do segredo — cujo alfabeto **contém `_`**, que é
+  # justamente o separador das três partes do token. Quando o `_` caía dentro do id, o parser
+  # cortava no lugar errado, a busca não achava a linha, e o token nascia inválido.
+  #
+  # **Medido em 2026-09-20: 1 150 de 10 000 ids continham `_` — 11,5%, um em cada nove.**
+  # Passou nos meus gates locais por sorte e reprovou no CI, que é o que a aleatoriedade faz
+  # com quem confia numa execução só.
+  #
+  # Hexadecimal não tem `_` nem `-`, e é o que torna o corte impossível de errar. Doze
+  # caracteres para seis bytes.
+  defp gerar_id_publico(bytes),
+    do: bytes |> :crypto.strong_rand_bytes() |> Base.encode16(case: :lower)
 
   defp digestao(segredo), do: :crypto.hash(:sha256, segredo)
 
