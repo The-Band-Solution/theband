@@ -77,6 +77,11 @@ defmodule TheBandWeb.Router do
 
     get "/people", PersonController, :index
     match :*, "/people", PersonController, :nao_permitido
+
+    # O DETALHE, e ele filtra por `Access` — ao contrário da listagem, que espelha uma tela
+    # que também não filtra. A assimetria é da plataforma, e não do transporte.
+    get "/people/:id", PersonController, :show
+    match :*, "/people/:id", PersonController, :nao_permitido
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da

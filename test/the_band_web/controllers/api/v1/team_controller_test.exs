@@ -269,10 +269,14 @@ defmodule TheBandWeb.Api.V1.TeamControllerTest do
         |> Map.fetch!("paths")
         |> Map.keys()
 
+      # `:id` do roteador é `{id}` no OpenAPI. A comparação era literal, e passava só
+      # enquanto nenhuma rota tinha parâmetro — a primeira que teve (`/people/:id`) a fez
+      # reprovar com a descrição correta. A conversão é do formato, e não do conteúdo: a
+      # guarda continua exigindo que os DOIS conjuntos sejam o mesmo.
       rotas_declaradas =
         TheBandWeb.Router.__routes__()
         |> Enum.filter(&(&1.verb == :get and String.starts_with?(&1.path, "/api/v1")))
-        |> Enum.map(& &1.path)
+        |> Enum.map(&Regex.replace(~r/:([a-z_]+)/, &1.path, "{\\1}"))
         |> Enum.uniq()
 
       assert Enum.sort(caminhos) == Enum.sort(rotas_declaradas), """
