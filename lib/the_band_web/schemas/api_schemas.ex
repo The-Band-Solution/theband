@@ -105,6 +105,43 @@ defmodule TheBandWeb.Schemas do
     })
   end
 
+  defmodule Competency do
+    @moduledoc """
+    Uma competência demonstrada, e as tarefas concluídas que a sustentam.
+
+    A célula é `completed_tasks`: tarefa **concluída**. Entrega, nunca promessa — tarefa
+    aberta é intenção e não demonstra nada.
+    """
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "Competency",
+      description: "A domain the record shows this person working in, and its evidence.",
+      type: :object,
+      properties: %{
+        domain: %Schema{type: :string},
+        completed_tasks: %Schema{
+          type: :integer,
+          description:
+            "**Completed** tasks that evidence the domain. Delivery, never promise — an " <>
+              "open task is intent and demonstrates nothing, so a highlight with zero " <>
+              "completed tasks is not a competency and does not appear here."
+        },
+        demonstrated: %Schema{type: :string, nullable: true},
+        evidence_issue_numbers: %Schema{
+          type: :array,
+          items: %Schema{type: :integer},
+          description: "So each competency walks down to the record that holds it up."
+        },
+        periods: %Schema{type: :array, items: %Schema{type: :integer}},
+        most_recent_period: %Schema{type: :string, nullable: true}
+      },
+      required: [:domain, :completed_tasks]
+    })
+  end
+
   defmodule Person do
     @moduledoc "Uma pessoa observada, e o que a origem chama de conta."
     require OpenApiSpex
@@ -160,6 +197,28 @@ defmodule TheBandWeb.Schemas do
             "Why `organizations` is empty. Null when it is not. An empty list with no " <>
               "reason would read as *this person has no organisation*, when what happened " <>
               "is that the link does not exist to be looked up."
+        },
+        competencies: %Schema{
+          type: :array,
+          nullable: true,
+          items: %Schema{
+            type: :object,
+            properties: %{
+              domain: %Schema{type: :string},
+              completed_tasks: %Schema{type: :integer}
+            }
+          },
+          description:
+            "The short form — domain and completed tasks. **`null` and `[]` are different " <>
+              "claims**: `null` means no profile was generated, so nothing was read; `[]` " <>
+              "means the record was read and nothing was demonstrated. Flattening the two " <>
+              "would turn a gap in the record into a judgement of the person. The " <>
+              "evidence, issue by issue, is in the detail."
+        },
+        competencies_note: %Schema{
+          type: :string,
+          nullable: true,
+          description: "Why `competencies` is `null`. Absent when it is a list."
         },
         collected_at: %Schema{type: :string, format: :"date-time", nullable: true},
         no_longer_observed_at: %Schema{
@@ -359,6 +418,34 @@ defmodule TheBandWeb.Schemas do
               authored: %Schema{type: :integer}
             }
           }
+        },
+        stale_open: %Schema{
+          type: :object,
+          description:
+            "Assigned and open past the declared threshold. `stale_after_days` travels " <>
+              "along because *stale* is not an adjective, it is a cut in days — without it " <>
+              "the count says nothing.\n\n" <>
+              "`conversation` separates four cases a plain list would flatten: " <>
+              "`nao_coletada` (the repository has had no comment collected — a gap in the " <>
+              "**collection**), `silencio` (collected, and nobody spoke), `recente` and " <>
+              "`antiga`. Without the first two apart, a gap in collection would read as " <>
+              "silence from the team, and someone would hold a person to account for a " <>
+              "conversation the platform never looked at.",
+          properties: %{
+            stale_after_days: %Schema{type: :integer},
+            items: %Schema{type: :array, items: %Schema{type: :object}}
+          }
+        },
+        issues: %Schema{
+          type: :object,
+          description:
+            "The screen's first page of the assigned list. Searching and paging the whole " <>
+              "list is its own resource, and does not exist yet.",
+          properties: %{
+            items: %Schema{type: :array, items: %Schema{type: :object}},
+            limit: %Schema{type: :integer},
+            note: %Schema{type: :string}
+          }
         }
       }
     })
@@ -499,7 +586,94 @@ defmodule TheBandWeb.Schemas do
                 to: %Schema{type: :string, format: :date, nullable: true}
               }
             },
-            content: %Schema{type: :object, additionalProperties: true}
+            tasks_closed_since: %Schema{
+              type: :integer,
+              description:
+                "How many tasks closed since this profile was generated. Without it, a " <>
+                  "profile written in December looks current in June, and whoever reads it " <>
+                  "decides on old text without knowing it is old."
+            },
+            regeneration_pending: %Schema{type: :boolean},
+            citations_removed: %Schema{type: :integer},
+            competencies: %Schema{
+              type: :array,
+              items: TheBandWeb.Schemas.Competency,
+              description: "With the evidence, issue by issue."
+            },
+            skills: %Schema{
+              type: :array,
+              items: %Schema{type: :string},
+              description:
+                "Labels the model wrote. **Not the competencies**: no count, no evidence. " <>
+                  "Treating them as equivalent would give the same authority to a domain " <>
+                  "with 18 completed tasks and to a loose word."
+            },
+            gaps: %Schema{type: :array, items: %Schema{type: :string}},
+            summary: %Schema{
+              type: :object,
+              description:
+                "The order is content, not alphabet: strengths, evolution, attention. " <>
+                  "Swapping attention for strengths changes what a manager reads first.",
+              properties: %{
+                strengths: %Schema{type: :string, nullable: true},
+                evolution: %Schema{type: :string, nullable: true},
+                attention: %Schema{type: :string, nullable: true}
+              }
+            },
+            allocation: %Schema{type: :array, items: %Schema{type: :object}},
+            trajectory: %Schema{type: :array, items: %Schema{type: :object}},
+            recommendations: %Schema{type: :array, items: %Schema{type: :string}},
+            limits: %Schema{
+              type: :object,
+              description:
+                "What the profile says about **itself**: what the record does not reach, " <>
+                  "what belongs to the team rather than the person, and whether there is " <>
+                  "evidence of writing for others. Returning the profile without these " <>
+                  "would return a conclusion without its limits.",
+              properties: %{
+                beyond_reach: %Schema{type: :string, nullable: true},
+                team_not_person: %Schema{type: :string, nullable: true},
+                wrote_for_others: %Schema{nullable: true}
+              }
+            },
+            evolution_over_time: %Schema{
+              type: :object,
+              description:
+                "One point per generation, **oldest first**. A month with no generation is " <>
+                  "absent, never interpolated: filling it in would claim an observation " <>
+                  "that never happened.",
+              properties: %{
+                generations: %Schema{type: :array, items: %Schema{type: :object}},
+                note: %Schema{type: :string}
+              }
+            }
+          }
+        },
+        discussion_participation: %Schema{
+          type: :object,
+          description:
+            "Where this person took part in discussion. `acts` are **positions taken**, " <>
+              "not issues: five comments on one issue is five acts and one issue. " <>
+              "`limit` travels along because a list truncated in silence makes whoever " <>
+              "integrates conclude that is all there is.",
+          properties: %{
+            items: %Schema{type: :array, items: %Schema{type: :object}},
+            limit: %Schema{type: :integer}
+          }
+        },
+        changes: %Schema{
+          type: :object,
+          description:
+            "**Four lists, never summed.** Opening, reviewing, merging and committing are " <>
+              "distinct acts, and the same change request can appear in more than one — a " <>
+              "total would count it twice. Outside the access verdict, as on the screen.",
+          properties: %{
+            opened: %Schema{type: :array, items: %Schema{type: :object}},
+            reviewed: %Schema{type: :array, items: %Schema{type: :object}},
+            merged: %Schema{type: :array, items: %Schema{type: :object}},
+            commits: %Schema{type: :array, items: %Schema{type: :object}},
+            limit: %Schema{type: :integer},
+            note: %Schema{type: :string}
           }
         },
         profile_note: %Schema{type: :string, nullable: true},

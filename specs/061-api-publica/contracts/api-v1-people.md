@@ -47,6 +47,11 @@ Cada campo é uma coluna da tela `/people`. Paginação e `total: null` seguem
         { "id": "309acd61-…", "login": "leds-conectafapes", "name": "LEDS - ConectaFapes" }
       ],
       "organizations_note": null,
+      "competencies": [
+        { "domain": "Kubernetes deployments and environment operations", "completed_tasks": 18 },
+        { "domain": "OpenTelemetry and SigNoz observability", "completed_tasks": 13 }
+      ],
+      "competencies_note": null,
       "collected_at": "2026-09-04T04:00:49Z",
       "no_longer_observed_at": null
     }
@@ -57,6 +62,24 @@ Cada campo é uma coluna da tela `/people`. Paginação e `total: null` seguem
 
 **`email` não sai.** A tela não o mostra e nenhum requisito o pediu. Acrescentá-lo porque a
 coluna existe no banco alargaria o alcance da rota sem razão.
+
+### `competencies`: `null` e `[]` são afirmações diferentes
+
+É a FR-023, e é a distinção mais fácil de perder:
+
+| Valor | Significa |
+|---|---|
+| `null` | **não houve leitura** — nenhum perfil foi gerado para esta pessoa; `competencies_note` diz isso |
+| `[]` | **houve leitura, e nada foi demonstrado** — há perfil, e nenhum domínio tem tarefa concluída |
+
+Achatar as duas em `[]` transformaria lacuna do registro em julgamento da pessoa.
+
+A célula é `completed_tasks`: tarefa **concluída**. Entrega, nunca promessa — tarefa aberta é
+intenção e não demonstra nada, e por isso um destaque com zero tarefas concluídas não é
+competência e não aparece.
+
+Aqui vai a forma **curta**. A evidência issue por issue está no detalhe: 80 pessoas × 3
+competências × 3 números na listagem seria payload sem consumidor.
 
 **`organizations` vem das equipes.** Não há laço direto pessoa→organização nesta ontologia.
 Quem não está em equipe alguma sai com a lista vazia e a razão em `organizations_note`
@@ -126,8 +149,60 @@ o id existe em algum lugar.
       "link_coverage": { "accounts": 2, "declared": 0 }
     },
 
-    "profile": null,
-    "profile_note": "No profile has been generated for this person. When present it is `derived` — written by a language model from the collected record, and never an observation.",
+    "profile": {
+      "origin": "derived",
+      "origin_note": "Written by a language model from the collected record…",
+      "generated_at": "2026-09-16T09:23:30Z",
+      "model": "gpt-5.4-mini-2026-03-17",
+      "period": { "from": "2025-03-01", "to": "2026-09-01" },
+      "tasks_closed_since": 0,
+      "regeneration_pending": false,
+      "citations_removed": 0,
+
+      "competencies": [
+        {
+          "domain": "payment worksheet and remittance UI",
+          "completed_tasks": 10,
+          "demonstrated": "worked across folha and payment-remittance screens…",
+          "evidence_issue_numbers": [1181, 1289, 1639],
+          "periods": [2, 3],
+          "most_recent_period": "2026-06"
+        }
+      ],
+      "skills": ["front-end feature scaffolding", "Nuxt UI screen refactoring"],
+      "gaps": [],
+
+      "summary": { "strengths": "…", "evolution": "…", "attention": "…" },
+      "allocation": [
+        { "from": "2025-03", "to": "2025-08", "domain": "…", "demonstrated": "…", "completed_tasks": 13 }
+      ],
+      "trajectory": [
+        { "period": 1, "months": "2025-03 to 2025-08", "text": "…", "cited_tasks": ["…"] }
+      ],
+      "recommendations": ["…"],
+
+      "limits": {
+        "beyond_reach": "36 completed tasks were written by someone else and 22 by harianadm…",
+        "team_not_person": "The text followed the project-wide expansion in description size…",
+        "wrote_for_others": { "o_texto_mostra": "There is no evidence of writing tasks for other people here…" }
+      },
+
+      "evolution_over_time": {
+        "generations": [
+          { "generated_at": "2026-09-16T09:23:30Z",
+            "competencies": { "payment worksheet and remittance UI": 10 } }
+        ],
+        "note": "One point per generation, oldest first. A month with no generation is absent, never interpolated…"
+      }
+    },
+    "profile_note": null,
+
+    "discussion_participation": { "items": [], "limit": 20 },
+    "changes": {
+      "opened": [], "reviewed": [], "merged": [], "commits": [],
+      "limit": 10,
+      "note": "Four lists, never summed. Opening, reviewing, merging and committing are distinct acts…"
+    },
 
     "access": { "can_see_work": true, "reason": null },
     "work": { }
@@ -194,9 +269,58 @@ igual e o dado existe em memória.
     { "repository_id": "1d838224-…", "name": "conectafapes-project",
       "qualified_name": "leds-conectafapes/conectafapes-project",
       "assigned": 1, "authored": 0 }
-  ]
+  ],
+
+  "stale_open": {
+    "stale_after_days": 90,
+    "items": [
+      { "id": "afe25107-…", "number": 77, "title": "…", "type": "issue",
+        "days_open": 546, "repository": "…", "own_authorship": false,
+        "conversation": "silencio", "acts": 0, "last_act": null }
+    ]
+  },
+
+  "issues": {
+    "items": [
+      { "id": "4e833a00-…", "number": 1181, "title": "…", "state": "OPEN",
+        "issue_type": null, "repository_id": "1d838224-…" }
+    ],
+    "limit": 25,
+    "note": "The screen's first page. Searching and paging the whole assigned list is its own resource, and does not exist yet."
+  }
 }
 ```
+
+### `profile` — derivado, e com as ressalvas que ele faz sobre si
+
+**A marca `derived` viaja no corpo**, e não só na documentação: o consumidor previsto é
+outro modelo, que afirmaria o texto como fato se a marca ficasse de fora.
+
+**`competencies` não é `skills`.** As primeiras têm contagem de tarefas concluídas e a
+evidência issue por issue; as segundas são rótulos que o modelo escreveu, sem contagem e
+sem evidência. Tratá-los como equivalentes daria a mesma autoridade a um domínio com 18
+tarefas e a uma palavra solta.
+
+**`limits` não é decoração.** São as três ressalvas que o perfil faz sobre si mesmo: o que
+o registro não alcança, o que é do time e não da pessoa, e se houve escrita para outros.
+Entregar o perfil sem elas entregaria conclusão sem limite.
+
+**`tasks_closed_since` é a idade do perfil** (FR-016). Sem ela, um perfil de dezembro
+parece atual em junho.
+
+**`evolution_over_time` tem um ponto por geração, da mais antiga para a mais recente.** Mês
+sem geração não entra: interpolar afirmaria observação que não houve (feature 029, FR-003).
+
+### O que fica FORA do veredito, e por quê
+
+`discussion_participation` e `changes` vêm **sempre** — na tela elas vivem em *Where this
+came from*, que não é o painel que o veredito protege. Protegê-las aqui estreitaria o
+alcance pela porta do transporte, que é o mesmo erro de alargá-lo.
+
+`stale_open` e `issues` ficam **dentro** de `work`, porque na tela estão dentro do painel.
+
+Toda lista truncada carrega o próprio `limit`: sem ele, quem integra conclui que aquilo é
+tudo.
 
 #### As regras que o corpo carrega, e por quê
 
@@ -233,10 +357,10 @@ Uma cobertura sem denominador é um número sem origem.
 
 ### O que esta rota **não** carrega
 
-- **a lista de issues designadas** — a tela pagina 25 por vez, com busca e ordenação
-  próprias. É recurso seu, e embuti-la aqui faria uma resposta sem teto;
-- **as discussões e as mudanças** que a tela lista (limites 20 e 10) — mesma razão;
+- **a busca e a paginação da lista de issues** — vem a primeira página de 25, como a tela;
+  percorrer a lista inteira com busca e ordenação é recurso próprio;
 - **a escolha da escala** e o recorte por período;
+- **quem declarou cada papel** — o campo é um e-mail, e e-mail não sai por esta rota;
 - **escrita de qualquer espécie.** `POST`, `PUT`, `PATCH` e `DELETE` devolvem `405` com
   `Allow: GET, HEAD` (FR-017).
 
@@ -254,7 +378,10 @@ servidor no ar:
 | `series_by_period` | 21 períodos, e `burn` os mesmos 21 |
 | `organizations.by_work` | vazio: tudo em que trabalhou é organização de que já é membro |
 | `roles` | vazio nesta base — ninguém declarou papel |
-| `profile` | ausente nesta base |
+| `profile` | **2 das 80 pessoas têm perfil** — `harianadm` e `AndreCoelhoS` |
+| competências de `AndreCoelhoS` | 5 domínios, 56 tarefas concluídas somadas (18 em Kubernetes, 15 em provisionamento, 13 em observabilidade, 7 em Helm, 3 em Vault) |
+| `competencies` das outras 78 | `null`, com a razão escrita — ausência de leitura, não de habilidade |
+| `stale_open` | 29 paradas, corte de 90 dias, todas com conversa `silencio` |
 | custo, permitido × recusado | o recusado consulta **menos**, e há teste que reprova se deixar de consultar menos |
 
 As três últimas linhas são ausências, e estão aqui de propósito: um contrato que só mostra

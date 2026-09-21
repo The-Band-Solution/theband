@@ -362,11 +362,9 @@ defmodule TheBand.Profiles.TeamSkills do
   # A unidade é o destaque: domínio nomeado + contagem de tarefas concluídas que o
   # evidenciam. `habilidades` (strings soltas) fica de fora: sem contagem, viraria
   # competência sem lastro — e a #363 vai unificar as duas estruturas.
-  defp dominios(%{content: content}) do
-    for d <- content["destaques"] || [],
-        is_binary(d["dominio"]),
-        is_integer(d["tarefas"]) and d["tarefas"] > 0 do
-      %{nome: d["dominio"], tarefas: d["tarefas"]}
-    end
-  end
+  # UMA definição de "o que conta como competência", e ela mora em `EO.Profiles`. Esta
+  # função existia aqui com a regra escrita à mão; a API de pessoas precisou da mesma
+  # leitura, e duas cópias divergiriam — a matriz da equipe e a rota afirmariam
+  # competências diferentes a partir do mesmo perfil.
+  defp dominios(perfil), do: EO.Profiles.competencies(perfil)
 end

@@ -224,6 +224,317 @@ defmodule TheBandWeb.Api.V1.PersonDetailTest do
     end
   end
 
+  describe "as competências de cada pessoa" do
+    setup ctx do
+      # Quem TEM perfil, com dois destaques — e um terceiro **sem tarefa concluída**, que
+      # não pode contar: destaque sem entrega é texto do modelo sem evidência.
+      {:ok, _} =
+        EO.record_profile(ctx.tenant, %{
+          person_id: ctx.pessoa.id,
+          generated_at: ~U[2026-09-01 10:00:00Z],
+          model: "modelo-de-teste",
+          tasks_closed: 0,
+          tasks_open: 0,
+          tasks_with_body: 0,
+          tasks_authored_by_other: 0,
+          tasks_shared: 0,
+          content: %{
+            "habilidades" => ["Elixir", "Ecto"],
+            "lacunas" => ["observabilidade"],
+            "resumo" => %{"forcas" => "F", "evolucao" => "E", "atencao" => "A"},
+            # O schema exige as três: um perfil sem trajetória, alocação e recomendações
+            # seria conclusão sem o caminho que levou a ela.
+            "trajetoria" => [
+              %{
+                "periodo" => 1,
+                "meses" => "2026-01 to 2026-06",
+                "texto" => "T",
+                "tarefas_citadas" => ["uma tarefa"]
+              }
+            ],
+            "alocacao" => [
+              %{
+                "de" => "2026-01",
+                "ate" => "2026-06",
+                "dominio" => "coleta do GitHub",
+                "demonstrou" => "x",
+                "tarefas" => 12
+              }
+            ],
+            "recomendacoes" => ["siga medindo contra a origem"],
+            "destaques" => [
+              %{
+                "dominio" => "coleta do GitHub",
+                "demonstrou" => "percorreu a timeline",
+                "tarefas" => 12,
+                "periodos" => [1, 2],
+                "mais_recente" => "2026-08",
+                "evidencia" => [101, 102]
+              },
+              %{
+                "dominio" => "ontologia",
+                "demonstrou" => "emendou SRO",
+                "tarefas" => 3,
+                "periodos" => [2],
+                "mais_recente" => "2026-09",
+                "evidencia" => [201]
+              },
+              # **Zero tarefas concluídas: não é competência.** Entrega, nunca promessa.
+              %{"dominio" => "promessa", "demonstrou" => "disse que faria", "tarefas" => 0}
+            ]
+          }
+        })
+
+      {:ok, sem_perfil} =
+        EO.upsert_person_from_source(ctx.tenant, %{
+          login: "sem-perfil",
+          name: "Sem Perfil",
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "U_sem",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      %{conn: com_token(ctx.conn, ctx.tenant, ctx.admin), sem_perfil: sem_perfil}
+    end
+
+    test "na LISTAGEM, quem tem perfil traz domínio e tarefas concluídas", ctx do
+      linhas = ctx.conn |> get(~p"/api/v1/people") |> json_response(200) |> Map.fetch!("data")
+      alvo = Enum.find(linhas, &(&1["login"] == "alvo"))
+
+      assert alvo["competencies"] == [
+               %{"domain" => "coleta do GitHub", "completed_tasks" => 12},
+               %{"domain" => "ontologia", "completed_tasks" => 3}
+             ]
+
+      assert alvo["competencies_note"] == nil
+    end
+
+    test "destaque com ZERO tarefa concluída não é competência", ctx do
+      linhas = ctx.conn |> get(~p"/api/v1/people") |> json_response(200) |> Map.fetch!("data")
+      alvo = Enum.find(linhas, &(&1["login"] == "alvo"))
+
+      refute Enum.any?(alvo["competencies"], &(&1["domain"] == "promessa")),
+             "tarefa aberta é intenção e não demonstra nada — só entrega conta"
+    end
+
+    # A FR-023 inteira está nesta dupla de testes.
+    test "quem NÃO tem perfil traz `null` — e não lista vazia", ctx do
+      linhas = ctx.conn |> get(~p"/api/v1/people") |> json_response(200) |> Map.fetch!("data")
+      sem = Enum.find(linhas, &(&1["login"] == "sem-perfil"))
+
+      assert sem["competencies"] == nil, """
+      Lista vazia diria *o registro foi lido e nada foi demonstrado*. O que houve foi que
+      não houve leitura. Achatar as duas transforma lacuna do registro em julgamento da
+      pessoa — é o que a FR-023 existe para impedir.
+      """
+
+      assert sem["competencies_note"] =~ "absence of reading"
+    end
+
+    test "perfil LIDO e nada demonstrado é `[]` — a outra metade da FR-023", ctx do
+      {:ok, _} =
+        EO.record_profile(ctx.tenant, %{
+          person_id: ctx.sem_perfil.id,
+          generated_at: ~U[2026-09-02 10:00:00Z],
+          model: "modelo-de-teste",
+          tasks_closed: 0,
+          tasks_open: 0,
+          tasks_with_body: 0,
+          tasks_authored_by_other: 0,
+          tasks_shared: 0,
+          # **`destaques` vazio com `habilidades` preenchido é o caso que o schema PERMITE**,
+          # e é exactamente o da FR-023: o modelo nomeou habilidades e nenhum domínio teve
+          # tarefa concluída. Perfil sem habilidade alguma o schema recusa — "resposta sem
+          # habilidade alguma é falha, e não perfil" — então este é o único caminho para
+          # `competencies: []`, e é o que prova que aquele ramo não é código morto.
+          content: %{
+            "destaques" => [],
+            "habilidades" => ["disse que sabe"],
+            "trajetoria" => [],
+            "alocacao" => [],
+            "recomendacoes" => [],
+            "resumo" => %{},
+            "lacunas" => []
+          }
+        })
+
+      linhas = ctx.conn |> get(~p"/api/v1/people") |> json_response(200) |> Map.fetch!("data")
+      sem = Enum.find(linhas, &(&1["login"] == "sem-perfil"))
+
+      assert sem["competencies"] == [],
+             "houve leitura e nada foi demonstrado — isto NÃO é `null`"
+
+      assert sem["competencies_note"] == nil,
+             "a razão da ausência de leitura não cabe onde houve leitura"
+    end
+
+    test "no DETALHE, cada competência desce até as issues que a sustentam", ctx do
+      pr =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile"])
+
+      assert [primeira, segunda] = pr["competencies"]
+
+      assert primeira == %{
+               "domain" => "coleta do GitHub",
+               "completed_tasks" => 12,
+               "demonstrated" => "percorreu a timeline",
+               "evidence_issue_numbers" => [101, 102],
+               "periods" => [1, 2],
+               "most_recent_period" => "2026-08"
+             }
+
+      assert segunda["evidence_issue_numbers"] == [201],
+             "sem a evidência, a competência é afirmação sem origem"
+    end
+
+    test "`skills` é rótulo do modelo, e NÃO se confunde com competência", ctx do
+      pr =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile"])
+
+      assert pr["skills"] == ["Elixir", "Ecto"]
+
+      # A distinção é o ponto: `skills` não tem contagem nem evidência. Tratá-los como
+      # equivalentes daria a mesma autoridade a um domínio com 12 tarefas e a uma palavra.
+      assert Enum.all?(pr["competencies"], &Map.has_key?(&1, "completed_tasks"))
+      assert is_list(pr["skills"]) and Enum.all?(pr["skills"], &is_binary/1)
+    end
+
+    test "o perfil carrega a MARCA de derivado e as ressalvas sobre si", ctx do
+      pr =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile"])
+
+      assert pr["origin"] == "derived"
+      assert pr["origin_note"] =~ "language model"
+      assert Map.has_key?(pr["limits"], "beyond_reach")
+      assert Map.has_key?(pr["limits"], "team_not_person")
+      assert Map.has_key?(pr["limits"], "wrote_for_others")
+    end
+
+    test "a ordem do resumo é forças, evolução, atenção — e é conteúdo", ctx do
+      pr =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile"])
+
+      assert pr["summary"]["strengths"] == "F"
+      assert pr["summary"]["evolution"] == "E"
+      assert pr["summary"]["attention"] == "A"
+    end
+
+    test "a idade do perfil vem declarada — FR-016", ctx do
+      pr =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile"])
+
+      assert Map.has_key?(pr, "tasks_closed_since"),
+             "sem isto, um perfil de dezembro parece atual em junho"
+
+      assert pr["generated_at"]
+      assert pr["model"] == "modelo-de-teste"
+    end
+
+    test "a evolução tem um ponto por geração, e nenhum mês interpolado", ctx do
+      {:ok, _} =
+        EO.record_profile(ctx.tenant, %{
+          person_id: ctx.pessoa.id,
+          generated_at: ~U[2026-09-15 10:00:00Z],
+          model: "modelo-de-teste",
+          tasks_closed: 0,
+          tasks_open: 0,
+          tasks_with_body: 0,
+          tasks_authored_by_other: 0,
+          tasks_shared: 0,
+          content: %{
+            "destaques" => [
+              %{"dominio" => "coleta do GitHub", "tarefas" => 20, "demonstrou" => "x"}
+            ],
+            "trajetoria" => [],
+            "alocacao" => [],
+            "recomendacoes" => [],
+            "habilidades" => ["Elixir"],
+            "resumo" => %{},
+            "lacunas" => []
+          }
+        })
+
+      ev =
+        ctx.conn
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+        |> get_in(["data", "profile", "evolution_over_time"])
+
+      assert length(ev["generations"]) == 2, "duas gerações, dois pontos — nunca três"
+      assert ev["note"] =~ "never interpolated"
+
+      # A contagem cresceu de 12 para 20 no mesmo domínio: é isso que a série mostra.
+      assert Enum.map(ev["generations"], & &1["competencies"]["coleta do GitHub"]) == [12, 20]
+    end
+  end
+
+  describe "as seções que a tela mostra fora do painel" do
+    setup ctx, do: %{conn: com_token(ctx.conn, ctx.tenant, ctx.admin)}
+
+    test "discussões e mudanças vêm com o LIMITE declarado", ctx do
+      d = ctx.conn |> get(~p"/api/v1/people/#{ctx.pessoa.id}") |> json_response(200)
+
+      assert d["data"]["discussion_participation"]["limit"] == 20
+      assert d["data"]["changes"]["limit"] == 10
+
+      assert d["data"]["changes"]["note"] =~ "never summed",
+             "lista truncada em silêncio faz quem integra concluir que aquilo é tudo"
+    end
+
+    test "as quatro listas de mudança são SEPARADAS, sem total", ctx do
+      m = ctx.conn |> get(~p"/api/v1/people/#{ctx.pessoa.id}") |> json_response(200)
+      m = m["data"]["changes"]
+
+      for lista <- ~w(opened reviewed merged commits), do: assert(is_list(m[lista]))
+      refute Map.has_key?(m, "total"), "a mesma solicitação aparece em mais de uma lista"
+    end
+
+    test "discussões e mudanças continuam vindo para quem o veredito RECUSA", ctx do
+      # Na tela essas duas seções vivem fora do painel, e o veredito não as esconde.
+      # Protegê-las aqui estreitaria o alcance pela porta do transporte.
+      d =
+        ctx.conn
+        |> recycle()
+        |> then(&com_token(&1, ctx.tenant, membro(ctx.tenant), ctx.admin))
+        |> get(~p"/api/v1/people/#{ctx.pessoa.id}")
+        |> json_response(200)
+
+      assert d["data"]["access"]["can_see_work"] == false
+      assert d["data"]["work"] == nil
+      assert is_map(d["data"]["changes"])
+      assert is_map(d["data"]["discussion_participation"])
+    end
+
+    test "as paradas ficam DENTRO do painel, e carregam o corte em dias", ctx do
+      w = ctx.conn |> get(~p"/api/v1/people/#{ctx.pessoa.id}") |> json_response(200)
+      st = w["data"]["work"]["stale_open"]
+
+      assert st["stale_after_days"] == 90,
+             "\"parada\" não é adjetivo, é um corte em dias — sem ele o número não diz nada"
+
+      assert is_list(st["items"])
+      assert w["data"]["work"]["issues"]["limit"] == 25
+      assert w["data"]["work"]["issues"]["note"] =~ "own resource"
+    end
+  end
+
   describe "o que a rota recusa dizer" do
     test "pessoa de OUTRO tenant é 404 — igual a pessoa que não existe", ctx do
       {outro, outro_admin} = tenant_with_admin("outro-tenant")
