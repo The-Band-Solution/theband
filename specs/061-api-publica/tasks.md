@@ -180,7 +180,7 @@ conferir que nenhum identificador do outro aparece.
 
 ## Fase 6 — Transversal
 
-- [ ] **T020** O teto de consultas por requisição
+- [x] **T020** O teto de consultas por requisição
   - **Pronta quando**: T019 concluída
   - **Descrição**: teste-guardião contando consultas por requisição com `test/support/contador_de_consultas.ex`, como as sete telas que já o usam. `Access` tem de ser chamado na forma **em lote**, nunca por item: perguntar por linha é a **L38**, e `access.ex` diz literalmente que `pessoas_alcancadas/2` existe para evitá-la. O número de consultas **não muda** com o número de equipes
   - **Feita quando**: o teste afirma igualdade entre dez equipes e cem, e entre cem e o caso mínimo; a mensagem de falha diz o que reintroduziria o problema
@@ -190,21 +190,22 @@ conferir que nenhum identificador do outro aparece.
   - **Pronta quando**: T017 concluída
   - **Descrição**: `/api/v1` aceita **apenas** `GET` e `HEAD` — FR-017, porque não há autor honesto para a proveniência de uma escrita por token. `HEAD` responde os mesmos cabeçalhos de `GET` com corpo vazio
   - **Feita quando**: `POST`, `PUT`, `PATCH` e `DELETE` devolvem `405` no formato único de erro em todas as rotas de `/api/v1`
-  - **Teste**: `test/the_band_web/controllers/api/v1/somente_leitura_test.exs` — **SC-006**: os quatro métodos devolvem `405` percorrendo a tabela de rotas, e não uma lista escrita à mão que envelhece
+  - **Teste**: `test/the_band_web/api/somente_leitura_test.exs` — **SC-006**: os quatro métodos devolvem `405` percorrendo a tabela de rotas, e não uma lista escrita à mão que envelhece
+  - **Nota de 2026-09-21**: esta tarefa esteve marcada feita sem que o teste existisse. Havia asserções de `405` **escritas à mão**, uma por controlador — exatamente o que o critério manda evitar —, e o critério envelheceu como previsto: quando `GET /api/v1/people/:id` entrou, a recusa dela teve de ser lembrada e escrita à parte. O teste que percorre a tabela foi escrito nesta data, e reprova com `POST /api/v1/rota-esquecida devolveu 404 em vez de 405` quando uma rota entra sem o `match :*`
 
-- [ ] **T022** [P] O valor em claro não existe em lugar nenhum
+- [x] **T022** [P] O valor em claro não existe em lugar nenhum
   - **Pronta quando**: T010 concluída; T017 concluída
   - **Descrição**: teste que gera um token, exerce a tela e a API, e varre os **quatro** lugares pelo valor conhecido — log capturado, corpo da resposta, HTML renderizado e banco. É **SC-001**, e é o critério que nenhum outro teste desta fatia substitui
   - **Feita quando**: as quatro varreduras devolvem zero; a varredura do banco procura o valor em todas as colunas de texto da tabela, e não só em `token_hash`
   - **Teste**: `test/the_band_web/api/segredo_nao_vaza_test.exs` — **o teste é a violação**: o valor conhecido tem **0** ocorrências nos quatro lugares, e o teste falha ruidosamente se qualquer varredura devolver um
 
-- [ ] **T023** [P] Os dois tenants não se veem
+- [x] **T023** [P] Os dois tenants não se veem
   - **Pronta quando**: T017 concluída
   - **Descrição**: teste que povoa dois tenants, chama a rota com o token de cada um, e compara os conjuntos de identificadores. **SC-002**. Confere também que nenhuma consulta desta feature é emitida sem tenant (FR-031)
   - **Feita quando**: a interseção dos identificadores é vazia; nenhuma consulta do caminho da API roda sem `tenant_id` na cláusula
   - **Teste**: `test/the_band_web/api/isolamento_por_tenant_test.exs` — a interseção é vazia, e a consulta capturada por telemetria tem `tenant_id` em toda cláusula `where`
 
-- [ ] **T024** Gates
+- [x] **T024** Gates
   - **Pronta quando**: T001 a T023 concluídas
   - **Descrição**: `mix gates` com o código de saída colado no comando. O veredito é o **código de saída**, e qualquer comando depois dele substitui o código que vale — é a lição L60, e ela já reincidiu nesta sessão
   - **Feita quando**: os 16 gates rodam e o código de saída é 0; nenhum aviso novo de Credo, Sobelow ou dialyzer
