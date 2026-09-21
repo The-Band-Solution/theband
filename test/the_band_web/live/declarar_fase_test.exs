@@ -101,11 +101,28 @@ defmodule TheBandWeb.DeclararFaseTest do
   test "opção que o vocabulário não reconhece diz 'no decision'", ctx do
     {:ok, _live, html} = live(ctx.conn, ~p"/boards?id=#{ctx.quadro.id}")
 
-    # `Homologation` e `Refinamento` ficam de fora do vocabulário de propósito: significam
-    # coisas diferentes conforme a casa, e propor ali seria escolher.
     assert html =~ "no decision"
-    refute ItemPhase.proposta_para("Homologation")
-    refute ItemPhase.proposta_para("Refinamento")
+
+    # Os que ficam de fora, e cada família por um motivo diferente:
+    #
+    #   * `Refinamento` e `Discovery Técnico` — estágios anteriores, e se são planejamento ou
+    #     andamento depende da casa;
+    #   * `Paused` e `Blocked` — INTERRUPÇÃO, que não é andamento nem planejamento, e a rede
+    #     não tem destino para isso hoje;
+    #   * `Desaprovado` — recusa, e recusa de quê é o que a feature 067 vai declarar.
+    for nome <- ["Refinamento", "Discovery Técnico", "Paused", "Blocked", "Desaprovado"] do
+      refute ItemPhase.proposta_para(nome), "#{nome} passou a propor sem decisão registrada"
+    end
+
+    # **`Homologation` saiu desta lista em 2026-09-21**, por decisão da pessoa mantenedora:
+    # homologar é alguém conferindo, e enquanto confere o trabalho está em curso. A evidência
+    # e a contraevidência estão na regra — e este teste guarda a decisão contra um retorno
+    # silencioso ao estado anterior.
+    assert ItemPhase.proposta_para("Homologation") ==
+             "spo.performed_project_activity.em_andamento"
+
+    assert ItemPhase.proposta_para("Aguardando Deploy") ==
+             "spo.performed_project_activity.em_andamento"
   end
 
   test "declarar grava autor e instante, e a tela os mostra", ctx do

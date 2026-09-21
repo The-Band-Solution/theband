@@ -71,19 +71,127 @@ derivation_rule:
   proposes:
     match: case_and_accent_insensitive
     values:
+      # Sinônimos de conclusão, em português e inglês. **A lista não é desta base** — o
+      # vocabulário é multitenant, e existe para reconhecer o quadro de uma organização que
+      # ainda não conectou. Hoje só `Done` e `Concluído` aparecem aqui; `Entregue` ou
+      # `Completed` aparecerem amanhã é o caso normal, não a exceção.
+      #
+      # **Tentei enxugar isto em 2026-09-21 e estava errado.** O argumento que usei — *"o
+      # reconhecido errado vira medida"* — é a lição de `padrao-largo-inventa-mais`, e ela
+      # vale para **classificação automática**, onde o palpite entra na medida sem ninguém
+      # olhar. Aqui não: a proposta **só existe como proposta**, e nada muda enquanto alguém
+      # não declara, com autor e instante. A assimetria de custo não se aplica, e cortar só
+      # deixou a plataforma mais burra para quem chegar depois.
+      #
+      # `concluído` e `concluída` continuam fora, e por outro motivo: são **redundantes**. A
+      # comparação normaliza minúsculas e acentos (`ItemPhase.normalizar/1`), então
+      # `Concluído` já casa com `concluido`.
+      #
+      # **`closed` é o único com ressalva**, e ela fica escrita: fechar não é concluir. No
+      # GitHub uma issue fecha também como `NOT_PLANNED` — abandonada, duplicada,
+      # descartada. Como NOME DE COLUNA ele quase sempre quer dizer terminado, e por isso
+      # continua propondo; mas quem declarar a partir dele está dizendo que naquele quadro
+      # fechar significa concluir, e isso é afirmação sobre o processo daquela casa.
       spo.performed_project_activity.concluida:
-        [done, concluido, concluida, concluído, concluída, closed, finalizado, finalizada,
-         entregue, complete, completed]
+        [done, concluido, concluida, closed, finalizado, finalizada, entregue, complete,
+         completed]
+      # **Homologação e validação são ANDAMENTO, não conclusão** — decisão da pessoa
+      # mantenedora em 2026-09-21, e ela é sobre o processo, não sobre a palavra: enquanto
+      # alguém está conferindo, o trabalho ainda está em curso. Concluir é o que vem depois
+      # de a conferência passar.
+      #
+      # A evidência acompanha: `Homologation` tem **279 cartões e 1,8% com a issue fechada**
+      # na origem — comportamento de estágio intermediário, não de fim.
+      #
+      # **E a contraevidência fica escrita**: `In Validation` fecha **40,5%**, a segunda maior
+      # fração da base, acima de `Concluído`. São 37 cartões — amostra pequena —, e a decisão
+      # foi tomada **contra** esse número, pelo significado do estágio. Registrado para que
+      # ninguém a reabra achando que o dado foi ignorado por descuido.
+      #
+      # `dev doing` entra por outro motivo: são 20 cartões reais que não recebiam proposta
+      # nenhuma, porque a comparação é do NOME INTEIRO e `doing` sozinho não o alcança.
+      #
+      # **Deploy entrou pela mesma lógica**, em 2026-09-21: o trabalho está em curso até ser
+      # entregue, e um item esperando implantação ainda não atravessou o processo. A
+      # evidência é mais limpa que a de homologação — `Aguardando Deploy` (27 cartões) e
+      # `Deploy` (1) têm **zero por cento** de issues fechadas na origem. Nenhum cartão parou
+      # ali como fim.
+      #
+      # Há um argumento contra, e ele fica escrito: o trabalho de DESENVOLVIMENTO terminou, e
+      # implantar é outro ato. Ele não venceu porque a ontologia mede a atividade até o fim
+      # dela, e a organização que discordar declara conclusão naquela coluna — é proposta,
+      # não decisão.
       spo.performed_project_activity.em_andamento:
-        ["in progress", "in-progress", doing, wip, "work in progress", started,
-         "em andamento", "em progresso", "em desenvolvimento", desenvolvendo, executando]
+        ["in progress", "in-progress", doing, "dev doing", wip, "work in progress", started,
+         "em andamento", "em progresso", "em desenvolvimento", desenvolvendo, executando,
+         homologation, homologacao, "in validation", "em validacao", validacao,
+         deploy, "aguardando deploy", "waiting for deploy", "em deploy", deploying]
       sro.intended_scrum_development_task:
-        [backlog, "to do", todo, "a fazer", "pronto para desenvolvimento", ready]
+        [backlog, "to do", todo, "a fazer", "pronto para desenvolvimento", "pronto para dev",
+         ready]
     note:
       pt-BR: >
-        A lista é curta de propósito e erra para o lado de NÃO propor. `Homologation`,
-        `In Validation`, `Refinamento`, `Paused` e `Desaprovado` ficam de fora: cada uma
-        significa coisas diferentes conforme a casa, e propor ali seria escolher.
+        A lista erra para o lado de NÃO propor onde a palavra significa coisas diferentes
+        conforme a casa. `Refinamento`, `Paused`, `Blocked` e `Desaprovado` ficam de fora por
+        isso — *pausado* e *bloqueado* não são andamento nem planejamento, são interrupção, e
+        a rede não tem destino para isso hoje; *desaprovado* é recusa, e recusa de quê é
+        justamente o que a feature 067 vai declarar.
+
+        `Homologation` e `In Validation` **saíram desta exclusão em 2026-09-21** e passaram a
+        propor andamento — ver a nota acima, com a evidência e a contraevidência.
+
+        `pronto para dev` entrou em 2026-09-21: a base tem as duas grafias — 5 cartões em
+        `Pronto para desenvolvimento`, reconhecida, e 5 em `Pronto para Dev`, que não era. A
+        mesma coisa escrita de dois jeitos recebia tratamento diferente, e isso é defeito de
+        vocabulário, não decisão.
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # A EVIDÊNCIA que sustenta cada proposta, medida em 2026-09-21 sobre os cartões
+  # vigentes da base inteira. Ela viaja com a proposta: um destino sugerido sem o
+  # dado que o sugere é a plataforma escolhendo com cara de recomendação.
+  # ─────────────────────────────────────────────────────────────────────────────
+  proposal_evidence:
+    measured_at: "2026-09-21"
+    method:
+      pt-BR: >
+        Para cada valor de `Status` com cartão vigente, a fração cuja issue está **fechada na
+        origem**. É evidência independente do nome: a organização fecha a issue por decisão
+        dela, e a correlação entre a coluna e o fechamento diz o que aquela coluna significa
+        para aquela casa — sem ninguém traduzir a palavra.
+      en: "Share of cards in each Status whose issue is CLOSED at the source."
+    universe:
+      distinct_values: 30
+      values_with_proposal: 9
+      values_without: 21
+    values:
+      Done:        { boards: 12, cards: 2149, closed_at_source_pct: 82.0, proposes: "spo.performed_project_activity.concluida" }
+      Concluído:   { boards: 2,  cards: 6,    closed_at_source_pct: 33.3, proposes: "spo.performed_project_activity.concluida" }
+      "In Progress": { boards: 6, cards: 43,  closed_at_source_pct: 25.6, proposes: "spo.performed_project_activity.em_andamento" }
+      Backlog:     { boards: 9,  cards: 526,  closed_at_source_pct: 15.6, proposes: "sro.intended_scrum_development_task" }
+      Todo:        { boards: 3,  cards: 251,  closed_at_source_pct: 0.4,  proposes: "sro.intended_scrum_development_task" }
+    counter_evidence:
+      pt-BR: >
+        **Dois valores NÃO propostos têm fração de fechamento MAIOR que um proposto**, e é o
+        que prova que a palavra não basta: `In Validation` fecha 40,5% (37 cartões) e `Pronto
+        para Dev` fecha 40% (5 cartões), contra 33,3% de `Concluído`.
+
+        Nenhum dos dois vira proposta de conclusão. *Em validação* é espera por alguém, e
+        *pronto para dev* é o contrário de concluído — a correlação alta ali é ruído de
+        amostra pequena, e propor por ela seria deixar o número decidir o significado.
+
+        **`Done` é o único com evidência forte**: 82% em 12 quadros e 2 149 cartões. E mesmo
+        ele não é 100% — os 18% restantes são os 377 cartões que originaram toda a
+        investigação de 2026-09-15.
+    what_this_is_not:
+      pt-BR: >
+        **Não é a plataforma decidindo.** Nada aqui ativa: a proposta chega como proposta, com
+        este número ao lado, e só vale quando alguém declara — com autor e instante. Uma
+        organização cujo `Done` signifique outra coisa declara outra coisa, e a evidência
+        apenas mostra por que a sugestão apareceu.
+
+        **Também não é uma lista de "valores de Done".** Uma lista dessas seria a plataforma
+        escolhendo por 30 vocabulários diferentes, e é exatamente o que `sro.rule03` e a
+        feature 066 existem para não fazer.
 
   does_not_materialize:
     - concept: sro.accepted_deliverable
