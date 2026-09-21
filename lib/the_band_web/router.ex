@@ -43,6 +43,63 @@ defmodule TheBandWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug OpenApiSpex.Plug.PutApiSpec, module: TheBandWeb.ApiSpec
+  end
+
+  # A pipeline que EXIGE token — feature 061. Separada da `:api` porque a descrição OpenAPI
+  # é servida sem credencial: ela não traz dado, e quem vai integrar precisa lê-la antes de
+  # ter um token.
+  pipeline :api_autenticada do
+    plug TheBandWeb.Plugs.ApiAuth
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # A API pública — feature 061. É a primeira rota a passar pela pipeline `:api`,
+  # declarada desde o gerador e até aqui sem uso.
+  #
+  # **Só leitura.** Nenhum método de escrita é declarado, e por isso o Phoenix
+  # devolve 405 para todos eles — não há autor honesto para a proveniência de uma
+  # escrita feita por token (FR-017).
+  # ─────────────────────────────────────────────────────────────────────────────
+  scope "/api/v1", TheBandWeb.Api.V1 do
+    pipe_through [:api, :api_autenticada]
+
+    get "/teams", TeamController, :index
+
+    # **405, e não o 404 que o Phoenix daria sozinho.** Um `POST` sem rota declarada cai no
+    # 404 genérico, e 404 afirma que o recurso NÃO EXISTE — manda quem integra procurar
+    # outra URL para uma que está certa. 405 diz a verdade: o recurso existe, o método não é
+    # permitido, e não vai ser.
+    #
+    # Uma linha por recurso, e não um curinga sobre `/*path`: o curinga transformaria
+    # caminho inexistente em 405, que é a mentira inversa.
+    match :*, "/teams", TeamController, :nao_permitido
+  end
+
+  # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
+  # API e não devolve dado nenhum, e exigir token para ler o contrato obrigaria quem integra
+  # a pedir credencial antes de saber se a API serve.
+  scope "/api" do
+    pipe_through :api
+
+    get "/openapi", OpenApiSpex.Plug.RenderSpec, []
+  end
+
+  # A INTERFACE DO SWAGGER, atrás de sessão — decisão Q7 da spec 061.
+  #
+  # Quem integra tem conta, e o mapa completo da superfície não precisa ser público: ele é
+  # útil a quem varre. A DESCRIÇÃO em si (`/api/openapi`) fica aberta, porque é o contrato e
+  # não traz dado nenhum.
+  #
+  # **Escopo próprio, e sem o alias `TheBandWeb`**: dentro dele o roteador prefixaria o
+  # módulo e procuraria `TheBandWeb.OpenApiSpex.Plug.SwaggerUI`, que não existe.
+  #
+  # O ativo é servido do PRÓPRIO DOMÍNIO. A CSP do endpoint é `script-src 'self'`, e
+  # afrouxá-la para aceitar CDN contrariaria um achado do Sobelow já tratado (issue #288).
+  scope "/api" do
+    pipe_through [:browser, :require_user]
+
+    get "/docs", OpenApiSpex.Plug.SwaggerUI, path: "/api/openapi"
   end
 
   scope "/", TheBandWeb do
