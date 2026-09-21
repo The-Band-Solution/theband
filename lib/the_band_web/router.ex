@@ -74,6 +74,9 @@ defmodule TheBandWeb.Router do
     # Uma linha por recurso, e não um curinga sobre `/*path`: o curinga transformaria
     # caminho inexistente em 405, que é a mentira inversa.
     match :*, "/teams", TeamController, :nao_permitido
+
+    get "/people", PersonController, :index
+    match :*, "/people", PersonController, :nao_permitido
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
@@ -83,6 +86,28 @@ defmodule TheBandWeb.Router do
     pipe_through :api
 
     get "/openapi", OpenApiSpex.Plug.RenderSpec, []
+  end
+
+  # O NONCE do Swagger — a segunda metade do conserto de 2026-09-21.
+  #
+  # Servir os três ativos do próprio domínio resolveu o `script-src` externo. Mas o plug
+  # ainda emite um **script inline** de ~1,3 KB que inicializa a página, e `script-src 'self'`
+  # bloqueia inline — a página vinha 200, vazia, sem erro visível no corpo.
+  #
+  # O nonce é a saída que NÃO afrouxa nada: um valor aleatório por requisição, presente na
+  # diretiva e no atributo do script. `'unsafe-inline'` liberaria qualquer script injetado;
+  # o nonce libera exatamente aquele bloco, naquela resposta.
+  defp nonce_do_swagger(conn, _opts) do
+    nonce = 16 |> :crypto.strong_rand_bytes() |> Base.encode64()
+
+    conn
+    |> assign(:script_src_nonce, nonce)
+    |> put_resp_header(
+      "content-security-policy",
+      "default-src 'self'; script-src 'self' 'nonce-#{nonce}'; " <>
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; " <>
+        "connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    )
   end
 
   # A INTERFACE DO SWAGGER, atrás de sessão — decisão Q7 da spec 061.
@@ -97,9 +122,18 @@ defmodule TheBandWeb.Router do
   # O ativo é servido do PRÓPRIO DOMÍNIO. A CSP do endpoint é `script-src 'self'`, e
   # afrouxá-la para aceitar CDN contrariaria um achado do Sobelow já tratado (issue #288).
   scope "/api" do
-    pipe_through [:browser, :require_user]
+    pipe_through [:browser, :require_user, :nonce_do_swagger]
 
-    get "/docs", OpenApiSpex.Plug.SwaggerUI, path: "/api/openapi"
+    # Os três ativos saem de `priv/static/vendor/swagger-ui/`, e NÃO do CDN que o plug usa
+    # por padrão. Sem isto a página carrega, devolve 200, e o navegador bloqueia o script
+    # em silêncio — restando uma tela em branco. Foi o que aconteceu em 2026-09-21: conferi
+    # o código HTTP e não que a página funciona.
+    get "/docs", OpenApiSpex.Plug.SwaggerUI,
+      path: "/api/openapi",
+      swagger_ui_css_url: "/vendor/swagger-ui/swagger-ui.css",
+      swagger_ui_js_bundle_url: "/vendor/swagger-ui/swagger-ui-bundle.js",
+      swagger_ui_js_standalone_preset_url: "/vendor/swagger-ui/swagger-ui-standalone-preset.js",
+      csp_nonce_assign_key: %{script: :script_src_nonce}
   end
 
   scope "/", TheBandWeb do

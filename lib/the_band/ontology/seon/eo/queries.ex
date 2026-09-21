@@ -34,9 +34,38 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   def list_people(tenant, opts \\ []) do
     Person
     |> scope(tenant, opts)
-    |> ordenar(opts[:order_by], [:name, :login, :account_type, :source_system, :collected_at])
+    |> pessoas_por_cursor(opts)
     |> paginate(opts)
     |> Repo.all()
+  end
+
+  # Mesma regra de `list_teams`: sem a opção, a ordem é a da tela; com ela, é por `id`
+  # **inclusive na primeira página**, e `:inicio` é o que distingue *travessia por cursor*
+  # de *sem cursor*. Misturar as duas faria a segunda página não conhecer o ponto de corte
+  # da primeira — linhas repetiriam e outras sumiriam.
+  # **Recebe `opts` inteiro, e não só o cursor.** Passar `nil` literal a `ordenar/3` apagaria
+  # o `order_by` que a tela pede — a listagem de pessoas ordena por coluna escolhida por
+  # quem usa, e a regressão foi denunciada por um aviso de cláusula inalcançável.
+  defp pessoas_por_cursor(query, opts) do
+    case opts[:after] do
+      nil ->
+        ordenar(query, opts[:order_by], [
+          :name,
+          :login,
+          :account_type,
+          :source_system,
+          :collected_at
+        ])
+
+      :inicio ->
+        order_by(query, [p], asc: p.id)
+
+      cursor when is_binary(cursor) ->
+        case Ecto.UUID.cast(cursor) do
+          {:ok, id} -> query |> where([p], p.id > ^id) |> order_by([p], asc: p.id)
+          :error -> order_by(query, [p], asc: p.id)
+        end
+    end
   end
 
   @doc """
@@ -99,7 +128,7 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   def list_teams(tenant, opts \\ []) do
     Team
     |> scope(tenant, opts)
-    |> por_cursor(opts[:after])
+    |> por_cursor(opts)
     |> paginate(opts)
     |> Repo.all()
   end
@@ -111,15 +140,19 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   # e as seguintes por id, o cursor da primeira apontaria para um ponto que a segunda ordem
   # não conhece — linhas repetiriam e outras sumiriam. Por isso `:inicio` existe: ele diz
   # *"travessia por cursor, começando do princípio"*, e não *"sem cursor"*.
-  defp por_cursor(query, nil),
-    do: ordenar(query, nil, [:name, :slug, :source_system, :collected_at])
+  defp por_cursor(query, opts) do
+    case opts[:after] do
+      nil ->
+        ordenar(query, opts[:order_by], [:name, :slug, :source_system, :collected_at])
 
-  defp por_cursor(query, :inicio), do: order_by(query, [t], asc: t.id)
+      :inicio ->
+        order_by(query, [t], asc: t.id)
 
-  defp por_cursor(query, cursor) when is_binary(cursor) do
-    case Ecto.UUID.cast(cursor) do
-      {:ok, id} -> query |> where([t], t.id > ^id) |> order_by([t], asc: t.id)
-      :error -> por_cursor(query, :inicio)
+      cursor when is_binary(cursor) ->
+        case Ecto.UUID.cast(cursor) do
+          {:ok, id} -> query |> where([t], t.id > ^id) |> order_by([t], asc: t.id)
+          :error -> order_by(query, [t], asc: t.id)
+        end
     end
   end
 
