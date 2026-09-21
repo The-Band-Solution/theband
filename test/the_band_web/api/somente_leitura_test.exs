@@ -42,36 +42,67 @@ defmodule TheBandWeb.Api.SomenteLeituraTest do
       |> Plug.Conn.put_req_header("authorization", "Bearer " <> valor)
       |> Plug.Conn.put_req_header("accept", "application/json")
 
-    %{conn: conn, tenant: tenant, admin: admin, pessoa: pessoa}
+    org = organization_fixture(tenant, "acme")
+    equipe = team_fixture(tenant, "T_acme", %{organization: org})
+
+    %{conn: conn, tenant: tenant, admin: admin, pessoa: pessoa, equipe: equipe}
   end
 
-  # As rotas de leitura de `/api/v1`, com os parâmetros preenchidos por valores reais.
-  # `:id` vira o id de uma pessoa que existe: um id inventado daria 404 e o teste passaria
-  # sem nunca ter chegado ao controlador.
-  defp rotas(pessoa) do
+  # As rotas de leitura de `/api/v1`, com os parâmetros preenchidos por valores REAIS.
+  #
+  # Um id inventado daria 404, e o teste passaria sem nunca ter chegado ao controlador. Por
+  # isso cada recurso tem o seu: `:id` de `/people` é uma pessoa, `:id` de `/teams` é uma
+  # equipe. Trocar `:id` por um id só, em toda rota, foi o que fiz primeiro — e o teste
+  # reprovou em `/teams/:id/members` assim que as rotas de equipe entraram.
+  #
+  # **Recurso novo com parâmetro e sem id declarado reprova aqui**, em vez de ser pulado em
+  # silêncio: a alternativa seria a varredura ignorar a rota nova, que é o oposto do que
+  # este arquivo existe para fazer.
+  defp rotas(ctx) do
+    ids = %{"people" => ctx.pessoa.id, "teams" => ctx.equipe.id}
+
     TheBandWeb.Router.__routes__()
     |> Enum.filter(&(&1.verb == :get and String.starts_with?(&1.path, "/api/v1")))
-    |> Enum.map(&String.replace(&1.path, ":id", pessoa.id))
+    |> Enum.map(&preencher(&1.path, ids))
     |> Enum.uniq()
   end
 
-  test "a varredura encontra as rotas — senão ela percorreria o vazio", ctx do
-    rotas = rotas(ctx.pessoa)
+  defp preencher(caminho, ids) do
+    if String.contains?(caminho, ":") do
+      ["", "api", "v1", recurso | _] = String.split(caminho, "/")
 
-    assert length(rotas) >= 3, "só #{length(rotas)} rotas encontradas na tabela"
+      case Map.fetch(ids, recurso) do
+        {:ok, id} -> String.replace(caminho, ~r/:[a-z_]+/, id)
+        :error -> flunk("a rota #{caminho} tem parâmetro e nenhum id real declarado no teste")
+      end
+    else
+      caminho
+    end
+  end
+
+  test "a varredura encontra as rotas — senão ela percorreria o vazio", ctx do
+    rotas = rotas(ctx)
+
+    assert length(rotas) >= 5, "só #{length(rotas)} rotas encontradas na tabela"
     assert "/api/v1/teams" in rotas
     assert "/api/v1/people" in rotas
+
+    assert Enum.any?(rotas, &String.contains?(&1, ctx.equipe.id)),
+           "nenhuma rota com parâmetro de equipe foi preenchida"
+
+    assert Enum.any?(rotas, &String.contains?(&1, ctx.pessoa.id)),
+           "nenhuma rota com parâmetro de pessoa foi preenchida"
   end
 
   test "e cada rota da varredura RESPONDE a GET — senão o 405 abaixo não diz nada", ctx do
-    for rota <- rotas(ctx.pessoa) do
+    for rota <- rotas(ctx) do
       assert ctx.conn |> get(rota) |> Map.fetch!(:status) == 200,
              "#{rota} não responde 200 a GET; um 405 nela não provaria recusa de escrita"
     end
   end
 
   test "os quatro métodos de escrita devolvem 405 em TODA rota de /api/v1", ctx do
-    for rota <- rotas(ctx.pessoa) do
+    for rota <- rotas(ctx) do
       respostas = [
         {"POST", post(ctx.conn, rota)},
         {"PUT", put(ctx.conn, rota)},
@@ -92,7 +123,7 @@ defmodule TheBandWeb.Api.SomenteLeituraTest do
   end
 
   test "a recusa sai no formato único de erro, e não em HTML", ctx do
-    for rota <- rotas(ctx.pessoa) do
+    for rota <- rotas(ctx) do
       corpo = ctx.conn |> post(rota) |> json_response(405)
 
       assert corpo["error"]["code"] == "method_not_allowed"
@@ -101,7 +132,7 @@ defmodule TheBandWeb.Api.SomenteLeituraTest do
   end
 
   test "HEAD responde os mesmos cabeçalhos de GET, com corpo vazio", ctx do
-    for rota <- rotas(ctx.pessoa) do
+    for rota <- rotas(ctx) do
       de_get = get(ctx.conn, rota)
       de_head = head(ctx.conn, rota)
 

@@ -720,6 +720,179 @@ defmodule TheBandWeb.Schemas do
     })
   end
 
+  defmodule TeamDetail do
+    @moduledoc "Uma equipe, com a composição que define o alcance de tudo o mais."
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "TeamDetail",
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :object,
+          properties: %{
+            id: %Schema{type: :string, format: :uuid},
+            name: %Schema{type: :string, nullable: true},
+            slug: %Schema{type: :string, nullable: true},
+            origin: %Schema{type: :string, enum: ["observed", "declared"]},
+            provenance: %Schema{type: :object},
+            organization: %Schema{allOf: [TheBandWeb.Schemas.Organization], nullable: true},
+            composition: %Schema{
+              type: :object,
+              description:
+                "On a composed team the roster is the team **plus its parts** with a " <>
+                  "current composition. There is one definition of *who belongs here*, " <>
+                  "and every count uses it — a header counting by evidence over a list " <>
+                  "counting by reach would give two answers to one question.",
+              properties: %{
+                is_composed: %Schema{type: :boolean},
+                parts: %Schema{type: :array, items: %Schema{type: :object}},
+                note: %Schema{type: :string}
+              }
+            },
+            roster: %Schema{
+              type: :object,
+              description:
+                "**Never summed.** *Left* says the membership existed and ended; " <>
+                  "*mistake* says it should never have been claimed. Adding them would " <>
+                  "erase the distinction revocation exists to keep.",
+              properties: %{
+                current: %Schema{type: :integer},
+                left: %Schema{type: :integer},
+                mistakes: %Schema{type: :integer}
+              }
+            },
+            memberships_pending_role: %Schema{type: :integer},
+            access: %Schema{
+              type: :object,
+              description:
+                "Which of the four paths granted the reach: `admin`, `escopo_de_equipe`, " <>
+                  "`escopo_da_organizacao` or `vinculo_vigente`. Out of reach never gets " <>
+                  "here — it answers `404`.",
+              properties: %{reason: %Schema{type: :string}}
+            }
+          }
+        }
+      },
+      required: [:data]
+    })
+  end
+
+  defmodule TeamMembers do
+    @moduledoc "O roster: quem pertence, e por qual afirmação."
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "TeamMembers",
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :array,
+          items: %Schema{
+            type: :object,
+            properties: %{
+              person_id: %Schema{type: :string, format: :uuid},
+              name: %Schema{type: :string, nullable: true},
+              login: %Schema{type: :string, nullable: true},
+              situation: %Schema{type: :string},
+              direct: %Schema{type: :boolean},
+              squads: %Schema{type: :array, items: %Schema{type: :object}},
+              memberships: %Schema{
+                type: :array,
+                description:
+                  "`origin` lives on the **membership**, not on the person: someone can " <>
+                    "be observed in one team and declared in another, and both claims " <>
+                    "hold at once.\n\n`ended_at` says *left*; `mistake` says *should " <>
+                    "never have been claimed*. Flattening them would turn history into " <>
+                    "error and error into history.\n\nWho declared it is **not** " <>
+                    "returned — the field is an e-mail address, and e-mail is what this " <>
+                    "API excludes on purpose.",
+                items: %Schema{type: :object}
+              }
+            }
+          }
+        },
+        page: TheBandWeb.Schemas.Page
+      },
+      required: [:data, :page]
+    })
+  end
+
+  defmodule TeamMeasures do
+    @moduledoc "As medidas da equipe — o que a integração leva para painel próprio."
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "TeamMeasures",
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :object,
+          properties: %{
+            window: %Schema{
+              type: :object,
+              description:
+                "Fixed at 56 days and **declared**: a measure over an undeclared window " <>
+                  "answers a different question without saying so.",
+              properties: %{
+                days: %Schema{type: :integer},
+                from: %Schema{type: :string, format: :"date-time"},
+                to: %Schema{type: :string, format: :"date-time"}
+              }
+            },
+            work: %Schema{
+              type: :object,
+              properties: %{
+                members: %Schema{type: :integer},
+                open: %Schema{type: :integer},
+                closed_in_window: %Schema{type: :integer},
+                stale: %Schema{type: :integer},
+                no_work: %Schema{type: :boolean},
+                note: %Schema{type: :string}
+              }
+            },
+            open_by_person: %Schema{type: :array, items: %Schema{type: :object}},
+            time_to_first_review: %Schema{
+              type: :object,
+              description:
+                "`truncated` is not a pagination detail: a median over 200 of 500 is a " <>
+                  "**different measure** wearing the same label. The list asks for one " <>
+                  "more than the limit so the cut is never silent.",
+              properties: %{
+                items: %Schema{type: :array, items: %Schema{type: :object}},
+                limit: %Schema{type: :integer},
+                truncated: %Schema{type: :boolean},
+                truncated_note: %Schema{type: :string}
+              }
+            },
+            skills: %Schema{
+              type: :object,
+              description:
+                "`without_profile` comes **named**, never summed as zero: absence of a " <>
+                  "profile is absence of **reading**, so the team's coverage is a floor " <>
+                  "and never a ceiling.",
+              properties: %{
+                members: %Schema{type: :integer},
+                with_profile: %Schema{type: :integer},
+                without_profile: %Schema{type: :array, items: %Schema{type: :object}},
+                competencies: %Schema{type: :array, items: %Schema{type: :object}},
+                coverage_note: %Schema{type: :string},
+                summary: %Schema{type: :array, items: %Schema{type: :object}}
+              }
+            }
+          }
+        }
+      },
+      required: [:data]
+    })
+  end
+
   defmodule Erro do
     @moduledoc "O formato único de erro — um tratador, não seis."
     require OpenApiSpex
