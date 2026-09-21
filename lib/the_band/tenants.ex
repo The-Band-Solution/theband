@@ -15,6 +15,7 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.AccountDisablement
   alias TheBand.Tenants.AccountLifecycle
+  alias TheBand.Tenants.ApiTokens
   alias TheBand.Tenants.Auth
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
@@ -34,6 +35,26 @@ defmodule TheBand.Tenants do
   defdelegate grant_scope(tenant, user_id, level, target_id, actor), to: Access, as: :grant
   defdelegate revoke_scope(tenant, grant_id, actor), to: Access, as: :revoke
   defdelegate operacional?(tenant, user), to: Access
+
+  # ------------------------------------------- o token de API (feature 061)
+  #
+  # O token é **credencial de acesso à plataforma**, como a conta e a concessão — por isso
+  # vive aqui, e não numa ontologia. A rede descreve processo de software observado, e um
+  # token não é conceito dela.
+  #
+  # **Não há `update` nem `delete`**, e a ausência é decisão: estender o prazo de um token
+  # vivo é conceder acesso sem gerar credencial nova, e ausência marca em vez de apagar.
+
+  defdelegate create_api_token(tenant, dono, attrs, autor), to: ApiTokens, as: :criar
+  defdelegate list_api_tokens(tenant), to: ApiTokens, as: :listar
+  defdelegate fetch_api_token(tenant, id), to: ApiTokens, as: :buscar
+  defdelegate revoke_api_token(tenant, id, autor), to: ApiTokens, as: :revogar
+
+  # Recebe o valor CRU do cabeçalho, e devolve uma recusa só — ver `ApiTokens.autenticar/1`.
+  defdelegate authenticate_api_token(valor), to: ApiTokens, as: :autenticar
+
+  defdelegate api_token_prefix(), to: ApiTokens, as: :prefixo
+  defdelegate api_token_threshold(nome), to: ApiTokens, as: :limiar
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)

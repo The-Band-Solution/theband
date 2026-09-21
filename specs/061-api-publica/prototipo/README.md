@@ -15,7 +15,15 @@ visual do último protótipo aprovado (`specs/066-pronto-declarado/prototipo/`) 
 A estrutura seção a seção — **que é a régua do QA** — está na seção 3 do [`PROMPT.md`](PROMPT.md),
 com 60 itens, cada um separando aprovado de reprovado por algo observável.
 
-**Aprovação: aguardando a pessoa mantenedora.**
+**Aprovação: APROVADO pela pessoa mantenedora em 2026-09-18.**
+
+A partir daqui a régua da seção 3 do `PROMPT.md` é o critério de aceite da tela implementada:
+**a tela implementada é exatamente a aprovada**, e divergência é defeito, não melhoria de
+implementação. Mudança volta ao protótipo antes de voltar ao código.
+
+As seis perguntas abertas abaixo **não** bloqueiam a implementação — o protótipo desenha a
+recomendação de cada uma, e é ela que foi aprovada. Uma resposta diferente é mudança de
+protótipo, não correção de código.
 
 **T001 bloqueia T009, T010, T011 e T013** (`tasks.md`). Enquanto esta tela não for aprovada, a
 fatia 1 avança só pela fundação (T002 a T008) e pelas histórias sem tela.

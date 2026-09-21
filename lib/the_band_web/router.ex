@@ -142,6 +142,11 @@ defmodule TheBandWeb.Router do
       live "/accounts", AccountsLive.Index, :index
       live "/access-scopes", AccessScopesLive.Index, :index
 
+      # A credencial da API pública — feature 061, FR-045. Vive na área administrativa
+      # porque credencial é GESTÃO, e não operação: quem gera um token concede acesso a
+      # tudo o que a conta dona alcança, e isso é o mesmo eixo de `/accounts`.
+      live "/api-tokens", ApiTokenLive.Index, :index
+
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.
       live "/roles", RolesLive.Index, :index
