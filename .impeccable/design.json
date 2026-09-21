@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-17T12:00:00Z",
+  "generatedAt": "2026-09-10T14:45:00Z",
   "title": "Design System: The Band",
   "extensions": {
     "colorMeta": {
@@ -9,62 +9,146 @@
         "displayName": "Verdete de Instrumento",
         "canonical": "#1f6f68",
         "darkThemeValue": "#5cbcb2",
-        "tonalRamp": ["#0a2523", "#123c38", "#1f6f68", "#2f8a81", "#5cbcb2", "#8ed0c9", "#bfe5e0", "#e4f4f2"]
+        "tonalRamp": [
+          "#0a2523",
+          "#123c38",
+          "#1f6f68",
+          "#2f8a81",
+          "#5cbcb2",
+          "#8ed0c9",
+          "#bfe5e0",
+          "#e4f4f2"
+        ]
       },
       "verdete-deep": {
         "role": "secondary",
         "displayName": "Verdete Profundo",
         "canonical": "#14504a",
         "darkThemeValue": "#3f9e94",
-        "tonalRamp": ["#081f1c", "#0e3833", "#14504a", "#1f6f68", "#3f9e94", "#74c0b8", "#aeddd7", "#ddf1ee"]
+        "tonalRamp": [
+          "#081f1c",
+          "#0e3833",
+          "#14504a",
+          "#1f6f68",
+          "#3f9e94",
+          "#74c0b8",
+          "#aeddd7",
+          "#ddf1ee"
+        ]
       },
       "paper": {
         "role": "neutral",
         "displayName": "Papel",
         "canonical": "#f7f8f7",
         "darkThemeValue": "#151b19",
-        "tonalRamp": ["#101614", "#2b3532", "#55625d", "#8b968f", "#bcc4bf", "#d7dcd8", "#eef0ee", "#f7f8f7"]
+        "tonalRamp": [
+          "#101614",
+          "#2b3532",
+          "#55625d",
+          "#8b968f",
+          "#bcc4bf",
+          "#d7dcd8",
+          "#eef0ee",
+          "#f7f8f7"
+        ]
       },
       "ink": {
         "role": "neutral",
         "displayName": "Tinta",
         "canonical": "#101614",
         "darkThemeValue": "#e6ebe8",
-        "tonalRamp": ["#101614", "#232b28", "#3a453f", "#5a665f", "#828e86", "#aeb8b1", "#d3dad5", "#eef1ef"]
+        "tonalRamp": [
+          "#101614",
+          "#232b28",
+          "#3a453f",
+          "#5a665f",
+          "#828e86",
+          "#aeb8b1",
+          "#d3dad5",
+          "#eef1ef"
+        ]
       },
       "amber-divergence": {
         "role": "tertiary",
         "displayName": "Âmbar de Divergência",
         "canonical": "#8a5a0c",
         "darkThemeValue": "#d9a441",
-        "tonalRamp": ["#2a1c04", "#513608", "#8a5a0c", "#b47b1c", "#d9a441", "#e7c078", "#f2dcae", "#faf0da"]
+        "tonalRamp": [
+          "#2a1c04",
+          "#513608",
+          "#8a5a0c",
+          "#b47b1c",
+          "#d9a441",
+          "#e7c078",
+          "#f2dcae",
+          "#faf0da"
+        ]
       },
       "clay-refusal": {
         "role": "tertiary",
         "displayName": "Barro de Recusa",
         "canonical": "#8c3327",
         "darkThemeValue": "#e08574",
-        "tonalRamp": ["#2b0f0a", "#571f16", "#8c3327", "#b34e3d", "#e08574", "#ecab9e", "#f4cec6", "#fbeae6"]
+        "tonalRamp": [
+          "#2b0f0a",
+          "#571f16",
+          "#8c3327",
+          "#b34e3d",
+          "#e08574",
+          "#ecab9e",
+          "#f4cec6",
+          "#fbeae6"
+        ]
       },
       "info-blue": {
         "role": "tertiary",
         "displayName": "Azul de Informação",
         "canonical": "#23566f",
         "darkThemeValue": "#7fb4d6",
-        "tonalRamp": ["#0a1c25", "#153648", "#23566f", "#3a7594", "#7fb4d6", "#a6cbe3", "#cde1ef", "#ebf3f9"]
+        "tonalRamp": [
+          "#0a1c25",
+          "#153648",
+          "#23566f",
+          "#3a7594",
+          "#7fb4d6",
+          "#a6cbe3",
+          "#cde1ef",
+          "#ebf3f9"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Grotesca do sistema", "purpose": "Título de tela e número que decide — escaneado, não lido." },
-      "body": { "displayName": "Serifa do sistema", "purpose": "O que precisa ser lido: divergência, recusa, axioma." },
-      "label": { "displayName": "Mono do sistema", "purpose": "Identificador, contagem alinhada, chave de regra." }
+      "display": {
+        "displayName": "Grotesca do sistema",
+        "purpose": "Título de tela e número que decide — escaneado, não lido."
+      },
+      "body": {
+        "displayName": "Serifa do sistema",
+        "purpose": "O que precisa ser lido: divergência, recusa, axioma."
+      },
+      "label": {
+        "displayName": "Mono do sistema",
+        "purpose": "Identificador, contagem alinhada, chave de regra."
+      },
+      "scale": {
+        "displayName": "A ramp — dez passos",
+        "purpose": "tick 10 (só eixo de gráfico) · micro 11 · label 12 · meta 13 · body 14 · prose 16 · lead 18 · title 20 · section 24 · hero 30. Nenhum tamanho fora destes dez, e a mesma ramp no código e no protótipo."
+      }
     },
     "shadows": [],
     "motion": [
-      { "name": "reduced-motion-net", "value": "@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms; transition-duration: 0.01ms } }", "purpose": "Rede de segurança global — protege inclusive animação de terceiros (WCAG 2.3.3)." }
+      {
+        "name": "reduced-motion-net",
+        "value": "@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.01ms; transition-duration: 0.01ms } }",
+        "purpose": "Rede de segurança global — protege inclusive animação de terceiros (WCAG 2.3.3)."
+      }
     ],
     "breakpoints": [
-      { "name": "stack", "value": "40rem", "purpose": "Abaixo disso, table.stacked vira lista de cartões com data-label." }
+      {
+        "name": "stack",
+        "value": "40rem",
+        "purpose": "Abaixo disso, table.stacked vira lista de cartões com data-label."
+      }
     ]
   },
   "components": [
@@ -103,7 +187,7 @@
       "kind": "card",
       "description": "Fato sobre o dado, não erro do sistema — âmbar, com ícone além da cor.",
       "html": "<div class=\"ds-notice\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><path d=\"M8 1L15 14H1L8 1Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/><path d=\"M8 6v4\" stroke=\"currentColor\" stroke-width=\"1.5\"/><circle cx=\"8\" cy=\"12\" r=\"0.75\" fill=\"currentColor\"/></svg><span>the concept was kept; this is a signal about the team's process</span></div>",
-      "css": ".ds-notice { display: flex; align-items: flex-start; gap: 0.5rem; background: #faf0da; color: #8a5a0c; font-family: ui-serif, Georgia, serif; font-size: 0.875rem; line-height: 1.5; padding: 0.75rem 1rem; border-radius: 0.5rem; border-left: 3px solid #8a5a0c; } .ds-notice svg { flex: none; margin-top: 2px; }"
+      "css": ".ds-notice { display: flex; align-items: flex-start; gap: 0.5rem; background: #faf0da; color: #8a5a0c; font-family: ui-serif, Georgia, serif; font-size: 0.875rem; line-height: 1.5; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1.5px solid #8a5a0c; } .ds-notice svg { flex: none; margin-top: 2px; }"
     },
     {
       "name": "Deciding Metric",
@@ -131,12 +215,46 @@
       "A interface fala inglês; código e documentação falam português"
     ],
     "rules": [
-      { "name": "The Calibrated Instrument Rule", "body": "Nenhuma cor de alerta na marca de evidência, e nenhum vermelho de erro na paleta: divergência é âmbar, recusa é barro, e ambas descrevem o dado — o sistema não falhou.", "section": "colors" },
-      { "name": "The No-Pure-Grey Rule", "body": "Todo neutro puxa para a primária. Cinza puro lê como não escolhido — o teste de tokens recusa o roxo e o laranja do gerador de volta.", "section": "colors" },
-      { "name": "The No-Webfont Rule", "body": "Nenhuma família baixada: a pilha do sistema entrega a hierarquia sem custo de rede.", "section": "typography" },
-      { "name": "The Tabular Numbers Rule", "body": "Número em coluna leva tabular-nums, sempre.", "section": "typography" },
-      { "name": "The Flat-By-Doctrine Rule", "body": "Se uma tela parece precisar de sombra, o problema é hierarquia tonal ou espaçamento — resolva lá.", "section": "elevation" },
-      { "name": "The Fill Carries Provenance Rule", "body": "A gramática sólido/hachurado/tracejado nunca aparece sem os outros dois canais: texto visível e title para leitor de tela.", "section": "colors" }
+      {
+        "name": "The Calibrated Instrument Rule",
+        "body": "Nenhuma cor de alerta na marca de evidência, e nenhum vermelho de erro na paleta: divergência é âmbar, recusa é barro, e ambas descrevem o dado — o sistema não falhou.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Pure-Grey Rule",
+        "body": "Todo neutro puxa para a primária. Cinza puro lê como não escolhido — o teste de tokens recusa o roxo e o laranja do gerador de volta.",
+        "section": "colors"
+      },
+      {
+        "name": "The No-Webfont Rule",
+        "body": "Nenhuma família baixada: a pilha do sistema entrega a hierarquia sem custo de rede.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Numbers Rule",
+        "body": "Número em coluna leva tabular-nums, sempre.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Doctrine Rule",
+        "body": "Se uma tela parece precisar de sombra, o problema é hierarquia tonal ou espaçamento — resolva lá.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Fill Carries Provenance Rule",
+        "body": "A gramática sólido/hachurado/tracejado nunca aparece sem os outros dois canais: texto visível e title para leitor de tela.",
+        "section": "colors"
+      },
+      {
+        "name": "The One-Ramp Rule",
+        "body": "Nenhum tamanho de fonte fora dos dez passos de typography.scale — tick 0.625rem (só rótulo de eixo dentro de gráfico SVG), micro 0.6875, label 0.75, meta 0.8125, body 0.875, prose 1, lead 1.125, title 1.25, section 1.5, hero 1.875 —, e a ramp é a mesma no código e no protótipo: um protótipo com escala própria não é a tela que o código deve reproduzir. Medido em 2026-09-10: o código usava oito tamanhos arbitrários e os quatro protótipos usavam trinta e quatro. Trinta e quatro tamanhos não são uma escala — são um valor escolhido por elemento, e a diferença aparece como desalinho que ninguém consegue nomear. Onde o Tailwind já tem classe para o passo (text-xs 12, text-sm 14, text-base 16), ela ganha do literal: text-xs diz o passo, text-[12px] diz um número; onde não tem — 10, 11 e 13 —, o literal fica e nomeia um passo declarado.",
+        "section": "typography"
+      },
+      {
+        "name": "The No-Accent-Edge Rule",
+        "body": "Nenhuma borda colorida acima de 1px num lado só — cartão, item de lista, aviso ou chamada. Duas razões, e a segunda é a que importa: é o tique mais reconhecível de interface gerada, e era um segundo dispositivo fazendo o trabalho do primeiro — o sistema já diz de que natureza é uma afirmação, e diz no preenchimento. Dez ocorrências medidas em 2026-09-10, em três protótipos e em nove pontos do código, inclusive neste componente de aviso. No lugar fica o que o sistema já declarava: camada tonal para separar, borda uniforme de 1.5px quando precisa de mais separação, e a cor semântica na borda inteira ou no quadrado de 0.6rem quando ela carrega sentido. Fio de 1px continua valendo como régua de indentação — régua não é acento.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do carregar a proveniência no preenchimento (sólido/hachurado/tracejado) com texto e title redundantes.",
@@ -144,7 +262,8 @@
       "Do usar tabular-nums em qualquer número em coluna.",
       "Do empilhar tabelas largas com stacked + data-label abaixo de 40rem.",
       "Do escrever frase de tela em inglês, mesmo nascendo no domínio — com comentário no código dizendo isso.",
-      "Do declarar recorte na própria tela quando uma lista é limitada."
+      "Do declarar recorte na própria tela quando uma lista é limitada.",
+      "Do ficar nos dez passos da ramp e nos quatro raios declarados (mark 0.125rem, field 0.25, box 0.5, pill 9999px) — e usar a classe do Tailwind quando ela nomeia o passo."
     ],
     "donts": [
       "Don't usar webfont — a pilha do sistema é compromisso.",
@@ -153,7 +272,8 @@
       "Don't remover ou substituir o anel de foco global de 2px.",
       "Don't deixar cor ser o único canal de um estado — ícone ou texto sempre junto.",
       "Don't escrever \"permission denied\" para recurso de outro tenant — é \"not found\"; dizer \"sem permissão\" confirma que o recurso existe.",
-      "Don't esconder seção vazia em silêncio — a ausência aparece nomeada, com o que a faria existir."
+      "Don't esconder seção vazia em silêncio — a ausência aparece nomeada, com o que a faria existir.",
+      "Don't pôr borda colorida acima de 1px num lado só de cartão, aviso ou item de lista — a natureza da afirmação vive no preenchimento, não na aresta."
     ]
   }
 }

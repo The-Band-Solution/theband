@@ -237,8 +237,13 @@ defmodule TheBand.Tenants.Auth do
           {:ok, User.t()} | {:error, Ecto.Changeset.t() | :not_found}
   def set_password(%Tenant{id: tenant_id}, user_id, senha) do
     case do_tenant(tenant_id, user_id) do
-      nil -> {:error, :not_found}
-      %User{} = user -> user |> User.senha_changeset(%{password: senha}) |> Repo.update()
+      nil ->
+        {:error, :not_found}
+
+      %User{} = user ->
+        user
+        |> User.senha_changeset(%{password: senha}, source: "self", by: user.id)
+        |> Repo.update()
     end
   end
 
@@ -251,7 +256,9 @@ defmodule TheBand.Tenants.Auth do
   def change_password(%Tenant{id: tenant_id}, user_id, atual, nova) do
     with %User{} = user <- do_tenant(tenant_id, user_id),
          true <- user.password_hash != nil and Bcrypt.verify_pass(atual, user.password_hash) do
-      user |> User.senha_changeset(%{password: nova}) |> Repo.update()
+      user
+      |> User.senha_changeset(%{password: nova}, source: "self", by: user.id)
+      |> Repo.update()
     else
       nil -> {:error, :not_found}
       false -> {:error, :invalid_current}
@@ -270,13 +277,13 @@ defmodule TheBand.Tenants.Auth do
   """
   @spec cadastrar_conta(Tenant.t(), map(), User.t()) ::
           {:ok, {User.t(), String.t()}} | {:error, Ecto.Changeset.t()}
-  def cadastrar_conta(%Tenant{id: tenant_id}, attrs, %User{} = _actor) do
+  def cadastrar_conta(%Tenant{id: tenant_id}, attrs, %User{} = actor) do
     Repo.transaction(fn ->
       with {:ok, user} <-
              %User{}
              |> User.changeset(Map.put(attrs, "tenant_id", tenant_id))
              |> Repo.insert(),
-           {:ok, temporaria} <- gravar_temporaria(user) do
+           {:ok, temporaria} <- gravar_temporaria(user, "creation", actor.id) do
         {Repo.get!(User, user.id), temporaria}
       else
         {:error, changeset} -> Repo.rollback(changeset)
@@ -290,18 +297,28 @@ defmodule TheBand.Tenants.Auth do
   """
   @spec reset_password(Tenant.t(), Ecto.UUID.t(), Ecto.UUID.t()) ::
           {:ok, String.t()} | {:error, :not_found | Ecto.Changeset.t()}
-  def reset_password(%Tenant{id: tenant_id}, user_id, _actor_id) do
+  def reset_password(%Tenant{id: tenant_id}, user_id, actor_id) do
     case do_tenant(tenant_id, user_id) do
       nil -> {:error, :not_found}
-      %User{} = user -> gravar_temporaria(user)
+      %User{} = user -> gravar_temporaria(user, "reset", actor_id)
     end
   end
 
-  defp gravar_temporaria(user) do
+  # `source` e `by` gravam a proveniência da credencial — de qual ato ela veio e quem a
+  # emitiu. O `actor_id` chegava aqui e era **descartado**: a tela dizia *"issued 9 Sep by
+  # Paulo"* no protótipo, e o dado não tinha o Paulo.
+  #
+  # No cadastro, quem emite é quem cadastra; o `user.id` da conta nova não serviria, e por
+  # isso o ato passa o seu.
+  defp gravar_temporaria(user, source, actor_id) do
     temporaria = senha_temporaria()
 
     case user
-         |> User.senha_changeset(%{password: temporaria}, temporary: true)
+         |> User.senha_changeset(%{password: temporaria},
+           temporary: true,
+           source: source,
+           by: actor_id
+         )
          |> Repo.update() do
       {:ok, _} -> {:ok, temporaria}
       erro -> erro

@@ -49,6 +49,16 @@ defmodule TheBandWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    # A VERSÃO QUE ESTA INSTÂNCIA SERVE — achado H7, e a lacuna que toda release desta base
+    # teve de declarar à mão: o webhook responde `deployed successfully` e nada prova que o
+    # container subiu a versão publicada. A CD passou a perguntar aqui e a FALHAR quando a
+    # resposta não for a do merge.
+    #
+    # Sem autenticação, de propósito: a versão já é pública na tag git, no registro da release
+    # e no nome da imagem — e o único consumidor da rota roda antes de haver sessão.
+    get "/version", VersionController, :show
+
     live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete
@@ -131,6 +141,11 @@ defmodule TheBandWeb.Router do
     live_session :admin, on_mount: {TheBandWeb.Live.Hooks, :require_admin} do
       live "/accounts", AccountsLive.Index, :index
       live "/access-scopes", AccessScopesLive.Index, :index
+
+      # A credencial da API pública — feature 061, FR-045. Vive na área administrativa
+      # porque credencial é GESTÃO, e não operação: quem gera um token concede acesso a
+      # tudo o que a conta dona alcança, e isso é o mesmo eixo de `/accounts`.
+      live "/api-tokens", ApiTokenLive.Index, :index
 
       # O catálogo de papéis é decisão da organização, e não consulta: quem o cadastra
       # declara o que a organização reconhece — FR-017, feature 021.

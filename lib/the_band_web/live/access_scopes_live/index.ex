@@ -179,7 +179,7 @@ defmodule TheBandWeb.AccessScopesLive.Index do
       <.header>
         Access scopes
         <:subtitle>
-          <span class="font-serif text-[15px] text-base-content">
+          <span class="font-serif text-base text-base-content">
             A pessoa tem acesso aos dados com os quais está relacionada.
           </span>
           O escopo segue as relações — elo, vínculo, ligação declarada — e a concessão

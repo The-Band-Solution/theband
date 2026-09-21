@@ -6,6 +6,18 @@ on:
   push:
   pull_request:
 
+# O MÍNIMO, e explicitamente — achado H8.
+#
+# Sem este bloco o `GITHUB_TOKEN` do job herda o **padrão do repositório**, que hoje é
+# permissivo: um passo comprometido — de uma ação de terceiro, por exemplo — poderia escrever
+# no repositório, publicar pacote ou abrir release com a credencial que o próprio CI carrega.
+#
+# A CI **lê** e nada mais: clona, compila, roda testes e sobe artefato de cobertura. Escrita
+# nenhuma. Declarar o mínimo aqui é o que faz a permissão parar de depender de uma
+# configuração fora do arquivo, que ninguém revisa junto com o código.
+permissions:
+  contents: read
+
 env:
   MIX_ENV: test
   # `THE_BAND_MASTER_KEY` **não** é declarada aqui, de propósito.
@@ -42,15 +54,15 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1
         with:
           elixir-version: "1.20.2"
           otp-version: "29"
 
       - name: Cache de dependências e PLT
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             deps
@@ -73,7 +85,7 @@ jobs:
       # justamente a distinção que o produto passou a fazer na feature 009.
       # ------------------------------------------------------------------------
       - name: Cache dos binários de assets
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             _build/tailwind-*
@@ -135,15 +147,15 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1
         with:
           elixir-version: "1.20.2"
           otp-version: "29"
 
       - name: Cache de dependências
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             deps
@@ -152,7 +164,7 @@ jobs:
           restore-keys: ${{ runner.os }}-mix-
 
       - name: Cache dos binários de assets
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: |
             _build/tailwind-*
@@ -171,7 +183,7 @@ jobs:
       - name: Conferir que a medida existe
         run: test -s cover/excoveralls.xml || { echo "cobertura ausente — a medida não aconteceu"; exit 1; }
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: cobertura
           path: cover/
@@ -184,10 +196,10 @@ jobs:
     name: a imagem de produção builda
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: só quando a imagem muda
         id: mudou
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         with:
           filters: |
             docker:

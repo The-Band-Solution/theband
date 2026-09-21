@@ -90,6 +90,80 @@ services:
       postgres_prod:
         condition: service_healthy
 
+  # ── MinIO: o destino S3-compatível do backup (profile "backup") ──────────────
+  #
+  # ## Por que existe
+  #
+  # O §6 do runbook diz que **o backup só existe depois de restaurado uma vez**, e o
+  # ensaio estava bloqueado desde 2026-09-08 por uma razão que não era técnica: a conta
+  # no destino S3 não existia. Um backup nunca restaurado é um arquivo — não se sabe se
+  # está completo, se o formato abre, nem se o comando de restauração é o que está escrito.
+  #
+  # MinIO fala o protocolo do S3. Com ele o ensaio roda **aqui**, contra um destino real,
+  # sem depender de conta em provedor nenhum — e o que o ensaio prova continua valendo
+  # quando o destino de produção for outro, porque o protocolo é o mesmo.
+  #
+  # ## Isto é o destino do ENSAIO, e não o de produção
+  #
+  # O backup de produção é agendado no Dokploy (runbook §4) e escreve num destino **fora
+  # da máquina que ele protege** — é a razão de ele existir. Um MinIO no mesmo host não
+  # serviria: o incêndio que leva o banco leva o backup junto.
+  #
+  # ## Profile próprio, e o `docker compose up` de quem desenvolve não muda
+  #
+  # Mesma razão do profile `producao`: quem desenvolve não paga por um serviço que só o
+  # ensaio usa.
+  minio:
+    profiles: ["backup"]
+    # QUAY.IO, e não o Docker Hub: `minio/minio` no Hub devolve
+    # `pull access denied ... repository does not exist`. A distribuição oficial é o
+    # quay.io, e a tag é imutável — `latest` não identifica o que está rodando, pela mesma
+    # razão do achado H7.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: the_band_minio
+    command: server /data --console-address ":9001"
+    environment:
+      # Credenciais de DESENVOLVIMENTO, com padrão explícito. A produção nunca as lê
+      # daqui: o destino dela é configurado no Dokploy, e o segredo entra por lá.
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-theband}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-theband-ensaio-local}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - the_band_minio:/data
+    healthcheck:
+      # `mc ready local` é o teste que a própria imagem declara — `curl` no
+      # `/minio/health/live` responde antes de o servidor aceitar operação de bucket, e
+      # o balde nasceria contra um servidor que ainda não atende.
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # O BALDE NASCE AQUI, e não à mão.
+  #
+  # MinIO não cria bucket no boot. Sem este passo, o ensaio falharia no primeiro `put`
+  # com `NoSuchBucket` — e falharia **depois** de o `pg_dump` ter rodado, que é o pior
+  # lugar para descobrir que falta configuração.
+  #
+  # `mb --ignore-existing` é idempotente: subir de novo não recria nem recusa.
+  minio_balde:
+    profiles: ["backup"]
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: the_band_minio_balde
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-theband} ${MINIO_ROOT_PASSWORD:-theband-ensaio-local} &&
+      mc mb --ignore-existing local/${MINIO_BUCKET:-the-band-backup} &&
+      mc anonymous set none local/${MINIO_BUCKET:-the-band-backup} &&
+      echo 'balde ${MINIO_BUCKET:-the-band-backup} pronto'
+      "
+
 volumes:
   the_band_pgdata:
   the_band_pgdata_prod:
+  the_band_minio:

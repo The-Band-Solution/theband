@@ -102,6 +102,40 @@ nav:
       - Modelo de dados: architecture/modelo-de-dados.md
       - Design system: design-system.md
 
+  - Modelos:
+      - Índice: modelos/README.md
+      - Arquitetura:
+          - Visão geral: modelos/arquitetura/visao-geral.md
+      - Classes (UML):
+          - Mapa dos schemas: modelos/classes/mapa-dos-schemas.md
+          - Declarações da organização: modelos/classes/declaracoes-da-organizacao.md
+          - EO — estrutura organizacional: modelos/classes/eo-estrutura-organizacional.md
+          - Ingestão e observação: modelos/classes/ingestao-e-observacao.md
+          - Perfis e modelo: modelos/classes/perfis-e-modelo.md
+          - Projetos e processo: modelos/classes/projetos-e-processo.md
+          - Tenants e acesso: modelos/classes/tenants-e-acesso.md
+          - Trabalho e mudança: modelos/classes/trabalho-e-mudanca.md
+      - Banco (ERD):
+          - Mapa das tabelas: modelos/banco/mapa-das-tabelas.md
+          - Declarações da organização: modelos/banco/declaracoes-da-organizacao.md
+          - EO e acesso: modelos/banco/eo-e-acesso.md
+          - Ingestão e observação: modelos/banco/ingestao-e-observacao.md
+          - Perfis e modelo: modelos/banco/perfis-e-modelo.md
+          - Projetos e processo: modelos/banco/projetos-e-processo.md
+          - Trabalho e mudança: modelos/banco/trabalho-e-mudanca.md
+      - Estados:
+          - Mapa dos ciclos de vida: modelos/estados/mapa-dos-ciclos-de-vida.md
+          - Declaração revogável: modelos/estados/declaracao-revogavel.md
+          - Observação: modelos/estados/observacao.md
+          - Atividade executada: modelos/estados/atividade-executada.md
+          - Conta: modelos/estados/conta.md
+          - Coleta: modelos/estados/coleta.md
+          - Projeto declarado: modelos/estados/projeto-declarado.md
+          - Vínculo de equipe: modelos/estados/vinculo-de-equipe.md
+      - DSM:
+          - Módulos de lib: modelos/dsm/modulos-de-lib.md
+          - 060 — a tela da equipe: modelos/dsm/060-tela-da-equipe.md
+
   - Funcionalidades:
       - O que o produto faz: funcionalidades/README.md
       - A tela da equipe: funcionalidades/tela-da-equipe.md
@@ -165,8 +199,10 @@ nav:
   - Backlog:
       - Visão geral: backlog/README.md
       - A conta desativada: backlog/conta-desativada.md
+      - As recusas falam português: backlog/recusas-em-portugues-e-o-nome-da-coluna.md
       - A versão em produção na página: backlog/a-versao-em-producao-na-pagina.md
       - O backup restaurado de verdade: backlog/backup-restaurado-de-verdade.md
+      - MinIO como destino do ensaio: backlog/minio-como-destino-do-ensaio-de-backup.md
       - A API pública com token: backlog/api-publica.md
       - Burn da pessoa sem linha de base: backlog/burn-da-pessoa-sem-linha-de-base.md
       - Crud entities: backlog/crud-entities.md
@@ -178,6 +214,7 @@ nav:
       - Servidor mcp: backlog/servidor-mcp.md
       - Setup inicial e multiempresa: backlog/setup-inicial-e-multiempresa.md
       - Tela da equipe complexa: backlog/tela-da-equipe-complexa.md
+      - Tela da equipe — aba Flow per person: backlog/tela-da-equipe-fluxo-por-pessoa.md
       - Tooling library: backlog/tooling-library.md
 
   - Sprints:
@@ -263,3 +300,15 @@ nav:
               - Backlog do sprint: sprints/028-a-tela-da-equipe/sprint-backlog.md
               - Review: sprints/028-a-tela-da-equipe/sprint-review.md
           - 029 — Medidas da equipe: sprints/029-medidas-da-equipe/sprint-backlog.md
+          - 030 — A tela da equipe por vínculo:
+              - Aceitação: sprints/030-a-tela-da-equipe-por-vinculo/aceitacao.md
+              - Backlog do sprint: sprints/030-a-tela-da-equipe-por-vinculo/sprint-backlog.md
+              - Review: sprints/030-a-tela-da-equipe-por-vinculo/sprint-review.md
+          - 031 — Segredo em repouso:
+              - Backlog do sprint: sprints/031-segredo-em-repouso/sprint-backlog.md
+              - GitHub: sprints/031-segredo-em-repouso/github.md
+          - 032 — Rótulos no item:
+              - Aceitação: sprints/032-rotulos-no-item/aceitacao.md
+              - Backlog do sprint: sprints/032-rotulos-no-item/sprint-backlog.md
+              - Review: sprints/032-rotulos-no-item/sprint-review.md
+              - GitHub: sprints/032-rotulos-no-item/github.md

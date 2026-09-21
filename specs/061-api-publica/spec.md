@@ -256,9 +256,19 @@ nenhuma outra história desta feature entregue endpoint fora da lista de FR-020.
 ### O token: forma, geração e guarda
 
 - **FR-001**: O token gerado tem **prefixo fixo que o identifica como desta
-  plataforma** — proposta: `tbnd_` —, seguido da parte aleatória. O prefixo existe
-  para que varredura de segredo em repositório, log e histórico de terminal
-  reconheça o vazamento sem saber o valor.
+  plataforma**, seguido da parte aleatória. O prefixo existe para que varredura de
+  segredo em repositório, log e histórico de terminal reconheça o vazamento sem
+  saber o valor.
+
+  **O prefixo é `tb_api_`**, e o formato inteiro é
+  `tb_api_<id_publico>_<segredo>` — decidido no
+  [plano](plan.md#1-o-token-tem-duas-partes--id-público-e-segredo) e em
+  [research.md](research.md#r5--o-formato-do-token). A proposta original desta
+  linha era `tbnd_`, e ela foi substituída em 2026-09-18: o formato de **três
+  partes** existe porque a busca tem de ser pelo id público e nunca pelo hash
+  (decisão Q1), e um prefixo que não anuncia a API não ajuda quem lê o token num
+  log. O valor vive na base de conhecimento como `api.access.token_prefix`, e não
+  em constante de módulo — FR-069.
 - **FR-002**: A parte aleatória tem no mínimo **32 bytes de entropia** de gerador
   criptográfico, codificada em alfabeto seguro para URL e para copiar e colar.
 - **FR-003**: O sistema guarda **apenas o hash** do token. Não existe coluna com o

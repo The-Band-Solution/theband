@@ -40,8 +40,10 @@ defmodule TheBandWeb.AccountsTest do
     html_depois = render_click(view, "reset", %{"id" => ctx.member.id})
     refute html_depois =~ temporaria
 
-    # E a conta ficou com troca obrigatória pendente.
-    assert html_depois =~ "temporária pendente"
+    # E a conta ficou com troca obrigatória pendente — e a tela diz de qual ATO a
+    # temporária veio. Um reinício NÃO lê como o primeiro dia: era o achado.
+    assert html_depois =~ "temporary · from a reset"
+    refute html_depois =~ "temporary · from creation"
   end
 
   # Feature 051 (L71: o teste muda com o requisito): a conta deixou de nascer sem
@@ -57,8 +59,10 @@ defmodule TheBandWeb.AccountsTest do
     assert html =~ email
     [temporaria] = Regex.run(~r/font-mono text-lg">([a-z2-7]+)</, html, capture: :all_but_first)
     assert String.length(temporaria) >= 12
-    assert html =~ "temporária pendente"
-    # A frase "sem senha" segue existindo para contas LEGADAS (o member da
+    # A temporária DO CADASTRO, e não a de um reinício: a distinção existe porque o
+    # ato de rotina para uma reativava a outra.
+    assert html =~ "temporary · from creation"
+    # A frase "no password" segue existindo para contas LEGADAS (o member da
     # fixture nasce por create_user) — o invariante novo é a temporária acima.
   end
 end

@@ -15,6 +15,7 @@ defmodule TheBand.Sources do
   alias TheBand.Ontology.SEON.CMPO.Schemas.ObservedRepository
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Repo
+  alias TheBand.Segredo
   alias TheBand.Sources.ConnectedTool
   alias TheBand.Sources.ObservationEvent
   alias TheBand.Sources.ToolCredential
@@ -112,7 +113,7 @@ defmodule TheBand.Sources do
   substituída. Quem chama transforma isso em *precisa de atenção* — nunca em exceção, que
   foi como este caso se apresentou da primeira vez.
   """
-  @spec fetch_secret(ToolCredential.t()) :: {:ok, binary()} | {:error, :unreadable}
+  @spec fetch_secret(ToolCredential.t()) :: {:ok, Segredo.t()} | {:error, :unreadable}
   def fetch_secret(%ToolCredential{id: id}) do
     # `type(c.secret, :binary)` carrega o texto cifrado **sem** passar pelo tipo que decifra.
     # É o que permite tratar a falha como valor de retorno em vez de exceção.
@@ -123,8 +124,12 @@ defmodule TheBand.Sources do
           select: type(c.secret, :binary)
       )
 
+    # `Segredo.novo/1` é a borda: daqui para a frente o valor não vira texto por acidente.
+    # Antes desta linha ele era um `binary` nu, e um `binary` nu na lista de argumentos de
+    # uma função que levanta exceção é como o token do GitHub foi parar em
+    # `oban_jobs.errors` por oito dias, em 2026-09-04.
     case cifrado && Vault.decrypt(cifrado) do
-      {:ok, segredo} -> {:ok, segredo}
+      {:ok, segredo} -> {:ok, Segredo.novo(segredo)}
       _ -> {:error, :unreadable}
     end
   end
@@ -416,7 +421,7 @@ defmodule TheBand.Sources do
           {:ok, map()} | {:error, term()}
   def resume_observation(%Tenant{id: tenant_id}, %ConnectedTool{} = tool, attrs) do
     with {:ok, verificacao} <-
-           Client.verify_credential(tool.instance_url, field(attrs, "secret")) do
+           Client.verify_credential(tool.instance_url, Segredo.novo(field(attrs, "secret"))) do
       Repo.transaction(fn ->
         {:ok, event} =
           %ObservationEvent{}
@@ -468,7 +473,10 @@ defmodule TheBand.Sources do
           | {:error, term()}
   def connect_tool(%Tenant{} = tenant, attrs) do
     with {:ok, verificacao} <-
-           Client.verify_credential(field(attrs, "instance_url"), field(attrs, "secret")) do
+           Client.verify_credential(
+             field(attrs, "instance_url"),
+             Segredo.novo(field(attrs, "secret"))
+           ) do
       insert_tool_and_credential(tenant, attrs, verificacao)
     end
   end
@@ -484,7 +492,7 @@ defmodule TheBand.Sources do
   def add_credential(%Tenant{id: tenant_id}, %ConnectedTool{} = tool, attrs) do
     secret = field(attrs, "secret")
 
-    with {:ok, verificacao} <- Client.verify_credential(tool.instance_url, secret) do
+    with {:ok, verificacao} <- Client.verify_credential(tool.instance_url, Segredo.novo(secret)) do
       tenant_id
       |> credential_changeset(tool.id, attrs, verificacao)
       |> Repo.insert()

@@ -19,7 +19,12 @@ defmodule TheBandWeb.BoardLive.Index do
   use TheBandWeb, :live_view
 
   alias TheBand.Ontology.Continuum.SMPO
+  alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.SPO
+  alias TheBand.Ontology.SEON.SPO.EventConcept
+  alias TheBand.Ontology.SEON.SPO.ItemPhase
+  alias TheBand.Ontology.SEON.SPO.Schemas.EventConceptDeclaration, as: EventDeclaracao
+  alias TheBand.Ontology.SEON.SPO.Schemas.ItemPhaseDeclaration, as: Declaracao
   alias TheBand.Projects
 
   @impl true
@@ -194,6 +199,203 @@ defmodule TheBandWeb.BoardLive.Index do
     end
   end
 
+  @doc false
+  # Feature 066 — o que esta coluna significa. Declarar sobre uma opção que já tem declaração
+  # vigente revoga a anterior na mesma transação; a tela chama isso de "Replace".
+  def handle_event(
+        "declarar_fase",
+        %{"field_external_id" => campo, "option_external_id" => opcao, "option_name" => nome} =
+          params,
+        socket
+      ) do
+    quadro = socket.assigns.selecionado
+
+    case ItemPhase.declarar(
+           socket.assigns.current_tenant,
+           %{
+             observed_project_id: quadro.id,
+             field_external_id: campo,
+             option_external_id: opcao,
+             option_name_at_declaration: nome,
+             target_concept: params["target_concept"]
+           },
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Declared: %{coluna} means %{fase}.",
+             coluna: nome,
+             fase: Declaracao.rotulo(params["target_concept"])
+           )
+         )
+         |> recarregar()}
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        # A mensagem do changeset vem do catálogo e já é legível: a única recusa possível
+        # aqui é o destino fora da regra, e dizê-la por extenso é o que a torna útil.
+        motivo =
+          cs.errors
+          |> Enum.map_join("; ", fn {campo, {msg, _}} -> "#{campo}: #{msg}" end)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{motivo}", motivo: motivo)
+         )}
+
+      {:error, motivo} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{inspect}", inspect: inspect(motivo))
+         )}
+    end
+  end
+
+  def handle_event("revogar_fase", %{"id" => id}, socket) do
+    case ItemPhase.revogar(
+           socket.assigns.current_tenant,
+           id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Revoked. The column has no declared meaning again.")
+         )
+         |> recarregar()}
+
+      {:error, :nao_encontrada} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no declaration to revoke."))}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, dgettext("errors", "Could not revoke."))}
+    end
+  end
+
+  @doc false
+  # Feature 066 — o critério de FIM, simétrico ao de início e pela mesma razão: quadros
+  # terminam de maneiras diferentes, e assumir uma para todos mentiria para metade.
+  def handle_event("declarar_fim", %{"event_type" => tipo}, socket) do
+    quadro = socket.assigns.selecionado
+
+    case SPO.declare_end_criterion(
+           socket.assigns.current_tenant,
+           {:board, quadro.id},
+           tipo,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "End criterion declared for this board: %{tipo}.", tipo: tipo)
+         )
+         |> recarregar()}
+
+      {:error, :unknown_event_type} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext(
+             "errors",
+             "The platform has not collected that event. Only what it observes can be declared."
+           )
+         )}
+
+      {:error, motivo} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{inspect}", inspect: inspect(motivo))
+         )}
+    end
+  end
+
+  def handle_event("revogar_fim", _params, socket) do
+    quadro = socket.assigns.selecionado
+
+    case SPO.revoke_end_criterion(
+           socket.assigns.current_tenant,
+           {:board, quadro.id},
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           dgettext("sistema", "Criterion revoked. Work here ends when the issue closes again.")
+         )
+         |> recarregar()}
+
+      {:error, :not_found} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no criterion to revoke."))}
+    end
+  end
+
+  @doc false
+  # Feature 066 — o que cada evento materializa. Declaração da ORGANIZAÇÃO, não do quadro:
+  # `ClosedEvent` não muda de significado conforme o quadro.
+  def handle_event(
+        "declarar_conceito_do_evento",
+        %{"event_type" => tipo, "target_concept" => conceito},
+        socket
+      ) do
+    case EventConcept.declarar(
+           socket.assigns.current_tenant,
+           tipo,
+           conceito,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Declared for the whole organisation."))
+         |> recarregar()}
+
+      {:error, %Ecto.Changeset{} = cs} ->
+        motivo = Enum.map_join(cs.errors, "; ", fn {c, {m, _}} -> "#{c}: #{m}" end)
+
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           dgettext("errors", "Could not declare: %{motivo}", motivo: motivo)
+         )}
+    end
+  end
+
+  def handle_event("revogar_conceito_do_evento", %{"id" => id}, socket) do
+    case EventConcept.revogar(
+           socket.assigns.current_tenant,
+           id,
+           socket.assigns.current_user.id
+         ) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, dgettext("sistema", "Revoked. The house default applies again."))
+         |> recarregar()}
+
+      {:error, _} ->
+        {:noreply,
+         put_flash(socket, :error, dgettext("errors", "There was no declaration to revoke."))}
+    end
+  end
+
   def handle_event("revogar_criterio", _params, socket) do
     quadro = socket.assigns.selecionado
 
@@ -214,6 +416,35 @@ defmodule TheBandWeb.BoardLive.Index do
       {:error, :not_found} ->
         {:noreply,
          put_flash(socket, :error, dgettext("errors", "There was no criterion to revoke."))}
+    end
+  end
+
+  # Um quadro pode ter mais de um campo de seleção única, e `Status` não é nome reservado —
+  # por isso a declaração é por campo, e a tela nomeia o campo quando há mais de um.
+  defp vocabularios(tenant, quadro) do
+    for campo <- Projects.list_field_definitions(tenant, quadro.id),
+        campo.data_type == "SINGLE_SELECT",
+        vocabulario = ItemPhase.vocabulario(tenant, quadro.id, campo.field_external_id),
+        vocabulario != [] do
+      %{campo: campo, opcoes: vocabulario}
+    end
+  end
+
+  # Os destinos vêm da regra declarada, nunca escritos aqui. Base ausente devolve lista
+  # vazia, e o formulário não oferece nada — ruidoso, que é o certo.
+  defp destinos do
+    case KnowledgeBase.rule("github.project_item_status") do
+      {:ok, %{"targets" => alvos}} ->
+        for a <- alvos do
+          %{
+            id: a["id"],
+            rotulo: get_in(a, ["label", "en"]) || a["id"],
+            significa: get_in(a, ["means", "pt-BR"])
+          }
+        end
+
+      _ ->
+        []
     end
   end
 
@@ -250,7 +481,14 @@ defmodule TheBandWeb.BoardLive.Index do
       campos_de_data: Projects.date_fields(tenant, quadro.id),
       # Issue #370: o critério DESTE quadro, e os tipos que a coleta oferece.
       criterio: SPO.start_criterion_for(tenant, {:board, quadro.id}),
+      criterio_fim: SPO.end_criterion_for(tenant, {:board, quadro.id}),
       tipos_de_evento: SPO.collected_event_types(tenant),
+      # Feature 066: o vocabulário de cada campo de seleção única, com a declaração vigente,
+      # as revogadas e a proposta; e o desacordo, que só existe se alguém declarou conclusão.
+      vocabularios: vocabularios(tenant, quadro),
+      conceitos_de_evento: EventConcept.conceitos_admitidos(),
+      destinos: destinos(),
+      desacordo: ItemPhase.desacordo(tenant, quadro.id),
       campos: Projects.list_field_definitions(tenant, quadro.id),
       mapeamentos: mapeamentos,
       total_itens: Projects.count_items(tenant, quadro.id),
@@ -328,6 +566,86 @@ defmodule TheBandWeb.BoardLive.Index do
           #{@selecionado.number} · {@selecionado.title}
           <:subtitle>collected board — nothing here is a project of its own</:subtitle>
         </.header>
+
+        <%!-- ═══ POR QUE ESTA PÁGINA PERGUNTA TANTO ═══
+              A pessoa que chega aqui vê cinco cartões de declaração e não sabe o que eles
+              destravam. Sem esta abertura, declarar parece burocracia; com ela, cada
+              pergunta tem consequência escrita. --%>
+        <div class="card border border-base-content/10 bg-base-100 p-6">
+          <h3 class="mb-2 text-sm font-semibold">Why this page asks you things</h3>
+
+          <p class="mb-3 text-sm">
+            A board is <strong>vocabulary</strong>, not meaning. The source tells us a card sits
+            in a column called <em>Homologation</em>
+            and that an event called <code class="text-xs">ProjectV2ItemStatusChangedEvent</code>
+            happened — and nothing about whether work started, is running, or ended. Those words
+            mean different things in different organisations, and none of them is wrong.
+          </p>
+
+          <p class="mb-3 text-sm">
+            So the platform <strong>does not guess</strong>. It asks you once, records who
+            decided and when, and reads your answer every time — never overwriting the source,
+            never writing the conclusion into the items. Revoking marks; it does not erase.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>what you declare</th>
+                  <th>what it unlocks</th>
+                  <th>if nobody declares</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>when work starts</strong></td>
+                  <td>cycle time, and how long things really take</td>
+                  <td>
+                    every issue has <strong>no start instant</strong>, and cycle time is refused
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each column means</strong></td>
+                  <td>“completed by the board”, next to “closed at the source”</td>
+                  <td>
+                    completed stays <strong>“the issue is closed”</strong>
+                    — and on this board that hides
+                    <strong>{case @detalhe.desacordo do
+                      :nao_declarado -> "hundreds of"
+                      d -> d.concluidas_abertas
+                    end}</strong>
+                    cards already done whose issue never closed
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each event materialises</strong></td>
+                  <td>what counts as work that happened, in every measure</td>
+                  <td>
+                    the platform uses <strong>the house default</strong>, which may not be yours
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>what each iteration field is</strong></td>
+                  <td>sprint apart from planning horizon</td>
+                  <td>a quarter read as a sprint makes throughput look six times bigger</td>
+                </tr>
+                <tr>
+                  <td><strong>where the deadline comes from</strong></td>
+                  <td>lateness measured, instead of assumed</td>
+                  <td>no deadline at all — and <strong>no invented one</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="mt-3 text-xs opacity-70">
+            None of these five is filled in by default, and none is guessed from the data. An
+            undeclared answer is written on the screen as <em>not declared</em> — never as zero,
+            because <strong>“nobody said” and “it is none” are different facts</strong>, and only
+            one of them is a measurement.
+          </p>
+        </div>
 
         <%!-- ═══ O QUE CADA CAMPO DE ITERAÇÃO SIGNIFICA — issue #514 ═══
               A coleta promovia TODO campo de iteração a `sro.sprint`. Medido em 2026-08-26:
@@ -538,8 +856,14 @@ defmodule TheBandWeb.BoardLive.Index do
               <span class="label-text text-xs">event that marks the start</span>
               <select name="event_type" class="select select-sm select-bordered" required>
                 <option value="">choose…</option>
+                <%!-- O nome cru é a IDENTIDADE — é ele que se grava. A leitura e o conceito
+                      vêm declarados em `github.timeline_event_vocabulary`, e existem para que
+                      escolher não dependa de decorar a API do GitHub. Tipo sem declaração
+                      aparece com o nome sozinho: ausência, nunca recusa. --%>
                 <option :for={t <- @detalhe.tipos_de_evento} value={t.event_type}>
-                  {t.event_type} — {t.occurrences} observed
+                  {t.reads || t.event_type} — {t.occurrences} observed{if t.concept,
+                    do: " · #{t.concept}",
+                    else: " · the network does not name this one"}
                 </option>
               </select>
             </label>
@@ -570,6 +894,311 @@ defmodule TheBandWeb.BoardLive.Index do
             the platform <strong>does not pick one</strong>. It names the tie and leaves the
             decision, because picking silently would be choosing where nobody would look.
           </p>
+        </div>
+
+        <%!-- ═══ QUANDO O TRABALHO TERMINA — feature 066, simétrico à 042 ═══
+              A 042 declarou o começo e deixou o fim implícito: a plataforma assumia "a issue
+              fechou". Medido em 2026-09-15: 10% das issues do #43 fecham na origem, contra 95%
+              do #31. Uma definição para todos mentiria para metade dos quadros. --%>
+        <div class="card bg-base-200 p-6">
+          <h3 class="mb-1 text-sm font-semibold">End criterion</h3>
+
+          <p class="mb-3 text-sm">
+            <span :if={@detalhe.criterio_fim}>
+              Work on this board ends when
+              <span class="badge badge-outline badge-sm font-mono">
+                {@detalhe.criterio_fim.event_type}
+              </span>
+              happens.
+            </span>
+            <span :if={is_nil(@detalhe.criterio_fim)} class="opacity-70">
+              No end criterion. The platform falls back to <strong>the issue being closed</strong>
+              — which on this board may almost never happen: boards here range from
+              <strong>4%</strong>
+              of their issues closed at the source to <strong>95%</strong>.
+            </span>
+          </p>
+
+          <form phx-submit="declarar_fim" class="flex flex-wrap items-end gap-2">
+            <label class="fieldset">
+              <span class="label-text text-xs">event that marks the end</span>
+              <select name="event_type" class="select select-sm select-bordered" required>
+                <option value="">choose…</option>
+                <option :for={t <- @detalhe.tipos_de_evento} value={t.event_type}>
+                  {t.reads || t.event_type} — {t.occurrences} observed
+                </option>
+              </select>
+            </label>
+            <.button type="submit" variant="primary" class="btn-sm">
+              {if @detalhe.criterio_fim, do: "Replace", else: "Declare"}
+            </.button>
+            <button
+              :if={@detalhe.criterio_fim}
+              type="button"
+              class="btn btn-ghost btn-sm"
+              phx-click="revogar_fim"
+              data-confirm="Revoke it? Work here goes back to ending when the issue closes."
+            >
+              revoke
+            </button>
+          </form>
+
+          <p class="mt-3 text-xs opacity-70">
+            <strong>This gives the instant, not the acceptance.</strong>
+            It closes cycle time the way the start criterion opens it — and says nothing about
+            the deliverable having passed, which follows from acceptance criteria
+            (<code class="text-xs">sro.rule03</code>).
+          </p>
+          <p class="mt-1 text-xs opacity-70">
+            Boards with a final column declare it below instead, in <em>What each column means</em>. This card is for the ones without: on this
+            installation, <strong>13 single-select fields have no column meaning completed</strong>.
+          </p>
+        </div>
+
+        <%!-- ═══ O QUE CADA EVENTO MATERIALIZA — feature 066 ═══
+              Declaração da ORGANIZAÇÃO, não do quadro: `ClosedEvent` não muda de significado
+              conforme o quadro. A lista dos cinco que viravam atividade executada vivia
+              escrita numa cláusula de função desde a 004. --%>
+        <div class="card bg-base-200 p-6">
+          <h3 class="mb-1 text-sm font-semibold">What each event materialises</h3>
+
+          <p class="mb-3 text-xs opacity-70">
+            Every event type the collection brought, with how many times it happened. The
+            <strong>house default</strong>
+            is what the platform assumes; your declaration wins over it, for the
+            <strong>whole organisation</strong>
+            — these events do not change meaning from board to board. Nothing is rewritten: the
+            declaration is applied when reading.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>what happened</th>
+                  <th class="text-right">times</th>
+                  <th>materialises</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={t <- @detalhe.tipos_de_evento} class="align-top">
+                  <td>
+                    <div class="font-medium">{t.reads || t.event_type}</div>
+                    <div class="font-mono text-xs opacity-50">{t.event_type}</div>
+                  </td>
+                  <td class="text-right tabular-nums">{t.occurrences}</td>
+                  <td>
+                    <%= cond do %>
+                      <% t.declaracao -> %>
+                        <span class="badge badge-info badge-sm">
+                          {EventDeclaracao.rotulo(t.declaracao.target_concept)}
+                        </span>
+                        <div class="mt-1 text-xs opacity-60">
+                          declared {Calendar.strftime(t.declaracao.declared_at, "%d %b %Y")}
+                          <span :if={
+                            t.concept_default && t.declaracao.target_concept != t.concept_default
+                          }>
+                            · house default was <code class="text-xs">{t.concept_default}</code>
+                          </span>
+                        </div>
+                      <% t.concept_default -> %>
+                        <span class="badge badge-ghost badge-sm">{t.concept_default}</span>
+                        <div class="mt-1 text-xs opacity-60">house default — nobody declared</div>
+                      <% true -> %>
+                        <span class="text-xs italic opacity-60">
+                          the network does not name this one
+                        </span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <form
+                      id={"declarar-evento-#{identificador(t.event_type)}"}
+                      phx-submit="declarar_conceito_do_evento"
+                      class="flex flex-wrap items-center gap-1"
+                    >
+                      <input type="hidden" name="event_type" value={t.event_type} />
+                      <select name="target_concept" class="select select-xs select-bordered" required>
+                        <option value="">choose…</option>
+                        <option
+                          :for={c <- @detalhe.conceitos_de_evento}
+                          value={c.id}
+                          selected={t.declaracao && t.declaracao.target_concept == c.id}
+                        >
+                          {c.rotulo}{if c.id != "nao_nomeado", do: " · #{c.id}"}
+                        </option>
+                      </select>
+                      <.button type="submit" variant="primary" class="btn-xs">
+                        {if t.declaracao, do: "Replace", else: "Declare"}
+                      </.button>
+                      <button
+                        :if={t.declaracao}
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        phx-click="revogar_conceito_do_evento"
+                        phx-value-id={t.declaracao.id}
+                        data-confirm="Revoke it? The house default applies again."
+                      >
+                        revoke
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="mt-3 text-xs opacity-70">
+            <strong>Declaring for the organisation, not for this board.</strong>
+            And the raw name stays the identity — the start criterion above records <code class="text-xs">ProjectV2ItemStatusChangedEvent</code>, not the sentence, so a
+            better wording never changes what was declared.
+          </p>
+        </div>
+
+        <%!-- ═══ O QUE CADA COLUNA SIGNIFICA — feature 066, cartão B do protótipo ═══
+              Uma pergunta por cartão (princípio X). A plataforma não escolhe o que "Done"
+              quer dizer: registra a escolha da organização, com quem a fez e quando. --%>
+        <div :for={voc <- @detalhe.vocabularios} class="card bg-base-200 p-6">
+          <h3 class="mb-1 text-sm font-semibold">
+            What each column means
+            <span :if={length(@detalhe.vocabularios) > 1} class="font-normal opacity-60">
+              — field {voc.campo.name}
+            </span>
+          </h3>
+
+          <p class="mb-3 text-xs opacity-70">
+            Every value the source shows, in the order it shows them. Nothing here is decided by
+            the platform: a column means what this organisation says it means, and until someone
+            says it, <strong>completed stays "the issue is closed"</strong>.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>column</th>
+                  <th class="text-right">items</th>
+                  <th class="text-right">open</th>
+                  <th class="text-right">closed</th>
+                  <th>means</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={o <- voc.opcoes} class="align-top">
+                  <td class="font-medium">
+                    {o.option_name}
+                    <div
+                      :if={o.declaracao && o.declaracao.option_name_at_declaration != o.option_name}
+                      class="text-xs opacity-60"
+                    >
+                      declared as “{o.declaracao.option_name_at_declaration}”
+                    </div>
+                  </td>
+                  <td class="text-right tabular-nums">{o.itens}</td>
+                  <td class="text-right tabular-nums">{o.abertas}</td>
+                  <td class="text-right tabular-nums">{o.fechadas}</td>
+                  <td>
+                    <%= cond do %>
+                      <% o.declaracao -> %>
+                        <span class="badge badge-info badge-sm">
+                          {Declaracao.rotulo(o.declaracao.target_concept)}
+                        </span>
+                        <div class="mt-1 text-xs opacity-60">
+                          declared {Calendar.strftime(o.declaracao.declared_at, "%d %b %Y")}
+                        </div>
+                      <% o.proposta -> %>
+                        <span class="badge badge-warning badge-outline badge-sm">
+                          proposed: {Declaracao.rotulo(o.proposta)}
+                        </span>
+                        <div class="mt-1 text-xs opacity-60">
+                          a proposal decides nothing until someone activates it
+                        </div>
+                      <% true -> %>
+                        <span class="text-xs italic opacity-60">no decision</span>
+                    <% end %>
+                    <%!-- Revogar marca, e a marca precisa de forma na tela. --%>
+                    <div :for={r <- o.revogadas} class="mt-1 text-xs line-through opacity-50">
+                      {Declaracao.rotulo(r.target_concept)} — revoked {Calendar.strftime(
+                        r.revoked_at,
+                        "%d %b %Y"
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <form
+                      id={"declarar-fase-#{identificador(o.option_external_id)}"}
+                      phx-submit="declarar_fase"
+                      class="flex flex-wrap items-center gap-1"
+                    >
+                      <input type="hidden" name="field_external_id" value={o.field_external_id} />
+                      <input
+                        type="hidden"
+                        name="option_external_id"
+                        value={o.option_external_id}
+                      />
+                      <input type="hidden" name="option_name" value={o.option_name} />
+                      <select name="target_concept" class="select select-xs select-bordered" required>
+                        <option value="">choose…</option>
+                        <option
+                          :for={d <- @detalhe.destinos}
+                          value={d.id}
+                          selected={o.proposta == d.id}
+                        >
+                          <%!-- O rótulo é para ler; o id do conceito é o que a declaração
+                                grava, e mostrá-lo é o que liga a tela à rede. --%>
+                          {d.rotulo}{if d.id != "nao_diz_fase", do: " · #{d.id}"}
+                        </option>
+                      </select>
+                      <.button type="submit" variant="primary" class="btn-xs">
+                        {if o.declaracao, do: "Replace", else: "Declare"}
+                      </.button>
+                      <button
+                        :if={o.declaracao}
+                        type="button"
+                        class="btn btn-ghost btn-xs"
+                        phx-click="revogar_fase"
+                        phx-value-id={o.declaracao.id}
+                        data-confirm="Revoke it? This column goes back to having no declared meaning."
+                      >
+                        revoke
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <%!-- `sro.rule03` explicada ONDE a pessoa procuraria "accepted". --%>
+          <p class="mt-3 rounded border border-dashed border-base-content/20 p-2 text-xs opacity-70">
+            <strong>Not offered here: accepted / not accepted.</strong>
+            Acceptance follows from checking the acceptance criteria, and is never assigned by
+            marking a column — <code>sro.rule03</code>. A board can say the work <em>ended</em>; it cannot say the deliverable <em>passed</em>. Which transition
+            <em>is</em>
+            the evaluation is what the organisation declares separately.
+          </p>
+
+          <%!-- O desacordo como sinal: informação sobre o processo, nunca erro do item. --%>
+          <div class="mt-3 text-xs">
+            <%= case @detalhe.desacordo do %>
+              <% :nao_declarado -> %>
+                <span class="opacity-70">
+                  <strong>Disagreement: not declared.</strong>
+                  Declare which column means <em>completed</em>
+                  to see how often the board and the
+                  source disagree.
+                </span>
+              <% d -> %>
+                <span class="opacity-70">
+                  <strong class="tabular-nums">{d.concluidas_abertas}</strong>
+                  completed by the board and <strong>open at the source</strong>
+                  · <strong class="tabular-nums">{d.fechadas_nao_concluidas}</strong>
+                  closed at the source and <strong>not completed by the board</strong>. Two
+                  statements, side by side — never added together.
+                </span>
+            <% end %>
+          </div>
         </div>
 
         <div class="card bg-base-200 p-6">

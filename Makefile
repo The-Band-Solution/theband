@@ -94,6 +94,20 @@ down:
 
 setup:
 	mix setup
+	$(MAKE) detector-provisiona
+
+# AS QUATRO BIBLIOTECAS DO VERIFICADOR DE DESIGN — lição L104.
+#
+# Sem elas o detector imprime `DEGRADED` e **não avalia cor, contraste nem tamanho de
+# texto de interface**: o verde dele passa a ser subcontagem, e não atestado. O
+# `node_modules` é ignorado pelo git — como todo `node_modules` —, então **cada worktree
+# precisa deste comando uma vez**. É por isso que ele está no `setup` e não na
+# documentação: provisão que vive só em documento é a que ninguém roda.
+detector-provisiona:
+	@cd .claude/skills/impeccable && npm install --silent --no-audit --no-fund
+	@node .claude/skills/impeccable/scripts/detect.mjs lib 2>&1 | grep -q DEGRADED \
+		&& (echo "✗ o detector CONTINUA em modo reduzido — o verde dele é subcontagem" && exit 1) \
+		|| echo "✓ o detector avalia cor, contraste e tamanho de texto"
 
 servidor:
 	mix phx.server

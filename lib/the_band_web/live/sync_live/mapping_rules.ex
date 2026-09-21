@@ -116,7 +116,7 @@ defmodule TheBandWeb.SyncLive.MappingRules do
   @impl true
   def render(assigns) do
     ~H"""
-    <section class="mt-8 border-t-4 border-base-300 pt-6">
+    <section class="mt-8 border-t border-base-300 pt-6">
       <%!-- Cabeçalho próprio, e a separação é visível: o relatório de execução responde
             "a coleta está funcionando"; isto responde "o que a plataforma entende". --%>
       <.header>

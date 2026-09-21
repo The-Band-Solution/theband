@@ -793,6 +793,118 @@ docs(ontology): document review semantics
 
 A seção de issues segue o padrão do PR #543 (constituição 1.6.0): um bloco por user story — título, número, prioridade — e tabela por tarefa com issue, ID e **o resumo do que entregou**, na frente. Lista de números sem resumo não passa.
 
+### Toda issue declara UM tipo da ontologia, e pode ter labels que a caracterizam
+
+Duas coisas diferentes, e confundi-las é o erro que a própria base de conhecimento nomeia.
+
+**1. O tipo é UM, e vem da ontologia.** Todo issue **MUST** carregar exatamente um destes,
+que são os conceitos de item de trabalho da rede `continuum`:
+
+| label | conceito | o que é |
+|---|---|---|
+| `epic` | `sro.epic` | user story **composta de** outras user stories |
+| `us` | `sro.user_story` / `sro.atomic_user_story` | artefato de requisito; atômica é a que não se decompõe |
+| `task` | `sro.intended_scrum_development_task` | atividade que materializa uma user story |
+| `bug` | `osdef.defect` | defeito |
+
+**2. Os labels que caracterizam são ZERO OU MAIS.** `security`, `documentation`,
+`enhancement` e os demais dizem **sobre o quê** a issue é, e não **o que ela é**. Uma issue
+pode ter vários, ou nenhum.
+
+#### A regra que a base de conhecimento já escreveu, e vale aqui
+
+`priv/knowledge_base/rules/github_issue_pattern_catalog.yaml` tem uma seção
+`not_type_patterns` com 1 274 issues cujos prefixos — `[Devops]`, `[Back-end]`, `[QA]` —
+**existem no catálogo para serem recusados**:
+
+> Estes prefixos dizem **quem** faz ou **em que área**, não **o que** a issue é. (…)
+> Conceito errado é pior que conceito ausente: a medida passa a existir e a mentir, e
+> ninguém tem como notar.
+
+É a mesma distinção. `security` não é tipo — é característica. Tratá-lo como tipo produziria
+o erro que aquela seção existe para impedir.
+
+#### O tipo declarado pode estar errado, e a plataforma diz isso
+
+`epic` **não é um rótulo**: é consequência de ter partes (`sro.rule05`). A regra
+`github.issue_type_routing` dá `precedence: structure_over_declaration` — issue tipada
+`Epic` sem sub-issues é promovida a `atomic_user_story`, **com a divergência registrada**.
+
+Então o label de tipo é **intenção**, e a estrutura é o **fato**. Quando divergem, o fato
+vence, e a divergência é sinal para o time — normalmente épico abandonado sem decomposição,
+ou user story que cresceu e ninguém retipou.
+
+**O classificador NÃO lê labels.** `MappingRule` aceita `where` em `declared_type` e
+`title` apenas (`lib/the_band/mapping/schemas/mapping_rule.ex:22`). O label serve a quem
+olha o board; a derivação ontológica vem de outro lugar. Fazer `label` virar uma terceira
+fonte de classificação **é feature, não convenção** — e precisa de spec própria.
+
+#### Na prática, ao criar as issues de uma spec
+
+```
+ÉPICO: <nome>                    epic + as características
+NNN/USx: <nome>                  us   + as características
+NNN/TXXX: <nome>                 task + as características
+```
+
+O prefixo `NNN/` **não é enfeite**: sem ele, deduplicar por `T001` casaria as centenas de
+issues das specs anteriores, e `/speckit-taskstoissues` não criaria nada.
+
+### A auditoria antes do PR começa por `git status`
+
+A constituição (princípio VII) exige auditoria contra a origem antes de abrir PR. **O
+primeiro item é o diretório de trabalho limpo**, e ele vem primeiro por uma razão medida:
+
+```bash
+git status --short                            # 1. nada modificado fora de commit
+git log --oneline origin/development..HEAD    # 2. o que realmente vai
+git log --oneline origin/<branch>..HEAD       # 3. nada por empurrar
+```
+
+Arquivo modificado e não commitado é a forma **mais barata** de a árvore local divergir do
+que os outros recebem, e a que mais engana: `mix gates` roda sobre ele e fica verde.
+
+Aconteceu em 2026-09-13, no PR #907. A correção de um teste de custo foi escrita, `mix gates`
+deu `0`, a auditoria conferiu commits e issues — e o `git add` do commit anterior apontava só
+para `specs/`. Os dois arquivos de `lib/` ficaram no diretório, o CI rodou o código antigo, e
+reprovou com o teste que já passava aqui.
+
+**`git add -A` não é a lição** — ele traz junto o que não devia (L102, árvore compartilhada
+por agentes). A lição é conferir o `git status` **depois** de commitar e **antes** de abrir o
+PR.
+
+### O corpo do PR SAI DO TEMPLATE — sempre, sem exceção
+
+`.github/pull_request_template.md` é o padrão. Todo PR **MUST** ser aberto com as seções
+dele, na ordem dele: *Tipo de merge* com motivo, *O que muda*, *Por quê*, *Evidência* com
+o código de saída, *Issues*, *Revisão*, *O que este PR não resolve*.
+
+**A armadilha é mecânica, e não de memória**: `gh pr create --body` e `--body-file`
+**substituem o template inteiro**. Quem escreve um corpo bonito à mão apaga, sem perceber,
+a declaração de tipo de merge, a seção de revisão e a de limitações — e o PR nasce
+reprovado no check `pr-tipo-de-merge`, ou pior, passa carecendo das seções que ninguém
+verifica.
+
+Foi exatamente o que aconteceu no **PR #864**, aberto em 2026-09-12: corpo escrito à mão,
+check reprovado, e faltavam também *Revisão* e *O que este PR não resolve* — as duas seções
+cuja ausência faz um PR incompleto parecer completo.
+
+**Como abrir, então:**
+
+```bash
+# 1. o template é o ponto de partida, não uma sugestão
+cp .github/pull_request_template.md /tmp/corpo.md
+
+# 2. preencha as seções NO ARQUIVO, mantendo todas — inclusive as que vão dizer
+#    "não obtida" ou "nada a declarar". Seção apagada é informação perdida.
+
+# 3. só então
+gh pr create --body-file /tmp/corpo.md --reviewer <login> ...
+```
+
+Seção que não se aplica **fica**, com a razão escrita. *Revisão* sem revisor diz **"não
+obtida"** — nunca some, porque some é o que faz a lacuna desaparecer do PR e da conversa.
+
 ### O tipo de merge é declarado NO PR, e não escolhido no botão
 
 Todo PR **MUST** trazer, no corpo, qual dos dois usar — e o motivo. Quem clica o
@@ -817,6 +929,27 @@ volta a oferecê-lo como se fosse inédito.
 Três lições nasceram disso — **L75**, **L83** e **L92** —, e a terceira aconteceu
 depois de as duas primeiras já estarem escritas. É por isso que a declaração é do
 PR: lembrar da lição no momento de clicar não funcionou.
+
+### O merge se faz por comando, e o método vem da declaração
+
+```bash
+gh pr merge <n> --squash    # feature que mira development
+gh pr merge <n> --merge     # os cinco casos da tabela acima
+```
+
+**Não pelo botão.** O GitHub **não tem** configuração de método default: os três
+booleanos do repositório só habilitam ou desabilitam, e a pré-seleção do botão é ordem
+fixa — *merge commit* primeiro, sempre. Deixar squash como default exigiria **desabilitar
+merge commit**, que quebraria release, back-merge, hotfix e branch empilhada. Medido em
+2026-09-10.
+
+Então a lacuna não é de configuração e não se fecha com uma: o gate
+`pr-tipo-de-merge.yml` obriga o PR a **dizer** o método, e nada obriga o clique a
+**obedecer**. O comando obedece, porque o método está escrito nele.
+
+O `rebase merge` continua habilitado no repositório e **a tabela acima não o prevê em caso
+nenhum**. Método habilitado que a regra não cobre é caminho aberto sem regra — desabilitá-lo
+é decisão da pessoa mantenedora, e está registrada como pendente.
 
 **Definition of Done**: critérios de aceitação atendidos, issues atualizadas, YAMLs validados, perguntas de competência testadas, testes passando, Credo e Dialyzer aprovados, migrações testadas, mapeamento semântico revisado, documentação atualizada, PR aprovado por outro agente/pessoa, pipeline verde, merge feito, issues encerradas.
 

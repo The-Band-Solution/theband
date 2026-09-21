@@ -60,5 +60,18 @@ defmodule TheBand.Ontology.SEON.EO.Schemas.TeamComposition do
     |> unique_constraint([:tenant_id, :part_team_id, :whole_team_id],
       name: :eo_composicao_vigente_de_equipe_index
     )
+    # AS TRÊS CHAVES ESTRANGEIRAS, e sem elas a recusa não recusa: LEVANTA.
+    #
+    # Medido no banco de desenvolvimento em 2026-09-10 — compor numa mãe que não existe
+    # devolvia `Ecto.ConstraintError`, e exceção em `handle_event` de LiveView **mata o
+    # processo**: quem administra vê a tela cair, e não o motivo. A transação de
+    # `declare_subteam/4` já impedia a equipe órfã; o que faltava era a falha virar
+    # recusa em vez de queda.
+    #
+    # As três, e não só a da mãe: a parte pode ter sido removida entre abrir o formulário
+    # e submeter, e o autor pode ser conta de outro tenant.
+    |> foreign_key_constraint(:whole_team_id)
+    |> foreign_key_constraint(:part_team_id)
+    |> foreign_key_constraint(:declared_by_user_id)
   end
 end

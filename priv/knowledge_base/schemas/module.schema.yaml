@@ -119,6 +119,19 @@ properties:
                 sustenta a classificação como kind. false indica que os subtipos
                 refinam a identidade, e então este conceito é candidato a category.
               type: boolean
+            version:
+              description: >
+                A versão do critério, quando ele foi emendado. Um critério emendado
+                muda TODA identidade já gravada, e a versão é o que permite dizer
+                qual cálculo produziu um `internal_id` — sem ela, a emenda fica só
+                na prosa da nota, e ninguém consegue perguntar à base qual critério
+                está em vigor. Ausente significa versão 1.
+
+                Acrescentado em 2026-09-15, quando o critério de
+                `spo.performed_project_activity` passou à versão 2 para incluir o
+                sujeito da ocorrência.
+              type: integer
+              minimum: 1
             note: { type: string }
         attributes:
           type: array

@@ -15,15 +15,15 @@
 *{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
 ::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
 h1,h2,h3,h4{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
-h1{font-size:1.85rem}h2{font-size:1.1rem}h3{font-size:.92rem}h4{font-size:.85rem}
+h1{font-size:1.875rem}h2{font-size:1.125rem}h3{font-size:0.875rem}h4{font-size:0.875rem}
 .faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
-.mig{font-family:var(--grot);font-size:.8rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
-.rot{font-family:var(--mono);font-size:.67rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
-.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:.95rem}
-p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
+.mig{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:1rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:0.875rem}
 .ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
-.marca{font-family:var(--grot);font-size:.7rem;padding:.05rem .45rem;border-radius:.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
-.marca .am{width:.6rem;height:.6rem;border-radius:2px;border:1px solid currentColor}
+.marca{font-family:var(--grot);font-size:0.6875rem;padding:.05rem .45rem;border-radius:0.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.marca .am{width:.6rem;height:.6rem;border-radius:0.125rem;border:1px solid currentColor}
 .dec{color:var(--info)}.dec .am{background:currentColor}
 .obs{color:var(--verdete)}.obs .am{background:currentColor}
 .der{color:var(--amber)}.der .am{background-image:var(--hatch)}
@@ -34,109 +34,125 @@ p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:.9rem}
 .sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
 .sec-cab h2{flex:1 1 auto}
 table{width:100%;border-collapse:collapse;margin-top:.8rem}
-th{font-family:var(--mono);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+th{font-family:var(--mono);font-size:0.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
 th:first-child,th.esq{text-align:left}
-td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:.93rem}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:0.875rem}
 td:first-child,td.esq{text-align:left} tbody tr:hover{background:var(--verdete-soft)}
-.pessoa{font-family:var(--grot);font-weight:650;font-size:.88rem}
-.login{font-family:var(--mono);font-size:.72rem;color:var(--tinta-2);display:block}
-.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:1.15rem;margin-top:1rem}
-.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:.5rem;background:var(--papel)}
-.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:.89rem;margin:0}
-.vazio{border:1.5px dashed var(--linha);border-radius:.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
-.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:.25rem;width:max-content}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.login{font-family:var(--mono);font-size:0.75rem;color:var(--tinta-2);display:block}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:1.15rem;margin-top:1rem}
+.aviso{margin-top:.9rem;padding:.8rem 1rem;border:1.5px dashed var(--linha);border-radius:0.5rem;background:var(--papel)}
+.aviso .rot{display:block;margin-bottom:.2rem}.aviso p{font-size:0.875rem;margin:0}
+.vazio{border:1.5px dashed var(--linha);border-radius:0.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:0.25rem;width:max-content}
 .abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);margin-top:1.2rem}
-.aba{font-family:var(--grot);font-size:.85rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
+.aba{font-family:var(--grot);font-size:0.875rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
 .aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
-.btn{font-family:var(--grot);font-size:.74rem;font-weight:650;padding:.25rem .6rem;border-radius:.3rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn{font-family:var(--grot);font-size:0.75rem;font-weight:650;padding:.25rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
 .btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
 .btn.q{color:var(--tinta-2)}
-.chip{font-family:var(--grot);font-size:.7rem;padding:.02rem .45rem;border-radius:.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
+.chip{font-family:var(--grot);font-size:0.6875rem;padding:.02rem .45rem;border-radius:0.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
 .chip.s3{border-color:var(--s3);color:var(--s3)}
-.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:.78rem;flex-wrap:wrap}
-.ex-mark{font-family:var(--mono);font-size:.62rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
-.re-mark{font-family:var(--mono);font-size:.62rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
+.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:0.75rem;flex-wrap:wrap}
+.ex-mark{font-family:var(--mono);font-size:0.625rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
+.re-mark{font-family:var(--mono);font-size:0.625rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
 .scroll{overflow-x:auto}
-.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:.5rem;background:var(--verdete-soft);font-size:.86rem}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft);font-size:0.875rem}
 .nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
-kbd{font-family:var(--mono);font-size:.72rem;border:1px solid var(--linha);border-radius:.2rem;padding:0 .3rem;background:var(--papel-2)}
-.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:.35rem;overflow:hidden;font-family:var(--grot);font-size:.76rem}
+kbd{font-family:var(--mono);font-size:0.75rem;border:1px solid var(--linha);border-radius:0.25rem;padding:0 .3rem;background:var(--papel-2)}
+.seg{display:inline-flex;border:1.5px solid var(--linha);border-radius:0.25rem;overflow:hidden;font-family:var(--grot);font-size:0.75rem}
 .seg span{padding:.2rem .7rem;color:var(--tinta-2);border-right:1.5px solid var(--linha)}.seg span:last-child{border-right:0}
 .seg span.on{background:var(--verdete);color:var(--papel);font-weight:650}
 svg.g{width:100%;height:auto;display:block;overflow:visible}
-.ex{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:middle}
-.ey{font-family:var(--mono);font-size:8.5px;fill:var(--tinta-2);text-anchor:end}
-.rd{font-family:var(--mono);font-size:9px;text-anchor:middle;font-variant-numeric:tabular-nums;fill:var(--tinta)}
-.leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:.76rem;color:var(--tinta-2);margin-top:.4rem}
-.leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:2px;margin-right:.3rem;vertical-align:middle}
+.ex{font-family:var(--mono);font-size:0.625rem;fill:var(--tinta-2);text-anchor:middle}
+.ey{font-family:var(--mono);font-size:0.625rem;fill:var(--tinta-2);text-anchor:end}
+.rd{font-family:var(--mono);font-size:0.625rem;text-anchor:middle;font-variant-numeric:tabular-nums;fill:var(--tinta)}
+.leg-g{display:flex;gap:1rem;flex-wrap:wrap;font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.4rem}
+.leg-g i{display:inline-block;width:.9rem;height:.45rem;border-radius:0.125rem;margin-right:.3rem;vertical-align:middle}
 .leg-g i.hach{background:repeating-linear-gradient(135deg,var(--tinta-2) 0 2px,transparent 2px 4px)}
 .cab-g{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
-.cc{font-family:var(--mono);font-size:.65rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
+.cc{font-family:var(--mono);font-size:0.625rem;letter-spacing:.04em;line-height:1.55;padding:.03rem .32rem;border-radius:0.25rem;border:1.5px solid transparent;white-space:nowrap;display:inline-block}
 .cc-epic{background:var(--tinta);color:var(--papel);font-weight:700}
 .cc-us{background:var(--tinta-soft);color:var(--tinta);font-weight:700}
 .cc-task{background:var(--tinta-soft);color:var(--tinta)}
 .cc-bug{background:var(--clay-soft);color:var(--clay);font-weight:700}
 .cc-nil{border-color:var(--linha);border-style:dashed;color:var(--tinta-2)}
-.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
+.mix{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .45rem;font-family:var(--mono);font-size:0.75rem;font-variant-numeric:tabular-nums;margin-top:.4rem}
 .mix b{font-weight:400;margin-left:-.28rem}.mix .tot{color:var(--tinta-2);margin-right:.2rem}
 
 /* ── new for this screen ───────────────────────────────────────── */
 .antes{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(23rem,1fr));margin-top:1.1rem}
-.antes .bl{border:1.5px solid var(--linha);border-left-width:4px;border-radius:.4rem;padding:.85rem 1rem}
-.antes .bl.grave{border-left-color:var(--clay);background:var(--clay-soft)}
-.antes .bl.lim{border-left-color:var(--amber);background:var(--amber-soft)}
-.antes h3{margin-bottom:.25rem}.antes p{font-size:.85rem;max-width:none}
-.conta{margin-top:1.1rem;font-family:var(--grot);font-size:.9rem;border-left:3px solid var(--amber);padding:.35rem .8rem}
-.conta b{font-weight:650}.conta span{color:var(--tinta-2);font-size:.84rem;display:block}
-.ordem{font-family:var(--grot);font-size:.74rem;color:var(--tinta-2);margin-top:.35rem}
+.antes .bl{border:1.5px solid var(--linha);border-radius:0.5rem;padding:.85rem 1rem}
+.antes .bl.grave{border-color:var(--clay);background:var(--clay-soft)}
+.antes .bl.lim{border-color:var(--amber);background:var(--amber-soft)}
+.antes h3{margin-bottom:.25rem}.antes p{font-size:0.875rem;max-width:none}
+.conta{margin-top:1.1rem;font-family:var(--grot);font-size:0.875rem;padding:.35rem 0}
+    .conta::before{content:"";display:inline-block;width:.6rem;height:.6rem;margin-right:.4rem;border-radius:0.125rem;background:var(--amber);vertical-align:middle}
+.conta b{font-weight:650}.conta span{color:var(--tinta-2);font-size:0.8125rem;display:block}
+.ordem{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.35rem}
 .tp{table-layout:auto}
 .tp td{padding:.6rem .5rem}
 .tp th:first-child,.tp td:first-child{min-width:15rem}
 .tp th:nth-child(2),.tp td:nth-child(2){min-width:9rem}
 .tp th:nth-child(3),.tp td:nth-child(3),.tp th:nth-child(4),.tp td:nth-child(4){min-width:6rem}
 .tp th:nth-child(5),.tp td:nth-child(5){min-width:5.5rem}
-.tp td.agora .n2{font-family:var(--mono);font-size:1.05rem;font-variant-numeric:tabular-nums;line-height:1.1}
-.tp td.agora .dir{display:block;font-family:var(--grot);font-size:.7rem;color:var(--tinta-2);margin-top:.1rem}
-.tp td.agora .nc{display:block;font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);margin-top:.15rem}
-.aus-cel{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);border-bottom:1.5px dashed var(--tinta-2);padding-bottom:.05rem;white-space:nowrap}
+.tp td.agora .n2{font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.tp td.agora .dir{display:block;font-family:var(--grot);font-size:0.6875rem;color:var(--tinta-2);margin-top:.1rem}
+.tp td.agora .nc{display:block;font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);margin-top:.15rem}
+.aus-cel{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);border-bottom:1.5px dashed var(--tinta-2);padding-bottom:.05rem;white-space:nowrap}
 td.prev{background-image:repeating-linear-gradient(135deg,transparent 0 6px,var(--tinta-soft) 6px 7px);min-width:12.5rem}
-.prev-rec{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);display:block}
-.prev-ok{font-family:var(--mono);font-size:.8rem;color:var(--amber);font-variant-numeric:tabular-nums;display:block}
-.piso{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;font-variant-numeric:tabular-nums}
+.prev-rec{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block}
+.prev-ok{font-family:var(--mono);font-size:0.8125rem;color:var(--amber);font-variant-numeric:tabular-nums;display:block}
+.piso{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);display:block;margin-top:.12rem;font-variant-numeric:tabular-nums}
 .piso .curto{color:var(--amber);border-bottom:1.5px dashed var(--amber)}
-.pes-sub{font-family:var(--grot);font-size:.72rem;color:var(--tinta-2);display:block;margin-top:.12rem}
-.cob{font-family:var(--mono);font-size:.68rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
+.pes-sub{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);display:block;margin-top:.12rem}
+.cob{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);display:block;margin-top:.12rem;border-bottom:1px dashed var(--linha);width:max-content;padding-bottom:.05rem}
 tr.aberta>td{background:var(--verdete-soft)}
-tr.aberta>td:first-child{box-shadow:inset 3px 0 0 var(--verdete)}
 tr.saiu-l .pessoa{color:var(--tinta-2)}
+tr.pedida>td{border-bottom:0}
 tr.bloco-l>td{padding:0;border-bottom:1px solid var(--linha)}
-.bloco{border-left:4px solid var(--verdete);background:var(--papel-2);padding:1rem 1.1rem}
+.bloco{border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel-2);padding:1rem 1.1rem}
 .bloco-cab{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
 .defs{margin-top:.7rem;display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))}
-.defs div{font-size:.82rem;border-left:3px solid var(--linha);padding:.1rem .7rem}
+.defs div{font-size:0.8125rem;border-left:1px solid var(--linha);padding:.1rem .7rem}
 .defs div.lim{border-left-color:var(--amber)}
 .grade-4{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr));margin-top:.9rem}
-.g-cart{background:var(--papel);border:1.5px solid var(--linha);border-radius:.45rem;padding:.75rem .85rem}
+.g-cart{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.75rem .85rem}
 .g-cart h4{display:flex;align-items:baseline;gap:.4rem;flex-wrap:wrap}
-.g-cart h4 .ord{font-family:var(--mono);font-size:.7rem;color:var(--tinta-2);font-weight:400}
-.g-cart .def{font-size:.78rem;color:var(--tinta-2);margin-top:.15rem}
+.g-cart h4 .ord{font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2);font-weight:400}
+.g-cart .def{font-size:0.75rem;color:var(--tinta-2);margin-top:.15rem}
 .g-cart.der-c{border-color:var(--amber);border-style:dashed}
-.recusa-c{border:1.5px dashed var(--linha);border-radius:.4rem;padding:.7rem .8rem;margin-top:.5rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
-.recusa-c .t{font-family:var(--grot);font-size:.86rem;font-weight:650;color:var(--tinta-2)}
-.recusa-c p{font-size:.8rem;margin-top:.3rem}
+.recusa-c{border:1.5px dashed var(--linha);border-radius:0.5rem;padding:.7rem .8rem;margin-top:.5rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.recusa-c .t{font-family:var(--grot);font-size:0.875rem;font-weight:650;color:var(--tinta-2)}
+.recusa-c p{font-size:0.8125rem;margin-top:.3rem}
 .par-linha{margin-top:1.1rem}
 .par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.4rem}
 .par-cab{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
-.par-cab .h{font-family:var(--grot);font-weight:650;font-size:.88rem;border-bottom:3px solid var(--verdete);padding-bottom:.25rem}
-.par-cab .h.b{border-bottom-color:var(--s3)}
-.escala{font-family:var(--grot);font-size:.76rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:.3rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
+.par-cab .h{font-family:var(--grot);font-weight:650;font-size:0.875rem;border-bottom:1px solid var(--linha);padding-bottom:.25rem}
+.quad{display:inline-block;width:.6rem;height:.6rem;border-radius:0.125rem;background:currentColor;border:1px solid currentColor;margin-right:.4rem;vertical-align:middle}
+.escala{font-family:var(--grot);font-size:0.75rem;color:var(--amber);border:1.5px dashed var(--amber);border-radius:0.25rem;padding:.25rem .6rem;margin-top:.45rem;display:block}
 .tres{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:1rem}
-.tres .a{border:1.5px solid var(--linha);border-top-width:4px;border-radius:.45rem;padding:.8rem .9rem;background:var(--papel-2)}
-.tres .a.a1{border-top-color:var(--tinta-2)}.tres .a.a2{border-top-color:var(--amber)}.tres .a.a3{border-top-style:dashed;border-top-color:var(--linha)}
-.tres .a h4{margin-bottom:.3rem}.tres .a p{font-size:.82rem}
-.tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:.35rem}
-.dens{font-family:var(--grot);font-size:.78rem;color:var(--tinta-2);margin-top:.5rem}
-ol.dec-l{margin:0;padding-left:1.2rem;font-size:.92rem}ol.dec-l li{margin-top:.35rem}
+.tres .a{border:1.5px solid var(--linha);border-radius:0.5rem;padding:.8rem .9rem;background:var(--papel-2)}
+.tres .a.a1{border-color:var(--tinta-2)}.tres .a.a2{border-color:var(--amber)}.tres .a.a3{border-style:dashed}
+.tres .a h4{margin-bottom:.3rem}.tres .a p{font-size:0.8125rem}
+.tres .amostra{margin-top:.5rem;padding:.5rem .6rem;background:var(--papel);border:1.5px dashed var(--linha);border-radius:0.25rem}
+.dens{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.5rem}
+ol.dec-l{margin:0;padding-left:1.2rem;font-size:0.875rem}ol.dec-l li{margin-top:.35rem}
+
+/* ── the third person asked for, while two are open ───────────── */
+.btn.esp{border-color:var(--verdete);color:var(--verdete-deep);background:var(--papel)}
+.btn.larga{white-space:normal;text-align:center;line-height:1.25}
+.pend{display:block;font-family:var(--grot);font-size:0.6875rem;color:var(--tinta-2);margin-top:.25rem;max-width:8.5rem}
+.esc-par{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));margin-top:.85rem}
+.op{background:var(--papel);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.8rem .9rem;display:flex;flex-direction:column;gap:.25rem}
+.op .nome{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.op .val{font-family:var(--mono);font-size:1rem;font-variant-numeric:tabular-nums;margin-top:.2rem;display:block}
+.op .onde{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.15rem}
+.op .nao{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.3rem}
+.op>button{margin-top:.5rem}
+.volta{display:flex;gap:.75rem;align-items:flex-start;flex-wrap:wrap;margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--linha)}
+.volta span{font-size:0.8125rem;color:var(--tinta-2);flex:1 1 20rem;max-width:none}
+.esc-nota{font-size:0.8125rem;color:var(--tinta-2);max-width:none;margin-top:.7rem}
 </style>
 <div class="faixa">
 <h1>Flow per person</h1>
@@ -222,9 +238,9 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
       <tr class="bloco-l"><td colspan="7"><div class="bloco">
         <div class="bloco-cab">
           <h3>Lia Moraes · the four charts <span class="rot">· 14 Jul → 8 Sep · by week</span></h3>
-          <a href="#" style="font-family:var(--grot);font-size:.78rem;color:var(--verdete-deep)">open her full page → <kbd>/people/liamoraes</kbd></a>
+          <a href="#" style="font-family:var(--grot);font-size:0.75rem;color:var(--verdete-deep)">open her full page → <kbd>/people/liamoraes</kbd></a>
         </div>
-        <p class="sub" style="font-size:.82rem;margin-top:.45rem">Read in this order, and the numbers are the order: <strong>1</strong> what is there, <strong>2</strong> what moved in and out, <strong>3</strong> at what pace, <strong>4</strong> what that pace implies. Three of the four are <span class="marca obs" style="font-size:.66rem"><span class="am"></span>observed</span>; the fourth is <span class="marca der" style="font-size:.66rem"><span class="am"></span>derived</span> and its card is dashed, so a simulation is never read as a count.</p>
+        <p class="sub" style="font-size:0.8125rem;margin-top:.45rem">Read in this order, and the numbers are the order: <strong>1</strong> what is there, <strong>2</strong> what moved in and out, <strong>3</strong> at what pace, <strong>4</strong> what that pace implies. Three of the four are <span class="marca obs" style="font-size:0.6875rem"><span class="am"></span>observed</span>; the fourth is <span class="marca der" style="font-size:0.6875rem"><span class="am"></span>derived</span> and its card is dashed, so a simulation is never read as a count.</p>
         <div class="defs">
           <div><strong>promised</strong> = opened in the period · <strong>delivered</strong> = closed in the period. There is <strong>no committed scope</strong> in the platform: this is not a sprint commitment against a sprint result. <em>Closed</em> is the issue being closed at the source — an act of the tool, not a declared end criterion, and the count ignores the size of the item: splitting finer raises it without more work done.</div>
           <div class="lim"><strong>working in progress</strong> here = items assigned to her and still open at each sample. Not <span class="login" style="display:inline">flow.wip.count</span>, whose formula needs an end criterion that does not exist (issue <span class="login" style="display:inline">#506</span>). No WIP limit is drawn: none is declared.</div>
@@ -232,7 +248,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
         <div class="mix">
           <span class="tot">114 open, by concept</span><span class="cc cc-task">TASK</span><b>71</b><span class="cc cc-us">US</span><b>28</b><span class="cc cc-bug">BUG</span><b>8</b><span class="cc cc-epic">EPIC</span><b>7</b> <span class="ex-mark">example split</span>
         </div>
-        <p class="sub" style="font-size:.78rem">The composition of the number, not the list of items — the list is on the Dashboard, and this tab does not repeat it (FR-088).</p>
+        <p class="sub" style="font-size:0.75rem">The composition of the number, not the list of items — the list is on the Dashboard, and this tab does not repeat it (FR-088).</p>
 
         <div class="grade-4">
           <!-- 1 · WORKING IN PROGRESS -->
@@ -294,7 +310,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
             <p class="def">Derived, not observed: 10 000 simulated runs over her own weekly closing history. Weekly whatever the grain switch says, because its samples are weeks.</p>
             <div class="recusa-c">
               <span class="t">No forecast — below the floor of the method.</span>
-              <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>0</b> of <b>10</b> items — short by 10</span></div>
+              <div class="piso" style="font-size:0.75rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>0</b> of <b>10</b> items — short by 10</span></div>
               <p>The floor is the method's: without at least ten closed items the sampled history is not a history, and a distribution drawn from nothing would be a shape with no content. <strong>This is a gap in the observed record, never a statement about the person.</strong></p>
               <p>Her squad's history is <strong>not borrowed</strong> to fill it (FR-101): without this person's own closings there is no forecast about this person's work, and lending the squad's pace would fabricate a number about someone.</p>
               <p>What it would have answered, had the floor been met, is a question about <strong>the work</strong>: when what is in her hands runs out, at the pace observed for it. Never a capacity, a commitment, or a date.</p>
@@ -328,7 +344,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
   <div class="aviso"><span class="rot">what this table says about this squad, and what it does not</span>
   <p><strong>Nothing here moved in this window.</strong> Five rows, 297 open items, and not one opening or closing in eight weeks. That is an observation about <em>the work</em> — the same observation the Dashboard makes when it counts 297 of 297 items past the 90-day threshold — and it is not an observation about the five people: a stalled board, a project waiting on someone outside the team, and five people reassigned elsewhere all produce this exact table, and the platform cannot tell them apart from what it collects.</p>
   <p style="margin-top:.5rem"><strong>Two rows are not comparable when their collection is not.</strong> Six repositories were observed for one person and two for another; how many exist for either is not known, so the columns above compare <em>records</em> before they compare anything else. Until the platform has that denominator, that sentence stays next to the numbers and not in a footnote (FR-111, FR-112).</p></div>
-  <p class="sub" style="font-size:.8rem"><span class="re-mark">real</span> the five members, and 114, 77, 54 open (development base, 8 Sep), summing with the other two rows to the squad's real 297 — 180 TASK · 78 US · 21 BUG · 18 EPIC. <span class="ex-mark">example</span> the split of the remaining 52 between Bia and Téo, the names, the roles, the repository counts, and every opened/closed/forecast figure. <strong>The zeros in the three middle columns are an assumption, not a measurement</strong>: the newest still-open item of this squad is 217 days old, so nothing opened inside the window is still open — but an item opened <em>and</em> closed inside the window would not appear in that sample, and none was counted here. Stated as an assumption because it is one.</p>
+  <p class="sub" style="font-size:0.8125rem"><span class="re-mark">real</span> the five members, and 114, 77, 54 open (development base, 8 Sep), summing with the other two rows to the squad's real 297 — 180 TASK · 78 US · 21 BUG · 18 EPIC. <span class="ex-mark">example</span> the split of the remaining 52 between Bia and Téo, the names, the roles, the repository counts, and every opened/closed/forecast figure. <strong>The zeros in the three middle columns are an assumption, not a measurement</strong>: the newest still-open item of this squad is 217 days old, so nothing opened inside the window is still open — but an item opened <em>and</em> closed inside the window would not appear in that sample, and none was counted here. Stated as an assumption because it is one.</p>
 </section>
 <!-- ═══════════════════════════════ SCREEN 4 ═══════════════════════════════ -->
 <span class="tela">screen 4 · the same tab, a team that moves · and two people opened side by side</span>
@@ -337,7 +353,7 @@ One row per member, on the <strong>same window</strong> as the Dashboard's chart
 <nav class="abas"><a class="aba" href="#">Dashboard</a><a class="aba" href="#">Structure</a><a class="aba ativa" href="#">Flow per person</a></nav>
 
 <div class="nota-de-tela"><span class="rot">what this screen adds</span>
-The same tab on a team where work does move, and where the rows are not all alike: one person above the forecast floor and five below it for two different reasons, one who joined inside the window, one who left with a declared date, one with <strong>no observed item at all</strong>, and one holding items the routing rule did not classify. And the second mode of the tab: <strong>two people opened at once</strong>, which takes both out of their rows and puts the four measures side by side, one row per measure.
+The same tab on a team where work does move, and where the rows are not all alike: one person above the forecast floor and five below it for two different reasons, one who joined inside the window, one who left with a declared date, one with <strong>no observed item at all</strong>, and one holding items the routing rule did not classify. And the second mode of the tab: <strong>two people opened at once</strong>, which takes both out of their rows and puts the four measures side by side, one row per measure. And the state the ceiling produces: a <strong>third person asked for while two are open</strong>, and the question of which of the two closes — drawn under the row that asked, with both open people named.
 </div>
 
 <section class="sec">
@@ -383,19 +399,59 @@ The same tab on a team where work does move, and where the rows are not all alik
         <td><button class="btn q">charts ▾</button></td>
       </tr>
       <tr class="saiu-l">
-        <td><span class="pessoa">Sara Beltrão</span><span class="login">@sarabeltrao <span class="ex-mark">example</span></span><span class="pes-sub">Tech Lead · declared · <span class="marca saiu" style="font-size:.66rem"><span class="am"></span>left 14 Aug</span> declared by @paulo, 15 Aug</span><span class="cob">4 repos observed · denominator unknown</span></td>
+        <td><span class="pessoa">Sara Beltrão</span><span class="login">@sarabeltrao <span class="ex-mark">example</span></span><span class="pes-sub">Tech Lead · declared · <span class="marca saiu" style="font-size:0.6875rem"><span class="am"></span>left 14 Aug</span> declared by @paulo, 15 Aug</span><span class="cob">4 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">9</span><span class="dir">unchanged since 14 Aug · still assigned to her at the source</span></td>
         <td class="v">2</td><td class="v">5</td><td class="v">3 of 5</td>
         <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history <span class="curto">5 of 6 short</span> · closed <span class="curto">5 of 10 short</span></span></td>
         <td><button class="btn q">charts ▾</button></td>
       </tr>
-      <tr>
+      <tr class="pedida">
         <td><span class="pessoa">Duda Cordeiro</span><span class="login">@dudacordeiro <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · since 9 Sep 2024</span><span class="cob">3 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">18</span><span class="dir">16 at the first sample · +2 across the window</span><span class="nc"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</span></td>
         <td class="v">5</td><td class="v">3</td><td class="v">3 of 8</td>
         <td class="esq prev"><span class="prev-rec">no forecast · below the floor</span><span class="piso">history 8 of 6 met · closed <span class="curto">3 of 10 short</span></span></td>
-        <td><button class="btn q">charts ▾</button></td>
+        <td><button class="btn esp">charts asked ▾</button><span class="pend">not open · waiting for your choice</span></td>
       </tr>
+
+      <tr class="bloco-l"><td colspan="7"><div class="bloco">
+        <div class="bloco-cab">
+          <h3>Two sets of charts are open. Duda Cordeiro's would be the third — which one closes?</h3>
+          <span class="rot">nothing has changed yet</span>
+        </div>
+        <p class="sub" style="font-size:0.8125rem;margin-top:.45rem;max-width:none">This is a question, not a change. <strong>Duda's charts are not open</strong>, and Noa's and Pedro's are exactly as they were — same rows, same numbers, same forecast, same window and grain. Choosing below closes one person's charts and opens Duda's in that place. It is not a modal and it traps nothing: the question sits under the row that asked it, the table above stays readable, and it waits.</p>
+        <div class="esc-par">
+          <div class="op">
+            <span class="rot">open first · her charts are the left-hand column below</span>
+            <div><span class="quad" style="color:var(--verdete)" title="the colour her series carries in the charts below"></span><span class="nome">Noa Vidal</span></div>
+            <span class="login">@noavidal <span class="ex-mark">example</span></span>
+            <span class="pes-sub">Developer · declared</span>
+            <span class="val">11 <span class="rot" style="font-weight:400">open now</span></span>
+            <span class="piso">9 at the first sample · +2 across the window</span>
+            <span class="piso">forecast: p50 11 wk · no p85</span>
+            <span class="onde">Her row is three rows above this question, marked.</span>
+            <button class="btn p larga">close Noa's charts · open Duda's</button>
+            <span class="nao">Closes her charts only. Her row stays in the table, her numbers do not change, and nothing about her is deleted — she can be opened again from her row.</span>
+          </div>
+          <div class="op">
+            <span class="rot">open second · his charts are the right-hand column below</span>
+            <div><span class="quad" style="color:var(--s3)" title="the colour his series carries in the charts below"></span><span class="nome">Pedro Assis</span></div>
+            <span class="login">@pedroassis <span class="ex-mark">example</span></span>
+            <span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source</span>
+            <span class="val">3 <span class="rot" style="font-weight:400">open now</span></span>
+            <span class="piso">5 at the first sample · −2 across the window</span>
+            <span class="piso">forecast: no forecast · closed <span class="curto">4 of 10 short</span></span>
+            <span class="onde">His row is the one directly below this question, marked.</span>
+            <button class="btn p larga">close Pedro's charts · open Duda's</button>
+            <span class="nao">Closes his charts only. His row stays in the table, his numbers do not change, and nothing about him is deleted — he can be opened again from his row.</span>
+          </div>
+        </div>
+        <div class="volta">
+          <button class="btn">keep Noa and Pedro · do not open Duda</button>
+          <span>The way out is the way back. The question closes, <strong>Duda's charts do not open</strong>, and the two that are open stay open on the same window and the same grain. There is no third state here: either the pair changes or it does not.</span>
+        </div>
+        <p class="esc-nota"><strong>The two closing buttons carry the same weight on purpose.</strong> Electing one of them as the primary would be the screen choosing which comparison still matters, one shade at a time — and which of the two has stopped being interesting is the one thing only the person who asked for the third knows. Neither button is <em>close both</em>: keeping one of them is what makes this a comparison at all. To end with Duda alone, close the other from its row afterwards.</p>
+        <p class="esc-nota"><strong>Why two at all:</strong> two y axes compare shapes, not heights, and a third scale in this column would be a gallery instead of a comparison. The full argument is one screen down, under the pair — <em>why two, and why the pair leaves the table</em> — and it is repeated here in one line rather than in full, because a reader stopped by a limit needs the reason, not the essay. What the limit is <strong>not</strong> is cost: measured on 10 Sep, the whole tab is <span class="n">5</span> queries for 31 members and opening a person costs <strong>no extra query</strong>. The limit is legibility, and only that.</p>
+      </div></td></tr>
       <tr class="aberta">
         <td><span class="pessoa">Pedro Assis</span><span class="login">@pedroassis <span class="ex-mark">example</span></span><span class="pes-sub"><span style="color:var(--amber);font-style:italic">role not declared</span> · observed at the source · start date unknown</span><span class="cob">2 repos observed · denominator unknown</span></td>
         <td class="agora"><span class="n2">3</span><span class="dir">5 at the first sample · −2 across the window</span></td>
@@ -421,7 +477,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       </tr>
     </tbody>
   </table></div>
-  <div class="ordem">Ordered by declared role, then by name: Developer, Developer, Tech Lead, then the four the source only observed. <strong>No column header sorts.</strong> Two rows are open, so their charts left the table and sit below it, side by side.</div>
+  <div class="ordem">Ordered by declared role, then by name: Developer, Developer, Tech Lead, then the four the source only observed. <strong>No column header sorts.</strong> Three states are on this table at once: <strong>two rows open</strong>, whose charts left the table and sit below it side by side; <strong>one row that asked</strong> for a third and is <em>not</em> open, with the question of which of the two to close drawn under it; and four rows closed.</div>
 
   <div class="aviso"><span class="rot">the window is the same for everyone; the history inside it is not</span>
   <p>Otávio joined on <strong>20 Aug</strong> and Sara left on <strong>14 Aug</strong>. Their windows are the team's — 14 Jul → 8 Sep — but the part of it in which the platform has anything to say about them is shorter, and that is written in their rows. <strong>Fewer periods with data is a shorter history inside the same window, and not less work.</strong> Sara's row stays: what she did inside the window still counts (US3), her open items are still assigned to her at the source, and nothing is deleted retroactively. Zeca's start date is unknown, so the row says so instead of guessing one.</p></div>
@@ -435,8 +491,8 @@ The same tab on a team where work does move, and where the rows are not all alik
   </div>
 
   <div class="par-cab" style="margin-top:1rem">
-    <div class="h">Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
-    <div class="h b">Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:.72rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h"><span class="quad" style="color:var(--verdete)" title="the colour her series carries in the four charts below"></span>Noa Vidal <span class="rot" style="font-weight:400">· Developer · 11 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
+    <div class="h b"><span class="quad" style="color:var(--s3)" title="the colour his series carries in the four charts below"></span>Pedro Assis <span class="rot" style="font-weight:400">· role not declared · 3 open</span> <a href="#" style="font-size:0.75rem;color:var(--verdete-deep);font-weight:400">full page →</a></div>
   </div>
 
   <!-- ROW 1 · WIP -->
@@ -542,7 +598,7 @@ The same tab on a team where work does move, and where the rows are not all alik
 <section class="sec" style="margin-top:1.4rem">
   <div class="par-linha" style="margin-top:0">
     <h3><span class="rot">4 ·</span> Delivery forecast <span class="rot">· weekly whatever grain the others show · 12-week horizon · 10 000 runs</span></h3>
-    <p class="sub" style="font-size:.82rem">Derived, not observed — both cards below are dashed for that reason. Two hypotheses, <strong>stacked and never overlaid</strong>: two translucent shapes on one pair of axes make a third shape that does not exist. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other. And the question is about <strong>the work</strong> — when what is in this person's hands runs out, at the pace observed for it — never about capacity, commitment or a date.</p>
+    <p class="sub" style="font-size:0.8125rem">Derived, not observed — both cards below are dashed for that reason. Two hypotheses, <strong>stacked and never overlaid</strong>: two translucent shapes on one pair of axes make a third shape that does not exist. The <strong>shape</strong> answers how regularly; the <strong>percentile</strong> answers by when; neither replaces the other. And the question is about <strong>the work</strong> — when what is in this person's hands runs out, at the pace observed for it — never about capacity, commitment or a date.</p>
     <div class="par">
       <div class="g-cart der-c">
         <div class="cab-g"><span class="rot">if nothing new opened · frozen scope</span><span class="rot">11 open · 1.4 closed per week</span></div>
@@ -581,7 +637,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       <div class="g-cart der-c">
         <div class="recusa-c" style="margin-top:0">
           <span class="t">Pedro Assis · no forecast — below the floor of the method.</span>
-          <div class="piso" style="font-size:.78rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>4</b> of <b>10</b> items — short by 6</span></div>
+          <div class="piso" style="font-size:0.75rem;margin-top:.35rem">history <b>8</b> of <b>6</b> weeks — met<br>closed <span class="curto"><b>4</b> of <b>10</b> items — short by 6</span></div>
           <p>Four closings across eight weeks is a record, not a history: ten is the floor the method needs before a distribution drawn from it means anything. <strong>A gap in the observed record, never a statement about the person.</strong></p>
           <p>Noa's history, on the other side of this row, is <strong>not</strong> borrowed to fill it. Two people on one screen make that borrowing look natural, which is exactly why the refusal says it here.</p>
         </div>
@@ -590,7 +646,8 @@ The same tab on a team where work does move, and where the rows are not all alik
   </div>
 
   <div class="aviso"><span class="rot">why two, and why the pair leaves the table</span>
-  <p>Four charts and their caveats are roughly <span class="n">700 px</span> tall. Two blocks opened in place, six rows apart, put <span class="n">1 400 px</span> between the two things being compared and push the table itself off the screen — so opening a second person is not a second block, it is a <strong>mode</strong>: both leave the table, and the four measures line up one per row. Three would give each chart about <span class="n">19 rem</span> in this column, below what an eight-point series with its axis labels can carry, and would ask the reader to hold three scales at once. <strong>The limit here is two, against the three proposed in FR-087</strong> — open question 1.</p></div>
+  <p>Four charts and their caveats are roughly <span class="n">700 px</span> tall. Two blocks opened in place, six rows apart, put <span class="n">1 400 px</span> between the two things being compared and push the table itself off the screen — so opening a second person is not a second block, it is a <strong>mode</strong>: both leave the table, and the four measures line up one per row. Three would give each chart about <span class="n">19 rem</span> in this column, below what an eight-point series with its axis labels can carry, and would ask the reader to hold three scales at once. <strong>The limit here is two, against the three proposed in FR-087</strong> — open question 1, <strong>settled on 10 Sep at two</strong>.</p>
+  <p><strong>And the limit is not a cost.</strong> Measured on 10 Sep, the whole tab is <span class="n">5</span> queries for 31 members — 3 for the per-person series and 2 for the open items — and opening one, two or three people costs <strong>no extra query</strong>: the four charts and the composition come out of queries the table already makes. The cost half of this argument is gone, and what is left is the reader. What happens when a third person is asked for is in the table above, under Duda's row.</p></div>
 </section>
 
 <section class="sec">
@@ -605,7 +662,7 @@ The same tab on a team where work does move, and where the rows are not all alik
         <div class="pes-sub" style="margin-top:.2rem">and none observed at any sample of this window</div>
         <div class="piso" style="margin-top:.3rem">forecast: <span style="color:var(--tinta-2)">nothing to forecast — no open item to reach zero</span></div>
       </div>
-      <p style="margin-top:.5rem">Its mark is <span class="marca aus" style="font-size:.66rem"><span class="am"></span>dashed</span> — absent, not zero. It is <strong>absence of an observed assignment</strong>, and it is not idleness: two repositories were observed for her, and how many she actually works in is not known.</p>
+      <p style="margin-top:.5rem">Its mark is <span class="marca aus" style="font-size:0.6875rem"><span class="am"></span>dashed</span> — absent, not zero. It is <strong>absence of an observed assignment</strong>, and it is not idleness: two repositories were observed for her, and how many she actually works in is not known.</p>
       <p><strong>A different case wears different words:</strong> a person who has items but none open right now reads <em>“nothing open at any sample — her items in this window were all closed”</em>. That is a measured zero of a series that exists, and it must not borrow this cell's sentence.</p>
     </div>
     <div class="a a2">
@@ -624,7 +681,7 @@ The same tab on a team where work does move, and where the rows are not all alik
       <h4>3 · The item the rule did not classify</h4>
       <p>Not an absent measure — an absent <em>label</em>. The item counts in every number on the row; what it <em>is</em> is unknown. It appears where the count is, never as a footnote:</p>
       <div class="amostra">
-        <span class="n2" style="font-family:var(--mono);font-size:1.05rem">18</span>
+        <span class="n2" style="font-family:var(--mono);font-size:1rem">18</span>
         <div class="pes-sub">16 at the first sample · +2 across the window</div>
         <div class="piso" style="margin-top:.2rem"><span class="cc cc-nil">—</span> 2 the routing rule did not classify</div>
       </div>
@@ -922,8 +979,9 @@ Thirty-one members is the team that fails any design which does not make a cut �
 
   <div class="cartao">
     <h3>Open — each one is the maintainer's to settle</h3>
+    <p class="sub">All seven were settled on <strong>10 Sep</strong>, each by the recommendation it carries; the answers and their reasons are on record in <span class="login" style="display:inline">team-people-README.md</span>. Item 18 is rewritten below, because half of its reason turned out to be false and because its answer left one state undesigned — that state is decision 25.</p>
     <ol class="dec-l" start="18">
-      <li><strong>How many people open at once?</strong> FR-087 proposes three, and says the number is proposed and not measured. <em>(a)</em> one, and comparison stays in the table; <em>(b)</em> <strong>two, with the paired layout on this page</strong>; <em>(c)</em> three, in place, as proposed. <em>Recommended: (b).</em> Three charts abreast in this column are about 19 rem each — below what an eight-point series with axis labels carries — and three scales is not a comparison, it is a gallery. Two also keeps the query ceiling (SC-031) comfortable rather than tight.</li>
+      <li><strong>How many people open at once?</strong> FR-087 proposes three, and says the number is proposed and not measured. <em>(a)</em> one, and comparison stays in the table; <em>(b)</em> <strong>two, with the paired layout on this page</strong>; <em>(c)</em> three, in place, as proposed. <em>Recommended: (b).</em> <strong>Decided 10 Sep: (b), two.</strong> Three charts abreast in this column are about 19 rem each — below what an eight-point series with axis labels carries — and three scales is not a comparison, it is a gallery. <span class="marca eqv" style="font-size:0.6875rem"><span class="am"></span>corrected 10 Sep</span> The clause that used to close this item — that two also keeps the query ceiling (SC-031) comfortable rather than tight — <strong>was wrong</strong>. The tab was measured at <span class="n">5</span> queries for 31 members, and opening one, two or three people costs <strong>no extra query</strong>. The ceiling is a legibility decision and never was a cost one. What the third request does is decision 25.</li>
       <li><strong>Throughput and <em>delivered</em> are the same numbers.</strong> Chart 3 draws the bars of chart 2 again, read as a pace instead of against what was opened. Both were asked for by name. <em>(a)</em> keep four charts and say so on the screen, as here; <em>(b)</em> three charts, with the pace reading folded into Promised × Delivered; <em>(c)</em> four, and drop the <em>opened</em> bars from chart 2 so the two stop overlapping. <em>Recommended: (a) for the first version</em> — the redundancy is visible and named, and dropping a chart the maintainer asked for by name is not the design's call.</li>
       <li><strong>The two derivations this table introduces need a name in the knowledge base before the code.</strong> The <em>change across the window</em> (first sample against last) and <em>weeks with a close</em> (periods with a non-zero value) are readings of declared measures, not new measures — but nothing reaches the screen without a declaration (constitution, principle IV). <em>(a)</em> declare both as readings on <span class="login" style="display:inline">flow.open_work.cumulative</span> and <span class="login" style="display:inline">flow.throughput.rate</span>; <em>(b)</em> drop both columns and leave the table with three numbers. <em>Recommended: (a)</em> — without them the table shows a stock with no direction and a total with no regularity, and FR-089 requires the series and not a lone value.</li>
       <li><strong>Does the "promised" caveat at the top of the section count as "beside" the word?</strong> The reading of FR-063 that accepts this screen and the one that rejects it. This design implements <em>(a)</em>: the word never appears in the table at all, and appears in each open block with the definition attached. <em>(b)</em> would require it inside every chart, and there is one chart per open person, so (b) costs little here — it costs a lot only if the word returns to the table. <em>Recommended: (a).</em></li>
@@ -934,15 +992,29 @@ Thirty-one members is the team that fails any design which does not make a cut �
   </div>
 
   <div class="cartao">
+    <h3>Decided by the maintainer on 10 Sep — the third person, and how the screen answers it</h3>
+    <p class="sub">The ceiling is two, and the approved screen did not draw what happens when someone asks for a third. Item 25 is the maintainer's; 26 to 31 are the design's, with the reason, and hers to overturn.</p>
+    <ol class="dec-l" start="25">
+      <li><strong>The screen asks which of the two open should close.</strong> <em>Decided 10 Sep.</em> Two alternatives were put and both fell. <strong>Refusing</strong> the third would make the ceiling a wall with no way through: whoever wants to compare A with C would have to work out alone that B has to close first, and a refusal that does not offer the right act is what this house refuses everywhere else. <strong>Closing the oldest</strong> would decide for the person comparing, and decide in silence: the third person was chosen deliberately, and which of the first two has stopped being interesting is information only she has. Asking costs one more state and one more interaction, and that is the price of not deciding for her.</li>
+      <li><strong>The question lands where the answer would have gone</strong> — under the row that asked, in the same full-width block that row's four charts would have occupied, and in <strong>exactly one place</strong>. The act started in the table, so the question belongs there: drawn a screen away, under the pair, it would look as if it came from nowhere and would leave the click looking ineffective. A question in two places is two questions.</li>
+      <li><strong>The two open people are named, with what helps choose.</strong> <em>“Close one”</em> without saying which two is not a question. Each card carries the colour square of the series its charts use below, the name and login, the declared role or its absence, <em>open now</em> with its change across the window, the forecast state, and <strong>where that person's marked row is</strong> — so the mark in the table and the words in the question point at each other. Nothing here is a figure the row did not already carry: the order the two were opened in is a fact of the interaction, not a measure, which is why it reads <em>open first</em> / <em>open second</em> and not a duration. A duration would be a new number, and a new number needs a name in the knowledge base before it reaches a screen.</li>
+      <li><strong>The two closing buttons carry the same weight</strong>, and each says what it does <em>and</em> what it does not: it closes charts, and the row, the numbers and the forecast stay where they are. Electing a primary between them would be the screen choosing. The way back is a single button in the quiet variant, because it is a <strong>return</strong> and not a third outcome.</li>
+      <li><strong>The row that asked shows “asked, not open”</strong>, and it is a third weight of the same control: <em>charts asked ▾</em> outlined in verdete, where an open row's <em>close ▴</em> is filled verdete and a closed row's <em>charts ▾</em> is neutral — plus the words <em>not open · waiting for your choice</em>, so the state never rests on weight alone. The row shares no rule with the question below it, which is how the two read as one object without a coloured edge. And <strong>the two open rows change in nothing at all</strong>: while the question is on the screen nothing has been changed, and re-marking them would report a change that has not happened. The provenance grammar — solid, hatched, dashed — is never borrowed for an interaction state; it belongs to the data.</li>
+      <li><strong>The reason for the ceiling appears in the question in one line, and points to the full argument</strong> under the pair rather than repeating it: a reader stopped by a limit needs the reason, not the essay, and the essay would push the two names — the thing to be read — below the fold of the block. The line also says what the limit is <strong>not</strong>: measured on 10 Sep, the tab is 5 queries for 31 members and opening a person costs no extra query.</li>
+      <li><strong>The open rows' mark is a tonal layer, with no accent edge and no shadow.</strong> They carried a 3px verdete edge drawn as an inset shadow; both devices are out (<span class="login" style="display:inline">DESIGN.md</span> — <em>The No-Accent-Edge Rule</em>, and flat by doctrine). The verdete ground, the filled <em>close ▴</em> and the sentence under the table are the three channels that remain, and they survive greyscale. The same rule took the 3px underline off the two column headings of the pair: the person's series colour is now the <strong>0.6rem square</strong> beside the name — the remedy the rule names — and it is the same square the question above uses for the same two people, so the pair and the question mark them alike.</li>
+    </ol>
+  </div>
+
+  <div class="cartao">
     <h3>What was not verified, and must not be read as measured</h3>
     <p class="sub">Written here rather than in a report, because the screen is what gets read.</p>
-    <ul style="font-size:.9rem;margin:.4rem 0 0;padding-left:1.1rem">
+    <ul style="font-size:0.875rem;margin:.4rem 0 0;padding-left:1.1rem">
       <li><strong>No closing was measured.</strong> Every <em>opened in the window</em>, <em>closed in the window</em>, <em>weeks with a close</em> and forecast figure on all three bands is invented. What was measured on 8 Sep is the count of <strong>open</strong> items: 760 TASK · 288 US · 71 BUG · 35 EPIC across everyone in a team; SQUAD PINK's 180 · 78 · 21 · 18; and per person, 114, 77 and 54 in PINK and 11, 3 and 0 in Equipe IA.</li>
       <li><strong>SQUAD PINK's zeros are an inference, not a reading.</strong> The newest still-open item is 217 days old, so nothing opened inside the window remains open — but an item opened <em>and</em> closed inside the window leaves no trace in that sample. Nobody counted those.</li>
       <li><strong>The split of the remaining open items</strong> — 52 between two people in PINK, 69 between four in Equipe IA — is invented to make the rows sum to the squad's real total.</li>
       <li><strong>No repository-coverage number exists</strong> for any person; every "<em>N repos observed</em>" on this page is invented, and the missing denominator is real.</li>
       <li><strong>Nothing was measured for LEDS - ConectaFapes.</strong> The 31-row band is a density test with invented people; the team's size is the only real thing in it.</li>
-      <li><strong>The query ceiling was not measured.</strong> Whether two people open stays inside the per-render limit the team screen's guard test holds is an argument here, not a measurement (SC-031).</li>
+      <li><span class="marca eqv" style="font-size:0.6875rem"><span class="am"></span>corrected 10 Sep</span> <strong>“The query ceiling was not measured.”</strong> It has been. The tab costs <span class="n">5</span> queries for 31 members — 3 for the per-person series and 2 for the open items — and each person opened costs <strong>no extra query</strong>. The claim stays on the record with its correction rather than being deleted, and the ceiling of two now rests on legibility alone (SC-031, decision 18).</li>
       <li><strong>The composed-team case is described, not drawn.</strong> On a composed team the tab still has one row per person — the tab is per person, not per membership — with the squad chips in the person cell and still no total. No band on this page shows it.</li>
     </ul>
   </div>

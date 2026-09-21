@@ -1,0 +1,485 @@
+<title>The declared link</title>
+<style>
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;--tinta-3:#3e4341;--tinta-soft:#e5e7e6;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--info-soft:#e3ecf1;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--s1:#00897a;--s2:#a35c00;--s3:#4a5bbf;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#132430;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--s3:#8b98e8;}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;
+--tinta:#dfe7e4;--tinta-2:#93a69d;--tinta-3:#b5bdba;--tinta-soft:#212725;--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;
+--info:#7fb4d6;--info-soft:#132430;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;--s3:#8b98e8;}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms;transition-duration:.01ms}}
+*{box-sizing:border-box}body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.6}
+::selection{background:var(--s1);color:var(--papel)} :focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+h1,h2,h3{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.875rem}h2{font-size:1.125rem}h3{font-size:0.875rem}
+.h-tela{font-size:1.5rem;font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0}
+.faixa{max-width:62rem;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+.mig{font-family:var(--grot);font-size:0.8125rem;color:var(--tinta-2);margin-bottom:.6rem}.mig a{color:var(--verdete-deep)}
+.rot{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n,.v{font-family:var(--mono);font-variant-numeric:tabular-nums}.v{font-size:1rem}
+p{margin:.5rem 0 0;max-width:70ch}.sub{color:var(--tinta-2);font-size:0.875rem}
+.menor{font-size:0.8125rem}.mini{font-size:0.75rem}
+.ident{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem}
+.marca{font-family:var(--grot);font-size:0.6875rem;padding:.05rem .45rem;border-radius:0.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap}
+.marca .am{width:.6rem;height:.6rem;border-radius:0.125rem;border:1px solid currentColor}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+.saiu{color:var(--tinta-2)}.saiu .am{background:var(--linha)}
+.eqv{color:var(--clay)}.eqv .am{background-image:var(--hatch)}
+.sec{margin-top:2.5rem}
+.sec-cab{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;border-bottom:1.5px solid var(--linha);padding-bottom:.5rem}
+.sec-cab h2{flex:1 1 auto}
+table{width:100%;border-collapse:collapse;margin-top:.8rem}
+th{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:right;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha);vertical-align:bottom}
+th:first-child,th.esq{text-align:left}
+td{padding:.55rem .5rem;border-bottom:1px solid var(--linha);text-align:right;vertical-align:top;font-size:0.875rem}
+td:first-child,td.esq{text-align:left} tbody tr:hover{background:var(--verdete-soft)}
+tr.apagada td{color:var(--tinta-2)} tr.apagada .pessoa{color:var(--tinta-2);text-decoration:line-through;text-decoration-color:var(--clay)}
+tr.nova>td{background:var(--info-soft)}
+.pessoa{font-family:var(--grot);font-weight:650;font-size:0.875rem}
+.login{font-family:var(--mono);font-size:0.75rem;color:var(--tinta-2);display:block}
+.login.emlinha{display:inline}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:1.15rem;margin-top:1rem}
+.vazio{border:1.5px dashed var(--linha);border-radius:0.5rem;padding:1rem 1.15rem;margin-top:.9rem;background:repeating-linear-gradient(135deg,transparent 0 6px,var(--papel-2) 6px 7px)}
+.tela{display:block;margin:3.5rem 0 1rem;font-family:var(--mono);font-size:0.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:0.25rem;width:max-content}
+.abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);margin-top:1.2rem}
+.aba{font-family:var(--grot);font-size:0.875rem;font-weight:650;padding:.5rem .9rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;text-decoration:none}
+.aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
+.acoes{display:flex;gap:.35rem;justify-content:flex-end;flex-wrap:wrap}
+.btn{font-family:var(--grot);font-size:0.75rem;font-weight:650;padding:.25rem .6rem;border-radius:0.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);cursor:pointer;white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn.q{color:var(--tinta-2)}.btn.perigo{color:var(--clay);border-color:var(--clay)}
+.btn[disabled]{cursor:not-allowed;background:var(--papel-2);color:var(--tinta-2);border-color:var(--linha);border-style:dashed}
+.form-inline{margin-top:.6rem;padding:.8rem 1rem;border:1.5px solid var(--linha);background:var(--papel-2);border-radius:0.5rem;font-size:0.875rem}
+.form-inline.novo{border-color:var(--info)}
+.form-inline label{display:block;font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.5rem}
+.form-inline input,.form-inline select{font:inherit;font-size:0.875rem;padding:.25rem .45rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel);color:var(--tinta);margin-top:.15rem}
+.form-inline .linha-f{display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-end}
+.form-inline .nota{font-size:0.8125rem;color:var(--tinta-2);margin-top:.5rem}
+.escolhida{font-family:var(--grot);font-size:0.875rem;font-weight:650;border:1.5px solid var(--linha);border-radius:0.25rem;padding:.25rem .5rem;background:var(--papel);display:inline-flex;gap:.4rem;align-items:baseline;margin-top:.15rem}
+.chips{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.chip{font-family:var(--grot);font-size:0.6875rem;padding:.02rem .45rem;border-radius:0.25rem;border:1.5px solid var(--linha);color:var(--tinta-2);white-space:nowrap}
+.chip.s1{border-color:var(--s1);color:var(--s1)}.chip.s2{border-color:var(--s2);color:var(--s2)}.chip.s3{border-color:var(--s3);color:var(--s3)}
+.papel-cel{font-family:var(--grot);font-size:0.875rem}.papel-cel .nd{color:var(--amber);font-style:italic}
+.legenda{display:flex;gap:1rem;margin-top:.6rem;font-family:var(--grot);font-size:0.75rem;flex-wrap:wrap}
+.legenda span{display:inline-flex;align-items:center;gap:.35rem;color:var(--tinta-2)}
+.ex-mark{font-family:var(--mono);font-size:0.6875rem;color:var(--amber);letter-spacing:.06em;text-transform:uppercase}
+.re-mark{font-family:var(--mono);font-size:0.6875rem;color:var(--verdete-deep);letter-spacing:.06em;text-transform:uppercase}
+.scroll{overflow-x:auto}
+.nota-de-tela{margin-top:1rem;padding:.7rem .9rem;border:1.5px solid var(--verdete);border-radius:0.5rem;background:var(--verdete-soft);font-size:0.875rem}
+.nota-de-tela .rot{color:var(--verdete-deep);display:block;margin-bottom:.2rem}
+kbd{font-family:var(--mono);font-size:0.75rem;border:1px solid var(--linha);border-radius:0.25rem;padding:0 .3rem;background:var(--papel-2)}
+.busca{margin-top:1rem;padding:.9rem 1rem;border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel-2)}
+.busca-campo{font:inherit;font-family:var(--grot);font-size:0.875rem;padding:.3rem .5rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel);color:var(--tinta);min-width:18rem}
+.escopo{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.4rem;display:block}
+.vd-lista{display:flex;flex-direction:column;gap:.7rem;margin-top:1rem}
+.vd{--vd-cor:var(--verdete);border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel);padding:.8rem .95rem;display:grid;gap:.55rem;grid-template-columns:minmax(13rem,1.1fr) minmax(14rem,1.6fr) minmax(12rem,1.1fr)}
+.vd.recusa{--vd-cor:var(--clay);border-color:var(--clay);background:var(--clay-soft)}
+.vd.limite{--vd-cor:var(--amber);border-color:var(--amber);background:var(--amber-soft)}
+.vd .quem{min-width:0}
+.vd .tem,.vd .ato{min-width:0}
+.vd .rot{display:block;margin-bottom:.15rem}
+.vd .ver::before{content:"";display:inline-block;width:.6rem;height:.6rem;margin-right:.4rem;border-radius:0.125rem;background:var(--vd-cor);vertical-align:middle}
+.vd.limite .ver::before{background-image:var(--hatch);color:var(--vd-cor);outline:1px solid currentColor;outline-offset:-1px}
+.vd .ver{font-family:var(--grot);font-size:0.75rem;font-weight:650;color:var(--vd-cor);text-transform:none;letter-spacing:0}
+.vd p{margin:.2rem 0 0;font-size:0.8125rem;max-width:none}
+.vd .porque{font-size:0.8125rem;color:var(--tinta-2);margin-top:.3rem}
+.vd .acoes{justify-content:flex-start;margin-top:.35rem}
+.duas{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-top:.6rem}
+.afirm{--marca:var(--verdete);padding:.3rem 0;font-size:0.875rem}
+.afirm.decl{--marca:var(--info)}
+.afirm .rot{display:block;margin-bottom:.15rem}
+.afirm .rot::before{content:"";display:inline-block;width:.6rem;height:.6rem;margin-right:.4rem;border-radius:0.125rem;background:var(--marca);vertical-align:middle}
+.afirm dl{margin:.35rem 0 0;font-size:0.8125rem}
+.afirm dt{font-family:var(--mono);font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);margin-top:.35rem}
+.afirm dd{margin:0 0 0 0;padding-left:.7rem;border-left:1px solid var(--linha)}
+.medida{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:0.5rem;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.2rem}
+.medida .rot{display:block}
+.medida .grande{font-family:var(--mono);font-size:1.5rem;font-variant-numeric:tabular-nums;line-height:1.1;color:var(--verdete-deep)}
+.medida .grande.zero{color:var(--amber)}
+.medida .contra{font-family:var(--mono);font-size:0.8125rem;color:var(--tinta-2);font-variant-numeric:tabular-nums}
+.medida .base{font-family:var(--grot);font-size:0.75rem;color:var(--tinta-2);margin-top:.35rem;border-top:1px dashed var(--linha);padding-top:.35rem}
+.grade-m{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));margin-top:1rem}
+.porque-aqui{margin-top:.9rem;padding:.75rem .95rem;border:1.5px solid var(--linha);border-radius:0.5rem;background:var(--papel)}
+.porque-aqui ol{margin:.4rem 0 0;padding-left:1.2rem;font-size:0.8125rem}
+.porque-aqui li{margin-top:.3rem}
+.inerte{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;margin-top:.35rem}
+.inerte .razao{font-size:0.8125rem;color:var(--clay);max-width:32rem}
+.limites{margin-top:1rem;display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr))}
+.limites div{font-size:0.8125rem;padding:.1rem .7rem;border-left:1px solid var(--linha)}
+.limites div .rot{display:block}
+ol.dec-l{margin:0;padding-left:1.2rem;font-size:0.875rem}ol.dec-l li{margin-top:.5rem}
+ol.dec-l .rot{display:inline}
+.dec-l .op{display:block;font-size:0.8125rem;color:var(--tinta-2);margin-top:.2rem}
+.ciclo{display:grid;gap:0;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));margin-top:1rem;border:1.5px solid var(--linha);border-radius:0.5rem;overflow:hidden}
+.ciclo .fase{padding:.8rem .9rem;border-right:1px solid var(--linha);background:var(--papel)}
+.ciclo .fase:last-child{border-right:0}
+.ciclo .fase h3{display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem}
+.ciclo .fase .antes{font-family:var(--grot);font-size:0.6875rem;text-transform:uppercase;letter-spacing:.06em;margin-top:.45rem;display:block}
+.ciclo .fase .antes.faltava{color:var(--clay)}
+.ciclo .fase .antes.havia{color:var(--verdete-deep)}
+.ciclo .fase p{font-size:0.8125rem;margin:.15rem 0 0}
+.ciclo .fase.nova{background:var(--info-soft)}
+</style>
+
+<div class="faixa">
+<h1>The declared link</h1>
+<div class="ident">
+  <span class="marca dec"><span class="am"></span>declared — the act this prototype adds</span>
+  <span class="marca obs"><span class="am"></span>observed — the link the collection creates</span>
+  <span class="marca aus"><span class="am"></span>absence, written</span>
+  <span class="sub">a section of <kbd>/teams/:id?tab=structure</kbd></span>
+</div>
+<p>One act is missing from the product, and it is a <strong>MUST</strong>: <em>whoever administers can link a person to a team, with a role and a start date, and the link records who declared it</em> — feature 055, FR-003. The domain command exists, has a spec, a doc and eleven tests, and <strong>no screen reaches it</strong>. This prototype is that screen: where the act lives, how the person is found, what the act refuses, and what it says about what it does not do.</p>
+<p class="sub"><span class="re-mark">real</span> marks what was measured on the development base on <strong>10 Sep 2026</strong>: the counts of people, teams, links, roles and squads below. <span class="ex-mark">example</span> marks the invented part — every person's name and login, and the two rows of history (one departure, one mistake) that the base does not hold yet. No account e-mail appears anywhere on this page: an e-mail is personal data, and this screen neither shows nor searches it.</p>
+
+<div class="grade-m">
+  <div class="medida">
+    <span class="rot">links, all current</span>
+    <span class="grande">90</span>
+    <span class="contra">56 without a declared role · 34 with one</span>
+    <span class="base">0 ended, 0 mistakes, 87 with an unknown start</span>
+  </div>
+  <div class="medida">
+    <span class="rot">declared from zero</span>
+    <span class="grande zero">0</span>
+    <span class="contra">of the 90</span>
+    <span class="base">every link in the base was materialised by a collection: 90 evidence rows point at 90 links</span>
+  </div>
+  <div class="medida">
+    <span class="rot">people outside every team</span>
+    <span class="grande zero">0</span>
+    <span class="contra">of 80 collected people</span>
+    <span class="base">so the search's most frequent answer is a person who <em>already has</em> a link — the refusal is the common path, not the edge</span>
+  </div>
+  <div class="medida">
+    <span class="rot">linkable to Conecta Fapes</span>
+    <span class="grande">32</span>
+    <span class="contra">of 80 collected people</span>
+    <span class="base">48 are already members — 31 directly, 17 through the three squads</span>
+  </div>
+</div>
+<p class="sub menor">All four <span class="re-mark">real</span> — measured on the development base on 10 Sep 2026. They are why the screen is shaped the way it is. <strong>Nobody is outside every team</strong> in this base, so a search box that only offered “link” would offer a refused act most of the time. The verdict therefore comes <strong>before</strong> the button, on every row.</p>
+
+<!-- ═══════════════════════════════ SCREEN 1 ═══════════════════════════════ -->
+<span class="tela">screen 1 · structure · where the act lives</span>
+<div class="mig"><a href="#">Teams</a> › Conecta Fapes</div>
+<div class="h-tela">Conecta Fapes</div>
+<div class="ident">
+  <span class="marca obs"><span class="am"></span>observed at github.com</span>
+  <span class="sub"><span class="n">48</span> members · <span class="n">17</span> without a declared role · composed of <span class="n">3</span> squads <span class="re-mark">real</span></span>
+</div>
+<nav class="abas"><a class="aba" href="#" title="the approved prototype of 7 Sep — not redrawn here">Dashboard</a><a class="aba ativa" href="#">Structure</a><a class="aba" href="#" title="the approved prototype of 8 Sep — not redrawn here">Flow per person</a></nav>
+
+<div class="nota-de-tela"><span class="rot">what is new on this screen, and what is not</span>
+The Structure tab approved on <strong>7 Sep</strong>, with <strong>one section added and nothing moved</strong>: <em>Link a person to this team</em>, sitting between <em>Roles</em> and <em>Members</em>. The squads section, the roles section and the three row actions of the member list — declare role, left the team, mistake — are the approved screen and are drawn here only as far as the new section needs them to sit in place. The counts differ from that prototype because the base moved: <strong>48 members, 17 without a role</strong> on 10 Sep, against 19 and 17 on 6 Sep.</div>
+
+<div class="legenda">
+  <span><span class="marca obs"><span class="am"></span>observed</span> the source shows the person in the team</span>
+  <span><span class="marca dec"><span class="am"></span>declared</span> the organisation states it; no source shows it</span>
+  <span><span class="marca saiu"><span class="am"></span>left</span> ended on a date, kept in history</span>
+  <span><span class="marca eqv"><span class="am"></span>mistake</span> never belonged; reason recorded</span>
+</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Link a person to this team</h2><span class="rot">for someone the source does not show · 32 of 80 collected people are linkable here</span><button class="btn p">＋ Link a person…</button></div>
+  <p class="sub">The other four acts on this tab work on a <strong>row that already exists</strong>. This one does not have a row yet — that is the whole point of it — so it gets a section, and the section says what it can and cannot do even while the form is closed.</p>
+
+  <div class="porque-aqui"><span class="rot">why the act lives here, and not in the Members header</span>
+    <ol>
+      <li><strong>The subject of the act is someone who is not in the list.</strong> An action in the member list's header reads as “act on this list”; this act adds to it from outside, and putting it there would say the person is expected to be found among the rows.</li>
+      <li><strong>The refusals need room.</strong> Most searches land on somebody who already has a link, and the answer is two statements, an inert button with its reason beside it, and a route to a different row. That does not fit in a header popover, and shrinking it would shrink the reason first.</li>
+      <li><strong>Order carries meaning.</strong> Squads → Roles → <em>Link a person</em> → Members: the role must exist before it can be declared, and the section that adds to the list sits directly above the list it changes, so the new row appears immediately below the act that made it.</li>
+    </ol>
+    <p class="mini" style="color:var(--tinta-2)">At rest the real screen shows the heading, the two counts and the note; the search and the form open from the button. Here they are drawn <strong>open</strong>, as every prototype of this house draws its forms.</p>
+  </div>
+
+  <div class="busca"><span class="rot">step 1 · find the person</span>
+    <div style="margin-top:.35rem"><input class="busca-campo" type="search" value="ma" placeholder="name or GitHub login…" aria-label="search a collected person by name or GitHub login"> <button class="btn q">Cancel</button></div>
+    <span class="escopo">Searches the <strong>collected people of this organisation</strong> by name or GitHub login — never by e-mail. At most 8 results. The query runs as you type; nothing is searched before you type.</span>
+    <p class="menor" style="color:var(--tinta-2)">This screen <strong>does not create people</strong>. A person exists here because a collection saw them. Finding nobody is an answer — see <em>screen 3</em> for what it says and what it offers.</p>
+    <p class="menor" style="color:var(--tinta-2)"><strong>Name, login and observed organisation together</strong>, as the account search does — two people with the same name is not a rare case, and picking the wrong one is a mistake that has to be undone by hand. The six verdicts a result can carry are on <em>screen 2</em>.</p>
+  </div>
+
+  <div class="form-inline novo"><span class="rot">step 2 · declare the link · opens with the person picked from the search</span>
+    <div class="linha-f">
+      <label>person <span class="escolhida">Mara Lins <span class="login emlinha">@maralins</span> <span class="ex-mark">example</span> <button class="btn q">change</button></span></label>
+      <label>role in Conecta Fapes
+        <select><option>choose a role…</option><option>Developer</option><option>Scrum Master</option><option>Product Owner</option><option>Client</option><option>Tech Lead</option><option>UX Designer</option><option>＋ new role…</option></select>
+      </label>
+      <label>member since <input type="date" value=""> <span class="mini" style="color:var(--tinta-2)">· empty = start unknown</span></label>
+      <button class="btn p">Declare the link</button>
+    </div>
+    <span class="rot" style="display:block;margin-top:.7rem">the same button, before a role is chosen</span>
+    <div class="inerte">
+      <button class="btn" disabled title="a role is required on a link declared from zero">Declare the link</button>
+      <span class="razao">A role is required here — and not for the form's sake: a current link with no role and no source is the <strong>one shape the platform cannot tell apart</strong> from a link the collection materialised, and it would take the slot the collection needs to record the observation later. The absence of a role is the observed link's signature; it cannot also be the declared link's.</span>
+    </div>
+    <p class="nota"><strong>What this creates:</strong> one current link, with <em>your name</em> and <em>today's date</em> on the declaration, and the start you typed — or an <em>unknown start</em>, written as such, if you left the date empty. The date field is <strong>never prefilled with today</strong>: a presumed date without a mark becomes a fact (060 FR-016, 043 FR-019). The platform already reads an unknown start correctly — 87 of its 90 links have one.</p>
+    <p class="nota"><strong>What it does not do:</strong> it does not change anything at the source, it does not confirm any evidence, and it does not become an observed link. The next collection <strong>leaves it alone</strong>, because a link carrying a declaration is never created, ended or altered by collection (055 FR-016). If the source later shows this person in this team, the screen shows <strong>both statements</strong> and picks neither (055 FR-012).</p>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Members</h2><span class="rot">48 current · 17 without a declared role · 1 left · 1 mistake · sorted by squad</span><input type="search" placeholder="search name or login" aria-label="filter the member list" style="font:inherit;font-size:0.875rem;padding:.25rem .5rem;border:1.5px solid var(--linha);border-radius:0.25rem;background:var(--papel);color:var(--tinta)"></div>
+  <p class="sub"><span class="re-mark">real</span> 48 current and 17 without a role; <span class="ex-mark">example</span> the departure and the mistake — the base holds neither yet. The list the act writes into. One column changed on this screen and it is the point of the change: <strong>link</strong> now names <em>how the link came to exist</em>, and the role and its author live in the role column. In the approved screen a link showing <em>declared</em> could mean either “the organisation declared this link” or “the collection made it and someone declared the role” — after this act those are two different facts and the screen has to tell them apart.</p>
+  <div class="scroll"><table>
+    <thead><tr><th class="esq">person</th><th class="esq">role</th><th class="esq">link</th><th>since</th><th>squads</th><th></th></tr></thead>
+    <tbody>
+      <tr class="nova">
+        <td><span class="pessoa">Mara Lins</span><span class="login">@maralins <span class="ex-mark">example</span></span></td>
+        <td class="esq papel-cel">Tech Lead <span class="login">declared in the same act</span></td>
+        <td class="esq"><span class="marca dec"><span class="am"></span>declared</span> <span class="login">by paulo.junior · 10 Sep · no source shows this link</span></td>
+        <td class="v aus">unknown</td>
+        <td><div class="chips"><span class="chip">direct</span></div></td>
+        <td><div class="acoes"><button class="btn q">Change role</button><button class="btn q">Left the team…</button><button class="btn perigo">Mistake…</button></div></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Lia Moraes</span><span class="login">@liamoraes <span class="ex-mark">example</span></span></td>
+        <td class="esq papel-cel"><span class="nd">not declared</span></td>
+        <td class="esq"><span class="marca obs"><span class="am"></span>observed</span> <span class="login">at github.com · last seen 10 Sep</span></td>
+        <td class="v aus">unknown</td>
+        <td><div class="chips"><span class="chip">direct</span></div></td>
+        <td><div class="acoes"><button class="btn p">Declare role</button><button class="btn q">Left the team…</button><button class="btn perigo">Mistake…</button></div></td>
+      </tr>
+      <tr>
+        <td><span class="pessoa">Iris Camargo</span><span class="login">@iriscamargo <span class="ex-mark">example</span></span></td>
+        <td class="esq papel-cel">Developer <span class="login">declared by paulo.junior · 8 Sep</span></td>
+        <td class="esq"><span class="marca obs"><span class="am"></span>observed</span> <span class="login">at github.com · the role was declared on the same link</span></td>
+        <td class="v">12 Jun 2026</td>
+        <td><div class="chips"><span class="chip s2">GREEN</span></div></td>
+        <td><div class="acoes"><button class="btn q">Change role</button><button class="btn q">Left the team…</button><button class="btn perigo">Mistake…</button></div></td>
+      </tr>
+      <tr class="apagada">
+        <td><span class="pessoa">Ivo Damasceno</span><span class="login">@ivodamasceno <span class="ex-mark">example</span></span></td>
+        <td class="esq papel-cel">Developer</td>
+        <td class="esq"><span class="marca saiu"><span class="am"></span>left</span> <span class="login">20 Aug 2026 · declared by paulo.junior</span></td>
+        <td class="v">3 Mar → 20 Aug</td>
+        <td><div class="chips"><span class="chip s3">PINK</span></div></td>
+        <td><div class="acoes"><span class="mini" style="color:var(--tinta-2)">history · counted until 20 Aug</span></div></td>
+      </tr>
+      <tr class="apagada">
+        <td><span class="pessoa">Fábio Marques</span><span class="login">@fabiomarques <span class="ex-mark">example</span></span></td>
+        <td class="esq papel-cel"><span class="aus" style="font-style:italic">never had one here</span></td>
+        <td class="esq"><span class="marca eqv"><span class="am"></span>mistake</span> <span class="login">“wrong login picked when declaring” · 4 Sep · paulo.junior</span></td>
+        <td class="v aus">never</td>
+        <td></td>
+        <td><div class="acoes"><span class="mini" style="color:var(--tinta-2)">excluded from every measure, on every date · record kept</span></div></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <p class="sub menor">The top row is the link this act just made, and it is the only row on the screen whose <em>existence</em> nobody observed. It is <strong>not</strong> marked derived: no rule concluded it, a person stated it — and the mark for what a person stated is the solid blue square. What is still missing to make that mark honest is a recorded origin on the link; see <em>open question 1</em>.</p>
+</section>
+
+<!-- ═══════════════════════════════ SCREEN 2 ═══════════════════════════════ -->
+<span class="tela">screen 2 · the search, and the six verdicts a result carries</span>
+
+<div class="nota-de-tela"><span class="rot">what this screen is</span>
+The same search as <em>step 1</em>, with its results. <strong>Every result carries its verdict before the act</strong>, because in this base every collected person already has a link somewhere: a list of bare “link” buttons would offer an act that is refused most of the time, and the reason would arrive only after the click. Three verdicts allow the act, one refuses it, and two allow it while naming a consequence that is not obvious.</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Results for “ma”</h2><span class="rot">6 matches of 80 collected people · at most 8 shown</span></div>
+
+  <div class="vd-lista">
+
+    <div class="vd">
+      <div class="quem"><span class="pessoa">Mara Lins</span><span class="login">@maralins <span class="ex-mark">example</span></span><span class="login">observed at github.com · leds-conectafapes</span></div>
+      <div class="tem"><span class="rot">what she already has</span>
+        <p>Current link to <strong>PLATAFORMA</strong>, a team that is <strong>not</strong> part of Conecta Fapes. Nothing in Conecta Fapes or in its three squads.</p>
+        <p class="porque">A person may be in more than one team. Each team's counts stand on their own and are never summed — one person in two teams is counted once in each (057 FR-008, FR-009).</p>
+      </div>
+      <div class="ato"><span class="rot ver">link allowed</span>
+        <div class="acoes"><button class="btn p">Link to this team</button></div>
+        <p class="porque">Opens <em>step 2</em> with Mara picked. Her PLATAFORMA link is untouched.</p>
+      </div>
+    </div>
+
+    <div class="vd recusa">
+      <div class="quem"><span class="pessoa">Lia Moraes</span><span class="login">@liamoraes <span class="ex-mark">example</span></span><span class="login">observed at github.com · leds-conectafapes</span></div>
+      <div class="tem"><span class="rot">what she already has</span>
+        <p><strong>A current link to this very team</strong>, created by the collection — the source shows her in Conecta Fapes, last seen on 10 Sep. Its role is <em>not declared</em>.</p>
+        <p class="porque">This is the frequent case: 56 of the 90 links in the base are exactly this shape.</p>
+      </div>
+      <div class="ato"><span class="rot ver">link refused</span>
+        <div class="inerte">
+          <button class="btn" disabled title="already a member of this team — what is missing is the role">Link to this team</button>
+          <span class="razao"><strong>Already a member.</strong> What is missing on her link is the <strong>role</strong>, not the link. Declaring a role here completes <em>that</em> link — it does not create a second one (055 FR-014, 060 FR-015).</span>
+        </div>
+        <div class="acoes"><button class="btn p">Declare her role ↓</button></div>
+        <p class="porque">Goes to her row in <em>Members</em> and opens the role form there — one command, the entry point you already have.</p>
+      </div>
+    </div>
+
+    <div class="vd limite">
+      <div class="quem"><span class="pessoa">Iris Camargo</span><span class="login">@iriscamargo <span class="ex-mark">example</span></span><span class="login">observed at github.com · leds-conectafapes</span></div>
+      <div class="tem"><span class="rot">what she already has</span>
+        <p>Current link to <strong>SQUAD GREEN</strong>, which <strong>is part of this team</strong>. She is already a member of Conecta Fapes <em>through the squad</em>, and already appears in the member list with the <span class="chip s2">GREEN</span> chip.</p>
+        <p class="porque">Real shape: all 17 people the three squads hold are in this position — none of them has a direct link to Conecta Fapes. <span class="re-mark">real</span></p>
+      </div>
+      <div class="ato"><span class="rot ver">allowed — a different fact</span>
+        <div class="acoes"><button class="btn p">Link directly anyway</button></div>
+        <p class="porque"><strong>Direct and through-a-squad are two different statements</strong>, and the screen keeps both: her row will show <span class="chip">direct</span> next to <span class="chip s2">GREEN</span>. <strong>The team's member count does not change</strong> — she was already counted once, through the squad (060 FR-009). Link her directly when the organisation means <em>she belongs to the team itself</em>, not only to the squad; if you only meant the squad, this act adds a record nobody asked for.</p>
+      </div>
+    </div>
+
+    <div class="vd">
+      <div class="quem"><span class="pessoa">Ivo Damasceno</span><span class="login">@ivodamasceno <span class="ex-mark">example</span></span><span class="login">observed at github.com · leds-conectafapes</span></div>
+      <div class="tem"><span class="rot">what he already has</span>
+        <p>A link to this team that <strong>ended</strong> — declared as having left on 20 Aug 2026 by paulo.junior. Nothing current here.</p>
+        <p class="porque">The base holds <strong>0 ended links</strong> today, so this row is a shape, not a record. <span class="ex-mark">example</span></p>
+      </div>
+      <div class="ato"><span class="rot ver">link allowed — a new link</span>
+        <div class="acoes"><button class="btn p">Link to this team</button></div>
+        <p class="porque">A person who left and comes back gets a <strong>new link</strong>, not the old one reopened: the two periods coexist and the history shows both (055 US2 scenario 4, FR-015). Nothing already counted for the first period changes.</p>
+      </div>
+    </div>
+
+    <div class="vd">
+      <div class="quem"><span class="pessoa">Fábio Marques</span><span class="login">@fabiomarques <span class="ex-mark">example</span></span><span class="login">observed at github.com · leds-conectafapes</span></div>
+      <div class="tem"><span class="rot">what he already has</span>
+        <p>A link to this team marked a <strong>mistake</strong> on 4 Sep — “wrong login picked when declaring” — which means it never was, on any date. Nothing current here.</p>
+        <p class="porque">The base holds <strong>0 mistakes</strong> today. <span class="ex-mark">example</span></p>
+      </div>
+      <div class="ato"><span class="rot ver">link allowed — the mistake stays</span>
+        <div class="acoes"><button class="btn p">Link to this team</button></div>
+        <p class="porque">The mistake is not contradicted and is <strong>not</strong> removed: it says a particular link never was. This is a different link, starting where you say it starts, and both records live on the row — one struck through with its reason, one current. <em>Mistake</em> and <em>left</em> are not the same statement and never collapse into one.</p>
+      </div>
+    </div>
+
+    <div class="vd limite">
+      <div class="quem"><span class="pessoa">Nina Mattos</span><span class="login">@ninamattos <span class="ex-mark">example</span></span><span class="login">no longer observed at the source · last seen 2 Jul 2026</span></div>
+      <div class="tem"><span class="rot">what she already has</span>
+        <p>Nothing current, anywhere. The source <strong>stopped showing her</strong> — the collection found her absent and ended her links.</p>
+        <p class="porque">The base holds <strong>0 people</strong> the source stopped showing. <span class="ex-mark">example</span></p>
+      </div>
+      <div class="ato"><span class="rot ver">allowed — read the mark first</span>
+        <div class="acoes"><button class="btn p">Link to this team</button></div>
+        <p class="porque">The mark is on the row for a reason: the source no longer sees her, so nothing will confirm this link and nothing will end it. It is <strong>legitimate</strong> — the organisation may know she is on the team while the tool no longer does — and it is <strong>exactly</strong> the case FR-003 exists for. If she left the organisation, record the departure instead of the arrival.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="vazio"><span class="rot">and when nothing matches</span>
+    <p><strong>No collected person matches “xyz”.</strong> The platform does not create people here: a person exists because a collection saw them. What would make this search find someone: a collection that reaches the tool where they work, or — if they already have an account — the account's link to their collected person, in <kbd>/accounts</kbd>.</p>
+    <p class="menor" style="color:var(--tinta-2)">The empty result is <strong>not</strong> an error state and carries no red: nothing failed. It is an absence with an owner, and the owner is the collection.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ SCREEN 3 ═══════════════════════════════ -->
+<span class="tela">screen 3 · both ends of a link, and what each kind keeps</span>
+
+<div class="nota-de-tela"><span class="rot">the asymmetry this prototype closes</span>
+Until today <strong>the exit could be declared and the entrance could not</strong>: a person could be recorded as having left a team she could never be recorded as having joined. Four acts make up a link's life, and three of them had a screen.</div>
+
+<section class="sec">
+  <div class="sec-cab"><h2>The four acts of a link</h2><span class="rot">who can author each · what the record keeps</span></div>
+  <div class="ciclo">
+    <div class="fase nova">
+      <h3><span class="marca dec"><span class="am"></span>begins — declared</span></h3>
+      <p>A person states that someone is in the team. Keeps <strong>who declared it and when</strong>, the role, and the start — or an unknown start, written.</p>
+      <span class="antes faltava">before this prototype: no screen</span>
+    </div>
+    <div class="fase">
+      <h3><span class="marca obs"><span class="am"></span>begins — observed</span></h3>
+      <p>A collection sees the person in the team and materialises the link. Keeps the <strong>source, instance, external id and collection time</strong>; role not declared, and <strong>no declaration author</strong>.</p>
+      <span class="antes havia">before: the collection, and only it</span>
+    </div>
+    <div class="fase">
+      <h3><span class="marca dec"><span class="am"></span>role declared</span></h3>
+      <p>Completes the link that exists. Keeps the role, <strong>who declared it and when</strong>. Never creates a second link.</p>
+      <span class="antes havia">before: the row action, and the batch form</span>
+    </div>
+    <div class="fase">
+      <h3><span class="marca saiu"><span class="am"></span>ends</span></h3>
+      <p>Declared departure keeps the <strong>date, who recorded it and when</strong>. An end found by collection keeps the date the platform <strong>stopped seeing</strong> — not the day the person left.</p>
+      <span class="antes havia">before: the row action</span>
+    </div>
+    <div class="fase">
+      <h3><span class="marca eqv"><span class="am"></span>never was</span></h3>
+      <p>A mistake keeps the <strong>reason, the author and the date</strong>, and leaves every measure on every date. Nothing is removed.</p>
+      <span class="antes havia">before: the row action</span>
+    </div>
+  </div>
+  <p class="sub">Reading the row left to right is reading the asymmetry: the two columns that <em>begin</em> a link are a declaration and an observation, and only one of them had a way in. The three that follow already worked on both kinds.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What each kind of link keeps — and what it cannot</h2><span class="rot">two statements, not two versions of one</span></div>
+  <div class="cartao">
+    <div class="duas">
+      <div class="afirm"><span class="rot">observed — materialised by a collection</span>
+        <dl>
+          <dt>who says so</dt><dd>the source tool, at a known instant</dd>
+          <dt>keeps</dt><dd>source system, instance, external id, collection time</dd>
+          <dt>declaration author</dt><dd><span class="aus" style="font-style:italic">absent — and it is not a gap to fill: nobody declared it</span></dd>
+          <dt>role</dt><dd><span class="aus" style="font-style:italic">not declared</span>, until someone declares it on this same link</dd>
+          <dt>start</dt><dd><span class="aus" style="font-style:italic">unknown</span> — the day the collection saw her is never used as a start</dd>
+          <dt>ends when</dt><dd>the source stops showing her, and the date says when the platform stopped seeing</dd>
+        </dl>
+      </div>
+      <div class="afirm decl"><span class="rot">declared — stated by a person</span>
+        <dl>
+          <dt>who says so</dt><dd>a named account of this organisation, at a recorded instant</dd>
+          <dt>keeps</dt><dd>the declaring account and the declaration time</dd>
+          <dt>provenance</dt><dd><span class="aus" style="font-style:italic">absent — no source shows this link</span></dd>
+          <dt>role</dt><dd>required at the act, and it is what makes the link legible</dd>
+          <dt>start</dt><dd>the date declared, or <span class="aus" style="font-style:italic">unknown</span> — never today by default</dd>
+          <dt>ends when</dt><dd>somebody declares a departure; no collection will ever end it</dd>
+        </dl>
+      </div>
+    </div>
+    <p class="sub">The two are <strong>not the same fact with different metadata</strong>. One is a tool's observation, the other an organisation's assertion, and when they disagree about the same person the screen shows both and picks neither (055 FR-012). The author column of an observed link reads <em>observed at the source</em>, never a person's name — filling it with the account that ran the collection would turn an observation into somebody's claim.</p>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What the act refuses, and how it says so</h2><span class="rot">refusal is a state, not an error</span></div>
+  <div class="limites">
+    <div><span class="rot">already a member of this team</span>The button is inert with the reason beside it, and the route to the right act is offered — <em>declare the role</em>. Never a second link (055 FR-007 as amended, FR-014).</div>
+    <div><span class="rot">no role chosen</span>Inert, with the reason: a role-less declared link cannot be told apart from an observed one, and takes the slot the collection needs. The role list is the <strong>organisation's</strong>, and “＋ new role…” opens the role form without leaving here.</div>
+    <div><span class="rot">start date in the future</span>Refused with the reason — it would state something that has not happened. A past date is accepted: whoever declares knows more than the platform.</div>
+    <div><span class="rot">not an administrator, and no “manage team structure” role</span>The section is not shown, <strong>and</strong> the event is refused with the reason if it arrives anyway. Hiding a button is not authorisation (055 FR-011, 060 FR-006).</div>
+    <div><span class="rot">a person of another organisation</span><strong>Not found</strong> — never “no permission”. Saying “no permission” would confirm that the record exists.</div>
+    <div><span class="rot">the same person twice in a row</span>The second act is the refusal above: the first one made the link, so the search now returns her with the <em>already a member</em> verdict. Nothing is written twice.</div>
+  </div>
+  <p class="sub menor">All six read the same way: the act stays visible, the reason sits next to it, and where another act is the right one the screen offers that act instead of a dead end.</p>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>Decisions and open questions</h2><span class="rot">decide before the code</span></div>
+  <div class="cartao">
+    <ol class="dec-l">
+      <li><strong>Where the act lives.</strong> <em>Proposed:</em> its own section, <em>Link a person to this team</em>, between <em>Roles</em> and <em>Members</em> — the three reasons are written on screen 1, next to the section itself.
+        <span class="op">The option not taken: an action in the <em>Members</em> header. Both satisfy “every write action lives in Structure” (060 FR-003); the header loses the room the refusals need.</span></li>
+      <li><strong>The search.</strong> <em>Proposed:</em> reuse the account search's pattern — name, GitHub login and observed organisation on every result, the <em>no longer observed</em> mark, at most 8 results, query on the typing event and never on load — and add one thing that search does not need: <strong>the verdict, before the button</strong>.
+        <span class="op">The homonym case already cost a user story once; name plus login plus organisation is the shape that fixed it. E-mail is never searched or shown.</span></li>
+      <li><strong>The role is required; the start date is not.</strong> <em>Proposed:</em> the role, because a current link with no role and no source is indistinguishable from an observed link and blocks the collection from recording the observation later. The start date stays optional and empty means <em>unknown</em> — the field is never prefilled with today (060 FR-016, 043 FR-019), and 87 of the 90 links in the base already have an unknown start.
+        <span class="op">If the answer is “the role is optional too”, the screen keeps the form and drops the inert state, and <strong>the link needs its own recorded origin first</strong> — see the next question — otherwise two different facts share one shape.</span></li>
+      <li><strong>Open — does the link record its own origin, or is the origin derived?</strong> Today nothing on a link says whether its existence was observed or declared: an observed link whose role was declared and a link declared from zero both carry an author. The origin can only be worked out from the <em>absence</em> of collected evidence pointing at it.
+        <span class="op"><strong>Recommendation: record it</strong>, the way a team already does — 1 of the 10 teams in the base is a declared team, and it says so in a field. Deriving it from “no evidence points here” makes the mark depend on the evidence table's retention, and would silently flip if evidence were ever pruned. If the answer is “derive it”, the <em>declared</em> mark on the member list becomes <span class="marca der"><span class="am"></span>derived</span> and the row must say what it was derived from.</span></li>
+      <li><strong>Open — does a departure need to be declarable for a link nobody declared?</strong> It already is, and this prototype does not change it; it only names the consequence: after this act the entrance and the exit are both declarable, and a link may now begin by declaration and end by declaration with no collection involved at any point.
+        <span class="op">Nothing to decide unless you want the row to say <em>declared at both ends</em> as its own state. Recommendation: no — the two marks already sit side by side on the row.</span></li>
+      <li><strong>Open — what happens to the evidence when a declared link is later observed?</strong> The collection will find the person at the source and materialise <em>its own</em> observed link, because the declared one is untouchable (055 FR-016). The pair then has two current links: one declared, one observed.
+        <span class="op">Recommendation: allow it and show both on the one row — that is what the two statements rule already asks for. The alternative, letting the collection attach its evidence to the declared link, would rewrite somebody's assertion with a tool's observation.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="sec-cab"><h2>What was measured, and what was not</h2><span class="rot">development base · 10 Sep 2026</span></div>
+  <div class="cartao">
+    <p class="menor"><strong>Measured</strong> <span class="re-mark">real</span>: 80 collected people; 3 accounts; 10 teams, of which 9 observed at github.com and 1 declared; 90 current links — 56 with no declared role, 34 with one; 0 ended, 0 mistakes; 87 with an unknown start; 90 evidence rows, covering 80 people, none of them stale; 4 declared compositions; 2 roles created by the organisation; Conecta Fapes with 48 members — 31 direct, 17 through SQUAD BLUE, GREEN and PINK — and 32 collected people linkable to it. <strong>0 links declared from zero</strong>: no link carries the identifier the declaring command writes.</p>
+    <p class="menor"><strong>Not measured, and invented for this page</strong> <span class="ex-mark">example</span>: every person's name and login; the departure of 20 Aug and the mistake of 4 Sep; the <em>no longer observed</em> person; the role names <em>Tech Lead</em> and <em>UX Designer</em>. Three of the six verdicts on screen 2 are shapes the base cannot produce today — it holds no ended link, no mistake and nobody the source stopped showing — and each of those rows says so where it stands.</p>
+    <p class="menor"><strong>Not decided here</strong>: the four questions marked <em>open</em> above. Two of them change what the screen draws, and both are named where they would change it.</p>
+  </div>
+</section>
+
+</div>

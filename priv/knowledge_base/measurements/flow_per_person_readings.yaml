@@ -1,0 +1,74 @@
+measurement:
+  id: flow.per_person.readings
+  name:
+    pt-BR: "As duas leituras da tabela por pessoa — a direção do estoque e a regularidade do fechamento"
+    en: "The two readings of the per-person table — the direction of the stock, and the regularity of closing"
+  answers_information_need: [flow.open_work_balance, flow.throughput]
+  value_type: count
+  unit: work_items
+
+  # ---------------------------------------------------------------------------
+  # NÃO SÃO MEDIDAS NOVAS. São LEITURAS de duas medidas já declaradas.
+  #
+  # Decisão da pessoa mantenedora em 2026-09-10, sobre a pergunta aberta 20 do
+  # protótipo `team-people.html`: declarar as duas como leituras, e não como
+  # medidas próprias. Medida nova exigiria necessidade de informação e
+  # `decision_supported` próprios, e afirmaria que se mede outra coisa — quando o
+  # que se faz é ler `flow.open_work.cumulative` e `flow.throughput.rate` de outro
+  # ângulo, sobre a mesma série e a mesma janela.
+  #
+  # Existem declaradas porque nada vai à tela sem declaração (princípio IV), e a
+  # tabela da aba *Flow per person* as apresenta em duas colunas.
+  # ---------------------------------------------------------------------------
+  # As duas medidas que esta leitura LÊ aparecem na própria fórmula, e não num campo
+  # próprio: o schema não declara um, e acrescentar um campo ao schema é decisão maior
+  # do que a pergunta que originou este arquivo. Os ids ficam visíveis onde importam —
+  # dentro da expressão —, e a proveniência diz que é leitura e não medida nova.
+  formula:
+    expression: >
+      LÊ flow.open_work.cumulative:
+        change_across_window = still_open(last_sample) - still_open(first_sample);
+      LÊ flow.throughput.rate:
+        periods_with_a_close  = count(periods WHERE closed(period) > 0)
+    inputs:
+      [item_created_at, item_closed_at, window_start, window_end, assignee_person_id]
+
+  scope:
+    levels: [person]
+    filters:
+      - "no nível person o mesmo item aparece uma vez por participante, e as linhas NÃO se somam: item de dois responsáveis conta uma vez para cada, e a soma das linhas não é o fluxo da equipe (057, FR-008)"
+      - "a amostragem é o FIM de cada período da janela, e não o instante da requisição: a variação se lê entre a primeira e a última amostra, e misturar as duas coisas faria a variação não fechar com o número ao lado"
+      - "o denominador da regularidade é o número de períodos da janela, reduzido para quem entrou dentro dela ou saiu antes do fim"
+      - "período dentro da janela sem movimento é zero observado, e aparece: pular período comprimiria o tempo e faria a série mentir sobre o ritmo"
+    period: weekly
+
+  limitations:
+    - "A VARIAÇÃO NÃO É SALDO DE TRABALHO. É a diferença entre dois estados amostrados, e um item aberto e fechado DENTRO de um mesmo período não aparece em nenhuma das duas pontas — a variação é zero e houve movimento."
+    - "A variação pode ser negativa por efeito da JANELA, e não do fechamento: item aberto antes da janela e fechado dentro dela entra na série de fechadas e nunca entrou na de abertas. O piso apresentado é zero, e é o piso do que a coluna afirma — não uma correção da medida."
+    - "A REGULARIDADE NÃO É RITMO. Diz em quantos períodos houve ao menos um fechamento, e não quantos itens fecharam: um período com um fechamento e outro com trinta contam igual. Quem quer o volume lê a coluna de fechadas, ao lado."
+    - "Nenhuma das duas se converte em média ou taxa por pessoa, e a tela não as apresenta assim: um número único por pessoa é a figura de produtividade que a plataforma não guarda."
+    - "As duas herdam TODAS as limitações das medidas que leem — inclusive a que mais importa: 'fechado' é o ato registrado na ferramenta, e não um critério de término declarado. Item abandonado e item concluído entram iguais, e a lacuna do critério de fim continua sendo a issue #506."
+    - "Sem data de designação — a origem não a fornece —, o item é da pessoa e o período dele é o do próprio item (decisão de 2026-08-27). A variação e a regularidade descrevem os itens DA pessoa, e não o que ela fez naquele período."
+
+  misinterpretations:
+    - "Ler a variação como produtividade ou como esforço. Ela é a direção de um estoque: cresce quando entra mais do que sai, e pode crescer inteiramente por entrada, com a saída inalterada."
+    - "Ler `no change` como ausência de trabalho. Significa que se conferiu e o estoque terminou onde começou — o que é compatível com muito movimento dentro da janela."
+    - "Ordenar as pessoas por qualquer uma das duas. É a comparação que a tabela recusa: as linhas não compartilham denominador, e o maior número da tela conta trabalho que NÃO se moveu. Nenhuma coluna de medida ordena a tabela, e nenhuma se oferece para ordenar."
+    - "Somar a regularidade de duas pessoas. Duas pessoas com fechamento na mesma semana não somam duas semanas — é a mesma semana."
+    - "Ler a regularidade baixa como irregularidade da pessoa. O denominador é a janela coletada, e quem entrou no meio dela tem menos períodos possíveis — a coluna reduz o denominador e diz qual é."
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 060, aba *Flow per person*; protótipo
+      `specs/060-tela-da-equipe/prototipo/team-people.html`, aprovado em 2026-09-08;
+      pergunta aberta 20 respondida pela pessoa mantenedora em 2026-09-10
+    note: >
+      A pergunta era se as duas colunas deviam ser declaradas como leituras ou
+      derrubadas. Derrubá-las deixaria a tabela com um estoque **sem direção** e um
+      total **sem regularidade** — e a FR-089 exige a série, não um valor solto.
+
+      A alternativa recusada na mesma conversa foi declará-las como medidas novas:
+      cerimônia maior, e afirmação errada. Elas não medem outra coisa; leem duas
+      medidas declaradas de outro ângulo, sobre a mesma série e a mesma janela.

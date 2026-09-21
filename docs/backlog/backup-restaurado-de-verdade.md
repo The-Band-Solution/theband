@@ -1,7 +1,16 @@
 # O backup restaurado de verdade — o §6 do runbook
 
-**Bloqueado em**: a conta no destino S3-compatível **não existe ainda**. Registrado pela
+**~~Bloqueado em~~: ~~a conta no destino S3-compatível não existe ainda~~** — registrado pela
 pessoa mantenedora em 2026-09-08: *"tenho que criar a conta na S3 ainda para isso"*.
+
+**DESBLOQUEADO em 2026-09-12**: o destino do ensaio passou a ser **MinIO**, que fala o mesmo
+protocolo e sobe no `compose.yaml` — ver
+[MinIO como destino do ensaio de backup](minio-como-destino-do-ensaio-de-backup.md). Medido no
+mesmo dia: o balde nasce privado, e um arquivo escrito volta idêntico.
+
+**O que o desbloqueio NÃO resolve**: o destino de **produção**, que continua sendo o do runbook
+§4 e tem de ficar **fora da máquina que protege**. O ensaio contra MinIO prova o formato, o
+comando e o tempo; não prova que o job do Dokploy escreve no lugar certo.
 
 **Consequência hoje**: a **050/US2** (*os dados sobrevivem*) segue **não aceita**, e segue
 desde a v0.1.0.

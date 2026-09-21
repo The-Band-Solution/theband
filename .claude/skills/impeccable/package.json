@@ -1,0 +1,11 @@
+{
+  "name": "impeccable-detector-deps",
+  "private": true,
+  "description": "As quatro bibliotecas que o detector precisa para NÃO rodar cego. Sem elas ele imprime DEGRADED e não avalia cor, contraste nem tamanho de texto de interface — e o verde dele passa a ser subcontagem, não atestado. Ver lição L104.",
+  "dependencies": {
+    "css-select": "^5.1.0",
+    "css-tree": "^3.0.0",
+    "domutils": "^3.1.0",
+    "htmlparser2": "^9.1.0"
+  }
+}

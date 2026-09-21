@@ -212,4 +212,205 @@ defmodule TheBand.Ontology.SEON.SPO.AtividadeTest do
       assert Repo.aggregate(Activity, :count) == 2
     end
   end
+
+  describe "a promoção — a linha antiga recebe o identificador da origem" do
+    test "a ocorrência gravada sem identificador não duplica quando a origem o traz", ctx do
+      sem = evento(ctx.issue_id, %{source_external_id: nil})
+      {:ok, antes} = SPO.record_activity(ctx.tenant, sem)
+      assert antes.outcome == :created
+      assert is_nil(antes.source_external_id)
+
+      com = evento(ctx.issue_id, %{source_external_id: "CE_evento_1"})
+      {:ok, depois} = SPO.record_activity(ctx.tenant, com)
+
+      assert depois.outcome == :promoted, """
+      A mesma ocorrência, relida da origem com o identificador que ela sempre deu,
+      entrou como linha nova em vez de promover a que já existia.
+
+      É o que duplicaria as 41 863 atividades gravadas antes de 2026-09-15.
+      """
+
+      assert depois.id == antes.id, "a promoção trocou a linha em vez de completá-la"
+      assert depois.source_external_id == "CE_evento_1"
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+
+    test "dois eventos colados no mesmo segundo viram duas linhas", ctx do
+      colado = evento(ctx.issue_id, %{source_external_id: nil})
+      {:ok, _} = SPO.record_activity(ctx.tenant, colado)
+
+      {:ok, primeiro} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_a"}))
+
+      {:ok, segundo} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_b"}))
+
+      assert primeiro.outcome == :promoted
+
+      assert segundo.outcome == :created, """
+      O segundo evento não entrou. Mesmo tipo, mesmo ator, mesmo instante, mesma issue —
+      só o identificador da origem os separa, e é por isso que ele entrou na identidade.
+
+      Medido na issue #2607: quatro rótulos em dois segundos, dois descartados.
+      """
+
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "a linha que já tem identificador não é promovida por outra", ctx do
+      {:ok, _} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_a"}))
+
+      {:ok, outra} =
+        SPO.record_activity(ctx.tenant, evento(ctx.issue_id, %{source_external_id: "LE_b"}))
+
+      assert outra.outcome == :created, "promoveu uma linha que já carregava identificador"
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "reprocessar com o identificador devolve :unchanged, e não promove de novo", ctx do
+      com = evento(ctx.issue_id, %{source_external_id: "CE_evento_1"})
+      {:ok, _} = SPO.record_activity(ctx.tenant, com)
+      {:ok, repetida} = SPO.record_activity(ctx.tenant, com)
+
+      assert repetida.outcome == :unchanged
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+  end
+
+  describe "o quadro e a coluna — observação, nunca significado" do
+    test "a ocorrência guarda de que quadro veio e para que coluna foi", ctx do
+      quadro = Ecto.UUID.generate()
+
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_a",
+          board_id: quadro,
+          board_external_id: "PVT_kwDO",
+          status_name: "Done"
+        })
+
+      {:ok, gravada} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert gravada.board_id == quadro
+      assert gravada.board_external_id == "PVT_kwDO"
+      assert gravada.status_name == "Done"
+    end
+
+    test "o mesmo instante em quadros diferentes são duas ocorrências", ctx do
+      base = %{activity_type: "ProjectV2ItemStatusChangedEvent", status_name: "Done"}
+
+      {:ok, um} =
+        SPO.record_activity(
+          ctx.tenant,
+          evento(
+            ctx.issue_id,
+            Map.merge(base, %{source_external_id: "PVTISC_a", board_external_id: "PVT_um"})
+          )
+        )
+
+      {:ok, dois} =
+        SPO.record_activity(
+          ctx.tenant,
+          evento(
+            ctx.issue_id,
+            Map.merge(base, %{source_external_id: "PVTISC_b", board_external_id: "PVT_dois"})
+          )
+        )
+
+      assert um.outcome == :created
+
+      assert dois.outcome == :created, """
+      A mesma issue chegou a `Done` em dois quadros, no mesmo segundo, e virou uma linha só.
+
+      São duas conclusões verdadeiras, e não uma duplicata: 286 issues da base estão em dois
+      quadros com uma só chegada a `Done` registrada.
+      """
+
+      assert Repo.aggregate(Activity, :count) == 2
+    end
+
+    test "o quadro não coletado grava o identificador da origem e deixa o id nulo", ctx do
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_c",
+          board_id: nil,
+          board_external_id: "PVT_nao_coletado",
+          status_name: "Done"
+        })
+
+      {:ok, gravada} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert is_nil(gravada.board_id), "inventou quadro observado que não existe"
+
+      assert gravada.board_external_id == "PVT_nao_coletado", """
+      A origem disse de que quadro veio, e a ocorrência não guardou.
+
+      Ausência de resolução não é ausência de observação — é o mesmo par de
+      `performer_id` nulo com `performer_login` presente.
+      """
+    end
+  end
+
+  describe "a complementação — o campo que a consulta não pedia antes" do
+    test "a ocorrência já gravada recebe o quadro sem virar linha nova", ctx do
+      sem =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_x"
+        })
+
+      {:ok, antes} = SPO.record_activity(ctx.tenant, sem)
+      assert antes.outcome == :created
+      assert is_nil(antes.board_external_id)
+
+      com = Map.merge(sem, %{board_external_id: "PVT_um", status_name: "Done"})
+      {:ok, depois} = SPO.record_activity(ctx.tenant, com)
+
+      assert depois.outcome == :completed, """
+      A ocorrência já existia e a consulta passou a pedir o quadro. Ela devolveu
+      `:unchanged` e não gravou nada.
+
+      É o que fez uma recoleta de 25 repositórios passar inteira sem gravar um quadro.
+      """
+
+      assert depois.id == antes.id
+      assert depois.board_external_id == "PVT_um"
+      assert depois.status_name == "Done"
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+
+    test "campo já preenchido não é trocado", ctx do
+      base =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_y",
+          status_name: "Done"
+        })
+
+      {:ok, _} = SPO.record_activity(ctx.tenant, base)
+      {:ok, depois} = SPO.record_activity(ctx.tenant, %{base | status_name: "Backlog"})
+
+      assert depois.outcome == :unchanged, "trocou uma resposta que a origem já tinha dado"
+      assert depois.status_name == "Done"
+    end
+
+    test "nada a completar devolve :unchanged", ctx do
+      attrs =
+        evento(ctx.issue_id, %{
+          activity_type: "ProjectV2ItemStatusChangedEvent",
+          source_external_id: "PVTISC_z",
+          board_external_id: "PVT_um",
+          status_name: "Done"
+        })
+
+      {:ok, _} = SPO.record_activity(ctx.tenant, attrs)
+      {:ok, repetida} = SPO.record_activity(ctx.tenant, attrs)
+
+      assert repetida.outcome == :unchanged
+      assert Repo.aggregate(Activity, :count) == 1
+    end
+  end
 end

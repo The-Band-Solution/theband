@@ -232,16 +232,22 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
     |> where([m], m.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> vigente_em(quando)
     |> join(:inner, [m], p in Person, on: p.id == m.person_id)
+    # O NOME do papel, e não só o booleano. A aba *Flow per person* precisa escrevê-lo na
+    # coluna da pessoa, e *role not declared* é ausência dita — que só se distingue de papel
+    # declarado se o nome estiver aqui. `left_join` porque vínculo sem papel é legítimo e
+    # continua na lista: ausência é nomeada, nunca removida.
+    |> join(:left, [m, _p], r in OrganizationalRole, on: r.id == m.organizational_role_id)
     # `person_id` na ordenação não é enfeite: `uma_linha_por_pessoa/1` agrupa por adjacência,
     # e duas pessoas distintas com o mesmo nome e login nulo se intercalariam — fundindo gente
     # diferente numa linha só.
-    |> order_by([m, p], asc: p.name, asc: p.login, asc: m.person_id)
-    |> select([m, p], %{
+    |> order_by([m, p, _r], asc: p.name, asc: p.login, asc: m.person_id)
+    |> select([m, p, r], %{
       person_id: p.id,
       name: p.name,
       login: p.login,
       started_at: m.started_at,
       ended_at: m.ended_at,
+      papel: r.name,
       # O vínculo é DECLARADO quando alguém o afirmou; OBSERVADO quando a coleta o criou a
       # partir da origem (2026-09-06). A tela diz qual é, e as medidas dizem sobre quantos
       # de cada foram calculadas.

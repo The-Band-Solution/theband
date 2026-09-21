@@ -28,6 +28,11 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
 
   alias TheBand.Tenants
 
+  # A razão é obrigatória desde o protótipo de 2026-09-10: o ato gravava quem e quando, e
+  # nenhuma razão. As cláusulas vêm de `access.account_lifecycle`, na base de conhecimento.
+  @razao_de_saida %{"reason" => "left_the_organisation"}
+  @razao_de_volta %{"reason" => "returned_to_the_organisation"}
+
   @senha "senha-bem-comprida-123"
 
   setup do
@@ -85,7 +90,7 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
 
   describe "a recusa distingue o motivo NO LOG, e não na resposta" do
     test "a resposta é idêntica; o motivo interno difere", ctx do
-      {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id)
+      {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
 
       log = capture_log(fn -> Tenants.authenticate(ctx.alvo.email, @senha) end)
 
@@ -104,8 +109,8 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
     test "desativar e reativar deixam registro com quem sofreu o ato", ctx do
       log =
         capture_log(fn ->
-          {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id)
-          {:ok, _} = Tenants.enable_user(ctx.tenant, ctx.alvo.id)
+          {:ok, _} = Tenants.disable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_saida)
+          {:ok, _} = Tenants.enable_user(ctx.tenant, ctx.alvo.id, ctx.admin.id, @razao_de_volta)
         end)
 
       assert log =~ "ato=:conta_desativada"

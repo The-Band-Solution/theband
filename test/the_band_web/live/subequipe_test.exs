@@ -20,6 +20,128 @@ defmodule TheBandWeb.SubequipeTest do
     %{conn: log_in(conn, admin), tenant: tenant, admin: admin, org: org, mae: mae}
   end
 
+  # O ALERTA, e não a página. Ler a página inteira dá falso positivo: a aba de estrutura tem
+  # a frase *"does not exist at any source tool"* como texto fixo, e uma sonda que procurasse
+  # `does not exist` no HTML acusaria recusa em TODO caso — inclusive nos felizes. Aconteceu
+  # em 2026-09-10, e é o que esta função existe para impedir.
+  #
+  # `flash-info` e `flash-error` são os ids que `CoreComponents.flash/1` gera.
+  defp alerta(html, tipo) do
+    case Regex.run(~r/id="flash-#{tipo}".*?<div>(.*?)<\/div>/s, html) do
+      [_, dentro] ->
+        dentro
+        |> String.replace(~r/<[^>]*>/, " ")
+        |> String.replace(~r/\s+/, " ")
+        |> String.trim()
+
+      _ ->
+        nil
+    end
+  end
+
+  defp submeter(ctx, nome) do
+    {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
+    render_submit(view, "criar_subequipe", %{"name" => nome})
+  end
+
+  describe "o caminho feliz, PELA TELA — o que a pessoa lê" do
+    test "o alerta nomeia a equipe criada, e não há erro nenhum", ctx do
+      html = submeter(ctx, "Squad Azul")
+
+      assert alerta(html, "info") == "Team Squad Azul declared inside this one.", """
+      A confirmação NOMEIA o que foi criado. "Criado com sucesso" obrigaria a pessoa a
+      procurar na lista para saber se o nome saiu como ela escreveu.
+      """
+
+      assert alerta(html, "error") == nil, "e nenhum erro aparece junto"
+      assert html =~ "Squad Azul", "e a subequipe aparece na estrutura"
+    end
+
+    test "o nome é APARADO, e a confirmação mostra o nome aparado", ctx do
+      html = submeter(ctx, "  Squad Verde  ")
+
+      assert alerta(html, "info") == "Team Squad Verde declared inside this one.", """
+      Espaço na ponta não é nome. E a confirmação mostra o nome COMO FICOU: se ela repetisse
+      o que foi digitado, a pessoa não saberia que o ato aparou.
+      """
+    end
+
+    test "acento e `&` sobrevivem, escapados", ctx do
+      html = submeter(ctx, "Análise & Dados")
+
+      assert alerta(html, "info") == "Team Análise &amp; Dados declared inside this one."
+
+      assert html =~ "Análise", """
+      O `&` sai escapado no HTML — é o Phoenix protegendo, e não a plataforma alterando o
+      nome. No banco o nome é "Análise & Dados", e há teste disso no domínio.
+      """
+    end
+
+    test "duas subequipes seguidas, e as duas ficam", ctx do
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
+      render_submit(view, "criar_subequipe", %{"name" => "Primeira"})
+      html = render_submit(view, "criar_subequipe", %{"name" => "Segunda"})
+
+      assert alerta(html, "info") == "Team Segunda declared inside this one."
+
+      partes = EO.team_parts(ctx.tenant, ctx.mae.id) |> Enum.map(& &1.name) |> Enum.sort()
+      assert partes == ["Primeira", "Segunda"], "o segundo ato não desfaz o primeiro"
+    end
+  end
+
+  describe "o caminho infeliz, PELA TELA — a recusa que a pessoa lê" do
+    setup ctx do
+      {:ok, _} = EO.declare_subteam(ctx.tenant, ctx.mae, "Repetida", ctx.admin.id)
+      ctx
+    end
+
+    for {rotulo, nome, esperado} <- [
+          {"nome vazio", "", "can&#39;t be blank"},
+          {"nome só de espaços", "   ", "can&#39;t be blank"},
+          {"nome repetido", "Repetida", "já existe uma equipe declarada"},
+          {"nome maior que a coluna", String.duplicate("x", 300), "at most 255 character(s)"}
+        ] do
+      test "#{rotulo}: a tela DIZ o motivo, e não cai", ctx do
+        html = submeter(ctx, unquote(nome))
+
+        erro = alerta(html, "error")
+
+        assert erro != nil, """
+        Sem alerta de erro a pessoa não sabe que o ato falhou — e o formulário some, o que
+        parece sucesso. Ausência de mensagem é a forma de sucesso silencioso que dói mais.
+        """
+
+        assert erro =~ unquote(esperado), "leu #{inspect(erro)}"
+        assert alerta(html, "info") == nil, "e nenhuma confirmação aparece junto"
+      end
+    end
+
+    test "a recusa NÃO cria nada — a estrutura fica como estava", ctx do
+      antes = EO.team_parts(ctx.tenant, ctx.mae.id) |> length()
+
+      for nome <- ["", "   ", "Repetida", String.duplicate("x", 300)] do
+        submeter(ctx, nome)
+      end
+
+      assert length(EO.team_parts(ctx.tenant, ctx.mae.id)) == antes, """
+      Quatro recusas, nenhuma composição nova. É a invariante da transação vista pela tela:
+      antes dela, um dos caminhos deixava equipe criada e solta na organização.
+      """
+    end
+
+    test "depois de uma recusa, o caminho feliz ainda funciona na MESMA vista", ctx do
+      {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")
+
+      render_submit(view, "criar_subequipe", %{"name" => ""})
+      html = render_submit(view, "criar_subequipe", %{"name" => "Depois da Recusa"})
+
+      assert alerta(html, "info") == "Team Depois da Recusa declared inside this one.", """
+      A recusa não deixa a vista num estado do qual não se sai. Exceção deixaria — mataria o
+      processo —, e é o que três dos caminhos infelizes faziam antes de 2026-09-10.
+      """
+    end
+  end
+
   describe "declarar uma equipe dentro desta" do
     test "a subequipe nasce e aparece em 'Contains'", ctx do
       {:ok, view, _} = live(ctx.conn, ~p"/teams/#{ctx.mae.id}?tab=structure")

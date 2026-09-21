@@ -180,7 +180,7 @@ defmodule TheBandWeb.AccountsEloTest do
       render_click(view, "abrir_busca", %{"user-id" => alvo.id})
       html = render_change(view, "buscar_pessoa", %{"q" => "ninguem-com-esse-nome"})
 
-      assert html =~ "nenhuma pessoa coletada bate com"
+      assert html =~ "no collected person matches"
     end
   end
 

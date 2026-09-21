@@ -101,6 +101,36 @@ defmodule TheBand.Mapping.Catalog do
     end
   end
 
+  @doc """
+  Só os textos dos padrões que o catálogo recusa como tipo — sem contar issue nenhuma.
+
+  `not_type_patterns/2` existe para a **tela** de mapeamento, e por isso carrega as issues da
+  organização para dizer quantas cada padrão alcançaria. Isso é caro, e a consulta de listagem
+  não precisa: ela quer saber **quais** prefixos qualificam, não quantos.
+
+  ## Por que esta lista vive aqui, e não na consulta
+
+  Copiar os oito textos para dentro de `WorkItems.Queries` criaria uma segunda lista. Duas
+  listas divergem, e a divergência aparece do jeito mais difícil de notar: alguém acrescenta
+  um padrão ao catálogo, a tela de mapeamento passa a reconhecê-lo, a listagem não — e ninguém
+  repara, porque **ausência de rótulo é estado legítimo**. Não há erro para investigar.
+
+  ## O que a recusa tem a ver com rótulo
+
+  Estes padrões estão no catálogo para serem **recusados como tipo**: eles dizem *quem* faz ou
+  *em que área*, não *o que* a issue é. Essa é a definição de caracterização — e é por isso
+  que exatamente eles, e nenhum outro prefixo, viram rótulo (spec 065, FR-004 e FR-005).
+
+  Os textos vêm com os colchetes, como o catálogo os declara: `"[Devops]"`.
+  """
+  @spec prefixos_recusados_como_tipo() :: [String.t()]
+  def prefixos_recusados_como_tipo do
+    for padrao <- get_in(catalogo(), ["not_type_patterns", "patterns"]) || [],
+        texto = padrao["text"],
+        is_binary(texto),
+        do: texto
+  end
+
   @doc "A razão, em português, de aqueles padrões não serem tipo."
   @spec not_type_reason() :: String.t() | nil
   def not_type_reason, do: get_in(catalogo(), ["not_type_patterns", "reason", "pt-BR"])

@@ -41,6 +41,8 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
 
   import Ecto.Query
 
+  alias TheBand.Ontology.KnowledgeBase
+  alias TheBand.Ontology.SEON.SPO.EventConcept
   alias TheBand.Ontology.SEON.SPO.Schemas.ActivityStartCriterion
   alias TheBand.Repo
   alias TheBand.Tenants.Tenant
@@ -149,8 +151,18 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
   **Não recomenda.** Devolver "sugerido" faria a plataforma escolher com passos extras, que é
   o que a `FR-007` da feature 022 proíbe. Mostrar volume é informar; recomendar é escolher.
   """
-  @spec collected_event_types(Tenant.t()) :: [%{event_type: String.t(), occurrences: integer()}]
-  def collected_event_types(%Tenant{id: tenant_id}) do
+  @spec collected_event_types(Tenant.t()) :: [
+          %{
+            event_type: String.t(),
+            occurrences: integer(),
+            reads: String.t() | nil,
+            concept: String.t() | nil
+          }
+        ]
+  def collected_event_types(%Tenant{id: tenant_id} = tenant) do
+    vocabulario = vocabulario_dos_eventos()
+    declaracoes = Map.new(EventConcept.vigentes(tenant), &{&1.event_type, &1})
+
     Repo.all(
       from a in "spo_performed_project_activities",
         where: a.tenant_id == type(^tenant_id, :binary_id) and not is_nil(a.activity_type),
@@ -158,6 +170,52 @@ defmodule TheBand.Ontology.SEON.SPO.StartCriterion do
         order_by: [desc: count(a.id)],
         select: %{event_type: a.activity_type, occurrences: count(a.id)}
     )
+    |> Enum.map(fn tipo ->
+      entrada = Map.get(vocabulario, tipo.event_type, %{})
+      declarado = Map.get(declaracoes, tipo.event_type)
+
+      Map.merge(tipo, %{
+        reads: entrada[:reads],
+        # O padrão da casa, e o que a organização declarou por cima dele. A tela mostra os
+        # dois quando divergem: a discordância é informação, não erro.
+        concept_default: entrada[:concept],
+        concept:
+          if(declarado, do: conceito_ou_nil(declarado.target_concept), else: entrada[:concept]),
+        declaracao: declarado
+      })
+    end)
+  end
+
+  # `nao_nomeado` é a recusa registrada — vira nulo na leitura, e a tela a distingue de
+  # "ninguém decidiu" pela presença da declaração.
+  defp conceito_ou_nil("nao_nomeado"), do: nil
+  defp conceito_ou_nil(conceito), do: conceito
+
+  @doc """
+  A leitura de cada tipo de evento, e o conceito que a rede nomeia nele — declarados em
+  `github.timeline_event_vocabulary`, nunca escritos aqui.
+
+  Tipo que a base não declara vem sem leitura, e a tela mostra o **nome cru** sozinho:
+  ausência declarada, e nunca recusa. É o que permite um tipo novo do GitHub aparecer sem
+  que a plataforma o trate como erro.
+  """
+  @spec vocabulario_dos_eventos() :: %{
+          String.t() => %{reads: String.t(), concept: String.t() | nil}
+        }
+  def vocabulario_dos_eventos do
+    case KnowledgeBase.rule("github.timeline_event_vocabulary") do
+      {:ok, %{"events" => eventos}} when is_list(eventos) ->
+        Map.new(eventos, fn e ->
+          {e["type"],
+           %{
+             reads: get_in(e, ["reads", "en"]) || get_in(e, ["reads", "pt-BR"]),
+             concept: e["concept"]
+           }}
+        end)
+
+      _ ->
+        %{}
+    end
   end
 
   @typedoc """

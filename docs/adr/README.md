@@ -18,6 +18,7 @@ revisitada com a informação que existia quando foi tomada.
 | [0007](0007-gestor-de-cotas.md) | Gestor de cotas: a cota é do usuário do GitHub, um processo a governa, e a coleta volta de onde parou | Aceita |
 | [0008](0008-vinculo-observado.md) | O vínculo observado: a participação que a ferramenta mostra conta como membro, e o papel é o que se declara | Aceita |
 | [0009](0009-api-publica-com-token.md) | A API pública: o token identifica quem, e o veredito continua sendo um só | **Proposta** |
+| [0010](0010-hash-do-token-de-api.md) | O token de API é guardado como **hash**, e não cifrado como as outras credenciais — a pergunta que separa os dois casos é se a plataforma precisa **recuperar** o valor | Proposta · 2026-09-18 |
 
 ## Quando escrever uma ADR
 

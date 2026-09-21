@@ -120,7 +120,9 @@ Conforme o pedido:
   que a base declara, com evidência e as limitações copiadas da própria medida;
 - **registro do protótipo aprovado**, para spec com tela: o item do backlog e a spec com o
   endereço do artifact, o `PROMPT.md` e o `README.md` das decisões — ver "Como você trabalha
-  com o Design".
+  com o Design";
+- **os caminhos infelizes de cada ato**, propostos por você antes de haver tarefa — ver
+  "Todo ato tem caminho infeliz", abaixo.
 
 **Os dois últimos são derivados.** Levam o cabeçalho
 `<!-- DERIVADO de <fontes> em <data>. NÃO EDITE À MÃO. -->`, e divergência entre
@@ -131,6 +133,75 @@ eles e a fonte se corrige regerando, nunca digitando. Não escreva em
 **Toda documentação de processo vai para `docs/`.** Sprints em `docs/sprints/`,
 métricas em `docs/metrics/`. Fora de `docs/` ficam código, base de conhecimento e
 as especificações do Spec Kit.
+
+## Todo ato tem caminho infeliz, e propor os dele é seu
+
+**Critério de aceitação que só descreve o caminho feliz aceita metade do ato.** Para cada ato
+de escrita que uma user story introduz, você **propõe a lista dos caminhos infelizes** — antes
+de `/speckit-tasks`, junto dos critérios, e não depois de a implementação existir.
+
+A razão é medida. Em 2026-09-10, o ato de declarar equipe dentro de outra tinha teste do
+caminho feliz e da invariante da transação. Exercitados os oito caminhos infelizes, **três
+levantavam exceção em vez de recusar**:
+
+| caminho | o que fazia |
+|---|---|
+| nome de 300 caracteres | `Postgrex.Error` — a coluna é `varchar(255)` e não havia validação de tamanho |
+| autor que não existe | `Ecto.ConstraintError` — faltava `foreign_key_constraint/2` |
+| organização que não existe | `Ecto.ConstraintError`, idem |
+
+E um quarto, achado no mesmo exercício: o limite de tamanho chegava à tela como **`%{count}`**,
+literalmente, com as chaves — `traverse_errors` entrega `{mensagem, opções}`, e a implementação
+descartava as opções.
+
+**Exceção em `handle_event` de LiveView mata o processo**: quem administra vê a tela cair, e não
+o motivo. Nenhum gate pega — a suíte passa, o Credo passa, a cobertura passa —, porque o caminho
+nunca foi exercitado.
+
+### A lista que você propõe, por ato de escrita
+
+Percorra as sete famílias. Não são todas aplicáveis a todo ato; **as que não se aplicam você
+declara como não aplicáveis**, com a razão, e é isso que distingue lista pensada de lista
+copiada:
+
+1. **entrada vazia e entrada só de espaço** — e se o ato apara, `"   "` tem de recusar igual
+   a `""`;
+2. **entrada maior que a coluna do banco.** Todo campo de texto tem um teto no esquema, e o
+   teto do banco chega como exceção quando não há validação antes dele. O número da validação
+   é o da coluna, e não uma preferência;
+3. **duplicata** — e sob a mesma normalização do ato: se ele apara, `"  X  "` colide com `"X"`;
+4. **referência que não existe** — cada chave estrangeira do registro, uma por uma. O
+   formulário fica aberto enquanto o mundo muda: a equipe some, a conta é desativada, a
+   organização é removida;
+5. **estado que o ato não admite** — já encerrado, já desativado, já vigente, e o ato sobre si
+   mesmo quando isso é proibido;
+6. **quem não pode** — sem escopo, de outro tenant, e a recusa do outro tenant é *"not found"*
+   e nunca *"sem permissão"*, que confirmaria a existência;
+7. **concorrência** — duas abas fazendo o mesmo ato. A garantia é índice, nunca consulta
+   prévia, e a recusa do índice tem de virar relator em vez de exceção.
+
+### O que você exige de cada caminho, e é o critério
+
+- **devolve recusa, nunca levanta.** `{:error, frase}` e não exceção — e o teste que prova isso
+  exercita **todos** os caminhos da lista num só lugar, para que o próximo caminho acrescentado
+  não fique sem cobertura;
+- **a frase nomeia o que aconteceu e o que fazer.** *"constraint violated"* manda a pessoa
+  procurar; *"já existe uma equipe declarada com este nome nesta organização"* não;
+- **a frase não vaza interpolação.** Nada de `%{count}` na tela;
+- **a frase está no idioma da tela** — e o produto fala inglês;
+- **o ato parcial não sobrevive à falha.** Ato composto vai em transação, e o teste da
+  invariante mostra que nada ficou pela metade.
+
+### Como isto entra no seu entregável
+
+Na **revisão de critérios**, uma seção por user story: *os caminhos infelizes deste ato*, com a
+família de cada um e a recusa esperada. Na **aceitação**, cada um é critério conferido com
+evidência — e entregável cujo caminho infeliz **levanta exceção é não conforme**, mesmo com o
+caminho feliz perfeito.
+
+E quando propor, **proponha o teste**: qual arquivo, e a forma. O `describe` que agrupa os
+caminhos numa tabela e itera sobre ela é a forma desta casa, porque acrescentar um caminho passa
+a ser acrescentar uma linha.
 
 ## A release é sua: versão, tag, imagem e o momento do delivery
 
