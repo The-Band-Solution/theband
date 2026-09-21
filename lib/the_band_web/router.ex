@@ -43,6 +43,102 @@ defmodule TheBandWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug OpenApiSpex.Plug.PutApiSpec, module: TheBandWeb.ApiSpec
+  end
+
+  # A pipeline que EXIGE token — feature 061. Separada da `:api` porque a descrição OpenAPI
+  # é servida sem credencial: ela não traz dado, e quem vai integrar precisa lê-la antes de
+  # ter um token.
+  pipeline :api_autenticada do
+    plug TheBandWeb.Plugs.ApiAuth
+  end
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # A API pública — feature 061. É a primeira rota a passar pela pipeline `:api`,
+  # declarada desde o gerador e até aqui sem uso.
+  #
+  # **Só leitura.** Nenhum método de escrita é declarado, e por isso o Phoenix
+  # devolve 405 para todos eles — não há autor honesto para a proveniência de uma
+  # escrita feita por token (FR-017).
+  # ─────────────────────────────────────────────────────────────────────────────
+  scope "/api/v1", TheBandWeb.Api.V1 do
+    pipe_through [:api, :api_autenticada]
+
+    get "/teams", TeamController, :index
+
+    # **405, e não o 404 que o Phoenix daria sozinho.** Um `POST` sem rota declarada cai no
+    # 404 genérico, e 404 afirma que o recurso NÃO EXISTE — manda quem integra procurar
+    # outra URL para uma que está certa. 405 diz a verdade: o recurso existe, o método não é
+    # permitido, e não vai ser.
+    #
+    # Uma linha por recurso, e não um curinga sobre `/*path`: o curinga transformaria
+    # caminho inexistente em 405, que é a mentira inversa.
+    match :*, "/teams", TeamController, :nao_permitido
+
+    get "/people", PersonController, :index
+    match :*, "/people", PersonController, :nao_permitido
+
+    # O DETALHE, e ele filtra por `Access` — ao contrário da listagem, que espelha uma tela
+    # que também não filtra. A assimetria é da plataforma, e não do transporte.
+    get "/people/:id", PersonController, :show
+    match :*, "/people/:id", PersonController, :nao_permitido
+  end
+
+  # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
+  # API e não devolve dado nenhum, e exigir token para ler o contrato obrigaria quem integra
+  # a pedir credencial antes de saber se a API serve.
+  scope "/api" do
+    pipe_through :api
+
+    get "/openapi", OpenApiSpex.Plug.RenderSpec, []
+  end
+
+  # O NONCE do Swagger — a segunda metade do conserto de 2026-09-21.
+  #
+  # Servir os três ativos do próprio domínio resolveu o `script-src` externo. Mas o plug
+  # ainda emite um **script inline** de ~1,3 KB que inicializa a página, e `script-src 'self'`
+  # bloqueia inline — a página vinha 200, vazia, sem erro visível no corpo.
+  #
+  # O nonce é a saída que NÃO afrouxa nada: um valor aleatório por requisição, presente na
+  # diretiva e no atributo do script. `'unsafe-inline'` liberaria qualquer script injetado;
+  # o nonce libera exatamente aquele bloco, naquela resposta.
+  defp nonce_do_swagger(conn, _opts) do
+    nonce = 16 |> :crypto.strong_rand_bytes() |> Base.encode64()
+
+    conn
+    |> assign(:script_src_nonce, nonce)
+    |> put_resp_header(
+      "content-security-policy",
+      "default-src 'self'; script-src 'self' 'nonce-#{nonce}'; " <>
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; " <>
+        "connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    )
+  end
+
+  # A INTERFACE DO SWAGGER, atrás de sessão — decisão Q7 da spec 061.
+  #
+  # Quem integra tem conta, e o mapa completo da superfície não precisa ser público: ele é
+  # útil a quem varre. A DESCRIÇÃO em si (`/api/openapi`) fica aberta, porque é o contrato e
+  # não traz dado nenhum.
+  #
+  # **Escopo próprio, e sem o alias `TheBandWeb`**: dentro dele o roteador prefixaria o
+  # módulo e procuraria `TheBandWeb.OpenApiSpex.Plug.SwaggerUI`, que não existe.
+  #
+  # O ativo é servido do PRÓPRIO DOMÍNIO. A CSP do endpoint é `script-src 'self'`, e
+  # afrouxá-la para aceitar CDN contrariaria um achado do Sobelow já tratado (issue #288).
+  scope "/api" do
+    pipe_through [:browser, :require_user, :nonce_do_swagger]
+
+    # Os três ativos saem de `priv/static/vendor/swagger-ui/`, e NÃO do CDN que o plug usa
+    # por padrão. Sem isto a página carrega, devolve 200, e o navegador bloqueia o script
+    # em silêncio — restando uma tela em branco. Foi o que aconteceu em 2026-09-21: conferi
+    # o código HTTP e não que a página funciona.
+    get "/docs", OpenApiSpex.Plug.SwaggerUI,
+      path: "/api/openapi",
+      swagger_ui_css_url: "/vendor/swagger-ui/swagger-ui.css",
+      swagger_ui_js_bundle_url: "/vendor/swagger-ui/swagger-ui-bundle.js",
+      swagger_ui_js_standalone_preset_url: "/vendor/swagger-ui/swagger-ui-standalone-preset.js",
+      csp_nonce_assign_key: %{script: :script_src_nonce}
   end
 
   scope "/", TheBandWeb do

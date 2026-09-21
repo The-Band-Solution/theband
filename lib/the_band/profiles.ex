@@ -18,6 +18,7 @@ defmodule TheBand.Profiles do
       motivos distintos      requisito    Mox
   """
 
+  alias TheBand.Communication.Discussions
   alias TheBand.Profiles.{GenerateWorker, Material}
   alias TheBand.Tenants.Tenant
 
@@ -143,6 +144,69 @@ defmodule TheBand.Profiles do
     |> Material.open_tasks(person_id)
     |> Enum.filter(&(&1.dias_aberta > Material.stale_days()))
     |> Enum.sort_by(& &1.dias_aberta, :desc)
+  end
+
+  @doc """
+  As paradas, **com o estado da conversa em cada uma** — o que a tela mostra.
+
+  `stale_open/2` diz *quais* estão paradas. Esta diz *se alguém falou nelas*, e a distinção
+  tem três casos que uma lista de issues achataria:
+
+  | `conversa` | Significa |
+  |---|---|
+  | `:nao_coletada` | o repositório ainda não teve comentário coletado — **lacuna da coleta** |
+  | `:silencio` | foi coletado, e não houve ato nenhum |
+  | `:recente` | houve ato dentro do limiar |
+  | `:antiga` | houve ato, antes do limiar |
+
+  Sem os dois primeiros separados, lacuna da coleta leria como silêncio da equipe — e alguém
+  cobraria uma pessoa por uma conversa que a plataforma não olhou.
+
+  Vive aqui, e não na tela, porque a rota `GET /api/v1/people/:id` mostra a mesma coisa.
+  Duas cópias divergiriam, e a divergência apareceria como dado.
+  """
+  @spec stale_open_with_conversation(Tenant.t(), binary()) :: [map()]
+  def stale_open_with_conversation(%Tenant{} = tenant, person_id) do
+    com_conversa(tenant, stale_open(tenant, person_id))
+  end
+
+  defp com_conversa(_tenant, []), do: []
+
+  defp com_conversa(tenant, paradas) do
+    ultimos = Discussions.last_act_for_issues(tenant, Enum.map(paradas, & &1.id))
+    corte = DateTime.add(DateTime.utc_now(:second), -Material.stale_days(), :day)
+    coletados = com_comentarios_coletados(tenant, paradas)
+
+    Enum.map(paradas, fn t ->
+      Map.merge(t, classificar(ultimos[t.id], corte, MapSet.member?(coletados, t.id)))
+    end)
+  end
+
+  defp classificar(nil, _corte, false), do: %{conversa: :nao_coletada, atos: 0, ultimo_ato: nil}
+  defp classificar(nil, _corte, true), do: %{conversa: :silencio, atos: 0, ultimo_ato: nil}
+
+  defp classificar(%{atos: atos, ultimo: ultimo}, corte, _coletado) do
+    forma = if DateTime.compare(ultimo, corte) == :gt, do: :recente, else: :antiga
+    %{conversa: forma, atos: atos, ultimo_ato: ultimo}
+  end
+
+  # Quais dessas issues estão em repositório cuja coleta de comentários já passou.
+  defp com_comentarios_coletados(tenant, paradas) do
+    import Ecto.Query
+
+    ids = Enum.map(paradas, & &1.id)
+
+    from(i in "collected_issues",
+      join: o in "observed_repositories",
+      on: o.id == i.observed_repository_id,
+      where:
+        i.tenant_id == type(^tenant.id, :binary_id) and
+          i.id in type(^ids, {:array, :binary_id}) and
+          not is_nil(o.comments_collected_at),
+      select: type(i.id, :binary_id)
+    )
+    |> TheBand.Repo.all()
+    |> MapSet.new()
   end
 
   @doc """

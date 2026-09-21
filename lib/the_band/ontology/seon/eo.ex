@@ -189,5 +189,8 @@ defmodule TheBand.Ontology.SEON.EO do
 
   defdelegate record_profile(tenant, attrs), to: Profiles, as: :record
   defdelegate current_profile(tenant, person_id), to: Profiles, as: :current
+
+  @doc "Os perfis vigentes de várias pessoas de uma vez — ver `Profiles.current_for_people/2`."
+  defdelegate current_profiles(tenant, person_ids), to: Profiles, as: :current_for_people
   defdelegate list_profiles(tenant, person_id), to: Profiles, as: :list
 end
