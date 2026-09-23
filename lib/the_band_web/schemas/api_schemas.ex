@@ -893,6 +893,141 @@ defmodule TheBandWeb.Schemas do
     })
   end
 
+  defmodule Projects do
+    @moduledoc "Os projetos declarados, e as três ausências do critério de início."
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "Projects",
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :array,
+          items: %Schema{
+            type: :object,
+            properties: %{
+              id: %Schema{type: :string, format: :uuid},
+              name: %Schema{type: :string, nullable: true},
+              phase: %Schema{type: :string, nullable: true},
+              parent: %Schema{type: :object, nullable: true},
+              started_on: %Schema{type: :string, format: :date, nullable: true},
+              ended_on: %Schema{type: :string, format: :date, nullable: true},
+              issues: %Schema{
+                type: :object,
+                description:
+                  "**Never summed.** An issue reached through a subproject is not a " <>
+                    "second issue.",
+                properties: %{
+                  direct: %Schema{type: :integer},
+                  via_subproject: %Schema{type: :integer},
+                  note: %Schema{type: :string}
+                }
+              },
+              start_criterion: %Schema{
+                type: :object,
+                description:
+                  "**Three distinct absences, never one total.** An issue with no start " <>
+                    "instant may lack a declared criterion (`no_criterion`), may have one " <>
+                    "whose event was never collected (`event_not_collected`), or may have " <>
+                    "matched more than one instant (`ambiguous`). Each needs a different " <>
+                    "thing done, and an aggregate would say there **is** a problem without " <>
+                    "saying **which**.\n\n`ambiguous` carries the **list**, not a count: " <>
+                    "to break a tie you have to know which ones.",
+                properties: %{
+                  total: %Schema{type: :integer},
+                  with_instant: %Schema{type: :integer},
+                  no_criterion: %Schema{type: :integer},
+                  event_not_collected: %Schema{type: :integer},
+                  ambiguous: %Schema{type: :array, items: %Schema{type: :object}},
+                  note: %Schema{type: :string}
+                }
+              },
+              organizations: %Schema{type: :array, items: TheBandWeb.Schemas.Organization},
+              teams: %Schema{
+                type: :array,
+                description:
+                  "`origin` is a mark, not a boolean: the query stores `declared: " <>
+                    "true|false`, and a boolean in place of the relator is a declared " <>
+                    "antipattern here — it stays on the inner side of the boundary.",
+                items: %Schema{type: :object}
+              },
+              repositories: %Schema{type: :array, items: %Schema{type: :object}},
+              boards: %Schema{type: :array, items: %Schema{type: :object}}
+            }
+          }
+        },
+        page: TheBandWeb.Schemas.Page
+      },
+      required: [:data, :page]
+    })
+  end
+
+  defmodule Syncs do
+    @moduledoc "As coletas, e o que cada uma NÃO alcançou."
+    require OpenApiSpex
+
+    alias OpenApiSpex.Schema
+
+    OpenApiSpex.schema(%{
+      title: "Syncs",
+      description: "Collection runs. Answers *is the data current?*",
+      type: :object,
+      properties: %{
+        data: %Schema{
+          type: :array,
+          items: %Schema{
+            type: :object,
+            properties: %{
+              id: %Schema{type: :string, format: :uuid},
+              status: %Schema{type: :string, nullable: true},
+              started_at: %Schema{type: :string, format: :"date-time", nullable: true},
+              finished_at: %Schema{type: :string, format: :"date-time", nullable: true},
+              records: %Schema{
+                type: :object,
+                description:
+                  "Four readings of the same run, **never summed**: a record collected " <>
+                    "falls into exactly one of created, updated or skipped.",
+                properties: %{
+                  collected: %Schema{type: :integer, nullable: true},
+                  created: %Schema{type: :integer, nullable: true},
+                  updated: %Schema{type: :integer, nullable: true},
+                  skipped: %Schema{type: :integer, nullable: true},
+                  note: %Schema{type: :string}
+                }
+              },
+              gaps: %Schema{
+                type: :object,
+                description:
+                  "**`completed` does not mean complete.** A run can finish and still not " <>
+                    "have reached repositories — quota, permission, or the source being " <>
+                    "unavailable. These travel in the same object so the status is never " <>
+                    "read alone.",
+                properties: %{
+                  repositories_skipped: %Schema{type: :integer, nullable: true},
+                  repositories_unreachable: %Schema{type: :integer, nullable: true},
+                  skip_reasons: %Schema{nullable: true},
+                  memberships_pending_role: %Schema{type: :integer, nullable: true},
+                  note: %Schema{type: :string}
+                }
+              },
+              error_reason: %Schema{type: :string, nullable: true},
+              interrupted: %Schema{
+                type: :boolean,
+                description:
+                  "Whether a person stopped the run. **Who** is not returned: the id would " <>
+                    "name a person on a route that has no reason to."
+              }
+            }
+          }
+        },
+        page: TheBandWeb.Schemas.Page
+      },
+      required: [:data, :page]
+    })
+  end
+
   defmodule Erro do
     @moduledoc "O formato único de erro — um tratador, não seis."
     require OpenApiSpex

@@ -96,6 +96,13 @@ defmodule TheBandWeb.Router do
     # que também não filtra. A assimetria é da plataforma, e não do transporte.
     get "/people/:id", PersonController, :show
     match :*, "/people/:id", PersonController, :nao_permitido
+
+    # As duas últimas da FR-021. Com elas a lista do primeiro corte fecha.
+    get "/projects", ProjectController, :index
+    match :*, "/projects", ProjectController, :nao_permitido
+
+    get "/syncs", SyncController, :index
+    match :*, "/syncs", SyncController, :nao_permitido
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
