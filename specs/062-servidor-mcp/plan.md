@@ -184,18 +184,35 @@ Reconferido depois de escrever `data-model.md`, `contracts/` e `quickstart.md`.
 | `team.dashboard.thresholds` | sim | 1 |
 | `api.access.thresholds` | sim — mas os **valores** seguem a decidir com o Product Owner |
 
+### A avaliação de segurança foi feita, e corrigiu este plano em dois pontos
+
+Está em [`seguranca.md`](./seguranca.md), escrita em 2026-09-22. **Ela não é revisão
+independente** — quem a escreveu escreveu o desenho —, e o documento diz isso no topo. Quatro
+tentativas de obter a avaliação por agente independente falharam.
+
+**Dois achados contradizem o que este plano dizia, e o plano cede:**
+
+| # | Achado | Severidade | O que o plano dizia |
+|---|---|---|---|
+| **A1** | **leitura bem-sucedida não é registrada em lugar nenhum** — nem por `AccessEvents`, nem pelo plug, nem pelo token (`last_used_at` é sobrescrito). A FR-024 aponta o registro de acesso como o caminho para perceber agregação, e ele não existe | **alta** | tratava I2 como *"falta decidir o que contar"*. Não é: **falta o mecanismo** |
+| **A2** | **não há limite de taxa na 061** — medido em `plugs/` e `api_tokens.ex`. A Q4 decide *"o limite de taxa é o da 061"*, e herdar um limite inexistente é herdar zero | **alta** | herdava um controle que não existe |
+
+Mais dois de severidade média, sem contradição: **A3** injeção de instrução pelo conteúdo — a
+mitigação é marcar a fronteira **no schema**, nunca filtrar frase nem pedir ao modelo que
+ignore; e **A4** agregação ao longo do tempo, cuja única mitigação é o A1.
+
 ### O que falta, e fica declarado
 
-| # | O que | Por quê |
+| # | O que | Estado |
 |---|---|---|
-| **I1** | os valores de `api.access.thresholds` | decisão do Product Owner, herdada em aberto da 061 |
-| **I2** | o que o registro de uso por MCP conta para que abuso seja detectável | item 4 da avaliação de segurança que a spec pede, e ela não foi feita |
-| **I3** | injeção de instrução pelo conteúdo — título de issue e nome de equipe chegam ao modelo pela resposta | item 2 da mesma avaliação. **Não é resolvível no plano**: precisa do papel Security |
+| **I1** | os valores de `api.access.thresholds` | **segue aberta** — decisão do Product Owner |
+| **I2** | o registro de uso | **respondida, e pior que se supunha**: virou o achado A1 |
+| **I3** | injeção de instrução pelo conteúdo | **respondida**: achado A3, com mitigação que reduz e não elimina — e o limite está dito |
+| **I4** | **revisão independente do desenho** | **aberta**. Quatro tentativas falharam; a lacuna do princípio VII não deve ser marcada como cumprida |
 
-**I2 e I3 são risco de desenho, não de implementação.** Escrever `tasks.md` sem elas
-produziria tarefas que parecem cobrir a superfície inteira, e não cobrem. A recomendação é
-chamar o papel Security **antes** do `/speckit-tasks`, ou decompor declarando que as duas
-ficam fora desta fatia.
+**O `tasks.md` tem de carregar A1 e A2 como tarefa, ou declarar por escrito que a fatia entra
+sem eles** — e então a FR-024 fica apoiada em nada, dito em voz alta. Decompor sem escolher
+uma das duas produziria tarefas que parecem cobrir a superfície inteira e não cobrem.
 
 ## Artefatos gerados
 
@@ -205,3 +222,4 @@ ficam fora desta fatia.
 | [`data-model.md`](./data-model.md) | o envelope, os três estados da ausência, e o que nunca sai |
 | [`contracts/ferramentas.md`](./contracts/ferramentas.md) | uma seção por ferramenta, com a forma da resposta e o que ela **não** responde |
 | [`quickstart.md`](./quickstart.md) | dez passos de verificação, cada um dizendo o que tem de mostrar e qual guarda o impede de passar vazio |
+| [`seguranca.md`](./seguranca.md) | cinco achados, dois deles contradizendo este plano — e o aviso, no topo, de que é autoavaliação e não revisão |
