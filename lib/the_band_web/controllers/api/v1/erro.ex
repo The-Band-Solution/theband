@@ -20,6 +20,9 @@ defmodule TheBandWeb.Api.V1.Erro do
     unauthorized: {401, "The credential presented is not usable."},
     not_found: {404, "No such resource for this credential."},
     method_not_allowed: {405, "This API is read-only."},
+    # A mensagem é substituída pelo plug do limite, que acrescenta o número e a janela: uma
+    # recusa por taxa que não diz o limite faz quem integra tentar de novo imediatamente.
+    too_many_requests: {429, "Too many requests for this credential."},
     internal_error: {500, "Something went wrong on our side."}
   }
 

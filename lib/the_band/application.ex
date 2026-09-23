@@ -5,6 +5,8 @@ defmodule TheBand.Application do
 
   use Application
 
+  alias TheBandWeb.Plugs.ApiRateLimit
+
   require Logger
 
   @impl true
@@ -19,6 +21,11 @@ defmodule TheBand.Application do
   end
 
   defp start_supervisor do
+    # A tabela do limite de taxa nasce ANTES do endpoint. Criá-la no primeiro pedido faria
+    # duas requisições simultâneas correrem para criá-la, e a que perdesse levantaria —
+    # transformando o controle de abuso em causa de erro.
+    ApiRateLimit.preparar()
+
     children = [
       TheBandWeb.Telemetry,
       TheBand.Repo,

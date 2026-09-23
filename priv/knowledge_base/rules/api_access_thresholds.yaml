@@ -52,6 +52,37 @@ derivation_rule:
       values:
         max_days: 90
 
+    rate_limit:
+      name:
+        pt-BR: "Quantas chamadas um token faz por minuto, e o que acontece ao passar"
+      statement:
+        pt-BR: >
+          Um token faz no máximo **120 chamadas por minuto**. Acima disso a requisição é
+          recusada com `429`, e a recusa **diz qual é o limite e quando a janela reabre** —
+          nunca em silêncio.
+
+          A contagem é por **token**, e não por tenant nem por endereço de rede: o token é a
+          identidade que a API conhece, e é a que se revoga.
+      note:
+        pt-BR: >
+          **Este número é proposta, e está aqui para ser mudado por quem decide** — não para
+          ser descoberto num `grep`. Mora na base de conhecimento, e não em constante de
+          módulo, pela mesma razão do prazo do token: limiar em constante muda num diff e
+          ninguém percebe.
+
+          A avaliação de segurança da feature 062, em 2026-09-22, achou que **não havia
+          limite algum** — e a spec do MCP dizia herdar "o limite da 061", que não existia.
+          Herdar um controle inexistente é herdar zero, e por MCP é pior: o consumidor é um
+          programa que itera sem cansar.
+
+          120 por minuto é folgado de propósito: uma integração que percorre páginas não
+          deve esbarrar nele, e um laço que não converge deve. Se a medida mostrar que o
+          número está errado, ele muda **aqui**.
+      applied: true
+      values:
+        requests_per_minute: 120
+        window_seconds: 60
+
     token_expiry_warning:
       name:
         pt-BR: "A tela avisa quatorze dias antes de vencer"

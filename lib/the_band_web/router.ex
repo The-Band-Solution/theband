@@ -51,6 +51,13 @@ defmodule TheBandWeb.Router do
   # ter um token.
   pipeline :api_autenticada do
     plug TheBandWeb.Plugs.ApiAuth
+    # A ORDEM importa, e é esta: autenticar, limitar, registrar.
+    #
+    # Limitar antes de autenticar contaria chamada sem sujeito e deixaria o limite ser
+    # gasto por quem nem tem credencial. Registrar antes de limitar encheria a tabela de
+    # leituras que a resposta nunca teve — o registro é de acesso **concedido**.
+    plug TheBandWeb.Plugs.ApiRateLimit
+    plug TheBandWeb.Plugs.ApiReadLog
   end
 
   # ─────────────────────────────────────────────────────────────────────────────
