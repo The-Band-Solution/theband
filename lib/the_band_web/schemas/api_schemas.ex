@@ -1043,7 +1043,7 @@ defmodule TheBandWeb.Schemas do
           properties: %{
             code: %Schema{
               type: :string,
-              enum: ~w(unauthorized not_found method_not_allowed internal_error)
+              enum: ~w(unauthorized not_found method_not_allowed too_many_requests internal_error)
             },
             message: %Schema{
               type: :string,
