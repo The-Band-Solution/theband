@@ -2,786 +2,802 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://theband.dev/developers/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/deployment/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/design-system/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0001-monolito-modular-elixir/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0002-yaml-como-base-de-conhecimento/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0003-organizacao-por-ontologias/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0004-modelo-de-informacao-one-table-per-kind/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0005-telemetria-da-jornada/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0006-coleta-paralela/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0007-gestor-de-cotas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0008-vinculo-observado/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0009-api-publica-com-token/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/adr/0010-hash-do-token-de-api/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/architecture/modelo-de-dados/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/architecture/overview/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/a-versao-em-producao-na-pagina/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/api-publica/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/arquivados-e-duplicatas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/backup-restaurado-de-verdade/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/booleano-active-nao-diz-quem-desativou/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/burn-da-pessoa-sem-linha-de-base/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/complexidade-nos-cards/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/conta-desativada/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/crud-entities/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/decisoes-pendentes/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/done-e-alegacao-nao-aceite/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/duas-issues-quase-prontas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/github-to-sro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/investigar-estado-divergente-da-issue/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/issues-abertas-sem-motivo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/link-para-a-issue-na-origem/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/minio-como-destino-do-ensaio-de-backup/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/o-evento-de-coluna-nao-diz-o-quadro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/o-recorte-por-sprint/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/observabilidade-com-opentelemetry/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/organizacao-do-tenant-e-sign-up/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/papeis-scrum/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/paridade-entre-compose-e-dokploy/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/perguntas-do-painel-da-equipe/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/portugues-na-interface/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/projeto-pertence-a-organizacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/recusas-em-portugues-e-o-nome-da-coluna/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/revisao-periodica-completa/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/rotacionar-o-token-que-vazou/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
+    </url>
+    <url>
+         <loc>https://theband.dev/developers/backlog/sc004-o-log-nao-distingue-as-tres-recusas/</loc>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/servidor-mcp/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/setup-inicial-e-multiempresa/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/specs-antigas-sem-issue/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/tela-da-equipe-complexa/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/tela-da-equipe-fluxo-por-pessoa/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/tela-da-equipe/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
+    </url>
+    <url>
+         <loc>https://theband.dev/developers/backlog/teste-instavel-do-fluxo/</loc>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/timeline-truncada-na-origem/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/tooling-library/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/backlog/vinculo-observado-sem-papel/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/funcionalidades/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/funcionalidades/tela-da-equipe/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/integrations/mappings/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/integrations/verificacao-continua/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/metrics/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/arquitetura/visao-geral/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/declaracoes-da-organizacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/eo-e-acesso/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/ingestao-e-observacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/mapa-das-tabelas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/perfis-e-modelo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/projetos-e-processo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/banco/trabalho-e-mudanca/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/declaracoes-da-organizacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/eo-estrutura-organizacional/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/ingestao-e-observacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/mapa-dos-schemas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/perfis-e-modelo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/projetos-e-processo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/tenants-e-acesso/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/classes/trabalho-e-mudanca/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/dsm/060-tela-da-equipe/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/dsm/modulos-de-lib/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/atividade-executada/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/coleta/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/conta/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/declaracao-revogavel/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/mapa-dos-ciclos-de-vida/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/observacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/projeto-declarado/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/modelos/estados/vinculo-de-equipe/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/cdro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/ciro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/cmo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/cmpo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/concept-index/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/eo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/osdef/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/qapo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/roost/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/rsro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/smpo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/spo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/sro/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/sys_swo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/ontology/ufo/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/processes/feature-workflow/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/producao/desligar-alguem/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/producao/ensaio-2026-09-08-migracao-060/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/producao/ensaio-2026-09-09-migracao-conta-desativada/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/producao/fluxo-de-release/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/producao/runbook/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.1.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.2.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.3.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.6.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.7.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/releases/v0.8.0/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
+    </url>
+    <url>
+         <loc>https://theband.dev/developers/releases/v0.9.0/</loc>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/research/extensions-to-one-table-per-kind/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/rfc/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/rfc/0001-derivacao-do-modelo-de-informacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-08-decimal-expoente-ilimitado/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-09-api-com-token/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-09-inventario-do-h2/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-09-o-que-consertar-agora/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-12-destino-de-backup-em-segundo-host/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-12-dump-varrido-e-restaurado/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/seguranca/2026-09-13-o-caminho-completo-do-backup/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/RETOMAR/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/licoes-aprendidas/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/001-fundacao-e-coleta-eo/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/001-fundacao-e-coleta-eo/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/001-fundacao-e-coleta-eo/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/002-escopo-por-organizacao/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/002-escopo-por-organizacao/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/002-escopo-por-organizacao/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/003-corrigir-e-encerrar-observacao/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/003-corrigir-e-encerrar-observacao/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/003-corrigir-e-encerrar-observacao/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/004-issues-e-projetos/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/004-issues-e-projetos/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/004-issues-e-projetos/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/005-mapeamento-e-detalhe/aceitacao-005/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/005-mapeamento-e-detalhe/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/005-mapeamento-e-detalhe/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/005-mapeamento-e-detalhe/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/006-marca-de-issues/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/006-marca-de-issues/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/007-destravar-sync-presa/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/007-destravar-sync-presa/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/008-marca-que-se-cura/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/008-marca-que-se-cura/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/009-detalhe-da-pessoa/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/009-detalhe-da-pessoa/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/010-de-quem-a-issue-e-parte/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/010-de-quem-a-issue-e-parte/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/011-vinculo-que-sumiu-na-origem/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/011-vinculo-que-sumiu-na-origem/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/012-pagina-da-pessoa-mais-rapida/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/012-pagina-da-pessoa-mais-rapida/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/013-clicar-e-quem-escreveu/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/013-clicar-e-quem-escreveu/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/014-design-system/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/016-geracao-mensal-de-perfis/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/016-geracao-mensal-de-perfis/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/017-quadros-campos-e-backlogs/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/018-competencias-da-equipe/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/019-comentarios-das-issues/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/020-coleta-de-mudancas/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/021-coleta-do-ci/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/022-menu-por-entidades/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/022-menu-por-entidades/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/023-autenticacao-e-acesso/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/023-autenticacao-e-acesso/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/024-mensagens-e-o-botao-da-chave/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/024-mensagens-e-o-botao-da-chave/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/024-mensagens-e-o-botao-da-chave/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/025-contas-e-o-elo-do-github/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/025-contas-e-o-elo-do-github/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/025-contas-e-o-elo-do-github/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/026-heranca-e-a-producao/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/026-heranca-e-a-producao/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/026-heranca-e-a-producao/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/027-equipes-declaradas/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/027-equipes-declaradas/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/028-a-tela-da-equipe/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/028-a-tela-da-equipe/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/029-medidas-da-equipe/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/029-medidas-da-equipe/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/030-a-tela-da-equipe-por-vinculo/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/030-a-tela-da-equipe-por-vinculo/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/030-a-tela-da-equipe-por-vinculo/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/031-segredo-em-repouso/github/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/031-segredo-em-repouso/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/032-rotulos-no-item/aceitacao/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/032-rotulos-no-item/github/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/032-rotulos-no-item/sprint-backlog/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
     </url>
     <url>
          <loc>https://theband.dev/developers/sprints/032-rotulos-no-item/sprint-review/</loc>
-         <lastmod>2026-09-21</lastmod>
+         <lastmod>2026-09-23</lastmod>
+    </url>
+    <url>
+         <loc>https://theband.dev/developers/sprints/033-a-api-publica/aceitacao/</loc>
+         <lastmod>2026-09-23</lastmod>
     </url>
 </urlset>
