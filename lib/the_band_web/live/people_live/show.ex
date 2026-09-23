@@ -332,7 +332,7 @@ defmodule TheBandWeb.PeopleLive.Show do
       tarefas_novas: Profiles.tasks_since(tenant, pessoa.id, perfil),
       # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
-      paradas: paradas_com_discussao(tenant, Profiles.stale_open(tenant, pessoa.id)),
+      paradas: Profiles.stale_open_with_conversation(tenant, pessoa.id),
       participacao: Discussions.participation_of(tenant, pessoa.id, limit: 20),
       # O que a pessoa MUDOU — três leituras nunca somadas, porque abrir, integrar e
       # commitar são atos distintos, com participações distintas na ontologia.
@@ -2133,45 +2133,6 @@ defmodule TheBandWeb.PeopleLive.Show do
   # `nao_coletada` existe porque ausência de discussão coletada não é ausência de
   # discussão: quando a coleta de comentários nunca passou pelo repositório, a tela diz
   # isso em vez de afirmar silêncio.
-  defp paradas_com_discussao(_tenant, []), do: []
-
-  defp paradas_com_discussao(tenant, paradas) do
-    ultimos = Discussions.last_act_for_issues(tenant, Enum.map(paradas, & &1.id))
-    corte = DateTime.add(DateTime.utc_now(:second), -Material.stale_days(), :day)
-    coletados = repositorios_com_comentarios(tenant, paradas)
-
-    Enum.map(paradas, fn t ->
-      Map.merge(t, classificar_conversa(ultimos[t.id], corte, MapSet.member?(coletados, t.id)))
-    end)
-  end
-
-  defp classificar_conversa(nil, _corte, false),
-    do: %{conversa: :nao_coletada, atos: 0, ultimo_ato: nil}
-
-  defp classificar_conversa(nil, _corte, true),
-    do: %{conversa: :silencio, atos: 0, ultimo_ato: nil}
-
-  defp classificar_conversa(%{atos: atos, ultimo: ultimo}, corte, _coletado) do
-    forma = if DateTime.compare(ultimo, corte) == :gt, do: :recente, else: :antiga
-    %{conversa: forma, atos: atos, ultimo_ato: ultimo}
-  end
-
-  # Quais dessas issues estão em repositório cuja coleta de comentários já passou.
-  defp repositorios_com_comentarios(tenant, paradas) do
-    ids = Enum.map(paradas, & &1.id)
-
-    TheBand.Repo.all(
-      from i in "collected_issues",
-        join: o in "observed_repositories",
-        on: o.id == i.observed_repository_id,
-        where:
-          i.tenant_id == type(^tenant.id, :binary_id) and
-            i.id in type(^ids, {:array, :binary_id}) and
-            not is_nil(o.comments_collected_at),
-        select: type(i.id, :binary_id)
-    )
-    |> MapSet.new()
-  end
 
   # Os quatro rótulos falam da MESMA coisa — a discussão —, e é isso que os torna
   # comparáveis de relance. `silent` foi o primeiro nome de :silencio e saiu porque a

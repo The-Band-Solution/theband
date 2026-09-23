@@ -34,9 +34,38 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
   def list_people(tenant, opts \\ []) do
     Person
     |> scope(tenant, opts)
-    |> ordenar(opts[:order_by], [:name, :login, :account_type, :source_system, :collected_at])
+    |> pessoas_por_cursor(opts)
     |> paginate(opts)
     |> Repo.all()
+  end
+
+  # Mesma regra de `list_teams`: sem a opção, a ordem é a da tela; com ela, é por `id`
+  # **inclusive na primeira página**, e `:inicio` é o que distingue *travessia por cursor*
+  # de *sem cursor*. Misturar as duas faria a segunda página não conhecer o ponto de corte
+  # da primeira — linhas repetiriam e outras sumiriam.
+  # **Recebe `opts` inteiro, e não só o cursor.** Passar `nil` literal a `ordenar/3` apagaria
+  # o `order_by` que a tela pede — a listagem de pessoas ordena por coluna escolhida por
+  # quem usa, e a regressão foi denunciada por um aviso de cláusula inalcançável.
+  defp pessoas_por_cursor(query, opts) do
+    case opts[:after] do
+      nil ->
+        ordenar(query, opts[:order_by], [
+          :name,
+          :login,
+          :account_type,
+          :source_system,
+          :collected_at
+        ])
+
+      :inicio ->
+        order_by(query, [p], asc: p.id)
+
+      cursor when is_binary(cursor) ->
+        case Ecto.UUID.cast(cursor) do
+          {:ok, id} -> query |> where([p], p.id > ^id) |> order_by([p], asc: p.id)
+          :error -> order_by(query, [p], asc: p.id)
+        end
+    end
   end
 
   @doc """
@@ -85,13 +114,46 @@ defmodule TheBand.Ontology.SEON.EO.Queries do
 
   # ------------------------------------------------------------------- equipes
 
+  @doc """
+  As equipes do tenant.
+
+  `after:` liga a **paginação por cursor**, e ela existe para a API pública: deslocamento
+  pula ou repete linha quando a coleção muda entre páginas, e uma integração que percorre
+  três páginas enquanto alguém cria uma equipe receberia a mesma duas vezes.
+
+  Com cursor a ordem passa a ser por `id`, e não por nome — é o preço, e é o que torna a
+  travessia estável. A tela continua chamando sem `after:` e continua ordenada por nome.
+  """
   @spec list_teams(Tenant.t(), keyword()) :: [Team.t()]
   def list_teams(tenant, opts \\ []) do
     Team
     |> scope(tenant, opts)
-    |> ordenar(opts[:order_by], [:name, :slug, :source_system, :collected_at])
+    |> por_cursor(opts)
     |> paginate(opts)
     |> Repo.all()
+  end
+
+  # Sem a opção, a ordem é a da tela — por nome. Com ela, é por `id`, **inclusive na
+  # primeira página**.
+  #
+  # As duas não podem se misturar, e é fácil errar: se a primeira página ordenasse por nome
+  # e as seguintes por id, o cursor da primeira apontaria para um ponto que a segunda ordem
+  # não conhece — linhas repetiriam e outras sumiriam. Por isso `:inicio` existe: ele diz
+  # *"travessia por cursor, começando do princípio"*, e não *"sem cursor"*.
+  defp por_cursor(query, opts) do
+    case opts[:after] do
+      nil ->
+        ordenar(query, opts[:order_by], [:name, :slug, :source_system, :collected_at])
+
+      :inicio ->
+        order_by(query, [t], asc: t.id)
+
+      cursor when is_binary(cursor) ->
+        case Ecto.UUID.cast(cursor) do
+          {:ok, id} -> query |> where([t], t.id > ^id) |> order_by([t], asc: t.id)
+          :error -> order_by(query, [t], asc: t.id)
+        end
+    end
   end
 
   @spec count_teams(Tenant.t(), keyword()) :: non_neg_integer()

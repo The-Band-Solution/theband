@@ -17,7 +17,11 @@ defmodule TheBandWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  # `vendor` carrega os ativos de terceiro servidos do PRÓPRIO DOMÍNIO — hoje só o Swagger
+  # UI. A CSP é `script-src 'self'`, e afrouxá-la para aceitar CDN contrariaria um achado do
+  # Sobelow já tratado (issue #288): script de terceiro com acesso ao DOM de uma aplicação
+  # multitenant é a porta que aquele achado fechou.
+  def static_paths, do: ~w(assets fonts images vendor favicon.ico robots.txt)
 
   def router do
     quote do

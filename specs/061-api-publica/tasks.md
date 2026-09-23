@@ -25,7 +25,7 @@ abaixo têm o teste escrito nessa forma, de propósito.
 
 ## Fase 1 — o protótipo, antes do código
 
-- [ ] **T001** Protótipo da tela de tokens
+- [x] **T001** Protótipo da tela de tokens
   - **Pronta quando**: nada além do repositório — a spec e o plano estão escritos
   - **Descrição**: protótipo navegável em `specs/061-api-publica/prototipo/`, publicado como artifact, com o `PROMPT.md` que o gerou e as decisões da pessoa mantenedora. Usa o design system existente — verdete, serif/grotesk/mono, marcas observado/declarado/derivado/ausente. Precisa decidir **vendo**: o momento do valor em claro com o aviso de que não volta e a ação de copiar (FR-006, FR-048); a linha mascarada com os quatro últimos (FR-007); o alcance vigente da conta dona na lista (FR-047); e a confirmação de revogação nomeando o rótulo (FR-049). A seção 3 do `PROMPT.md` é a **régua do QA**, item a item
   - **Feita quando**: o protótipo está publicado e o endereço está no `PROMPT.md`; a pessoa mantenedora aprovou por escrito; a régua da seção 3 enumera os quatro momentos acima
@@ -140,37 +140,37 @@ tenant dele, com a marca de origem em cada uma.
 **Teste independente**: com dois tenants povoados, chamar com o token de cada um e
 conferir que nenhum identificador do outro aparece.
 
-- [ ] **T014** [US2] Autenticar o token na fronteira
+- [x] **T014** [US2] Autenticar o token na fronteira
   - **Pronta quando**: T006 concluída; T012 concluída — a revogação precisa existir para ser conferida
   - **Descrição**: `authenticate_api_token/1` separa as partes, busca por `public_id`, confere o segredo em tempo constante, lê o estado contra `DateTime.utc_now/0` e carimba `last_used_at`. **Sem cache** — Q3 decidiu latência zero entre revogar e recusar, porque cache que atrasa revogação é decisão de segurança disfarçada de desempenho. A expiração é conferida **na requisição**, e não por job: job cria janela entre o vencimento e a passagem dele, e essa janela é acesso concedido por atraso de fila. Recusa também quando a conta dona está desativada ou removida — o token não sobrevive à conta de quem herda o alcance
   - **Feita quando**: as quatro recusas — inexistente, revogado, expirado, conta desativada — devolvem o mesmo átomo de erro; o carimbo de uso é gravado só nas chamadas aceitas; chamadas concorrentes com o mesmo token não se serializam
   - **Teste**: `test/the_band/tenants/api_tokens_test.exs` — as quatro recusas são o mesmo valor de retorno, e as quatro deixam registro interno distinto; e o token expirado é recusado **sem nenhuma escrita** ter acontecido antes
 
-- [ ] **T015** [US2] O plug da recusa uniforme
+- [x] **T015** [US2] O plug da recusa uniforme
   - **Pronta quando**: T014 concluída; [contracts/erro.md](contracts/erro.md) escrito
   - **Descrição**: `lib/the_band_web/plugs/api_auth.ex`, o veredito único. Lê **só** o cabeçalho `Authorization: Bearer` — em query string, corpo ou cookie o token não é lido, porque query string vaza para log de servidor e para histórico de navegador. Toda recusa produz a mesma resposta (FR-016), e o **motivo real vai para o log interno**, recuperável pelo identificador da requisição: calar para o cliente não é calar para quem opera, e é o princípio XI
   - **Feita quando**: as quatro recusas produzem corpos idênticos exceto o identificador da requisição; o token em query string não autentica; o cabeçalho não é registrado em log nenhum
   - **Teste**: `test/the_band_web/plugs/api_auth_test.exs` — **SC-003**: as três recusas, com o identificador removido, são idênticas byte a byte; e **SC-004**: as três razões distintas são localizáveis no log capturado pelos três identificadores
 
-- [ ] **T016** [US2] O formato único de erro
+- [x] **T016** [US2] O formato único de erro
   - **Pronta quando**: [contracts/erro.md](contracts/erro.md) escrito
   - **Descrição**: `lib/the_band_web/controllers/api/v1/fallback_controller.ex` com **um** formato para todos os códigos — FR-020 —, para que o cliente escreva um tratador e não seis. `code` estável em inglês, `message` que **nunca** diz qual das causas ocorreu, e `request_id` sempre presente. `404` e não `403` para recurso de outro tenant (FR-030): `403` afirma "isto existe e você não pode", e essa afirmação é vazamento de existência
   - **Feita quando**: os quatro códigos da fatia saem no mesmo formato; nenhuma mensagem distingue revogado de expirado de inexistente
   - **Teste**: `test/the_band_web/controllers/api/v1/erro_test.exs` — os quatro códigos têm as mesmas três chaves; e nenhuma mensagem contém as palavras `revoked`, `expired` ou `unknown`
 
-- [ ] **T017** [US2] A rota das equipes
+- [x] **T017** [US2] A rota das equipes
   - **Pronta quando**: T015 concluída; T016 concluída; [contracts/api-v1-teams.md](contracts/api-v1-teams.md) escrito
   - **Descrição**: `GET /api/v1/teams` passando pela pipeline `:api` que o `router.ex` declara e nunca usou. As equipes são as **do tenant do token**, no mesmo recorte da tela — FR-026. Está escrito no contrato e precisa continuar escrito: `/teams` recorta **por tenant** e não filtra por `Access`, então esta rota também não; não é frouxidão da API, é a mesma resposta que a pessoa vê logada. Coleção vazia devolve `200` com lista vazia, nunca `404`, e a distinção é dita: *nada encontrado* não é *não coletado*
   - **Feita quando**: a rota responde `200` com as equipes do tenant; um tenant sem equipe recebe lista vazia com `200`; a pipeline `:api` deixou de estar sem uso
   - **Teste**: `test/the_band_web/controllers/api/v1/team_controller_test.exs` — a resposta traz as equipes do tenant do token; e **SC-002**: com dois tenants povoados, a interseção dos identificadores das duas respostas é vazia
 
-- [ ] **T018** [US2] O serializador com a marca de origem
+- [x] **T018** [US2] O serializador com a marca de origem
   - **Pronta quando**: T017 concluída
   - **Descrição**: `team_json.ex` devolve, por equipe, `id`, `name`, `slug` e **`origin`** — `observed` quando veio de ferramenta conectada, com `source_system` dizendo qual, e `declared` quando foi declarada nesta plataforma, com `source_system` nulo. A plataforma inteira existe para separar observado de declarado, e entregar número sem essa marca a destruiria exatamente no ponto de entrega — com o agravante de o consumidor previsto ser um modelo, que afirmaria o dado sem ela
   - **Feita quando**: toda equipe da resposta traz `origin`; equipe declarada traz `source_system` nulo e não uma string vazia
   - **Teste**: `test/the_band_web/controllers/api/v1/team_controller_test.exs` — com uma equipe observada e uma declarada, as duas trazem `origin` distinto; e **0** equipes na resposta vêm sem a marca
 
-- [ ] **T019** [US2] A paginação por cursor, sem total
+- [x] **T019** [US2] A paginação por cursor, sem total
   - **Pronta quando**: T018 concluída
   - **Descrição**: `page_size` com padrão 50 e teto 200 (FR-018), e `after` com cursor opaco. O bloco `page` traz `has_next` e `next_cursor`; **`total` é `null`**, com `total_note` dizendo por quê — Q5: total estimado é pior que total ausente, e a nota viaja junto para que quem lê a resposta crua entenda o `null` sem abrir documentação. Cursor, e não deslocamento: deslocamento pula ou repete linha quando a coleção muda entre páginas
   - **Feita quando**: `page_size` acima do teto é reduzido ao teto e não recusado; percorrer todas as páginas devolve cada equipe exatamente uma vez; `total` é `null` com a nota ao lado
@@ -180,31 +180,32 @@ conferir que nenhum identificador do outro aparece.
 
 ## Fase 6 — Transversal
 
-- [ ] **T020** O teto de consultas por requisição
+- [x] **T020** O teto de consultas por requisição
   - **Pronta quando**: T019 concluída
   - **Descrição**: teste-guardião contando consultas por requisição com `test/support/contador_de_consultas.ex`, como as sete telas que já o usam. `Access` tem de ser chamado na forma **em lote**, nunca por item: perguntar por linha é a **L38**, e `access.ex` diz literalmente que `pessoas_alcancadas/2` existe para evitá-la. O número de consultas **não muda** com o número de equipes
   - **Feita quando**: o teste afirma igualdade entre dez equipes e cem, e entre cem e o caso mínimo; a mensagem de falha diz o que reintroduziria o problema
   - **Teste**: `test/the_band_web/controllers/api/v1/teto_de_consultas_test.exs` — `dez == cem` e `cem == minimo`, com a mensagem nomeando a L38 e o `Repo.preload` como o caminho que a recria
 
-- [ ] **T021** [P] Nenhum método de escrita responde
+- [x] **T021** [P] Nenhum método de escrita responde
   - **Pronta quando**: T017 concluída
   - **Descrição**: `/api/v1` aceita **apenas** `GET` e `HEAD` — FR-017, porque não há autor honesto para a proveniência de uma escrita por token. `HEAD` responde os mesmos cabeçalhos de `GET` com corpo vazio
   - **Feita quando**: `POST`, `PUT`, `PATCH` e `DELETE` devolvem `405` no formato único de erro em todas as rotas de `/api/v1`
-  - **Teste**: `test/the_band_web/controllers/api/v1/somente_leitura_test.exs` — **SC-006**: os quatro métodos devolvem `405` percorrendo a tabela de rotas, e não uma lista escrita à mão que envelhece
+  - **Teste**: `test/the_band_web/api/somente_leitura_test.exs` — **SC-006**: os quatro métodos devolvem `405` percorrendo a tabela de rotas, e não uma lista escrita à mão que envelhece
+  - **Nota de 2026-09-21**: esta tarefa esteve marcada feita sem que o teste existisse. Havia asserções de `405` **escritas à mão**, uma por controlador — exatamente o que o critério manda evitar —, e o critério envelheceu como previsto: quando `GET /api/v1/people/:id` entrou, a recusa dela teve de ser lembrada e escrita à parte. O teste que percorre a tabela foi escrito nesta data, e reprova com `POST /api/v1/rota-esquecida devolveu 404 em vez de 405` quando uma rota entra sem o `match :*`
 
-- [ ] **T022** [P] O valor em claro não existe em lugar nenhum
+- [x] **T022** [P] O valor em claro não existe em lugar nenhum
   - **Pronta quando**: T010 concluída; T017 concluída
   - **Descrição**: teste que gera um token, exerce a tela e a API, e varre os **quatro** lugares pelo valor conhecido — log capturado, corpo da resposta, HTML renderizado e banco. É **SC-001**, e é o critério que nenhum outro teste desta fatia substitui
   - **Feita quando**: as quatro varreduras devolvem zero; a varredura do banco procura o valor em todas as colunas de texto da tabela, e não só em `token_hash`
   - **Teste**: `test/the_band_web/api/segredo_nao_vaza_test.exs` — **o teste é a violação**: o valor conhecido tem **0** ocorrências nos quatro lugares, e o teste falha ruidosamente se qualquer varredura devolver um
 
-- [ ] **T023** [P] Os dois tenants não se veem
+- [x] **T023** [P] Os dois tenants não se veem
   - **Pronta quando**: T017 concluída
   - **Descrição**: teste que povoa dois tenants, chama a rota com o token de cada um, e compara os conjuntos de identificadores. **SC-002**. Confere também que nenhuma consulta desta feature é emitida sem tenant (FR-031)
   - **Feita quando**: a interseção dos identificadores é vazia; nenhuma consulta do caminho da API roda sem `tenant_id` na cláusula
   - **Teste**: `test/the_band_web/api/isolamento_por_tenant_test.exs` — a interseção é vazia, e a consulta capturada por telemetria tem `tenant_id` em toda cláusula `where`
 
-- [ ] **T024** Gates
+- [x] **T024** Gates
   - **Pronta quando**: T001 a T023 concluídas
   - **Descrição**: `mix gates` com o código de saída colado no comando. O veredito é o **código de saída**, e qualquer comando depois dele substitui o código que vale — é a lição L60, e ela já reincidiu nesta sessão
   - **Feita quando**: os 16 gates rodam e o código de saída é 0; nenhum aviso novo de Credo, Sobelow ou dialyzer

@@ -1,8 +1,11 @@
 # Spec 062 — o servidor MCP: as perguntas da plataforma, respondidas a um agente
 
-> **Estado: em especificação.** Não há código. Esta spec fica **atrás da 061** por
+> **Estado: pronta para planejar.** Não há código. Esta spec ficava **atrás da 061** por
 > dependência real, e não por prioridade: o servidor MCP é **consumidor** da API pública, e
 > não um segundo caminho para os dados.
+>
+> **A 061 foi entregue em 2026-09-21** — ver [Dependências](#dependências), reconferidas
+> contra o código nessa data.
 
 **Origem**: [`docs/backlog/servidor-mcp.md`](../../docs/backlog/servidor-mcp.md), que estava
 marcado **bloqueado** no [README do backlog](../../docs/backlog/README.md) com a razão exata:
@@ -165,12 +168,42 @@ criaria a segunda verdade sobre acesso que a 061 recusou.
 
 ## Dependências
 
+> **Conferida contra o código em 2026-09-21.** Duas linhas desta tabela estavam
+> desatualizadas — a spec foi escrita em 2026-09-09, e as duas mudaram depois. Uma tabela
+> de dependências que ninguém reconfere vira premissa de desenho, e premissa de desenho é
+> o que faz alguém planejar em torno de um bloqueio que já caiu.
+
 | Depende de | Estado |
 |---|---|
-| **spec 061** — token, veredito reusado, pipeline `:api`, recusa 401 única | especificada, **sem código** |
-| `api.access.thresholds` na base de conhecimento | proposta na 061, valores a decidir com o PO |
+| **spec 061** — token, veredito reusado, pipeline `:api`, recusa 401 única | **entregue**: token no [#930](https://github.com/The-Band-Solution/theband/pull/930), rotas e Swagger no [#933](https://github.com/The-Band-Solution/theband/pull/933), detalhe de equipe no [#934](https://github.com/The-Band-Solution/theband/pull/934). 24 de 24 tarefas |
+| `api.access.thresholds` na base de conhecimento | proposta na 061, valores a decidir com o PO — **segue em aberto** |
 | as **77 perguntas de competência** já declaradas | existem |
-| `users.disabled_at` | **não existe** — a limitação de acesso órfão da 061 vale igual aqui, e por MCP é pior: o que saiu já está do outro lado |
+| `users.disabled_at` | **existe** desde a migração `20260910050000`, e `api_auth.ex` já recusa token de conta desativada por `User.ativa?/1`. A limitação de acesso órfão que esta linha declarava **não vale mais** |
+
+### O que a 061 entregou, e que esta feature consome
+
+Medido contra o código em 2026-09-21, e não contra o que a spec afirma:
+
+| Caminho | O que responde |
+|---|---|
+| `GET /api/v1/teams` · `/teams/:id` | a equipe, a composição, e os três números do roster que nunca se somam |
+| `GET /api/v1/teams/:id/members` | quem pertence, com `origin` por **vínculo** |
+| `GET /api/v1/teams/:id/measures` | trabalho aberto/parado/fechado, as **duas** medianas de espera, cobertura de competências |
+| `GET /api/v1/people` · `/people/:id` | a pessoa inteira, com veredito de `pode_ver/3` e recusa registrada |
+
+**As quatro perguntas do primeiro corte (Q2) já têm caminho de dados provado** — é o que a
+FR-021 exige antes de oferecer ferramenta.
+
+### Duas coisas que a 061 aprendeu e esta feature herda
+
+1. **O corpo tem de dizer o que a medida NÃO é.** Ao implementar `/teams/:id/measures`
+   medimos, na equipe `LEDS - ConectaFapes`: **23** esperas revisadas com mediana de
+   **0,2 h**, e **79** ainda aguardando com mediana de **46 dias**. Um campo único de
+   segundos, com uma mediana só, teria respondido *"12 minutos"*. A FR-010 desta spec pede
+   exatamente isso, e agora há um número que mostra o tamanho do erro que ela evita;
+2. **`null` e `[]` são afirmações diferentes**, e a API já as separa: `competencies: null`
+   quer dizer *não houve leitura*; `[]` quer dizer *houve, e nada foi demonstrado*. É a
+   FR-012 desta spec, já provada num consumidor.
 
 ---
 

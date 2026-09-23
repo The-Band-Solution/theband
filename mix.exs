@@ -4,7 +4,7 @@ defmodule TheBand.MixProject do
   def project do
     [
       app: :the_band,
-      version: "0.8.0",
+      version: "0.9.0",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -128,7 +128,21 @@ defmodule TheBand.MixProject do
       # Dependência com CVE conhecida. Antes disso, só aparecia quando alguém lembrava de
       # rodar `mix hex.audit` à mão — foi assim que a CVE do LiveView apareceu, por acaso.
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      # A descrição OpenAPI da API pública — feature 061, US4, FR-040.
+      #
+      # **É a única dependência nova da feature**, e a justificativa é o requisito: a
+      # descrição tem de ser GERADA DO CÓDIGO, com a divergência detectável no CI. Descrição
+      # mantida à mão envelhece em silêncio, e uma que mente é pior que nenhuma — quem
+      # integra confia nela e descobre o contrário em produção.
+      #
+      # Escolhida sobre `phoenix_swagger` por manutenção: esta gera OpenAPI 3, aquela parou
+      # no Swagger 2. E sobre escrever o documento à mão, que é o que o requisito proíbe.
+      #
+      # O ativo da interface é servido do PRÓPRIO DOMÍNIO: a CSP do `router.ex` é
+      # `script-src 'self'`, e afrouxá-la para aceitar CDN contrariaria um achado do Sobelow
+      # já tratado (issue #288).
+      {:open_api_spex, "~> 3.22"}
     ]
   end
 
