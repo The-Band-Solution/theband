@@ -75,6 +75,20 @@ defmodule TheBandWeb.Router do
     # caminho inexistente em 405, que é a mentira inversa.
     match :*, "/teams", TeamController, :nao_permitido
 
+    # O DETALHE DA EQUIPE, e ele filtra por `Access` — `pode_ver_equipe/3`, com quatro
+    # caminhos de permissão. Fora do alcance é `404`, nunca `403`: um `403` confirmaria que
+    # a equipe existe, e para quem varre isso é metade da resposta.
+    #
+    # As rotas mais específicas vêm ANTES, ou `/teams/:id` casaria `members` como um id.
+    get "/teams/:id/members", TeamController, :members
+    match :*, "/teams/:id/members", TeamController, :nao_permitido
+
+    get "/teams/:id/measures", TeamController, :measures
+    match :*, "/teams/:id/measures", TeamController, :nao_permitido
+
+    get "/teams/:id", TeamController, :show
+    match :*, "/teams/:id", TeamController, :nao_permitido
+
     get "/people", PersonController, :index
     match :*, "/people", PersonController, :nao_permitido
 
@@ -82,6 +96,13 @@ defmodule TheBandWeb.Router do
     # que também não filtra. A assimetria é da plataforma, e não do transporte.
     get "/people/:id", PersonController, :show
     match :*, "/people/:id", PersonController, :nao_permitido
+
+    # As duas últimas da FR-021. Com elas a lista do primeiro corte fecha.
+    get "/projects", ProjectController, :index
+    match :*, "/projects", ProjectController, :nao_permitido
+
+    get "/syncs", SyncController, :index
+    match :*, "/syncs", SyncController, :nao_permitido
   end
 
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
