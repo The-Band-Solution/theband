@@ -38,6 +38,17 @@ jobs:
           VERSAO=$(grep -o 'version: "[^"]*"' mix.exs | head -1 | cut -d'"' -f2)
           test -n "$VERSAO" || { echo "mix.exs sem version — nada a publicar" >&2; exit 1; }
           echo "versao=v$VERSAO" >> "$GITHUB_OUTPUT"
+          # O NÚMERO PURO, sem o `v`, e ele existe por uma razão medida.
+          #
+          # A tag e a imagem levam o prefixo — `v0.9.0`. A rota `/version` devolve o que está
+          # no `mix.exs`, que é `0.9.0`. Comparar um com o outro nunca casa.
+          #
+          # Aconteceu na v0.9.0, em 2026-09-23: o deploy funcionou, a produção respondeu
+          # `0.9.0`, e o passo reprovou trinta vezes dizendo *"esperado v0.9.0"*. Foi a
+          # PRIMEIRA vez que esta conferência rodou com resposta de verdade — a rota
+          # `/version` só chegou a produção na v0.8.0 —, e ela estava comparando coisas
+          # diferentes desde que foi escrita.
+          echo "numero=$VERSAO" >> "$GITHUB_OUTPUT"
           if git rev-parse -q --verify "refs/tags/v$VERSAO" > /dev/null; then
             if [ "$(git rev-parse "refs/tags/v$VERSAO^{commit}")" = "$GITHUB_SHA" ]; then
               echo "ja_publicada=true" >> "$GITHUB_OUTPUT"
@@ -118,7 +129,7 @@ jobs:
         if: steps.versao.outputs.ja_publicada == 'false'
         env:
           ENDERECO: ${{ secrets.PRODUCAO_URL }}
-          ESPERADA: ${{ steps.versao.outputs.versao }}
+          ESPERADA: ${{ steps.versao.outputs.numero }}
         run: |
           if [ -z "$ENDERECO" ]; then
             echo "PRODUCAO_URL ausente nos Secrets — o delivery aconteceu e NÃO foi" >&2
@@ -138,6 +149,7 @@ jobs:
           done
 
           echo "A PRODUÇÃO NÃO CONFIRMOU $ESPERADA em cinco minutos." >&2
+          echo "(comparação: a rota devolve o número puro do mix.exs, sem o 'v' da tag)" >&2
           echo "A imagem e a tag existem; o webhook foi aceito; e o que está servindo" >&2
           echo "NÃO é esta versão. Ver o achado H7 e o runbook §7 (rollback)." >&2
           exit 1

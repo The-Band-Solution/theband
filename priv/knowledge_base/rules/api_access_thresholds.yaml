@@ -61,6 +61,9 @@ derivation_rule:
           recusada com `429`, e a recusa **diz qual é o limite e quando a janela reabre** —
           nunca em silêncio.
 
+          A janela **desliza**: o minuto é contado em fatias de dez segundos, e a conta é a
+          soma das que cobrem os últimos sessenta. Não há instante em que a contagem zera.
+
           A contagem é por **token**, e não por tenant nem por endereço de rede: o token é a
           identidade que a API conhece, e é a que se revoga.
       note:
@@ -82,6 +85,39 @@ derivation_rule:
       values:
         requests_per_minute: 120
         window_seconds: 60
+
+    access_log_retention:
+      name:
+        pt-BR: "O registro de leitura da API é guardado indefinidamente"
+      statement:
+        pt-BR: >
+          As linhas de `api_access_reads` — quem leu, de qual credencial, qual rota, qual
+          alvo e quando — **não têm prazo de expurgo**. Nenhum job as apaga.
+      note:
+        pt-BR: >
+          **Isto é decisão, e não ausência de decisão** — a diferença importa, e até
+          2026-09-23 era a segunda. A tabela nasceu no PR #936 sem poda porque ninguém tinha
+          decidido o prazo; agora o prazo foi decidido, e é *indefinido*.
+
+          Decidido pela pessoa mantenedora em 2026-09-23, depois de a alternativa de 90 dias
+          ser proposta e recusada.
+
+          **O custo de espaço não é o argumento, e foi medido**: 190 bytes por linha — 100
+          mil linhas ocupam 18 MB, menos que as tabelas de coleta que já existem
+          (`spo_performed_project_activities` tem 68 MB). Chegar a 1 GB exige 5,5 milhões de
+          leituras.
+
+          **O que o prazo indefinido significa**, e fica escrito para que ninguém precise
+          deduzir: o registro permite reconstruir, sem limite de tempo, que uma pessoa
+          consultou o painel de outra — quantas vezes e quando. A FR-024 pede o registro
+          para **detectar agregação**; guardá-lo para sempre entrega mais do que aquela
+          necessidade pede, e essa diferença é a escolha que foi feita.
+
+          **Se a decisão mudar**, o conserto é um job de expurgo e um prazo aqui — não há
+          nada no desenho que dependa da retenção infinita.
+      applied: true
+      values:
+        retention_days: null
 
     token_expiry_warning:
       name:

@@ -50,7 +50,9 @@ defmodule TheBand.Tenants do
   defdelegate fetch_api_token(tenant, id), to: ApiTokens, as: :buscar
   defdelegate revoke_api_token(tenant, id, autor), to: ApiTokens, as: :revogar
 
-  # Recebe o valor CRU do cabeçalho, e devolve uma recusa só — ver `ApiTokens.autenticar/1`.
+  # Recebe o valor CRU do cabeçalho. A recusa devolve o MOTIVO — `:inexistente`,
+  # `:revogado`, `:expirado`, `:segredo_errado`, `:malformado` —, e ele vai ao log
+  # interno, nunca ao corpo da resposta. Ver `ApiTokens.autenticar/1`.
   defdelegate authenticate_api_token(valor), to: ApiTokens, as: :autenticar
 
   defdelegate api_token_prefix(), to: ApiTokens, as: :prefixo

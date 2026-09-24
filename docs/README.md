@@ -20,6 +20,7 @@ for Data-Driven Software Development*.
 | Colocar a aplicação em execução, e configurar o ambiente | [Deployment](deployment.md) |
 | Entender o modelo conceitual | [Rede de ontologias](ontology/README.md) |
 | Achar um conceito específico | [Índice de conceitos](ontology/concept-index.md) |
+| **Integrar com a API pública** | [A API pública, para quem vai integrar](api/README.md) |
 | Saber como dados externos viram conceitos | [Mapeamentos semânticos](integrations/mappings.md) |
 | Entender de onde vem um número | [Necessidades de informação e medidas](metrics/README.md) |
 | Saber por que uma decisão foi tomada | [ADRs](adr/README.md) |
@@ -40,6 +41,7 @@ for Data-Driven Software Development*.
 docs/
 ├── architecture/     visão da arquitetura, fronteiras internas e modelo de dados
 ├── ontology/         modelo conceitual — GERADO da base de conhecimento
+├── api/              a API pública, para quem vai integrar
 ├── integrations/     fontes externas e mapeamentos — GERADO
 ├── metrics/          necessidades de informação e medidas — GERADO
 ├── processes/        processo de trabalho por feature

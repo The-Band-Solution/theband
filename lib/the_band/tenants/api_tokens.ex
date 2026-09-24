@@ -177,11 +177,27 @@ defmodule TheBand.Tenants.ApiTokens do
          :ativo <- Token.estado(token, agora()) do
       {:ok, carimbar(token)}
     else
-      _ -> {:error, :recusado}
+      # **O MOTIVO É DEVOLVIDO, e não descartado.**
+      #
+      # A versão anterior tinha `_ -> {:error, :recusado}`, e com isso token inexistente,
+      # revogado e expirado produziam a MESMA entrada no log: `motivo=credencial_recusada`.
+      # É o SC-004 da spec 061, e ele reprovou na aceitação de 2026-09-23.
+      #
+      # A informação já existia: `Token.estado/2` calcula `:revogado` e `:expirado`, e o
+      # `_` a jogava fora uma linha antes de chegar a quem opera.
+      #
+      # **A resposta ao cliente NÃO muda, e isso é obrigatório**: o SC-003 exige que as três
+      # produzam respostas byte a byte idênticas. Distinguir ali confirmaria a quem testa
+      # uma credencial roubada que ela um dia existiu. A distinção serve a quem investiga,
+      # e é por isso que ela vive no log interno e não no corpo.
+      :erro -> {:error, :malformado}
+      nil -> {:error, :inexistente}
+      false -> {:error, :segredo_errado}
+      estado when is_atom(estado) -> {:error, estado}
     end
   end
 
-  def autenticar(_), do: {:error, :recusado}
+  def autenticar(_), do: {:error, :malformado}
 
   # O prefixo é conferido, e um valor sem ele é recusado como qualquer outro. A separação é
   # por `_` **depois** do prefixo, que também contém `_` — por isso o corte é por tamanho, e

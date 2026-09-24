@@ -170,7 +170,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
     end
   end
 
-  describe "a conferência, e a recusa que é uma só" do
+  describe "a conferência, e a recusa que é uma só PARA QUEM CHAMA" do
     test "o valor recém-criado autentica", ctx do
       {token, valor} = criar(ctx)
 
@@ -194,11 +194,32 @@ defmodule TheBand.Tenants.ApiTokensTest do
         Tenants.authenticate_api_token("sem_prefixo_nenhum")
       ]
 
-      assert Enum.all?(recusas, &(&1 == {:error, :recusado})), """
-      As recusas não são idênticas.
+      # **A FR-016 tem DUAS frases, e este teste afirmava só a primeira — de um jeito que
+      # tornava a segunda impossível.**
+      #
+      #   > Token inexistente, revogado e expirado recebem **a mesma resposta**: `401`, com
+      #   > o mesmo código de erro e o mesmo texto. **O motivo real é registrado do lado de
+      #   > dentro, no log estruturado da aplicação, com o identificador da requisição.**
+      #
+      # A versão anterior exigia que o **retorno da função** fosse idêntico nas quatro. Com
+      # isso o motivo era descartado antes de existir, e o log não tinha o que registrar —
+      # foi o SC-004, que reprovou na aceitação de 2026-09-23.
+      #
+      # O que a FR-016 protege é **a resposta**, e não o retorno interno. Aqui se afirma que
+      # as quatro são recusa; que a resposta HTTP é idêntica está em
+      # `test/the_band_web/api/motivo_da_recusa_test.exs`, e os dois lados precisam existir.
+      assert Enum.all?(recusas, &match?({:error, _}, &1)), """
+      Alguma das quatro NÃO foi recusada: #{inspect(recusas)}
+      """
 
-      Distinguir revogado de expirado de inexistente confirma a quem testa credencial roubada
-      que ela existiu, e quando. FR-016.
+      motivos = Enum.map(recusas, fn {:error, m} -> m end)
+
+      assert length(Enum.uniq(motivos)) > 1, """
+      As quatro recusas devolvem o mesmo motivo: #{inspect(Enum.uniq(motivos))}
+
+      A FR-016 pede o motivo real **do lado de dentro**. Se o retorno não o carrega, o log
+      não tem o que registrar, e à pergunta *"esta credencial foi recusada por quê?"* a
+      resposta operacional volta a ser *"por alguma coisa"*.
       """
 
       assert {:ok, _} = Tenants.authenticate_api_token(valor), "o token ativo foi recusado junto"
@@ -208,13 +229,23 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _valor} = criar(ctx)
       forjado = Tenants.api_token_prefix() <> token.public_id <> "_" <> "segredoerrado"
 
-      assert {:error, :recusado} = Tenants.authenticate_api_token(forjado)
+      # O motivo é `:segredo_errado`, e não `:inexistente`: o id público existe, o segredo
+      # não confere. A distinção é do log; a resposta HTTP é a mesma das outras.
+      assert {:error, :segredo_errado} = Tenants.authenticate_api_token(forjado)
     end
 
     test "entrada malformada não levanta exceção", _ctx do
+      # **O motivo varia, e é correto que varie.** `"tb_api_so_um"` é bem formado — vira id
+      # público `so` e segredo `um` — e por isso cai em `:inexistente`, não em
+      # `:malformado`. Exigir um motivo só aqui confundiria *"o formato não bate"* com
+      # *"o formato bate e a credencial não existe"*, que são coisas diferentes no log.
+      #
+      # O que este teste afirma é o que o nome dele diz: **nenhuma entrada levanta exceção**.
       for valor <- ["", "tb_api_", "tb_api_so_um", "qualquer coisa", "tb_api__", nil] do
-        assert {:error, :recusado} = Tenants.authenticate_api_token(valor),
+        assert {:error, motivo} = Tenants.authenticate_api_token(valor),
                "não recusou #{inspect(valor)}"
+
+        assert is_atom(motivo), "o motivo de #{inspect(valor)} não é átomo: #{inspect(motivo)}"
       end
     end
 
@@ -225,7 +256,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {:ok, usado} = Tenants.authenticate_api_token(valor)
       assert usado.last_used_at
 
-      {:error, :recusado} = Tenants.authenticate_api_token("tb_api_x_y")
+      {:error, :inexistente} = Tenants.authenticate_api_token("tb_api_x_y")
       {:ok, relido} = Tenants.fetch_api_token(ctx.tenant, token.id)
       assert relido.last_used_at == usado.last_used_at
     end
