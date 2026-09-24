@@ -395,17 +395,38 @@ defmodule TheBandWeb.TelaDeTokensTest do
   end
 
   describe "R6 — o que vale em toda a tela" do
+    # **Esta guarda não guardava nada, e a conferência do QA provou por injeção**: pondo
+    # `data-h={Base.encode16(token_hash)}` em cada linha, o hash aparecia duas vezes no HTML
+    # servido e os 84 testes ficavam verdes — inclusive este, que leva o nome do critério.
+    #
+    # Duas razões, e cada uma bastaria. A varredura rodava sobre `texto/1`, que **tira as
+    # tags** — e `R3.10` diz, com todas as letras, *"inclusive em atributo, em `data-*`, em
+    # comentário"*, que é exatamente o que some junto com as tags. E ela nunca afirmava nada
+    # sobre o **valor em claro**: procurava o hash e a palavra `token_hash`, nunca o segredo.
+    #
+    # Procurar a palavra `token_hash` era, ainda por cima, guarda que lê a palavra e não o
+    # comportamento — o nome do campo não é o segredo.
     test "SC-013 — zero valor e zero hash no HTML renderizado", ctx do
       {view, _} = abrir(ctx)
-      render_submit(form(view, "#novo-token", %{"label" => "varredura"}))
+      criado = render_submit(form(view, "#novo-token", %{"label" => "varredura"}))
 
-      {:ok, token} =
-        ctx.tenant |> Tenants.list_api_tokens() |> List.first() |> Map.fetch(:token)
+      [valor] = Regex.run(~r/#{Tenants.api_token_prefix()}[A-Za-z0-9_\-]+/, texto(criado))
+      token = ctx.tenant |> Tenants.list_api_tokens() |> List.first() |> Map.fetch!(:token)
 
-      html = texto(render_patch(view, ~p"/api-tokens"))
+      # O HTML **CRU**. Nada de `texto/1` aqui.
+      html = render_patch(view, ~p"/api-tokens")
 
+      assert html =~ token.last_four, """
+      A varredura não achou nem os quatro últimos, que DEVEM estar na máscara.
+
+      Controle positivo: sem ele, uma varredura que lesse a página errada passaria por estar
+      lendo nada.
+      """
+
+      refute html =~ valor, "o valor em claro sobreviveu ao patch — R3.8 e SC-013"
       refute html =~ Base.encode16(token.token_hash, case: :lower)
-      refute html =~ "token_hash"
+      refute html =~ Base.encode16(token.token_hash, case: :upper)
+      refute html =~ Base.encode64(token.token_hash)
     end
 
     test "R6.5 — nenhum prazo é constante no módulo da tela", _ctx do
@@ -424,12 +445,35 @@ defmodule TheBandWeb.TelaDeTokensTest do
       end
     end
 
+    # **Esta asserção não podia falhar.** Ela procurava `>—<` depois de `texto/1` ter tirado
+    # todas as tags: não sobra um `>` nem um `<` no texto, então o padrão nunca casa. Guarda
+    # que não pode reprovar passa sempre, e essa é a pior espécie — ela conta como coberta.
     test "R6.1 — ausência é escrita, nunca traço nem zero", ctx do
-      {_view, html} = abrir(ctx)
-      t = texto(html)
+      {view, _} = abrir(ctx)
 
-      assert t =~ "No token created yet"
-      refute t =~ ~r/>\s*—\s*</, "há um travessão no lugar de uma ausência"
+      assert texto(render(view)) =~ "No token created yet", "a lista vazia não escreve a ausência"
+
+      # **A varredura precisa de linhas.** A primeira versão desta guarda rodava na lista
+      # VAZIA — zero células —, e passava com um travessão plantado na tela. Guarda sem
+      # denominador passa sempre, e conta como coberta.
+      render_submit(form(view, "#novo-token", %{"label" => "varredura da ausência"}))
+      html = render(view)
+
+      # No HTML **cru**, onde `>` e `<` existem, recortado à **célula de tabela**. Procurar
+      # `><` solto casaria com todo `<span></span>` estrutural, e padrão largo erra para o
+      # lado barato: reprova o que está certo e ensina a ignorá-lo.
+      celulas = Regex.scan(~r/<td[^>]*>(.*?)<\/td>/s, html) |> Enum.map(&List.last/1)
+
+      assert length(celulas) >= 8, """
+      A varredura achou #{length(celulas)} células, e a linha aprovada tem oito.
+
+      Controle positivo: sem ele, esta guarda volta a varrer nada.
+      """
+
+      for celula <- celulas, vazio <- ["—", "-", "0"] do
+        refute String.trim(celula) == vazio,
+               "uma célula traz apenas `#{vazio}` — ausência se escreve, e traço não é escrita"
+      end
     end
   end
 end
