@@ -149,6 +149,37 @@ defmodule TheBand.Tenants.ApiTokens do
     end
   end
 
+  @doc """
+  A palavra que a tela imprime para cada estado, vinda da base de conhecimento.
+
+  `Token.estado/2` devolve átomos em português — `:ativo`, `:revogado`, `:expirado` —, e a
+  tela serve em inglês. Até 2026-09-23 ela imprimia o átomo cru, e a coluna `state` saía em
+  **português** enquanto `api.access.token_state` e a API diziam outra coisa. Duas palavras
+  para o mesmo estado, e quem integra lia uma e programava contra a outra.
+
+  O elo mora no YAML, no campo `atom` de cada estado. Estado sem palavra declarada devolve o
+  próprio átomo — feio de propósito, porque é assim que alguém repara.
+  """
+  @spec palavra_do_estado(atom()) :: String.t()
+  def palavra_do_estado(estado) when is_atom(estado) do
+    case KnowledgeBase.rule(@regra) do
+      {:ok, regra} ->
+        regra
+        |> get_in(["vocabulary", "token_state", "values"])
+        |> Kernel.||(%{})
+        |> casar_atomo(to_string(estado))
+
+      _ ->
+        raise "regra #{@regra} ausente da base de conhecimento"
+    end
+  end
+
+  defp casar_atomo(estados, atomo) do
+    Enum.find_value(estados, atomo, fn {palavra, corpo} ->
+      if corpo["atom"] == atomo, do: palavra
+    end)
+  end
+
   # ----------------------------------------------------------------- a geração
 
   @doc """

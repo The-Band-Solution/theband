@@ -37,6 +37,45 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// ─────────────────────────────────────────────────────────────────────────────
+// `the_band:copy` — o ouvinte que faltava.
+//
+// A tela de tokens despacha este evento desde a v0.8.0, e NINGUÉM o escutava: o
+// `JS.dispatch` tinha exatamente uma ocorrência no repositório, a que dispara. O botão
+// `Copy value` existia, não dava erro, e não copiava nada.
+//
+// É o pior lugar possível para um sucesso silencioso. O valor do token é mostrado UMA vez,
+// a própria tela diz que ele não volta, e quem clica e sai perde a credencial que acabou
+// de gerar — sem nunca ver um erro.
+//
+// Por isso este ouvinte **reporta as duas saídas**, e a que importa é a falha: a área de
+// transferência recusa em contexto inseguro (http sem TLS) e recusa sem permissão. Quando
+// recusa, a mensagem manda selecionar o valor à mão — e o valor tem `select-all`, então um
+// clique o seleciona inteiro.
+window.addEventListener("the_band:copy", event => {
+  const texto = event.detail && event.detail.text
+  const onde = event.target.querySelector("[data-copy-status]")
+
+  const dizer = (mensagem, classe) => {
+    if (!onde) return
+    onde.textContent = mensagem
+    onde.className = `self-center text-xs ${classe}`
+  }
+
+  const naoDeu = () =>
+    dizer("could not copy — select the value above and copy it by hand", "text-error")
+
+  if (!texto) return naoDeu()
+
+  // Sem `navigator.clipboard` não há o que tentar: ele não existe fora de contexto seguro.
+  if (!navigator.clipboard || !navigator.clipboard.writeText) return naoDeu()
+
+  navigator.clipboard.writeText(texto).then(
+    () => dizer("copied — paste it into your secret manager now", "text-success"),
+    () => naoDeu()
+  )
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 
