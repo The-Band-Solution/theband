@@ -1,11 +1,13 @@
 # Spec 062 — o servidor MCP: as perguntas da plataforma, respondidas a um agente
 
-> **Estado: pronta para planejar.** Não há código. Esta spec ficava **atrás da 061** por
-> dependência real, e não por prioridade: o servidor MCP é **consumidor** da API pública, e
-> não um segundo caminho para os dados.
+> **Estado: planejada, com 26 tarefas abertas e uma feita (T009, a revisão independente).** Não há código. Esta spec ficava
+> **atrás da 061** por dependência real, e não por prioridade: o servidor MCP é **consumidor**
+> da API pública, e não um segundo caminho para os dados.
 >
-> **A 061 foi entregue em 2026-09-21** — ver [Dependências](#dependências), reconferidas
-> contra o código nessa data.
+> **Reconciliada contra o código em 2026-09-24.** Entre o plano (2026-09-22) e hoje, a 061
+> ganhou o registro de leitura e o limite por token (#936, #938), o token sem prazo e o motivo
+> da revogação (#939). Isso mudou a FR-004 e acrescentou a FR-024 e a FR-025. Ver
+> [Dependências](#dependências).
 
 **Origem**: [`docs/backlog/servidor-mcp.md`](../../docs/backlog/servidor-mcp.md), que estava
 marcado **bloqueado** no [README do backlog](../../docs/backlog/README.md) com a razão exata:
@@ -62,8 +64,13 @@ criaria a segunda verdade sobre acesso que a 061 recusou.
   (`Access.scopes/2`, `pode_ver/3`, `pode_ver_equipe/3`). O servidor MUST NOT guardar escopo,
   papel ou lista de organizações — nem em memória entre chamadas.
 - **FR-004**: A **paridade é tripla e provada por teste**: o que a tela recusa por veredito, a
-  API recusa, e o servidor MCP recusa — pela mesma razão e com a mesma mensagem. Três portas
-  para o mesmo dado com três respostas diferentes é o mesmo furo contado três vezes.
+  API recusa, e o servidor MCP recusa, pelo **mesmo veredito e pela mesma razão**. Três portas
+  para o mesmo dado com três vereditos diferentes é o mesmo furo contado três vezes.
+  **A forma da recusa é de cada porta, e não precisa coincidir**: a API responde `404`, porque
+  ali `403` confirmaria que o recurso existe; o MCP responde `state: "refused"`, porque um
+  agente que recebe erro de transporte não distingue *não pode ver* de *o servidor caiu*
+  (FR-013). *Emendada em 2026-09-24: a versão anterior pedia "a mesma mensagem", e isso
+  contradizia a FR-013.*
 - **FR-005**: A revogação do token vale na chamada seguinte, sem cache — herdado da Q3 da 061.
 - **FR-006**: O servidor **não guarda o token** — nem em disco, nem em memória entre chamadas,
   nem em variável de ambiente própria. Ele recebe o token na chamada, verifica, responde e
@@ -82,6 +89,26 @@ criaria a segunda verdade sobre acesso que a 061 recusou.
 - **FR-008**: Nenhuma resposta de ferramenta MUST conter o token, parte dele além do prefixo
   público, ou qualquer valor derivado dele. O consumidor é um modelo que pode repetir o que
   recebe — e o que ele repete pode ser registrado, cacheado e indexado do outro lado.
+
+### O registro e o limite: herdados da 061, e o que o MCP acrescenta
+
+*Acrescentado em 2026-09-24.* O plano e a avaliação de segurança citavam a FR-024 sem que ela
+estivesse nesta spec.
+
+- **FR-024**: Herdada da **spec 045**: aceita-se o risco de **agregação**, em que alguém que
+  alcança muitos itens reconstrói por acumulação o que o veredito recusa direto, e o
+  **registro de acesso** é o caminho para percebê-lo. Por MCP, isso exige que toda leitura
+  **concedida** deixe linha no registro da 061 (`api_access_reads`), com o **nome da
+  ferramenta** e o **alvo** (`team_id`), e sem o corpo da resposta. Uma linha que diz só
+  `/mcp` não permite responder *"esta credencial leu o painel de qual equipe?"*, e então a
+  FR-024 fica apoiada em nada.
+- **FR-025**: **Recusa não é leitura.** A recusa sai como resposta de ferramenta, em HTTP
+  `200` (FR-013), e MUST NOT ser gravada no registro de leitura. Gravá-la faria o registro
+  afirmar que a credencial leu o que lhe foi negado. A recusa vai para o registro de recusa,
+  com a razão.
+- **FR-026**: **O limite é o da 061, um só por token.** `/mcp` e `/api/v1` gastam o mesmo limite
+  (`api.access.thresholds`, regra `rate_limit`). Um limite por porta daria ao mesmo token o
+  dobro da vazão, e duas respostas para *"por que recusou"*.
 
 ### A forma da resposta: a proveniência não é opcional
 
@@ -162,21 +189,25 @@ criaria a segunda verdade sobre acesso que a 061 recusou.
 | **Q1** | O servidor roda **dentro** do monólito (uma rota a mais) ou como processo separado que chama a API por HTTP? | **dentro**, na primeira versão: chamar a própria API por HTTP de dentro do mesmo nó paga rede para não ganhar isolamento nenhum. Mas MUST usar a mesma fronteira de contexto que a API usa — nunca o `Repo` — para que a extração posterior seja mecânica |
 | **Q2** | Quantas ferramentas no primeiro corte, e quais? | as perguntas que a **tela da equipe** já responde: quem está na equipe, o que cada um tem aberto, quanto o trabalho espera por revisão, o que está parado. Quatro, com caminho de dados provado |
 | **Q3** | A resposta é JSON estruturado ou texto para o modelo ler? | **estruturado**, com a proveniência em campo próprio. Texto convida o modelo a resumir, e o resumo é onde a ressalva morre — e esta casa já mediu que regra pedida ao modelo é ignorada, enquanto regra virada em schema é obedecida |
-| **Q4** | Limite de taxa próprio ou o da 061? | o da 061. Dois limites para o mesmo token dariam duas respostas para "por que recusou" |
+| **Q4** | Limite de taxa próprio ou o da 061? | **Respondida em 2026-09-24**: o da 061, que agora existe (#936, #938). É a FR-026. Em 2026-09-22 a resposta era verdadeira no papel e falsa no código: não havia limite nenhum |
 
 ---
 
 ## Dependências
 
-> **Conferida contra o código em 2026-09-21.** Duas linhas desta tabela estavam
-> desatualizadas — a spec foi escrita em 2026-09-09, e as duas mudaram depois. Uma tabela
-> de dependências que ninguém reconfere vira premissa de desenho, e premissa de desenho é
-> o que faz alguém planejar em torno de um bloqueio que já caiu.
+> **Conferida contra o código em 2026-09-24**, e antes em 2026-09-21. Das duas vezes havia
+> linha desatualizada. Uma tabela de dependências que ninguém reconfere vira premissa de
+> desenho, e premissa de desenho é o que faz alguém planejar em torno de um bloqueio que já
+> caiu. Na segunda vez a premissa era o contrário: o plano mandava **criar** o que a 061 já
+> tinha acabado de criar.
 
 | Depende de | Estado |
 |---|---|
 | **spec 061** — token, veredito reusado, pipeline `:api`, recusa 401 única | **entregue**: token no [#930](https://github.com/The-Band-Solution/theband/pull/930), rotas e Swagger no [#933](https://github.com/The-Band-Solution/theband/pull/933), detalhe de equipe no [#934](https://github.com/The-Band-Solution/theband/pull/934). 24 de 24 tarefas |
-| `api.access.thresholds` na base de conhecimento | proposta na 061, valores a decidir com o PO — **segue em aberto** |
+| `api.access.thresholds` na base de conhecimento | **aplicada**: `rate_limit` com 120 por minuto e janela de 60 s, `applied: true`. Os valores continuam como **proposta** (`status: proposed`), e mudam ali, e não no código |
+| **registro de leitura** (`ApiReadLog`, `api_access_reads`) | **existe** desde o #936, com retenção indefinida e o painel do #939. **Não enxerga o MCP como está**: grava o molde da rota e `params["id"]`, e no MCP os dois saem vazios. Ver FR-024 e a T021 |
+| **limite por token** (`ApiRateLimit`) | **existe** desde o #936, com janela deslizante desde o #938. Vale para `/mcp` se `/mcp` passar pela mesma pipeline. Ver FR-026 |
+| **token sem prazo** e **motivo da revogação** | **existem** desde o #939. O primeiro pesa na FR-007: um token sem prazo guardado na configuração do cliente vale até ser revogado |
 | as **77 perguntas de competência** já declaradas | existem |
 | `users.disabled_at` | **existe** desde a migração `20260910050000`, e `api_auth.ex` já recusa token de conta desativada por `User.ativa?/1`. A limitação de acesso órfão que esta linha declarava **não vale mais** |
 
@@ -221,4 +252,5 @@ aquela não tem**, e ela precisa de avaliação própria:
    responder uma pergunta que nenhuma delas responderia sozinha. É risco de desenho, não de
    implementação;
 4. **o registro**: o que se conta de uso por MCP para que abuso seja detectável, e o que não
-   pode ir para o log.
+   pode ir para o log. *Em 2026-09-24 o registro existe, e a pergunta mudou*: ele distingue as
+   ferramentas e os alvos, e deixa de fora as recusas? Ver FR-024 e FR-025.

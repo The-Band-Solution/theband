@@ -9,9 +9,9 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 ## Onde parei, em uma frase
 
 **A v0.9.1 está no ar e foi conferida do lado anônimo**. `development` já carrega o que vai
-ser a **v0.10.0**. Não há PR aberto. O próximo trabalho é a **062 (servidor MCP)**, com 27
-tarefas e nenhuma feita, e **o plano dela precisa ser reconciliado antes de uma linha de
-código** (ver §2).
+ser a **v0.10.0**. O próximo trabalho é a **062 (servidor MCP)**: o plano foi
+reconciliado com o código (#944), e a primeira tarefa é a **revisão independente** (T009),
+antes de qualquer código (ver §2).
 
 ## O primeiro comando
 
@@ -74,25 +74,32 @@ resposta.
 O `mix.exs` já diz `0.10.0`. Use `/release`, e **meça de novo antes de mergear o PR de
 release**, que foi o que faltou na v0.9.1.
 
-### 2. A 062 — reconciliar o plano antes de implementar
+### 2. A 062 — o plano foi reconciliado; falta a revisão independente
 
-`specs/062-servidor-mcp/`: spec, plano, pesquisa, contratos, `seguranca.md` e 27 tarefas.
-Todas abertas.
+`specs/062-servidor-mcp/`: spec, plano, pesquisa, contratos, `seguranca.md` e **26 tarefas
+abertas**. Reconciliado contra o código em 2026-09-24, no **#944**.
 
-**O plano foi escrito em 2026-09-22, e o #936 e o #938 mudaram o terreno no dia seguinte.**
-As tarefas T021–T025 partem de duas premissas que **deixaram de ser verdade**:
+O que a reconciliação achou: o #936 e o #938 já tinham criado o registro de leitura e o limite
+que o plano mandava criar. **E reusá-los como estão traz dois defeitos altos**:
 
-| tarefa | premissa escrita | o que existe hoje |
-|---|---|---|
-| T021–T023 (achado A1) | "nenhuma leitura bem-sucedida é registrada" | `TheBandWeb.Plugs.ApiReadLog` na pipeline da API (#936), e o painel que lê o registro (#939) |
-| T024–T025 (achado A2) | "não há limite de taxa na 061" | limite por token com janela deslizante (#936, #938) |
+- **A6**: o registro grava o molde da rota e `params["id"]`. No MCP, toda linha diria só `/mcp`;
+- **A7**: o registro grava todo `2xx`, e a recusa do MCP sai em `200`. A recusa seria gravada
+  como leitura.
 
-**Não implemente essas tarefas como estão escritas.** Primeiro `/speckit-converge` ou
-`/speckit-analyze` contra o código. O MCP provavelmente **reusa** o registro e o limite da
-061, em vez de criar os seus. O `seguranca.md` da 062 tem de ser reavaliado pela mesma razão.
+Os dois viraram T021 e T022, e exigem mexer no `ApiReadLog`, que é código da 061 em produção.
 
-A única dependência nova é `{:ex_mcp, "~> 1.5"}` (T001). Research D1 explica por que esta
-biblioteca e não as outras.
+**A T009 foi feita em 2026-09-24** (`seguranca-revisao-independente.md`), e reprovou a T021 e a
+T022 como estavam escritas. As tarefas foram reescritas, e todos os achados têm destino.
+**Antes do T001, três PRs**:
+
+| PR | O quê |
+|---|---|
+| **#944** | esta reconciliação, os dois relatórios de segurança, a medição do R3 e as tarefas reescritas |
+| **#945** | N5: o token de organização suspensa deixa de autenticar. **Estava em produção** |
+| **#946** | H2-R: o perfil escrito pelo modelo segue o veredito, na tela e na API. **Estava em produção** |
+
+Depois deles, o **T001**: `ex_mcp == 1.5.0`, a exceção do `cowlib` no gate (medida como não
+alcançável sob o Bandit) e as três guardas que a derrubam se o adapter mudar.
 
 ### 3. Depois da 062: tracing com SigNoz
 
@@ -116,8 +123,9 @@ primeira fatia é uma jornada visível (login/logout), e não a infraestrutura s
   não o erro JSON único. Reproduzido em produção. O Product Owner decide se é defeito ou
   lacuna da spec. O conserto provável é um `match :*, "/*path"` no fim do escopo, e está na
   issue;
-- **o token de produção que passou por um proxy que intercepta TLS** — citado na nota da
-  v0.9.1, **ainda por revogar**. Trate como vazado;
+- ~~**o token de produção que passou por um proxy que intercepta TLS**~~ — **Revogado em 2026-09-24 pela pessoa mantenedora** — declarado, e não medido: pela SC-003 um token revogado e um inexistente respondem igual, então a revogação não se confere de fora. **Conferido
+  no painel de uso (#939)**: a última leitura foi em 2026-09-23 19:24, dentro das medições, e não
+  há nenhuma depois. Encerrado;
 - **a variável `PRODUCAO_URL` foi posta também no painel do servidor**. A aplicação não a lê.
   Não atrapalha, mas pode confundir. Pode tirar;
 - **o `main` local deste checkout está em `0.2.0`**. Compare sempre contra `origin/main`;

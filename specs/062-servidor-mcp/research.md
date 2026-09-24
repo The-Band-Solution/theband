@@ -36,6 +36,12 @@ devolveu.
 13 mil downloads acumulados contra 210 mil do concorrente parado. Uma versão `1.5` publicada
 no mesmo dia da escolha não tem histórico de estabilidade.
 
+> **Corrigido em 2026-09-24 pela revisão independente (R3).** "Uma dependência nova" é uma
+> dependência **direta**: a `ex_mcp` 1.5.0 traz **dez** pacotes, entre eles `plug_cowboy`, e
+> faz o `mix hex.audit` sair 1, por duas advisories do `cowlib`. Foi medido que o `cowlib` não
+> é alcançável sob o Bandit ([`r3-cowlib-alcance.md`](./r3-cowlib-alcance.md)), e a exceção
+> entra no T001 com a versão fixada em `== 1.5.0` e três guardas.
+
 **A mitigação é de desenho, e é o que torna a escolha reversível**: a camada MCP MUST ser
 **fina**. As ferramentas são funções puras sobre os contextos que já existem; a biblioteca
 carrega transporte e enquadramento do protocolo, e mais nada. Se ela tiver de ser trocada,

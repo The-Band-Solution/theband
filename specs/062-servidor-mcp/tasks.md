@@ -1,6 +1,6 @@
 # Tarefas: o servidor MCP — as perguntas da equipe, respondidas a um agente
 
-**Feature**: 062 · **Branch**: `062-servidor-mcp` · **Data**: 2026-09-22
+**Feature**: 062 · **Branch**: `062-servidor-mcp` · **Data**: 2026-09-22 · **Reconciliado**: 2026-09-24
 
 **Entrada**: [`plan.md`](./plan.md) · [`spec.md`](./spec.md) ·
 [`research.md`](./research.md) · [`data-model.md`](./data-model.md) ·
@@ -9,33 +9,95 @@
 
 ---
 
-## A decisão que define o tamanho desta fatia
+## Reconciliado contra o código em 2026-09-24
 
-A avaliação de segurança achou **dois riscos altos**, e ambos **entram como tarefa** — não
-são empurrados para depois:
+Estas tarefas foram escritas em 2026-09-22, e no dia seguinte o #936 e o #938 **resolveram na
+061** os dois achados altos que definiam o tamanho da fatia. A reconciliação
+(`/speckit-analyze`, 2026-09-24) mediu o que existe e trocou cinco tarefas:
 
-| # | Achado | Onde entra |
-|---|---|---|
-| **A1** | leitura bem-sucedida não é registrada em lugar nenhum, e a FR-024 se apoia nisso | US3, tarefas T021–T023 |
-| **A2** | não há limite de taxa na 061, e a Q4 dizia herdá-lo | US3, tarefas T024–T025 |
-| **A3** | injeção de instrução pelo conteúdo | US1, tarefa T014 |
+| # | O que as tarefas diziam | O que existe | O que mudou aqui |
+|---|---|---|---|
+| **A1** | nenhuma leitura bem-sucedida é registrada | `TheBandWeb.Plugs.ApiReadLog` na pipeline `:api_autenticada`, a tabela `api_access_reads`, `ApiAccessLog.uso_por_rota/3` e o painel do #939 | T021 **herda** o registro, em vez de criá-lo. T023 foi **removida**, porque a falta da API HTTP já foi consertada |
+| **A2** | não há limite de taxa na 061 | `TheBandWeb.Plugs.ApiRateLimit`: 120 por minuto por token, com janela deslizante | T024 vira **teste do limite compartilhado**. T025 foi **removida**, porque a alternativa dela deixou de existir |
+| **A6** | *(novo)* | o registro grava `route` pelo molde da rota e `target_id` por `params["id"]`. No MCP, as duas coisas saem vazias | T021 |
+| **A7** | *(novo)* | o registro grava todo status `2xx`, e a recusa do MCP sai em `200` | T022 |
+| **A3** | injeção de instrução pelo conteúdo | sem mudança | US1, T014 |
 
-**O registro de leitura da API HTTP fica FORA**, e vira item de backlog próprio: a mesma
-falta vale para as rotas da 061 que já estão prontas, e consertá-la só do lado MCP deixaria
-a porta mais antiga sem o registro que a FR-024 exige. Está declarado, não silenciado.
+**A6 e A7 exigem mexer no `ApiReadLog`**, que é código da 061 **em produção**. A mudança é
+pequena, mas passa a fazer parte desta fatia, e está dita aqui para que ninguém a descubra no
+diff.
+
+**A autoavaliação continua sendo autoavaliação.** Ver T009: a revisão independente vem antes
+de qualquer código.
+
+### O que a revisão independente (T009) mudou — **antes de qualquer código**
+
+A T009 foi feita em 2026-09-24 por um agente que não escreveu o desenho, lendo também o código
+da `ex_mcp` 1.5.0. **Ela reprova a T021 e a T022 como estão escritas**, e três pontos exigem
+decisão antes do T001:
+
+| # | Achado | Severidade | O que bloqueia |
+|---|---|---|---|
+| **R1** | a ferramenta roda num processo separado da `ex_mcp`, e o `conn.private` que a T021 usaria **nunca chega** ao `ApiReadLog`. A6 e A7 voltam | alta | **reescritas**: T021 grava no ponto do veredito, e o `ApiReadLog` pula o `/mcp` |
+| **R2** | **A8**: a notificação (`202`), o `initialize`/`tools/list` e o stream de progresso (`send_chunked(200)`, gravado antes do veredito) seriam registrados como leitura | alta | T022, e o T016 fecha o stream |
+| **R3** | a `ex_mcp` traz **dez** pacotes, entre eles `plug_cowboy`, e o `cowlib` 2.20.0 tem duas advisories sem correção: `mix hex.audit` sai com **1**. Conferido de novo em 2026-09-24 | média | **o T001**: aceitar a exceção no gate é decisão do Product Owner |
+| **R4** | `subscriptions/listen` vem ligado, e o stream dura até 1 h, conta uma vez no limite e **sobrevive à revogação** | média | **T016**, nova: lista fechada de métodos antes da biblioteca |
+| **R5** | sessão legada sem identidade, e teto de 10 000 sessões **global por nó** | média | T007: `:modern_only` |
+| **R6** | o ramo admin de `pode_ver_equipe/3` concede qualquer UUID. Sem `EO.fetch_team` antes, equipe de outro tenant sai `checked` com resultado vazio | média | T006: `fetch_team` antes do veredito, no caminho único; T018 testa com admin |
+
+R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos ao A3 entraram no T014; o I1 no T029. **Todos os achados da T009 têm tarefa ou destino escrito.**
 
 ---
 
 ## Fase 1 — Preparação
 
+- [x] **T009** Obter a revisão independente do desenho reconciliado — *feita em 2026-09-24:
+  [`seguranca-revisao-independente.md`](./seguranca-revisao-independente.md), agente `security`*
+  - **Pronta quando**: a reconciliação de 2026-09-24 commitada
+  - **Descrição**: o agente `security` avalia `spec.md`, `plan.md`, `seguranca.md` e
+    `contracts/`, **e o código que o desenho reusa**: `api_read_log.ex`, `api_rate_limit.ex`,
+    `api_auth.ex` e `access.ex`. A autoavaliação de 2026-09-22 errou justamente onde importava:
+    não viu que a recusa do MCP seria gravada como leitura (A7). É a lacuna I4, e o princípio
+    VII
+  - **Feita quando**: a avaliação está escrita por quem não escreveu o desenho, e cada
+    achado alto virou tarefa. Se falhar de novo, a lacuna é **declarada** no `seguranca.md`,
+    e nunca marcada como cumprida
+  - **Teste**: revisão. O documento nomeia quem avaliou e o que leu
+
 - [ ] **T001** Travar a dependência do protocolo
-  - **Pronta quando**: nada além do repositório
-  - **Descrição**: acrescentar `{:ex_mcp, "~> 1.5"}` a `mix.exs`, com o comentário dizendo
+  - **Pronta quando**: T009 concluída ou declarada impossível
+  - **Descrição**: acrescentar `{:ex_mcp, "== 1.5.0"}` a `mix.exs`, **fixada**, e não `~> 1.5`, com o comentário dizendo
     **por que esta e não as outras** — research.md D1: `hermes_mcp` não publica desde
     2025-08, `fastest_mcp` está em 0.x e tem 586 downloads. É a **única** dependência nova
-    da feature
+    **direta** da feature, e ela traz **dez** pacotes, entre eles `plug_cowboy`; ver a R3 e
+    a exceção abaixo. **A cadência também vai no comentário**: 1.3.0 em 05/09, 1.4.0 em 17/09,
+    1.5.0 em 21/09. Uma versão a cada ~7 dias. Com `~> 1.5`, qualquer 1.x nova
+    entraria sem que a medição da R3 fosse refeita, e por isso a versão é fixada
   - **Feita quando**: `mix deps.get` resolve; `mix.lock` registra a versão; o comentário no
-    `mix.exs` nomeia o que fica pior (biblioteca jovem) e a mitigação (camada fina)
+    `mix.exs` nomeia o que fica pior (biblioteca jovem e em movimento) e a mitigação (camada
+    fina)
+
+    **A exceção no gate foi aceita em 2026-09-24**, e só sob condição. A pessoa mantenedora
+    aceitou `hex: [ignore_advisories: ["EEF-CVE-2026-43966", "EEF-CVE-2026-43969"]]` **se**
+    fosse medido que o `cowlib` não é alcançável na borda. A medição
+    ([`r3-cowlib-alcance.md`](./r3-cowlib-alcance.md)) deu **não alcançável**:
+    - as duas advisories atingem **codificadores**, e não parser;
+    - com o Bandit, um trace sobre 816 funções de cowlib, cowboy, ranch e plug_cowboy deu
+      **zero chamadas**;
+    - o controle, o mesmo plug sob Cowboy, deu 85 chamadas.
+
+    Entram com o T001, e **não** depois:
+    1. a `ex_mcp` fixada em **`== 1.5.0`**, e não `~> 1.5`: versão nova reabre a medição;
+    2. o comentário do `mix.exs`, com o texto do documento e as **quatro condições que
+       derrubam a exceção**;
+    3. **três guardas em teste**:
+       - o adapter do endpoint é `Bandit.PhoenixAdapter`. Sem a linha, o Phoenix volta ao
+         Cowboy **em silêncio**, e o `plug_cowboy` passa a estar instalado;
+       - `:ranch.info()` é `%{}`, ou seja, nenhum listener Cowboy de pé;
+       - em `lib/`, nenhuma ocorrência de `Plug.Cowboy`, `ExMCP.Server.Transport`,
+         `transport: :http` ou `:cow_`, lida **sem** comentários
+  - **Teste (acréscimo de 2026-09-24)**: com as três guardas, `mix hex.audit` sai **0** com a
+    exceção e **1** sem ela. As guardas são provadas com defeito injetado
   - **Teste**: `mix deps.get && mix compile --warnings-as-errors` — e `mix hex.audit` sem
     aviso novo
 
@@ -88,26 +150,109 @@ a porta mais antiga sem o registro que a FR-024 exige. Está declarado, não sil
   - **Teste**: `test/the_band/mcp/ausencia_test.exs` — os três aparecem na execução, e
     `checked` com `value: 0` é o **único** caso em que zero é resposta
 
-- [ ] **T006** Abrir o registro de ferramentas
+- [ ] **T006** Abrir o registro de ferramentas — e fazer dele o caminho único
   - **Pronta quando**: T002 concluída
+  - *Reescrita em 2026-09-24 pela revisão independente (T009).* R1, R6 e o complemento 1 ao A3
   - **Descrição**: `lib/the_band/mcp/ferramentas.ex` com a **lista fechada**, casada uma a
     uma. Nenhuma ferramenta genérica, nenhum filtro livre, nenhum campo de ordenação vindo
-    de argumento — FR-023. O protocolo exige `tools/list`, e é o registro que o responde
-  - **Feita quando**: `Ferramentas.listar/0` devolve as quatro; acrescentar uma sem entrada
-    no registro não a torna alcançável
-  - **Teste**: `test/the_band_web/mcp/protocolo_test.exs` — `tools/list` devolve
-    exatamente `team_roster`, `team_open_work`, `team_review_wait` e `team_stale_work`
+    de argumento (FR-023). O protocolo exige `tools/list`, e é o registro que o responde.
+
+    **O registro é o único caminho até uma ferramenta, e a ordem nele é fixa**:
+    `EO.fetch_team(tenant, team_id)` → `pode_ver_equipe(tenant, user, equipe.id)` →
+    `{concedido: registrar leitura | recusado: registrar recusa}` → carga pelo `equipe.id`
+    **carregado**, nunca pelo argumento cru → montar a resposta.
+
+    O `fetch_team` vem **antes** do veredito porque o ramo `admin` de `pode_ver_equipe/3`
+    (`access.ex:392`) concede **qualquer** UUID. Sem ele, um admin que passasse o id de uma
+    equipe de outro tenant receberia `checked` com resultado vazio (R6). `{:error,
+    :not_found}` e `{:nao, :fora_do_alcance}` produzem **a mesma** recusa.
+
+    O `inputSchema` de cada ferramenta declara `team_id` com `format: uuid` e
+    `additionalProperties: false`. Um `tenant_id` enviado passa a ser **recusado de forma
+    visível**, e não ignorado.
+
+    **A `description` de cada ferramenta e as `instructions` do `initialize` são
+    constantes**: literais de código ou da base de conhecimento, e nunca dado. O modelo as lê
+    como instrução da plataforma, e um nome de equipe ali seria um canal de injeção com a
+    autoridade dela
+  - **Feita quando**:
+    - `Ferramentas.listar/0` devolve as quatro;
+    - acrescentar uma sem entrada no registro não a torna alcançável;
+    - cada entrada nomeia o id da pergunta de competência que responde (FR-020);
+    - as quatro passam pelo mesmo caminho, e nenhuma ferramenta chama `pode_ver_equipe` nem
+      `ApiAccessLog` por conta própria
+  - **Teste**: `test/the_band_web/mcp/protocolo_test.exs`:
+    - `tools/list` devolve exatamente `team_roster`, `team_open_work`, `team_review_wait` e
+      `team_stale_work`, e é **byte a byte idêntico para dois tenants diferentes**;
+    - um argumento `tenant_id` é recusado pelo schema.
+
+    `test/the_band/mcp/ferramentas_test.exs`: o id de pergunta de cada uma **existe na base
+    de conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem,
+    reprova nomeando a ferramenta
+
+- [ ] **T016** Fechar a lista de métodos do protocolo, antes da biblioteca
+  - **Pronta quando**: T006 concluída
+  - *Reescrita em 2026-09-24 pela revisão independente (T009).* R4 e R2
+  - **Descrição**: um plug no escopo `/mcp`, **antes** da `ex_mcp`, lê
+    `conn.body_params["method"]` (o `Plug.Parsers` já decodificou) e aceita só
+    `initialize`, `notifications/initialized`, `ping`, `tools/list` e `tools/call`. O resto
+    recebe o erro JSON-RPC de método inexistente. É a FR-023 aplicada ao protocolo, e não só
+    às ferramentas.
+
+    A razão: a `ex_mcp` liga `subscriptions/listen` por padrão, e esse stream dura até 1 h,
+    conta **uma vez** no limite, não tem teto de concorrência, e **continua aberto depois da
+    revogação**. Fechar a lista também recusa `tools/call` que peça stream de progresso
+    (`progressToken`), que seria gravado como leitura antes de existir veredito (R2)
+  - **Feita quando**: só os cinco métodos chegam à biblioteca; nenhuma resposta de `/mcp` sai
+    em `text/event-stream`
+  - **Teste**: `test/the_band_web/mcp/metodos_test.exs`:
+    - com token válido, `subscriptions/listen`, `resources/list`, `prompts/list` e
+      `logging/setLevel` são recusados, e nenhum abre stream: o `content-type` não é
+      `text/event-stream`;
+    - guarda: `tools/list` passa.
 
 - [ ] **T007** Servir o MCP autenticado
-  - **Pronta quando**: T006 concluída
-  - **Descrição**: escopo `/mcp` em `lib/the_band_web/router.ex`, atrás de
-    `TheBandWeb.Plugs.ApiAuth` **sem alteração**. O tenant vem da linha do token, nunca de
-    argumento (FR-002); o alcance é recomputado a cada chamada e nada é guardado (FR-003)
-  - **Feita quando**: chamada sem token é recusada; o tenant e a conta dona vêm do token;
-    nenhum estado sobrevive entre chamadas
-  - **Teste**: `test/the_band_web/mcp/protocolo_test.exs` — sem cabeçalho `Authorization`,
-    a chamada não alcança ferramenta alguma; e um argumento `tenant_id` é **ignorado**, não
-    obedecido
+  - **Pronta quando**: T006 e T016 concluídas
+  - *Reescrita em 2026-09-24 pela revisão independente (T009).* R5, R7, R8, R10 e a marca do R1
+  - **Descrição**:
+    - **Rota**: escopo `/mcp` em `lib/the_band_web/router.ex`, com
+      `pipe_through [:api, :api_autenticada]`, a mesma pipeline de `/api/v1`. Pôr só o
+      `ApiAuth` deixaria o MCP sem limite e sem registro, e nada reprovaria. A rota casa
+      **`/mcp` exato**: com `forward "/mcp"`, a biblioteca trataria `POST` em qualquer
+      subcaminho como MCP (R10).
+    - **Marca do registro**: um plug do escopo, **antes** da biblioteca, faz
+      `put_private(:api_read_log, :delegado)`. É o que faz o `ApiReadLog` deixar de gravar o
+      `/mcp`, porque quem grava passa a ser o registro de ferramentas (T021). A marca roda no
+      processo da requisição, e por isso chega ao `before_send`.
+    - **`protocol_mode: :modern_only`** (R5). Elimina sessão, `GET`, `DELETE` e o
+      `SessionManager`, que na era legada ficam **sem identidade** e com um teto de 10 000
+      sessões **global por nó**: um tenant esgotaria o de todos. Se um cliente real exigir a
+      era legada, isso é decisão nova, com a sessão presa ao `public_id` do token e ao tenant.
+    - **Opções do handler** (R7): por **MFA**, calculadas **a cada requisição**, e só com
+      identificadores: `%{tenant, user, token_public_id, request_id}`. Nunca o
+      `%ApiAccessToken{}` inteiro, nunca `conn.req_headers`. O `forward` avalia `init/1` em
+      compilação, e a tentação de pôr um valor estático é a de tornar o estado global. A
+      ferramenta nunca devolve `{:error, dado}`, porque isso vai ao modelo.
+    - **Correlação** (R8): o `init/1` do handler chama
+      `Logger.metadata(request_id: …, tenant_id: …)`. O handler roda noutro processo, e sem
+      isso todo log da ferramenta, incluindo a recusa, sai sem `request_id`.
+
+    O tenant vem da linha do token, nunca de argumento (FR-002); o alcance é recomputado a cada
+    chamada e nada é guardado (FR-003)
+  - **Feita quando**:
+    - chamada sem token é recusada com o `401` do formato único;
+    - o tenant e a conta dona vêm do token, e nenhum estado sobrevive entre chamadas;
+    - `/mcp` passa pelos três plugs;
+    - `GET` e `DELETE` em `/mcp` recebem `405`
+  - **Teste**: `test/the_band_web/mcp/protocolo_test.exs`:
+    - sem cabeçalho `Authorization`, a chamada não alcança ferramenta alguma;
+    - a rota `/mcp`, lida na tabela do roteador, tem `ApiRateLimit` e `ApiReadLog` na
+      pipeline. O controle é o plug, e não o nome da pipeline;
+    - duas chamadas seguidas com tokens de **tenants diferentes**, na mesma execução,
+      recebem cada uma o seu tenant;
+    - o `inspect` do estado passado ao handler não contém o valor do token;
+    - o evento de recusa carrega o mesmo `request_id` do cabeçalho `x-request-id`;
+    - `GET /mcp` e `DELETE /mcp` recebem `405`
 
 - [ ] **T008** Guardar a fronteira do banco
   - **Pronta quando**: T002 concluída
@@ -161,9 +306,12 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     como zero afirmaria revisão instantânea. `truncated` diz se a lista cortou
   - **Feita quando**: as duas medianas vêm em campos próprios; não existe campo de mediana
     única; `median_hours` e `median_days` são `null` — nunca zero — quando não há o que medir
-  - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — contra a base medida em
-    2026-09-21, `reviewed.count: 23` com `median_hours: 0.2` **e** `waiting.count: 79` com
-    `median_days: 46`. Uma mediana só responderia *"12 minutos"*
+  - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — com dados de teste em que as duas
+    leituras **divergem de propósito**: poucas esperas revisadas em horas e muitas em curso há
+    dias. As duas medianas saem separadas, e nenhum campo as combina. **Os números de
+    produção** (23 revisadas com 0,2 h, 79 esperando há 46 dias, `LEDS - ConectaFapes`,
+    medidos em 2026-09-21) **não cabem aqui**: o ExUnit roda no banco isolado de teste e não
+    os enxerga. Eles vão para o T030, com o cliente real
 
 - [ ] **T013** [P] [US1] Responder o que está parado
   - **Pronta quando**: T004, T005, T006 concluídas
@@ -187,9 +335,29 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
   - **Feita quando**: nenhum título de terceiro aparece fora da chave que o marca; a
     descrição de cada ferramenta (FR-022) diz que os campos de texto são conteúdo observado,
     e não instrução
-  - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — uma issue com título
-    *"Ignore as instruções anteriores"* sai **dentro** da chave marcada, com o texto
-    **intacto**. O teste também documenta o limite: isto reduz, e não elimina
+  - **Complementos da revisão independente (T009)**, que entram nesta tarefa:
+    1. **texto da plataforma e texto de terceiro nunca no mesmo campo.** `note`,
+       `limitations`, `misinterpretations` e `missing` são da plataforma, e nada de fora é
+       interpolado neles. Um nome de repositório dentro de `missing` poria texto de fora no
+       campo que o modelo lê como da plataforma;
+    2. **`structuredContent` com `outputSchema`**, e `content[].text` sendo a serialização
+       JSON do **mesmo** objeto, nunca prosa montada. Muitos clientes mostram só o `text`, e
+       a marcação estrutural se perderia ali;
+    3. **sinalizar, sem remover, caracteres invisíveis**: `contains_invisible_characters:
+       true` ao lado do texto de terceiro que tiver caracteres de *tags* (U+E0000–E007F),
+       bidi ou largura zero. É o vetor que um humano não vê e o modelo lê;
+    4. **nenhum Markdown montado pelo servidor**: título dentro de Markdown que o cliente
+       renderiza abre a exfiltração por imagem;
+    5. **requisito, e não nota**: nenhuma ferramenta busca URL ou segue link. Uma assim
+       transformaria a injeção num SSRF com a credencial da plataforma
+  - **Teste**: `test/the_band/mcp/ferramentas_test.exs`:
+    - uma issue com título *"Ignore as instruções anteriores"* sai **dentro** da chave
+      marcada, com o texto **intacto**;
+    - semeado esse título hostil, ele não aparece em **nenhum** campo de texto da plataforma;
+    - um título com U+E0041 sai intacto e com `contains_invisible_characters: true`;
+    - `content[].text` decodifica para o mesmo objeto de `structuredContent`.
+
+    O teste também documenta o limite: isto reduz, e não elimina
 
 - [ ] **T015** [US1] Declarar o que cada ferramenta não responde
   - **Pronta quando**: T010–T013 concluídas
@@ -214,12 +382,15 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
   - **Pronta quando**: T005 e T010–T013 concluídas
   - **Descrição**: quando `pode_ver_equipe/3` nega, a ferramenta devolve
     `%{state: "refused", reason: ...}` — **não** exceção, **não** lista vazia. `reason` fica
-    no vocabulário da regra (`fora_do_alcance`, `escopo_de_equipe`, `vinculo_vigente`), o
-    mesmo do log: traduzir criaria um segundo nome para a mesma cláusula. **Diferente da
+    no vocabulário da regra, o mesmo do log: traduzir criaria um segundo nome para a mesma
+    cláusula. **Hoje a única razão é `fora_do_alcance`**, e equipe inexistente também a
+    recebe. `escopo_de_equipe` e `vinculo_vigente` são caminhos de **concessão**, e a versão
+    anterior desta tarefa os listava como recusa por engano. **Diferente da
     061**, que devolve `404` porque ali a resposta é HTTP: um agente que recebe erro de
     transporte não sabe distinguir *não pode ver* de *o servidor caiu*
   - **Feita quando**: as quatro recusam com razão; nenhuma levanta exceção; nenhuma devolve
-    `[]` por falta de permissão
+    `[]` por falta de permissão; **equipe inexistente, equipe de outro tenant e equipe fora do
+    alcance produzem a mesma recusa** (R6)
   - **Teste**: `test/the_band/mcp/paridade_test.exs` — lista vazia por falta de permissão é
     o sucesso silencioso que esta casa registrou nove vezes; o teste exige `state` e `reason`
 
@@ -231,8 +402,14 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
     com três respostas é o mesmo furo contado três vezes
   - **Feita quando**: os cinco vereditos são exercidos nas três portas; nenhuma concede onde
     outra nega
-  - **Teste**: `test/the_band/mcp/paridade_test.exs` — e a guarda contra o teste vazio: ao
-    menos um caminho tem de **conceder**, senão "todas negam" passaria com as três quebradas
+  - **Teste**: `test/the_band/mcp/paridade_test.exs`:
+    - a guarda contra o teste vazio: ao menos um caminho tem de **conceder**, senão "todas
+      negam" passaria com as três quebradas;
+    - **o caso do admin (R6)**: com dois tenants povoados, uma conta admin de A chama as
+      quatro ferramentas com o id de uma equipe de B e com um UUID inexistente. O resultado
+      são quatro recusas `fora_do_alcance`, e nenhuma `checked`;
+    - guarda do caso do admin: a mesma conta, com uma equipe de A, recebe `checked` com
+      `people` não vazio
 
 - [ ] **T019** [US2] Recusar token revogado na chamada seguinte
   - **Pronta quando**: T007 concluída
@@ -247,63 +424,108 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
 
 ## Fase 5 — US3 (P1): a leitura fica registrada, e o abuso é detectável
 
-**Objetivo**: fechar os dois achados altos da avaliação de segurança.
+**Objetivo**: o MCP herda o registro e o limite que a 061 já tem, **e o registro passa a
+enxergar o MCP**. Sem o T021 e o T022, o MCP passaria pela pipeline e o registro gravaria
+linhas que não dizem nada, ou pior: diriam que uma recusa foi leitura.
 
 **Teste independente**: depois de N chamadas, é possível responder *"esta credencial leu o
-painel de quem, e quantas vezes?"* — que hoje não tem resposta.
+painel de qual equipe, por qual ferramenta, e quantas vezes?"*. E nenhuma recusa aparece como
+leitura.
 
-- [ ] **T021** [US3] Registrar a leitura bem-sucedida
-  - **Pronta quando**: T007 concluída; `seguranca.md` escrito (achado A1)
-  - **Descrição**: hoje **nenhuma leitura bem-sucedida é registrada** — `AccessEvents` tem
-    seis funções e nenhuma é *"leu o dado de alguém"*; o plug registra só a recusa; e
-    `last_used_at` é um carimbo **sobrescrito**. A FR-024 aponta o registro de acesso como o
-    caminho para perceber agregação, e ele não existe. Registrar: `token_public_id`,
-    `tenant_id`, ferramenta, `team_id` alvo e instante — **sem o corpo da resposta**
-  - **Feita quando**: cada chamada bem-sucedida deixa uma linha; o corpo da resposta não
-    aparece no registro; o segredo do token não aparece em forma alguma
-  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — depois de três chamadas, três
-    linhas com a ferramenta e o alvo; e a varredura do registro não encontra o segredo
+> **Reescrita em 2026-09-24.** A versão de 2026-09-22 mandava **criar** o registro e o limite.
+> Os dois foram criados na 061 pelo #936 e pelo #938, antes de a 062 começar. As tarefas antigas
+> teriam produzido um segundo registro e um segundo limite para o mesmo token.
 
-- [ ] **T022** [US3] Contar o uso por token e janela
+- [ ] **T021** [US3] Registrar a leitura no ponto do veredito
+  - **Pronta quando**: T006 e T007 concluídas
+  - *Reescrita em 2026-09-24 pela revisão independente (T009).* A versão anterior mandava a ferramenta escrever em `conn.private` e o `ApiReadLog` ler
+    dali. **Não funciona** (R1): quem chama `send_resp` no `/mcp` é a própria `ex_mcp`, que
+    termina com `halt`, e a ferramenta roda num `GenServer` separado, criado a cada requisição.
+    O `conn.private` escrito lá nunca chega ao `before_send`.
+  - **Descrição**:
+    - **quem grava a leitura do MCP é o registro de ferramentas** (T006), no ponto do
+      veredito. Ele chama `ApiAccessLog.registrar/1` com `route: "mcp:<ferramenta>"` e
+      `target_id: equipe.id`, o id **carregado**. É uma chamada, no registro, e não uma por
+      ferramenta. A lista fechada atende o argumento do próprio `ApiReadLog`: *"uma chamada
+      por controlador é uma que alguém esquece"*;
+    - **o `ApiReadLog` deixa de gravar o `/mcp`**, pela marca `:api_read_log => :delegado`
+      posta no T007. As rotas de `/api/v1` continuam gravando exatamente o que gravam hoje;
+    - a identidade que o registro precisa (`tenant_id`, `token_public_id`) chega pelas opções
+      do handler, calculadas por requisição (T007)
+  - **Feita quando**: cada leitura concedida deixa **uma** linha com a ferramenta e a equipe;
+    nenhuma linha tem `route` começando por `/mcp`; as rotas de `/api/v1` gravam o mesmo que
+    antes; o corpo da resposta e o segredo do token não aparecem na linha
+  - **Teste**: `test/the_band_web/mcp/registro_test.exs`, com dois tenants povoados. Um token
+    com alcance faz, em sequência:
+    - `team_roster` sobre X;
+    - `team_open_work` sobre Y;
+    - `team_roster` sobre uma equipe fora do alcance;
+    - um `initialize`, um `tools/list` e uma notificação.
+
+    O resultado tem de ser **exatamente duas** linhas em `api_access_reads`, com `route`
+    `mcp:team_roster` e `mcp:team_open_work` e `target_id` X e Y. Nenhuma linha com `route`
+    começando por `/mcp`.
+
+    A guarda contra o teste vazio: `assert length(linhas) > 0` antes das refutações. A prova
+    de que o teste mede: remover a chamada de registro e ver reprovar. E
+    `test/the_band_web/plugs/api_read_log_test.exs` continua verde **sem alteração**
+
+- [ ] **T022** [US3] A recusa de equipe é registrada, e não vira leitura — no MCP e na API
   - **Pronta quando**: T021 concluída
-  - **Descrição**: volume anômalo tem de ser **medida**, e não impressão. Contagem por
-    `token_public_id` e por janela, legível por quem opera. É o que torna o achado A4 —
-    agregação ao longo do tempo — detectável; sem isto, A4 não tem mitigação alguma
-  - **Feita quando**: a contagem responde *"quantas leituras esta credencial fez na última
-    janela"*; a resposta distingue ferramentas
-  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — dez chamadas de uma credencial e
-    duas de outra produzem contagens **separadas**, e não uma soma
+  - *Reescrita em 2026-09-24 pela revisão independente (T009).* R2 (o A8) e o N6 do inventário de 2026-09-24
+  - **Descrição**: três coisas que respondem `2xx` e **não** são leitura. O `ApiReadLog` as
+    gravaria como leitura, e o T021 já as tira do caminho dele:
 
-- [ ] **T023** [US3] Levar a falta ao backlog
-  - **Pronta quando**: T021 concluída
-  - **Descrição**: a mesma falta vale para as rotas da 061 **que já estão prontas**, e
-    consertá-la só do lado MCP deixaria a porta mais antiga sem o registro que a FR-024
-    exige. Escrever o item em `docs/backlog/`, com o achado A1 e o que foi medido
-  - **Feita quando**: o item existe com severidade e cenário concreto; o índice do backlog o
-    lista; o `seguranca.md` da 062 aponta para ele
-  - **Teste**: revisão — o item nomeia as rotas afetadas e diz o que hoje se perde. Sem
-    isso, a fatia fecharia dando a impressão de ter resolvido a falta inteira
+    | Resposta | Status | Por que não é leitura |
+    |---|---|---|
+    | notificação | `202` | não lê dado |
+    | `initialize`, `tools/list` | `200` | descrevem o servidor, e não a equipe |
+    | stream de progresso (`send_chunked(200)`) | `200` | é gravado ao **abrir**, antes do veredito, mesmo que a chamada seja recusada. O T016 fecha esse caminho |
 
-- [ ] **T024** [US3] Limitar a taxa das chamadas
-  - **Pronta quando**: T007 concluída; os valores de `api.access.thresholds` decididos pelo
-    Product Owner **ou** T025 escolhida no lugar desta
-  - **Descrição**: **não há limite de taxa na 061** — medido em `plugs/` e `api_tokens.ex`.
-    A Q4 decidia herdá-lo, e herdar um limite inexistente é herdar zero. Aqui é pior que na
-    061: o consumidor é um programa que itera sem cansar. Implementar com os valores da regra
-  - **Feita quando**: chamadas acima do limite são recusadas **com razão**, e não
-    silenciosamente; o limite e a janela aparecem na recusa
-  - **Teste**: `test/the_band_web/mcp/limite_test.exs` — N+1 chamadas na janela: a última
-    recusa dizendo qual é o limite
+    **A recusa de equipe não deixa rastro em lugar nenhum hoje**, nem na API (N6):
+    `team_controller.ex:305-321` cai num `404` sem `AccessEvents` e sem `Logger`, e a tela da
+    equipe faz o mesmo. `painel_recusado/4` é por **pessoa**. Criar
+    `AccessEvents.equipe_recusada/4` (`user_id`, `tenant_id`, `team_id`, `motivo`), com o
+    `request_id` no metadado, e chamá-lo em **três** lugares: no registro de ferramentas do
+    MCP, em `TeamController.com_equipe/3` e na tela da equipe. Mexe em código da 061 em
+    produção, e é pequeno.
 
-- [ ] **T025** [US3] Declarar a ausência do limite
-  - **Pronta quando**: T024 **não** puder ser feita por falta da decisão do Product Owner
-  - **Descrição**: a alternativa honesta a T024. Escrever no contrato e na descrição das
-    ferramentas que **não há limite de taxa**, em vez de dizer que se herda um. Dizer que se
-    herda um controle inexistente é pior que não ter o controle
-  - **Feita quando**: `contracts/ferramentas.md` diz que não há limite, e por quê; nenhum
-    documento afirma herança da 061
-  - **Teste**: revisão — nenhuma ocorrência de *"o limite de taxa é o da 061"* sobra nos
-    artefatos da feature
+    E corrigir o `@moduledoc` do `ApiReadLog`, que afirma que *"a recusa já é registrada por
+    `ApiAuth` e por `AccessEvents.painel_recusado/4`"*. Para equipe, não era
+  - **Feita quando**:
+    - uma recusa de equipe, por qualquer das três portas, deixa um evento com `team_id`,
+      razão e `request_id`;
+    - nenhuma das três respostas da tabela deixa linha de leitura
+  - **Teste**: `test/the_band_web/mcp/registro_test.exs`:
+    - as três linhas da tabela produzem zero linhas de leitura;
+    - uma conta fora do alcance chama `team_roster`, e o resultado é zero linhas de leitura
+      e um evento de recusa com o `request_id` da resposta.
+
+    `test/the_band_web/api/recusa_de_equipe_registrada_test.exs`: `GET /api/v1/teams/:id`
+    fora do alcance deixa o evento.
+
+    A guarda: uma conta com alcance deixa **uma** linha e **nenhum** evento de recusa
+
+- ~~**T023**~~ — *removida em 2026-09-24.* Mandava levar ao backlog a falta de registro da
+  API HTTP. A falta foi consertada no #936, e o item seria backlog de algo já entregue.
+
+- [ ] **T024** [US3] Provar que o limite é um só por token
+  - **Pronta quando**: T007 concluída
+  - **Descrição**: o `ApiRateLimit` conta por token, 120 por minuto, em janela deslizante
+    (`api.access.thresholds`, regra `rate_limit`). A Q4 decidia *"o limite é o da 061"*, e
+    agora isso é verdade **se** `/mcp` passar pela mesma pipeline. O teste prova que as duas
+    portas gastam o **mesmo** limite. Dois limites dariam ao mesmo token o dobro da vazão, e
+    duas respostas para *"por que recusou"*
+  - **Feita quando**: chamadas alternadas entre `/api/v1` e `/mcp` com o mesmo token esgotam
+    **um** limite; a recusa em `/mcp` é o `429` do formato único, com limite, janela e
+    reabertura, na camada HTTP e não como erro JSON-RPC
+  - **Teste**: `test/the_band_web/mcp/limite_test.exs` — com um limite pequeno configurado no
+    teste: metade das chamadas por `/api/v1` e metade por `/mcp`, e a chamada N+1, em
+    qualquer das duas portas, é recusada. **Guarda**: um segundo token, na mesma execução,
+    **não** é recusado. Senão o teste passaria com um limite global
+
+- ~~**T025**~~ — *removida em 2026-09-24.* Era a alternativa ao T024 caso não houvesse limite
+  ("declarar a ausência"). O limite existe desde o #936.
 
 ---
 
@@ -329,18 +551,30 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
     mensagem de falha diz **o que** entrou a mais
 
 - [ ] **T029** Escrever o que o cliente precisa saber
-  - **Pronta quando**: T007, T014, T024 ou T025 concluídas
+  - **Pronta quando**: T007, T014 e T024 concluídas
   - **Descrição**: a documentação diz **onde o token fica é responsabilidade do cliente**
     (FR-007) e acrescenta o que a FR-032 implica: **o que o agente lê pode sair do controle
     da plataforma**, ser cacheado e indexado do outro lado, fora do alcance de qualquer
-    revogação. A FR-007 já diz isso do token; falta dizer do **conteúdo**
-  - **Feita quando**: as duas consequências estão escritas; a revogação é apresentada como o
+    revogação. A FR-007 já diz isso do token; falta dizer do **conteúdo**.
+
+    E uma terceira consequência, que o #939 criou: **o token pode não ter prazo**. Na
+    configuração do cliente, um token sem prazo vale até alguém revogá-lo, e a máquina que o
+    guarda pode sair de uso sem que ninguém lembre dele. A orientação: para MCP, preferir
+    token **com** prazo, e revogar com o motivo `suspeita de vazamento` quando a máquina sai
+    de uso sem controle. Também dizer o `401` e o `429` da camada HTTP, do contrato.
+
+    **E o alcance mínimo** (I1 da revisão independente): um token de conta **admin** lê as
+    quatro ferramentas sobre **todas** as equipes do tenant, e fica num arquivo de
+    configuração do cliente. A orientação é gerar o token do MCP numa conta com o alcance que o
+    agente precisa, e **não** na de administração. É o controle de *excessive agency* (LLM08)
+    que está ao alcance de quem configura
+  - **Feita quando**: as três consequências estão escritas; a revogação é apresentada como o
     **único** controle sobre o que já saiu
-  - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as duas coisas,
+  - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as três coisas,
     e não só a do token
 
 - [ ] **T030** Provar ponta a ponta com um cliente
-  - **Pronta quando**: T010–T019 concluídas
+  - **Pronta quando**: T010–T024 concluídas
   - **Descrição**: configurar um cliente MCP real apontando para `/mcp`, com o token no
     cabeçalho. **Não é verificável por código de status**: foi o que aconteceu com o Swagger
     da 061 — `HTTP 200`, tela em branco, política bloqueando o script
@@ -351,7 +585,7 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
     cliente** e não com `curl`
 
 - [ ] **T031** Fechar os gates
-  - **Pronta quando**: T001 a T030 concluídas
+  - **Pronta quando**: T009 e T001 a T030 concluídas, exceto as removidas (T023, T025)
   - **Descrição**: `mix gates`, com o **código de saída** como veredito. Qualquer comando
     depois dele substitui o código que vale — em execução de fundo, o código vai **dentro**
     do log; em primeiro plano, a linha termina em `exit $ec`
@@ -365,17 +599,19 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
 ## Dependências
 
 ```
-T001 ──▶ T002 ──▶ T008 (fronteira)
-                └▶ T006 ──▶ T007 ──▶ T019, T021 ──▶ T022, T023
+T009 (revisão independente) ──▶ T001 ──▶ T002 ──▶ T008 (fronteira)
+                                             └▶ T006 ──▶ T016 (métodos) ──▶ T007 ──▶ T019, T021, T024
 T003 ──▶ T004 ──┐
 T005 ───────────┼──▶ T010 [P] T011 [P] T012 [P] T013 [P] ──▶ T014, T015
                           └──▶ T017 ──▶ T018
+                          │      └──▶ T022 (com T021)
                           └──▶ T027, T028
-T024 ou T025 (exclusivas) ──▶ T029
+T007, T014, T024 ──▶ T029
 tudo ──▶ T030 ──▶ T031
 ```
 
-**T024 e T025 são alternativas**, e não sequência: uma delas é feita, nunca as duas.
+**T023 e T025 foram removidas** em 2026-09-24 e não entram no grafo. Os números ficam, para
+que as referências antigas não passem a apontar para outra tarefa.
 
 ---
 
@@ -405,12 +641,13 @@ apoiada em nada.
 | Fora | Por quê |
 |---|---|
 | as outras **73** perguntas de competência | não têm tela, e portanto não têm caminho de dados provado (FR-021) |
-| **o registro de leitura da API HTTP** | mesma falta, porta diferente — vira item de backlog em T023 |
 | OAuth e instalação como aplicação | a 061 escolheu token; mudar é decisão nova, com ADR |
 | escrita por MCP | um agente não é uma pessoa, e não há autor honesto para a proveniência |
 | cache de resposta | cache que atrasa revogação é decisão de segurança disfarçada de desempenho |
 | o servidor como processo separado | Q1: dentro do monólito na primeira versão, com a fronteira que torna a extração mecânica |
 | a escolha da janela das medidas | 56 dias, fixos e declarados |
+| **o limite de corpo do `Plug.Parsers`** (R9) | o endpoint decodifica até 8 MB de JSON **antes** da autenticação, e isso vale para `/api/v1` desde a 061. Não bloqueia a 062, e vira item de backlog próprio: um `length` menor, ou a decisão escrita de manter |
+| **a era legada do protocolo** (R5) | `:modern_only` nesta fatia. Aceitar clientes da era legada é decisão nova, com a sessão presa ao token |
 
 ---
 
@@ -423,3 +660,7 @@ da ferramenta.
 A avaliação de segurança que originou A1, A2 e A3 foi escrita por **quem escreveu o
 desenho**, e vale menos exatamente onde mais importaria. O princípio VII **não** está
 cumprido, e não deve ser marcado como tal.
+
+**Em 2026-09-24 ela virou tarefa, a T009**, e bloqueia o T001. A reconciliação mostrou o custo
+de não tê-la: a autoavaliação não viu que o desenho gravaria a recusa como leitura (A7), e
+esse é o tipo de erro que outro par de olhos pega.
