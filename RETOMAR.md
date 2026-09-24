@@ -88,8 +88,18 @@ que o plano mandava criar. **E reusá-los como estão traz dois defeitos altos**
 
 Os dois viraram T021 e T022, e exigem mexer no `ApiReadLog`, que é código da 061 em produção.
 
-**A próxima tarefa é a T009, e não a T001**: o agente `security` avalia o desenho reconciliado
-e o código que ele reusa. A autoavaliação errou justamente no A7.
+**A T009 foi feita em 2026-09-24** (`seguranca-revisao-independente.md`), e reprovou a T021 e a
+T022 como estavam escritas. As tarefas foram reescritas, e todos os achados têm destino.
+**Antes do T001, três PRs**:
+
+| PR | O quê |
+|---|---|
+| **#944** | esta reconciliação, os dois relatórios de segurança, a medição do R3 e as tarefas reescritas |
+| **#945** | N5: o token de organização suspensa deixa de autenticar. **Estava em produção** |
+| **#946** | H2-R: o perfil escrito pelo modelo segue o veredito, na tela e na API. **Estava em produção** |
+
+Depois deles, o **T001**: `ex_mcp == 1.5.0`, a exceção do `cowlib` no gate (medida como não
+alcançável sob o Bandit) e as três guardas que a derrubam se o adapter mudar.
 
 ### 3. Depois da 062: tracing com SigNoz
 
