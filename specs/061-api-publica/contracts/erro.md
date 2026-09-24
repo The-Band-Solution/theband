@@ -45,6 +45,20 @@ FR-030. `403` afirma *"isto existe e você não pode"*, e essa afirmação é va
 existência: cruzando identificadores, quem chama descobre o que há no outro tenant sem
 nunca receber um byte de conteúdo.
 
+## Sem credencial, `401` vem antes de `405`
+
+Um `POST` sem token válido recebe `401`, e não `405`. É assim por construção: o
+`scope "/api/v1"` passa por `:api_autenticada` antes de qualquer `match :*` que daria
+`405`. O `405` só aparece para quem se identificou.
+
+A ordem é deliberada. Quem ainda não se identificou não recebe nenhuma afirmação sobre o
+recurso, nem a de que ele existe e não aceita escrita. SC-006 (*"0 métodos além de `GET`
+e `HEAD` respondem"*) se cumpre nos dois casos: nenhuma escrita é atendida. O
+quickstart §7 mede o `405` **com** token.
+
+Medido em produção na v0.9.1: `POST`, `PUT`, `PATCH` e `DELETE` sem token deram `401`
+([relatório](../../../docs/producao/aceitacao/2026-09-24-v0.9.1.md), item D).
+
 ## Nenhum corpo em `HEAD`
 
 `HEAD` responde os mesmos cabeçalhos de `GET` e corpo vazio, como manda o HTTP.
