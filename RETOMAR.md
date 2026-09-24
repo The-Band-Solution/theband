@@ -1,4 +1,4 @@
-# Retomar — estado em 2026-09-18, a API com token pela metade e a release bloqueada por um comando
+# Retomar — estado em 2026-09-24: a v0.9.1 no ar e conferida, a v0.10.0 esperando, e a 062 por começar
 
 **Este é o único documento de estado.** `docs/sprints/RETOMAR.md` aponta para cá (AGENTS.md §5).
 
@@ -8,10 +8,10 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 
 ## Onde parei, em uma frase
 
-**A API pública está em 12 de 24 tarefas** — o token existe, é gerável na tela e revogável,
-mas **nenhuma rota responde ainda**. Dois branches estão empurrados **sem PR aberto**. E a
-release da v0.8.0 está preparada há quatro dias, bloqueada por **um comando** que só a pessoa
-mantenedora pode dar.
+**A v0.9.1 está no ar e foi conferida do lado anônimo**. `development` já carrega o que vai
+ser a **v0.10.0**. Não há PR aberto. O próximo trabalho é a **062 (servidor MCP)**, com 27
+tarefas e nenhuma feita, e **o plano dela precisa ser reconciliado antes de uma linha de
+código** (ver §2).
 
 ## O primeiro comando
 
@@ -21,170 +21,135 @@ git checkout development && git pull
 mix gates > /tmp/gates.log 2>&1; echo "EXIT=$?"    # o veredito é o CÓDIGO DE SAÍDA, colado
 ```
 
-`mix gates` deu **0** em `061-api-tela` em 2026-09-18, com 16 gates. A suíte inteira é inviável
-com o servidor dev de pé — se estiver: `pgrep -fl phx.server`.
-
-> **O servidor local foi reiniciado em 2026-09-18.** O anterior subira em 15/09, antes de
-> `api.access.thresholds` existir, e a base de conhecimento só carrega no boot — a tela de
-> tokens dava 500 por isso. Se acrescentar regra à base, **reinicie o servidor** ou ela não
-> existe para quem está rodando.
-
----
-
-## ⛔ O bloqueio, e ele é de uma linha
-
-**O secret `PRODUCAO_URL` não existe no repositório.** Só há `DOKPLOY_WEBHOOK_URL` e
-`SONAR_TOKEN`.
-
-```bash
-gh secret set PRODUCAO_URL --body "https://app.theband.dev"
-```
-
-O passo do CD que confirma a versão (`cd.yml:117`) falha explicitamente sem ele — e falha
-**depois de o deploy já ter acontecido**, deixando a versão no ar e o pipeline vermelho, sem
-distinguir deploy quebrado de verificação impossível.
-
-Conferido em 2026-09-18: `https://app.theband.dev` responde `302` para `/sign-in`, servindo a
-aplicação. A rota `/version` devolve **texto puro** (`0.8.0`), que é exatamente o que o CD
-compara — a engrenagem está certa, falta só o endereço.
-
-**Esta é a primeira release em que aquele passo pode funcionar**: a rota entrou no #859, depois
-da v0.7.0, e por isso produção devolve 404 nela hoje.
+A suíte inteira é inviável com o servidor dev de pé. Para conferir: `pgrep -fl phx.server`.
+A base de conhecimento **só carrega no boot**. Regra nova na base exige reiniciar o servidor,
+ou ela não existe para quem está rodando.
 
 ---
 
 ## O que está no ar
 
-A **v0.7.0** (`dd4272f`, 2026-09-10). São **92 commits** não publicados e **oito dias** de
-defasagem — nada desta semana está em produção.
+A **v0.9.1** (tag em `679c2d7`), desde 2026-09-24. O CD fechou **verde pela primeira vez em
+três releases**, e `/version` devolve `0.9.1`. O secret `PRODUCAO_URL` existe no GitHub.
 
-A avaliação e a reavaliação estão em `docs/releases/v0.8.0.md`. A versão **continua 0.8.0,
-MINOR**, e a reavaliação de 18/09 cobre os 34 commits que entraram depois da avaliação
-original.
+**O número está errado**: a carga é MINOR, porque o #939 entrou no PR de release depois da
+avaliação. A tag **não foi mexida**, de propósito, e a próxima é `0.10.0`. A história inteira
+está em `docs/releases/v0.9.1.md`. A lição: um PR `development → main` carrega o que
+`development` tiver **no instante do merge**. Reabra a medida antes de clicar.
 
-> **O agente de Product Owner travou duas vezes**, aos 600 segundos, sem escrever nada —
-> 13/09 e 18/09. A skill `/release` prevê isso, e as duas avaliações foram feitas por medição
-> direta, com o fato declarado no documento. **Não insista nele sem prever o mesmo.**
+O back-merge da v0.9.1 foi feito (`1ed4b17`), e `main` não tem commit fora de `development`.
 
-### Os três riscos, medidos
+### A conferência em produção
 
-| Risco | Veredito |
+`docs/producao/aceitacao/2026-09-24-v0.9.1.md`. **Só o lado anônimo**: a pessoa mantenedora
+decidiu que **não haverá conta de aceitação** (`PRODUCAO_TESTE_EMAIL`/`SENHA`) por enquanto.
+
+| satisfeito | não medível sem conta |
 |---|---|
-| seis migrações novas | **nenhuma destrutiva ao subir** — todo `drop`/`remove`/`modify` está no bloco `down` |
-| oito variáveis novas | **nenhuma obrigatória** — o `compose.yaml` não exige nenhuma sem padrão |
-| comportamento visível | três: valores nos gráficos, aba da equipe que voltou a abrir, quatro declarações no quadro |
+| `/version`, `401` uniforme nas 8 rotas, `/api-tokens` redireciona sem sessão, nenhum vazamento de token | tela autenticada, migração do #939 vista na tela, token válido, revogado e expirado, o código `405`, cabeçalhos de limite |
 
-**E um risco novo**: a fase `issues` da coleta foi à **versão 5**, o que reabre o corte
-incremental em **todos** os repositórios na primeira coleta depois do deploy. É intencional —
-torna retroativo o conserto do identificador do evento e do quadro —, mas custa cota: a
-recoleta completa de 33 repositórios custou **858 pontos**. Quem acompanhar em `/syncs` precisa
-saber antes de achar que travou.
+"Não medível" **não é aceito**. O SC-004 (o motivo da recusa no log) fica para o agente
+`deploy-producao`, e os `request_id` estão no relatório.
 
-**Não medido**: o volume de produção. O documento não promete tempo de migração.
+`PRODUCAO_URL` também está no `.env` local, que é de onde o agente lê. É uma variável
+**separada** de `PHX_HOST`, de propósito: são perguntas diferentes que hoje têm a mesma
+resposta.
 
 ---
 
 ## O que fazer, em ordem
 
-### 1. Abrir os dois PRs que ficaram sem PR
+### 1. Decidir a v0.10.0 — é da pessoa mantenedora
 
-Empurrados em 2026-09-18, verdes, **sem PR**:
+`development` à frente de `main`, sem os merges:
 
-| branch | commits | o que traz |
-|---|---|---|
-| `061-api-fundacao` | 1 | a regra na base, a ADR 0010, a tabela, o schema, o formato do token |
-| `061-api-tela` | 2 | contém o anterior, mais a tela `/api-tokens` |
-
-**Um PR só resolve os dois** — `061-api-tela` contém `061-api-fundacao`. Base: `development`.
-
-E `fix/divergencias-do-esquema` **já foi mergeado** (#929) — o branch pode ser apagado.
-
-### 2. Terminar a API — faltam 11 tarefas
-
-`specs/061-api-publica/tasks.md`. **T001 está feita e não marcada**: o protótipo existe e foi
-aprovado em 18/09.
-
-| Tarefa | O que falta |
+| commit | o que traz |
 |---|---|
-| T014 | a autenticação na fronteira **já existe em código** (`ApiTokens.autenticar/1`) — falta marcar e cobrir o caso da conta desativada |
-| T015 | o plug da recusa uniforme, em `lib/the_band_web/plugs/api_auth.ex` |
-| T016 | o formato único de erro — o contrato está em `contracts/erro.md` |
-| T017 | `GET /api/v1/teams` — a pipeline `:api` está declarada e **nunca teve rota** |
-| T018 | o serializador com a marca `origin` (`observed` / `declared`) |
-| T019 | paginação por cursor, **sem total**, com a nota dizendo por quê |
-| T020–T023 | os quatro transversais: teto de consultas, nenhum método de escrita, o valor que não existe, os dois tenants |
-| T024 | gates |
+| #941 | **o botão `Copy value` passa a copiar** — em produção ele não copia desde a v0.8.0, sem mostrar erro. É o único defeito conhecido que faz alguém perder uma credencial |
+| #942 | guardas da régua, e o SC-013, que antes não media nada. Só teste |
+| docs | a nota da v0.9.1, a conferência, e a ordem 401→405 escrita em `contracts/erro.md` |
 
-**O que já funciona**, conferido em 18/09: gerar token na tela, ver o valor uma vez, a linha
-mascarada, o alcance vigente da conta dona antes de criar, e revogar com o rótulo nomeado.
-Dezesseis itens da régua do QA conferidos contra o HTML servido; zero ocorrências de token na
-página em repouso.
+**Candidato a entrar antes**: o #943 (abaixo). O conserto é pequeno.
 
-### 3. As três decisões que são da pessoa mantenedora
+O `mix.exs` já diz `0.10.0`. Use `/release`, e **meça de novo antes de mergear o PR de
+release**, que foi o que faltou na v0.9.1.
 
-**A 066 está entregue ou pela metade?** Ela entregou a **declaração** — a tela onde a
-organização diz o que cada coluna significa. As medidas **ainda não a consomem**: o gráfico por
-mês conta `external_closed_at`, o fechamento da issue na origem, e não a coluna do quadro. As
-**três tabelas de declaração estão zeradas** — ninguém declarou nada —, e as **377 entregas** do
-quadro 43 continuam fora do gráfico do Harian.
+### 2. A 062 — reconciliar o plano antes de implementar
 
-**O Swagger entra agora ou com as oito rotas?** É US4, P2, e o pedido original é literal: *"A
-API precisa de ter Swagger"*. Traz a **única dependência nova** da feature (`open_api_spex`), e
-a CSP (`script-src 'self'`) obriga a servir o ativo do próprio domínio. Com **uma** rota ele é
-quase só esqueleto; com as oito vale muito mais.
+`specs/062-servidor-mcp/`: spec, plano, pesquisa, contratos, `seguranca.md` e 27 tarefas.
+Todas abertas.
 
-**As seis perguntas abertas do protótipo**, em
-`specs/061-api-publica/prototipo/README.md`. A mais concreta: **a revogação registra razão?** É
-campo novo, e *suspeita de vazamento* é o único caso em que o ato seguinte muda.
+**O plano foi escrito em 2026-09-22, e o #936 e o #938 mudaram o terreno no dia seguinte.**
+As tarefas T021–T025 partem de duas premissas que **deixaram de ser verdade**:
+
+| tarefa | premissa escrita | o que existe hoje |
+|---|---|---|
+| T021–T023 (achado A1) | "nenhuma leitura bem-sucedida é registrada" | `TheBandWeb.Plugs.ApiReadLog` na pipeline da API (#936), e o painel que lê o registro (#939) |
+| T024–T025 (achado A2) | "não há limite de taxa na 061" | limite por token com janela deslizante (#936, #938) |
+
+**Não implemente essas tarefas como estão escritas.** Primeiro `/speckit-converge` ou
+`/speckit-analyze` contra o código. O MCP provavelmente **reusa** o registro e o limite da
+061, em vez de criar os seus. O `seguranca.md` da 062 tem de ser reavaliado pela mesma razão.
+
+A única dependência nova é `{:ex_mcp, "~> 1.5"}` (T001). Research D1 explica por que esta
+biblioteca e não as outras.
+
+### 3. Depois da 062: tracing com SigNoz
+
+Decisão da pessoa mantenedora em 2026-09-24. O terreno já existe:
+
+- o épico #802, em `docs/backlog/observabilidade-com-opentelemetry.md`. O eixo é **a jornada
+  de quem usa**, e não a métrica do servidor. O exemplo original: *"quem deu erro ao fazer
+  login ou logout"*;
+- a ADR 0005, `docs/adr/0005-telemetria-da-jornada.md`, ainda em **Proposta**. O SigNoz fecha
+  a escolha de backend que o épico deixava aberta. **Emende a ADR antes de qualquer código.**
+
+**Meça primeiro**: o SigNoz roda sobre ClickHouse, que pede vários GB de RAM, no mesmo VPS da
+aplicação e do Postgres. Se não couber, as saídas são o SigNoz Cloud ou um segundo VPS. A
+primeira fatia é uma jornada visível (login/logout), e não a infraestrutura sozinha.
 
 ---
 
-## O que esta semana descobriu, e que não se deve redescobrir
+## Abertos que não são da fila principal
 
-### A cadeia da timeline truncada — quatro defeitos, um dentro do outro
+- **#943** — caminho inexistente em `/api/v1` devolve `404` com a **página HTML do site**, e
+  não o erro JSON único. Reproduzido em produção. O Product Owner decide se é defeito ou
+  lacuna da spec. O conserto provável é um `match :*, "/*path"` no fim do escopo, e está na
+  issue;
+- **o token de produção que passou por um proxy que intercepta TLS** — citado na nota da
+  v0.9.1, **ainda por revogar**. Trate como vazado;
+- **a variável `PRODUCAO_URL` foi posta também no painel do servidor**. A aplicação não a lê.
+  Não atrapalha, mas pode confundir. Pode tirar;
+- **o `main` local deste checkout está em `0.2.0`**. Compare sempre contra `origin/main`;
+- **worktrees antigas** em `~/projects/theband-*`, a maioria de releases já publicadas. Apague
+  as que estiverem limpas, conferindo antes, porque `git checkout` apaga trabalho não
+  commitado;
+- o branch `061-api-fundacao` já está mergeado e ainda existe no remoto.
 
-1. **o GitHub cortava a timeline** dentro de `issues(first: 50)` e **declarava `totalCount`
-   igual ao que cortou**, com `hasNextPage: false`. A guarda existente olhava a bandeira errada
-   e nunca disparou;
-2. **o critério de identidade da atividade não tinha o sujeito**, e colava ocorrências
-   distintas — a issue #2539 tinha 12 eventos na origem e 7 no banco;
-3. **um comentário afirmava que a timeline não identifica seus eventos.** Medido: é falso, e a
-   afirmação já tinha virado fundamento numa emenda de ontologia;
-4. **o evento não dizia de que quadro veio**, o que fazia creditar conclusão a quem não a teve
-   — 25 dos 46 cartões fora de `Done` no quadro 43 eram crédito falso.
+---
 
-A base inteira foi recolhida: 33 repositórios, veredito `completa` em todos, 858 pontos. As
-chegadas a `Done` foram de **1 794 para 3 294**.
+## O que se aprendeu e não se deve redescobrir
 
-### Três coisas no backlog que são decisão, não código
+**Uma avaliação de release envelhece sozinha.** A v0.9.1 foi avaliada como PATCH com um
+commit, e saiu com três commits, uma migração e três mudanças de tela. Nada avisou.
 
-- **`Done` é alegação, não aceite** — cartão sai de `Done` **193 vezes, em 185 issues**, e em
-  58% quem devolve é outra pessoa. Das 185, **69 não voltaram**;
-- **o evento não diz o quadro** — a origem oferece o campo `project` e a consulta nunca o
-  pediu. Conserto barato, recoleta cara;
-- **o booleano `active`** em duas tabelas, onde nove guardam data e autor.
+**Sem credencial, `401` vem antes de `405`**, por construção, porque a autenticação roda
+antes dos `match :*`. Agora está escrito no contrato. Não é defeito.
 
-### Duas armadilhas que me pegaram, e pegam de novo
+**Caminho sem rota não passa pela pipeline.** É por isso que o `404` sai em HTML: o formato
+da API nunca é aplicado a quem não casou rota nenhuma.
 
-**Guarda que lê o próprio código reprova a prosa.** Duas vezes: um teste procurou
-`token_hash ==` e achou no `@moduledoc` que explica por que não se faz isso; outro procurou a
-palavra `reactivate` e achou na frase que diz que não existe reativar. **Teste o controle, não
-a palavra** — e ao ler fonte, tire comentário e documentação antes.
-
-**Medir o que a casa faz antes de escolher.** Escrevi `SET NULL` em três chaves estrangeiras
-novas; nas duas de `tenant_id` teria falhado ao apagar um tenant, com violação de nulo, porque
-a coluna é `NOT NULL`. **61 das 65 chaves usam `RESTRICT`** — só apareceu porque fui contar.
+**Guarda que lê o próprio código reprova a prosa** (duas vezes em setembro). Teste o controle,
+não a palavra, e ao ler fonte tire comentário e documentação antes.
 
 ---
 
 ## O que NÃO foi feito, e é honesto dizer
 
-- **as 12 tarefas da API** acima;
-- **a v0.8.0 não foi publicada**, e o bloqueio é o secret;
-- **a 066 não tem `plan.md` nem `tasks.md`** — foi implementada direto do protótipo aprovado,
-  pulando duas etapas do ciclo. Dívida declarada no #928;
-- **as três declarações da 066 não têm teste de comando** — só teste de tela, enquanto as seis
-  irmãs mais antigas têm os dois. Material para QA;
-- **o diâmetro do grafo da rede não foi medido** — é a única medida que reabriria a decisão de
-  REST contra GraphQL com rigor;
-- **o volume de produção não foi medido**, e por isso nenhum tempo de migração foi prometido.
+- **nada autenticado foi conferido em produção** — e não vai ser, enquanto não houver conta;
+- **o botão `Copy value` copiando de fato** não se verifica em produção sem gerar um token,
+  mesmo com conta. Só se confirmou que o ouvinte não está no JS servido;
+- **a v0.10.0 não foi preparada** — nem nota, nem avaliação de riscos;
+- **as decisões antigas da 066** (entregue ou pela metade, as três tabelas de declaração
+  zeradas, as 377 entregas do quadro 43 fora do gráfico) **não foram reconferidas** desde
+  2026-09-18.
