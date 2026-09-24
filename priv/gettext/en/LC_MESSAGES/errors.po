@@ -651,3 +651,8 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "You have no scope to declare a team here."
 msgstr ""
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "This panel is not yours to see."
+msgstr ""

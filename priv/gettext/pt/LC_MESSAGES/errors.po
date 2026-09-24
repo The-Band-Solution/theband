@@ -658,3 +658,8 @@ msgstr "Só quem administra pode declarar uma equipe."
 #, elixir-autogen, elixir-format
 msgid "You have no scope to declare a team here."
 msgstr "Você não tem escopo para declarar equipe aqui."
+
+#: lib/the_band_web/live/people_live/show.ex
+#, elixir-autogen, elixir-format
+msgid "This panel is not yours to see."
+msgstr "Este painel não é seu para ver."

@@ -70,7 +70,16 @@ coluna existe no banco alargaria o alcance da rota sem razão.
 | Valor | Significa |
 |---|---|
 | `null` | **não houve leitura** — nenhum perfil foi gerado para esta pessoa; `competencies_note` diz isso |
+| `null` | **recusado** — quem chama não alcança esta pessoa, e `competencies_note` diz isso. *Desde 2026-09-24 (H2-R)* |
 | `[]` | **houve leitura, e nada foi demonstrado** — há perfil, e nenhum domínio tem tarefa concluída |
+
+**As competências seguem o veredito** (FR-024 da 045, emendada em 2026-09-24): saem do
+perfil, e o perfil é agregado. A listagem resolve o alcance da página inteira numa chamada, por
+`pessoas_alcancadas/2`, e não uma por pessoa (L38).
+
+**Um limite declarado**: `pessoas_alcancadas/2` é **mais estreito** que `pode_ver/3`, porque
+não inclui a liderança declarada. Quem lidera uma pessoa por declaração vê as competências
+dela no detalhe e **não** as vê na listagem. O erro é para o lado fechado.
 
 Achatar as duas em `[]` transformaria lacuna do registro em julgamento da pessoa.
 
@@ -310,6 +319,13 @@ parece atual em junho.
 
 **`evolution_over_time` tem um ponto por geração, da mais antiga para a mais recente.** Mês
 sem geração não entra: interpolar afirmaria observação que não houve (feature 029, FR-003).
+
+### O que fica DENTRO do veredito, desde 2026-09-24
+
+**`profile` segue o veredito**, como `work`. Sem alcance, `profile` é `null` e `profile_note`
+diz que houve **recusa**, e não que nenhum perfil foi gerado: dizer *"nenhum perfil"* a quem
+não alcança a pessoa mentiria sobre o registro. É a decisão da pessoa mantenedora sobre o
+achado **H2-R**, que classificou o perfil como **agregado** na FR-024 da 045.
 
 ### O que fica FORA do veredito, e por quê
 

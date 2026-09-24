@@ -178,6 +178,13 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
+  # Sem alcance, pedir o perfil é recusado aqui, e não só escondido na tela (H2-R). O botão
+  # some com a seção; o evento ainda pode chegar por fora dele, e gerar um agregado sobre quem
+  # não se alcança, pagando o modelo, é o que o veredito existe para impedir.
+  def handle_event("gerar_perfil", _params, %{assigns: %{ve_o_trabalho?: false}} = socket) do
+    {:noreply, put_flash(socket, :error, dgettext("errors", "This panel is not yours to see."))}
+  end
+
   def handle_event("gerar_perfil", _params, socket) do
     tenant = socket.assigns.current_tenant
     pessoa = socket.assigns.pessoa
@@ -315,8 +322,15 @@ defmodule TheBandWeb.PeopleLive.Show do
     # delas é esta pessoa" quanto a cobertura do elo saem delas em memória.
     contas = Tenants.list_users(tenant)
 
-    perfil = perfil_atual(tenant, pessoa.id)
-    {pendente?, possivel} = estado_do_perfil(tenant, pessoa, perfil)
+    # **O perfil é AGREGADO sobre a pessoa**, e segue o veredito — decisão da pessoa
+    # mantenedora em 2026-09-24, sobre o achado H2-R. Um texto que um modelo escreveu sobre as
+    # forças, a evolução e a "atenção" de alguém, derivado de tudo o que a pessoa fez, é a
+    # leitura mais atributiva do produto, e ficava fora do veredito por omissão: a FR-024 da
+    # 045 classificava rotas, e o perfil é seção. Sem alcance, ele nem é lido.
+    perfil = se_pode(ve_o_trabalho?, nil, fn -> perfil_atual(tenant, pessoa.id) end)
+
+    {pendente?, possivel} =
+      se_pode(ve_o_trabalho?, {false, :ok}, fn -> estado_do_perfil(tenant, pessoa, perfil) end)
 
     socket
     |> assign(
@@ -1226,7 +1240,7 @@ defmodule TheBandWeb.PeopleLive.Show do
               escrito por um modelo não tem nenhum dos três. Reusá-lo seria aplicar o padrão
               fora do problema que o motivou. O que se reusa é a **regra**: preenchimento
               hachurado, e rótulo em texto ao lado. --%>
-        <section id="profile" class="card scroll-mt-20 bg-base-200">
+        <section :if={@ve_o_trabalho?} id="profile" class="card scroll-mt-20 bg-base-200">
           <div class="card-body gap-3 p-4 sm:p-5">
             <h3 class="flex flex-wrap items-center gap-2 font-semibold">
               Profile &amp; growth
