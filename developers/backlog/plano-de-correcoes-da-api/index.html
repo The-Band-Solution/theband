@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://theband.dev/developers/backlog/teste-instavel-do-fluxo/">
+        <link rel="canonical" href="https://theband.dev/developers/backlog/plano-de-correcoes-da-api/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Dois testes reprovam de vez em quando, com o mesmo código e a mesma semente - The Band — Documentação</title>
+        <title>O plano de correções da API — o que ficou aberto na v0.9.0 - The Band — Documentação</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#dois-testes-reprovam-de-vez-em-quando-com-o-mesmo-código-e-a-mesma-semente" class="md-skip">
+        <a href="#o-plano-de-correções-da-api--o-que-ficou-aberto-na-v090" class="md-skip">
           Pular para conteúdo
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Dois testes reprovam de vez em quando, com o mesmo código e a mesma semente
+              O plano de correções da API — o que ficou aberto na v0.9.0
             
           </span>
         </div>
@@ -7613,10 +7613,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#o-que-acontece" class="md-nav__link">
+  <a href="#o-resumo" class="md-nav__link">
     <span class="md-ellipsis">
       
-        O que acontece
+        O resumo
       
     </span>
   </a>
@@ -7624,10 +7624,93 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#por-que-não-é-ordem-e-não-é-semente" class="md-nav__link">
+  <a href="#a-ordem-e-a-razão-dela" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Por que não é ordem, e não é semente
+        A ordem, e a razão dela
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="A ordem, e a razão dela">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#primeiro--o-que-já-está-pronto-e-só-espera-uma-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Primeiro — o que já está pronto e só espera uma release
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segundo--a-poda-fechado-por-decisão-não-por-código" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segundo — ~~a poda~~ fechado por decisão, não por código
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terceiro--o-que-devolve-visibilidade-a-quem-opera" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terceiro — o que devolve visibilidade a quem opera
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quarto--o-que-a-investigação-de-abuso-precisa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quarto — o que a investigação de abuso precisa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quinto--o-que-corrói-a-confiança-no-instrumento" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quinto — o que corrói a confiança no instrumento
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sexto--o-que-depende-de-outra-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sexto — o que depende de outra feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#o-que-esta-lista-não-inclui-de-propósito" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O que esta lista NÃO inclui, de propósito
       
     </span>
   </a>
@@ -7635,54 +7718,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#e-um-segundo-em-2026-09-23--o-que-muda-a-leitura" class="md-nav__link">
+  <a href="#a-pendência-que-não-é-técnica" class="md-nav__link">
     <span class="md-ellipsis">
       
-        E um segundo, em 2026-09-23 — o que muda a leitura
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#por-que-isto-importa-mais-do-que-um-teste" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Por que isto importa mais do que um teste
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#a-varredura-foi-feita-em-2026-09-23--e-não-achou-nada" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        A varredura foi feita em 2026-09-23 — e não achou nada
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#o-que-ainda-não-se-sabe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        O que ainda não se sabe
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#primeiro-passo-quando-alguém-pegar" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Primeiro passo, quando alguém pegar
+        A pendência que não é técnica
       
     </span>
   </a>
@@ -7706,7 +7745,7 @@
 
 
   
-    <a href="https://github.com/The-Band-Solution/theband/edit/development/docs/backlog/teste-instavel-do-fluxo.md" title="Editar esta página" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/The-Band-Solution/theband/edit/development/docs/backlog/plano-de-correcoes-da-api.md" title="Editar esta página" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -7714,108 +7753,182 @@
   
 
 
-<h1 id="dois-testes-reprovam-de-vez-em-quando-com-o-mesmo-código-e-a-mesma-semente">Dois testes reprovam de vez em quando, com o mesmo código e a mesma semente<a class="headerlink" href="#dois-testes-reprovam-de-vez-em-quando-com-o-mesmo-código-e-a-mesma-semente" title="Permanent link">&para;</a></h1>
-<p><strong>Achado em 2026-09-22</strong>, durante os gates da feature 062 — que não toca em nada disto.</p>
-<h2 id="o-que-acontece">O que acontece<a class="headerlink" href="#o-que-acontece" title="Permanent link">&para;</a></h2>
-<p><code>test/the_band_web/live/fluxo_na_tela_test.exs:205</code> — <em>"período zero ou negativo também cai
-no padrão"</em> — reprovou assim:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>** (EXIT from #PID&lt;0.7462.0&gt;) an exception was raised:
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    ** (MatchError) no match of right hand side value: {:error, :invalid}
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        (phoenix_live_view 1.2.9) lib/phoenix_live_view/test/client_proxy.ex:847:
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>          Phoenix.LiveViewTest.ClientProxy.put_view/3
-</code></pre></div>
-<p>O teste percorre <code>["0", "-4", "abc", ""]</code> e monta a LiveView da equipe para cada um. Um
-desses <code>live/2</code> devolveu <code>{:error, :invalid}</code> em vez de <code>{:ok, view, html}</code>.</p>
-<h2 id="por-que-não-é-ordem-e-não-é-semente">Por que não é ordem, e não é semente<a class="headerlink" href="#por-que-não-é-ordem-e-não-é-semente" title="Permanent link">&para;</a></h2>
-<p>Três execuções, o mesmo código, só markdown mudado entre elas:</p>
+<h1 id="o-plano-de-correções-da-api--o-que-ficou-aberto-na-v090">O plano de correções da API — o que ficou aberto na v0.9.0<a class="headerlink" href="#o-plano-de-correções-da-api--o-que-ficou-aberto-na-v090" title="Permanent link">&para;</a></h1>
+<p><strong>Escrito em 2026-09-23</strong>, depois de a API pública chegar a produção.</p>
+<p>Nada aqui é defeito que quebre quem usa. São <strong>sete pendências</strong>, cada uma medida e
+declarada em algum PR, spec ou registro de aceitação — e a lista existe porque declarar
+sete coisas em sete lugares diferentes é o mesmo que não declarar nenhuma.</p>
+<h2 id="o-resumo">O resumo<a class="headerlink" href="#o-resumo" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Execução</th>
-<th>Semente</th>
-<th>Resultado</th>
+<th>#</th>
+<th>O que</th>
+<th>Onde nasceu</th>
+<th>Severidade</th>
+<th>Estado</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>gates, antes de escrever <code>seguranca.md</code></td>
+<td><strong>1</strong></td>
+<td>a janela do limite de taxa era fixa</td>
+<td>PR #936, declarado</td>
+<td>alta</td>
+<td><strong>corrigido, aguardando release</strong></td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>o CD compara <code>0.9.0</code> com <code>v0.9.0</code></td>
+<td>CD da v0.9.0</td>
+<td>alta</td>
+<td><strong>corrigido, aguardando release</strong></td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>~~o log não distingue as causas de recusa~~</td>
+<td>SC-004</td>
 <td>—</td>
-<td><strong>2314 passaram</strong></td>
+<td><strong>corrigido em 2026-09-23</strong>: cinco motivos distintos</td>
 </tr>
 <tr>
-<td>gates, depois</td>
-<td><code>855389</code></td>
-<td><strong>2313 de 2314</strong> — esta</td>
+<td><strong>4</strong></td>
+<td>as medidas não trazem proveniência</td>
+<td>SC-007</td>
+<td>média</td>
+<td>depende da 062</td>
 </tr>
 <tr>
-<td>suíte inteira, <strong>com a mesma semente <code>855389</code></strong></td>
-<td><code>855389</code></td>
-<td><strong>2314 passaram</strong></td>
+<td><strong>5</strong></td>
+<td>~~ninguém poda <code>api_access_reads</code>~~</td>
+<td>PR #936</td>
+<td>—</td>
+<td><strong>decidido em 2026-09-23: guardar indefinidamente</strong></td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>~~nenhuma tela lê o registro de acesso~~</td>
+<td>PR #936</td>
+<td>—</td>
+<td><strong>entregue em 2026-09-23</strong>: o painel de uso abre na linha de <code>/api-tokens</code>, por rota e com a janela dita</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>dois testes instáveis</td>
+<td>gates</td>
+<td><strong>baixa</strong></td>
+<td>varredura não os reproduziu; diagnóstico acrescentado</td>
 </tr>
 </tbody>
 </table>
-<p>Mesma semente, resultados diferentes. A ordem dos testes é a mesma; o que varia é o tempo.
-Em isolamento o arquivo passa 20 de 20.</p>
-<h2 id="e-um-segundo-em-2026-09-23--o-que-muda-a-leitura">E um segundo, em 2026-09-23 — o que muda a leitura<a class="headerlink" href="#e-um-segundo-em-2026-09-23--o-que-muda-a-leitura" title="Permanent link">&para;</a></h2>
-<p><code>test/the_band/tenants/eventos_de_acesso_test.exs:134</code> — <em>"a espera crescente é registrada
-quando dispara"</em> — reprovou numa execução dos gates:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>assert {:error, {:throttled, _}} = Tenants.authenticate(ctx.alvo.email, @senha)
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>left:  {:error, {:throttled, _}}
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>right: {:ok, #TheBand.Tenants.User&lt;...&gt;}
-</code></pre></div>
-<p>A espera <strong>não disparou</strong>. Em isolamento, três execuções seguidas: 5 de 5, nas três.</p>
-<p><strong>Dois testes, o mesmo padrão.</strong> O primeiro monta LiveView; este mede uma janela de tempo.
-Os dois passam sozinhos e reprovam sob carga, com <code>max_cases: 20</code>.</p>
-<p>Isso muda o diagnóstico: <strong>não é um teste mal escrito.</strong> É a suíte competindo por CPU e
-relógio, e dois pontos onde o código de teste supõe que o tempo de parede é confiável.</p>
-<h2 id="por-que-isto-importa-mais-do-que-um-teste">Por que isto importa mais do que um teste<a class="headerlink" href="#por-que-isto-importa-mais-do-que-um-teste" title="Permanent link">&para;</a></h2>
-<p><strong>Um gate que reprova por acaso treina quem lê a reexecutar até passar.</strong> A partir daí, a
-próxima reprovação real é lida como mais uma instabilidade — e o gate deixa de ser veredito.</p>
-<p>É a lição L60 pela outra ponta: lá o verde era presumido sem ser lido; aqui o vermelho passa
-a ser descartado sem ser investigado.</p>
-<h2 id="a-varredura-foi-feita-em-2026-09-23--e-não-achou-nada">A varredura foi feita em 2026-09-23 — e não achou nada<a class="headerlink" href="#a-varredura-foi-feita-em-2026-09-23--e-não-achou-nada" title="Permanent link">&para;</a></h2>
-<p>Seis execuções da suíte inteira, seguidas: <strong>2361 de 2365 nas seis, sem variação nenhuma</strong>.
-Nenhum dos dois casos reapareceu.</p>
-<p>Os quatro que reprovaram nas seis eram <strong>determinísticos</strong>, e de outra causa: uma mudança em
-<code>autenticar/1</code> colidiu com um teste que afirmava o contrato antigo. Não é instabilidade.</p>
-<p><strong>Isto não desmente os dois casos</strong> — eles aconteceram, com o log colado acima. Diz que a
-frequência é baixa o bastante para não aparecer em seis tentativas, e que <strong>não há uma
-terceira fonte escondida</strong>, que era a pergunta aberta.</p>
-<p>O diagnóstico foi acrescentado aos dois testes na mesma data: a próxima ocorrência <strong>diz o
-que aconteceu</strong> — qual valor falhou, o que veio no lugar, e o apontamento para este
-documento — em vez de morrer numa asserção crua.</p>
-<h2 id="o-que-ainda-não-se-sabe">O que ainda não se sabe<a class="headerlink" href="#o-que-ainda-não-se-sabe" title="Permanent link">&para;</a></h2>
-<ul>
-<li>
-<p><strong>a causa.</strong> A varredura mostra que é raro; não mostra por quê. A suspeita continua sendo
-  competição por CPU e relógio com <code>max_cases: 20</code>, e ela não foi confirmada;</p>
-</li>
-<li>
-<p><strong>qual dos quatro valores</strong> falhou. A mensagem não diz, porque a asserção morre no
-  <code>MatchError</code> do casamento, antes de qualquer mensagem própria;</p>
-</li>
-<li><strong>por que <code>:invalid</code>.</strong> É o que o <code>ClientProxy</code> devolve quando a montagem não produz view —
-  exceção no <code>mount</code>, ou resposta que não é LiveView. Nenhuma das duas foi confirmada;</li>
-<li><strong>se outros testes de LiveView têm o mesmo</strong>. Só este apareceu, uma vez.</li>
-</ul>
-<h2 id="primeiro-passo-quando-alguém-pegar">Primeiro passo, quando alguém pegar<a class="headerlink" href="#primeiro-passo-quando-alguém-pegar" title="Permanent link">&para;</a></h2>
-<p>Trocar o casamento direto por um <code>case</code> que <strong>nomeia qual valor falhou e com quê</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">for</span><span class="w"> </span><span class="n">absurdo</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="p">[</span><span class="s2">"0"</span><span class="p">,</span><span class="w"> </span><span class="s2">"-4"</span><span class="p">,</span><span class="w"> </span><span class="s2">"abc"</span><span class="p">,</span><span class="w"> </span><span class="s2">""</span><span class="p">]</span><span class="w"> </span><span class="k">do</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="k">case</span><span class="w"> </span><span class="n">live</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">conn</span><span class="p">,</span><span class="w"> </span><span class="sx">~p"/teams/</span><span class="si">#{</span><span class="n">ctx</span><span class="o">.</span><span class="n">equipe</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="sx">?periodos=</span><span class="si">#{</span><span class="n">absurdo</span><span class="si">}</span><span class="sx">"</span><span class="p">)</span><span class="w"> </span><span class="k">do</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="p">{</span><span class="ss">:ok</span><span class="p">,</span><span class="w"> </span><span class="n">_live</span><span class="p">,</span><span class="w"> </span><span class="n">html</span><span class="p">}</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">assert</span><span class="w"> </span><span class="n">janela_do_titulo</span><span class="p">(</span><span class="n">html</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">janela_do_titulo</span><span class="p">(</span><span class="n">padrao</span><span class="p">)</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="n">outro</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">flunk</span><span class="p">(</span><span class="s2">"periodos=</span><span class="si">#{</span><span class="n">inspect</span><span class="p">(</span><span class="n">absurdo</span><span class="p">)</span><span class="si">}</span><span class="s2"> não montou: </span><span class="si">#{</span><span class="n">inspect</span><span class="p">(</span><span class="n">outro</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="k">end</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">end</span>
-</code></pre></div>
-<p>Isso não conserta nada — <strong>faz a próxima ocorrência dizer o que aconteceu</strong>, em vez de morrer
-no casamento. Sem isso, cada reincidência custa a mesma investigação do zero.</p>
-<p><strong>Prioridade</strong>: <strong>baixa</strong>, rebaixada em 2026-09-23 pela varredura — era média e subindo
-quando se suspeitava de uma fonte não descoberta. Não quebra produção. Corrói a confiança no gate — que
-é o instrumento com que tudo o mais é conferido — e o segundo caso mostra que não é
-incidente isolado.</p>
-<p>O primeiro passo continua o mesmo em espírito: <strong>fazer a próxima ocorrência dizer o que
-aconteceu</strong>, em vez de morrer numa asserção crua. No caso da espera, imprimir quantas
-tentativas houve e qual era o limiar no instante da medição.</p>
+<p>E uma que não é correção e não deve ser esquecida: <strong>não houve revisão independente</strong> do
+desenho da API nem da avaliação de segurança. Quatro tentativas por agente falharam em 21 e
+22 de setembro.</p>
+<hr />
+<h2 id="a-ordem-e-a-razão-dela">A ordem, e a razão dela<a class="headerlink" href="#a-ordem-e-a-razão-dela" title="Permanent link">&para;</a></h2>
+<h3 id="primeiro--o-que-já-está-pronto-e-só-espera-uma-release">Primeiro — o que já está pronto e só espera uma release<a class="headerlink" href="#primeiro--o-que-já-está-pronto-e-só-espera-uma-release" title="Permanent link">&para;</a></h3>
+<p><strong>1 e 2 estão corrigidos na <code>development</code>.</strong> Não há trabalho a fazer: há uma release a
+soltar.</p>
+<p>O item 2 tem urgência própria e não óbvia: <strong>enquanto ele não chegar a <code>main</code>, toda release
+termina vermelha</strong> com o deploy funcionando. Um CD que reprova por engano treina quem lê a
+ignorá-lo — e a próxima falha real passa despercebida.</p>
+<blockquote>
+<p><strong>Custo</strong>: uma release. <strong>Ganho</strong>: o limite de taxa deixa de permitir o dobro na virada, e
+o CD volta a dizer a verdade.</p>
+</blockquote>
+<h3 id="segundo--a-poda-fechado-por-decisão-não-por-código">Segundo — ~~a poda~~ <strong>fechado por decisão</strong>, não por código<a class="headerlink" href="#segundo--a-poda-fechado-por-decisão-não-por-código" title="Permanent link">&para;</a></h3>
+<p><strong>5 — o registro de leitura é guardado indefinidamente.</strong> Decidido pela pessoa mantenedora
+em 2026-09-23, depois de a alternativa de 90 dias ser proposta e recusada. Registrado em
+<code>api.access.thresholds</code>, regra <code>access_log_retention</code>.</p>
+<p><strong>Nada a implementar.</strong> O item existia porque ninguém tinha decidido o prazo — e agora foi
+decidido. A diferença entre <em>"guardamos para sempre"</em> e <em>"ninguém pensou em podar"</em> é a
+diferença entre escolha e descuido, e até aquela data era a segunda.</p>
+<p><strong>Uma correção ao que este plano dizia antes</strong>: eu havia listado isto como problema de
+<strong>crescimento</strong>, afirmando que seria "a tabela que mais cresce na base". <strong>Medi, e não é.</strong>
+190 bytes por linha; 100 mil linhas ocupam 18 MB, contra 68 MB de
+<code>spo_performed_project_activities</code>. Chegar a 1 GB exige 5,5 milhões de leituras.</p>
+<p>O argumento real nunca foi espaço — era <strong>retenção de dado sobre pessoas</strong>. Com o prazo
+indefinido, o registro permite reconstruir sem limite de tempo que alguém consultou o painel
+de outra pessoa. Está escrito na regra, para que seja consequência conhecida e não
+descoberta.</p>
+<h3 id="terceiro--o-que-devolve-visibilidade-a-quem-opera">Terceiro — o que devolve visibilidade a quem opera<a class="headerlink" href="#terceiro--o-que-devolve-visibilidade-a-quem-opera" title="Permanent link">&para;</a></h3>
+<p><strong>6 — nenhuma tela lê o registro.</strong> A tabela existe, <code>contar_por_rota/3</code> responde, e quem
+opera precisa consultar à mão.</p>
+<p>O valor não é conveniência: a FR-024 aponta o registro de acesso como o caminho para
+<strong>perceber agregação</strong>. Um caminho que só existe por consulta manual é um caminho que
+ninguém percorre.</p>
+<blockquote>
+<p><strong>Escopo mínimo</strong>: na tela de tokens que já existe, por linha, quantas leituras na última
+janela e em quais rotas. Não precisa de tela nova.</p>
+</blockquote>
+<p><strong>Entregue em 2026-09-23</strong>, exatamente nesse escopo: a linha abre um painel — não uma nona
+coluna, porque as oito da <code>R2.1</code> são a régua do QA. Por rota, nunca um total, com a janela
+escolhida e dita (24 h, 7 dias, 30 dias), e a janela sem leitura escrevendo a ausência em vez
+de zero.</p>
+<p>Três coisas que o painel diz sobre si mesmo, e que não são nota de rodapé: <strong>não</strong> mostra o
+corpo da resposta; <strong>não</strong> mostra chamada recusada (essa já está no log interno, com o
+motivo); e ele <strong>é, ele mesmo, registro sobre pessoas</strong> — mostra que a credencial de alguém
+leu o painel de outra pessoa, guardado indefinidamente, atrás de <code>require_admin</code>.</p>
+<h3 id="quarto--o-que-a-investigação-de-abuso-precisa">Quarto — o que a investigação de abuso precisa<a class="headerlink" href="#quarto--o-que-a-investigação-de-abuso-precisa" title="Permanent link">&para;</a></h3>
+<p><strong>3 — o log não distingue inexistente, revogado e expirado.</strong> Todas produzem
+<code>motivo=credencial_recusada</code>.</p>
+<p>A informação <strong>existe e é descartada</strong>: <code>Token.estado/2</code> já calcula, e o <code>_</code> do <code>else</code> em
+<code>autenticar/1</code> joga fora. O conserto é de uma linha, e o cuidado é não quebrar o SC-003 — a
+resposta ao cliente deve continuar byte a byte idêntica nos três casos.</p>
+<blockquote>
+<p><strong>Por que importa</strong>: <em>"alguém está tentando um token que nunca existiu"</em> — varredura — é
+investigação diferente de <em>"alguém está usando um token revogado"</em> — credencial que vazou
+antes da revogação. Hoje as duas começam iguais.</p>
+</blockquote>
+<h3 id="quinto--o-que-corrói-a-confiança-no-instrumento">Quinto — o que corrói a confiança no instrumento<a class="headerlink" href="#quinto--o-que-corrói-a-confiança-no-instrumento" title="Permanent link">&para;</a></h3>
+<p><strong>7 — dois testes instáveis</strong>, e não se sabe se há outros. Os dois passam sozinhos e
+reprovam sob carga.</p>
+<p>Não quebra produção. <strong>Corrói o gate</strong>, que é o instrumento com que tudo o mais é conferido:
+um gate que reprova por acaso treina quem lê a reexecutar até passar, e a próxima reprovação
+real vira mais uma instabilidade.</p>
+<blockquote>
+<p><strong>Primeiro passo, e ele não conserta nada</strong>: fazer a próxima ocorrência <strong>dizer o que
+aconteceu</strong>, em vez de morrer numa asserção crua. Sem isso, cada reincidência custa a
+investigação do zero.</p>
+<p><strong>Segundo</strong>: uma varredura — rodar a suíte N vezes e contar reprovações por arquivo —
+para saber se são dois ou vinte.</p>
+</blockquote>
+<h3 id="sexto--o-que-depende-de-outra-feature">Sexto — o que depende de outra feature<a class="headerlink" href="#sexto--o-que-depende-de-outra-feature" title="Permanent link">&para;</a></h3>
+<p><strong>4 — as medidas não trazem proveniência nem as limitações declaradas da base.</strong></p>
+<p>É o SC-007, e <strong>não é defeito</strong>: o envelope de proveniência foi desenhado para o servidor
+MCP, na feature 062, e não chegou à API. Consertar exige <code>KnowledgeBase.measurement/1</code>, que
+não existe — é a tarefa T003 daquela feature.</p>
+<blockquote>
+<p><strong>Ordem natural</strong>: quando a 062 for implementada, o envelope nasce lá. A API passa a usar
+o que já existir, em vez de duplicar.</p>
+<p><strong>O que a API tem hoje</strong>: notas escritas à mão no controlador, e a janela declarada. São
+honestas, e não são proveniência declarada.</p>
+</blockquote>
+<hr />
+<h2 id="o-que-esta-lista-não-inclui-de-propósito">O que esta lista NÃO inclui, de propósito<a class="headerlink" href="#o-que-esta-lista-não-inclui-de-propósito" title="Permanent link">&para;</a></h2>
+<p><strong>As seis armadilhas do <a href="../../api/">documento da API</a>.</strong> Elas não são erros a
+corrigir: são a forma do dado.</p>
+<p>Uma pessoa em duas organizações <strong>é</strong> uma pessoa. Uma espera em curso <strong>não</strong> tem duração
+final. Ausência de leitura <strong>não</strong> é zero. Achatar qualquer uma delas daria uma API mais
+simples e mentirosa.</p>
+<p>O que se escolheu foi <strong>dizer</strong>, e a advertência viaja dentro da resposta — <code>medians_note</code>,
+<code>counts_note</code>, <code>gaps.note</code>, <code>competencies_note</code>, <code>organizations.note</code> — e não em
+documentação que ninguém abre.</p>
+<p><strong>Uma exceção parcial</strong>: a armadilha 4, os dois denominadores em <code>/projects</code>. Ela tem
+<code>denominator_note</code>, mas a assimetria de fundo continua — <code>issues</code> conta por repositório,
+<code>start_criterion</code> conta por quadro. Se algum dia os dois passarem a contar pelo mesmo
+caminho, a nota some junto. Não está na lista porque ninguém pediu, e porque mudar o
+denominador muda o significado de um número que já está publicado.</p>
+<hr />
+<h2 id="a-pendência-que-não-é-técnica">A pendência que não é técnica<a class="headerlink" href="#a-pendência-que-não-é-técnica" title="Permanent link">&para;</a></h2>
+<p><strong>Revisão independente não ocorreu.</strong> Nem do desenho da API, nem da avaliação de segurança
+que originou os itens 1 e 5, nem da aceitação da 061 — que foi percorrida por quem
+implementou.</p>
+<p>Quatro tentativas por agente falharam em 21 e 22 de setembro: duas travaram sem escrever
+nada, duas foram recusadas por indisponibilidade da ferramenta.</p>
+<p><strong>Nenhum merge cumpre isso</strong>, e está declarado como lacuna em todos os PRs. Classificação
+correta: <em>revisão não ocorreu</em>.</p>
+<p>É a pendência mais barata de resolver e a mais fácil de esquecer, porque não tem código.</p>
 
 
 

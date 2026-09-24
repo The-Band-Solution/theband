@@ -7739,14 +7739,29 @@ escopo — não só a lista.</p>
 </thead>
 <tbody>
 <tr>
+<td><a href="decisoes-da-tela-de-tokens/">As quatro decisões da tela de tokens</a></td>
+<td>as seis perguntas abertas do protótipo, respondidas em 2026-09-23. <strong>Duas mudam o que está implementado</strong>: <em>sem expiração</em> passa a ser oferecido — revertendo a regra que dizia <em>máximo do qual se abre mão não é máximo</em> — e revogar passa a gravar o motivo. O protótipo foi republicado e <strong>aprovado em 2026-09-23</strong>, sem o aviso por e-mail</td>
+<td><strong>alta — as três mudanças de tela estão aprovadas e por implementar</strong>; a régua do <code>PROMPT.md</code> ganha itens antes do código</td>
+</tr>
+<tr>
+<td><a href="aviso-de-vencimento-do-token/">O aviso de vencimento só alcança quem abre a tela</a></td>
+<td>a Q6 do protótipo, <strong>adiada em 2026-09-23</strong>. A linha de 14 dias existe e é lida no render; o que não existe é qualquer alcance fora da tela — quem não abre <code>/api-tokens</code> descobre o vencimento pela recusa da integração. E-mail é feature própria: medido no mesmo dia, a plataforma <strong>não envia e-mail nenhum</strong>. O passo barato é a linha na tela de operação</td>
+<td><strong>baixa — adiado por decisão</strong>, e a medida que o repriorizaria ainda não existe</td>
+</tr>
+<tr>
+<td><a href="plano-de-correcoes-da-api/">O plano de correções da API</a></td>
+<td><strong>as sete pendências que a v0.9.0 deixou</strong>, em ordem, com a razão de cada posição. Duas já corrigidas e só esperando release; duas sem item até hoje (poda do registro de leitura, e a tela que o leia); uma que depende da feature 062. Mais a lacuna que não tem código: revisão independente não ocorreu</td>
+<td><strong>alta — é o índice das outras</strong>, escrito em 2026-09-23</td>
+</tr>
+<tr>
 <td><a href="sc004-o-log-nao-distingue-as-tres-recusas/">O log não distingue as três causas de recusa</a></td>
 <td><strong>SC-004 da 061, o único critério que reprovou por defeito.</strong> Token inexistente, revogado e expirado produzem <code>motivo=credencial_recusada</code> no log — as três colapsam numa. <code>Token.estado/2</code> já calcula a distinção, e o <code>_</code> do <code>else</code> em <code>autenticar/1</code> a descarta. A resposta ao cliente deve continuar idêntica (SC-003); o que falta é o log interno</td>
 <td>média — achado em 2026-09-23 na aceitação da 061</td>
 </tr>
 <tr>
-<td><a href="teste-instavel-do-fluxo/">O teste do fluxo reprova de vez em quando</a></td>
+<td><a href="teste-instavel-do-fluxo/">Dois testes reprovam de vez em quando</a></td>
 <td><code>fluxo_na_tela_test.exs:205</code> devolveu <code>{:error, :invalid}</code> ao montar a LiveView. <strong>Mesma semente, resultados diferentes</strong>: 2314 passaram, depois 2313 de 2314, depois 2314 de novo com a semente que reprovou. Gate que reprova por acaso treina quem lê a reexecutar até passar — e a próxima reprovação real vira mais uma instabilidade</td>
-<td>média — achado em 2026-09-22 nos gates de outra feature</td>
+<td><strong>dois</strong> casos agora: <code>fluxo_na_tela_test.exs:205</code> e <code>eventos_de_acesso_test.exs:134</code>. Os dois passam isolados e reprovam sob carga — não é teste mal escrito, é a suíte competindo por CPU e relógio</td>
 </tr>
 <tr>
 <td><a href="done-e-alegacao-nao-aceite/"><code>Done</code> é alegação, não aceite</a></td>
