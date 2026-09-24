@@ -29,7 +29,8 @@ sabe perguntar pela ressalva precisa receber.
 mitigação é a camada fina.
 
 **Armazenamento**: nenhum novo. Nenhuma tabela, nenhuma migração. O servidor **não guarda
-nada** — nem token, nem escopo, nem resposta (FR-003, FR-005, FR-006).
+nada** — nem token, nem escopo, nem resposta (FR-003, FR-005, FR-006). O registro de leitura
+usa a tabela `api_access_reads`, que a 061 já tem (FR-024).
 
 **Testes**: ExUnit, como o resto. As funções de ferramenta são exercidas **sem** a biblioteca
 MCP — é o que prova que a camada é fina e que a dependência é trocável.
@@ -133,8 +134,12 @@ lib/the_band/mcp/
     └── team_stale_work.ex
 
 lib/the_band_web/
-├── router.ex               # o escopo /mcp, atrás do MESMO plug de autenticação da 061
-└── plugs/api_auth.ex       # reusado sem alteração
+├── router.ex               # o escopo /mcp, com a MESMA pipeline de /api/v1 (:api_autenticada)
+└── plugs/
+    ├── api_auth.ex         # reusado sem alteração
+    ├── api_rate_limit.ex   # reusado sem alteração — o limite é um só por token (FR-026)
+    └── api_read_log.ex     # ALTERADO: aceita ferramenta, alvo e marca de concessão
+                            #   vindos de conn.private (FR-024, FR-025, T021, T022)
 
 test/the_band/mcp/
 ├── envelope_test.exs               # SC-001: toda medida carrega proveniência
@@ -186,6 +191,9 @@ Reconferido depois de escrever `data-model.md`, `contracts/` e `quickstart.md`.
 
 ### A avaliação de segurança foi feita, e corrigiu este plano em dois pontos
 
+> **A1 e A2 foram resolvidos na 061 em 2026-09-23** (#936, #938). O que segue é o registro de
+> 2026-09-22. O estado atual está em *Reconciliação com o código*, abaixo.
+
 Está em [`seguranca.md`](./seguranca.md), escrita em 2026-09-22. **Ela não é revisão
 independente** — quem a escreveu escreveu o desenho —, e o documento diz isso no topo. Quatro
 tentativas de obter a avaliação por agente independente falharam.
@@ -205,7 +213,7 @@ ignore; e **A4** agregação ao longo do tempo, cuja única mitigação é o A1.
 
 | # | O que | Estado |
 |---|---|---|
-| **I1** | os valores de `api.access.thresholds` | **segue aberta** — decisão do Product Owner |
+| **I1** | os valores de `api.access.thresholds` | **aplicados** desde o #936: 120 por minuto. Continuam como proposta, e a decisão final segue com o Product Owner |
 | **I2** | o registro de uso | **respondida, e pior que se supunha**: virou o achado A1 |
 | **I3** | injeção de instrução pelo conteúdo | **respondida**: achado A3, com mitigação que reduz e não elimina — e o limite está dito |
 | **I4** | **revisão independente do desenho** | **aberta**. Quatro tentativas falharam; a lacuna do princípio VII não deve ser marcada como cumprida |
@@ -213,6 +221,35 @@ ignore; e **A4** agregação ao longo do tempo, cuja única mitigação é o A1.
 **O `tasks.md` tem de carregar A1 e A2 como tarefa, ou declarar por escrito que a fatia entra
 sem eles** — e então a FR-024 fica apoiada em nada, dito em voz alta. Decompor sem escolher
 uma das duas produziria tarefas que parecem cobrir a superfície inteira e não cobrem.
+
+## Reconciliação com o código — 2026-09-24
+
+O plano foi escrito em 2026-09-22. **No dia seguinte, o #936 e o #938 resolveram na 061 os
+dois achados altos** que este plano cedia à avaliação de segurança. Implementado como estava,
+o plano teria produzido um segundo registro e um segundo limite para o mesmo token.
+
+**O que mudou no desenho:**
+
+| Antes | Agora |
+|---|---|
+| criar o registro de leitura do MCP | **herdar** o da 061, e ensiná-lo a enxergar a ferramenta e o alvo (T021) |
+| criar o limite, ou declarar que não há | **provar** que `/mcp` gasta o mesmo limite de `/api/v1` (T024) |
+| `/mcp` atrás do `ApiAuth` | `/mcp` atrás da pipeline `:api_autenticada` inteira |
+| `api_read_log.ex` fora do escopo | **dentro**: é código da 061 em produção, e muda pouco |
+
+**Dois achados novos**, que a reconciliação encontrou lendo o código que o desenho reusa, e
+que a autoavaliação de 2026-09-22 não podia ver, porque o código não existia:
+
+- **A6**: o registro grava o molde da rota e `params["id"]`. No MCP, toda chamada é
+  `POST /mcp` e os argumentos vão no corpo, então toda linha diria só `/mcp`;
+- **A7**: o registro grava todo `2xx`, e a recusa do MCP sai em `200` (FR-013). A recusa seria
+  gravada como leitura concedida.
+
+Os dois estão em `seguranca.md` e viraram as tarefas T021 e T022.
+
+**O `Constitution Check` continua sem violação.** O princípio VIII sai mais forte: reusar o
+registro e o limite é menos estrutura do que o plano previa. E o princípio VII ganhou uma
+tarefa, a T009, que bloqueia o T001.
 
 ## Artefatos gerados
 

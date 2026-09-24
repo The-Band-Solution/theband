@@ -1,6 +1,63 @@
 # Segurança — feature 062, servidor MCP
 
-**Data**: 2026-09-22
+**Data**: 2026-09-22 · **Reconferida contra o código**: 2026-09-24
+
+---
+
+## Reconferência de 2026-09-24 — dois achados resolvidos, dois novos
+
+**A1 e A2 foram resolvidos na 061**, e não nesta feature, no dia seguinte a este documento:
+
+| # | Resolvido por | O que existe |
+|---|---|---|
+| **A1** | #936, e o painel no #939 | `ApiReadLog` na pipeline `:api_autenticada`, tabela `api_access_reads`, retenção indefinida |
+| **A2** | #936, com janela deslizante no #938 | `ApiRateLimit`: 120 por minuto por token, recusa `429` que diz o limite |
+
+As seções A1 e A2 abaixo ficam **inteiras**, como registro do que foi medido em 2026-09-22.
+Apagá-las esconderia que a premissa mudou.
+
+**Ler o código que o desenho vai reusar mostrou dois achados novos**, os dois **altos**:
+
+### A6 — O registro não enxerga o MCP · **ALTA**
+
+`ApiReadLog` grava `route` pelo **molde da rota** do Phoenix e `target_id` por
+`params["id"]` (`api_read_log.ex:60-80`). No MCP, toda chamada é `POST /mcp`, e a ferramenta e
+o `team_id` vão **no corpo JSON-RPC**.
+
+**Cenário concreto**: é o mesmo do A1. Uma credencial chama `team_open_work` sobre cada equipe
+que alcança, todo dia, por um mês. O registro tem trinta vezes N linhas, todas com
+`route: "/mcp"` e `target_id: nil`. À pergunta *"leu o painel de qual equipe?"*, a resposta
+continua sendo **"não se sabe"**, e agora com a aparência de que se sabe. **Registro que
+existe e não responde é pior que registro que falta**, porque ninguém vai procurar a falta.
+
+**O que a implementação deve fazer**: a camada MCP escreve a ferramenta e o alvo em
+`conn.private`, e o `ApiReadLog` os prefere quando existirem. As rotas de `/api/v1` continuam
+gravando o mesmo. Tarefa T021.
+
+### A7 — A recusa seria gravada como leitura · **ALTA**
+
+`ApiReadLog` grava todo status em `200..299`. A FR-013 manda a recusa sair como **resposta de
+ferramenta**, e JSON-RPC a entrega em HTTP `200`.
+
+**Cenário concreto**: uma conta fora do alcance chama `team_roster` sobre a equipe X. Recebe
+`state: "refused"`, que está certo. E o registro grava uma linha dizendo que a credencial
+**leu** a equipe X. Quem investigar um vazamento pelo registro vai achar acesso onde houve
+recusa. O registro afirma o contrário do fato, com a forma de registro.
+
+**O que a implementação deve fazer**: o registro do MCP exige **marca explícita de
+concessão**, escrita só quando o veredito concede. A recusa vai para o registro de recusa.
+Tarefa T022, e a FR-025 da spec.
+
+### Uma correção no contrato, achada no caminho
+
+O contrato e o T017 listavam `escopo_de_equipe` e `vinculo_vigente` como **razões de recusa**.
+São caminhos de **concessão**. `pode_ver_equipe/3` só nega com `:fora_do_alcance`. Corrigido
+nos dois.
+
+### Isto continua sendo autoavaliação
+
+A reconferência foi feita por quem escreveu o desenho, e o aviso abaixo continua valendo. A
+revisão independente virou a tarefa **T009**, e ela bloqueia o T001.
 
 ---
 
@@ -176,6 +233,10 @@ token; falta dizer do **conteúdo**.
 | **A3** | injeção de instrução pelo conteúdo | média | não |
 | **A4** | agregação ao longo do tempo | média | não — mas depende do A1 |
 | **A5** | o que sai não volta | informativo | não |
+| **A6** | *(2026-09-24)* o registro não enxerga ferramenta nem alvo no MCP | **alta** | sim: o plano reusava o registro sem olhar como ele grava |
+| **A7** | *(2026-09-24)* a recusa do MCP seria gravada como leitura | **alta** | sim: contradiz a FR-013 combinada com o `ApiReadLog` |
+
+**A1 e A2: resolvidos na 061 em 2026-09-23** (#936, #938). Ver a reconferência no topo.
 
 **Duas incógnitas que o plano declarava abertas (I2 e I3) agora têm resposta**, e a resposta
 do I2 é pior que "falta decidir": **o mecanismo que a FR-024 pressupõe não existe**.

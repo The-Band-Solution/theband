@@ -1,6 +1,6 @@
 # Tarefas: o servidor MCP — as perguntas da equipe, respondidas a um agente
 
-**Feature**: 062 · **Branch**: `062-servidor-mcp` · **Data**: 2026-09-22
+**Feature**: 062 · **Branch**: `062-servidor-mcp` · **Data**: 2026-09-22 · **Reconciliado**: 2026-09-24
 
 **Entrada**: [`plan.md`](./plan.md) · [`spec.md`](./spec.md) ·
 [`research.md`](./research.md) · [`data-model.md`](./data-model.md) ·
@@ -9,33 +9,54 @@
 
 ---
 
-## A decisão que define o tamanho desta fatia
+## Reconciliado contra o código em 2026-09-24
 
-A avaliação de segurança achou **dois riscos altos**, e ambos **entram como tarefa** — não
-são empurrados para depois:
+Estas tarefas foram escritas em 2026-09-22, e no dia seguinte o #936 e o #938 **resolveram na
+061** os dois achados altos que definiam o tamanho da fatia. A reconciliação
+(`/speckit-analyze`, 2026-09-24) mediu o que existe e trocou cinco tarefas:
 
-| # | Achado | Onde entra |
-|---|---|---|
-| **A1** | leitura bem-sucedida não é registrada em lugar nenhum, e a FR-024 se apoia nisso | US3, tarefas T021–T023 |
-| **A2** | não há limite de taxa na 061, e a Q4 dizia herdá-lo | US3, tarefas T024–T025 |
-| **A3** | injeção de instrução pelo conteúdo | US1, tarefa T014 |
+| # | O que as tarefas diziam | O que existe | O que mudou aqui |
+|---|---|---|---|
+| **A1** | nenhuma leitura bem-sucedida é registrada | `TheBandWeb.Plugs.ApiReadLog` na pipeline `:api_autenticada`, a tabela `api_access_reads`, `ApiAccessLog.uso_por_rota/3` e o painel do #939 | T021 **herda** o registro, em vez de criá-lo. T023 foi **removida**, porque a falta da API HTTP já foi consertada |
+| **A2** | não há limite de taxa na 061 | `TheBandWeb.Plugs.ApiRateLimit`: 120 por minuto por token, com janela deslizante | T024 vira **teste do limite compartilhado**. T025 foi **removida**, porque a alternativa dela deixou de existir |
+| **A6** | *(novo)* | o registro grava `route` pelo molde da rota e `target_id` por `params["id"]`. No MCP, as duas coisas saem vazias | T021 |
+| **A7** | *(novo)* | o registro grava todo status `2xx`, e a recusa do MCP sai em `200` | T022 |
+| **A3** | injeção de instrução pelo conteúdo | sem mudança | US1, T014 |
 
-**O registro de leitura da API HTTP fica FORA**, e vira item de backlog próprio: a mesma
-falta vale para as rotas da 061 que já estão prontas, e consertá-la só do lado MCP deixaria
-a porta mais antiga sem o registro que a FR-024 exige. Está declarado, não silenciado.
+**A6 e A7 exigem mexer no `ApiReadLog`**, que é código da 061 **em produção**. A mudança é
+pequena, mas passa a fazer parte desta fatia, e está dita aqui para que ninguém a descubra no
+diff.
+
+**A autoavaliação continua sendo autoavaliação.** Ver T009: a revisão independente vem antes
+de qualquer código.
 
 ---
 
 ## Fase 1 — Preparação
 
+- [ ] **T009** Obter a revisão independente do desenho reconciliado
+  - **Pronta quando**: a reconciliação de 2026-09-24 commitada
+  - **Descrição**: o agente `security` avalia `spec.md`, `plan.md`, `seguranca.md` e
+    `contracts/`, **e o código que o desenho reusa**: `api_read_log.ex`, `api_rate_limit.ex`,
+    `api_auth.ex` e `access.ex`. A autoavaliação de 2026-09-22 errou justamente onde importava:
+    não viu que a recusa do MCP seria gravada como leitura (A7). É a lacuna I4, e o princípio
+    VII
+  - **Feita quando**: a avaliação está escrita por quem não escreveu o desenho, e cada
+    achado alto virou tarefa. Se falhar de novo, a lacuna é **declarada** no `seguranca.md`,
+    e nunca marcada como cumprida
+  - **Teste**: revisão. O documento nomeia quem avaliou e o que leu
+
 - [ ] **T001** Travar a dependência do protocolo
-  - **Pronta quando**: nada além do repositório
+  - **Pronta quando**: T009 concluída ou declarada impossível
   - **Descrição**: acrescentar `{:ex_mcp, "~> 1.5"}` a `mix.exs`, com o comentário dizendo
     **por que esta e não as outras** — research.md D1: `hermes_mcp` não publica desde
     2025-08, `fastest_mcp` está em 0.x e tem 586 downloads. É a **única** dependência nova
-    da feature
+    da feature. **A cadência também vai no comentário**: 1.3.0 em 05/09, 1.4.0 em 17/09,
+    1.5.0 em 21/09. Uma versão a cada ~7 dias, e o `~> 1.5` aceita as próximas 1.x. Quem
+    atualizar o `mix.lock` precisa saber que vai puxar uma biblioteca em movimento
   - **Feita quando**: `mix deps.get` resolve; `mix.lock` registra a versão; o comentário no
-    `mix.exs` nomeia o que fica pior (biblioteca jovem) e a mitigação (camada fina)
+    `mix.exs` nomeia o que fica pior (biblioteca jovem e em movimento) e a mitigação (camada
+    fina)
   - **Teste**: `mix deps.get && mix compile --warnings-as-errors` — e `mix hex.audit` sem
     aviso novo
 
@@ -94,20 +115,28 @@ a porta mais antiga sem o registro que a FR-024 exige. Está declarado, não sil
     uma. Nenhuma ferramenta genérica, nenhum filtro livre, nenhum campo de ordenação vindo
     de argumento — FR-023. O protocolo exige `tools/list`, e é o registro que o responde
   - **Feita quando**: `Ferramentas.listar/0` devolve as quatro; acrescentar uma sem entrada
-    no registro não a torna alcançável
+    no registro não a torna alcançável; **cada entrada nomeia o id da pergunta de competência**
+    que responde (FR-020)
   - **Teste**: `test/the_band_web/mcp/protocolo_test.exs` — `tools/list` devolve
-    exatamente `team_roster`, `team_open_work`, `team_review_wait` e `team_stale_work`
+    exatamente `team_roster`, `team_open_work`, `team_review_wait` e `team_stale_work`. E
+    `test/the_band/mcp/ferramentas_test.exs`: o id de pergunta de cada uma **existe na base de
+    conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem, reprova
+    nomeando a ferramenta. É o que impede inventar ferramenta que a base não declara
 
 - [ ] **T007** Servir o MCP autenticado
   - **Pronta quando**: T006 concluída
-  - **Descrição**: escopo `/mcp` em `lib/the_band_web/router.ex`, atrás de
-    `TheBandWeb.Plugs.ApiAuth` **sem alteração**. O tenant vem da linha do token, nunca de
-    argumento (FR-002); o alcance é recomputado a cada chamada e nada é guardado (FR-003)
-  - **Feita quando**: chamada sem token é recusada; o tenant e a conta dona vêm do token;
-    nenhum estado sobrevive entre chamadas
+  - **Descrição**: escopo `/mcp` em `lib/the_band_web/router.ex`, com
+    `pipe_through [:api, :api_autenticada]`, **a mesma pipeline** de `/api/v1`, e não só o
+    `ApiAuth`. A pipeline autentica, limita e registra, nessa ordem. Pôr só o `ApiAuth` deixaria
+    o MCP sem limite e sem registro, e nada reprovaria. O tenant vem da linha do token, nunca
+    de argumento (FR-002); o alcance é recomputado a cada chamada e nada é guardado (FR-003)
+  - **Feita quando**: chamada sem token é recusada com o `401` do formato único; o tenant e a
+    conta dona vêm do token; nenhum estado sobrevive entre chamadas; `/mcp` passa pelos três
+    plugs
   - **Teste**: `test/the_band_web/mcp/protocolo_test.exs` — sem cabeçalho `Authorization`,
-    a chamada não alcança ferramenta alguma; e um argumento `tenant_id` é **ignorado**, não
-    obedecido
+    a chamada não alcança ferramenta alguma; um argumento `tenant_id` é **ignorado**, não
+    obedecido; e a rota `/mcp`, lida na tabela do roteador, tem `ApiRateLimit` e `ApiReadLog`
+    na pipeline. O controle é o plug, e não o nome da pipeline
 
 - [ ] **T008** Guardar a fronteira do banco
   - **Pronta quando**: T002 concluída
@@ -161,9 +190,12 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     como zero afirmaria revisão instantânea. `truncated` diz se a lista cortou
   - **Feita quando**: as duas medianas vêm em campos próprios; não existe campo de mediana
     única; `median_hours` e `median_days` são `null` — nunca zero — quando não há o que medir
-  - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — contra a base medida em
-    2026-09-21, `reviewed.count: 23` com `median_hours: 0.2` **e** `waiting.count: 79` com
-    `median_days: 46`. Uma mediana só responderia *"12 minutos"*
+  - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — com dados de teste em que as duas
+    leituras **divergem de propósito**: poucas esperas revisadas em horas e muitas em curso há
+    dias. As duas medianas saem separadas, e nenhum campo as combina. **Os números de
+    produção** (23 revisadas com 0,2 h, 79 esperando há 46 dias, `LEDS - ConectaFapes`,
+    medidos em 2026-09-21) **não cabem aqui**: o ExUnit roda no banco isolado de teste e não
+    os enxerga. Eles vão para o T030, com o cliente real
 
 - [ ] **T013** [P] [US1] Responder o que está parado
   - **Pronta quando**: T004, T005, T006 concluídas
@@ -214,8 +246,10 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
   - **Pronta quando**: T005 e T010–T013 concluídas
   - **Descrição**: quando `pode_ver_equipe/3` nega, a ferramenta devolve
     `%{state: "refused", reason: ...}` — **não** exceção, **não** lista vazia. `reason` fica
-    no vocabulário da regra (`fora_do_alcance`, `escopo_de_equipe`, `vinculo_vigente`), o
-    mesmo do log: traduzir criaria um segundo nome para a mesma cláusula. **Diferente da
+    no vocabulário da regra, o mesmo do log: traduzir criaria um segundo nome para a mesma
+    cláusula. **Hoje a única razão é `fora_do_alcance`**, e equipe inexistente também a
+    recebe. `escopo_de_equipe` e `vinculo_vigente` são caminhos de **concessão**, e a versão
+    anterior desta tarefa os listava como recusa por engano. **Diferente da
     061**, que devolve `404` porque ali a resposta é HTTP: um agente que recebe erro de
     transporte não sabe distinguir *não pode ver* de *o servidor caiu*
   - **Feita quando**: as quatro recusam com razão; nenhuma levanta exceção; nenhuma devolve
@@ -247,63 +281,81 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
 
 ## Fase 5 — US3 (P1): a leitura fica registrada, e o abuso é detectável
 
-**Objetivo**: fechar os dois achados altos da avaliação de segurança.
+**Objetivo**: o MCP herda o registro e o limite que a 061 já tem, **e o registro passa a
+enxergar o MCP**. Sem o T021 e o T022, o MCP passaria pela pipeline e o registro gravaria
+linhas que não dizem nada, ou pior: diriam que uma recusa foi leitura.
 
 **Teste independente**: depois de N chamadas, é possível responder *"esta credencial leu o
-painel de quem, e quantas vezes?"* — que hoje não tem resposta.
+painel de qual equipe, por qual ferramenta, e quantas vezes?"*. E nenhuma recusa aparece como
+leitura.
 
-- [ ] **T021** [US3] Registrar a leitura bem-sucedida
-  - **Pronta quando**: T007 concluída; `seguranca.md` escrito (achado A1)
-  - **Descrição**: hoje **nenhuma leitura bem-sucedida é registrada** — `AccessEvents` tem
-    seis funções e nenhuma é *"leu o dado de alguém"*; o plug registra só a recusa; e
-    `last_used_at` é um carimbo **sobrescrito**. A FR-024 aponta o registro de acesso como o
-    caminho para perceber agregação, e ele não existe. Registrar: `token_public_id`,
-    `tenant_id`, ferramenta, `team_id` alvo e instante — **sem o corpo da resposta**
-  - **Feita quando**: cada chamada bem-sucedida deixa uma linha; o corpo da resposta não
-    aparece no registro; o segredo do token não aparece em forma alguma
-  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — depois de três chamadas, três
-    linhas com a ferramenta e o alvo; e a varredura do registro não encontra o segredo
+> **Reescrita em 2026-09-24.** A versão de 2026-09-22 mandava **criar** o registro e o limite.
+> Os dois foram criados na 061 pelo #936 e pelo #938, antes de a 062 começar. As tarefas antigas
+> teriam produzido um segundo registro e um segundo limite para o mesmo token.
 
-- [ ] **T022** [US3] Contar o uso por token e janela
-  - **Pronta quando**: T021 concluída
-  - **Descrição**: volume anômalo tem de ser **medida**, e não impressão. Contagem por
-    `token_public_id` e por janela, legível por quem opera. É o que torna o achado A4 —
-    agregação ao longo do tempo — detectável; sem isto, A4 não tem mitigação alguma
-  - **Feita quando**: a contagem responde *"quantas leituras esta credencial fez na última
-    janela"*; a resposta distingue ferramentas
-  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — dez chamadas de uma credencial e
-    duas de outra produzem contagens **separadas**, e não uma soma
+- [ ] **T021** [US3] Fazer o registro enxergar a ferramenta e o alvo
+  - **Pronta quando**: T007 concluída
+  - **Descrição**: o `ApiReadLog` grava `route` pelo **molde da rota** do Phoenix e
+    `target_id` por `params["id"]` (`lib/the_band_web/plugs/api_read_log.ex:60-80`). No MCP,
+    toda chamada é `POST /mcp`, e a ferramenta e o `team_id` vão **no corpo JSON-RPC**. Sem
+    esta tarefa, toda linha sai com `route: "/mcp"` e `target_id: nil`, e o painel do #939
+    mostra uma linha só. É o achado **A6**.
 
-- [ ] **T023** [US3] Levar a falta ao backlog
-  - **Pronta quando**: T021 concluída
-  - **Descrição**: a mesma falta vale para as rotas da 061 **que já estão prontas**, e
-    consertá-la só do lado MCP deixaria a porta mais antiga sem o registro que a FR-024
-    exige. Escrever o item em `docs/backlog/`, com o achado A1 e o que foi medido
-  - **Feita quando**: o item existe com severidade e cenário concreto; o índice do backlog o
-    lista; o `seguranca.md` da 062 aponta para ele
-  - **Teste**: revisão — o item nomeia as rotas afetadas e diz o que hoje se perde. Sem
-    isso, a fatia fecharia dando a impressão de ter resolvido a falta inteira
+    O conserto: a camada MCP escreve a ferramenta e o alvo em `conn.private`
+    (`:api_read_route`, `:api_read_target`), e o `ApiReadLog` **prefere esses valores** quando
+    existirem. `route` vira `mcp:team_roster`, e `target_id` é o `team_id`. Mexe em código da
+    061 em produção, e por isso as rotas de `/api/v1` precisam continuar gravando exatamente o
+    que gravam hoje.
 
-- [ ] **T024** [US3] Limitar a taxa das chamadas
-  - **Pronta quando**: T007 concluída; os valores de `api.access.thresholds` decididos pelo
-    Product Owner **ou** T025 escolhida no lugar desta
-  - **Descrição**: **não há limite de taxa na 061** — medido em `plugs/` e `api_tokens.ex`.
-    A Q4 decidia herdá-lo, e herdar um limite inexistente é herdar zero. Aqui é pior que na
-    061: o consumidor é um programa que itera sem cansar. Implementar com os valores da regra
-  - **Feita quando**: chamadas acima do limite são recusadas **com razão**, e não
-    silenciosamente; o limite e a janela aparecem na recusa
-  - **Teste**: `test/the_band_web/mcp/limite_test.exs` — N+1 chamadas na janela: a última
-    recusa dizendo qual é o limite
+    `initialize`, `tools/list` e as notificações **não são leitura de dado** e não marcam
+    `conn.private`. Decidir aqui se elas deixam de ser gravadas ou se entram como
+    `mcp:protocolo`, e **escrever a decisão**
+  - **Feita quando**: uma chamada de `team_roster` sobre a equipe X deixa uma linha com
+    `route: "mcp:team_roster"` e `target_id` = X; as rotas de `/api/v1` gravam o mesmo que
+    antes; o corpo da resposta e o segredo do token não aparecem na linha
+  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — três chamadas de ferramentas
+    diferentes sobre equipes diferentes produzem três linhas **distintas** em `route` e em
+    `target_id`. E `test/the_band_web/plugs/api_read_log_test.exs` continua verde **sem
+    alteração**, que é a prova de que a 061 não mudou
 
-- [ ] **T025** [US3] Declarar a ausência do limite
-  - **Pronta quando**: T024 **não** puder ser feita por falta da decisão do Product Owner
-  - **Descrição**: a alternativa honesta a T024. Escrever no contrato e na descrição das
-    ferramentas que **não há limite de taxa**, em vez de dizer que se herda um. Dizer que se
-    herda um controle inexistente é pior que não ter o controle
-  - **Feita quando**: `contracts/ferramentas.md` diz que não há limite, e por quê; nenhum
-    documento afirma herança da 061
-  - **Teste**: revisão — nenhuma ocorrência de *"o limite de taxa é o da 061"* sobra nos
-    artefatos da feature
+- [ ] **T022** [US3] A recusa não é gravada como leitura
+  - **Pronta quando**: T017 e T021 concluídas
+  - **Descrição**: o `ApiReadLog` grava todo status `2xx`, e pela FR-013 a recusa do MCP sai
+    em `200`, como resultado de ferramenta. Sem esta tarefa, o registro afirma que a
+    credencial **leu** a equipe que lhe foi **negada**. É o contrário do fato, com a forma de
+    registro. É o achado **A7**.
+
+    O conserto: o registro do MCP exige **marca explícita de concessão** em `conn.private`,
+    escrita só quando o veredito concede. Sem marca, não há linha. A recusa vai para
+    `AccessEvents`. `painel_recusado/4` é por **pessoa**, então a recusa de **equipe** precisa
+    de evento próprio ou de generalização. Decidir aqui, e escrever por quê
+  - **Feita quando**: uma recusa não deixa linha em `api_access_reads` e deixa um evento de
+    recusa com o `team_id` e a razão; uma concessão deixa a linha e nenhum evento de recusa
+  - **Teste**: `test/the_band_web/mcp/registro_test.exs` — uma conta fora do alcance chama
+    `team_roster`: zero linhas de leitura, um evento de recusa. **Guarda contra o teste
+    vazio**: na mesma execução, uma conta com alcance chama e deixa **uma** linha. Senão
+    "nenhuma linha" passaria com o registro desligado
+
+- ~~**T023**~~ — *removida em 2026-09-24.* Mandava levar ao backlog a falta de registro da
+  API HTTP. A falta foi consertada no #936, e o item seria backlog de algo já entregue.
+
+- [ ] **T024** [US3] Provar que o limite é um só por token
+  - **Pronta quando**: T007 concluída
+  - **Descrição**: o `ApiRateLimit` conta por token, 120 por minuto, em janela deslizante
+    (`api.access.thresholds`, regra `rate_limit`). A Q4 decidia *"o limite é o da 061"*, e
+    agora isso é verdade **se** `/mcp` passar pela mesma pipeline. O teste prova que as duas
+    portas gastam o **mesmo** limite. Dois limites dariam ao mesmo token o dobro da vazão, e
+    duas respostas para *"por que recusou"*
+  - **Feita quando**: chamadas alternadas entre `/api/v1` e `/mcp` com o mesmo token esgotam
+    **um** limite; a recusa em `/mcp` é o `429` do formato único, com limite, janela e
+    reabertura, na camada HTTP e não como erro JSON-RPC
+  - **Teste**: `test/the_band_web/mcp/limite_test.exs` — com um limite pequeno configurado no
+    teste: metade das chamadas por `/api/v1` e metade por `/mcp`, e a chamada N+1, em
+    qualquer das duas portas, é recusada. **Guarda**: um segundo token, na mesma execução,
+    **não** é recusado. Senão o teste passaria com um limite global
+
+- ~~**T025**~~ — *removida em 2026-09-24.* Era a alternativa ao T024 caso não houvesse limite
+  ("declarar a ausência"). O limite existe desde o #936.
 
 ---
 
@@ -329,18 +381,24 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
     mensagem de falha diz **o que** entrou a mais
 
 - [ ] **T029** Escrever o que o cliente precisa saber
-  - **Pronta quando**: T007, T014, T024 ou T025 concluídas
+  - **Pronta quando**: T007, T014 e T024 concluídas
   - **Descrição**: a documentação diz **onde o token fica é responsabilidade do cliente**
     (FR-007) e acrescenta o que a FR-032 implica: **o que o agente lê pode sair do controle
     da plataforma**, ser cacheado e indexado do outro lado, fora do alcance de qualquer
-    revogação. A FR-007 já diz isso do token; falta dizer do **conteúdo**
-  - **Feita quando**: as duas consequências estão escritas; a revogação é apresentada como o
+    revogação. A FR-007 já diz isso do token; falta dizer do **conteúdo**.
+
+    E uma terceira consequência, que o #939 criou: **o token pode não ter prazo**. Na
+    configuração do cliente, um token sem prazo vale até alguém revogá-lo, e a máquina que o
+    guarda pode sair de uso sem que ninguém lembre dele. A orientação: para MCP, preferir
+    token **com** prazo, e revogar com o motivo `suspeita de vazamento` quando a máquina sai
+    de uso sem controle. Também dizer o `401` e o `429` da camada HTTP, do contrato
+  - **Feita quando**: as três consequências estão escritas; a revogação é apresentada como o
     **único** controle sobre o que já saiu
-  - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as duas coisas,
+  - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as três coisas,
     e não só a do token
 
 - [ ] **T030** Provar ponta a ponta com um cliente
-  - **Pronta quando**: T010–T019 concluídas
+  - **Pronta quando**: T010–T024 concluídas
   - **Descrição**: configurar um cliente MCP real apontando para `/mcp`, com o token no
     cabeçalho. **Não é verificável por código de status**: foi o que aconteceu com o Swagger
     da 061 — `HTTP 200`, tela em branco, política bloqueando o script
@@ -351,7 +409,7 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
     cliente** e não com `curl`
 
 - [ ] **T031** Fechar os gates
-  - **Pronta quando**: T001 a T030 concluídas
+  - **Pronta quando**: T009 e T001 a T030 concluídas, exceto as removidas (T023, T025)
   - **Descrição**: `mix gates`, com o **código de saída** como veredito. Qualquer comando
     depois dele substitui o código que vale — em execução de fundo, o código vai **dentro**
     do log; em primeiro plano, a linha termina em `exit $ec`
@@ -365,17 +423,19 @@ painel de quem, e quantas vezes?"* — que hoje não tem resposta.
 ## Dependências
 
 ```
-T001 ──▶ T002 ──▶ T008 (fronteira)
-                └▶ T006 ──▶ T007 ──▶ T019, T021 ──▶ T022, T023
+T009 (revisão independente) ──▶ T001 ──▶ T002 ──▶ T008 (fronteira)
+                                             └▶ T006 ──▶ T007 ──▶ T019, T021, T024
 T003 ──▶ T004 ──┐
 T005 ───────────┼──▶ T010 [P] T011 [P] T012 [P] T013 [P] ──▶ T014, T015
                           └──▶ T017 ──▶ T018
+                          │      └──▶ T022 (com T021)
                           └──▶ T027, T028
-T024 ou T025 (exclusivas) ──▶ T029
+T007, T014, T024 ──▶ T029
 tudo ──▶ T030 ──▶ T031
 ```
 
-**T024 e T025 são alternativas**, e não sequência: uma delas é feita, nunca as duas.
+**T023 e T025 foram removidas** em 2026-09-24 e não entram no grafo. Os números ficam, para
+que as referências antigas não passem a apontar para outra tarefa.
 
 ---
 
@@ -405,7 +465,6 @@ apoiada em nada.
 | Fora | Por quê |
 |---|---|
 | as outras **73** perguntas de competência | não têm tela, e portanto não têm caminho de dados provado (FR-021) |
-| **o registro de leitura da API HTTP** | mesma falta, porta diferente — vira item de backlog em T023 |
 | OAuth e instalação como aplicação | a 061 escolheu token; mudar é decisão nova, com ADR |
 | escrita por MCP | um agente não é uma pessoa, e não há autor honesto para a proveniência |
 | cache de resposta | cache que atrasa revogação é decisão de segurança disfarçada de desempenho |
@@ -423,3 +482,7 @@ da ferramenta.
 A avaliação de segurança que originou A1, A2 e A3 foi escrita por **quem escreveu o
 desenho**, e vale menos exatamente onde mais importaria. O princípio VII **não** está
 cumprido, e não deve ser marcado como tal.
+
+**Em 2026-09-24 ela virou tarefa, a T009**, e bloqueia o T001. A reconciliação mostrou o custo
+de não tê-la: a autoavaliação não viu que o desenho gravaria a recusa como leitura (A7), e
+esse é o tipo de erro que outro par de olhos pega.
