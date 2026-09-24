@@ -1,6 +1,6 @@
 # Spec 062 — o servidor MCP: as perguntas da plataforma, respondidas a um agente
 
-> **Estado: planejada, com 26 tarefas abertas e nenhuma feita.** Não há código. Esta spec ficava
+> **Estado: planejada, com 26 tarefas abertas e uma feita (T009, a revisão independente).** Não há código. Esta spec ficava
 > **atrás da 061** por dependência real, e não por prioridade: o servidor MCP é **consumidor**
 > da API pública, e não um segundo caminho para os dados.
 >

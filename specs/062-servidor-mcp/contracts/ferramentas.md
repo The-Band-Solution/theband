@@ -19,10 +19,16 @@ tratá-las no nível HTTP:
 |---|---|---|
 | `401` | sem token, token malformado, inexistente, revogado ou expirado | o formato único da 061 (`{"error":{"code":"unauthorized",…}}`), idêntico ao de `/api/v1`. Ver [`061/contracts/erro.md`](../../061-api-publica/contracts/erro.md) |
 | `429` | o token passou de 120 chamadas por minuto (`api.access.thresholds`, regra `rate_limit`) | o formato único, com o limite, a janela e quanto falta para ela reabrir |
-| `404` | caminho inexistente sob `/mcp` | hoje é a página HTML do site, o defeito do [#943](https://github.com/The-Band-Solution/theband/issues/943). Se o #943 for consertado antes, é o formato único |
+| `404` | caminho inexistente **ao lado** de `/mcp` (`/mcpx`, `/mcp/nada`) | a rota casa `/mcp` **exato**. O que não casa é o `404` do site, que hoje é a página HTML, o defeito do [#943](https://github.com/The-Band-Solution/theband/issues/943). *Corrigido em 2026-09-24 (R10): a versão anterior supunha `forward "/mcp"`, e com ele **tudo** sob `/mcp/*` iria para a biblioteca, com o `{"error":"Not found"}` dela* |
+| `405` | `GET` ou `DELETE` em `/mcp` | com `protocol_mode: :modern_only` não há sessão, e por isso não há stream por `GET` nem encerramento por `DELETE` |
 
 **O limite é um só por token.** `/mcp` e `/api/v1` gastam o **mesmo** limite, e é isso que a Q4
 decidia. Dois limites para o mesmo token dariam duas respostas para *"por que recusou"*.
+
+**Só cinco métodos chegam à biblioteca**: `initialize`, `notifications/initialized`, `ping`,
+`tools/list` e `tools/call`. O resto, incluindo `subscriptions/listen`, `resources/*`,
+`prompts/*` e `logging/*`, recebe o erro JSON-RPC de método inexistente **antes** da `ex_mcp`
+(T016). Nenhuma resposta de `/mcp` sai em stream.
 
 **Cada mensagem do protocolo conta**: `initialize`, `tools/list` e as notificações gastam o
 limite como qualquer chamada de ferramenta, porque cada uma é uma requisição HTTP. Com 120 por
