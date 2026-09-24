@@ -170,7 +170,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
     end
   end
 
-  describe "a conferência, e a recusa que é uma só" do
+  describe "a conferência, e a recusa que é uma só PARA QUEM CHAMA" do
     test "o valor recém-criado autentica", ctx do
       {token, valor} = criar(ctx)
 
@@ -183,7 +183,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
       prefixo = Tenants.api_token_prefix()
 
       {revogado, valor_revogado} = criar(ctx)
-      {:ok, _} = Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin)
+
+      {:ok, _} =
+        Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       {_expirado, valor_expirado} = criar(ctx, %{expires_in_days: -1})
 
@@ -194,11 +198,32 @@ defmodule TheBand.Tenants.ApiTokensTest do
         Tenants.authenticate_api_token("sem_prefixo_nenhum")
       ]
 
-      assert Enum.all?(recusas, &(&1 == {:error, :recusado})), """
-      As recusas não são idênticas.
+      # **A FR-016 tem DUAS frases, e este teste afirmava só a primeira — de um jeito que
+      # tornava a segunda impossível.**
+      #
+      #   > Token inexistente, revogado e expirado recebem **a mesma resposta**: `401`, com
+      #   > o mesmo código de erro e o mesmo texto. **O motivo real é registrado do lado de
+      #   > dentro, no log estruturado da aplicação, com o identificador da requisição.**
+      #
+      # A versão anterior exigia que o **retorno da função** fosse idêntico nas quatro. Com
+      # isso o motivo era descartado antes de existir, e o log não tinha o que registrar —
+      # foi o SC-004, que reprovou na aceitação de 2026-09-23.
+      #
+      # O que a FR-016 protege é **a resposta**, e não o retorno interno. Aqui se afirma que
+      # as quatro são recusa; que a resposta HTTP é idêntica está em
+      # `test/the_band_web/api/motivo_da_recusa_test.exs`, e os dois lados precisam existir.
+      assert Enum.all?(recusas, &match?({:error, _}, &1)), """
+      Alguma das quatro NÃO foi recusada: #{inspect(recusas)}
+      """
 
-      Distinguir revogado de expirado de inexistente confirma a quem testa credencial roubada
-      que ela existiu, e quando. FR-016.
+      motivos = Enum.map(recusas, fn {:error, m} -> m end)
+
+      assert length(Enum.uniq(motivos)) > 1, """
+      As quatro recusas devolvem o mesmo motivo: #{inspect(Enum.uniq(motivos))}
+
+      A FR-016 pede o motivo real **do lado de dentro**. Se o retorno não o carrega, o log
+      não tem o que registrar, e à pergunta *"esta credencial foi recusada por quê?"* a
+      resposta operacional volta a ser *"por alguma coisa"*.
       """
 
       assert {:ok, _} = Tenants.authenticate_api_token(valor), "o token ativo foi recusado junto"
@@ -208,13 +233,23 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _valor} = criar(ctx)
       forjado = Tenants.api_token_prefix() <> token.public_id <> "_" <> "segredoerrado"
 
-      assert {:error, :recusado} = Tenants.authenticate_api_token(forjado)
+      # O motivo é `:segredo_errado`, e não `:inexistente`: o id público existe, o segredo
+      # não confere. A distinção é do log; a resposta HTTP é a mesma das outras.
+      assert {:error, :segredo_errado} = Tenants.authenticate_api_token(forjado)
     end
 
     test "entrada malformada não levanta exceção", _ctx do
+      # **O motivo varia, e é correto que varie.** `"tb_api_so_um"` é bem formado — vira id
+      # público `so` e segredo `um` — e por isso cai em `:inexistente`, não em
+      # `:malformado`. Exigir um motivo só aqui confundiria *"o formato não bate"* com
+      # *"o formato bate e a credencial não existe"*, que são coisas diferentes no log.
+      #
+      # O que este teste afirma é o que o nome dele diz: **nenhuma entrada levanta exceção**.
       for valor <- ["", "tb_api_", "tb_api_so_um", "qualquer coisa", "tb_api__", nil] do
-        assert {:error, :recusado} = Tenants.authenticate_api_token(valor),
+        assert {:error, motivo} = Tenants.authenticate_api_token(valor),
                "não recusou #{inspect(valor)}"
+
+        assert is_atom(motivo), "o motivo de #{inspect(valor)} não é átomo: #{inspect(motivo)}"
       end
     end
 
@@ -225,7 +260,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {:ok, usado} = Tenants.authenticate_api_token(valor)
       assert usado.last_used_at
 
-      {:error, :recusado} = Tenants.authenticate_api_token("tb_api_x_y")
+      {:error, :inexistente} = Tenants.authenticate_api_token("tb_api_x_y")
       {:ok, relido} = Tenants.fetch_api_token(ctx.tenant, token.id)
       assert relido.last_used_at == usado.last_used_at
     end
@@ -234,7 +269,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
   describe "o estado é lido, nunca gravado" do
     test "revogado vence expirado", ctx do
       {token, _} = criar(ctx, %{expires_in_days: -1})
-      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+
+      {:ok, revogado} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       assert Token.estado(revogado, DateTime.utc_now(:second)) == :revogado, """
       Um token revogado que também passou da data foi lido como expirado.
@@ -258,7 +297,10 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _} = criar(ctx)
       antes = Repo.aggregate(Token, :count)
 
-      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+      {:ok, revogado} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       assert Repo.aggregate(Token, :count) == antes, "SC-012: zero linhas removidas"
       assert revogado.revoked_at
@@ -269,8 +311,15 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _} = criar(ctx)
       outro = user_fixture(ctx.tenant)
 
-      {:ok, primeira} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
-      {:ok, segunda} = Tenants.revoke_api_token(ctx.tenant, token.id, outro)
+      {:ok, primeira} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
+
+      {:ok, segunda} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, outro, %{
+          revocation_clause: "suspeita_de_vazamento"
+        })
 
       assert segunda.revoked_by_user_id == primeira.revoked_by_user_id
       assert segunda.revoked_at == primeira.revoked_at
@@ -289,7 +338,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
   describe "o prazo vem da base de conhecimento" do
     test "sem pedido, a expiração é o teto declarado", ctx do
       {token, _} = criar(ctx)
-      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
 
       dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
       assert_in_delta dias, maximo, 1
@@ -297,7 +346,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
 
     test "pedido acima do teto é REDUZIDO ao teto, e não recusado", ctx do
       {token, _} = criar(ctx, %{expires_in_days: 3650})
-      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
 
       dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
 
@@ -309,8 +358,34 @@ defmodule TheBand.Tenants.ApiTokensTest do
       """
     end
 
+    # **Não pedir e pedir "sem prazo" são coisas diferentes** — desde que a Q1 passou a
+    # oferecer "sem expiração", em 2026-09-23. Colapsar as duas faria toda chamada que omite
+    # o campo — um seed, um teste, a fronteira interna — gerar token eterno em silêncio.
+    test "campo AUSENTE cai no teto; campo presente e vazio é sem expiração", ctx do
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
+
+      {sem_pedir, _} = criar(ctx)
+      assert sem_pedir.expires_at, "omitir o campo gerou token sem prazo, em silêncio"
+
+      assert_in_delta DateTime.diff(sem_pedir.expires_at, DateTime.utc_now(:second), :day),
+                      maximo,
+                      1
+
+      {escolheu, _} = criar(ctx, %{expires_in_days: nil})
+
+      refute escolheu.expires_at, """
+      Escolher "sem expiração" ainda produziu um prazo. A opção existe no formulário desde
+      2026-09-23, e um select que não muda o que grava é pior que um select ausente.
+      """
+
+      # A tela manda string vazia, e não `nil` — o `<option value="">`. As duas formas do
+      # mesmo nada têm de chegar ao mesmo lugar.
+      {da_tela, _} = criar(ctx, %{"expires_in_days" => ""})
+      refute da_tela.expires_at
+    end
+
     test "o limiar de desuso é declarado e NÃO aplicado", _ctx do
-      assert {30, false} = Tenants.api_token_threshold("token_idle_expiry"), """
+      assert {30, false} = Tenants.api_token_threshold("token_idle_expiry", "idle_days"), """
       O limiar de desuso mudou de valor ou passou a ser aplicado.
 
       Aplicá-lo exige o carimbo de último uso maduro: expirar por desuso um token que nunca
@@ -325,7 +400,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
       outro = tenant_fixture()
 
       assert {:error, :not_found} = Tenants.fetch_api_token(outro, token.id)
-      assert {:error, :not_found} = Tenants.revoke_api_token(outro, token.id, ctx.admin)
+
+      assert {:error, :not_found} =
+               Tenants.revoke_api_token(outro, token.id, ctx.admin, %{
+                 revocation_clause: "integracao_encerrada"
+               })
     end
 
     test "a listagem só traz os do tenant", ctx do

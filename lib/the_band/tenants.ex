@@ -48,13 +48,21 @@ defmodule TheBand.Tenants do
   defdelegate create_api_token(tenant, dono, attrs, autor), to: ApiTokens, as: :criar
   defdelegate list_api_tokens(tenant), to: ApiTokens, as: :listar
   defdelegate fetch_api_token(tenant, id), to: ApiTokens, as: :buscar
-  defdelegate revoke_api_token(tenant, id, autor), to: ApiTokens, as: :revogar
+  defdelegate revoke_api_token(tenant, id, autor, razao), to: ApiTokens, as: :revogar
+  defdelegate api_token_revocation_clauses(), to: ApiTokens, as: :clausulas_de_revogacao
+  defdelegate api_token_revocation_labels(), to: ApiTokens, as: :clausulas_com_rotulo
 
-  # Recebe o valor CRU do cabeçalho, e devolve uma recusa só — ver `ApiTokens.autenticar/1`.
+  defdelegate api_token_usage_by_route(tenant, public_id, janela_em_segundos),
+    to: TheBand.Tenants.ApiAccessLog,
+    as: :uso_por_rota
+
+  # Recebe o valor CRU do cabeçalho. A recusa devolve o MOTIVO — `:inexistente`,
+  # `:revogado`, `:expirado`, `:segredo_errado`, `:malformado` —, e ele vai ao log
+  # interno, nunca ao corpo da resposta. Ver `ApiTokens.autenticar/1`.
   defdelegate authenticate_api_token(valor), to: ApiTokens, as: :autenticar
 
   defdelegate api_token_prefix(), to: ApiTokens, as: :prefixo
-  defdelegate api_token_threshold(nome), to: ApiTokens, as: :limiar
+  defdelegate api_token_threshold(nome, chave), to: ApiTokens, as: :limiar
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)

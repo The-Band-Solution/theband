@@ -236,6 +236,73 @@ defmodule TheBandWeb.Api.RegistroELimiteTest do
       """
     end
 
+    test "a janela DESLIZA — não há instante em que a contagem zera", ctx do
+      %{limite: limite} = limiares()
+
+      # Gasta o limite inteiro.
+      for _ <- 1..limite, do: ctx.conn |> recycle_com_token(ctx.valor) |> get(~p"/api/v1/teams")
+
+      assert ctx.conn
+             |> recycle_com_token(ctx.valor)
+             |> get(~p"/api/v1/teams")
+             |> Map.fetch!(:status) == 429
+
+      # **Este é o defeito que a janela fixa tinha.** Com ela, o contador vivia numa chave
+      # `{token, janela}`: virada a janela, a chave era outra e a contagem recomeçava do
+      # zero — 240 chamadas em poucos segundos, com limite de 120.
+      #
+      # Aqui a chave é a FATIA, e a soma cobre as seis últimas. Avançar uma fatia derruba
+      # só a mais velha; o resto continua contando.
+      atual = div(System.system_time(:second), 10)
+
+      cheias =
+        for i <- (atual - 5)..atual,
+            [{_, n}] <- [:ets.lookup(:api_rate_limit, {ctx.token.public_id, i})],
+            do: n
+
+      assert Enum.sum(cheias) >= limite, """
+      As fatias da janela somam #{Enum.sum(cheias)}, e o limite é #{limite}. Se a contagem
+      vivesse numa chave só por janela, virar a janela zeraria tudo de uma vez — que é
+      exatamente a rajada de dobro que a janela fixa permitia.
+      """
+
+      assert cheias != [], "nenhuma fatia gravada — a contagem não está por fatia"
+    end
+
+    test "fatia fora da janela é podada — a tabela não cresce sem teto", ctx do
+      antiga = div(System.system_time(:second), 10) - 20
+      :ets.insert(:api_rate_limit, {{ctx.token.public_id, antiga}, 99})
+
+      assert :ets.lookup(:api_rate_limit, {ctx.token.public_id, antiga}) != []
+
+      ctx.conn |> recycle_com_token(ctx.valor) |> get(~p"/api/v1/teams")
+
+      assert :ets.lookup(:api_rate_limit, {ctx.token.public_id, antiga}) == [], """
+      Fatia fora da janela não volta a contar, e guardá-la faria a tabela crescer uma
+      entrada por token a cada dez segundos, para sempre.
+      """
+    end
+
+    test "o retry-after aponta a próxima vaga, e não a janela inteira", ctx do
+      %{limite: limite, janela: janela} = limiares()
+
+      ultima =
+        Enum.reduce(1..(limite + 1), nil, fn _, _ ->
+          ctx.conn |> recycle_com_token(ctx.valor) |> get(~p"/api/v1/teams")
+        end)
+
+      [faltam] = get_resp_header(ultima, "retry-after")
+      faltam = String.to_integer(faltam)
+
+      assert faltam >= 1, "retry-after de zero faria tentar de novo na hora, e bater de novo"
+
+      assert faltam <= janela, """
+      #{faltam}s para reabrir, com janela de #{janela}s. O retry-after aponta o fim da fatia
+      mais VELHA que ainda conta — é ela que sai da soma primeiro. Mandar esperar a janela
+      inteira faria esperar mais do que o necessário.
+      """
+    end
+
     test "a contagem é por TOKEN, e um não gasta o limite do outro", ctx do
       %{limite: limite} = limiares()
 

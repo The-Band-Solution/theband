@@ -27,16 +27,36 @@ defmodule TheBandWeb.Plugs.ApiRateLimit do
   `429`, com o limite, a janela e quantos segundos faltam para ela reabrir. Recusa muda faria
   quem integra tentar de novo imediatamente, que é o contrário do que o limite quer.
 
-  ## Janela fixa, e o que isso custa
+  ## Janela DESLIZANTE, em fatias
 
-  Contador em ETS por `{token, janela}`, descartado quando a janela vira. É o desenho mais
-  simples que resolve o problema que existe.
+  A primeira versão usava janela **fixa**: um contador por `{token, janela}`, zerado quando a
+  janela virava. O defeito é conhecido e foi declarado então — **na virada, alguém emite até
+  o dobro do limite em dois instantes próximos**: o fim de uma janela e o começo da seguinte.
+  Com 120 por minuto, 240 chamadas em poucos segundos.
 
-  **O que fica pior**: numa virada de janela, alguém pode emitir até o dobro do limite em
-  dois instantes próximos — o fim de uma janela e o começo da seguinte. Uma janela
-  deslizante não teria isso, e custaria guardar os instantes de cada chamada. Para um limite
-  que existe para conter laço que não converge, o dobro momentâneo não é o problema; a
-  ausência de qualquer limite era.
+  Agora a janela desliza. O minuto é dividido em **fatias de dez segundos**, cada uma com o
+  seu contador; a conta é a **soma das fatias que cobrem os últimos sessenta segundos**. À
+  medida que o tempo anda, a fatia mais velha sai da soma sozinha — não há instante em que
+  tudo zera.
+
+  ### Por que fatias, e não os instantes de cada chamada
+
+  Guardar o instante de cada chamada daria a janela exata. Mas contar exige **ler, podar e
+  escrever**, e isso não é atômico: duas requisições simultâneas do mesmo token leriam a
+  mesma lista e as duas passariam. O limite falharia justamente sob a carga que ele existe
+  para conter.
+
+  Com fatias, o incremento é `:ets.update_counter/4` — **atômico**, uma fatia por vez. A
+  soma lê fatias que já estão fechadas e não mudam mais, ou a corrente, que erra no máximo
+  por uma chamada.
+
+  ### O que se perde, e é pouco
+
+  A soma cobre entre **cinquenta e sessenta segundos** de história, conforme o ponto da fatia
+  corrente. Ou seja: **mais estrita que a janela declarada, nunca mais frouxa** — que é a
+  direção certa para um limite.
+
+  A rajada na virada cai de um minuto inteiro para dez segundos de imprecisão.
   """
   import Plug.Conn
 
@@ -47,6 +67,11 @@ defmodule TheBandWeb.Plugs.ApiRateLimit do
 
   @tabela :api_rate_limit
   @regra "api.access.thresholds"
+
+  # Seis fatias de dez segundos para uma janela de sessenta. Mais fatias dariam mais
+  # precisão e mais leituras por requisição; menos, uma rajada maior na virada. Seis é o
+  # ponto em que a imprecisão (dez segundos) já é pequena diante do que o limite contém.
+  @fatias 6
 
   @doc """
   Cria a tabela do contador. Chamada uma vez, na subida da aplicação.
@@ -74,17 +99,55 @@ defmodule TheBandWeb.Plugs.ApiRateLimit do
 
   defp conferir(conn, publico) do
     %{limite: limite, janela: janela} = limiares()
+    largura = max(div(janela, @fatias), 1)
     agora = System.system_time(:second)
-    inicio = div(agora, janela) * janela
-    quantas = :ets.update_counter(@tabela, {publico, inicio}, {2, 1}, {{publico, inicio}, 0})
+    atual = div(agora, largura)
+
+    # O incremento é ATÔMICO e mexe numa fatia só. Duas requisições simultâneas do mesmo
+    # token incrementam a mesma fatia sem se perderem — que é o que uma lista de instantes
+    # não garantiria.
+    :ets.update_counter(@tabela, {publico, atual}, {2, 1}, {{publico, atual}, 0})
+
+    podar(publico, atual)
+    quantas = somar(publico, atual)
 
     if quantas > limite do
-      recusar(conn, limite, janela, inicio + janela - agora)
+      recusar(conn, limite, janela, reabre_em(publico, atual, largura, agora))
     else
       conn
       |> put_resp_header("x-ratelimit-limit", to_string(limite))
       |> put_resp_header("x-ratelimit-remaining", to_string(max(limite - quantas, 0)))
     end
+  end
+
+  # A soma das fatias que cobrem a janela: a corrente e as `@fatias - 1` anteriores.
+  defp somar(publico, atual) do
+    Enum.reduce((atual - @fatias + 1)..atual, 0, fn i, total ->
+      case :ets.lookup(@tabela, {publico, i}) do
+        [{_, n}] -> total + n
+        [] -> total
+      end
+    end)
+  end
+
+  # Fatia que saiu da janela não volta, e guardá-la faria a tabela crescer sem teto — uma
+  # entrada por token por dez segundos, para sempre.
+  defp podar(publico, atual) do
+    :ets.select_delete(@tabela, [
+      {{{:"$1", :"$2"}, :_}, [{:==, :"$1", publico}, {:<, :"$2", atual - @fatias}], [true]}
+    ])
+  end
+
+  # Quando a próxima vaga abre: é o fim da fatia mais VELHA que ainda conta, porque é ela
+  # que sai da soma primeiro. Dizer "espere a janela inteira" mandaria esperar mais do que
+  # o necessário; dizer "tente já" faria bater de novo.
+  defp reabre_em(publico, atual, largura, agora) do
+    mais_velha =
+      Enum.find((atual - @fatias + 1)..atual, atual, fn i ->
+        :ets.lookup(@tabela, {publico, i}) != []
+      end)
+
+    max((mais_velha + @fatias) * largura - agora, 1)
   end
 
   # A recusa diz o limite, a janela e quando ela reabre. `retry-after` é o cabeçalho que um

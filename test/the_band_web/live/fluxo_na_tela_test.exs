@@ -205,11 +205,32 @@ defmodule TheBandWeb.FluxoNaTelaTest do
     test "período zero ou negativo também cai no padrão", ctx do
       {:ok, _live, padrao} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}")
 
+      # **O `case` existe para a próxima reprovação DIZER o que aconteceu.**
+      #
+      # Este teste reprovou nos gates em 2026-09-22 com um `MatchError` cru sobre
+      # `{:error, :invalid}` — e a mensagem morria ali, sem dizer **qual dos quatro valores**
+      # falhou nem o que veio no lugar. Passa 20 de 20 em isolamento; reprova sob carga.
+      #
+      # Isto não conserta a instabilidade. Faz cada reincidência custar uma leitura em vez
+      # de uma investigação do zero.
       for absurdo <- ["0", "-4", "abc", ""] do
-        {:ok, _live, html} = live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?periodos=#{absurdo}")
+        case live(ctx.conn, ~p"/teams/#{ctx.equipe.id}?periodos=#{absurdo}") do
+          {:ok, _live, html} ->
+            assert janela_do_titulo(html) == janela_do_titulo(padrao),
+                   "periodos=#{inspect(absurdo)} não caiu no padrão"
 
-        assert janela_do_titulo(html) == janela_do_titulo(padrao),
-               "periodos=#{inspect(absurdo)} não caiu no padrão"
+          outro ->
+            flunk("""
+            `periodos=#{inspect(absurdo)}` não montou a LiveView.
+
+            Recebido: #{inspect(outro)}
+
+            Se for `{:error, :invalid}`, é a instabilidade registrada em
+            `docs/backlog/teste-instavel-do-fluxo.md` — dois testes que passam sozinhos e
+            reprovam sob carga. Reexecutar costuma passar, e é exatamente por isso que o
+            caso precisa ficar anotado em vez de ser reexecutado em silêncio.
+            """)
+        end
       end
     end
   end

@@ -63,17 +63,51 @@ defmodule TheBandWeb.TelaDeTokensTest do
   end
 
   describe "R1 — o formulário" do
-    test "o teto vem da base, e sem expiração NÃO é oferecido", ctx do
+    # **A regra virou, e este teste virou com ela** — Q1, aprovada em 2026-09-23. Até então
+    # afirmava o contrário: que "sem expiração" NÃO era oferecido. Fica registrado aqui para
+    # que a reversão seja legível no histórico, e não pareça teste que alguém afrouxou.
+    test "R1.2 — o prazo vem da base, e 'sem expiração' É oferecido, por último", ctx do
       {_view, html} = abrir(ctx)
       t = texto(html)
-      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
 
-      assert t =~ "#{maximo} days — the declared maximum"
-      assert t =~ "No expiration is not offered here"
+      assert t =~ "#{maximo} days — suggested"
 
-      refute html =~ ~s|<option value="">|, """
-      O select de expiração ganhou uma opção vazia — que é "sem expiração" pela porta dos
-      fundos. Máximo do qual se abre mão não é máximo.
+      refute t =~ "the declared maximum", """
+      A tela ainda chama o teto de máximo declarado. Máximo do qual se abre mão não é máximo,
+      e desde que "sem expiração" é oferecido, a palavra afirma o que a regra desfez.
+      """
+
+      assert html =~ ~s|<option value="">no expiration</option>|, """
+      A opção "sem expiração" não está no select, ou não carrega valor vazio. Valor vazio é o
+      que o contexto lê como escolha explícita de não expirar.
+      """
+
+      # A ORDEM importa: a opção sem prazo é a última, e nunca a primeira. A primeira é a que
+      # se escolhe sem pensar.
+      #
+      # O recorte é o select DO PRAZO, e não a página: a primeira `<option>` do documento é
+      # da conta dona, e varrer tudo mediria outro select.
+      [prazo] = Regex.run(~r/name="expires_in_days".*?<\/select>/s, html)
+
+      opcoes = Regex.scan(~r/<option value="([^"]*)"/, prazo) |> Enum.map(&List.last/1)
+
+      assert opcoes != [], "não encontrei o select de prazo no HTML"
+      assert List.last(opcoes) == "", "«sem expiração» não é a última opção do select"
+      assert List.first(opcoes) == "#{maximo}", "o prazo sugerido não é o primeiro"
+    end
+
+    test "R1.3 — a caixa explica a escolha, e data a reversão", ctx do
+      {_view, html} = abrir(ctx)
+      t = texto(html)
+
+      assert t =~ "is a choice with a cost"
+      assert t =~ "leaves circulation only by deliberate revocation"
+      assert t =~ "read again on every call"
+      assert t =~ "reverted on 23 Sep 2026"
+
+      refute t =~ "No expiration is not offered here", """
+      A caixa ainda nega a opção que o select oferece — a tela contradiz a si mesma.
       """
     end
 
@@ -164,7 +198,12 @@ defmodule TheBandWeb.TelaDeTokensTest do
       assert antes =~ "all 1"
 
       view |> element("button", "Revoke") |> render_click()
-      depois = view |> element("button", "Revoke “integração do RH”") |> render_click() |> texto()
+
+      depois =
+        view
+        |> form("form[phx-submit=revogar]", %{"revocation_clause" => "integracao_encerrada"})
+        |> render_submit()
+        |> texto()
 
       assert depois =~ "all 1", """
       A linha sumiu da lista ao ser revogada. SC-012: zero linhas removidas fisicamente, e a
@@ -177,7 +216,11 @@ defmodule TheBandWeb.TelaDeTokensTest do
 
     test "R2.15 — não existe CONTROLE de reativar", %{view: view} do
       view |> element("button", "Revoke") |> render_click()
-      html = view |> element("button", "Revoke “integração do RH”") |> render_click()
+
+      html =
+        view
+        |> form("form[phx-submit=revogar]", %{"revocation_clause" => "integracao_encerrada"})
+        |> render_submit()
 
       # **O controle, e não a palavra.** A tela diz "there is no reactivate" numa frase que
       # explica a irreversibilidade — procurar o texto reprovaria a tela por dizer a coisa
@@ -190,6 +233,164 @@ defmodule TheBandWeb.TelaDeTokensTest do
 
       refute html =~ ~r/<button[^>]*>\s*Reactivate/i,
              "Há um botão de reativar — revogação é definitiva, e um botão a transformaria em pausa."
+    end
+
+    test "R4.11 — a confirmação oferece as quatro cláusulas da base, e a nota", %{view: view} do
+      html = view |> element("button", "Revoke") |> render_click()
+
+      # As cláusulas vêm da base de conhecimento, e o teste as lê de lá: escrevê-las aqui
+      # faria o teste passar no dia em que a tela e a regra divergissem — R6.5.
+      for {id, rotulo} <- Tenants.api_token_revocation_labels() do
+        assert html =~ ~s|<option value="#{id}">#{rotulo}</option>|,
+               "a cláusula #{id} não está no select, ou não usa o rótulo declarado"
+      end
+
+      assert html =~ ~s|name="revocation_note"|, "não há campo de nota livre"
+
+      t = texto(html)
+      assert t =~ "optional", "a nota não está marcada como opcional"
+      assert t =~ "suspected leak", "a razão do campo não está escrita — R4.12"
+      assert t =~ "omission, not a decision"
+    end
+
+    test "R4.13 — a linha revogada mostra a cláusula e a nota", %{view: view} do
+      view |> element("button", "Revoke") |> render_click()
+
+      t =
+        view
+        |> form("form[phx-submit=revogar]", %{
+          "revocation_clause" => "suspeita_de_vazamento",
+          "revocation_note" => "apareceu num gist público"
+        })
+        |> render_submit()
+        |> texto()
+
+      assert t =~ "suspected leak", """
+      A cláusula não voltou à tela. Gravar a razão e não mostrá-la deixa a decisão no banco,
+      onde ninguém a reconstrói — que é o estado que a Q4 trocou.
+      """
+
+      assert t =~ "apareceu num gist público", "a nota livre não aparece na linha"
+    end
+
+    test "cláusula fora da lista é RECUSADA, e a confirmação continua aberta", %{
+      view: view,
+      tenant: tenant
+    } do
+      view |> element("button", "Revoke") |> render_click()
+      [linha] = Tenants.list_api_tokens(tenant)
+
+      # **O evento direto, e não o formulário.** O ajudante de teste recusa um valor fora do
+      # select — que é o que o navegador faz, e não é onde a guarda tem de estar. Quem forja
+      # a requisição não passa pelo select, e é essa chamada que o servidor precisa recusar.
+      t =
+        render_submit(view, "revogar", %{
+          "token_id" => linha.token.id,
+          "revocation_clause" => "porque_sim"
+        })
+        |> texto()
+
+      assert t =~ "Revoke “integração do RH”?", """
+      A confirmação fechou depois de uma recusa, e quem revoga voltou ao começo sem saber por
+      quê. A recusa tem de ficar onde o campo está.
+      """
+
+      refute t =~ "revoked 1", "o token foi revogado com uma cláusula que não está na lista"
+    end
+  end
+
+  describe "R2.20 a R2.25 — o painel de uso" do
+    setup ctx do
+      {view, _} = abrir(ctx)
+      render_submit(form(view, "#novo-token", %{"label" => "painel do diretor"}))
+      linha = ctx.tenant |> Tenants.list_api_tokens() |> List.first()
+      %{view: view, token: linha.token}
+    end
+
+    test "R2.1 continua em OITO colunas — o uso não virou nona", ctx do
+      {_view, html} = abrir(ctx)
+
+      [cabecalho] = Regex.run(~r/<thead>.*?<\/thead>/s, html)
+      colunas = Regex.scan(~r/<th\b/, cabecalho) |> length()
+
+      assert colunas == 8, """
+      A tabela tem #{colunas} colunas, e a R2.1 aprovada tem oito. O uso abre num painel
+      justamente para não virar a nona.
+      """
+    end
+
+    test "R2.21 e R2.22 — abre por rota, com a janela escolhida e dita", ctx do
+      registrar_leitura(ctx.tenant, ctx.token.public_id, "/api/v1/teams")
+      registrar_leitura(ctx.tenant, ctx.token.public_id, "/api/v1/teams")
+      registrar_leitura(ctx.tenant, ctx.token.public_id, "/api/v1/people")
+
+      t =
+        ctx.view
+        |> element("button[phx-click=abrir_uso]")
+        |> render_click()
+        |> texto()
+
+      assert t =~ "painel do diretor · what it read"
+
+      assert t =~ "last 24 h",
+             "a janela não aparece — contagem sem janela é número sem denominador"
+
+      assert t =~ "/api/v1/teams"
+      assert t =~ "/api/v1/people"
+      assert t =~ "By route, never one total"
+
+      refute t =~ "3 reads", "há um total somando as rotas — R2.22 pede a quebra, nunca a soma"
+    end
+
+    test "janela sem leitura escreve a ausência, e não zero", ctx do
+      # A leitura existe, e está **fora** da janela — dez dias atrás contra as últimas 24 h.
+      # É a diferença que o teste mede: "nenhuma chamada nesta janela" não é "nenhuma chamada
+      # jamais", e um zero as confundiria.
+      registrar_leitura(
+        ctx.tenant,
+        ctx.token.public_id,
+        "/api/v1/teams",
+        DateTime.add(DateTime.utc_now(), -10, :day)
+      )
+
+      t = ctx.view |> element("button[phx-click=abrir_uso]") |> render_click() |> texto()
+
+      assert t =~ "no accepted call in the chosen window", """
+      A janela vazia veio como tabela vazia ou como zero. Ausência se escreve, e "nenhuma
+      chamada nesta janela" não é "nenhuma chamada jamais".
+      """
+    end
+
+    test "R2.23 a R2.25 — o painel diz o que não mostra, por que existe, e o que ele é", ctx do
+      t = ctx.view |> element("button[phx-click=abrir_uso]") |> render_click() |> texto()
+
+      assert t =~ "Not what was read"
+      assert t =~ "Not a refused call"
+      assert t =~ "The verdict cannot see accumulation; this panel can"
+      assert t =~ "itself a record about people"
+      assert t =~ "indefinitely"
+      assert t =~ "require_admin"
+    end
+
+    # O registro nasce do plug da API, e aqui a linha é montada direto: o que se confere é o
+    # painel, e não o caminho da requisição — esse tem teste próprio em
+    # `registro_e_limite_test.exs`.
+    #
+    # **Pelo `Repo`, e não por `ApiAccessLog.registrar/1`**: aquela função carimba o próprio
+    # instante e ignora o que recebe, de propósito — instante vindo de quem chama é instante
+    # que quem chama forja. Só que é exatamente o instante que este teste precisa mover.
+    defp registrar_leitura(tenant, publico, rota, quando \\ nil) do
+      {1, nil} =
+        TheBand.Repo.insert_all(TheBand.Tenants.ApiAccessLog, [
+          %{
+            tenant_id: tenant.id,
+            token_public_id: publico,
+            route: rota,
+            occurred_at: DateTime.truncate(quando || DateTime.utc_now(), :microsecond)
+          }
+        ])
+
+      :ok
     end
   end
 

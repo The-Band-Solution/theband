@@ -134,6 +134,10 @@ pre.cmd .c{color:var(--tinta-2)}
 
 <h1 style="margin-top:1.4rem">API tokens, before the code</h1>
 <p class="sub">Prototype of <span class="mono">/api-tokens</span> — the administrative screen that generates, lists and revokes the credentials a program uses to read this organisation through <span class="mono">/api/v1</span> (feature 061, FR-045 to FR-049). Four screens on one page: the list at rest, the instant after <em>Create</em>, the revocation, and what this screen refuses to do. <strong>Nothing depends on a click</strong> — every form is shown open, as an example.</p>
+<div class="nota-de-tela"><span class="rot">approved on 23 Sep 2026 · three changes, and one thing deliberately left out</span>
+<strong>“No expiration” is now offered</strong> in the form — reverting the rule that read <em>“a maximum you can opt out of is not a maximum”</em>. <strong>Revocation now records a reason.</strong> And <strong>the row opens a usage panel</strong>, because the gap this screen used to declare — <em>what did this integration read?</em> — was closed by the access record that shipped in v0.9.0.
+<span style="display:block;margin-top:.4rem;color:var(--tinta-2)">The eight columns of <span class="mono">R2.1</span> are untouched: the usage lives in a panel, not a ninth column. The ruler in section 3 of <span class="mono">PROMPT.md</span> gains items; it loses none.<br><strong>Left out by decision, not by oversight:</strong> the e-mail warning of Q6. It is postponed — see the row below.</span></div>
+
 <p class="sub">Team, project and account names are <strong>real</strong>, read from the development database on <strong>18 Sep 2026</strong>. The tokens themselves are <span class="ex-mark">example</span>: the table <span class="mono">api_access_tokens</span> does not exist yet, so no row here was measured. <em>Ana Vieira</em> is a fictitious administrator, as in the 066 prototype.</p>
 <div class="legenda">
   <span><span class="marca obs"><span class="am"></span>observed</span> the platform recorded it — a call it accepted</span>
@@ -169,7 +173,7 @@ Generate a token, hand the value over once, and revoke it when the integration e
         <option>consulta@the-band-solution.example</option>
       </select></label>
     <label class="campo"><span class="rot">Expires in</span>
-      <select class="sel" id="f-exp"><option>90 days — the declared maximum</option><option>30 days</option><option>7 days</option></select></label>
+      <select class="sel" id="f-exp"><option>90 days — suggested</option><option>30 days</option><option>7 days</option><option>no expiration</option></select></label>
     <button class="btn p" type="button">Create token</button>
   </div>
 
@@ -179,7 +183,10 @@ Generate a token, hand the value over once, and revoke it when the integration e
     <p class="sub" style="font-size:0.8125rem;margin-top:.4rem">This is <strong>today's</strong> reach, not the token's. If she leaves team IA, the next call returns less, and nothing on this screen changes. If her account is ever disabled, every call with this token is refused. That is the trade this platform took, in the open: no second model of access, and a reach that ages with the person instead of in the token.</p>
   </div>
 
-  <div class="nao-ofer"><b>No expiration is not offered here.</b> This organisation declared a maximum of <span class="mono">90 days</span> (<span class="mono">api.access.token_lifetime</span>), and a credential with no end is a surface nobody watches. Tokens created before that rule still read <em>no expiration</em> in the list below — the column writes the absence rather than leaving a cell blank.</div>
+  <div class="nao-ofer" style="border-color:var(--amber);color:var(--tinta)"><b>“No expiration” is offered, and it is a choice with a cost.</b> 90 days is the suggested term (<span class="mono">api.access.token_lifetime</span>); choosing <em>no expiration</em> is explicit, never the easy default.
+  <span style="display:block;margin-top:.45rem;color:var(--tinta-2)">A token with no end <strong>leaves circulation only by deliberate revocation</strong>. No job ends it, and nothing announces that it exists — this screen is the only surface, and nobody opens an admin screen on a Tuesday without a reason.
+  Two things limit the damage, and both still hold: the reach is the <strong>owner account's</strong>, read again on every call, and a disabled account has every call refused. An endless token belonging to someone who left already opens nothing.</span>
+  <span style="display:block;margin-top:.45rem;font-family:var(--mono);font-size:0.6875rem;color:var(--tinta-2)">reverted on 23 Sep 2026 · the rule previously read “a maximum you can opt out of is not a maximum”</span></div>
   <p class="sub" style="font-size:0.8125rem">The platform stores the label, a one-way hash of the secret, the last four characters, who created it, when, and the expiry. <strong>It does not store the value</strong>, and there is no column it could be recovered from.</p>
 </div>
 
@@ -274,10 +281,51 @@ Generate a token, hand the value over once, and revoke it when the integration e
   </tbody>
 </table></div>
 
-<div class="aviso">
-  <span class="rot">what this list does not answer, and it is a decision</span>
-  <p><strong>What each integration read is not recorded.</strong> The platform keeps <em>when</em> a token was last accepted — one field, overwritten — and no series of calls. So this screen answers <em>"is anything still using this credential?"</em> and cannot answer <em>"what has this credential been reading?"</em>. That gap is declared, not an oversight: a call-by-call series answers a different question and grows without a ceiling. It gets built when someone needs the answer.</p>
+<div class="aviso" style="border-style:solid;border-color:var(--verdete)">
+  <span class="rot">the gap this list used to declare, and no longer has</span>
+  <p><strong>Until 23 Sep 2026 this said: what each integration read is not recorded.</strong> It is now — one row per accepted call, with the credential, the route, the target and the instant. The <em>body</em> of the response is not kept: the record says who read what, never what was read.
+  <span style="display:block;margin-top:.4rem">Two consequences worth naming. The row below opens a <strong>usage panel</strong> instead of a ninth column — the eight of <span class="mono">R2.1</span> are the QA's ruler. And the record is kept <strong>indefinitely</strong> (<span class="mono">api.access.access_log_retention</span>, decided 23 Sep 2026): nothing prunes it, so it can reconstruct, with no time limit, that one person consulted another person's panel.</span></p>
 </div>
+<div class="hdr" style="margin-top:1.8rem"><h3>The usage panel</h3><span class="rot">opens on the row — not a ninth column</span></div>
+<p class="sub">Clicking a row opens this. It answers <em>“what has this credential been reading?”</em> — the question the list refused until 23 Sep 2026. It stays out of the table because the eight columns of <span class="mono">R2.1</span> are what the QA checks one by one, and because this is a panel someone opens to investigate, not something to scan across six rows.</p>
+
+<div class="cartao" style="background:var(--papel)">
+  <div class="cab"><h4>painel do diretor <span class="ex-mark">example</span> · what it read</h4><span class="rot">shown open as an example</span></div>
+
+  <div style="margin-top:.7rem;display:flex;gap:.7rem;align-items:baseline;flex-wrap:wrap">
+    <span class="seg"><span class="on">last 24 h</span><span>last 7 days</span><span>last 30 days</span></span>
+    <span class="sub pequeno">The window is <strong>chosen and shown</strong>. A count without a window is a number without a denominator.</span>
+  </div>
+
+  <div class="scroll"><table class="stacked" style="margin-top:.7rem">
+    <thead><tr><th>route</th><th>reads</th><th>last one</th></tr></thead>
+    <tbody>
+      <tr><td data-label="route"><span class="mono">/api/v1/teams</span></td><td data-label="reads"><span class="n">412</span></td><td data-label="last one"><span class="quando"><b>18 Sep 2026 09:41</b><span class="marca obs"><span class="am"></span>observed</span></span></td></tr>
+      <tr><td data-label="route"><span class="mono">/api/v1/teams/:id/measures</span></td><td data-label="reads"><span class="n">118</span></td><td data-label="last one"><span class="quando"><b>18 Sep 2026 09:41</b><span class="marca obs"><span class="am"></span>observed</span></span></td></tr>
+      <tr><td data-label="route"><span class="mono">/api/v1/people</span></td><td data-label="reads"><span class="n">7</span></td><td data-label="last one"><span class="quando"><b>17 Sep 2026 22:05</b><span class="marca obs"><span class="am"></span>observed</span></span></td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="sub pequeno" style="margin-top:.6rem"><strong>By route, never one total.</strong> 537 reads says nothing; 412 on one route and 7 on another says where the integration actually goes — and an anomaly on one route is a different fact from volume spread across all of them.</p>
+
+  <div class="aviso" style="margin-top:.8rem">
+    <span class="rot">what this panel does not show, and why</span>
+    <p><strong>Not what was read.</strong> The record keeps the route and the target, never the body of the response — keeping it would make a second copy of the data, with the same sensitivity and without the verdict in front of it.</p>
+    <p style="margin-top:.4rem"><strong>Not a refused call.</strong> Refusals are already in the internal log, with the reason. This panel is about access that was <em>granted</em>, which is what left no trace at all before.</p>
+  </div>
+
+  <div class="aviso" style="border-color:var(--amber);margin-top:.6rem">
+    <span class="rot">why this panel exists</span>
+    <p>Four calls that each respect the verdict can, together, answer a question none of them would answer alone. <strong>The verdict cannot see accumulation; this panel can.</strong> It is the control the platform accepted when it accepted that risk — and until this screen existed, the control was a table nobody looked at.</p>
+  </div>
+</div>
+
+<div class="aviso" style="border-color:var(--clay)">
+  <span class="rot">and this panel is itself a record about people</span>
+  <p>It shows that <strong>one person's credential read another person's panel</strong>, when, and how often. The record is kept <strong>indefinitely</strong> — decided 23 Sep 2026, in <span class="mono">api.access.access_log_retention</span>, after 90 days was proposed and turned down. Nothing prunes it.</p>
+  <p style="margin-top:.4rem">Who may open this panel is the same door as the rest of the screen: <span class="mono">require_admin</span>. That is not a small thing to leave implicit, so it is written here.</p>
+</div>
+
 <p class="sub pequeno">Reach is recomputed on every call and on every load of this screen — it is never written into the token. Six rows, no page cut: when a tenant passes a screenful of tokens this list gets paging, and says so here.</p>
 
 <!-- ════════════════════════ SCREEN 2 ════════════════════════ -->
@@ -341,6 +389,19 @@ curl -H "Authorization: Bearer $TB_API_TOKEN" \
   <p class="naofaz"><b>what it does not do</b>It does not delete anything, it does not touch the other tokens of this account, and <strong>it cannot be undone</strong>. There is no reactivate: a revoked credential is a credential someone decided to stop trusting, and a pause would not be that decision. The way back is to create another token and hand it to whoever integrates.</p>
   <p class="naofaz"><b>what the client sees</b>The same <span class="mono">401</span> as a token that never existed — same code, same message. The caller is not told that the credential was revoked, because telling them confirms it once existed. Whoever operates this platform finds the real reason in the internal log, by the request id.</p>
 
+  <div class="campos" style="margin-top:.9rem;padding-top:.8rem;border-top:1px dashed var(--linha)">
+    <label class="campo"><span class="rot">Why — the clause</span>
+      <select class="sel" id="r-clause">
+        <option>integration ended</option>
+        <option>suspected leak</option>
+        <option>replaced by another token</option>
+        <option>other</option>
+      </select></label>
+    <label class="campo" style="flex:1 1 18rem"><span class="rot">Note — optional, in your own words</span><input class="txt" style="width:100%" type="text" value="substituído pelo token do novo painel"></label>
+  </div>
+  <p class="sub pequeno" style="margin-top:.45rem"><strong>The clause that earns this field is <em>suspected leak</em></strong> — it is the one case where the next act changes: rotate everything that account reaches, not just replace the integration. The list is closed so the answer to <em>“how many revocations were suspected leaks this quarter?”</em> is a count and not a reading of free text; the note sits beside it for what a list cannot hold.</p>
+  <p class="sub pequeno" style="margin-top:.35rem">Until 23 Sep 2026 revocation recorded only <em>who</em> and <em>when</em> — and that was an <strong>omission, not a decision</strong>: nobody had been asked. A revocation with no reason is a decision nobody reconstructs in six months.</p>
+
   <div class="botoes">
     <button class="btn g" type="button">Revoke “planilha do RH”</button>
     <button class="btn" type="button">Cancel</button>
@@ -356,7 +417,7 @@ curl -H "Authorization: Bearer $TB_API_TOKEN" \
     <td data-label="token"><span class="mascara">••••••••••••••••<b>Lq08</b></span></td>
     <td data-label="owner"><span class="conta">ana.vieira@the-band-solution.example</span></td>
     <td data-label="last used"><span class="quando"><b>18 Sep 2026 10:02</b><span class="marca obs"><span class="am"></span>observed</span></span></td>
-    <td data-label="state"><span class="est"><span class="marca saiu"><span class="am"></span>revoked</span><span class="marca dec"><span class="am"></span>declared</span><small>18 Sep 2026 10:16 by admin@the-band-solution.example</small></span></td>
+    <td data-label="state"><span class="est"><span class="marca saiu"><span class="am"></span>revoked</span><span class="marca dec"><span class="am"></span>declared</span><small>18 Sep 2026 10:16 by admin@the-band-solution.example<br><b>replaced by another token</b> — “substituído pelo token do novo painel”</small></span></td>
     <td data-label="" class="acoes"><span class="sub pequeno" style="font-style:italic">no way back</span></td>
   </tr></tbody>
 </table></div>
@@ -377,10 +438,11 @@ curl -H "Authorization: Bearer $TB_API_TOKEN" \
     <span class="esp">expected: an edit pencil on the row</span>
     <p class="diz"><strong>A token is not edited after it is created.</strong> Extending the life of a live credential grants time without generating anything anyone had to hand over again. The label is fixed at creation for the same reason the mask is: the row has to keep meaning what it meant.</p>
   </div>
-  <div class="recusa-card">
-    <h4>“Show me what this integration read”</h4>
-    <span class="esp">expected: a usage log on the row</span>
-    <p class="diz"><strong>Only <em>when</em>, never <em>what</em>.</strong> One field, overwritten by each accepted call. The gap is declared here so nobody reads the last-used column as an audit trail — it answers "is this still in use", and no more.</p>
+  <div class="recusa-card" style="border-color:var(--verdete)">
+    <h4>“Show me what this integration read” <span class="marca obs" style="vertical-align:middle"><span class="am"></span>now answered</span></h4>
+    <span class="esp">this card used to be a refusal — it is not one any more</span>
+    <p class="diz"><strong>It said “only <em>when</em>, never <em>what</em>”.</strong> That stopped being true on 23 Sep 2026: every accepted call is now recorded — which credential, which route, which target, when. The body of the response is <em>not</em> recorded: the log says who read what, never what was read.
+    <span style="display:block;margin-top:.4rem">The row gains a <strong>usage panel</strong>, below — not a ninth column, because the eight of <span class="mono">R2.1</span> are the ruler the QA checks one by one.</span></p>
   </div>
   <div class="recusa-card">
     <h4>“Put it back — I revoked the wrong one”</h4>
@@ -421,27 +483,46 @@ curl -H "Authorization: Bearer $TB_API_TOKEN" \
     <li><span class="dd">D10</span><strong>The refusals get a section of their own</strong>, each written as what someone would come here expecting. Six of them, including the declared gap about what an integration read. A missing control with no word next to it reads as a platform that cannot do the thing.</li>
   </ol>
 
-  <h3 style="margin-top:1.6rem">Open questions for the maintainer</h3>
-  <div class="scroll"><table>
-    <thead><tr><th>#</th><th>question</th><th>options</th><th>recommendation</th></tr></thead>
+  <h3 style="margin-top:1.6rem">The six questions, answered on 23 Sep 2026</h3>
+  <p class="sub">All six were put to the maintainer. <strong>Four had already been answered by the code without passing through her</strong> — those are confirmed below. Two were genuinely open, and one of the answers reverses a declared rule.</p>
+  <div class="scroll"><table class="stacked" style="margin-top:.7rem">
+    <thead><tr><th>#</th><th>question</th><th>answer</th></tr></thead>
     <tbody>
-      <tr><td class="mono">Q1</td><td><strong>May a new token be created with no expiration?</strong> The spec says absence of expiry is permitted and must be explicit on the screen (FR-011); the answered question Q8 declares a <em>maximum</em> validity of 90 days. A maximum that can be opted out of is not a maximum, and the form has to pick one.</td><td>(a) the form offers 7 / 30 / 90 days and explains, in a dashed box, where "no expiration" went — the list still writes <em>no expiration</em> for older rows · (b) the form offers "no expiration" behind a typed confirmation</td><td><strong>(a)</strong>, which is what this prototype draws — and then FR-011's wording is corrected to say the absence is <em>displayed</em>, not <em>offered</em></td></tr>
-      <tr><td class="mono">Q2</td><td><strong>Which prefix does a token carry?</strong> The spec proposes <span class="mono">tbnd_</span> (FR-001); the task list decided <span class="mono">tb_api_&lt;public id&gt;_&lt;secret&gt;</span>. The prototype has to show one, and a secret scanner's pattern is written against it once.</td><td>(a) <span class="mono">tbnd_</span> · (b) <span class="mono">tb_api_</span>, as the tasks say</td><td><strong>(b)</strong> — the later decision, and the one the format's three parts were designed around. Whichever wins, the other document is corrected in the same PR so there is a single answer</td></tr>
-      <tr><td class="mono">Q3</td><td><strong>Should revocation require typing the label</strong>, as destructive acts elsewhere do?</td><td>(a) no: the confirmation names the label in title and button, and shows when the token was last used · (b) yes: type the label to enable the button</td><td><strong>(a)</strong> — there is no bulk revoke and no list of checkboxes here, so the act is already one row at a time; "last accepted call 14 minutes ago" stops a wrong revocation better than typing does, and typing is friction people learn to speed through</td></tr>
-      <tr><td class="mono">Q4</td><td><strong>Does revoking record a reason?</strong> Disabling an account in this product records a clause and a note; revoking a token, as specified, records only who and when.</td><td>(a) no reason, as specified · (b) a short clause list — <em>integration ended</em>, <em>suspected leak</em>, <em>replaced by another token</em>, <em>other</em> — plus a free note</td><td><strong>(b)</strong>, if it is cheap: <em>suspected leak</em> is the one case where the next act differs (rotate everything that account owns), and a revocation with no reason is a decision nobody can reconstruct in six months. It is a new field, so it is the maintainer's call, not the designer's</td></tr>
-      <tr><td class="mono">Q5</td><td><strong>Does the expiry warning ship in this slice?</strong> The screen shows "expires in 9 days" from <span class="mono">api.access.token_expiry_warning</span> (14 days), but the plan only applies <span class="mono">token_lifetime</span> in slice 1.</td><td>(a) yes — the threshold goes into the same YAML and the list reads it; it is a read, not a job · (b) no — the list shows only the date in slice 1</td><td><strong>(a)</strong> — the screen already reads dates against the clock, so the warning costs one comparison, and "expires in N days" is the half of the fact that makes someone act</td></tr>
-      <tr><td class="mono">Q6</td><td><strong>Does anything warn the owner account before a token expires?</strong> The screen tells whoever opens it; nobody opens an admin screen on a Tuesday for no reason.</td><td>(a) nothing in this slice — the screen is the only surface · (b) a line on the operations screen · (c) e-mail to the creator 14 days out</td><td><strong>(a)</strong> for this slice, recorded as a known gap: an integration that stops at 3 a.m. because a credential expired is exactly the silence this platform dislikes, and (c) is the fix — but it is a delivery channel this feature does not open</td></tr>
+      <tr><td data-label="#"><b>Q1</b></td><td data-label="question">May a token be created with no expiration?</td>
+        <td data-label="answer"><span class="marca dec"><span class="am"></span>declared</span> <strong>yes — reverses the rule.</strong> The form offers 7 / 30 / 90 and <em>no expiration</em>. The consequence is written into <span class="mono">api.access.token_lifetime</span>: such a token leaves circulation only by deliberate revocation, and nothing announces that it exists.</td></tr>
+      <tr><td data-label="#"><b>Q2</b></td><td data-label="question">Which prefix does a token carry?</td>
+        <td data-label="answer"><span class="marca obs"><span class="am"></span>already in the code</span> <span class="mono">tb_api_</span>, in <span class="mono">api.access.token_prefix</span>.</td></tr>
+      <tr><td data-label="#"><b>Q3</b></td><td data-label="question">Should revocation require typing the label?</td>
+        <td data-label="answer"><span class="marca obs"><span class="am"></span>already in the code</span> <strong>no.</strong> The confirmation names the label in title and button, and shows the last accepted call — which stops a wrong revocation better than typing does.</td></tr>
+      <tr><td data-label="#"><b>Q4</b></td><td data-label="question">Does revoking record a reason?</td>
+        <td data-label="answer"><span class="marca dec"><span class="am"></span>declared</span> <strong>yes</strong> — four clauses plus a free note. Until now it recorded only who and when, and that was <em>omission, not decision</em>.</td></tr>
+      <tr><td data-label="#"><b>Q5</b></td><td data-label="question">Does the expiry warning ship in this slice?</td>
+        <td data-label="answer"><span class="marca obs"><span class="am"></span>already in the code</span> <strong>yes</strong> — the list reads <span class="mono">token_expiry_warning</span>.</td></tr>
+      <tr><td data-label="#"><b>Q6</b></td><td data-label="question">Does anything warn the owner before a token expires?</td>
+        <td data-label="answer"><span class="marca aus"><span class="am"></span>postponed</span> <strong>nothing warns anyone, and that is the state this screen must say out loud.</strong>
+        <span style="display:block;margin-top:.35rem;color:var(--clay)"><strong>Measured on 23 Sep 2026: this platform sends no e-mail at all.</strong> No dependency, no mailer module, no SMTP variable. So the answer first given — <em>e-mail to the creator, 14 days out</em> — was not an adjustment to this screen but a feature of its own: a provider, a credential, and an answer for what happens when delivery fails.</span>
+        <span style="display:block;margin-top:.35rem"><strong>Decided on 23 Sep 2026: postponed.</strong> The three changes above ship without it. What remains true meanwhile: <span class="mono">token_expiry_warning</span> marks the row 14 days out, and <strong>only someone who opens this screen sees it</strong>. Nothing reaches anyone who does not come looking — written here so it is a known gap and not a surprise.</span></td></tr>
+      <tr><td data-label="#"><b>+</b></td><td data-label="question">Where does API usage appear? <span class="sub pequeno">(not one of the six — it came from the access record that shipped in v0.9.0)</span></td>
+        <td data-label="answer"><span class="marca dec"><span class="am"></span>declared</span> <strong>a panel on the row</strong>, not a ninth column. <span class="mono">R2.1</span> keeps its eight.</td></tr>
     </tbody>
   </table></div>
 
-  <h3 style="margin-top:1.6rem">Names the knowledge base needs before the code</h3>
+  <div class="aviso" style="border-color:var(--amber);margin-top:1rem">
+    <span class="rot">what these answers oblige, before any code</span>
+    <p>Three of them change this screen. The house rule is that <strong>a screen change goes back to the prototype</strong>, and the ruler in section 3 of <span class="mono">PROMPT.md</span> has 60 items the QA checks one by one.</p>
+    <p style="margin-top:.4rem">This republication keeps the same address — a new address would be a new prototype, and a new prototype needs a new approval. <strong>The three were approved on 23 Sep 2026</strong>, and the e-mail of Q6 was postponed in the same breath.</p>
+  </div>
+
+  <h3 style="margin-top:2rem">Names the knowledge base needs before the code</h3>
   <ul class="lista-q">
     <li><span class="mono">api.access.thresholds</span> — the rule that holds every number this screen shows: <span class="mono">api.access.token_lifetime</span> (90 days, applied), <span class="mono">api.access.token_idle_expiry</span> (30 days without use, <strong>declared and not applied</strong> in this slice — and the rule says which is which), <span class="mono">api.access.token_expiry_warning</span> (14 days, and see Q5).</li>
     <li><span class="mono">api.access.token_prefix</span> — the public prefix (see Q2). It is printed on this screen, pasted into a scanner's pattern, and must not live as a literal in two places.</li>
     <li><span class="mono">api.access.token_state</span> — the vocabulary of the state column: <em>active</em>, <em>revoked</em>, <em>expired</em>, each with how it is read and whether a person declared it. The screen shows a fourth line that is <strong>not</strong> a token state — <em>calls refused · owner account disabled</em> — and it needs its own name so the row and the API agree on the words.</li>
     <li>the words of the two absences, so the screen and the API say the same thing: <em>never used</em> (no accepted call yet) and <em>no expiration</em> (no end declared) — never a blank, never a zero, and never the creation date standing in for a use.</li>
   </ul>
-  <p class="sub" style="margin-top:1.2rem">Approval: <strong>awaiting the maintainer</strong>. Republishing after a decision keeps this address; a new address would be a new prototype, and a new prototype needs a new approval.</p>
+  <p class="sub" style="margin-top:1.2rem"><strong>Approved on 18 Sep 2026</strong> — the four screens as they stood then.<br>
+  <strong>Republished and approved on 23 Sep 2026</strong> with three changes: <em>no expiration</em> offered, a reason on revocation, and the usage panel — <strong>and without the e-mail of Q6, postponed by the same decision</strong>. This republication keeps the address; a new address would be a new prototype, and a new prototype would need a new approval.</p>
+  <p class="sub pequeno">One more name the knowledge base now needs: <span class="mono">api.access.token_revocation_reason</span> — the four clauses, closed and matched one by one, so the count of <em>suspected leak</em> is a number and not a reading of free text. And <span class="mono">api.access.access_log_retention</span>, which holds the decision that the usage record is kept indefinitely.</p>
 </div>
 
 </div>

@@ -47,8 +47,21 @@ defmodule TheBandWeb.Plugs.ApiAuth do
 
   defp autenticar(conn, valor) do
     case Tenants.authenticate_api_token(valor) do
-      {:ok, token} -> com_tenant(conn, token)
-      {:error, :recusado} -> recusar(conn, :credencial_recusada)
+      {:ok, token} ->
+        com_tenant(conn, token)
+
+      # **O motivo específico vai ao LOG, e nunca ao corpo.**
+      #
+      # `:inexistente`, `:revogado`, `:expirado`, `:segredo_errado` e `:malformado` são
+      # investigações diferentes: alguém tentando um token que nunca existiu é varredura;
+      # alguém usando um revogado é credencial que vazou antes da revogação. Antes disto,
+      # as cinco chegavam como `credencial_recusada` e as duas perguntas começavam iguais.
+      #
+      # A resposta ao cliente continua **idêntica** nas cinco — SC-003 —, e há teste que
+      # afirma as duas coisas juntas, porque provar uma sem a outra deixaria passar o
+      # conserto que quebra a outra.
+      {:error, motivo} ->
+        recusar(conn, motivo)
     end
   end
 

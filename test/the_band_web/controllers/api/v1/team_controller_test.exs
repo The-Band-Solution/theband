@@ -149,7 +149,10 @@ defmodule TheBandWeb.Api.V1.TeamControllerTest do
       {:ok, revogado, valor_revogado} =
         Tenants.create_api_token(tenant, admin, %{label: "r"}, admin)
 
-      {:ok, _} = Tenants.revoke_api_token(tenant, revogado.id, admin)
+      {:ok, _} =
+        Tenants.revoke_api_token(tenant, revogado.id, admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       {:ok, _, valor_expirado} =
         Tenants.create_api_token(tenant, admin, %{label: "e", expires_in_days: -1}, admin)
