@@ -30,11 +30,29 @@ diff.
 **A autoavaliação continua sendo autoavaliação.** Ver T009: a revisão independente vem antes
 de qualquer código.
 
+### O que a revisão independente (T009) mudou — **antes de qualquer código**
+
+A T009 foi feita em 2026-09-24 por um agente que não escreveu o desenho, lendo também o código
+da `ex_mcp` 1.5.0. **Ela reprova a T021 e a T022 como estão escritas**, e três pontos exigem
+decisão antes do T001:
+
+| # | Achado | Severidade | O que bloqueia |
+|---|---|---|---|
+| **R1** | a ferramenta roda num processo separado da `ex_mcp`, e o `conn.private` que a T021 usaria **nunca chega** ao `ApiReadLog`. A6 e A7 voltam | alta | **T021 e T022 precisam ser reescritas**: gravar a leitura no ponto do veredito, dentro do registro de ferramentas, e o `ApiReadLog` passar a ignorar `/mcp` |
+| **R2** | **A8**: a notificação (`202`), o `initialize`/`tools/list` e o stream de progresso (`send_chunked(200)`, gravado antes do veredito) seriam registrados como leitura | alta | idem |
+| **R3** | a `ex_mcp` traz **dez** pacotes, entre eles `plug_cowboy`, e o `cowlib` 2.20.0 tem duas advisories sem correção: `mix hex.audit` sai com **1**. Conferido de novo em 2026-09-24 | média | **o T001**: aceitar a exceção no gate é decisão do Product Owner |
+| **R4** | `subscriptions/listen` vem ligado, e o stream dura até 1 h, conta uma vez no limite e **sobrevive à revogação** | média | T007: lista fechada de métodos JSON-RPC antes da biblioteca |
+| **R5** | sessão legada sem identidade, e teto de 10 000 sessões **global por nó** | média | T007: `:modern_only`, ou sessão presa ao token |
+| **R6** | o ramo admin de `pode_ver_equipe/3` concede qualquer UUID. Sem `EO.fetch_team` antes, equipe de outro tenant sai `checked` com resultado vazio | média | T010–T013 |
+
+R7 a R10 são baixos, e estão no documento, com as oito perguntas respondidas.
+
 ---
 
 ## Fase 1 — Preparação
 
-- [ ] **T009** Obter a revisão independente do desenho reconciliado
+- [x] **T009** Obter a revisão independente do desenho reconciliado — *feita em 2026-09-24:
+  [`seguranca-revisao-independente.md`](./seguranca-revisao-independente.md), agente `security`*
   - **Pronta quando**: a reconciliação de 2026-09-24 commitada
   - **Descrição**: o agente `security` avalia `spec.md`, `plan.md`, `seguranca.md` e
     `contracts/`, **e o código que o desenho reusa**: `api_read_log.ex`, `api_rate_limit.ex`,
