@@ -9,9 +9,9 @@ Escrito para a sessão seguinte começar trabalhando, não reconstruindo context
 ## Onde parei, em uma frase
 
 **A v0.9.1 está no ar e foi conferida do lado anônimo**. `development` já carrega o que vai
-ser a **v0.10.0**. Não há PR aberto. O próximo trabalho é a **062 (servidor MCP)**, com 27
-tarefas e nenhuma feita, e **o plano dela precisa ser reconciliado antes de uma linha de
-código** (ver §2).
+ser a **v0.10.0**. O próximo trabalho é a **062 (servidor MCP)**: o plano foi
+reconciliado com o código (#944), e a primeira tarefa é a **revisão independente** (T009),
+antes de qualquer código (ver §2).
 
 ## O primeiro comando
 
@@ -74,25 +74,22 @@ resposta.
 O `mix.exs` já diz `0.10.0`. Use `/release`, e **meça de novo antes de mergear o PR de
 release**, que foi o que faltou na v0.9.1.
 
-### 2. A 062 — reconciliar o plano antes de implementar
+### 2. A 062 — o plano foi reconciliado; falta a revisão independente
 
-`specs/062-servidor-mcp/`: spec, plano, pesquisa, contratos, `seguranca.md` e 27 tarefas.
-Todas abertas.
+`specs/062-servidor-mcp/`: spec, plano, pesquisa, contratos, `seguranca.md` e **26 tarefas
+abertas**. Reconciliado contra o código em 2026-09-24, no **#944**.
 
-**O plano foi escrito em 2026-09-22, e o #936 e o #938 mudaram o terreno no dia seguinte.**
-As tarefas T021–T025 partem de duas premissas que **deixaram de ser verdade**:
+O que a reconciliação achou: o #936 e o #938 já tinham criado o registro de leitura e o limite
+que o plano mandava criar. **E reusá-los como estão traz dois defeitos altos**:
 
-| tarefa | premissa escrita | o que existe hoje |
-|---|---|---|
-| T021–T023 (achado A1) | "nenhuma leitura bem-sucedida é registrada" | `TheBandWeb.Plugs.ApiReadLog` na pipeline da API (#936), e o painel que lê o registro (#939) |
-| T024–T025 (achado A2) | "não há limite de taxa na 061" | limite por token com janela deslizante (#936, #938) |
+- **A6**: o registro grava o molde da rota e `params["id"]`. No MCP, toda linha diria só `/mcp`;
+- **A7**: o registro grava todo `2xx`, e a recusa do MCP sai em `200`. A recusa seria gravada
+  como leitura.
 
-**Não implemente essas tarefas como estão escritas.** Primeiro `/speckit-converge` ou
-`/speckit-analyze` contra o código. O MCP provavelmente **reusa** o registro e o limite da
-061, em vez de criar os seus. O `seguranca.md` da 062 tem de ser reavaliado pela mesma razão.
+Os dois viraram T021 e T022, e exigem mexer no `ApiReadLog`, que é código da 061 em produção.
 
-A única dependência nova é `{:ex_mcp, "~> 1.5"}` (T001). Research D1 explica por que esta
-biblioteca e não as outras.
+**A próxima tarefa é a T009, e não a T001**: o agente `security` avalia o desenho reconciliado
+e o código que ele reusa. A autoavaliação errou justamente no A7.
 
 ### 3. Depois da 062: tracing com SigNoz
 
