@@ -75,6 +75,28 @@ R7 a R10 são baixos, e estão no documento, com as oito perguntas respondidas.
   - **Feita quando**: `mix deps.get` resolve; `mix.lock` registra a versão; o comentário no
     `mix.exs` nomeia o que fica pior (biblioteca jovem e em movimento) e a mitigação (camada
     fina)
+
+    **A exceção no gate foi aceita em 2026-09-24**, e só sob condição. A pessoa mantenedora
+    aceitou `hex: [ignore_advisories: ["EEF-CVE-2026-43966", "EEF-CVE-2026-43969"]]` **se**
+    fosse medido que o `cowlib` não é alcançável na borda. A medição
+    ([`r3-cowlib-alcance.md`](./r3-cowlib-alcance.md)) deu **não alcançável**:
+    - as duas advisories atingem **codificadores**, e não parser;
+    - com o Bandit, um trace sobre 816 funções de cowlib, cowboy, ranch e plug_cowboy deu
+      **zero chamadas**;
+    - o controle, o mesmo plug sob Cowboy, deu 85 chamadas.
+
+    Entram com o T001, e **não** depois:
+    1. a `ex_mcp` fixada em **`== 1.5.0`**, e não `~> 1.5`: versão nova reabre a medição;
+    2. o comentário do `mix.exs`, com o texto do documento e as **quatro condições que
+       derrubam a exceção**;
+    3. **três guardas em teste**:
+       - o adapter do endpoint é `Bandit.PhoenixAdapter`. Sem a linha, o Phoenix volta ao
+         Cowboy **em silêncio**, e o `plug_cowboy` passa a estar instalado;
+       - `:ranch.info()` é `%{}`, ou seja, nenhum listener Cowboy de pé;
+       - em `lib/`, nenhuma ocorrência de `Plug.Cowboy`, `ExMCP.Server.Transport`,
+         `transport: :http` ou `:cow_`, lida **sem** comentários
+  - **Teste (acréscimo de 2026-09-24)**: com as três guardas, `mix hex.audit` sai **0** com a
+    exceção e **1** sem ela. As guardas são provadas com defeito injetado
   - **Teste**: `mix deps.get && mix compile --warnings-as-errors` — e `mix hex.audit` sem
     aviso novo
 
