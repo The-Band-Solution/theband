@@ -139,7 +139,29 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
 
       log =
         capture_log(fn ->
-          assert {:error, {:throttled, _}} = Tenants.authenticate(ctx.alvo.email, @senha)
+          # **A asserção diz o que recebeu, e não só que não casou.**
+          #
+          # Reprovou nos gates em 2026-09-23 recebendo `{:ok, %User{}}` — a espera não
+          # disparou. Passa 5 de 5 em isolamento. É a instabilidade registrada em
+          # `docs/backlog/teste-instavel-do-fluxo.md`, e a suspeita é que as três tentativas
+          # acima e esta caiam em janelas de tempo diferentes sob carga.
+          #
+          # Sem isto, a próxima ocorrência mostra só `left/right` e não diz se a espera não
+          # disparou, se disparou e expirou, ou se as tentativas não foram contadas.
+          case Tenants.authenticate(ctx.alvo.email, @senha) do
+            {:error, {:throttled, _}} ->
+              :ok
+
+            outro ->
+              flunk("""
+              A espera não disparou depois de três tentativas erradas.
+
+              Recebido: #{inspect(outro, limit: 3)}
+
+              Se for `{:ok, _}`, as tentativas não foram contadas ou a janela virou entre
+              elas — a instabilidade de `docs/backlog/teste-instavel-do-fluxo.md`.
+              """)
+          end
         end)
 
       assert log =~ "espera acionada", """
