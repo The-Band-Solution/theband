@@ -113,8 +113,8 @@ primeira fatia é uma jornada visível (login/logout), e não a infraestrutura s
   não o erro JSON único. Reproduzido em produção. O Product Owner decide se é defeito ou
   lacuna da spec. O conserto provável é um `match :*, "/*path"` no fim do escopo, e está na
   issue;
-- **o token de produção que passou por um proxy que intercepta TLS** — citado na nota da
-  v0.9.1, **ainda por revogar**. Trate como vazado;
+- ~~**o token de produção que passou por um proxy que intercepta TLS**~~ — **Revogado em 2026-09-24 pela pessoa mantenedora** — declarado, e não medido: pela SC-003 um token revogado e um inexistente respondem igual, então a revogação não se confere de fora. O que
+  sobra: conferir no painel de uso (#939) se esse token leu algo **depois** das medições;
 - **a variável `PRODUCAO_URL` foi posta também no painel do servidor**. A aplicação não a lê.
   Não atrapalha, mas pode confundir. Pode tirar;
 - **o `main` local deste checkout está em `0.2.0`**. Compare sempre contra `origin/main`;

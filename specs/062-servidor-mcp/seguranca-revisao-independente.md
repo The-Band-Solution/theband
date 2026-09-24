@@ -597,6 +597,10 @@ explicitamente no `forward` (para que ninguém troque o padrão sem diff visíve
 `allowed_origins: :any`, e testar `Origin: https://exemplo.invalid` → `403`.
 
 **8. O token de produção que passou por proxy que intercepta TLS.**
+
+> **Atualização de 2026-09-24:** **Revogado em 2026-09-24 pela pessoa mantenedora** — declarado, e não medido: pela SC-003 um token revogado e um inexistente respondem igual, então a revogação não se confere de fora. A recomendação abaixo, de conferir no painel de uso se o
+> token leu algo depois das medições, continua valendo.
+
 **Localizado** em `docs/releases/v0.9.1.md:417`, na tabela de lacunas: *"o token de produção
 usado nas medições passou por um proxy que intercepta TLS"*, classificação **"por revogar"**,
 *"ato da pessoa mantenedora. Enquanto não for revogado, existe uma credencial de produção que

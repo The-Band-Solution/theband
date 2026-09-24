@@ -221,7 +221,7 @@ alguma foi feita sem marcar — **nenhuma foi**, com uma exceção anterior à p
 | Item | Declarado | Medido | Veredito |
 |---|---|---|---|
 | **token do GitHub em claro em `oban_jobs.errors`** (2026-09-04 a 09-12) | rotação **adiada para 2026-10-12** por decisão da pessoa mantenedora, com risco declarado (`docs/backlog/rotacionar-o-token-que-vazou.md:50-51`) | a linha foi redigida em 09-12; a rotação é no GitHub e **não é verificável daqui** | **aberto, aceito com prazo** — 18 dias para o prazo |
-| **token de produção da API que passou por proxy que intercepta TLS** | *"por revogar"* (`docs/releases/v0.9.1.md:417`), *"trate como vazado"* (`RETOMAR.md:116-117`) | **não medido**: verificar exigiria ler a base de produção, e este papel não usa produção para confirmar achado | **aberto** — é a única exposição ativa da lista, e fecha com um clique em `/api-tokens` |
+| **token de produção da API que passou por proxy que intercepta TLS** | *"por revogar"* (`docs/releases/v0.9.1.md:417`), *"trate como vazado"* (`RETOMAR.md:116-117`) | **não medido**: verificar exigiria ler a base de produção, e este papel não usa produção para confirmar achado | ~~aberto~~ **fechado em 2026-09-24**: revogado pela pessoa mantenedora, declarado e não medido (SC-003 torna revogado indistinguível de inexistente). Fica: conferir no painel de uso se leu algo depois das medições |
 
 ---
 
