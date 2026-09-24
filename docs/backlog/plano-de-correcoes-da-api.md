@@ -15,7 +15,7 @@ sete coisas em sete lugares diferentes é o mesmo que não declarar nenhuma.
 | **3** | ~~o log não distingue as causas de recusa~~ | SC-004 | — | **corrigido em 2026-09-23**: cinco motivos distintos |
 | **4** | as medidas não trazem proveniência | SC-007 | média | depende da 062 |
 | **5** | ~~ninguém poda `api_access_reads`~~ | PR #936 | — | **decidido em 2026-09-23: guardar indefinidamente** |
-| **6** | nenhuma tela lê o registro de acesso | PR #936 | baixa | **sem item até hoje** |
+| **6** | ~~nenhuma tela lê o registro de acesso~~ | PR #936 | — | **entregue em 2026-09-23**: o painel de uso abre na linha de `/api-tokens`, por rota e com a janela dita |
 | **7** | dois testes instáveis | gates | **baixa** | varredura não os reproduziu; diagnóstico acrescentado |
 
 E uma que não é correção e não deve ser esquecida: **não houve revisão independente** do
@@ -69,6 +69,16 @@ ninguém percorre.
 
 > **Escopo mínimo**: na tela de tokens que já existe, por linha, quantas leituras na última
 > janela e em quais rotas. Não precisa de tela nova.
+
+**Entregue em 2026-09-23**, exatamente nesse escopo: a linha abre um painel — não uma nona
+coluna, porque as oito da `R2.1` são a régua do QA. Por rota, nunca um total, com a janela
+escolhida e dita (24 h, 7 dias, 30 dias), e a janela sem leitura escrevendo a ausência em vez
+de zero.
+
+Três coisas que o painel diz sobre si mesmo, e que não são nota de rodapé: **não** mostra o
+corpo da resposta; **não** mostra chamada recusada (essa já está no log interno, com o
+motivo); e ele **é, ele mesmo, registro sobre pessoas** — mostra que a credencial de alguém
+leu o painel de outra pessoa, guardado indefinidamente, atrás de `require_admin`.
 
 ### Quarto — o que a investigação de abuso precisa
 

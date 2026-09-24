@@ -37,20 +37,72 @@ derivation_rule:
   rules:
     token_lifetime:
       name:
-        pt-BR: "O token vale no máximo noventa dias"
+        pt-BR: "Noventa dias é o prazo sugerido, e 'sem expiração' é oferecido"
       statement:
         pt-BR: >
-          A expiração de um token novo é no máximo **90 dias** a partir da criação. A tela
-          oferece prazos até esse teto e **não** oferece "sem expiração".
+          A tela oferece prazos de 7, 30 e 90 dias **e também "sem expiração"**. 90 dias
+          continua sendo o padrão sugerido; deixar de escolher prazo é escolha explícita de
+          quem cria, e não o caminho mais fácil.
       note:
         pt-BR: >
-          **Máximo do qual se abre mão não é máximo.** FR-011 admite token sem expiração, e a
-          ausência continua sendo estado legítimo — para as linhas que já existem, e para
-          qualquer origem futura que as crie. O que esta regra decide é que a **tela não a
-          oferece**: exibida sim, oferecida não.
+          **Esta regra foi revertida em 2026-09-23, por decisão da pessoa mantenedora.**
+
+          Até então a tela **não** oferecia "sem expiração", e a razão escrita era: *"máximo
+          do qual se abre mão não é máximo"* — uma credencial sem fim é superfície que
+          ninguém vigia, e o prazo era a única coisa que a fazia reaparecer diante de alguém.
+
+          **A consequência da reversão, dita aqui para não ser descoberta depois**: um token
+          sem expiração só sai de circulação por revogação deliberada. Não há job que o
+          encerre, e a plataforma não avisa ninguém de que ele existe — a tela de tokens é a
+          única superfície, e ninguém a abre numa terça-feira sem motivo.
+
+          Duas coisas continuam valendo e limitam o estrago: o alcance do token é o da conta
+          dona, **relido a cada chamada**, e uma conta desativada faz toda chamada ser
+          recusada. Um token sem prazo de uma pessoa que saiu já não abre nada.
+
+          FR-011 sempre admitiu a ausência de expiração como estado legítimo. O que mudou é
+          que ela passa de **exibida** a **oferecida**.
       applied: true
       values:
         max_days: 90
+        sem_expiracao_oferecida: true
+
+    token_revocation_reason:
+      name:
+        pt-BR: "Revogar um token grava por quê"
+      statement:
+        pt-BR: >
+          A revogação registra, além de quem e quando, uma **cláusula** — `integracao_encerrada`,
+          `suspeita_de_vazamento`, `substituido_por_outro`, `outro` — e uma nota livre
+          opcional.
+      note:
+        pt-BR: >
+          Decidido em 2026-09-23. Até então a revogação gravava só quem e quando, e isso era
+          **omissão, não decisão** — a spec não tinha sido perguntada.
+
+          A cláusula que justifica o campo é `suspeita_de_vazamento`: é o único caso em que o
+          próximo ato muda — girar tudo o que aquela conta alcança, e não só substituir a
+          integração. Uma revogação sem razão é decisão que ninguém reconstrói em seis meses.
+
+          A lista é **fechada e casada uma a uma**, com nota livre ao lado: lista aberta vira
+          texto que ninguém consegue contar, e contagem é o que responde *"quantas revogações
+          foram por suspeita de vazamento neste trimestre?"*.
+      applied: true
+      values:
+        clausulas:
+          - integracao_encerrada
+          - suspeita_de_vazamento
+          - substituido_por_outro
+          - outro
+        # As palavras da tela moram aqui, e não no LiveView: a cláusula gravada, a opção do
+        # select e a linha do relatório têm de ser a mesma coisa. Vocabulário escrito em dois
+        # lugares diverge no dia em que alguém muda um deles.
+        rotulos:
+          integracao_encerrada: { pt-BR: "integração encerrada", en: "integration ended" }
+          suspeita_de_vazamento: { pt-BR: "suspeita de vazamento", en: "suspected leak" }
+          substituido_por_outro:
+            { pt-BR: "substituído por outro token", en: "replaced by another token" }
+          outro: { pt-BR: "outro", en: "other" }
 
     rate_limit:
       name:
@@ -134,9 +186,19 @@ derivation_rule:
 
           Quatorze dias é o que cabe numa quinzena de trabalho: quem vê o aviso tem tempo de
           gerar o novo, trocar na integração, e revogar o velho **nessa ordem**.
+
+          **O alcance do aviso é esta tela, e nada mais** — decidido em 2026-09-23. A resposta
+          inicial da Q6 do protótipo era e-mail para quem criou; foi adiada ao aprovar as três
+          mudanças de tela. Medido no mesmo dia: a plataforma não envia e-mail nenhum — nenhuma
+          dependência no `mix.exs`, nenhum módulo `Mailer`, nenhuma variável de SMTP.
+
+          A consequência fica escrita para ser lacuna conhecida: **quem não abre a tela não
+          recebe o aviso**. Um token vence sem que ninguém seja alcançado, e a integração
+          descobre pela recusa. O item está em `docs/backlog/aviso-de-vencimento-do-token.md`.
       applied: true
       values:
         warning_days: 14
+        reach: tela
 
     token_idle_expiry:
       name:

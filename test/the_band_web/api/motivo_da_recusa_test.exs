@@ -60,7 +60,11 @@ defmodule TheBandWeb.Api.MotivoDaRecusaTest do
   # Os cinco casos, cada um com o valor que os produz.
   defp casos(ctx) do
     {revogado, v_rev} = token(ctx, "rev")
-    {:ok, _} = Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin)
+
+    {:ok, _} =
+      Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin, %{
+        revocation_clause: "integracao_encerrada"
+      })
 
     {expirado, v_exp} = token(ctx, "exp")
     expirar(expirado.id)
@@ -133,7 +137,11 @@ defmodule TheBandWeb.Api.MotivoDaRecusaTest do
 
   test "e o request_id liga a recusa que se vê ao motivo que não se vê", ctx do
     {revogado, valor} = token(ctx, "liga")
-    {:ok, _} = Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin)
+
+    {:ok, _} =
+      Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin, %{
+        revocation_clause: "integracao_encerrada"
+      })
 
     {corpo, log} =
       with_log(fn ->

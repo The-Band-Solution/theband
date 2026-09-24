@@ -183,7 +183,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
       prefixo = Tenants.api_token_prefix()
 
       {revogado, valor_revogado} = criar(ctx)
-      {:ok, _} = Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin)
+
+      {:ok, _} =
+        Tenants.revoke_api_token(ctx.tenant, revogado.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       {_expirado, valor_expirado} = criar(ctx, %{expires_in_days: -1})
 
@@ -265,7 +269,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
   describe "o estado é lido, nunca gravado" do
     test "revogado vence expirado", ctx do
       {token, _} = criar(ctx, %{expires_in_days: -1})
-      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+
+      {:ok, revogado} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       assert Token.estado(revogado, DateTime.utc_now(:second)) == :revogado, """
       Um token revogado que também passou da data foi lido como expirado.
@@ -289,7 +297,10 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _} = criar(ctx)
       antes = Repo.aggregate(Token, :count)
 
-      {:ok, revogado} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
+      {:ok, revogado} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
 
       assert Repo.aggregate(Token, :count) == antes, "SC-012: zero linhas removidas"
       assert revogado.revoked_at
@@ -300,8 +311,15 @@ defmodule TheBand.Tenants.ApiTokensTest do
       {token, _} = criar(ctx)
       outro = user_fixture(ctx.tenant)
 
-      {:ok, primeira} = Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin)
-      {:ok, segunda} = Tenants.revoke_api_token(ctx.tenant, token.id, outro)
+      {:ok, primeira} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, ctx.admin, %{
+          revocation_clause: "integracao_encerrada"
+        })
+
+      {:ok, segunda} =
+        Tenants.revoke_api_token(ctx.tenant, token.id, outro, %{
+          revocation_clause: "suspeita_de_vazamento"
+        })
 
       assert segunda.revoked_by_user_id == primeira.revoked_by_user_id
       assert segunda.revoked_at == primeira.revoked_at
@@ -320,7 +338,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
   describe "o prazo vem da base de conhecimento" do
     test "sem pedido, a expiração é o teto declarado", ctx do
       {token, _} = criar(ctx)
-      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
 
       dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
       assert_in_delta dias, maximo, 1
@@ -328,7 +346,7 @@ defmodule TheBand.Tenants.ApiTokensTest do
 
     test "pedido acima do teto é REDUZIDO ao teto, e não recusado", ctx do
       {token, _} = criar(ctx, %{expires_in_days: 3650})
-      {maximo, true} = Tenants.api_token_threshold("token_lifetime")
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
 
       dias = DateTime.diff(token.expires_at, DateTime.utc_now(:second), :day)
 
@@ -340,8 +358,34 @@ defmodule TheBand.Tenants.ApiTokensTest do
       """
     end
 
+    # **Não pedir e pedir "sem prazo" são coisas diferentes** — desde que a Q1 passou a
+    # oferecer "sem expiração", em 2026-09-23. Colapsar as duas faria toda chamada que omite
+    # o campo — um seed, um teste, a fronteira interna — gerar token eterno em silêncio.
+    test "campo AUSENTE cai no teto; campo presente e vazio é sem expiração", ctx do
+      {maximo, true} = Tenants.api_token_threshold("token_lifetime", "max_days")
+
+      {sem_pedir, _} = criar(ctx)
+      assert sem_pedir.expires_at, "omitir o campo gerou token sem prazo, em silêncio"
+
+      assert_in_delta DateTime.diff(sem_pedir.expires_at, DateTime.utc_now(:second), :day),
+                      maximo,
+                      1
+
+      {escolheu, _} = criar(ctx, %{expires_in_days: nil})
+
+      refute escolheu.expires_at, """
+      Escolher "sem expiração" ainda produziu um prazo. A opção existe no formulário desde
+      2026-09-23, e um select que não muda o que grava é pior que um select ausente.
+      """
+
+      # A tela manda string vazia, e não `nil` — o `<option value="">`. As duas formas do
+      # mesmo nada têm de chegar ao mesmo lugar.
+      {da_tela, _} = criar(ctx, %{"expires_in_days" => ""})
+      refute da_tela.expires_at
+    end
+
     test "o limiar de desuso é declarado e NÃO aplicado", _ctx do
-      assert {30, false} = Tenants.api_token_threshold("token_idle_expiry"), """
+      assert {30, false} = Tenants.api_token_threshold("token_idle_expiry", "idle_days"), """
       O limiar de desuso mudou de valor ou passou a ser aplicado.
 
       Aplicá-lo exige o carimbo de último uso maduro: expirar por desuso um token que nunca
@@ -356,7 +400,11 @@ defmodule TheBand.Tenants.ApiTokensTest do
       outro = tenant_fixture()
 
       assert {:error, :not_found} = Tenants.fetch_api_token(outro, token.id)
-      assert {:error, :not_found} = Tenants.revoke_api_token(outro, token.id, ctx.admin)
+
+      assert {:error, :not_found} =
+               Tenants.revoke_api_token(outro, token.id, ctx.admin, %{
+                 revocation_clause: "integracao_encerrada"
+               })
     end
 
     test "a listagem só traz os do tenant", ctx do

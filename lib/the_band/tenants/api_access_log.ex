@@ -104,6 +104,33 @@ defmodule TheBand.Tenants.ApiAccessLog do
   end
 
   @doc """
+  O uso de uma credencial na janela, **por rota**: quantas leituras e qual foi a última.
+
+  É o que o painel da tela mostra — `R2.21` a `R2.23`. Ordenado pela contagem, decrescente,
+  porque quem investiga procura onde o volume está.
+
+  Lista **vazia** quando não houve leitura na janela. Não é uma linha por rota com zero: rota
+  que ninguém chamou não é rota chamada zero vezes, e a diferença entre *não consultei* e
+  *consultei e não achei* é a mesma que separa ausência de nada.
+  """
+  @spec uso_por_rota(Tenant.t(), String.t(), pos_integer()) :: [
+          %{route: String.t(), reads: pos_integer(), last_one: DateTime.t()}
+        ]
+  def uso_por_rota(%Tenant{id: tenant_id}, token_public_id, janela_em_segundos) do
+    desde = DateTime.add(DateTime.utc_now(), -janela_em_segundos, :second)
+
+    from(r in __MODULE__,
+      where:
+        r.tenant_id == ^tenant_id and r.token_public_id == ^token_public_id and
+          r.occurred_at >= ^desde,
+      group_by: r.route,
+      order_by: [desc: count(r.id), asc: r.route],
+      select: %{route: r.route, reads: count(r.id), last_one: max(r.occurred_at)}
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   As leituras de uma credencial, da mais recente para a mais antiga.
 
   Para quem investiga: a contagem diz **quanto**, esta diz **o quê**.
