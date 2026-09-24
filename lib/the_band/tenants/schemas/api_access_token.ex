@@ -59,6 +59,16 @@ defmodule TheBand.Tenants.Schemas.ApiAccessToken do
     field :revoked_at, :utc_datetime
     field :revoked_by_user_id, :binary_id
 
+    # A razão da revogação — decisão Q4, 2026-09-23. **Nulo é ausência dita**, e quem
+    # renderiza escreve *"no reason recorded"*: as revogações anteriores à decisão não têm
+    # razão, e escolher uma para elas seria inventar a razão de outra pessoa.
+    #
+    # Duas colunas, não uma: a cláusula é lista fechada, e é o que torna *"quantas foram por
+    # suspeita de vazamento neste trimestre?"* uma contagem. A nota guarda o que a lista não
+    # cabe, e não é contável — de propósito.
+    field :revocation_clause, :string
+    field :revocation_note, :string
+
     # O valor em claro. **Virtual**, preenchido uma vez, e nunca lido do banco — FR-006.
     field :value, :string, virtual: true
 
@@ -81,6 +91,39 @@ defmodule TheBand.Tenants.Schemas.ApiAccessToken do
     |> unique_constraint([:tenant_id, :public_id],
       name: :api_access_tokens_tenant_id_public_id_index
     )
+  end
+
+  @doc """
+  A revogação, com a razão — Q4, decidida em 2026-09-23.
+
+  A cláusula é casada contra a lista **fechada** que vem da base de conhecimento, e nunca
+  contra literais daqui: a tela, o banco e a contagem têm de usar o mesmo vocabulário, e
+  vocabulário escrito em dois lugares diverge no dia em que alguém muda um deles.
+
+  A nota é opcional e livre. A cláusula não é: revogar sem dizer por quê era o estado
+  anterior, e ele foi trocado de propósito.
+  """
+  @spec revogacao_changeset(t(), map(), [String.t()]) :: Ecto.Changeset.t()
+  def revogacao_changeset(token, attrs, clausulas) do
+    token
+    |> cast(attrs, [:revoked_at, :revoked_by_user_id, :revocation_clause, :revocation_note])
+    |> validate_required([:revoked_at, :revoked_by_user_id, :revocation_clause])
+    |> validate_inclusion(:revocation_clause, clausulas,
+      message: "não está na lista declarada em api.access.token_revocation_reason"
+    )
+    |> update_change(:revocation_note, &nota/1)
+    |> validate_length(:revocation_note, max: 500)
+  end
+
+  # Nota em branco é **ausência**, e ausência se guarda como nulo — nunca como string vazia,
+  # que depois obriga toda leitura a testar as duas formas do mesmo nada.
+  defp nota(nil), do: nil
+
+  defp nota(texto) when is_binary(texto) do
+    case String.trim(texto) do
+      "" -> nil
+      limpo -> limpo
+    end
   end
 
   @doc """

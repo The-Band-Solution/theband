@@ -71,18 +71,78 @@ defmodule TheBand.Tenants.ApiTokens do
   end
 
   @doc """
-  O prazo máximo, em dias, e se ele é aplicado.
+  O valor declarado de um limiar, **nomeado**, e se o limiar é aplicado.
 
   Devolve o par porque **limiar declarado e não aplicado é pior que limiar ausente se ninguém
   disser qual é qual** — e quem chama precisa saber a diferença.
+
+  ## A chave é obrigatória, e isso é conserto
+
+  Até 2026-09-23 esta função lia `values |> Map.values() |> List.first()` — o **primeiro**
+  valor do mapa. Mapa pequeno em Elixir devolve os valores na ordem dos termos das chaves, o
+  que não é a ordem do YAML: acrescentar um valor cuja chave ordene antes troca, em silêncio,
+  o número que a tela imprime.
+
+  Não é hipótese. Ao declarar o alcance do aviso de vencimento — `reach: tela` ao lado de
+  `warning_days: 14` —, `"reach"` ordena antes de `"warning_days"`, e a tela passaria a
+  imprimir **"tela days"**. As outras quatro regras vinham acertando por acaso.
+
+  Chave ausente **levanta**. Devolver `nil` aqui produziria "nil days" numa tela, e um limiar
+  que some sem barulho é pior do que um que reprova o boot.
   """
-  @spec limiar(String.t()) :: {integer() | nil, boolean()}
-  def limiar(nome) do
+  @spec limiar(String.t(), String.t()) :: {term(), boolean()}
+  def limiar(nome, chave) do
     case KnowledgeBase.rule(@regra) do
       {:ok, regra} ->
-        r = get_in(regra, ["rules", nome]) || %{}
+        r = get_in(regra, ["rules", nome]) || raise "limiar #{nome} ausente de #{@regra}"
         valores = Map.get(r, "values", %{})
-        {valores |> Map.values() |> List.first(), Map.get(r, "applied", false)}
+
+        unless Map.has_key?(valores, chave) do
+          raise "limiar #{nome} não declara o valor #{chave} em #{@regra} — " <>
+                  "declarados: #{valores |> Map.keys() |> Enum.sort() |> Enum.join(", ")}"
+        end
+
+        {Map.fetch!(valores, chave), Map.get(r, "applied", false)}
+
+      _ ->
+        raise "regra #{@regra} ausente da base de conhecimento"
+    end
+  end
+
+  @doc """
+  As cláusulas de revogação, **na ordem declarada** na base de conhecimento.
+
+  A ordem importa: é a ordem do select na tela, e a primeira é a que alguém escolhe sem
+  pensar. `integracao_encerrada` vem primeiro porque é o caso comum e o mais barato de errar;
+  `suspeita_de_vazamento` vem em seguida porque é a que muda o próximo ato.
+  """
+  @spec clausulas_de_revogacao() :: [String.t()]
+  def clausulas_de_revogacao do
+    valores_da_revogacao()["clausulas"] ||
+      raise "regra #{@regra} não declara as cláusulas de revogação"
+  end
+
+  @doc """
+  As cláusulas com o texto da tela, na ordem declarada: `[{id, rótulo}]`.
+
+  O rótulo vem da base pela mesma razão que a lista: a opção do select, a cláusula gravada e
+  a linha do relatório têm de ser **a mesma coisa**. Cláusula sem rótulo declarado imprime o
+  identificador — feio de propósito, porque é assim que alguém repara e declara o que falta,
+  em vez de a tela inventar uma tradução.
+  """
+  @spec clausulas_com_rotulo(String.t()) :: [{String.t(), String.t()}]
+  def clausulas_com_rotulo(idioma \\ "en") do
+    rotulos = valores_da_revogacao()["rotulos"] || %{}
+
+    Enum.map(clausulas_de_revogacao(), fn id ->
+      {id, get_in(rotulos, [id, idioma]) || id}
+    end)
+  end
+
+  defp valores_da_revogacao do
+    case KnowledgeBase.rule(@regra) do
+      {:ok, regra} ->
+        get_in(regra, ["rules", "token_revocation_reason", "values"]) || %{}
 
       _ ->
         raise "regra #{@regra} ausente da base de conhecimento"
@@ -125,17 +185,39 @@ defmodule TheBand.Tenants.ApiTokens do
   # O teto vem da base, e um pedido acima dele é **reduzido ao teto**, não recusado: quem
   # pede 365 dias quer o máximo que puder ter, e recusar transformaria isso em erro de
   # formulário sem informação nova.
+  #
+  # ## Não pedir e pedir "sem prazo" são coisas diferentes — 2026-09-23
+  #
+  # Desde que "sem expiração" passou a ser oferecido (Q1), `nil` é uma **escolha**, e não
+  # mais "não informou". Colapsar as duas faria toda chamada que omite o campo — a API
+  # interna, um seed, um teste — gerar token eterno **em silêncio**, que é exatamente o
+  # estrago que a regra anterior existia para evitar.
+  #
+  # Por isso a pergunta é `Map.has_key?`, e não `is_nil`: **chave ausente** cai no teto, como
+  # sempre caiu; **chave presente com nada dentro** é a escolha explícita de não expirar.
   defp expiracao(attrs) do
-    dias = attrs[:expires_in_days] || attrs["expires_in_days"]
-    {maximo, aplicado?} = limiar("token_lifetime")
+    {maximo, aplicado?} = limiar("token_lifetime", "max_days")
 
-    cond do
-      is_nil(dias) and aplicado? -> DateTime.add(agora(), maximo * 86_400, :second)
-      is_nil(dias) -> nil
-      aplicado? -> DateTime.add(agora(), min(dias, maximo) * 86_400, :second)
-      true -> DateTime.add(agora(), dias * 86_400, :second)
+    case dias_pedidos(attrs) do
+      :nao_pediu when aplicado? -> DateTime.add(agora(), maximo * 86_400, :second)
+      :nao_pediu -> nil
+      :sem_prazo -> nil
+      dias when aplicado? -> DateTime.add(agora(), min(dias, maximo) * 86_400, :second)
+      dias -> DateTime.add(agora(), dias * 86_400, :second)
     end
   end
+
+  defp dias_pedidos(attrs) do
+    cond do
+      Map.has_key?(attrs, :expires_in_days) -> vazio_e_sem_prazo(attrs[:expires_in_days])
+      Map.has_key?(attrs, "expires_in_days") -> vazio_e_sem_prazo(attrs["expires_in_days"])
+      true -> :nao_pediu
+    end
+  end
+
+  defp vazio_e_sem_prazo(nil), do: :sem_prazo
+  defp vazio_e_sem_prazo(""), do: :sem_prazo
+  defp vazio_e_sem_prazo(dias), do: dias
 
   # O SEGREDO em Base64 seguro para URL — alfabeto largo, cabe num cabeçalho sem escape.
   defp gerar_segredo(bytes),
@@ -261,26 +343,59 @@ defmodule TheBand.Tenants.ApiTokens do
   # ------------------------------------------------------------- a revogação
 
   @doc """
-  Revoga, **marcando**. A linha continua, com data e autor.
+  Revoga, **marcando**, com a razão. A linha continua, com data, autor e cláusula.
 
-  Idempotente: revogar de novo não reescreve o autor da primeira, porque quem revogou foi
-  quem revogou. **Não existe reativar** — revogação é definitiva, e o caminho é gerar outro.
+  Idempotente: revogar de novo não reescreve o autor nem a razão da primeira, porque quem
+  revogou foi quem revogou e pelo motivo que disse. **Não existe reativar** — revogação é
+  definitiva, e o caminho é gerar outro.
+
+  A cláusula é **obrigatória** desde 2026-09-23 (Q4) e casada contra a lista fechada da base
+  de conhecimento; a nota é livre e opcional. `{:error, changeset}` quando a cláusula não está
+  na lista — recusa, nunca gravação silenciosa de uma razão que ninguém vai conseguir contar.
   """
-  @spec revogar(Tenant.t(), Ecto.UUID.t(), User.t()) ::
-          {:ok, Token.t()} | {:error, :not_found}
-  def revogar(%Tenant{} = tenant, id, %User{id: autor_id}) do
+  @spec revogar(Tenant.t(), Ecto.UUID.t(), User.t(), map()) ::
+          {:ok, Token.t()} | {:error, :not_found} | {:error, Ecto.Changeset.t()}
+  def revogar(%Tenant{} = tenant, id, %User{id: autor_id}, razao) do
     with {:ok, token} <- buscar(tenant, id) do
       if token.revoked_at do
         {:ok, token}
       else
-        instante = agora()
+        attrs =
+          Map.merge(
+            %{revoked_at: agora(), revoked_by_user_id: autor_id},
+            Map.take(razao, [:revocation_clause, :revocation_note])
+          )
 
-        {1, _} =
-          from(t in Token, where: t.id == ^token.id and is_nil(t.revoked_at))
-          |> Repo.update_all(set: [revoked_at: instante, revoked_by_user_id: autor_id])
-
-        {:ok, %{token | revoked_at: instante, revoked_by_user_id: autor_id}}
+        token
+        |> Token.revogacao_changeset(attrs, clausulas_de_revogacao())
+        |> Ecto.Changeset.apply_action(:update)
+        |> gravar_revogacao(tenant, token)
       end
+    end
+  end
+
+  # **A condição fica no `WHERE`, e não numa leitura anterior.** Duas revogações simultâneas
+  # passam as duas pelo `if token.revoked_at` acima — a leitura é de antes —, e sem o
+  # `is_nil` aqui a segunda reescreveria o autor e a razão da primeira.
+  #
+  # Zero linhas afetadas é resposta, não erro: alguém revogou primeiro. Devolvemos o que
+  # **está** gravado, relendo, porque quem revogou foi quem revogou.
+  defp gravar_revogacao({:error, %Ecto.Changeset{}} = erro, _tenant, _token), do: erro
+
+  defp gravar_revogacao({:ok, revogado}, tenant, token) do
+    campos = [
+      revoked_at: revogado.revoked_at,
+      revoked_by_user_id: revogado.revoked_by_user_id,
+      revocation_clause: revogado.revocation_clause,
+      revocation_note: revogado.revocation_note
+    ]
+
+    case Repo.update_all(
+           from(t in Token, where: t.id == ^token.id and is_nil(t.revoked_at)),
+           set: campos
+         ) do
+      {1, _} -> {:ok, revogado}
+      {0, _} -> buscar(tenant, token.id)
     end
   end
 end

@@ -180,7 +180,7 @@ defmodule TheBandWeb.ApiTokenLive.View do
             id="novo-token-prazo"
             class="select select-sm select-bordered"
           >
-            <option :for={{dias, texto} <- @prazos} value={dias}>{texto}</option>
+            <option :for={{dias, texto} <- @prazos} value={dias || ""}>{texto}</option>
           </select>
         </label>
 
@@ -198,13 +198,22 @@ defmodule TheBandWeb.ApiTokenLive.View do
         </div>
       </form>
 
-      <div class="mt-3 rounded border border-dashed border-base-300 p-3">
-        <p class="text-xs font-semibold">No expiration is not offered here</p>
+      <div class="mt-3 rounded border border-dashed border-warning p-3">
+        <p class="text-xs font-semibold">
+          &ldquo;No expiration&rdquo; is offered, and it is a choice with a cost
+        </p>
         <p class="mt-1 text-xs text-base-content/70">
-          <code>api.access.token_lifetime</code>
-          declares a maximum, and a maximum you can opt out of is not a maximum. Tokens created
-          before this rule keep reading <em>no expiration</em>
-          in the list — shown, not offered.
+          {@prazo_maximo} days is the suggested term (<code>api.access.token_lifetime</code>);
+          choosing <em>no expiration</em> is explicit, never the easy default.
+        </p>
+        <p class="mt-2 text-xs text-base-content/70">
+          A token with no end <strong>leaves circulation only by deliberate revocation</strong>.
+          No job ends it, and nothing announces that it exists — this screen is the only surface.
+          Two things limit the damage, and both still hold: the reach is the <strong>owner account&rsquo;s</strong>, read again on every call, and a disabled account
+          has every call refused.
+        </p>
+        <p class="mt-2 font-mono text-[0.6875rem] text-base-content/60">
+          reverted on 23 Sep 2026 · the rule previously read &ldquo;a maximum you can opt out of is not a maximum&rdquo;
         </p>
       </div>
     </section>
@@ -342,22 +351,135 @@ defmodule TheBandWeb.ApiTokenLive.View do
               </button>
               <span :if={l.estado == :revogado} class="text-xs opacity-60">no way back</span>
               <span :if={l.estado == :expirado} class="text-xs opacity-60">expired — create another</span>
+              <button
+                type="button"
+                class="btn btn-xs btn-ghost"
+                phx-click="abrir_uso"
+                phx-value-id={l.token.id}
+              >
+                Usage
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <div class="mt-3 rounded border border-dashed border-base-300 p-3">
-        <p class="text-xs font-semibold">what this list does not answer</p>
+      <div class="mt-3 rounded border border-success p-3">
+        <p class="text-xs font-semibold">the gap this list used to declare, and no longer has</p>
         <p class="mt-1 text-xs text-base-content/70">
-          It records <strong>when</strong>
-          a token was last accepted, never <strong>what</strong>
-          it read. There is no per-call trail in this version — a declared gap, not an
-          oversight. If auditing what an integration consulted becomes necessary, that is a
-          different record and it does not exist yet.
+          <strong>Until 23 Sep 2026 this said: what each integration read is not recorded.</strong>
+          It is now — one row per accepted call, with the credential, the route, the target and
+          the instant. The <em>body</em>
+          of the response is not kept: the record says who read what, never what was read.
+        </p>
+        <p class="mt-2 text-xs text-base-content/70">
+          The row opens a <strong>usage panel</strong>
+          instead of a ninth column. And the record is kept <strong>indefinitely</strong>
+          (<code>api.access.access_log_retention</code>): nothing prunes it, so it can
+          reconstruct, with no time limit, that one person consulted another person&rsquo;s panel.
         </p>
       </div>
+
+      <.painel_de_uso :if={@uso_de} {assigns} />
     </section>
+    """
+  end
+
+  # ─────────────────────────────────────────────── o painel de uso
+
+  # **Abre na linha, e não é nona coluna** — R2.20. As oito da R2.1 são a régua do QA, e o uso
+  # é coisa que alguém abre para investigar, não para varrer entre seis linhas.
+  defp painel_de_uso(assigns) do
+    ~H"""
+    <div class="mt-4 rounded border-2 border-base-300 bg-base-100 p-4">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h4 class="text-sm font-semibold">
+          {@uso_de.token.label} · what it read
+        </h4>
+        <button type="button" class="btn btn-xs btn-ghost" phx-click="fechar_uso">Close</button>
+      </div>
+
+      <div class="mt-2 flex flex-wrap items-baseline gap-2">
+        <div class="join">
+          <button
+            :for={{segundos, texto} <- @janelas_de_uso}
+            type="button"
+            class={["btn btn-xs join-item", segundos == @uso_janela && "btn-active"]}
+            phx-click="janela_do_uso"
+            phx-value-janela={segundos}
+          >
+            {texto}
+          </button>
+        </div>
+        <span class="text-xs text-base-content/70">
+          The window is <strong>chosen and shown</strong>. A count without a window is a number
+          without a denominator.
+        </span>
+      </div>
+
+      <p :if={@uso == []} class="mt-3 text-sm">
+        <.absent reason="no accepted call in the chosen window — this is not zero calls ever" />
+      </p>
+
+      <table :if={@uso != []} class="mt-3 w-full text-sm">
+        <thead>
+          <tr class="text-left text-xs uppercase tracking-wide">
+            <th scope="col">route</th>
+            <th scope="col">reads</th>
+            <th scope="col">last one</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={u <- @uso} class="border-t border-base-200">
+            <td data-label="route"><code class="text-xs">{u.route}</code></td>
+            <td data-label="reads" class="tabular-nums">{u.reads}</td>
+            <td data-label="last one" class="text-xs">
+              {instante(u.last_one)}
+              <span class="ml-1 opacity-60">· observed</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p :if={@uso != []} class="mt-2 text-xs text-base-content/70">
+        <strong>By route, never one total.</strong>
+        A single number says nothing; the split says where the integration actually goes — and an
+        anomaly on one route is a different fact from volume spread across all of them.
+      </p>
+
+      <div class="mt-3 rounded border border-dashed border-base-300 p-3">
+        <p class="text-xs font-semibold">what this panel does not show, and why</p>
+        <p class="mt-1 text-xs text-base-content/70">
+          <strong>Not what was read.</strong>
+          The record keeps the route and the target, never the body of the response — keeping it
+          would make a second copy of the data, with the same sensitivity and without the verdict
+          in front of it.
+        </p>
+        <p class="mt-1 text-xs text-base-content/70">
+          <strong>Not a refused call.</strong>
+          Refusals are already in the internal log, with the reason. This panel is about access
+          that was <em>granted</em>, which is what left no trace at all before.
+        </p>
+      </div>
+
+      <div class="mt-2 rounded border border-warning p-3">
+        <p class="text-xs font-semibold">why this panel exists</p>
+        <p class="mt-1 text-xs text-base-content/70">
+          Four calls that each respect the verdict can, together, answer a question none of them
+          would answer alone. <strong>The verdict cannot see accumulation; this panel can.</strong>
+        </p>
+      </div>
+
+      <div class="mt-2 rounded border border-error p-3">
+        <p class="text-xs font-semibold">and this panel is itself a record about people</p>
+        <p class="mt-1 text-xs text-base-content/70">
+          It shows that <strong>one person&rsquo;s credential read another person&rsquo;s panel</strong>,
+          when, and how often. The record is kept <strong>indefinitely</strong>
+          — decided 23 Sep 2026. Who may open this panel is the same door as the rest of this
+          screen: <code>require_admin</code>.
+        </p>
+      </div>
+    </div>
     """
   end
 
@@ -380,6 +502,16 @@ defmodule TheBandWeb.ApiTokenLive.View do
     </span>
     <span :if={@linha.estado == :revogado} class="mt-0.5 block opacity-70">
       declared {instante(@linha.token.revoked_at)} by {@linha.revogador && @linha.revogador.email}
+    </span>
+    <span :if={@linha.estado == :revogado} class="block text-[11px] opacity-70">
+      <strong :if={@linha.clausula}>{@linha.clausula}</strong>
+      <span :if={@linha.clausula && @linha.token.revocation_note}>
+        — “{@linha.token.revocation_note}”
+      </span>
+      <.absent
+        :if={is_nil(@linha.clausula)}
+        reason="no reason recorded · revoked before 23 Sep 2026"
+      />
     </span>
     <span :if={@linha.recusado_por_conta?} class="mt-1 flex items-center gap-1.5 text-warning">
       <span class="size-2.5 shrink-0 rounded-[1px] border border-current" aria-hidden="true"></span>
@@ -437,17 +569,55 @@ defmodule TheBandWeb.ApiTokenLive.View do
         </div>
       </div>
 
-      <div class="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="btn btn-sm btn-warning"
-          phx-click="revogar"
-          phx-value-id={@confirmando.token.id}
-        >
-          Revoke “{@confirmando.token.label}”
-        </button>
-        <button type="button" class="btn btn-sm btn-ghost" phx-click="cancelar">Cancel</button>
-      </div>
+      <form phx-submit="revogar" class="mt-3 border-t border-dashed border-base-300 pt-3">
+        <input type="hidden" name="token_id" value={@confirmando.token.id} />
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="form-control">
+            <span class="label-text text-xs">Why — the clause</span>
+            <select
+              name="revocation_clause"
+              id="revogacao-clausula"
+              class="select select-sm select-bordered"
+              required
+            >
+              <option :for={{id, texto} <- @clausulas} value={id}>{texto}</option>
+            </select>
+          </label>
+
+          <label class="form-control sm:col-span-2">
+            <span class="label-text text-xs">Note — optional, in your own words</span>
+            <input
+              type="text"
+              name="revocation_note"
+              id="revogacao-nota"
+              maxlength="500"
+              class="input input-sm input-bordered"
+            />
+          </label>
+        </div>
+
+        <p class="mt-2 text-xs text-base-content/70">
+          <strong>The clause that earns this field is <em>suspected leak</em></strong>
+          — it is the one case where the next act changes: rotate everything that account reaches,
+          not just replace the integration. The list is closed so the answer to
+          <em>&ldquo;how many revocations were suspected leaks this quarter?&rdquo;</em>
+          is a count and not a reading of free text.
+        </p>
+        <p class="mt-1 text-xs text-base-content/70">
+          Until 23 Sep 2026 revocation recorded only <em>who</em>
+          and <em>when</em>
+          — and that was an <strong>omission, not a decision</strong>: nobody
+          had been asked.
+        </p>
+
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-sm btn-warning">
+            Revoke “{@confirmando.token.label}”
+          </button>
+          <button type="button" class="btn btn-sm btn-ghost" phx-click="cancelar">Cancel</button>
+        </div>
+      </form>
     </div>
     """
   end
@@ -474,10 +644,16 @@ defmodule TheBandWeb.ApiTokenLive.View do
           </dd>
         </div>
         <div>
-          <dt class="text-sm font-medium">“Show me what this integration read.”</dt>
+          <dt class="text-sm font-medium">
+            “Show me what this integration read.”
+            <span class="ml-1 text-xs font-normal opacity-70">· now answered</span>
+          </dt>
           <dd class="text-xs text-base-content/70">
-            Only <strong>when</strong>
-            it was last accepted is recorded, never <strong>what</strong>. A declared gap.
+            This card used to be a refusal — it said <em>only when, never what</em>. That stopped
+            being true on <strong>23 Sep 2026</strong>: every accepted call is now recorded —
+            which credential, which route, which target, when. Open <strong>Usage</strong>
+            on the row. The body of the response is <em>not</em>
+            recorded: the log says who read what, never what was read.
           </dd>
         </div>
         <div>
