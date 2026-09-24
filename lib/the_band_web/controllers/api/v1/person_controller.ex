@@ -123,6 +123,15 @@ defmodule TheBandWeb.Api.V1.PersonController do
   @sem_perfil "No profile has been generated for this person. When present it is `derived` " <>
                 "— written by a language model from the collected record, never an observation."
 
+  # **O perfil é agregado sobre a pessoa, e segue o veredito** — decisão da pessoa mantenedora
+  # em 2026-09-24, sobre o achado H2-R. A nota diz que houve recusa, e não ausência: dizer
+  # "nenhum perfil gerado" a quem não alcança a pessoa seria mentir sobre o registro.
+  @perfil_recusado "Not shown: the profile is an aggregate about the person, and it follows " <>
+                     "the same access verdict as the work panel. See `access`."
+
+  @competencias_recusadas "Not shown: competencies are read from the profile, which is an " <>
+                            "aggregate about the person and follows the access verdict."
+
   @perfil_derivado "Written by a language model from the collected record. It is derived, " <>
                      "never observed, and it is not evidence of anything the source said"
 
@@ -180,12 +189,18 @@ defmodule TheBandWeb.Api.V1.PersonController do
     ids = Enum.map(pagina, & &1.id)
     orgs = EO.organizations_by_person(tenant, ids)
 
-    # Os perfis vigentes da página inteira numa consulta, como as organizações (L38). As
-    # competências saem daí: são leitura pura do perfil, e não uma segunda derivação.
-    perfis = EO.current_profiles(tenant, ids)
+    # O alcance da página inteira numa chamada, e não um veredito por pessoa (L38). As
+    # competências vêm do perfil, e o perfil é agregado (H2-R): só sai de quem se alcança.
+    #
+    # `pessoas_alcancadas/2` é MAIS ESTREITO que `pode_ver/3`: não inclui a liderança
+    # declarada (`EO.Visibility`). Quem lidera por declaração vê as competências no detalhe e
+    # não as vê aqui. O erro é para o lado fechado, e está dito na nota.
+    alcance = Tenants.pessoas_alcancadas(tenant, conn.assigns.current_user)
+    alcancadas = Enum.filter(ids, &alcanca?(alcance, &1))
+    perfis = EO.current_profiles(tenant, alcancadas)
 
     json(conn, %{
-      data: Enum.map(pagina, &serializar(&1, orgs, perfis)),
+      data: Enum.map(pagina, &serializar(&1, orgs, perfis, alcanca?(alcance, &1.id))),
       page: %{
         has_next: tem_proxima?,
         next_cursor: if(tem_proxima?, do: List.last(pagina).id),
@@ -282,7 +297,10 @@ defmodule TheBandWeb.Api.V1.PersonController do
     for c <- EO.Profiles.competencies(perfil), do: %{domain: c.nome, completed_tasks: c.tarefas}
   end
 
-  defp serializar(pessoa, orgs, perfis) do
+  defp alcanca?(:todas, _id), do: true
+  defp alcanca?({:algumas, conjunto}, id), do: MapSet.member?(conjunto, id)
+
+  defp serializar(pessoa, orgs, perfis, alcanca?) do
     # `Map.get(orgs, id, [])` e não `orgs[id]`: quem não tem equipe **não está no mapa**, e
     # a consulta em lote documenta isso — a chave ausente não é erro, é o caso comum.
     organizacoes = Map.get(orgs, pessoa.id, [])
@@ -298,8 +316,8 @@ defmodule TheBandWeb.Api.V1.PersonController do
       external_id: pessoa.external_id,
       organizations: Enum.map(organizacoes, &%{id: &1.id, login: &1.login, name: &1.name}),
       organizations_note: if(organizacoes == [], do: @sem_organizacao),
-      competencies: competencias_curtas(perfis[pessoa.id]),
-      competencies_note: if(is_nil(perfis[pessoa.id]), do: @sem_leitura),
+      competencies: if(alcanca?, do: competencias_curtas(perfis[pessoa.id])),
+      competencies_note: nota_das_competencias(alcanca?, perfis[pessoa.id]),
       collected_at: pessoa.collected_at,
       no_longer_observed_at: pessoa.no_longer_observed_at
     }
@@ -340,7 +358,8 @@ defmodule TheBandWeb.Api.V1.PersonController do
     observados = Map.new(CMPO.list_observed(tenant), &{&1.observed_repository_id, &1})
 
     organizacoes = EO.list_person_organizations(tenant, pessoa.id)
-    perfil = perfil_da_pessoa(tenant, pessoa.id)
+    # Sem alcance, o perfil nem é lido (H2-R).
+    perfil = if ve?, do: perfil_da_pessoa(tenant, pessoa.id)
     papeis = EO.list_person_roles(tenant, pessoa.id)
 
     %{
@@ -367,7 +386,7 @@ defmodule TheBandWeb.Api.V1.PersonController do
       roles_note: if(papeis == [], do: @sem_papel),
       account: conta(tenant, pessoa.id),
       profile: perfil,
-      profile_note: if(is_nil(perfil), do: @sem_perfil),
+      profile_note: nota_do_perfil(ve?, perfil),
 
       # **FORA do veredito, porque na tela também estão fora.** As duas seções vivem em
       # *Where this came from*, que não é o painel que o veredito protege. Protegê-las aqui
@@ -652,6 +671,14 @@ defmodule TheBandWeb.Api.V1.PersonController do
   # O perfil é DERIVADO — escrito por um modelo de linguagem —, e a marca viaja no corpo.
   # Entregá-lo sem ela destruiria a distinção que a plataforma inteira existe para manter,
   # e com o agravante de o consumidor previsto ser outro modelo, que o afirmaria como fato.
+  defp nota_do_perfil(false, _perfil), do: @perfil_recusado
+  defp nota_do_perfil(true, nil), do: @sem_perfil
+  defp nota_do_perfil(true, _perfil), do: nil
+
+  defp nota_das_competencias(false, _perfil), do: @competencias_recusadas
+  defp nota_das_competencias(true, nil), do: @sem_leitura
+  defp nota_das_competencias(true, _perfil), do: nil
+
   defp perfil_da_pessoa(tenant, person_id) do
     case EO.current_profile(tenant, person_id) do
       {:ok, p} -> perfil(tenant, person_id, p)
