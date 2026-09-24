@@ -75,7 +75,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 
 | # | Tarefa | Atende | Tipo | Issue | Estimate | Estado |
 |---|---|---|---|---|---|---|
-| T001 | Travar a dependência do protocolo | épico | Task | [#951](https://github.com/The-Band-Solution/theband/issues/951) | — | a fazer |
+| T001 | Travar a dependência do protocolo | épico | Task | [#951](https://github.com/The-Band-Solution/theband/issues/951) | — | feito |
 | T002 | Criar o esqueleto do contexto MCP | épico | Task | [#952](https://github.com/The-Band-Solution/theband/issues/952) | — | a fazer |
 | T003 | Expor a medida da base de conhecimento | épico | Task | [#953](https://github.com/The-Band-Solution/theband/issues/953) | — | a fazer |
 | T004 | Montar o envelope de proveniência | épico | Task | [#954](https://github.com/The-Band-Solution/theband/issues/954) | — | a fazer |

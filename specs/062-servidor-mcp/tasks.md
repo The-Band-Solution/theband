@@ -64,7 +64,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     e nunca marcada como cumprida
   - **Teste**: revisão. O documento nomeia quem avaliou e o que leu
 
-- [ ] **T001** Travar a dependência do protocolo
+- [x] **T001** Travar a dependência do protocolo — *feita em 2026-09-24, [#951](https://github.com/The-Band-Solution/theband/issues/951)*
   - **Pronta quando**: T009 concluída ou declarada impossível
   - **Descrição**: acrescentar `{:ex_mcp, "== 1.5.0"}` a `mix.exs`, **fixada**, e não `~> 1.5`, com o comentário dizendo
     **por que esta e não as outras** — research.md D1: `hermes_mcp` não publica desde
