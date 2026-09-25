@@ -394,7 +394,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
 
     O teste também documenta o limite: isto reduz, e não elimina
 
-- [ ] **T015** [US1] Declarar o que cada ferramenta não responde
+- [x] **T015** [US1] Declarar o que cada ferramenta não responde — *feita em 2026-09-25, [#965](https://github.com/The-Band-Solution/theband/issues/965)*
   - **Pronta quando**: T010–T013 concluídas
   - **Descrição**: a descrição de cada ferramenta declara **o que ela não responde** —
     FR-022, a mesma disciplina do `what_this_is_not` que o schema da base exige. Sem isso um
@@ -580,7 +580,7 @@ leitura.
     declarada ("níveis de acesso, não papéis"). A primeira versão do teste reprovou por essa
     frase, e um controle confirma que a exclusão tira só ela
 
-- [ ] **T028** Medir o custo contra a rota HTTP
+- [x] **T028** Medir o custo contra a rota HTTP — *feita em 2026-09-25, [#973](https://github.com/The-Band-Solution/theband/issues/973)*
   - **Pronta quando**: T010 concluída
   - **Descrição**: `team_roster` tem de custar as mesmas consultas que
     `GET /api/v1/teams/:id/members`. Duas portas para o mesmo dado com custos diferentes
@@ -590,7 +590,7 @@ leitura.
   - **Teste**: `test/the_band_web/mcp/custo_test.exs` — com `ContadorDeConsultas`, e a
     mensagem de falha diz **o que** entrou a mais
 
-- [ ] **T029** Escrever o que o cliente precisa saber
+- [x] **T029** Escrever o que o cliente precisa saber — *feita em 2026-09-25, [#974](https://github.com/The-Band-Solution/theband/issues/974)*
   - **Pronta quando**: T007, T014 e T024 concluídas
   - **Descrição**: a documentação diz **onde o token fica é responsabilidade do cliente**
     (FR-007) e acrescenta o que a FR-032 implica: **o que o agente lê pode sair do controle
@@ -613,7 +613,7 @@ leitura.
   - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as três coisas,
     e não só a do token
 
-- [ ] **T030** Provar ponta a ponta com um cliente
+- [x] **T030** Provar ponta a ponta com um cliente — *feita em 2026-09-25, [#975](https://github.com/The-Band-Solution/theband/issues/975)*
   - **Pronta quando**: T010–T024 concluídas
   - **Descrição**: configurar um cliente MCP real apontando para `/mcp`, com o token no
     cabeçalho. **Não é verificável por código de status**: foi o que aconteceu com o Swagger
@@ -624,7 +624,7 @@ leitura.
   - **Teste**: os passos 1, 2 e 3 de [`quickstart.md`](./quickstart.md), §9, **com o
     cliente** e não com `curl`
 
-- [ ] **T031** Fechar os gates
+- [x] **T031** Fechar os gates — *feita em 2026-09-25, [#976](https://github.com/The-Band-Solution/theband/issues/976)*
   - **Pronta quando**: T009 e T001 a T030 concluídas, exceto as removidas (T023, T025)
   - **Descrição**: `mix gates`, com o **código de saída** como veredito. Qualquer comando
     depois dele substitui o código que vale — em execução de fundo, o código vai **dentro**
