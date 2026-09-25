@@ -396,13 +396,37 @@ defmodule TheBandWeb.Api.V1.TeamController do
       started_at: v.started_at,
       # `ended_at` diz *saiu*. `mistake` diz *nunca devia ter sido afirmado*. Achatá-los
       # faria história virar erro, e erro virar história.
-      ended_at: v.fim,
-      mistake: v.equivoco,
+      #
+      # **Quem encerrou e quem invalidou NÃO saem** — defeito achado em 2026-09-25 pela revisão
+      # de segurança do MCP (N1, N2). O domínio carrega o e-mail dos dois, e esta função o
+      # repassava: `mistake` saía com `por: <e-mail>`, e `ended_at` saía como a tupla
+      # `{:declarado, <e-mail>, …}`, que o Jason não serializa, e a rota dava 500 para toda
+      # equipe com alguém que saiu. O `@moduledoc` do schema já dizia que e-mail não sai.
+      ended_at: data_da_saida(v.fim),
+      end_origin: origem_da_saida(v.fim),
+      mistake: equivoco(v.equivoco),
       declared_at: v.declared_at,
       current: v.vigente?,
       direct: v.direta?
     }
   end
+
+  # A saída, **sem o autor**. A origem fica, porque é a distinção da FR-022: a data de uma
+  # saída pela coleta é quando a plataforma parou de ver, e não quando a pessoa saiu.
+  # Casadas uma a uma: forma nova no domínio reprova aqui, em vez de sair crua.
+  defp data_da_saida(nil), do: nil
+  defp data_da_saida({:declarado, _autor, _registrado, quando}), do: quando
+  defp data_da_saida({:coleta, quando}), do: quando
+  defp data_da_saida({:sem_autor, quando}), do: quando
+
+  defp origem_da_saida(nil), do: nil
+  defp origem_da_saida({:declarado, _autor, _registrado, _quando}), do: "declared"
+  defp origem_da_saida({:coleta, _quando}), do: "no_longer_observed"
+  defp origem_da_saida({:sem_autor, _quando}), do: "declared_without_author"
+
+  # O equívoco, **sem quem o marcou**: a razão e a data.
+  defp equivoco(nil), do: nil
+  defp equivoco(%{razao: razao, em: em}), do: %{reason: razao, at: em}
 
   # ------------------------------------------------------------------------ as medidas
 
