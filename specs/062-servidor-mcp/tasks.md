@@ -115,7 +115,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
 
 ## Fase 2 — Fundação (bloqueia todas as histórias)
 
-- [ ] **T003** Expor a medida da base de conhecimento
+- [x] **T003** Expor a medida da base de conhecimento — *feita em 2026-09-24, [#953](https://github.com/The-Band-Solution/theband/issues/953)*
   - **Pronta quando**: nada além do repositório
   - **Descrição**: `KnowledgeBase` expõe `rule/1`, `mapping/1`, `axiom/1` e `list/1`, e
     **não expõe `measurement/1`** — o `fetch/2` é privado. Acrescentar a função pública em
