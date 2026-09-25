@@ -19,18 +19,35 @@ tratá-las no nível HTTP:
 |---|---|---|
 | `401` | sem token, token malformado, inexistente, revogado ou expirado | o formato único da 061 (`{"error":{"code":"unauthorized",…}}`), idêntico ao de `/api/v1`. Ver [`061/contracts/erro.md`](../../061-api-publica/contracts/erro.md) |
 | `429` | o token passou de 120 chamadas por minuto (`api.access.thresholds`, regra `rate_limit`) | o formato único, com o limite, a janela e quanto falta para ela reabrir |
-| `404` | caminho inexistente **ao lado** de `/mcp` (`/mcpx`, `/mcp/nada`) | a rota casa `/mcp` **exato**. O que não casa é o `404` do site, que hoje é a página HTML, o defeito do [#943](https://github.com/The-Band-Solution/theband/issues/943). *Corrigido em 2026-09-24 (R10): a versão anterior supunha `forward "/mcp"`, e com ele **tudo** sob `/mcp/*` iria para a biblioteca, com o `{"error":"Not found"}` dela* |
-| `405` | `GET` ou `DELETE` em `/mcp` | com `protocol_mode: :modern_only` não há sessão, e por isso não há stream por `GET` nem encerramento por `DELETE` |
+| `404` | subcaminho de `/mcp` (`/mcp/nada`) | **o formato único da 061**, `{"error":{"code":"not_found",…}}`. O `forward` entrega `/mcp/*` à porta, e a porta casa só `/mcp` exato (R10). Medido em 2026-09-25 |
+| `404` | caminho **ao lado** de `/mcp` (`/mcpx`) | não casa a rota, e cai no `404` do site, que hoje é a página HTML: o defeito do [#943](https://github.com/The-Band-Solution/theband/issues/943) |
+| `405` | `GET` ou `DELETE` em `/mcp` | com `protocol_mode: :modern_only` não há sessão, e por isso não há stream por `GET` nem encerramento por `DELETE`. **O corpo é o da `ex_mcp`**, `{"error":"Method not allowed"}`, e não o formato único: o `405` da 061 diz *"This API is read-only"*, que seria falso para um `GET` |
+| `403` | pedido com cabeçalho `Origin` | a `ex_mcp` recusa toda origem de navegador fora de `allowed_origins`, que é vazia. Cliente MCP não manda `Origin`; navegador manda |
 
 **O limite é um só por token.** `/mcp` e `/api/v1` gastam o **mesmo** limite, e é isso que a Q4
 decidia. Dois limites para o mesmo token dariam duas respostas para *"por que recusou"*.
 
-**Só cinco métodos chegam à biblioteca**: `initialize`, `notifications/initialized`, `ping`,
-`tools/list` e `tools/call`. O resto, incluindo `subscriptions/listen`, `resources/*`,
+**O que a revisão 2026-07-28 do protocolo exige de cada requisição**, medido contra a `ex_mcp`
+1.5.0 em 2026-09-25, e não presumido:
+
+| Cabeçalho | Quando | Sem ele |
+|---|---|---|
+| `mcp-protocol-version: 2026-07-28` | sempre | a requisição não é da revisão moderna, que é a única aceita (`:modern_only`) |
+| `mcp-method` | sempre, com o método JSON-RPC | `400`, JSON-RPC `-32020` |
+| `mcp-name` | em `tools/call`, com o nome da ferramenta | `400`, JSON-RPC `-32020` |
+
+E o `_meta` do pedido leva `io.modelcontextprotocol/protocolVersion`, `clientCapabilities` e
+`clientInfo`. **`tools/list` volta em ordem alfabética**, e não na do registro.
+
+**Só três métodos chegam à biblioteca**: `server/discover`, `tools/list` e `tools/call`.
+`notifications/cancelled` saiu em 2026-09-25 (N3): a `ex_mcp` guarda cada cancelamento numa
+ETS global que nunca é limpa. *Corrigido em 2026-09-25:* a primeira lista trazia `initialize`,
+`notifications/initialized` e `ping`, que não existem na revisão 2026-07-28, e recusava
+`server/discover`, que é como um cliente moderno descobre o servidor. O resto, incluindo `subscriptions/listen`, `resources/*`,
 `prompts/*` e `logging/*`, recebe o erro JSON-RPC de método inexistente **antes** da `ex_mcp`
 (T016). Nenhuma resposta de `/mcp` sai em stream.
 
-**Cada mensagem do protocolo conta**: `initialize`, `tools/list` e as notificações gastam o
+**Cada mensagem do protocolo conta**: `server/discover`, `tools/list` e as notificações gastam o
 limite como qualquer chamada de ferramenta, porque cada uma é uma requisição HTTP. Com 120 por
 minuto a folga é grande, mas quem integra precisa saber.
 

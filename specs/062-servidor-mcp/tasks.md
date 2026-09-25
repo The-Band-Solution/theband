@@ -127,7 +127,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     `flow.per_person.readings` volta com `misinterpretations` **não vazia**, porque uma
     função que devolvesse sempre `[]` passaria num teste que só checasse a chave
 
-- [ ] **T004** Montar o envelope de proveniência
+- [x] **T004** Montar o envelope de proveniência — *feita em 2026-09-24, [#954](https://github.com/The-Band-Solution/theband/issues/954)*
   - **Pronta quando**: T003 concluída; `data-model.md` escrito
   - **Descrição**: `lib/the_band/mcp/envelope.ex` monta `value`, `composition`, `window`,
     `origin`, `rule`, `measurement_id`, `limitations`, `misinterpretations` e `collected_at`.
@@ -138,6 +138,11 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `test/the_band/mcp/envelope_test.exs` — percorre **todas** as ferramentas
     registradas (SC-001), e ao menos uma tem de trazer `misinterpretations` não vazia; se
     todas vierem `[]`, o teste passou sem ler a base
+  - **O que ficou para depois, e por quê** (2026-09-24): a varredura por **todas as ferramentas
+    registradas** (SC-001) não pode rodar, porque ainda não há ferramenta. Ela **passa para o
+    T006**, que cria o registro, e deve ser conferida de novo com as quatro prontas (T010–T013).
+    O T004 prova a peça: as ressalvas vêm da base, e o teste as compara com o que a
+    `KnowledgeBase` devolve para o mesmo id
 
 - [x] **T005** Nomear os três estados da ausência — *feita em 2026-09-24, [#955](https://github.com/The-Band-Solution/theband/issues/955)*
   - **Pronta quando**: T002 concluída
@@ -150,7 +155,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `test/the_band/mcp/ausencia_test.exs` — os três aparecem na execução, e
     `checked` com `value: 0` é o **único** caso em que zero é resposta
 
-- [ ] **T006** Abrir o registro de ferramentas — e fazer dele o caminho único
+- [x] **T006** Abrir o registro de ferramentas — e fazer dele o caminho único — *feita em 2026-09-24, [#956](https://github.com/The-Band-Solution/theband/issues/956)*
   - **Pronta quando**: T002 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R1, R6 e o complemento 1 ao A3
   - **Descrição**: `lib/the_band/mcp/ferramentas.ex` com a **lista fechada**, casada uma a
@@ -185,12 +190,22 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - `tools/list` devolve exatamente `team_roster`, `team_open_work`, `team_review_wait` e
       `team_stale_work`, e é **byte a byte idêntico para dois tenants diferentes**;
     - um argumento `tenant_id` é recusado pelo schema.
+    - **(vindo do T004) SC-001**: toda ferramenta registrada devolve o envelope, com os nove
+      campos, e ao menos uma traz `misinterpretations` não vazia.
+  - **O que ficou para depois, e por quê** (2026-09-24):
+    - **o SC-001** exige ferramentas que respondam, e **passa para o T013**, a última das
+      quatro;
+    - **`tools/list` idêntico para dois tenants** exige o protocolo, e passa para o T007;
+    - **o lastro** ficou assim: `team_roster` → `sro.cq15`, `team_stale_work` → `cmo.cq03`,
+      `team_open_work` → `flow.work_in_progress` e `team_review_wait` →
+      `review.time_to_first_review`. As duas últimas são necessidade de informação, pela emenda
+      da FR-020
 
     `test/the_band/mcp/ferramentas_test.exs`: o id de pergunta de cada uma **existe na base
     de conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem,
     reprova nomeando a ferramenta
 
-- [ ] **T016** Fechar a lista de métodos do protocolo, antes da biblioteca
+- [x] **T016** Fechar a lista de métodos do protocolo, antes da biblioteca — *feita em 2026-09-24, [#957](https://github.com/The-Band-Solution/theband/issues/957)*
   - **Pronta quando**: T006 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R4 e R2
   - **Descrição**: um plug no escopo `/mcp`, **antes** da `ex_mcp`, lê
@@ -210,8 +225,16 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
       `logging/setLevel` são recusados, e nenhum abre stream: o `content-type` não é
       `text/event-stream`;
     - guarda: `tools/list` passa.
+  - **Corrigida em 2026-09-25, no T021**: a lista dos cinco métodos estava errada para a revisão
+    2026-07-28. `initialize`, `notifications/initialized` e `ping` não existem nela, e
+    `server/discover`, que existe, era recusado: nenhum cliente moderno conseguiria começar. A
+    lista agora é `server/discover`, `tools/list`, `tools/call` e `notifications/cancelled`
+  - **Feita em duas metades** (2026-09-24): o plug `TheBandWeb.Plugs.McpMetodos` e o que ele
+    decide estão provados aqui, com o corpo já decodificado. **Que ele está NA pipeline de
+    `/mcp`**, com token, se prova no T007, quando a rota existir. A forma da recusa é a mesma da
+    `ex_mcp` para método inexistente: HTTP `404` e JSON-RPC `-32601`
 
-- [ ] **T007** Servir o MCP autenticado
+- [x] **T007** Servir o MCP autenticado — *feita em 2026-09-24, [#958](https://github.com/The-Band-Solution/theband/issues/958)*
   - **Pronta quando**: T006 e T016 concluídas
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R5, R7, R8, R10 e a marca do R1
   - **Descrição**:
@@ -253,6 +276,14 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - o `inspect` do estado passado ao handler não contém o valor do token;
     - o evento de recusa carrega o mesmo `request_id` do cabeçalho `x-request-id`;
     - `GET /mcp` e `DELETE /mcp` recebem `405`
+  - **Feito em 2026-09-25, e o que ficou para depois**:
+    - o evento de recusa com o `request_id` da resposta **passa para o T022**, que cria o
+      evento. O `Logger.metadata` já é reposto no `init/1` do handler;
+    - com alcance, a chamada ainda termina no erro genérico de handler, porque as ferramentas
+      não existem (T010–T013);
+    - **a sonda contra a biblioteca mostrou o que o contrato não dizia**: os cabeçalhos
+      `mcp-method` e `mcp-name`, o corpo do `405` e a ordem alfabética. O contrato foi corrigido
+      no mesmo commit
 
 - [x] **T008** Guardar a fronteira do banco — *feita em 2026-09-24, [#959](https://github.com/The-Band-Solution/theband/issues/959)*
   - **Pronta quando**: T002 concluída
@@ -276,7 +307,7 @@ mesmo objeto.
 **Teste independente**: um cliente MCP lista as quatro ferramentas, chama cada uma sobre uma
 equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem segunda chamada.
 
-- [ ] **T010** [P] [US1] Responder quem está na equipe
+- [x] **T010** [P] [US1] Responder quem está na equipe — *feita em 2026-09-24, [#960](https://github.com/The-Band-Solution/theband/issues/960)*
   - **Pronta quando**: T004, T005, T006 concluídas; `contracts/ferramentas.md` escrito
   - **Descrição**: `lib/the_band/mcp/ferramentas/team_roster.ex`, chamando `EO` — nunca o
     `Repo`. `origin` vive no **vínculo**, não na pessoa: alguém pode ser observado numa
@@ -287,8 +318,12 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     números vêm separados, sem total; `origin` aparece por vínculo e fala inglês
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — exercita a função **sem** subir a
     biblioteca MCP, e afirma que `origin` de dois vínculos da mesma pessoa pode divergir
+  - **Lacuna declarada** (2026-09-25): o teste da divergência de `origin` entre dois vínculos da
+    **mesma** pessoa não foi escrito, porque exige uma equipe composta com partes, e o cenário
+    de `ferramentas_de_equipe_test.exs` não a monta. Está provado o mapeamento por vínculo,
+    casado um a um (átomo novo reprova). Fica como dívida do sprint
 
-- [ ] **T011** [P] [US1] Responder o que cada um tem aberto
+- [x] **T011** [P] [US1] Responder o que cada um tem aberto — *feita em 2026-09-24, [#961](https://github.com/The-Band-Solution/theband/issues/961)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_open_work.ex`, chamando `TeamWork`. **Pessoa sem tarefa aberta não
     vira linha com zero**: ela não aparece em `by_person`, e `totals.members` diz quantas
@@ -298,7 +333,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — uma equipe com membro sem tarefa
     aberta: o membro **não** aparece em `by_person`, e `totals.members` o conta
 
-- [ ] **T012** [P] [US1] Responder a espera por revisão
+- [x] **T012** [P] [US1] Responder a espera por revisão — *feita em 2026-09-24, [#962](https://github.com/The-Band-Solution/theband/issues/962)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_review_wait.ex`, chamando `Quality`. **Duas leituras, nunca
     somadas**: `reviewed` em horas e `waiting` em dias, cada uma com o seu denominador.
@@ -313,7 +348,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     medidos em 2026-09-21) **não cabem aqui**: o ExUnit roda no banco isolado de teste e não
     os enxerga. Eles vão para o T030, com o cliente real
 
-- [ ] **T013** [P] [US1] Responder o que está parado
+- [x] **T013** [P] [US1] Responder o que está parado — *feita em 2026-09-24, [#963](https://github.com/The-Band-Solution/theband/issues/963)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_stale_work.ex`. **`stale_after_days` viaja junto**: *parada* não é
     adjetivo, é um corte em dias. `conversation` separa quatro casos — `not_collected` (o
@@ -324,7 +359,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — repositório sem coleta de
     comentários produz `not_collected`, e não `silence` com zero atos
 
-- [ ] **T014** [US1] Marcar o texto de terceiro no schema
+- [x] **T014** [US1] Marcar o texto de terceiro no schema — *feita em 2026-09-24, [#964](https://github.com/The-Band-Solution/theband/issues/964)*
   - **Pronta quando**: T010–T013 concluídas; `seguranca.md` escrito (achado A3)
   - **Descrição**: todo campo que carrega texto escrito por gente de fora — título de issue,
     nome de equipe, título de solicitação — fica sob chave própria que o declara não
@@ -436,7 +471,7 @@ leitura.
 > Os dois foram criados na 061 pelo #936 e pelo #938, antes de a 062 começar. As tarefas antigas
 > teriam produzido um segundo registro e um segundo limite para o mesmo token.
 
-- [ ] **T021** [US3] Registrar a leitura no ponto do veredito
+- [x] **T021** [US3] Registrar a leitura no ponto do veredito — *feita em 2026-09-24, [#969](https://github.com/The-Band-Solution/theband/issues/969)*
   - **Pronta quando**: T006 e T007 concluídas
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* A versão anterior mandava a ferramenta escrever em `conn.private` e o `ApiReadLog` ler
     dali. **Não funciona** (R1): quem chama `send_resp` no `/mcp` é a própria `ex_mcp`, que
@@ -470,7 +505,7 @@ leitura.
     de que o teste mede: remover a chamada de registro e ver reprovar. E
     `test/the_band_web/plugs/api_read_log_test.exs` continua verde **sem alteração**
 
-- [ ] **T022** [US3] A recusa de equipe é registrada, e não vira leitura — no MCP e na API
+- [x] **T022** [US3] A recusa de equipe é registrada, e não vira leitura — no MCP e na API — *feita em 2026-09-24, [#970](https://github.com/The-Band-Solution/theband/issues/970)*
   - **Pronta quando**: T021 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R2 (o A8) e o N6 do inventário de 2026-09-24
   - **Descrição**: três coisas que respondem `2xx` e **não** são leitura. O `ApiReadLog` as
@@ -509,7 +544,7 @@ leitura.
 - ~~**T023**~~ — *removida em 2026-09-24.* Mandava levar ao backlog a falta de registro da
   API HTTP. A falta foi consertada no #936, e o item seria backlog de algo já entregue.
 
-- [ ] **T024** [US3] Provar que o limite é um só por token
+- [x] **T024** [US3] Provar que o limite é um só por token — *feita em 2026-09-24, [#971](https://github.com/The-Band-Solution/theband/issues/971)*
   - **Pronta quando**: T007 concluída
   - **Descrição**: o `ApiRateLimit` conta por token, 120 por minuto, em janela deslizante
     (`api.access.thresholds`, regra `rate_limit`). A Q4 decidia *"o limite é o da 061"*, e
@@ -531,7 +566,7 @@ leitura.
 
 ## Fase 6 — Polimento e transversais
 
-- [ ] **T027** Varrer o objeto inteiro por segredo
+- [x] **T027** Varrer o objeto inteiro por segredo — *feita em 2026-09-24, [#972](https://github.com/The-Band-Solution/theband/issues/972)*
   - **Pronta quando**: T010–T013 concluídas
   - **Descrição**: SC-005. A varredura olha o **objeto inteiro serializado**, e não os
     campos esperados — campo novo que vaze não estaria na lista de esperados. Procura o valor
@@ -539,6 +574,11 @@ leitura.
   - **Feita quando**: as quatro varreduras devolvem zero em todas as ferramentas
   - **Teste**: `test/the_band_web/mcp/segredo_nao_vaza_test.exs` — e a guarda contra a
     varredura vazia: ela tem de **encontrar** o `team_id`, que está lá de propósito
+  - **Feito em 2026-09-25, com duas correções medidas**: a guarda virou `state: "checked"`,
+    porque `team_open_work` não devolve o `team_id`. E `MAINTAINER` é procurado **fora** das
+    ressalvas, porque o mapeamento `github.team_member.to.eo.person` o cita numa limitação
+    declarada ("níveis de acesso, não papéis"). A primeira versão do teste reprovou por essa
+    frase, e um controle confirma que a exclusão tira só ela
 
 - [ ] **T028** Medir o custo contra a rota HTTP
   - **Pronta quando**: T010 concluída
@@ -650,6 +690,25 @@ apoiada em nada.
 | **a era legada do protocolo** (R5) | `:modern_only` nesta fatia. Aceitar clientes da era legada é decisão nova, com a sessão presa ao token |
 
 ---
+
+## A revisão de segurança da implementação — 2026-09-25
+
+Feita por um agente `security` que não escreveu o código:
+[`seguranca-revisao-da-implementacao.md`](./seguranca-revisao-da-implementacao.md). Ela não achou
+caminho entre tenants, e achou sete defeitos, **um deles em produção**:
+
+| # | Achado | Severidade | Destino |
+|---|---|---|---|
+| **N1** | o roster devolvia o e-mail de quem marcou o equívoco, **no MCP e na API em produção** | alta | API no **#982**; MCP neste branch |
+| **N2** | `ended_at` saía como tupla: `500` na API e `handler_crash` no MCP, e a leitura era gravada antes de serializar | média | API no #982; MCP neste branch, com a leitura gravada só depois de serializar |
+| **N3** | `notifications/cancelled` fazia a `ex_mcp` reter memória numa ETS global | média | saiu da lista de métodos |
+| **N4** | a razão do equívoco saía sem marca | baixa | marcada como texto de terceiro |
+| **N5** | corpo que não é JSON fazia o plug de métodos levantar | baixa | recusado com `415` |
+| **N6** | `team_open_work` e `team_stale_work` sem teto | baixa | 200 itens, com `truncated` |
+| **N7** | `lazy_html` 0.1.12 com advisory, reprovando o `hex.audit` em `development` | baixa | 0.1.13, no #982 |
+
+A fixture do `segredo_nao_vaza_test.exs` não povoava os campos que vazavam, e por isso não pegava
+o N1. Agora povoa, e com o defeito de volta o teste reprova.
 
 ## A lacuna que continua aberta
 

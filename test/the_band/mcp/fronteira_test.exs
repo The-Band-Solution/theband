@@ -60,6 +60,34 @@ defmodule TheBand.MCP.FronteiraTest do
     """
   end
 
+  # Complemento 6 ao A3 — **nenhuma ferramenta busca URL nem segue link**. Uma assim
+  # transformaria a injeção de instrução num SSRF com a credencial da plataforma (A10). É
+  # requisito, e não nota: o contexto MCP não tem cliente HTTP.
+  @clientes_http [[:Req], [:Finch], [:Tesla], [:HTTPoison], [:Mint], [:TheBand, :Integrations]]
+
+  test "nenhum módulo de lib/the_band/mcp/ tem cliente HTTP (nada busca URL)" do
+    arquivos = Path.wildcard("#{@dir}/**/*.ex")
+    assert length(arquivos) >= 3
+
+    achados =
+      for arquivo <- arquivos,
+          prefixo <- @clientes_http,
+          modulo <- referencias(File.read!(arquivo), prefixo) do
+        "#{arquivo}: #{modulo}"
+      end ++
+        for arquivo <- arquivos, File.read!(arquivo) =~ ":httpc." do
+          "#{arquivo}: :httpc"
+        end
+
+    assert achados == [], """
+    O contexto MCP tem cliente HTTP:
+
+    #{Enum.map_join(achados, "\n", &("  " <> &1))}
+
+    Uma ferramenta que busque URL faz da injeção de instrução um SSRF (A10).
+    """
+  end
+
   describe "a varredura mede, e não lê a prosa — o controle positivo" do
     test "acha TheBandWeb em alias, chamada e struct" do
       fonte = """

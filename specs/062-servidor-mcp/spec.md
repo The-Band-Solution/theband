@@ -134,6 +134,15 @@ estivesse nesta spec.
 - **FR-020**: A lista de ferramentas deriva das **perguntas de competência** declaradas na
   base de conhecimento — **77** hoje, concentradas em **seis** das catorze ontologias — SRO (37), CIRO (14), CDRO (13), EO (5), CMO (4) e SMPO (4); as outras oito não declaram nenhuma, e isso limita o que se pode oferecer. Não se
   inventa ferramenta que a base não declare como pergunta respondível.
+
+  **Emendada em 2026-09-24, por decisão da pessoa mantenedora:** o lastro pode ser uma
+  **pergunta de competência** ou uma **necessidade de informação** declarada na base. As duas
+  são perguntas que a plataforma se compromete a responder: a primeira vem das ontologias, e a
+  segunda é a do GQM, à qual as medidas respondem (`answers_information_need`). A emenda veio
+  do T006: `team_open_work` e `team_review_wait` não têm pergunta de competência, e têm
+  necessidade de informação (`flow.work_in_progress` e `review.time_to_first_review`). As
+  alternativas descartadas foram cortar as duas ferramentas, e com elas o exemplo que justifica
+  a feature, ou declarar perguntas novas na ontologia, contra o princípio IX.
 - **FR-021**: O primeiro corte MUST ser **pequeno e vertical**: as perguntas que as telas já
   respondem, e cujo caminho de dados está provado. Uma ferramenta que responde de verdade vale
   mais que doze que devolvem `{}`.
