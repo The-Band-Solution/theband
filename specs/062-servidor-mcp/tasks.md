@@ -580,7 +580,7 @@ leitura.
     declarada ("níveis de acesso, não papéis"). A primeira versão do teste reprovou por essa
     frase, e um controle confirma que a exclusão tira só ela
 
-- [ ] **T028** Medir o custo contra a rota HTTP
+- [x] **T028** Medir o custo contra a rota HTTP — *feita em 2026-09-25, [#973](https://github.com/The-Band-Solution/theband/issues/973)*
   - **Pronta quando**: T010 concluída
   - **Descrição**: `team_roster` tem de custar as mesmas consultas que
     `GET /api/v1/teams/:id/members`. Duas portas para o mesmo dado com custos diferentes
