@@ -191,8 +191,7 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
       assert get_in(Jason.decode!(de_b.resp_body), ["result", "structuredContent", "state"]) ==
                "refused"
 
-      # A alcança: o caminho chega à ferramenta. Ela ainda não existe (T010), e a biblioteca
-      # devolve o erro genérico de handler. O que importa aqui é que NÃO é a recusa de B.
+      # A alcança: a ferramenta responde. O que importa aqui é que NÃO é a recusa de B.
       de_a = chamar(ctx.conn, ctx.token_a, "team_roster", %{"team_id" => ctx.equipe_a.id})
 
       refute get_in(Jason.decode!(de_a.resp_body), ["result", "structuredContent", "state"]) ==

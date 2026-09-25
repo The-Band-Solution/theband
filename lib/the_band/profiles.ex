@@ -173,12 +173,28 @@ defmodule TheBand.Profiles do
   defp com_conversa(_tenant, []), do: []
 
   defp com_conversa(tenant, paradas) do
-    ultimos = Discussions.last_act_for_issues(tenant, Enum.map(paradas, & &1.id))
-    corte = DateTime.add(DateTime.utc_now(:second), -Material.stale_days(), :day)
-    coletados = com_comentarios_coletados(tenant, paradas)
+    conversas = conversa_das_issues(tenant, Enum.map(paradas, & &1.id))
+    Enum.map(paradas, &Map.merge(&1, conversas[&1.id]))
+  end
 
-    Enum.map(paradas, fn t ->
-      Map.merge(t, classificar(ultimos[t.id], corte, MapSet.member?(coletados, t.id)))
+  @doc """
+  O estado da conversa de cada issue, pelo id — a mesma classificação de
+  `stale_open_with_conversation/2`, sem o recorte por pessoa. Feature 062, T013.
+
+  Existe porque a ferramenta MCP `team_stale_work` pergunta pela **equipe**, e a classificação
+  tem de ser a mesma da tela e da API: uma segunda cópia divergiria, e a divergência apareceria
+  como dado. Os quatro estados estão na documentação de `stale_open_with_conversation/2`.
+  """
+  @spec conversa_das_issues(Tenant.t(), [binary()]) :: %{binary() => map()}
+  def conversa_das_issues(_tenant, []), do: %{}
+
+  def conversa_das_issues(%Tenant{} = tenant, issue_ids) do
+    ultimos = Discussions.last_act_for_issues(tenant, issue_ids)
+    corte = DateTime.add(DateTime.utc_now(:second), -Material.stale_days(), :day)
+    coletados = com_comentarios_coletados(tenant, issue_ids)
+
+    Map.new(issue_ids, fn id ->
+      {id, classificar(ultimos[id], corte, MapSet.member?(coletados, id))}
     end)
   end
 
@@ -191,10 +207,8 @@ defmodule TheBand.Profiles do
   end
 
   # Quais dessas issues estão em repositório cuja coleta de comentários já passou.
-  defp com_comentarios_coletados(tenant, paradas) do
+  defp com_comentarios_coletados(tenant, ids) do
     import Ecto.Query
-
-    ids = Enum.map(paradas, & &1.id)
 
     from(i in "collected_issues",
       join: o in "observed_repositories",

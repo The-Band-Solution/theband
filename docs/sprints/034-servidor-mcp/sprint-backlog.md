@@ -84,10 +84,10 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T016 | Fechar a lista de métodos do protocolo, antes da biblioteca | épico | Task · security | [#957](https://github.com/The-Band-Solution/theband/issues/957) | — | feito |
 | T007 | Servir o MCP autenticado | épico | Task · security | [#958](https://github.com/The-Band-Solution/theband/issues/958) | — | feito |
 | T008 | Guardar a fronteira do banco | épico | Task | [#959](https://github.com/The-Band-Solution/theband/issues/959) | — | feito |
-| T010 | Responder quem está na equipe | US1 | Task | [#960](https://github.com/The-Band-Solution/theband/issues/960) | — | a fazer |
-| T011 | Responder o que cada um tem aberto | US1 | Task | [#961](https://github.com/The-Band-Solution/theband/issues/961) | — | a fazer |
-| T012 | Responder a espera por revisão | US1 | Task | [#962](https://github.com/The-Band-Solution/theband/issues/962) | — | a fazer |
-| T013 | Responder o que está parado | US1 | Task | [#963](https://github.com/The-Band-Solution/theband/issues/963) | — | a fazer |
+| T010 | Responder quem está na equipe | US1 | Task | [#960](https://github.com/The-Band-Solution/theband/issues/960) | — | feito |
+| T011 | Responder o que cada um tem aberto | US1 | Task | [#961](https://github.com/The-Band-Solution/theband/issues/961) | — | feito |
+| T012 | Responder a espera por revisão | US1 | Task | [#962](https://github.com/The-Band-Solution/theband/issues/962) | — | feito |
+| T013 | Responder o que está parado | US1 | Task | [#963](https://github.com/The-Band-Solution/theband/issues/963) | — | feito |
 | T014 | Marcar o texto de terceiro no schema | US1 | Task · security | [#964](https://github.com/The-Band-Solution/theband/issues/964) | — | a fazer |
 | T015 | Declarar o que cada ferramenta não responde | US1 | Task | [#965](https://github.com/The-Band-Solution/theband/issues/965) | — | a fazer |
 | T017 | Recusar como resposta, nunca como erro | US2 | Task | [#966](https://github.com/The-Band-Solution/theband/issues/966) | — | a fazer |

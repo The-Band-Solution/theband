@@ -303,7 +303,7 @@ mesmo objeto.
 **Teste independente**: um cliente MCP lista as quatro ferramentas, chama cada uma sobre uma
 equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem segunda chamada.
 
-- [ ] **T010** [P] [US1] Responder quem está na equipe
+- [x] **T010** [P] [US1] Responder quem está na equipe — *feita em 2026-09-24, [#960](https://github.com/The-Band-Solution/theband/issues/960)*
   - **Pronta quando**: T004, T005, T006 concluídas; `contracts/ferramentas.md` escrito
   - **Descrição**: `lib/the_band/mcp/ferramentas/team_roster.ex`, chamando `EO` — nunca o
     `Repo`. `origin` vive no **vínculo**, não na pessoa: alguém pode ser observado numa
@@ -314,8 +314,12 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     números vêm separados, sem total; `origin` aparece por vínculo e fala inglês
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — exercita a função **sem** subir a
     biblioteca MCP, e afirma que `origin` de dois vínculos da mesma pessoa pode divergir
+  - **Lacuna declarada** (2026-09-25): o teste da divergência de `origin` entre dois vínculos da
+    **mesma** pessoa não foi escrito, porque exige uma equipe composta com partes, e o cenário
+    de `ferramentas_de_equipe_test.exs` não a monta. Está provado o mapeamento por vínculo,
+    casado um a um (átomo novo reprova). Fica como dívida do sprint
 
-- [ ] **T011** [P] [US1] Responder o que cada um tem aberto
+- [x] **T011** [P] [US1] Responder o que cada um tem aberto — *feita em 2026-09-24, [#961](https://github.com/The-Band-Solution/theband/issues/961)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_open_work.ex`, chamando `TeamWork`. **Pessoa sem tarefa aberta não
     vira linha com zero**: ela não aparece em `by_person`, e `totals.members` diz quantas
@@ -325,7 +329,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — uma equipe com membro sem tarefa
     aberta: o membro **não** aparece em `by_person`, e `totals.members` o conta
 
-- [ ] **T012** [P] [US1] Responder a espera por revisão
+- [x] **T012** [P] [US1] Responder a espera por revisão — *feita em 2026-09-24, [#962](https://github.com/The-Band-Solution/theband/issues/962)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_review_wait.ex`, chamando `Quality`. **Duas leituras, nunca
     somadas**: `reviewed` em horas e `waiting` em dias, cada uma com o seu denominador.
@@ -340,7 +344,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
     medidos em 2026-09-21) **não cabem aqui**: o ExUnit roda no banco isolado de teste e não
     os enxerga. Eles vão para o T030, com o cliente real
 
-- [ ] **T013** [P] [US1] Responder o que está parado
+- [x] **T013** [P] [US1] Responder o que está parado — *feita em 2026-09-24, [#963](https://github.com/The-Band-Solution/theband/issues/963)*
   - **Pronta quando**: T004, T005, T006 concluídas
   - **Descrição**: `team_stale_work.ex`. **`stale_after_days` viaja junto**: *parada* não é
     adjetivo, é um corte em dias. `conversation` separa quatro casos — `not_collected` (o

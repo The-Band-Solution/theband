@@ -13,10 +13,8 @@ defmodule TheBand.MCP.FerramentasTest do
 
   ## A guarda contra a recusa vazia
 
-  As quatro ferramentas ainda não existem (T010–T013). O caminho de **concessão** é provado por
-  isso mesmo: com alcance, o registro chega ao módulo da ferramenta, e a chamada levanta
-  `UndefinedFunctionError` nomeando o módulo. Sem essa guarda, "todas recusam" passaria com um
-  registro que recusasse tudo. O T010 troca a guarda pela resposta da ferramenta.
+  Com alcance, as quatro ferramentas respondem `checked`. Sem essa guarda, "todas recusam"
+  passaria com um registro que recusasse tudo.
   """
   use TheBand.DataCase, async: true
 
@@ -142,16 +140,15 @@ defmodule TheBand.MCP.FerramentasTest do
                })
     end
 
-    test "a guarda contra a recusa vazia: com alcance, o caminho chega à ferramenta", ctx do
-      erro =
-        assert_raise UndefinedFunctionError, fn ->
-          Ferramentas.chamar(ctx.a, ctx.admin_a, "team_roster", %{"team_id" => ctx.equipe_a.id})
-        end
-
-      assert erro.module == TheBand.MCP.Ferramentas.TeamRoster, """
-      Com alcance, o registro tinha de chegar ao módulo da ferramenta. Chegou a
-      #{inspect(erro.module)}. O T010 cria o módulo, e troca esta guarda pela resposta.
-      """
+    test "a guarda contra a recusa vazia: com alcance, a ferramenta responde", ctx do
+      # Até o T010 esta guarda esperava `UndefinedFunctionError`, porque a ferramenta não
+      # existia. Agora ela existe, e a guarda é a resposta: sem ela, "todas recusam" passaria
+      # com um registro que recusasse tudo.
+      for f <- Ferramentas.listar() do
+        assert %{state: "checked"} =
+                 Ferramentas.chamar(ctx.a, ctx.admin_a, f.nome, %{"team_id" => ctx.equipe_a.id}),
+               "#{f.nome} não respondeu com alcance"
+      end
     end
   end
 
