@@ -101,7 +101,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `mix deps.get && mix compile --warnings-as-errors` — e `mix hex.audit` sem
     aviso novo
 
-- [ ] **T002** Criar o esqueleto do contexto MCP
+- [x] **T002** Criar o esqueleto do contexto MCP — *feita em 2026-09-24, [#952](https://github.com/The-Band-Solution/theband/issues/952)*
   - **Pronta quando**: T001 concluída
   - **Descrição**: `lib/the_band/mcp/` com `ferramentas.ex`, `envelope.ex` e `ausencia.ex`
     vazios mas com `@moduledoc` dizendo a responsabilidade de cada um. A separação entre
