@@ -44,6 +44,36 @@ defmodule TheBand.Ontology.KnowledgeBase do
   def measurement(id), do: fetch(:measurement, id)
 
   @doc """
+  Devolve a necessidade de informação pelo identificador — feature 062, T006.
+
+  É um dos dois lastros que a FR-020 aceita para uma ferramenta MCP (decisão da pessoa
+  mantenedora em 2026-09-24): a pergunta que a plataforma se compromete a responder no sentido
+  do GQM, e à qual as medidas respondem (`answers_information_need`).
+  """
+  @spec information_need(String.t()) :: {:ok, map()} | :error
+  def information_need(id), do: fetch(:information_need, id)
+
+  @doc """
+  Uma pergunta de competência pelo identificador — `"sro.cq15"` — feature 062, T006.
+
+  `list(:competency_questions)` devolve **arquivos**, um por ontologia, e cada um carrega as
+  perguntas dentro de `competency_questions`. Quem pergunta por uma pergunta quer a pergunta,
+  como em `axiom/1`. Casar por prefixo erraria pela mesma razão: `sro.cq1` e `sro.cq15` são
+  identificadores diferentes.
+  """
+  @spec competency_question(String.t()) :: {:ok, map()} | :error
+  def competency_question(id) do
+    :competency_questions
+    |> list()
+    |> Enum.flat_map(fn arquivo -> Map.get(arquivo, "competency_questions", []) end)
+    |> Enum.find(&(Map.get(&1, "id") == id))
+    |> case do
+      nil -> :error
+      pergunta -> {:ok, pergunta}
+    end
+  end
+
+  @doc """
   Os axiomas da rede, um a um — issue #320.
 
   `list(:axiom)` devolve **arquivos**, e cada arquivo carrega sete axiomas dentro de `rules`.

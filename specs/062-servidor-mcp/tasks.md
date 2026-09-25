@@ -155,7 +155,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `test/the_band/mcp/ausencia_test.exs` — os três aparecem na execução, e
     `checked` com `value: 0` é o **único** caso em que zero é resposta
 
-- [ ] **T006** Abrir o registro de ferramentas — e fazer dele o caminho único
+- [x] **T006** Abrir o registro de ferramentas — e fazer dele o caminho único — *feita em 2026-09-24, [#956](https://github.com/The-Band-Solution/theband/issues/956)*
   - **Pronta quando**: T002 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R1, R6 e o complemento 1 ao A3
   - **Descrição**: `lib/the_band/mcp/ferramentas.ex` com a **lista fechada**, casada uma a
@@ -192,6 +192,14 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - um argumento `tenant_id` é recusado pelo schema.
     - **(vindo do T004) SC-001**: toda ferramenta registrada devolve o envelope, com os nove
       campos, e ao menos uma traz `misinterpretations` não vazia.
+  - **O que ficou para depois, e por quê** (2026-09-24):
+    - **o SC-001** exige ferramentas que respondam, e **passa para o T013**, a última das
+      quatro;
+    - **`tools/list` idêntico para dois tenants** exige o protocolo, e passa para o T007;
+    - **o lastro** ficou assim: `team_roster` → `sro.cq15`, `team_stale_work` → `cmo.cq03`,
+      `team_open_work` → `flow.work_in_progress` e `team_review_wait` →
+      `review.time_to_first_review`. As duas últimas são necessidade de informação, pela emenda
+      da FR-020
 
     `test/the_band/mcp/ferramentas_test.exs`: o id de pergunta de cada uma **existe na base
     de conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem,
