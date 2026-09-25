@@ -3,6 +3,10 @@
 Leitura em JSON do que a plataforma observou: equipes, pessoas, projetos e coletas.
 **Só leitura.** Nenhum método de escrita responde.
 
+> **Vai ligar um agente?** O servidor MCP, em `/mcp`, tem documento próprio:
+> [mcp.md](./mcp.md). Leia antes de gerar o token: o que um agente lê pode sair do controle
+> da plataforma, e a escolha da conta dona e do prazo é o controle que está nas suas mãos.
+
 **Endereço**: `https://theband.5.189.161.85.sslip.io`
 **Versão no ar**: `0.9.0` — confira em `/version`, que é aberta.
 

@@ -590,7 +590,7 @@ leitura.
   - **Teste**: `test/the_band_web/mcp/custo_test.exs` — com `ContadorDeConsultas`, e a
     mensagem de falha diz **o que** entrou a mais
 
-- [ ] **T029** Escrever o que o cliente precisa saber
+- [x] **T029** Escrever o que o cliente precisa saber — *feita em 2026-09-25, [#974](https://github.com/The-Band-Solution/theband/issues/974)*
   - **Pronta quando**: T007, T014 e T024 concluídas
   - **Descrição**: a documentação diz **onde o token fica é responsabilidade do cliente**
     (FR-007) e acrescenta o que a FR-032 implica: **o que o agente lê pode sair do controle
