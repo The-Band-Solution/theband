@@ -127,7 +127,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     `flow.per_person.readings` volta com `misinterpretations` **não vazia**, porque uma
     função que devolvesse sempre `[]` passaria num teste que só checasse a chave
 
-- [ ] **T004** Montar o envelope de proveniência
+- [x] **T004** Montar o envelope de proveniência — *feita em 2026-09-24, [#954](https://github.com/The-Band-Solution/theband/issues/954)*
   - **Pronta quando**: T003 concluída; `data-model.md` escrito
   - **Descrição**: `lib/the_band/mcp/envelope.ex` monta `value`, `composition`, `window`,
     `origin`, `rule`, `measurement_id`, `limitations`, `misinterpretations` e `collected_at`.
@@ -138,6 +138,11 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `test/the_band/mcp/envelope_test.exs` — percorre **todas** as ferramentas
     registradas (SC-001), e ao menos uma tem de trazer `misinterpretations` não vazia; se
     todas vierem `[]`, o teste passou sem ler a base
+  - **O que ficou para depois, e por quê** (2026-09-24): a varredura por **todas as ferramentas
+    registradas** (SC-001) não pode rodar, porque ainda não há ferramenta. Ela **passa para o
+    T006**, que cria o registro, e deve ser conferida de novo com as quatro prontas (T010–T013).
+    O T004 prova a peça: as ressalvas vêm da base, e o teste as compara com o que a
+    `KnowledgeBase` devolve para o mesmo id
 
 - [x] **T005** Nomear os três estados da ausência — *feita em 2026-09-24, [#955](https://github.com/The-Band-Solution/theband/issues/955)*
   - **Pronta quando**: T002 concluída
@@ -185,6 +190,8 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - `tools/list` devolve exatamente `team_roster`, `team_open_work`, `team_review_wait` e
       `team_stale_work`, e é **byte a byte idêntico para dois tenants diferentes**;
     - um argumento `tenant_id` é recusado pelo schema.
+    - **(vindo do T004) SC-001**: toda ferramenta registrada devolve o envelope, com os nove
+      campos, e ao menos uma traz `misinterpretations` não vazia.
 
     `test/the_band/mcp/ferramentas_test.exs`: o id de pergunta de cada uma **existe na base
     de conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem,

@@ -78,7 +78,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T001 | Travar a dependência do protocolo | épico | Task | [#951](https://github.com/The-Band-Solution/theband/issues/951) | — | feito |
 | T002 | Criar o esqueleto do contexto MCP | épico | Task | [#952](https://github.com/The-Band-Solution/theband/issues/952) | — | feito |
 | T003 | Expor a medida da base de conhecimento | épico | Task | [#953](https://github.com/The-Band-Solution/theband/issues/953) | — | feito |
-| T004 | Montar o envelope de proveniência | épico | Task | [#954](https://github.com/The-Band-Solution/theband/issues/954) | — | a fazer |
+| T004 | Montar o envelope de proveniência | épico | Task | [#954](https://github.com/The-Band-Solution/theband/issues/954) | — | feito |
 | T005 | Nomear os três estados da ausência | épico | Task | [#955](https://github.com/The-Band-Solution/theband/issues/955) | — | feito |
 | T006 | Abrir o registro de ferramentas — e fazer dele o caminho único | épico | Task · security | [#956](https://github.com/The-Band-Solution/theband/issues/956) | — | a fazer |
 | T016 | Fechar a lista de métodos do protocolo, antes da biblioteca | épico | Task · security | [#957](https://github.com/The-Band-Solution/theband/issues/957) | — | a fazer |
