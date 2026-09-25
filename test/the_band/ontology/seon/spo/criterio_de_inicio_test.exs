@@ -482,27 +482,8 @@ defmodule TheBand.Ontology.SEON.SPO.CriterioDeInicioTest do
   end
 
   # Conta as consultas de uma função — o mesmo padrão que `verification` usa.
-  defp consultas(fun) do
-    ref = make_ref()
-    pai = self()
-
-    :telemetry.attach(
-      "conta-#{inspect(ref)}",
-      [:the_band, :repo, :query],
-      fn _e, _m, _md, _c -> send(pai, {ref, :query}) end,
-      nil
-    )
-
-    fun.()
-    :telemetry.detach("conta-#{inspect(ref)}")
-    contar(ref, 0)
-  end
-
-  defp contar(ref, n) do
-    receive do
-      {^ref, :query} -> contar(ref, n + 1)
-    after
-      0 -> n
-    end
-  end
+  # A definição ÚNICA do contador (issue #372), e não uma cópia local. A cópia que vivia aqui
+  # contava toda consulta do BEAM na janela, inclusive o tick do `Oban.Stager`, e reprovou no
+  # CI do PR #977 com o código certo: +1 consulta que a leitura não fez (L42).
+  defp consultas(fun), do: TheBand.ContadorDeConsultas.contar(fun)
 end

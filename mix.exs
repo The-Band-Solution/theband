@@ -17,7 +17,33 @@ defmodule TheBand.MixProject do
       # no PLT o Dialyzer as reporta como funções inexistentes.
       dialyzer: [plt_add_apps: [:mix, :ex_unit]],
       listeners: [Phoenix.CodeReloader],
-      releases: releases()
+      releases: releases(),
+      # RISCO RESIDUAL ACEITO, e não falso positivo — decisão da pessoa mantenedora em
+      # 2026-09-24; medição em `specs/062-servidor-mcp/r3-cowlib-alcance.md`.
+      #
+      # `ex_mcp 1.5.0` exige `plug_cowboy`, que traz `cowlib 2.20.0` com duas advisories
+      # SEM correção upstream (o mantenedor do Cowlib recusou: ninenines/cowlib #152, #166,
+      # #169). As duas são CODIFICADORES: `cow_http_struct_hd:escape_string/2` (43966) e o
+      # `Cookie:` de cliente em `cow_cookie:cookie/1` (43969).
+      #
+      # Não alcançáveis aqui, medido com trace de chamadas e controle positivo: o endpoint é
+      # servido pelo Bandit (`config/config.exs`, `adapter: Bandit.PhoenixAdapter`), o
+      # `ExMCP.HttpPlug` roda sob o Bandit sem tocar em função nenhuma de cowlib/cowboy/ranch,
+      # e a aplicação `:ex_mcp` não inicia listener (`:ranch.info() == %{}`).
+      #
+      # A proteção não é esta linha: é `test/the_band/cowlib_inalcancavel_test.exs`, que
+      # reprova se as condições 1 a 4 abaixo deixarem de valer.
+      #
+      # ESTA EXCEÇÃO CAI — e sai daqui no mesmo PR — se qualquer uma destas deixar de valer:
+      #   1. o `adapter:` do endpoint deixar de ser `Bandit.PhoenixAdapter` (sem a linha, o
+      #      Phoenix volta ao Cowboy EM SILÊNCIO, porque o `plug_cowboy` agora existe);
+      #   2. algum listener Cowboy for iniciado: `Plug.Cowboy.http/https`,
+      #      `ExMCP.Server.Transport.start_server/4`, ou `transport: :http` num handler da DSL;
+      #   3. algum código deste repositório, ou dependência nova, chamar `:cow_*` ou usar `gun`;
+      #   4. a `ex_mcp` mudar de versão (fixada em `== 1.5.0`): a medição vale para ela.
+      # E sai sozinha quando a `ex_mcp` tornar o Cowboy opcional (anunciado para a 2.0): o
+      # `hex.audit` avisa que a entrada ficou obsoleta — foi assim que o H11 apareceu.
+      hex: [ignore_advisories: ["EEF-CVE-2026-43966", "EEF-CVE-2026-43969"]]
       # A exceção de `CVE-2026-32686` viveu aqui de 2026-09-08 a 2026-09-20, e saiu **pelo
       # sinal que ela mesma declarava**: `mix hex.audit` passou a dizer que a entrada não
       # casa com nenhum aviso das dependências travadas.
@@ -142,7 +168,20 @@ defmodule TheBand.MixProject do
       # O ativo da interface é servido do PRÓPRIO DOMÍNIO: a CSP do `router.ex` é
       # `script-src 'self'`, e afrouxá-la para aceitar CDN contrariaria um achado do Sobelow
       # já tratado (issue #288).
-      {:open_api_spex, "~> 3.22"}
+      {:open_api_spex, "~> 3.22"},
+      # O protocolo MCP — feature 062, T001, research.md D1.
+      #
+      # **A única dependência nova DIRETA da feature, e ela traz dez pacotes**, entre eles
+      # `plug_cowboy`: ver a exceção de `cowlib` em `project/0`. Escolhida sobre
+      # `hermes_mcp`, que não publica desde 2025-08, e sobre `fastest_mcp`, que está em 0.x
+      # com 586 downloads.
+      #
+      # **O que fica pior**: é biblioteca jovem e em movimento — 1.3.0 em 2026-09-05, 1.4.0 em
+      # 09-17, 1.5.0 em 09-21, uma versão a cada ~7 dias. Por isso **fixada em `== 1.5.0`**, e
+      # não `~> 1.5`: com o til, uma 1.x nova entraria sem que a medição do `cowlib` fosse
+      # refeita. **A mitigação é a camada fina**: as respostas vivem em `lib/the_band/mcp/`, que
+      # não conhece a biblioteca, e trocá-la é trabalho de adaptador.
+      {:ex_mcp, "== 1.5.0"}
     ]
   end
 
