@@ -90,9 +90,9 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T013 | Responder o que está parado | US1 | Task | [#963](https://github.com/The-Band-Solution/theband/issues/963) | — | feito |
 | T014 | Marcar o texto de terceiro no schema | US1 | Task · security | [#964](https://github.com/The-Band-Solution/theband/issues/964) | — | feito |
 | T015 | Declarar o que cada ferramenta não responde | US1 | Task | [#965](https://github.com/The-Band-Solution/theband/issues/965) | — | a fazer |
-| T017 | Recusar como resposta, nunca como erro | US2 | Task | [#966](https://github.com/The-Band-Solution/theband/issues/966) | — | a fazer |
-| T018 | Provar a paridade das três portas | US2 | Task | [#967](https://github.com/The-Band-Solution/theband/issues/967) | — | a fazer |
-| T019 | Recusar token revogado na chamada seguinte | US2 | Task | [#968](https://github.com/The-Band-Solution/theband/issues/968) | — | a fazer |
+| T017 | Recusar como resposta, nunca como erro | US2 | Task | [#966](https://github.com/The-Band-Solution/theband/issues/966) | — | feito |
+| T018 | Provar a paridade das três portas | US2 | Task | [#967](https://github.com/The-Band-Solution/theband/issues/967) | — | feito |
+| T019 | Recusar token revogado na chamada seguinte | US2 | Task | [#968](https://github.com/The-Band-Solution/theband/issues/968) | — | feito |
 | T021 | Registrar a leitura no ponto do veredito | US3 | Task · security | [#969](https://github.com/The-Band-Solution/theband/issues/969) | — | feito |
 | T022 | A recusa de equipe é registrada, e não vira leitura — no MCP e na API | US3 | Task · security | [#970](https://github.com/The-Band-Solution/theband/issues/970) | — | feito |
 | T024 | Provar que o limite é um só por token | US3 | Task · security | [#971](https://github.com/The-Band-Solution/theband/issues/971) | — | feito |

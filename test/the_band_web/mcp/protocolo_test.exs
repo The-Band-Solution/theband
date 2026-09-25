@@ -212,6 +212,31 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
     end
   end
 
+  describe "T019 — a revogação vale na chamada seguinte (SC-006, FR-005, FR-006)" do
+    test "chamada aceita, revogação, e a chamada seguinte recusada, sem reiniciar nada", ctx do
+      {:ok, token, valor} =
+        Tenants.create_api_token(ctx.a, admin(ctx.a), %{label: "revogar"}, admin(ctx.a))
+
+      # A GUARDA: antes da revogação o token responde. Sem ela, a recusa abaixo poderia vir de
+      # um token que nunca funcionou.
+      assert mcp(ctx.conn, valor, "tools/list").status == 200
+
+      {:ok, _} =
+        Tenants.revoke_api_token(ctx.a, token.id, admin(ctx.a), %{
+          revocation_clause: "suspeita_de_vazamento"
+        })
+
+      depois = mcp(ctx.conn, valor, "tools/list")
+
+      assert depois.status == 401, """
+      O token revogado respondeu #{depois.status} na chamada seguinte. A revogação tem de valer
+      já, sem cache (Q3 da 061), e o servidor não guarda o token entre chamadas (FR-006).
+      """
+
+      assert %{"error" => %{"code" => "unauthorized"}} = Jason.decode!(depois.resp_body)
+    end
+  end
+
   describe "o estado do handler (R7)" do
     test "leva só identificadores, e nunca o valor do token", ctx do
       {:ok, token, valor} =
