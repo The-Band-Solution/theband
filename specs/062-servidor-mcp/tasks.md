@@ -139,7 +139,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     registradas (SC-001), e ao menos uma tem de trazer `misinterpretations` não vazia; se
     todas vierem `[]`, o teste passou sem ler a base
 
-- [ ] **T005** Nomear os três estados da ausência
+- [x] **T005** Nomear os três estados da ausência — *feita em 2026-09-24, [#955](https://github.com/The-Band-Solution/theband/issues/955)*
   - **Pronta quando**: T002 concluída
   - **Descrição**: `lib/the_band/mcp/ausencia.ex` com `:conferido_e_nada`, `:nao_conferido`
     (carregando **o que falta**) e `:recusado` (carregando **a razão**). No protocolo saem em
