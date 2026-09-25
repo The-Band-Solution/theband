@@ -82,7 +82,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T005 | Nomear os três estados da ausência | épico | Task | [#955](https://github.com/The-Band-Solution/theband/issues/955) | — | feito |
 | T006 | Abrir o registro de ferramentas — e fazer dele o caminho único | épico | Task · security | [#956](https://github.com/The-Band-Solution/theband/issues/956) | — | feito |
 | T016 | Fechar a lista de métodos do protocolo, antes da biblioteca | épico | Task · security | [#957](https://github.com/The-Band-Solution/theband/issues/957) | — | feito |
-| T007 | Servir o MCP autenticado | épico | Task · security | [#958](https://github.com/The-Band-Solution/theband/issues/958) | — | a fazer |
+| T007 | Servir o MCP autenticado | épico | Task · security | [#958](https://github.com/The-Band-Solution/theband/issues/958) | — | feito |
 | T008 | Guardar a fronteira do banco | épico | Task | [#959](https://github.com/The-Band-Solution/theband/issues/959) | — | feito |
 | T010 | Responder quem está na equipe | US1 | Task | [#960](https://github.com/The-Band-Solution/theband/issues/960) | — | a fazer |
 | T011 | Responder o que cada um tem aberto | US1 | Task | [#961](https://github.com/The-Band-Solution/theband/issues/961) | — | a fazer |

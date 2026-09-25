@@ -230,7 +230,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     `/mcp`**, com token, se prova no T007, quando a rota existir. A forma da recusa é a mesma da
     `ex_mcp` para método inexistente: HTTP `404` e JSON-RPC `-32601`
 
-- [ ] **T007** Servir o MCP autenticado
+- [x] **T007** Servir o MCP autenticado — *feita em 2026-09-24, [#958](https://github.com/The-Band-Solution/theband/issues/958)*
   - **Pronta quando**: T006 e T016 concluídas
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R5, R7, R8, R10 e a marca do R1
   - **Descrição**:
@@ -272,6 +272,14 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - o `inspect` do estado passado ao handler não contém o valor do token;
     - o evento de recusa carrega o mesmo `request_id` do cabeçalho `x-request-id`;
     - `GET /mcp` e `DELETE /mcp` recebem `405`
+  - **Feito em 2026-09-25, e o que ficou para depois**:
+    - o evento de recusa com o `request_id` da resposta **passa para o T022**, que cria o
+      evento. O `Logger.metadata` já é reposto no `init/1` do handler;
+    - com alcance, a chamada ainda termina no erro genérico de handler, porque as ferramentas
+      não existem (T010–T013);
+    - **a sonda contra a biblioteca mostrou o que o contrato não dizia**: os cabeçalhos
+      `mcp-method` e `mcp-name`, o corpo do `405` e a ordem alfabética. O contrato foi corrigido
+      no mesmo commit
 
 - [x] **T008** Guardar a fronteira do banco — *feita em 2026-09-24, [#959](https://github.com/The-Band-Solution/theband/issues/959)*
   - **Pronta quando**: T002 concluída
