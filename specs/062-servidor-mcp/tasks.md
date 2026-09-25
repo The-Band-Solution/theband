@@ -413,7 +413,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
 **Teste independente**: uma conta sem alcance chama as quatro ferramentas e recebe **quatro
 recusas com razão**, nenhuma exceção e nenhuma lista vazia.
 
-- [ ] **T017** [US2] Recusar como resposta, nunca como erro
+- [x] **T017** [US2] Recusar como resposta, nunca como erro — *feita em 2026-09-25, [#966](https://github.com/The-Band-Solution/theband/issues/966)*
   - **Pronta quando**: T005 e T010–T013 concluídas
   - **Descrição**: quando `pode_ver_equipe/3` nega, a ferramenta devolve
     `%{state: "refused", reason: ...}` — **não** exceção, **não** lista vazia. `reason` fica
@@ -429,7 +429,7 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
   - **Teste**: `test/the_band/mcp/paridade_test.exs` — lista vazia por falta de permissão é
     o sucesso silencioso que esta casa registrou nove vezes; o teste exige `state` e `reason`
 
-- [ ] **T018** [US2] Provar a paridade das três portas
+- [x] **T018** [US2] Provar a paridade das três portas — *feita em 2026-09-25, [#967](https://github.com/The-Band-Solution/theband/issues/967)*
   - **Pronta quando**: T017 concluída
   - **Descrição**: para os **quatro** caminhos de `pode_ver_equipe/3` — `admin`,
     `escopo_de_equipe`, `escopo_da_organizacao`, `vinculo_vigente` — e para
@@ -446,7 +446,7 @@ recusas com razão**, nenhuma exceção e nenhuma lista vazia.
     - guarda do caso do admin: a mesma conta, com uma equipe de A, recebe `checked` com
       `people` não vazio
 
-- [ ] **T019** [US2] Recusar token revogado na chamada seguinte
+- [x] **T019** [US2] Recusar token revogado na chamada seguinte — *feita em 2026-09-25, [#968](https://github.com/The-Band-Solution/theband/issues/968)*
   - **Pronta quando**: T007 concluída
   - **Descrição**: SC-006. Sem cache, herdado da Q3 da 061. A revogação vale na próxima
     chamada, sem reiniciar nada — e o servidor **não guarda o token** entre chamadas (FR-006)
