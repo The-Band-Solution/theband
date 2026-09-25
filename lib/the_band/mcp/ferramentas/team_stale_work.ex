@@ -26,6 +26,10 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.TeamWork
 
+  # O teto (N6 da revisão da implementação), dito em `truncated`. A conversa só é lida para os
+  # itens que saem, e não para todas as paradas.
+  @limite 200
+
   @doc "A resposta, com o envelope. A equipe chega carregada e já autorizada pelo registro."
   @spec responder(Tenant.t(), map()) :: map()
   def responder(%Tenant{} = tenant, equipe) do
@@ -38,14 +42,17 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
       |> Enum.uniq_by(& &1.issue_id)
 
     paradas = abertas |> Enum.filter(& &1.parada?) |> Enum.sort_by(& &1.aberta_ha_dias, :desc)
-    conversas = Profiles.conversa_das_issues(tenant, Enum.map(paradas, & &1.issue_id))
+    que_saem = Enum.take(paradas, @limite)
+    conversas = Profiles.conversa_das_issues(tenant, Enum.map(que_saem, & &1.issue_id))
 
     [
       value: %{
         stale: length(paradas),
         open: length(abertas),
         stale_after_days: Material.stale_days(),
-        items: Enum.map(paradas, &item(&1, conversas[&1.issue_id]))
+        items: Enum.map(que_saem, &item(&1, conversas[&1.issue_id])),
+        truncated: length(paradas) > @limite,
+        limit: @limite
       },
       composition: %{is_composed: false, note: "Open work of the team's current members."},
       window: nil,

@@ -691,6 +691,25 @@ apoiada em nada.
 
 ---
 
+## A revisão de segurança da implementação — 2026-09-25
+
+Feita por um agente `security` que não escreveu o código:
+[`seguranca-revisao-da-implementacao.md`](./seguranca-revisao-da-implementacao.md). Ela não achou
+caminho entre tenants, e achou sete defeitos, **um deles em produção**:
+
+| # | Achado | Severidade | Destino |
+|---|---|---|---|
+| **N1** | o roster devolvia o e-mail de quem marcou o equívoco, **no MCP e na API em produção** | alta | API no **#982**; MCP neste branch |
+| **N2** | `ended_at` saía como tupla: `500` na API e `handler_crash` no MCP, e a leitura era gravada antes de serializar | média | API no #982; MCP neste branch, com a leitura gravada só depois de serializar |
+| **N3** | `notifications/cancelled` fazia a `ex_mcp` reter memória numa ETS global | média | saiu da lista de métodos |
+| **N4** | a razão do equívoco saía sem marca | baixa | marcada como texto de terceiro |
+| **N5** | corpo que não é JSON fazia o plug de métodos levantar | baixa | recusado com `415` |
+| **N6** | `team_open_work` e `team_stale_work` sem teto | baixa | 200 itens, com `truncated` |
+| **N7** | `lazy_html` 0.1.12 com advisory, reprovando o `hex.audit` em `development` | baixa | 0.1.13, no #982 |
+
+A fixture do `segredo_nao_vaza_test.exs` não povoava os campos que vazavam, e por isso não pegava
+o N1. Agora povoa, e com o defeito de volta o teste reprova.
+
 ## A lacuna que continua aberta
 
 **I4 — não houve revisão independente do desenho.** Quatro tentativas por agente falharam em

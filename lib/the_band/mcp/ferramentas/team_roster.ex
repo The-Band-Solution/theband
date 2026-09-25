@@ -80,10 +80,32 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
       # texto livre, escrito por alguém: vai marcado como o resto (na dúvida, AGENTS.md §14.0).
       role: v.role && %{code: v.role.code, name: TextoDeTerceiro.marcar(v.role.name)},
       current: v.vigente?,
-      ended_at: v.fim,
-      mistake: v.equivoco
+      # **Quem encerrou e quem invalidou NÃO saem** (N1 e N2 da revisão da implementação,
+      # 2026-09-25). O domínio carrega o e-mail dos dois: `v.fim` é uma tupla com o e-mail de
+      # quem declarou a saída, que o Jason nem serializa, e `v.equivoco` traz `por: <e-mail>`.
+      ended_at: data_da_saida(v.fim),
+      end_origin: origem_da_saida(v.fim),
+      mistake: equivoco(v.equivoco)
     }
   end
+
+  # A saída sem o autor, com a origem: a data de uma saída pela coleta é quando a plataforma
+  # parou de ver, e não quando a pessoa saiu (FR-022 da 045). Casadas uma a uma.
+  defp data_da_saida(nil), do: nil
+  defp data_da_saida({:declarado, _autor, _registrado, quando}), do: quando
+  defp data_da_saida({:coleta, quando}), do: quando
+  defp data_da_saida({:sem_autor, quando}), do: quando
+
+  defp origem_da_saida(nil), do: nil
+  defp origem_da_saida({:declarado, _autor, _registrado, _quando}), do: "declared"
+  defp origem_da_saida({:coleta, _quando}), do: "no_longer_observed"
+  defp origem_da_saida({:sem_autor, _quando}), do: "declared_without_author"
+
+  # O equívoco sem quem o marcou. A razão é texto livre, escrito por alguém: vai marcada (N4).
+  defp equivoco(nil), do: nil
+
+  defp equivoco(%{razao: razao, em: em}),
+    do: %{reason: TextoDeTerceiro.marcar(razao), at: em}
 
   # Casadas uma a uma, como na API: átomo novo no domínio reprova aqui, em vez de sair cru.
   defp origem(:observado), do: "observed"

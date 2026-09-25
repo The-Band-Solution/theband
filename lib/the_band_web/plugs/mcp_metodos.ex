@@ -3,14 +3,13 @@ defmodule TheBandWeb.Plugs.McpMetodos do
   A lista fechada de métodos JSON-RPC que chegam à biblioteca do protocolo — feature 062, T016,
   achados R2 e R4 da revisão independente.
 
-  É a FR-023 aplicada ao **protocolo**, e não só às ferramentas. Só quatro métodos passam:
+  É a FR-023 aplicada ao **protocolo**, e não só às ferramentas. Só três métodos passam:
 
   | Método | Por quê |
   |---|---|
   | `server/discover` | a descoberta do servidor na revisão 2026-07-28, que substitui o `initialize` |
   | `tools/list` | a lista fechada das quatro ferramentas |
   | `tools/call` | chamar uma delas |
-  | `notifications/cancelled` | o cliente desistir de uma chamada em curso |
 
   **Corrigido em 2026-09-25, no T021.** A primeira lista trazia `initialize`,
   `notifications/initialized` e `ping`, que **não** existem na revisão 2026-07-28: a tabela
@@ -18,6 +17,15 @@ defmodule TheBandWeb.Plugs.McpMetodos do
   recusava com `404` depois do plug. E a lista **recusava `server/discover`**, que é como um
   cliente moderno descobre o servidor: nenhum cliente real conseguiria começar. A lista agora é
   o que o modo moderno usa, e é também menor.
+
+  **`notifications/cancelled` saiu em 2026-09-25** (N3 da revisão da implementação). A `ex_mcp`
+  grava o `requestId` de cada cancelamento numa ETS global que nunca é limpa, e o nosso handler
+  nunca a lê. Medido: cinco notificações de 200 KB deixaram cerca de 1 MB retido. Um token dentro
+  do limite de 120 por minuto esgotaria a memória do nó único, e derrubaria todos os tenants. As
+  ferramentas respondem em milissegundos: não há chamada longa para cancelar.
+
+  **Corpo que não é JSON** (N5) é recusado aqui, e não levanta: o `Plug.Parsers` deixa
+  `body_params` sem ler, e a primeira versão deste plug caía em exceção.
 
   ## O que fica de fora, e por quê
 
@@ -45,10 +53,10 @@ defmodule TheBandWeb.Plugs.McpMetodos do
 
   @behaviour Plug
 
-  @permitidos ~w(server/discover tools/list tools/call notifications/cancelled)
+  @permitidos ~w(server/discover tools/list tools/call)
   @chaves_de_stream ~w(progressToken io.modelcontextprotocol/logLevel)
 
-  @doc "Os quatro métodos que chegam à biblioteca."
+  @doc "Os três métodos que chegam à biblioteca."
   @spec permitidos() :: [String.t()]
   def permitidos, do: @permitidos
 
@@ -56,6 +64,9 @@ defmodule TheBandWeb.Plugs.McpMetodos do
   def init(opts), do: opts
 
   @impl Plug
+  def call(%Plug.Conn{method: "POST", body_params: %Plug.Conn.Unfetched{}} = conn, _opts),
+    do: recusar(conn, 415, nil, -32_700, "The request body must be JSON")
+
   def call(%Plug.Conn{method: "POST"} = conn, _opts), do: avaliar(conn, conn.body_params)
   def call(conn, _opts), do: conn
 

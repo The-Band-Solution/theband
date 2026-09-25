@@ -24,6 +24,10 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.TeamWork
 
+  # O teto (N6 da revisão da implementação): sem ele, uma equipe grande devolveria tudo numa
+  # resposta só. O corte é DITO, em `truncated`: uma lista de 200 de 900 é outra lista.
+  @limite 200
+
   @doc "A resposta, com o envelope. A equipe chega carregada e já autorizada pelo registro."
   @spec responder(Tenant.t(), map()) :: map()
   def responder(%Tenant{} = tenant, equipe) do
@@ -33,11 +37,10 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
 
     [
       value: %{
-        by_person:
-          for {person_id, tarefas} <- por_pessoa, tarefas != [] do
-            %{person_id: person_id, tasks: Enum.map(tarefas, &tarefa/1)}
-          end,
-        totals: %{members: instantaneo.membros, open: instantaneo.abertas}
+        by_person: por_pessoa |> linhas() |> Enum.take(@limite),
+        totals: %{members: instantaneo.membros, open: instantaneo.abertas},
+        truncated: length(linhas(por_pessoa)) > @limite,
+        limit: @limite
       },
       composition: %{is_composed: false, note: "Open work of the team's current members."},
       window: nil,
@@ -47,6 +50,13 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
     ]
     |> Envelope.montar()
     |> Map.put(:state, "checked")
+  end
+
+  # Pessoa sem tarefa aberta não vira linha com zero.
+  defp linhas(por_pessoa) do
+    for {person_id, tarefas} <- por_pessoa, tarefas != [] do
+      %{person_id: person_id, tasks: Enum.map(tarefas, &tarefa/1)}
+    end
   end
 
   defp tarefa(t) do

@@ -100,8 +100,12 @@ defmodule TheBandWeb.MCP.RegistroTest do
         {[roster_x, aberto_y, recusa, lista, aviso], recusa}
       end)
 
-    assert Enum.all?(respostas, &(&1.status in [200, 202])),
+    # A notificação é recusada pelo plug de métodos (N3): `notifications/cancelled` saiu da
+    # lista. As outras quatro respondem.
+    assert respostas |> Enum.take(4) |> Enum.all?(&(&1.status == 200)),
            inspect(Enum.map(respostas, & &1.status))
+
+    assert List.last(respostas).status == 404
 
     linhas = linhas(ctx.a)
 

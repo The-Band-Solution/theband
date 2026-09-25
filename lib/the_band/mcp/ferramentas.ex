@@ -184,6 +184,12 @@ defmodule TheBand.MCP.Ferramentas do
          {:ok, _caminho} <- Tenants.pode_ver_equipe(tenant, user, equipe.id) do
       resposta = ferramenta.modulo.responder(tenant, equipe)
 
+      # A leitura só conta se a resposta **sai** (N2 da revisão da implementação). A primeira
+      # versão gravava antes de serializar, e uma resposta que o Jason não serializava deixava
+      # uma leitura registrada que o cliente nunca recebeu. Serializar aqui falha alto, antes
+      # do registro.
+      _ = Jason.encode!(resposta)
+
       :ok =
         ApiAccessLog.registrar(%{
           tenant_id: tenant.id,

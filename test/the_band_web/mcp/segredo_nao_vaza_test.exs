@@ -62,6 +62,45 @@ defmodule TheBandWeb.MCP.SegredoNaoVazaTest do
         observed_at: DateTime.utc_now(:second)
       })
 
+    # Os dois campos que vazavam o e-mail (N1 e N2 da revisão da implementação), e que a
+    # primeira versão desta fixture nunca povoava: um vínculo DECLARADO e depois ENCERRADO, e
+    # outro marcado como EQUÍVOCO, os dois pela conta admin, dona do e-mail.
+    {:ok, papel} = EO.create_role(tenant, org.id, %{code: "dev", name: "Dev"}, admin.id)
+
+    for login <- ~w(saiu engano) do
+      {:ok, p} =
+        EO.upsert_person_from_source(tenant, %{
+          login: login,
+          name: login,
+          account_type: "person",
+          source_system: "github",
+          source_instance: "https://github.com",
+          external_id: "U_#{login}",
+          collected_at: DateTime.utc_now(:second)
+        })
+
+      {:ok, _} =
+        EO.declare_team_membership(
+          tenant,
+          equipe.id,
+          p.id,
+          %{
+            organizational_role_id: papel.id,
+            started_at: DateTime.add(DateTime.utc_now(:second), -30, :day)
+          },
+          admin.id
+        )
+
+      {:ok, _} =
+        case login do
+          "saiu" ->
+            EO.record_team_departure(tenant, equipe.id, p.id, DateTime.utc_now(:second), admin.id)
+
+          "engano" ->
+            EO.record_team_membership_mistake(tenant, equipe.id, p.id, "pessoa errada", admin.id)
+        end
+    end
+
     %{conn: conn, admin: admin, valor: valor, equipe: equipe}
   end
 

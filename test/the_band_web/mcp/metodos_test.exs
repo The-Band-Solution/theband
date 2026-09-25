@@ -24,11 +24,11 @@ defmodule TheBandWeb.MCP.MetodosTest do
 
   defp erro(conn), do: conn.resp_body |> Jason.decode!() |> Map.fetch!("error")
 
-  test "os quatro métodos permitidos passam, sem resposta enviada" do
+  test "os três métodos permitidos passam, sem resposta enviada" do
     for metodo <- McpMetodos.permitidos() do
       conn = post(%{"jsonrpc" => "2.0", "id" => 1, "method" => metodo})
 
-      refute conn.halted, "#{metodo} foi recusado, e é um dos quatro"
+      refute conn.halted, "#{metodo} foi recusado, e é um dos três"
       assert conn.state == :unset
     end
   end
@@ -51,7 +51,7 @@ defmodule TheBandWeb.MCP.MetodosTest do
     # primeira versão desta lista os deixava passar.
     for metodo <-
           ~w(resources/list resources/read prompts/list prompts/get logging/setLevel
-             initialize notifications/initialized ping) do
+             initialize notifications/initialized ping notifications/cancelled) do
       conn = post(%{"jsonrpc" => "2.0", "id" => 1, "method" => metodo})
 
       assert conn.halted, "#{metodo} chegou à biblioteca"
@@ -86,6 +86,18 @@ defmodule TheBandWeb.MCP.MetodosTest do
   test "lote e pedido sem método são inválidos" do
     assert %{"code" => -32_600} = post(%{"_json" => [%{"method" => "ping"}]}) |> erro()
     assert %{"code" => -32_600} = post(%{"jsonrpc" => "2.0", "id" => 1}) |> erro()
+  end
+
+  test "corpo que não é JSON é recusado com 415, e não levanta (N5)" do
+    conn =
+      :post
+      |> conn("/mcp", "texto")
+      |> Map.put(:body_params, %Plug.Conn.Unfetched{aspect: :body_params})
+      |> McpMetodos.call([])
+
+    assert conn.halted
+    assert conn.status == 415
+    assert %{"code" => -32_700} = erro(conn)
   end
 
   test "só olha POST: GET passa adiante, para o 405 do T007" do
