@@ -35,6 +35,31 @@ defmodule TheBand.MCP.FronteiraTest do
     """
   end
 
+  # T008 — **a fronteira do banco.** As respostas vêm dos contextos, como na API da 061. Um
+  # módulo daqui que falasse com o `Repo` tornaria a extração posterior um reescrever, e não um
+  # mover (research.md D2), e criaria um segundo caminho até o dado, ao lado do veredito.
+  @proibidos_do_banco [[:TheBand, :Repo], [:Ecto, :Query], [:Ecto, :Adapters, :SQL]]
+
+  test "nenhum módulo de lib/the_band/mcp/ fala com o banco direto" do
+    arquivos = Path.wildcard("#{@dir}/**/*.ex")
+    assert length(arquivos) >= 3, "esperava ao menos os três módulos do T002 em #{@dir}"
+
+    achados =
+      for arquivo <- arquivos,
+          prefixo <- @proibidos_do_banco,
+          modulo <- referencias(File.read!(arquivo), prefixo) do
+        "#{arquivo}: #{modulo}"
+      end
+
+    assert achados == [], """
+    Módulos do contexto MCP falam com o banco direto:
+
+    #{Enum.map_join(achados, "\n", &("  " <> &1))}
+
+    O dado chega pelos contextos (`EO`, `TeamWork`, `Quality`), e nunca pelo `Repo`.
+    """
+  end
+
   describe "a varredura mede, e não lê a prosa — o controle positivo" do
     test "acha TheBandWeb em alias, chamada e struct" do
       fonte = """
@@ -46,6 +71,20 @@ defmodule TheBand.MCP.FronteiraTest do
       """
 
       assert length(referencias(fonte, [:TheBandWeb])) == 3
+    end
+
+    test "acha Repo e Ecto.Query em alias, import e chamada" do
+      fonte = """
+      defmodule Injetado do
+        alias TheBand.Repo
+        import Ecto.Query
+        def a, do: TheBand.Repo.all(from(x in "t"))
+      end
+      """
+
+      achados = Enum.flat_map(@proibidos_do_banco, &referencias(fonte, &1))
+      assert "TheBand.Repo" in achados
+      assert "Ecto.Query" in achados
     end
 
     test "ignora TheBandWeb em comentário, @moduledoc e @doc" do

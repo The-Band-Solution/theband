@@ -254,7 +254,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - o evento de recusa carrega o mesmo `request_id` do cabeçalho `x-request-id`;
     - `GET /mcp` e `DELETE /mcp` recebem `405`
 
-- [ ] **T008** Guardar a fronteira do banco
+- [x] **T008** Guardar a fronteira do banco — *feita em 2026-09-24, [#959](https://github.com/The-Band-Solution/theband/issues/959)*
   - **Pronta quando**: T002 concluída
   - **Descrição**: teste que varre `lib/the_band/mcp/` e reprova se algum módulo referenciar
     `TheBand.Repo` ou `Ecto.Query`. É o que torna a extração posterior um **mover** e não um
