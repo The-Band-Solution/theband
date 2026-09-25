@@ -34,6 +34,16 @@ defmodule TheBand.Ontology.KnowledgeBase do
   def rule(id), do: fetch(:derivation_rule, id)
 
   @doc """
+  Devolve a medida pelo identificador — feature 062, T003.
+
+  É de onde o envelope do MCP tira `limitations` e `misinterpretations` (FR-011). Sem esta
+  consulta, as ressalvas de uma medida só existiam no YAML, e quem monta a resposta teria de
+  escrevê-las de novo no código, que é o princípio IV cumprido pela metade.
+  """
+  @spec measurement(String.t()) :: {:ok, map()} | :error
+  def measurement(id), do: fetch(:measurement, id)
+
+  @doc """
   Os axiomas da rede, um a um — issue #320.
 
   `list(:axiom)` devolve **arquivos**, e cada arquivo carrega sete axiomas dentro de `rules`.

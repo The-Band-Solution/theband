@@ -101,7 +101,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
   - **Teste**: `mix deps.get && mix compile --warnings-as-errors` — e `mix hex.audit` sem
     aviso novo
 
-- [ ] **T002** Criar o esqueleto do contexto MCP
+- [x] **T002** Criar o esqueleto do contexto MCP — *feita em 2026-09-24, [#952](https://github.com/The-Band-Solution/theband/issues/952)*
   - **Pronta quando**: T001 concluída
   - **Descrição**: `lib/the_band/mcp/` com `ferramentas.ex`, `envelope.ex` e `ausencia.ex`
     vazios mas com `@moduledoc` dizendo a responsabilidade de cada um. A separação entre
@@ -115,7 +115,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
 
 ## Fase 2 — Fundação (bloqueia todas as histórias)
 
-- [ ] **T003** Expor a medida da base de conhecimento
+- [x] **T003** Expor a medida da base de conhecimento — *feita em 2026-09-24, [#953](https://github.com/The-Band-Solution/theband/issues/953)*
   - **Pronta quando**: nada além do repositório
   - **Descrição**: `KnowledgeBase` expõe `rule/1`, `mapping/1`, `axiom/1` e `list/1`, e
     **não expõe `measurement/1`** — o `fetch/2` é privado. Acrescentar a função pública em
@@ -139,7 +139,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     registradas (SC-001), e ao menos uma tem de trazer `misinterpretations` não vazia; se
     todas vierem `[]`, o teste passou sem ler a base
 
-- [ ] **T005** Nomear os três estados da ausência
+- [x] **T005** Nomear os três estados da ausência — *feita em 2026-09-24, [#955](https://github.com/The-Band-Solution/theband/issues/955)*
   - **Pronta quando**: T002 concluída
   - **Descrição**: `lib/the_band/mcp/ausencia.ex` com `:conferido_e_nada`, `:nao_conferido`
     (carregando **o que falta**) e `:recusado` (carregando **a razão**). No protocolo saem em
@@ -254,7 +254,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     - o evento de recusa carrega o mesmo `request_id` do cabeçalho `x-request-id`;
     - `GET /mcp` e `DELETE /mcp` recebem `405`
 
-- [ ] **T008** Guardar a fronteira do banco
+- [x] **T008** Guardar a fronteira do banco — *feita em 2026-09-24, [#959](https://github.com/The-Band-Solution/theband/issues/959)*
   - **Pronta quando**: T002 concluída
   - **Descrição**: teste que varre `lib/the_band/mcp/` e reprova se algum módulo referenciar
     `TheBand.Repo` ou `Ecto.Query`. É o que torna a extração posterior um **mover** e não um

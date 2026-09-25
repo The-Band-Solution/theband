@@ -76,14 +76,14 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | # | Tarefa | Atende | Tipo | Issue | Estimate | Estado |
 |---|---|---|---|---|---|---|
 | T001 | Travar a dependência do protocolo | épico | Task | [#951](https://github.com/The-Band-Solution/theband/issues/951) | — | feito |
-| T002 | Criar o esqueleto do contexto MCP | épico | Task | [#952](https://github.com/The-Band-Solution/theband/issues/952) | — | a fazer |
-| T003 | Expor a medida da base de conhecimento | épico | Task | [#953](https://github.com/The-Band-Solution/theband/issues/953) | — | a fazer |
+| T002 | Criar o esqueleto do contexto MCP | épico | Task | [#952](https://github.com/The-Band-Solution/theband/issues/952) | — | feito |
+| T003 | Expor a medida da base de conhecimento | épico | Task | [#953](https://github.com/The-Band-Solution/theband/issues/953) | — | feito |
 | T004 | Montar o envelope de proveniência | épico | Task | [#954](https://github.com/The-Band-Solution/theband/issues/954) | — | a fazer |
-| T005 | Nomear os três estados da ausência | épico | Task | [#955](https://github.com/The-Band-Solution/theband/issues/955) | — | a fazer |
+| T005 | Nomear os três estados da ausência | épico | Task | [#955](https://github.com/The-Band-Solution/theband/issues/955) | — | feito |
 | T006 | Abrir o registro de ferramentas — e fazer dele o caminho único | épico | Task · security | [#956](https://github.com/The-Band-Solution/theband/issues/956) | — | a fazer |
 | T016 | Fechar a lista de métodos do protocolo, antes da biblioteca | épico | Task · security | [#957](https://github.com/The-Band-Solution/theband/issues/957) | — | a fazer |
 | T007 | Servir o MCP autenticado | épico | Task · security | [#958](https://github.com/The-Band-Solution/theband/issues/958) | — | a fazer |
-| T008 | Guardar a fronteira do banco | épico | Task | [#959](https://github.com/The-Band-Solution/theband/issues/959) | — | a fazer |
+| T008 | Guardar a fronteira do banco | épico | Task | [#959](https://github.com/The-Band-Solution/theband/issues/959) | — | feito |
 | T010 | Responder quem está na equipe | US1 | Task | [#960](https://github.com/The-Band-Solution/theband/issues/960) | — | a fazer |
 | T011 | Responder o que cada um tem aberto | US1 | Task | [#961](https://github.com/The-Band-Solution/theband/issues/961) | — | a fazer |
 | T012 | Responder a espera por revisão | US1 | Task | [#962](https://github.com/The-Band-Solution/theband/issues/962) | — | a fazer |
