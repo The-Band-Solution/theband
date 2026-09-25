@@ -65,7 +65,9 @@ defmodule TheBandWeb.MCP.Servidor do
   def handle_call_tool(nome, argumentos, estado) do
     {_meta, argumentos} = Map.pop(argumentos, "_meta")
 
-    case Ferramentas.chamar(estado.tenant, estado.user, nome, argumentos) do
+    credencial = %{token_public_id: estado.token_public_id}
+
+    case Ferramentas.chamar(estado.tenant, estado.user, nome, argumentos, credencial) do
       {:error, :ferramenta_inexistente} ->
         {:error, ExMCP.Error.protocol_error(-32_602, "Unknown tool"), estado}
 

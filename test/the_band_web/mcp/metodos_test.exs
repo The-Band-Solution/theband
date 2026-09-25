@@ -24,11 +24,11 @@ defmodule TheBandWeb.MCP.MetodosTest do
 
   defp erro(conn), do: conn.resp_body |> Jason.decode!() |> Map.fetch!("error")
 
-  test "os cinco métodos permitidos passam, sem resposta enviada" do
+  test "os quatro métodos permitidos passam, sem resposta enviada" do
     for metodo <- McpMetodos.permitidos() do
       conn = post(%{"jsonrpc" => "2.0", "id" => 1, "method" => metodo})
 
-      refute conn.halted, "#{metodo} foi recusado, e é um dos cinco"
+      refute conn.halted, "#{metodo} foi recusado, e é um dos quatro"
       assert conn.state == :unset
     end
   end
@@ -46,8 +46,12 @@ defmodule TheBandWeb.MCP.MetodosTest do
     assert Jason.decode!(conn.resp_body)["id"] == 7
   end
 
-  test "resources, prompts e logging também ficam de fora" do
-    for metodo <- ~w(resources/list resources/read prompts/list prompts/get logging/setLevel) do
+  test "resources, prompts, logging e o aperto de mão antigo ficam de fora" do
+    # `initialize`, `notifications/initialized` e `ping` não existem na revisão 2026-07-28, e a
+    # primeira versão desta lista os deixava passar.
+    for metodo <-
+          ~w(resources/list resources/read prompts/list prompts/get logging/setLevel
+             initialize notifications/initialized ping) do
       conn = post(%{"jsonrpc" => "2.0", "id" => 1, "method" => metodo})
 
       assert conn.halted, "#{metodo} chegou à biblioteca"

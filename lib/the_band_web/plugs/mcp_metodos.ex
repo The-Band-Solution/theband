@@ -3,15 +3,21 @@ defmodule TheBandWeb.Plugs.McpMetodos do
   A lista fechada de métodos JSON-RPC que chegam à biblioteca do protocolo — feature 062, T016,
   achados R2 e R4 da revisão independente.
 
-  É a FR-023 aplicada ao **protocolo**, e não só às ferramentas. Só cinco métodos passam:
+  É a FR-023 aplicada ao **protocolo**, e não só às ferramentas. Só quatro métodos passam:
 
   | Método | Por quê |
   |---|---|
-  | `initialize` | abre a conversa |
-  | `notifications/initialized` | fecha o aperto de mão |
-  | `ping` | saber se o servidor responde |
+  | `server/discover` | a descoberta do servidor na revisão 2026-07-28, que substitui o `initialize` |
   | `tools/list` | a lista fechada das quatro ferramentas |
   | `tools/call` | chamar uma delas |
+  | `notifications/cancelled` | o cliente desistir de uma chamada em curso |
+
+  **Corrigido em 2026-09-25, no T021.** A primeira lista trazia `initialize`,
+  `notifications/initialized` e `ping`, que **não** existem na revisão 2026-07-28: a tabela
+  `@modern_methods` da `ex_mcp` 1.5.0 (`protocol/methods.ex:29`) não os tem, e a biblioteca os
+  recusava com `404` depois do plug. E a lista **recusava `server/discover`**, que é como um
+  cliente moderno descobre o servidor: nenhum cliente real conseguiria começar. A lista agora é
+  o que o modo moderno usa, e é também menor.
 
   ## O que fica de fora, e por quê
 
@@ -39,10 +45,10 @@ defmodule TheBandWeb.Plugs.McpMetodos do
 
   @behaviour Plug
 
-  @permitidos ~w(initialize notifications/initialized ping tools/list tools/call)
+  @permitidos ~w(server/discover tools/list tools/call notifications/cancelled)
   @chaves_de_stream ~w(progressToken io.modelcontextprotocol/logLevel)
 
-  @doc "Os cinco métodos que chegam à biblioteca."
+  @doc "Os quatro métodos que chegam à biblioteca."
   @spec permitidos() :: [String.t()]
   def permitidos, do: @permitidos
 

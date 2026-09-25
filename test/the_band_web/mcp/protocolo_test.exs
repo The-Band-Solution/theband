@@ -118,7 +118,7 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
     end
 
     test "origem de navegador fora da lista recebe 403", ctx do
-      r = mcp(ctx.conn, ctx.token_a, "ping", %{}, [{"origin", "https://outro.example"}])
+      r = mcp(ctx.conn, ctx.token_a, "tools/list", %{}, [{"origin", "https://outro.example"}])
       assert r.status == 403
     end
 
@@ -128,6 +128,19 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
       assert r.status == 404
       assert %{"error" => %{"code" => -32_601}} = Jason.decode!(r.resp_body)
       refute get_resp_header(r, "content-type") |> Enum.any?(&(&1 =~ "text/event-stream"))
+    end
+  end
+
+  describe "server/discover" do
+    test "o primeiro passo de um cliente moderno responde, e diz quem é o servidor", ctx do
+      # Até 2026-09-25 o plug de métodos recusava este método, e nenhum cliente da revisão
+      # 2026-07-28 conseguiria começar. A lista trazia o `initialize` antigo no lugar dele.
+      r = mcp(ctx.conn, ctx.token_a, "server/discover")
+
+      assert r.status == 200, r.resp_body
+      corpo = Jason.decode!(r.resp_body)
+      refute Map.has_key?(corpo, "error"), r.resp_body
+      assert r.resp_body =~ "the-band"
     end
   end
 

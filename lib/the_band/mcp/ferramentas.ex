@@ -27,8 +27,21 @@ defmodule TheBand.MCP.Ferramentas do
      produzem **a mesma** recusa, `fora_do_alcance`: distinguir diria a quem chama o que existe;
   4. **a ferramenta**, com a equipe **carregada**, e nunca com o argumento cru.
 
-  O registro de leitura (T021) e o de recusa (T022) entram nos passos 3 e 4, **aqui**, e não em
-  cada ferramenta.
+  ## O registro, no ponto do veredito (T021 e T022, R1 e R2)
+
+  **Quem grava a leitura do MCP é este módulo, e não o `ApiReadLog`.** A ferramenta roda num
+  processo da `ex_mcp`, e nada escrito ali chega ao `before_send` (R1). A porta marca a
+  requisição como `:delegado`, e o `ApiReadLog` a pula.
+
+  - **concessão**: depois de a ferramenta **responder**, uma linha em `api_access_reads`, com
+    `route: "mcp:<ferramenta>"` e `target_id` = a equipe **carregada**. Depois, e não antes: uma
+    ferramenta que falhe não deixa uma leitura que não houve;
+  - **recusa**: nenhuma linha de leitura, e um evento `AccessEvents.equipe_recusada/4`. A recusa
+    sai em HTTP `200`, como resposta de ferramenta, e gravá-la como leitura afirmaria o contrário
+    do fato (A7).
+
+  **A credencial é argumento obrigatório de `chamar/5`**, e não opção. Um registro que se pulasse
+  quando faltasse o `public_id` seria o sucesso silencioso com outro nome.
 
   ## A fronteira
 
@@ -40,7 +53,7 @@ defmodule TheBand.MCP.Ferramentas do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Tenants
-  alias TheBand.Tenants.{Tenant, User}
+  alias TheBand.Tenants.{AccessEvents, ApiAccessLog, Tenant, User}
 
   # **Constante, e nunca dado** — complemento 1 ao A3. O modelo lê a descrição como instrução
   # da plataforma, e um nome de equipe aqui seria um canal de injeção com a autoridade dela.
@@ -126,12 +139,16 @@ defmodule TheBand.MCP.Ferramentas do
   cabe no esquema. Argumento inválido é erro de quem chamou, e não veredito: vira erro de
   parâmetro no protocolo, e não recusa.
   """
-  @spec chamar(Tenant.t(), User.t(), String.t(), map()) ::
+  @typedoc "Quem chama, pela credencial: o `public_id` do token, e nunca o segredo."
+  @type credencial :: %{token_public_id: String.t()}
+
+  @spec chamar(Tenant.t(), User.t(), String.t(), map(), credencial()) ::
           map() | {:error, :ferramenta_inexistente | {:argumento_invalido, String.t()}}
-  def chamar(%Tenant{} = tenant, %User{} = user, nome, argumentos) when is_map(argumentos) do
+  def chamar(%Tenant{} = tenant, %User{} = user, nome, argumentos, %{token_public_id: publico})
+      when is_map(argumentos) and is_binary(publico) do
     with {:ok, ferramenta} <- buscar(nome),
          {:ok, team_id} <- team_id(argumentos) do
-      com_equipe(tenant, user, ferramenta, team_id)
+      com_equipe(tenant, user, ferramenta, team_id, publico)
     end
   end
 
@@ -156,12 +173,26 @@ defmodule TheBand.MCP.Ferramentas do
 
   defp team_id(_argumentos), do: {:error, {:argumento_invalido, "team_id is required"}}
 
-  defp com_equipe(tenant, user, ferramenta, team_id) do
+  defp com_equipe(tenant, user, ferramenta, team_id, publico) do
     with {:ok, equipe} <- EO.fetch_team(tenant, team_id),
          {:ok, _caminho} <- Tenants.pode_ver_equipe(tenant, user, equipe.id) do
-      ferramenta.modulo.responder(tenant, equipe)
+      resposta = ferramenta.modulo.responder(tenant, equipe)
+
+      :ok =
+        ApiAccessLog.registrar(%{
+          tenant_id: tenant.id,
+          token_public_id: publico,
+          route: "mcp:" <> ferramenta.nome,
+          target_id: equipe.id
+        })
+
+      resposta
     else
-      _nao_existe_ou_fora_do_alcance -> Ausencia.recusado(:fora_do_alcance)
+      _nao_existe_ou_fora_do_alcance ->
+        # O `team_id` que chegou, e não uma equipe carregada: na recusa não há equipe que o
+        # tenant alcance. Ele já passou pela validação de UUID.
+        :ok = AccessEvents.equipe_recusada(user.id, tenant.id, team_id, :fora_do_alcance)
+        Ausencia.recusado(:fora_do_alcance)
     end
   end
 end

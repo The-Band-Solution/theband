@@ -39,12 +39,14 @@ decidia. Dois limites para o mesmo token dariam duas respostas para *"por que re
 E o `_meta` do pedido leva `io.modelcontextprotocol/protocolVersion`, `clientCapabilities` e
 `clientInfo`. **`tools/list` volta em ordem alfabética**, e não na do registro.
 
-**Só cinco métodos chegam à biblioteca**: `initialize`, `notifications/initialized`, `ping`,
-`tools/list` e `tools/call`. O resto, incluindo `subscriptions/listen`, `resources/*`,
+**Só quatro métodos chegam à biblioteca**: `server/discover`, `tools/list`, `tools/call` e
+`notifications/cancelled`. *Corrigido em 2026-09-25:* a primeira lista trazia `initialize`,
+`notifications/initialized` e `ping`, que não existem na revisão 2026-07-28, e recusava
+`server/discover`, que é como um cliente moderno descobre o servidor. O resto, incluindo `subscriptions/listen`, `resources/*`,
 `prompts/*` e `logging/*`, recebe o erro JSON-RPC de método inexistente **antes** da `ex_mcp`
 (T016). Nenhuma resposta de `/mcp` sai em stream.
 
-**Cada mensagem do protocolo conta**: `initialize`, `tools/list` e as notificações gastam o
+**Cada mensagem do protocolo conta**: `server/discover`, `tools/list` e as notificações gastam o
 limite como qualquer chamada de ferramenta, porque cada uma é uma requisição HTTP. Com 120 por
 minuto a folga é grande, mas quem integra precisa saber.
 

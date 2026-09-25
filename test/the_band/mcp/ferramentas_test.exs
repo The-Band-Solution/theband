@@ -72,7 +72,7 @@ defmodule TheBand.MCP.FerramentasTest do
 
     test "tenant_id enviado é recusado de forma visível, e não ignorado", ctx do
       assert {:error, {:argumento_invalido, "unexpected argument: tenant_id"}} =
-               Ferramentas.chamar(ctx.tenant, ctx.admin, "team_roster", %{
+               chamar(ctx.tenant, ctx.admin, "team_roster", %{
                  "team_id" => Ecto.UUID.generate(),
                  "tenant_id" => Ecto.UUID.generate()
                })
@@ -80,15 +80,15 @@ defmodule TheBand.MCP.FerramentasTest do
 
     test "team_id que não é UUID, ou ausente, é erro de argumento, e não recusa", ctx do
       assert {:error, {:argumento_invalido, _}} =
-               Ferramentas.chamar(ctx.tenant, ctx.admin, "team_roster", %{"team_id" => "x"})
+               chamar(ctx.tenant, ctx.admin, "team_roster", %{"team_id" => "x"})
 
       assert {:error, {:argumento_invalido, "team_id is required"}} =
-               Ferramentas.chamar(ctx.tenant, ctx.admin, "team_roster", %{})
+               chamar(ctx.tenant, ctx.admin, "team_roster", %{})
     end
 
     test "ferramenta fora do registro não é alcançável", ctx do
       assert {:error, :ferramenta_inexistente} =
-               Ferramentas.chamar(ctx.tenant, ctx.admin, "list_teams", %{
+               chamar(ctx.tenant, ctx.admin, "list_teams", %{
                  "team_id" => Ecto.UUID.generate()
                })
     end
@@ -116,16 +116,16 @@ defmodule TheBand.MCP.FerramentasTest do
 
       for f <- Ferramentas.listar() do
         assert %{state: "refused", reason: "fora_do_alcance", value: nil} =
-                 Ferramentas.chamar(ctx.a, ctx.admin_a, f.nome, %{"team_id" => ctx.equipe_b.id})
+                 chamar(ctx.a, ctx.admin_a, f.nome, %{"team_id" => ctx.equipe_b.id})
       end
     end
 
     test "equipe inexistente recebe a mesma recusa que equipe de outro tenant", ctx do
       inexistente =
-        Ferramentas.chamar(ctx.a, ctx.admin_a, "team_roster", %{"team_id" => Ecto.UUID.generate()})
+        chamar(ctx.a, ctx.admin_a, "team_roster", %{"team_id" => Ecto.UUID.generate()})
 
       de_outro =
-        Ferramentas.chamar(ctx.a, ctx.admin_a, "team_roster", %{"team_id" => ctx.equipe_b.id})
+        chamar(ctx.a, ctx.admin_a, "team_roster", %{"team_id" => ctx.equipe_b.id})
 
       assert inexistente == de_outro
     end
@@ -135,7 +135,7 @@ defmodule TheBand.MCP.FerramentasTest do
                Tenants.pode_ver_equipe(ctx.a, ctx.membro_a, ctx.equipe_a.id)
 
       assert %{state: "refused", reason: "fora_do_alcance"} =
-               Ferramentas.chamar(ctx.a, ctx.membro_a, "team_roster", %{
+               chamar(ctx.a, ctx.membro_a, "team_roster", %{
                  "team_id" => ctx.equipe_a.id
                })
     end
@@ -146,11 +146,15 @@ defmodule TheBand.MCP.FerramentasTest do
       # com um registro que recusasse tudo.
       for f <- Ferramentas.listar() do
         assert %{state: "checked"} =
-                 Ferramentas.chamar(ctx.a, ctx.admin_a, f.nome, %{"team_id" => ctx.equipe_a.id}),
+                 chamar(ctx.a, ctx.admin_a, f.nome, %{"team_id" => ctx.equipe_a.id}),
                "#{f.nome} não respondeu com alcance"
       end
     end
   end
+
+  # A credencial de teste. O registro a exige (T021): sem ela, a leitura não teria dono.
+  defp chamar(tenant, user, nome, argumentos),
+    do: Ferramentas.chamar(tenant, user, nome, argumentos, %{token_public_id: "tb_teste"})
 
   # A equipe organizacional EXIGE organização — há um `CHECK` no banco.
   defp equipe(tenant) do

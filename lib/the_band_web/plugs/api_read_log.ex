@@ -12,9 +12,16 @@ defmodule TheBandWeb.Plugs.ApiReadLog do
 
   ## Só sucesso, e de propósito
 
-  A recusa já é registrada por `ApiAuth` e por `AccessEvents.painel_recusado/4`. Duplicá-la
-  aqui encheria a tabela do que já está no log, e o que faltava era o outro lado: **o acesso
-  concedido**, que não deixava rastro nenhum.
+  A recusa é registrada por quem recusa: `ApiAuth` recusa a credencial,
+  `AccessEvents.painel_recusado/4` a pessoa, e `AccessEvents.equipe_recusada/4` a equipe.
+  Duplicá-la aqui encheria a tabela do que já está no log, e o que faltava era o outro lado:
+  **o acesso concedido**, que não deixava rastro nenhum.
+
+  *Corrigido em 2026-09-25:* até o T022 da feature 062, este parágrafo dizia que a recusa já
+  era registrada, e para **equipe** não era (achado N6). A API caía num `404` sem registro.
+
+  **O MCP não passa por aqui**: a porta marca a requisição como `:delegado`, e o registro de
+  ferramentas grava a leitura no ponto do veredito. Ver `TheBand.MCP.Ferramentas`.
 
   `status in 200..299` é o corte. Um `404` não é leitura; um `405` também não.
 
@@ -32,6 +39,13 @@ defmodule TheBandWeb.Plugs.ApiReadLog do
   def call(conn, _opts) do
     register_before_send(conn, &gravar/1)
   end
+
+  # **O MCP é gravado por outro, no ponto do veredito** — feature 062, T021. A ferramenta roda
+  # num processo da biblioteca, e daqui não se sabe nem qual ferramenta foi, nem sobre qual
+  # equipe, nem se foi recusa: a recusa do MCP sai em `200`. Gravar aqui seria gravar `/mcp`
+  # com `target_id` vazio, e gravar recusa como leitura. A porta do MCP marca a requisição, e o
+  # registro de ferramentas grava a linha certa.
+  defp gravar(%Plug.Conn{private: %{api_read_log: :delegado}} = conn), do: conn
 
   defp gravar(%Plug.Conn{status: status} = conn) when status in 200..299 do
     case {conn.assigns[:api_token], conn.assigns[:current_tenant]} do

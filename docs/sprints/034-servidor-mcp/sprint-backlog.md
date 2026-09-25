@@ -93,9 +93,9 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T017 | Recusar como resposta, nunca como erro | US2 | Task | [#966](https://github.com/The-Band-Solution/theband/issues/966) | — | a fazer |
 | T018 | Provar a paridade das três portas | US2 | Task | [#967](https://github.com/The-Band-Solution/theband/issues/967) | — | a fazer |
 | T019 | Recusar token revogado na chamada seguinte | US2 | Task | [#968](https://github.com/The-Band-Solution/theband/issues/968) | — | a fazer |
-| T021 | Registrar a leitura no ponto do veredito | US3 | Task · security | [#969](https://github.com/The-Band-Solution/theband/issues/969) | — | a fazer |
-| T022 | A recusa de equipe é registrada, e não vira leitura — no MCP e na API | US3 | Task · security | [#970](https://github.com/The-Band-Solution/theband/issues/970) | — | a fazer |
-| T024 | Provar que o limite é um só por token | US3 | Task · security | [#971](https://github.com/The-Band-Solution/theband/issues/971) | — | a fazer |
+| T021 | Registrar a leitura no ponto do veredito | US3 | Task · security | [#969](https://github.com/The-Band-Solution/theband/issues/969) | — | feito |
+| T022 | A recusa de equipe é registrada, e não vira leitura — no MCP e na API | US3 | Task · security | [#970](https://github.com/The-Band-Solution/theband/issues/970) | — | feito |
+| T024 | Provar que o limite é um só por token | US3 | Task · security | [#971](https://github.com/The-Band-Solution/theband/issues/971) | — | feito |
 | T027 | Varrer o objeto inteiro por segredo | épico | Task · security | [#972](https://github.com/The-Band-Solution/theband/issues/972) | — | a fazer |
 | T028 | Medir o custo contra a rota HTTP | épico | Task | [#973](https://github.com/The-Band-Solution/theband/issues/973) | — | a fazer |
 | T029 | Escrever o que o cliente precisa saber | épico | Task | [#974](https://github.com/The-Band-Solution/theband/issues/974) | — | a fazer |

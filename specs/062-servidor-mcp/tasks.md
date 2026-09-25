@@ -225,6 +225,10 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
       `logging/setLevel` são recusados, e nenhum abre stream: o `content-type` não é
       `text/event-stream`;
     - guarda: `tools/list` passa.
+  - **Corrigida em 2026-09-25, no T021**: a lista dos cinco métodos estava errada para a revisão
+    2026-07-28. `initialize`, `notifications/initialized` e `ping` não existem nela, e
+    `server/discover`, que existe, era recusado: nenhum cliente moderno conseguiria começar. A
+    lista agora é `server/discover`, `tools/list`, `tools/call` e `notifications/cancelled`
   - **Feita em duas metades** (2026-09-24): o plug `TheBandWeb.Plugs.McpMetodos` e o que ele
     decide estão provados aqui, com o corpo já decodificado. **Que ele está NA pipeline de
     `/mcp`**, com token, se prova no T007, quando a rota existir. A forma da recusa é a mesma da
@@ -467,7 +471,7 @@ leitura.
 > Os dois foram criados na 061 pelo #936 e pelo #938, antes de a 062 começar. As tarefas antigas
 > teriam produzido um segundo registro e um segundo limite para o mesmo token.
 
-- [ ] **T021** [US3] Registrar a leitura no ponto do veredito
+- [x] **T021** [US3] Registrar a leitura no ponto do veredito — *feita em 2026-09-24, [#969](https://github.com/The-Band-Solution/theband/issues/969)*
   - **Pronta quando**: T006 e T007 concluídas
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* A versão anterior mandava a ferramenta escrever em `conn.private` e o `ApiReadLog` ler
     dali. **Não funciona** (R1): quem chama `send_resp` no `/mcp` é a própria `ex_mcp`, que
@@ -501,7 +505,7 @@ leitura.
     de que o teste mede: remover a chamada de registro e ver reprovar. E
     `test/the_band_web/plugs/api_read_log_test.exs` continua verde **sem alteração**
 
-- [ ] **T022** [US3] A recusa de equipe é registrada, e não vira leitura — no MCP e na API
+- [x] **T022** [US3] A recusa de equipe é registrada, e não vira leitura — no MCP e na API — *feita em 2026-09-24, [#970](https://github.com/The-Band-Solution/theband/issues/970)*
   - **Pronta quando**: T021 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R2 (o A8) e o N6 do inventário de 2026-09-24
   - **Descrição**: três coisas que respondem `2xx` e **não** são leitura. O `ApiReadLog` as
@@ -540,7 +544,7 @@ leitura.
 - ~~**T023**~~ — *removida em 2026-09-24.* Mandava levar ao backlog a falta de registro da
   API HTTP. A falta foi consertada no #936, e o item seria backlog de algo já entregue.
 
-- [ ] **T024** [US3] Provar que o limite é um só por token
+- [x] **T024** [US3] Provar que o limite é um só por token — *feita em 2026-09-24, [#971](https://github.com/The-Band-Solution/theband/issues/971)*
   - **Pronta quando**: T007 concluída
   - **Descrição**: o `ApiRateLimit` conta por token, 120 por minuto, em janela deslizante
     (`api.access.thresholds`, regra `rate_limit`). A Q4 decidia *"o limite é o da 061"*, e

@@ -53,7 +53,10 @@ defmodule TheBand.MCP.FerramentasDeEquipeTest do
   end
 
   defp chamar(ctx, nome),
-    do: Ferramentas.chamar(ctx.tenant, ctx.admin, nome, %{"team_id" => ctx.equipe.id})
+    do:
+      Ferramentas.chamar(ctx.tenant, ctx.admin, nome, %{"team_id" => ctx.equipe.id}, %{
+        token_public_id: "tb_teste"
+      })
 
   describe "T010 — team_roster" do
     test "as duas pessoas, com a origem no vínculo, e os três números sem total", ctx do
