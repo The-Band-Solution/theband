@@ -20,6 +20,7 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
 
   alias TheBand.Ingestion
   alias TheBand.MCP.Envelope
+  alias TheBand.MCP.TextoDeTerceiro
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
   alias TheBand.Tenants.Tenant
@@ -60,7 +61,7 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
   defp item(t, conversa) do
     %{
       issue_id: t.issue_id,
-      title: t.titulo,
+      title: TextoDeTerceiro.marcar(t.titulo),
       open_for_days: t.aberta_ha_dias,
       conversation: conversa_em_ingles(conversa.conversa),
       acts: conversa.atos

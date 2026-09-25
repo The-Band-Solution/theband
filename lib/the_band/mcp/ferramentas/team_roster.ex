@@ -21,6 +21,7 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
   """
 
   alias TheBand.MCP.Envelope
+  alias TheBand.MCP.TextoDeTerceiro
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Tenants.Tenant
 
@@ -45,7 +46,7 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
       },
       composition: %{
         is_composed: partes != [],
-        parts: Enum.map(partes, & &1.name),
+        parts: Enum.map(partes, &TextoDeTerceiro.marcar(&1.name)),
         note: @nota_da_composicao
       },
       window: nil,
@@ -60,7 +61,7 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
   defp pessoa(m) do
     %{
       person_id: m.person_id,
-      name: m.name,
+      name: TextoDeTerceiro.marcar(m.name),
       login: m.login,
       situation: situacao(m.situacao),
       direct: m.direta?,
@@ -73,9 +74,11 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
   defp vinculo(v) do
     %{
       team_id: v.team_id,
-      team_name: v.team_name,
+      team_name: TextoDeTerceiro.marcar(v.team_name),
       origin: origem(v.origem),
-      role: v.role && %{code: v.role.code, name: v.role.name},
+      # O nome do papel é escrito por quem administra a organização, e não pela fonte. Ainda é
+      # texto livre, escrito por alguém: vai marcado como o resto (na dúvida, AGENTS.md §14.0).
+      role: v.role && %{code: v.role.code, name: TextoDeTerceiro.marcar(v.role.name)},
       current: v.vigente?,
       ended_at: v.fim,
       mistake: v.equivoco

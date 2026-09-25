@@ -359,7 +359,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
   - **Teste**: `test/the_band/mcp/ferramentas_test.exs` — repositório sem coleta de
     comentários produz `not_collected`, e não `silence` com zero atos
 
-- [ ] **T014** [US1] Marcar o texto de terceiro no schema
+- [x] **T014** [US1] Marcar o texto de terceiro no schema — *feita em 2026-09-24, [#964](https://github.com/The-Band-Solution/theband/issues/964)*
   - **Pronta quando**: T010–T013 concluídas; `seguranca.md` escrito (achado A3)
   - **Descrição**: todo campo que carrega texto escrito por gente de fora — título de issue,
     nome de equipe, título de solicitação — fica sob chave própria que o declara não
@@ -566,7 +566,7 @@ leitura.
 
 ## Fase 6 — Polimento e transversais
 
-- [ ] **T027** Varrer o objeto inteiro por segredo
+- [x] **T027** Varrer o objeto inteiro por segredo — *feita em 2026-09-24, [#972](https://github.com/The-Band-Solution/theband/issues/972)*
   - **Pronta quando**: T010–T013 concluídas
   - **Descrição**: SC-005. A varredura olha o **objeto inteiro serializado**, e não os
     campos esperados — campo novo que vaze não estaria na lista de esperados. Procura o valor
@@ -574,6 +574,11 @@ leitura.
   - **Feita quando**: as quatro varreduras devolvem zero em todas as ferramentas
   - **Teste**: `test/the_band_web/mcp/segredo_nao_vaza_test.exs` — e a guarda contra a
     varredura vazia: ela tem de **encontrar** o `team_id`, que está lá de propósito
+  - **Feito em 2026-09-25, com duas correções medidas**: a guarda virou `state: "checked"`,
+    porque `team_open_work` não devolve o `team_id`. E `MAINTAINER` é procurado **fora** das
+    ressalvas, porque o mapeamento `github.team_member.to.eo.person` o cita numa limitação
+    declarada ("níveis de acesso, não papéis"). A primeira versão do teste reprovou por essa
+    frase, e um controle confirma que a exclusão tira só ela
 
 - [ ] **T028** Medir o custo contra a rota HTTP
   - **Pronta quando**: T010 concluída

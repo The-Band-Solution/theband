@@ -20,6 +20,7 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
 
   alias TheBand.Ingestion
   alias TheBand.MCP.Envelope
+  alias TheBand.MCP.TextoDeTerceiro
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.TeamWork
 
@@ -51,7 +52,7 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
   defp tarefa(t) do
     %{
       issue_id: t.issue_id,
-      title: t.titulo,
+      title: TextoDeTerceiro.marcar(t.titulo),
       concept: t.conceito,
       open_for_days: t.aberta_ha_dias,
       stale: t.parada?
