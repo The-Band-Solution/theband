@@ -126,6 +126,12 @@ formato de erro:
 
 A revogação vale **na chamada seguinte**, sem reiniciar o servidor nem o cliente.
 
+> **O SDK oficial de Python esconde o status.** Medido com `mcp` 2.2.0 em 2026-09-25: todo HTTP
+> `>= 400` vira `MCPError -32603 "Server returned an error response"`, sem o código. Para quem
+> usa o SDK, um `401` de token revogado e um `500` ficam iguais. Para distinguir os dois, leia o
+> status na camada HTTP do cliente, por exemplo com um `event_hooks` de resposta no
+> `httpx.AsyncClient` que se passa ao transporte.
+
 Toda chamada de ferramenta fica registrada com o prefixo público do token, a ferramenta e a
 equipe. Nunca com o valor do token. Quem administra vê o registro em `/api-tokens`, na seção
 *Usage*, por rota e por alvo. A recusa de equipe não entra ali, porque não foi leitura: vai

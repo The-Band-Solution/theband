@@ -613,7 +613,7 @@ leitura.
   - **Teste**: revisão contra `seguranca.md`, achado A5 — a documentação diz as três coisas,
     e não só a do token
 
-- [ ] **T030** Provar ponta a ponta com um cliente
+- [x] **T030** Provar ponta a ponta com um cliente — *feita em 2026-09-25, [#975](https://github.com/The-Band-Solution/theband/issues/975)*
   - **Pronta quando**: T010–T024 concluídas
   - **Descrição**: configurar um cliente MCP real apontando para `/mcp`, com o token no
     cabeçalho. **Não é verificável por código de status**: foi o que aconteceu com o Swagger

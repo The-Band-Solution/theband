@@ -99,7 +99,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T027 | Varrer o objeto inteiro por segredo | épico | Task · security | [#972](https://github.com/The-Band-Solution/theband/issues/972) | — | feito |
 | T028 | Medir o custo contra a rota HTTP | épico | Task | [#973](https://github.com/The-Band-Solution/theband/issues/973) | — | feito |
 | T029 | Escrever o que o cliente precisa saber | épico | Task | [#974](https://github.com/The-Band-Solution/theband/issues/974) | — | feito |
-| T030 | Provar ponta a ponta com um cliente | épico | Task | [#975](https://github.com/The-Band-Solution/theband/issues/975) | — | a fazer |
+| T030 | Provar ponta a ponta com um cliente | épico | Task | [#975](https://github.com/The-Band-Solution/theband/issues/975) | — | feito |
 | T031 | Fechar os gates | épico | Task | [#976](https://github.com/The-Band-Solution/theband/issues/976) | — | a fazer |
 
 A T009 (a revisão independente) está **feita**, e não tem issue: foi entregue no #944. As
