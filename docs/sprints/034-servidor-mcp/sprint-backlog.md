@@ -100,7 +100,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T028 | Medir o custo contra a rota HTTP | épico | Task | [#973](https://github.com/The-Band-Solution/theband/issues/973) | — | feito |
 | T029 | Escrever o que o cliente precisa saber | épico | Task | [#974](https://github.com/The-Band-Solution/theband/issues/974) | — | feito |
 | T030 | Provar ponta a ponta com um cliente | épico | Task | [#975](https://github.com/The-Band-Solution/theband/issues/975) | — | feito |
-| T031 | Fechar os gates | épico | Task | [#976](https://github.com/The-Band-Solution/theband/issues/976) | — | a fazer |
+| T031 | Fechar os gates | épico | Task | [#976](https://github.com/The-Band-Solution/theband/issues/976) | — | feito |
 
 A T009 (a revisão independente) está **feita**, e não tem issue: foi entregue no #944. As
 tarefas **T023 e T025 foram removidas** em 2026-09-24, e os números ficam reservados.

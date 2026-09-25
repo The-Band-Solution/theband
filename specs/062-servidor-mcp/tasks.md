@@ -624,7 +624,7 @@ leitura.
   - **Teste**: os passos 1, 2 e 3 de [`quickstart.md`](./quickstart.md), §9, **com o
     cliente** e não com `curl`
 
-- [ ] **T031** Fechar os gates
+- [x] **T031** Fechar os gates — *feita em 2026-09-25, [#976](https://github.com/The-Band-Solution/theband/issues/976)*
   - **Pronta quando**: T009 e T001 a T030 concluídas, exceto as removidas (T023, T025)
   - **Descrição**: `mix gates`, com o **código de saída** como veredito. Qualquer comando
     depois dele substitui o código que vale — em execução de fundo, o código vai **dentro**
