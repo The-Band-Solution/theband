@@ -205,7 +205,7 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
     de conhecimento**. Ferramenta sem pergunta declarada, ou com id que a base não tem,
     reprova nomeando a ferramenta
 
-- [ ] **T016** Fechar a lista de métodos do protocolo, antes da biblioteca
+- [x] **T016** Fechar a lista de métodos do protocolo, antes da biblioteca — *feita em 2026-09-24, [#957](https://github.com/The-Band-Solution/theband/issues/957)*
   - **Pronta quando**: T006 concluída
   - *Reescrita em 2026-09-24 pela revisão independente (T009).* R4 e R2
   - **Descrição**: um plug no escopo `/mcp`, **antes** da `ex_mcp`, lê
@@ -225,6 +225,10 @@ R7, R8 e R10 entraram no T007; o R9 foi para *Fora desta fatia*; os complementos
       `logging/setLevel` são recusados, e nenhum abre stream: o `content-type` não é
       `text/event-stream`;
     - guarda: `tools/list` passa.
+  - **Feita em duas metades** (2026-09-24): o plug `TheBandWeb.Plugs.McpMetodos` e o que ele
+    decide estão provados aqui, com o corpo já decodificado. **Que ele está NA pipeline de
+    `/mcp`**, com token, se prova no T007, quando a rota existir. A forma da recusa é a mesma da
+    `ex_mcp` para método inexistente: HTTP `404` e JSON-RPC `-32601`
 
 - [ ] **T007** Servir o MCP autenticado
   - **Pronta quando**: T006 e T016 concluídas
