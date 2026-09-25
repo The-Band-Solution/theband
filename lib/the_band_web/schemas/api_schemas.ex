@@ -820,7 +820,11 @@ defmodule TheBandWeb.Schemas do
                     "never have been claimed*. Flattening them would turn history into " <>
                     "error and error into history.\n\nWho declared it is **not** " <>
                     "returned — the field is an e-mail address, and e-mail is what this " <>
-                    "API excludes on purpose.",
+                    "API excludes on purpose. The same holds for who ended a membership " <>
+                    "and who marked it a mistake.\n\n`end_origin` says how it ended: " <>
+                    "`declared`, `no_longer_observed` (the date is when the platform " <>
+                    "stopped seeing the person, not when they left) or " <>
+                    "`declared_without_author`. `mistake` carries `reason` and `at`.",
                 items: %Schema{type: :object}
               }
             }
