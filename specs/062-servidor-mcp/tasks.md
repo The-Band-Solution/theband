@@ -394,7 +394,7 @@ equipe real, e **consegue dizer a ressalva** a partir do que recebeu — sem seg
 
     O teste também documenta o limite: isto reduz, e não elimina
 
-- [ ] **T015** [US1] Declarar o que cada ferramenta não responde
+- [x] **T015** [US1] Declarar o que cada ferramenta não responde — *feita em 2026-09-25, [#965](https://github.com/The-Band-Solution/theband/issues/965)*
   - **Pronta quando**: T010–T013 concluídas
   - **Descrição**: a descrição de cada ferramenta declara **o que ela não responde** —
     FR-022, a mesma disciplina do `what_this_is_not` que o schema da base exige. Sem isso um
