@@ -46,6 +46,12 @@ está declarado — não têm tela, e portanto não têm caminho provado (FR-021
 mesmo que a rota HTTP equivalente — e há teste comparando os dois, porque duas portas para o
 mesmo dado com custos diferentes significam que uma delas tem consulta a mais.
 
+**Medido em 2026-09-25 (T028):** o `team_roster` faz **uma** consulta a mais que
+`GET /teams/:id/members`, e ela tem dono. Onde a rota faz o `count(*)` da paginação, a
+ferramenta faz `team_roster_totals/3`: é uma consulta por uma, e ela separa a contagem em
+current, left e mistakes. A ferramenta faz ainda `team_parts/2`, porque o bloco `composition` é
+só dela. O teste fixa essa diferença pelo nome. Qualquer outra reprova.
+
 ## Constitution Check
 
 *GATE: passa antes da Fase 0, reconferido depois da Fase 1.*

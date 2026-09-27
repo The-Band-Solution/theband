@@ -20,6 +20,7 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  alias TheBand.MCP.Ferramentas
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Tenants
   alias TheBandWeb.MCP.Servidor
@@ -155,9 +156,35 @@ defmodule TheBandWeb.MCP.ProtocoloTest do
                MapSet.new(~w(team_roster team_open_work team_review_wait team_stale_work))
 
       for t <- tools do
-        assert t["description"] =~ "Does not answer"
         assert t["inputSchema"]["additionalProperties"] == false
         assert t["inputSchema"]["required"] == ["team_id"]
+      end
+    end
+
+    # T015, FR-022. A frase precisa dizer O QUÊ não responde: "Does not answer." sozinha casaria
+    # um `=~` e não declararia nada. Por isso exige ao menos três palavras depois dela, antes do
+    # aviso sobre untrusted_text, que é comum às quatro e não conta. A guarda do laço vazio é o
+    # tamanho da lista: com zero ferramentas, "todas declaram" passaria.
+    test "cada descrição declara o que a ferramenta não responde, e a falha nomeia qual", ctx do
+      tools =
+        mcp(ctx.conn, ctx.token_a, "tools/list")
+        |> json_response(200)
+        |> get_in(["result", "tools"])
+
+      assert length(tools) == length(Ferramentas.listar())
+      assert tools != []
+
+      for t <- tools do
+        propria = t["description"] |> String.split(" Text fields under untrusted_text") |> hd()
+
+        declaracao =
+          case Regex.run(~r/Does not answer\b(.*)/s, propria) do
+            [_, resto] -> resto |> String.split(~r/\W+/u, trim: true)
+            nil -> []
+          end
+
+        assert length(declaracao) >= 3,
+               "#{t["name"]} não declara o que não responde (FR-022): #{inspect(t["description"])}"
       end
     end
 

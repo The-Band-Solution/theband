@@ -2,10 +2,12 @@ defmodule TheBand.MCP.Ferramentas.TeamRoster do
   @moduledoc """
   `team_roster` — quem pertence a esta equipe, e por qual afirmação (feature 062, T010).
 
-  Responde à `sro.cq15`, *"Quem são os membros de um time?"*, pelo mesmo caminho da rota
-  `GET /api/v1/teams/:id/members`: `EO.team_roster_scope/2`, `EO.list_team_roster/3`,
-  `EO.team_roster_totals/3` e `EO.team_parts/2`. O custo das duas portas tem de ser o mesmo
-  (T028), e uma consulta a mais aqui faria trabalho que a outra provou desnecessário.
+  Responde à `sro.cq15`, *"Quem são os membros de um time?"*, com o escopo e a listagem da rota
+  `GET /api/v1/teams/:id/members` (`EO.team_roster_scope/2`, `EO.list_team_roster/3`). **Não é
+  o mesmo caminho**, e a diferença é medida (T028, `custo_test.exs`): no lugar do
+  `EO.count_team_roster/3` da paginação, `EO.team_roster_totals/3`, que conta o mesmo alcance
+  separado por situação; e `EO.team_parts/2`, que a rota não faz, para o bloco `composition`.
+  Uma consulta a mais, com dono. Outra, sem dono, reprova o teste de custo.
 
   ## O que a resposta afirma
 

@@ -89,7 +89,7 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T012 | Responder a espera por revisão | US1 | Task | [#962](https://github.com/The-Band-Solution/theband/issues/962) | — | feito |
 | T013 | Responder o que está parado | US1 | Task | [#963](https://github.com/The-Band-Solution/theband/issues/963) | — | feito |
 | T014 | Marcar o texto de terceiro no schema | US1 | Task · security | [#964](https://github.com/The-Band-Solution/theband/issues/964) | — | feito |
-| T015 | Declarar o que cada ferramenta não responde | US1 | Task | [#965](https://github.com/The-Band-Solution/theband/issues/965) | — | a fazer |
+| T015 | Declarar o que cada ferramenta não responde | US1 | Task | [#965](https://github.com/The-Band-Solution/theband/issues/965) | — | feito |
 | T017 | Recusar como resposta, nunca como erro | US2 | Task | [#966](https://github.com/The-Band-Solution/theband/issues/966) | — | feito |
 | T018 | Provar a paridade das três portas | US2 | Task | [#967](https://github.com/The-Band-Solution/theband/issues/967) | — | feito |
 | T019 | Recusar token revogado na chamada seguinte | US2 | Task | [#968](https://github.com/The-Band-Solution/theband/issues/968) | — | feito |
@@ -97,10 +97,10 @@ inventar um número mediria como se a estimativa tivesse sido feita.
 | T022 | A recusa de equipe é registrada, e não vira leitura — no MCP e na API | US3 | Task · security | [#970](https://github.com/The-Band-Solution/theband/issues/970) | — | feito |
 | T024 | Provar que o limite é um só por token | US3 | Task · security | [#971](https://github.com/The-Band-Solution/theband/issues/971) | — | feito |
 | T027 | Varrer o objeto inteiro por segredo | épico | Task · security | [#972](https://github.com/The-Band-Solution/theband/issues/972) | — | feito |
-| T028 | Medir o custo contra a rota HTTP | épico | Task | [#973](https://github.com/The-Band-Solution/theband/issues/973) | — | a fazer |
-| T029 | Escrever o que o cliente precisa saber | épico | Task | [#974](https://github.com/The-Band-Solution/theband/issues/974) | — | a fazer |
-| T030 | Provar ponta a ponta com um cliente | épico | Task | [#975](https://github.com/The-Band-Solution/theband/issues/975) | — | a fazer |
-| T031 | Fechar os gates | épico | Task | [#976](https://github.com/The-Band-Solution/theband/issues/976) | — | a fazer |
+| T028 | Medir o custo contra a rota HTTP | épico | Task | [#973](https://github.com/The-Band-Solution/theband/issues/973) | — | feito |
+| T029 | Escrever o que o cliente precisa saber | épico | Task | [#974](https://github.com/The-Band-Solution/theband/issues/974) | — | feito |
+| T030 | Provar ponta a ponta com um cliente | épico | Task | [#975](https://github.com/The-Band-Solution/theband/issues/975) | — | feito |
+| T031 | Fechar os gates | épico | Task | [#976](https://github.com/The-Band-Solution/theband/issues/976) | — | feito |
 
 A T009 (a revisão independente) está **feita**, e não tem issue: foi entregue no #944. As
 tarefas **T023 e T025 foram removidas** em 2026-09-24, e os números ficam reservados.
