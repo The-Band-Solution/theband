@@ -125,8 +125,16 @@ template inteiro**, então preencha o arquivo a partir dele.
 divergência não se desfaz. Isso é obrigatório para `main`, e o check `pr-tipo-de-merge`
 reprova se declarar squash.
 
-Na seção **Issues que este PR FECHA**: uma release normalmente não fecha issue — ela entrega
-o que já foi mergeado. Escreva **"Nenhuma"** com a razão.
+Na seção **Issues que este PR FECHA**: **nunca "Nenhuma" por padrão.** O PR de release é o
+único que mira `main`, e por isso o único em que `Closes #N` fecha. Relista, uma por linha e
+com o resumo, **toda issue entregue pelos PRs incluídos que ainda estiver aberta**. A regra
+completa, com o comando que monta a lista e as três classificações (entregue, não entregue,
+user story sem aceitação), está no agente `product-owner`, em *Toda issue que o PR entrega
+aparece NO PR — sempre*. Decisão da pessoa mantenedora em 2026-09-27.
+
+> Até 2026-09-27 esta linha mandava escrever "Nenhuma". Os PRs de feature miram `development`
+> e não fecham nada, e a release, que podia fechar, dizia que não fechava: as issues entregues
+> ficavam abertas até alguém lembrar.
 
 ---
 
