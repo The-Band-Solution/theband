@@ -65,11 +65,12 @@ mix gates
 
      Três coisas mais que fazem a palavra falhar mesmo em inglês:
 
-       1. **PR empilhado**: PR cuja base NÃO é o branch padrão não fecha issue
-          nenhuma, com ou sem a palavra. Se este PR mira `development` e
-          `development` ainda não foi para `main`, DECLARE as issues aqui e
-          feche-as à mão depois do merge — e diga aqui que é isso que vai
-          acontecer;
+       1. **base que não é o branch padrão**: o branch padrão deste
+          repositório é `development`. PR para `development` FECHA pela
+          palavra. PR para `main` (release, hotfix) e PR empilhado sobre
+          outra branch NÃO fecham, com ou sem a palavra: nesses, liste as
+          issues do mesmo jeito, diga que o fechamento é à mão, e feche-as
+          depois do merge (a release, depois de `/version` confirmar);
        2. **uma palavra por issue**: `Closes #1, #2` fecha só a #1. Escreva
           `Closes #1` e `Closes #2`, em linhas separadas;
        3. **outro repositório** exige a forma completa `owner/repo#123`.

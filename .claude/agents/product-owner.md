@@ -270,15 +270,23 @@ Closes #123 — a varredura passa a recusar sem o controle positivo
 Closes #124 — a data de encerramento deixa de faltar
 ```
 
-**Por que "sempre", e não "quando o GitHub fecha"**: o GitHub só fecha pela palavra num PR que
-mira o **branch padrão**, `main`. Todo PR de feature mira `development`, e não fecha nada. Foi
-assim que issues com o trabalho já mergeado ficaram abertas por semanas, e a lista de abertas
-passou a mentir sobre o que falta.
+**Por que "sempre"**: o GitHub fecha pela palavra só num PR que mira o **branch padrão**, e o
+branch padrão deste repositório é **`development`** (`gh repo view --json defaultBranchRef`).
+Então a palavra fecha nos PRs de feature, que miram `development`, e **não** fecha nos de release
+e hotfix, que miram `main`. Até 2026-09-27 a regra era lida ao contrário: PRs para `development`
+diziam "nenhuma automaticamente" e as issues eram fechadas à mão, e a release, que não fecha,
+prometia fechar. A #989 ficou aberta depois do merge da v0.10.0 por isso.
 
 | O PR mira | O que a seção faz | E depois do merge |
 |---|---|---|
-| `development` | lista cada issue entregue, com `Closes #N` e o resumo, e diz que o fechamento é à mão | **quem mergeia fecha cada uma**, com `gh issue close <n> -c "Mergeado em development pelo #<pr>."`, e confere com `gh issue view` |
-| `main` (release ou hotfix) | **relista, com `Closes #N`, toda issue entregue pelos PRs incluídos que ainda estiver aberta** | o GitHub fecha. Confira com `gh issue view` que fechou |
+| `development` (feature, conserto, documentação) | lista cada issue entregue, com `Closes #N` e o resumo | **o GitHub fecha**. Confira com `gh issue view` que fechou, e feche à mão a que não fechou |
+| `main` (release ou hotfix) | **relista** toda issue que a release leva ao ar e que ainda estiver aberta, uma por linha, com o resumo, e diz que o fechamento é **à mão** | quem mergeia **fecha cada uma** depois de o CD confirmar a versão em produção, com `gh issue close <n> -c "No ar na vX.Y.Z (#<pr>)."`, e confere com `gh issue view` |
+
+**Antes de escrever a seção, confira o branch padrão**, porque é ele que decide quem fecha:
+
+```bash
+gh repo view --json defaultBranchRef -q .defaultBranchRef.name
+```
 
 **No PR de release, a lista se monta assim**, e não de memória:
 
@@ -291,7 +299,7 @@ done | sort -u   # cruzar com: gh issue list --state open
 
 Para cada aberta, uma das três, **escrita**:
 
-- **entregue** → `Closes #N — o que entregou`;
+- **entregue** → `#N — o que entregou`, fechada à mão depois de a versão estar em produção;
 - **não entregue** (a issue só foi citada) → fica, e vai para *O que este PR não resolve*;
 - **user story ou épico sem aceitação registrada** → **não** fecha. Merge não é aceitação: a
   user story fecha quando o entregável é aceito, e não quando o código chega a `main`. Vai para
