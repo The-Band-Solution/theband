@@ -388,18 +388,23 @@ defmodule TheBandWeb.Api.V1.PersonController do
       profile: perfil,
       profile_note: nota_do_perfil(ve?, perfil),
 
-      # **FORA do veredito, porque na tela também estão fora.** As duas seções vivem em
-      # *Where this came from*, que não é o painel que o veredito protege. Protegê-las aqui
-      # estreitaria o alcance pela porta do transporte — o mesmo erro do outro lado.
-      discussion_participation: %{
-        items:
-          Enum.map(
-            Discussions.participation_of(tenant, pessoa.id, limit: @discussoes),
-            &discussao/1
-          ),
-        limit: @discussoes
-      },
-      changes: mudancas(tenant, pessoa.id),
+      # **DENTRO do veredito** (#989). Até a v0.9.2 estas duas vinham para qualquer conta,
+      # "porque na tela também estão fora" — e a tela as deixava fora por omissão, não por
+      # decisão. São trabalho da pessoa: os títulos dos PRs que ela abriu, revisou e
+      # integrou, e as discussões de que participou. `null` sem alcance, como `work`: não
+      # é lista vazia, e a consulta nem roda.
+      discussion_participation:
+        if(ve?,
+          do: %{
+            items:
+              Enum.map(
+                Discussions.participation_of(tenant, pessoa.id, limit: @discussoes),
+                &discussao/1
+              ),
+            limit: @discussoes
+          }
+        ),
+      changes: if(ve?, do: mudancas(tenant, pessoa.id)),
       access: %{can_see_work: ve?, reason: if(not ve?, do: to_string(motivo))},
       work: if(ve?, do: trabalho(tenant, pessoa.id, repositorios, observados))
     }

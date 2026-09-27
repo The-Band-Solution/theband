@@ -654,8 +654,10 @@ defmodule TheBandWeb.Schemas do
         },
         discussion_participation: %Schema{
           type: :object,
+          nullable: true,
           description:
-            "Where this person took part in discussion. `acts` are **positions taken**, " <>
+            "`null` when `access.can_see_work` is false: it is this person's work. " <>
+              "Where this person took part in discussion. `acts` are **positions taken**, " <>
               "not issues: five comments on one issue is five acts and one issue. " <>
               "`limit` travels along because a list truncated in silence makes whoever " <>
               "integrates conclude that is all there is.",
@@ -666,10 +668,12 @@ defmodule TheBandWeb.Schemas do
         },
         changes: %Schema{
           type: :object,
+          nullable: true,
           description:
             "**Four lists, never summed.** Opening, reviewing, merging and committing are " <>
               "distinct acts, and the same change request can appear in more than one — a " <>
-              "total would count it twice. Outside the access verdict, as on the screen.",
+              "total would count it twice. `null` when `access.can_see_work` is false: " <>
+              "it is this person's work.",
           properties: %{
             opened: %Schema{type: :array, items: %Schema{type: :object}},
             reviewed: %Schema{type: :array, items: %Schema{type: :object}},
