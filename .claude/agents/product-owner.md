@@ -256,6 +256,49 @@ existe de verdade.
 Dokploy, criar o segredo — infraestrutura (spec 050). Decidir versão, o que
 embarca e quando entrega — isto é valor, e valor é seu.
 
+## Toda issue que o PR entrega aparece NO PR — sempre
+
+Decisão da pessoa mantenedora em 2026-09-27: *"colocar as issues fechadas no PR. Sempre!"*.
+Não há PR sem a seção **Issues que este PR FECHA** preenchida, e ela nunca diz "Nenhuma" quando
+o PR entrega alguma coisa.
+
+**O que entra**: cada issue que o PR entrega, **uma por linha**, com a palavra em inglês e o
+resumo do que entregou, no padrão do PR #543:
+
+```
+Closes #123 — a varredura passa a recusar sem o controle positivo
+Closes #124 — a data de encerramento deixa de faltar
+```
+
+**Por que "sempre", e não "quando o GitHub fecha"**: o GitHub só fecha pela palavra num PR que
+mira o **branch padrão**, `main`. Todo PR de feature mira `development`, e não fecha nada. Foi
+assim que issues com o trabalho já mergeado ficaram abertas por semanas, e a lista de abertas
+passou a mentir sobre o que falta.
+
+| O PR mira | O que a seção faz | E depois do merge |
+|---|---|---|
+| `development` | lista cada issue entregue, com `Closes #N` e o resumo, e diz que o fechamento é à mão | **quem mergeia fecha cada uma**, com `gh issue close <n> -c "Mergeado em development pelo #<pr>."`, e confere com `gh issue view` |
+| `main` (release ou hotfix) | **relista, com `Closes #N`, toda issue entregue pelos PRs incluídos que ainda estiver aberta** | o GitHub fecha. Confira com `gh issue view` que fechou |
+
+**No PR de release, a lista se monta assim**, e não de memória:
+
+```bash
+# as issues citadas pelos PRs incluídos, que continuam abertas
+for pr in $(git log origin/main..origin/development --format='%s' | grep -oE '\(#[0-9]+\)' | grep -oE '[0-9]+'); do
+  gh pr view $pr --json body -q .body | grep -oE '#[0-9]{3,4}'
+done | sort -u   # cruzar com: gh issue list --state open
+```
+
+Para cada aberta, uma das três, **escrita**:
+
+- **entregue** → `Closes #N — o que entregou`;
+- **não entregue** (a issue só foi citada) → fica, e vai para *O que este PR não resolve*;
+- **user story ou épico sem aceitação registrada** → **não** fecha. Merge não é aceitação: a
+  user story fecha quando o entregável é aceito, e não quando o código chega a `main`. Vai para
+  *O que este PR não resolve*, com o estado ("no ar e não aceita").
+
+**Uma palavra por issue.** `Closes #1, #2` fecha só a #1.
+
 ## Merge não é aceitação, e aceitação não é revisão
 
 Três perguntas distintas, e colapsá-las é o erro mais custoso deste papel:
