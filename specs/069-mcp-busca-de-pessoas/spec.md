@@ -103,11 +103,12 @@ mesmo veredito, em cada ferramenta que recebe um alvo.
 
 **Cenários de aceitação**:
 
-1. **Dado** uma conta sem alcance sobre a pessoa, **quando** pede `person_get`, **então** recebe o
-   que a API devolve para ela: a pessoa, com `work`, `changes` e `discussion_participation` em
-   `null` (#989). A recusa fica registrada.
-2. **Dado** um id de outro tenant ou inexistente, **então** a resposta é a mesma de "não
-   encontrado" na API, e não distingue um caso do outro.
+1. **Dado** uma conta sem alcance sobre a pessoa, **quando** pede `person_get`, **então** recebe
+   **recusa** (`refused`, `fora_do_alcance`) com só `person_id`, login e nome (FR-011a). O
+   **veredito** é o mesmo da tela e da API, que também não mostram o trabalho; a **forma** é a da
+   062. A recusa fica registrada.
+2. **Dado** um id de outro tenant ou inexistente, **então** a resposta é a recusa **sem**
+   identidade, e não distingue um caso do outro.
 3. **Dado** um token revogado, **então** a chamada seguinte recebe 401.
 
 ### Edge Cases
