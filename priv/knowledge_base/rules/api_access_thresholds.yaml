@@ -258,13 +258,20 @@ derivation_rule:
           conta dona desativada"* fala da conta, não do token. Misturá-la com as três faria
           revogar o token parecer o conserto, quando o conserto é reativar a conta.
       values:
+        # `atom` liga a palavra da tela ao átomo que `Token.estado/2` devolve. Sem este elo,
+        # a tela imprimia o átomo cru e a coluna `state` saía em **português** — "ativo",
+        # "revogado", "expirado" — enquanto a API e esta regra diziam active/revoked/expired.
+        # Duas palavras para o mesmo estado, e quem integra lia uma e programava contra a outra.
         active:
+          atom: ativo
           read_as: "revoked_at nulo E (expires_at nulo OU expires_at no futuro)"
           declared: false
         revoked:
+          atom: revogado
           read_as: "revoked_at presente"
           declared: true
         expired:
+          atom: expirado
           read_as: "expires_at no passado"
           declared: false
 

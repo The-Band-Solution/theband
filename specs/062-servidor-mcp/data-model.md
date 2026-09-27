@@ -6,6 +6,12 @@ resposta**, e ela vive em memória, montada a cada chamada.
 Se houvesse tabela, haveria estado guardado — e a FR-003 proíbe: o alcance é recomputado a
 cada chamada, e nada de escopo, papel ou organização sobrevive entre uma e outra.
 
+> **Isto só é verdade com `protocol_mode: :modern_only`** (R5 da revisão independente,
+> 2026-09-24). Na era legada do protocolo, a `ex_mcp` guarda **sessão**: versão negociada, ids
+> de requisição e identidade, e não o token. Essa sessão ficaria sem identidade e com um teto
+> global por nó. A fatia usa `:modern_only` (T007), e a frase acima vale. Se a era legada
+> entrar, esta seção tem de dizer o que a sessão carrega.
+
 ---
 
 ## `TheBand.MCP.Envelope`

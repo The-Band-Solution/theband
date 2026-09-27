@@ -178,6 +178,13 @@ defmodule TheBandWeb.PeopleLive.Show do
     end
   end
 
+  # Sem alcance, pedir o perfil é recusado aqui, e não só escondido na tela (H2-R). O botão
+  # some com a seção; o evento ainda pode chegar por fora dele, e gerar um agregado sobre quem
+  # não se alcança, pagando o modelo, é o que o veredito existe para impedir.
+  def handle_event("gerar_perfil", _params, %{assigns: %{ve_o_trabalho?: false}} = socket) do
+    {:noreply, put_flash(socket, :error, dgettext("errors", "This panel is not yours to see."))}
+  end
+
   def handle_event("gerar_perfil", _params, socket) do
     tenant = socket.assigns.current_tenant
     pessoa = socket.assigns.pessoa
@@ -315,8 +322,15 @@ defmodule TheBandWeb.PeopleLive.Show do
     # delas é esta pessoa" quanto a cobertura do elo saem delas em memória.
     contas = Tenants.list_users(tenant)
 
-    perfil = perfil_atual(tenant, pessoa.id)
-    {pendente?, possivel} = estado_do_perfil(tenant, pessoa, perfil)
+    # **O perfil é AGREGADO sobre a pessoa**, e segue o veredito — decisão da pessoa
+    # mantenedora em 2026-09-24, sobre o achado H2-R. Um texto que um modelo escreveu sobre as
+    # forças, a evolução e a "atenção" de alguém, derivado de tudo o que a pessoa fez, é a
+    # leitura mais atributiva do produto, e ficava fora do veredito por omissão: a FR-024 da
+    # 045 classificava rotas, e o perfil é seção. Sem alcance, ele nem é lido.
+    perfil = se_pode(ve_o_trabalho?, nil, fn -> perfil_atual(tenant, pessoa.id) end)
+
+    {pendente?, possivel} =
+      se_pode(ve_o_trabalho?, {false, :ok}, fn -> estado_do_perfil(tenant, pessoa, perfil) end)
 
     socket
     |> assign(
@@ -333,10 +347,20 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
       paradas: Profiles.stale_open_with_conversation(tenant, pessoa.id),
-      participacao: Discussions.participation_of(tenant, pessoa.id, limit: 20),
+      # As DISCUSSÕES e as MUDANÇAS são trabalho da pessoa, e só carregam com o veredito
+      # (#989, FR-012h da 023). Até a v0.9.2 elas carregavam para qualquer conta do tenant e
+      # apareciam em *Where this came from*, fora do painel que o veredito protege: quem a
+      # tela recusava lia os títulos dos PRs e das discussões da pessoa. `nil`, e não lista
+      # vazia, sem alcance: o template não as desenha, e uma referência esquecida quebra em
+      # vez de afirmar "nenhuma".
+      participacao:
+        se_pode(ve_o_trabalho?, nil, fn ->
+          Discussions.participation_of(tenant, pessoa.id, limit: 20)
+        end),
       # O que a pessoa MUDOU — três leituras nunca somadas, porque abrir, integrar e
       # commitar são atos distintos, com participações distintas na ontologia.
-      mudancas: Changes.by_person(tenant, pessoa.id, limit: 10),
+      mudancas:
+        se_pode(ve_o_trabalho?, nil, fn -> Changes.by_person(tenant, pessoa.id, limit: 10) end),
       # Feature 044: as seis contagens numa consulta. Só quando a aba abre — calcular
       # participação de quem não pode vê-la é fazer o trabalho do vazamento (#369 FR-012h).
       # `participacao_na_mudanca`, e não `participacao`: a tela JÁ tem um assign com esse
@@ -1226,7 +1250,7 @@ defmodule TheBandWeb.PeopleLive.Show do
               escrito por um modelo não tem nenhum dos três. Reusá-lo seria aplicar o padrão
               fora do problema que o motivou. O que se reusa é a **regra**: preenchimento
               hachurado, e rótulo em texto ao lado. --%>
-        <section id="profile" class="card scroll-mt-20 bg-base-200">
+        <section :if={@ve_o_trabalho?} id="profile" class="card scroll-mt-20 bg-base-200">
           <div class="card-body gap-3 p-4 sm:p-5">
             <h3 class="flex flex-wrap items-center gap-2 font-semibold">
               Profile &amp; growth
@@ -1572,8 +1596,9 @@ defmodule TheBandWeb.PeopleLive.Show do
           <%!-- O QUE A PESSOA MUDOU — cmpo.change_request e cmpo.commit_artifact_copy.
                 As três leituras ficam SEPARADAS porque a rede as separa: submeter,
                 integrar e executar são participações diferentes. Somá-las produziria um
-                número de "contribuições" que não corresponde a nada. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
+                número de "contribuições" que não corresponde a nada.
+                Só com o veredito (#989): é trabalho, e não proveniência. --%>
+          <div :if={@ve_o_trabalho?} class="mt-4 border-t border-base-300 pt-3">
             <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
               Changes
             </h4>
@@ -1755,8 +1780,9 @@ defmodule TheBandWeb.PeopleLive.Show do
 
           <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
                 observados, e por isso hachurada e rotulada. Responde o que designação
-                nenhuma responde: o trabalho que acontece na conversa. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
+                nenhuma responde: o trabalho que acontece na conversa.
+                Só com o veredito (#989), pela mesma razão das mudanças. --%>
+          <div :if={@ve_o_trabalho?} class="mt-4 border-t border-base-300 pt-3">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
                 Discussions they took part in

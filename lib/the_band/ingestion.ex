@@ -164,6 +164,26 @@ defmodule TheBand.Ingestion do
     Repo.all(query)
   end
 
+  @doc """
+  Quando terminou a coleta **concluída** mais recente do tenant — feature 062, FR-014.
+
+  É o `collected_at` que o MCP entrega junto das medidas de trabalho: um agente que responde
+  hoje sobre uma coleta de anteontem precisa poder dizer isso. Só vale a coleta `completed`:
+  uma que falhou ou foi interrompida deixou o dado pela metade, e datá-lo por ela afirmaria uma
+  atualidade que não houve.
+
+  `nil` quando nenhuma coleta terminou, e é resposta, e não zero: o dado não tem data de coleta
+  porque não houve coleta concluída.
+  """
+  @spec ultima_coleta_concluida(Tenant.t()) :: DateTime.t() | nil
+  def ultima_coleta_concluida(%Tenant{id: tenant_id}) do
+    from(s in Sync,
+      where: s.tenant_id == ^tenant_id and s.status == "completed" and not is_nil(s.finished_at),
+      select: max(s.finished_at)
+    )
+    |> Repo.one()
+  end
+
   @spec fetch_sync(Tenant.t(), Ecto.UUID.t()) :: {:ok, Sync.t()} | {:error, :not_found}
   def fetch_sync(%Tenant{id: tenant_id}, id) do
     case Repo.one(from s in Sync, where: s.tenant_id == ^tenant_id and s.id == ^id) do

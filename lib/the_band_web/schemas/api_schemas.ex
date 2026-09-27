@@ -210,7 +210,10 @@ defmodule TheBandWeb.Schemas do
           },
           description:
             "The short form — domain and completed tasks. **`null` and `[]` are different " <>
-              "claims**: `null` means no profile was generated, so nothing was read; `[]` " <>
+              "claims**: `null` means either no profile was generated, so nothing was read, " <>
+              "or the caller does not reach this person — competencies come from the " <>
+              "profile, an aggregate that follows the access verdict; `competencies_note` " <>
+              "says which. `[]` " <>
               "means the record was read and nothing was demonstrated. Flattening the two " <>
               "would turn a gap in the record into a judgement of the person. The " <>
               "evidence, issue by issue, is in the detail."
@@ -651,8 +654,10 @@ defmodule TheBandWeb.Schemas do
         },
         discussion_participation: %Schema{
           type: :object,
+          nullable: true,
           description:
-            "Where this person took part in discussion. `acts` are **positions taken**, " <>
+            "`null` when `access.can_see_work` is false: it is this person's work. " <>
+              "Where this person took part in discussion. `acts` are **positions taken**, " <>
               "not issues: five comments on one issue is five acts and one issue. " <>
               "`limit` travels along because a list truncated in silence makes whoever " <>
               "integrates conclude that is all there is.",
@@ -663,10 +668,12 @@ defmodule TheBandWeb.Schemas do
         },
         changes: %Schema{
           type: :object,
+          nullable: true,
           description:
             "**Four lists, never summed.** Opening, reviewing, merging and committing are " <>
               "distinct acts, and the same change request can appear in more than one — a " <>
-              "total would count it twice. Outside the access verdict, as on the screen.",
+              "total would count it twice. `null` when `access.can_see_work` is false: " <>
+              "it is this person's work.",
           properties: %{
             opened: %Schema{type: :array, items: %Schema{type: :object}},
             reviewed: %Schema{type: :array, items: %Schema{type: :object}},
@@ -676,7 +683,14 @@ defmodule TheBandWeb.Schemas do
             note: %Schema{type: :string}
           }
         },
-        profile_note: %Schema{type: :string, nullable: true},
+        profile_note: %Schema{
+          type: :string,
+          nullable: true,
+          description:
+            "Why `profile` is `null`: either none was generated, or the caller does not " <>
+              "reach this person — the profile is an aggregate and follows the same verdict " <>
+              "as `work`."
+        },
         access: %Schema{
           type: :object,
           description:

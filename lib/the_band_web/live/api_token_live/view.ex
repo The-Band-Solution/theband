@@ -51,7 +51,10 @@ defmodule TheBandWeb.ApiTokenLive.View do
         <span class="badge badge-primary badge-sm">shown only now</span>
       </div>
 
-      <p class="mt-3 break-all rounded border border-base-300 bg-base-200 p-3 font-mono text-sm">
+      <p
+        id="o-valor-em-claro"
+        class="mt-3 select-all break-all rounded border border-base-300 bg-base-200 p-3 font-mono text-base"
+      >
         {@valor_em_claro}
       </p>
 
@@ -68,6 +71,18 @@ defmodule TheBandWeb.ApiTokenLive.View do
         <button type="button" class="btn btn-sm btn-ghost" phx-click="dispensar_valor">
           I have stored it
         </button>
+        <!--
+          Onde a cópia diz o que aconteceu. **A falha é o caso que importa**: a área de
+          transferência recusa em contexto inseguro e recusa sem permissão, e um botão que
+          falha calado faz alguém sair desta tela achando que copiou — e o valor não volta.
+        -->
+        <span
+          id="estado-da-copia"
+          role="status"
+          aria-live="polite"
+          class="self-center text-xs"
+          data-copy-status
+        ></span>
       </div>
 
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -497,7 +512,7 @@ defmodule TheBandWeb.ApiTokenLive.View do
         ]}
         aria-hidden="true"
       ></span>
-      {@linha.estado}
+      {@linha.palavra_do_estado}
       <span :if={@linha.estado != :revogado} class="opacity-60">· derived from the clock</span>
     </span>
     <span :if={@linha.estado == :revogado} class="mt-0.5 block opacity-70">

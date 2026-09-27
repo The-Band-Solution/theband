@@ -63,6 +63,7 @@ defmodule TheBand.Tenants do
 
   defdelegate api_token_prefix(), to: ApiTokens, as: :prefixo
   defdelegate api_token_threshold(nome, chave), to: ApiTokens, as: :limiar
+  defdelegate api_token_state_word(estado), to: ApiTokens, as: :palavra_do_estado
 
   @spec list_tenants() :: [Tenant.t()]
   def list_tenants, do: Repo.all(from t in Tenant, order_by: t.name)

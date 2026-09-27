@@ -112,6 +112,20 @@ defmodule TheBandWeb.Router do
     match :*, "/syncs", SyncController, :nao_permitido
   end
 
+  # O servidor MCP — feature 062, T007.
+  #
+  # **A mesma pipeline de `/api/v1`**: autenticar, limitar e registrar, nessa ordem. Pôr só o
+  # `ApiAuth` deixaria o MCP sem limite e sem registro, e nada reprovaria. O limite é um só por
+  # token, e `/mcp` gasta o mesmo que `/api/v1` (FR-026).
+  #
+  # O `forward` entrega `/mcp/*` à porta, e a porta casa só `/mcp` exato (R10). Ver
+  # `TheBandWeb.MCP.Porta`.
+  scope "/mcp" do
+    pipe_through [:api, :api_autenticada]
+
+    forward "/", TheBandWeb.MCP.Porta
+  end
+
   # A descrição OpenAPI, em JSON. **Sem credencial**, de propósito: ela descreve a forma da
   # API e não devolve dado nenhum, e exigir token para ler o contrato obrigaria quem integra
   # a pedir credencial antes de saber se a API serve.

@@ -128,6 +128,10 @@ defmodule TheBandWeb.ApiTokenLive.Index do
     %{
       token: token,
       estado: estado,
+      # O átomo continua sendo o que a tela COMPARA (`estado == :revogado`); a palavra é o
+      # que ela IMPRIME. Comparar contra a palavra amarraria o comportamento da tela ao
+      # vocabulário, e trocar uma palavra na base quebraria a hachura.
+      palavra_do_estado: Tenants.api_token_state_word(estado),
       dono: dono,
       criador: Enum.find(contas, &(&1.id == token.created_by_user_id)),
       revogador: Enum.find(contas, &(&1.id == token.revoked_by_user_id)),

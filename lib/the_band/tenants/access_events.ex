@@ -105,6 +105,29 @@ defmodule TheBand.Tenants.AccessEvents do
   end
 
   @doc """
+  Recusa de **equipe** — feature 062, T022, e o achado N6 do inventário de 2026-09-24.
+
+  `painel_recusado/4` é por **pessoa**. A recusa de equipe não deixava rastro em lugar nenhum:
+  a API caía num `404` sem registro, a tela também, e o `ApiReadLog` só grava sucesso. A
+  pergunta *"esta credencial tentou ler o painel de qual equipe?"* não tinha resposta, e é a
+  que a FR-024 da 045 aponta como o caminho para perceber agregação.
+
+  É chamada nas três portas: a tela da equipe, `GET /api/v1/teams/:id` e o registro de
+  ferramentas do MCP. `motivo` fica no vocabulário da regra (`fora_do_alcance`), o mesmo da
+  resposta. Equipe inexistente e de outro tenant também chegam aqui, com o mesmo motivo que a
+  resposta dá, porque é a mesma recusa.
+  """
+  @spec equipe_recusada(Ecto.UUID.t(), Ecto.UUID.t(), String.t(), atom()) :: :ok
+  def equipe_recusada(user_id, tenant_id, alvo_team_id, motivo) when is_atom(motivo) do
+    registrar("equipe recusada",
+      user_id: user_id,
+      tenant_id: tenant_id,
+      alvo_team_id: alvo_team_id,
+      motivo: motivo
+    )
+  end
+
+  @doc """
   Sessão derrubada, com o motivo.
 
   Os quatro motivos caem no mesmo destino na tela — `/sign-in`, sem dizer qual — e é
@@ -149,7 +172,13 @@ defmodule TheBand.Tenants.AccessEvents do
   defp registrar(evento, campos) do
     nivel =
       cond do
-        evento in ["entrada recusada", "painel recusado", "ato administrativo", "espera acionada"] ->
+        evento in [
+          "entrada recusada",
+          "painel recusado",
+          "equipe recusada",
+          "ato administrativo",
+          "espera acionada"
+        ] ->
           :warning
 
         evento == "entrada aceita" and Keyword.get(campos, :falhas_apagadas, 0) > 0 ->

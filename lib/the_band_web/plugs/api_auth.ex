@@ -67,8 +67,16 @@ defmodule TheBandWeb.Plugs.ApiAuth do
 
   # O tenant e a conta dona vêm da LINHA do token, nunca de parâmetro da requisição. É o que
   # torna impossível pedir dado de outro tenant mudando a URL.
+  #
+  # **A organização suspensa não autentica por token** — achado N5, 2026-09-24. As três portas
+  # de sessão já liam `tenant.status` desde o H3 (`auth.ex`, `current_scope.ex`, `hooks.ex`), e
+  # esta não: suspender uma organização cortava a entrada de quem usa a tela e deixava os tokens
+  # dela respondendo `200`. Quem suspendesse acharia que suspendeu.
+  #
+  # O motivo próprio vai ao LOG; o corpo continua o mesmo das outras recusas (SC-003).
   defp com_tenant(conn, token) do
     with {:ok, tenant} <- Tenants.fetch(token.tenant_id),
+         {:organizacao, "active"} <- {:organizacao, tenant.status},
          {:ok, dono} <- Tenants.fetch_user(token.user_id),
          true <- dono.tenant_id == tenant.id,
          true <- User.ativa?(dono) do
@@ -77,6 +85,7 @@ defmodule TheBandWeb.Plugs.ApiAuth do
       |> assign(:current_tenant, tenant)
       |> assign(:current_user, dono)
     else
+      {:organizacao, _} -> recusar(conn, :organizacao_suspensa)
       _ -> recusar(conn, :conta_dona_indisponivel)
     end
   end

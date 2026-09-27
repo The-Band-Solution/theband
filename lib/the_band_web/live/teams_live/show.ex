@@ -22,6 +22,7 @@ defmodule TheBandWeb.TeamsLive.Show do
   alias TheBand.Teams.FlowPerPerson
   alias TheBand.Teams.ProblemsNow
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.Verification
   alias TheBand.WorkItems
   alias TheBand.WorkItems.TeamWork
@@ -4403,6 +4404,14 @@ defmodule TheBandWeb.TeamsLive.Show do
     # esconder seria fazer o trabalho do vazamento e jogar fora o resultado.
     {alcance, motivo} =
       Tenants.pode_ver_equipe(tenant, socket.assigns.current_user, team.id)
+
+    # A RECUSA REGISTRADA — feature 062, T022, achado N6. Como a tela da pessoa registra o
+    # `painel_recusado`, esta registra a quebra por pessoa que ela esconde: é a leitura que o
+    # veredito protege, e a FR-024 da 045 aponta o registro como o caminho para perceber
+    # agregação. Antes, esta recusa não deixava rastro.
+    if alcance == :nao do
+      AccessEvents.equipe_recusada(socket.assigns.current_user.id, tenant.id, team.id, motivo)
+    end
 
     ve_por_pessoa? = alcance == :ok
 

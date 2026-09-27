@@ -980,6 +980,36 @@ Cada agente tem escopo. Quem implementa não valida sozinho.
 
 ## 14. Segurança
 
+### 14.0 Segurança vem primeiro — sempre
+
+Decisão da pessoa mantenedora em 2026-09-25. **Quando segurança disputa com qualquer outra
+coisa, segurança ganha**: prazo, escopo, feature nova, conveniência, elegância. Não é
+preferência de estilo. É a ordem de prioridade do trabalho:
+
+1. **exposição ativa** (credencial vazada, dado de outro tenant alcançável, defeito de acesso em
+   produção) interrompe o que estiver em curso, e é tratada antes de tudo;
+2. **defeito de segurança conhecido** vem antes de funcionalidade nova **na mesma superfície**.
+   Não se constrói em cima de uma porta que se sabe aberta;
+3. **só então** funcionalidade.
+
+As obrigações, cada uma com o lugar onde se verifica:
+
+| Obrigação | Onde se verifica |
+|---|---|
+| Feature que toca **autenticação, sessão, token, tenant, acesso, dado de pessoa, entrada externa, dependência nova ou exposição a modelo** tem avaliação do agente `security` **antes do código**, e ela é de quem **não** escreveu o desenho | o `seguranca*.md` da spec; a lacuna é declarada, e nunca marcada como cumprida |
+| Achado alto ou crítico vira tarefa **bloqueante** do que depende dele, e não item de "polimento" | o `tasks.md`, e o `Pronta quando` das tarefas que dependem dele |
+| Conserto de defeito de segurança em produção vai na **primeira** release possível, e não espera a feature seguinte | a nota de release, e o PR com a seção *O que este PR não resolve* |
+| Guarda de segurança nasce provada: o teste é visto **reprovando** com o defeito injetado antes de ser aceito | o comentário de evidência na issue, com o comando e o código de saída |
+| Exceção num gate de segurança (`hex.audit`, `sobelow`, `deps.audit`) só entra com a **medição** que a justifica, a decisão da pessoa mantenedora e uma **guarda em teste** que a derruba quando a premissa cai | o comentário ao lado da exceção, e o teste que a guarda |
+| Credencial exposta é **revogada primeiro** e investigada depois, e a revogação fica registrada | a nota da release ou o `docs/seguranca/` |
+| Ao começar uma sessão, antes de escolher o trabalho: há achado de segurança aberto em `docs/seguranca/` ou issue com label `security`? Se houver um que toque o que se vai fazer, ele vem primeiro | o diagnóstico de entrada (§18) |
+
+**Dúvida sobre se algo é de segurança é tratada como se fosse.** O custo de tratar a mais é uma
+avaliação; o de tratar a menos é o N5 e o H2-R de 2026-09-24, que estavam em produção sem que
+ninguém soubesse.
+
+### 14.1 As regras de sempre
+
 Nunca commite token, senha, chave privada, secret, credencial, dado pessoal sensível ou `.env` real. Use variáveis de ambiente e secret manager; mantenha `.env.example` sem valores.
 
 YAML não carrega credencial. Log não expõe token nem payload sensível completo — redija antes de logar.
@@ -1048,6 +1078,7 @@ Antes de escrever qualquer código:
 
 1. `pwd` e `git status`; identifique a raiz e a branch.
 2. Leia `README.md`, `CLAUDE.md`, `.specify/memory/constitution.md`.
+2a. **Segurança primeiro (§14.0)**: liste o que está aberto — `gh issue list --label security --state open` e o inventário mais recente em `docs/seguranca/`. Achado que toque o trabalho pretendido vem antes dele.
 3. Inspecione `.github/`, `.claude/`, `specs/`, `docs/adr/`.
 4. Inspecione `priv/knowledge_base/` — manifesto, schemas, YAMLs existentes.
 5. Inspecione módulos ontológicos, migrações, testes e workflows.

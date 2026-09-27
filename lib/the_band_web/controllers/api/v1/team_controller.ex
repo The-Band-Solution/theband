@@ -27,6 +27,7 @@ defmodule TheBandWeb.Api.V1.TeamController do
   alias TheBand.Profiles
   alias TheBand.Quality
   alias TheBand.Tenants
+  alias TheBand.Tenants.AccessEvents
   alias TheBand.WorkItems.TeamWork
   alias TheBandWeb.Api.V1.Erro
   alias TheBandWeb.Schemas
@@ -305,11 +306,19 @@ defmodule TheBandWeb.Api.V1.TeamController do
   defp com_equipe(conn, id, fun) do
     tenant = conn.assigns.current_tenant
 
+    user = conn.assigns.current_user
+
     with {:ok, equipe} <- EO.fetch_team(tenant, id),
-         {:ok, motivo} <- Tenants.pode_ver_equipe(tenant, conn.assigns.current_user, equipe.id) do
+         {:ok, motivo} <- Tenants.pode_ver_equipe(tenant, user, equipe.id) do
       fun.(tenant, equipe, motivo)
     else
-      _ -> nao_encontrado(conn)
+      # **A recusa deixa rastro** — feature 062, T022, achado N6. Antes, este `404` não
+      # registrava nada, e a pergunta "esta credencial tentou ler qual equipe?" não tinha
+      # resposta. Inexistente, de outro tenant e fora do alcance registram o mesmo motivo, porque
+      # a resposta é a mesma.
+      _ ->
+        :ok = AccessEvents.equipe_recusada(user.id, tenant.id, id, :fora_do_alcance)
+        nao_encontrado(conn)
     end
   end
 

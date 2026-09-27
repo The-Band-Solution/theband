@@ -337,6 +337,14 @@ e senha, sair, e entrar de novo com a senha nova.
   | **agregado** sobre a pessoa | ranking de quem integrou vermelho; contagem de eventos por pessoa; mediana individual | **sim** |
   | **atribuição** no item | quem abriu a issue, quem revisou a solicitação, quem tocou o arquivo | **não** |
   | **diretório** de pessoas | nome e `@login` de quem está na organização | **não** |
+  | **perfil derivado** *(2026-09-24)* | o texto que o modelo escreve sobre forças, evolução e atenção; as competências contadas que saem dele | **sim — é agregado** |
+
+  **A razão do perfil**, decisão da pessoa mantenedora em 2026-09-24, sobre o achado
+  **H2-R**: o perfil é derivado de tudo o que a pessoa fez, e diz algo **sobre ela**, não
+  sobre um item. É agregado no sentido exato desta tabela, e é a leitura mais atributiva
+  do produto. Ficou fora do veredito por **omissão**, e não por decisão: o inventário do H2
+  distribuiu as naturezas por **rota**, e o perfil é **seção**. Vale nas três portas: a
+  seção da tela, o `profile` do detalhe da API e as `competencies` da listagem.
 
   **A razão da atribuição**: a autoria é parte do trabalho, e não uma medida sobre a
   pessoa — issue sem quem a abriu não se lê, e solicitação sem revisor não se avalia.

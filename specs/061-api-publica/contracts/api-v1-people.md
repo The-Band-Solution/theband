@@ -70,7 +70,16 @@ coluna existe no banco alargaria o alcance da rota sem razão.
 | Valor | Significa |
 |---|---|
 | `null` | **não houve leitura** — nenhum perfil foi gerado para esta pessoa; `competencies_note` diz isso |
+| `null` | **recusado** — quem chama não alcança esta pessoa, e `competencies_note` diz isso. *Desde 2026-09-24 (H2-R)* |
 | `[]` | **houve leitura, e nada foi demonstrado** — há perfil, e nenhum domínio tem tarefa concluída |
+
+**As competências seguem o veredito** (FR-024 da 045, emendada em 2026-09-24): saem do
+perfil, e o perfil é agregado. A listagem resolve o alcance da página inteira numa chamada, por
+`pessoas_alcancadas/2`, e não uma por pessoa (L38).
+
+**Um limite declarado**: `pessoas_alcancadas/2` é **mais estreito** que `pode_ver/3`, porque
+não inclui a liderança declarada. Quem lidera uma pessoa por declaração vê as competências
+dela no detalhe e **não** as vê na listagem. O erro é para o lado fechado.
 
 Achatar as duas em `[]` transformaria lacuna do registro em julgamento da pessoa.
 
@@ -311,11 +320,24 @@ parece atual em junho.
 **`evolution_over_time` tem um ponto por geração, da mais antiga para a mais recente.** Mês
 sem geração não entra: interpolar afirmaria observação que não houve (feature 029, FR-003).
 
-### O que fica FORA do veredito, e por quê
+### O que fica DENTRO do veredito, desde 2026-09-24
 
-`discussion_participation` e `changes` vêm **sempre** — na tela elas vivem em *Where this
-came from*, que não é o painel que o veredito protege. Protegê-las aqui estreitaria o
-alcance pela porta do transporte, que é o mesmo erro de alargá-lo.
+**`profile` segue o veredito**, como `work`. Sem alcance, `profile` é `null` e `profile_note`
+diz que houve **recusa**, e não que nenhum perfil foi gerado: dizer *"nenhum perfil"* a quem
+não alcança a pessoa mentiria sobre o registro. É a decisão da pessoa mantenedora sobre o
+achado **H2-R**, que classificou o perfil como **agregado** na FR-024 da 045.
+
+### `discussion_participation` e `changes` ficam DENTRO do veredito (#989, v0.10.0)
+
+**Emendado em 2026-09-27.** Até a v0.9.2 este contrato dizia que as duas vinham **sempre**,
+"porque na tela vivem em *Where this came from*, fora do painel que o veredito protege". A
+premissa era falsa: a tela as deixava fora **por omissão**, e a FR-012h da 023 manda recusar
+antes da carga. O efeito era que qualquer conta do tenant lia, pela tela e por esta rota, os
+títulos dos PRs e das discussões de uma pessoa que o veredito lhe recusava.
+
+Agora as duas vêm `null` quando `access.can_see_work` é `false`, como `work`. A pessoa
+mantenedora decidiu em 2026-09-27: **são trabalho, e não identidade**. A tela foi corrigida
+no mesmo conserto, então a paridade se mantém.
 
 `stale_open` e `issues` ficam **dentro** de `work`, porque na tela estão dentro do painel.
 

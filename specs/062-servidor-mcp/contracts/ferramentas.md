@@ -1,10 +1,55 @@
 # Contrato: as quatro ferramentas do primeiro corte
 
 **Transporte**: MCP sobre HTTP, em `/mcp`. **Autenticação**: o token da 061, no cabeçalho
-`Authorization` — o mesmo plug, sem nada novo.
+`Authorization`. `/mcp` passa pela **mesma pipeline** da API,
+`pipe_through [:api, :api_autenticada]`, que autentica, limita e registra, nessa ordem.
 
 O tenant vem **do token**. Nenhuma ferramenta aceita `tenant_id`, e uma que aceitasse seria o
 achado A01-2 da avaliação da 061 com outro nome.
+
+---
+
+## Antes da ferramenta: o que a camada HTTP responde
+
+*Acrescentado em 2026-09-24, na reconciliação com o código.* Três respostas acontecem **antes**
+de o protocolo MCP começar. Por isso elas **não** saem como erro JSON-RPC, e o cliente precisa
+tratá-las no nível HTTP:
+
+| HTTP | Quando | Corpo |
+|---|---|---|
+| `401` | sem token, token malformado, inexistente, revogado ou expirado | o formato único da 061 (`{"error":{"code":"unauthorized",…}}`), idêntico ao de `/api/v1`. Ver [`061/contracts/erro.md`](../../061-api-publica/contracts/erro.md) |
+| `429` | o token passou de 120 chamadas por minuto (`api.access.thresholds`, regra `rate_limit`) | o formato único, com o limite, a janela e quanto falta para ela reabrir |
+| `404` | subcaminho de `/mcp` (`/mcp/nada`) | **o formato único da 061**, `{"error":{"code":"not_found",…}}`. O `forward` entrega `/mcp/*` à porta, e a porta casa só `/mcp` exato (R10). Medido em 2026-09-25 |
+| `404` | caminho **ao lado** de `/mcp` (`/mcpx`) | não casa a rota, e cai no `404` do site, que hoje é a página HTML: o defeito do [#943](https://github.com/The-Band-Solution/theband/issues/943) |
+| `405` | `GET` ou `DELETE` em `/mcp` | com `protocol_mode: :modern_only` não há sessão, e por isso não há stream por `GET` nem encerramento por `DELETE`. **O corpo é o da `ex_mcp`**, `{"error":"Method not allowed"}`, e não o formato único: o `405` da 061 diz *"This API is read-only"*, que seria falso para um `GET` |
+| `403` | pedido com cabeçalho `Origin` | a `ex_mcp` recusa toda origem de navegador fora de `allowed_origins`, que é vazia. Cliente MCP não manda `Origin`; navegador manda |
+
+**O limite é um só por token.** `/mcp` e `/api/v1` gastam o **mesmo** limite, e é isso que a Q4
+decidia. Dois limites para o mesmo token dariam duas respostas para *"por que recusou"*.
+
+**O que a revisão 2026-07-28 do protocolo exige de cada requisição**, medido contra a `ex_mcp`
+1.5.0 em 2026-09-25, e não presumido:
+
+| Cabeçalho | Quando | Sem ele |
+|---|---|---|
+| `mcp-protocol-version: 2026-07-28` | sempre | a requisição não é da revisão moderna, que é a única aceita (`:modern_only`) |
+| `mcp-method` | sempre, com o método JSON-RPC | `400`, JSON-RPC `-32020` |
+| `mcp-name` | em `tools/call`, com o nome da ferramenta | `400`, JSON-RPC `-32020` |
+
+E o `_meta` do pedido leva `io.modelcontextprotocol/protocolVersion`, `clientCapabilities` e
+`clientInfo`. **`tools/list` volta em ordem alfabética**, e não na do registro.
+
+**Só três métodos chegam à biblioteca**: `server/discover`, `tools/list` e `tools/call`.
+`notifications/cancelled` saiu em 2026-09-25 (N3): a `ex_mcp` guarda cada cancelamento numa
+ETS global que nunca é limpa. *Corrigido em 2026-09-25:* a primeira lista trazia `initialize`,
+`notifications/initialized` e `ping`, que não existem na revisão 2026-07-28, e recusava
+`server/discover`, que é como um cliente moderno descobre o servidor. O resto, incluindo `subscriptions/listen`, `resources/*`,
+`prompts/*` e `logging/*`, recebe o erro JSON-RPC de método inexistente **antes** da `ex_mcp`
+(T016). Nenhuma resposta de `/mcp` sai em stream.
+
+**Cada mensagem do protocolo conta**: `server/discover`, `tools/list` e as notificações gastam o
+limite como qualquer chamada de ferramenta, porque cada uma é uma requisição HTTP. Com 120 por
+minuto a folga é grande, mas quem integra precisa saber.
 
 ---
 
@@ -179,13 +224,27 @@ olhou.
 { "state": "refused", "value": null, "reason": "fora_do_alcance" }
 ```
 
-`reason` fica no vocabulário da **regra** — `fora_do_alcance`, `escopo_de_equipe`,
-`vinculo_vigente` —, o mesmo que o log usa. Traduzir criaria um segundo nome para a mesma
-cláusula, e quem lê o log deixaria de falar a mesma língua de quem lê a resposta.
+`reason` fica no vocabulário da **regra**, o mesmo que o log usa. Traduzir criaria um segundo
+nome para a mesma cláusula, e quem lê o log deixaria de falar a mesma língua de quem lê a
+resposta.
+
+**Hoje só existe uma razão de recusa: `fora_do_alcance`.** Corrigido em 2026-09-24. A versão
+anterior deste contrato listava também `escopo_de_equipe` e `vinculo_vigente`, e esses são
+caminhos de **concessão**. `pode_ver_equipe/3` devolve `{:ok, :admin | :escopo_de_equipe |
+:escopo_da_organizacao | :vinculo_vigente}` ou `{:nao, :fora_do_alcance}`, e nada além disso.
+
+**Equipe inexistente também é `fora_do_alcance`.** É a mesma razão do `404` da 061: distinguir
+*"não existe"* de *"existe e você não alcança"* deixaria quem chama descobrir, cruzando ids, o
+que há no tenant.
 
 **A paridade é tripla e provada por teste** (FR-004): o que a tela recusa, a API recusa e o
-MCP recusa — pela mesma razão. Três portas para o mesmo dado com três respostas é o mesmo
-furo contado três vezes.
+MCP recusa, pelo **mesmo veredito e pela mesma razão**. A **forma** da recusa é própria de cada
+porta: a tela mostra a recusa, a API responde `404`, e o MCP devolve `state: "refused"`. Três
+portas com três vereditos diferentes para o mesmo dado é o mesmo furo contado três vezes.
+
+**A recusa não é leitura.** Ela sai em HTTP `200`, porque é resultado de ferramenta. Por isso
+o registro de leitura **não** a grava como acesso concedido, e ela vai para o registro de
+recusa. Ver `tasks.md`, T022.
 
 ### Uma diferença deliberada em relação à 061
 

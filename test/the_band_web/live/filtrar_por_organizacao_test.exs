@@ -31,7 +31,7 @@ defmodule TheBandWeb.FiltrarPorOrganizacaoTest do
       {outra, bruno} = organizacao_com_pessoa(ctx, "beta", "bruno")
 
       {:ok, live, html} = live(ctx.conn, ~p"/people")
-      assert html =~ "ana"
+      assert html =~ ana.name
       assert html =~ "bruno"
 
       filtrada = filtrar(live, uma.id)
@@ -155,10 +155,26 @@ defmodule TheBandWeb.FiltrarPorOrganizacaoTest do
     |> render_change()
   end
 
+  # **O login da pessoa é alongado de propósito.** `"ana"` tem três caracteres, e a asserção
+  # de isolamento entre clientes — `refute html =~ ana.name` — varre o documento INTEIRO.
+  #
+  # Medido em 2026-09-24: a página traz **683 caracteres de base64 aleatório** por render
+  # (tokens de sessão da LiveView e o CSRF). A chance de três caracteres quaisquer caírem ali
+  # é de ~681 posições × (1/64)³ ≈ **0,26% por execução** — e foi isso que reprovou a
+  # cobertura do PR #941 numa execução enquanto a outra, do mesmo commit, passava.
+  #
+  # O estrago não é o teste vermelho: é que este é um teste de **isolamento entre tenants**, e
+  # uma guarda de segurança que chora lobo ensina quem lê a reexecutar até passar. A próxima
+  # reprovação real vira mais uma instabilidade.
+  #
+  # `pessoa-ana-...` é longo o bastante para que a colisão deixe de ser possível, e a asserção
+  # continua varrendo o documento inteiro, que é a forma forte.
+  defp login_longo(login), do: "pessoa-#{login}-#{System.unique_integer([:positive])}"
+
   defp organizacao_com_pessoa(ctx, login_org, login_pessoa) do
     org = organization_fixture(ctx.tenant, login_org)
     equipe = team_fixture(ctx.tenant, "T-#{login_org}", %{organization: org})
-    pessoa = pessoa(ctx.tenant, login_pessoa)
+    pessoa = pessoa(ctx.tenant, login_longo(login_pessoa))
     evidencia(ctx, pessoa, equipe)
     {org, pessoa}
   end
