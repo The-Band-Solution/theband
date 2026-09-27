@@ -4,7 +4,7 @@ defmodule TheBand.MixProject do
   def project do
     [
       app: :the_band,
-      version: "0.9.2",
+      version: "0.9.3",
       elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

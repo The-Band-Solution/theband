@@ -311,11 +311,17 @@ parece atual em junho.
 **`evolution_over_time` tem um ponto por geração, da mais antiga para a mais recente.** Mês
 sem geração não entra: interpolar afirmaria observação que não houve (feature 029, FR-003).
 
-### O que fica FORA do veredito, e por quê
+### `discussion_participation` e `changes` ficam DENTRO do veredito (#989, v0.9.3)
 
-`discussion_participation` e `changes` vêm **sempre** — na tela elas vivem em *Where this
-came from*, que não é o painel que o veredito protege. Protegê-las aqui estreitaria o
-alcance pela porta do transporte, que é o mesmo erro de alargá-lo.
+**Emendado em 2026-09-27.** Até a v0.9.2 este contrato dizia que as duas vinham **sempre**,
+"porque na tela vivem em *Where this came from*, fora do painel que o veredito protege". A
+premissa era falsa: a tela as deixava fora **por omissão**, e a FR-012h da 023 manda recusar
+antes da carga. O efeito era que qualquer conta do tenant lia, pela tela e por esta rota, os
+títulos dos PRs e das discussões de uma pessoa que o veredito lhe recusava.
+
+Agora as duas vêm `null` quando `access.can_see_work` é `false`, como `work`. A pessoa
+mantenedora decidiu em 2026-09-27: **são trabalho, e não identidade**. A tela foi corrigida
+no mesmo conserto, então a paridade se mantém.
 
 `stale_open` e `issues` ficam **dentro** de `work`, porque na tela estão dentro do painel.
 

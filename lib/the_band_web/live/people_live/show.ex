@@ -333,10 +333,20 @@ defmodule TheBandWeb.PeopleLive.Show do
       # Vale **sempre**, e não só com perfil: a lista é sobre o trabalho da pessoa, não sobre
       # o perfil dela. Antes ficava dentro do cartão do perfil e por isso dependia dele.
       paradas: Profiles.stale_open_with_conversation(tenant, pessoa.id),
-      participacao: Discussions.participation_of(tenant, pessoa.id, limit: 20),
+      # As DISCUSSÕES e as MUDANÇAS são trabalho da pessoa, e só carregam com o veredito
+      # (#989, FR-012h da 023). Até a v0.9.2 elas carregavam para qualquer conta do tenant e
+      # apareciam em *Where this came from*, fora do painel que o veredito protege: quem a
+      # tela recusava lia os títulos dos PRs e das discussões da pessoa. `nil`, e não lista
+      # vazia, sem alcance: o template não as desenha, e uma referência esquecida quebra em
+      # vez de afirmar "nenhuma".
+      participacao:
+        se_pode(ve_o_trabalho?, nil, fn ->
+          Discussions.participation_of(tenant, pessoa.id, limit: 20)
+        end),
       # O que a pessoa MUDOU — três leituras nunca somadas, porque abrir, integrar e
       # commitar são atos distintos, com participações distintas na ontologia.
-      mudancas: Changes.by_person(tenant, pessoa.id, limit: 10),
+      mudancas:
+        se_pode(ve_o_trabalho?, nil, fn -> Changes.by_person(tenant, pessoa.id, limit: 10) end),
       # Feature 044: as seis contagens numa consulta. Só quando a aba abre — calcular
       # participação de quem não pode vê-la é fazer o trabalho do vazamento (#369 FR-012h).
       # `participacao_na_mudanca`, e não `participacao`: a tela JÁ tem um assign com esse
@@ -1572,8 +1582,9 @@ defmodule TheBandWeb.PeopleLive.Show do
           <%!-- O QUE A PESSOA MUDOU — cmpo.change_request e cmpo.commit_artifact_copy.
                 As três leituras ficam SEPARADAS porque a rede as separa: submeter,
                 integrar e executar são participações diferentes. Somá-las produziria um
-                número de "contribuições" que não corresponde a nada. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
+                número de "contribuições" que não corresponde a nada.
+                Só com o veredito (#989): é trabalho, e não proveniência. --%>
+          <div :if={@ve_o_trabalho?} class="mt-4 border-t border-base-300 pt-3">
             <h4 class="mb-2 text-xs font-semibold tracking-wide text-base-content/60 uppercase">
               Changes
             </h4>
@@ -1755,8 +1766,9 @@ defmodule TheBandWeb.PeopleLive.Show do
 
           <%!-- A PARTICIPAÇÃO (cmo.discussion_participation) — derivada dos atos
                 observados, e por isso hachurada e rotulada. Responde o que designação
-                nenhuma responde: o trabalho que acontece na conversa. --%>
-          <div class="mt-4 border-t border-base-300 pt-3">
+                nenhuma responde: o trabalho que acontece na conversa.
+                Só com o veredito (#989), pela mesma razão das mudanças. --%>
+          <div :if={@ve_o_trabalho?} class="mt-4 border-t border-base-300 pt-3">
             <div class="mb-2 flex flex-wrap items-center gap-2">
               <h4 class="text-xs font-semibold tracking-wide text-base-content/60 uppercase">
                 Discussions they took part in

@@ -506,9 +506,10 @@ defmodule TheBandWeb.Api.V1.PersonDetailTest do
       refute Map.has_key?(m, "total"), "a mesma solicitação aparece em mais de uma lista"
     end
 
-    test "discussões e mudanças continuam vindo para quem o veredito RECUSA", ctx do
-      # Na tela essas duas seções vivem fora do painel, e o veredito não as esconde.
-      # Protegê-las aqui estreitaria o alcance pela porta do transporte.
+    test "discussões e mudanças vêm null para quem o veredito RECUSA (#989)", ctx do
+      # Até a v0.9.2 este teste exigia o contrário, e só conferia `is_map`, sem dado
+      # povoado: afirmava a exposição e não teria pego um título vazando. A prova com dado
+      # está em `trabalho_dentro_do_veredito_test.exs`.
       d =
         ctx.conn
         |> recycle()
@@ -518,8 +519,8 @@ defmodule TheBandWeb.Api.V1.PersonDetailTest do
 
       assert d["data"]["access"]["can_see_work"] == false
       assert d["data"]["work"] == nil
-      assert is_map(d["data"]["changes"])
-      assert is_map(d["data"]["discussion_participation"])
+      assert d["data"]["changes"] == nil
+      assert d["data"]["discussion_participation"] == nil
     end
 
     test "as paradas ficam DENTRO do painel, e carregam o corte em dias", ctx do
