@@ -13,6 +13,7 @@
 | 2026-09-25 | a busca casa **trecho**, sem diferenciar maiúscula nem acento; devolve **só o alcance do token** |
 | 2026-09-27 | *"no mcp, quero as mesmas funções da api"* |
 | 2026-09-27 | *"coloque uma opção de buscar por id do github"* |
+| 2026-09-27 | sobre a avaliação do espelho: `person_get` fora do alcance **recusa**, com identidade mínima; o perfil vai **inteiro**, como na API; dois casamentos na busca exata vêm **os dois**, com `ambiguous: true`; o #991 entra na próxima release, **antes** desta feature |
 
 A primeira versão desta spec (2026-09-25) tinha duas ferramentas, `people_search` e
 `person_open_work`. O pedido de 2026-09-27 a amplia para as oito rotas da API. O trabalho da
@@ -129,14 +130,26 @@ mesmo veredito, em cada ferramenta que recebe um alvo.
   espelho (sete novas, porque `team_roster` já espelha `/members`) e `people_search`. A lista
   continua **fechada**, e o teste que a enumera passa a exigir as treze.
 - **FR-002**: Cada ferramenta do espelho declara **a rota que espelha**. Para a mesma conta e o
-  mesmo dado, o `value` da ferramenta é **igual** ao `data` da rota. Há um teste por par, e
-  ferramenta sem rota declarada não entra.
+  mesmo dado, o `value` da ferramenta é **igual** ao `data` da rota **depois de retirar a marca
+  `untrusted_text`**. Há um teste por par, e ferramenta sem rota declarada não entra.
+- **FR-002a**: Todo **texto de terceiro** do corpo espelhado sai marcado em `untrusted_text`, como
+  na 062: títulos de issue e de PR, *headline* de commit, nomes, texto do perfil. Os textos da
+  **plataforma** (as notas, as ressalvas) ficam fora da marca. Os caminhos de texto de terceiro
+  são **declarados por ferramenta**, e a marcação é uma única transformação sobre o corpo
+  construído. Sem isso, a FR-002 entregaria texto cru ao modelo, e quem escreve num repositório
+  observado passaria a ter uma via para o agente de quem administra (achado E1-1, alto).
 - **FR-003**: O espelho **reusa a construção do corpo da API**, e não a reimplementa. Duas
   implementações do mesmo corpo divergem, e o #989 foi exatamente uma porta copiando a
   omissão da outra: com uma só, o conserto chega às duas.
+
+  O que se reusa é a **construção**: ela recebe o veredito **já calculado**, não o calcula e não
+  registra nada, e mora **fora** de `TheBandWeb`. Reusar o controlador inteiro calcularia o
+  veredito duas vezes e registraria a recusa duas vezes, uma delas sem o `public_id` do token
+  (achado E4-1).
 - **FR-004**: Os argumentos são os da rota, **e só eles**: o id no caminho vira `team_id` ou
   `person_id`; `after` e `page_size` passam iguais. Nenhum outro argumento é aceito,
-  incluindo `tenant_id`.
+  incluindo `tenant_id`. Há teste de que nenhum argumento além desses chega à consulta de
+  listagem, que por baixo aceita `search`, `account_type` e `organization_id` (achado L2).
 - **FR-005**: `team_measures` espelha a resposta inteira de `/teams/:id/measures`, inclusive a
   cobertura de competências, que as três ferramentas da 062 não trazem. As três continuam, com
   a descrição dizendo que são recortes de `team_measures`.
@@ -148,18 +161,35 @@ mesmo veredito, em cada ferramenta que recebe um alvo.
 - **FR-007**: `query` casa como **trecho contínuo** do login ou do nome, sem diferenciar
   maiúscula nem acento, com **3 a 100** caracteres depois de aparar. Todo caractere é literal:
   sem curinga, expressão, operador ou semelhança.
-- **FR-008**: `github` casa **exatamente**, sem diferenciar maiúscula, com o login **ou** com o
-  identificador do nó guardado como `external_id`, e só para pessoas cuja origem é o GitHub.
-  Devolve no máximo uma pessoa por instância de GitHub.
+- **FR-008**: `github` casa **exatamente** com o login, **sem** diferenciar maiúscula, **ou** com o
+  identificador do nó guardado como `external_id`, **com** caixa (é base64, e a caixa importa),
+  e só para pessoas cuja origem é o GitHub. Quando dois registros alcançados casam na mesma
+  instância (login reusado no GitHub), vêm **os dois**, com `ambiguous: true`, e o agente
+  desempata pelo id do nó. A plataforma não escolhe por ele.
 - **FR-009**: `people_search` devolve **no máximo 10** pessoas, ordenadas por login, e diz se
   cortou. Cada uma traz **só** `person_id`, login, nome em `untrusted_text` e as equipes
   vigentes que o token vê. O resto vem de `person_get`.
 - **FR-010**: `people_search` devolve **só** quem `pode_ver/3` concede à conta, com o filtro
-  aplicado **antes** do corte. Uma busca cujo único casamento está fora do alcance produz
+  aplicado **antes** de qualquer corte: o teto de 10 e a detecção de ambiguidade da FR-008. Uma busca cujo único casamento está fora do alcance produz
   resposta **idêntica** à de uma busca sem casamento.
 - **FR-011**: **Divergência proposital, declarada.** `people_list`, como `GET /api/v1/people`,
   lista o que a API lista. `people_search` é mais estrita: não mostra nem a identidade de quem
   está fora do alcance. A razão é a FR-032 da 062: o consumidor é um modelo.
+
+  O que isso **não** faz, e fica dito: não esconde a identidade de quem o mesmo token alcança
+  por `people_list`, que lista o tenant como a API. O ganho é outro: não pôr no contexto do
+  modelo, por acidente, a identidade de quem o agente nem procurava.
+- **FR-011a**: `person_get` para quem o veredito recusa é **recusa**, na forma da 062 (`refused`,
+  `fora_do_alcance`), com **identidade mínima**: `person_id`, login e nome em `untrusted_text`.
+  **Diverge da API**, que devolve a pessoa com `work`, `changes` e `discussion_participation` em
+  `null` e as equipes sem filtro. A divergência é decisão da pessoa mantenedora (2026-09-27):
+  menos dado de pessoa no contexto do modelo. Pessoa inexistente ou de outro tenant recebe a
+  recusa **sem** identidade, e não distingue um caso do outro.
+- **FR-011b**: Para quem **tem** alcance, `person_get` entrega o **perfil inteiro**, como a API:
+  competências, lacunas, atenção, recomendações e trajetória. Decisão da pessoa mantenedora
+  (2026-09-27), contra a recomendação do Security (achado E1-2, médio), que propunha entregar só
+  as competências contadas. **Risco aceito e declarado**: é texto avaliativo sobre uma pessoa,
+  e o modelo guarda o que lê fora do alcance da revogação. A descrição da ferramenta diz isso.
 
 ### A emenda da FR-023 da 062
 
@@ -224,12 +254,17 @@ mesmo veredito, em cada ferramenta que recebe um alvo.
 
 | Fora | Por quê |
 |---|---|
-| **o que a API não expõe** | mudanças, commits, arquivos, verificações, previsão, contas, credenciais: a 061 os deixou fora com razão (FR-021 dela), e o espelho não reabre por outra porta |
+| **o que a API não expõe** | mudanças, commits, arquivos, verificações e previsão **como coleção navegável**; contas e credenciais. A 061 os deixou fora com razão (FR-021 dela), e o espelho não reabre por outra porta. O que o corpo de `/people/:id` traz sobre a pessoa (as mudanças dela, com commits) vem, porque é o corpo da rota |
 | **busca aproximada** | casar por semelhança é mapear por semelhança de nome (§6 do `AGENTS.md`) |
 | **busca na API** | `people_search` é do MCP. Levá-la à API é outra decisão, com a sua avaliação |
 | **escrita** | a mesma razão da 061 e da 062 |
 
 ## Segurança — o que o papel Security precisa avaliar antes do plano
+
+**Avaliado em 2026-09-27**: [`seguranca-espelho.md`](./seguranca-espelho.md), com
+[`seguranca-busca.md`](./seguranca-busca.md) e [`seguranca-trabalho.md`](./seguranca-trabalho.md),
+estas duas parciais. Os achados altos viraram a FR-002a (E1-1) e as dependências bloqueantes
+(E1-4). O resto está nas FR acima.
 
 A avaliação da versão de 2026-09-25 já produziu achados que valem aqui: A4-1 (o carregamento
 no tenant antes do veredito), A4-2 (um caminho só), A4-3 (canal de tempo), A5-1 e A5-2 (o
@@ -249,8 +284,8 @@ registro da recusa), e o lateral que virou o #989. Faltam:
 ## Assumptions
 
 - O servidor, a porta, o token, o registro e o limite são os da 062.
-- O corpo de cada rota é o da API **depois** do hotfix v0.9.3 (#989). Espelhar antes seria copiar
-  o furo, e por isso esta feature depende do hotfix no ar.
+- O corpo de cada rota é o da API **depois** do hotfix v0.9.3 (#989) e do conserto do #991.
+  Espelhar antes seria copiar o furo.
 - O teto de página é o da API.
 - "Sem acento" segue a normalização Unicode usual para português (é → e, ç → c, ã → a).
 
@@ -259,5 +294,6 @@ registro da recusa), e o lateral que virou o #989. Faltam:
 | Depende de | Estado |
 |---|---|
 | 062 (servidor MCP) | em `development`; PR #988 fecha as últimas tarefas |
-| v0.9.3 (#989) | hotfix em preparação: `changes` e `discussion_participation` dentro do veredito |
+| **v0.9.3 (#989)** | **bloqueante**. PR #990 para `main`. Critério verificável: o commit do hotfix é ancestral do HEAD deste branch (`git merge-base --is-ancestor`), depois do back-merge e do rebase |
+| **#991** | **bloqueante**. `account` sob o veredito na API. Pela FR-003, o espelho herda o conserto, e herdaria o furo |
 | a construção dos corpos da API | existe nos controladores da 061; o plano decide como reusá-la |
