@@ -386,7 +386,7 @@
           <span class="tela mono">/teams/:id</span>
         </div>
         <p>
-          A tela mais completa da plataforma, e a que a versão em produção acabou de entregar.
+          A tela mais completa da plataforma.
         </p>
         <ul>
           <li>
@@ -475,6 +475,19 @@
           O alcance de cada conta é <strong>derivado das relações vigentes</strong> — pessoa,
           equipes, projetos declarados — e recalculado a cada acesso. Encerrou o vínculo, fechou
           o escopo: sem tarefa noturna, sem coluna, sem segunda verdade.
+        </p>
+      </article>
+
+      <article class="func">
+        <div class="cabeca">
+          <h3>A API, e um agente que pergunta</h3>
+          <span class="tela mono">/api/v1 · /mcp · /api-tokens</span>
+        </div>
+        <p>
+          O que a tela mostra, em JSON, por token: equipes, pessoas, projetos e coletas. E pelo
+          <strong>MCP</strong>, as perguntas da equipe respondidas a um agente, com a ressalva
+          no mesmo objeto. O token lê o que a conta dona lê, nem mais nem menos, e o que o agente
+          já leu não volta: a revogação só vale para a próxima chamada.
         </p>
       </article>
 
@@ -574,6 +587,82 @@
 
     <div class="versoes">
       <div class="versao atual">
+        <div class="tag mono">v0.10.0<span class="data">27 set 2026</span></div>
+        <div>
+          <h3>Um agente pergunta à plataforma</h3>
+          <p>
+            O servidor MCP, em <span class="mono">/mcp</span>: um agente com o token da API
+            pergunta sobre uma equipe — quem está nela, o que cada um tem aberto, quanto o
+            trabalho espera por revisão, o que está parado — e recebe a resposta com a ressalva
+            no mesmo objeto. E três consertos de segurança que ainda não estavam no ar: o token
+            de organização suspensa, o perfil escrito pelo modelo e as mudanças e discussões de
+            uma pessoa passam a seguir o veredito de quem pode ver. A 062 embarcou
+            <em>sem</em> aceitação, e isso está dito na nota.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.9.2<span class="data">25 set 2026</span></div>
+        <div>
+          <h3>O roster da API deixa de devolver e-mail</h3>
+          <p>
+            Hotfix. A lista de membros de uma equipe, pela API, devolvia o e-mail de quem tinha
+            encerrado ou invalidado um vínculo, e quebrava com quem tinha saído. A nota traz a
+            consulta que diz quem leu.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.9.1<span class="data">24 set 2026</span></div>
+        <div>
+          <h3>O limite passa a valer</h3>
+          <p>
+            A API ganha limite de chamadas por token, o CD volta a confirmar a versão em
+            produção, e a tela de tokens muda. O número certo era 0.10.0, e o que foi ao ar foi
+            0.9.1: a nota registra o erro em vez de reescrevê-lo.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.9.0<span class="data">23 set 2026</span></div>
+        <div>
+          <h3>A API pública</h3>
+          <p>
+            Equipes, pessoas, projetos e coletas em JSON, com token e com o Swagger no próprio
+            domínio. O alcance do token é o da conta dona, e a proveniência viaja em cada
+            resposta. Embarcou sem aceitação, e a exceção está declarada.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.8.0<span class="data">21 set 2026</span></div>
+        <div>
+          <h3>Os rótulos do GitHub, e o segredo que não se imprime</h3>
+          <p>
+            Os rótulos do item de trabalho, pelas duas origens, nunca somadas; o fluxo por
+            pessoa; vincular pessoa a equipe; a conta desativada com a razão registrada; e a
+            tela que gera o token da API, antes de a API existir. Na segurança, um segredo
+            decifrado passa a recusar ser impresso, e o backup foi ensaiado de ponta a ponta.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
+        <div class="tag mono">v0.7.0<span class="data">10 set 2026</span></div>
+        <div>
+          <h3>Seis achados de segurança fechados</h3>
+          <p>
+            O desligamento de uma conta passa a existir, e o corte da coleta que congelava
+            quadros deixa de acontecer.
+          </p>
+        </div>
+      </div>
+
+      <div class="versao">
         <div class="tag mono">v0.6.0<span class="data">9 set 2026</span></div>
         <div>
           <h3>A tela da equipe</h3>
