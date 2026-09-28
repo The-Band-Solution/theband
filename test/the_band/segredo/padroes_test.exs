@@ -9,6 +9,7 @@ defmodule TheBand.Segredo.PadroesTest do
   use ExUnit.Case, async: true
 
   alias TheBand.Segredo.Padroes
+  alias TheBand.Tenants.User
 
   test "há pelo menos os três tipos que a plataforma guarda" do
     assert Enum.map(Padroes.todos(), & &1.tipo) ==
@@ -47,6 +48,6 @@ defmodule TheBand.Segredo.PadroesTest do
 
   test "o valor real que o sistema gera tem a forma que o padrão procura" do
     sessao = Enum.find(Padroes.todos(), &(&1.tipo == :token_de_sessao))
-    assert Regex.match?(sessao.regex, TheBand.Tenants.User.novo_token())
+    assert Regex.match?(sessao.regex, User.novo_token())
   end
 end

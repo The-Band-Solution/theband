@@ -34,7 +34,7 @@ defmodule TheBand.Segredo.Padroes do
           onde: onde()
         }
 
-  @doc "Todos os padrões, na ordem do relatório."
+  @doc "Os padrões declarados, na ordem do relatório."
   @spec todos() :: [t()]
   def todos do
     [
