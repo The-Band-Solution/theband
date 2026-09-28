@@ -34,6 +34,7 @@ jobs:
           CORPO: ${{ github.event.pull_request.body }}
           BASE: ${{ github.event.pull_request.base.ref }}
           TITULO: ${{ github.event.pull_request.title }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
         run: |
           set -uo pipefail
 
@@ -87,10 +88,26 @@ jobs:
           # Quatro casos em que merge commit é obrigatório. O squash cria um commit
           # novo, SEM OS PAIS ORIGINAIS: o Git perde a informação de que aquele
           # trabalho já foi integrado, e volta a oferecê-lo como inédito.
+          #
+          # O caso é decidido pelo BRANCH e pelo PREFIXO do título, e nunca por palavra
+          # solta no título. Até 2026-09-27 bastava a palavra "back-merge" em qualquer
+          # lugar: o #998, que DOCUMENTA o back-merge, foi reprovado como se fosse um.
+          # É a lição "guarda que lê código reprova a prosa", agora no título.
           OBRIGA=""
           [ "$BASE" = "main" ] && OBRIGA="release ou hotfix para \`main\`"
-          printf '%s' "$TITULO" | grep -qiE 'back-?merge' && OBRIGA="back-merge"
-          printf '%s' "$TITULO" | grep -qiE 'hotfix' && OBRIGA="hotfix"
+          case "$HEAD" in
+            back-merge/*) OBRIGA="back-merge" ;;
+            hotfix/*)     OBRIGA="hotfix" ;;
+          esac
+          printf '%s' "$TITULO" | grep -qiE '^(merge\(main\)|back-?merge)' && OBRIGA="back-merge"
+
+          # A `main` NUNCA é head. O delete_branch_on_merge apaga a head de todo PR
+          # mergeado, e em 2026-09-27 o back-merge #996, aberto com --head main, apagou a
+          # `main`. Back-merge sai de `back-merge/vX.Y.Z`, criado de origin/main.
+          if [ "$HEAD" = "main" ]; then
+            echo "::error title=A main não pode ser a head do PR::O merge apagaria a main (delete_branch_on_merge). Crie back-merge/vX.Y.Z de origin/main e abra o PR dela. Ver AGENTS.md, seção 12."
+            exit 1
+          fi
 
           if [ -n "$OBRIGA" ] && [ "$S" -gt 0 ]; then
             echo "::error title=Squash declarado onde merge commit é obrigatório::Este PR é $OBRIGA, e a seção 12 do AGENTS.md exige merge commit. O squash faria as duas linhas divergirem, e a divergência não se desfaz — L83 e L92."
