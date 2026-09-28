@@ -78,7 +78,11 @@ defmodule TheBandWeb.EloDaContaNaTelaTest do
       {:ok, live, html} = live(conn, ~p"/people/#{ctx.pessoa.id}")
 
       refute html =~ "id=\"elo-da-conta\""
-      assert html =~ "Only an administrator can change this link"
+      # Até a v0.10.0 esta conta, que o veredito recusa, via a seção inteira do elo — com o
+      # e-mail da conta ligada (#991). Agora a seção nem aparece para ela. O que este teste
+      # guarda continua: esconder o formulário não é autorizar, e o evento mandado direto
+      # tem de ser recusado no servidor.
+      refute html =~ ~s(id="account")
 
       render_hook(live, "declarar_conta", %{"user_id" => ctx.comum.id})
 
