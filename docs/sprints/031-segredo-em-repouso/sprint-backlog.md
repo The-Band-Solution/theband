@@ -99,7 +99,7 @@ spec.
 | T003 | Embutir o controle positivo na varredura | US1 | [#868](https://github.com/The-Band-Solution/theband/issues/868) | a fazer |
 | T004 | Recusar imprimir o valor encontrado | US1 | [#869](https://github.com/The-Band-Solution/theband/issues/869) | a fazer |
 | T005 | Varrer o banco de desenvolvimento e registrar | US1 | [#870](https://github.com/The-Band-Solution/theband/issues/870) | a fazer — a varredura manual de 2026-09-12 **não** a fecha |
-| T006 | Fechar o segredo no caminho do provedor de modelos | US3 | [#871](https://github.com/The-Band-Solution/theband/issues/871) | a fazer — o tipo existe (#864); falta o consumidor |
+| T006 | Fechar o segredo no caminho do provedor de modelos | US3 | [#871](https://github.com/The-Band-Solution/theband/issues/871) | feito — a borda do provedor recebe `Segredo`, e só o cabeçalho e a redação o abrem |
 | T007 | Preencher as datas de encerramento ausentes | US3 | [#872](https://github.com/The-Band-Solution/theband/issues/872) | a fazer · `bug` |
 | T008 | Verificar registro terminado sem data | US3 | [#873](https://github.com/The-Band-Solution/theband/issues/873) | a fazer |
 | T009 | Criar a tabela de sessões | US2 | [#874](https://github.com/The-Band-Solution/theband/issues/874) | a fazer |

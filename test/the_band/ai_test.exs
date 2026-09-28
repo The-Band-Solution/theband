@@ -21,6 +21,7 @@ defmodule TheBand.AITest do
 
   alias TheBand.AI
   alias TheBand.Repo
+  alias TheBand.Segredo
 
   setup :verify_on_exit!
 
@@ -56,7 +57,8 @@ defmodule TheBand.AITest do
   describe "gravar (put/3)" do
     test "a chave é conferida contra o provedor antes de qualquer escrita", ctx do
       expect(TheBand.LLMHTTPMock, :verify, fn secret, opts ->
-        assert secret == @chave
+        # Fechada desde a 064/T006: a borda recebe `Segredo`, e só o cabeçalho a abre.
+        assert Segredo.expor(secret) == @chave
         assert opts[:base_url] == "https://api.openai.com"
         {:ok, ["gpt-5.4-mini"]}
       end)
@@ -183,7 +185,7 @@ defmodule TheBand.AITest do
 
       opcoes = AI.opcoes(ctx.tenant)
 
-      assert opcoes[:key] == @chave
+      assert Segredo.expor(opcoes[:key]) == @chave
       assert opcoes[:base_url] == "https://api.openai.com"
       assert opcoes[:model] == "gpt-5.4"
     end

@@ -21,6 +21,7 @@ defmodule TheBand.AI do
   alias TheBand.AI.ProviderCredential
   alias TheBand.Integrations.LLM.HTTP
   alias TheBand.Repo
+  alias TheBand.Segredo
   alias TheBand.Tenants.Tenant
 
   @base_url "https://api.openai.com"
@@ -71,7 +72,8 @@ defmodule TheBand.AI do
   def opcoes(%Tenant{} = tenant) do
     case fetch(tenant) do
       {:ok, cred} ->
-        [key: cred.secret, base_url: cred.base_url] ++
+        # Fechada aqui, na borda em que a credencial decifrada é lida (064/T006).
+        [key: Segredo.novo(cred.secret), base_url: cred.base_url] ++
           if(cred.default_model, do: [model: cred.default_model], else: [])
 
       {:error, :not_found} ->
@@ -96,7 +98,7 @@ defmodule TheBand.AI do
     secret = attrs["secret"] || attrs[:secret] || ""
     provider = attrs["provider"] || attrs[:provider] || "openai"
 
-    with {:ok, modelos} <- HTTP.impl().verify(secret, base_url: @base_url),
+    with {:ok, modelos} <- HTTP.impl().verify(Segredo.novo(secret), base_url: @base_url),
          {:ok, modelo} <- escolher_modelo(attrs, modelos) do
       atributos = %{
         tenant_id: tenant_id,

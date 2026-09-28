@@ -74,7 +74,7 @@ está aberta — e remover a via pela qual um registro com segredo se torna perm
 **Teste independente**: forçar exceção nos caminhos que usam credencial e conferir que o
 registro não contém o valor, e contém o suficiente para investigar.
 
-- [ ] **T006** Fechar o segredo no caminho do provedor de modelos — [#871](https://github.com/The-Band-Solution/theband/issues/871)
+- [x] **T006** Fechar o segredo no caminho do provedor de modelos — [#871](https://github.com/The-Band-Solution/theband/issues/871) — *feita em 2026-09-28*
   - **Pronta quando**: nada além do repositório — `TheBand.Segredo` já existe (PR #864)
   - **Descrição**: `lib/the_band/integrations/llm/http/req.ex`, linhas 41 e 93, passam o segredo como binário nu. Embrulhar na borda onde ele é lido e abrir só na montagem do cabeçalho, como em `github/http/req.ex:43`. Padrão já justificado — `AGENTS.md` §7.7 dispensa rejustificar dentro do problema que o motivou. FR-006, research R7
   - **Feita quando**: nenhum `Bearer " <>` recebe binário nu em `lib/`; as assinaturas que recebem segredo declaram `Segredo.t()`
