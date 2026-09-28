@@ -80,13 +80,13 @@ registro não contém o valor, e contém o suficiente para investigar.
   - **Feita quando**: nenhum `Bearer " <>` recebe binário nu em `lib/`; as assinaturas que recebem segredo declaram `Segredo.t()`
   - **Teste**: `test/the_band/segredo_llm_test.exs` — força `FunctionClauseError` no caminho que recebe a chave, e `refute Exception.format(...) =~ chave`. **Mais a reinjeção**: o mesmo caminho com binário nu vaza. Sem ela, o teste passaria numa implementação que não protege nada — foi assim que meu primeiro teste desta feature quase me enganou
 
-- [ ] **T007** [P] Preencher as datas de encerramento ausentes — [#872](https://github.com/The-Band-Solution/theband/issues/872)
+- [x] **T007** [P] Preencher as datas de encerramento ausentes — [#872](https://github.com/The-Band-Solution/theband/issues/872) — *feita em 2026-09-28*
   - **Pronta quando**: T005 concluída — varrer antes de mexer, porque mexer altera o material
   - **Descrição**: migração em `priv/repo/migrations/` que preenche `cancelled_at` onde está nulo em registros `cancelled`, usando a data disponível mais próxima do fim. Medido em 2026-09-12: quatro registros de 2026-09-04 são **permanentes**, porque a regra de poda do Oban é `cancelled_at < ^time` e `NULL` nunca a satisfaz. Um deles carregava o segredo. FR-015
   - **Feita quando**: nenhum registro `cancelled` tem `cancelled_at` nulo; a migração é idempotente
   - **Teste**: round trip — `mix ecto.migrate`, contar zero nulos, `mix ecto.rollback`, e a contagem volta ao que era
 
-- [ ] **T008** Verificar registro terminado sem data — [#873](https://github.com/The-Band-Solution/theband/issues/873)
+- [x] **T008** Verificar registro terminado sem data — [#873](https://github.com/The-Band-Solution/theband/issues/873) — *feita em 2026-09-28*
   - **Pronta quando**: T007 concluída
   - **Descrição**: `lib/mix/tasks/the_band.confere_encerramentos.ex`, que conta registros em estado terminal sem a data do encerramento e **sai com 1** se houver algum, nomeando-os. Acrescentar ao `mix gates`. Sem isto, a T007 é um `UPDATE` que ninguém repete. FR-015, SC-008
   - **Feita quando**: a tarefa sai com `0` no estado atual; entra na lista dos gates; a mensagem de falha diz **qual** registro e por que ele escaparia da poda

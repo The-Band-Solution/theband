@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Gates do
-  @shortdoc "Roda os quatorze quality gates, na ordem do CI, abortando no primeiro que reprovar"
+  @shortdoc "Roda os quality gates, na ordem do CI, abortando no primeiro que reprovar"
 
   @moduledoc """
-  Os quatorze quality gates da constituição, num comando.
+  Os quality gates da constituição, num comando.
 
       mix gates
 
@@ -117,6 +117,12 @@ defmodule Mix.Tasks.Gates do
     # o caminho que roda.
     {"assets", {:cmd, "mix", ["assets.build"], [{"MIX_ENV", "test"}]}},
     {"testes", {:cmd, "mix", ["test"], [{"MIX_ENV", "test"}]}},
+    # Feature 064, T008, FR-015. Job terminal sem a data que a poda compara nunca é apagado, e o
+    # que escapa assim é o que falhou — o que tende a carregar segredo. Confere o banco do
+    # ambiente em que roda: localmente o de desenvolvimento, onde os quatro de 2026-09-04
+    # existiam; no CI o de teste, recriado a cada execução, e ali prova só que a tarefa roda.
+    # Vem depois de `testes` porque é no `mix test` que o CI cria e migra o banco.
+    {"encerramentos com data", {:mix, ["the_band.confere_encerramentos"]}},
     {"knowledge.validate", {:mix, ["knowledge.validate"]}},
     {"knowledge.graph", {:mix, ["knowledge.graph"]}},
     {"validador Python", {:python, ["scripts/validate_knowledge_base.py"]}},
@@ -125,6 +131,11 @@ defmodule Mix.Tasks.Gates do
     # quem provisiona o `.venv`.
     {"validadores concordam", {:fun, :validators_agree}}
   ]
+
+  @doc false
+  # Para o teste conferir que um gate está na lista, e em que posição.
+  @spec gates() :: [{String.t(), term()}]
+  def gates, do: @gates
 
   @impl Mix.Task
   def run(args) do
