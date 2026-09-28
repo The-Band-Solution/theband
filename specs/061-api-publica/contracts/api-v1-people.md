@@ -339,6 +339,14 @@ Agora as duas vêm `null` quando `access.can_see_work` é `false`, como `work`. 
 mantenedora decidiu em 2026-09-27: **são trabalho, e não identidade**. A tela foi corrigida
 no mesmo conserto, então a paridade se mantém.
 
+### `account` fica DENTRO do veredito (#991, v0.10.1)
+
+**Emendado em 2026-09-28.** Até a v0.10.0, `account` vinha para qualquer conta do tenant: o id
+da conta de plataforma ligada à pessoa, e quantas contas o tenant tem e quantas têm elo. A tela
+fazia pior, e mostrava o **e-mail** da conta. Agora `account` vem `null` quando
+`access.can_see_work` é `false`, como `work`, e a tela esconde a seção. Decisão da pessoa
+mantenedora em 2026-09-28: quem vê o trabalho da pessoa vê a conta dela; quem não vê, não vê.
+
 `stale_open` e `issues` ficam **dentro** de `work`, porque na tela estão dentro do painel.
 
 Toda lista truncada carrega o próprio `limit`: sem ele, quem integra conclui que aquilo é

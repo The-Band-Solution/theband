@@ -554,8 +554,10 @@ defmodule TheBandWeb.Schemas do
         },
         account: %Schema{
           type: :object,
+          nullable: true,
           description:
-            "Which account on this platform is declared to be this observed person. " <>
+            "`null` when `access.can_see_work` is false. " <>
+              "Which account on this platform is declared to be this observed person. " <>
               "`link_coverage` says how many accounts exist and how many were declared — " <>
               "a link that does not exist is a gap, not a zero.",
           properties: %{

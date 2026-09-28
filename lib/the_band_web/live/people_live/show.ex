@@ -320,7 +320,14 @@ defmodule TheBandWeb.PeopleLive.Show do
 
     # Issue #369: UMA consulta, e não três. As contas do tenant vêm inteiras, e tanto "qual
     # delas é esta pessoa" quanto a cobertura do elo saem delas em memória.
-    contas = Tenants.list_users(tenant)
+    #
+    # **E só com o veredito** (#991). Até a v0.10.0 a seção "Which account is this person"
+    # carregava e desenhava, para qualquer conta do tenant, o E-MAIL da conta ligada à pessoa
+    # e a cobertura do elo. É dado pessoal, e passa a seguir o veredito como o trabalho:
+    # decisão da pessoa mantenedora em 2026-09-28. Sem alcance a lista nem é carregada
+    # (FR-012h da 023: a recusa vem antes da carga). O admin sempre tem alcance, então o
+    # formulário do elo, que é dele, não muda.
+    contas = if ve_o_trabalho?, do: Tenants.list_users(tenant), else: []
 
     # **O perfil é AGREGADO sobre a pessoa**, e segue o veredito — decisão da pessoa
     # mantenedora em 2026-09-24, sobre o achado H2-R. Um texto que um modelo escreveu sobre as
@@ -414,10 +421,10 @@ defmodule TheBandWeb.PeopleLive.Show do
       # justamente para que esse crescimento seja decidido, e não descoberto depois.
       contas: contas,
       conta_da_pessoa: Enum.find(contas, &(&1.person_id == pessoa.id and User.elo_vigente?(&1))),
-      cobertura_do_elo: %{
-        contas: length(contas),
-        declaradas: Enum.count(contas, &User.elo_vigente?/1)
-      },
+      cobertura_do_elo:
+        se_pode(ve_o_trabalho?, nil, fn ->
+          %{contas: length(contas), declaradas: Enum.count(contas, &User.elo_vigente?/1)}
+        end),
       # **Duas contagens, e elas respondem coisas diferentes.** `designadas` é quantas issues
       # a pessoa tem — o número do cartão, que não muda quando alguém busca. `encontradas` é
       # quantas a busca vigente alcançou, e é ele que a paginação usa: paginar sobre o total
@@ -1947,7 +1954,8 @@ defmodule TheBandWeb.PeopleLive.Show do
               observadas é quem está logado. O elo não vinha de lugar nenhum: medido em
               2026-08-26, as 88 pessoas de `eo_people` têm `external_id` e login, e
               NENHUMA tem e-mail — o GitHub não entrega. --%>
-        <section id="account" class="scroll-mt-20 space-y-2">
+        <%!-- Só com o veredito (#991): o e-mail da conta ligada é dado pessoal. --%>
+        <section :if={@ve_o_trabalho?} id="account" class="scroll-mt-20 space-y-2">
           <div>
             <h3 class="font-semibold">Which account is this person</h3>
             <p class="text-xs text-base-content/60">
