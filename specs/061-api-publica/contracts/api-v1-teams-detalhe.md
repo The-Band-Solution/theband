@@ -177,7 +177,13 @@ O que a integração leva para painel próprio.
           { "issue_id": "23354808-…", "external_id": "I_kwDO…",
             "title": "[Dados] Auditar divergências…",
             "concept": "sro.intended_scrum_development_task",
-            "open_for_days": 98, "stale": true }
+            "open_for_days": 98, "stale": true,
+            "boards": [
+              { "board_id": "…", "board": "Conecta Fapes",
+                "fields": [
+                  { "field": "Status", "value": "In Progress", "phase": { "state": "not_declared" } }
+                ] }
+            ] }
         ]
       }
     ],
@@ -212,6 +218,12 @@ O que a integração leva para painel próprio.
   }
 }
 ```
+
+**`boards` em cada tarefa (emenda de 2026-09-28, FR-033 da 062).** Em que quadro a tarefa
+está, com **todo campo de seleção única** que tem valor para o item, e a fase **só onde foi
+declarada** pela 066 (`not_declared` quando não). Uma entrada por quadro, porque uma issue
+pode estar em mais de um; `[]` quando em nenhum. A mesma construção serve o MCP, que marca os
+nomes em `untrusted_text`.
 
 ### Duas medianas, e a razão medida
 

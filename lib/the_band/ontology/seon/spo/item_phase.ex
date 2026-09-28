@@ -97,6 +97,90 @@ defmodule TheBand.Ontology.SEON.SPO.ItemPhase do
 
   # ------------------------------------------------------------------ consultas
 
+  @typedoc "Um campo de seleção única do quadro, com o valor do item e a fase, se declarada."
+  @type campo_do_item :: %{
+          campo: String.t(),
+          valor: String.t(),
+          fase: %{conceito: String.t(), declarada_em: DateTime.t()} | nil
+        }
+
+  @typedoc "Um quadro em que a issue está, com os campos de seleção única que têm valor."
+  @type quadro_do_item :: %{
+          quadro_id: Ecto.UUID.t(),
+          quadro: String.t(),
+          campos: [campo_do_item()]
+        }
+
+  @doc """
+  Em que quadro cada issue está, e com que valores — feature 062, FR-033.
+
+  Para cada issue, **uma entrada por quadro** em que ela está observada, e em cada quadro
+  **todo campo de seleção única** que tem valor para o item. A plataforma não escolhe qual
+  deles é "a coluna": `Status` não é nome reservado (ver `vocabulario/3`).
+
+  `fase` é a declaração vigente da 066 para aquele quadro, campo e opção, e `nil` quando não
+  há. **Nunca é inferida do nome da opção.**
+
+  Issue em nenhum quadro não tem chave no mapa. Uma consulta só, para todas as issues.
+  """
+  @spec quadros_das_issues(Tenant.t(), [Ecto.UUID.t()]) :: %{Ecto.UUID.t() => [quadro_do_item()]}
+  def quadros_das_issues(%Tenant{}, []), do: %{}
+
+  def quadros_das_issues(%Tenant{id: tenant_id}, issue_ids) do
+    %{rows: linhas} =
+      Repo.query!(
+        """
+        SELECT pi.collected_issue_id, p.id, p.title, f.name, v.raw_value->>'name',
+               d.target_concept, d.declared_at
+          FROM project_items pi
+          JOIN observed_projects p ON p.id = pi.observed_project_id
+          JOIN item_field_values v ON v.project_item_id = pi.id
+          JOIN project_field_definitions f
+            ON f.id = v.project_field_definition_id
+           AND f.data_type = 'SINGLE_SELECT'
+           AND f.no_longer_observed_at IS NULL
+          LEFT JOIN spo_item_phase_declarations d
+            ON d.tenant_id = pi.tenant_id
+           AND d.observed_project_id = p.id
+           AND d.field_external_id = f.field_external_id
+           AND d.option_external_id = v.raw_value->>'optionId'
+           AND d.revoked_at IS NULL
+         WHERE pi.tenant_id = $1
+           AND pi.collected_issue_id = ANY($2)
+           AND pi.no_longer_observed_at IS NULL
+           AND v.raw_value->>'optionId' IS NOT NULL
+         ORDER BY pi.collected_issue_id, p.title, f.name
+        """,
+        [Ecto.UUID.dump!(tenant_id), Enum.map(issue_ids, &Ecto.UUID.dump!/1)]
+      )
+
+    linhas
+    |> Enum.group_by(fn [issue | _] -> Ecto.UUID.cast!(issue) end)
+    |> Map.new(fn {issue, do_item} -> {issue, quadros(do_item)} end)
+  end
+
+  defp quadros(linhas) do
+    linhas
+    |> Enum.chunk_by(fn [_issue, quadro | _] -> quadro end)
+    |> Enum.map(fn [[_, quadro_id, titulo | _] | _] = do_quadro ->
+      %{
+        quadro_id: Ecto.UUID.cast!(quadro_id),
+        quadro: titulo,
+        campos:
+          Enum.map(do_quadro, fn [_, _, _, campo, valor, conceito, declarada_em] ->
+            %{campo: campo, valor: valor, fase: fase(conceito, declarada_em)}
+          end)
+      }
+    end)
+  end
+
+  defp fase(nil, _), do: nil
+
+  # A consulta crua devolve `NaiveDateTime`; a coluna é `utc_datetime`, e o contrato promete
+  # o instante com fuso, como o schema o entrega nas outras leituras.
+  defp fase(conceito, %NaiveDateTime{} = declarada_em),
+    do: %{conceito: conceito, declarada_em: DateTime.from_naive!(declarada_em, "Etc/UTC")}
+
   @doc "As declarações vigentes de um quadro."
   @spec vigentes(Tenant.t(), Ecto.UUID.t()) :: [Declaracao.t()]
   def vigentes(%Tenant{id: tenant_id}, quadro_id) do

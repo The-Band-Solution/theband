@@ -124,7 +124,19 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
     "by_person": [
       { "person_id": "…",
         "tasks": [ { "issue_id": "…", "title": "…", "open_for_days": 98, "stale": true,
-                     "concept": "sro.intended_scrum_development_task" } ] }
+                     "concept": "sro.intended_scrum_development_task",
+                     "boards": [
+                       { "board_id": "…",
+                         "board": { "untrusted_text": "Conecta Fapes", "contains_invisible_characters": false },
+                         "fields": [
+                           { "field": { "untrusted_text": "Status", "contains_invisible_characters": false },
+                             "value": { "untrusted_text": "In Progress", "contains_invisible_characters": false },
+                             "phase": { "state": "not_declared" } },
+                           { "field": { "untrusted_text": "Squad", "contains_invisible_characters": false },
+                             "value": { "untrusted_text": "Green", "contains_invisible_characters": false },
+                             "phase": { "state": "not_declared" } }
+                         ] }
+                     ] } ] }
     ],
     "totals": { "members": 31, "open": 23 }
   },
@@ -136,6 +148,19 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
 
 **Pessoa sem tarefa aberta não vira linha com zero**: ela não aparece em `by_person`, e
 `totals.members` diz quantas existem. Somar as duas leituras responderia outra pergunta.
+
+**`boards` — em que quadro a tarefa está, e com que valores (FR-033, 2026-09-28).**
+
+- **Uma entrada por quadro** em que a issue está observada, e `[]` quando ela não está em
+  quadro nenhum. Lista vazia aqui é fato observado ("em nenhum quadro"), e não ausência de
+  leitura: o quadro é coletado junto com a issue.
+- **`fields` traz todo campo de seleção única** do quadro que tem valor para o item, na ordem
+  do nome. Campo sem valor não aparece. A plataforma não escolhe qual deles é "a coluna".
+- **`phase`** é `{"state": "declared", "concept": "…", "declared_at": "…"}` quando existe
+  declaração vigente da 066 para aquele quadro, campo e opção, e `{"state": "not_declared"}`
+  quando não existe. **Nunca é inferida do nome da opção.**
+- Item que saiu do quadro (`no_longer_observed_at`) e campo que saiu do quadro não entram.
+- **Custo**: uma consulta a mais para todas as tarefas da resposta, e não uma por tarefa.
 
 ---
 

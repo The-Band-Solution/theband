@@ -161,6 +161,25 @@ estivesse nesta spec.
 - **FR-032**: O consumidor remoto torna o vazamento **pior**, e isto é requisito e não nota: o
   que sai por MCP pode ser cacheado e indexado do outro lado, fora do alcance de qualquer
   revogação. A regra é a da tela, aplicada com margem maior.
+- **FR-033** *(emenda de 2026-09-28, pedido da pessoa mantenedora: "atualize o mcp para saber a
+  coluna do quadro")*: cada tarefa de `team_open_work` diz **em que quadro ela está, e com que
+  valores**. Três regras, e cada uma recusa um atalho:
+  1. **por quadro, e nunca um só.** Uma issue pode estar em mais de um quadro (a Conecta Fapes
+     tem dois, e medido em dev em 2026-09-28 são quatro com o nome dela), e cada um diz a sua
+     coluna. A resposta traz a lista, e não escolhe;
+  2. **todos os campos de seleção única do quadro, e não "o" campo da coluna.** `Status` não é
+     nome reservado, e a tela do quadro já o diz: um quadro tem vários campos assim (medido:
+     Status, Squad, Area, Priority, Repositório e Story Points no quadro Conecta Fapes).
+     Escolher o campo pelo nome seria mapear por semelhança de nome;
+  3. **a fase só onde foi declarada.** O valor da coluna é **observado**. O que ele significa,
+     se alguém declarou pela feature 066 (`spo_item_phase_declarations`), vem ao lado como
+     **derivado**, com o conceito. Sem declaração, a fase vem `not_declared`, e nunca é inferida
+     do nome da opção: *"In Progress"* não vira *"em andamento"* sem que alguém tenha dito.
+
+  O mesmo campo entra em `GET /api/v1/teams/:id/measures`, em `open_by_person`, pela mesma
+  construção: a paridade das portas vale para o que elas afirmam, e não só para o veredito.
+  Nomes de quadro, de campo e de opção são escritos por pessoas na origem, e no MCP saem em
+  `untrusted_text`.
 
 ---
 
