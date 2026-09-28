@@ -384,7 +384,10 @@ defmodule TheBandWeb.Api.V1.PersonController do
       teams: Enum.map(EO.list_person_teams(tenant, pessoa.id), &equipe/1),
       roles: Enum.map(papeis, &papel/1),
       roles_note: if(papeis == [], do: @sem_papel),
-      account: conta(tenant, pessoa.id),
+      # **DENTRO do veredito** (#991). Até a v0.10.0 vinha para qualquer conta do tenant, e
+      # dizia se a pessoa tem conta na plataforma, qual, e quantas contas o tenant tem. A
+      # tela mostrava o e-mail. `null` sem alcance, como `work`, e a consulta nem roda.
+      account: if(ve?, do: conta(tenant, pessoa.id)),
       profile: perfil,
       profile_note: nota_do_perfil(ve?, perfil),
 
