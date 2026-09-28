@@ -79,3 +79,30 @@ scripts diverge, e a divergência aparece como "zero" no script que ficou para t
 
 Acrescentar um tipo de segredo ao sistema **exige** acrescentar seu padrão aqui — é o que a
 FR-014 quer dizer com *declarar o tipo antes de existir coluna para ele*.
+
+### Onde cada padrão é procurado — emenda de 2026-09-28, medida
+
+Cada padrão declara **onde** ele vale:
+
+| padrão | onde | por quê |
+|---|---|---|
+| token do GitHub (`gh[pousr]_…`, `github_pat_…`) | **em qualquer lugar** | o prefixo é o que o distingue: fora dele não há falso positivo |
+| chave de provedor de modelos (`sk-…`, `sk-proj-…`) | **em qualquer lugar** | idem |
+| token de sessão (43 caracteres base64url) | **só em `users.session_token`** | não tem prefixo |
+
+**A medição que obrigou a emenda.** Em 2026-09-28, no dump de desenvolvimento (327 MB), a regex
+genérica de 43 caracteres base64url casou **5 928** vezes, e só **2** eram token de sessão. As
+outras 5 926 eram `verification_components.phase`, `collected_verifications.phase`, caminhos
+de arquivo, payloads do GitHub e títulos. Uma varredura que sai sempre "achou" é uma varredura
+que ninguém lê: é o padrão largo que inventa. Os dois padrões com prefixo casaram **0** vezes no
+mesmo dump.
+
+**O custo, declarado.** Um token de sessão copiado para **outro** lugar (um log, um payload) não
+é achado pela forma. Quem fecha esse caminho é a US3 (o segredo não chega a registro), e não a
+varredura.
+
+**No modo `--dump`**, "a coluna" vem do cabeçalho de cada bloco `COPY tabela (colunas) FROM
+stdin;`, e o valor é casado só no campo daquela coluna.
+
+**Enquanto a US2 não estiver pronta, a varredura sai com `1`**, porque `users.session_token` está
+em texto claro por desenho. É o resultado certo, e o relatório diz qual coluna é.

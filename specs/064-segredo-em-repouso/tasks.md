@@ -25,7 +25,7 @@ A spec prioriza US1 (P1) → US2 (P2) → US3 (P3). As fases abaixo executam
 
 ## Fase 1 — Fundação
 
-- [ ] **T001** Declarar os padrões de segredo em um lugar só — [#866](https://github.com/The-Band-Solution/theband/issues/866)
+- [x] **T001** Declarar os padrões de segredo em um lugar só — [#866](https://github.com/The-Band-Solution/theband/issues/866) — *feita em 2026-09-28*
   - **Pronta quando**: o contrato em `contracts/varre-segredos.md` está escrito — e está
   - **Descrição**: `lib/the_band/segredo/padroes.ex`, com uma lista de `%{tipo, nome, regex, exemplo_valido}` cobrindo token do GitHub, chave de provedor de modelos e token de sessão. O `exemplo_valido` **não é enfeite**: é o material do controle positivo da T003. FR-014 exige declarar o tipo antes de existir coluna; padrão espalhado por script diverge, e a divergência aparece como "zero" no script que ficou para trás
   - **Feita quando**: nenhum outro arquivo do repositório define regex de segredo; cada padrão traz um exemplo que ele próprio casa
@@ -40,25 +40,25 @@ dump — e saber que a procura enxerga.
 
 **Teste independente da história**: varrer um dump e obter zero; plantar um valor e obter um.
 
-- [ ] **T002** Criar a tarefa de varredura — [#867](https://github.com/The-Band-Solution/theband/issues/867)
+- [x] **T002** Criar a tarefa de varredura — [#867](https://github.com/The-Band-Solution/theband/issues/867) — *feita em 2026-09-28*
   - **Pronta quando**: T001 concluída
   - **Descrição**: `lib/mix/tasks/the_band.varre_segredos.ex`, aceitando `--dump CAMINHO` **ou** `--banco`, e `--saida CAMINHO`. Sem argumento, recusa e explica — varrer "o que estiver por aí" é o padrão que acha o lugar errado. Os dois juntos também recusam. FR-008
   - **Feita quando**: `--dump` lê arquivo e relata por padrão; `--banco` varre as colunas de texto do banco configurado; o relatório nomeia **o que procurou**, e não só o que achou
   - **Teste**: `test/mix/tasks/varre_segredos_test.exs` — sem argumento, código de saída `3`; com os dois, `3`; com `--dump` de arquivo inexistente, `3`
 
-- [ ] **T003** Embutir o controle positivo na varredura — [#868](https://github.com/The-Band-Solution/theband/issues/868)
+- [x] **T003** Embutir o controle positivo na varredura — [#868](https://github.com/The-Band-Solution/theband/issues/868) — *feita em 2026-09-28*
   - **Pronta quando**: T002 concluída
   - **Descrição**: antes de relatar, a tarefa planta o `exemplo_valido` de cada padrão no material que vai varrer e confirma que o encontra. Em `--dump`, numa **cópia** do arquivo, apagada depois; em `--banco`, numa transação com `ROLLBACK` em `after` — nunca só no caminho feliz. Se o controle falhar, a tarefa **sai com 2** e não relata contagem. FR-009, e é a L104 virada em código
   - **Feita quando**: nenhum plantio toca o material original; o relatório traz a linha do controle positivo; um resultado "limpo" sem essa linha é impossível de produzir
   - **Teste**: `test/mix/tasks/varre_segredos_test.exs` — com um padrão cujo `exemplo_valido` foi adulterado para não casar, a saída é `2`, **não** `0`. É o teste que distingue esta tarefa de um `grep`
 
-- [ ] **T004** [P] Recusar imprimir o valor encontrado — [#869](https://github.com/The-Band-Solution/theband/issues/869)
+- [x] **T004** [P] Recusar imprimir o valor encontrado — [#869](https://github.com/The-Band-Solution/theband/issues/869) — *feita em 2026-09-28*
   - **Pronta quando**: T002 concluída
   - **Descrição**: ao achar, relatar tabela, coluna, deslocamento e **tamanho** — nunca o valor. Quem investiga vai ao lugar; a saída não vira mais uma cópia do segredo. Contrato, seção *O que a tarefa NUNCA faz*
   - **Feita quando**: nenhuma saída da tarefa contém o valor casado, em nenhum modo, nem em `--saida`
   - **Teste**: no mesmo arquivo — planta um valor conhecido, roda, e `refute saida =~ valor`, inclusive no arquivo de `--saida`
 
-- [ ] **T005** Varrer o banco de desenvolvimento e registrar — [#870](https://github.com/The-Band-Solution/theband/issues/870)
+- [x] **T005** Varrer o banco de desenvolvimento e registrar — [#870](https://github.com/The-Band-Solution/theband/issues/870) — *feita em 2026-09-28*
   - **Pronta quando**: T003 e T004 concluídas
   - **Descrição**: rodar `mix the_band.varre_segredos --banco --saida docs/seguranca/varreduras/`. FR-010 pede ato repetível **com registro datado**; sem o registro, ninguém sabe se a varredura anterior aconteceu
   - **Feita quando**: existe um relatório datado em `docs/seguranca/varreduras/`; o código de saída dele está no arquivo
