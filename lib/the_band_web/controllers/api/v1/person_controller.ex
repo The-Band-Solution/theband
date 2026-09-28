@@ -359,7 +359,7 @@ defmodule TheBandWeb.Api.V1.PersonController do
 
     organizacoes = EO.list_person_organizations(tenant, pessoa.id)
     # Sem alcance, o perfil nem é lido (H2-R).
-    perfil = if ve?, do: perfil_da_pessoa(tenant, pessoa.id)
+    perfil = com_alcance(ve?, fn -> perfil_da_pessoa(tenant, pessoa.id) end)
     papeis = EO.list_person_roles(tenant, pessoa.id)
 
     %{
@@ -387,7 +387,7 @@ defmodule TheBandWeb.Api.V1.PersonController do
       # **DENTRO do veredito** (#991). Até a v0.10.0 vinha para qualquer conta do tenant, e
       # dizia se a pessoa tem conta na plataforma, qual, e quantas contas o tenant tem. A
       # tela mostrava o e-mail. `null` sem alcance, como `work`, e a consulta nem roda.
-      account: if(ve?, do: conta(tenant, pessoa.id)),
+      account: com_alcance(ve?, fn -> conta(tenant, pessoa.id) end),
       profile: perfil,
       profile_note: nota_do_perfil(ve?, perfil),
 
@@ -397,8 +397,8 @@ defmodule TheBandWeb.Api.V1.PersonController do
       # integrou, e as discussões de que participou. `null` sem alcance, como `work`: não
       # é lista vazia, e a consulta nem roda.
       discussion_participation:
-        if(ve?,
-          do: %{
+        com_alcance(ve?, fn ->
+          %{
             items:
               Enum.map(
                 Discussions.participation_of(tenant, pessoa.id, limit: @discussoes),
@@ -406,10 +406,10 @@ defmodule TheBandWeb.Api.V1.PersonController do
               ),
             limit: @discussoes
           }
-        ),
-      changes: if(ve?, do: mudancas(tenant, pessoa.id)),
+        end),
+      changes: com_alcance(ve?, fn -> mudancas(tenant, pessoa.id) end),
       access: %{can_see_work: ve?, reason: if(not ve?, do: to_string(motivo))},
-      work: if(ve?, do: trabalho(tenant, pessoa.id, repositorios, observados))
+      work: com_alcance(ve?, fn -> trabalho(tenant, pessoa.id, repositorios, observados) end)
     }
   end
 
@@ -598,6 +598,12 @@ defmodule TheBandWeb.Api.V1.PersonController do
   #
   # UMA consulta: as contas do tenant vêm inteiras, e tanto "qual delas é esta pessoa"
   # quanto a cobertura saem delas em memória.
+  # O que só sai com o veredito: `null` sem alcance, e a consulta nem roda (FR-012h da 023).
+  # Um nome só para as cinco partes do corpo que seguem o veredito — perfil, trabalho, conta,
+  # mudanças, discussões —, em vez de um `if` por campo.
+  defp com_alcance(true, consulta), do: consulta.()
+  defp com_alcance(false, _consulta), do: nil
+
   defp conta(tenant, person_id) do
     contas = Tenants.list_users(tenant)
     minha = Enum.find(contas, &(&1.person_id == person_id and User.elo_vigente?(&1)))
