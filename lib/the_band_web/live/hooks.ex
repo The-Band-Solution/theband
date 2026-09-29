@@ -11,16 +11,16 @@ defmodule TheBandWeb.Live.Hooks do
   import Phoenix.Component
   import Phoenix.LiveView
 
-  alias TheBand.Tenants
   alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
+  alias TheBandWeb.Sessao
 
-  # Sete dias de inatividade encerram a sessão (assumption da spec 045).
-  @validade_dias 7
-
+  # A validade de 7 dias, o token e a época são conferidos em `TheBandWeb.Sessao`, o mesmo
+  # ponto que o plug usa (064, S6). Aqui ficavam uma validade contada do último login da conta
+  # (um login legítimo em outro aparelho estendia a sessão roubada) e uma comparação de token
+  # própria.
   def on_mount(:current_scope, _params, session, socket) do
-    with {:ok, user} <- buscar(session["user_id"]),
-         :ok <- token_confere(user, session["session_token"]),
+    with {:ok, _sessao, user} <- Sessao.conferir(session),
          # A ORGANIZAÇÃO SUSPENSA DERRUBA O LIVEVIEW TAMBÉM — achado H3, parte A.
          #
          # O plug cobre a requisição HTTP; esta hook cobre o socket. Sem as duas, a
@@ -29,8 +29,7 @@ defmodule TheBandWeb.Live.Hooks do
          :ok <- organizacao_ativa(user),
          # A conta desativada cai pelo mesmo caminho — H3, parte B. O plug cobre a
          # requisição; esta hook cobre o socket, e a plataforma inteira é LiveView.
-         :ok <- conta_ativa(user),
-         :ok <- dentro_da_validade(user) do
+         :ok <- conta_ativa(user) do
       case gate_de_senha(user, socket) do
         :ok ->
           # OS CAMPOS DE OBSERVABILIDADE no socket — achado H4.
@@ -65,14 +64,8 @@ defmodule TheBandWeb.Live.Hooks do
       # O MOTIVO REGISTRADO — achado H4. Os quatro caem no mesmo destino na tela, de
       # propósito; no log se distinguem, porque é onde a distinção serve a quem
       # reconstrói um incidente.
-      motivo ->
-        AccessEvents.sessao_derrubada(
-          session["user_id"],
-          nil,
-          if(is_atom(motivo), do: motivo, else: :sem_sessao)
-        )
-
-        {:halt, redirect(socket, to: "/sign-in")}
+      {:error, motivo, dona} ->
+        derrubar(socket, dona, motivo)
     end
   end
 
@@ -131,31 +124,19 @@ defmodule TheBandWeb.Live.Hooks do
     {:cont, assign(socket, :nav_area, TheBandWeb.Layouts.nav_area(URI.parse(uri).path))}
   end
 
-  defp buscar(nil), do: :sem_sessao
-  defp buscar(user_id), do: Tenants.fetch_user(user_id)
-
-  # O token é a versão da sessão (research R2): trocar a senha o gira, e toda
-  # sessão com o token antigo cai AQUI, na próxima ação — não no próximo login.
-  defp token_confere(%User{session_token: da_conta}, da_sessao)
-       when da_conta == da_sessao,
-       do: :ok
-
-  defp token_confere(_, _), do: :token_girado
+  defp derrubar(socket, dona, motivo) do
+    {user_id, tenant_id} = dona || {nil, nil}
+    AccessEvents.sessao_derrubada(user_id, tenant_id, motivo)
+    {:halt, redirect(socket, to: "/sign-in")}
+  end
 
   # `fetch_user/1` pré-carrega o tenant — nenhuma consulta a mais por mount.
+  # A recusa leva a dona: a sessão conferiu, e a conta é conhecida.
   defp conta_ativa(%User{disabled_at: nil}), do: :ok
-  defp conta_ativa(_), do: :conta_desativada
+  defp conta_ativa(%User{} = u), do: {:error, :conta_desativada, {u.id, u.tenant_id}}
 
   defp organizacao_ativa(%User{tenant: %{status: "active"}}), do: :ok
-  defp organizacao_ativa(_), do: :organizacao_suspensa
-
-  defp dentro_da_validade(%User{logged_in_at: nil}), do: :ok
-
-  defp dentro_da_validade(%User{logged_in_at: em}) do
-    if DateTime.diff(DateTime.utc_now(:second), em, :day) < @validade_dias,
-      do: :ok,
-      else: :expirada
-  end
+  defp organizacao_ativa(%User{} = u), do: {:error, :organizacao_suspensa, {u.id, u.tenant_id}}
 
   # Quem entrou com a temporária define a senha ANTES de qualquer tela (FR-013).
   defp gate_de_senha(%User{must_change_password: true}, socket)

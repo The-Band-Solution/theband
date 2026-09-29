@@ -126,13 +126,13 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
   - **Feita quando**: o bruto nunca é persistido; sessão encerrada, vencida ou de época velha não vale; `Tenants.disable_user` encerra as sessões da conta **na mesma transação** do episódio (S1)
   - **Teste**: `test/the_band/tenants/sessions_test.exs` — o bruto **não** aparece em coluna nenhuma (`refute` contra a tabela inteira); `conferir/2` com o resumo em vez do bruto recusa; sessão de 8 dias recusa; desativar e reativar não devolve a sessão; `FunctionClauseError` forçado no caminho do bruto não o imprime, e a reinjeção com binário nu **vaza**
 
-- [ ] **T012** Girar o token antigo de todas as contas — [#877](https://github.com/The-Band-Solution/theband/issues/877)
+- [x] **T012** Girar o token antigo de todas as contas — [#877](https://github.com/The-Band-Solution/theband/issues/877) — *feita em 2026-09-29*
   - **Pronta quando**: T011 concluída
   - **Descrição**: migração, **no mesmo deploy da T013**, que grava um valor aleatório novo em `users.session_token` de toda conta, em **SQL puro** (`gen_random_bytes`), sem parâmetro nem laço em Elixir — nada do valor passa pelo log do migrador (S11). A leitura nova não usa a coluna; o giro existe para um **rollback** do código não reabrir nenhum valor que já esteve num backup. **Decisão P1**: as sessões vivas não são migradas, e cada pessoa entra de novo uma vez, anunciado na nota da release. Fecha S7
   - **Feita quando**: nenhum valor de `users.session_token` anterior à migração existe depois dela; a migração é idempotente no efeito (rodar de novo gira de novo, e nada passa a valer)
   - **Teste**: `test/the_band_web/troca_de_sessao_test.exs` — cookie montado com o token de antes, migração aplicada, e a requisição vai a `/sign-in`, **tanto** pelo código novo **quanto** pela conferência antiga (a do rollback)
 
-- [ ] **T013** Ler a sessão pela nova tabela — [#878](https://github.com/The-Band-Solution/theband/issues/878)
+- [x] **T013** Ler a sessão pela nova tabela — [#878](https://github.com/The-Band-Solution/theband/issues/878) — *feita em 2026-09-29*
   - **Pronta quando**: T012 concluída
   - **Descrição**: `current_scope.ex` e `hooks.ex` passam a chamar `Sessions.conferir/2` — **o mesmo ponto**, para a validade valer no plug também (S6). `session_controller.ex` abre sessão por `Sessions.abrir/1` e põe o id e o bruto no cookie; `delete/2` chama `Sessions.encerrar/1` antes de soltar o cookie (S5); `set_password` usa a mesma conferência, e não comparação de campo própria (S3). As definições de senha encerram as outras sessões da conta. `test/support/conn_case.ex` abre sessão por `Sessions`. A recusa continua sendo a mensagem única, sem distinguir motivo na tela — os motivos seguem no log, como hoje. Fecha S1, S3, S5, S6
   - **Feita quando**: as cinco formas de encerrar (sair, definir senha, desativar, giro, validade) valem no servidor; a tela não diz qual delas foi; nenhum código em `lib/` lê `users.session_token`

@@ -65,8 +65,11 @@ defmodule TheBand.Tenants.SessionsTest do
   describe "conferir/2" do
     test "a sessão recém-aberta vale", %{alvo: alvo} do
       {:ok, {sessao, segredo}} = Sessions.abrir(alvo)
-      assert {:ok, %UserSession{id: id}} = Sessions.conferir(sessao.id, segredo)
+      assert {:ok, %UserSession{id: id}, %User{} = user} = Sessions.conferir(sessao.id, segredo)
       assert id == sessao.id
+      assert user.id == alvo.id
+      # O tenant vem pré-carregado: quem chama não busca a conta de novo.
+      assert user.tenant.id == alvo.tenant_id
     end
 
     test "o resumo no lugar do bruto é recusado — é o que o dump entrega", %{alvo: alvo} do
@@ -110,7 +113,7 @@ defmodule TheBand.Tenants.SessionsTest do
       envelhecer(nova, 6)
 
       assert {:error, :vencida} = Sessions.conferir(velha.id, segredo_velho)
-      assert {:ok, _} = Sessions.conferir(nova.id, segredo_novo)
+      assert {:ok, _, _} = Sessions.conferir(nova.id, segredo_novo)
 
       # Um login novo na conta não estende a sessão velha: a validade não é por conta.
       Repo.update_all(from(u in User, where: u.id == ^alvo.id),
@@ -151,7 +154,7 @@ defmodule TheBand.Tenants.SessionsTest do
       assert {:ok, 2} = Sessions.encerrar_da_conta(ctx.tenant.id, ctx.alvo.id)
       assert Repo.get!(UserSession, a.id).ended_at
       assert Repo.get!(UserSession, b.id).ended_at
-      assert {:ok, _} = Sessions.conferir(do_admin.id, sa)
+      assert {:ok, _, _} = Sessions.conferir(do_admin.id, sa)
     end
 
     test "girar_todas encerra de todos os tenants", ctx do

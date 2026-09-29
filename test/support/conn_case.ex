@@ -4,6 +4,10 @@ defmodule TheBandWeb.ConnCase do
   use ExUnit.CaseTemplate
 
   alias Ecto.Adapters.SQL.Sandbox
+  alias TheBand.Repo
+  alias TheBand.Segredo
+  alias TheBand.Tenants.Sessions
+  alias TheBand.Tenants.User
 
   using do
     quote do
@@ -44,14 +48,19 @@ defmodule TheBandWeb.ConnCase do
 
   Atalho DE TESTE, e continua legítimo depois da feature 045 (research R10): o
   formulário de login tem testes próprios; os demais não pagam bcrypt por setup.
-  O atalho carrega o `session_token` da conta — a hook valida a versão da
-  sessão, e um teste que trocar a senha no meio precisa relogar, como um
-  navegador precisaria.
+  Desde a 064 (T013), o atalho abre uma sessão **de verdade** por `Sessions.abrir/1`, e o
+  cookie leva o que o de produção leva. Um atalho que só pusesse campos no cookie deixaria os
+  testes passarem por um caminho que produção não tem. A conta é relida para a sessão nascer
+  com a época atual: um teste que trocar a senha no meio precisa relogar, como um navegador
+  precisaria.
   """
   def log_in(conn, user) do
+    user = Repo.get!(User, user.id)
+    {:ok, {sessao, segredo}} = Sessions.abrir(user)
+
     Plug.Test.init_test_session(conn, %{
-      "user_id" => user.id,
-      "session_token" => user.session_token
+      "session_id" => sessao.id,
+      "session_secret" => Segredo.expor(segredo)
     })
   end
 

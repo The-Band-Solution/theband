@@ -73,16 +73,16 @@ defmodule TheBand.Tenants.Sessions do
   Ausência é recusa por cabeça de função, e nunca `raise` (S4): um cookie sem id, sem token, ou
   com o token como binário nu é `:malformado`.
   """
-  @spec conferir(term(), term()) :: {:ok, UserSession.t()} | {:error, motivo()}
+  @spec conferir(term(), term()) :: {:ok, UserSession.t(), User.t()} | {:error, motivo()}
   def conferir(id, segredo) when is_binary(id) do
     with true <- Segredo.segredo?(segredo) || :malformado,
          {:ok, uuid} <- Ecto.UUID.cast(id),
-         {%UserSession{} = sessao, epoca_atual} <- por_id(uuid),
+         {%UserSession{} = sessao, %User{} = user} <- por_id(uuid),
          true <- confere?(sessao, segredo) || :resumo_errado,
          :ok <- aberta(sessao),
          :ok <- no_prazo(sessao),
-         :ok <- mesma_epoca(sessao, epoca_atual) do
-      {:ok, sessao}
+         :ok <- mesma_epoca(sessao, user.password_epoch) do
+      {:ok, sessao, Repo.preload(user, :tenant)}
     else
       :error -> {:error, :malformado}
       nil -> {:error, :inexistente}
@@ -91,6 +91,25 @@ defmodule TheBand.Tenants.Sessions do
   end
 
   def conferir(_id, _segredo), do: {:error, :malformado}
+
+  @doc """
+  De quem é a sessão, para o log de uma recusa (achado H4: a queda diz de quem era).
+
+  Só depois de uma recusa, e só pela chave primária. Nunca serve para decidir acesso: quem decide
+  é `conferir/2`.
+  """
+  @spec dona(term()) :: {Ecto.UUID.t(), Ecto.UUID.t()} | nil
+  def dona(id) when is_binary(id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, uuid} ->
+        Repo.one(from(s in UserSession, where: s.id == ^uuid, select: {s.user_id, s.tenant_id}))
+
+      :error ->
+        nil
+    end
+  end
+
+  def dona(_), do: nil
 
   @doc "Encerra aquela sessão. Encerrar de novo não muda a data do primeiro encerramento."
   @spec encerrar(UserSession.t()) :: :ok
@@ -136,15 +155,17 @@ defmodule TheBand.Tenants.Sessions do
     {:ok, n}
   end
 
-  # A época da conta vem na mesma consulta. Duas leituras deixariam uma senha definida entre
-  # elas passar.
+  # A conta vem na mesma consulta, e com ela a época. Duas leituras deixariam uma senha definida
+  # entre elas passar. E é a conta que quem chama usa: a sessão e a decisão saem da mesma linha.
+  # O tenant é pré-carregado depois, e o total fica em duas consultas por requisição, as mesmas
+  # que `Tenants.fetch_user/1` fazia antes da T013.
   defp por_id(uuid) do
     Repo.one(
       from(s in UserSession,
         join: u in User,
         on: u.id == s.user_id and u.tenant_id == s.tenant_id,
         where: s.id == ^uuid,
-        select: {s, u.password_epoch}
+        select: {s, u}
       )
     )
   end

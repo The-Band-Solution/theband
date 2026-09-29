@@ -2,9 +2,10 @@ defmodule TheBandWeb.SessionController do
   @moduledoc """
   Entrada, saída e a definição forçada de senha — feature 045 (US1).
 
-  A sessão guarda `user_id` E `session_token`: o token é a versão da sessão
-  (research R2) — trocar a senha o gira, e as outras sessões caem na hook.
-  Por isso os dois POSTs daqui reescrevem o token na sessão que fica.
+  Desde a 064 (T013), cada entrada abre uma linha em `user_sessions`, e o cookie leva o id dela
+  e o token bruto; o banco guarda só o resumo. Definir a senha sobe a época e encerra as sessões
+  da conta, e por isso os dois POSTs de senha daqui abrem uma sessão nova para quem fica.
+  Quem lê e escreve o cookie é `TheBandWeb.Sessao`.
 
   A recusa de login é UMA frase (FR-002), e o `{:throttled, _}` mostra a MESMA:
   distinguir daria ao ataque o relógio que a espera crescente existe para tirar.
@@ -13,6 +14,8 @@ defmodule TheBandWeb.SessionController do
   use TheBandWeb, :controller
 
   alias TheBand.Tenants
+  alias TheBand.Tenants.Sessions
+  alias TheBandWeb.Sessao
 
   # A recusa única da 045 (FR-002 de lá): byte-idêntica entre identificador
   # inexistente, senha errada e conta sem senha — provada em login_test.exs por
@@ -26,9 +29,7 @@ defmodule TheBandWeb.SessionController do
         destino = get_session(conn, :redirect_to) || ~p"/people"
 
         conn
-        |> configure_session(renew: true)
-        |> put_session(:user_id, user.id)
-        |> put_session(:session_token, user.session_token)
+        |> Sessao.abrir(user)
         |> delete_session(:redirect_to)
         |> redirect(to: if(user.must_change_password, do: ~p"/set-password", else: destino))
 
@@ -37,7 +38,11 @@ defmodule TheBandWeb.SessionController do
     end
   end
 
+  # SAIR ENCERRA NO SERVIDOR — 064, achado S5. Antes, sair só apagava o cookie local, e uma
+  # cópia do cookie feita antes continuava valendo.
   def delete(conn, _params) do
+    if sessao = conn.assigns[:current_session], do: Sessions.encerrar(sessao)
+
     conn
     |> configure_session(drop: true)
     |> redirect(to: ~p"/sign-in")
@@ -53,9 +58,7 @@ defmodule TheBandWeb.SessionController do
     case Tenants.change_password(user.tenant, user.id, atual, nova) do
       {:ok, atualizada} ->
         conn
-        |> configure_session(renew: true)
-        |> put_session(:user_id, atualizada.id)
-        |> put_session(:session_token, atualizada.session_token)
+        |> Sessao.abrir(atualizada)
         |> put_flash(
           :info,
           dgettext("sistema", "Senha trocada. As outras sessões foram encerradas.")
@@ -81,9 +84,11 @@ defmodule TheBandWeb.SessionController do
   SESSÃO precisa receber o token novo — LiveView não escreve cookie de sessão.
   """
   def set_password(conn, %{"password" => senha, "password_confirmation" => confirmacao}) do
-    with user_id when is_binary(user_id) <- get_session(conn, :user_id),
-         {:ok, user} <- Tenants.fetch_user(user_id),
-         true <- user.session_token == get_session(conn, :session_token),
+    # A MESMA CONFERÊNCIA DO RESTO DA PLATAFORMA — 064, achado S3. Aqui havia uma comparação
+    # de campo própria, `user.session_token == get_session(...)`, que era uma segunda porta: sem
+    # ela, `nil == nil` numa conta sem token deixaria definir a senha de outra pessoa com um
+    # cookie velho. `current_user` só existe se o plug conferiu a sessão.
+    with %{} = user <- conn.assigns[:current_user],
          # ESTA PORTA SERVE **SÓ** AO FLUXO DA TEMPORÁRIA — achado H1, 2026-09-09.
          #
          # Sem esta cláusula, quem alcança uma sessão válida por alguns minutos — o
@@ -118,9 +123,7 @@ defmodule TheBandWeb.SessionController do
     case Tenants.set_password(user.tenant, user.id, senha) do
       {:ok, atualizada} ->
         conn
-        |> configure_session(renew: true)
-        |> put_session(:user_id, atualizada.id)
-        |> put_session(:session_token, atualizada.session_token)
+        |> Sessao.abrir(atualizada)
         |> put_flash(:info, dgettext("sistema", "Senha definida."))
         |> redirect(to: ~p"/people")
 

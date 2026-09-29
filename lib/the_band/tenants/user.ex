@@ -132,11 +132,12 @@ defmodule TheBand.Tenants.User do
   end
 
   @doc """
-  Desativa a conta — marca com autoria e data, e **gira o token de sessão**.
+  Desativa a conta — marca com autoria e data, e gira o token antigo.
 
-  O giro é o que faz a desativação valer **agora**: sem ele, a sessão aberta continuaria
-  servindo até expirar por inatividade, e "desativar" significaria "desativar daqui a
-  sete dias". É o mesmo mecanismo que `senha_changeset/3` usa, e pela mesma razão.
+  **Desde a 064 (T013), quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`**,
+  chamada na mesma transação por `Tenants.disable_user/4`: a sessão é lida de `user_sessions`, e
+  não mais desta coluna. O giro de `session_token` continua até a T014 remover a coluna, só para
+  um rollback do código não reabrir a sessão pela leitura antiga (achado S7).
   """
   @spec desativar_changeset(t(), Ecto.UUID.t()) :: Ecto.Changeset.t()
   def desativar_changeset(user, actor_id) do

@@ -6,9 +6,11 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   dicionário de processo (FR-027, constituição princípio V).
 
   A lacuna declarada da fundação — sessão por escolha, sem senha — fechou na
-  feature 045: a sessão nasce em `POST /session` com identificador e senha, e
-  carrega o `session_token` da conta. Token divergente aqui é senha trocada em
-  outro navegador (FR-015): a sessão cai como se não existisse.
+  feature 045: a sessão nasce em `POST /session` com identificador e senha.
+
+  Desde a 064 (T013), a sessão é uma linha de `user_sessions`, e a conferência é de
+  `TheBandWeb.Sessao`, o mesmo ponto que a hook usa. A validade de 7 dias passou a valer aqui
+  também: antes ela vivia só na hook, e `POST /profile/password` aceitava sessão vencida (S6).
   """
 
   use Gettext, backend: TheBandWeb.Gettext
@@ -19,21 +21,21 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   alias TheBand.Tenants
   alias TheBand.Tenants.AccessEvents
   alias TheBand.Tenants.User
+  alias TheBandWeb.Sessao
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    case get_session(conn, :user_id) do
-      nil ->
-        assign(conn, :current_user, nil) |> assign(:current_tenant, nil)
+    case Sessao.conferir(get_session(conn)) do
+      {:ok, sessao, user} ->
+        com_sessao_valida(conn, sessao, user)
 
-      user_id ->
-        case Tenants.fetch_user(user_id) do
-          {:ok, user} -> com_token_valido(conn, user)
-          # Conta que não existe mais: a sessão aponta para uma linha que sumiu. Não há
-          # `user` para nomear, e o log diz isso em vez de omitir a linha.
-          {:error, :not_found} -> sem_sessao(conn, nil, :conta_inexistente)
-        end
+      # Sem sessão nenhuma no cookie é o visitante, e não uma queda: nada a registrar.
+      {:error, :sem_sessao, nil} ->
+        sem_sessao(conn)
+
+      {:error, motivo, dona} ->
+        sem_sessao(conn, dona, motivo)
     end
   end
 
@@ -43,7 +45,7 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   # tela — `/sign-in`, sem distinguir —, e é deliberado: quem foi devolvido à entrada não
   # recebe informação sobre o estado da conta. **No log eles se distinguem**, porque é onde
   # a distinção serve a quem reconstrói um incidente.
-  defp com_token_valido(conn, user) do
+  defp com_sessao_valida(conn, sessao, user) do
     # A ORGANIZAÇÃO SUSPENSA DERRUBA A SESSÃO — achado H3, parte A.
     #
     # Recusar quem entra não basta: quem já estava dentro continuaria dentro, e
@@ -51,14 +53,11 @@ defmodule TheBandWeb.Plugs.CurrentScope do
     # caminho do token girado — `sem_sessao/1` —, e de propósito: a pessoa é devolvida à
     # entrada sem que a tela diga qual das duas coisas aconteceu.
     cond do
-      user.session_token != get_session(conn, :session_token) ->
-        sem_sessao(conn, user, :token_girado)
-
       not organizacao_ativa?(user) ->
-        sem_sessao(conn, user, :organizacao_suspensa)
+        sem_sessao(conn, {user.id, user.tenant_id}, :organizacao_suspensa)
 
       not User.ativa?(user) ->
-        sem_sessao(conn, user, :conta_desativada)
+        sem_sessao(conn, {user.id, user.tenant_id}, :conta_desativada)
 
       true ->
         # OS CAMPOS DE OBSERVABILIDADE, uma vez por requisição — `AGENTS.md` §15.
@@ -71,6 +70,8 @@ defmodule TheBandWeb.Plugs.CurrentScope do
         conn
         |> assign(:current_user, user)
         |> assign(:current_tenant, user.tenant)
+        # Para sair encerrar ESTA sessão no servidor (S5), e não só apagar o cookie.
+        |> assign(:current_session, sessao)
     end
   end
 
@@ -78,17 +79,18 @@ defmodule TheBandWeb.Plugs.CurrentScope do
   defp organizacao_ativa?(%{tenant: %{status: status}}), do: status == "active"
   defp organizacao_ativa?(_), do: false
 
-  defp sem_sessao(conn, user, motivo) do
-    AccessEvents.sessao_derrubada(user && user.id, user && user.tenant_id, motivo)
+  defp sem_sessao(conn, dona, motivo) do
+    {user_id, tenant_id} = dona || {nil, nil}
+    AccessEvents.sessao_derrubada(user_id, tenant_id, motivo)
     sem_sessao(conn)
   end
 
   defp sem_sessao(conn) do
     conn
-    |> delete_session(:user_id)
-    |> delete_session(:session_token)
+    |> Sessao.soltar()
     |> assign(:current_user, nil)
     |> assign(:current_tenant, nil)
+    |> assign(:current_session, nil)
   end
 
   @doc "Exige sessão iniciada — e guarda o destino para depois da entrada (FR-005)."

@@ -7,21 +7,26 @@ defmodule TheBandWeb.CookieDeSessaoEvidenciaTest do
   arquivo existe porque leitura de código é o que me levou ao erro da primeira vez: aqui cada
   frase da correção vira um teste que passa ou falha.
 
-  As quatro afirmações sob teste:
+  **Reescrito na T013 (2026-09-29).** A afirmação 3 media a severidade: com o valor do banco e a
+  chave real, a sessão forjada **era aceita**. Agora ela mede a correção: o que o banco guarda,
+  mesmo com a chave real, **não abre**. E tem o par positivo, sem o qual o "não abre" não
+  mediria nada: o bruto, com a mesma chave, abre.
 
     1. o cookie de sessão é **assinado, não cifrado** — o conteúdo se lê sem chave nenhuma;
-    2. ter o valor do banco **não basta**: sem a chave, a sessão forjada é recusada;
-    3. ter o valor do banco **com** a chave **basta**: a sessão forjada é aceita — é a
-       severidade real, e ela não é zero;
-    4. o `session_token` **não gira no login**, que é o que impede resumi-lo como está.
+    2. sem a chave, nem o bruto abre sessão;
+    3. com a chave real, **o que o banco guarda não abre**; o bruto, que só o cookie tem, abre;
+    4. cada entrada abre uma sessão **nova**, com token próprio, e não derruba as outras.
   """
 
   use TheBandWeb.ConnCase, async: true
 
   alias Plug.Crypto.KeyGenerator
   alias Plug.Crypto.MessageVerifier
+  import Ecto.Query, only: [from: 2]
+
+  alias TheBand.Repo
   alias TheBand.Tenants
-  alias TheBand.Tenants.Auth
+  alias TheBand.Tenants.Schemas.UserSession
 
   @salt_de_assinatura "uG5K6D7b"
   @senha "senha-de-teste-longa"
@@ -35,8 +40,7 @@ defmodule TheBandWeb.CookieDeSessaoEvidenciaTest do
         "role" => "member"
       })
 
-    # A senha é definida aqui porque o `session_token` só existe depois de a conta ter
-    # passado por um ato que o gere — e é o token que estes testes medem.
+    # A senha é definida aqui para a entrada de verdade poder abrir a sessão.
     {:ok, user} = Tenants.set_password(tenant, user.id, @senha)
 
     {:ok, tenant: tenant, user: user}
@@ -62,98 +66,102 @@ defmodule TheBandWeb.CookieDeSessaoEvidenciaTest do
 
   defp com_cookie(conn, valor), do: put_req_header(conn, "cookie", "_the_band_key=#{valor}")
 
+  # O que um dump de `user_sessions` entrega: o id e o resumo. Nada mais.
+  defp do_banco(user) do
+    Repo.one!(
+      from(s in UserSession,
+        where: s.user_id == ^user.id and is_nil(s.ended_at),
+        order_by: [desc: s.inserted_at],
+        limit: 1
+      )
+    )
+  end
+
+  # Abre a sessão pela entrada de verdade, e devolve o que o cookie leva.
+  defp entrar(user) do
+    conn = post(build_conn(), ~p"/session", %{"identifier" => user.email, "password" => @senha})
+    {get_session(conn, "session_id"), get_session(conn, "session_secret")}
+  end
+
   describe "afirmação 1 — o cookie é ASSINADO, e não cifrado" do
     test "o conteúdo se lê sem chave nenhuma", %{user: user} do
-      cookie =
-        cookie_forjado(
-          %{"user_id" => user.id, "session_token" => user.session_token},
-          chave_real()
-        )
+      {id, bruto} = entrar(user)
+      cookie = cookie_forjado(%{"session_id" => id, "session_secret" => bruto}, chave_real())
 
       # `MessageVerifier.sign` produz "cabecalho.payload.assinatura" (plug_crypto
-      # `hmac_sha2_sign/3`). O MEIO é Base64 do termo, **sem cifra nenhuma**: decodifica
-      # com uma linha, sem chave, sem segredo.
+      # `hmac_sha2_sign/3`). O MEIO é Base64 do termo, **sem cifra nenhuma**.
       ["SFMyNTY", payload, _assinatura] = String.split(cookie, ".", parts: 3)
-      {:ok, bruto} = Base.url_decode64(payload, padding: false)
-      lido = Plug.Crypto.non_executable_binary_to_term(bruto, [:safe])
+      {:ok, termo} = Base.url_decode64(payload, padding: false)
+      lido = Plug.Crypto.non_executable_binary_to_term(termo, [:safe])
 
-      # ISTO é o que "assinado, não cifrado" significa, e é verificável:
-      assert lido["session_token"] == user.session_token
-      assert lido["user_id"] == user.id
+      assert lido["session_secret"] == bruto
+      assert lido["session_id"] == id
     end
   end
 
-  describe "afirmação 2 — o valor do banco SOZINHO não abre sessão" do
+  describe "afirmação 2 — sem a chave, nem o bruto abre" do
     test "com a chave errada, a sessão forjada é recusada", %{conn: conn, user: user} do
-      # Quem leu o dump tem exatamente isto: o `session_token` e o `user_id`. Nada mais.
-      outra_chave = String.duplicate("x", 64)
+      {id, bruto} = entrar(user)
 
       cookie =
         cookie_forjado(
-          %{"user_id" => user.id, "session_token" => user.session_token},
-          outra_chave
+          %{"session_id" => id, "session_secret" => bruto},
+          String.duplicate("x", 64)
         )
 
       conn = conn |> com_cookie(cookie) |> get(~p"/people")
-
-      # Devolvido à entrada: a assinatura não confere, e o Plug descarta a sessão inteira.
       assert redirected_to(conn) == ~p"/sign-in"
     end
   end
 
-  describe "afirmação 3 — o valor do banco COM a chave abre" do
-    test "a sessão forjada com a chave real é aceita", %{conn: conn, user: user} do
+  describe "afirmação 3 — com a chave real, o que o BANCO guarda não abre" do
+    test "o id e o resumo, lidos do banco, com a chave real: recusado", %{conn: conn, user: user} do
+      entrar(user)
+      linha = do_banco(user)
+
+      # Quem leu o dump tem isto, nas duas formas em que o resumo pode ser escrito.
+      for resumo <- [linha.token_hash, Base.encode16(linha.token_hash, case: :lower)] do
+        cookie =
+          cookie_forjado(%{"session_id" => linha.id, "session_secret" => resumo}, chave_real())
+
+        conn = conn |> recycle() |> com_cookie(cookie) |> get(~p"/people")
+        assert redirected_to(conn) == ~p"/sign-in"
+      end
+
+      # E o cookie do formato antigo, com o que `users.session_token` guardava: também não.
+      antigo = Repo.get!(TheBand.Tenants.User, user.id).session_token
+
       cookie =
-        cookie_forjado(
-          %{"user_id" => user.id, "session_token" => user.session_token},
-          chave_real()
-        )
+        cookie_forjado(%{"user_id" => user.id, "session_token" => antigo}, chave_real())
+
+      assert redirected_to(conn |> recycle() |> com_cookie(cookie) |> get(~p"/people")) ==
+               ~p"/sign-in"
+    end
+
+    test "o par positivo: o bruto, com a mesma chave, abre", %{conn: conn, user: user} do
+      {id, bruto} = entrar(user)
+      cookie = cookie_forjado(%{"session_id" => id, "session_secret" => bruto}, chave_real())
 
       conn = conn |> com_cookie(cookie) |> get(~p"/people")
 
-      # NÃO foi devolvido à entrada. É a severidade real da FR-004: a coluna em claro é
-      # metade de uma credencial, e a outra metade vive no ambiente.
+      # Sem este, a recusa acima passaria também numa conferência que recusasse tudo.
       assert conn.status == 200
       assert conn.assigns.current_user.id == user.id
     end
-
-    test "e o que a FR-004 quer: com o RESUMO no lugar do bruto, não abre", %{
-      conn: conn,
-      user: user
-    } do
-      # Isto ANTECIPA o desenho do plano. Hoje o banco guarda o bruto; depois guardará o
-      # resumo. Quem ler o banco terá isto — e isto não serve nem com a chave real.
-      resumo = :crypto.hash(:sha256, user.session_token) |> Base.encode16(case: :lower)
-
-      cookie = cookie_forjado(%{"user_id" => user.id, "session_token" => resumo}, chave_real())
-
-      conn = conn |> com_cookie(cookie) |> get(~p"/people")
-
-      assert redirected_to(conn) == ~p"/sign-in"
-    end
   end
 
-  describe "afirmação 4 — o token NÃO gira no login" do
-    test "duas entradas seguidas devolvem o mesmo token", %{user: user} do
-      antes = user.session_token
+  describe "afirmação 4 — cada entrada abre uma sessão nova" do
+    test "duas entradas, dois tokens, e as duas valem", %{user: user} do
+      {id_a, bruto_a} = entrar(user)
+      {id_b, bruto_b} = entrar(user)
 
-      {:ok, primeira} = Auth.authenticate(user.email, @senha)
-      {:ok, segunda} = Auth.authenticate(user.email, @senha)
+      refute id_a == id_b
+      refute bruto_a == bruto_b
 
-      # É o que `auth.ex:190-192` diz por escrito, e o que impede resumir a coluna como
-      # está: um login novo precisaria do BRUTO para pôr no cookie, e o banco teria o
-      # resumo. Regenerar a cada login derrubaria as outras sessões.
-      assert primeira.session_token == antes
-      assert segunda.session_token == antes
-    end
-
-    test "mas a troca de senha gira — por isso a época precisa sobreviver ao plano",
-         %{tenant: tenant, user: user} do
-      antes = user.session_token
-
-      {:ok, depois} = Tenants.set_password(tenant, user.id, "outra-senha-bem-longa")
-
-      assert depois.session_token != antes
+      for {id, bruto} <- [{id_a, bruto_a}, {id_b, bruto_b}] do
+        cookie = cookie_forjado(%{"session_id" => id, "session_secret" => bruto}, chave_real())
+        assert build_conn() |> com_cookie(cookie) |> get(~p"/people") |> Map.get(:status) == 200
+      end
     end
   end
 end
