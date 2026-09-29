@@ -76,7 +76,10 @@ O backup só existe depois de restaurado uma vez. O ensaio:
 5. Derrubar a instância e o banco de ensaio.
 
 Falhou qualquer passo: o backup NÃO existe de verdade — resolver antes de qualquer
-release com dado real. Repetir o ensaio a cada mudança no desenho do backup, e no
+release com dado real.
+
+> **Numa restauração DE VERDADE, e não no ensaio, o último passo é o §10: encerrar
+> todas as sessões. É obrigatório** (feature 064, decisão P5), e o §10.1 diz por quê. Repetir o ensaio a cada mudança no desenho do backup, e no
 mínimo uma vez por mês (SC-006: a rotina roda 7 dias e a mais antiga restaura).
 
 ### Dry-run local (sem VPS — o teste da T006)
@@ -308,3 +311,74 @@ seguir em `Full (strict)`.
 
 Com os dois endereços medidos, marcar a **P1 da 050** como encerrada em
 `specs/050-em-producao/pendencias.md`, com a data e o que a substituiu.
+
+## §10 As sessões — o que uma restauração faz com elas, e como encerrar todas
+
+Feature 064 (US2, T015 e T016). Desde a T013, cada entrada abre uma linha em
+`user_sessions`, e o banco guarda **só o resumo** do token. O token que abre a sessão
+vive só no cookie do navegador.
+
+### §10.1 O que uma restauração faz com as sessões
+
+Restaurar um backup devolve as linhas de sessão **do instante da cópia**. São três casos:
+
+| a sessão foi… | depois de restaurar | por quê |
+|---|---|---|
+| aberta **depois** da cópia | **cai**, e a pessoa entra de novo | a linha não existe no banco restaurado |
+| aberta **antes** da cópia, e ainda dentro dos 7 dias | **continua valendo** | a linha voltou igual |
+| **encerrada entre a cópia e o desastre** | **VOLTA A VALER** | a linha voltou sem o `ended_at` |
+
+**O terceiro caso é o que surpreende, e é o perigoso.** As sessões encerradas nesse
+intervalo incluem as encerradas **por segurança**: alguém que saiu de um computador
+compartilhado, uma senha trocada por suspeita, uma conta desativada. A restauração as
+reabre sem ninguém ter pedido.
+
+**O mesmo vale para a senha.** Uma senha trocada depois da cópia volta a ser a
+antiga, porque o `password_hash` e a época também voltam.
+
+É por isso que o passo abaixo é **obrigatório** depois de toda restauração, e não
+recomendado.
+
+### §10.2 Encerrar todas as sessões
+
+> **Isto encerra a sessão de TODO MUNDO, em TODAS as organizações, inclusive a de
+> quem roda o comando.** Todas as pessoas precisam entrar de novo. Não há como
+> escolher quem fica.
+
+No contêiner do app, pelo Dokploy (*Advanced → Terminal*, ou `docker exec` no
+contêiner da aplicação):
+
+```bash
+/app/bin/the_band eval 'TheBand.Release.encerrar_todas_as_sessoes()'
+```
+
+A saída diz **quantas** sessões encerrou, e só o número:
+
+```
+7 sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.
+```
+
+O comando escreve `ended_at` em toda sessão aberta e **não apaga nada**. As linhas
+saem sozinhas 90 dias depois, pela retenção (T020). Rodar duas vezes não faz mal: a
+segunda encerra zero.
+
+**Quando rodar:**
+
+| situação | obrigatório? |
+|---|---|
+| **depois de restaurar um backup** | **sim** (§10.1, decisão P5) |
+| suspeita de que o `SECRET_KEY_BASE` vazou | recomendado. **Trocar a chave (§2) é o que protege**: todo cookie assinado com a antiga deixa de valer. A chave sozinha não abre sessão, porque o banco não tem o token bruto. Encerrar registra a queda em `ended_at` |
+| a varredura de segredos (`mix the_band.varre_segredos`, FR-010) achou um token de sessão | sim |
+| suspeita de sessão roubada, sem saber de quem | sim |
+| uma conta só | **não use isto.** Desativar a conta (`/accounts`) encerra as sessões dela, e reativar não as devolve |
+
+**Como conferir que funcionou:** abra a plataforma num navegador que estava logado.
+Ele precisa cair em `/sign-in`.
+
+### §10.3 O que isto não faz
+
+- **Não derruba um LiveView já conectado** até a próxima navegação (achado S14, baixo).
+  A primeira troca de tela, ou o recarregamento, já cai.
+- **Não troca a chave.** Se a suspeita é sobre o `SECRET_KEY_BASE`, trocá-la é um passo
+  separado, no §2.
+
