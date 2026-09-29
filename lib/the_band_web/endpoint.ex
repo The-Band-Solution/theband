@@ -8,8 +8,14 @@ defmodule TheBandWeb.Endpoint do
     store: :cookie,
     key: "_the_band_key",
     signing_salt: "uG5K6D7b",
-    same_site: "Lax"
+    same_site: "Lax",
+    # `Secure` em produção — issue #1008. O porquê está em `config/prod.exs`.
+    secure: Application.compile_env(:the_band, :cookie_de_sessao_seguro, false)
   ]
+
+  @doc false
+  # Para o teste conferir as opções da sessão com que o endpoint foi compilado.
+  def session_options, do: @session_options
 
   socket "/live", Phoenix.LiveView.Socket,
     websocket: [connect_info: [session: @session_options]],

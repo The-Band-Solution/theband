@@ -19,6 +19,17 @@ config :the_band, TheBandWeb.Endpoint,
     ]
   ]
 
+# O COOKIE DE SESSÃO SÓ VIAJA EM HTTPS — issue #1008, achado S15 da avaliação da US2 da 064.
+#
+# O `force_ssl` acima redireciona para HTTPS, mas o redirecionamento é a RESPOSTA à primeira
+# requisição. Sem `Secure`, o navegador manda o cookie nessa primeira requisição em HTTP, antes
+# de ser redirecionado, e o cookie passa em claro por quem estiver no caminho. É lido em tempo
+# de compilação, como o `force_ssl`, porque as opções da sessão são um atributo do endpoint.
+#
+# Só aqui: em desenvolvimento e teste não há HTTPS, e com `Secure` o navegador não guardaria o
+# cookie.
+config :the_band, :cookie_de_sessao_seguro, true
+
 # Do not print debug messages in production
 config :logger, level: :info
 
