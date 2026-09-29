@@ -114,7 +114,10 @@ config :the_band, Oban,
        # aceita (15 min): verificar com menos frequência faria "a cada 15 minutos" significar
        # outra coisa.
        {"*/5 * * * *", TheBand.Jobs.ScheduleDueSyncs},
-       {"0 3 1 * *", TheBand.Profiles.MonthlyWorker}
+       {"0 3 1 * *", TheBand.Profiles.MonthlyWorker},
+       # 064, T020, decisão P3: as sessões que deixaram de valer há 90 dias saem da tabela.
+       # Uma vez por dia basta, porque a retenção é medida em dias.
+       {"0 4 * * *", TheBand.Jobs.ApagaSessoesAntigas}
      ]}
   ]
 

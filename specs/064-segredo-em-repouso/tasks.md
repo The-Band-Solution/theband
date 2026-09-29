@@ -144,11 +144,11 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
   - **Feita quando**: a coluna não existe; nenhum código a referencia; `Padroes.todos/0` não declara mais o padrão da coluna
   - **Teste**: abrir sessão real, `pg_dump`, busca **literal** do bruto → 0 ocorrências; e o mesmo teste, antes da T014, acha o bruto de uma conta em `users.session_token` — sem o par, o 0 não mede nada
 
-- [ ] **T020** Apagar as sessões que deixaram de valer há 90 dias — [#1007](https://github.com/The-Band-Solution/theband/issues/1007)
+- [x] **T020** Apagar as sessões que deixaram de valer há 90 dias — [#1007](https://github.com/The-Band-Solution/theband/issues/1007) — *feita em 2026-09-29*
   - **Pronta quando**: T011 concluída
   - **Descrição**: job Oban diário que apaga de `user_sessions` a linha com `ended_at` há mais de 90 dias **ou** `inserted_at` há mais de 97 (7 de validade + 90). As duas condições: sessão vencida não escreve `ended_at`, e sem a segunda ela seria o registro permanente da FR-015. **Decisão P3**
   - **Feita quando**: o job está no `Oban.Plugins.Cron`; linha encerrada há 91 dias some, há 89 fica; sessão vencida sem `ended_at` também some
-  - **Teste**: `test/the_band/jobs/limpa_sessoes_test.exs` — as quatro bordas (89 e 91 dias por `ended_at`, 96 e 98 por `inserted_at`); e, com a segunda condição removida, a sessão vencida **fica**
+  - **Teste**: `test/the_band/jobs/apaga_sessoes_antigas_test.exs` — as quatro bordas (89 e 91 dias por `ended_at`, 96 e 98 por `inserted_at`); e, com a segunda condição removida, a sessão vencida **fica**
 
 ---
 
