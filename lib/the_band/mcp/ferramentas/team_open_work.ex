@@ -19,6 +19,7 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
   """
 
   alias TheBand.Ingestion
+  alias TheBand.MCP.Composicao
   alias TheBand.MCP.Envelope
   alias TheBand.MCP.TextoDeTerceiro
   alias TheBand.Ontology.SEON.EO
@@ -49,7 +50,13 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
         truncated: length(linhas(por_pessoa, quadros)) > @limite,
         limit: @limite
       },
-      composition: composicao(escopo),
+      composition:
+        Composicao.de(
+          escopo,
+          "Open work of the team's current members.",
+          "Open work of the current members of the team and of its parts, each person and " <>
+            "each task counted once."
+        ),
       window: nil,
       origin: "observed",
       ressalvas: {:medida, "flow.wip.count"},
@@ -57,23 +64,6 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
     ]
     |> Envelope.montar()
     |> Map.put(:state, "checked")
-  end
-
-  # `is_composed` REAL — a #987. A primeira versão gravava `false` fixo, e o envelope afirmava
-  # uma coisa falsa sobre a equipe. O escopo começa pela própria equipe, então mais de um
-  # elemento é ter partes com composição vigente.
-  #
-  # As notas são frases de tela, em inglês.
-  defp composicao([_so_a_equipe]),
-    do: %{is_composed: false, note: "Open work of the team's current members."}
-
-  defp composicao(_com_partes) do
-    %{
-      is_composed: true,
-      note:
-        "Open work of the current members of the team and of its parts, each person and " <>
-          "each task counted once. It is not the sum of the parts."
-    }
   end
 
   defp issue_ids(por_pessoa), do: for({_, tarefas} <- por_pessoa, t <- tarefas, do: t.issue_id)

@@ -19,7 +19,7 @@ defmodule TheBand.Profiles do
   """
 
   alias TheBand.Communication.Discussions
-  alias TheBand.Profiles.{GenerateWorker, Material}
+  alias TheBand.Profiles.{GenerateWorker, Material, TeamSkills}
   alias TheBand.Tenants.Tenant
 
   @topic "profiles"
@@ -32,6 +32,12 @@ defmodule TheBand.Profiles do
   """
   @spec subscribe(Tenant.t(), binary()) :: :ok | {:error, term()}
   defdelegate team_coverage(tenant, team_id), to: TheBand.Profiles.TeamSkills, as: :coverage
+
+  @doc "A cobertura sobre um escopo de equipes — `escopo:`, como a API `/measures` usa (#1016)."
+  @spec team_coverage(TheBand.Tenants.Tenant.t(), Ecto.UUID.t(), keyword()) :: map()
+  def team_coverage(tenant, team_id, opts),
+    do: TeamSkills.coverage(tenant, team_id, DateTime.utc_now(), opts)
+
   defdelegate team_evolution(tenant, team_id), to: TheBand.Profiles.TeamSkills, as: :evolution
   defdelegate team_summary(coverage), to: TheBand.Profiles.TeamSkills, as: :summary
 

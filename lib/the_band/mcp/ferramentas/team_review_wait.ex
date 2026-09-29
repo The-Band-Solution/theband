@@ -23,7 +23,9 @@ defmodule TheBand.MCP.Ferramentas.TeamReviewWait do
   """
 
   alias TheBand.Ingestion
+  alias TheBand.MCP.Composicao
   alias TheBand.MCP.Envelope
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Quality
   alias TheBand.Tenants.Tenant
 
@@ -36,12 +38,16 @@ defmodule TheBand.MCP.Ferramentas.TeamReviewWait do
     agora = DateTime.utc_now(:second)
     desde = DateTime.add(agora, -@janela_em_dias, :day)
 
+    # O ESCOPO DO ROSTER, como `team_roster` e `/measures` — #1016.
+    escopo = EO.team_roster_scope(tenant, equipe.id)
+
     # UMA a mais que o limite, para saber se cortou. Sem isso o corte é silencioso.
     carregadas =
       Quality.team_time_to_first_review(tenant, equipe.id,
         desde: desde,
         ate: agora,
-        limit: @limite + 1
+        limit: @limite + 1,
+        escopo: escopo
       )
 
     esperas = Enum.take(carregadas, @limite)
@@ -57,10 +63,13 @@ defmodule TheBand.MCP.Ferramentas.TeamReviewWait do
         truncated: length(carregadas) > @limite,
         limit: @limite
       },
-      composition: %{
-        is_composed: false,
-        note: "Change requests opened in the window by people who belonged to the team."
-      },
+      composition:
+        Composicao.de(
+          escopo,
+          "Change requests opened in the window by people who belonged to the team.",
+          "Change requests opened in the window by people who belonged to the team or to one " <>
+            "of its parts, each request counted once."
+        ),
       window: %{days: @janela_em_dias, from: desde, to: agora},
       origin: "derived",
       ressalvas: {:medida, "review.time_to_first_review.duration"},

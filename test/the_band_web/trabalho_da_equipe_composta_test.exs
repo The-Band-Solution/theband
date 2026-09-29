@@ -68,7 +68,49 @@ defmodule TheBandWeb.TrabalhoDaEquipeCompostaTest do
       ]
     )
 
+    # #1016: uma solicitação REVISADA de quem está só numa parte, e uma aguardando de quem está só
+    # na mãe. Contando só os diretos, a mãe teria uma e não duas.
+    revisada = solicitacao(ctx, 9871, bia, 5)
+    _aguardando = solicitacao(ctx, 9872, ana, 3)
+
+    {:ok, _} =
+      TheBand.Quality.Commands.record_evaluation(tenant, %{
+        collected_change_request_id: revisada.id,
+        state: "APPROVED",
+        author_login: "revisora",
+        author_type: "User",
+        external_submitted_at: DateTime.add(DateTime.utc_now(:second), -4, :day),
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PRR_9871"
+      })
+
+    # E uma tarefa PARADA de quem está só numa parte, para `team_stale_work`.
+    parada = issue(ctx, "I_bia_parada", [bia])
+
+    Repo.update_all(from(i in CollectedIssue, where: i.id == ^parada.id),
+      set: [external_created_at: DateTime.add(DateTime.utc_now(:second), -400, :day)]
+    )
+
     Map.merge(ctx, %{azul: azul, ana: ana, bia: bia, caio: caio})
+  end
+
+  defp solicitacao(ctx, numero, pessoa, dias_atras) do
+    {:ok, pr} =
+      TheBand.Changes.Commands.record_change_request(ctx.tenant, %{
+        observed_repository_id: ctx.repo_id,
+        number: numero,
+        title: "solicitação #{numero}",
+        state: "OPEN",
+        external_created_at: DateTime.add(DateTime.utc_now(:second), -dias_atras, :day),
+        author_login: pessoa.login,
+        author_person_id: pessoa.id,
+        source_system: "github",
+        source_instance: "https://github.com",
+        external_id: "PR_#{numero}"
+      })
+
+    pr
   end
 
   defp parte(ctx, nome) do
@@ -147,8 +189,13 @@ defmodule TheBandWeb.TrabalhoDaEquipeCompostaTest do
 
     # 3 pessoas distintas (Caio está em duas partes), 3 tarefas distintas.
     assert d["work"]["members"] == 3
-    assert d["work"]["open"] == 3
+    assert d["work"]["open"] == 4
     assert d["work"]["closed_in_window"] == 1
+
+    # #1016: os quatro blocos contam o mesmo conjunto.
+    assert d["skills"]["members"] == d["work"]["members"]
+    assert d["time_to_first_review"]["reviewed"]["count"] == 1
+    assert d["time_to_first_review"]["waiting"]["count"] == 1
 
     assert pessoas(d["open_by_person"], "person_id") ==
              Enum.sort([ctx.ana.id, ctx.bia.id, ctx.caio.id])
@@ -163,7 +210,7 @@ defmodule TheBandWeb.TrabalhoDaEquipeCompostaTest do
     assert r.state == "checked"
     assert r.composition.is_composed == true
     assert r.composition.note =~ "not the sum"
-    assert r.value.totals == %{members: 3, open: 3}
+    assert r.value.totals == %{members: 3, open: 4}
 
     assert pessoas(r.value.by_person, :person_id) ==
              Enum.sort([ctx.ana.id, ctx.bia.id, ctx.caio.id])
@@ -174,6 +221,25 @@ defmodule TheBandWeb.TrabalhoDaEquipeCompostaTest do
       })
 
     assert roster.composition.is_composed == r.composition.is_composed
+  end
+
+  test "#1016: team_review_wait e team_stale_work contam o roster e dizem is_composed: true",
+       ctx do
+    chamar = fn nome ->
+      Ferramentas.chamar(ctx.tenant, ctx.admin, nome, %{"team_id" => ctx.mae.id}, %{
+        token_public_id: "tb_1016"
+      })
+    end
+
+    revisao = chamar.("team_review_wait")
+    assert revisao.composition.is_composed == true
+    assert revisao.composition.note =~ "not the sum"
+    assert revisao.value.reviewed.count == 1
+    assert revisao.value.waiting.count == 1
+
+    paradas = chamar.("team_stale_work")
+    assert paradas.composition.is_composed == true
+    assert paradas.value.stale == 1
   end
 
   test "a parte sozinha continua contando só os dela, e a equipe simples diz is_composed: false",
