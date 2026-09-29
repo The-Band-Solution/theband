@@ -110,6 +110,13 @@ defmodule TheBandWeb.Router do
 
     get "/syncs", SyncController, :index
     match :*, "/syncs", SyncController, :nao_permitido
+
+    # O CAMINHO QUE NÃO EXISTE, no formato único — issue #943. **Por último**, para casar só o
+    # que nenhuma rota acima casou. É `404`, e não o `405` que o comentário de `/teams` recusa
+    # para o curinga: aqui o recurso não existe. Sem esta linha, a resposta era a página HTML
+    # do site. A raiz `/api/v1` também não é rota, e entra pela mesma porta.
+    match :*, "/", CaminhoController, :nao_encontrado
+    match :*, "/*caminho", CaminhoController, :nao_encontrado
   end
 
   # O servidor MCP — feature 062, T007.
