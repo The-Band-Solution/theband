@@ -444,9 +444,9 @@ defmodule TheBandWeb.Api.V1.TeamController do
     agora = DateTime.utc_now(:second)
     desde = DateTime.add(agora, -@janela_em_dias, :day)
 
-    # O ESCOPO DO ROSTER — a correção da #987. A equipe composta é a união distinta dela e das
-    # partes (spec 060, FR-056), a mesma definição de `members`. Antes, `work` e `open_by_person`
-    # contavam só os diretos, e o trabalho de quem está só numa parte não aparecia.
+    # O ESCOPO DO ROSTER, nos quatro blocos — #987 e #1016. A equipe composta é a união distinta
+    # dela e das partes (spec 060, FR-056), a mesma definição de `members`. Antes, cada bloco
+    # contava só os diretos, e a mesma resposta dizia dois números para "membros da equipe".
     escopo = EO.team_roster_scope(tenant, equipe.id)
     instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: desde, escopo: escopo)
     membros = EO.team_member_ids_at(tenant, equipe.id, agora, escopo: escopo)
@@ -460,11 +460,12 @@ defmodule TheBandWeb.Api.V1.TeamController do
       Quality.team_time_to_first_review(tenant, equipe.id,
         desde: desde,
         ate: agora,
-        limit: @limite_de_esperas + 1
+        limit: @limite_de_esperas + 1,
+        escopo: escopo
       )
 
     truncou? = length(carregadas) > @limite_de_esperas
-    cobertura = Profiles.team_coverage(tenant, equipe.id)
+    cobertura = Profiles.team_coverage(tenant, equipe.id, escopo: escopo)
 
     %{
       window: %{days: @janela_em_dias, from: desde, to: agora},

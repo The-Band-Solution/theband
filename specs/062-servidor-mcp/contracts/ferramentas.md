@@ -149,6 +149,12 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
 **Pessoa sem tarefa aberta não vira linha com zero**: ela não aparece em `by_person`, e
 `totals.members` diz quantas existem. Somar as duas leituras responderia outra pergunta.
 
+**`composition` diz a verdade, e a equipe composta conta o roster (emenda de 2026-09-29, #987 e
+#1016).** Vale igualmente para `team_review_wait` e `team_stale_work`, que também gravavam
+`is_composed: false` fixo e contavam só os membros diretos. As três ferramentas montam `composition`
+pelo mesmo módulo, `TheBand.MCP.Composicao`, a partir do escopo que usaram para contar. Assim, o
+envelope não pode afirmar uma composição diferente da contagem.
+
 **`composition` diz a verdade, e a equipe composta conta o roster (emenda de 2026-09-29, #987).**
 A primeira versão gravava `is_composed: false` **fixo**. Na `LEDS - ConectaFapes`, o
 `team_roster` dizia `true` e 48 membros, e o `team_open_work` dizia `false` e 31. Um agente que

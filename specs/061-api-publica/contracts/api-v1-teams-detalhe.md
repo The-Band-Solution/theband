@@ -240,9 +240,11 @@ definition of who belongs here, and every count uses it."*
 **Não é a soma das subequipes.** Somar as linhas das partes daria outro número sempre que alguém
 estivesse em duas.
 
-**O que ainda diverge:** `time_to_first_review` e `skills` continuam contando só os membros diretos,
-e `skills.members` pode diferir de `work.members` na mesma resposta. É a
-[#1016](https://github.com/The-Band-Solution/theband/issues/1016).
+**Os quatro blocos contam o mesmo conjunto** (emenda de 2026-09-29, #1016). `time_to_first_review`
+passa a contar as solicitações abertas por quem pertencia à equipe **ou a uma parte** na data da
+abertura. `skills` passa a contar a cobertura sobre o mesmo roster. Numa equipe composta,
+`work.members == skills.members`. Antes da #1016, os dois contavam só os membros diretos, e a mesma
+resposta dizia dois números para "membros da equipe".
 
 ### Duas medianas, e a razão medida
 
