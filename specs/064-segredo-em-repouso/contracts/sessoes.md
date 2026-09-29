@@ -16,7 +16,7 @@ velha, e ela já nasce recusada (S2, a corrida).
 O bruto é devolvido **como `Segredo.t()`** (S11), e só volta a ser binário no `put_session` da
 T013. Nunca é persistido e nunca é logado.
 
-## `conferir(id, Segredo.t()) :: {:ok, UserSession.t()} | {:error, motivo}`
+## `conferir(id, Segredo.t()) :: {:ok, UserSession.t(), User.t()} | {:error, motivo}`
 
 | motivo | quando |
 |---|---|
@@ -27,8 +27,12 @@ T013. Nunca é persistido e nunca é logado.
 | `:vencida` | `inserted_at` mais velho que **7 dias**, contados da abertura **desta** sessão, e não do último login da conta (S6, P2) |
 | `:epoca_velha` | `password_epoch` da linha diferente do de `users` |
 
-A busca é pela **chave primária** (S8, na forma da ADR 0010), e a época de `users` vem na mesma
-consulta, por junção. A ordem das cláusulas não muda a resposta: **quem chama trata todos os
+A busca é pela **chave primária** (S8, na forma da ADR 0010), e a conta vem na mesma consulta,
+por junção, com o tenant pré-carregado. **Emenda da T013:** a primeira versão devolvia só a
+sessão, e quem chamava buscava a conta de novo. A suíte mostrou o custo disso: uma consulta a
+mais por requisição, que reprovou o teto asserido do teste de custo. Com a conta vindo daqui,
+são duas consultas, as mesmas que `Tenants.fetch_user/1` fazia antes. A linha que decide e a
+conta que se usa passam a ser a mesma leitura. A ordem das cláusulas não muda a resposta: **quem chama trata todos os
 motivos como uma recusa só**. O motivo existe para o log interno, como em
 `ApiTokens.autenticar/1`.
 
@@ -51,10 +55,25 @@ definições de senha.
 Grava `ended_at` em toda sessão aberta, de todos os tenants. É o giro operacional (T016) e o
 passo **obrigatório** depois de restaurar um backup (P5).
 
+## `dona(id) :: {user_id, tenant_id} | nil` — acrescentada na T013
+
+Diz de quem é a sessão, **só para o log de uma recusa**. A queda precisa dizer de quem era, como
+diz hoje (achado H4). O `user_id` saiu do cookie, e sem esta função o log de uma sessão
+encerrada ou vencida sairia sem dono. **Nunca decide acesso.**
+
+## Quem chama, a partir da T013
+
+`TheBandWeb.Sessao` é o **único** leitor do cookie. O plug `CurrentScope`, a hook
+`:current_scope` e o `SessionController` passam por ele, e é por isso que a validade vale no plug
+também (S6). O cookie tem duas chaves, `"session_id"` e `"session_secret"`. `"user_id"` e
+`"session_token"` deixam de existir.
+
+As definições de senha (`Auth.set_password/3`, `change_password/4`, o reinício e o cadastro)
+chamam `encerrar_da_conta/2` depois de gravar. A época já derruba as sessões, e o `ended_at` é o
+registro disso (FR-015). A sessão de quem trocou a própria senha é reaberta pelo controller.
+
 ## O que o módulo NÃO faz, e por quê
 
 - **Não apaga.** Todo encerramento é `ended_at`. Apagar é da retenção, na T020, 90 dias depois.
-- **Não devolve o `user`.** Quem chama já busca a conta, com o tenant pré-carregado, e
-  duplicar essa leitura aqui criaria duas fontes para a mesma decisão.
 - **Não distingue a recusa para fora.** Os motivos acima são para o log. Na tela a queda é uma
   só, como hoje.
