@@ -108,13 +108,13 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
 > sessões vivas (T012); a decisão P1 trocou isso por **todos entram de novo**. Cada tarefa diz
 > os achados que fecha.
 
-- [ ] **T009** Criar a tabela de sessões — [#874](https://github.com/The-Band-Solution/theband/issues/874)
+- [x] **T009** Criar a tabela de sessões — [#874](https://github.com/The-Band-Solution/theband/issues/874) — *feita em 2026-09-29*
   - **Pronta quando**: [data-model.md](data-model.md) emendado — e está
   - **Descrição**: migração criando `user_sessions` com `tenant_id` e `user_id` não nulos, FK composta `(user_id, tenant_id) → users(id, tenant_id)` com `on_delete: :delete_all` (exige o índice único `users(id, tenant_id)`, criado na mesma migração), `token_hash` `bytea` **não nulo e único**, `password_epoch` não nulo, `inserted_at` e `ended_at`. **Sem `last_seen_at`** (P2, S10). Fecha S2 (a época mora na linha) e S9
   - **Feita quando**: os índices existem (único em `token_hash`; `user_id`; `tenant_id`; `ended_at`; `inserted_at`); o round trip funciona
   - **Teste**: `mix ecto.migrate` e `mix ecto.rollback`, ambos com saída `0`; dois registros com o mesmo `token_hash` levantam `Ecto.ConstraintError`; linha com `user_id` do tenant A e `tenant_id` de B levanta `Ecto.ConstraintError` — e, com a FK composta removida, **não** levanta (S9)
 
-- [ ] **T010** [P] Acrescentar a época de senha — [#875](https://github.com/The-Band-Solution/theband/issues/875)
+- [x] **T010** [P] Acrescentar a época de senha — [#875](https://github.com/The-Band-Solution/theband/issues/875) — *feita em 2026-09-29*
   - **Pronta quando**: nada além do repositório
   - **Descrição**: coluna `users.password_epoch`, `integer`, não nula, padrão `0`, incrementada **atomicamente** em toda definição de senha. **NÃO É SEGREDO, e o schema precisa dizer isso por escrito**: quem a lê não ganha nada, porque sozinha não abre sessão nenhuma. Research R2. Fecha S13
   - **Feita quando**: a coluna existe com padrão `0`; o `@moduledoc` ou o comentário de campo declara que ela não é segredo e por quê; incrementa nos **cinco** chamadores de `senha_changeset/3` (`auth.ex` primeira definição, troca própria, cadastro e reinício; `bootstrap.ex`)
