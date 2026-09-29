@@ -180,14 +180,14 @@ troca; uma de ontem, não; uma sem data aparece como **idade desconhecida**.
 
 ## Fase 6 — O que fica escrito
 
-- [ ] **T015** Documentar o efeito de uma restauração sobre as sessões — [#880](https://github.com/The-Band-Solution/theband/issues/880)
+- [x] **T015** Documentar o efeito de uma restauração sobre as sessões — [#880](https://github.com/The-Band-Solution/theband/issues/880) — *feita em 2026-09-29*
   - **Pronta quando**: T013 concluída — a resposta decorre do desenho
   - **Descrição**: seção no `docs/producao/runbook.md` com os três casos: sessão aberta **depois** do backup cai; aberta antes e ainda válida continua; **encerrada entre o backup e o desastre volta a valer** — o que mais surpreende. FR-013, research R5
   - **Feita quando**: os três casos estão escritos; o procedimento de restauração termina com o giro de sessões como passo **obrigatório** (P5)
   - **Teste**: revisão contra o código da T011 — alguém que nunca leu o runbook chega à resposta certa sobre os três casos em menos de um minuto. FR-013 e SC-006 são documento, e o teste é a leitura
   - **Emenda de 2026-09-28 (P5)**: depois de restaurar um backup, encerrar todas as sessões é passo **obrigatório** do procedimento, e não recomendado — as sessões que a restauração ressuscita são justamente as encerradas por segurança
 
-- [ ] **T016** [P] Escrever o procedimento de girar todas as sessões — [#881](https://github.com/The-Band-Solution/theband/issues/881)
+- [x] **T016** [P] Escrever o procedimento de girar todas as sessões — [#881](https://github.com/The-Band-Solution/theband/issues/881) — *feita em 2026-09-29*
   - **Pronta quando**: T011 concluída
   - **Descrição**: procedimento no runbook usando `Sessions.girar_todas/0`, com **quando** usá-lo: suspeita de exposição, depois da varredura de produção da FR-010, depois de uma restauração. Mecanismo é do plano; o ato é de quem opera — foi a separação que permitiu a T012 não derrubar ninguém
   - **Feita quando**: o procedimento existe e diz que ele **encerra a sessão de todo mundo**, sem eufemismo

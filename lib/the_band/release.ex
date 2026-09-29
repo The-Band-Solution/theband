@@ -26,6 +26,7 @@ defmodule TheBand.Release do
   """
 
   alias TheBand.Tenants.Bootstrap
+  alias TheBand.Tenants.Sessions
 
   @app :the_band
 
@@ -88,6 +89,33 @@ defmodule TheBand.Release do
   defp nome_da_variavel(:slug), do: "THE_BAND_TENANT_SLUG"
   defp nome_da_variavel(:email), do: "THE_BAND_ADMIN_EMAIL"
   defp nome_da_variavel(:senha), do: "THE_BAND_ADMIN_SENHA"
+
+  @doc """
+  **Encerra a sessão de todo mundo, em todas as organizações** — feature 064, T016.
+
+      /app/bin/the_band eval 'TheBand.Release.encerrar_todas_as_sessoes()'
+
+  Todas as pessoas, inclusive quem roda o comando, precisam entrar de novo. Os casos, e o
+  procedimento, estão em `docs/producao/runbook.md` §10. Depois de restaurar um backup, este
+  passo é **obrigatório** (decisão P5): a restauração devolve as sessões encerradas depois da
+  cópia, e as encerradas por segurança estão entre elas.
+
+  Escreve `ended_at` e não apaga nada. Diz quantas encerrou, e só o número: nem conta, nem
+  token.
+  """
+  def encerrar_todas_as_sessoes do
+    load_app()
+
+    for repo <- repos() do
+      {:ok, _, _} =
+        Ecto.Migrator.with_repo(repo, fn _ ->
+          {:ok, n} = Sessions.girar_todas()
+          IO.puts("#{n} sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.")
+        end)
+    end
+
+    :ok
+  end
 
   @doc """
   Desfaz até a versão dada. **Não é chamado automaticamente em lugar nenhum.**

@@ -68,6 +68,9 @@ encerrada ou vencida sairia sem dono. **Nunca decide acesso.**
 também (S6). O cookie tem duas chaves, `"session_id"` e `"session_secret"`. `"user_id"` e
 `"session_token"` deixam de existir.
 
+`TheBand.Release.encerrar_todas_as_sessoes/0` chama `girar_todas/0` dentro do release, onde não
+há `mix` (T016). O procedimento, com quando usá-lo, está em `docs/producao/runbook.md` §10.
+
 As definições de senha (`Auth.set_password/3`, `change_password/4`, o reinício e o cadastro)
 chamam `encerrar_da_conta/2` depois de gravar. A época já derruba as sessões, e o `ended_at` é o
 registro disso (FR-015). A sessão de quem trocou a própria senha é reaberta pelo controller.
