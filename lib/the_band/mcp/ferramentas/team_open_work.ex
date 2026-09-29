@@ -21,6 +21,7 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
   alias TheBand.Ingestion
   alias TheBand.MCP.Envelope
   alias TheBand.MCP.TextoDeTerceiro
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Ontology.SEON.SPO.ItemPhase
   alias TheBand.Tenants.Tenant
   alias TheBand.WorkItems.TeamWork
@@ -33,8 +34,11 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
   @spec responder(Tenant.t(), map()) :: map()
   def responder(%Tenant{} = tenant, equipe) do
     agora = DateTime.utc_now(:second)
-    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: agora)
-    por_pessoa = TeamWork.open_tasks_by_person(tenant, equipe.id, agora)
+    # O ESCOPO DO ROSTER, como `team_roster` e `/measures` — a correção da #987.
+    escopo = EO.team_roster_scope(tenant, equipe.id)
+    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: agora, escopo: escopo)
+    membros = EO.team_member_ids_at(tenant, equipe.id, agora, escopo: escopo)
+    por_pessoa = TeamWork.open_tasks_by_person(tenant, equipe.id, agora, membros)
     # FR-033: em que quadro cada tarefa está. Uma consulta para todas, e não uma por tarefa.
     quadros = ItemPhase.quadros_das_issues(tenant, issue_ids(por_pessoa))
 
@@ -45,7 +49,7 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
         truncated: length(linhas(por_pessoa, quadros)) > @limite,
         limit: @limite
       },
-      composition: %{is_composed: false, note: "Open work of the team's current members."},
+      composition: composicao(escopo),
       window: nil,
       origin: "observed",
       ressalvas: {:medida, "flow.wip.count"},
@@ -53,6 +57,23 @@ defmodule TheBand.MCP.Ferramentas.TeamOpenWork do
     ]
     |> Envelope.montar()
     |> Map.put(:state, "checked")
+  end
+
+  # `is_composed` REAL — a #987. A primeira versão gravava `false` fixo, e o envelope afirmava
+  # uma coisa falsa sobre a equipe. O escopo começa pela própria equipe, então mais de um
+  # elemento é ter partes com composição vigente.
+  #
+  # As notas são frases de tela, em inglês.
+  defp composicao([_so_a_equipe]),
+    do: %{is_composed: false, note: "Open work of the team's current members."}
+
+  defp composicao(_com_partes) do
+    %{
+      is_composed: true,
+      note:
+        "Open work of the current members of the team and of its parts, each person and " <>
+          "each task counted once. It is not the sum of the parts."
+    }
   end
 
   defp issue_ids(por_pessoa), do: for({_, tarefas} <- por_pessoa, t <- tarefas, do: t.issue_id)

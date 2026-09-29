@@ -225,6 +225,25 @@ declarada** pela 066 (`not_declared` quando não). Uma entrada por quadro, porqu
 pode estar em mais de um; `[]` quando em nenhum. A mesma construção serve o MCP, que marca os
 nomes em `untrusted_text`.
 
+### Numa equipe composta, `work` e `open_by_person` contam o roster (emenda de 2026-09-29, #987)
+
+**O defeito:** `work` e `open_by_person` contavam só os **membros diretos**. Na
+`LEDS - ConectaFapes` eram 31, e o roster tem 48, com 17 nas partes SQUAD BLUE, GREEN e PINK. O
+trabalho de quem está só numa parte não aparecia na equipe. A tela mede o fluxo da equipe composta
+pela **união** (spec 060, FR-056), e esta rota respondia outra pergunta com o mesmo nome.
+
+**Agora** os dois blocos usam o **escopo do roster** (`EO.team_roster_scope/2`): esta equipe e as
+partes com composição vigente, em **união distinta**. A pessoa em duas partes conta uma vez, e o
+item com dois responsáveis também. É a mesma definição de `members` desta página: *"There is one
+definition of who belongs here, and every count uses it."*
+
+**Não é a soma das subequipes.** Somar as linhas das partes daria outro número sempre que alguém
+estivesse em duas.
+
+**O que ainda diverge:** `time_to_first_review` e `skills` continuam contando só os membros diretos,
+e `skills.members` pode diferir de `work.members` na mesma resposta. É a
+[#1016](https://github.com/The-Band-Solution/theband/issues/1016).
+
 ### Duas medianas, e a razão medida
 
 **Esta foi a correção que a implementação impôs ao contrato.** A primeira versão desta

@@ -444,8 +444,13 @@ defmodule TheBandWeb.Api.V1.TeamController do
     agora = DateTime.utc_now(:second)
     desde = DateTime.add(agora, -@janela_em_dias, :day)
 
-    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: desde)
-    tarefas = TeamWork.open_tasks_by_person(tenant, equipe.id, agora)
+    # O ESCOPO DO ROSTER — a correção da #987. A equipe composta é a união distinta dela e das
+    # partes (spec 060, FR-056), a mesma definição de `members`. Antes, `work` e `open_by_person`
+    # contavam só os diretos, e o trabalho de quem está só numa parte não aparecia.
+    escopo = EO.team_roster_scope(tenant, equipe.id)
+    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: desde, escopo: escopo)
+    membros = EO.team_member_ids_at(tenant, equipe.id, agora, escopo: escopo)
+    tarefas = TeamWork.open_tasks_by_person(tenant, equipe.id, agora, membros)
     # FR-033 da 062: em que quadro cada tarefa está, pela mesma construção do MCP.
     quadros =
       ItemPhase.quadros_das_issues(tenant, for({_, l} <- tarefas, t <- l, do: t.issue_id))
