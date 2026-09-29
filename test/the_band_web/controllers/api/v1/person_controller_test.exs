@@ -136,19 +136,11 @@ defmodule TheBandWeb.Api.V1.PersonControllerTest do
         com_organizacao(ctx.tenant, p, "org#{i}")
       end
 
-      {:ok, agente} = Agent.start_link(fn -> 0 end)
-
-      :telemetry.attach(
-        "conta-consultas-pessoas",
-        [:the_band, :repo, :query],
-        fn _e, _m, _md, _cfg -> Agent.update(agente, &(&1 + 1)) end,
-        nil
-      )
-
-      ctx.conn |> get(~p"/api/v1/people") |> json_response(200)
-      :telemetry.detach("conta-consultas-pessoas")
-
-      consultas = Agent.get(agente, & &1)
+      # O CONTADOR ÚNICO — issue #978. A cópia local contava toda consulta do BEAM na janela.
+      consultas =
+        TheBand.ContadorDeConsultas.contar(fn ->
+          ctx.conn |> get(~p"/api/v1/people") |> json_response(200)
+        end)
 
       # PRIMEIRO: o contador contou alguma coisa. Se o nome do evento estiver errado ele
       # fica em zero, e `0 < 15` passaria para sempre, medindo nada. Um teto sozinho é a

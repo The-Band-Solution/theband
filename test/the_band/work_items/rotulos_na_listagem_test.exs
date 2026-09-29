@@ -162,28 +162,8 @@ defmodule TheBand.WorkItems.RotulosNaListagemTest do
 
   # Conta as consultas que `fun` dispara, por telemetria do Ecto — e não por tempo. Tempo
   # varia com a máquina e esconde o 1+N atrás de um banco rápido.
-  defp conta_consultas(fun) do
-    referencia = make_ref()
-    pai = self()
-
-    :telemetry.attach(
-      "conta-#{inspect(referencia)}",
-      [:the_band, :repo, :query],
-      fn _evento, _medidas, _meta, _cfg -> send(pai, {referencia, :consulta}) end,
-      nil
-    )
-
-    fun.()
-    :telemetry.detach("conta-#{inspect(referencia)}")
-
-    drenar(referencia, 0)
-  end
-
-  defp drenar(referencia, total) do
-    receive do
-      {^referencia, :consulta} -> drenar(referencia, total + 1)
-    after
-      0 -> total
-    end
-  end
+  # O CONTADOR ÚNICO — issue #978. A cópia local contava toda consulta do BEAM na janela, inclusive
+  # o tick do `Oban.Stager`, e reprovava por sorte com o código certo (L42). As exclusões vivem em
+  # `TheBand.ContadorDeConsultas`, num lugar só.
+  defp conta_consultas(fun), do: TheBand.ContadorDeConsultas.contar(fun)
 end

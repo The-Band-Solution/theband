@@ -516,28 +516,10 @@ defmodule TheBandWeb.FluxoPorPessoaTest do
     end
   end
 
-  defp contar_consultas(fun) do
-    ref = make_ref()
-    :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], &__MODULE__.contar/4, self())
-
-    try do
-      fun.()
-      drenar(0)
-    after
-      :telemetry.detach({__MODULE__, ref})
-    end
-  end
-
-  @doc false
-  def contar(_evento, _medidas, _meta, destino), do: send(destino, :consulta)
-
-  defp drenar(n) do
-    receive do
-      :consulta -> drenar(n + 1)
-    after
-      0 -> n
-    end
-  end
+  # O CONTADOR ÚNICO — issue #978. A cópia local contava toda consulta do BEAM na janela, inclusive
+  # o tick do `Oban.Stager`, e reprovava por sorte com o código certo (L42). As exclusões vivem em
+  # `TheBand.ContadorDeConsultas`, num lugar só.
+  defp contar_consultas(fun), do: TheBand.ContadorDeConsultas.contar(fun)
 
   describe "a previsão na tabela — as duas hipóteses (§3.5)" do
     test "a aba ABRE quando alguém tem previsão", ctx do
