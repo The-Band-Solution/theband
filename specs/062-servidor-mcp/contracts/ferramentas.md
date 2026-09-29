@@ -149,6 +149,18 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
 **Pessoa sem tarefa aberta não vira linha com zero**: ela não aparece em `by_person`, e
 `totals.members` diz quantas existem. Somar as duas leituras responderia outra pergunta.
 
+**`composition` diz a verdade, e a equipe composta conta o roster (emenda de 2026-09-29, #987).**
+A primeira versão gravava `is_composed: false` **fixo**. Na `LEDS - ConectaFapes`, o
+`team_roster` dizia `true` e 48 membros, e o `team_open_work` dizia `false` e 31. Um agente que
+cruzasse as duas concluiria que 17 pessoas não têm trabalho aberto, e as 78 tarefas de um membro da
+SQUAD BLUE não apareciam na LEDS.
+
+Agora `by_person` e `totals` usam o **escopo do roster** (`EO.team_roster_scope/2`): a equipe e as
+partes com composição vigente, em união distinta, como o `team_roster` e o `/measures`. `is_composed`
+é o real, e a nota diz que o número **não é a soma** das partes. É a regra da spec 060, FR-056, e a
+ontologia a sustenta: `eo.team_part_of_team` é parthood entre coletivos, e a equipe composta é o
+coletivo feito das partes.
+
 **`boards` — em que quadro a tarefa está, e com que valores (FR-033, 2026-09-28).**
 
 - **Uma entrada por quadro** em que a issue está observada, e `[]` quando ela não está em
