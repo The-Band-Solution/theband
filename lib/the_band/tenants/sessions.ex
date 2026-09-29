@@ -38,6 +38,10 @@ defmodule TheBand.Tenants.Sessions do
 
   @validade_em_dias 7
 
+  # Decisão P3 de 2026-09-28: a linha fica 90 dias depois de deixar de valer, para investigação,
+  # e então sai. Guardada para sempre, seria trilha de atividade de pessoa em todo backup.
+  @retencao_em_dias 90
+
   @type motivo ::
           :malformado | :inexistente | :resumo_errado | :encerrada | :vencida | :epoca_velha
 
@@ -119,6 +123,30 @@ defmodule TheBand.Tenants.Sessions do
     )
 
     :ok
+  end
+
+  @doc """
+  Apaga as sessões que deixaram de valer há mais de 90 dias — T020, decisão P3. É o **único**
+  caminho que apaga.
+
+  Duas condições, e não só a primeira: a sessão encerrada tem `ended_at`, e a que **venceu** sem
+  ninguém a encerrar não tem. Sem a segunda, a vencida ficaria para sempre, que é o registro
+  permanente da FR-015: foi a ausência de `cancelled_at` que tornou permanentes quatro jobs do
+  Oban, um deles com segredo.
+  """
+  @spec apagar_as_que_deixaram_de_valer(DateTime.t()) :: {:ok, non_neg_integer()}
+  def apagar_as_que_deixaram_de_valer(agora \\ DateTime.utc_now(:second)) do
+    encerrada_antes = DateTime.add(agora, -@retencao_em_dias, :day)
+    aberta_antes = DateTime.add(agora, -(@validade_em_dias + @retencao_em_dias), :day)
+
+    {n, _} =
+      Repo.delete_all(
+        from(s in UserSession,
+          where: s.ended_at < ^encerrada_antes or s.inserted_at < ^aberta_antes
+        )
+      )
+
+    {:ok, n}
   end
 
   @doc """
