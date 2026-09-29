@@ -103,41 +103,52 @@ assina o cookie**.
 entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
 `test/the_band_web/cookie_de_sessao_evidencia_test.exs`, afirmação 3.
 
-- [ ] **T009** Criar a tabela de sessões — [#874](https://github.com/The-Band-Solution/theband/issues/874)
-  - **Pronta quando**: [data-model.md](data-model.md) está escrito — e está
-  - **Descrição**: migração criando `user_sessions` com `user_id` (FK, `on_delete: :delete_all`), `token_hash` `bytea` **não nulo e único**, `inserted_at`, `last_seen_at` e `ended_at`. `bytea`, não texto: o resumo é binário, e hexadecimal dobraria o tamanho e convidaria comparação por `==` sobre string. `ended_at` **desde o primeiro dia** — é a FR-015 aplicada onde nasce, e não onde já falhou
-  - **Feita quando**: os índices existem (único em `token_hash`, `user_id`, `ended_at`); o round trip funciona
-  - **Teste**: `mix ecto.migrate` e `mix ecto.rollback`, ambos com saída `0`; inserir dois registros com o mesmo `token_hash` levanta `Ecto.ConstraintError`
+> **Emendada em 2026-09-28** pela avaliação de segurança [seguranca-us2.md](seguranca-us2.md)
+> (achados S1–S15) e pelas decisões P1–P6 da pessoa mantenedora. O desenho antigo migrava as
+> sessões vivas (T012); a decisão P1 trocou isso por **todos entram de novo**. Cada tarefa diz
+> os achados que fecha.
 
-- [ ] **T010** [P] Acrescentar a época de senha — [#875](https://github.com/The-Band-Solution/theband/issues/875)
+- [x] **T009** Criar a tabela de sessões — [#874](https://github.com/The-Band-Solution/theband/issues/874) — *feita em 2026-09-29*
+  - **Pronta quando**: [data-model.md](data-model.md) emendado — e está
+  - **Descrição**: migração criando `user_sessions` com `tenant_id` e `user_id` não nulos, FK composta `(user_id, tenant_id) → users(id, tenant_id)` com `on_delete: :delete_all` (exige o índice único `users(id, tenant_id)`, criado na mesma migração), `token_hash` `bytea` **não nulo e único**, `password_epoch` não nulo, `inserted_at` e `ended_at`. **Sem `last_seen_at`** (P2, S10). Fecha S2 (a época mora na linha) e S9
+  - **Feita quando**: os índices existem (único em `token_hash`; `user_id`; `tenant_id`; `ended_at`; `inserted_at`); o round trip funciona
+  - **Teste**: `mix ecto.migrate` e `mix ecto.rollback`, ambos com saída `0`; dois registros com o mesmo `token_hash` levantam `Ecto.ConstraintError`; linha com `user_id` do tenant A e `tenant_id` de B levanta `Ecto.ConstraintError` — e, com a FK composta removida, **não** levanta (S9)
+
+- [x] **T010** [P] Acrescentar a época de senha — [#875](https://github.com/The-Band-Solution/theband/issues/875) — *feita em 2026-09-29*
   - **Pronta quando**: nada além do repositório
-  - **Descrição**: coluna `users.password_epoch`, `integer`, não nula, padrão `0`. **NÃO É SEGREDO, e o schema precisa dizer isso por escrito**: quem a lê não ganha nada, porque sozinha não abre sessão nenhuma. Sem o comentário, alguém vai tomá-la por segredo e concluir coisas erradas sobre o desenho. Research R2
-  - **Feita quando**: a coluna existe com padrão `0`; o `@moduledoc` ou o comentário de campo declara que ela não é segredo e por quê
-  - **Teste**: round trip da migração; e `test/the_band/tenants/user_test.exs` confere que a época incrementa na troca de senha e **não** em login
+  - **Descrição**: coluna `users.password_epoch`, `integer`, não nula, padrão `0`, incrementada **atomicamente** em toda definição de senha. **NÃO É SEGREDO, e o schema precisa dizer isso por escrito**: quem a lê não ganha nada, porque sozinha não abre sessão nenhuma. Research R2. Fecha S13
+  - **Feita quando**: a coluna existe com padrão `0`; o `@moduledoc` ou o comentário de campo declara que ela não é segredo e por quê; incrementa nos **cinco** chamadores de `senha_changeset/3` (`auth.ex` primeira definição, troca própria, cadastro e reinício; `bootstrap.ex`)
+  - **Teste**: round trip da migração; `test/the_band/tenants/password_epoch_test.exs` confere o incremento em cada um dos cinco — **o reinício por quem administra primeiro**, porque é a ferramenta de expulsar conta comprometida — e que login **não** incrementa
 
 - [ ] **T011** Abrir, conferir e encerrar sessão — [#876](https://github.com/The-Band-Solution/theband/issues/876)
   - **Pronta quando**: T009 e T010 concluídas
-  - **Descrição**: `lib/the_band/tenants/sessions.ex` — `abrir/1` devolve `{sessão, token_bruto}` guardando só `sha256(bruto)`; `conferir/2` compara com `Plug.Crypto.secure_compare/2`; `encerrar/1` e `girar_todas/0` escrevem `ended_at`, nunca apagam. SHA-256 e **não bcrypt**: o token tem 32 bytes de entropia real, não há dicionário, e o custo do bcrypt viraria latência em toda requisição. Research R2
-  - **Feita quando**: o bruto nunca é persistido; sessão encerrada guarda a data e não volta a valer
-  - **Teste**: `test/the_band/tenants/sessions_test.exs` — o valor devolvido por `abrir/1` **não** aparece em nenhuma coluna (`refute` contra a tabela inteira); `conferir/2` com o resumo em vez do bruto recusa
+  - **Descrição**: `lib/the_band/tenants/sessions.ex`. `abrir/1` devolve `{sessão, Segredo.t()}` guardando só `sha256(bruto)` e a época lida na mesma leitura que conferiu a senha. `conferir/2` acha pela chave primária, compara o resumo por `secure_compare/2` em memória (forma da ADR 0010, S8), exige `ended_at` nulo, `inserted_at` a menos de **7 dias** e época igual à de `users`; ausência de qualquer parte é recusa por cabeça de função. `encerrar/1`, `encerrar_da_conta/2` e `girar_todas/0` escrevem `ended_at`, nunca apagam. SHA-256 e **não bcrypt**: 32 bytes de entropia real, e o custo do bcrypt viraria latência em toda requisição. Fecha S2, S4, S6, S8, S11
+  - **Feita quando**: o bruto nunca é persistido; sessão encerrada, vencida ou de época velha não vale; `Tenants.disable_user` encerra as sessões da conta **na mesma transação** do episódio (S1)
+  - **Teste**: `test/the_band/tenants/sessions_test.exs` — o bruto **não** aparece em coluna nenhuma (`refute` contra a tabela inteira); `conferir/2` com o resumo em vez do bruto recusa; sessão de 8 dias recusa; desativar e reativar não devolve a sessão; `FunctionClauseError` forçado no caminho do bruto não o imprime, e a reinjeção com binário nu **vaza**
 
-- [ ] **T012** Migrar as sessões vivas sem derrubar ninguém — [#877](https://github.com/The-Band-Solution/theband/issues/877)
+- [ ] **T012** Girar o token antigo de todas as contas — [#877](https://github.com/The-Band-Solution/theband/issues/877)
   - **Pronta quando**: T011 concluída
-  - **Descrição**: migração que insere uma linha em `user_sessions` por usuário com `session_token` não nulo, com `token_hash = sha256(session_token)`. O cookie de cada pessoa **já carrega o bruto**; na requisição seguinte ele é resumido e encontra a linha. FR-002, primeiro ramo — *continua valendo*. **Não gira nada**: os valores foram medidos num dump de desenvolvimento e só exploráveis com o `SECRET_KEY_BASE`; derrubar produção por medição feita fora dela seria agir por evidência que não existe lá
-  - **Feita quando**: há uma linha por sessão viva; nenhuma sessão aberta antes da migração é recusada depois dela
-  - **Teste**: `test/the_band_web/migracao_de_sessao_test.exs` — monta um cookie com o token de antes, roda a migração, e a mesma requisição continua devolvendo `200`. É a FR-002 medida, não afirmada
+  - **Descrição**: migração, **no mesmo deploy da T013**, que grava um valor aleatório novo em `users.session_token` de toda conta, em **SQL puro** (`gen_random_bytes`), sem parâmetro nem laço em Elixir — nada do valor passa pelo log do migrador (S11). A leitura nova não usa a coluna; o giro existe para um **rollback** do código não reabrir nenhum valor que já esteve num backup. **Decisão P1**: as sessões vivas não são migradas, e cada pessoa entra de novo uma vez, anunciado na nota da release. Fecha S7
+  - **Feita quando**: nenhum valor de `users.session_token` anterior à migração existe depois dela; a migração é idempotente no efeito (rodar de novo gira de novo, e nada passa a valer)
+  - **Teste**: `test/the_band_web/troca_de_sessao_test.exs` — cookie montado com o token de antes, migração aplicada, e a requisição vai a `/sign-in`, **tanto** pelo código novo **quanto** pela conferência antiga (a do rollback)
 
 - [ ] **T013** Ler a sessão pela nova tabela — [#878](https://github.com/The-Band-Solution/theband/issues/878)
   - **Pronta quando**: T012 concluída
-  - **Descrição**: `current_scope.ex` e `hooks.ex` passam a resumir o valor do cookie, procurar em `user_sessions`, e comparar a época. `session_controller.ex` põe o **bruto** no cookie e guarda o resumo. A recusa continua sendo a mensagem única, sem distinguir motivo na tela — os motivos seguem no log, como hoje
-  - **Feita quando**: as quatro formas de encerrar continuam funcionando (sair, trocar senha, giro operacional, conta desativada); a tela não diz qual delas foi
-  - **Teste**: `cookie_de_sessao_evidencia_test.exs` — a afirmação 3, que **hoje devolve 200**, passa a devolver `/sign-in`; e o teste que já existe com o resumo continua recusando. Mais os testes de sessão existentes, verdes
+  - **Descrição**: `current_scope.ex` e `hooks.ex` passam a chamar `Sessions.conferir/2` — **o mesmo ponto**, para a validade valer no plug também (S6). `session_controller.ex` abre sessão por `Sessions.abrir/1` e põe o id e o bruto no cookie; `delete/2` chama `Sessions.encerrar/1` antes de soltar o cookie (S5); `set_password` usa a mesma conferência, e não comparação de campo própria (S3). As definições de senha encerram as outras sessões da conta. `test/support/conn_case.ex` abre sessão por `Sessions`. A recusa continua sendo a mensagem única, sem distinguir motivo na tela — os motivos seguem no log, como hoje. Fecha S1, S3, S5, S6
+  - **Feita quando**: as cinco formas de encerrar (sair, definir senha, desativar, giro, validade) valem no servidor; a tela não diz qual delas foi; nenhum código em `lib/` lê `users.session_token`
+  - **Teste**: `cookie_de_sessao_evidencia_test.exs` — a afirmação 3 passa a ler **o que está na linha** de `user_sessions` (o que o dump dá) e vai a `/sign-in`, **com o par positivo**: o bruto de `abrir/1`, com a mesma chave, é aceito. Mais: sair e reenviar o cookie guardado → `/sign-in` (S5); `POST /set-password` com cookie de sessão encerrada → `/sign-in` e `password_hash` inalterado (S3); sessão de 8 dias em `POST /profile/password` → `/sign-in` (S6)
 
 - [ ] **T014** Remover a coluna antiga — [#879](https://github.com/The-Band-Solution/theband/issues/879)
   - **Pronta quando**: T013 concluída **e em produção** — não antes
-  - **Descrição**: migração **separada** que remove `users.session_token`. Separada de propósito: enquanto as duas leituras coexistem, voltar atrás custa um deploy; depois de apagar a coluna, custa um backup
-  - **Feita quando**: a coluna não existe; nenhum código a referencia
-  - **Teste**: `grep -rn "session_token" lib/` não devolve nada fora de comentário histórico; a varredura da T002 não acha mais o padrão de token de sessão no dump
+  - **Descrição**: migração **separada** que remove `users.session_token`. Separada de propósito: enquanto a coluna existe, voltar atrás custa um deploy; depois de apagá-la, custa um backup. E o padrão de token de sessão da varredura é **aposentado** junto, porque o controle positivo dele planta numa tabela temporária de mesmo nome e continuaria dizendo "limpo" sobre uma coluna que não existe (S12)
+  - **Feita quando**: a coluna não existe; nenhum código a referencia; `Padroes.todos/0` não declara mais o padrão da coluna
+  - **Teste**: abrir sessão real, `pg_dump`, busca **literal** do bruto → 0 ocorrências; e o mesmo teste, antes da T014, acha o bruto de uma conta em `users.session_token` — sem o par, o 0 não mede nada
+
+- [ ] **T020** Apagar as sessões que deixaram de valer há 90 dias — [#1007](https://github.com/The-Band-Solution/theband/issues/1007)
+  - **Pronta quando**: T011 concluída
+  - **Descrição**: job Oban diário que apaga de `user_sessions` a linha com `ended_at` há mais de 90 dias **ou** `inserted_at` há mais de 97 (7 de validade + 90). As duas condições: sessão vencida não escreve `ended_at`, e sem a segunda ela seria o registro permanente da FR-015. **Decisão P3**
+  - **Feita quando**: o job está no `Oban.Plugins.Cron`; linha encerrada há 91 dias some, há 89 fica; sessão vencida sem `ended_at` também some
+  - **Teste**: `test/the_band/jobs/limpa_sessoes_test.exs` — as quatro bordas (89 e 91 dias por `ended_at`, 96 e 98 por `inserted_at`); e, com a segunda condição removida, a sessão vencida **fica**
 
 ---
 
@@ -172,14 +183,16 @@ troca; uma de ontem, não; uma sem data aparece como **idade desconhecida**.
 - [ ] **T015** Documentar o efeito de uma restauração sobre as sessões — [#880](https://github.com/The-Band-Solution/theband/issues/880)
   - **Pronta quando**: T013 concluída — a resposta decorre do desenho
   - **Descrição**: seção no `docs/producao/runbook.md` com os três casos: sessão aberta **depois** do backup cai; aberta antes e ainda válida continua; **encerrada entre o backup e o desastre volta a valer** — o que mais surpreende. FR-013, research R5
-  - **Feita quando**: os três casos estão escritos; o procedimento de restauração termina apontando o giro de sessões como passo recomendado
+  - **Feita quando**: os três casos estão escritos; o procedimento de restauração termina com o giro de sessões como passo **obrigatório** (P5)
   - **Teste**: revisão contra o código da T011 — alguém que nunca leu o runbook chega à resposta certa sobre os três casos em menos de um minuto. FR-013 e SC-006 são documento, e o teste é a leitura
+  - **Emenda de 2026-09-28 (P5)**: depois de restaurar um backup, encerrar todas as sessões é passo **obrigatório** do procedimento, e não recomendado — as sessões que a restauração ressuscita são justamente as encerradas por segurança
 
 - [ ] **T016** [P] Escrever o procedimento de girar todas as sessões — [#881](https://github.com/The-Band-Solution/theband/issues/881)
   - **Pronta quando**: T011 concluída
   - **Descrição**: procedimento no runbook usando `Sessions.girar_todas/0`, com **quando** usá-lo: suspeita de exposição, depois da varredura de produção da FR-010, depois de uma restauração. Mecanismo é do plano; o ato é de quem opera — foi a separação que permitiu a T012 não derrubar ninguém
   - **Feita quando**: o procedimento existe e diz que ele **encerra a sessão de todo mundo**, sem eufemismo
   - **Teste**: `test/the_band/tenants/sessions_test.exs` — `girar_todas/0` escreve `ended_at` em todas as sessões abertas, e uma requisição com cookie anterior passa a ser recusada
+  - **Emenda de 2026-09-28 (P5)**: depois de restaurar um backup, encerrar todas as sessões é passo **obrigatório** do procedimento, e não recomendado — as sessões que a restauração ressuscita são justamente as encerradas por segurança
 
 ---
 
@@ -208,6 +221,7 @@ Criadas por `/speckit-taskstoissues` em 2026-09-13. **Tarefa sem issue é pendê
 | T017 | [#882](https://github.com/The-Band-Solution/theband/issues/882) |
 | T018 | [#883](https://github.com/The-Band-Solution/theband/issues/883) |
 | T019 | [#884](https://github.com/The-Band-Solution/theband/issues/884) |
+| T020 | [#1007](https://github.com/The-Band-Solution/theband/issues/1007) |
 
 A convenção do repositório é `NNN/TXXX`, e o prefixo da spec **não é enfeite**: sem ele, deduplicar por `T001` casaria as 354 issues das specs anteriores e a próxima execução não criaria nada.
 
@@ -239,8 +253,9 @@ T001 ──> T002 ──> T003 ──┬──> T005 ──> T007 ──> T008
                  T004 ───┘
 T006  (independente — só depende do #864, já mergeado)
 
-T009 ──┬──> T011 ──> T012 ──> T013 ──> T014
-T010 ──┘         └──> T016
+T009 ──┬──> T011 ──> T012 ──> T013 ──> T014     (T012 e T013 no MESMO deploy; T014 na release seguinte)
+T010 ──┘         ├──> T016
+                 └──> T020
                       T013 ──> T015
 ```
 
