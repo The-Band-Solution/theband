@@ -17,6 +17,7 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.AccountLifecycle
   alias TheBand.Tenants.ApiTokens
   alias TheBand.Tenants.Auth
+  alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -315,8 +316,12 @@ defmodule TheBand.Tenants do
           "disable_note" => razao["note"]
         })
 
+      # AS SESSÕES SÃO ENCERRADAS AQUI, e não pelo giro do token — 064, achado S1. O giro de
+      # `users.session_token` some com a T013, e sem esta linha reativar a conta devolveria
+      # toda sessão aberta antes da desativação, inclusive a que motivou desligar alguém.
       with {:ok, _episodio} <- Repo.insert(episodio),
-           {:ok, desativada} <- user |> User.desativar_changeset(actor_id) |> Repo.update() do
+           {:ok, desativada} <- user |> User.desativar_changeset(actor_id) |> Repo.update(),
+           {:ok, _encerradas} <- Sessions.encerrar_da_conta(tenant_id, user.id) do
         # O ATO REGISTRADO — achado H4. `ScopeGrant` guarda o ESTADO da concessão; nenhum
         # ato de acesso guardava o EVENTO. A pergunta *"quem desativou esta conta, e
         # quando"* tem resposta na linha; *"quantas contas foram desativadas esta semana,
