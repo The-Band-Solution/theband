@@ -144,8 +144,13 @@ defmodule TheBand.Quality do
 
   @spec team_time_to_first_review(Tenant.t(), Ecto.UUID.t(), keyword()) :: [espera()]
   def team_time_to_first_review(%Tenant{id: tenant_id}, team_id, opts \\ []) do
+    # `escopo:` são as equipes cujos membros contam; o padrão é só esta. A API `/measures` e a
+    # MCP passam o escopo do roster (#1016). A pessoa em duas equipes do escopo gera duas linhas
+    # de vínculo por solicitação, e o `group_by` por solicitação as junta: ela conta uma vez.
+    equipes = Keyword.get(opts, :escopo, [team_id])
+
     tenant_id
-    |> abertas_por_quem_pertencia(team_id)
+    |> abertas_por_quem_pertencia(equipes)
     |> com_primeira_revisao_humana()
     |> aplicar_janela(opts)
     |> limit(^Keyword.get(opts, :limit, 200))
@@ -159,13 +164,13 @@ defmodule TheBand.Quality do
   # `on` do join — a consulta inteira num `from` só passou dos 9 de complexidade que
   # o Credo aceita, e o gate estava certo: a regra do recorte é o que esta função é,
   # e ler o resto junto escondia isso.
-  defp abertas_por_quem_pertencia(tenant_id, team_id) do
+  defp abertas_por_quem_pertencia(tenant_id, equipes) do
     from(c in "collected_change_requests",
       join: m in "eo_team_memberships",
       on: m.person_id == c.author_person_id and m.tenant_id == c.tenant_id,
       where:
         c.tenant_id == type(^tenant_id, :binary_id) and
-          m.team_id == type(^team_id, :binary_id) and
+          m.team_id in type(^equipes, {:array, :binary_id}) and
           is_nil(c.no_longer_observed_at)
     )
     |> where([_c, m], is_nil(m.invalidated_at))

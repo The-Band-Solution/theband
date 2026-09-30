@@ -206,21 +206,11 @@ defmodule TheBandWeb.Api.V1.PersonDetailTest do
                "calculado para quem não pode vê-lo, e depois escondido"
     end
 
+    # O CONTADOR ÚNICO — issue #978. A cópia local contava toda consulta do BEAM na janela.
     defp consultas(conn, person_id) do
-      nome = "conta-#{System.unique_integer([:positive])}"
-      {:ok, agente} = Agent.start_link(fn -> 0 end)
-
-      :telemetry.attach(
-        nome,
-        [:the_band, :repo, :query],
-        fn _e, _m, _md, _c -> Agent.update(agente, &(&1 + 1)) end,
-        nil
-      )
-
-      capture_log(fn -> get(conn, ~p"/api/v1/people/#{person_id}") end)
-      :telemetry.detach(nome)
-
-      Agent.get(agente, & &1)
+      TheBand.ContadorDeConsultas.contar(fn ->
+        capture_log(fn -> get(conn, ~p"/api/v1/people/#{person_id}") end)
+      end)
     end
   end
 

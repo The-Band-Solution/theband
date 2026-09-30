@@ -22,6 +22,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
   alias TheBand.Ontology.KnowledgeBase
   alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles.GenerateWorker
+  alias TheBand.Segredo
   alias TheBand.WorkItems
 
   setup :verify_on_exit!
@@ -239,7 +240,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
       {:ok, _} = AI.put(ctx.tenant, %{"secret" => chave, "default_model" => "gpt-5.4"})
 
       expect(TheBand.LLMHTTPMock, :complete, fn _p, _m, opts ->
-        assert opts[:key] == chave
+        assert Segredo.expor(opts[:key]) == chave
         assert opts[:model] == "gpt-5.4"
         assert opts[:base_url] == "https://api.openai.com"
 
@@ -267,7 +268,7 @@ defmodule TheBand.Profiles.GenerateWorkerTest do
       vazado =
         HTTP.redigir(
           "Permission denied: Consumer 'api_key:#{chave}' has been suspended.",
-          chave
+          Segredo.novo(chave)
         )
 
       refute vazado =~ chave,

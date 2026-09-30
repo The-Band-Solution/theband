@@ -877,7 +877,16 @@ defmodule TheBandWeb.Schemas do
                 note: %Schema{type: :string}
               }
             },
-            open_by_person: %Schema{type: :array, items: %Schema{type: :object}},
+            open_by_person: %Schema{
+              type: :array,
+              items: %Schema{type: :object},
+              description:
+                "Open tasks per person. Each task carries `boards`: one entry per board it is " <>
+                  "on (`[]` when on none), with every single-select field that has a value, " <>
+                  "and the `phase` only where someone declared what that option means " <>
+                  "(`not_declared` otherwise). The platform does not pick which field is " <>
+                  "\"the column\", and never infers a phase from an option's name."
+            },
             time_to_first_review: %Schema{
               type: :object,
               description:

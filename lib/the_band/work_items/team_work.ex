@@ -305,13 +305,23 @@ defmodule TheBand.WorkItems.TeamWork do
 
   **Não devolve total.** Não há campo onde ele caberia, e isso é deliberado — é o
   que impede que a recusa a somar seja desfeita por engano numa mudança futura.
+
+  `escopo:` é a lista de equipes cujos membros contam, e o padrão é só esta equipe: é o que o
+  cartão de cada subequipe da tela usa. A API `/measures` e o `team_open_work` da MCP passam o
+  escopo do roster (`EO.team_roster_scope/2`), porque a equipe composta é a união distinta dela e
+  das partes (spec 060, FR-056, e a correção da #987). União, e não soma: a pessoa em duas partes
+  conta uma vez.
   """
   @spec snapshot(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: map()
   def snapshot(%Tenant{} = tenant, team_id, quando, opts \\ []) do
     desde = Keyword.get_lazy(opts, :desde, fn -> DateTime.add(quando, -56, :day) end)
-    membros = EO.team_member_ids_at(tenant, team_id, quando)
-    tarefas = open_tasks_by_person(tenant, team_id, quando) |> Map.values() |> List.flatten()
-    fechadas = fechadas_entre(tenant, team_id, desde, quando)
+    escopo = Keyword.get(opts, :escopo, [team_id])
+    membros = EO.team_member_ids_at(tenant, team_id, quando, escopo: escopo)
+
+    tarefas =
+      tenant |> open_tasks_by_person(team_id, quando, membros) |> Map.values() |> List.flatten()
+
+    fechadas = fechadas_entre(tenant, escopo, desde, quando)
     abertas = length(Enum.uniq_by(tarefas, & &1.issue_id))
 
     %{
@@ -334,11 +344,13 @@ defmodule TheBand.WorkItems.TeamWork do
     |> Map.merge(%{aberta_ha_dias: max(dias, 0), parada?: dias > parada_em_dias()})
   end
 
-  defp fechadas_entre(%Tenant{id: tenant_id}, team_id, desde, ate) do
+  # `equipes` é o escopo: `count(:distinct)` conta o item uma vez mesmo com o responsável em duas
+  # equipes do escopo, ou com dois responsáveis.
+  defp fechadas_entre(%Tenant{id: tenant_id}, equipes, desde, ate) do
     CollectedIssue
     |> join(:inner, [i], a in IssueAssignee, on: a.collected_issue_id == i.id)
     |> join(:inner, [i, a], m in TeamMembership, on: m.person_id == a.person_id)
-    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id == type(^team_id, :binary_id))
+    |> where([i, _a, m], i.tenant_id == ^tenant_id and m.team_id in ^equipes)
     |> where([i], i.external_closed_at >= ^desde and i.external_closed_at <= ^ate)
     |> where(
       [i, _a, m],

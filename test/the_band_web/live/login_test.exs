@@ -53,8 +53,13 @@ defmodule TheBandWeb.LoginTest do
     conn = post(conn, ~p"/session", %{"identifier" => member.email, "password" => @senha})
 
     assert redirected_to(conn) == ~p"/people"
-    assert get_session(conn, :user_id) == member.id
-    assert get_session(conn, :session_token)
+
+    # Desde a 064 (T013): o cookie leva o id da sessão e o token bruto, e a conta vem da linha.
+    id = get_session(conn, "session_id")
+    assert get_session(conn, "session_secret")
+    assert TheBand.Repo.get!(TheBand.Tenants.Schemas.UserSession, id).user_id == member.id
+    refute get_session(conn, :user_id)
+    refute get_session(conn, :session_token)
   end
 
   test "as quatro recusas respondem idêntico", %{member: member} do

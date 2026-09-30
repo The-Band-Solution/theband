@@ -166,26 +166,8 @@ defmodule TheBand.Ontology.SEON.EO.VinculoPossivelTest do
     assert contar(fn -> veredito(ctx, []) end) == 0
   end
 
-  defp contar(fun) do
-    ref = make_ref()
-    :telemetry.attach({__MODULE__, ref}, [:the_band, :repo, :query], &__MODULE__.marcar/4, self())
-
-    try do
-      fun.()
-      drenar(0)
-    after
-      :telemetry.detach({__MODULE__, ref})
-    end
-  end
-
-  @doc false
-  def marcar(_e, _m, _md, destino), do: send(destino, :q)
-
-  defp drenar(n) do
-    receive do
-      :q -> drenar(n + 1)
-    after
-      0 -> n
-    end
-  end
+  # O CONTADOR ÚNICO — issue #978. A cópia local contava toda consulta do BEAM na janela, inclusive
+  # o tick do `Oban.Stager`, e reprovava por sorte com o código certo (L42). As exclusões vivem em
+  # `TheBand.ContadorDeConsultas`, num lugar só.
+  defp contar(fun), do: TheBand.ContadorDeConsultas.contar(fun)
 end

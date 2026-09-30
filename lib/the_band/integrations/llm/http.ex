@@ -22,6 +22,8 @@ defmodule TheBand.Integrations.LLM.HTTP do
 
   @type resposta :: %{text: String.t(), model: String.t(), usage: map()}
 
+  alias TheBand.Segredo
+
   @callback complete(prompt :: String.t(), material :: String.t(), opts :: keyword()) ::
               {:ok, resposta()}
               | {:error, {:http, integer(), String.t()}}
@@ -47,7 +49,7 @@ defmodule TheBand.Integrations.LLM.HTTP do
   Achatar as três em "falhou" reproduziria a L26 do projeto pelo avesso — desta vez a tela
   afirmaria o que não sabe.
   """
-  @callback verify(secret :: String.t(), opts :: keyword()) ::
+  @callback verify(secret :: Segredo.t() | nil, opts :: keyword()) ::
               {:ok, [String.t()]}
               | {:error, {:rejeitada, String.t()}}
               | {:error, {:indisponivel, String.t()}}
@@ -63,8 +65,16 @@ defmodule TheBand.Integrations.LLM.HTTP do
   Chamada em toda mensagem de erro, e não só nas que "parecem" conter segredo: a lista de
   quais mensagens vazam a chave é do provedor, e muda sem aviso.
   """
-  @spec redigir(String.t(), String.t() | nil) :: String.t()
+  #
+  # A chave chega fechada (064/T006) e é aberta AQUI, para a troca, e em nenhum outro ponto do
+  # caminho de erro. Sem abrir, não há o que procurar no texto.
+  @spec redigir(String.t(), Segredo.t() | nil) :: String.t()
   def redigir(texto, nil), do: to_string(texto)
-  def redigir(texto, ""), do: to_string(texto)
-  def redigir(texto, chave), do: texto |> to_string() |> String.replace(chave, "«API_KEY»")
+
+  def redigir(texto, chave) do
+    case Segredo.expor(chave) do
+      "" -> to_string(texto)
+      valor -> texto |> to_string() |> String.replace(valor, "«API_KEY»")
+    end
+  end
 end

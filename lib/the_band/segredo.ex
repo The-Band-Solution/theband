@@ -83,6 +83,15 @@ defmodule TheBand.Segredo do
   def expor(outro), do: recusa("expor/1", outro)
 
   @doc """
+  Se o termo é um `Segredo`. Existe porque o tipo é opaco: quem está fora deste módulo não pode
+  casar `%Segredo{}` sem que o Dialyzer reprove, e precisa de uma forma de recusar o binário nu
+  **sem abri-lo** (064, `Sessions.conferir/2`).
+  """
+  @spec segredo?(term()) :: boolean()
+  def segredo?(%__MODULE__{}), do: true
+  def segredo?(_), do: false
+
+  @doc """
   Os últimos quatro caracteres, que é o que permite dizer **qual** credencial falhou sem
   dizer qual é o valor dela.
 

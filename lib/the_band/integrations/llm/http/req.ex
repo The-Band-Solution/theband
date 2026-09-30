@@ -15,16 +15,19 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
   @behaviour TheBand.Integrations.LLM.HTTP
 
   alias TheBand.Integrations.LLM.HTTP
+  alias TheBand.Segredo
 
   @base_url "https://api.openai.com"
   @modelo_padrao "gpt-5.4-mini"
 
   @impl true
-  def complete(prompt, material, opts \\ []) do
-    chave = opts[:key] || System.get_env("API_KEY")
+  def complete(prompt, material, opts \\ []) when is_list(opts) do
+    # FECHADA na borda em que é lida (064/T006): a credencial já chega como `Segredo`, e o
+    # ambiente é embrulhado aqui. Daqui até o cabeçalho, nenhuma função a tem em claro.
+    chave = opts[:key] || do_ambiente()
     modelo = opts[:model] || System.get_env("AI_MODEL") || @modelo_padrao
 
-    if chave in [nil, ""] do
+    if vazia?(chave) do
       {:error, :missing_credential}
     else
       chamar(prompt, material, modelo, chave, opts)
@@ -32,13 +35,13 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
   end
 
   @impl true
-  def verify(secret, opts \\ []) do
-    if secret in [nil, ""] do
+  def verify(secret, opts \\ []) when is_list(opts) do
+    if vazia?(secret) do
       {:error, {:rejeitada, "no key was given"}}
     else
       (base(opts) <> "/v1/models")
       |> Req.get(
-        headers: [{"authorization", "Bearer " <> secret}],
+        headers: [{"authorization", "Bearer " <> Segredo.expor(secret)}],
         receive_timeout: opts[:timeout] || 30_000,
         retry: :transient
       )
@@ -77,6 +80,17 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
 
   defp base(opts), do: opts[:base_url] || @base_url
 
+  defp do_ambiente do
+    case System.get_env("API_KEY") do
+      nil -> nil
+      valor -> Segredo.novo(valor)
+    end
+  end
+
+  # Abrir para comparar com "" não vaza nada: o valor não sai desta função.
+  defp vazia?(nil), do: true
+  defp vazia?(chave), do: Segredo.expor(chave) == ""
+
   defp chamar(prompt, material, modelo, chave, opts) do
     corpo =
       %{
@@ -90,7 +104,7 @@ defmodule TheBand.Integrations.LLM.HTTP.Req do
 
     Req.post(base(opts) <> "/v1/chat/completions",
       json: corpo,
-      headers: [{"authorization", "Bearer " <> chave}],
+      headers: [{"authorization", "Bearer " <> Segredo.expor(chave)}],
       receive_timeout: opts[:timeout] || 300_000,
       retry: :transient
     )

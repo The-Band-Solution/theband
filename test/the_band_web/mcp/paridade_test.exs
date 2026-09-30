@@ -140,18 +140,26 @@ defmodule TheBandWeb.MCP.ParidadeTest do
 
   # {caminho montado, razão que o domínio devolve, veredito}
   #
-  # **O vínculo vigente concede pela razão `escopo_de_equipe`**, e não `vinculo_vigente`. Medido
-  # em 2026-09-25: `Access.scopes/2` DERIVA um escopo de equipe de cada vínculo vigente
-  # (`origin: :derived_team`), e em `pode_ver_equipe/3` a cláusula `escopo_de_equipe` vem antes da
-  # `vinculo_vigente`. A quarta cláusula nunca é alcançada. O veredito é o mesmo, e é isso que a
-  # paridade prova; a razão registrada é que não diz a verdade. Está na issue aberta junto.
+  # **Cada caminho devolve a própria razão.** Até a #985, o vínculo vigente concedia pela razão
+  # `escopo_de_equipe`: `Access.scopes/2` deriva um escopo de equipe de cada vínculo, e a cláusula
+  # de escopo o contava. Desde a correção, ela conta só o escopo concedido, e quem pertence é
+  # `vinculo_vigente`. O veredito não mudou; a razão registrada passou a dizer a verdade.
   @casos [
     {:admin, :admin, :concede},
     {:escopo_de_equipe, :escopo_de_equipe, :concede},
     {:escopo_da_organizacao, :escopo_da_organizacao, :concede},
-    {:vinculo_vigente, :escopo_de_equipe, :concede},
+    {:vinculo_vigente, :vinculo_vigente, :concede},
     {:fora_do_alcance, :fora_do_alcance, :recusa}
   ]
+
+  test "quem pertence E recebeu escopo é registrado pela concessão, que é um ato de alguém (#985)",
+       ctx do
+    membro = conta(ctx, :vinculo_vigente)
+    assert {:ok, :vinculo_vigente} = Tenants.pode_ver_equipe(ctx.tenant, membro, ctx.equipe.id)
+
+    {:ok, _} = Access.grant(ctx.tenant, membro.id, :team, ctx.equipe.id, ctx.admin)
+    assert {:ok, :escopo_de_equipe} = Tenants.pode_ver_equipe(ctx.tenant, membro, ctx.equipe.id)
+  end
 
   for {caminho, razao, esperado} <- @casos do
     test "#{caminho}: as três portas dão o mesmo veredito (#{esperado})", ctx do

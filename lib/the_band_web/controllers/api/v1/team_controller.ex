@@ -24,6 +24,7 @@ defmodule TheBandWeb.Api.V1.TeamController do
   use OpenApiSpex.ControllerSpecs
 
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Ontology.SEON.SPO.ItemPhase
   alias TheBand.Profiles
   alias TheBand.Quality
   alias TheBand.Tenants
@@ -443,19 +444,28 @@ defmodule TheBandWeb.Api.V1.TeamController do
     agora = DateTime.utc_now(:second)
     desde = DateTime.add(agora, -@janela_em_dias, :day)
 
-    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: desde)
-    tarefas = TeamWork.open_tasks_by_person(tenant, equipe.id, agora)
+    # O ESCOPO DO ROSTER, nos quatro blocos — #987 e #1016. A equipe composta é a união distinta
+    # dela e das partes (spec 060, FR-056), a mesma definição de `members`. Antes, cada bloco
+    # contava só os diretos, e a mesma resposta dizia dois números para "membros da equipe".
+    escopo = EO.team_roster_scope(tenant, equipe.id)
+    instantaneo = TeamWork.snapshot(tenant, equipe.id, agora, desde: desde, escopo: escopo)
+    membros = EO.team_member_ids_at(tenant, equipe.id, agora, escopo: escopo)
+    tarefas = TeamWork.open_tasks_by_person(tenant, equipe.id, agora, membros)
+    # FR-033 da 062: em que quadro cada tarefa está, pela mesma construção do MCP.
+    quadros =
+      ItemPhase.quadros_das_issues(tenant, for({_, l} <- tarefas, t <- l, do: t.issue_id))
 
     # UMA a mais que o limite, para saber se cortou. Sem isso o corte é silencioso.
     carregadas =
       Quality.team_time_to_first_review(tenant, equipe.id,
         desde: desde,
         ate: agora,
-        limit: @limite_de_esperas + 1
+        limit: @limite_de_esperas + 1,
+        escopo: escopo
       )
 
     truncou? = length(carregadas) > @limite_de_esperas
-    cobertura = Profiles.team_coverage(tenant, equipe.id)
+    cobertura = Profiles.team_coverage(tenant, equipe.id, escopo: escopo)
 
     %{
       window: %{days: @janela_em_dias, from: desde, to: agora},
@@ -469,7 +479,7 @@ defmodule TheBandWeb.Api.V1.TeamController do
       },
       open_by_person:
         for {person_id, lista} <- tarefas, lista != [] do
-          %{person_id: person_id, tasks: Enum.map(lista, &tarefa/1)}
+          %{person_id: person_id, tasks: Enum.map(lista, &tarefa(&1, quadros))}
         end,
       time_to_first_review: medianas(Enum.take(carregadas, @limite_de_esperas), truncou?),
       skills: %{
@@ -533,15 +543,32 @@ defmodule TheBandWeb.Api.V1.TeamController do
   defp situacao(:saiu), do: "left"
   defp situacao(:equivoco), do: "mistake"
 
-  defp tarefa(t),
+  defp tarefa(t, quadros),
     do: %{
       issue_id: t.issue_id,
       external_id: t.external_id,
       title: t.titulo,
       concept: t.conceito,
       open_for_days: t.aberta_ha_dias,
-      stale: t.parada?
+      stale: t.parada?,
+      boards: quadros |> Map.get(t.issue_id, []) |> Enum.map(&quadro_da_tarefa/1)
     }
+
+  defp quadro_da_tarefa(q),
+    do: %{
+      board_id: q.quadro_id,
+      board: q.quadro,
+      fields:
+        Enum.map(q.campos, fn c ->
+          %{field: c.campo, value: c.valor, phase: fase_da_coluna(c.fase)}
+        end)
+    }
+
+  # A fase só existe se alguém declarou (066); nunca é inferida do nome da opção.
+  defp fase_da_coluna(nil), do: %{state: "not_declared"}
+
+  defp fase_da_coluna(%{conceito: c, declarada_em: em}),
+    do: %{state: "declared", concept: c, declared_at: em}
 
   # **Dois estados, e eles não se achatam num número só.**
   #

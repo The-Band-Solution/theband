@@ -27,6 +27,7 @@ defmodule TheBand.Tenants.User do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Ecto.Query, only: [from: 2]
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -62,6 +63,15 @@ defmodule TheBand.Tenants.User do
     field :password_source, :string
     field :password_set_by_user_id, :binary_id
     field :session_token, :string, redact: true
+
+    # A época da senha — 064/T010. Sobe a cada definição de senha, e a sessão aberta com uma
+    # época anterior deixa de valer.
+    #
+    # **NÃO É SEGREDO.** Quem a lê não ganha nada: sozinha, ela não abre sessão nenhuma, e ela
+    # não é `redact` de propósito. Tratá-la como segredo levaria a conclusões erradas sobre o
+    # desenho, e a proteger o que não precisa de proteção. O que autentica é o token bruto no
+    # cookie, e o banco só tem o resumo dele (`user_sessions.token_hash`).
+    field :password_epoch, :integer, default: 0
     field :logged_in_at, :utc_datetime
     field :failed_attempts, :integer, default: 0
     field :last_failed_at, :utc_datetime
@@ -122,11 +132,12 @@ defmodule TheBand.Tenants.User do
   end
 
   @doc """
-  Desativa a conta — marca com autoria e data, e **gira o token de sessão**.
+  Desativa a conta — marca com autoria e data, e gira o token antigo.
 
-  O giro é o que faz a desativação valer **agora**: sem ele, a sessão aberta continuaria
-  servindo até expirar por inatividade, e "desativar" significaria "desativar daqui a
-  sete dias". É o mesmo mecanismo que `senha_changeset/3` usa, e pela mesma razão.
+  **Desde a 064 (T013), quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`**,
+  chamada na mesma transação por `Tenants.disable_user/4`: a sessão é lida de `user_sessions`, e
+  não mais desta coluna. O giro de `session_token` continua até a T014 remover a coluna, só para
+  um rollback do código não reabrir a sessão pela leitura antiga (achado S7).
   """
   @spec desativar_changeset(t(), Ecto.UUID.t()) :: Ecto.Changeset.t()
   def desativar_changeset(user, actor_id) do
@@ -206,8 +217,24 @@ defmodule TheBand.Tenants.User do
         |> put_change(:password_source, Keyword.get(opts, :source))
         |> put_change(:password_set_by_user_id, Keyword.get(opts, :by))
         |> put_change(:session_token, novo_token())
+        |> prepare_changes(&incrementar_epoca/1)
         |> delete_change(:password)
     end
+  end
+
+  # **Atômico, e não lido da struct** (achado S13). `struct.password_epoch + 1` é ler, somar e
+  # gravar: um reinício por quem administra e uma troca própria simultâneos gravariam o mesmo
+  # `n + 1`, e a sessão aberta entre os dois sobreviveria ao segundo. O `UPDATE … SET
+  # password_epoch = password_epoch + 1` roda dentro da transação do `Repo.update/1` e trava a
+  # linha, então o segundo espera o primeiro e grava `n + 2`.
+  defp incrementar_epoca(%Ecto.Changeset{data: %{id: id}, repo: repo} = changeset) do
+    {1, [epoca]} =
+      repo.update_all(
+        from(u in __MODULE__, where: u.id == ^id, select: u.password_epoch),
+        inc: [password_epoch: 1]
+      )
+
+    put_change(changeset, :password_epoch, epoca)
   end
 
   @doc """

@@ -735,6 +735,24 @@ Duas coisas que ele **não** faz, e por isso continuam sendo suas:
 - **a branch local não some.** Vira referência morta até `git fetch --prune`, e
   `git branch -D` continua manual.
 
+**E ele apaga a `main`, se a `main` for a head.** Aconteceu em 2026-09-27: o back-merge da
+v0.10.0 foi aberto com `gh pr create --base development --head main` (#996), e o merge apagou a
+`main`. A `development` é o branch padrão e fica protegida da faxina; a `main` não era, nem tinha
+proteção. A produção não caiu, porque o deploy não depende do branch, e a `main` foi recriada no
+mesmo commit (`b60590f`, alvo da tag `v0.10.0`). Desde então a `main` tem proteção contra
+exclusão e força.
+
+**Back-merge sempre por branch intermediário**, nunca com a `main` como head:
+
+```bash
+git switch -c back-merge/vX.Y.Z origin/main     # o branch morre no merge, e não a main
+git push -u origin back-merge/vX.Y.Z
+gh pr create --base development --head back-merge/vX.Y.Z ...
+gh pr merge <n> --merge                        # merge commit, L92
+```
+
+O mesmo vale para qualquer PR cuja head seja um branch que precisa continuar existindo.
+
 **Antes de apagar branch cuja `main` não a contém, verifique o conteúdo.** Houve o
 caso do `chore/po-docs-em-docs`: PR #90 mergeado e a branch **não** ancestral da
 `main`, porque houve force-push depois do merge. O commit exclusivo era redação já

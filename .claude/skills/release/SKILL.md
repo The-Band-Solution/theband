@@ -125,8 +125,17 @@ template inteiro**, então preencha o arquivo a partir dele.
 divergência não se desfaz. Isso é obrigatório para `main`, e o check `pr-tipo-de-merge`
 reprova se declarar squash.
 
-Na seção **Issues que este PR FECHA**: uma release normalmente não fecha issue — ela entrega
-o que já foi mergeado. Escreva **"Nenhuma"** com a razão.
+Na seção **Issues que este PR FECHA**: **nunca "Nenhuma" por padrão.** Relista, uma por linha
+e com o resumo, **toda issue que a release leva ao ar e que ainda estiver aberta**, e diz que o
+fechamento é à mão: o branch padrão deste repositório é `development`, e a palavra-chave num PR
+para `main` **não fecha nada**. Depois do merge e de `/version` responder a versão nova, feche
+cada uma com `gh issue close <n> -c "No ar na vX.Y.Z (#<pr>)."` e confira. A regra completa está
+no agente `product-owner`, em *Toda issue que o PR entrega aparece NO PR — sempre*. Decisão da
+pessoa mantenedora em 2026-09-27.
+
+> Até 2026-09-27 esta linha mandava escrever "Nenhuma". E a primeira correção dela afirmou que
+> o PR de release fechava pela palavra, por ser o único a mirar `main`: estava invertido, porque
+> o branch padrão é `development`. A v0.10.0 (#994) saiu com `Closes #989`, e a #989 ficou aberta.
 
 ---
 

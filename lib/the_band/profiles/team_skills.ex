@@ -52,9 +52,9 @@ defmodule TheBand.Profiles.TeamSkills do
 
   Número fixo de consultas (SC-001): uma para membros, uma para os perfis vigentes.
   """
-  @spec coverage(Tenant.t(), Ecto.UUID.t(), DateTime.t()) :: coverage()
-  def coverage(%Tenant{} = tenant, team_id, quando \\ DateTime.utc_now()) do
-    membros = membros(tenant, team_id, quando)
+  @spec coverage(Tenant.t(), Ecto.UUID.t(), DateTime.t(), keyword()) :: coverage()
+  def coverage(%Tenant{} = tenant, team_id, quando \\ DateTime.utc_now(), opts \\ []) do
+    membros = membros(tenant, team_id, quando, opts)
     vigentes = perfis_vigentes(tenant, Enum.map(membros, & &1.person_id))
 
     montar_cobertura(membros, vigentes)
@@ -273,9 +273,11 @@ defmodule TheBand.Profiles.TeamSkills do
     EO.team_members_at(tenant, team_id, fim)
   end
 
-  defp membros(tenant, team_id, quando) do
+  # `escopo:` como em `EO.team_members_at/4`: o padrão é só esta equipe, e a API `/measures`
+  # passa o escopo do roster (#1016).
+  defp membros(tenant, team_id, quando, opts) do
     tenant
-    |> EO.team_members_at(team_id, quando)
+    |> EO.team_members_at(team_id, quando, Keyword.take(opts, [:escopo]))
     |> Enum.map(fn m -> %{person_id: m.person_id, name: m.name || m.login} end)
     |> Enum.uniq_by(& &1.person_id)
   end

@@ -124,7 +124,19 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
     "by_person": [
       { "person_id": "…",
         "tasks": [ { "issue_id": "…", "title": "…", "open_for_days": 98, "stale": true,
-                     "concept": "sro.intended_scrum_development_task" } ] }
+                     "concept": "sro.intended_scrum_development_task",
+                     "boards": [
+                       { "board_id": "…",
+                         "board": { "untrusted_text": "Conecta Fapes", "contains_invisible_characters": false },
+                         "fields": [
+                           { "field": { "untrusted_text": "Status", "contains_invisible_characters": false },
+                             "value": { "untrusted_text": "In Progress", "contains_invisible_characters": false },
+                             "phase": { "state": "not_declared" } },
+                           { "field": { "untrusted_text": "Squad", "contains_invisible_characters": false },
+                             "value": { "untrusted_text": "Green", "contains_invisible_characters": false },
+                             "phase": { "state": "not_declared" } }
+                         ] }
+                     ] } ] }
     ],
     "totals": { "members": 31, "open": 23 }
   },
@@ -136,6 +148,37 @@ terminou; *equívoco* diz que nunca devia ter sido afirmado.
 
 **Pessoa sem tarefa aberta não vira linha com zero**: ela não aparece em `by_person`, e
 `totals.members` diz quantas existem. Somar as duas leituras responderia outra pergunta.
+
+**`composition` diz a verdade, e a equipe composta conta o roster (emenda de 2026-09-29, #987 e
+#1016).** Vale igualmente para `team_review_wait` e `team_stale_work`, que também gravavam
+`is_composed: false` fixo e contavam só os membros diretos. As três ferramentas montam `composition`
+pelo mesmo módulo, `TheBand.MCP.Composicao`, a partir do escopo que usaram para contar. Assim, o
+envelope não pode afirmar uma composição diferente da contagem.
+
+**`composition` diz a verdade, e a equipe composta conta o roster (emenda de 2026-09-29, #987).**
+A primeira versão gravava `is_composed: false` **fixo**. Na `LEDS - ConectaFapes`, o
+`team_roster` dizia `true` e 48 membros, e o `team_open_work` dizia `false` e 31. Um agente que
+cruzasse as duas concluiria que 17 pessoas não têm trabalho aberto, e as 78 tarefas de um membro da
+SQUAD BLUE não apareciam na LEDS.
+
+Agora `by_person` e `totals` usam o **escopo do roster** (`EO.team_roster_scope/2`): a equipe e as
+partes com composição vigente, em união distinta, como o `team_roster` e o `/measures`. `is_composed`
+é o real, e a nota diz que o número **não é a soma** das partes. É a regra da spec 060, FR-056, e a
+ontologia a sustenta: `eo.team_part_of_team` é parthood entre coletivos, e a equipe composta é o
+coletivo feito das partes.
+
+**`boards` — em que quadro a tarefa está, e com que valores (FR-033, 2026-09-28).**
+
+- **Uma entrada por quadro** em que a issue está observada, e `[]` quando ela não está em
+  quadro nenhum. Lista vazia aqui é fato observado ("em nenhum quadro"), e não ausência de
+  leitura: o quadro é coletado junto com a issue.
+- **`fields` traz todo campo de seleção única** do quadro que tem valor para o item, na ordem
+  do nome. Campo sem valor não aparece. A plataforma não escolhe qual deles é "a coluna".
+- **`phase`** é `{"state": "declared", "concept": "…", "declared_at": "…"}` quando existe
+  declaração vigente da 066 para aquele quadro, campo e opção, e `{"state": "not_declared"}`
+  quando não existe. **Nunca é inferida do nome da opção.**
+- Item que saiu do quadro (`no_longer_observed_at`) e campo que saiu do quadro não entram.
+- **Custo**: uma consulta a mais para todas as tarefas da resposta, e não uma por tarefa.
 
 ---
 

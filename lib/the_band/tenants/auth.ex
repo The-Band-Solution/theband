@@ -29,6 +29,7 @@ defmodule TheBand.Tenants.Auth do
   alias TheBand.Ontology.SEON.EO.Schemas.Person
   alias TheBand.Repo
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
@@ -187,9 +188,6 @@ defmodule TheBand.Tenants.Auth do
     |> Ecto.Changeset.change(
       failed_attempts: 0,
       last_failed_at: nil,
-      # Garante o token (conta que nunca logou); NÃO o gira — girar é ato de
-      # troca de senha, e girar aqui derrubaria as outras sessões a cada login.
-      session_token: user.session_token || User.novo_token(),
       logged_in_at: DateTime.utc_now(:second)
     )
     |> Repo.update!()
@@ -244,6 +242,7 @@ defmodule TheBand.Tenants.Auth do
         user
         |> User.senha_changeset(%{password: senha}, source: "self", by: user.id)
         |> Repo.update()
+        |> encerrando_as_sessoes()
     end
   end
 
@@ -259,6 +258,7 @@ defmodule TheBand.Tenants.Auth do
       user
       |> User.senha_changeset(%{password: nova}, source: "self", by: user.id)
       |> Repo.update()
+      |> encerrando_as_sessoes()
     else
       nil -> {:error, :not_found}
       false -> {:error, :invalid_current}
@@ -319,11 +319,22 @@ defmodule TheBand.Tenants.Auth do
            source: source,
            by: actor_id
          )
-         |> Repo.update() do
+         |> Repo.update()
+         |> encerrando_as_sessoes() do
       {:ok, _} -> {:ok, temporaria}
       erro -> erro
     end
   end
+
+  # DEFINIR A SENHA ENCERRA AS SESSÕES DA CONTA — 064, T013. A época já as derruba na
+  # conferência seguinte; o `ended_at` é o registro de que caíram, e de quando (FR-015). A
+  # sessão de quem trocou a própria senha é reaberta pelo controller.
+  defp encerrando_as_sessoes({:ok, %User{} = user} = ok) do
+    {:ok, _} = Sessions.encerrar_da_conta(user.tenant_id, user.id)
+    ok
+  end
+
+  defp encerrando_as_sessoes(erro), do: erro
 
   defp do_tenant(tenant_id, user_id) do
     Repo.one(from u in User, where: u.id == ^user_id and u.tenant_id == ^tenant_id)

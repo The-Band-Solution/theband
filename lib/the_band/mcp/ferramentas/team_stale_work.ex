@@ -19,8 +19,10 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
   """
 
   alias TheBand.Ingestion
+  alias TheBand.MCP.Composicao
   alias TheBand.MCP.Envelope
   alias TheBand.MCP.TextoDeTerceiro
+  alias TheBand.Ontology.SEON.EO
   alias TheBand.Profiles
   alias TheBand.Profiles.Material
   alias TheBand.Tenants.Tenant
@@ -35,9 +37,14 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
   def responder(%Tenant{} = tenant, equipe) do
     agora = DateTime.utc_now(:second)
 
+    # O ESCOPO DO ROSTER, como `team_open_work` — #1016. Na tela, a falta disto já tinha feito o
+    # cartão da equipe composta dizer "nada parado" enquanto a subequipe dizia "stopped 2".
+    escopo = EO.team_roster_scope(tenant, equipe.id)
+    membros = EO.team_member_ids_at(tenant, equipe.id, agora, escopo: escopo)
+
     abertas =
       tenant
-      |> TeamWork.open_tasks_by_person(equipe.id, agora)
+      |> TeamWork.open_tasks_by_person(equipe.id, agora, membros)
       |> Enum.flat_map(fn {_pessoa, tarefas} -> tarefas end)
       |> Enum.uniq_by(& &1.issue_id)
 
@@ -54,7 +61,12 @@ defmodule TheBand.MCP.Ferramentas.TeamStaleWork do
         truncated: length(paradas) > @limite,
         limit: @limite
       },
-      composition: %{is_composed: false, note: "Open work of the team's current members."},
+      composition:
+        Composicao.de(
+          escopo,
+          "Open work of the team's current members.",
+          "Open work of the current members of the team and of its parts, each task counted once."
+        ),
       window: nil,
       origin: "derived",
       regra: "profile.thresholds",

@@ -212,10 +212,19 @@ defmodule TheBand.Tenants.Access do
   # O escopo da CONTA continua decidindo **visão** — `pode_ver/3` e `pode_ver_equipe/3` o
   # usam. O que ele deixou de decidir, em 2026-09-07, é **escrita** na estrutura: aquilo
   # passou a ser concessão a papel (`pode_gerir_estrutura/3`).
+  # SÓ O ESCOPO CONCEDIDO por alguém, e não o DERIVADO do vínculo — issue #985.
+  #
+  # `scopes/2` deriva um escopo de equipe de cada vínculo vigente (`origin: :derived_team`). Com
+  # ele contado aqui, toda conta que pertence casava nesta cláusula, e `pode_ver_equipe/3`
+  # registrava `escopo_de_equipe` para quem é membro: a cláusula `vinculo_vigente` era código
+  # morto. O veredito era o mesmo, mas a razão dita na API, no log e na MCP afirmava uma
+  # concessão que ninguém fez. Pertencer é o que a quarta cláusula diz.
   defp tem_escopo?(tenant, user, nivel, alvo_id) do
     tenant
     |> scopes(user)
-    |> Enum.any?(fn e -> e.level == nivel and e.target_id == alvo_id end)
+    |> Enum.any?(fn e ->
+      e.level == nivel and e.target_id == alvo_id and e.origin != :derived_team
+    end)
   end
 
   @doc """

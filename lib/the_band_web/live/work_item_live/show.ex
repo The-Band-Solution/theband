@@ -367,10 +367,10 @@ defmodule TheBandWeb.WorkItemLive.Show do
                   </ul>
                 </.field>
                 <.field label="labels">
-                  <.absent :if={@issue.labels == []} reason="none" />
-                  <span :for={l <- @issue.labels} class="badge badge-xs badge-ghost mr-1">
-                    {l.name}
-                  </span>
+                  <%!-- #904: a mesma gramática da lista, com a origem escrita. --%>
+                  <.rotulos_do_detalhe rotulos={
+                    Rotulos.de(Enum.map(@issue.labels, & &1.name), @issue.title)
+                  } />
                 </.field>
                 <.field label="milestone">
                   <.absent :if={is_nil(@issue.milestone_title)} reason="not in a milestone" />

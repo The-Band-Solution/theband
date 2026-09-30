@@ -23,7 +23,7 @@ FR-020 — **um** formato para todos os códigos. O cliente escreve um tratador,
 | HTTP | `code` | Quando |
 |---|---|---|
 | `401` | `unauthorized` | cabeçalho ausente, malformado, token inexistente, revogado ou expirado |
-| `404` | `not_found` | recurso que **não existe para este token** — inclusive recurso de outro tenant (FR-030, SC-014) |
+| `404` | `not_found` | recurso que **não existe para este token** — inclusive recurso de outro tenant (FR-030, SC-014) — **e caminho que não existe** sob `/api/v1` (emenda de 2026-09-29, #943) |
 | `405` | `method_not_allowed` | qualquer método além de `GET` e `HEAD` (SC-006) |
 | `500` | `internal_error` | falha não prevista. `message` genérica, `request_id` é o que resolve |
 
@@ -44,6 +44,22 @@ cliente não é calar para quem opera — é o princípio XI.
 FR-030. `403` afirma *"isto existe e você não pode"*, e essa afirmação é vazamento de
 existência: cruzando identificadores, quem chama descobre o que há no outro tenant sem
 nunca receber um byte de conteúdo.
+
+## Caminho inexistente também responde no formato único (emenda de 2026-09-29, #943)
+
+**O defeito:** um caminho que não existe sob `/api/v1` respondia `404` com a **página HTML do
+site**. Medido na v0.9.1, em 2026-09-24: `GET /api/v1/nao-existe` → `404 text/html`. Nenhuma rota
+casava, a pipeline do escopo nunca rodava, e o `Phoenix.Router.NoRouteError` era renderizado no
+formato padrão. Quem integra recebia um erro de parse de JSON, sem `code` e sem `request_id`.
+
+**Agora** um `match :*, "/*path"` no **fim** do escopo responde `404 not_found`, no formato desta
+página. É `404`, e não `405`: o recurso não existe, e dizer "método não permitido" mandaria quem
+integra procurar outro método para uma URL errada. É a mentira inversa que o comentário do
+roteador já recusava para o curinga.
+
+**Sem credencial, o caminho inexistente dá `401`**, como qualquer outro, pela mesma ordem da seção
+abaixo. Isso não vaza nada: as rotas que existem estão publicadas na descrição OpenAPI, que é
+anônima.
 
 ## Sem credencial, `401` vem antes de `405`
 
