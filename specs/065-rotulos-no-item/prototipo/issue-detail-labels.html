@@ -1,0 +1,323 @@
+<title>Labels on the Issue Page</title>
+<style>
+  :root{
+    --verdete:#1f6f68; --paper:#f7f8f7; --paper-shade:#eef0ee; --paper-line:#d7dcd8;
+    --ink:#101614; --ink-soft:#4a5551; --info-blue:#23566f; --amber:#8a5a0c; --clay:#9a4a32;
+    --grotesk:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --serif:ui-serif,Georgia,'Iowan Old Style','Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;
+    --tick:.625rem; --micro:.6875rem; --meta:.8125rem; --body:.875rem;
+    --prose:1rem; --title:1.25rem; --section:1.5rem; --mark:.125rem; --box:.5rem;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;}}
+  :root[data-theme="dark"]{color-scheme:dark;
+    --verdete:#5cbcb2; --paper:#0e1413; --paper-shade:#171f1d; --paper-line:#2b3734;
+    --ink:#e8edeb; --ink-soft:#9aa8a4; --info-blue:#7fb4cc; --amber:#d9a441; --clay:#e08a6d;}
+  *{box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--grotesk);
+       font-size:var(--body);line-height:1.5;margin:0;padding-block:2rem 5rem;padding-inline:1.25rem}
+  body.gray .wrap{filter:grayscale(1)}
+  .wrap{max-width:60rem;margin:0 auto;display:flex;flex-direction:column;gap:2.25rem}
+  .eyebrow{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;
+           text-transform:uppercase;color:var(--ink-soft);margin:0 0 .5rem}
+  h1{font-size:var(--section);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0 0 .75rem;text-wrap:balance}
+  h2{font-size:var(--title);font-weight:650;letter-spacing:-.02em;margin:0 0 .35rem;text-wrap:balance}
+  h3{font-size:var(--body);font-weight:650;margin:0}
+  .prose{font-family:var(--serif);font-size:var(--prose);line-height:1.6;max-width:38rem;margin:0}
+  .note{font-family:var(--serif);font-size:var(--meta);line-height:1.55;color:var(--ink-soft);max-width:40rem;margin:0}
+  section{display:flex;flex-direction:column;gap:1rem}
+  .head{border-bottom:1.5px solid var(--paper-line);padding-bottom:.75rem}
+  code{font-family:var(--mono);font-size:.9em;background:var(--paper-shade);
+       padding:.05rem .25rem;border-radius:var(--mark);border:1px solid var(--paper-line)}
+
+  .band{font-family:var(--mono);font-size:var(--micro);letter-spacing:.06em;text-transform:uppercase;
+        color:var(--paper);background:var(--ink);padding:.35rem .7rem;border-radius:var(--mark);align-self:flex-start}
+
+  .tools{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+  .tools button{font:inherit;font-family:var(--mono);font-size:var(--micro);color:var(--ink);
+    background:var(--paper-shade);border:1px solid var(--paper-line);border-radius:var(--mark);
+    padding:.3rem .6rem;cursor:pointer}
+  .tools button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tools button:focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+
+  /* As marcas: a MESMA gramática da coluna aprovada em /work (cd7d0245…). Sólido é o campo;
+     hachura + contorno é o título; tracejado é ausência. A forma carrega a origem sem cor. */
+  .chip{display:inline-flex;align-items:center;font-family:var(--mono);font-size:var(--micro);
+        letter-spacing:.03em;padding:.1rem .4rem;border-radius:var(--mark);white-space:nowrap}
+  .obs{background:var(--verdete);color:var(--paper);border:1px solid var(--verdete)}
+  .der{color:var(--info-blue);border:1px solid currentColor;background-color:transparent;
+       background-image:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px)}
+  .der span{background:var(--paper-shade);padding:0 .2rem;border-radius:var(--mark);color:var(--info-blue)}
+  .abs{color:var(--ink-soft);border:1px dashed currentColor;background:transparent;font-style:italic}
+  .ghost{border:1px solid var(--paper-line);color:var(--ink-soft);background:var(--paper)}
+
+  .issue{display:flex;flex-direction:column;gap:.25rem}
+  .issue .id{font-family:var(--mono);font-size:var(--meta);color:var(--ink-soft)}
+  .issue .t{font-size:var(--prose);font-weight:600}
+
+  .grid{display:grid;gap:1rem;grid-template-columns:1fr}
+  @media(min-width:52rem){.grid{grid-template-columns:1fr 1fr}}
+
+  .card{border:1.5px solid var(--paper-line);border-radius:var(--box);background:var(--paper-shade);
+        padding:1rem;display:flex;flex-direction:column;gap:.6rem;min-width:0}
+  .card.old{opacity:.85}
+  .tag{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase}
+  .tag.no{color:var(--clay)} .tag.yes{color:var(--verdete)}
+  dl{margin:0;display:flex;flex-direction:column}
+  .row{display:grid;grid-template-columns:6.5rem 1fr;gap:.5rem;padding:.4rem 0;border-bottom:1px solid var(--paper-line)}
+  .row:last-child{border-bottom:none}
+  dt{font-family:var(--mono);font-size:var(--micro);color:var(--ink-soft);padding-top:.1rem}
+  dd{margin:0;min-width:0}
+  .stub{font-family:var(--serif);font-size:var(--meta);font-style:italic;color:var(--ink-soft)}
+  .row.focus{background:color-mix(in srgb,var(--verdete) 7%,transparent);
+             margin-inline:-.5rem;padding-inline:.5rem;border-radius:var(--mark)}
+
+  /* Uma linha por origem: as marcas e, ao lado, a origem ESCRITA. Na linha da tabela o texto
+     vive no title e na legenda; aqui há espaço, e o texto visível é o que funciona para quem
+     não passa o mouse — teclado, telefone, leitor de tela, e a captura em tons de cinza. */
+  .origin{display:flex;flex-wrap:wrap;align-items:baseline;gap:.3rem .6rem;padding:.15rem 0}
+  .origin + .origin{border-top:1px dotted var(--paper-line);padding-top:.35rem;margin-top:.2rem}
+  .chips{display:flex;flex-wrap:wrap;gap:.25rem}
+  .src{font-size:var(--micro);color:var(--ink-soft)}
+  .src b{font-weight:600;color:var(--ink)}
+
+  .key{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;border-top:1.5px solid var(--paper-line);padding-top:.7rem}
+  .key div{display:flex;align-items:center;gap:.35rem;font-size:var(--micro);color:var(--ink-soft)}
+
+  .dec{display:flex;flex-direction:column;gap:.9rem}
+  .item{border-left:3px solid var(--paper-line);padding-left:.8rem;display:flex;flex-direction:column;gap:.25rem}
+  .item.decided{border-left-color:var(--verdete)}
+  .item.open{border-left-color:var(--amber);border-left-style:dashed}
+  .item .h{font-weight:650}
+  .item .s{font-family:var(--mono);font-size:var(--tick);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+  .item p,.item li{font-family:var(--serif);font-size:var(--meta);line-height:1.55;margin:0}
+  .item ul{margin:.2rem 0 0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem}
+  .rec{color:var(--verdete);font-weight:600}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Prototype · spec 065 · US1 · defect D1 · approved 2026-09-29 by the maintainer</p>
+    <h1>Labels on the Issue Page</h1>
+    <p class="prose">The list at <code>/work</code> shows every label with where it came from. The issue page shows only the ones on the label field, all in one grey, and says nothing about origin. This puts the list's grammar in the one field that lacks it — and nothing else on the page moves.</p>
+    <div class="tools" style="margin-top:1rem">
+      <button type="button" id="gray" aria-pressed="false">View in greyscale</button>
+      <span class="note">SC-003: the origin must read without colour. Toggle to check.</span>
+    </div>
+  </header>
+
+  <span class="band">screen 1 · /work/issues/:id · card “As the source describes it”</span>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">The defect, on a real issue · leds-conectafapes/plataformas-project #461</p>
+      <h2>Today and proposed, side by side</h2>
+    </div>
+    <div class="issue">
+      <span class="id">#461 · leds-conectafapes/plataformas-project</span>
+      <span class="t">[Devops] Alterar Prioridade do Ticket em caso de bugs impeditivos</span>
+    </div>
+    <div class="grid">
+      <div class="card old">
+        <span class="tag no">today — not accepted</span>
+        <dl>
+          <div class="row"><dt>labels</dt><dd><div class="chips">
+            <span class="chip ghost">feature</span><span class="chip ghost">otto-bot</span>
+          </div></dd></div>
+        </dl>
+        <p class="note">Two labels, no origin, and <code>Devops</code> missing — though <code>/work</code> shows it on the same issue's row. The reader who opens the issue to see all of them sees fewer.</p>
+      </div>
+      <div class="card">
+        <span class="tag yes">proposed</span>
+        <dl>
+          <div class="row focus"><dt>labels</dt><dd>
+            <div class="origin">
+              <div class="chips">
+                <span class="chip obs" title="observed — set on the label field at the source">feature</span>
+                <span class="chip obs" title="observed — set on the label field at the source">otto-bot</span>
+              </div>
+              <span class="src"><b>observed</b> — set on the label field at the source</span>
+            </div>
+            <div class="origin">
+              <div class="chips">
+                <span class="chip der" title="derived — read from the bracketed prefix in the title"><span>Devops</span></span>
+              </div>
+              <span class="src"><b>derived</b> — read from the bracketed prefix <code>[Devops]</code> in the title</span>
+            </div>
+          </dd></div>
+        </dl>
+        <p class="note">Same three labels as the row in <code>/work</code>, same order, same marks. The origin is also written, once per origin — not once per chip.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">The three cases the field must hold · real issues from development</p>
+      <h2>The whole card, with the labels field in place</h2>
+    </div>
+    <p class="note">Only the labels row changes. The rows around it are shown as <em>unchanged</em> so the order can be checked without redrawing what stays as it is. Milestone and comment counts are the real values.</p>
+
+    <div class="grid">
+      <div class="card">
+        <p class="eyebrow" style="margin:0">(a) only from the field · leds-conectafapes/autherix #13</p>
+        <h3>Sincronizacao documental, backlog e rollout de migracao</h3>
+        <dl>
+          <div class="row"><dt>author</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>assignees</dt><dd class="stub">unchanged</dd></div>
+          <div class="row focus"><dt>labels</dt><dd>
+            <div class="origin">
+              <div class="chips">
+                <span class="chip obs" title="observed — set on the label field at the source">authz</span>
+                <span class="chip obs" title="observed — set on the label field at the source">documentation</span>
+                <span class="chip obs" title="observed — set on the label field at the source">feat</span>
+                <span class="chip obs" title="observed — set on the label field at the source">planning</span>
+                <span class="chip obs" title="observed — set on the label field at the source">sot</span>
+              </div>
+              <span class="src"><b>observed</b> — set on the label field at the source</span>
+            </div>
+          </dd></div>
+          <div class="row"><dt>milestone</dt><dd><span class="chip abs">not in a milestone</span></dd></div>
+          <div class="row"><dt>boards</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>comments</dt><dd class="num">0</dd></div>
+        </dl>
+        <p class="note">Five labels, all five shown. In <code>/work</code> this row reads three and <code>+2</code>, and <code>+2</code> links here: this is the page that promise lands on. No title line — the title has no bracket.</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow" style="margin:0">(b) field and title · leds-conectafapes/conectafapes-project #2212</p>
+        <h3>[Back-end] Permitir importação de subrubricas no orçamento</h3>
+        <dl>
+          <div class="row"><dt>author</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>assignees</dt><dd class="stub">unchanged</dd></div>
+          <div class="row focus"><dt>labels</dt><dd>
+            <div class="origin">
+              <div class="chips">
+                <span class="chip obs" title="observed — set on the label field at the source">backend</span>
+              </div>
+              <span class="src"><b>observed</b> — set on the label field at the source</span>
+            </div>
+            <div class="origin">
+              <div class="chips">
+                <span class="chip der" title="derived — read from the bracketed prefix in the title"><span>Back-end</span></span>
+              </div>
+              <span class="src"><b>derived</b> — read from the bracketed prefix <code>[Back-end]</code> in the title</span>
+            </div>
+          </dd></div>
+          <div class="row"><dt>milestone</dt><dd><span class="chip abs">not in a milestone</span></dd></div>
+          <div class="row"><dt>boards</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>comments</dt><dd class="num">0</dd></div>
+        </dl>
+        <p class="note"><code>backend</code> and <code>Back-end</code> both stay, as written. Merging them would be the platform deciding two acts of writing meant the same thing (FR-008).</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow" style="margin:0">(c) no label at all · leds-conectafapes/conectafapes-project #956</p>
+        <h3>[Portal ADM] - Atualização de Valores de Bolsas em Projetos Ativos</h3>
+        <dl>
+          <div class="row"><dt>author</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>assignees</dt><dd class="stub">unchanged</dd></div>
+          <div class="row focus"><dt>labels</dt><dd>
+            <div class="origin">
+              <span class="chip abs" title="no label on the field, and no declared prefix in the title">no label</span>
+              <span class="src">none on the label field at the source, and no declared prefix in the title</span>
+            </div>
+          </dd></div>
+          <div class="row"><dt>milestone</dt><dd>[Portal ADM] - Aumento de bolsa automático</dd></div>
+          <div class="row"><dt>boards</dt><dd class="stub">unchanged</dd></div>
+          <div class="row"><dt>comments</dt><dd class="num">1</dd></div>
+        </dl>
+        <p class="note">Absence in words, and whose absence: the source's field is empty, and the platform found nothing it may read from the title. <code>[Portal ADM]</code> is a bracket, but not on the declared list — so it does not become a label (FR-004).</p>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow" style="margin:0">How often each case happens · development, 2026-09-29</p>
+        <dl>
+          <div class="row"><dt>issues</dt><dd class="num">5 629</dd></div>
+          <div class="row"><dt>no field label</dt><dd><span class="num">4 294</span> <span class="src">— of these, the ones with a declared prefix still show a derived label; the rest read case (c)</span></dd></div>
+          <div class="row"><dt>most on one</dt><dd><span class="num">6</span> <span class="src">field labels, plus at most one from the title</span></dd></div>
+          <div class="row"><dt>[Devops]</dt><dd><span class="num">371</span> <span class="src">issues whose title starts with it</span></dd></div>
+        </dl>
+        <p class="note">Seven marks at most — they wrap inside the field on a phone. Nothing is cut here: the detail is where every label is listed.</p>
+      </div>
+    </div>
+
+    <div class="key">
+      <div><span class="chip obs">backend</span> solid — observed, set on the label field</div>
+      <div><span class="chip der"><span>Back-end</span></span> hatched and outlined — derived, read from the title</div>
+      <div><span class="chip abs">no label</span> dashed — absence, written</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="head">
+      <p class="eyebrow">Decisions and open questions</p>
+      <h2>What this prototype settles</h2>
+    </div>
+    <div class="dec">
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · D1 · inherits the approved list</span>
+        <span class="h">The field uses the list's component, marks and tooltip text unchanged.</span>
+        <p>Solid verdete for the field, hatched and outlined blue for the title, dashed for absence — exactly as approved for <code>/work</code> on 2026-09-13, including the two <code>title</code> strings. The component already exists (<code>&lt;.rotulos&gt;</code>); the detail calls it instead of writing <code>badge-ghost</code> by hand. Blue for derived stays, because it is what the approved list uses; changing one screen alone would make the same label read two ways.</p>
+      </div>
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · D2 · no cut</span>
+        <span class="h">Every label is shown. No three-and-<code>+N</code>.</span>
+        <p>The cut belongs to the row, where height is shared. The <code>+N</code> in the list is a link to this page with the promise that all labels are here.</p>
+      </div>
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · D3 · order and place</span>
+        <span class="h">Field labels first, then the title's; the field stays where it is.</span>
+        <p>Same order as <code>Rotulos.de/2</code> and the list (FR-012). The row keeps its place between <em>assignees</em> and <em>milestone</em> in “As the source describes it”.</p>
+      </div>
+
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · Q1 · written origin — (a)</span>
+        <span class="h">Write the origin beside each group of marks, or rely on the tooltip as the list does?</span>
+        <ul>
+          <li>(a) one written line per origin, as shown — <em>observed — set on the label field at the source</em>;</li>
+          <li>(b) marks only, with the <code>title</code> tooltip and no visible text.</li>
+        </ul>
+        <p><span class="rec">Decided: (a), as recommended.</span> The list can lean on a legend and the tooltip because it has no room; this field has room. A tooltip does not reach a keyboard, a phone or a greyscale capture, and SC-003 is measured on the capture.</p>
+      </div>
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · Q2 · the card's heading — (a)</span>
+        <span class="h">Can a derived label sit under “As the source describes it”?</span>
+        <ul>
+          <li>(a) yes, in the same field, with the derived line saying it was read from the title;</li>
+          <li>(b) move the derived line to the <em>Promotion</em> card, where the platform's own readings live;</li>
+          <li>(c) rename the card.</li>
+        </ul>
+        <p><span class="rec">Decided: (a), as recommended.</span> The title <em>is</em> what the source describes; the mark and the written line say the reading is the platform's. Splitting would break the independent test of US1 — “the same labels appear when each item is opened” — in one field.</p>
+      </div>
+      <div class="item decided">
+        <span class="s">Decided 2026-09-29 by the maintainer · Q3 · the absence sentence — (a)</span>
+        <span class="h">How much should “no label” say?</span>
+        <ul>
+          <li>(a) the sentence shown: <em>none on the label field at the source, and no declared prefix in the title</em>;</li>
+          <li>(b) also name a bracket that did not qualify — <em>[Portal ADM] is not a declared prefix</em>;</li>
+          <li>(c) only <em>no label</em>, as in the list.</li>
+        </ul>
+        <p><span class="rec">Decided: (a), as recommended.</span> It says whose absence each half is, as the design system asks, and needs nothing the platform does not already compute. (b) names the list of rejected brackets on screen, which is a new rule to test; it can come later if people ask why a bracket did not count.</p>
+      </div>
+    </div>
+    <p class="note"><strong>Out of scope:</strong> case-insensitive matching of title prefixes (the 47 variants such as <code>[DevOps]</code> that do not derive today) is not part of this screen; it is its own feature, #1023.</p>
+    <p class="note"><strong>No new measure.</strong> The field shows labels and their origin, both already in the knowledge base and in <code>Rotulos.de/2</code>. Nothing here needs a new YAML.</p>
+  </section>
+
+</div>
+
+<script>
+  (function(){
+    var b=document.getElementById('gray');
+    b.addEventListener('click',function(){
+      var on=document.body.classList.toggle('gray');
+      b.setAttribute('aria-pressed',on?'true':'false');
+      b.textContent=on?'Back to colour':'View in greyscale';
+    });
+  })();
+</script>
