@@ -68,21 +68,7 @@ defmodule TheBandWeb.UI do
 
     ~H"""
     <div class={["flex flex-wrap items-center gap-1", @class]}>
-      <span
-        :for={r <- @mostrados}
-        class={[
-          "inline-flex items-center rounded-[1px] px-1 py-px font-mono text-[0.6875rem]",
-          r.origem == :campo && "bg-success text-success-content",
-          r.origem == :titulo &&
-            "text-info outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
-        ]}
-        title={origem_do_rotulo(r.origem)}
-      >
-        <%!-- O texto do rótulo hachurado vai sobre fundo próprio: a hachura atrás de letras
-              de 11px as torna ilegíveis, e legibilidade não é negociável para poder
-              carregar proveniência. --%>
-        <span class={r.origem == :titulo && "bg-base-100 px-0.5 rounded-[1px]"}>{r.texto}</span>
-      </span>
+      <.marca_do_rotulo :for={r <- @mostrados} rotulo={r} />
 
       <.link
         :if={@restantes > 0 && @href}
@@ -95,6 +81,92 @@ defmodule TheBandWeb.UI do
 
       <span :if={@rotulos == []} class="text-xs italic opacity-60">no label</span>
     </div>
+    """
+  end
+
+  @doc """
+  Os rótulos no DETALHE da issue — issue #904, 065/US1, D1.
+
+  A lista mostrava a origem de cada rótulo, e o detalhe não: exibia só os do campo, todos no
+  mesmo cinza, sem o derivado do título. Quem abria a issue via menos do que a linha dela na
+  lista. O protótipo aprovado em 2026-09-29 está em
+  `specs/065-rotulos-no-item/prototipo/issue-detail-labels.html`.
+
+  - **Mesmas marcas da lista**, pela mesma `marca_do_rotulo/1`: as duas telas não podem
+    divergir sobre o que é sólido e o que é hachurado.
+  - **Todos os rótulos**, sem o corte de três da lista: o corte existe para a linha da tabela
+    ter uma altura só, e aqui não há linha.
+  - **A origem ESCRITA, uma linha por origem** (decisão Q1). A dica de ferramenta não chega ao
+    teclado, ao telefone, ao leitor de tela nem à captura em cinza, onde a SC-003 se mede.
+  - **A ausência diz de quem é cada metade** (decisão Q3): o campo da origem está vazio, e a
+    plataforma não achou prefixo declarado no título.
+
+  As frases são de tela, em inglês.
+  """
+  attr :rotulos, :list, required: true
+  attr :titulo, :string, default: ""
+
+  def rotulos_do_detalhe(assigns) do
+    assigns =
+      assigns
+      |> assign(:do_campo, Enum.filter(assigns.rotulos, &(&1.origem == :campo)))
+      |> assign(:do_titulo, Enum.filter(assigns.rotulos, &(&1.origem == :titulo)))
+
+    ~H"""
+    <div class="flex flex-col gap-1.5">
+      <div :if={@do_campo != []} class="flex flex-col gap-0.5">
+        <div class="flex flex-wrap items-center gap-1">
+          <.marca_do_rotulo :for={r <- @do_campo} rotulo={r} />
+        </div>
+        <span class="text-xs opacity-70"><b>observed</b> — set on the label field at the source</span>
+      </div>
+
+      <div :for={r <- @do_titulo} class="flex flex-col gap-0.5">
+        <div class="flex flex-wrap items-center gap-1">
+          <.marca_do_rotulo rotulo={r} />
+        </div>
+        <span class="text-xs opacity-70">
+          <b>derived</b> — read from the bracketed prefix <code>[{r.texto}]</code> in the title
+        </span>
+      </div>
+
+      <div :if={@rotulos == []} class="flex flex-col gap-0.5">
+        <span
+          class="inline-flex w-fit items-center rounded-[1px] border border-dashed border-current px-1 py-px font-mono text-[0.6875rem] opacity-70"
+          title="no label on the field, and no declared prefix in the title"
+        >
+          no label
+        </span>
+        <span class="text-xs opacity-70">
+          none on the label field at the source, and no declared prefix in the title
+        </span>
+      </div>
+    </div>
+    """
+  end
+
+  # A MARCA de um rótulo, a mesma na lista e no detalhe: sólido é o rótulo do campo, hachurado
+  # com contorno é o lido do prefixo do título. A forma e o `title` carregam a origem além da cor.
+  attr :rotulo, :map, required: true
+
+  defp marca_do_rotulo(assigns) do
+    ~H"""
+    <span
+      class={[
+        "inline-flex items-center rounded-[1px] px-1 py-px font-mono text-[0.6875rem]",
+        @rotulo.origem == :campo && "bg-success text-success-content",
+        @rotulo.origem == :titulo &&
+          "text-info outline outline-1 -outline-offset-1 outline-current bg-[repeating-linear-gradient(135deg,currentColor_0_2px,transparent_2px_4px)]"
+      ]}
+      title={origem_do_rotulo(@rotulo.origem)}
+    >
+      <%!-- O texto do rótulo hachurado vai sobre fundo próprio: a hachura atrás de letras
+            de 11px as torna ilegíveis, e legibilidade não é negociável para poder
+            carregar proveniência. --%>
+      <span class={@rotulo.origem == :titulo && "bg-base-100 px-0.5 rounded-[1px]"}>
+        {@rotulo.texto}
+      </span>
+    </span>
     """
   end
 
