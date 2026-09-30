@@ -62,7 +62,6 @@ defmodule TheBand.Tenants.User do
     # `password_set_at ≈ inserted_at` é heurística com cara de fato.
     field :password_source, :string
     field :password_set_by_user_id, :binary_id
-    field :session_token, :string, redact: true
 
     # A época da senha — 064/T010. Sobe a cada definição de senha, e a sessão aberta com uma
     # época anterior deixa de valer.
@@ -132,19 +131,17 @@ defmodule TheBand.Tenants.User do
   end
 
   @doc """
-  Desativa a conta — marca com autoria e data, e gira o token antigo.
+  Desativa a conta — marca com autoria e data.
 
-  **Desde a 064 (T013), quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`**,
-  chamada na mesma transação por `Tenants.disable_user/4`: a sessão é lida de `user_sessions`, e
-  não mais desta coluna. O giro de `session_token` continua até a T014 remover a coluna, só para
-  um rollback do código não reabrir a sessão pela leitura antiga (achado S7).
+  **Quem faz a desativação valer agora é `Sessions.encerrar_da_conta/2`** (064, T011), chamada na
+  mesma transação por `Tenants.disable_user/4`. A sessão é lida de `user_sessions` desde a T013.
+  A coluna antiga `users.session_token` deixou de ser escrita na T014a, e é removida na T014b.
   """
   @spec desativar_changeset(t(), Ecto.UUID.t()) :: Ecto.Changeset.t()
   def desativar_changeset(user, actor_id) do
     change(user,
       disabled_at: DateTime.utc_now(:second),
-      disabled_by_user_id: actor_id,
-      session_token: novo_token()
+      disabled_by_user_id: actor_id
     )
   end
 
@@ -216,7 +213,6 @@ defmodule TheBand.Tenants.User do
         |> put_change(:must_change_password, Keyword.get(opts, :temporary, false))
         |> put_change(:password_source, Keyword.get(opts, :source))
         |> put_change(:password_set_by_user_id, Keyword.get(opts, :by))
-        |> put_change(:session_token, novo_token())
         |> prepare_changes(&incrementar_epoca/1)
         |> delete_change(:password)
     end
@@ -271,8 +267,4 @@ defmodule TheBand.Tenants.User do
   # sai do estado pendente no mesmo changeset. Se aparecer, a proveniência não explica a
   # pendência, e dizer *não registrado* é o que resta de verdadeiro.
   def estado_da_credencial(%__MODULE__{}), do: :temporary_source_not_recorded
-
-  @doc "Token de sessão novo — girá-lo derruba as outras sessões (FR-015)."
-  @spec novo_token() :: String.t()
-  def novo_token, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
 end

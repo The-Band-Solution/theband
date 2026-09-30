@@ -124,10 +124,12 @@ defmodule TheBand.Tenants.AuthTest do
   end
 
   describe "senha" do
-    test "trocar exige a atual e gira o token de sessão (FR-015)", ctx do
+    # Desde a 064, o que derruba as outras sessões é a época da senha e o encerramento em
+    # `user_sessions` (T010, T013). O giro de `users.session_token` saiu na T014a.
+    test "trocar exige a atual e sobe a época da senha (FR-015)", ctx do
       user = conta_com_senha(ctx.tenant)
       {:ok, entrada} = Tenants.authenticate(user.email, @senha)
-      token_antigo = entrada.session_token
+      epoca_antiga = entrada.password_epoch
 
       assert {:error, :invalid_current} =
                Tenants.change_password(
@@ -140,7 +142,7 @@ defmodule TheBand.Tenants.AuthTest do
       assert {:ok, trocada} =
                Tenants.change_password(ctx.tenant, user.id, @senha, "nova-bem-comprida-1")
 
-      assert trocada.session_token != token_antigo
+      assert trocada.password_epoch == epoca_antiga + 1
       assert {:ok, _} = Tenants.authenticate(user.email, "nova-bem-comprida-1")
       assert {:error, :invalid_credentials} = Tenants.authenticate(user.email, @senha)
     end
