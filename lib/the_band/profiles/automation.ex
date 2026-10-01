@@ -102,7 +102,12 @@ defmodule TheBand.Profiles.Automation do
   @doc "Os tenants com a geração ligada — é por onde o cron começa."
   @spec enabled_tenants() :: [Tenant.t()]
   def enabled_tenants do
-    Enum.filter(TheBand.Tenants.list_tenants(), &enabled?/1)
+    # Organização suspensa não entra na rodada, ligada ou não — issue #1033: a rodada envia
+    # dado de pessoa ao provedor do modelo.
+    Enum.filter(
+      TheBand.Tenants.list_tenants(),
+      &(TheBand.Tenants.ensure_active(&1) == :ok and enabled?(&1))
+    )
   end
 
   defp gravar(%Tenant{id: tenant_id}, evento, %User{id: ator_id}) do

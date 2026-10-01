@@ -51,13 +51,21 @@ defmodule TheBand.Profiles.GenerateWorker do
           {:ok, map(), %{input: non_neg_integer() | nil, output: non_neg_integer() | nil}}
           | {:error, term()}
   def gerar(tenant, person_id, user_id \\ nil) do
-    with {:ok, material} <- Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
+    with :ok <- ativa_agora(tenant),
+         {:ok, material} <- Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
          {:ok, resposta} <- chamar(tenant, material) do
       case gravar(tenant, material, resposta, user_id) do
         {:ok, perfil} -> {:ok, perfil, consumo(resposta)}
         {:cancel, motivo} -> {:error, motivo}
       end
     end
+  end
+
+  # O estado é relido do banco, e não do `tenant` recebido: a rodada carrega o tenant uma vez e
+  # leva dezenas de minutos, e a suspensão no meio dela precisa parar a próxima chamada ao
+  # modelo — issue #1033.
+  defp ativa_agora(%Tenants.Tenant{id: id}) do
+    with {:ok, tenant} <- Tenants.fetch(id), do: Tenants.ensure_active(tenant)
   end
 
   # O provedor nomeia os campos de formas diferentes conforme a rota — `prompt_tokens` e
@@ -78,6 +86,8 @@ defmodule TheBand.Profiles.GenerateWorker do
     %{"tenant_id" => tenant_id, "person_id" => person_id} = args
 
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
+         # Organização suspensa não manda dado de pessoa ao modelo — issue #1033.
+         :ok <- Tenants.ensure_active(tenant),
          {:ok, material} <-
            Material.build(tenant, person_id, modo_do_material(tenant, person_id)),
          {:ok, resposta} <- chamar(tenant, material) do

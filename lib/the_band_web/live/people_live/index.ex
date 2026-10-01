@@ -269,7 +269,10 @@ defmodule TheBandWeb.PeopleLive.Index do
   # pessoa nesta organização" manda trocar o filtro. Uma frase só para os dois faria quem
   # lê procurar no lugar errado.
   defp empty_message(search, organizacao_id, has_any)
-  defp empty_message("", nil, false), do: "No sync has brought people yet."
+  # Com ou sem busca: se nenhuma coleta trouxe pessoas, a ausência é da origem, e não da busca.
+  # A cláusula com busca faltava, e digitar na busca de uma organização vazia derrubava a tela
+  # (#1041).
+  defp empty_message(_search, nil, false), do: "No sync has brought people yet."
 
   defp empty_message(_search, org, false) when not is_nil(org),
     do: "No sync has brought people yet — the organisation filter has nothing to narrow."

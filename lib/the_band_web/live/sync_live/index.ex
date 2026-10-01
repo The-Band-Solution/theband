@@ -13,8 +13,15 @@ defmodule TheBandWeb.SyncLive.Index do
   alias TheBand.Jobs.ReprocessMappings
   alias TheBand.Mapping
   alias TheBand.Ontology.SEON.EO
+  alias TheBand.Saude
   alias TheBand.Sources
   alias TheBand.Tenants
+  alias TheBandWeb.SyncLive.Fila
+
+  # A reconferência da fila — issue #801, achado S4. Um minuto, porque o limiar é 15: a tela
+  # nunca atrasa mais que um ciclo para dizer que parou ou que voltou.
+  # Configurável só para o teste do achado S4, que precisa ver vários ciclos sem esperar minutos.
+  defp reconferir_fila_ms, do: Application.get_env(:the_band, :reconferir_fila_ms, 60_000)
 
   @impl true
   def mount(_params, _session, socket) do
@@ -24,6 +31,11 @@ defmodule TheBandWeb.SyncLive.Index do
       # promoção é assíncrono, então a tela recarrega antes de ele acontecer — sem este
       # aviso a regra aparece e o número não muda.
       Mapping.subscribe(socket.assigns.current_tenant)
+
+      # O timer é armado SÓ aqui, no mount conectado, e rearmado só no próprio `handle_info`
+      # (achado S4). Armá-lo em `load/1`, que roda em dez pontos, multiplicaria os timers a cada
+      # evento, e cada um rodaria a reconciliação global.
+      Process.send_after(self(), :reconferir_fila, reconferir_fila_ms())
     end
 
     {:ok,
@@ -40,7 +52,9 @@ defmodule TheBandWeb.SyncLive.Index do
        mapeamento: nil,
        # Muda a cada recálculo concluído, e é o que faz o componente de regras recarregar:
        # `update/2` só roda quando algum assign dele muda.
-       recalculo: 0
+       recalculo: 0,
+       # O estado da fila, lido fora do Oban — issue #801. Agregado da instalação, sem tenant.
+       fila: Saude.leitura()
      )
      |> load()}
   end
@@ -217,6 +231,13 @@ defmodule TheBandWeb.SyncLive.Index do
      |> load()}
   end
 
+  # Lê só `Saude.leitura/2`, e NÃO chama `load/1`: a reconferência não pode virar a
+  # reconciliação global uma vez por minuto por aba (achado S4).
+  def handle_info(:reconferir_fila, socket) do
+    Process.send_after(self(), :reconferir_fila, reconferir_fila_ms())
+    {:noreply, assign(socket, :fila, Saude.leitura())}
+  end
+
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
@@ -240,6 +261,10 @@ defmodule TheBandWeb.SyncLive.Index do
         Syncs
         <:subtitle>Bring in from the tool what the platform comes to know.</:subtitle>
       </.header>
+
+      <%!-- A FILA ANDA? — issue #801, parte 3. Acima de tudo, porque com a fila parada nada
+            abaixo avança. --%>
+      <Fila.estado fila={@fila} />
 
       <div :if={@paused} class="alert alert-info">
         <div>
@@ -342,9 +367,19 @@ defmodule TheBandWeb.SyncLive.Index do
             </div>
           </div>
           <div class="flex flex-col gap-2 items-end">
-            <.button phx-click="sync" phx-value-tool_id={tool.id} disabled={running?(@syncs, tool)}>
+            <.button
+              phx-click="sync"
+              phx-value-tool_id={tool.id}
+              disabled={running?(@syncs, tool) or Fila.parada?(@fila)}
+            >
               {if running?(@syncs, tool), do: "running", else: "Sync"}
             </.button>
+            <%!-- Q2: com a fila parada, a razão ao lado do botão desabilitado. --%>
+            <span :if={Fila.parada?(@fila)} class="text-xs text-warning">
+              {if running?(@syncs, tool),
+                do: "already running, and not advancing: the queue is stalled",
+                else: "paused: the queue is stalled"}
+            </span>
 
             <%!-- O intervalo é decisão de quem administra, e muda sem implantar. As opções
                   começam em 15 min porque a coleta mais longa medida leva 16 min 25 s: menos
@@ -385,9 +420,17 @@ defmodule TheBandWeb.SyncLive.Index do
               and restarting the app — the knowledge base is read once per boot.
             </div>
           </div>
-          <.button phx-click="reprocess" disabled={@reprocess == :running}>
-            {if @reprocess == :running, do: "reprocessando…", else: "Reprocessar"}
-          </.button>
+          <div class="flex flex-col items-end gap-1">
+            <.button
+              phx-click="reprocess"
+              disabled={@reprocess == :running or Fila.parada?(@fila)}
+            >
+              {if @reprocess == :running, do: "reprocessando…", else: "Reprocessar"}
+            </.button>
+            <span :if={Fila.parada?(@fila)} class="text-xs text-warning">
+              paused: reprocessing runs in the stalled queue
+            </span>
+          </div>
         </div>
 
         <div
@@ -457,6 +500,9 @@ defmodule TheBandWeb.SyncLive.Index do
                   organizações, "iniciada em 15:10" não diz qual delas. --%>
             <span class="font-semibold">{organizacao(@tools, sync)}</span>
             <span class="text-sm opacity-70">started {sync.started_at}</span>
+            <%!-- O registro diz running; a fila diz que não anda. As duas afirmações lado a
+                  lado, sem trocar o badge (#801). --%>
+            <Fila.execucao_parada :if={sync.status == "running" and Fila.parada?(@fila)} fila={@fila} />
           </div>
           <div class="flex items-center gap-3">
             <span :if={sync.finished_at} class="text-sm opacity-70">
@@ -477,6 +523,13 @@ defmodule TheBandWeb.SyncLive.Index do
             </button>
           </div>
         </div>
+
+        <Fila.duas_afirmacoes
+          :if={sync.status == "running" and Fila.parada?(@fila)}
+          fila={@fila}
+          desde={sync.started_at}
+          interrompivel?={Ingestion.interruptible?(sync)}
+        />
 
         <%!-- Quem encerrou, por extenso — e nunca um travessão para os dois casos: o autor
               ausente AFIRMA que foi a plataforma, e apagar a afirmação é o que o design

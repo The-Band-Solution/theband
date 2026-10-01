@@ -16,10 +16,14 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
 
   # Os que CAPTURAM uma consulta, e não CONTAM. Não sofrem com o tick do Oban, porque filtram.
   @capturas %{
+    "test/the_band/tenants/auth_test.exs" =>
+      "captura o SELECT … FOR UPDATE da conta no login (#1046), pelo conteúdo",
     "test/the_band/work_items/custo_da_vigente_test.exs" =>
       "captura a consulta que toca issue_promotions, pelo conteúdo",
     "test/the_band_web/api/isolamento_por_tenant_test.exs" =>
-      "captura o SQL inteiro para examinar a cláusula de tenant, e já exclui o Oban"
+      "captura o SQL inteiro para examinar a cláusula de tenant, e já exclui o Oban",
+    "test/the_band_web/live/fila_parada_test.exs" =>
+      "captura só as consultas de Saude.leitura/2 em oban_jobs, que o contador único ignora de propósito"
   }
 
   @contador "test/support/contador_de_consultas.ex"

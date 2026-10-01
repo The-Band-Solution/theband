@@ -597,9 +597,15 @@ defmodule TheBand.Tenants.Access do
   Uma consulta só, e direto nas concessões: organization NÃO tem caminho
   derivado (contrato), então a união inteira não precisa ser montada — e isso
   importa porque o menu pergunta isto a cada tela.
+
+  Conta de outro tenant recebe `false`, mesmo sendo admin lá — issue #1034. Era o único
+  veredito da casa que não comparava o tenant da conta com o tenant recebido.
   """
   @spec operacional?(Tenant.t(), User.t()) ::
           {true, :admin | {:organizations, [Ecto.UUID.t()]}} | false
+  def operacional?(%Tenant{id: tenant_id}, %User{tenant_id: outro}) when outro != tenant_id,
+    do: false
+
   def operacional?(%Tenant{id: tenant_id}, %User{} = user) do
     cond do
       User.admin?(user) ->

@@ -77,6 +77,18 @@ defmodule TheBand.Tenants do
     end
   end
 
+  @doc """
+  `:ok` quando a organização está ativa — issue #1033. É o predicado único de quem trabalha em
+  nome de um tenant: os workers, o agendador e o botão de sincronizar.
+
+  Ativa é `status == "active"`, o mesmo teste do login (`Auth`) e da sessão (`CurrentScope`).
+  Qualquer outro valor conta como inativa, inclusive um que ninguém previu: `status` é texto
+  livre no banco, e o lado seguro do desconhecido é não trabalhar.
+  """
+  @spec ensure_active(Tenant.t()) :: :ok | {:error, :tenant_inactive}
+  def ensure_active(%Tenant{status: "active"}), do: :ok
+  def ensure_active(%Tenant{}), do: {:error, :tenant_inactive}
+
   @spec get_by_slug(String.t()) :: Tenant.t() | nil
   def get_by_slug(slug), do: Repo.get_by(Tenant, slug: slug)
 
@@ -335,7 +347,17 @@ defmodule TheBand.Tenants do
         {:error, erro} -> Repo.rollback(erro)
       end
     end)
+    |> avisando_as_telas(user.id)
   end
+
+  # Depois do commit, e só se ele aconteceu: a tela aberta reconfere a sessão no banco ao
+  # receber o aviso, e antes do commit a acharia ainda aberta — issue #1042.
+  defp avisando_as_telas({:ok, _} = ok, user_id) do
+    Sessions.avisar_encerramento({:conta, user_id})
+    ok
+  end
+
+  defp avisando_as_telas(erro, _user_id), do: erro
 
   @doc """
   Reativa uma conta desativada — com ator e razão, e **fechando** o episódio.

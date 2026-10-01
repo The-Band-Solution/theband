@@ -49,9 +49,29 @@ defmodule TheBand.Tenants.Auth do
         recusar(nil, :identificador_nao_resolveu)
 
       %User{} = user ->
-        verificar(user, senha)
+        verificar_com_trava(user, senha)
     end
   end
+
+  # A TENTATIVA É SERIALIZADA POR CONTA — issue #1046, achado A1 da avaliação da 070.
+  #
+  # A espera lia `failed_attempts` da struct carregada por `resolver/1` e gravava `n + 1`
+  # calculado em memória. Tentativas simultâneas liam o mesmo contador, e todas testavam a
+  # senha: a espera crescente se contornava mandando em paralelo. A conta é relida com
+  # `FOR UPDATE`, e conferir a janela, verificar a senha e registrar a tentativa acontecem com
+  # a linha travada. A segunda tentativa espera a primeira e já lê o contador dela.
+  defp verificar_com_trava(%User{id: id}, senha) do
+    {:ok, resultado} =
+      Repo.transaction(fn ->
+        id
+        |> conta_travada()
+        |> verificar(senha)
+      end)
+
+    resultado
+  end
+
+  defp conta_travada(id), do: Repo.one!(from u in User, where: u.id == ^id, lock: "FOR UPDATE")
 
   # A RECUSA REGISTRADA COM O MOTIVO INTERNO — achado H4.
   #
@@ -336,6 +356,9 @@ defmodule TheBand.Tenants.Auth do
   # sessão de quem trocou a própria senha é reaberta pelo controller.
   defp encerrando_as_sessoes({:ok, %User{} = user} = ok) do
     {:ok, _} = Sessions.encerrar_da_conta(user.tenant_id, user.id)
+
+    # Fora de transação: o `Repo.update` acima já gravou, e a tela aberta pode reconferir (#1042).
+    Sessions.avisar_encerramento({:conta, user.id})
     ok
   end
 

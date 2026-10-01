@@ -12,6 +12,7 @@ defmodule TheBandWeb.Live.Hooks do
   import Phoenix.LiveView
 
   alias TheBand.Tenants.AccessEvents
+  alias TheBand.Tenants.Sessions
   alias TheBand.Tenants.User
   alias TheBandWeb.Sessao
 
@@ -20,7 +21,7 @@ defmodule TheBandWeb.Live.Hooks do
   # (um login legítimo em outro aparelho estendia a sessão roubada) e uma comparação de token
   # própria.
   def on_mount(:current_scope, _params, session, socket) do
-    with {:ok, _sessao, user} <- Sessao.conferir(session),
+    with {:ok, sessao, user} <- Sessao.conferir(session),
          # A ORGANIZAÇÃO SUSPENSA DERRUBA O LIVEVIEW TAMBÉM — achado H3, parte A.
          #
          # O plug cobre a requisição HTTP; esta hook cobre o socket. Sem as duas, a
@@ -47,7 +48,8 @@ defmodule TheBandWeb.Live.Hooks do
            # organization (FR-023) — a condição vive em Access.operacional?/2,
            # o ponto único que a 046 previu.
            |> assign(:operacao_menu, TheBand.Tenants.operacional?(user.tenant, user) != false)
-           |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)}
+           |> attach_hook(:nav_area, :handle_params, &nav_area_hook/3)
+           |> escutar_o_encerramento(sessao, session)}
 
         {:redirect, destino} ->
           {:halt, redirect(socket, to: destino)}
@@ -122,6 +124,40 @@ defmodule TheBandWeb.Live.Hooks do
   # tela que esquecesse de declarar ficaria sem marcação em silêncio.
   defp nav_area_hook(_params, uri, socket) do
     {:cont, assign(socket, :nav_area, TheBandWeb.Layouts.nav_area(URI.parse(uri).path))}
+  end
+
+  # A TELA ABERTA CAI QUANDO A SESSÃO CAI — issue #1042.
+  #
+  # A conferência acima roda só no `mount`. Sem isto, a conta desativada seguia agindo pela aba
+  # já aberta até recarregá-la: medido em 2026-10-01, o evento depois da desativação respondia.
+  # O aviso é só gatilho, e a decisão é da mesma conferência do `mount`, refeita no banco. Por
+  # isso um aviso espúrio não derruba quem ainda vale.
+  defp escutar_o_encerramento(socket, sessao, session) do
+    if connected?(socket) do
+      Enum.each(
+        Sessions.topicos(sessao),
+        &Phoenix.PubSub.subscribe(TheBand.PubSub, &1)
+      )
+
+      attach_hook(socket, :sessao_encerrada, :handle_info, fn
+        :sessao_encerrada, socket -> {:halt, reconferir(socket, session)}
+        _outra, socket -> {:cont, socket}
+      end)
+    else
+      socket
+    end
+  end
+
+  defp reconferir(socket, session) do
+    with {:ok, _sessao, user} <- Sessao.conferir(session),
+         :ok <- organizacao_ativa(user),
+         :ok <- conta_ativa(user) do
+      socket
+    else
+      {:error, motivo, dona} ->
+        {:halt, derrubada} = derrubar(socket, dona, motivo)
+        derrubada
+    end
   end
 
   defp derrubar(socket, dona, motivo) do
