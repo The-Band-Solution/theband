@@ -187,10 +187,13 @@ defmodule TheBand.Tenants.ApiTokens do
 
   **O valor em claro sai daqui e nunca mais.** Ele não é gravado, e a terceira posição da
   tupla é a única vez que ele existe fora da memória de quem chamou.
+
+  Dono e autor de outro tenant são recusados no changeset, e nada é gravado — issue #1035.
+  Antes, só `ApiAuth` impedia o **uso** de um token assim; a criação aceitava.
   """
   @spec criar(Tenant.t(), User.t(), map(), User.t()) ::
           {:ok, Token.t(), String.t()} | {:error, Ecto.Changeset.t()}
-  def criar(%Tenant{id: tenant_id}, %User{id: dono_id}, attrs, %User{id: autor_id}) do
+  def criar(%Tenant{id: tenant_id}, %User{id: dono_id} = dono, attrs, %User{id: autor_id} = autor) do
     id_publico = gerar_id_publico(@bytes_do_id)
     segredo = gerar_segredo(@bytes_do_segredo)
     valor = prefixo() <> id_publico <> "_" <> segredo
@@ -206,12 +209,21 @@ defmodule TheBand.Tenants.ApiTokens do
       created_by_user_id: autor_id,
       expires_at: expiracao(attrs)
     })
+    |> do_tenant(:user_id, dono, tenant_id)
+    |> do_tenant(:created_by_user_id, autor, tenant_id)
     |> Repo.insert()
     |> case do
       {:ok, token} -> {:ok, %{token | value: valor}, valor}
       {:error, changeset} -> {:error, changeset}
     end
   end
+
+  # Mensagem de tela, em inglês. O mesmo texto para dono e autor, e sem dizer de qual
+  # organização a conta é: dizer confirmaria que ela existe em outra.
+  defp do_tenant(changeset, _campo, %User{tenant_id: tenant_id}, tenant_id), do: changeset
+
+  defp do_tenant(changeset, campo, %User{}, _tenant_id),
+    do: Ecto.Changeset.add_error(changeset, campo, "is not an account of this organization")
 
   # O teto vem da base, e um pedido acima dele é **reduzido ao teto**, não recusado: quem
   # pede 365 dias quer o máximo que puder ter, e recusar transformaria isso em erro de
