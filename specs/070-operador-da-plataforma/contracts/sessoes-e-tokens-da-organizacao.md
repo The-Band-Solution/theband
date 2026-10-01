@@ -6,7 +6,10 @@ FR-004, FR-013, FR-015. Duas funções novas, cada uma no módulo dono da tabela
 ## `TheBand.Tenants.Sessions.encerrar_da_organizacao(%Tenant{}) :: {:ok, [Ecto.UUID.t()]}`
 
 Grava `ended_at` em toda sessão aberta do tenant e devolve **os ids** encerrados, com `select` no
-`update_all`. Os ids servem ao `disconnect` dos sockets (research R9); a contagem é o comprimento.
+`update_all`. Os ids servem ao aviso `avisar_encerramento({:sessao, id})` do #1044, que quem chama
+publica **depois do `commit`** (research R9, A2); a contagem é o comprimento. Esta função **não**
+avisa: roda dentro do `Multi` da suspensão, e avisar antes do `commit` seria avisar o que o banco
+ainda não confirmou. É a mesma regra que o #1044 escreveu em `encerrar_da_conta/2`.
 
 Recebe `%Tenant{}`, e não `tenant_id` cru (antipadrão "primitivo no lugar do conceito"):
 `encerrar_da_conta/2` (`sessions.ex:158-169`) recebe cru, e é uma das nove funções que a

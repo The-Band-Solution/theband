@@ -3,6 +3,12 @@
 As decisões e as alternativas estão em [research.md](research.md). Aqui ficam as tabelas, as
 constraints e as transições.
 
+> **Emendado em 2026-10-01** pela avaliação da segunda autenticação
+> ([seguranca-autenticacao.md](seguranca-autenticacao.md) §4, item 7): A11 (`last_seen_at`), A13a
+> (`BEFORE TRUNCATE`), A13b (`IS DISTINCT FROM` por coluna), A13c (`email_at_grant`); e pelo
+> **segundo fator TOTP** (FR-016): colunas em §1 e a tabela §1a. As colunas do TOTP são desenho
+> sujeito à avaliação de segurança própria do TOTP (`tasks.md`).
+
 **Estas tabelas não são de domínio.** Não têm `internal_id` nem `record_version`, como
 `user_sessions` e `api_access_tokens` também não têm: não são registro ontológico, são
 infraestrutura de acesso. E três delas **não têm `tenant_id`**, porque o operador não pertence a
@@ -25,16 +31,46 @@ organização nenhuma (FR-011). Isso é a exceção que a spec decidiu, e ela fi
 | `failed_attempts` | integer, not null, default 0 | espera crescente (research R2) |
 | `last_failed_at` | utc_datetime, null | |
 | `logged_in_at` | utc_datetime, null | |
+| `totp_secret` | binary cifrado (`TheBand.Encrypted.Binary`, Cloak, como as credenciais das ferramentas), null | segredo de 20 bytes; nulo até o primeiro passo da definição; `redact: true` |
+| `totp_confirmed_at` | utc_datetime, null | nulo até o segundo passo; **com nulo, `autenticar/3` recusa** |
+| `totp_last_used_step` | bigint, null | o último passo TOTP aceito; contra reuso do mesmo código |
+| `enrollment_code_hash` | bytea, null | `sha256` do código de cadastro do segundo fator; `redact: true` |
+| `enrollment_code_expires_at` | utc_datetime, null | 10 minutos |
 | `inserted_at`, `updated_at` | utc_datetime | |
 
 Constraints:
 
 - `CHECK ((setup_code_hash IS NULL) = (setup_code_expires_at IS NULL))`;
+- `CHECK ((enrollment_code_hash IS NULL) = (enrollment_code_expires_at IS NULL))`;
+- `CHECK (totp_confirmed_at IS NULL OR totp_secret IS NOT NULL)`: não há segundo fator confirmado
+  sem segredo;
+- `CHECK (totp_confirmed_at IS NULL OR password_hash IS NOT NULL)`;
 - índice único `platform_operators_email_index` sobre `lower(email)`.
 
 O e-mail **pode** coincidir com o de uma conta em `users`: são entradas diferentes, por formulários
 diferentes, e nenhum resolvedor lê as duas tabelas. A reutilização de senha entre as duas não é
 detectável sem ler um hash com a senha do outro, e fica como risco residual.
+
+## 1a. `platform_operator_recovery_codes` — os códigos de recuperação do segundo fator
+
+| coluna | tipo | regra |
+|---|---|---|
+| `id` | uuid, PK | |
+| `operator_id` | uuid, FK `platform_operators`, `on_delete: :restrict`, not null | |
+| `code_hash` | bytea, not null | `sha256` do código normalizado; `redact: true` |
+| `used_at` | utc_datetime, null | preenchido no uso, ou no reinício e na nova concessão (A6) |
+| `inserted_at` | utc_datetime | |
+
+Constraints e índices:
+
+- índice único `(operator_id, code_hash)`;
+- índice parcial `operator_id WHERE used_at IS NULL`, para contar os que restam;
+- o consumo é um `UPDATE … WHERE used_at IS NULL … RETURNING`, conferindo uma linha
+  (`contracts/segundo-fator-do-operador.md`).
+
+Os códigos não se apagam um a um: marcar `used_at` invalida, e a linha fica como registro de que
+houve uso. Retenção: os de operador com credencial reiniciada há mais de 90 dias saem pelo mesmo
+`ApagaSessoesAntigas` (decisão da tarefa de retenção; se a avaliação do TOTP recusar, ficam).
 
 ## 2. `platform_operator_grants` — a concessão, relator e não booleano
 
@@ -45,6 +81,7 @@ detectável sem ler um hash com a senha do outro, e fica como risco residual.
 | `granted_at` | utc_datetime, not null | |
 | `granted_via` | string, not null | `CHECK (granted_via = 'release_command')` |
 | `granted_by_declared` | text, not null | **declarado** por quem rodou o comando, e não autenticado (O11) |
+| `email_at_grant` | string, not null | o e-mail do operador **no momento** da concessão (A13c): `platform_operators.email` é mutável, e o histórico precisa dizer **quem** recebeu o papel |
 | `revoked_at` | utc_datetime, null | |
 | `revoked_via` | string, null | `CHECK (revoked_via IS NULL OR revoked_via = 'release_command')` |
 | `revoked_by_declared` | text, null | |
@@ -60,7 +97,11 @@ Constraints:
 - trigger `platform_operator_grants_nao_apaga`, `BEFORE DELETE`, que levanta;
 - trigger `platform_operator_grants_so_revoga`, `BEFORE UPDATE`, que levanta salvo quando
   `OLD.revoked_at IS NULL` e só `revoked_at`, `revoked_via`, `revoked_by_declared` e `revoke_note`
-  mudam.
+  mudam. A comparação é **coluna a coluna**, com `NEW.<coluna> IS DISTINCT FROM OLD.<coluna>` para
+  cada coluna fora da revogação (`id`, `operator_id`, `granted_at`, `granted_via`,
+  `granted_by_declared`, `email_at_grant`, `inserted_at`), que é seguro com nulo (A13b);
+- trigger `platform_operator_grants_nao_trunca`, `BEFORE TRUNCATE … FOR EACH STATEMENT`, que
+  levanta: `TRUNCATE` não dispara trigger de linha (A13a).
 
 **O nome `granted_by_declared` é a afirmação**: a prova de quem executou é o acesso ao Dokploy,
 que fica fora da aplicação. O nome impede que alguém leia a coluna como autor autenticado.
@@ -74,6 +115,7 @@ que fica fora da aplicação. O nome impede que alguém leia a coluna como autor
 | `token_hash` | bytea, not null | índice único |
 | `password_epoch` | integer, not null | época da leitura que conferiu a senha |
 | `ended_at` | utc_datetime, null | |
+| `last_seen_at` | utc_datetime, not null | gravado na abertura e, no máximo uma vez por minuto, a cada conferência aceita; mais de **30 min** sem uso derruba a sessão (A11) |
 | `inserted_at` | utc_datetime | validade de **8 h** a contar daqui |
 
 Índices: `operator_id`, `ended_at`, `inserted_at` (para a retenção).
@@ -105,7 +147,11 @@ Constraints:
 - `CHECK ((suspend_reason = 'not_recorded') = (suspended_by_operator_id IS NULL))`;
 - `CHECK` de tudo-ou-nada da reativação: `reactivated_at`, `reactivated_by_operator_id` e
   `reactivate_reason` são os três nulos ou os três preenchidos;
-- triggers `tenant_suspensions_nao_apaga` e `tenant_suspensions_so_fecha`, na forma dos de §2.
+- triggers `tenant_suspensions_nao_apaga`, `tenant_suspensions_so_fecha` e
+  `tenant_suspensions_nao_trunca`, na forma dos de §2. O `so_fecha` compara com `IS DISTINCT FROM`
+  cada coluna da abertura (`tenant_id`, `suspended_at`, `suspended_by_operator_id`,
+  `suspend_reason`, `suspend_note`, `inserted_at`), aceita preencher os quatro campos da
+  reativação só a partir de nulos, e **libera `updated_at`** (A13b).
 
 **`tenants.status` continua sendo a resposta rápida, e o episódio é o registro.** As duas escritas
 estão na mesma transação.

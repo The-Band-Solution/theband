@@ -11,6 +11,16 @@ funções públicas de `sessoes-e-tokens-da-organizacao.md`, e lê `tenants` só
 **Toda função recebe a sessão do operador, e confere a autorização por dentro** (FR-014, O6): a
 sessão aberta e no prazo, e a concessão vigente. Ter passado pelo plug não basta.
 
+> **Emendado em 2026-10-01** pela avaliação da segunda autenticação: **A2** (o aviso às telas
+> abertas é o do #1044, depois do `commit`) e **A15** (`FOR SHARE` também na linha da sessão). O
+> código de `suspender/3` e `reativar/3` está **bloqueado** até o PR #1044 estar em `development`
+> (mergeado em 2026-10-01; conferir no `tasks.md`).
+
+Na transação de `suspender/3` e de `reativar/3`, o passo `:autorizacao` lê **com `FOR SHARE`** a
+linha da sessão do operador **e** a da concessão vigente. A revogação (`UPDATE` na concessão) e o
+reinício de credencial (`FOR UPDATE` nas sessões, `concessao-do-operador.md`) se serializam com o
+ato em voo, e o ato que perde recusa com `:nao_autorizado`.
+
 ## `listar_organizacoes(OperatorSession.t()) :: {:ok, [resumo]} | {:error, :nao_autorizado}`
 
 `resumo :: %{id, name, slug, status, ultimo_episodio_em :: DateTime.t() | nil}`. Uma consulta, com
@@ -35,9 +45,18 @@ O histórico, do mais novo para o mais antigo, com as razões traduzidas por
 | `{:error, :vocabulario_nao_declarado}` | a regra `platform.tenant_suspension` não está na base |
 | `{:error, %Ecto.Changeset{}}` | razão fora da lista, ou nota ausente onde a base a exige. **Nada muda** |
 
-Depois do `commit`: `AccessEvents.ato_de_plataforma(:organizacao_suspensa, tenant_id, …)` com as
-contagens de sessões e tokens, e, se a pergunta 3 do plano for aceita, o `disconnect` de cada
-socket.
+Depois do `commit`, **e só depois**:
+
+1. para cada id que `Sessions.encerrar_da_organizacao/1` devolveu,
+   `TheBand.Tenants.Sessions.avisar_encerramento({:sessao, id})` (A2, mecanismo do #1044). A hook de
+   domínio inscrita em `"sessao:<id>"` reconfere a sessão no banco, e o banco decide. **Não** se cria
+   tópico por organização: o aviso por id alcança exatamente as telas das sessões encerradas, e não
+   amplia o que cada socket escuta;
+2. `AccessEvents.ato_de_plataforma(:organizacao_suspensa, tenant_id, …)` com as contagens de sessões
+   e tokens.
+
+Avisar **dentro** da transação seria avisar antes de o banco dizer que a sessão acabou: a hook
+reconferiria, acharia a sessão aberta, e a tela continuaria.
 
 ## `reativar(OperatorSession.t(), tenant_id, %{reason:, note:}) :: {:ok, Suspension.t()} | {:error, motivo}`
 
@@ -45,6 +64,10 @@ Mesmos erros, com `:nao_suspensa` no lugar de `:ja_suspensa` e `:sem_episodio_ab
 for `suspended` sem episódio (só possível por escrita externa; a migração fecha o passado com
 `not_recorded`). Fecha o episódio, volta a `active` e **encerra de novo** toda sessão aberta da
 organização (FR-015). **Nenhum token volta** (FR-013).
+
+Depois do `commit`, o mesmo aviso por id de `suspender/3`, para cada sessão que a reativação
+encerrou (A2): é a sessão gravada na corrida O8, que pode ter uma tela aberta, e o evento
+`ato_de_plataforma(:organizacao_reativada, …)`.
 
 ## O que a API NÃO expõe, e por quê
 

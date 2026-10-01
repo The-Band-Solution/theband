@@ -7,6 +7,8 @@ Todas em `:warning`, para serem observáveis com o nível de `config/test.exs` (
 vem do `Logger.metadata(operator_id: …)` do plug, e `config/config.exs:80` ganha `:operator_id` na
 lista do formatador.
 
+> **Emendado em 2026-10-01**: A7 (a definição da senha deixa rastro) e o segundo fator (FR-016).
+
 | função | campos |
 |---|---|
 | `ato_de_plataforma(:organizacao_suspensa, tenant_id, extra)` | `tenant_id` **da organização afetada**, `episodio_id`, `razao`, `sessoes_encerradas`, `tokens_revogados` |
@@ -15,7 +17,12 @@ lista do formatador.
 | `operador_revogado(operator_id, declarado_por, sessoes_encerradas)` | `via: :release_command` |
 | `operador_credencial_reiniciada(operator_id, declarado_por)` | `via: :release_command` |
 | `operador_entrada_aceita(operator_id, falhas_apagadas)` | |
-| `operador_entrada_recusada(operator_id ou nil, motivo)` | o motivo interno de `Credentials` |
+| `operador_entrada_recusada(operator_id ou nil, motivo)` | o motivo interno de `Credentials`, inclusive `:sem_segundo_fator`, `:segundo_fator_errado`, `:segundo_fator_reusado` e `:recuperacao_usada` |
+| `operador_senha_definida(operator_id)` | o primeiro passo da definição aceito (A7) |
+| `operador_definicao_recusada(operator_id ou nil, motivo)` | `:codigo_errado`, `:codigo_vencido`, `:sem_codigo`, `:identificador_nao_resolveu`, `:sem_concessao` (A7, A14) |
+| `operador_segundo_fator_cadastrado(operator_id)` | o segundo passo aceito |
+| `operador_cadastro_recusado(operator_id ou nil, motivo)` | `:codigo_de_cadastro_errado`, `:codigo_de_cadastro_vencido`, `:totp_errado`, `:sem_concessao` |
+| `operador_recuperacao_usada(operator_id, restantes)` | um código de recuperação consumido; `restantes` é a contagem que sobrou |
 | `operador_espera_acionada(operator_id, segundos)` | |
 | `operador_sessao_derrubada(operator_id ou nil, motivo)` | o motivo de `Platform.Sessions.conferir/2` |
 | `operador_ato_recusado(operator_id, tenant_id, motivo)` | `:nao_autorizado`, `:ja_suspensa`, `:nao_suspensa`, changeset resumido em códigos |
@@ -25,5 +32,5 @@ lista do formatador.
 | ausência | por quê |
 |---|---|
 | a nota livre do episódio | é texto de pessoa, sem limite de conteúdo; fica na linha, que tem dono |
-| o código de definição, a senha, o hash, o token | `access_events.ex:43-48`; as assinaturas não aceitam |
+| o código de definição, o de cadastro, a senha, o hash, o token, o segredo TOTP, o código TOTP e o de recuperação | `access_events.ex:43-48`; as assinaturas não aceitam, e o teste de A7 faz `refute =~` do valor em toda linha capturada |
 | `user_id` com o id do operador | `user_id` significa `users.id` em toda linha (research R12) |

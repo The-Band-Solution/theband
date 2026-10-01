@@ -12,9 +12,10 @@ mix gates > /tmp/gates-070.log 2>&1; echo "EXIT=$?"
 
 ## 0. Pré-requisitos
 
-- PR #1038 (#1033, `Tenants.ensure_active/1`) mergeado em `development`;
-- #1034 (O5) e #1035 (O15) fechadas;
-- a revisão de segurança da segunda autenticação registrada na spec (plan.md, "Gate de segurança");
+- PRs #1038 (#1033), #1039 (#1034), #1040 (#1035) e #1044 (#1042) mergeados em `development`
+  (conferido em 2026-10-01), e #1048 (#1046) e o da #1047 também;
+- a revisão de segurança da segunda autenticação registrada na spec (`seguranca-autenticacao.md`) e
+  a do TOTP (`seguranca-totp.md`);
 - o protótipo da tela aprovado e guardado na spec (plan.md, "Tela");
 - `docker compose up -d` e `mix ecto.migrate` sem erro.
 
@@ -27,8 +28,10 @@ mix run -e 'TheBand.Release.conceder_operador("op@exemplo.org", "Op", "teste loc
 Esperado: a saída diz o e-mail e imprime **um** código com a validade. Nenhuma senha foi digitada.
 `SELECT setup_code_hash IS NOT NULL, password_hash IS NULL FROM platform_operators` → `t, t`.
 
-Abrir `/platform/setup`, digitar e-mail, código e senha. Repetir com o **mesmo** código: recusa
-única.
+Abrir `/platform/setup`, digitar e-mail, código e senha; cadastrar o segredo mostrado num
+aplicativo autenticador e confirmar com um código dele; guardar os dez códigos de recuperação.
+Repetir com o **mesmo** código de definição: recusa única. Entrar em `/platform/sign-in` sem o
+segundo fator, ou com o mesmo código TOTP já usado: recusa única (FR-016).
 
 ## 2. A área responde "not found" a quem não é operador (FR-009)
 

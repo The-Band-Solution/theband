@@ -3,7 +3,8 @@
 FR-011, FR-014, O6. Desenho em [research.md](../research.md) R3; tabela em
 [data-model.md](../data-model.md) §3.
 
-> **Bloqueado pela revisão de segurança da segunda autenticação** (plan.md, "Gate de segurança").
+> **Emendado em 2026-10-01** pela avaliação da segunda autenticação: A11 (inatividade de 30 min) e
+> A15 (`FOR SHARE` na linha da sessão). O gate de desenho está fechado.
 
 Dois módulos, com uma razão para mudar cada um (princípio X):
 
@@ -28,10 +29,15 @@ a senha), como `sessions.ex:48-71`. Devolve o bruto uma vez, como `Segredo.t()`.
 | `:resumo_errado` | `secure_compare` em memória falha |
 | `:encerrada` | `ended_at` preenchido |
 | `:vencida` | mais de **8 h** desde `inserted_at` |
+| `:inativa` | mais de **30 min** desde `last_seen_at` (A11; ASVS V3.3.2) |
 | `:epoca_velha` | época da linha diferente da do operador |
 | `:sem_concessao` | o operador não tem concessão vigente, lida **na mesma consulta** |
 
 Quem chama trata todos os motivos como uma recusa só; o motivo é para o log.
+
+No sucesso, grava `last_seen_at = agora` com `update_all` condicional, no máximo uma vez por
+minuto, para não escrever a cada requisição. As duas constantes (8 h e 30 min) são atributos
+nomeados, com o motivo escrito.
 
 ### `encerrar(OperatorSession.t()) :: :ok`
 

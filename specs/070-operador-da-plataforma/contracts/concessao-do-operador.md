@@ -2,8 +2,10 @@
 
 FR-001, FR-002, FR-014, O11. Tabela em [data-model.md](../data-model.md) §2.
 
-> **Bloqueado pela revisão de segurança da segunda autenticação** (plan.md, "Gate de segurança"):
-> o comando que cria o operador é a porta de entrada da segunda autenticação.
+> **Emendado em 2026-10-01** pela avaliação da segunda autenticação
+> ([seguranca-autenticacao.md](../seguranca-autenticacao.md)), achados **A6, A13c e A14**, e pelo
+> segundo fator (FR-016). O código continua **bloqueado** até a avaliação própria do TOTP
+> (`tasks.md`): conceder e reiniciar apagam o cadastro do segundo fator, e a forma disso é dela.
 
 **Nenhuma tela concede nem revoga** (FR-001). Estas funções não são chamadas por controller nem por
 LiveView, e o teste afirma que nenhum módulo de `TheBandWeb` as referencia.
@@ -16,19 +18,36 @@ LiveView, e o teste afirma que nenhum módulo de `TheBandWeb` as referencia.
 ### `conceder(email, nome, declarado_por :: String.t()) :: {:ok, {Operator.t(), Grant.t(), TheBand.Segredo.t()}} | {:error, :ja_concedido} | {:error, Ecto.Changeset.t()}`
 
 Numa transação: cria o operador se não existir, abre a concessão (`granted_via: "release_command"`,
-`granted_by_declared: declarado_por`) e emite o código de definição. Concessão vigente já existente:
-`{:error, :ja_concedido}`, garantido pelo índice parcial.
+`granted_by_declared: declarado_por`, `email_at_grant: email`, A13c) e emite o código de definição.
+Concessão vigente já existente: `{:error, :ja_concedido}`, garantido pelo índice parcial.
+
+**Conceder de novo nunca devolve credencial antiga (A6).** Se o operador já existe, sem concessão
+vigente, a mesma transação faz o que `reiniciar_credencial/2` faz:
+
+- `password_hash = NULL` e `password_epoch + 1`;
+- `totp_secret = NULL`, `totp_confirmed_at = NULL`, `totp_last_used_step = NULL`, e todo código de
+  recuperação do operador marcado `used_at` (não apagado: o registro fica);
+- código de cadastro anulado;
+- `Platform.Sessions.encerrar_do_operador/1`;
+- o código de definição novo.
+
+O operador revogado, talvez por comprometimento, não entra com a senha nem com o aplicativo de
+antes no dia em que alguém conceder de novo.
 
 ### `reiniciar_credencial(email, declarado_por) :: {:ok, TheBand.Segredo.t()} | {:error, :not_found}`
 
-Exige concessão vigente. Numa transação: apaga `password_hash`, emite código novo e encerra as
-sessões do operador.
+Exige concessão vigente. Numa transação: apaga `password_hash`, sobe `password_epoch`, apaga o
+cadastro do segundo fator (como em `conceder/3`, A6), emite código novo e encerra as sessões do
+operador. A15: a mesma transação faz `FOR UPDATE` nas sessões abertas do operador antes de
+encerrá-las, para serializar com o `FOR SHARE` que a suspensão em voo faz na linha da sessão
+(`suspensao.md`).
 
 ### `revogar(email, declarado_por, nota :: String.t() | nil) :: {:ok, Grant.t()} | {:error, :not_found}`
 
 Numa transação (FR-014): `UPDATE` da concessão vigente preenchendo a revogação, com a condição
-`revoked_at IS NULL` no `WHERE`, **e** `Platform.Sessions.encerrar_do_operador/1`. A suspensão em
-voo lê a concessão com `FOR SHARE`, e as duas se serializam (research R8).
+`revoked_at IS NULL` no `WHERE`, **e** `Platform.Sessions.encerrar_do_operador/1`, **e** anula o
+código de definição e o de cadastro pendentes (A14). A suspensão em voo lê a concessão com
+`FOR SHARE`, e as duas se serializam (research R8).
 
 ### `vigente?(operator_id) :: boolean()`
 

@@ -31,24 +31,47 @@ O que a avaliação precisa cobrir, no mínimo:
 | a lacuna do LiveView aberto depois do `ended_at` | research R9; pergunta 3 |
 
 **Como o gate se fecha**: um arquivo `seguranca-autenticacao.md` nesta pasta, com achados e
-veredito. Achado alto ou crítico vira tarefa bloqueante do que depende dele. Até lá, as tarefas
-que tocam `Platform.Credentials`, `Platform.Sessions`, `Platform.Grants`, o cookie e as rotas ficam
-**bloqueadas** no `tasks.md`.
+veredito. Achado alto ou crítico vira tarefa bloqueante do que depende dele.
 
-E três pré-requisitos de código, pela regra "corrigir antes de implementar":
+**Estado do gate em 2026-10-01: fechado para o desenho, com emendas.**
+[seguranca-autenticacao.md](seguranca-autenticacao.md) deu o veredito "pode seguir para
+`tasks.md`, com as emendas da §4", e as emendas entraram nos contratos, no `data-model.md` e no
+`research.md` no mesmo dia:
 
-| pré-requisito | estado em 2026-10-01 |
+| achado | sev. | emenda | onde |
+|---|---|---|---|
+| A1 | alta | tentativa serializada por `FOR UPDATE`, na forma da #1046 | `contracts/credenciais-do-operador.md`; research R2 |
+| A2 | alta | `Sessions.avisar_encerramento({:sessao, id})` depois do `commit`, em `suspender/3` e `reativar/3`; `live_socket_id` retirado de R9; a pergunta 3 sai | `contracts/suspensao.md`, `contracts/sessoes-e-tokens-da-organizacao.md`; research R9 |
+| A3 | média | o custo do hash também na espera, na forma da #1047 | `contracts/credenciais-do-operador.md` |
+| A5 | média | consumo atômico do código de definição e do de cadastro | `contracts/credenciais-do-operador.md` |
+| A6 | média | conceder de novo apaga senha, segundo fator, sobe a época e encerra as sessões | `contracts/concessao-do-operador.md` |
+| A9 | média | lista permitida por rota, e asserção sobre `"users"` no SQL | research R10 |
+| A7, A10–A15 | média e baixa | eventos da definição; nomes de campo; `last_seen_at`; curinga do `404`; triggers; definição exige concessão; `FOR SHARE` na sessão | contratos e `data-model.md` |
+
+**O código continua bloqueado** pelo que a avaliação não podia fechar sozinha: a avaliação
+**própria do TOTP** (FR-016 nasceu depois dela), os PRs das correções em `Tenants.Auth` que a cópia
+reproduz (#1048 e o da #1047), e o protótipo da tela. O `tasks.md` tem cada um como tarefa
+bloqueante, com `Pronta quando` citando o achado.
+
+Pré-requisitos de código, pela regra "corrigir antes de implementar":
+
+| pré-requisito | estado em 2026-10-01 (`gh pr view`) |
 |---|---|
-| #1033, `Tenants.ensure_active/1` (FR-012), no **PR #1038** | **aberto**, não mergeado; `ensure_active/1` está em `lib/the_band/tenants.ex:88-90` só no commit `103d59e` |
-| #1034, `Access.operacional?/2` compara o tenant (O5, I5) | aberta |
-| #1035, `ApiTokens.criar/4` confere o dono (O15) | aberta |
+| #1033, `Tenants.ensure_active/1` (FR-012), **PR #1038** | **mergeado** |
+| #1034, `Access.operacional?/2` compara o tenant (O5, I5), **PR #1039** | **mergeado** |
+| #1035, `ApiTokens.criar/4` confere o dono (O15), **PR #1040** | **mergeado** |
+| #1042, a tela aberta cai quando a sessão é encerrada (A2), **PR #1044** | **mergeado**; `avisar_encerramento/1` em `lib/the_band/tenants/sessions.ex:146-149` de `development` |
+| #1046, a espera crescente sob concorrência (A1), **PR #1048** | **aberto** |
+| #1047, a espera paga o custo do hash (A3) | branch `fix/1047-espera-paga-o-hash`, **PR não aberto** |
+| medir se o Traefik do Dokploy sobrescreve `x-forwarded-for` (A4, decisão 2) | **não medido**; dono: pessoa mantenedora, com acesso ao servidor. Bloqueia só o limite por IP |
 
 ## A tela, antes do código
 
 A tela do operador **precisa de protótipo do agente Design**, publicado e guardado na spec com o
 prompt e as decisões, **antes** de qualquer controller ou template. Este plano não desenha pixel.
-O que ele fixa para o protótipo: quatro telas (entrada, definição de senha, lista, histórico com o
-ato), as colunas da FR-007, a ausência de episódio escrita com `<.absent>`, as razões vindas da
+O que ele fixa para o protótipo: cinco telas (entrada com segundo fator, definição de senha,
+cadastro do segundo fator com os códigos de recuperação, lista, histórico com o ato), as colunas
+da FR-007, a ausência de episódio escrita com `<.absent>`, as razões vindas da
 base, e a interface em inglês.
 
 ---
@@ -78,12 +101,14 @@ dessa pessoa uma **entidade separada de `users`**, e é ela que dá a forma do p
 | **Hash de senha** | `bcrypt_elixir 3.3.2` (`mix.lock:3`), já na base |
 | **Resumo de token e de código** | `:crypto.hash(:sha256, …)` com `Plug.Crypto.secure_compare/2`, como `sessions.ex:201-218` |
 | **Executor** | Oban; nenhum worker novo. A retenção entra no `ApagaSessoesAntigas` |
-| **Dependência nova** | **nenhuma** |
+| **Dependência nova** | **a decidir**: a implementação do TOTP (FR-016) — NimbleTOTP, ou RFC 6238 sobre `:crypto` (sem dependência). A pesquisa é tarefa do `tasks.md`, e o resultado entra aqui, com a justificativa de AGENTS.md §3, **antes** do código. QR code só se a pesquisa o recomendar |
+| **Segredo em repouso** | o segredo TOTP, cifrado por `TheBand.Encrypted.Binary` (Cloak, já na base: `mix.lock:7-8`) |
 | **Escala** | uma ou duas pessoas operadoras por instalação; sem paginação (spec, Assumptions) |
 | **O que verifica** | `mix gates`, pelo código de saída |
 
-**Nenhum NEEDS CLARIFICATION técnico**. Três perguntas de decisão ficam para a pessoa mantenedora,
-no fim.
+**Um NEEDS CLARIFICATION técnico**: a implementação do TOTP, que é a pesquisa de dependência do
+`tasks.md`. Das perguntas de decisão, uma segue aberta (a 1, controller), e as outras foram
+decididas ou respondidas; estão no fim.
 
 ## Constitution Check
 
@@ -92,7 +117,7 @@ no fim.
 | **I, II, IV** | nenhuma ontologia muda. As razões de suspensão são **vocabulário declarado** na base, `platform.tenant_suspension`, e não constante de módulo |
 | **III — proveniência** | o episódio guarda autor, instante e razão; a concessão guarda o autor **declarado**, com o nome dizendo isso |
 | **V — multitenant** | o operador não tem tenant e **não alcança** caminho de domínio: tipo próprio, cookie com `Path=/platform`, leitor próprio. A guarda de telemetria (R10) prova que nenhuma consulta de domínio roda nas rotas dele. `encerrar_da_organizacao/1` recebe `%Tenant{}` |
-| **VI — contrato antes** | seis contratos em `contracts/`, cada um com o que **não** expõe |
+| **VI — contrato antes** | oito contratos em `contracts/`, cada um com o que **não** expõe; emendados em 2026-10-01 pela avaliação da segunda autenticação e pelo TOTP, antes de qualquer código |
 | **VII — revisão independente** | o gate de segurança acima; nenhuma tarefa da segunda autenticação antes dele |
 | **VIII — desenho justificado** | o registro abaixo |
 | **X — responsabilidade única** | credencial, sessão, concessão e suspensão em módulos separados; cookie separado da linha; quatro telas de uma pergunta cada |
@@ -180,6 +205,21 @@ testes que suspendem pelo changeset precisam mudar.
 - *O que piora*: uma coluna e dois `CHECK` em `api_access_tokens`, e a tela de tokens aprende a
   escrever um autor que não é conta.
 
+**14. Segundo fator TOTP no próprio contexto** (research R13; `contracts/segundo-fator-do-operador.md`)
+
+- *Problema*: FR-016, decisão de 2026-10-01; a conta mais poderosa protegida só por senha (O16, A16).
+- *Existe agora?* Sim.
+- *O que piora*: um segredo a mais em repouso, uma dependência possível, dois passos de definição
+  que podem ser abandonados no meio, e uma tela a mais. `SegundoFator` é de funções puras, e quem
+  grava é `Credentials`, na transação com `FOR UPDATE`.
+
+**15. O aviso às telas abertas é o do #1044, por id** (research R9, A2)
+
+- *Problema*: `ended_at` sozinho não derruba a aba já conectada.
+- *Existe agora?* Sim; o #1044 já tem o mecanismo.
+- *O que piora*: uma publicação por sessão encerrada depois do `commit`. Um tópico por organização
+  seria uma publicação só, e alargaria o que cada socket escuta.
+
 **13. Guarda de telemetria com lista permitida** (research R10)
 
 - *Problema*: SC-003 pede provar que o operador não lê domínio, e uma lista proibida não pega a
@@ -196,7 +236,9 @@ testes que suspendem pelo changeset precisam mudar.
 specs/070-operador-da-plataforma/
 ├── spec.md
 ├── seguranca.md                 # avaliação antes do plano
-├── seguranca-autenticacao.md    # [gate] a escrever pelo agente security — o gate
+├── seguranca-autenticacao.md    # o gate da segunda autenticação, escrito; A1–A17
+├── seguranca-totp.md            # [gate TOTP] a escrever pelo agente security, antes do código do TOTP
+├── tasks.md
 ├── plan.md
 ├── research.md
 ├── data-model.md
@@ -209,6 +251,7 @@ specs/070-operador-da-plataforma/
     ├── suspensao.md
     ├── sessoes-e-tokens-da-organizacao.md
     ├── rotas-da-plataforma.md
+    ├── segundo-fator-do-operador.md
     └── eventos-de-acesso.md
 ```
 
@@ -220,7 +263,9 @@ lib/the_band/platform/operator.ex                # schema platform_operators
 lib/the_band/platform/grant.ex                   # schema platform_operator_grants
 lib/the_band/platform/operator_session.ex        # schema platform_operator_sessions
 lib/the_band/platform/suspension.ex              # schema tenant_suspensions
+lib/the_band/platform/recovery_code.ex           # schema platform_operator_recovery_codes
 lib/the_band/platform/credentials.ex             # a segunda autenticação          [gate]
+lib/the_band/platform/segundo_fator.ex           # TOTP, funções puras             [gate TOTP]
 lib/the_band/platform/sessions.ex                # a linha da sessão                [gate]
 lib/the_band/platform/grants.ex                  # conceder, reiniciar, revogar     [gate]
 lib/the_band/platform/suspensions.ex             # listar, suspender, reativar
@@ -234,9 +279,10 @@ lib/the_band/release.ex                          # + três comandos             
 lib/the_band_web/router.ex                       # :plataforma, scope /platform, CSP num atributo
 lib/the_band_web/plataforma/sessao_do_operador.ex                                   [gate]
 lib/the_band_web/plataforma/operator_scope.ex    # plug + require_operator          [gate]
-lib/the_band_web/controllers/plataforma/*        # quatro telas                     [protótipo]
-config/config.exs                                # :operator_id no formatador
+lib/the_band_web/controllers/plataforma/*        # cinco telas                      [protótipo]
+config/config.exs                                # :operator_id no formatador; filter_parameters (A10)
 priv/repo/migrations/<ts>_operador_da_plataforma.exs
+priv/repo/migrations/<ts>_segundo_fator_do_operador.exs
 priv/repo/migrations/<ts>_episodio_de_suspensao.exs
 priv/repo/migrations/<ts>_estado_da_organizacao_valido.exs
 priv/knowledge_base/rules/platform_tenant_suspension.yaml
@@ -256,31 +302,33 @@ em `lib/the_band_web/plataforma/` e `controllers/plataforma/`, e nada em `ontolo
 | ordem das migrações com a #879, que altera `users` | esta feature não toca `users`; gerar as migrações depois de rebasear sobre `development` (research R11) |
 | organização em produção com `status` fora da lista | a migração levanta com a contagem; a skill `release` mede antes |
 | organização já `suspended` em produção sem episódio | a migração cria episódio `not_recorded`, sem autor |
-| o LiveView aberto de domínio continua depois do `ended_at` | research R9; pergunta 3 |
-| o código de definição no histórico do terminal do Dokploy | 30 min, uso único; não verificado se o Dokploy guarda |
-| conta do operador tomada derruba a disponibilidade de todas as organizações | O16, risco residual; pergunta 2 |
-| #1038 não mergeado | pré-requisito do gate; a FR-012 não se cumpre sem ele |
+| o LiveView aberto de domínio continua depois do `ended_at` | **fechado pelo desenho**: o aviso do #1044 depois do `commit` (A2, research R9) |
+| o código de definição no histórico do terminal do Dokploy | 30 min, uso único e consumo atômico (A5); não verificado se o Dokploy guarda. **A17**: o runbook diz que a pessoa operadora roda o comando ela mesma, ou recebe o código por voz, nunca por chat |
+| conta do operador tomada derruba a disponibilidade de todas as organizações | O16 e A16: **reduzido** pelo TOTP (FR-016); o resto é o aparelho do segundo fator, e entra na nota da release |
+| **A8**, XSS de domínio usa o cookie do operador pela mesma origem | **risco residual declarado** (decisão 3 da pessoa mantenedora): a CSP é a defesa; host próprio quando `theband.dev` entrar em produção |
+| **A4**, sem limite por IP, e negação de serviço do operador pela espera | depende da medição do Traefik (decisão 2); sem ela, fica a espera por conta, e o risco vai para a nota da release |
+| A1 e A3 existem hoje em `Tenants.Auth` | issues #1046 (PR #1048) e #1047, corrigidas **antes** desta feature; a cópia nasce da versão corrigida |
+| a cópia diverge da correção do original | o teste de paridade compara as constantes e a forma da serialização |
 
 ## Perguntas para a pessoa mantenedora
 
-**1. A área do operador é por controller, com cookie próprio, em vez de `live_session`?**
-O socket do LiveView só lê o cookie de sessão das organizações. Para ter `live_session`, a sessão do
-operador teria de morar dentro desse cookie, chegando a toda rota de domínio e caindo quando alguém
-sai da conta de organização no mesmo navegador. **Recomendação: controller com cookie próprio**
-(research R3.2), e emendar a palavra `live_session` da FR-011 para "pipeline, plug e cookie
-próprios".
+**1. A área do operador é por controller, com cookie próprio, em vez de `live_session`?** —
+**aberta.** O socket do LiveView só lê o cookie de sessão das organizações. Para ter
+`live_session`, a sessão do operador teria de morar dentro desse cookie, chegando a toda rota de
+domínio e caindo quando alguém sai da conta de organização no mesmo navegador. **Recomendação:
+controller com cookie próprio** (research R3.2), e emendar a palavra `live_session` da FR-011 para
+"pipeline, plug e cookie próprios". A avaliação da segunda autenticação concordou. O `tasks.md` a
+tem como pré-requisito das rotas.
 
-**2. O operador entra só com senha, sem segundo fator?**
-É o risco O16: a conta mais poderosa protegida por senha e espera de até 60 s. TOTP exigiria
-dependência nova e avaliação de segurança própria. **Recomendação: aceitar como risco residual
-nesta feature, registrado na release, e abrir a spec do segundo fator logo depois.**
+**2. Segundo fator** — **decidida em 2026-10-01: TOTP nesta feature** (FR-016). Desenho em research
+R13 e `contracts/segundo-fator-do-operador.md`; a biblioteca é pesquisa do `tasks.md`.
 
-**3. A suspensão também fecha os LiveViews abertos das pessoas da organização?**
-Por leitura, a sessão cai no banco e a tela aberta continua até reconectar, e o mesmo vale hoje
-para desativar conta e trocar senha. A correção é gravar `live_socket_id` na sessão de domínio e
-enviar `disconnect`, o que toca `TheBandWeb.Sessao`. **Recomendação: medir primeiro; se confirmar,
-abrir um defeito próprio, corrigido antes desta feature, porque a lacuna já existe na desativação
-de conta**, e esta feature só passa a usá-lo.
+**3. A suspensão fecha os LiveViews abertos?** — **respondida pelo #1044** (A2). Sai das perguntas.
+
+**4. IP do cliente** (A4, seguranca-autenticacao.md P2) — **decidida**: medir o Traefik, depois
+`Plug.RewriteOn`. A medição é da pessoa mantenedora.
+
+**5. Origem** (A8, P3) — **decidida**: mesma origem com CSP; host próprio depois.
 
 ## Complexity Tracking
 

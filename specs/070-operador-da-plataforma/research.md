@@ -110,7 +110,12 @@ leva comentário apontando para a outra.
 **O que piora**: duas implementações da mesma política podem divergir. O teste de paridade de
 `quickstart.md` §3 afirma as mesmas constantes nas duas.
 
-**Não entra**: segundo fator. É o risco residual O16, e está nas perguntas do plano.
+**Emenda de 2026-10-01** (seguranca-autenticacao.md, A1 e A3): a cópia **não** reaproveita as
+decisões de `auth.ex` como estão hoje, porque duas delas são defeito. A tentativa é serializada por
+`FOR UPDATE` (A1, issue #1046, PR #1048) e a espera paga o custo do hash (A3, issue #1047). A cópia
+nasce da versão corrigida, e o teste de paridade compara as duas depois das correções.
+
+**Entra o segundo fator** (decisão de 2026-10-01, FR-016). Desenho em R13.
 
 ---
 
@@ -146,8 +151,10 @@ possíveis:
 | `live_session` própria | não existe; a área tem **pipeline, plug e controller** próprios | existe |
 | o que piora | recarga de página por ação; sem atualização ao vivo, irrelevante para uma lista de organizações e duas pessoas | o cookie do operador viaja junto do domínio; o acoplamento ao `drop` da saída |
 
-**Decisão do plano: (a)**, porque isola mais (o cookie nem chega ao domínio) e fecha a O6 sem
-mecanismo novo. **Ela troca o "`live_session`" da FR-011 por controller**, e isso é decisão da
+**Decisão do plano: (a)**, porque isola mais e fecha a O6 sem mecanismo novo. **Emenda A8**: o
+cookie não chega ao domínio **pela rede**; contra script da mesma origem, o isolamento é a CSP
+(`script-src 'self'` sem `'unsafe-inline'`). Decisão da pessoa mantenedora em 2026-10-01: mesma
+origem com CSP, e host próprio quando `theband.dev` entrar em produção. **Ela troca o "`live_session`" da FR-011 por controller**, e isso é decisão da
 pessoa mantenedora: é a pergunta 1 do plano. Se a resposta for (b), mudam o roteador, o leitor e as
 telas; o modelo de dados e os contratos de domínio **não mudam**.
 
@@ -296,24 +303,26 @@ como **só registrada**, e não aparece no select da tela de tokens. Detalhe em 
 
 ---
 
-## R9 — A sessão de domínio cai, mas o LiveView aberto continua (achado novo)
+## R9 — A sessão de domínio cai, e a tela aberta cai junto: o aviso do #1044
 
-**Por leitura, não medido**: `hooks.ex:22-60` confere a sessão só no `mount`, e não há
-`live_socket_id` em `lib/`. Uma pessoa da organização com uma tela LiveView **já conectada**
-continua recebendo eventos depois que a sessão dela ganhou `ended_at`, até o socket reconectar. O
-mesmo vale hoje para `Tenants.disable_user/4` e para troca de senha.
+**Substituído em 2026-10-01** pela avaliação da segunda autenticação (A2). A proposta anterior,
+gravar `live_socket_id` na sessão de domínio e enviar `disconnect`, foi **retirada**: é anterior ao
+#1044 e conflita com ele.
 
-A US1 diz "toda pessoa daquela organização é **desconectada**". `ended_at` sozinho não cumpre isso
-para quem está com a tela aberta.
+**O que existe** (PR #1044, mergeado em `development`; `lib/the_band/tenants/sessions.ex:136-149`):
+a hook de domínio inscreve o LiveView conectado em `"sessao:<id>"`, `"conta:<user_id>"` e
+`"sessoes"`. Ao receber `:sessao_encerrada`, a hook reconfere a sessão no banco, e o banco decide.
+`Sessions.avisar_encerramento/1` publica nos três tópicos, e quem encerra dentro de uma transação
+avisa **depois do `commit`** (é o que `encerrar_da_conta/2` faz).
 
-**Decisão proposta**: `TheBandWeb.Sessao.abrir/2` passa a gravar
-`live_socket_id: "user_sessions:<id>"`, e a suspensão, depois do `commit`, faz
-`TheBandWeb.Endpoint.broadcast("user_sessions:<id>", "disconnect", %{})` para cada sessão que
-encerrou. É o mecanismo do próprio Phoenix; ao reconectar, a hook remonta e recusa.
+**Decisão**: `suspender/3` e `reativar/3`, depois do `commit`, chamam
+`Sessions.avisar_encerramento({:sessao, id})` para cada id que `encerrar_da_organizacao/1`
+devolveu. **Não** se cria tópico por organização: o aviso por id alcança exatamente as telas das
+sessões encerradas, e não amplia o que cada socket escuta. A pergunta 3 do plano foi respondida
+pelo #1044 e sai.
 
-**Por que é pergunta**: toca o leitor de sessão de domínio, que a FR-011 diz não mudar para o
-operador, e a mesma lacuna existe em atos fora desta feature. É a pergunta 3 do plano. E precisa
-de medição antes do código: abrir uma tela, suspender, e ver o próximo evento do socket.
+**Prova** (seguranca-autenticacao.md §5, cenários 5 e 6): uma aba de A conectada cai na suspensão e
+na reativação; uma de B continua. Defeitos a injetar: retirar o aviso; avisar só em `suspender/3`.
 
 ---
 
@@ -322,10 +331,15 @@ de medição antes do código: abrir uma tela, suspender, e ver o próximo event
 **Decisão**: um teste anexa um handler a `[:the_band, :repo, :query]` (o prefixo padrão do
 `TheBand.Repo`), filtrado pelo processo do teste, e coleta `metadata.source` de cada consulta.
 
-- **nas rotas `/platform/*`**, toda consulta tem `source` numa **lista permitida**:
-  `platform_operators`, `platform_operator_grants`, `platform_operator_sessions`,
-  `tenant_suspensions`, `tenants`, `user_sessions` e `api_access_tokens`. Lista permitida, e não
-  proibida: uma tabela de domínio nova reprova sozinha. `source` nulo (SQL cru) também reprova;
+- **nas rotas `/platform/*`**, toda consulta tem `source` numa **lista permitida por rota**
+  (emenda A9): os `GET` e os `POST` de entrada, definição e cadastro aceitam `platform_operators`,
+  `platform_operator_grants`, `platform_operator_sessions`, `platform_operator_recovery_codes`,
+  `tenant_suspensions` e `tenants`. **Só** os dois `POST` de ato (suspensão e reativação) aceitam
+  também `user_sessions` e `api_access_tokens`. Lista permitida, e não proibida: uma tabela de
+  domínio nova reprova sozinha. `source` nulo (SQL cru) também reprova (lição L56);
+- **toda consulta reprova se o texto do SQL citar `"users"`**, com aspas, como o Ecto gera (A9):
+  `source` mostra só a tabela do `from`, e `Sessao.conferir/1` consulta `user_sessions` com `join`
+  em `users` (`sessions.ex:190-198`);
 - **nas rotas de domínio com o cookie do operador forçado** (`put_req_cookie` ignora `Path`):
   `/people`, `/teams/:id_de_B`, `/api/v1/people`, `/mcp`. A resposta é a mesma de um anônimo, e
   **nenhuma** consulta toca `platform_*`. A segunda asserção prova que o leitor de domínio nunca lê
@@ -333,8 +347,11 @@ de medição antes do código: abrir uma tela, suspender, e ver o próximo event
 - **a guarda de que mediu algo**: a mesma coleta, numa requisição de um membro de A, registra mais
   de zero consultas fora da lista permitida.
 
-**Defeito a injetar**: `Platform.listar_organizacoes/1` passar a pré-carregar `users`. O teste
-precisa reprovar.
+**Defeitos a injetar**, um por vez, e cada um precisa reprovar:
+
+- `OperatorScope` chama `TheBandWeb.Sessao.conferir/1` (A9: é o defeito que mais importa, e a lista
+  permitida antiga não o pegava);
+- `Platform.listar_organizacoes/1` passa a pré-carregar `users`.
 
 Por que filtrar pelo processo: o handler é global, e um teste `async` em paralelo poluiria a
 coleta. Em `Phoenix.ConnTest` a requisição roda no processo do teste.
@@ -368,3 +385,38 @@ e a skill `release` mede as duas como risco de migração.
 - `AccessEvents` ganha funções próprias de plataforma (contrato em
   `contracts/eventos-de-acesso.md`), todas em `:warning`, porque `config/test.exs` sobe o nível e
   um evento em `:info` não é observável por teste (`access_events.ex:157-171`).
+
+---
+
+## R13 — O segundo fator do operador (FR-016)
+
+**Decisão da pessoa mantenedora, 2026-10-01**: TOTP **nesta feature**, contra a recomendação de
+deixar para depois (seguranca-autenticacao.md, "Decisões"). Este é o **desenho**; a biblioteca não
+está escolhida, e o desenho passa por avaliação de segurança própria antes do código.
+
+| decisão | razão |
+|---|---|
+| TOTP (RFC 6238), SHA-1, 30 s, 6 dígitos, janela ±1 | é o que os aplicativos autenticadores aceitam sem configuração |
+| segredo de 20 bytes, **cifrado em repouso** com `TheBand.Encrypted.Binary` (Cloak, `lib/the_band/vault.ex`) | é a forma das credenciais das ferramentas; o segredo TOTP, ao contrário da senha, precisa ser lido em claro para conferir, e por isso não pode ser só resumo |
+| cadastro **na definição da senha**, em dois passos (`definir_senha/3`, depois `confirmar_segundo_fator/3`) | não existe conta habilitada sem segundo fator: `autenticar/3` recusa com `totp_confirmed_at` nulo |
+| o código de cadastro entre os dois passos: 20 bytes, `sha256`, 10 min, uso único, no corpo do `POST` | o segundo passo precisa provar que veio do primeiro sem cookie novo e sem URL com segredo |
+| a entrada é **um** formulário com e-mail, senha e segundo fator | sem estado "meio autenticado" entre os dois fatores, que seria uma sessão a mais para proteger |
+| contra reuso: `totp_last_used_step`, gravado na transação com `FOR UPDATE` | o mesmo código, visto por cima do ombro, não serve duas vezes na janela de 90 s |
+| 10 códigos de recuperação de 80 bits, só `sha256` no banco, consumo atômico | perda do celular não pode exigir o banco; uso único por `UPDATE … WHERE used_at IS NULL` |
+| falha de segundo fator conta na mesma espera crescente da senha | são a mesma porta; contadores separados dobrariam as tentativas |
+| reinício de credencial e nova concessão apagam o segredo e invalidam os códigos (A6) | revogar e conceder de novo não devolve o aplicativo de antes |
+| sem QR code na primeira forma: segredo em base32 e a URI `otpauth://` em texto | QR é uma dependência de geração de imagem; entra só se a pesquisa recomendar |
+
+**Pesquisa de dependência pendente** (AGENTS.md §3, tarefa do `tasks.md`):
+
+| opção | a medir |
+|---|---|
+| **NimbleTOTP** (Dashbit) | versão, manutenção, licença, dependências transitivas, `mix hex.audit`, se a janela e a proteção contra reuso são do chamador |
+| **RFC 6238 sobre `:crypto`** (`:crypto.mac(:hmac, :sha, …)`) | cerca de 30 linhas; os vetores de teste do RFC 6238, apêndice B, como teste; o custo de manter código criptográfico próprio |
+| QR (EQRCode ou outra) | só se a tela sem QR for recusada no protótipo |
+
+O resultado e a justificativa vão para o `plan.md`, "Dependência nova", antes do código.
+
+**O que piora**: um segredo a mais em repouso, legível por quem tem a `THE_BAND_MASTER_KEY` e o
+banco, que já tem tudo; dois passos de definição que podem ser abandonados no meio, exigindo o
+comando de reinício; uma tela a mais no protótipo.
