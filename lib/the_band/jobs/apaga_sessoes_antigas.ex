@@ -9,7 +9,7 @@ defmodule TheBand.Jobs.ApagaSessoesAntigas do
   Silencioso quando não acha nada, como `ReconcileStuckSyncs`: ruído periódico treina quem lê o
   log a ignorá-lo.
   """
-  use Oban.Worker, queue: :ingestion, max_attempts: 3
+  use Oban.Worker, queue: :manutencao, max_attempts: 3
 
   alias TheBand.Tenants.Sessions
 
