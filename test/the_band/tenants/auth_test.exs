@@ -121,6 +121,56 @@ defmodule TheBand.Tenants.AuthTest do
       assert {:ok, entrada} = Tenants.authenticate(user.email, @senha)
       assert entrada.failed_attempts == 0
     end
+
+    # Issue #1046: dez tentativas ao mesmo tempo. Antes, todas liam o mesmo contador e todas
+    # testavam a senha; o contador terminava em 1 e nenhuma recebia a espera.
+    test "tentativas em paralelo não contornam a espera: só as livres testam a senha", ctx do
+      user = conta_com_senha(ctx.tenant)
+
+      resultados =
+        1..10
+        |> Task.async_stream(fn _ -> Tenants.authenticate(user.email, "errada-e-comprida-1") end,
+          max_concurrency: 10,
+          ordered: false
+        )
+        |> Enum.map(fn {:ok, r} -> r end)
+
+      assert Enum.count(resultados, &(&1 == {:error, :invalid_credentials})) == 3
+      assert Enum.count(resultados, &match?({:error, {:throttled, _}}, &1)) == 7
+      assert Repo.get!(TheBand.Tenants.User, user.id).failed_attempts == 3
+    end
+
+    # A trava em si. No sandbox, as transações de processos diferentes já se enfileiram numa
+    # conexão só, e o teste acima passaria só com a releitura. Em produção, cada tentativa tem
+    # a sua conexão, e sem `FOR UPDATE` duas releituras simultâneas veriam o mesmo contador.
+    test "a conta é relida com FOR UPDATE antes de verificar", ctx do
+      user = conta_com_senha(ctx.tenant)
+      ref = make_ref()
+      eu = self()
+      id = "trava-#{inspect(ref)}"
+
+      :telemetry.attach(
+        id,
+        [:the_band, :repo, :query],
+        fn _e, _m, %{query: sql}, _ -> send(eu, {ref, sql}) end,
+        nil
+      )
+
+      Tenants.authenticate(user.email, "errada-e-comprida-1")
+      :telemetry.detach(id)
+
+      consultas = coletar(ref, [])
+      assert consultas != [], "a captura não mediu consulta nenhuma"
+      assert Enum.any?(consultas, &(&1 =~ ~s(FROM "users") and &1 =~ "FOR UPDATE"))
+    end
+  end
+
+  defp coletar(ref, acc) do
+    receive do
+      {^ref, sql} -> coletar(ref, [sql | acc])
+    after
+      0 -> acc
+    end
   end
 
   describe "senha" do
