@@ -187,13 +187,9 @@ defmodule TheBand.Tenants.EventosDeAcessoTest do
       refute log =~ @senha, "a senha entrou no log"
       refute log =~ temporaria, "a senha temporária entrou no log"
 
-      {:ok, recarregada} = Tenants.fetch_user(ctx.alvo.id)
-
-      refute log =~ recarregada.session_token, """
-      `redact: true` protege o `inspect/1`, e **não** uma interpolação escrita à mão. A
-      proteção real é as funções de `AccessEvents` receberem identificadores e motivos —
-      nunca credencial. Este teste mede a proteção real.
-      """
+      # O token de sessão não entra aqui desde a 064 (T014a): a entrada não o lê nem o escreve
+      # mais, e o bruto da sessão nova vive só no cookie. `Sessions` e `TheBandWeb.Sessao` têm
+      # os próprios testes de que o bruto não vai para log.
     end
   end
 end

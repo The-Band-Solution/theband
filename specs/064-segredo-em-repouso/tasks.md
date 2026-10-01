@@ -138,11 +138,20 @@ entrada recusar. Hoje isso **é aceito**, e o teste que o mede já existe:
   - **Feita quando**: as cinco formas de encerrar (sair, definir senha, desativar, giro, validade) valem no servidor; a tela não diz qual delas foi; nenhum código em `lib/` lê `users.session_token`
   - **Teste**: `cookie_de_sessao_evidencia_test.exs` — a afirmação 3 passa a ler **o que está na linha** de `user_sessions` (o que o dump dá) e vai a `/sign-in`, **com o par positivo**: o bruto de `abrir/1`, com a mesma chave, é aceito. Mais: sair e reenviar o cookie guardado → `/sign-in` (S5); `POST /set-password` com cookie de sessão encerrada → `/sign-in` e `password_hash` inalterado (S3); sessão de 8 dias em `POST /profile/password` → `/sign-in` (S6)
 
-- [ ] **T014** Remover a coluna antiga — [#879](https://github.com/The-Band-Solution/theband/issues/879)
-  - **Pronta quando**: T013 concluída **e em produção** — não antes
-  - **Descrição**: migração **separada** que remove `users.session_token`. Separada de propósito: enquanto a coluna existe, voltar atrás custa um deploy; depois de apagá-la, custa um backup. E o padrão de token de sessão da varredura é **aposentado** junto, porque o controle positivo dele planta numa tabela temporária de mesmo nome e continuaria dizendo "limpo" sobre uma coluna que não existe (S12)
+- [ ] **T014** Remover a coluna antiga — [#879](https://github.com/The-Band-Solution/theband/issues/879) — **dividida em dois passos em 2026-09-30**
+  - **Por que dois passos**: a v0.11.0, em produção, ainda **escreve** `users.session_token` (o giro na troca de senha e na desativação, mantido para o rollback). O rollback no Dokploy troca a imagem **sem desfazer migração** (`docs/producao/runbook.md` §5). Remover a coluna na mesma release que para de escrevê-la quebraria a volta para a v0.11.0: trocar a senha e desativar falhariam por coluna inexistente. O runbook exige ADR para migração que quebre o rollback, e os dois passos o evitam
+  - **Pronta quando**: T013 concluída **e em produção** — está, desde a v0.11.0
+
+- [x] **T014a** Parar de escrever e de ler a coluna — [#879](https://github.com/The-Band-Solution/theband/issues/879) — *feita em 2026-09-30*
+  - **Descrição**: sai o campo `session_token` do schema `User`, o giro em `desativar_changeset/2` e em `senha_changeset/3`, e `User.novo_token/0`. A coluna continua no banco, sem uso. Voltar para a v0.11.0 continua funcionando
+  - **Feita quando**: nenhum código em `lib/` lê nem escreve a coluna
+  - **Teste**: `sessao_pela_tabela_test.exs` — os quatro caminhos que a giravam (entrar, trocar a senha, reiniciar, desativar) deixam a coluna nula; com a escrita reinjetada, reprova
+
+- [ ] **T014b** Remover a coluna, na release **seguinte** à da T014a — [#879](https://github.com/The-Band-Solution/theband/issues/879)
+  - **Pronta quando**: T014a em produção. A volta para a versão da T014a é segura, porque ela não toca a coluna
+  - **Descrição**: migração que remove `users.session_token`, com `down` que a recria **vazia**. E o padrão de token de sessão da varredura é **aposentado** junto: o controle positivo dele planta numa tabela temporária de mesmo nome, e continuaria dizendo "limpo" sobre uma coluna que não existe (S12). Os testes que ainda leem a coluna por SQL (os da T012 e o do formato antigo do cookie) saem ou mudam junto
   - **Feita quando**: a coluna não existe; nenhum código a referencia; `Padroes.todos/0` não declara mais o padrão da coluna
-  - **Teste**: abrir sessão real, `pg_dump`, busca **literal** do bruto → 0 ocorrências; e o mesmo teste, antes da T014, acha o bruto de uma conta em `users.session_token` — sem o par, o 0 não mede nada
+  - **Teste**: abrir sessão real e procurar o bruto, literal, em toda coluna de texto do banco → 0 ocorrências
 
 - [x] **T020** Apagar as sessões que deixaram de valer há 90 dias — [#1007](https://github.com/The-Band-Solution/theband/issues/1007) — *feita em 2026-09-29*
   - **Pronta quando**: T011 concluída

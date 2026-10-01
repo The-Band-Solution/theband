@@ -58,8 +58,9 @@ defmodule TheBand.Segredo.Padroes do
       %{
         tipo: :token_de_sessao,
         nome: "token de sessão (43 caracteres, em users.session_token)",
-        # O CAMPO INTEIRO, e não um trecho: é a forma de `User.novo_token/0`
-        # (`Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)`).
+        # O CAMPO INTEIRO, e não um trecho: é a forma que a coluna guardava
+        # (`Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)`). A plataforma não
+        # a escreve mais desde a 064/T014a, e o padrão sai junto com a coluna, na T014b (S12).
         regex: ~r/\A[A-Za-z0-9_-]{43}\z/,
         exemplo_valido: String.duplicate("S", 39) <> "band",
         onde: [{"users", "session_token"}]
