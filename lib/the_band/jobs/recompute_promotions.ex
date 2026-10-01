@@ -44,7 +44,8 @@ defmodule TheBand.Jobs.RecomputePromotions do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"tenant_id" => tenant_id, "organization_id" => org_id}}) do
-    with {:ok, tenant} <- Tenants.fetch(tenant_id) do
+    with {:ok, tenant} <- Tenants.fetch(tenant_id),
+         :ok <- Tenants.ensure_active(tenant) do
       {:ok, %{written: escritas, concept_changed: conceito} = resultado} =
         Mapping.recompute(tenant, org_id)
 
@@ -56,6 +57,10 @@ defmodule TheBand.Jobs.RecomputePromotions do
       Mapping.broadcast(tenant_id, {:promotions_recomputed, org_id, resultado})
 
       :ok
+    else
+      # Organização suspensa (#1033): tentar de novo não muda nada até alguém reativá-la.
+      {:error, :tenant_inactive} -> {:cancel, :tenant_inactive}
+      {:error, motivo} -> {:error, motivo}
     end
   end
 

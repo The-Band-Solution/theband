@@ -77,6 +77,18 @@ defmodule TheBand.Tenants do
     end
   end
 
+  @doc """
+  `:ok` quando a organização está ativa — issue #1033. É o predicado único de quem trabalha em
+  nome de um tenant: os workers, o agendador e o botão de sincronizar.
+
+  Ativa é `status == "active"`, o mesmo teste do login (`Auth`) e da sessão (`CurrentScope`).
+  Qualquer outro valor conta como inativa, inclusive um que ninguém previu: `status` é texto
+  livre no banco, e o lado seguro do desconhecido é não trabalhar.
+  """
+  @spec ensure_active(Tenant.t()) :: :ok | {:error, :tenant_inactive}
+  def ensure_active(%Tenant{status: "active"}), do: :ok
+  def ensure_active(%Tenant{}), do: {:error, :tenant_inactive}
+
   @spec get_by_slug(String.t()) :: Tenant.t() | nil
   def get_by_slug(slug), do: Repo.get_by(Tenant, slug: slug)
 
