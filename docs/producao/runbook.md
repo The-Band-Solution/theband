@@ -382,3 +382,52 @@ Ele precisa cair em `/sign-in`.
 - **Não troca a chave.** Se a suspeita é sobre o `SECRET_KEY_BASE`, trocá-la é um passo
   separado, no §2.
 
+## §11 A fila parada — quando `/syncs` diz que a fila não anda
+
+Issue #801. A tela `/syncs` avisa quando nenhum job do Oban completou nos últimos **15 minutos**.
+A regra está em `docs/producao/saude-da-fila.md`: o `Cron` agenda trabalho a cada 5 minutos, e
+três ciclos sem nada completado é fila parada, e não lentidão. A mesma regra faz o healthcheck do
+contêiner ficar `unhealthy` e `/health` responder `503`.
+
+### §11.1 O que isso significa
+
+- **As execuções marcadas `running` não estão avançando.** O registro diz `running` porque
+  ninguém o encerrou, e a fila não roda o trabalho.
+- **Nada do que já foi coletado se perde.** Cada página é gravada depois de processada, com o
+  checkpoint. Quando a fila voltar, a reconciliação **encerra** a execução que ficou `running`
+  sem avançar (§11.2, passo 5), e a **próxima** coleta da ferramenta recomeça do checkpoint
+  gravado, sem recoletar o que já veio.
+- **Sync e Reprocess ficam desabilitados** enquanto durar, porque cada clique criaria mais um
+  registro `running` que também não andaria.
+
+### §11.2 O que fazer
+
+1. **Conferir de fora:**
+
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' "$PRODUCAO_URL/health"   # 503 = parada
+   ```
+
+2. **Antes de reiniciar, confira se há coleta longa de verdade em andamento.** A coleta de uma
+   organização grande leva horas, e o aviso pode aparecer se várias rodarem ao mesmo tempo. Na tela
+   `/syncs`, uma execução cuja linha de último avanço mostra progresso recente **está andando**:
+   espere em vez de reiniciar. Reiniciar derruba as coletas que estão rodando.
+3. **Reiniciar o contêiner da aplicação** no Dokploy: *Applications → the_band → **Restart***. **Não
+   use Redeploy:** ele puxa a imagem de novo e pode trocar de versão, e uma fila parada não se
+   resolve mudando de versão. Reiniciar é o que resolveu em 2026-09-04: 0 jobs completados em 20
+   minutos antes, 122 em 3 minutos depois.
+4. **Conferir que voltou:** `/health` responde `200`, e a tela `/syncs` volta a mostrar *Job queue
+   moving* em até um minuto, porque ela reconfere a cada 60 segundos.
+5. **As execuções que ficaram `running` sem avançar** são encerradas pela reconciliação
+   (`ReconcileStuckSyncs`), que volta a rodar com a fila. Não é preciso encerrá-las à mão.
+
+**Não altere `oban_jobs` por SQL para "destravar" a fila.** Mudar `state` à mão já foi preciso
+uma vez, em 2026-09-04, no desenvolvimento, e numa fila parada pela causa errada ele esconde o
+problema em vez de resolvê-lo. Se reiniciar não resolver, a causa é outra: conexão com o banco, ou
+o supervisor do Oban desistindo. Investigue antes de mexer na tabela.
+
+### §11.3 O que este procedimento não sabe
+
+**Por que a fila parou.** O verificador detecta, e não explica. A causa da parada de 2026-09-04
+nunca foi achada.
+
