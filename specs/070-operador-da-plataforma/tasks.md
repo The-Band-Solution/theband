@@ -104,7 +104,7 @@ destas tarefas escreve código da 070.
     registrados em `docs/seguranca/` ou num comentário da issue, sem nenhum segredo
   - **Teste**: o registro existe e diz qual dos dois; T043 lê esse registro como `Pronta quando`
 
-- [ ] T005 Decidir a forma da área do operador
+- [x] T005 Decidir a forma da área do operador — **decidido em 2026-10-01: controllers + cookie próprio**; FR-011 emendada
   - **Pronta quando**: nada além do repositório. **Dono: a pessoa mantenedora** (plan.md, pergunta 1)
   - **Descrição**: escolher entre **(a)** controllers com cookie próprio `_the_band_operator` e
     **(b)** `live_session` com chaves dentro do cookie de domínio (research R3.2). A avaliação de
@@ -235,7 +235,7 @@ template começa antes de T012.
     ecto.migrate` seguido de `mix ecto.rollback --step 1` sem erro. **Defeito a injetar**: devolver
     `:status` ao `cast`; o primeiro caso precisa reprovar
 
-- [ ] T014 [P] Declarar as razões de suspensão na base
+- [ ] T014 [P] Declarar as razões de suspensão na base — lista aprovada pela pessoa mantenedora em 2026-10-01, como em data-model §5
   - **Pronta quando**: T007 concluída; `data-model.md` §5 (lista **proposta**)
   - **Descrição**: `priv/knowledge_base/rules/platform_tenant_suspension.yaml`, `derivation_rule:`
     de id `platform.tenant_suspension`, `provenance.source_type: project_decision`, na forma de

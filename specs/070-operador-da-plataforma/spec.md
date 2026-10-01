@@ -122,9 +122,11 @@ de lá.
   próprias *(decisão de 2026-10-01, depois da avaliação de segurança, `seguranca.md`, O1/O2)*.
   `users.tenant_id` continua `NOT NULL`, e `user_sessions` não muda. Nenhum plug, hook, veredito de
   `Access`, a API ou a MCP passa a aceitar conta sem tenant: o operador não é uma conta de
-  `users`, e por isso não alcança nenhum desses caminhos. A área do operador tem pipeline,
-  `live_session`, plug e hook próprios, e a sessão do operador nunca é lida pelo leitor de sessão
-  das organizações.
+  `users`, e por isso não alcança nenhum desses caminhos. A área do operador tem pipeline e
+  plug próprios, com telas por **controller** e cookie próprio (`_the_band_operator`,
+  `Path=/platform`), e não `live_session`: o socket do LiveView só recebe o `Plug.Session` das
+  organizações *(decisão de 2026-10-01, T005)*. A sessão do operador nunca é lida pelo leitor de
+  sessão das organizações.
 - **FR-012**: A suspensão MUST parar **todo worker que age em nome do tenant** — coleta,
   reprocessamento, promoções e a rodada de perfis via LLM: o agendador não agenda, o sync manual é
   recusado, e o job que começar confere o estado do tenant antes de executar *(decisões de
