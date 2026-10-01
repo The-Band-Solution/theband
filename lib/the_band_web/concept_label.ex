@@ -55,6 +55,18 @@ defmodule TheBandWeb.ConceptLabel do
     "label_vs_structure" => "label and structure disagree"
   }
 
+  # O PORQUÊ de cada divergência, para a linha da tabela — 065/US2, emendada em 2026-09-30
+  # (#905). Diz **o que** discorda, e não só o nome do tipo: em `user_story_without_parts`, o tipo
+  # declarado e o conceito derivado são a mesma coisa, e sem esta frase a linha pareceria uma
+  # contradição que não existe. São frases de tela, em inglês.
+  @porques %{
+    "epic_without_parts" => "typed Epic, and it has no parts",
+    "composition_makes_epic" => "its parts are user stories",
+    "task_with_parts" => "typed Task, and it has collected parts",
+    "user_story_without_parts" => "no parts and no tasks are linked to it",
+    "label_vs_structure" => "the declared type and the structure disagree"
+  }
+
   @recusas %{
     "cycle" => "decomposition cycle",
     "out_of_scope" => "part outside the observed scope"
@@ -164,6 +176,22 @@ defmodule TheBandWeb.ConceptLabel do
   @spec divergencia_mudou_conceito?(String.t() | nil) :: boolean()
   def divergencia_mudou_conceito?(tipo),
     do: tipo in ["epic_without_parts", "composition_makes_epic"]
+
+  @doc "Por que diverge, em uma frase: o que, no tipo declarado e na estrutura, discorda."
+  @spec divergencia_porque(String.t() | nil) :: String.t() | nil
+  def divergencia_porque(nil), do: nil
+  def divergencia_porque(tipo), do: Map.get(@porques, tipo, divergencia(tipo))
+
+  @doc """
+  Qual lado a plataforma seguiu, e o que isso significa. Sai de `divergencia_mudou_conceito?/1`,
+  a mesma função do cartão agregado de `/work`: a linha e o cartão não podem discordar.
+  """
+  @spec divergencia_seguida(String.t()) :: %{lado: :estrutura | :declarado, texto: String.t()}
+  def divergencia_seguida(tipo) do
+    if divergencia_mudou_conceito?(tipo),
+      do: %{lado: :estrutura, texto: "concept decided by the axiom"},
+      else: %{lado: :declarado, texto: "concept kept, flagged as a signal"}
+  end
 
   @doc "O motivo da recusa de vínculo, por extenso."
   @spec recusa(String.t() | nil) :: String.t() | nil

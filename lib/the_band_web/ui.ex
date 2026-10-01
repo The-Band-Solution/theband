@@ -174,6 +174,64 @@ defmodule TheBandWeb.UI do
   defp origem_do_rotulo(:titulo), do: "derived — read from the bracketed prefix in the title"
 
   @doc """
+  A divergência na LINHA — 065/US2, emendada em 2026-09-30 (#905). Protótipo aprovado em
+  `specs/065-rotulos-no-item/prototipo/divergences-row.html`.
+
+  Os dois lados são o **tipo declarado** (a alegação do time) e o **conceito derivado** (o
+  veredito da plataforma). O rótulo **não** é um dos lados: ele não alega conceito nenhum
+  (FR-009, US3), e fica na coluna dele, como contexto.
+
+  Em cada linha, e não só no cartão agregado:
+  - **o porquê**, de `ConceptLabel.divergencia_porque/1`;
+  - **o lado seguido**, de `ConceptLabel.divergencia_seguida/1`, a mesma regra do cartão.
+
+  A divergência se lê **sem cor**: borda dupla, o `≠` e a palavra. O lado seguido tem sublinhado
+  cheio, e o outro, pontilhado. As frases são de tela, em inglês.
+  """
+  attr :tipo, :string, required: true
+  attr :declarado, :string, default: nil
+  attr :derivado, :string, default: nil
+
+  def divergencia(assigns) do
+    assigns = assign(assigns, :seguida, TheBandWeb.ConceptLabel.divergencia_seguida(assigns.tipo))
+
+    ~H"""
+    <div class="mt-1.5 flex flex-col gap-1 rounded-[1px] border-[3px] border-double border-warning px-2 py-1.5 text-xs">
+      <span class="font-mono text-[0.625rem] font-semibold uppercase tracking-wider text-warning">
+        ≠ diverges · type and structure
+      </span>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="flex min-w-0 flex-col">
+          <span class="font-mono text-[0.625rem] uppercase tracking-wide opacity-60">declared type · claim</span>
+          <span class={[
+            "pb-0.5",
+            @seguida.lado == :declarado && "border-b-2 border-current font-semibold",
+            @seguida.lado != :declarado && "border-b-2 border-dotted border-current/60"
+          ]}>
+            {@declarado || "no type at the source"}
+          </span>
+        </div>
+        <div class="flex min-w-0 flex-col">
+          <span class="font-mono text-[0.625rem] uppercase tracking-wide opacity-60">derived concept · verdict</span>
+          <span class={[
+            "pb-0.5",
+            @seguida.lado == :estrutura && "border-b-2 border-current font-semibold",
+            @seguida.lado != :estrutura && "border-b-2 border-dotted border-current/60"
+          ]}>
+            {@derivado || "not promoted"}
+          </span>
+        </div>
+      </div>
+      <span class="opacity-80">why: {TheBandWeb.ConceptLabel.divergencia_porque(@tipo)}</span>
+      <span>
+        <b>followed: {if @seguida.lado == :declarado, do: "the declared type", else: "the structure"}</b>
+        — {@seguida.texto}
+      </span>
+    </div>
+    """
+  end
+
+  @doc """
   A marca de evidência: o conceito, com a origem dele legível sem cor.
 
   `source` é `"declared_type"`, `"title"`, `"structure"` ou `nil`. `nil` significa que a
