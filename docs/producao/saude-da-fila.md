@@ -27,6 +27,22 @@ configurável em `config :the_band, :fila_parada_apos_minutos`.
 **O que ela lê:** `max(completed_at)` e o `scheduled_at` mais antigo de `available` em
 `oban_jobs`. São duas consultas, e **nenhuma das duas passa pelo Oban**.
 
+## O `Cron` numa fila só dele — achado S1, 2026-10-01
+
+A regra conta com o `Cron` completando algo a cada 5 minutos. Até 2026-10-01, os jobs do `Cron`
+(`ReconcileStuckSyncs`, `ScheduleDueSyncs`, `ApagaSessoesAntigas`) estavam na fila `ingestion`,
+a mesma da coleta, que tem 5 vagas, e cada coleta ocupa uma vaga por horas. **Cinco coletas
+simultâneas faziam a regra dizer "parada" com a fila trabalhando**, o healthcheck marcava
+`unhealthy`, e reiniciar o contêiner mataria as coletas. A avaliação de segurança achou o caminho
+lendo o código, e não houve medição.
+
+Agora eles estão na fila **`manutencao`**, com 2 vagas, e `test/the_band/jobs/fila_do_cron_test.exs`
+reprova se algum worker do `crontab` voltar para a fila da coleta.
+
+**O falso negativo que continua (S8):** o veredito é da instalação inteira. Uma fila que segue
+completando mascara outra parada. A `ingestion` saturada ou parada com o `Cron` andando **não** é
+acusada por esta regra.
+
 ## `TheBand.Saude.leitura/2` — o que a tela `/syncs` precisa (issue #801, parte 3)
 
 Decisão Q3 de 2026-10-01: **uma função nova, ao lado de `fila/2`**, que fica intacta, e com ela
