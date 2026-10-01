@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.TheBand.RotateKey do
-  @shortdoc "Recifra as credenciais com a chave mestra atual"
+  @shortdoc "Recifra todos os campos cifrados com a chave mestra atual"
 
   @moduledoc """
   Rotação da chave mestra (FR-005b).
@@ -16,7 +16,11 @@ defmodule Mix.Tasks.TheBand.RotateKey do
 
   ## Por que passa pelo binário cru
 
-  A task lê `secret` por SQL, sem o `Ecto.Type` cifrado. Se usasse o schema, a
+  Desde a #1052, o trabalho está em `TheBand.Rotacao`, que recifra **todos** os campos cifrados
+  (`Rotacao.campos_cifrados/0`), e não só `tool_credentials`. Em produção, onde a release não
+  tem `mix`, o caminho é `TheBand.Release.rotacionar_chave/0` por `rpc`.
+
+  A rotação lê `secret` por SQL, sem o `Ecto.Type` cifrado. Se usasse o schema, a
   primeira credencial ilegível derrubaria o carregamento inteiro com uma exceção
   do Cloak, e não haveria como dizer **quantas** ficaram para trás nem quais. Ler
   o binário e decifrar registro a registro é o que permite parar com um
@@ -27,67 +31,32 @@ defmodule Mix.Tasks.TheBand.RotateKey do
 
   use Mix.Task
 
-  alias TheBand.Repo
-  alias TheBand.Vault
+  alias TheBand.Rotacao
 
   @impl Mix.Task
   def run(args) do
     Mix.Task.run("app.start")
+    dry_run? = "--dry-run" in args
 
-    rows = Repo.query!("SELECT id, tenant_id, secret FROM tool_credentials ORDER BY inserted_at")
-
-    {legiveis, ilegiveis} =
-      rows.rows
-      |> Enum.map(fn [id, tenant_id, secret] -> {id, tenant_id, decifrar(secret)} end)
-      |> Enum.split_with(fn {_id, _tenant_id, resultado} -> match?({:ok, _}, resultado) end)
-
-    case ilegiveis do
-      [] -> recifrar(legiveis, "--dry-run" in args)
-      _ -> interromper(length(ilegiveis), length(rows.rows))
+    case Rotacao.recifrar(dry_run?) do
+      {:ok, contagens} -> Mix.shell().info(relatar(contagens, dry_run?))
+      {:error, {:ilegiveis, por_tabela}} -> interromper(por_tabela)
     end
   end
 
-  # O Cloak devolve `{:ok, :error}` quando encontra o cipher pelo rótulo mas a
-  # decifragem falha — forma que engana quem só casa `{:ok, _}` e faz o valor
-  # `:error` seguir adiante como se fosse texto claro. Exigir binário aqui é o
-  # que transforma isso num registro contado como ilegível em vez de numa exceção
-  # de criptografia dez frames adiante.
-  defp decifrar(secret) do
-    case Vault.decrypt(secret) do
-      {:ok, plano} when is_binary(plano) -> {:ok, plano}
-      _ -> :error
-    end
-  end
+  defp relatar(contagens, true), do: "seriam recifradas (--dry-run): " <> por_tabela(contagens)
+  defp relatar(contagens, false), do: "recifradas: " <> por_tabela(contagens)
 
-  defp recifrar(credenciais, true = _dry_run?) do
-    Mix.shell().info("#{length(credenciais)} credenciais seriam recifradas (--dry-run)")
-  end
-
-  defp recifrar(credenciais, false) do
-    Enum.each(credenciais, fn {id, _tenant_id, {:ok, plano}} ->
-      # Cifrar de novo usa sempre o cipher marcado como padrão — que, no meio de
-      # uma rotação, é o da chave nova.
-      Repo.query!("UPDATE tool_credentials SET secret = $1, updated_at = NOW() WHERE id = $2", [
-        Vault.encrypt!(plano),
-        id
-      ])
-    end)
-
-    organizacoes =
-      credenciais |> Enum.map(fn {_id, tenant_id, _} -> tenant_id end) |> Enum.uniq() |> length()
-
-    Mix.shell().info(
-      "recifradas #{length(credenciais)} credenciais de #{organizacoes} organizações"
-    )
-  end
+  defp por_tabela(contagens),
+    do: Enum.map_join(contagens, ", ", fn {tabela, n} -> "#{n} em #{tabela}" end)
 
   # Sempre levanta: recifrar parcialmente é pior que não recifrar.
-  @spec interromper(non_neg_integer(), non_neg_integer()) :: no_return()
-  defp interromper(ilegiveis, total) do
+  @spec interromper(map()) :: no_return()
+  defp interromper(por_tabela) do
     Mix.shell().error("""
 
-    #{ilegiveis} de #{total} credenciais não puderam ser lidas com nenhuma das chaves
-    configuradas. **Nada foi gravado.**
+    Registros que não puderam ser lidos com nenhuma das chaves configuradas: #{por_tabela(por_tabela)}.
+    **Nada foi gravado.**
 
     Confira THE_BAND_PREVIOUS_MASTER_KEY antes de tentar de novo. Recifrar
     parcialmente deixaria credenciais órfãs, que só apareceriam quando alguém
