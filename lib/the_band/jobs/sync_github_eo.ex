@@ -53,6 +53,7 @@ defmodule TheBand.Jobs.SyncGitHubEO do
     # O tenant vem nos args e é validado antes de qualquer coisa acontecer.
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
          {:ok, sync} <- Ingestion.fetch_sync(tenant, sync_id),
+         :ok <- ativa(tenant, sync),
          {:ok, tool} <- Sources.fetch_connected_tool(tenant, sync.connected_tool_id),
          %ToolCredential{} = credential <- Sources.active_credential(tool) do
       # Fora do `with` de propósito: o ramo de erro precisa da `tool` para marcá-la, e o
@@ -65,8 +66,30 @@ defmodule TheBand.Jobs.SyncGitHubEO do
       nil ->
         {:error, :no_active_credential}
 
+      {:cancel, :tenant_inactive} ->
+        {:cancel, :tenant_inactive}
+
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  # Organização suspensa não é coletada — issue #1033. Conferido a cada `perform`, e não só no
+  # primeiro: o job volta de cada `snooze` por aqui, e a suspensão durante a espera da janela
+  # para a coleta na retomada. O sync fecha `interrupted` com o motivo, e não fica `running`
+  # para o reconciliador fechar horas depois.
+  defp ativa(tenant, sync) do
+    case Tenants.ensure_active(tenant) do
+      :ok ->
+        :ok
+
+      {:error, :tenant_inactive} ->
+        sync
+        |> Ingestion.reload()
+        |> Ingestion.finish(:interrupted, error_reason: "organização suspensa")
+
+        Ingestion.broadcast(tenant.id, {:sync_finished, sync.id})
+        {:cancel, :tenant_inactive}
     end
   end
 
