@@ -107,26 +107,47 @@ que os mesmos rótulos aparecem ao abrir cada item.
 
 ### User Story 2 - Ver a alegação ao lado do veredito (Priority: P2)
 
-Quem investiga uma divergência entre o que o time declarou e o que a plataforma derivou vê as
-**duas** coisas na mesma linha.
+> **Emendada em 2026-09-30, por decisão da pessoa mantenedora** (issue #905, defeito D2 do
+> registro de aceitação `docs/sprints/032-rotulos-no-item/aceitacao.md`). A versão de
+> 2026-09-13 dizia que a alegação era o **rótulo**, e o exemplo dela, um item rotulado `task`
+> com conceito **defeito**, não é divergência para a plataforma. A ontologia decide qual é a
+> alegação:
+>
+> - a regra `github.issue_type_routing` diz que *"o tipo declarado no GitHub expressa a intenção
+>   do time; a estrutura de sub-issues expressa o fato"* (`precedence:
+>   structure_over_declaration`, SRO `sro.rule05`), e registra `declared_concept` e
+>   `derived_concept`. A divergência que a ontologia prevê é **tipo declarado × estrutura**;
+> - o rótulo do GitHub **não alega conceito nenhum**. Nenhum módulo da rede tem conceito para ele,
+>   o mapeamento `issue_defect.yaml` chama de antipadrão mapeá-lo por semelhança de nome, e a
+>   própria 065 proíbe interpretá-lo (FR-009, US3).
+>
+> Tratar o rótulo `bug` como alegação de "defeito" seria interpretar o rótulo. A alegação é o
+> **tipo declarado**, e o rótulo aparece ao lado como **contexto**.
 
-**Why this priority**: a tela de divergências existe para mostrar desacordo, e hoje mostra só
-um dos lados. Vem depois da US1 porque atinge menos gente, e porque a US1 já prova o
-mecanismo.
+Quem investiga uma divergência entre o **tipo que o time declarou** e o **conceito que a
+plataforma derivou** vê as duas coisas na mesma linha, e lê em cada uma qual lado foi seguido.
 
-**Independent Test**: achar um item em que o rótulo diz uma coisa e o conceito derivado diz
-outra, e conferir que a tela mostra as duas — e que dá para ver que discordam.
+**Why this priority**: a tela de divergências existe para mostrar desacordo, e hoje diz qual lado
+foi seguido só no cartão agregado, por tipo de divergência. Vem depois da US1 porque atinge menos
+gente.
+
+**Independent Test**: achar um item em que o tipo declarado e o conceito derivado discordam — por
+exemplo, `User Story` sem partes nem tarefas —, e conferir que a linha mostra os dois, diz que
+divergem e diz qual foi seguido.
 
 **Acceptance Scenarios**:
 
-1. **Given** um item rotulado `task` cujo conceito derivado é **defeito**, **When** a tela de
-   divergências é aberta, **Then** o rótulo e o conceito aparecem lado a lado, e a linha diz
-   que **divergem**.
-2. **Given** um item sem rótulo nenhum, **When** ele aparece entre as divergências, **Then** a
-   tela diz que **não há o que comparar** — e não deixa a célula vazia, que se leria como
-   concordância.
-3. **Given** qualquer divergência, **When** alguém a lê, **Then** fica claro **qual dos dois
-   lados a plataforma seguiu** — o fato estrutural — e que o outro é a intenção declarada.
+1. **Given** um item com tipo declarado e conceito derivado que divergem, **When** a tela de
+   divergências é aberta, **Then** a **linha** mostra o tipo declarado (a alegação) e o conceito
+   derivado (o veredito) lado a lado, e diz que **divergem**.
+2. **Given** um item divergente, **When** a linha é lida, **Then** os **rótulos** do item aparecem
+   ao lado, com a origem de cada um, **como contexto**: a linha não afirma que o rótulo diverge de
+   nada. Item sem rótulo mostra `no label` (decisão de 2026-09-30: basta, porque a divergência não
+   depende de rótulo).
+3. **Given** qualquer divergência, **When** alguém lê a **linha**, **Then** ela diz **qual dos
+   dois lados a plataforma seguiu**, em palavras, sem depender do cartão agregado (decisão de
+   2026-09-30). Para `user_story_without_parts`, o lado seguido é o **declarado** ("concept
+   kept"), que é o que a regra registra hoje.
 
 ---
 
@@ -199,8 +220,10 @@ conferir que a classificação **não muda**.
 - **FR-012**: A ordem dos rótulos MUST ser a mesma a cada leitura dos mesmos dados.
 - **FR-013**: O número de consultas ao banco para montar uma listagem MUST NOT crescer com o
   número de itens listados.
-- **FR-014**: Onde a plataforma mostra divergência entre o declarado e o derivado, ela MUST
-  mostrar **os dois**, e MUST dizer qual deles seguiu.
+- **FR-014**: Onde a plataforma mostra divergência entre o **tipo declarado** e o conceito
+  derivado, ela MUST mostrar **os dois**, e MUST dizer qual deles seguiu **na própria linha**. O
+  rótulo MUST NOT ser apresentado como um dos lados da divergência *(emendada em 2026-09-30, com a
+  US2)*.
 - **FR-016**: Onde a plataforma lista itens **ligados** a outro — composição, atendimento — o
   repositório de cada um MUST aparecer, **sempre**, e não só quando difere. Campo que aparece
   às vezes é campo que ninguém lê, e aí o caso raro passa junto.
@@ -240,8 +263,9 @@ conferir que a classificação **não muda**.
 - **SC-005**: A listagem de 100 itens custa o **mesmo número** de consultas que a de 10.
 - **SC-006**: Duas leituras seguidas dos mesmos dados devolvem os rótulos na **mesma ordem**.
 - **SC-007**: Item sem rótulo nenhum mostra a ausência escrita — nunca célula vazia.
-- **SC-008**: Quem investiga uma divergência vê a alegação do time e o veredito da plataforma
-  na mesma linha, e diz qual foi seguido sem abrir mais nada.
+- **SC-008**: Quem investiga uma divergência vê a alegação do time (o **tipo declarado**) e o
+  veredito da plataforma na mesma linha, e diz qual foi seguido sem abrir mais nada. *(Emendada em
+  2026-09-30, com a US2: a alegação é o tipo declarado, e não o rótulo.)*
 - **SC-009**: Numa lista de itens ligados, quem lê diz de qual repositório é cada um sem
   abrir nenhum — e reconhece, sem comparar caminhos, quais vieram de fora.
 - **SC-010**: Quem olha as duas seções do detalhe diz qual é composição e qual é atendimento
