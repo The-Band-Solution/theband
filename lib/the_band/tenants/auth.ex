@@ -331,6 +331,9 @@ defmodule TheBand.Tenants.Auth do
   # sessão de quem trocou a própria senha é reaberta pelo controller.
   defp encerrando_as_sessoes({:ok, %User{} = user} = ok) do
     {:ok, _} = Sessions.encerrar_da_conta(user.tenant_id, user.id)
+
+    # Fora de transação: o `Repo.update` acima já gravou, e a tela aberta pode reconferir (#1042).
+    Sessions.avisar_encerramento({:conta, user.id})
     ok
   end
 
