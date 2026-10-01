@@ -121,6 +121,31 @@ defmodule TheBand.Tenants.AuthTest do
       assert {:ok, entrada} = Tenants.authenticate(user.email, @senha)
       assert entrada.failed_attempts == 0
     end
+
+    # Issue #1047: a recusa por espera paga o mesmo hash que a recusa de quem não existe.
+    #
+    # Medido pelo tempo, com o custo do Bcrypt subido a 12 SÓ neste teste: o hash leva centenas
+    # de ms, e a recusa sem ele leva ~1 ms. A margem é de duas ordens de grandeza, e o limiar de
+    # 50 ms fica longe das duas. O rastreio de chamada do Erlang foi tentado e não entrega a
+    # mensagem neste OTP.
+    test "a conta em espera paga o custo do hash antes de recusar", ctx do
+      user = conta_com_senha(ctx.tenant)
+      for _ <- 1..3, do: Tenants.authenticate(user.email, "errada-e-comprida-1")
+
+      anterior = Application.get_env(:bcrypt_elixir, :log_rounds)
+      Application.put_env(:bcrypt_elixir, :log_rounds, 12)
+
+      try do
+        {us, resultado} = :timer.tc(fn -> Tenants.authenticate(user.email, @senha) end)
+
+        assert {:error, {:throttled, _}} = resultado
+
+        assert div(us, 1000) >= 50,
+               "a recusa por espera respondeu em #{div(us, 1000)} ms, sem o hash"
+      after
+        Application.put_env(:bcrypt_elixir, :log_rounds, anterior)
+      end
+    end
   end
 
   describe "senha" do
