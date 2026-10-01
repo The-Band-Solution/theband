@@ -154,9 +154,10 @@ possíveis:
 **Decisão do plano: (a)**, porque isola mais e fecha a O6 sem mecanismo novo. **Emenda A8**: o
 cookie não chega ao domínio **pela rede**; contra script da mesma origem, o isolamento é a CSP
 (`script-src 'self'` sem `'unsafe-inline'`). Decisão da pessoa mantenedora em 2026-10-01: mesma
-origem com CSP, e host próprio quando `theband.dev` entrar em produção. **Ela troca o "`live_session`" da FR-011 por controller**, e isso é decisão da
-pessoa mantenedora: é a pergunta 1 do plano. Se a resposta for (b), mudam o roteador, o leitor e as
-telas; o modelo de dados e os contratos de domínio **não mudam**.
+origem com CSP, e host próprio quando `theband.dev` entrar em produção. **Ela troca o
+"`live_session`" da FR-011 por controller**: **decidido pela pessoa mantenedora em 2026-10-01**
+(pergunta 1 do plano, T005), com a FR-011 emendada para "pipeline, plug e cookie próprios" (commit
+`61d6098`).
 
 **Cifrado e não só assinado**: o cookie é novo, e `encrypt: true` não custa nada. O de domínio é só
 assinado (`sessao.ex:16-17`), e mudá-lo não é desta feature.
@@ -261,8 +262,11 @@ Três respostas do princípio VIII:
 produção; é o padrão de `DATABASE_URL` único em `config/runtime.exs`), e o dono pode conceder de
 volta. Seria um controle que parece e não é.
 
-`TRUNCATE` não dispara trigger de linha. Nada neste repositório trunca essas tabelas, e o sandbox do
-Ecto desfaz por `ROLLBACK`.
+`TRUNCATE` não dispara trigger de linha, e por isso as duas tabelas ganham também um trigger
+`BEFORE TRUNCATE … FOR EACH STATEMENT` que levanta (`platform_operator_grants_nao_trunca` e
+`tenant_suspensions_nao_trunca`; data-model.md §2 e §4, A13a). Nada neste repositório trunca essas
+tabelas, e o sandbox do Ecto desfaz por `ROLLBACK`, então o trigger não atrapalha os testes; como os
+outros dois, protege de código, e não de quem tem o banco.
 
 ---
 
@@ -272,7 +276,7 @@ Ecto desfaz por `ROLLBACK`.
 
 | passo | o que faz | falha → |
 |---|---|---|
-| `:autorizacao` | relê a sessão do operador pela chave primária (aberta, no prazo) e a concessão vigente com `lock: "FOR SHARE"` | `{:error, :nao_autorizado}` |
+| `:autorizacao` | relê a sessão do operador pela chave primária (aberta, no prazo) **e** a concessão vigente, as duas linhas com `lock: "FOR SHARE"` (A15) | `{:error, :nao_autorizado}` |
 | `:razao` | valida razão e nota contra `SuspensionReasons` | `{:error, changeset}` |
 | `:estado` | `update_all` condicional `active → suspended`, uma linha | `{:error, :ja_suspensa}` |
 | `:episodio` | `insert` do episódio aberto; o índice parcial recusa o segundo | `{:error, :ja_suspensa}` |
@@ -285,6 +289,12 @@ Depois do `commit`, e só depois: o evento de acesso e o fechamento dos sockets 
 Com o `FOR SHARE` da suspensão, as duas se serializam. Se a revogação confirma primeiro, o `SELECT`
 da suspensão reavalia a linha já revogada e não a encontra, e a suspensão recusa. Se a suspensão
 confirma primeiro, ela aconteceu antes da revogação, o que é legítimo.
+
+**E `FOR SHARE` também na sessão** (A15): `reiniciar_credencial/2` encerra as sessões do operador
+sem tocar a linha da concessão, então o lock só na concessão não serializa com ele. Com a linha da
+sessão também sob `FOR SHARE`, e o `FOR UPDATE` que o reinício faz nas sessões abertas antes de
+encerrá-las (`contracts/concessao-do-operador.md`), uma suspensão em voo e um reinício se
+serializam do mesmo jeito.
 
 **`Repo.transaction(fn …)` ou `Ecto.Multi`**: a casa usa os dois (`tenants.ex:308-338` e
 `auth.ex:281-291`; `Ecto.Multi` em `bootstrap.ex` e `eo/commands.ex`). O `Multi` é a escolha aqui
@@ -339,7 +349,7 @@ na reativação; uma de B continua. Defeitos a injetar: retirar o aviso; avisar 
   domínio nova reprova sozinha. `source` nulo (SQL cru) também reprova (lição L56);
 - **toda consulta reprova se o texto do SQL citar `"users"`**, com aspas, como o Ecto gera (A9):
   `source` mostra só a tabela do `from`, e `Sessao.conferir/1` consulta `user_sessions` com `join`
-  em `users` (`sessions.ex:190-198`);
+  em `users` (`por_id/1`, `sessions.ex:222-232` de `development`);
 - **nas rotas de domínio com o cookie do operador forçado** (`put_req_cookie` ignora `Path`):
   `/people`, `/teams/:id_de_B`, `/api/v1/people`, `/mcp`. A resposta é a mesma de um anônimo, e
   **nenhuma** consulta toca `platform_*`. A segunda asserção prova que o leitor de domínio nunca lê
@@ -391,8 +401,8 @@ e a skill `release` mede as duas como risco de migração.
 ## R13 — O segundo fator do operador (FR-016)
 
 **Decisão da pessoa mantenedora, 2026-10-01**: TOTP **nesta feature**, contra a recomendação de
-deixar para depois (seguranca-autenticacao.md, "Decisões"). Este é o **desenho**; a biblioteca não
-está escolhida, e o desenho passa por avaliação de segurança própria antes do código.
+deixar para depois (seguranca-autenticacao.md, "Decisões"). Este é o **desenho**; a biblioteca foi
+escolhida por T009 (NimbleTOTP 1.0.0, abaixo), e o desenho passa por avaliação de segurança própria antes do código.
 
 | decisão | razão |
 |---|---|
@@ -405,17 +415,53 @@ está escolhida, e o desenho passa por avaliação de segurança própria antes 
 | 10 códigos de recuperação de 80 bits, só `sha256` no banco, consumo atômico | perda do celular não pode exigir o banco; uso único por `UPDATE … WHERE used_at IS NULL` |
 | falha de segundo fator conta na mesma espera crescente da senha | são a mesma porta; contadores separados dobrariam as tentativas |
 | reinício de credencial e nova concessão apagam o segredo e invalidam os códigos (A6) | revogar e conceder de novo não devolve o aplicativo de antes |
-| sem QR code na primeira forma: segredo em base32 e a URI `otpauth://` em texto | QR é uma dependência de geração de imagem; entra só se a pesquisa recomendar |
+| sem QR code na primeira forma: segredo em base32 e a URI `otpauth://` em texto | QR é uma dependência de geração de imagem; T009 recomenda não ter (abaixo), e a decisão é da pessoa mantenedora |
 
-**Pesquisa de dependência pendente** (AGENTS.md §3, tarefa do `tasks.md`):
+**Pesquisa de dependência — feita por T009, 2026-10-01** (AGENTS.md §3). **Escolha: NimbleTOTP
+1.0.0**, fixada `{:nimble_totp, "== 1.0.0"}`. A justificativa e as três respostas de §7.7 estão no
+`plan.md`, "Technical Context", "Dependência nova".
 
-| opção | a medir |
-|---|---|
-| **NimbleTOTP** (Dashbit) | versão, manutenção, licença, dependências transitivas, `mix hex.audit`, se a janela e a proteção contra reuso são do chamador |
-| **RFC 6238 sobre `:crypto`** (`:crypto.mac(:hmac, :sha, …)`) | cerca de 30 linhas; os vetores de teste do RFC 6238, apêndice B, como teste; o custo de manter código criptográfico próprio |
-| QR (EQRCode ou outra) | só se a tela sem QR for recusada no protótipo |
+| critério | **NimbleTOTP** | **RFC 6238 sobre `:crypto`** |
+|---|---|---|
+| versão | 1.0.0 (`mix hex.info nimble_totp`, 2026-10-01); antes, 0.2.0 em 2022-05 | não se aplica |
+| manutenção | Dashbit, publicada por `josevalim`; release mais recente 2023-03-21, mas o repositório segue ativo (commits em 2025-11 — opção `:algorithm`, ainda **não publicada** — e 2026-04-07); 1 issue aberta, não arquivado | nossa, para sempre |
+| licença | Apache-2.0 (`mix hex.info`) | não se aplica |
+| dependências transitivas | **nenhuma** (`mix hex.info nimble_totp 1.0.0`: `Dependencies:` vazio; o `mix.lock` ganhou uma linha só) | nenhuma |
+| downloads | 4,16 milhões no total, ~40 mil por semana | — |
+| algoritmo | HMAC-SHA1 por `:crypto.mac/4`, 6 dígitos fixos, período 30 s por padrão | o mesmo, escrito aqui |
+| comparação | em tempo constante por dentro (`bxor` dígito a dígito, `valid?/3`) | nossa: `Plug.Crypto.secure_compare/2` |
+| **janela ±1** | **do chamador**: `valid?/3` confere um instante só; a própria documentação (commit de 2026-04, "grace periods") manda compor `valid?(…, time: t) or valid?(…, time: t - 30)`. Aqui são três chamadas: `agora - 30`, `agora`, `agora + 30` | nossa |
+| **reuso** | **embutido, mas o registro é do chamador**: `since:` recusa código de passo `<= floor(since / 30)`. `since` é um **instante**, não um passo: `totp_last_used_step` vira `since: ultimo_passo * 30`. Gravar o passo aceito, sob `FOR UPDATE`, continua em `Credentials` | nosso |
+| segredo | `secret/1` = `:crypto.strong_rand_bytes(20)` | o mesmo |
+| URI `otpauth://` | **gera**: `otpauth_uri(label, secret, issuer: …)`, base32 sem padding | nossa, ~5 linhas |
+| QR | **não gera** (a doc diz "uri to be encoded in the QR code"; o QR é outra biblioteca) | não |
+| entrada | `valid?/3` só casa binário de **6 bytes**; o resto é `false`. `classificar/1` normaliza antes | nossa |
+| custo de manter | ~260 linhas lidas, de terceiro auditado por muitos | ~30 linhas de HMAC, truncamento dinâmico e zero à esquerda: o tipo de código que passa em quase todo vetor e erra num (offset do truncamento, `band 0x7FFFFFFF`, `pad_leading`), e cuja revisão exige o agente `security` a cada mudança |
 
-O resultado e a justificativa vão para o `plan.md`, "Dependência nova", antes do código.
+**Auditoria, medida num worktree descartável** a partir de `origin/development` (`0891244`), com
+`{:nimble_totp, "== 1.0.0"}` acrescentado ao `mix.exs`; o worktree foi removido depois, sem commit:
+
+| comando | código de saída | saída |
+|---|---|---|
+| `mix deps.get` | 0 | `mix.lock` ganha só `"nimble_totp": {:hex, :nimble_totp, "1.0.0", "79753bae…", [:mix], [], "hexpm", …}` — lista de dependências vazia |
+| `mix hex.audit` | **0** | só `Ignored advisories:` `cowlib 2.20.0` EEF-CVE-2026-43966 (MEDIUM) e EEF-CVE-2026-43969 (LOW), as exceções já medidas da 062 (`mix.exs:22-46`). **Idêntica, byte a byte, à saída sem a dependência** (`diff` vazio) |
+| `mix deps.audit` | **0** | `No vulnerabilities found.` |
+
+**Por que NimbleTOTP, e não `:crypto` direto**: o problema não é o tamanho do código, é que ele é
+criptográfico e falha em silêncio — um código errado ainda é um número de seis dígitos. A
+dependência custa uma linha no `mix.lock`, sem transitivas, e deixa conosco exatamente as duas
+decisões que são nossas e que o contrato já fixa: a janela ±1 e a gravação do passo sob lock. O
+teste de T022 confere os vetores do RFC 6238, apêndice B (SHA-1), **mesmo assim**: os vetores têm
+8 dígitos, e o código de 6 é o resto módulo 10^6, ou seja, os **seis últimos dígitos** de cada
+vetor.
+
+**QR code — recomendação: não, nesta feature** (a decisão é da pessoa mantenedora). O segredo em
+base32 e a URI `otpauth://` em texto bastam para os aplicativos autenticadores (todos aceitam
+"inserir chave manualmente"); o operador são uma ou duas pessoas, e o cadastro acontece uma vez por
+concessão. QR exigiria uma segunda dependência, de geração de imagem — a candidata seria
+`eqrcode 0.2.1` (MIT, sem dependências transitivas, release 2025-02-21, 7 issues abertas;
+**não auditada** por T009) —, para pôr o mesmo segredo num SVG da página. Entra só se o protótipo
+T012 for recusado sem ele, com pesquisa e auditoria próprias.
 
 **O que piora**: um segredo a mais em repouso, legível por quem tem a `THE_BAND_MASTER_KEY` e o
 banco, que já tem tudo; dois passos de definição que podem ser abandonados no meio, exigindo o

@@ -12,7 +12,7 @@ avisa: roda dentro do `Multi` da suspensão, e avisar antes do `commit` seria av
 ainda não confirmou. É a mesma regra que o #1044 escreveu em `encerrar_da_conta/2`.
 
 Recebe `%Tenant{}`, e não `tenant_id` cru (antipadrão "primitivo no lugar do conceito"):
-`encerrar_da_conta/2` (`sessions.ex:158-169`) recebe cru, e é uma das nove funções que a
+`encerrar_da_conta/2` (`sessions.ex:188-198` de `development`) recebe cru, e é uma das nove funções que a
 seguranca.md §1.1 lista. Esta nasce sem o defeito. Usa o índice `user_sessions(tenant_id)`.
 
 **Não** encerra sessão de outro tenant: o teste de seguranca.md §4, cenário 5, prova com dois

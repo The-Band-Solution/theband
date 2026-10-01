@@ -4,11 +4,11 @@ FR-016, O16, A16. Decisão da pessoa mantenedora em 2026-10-01: **TOTP nesta fea
 ([seguranca-autenticacao.md](../seguranca-autenticacao.md), "Decisões"). Desenho em
 [research.md](../research.md) R13; colunas em [data-model.md](../data-model.md) §1 e §1a.
 
-> **Desenho, e não decisão de biblioteca.** A implementação do RFC 6238 (NimbleTOTP, ou HMAC sobre
-> `:crypto`) é escolhida pela tarefa de pesquisa de dependência do `tasks.md`, com a justificativa
-> escrita no `plan.md` (AGENTS.md §3). Este contrato vale para as duas escolhas. **Nenhuma linha
-> deste módulo é escrita antes da avaliação de segurança própria do TOTP**, feita por quem não
-> escreveu este desenho.
+> **Biblioteca decidida pela T009 (2026-10-01): `{:nimble_totp, "== 1.0.0"}`**, com a justificativa
+> no `plan.md` ("Technical Context") e a comparação em research R13 (AGENTS.md §3). Emendado por
+> T011 com essa escolha. **Nenhuma linha deste módulo é escrita antes da avaliação de segurança
+> própria do TOTP (T010)**, feita por quem não escreveu este desenho; as emendas que ela pedir
+> entram aqui antes do código.
 
 Depende de: nenhuma ontologia. **Funções puras**: nenhuma lê nem grava o banco. Quem grava é
 `Credentials`, dentro da transação com `FOR UPDATE` (efeito na borda, decisão no núcleo, AGENTS.md
@@ -32,17 +32,29 @@ Depende de: nenhuma ontologia. **Funções puras**: nenhuma lê nem grava o banc
 `otpauth://totp/The%20Band%20Platform:<email>?secret=<base32>&issuer=The%20Band%20Platform`. Volta
 como `Segredo.t()` porque carrega o segredo.
 
-**Sem QR code nesta forma.** A tela mostra o segredo em base32 para digitar no aplicativo, e a URI
-para copiar. Um QR exige biblioteca de geração; se a pesquisa de dependência recomendar uma, ela
-entra com justificativa própria no `plan.md`, e este contrato ganha `qr_svg/1`.
+Montada com `NimbleTOTP.otpauth_uri/3`.
+
+**Sem QR code nesta feature.** A tela mostra o segredo em base32 para digitar no aplicativo, e a URI
+para copiar. NimbleTOTP não gera QR, e um QR exigiria uma segunda dependência (research R13). É a
+recomendação da T009; a decisão final vem com o protótipo (T012). Se o protótipo o exigir, a
+biblioteca entra com justificativa própria no `plan.md`, e este contrato ganha `qr_svg/1`.
 
 ## `conferir(segredo :: TheBand.Segredo.t(), codigo :: TheBand.Segredo.t(), ultimo_passo :: non_neg_integer() | nil, agora :: DateTime.t()) :: {:ok, passo :: non_neg_integer()} | {:error, :codigo_errado | :reusado}`
 
-- calcula o passo atual de `agora`, e compara o código contra os passos `atual - 1`, `atual` e
-  `atual + 1`, com `Plug.Crypto.secure_compare/2`;
+- **a janela ±1 é do chamador**: `NimbleTOTP.valid?/3` confere um instante só, então `conferir/4`
+  faz **três chamadas**, com `time:` em `agora - 30`, `agora` e `agora + 30`, e devolve o passo
+  (`div(t, 30)`) da chamada que aceitou;
+- **a comparação em tempo constante é a de `NimbleTOTP.valid?/3`** (`bxor` dígito a dígito, research
+  R13). Este módulo não compara código nenhum por conta própria, e não usa
+  `Plug.Crypto.secure_compare/2`;
 - **contra reuso**: um código cujo passo seja `<= ultimo_passo` devolve `{:error, :reusado}`, mesmo
-  correto. Quem grava o passo aceito é `Credentials`, na mesma transação com `FOR UPDATE`; sem o
-  lock, dois envios paralelos do mesmo código passariam os dois;
+  correto. As três chamadas levam `since: ultimo_passo * 30` (`since` é um **instante**, e não um
+  passo; com `ultimo_passo` nulo, sem `since`). Como `valid?/3` devolve só `false` nos dois casos,
+  `:reusado` e `:codigo_errado` se distinguem refazendo as três chamadas sem `since`: aceito sem
+  ele e recusado com ele é `:reusado`. Para fora, `Credentials` dá aos dois a mesma recusa única.
+  Quem grava o passo aceito é `Credentials`, na mesma transação com `FOR UPDATE` na linha do
+  operador; sem o lock, dois envios paralelos do mesmo código passariam os dois;
+- `valid?/3` só casa binário de 6 bytes: o código chega já normalizado por `classificar/1`;
 - `agora` é argumento, e não `DateTime.utc_now/0` por dentro, para o teste fixar o relógio sem
   depender da hora (lição L46).
 

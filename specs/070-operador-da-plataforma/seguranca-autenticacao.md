@@ -364,3 +364,77 @@ Enquanto a área estiver na mesma origem, afrouxar `script-src` vira, por conseq
 | 3. Origem | **Mesma origem + CSP** | A8 fica declarado como risco residual. A CSP entra como defesa, e o host próprio vem quando `theband.dev` entrar em produção |
 
 Defeitos que existem hoje e vêm antes da feature: A1 virou a #1046 e A3 virou a #1047.
+
+---
+
+## Conferência das emendas (T008, 2026-10-01)
+
+**Papel**: Security, que **não** escreveu as emendas. **Base lida**: o worktree da 070 em
+`61d6098`; `origin/development` em `0891244` (com o #1044 mergeado às 22:37Z); os diffs abertos do
+PR #1048 (#1046) e do PR #1049 (#1047), por `gh pr diff`. **Por leitura**: não rodei teste, gate
+nem banco.
+
+### Veredito por achado
+
+| id | veredito | onde está, e o que conferi |
+|---|---|---|
+| **A1** | **coberto, depois de corrigido aqui** | `credenciais-do-operador.md`, "Tentativa serializada": `FOR UPDATE` antes da espera e do hash, para senha, código de definição, código de cadastro e segundo fator; o segundo fator conta no mesmo contador. Conferido contra o #1048: escolheu `FOR UPDATE` (`verificar_com_trava/2`, `conta_travada/1`), e não o incremento com `RETURNING`, então a cópia segue `FOR UPDATE`. **Faltava**: dizer que a recusa **confirma** a transação. Com `Repo.rollback/1` na recusa, o `failed_attempts + 1` seria desfeito e a espera voltaria a não contar. Acrescentado ao contrato |
+| **A2** | coberto | `suspensao.md` (aviso por id depois do `commit`, em `suspender/3` e `reativar/3`, sem tópico por organização); `sessoes-e-tokens-da-organizacao.md` (`encerrar_da_organizacao/1` devolve os ids e não avisa); research R9 (sem `live_socket_id`). Conferido em `development`: `avisar_encerramento({:sessao, id})` publica `:sessao_encerrada` em `"sessao:"<>id` (`sessions.ex:147`), a hook inscreve o socket nesse tópico (`hooks.ex:136-140`) e reconfere no banco, inclusive `organizacao_ativa/1` (`hooks.ex:151-161`, `:174-175`). Na suspensão a tela cai por dois motivos, `ended_at` e `status` |
+| **A3** | **coberto, depois de corrigido aqui** | `credenciais-do-operador.md`: `no_user_verify/0` antes de `{:throttled, _}`, e todos os casos pagam o hash. Conferido contra o #1049: `Bcrypt.no_user_verify()` no ramo da espera de `fora_da_janela/1`. **Faltava**: o oráculo pela **mensagem**. Só conta que existe entra em espera, e o contrato devolvia `{:throttled, s}` sem dizer como a tela o mostra. Acrescentado: a espera sai com a mesma frase, status e destino de `:invalid_credentials`, sem os segundos, como `session_controller.ex:10-11` e `:36-37` de `development`. Também em `rotas-da-plataforma.md`, "Respostas" |
+| A4 | coberto como pendência declarada | `rotas-da-plataforma.md` (sem limite por IP até a medição do Traefik); plan, Riscos; tasks T004 e T043. A negação de serviço pela espera continua aberta, e é para estar |
+| **A5** | coberto | `credenciais-do-operador.md`: consumo atômico do código de definição e do de cadastro, dentro do `FOR UPDATE`; `segundo-fator-do-operador.md`: código de recuperação por `UPDATE … WHERE used_at IS NULL … RETURNING`, conferindo uma linha. O TOTP errado não consome o código de cadastro, e conta falha. Aceitável: são 160 bits, e a espera vale |
+| **A6** | coberto | `concessao-do-operador.md`: conceder de novo apaga `password_hash`, sobe a época, apaga o segredo TOTP e o passo, marca os códigos de recuperação como usados, anula o código de cadastro e encerra as sessões. `data-model.md` §1a sustenta o `used_at` |
+| A7 | coberto | `eventos-de-acesso.md`: `operador_senha_definida/1` e `operador_definicao_recusada/2` com os quatro motivos pedidos e `:sem_concessao`; e o par do cadastro do segundo fator. O que não vai para o log inclui código, segredo e TOTP |
+| A8 | coberto | `rotas-da-plataforma.md` (CSP na pipeline, `no_store`); research R3.2 com a frase emendada; plan, Riscos, como residual da decisão 3 |
+| **A9** | coberto | research R10: lista permitida por rota, só os dois `POST` de ato com `user_sessions` e `api_access_tokens`; reprova se o SQL citar `"users"`; `source` nulo reprova; defeito a injetar `OperatorScope` chamando `Sessao.conferir/1`. Conferido que o defeito seria pego: o `por_id/1` de `development` faz `join: u in User` no `from(s in UserSession)` (`sessions.ex:222-232`). **A linha citada em R10 está velha** (`:190-198`) |
+| A10 | coberto | `credenciais-do-operador.md`: `password`, `setup_token`, `enrollment_token` e `second_factor_token`, mais `filter_parameters` com `"code"`, `"secret"` e `"totp"`; tasks T016 e T039 |
+| A11 | coberto | `data-model.md` §3 (`last_seen_at`, 30 min); `sessao-do-operador.md` (`:inativa`, gravação no máximo por minuto) |
+| A12 | coberto | `rotas-da-plataforma.md`: curinga por último no escopo da pipeline; a asserção sem o `csrf-token` |
+| A13 | coberto no `data-model.md`, com **research R7 desatualizado** | (a) `nao_trunca` nas duas tabelas; (b) `IS DISTINCT FROM` por coluna, liberando `updated_at` em `tenant_suspensions`; (c) `email_at_grant`. O último parágrafo de R7 ainda diz que `TRUNCATE` não dispara trigger de linha "e nada trunca", como se fosse a razão de não ter o trigger. Contradiz o `data-model.md`, e quem ler só R7 conclui o contrário |
+| A14 | coberto | `credenciais-do-operador.md`: `definir_senha/3` e `confirmar_segundo_fator/3` exigem concessão vigente; `concessao-do-operador.md`: `revogar/3` anula o código de definição e o de cadastro |
+| A15 | coberto | `suspensao.md`: `FOR SHARE` na linha da sessão e na concessão; `concessao-do-operador.md`: `reiniciar_credencial/2` faz `FOR UPDATE` nas sessões antes de encerrar. A tabela de research R8 ainda descreve só a concessão com `FOR SHARE`. É ambíguo, e não errado |
+| A16 | superado pela decisão 1 | o TOTP entrou (FR-016, `segundo-fator-do-operador.md`, research R13). O que sobra é o aparelho do segundo fator, nos Riscos do plano. A avaliação **própria** do TOTP continua pendente, e é ela que fecha este item |
+| A17 | coberto | plan, Riscos (o runbook: a pessoa operadora roda o comando, ou recebe por voz, nunca por chat); tasks T059 e T062 |
+
+**Dos seis bloqueantes**, A2, A5, A6 e A9 estavam cobertos como estavam. A1 e A3 estavam cobertos
+no mecanismo e abertos numa borda. Os dois contratos foram corrigidos nesta passagem.
+
+### O que mudou nos contratos
+
+- `contracts/credenciais-do-operador.md`, nas regras gerais:
+  - a nota de que o #1048 escolheu `FOR UPDATE`;
+  - a regra de que a recusa confirma o registro da falha, e o único `ROLLBACK` é o do changeset
+    (A1);
+  - a regra de que `{:throttled, _}` chega à tela igual a `:invalid_credentials` (A3).
+- `contracts/rotas-da-plataforma.md`, "Respostas": a linha da espera nos três `POST` públicos (A3).
+
+### O que fica, e não é deste papel corrigir
+
+- **`plan.md`**, sem edição minha, porque outro agente o edita:
+  - a tabela "superfície de risco" (`:30-31`) ainda manda a O16 para "pergunta 2" e o LiveView
+    aberto para "pergunta 3". As duas já foram decididas;
+  - a linha da #1047 nos pré-requisitos (`:65`) diz "PR não aberto". O PR é o **#1049**, aberto;
+  - a pergunta 1 aparece como "aberta", e o commit `61d6098` registra a FR-011 emendada (T005).
+    `rotas-da-plataforma.md` repete "a decisão ainda é da pessoa mantenedora".
+- **research R7**: o parágrafo do `TRUNCATE` precisa dizer que o trigger existe (A13a).
+- **research R8**: a linha `:autorizacao` precisa dizer "a sessão **e** a concessão com
+  `FOR SHARE`" (A15).
+- **research R10**: trocar `sessions.ex:190-198` por `:222-232`, e
+  `sessoes-e-tokens-da-organizacao.md` cita `encerrar_da_conta/2` em `:158-169`, que hoje está em
+  `:188-198`. São referências deslocadas pelo #1044, e não mudam o desenho.
+- **O aviso do #1044 só alcança o nó que publica** (`sessions.ex:212-213`, comentário de
+  `girar_todas/0`). A suspensão roda no `POST` do nó que serve, então a tela cai. Se um dia houver
+  um ato de plataforma por `eval`, ou mais de um nó sem cluster, a A2 volta. Hoje não há nenhum
+  dos dois.
+- **Os bloqueios de código continuam**: a avaliação própria do TOTP, os PRs #1048 e #1049 ainda
+  abertos, e o protótipo. Se a revisão mudar a forma de algum dos dois PRs, esta conferência precisa
+  ser refeita para A1 ou A3.
+
+### O que NÃO conferi
+
+- Os testes dos PRs #1048 e #1049: li só o diff de `lib/`. Também não conferi se o
+  `Repo.transaction` do #1048 roda o `no_user_verify` do #1049 **dentro** do lock. Pela leitura
+  dos dois, roda: a espera segura a linha por cerca de 250 ms. Isso mede custo, e não segurança.
+- O `quickstart.md` e o `tasks.md` além das linhas que citam os achados.
+- `spec.md`: se a FR-016 e a FR-011 emendada dizem o mesmo que os contratos.
+- Nada em execução. Os cenários 1, 3 e 5 da §5 continuam sendo a medição de A1, A5 e A2.

@@ -27,8 +27,8 @@ O que a avaliação precisa cobrir, no mínimo:
 | a sessão de 8 h, a concessão lida na conferência, a retenção | research R3.1; `contracts/sessao-do-operador.md` |
 | o cookie próprio: cifrado, `Path=/platform`, `SameSite=Strict` | research R3.2 |
 | o `404` sem redirecionamento, e a página de entrada pública | research R4; `contracts/rotas-da-plataforma.md` |
-| a ausência de segundo fator (O16) | pergunta 2 |
-| a lacuna do LiveView aberto depois do `ended_at` | research R9; pergunta 3 |
+| a ausência de segundo fator (O16) | **decidida**: TOTP nesta feature (FR-016, pergunta 2); avaliação própria em T010 |
+| a lacuna do LiveView aberto depois do `ended_at` | **resolvida pelo #1044**, já em `development` (A2, research R9; pergunta 3) |
 
 **Como o gate se fecha**: um arquivo `seguranca-autenticacao.md` nesta pasta, com achados e
 veredito. Achado alto ou crítico vira tarefa bloqueante do que depende dele.
@@ -49,9 +49,9 @@ veredito. Achado alto ou crítico vira tarefa bloqueante do que depende dele.
 | A7, A10–A15 | média e baixa | eventos da definição; nomes de campo; `last_seen_at`; curinga do `404`; triggers; definição exige concessão; `FOR SHARE` na sessão | contratos e `data-model.md` |
 
 **O código continua bloqueado** pelo que a avaliação não podia fechar sozinha: a avaliação
-**própria do TOTP** (FR-016 nasceu depois dela), os PRs das correções em `Tenants.Auth` que a cópia
-reproduz (#1048 e o da #1047), e o protótipo da tela. O `tasks.md` tem cada um como tarefa
-bloqueante, com `Pronta quando` citando o achado.
+**própria do TOTP** (FR-016 nasceu depois dela), a correção em `Tenants.Auth` que a cópia ainda
+espera (PR #1049, da #1047; o #1048, da #1046, já foi mergeado), e o protótipo da tela. O
+`tasks.md` tem cada um como tarefa bloqueante, com `Pronta quando` citando o achado.
 
 Pré-requisitos de código, pela regra "corrigir antes de implementar":
 
@@ -61,8 +61,9 @@ Pré-requisitos de código, pela regra "corrigir antes de implementar":
 | #1034, `Access.operacional?/2` compara o tenant (O5, I5), **PR #1039** | **mergeado** |
 | #1035, `ApiTokens.criar/4` confere o dono (O15), **PR #1040** | **mergeado** |
 | #1042, a tela aberta cai quando a sessão é encerrada (A2), **PR #1044** | **mergeado**; `avisar_encerramento/1` em `lib/the_band/tenants/sessions.ex:146-149` de `development` |
-| #1046, a espera crescente sob concorrência (A1), **PR #1048** | **aberto** |
-| #1047, a espera paga o custo do hash (A3) | branch `fix/1047-espera-paga-o-hash`, **PR não aberto** |
+| #1046, a espera crescente sob concorrência (A1), **PR #1048** | **mergeado** (2026-10-01) |
+| #1047, a espera paga o custo do hash (A3), **PR #1049** (branch `fix/1047-espera-paga-o-hash`) | **aberto** |
+| forma da área do operador (pergunta 1, T005) | **decidida** em 2026-10-01: controllers + cookie próprio; FR-011 emendada (commit `61d6098`) |
 | medir se o Traefik do Dokploy sobrescreve `x-forwarded-for` (A4, decisão 2) | **não medido**; dono: pessoa mantenedora, com acesso ao servidor. Bloqueia só o limite por IP |
 
 ## A tela, antes do código
@@ -101,14 +102,14 @@ dessa pessoa uma **entidade separada de `users`**, e é ela que dá a forma do p
 | **Hash de senha** | `bcrypt_elixir 3.3.2` (`mix.lock:3`), já na base |
 | **Resumo de token e de código** | `:crypto.hash(:sha256, …)` com `Plug.Crypto.secure_compare/2`, como `sessions.ex:201-218` |
 | **Executor** | Oban; nenhum worker novo. A retenção entra no `ApagaSessoesAntigas` |
-| **Dependência nova** | **a decidir**: a implementação do TOTP (FR-016) — NimbleTOTP, ou RFC 6238 sobre `:crypto` (sem dependência). A pesquisa é tarefa do `tasks.md`, e o resultado entra aqui, com a justificativa de AGENTS.md §3, **antes** do código. QR code só se a pesquisa o recomendar |
+| **Dependência nova** | **`{:nimble_totp, "== 1.0.0"}`** (decidida por T009, 2026-10-01; research R13). Dashbit, publicada por José Valim, Apache-2.0, **zero dependências transitivas** (o `mix.lock` ganha uma linha só), 4,1 milhões de downloads; 1.0.0 é de 2023-03-21 e o repositório segue ativo (último commit 2026-04-07). `mix hex.audit` → código 0, saída **idêntica** à da `development` sem ela (só as duas advisories de `cowlib` já ignoradas); `mix deps.audit` → código 0, "No vulnerabilities found". Fixada com `==`, e não `~>`, pela mesma razão de `ex_mcp`: versão nova só entra com a auditoria refeita. *Problema*: FR-016 exige o código RFC 6238 (HMAC-SHA1, truncamento dinâmico, comparação em tempo constante) e a URI `otpauth://`; errar o truncamento ou comparar com `==` é defeito de segurança silencioso, que os vetores do apêndice B pegam só em parte. *Agora ou previsão*: agora — FR-016 decidida em 2026-10-01, e T022 precisa dela. *O que piora*: uma dependência a mais na cadeia de suprimento, sem release desde 2023 (advisory nova dependeria do mantenedor ou de fork); a janela ±1 continua **nossa** (`valid?/3` confere um instante só: são três chamadas, `agora - 30`, `agora`, `agora + 30`); e `:since` é um **instante**, não um passo, então `totp_last_used_step` é traduzido como `since: ultimo_passo * 30`. **Sem QR code** na primeira forma: recomendação de T009, decisão da pessoa mantenedora (research R13) |
 | **Segredo em repouso** | o segredo TOTP, cifrado por `TheBand.Encrypted.Binary` (Cloak, já na base: `mix.lock:7-8`) |
 | **Escala** | uma ou duas pessoas operadoras por instalação; sem paginação (spec, Assumptions) |
 | **O que verifica** | `mix gates`, pelo código de saída |
 
-**Um NEEDS CLARIFICATION técnico**: a implementação do TOTP, que é a pesquisa de dependência do
-`tasks.md`. Das perguntas de decisão, uma segue aberta (a 1, controller), e as outras foram
-decididas ou respondidas; estão no fim.
+**Nenhum NEEDS CLARIFICATION técnico**: a implementação do TOTP foi decidida por T009 (NimbleTOTP
+1.0.0, acima). As perguntas de decisão estão todas decididas ou respondidas (a 1, controller, em
+2026-10-01); estão no fim.
 
 ## Constitution Check
 
@@ -160,13 +161,14 @@ para o problema dele: a fronteira verificável em revisão.
 - *O que piora*: o código aparece uma vez no terminal do Dokploy, que pode guardá-lo (**não
   verificado**). Vale 30 minutos e uma vez.
 
-**5. Cookie próprio e telas por controller** (research R3.2) — **condicionado à pergunta 1**
+**5. Cookie próprio e telas por controller** (research R3.2) — **decidido** (pergunta 1, T005)
 
 - *Problema*: o socket do LiveView só lê o `Plug.Session`
   (`deps/phoenix/lib/phoenix/socket/transport.ex:278-286`), e a saída de domínio apaga o cookie
   inteiro (`session_controller.ex:46`).
 - *Existe agora?* Sim, os dois fatos estão no código.
-- *O que piora*: recarga por ação, e a FR-011 diz `live_session`.
+- *O que piora*: recarga por ação. A FR-011 dizia `live_session`, e foi emendada para "pipeline,
+  plug e cookie próprios" (commit `61d6098`).
 
 **6. Relator para a concessão, e não coluna**: padrão "Relator" de §7.7, usado para o problema dele:
 papel com período e autor. Uma coluna perderia quem concedeu, quando, e a revogação.
@@ -209,7 +211,7 @@ testes que suspendem pelo changeset precisam mudar.
 
 - *Problema*: FR-016, decisão de 2026-10-01; a conta mais poderosa protegida só por senha (O16, A16).
 - *Existe agora?* Sim.
-- *O que piora*: um segredo a mais em repouso, uma dependência possível, dois passos de definição
+- *O que piora*: um segredo a mais em repouso, a dependência `nimble_totp 1.0.0` (Technical Context), dois passos de definição
   que podem ser abandonados no meio, e uma tela a mais. `SegundoFator` é de funções puras, e quem
   grava é `Credentials`, na transação com `FOR UPDATE`.
 
@@ -307,21 +309,22 @@ em `lib/the_band_web/plataforma/` e `controllers/plataforma/`, e nada em `ontolo
 | conta do operador tomada derruba a disponibilidade de todas as organizações | O16 e A16: **reduzido** pelo TOTP (FR-016); o resto é o aparelho do segundo fator, e entra na nota da release |
 | **A8**, XSS de domínio usa o cookie do operador pela mesma origem | **risco residual declarado** (decisão 3 da pessoa mantenedora): a CSP é a defesa; host próprio quando `theband.dev` entrar em produção |
 | **A4**, sem limite por IP, e negação de serviço do operador pela espera | depende da medição do Traefik (decisão 2); sem ela, fica a espera por conta, e o risco vai para a nota da release |
-| A1 e A3 existem hoje em `Tenants.Auth` | issues #1046 (PR #1048) e #1047, corrigidas **antes** desta feature; a cópia nasce da versão corrigida |
+| A1 e A3 existem hoje em `Tenants.Auth` | issues #1046 (PR #1048, mergeado) e #1047 (PR #1049, aberto), corrigidas **antes** desta feature; a cópia nasce da versão corrigida |
 | a cópia diverge da correção do original | o teste de paridade compara as constantes e a forma da serialização |
 
 ## Perguntas para a pessoa mantenedora
 
 **1. A área do operador é por controller, com cookie próprio, em vez de `live_session`?** —
-**aberta.** O socket do LiveView só lê o cookie de sessão das organizações. Para ter
+**decidida em 2026-10-01: controllers + cookie próprio** (T005; FR-011 emendada no commit
+`61d6098`). O socket do LiveView só lê o cookie de sessão das organizações. Para ter
 `live_session`, a sessão do operador teria de morar dentro desse cookie, chegando a toda rota de
-domínio e caindo quando alguém sai da conta de organização no mesmo navegador. **Recomendação:
-controller com cookie próprio** (research R3.2), e emendar a palavra `live_session` da FR-011 para
-"pipeline, plug e cookie próprios". A avaliação da segunda autenticação concordou. O `tasks.md` a
-tem como pré-requisito das rotas.
+domínio e caindo quando alguém sai da conta de organização no mesmo navegador. **A recomendação
+era controller com cookie próprio** (research R3.2), e a palavra `live_session` da FR-011 virou
+"pipeline, plug e cookie próprios". A avaliação da segunda autenticação concordou.
 
 **2. Segundo fator** — **decidida em 2026-10-01: TOTP nesta feature** (FR-016). Desenho em research
-R13 e `contracts/segundo-fator-do-operador.md`; a biblioteca é pesquisa do `tasks.md`.
+R13 e `contracts/segundo-fator-do-operador.md`; a biblioteca, decidida por T009: NimbleTOTP 1.0.0
+(Technical Context). QR code: recomendado não ter; decisão da pessoa mantenedora.
 
 **3. A suspensão fecha os LiveViews abertos?** — **respondida pelo #1044** (A2). Sai das perguntas.
 

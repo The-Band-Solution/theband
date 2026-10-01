@@ -2,10 +2,10 @@
 
 FR-009, FR-011, O13, O14. Decisões em [research.md](../research.md) R3.2, R4 e R12.
 
-> O contrato abaixo é a opção **(a)** de research R3.2: cookie próprio e controllers. Se a pessoa
-> mantenedora escolher (b), este arquivo é reescrito antes do código, e os de domínio não mudam.
-> A avaliação da segunda autenticação concordou com (a); a decisão ainda é da pessoa mantenedora
-> (plan.md, pergunta 1), e o `tasks.md` a tem como pré-requisito das rotas.
+> O contrato abaixo é a opção **(a)** de research R3.2: cookie próprio e controllers. **Decidida
+> pela pessoa mantenedora em 2026-10-01** (plan.md, pergunta 1; T005), com a FR-011 emendada de
+> `live_session` para "pipeline, plug e cookie próprios" (commit `61d6098`). A avaliação da
+> segunda autenticação já concordava com (a).
 >
 > **Emendado em 2026-10-01**: A8 (a mesma origem, com CSP; decisão da pessoa mantenedora), A12 (o
 > curinga do `404`) e o segundo fator (FR-016).
@@ -73,6 +73,7 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 | anônimo em rota de operador | `404` com o mesmo status, o mesmo conjunto de cabeçalhos de segurança e o mesmo corpo de `GET /platform/caminho-que-nao-existe`, **depois de retirar o `csrf-token`**, que muda a cada resposta (A12) |
 | admin de organização em rota de operador | o mesmo `404` |
 | cookie do operador em `/people`, `/api/v1/people`, `/mcp` | a recusa de quem não tem sessão: redirecionamento a `/sign-in` no navegador, `401` na API e na MCP |
+| `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup` ou `/platform/setup/second-factor` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
 | ato recusado | a tela mostra o motivo em inglês, e nada muda |
 | `nao_autorizado` dentro de `suspender/3` | encerra o cookie e responde `404` |
 
@@ -82,6 +83,6 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 |---|---|
 | rota que conceda ou revogue o papel | FR-001 |
 | rota sob `/organizations` | é a tela do EO (`router.ex:231`) |
-| `live_session` | research R3.2; pergunta 1 do plano |
+| `live_session` | research R3.2; decidido em 2026-10-01 (pergunta 1 do plano, T005): o socket do LiveView só lê o cookie das organizações |
 | JSON ou API do operador | não há consumidor; a FR-007 cabe numa tela |
 | rota que leia dado de domínio "para suporte" | fora de escopo da spec |

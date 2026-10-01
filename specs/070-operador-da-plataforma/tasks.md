@@ -144,7 +144,7 @@ destas tarefas escreve código da 070.
 **⚠️ Nenhuma tarefa das Fases 3 e 4 começa antes de T008, T010 e T011.** Nenhum controller ou
 template começa antes de T012.
 
-- [ ] T008 Conferir as emendas de segurança nos contratos
+- [x] T008 Conferir as emendas de segurança nos contratos — feita em 2026-10-01 pelo agente `security`; seção "Conferência das emendas" em seguranca-autenticacao.md, os seis bloqueantes cobertos
   - **Pronta quando**: as emendas de 2026-10-01 nos contratos, no `data-model.md` e no
     `research.md` estão commitadas
   - **Descrição**: o agente `security`, **que não escreveu as emendas**, compara
@@ -160,7 +160,7 @@ template começa antes de T012.
   - **Teste**: a seção existe, lista os dezessete achados, e nenhum dos seis bloqueantes está como
     `falta`
 
-- [ ] T009 Pesquisar a implementação do TOTP
+- [x] T009 Pesquisar a implementação do TOTP — feita em 2026-10-01: NimbleTOTP == 1.0.0, hex.audit e deps.audit com código 0; sem QR (recomendação, decisão no protótipo T012)
   - **Pronta quando**: `contracts/segundo-fator-do-operador.md` e research R13 escritos (feito em
     2026-10-01)
   - **Descrição**: comparar **NimbleTOTP** e **RFC 6238 sobre `:crypto`** (`:crypto.mac(:hmac,
@@ -200,6 +200,10 @@ template começa antes de T012.
     `seguranca-totp.md` aponta o trecho de contrato que a cobre
   - **Teste**: `grep -n "a decidir\|NimbleTOTP, ou" contracts/ plan.md` só encontra a decisão
     tomada; o agente `security` confere as emendas, como em T008
+  - **Andamento (2026-10-01)**: a metade da biblioteca está aplicada a
+    `contracts/segundo-fator-do-operador.md` (NimbleTOTP `== 1.0.0`: comparação de `valid?/3`,
+    janela ±1 por três chamadas, `since: ultimo_passo * 30`, sem QR até T012). **Continua aberta**:
+    depende de T010, e as emendas de `seguranca-totp.md` ainda não existem
 
 - [ ] T012 Prototipar as telas do operador
   - **Pronta quando**: T005 decidida (controller ou `live_session` muda o que a tela pode fazer);
@@ -342,11 +346,13 @@ recebe o `404` de um caminho inexistente.
 
 - [ ] T022 [US2] Conferir o código do segundo fator
   - **Pronta quando**: `contracts/segundo-fator-do-operador.md` emendado por T011; T010 sem achado
-    alto aberto; a dependência, se houver, fixada em `mix.exs` com a versão de T009
+    alto aberto; a dependência fixada em `mix.exs` com a versão de T009: `{:nimble_totp, "== 1.0.0"}`
+    (sem `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos; plan.md, Technical Context)
   - **Descrição**: `lib/the_band/platform/segundo_fator.ex`, **funções puras**: `gerar_segredo/0`,
     `uri/2`, `conferir/4` (janela ±1, `:reusado` para passo `<= ultimo_passo`, `agora` como
     argumento), `classificar/1`, `gerar_codigos_de_recuperacao/0`, `resumo/1`. FR-016
-  - **Feita quando**: os vetores do RFC 6238, apêndice B (SHA-1), conferem; um código do passo
+  - **Feita quando**: os vetores do RFC 6238, apêndice B (SHA-1), conferem (os seis últimos dígitos
+    de cada vetor de oito, porque NimbleTOTP fixa seis); um código do passo
     `atual + 2` é recusado; o mesmo código com `ultimo_passo` igual ao passo dele devolve `:reusado`
   - **Teste**: `test/the_band/platform/segundo_fator_test.exs` com o relógio fixado. **Defeitos a
     injetar**, um por vez: alargar a janela para ±2 (o caso `atual + 2` precisa passar e o teste

@@ -21,13 +21,28 @@ Depende de: nenhuma ontologia. É infraestrutura de acesso, como `TheBand.Tenant
   sucesso acontecem dentro da mesma transação. Dez tentativas paralelas sobem `failed_attempts` em
   no máximo um, e as outras recebem `{:throttled, _}`. A forma segue a correção da #1046 em
   `Tenants.Auth` (PR #1048); se a #1048 escolher o incremento atômico com `RETURNING`, esta cópia
-  segue a mesma escolha, e o teste de paridade afirma isso.
+  segue a mesma escolha, e o teste de paridade afirma isso. (Conferido em 2026-10-01, T008: o
+  diff do #1048 escolheu `FOR UPDATE`, com `Repo.transaction/1` devolvendo o resultado da
+  verificação.)
+- **A recusa confirma o registro da falha (A1, T008).** A transação de uma recusa termina em
+  `COMMIT`, e não em `Repo.rollback/1`: a função devolve `{:error, …}` **de dentro** da transação
+  bem-sucedida, como `verificar_com_trava/2` do #1048. Uma recusa por `rollback` desfaria o
+  `failed_attempts + 1` junto, e a espera deixaria de contar as falhas: o A1 voltaria pela porta da
+  transação. O único `ROLLBACK` previsto é o do `{:error, changeset}` de `definir_senha/3`, que
+  acontece **depois** de o código conferir, e por isso não apaga falha nenhuma.
 - **O custo do hash roda também na espera (A3).** A recusa por espera chama
   `Bcrypt.no_user_verify/0` **antes** de devolver `{:throttled, _}`. Quem não existe, quem está em
   espera, quem não tem concessão e quem não tem senha pagam o mesmo custo de quem errou a senha.
   A forma segue a correção da #1047.
 - **Recusa única.** Para quem chama, todo caso de falha é `{:error, :invalid_credentials}` ou
   `{:error, {:throttled, s}}`. O motivo interno vai só para `AccessEvents`.
+- **`{:throttled, s}` não chega à tela como resposta distinta (A3, T008).** Só uma conta que
+  existe entra em espera; uma frase ou um status diferente para a espera entregaria pela mensagem
+  o mesmo oráculo de existência que o custo do hash fecha pelo relógio. Os controllers de
+  `/platform` respondem a espera com **a mesma frase, o mesmo status e o mesmo destino** de
+  `:invalid_credentials`, e não mostram os segundos, como `session_controller.ex:10-11` e `:36-37`
+  de `development` fazem na entrada das organizações. O `s` serve ao evento
+  `operador_espera_acionada/2`, e a nenhuma outra coisa.
 - **O segredo chega como `TheBand.Segredo.t()`** (FR-006 da 064): senha, código de definição,
   código de cadastro e segundo fator. Um `FunctionClauseError` não os imprime.
 - **Os campos do formulário contêm `token` ou `password` no nome (A10)**: `password`,
