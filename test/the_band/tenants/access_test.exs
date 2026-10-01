@@ -399,5 +399,13 @@ defmodule TheBand.Tenants.AccessTest do
       assert {true, {:organizations, [org_id]}} = Tenants.operacional?(ctx.tenant, u)
       assert org_id == ctx.org.id
     end
+
+    # Issue #1034: o admin de A, perguntado sobre B, não é operador de B.
+    test "admin de outra organização não é operador desta", ctx do
+      {outro_tenant, outro_admin} = TheBandWeb.ConnCase.tenant_with_admin()
+      assert {true, :admin} = Tenants.operacional?(outro_tenant, outro_admin)
+
+      assert Tenants.operacional?(ctx.tenant, outro_admin) == false
+    end
   end
 end
