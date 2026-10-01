@@ -9,8 +9,8 @@ Publicado em **<https://claude.ai/artifact/KWYR2rPJX1V4FukhszDVFA>**; **a cópia
 vale** — o endereço pode mudar, a spec não pode depender dele.
 
 **Estado: decisões da pessoa mantenedora de 2026-10-01 aplicadas e republicadas no mesmo endereço
-(versão 2). A data de aprovação fica em aberto até ela olhar a versão republicada.** Bloqueia
-T039, T040 e T056.
+(versão 2).** **Aprovado em 2026-10-01** pela pessoa mantenedora, na versão 2: T039, T040 e T056
+deixam de estar bloqueadas pelo protótipo.
 
 A estrutura seção a seção — **a régua do QA** — está na seção 3 do [`PROMPT.md`](PROMPT.md).
 

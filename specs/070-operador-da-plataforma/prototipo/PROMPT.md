@@ -2,7 +2,7 @@
 
 Protótipo: [`platform-operator.html`](platform-operator.html) · publicado em
 <https://claude.ai/artifact/KWYR2rPJX1V4FukhszDVFA> · 2026-10-01 ·
-versão 2 com as decisões de 2026-10-01 aplicadas · **data de aprovação em aberto** (a pessoa
+versão 2 com as decisões de 2026-10-01 aplicadas · **APROVADO em 2026-10-01** pela pessoa mantenedora ("aproved"), na versão 2 (a pessoa
 mantenedora vai olhar a versão republicada; registrar aqui).
 
 ## 1. Os pedidos, textuais e em ordem
@@ -176,4 +176,4 @@ O QA confere na tela real, com captura ao lado, **inclusive em tons de cinza** e
 
 *Decided 2026-10-01*, pela pessoa mantenedora: D1–D5 aprovadas; Q1 (a) sem QR; Q2 (a) digitar o
 slug; Q3 (b) confirmar a guarda dos códigos, contra a recomendação do Design; Q4 (b) sem contagens
-no histórico. A **aprovação do protótipo** (com data) fica em aberto até a revisão da versão 2.
+no histórico. O **protótipo foi aprovado em 2026-10-01**, na versão 2.
