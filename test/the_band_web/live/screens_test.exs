@@ -295,7 +295,17 @@ defmodule TheBandWeb.ScreensTest do
       # Uma linha, não duas: a distinção é por pessoa, não por vínculo. Duas linhas
       # fariam a contagem do cabeçalho discordar da listagem, que é o defeito que
       # esta tela existe para tornar visível.
-      assert html |> String.split("Ana") |> length() == 2
+      #
+      # Conta os links de pessoa da tabela, e não a substring no documento: o HTML carrega
+      # tokens aleatórios (`phx-session`, CSRF), e um deles contendo "Ana" reprovava o teste
+      # sem defeito nenhum — issue #1037.
+      linhas_da_ana =
+        html
+        |> LazyHTML.from_document()
+        |> LazyHTML.query(~s(a[href^="/people/"]))
+        |> Enum.count(&(LazyHTML.text(&1) |> String.trim() == "Ana"))
+
+      assert linhas_da_ana == 1
       assert html =~ "in 2 organisations"
     end
 
