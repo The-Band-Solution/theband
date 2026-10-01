@@ -6,9 +6,9 @@ FR-016, O16, A16. Decisão da pessoa mantenedora em 2026-10-01: **TOTP nesta fea
 
 > **Biblioteca decidida pela T009 (2026-10-01): `{:nimble_totp, "== 1.0.0"}`**, com a justificativa
 > no `plan.md` ("Technical Context") e a comparação em research R13 (AGENTS.md §3). Emendado por
-> T011 com essa escolha. **Nenhuma linha deste módulo é escrita antes da avaliação de segurança
-> própria do TOTP (T010)**, feita por quem não escreveu este desenho; as emendas que ela pedir
-> entram aqui antes do código.
+> T011 com essa escolha. A avaliação de segurança própria do TOTP (T010, `seguranca-totp.md`) foi
+> feita por quem não escreveu este desenho; as emendas dela estão aplicadas aqui (T2 em T010; T6 e
+> T8 em T011, 2026-10-01).
 
 Depende de: nenhuma ontologia. **Funções puras**: nenhuma lê nem grava o banco. Quem grava é
 `Credentials`, dentro da transação com `FOR UPDATE` (efeito na borda, decisão no núcleo, AGENTS.md
@@ -66,6 +66,14 @@ Seis dígitos, com espaços retirados, são `:totp`. Vinte e seis caracteres bas
 retirados e minúsculas, são `:recuperacao` (T2). O resto é `:malformado`, que `Credentials` recusa com a
 recusa única e o custo do hash.
 
+**Só ASCII, e conferido antes de normalizar (seguranca-totp.md, T6).** A forma é decidida por
+`~r/\A[0-9]{6}\z/` e `~r/\A[A-Za-z2-7]{26}\z/`, **sem** a flag `u` e **sem** `\d`: com `u`, `\d`
+aceita dígitos não ASCII (`"١٢٣٤٥٦"`), que `valid?/3` recusaria mas que contariam como
+`:segundo_fator_errado` no limite de T1 em vez de `:malformado`. `\z`, e não `$`, que casa antes de
+um `\n` final. A retirada é só de espaço e hífen ASCII (`" "` e `"-"`), e a minúscula é
+`String.downcase(texto, :ascii)` **depois** da conferência: o `downcase` Unicode leva o sinal de
+Kelvin (`U+212A`) a `"k"`, e um código fora do alfabeto viraria um código do alfabeto.
+
 ## `gerar_codigos_de_recuperacao() :: [TheBand.Segredo.t()]`
 
 ## `resumo(codigo :: TheBand.Segredo.t()) :: binary()`
@@ -78,7 +86,9 @@ como estava, o sal por código seria obrigatório.
 ## O consumo do código de recuperação (em `Credentials`, e não aqui)
 
 `UPDATE platform_operator_recovery_codes SET used_at = now() WHERE operator_id = $1 AND
-code_hash = $2 AND used_at IS NULL RETURNING id`, conferindo **uma** linha. Dois envios paralelos
+code_hash = $2 AND used_at IS NULL AND invalidated_at IS NULL RETURNING id`, conferindo **uma**
+linha. `used_at` é **só** uso; a nova definição, o reinício e a nova concessão marcam
+`invalidated_at` nos vigentes (`data-model.md` §1a; seguranca-totp.md, T8). Dois envios paralelos
 do mesmo código: exatamente um passa. O consumo acontece **só depois** de a senha conferir e de a
 concessão vigente ser confirmada; senha errada com código válido não o gasta (seguranca-totp.md, C12).
 Código errado ou já usado, com a senha certa, sobe `second_factor_failures` (T1). O uso gera `AccessEvents.operador_recuperacao_usada/2`, com

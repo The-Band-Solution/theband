@@ -31,7 +31,7 @@ organização nenhuma (FR-011). Isso é a exceção que a spec decidiu, e ela fi
 | `failed_attempts` | integer, not null, default 0 | espera crescente (research R2) |
 | `last_failed_at` | utc_datetime, null | |
 | `logged_in_at` | utc_datetime, null | |
-| `totp_secret` | binary cifrado (`TheBand.Encrypted.Binary`, Cloak, como as credenciais das ferramentas), null | segredo de 20 bytes; nulo até o primeiro passo da definição; `redact: true` |
+| `totp_secret` | binary cifrado (`TheBand.Encrypted.Binary`, Cloak, como as credenciais das ferramentas), null | segredo de 20 bytes; nulo até o primeiro passo da definição; `redact: true`; **`load_in_query: false`** no schema (seguranca-totp.md, T4): o Cloak decifra no carregamento, e sem isso todo `%Operator{}` lido por `OperatorScope`, `Sessions.conferir/2` ou `Grants` traria o segredo em claro na memória da requisição. Só `Credentials` o lê, por `select` explícito **dentro** da transação com `FOR UPDATE`, e o embrulha em `Segredo.novo/1` na mesma expressão |
 | `totp_confirmed_at` | utc_datetime, null | nulo até o **terceiro** passo (`concluir_cadastro/2`, a única que o grava); **com nulo, `autenticar/3` recusa**, inclusive por código de recuperação |
 | `totp_last_used_step` | bigint, null | o último passo TOTP aceito; contra reuso do mesmo código |
 | `second_factor_failures` | integer, not null, default 0 | falhas consecutivas do segundo fator **com a senha certa**; em 10, o segundo fator trava até o reinício (seguranca-totp.md, T1). Zerado no sucesso, em `definir_senha/3`, `conceder/3` e `reiniciar_credencial/2` |
@@ -78,19 +78,25 @@ detectável sem ler um hash com a senha do outro, e fica como risco residual.
 | `id` | uuid, PK | |
 | `operator_id` | uuid, FK `platform_operators`, `on_delete: :restrict`, not null | |
 | `code_hash` | bytea, not null | `sha256` do código normalizado; `redact: true` |
-| `used_at` | utc_datetime, null | preenchido no uso, ou no reinício e na nova concessão (A6) |
+| `used_at` | utc_datetime, null | preenchido **só no uso** por `autenticar/3` (seguranca-totp.md, T8) |
+| `invalidated_at` | utc_datetime, null | preenchido quando o código deixa de valer **sem ter sido usado**: nova definição de senha (`definir_senha/3`), reinício e nova concessão (A6). Separado de `used_at` para que "algum código de recuperação foi usado por alguém?" se responda pelo banco, e não só pelo log, que tem retenção de log (T8) |
 | `inserted_at` | utc_datetime | |
 
 Constraints e índices:
 
 - índice único `(operator_id, code_hash)`;
-- índice parcial `operator_id WHERE used_at IS NULL`, para contar os que restam;
-- o consumo é um `UPDATE … WHERE used_at IS NULL … RETURNING`, conferindo uma linha
-  (`contracts/segundo-fator-do-operador.md`).
+- `CHECK (used_at IS NULL OR invalidated_at IS NULL)`: um código foi usado **ou** invalidado,
+  nunca os dois. A invalidação só marca os que estão com as duas colunas nulas, e o uso só consome
+  os que estão com as duas nulas; o registro do uso não é sobrescrito pela invalidação seguinte (T8);
+- índice parcial `operator_id WHERE used_at IS NULL AND invalidated_at IS NULL`, para contar os que
+  restam;
+- o consumo é um `UPDATE … WHERE used_at IS NULL AND invalidated_at IS NULL … RETURNING`,
+  conferindo uma linha (`contracts/segundo-fator-do-operador.md`).
 
-Os códigos não se apagam um a um: marcar `used_at` invalida, e a linha fica como registro de que
-houve uso. Retenção: os de operador com credencial reiniciada há mais de 90 dias saem pelo mesmo
-`ApagaSessoesAntigas` (decisão da tarefa de retenção; se a avaliação do TOTP recusar, ficam).
+Os códigos não se apagam um a um: `used_at` ou `invalidated_at` os tiram de uso, e a linha fica
+como registro. **Retenção (seguranca-totp.md, T8; T058)**: `ApagaSessoesAntigas` apaga as linhas
+com `coalesce(used_at, invalidated_at) < now() - interval '90 days'`, e **nunca** as vigentes (as
+duas colunas nulas), por mais antigas que sejam.
 
 ## 2. `platform_operator_grants` — a concessão, relator e não booleano
 

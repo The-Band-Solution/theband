@@ -17,6 +17,10 @@ FR-011, FR-016, O4, O11, O16. Desenho em [research.md](../research.md) R1, R2 e 
 > [rotas-da-plataforma.md](rotas-da-plataforma.md)): o cadastro tem **três** passos.
 > `confirmar_segundo_fator/3` deixa de habilitar a entrada e emite o **código de guarda**;
 > `concluir_cadastro/2` é nova e é a única que grava `totp_confirmed_at`.
+>
+> **Emendado em 2026-10-01 por T011** (seguranca-totp.md §3, "Emendas de T011"): T4 (o segredo TOTP
+> só é lido por `select` explícito), T8 (`invalidated_at`), e a decisão sobre o TOTP errado do
+> passo 2 contar só em `failed_attempts` (seguranca-totp.md, T12).
 
 Depende de: nenhuma ontologia. É infraestrutura de acesso, como `TheBand.Tenants.Auth`.
 
@@ -52,6 +56,11 @@ Depende de: nenhuma ontologia. É infraestrutura de acesso, como `TheBand.Tenant
   `operador_espera_acionada/2`, e a nenhuma outra coisa.
 - **O segredo chega como `TheBand.Segredo.t()`** (FR-006 da 064): senha, código de definição,
   código de cadastro, código de guarda e segundo fator. Um `FunctionClauseError` não os imprime.
+- **O segredo TOTP só é lido aqui, e só por `select` explícito (seguranca-totp.md, T4).** O campo
+  tem `load_in_query: false` (`data-model.md` §1): nenhum `%Operator{}` carregado fora deste módulo
+  traz o segredo decifrado. `autenticar/3` e `confirmar_segundo_fator/3` o selecionam **dentro** da
+  transação, da linha travada pelo `FOR UPDATE`, e o embrulham em `Segredo.novo/1` na mesma
+  expressão; ele nunca é atribuído a struct, `assign`, `Logger.metadata` nem estado de processo.
 - **Os campos do formulário contêm `token` ou `password` no nome (A10)**: `password`,
   `setup_token`, `enrollment_token`, `acknowledgement_token`, `second_factor_token`. O filtro padrão do Phoenix
   (`["password", "token"]`, por substring) os redige na linha `Parameters:`. Mesmo assim,
@@ -121,8 +130,9 @@ continua recusando, porque o segundo fator não foi confirmado.
 - no sucesso, na mesma transação: grava `password_hash`, sobe `password_epoch` de forma atômica,
   zera `second_factor_failures` (T1),
   gera o segredo TOTP pendente (`SegundoFator.gerar_segredo/0`), grava-o cifrado em
-  `totp_secret`, anula `totp_confirmed_at`, `totp_last_used_step`, o código de guarda
-  (`ack_code_hash`, `ack_code_expires_at`) e os códigos de recuperação anteriores, emite o
+  `totp_secret`, anula `totp_confirmed_at`, `totp_last_used_step` e o código de guarda
+  (`ack_code_hash`, `ack_code_expires_at`), marca `invalidated_at` nos códigos de recuperação
+  anteriores ainda vigentes (T8; os já usados guardam o `used_at`), emite o
   **código de cadastro** (20 bytes, `sha256` no banco, 10 minutos, uso único) e encerra toda sessão aberta do operador;
 - devolve o segredo e a URI `otpauth://` **uma vez**, para a tela de cadastro, e o código de
   cadastro, que vai num campo oculto do formulário seguinte, no corpo do `POST`, nunca na URL.
@@ -141,9 +151,24 @@ corpo do `POST`, nunca na URL.
 - consome o código de cadastro de forma atômica, como `definir_senha/3` consome o de definição (A5);
 - confere o código TOTP contra o segredo pendente, com a janela de ±1 passo
   (`segundo-fator-do-operador.md`);
-- código de cadastro errado, vencido ou ausente, ou TOTP errado: recusa única, e conta falha em
+- o segredo pendente é lido da linha travada, por `select` explícito (T4);
+- código de cadastro errado, vencido ou ausente, e-mail inexistente, ou TOTP errado: recusa única,
+  **com o custo do hash** (`Bcrypt.no_user_verify/0` uma vez em toda recusa, inclusive na espera e
+  sem concessão; A3: e-mail inexistente e código errado custam o mesmo), e conta falha em
   `failed_attempts`. O TOTP errado **não** consome o código de cadastro: a pessoa pode ter digitado
-  errado, e o código vale até vencer;
+  errado, e o código vale até vencer. A falha **não** prorroga `enrollment_code_expires_at`;
+- **o TOTP errado deste passo conta só em `failed_attempts`, e não em `second_factor_failures`
+  (seguranca-totp.md, T12, decidido por T011).** A razão: quem tem um `enrollment_token` válido
+  recebeu o segredo TOTP na mesma resposta de `definir_senha/3`, e não precisa adivinhar código
+  nenhum; força bruta aqui só interessa a quem obteve o código de cadastro **sem** o segredo, o que
+  exige ler o corpo de um `POST` (TLS, e `enrollment_token` redigido no log por A10). Mesmo esse
+  atacante tem o código por 10 minutos, sem renovação pela falha, e a espera de `failed_attempts`
+  limita a ~16 tentativas nessa janela (3 livres, depois esperas de 2, 4, 8, 16 e 32 s e então
+  60 s, `auth.ex:36-37,162-165`): 16 × 3 / 10⁶ ≈ 5×10⁻⁵ de acerto, e o que ganharia são códigos de recuperação **sem a senha**, definida no passo 1. Um código
+  de cadastro novo só sai de um código de definição novo, que só sai do comando no Dokploy. Contar
+  em `second_factor_failures` seria pior: o contador é zerado por `definir_senha/3` e só tem efeito
+  sobre segundo fator confirmado, e erros de digitação no cadastro consumiriam o limite de T1 da
+  primeira entrada;
 - no sucesso, na mesma transação: grava `totp_last_used_step` (o passo aceito), gera **10 códigos
   de recuperação** (`SegundoFator.gerar_codigos_de_recuperacao/0`), grava só o `sha256` de cada um,
   anula o código de cadastro e emite o **código de guarda**: 20 bytes de
@@ -167,7 +192,8 @@ grava `totp_confirmed_at`**, e por isso a única que habilita a entrada.
   `ack_code_expires_at` no futuro, e anula `ack_code_hash` e `ack_code_expires_at` **na mesma
   transação**. Dois `POST` paralelos com o mesmo código: exatamente um passa;
 - código de guarda errado, vencido, ausente ou e-mail inexistente: **a mesma** recusa única, com o
-  custo do hash (A3), e conta falha em `failed_attempts`. Não sobe `second_factor_failures`;
+  custo do hash (A3), e conta falha em `failed_attempts`. Não sobe `second_factor_failures`, pela
+  razão do passo 2 (T12) e por mais uma: o código de guarda tem 160 bits, e não há o que forçar;
 - o código de **cadastro** não abre este passo: são colunas diferentes, e o de cadastro já foi
   anulado no passo 2;
 - no sucesso, na mesma transação: grava `totp_confirmed_at`, sobe `password_epoch` de forma

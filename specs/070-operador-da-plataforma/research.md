@@ -408,8 +408,8 @@ escolhida por T009 (NimbleTOTP 1.0.0, abaixo), e o desenho passa por avaliação
 |---|---|
 | TOTP (RFC 6238), SHA-1, 30 s, 6 dígitos, janela ±1 | é o que os aplicativos autenticadores aceitam sem configuração |
 | segredo de 20 bytes, **cifrado em repouso** com `TheBand.Encrypted.Binary` (Cloak, `lib/the_band/vault.ex`) | é a forma das credenciais das ferramentas; o segredo TOTP, ao contrário da senha, precisa ser lido em claro para conferir, e por isso não pode ser só resumo |
-| cadastro **na definição da senha**, em dois passos (`definir_senha/3`, depois `confirmar_segundo_fator/3`) | não existe conta habilitada sem segundo fator: `autenticar/3` recusa com `totp_confirmed_at` nulo |
-| o código de cadastro entre os dois passos: 20 bytes, `sha256`, 10 min, uso único, no corpo do `POST` | o segundo passo precisa provar que veio do primeiro sem cookie novo e sem URL com segredo |
+| cadastro **na definição da senha**, em **três** passos (`definir_senha/3`, `confirmar_segundo_fator/3`, `concluir_cadastro/2`; emenda T012, Q3 (b), `contracts/segundo-fator-do-operador.md`, "O fluxo de cadastro") | não existe conta habilitada sem segundo fator: `autenticar/3` recusa com `totp_confirmed_at` nulo, que só o passo 3 grava; e código de recuperação mostrado e não declarado guardado nunca vira credencial |
+| o código de cadastro entre os passos 1 e 2, e o **código de guarda** entre os passos 2 e 3: cada um com 20 bytes, `sha256`, 10 min, uso único, colunas próprias, no corpo do `POST` | cada passo precisa provar que veio do anterior sem cookie novo e sem URL com segredo; colunas separadas impedem que o código do passo 2 abra o passo 3 sem o TOTP conferido |
 | a entrada é **um** formulário com e-mail, senha e segundo fator | sem estado "meio autenticado" entre os dois fatores, que seria uma sessão a mais para proteger |
 | contra reuso: `totp_last_used_step`, gravado na transação com `FOR UPDATE` | o mesmo código, visto por cima do ombro, não serve duas vezes na janela de 90 s |
 | 10 códigos de recuperação de **128 bits** (eram 80; seguranca-totp.md T2, ASVS V2.6.2), só `sha256` no banco, consumo atômico | perda do celular não pode exigir o banco; uso único por `UPDATE … WHERE used_at IS NULL` |
@@ -464,5 +464,5 @@ concessão. QR exigiria uma segunda dependência, de geração de imagem — a c
 T012 for recusado sem ele, com pesquisa e auditoria próprias.
 
 **O que piora**: um segredo a mais em repouso, legível por quem tem a `THE_BAND_MASTER_KEY` e o
-banco, que já tem tudo; dois passos de definição que podem ser abandonados no meio, exigindo o
-comando de reinício; uma tela a mais no protótipo.
+banco, que já tem tudo; três passos de definição (emenda T012) que podem ser abandonados no meio,
+exigindo o comando de reinício; as telas de cadastro no protótipo.

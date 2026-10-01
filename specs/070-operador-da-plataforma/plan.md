@@ -211,8 +211,8 @@ testes que suspendem pelo changeset precisam mudar.
 
 - *Problema*: FR-016, decisão de 2026-10-01; a conta mais poderosa protegida só por senha (O16, A16).
 - *Existe agora?* Sim.
-- *O que piora*: um segredo a mais em repouso, a dependência `nimble_totp 1.0.0` (Technical Context), dois passos de definição
-  que podem ser abandonados no meio, e uma tela a mais. `SegundoFator` é de funções puras, e quem
+- *O que piora*: um segredo a mais em repouso, a dependência `nimble_totp 1.0.0` (Technical Context), **três** passos de definição
+  (emenda T012, Q3 (b)) que podem ser abandonados no meio, e as telas de cadastro do segundo fator (protótipo T012). `SegundoFator` é de funções puras, e quem
   grava é `Credentials`, na transação com `FOR UPDATE`.
 
 **15. O aviso às telas abertas é o do #1044, por id** (research R9, A2)
@@ -309,6 +309,9 @@ em `lib/the_band_web/plataforma/` e `controllers/plataforma/`, e nada em `ontolo
 | conta do operador tomada derruba a disponibilidade de todas as organizações | O16 e A16: **reduzido** pelo TOTP (FR-016); o resto é o aparelho do segundo fator, e entra na nota da release |
 | **A8**, XSS de domínio usa o cookie do operador pela mesma origem | **risco residual declarado** (decisão 3 da pessoa mantenedora): a CSP é a defesa; host próprio quando `theband.dev` entrar em produção |
 | **A4**, sem limite por IP, e negação de serviço do operador pela espera | depende da medição do Traefik (decisão 2); sem ela, fica a espera por conta, e o risco vai para a nota da release |
+| **T9** (seguranca-totp.md): (a) código de recuperação dá entrada mas não revoga o aparelho perdido, cujo segredo continua valendo; (b) não há notificação ao operador na troca de fator nem no reuso (ASVS V2.5.5, V2.8.5) | (a) o roteiro (T059) diz que aparelho perdido é **reinício pelo comando**, mesmo havendo códigos; (b) **risco residual declarado**: o sinal é o evento em `:warning` (`operador_recuperacao_usada`, `operador_entrada_recusada` com `:segundo_fator_reusado`), e entra na nota da release (T062) |
+| **T10**: TOTP não resiste a phishing em tempo real (proxy reverso que repassa senha e código em menos de 90 s) | **risco residual declarado**: aceitável em ASVS L2; WebAuthn seria a feature seguinte, com spec própria. Entra na nota da release (T062) |
+| **T11**: o relógio do servidor decide a janela ±1; deriva acima de 30 s recusa todo código e, com T1, trava o segundo fator em 10 tentativas | o NTP do VPS **não foi verificado**; o roteiro (T059) manda conferir `timedatectl` antes da primeira concessão, e a nota da release (T062) registra a medição |
 | A1 e A3 existem hoje em `Tenants.Auth` | issues #1046 (PR #1048, mergeado) e #1047 (PR #1049, aberto), corrigidas **antes** desta feature; a cópia nasce da versão corrigida |
 | a cópia diverge da correção do original | o teste de paridade compara as constantes e a forma da serialização |
 

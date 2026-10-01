@@ -190,7 +190,7 @@ template começa antes de T012.
   - **Teste**: `seguranca-totp.md` existe, diz quem avaliou e que não é quem desenhou, e o
     `/speckit-analyze` não acha achado alto sem tarefa
 
-- [ ] T011 Emendar os contratos com o resultado do TOTP
+- [x] T011 Emendar os contratos com o resultado do TOTP — feita em 2026-10-01 pelo agente `security`; seguranca-totp.md §3, "Emendas de T011", aponta o trecho de cada um (T4, T5, T6, T8; T9–T11 em plan.md "Riscos"; T12 novo, o passo 2 contando só em `failed_attempts`, mantido com a razão); cenários C14–C21 do código de guarda em §4. Limite: as emendas de T011 foram escritas e conferidas pelo mesmo agente — a conferência independente fica para a revisão do PR
   - **Pronta quando**: T009 e T010 concluídas
   - **Descrição**: aplicar a escolha da biblioteca e as emendas de `seguranca-totp.md` a
     `contracts/segundo-fator-do-operador.md`, `contracts/credenciais-do-operador.md`,
@@ -215,8 +215,16 @@ template começa antes de T012.
     (texto do roteiro) — não estão em contrato nenhum (`grep` por `load_in_query`,
     `invalidated_at`, `put_flash` e `[0-9]` em `contracts/` e `data-model.md` não acha nada), e o
     agente `security` ainda não conferiu as emendas
+  - **Andamento (2026-10-01, fechamento)**: T4, T5, T6 e T8 aplicados e apontados em
+    seguranca-totp.md §3 ("Emendas de T011"); T9–T11 registrados como riscos residuais em `plan.md`,
+    "Riscos", e levados a T059 e T062; o fluxo de três passos reconferido contra A1, A3 e A5 (§2,
+    "o terceiro passo"), com uma emenda (o custo do hash nas recusas do passo 2 não estava escrito);
+    a contagem do passo 2 só em `failed_attempts` avaliada como T12 e mantida, com a razão no
+    contrato; "dois passos" corrigido em research R13, `plan.md` item 14 e T063. O `grep` do Teste
+    acha só "quem precisa **decidir** chama `autenticar/3`" (`credenciais-do-operador.md`, "NÃO
+    expõe"), que não é sobre a biblioteca
 
-- [ ] T012 Prototipar as telas do operador
+- [x] T012 Prototipar as telas do operador — **aprovado em 2026-10-01** (versão 2, https://claude.ai/artifact/KWYR2rPJX1V4FukhszDVFA)
   - **Pronta quando**: T005 decidida (controller ou `live_session` muda o que a tela pode fazer);
     T009 decidiu se há QR
   - **Descrição**: o agente **Design** desenha, **antes** de qualquer controller ou template, as
@@ -359,7 +367,9 @@ recebe o `404` de um caminho inexistente.
   - **Descrição**: `lib/the_band/platform/operator.ex`, `grant.ex`, `operator_session.ex`,
     `recovery_code.ex`, privados ao contexto. `redact: true` em `password_hash`, `setup_code_hash`,
     `enrollment_code_hash`, `ack_code_hash`, `totp_secret`, `token_hash` e `code_hash`; `totp_secret` com
-    `TheBand.Encrypted.Binary`. Nenhum `has_many` para tabela de domínio. **T3 de seguranca-totp.md
+    `TheBand.Encrypted.Binary` e **`load_in_query: false`** (T4 de seguranca-totp.md, emenda T011;
+    cenário C13, no teste de `OperatorScope` de T036); `recovery_code.ex` com `used_at` **e**
+    `invalidated_at` (T8). Nenhum `has_many` para tabela de domínio. **T3 de seguranca-totp.md
     (bloqueia a release)**: `mix the_band.rotate_key` passa a recifrar também
     `platform_operators.totp_secret`, com o teste C10 (rotacionar, remover a chave antiga, entrar).
     Decidido em 2026-10-01: a lista de **todos** os campos cifrados (inclusive
@@ -376,7 +386,8 @@ recebe o `404` de um caminho inexistente.
     (sem `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos; plan.md, Technical Context)
   - **Descrição**: `lib/the_band/platform/segundo_fator.ex`, **funções puras**: `gerar_segredo/0`,
     `uri/2`, `conferir/4` (janela ±1, `:reusado` para passo `<= ultimo_passo`, `agora` como
-    argumento), `classificar/1`, `gerar_codigos_de_recuperacao/0`, `resumo/1`. FR-016
+    argumento), `classificar/1` (só ASCII, conferido antes de normalizar: T6, cenário C11),
+    `gerar_codigos_de_recuperacao/0`, `resumo/1`. FR-016
   - **Feita quando**: os vetores do RFC 6238, apêndice B (SHA-1), conferem (os seis últimos dígitos
     de cada vetor de oito, porque NimbleTOTP fixa seis); um código do passo
     `atual + 2` é recusado; o mesmo código com `ultimo_passo` igual ao passo dele devolve `:reusado`
@@ -439,7 +450,8 @@ recebe o `404` de um caminho inexistente.
     `sha256` dos códigos de recuperação, anula o código de cadastro e emite o código de guarda, **sem**
     gravar `totp_confirmed_at`, **sem** subir a época e **sem** encerrar sessões; o terceiro consome o
     código de guarda, grava `totp_confirmed_at`, sobe `password_epoch` e encerra as sessões do
-    operador. Eventos de A7 (T033). FR-016, O4
+    operador. Eventos de A7 (T033). Cenários C14, C16, C18, C19, C20 e C21 de seguranca-totp.md
+    (reconferência de T011; C15 está em T027, C17 em T039). FR-016, O4
   - **Feita quando**: depois só do primeiro passo, `autenticar/3` recusa; depois do segundo,
     `autenticar/3` **ainda recusa**, com o TOTP certo e com um código de recuperação dos dez, e o
     código de recuperação continua sem `used_at`; depois do terceiro, autentica com o TOTP e com um
@@ -520,7 +532,7 @@ recebe o `404` de um caminho inexistente.
     segundo fator, revogar, conceder de novo
   - **Feita quando**: `autenticar(email, senha_antiga, totp_do_segredo_antigo)` devolve
     `{:error, :invalid_credentials}`; nenhuma sessão de antes passa em `conferir/2`; os códigos de
-    recuperação antigos têm `used_at`
+    recuperação antigos não usados têm `invalidated_at`, e o usado guarda o `used_at` (T8)
   - **Teste**: `test/the_band/platform/conceder_de_novo_test.exs`. **Defeitos a injetar**, juntos e
     depois um por vez: não anular `password_hash` nem `totp_secret` em `conceder/3`; juntos, a
     entrada antiga precisa autenticar e o teste reprovar; um por vez, a asserção sobre a coluna
@@ -584,7 +596,8 @@ recebe o `404` de um caminho inexistente.
     `match :*, "/platform/*caminho"` **por último** (A12). Controllers ainda vazios, que respondem
     `404` até T039 e T040. FR-009, FR-011
   - **Feita quando**: `GET /platform/organizations` anônimo dá `404`; um admin de organização com
-    sessão válida recebe o mesmo `404`; nenhuma rota de `/platform` passa por `CurrentScope`
+    sessão válida recebe o mesmo `404`; nenhuma rota de `/platform` passa por `CurrentScope`;
+    `current_operator.totp_secret` é `nil` (C13 de seguranca-totp.md, T4)
   - **Teste**: `test/the_band_web/plataforma/rotas_test.exs`. **Defeito a injetar**: trocar
     `require_operator` por `require_admin` (I4 de `seguranca.md`); o caso do admin precisa dar outra
     resposta e o teste reprovar
@@ -620,7 +633,9 @@ recebe o `404` de um caminho inexistente.
     URI em texto, **sem QR**; os códigos de recuperação e o segredo aparecem **uma vez**. O
     controller do passo 3 confere `codes_stored` **antes** de chamar o contexto: sem a caixa,
     re-renderiza a recusa da caixa com o `acknowledgement_token`, sem os códigos, sem consumir nada.
-    Texto em inglês, com o comentário de que é tela
+    **T5 (emenda T011)**: o segredo, a URI e os códigos saem só na resposta renderizada do `POST`,
+    nunca por flash, sessão, redirect ou `GET` (`rotas-da-plataforma.md`, "A exibição única");
+    cenários C8 e C17 de seguranca-totp.md. Texto em inglês, com o comentário de que é tela
   - **Feita quando**: o fluxo inteiro, do código de definição à confirmação da guarda dos códigos e
     à entrada com TOTP, funciona no navegador; antes do passo 3, a entrada é recusada; sem a caixa,
     o passo 3 não consome o código de guarda e a resposta não traz os códigos; a recusa é a mesma
@@ -870,7 +885,8 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Pronta quando**: T029 concluída
   - **Descrição**: `lib/the_band/jobs/apaga_sessoes_antigas.ex` chama também
     `Platform.Sessions.apagar_as_que_deixaram_de_valer/1` (research R3.1), sem worker novo. A
-    retenção dos códigos de recuperação segue o que T010 decidiu
+    retenção dos códigos de recuperação segue T8 (`data-model.md` §1a): apaga os com
+    `coalesce(used_at, invalidated_at)` há mais de 90 dias, e **nunca** um vigente
   - **Feita quando**: uma sessão do operador encerrada há 91 dias some; uma de 89 dias fica
   - **Teste**: `test/the_band/jobs/apaga_sessoes_antigas_test.exs` com os dois casos
 
@@ -878,8 +894,11 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Pronta quando**: T032 concluída
   - **Descrição**: `docs/producao/runbook.md` ganha a seção do operador: os três comandos com
     `/app/bin/the_band eval`, que **a pessoa operadora roda o comando ela mesma, ou recebe o código
-    por voz, nunca por chat** (A17), o cadastro do segundo fator, e o que fazer ao perder o celular
-    (códigos de recuperação; depois, reinício pelo comando)
+    por voz, nunca por chat** (A17), o cadastro do segundo fator nos três passos, e o que fazer ao
+    perder o celular: o código de recuperação dá **uma** entrada, mas não revoga o aparelho perdido,
+    cujo segredo continua valendo — aparelho perdido é **reinício pelo comando**, mesmo havendo
+    códigos (T9 de seguranca-totp.md). E, antes da primeira concessão, conferir o NTP do servidor
+    com `timedatectl` (T11): deriva acima de 30 s recusa todo código e trava o segundo fator
   - **Feita quando**: o roteiro não contém nenhum segredo de exemplo que pareça real; quem não
     escreveu o roteiro consegue conceder, definir e entrar seguindo só ele
   - **Teste**: execução do roteiro por outra pessoa no ambiente local, com o resultado na issue
@@ -906,15 +925,18 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
   - **Descrição**: para a skill `release`: as migrações (o `CHECK` que levanta com estado fora da
     lista, e o episódio `not_recorded`), medidas contra produção antes de publicar; os riscos
     residuais **A8** (mesma origem, CSP como defesa, decisão 3), **A17** (o código no terminal do
-    Dokploy), **A4** se T043 não entrou, e o aparelho do segundo fator como o que sobra de O16
+    Dokploy), **A4** se T043 não entrou, e o aparelho do segundo fator como o que sobra de O16;
+    e os de seguranca-totp.md (emenda T011, `plan.md` "Riscos"): **T9** (sem notificação ao
+    operador na troca de fator e no reuso), **T10** (TOTP não resiste a phishing em tempo real) e
+    **T11** (o NTP medido, ou "não medido")
   - **Feita quando**: a nota existe com cada risco, quem o aceitou e quando
-  - **Teste**: a revisão do Product Owner encontra os quatro itens
+  - **Teste**: a revisão do Product Owner encontra os quatro itens e os três de seguranca-totp.md
 
 - [ ] T063 [P] Derivar os modelos da feature
   - **Pronta quando**: T044 e T020 concluídas
   - **Descrição**: o agente de modelos deriva das migrações o ERD das tabelas `platform_*` e
     `tenant_suspensions`, e a máquina de estados da organização e da credencial do operador
-    (definição em dois passos), em Mermaid, com `arquivo:linha`
+    (definição em três passos, emenda T012), em Mermaid, com `arquivo:linha`
   - **Feita quando**: cada entidade e transição do modelo aponta para a migração ou a função que a
     cria
   - **Teste**: a revisão confere três `arquivo:linha` escolhidos ao acaso contra o código

@@ -27,7 +27,8 @@ vigente, a mesma transação faz o que `reiniciar_credencial/2` faz:
 - `password_hash = NULL` e `password_epoch + 1`;
 - `totp_secret = NULL`, `totp_confirmed_at = NULL`, `totp_last_used_step = NULL`,
   `second_factor_failures = 0` (destrava o segundo fator, seguranca-totp.md T1), e todo código de
-  recuperação do operador marcado `used_at` (não apagado: o registro fica);
+  recuperação ainda vigente do operador marcado `invalidated_at` (T8, emenda T011: não `used_at`,
+  que fica só para o uso; não apagado: o registro fica);
 - código de cadastro e código de guarda (`ack_code_hash`, emenda T012) anulados;
 - `Platform.Sessions.encerrar_do_operador/1`;
 - o código de definição novo.

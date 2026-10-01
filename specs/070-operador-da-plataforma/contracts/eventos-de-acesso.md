@@ -21,7 +21,7 @@ lista do formatador.
 | `operador_senha_definida(operator_id)` | o primeiro passo da definição aceito (A7) |
 | `operador_definicao_recusada(operator_id ou nil, motivo)` | `:codigo_errado`, `:codigo_vencido`, `:sem_codigo`, `:identificador_nao_resolveu`, `:sem_concessao` (A7, A14) |
 | `operador_segundo_fator_cadastrado(operator_id)` | o **terceiro** passo aceito (`concluir_cadastro/2`, emenda T012): é aqui que o segundo fator passa a valer, e não na confirmação do TOTP |
-| `operador_cadastro_recusado(operator_id ou nil, motivo)` | `:codigo_de_cadastro_errado`, `:codigo_de_cadastro_vencido`, `:totp_errado`, `:sem_concessao`; e, no passo 3, `:codigo_de_guarda_errado`, `:codigo_de_guarda_vencido` |
+| `operador_cadastro_recusado(operator_id ou nil, motivo)` | `:identificador_nao_resolveu`, `:codigo_de_cadastro_errado`, `:codigo_de_cadastro_vencido`, `:totp_errado`, `:sem_concessao`; e, no passo 3, `:codigo_de_guarda_errado`, `:codigo_de_guarda_vencido`. `:totp_errado` repetido no passo 2 é o rastro da tentativa que T12 (seguranca-totp.md) aceitou limitar só pela espera e pela validade de 10 min |
 | `operador_recuperacao_usada(operator_id, restantes)` | um código de recuperação consumido; `restantes` é a contagem que sobrou |
 | `operador_segundo_fator_travado(operator_id)` | `second_factor_failures` chegou ao limite (seguranca-totp.md, T1); sai uma vez, na transição. Com senha certa, é o sinal de que a senha está com outra pessoa |
 | `operador_espera_acionada(operator_id, segundos)` | |

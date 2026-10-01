@@ -13,6 +13,9 @@ FR-009, FR-011, O13, O14. Decisões em [research.md](../research.md) R3.2, R4 e 
 > **Emendado em 2026-10-01 pelo protótipo T012** (decisões da pessoa mantenedora, Q2 (a) e Q3 (b),
 > `prototipo/README.md`): o campo `confirm_slug` nos dois atos, e o terceiro passo do cadastro,
 > `POST /platform/setup/recovery-codes`.
+>
+> **Emendado em 2026-10-01 por T011** (seguranca-totp.md, T5): a exibição única do segredo e dos
+> códigos, e a re-renderização das recusas dos passos 2 e 3.
 
 ## A pipeline
 
@@ -45,6 +48,23 @@ Sem `:current_operator`, responde **`404`** com `TheBandWeb.ErrorHTML`, `"404.ht
 raiz, e para. **Não redireciona**: o visitante anônimo e o admin de uma organização recebem o mesmo
 corpo de um caminho que não existe.
 
+## A exibição única do segredo e dos códigos (seguranca-totp.md, T5)
+
+O segredo TOTP, a URI `otpauth://` e os dez códigos de recuperação existem em claro **só no corpo
+da resposta** do `POST` que os produziu (`POST /platform/setup` e `POST /platform/setup/second-factor`),
+renderizada **diretamente** pelo controller (`render/3`, status `200`). Nunca passam por:
+
+- `put_flash/3` + `redirect/2` (o hábito PRG do Phoenix): o flash mora no cookie de sessão, que é
+  **só assinado** (research R3.2), e iria em base64 legível em toda requisição do domínio;
+- `put_session/3`, `assign` de `Plug.Conn` que sobreviva à resposta, `Logger.metadata` ou cabeçalho;
+- `redirect/2` com qualquer um deles na URL, nem `GET` que os mostre de novo.
+
+As recusas re-renderizam o mesmo formulário **sem** eles: a do passo 2 devolve o `enrollment_token`
+recebido no campo oculto, para a pessoa tentar de novo até o código vencer, e **não** mostra a chave
+(protótipo 3.8, "The setup key is not shown again"); a do passo 3, com ou sem a caixa, devolve o
+`acknowledgement_token` recebido e **não** mostra os códigos. Recarregar a página reenvia o `POST`
+com um código já consumido, e recebe a recusa. Cenário C8 de `seguranca-totp.md`.
+
 ## As rotas
 
 | método e caminho | quem | o que faz |
@@ -52,8 +72,8 @@ corpo de um caminho que não existe.
 | `GET /platform/sign-in` | público | formulário de entrada |
 | `POST /platform/session` | público | `Credentials.autenticar/3` com `email`, `password` e `second_factor_token`; recusa única; sucesso abre a sessão e vai a `/platform/organizations` |
 | `GET /platform/setup` | público | formulário: e-mail, `setup_token`, `password`, confirmação |
-| `POST /platform/setup` | público | `Credentials.definir_senha/3`; recusa única. Sucesso: a tela de cadastro do segundo fator, com o segredo em base32, a URI e o `enrollment_token` num campo oculto. `Cache-Control: no-store` |
-| `POST /platform/setup/second-factor` | público | `Credentials.confirmar_segundo_fator/3` com `enrollment_token` e `second_factor_token`; recusa única. Sucesso: os dez códigos de recuperação, **uma vez**, o `acknowledgement_token` num campo oculto e a caixa `codes_stored` (`required`). **Não** habilita a entrada (Q3 (b); `segundo-fator-do-operador.md`, "O fluxo de cadastro"). `Cache-Control: no-store` |
+| `POST /platform/setup` | público | `Credentials.definir_senha/3`; recusa única. Sucesso: a tela de cadastro do segundo fator, **renderizada na resposta deste `POST`** (T5), com o segredo em base32, a URI e o `enrollment_token` num campo oculto. `Cache-Control: no-store` |
+| `POST /platform/setup/second-factor` | público | `Credentials.confirmar_segundo_fator/3` com `enrollment_token` e `second_factor_token`; recusa única. Sucesso: os dez códigos de recuperação, **uma vez**, **renderizados na resposta deste `POST`** (T5), o `acknowledgement_token` num campo oculto e a caixa `codes_stored` (`required`). **Não** habilita a entrada (Q3 (b); `segundo-fator-do-operador.md`, "O fluxo de cadastro"). `Cache-Control: no-store` |
 | `POST /platform/setup/recovery-codes` | público | confere `codes_stored == "true"` **antes** de chamar o contexto; sem a caixa, re-renderiza a recusa da caixa **sem** consumir o passo e **sem** os códigos. Com a caixa, `Credentials.concluir_cadastro/2` com `email` e `acknowledgement_token`; recusa única. Sucesso: o segundo fator e os códigos passam a valer, e o caminho para `/platform/sign-in` |
 | `DELETE /platform/session` | operador | encerra a sessão no servidor e solta o cookie |
 | `GET /platform/organizations` | operador | a lista (`listar_organizacoes/1`) |
