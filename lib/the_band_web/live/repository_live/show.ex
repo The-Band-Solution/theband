@@ -366,9 +366,13 @@ defmodule TheBandWeb.RepositoryLive.Show do
               skip_reason={i.skip_reason}
               skip_detail={i.skip_detail}
             />
-            <div :if={i.divergence_kind} class="text-xs text-warning">
-              {ConceptLabel.divergencia(i.divergence_kind)}
-            </div>
+            <%!-- #905: os dois lados, o porquê e o lado seguido, na própria linha. --%>
+            <.divergencia
+              :if={i.divergence_kind}
+              tipo={i.divergence_kind}
+              declarado={i.issue_type}
+              derivado={ConceptLabel.rotulo(i.derived_concept)}
+            />
           </:col>
           <:col :let={i} label="part of" class="max-w-xs">
             <.parte_de vinculos={vinculos(i, @pais, @repositorio, @nomes)} />
