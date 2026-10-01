@@ -1,0 +1,398 @@
+<title>Syncs Queue Stalled</title>
+<style>
+/* Layout: uma coluna de leitura; cada tela separada por uma faixa `screen N`; o aviso fica no topo da tela, acima da cota. Tokens herdados de specs/060-tela-da-equipe/prototipo. */
+:root{--papel:#f7f8f7;--papel-2:#eef0ee;--linha:#d7dcd8;--tinta:#101614;--tinta-2:#4a5a55;
+--verdete:#1f6f68;--verdete-deep:#14504a;--verdete-soft:#e2edeb;--info:#23566f;--amber:#8a5a0c;--amber-soft:#f4ecdc;--clay:#8c3327;--clay-soft:#f3e3df;
+--grot:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+--serif:ui-serif,Georgia,"Iowan Old Style",serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+--hatch:repeating-linear-gradient(135deg,currentColor 0 2px,transparent 2px 4px);}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;--tinta:#dfe7e4;--tinta-2:#93a69d;
+--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;--info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;color-scheme:dark}}
+:root[data-theme="dark"]{--papel:#0e1413;--papel-2:#151d1b;--linha:#25322f;--tinta:#dfe7e4;--tinta-2:#93a69d;
+--verdete:#5cbcb2;--verdete-deep:#3f9e94;--verdete-soft:#172b28;--info:#7fb4d6;--amber:#d9a441;--amber-soft:#2a2210;--clay:#e08574;--clay-soft:#2c1712;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--papel);color:var(--tinta);font-family:var(--serif);line-height:1.55}
+:focus-visible{outline:2px solid var(--verdete);outline-offset:2px}
+h1,h2,h3{font-family:var(--grot);font-weight:650;letter-spacing:-.02em;line-height:1.2;margin:0;text-wrap:balance}
+h1{font-size:1.75rem}h2{font-size:1.125rem}h3{font-size:.9375rem}
+p{margin:.45rem 0 0;max-width:68ch}
+code{font-family:var(--mono);font-size:.85em}
+.faixa{max-width:60rem;margin:0 auto;padding-inline:16px;padding-block:1.5rem 4rem}
+.rot{font-family:var(--mono);font-size:.6875rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2)}
+.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sub{color:var(--tinta-2);font-size:.875rem}
+.tela{display:block;margin:3.25rem 0 .9rem;font-family:var(--mono);font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--papel);background:var(--tinta);padding:.35rem .7rem;border-radius:.25rem;width:max-content;max-width:100%}
+.nota{font-family:var(--grot);font-size:.8125rem;color:var(--tinta-2);border-left:2px dotted var(--linha);padding-left:.7rem;margin:.2rem 0 1rem;max-width:68ch}
+.ex{font-family:var(--mono);font-size:.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--clay);border:1px dashed var(--clay);padding:0 .3rem;border-radius:.2rem;white-space:nowrap}
+.real{font-family:var(--mono);font-size:.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--verdete-deep);border:1px solid var(--verdete);padding:0 .3rem;border-radius:.2rem;white-space:nowrap}
+
+/* marcas de evidência — forma e texto, nunca só cor */
+.marca{font-family:var(--grot);font-size:.6875rem;padding:.05rem .45rem;border-radius:.25rem;border:1.5px solid currentColor;display:inline-flex;align-items:center;gap:.3rem;white-space:nowrap;vertical-align:middle}
+.marca .am{width:.6rem;height:.6rem;border-radius:.125rem;border:1px solid currentColor;flex:none}
+.obs{color:var(--verdete)}.obs .am{background:currentColor}
+.dec{color:var(--info)}.dec .am{background:currentColor}
+.der{color:var(--amber)}.der .am{background-image:var(--hatch)}
+.aus{color:var(--tinta-2)}.aus .am{border-style:dashed}
+
+/* a tela */
+.app{border:1.5px solid var(--linha);border-radius:.5rem;padding:1rem;background:var(--papel)}
+.abas{display:flex;gap:.25rem;border-bottom:1.5px solid var(--linha);flex-wrap:wrap}
+.aba{font-family:var(--grot);font-size:.875rem;font-weight:650;padding:.45rem .8rem;color:var(--tinta-2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px}
+.aba.ativa{color:var(--verdete-deep);border-color:var(--verdete)}
+.cab{margin-top:1rem}
+.cab p{font-size:.875rem;color:var(--tinta-2);margin-top:.2rem}
+
+/* linha de estado da fila — estado normal */
+.fila-ok{margin-top:.9rem;display:flex;flex-wrap:wrap;gap:.35rem .7rem;align-items:center;font-family:var(--grot);font-size:.8125rem;color:var(--tinta-2);border-top:1px solid var(--linha);border-bottom:1px solid var(--linha);padding-block:.45rem}
+.fila-ok b{color:var(--tinta);font-weight:650}
+
+/* o aviso de fila parada */
+.parada{margin-top:1rem;border:1.5px solid var(--amber);border-radius:.5rem;background:var(--papel-2);overflow:hidden}
+.parada-faixa{color:var(--amber);background:var(--amber-soft);border-bottom:1.5px solid var(--amber);padding:.35rem .9rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.parada-faixa .hach{width:1.4rem;height:.7rem;background-image:var(--hatch);border:1px solid currentColor;border-radius:.125rem;flex:none}
+.parada-faixa .rot{color:var(--amber)}
+.parada-corpo{padding:.9rem;display:grid;gap:1rem}
+.parada h2{font-size:1.25rem}
+.parada h2 .n{font-size:1.25rem}
+.fatos{display:grid;gap:.35rem;margin:0;font-size:.875rem}
+.fatos div{display:grid;grid-template-columns:minmax(8.5rem,11rem) 1fr;gap:.6rem;align-items:baseline}
+.fatos dt{font-family:var(--mono);font-size:.6875rem;letter-spacing:.05em;text-transform:uppercase;color:var(--tinta-2)}
+.fatos dd{margin:0;min-width:0}
+.blocos{display:grid;gap:1rem;grid-template-columns:1fr}
+@media (min-width:44rem){.blocos{grid-template-columns:1fr 1fr}}
+.bloco h3{margin-bottom:.15rem}
+.bloco p,.bloco li{font-size:.875rem}
+.bloco ol{margin:.4rem 0 0;padding-left:1.2rem;display:grid;gap:.35rem}
+.nao-sabe{font-size:.8125rem;color:var(--tinta-2);border-top:1px dashed var(--linha);padding-top:.55rem;margin:0}
+a.lk{color:var(--verdete-deep);text-underline-offset:3px}
+
+/* cartões da ferramenta e das execuções */
+.grade{display:grid;gap:.75rem;margin-top:1rem;grid-template-columns:1fr}
+@media (min-width:40rem){.grade.duas{grid-template-columns:1fr 1fr}}
+.cartao{background:var(--papel-2);border:1.5px solid var(--linha);border-radius:.5rem;padding:.9rem;min-width:0}
+.tool{display:flex;flex-wrap:wrap;gap:.75rem;justify-content:space-between}
+.tool .nome{font-family:var(--grot);font-weight:650}
+.tool .meta{font-size:.75rem;color:var(--tinta-2)}
+.tool .col{display:flex;flex-direction:column;gap:.4rem;align-items:flex-end}
+.btn{font-family:var(--grot);font-size:.75rem;font-weight:650;padding:.3rem .7rem;border-radius:.25rem;border:1.5px solid var(--linha);background:var(--papel);color:var(--tinta);white-space:nowrap}
+.btn.p{background:var(--verdete);border-color:var(--verdete);color:var(--papel)}
+.btn[disabled]{background:var(--papel);color:var(--tinta-2);border-style:dashed;border-color:var(--tinta-2);cursor:not-allowed}
+.motivo{font-family:var(--grot);font-size:.6875rem;color:var(--tinta-2);max-width:13rem;text-align:right}
+.sel{font-family:var(--grot);font-size:.75rem;border:1.5px solid var(--linha);border-radius:.25rem;padding:.2rem .4rem;background:var(--papel);color:var(--tinta)}
+
+.h-runs{margin-top:1.5rem;font-family:var(--grot);font-weight:650;font-size:1rem}
+.run{margin-top:.6rem}
+.run-cab{display:flex;flex-wrap:wrap;gap:.4rem .6rem;align-items:center}
+.badge{font-family:var(--grot);font-size:.6875rem;font-weight:650;padding:.05rem .5rem;border-radius:1rem;border:1.5px solid currentColor}
+.b-ok{color:var(--verdete)}.b-run{color:var(--info)}
+.org{font-family:var(--grot);font-weight:650;font-size:.9375rem}
+.quando{font-size:.8125rem;color:var(--tinta-2)}
+.lado{margin-top:.55rem;display:grid;gap:.4rem;grid-template-columns:1fr;font-size:.8125rem}
+@media (min-width:40rem){.lado{grid-template-columns:1fr 1fr}}
+.lado>div{border:1px solid var(--linha);border-radius:.375rem;padding:.45rem .6rem;background:var(--papel);min-width:0}
+.lado .rot{display:block;margin-bottom:.15rem}
+.fases{margin-top:.7rem;display:grid;gap:.25rem}
+.fase{display:grid;grid-template-columns:7.5rem 1fr 4.5rem;gap:.6rem;align-items:center;font-size:.75rem}
+.fase .nm{color:var(--tinta-2);font-family:var(--grot)}
+.fase .barra{height:.45rem;border-radius:.2rem;background:var(--linha);overflow:hidden}
+.fase .barra i{display:block;height:100%;background:var(--verdete)}
+.fase .barra i.cur{background:var(--info)}
+.fase .ct{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.ultimo{margin-top:.45rem;font-size:.75rem;font-family:var(--grot);color:var(--tinta-2)}
+.ultimo .w{color:var(--amber);font-weight:650}
+.tres{display:grid;gap:.9rem;grid-template-columns:1fr;border-top:1px solid var(--linha);margin-top:.7rem;padding-top:.6rem}
+@media (min-width:40rem){.tres{grid-template-columns:repeat(3,1fr)}}
+.tres dl{margin:.2rem 0 0;font-size:.8125rem;display:grid;gap:.1rem}
+.tres dl div{display:flex;justify-content:space-between;gap:.5rem}
+.tres dt{color:var(--tinta-2)}.tres dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.sem-pagina{margin-top:.6rem;border:1.5px dashed var(--linha);border-radius:.375rem;padding:.5rem .7rem;font-size:.8125rem}
+
+/* telefone */
+.fone{max-width:360px;margin:0 auto;border:1.5px solid var(--linha);border-radius:1.25rem;padding:.9rem .75rem;background:var(--papel)}
+.fone .fatos div{grid-template-columns:1fr;gap:0}
+.fone .blocos{grid-template-columns:1fr}
+
+/* decisões */
+.dec-lista{display:grid;gap:.8rem;margin-top:1rem}
+.item{border:1.5px solid var(--linha);border-radius:.5rem;padding:.8rem .9rem;background:var(--papel-2)}
+.item .st{font-family:var(--mono);font-size:.6875rem;letter-spacing:.05em;text-transform:uppercase}
+.item .st.d{color:var(--verdete-deep)}.item .st.q{color:var(--amber)}
+.item p,.item li{font-size:.875rem}
+.item ul{margin:.35rem 0 0;padding-left:1.1rem}
+.rec{font-family:var(--grot);font-size:.8125rem;margin-top:.45rem;color:var(--tinta)}
+.rec b{color:var(--verdete-deep)}
+.tab-w{overflow-x:auto;margin-top:.8rem}
+table{border-collapse:collapse;width:100%;min-width:34rem;font-size:.8125rem}
+th{font-family:var(--mono);font-size:.625rem;letter-spacing:.06em;text-transform:uppercase;color:var(--tinta-2);text-align:left;padding:.3rem .5rem;font-weight:400;border-bottom:1px solid var(--linha)}
+td{padding:.45rem .5rem;border-bottom:1px solid var(--linha);vertical-align:top}
+@media (prefers-reduced-motion:no-preference){.fase .barra i.cur{animation:pulso 1.6s ease-in-out infinite}@keyframes pulso{50%{opacity:.55}}}
+</style>
+
+<div class="faixa">
+  <div class="rot">The Band · issue #801, part 3 · prototype for review</div>
+  <h1 style="margin-top:.4rem">Syncs: when the job queue stops</h1>
+  <p class="sub">The <code>/syncs</code> screen today shows a run as <code>running</code> whether its work is moving or abandoned. This prototype adds one thing: the screen says when the job queue has not moved, for how long, what that means for the runs listed, and what the person operating can do. Who sees it: administrators and people with an organisation grant, the same as today.</p>
+  <p class="sub">Rule behind every state (contract in <code>docs/producao/saude-da-fila.md</code>, <code>TheBand.Saude.fila/2</code>): the queue is stalled when the last finished job is 15 min old or more, or when no job ever finished and a job has waited 15 min or more. 15 min is three cycles of the 5-minute scheduler.</p>
+
+  <!-- ─────────────────────────────── screen 1 ─────────────────────────────── -->
+  <span class="tela">screen 1 · /syncs · queue moving</span>
+  <p class="nota"><span class="real">real data</span> development database, read on 2026-10-01 at 10:15:13 UTC. Last finished job 10:15:00 UTC; 14 jobs finished in the previous hour; nothing waiting. The tool, the run and its counts are the latest real ones.</p>
+
+  <div class="app">
+    <div class="abas"><span class="aba ativa">Collection</span><span class="aba">Profile generation</span></div>
+    <div class="cab">
+      <h1>Syncs</h1>
+      <p>Bring in from the tool what the platform comes to know.</p>
+    </div>
+
+    <div class="fila-ok" aria-label="Job queue status">
+      <span class="marca obs" title="observed: read from the job table"><span class="am"></span>observed</span>
+      <span><b>Job queue moving</b></span>
+      <span>last job finished <span class="n">13 s</span> ago, at <span class="n">10:15 UTC</span></span>
+      <span>· checked <span class="n">10:15:13 UTC</span></span>
+    </div>
+
+    <div class="grade duas">
+      <div class="cartao tool">
+        <div>
+          <div class="nome">github · example-org</div>
+          <div class="meta n">https://api.github.com</div>
+          <div class="meta" style="margin-top:.25rem">people, teams, repositories and issues, in one run</div>
+          <div class="meta" style="margin-top:.4rem">automatic: <i>off, only when you press Sync</i></div>
+        </div>
+        <div class="col">
+          <button class="btn p" type="button">Sync</button>
+          <select class="sel" id="s1-intervalo" aria-label="Automatic interval"><option>manual</option></select>
+          <button class="btn" type="button">Mapping rules</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-runs">Runs</div>
+    <div class="cartao run">
+      <div class="run-cab">
+        <span class="badge b-ok">completed</span>
+        <span class="org">example-org</span>
+        <span class="quando">started <span class="n">2026-09-28 12:49 UTC</span> · finished <span class="n">15:03 UTC</span></span>
+      </div>
+      <div class="fases">
+        <div class="fase"><span class="nm">organisation</span><span class="barra"><i style="width:100%"></i></span><span class="ct">1</span></div>
+        <div class="fase"><span class="nm">people</span><span class="barra"><i style="width:100%"></i></span><span class="ct">64</span></div>
+        <div class="fase"><span class="nm">teams</span><span class="barra"><i style="width:100%"></i></span><span class="ct">8</span></div>
+        <div class="fase"><span class="nm">team links</span><span class="barra"><i style="width:100%"></i></span><span class="ct">59</span></div>
+        <div class="fase"><span class="nm">repositories</span><span class="barra"><i style="width:100%"></i></span><span class="ct">131 de 131</span></div>
+        <div class="fase"><span class="nm">issues</span><span class="barra"><i style="width:100%"></i></span><span class="ct">5624 de 5624</span></div>
+        <div class="fase"><span class="nm">promotion</span><span class="barra"><i style="width:100%"></i></span><span class="ct">610</span></div>
+        <div class="fase"><span class="nm">boards</span><span class="barra"><i style="width:53%"></i></span><span class="ct">28 de 64</span></div>
+      </div>
+      <div class="tres">
+        <div><div class="rot">what the run did</div><dl><div><dt>records collected</dt><dd>1240</dd></div><div><dt>created</dt><dd>601</dd></div><div><dt>updated</dt><dd>588</dd></div><div><dt>skipped</dt><dd>0</dd></div></dl></div>
+        <div><div class="rot">the work it brought</div><dl><div><dt>repositories</dt><dd>131</dd></div><div><dt>issues</dt><dd>5624</dd></div></dl></div>
+        <div><div class="rot">what went unanswered</div><dl><div><dt>links with no role</dt><dd>55</dd></div></dl></div>
+      </div>
+    </div>
+  </div>
+  <p class="nota">What changes in the normal state: one quiet line under the header, with the observed time of the last finished job and when the screen checked. Everything else is today's screen. The line is there so that the absence of the warning is a statement, not silence (Q1, decided 2026-10-01).</p>
+
+  <!-- ─────────────────────────────── screen 2 ─────────────────────────────── -->
+  <span class="tela">screen 2 · /syncs · queue stalled</span>
+  <p class="nota"><span class="ex">example</span> The development queue was moving when read, so this state does not exist there. Times and counts below are invented, consistent with the 2026-09-04 incident: last job 47 min before the check, one run left <code>running</code>.</p>
+
+  <div class="app">
+    <div class="abas"><span class="aba ativa">Collection</span><span class="aba">Profile generation</span></div>
+    <div class="cab">
+      <h1>Syncs</h1>
+      <p>Bring in from the tool what the platform comes to know.</p>
+    </div>
+
+    <section class="parada" aria-labelledby="t2">
+      <div class="parada-faixa"><span class="hach" aria-hidden="true"></span><span class="rot">Job queue stalled · derived from the last finished job</span></div>
+      <div class="parada-corpo">
+        <h2 id="t2">The job queue has not moved for <span class="n">47 min</span> <span class="ex">example</span></h2>
+        <dl class="fatos">
+          <div><dt>last job finished</dt><dd><span class="n">2026-10-01 09:28 UTC</span> <span class="marca obs" title="observed: read from the job table"><span class="am"></span>observed</span></dd></div>
+          <div><dt>stalled since</dt><dd><span class="marca der" title="derived: concluded by the platform's rule"><span class="am"></span>derived</span> no job finished for 15 min or more. The scheduler queues work every 5 min, so a moving queue finishes something at least that often.</dd></div>
+          <div><dt>checked</dt><dd><span class="n">10:15 UTC</span>, updated every minute</dd></div>
+        </dl>
+        <div class="blocos">
+          <div class="bloco">
+            <h3>What this means here</h3>
+            <p>Runs marked <b>running</b> below are not advancing. Their status still says running because the job that closes stuck runs waits in the same queue.</p>
+            <p>Nothing collected so far is lost: each page is saved after it is processed.</p>
+            <p>Sync and Reprocess are paused on this screen until the queue moves. A new run would only wait in the queue.</p>
+          </div>
+          <div class="bloco">
+            <h3>What you can do</h3>
+            <ol>
+              <li><b>Restart the application container.</b> This needs access to the server. If you do not have it, send this notice to whoever runs the platform. Steps: <a class="lk" href="#q-runbook">runbook, stalled queue</a>.</li>
+              <li>In production, the container healthcheck already reports <code>unhealthy</code> and <code>/health</code> answers <code>503</code>. Whether the server restarts the container by itself has not been measured.</li>
+              <li>This notice clears by itself once a job finishes. If it is still here 15 min after a restart, restarting is not the fix: report it with the time shown above.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="nao-sabe">What this notice does not know: why the queue stopped.</p>
+      </div>
+    </section>
+
+    <div class="grade duas">
+      <div class="cartao tool">
+        <div>
+          <div class="nome">github · example-org</div>
+          <div class="meta n">https://api.github.com</div>
+          <div class="meta" style="margin-top:.25rem">people, teams, repositories and issues, in one run</div>
+          <div class="meta" style="margin-top:.4rem">automatic: <b>every 6 hours</b> <span class="ex">example</span></div>
+        </div>
+        <div class="col">
+          <button class="btn" type="button" disabled>running</button>
+          <span class="motivo">already running, and not advancing: the queue is stalled</span>
+          <select class="sel" id="s2-intervalo" aria-label="Automatic interval"><option>every 6 hours</option></select>
+          <button class="btn" type="button">Mapping rules</button>
+        </div>
+      </div>
+      <div class="cartao">
+        <div style="font-family:var(--grot);font-weight:650">Reprocess mappings</div>
+        <p class="sub" style="margin-top:.2rem">Reapplies the semantic mappings to data <b>already collected</b>, from the preserved payload. <b>It does not call the tool.</b></p>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.5rem">
+          <button class="btn" type="button" disabled>Reprocess</button>
+          <span class="motivo" style="text-align:left">paused: reprocessing runs in the stalled queue</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="h-runs">Runs</div>
+    <div class="cartao run">
+      <div class="run-cab">
+        <span class="badge b-run">running</span>
+        <span class="marca der" title="derived: the queue is stalled, so this run is not advancing"><span class="am"></span>not advancing · queue stalled</span>
+        <span class="org">example-org</span>
+        <span class="quando">started <span class="n">2026-10-01 09:05 UTC</span> <span class="ex">example</span></span>
+      </div>
+      <div class="lado">
+        <div><span class="rot">the run record says</span><b>running</b>, since 09:05 UTC. Nobody closed it.</div>
+        <div><span class="rot">the queue says</span>no job has finished since 09:28 UTC, this run's included.</div>
+      </div>
+      <div class="fases">
+        <div class="fase"><span class="nm">organisation</span><span class="barra"><i style="width:100%"></i></span><span class="ct">1</span></div>
+        <div class="fase"><span class="nm">people</span><span class="barra"><i style="width:100%"></i></span><span class="ct">64</span></div>
+        <div class="fase"><span class="nm">teams</span><span class="barra"><i style="width:100%"></i></span><span class="ct">8</span></div>
+        <div class="fase"><span class="nm">team links</span><span class="barra"><i style="width:100%"></i></span><span class="ct">59</span></div>
+        <div class="fase"><span class="nm">repositories</span><span class="barra"><i style="width:100%"></i></span><span class="ct">131</span></div>
+        <div class="fase"><span class="nm">issues</span><span class="barra"><i class="cur" style="width:100%"></i></span><span class="ct">2210</span></div>
+        <div class="fase"><span class="nm">promotion</span><span class="barra"><i style="width:0"></i></span><span class="ct">not run yet</span></div>
+        <div class="fase"><span class="nm">boards</span><span class="barra"><i style="width:0"></i></span><span class="ct">not run yet</span></div>
+      </div>
+      <div class="ultimo">last page saved: issues from <span class="n">sistema-de-bolsas</span> <span class="ex">example</span> · <span class="w">no progress for 48 min</span></div>
+      <p class="sub" style="margin-top:.5rem">Close stuck sync is not offered: this run's work is still in the queue, and closing the record would not move it. Restart first.</p>
+    </div>
+  </div>
+  <p class="nota">The notice sits above the API quota and the tools, because it changes how everything under it reads. Amber and a hatched stripe, the same form the house uses for "derived": the stall is a conclusion from an observed time and a declared rule, not a failure the platform watched happen. The run keeps its <code>running</code> badge: the record is not rewritten, and the queue's statement sits next to it.</p>
+
+  <!-- ─────────────────────────────── screen 3 ─────────────────────────────── -->
+  <span class="tela">screen 3 · /syncs · no job ever finished</span>
+  <p class="nota"><span class="ex">example</span> An installation where the job processor never ran: the job table has no finished job, and the oldest waiting job was queued 2 h 05 min before the check. Does not exist in development.</p>
+
+  <div class="app">
+    <div class="abas"><span class="aba ativa">Collection</span><span class="aba">Profile generation</span></div>
+    <div class="cab"><h1>Syncs</h1><p>Bring in from the tool what the platform comes to know.</p></div>
+
+    <section class="parada" aria-labelledby="t3">
+      <div class="parada-faixa"><span class="hach" aria-hidden="true"></span><span class="rot">Job queue stalled · derived from the oldest waiting job</span></div>
+      <div class="parada-corpo">
+        <h2 id="t3">No job has ever finished here, and work has waited <span class="n">2 h 05 min</span> <span class="ex">example</span></h2>
+        <dl class="fatos">
+          <div><dt>last job finished</dt><dd><span class="marca aus" title="absent: no finished job in the job table"><span class="am"></span>absent</span> none on this installation</dd></div>
+          <div><dt>oldest waiting job</dt><dd>queued at <span class="n">2026-10-01 08:10 UTC</span> <span class="marca obs" title="observed: read from the job table"><span class="am"></span>observed</span></dd></div>
+          <div><dt>stalled since</dt><dd><span class="marca der" title="derived: concluded by the platform's rule"><span class="am"></span>derived</span> work has waited 15 min or more and nothing has ever run.</dd></div>
+          <div><dt>checked</dt><dd><span class="n">10:15 UTC</span>, updated every minute</dd></div>
+        </dl>
+        <div class="blocos">
+          <div class="bloco">
+            <h3>What this means here</h3>
+            <p>Background work has not run on this installation since at least 08:10 UTC. The run below was started and has not collected its first page.</p>
+            <p>Sync and Reprocess are paused on this screen until the queue moves.</p>
+          </div>
+          <div class="bloco">
+            <h3>What you can do</h3>
+            <ol>
+              <li><b>Restart the application container.</b> This needs access to the server. If you do not have it, send this notice to whoever runs the platform. Steps: <a class="lk" href="#q-runbook">runbook, stalled queue</a>.</li>
+              <li>If it is still here 15 min after a restart, restarting is not the fix: report it with the time shown above.</li>
+            </ol>
+          </div>
+        </div>
+        <p class="nao-sabe">What this notice does not know: why the queue never started.</p>
+      </div>
+    </section>
+
+    <div class="h-runs">Runs</div>
+    <div class="cartao run">
+      <div class="run-cab">
+        <span class="badge b-run">running</span>
+        <span class="marca der" title="derived: the queue is stalled, so this run is not advancing"><span class="am"></span>not advancing · queue stalled</span>
+        <span class="org">example-org</span>
+        <span class="quando">started <span class="n">2026-10-01 08:10 UTC</span> <span class="ex">example</span></span>
+      </div>
+      <div class="sem-pagina"><span class="marca aus" title="absent: no checkpoint recorded"><span class="am"></span>absent</span> no page collected yet: the run is waiting in a queue that has never run</div>
+    </div>
+  </div>
+  <p class="nota">Two differences from screen 2, both in the facts: "last job finished" is written as absence, never as a dash or zero; and the time counts from the oldest waiting job, which is the only clock this case has. The run with no checkpoint says so in words, because today the screen hides the progress line when there is no checkpoint, and a <code>running</code> badge alone would look healthy.</p>
+
+  <!-- ─────────────────────────────── screen 4 ─────────────────────────────── -->
+  <span class="tela">screen 4 · /syncs · queue stalled, phone width</span>
+  <p class="nota"><span class="ex">example</span> Screen 2's notice at 360 px. Facts stack label over value; the two blocks stack; nothing scrolls sideways.</p>
+  <div class="fone">
+    <section class="parada" aria-labelledby="t4" style="margin-top:0">
+      <div class="parada-faixa"><span class="hach" aria-hidden="true"></span><span class="rot">Job queue stalled</span></div>
+      <div class="parada-corpo">
+        <h2 id="t4">The job queue has not moved for <span class="n">47 min</span></h2>
+        <dl class="fatos">
+          <div><dt>last job finished</dt><dd><span class="n">09:28 UTC</span> <span class="marca obs"><span class="am"></span>observed</span></dd></div>
+          <div><dt>stalled since</dt><dd><span class="marca der"><span class="am"></span>derived</span> no job finished for 15 min or more</dd></div>
+          <div><dt>checked</dt><dd><span class="n">10:15 UTC</span></dd></div>
+        </dl>
+        <div class="blocos">
+          <div class="bloco"><h3>What this means here</h3><p>Runs marked <b>running</b> below are not advancing. Nothing collected so far is lost.</p></div>
+          <div class="bloco"><h3>What you can do</h3><ol><li><b>Restart the application container</b>, or send this notice to whoever runs the platform.</li></ol></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <p class="nota">At phone width the notice keeps the title, the three facts and the first action; the full text of both blocks stays (shortened here only to fit the frame).</p>
+
+  <!-- ─────────────────────────────── decisões ─────────────────────────────── -->
+  <span class="tela">Decisions and open questions</span>
+  <p class="nota">Approved by the maintainer on 2026-10-01: D1–D6, Q1–Q3 (option A each). P1 still needs an owner. The security review of D3 (queue state shown to organisation-scoped viewers) is in progress.</p>
+
+  <h2>The three states</h2>
+  <div class="tab-w">
+    <table>
+      <thead><tr><th>state</th><th>when (contract)</th><th>what the screen shows</th><th>data in this prototype</th></tr></thead>
+      <tbody>
+        <tr><td>moving</td><td><code>:ok</code>, last finished job under 15 min</td><td>one line: observed time of the last finished job and the check time</td><td><span class="real">real data</span></td></tr>
+        <tr><td>new installation</td><td><code>:ok</code>, no finished job and nothing waiting</td><td>one line: <i>no job has run yet</i> (absent mark). No warning</td><td>not drawn</td></tr>
+        <tr><td>stalled</td><td><code>{:parada, min}</code> from the last finished job</td><td>screen 2</td><td><span class="ex">example</span></td></tr>
+        <tr><td>never ran</td><td><code>{:parada, min}</code> from the oldest waiting job</td><td>screen 3</td><td><span class="ex">example</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="dec-lista">
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D1. Fact first, verdict second, action third</h3><p>The observed time (last job finished) carries the observed mark; "stalled" carries the derived mark and states its rule. The notice never says "error", "failure" or "down".</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D2. The run record is not rewritten</h3><p>The <code>running</code> badge stays. A second mark, <i>not advancing · queue stalled</i>, sits beside it, with the two statements side by side (055 FR-012).</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D3. No count of waiting jobs, no worker names, no tenants</h3><p>The job table is shared by every tenant. The notice shows only times. A count of waiting jobs would tell an organisation-scoped viewer how much other tenants have queued. Same reasoning as <code>/health</code>, which says only <code>queue stalled</code>.</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D4. The minutes keep counting without a reload</h3><p>With the queue stalled, no progress event reaches the screen, so a number computed once would freeze. The screen re-checks every minute and shows the check time.</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D5. "Close stuck sync" keeps today's rule</h3><p>A run whose work is waiting in the queue is not offered closing; the card says why and points to the restart. A run whose job is stuck in <code>executing</code> keeps today's button and confirmation text.</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer</div><h3>D6. Duration format</h3><p>Under an hour in minutes (<i>47 min</i>), under a day in hours and minutes (<i>3 h 12 min</i>), then days and hours (<i>4 d 2 h</i>). Always with the absolute UTC time next to it.</p></div>
+
+    <div class="item" id="q-runbook"><div class="st q">Premise · needs an owner</div><h3>P1. The runbook link must point to a section that exists</h3><p><code>docs/producao/runbook.md</code> has no stalled-queue section today. The screen's link and its steps depend on it. Recommendation: write it in the same delivery, before the screen links to it.</p></div>
+
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer · option A</div><h3>Q1. Normal state: a quiet line, or nothing?</h3>
+      <ul><li><b>A.</b> One line under the header with the observed time of the last finished job (screen 1).</li><li><b>B.</b> Nothing until the queue stalls.</li></ul>
+      <p class="rec"><b>Decided: A.</b> Without it, "no warning" and "the check did not run" look the same, and the line costs one row.</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer · option A</div><h3>Q2. Sync and Reprocess while the queue is stalled</h3>
+      <ul><li><b>A.</b> Disabled, with the reason next to the button (screens 2 and 3).</li><li><b>B.</b> Enabled; the notice warns that new work will wait.</li></ul>
+      <p class="rec"><b>Decided: A.</b> Pressing Sync creates another <code>running</code> record that cannot advance, which is the defect this notice exists to expose.</p></div>
+    <div class="item"><div class="st d">Decided 2026-10-01 · maintainer · option A</div><h3>Q3. The screen needs more than <code>fila/2</code> returns</h3>
+      <ul><li><b>A.</b> A new read function next to it, returning last finished time, oldest waiting time and the check time; <code>fila/2</code> and <code>/health</code> unchanged.</li><li><b>B.</b> Change <code>fila/2</code> to return the case and the timestamps.</li></ul>
+      <p class="rec"><b>Decided: A.</b> <code>{:parada, minutos}</code> does not say which of the two cases applies, and screens 2 and 3 say different things. Changing <code>fila/2</code> would touch the healthcheck contract for a screen's need.</p></div>
+  </div>
+</div>
