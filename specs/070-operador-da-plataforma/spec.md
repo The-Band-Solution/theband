@@ -22,7 +22,8 @@ mas nenhuma função e nenhuma tela o escrevem. Suspender hoje é `UPDATE` à m�
 | organização não ativa derruba a sessão na requisição seguinte | `lib/the_band_web/plugs/current_scope.ex`, `lib/the_band_web/live/hooks.ex` |
 | `user_sessions` tem `tenant_id`, e `Sessions.encerrar_da_conta/2` encerra por conta | spec 064, T009 e T011 |
 | a desativação de conta guarda **episódio** com autor, instante e razão de lista fechada | `lib/the_band/tenants/account_disablement.ex`, regra `access.account_lifecycle` |
-| nenhum caminho escreve `tenants.status` | busca em `lib/` em 2026-10-01 |
+| nenhum chamador em `lib/` escreve `tenants.status`, mas qualquer um poderia: `Tenants.create_tenant/1` passa `attrs` direto a `Tenant.changeset/2`, que faz `cast` de `:status` (emenda do plano, 2026-10-01) | `lib/the_band/tenants.ex:83-85`, `tenant.ex:31`, `bootstrap.ex:155` |
+| `user_sessions` **não tem** função que encerre as sessões de uma organização: só por sessão, por conta e de todas (emenda do plano) | `lib/the_band/tenants/sessions.ex:118-184` |
 
 ## User Scenarios & Testing *(mandatory)*
 
