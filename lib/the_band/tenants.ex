@@ -335,7 +335,17 @@ defmodule TheBand.Tenants do
         {:error, erro} -> Repo.rollback(erro)
       end
     end)
+    |> avisando_as_telas(user.id)
   end
+
+  # Depois do commit, e só se ele aconteceu: a tela aberta reconfere a sessão no banco ao
+  # receber o aviso, e antes do commit a acharia ainda aberta — issue #1042.
+  defp avisando_as_telas({:ok, _} = ok, user_id) do
+    Sessions.avisar_encerramento({:conta, user_id})
+    ok
+  end
+
+  defp avisando_as_telas(erro, _user_id), do: erro
 
   @doc """
   Reativa uma conta desativada — com ator e razão, e **fechando** o episódio.
