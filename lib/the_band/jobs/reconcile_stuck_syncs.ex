@@ -24,7 +24,7 @@ defmodule TheBand.Jobs.ReconcileStuckSyncs do
   Nenhum log de "reconciliei 0". Ruído periódico treina quem lê a ignorar o log, e aí o log
   que importa passa batido.
   """
-  use Oban.Worker, queue: :ingestion, max_attempts: 3
+  use Oban.Worker, queue: :manutencao, max_attempts: 3
 
   alias TheBand.Ingestion
 
