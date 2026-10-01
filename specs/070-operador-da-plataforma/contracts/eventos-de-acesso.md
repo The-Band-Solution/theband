@@ -17,12 +17,13 @@ lista do formatador.
 | `operador_revogado(operator_id, declarado_por, sessoes_encerradas)` | `via: :release_command` |
 | `operador_credencial_reiniciada(operator_id, declarado_por)` | `via: :release_command` |
 | `operador_entrada_aceita(operator_id, falhas_apagadas)` | |
-| `operador_entrada_recusada(operator_id ou nil, motivo)` | o motivo interno de `Credentials`, inclusive `:sem_segundo_fator`, `:segundo_fator_errado`, `:segundo_fator_reusado` e `:recuperacao_usada` |
+| `operador_entrada_recusada(operator_id ou nil, motivo)` | o motivo interno de `Credentials`, inclusive `:sem_segundo_fator`, `:segundo_fator_errado`, `:segundo_fator_reusado`, `:recuperacao_usada` e `:segundo_fator_travado` |
 | `operador_senha_definida(operator_id)` | o primeiro passo da definição aceito (A7) |
 | `operador_definicao_recusada(operator_id ou nil, motivo)` | `:codigo_errado`, `:codigo_vencido`, `:sem_codigo`, `:identificador_nao_resolveu`, `:sem_concessao` (A7, A14) |
-| `operador_segundo_fator_cadastrado(operator_id)` | o segundo passo aceito |
-| `operador_cadastro_recusado(operator_id ou nil, motivo)` | `:codigo_de_cadastro_errado`, `:codigo_de_cadastro_vencido`, `:totp_errado`, `:sem_concessao` |
+| `operador_segundo_fator_cadastrado(operator_id)` | o **terceiro** passo aceito (`concluir_cadastro/2`, emenda T012): é aqui que o segundo fator passa a valer, e não na confirmação do TOTP |
+| `operador_cadastro_recusado(operator_id ou nil, motivo)` | `:codigo_de_cadastro_errado`, `:codigo_de_cadastro_vencido`, `:totp_errado`, `:sem_concessao`; e, no passo 3, `:codigo_de_guarda_errado`, `:codigo_de_guarda_vencido` |
 | `operador_recuperacao_usada(operator_id, restantes)` | um código de recuperação consumido; `restantes` é a contagem que sobrou |
+| `operador_segundo_fator_travado(operator_id)` | `second_factor_failures` chegou ao limite (seguranca-totp.md, T1); sai uma vez, na transição. Com senha certa, é o sinal de que a senha está com outra pessoa |
 | `operador_espera_acionada(operator_id, segundos)` | |
 | `operador_sessao_derrubada(operator_id ou nil, motivo)` | o motivo de `Platform.Sessions.conferir/2` |
 | `operador_ato_recusado(operator_id, tenant_id, motivo)` | `:nao_autorizado`, `:ja_suspensa`, `:nao_suspensa`, changeset resumido em códigos |

@@ -32,10 +32,13 @@ organização nenhuma (FR-011). Isso é a exceção que a spec decidiu, e ela fi
 | `last_failed_at` | utc_datetime, null | |
 | `logged_in_at` | utc_datetime, null | |
 | `totp_secret` | binary cifrado (`TheBand.Encrypted.Binary`, Cloak, como as credenciais das ferramentas), null | segredo de 20 bytes; nulo até o primeiro passo da definição; `redact: true` |
-| `totp_confirmed_at` | utc_datetime, null | nulo até o segundo passo; **com nulo, `autenticar/3` recusa** |
+| `totp_confirmed_at` | utc_datetime, null | nulo até o **terceiro** passo (`concluir_cadastro/2`, a única que o grava); **com nulo, `autenticar/3` recusa**, inclusive por código de recuperação |
 | `totp_last_used_step` | bigint, null | o último passo TOTP aceito; contra reuso do mesmo código |
+| `second_factor_failures` | integer, not null, default 0 | falhas consecutivas do segundo fator **com a senha certa**; em 10, o segundo fator trava até o reinício (seguranca-totp.md, T1). Zerado no sucesso, em `definir_senha/3`, `conceder/3` e `reiniciar_credencial/2` |
 | `enrollment_code_hash` | bytea, null | `sha256` do código de cadastro do segundo fator; `redact: true` |
 | `enrollment_code_expires_at` | utc_datetime, null | 10 minutos |
+| `ack_code_hash` | bytea, null | `sha256` do **código de guarda** dos códigos de recuperação, emitido por `confirmar_segundo_fator/3` e consumido por `concluir_cadastro/2` (emenda T012, Q3 (b)); `redact: true`. Coluna própria, e não a do código de cadastro: com a mesma, o código do passo 2 abriria o passo 3 |
+| `ack_code_expires_at` | utc_datetime, null | 10 minutos |
 | `inserted_at`, `updated_at` | utc_datetime | |
 
 Constraints:
@@ -45,6 +48,23 @@ Constraints:
 - `CHECK (totp_confirmed_at IS NULL OR totp_secret IS NOT NULL)`: não há segundo fator confirmado
   sem segredo;
 - `CHECK (totp_confirmed_at IS NULL OR password_hash IS NOT NULL)`;
+- `CHECK (second_factor_failures >= 0)`;
+- `CHECK ((ack_code_hash IS NULL) = (ack_code_expires_at IS NULL))`: o par do código de guarda,
+  como os outros dois códigos;
+- `CHECK (ack_code_hash IS NULL OR (totp_confirmed_at IS NULL AND totp_secret IS NOT NULL AND
+  totp_last_used_step IS NOT NULL AND enrollment_code_hash IS NULL))`: o código de guarda só existe
+  **entre os passos 2 e 3** do cadastro — o TOTP já foi conferido uma vez contra o segredo pendente
+  (`totp_last_used_step` gravado), o código de cadastro já foi anulado, e o segundo fator ainda não
+  vale (`totp_confirmed_at` nulo). Um código de guarda com `totp_confirmed_at` preenchido seria um
+  passo 3 repetível depois do cadastro concluído; com `enrollment_code_hash` preenchido, dois
+  passos abertos ao mesmo tempo.
+
+  **`second_factor_failures` fica fora deste `CHECK`, de propósito.** Nesse estado ele está em 0 na
+  prática — `definir_senha/3` o zerou, `confirmar_segundo_fator/3` e `concluir_cadastro/2` contam
+  falha só em `failed_attempts`, e `autenticar/3` recusa com `totp_confirmed_at` nulo **antes** de
+  conferir o segundo fator, sem subir o contador —, mas amarrá-lo ao código de guarda no banco
+  transformaria uma mudança futura nessa contagem em erro de restrição no meio do cadastro, e não
+  protegeria nada: o contador só tem efeito sobre um segundo fator confirmado (T1);
 - índice único `platform_operators_email_index` sobre `lower(email)`.
 
 O e-mail **pode** coincidir com o de uma conta em `users`: são entradas diferentes, por formulários

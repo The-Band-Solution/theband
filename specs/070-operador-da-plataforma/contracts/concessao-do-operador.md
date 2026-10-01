@@ -25,9 +25,10 @@ Concessão vigente já existente: `{:error, :ja_concedido}`, garantido pelo índ
 vigente, a mesma transação faz o que `reiniciar_credencial/2` faz:
 
 - `password_hash = NULL` e `password_epoch + 1`;
-- `totp_secret = NULL`, `totp_confirmed_at = NULL`, `totp_last_used_step = NULL`, e todo código de
+- `totp_secret = NULL`, `totp_confirmed_at = NULL`, `totp_last_used_step = NULL`,
+  `second_factor_failures = 0` (destrava o segundo fator, seguranca-totp.md T1), e todo código de
   recuperação do operador marcado `used_at` (não apagado: o registro fica);
-- código de cadastro anulado;
+- código de cadastro e código de guarda (`ack_code_hash`, emenda T012) anulados;
 - `Platform.Sessions.encerrar_do_operador/1`;
 - o código de definição novo.
 
@@ -46,7 +47,7 @@ encerrá-las, para serializar com o `FOR SHARE` que a suspensão em voo faz na l
 
 Numa transação (FR-014): `UPDATE` da concessão vigente preenchendo a revogação, com a condição
 `revoked_at IS NULL` no `WHERE`, **e** `Platform.Sessions.encerrar_do_operador/1`, **e** anula o
-código de definição e o de cadastro pendentes (A14). A suspensão em voo lê a concessão com
+código de definição, o de cadastro e o de guarda pendentes (A14; o de guarda pela emenda T012). A suspensão em voo lê a concessão com
 `FOR SHARE`, e as duas se serializam (research R8).
 
 ### `vigente?(operator_id) :: boolean()`

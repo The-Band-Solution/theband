@@ -9,6 +9,10 @@ FR-009, FR-011, O13, O14. Decisões em [research.md](../research.md) R3.2, R4 e 
 >
 > **Emendado em 2026-10-01**: A8 (a mesma origem, com CSP; decisão da pessoa mantenedora), A12 (o
 > curinga do `404`) e o segundo fator (FR-016).
+>
+> **Emendado em 2026-10-01 pelo protótipo T012** (decisões da pessoa mantenedora, Q2 (a) e Q3 (b),
+> `prototipo/README.md`): o campo `confirm_slug` nos dois atos, e o terceiro passo do cadastro,
+> `POST /platform/setup/recovery-codes`.
 
 ## A pipeline
 
@@ -49,12 +53,13 @@ corpo de um caminho que não existe.
 | `POST /platform/session` | público | `Credentials.autenticar/3` com `email`, `password` e `second_factor_token`; recusa única; sucesso abre a sessão e vai a `/platform/organizations` |
 | `GET /platform/setup` | público | formulário: e-mail, `setup_token`, `password`, confirmação |
 | `POST /platform/setup` | público | `Credentials.definir_senha/3`; recusa única. Sucesso: a tela de cadastro do segundo fator, com o segredo em base32, a URI e o `enrollment_token` num campo oculto. `Cache-Control: no-store` |
-| `POST /platform/setup/second-factor` | público | `Credentials.confirmar_segundo_fator/3` com `enrollment_token` e `second_factor_token`; recusa única. Sucesso: os dez códigos de recuperação, **uma vez**, e o caminho para `/platform/sign-in` |
+| `POST /platform/setup/second-factor` | público | `Credentials.confirmar_segundo_fator/3` com `enrollment_token` e `second_factor_token`; recusa única. Sucesso: os dez códigos de recuperação, **uma vez**, o `acknowledgement_token` num campo oculto e a caixa `codes_stored` (`required`). **Não** habilita a entrada (Q3 (b); `segundo-fator-do-operador.md`, "O fluxo de cadastro"). `Cache-Control: no-store` |
+| `POST /platform/setup/recovery-codes` | público | confere `codes_stored == "true"` **antes** de chamar o contexto; sem a caixa, re-renderiza a recusa da caixa **sem** consumir o passo e **sem** os códigos. Com a caixa, `Credentials.concluir_cadastro/2` com `email` e `acknowledgement_token`; recusa única. Sucesso: o segundo fator e os códigos passam a valer, e o caminho para `/platform/sign-in` |
 | `DELETE /platform/session` | operador | encerra a sessão no servidor e solta o cookie |
 | `GET /platform/organizations` | operador | a lista (`listar_organizacoes/1`) |
 | `GET /platform/organizations/:slug` | operador | o histórico e o formulário do ato que cabe |
-| `POST /platform/organizations/:slug/suspension` | operador | `suspender/3` |
-| `POST /platform/organizations/:slug/reactivation` | operador | `reativar/3` |
+| `POST /platform/organizations/:slug/suspension` | operador | confere `confirm_slug` igual ao `:slug` da rota, comparação exata, **antes** de `suspender/3`; diferente ou ausente: a recusa da confirmação, e `suspender/3` não é chamada |
+| `POST /platform/organizations/:slug/reactivation` | operador | a mesma conferência de `confirm_slug`, **antes** de `reativar/3` |
 | `match :*, "/platform/*caminho"` | todos | **por último dentro do escopo**, na pipeline `:plataforma`, como `router.ex:118-119`: responde o mesmo `404` de `require_operator` (A12) |
 
 Slug inexistente: o mesmo `404`. Organização que existe e o operador não alcança não há: o operador
@@ -63,7 +68,8 @@ alcança todas, só que só pelas colunas da FR-007.
 **Limite por IP (A4) ainda não está neste contrato.** A aplicação não conhece o IP do cliente atrás
 do proxy do Dokploy (`config/prod.exs:14-15`). A decisão de 2026-10-01 é medir primeiro se o Traefik
 **sobrescreve** `x-forwarded-for`; só depois entram `Plug.RewriteOn` com `:x_forwarded_for` e o
-limite em `POST /platform/session`, `POST /platform/setup` e `POST /platform/setup/second-factor`,
+limite em `POST /platform/session`, `POST /platform/setup`, `POST /platform/setup/second-factor` e
+`POST /platform/setup/recovery-codes`,
 com este contrato emendado **antes** do código. Sem a medição, fica só a espera por conta.
 
 ## Respostas
@@ -73,8 +79,10 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 | anônimo em rota de operador | `404` com o mesmo status, o mesmo conjunto de cabeçalhos de segurança e o mesmo corpo de `GET /platform/caminho-que-nao-existe`, **depois de retirar o `csrf-token`**, que muda a cada resposta (A12) |
 | admin de organização em rota de operador | o mesmo `404` |
 | cookie do operador em `/people`, `/api/v1/people`, `/mcp` | a recusa de quem não tem sessão: redirecionamento a `/sign-in` no navegador, `401` na API e na MCP |
-| `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup` ou `/platform/setup/second-factor` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
+| `{:error, {:throttled, _}}` em `POST /platform/session`, `/platform/setup`, `/platform/setup/second-factor` ou `/platform/setup/recovery-codes` | **a mesma** resposta de `:invalid_credentials`: frase, status e destino iguais, sem os segundos (A3; `credenciais-do-operador.md`, "Recusa única") |
 | ato recusado | a tela mostra o motivo em inglês, e nada muda |
+| `confirm_slug` diferente do slug, ou ausente | a página da organização re-renderizada, com o formulário como estava e `Not suspended. The confirmation did not match. Type <slug> exactly. Nothing changed.` (ou `Not reactivated. …`); status `422`; nenhuma função do contexto é chamada, nenhum evento de acesso (não houve tentativa do ato) |
+| `codes_stored` ausente em `POST /platform/setup/recovery-codes` | a página re-renderizada com `Setup not finished. Tick the box to confirm you stored the recovery codes. The codes are not shown again: …`; o `acknowledgement_token` volta no campo oculto; o passo **não** é consumido nem conta falha; os códigos **não** reaparecem |
 | `nao_autorizado` dentro de `suspender/3` | encerra o cookie e responde `404` |
 
 ## O que as rotas NÃO expõem, e por quê
@@ -86,3 +94,5 @@ com este contrato emendado **antes** do código. Sem a medição, fica só a esp
 | `live_session` | research R3.2; decidido em 2026-10-01 (pergunta 1 do plano, T005): o socket do LiveView só lê o cookie das organizações |
 | JSON ou API do operador | não há consumidor; a FR-007 cabe numa tela |
 | rota que leia dado de domínio "para suporte" | fora de escopo da spec |
+| rota que mostre os códigos de recuperação de novo | só existem em claro na resposta de `POST /platform/setup/second-factor`; reenviá-los num campo oculto poria dez segredos num segundo `POST` (T012, Q3) |
+| contagens de sessões e tokens no histórico | ficam no evento de acesso (T012, Q4 (b); FR-007) |

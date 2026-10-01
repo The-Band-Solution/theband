@@ -412,8 +412,8 @@ escolhida por T009 (NimbleTOTP 1.0.0, abaixo), e o desenho passa por avaliação
 | o código de cadastro entre os dois passos: 20 bytes, `sha256`, 10 min, uso único, no corpo do `POST` | o segundo passo precisa provar que veio do primeiro sem cookie novo e sem URL com segredo |
 | a entrada é **um** formulário com e-mail, senha e segundo fator | sem estado "meio autenticado" entre os dois fatores, que seria uma sessão a mais para proteger |
 | contra reuso: `totp_last_used_step`, gravado na transação com `FOR UPDATE` | o mesmo código, visto por cima do ombro, não serve duas vezes na janela de 90 s |
-| 10 códigos de recuperação de 80 bits, só `sha256` no banco, consumo atômico | perda do celular não pode exigir o banco; uso único por `UPDATE … WHERE used_at IS NULL` |
-| falha de segundo fator conta na mesma espera crescente da senha | são a mesma porta; contadores separados dobrariam as tentativas |
+| 10 códigos de recuperação de **128 bits** (eram 80; seguranca-totp.md T2, ASVS V2.6.2), só `sha256` no banco, consumo atômico | perda do celular não pode exigir o banco; uso único por `UPDATE … WHERE used_at IS NULL` |
+| falha de segundo fator conta na mesma espera crescente da senha **e** num limite próprio: 10 falhas consecutivas com a senha certa travam o segundo fator até o reinício (seguranca-totp.md T1) | são a mesma porta; contadores separados dobrariam as tentativas. Só a espera deixava ~1 440 tentativas por dia a quem já tem a senha |
 | reinício de credencial e nova concessão apagam o segredo e invalidam os códigos (A6) | revogar e conceder de novo não devolve o aplicativo de antes |
 | sem QR code na primeira forma: segredo em base32 e a URI `otpauth://` em texto | QR é uma dependência de geração de imagem; T009 recomenda não ter (abaixo), e a decisão é da pessoa mantenedora |
 

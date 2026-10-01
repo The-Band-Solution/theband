@@ -10,13 +10,20 @@ FR-011, FR-016, O4, O11, O16. Desenho em [research.md](../research.md) R1, R2 e 
 > fechado; o código deste módulo continua **bloqueado** até a avaliação própria do TOTP
 > (`tasks.md`) e até os PRs #1048 (#1046, a forma da A1) e o da #1047 (a forma da A3) estarem em
 > `development`, porque esta cópia nasce da versão corrigida de `Tenants.Auth`, e não da de hoje.
+>
+> **Emendado em 2026-10-01 pelo protótipo T012** (Q3 (b), decisão da pessoa mantenedora; o fluxo
+> em [segundo-fator-do-operador.md](segundo-fator-do-operador.md), "O fluxo de cadastro (emenda
+> T012)", e a rota `POST /platform/setup/recovery-codes` em
+> [rotas-da-plataforma.md](rotas-da-plataforma.md)): o cadastro tem **três** passos.
+> `confirmar_segundo_fator/3` deixa de habilitar a entrada e emite o **código de guarda**;
+> `concluir_cadastro/2` é nova e é a única que grava `totp_confirmed_at`.
 
 Depende de: nenhuma ontologia. É infraestrutura de acesso, como `TheBand.Tenants.Auth`.
 
 ## As regras que valem para toda função que confere credencial
 
 - **Tentativa serializada (A1).** Toda função que confere senha, código de definição, código de
-  cadastro ou segundo fator abre uma transação e lê a linha do operador com `SELECT … FOR UPDATE`
+  cadastro, código de guarda ou segundo fator abre uma transação e lê a linha do operador com `SELECT … FOR UPDATE`
   **antes** de decidir a espera e **antes** do hash. A verificação e o registro da falha ou do
   sucesso acontecem dentro da mesma transação. Dez tentativas paralelas sobem `failed_attempts` em
   no máximo um, e as outras recebem `{:throttled, _}`. A forma segue a correção da #1046 em
@@ -44,9 +51,9 @@ Depende de: nenhuma ontologia. É infraestrutura de acesso, como `TheBand.Tenant
   de `development` fazem na entrada das organizações. O `s` serve ao evento
   `operador_espera_acionada/2`, e a nenhuma outra coisa.
 - **O segredo chega como `TheBand.Segredo.t()`** (FR-006 da 064): senha, código de definição,
-  código de cadastro e segundo fator. Um `FunctionClauseError` não os imprime.
+  código de cadastro, código de guarda e segundo fator. Um `FunctionClauseError` não os imprime.
 - **Os campos do formulário contêm `token` ou `password` no nome (A10)**: `password`,
-  `setup_token`, `enrollment_token`, `second_factor_token`. O filtro padrão do Phoenix
+  `setup_token`, `enrollment_token`, `acknowledgement_token`, `second_factor_token`. O filtro padrão do Phoenix
   (`["password", "token"]`, por substring) os redige na linha `Parameters:`. Mesmo assim,
   `config/config.exs` ganha `filter_parameters` com `"code"`, `"secret"` e `"totp"`, para que um
   nome renomeado não vaze.
@@ -57,6 +64,13 @@ Um formulário só, com os três campos. Não existe estado "meio autenticado" e
 segundo fator.
 
 - resolve o operador por `lower(email)`, com `FOR UPDATE` (A1);
+- **enquanto `totp_confirmed_at` é nulo, recusa sempre** (recusa única, com o custo do hash,
+  motivo interno `:sem_segundo_fator`), qualquer que seja o segundo fator enviado: **inclusive um
+  código de recuperação**, que já tem o `sha256` gravado desde o passo 2 do cadastro, e inclusive
+  um TOTP certo. A conferência de `totp_confirmed_at` vem **antes** de `classificar/1` e antes de
+  qualquer consumo em `platform_operator_recovery_codes`: código de recuperação mostrado e não
+  confirmado (passo 3) não é credencial, e não é gasto. Esta recusa não sobe
+  `second_factor_failures` (não há segundo fator cadastrado a forçar);
 - **recusa única** para: e-mail inexistente, senha errada, senha não definida, **segundo fator não
   cadastrado** (`totp_confirmed_at IS NULL`), segundo fator errado, segundo fator reusado, código
   de recuperação já usado e **sem concessão vigente**;
@@ -67,6 +81,17 @@ segundo fator.
   decide qual se tenta (`SegundoFator.classificar/1`), e o código de recuperação é consumido de
   forma atômica (`segundo-fator-do-operador.md`);
 - segundo fator errado **conta falha** no mesmo `failed_attempts` da senha: são a mesma porta;
+- **limite próprio do segundo fator (seguranca-totp.md, T1)**: com a senha **certa** e o segundo
+  fator errado, reusado, ou com código de recuperação errado ou já usado, sobe também
+  `second_factor_failures`, na mesma transação. Ele **zera só no sucesso completo**, e a senha
+  errada **não** o toca. Ao chegar a **10** (`@limite_do_segundo_fator`, com este motivo escrito), o
+  segundo fator fica **travado**: `autenticar/3` devolve a recusa única, com o custo do hash, **mesmo
+  com senha e código certos**, e o motivo interno `:segundo_fator_travado`, até
+  `Release.reiniciar_credencial_do_operador/2`. A espera de 60 s sozinha deixava ~1 440 tentativas
+  por dia, para sempre (≈12 % de acerto em 30 dias); NIST 800-63B §5.2.2 limita a 100. Não reabre o
+  DoS de "sem bloqueio de conta": só quem **já tem a senha** alcança este contador, e quem tem a
+  senha é o incidente, cuja resposta já é o reinício. O evento
+  `AccessEvents.operador_segundo_fator_travado/1` sai uma vez, na transição para travado;
 - espera crescente com as mesmas constantes de `Tenants.Auth`, depois da correção da #1046;
 - **sem concessão vigente não registra falha**: a credencial pode estar certa, e é o papel que caiu;
 - o sucesso grava o passo TOTP aceito em `totp_last_used_step` (contra reuso), zera as falhas
@@ -74,13 +99,14 @@ segundo fator.
 
 Cada recusa gera `AccessEvents.operador_entrada_recusada/2` com o motivo interno
 (`:identificador_nao_resolveu`, `:senha_errada`, `:sem_senha`, `:sem_segundo_fator`,
-`:segundo_fator_errado`, `:segundo_fator_reusado`, `:recuperacao_usada`, `:sem_concessao`).
+`:segundo_fator_errado`, `:segundo_fator_reusado`, `:recuperacao_usada`, `:segundo_fator_travado`,
+`:sem_concessao`).
 
 ## `definir_senha(email, setup_token :: TheBand.Segredo.t(), senha :: TheBand.Segredo.t()) :: {:ok, {Operator.t(), cadastro}} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}} | {:error, Ecto.Changeset.t()}`
 
 `cadastro :: %{segredo: TheBand.Segredo.t(), uri: TheBand.Segredo.t(), enrollment_token: TheBand.Segredo.t()}`
 
-O primeiro dos dois passos da definição. **Não habilita a entrada**: depois dele, `autenticar/3`
+O primeiro dos **três** passos da definição (`segundo-fator-do-operador.md`, "O fluxo de cadastro"). **Não habilita a entrada**: depois dele, `autenticar/3`
 continua recusando, porque o segundo fator não foi confirmado.
 
 - **exige concessão vigente (A14)**; sem ela, a recusa única, com o custo do hash;
@@ -93,31 +119,68 @@ continua recusando, porque o segundo fator não foi confirmado.
   código já foi consumido nesse caso? **Não**: a validação da senha roda antes do consumo, dentro
   da mesma transação, e o `ROLLBACK` devolve o código;
 - no sucesso, na mesma transação: grava `password_hash`, sobe `password_epoch` de forma atômica,
+  zera `second_factor_failures` (T1),
   gera o segredo TOTP pendente (`SegundoFator.gerar_segredo/0`), grava-o cifrado em
-  `totp_secret`, anula `totp_confirmed_at`, `totp_last_used_step` e os códigos de recuperação
-  anteriores, emite o **código de cadastro** (20 bytes, `sha256` no banco, 10 minutos, uso único)
-  e encerra toda sessão aberta do operador;
+  `totp_secret`, anula `totp_confirmed_at`, `totp_last_used_step`, o código de guarda
+  (`ack_code_hash`, `ack_code_expires_at`) e os códigos de recuperação anteriores, emite o
+  **código de cadastro** (20 bytes, `sha256` no banco, 10 minutos, uso único) e encerra toda sessão aberta do operador;
 - devolve o segredo e a URI `otpauth://` **uma vez**, para a tela de cadastro, e o código de
   cadastro, que vai num campo oculto do formulário seguinte, no corpo do `POST`, nunca na URL.
 
-## `confirmar_segundo_fator(email, enrollment_token :: TheBand.Segredo.t(), codigo :: TheBand.Segredo.t()) :: {:ok, {Operator.t(), [TheBand.Segredo.t()]}} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}}`
+## `confirmar_segundo_fator(email, enrollment_token :: TheBand.Segredo.t(), codigo :: TheBand.Segredo.t()) :: {:ok, {Operator.t(), [TheBand.Segredo.t()], TheBand.Segredo.t()}} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}}`
 
-O segundo passo. Devolve os **códigos de recuperação**, uma vez.
+O segundo passo. Devolve os **códigos de recuperação**, uma vez, e o **código de guarda**. **Não
+habilita a entrada** (Q3 (b) do protótipo T012): depois dele, `autenticar/3` continua recusando,
+porque `totp_confirmed_at` continua nulo.
+
+`{:ok, {Operator.t(), [TheBand.Segredo.t()], acknowledgement_token :: TheBand.Segredo.t()}}` é o
+sucesso: os dez códigos e o código de guarda, que vai num campo oculto do formulário do passo 3, no
+corpo do `POST`, nunca na URL.
 
 - exige concessão vigente (A14);
 - consome o código de cadastro de forma atômica, como `definir_senha/3` consome o de definição (A5);
 - confere o código TOTP contra o segredo pendente, com a janela de ±1 passo
   (`segundo-fator-do-operador.md`);
-- código de cadastro errado, vencido ou ausente, ou TOTP errado: recusa única, e conta falha. O
-  TOTP errado **não** consome o código de cadastro: a pessoa pode ter digitado errado, e o código
-  vale até vencer;
-- no sucesso, na mesma transação: grava `totp_confirmed_at` e `totp_last_used_step`, gera **10
-  códigos de recuperação** (`SegundoFator.gerar_codigos_de_recuperacao/0`), grava só o `sha256` de
-  cada um, anula o código de cadastro, sobe `password_epoch` e encerra as sessões do operador.
+- código de cadastro errado, vencido ou ausente, ou TOTP errado: recusa única, e conta falha em
+  `failed_attempts`. O TOTP errado **não** consome o código de cadastro: a pessoa pode ter digitado
+  errado, e o código vale até vencer;
+- no sucesso, na mesma transação: grava `totp_last_used_step` (o passo aceito), gera **10 códigos
+  de recuperação** (`SegundoFator.gerar_codigos_de_recuperacao/0`), grava só o `sha256` de cada um,
+  anula o código de cadastro e emite o **código de guarda**: 20 bytes de
+  `:crypto.strong_rand_bytes/1`, `sha256` em `ack_code_hash`, validade de **10 minutos** em
+  `ack_code_expires_at`, uso único;
+- **não** grava `totp_confirmed_at`, **não** sobe `password_epoch` e **não** encerra sessões: as três
+  coisas são de `concluir_cadastro/2`. Os códigos de recuperação gravados aqui não valem até lá,
+  porque `autenticar/3` recusa antes de olhá-los.
 
-Abandonar o cadastro entre os dois passos deixa o operador sem entrada até
-`Release.reiniciar_credencial_do_operador/2`. É o preço de não existir conta habilitada sem segundo
-fator.
+## `concluir_cadastro(email, acknowledgement_token :: TheBand.Segredo.t()) :: {:ok, Operator.t()} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}}`
+
+O terceiro passo: o operador declarou que guardou os códigos de recuperação. **É a única função que
+grava `totp_confirmed_at`**, e por isso a única que habilita a entrada.
+
+- **a caixa `codes_stored` não é argumento**: quem a confere é o controller, antes de chamar
+  (`rotas-da-plataforma.md`). Sem a caixa, esta função não é chamada, o código de guarda não é
+  consumido e nenhuma falha conta;
+- exige concessão vigente (A14); sem ela, a recusa única, com o custo do hash, e não conta falha;
+- **consumo atômico do código de guarda (A5)**: dentro da transação com `FOR UPDATE` na linha do
+  operador (A1), confere `sha256(acknowledgement_token)` com `Plug.Crypto.secure_compare/2` e
+  `ack_code_expires_at` no futuro, e anula `ack_code_hash` e `ack_code_expires_at` **na mesma
+  transação**. Dois `POST` paralelos com o mesmo código: exatamente um passa;
+- código de guarda errado, vencido, ausente ou e-mail inexistente: **a mesma** recusa única, com o
+  custo do hash (A3), e conta falha em `failed_attempts`. Não sobe `second_factor_failures`;
+- o código de **cadastro** não abre este passo: são colunas diferentes, e o de cadastro já foi
+  anulado no passo 2;
+- no sucesso, na mesma transação: grava `totp_confirmed_at`, sobe `password_epoch` de forma
+  atômica e encerra toda sessão aberta do operador (`Platform.Sessions.encerrar_do_operador/1`).
+  Gera `AccessEvents.operador_segundo_fator_cadastrado/1`;
+- **nunca devolve os códigos de recuperação**: eles só existem em claro na resposta de
+  `confirmar_segundo_fator/3`, e a recusa deste passo não os mostra de novo.
+
+Abandonar o cadastro entre quaisquer dois passos — inclusive fechar a aba com os códigos de
+recuperação na tela, sem marcar a caixa — deixa o operador sem entrada até
+`Release.reiniciar_credencial_do_operador/2`, que gera segredo e códigos novos e invalida os
+anteriores. É o preço de não existir conta habilitada sem segundo fator, nem código de recuperação
+que vale sem ter sido declarado guardado.
 
 ## `emitir_codigo(Operator.t()) :: {:ok, TheBand.Segredo.t()}` — interna ao contexto
 
@@ -130,9 +193,9 @@ anterior. Devolve o bruto **uma vez**, como `Segredo.t()`.
 | ausência | por quê |
 |---|---|
 | nenhuma função recebe senha que não venha do navegador do operador | O11: senha não passa por comando, ambiente nem log |
-| nenhuma função devolve o hash, o código gravado, o segredo TOTP gravado nem a época | quem precisa decidir chama `autenticar/3`; o segredo sai **uma vez**, no cadastro |
-| não há `change_password(atual, nova)` nem "trocar o segundo fator" | trocar é pedir um código novo pelo comando, que refaz os dois passos. Para uma ou duas pessoas, um caminho só é menos superfície que dois |
+| nenhuma função devolve o hash, o código gravado (de definição, de cadastro ou de guarda), o segredo TOTP gravado nem a época | quem precisa decidir chama `autenticar/3`; o segredo sai **uma vez**, no cadastro |
+| não há `change_password(atual, nova)` nem "trocar o segundo fator" | trocar é pedir um código novo pelo comando, que refaz os três passos. Para uma ou duas pessoas, um caminho só é menos superfície que dois |
 | não há entrada sem segundo fator, nem "lembrar este navegador" | FR-016: o segundo fator vale a cada entrada |
-| não há bloqueio de conta | bloqueio é negação de serviço para quem souber o e-mail (forma de `auth.ex:20-23`); A4 fica com a espera por conta até o limite por IP (que depende da medição do Traefik) |
+| não há bloqueio de conta **pela senha** | bloqueio pela senha é negação de serviço para quem souber o e-mail (forma de `auth.ex:20-23`); A4 fica com a espera por conta até o limite por IP (que depende da medição do Traefik). A trava do **segundo fator** (T1, acima) é outra coisa: só quem tem a senha a alcança |
 | nenhuma função aceita `%User{}`, e nenhuma função de `TheBand.Tenants` aceita `%Operator{}` | é o que mantém as duas autenticações sem ponto de contato (FR-011) |
 | não há leitura do código de definição por GET, nem código na URL | o código ficaria no log de acesso, no histórico e no `Referer` (research R1) |

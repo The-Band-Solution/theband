@@ -175,7 +175,7 @@ template começa antes de T012.
   - **Teste**: a revisão do `plan.md` por quem não fez a pesquisa encontra as três respostas
     (problema, agora ou previsão, o que piora; AGENTS.md §7.7) e a saída de `mix hex.audit` citada
 
-- [ ] T010 Avaliar a segurança do TOTP antes do código
+- [x] T010 Avaliar a segurança do TOTP antes do código — feita em 2026-10-01 pelo agente `security`, que não escreveu o desenho; seguranca-totp.md: T1 alta e T2 média emendadas nos contratos, T1 virou T028a (bloqueante), T3 entrou em T021; o resto fica para T011
   - **Pronta quando**: T009 concluída
   - **Descrição**: avaliação do agente `security`, **feita por quem não escreveu o desenho** do
     TOTP, em `specs/070-operador-da-plataforma/seguranca-totp.md`. Cobrir no mínimo: o segredo em
@@ -204,6 +204,17 @@ template começa antes de T012.
     `contracts/segundo-fator-do-operador.md` (NimbleTOTP `== 1.0.0`: comparação de `valid?/3`,
     janela ±1 por três chamadas, `since: ultimo_passo * 30`, sem QR até T012). **Continua aberta**:
     depende de T010, e as emendas de `seguranca-totp.md` ainda não existem
+  - **Andamento (2026-10-01, depois de T010 e do protótipo)**: T009 e T010 feitas; T1 e T2
+    emendados pela própria T010 (seguranca-totp.md §3) e decididos pela pessoa mantenedora; QR
+    decidido (sem QR, `segundo-fator-do-operador.md`, `uri/2`); o cadastro em três passos (Q3 (b))
+    aplicado a `credenciais-do-operador.md`, `data-model.md` §1, `concessao-do-operador.md` e
+    `eventos-de-acesso.md`. **Continua aberta**: os achados que seguranca-totp.md §3 deixou para
+    esta tarefa — **T4** (`load_in_query: false` em `totp_secret`), **T5** (segredo e códigos só na
+    resposta do `POST`, nunca por flash, sessão, redirect ou `GET`), **T6** (`[0-9]` literal em
+    `classificar/1`), **T8** (`invalidated_at` em §1a, separado de `used_at`), **T9** e **T11**
+    (texto do roteiro) — não estão em contrato nenhum (`grep` por `load_in_query`,
+    `invalidated_at`, `put_flash` e `[0-9]` em `contracts/` e `data-model.md` não acha nada), e o
+    agente `security` ainda não conferiu as emendas
 
 - [ ] T012 Prototipar as telas do operador
   - **Pronta quando**: T005 decidida (controller ou `live_session` muda o que a tela pode fazer);
@@ -220,6 +231,12 @@ template começa antes de T012.
     aprovou, com data registrada no `PROMPT.md`; o Product Owner registrou o link no backlog
   - **Teste**: o QA consegue ler o `PROMPT.md` §3 item a item contra cada tela; nenhuma tela mostra
     dado de domínio (pessoas, equipes, issues, contagens)
+  - **Andamento (2026-10-01)**: protótipo **v2 publicado** em
+    https://claude.ai/artifact/KWYR2rPJX1V4FukhszDVFA, guardado em `prototipo/`, **aguardando
+    aprovação** da pessoa mantenedora. Decisões já tomadas sobre ele: sem QR (base32 + URI em
+    texto); `confirm_slug` nos dois atos (Q2 (a)); cadastro em três passos, com a confirmação de
+    guarda dos códigos de recuperação (Q3 (b)); contagens de sessões e tokens só no evento (Q4 (b)).
+    As três primeiras já estão emendadas nos contratos
 
 - [ ] T013 [P] Restringir o estado da organização
   - **Pronta quando**: T007 concluída; `contracts/sessoes-e-tokens-da-organizacao.md`, seção
@@ -325,9 +342,13 @@ recebe o `404` de um caminho inexistente.
   - **Pronta quando**: T011 concluída; T018 concluída; `data-model.md` §1 (colunas do TOTP) e §1a
   - **Descrição**: `priv/repo/migrations/<ts>_segundo_fator_do_operador.exs`: em
     `platform_operators`, `totp_secret` (binário cifrado), `totp_confirmed_at`,
-    `totp_last_used_step`, `enrollment_code_hash`, `enrollment_code_expires_at` e os quatro `CHECK`s;
+    `totp_last_used_step`, `second_factor_failures` (seguranca-totp.md T1), `enrollment_code_hash`,
+    `enrollment_code_expires_at`, `ack_code_hash` e `ack_code_expires_at` (código de guarda, emenda
+    T012) e os `CHECK`s de `data-model.md` §1, inclusive o par do código de guarda e o que só o
+    admite entre os passos 2 e 3;
     a tabela `platform_operator_recovery_codes` com os índices. FR-016
-  - **Feita quando**: `totp_confirmed_at` preenchido com `totp_secret` nulo reprova no banco; o índice
+  - **Feita quando**: `totp_confirmed_at` preenchido com `totp_secret` nulo reprova no banco;
+    `ack_code_hash` preenchido com `totp_confirmed_at` preenchido reprova no banco; o índice
     único `(operator_id, code_hash)` recusa o repetido
   - **Teste**: round trip `mix ecto.migrate` / `mix ecto.rollback --step 1`;
     `test/the_band/platform/tabelas_do_segundo_fator_test.exs` com os dois casos. **Defeito a
@@ -337,8 +358,13 @@ recebe o `404` de um caminho inexistente.
   - **Pronta quando**: T018 e T020 concluídas
   - **Descrição**: `lib/the_band/platform/operator.ex`, `grant.ex`, `operator_session.ex`,
     `recovery_code.ex`, privados ao contexto. `redact: true` em `password_hash`, `setup_code_hash`,
-    `enrollment_code_hash`, `totp_secret`, `token_hash` e `code_hash`; `totp_secret` com
-    `TheBand.Encrypted.Binary`. Nenhum `has_many` para tabela de domínio
+    `enrollment_code_hash`, `ack_code_hash`, `totp_secret`, `token_hash` e `code_hash`; `totp_secret` com
+    `TheBand.Encrypted.Binary`. Nenhum `has_many` para tabela de domínio. **T3 de seguranca-totp.md
+    (bloqueia a release)**: `mix the_band.rotate_key` passa a recifrar também
+    `platform_operators.totp_secret`, com o teste C10 (rotacionar, remover a chave antiga, entrar).
+    Decidido em 2026-10-01: a lista de **todos** os campos cifrados (inclusive
+    `ai_provider_credentials.secret`) é a issue #1052, separada e anterior; esta tarefa só acrescenta
+    `totp_secret` a ela
   - **Feita quando**: `inspect/1` de cada struct não mostra nenhum dos campos redigidos; a leitura
     direta de `platform_operators.totp_secret` devolve texto cifrado
   - **Teste**: `test/the_band/platform/schemas_test.exs` — `refute inspect(op) =~ "<valor>"` para
@@ -367,11 +393,16 @@ recebe o `404` de um caminho inexistente.
     `SELECT … FOR UPDATE` na linha do operador **antes** da espera e do hash (A1);
     `Bcrypt.no_user_verify/0` também na recusa por espera (A3); recusa única; segundo fator só
     depois da senha; código de recuperação consumido com `UPDATE … WHERE used_at IS NULL
-    RETURNING`; sem concessão vigente não conta falha; sucesso grava `totp_last_used_step`, zera
-    falhas depois de registrar quantas e grava `logged_in_at`. Comentário apontando para
+    RETURNING`; **com `totp_confirmed_at` nulo, recusa antes de classificar o segundo fator e antes
+    de qualquer consumo de código de recuperação** (os códigos já têm hash desde o passo 2 do
+    cadastro, e não valem até `concluir_cadastro/2`); sem concessão vigente não conta falha; sucesso grava `totp_last_used_step`, zera
+    falhas depois de registrar quantas e grava `logged_in_at`; o limite próprio do segundo fator
+    (`second_factor_failures`, trava em 10, **T1** de seguranca-totp.md). Comentário apontando para
     `Tenants.Auth` e o motivo da duplicação (research R2). FR-011, FR-016
-  - **Feita quando**: operador sem concessão, sem senha, sem segundo fator confirmado, com senha
-    errada, com TOTP errado e com TOTP reusado recebem todos `{:error, :invalid_credentials}`; o
+  - **Feita quando**: operador sem concessão, sem senha, sem segundo fator confirmado (inclusive
+    depois do passo 2, com TOTP certo **e** com um código de recuperação válido, que continua sem
+    `used_at`), com senha errada, com TOTP errado e com TOTP reusado recebem todos
+    `{:error, :invalid_credentials}`; o
     motivo interno de cada um aparece no evento; o sucesso devolve `{:ok, %Operator{}}`
   - **Teste**: `test/the_band/platform/credentials_autenticar_test.exs`, um caso por motivo
 
@@ -399,28 +430,39 @@ recebe o `404` de um caminho inexistente.
 - [ ] T026 [US2] Definir a senha e cadastrar o segundo fator
   - **Pronta quando**: **A5** e **A14** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T011 concluída; T023 concluída
-  - **Descrição**: `definir_senha/3` e `confirmar_segundo_fator/3` em `credentials.ex`, como o
-    contrato: exigem concessão vigente (A14); consomem o código de definição e o de cadastro de
-    forma **atômica** dentro da transação com `FOR UPDATE` (A5); a política de senha roda antes do
-    consumo; o primeiro passo não habilita a entrada; o segundo gera os dez códigos de recuperação,
-    sobe a época e encerra as sessões. Eventos de A7 (T033). FR-016, O4
+  - **Descrição**: `definir_senha/3`, `confirmar_segundo_fator/3` e `concluir_cadastro/2` em
+    `credentials.ex`, os **três passos** do cadastro (emenda T012, Q3 (b);
+    `contracts/segundo-fator-do-operador.md`, "O fluxo de cadastro"), como o contrato: exigem
+    concessão vigente (A14); consomem o código de definição, o de cadastro e o de guarda de forma
+    **atômica** dentro da transação com `FOR UPDATE` (A5); a política de senha roda antes do
+    consumo; o primeiro passo não habilita a entrada; o segundo grava `totp_last_used_step` e os dez
+    `sha256` dos códigos de recuperação, anula o código de cadastro e emite o código de guarda, **sem**
+    gravar `totp_confirmed_at`, **sem** subir a época e **sem** encerrar sessões; o terceiro consome o
+    código de guarda, grava `totp_confirmed_at`, sobe `password_epoch` e encerra as sessões do
+    operador. Eventos de A7 (T033). FR-016, O4
   - **Feita quando**: depois só do primeiro passo, `autenticar/3` recusa; depois do segundo,
-    autentica com o TOTP; o código de definição usado uma vez é recusado na segunda; operador sem
-    concessão vigente recebe a recusa única no primeiro passo
-  - **Teste**: `test/the_band/platform/credentials_definir_test.exs`, os quatro casos
+    `autenticar/3` **ainda recusa**, com o TOTP certo e com um código de recuperação dos dez, e o
+    código de recuperação continua sem `used_at`; depois do terceiro, autentica com o TOTP e com um
+    código de recuperação; o código de definição usado uma vez é recusado na segunda; o código de
+    cadastro não abre o passo 3; operador sem concessão vigente recebe a recusa única no primeiro
+    passo e no terceiro
+  - **Teste**: `test/the_band/platform/credentials_definir_test.exs`, um caso por frase acima.
+    **Defeito a injetar**: gravar `totp_confirmed_at` em `confirmar_segundo_fator/3`; o caso
+    "depois do segundo, ainda recusa" precisa autenticar e o teste reprovar
 
 - [ ] T027 [US2] Provar o código de uso único sob concorrência
   - **Pronta quando**: T026 concluída
   - **Descrição**: cenário 3 de `seguranca-autenticacao.md` (**A5**): duas `Task` chamam
     `definir_senha/3` com o mesmo código e senhas diferentes; o mesmo para o código de cadastro em
-    `confirmar_segundo_fator/3`
+    `confirmar_segundo_fator/3` e para o código de guarda em `concluir_cadastro/2`
   - **Feita quando**: exatamente uma devolve `{:ok, _}` e a outra `{:error, :invalid_credentials}`
     (os dois lados contados, L90); `setup_code_hash` fica nulo; vale a senha da que ganhou
   - **Teste**: `test/the_band/platform/codigo_de_uso_unico_test.exs`. **Defeito a injetar**: conferir
     o resumo em memória e gravar depois, sem lock; as duas precisam passar e o teste reprovar
 
 - [ ] T028 [US2] Provar o segundo fator na entrada
-  - **Pronta quando**: T026 concluída; os cenários de `seguranca-totp.md` (T010)
+  - **Pronta quando**: T026 concluída; os cenários de `seguranca-totp.md` (T010): C3, C4, C5, C6, C7,
+    C8, C9, C12
   - **Descrição**: a entrada exige o segundo fator a cada vez (FR-016): sem ele; com o mesmo código
     TOTP usado duas vezes; com um código de recuperação usado duas vezes em paralelo; mais os
     cenários que T010 escreveu
@@ -430,6 +472,21 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/segundo_fator_na_entrada_test.exs`. **Defeitos a injetar**: não
     gravar `totp_last_used_step` no sucesso (o reuso precisa passar); consumir o código de
     recuperação sem `used_at IS NULL` no `WHERE` (os dois paralelos precisam passar)
+
+- [ ] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
+  - **Pronta quando**: T023 concluída com `second_factor_failures`; `contracts/credenciais-do-operador.md`,
+    "limite próprio do segundo fator"
+  - **Descrição**: cenários C1 e C1b de `seguranca-totp.md`. C1: senha certa e 10 TOTP errados,
+    avançando `agora` além da espera a cada vez; depois o TOTP **certo**. C1b: 10 senhas erradas com
+    qualquer código, e depois senha e TOTP certos. **Bloqueia T036 e T039**: a área do operador não
+    vai ao ar sem este limite provado
+  - **Feita quando**: em C1, antes da 10ª falha um código certo entra (a guarda de que mediu), e
+    depois dela o certo é recusado com `:invalid_credentials`, evento `:segundo_fator_travado`, sem
+    sessão aberta; `reiniciar_credencial/2` destrava. Em C1b, `second_factor_failures` fica 0 e a
+    entrada legítima passa
+  - **Teste**: `test/the_band/platform/limite_do_segundo_fator_test.exs`. **Defeitos a injetar**, um
+    por vez: contar só em `failed_attempts` (o 11º passa e C1 reprova); incrementar o contador antes
+    de conferir a senha (C1b reprova)
 
 - [ ] T029 [US2] Abrir e conferir a sessão do operador
   - **Pronta quando**: `contracts/sessao-do-operador.md` emendado (A11, A15) e conferido por T008;
@@ -450,7 +507,9 @@ recebe o `404` de um caminho inexistente.
   - **Descrição**: `lib/the_band/platform/grants.ex`: `conceder/3` (cria ou, se já existe sem
     concessão vigente, apaga senha, segundo fator, sobe a época e encerra sessões, A6; grava
     `email_at_grant`), `reiniciar_credencial/2` (com `FOR UPDATE` nas sessões, A15), `revogar/3`
-    (encerra sessões e anula códigos pendentes, A14, FR-014), `vigente?/1`. FR-001, FR-002
+    (encerra sessões e anula códigos pendentes — de definição, de cadastro e de guarda —, A14,
+    FR-014), `vigente?/1`. `conceder/3` e `reiniciar_credencial/2` também anulam o código de guarda
+    (emenda T012). FR-001, FR-002
   - **Feita quando**: revogar encerra a sessão do operador na mesma transação; conceder duas vezes
     seguidas devolve `{:error, :ja_concedido}`
   - **Teste**: `test/the_band/platform/grants_test.exs`, os dois casos
@@ -516,7 +575,7 @@ recebe o `404` de um caminho inexistente.
 
 - [ ] T036 [US2] Montar a área do operador no roteador
   - **Pronta quando**: T005 decidida; `contracts/rotas-da-plataforma.md` emendado (A8, A12) e
-    conferido por T008; T017 e T035 concluídas
+    conferido por T008; T017 e T035 concluídas; **T028a** concluída (seguranca-totp.md T1)
   - **Descrição**: `lib/the_band_web/plataforma/operator_scope.ex` (plug que atribui
     `:current_operator` e grava `Logger.metadata(operator_id: …)`, nunca `user_id` nem
     `tenant_id`) e `require_operator/2` (`404` com `ErrorHTML`, sem redirecionar);
@@ -550,17 +609,23 @@ recebe o `404` de um caminho inexistente.
     `put_secure_browser_headers`; o teste precisa reprovar
 
 - [ ] T039 [US2] Telas de entrada, definição e cadastro
-  - **Pronta quando**: **T012 aprovado** (protótipo); T023, T026 e T036 concluídas;
+  - **Pronta quando**: **T012 aprovado** (protótipo); T023, T026, T028a e T036 concluídas;
     `contracts/rotas-da-plataforma.md`
   - **Descrição**: controllers e templates em `lib/the_band_web/controllers/plataforma/` para
     `GET /platform/sign-in`, `POST /platform/session`, `GET /platform/setup`, `POST /platform/setup`,
-    `POST /platform/setup/second-factor` e `DELETE /platform/session`, exatamente como o protótipo.
-    Campos `email`, `password`, `setup_token`, `enrollment_token` e `second_factor_token` (A10). Os
-    códigos de recuperação e o segredo aparecem **uma vez**. Texto em inglês, com o comentário de
-    que é tela
-  - **Feita quando**: o fluxo inteiro, do código de definição à entrada com TOTP, funciona no
-    navegador; a recusa é a mesma frase em todos os casos; o segredo não aparece em nenhuma resposta
-    depois da tela de cadastro
+    `POST /platform/setup/second-factor`, `POST /platform/setup/recovery-codes` (o passo 3,
+    `Credentials.concluir_cadastro/2`, emenda T012 Q3 (b)) e `DELETE /platform/session`, exatamente
+    como o protótipo. Campos `email`, `password`, `setup_token`, `enrollment_token`,
+    `acknowledgement_token`, `codes_stored` e `second_factor_token` (A10). O segredo em base32 e a
+    URI em texto, **sem QR**; os códigos de recuperação e o segredo aparecem **uma vez**. O
+    controller do passo 3 confere `codes_stored` **antes** de chamar o contexto: sem a caixa,
+    re-renderiza a recusa da caixa com o `acknowledgement_token`, sem os códigos, sem consumir nada.
+    Texto em inglês, com o comentário de que é tela
+  - **Feita quando**: o fluxo inteiro, do código de definição à confirmação da guarda dos códigos e
+    à entrada com TOTP, funciona no navegador; antes do passo 3, a entrada é recusada; sem a caixa,
+    o passo 3 não consome o código de guarda e a resposta não traz os códigos; a recusa é a mesma
+    frase em todos os casos; o segredo não aparece em nenhuma resposta depois da tela de cadastro, e
+    os códigos de recuperação em nenhuma depois da resposta de `POST /platform/setup/second-factor`
   - **Teste**: `test/the_band_web/plataforma/entrada_e_definicao_test.exs` com `Phoenix.ConnTest`;
     `refute html =~ segredo` na resposta da entrada e na do `GET /platform/setup`
 
