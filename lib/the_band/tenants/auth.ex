@@ -170,6 +170,11 @@ defmodule TheBand.Tenants.Auth do
         # avaliação da v0.7.0, e ela estava certa: função documentada e sem call site é
         # pior que ausência, porque quem faz `grep` conclui que está registrado.
         AccessEvents.espera_acionada(user.id, user.tenant_id, restante)
+        # O CUSTO DO HASH NA ESPERA TAMBÉM — issue #1047, achado A3 da avaliação da 070. Sem
+        # isto, a conta em espera respondia sem o Bcrypt, e o identificador que não existe
+        # pagava o `no_user_verify` e nunca entrava em espera: o tempo dizia que o e-mail
+        # existia e estava em espera, embora a mensagem fosse a mesma.
+        Bcrypt.no_user_verify()
         {:error, {:throttled, restante}}
       else
         :ok
