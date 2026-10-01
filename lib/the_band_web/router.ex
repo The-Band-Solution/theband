@@ -204,6 +204,10 @@ defmodule TheBandWeb.Router do
     # e no nome da imagem — e o único consumidor da rota roda antes de haver sessão.
     get "/version", VersionController, :show
 
+    # A FILA ANDA? — issue #801. Um verificador FORA do Oban: o guarda de dentro para junto com
+    # o que guarda. Sem autenticação e sem detalhe, como `/version`.
+    get "/health", SaudeController, :show
+
     live "/sign-in", SessionLive.New, :new
     post "/session", SessionController, :create
     delete "/session", SessionController, :delete

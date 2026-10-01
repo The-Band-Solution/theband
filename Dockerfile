@@ -72,5 +72,18 @@ COPY --from=builder --chown=band:band /app/rel/entrypoint.sh /app/entrypoint.sh
 EXPOSE 4000
 ENV PHX_SERVER=true
 
+# A FILA ANDA? — issue #801, contrato em docs/producao/saude-da-fila.md.
+#
+# Em 2026-09-04 o Oban parou por quatro dias com a aplicação respondendo 200, e o guarda que
+# deveria perceber é um job do próprio Oban. Este verificador fica fora dele: o `rpc` executa
+# `TheBand.Release.saude_da_fila/0` dentro do nó que está servindo, pelo cookie da release, sem
+# porta nova e sem pacote novo na imagem (decisão de 2026-09-30, contra instalar `curl`).
+#
+# A função devolve "ok" ou "parada" e nunca derruba o nó; quem decide é o `grep`. O limiar da
+# fila é 15 minutos, e por isso o intervalo é de 1 minuto, com 3 falhas seguidas antes de
+# `unhealthy`. O `start-period` cobre as migrações do entrypoint e o primeiro ciclo do Cron.
+HEALTHCHECK --interval=60s --timeout=20s --start-period=300s --retries=3 \
+  CMD /app/bin/the_band rpc 'IO.puts(TheBand.Release.saude_da_fila())' | grep -qx ok || exit 1
+
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bin/the_band", "start"]

@@ -118,6 +118,24 @@ defmodule TheBand.Release do
   end
 
   @doc """
+  A saúde da fila, para o healthcheck do contêiner — issue #801.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.saude_da_fila())'
+
+  Roda por `rpc`, **dentro do nó que está servindo**, e por isso não carrega a aplicação nem
+  abre `Repo` próprio: usa os que já estão no ar. Devolve `"ok"` ou `"parada"`, e **nunca**
+  derruba o nó: quem decide é o `grep` do `HEALTHCHECK`, do lado de fora. Uma função chamada
+  por `rpc` que parasse o nó transformaria o verificador num defeito.
+  """
+  @spec saude_da_fila() :: String.t()
+  def saude_da_fila do
+    case TheBand.Saude.fila() do
+      :ok -> "ok"
+      {:parada, _minutos} -> "parada"
+    end
+  end
+
+  @doc """
   Desfaz até a versão dada. **Não é chamado automaticamente em lugar nenhum.**
 
   Reverter migração apaga coluna, e apagar coluna apaga dado. Fica aqui para existir
