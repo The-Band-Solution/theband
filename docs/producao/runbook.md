@@ -346,16 +346,22 @@ recomendado.
 > escolher quem fica.
 
 No contêiner do app, pelo Dokploy (*Advanced → Terminal*, ou `docker exec` no
-contêiner da aplicação):
+contêiner da aplicação). **São dois comandos, e qual usar depende de a aplicação estar no ar**
+(#1050):
 
-```bash
-/app/bin/the_band eval 'TheBand.Release.encerrar_todas_as_sessoes()'
-```
+| a aplicação | comando | por quê |
+|---|---|---|
+| **no ar** (o caso normal) | `/app/bin/the_band rpc 'IO.puts(TheBand.Release.girar_sessoes())'` | roda **dentro do nó que serve**, e o aviso derruba as telas abertas |
+| **parada**, por exemplo logo depois de restaurar, antes de subir | `/app/bin/the_band eval 'TheBand.Release.encerrar_todas_as_sessoes()'` | sobe outra VM só para isto; não há tela aberta a derrubar |
+
+Pelo `eval` com a aplicação no ar, as sessões ficam encerradas no banco, mas uma tela já aberta
+segue respondendo até reconectar. É o defeito da #1042 no caminho de incidente, e foi por isso
+que o `rpc` entrou.
 
 A saída diz **quantas** sessões encerrou, e só o número:
 
 ```
-7 sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.
+7 sessão(ões) encerrada(s), e as telas abertas foram avisadas. Todas as pessoas precisam entrar de novo.
 ```
 
 O comando escreve `ended_at` em toda sessão aberta e **não apaga nada**. As linhas
@@ -377,8 +383,8 @@ Ele precisa cair em `/sign-in`.
 
 ### §10.3 O que isto não faz
 
-- **Não derruba um LiveView já conectado** até a próxima navegação (achado S14, baixo).
-  A primeira troca de tela, ou o recarregamento, já cai.
+- **Pelo `eval`, não derruba um LiveView já conectado** (achado S14, depois #1042 e #1050).
+  Pelo `rpc`, derruba: a tela aberta reconfere a sessão e cai em `/sign-in`.
 - **Não troca a chave.** Se a suspeita é sobre o `SECRET_KEY_BASE`, trocá-la é um passo
   separado, no §2.
 
