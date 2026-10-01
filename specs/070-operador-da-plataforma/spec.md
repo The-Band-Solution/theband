@@ -135,6 +135,8 @@ de lá.
 - **FR-014**: Revogar o papel de um operador MUST encerrar a sessão dele na mesma transação, e a
   autorização de operador MUST ser conferida dentro da função que suspende e reativa, e não só na
   montagem da tela (achado O6).
+- **FR-016**: O operador MUST entrar com **segundo fator TOTP**, cadastrado na definição da
+  senha, com códigos de recuperação de uso único *(decisão de 2026-10-01; achado O16)*.
 - **FR-015**: Reativar MUST encerrar também as sessões gravadas depois da suspensão, para fechar a
   corrida entre entrar e suspender (achado O8).
 
