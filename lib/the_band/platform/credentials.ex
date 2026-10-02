@@ -511,15 +511,24 @@ defmodule TheBand.Platform.Credentials do
         falhar_passo(op, :sem_codigo, evento)
 
       DateTime.compare(validade, DateTime.utc_now(:second)) != :gt ->
-        falhar_passo(op, :"#{prefixo}_vencido", evento)
+        falhar_passo(op, motivo(prefixo, :vencido), evento)
 
       not Plug.Crypto.secure_compare(resumo_do_codigo(bruto), guardado) ->
-        falhar_passo(op, :"#{prefixo}_errado", evento)
+        falhar_passo(op, motivo(prefixo, :errado), evento)
 
       true ->
         :ok
     end
   end
+
+  # Os motivos por extenso, e não interpolados num átomo: o Sobelow reprova `:"#{x}_errado"`, e
+  # com razão — o próximo a mexer pode trocar a constante por algo que vem de fora.
+  defp motivo(:codigo, :errado), do: :codigo_errado
+  defp motivo(:codigo, :vencido), do: :codigo_vencido
+  defp motivo(:codigo_de_cadastro, :errado), do: :codigo_de_cadastro_errado
+  defp motivo(:codigo_de_cadastro, :vencido), do: :codigo_de_cadastro_vencido
+  defp motivo(:codigo_de_guarda, :errado), do: :codigo_de_guarda_errado
+  defp motivo(:codigo_de_guarda, :vencido), do: :codigo_de_guarda_vencido
 
   defp falhar_passo(op, motivo, evento) do
     custo_do_hash(:sem_senha_a_conferir)
