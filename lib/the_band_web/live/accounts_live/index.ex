@@ -336,6 +336,14 @@ defmodule TheBandWeb.AccountsLive.Index do
         "This is your own account — ask another administrator."
       )
 
+  # Tela em inglês, mesmo nascendo no domínio: é o guarda do último administrador ativo.
+  defp recusa_de_desativacao(:ultimo_admin_ativo),
+    do:
+      dgettext(
+        "errors",
+        "This is the last active administrator. Disabling it would leave the organisation with none."
+      )
+
   defp recusa_de_desativacao(:ja_desativada),
     do: dgettext("errors", "This account was already disabled.")
 
