@@ -27,7 +27,12 @@ defmodule TheBand.Rotacao do
   alias TheBand.Repo
   alias TheBand.Vault
 
-  @campos [{"tool_credentials", "secret"}, {"ai_provider_credentials", "secret"}]
+  @campos [
+    {"tool_credentials", "secret"},
+    {"ai_provider_credentials", "secret"},
+    # O segredo TOTP do operador da plataforma — spec 070, T021 (seguranca-totp.md, T3).
+    {"platform_operators", "totp_secret"}
+  ]
 
   @type contagens :: %{String.t() => non_neg_integer()}
 
@@ -75,6 +80,15 @@ defmodule TheBand.Rotacao do
   defp consultar({"ai_provider_credentials", "secret"}),
     do: Repo.query!("SELECT id, secret FROM ai_provider_credentials ORDER BY inserted_at")
 
+  # Só os operadores com segundo fator: a coluna é nula até o primeiro passo do cadastro, e um nulo
+  # não é ilegível, é ausente.
+  defp consultar({"platform_operators", "totp_secret"}),
+    do:
+      Repo.query!(
+        "SELECT id, totp_secret FROM platform_operators WHERE totp_secret IS NOT NULL " <>
+          "ORDER BY inserted_at"
+      )
+
   defp regravar({"tool_credentials", "secret"}, id, cifrado),
     do:
       Repo.query!("UPDATE tool_credentials SET secret = $1, updated_at = NOW() WHERE id = $2", [
@@ -86,6 +100,13 @@ defmodule TheBand.Rotacao do
     do:
       Repo.query!(
         "UPDATE ai_provider_credentials SET secret = $1, updated_at = NOW() WHERE id = $2",
+        [cifrado, id]
+      )
+
+  defp regravar({"platform_operators", "totp_secret"}, id, cifrado),
+    do:
+      Repo.query!(
+        "UPDATE platform_operators SET totp_secret = $1, updated_at = NOW() WHERE id = $2",
         [cifrado, id]
       )
 

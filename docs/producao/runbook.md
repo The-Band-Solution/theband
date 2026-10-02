@@ -473,6 +473,106 @@ A release não tem `mix`, e por isso `mix the_band.rotate_key` não existe em pr
 IA. As duas precisam continuar funcionando: a coleta segue, e a rodada de perfis não acusa
 credencial ilegível.
 
+## §13 O operador da plataforma — spec 070
+
+O operador da plataforma suspende e reativa organizações, em `/platform`. Ele não é conta de
+organização nenhuma, e **nenhuma tela concede, reinicia ou revoga o papel** (FR-001): só os três
+comandos abaixo, rodados no terminal do contêiner, pelo Dokploy. Quem roda o comando já tem o
+banco, e o comando é o caminho **registrado** para isso.
+
+`quem executa` é **declarado**, e não autenticado: o comando grava o que se escreveu ali. A prova de
+quem rodou é o acesso ao Dokploy, fora da aplicação.
+
+### §13.1 Antes da primeira concessão: o relógio do servidor
+
+O segundo fator é TOTP, com códigos de 30 segundos. Um servidor com o relógio fora por mais de 30
+segundos recusa **todo** código, e dez recusas seguidas travam o segundo fator até o reinício
+(T11 de `seguranca-totp.md`). No servidor:
+
+```bash
+timedatectl
+```
+
+A saída precisa dizer `System clock synchronized: yes`. Se disser `no`, acerte o NTP antes de
+conceder. Registre a conferência na nota da release, com a data. Se o relógio não foi conferido,
+escreva "não medido", e não "ok".
+
+### §13.2 Conceder o papel
+
+**A pessoa que vai ser operadora roda o comando ela mesma**, ou recebe o código **por voz**. Nunca
+por chat, e-mail, issue, commit nem captura de tela (A17): o código abre a definição de senha da
+conta mais poderosa da plataforma.
+
+```bash
+/app/bin/the_band eval 'TheBand.Release.conceder_operador("<e-mail>", "<nome>", "<quem executa>")'
+```
+
+A saída imprime **uma vez** o código de definição, com a validade de 30 minutos. Ele não fica
+guardado em lugar nenhum além do resumo no banco: perdido, emite-se outro com §13.5.
+
+Conceder de novo a quem já teve o papel não devolve nada de antes: a senha, o segundo fator, os
+códigos de recuperação e as sessões antigas são apagados.
+
+### §13.3 O cadastro, em três passos
+
+Em `https://<endereço>/platform/setup`:
+
+1. **A senha.** O e-mail, o código de definição e a senha nova, de 12 a 128 caracteres, duas vezes.
+   O código vale uma vez.
+2. **O autenticador.** A tela mostra a **chave de configuração** em texto e o endereço
+   `otpauth://`. Não há QR code, por decisão de 2026-10-01. No aplicativo autenticador, escolha
+   "inserir chave" e digite a chave; depois, confirme com um código do aplicativo. **A chave aparece
+   só nesta página**: se a página for fechada antes da confirmação, é preciso um código novo
+   (§13.5). Este passo vence em 10 minutos.
+3. **Os códigos de recuperação.** A tela mostra dez códigos, **uma vez**. Guarde-os fora do
+   computador e do celular do autenticador. Marque a caixa e conclua. Este passo também vence em 10
+   minutos.
+
+**Até o terceiro passo, a entrada é recusada**, mesmo com a senha e o código certos.
+
+### §13.4 Entrar
+
+Em `https://<endereço>/platform/sign-in`, com o e-mail, a senha e o código do aplicativo. Sem o
+aplicativo, use um código de recuperação no mesmo campo. Cada código vale **uma** entrada.
+
+Toda recusa diz a mesma frase, qualquer que seja o campo errado, inclusive durante a espera depois
+de várias tentativas. A sessão dura 8 horas, e cai depois de 30 minutos sem uso.
+
+### §13.5 Perder o celular, ou travar o segundo fator
+
+**Celular perdido é reinício pelo comando, mesmo que ainda haja códigos de recuperação** (T9 de
+`seguranca-totp.md`). O código de recuperação dá uma entrada, mas não revoga o aparelho perdido, e
+o segredo que está nele continua valendo até o reinício.
+
+O reinício é o mesmo para quem errou dez códigos seguidos (o segundo fator trava) e para quem
+perdeu a senha:
+
+```bash
+/app/bin/the_band eval 'TheBand.Release.reiniciar_credencial_do_operador("<e-mail>", "<quem executa>")'
+```
+
+O reinício apaga a senha, o segundo fator e os códigos de recuperação, encerra as sessões e imprime
+um código de definição novo, **uma vez**, com a mesma regra de §13.2 para entregá-lo. O cadastro
+recomeça de §13.3.
+
+### §13.6 Revogar o papel
+
+```bash
+/app/bin/the_band eval 'TheBand.Release.revogar_operador("<e-mail>", "<quem executa>", "<nota>")'
+```
+
+A revogação encerra as sessões do operador na mesma transação, e um ato em voo é recusado. Ela é
+definitiva: para devolver o papel, concede-se de novo (§13.2).
+
+### §13.7 O que este roteiro não cobre
+
+- **O limite por endereço de origem (A4).** Ainda não existe: depende de medir se o proxy do
+  Dokploy sobrescreve `x-forwarded-for` (T004). Até lá, a espera é só por conta.
+- **Aviso ao operador.** A plataforma não avisa a pessoa quando o segundo fator é trocado ou quando
+  um código é reusado (T9). O registro fica no log de acesso, com o prefixo `acesso: operador`.
+- **Phishing em tempo real.** O TOTP não resiste a ele (T10). O endereço da área do operador é o
+  da plataforma, e nenhum link para ela é enviado por e-mail.
+
 ## §14 Os papéis do banco — spec 071 (#1131)
 
 A aplicação **migra** com um papel dono do esquema e **serve** com outro, sem posse e só com

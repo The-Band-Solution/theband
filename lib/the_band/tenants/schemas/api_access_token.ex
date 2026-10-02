@@ -59,6 +59,10 @@ defmodule TheBand.Tenants.Schemas.ApiAccessToken do
     field :revoked_at, :utc_datetime
     field :revoked_by_user_id, :binary_id
 
+    # O episódio de suspensão que revogou o token — spec 070, T047. Preenchido, o autor não é uma
+    # conta: `revoked_by_user_id` fica nulo, e a tela escreve que a organização foi suspensa.
+    field :revoked_by_suspension_id, :binary_id
+
     # A razão da revogação — decisão Q4, 2026-09-23. **Nulo é ausência dita**, e quem
     # renderiza escreve *"no reason recorded"*: as revogações anteriores à decisão não têm
     # razão, e escolher uma para elas seria inventar a razão de outra pessoa.

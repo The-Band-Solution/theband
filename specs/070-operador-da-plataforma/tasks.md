@@ -70,7 +70,7 @@ operador. A US1 continua sendo o defeito #1009 e o motivo da feature.
 **Propósito**: o que precisa ser verdade antes de qualquer linha em `lib/` ou `test/`. Nenhuma
 destas tarefas escreve código da 070.
 
-- [ ] T001 Conferir os pré-requisitos já mergeados
+- [x] T001 Conferir os pré-requisitos já mergeados
   - **Pronta quando**: nada além do repositório
   - **Descrição**: confirmar, com `gh pr view <n> --json state,mergedAt,baseRefName`, que os PRs
     **#1038** (#1033, `Tenants.ensure_active/1`, FR-012), **#1039** (#1034, `Access.operacional?/2`
@@ -88,7 +88,7 @@ destas tarefas escreve código da 070.
   - **Teste**: `git grep -n "def ensure_active\|def avisar_encerramento" origin/development -- lib/`
     devolve as duas definições
 
-- [ ] T002 Esperar o merge da correção da espera paralela
+- [x] T002 Esperar o merge da correção da espera paralela
   - **Pronta quando**: nada além do repositório
   - **Descrição**: o PR **#1048** (issue #1046, achado **A1** nas contas de organização) precisa
     estar mergeado em `development`. `Platform.Credentials` **copia** a política de
@@ -102,7 +102,7 @@ destas tarefas escreve código da 070.
     verificação (conferido por T008, `contracts/credenciais-do-operador.md`). **Falta** o
     comentário na issue, que só existe depois de T006; por isso a tarefa continua aberta (L109)
 
-- [ ] T003 Esperar o merge da correção do custo na espera
+- [x] T003 Esperar o merge da correção do custo na espera
   - **Pronta quando**: nada além do repositório
   - **Descrição**: a issue **#1047** (achado **A3** nas contas de organização: a espera responde sem
     custo de hash e revela se o e-mail existe) precisa de PR aberto e mergeado em `development`.
@@ -115,7 +115,7 @@ destas tarefas escreve código da 070.
     `gh pr view 1049 --json state` → **`MERGED`** (23:58Z), e a issue #1047 está fechada. Os dois
     critérios estão cumpridos; marcar `[x]` quando T006 der a issue em que se cola a saída
 
-- [ ] T003a Esperar o merge da rotação que recifra todos os campos cifrados — **bloqueante** (seguranca-totp.md T3)
+- [x] T003a Esperar o merge da rotação que recifra todos os campos cifrados — **bloqueante** (seguranca-totp.md T3)
   - **Pronta quando**: nada além do repositório
   - **Descrição**: a issue **#1052** (`bug` + `security`; achado **T3** de `seguranca-totp.md`,
     decisão da pessoa mantenedora em 2026-10-01: issue separada e anterior) precisa estar mergeada
@@ -285,7 +285,7 @@ template começa antes de T012.
     guarda dos códigos de recuperação (Q3 (b)); contagens de sessões e tokens só no evento (Q4 (b)).
     As três primeiras já estão emendadas nos contratos
 
-- [ ] T013 [P] Restringir o estado da organização
+- [x] T013 [P] Restringir o estado da organização
   - **Pronta quando**: T007 concluída; `contracts/sessoes-e-tokens-da-organizacao.md`, seção
     `TheBand.Tenants.Tenant`
   - **Descrição**: migração `priv/repo/migrations/<ts>_estado_da_organizacao_valido.exs` com
@@ -307,7 +307,7 @@ template começa antes de T012.
     ecto.migrate` seguido de `mix ecto.rollback --step 1` sem erro. **Defeito a injetar**: devolver
     `:status` ao `cast`; o primeiro caso precisa reprovar
 
-- [ ] T014 [P] Declarar as razões de suspensão na base — lista aprovada pela pessoa mantenedora em 2026-10-01, como em data-model §5
+- [x] T014 [P] Declarar as razões de suspensão na base — lista aprovada pela pessoa mantenedora em 2026-10-01, como em data-model §5
   - **Pronta quando**: T007 concluída; `data-model.md` §5 (lista **proposta**)
   - **Descrição**: `priv/knowledge_base/rules/platform_tenant_suspension.yaml`, `derivation_rule:`
     de id `platform.tenant_suspension`, `provenance.source_type: project_decision`, na forma de
@@ -319,7 +319,7 @@ template começa antes de T012.
   - **Teste**: `mix knowledge.validate > /tmp/kv.log 2>&1; echo "EXIT=$?"` dá `0`; com o `id`
     duplicado de propósito, dá diferente de zero
 
-- [ ] T015 [P] Declarar a cláusula de revogação só registrada
+- [x] T015 [P] Declarar a cláusula de revogação só registrada
   - **Pronta quando**: T007 concluída; `data-model.md` §6, `api_access_tokens`
   - **Descrição**: `priv/knowledge_base/rules/api_access_thresholds.yaml` ganha
     `clausulas_so_registradas: [organizacao_suspensa]` com rótulo pt-BR e en. FR-013
@@ -327,7 +327,7 @@ template começa antes de T012.
     oferecidas (afirmado em T047)
   - **Teste**: `mix knowledge.validate` dá `0`, e o teste de T047 lê a chave
 
-- [ ] T016 [P] Ensinar o log a dizer o operador e a calar o segredo
+- [x] T016 [P] Ensinar o log a dizer o operador e a calar o segredo
   - **Pronta quando**: T007 concluída; `contracts/eventos-de-acesso.md`;
     `contracts/credenciais-do-operador.md` (A10)
   - **Descrição**: `config/config.exs`: `:operator_id` na lista de metadados do formatador (O14,
@@ -340,7 +340,7 @@ template começa antes de T012.
     filtrados (cenário 9 de `seguranca-autenticacao.md`). **Defeito a injetar**: retirar `"code"`
     da lista; o terceiro precisa vazar e o teste reprovar
 
-- [ ] T017 [P] Compartilhar a CSP entre as duas pipelines
+- [x] T017 [P] Compartilhar a CSP entre as duas pipelines
   - **Pronta quando**: T007 concluída; `contracts/rotas-da-plataforma.md`, "A pipeline"
   - **Descrição**: em `lib/the_band_web/router.ex`, extrair a CSP de `:browser` (`router.ex:28-39`)
     para um atributo de módulo, sem mudar o valor, para a pipeline `:plataforma` (T036) usar o
@@ -364,7 +364,7 @@ mesmo navegador em `/people`, `/teams/:id_de_B`, `/api/v1/people` e `/mcp` receb
 anônimo, e nenhuma consulta de domínio roda; um admin de organização em `/platform/organizations`
 recebe o `404` de um caminho inexistente.
 
-- [ ] T018 [US2] Criar as tabelas do operador
+- [x] T018 [US2] Criar as tabelas do operador
   - **Pronta quando**: T008 concluída; T007 concluída; `data-model.md` §1 (sem as colunas do TOTP),
     §2 e §3
   - **Descrição**: `priv/repo/migrations/<ts>_operador_da_plataforma.exs` com
@@ -379,7 +379,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `mix ecto.migrate` e `mix ecto.rollback --step 1` sem erro, e de novo `migrate`;
     `test/the_band/platform/tabelas_do_operador_test.exs` afirma o índice parcial
 
-- [ ] T019 [US2] Provar que a concessão não se apaga nem se reescreve
+- [x] T019 [US2] Provar que a concessão não se apaga nem se reescreve
   - **Pronta quando**: T018 concluída
   - **Descrição**: cenário 11 de `seguranca-autenticacao.md` e quickstart §7, para
     `platform_operator_grants`. FR-002, A13
@@ -389,7 +389,7 @@ recebe o `404` de um caminho inexistente.
     trigger de `UPDATE` comparando só `revoked_at`; o terceiro caso precisa passar a gravar e o teste
     reprovar. Segundo defeito: retirar o `BEFORE TRUNCATE`
 
-- [ ] T020 [US2] Criar as colunas e a tabela do segundo fator
+- [x] T020 [US2] Criar as colunas e a tabela do segundo fator
   - **Pronta quando**: T011 concluída; T018 concluída; `data-model.md` §1 (colunas do TOTP) e §1a
   - **Descrição**: `priv/repo/migrations/<ts>_segundo_fator_do_operador.exs`: em
     `platform_operators`, `totp_secret` (binário cifrado), `totp_confirmed_at`,
@@ -405,7 +405,7 @@ recebe o `404` de um caminho inexistente.
     `test/the_band/platform/tabelas_do_segundo_fator_test.exs` com os dois casos. **Defeito a
     injetar**: retirar o `CHECK` do segredo; o primeiro caso precisa gravar e o teste reprovar
 
-- [ ] T021 [US2] Escrever os schemas do contexto da plataforma
+- [x] T021 [US2] Escrever os schemas do contexto da plataforma
   - **Pronta quando**: T018 e T020 concluídas; **T003a concluída** (a #1052, PR #1053, mergeada: a
     lista de campos cifrados da rotação existe) e a branch rebaseada de novo sobre
     `origin/development`, como T007
@@ -428,7 +428,7 @@ recebe o `404` de um caminho inexistente.
     cada campo, e a leitura crua da coluna difere do segredo em claro; e um caso na suíte da
     rotação que a #1052 criou, com um operador semeado
 
-- [ ] T022 [US2] Conferir o código do segundo fator
+- [x] T022 [US2] Conferir o código do segundo fator
   - **Pronta quando**: `contracts/segundo-fator-do-operador.md` emendado por T011; T010 sem achado
     alto aberto; a dependência fixada em `mix.exs` com a versão de T009: `{:nimble_totp, "== 1.0.0"}`
     (sem `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos; plan.md, Technical Context)
@@ -448,7 +448,7 @@ recebe o `404` de um caminho inexistente.
     reprovar); retirar a comparação com `ultimo_passo` (o caso de reuso precisa passar e o teste
     reprovar); **voltar a 10 bytes** por código de recuperação (C2 precisa reprovar)
 
-- [ ] T033 [P] [US2] Registrar os eventos de acesso do operador
+- [x] T033 [P] [US2] Registrar os eventos de acesso do operador
   - **Pronta quando**: `contracts/eventos-de-acesso.md` emendado (A7) e conferido por T008; T016
     concluída
   - **Descrição**: em `lib/the_band/tenants/access_events.ex`, as funções do contrato, todas em
@@ -468,7 +468,7 @@ recebe o `404` de um caminho inexistente.
     injetar**: incluir o código no metadado de `operador_definicao_recusada/2`; o `refute` precisa
     reprovar
 
-- [ ] T023 [US2] Conferir a entrada do operador
+- [x] T023 [US2] Conferir a entrada do operador
   - **Pronta quando**: **A1** e **A3** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T002 (#1048) e T003 (#1047) mergeadas e T007 rebaseada, para copiar a
     forma corrigida; T021, T022 e **T033** concluídas (os eventos que esta tarefa emite; achado O3)
@@ -489,7 +489,7 @@ recebe o `404` de um caminho inexistente.
     motivo interno de cada um aparece no evento; o sucesso devolve `{:ok, %Operator{}}`
   - **Teste**: `test/the_band/platform/credentials_autenticar_test.exs`, um caso por motivo
 
-- [ ] T023a [US2] Provar que a rotação da chave alcança o segredo TOTP — **bloqueia a release** (seguranca-totp.md T3)
+- [x] T023a [US2] Provar que a rotação da chave alcança o segredo TOTP — **bloqueia a release** (seguranca-totp.md T3)
   - **Pronta quando**: T003a, T021 e T023 concluídas
   - **Descrição**: cenário **C10** de seguranca-totp.md: cifrar com a chave A, cadastrar o segundo
     fator de um operador, rotacionar para B com `mix the_band.rotate_key`, remover A do ambiente, e
@@ -501,7 +501,7 @@ recebe o `404` de um caminho inexistente.
     `platform_operators` da lista da rotação; a entrada precisa falhar e o teste reprovar. É o
     critério "C10 verde" de T064
 
-- [ ] T024 [US2] Provar a espera sob rajada paralela
+- [x] T024 [US2] Provar a espera sob rajada paralela
   - **Pronta quando**: T023 concluída
   - **Descrição**: cenário 1 de `seguranca-autenticacao.md` (**A1**): operador com 3 falhas e
     `last_failed_at` agora; 10 `Task` chamam `autenticar/3` com senha errada ao mesmo tempo, com o
@@ -512,7 +512,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/espera_paralela_test.exs`. **Defeito a injetar**: retirar o
     `FOR UPDATE`; `failed_attempts` precisa subir mais de 1 e o teste reprovar
 
-- [ ] T025 [US2] Provar que a espera paga o custo do hash
+- [x] T025 [US2] Provar que a espera paga o custo do hash
   - **Pronta quando**: T023 concluída
   - **Descrição**: cenário 2 de `seguranca-autenticacao.md` (**A3**): um operador em espera e um
     e-mail inexistente. Instrumentar a chamada a `Bcrypt.no_user_verify/0` e `verify_pass/2` por
@@ -522,7 +522,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/espera_paga_o_hash_test.exs`. **Defeito a injetar**: retirar o
     hash do ramo da espera; a contagem do primeiro caso precisa dar zero e o teste reprovar
 
-- [ ] T026 [US2] Definir a senha e cadastrar o segundo fator
+- [x] T026 [US2] Definir a senha e cadastrar o segundo fator
   - **Pronta quando**: **A5** e **A14** emendados em `contracts/credenciais-do-operador.md` e
     conferidos por T008; T011 concluída; T023 e **T033** concluídas (os eventos de A7; achado O3)
   - **Descrição**: `definir_senha/3`, `confirmar_segundo_fator/3` e `concluir_cadastro/2` em
@@ -550,7 +550,7 @@ recebe o `404` de um caminho inexistente.
     chamada a `AccessEvents.operador_definicao_recusada/2` em `definir_senha/3`; o caso do código
     de definição errado precisa reprovar (vindo de T033)
 
-- [ ] T027 [US2] Provar o código de uso único sob concorrência
+- [x] T027 [US2] Provar o código de uso único sob concorrência
   - **Pronta quando**: T026 concluída
   - **Descrição**: cenário 3 de `seguranca-autenticacao.md` (**A5**): duas `Task` chamam
     `definir_senha/3` com o mesmo código e senhas diferentes; o mesmo para o código de cadastro em
@@ -560,7 +560,7 @@ recebe o `404` de um caminho inexistente.
   - **Teste**: `test/the_band/platform/codigo_de_uso_unico_test.exs`. **Defeito a injetar**: conferir
     o resumo em memória e gravar depois, sem lock; as duas precisam passar e o teste reprovar
 
-- [ ] T028 [US2] Provar o segundo fator na entrada
+- [x] T028 [US2] Provar o segundo fator na entrada
   - **Pronta quando**: T026 e T033 concluídas (C9 afirma o evento); os cenários de
     `seguranca-totp.md` (T010): C3, C4, C5, C9, C12. **C6 e C7** pedem `revogar/3` e
     `reiniciar_credencial/2` e estão em T030a; **C8** pede os controllers e está em T039 (achado O1)
@@ -574,7 +574,7 @@ recebe o `404` de um caminho inexistente.
     gravar `totp_last_used_step` no sucesso (o reuso precisa passar); consumir o código de
     recuperação sem `used_at IS NULL` no `WHERE` (os dois paralelos precisam passar)
 
-- [ ] T029 [US2] Abrir e conferir a sessão do operador
+- [x] T029 [US2] Abrir e conferir a sessão do operador
   - **Pronta quando**: `contracts/sessao-do-operador.md` emendado (A11, A15) e conferido por T008;
     T021 concluída
   - **Descrição**: `lib/the_band/platform/sessions.ex`: `abrir/1`, `conferir/2` (os oito motivos,
@@ -589,7 +589,7 @@ recebe o `404` de um caminho inexistente.
     retirar a leitura da concessão da consulta; o caso `:sem_concessao` precisa dar `{:ok, …}` e o
     teste reprovar
 
-- [ ] T030 [US2] Conceder, reiniciar e revogar o papel
+- [x] T030 [US2] Conceder, reiniciar e revogar o papel
   - **Pronta quando**: **A6**, A13c, A14 e A15 emendados em `contracts/concessao-do-operador.md` e
     conferidos por T008; T026 e T029 concluídas
   - **Descrição**: `lib/the_band/platform/grants.ex`: `conceder/3` (cria ou, se já existe sem
@@ -602,7 +602,7 @@ recebe o `404` de um caminho inexistente.
     seguidas devolve `{:error, :ja_concedido}`
   - **Teste**: `test/the_band/platform/grants_test.exs`, os dois casos
 
-- [ ] T030a [US2] Provar a revogação e o reinício no meio do cadastro
+- [x] T030a [US2] Provar a revogação e o reinício no meio do cadastro
   - **Pronta quando**: T030 concluída (e, por ela, T026); cenários C6, C7, C16 e C18 de
     seguranca-totp.md
   - **Descrição**: os cenários do cadastro em três passos que dependem de `revogar/3` e de
@@ -622,7 +622,7 @@ recebe o `404` de um caminho inexistente.
     o código de cadastro (C7); retirar a conferência de `ack_code_expires_at` (C16); `revogar/3` sem
     anular `ack_code_hash` (C18)
 
-- [ ] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
+- [x] T028a [US2] Provar o limite próprio do segundo fator — **bloqueante** (seguranca-totp.md T1, alta)
   - **Pronta quando**: T023 concluída com `second_factor_failures`; **T030 concluída** (a asserção
     "`reiniciar_credencial/2` destrava" precisa dela; achado O1); `contracts/credenciais-do-operador.md`,
     "limite próprio do segundo fator"
@@ -638,7 +638,7 @@ recebe o `404` de um caminho inexistente.
     por vez: contar só em `failed_attempts` (o 11º passa e C1 reprova); incrementar o contador antes
     de conferir a senha (C1b reprova)
 
-- [ ] T031 [US2] Provar que conceder de novo não devolve credencial
+- [x] T031 [US2] Provar que conceder de novo não devolve credencial
   - **Pronta quando**: T030 concluída
   - **Descrição**: cenário 4 de `seguranca-autenticacao.md` (**A6**): conceder, definir senha e
     segundo fator, revogar, conceder de novo
@@ -650,7 +650,7 @@ recebe o `404` de um caminho inexistente.
     entrada antiga precisa autenticar e o teste reprovar; um por vez, a asserção sobre a coluna
     correspondente precisa reprovar
 
-- [ ] T032 [US2] Comandos de operação para o papel
+- [x] T032 [US2] Comandos de operação para o papel
   - **Pronta quando**: T030 concluída; `contracts/concessao-do-operador.md`, seção `TheBand.Release`;
     a **#1050** (PR **#1051**) em `development` — criou `Release.girar_sessoes/0`, por `rpc`, que esta
     tarefa estende (`MERGED` em 2026-10-01 23:59Z; T001 reconfere)

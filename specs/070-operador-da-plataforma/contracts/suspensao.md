@@ -40,6 +40,12 @@ linha da sessão do operador **e** a da concessão vigente. A revogação (`UPDA
 reinício de credencial (`FOR UPDATE` nas sessões, `concessao-do-operador.md`) se serializam com o
 ato em voo, e o ato que perde recusa com `:nao_autorizado`.
 
+> **Emendado em 2026-10-02, na implementação (T049).** A transação é `Repo.transaction/1` com
+> `rollback`, e não `Ecto.Multi`: o Dialyzer recusa o termo opaco do `Multi` nesta versão
+> (`sessoes-e-tokens-da-organizacao.md`, `trocar_estado/3`). Os passos continuam nomeados
+> (`:autorizacao`, `:razao`, `:estado`, `:episodio`, `:sessoes` e `:tokens`, e `:aberto` na
+> reativação), e a recusa sai com o nome de quem recusou, como os de research R8.
+
 ## `listar_organizacoes(OperatorSession.t()) :: {:ok, [resumo]} | {:error, :nao_autorizado}`
 
 `resumo :: %{id, name, slug, status, ultimo_episodio_em :: DateTime.t() | nil}`. **Duas consultas,

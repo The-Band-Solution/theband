@@ -24,6 +24,7 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
   """
   use TheBandWeb.ConnCase, async: false
 
+  import Ecto.Query, only: [from: 2]
   import Phoenix.LiveViewTest
 
   alias TheBand.Repo
@@ -39,10 +40,16 @@ defmodule TheBand.Tenants.OrganizacaoSuspensaTest do
   end
 
   defp suspender(tenant) do
-    {:ok, suspenso} =
-      tenant
-      |> Tenants.Tenant.changeset(%{"status" => "suspended"})
-      |> Repo.update()
+    # Por `update_all`, e não pelo changeset: desde a spec 070 (T013) `:status` não é castável, e o
+    # estado só muda pela suspensão do operador. Este teste prova o efeito da organização suspensa,
+    # e não o ato de suspender. Continua verde depois do trigger adiado de T044a só porque o
+    # sandbox nunca faz `COMMIT` (data-model §4a).
+    {1, _} =
+      Repo.update_all(from(t in Tenants.Tenant, where: t.id == ^tenant.id),
+        set: [status: "suspended"]
+      )
+
+    suspenso = Repo.get!(Tenants.Tenant, tenant.id)
 
     # A GUARDA DO CENÁRIO: sem ela, um `status` que não gravou faria todos os testes
     # abaixo passarem por a organização continuar ativa — verde afirmando o contrário.

@@ -202,8 +202,12 @@ de §4 (T044), que cria `tenant_suspensions` e insere os episódios `not_recorde
 LOCK TABLE tenants, tenant_suspensions IN SHARE ROW EXCLUSIVE MODE;
 
 -- G2: `search_path` fixo, para uma tabela temporária de mesmo nome não sombrear a conferência.
+-- Emendado em 2026-10-02 (T044a): `pg_temp` POR ÚLTIMO, explícito. Sem listá-lo, o PostgreSQL
+-- procura `pg_temp` PRIMEIRO, e `pg_catalog, public` sozinho não protegia; quem protegia eram os
+-- nomes qualificados com `public.`, que ficam. Medido: sem os dois, o caso da tabela temporária
+-- reprova.
 CREATE FUNCTION tenant_estado_tem_episodio() RETURNS trigger
-SET search_path = pg_catalog, public AS $$
+SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE
   alvo uuid;
   estado text;

@@ -21,6 +21,10 @@ defmodule TheBand.Tenants do
   alias TheBand.Tenants.Tenant
   alias TheBand.Tenants.User
 
+  # As colunas de `tenants` que a área do operador lê (spec 070, FR-007). `select` explícito, e não
+  # a struct: o que não está aqui não sai do banco para a plataforma.
+  @colunas_para_a_plataforma [:id, :name, :slug, :status]
+
   # Feature 045 — contratos em specs/045-autenticacao-e-acesso/contracts/.
   defdelegate authenticate(identificador, senha), to: Auth
   defdelegate set_password(tenant, user_id, senha), to: Auth
@@ -52,6 +56,7 @@ defmodule TheBand.Tenants do
   defdelegate revoke_api_token(tenant, id, autor, razao), to: ApiTokens, as: :revogar
   defdelegate api_token_revocation_clauses(), to: ApiTokens, as: :clausulas_de_revogacao
   defdelegate api_token_revocation_labels(), to: ApiTokens, as: :clausulas_com_rotulo
+  defdelegate api_token_recorded_revocation_labels(), to: ApiTokens, as: :rotulos_registrados
 
   defdelegate api_token_usage_by_route(tenant, public_id, janela_em_segundos),
     to: TheBand.Tenants.ApiAccessLog,
@@ -88,6 +93,83 @@ defmodule TheBand.Tenants do
   @spec ensure_active(Tenant.t()) :: :ok | {:error, :tenant_inactive}
   def ensure_active(%Tenant{status: "active"}), do: :ok
   def ensure_active(%Tenant{}), do: {:error, :tenant_inactive}
+
+  @typedoc "O que a área do operador lê de uma organização (FR-007): o `id`, que não é mostrado, e três colunas."
+  @type resumo_para_a_plataforma :: %{
+          id: Ecto.UUID.t(),
+          name: String.t(),
+          slug: String.t(),
+          status: String.t()
+        }
+
+  @doc """
+  Todas as organizações, por `name`, só com o que a área do operador pode ler — spec 070, T038a
+  (FR-007; achado D1).
+
+  **Mapa, e nunca `%Tenant{}`**: a struct traz `has_many :users`, a um `preload` de distância de
+  dado de domínio. Sem junção e sem contagem.
+
+  **Só `TheBand.Platform` chama** (achado D1-b): esta leitura não recebe tenant, porque é o escopo
+  da plataforma, e uma tela de domínio que a usasse mostraria a uma pessoa de A o nome de B. O teste
+  `resumos_para_a_plataforma_test.exs` afirma isso pelo `mix xref callers`.
+  """
+  @spec resumos_para_a_plataforma() :: [resumo_para_a_plataforma()]
+  def resumos_para_a_plataforma,
+    do: Repo.all(from(t in Tenant, order_by: t.name, select: map(t, ^@colunas_para_a_plataforma)))
+
+  @doc "Uma organização pelo `slug`, na forma de `resumos_para_a_plataforma/0`."
+  @spec resumo_para_a_plataforma(String.t()) ::
+          {:ok, resumo_para_a_plataforma()} | {:error, :not_found}
+  def resumo_para_a_plataforma(slug) when is_binary(slug) do
+    case Repo.one(
+           from(t in Tenant, where: t.slug == ^slug, select: map(t, ^@colunas_para_a_plataforma))
+         ) do
+      nil -> {:error, :not_found}
+      resumo -> {:ok, resumo}
+    end
+  end
+
+  @doc """
+  Troca o estado da organização de `de` para `para`, **dentro da transação de quem chama** — spec
+  070, T046a (O10; achado D1). Contrato em
+  `specs/070-operador-da-plataforma/contracts/sessoes-e-tokens-da-organizacao.md`.
+
+  É a **única** escrita de `tenants.status` fora da criação. Fora de uma transação ela **levanta**:
+  a troca nunca se confirma sozinha, sem o episódio, as sessões e os tokens da suspensão. Chamar
+  fora é defeito de quem chama, e não caso de negócio. O único chamador é
+  `TheBand.Platform.Suspensions`.
+
+  A condição de estado fica **no `WHERE`**, e não numa leitura anterior: duas suspensões paralelas
+  passariam as duas por uma leitura de antes. Devolve `{:ok, %Tenant{status: para}}`,
+  `{:error, :estado_mudou}` (a organização existe, e o estado já não era `de`) ou
+  `{:error, :not_found}`.
+
+  Era `trocar_estado_no_multi/5`, um passo de `Ecto.Multi`. O Dialyzer recusa o termo opaco do
+  `Multi` nesta versão (medido no `mix gates` de 2026-10-02, `call_without_opaque`), e a casa já usa
+  `Repo.transaction/1` pelo mesmo motivo (`item_phase.ex`).
+  """
+  @spec trocar_estado(Tenant.t(), String.t(), String.t()) ::
+          {:ok, Tenant.t()} | {:error, :estado_mudou | :not_found}
+  def trocar_estado(%Tenant{id: id}, de, para)
+      when (de == "active" and para == "suspended") or (de == "suspended" and para == "active") do
+    unless Repo.in_transaction?(),
+      do: raise(ArgumentError, "trocar_estado/3 só existe dentro da transação de quem chama")
+
+    case Repo.update_all(
+           from(t in Tenant, where: t.id == ^id and t.status == ^de, select: t),
+           set: [status: para, updated_at: DateTime.utc_now(:second)]
+         ) do
+      {1, [tenant]} ->
+        {:ok, tenant}
+
+      {0, _} ->
+        {:error,
+         if(Repo.exists?(from t in Tenant, where: t.id == ^id),
+           do: :estado_mudou,
+           else: :not_found
+         )}
+    end
+  end
 
   @spec get_by_slug(String.t()) :: Tenant.t() | nil
   def get_by_slug(slug), do: Repo.get_by(Tenant, slug: slug)
