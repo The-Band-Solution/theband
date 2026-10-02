@@ -106,7 +106,13 @@ ato na conta desativada; como membro, nenhum controle.
   a administração adiante. A tela pede confirmação.
 - **Promover quem já é administrador, ou rebaixar quem já é membro**, é recusado como estado que
   mudou (outra aba chegou antes), e nada muda.
-- **Desativar e reativar uma conta** não muda a marca dela. A marca é outra coisa.
+- **Desativar e reativar uma conta** não muda a marca dela. **Decisão pendente** (S8; Q1 do
+  protótipo): permitir rebaixar um administrador desativado, para a reativação não devolver a
+  administração sem registro. A recomendação é permitir.
+- **Os tokens de API**: o veredito relê o papel a cada chamada (`api_auth.ex:80`, MCP
+  `servidor.ex:39`, medido por leitura), então o token do rebaixado perde o alcance de admin na
+  próxima chamada. Os tokens que um admin emitiu para **outros** donos continuam, e são declarados
+  no risco residual (S5).
 - **O bootstrap** cria a primeira conta como administradora (`bootstrap.ex:164`), e continua sendo
   o único caminho de criação com a marca.
 - **O cadastro de conta pela tela** não pode criar administrador, mesmo que os atributos tragam
@@ -116,30 +122,48 @@ ato na conta desativada; como membro, nenhum controle.
 
 ### Functional Requirements
 
+> **Emendado em 2026-10-02** pela avaliação do agente `security` ([seguranca.md](seguranca.md),
+> S1 a S9), antes do plano. Os pontos que dependem da pessoa mantenedora estão marcados.
+
 - **FR-001**: Um administrador ativo MUST poder promover a administrador uma conta **ativa** da sua
   organização, e rebaixar a membro um administrador da sua organização.
-- **FR-002**: Promover e rebaixar MUST ser recusados a quem não é administrador ativo, conferido
-  **dentro** do ato e não só na tela.
+- **FR-002**: Promover e rebaixar MUST conferir o **ator dentro do ato, relido do banco**: ele
+  precisa estar no conjunto de administradores ativos travado pela mesma operação, e não basta a
+  struct que a tela recebeu no `mount`. Sem isso, um rebaixado se promoveria de volta pela aba que
+  ficou aberta (S2).
+- **FR-002a**: Os atos de administração que já existem MUST conferir o ator relido do banco, pela
+  mesma regra, e não só a tela que os chama: `Auth.reset_password`, `Auth.cadastrar_conta`,
+  `Tenants.disable_user`/`enable_user`, `ApiTokens.criar`, e `Access.grant`/`revoke` (S1). Antes
+  desta feature ninguém perdia a marca; com ela, o papel congelado no `mount` vira uma escalada.
 - **FR-003**: Conta de outra organização MUST dar "não encontrada", e nunca "sem permissão".
 - **FR-004**: O rebaixamento que deixaria a organização sem nenhum administrador ativo MUST ser
-  recusado. Duas operações concorrentes (rebaixar e rebaixar, ou rebaixar e desativar) MUST NOT
-  deixar a organização sem administrador. É o mesmo guarda da desativação, com a mesma trava.
-- **FR-005**: Cada promoção e cada rebaixamento MUST deixar um registro somente-acréscimo:
-  - quem agiu e sobre qual conta;
-  - o papel de antes e o de depois;
-  - o instante.
+  recusado. Promover, rebaixar e desativar MUST usar **um único guarda**, com esta sequência:
+  1. trava o conjunto de administradores ativos com `FOR UPDATE`, em ordem de id;
+  2. trava e **relê o alvo**;
+  3. decide pelo papel relido.
 
-  O registro é consultável na tela de contas.
+  A desativação de hoje decide pelo papel lido antes da trava, e com a promoção uma sequência de
+  três atos deixaria zero administradores (S3).
+- **FR-005**: Cada promoção e cada rebaixamento MUST deixar um registro somente-acréscimo, com quem
+  agiu, sobre qual conta, o papel de antes e o de depois, e o instante. O registro é **garantido no
+  banco**, como na 070 (S6):
+  - triggers que recusam `DELETE`, `UPDATE` e `TRUNCATE`;
+  - um trigger adiado que recusa mudar `users.role` sem o episódio correspondente.
 - **FR-006**: A escrita de `users.role` MUST passar só pelo ato desta feature, salvo a criação pelo
-  bootstrap. O cadastro de conta MUST criar sempre `member`, qualquer que seja o atributo recebido.
-  O banco MUST recusar um valor fora de `admin` e `member`.
-- **FR-007**: O ato MUST emitir um evento de acesso com quem agiu, sobre quem, de que papel para que
-  papel e a organização. A nota livre, se houver, não vai ao log.
-- **FR-008**: Uma conta rebaixada com uma tela de administração aberta MUST perder a capacidade de
-  administrar na próxima ação daquela tela, sem esperar reconexão.
+  bootstrap. `User.changeset/2` MUST deixar de fazer `cast` de `:role` (S4). O cadastro cria sempre
+  `member`. O banco recusa valor fora de `admin` e `member` com um `CHECK`, e a migração confere as
+  linhas existentes antes de criá-lo (S7).
+- **FR-007**: O ato, aceito ou recusado, MUST emitir um evento de acesso com quem agiu, sobre quem,
+  de que papel para que papel, a organização e, na recusa, o motivo. O ato MUST devolver o
+  episódio, para o teste não depender do log (S9). A nota livre não vai ao log.
+- **FR-008**: Uma conta rebaixada com uma tela aberta MUST perder a capacidade de administrar
+  **na próxima ação** (S1). Duas camadas:
+  - o aviso por PubSub, no tópico da conta, depois do `commit`, faz a tela reler a conta e reaplicar
+    a condição da área;
+  - o domínio confere o ator relido (FR-002a). É a camada que vale mesmo sem o aviso.
 - **FR-009**: A tela de contas MUST mostrar o ato que cabe a cada conta, com confirmação, e a
   recusa como estado, com a frase em inglês. Ela segue o protótipo aprovado pela pessoa
-  mantenedora.
+  mantenedora (`prototipo/`, ainda **por aprovar**).
 
 ### Key Entities
 
