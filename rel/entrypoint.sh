@@ -35,8 +35,13 @@ done
 # migra como hoje se quem serve ainda é dono; sobe sem migrar se não há pendente; NÃO sobe se há.
 echo "aplicando migrações pendentes…"
 if [ -n "$DATABASE_MIGRATION_URL" ]; then
-  DATABASE_URL="$DATABASE_MIGRATION_URL" THE_BAND_URL_QUE_SERVE="$DATABASE_URL" \
+  # A URL de quem serve é lida ANTES: nas atribuições em prefixo, o sh as faz da esquerda para a
+  # direita, e `THE_BAND_URL_QUE_SERVE="$DATABASE_URL"` depois de trocar `DATABASE_URL` leria a
+  # credencial que migra (medido no contêiner; a guarda :mesma_credencial recusou).
+  url_que_serve="$DATABASE_URL"
+  DATABASE_URL="$DATABASE_MIGRATION_URL" THE_BAND_URL_QUE_SERVE="$url_que_serve" \
     /app/bin/the_band eval 'TheBand.Release.migrate()'
+  unset url_que_serve
 else
   /app/bin/the_band eval 'TheBand.Release.migrar_sem_credencial()'
 fi
