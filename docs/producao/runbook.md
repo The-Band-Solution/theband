@@ -526,11 +526,20 @@ dos dois devolve a quem serve o poder de desligar as guardas, e a conferência d
 ### §14.3 Trocar as credenciais no painel, ANTES do deploy
 
 No app do Dokploy:
-- `DATABASE_MIGRATION_URL`: `ecto://the_band_owner:<senha do dono>@<host>/<base>`;
-- `DATABASE_URL`: `ecto://the_band_app:<senha de quem serve>@<host>/<base>`.
+- **a credencial que migra é um arquivo, e não variável** (#1140). Em *Advanced → Mounts*, crie um
+  **File Mount** com o caminho `/run/secrets/database_migration_url` e o conteúdo
+  `ecto://the_band_owner:<senha do dono>@<host>/<base>`, numa linha só;
+- `DATABASE_URL`: `ecto://the_band_app:<senha de quem serve>@<host>/<base>`;
+- se `DATABASE_MIGRATION_URL` existir no painel, **apague-a**. Pelo ambiente, a credencial fica em
+  `docker inspect` e em todo `docker exec`. Ela continua aceita para a transição, com aviso, e o
+  arquivo vale se os dois existirem.
 
-Reimplantar. O entrypoint migra com a primeira, concede os privilégios à segunda, e a tira do
-ambiente antes do servidor. Sem a primeira, o deploy segue os três estados de FR-008:
+Reimplantar. O contêiner começa como root só para ler o arquivo:
+- ele prova que `band` não consegue abri-lo, e **não sobe** se conseguir;
+- migra, e concede os privilégios a quem serve;
+- desce a `band` antes do servidor.
+
+O processo que serve não tem capacidade nenhuma e não lê o arquivo. Sem a primeira, o deploy segue os três estados de FR-008:
 - se quem serve ainda é dono, migra como hoje, e diz "NÃO em vigor";
 - se não é dono e não há migração pendente, sobe;
 - se não é dono e há pendente, **não sobe**.
@@ -552,13 +561,18 @@ que fecha a issue (SC-004). Qualquer outro resultado lista os motivos, por exemp
 O `rollback/2` precisa do dono. Rode-o com a credencial **só na própria linha**:
 
 ```bash
-DATABASE_URL="$DATABASE_MIGRATION_URL" /app/bin/the_band eval 'TheBand.Release.rollback(TheBand.Repo, <versão>)'
+DATABASE_URL="$(cat /run/secrets/database_migration_url)" /app/bin/the_band eval 'TheBand.Release.rollback(TheBand.Repo, <versão>)'
 ```
+
+Como root, no terminal do contêiner. O `eval` não abre distribuição, e por isso continua root.
 
 ### §14.6 O que isto não fecha
 
-- **Quem tem o Dokploy tem a credencial que migra.** O `HEALTHCHECK` e todo `docker exec` recebem
-  o ambiente do contêiner (#1140).
+- **Quem é root no contêiner tem a credencial que migra.** Isso inclui o terminal do Dokploy, que
+  entra como root, e o painel, onde está o File Mount. Quem executa código como `band`, o processo
+  que serve, não a alcança (#1140, medido em `specs/071-papeis-do-banco/evidencia-1140.md`).
+- **Todo comando que conecta ao nó** (`rpc`, `remote`) roda como `band`, mesmo digitado por root:
+  é a guarda de `rel/env.sh.eex` (A1), porque a distribuição Erlang é simétrica.
 - **Quem executa código pela aplicação** lê e escreve todo dado de todo tenant. A separação
   impede **desligar as guardas**, e não o acesso a dado.
 - **Uma tabela criada à mão por outro papel** nasce sem privilégio para quem serve, e falha alto
