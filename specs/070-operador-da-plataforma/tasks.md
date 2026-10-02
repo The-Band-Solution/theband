@@ -153,7 +153,7 @@ destas tarefas escreve código da 070.
     a FR-011 e os contratos dizem a mesma coisa
   - **Teste**: `grep -n "live_session" spec.md contracts/*.md` não contradiz a decisão escrita
 
-- [ ] T006 Abrir o sprint backlog e as issues
+- [x] T006 Abrir o sprint backlog e as issues — feita em 2026-10-02: 74 issues (épico #1056, US1 #1057, US2 #1058, tarefas #1059–#1129) e `docs/sprints/035-operador-da-plataforma/sprint-backlog.md`; a iteration Sprint 035 fica pendente da pessoa mantenedora
   - **Pronta quando**: este `tasks.md` revisado pelo `/speckit-analyze` sem divergência aberta
   - **Descrição**: `/speckit-taskstoissues` (prefixo `070/TNNN`, tipo `task`, labels `security`
     onde couber) e a skill `sprint-backlog`, que lê `docs/sprints/licoes-aprendidas.md` — lições
