@@ -12,6 +12,9 @@ defmodule TheBand.PapeisTest do
   # segurando linhas elas esperariam o `lock_timeout` e dariam inconclusivo.
   use TheBand.DataCase, async: false
 
+  # Cria papel no setup: excluído quando a suíte roda como o papel que serve (T005).
+  @moduletag :precisa_criar_papel
+
   alias TheBand.Papeis
 
   setup do

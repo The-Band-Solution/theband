@@ -5,6 +5,9 @@ defmodule TheBand.ReleasePapeisTest do
   """
   use TheBand.DataCase, async: false
 
+  # Cria papel no setup: excluído quando a suíte roda como o papel que serve (T005).
+  @moduletag :precisa_criar_papel
+
   import ExUnit.CaptureLog
 
   alias TheBand.Papeis
