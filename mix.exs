@@ -146,6 +146,10 @@ defmodule TheBand.MixProject do
       # specs/045-autenticacao-e-acesso/research.md R1: padrão do phx.gen.auth,
       # manutenção ativa, e o custo (~100ms/verificação) é a proteção, não o preço.
       {:bcrypt_elixir, "~> 3.3"},
+      # O segundo fator TOTP do operador da plataforma — spec 070, T022 (FR-016). Versão exata, sem
+      # `~>`: versão nova só com `mix hex.audit` e `mix deps.audit` refeitos. A escolha e as três
+      # respostas do AGENTS §7.7 estão em specs/070-operador-da-plataforma/plan.md e research R13.
+      {:nimble_totp, "== 1.0.0"},
       {:mox, "~> 1.1", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Segurança de Phoenix — XSS, CSRF, injeção, configuração insegura. Nenhuma ferramenta
