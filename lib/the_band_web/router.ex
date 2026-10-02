@@ -61,6 +61,9 @@ defmodule TheBandWeb.Router do
   pipeline :plataforma do
     plug :accepts, ["html"]
     plug :fetch_session
+    # O flash leva só a frase de sucesso do ato, que não é segredo; o segredo e os códigos do
+    # cadastro nunca passam por ele (T5).
+    plug :fetch_flash
     plug :put_root_layout, html: {TheBandWeb.Layouts, :root}
     plug :protect_from_forgery
 
@@ -163,7 +166,7 @@ defmodule TheBandWeb.Router do
     forward "/", TheBandWeb.MCP.Porta
   end
 
-  # As rotas de `rotas-da-plataforma.md`. As de organização respondem o `404` do curinga até T040.
+  # As rotas de `rotas-da-plataforma.md`.
   scope "/platform", TheBandWeb.Plataforma do
     pipe_through :plataforma
 
@@ -179,9 +182,9 @@ defmodule TheBandWeb.Router do
 
       delete "/session", EntradaController, :delete
       get "/organizations", OrganizacaoController, :index
-      get "/organizations/:slug", CaminhoController, :nao_encontrado
-      post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado_na_escrita
-      post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado_na_escrita
+      get "/organizations/:slug", OrganizacaoController, :show
+      post "/organizations/:slug/suspension", OrganizacaoController, :suspension
+      post "/organizations/:slug/reactivation", OrganizacaoController, :reactivation
     end
 
     # POR ÚLTIMO (A12): o caminho que não existe recebe o mesmo `404` de `require_operator`, com os

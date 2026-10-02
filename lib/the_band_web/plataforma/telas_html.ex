@@ -410,6 +410,221 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
     """
   end
 
+  # ------------------------------------------------- tela 5 · o histórico e o ato
+
+  @doc """
+  Tela 5: o histórico e o ato que cabe ao estado (D3: o outro não aparece, nem desabilitado). Cada
+  episódio tem duas metades, e a que falta é escrita (D4). A recusa re-renderiza esta página, com o
+  formulário como a pessoa o deixou e o aviso acima dele.
+  """
+  def organizacao(assigns) do
+    # `Map.merge`, e não `assign/2`: o controller entrega um mapa simples, sem o rastreio de mudança
+    # que `assign/2` exige.
+    assigns =
+      Map.merge(assigns, %{
+        suspensa?: assigns.resumo.status == "suspended",
+        aberto: Enum.find(assigns.episodios, &is_nil(&1.reactivated_at))
+      })
+
+    ~H"""
+    <.moldura operador={@operador} largura="max-w-3xl">
+      <.link href={~p"/platform/organizations"} class="link text-sm">← Organisations</.link>
+
+      <div>
+        <h1 class="text-xl font-semibold">{@resumo.name}</h1>
+        <div class="flex flex-wrap items-baseline gap-2 text-sm">
+          <span class="font-mono">{@resumo.slug}</span>
+          <span>·</span>
+          <.estado status={@resumo.status} />
+          <span :if={@aberto}>since {Calendar.strftime(@aberto.suspended_at, "%Y-%m-%d")}</span>
+        </div>
+      </div>
+
+      <p :if={@sucesso} class="alert alert-success text-sm">{@sucesso}</p>
+
+      <h2 class="font-semibold">Suspension history</h2>
+      <%= if @episodios == [] do %>
+        <.absent reason="never suspended" />
+      <% end %>
+      <div
+        :for={ep <- @episodios}
+        class="grid grid-cols-1 gap-3 rounded border border-base-300 p-3 sm:grid-cols-2"
+      >
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="text-xs uppercase tracking-wider opacity-60">suspended</span>
+          <span class="font-mono">
+            {hora_completa(ep.suspended_at)}<span :if={ep.suspended_by_operator}> · by {ep.suspended_by_operator.name}</span>
+          </span>
+          <.absent
+            :if={is_nil(ep.suspended_by_operator)}
+            reason="by: not recorded — suspended by hand before this record existed"
+          />
+          <span>
+            {TheBand.Platform.SuspensionReasons.rotulo(ep.suspend_reason)}
+            <span class="font-mono text-xs opacity-60">{ep.suspend_reason}</span>
+          </span>
+          <.nota texto={ep.suspend_note} />
+        </div>
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="text-xs uppercase tracking-wider opacity-60">reactivated</span>
+          <%= if ep.reactivated_at do %>
+            <span class="font-mono">
+              {hora_completa(ep.reactivated_at)} · by {ep.reactivated_by_operator &&
+                ep.reactivated_by_operator.name}
+            </span>
+            <span>
+              {TheBand.Platform.SuspensionReasons.rotulo(ep.reactivate_reason)}
+              <span class="font-mono text-xs opacity-60">{ep.reactivate_reason}</span>
+            </span>
+            <.nota texto={ep.reactivate_note} />
+          <% else %>
+            <.absent reason="not reactivated — still suspended" />
+          <% end %>
+        </div>
+      </div>
+
+      <.recusa :if={@recusa} titulo={elem(@recusa, 0)}>{elem(@recusa, 1)}</.recusa>
+
+      <%= if @suspensa? do %>
+        <.formulario_do_ato
+          acao={~p"/platform/organizations/#{@resumo.slug}/reactivation"}
+          titulo={"Reactivate #{@resumo.name}"}
+          razoes={TheBand.Platform.SuspensionReasons.de_reativacao(@aberto && @aberto.suspend_reason)}
+          ato={:reativar}
+          aberto={@aberto}
+          slug={@resumo.slug}
+          valores={@valores}
+          botao={"Reactivate #{@resumo.name}"}
+          perigo={false}
+        >
+          <:consequencias>
+            <li>People in {@resumo.name} can sign in again, each one from the start.</li>
+            <li>No session comes back. Any session recorded while it was suspended is ended too.</li>
+            <li>No API token comes back. Each one must be issued again by the organisation.</li>
+            <li>Collection resumes on its normal schedule; reactivating does not start one.</li>
+            <li>
+              The suspension above stays on the record; this closes it with your name, this moment
+              and this reason.
+            </li>
+          </:consequencias>
+        </.formulario_do_ato>
+      <% else %>
+        <.formulario_do_ato
+          acao={~p"/platform/organizations/#{@resumo.slug}/suspension"}
+          titulo={"Suspend #{@resumo.name}"}
+          razoes={TheBand.Platform.SuspensionReasons.de_suspensao()}
+          ato={:suspender}
+          aberto={nil}
+          slug={@resumo.slug}
+          valores={@valores}
+          botao="Suspend, sign everyone out, revoke all tokens"
+          perigo={true}
+        >
+          <:consequencias>
+            <li>Every person in {@resumo.name} is signed out, on every device.</li>
+            <li>Every API token of {@resumo.name} is revoked.</li>
+            <li>Nobody in it can sign in, and no collection or background job runs for it.</li>
+            <li>Its data stays as it is. Nothing is deleted.</li>
+            <li>
+              Reactivating later does <b>not</b> bring sessions or tokens back: each person signs in
+              again, and each token is issued again.
+            </li>
+          </:consequencias>
+        </.formulario_do_ato>
+      <% end %>
+    </.moldura>
+    """
+  end
+
+  attr :texto, :string, default: nil
+
+  # A nota, ou a ausência dela escrita com a frase da base.
+  defp nota(assigns) do
+    ~H"""
+    <q :if={@texto} class="italic">{@texto}</q>
+    <.absent :if={is_nil(@texto)} reason={TheBand.Platform.SuspensionReasons.frase_sem_nota()} />
+    """
+  end
+
+  attr :acao, :string, required: true
+  attr :titulo, :string, required: true
+  attr :razoes, :list, required: true
+  attr :ato, :atom, required: true
+  attr :aberto, :any, required: true
+  attr :slug, :string, required: true
+  attr :valores, :map, required: true
+  attr :botao, :string, required: true
+  attr :perigo, :boolean, required: true
+  slot :consequencias, required: true
+
+  defp formulario_do_ato(assigns) do
+    ~H"""
+    <form action={@acao} method="post" class="flex flex-col gap-4 rounded border border-base-300 p-4">
+      <.csrf />
+      <h2 class="font-semibold">{@titulo}</h2>
+      <fieldset class="flex flex-col gap-2">
+        <legend class="text-[13px] font-semibold opacity-70">Reason — required</legend>
+        <label :for={r <- @razoes} class="flex items-start gap-2 text-sm">
+          <input
+            type="radio"
+            name="reason"
+            value={r["code"]}
+            checked={@valores["reason"] == r["code"]}
+            class="radio radio-sm mt-0.5"
+          />
+          <span class="flex flex-col">
+            <span>
+              {r["label"]}
+              <span
+                :if={TheBand.Platform.SuspensionReasons.nota_obrigatoria?(@ato, r["code"])}
+                class="text-xs opacity-70"
+              >
+                note required
+              </span>
+              <span class="font-mono text-xs opacity-60">{r["code"]}</span>
+            </span>
+            <span :if={r["offered_only_against"]} class="text-xs opacity-70">
+              Offered because the open suspension's reason is {TheBand.Platform.SuspensionReasons.rotulo(
+                r["offered_only_against"]
+              )}; it is the answer to that reason.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+      <.campo rotulo="Note" dica={dica_da_nota(@ato)}>
+        <textarea name="note" class="textarea textarea-bordered w-full">{@valores["note"]}</textarea>
+      </.campo>
+      <p class="text-sm font-semibold">
+        {if @ato == :suspender,
+          do: "What suspending does, at once and in one step",
+          else: "What reactivating does, and what it does not"}
+      </p>
+      <ul class="list-disc pl-5 text-sm">{render_slot(@consequencias)}</ul>
+      <.campo rotulo={"Type #{@slug} to confirm"}>
+        <input
+          type="text"
+          name="confirm_slug"
+          value={@valores["confirm_slug"]}
+          autocomplete="off"
+          spellcheck="false"
+          class="input input-bordered w-full font-mono"
+        />
+      </.campo>
+      <button type="submit" class={["btn", if(@perigo, do: "btn-error", else: "btn-primary")]}>
+        {@botao}
+      </button>
+    </form>
+    """
+  end
+
+  defp dica_da_nota(:suspender),
+    do: "required for Suspected compromise and Other; optional otherwise. Kept with the episode."
+
+  defp dica_da_nota(:reativar),
+    do: "required for Other; optional otherwise. Kept with the episode."
+
+  defp hora_completa(%DateTime{} = t), do: Calendar.strftime(t, "%Y-%m-%d %H:%M UTC")
+
   attr :status, :string, required: true
 
   # O estado em texto, sempre: a cor acompanha, e nunca carrega sozinha (WCAG 1.4.1).

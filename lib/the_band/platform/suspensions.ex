@@ -45,15 +45,48 @@ defmodule TheBand.Platform.Suspensions do
           | Changeset.t()
 
   @doc """
-  Todas as organizações, por nome, com o estado e o último episódio de suspensão (FR-007).
-
-  `ultimo_episodio_em` é `nil` — "nunca suspensa" — até a composição com `tenant_suspensions`,
-  que entra em T056 como a segunda das duas consultas do contrato.
+  Todas as organizações, por nome, com o estado e o início do último episódio de suspensão
+  (FR-007). **Duas consultas, cada uma na tabela do seu dono**, compostas em memória pelo `id`:
+  os resumos de `Tenants` e o `max(suspended_at)` por organização, da `Platform`. Sem junção com
+  `tenants` (D1) e sem consulta por organização. `nil` é "nunca suspensa".
   """
   @spec listar_organizacoes(OperatorSession.t()) :: {:ok, [resumo()]} | {:error, :nao_autorizado}
   def listar_organizacoes(%OperatorSession{} = sessao) do
     with :ok <- Sessions.autorizada(sessao) do
-      {:ok, Enum.map(Tenants.resumos_para_a_plataforma(), &Map.put(&1, :ultimo_episodio_em, nil))}
+      ultimos =
+        Repo.all(
+          from(s in Suspension, group_by: s.tenant_id, select: {s.tenant_id, max(s.suspended_at)})
+        )
+        |> Map.new()
+
+      {:ok,
+       Enum.map(
+         Tenants.resumos_para_a_plataforma(),
+         &Map.put(&1, :ultimo_episodio_em, Map.get(ultimos, &1.id))
+       )}
+    end
+  end
+
+  @doc """
+  Uma organização, pelo `slug`: o resumo de `Tenants` e o histórico de episódios, do mais novo ao
+  mais antigo, com quem abriu e quem fechou cada um.
+  """
+  @spec organizacao(OperatorSession.t(), String.t()) ::
+          {:ok, %{resumo: map(), episodios: [Suspension.t()]}}
+          | {:error, :not_found | :nao_autorizado}
+  def organizacao(%OperatorSession{} = sessao, slug) when is_binary(slug) do
+    with :ok <- Sessions.autorizada(sessao),
+         {:ok, resumo} <- Tenants.resumo_para_a_plataforma(slug) do
+      episodios =
+        Repo.all(
+          from(s in Suspension,
+            where: s.tenant_id == ^resumo.id,
+            order_by: [desc: s.suspended_at, desc: s.inserted_at],
+            preload: [:suspended_by_operator, :reactivated_by_operator]
+          )
+        )
+
+      {:ok, %{resumo: resumo, episodios: episodios}}
     end
   end
 
