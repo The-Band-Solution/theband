@@ -1,0 +1,119 @@
+derivation_rule:
+  id: platform.tenant_suspension
+  version: 1
+  provider: platform
+  status: proposed
+  confidence: high
+
+  name:
+    pt-BR: "A suspensão de uma organização — as razões de suspender e de reativar, e a nota ao lado"
+
+  description:
+    pt-BR: >
+      O operador da plataforma (spec 070) suspende e reativa uma organização, e cada ato abre ou
+      fecha um **episódio** com quem, quando e por quê. Este arquivo declara o vocabulário das duas
+      pontas: as cláusulas de razão, quais exigem nota escrita, e a cláusula que só a migração
+      escreve.
+
+      Mora aqui, e não em constante de módulo, pela mesma razão de `access.account_lifecycle`: a
+      cláusula é **o que a plataforma afirma** sobre uma organização. *"Suspeita de
+      comprometimento"* e *"o contrato terminou"* levam a decisões diferentes de quem lê o
+      histórico depois, e a primeira exige agir sobre mais coisas.
+
+  provenance:
+    source_type: project_decision
+    year: 2026
+    reference: >
+      spec 070, `specs/070-operador-da-plataforma/data-model.md` §5, e o protótipo
+      `specs/070-operador-da-plataforma/prototipo/` (aprovado em 2026-10-01)
+    note: >
+      A lista foi proposta no plano da 070 e **aprovada pela pessoa mantenedora em 2026-10-01**,
+      como está (tarefa T014). A revisão semântica fica registrada no PR deste arquivo.
+
+  rules:
+    suspend_reasons:
+      name:
+        pt-BR: "As cláusulas da razão de suspender — lista fechada, e a nota ao lado"
+      statement:
+        pt-BR: >
+          Suspender uma organização **exige** uma cláusula desta lista. A cláusula é o que a
+          plataforma **lê**: `suspected_compromise` abre `investigation_closed_no_compromise` na
+          reativação, e é a pergunta que um incidente faz por contagem.
+      note:
+        pt-BR: >
+          `not_recorded` **não é oferecida**. Existe para as organizações que já estavam suspensas
+          antes de o episódio existir: a migração da 070 (T044) as escreve com ela, em vez de
+          inventar uma razão que ninguém escolheu.
+      values:
+        offered:
+          - code: suspected_compromise
+            label: "Suspected compromise"
+            meaning:
+              pt-BR: >
+                Alguém pode ter entrado em nome da organização. Encerrar as sessões e revogar os
+                tokens é o que este ato faz, e é a única que abre
+                `investigation_closed_no_compromise` na reativação.
+          - code: contract_ended
+            label: "The contract ended"
+            meaning:
+              pt-BR: "A organização deixou de usar a plataforma por fim de contrato. Não implica incidente."
+          - code: requested_by_the_organisation
+            label: "Requested by the organisation"
+            meaning:
+              pt-BR: "A própria organização pediu a suspensão."
+          - code: other
+            label: "Other"
+            meaning:
+              pt-BR: "Nenhuma das anteriores. A nota passa a ser obrigatória, e é ela que carrega a razão."
+        recorded_only:
+          - code: not_recorded
+            label: "The reason was not recorded"
+            meaning:
+              pt-BR: >
+                Suspensão feita antes de o episódio existir. Não é escolha de ninguém: é ausência
+                dita, e a tela a escreve como ausência.
+
+    reactivate_reasons:
+      name:
+        pt-BR: "As cláusulas da razão de reativar"
+      statement:
+        pt-BR: >
+          Reativar **exige** cláusula e **não apaga** a suspensão: fecha o episódio com quem,
+          quando e por quê. Reativar não devolve sessão nem token nenhum.
+      values:
+        offered:
+          - code: investigation_closed_no_compromise
+            label: "Investigation closed — no compromise found"
+            meaning:
+              pt-BR: >
+                Oferecida **só** contra uma suspensão por `suspected_compromise`. Oferecê-la sempre
+                faria a plataforma sugerir que houve investigação onde não houve.
+            offered_only_against: suspected_compromise
+          - code: contract_resumed
+            label: "The contract resumed"
+            meaning:
+              pt-BR: "A organização voltou a usar a plataforma."
+          - code: suspended_by_mistake
+            label: "Suspended by mistake"
+            meaning:
+              pt-BR: "A suspensão não devia ter acontecido. O episódio fecha e continua visível."
+          - code: other
+            label: "Other"
+            meaning:
+              pt-BR: "Nenhuma das anteriores. A nota passa a ser obrigatória."
+
+    note_required:
+      name:
+        pt-BR: "Quais razões exigem nota escrita, e a frase de quando não há uma"
+      statement:
+        pt-BR: >
+          A nota é **obrigatória** para `suspected_compromise` e `other` ao suspender, e para
+          `other` ao reativar. Nas demais é opcional, e onde é omitida o registro escreve
+          *"no note"* — ausência dita, nunca célula vazia.
+      values:
+        on_suspend:
+          - suspected_compromise
+          - other
+        on_reactivate:
+          - other
+        absent_phrase: "no note"
