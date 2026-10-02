@@ -1,7 +1,15 @@
 # Contrato — o que a suspensão pede a `TheBand.Tenants`
 
-FR-004, FR-013, FR-015. Duas funções novas, cada uma no módulo dono da tabela, e o que muda em
-`Tenant`.
+FR-004, FR-013, FR-015, FR-007. As funções novas que a suspensão pede, cada uma **no módulo dono da
+tabela**, e o que muda em `Tenant`.
+
+> **Emendado em 2026-10-01** pelo `/speckit-analyze` (achado D1): `TheBand.Platform.Suspensions`
+> **não** lê nem escreve a tabela `tenants`. A constituição, princípio X, letra **D**, manda depender
+> da fronteira pública de outro módulo, "nunca dos schemas nem das tabelas dele", e o `plan.md`
+> (decisão 1) já dizia que a suspensão pediria funções públicas a `Tenants`. A versão anterior deste
+> contrato punha o `update_all` em `tenants.status` dentro de `Platform.Suspensions` e o
+> `LEFT JOIN LATERAL` sobre `tenants` em `listar_organizacoes/1`; as duas coisas saíram, e entraram
+> `TheBand.Tenants.trocar_estado_no_multi/5` e as duas leituras de resumo, abaixo. Sem exceção.
 
 ## `TheBand.Tenants.Sessions.encerrar_da_organizacao(%Tenant{}) :: {:ok, [Ecto.UUID.t()]}`
 
@@ -23,7 +31,7 @@ tenants, e o defeito a injetar é trocar por `girar_todas/0`.
 `update_all` em todo token do tenant com `revoked_at IS NULL`: `revoked_at = agora`,
 `revoked_by_user_id = NULL`, `revoked_by_suspension_id = suspensao_id`,
 `revocation_clause = "organizacao_suspensa"`. A condição fica no `WHERE`, como
-`api_tokens.ex:408-430`, e o token já revogado mantém o autor e a razão da primeira revogação.
+`api_tokens.ex:436-441` de `development` (`gravar_revogacao/3`), e o token já revogado mantém o autor e a razão da primeira revogação.
 
 ## `TheBand.Tenants.ApiTokens.clausulas_registradas/0 :: [String.t()]`
 
@@ -34,18 +42,73 @@ A tela de tokens passa a escrever, para a revogação por suspensão, o autor co
 *"revoked when the organisation was suspended"* (inglês, porque é tela), e não o nome de uma conta
 que não existe.
 
+## `TheBand.Tenants.trocar_estado_no_multi(Ecto.Multi.t(), nome :: atom(), %Tenant{}, de :: String.t(), para :: String.t()) :: Ecto.Multi.t()`
+
+A **única** escrita de `tenants.status` fora da criação, e ela só existe **dentro de um
+`Ecto.Multi`** de quem a chama: acrescenta ao `multi` um passo de nome `nome` e devolve o `multi`.
+Não abre transação própria, e não há variante que grave fora de um `Multi`, para que a troca de
+estado nunca se confirme sem o resto da transação de quem a pediu (o episódio, as sessões e os
+tokens da suspensão: O10).
+
+O passo faz, na transação do `Multi`:
+
+```sql
+UPDATE tenants SET status = $para, updated_at = now() WHERE id = $id AND status = $de
+```
+
+com a condição de estado **no `WHERE`**, como `api_tokens.ex:436-441` de `development` faz com a
+revogação, e não numa leitura anterior: duas suspensões paralelas passariam as duas por uma
+leitura de antes.
+
+| resultado do passo | quando |
+|---|---|
+| `{:ok, %Tenant{status: para}}` | uma linha afetada |
+| `{:error, :estado_mudou}` | zero linhas afetadas, e a organização existe: o estado já não era `de` (outra suspensão ou reativação confirmou primeiro, ou o estado já era `para`) |
+| `{:error, :not_found}` | zero linhas afetadas, e não há linha com esse `id` (conferido por `Repo.exists?/1` **na mesma transação**, só no ramo de zero linhas) |
+
+- **os pares aceitos são dois**, `{"active", "suspended"}` e `{"suspended", "active"}`, por cabeça de
+  função. Outro par (`de == para`, ou um valor fora do `CHECK`) é `FunctionClauseError`: é defeito
+  de quem chama, e não caso de negócio (AGENTS.md §7.2);
+- recebe `%Tenant{}`, e não `tenant_id` cru (antipadrão "primitivo no lugar do conceito");
+- **não** abre nem fecha episódio, **não** encerra sessão e **não** emite evento: cada uma dessas é de
+  outro módulo, e quem compõe o `Multi` é `Platform.Suspensions` (research R8). Quem chama traduz
+  `:estado_mudou` para o motivo do ato: `:ja_suspensa` em `suspender/3`, `:nao_suspensa` em
+  `reativar/3` (`suspensao.md`);
+- **um chamador só**: `TheBand.Platform.Suspensions`. O teste da tarefa que a cria afirma, pela
+  saída de `mix xref callers`, que nenhum outro módulo a chama, na forma do teste de T032 sobre
+  `TheBand.Platform.Grants`.
+
+## `TheBand.Tenants.resumos_para_a_plataforma() :: [resumo]` e `resumo_para_a_plataforma(slug :: String.t()) :: {:ok, resumo} | {:error, :not_found}`
+
+`resumo :: %{id: Ecto.UUID.t(), name: String.t(), slug: String.t(), status: String.t()}`
+
+As leituras de `tenants` que a área do operador faz, com **`select` explícito** das quatro colunas
+permitidas pela FR-007 (o `id` é a chave para compor com o histórico da própria `Platform`, e não é
+mostrado). A primeira devolve todas, ordenadas por `name`; a segunda, uma pelo `slug`.
+
+- devolvem **mapa**, e nunca `%Tenant{}`: a struct traz `has_many :users`
+  (`tenant.ex:24` de `development`), a um `preload` de distância de dado de domínio;
+- **nenhuma junção** com tabela de domínio, e nenhuma contagem (de pessoas, contas, sessões ou
+  tokens): é a FR-007, e a guarda de telemetria de research R10 reprova o contrário;
+- não leem `tenant_suspensions`: o último episódio e o histórico são da `Platform`, que compõe os
+  dois em memória pelo `id` (`suspensao.md`, `listar_organizacoes/1`), com duas consultas no total e
+  sem N+1.
+
 ## `TheBand.Tenants.Tenant`
 
 - `changeset/2` deixa de fazer `cast` de `:status`, e ganha `validate_inclusion/3` e
   `check_constraint(:status, name: :tenants_status_valido)`;
-- **nenhuma** função pública nova escreve o estado. A escrita é o `update_all` condicional dentro de
-  `Platform.Suspensions`.
+- a escrita do estado é **só** `trocar_estado_no_multi/5`, acima. `create_tenant/1`
+  (`tenants.ex:96-97` de `development`) deixa de poder escrever o estado, porque o `cast` não o
+  aceita mais.
 
 ## O que a API NÃO expõe, e por quê
 
 | ausência | por quê |
 |---|---|
 | `encerrar_da_organizacao` por `tenant_id` cru | primitivo no lugar do conceito |
-| `reativar` token | `api_tokens.ex:379-381`: revogação é definitiva |
-| `Tenants.set_status/2` ou `Tenants.suspend/1` | seria escrever o estado sem episódio, que é a O10 |
+| `reativar` token | `api_tokens.ex:391-393` de `development` (o `@doc` de `revogar/4`): revogação é definitiva |
+| `Tenants.set_status/2`, `Tenants.suspend/1`, ou `trocar_estado` fora de `Ecto.Multi` | seria escrever o estado sem episódio, que é a O10. A troca só existe como passo do `Multi` de quem abre o episódio |
+| `%Tenant{}` para a área do operador, ou `Tenants.list_tenants/0` (`tenants.ex:69-70` de `development`) | a struct traz `has_many :users`; as leituras de resumo devolvem só as quatro colunas |
+| a tabela `tenants` lida ou escrita por `Platform` | constituição, princípio X, letra D: a `Platform` depende da fronteira pública de `Tenants`, nunca da tabela (achado D1) |
 | `organizacao_suspensa` no select da tela de tokens | cláusula **só registrada**: ninguém a escolhe à mão |

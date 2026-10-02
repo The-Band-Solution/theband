@@ -127,15 +127,10 @@ código de cadastro faria o código do passo 2 abrir o passo 3 sem o TOTP ter si
 forma do de cadastro: 20 bytes, `sha256` no banco, **10 minutos**, uso único, consumo atômico sob
 `FOR UPDATE` (A1, A5), campo oculto `acknowledgement_token` no corpo do `POST`, nunca na URL.
 
-`concluir_cadastro(email, acknowledgement_token :: TheBand.Segredo.t()) :: {:ok, Operator.t()} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}}`
-
-- exige concessão vigente (A14); código errado, vencido, ausente ou e-mail inexistente: a recusa
-  única, com o custo do hash (A3), e conta falha;
-- **não recebe a caixa**: quem confere `codes_stored` é o controller, antes de chamar. A caixa é
-  declaração de leitura, e não credencial; sem ela, a função não é chamada, o código de guarda não
-  é consumido e nenhuma falha conta;
-- **nunca devolve os códigos**: eles só existem em claro na resposta de
-  `confirmar_segundo_fator/3`. A recusa do passo 3 não os mostra de novo.
+**O contrato de `concluir_cadastro/2` está num lugar só**:
+[credenciais-do-operador.md](credenciais-do-operador.md), seção `concluir_cadastro/2` — assinatura, concessão vigente (A14), consumo atômico (A5), custo do
+hash (A3), a caixa `codes_stored` conferida pelo controller e não recebida como argumento, e a regra
+de nunca devolver os códigos. Este arquivo descreve o **fluxo**; quem o implementa lê a função lá.
 
 Emendas que este fluxo pediu, **feitas em 2026-10-01**: `credenciais-do-operador.md`
 (`confirmar_segundo_fator/3` deixou de gravar `totp_confirmed_at`, de subir `password_epoch` e de

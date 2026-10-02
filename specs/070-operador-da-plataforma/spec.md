@@ -22,8 +22,8 @@ mas nenhuma função e nenhuma tela o escrevem. Suspender hoje é `UPDATE` à m�
 | organização não ativa derruba a sessão na requisição seguinte | `lib/the_band_web/plugs/current_scope.ex`, `lib/the_band_web/live/hooks.ex` |
 | `user_sessions` tem `tenant_id`, e `Sessions.encerrar_da_conta/2` encerra por conta | spec 064, T009 e T011 |
 | a desativação de conta guarda **episódio** com autor, instante e razão de lista fechada | `lib/the_band/tenants/account_disablement.ex`, regra `access.account_lifecycle` |
-| nenhum chamador em `lib/` escreve `tenants.status`, mas qualquer um poderia: `Tenants.create_tenant/1` passa `attrs` direto a `Tenant.changeset/2`, que faz `cast` de `:status` (emenda do plano, 2026-10-01) | `lib/the_band/tenants.ex:83-85`, `tenant.ex:31`, `bootstrap.ex:155` |
-| `user_sessions` **não tem** função que encerre as sessões de uma organização: só por sessão, por conta e de todas (emenda do plano) | `lib/the_band/tenants/sessions.ex:118-184` |
+| nenhum chamador em `lib/` escreve `tenants.status`, mas qualquer um poderia: `Tenants.create_tenant/1` passa `attrs` direto a `Tenant.changeset/2`, que faz `cast` de `:status` (emenda do plano, 2026-10-01) | `lib/the_band/tenants.ex:96-97`, `tenant.ex:31` de `development` (`a16a750`); `bootstrap.ex:155` |
+| `user_sessions` **não tem** função que encerre as sessões de uma organização: só por sessão, por conta e de todas (emenda do plano) | `lib/the_band/tenants/sessions.ex:118-216` de `development` (`a16a750`) |
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -71,11 +71,11 @@ de lá.
    **Then** recebe "not found", e não "permission denied" (o recurso não se confirma).
 2. **Given** um operador, **When** ele abre a tela, **Then** vê só nome, slug, estado e a data do
    último episódio de cada organização, e nada de dado de domínio.
+3. **Given** a concessão do papel, **When** ela acontece, **Then** fica registrada com quem
+   concedeu e quando, e é revogável.
 4. **Given** a conta do operador, que não tem organização, **When** ela tenta qualquer tela de
    domínio, a API ou a MCP, **Then** recebe a recusa de quem não é de lá, e nenhuma consulta roda
    sem filtro de tenant.
-3. **Given** a concessão do papel, **When** ela acontece, **Then** fica registrada com quem
-   concedeu e quando, e é revogável.
 
 ---
 
@@ -137,10 +137,18 @@ de lá.
 - **FR-014**: Revogar o papel de um operador MUST encerrar a sessão dele na mesma transação, e a
   autorização de operador MUST ser conferida dentro da função que suspende e reativa, e não só na
   montagem da tela (achado O6).
-- **FR-016**: O operador MUST entrar com **segundo fator TOTP**, cadastrado na definição da
-  senha, com códigos de recuperação de uso único *(decisão de 2026-10-01; achado O16)*.
 - **FR-015**: Reativar MUST encerrar também as sessões gravadas depois da suspensão, para fechar a
   corrida entre entrar e suspender (achado O8).
+- **FR-016**: O operador MUST entrar com **segundo fator TOTP**, cadastrado na definição da
+  senha, com códigos de recuperação de uso único *(decisão de 2026-10-01; achado O16)*. O cadastro
+  tem **três passos**: (1) definir a senha com o código de definição, que mostra o segredo TOTP
+  uma vez; (2) confirmar um código TOTP do aplicativo, que mostra os dez códigos de recuperação uma
+  vez e emite um **código de guarda**; (3) declarar, com o código de guarda, que os códigos de
+  recuperação foram guardados. **O segundo fator e os códigos de recuperação só valem a partir do
+  passo 3**: até lá, a entrada é recusada, inclusive com TOTP certo ou com um código de recuperação
+  mostrado. Abandonar o cadastro entre dois passos deixa o operador sem entrada até o reinício pelo
+  comando *(decisão Q3 (b) da pessoa mantenedora sobre o protótipo, 2026-10-01;
+  `contracts/segundo-fator-do-operador.md`, "O fluxo de cadastro")*.
 
 ### Key Entities
 

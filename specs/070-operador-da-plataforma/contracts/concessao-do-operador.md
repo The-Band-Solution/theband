@@ -4,8 +4,9 @@ FR-001, FR-002, FR-014, O11. Tabela em [data-model.md](../data-model.md) §2.
 
 > **Emendado em 2026-10-01** pela avaliação da segunda autenticação
 > ([seguranca-autenticacao.md](../seguranca-autenticacao.md)), achados **A6, A13c e A14**, e pelo
-> segundo fator (FR-016). O código continua **bloqueado** até a avaliação própria do TOTP
-> (`tasks.md`): conceder e reiniciar apagam o cadastro do segundo fator, e a forma disso é dela.
+> segundo fator (FR-016). A avaliação própria do TOTP, que decidia a forma de apagar o cadastro do
+> segundo fator, está **feita** ([seguranca-totp.md](../seguranca-totp.md), T010 e T011); as emendas
+> dela estão abaixo.
 
 **Nenhuma tela concede nem revoga** (FR-001). Estas funções não são chamadas por controller nem por
 LiveView, e o teste afirma que nenhum módulo de `TheBandWeb` as referencia.
@@ -30,7 +31,7 @@ vigente, a mesma transação faz o que `reiniciar_credencial/2` faz:
   recuperação ainda vigente do operador marcado `invalidated_at` (T8, emenda T011: não `used_at`,
   que fica só para o uso; não apagado: o registro fica);
 - código de cadastro e código de guarda (`ack_code_hash`, emenda T012) anulados;
-- `Platform.Sessions.encerrar_do_operador/1`;
+- `Platform.Sessions.encerrar_do_operador(operador)` (`sessao-do-operador.md`);
 - o código de definição novo.
 
 O operador revogado, talvez por comprometimento, não entra com a senha nem com o aplicativo de
@@ -63,9 +64,17 @@ Lida pela conferência da sessão e pela autorização dentro de `suspender/3` e
 /app/bin/the_band eval 'TheBand.Release.revogar_operador("email", "quem executa", "nota")'
 ```
 
-Na forma de `release.ex:106-118`: `load_app/0` e `Ecto.Migrator.with_repo/2`. **Nunca recebem
-senha.** A saída diz o e-mail e o ato; o código de definição é a **única** coisa secreta impressa, uma
-vez, com a validade.
+Na forma de `release.ex:106-125` de `development`: `load_app/0` e `Ecto.Migrator.with_repo/2`.
+**Nunca recebem senha.** A saída diz o e-mail e o ato; o código de definição é a **única** coisa
+secreta impressa, uma vez, com a validade.
+
+**O giro operacional encerra também as sessões do operador**, pelos dois caminhos que existem em
+`development` depois da #1050 (PR #1051): `encerrar_todas_as_sessoes/0` (por `eval`, aplicação
+parada, depois de restaurar) e `girar_sessoes/0` (por `rpc`, no nó que serve, `release.ex:139-145`).
+Os dois chamam `Platform.Sessions.encerrar_todas/0` além de `Sessions.girar_todas/0`, e a frase de
+saída diz as duas contagens. A suspensão e a reativação pelo operador **não** precisam de `rpc`: são
+um `POST` atendido pelo nó que serve, e o aviso do #1044 depois do `commit` sai do PubSub desse
+nó, onde as telas estão (`suspensao.md`).
 
 ## O que a API NÃO expõe, e por quê
 

@@ -17,18 +17,18 @@ foi medido em banco nem em produção nesta passagem. Onde algo não foi verific
 | política de senha: 12 a 128 caracteres | `lib/the_band/tenants/user.ex:200` | leitura |
 | espera crescente: 3 livres, depois 2^(n-2) s até 60 s, por conta, no banco | `lib/the_band/tenants/auth.ex:36-37`, `:137-165` | leitura |
 | tempo constante: `Bcrypt.no_user_verify/0` quando não há conta ou a recusa é de estado | `auth.ex:46-49`, `:94-96`, `:109-111` | leitura |
-| sessão: 32 bytes, banco guarda `sha256`, busca por chave primária, `secure_compare` em memória, 7 dias por sessão, retenção de 90 dias | `lib/the_band/tenants/sessions.ex:10-14`, `:37-43`, `:190-205` | leitura |
-| não há função que encerre as sessões **de uma organização**: só `encerrar/1`, `encerrar_da_conta/2` e `girar_todas/0` | `sessions.ex:118-184` | leitura |
+| sessão: 32 bytes, banco guarda `sha256`, busca por chave primária, `secure_compare` em memória, 7 dias por sessão, retenção de 90 dias | `lib/the_band/tenants/sessions.ex:10-14`, `:37-43`, `:222-238` (reconferido em `origin/development` `a16a750`, 2026-10-01) | leitura |
+| não há função que encerre as sessões **de uma organização**: só `encerrar/1`, `encerrar_da_conta/2` e `girar_todas/0` | `sessions.ex:118-126`, `:187-198`, `:205-216` de `development` (`a16a750`) | leitura |
 | `user_sessions` tem índice em `tenant_id` | `priv/repo/migrations/20260929100000_sessoes_de_usuario.exs:54` | leitura |
 | o cookie de sessão é um só (`Plug.Session`, assinado), `Secure` vem de `:cookie_de_sessao_seguro` | `lib/the_band_web/endpoint.ex:7-13`, `config/prod.exs:31` | leitura |
 | o socket do LiveView recebe **só** a sessão do `Plug.Session`: `connect_info` aceita `:peer_data`, `:trace_context_headers`, `:x_headers`, `:user_agent`, `:sec_websocket_headers`, `:uri` ou `{:session, config}`, e não cookies arbitrários | `deps/phoenix/lib/phoenix/socket/transport.ex:278-286` (Phoenix 1.8.11, `mix.lock:47`), lido no checkout principal | leitura da dependência |
-| sair (`DELETE /session`) faz `configure_session(drop: true)`, que apaga o cookie **inteiro** | `lib/the_band_web/controllers/session_controller.ex:43-49` | leitura |
-| a hook de domínio confere a sessão **só no `mount`**; nenhum `attach_hook` em `handle_event`, e não existe `live_socket_id` em `lib/` | `lib/the_band_web/live/hooks.ex:22-60`; `grep live_socket_id` vazio | leitura, **não medido** |
-| `Tenant.changeset/2` faz `cast` de `:status`, sem `validate_inclusion`; `create_tenant/1` passa `attrs` direto a ele | `lib/the_band/tenants/tenant.ex:22`, `:31`; `lib/the_band/tenants.ex:83-85` | leitura |
+| sair (`DELETE /session`) faz `configure_session(drop: true)`, que apaga o cookie **inteiro** | `lib/the_band_web/controllers/session_controller.ex:43-49`; o `drop` em `:47` de `development` (`a16a750`) | leitura |
+| ~~a hook de domínio confere a sessão **só no `mount`**~~ — **superado pelo #1044** (mergeado em 2026-10-01): a hook inscreve o LiveView conectado em `"sessao:<id>"`, `"conta:<user_id>"` e `"sessoes"`, e reconfere a sessão no banco a cada `:sessao_encerrada` (`attach_hook(..., :handle_info, ...)`). Não existe `live_socket_id` em `lib/`, e não é preciso (R9) | `lib/the_band_web/live/hooks.ex:52`, `:139`, `:142` de `development` (`a16a750`); `sessions.ex:135-149` | leitura |
+| `Tenant.changeset/2` faz `cast` de `:status`, sem `validate_inclusion`; `create_tenant/1` passa `attrs` direto a ele | `lib/the_band/tenants/tenant.ex:22`, `:31`; `lib/the_band/tenants.ex:96-97` de `development` (`a16a750`) | leitura |
 | nenhum chamador em `lib/` passa `status`: o bootstrap passa só nome e slug | `lib/the_band/tenants/bootstrap.ex:155` | `grep` |
-| dois testes escrevem o estado direto: um pelo changeset, outro por `update_all` | `test/the_band/tenants/organizacao_suspensa_test.exs:44`; `test/the_band_web/api/organizacao_suspensa_test.exs:52`; e o teste novo da #1033 (`103d59e`, `organizacao_inativa_test.exs`) por `update_all` | `grep` |
+| **dois** testes escrevem o estado **pelo changeset**, e um por `update_all` (corrigido pelo `/speckit-analyze`, achado C2: a linha antiga dava o segundo como `update_all`, e ele também usa o changeset) | pelo changeset: `test/the_band/tenants/organizacao_suspensa_test.exs:44` e `test/the_band_web/api/organizacao_suspensa_test.exs:38` (`mudar_status/2`, chamado em `:52` e `:71`); por `update_all`: `test/the_band/jobs/organizacao_inativa_test.exs:56` (a #1033, já em `development`) | `git grep` em `origin/development` (`a16a750`) |
 | revogar token exige `revoked_by_user_id` (FK para `users`) e cláusula da lista fechada | `lib/the_band/tenants/schemas/api_access_token.ex:107-116`; `migrations/20260918140000_tokens_de_api.exs:72`; regra em `priv/knowledge_base/rules/api_access_thresholds.yaml:70-105` | leitura |
-| revogação com a condição no `WHERE` (`is_nil(revoked_at)`) | `lib/the_band/tenants/api_tokens.ex:408-430` | leitura |
+| revogação com a condição no `WHERE` (`is_nil(revoked_at)`) | `lib/the_band/tenants/api_tokens.ex:436-441` de `development` (`gravar_revogacao/3`) | leitura |
 | `AccessEvents` pega o **ator** do `Logger.metadata`, e o formatador só imprime `:request_id`, `:tenant_id`, `:user_id` | `lib/the_band/tenants/access_events.ex:142-155`; `config/config.exs:79-80` | leitura |
 | episódio de desativação: abre/fecha, razão de lista fechada na base, índice único parcial do aberto, `not_recorded` para o passado | `lib/the_band/tenants/account_disablement.ex`; `lib/the_band/tenants/account_lifecycle.ex`; `priv/knowledge_base/rules/access_account_lifecycle.yaml`; `migrations/20260910050000_episodio_de_desativacao.exs:71-105` | leitura |
 | regras da base (`derivation_rule:`) **não têm schema em `schemas/`**; o validador confere id, duplicidade e `provenance.source_type` | `lib/the_band/ontology/yaml_validator.ex:476-481`; `ls priv/knowledge_base/schemas` | leitura |
@@ -36,8 +36,8 @@ foi medido em banco nem em produção nesta passagem. Onde algo não foi verific
 | `/organizations` já é a tela de organizações do EO | `lib/the_band_web/router.ex:231` | leitura |
 | não há rota sob `/platform` | `router.ex` inteiro | leitura |
 | o repositório é **público** | `gh repo view --json visibility` → `PUBLIC` | consulta |
-| `Tenants.ensure_active/1` existe **só na branch da #1033** (`tenants.ex:88-90` em `103d59e`); o PR #1038 está **aberto**, não mergeado | `gh pr view 1038` → `OPEN`, `mergedAt: null` | consulta |
-| #1034 (O5) e #1035 (O15) estão abertas; #879 (064/T014, remove a coluna antiga) está aberta | `gh issue view` | consulta |
+| `Tenants.ensure_active/1` existia só na branch da #1033 quando esta pesquisa foi feita; **o PR #1038 foi mergeado em 2026-10-01** e a função está em `tenants.ex:89-90` de `development` (`a16a750`) | `gh pr view 1038` → `MERGED` | consulta, refeita em 2026-10-01 |
+| #1034 (O5) e #1035 (O15) **corrigidas** (PRs #1039 e #1040, mergeados em 2026-10-01); #879 (064/T014, remove a coluna antiga) está aberta | `gh pr view` | consulta, refeita em 2026-10-01 |
 
 ---
 
@@ -146,7 +146,7 @@ possíveis:
 |---|---|---|
 | nome | `_the_band_operator`, `encrypt: true`, `http_only`, `secure` de `:cookie_de_sessao_seguro`, `same_site: "Strict"`, **`path: "/platform"`** | `"operator_session_id"` e `"operator_session_secret"` dentro de `_the_band_key` |
 | o cookie chega às rotas de domínio? | **não**: o navegador só o envia sob `/platform` | **sim**, em toda requisição e em todo socket de domínio; o leitor de domínio só não o lê |
-| sair de uma conta de organização derruba o operador? | não | **sim**: `configure_session(drop: true)` apaga o cookie inteiro (`session_controller.ex:46`) |
+| sair de uma conta de organização derruba o operador? | não | **sim**: `configure_session(drop: true)` apaga o cookie inteiro (`session_controller.ex:47` de `development`) |
 | O6, revogação com tela aberta | trivial: não há socket; toda ação é um `POST` que passa pelo plug | exige a conferência dentro da função (que existe de todo jeito, FR-014) e o fechamento do socket |
 | `live_session` própria | não existe; a área tem **pipeline, plug e controller** próprios | existe |
 | o que piora | recarga de página por ação; sem atualização ao vivo, irrelevante para uma lista de organizações e duas pessoas | o cookie do operador viaja junto do domínio; o acoplamento ao `drop` da saída |
@@ -219,10 +219,14 @@ mudança em um vocabulário mudar o arquivo do outro (princípio X).
 1. `check_constraint` `tenants_status_valido`: `status IN ('active', 'suspended')`;
 2. `Tenant.changeset/2` **deixa de fazer `cast` de `:status`** e ganha
    `validate_inclusion(:status, ~w(active suspended))` para o valor que vem do `default`;
-3. **não existe** função pública que escreva o estado. A escrita é um `update_all` condicional
-   **dentro** de `Platform.Suspensions`, na transação do episódio:
+3. a escrita do estado é **uma** função pública de `Tenants`, que só existe como passo de
+   `Ecto.Multi`: `Tenants.trocar_estado_no_multi/5` (`contracts/sessoes-e-tokens-da-organizacao.md`).
+   O passo é um `update_all` condicional,
    `UPDATE tenants SET status = 'suspended' WHERE id = $1 AND status = 'active'`, conferindo uma
-   linha afetada.
+   linha afetada, e entra no `Multi` de `Platform.Suspensions`, na transação do episódio.
+   **Emendado em 2026-10-01** (achado D1 do `/speckit-analyze`): a versão anterior punha o
+   `update_all` em `tenants` **dentro** de `Platform.Suspensions`, o que a constituição proíbe
+   (princípio X, letra D: depender da fronteira pública, nunca da tabela de outro módulo).
 
 **A migração do `CHECK` mede antes de afirmar**: o `up` conta as linhas com estado fora da lista e,
 se houver alguma, **levanta** com a contagem. Mapear um valor desconhecido para `active` ou para
@@ -231,10 +235,12 @@ organização já `suspended` sem episódio, insere um episódio `not_recorded`,
 `20260910050000` fez com as contas. Produção **não foi consultada**; a skill `release` mede isso
 antes de publicar.
 
-**O que quebra, e é esperado**: `test/the_band/tenants/organizacao_suspensa_test.exs:44` usa o
-changeset para suspender. Ele e os que usam `update_all` passam a usar um ajudante de teste que
-chama o comando de verdade, ou continuam com `update_all` onde o teste é justamente sobre um estado
-escrito por fora (a #1033).
+**O que quebra, e é esperado**: `test/the_band/tenants/organizacao_suspensa_test.exs:44` e
+`test/the_band_web/api/organizacao_suspensa_test.exs:38` (`mudar_status/2`) usam o changeset para
+suspender, e os dois deixam de suspender quando `:status` sai do `cast`. Passam a escrever o estado
+por `update_all`, com comentário dizendo por quê, como `test/the_band/jobs/organizacao_inativa_test.exs:56`
+já faz: são testes sobre um estado escrito por fora (o H3 e o N5), e não sobre o ato do operador.
+É a T013.
 
 ---
 
@@ -278,10 +284,13 @@ outros dois, protege de código, e não de quem tem o banco.
 |---|---|---|
 | `:autorizacao` | relê a sessão do operador pela chave primária (aberta, no prazo) **e** a concessão vigente, as duas linhas com `lock: "FOR SHARE"` (A15) | `{:error, :nao_autorizado}` |
 | `:razao` | valida razão e nota contra `SuspensionReasons` | `{:error, changeset}` |
-| `:estado` | `update_all` condicional `active → suspended`, uma linha | `{:error, :ja_suspensa}` |
+| `:estado` | `Tenants.trocar_estado_no_multi(multi, :estado, tenant, "active", "suspended")`: `update_all` condicional, uma linha, **do lado de `Tenants`** (princípio X, D; achado D1) | `:estado_mudou` → `{:error, :ja_suspensa}`; `:not_found` → `{:error, :not_found}` |
 | `:episodio` | `insert` do episódio aberto; o índice parcial recusa o segundo | `{:error, :ja_suspensa}` |
 | `:sessoes` | `Sessions.encerrar_da_organizacao/1`, devolvendo os ids encerrados | — |
 | `:tokens` | `ApiTokens.revogar_por_suspensao/2`, cláusula `organizacao_suspensa` | — |
+
+O `%Tenant{}` que os passos `:estado`, `:sessoes` e `:tokens` recebem vem de `Tenants.fetch/1`,
+lido antes do `Multi`. `Platform.Suspensions` não consulta a tabela `tenants`.
 
 Depois do `commit`, e só depois: o evento de acesso e o fechamento dos sockets (R9).
 
@@ -301,10 +310,11 @@ serializam do mesmo jeito.
 porque **cada passo tem nome**, e o teste do cenário 3 de seguranca.md §4 afirma **qual** passo
 recusou.
 
-**Reativar** (`reativar/3`): `:autorizacao`, `:razao`, `:estado` (`suspended → active`, uma linha),
+**Reativar** (`reativar/3`): `:autorizacao`, `:razao`, `:estado` (`Tenants.trocar_estado_no_multi/5`,
+`suspended → active`, uma linha; `:estado_mudou` → `:nao_suspensa`),
 `:episodio` (fecha o aberto, uma linha), `:sessoes` (encerra **de novo** toda sessão aberta da
 organização: é o que fecha a corrida O8 sem lock). **Não devolve token**: revogação é definitiva
-(`api_tokens.ex:379-381`).
+(`api_tokens.ex:391-393` de `development`).
 
 **O autor da revogação do token**: `revoked_by_user_id` é FK para `users`, e o operador não está
 lá. A revogação por suspensão grava `revoked_by_user_id = NULL` e uma coluna nova,
@@ -345,11 +355,18 @@ na reativação; uma de B continua. Defeitos a injetar: retirar o aviso; avisar 
   (emenda A9): os `GET` e os `POST` de entrada, definição e cadastro aceitam `platform_operators`,
   `platform_operator_grants`, `platform_operator_sessions`, `platform_operator_recovery_codes`,
   `tenant_suspensions` e `tenants`. **Só** os dois `POST` de ato (suspensão e reativação) aceitam
-  também `user_sessions` e `api_access_tokens`. Lista permitida, e não proibida: uma tabela de
+  também `user_sessions` e `api_access_tokens`.
+  **`tenants` está na lista porque `Tenants` a lê, e não a `Platform`** (emenda D1, 2026-10-01):
+  nos `GET` de lista e de histórico, pelas leituras públicas `Tenants.resumos_para_a_plataforma/0`
+  e `Tenants.resumo_para_a_plataforma/1`; nos dois `POST` de ato, por `Tenants.fetch/1` e pelo passo
+  de `Tenants.trocar_estado_no_multi/5`. Nos `GET`, toda consulta com `source = "tenants"`
+  seleciona **só** `id`, `name`, `slug` e `status`: o teste afirma que o `SELECT` do SQL não cita
+  outra coluna de `tenants` (`inserted_at`, `updated_at`), o que reprova uma leitura de
+  `%Tenant{}` inteiro. Lista permitida, e não proibida: uma tabela de
   domínio nova reprova sozinha. `source` nulo (SQL cru) também reprova (lição L56);
 - **toda consulta reprova se o texto do SQL citar `"users"`**, com aspas, como o Ecto gera (A9):
   `source` mostra só a tabela do `from`, e `Sessao.conferir/1` consulta `user_sessions` com `join`
-  em `users` (`por_id/1`, `sessions.ex:222-232` de `development`);
+  em `users` (`por_id/1`, `sessions.ex:222-231` de `development`);
 - **nas rotas de domínio com o cookie do operador forçado** (`put_req_cookie` ignora `Path`):
   `/people`, `/teams/:id_de_B`, `/api/v1/people`, `/mcp`. A resposta é a mesma de um anônimo, e
   **nenhuma** consulta toca `platform_*`. A segunda asserção prova que o leitor de domínio nunca lê
@@ -361,7 +378,8 @@ na reativação; uma de B continua. Defeitos a injetar: retirar o aviso; avisar 
 
 - `OperatorScope` chama `TheBandWeb.Sessao.conferir/1` (A9: é o defeito que mais importa, e a lista
   permitida antiga não o pegava);
-- `Platform.listar_organizacoes/1` passa a pré-carregar `users`.
+- `Platform.listar_organizacoes/1` passa a pré-carregar `users`;
+- `Tenants.resumos_para_a_plataforma/0` devolve `%Tenant{}` inteiro, sem o `select` (emenda D1).
 
 Por que filtrar pelo processo: o handler é global, e um teste `async` em paralelo poluiria a
 coleta. Em `Phoenix.ConnTest` a requisição roda no processo do teste.

@@ -11,8 +11,11 @@ constraints e as transições.
 
 **Estas tabelas não são de domínio.** Não têm `internal_id` nem `record_version`, como
 `user_sessions` e `api_access_tokens` também não têm: não são registro ontológico, são
-infraestrutura de acesso. E três delas **não têm `tenant_id`**, porque o operador não pertence a
-organização nenhuma (FR-011). Isso é a exceção que a spec decidiu, e ela fica confinada ao módulo
+infraestrutura de acesso. E **quatro** delas **não têm `tenant_id`** — `platform_operators`,
+`platform_operator_grants`, `platform_operator_sessions` e `platform_operator_recovery_codes` (§1 a
+§3 e §1a) —, porque o operador não pertence a organização nenhuma (FR-011). A quarta nasceu com o
+segundo fator (FR-016), e a contagem antiga, "três", era de antes dela; o desvio de `AGENTS.md`
+§7.3 em `plan.md` declara as quatro. `tenant_suspensions` (§4) tem `tenant_id`. Isso é a exceção que a spec decidiu, e ela fica confinada ao módulo
 `TheBand.Platform`: nenhuma função de domínio recebe estas structs.
 
 ---
@@ -147,7 +150,7 @@ que fica fora da aplicação. O nome impede que alguém leia a coluna como autor
 Índices: `operator_id`, `ended_at`, `inserted_at` (para a retenção).
 
 Retenção: apagada 90 dias depois de deixar de valer, pelo `ApagaSessoesAntigas`. É o **único**
-caminho que apaga, como em `sessions.ex:128-150`.
+caminho que apaga, como em `sessions.ex:154-176` de `development` (`apagar_as_que_deixaram_de_valer/1`).
 
 ## 4. `tenant_suspensions` — o episódio
 
@@ -220,7 +223,12 @@ YAML:
 
 - `CHECK (status IN ('active', 'suspended'))`, nome `tenants_status_valido`;
 - o `up` conta os valores fora da lista e **levanta** se houver algum (research R6);
-- o `up` insere um episódio `not_recorded` para cada organização `suspended` sem episódio aberto.
+- o `up` insere um episódio `not_recorded` para cada organização `suspended` sem episódio aberto;
+- **quem escreve `status` depois disso é só `Tenants.trocar_estado_no_multi/5`**, um passo que entra
+  no `Ecto.Multi` de `Platform.Suspensions`; e quem lê a tabela para a área do operador é só
+  `Tenants.resumos_para_a_plataforma/0` e `resumo_para_a_plataforma/1`, com as quatro colunas
+  (`contracts/sessoes-e-tokens-da-organizacao.md`). `Platform` não toca a tabela (constituição,
+  princípio X, letra D; achado D1).
 
 ### `api_access_tokens`
 

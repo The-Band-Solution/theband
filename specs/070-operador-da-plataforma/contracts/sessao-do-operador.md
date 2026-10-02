@@ -41,7 +41,28 @@ nomeados, com o motivo escrito.
 
 ### `encerrar(OperatorSession.t()) :: :ok`
 
-### `encerrar_do_operador(operator_id) :: {:ok, non_neg_integer()}` — usada pela revogação e pela definição de senha, dentro da transação delas
+### `encerrar_do_operador(Operator.t()) :: {:ok, non_neg_integer()}`
+
+Recebe `%Operator{}`, e não `operator_id` cru (antipadrão "primitivo no lugar do conceito"; mesma
+razão de `encerrar_da_organizacao(%Tenant{})`). Grava `ended_at` em toda sessão aberta do operador e
+devolve quantas. Roda **dentro da transação de quem chama**, e não abre a sua. Os chamadores, todos
+em `TheBand.Platform`:
+
+| chamador | contrato |
+|---|---|
+| `Grants.revogar/3` | `concessao-do-operador.md` (FR-014) |
+| `Grants.conceder/3`, quando o operador já existe sem concessão vigente | `concessao-do-operador.md` (A6) |
+| `Grants.reiniciar_credencial/2`, depois do `FOR UPDATE` nas sessões abertas (A15) | `concessao-do-operador.md` |
+| `Credentials.definir_senha/3` | `credenciais-do-operador.md` (passo 1) |
+| `Credentials.concluir_cadastro/2` | `credenciais-do-operador.md` (passo 3) |
+
+`Release.encerrar_todas_as_sessoes/0` e `Release.girar_sessoes/0` **não** a chamam: encerram todas
+as do operador numa função própria (`encerrar_todas/0`, abaixo), sem passar operador nenhum.
+
+### `encerrar_todas() :: {:ok, non_neg_integer()}`
+
+Grava `ended_at` em toda sessão de operador aberta. Só para o giro operacional de `TheBand.Release`
+(T032); nenhum controller a chama.
 
 ### `apagar_as_que_deixaram_de_valer(DateTime.t()) :: {:ok, non_neg_integer()}`
 
@@ -68,6 +89,6 @@ path: "/platform", max_age: 8 * 3600)`.
 | ausência | por quê |
 |---|---|
 | nenhuma função de sessão do operador aceita `%User{}`, e as de `TheBand.Tenants.Sessions` não aceitam `%Operator{}` | FR-011: dois leitores, nenhum ponto de contato |
-| não há `girar_todas/0` do operador | a revogação encerra por operador, e o giro operacional de `Release.encerrar_todas_as_sessoes/0` passa a encerrar **também** as do operador, numa chamada a mais dentro dele |
+| não há `girar_todas/0` público fora do giro | a revogação encerra por operador. O giro operacional encerra **também** as do operador, por `encerrar_todas/0`, chamada **só** por `Release.encerrar_todas_as_sessoes/0` (aplicação parada, por `eval`) e por `Release.girar_sessoes/0` (aplicação no ar, por `rpc`, criada pela #1050, PR #1051). A sessão do operador é de controller, sem socket, e não precisa do aviso por PubSub: a próxima requisição confere a linha |
 | `dona/1` não existe aqui | o log da recusa leva o `operator_id` que `conferir/1` devolve no erro; não há outra leitura |
 | a sessão do operador não vai para `Plug.Session` | se fosse, chegaria a toda rota e todo socket de domínio, e cairia com o `drop` da saída de domínio (research R3.2) |

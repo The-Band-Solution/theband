@@ -48,9 +48,12 @@ veredito. Achado alto ou crítico vira tarefa bloqueante do que depende dele.
 | A9 | média | lista permitida por rota, e asserção sobre `"users"` no SQL | research R10 |
 | A7, A10–A15 | média e baixa | eventos da definição; nomes de campo; `last_seen_at`; curinga do `404`; triggers; definição exige concessão; `FOR SHARE` na sessão | contratos e `data-model.md` |
 
-**O código continua bloqueado** pelo que a avaliação não podia fechar sozinha: a avaliação
-**própria do TOTP** (FR-016 nasceu depois dela), a correção em `Tenants.Auth` que a cópia ainda
-espera (PR #1049, da #1047; o #1048, da #1046, já foi mergeado), e o protótipo da tela. O
+**O código ficou bloqueado** pelo que a avaliação não podia fechar sozinha: a avaliação
+**própria do TOTP** (FR-016 nasceu depois dela; **feita** em 2026-10-01, `seguranca-totp.md`, T010 e
+T011), as correções em `Tenants.Auth` que a cópia espera (#1048 e #1049, **os dois mergeados** em
+2026-10-01), e o protótipo da tela (**aprovado** em 2026-10-01, T012). Continua aberto, na mesma
+superfície do segredo em repouso, a #1052 (PR #1053): a rotação da chave mestra recifra todos os
+campos cifrados, e o `totp_secret` do operador entra nessa lista (seguranca-totp.md, T3). O
 `tasks.md` tem cada um como tarefa bloqueante, com `Pronta quando` citando o achado.
 
 Pré-requisitos de código, pela regra "corrigir antes de implementar":
@@ -62,7 +65,9 @@ Pré-requisitos de código, pela regra "corrigir antes de implementar":
 | #1035, `ApiTokens.criar/4` confere o dono (O15), **PR #1040** | **mergeado** |
 | #1042, a tela aberta cai quando a sessão é encerrada (A2), **PR #1044** | **mergeado**; `avisar_encerramento/1` em `lib/the_band/tenants/sessions.ex:146-149` de `development` |
 | #1046, a espera crescente sob concorrência (A1), **PR #1048** | **mergeado** (2026-10-01) |
-| #1047, a espera paga o custo do hash (A3), **PR #1049** (branch `fix/1047-espera-paga-o-hash`) | **aberto** |
+| #1047, a espera paga o custo do hash (A3), **PR #1049** (branch `fix/1047-espera-paga-o-hash`) | **mergeado** (2026-10-01, `gh pr view 1049`) |
+| #1050, o giro operacional com a aplicação no ar roda pelo nó que serve, e derruba as telas abertas, **PR #1051** | **mergeado** (2026-10-01); criou `Release.girar_sessoes/0`, por `rpc` (`release.ex:139-145` de `development`), que a T032 estende |
+| #1052, a rotação da chave mestra recifra **todos** os campos cifrados (T3 de seguranca-totp.md), **PR #1053** | **aberto** (2026-10-01). Bloqueia T021, que acrescenta `platform_operators.totp_secret` à lista da rotação, e a release da 070 (T064, C10 verde) |
 | forma da área do operador (pergunta 1, T005) | **decidida** em 2026-10-01: controllers + cookie próprio; FR-011 emendada (commit `61d6098`) |
 | medir se o Traefik do Dokploy sobrescreve `x-forwarded-for` (A4, decisão 2) | **não medido**; dono: pessoa mantenedora, com acesso ao servidor. Bloqueia só o limite por IP |
 
@@ -70,7 +75,7 @@ Pré-requisitos de código, pela regra "corrigir antes de implementar":
 
 A tela do operador **precisa de protótipo do agente Design**, publicado e guardado na spec com o
 prompt e as decisões, **antes** de qualquer controller ou template. Este plano não desenha pixel.
-O que ele fixa para o protótipo: cinco telas (entrada com segundo fator, definição de senha,
+O que ele fixa para o protótipo (aprovado em 2026-10-01, T012): cinco telas (entrada com segundo fator, definição de senha,
 cadastro do segundo fator com os códigos de recuperação, lista, histórico com o ato), as colunas
 da FR-007, a ausência de episódio escrita com `<.absent>`, as razões vindas da
 base, e a interface em inglês.
@@ -98,9 +103,9 @@ dessa pessoa uma **entidade separada de `users`**, e é ela que dá a forma do p
 | | |
 |---|---|
 | **Linguagem** | Elixir, Phoenix 1.8.11, LiveView 1.2.9, Plug 1.20.3 (`mix.lock:47`, `:52`, `:55`) |
-| **Persistência** | PostgreSQL; três tabelas novas sem `tenant_id` (a exceção da FR-011), uma com |
+| **Persistência** | PostgreSQL; **quatro** tabelas novas sem `tenant_id` (`platform_operators`, `platform_operator_grants`, `platform_operator_sessions` e `platform_operator_recovery_codes`; a exceção da FR-011), uma com (`tenant_suspensions`) |
 | **Hash de senha** | `bcrypt_elixir 3.3.2` (`mix.lock:3`), já na base |
-| **Resumo de token e de código** | `:crypto.hash(:sha256, …)` com `Plug.Crypto.secure_compare/2`, como `sessions.ex:201-218` |
+| **Resumo de token e de código** | `:crypto.hash(:sha256, …)` com `Plug.Crypto.secure_compare/2`, como `sessions.ex:233-237` e `:250` de `development` (`a16a750`) |
 | **Executor** | Oban; nenhum worker novo. A retenção entra no `ApagaSessoesAntigas` |
 | **Dependência nova** | **`{:nimble_totp, "== 1.0.0"}`** (decidida por T009, 2026-10-01; research R13). Dashbit, publicada por José Valim, Apache-2.0, **zero dependências transitivas** (o `mix.lock` ganha uma linha só), 4,1 milhões de downloads; 1.0.0 é de 2023-03-21 e o repositório segue ativo (último commit 2026-04-07). `mix hex.audit` → código 0, saída **idêntica** à da `development` sem ela (só as duas advisories de `cowlib` já ignoradas); `mix deps.audit` → código 0, "No vulnerabilities found". Fixada com `==`, e não `~>`, pela mesma razão de `ex_mcp`: versão nova só entra com a auditoria refeita. *Problema*: FR-016 exige o código RFC 6238 (HMAC-SHA1, truncamento dinâmico, comparação em tempo constante) e a URI `otpauth://`; errar o truncamento ou comparar com `==` é defeito de segurança silencioso, que os vetores do apêndice B pegam só em parte. *Agora ou previsão*: agora — FR-016 decidida em 2026-10-01, e T022 precisa dela. *O que piora*: uma dependência a mais na cadeia de suprimento, sem release desde 2023 (advisory nova dependeria do mantenedor ou de fork); a janela ±1 continua **nossa** (`valid?/3` confere um instante só: são três chamadas, `agora - 30`, `agora`, `agora + 30`); e `:since` é um **instante**, não um passo, então `totp_last_used_step` é traduzido como `since: ultimo_passo * 30`. **Sem QR code** na primeira forma: recomendação de T009, decisão da pessoa mantenedora (research R13) |
 | **Segredo em repouso** | o segredo TOTP, cifrado por `TheBand.Encrypted.Binary` (Cloak, já na base: `mix.lock:7-8`) |
@@ -118,15 +123,19 @@ dessa pessoa uma **entidade separada de `users`**, e é ela que dá a forma do p
 | **I, II, IV** | nenhuma ontologia muda. As razões de suspensão são **vocabulário declarado** na base, `platform.tenant_suspension`, e não constante de módulo |
 | **III — proveniência** | o episódio guarda autor, instante e razão; a concessão guarda o autor **declarado**, com o nome dizendo isso |
 | **V — multitenant** | o operador não tem tenant e **não alcança** caminho de domínio: tipo próprio, cookie com `Path=/platform`, leitor próprio. A guarda de telemetria (R10) prova que nenhuma consulta de domínio roda nas rotas dele. `encerrar_da_organizacao/1` recebe `%Tenant{}` |
+| **X, letra D — depender da fronteira, nunca da tabela** | `Platform.Suspensions` **não lê nem escreve `tenants`**: a troca de estado é `Tenants.trocar_estado_no_multi/5`, um passo que entra no `Multi` da suspensão, e a lista lê `Tenants.resumos_para_a_plataforma/0`, com `select` das quatro colunas permitidas (`contracts/sessoes-e-tokens-da-organizacao.md`). Sem exceção (achado D1 do `/speckit-analyze`, 2026-10-01) |
 | **VI — contrato antes** | oito contratos em `contracts/`, cada um com o que **não** expõe; emendados em 2026-10-01 pela avaliação da segunda autenticação e pelo TOTP, antes de qualquer código |
 | **VII — revisão independente** | o gate de segurança acima; nenhuma tarefa da segunda autenticação antes dele |
 | **VIII — desenho justificado** | o registro abaixo |
-| **X — responsabilidade única** | credencial, sessão, concessão e suspensão em módulos separados; cookie separado da linha; quatro telas de uma pergunta cada |
+| **X — responsabilidade única** | credencial, sessão, concessão e suspensão em módulos separados; cookie separado da linha; cinco telas de uma pergunta cada |
 | **XI — sinal nunca silenciado** | a migração do `CHECK` **levanta** com valor desconhecido em vez de mapear; base ausente faz o ato recusar |
 
 **Desvios declarados de `AGENTS.md` §7.3**: as tabelas `platform_*` e `tenant_suspensions` não têm
 `internal_id` nem `record_version`, como `user_sessions` e `api_access_tokens` também não, porque
-não são registro de domínio. E as três `platform_*` não têm `tenant_id`, que é a FR-011.
+não são registro de domínio. E as **quatro** `platform_*` não têm `tenant_id`, que é a FR-011:
+`platform_operators`, `platform_operator_grants`, `platform_operator_sessions` e
+`platform_operator_recovery_codes` (a quarta é do segundo fator, FR-016, e pertence ao operador,
+que não tem organização).
 
 **Desvio declarado de `AGENTS.md` §8**: a regra nova não tem schema em `schemas/`, como nenhuma
 `derivation_rule` hoje tem; o validador confere id e proveniência (`yaml_validator.ex:476-481`).
@@ -140,9 +149,15 @@ Criar o schema das regras é trabalho de outra feature.
   funções do operador morariam ao lado das que recebem `%User{}` e `%Tenant{}`, e a fronteira
   seria convenção.
 - *Existe agora?* Sim: é a decisão de 2026-10-01.
-- *O que piora*: um contexto a mais, e `Platform.Suspensions` precisa de duas funções públicas
-  novas de `Tenants` (`contracts/sessoes-e-tokens-da-organizacao.md`) em vez de chamar o `Repo`
-  dele.
+- *O que piora*: um contexto a mais, e `Platform.Suspensions` precisa de funções públicas novas
+  de `Tenants` em vez de chamar o `Repo` dele (`contracts/sessoes-e-tokens-da-organizacao.md`):
+  `Tenants.trocar_estado_no_multi/5` e as leituras `resumos_para_a_plataforma/0` e
+  `resumo_para_a_plataforma/1` em `TheBand.Tenants`, `encerrar_da_organizacao/1` em
+  `Tenants.Sessions`, `revogar_por_suspensao/2` e `clausulas_registradas/0` em `Tenants.ApiTokens`.
+  É o que a constituição exige (princípio X, letra D), e a lista **não tem exceção**: a versão
+  anterior do contrato deixava a escrita de `tenants.status` e um `LEFT JOIN LATERAL` sobre
+  `tenants` dentro de `Platform.Suspensions`, e o `/speckit-analyze` o apontou (D1). A lista
+  ganha duas consultas em vez de uma, compostas em memória pelo `id`.
 
 **2. Fachada com `defdelegate` em `TheBand.Platform`**: padrão da tabela de `AGENTS.md` §7.7, usado
 para o problema dele: a fronteira verificável em revisão.
@@ -165,7 +180,7 @@ para o problema dele: a fronteira verificável em revisão.
 
 - *Problema*: o socket do LiveView só lê o `Plug.Session`
   (`deps/phoenix/lib/phoenix/socket/transport.ex:278-286`), e a saída de domínio apaga o cookie
-  inteiro (`session_controller.ex:46`).
+  inteiro (`session_controller.ex:47` de `development`).
 - *Existe agora?* Sim, os dois fatos estão no código.
 - *O que piora*: recarga por ação. A FR-011 dizia `live_session`, e foi emendada para "pipeline,
   plug e cookie próprios" (commit `61d6098`).
@@ -190,7 +205,9 @@ testes que suspendem pelo changeset precisam mudar.
 
 **10. `Ecto.Multi` com passos nomeados** (research R8)
 
-- *Problema*: seis escritas que só valem juntas, e o teste precisa afirmar **qual** recusou.
+- *Problema*: seis escritas que só valem juntas, e o teste precisa afirmar **qual** recusou. É
+  também o que permite a escrita do estado ficar em `Tenants` (D1): `trocar_estado_no_multi/5`
+  devolve o `Multi` com o passo, e não abre transação própria.
 - *Existe agora?* Sim.
 - *O que piora*: nada que `Repo.transaction/1` não tenha; a casa usa os dois.
 
@@ -239,13 +256,13 @@ specs/070-operador-da-plataforma/
 ├── spec.md
 ├── seguranca.md                 # avaliação antes do plano
 ├── seguranca-autenticacao.md    # o gate da segunda autenticação, escrito; A1–A17
-├── seguranca-totp.md            # [gate TOTP] a escrever pelo agente security, antes do código do TOTP
+├── seguranca-totp.md            # [gate TOTP] escrito em 2026-10-01 pelo agente security (T010, T011)
 ├── tasks.md
 ├── plan.md
 ├── research.md
 ├── data-model.md
 ├── quickstart.md
-├── prototipo/                   # a escrever pelo agente Design — antes da tela
+├── prototipo/                   # do agente Design; aprovado em 2026-10-01 (T012)
 └── contracts/
     ├── credenciais-do-operador.md
     ├── sessao-do-operador.md
@@ -272,12 +289,14 @@ lib/the_band/platform/sessions.ex                # a linha da sessão           
 lib/the_band/platform/grants.ex                  # conceder, reiniciar, revogar     [gate]
 lib/the_band/platform/suspensions.ex             # listar, suspender, reativar
 lib/the_band/platform/suspension_reasons.ex      # leitor da base
+lib/the_band/tenants.ex                          # + trocar_estado_no_multi/5, resumos_para_a_plataforma/0, resumo_para_a_plataforma/1 (D1)
 lib/the_band/tenants/tenant.ex                   # :status fora do cast, CHECK
 lib/the_band/tenants/sessions.ex                 # + encerrar_da_organizacao/1
 lib/the_band/tenants/api_tokens.ex               # + revogar_por_suspensao/2, clausulas_registradas/0
 lib/the_band/tenants/access_events.ex            # + eventos de plataforma
 lib/the_band/jobs/apaga_sessoes_antigas.ex       # + sessões do operador
-lib/the_band/release.ex                          # + três comandos                  [gate]
+lib/the_band/release.ex                          # + três comandos; encerrar_todas_as_sessoes/0 e girar_sessoes/0 encerram também as do operador  [gate]
+lib/mix/tasks/the_band.rotate_key.ex             # + platform_operators.totp_secret na lista da #1052 (T3)
 lib/the_band_web/router.ex                       # :plataforma, scope /platform, CSP num atributo
 lib/the_band_web/plataforma/sessao_do_operador.ex                                   [gate]
 lib/the_band_web/plataforma/operator_scope.ex    # plug + require_operator          [gate]
@@ -312,7 +331,8 @@ em `lib/the_band_web/plataforma/` e `controllers/plataforma/`, e nada em `ontolo
 | **T9** (seguranca-totp.md): (a) código de recuperação dá entrada mas não revoga o aparelho perdido, cujo segredo continua valendo; (b) não há notificação ao operador na troca de fator nem no reuso (ASVS V2.5.5, V2.8.5) | (a) o roteiro (T059) diz que aparelho perdido é **reinício pelo comando**, mesmo havendo códigos; (b) **risco residual declarado**: o sinal é o evento em `:warning` (`operador_recuperacao_usada`, `operador_entrada_recusada` com `:segundo_fator_reusado`), e entra na nota da release (T062) |
 | **T10**: TOTP não resiste a phishing em tempo real (proxy reverso que repassa senha e código em menos de 90 s) | **risco residual declarado**: aceitável em ASVS L2; WebAuthn seria a feature seguinte, com spec própria. Entra na nota da release (T062) |
 | **T11**: o relógio do servidor decide a janela ±1; deriva acima de 30 s recusa todo código e, com T1, trava o segundo fator em 10 tentativas | o NTP do VPS **não foi verificado**; o roteiro (T059) manda conferir `timedatectl` antes da primeira concessão, e a nota da release (T062) registra a medição |
-| A1 e A3 existem hoje em `Tenants.Auth` | issues #1046 (PR #1048, mergeado) e #1047 (PR #1049, aberto), corrigidas **antes** desta feature; a cópia nasce da versão corrigida |
+| A1 e A3 existiam em `Tenants.Auth` | issues #1046 (PR #1048) e #1047 (PR #1049), **as duas mergeadas** em 2026-10-01, **antes** desta feature; a cópia nasce da versão corrigida |
+| **T3** (seguranca-totp.md): a rotação da chave mestra não alcança `totp_secret`, e o mesmo defeito existe hoje em `ai_provider_credentials.secret` | issue #1052, PR #1053 (**aberto**), corrigida antes desta feature na mesma superfície; T021 acrescenta `totp_secret` à lista, e a release só sai com C10 verde (T023a, T064) |
 | a cópia diverge da correção do original | o teste de paridade compara as constantes e a forma da serialização |
 
 ## Perguntas para a pessoa mantenedora

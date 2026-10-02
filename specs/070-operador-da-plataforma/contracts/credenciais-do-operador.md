@@ -7,9 +7,10 @@ FR-011, FR-016, O4, O11, O16. Desenho em [research.md](../research.md) R1, R2 e 
 > **Emendado em 2026-10-01** pela avaliação da segunda autenticação
 > ([seguranca-autenticacao.md](../seguranca-autenticacao.md)), achados **A1, A3, A5, A10 e A14**, e
 > pela decisão da pessoa mantenedora de ter **TOTP nesta feature** (FR-016). O gate de desenho está
-> fechado; o código deste módulo continua **bloqueado** até a avaliação própria do TOTP
-> (`tasks.md`) e até os PRs #1048 (#1046, a forma da A1) e o da #1047 (a forma da A3) estarem em
-> `development`, porque esta cópia nasce da versão corrigida de `Tenants.Auth`, e não da de hoje.
+> fechado. O código deste módulo esperava a avaliação própria do TOTP (**feita**, T010 e T011,
+> `seguranca-totp.md`) e os PRs #1048 (#1046, a forma da A1) e #1049 (#1047, a forma da A3) em
+> `development` (**os dois mergeados** em 2026-10-01), porque esta cópia nasce da versão corrigida
+> de `Tenants.Auth`. O que ainda falta está no `Pronta quando` de T023, em `tasks.md`.
 >
 > **Emendado em 2026-10-01 pelo protótipo T012** (Q3 (b), decisão da pessoa mantenedora; o fluxo
 > em [segundo-fator-do-operador.md](segundo-fator-do-operador.md), "O fluxo de cadastro (emenda
@@ -179,6 +180,9 @@ corpo do `POST`, nunca na URL.
   porque `autenticar/3` recusa antes de olhá-los.
 
 ## `concluir_cadastro(email, acknowledgement_token :: TheBand.Segredo.t()) :: {:ok, Operator.t()} | {:error, :invalid_credentials} | {:error, {:throttled, pos_integer()}}`
+
+**Este é o contrato único de `concluir_cadastro/2`** (achado A1 do `/speckit-analyze`): o fluxo de
+cadastro em `segundo-fator-do-operador.md` aponta para cá, e não repete a assinatura.
 
 O terceiro passo: o operador declarou que guardou os códigos de recuperação. **É a única função que
 grava `totp_confirmed_at`**, e por isso a única que habilita a entrada.

@@ -26,7 +26,7 @@ lista do formatador.
 | `operador_segundo_fator_travado(operator_id)` | `second_factor_failures` chegou ao limite (seguranca-totp.md, T1); sai uma vez, na transição. Com senha certa, é o sinal de que a senha está com outra pessoa |
 | `operador_espera_acionada(operator_id, segundos)` | |
 | `operador_sessao_derrubada(operator_id ou nil, motivo)` | o motivo de `Platform.Sessions.conferir/2` |
-| `operador_ato_recusado(operator_id, tenant_id, motivo)` | `:nao_autorizado`, `:ja_suspensa`, `:nao_suspensa`, changeset resumido em códigos |
+| `operador_ato_recusado(operator_id, tenant_id ou nil, motivo)` | todo `{:error, …}` de `suspender/3` e `reativar/3` (`suspensao.md`): `:nao_autorizado`, `:not_found` (com `tenant_id` nil), `:ja_suspensa`, `:nao_suspensa`, `:sem_episodio_aberto`, `:vocabulario_nao_declarado`, e o changeset resumido em códigos. A recusa da confirmação do slug não gera evento: não houve tentativa do ato (`rotas-da-plataforma.md`) |
 
 ## O que NÃO vai para o log, e por quê
 
