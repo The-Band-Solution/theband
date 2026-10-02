@@ -151,4 +151,45 @@ defmodule TheBand.Platform.CredentialsDefinirTest do
 
     assert {:ok, _} = passo1(op, codigo)
   end
+
+  # Lacunas apontadas pelo agente de modelos (T063): o vencimento de cada código e o TOTP errado no
+  # segundo passo.
+  defp vencer(op, campo) do
+    Repo.update_all(from(o in Operator, where: o.id == ^op.id),
+      set: [{campo, DateTime.add(DateTime.utc_now(:second), -1, :second)}]
+    )
+  end
+
+  test "o código de definição vencido é recusado, e a senha não é definida" do
+    {op, codigo} = operador_novo()
+    vencer(op, :setup_code_expires_at)
+
+    assert passo1(op, codigo) == {:error, :invalid_credentials}
+    assert Repo.get!(Operator, op.id).password_hash == nil
+  end
+
+  test "o código de cadastro vencido é recusado, e o segundo fator não vai a confirmado" do
+    {op, codigo} = operador_novo()
+    {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} = passo1(op, codigo)
+    vencer(op, :enrollment_code_expires_at)
+
+    assert passo2(op, cadastro, segredo) == {:error, :invalid_credentials}
+    assert Repo.all(from r in RecoveryCode, where: r.operator_id == ^op.id) == []
+  end
+
+  test "o TOTP errado no segundo passo não consome o código de cadastro: o certo, depois, passa" do
+    {op, codigo} = operador_novo()
+    {:ok, {_, %{segredo: segredo, enrollment_token: cadastro}}} = passo1(op, codigo)
+
+    errado =
+      Segredo.novo(
+        NimbleTOTP.verification_code(Segredo.expor(segredo), time: System.os_time(:second) + 600)
+      )
+
+    assert quieto(fn -> Credentials.confirmar_segundo_fator(op.email, cadastro, errado) end) ==
+             {:error, :invalid_credentials}
+
+    assert {:ok, {_, codigos, _guarda}} = passo2(op, cadastro, segredo)
+    assert length(codigos) == 10
+  end
 end

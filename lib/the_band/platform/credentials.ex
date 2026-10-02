@@ -575,4 +575,24 @@ defmodule TheBand.Platform.Credentials do
     AccessEvents.operador_entrada_recusada(op && op.id, motivo)
     {:error, :invalid_credentials}
   end
+
+  @doc """
+  Apaga os códigos de recuperação que deixaram de valer há mais de 90 dias — spec 070, T058
+  (`data-model.md` §1a, T8). Deixou de valer é **usado** (`used_at`) ou **anulado** por reinício
+  (`invalidated_at`), o que vier: `coalesce` dos dois. Um vigente, com os dois nulos, **nunca** é
+  apagado, porque `coalesce` de dois nulos é nulo, e nulo não é menor que nada.
+  """
+  @spec apagar_codigos_que_deixaram_de_valer(DateTime.t()) :: {:ok, non_neg_integer()}
+  def apagar_codigos_que_deixaram_de_valer(agora \\ DateTime.utc_now(:second)) do
+    corte = DateTime.add(agora, -90, :day)
+
+    {n, _} =
+      Repo.delete_all(
+        from(r in RecoveryCode,
+          where: fragment("coalesce(?, ?)", r.used_at, r.invalidated_at) < ^corte
+        )
+      )
+
+    {:ok, n}
+  end
 end

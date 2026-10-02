@@ -312,3 +312,13 @@ msgstr "Composição encerrada."
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Team %{nome} declared inside this one."
 msgstr "Equipe %{nome} declarada."
+
+#: lib/the_band_web/plataforma/organizacao_controller.ex
+#, elixir-autogen, elixir-format
+msgid "Suspensa. Toda sessão foi encerrada e todo token de API, revogado."
+msgstr ""
+
+#: lib/the_band_web/plataforma/organizacao_controller.ex
+#, elixir-autogen, elixir-format
+msgid "Reativada. Nenhuma sessão nem token voltou."
+msgstr ""

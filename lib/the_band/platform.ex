@@ -11,4 +11,7 @@ defmodule TheBand.Platform do
   alias TheBand.Platform.Suspensions
 
   defdelegate listar_organizacoes(sessao), to: Suspensions
+  defdelegate organizacao(sessao, slug), to: Suspensions
+  defdelegate suspender(sessao, slug, attrs), to: Suspensions
+  defdelegate reativar(sessao, slug, attrs), to: Suspensions
 end

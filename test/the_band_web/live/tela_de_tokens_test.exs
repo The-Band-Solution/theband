@@ -9,7 +9,11 @@ defmodule TheBandWeb.TelaDeTokensTest do
 
   import Phoenix.LiveViewTest
 
+  alias TheBand.OperadorFixtures
+  alias TheBand.Platform.Suspension
+  alias TheBand.Repo
   alias TheBand.Tenants
+  alias TheBand.Tenants.ApiTokens
 
   setup %{conn: conn} do
     {tenant, admin} = tenant_with_admin()
@@ -474,6 +478,29 @@ defmodule TheBandWeb.TelaDeTokensTest do
         refute String.trim(celula) == vazio,
                "uma célula traz apenas `#{vazio}` — ausência se escreve, e traço não é escrita"
       end
+    end
+  end
+
+  describe "070/T047 — o token revogado pela suspensão" do
+    test "a linha diz que a organização foi suspensa, sem autor de conta e sem erro", ctx do
+      {:ok, _token, _} =
+        Tenants.create_api_token(ctx.tenant, ctx.admin, %{label: "painel"}, ctx.admin)
+
+      {op, _} = OperadorFixtures.operador_pronto()
+
+      ep =
+        Repo.insert!(%Suspension{
+          tenant_id: ctx.tenant.id,
+          suspended_at: DateTime.utc_now(:second),
+          suspended_by_operator_id: op.id,
+          suspend_reason: "contract_ended"
+        })
+
+      {:ok, 1} = ApiTokens.revogar_por_suspensao(ctx.tenant, ep.id)
+
+      {_view, html} = abrir(ctx)
+      assert texto(html) =~ "revoked when the organisation was suspended"
+      assert texto(html) =~ "organisation suspended"
     end
   end
 end

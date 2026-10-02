@@ -47,8 +47,14 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
 
   defp recusa(assigns) do
     ~H"""
-    <p role="alert" class="alert alert-error text-sm">
-      <span><b>{@titulo}</b> {render_slot(@inner_block)}</span>
+    <%!-- A marca da recusa é a do protótipo: borda e hachura cor de argila, e o "!" em texto. Em
+          cinza ela continua distinta do sucesso, pela hachura e pelo sinal (D-1 da conferência). --%>
+    <p
+      role="alert"
+      class="flex items-start gap-2 rounded border-[1.5px] border-error p-3 text-sm text-error bg-[repeating-linear-gradient(135deg,color-mix(in_srgb,var(--color-error)_9%,transparent)_0_3px,transparent_3px_7px)]"
+    >
+      <span class="font-mono font-bold" aria-hidden="true">!</span>
+      <span class="text-base-content"><b>{@titulo}</b> {render_slot(@inner_block)}</span>
     </p>
     """
   end
@@ -59,8 +65,8 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
   # "Shown once" vem ANTES do segredo e dos códigos (D2 do protótipo): quem lê depois já copiou.
   defp uma_vez(assigns) do
     ~H"""
-    <div class="alert alert-warning text-sm">
-      <span class="font-mono">1×</span>
+    <div class="flex items-start gap-2 rounded border-[3px] border-double border-warning p-3 text-sm">
+      <span class="font-mono font-bold text-warning" aria-hidden="true">1×</span>
       <span><b>{@titulo}</b> {render_slot(@inner_block)}</span>
     </div>
     """
@@ -309,7 +315,10 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
           keeps only a fingerprint of each, so nobody can show them to you later. Lose both the app
           and the codes, and the way back is a new setup code from whoever runs the server.
         </.uma_vez>
-        <ol class="grid grid-cols-1 gap-1 font-mono sm:grid-cols-2" aria-label="recovery codes">
+        <ol
+          class="grid grid-cols-1 gap-1 font-mono min-[30rem]:grid-cols-2"
+          aria-label="recovery codes"
+        >
           <li :for={{codigo, n} <- Enum.with_index(@codigos, 1)}>
             <span class="opacity-50">{n}</span> {TheBand.Segredo.expor(codigo)}
           </li>
@@ -347,7 +356,8 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
     ~H"""
     <.moldura>
       <%= if @concluido do %>
-        <div class="alert alert-success text-sm">
+        <div class="flex items-start gap-2 rounded border-[1.5px] border-primary p-3 text-sm">
+          <span class="font-mono font-bold text-primary" aria-hidden="true">✓</span>
           <span>
             <b>Setup finished.</b>
             Your authenticator and your recovery codes are now valid. Every open operator session
@@ -359,7 +369,11 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
           The step was not accepted; ask for a new setup code.
         </.recusa>
       <% end %>
-      <.link href={~p"/platform/sign-in"} class="btn btn-primary">Go to sign in</.link>
+      <.link href={~p"/platform/sign-in"} class="btn btn-primary self-start">Go to sign in</.link>
+      <p :if={@concluido} class="text-sm opacity-70">
+        The link leads to <span class="font-mono">/platform/sign-in</span>. It does not sign you
+        in: the first sign-in uses password and code like every other.
+      </p>
     </.moldura>
     """
   end
@@ -398,6 +412,9 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
             <td data-label="last suspended">
               <%= if o.ultimo_episodio_em do %>
                 <span class="font-mono">{Calendar.strftime(o.ultimo_episodio_em, "%Y-%m-%d")}</span>
+                <span :if={o.ultima_razao == "not_recorded"} class="text-xs opacity-70">
+                  · reason not recorded
+                </span>
               <% else %>
                 <%!-- A ausência é da plataforma: nenhum episódio registrado. Escrita, nunca `—`. --%>
                 <.absent reason="never suspended" />
@@ -410,20 +427,235 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
     """
   end
 
+  # ------------------------------------------------- tela 5 · o histórico e o ato
+
+  @doc """
+  Tela 5: o histórico e o ato que cabe ao estado (D3: o outro não aparece, nem desabilitado). Cada
+  episódio tem duas metades, e a que falta é escrita (D4). A recusa re-renderiza esta página, com o
+  formulário como a pessoa o deixou e o aviso acima dele.
+  """
+  def organizacao(assigns) do
+    # `Map.merge`, e não `assign/2`: o controller entrega um mapa simples, sem o rastreio de mudança
+    # que `assign/2` exige.
+    assigns =
+      Map.merge(assigns, %{
+        suspensa?: assigns.resumo.status == "suspended",
+        aberto: Enum.find(assigns.episodios, &is_nil(&1.reactivated_at))
+      })
+
+    ~H"""
+    <.moldura operador={@operador} largura="max-w-3xl">
+      <.link href={~p"/platform/organizations"} class="link text-sm">← Organisations</.link>
+
+      <div>
+        <h1 class="text-xl font-semibold">{@resumo.name}</h1>
+        <div class="flex flex-wrap items-baseline gap-2 text-sm">
+          <span class="font-mono">{@resumo.slug}</span>
+          <span>·</span>
+          <.estado status={@resumo.status} />
+          <span :if={@aberto}>since {Calendar.strftime(@aberto.suspended_at, "%Y-%m-%d")}</span>
+        </div>
+      </div>
+
+      <p :if={@sucesso} class="alert alert-success text-sm">{@sucesso}</p>
+
+      <h2 class="font-semibold">Suspension history</h2>
+      <%= if @episodios == [] do %>
+        <.absent reason="never suspended" />
+      <% end %>
+      <div
+        :for={ep <- @episodios}
+        class="grid grid-cols-1 gap-3 rounded border border-base-300 p-3 min-[44rem]:grid-cols-2"
+      >
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="text-xs uppercase tracking-wider opacity-60">suspended</span>
+          <span class="font-mono">
+            {hora_completa(ep.suspended_at)}<span :if={ep.suspended_by_operator}> · by {ep.suspended_by_operator.name}</span>
+          </span>
+          <.absent
+            :if={is_nil(ep.suspended_by_operator)}
+            reason="by: not recorded — suspended by hand before this record existed"
+          />
+          <span>
+            {TheBand.Platform.SuspensionReasons.rotulo(ep.suspend_reason)}
+            <span class="font-mono text-xs opacity-60">{ep.suspend_reason}</span>
+          </span>
+          <%!-- O caso da migração não tem nota a dizer que falta: não houve quem a escrevesse (D-8). --%>
+          <.nota :if={ep.suspend_reason != "not_recorded"} texto={ep.suspend_note} />
+        </div>
+        <div class="flex flex-col gap-1 text-sm">
+          <span class="text-xs uppercase tracking-wider opacity-60">reactivated</span>
+          <%= if ep.reactivated_at do %>
+            <span class="font-mono">
+              {hora_completa(ep.reactivated_at)} · by {ep.reactivated_by_operator &&
+                ep.reactivated_by_operator.name}
+            </span>
+            <span>
+              {TheBand.Platform.SuspensionReasons.rotulo(ep.reactivate_reason)}
+              <span class="font-mono text-xs opacity-60">{ep.reactivate_reason}</span>
+            </span>
+            <.nota texto={ep.reactivate_note} />
+          <% else %>
+            <.absent reason="not reactivated — still suspended" />
+          <% end %>
+        </div>
+      </div>
+
+      <.recusa :if={@recusa} titulo={elem(@recusa, 0)}>{elem(@recusa, 1)}</.recusa>
+
+      <%= if @suspensa? do %>
+        <.formulario_do_ato
+          acao={~p"/platform/organizations/#{@resumo.slug}/reactivation"}
+          titulo={"Reactivate #{@resumo.name}"}
+          razoes={TheBand.Platform.SuspensionReasons.de_reativacao(@aberto && @aberto.suspend_reason)}
+          ato={:reativar}
+          aberto={@aberto}
+          slug={@resumo.slug}
+          valores={@valores}
+          botao={"Reactivate #{@resumo.name}"}
+          perigo={false}
+        >
+          <:consequencias>
+            <li>People in {@resumo.name} can sign in again, each one from the start.</li>
+            <li>No session comes back. Any session recorded while it was suspended is ended too.</li>
+            <li>No API token comes back. Each one must be issued again by the organisation.</li>
+            <li>Collection resumes on its normal schedule; reactivating does not start one.</li>
+            <li>
+              The suspension above stays on the record; this closes it with your name, this moment
+              and this reason.
+            </li>
+          </:consequencias>
+        </.formulario_do_ato>
+      <% else %>
+        <.formulario_do_ato
+          acao={~p"/platform/organizations/#{@resumo.slug}/suspension"}
+          titulo={"Suspend #{@resumo.name}"}
+          razoes={TheBand.Platform.SuspensionReasons.de_suspensao()}
+          ato={:suspender}
+          aberto={nil}
+          slug={@resumo.slug}
+          valores={@valores}
+          botao="Suspend, sign everyone out, revoke all tokens"
+          perigo={true}
+        >
+          <:consequencias>
+            <li>Every person in {@resumo.name} is signed out, on every device.</li>
+            <li>Every API token of {@resumo.name} is revoked.</li>
+            <li>Nobody in it can sign in, and no collection or background job runs for it.</li>
+            <li>Its data stays as it is. Nothing is deleted.</li>
+            <li>
+              Reactivating later does <b>not</b> bring sessions or tokens back: each person signs in
+              again, and each token is issued again.
+            </li>
+          </:consequencias>
+        </.formulario_do_ato>
+      <% end %>
+    </.moldura>
+    """
+  end
+
+  attr :texto, :string, default: nil
+
+  # A nota, ou a ausência dela escrita com a frase da base.
+  defp nota(assigns) do
+    ~H"""
+    <q :if={@texto} class="italic">{@texto}</q>
+    <.absent :if={is_nil(@texto)} reason={TheBand.Platform.SuspensionReasons.frase_sem_nota()} />
+    """
+  end
+
+  attr :acao, :string, required: true
+  attr :titulo, :string, required: true
+  attr :razoes, :list, required: true
+  attr :ato, :atom, required: true
+  attr :aberto, :any, required: true
+  attr :slug, :string, required: true
+  attr :valores, :map, required: true
+  attr :botao, :string, required: true
+  attr :perigo, :boolean, required: true
+  slot :consequencias, required: true
+
+  defp formulario_do_ato(assigns) do
+    ~H"""
+    <form action={@acao} method="post" class="flex flex-col gap-4 rounded border border-base-300 p-4">
+      <.csrf />
+      <h2 class="font-semibold">{@titulo}</h2>
+      <fieldset class="flex flex-col gap-2">
+        <legend class="text-[13px] font-semibold opacity-70">Reason — required</legend>
+        <label :for={r <- @razoes} class="flex items-start gap-2 text-sm">
+          <input
+            type="radio"
+            name="reason"
+            value={r["code"]}
+            checked={@valores["reason"] == r["code"]}
+            class="radio radio-sm mt-0.5"
+          />
+          <span class="flex flex-col">
+            <span>
+              {r["label"]}
+              <span
+                :if={TheBand.Platform.SuspensionReasons.nota_obrigatoria?(@ato, r["code"])}
+                class="text-xs opacity-70"
+              >
+                note required
+              </span>
+              <span class="font-mono text-xs opacity-60">{r["code"]}</span>
+            </span>
+            <span :if={r["offered_only_against"]} class="text-xs opacity-70">
+              Offered because the open suspension's reason is {TheBand.Platform.SuspensionReasons.rotulo(
+                r["offered_only_against"]
+              )}; it is the answer to that reason.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+      <.campo rotulo="Note" dica={dica_da_nota(@ato)}>
+        <textarea name="note" class="textarea textarea-bordered w-full">{@valores["note"]}</textarea>
+      </.campo>
+      <p class="text-sm font-semibold">
+        {if @ato == :suspender,
+          do: "What suspending does, at once and in one step",
+          else: "What reactivating does, and what it does not"}
+      </p>
+      <ul class="list-disc pl-5 text-sm">{render_slot(@consequencias)}</ul>
+      <.campo rotulo={"Type #{@slug} to confirm"}>
+        <input
+          type="text"
+          name="confirm_slug"
+          value={@valores["confirm_slug"]}
+          autocomplete="off"
+          spellcheck="false"
+          class="input input-bordered w-full font-mono"
+        />
+      </.campo>
+      <button type="submit" class={["btn", if(@perigo, do: "btn-error", else: "btn-primary")]}>
+        {@botao}
+      </button>
+    </form>
+    """
+  end
+
+  defp dica_da_nota(:suspender),
+    do: "required for Suspected compromise and Other; optional otherwise. Kept with the episode."
+
+  defp dica_da_nota(:reativar),
+    do: "required for Other; optional otherwise. Kept with the episode."
+
+  defp hora_completa(%DateTime{} = t), do: Calendar.strftime(t, "%Y-%m-%d %H:%M UTC")
+
   attr :status, :string, required: true
 
-  # O estado em texto, sempre: a cor acompanha, e nunca carrega sozinha (WCAG 1.4.1).
+  # O estado em texto, sempre, com a marca da casa (D-2 da conferência): verdete cheio é o que vale
+  # agora, cinza cheio é o que terminou e fica no registro. A forma acompanha o texto, e nunca o
+  # substitui (WCAG 1.4.1).
   defp estado(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-1.5">
-      <span
-        class={[
-          "size-2 shrink-0 rounded-full",
-          @status == "active" && "bg-success",
-          @status != "active" && "bg-warning"
-        ]}
-        aria-hidden="true"
-      ></span>
+    <span class={[
+      "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs",
+      @status == "active" && "bg-primary text-primary-content",
+      @status != "active" && "bg-neutral text-neutral-content"
+    ]}>
+      <span class="size-1.5 shrink-0 rounded-full bg-current" aria-hidden="true"></span>
       {@status}
     </span>
     """

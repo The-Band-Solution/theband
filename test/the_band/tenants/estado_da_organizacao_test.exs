@@ -56,6 +56,10 @@ defmodule TheBand.Tenants.EstadoDaOrganizacaoTest do
 
     assert :ok = modulo.conferir_estados!(Repo)
 
+    # O trigger adiado da 070 (T044a) deixa um evento pendente a cada escrita em `tenants`, e o
+    # PostgreSQL recusa `ALTER TABLE` com evento pendente. Conferir agora os esvazia.
+    Repo.query!("SET CONSTRAINTS ALL IMMEDIATE")
+    Repo.query!("SET CONSTRAINTS ALL DEFERRED")
     Repo.query!("ALTER TABLE tenants DROP CONSTRAINT tenants_status_valido")
 
     {:ok, _} =

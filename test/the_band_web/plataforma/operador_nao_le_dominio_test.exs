@@ -51,10 +51,17 @@ defmodule TheBandWeb.Plataforma.OperadorNaoLeDominioTest do
 
   # O que fica fora da lista: a tabela que não é da plataforma, o `source` nulo, o SQL que cita
   # `"users"`, e a leitura de `tenants` com coluna além das quatro da FR-007 (emenda D1).
-  defp fora_da_lista(consultas) do
+  defp fora_da_lista(consultas), do: fora_da_lista(consultas, @da_plataforma, true)
+
+  # Os dois `POST` de ato (T051) encerram as sessões e revogam os tokens da organização, e leem a
+  # organização inteira por `Tenants.get_by_slug/1`, que as funções de `Tenants` recebem (U1): a
+  # restrição às quatro colunas é dos `GET` (emenda D1). `"users"` continua proibido.
+  @do_ato @da_plataforma ++ ~w(user_sessions api_access_tokens)
+
+  defp fora_da_lista(consultas, permitidas, colunas_estritas?) do
     Enum.reject(consultas, fn {source, sql} ->
-      source in @da_plataforma and not (sql =~ ~s("users")) and
-        colunas_de_tenants_ok?(source, sql)
+      source in permitidas and not (sql =~ ~s("users")) and
+        (not colunas_estritas? or colunas_de_tenants_ok?(source, sql))
     end)
   end
 
@@ -172,6 +179,30 @@ defmodule TheBandWeb.Plataforma.OperadorNaoLeDominioTest do
         end)
 
       sem_dominio!("POST /platform/setup/recovery-codes", c)
+    end)
+  end
+
+  test "os dois POST de ato só tocam a plataforma, as sessões e os tokens da organização", %{
+    conn: conn,
+    a: a
+  } do
+    {op, _} = operador_pronto()
+    conn = log_in_operador(conn, op)
+
+    capture_log(fn ->
+      for {ato, razao} <- [{"suspension", "contract_ended"}, {"reactivation", "contract_resumed"}] do
+        {r, c} =
+          capturar(fn ->
+            post(conn, "/platform/organizations/#{a.slug}/#{ato}", %{
+              "reason" => razao,
+              "confirm_slug" => a.slug
+            })
+          end)
+
+        assert r.status == 302, ato
+        assert c != [], "#{ato}: a captura não mediu consulta nenhuma"
+        assert fora_da_lista(c, @do_ato, false) == [], ato
+      end
     end)
   end
 

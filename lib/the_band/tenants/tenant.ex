@@ -31,7 +31,7 @@ defmodule TheBand.Tenants.Tenant do
   # `:status` NÃO está no `cast` — spec 070, T013, achado O10. Com ele castável, qualquer chamador
   # de `create_tenant/1` ou deste changeset mudava o estado da organização sem episódio, sem autor
   # e sem razão. O estado só muda pela suspensão e pela reativação do operador da plataforma
-  # (`Tenants.trocar_estado_no_multi/5`). A validação e a constraint ficam para o valor que entra
+  # (`Tenants.trocar_estado/3`). A validação e a constraint ficam para o valor que entra
   # pelo `default` ou por aquele caminho.
   def changeset(tenant, attrs) do
     tenant

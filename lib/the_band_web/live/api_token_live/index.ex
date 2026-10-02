@@ -70,7 +70,9 @@ defmodule TheBandWeb.ApiTokenLive.Index do
     tenant = socket.assigns.current_tenant
     contas = Tenants.list_users(tenant)
 
-    rotulos = Map.new(Tenants.api_token_revocation_labels())
+    # Os rótulos de TODA cláusula registrada, inclusive `organizacao_suspensa`, que o select não
+    # oferece (070, T047). Com só as oferecidas, o token revogado pela suspensão sairia sem razão.
+    rotulos = Map.new(Tenants.api_token_recorded_revocation_labels())
 
     linhas =
       tenant

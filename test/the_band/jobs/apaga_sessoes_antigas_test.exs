@@ -74,4 +74,54 @@ defmodule TheBand.Jobs.ApagaSessoesAntigasTest do
 
     assert {"0 4 * * *", ApagaSessoesAntigas} in crontab
   end
+
+  describe "070/T058 — o operador da plataforma" do
+    alias TheBand.Platform.{OperatorSession, RecoveryCode, SegundoFator}
+
+    defp do_operador(op, carimbos) do
+      {:ok, {s, _}} = TheBand.Platform.Sessions.abrir(op)
+      Repo.update_all(from(x in OperatorSession, where: x.id == ^s.id), set: carimbos)
+      s.id
+    end
+
+    defp codigo(op, carimbos) do
+      [c | _] = SegundoFator.gerar_codigos_de_recuperacao()
+      r = Repo.insert!(%RecoveryCode{operator_id: op.id, code_hash: SegundoFator.resumo(c)})
+      Repo.update_all(from(x in RecoveryCode, where: x.id == ^r.id), set: carimbos)
+      r.id
+    end
+
+    test "o job apaga a sessão do operador encerrada há 91 dias, e deixa a de 89" do
+      {op, _} = TheBand.OperadorFixtures.operador_pronto()
+      agora = DateTime.utc_now(:second)
+      antes = fn dias -> DateTime.add(agora, -dias, :day) end
+
+      velha =
+        do_operador(op, inserted_at: antes.(91), last_seen_at: antes.(91), ended_at: antes.(91))
+
+      recente =
+        do_operador(op, inserted_at: antes.(89), last_seen_at: antes.(89), ended_at: antes.(89))
+
+      assert :ok = ApagaSessoesAntigas.perform(%Oban.Job{})
+      refute Repo.get(OperatorSession, velha)
+      assert Repo.get(OperatorSession, recente)
+    end
+
+    test "o job apaga o código usado ou anulado há 91 dias, e nunca um vigente" do
+      {op, _} = TheBand.OperadorFixtures.operador_pronto()
+      agora = DateTime.utc_now(:second)
+      antes = fn dias -> DateTime.add(agora, -dias, :day) end
+
+      usado = codigo(op, used_at: antes.(91))
+      anulado = codigo(op, invalidated_at: antes.(91))
+      usado_recente = codigo(op, used_at: antes.(89))
+      vigente = codigo(op, inserted_at: antes.(400))
+
+      assert :ok = ApagaSessoesAntigas.perform(%Oban.Job{})
+      refute Repo.get(RecoveryCode, usado)
+      refute Repo.get(RecoveryCode, anulado)
+      assert Repo.get(RecoveryCode, usado_recente)
+      assert Repo.get(RecoveryCode, vigente)
+    end
+  end
 end
