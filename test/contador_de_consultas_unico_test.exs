@@ -24,6 +24,8 @@ defmodule TheBand.ContadorDeConsultasUnicoTest do
       "captura o source e o SQL das rotas do operador (070/T041), contra a lista permitida por rota",
     "test/the_band_web/plataforma/cookie_do_operador_em_dominio_test.exs" =>
       "captura o SQL das portas do domínio com o cookie do operador (070/T042), atrás de platform_",
+    "test/the_band/platform/suspender_test.exs" =>
+      "captura os SELECT em tenants do ato de suspender (070/T049, U1), pelo conteúdo",
     "test/the_band/tenants/ultimo_admin_ativo_test.exs" =>
       "captura o SELECT … FOR UPDATE das contas admin ativas, pelo conteúdo",
     "test/the_band/tenants/auth_test.exs" =>

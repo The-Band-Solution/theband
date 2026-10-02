@@ -131,10 +131,13 @@ defmodule TheBand.Platform.Sessions do
   com a concessão vigente (FR-014, O6). É o que toda função de `TheBand.Platform` confere **por
   dentro**, porque ter passado pelo plug não basta: a revogação pode ter vindo entre os dois.
 
-  O `FOR SHARE` do ato (A15) entra com `suspender/3`, em T049.
+  Com `lock: true`, as linhas lidas ficam sob `FOR SHARE` (A15): a sessão, o operador e a
+  concessão. A revogação (`UPDATE` na concessão) e o reinício de credencial (`FOR UPDATE` no
+  operador e nas sessões) se serializam com o ato em voo, e quem perde recusa. Só dentro de
+  transação.
   """
-  @spec autorizada(OperatorSession.t()) :: :ok | {:error, :nao_autorizado}
-  def autorizada(%OperatorSession{id: id}) do
+  @spec autorizada(OperatorSession.t(), keyword()) :: :ok | {:error, :nao_autorizado}
+  def autorizada(%OperatorSession{id: id}, opcoes \\ []) do
     agora = DateTime.utc_now(:second)
     aberta_depois = DateTime.add(agora, -@validade_s, :second)
     usada_depois = DateTime.add(agora, -@inatividade_s, :second)
@@ -151,7 +154,9 @@ defmodule TheBand.Platform.Sessions do
         select: s.id
       )
 
-    if Repo.exists?(consulta), do: :ok, else: {:error, :nao_autorizado}
+    consulta = if opcoes[:lock], do: from(q in consulta, lock: "FOR SHARE"), else: consulta
+
+    if Repo.all(consulta) != [], do: :ok, else: {:error, :nao_autorizado}
   end
 
   @doc "Encerra aquela sessão. Encerrar de novo não muda a data do primeiro encerramento."
