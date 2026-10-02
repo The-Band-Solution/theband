@@ -113,8 +113,12 @@ defmodule TheBandWeb.Plataforma.OrganizacaoController do
   defp texto(valor) when is_binary(valor), do: valor
   defp texto(_), do: nil
 
-  defp sucesso(:suspender), do: "Suspended. Every session was ended and every API token revoked."
-  defp sucesso(:reativar), do: "Reactivated. No session or token came back."
+  # Pelo catálogo, porque vai ao flash (gate da feature 047). O msgid é em português, como no resto
+  # da casa, e a tradução `en` é a frase da tela.
+  defp sucesso(:suspender),
+    do: dgettext("sistema", "Suspensa. Toda sessão foi encerrada e todo token de API, revogado.")
+
+  defp sucesso(:reativar), do: dgettext("sistema", "Reativada. Nenhuma sessão nem token voltou.")
 
   # As frases de recusa da tela 5c: {título, resto}.
   defp frase({ato, :confirmacao}, resumo, _),
