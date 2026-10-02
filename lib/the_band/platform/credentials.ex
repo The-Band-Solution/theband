@@ -310,6 +310,10 @@ defmodule TheBand.Platform.Credentials do
       )
       |> Repo.update!()
 
+    # Relido: a época subiu por `update_all`, e a struct do changeset ainda traz a de antes. Uma
+    # sessão aberta com ela nasceria recusada por `:epoca_velha`.
+    op = Repo.get!(Operator, op.id)
+
     # Os códigos de recuperação anteriores deixam de valer; os já usados guardam o `used_at` (T8).
     Repo.update_all(
       from(r in RecoveryCode,
@@ -426,6 +430,8 @@ defmodule TheBand.Platform.Credentials do
           )
           |> Repo.update!()
 
+        # Relido, pela mesma razão do passo 1: a época subiu por `update_all`.
+        op = Repo.get!(Operator, op.id)
         {:ok, _} = Sessions.encerrar_do_operador(op)
         AccessEvents.operador_segundo_fator_cadastrado(op.id)
         {:ok, op}
