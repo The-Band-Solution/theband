@@ -57,6 +57,9 @@ defmodule TheBand.RotacaoTest do
       _ = credencial_de_ferramenta(tenant)
       _ = tenant_com_credencial(tenant)
 
+      # O segredo TOTP do operador da plataforma também entra na rotação — spec 070, T021 (T3).
+      _ = operador_com_segundo_fator()
+
       antiga = Keyword.fetch!(original, :master_key)
       nova = Base.encode64(:crypto.strong_rand_bytes(32))
 
@@ -65,6 +68,7 @@ defmodule TheBand.RotacaoTest do
       assert {:ok, contagens} = Rotacao.recifrar(false)
       assert contagens["tool_credentials"] >= 1
       assert contagens["ai_provider_credentials"] >= 1
+      assert contagens["platform_operators"] >= 1
 
       # Só a chave nova: é o estado depois de remover a anterior do ambiente.
       trocar_chaves(original, master_key: nova, previous_key: nil)
@@ -105,6 +109,14 @@ defmodule TheBand.RotacaoTest do
   defp reiniciar_vault do
     :ok = Supervisor.terminate_child(TheBand.Supervisor, TheBand.Vault)
     {:ok, _} = Supervisor.restart_child(TheBand.Supervisor, TheBand.Vault)
+  end
+
+  defp operador_com_segundo_fator do
+    Repo.insert!(%TheBand.Platform.Operator{
+      email: "op-#{System.unique_integer([:positive])}@example.org",
+      name: "Op",
+      totp_secret: :crypto.strong_rand_bytes(20)
+    })
   end
 
   defp credencial_de_ferramenta(tenant) do
