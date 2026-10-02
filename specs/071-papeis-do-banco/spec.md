@@ -56,8 +56,10 @@ por falta de privilégio. As escritas normais da aplicação passam.
    **Then** o banco recusa, e os triggers continuam disparando na sessão.
 4. **Given** o processo que serve, **When** ele lê, insere, altera e apaga linhas como a aplicação
    faz hoje (telas, API, MCP, coleta, Oban), **Then** tudo passa como antes.
-5. **Given** a mesma bateria, **When** ela roda com o papel que migra, **Then** as tentativas dos
-   cenários 1 a 3 passam. É a prova de que o teste mede o privilégio, e não outra coisa.
+5. **Given** a mesma bateria, **When** cada tentativa roda com o papel que tem o privilégio dela,
+   **Then** ela passa: as de estrutura, com o dono; a de `session_replication_role`, com um papel que
+   tem `SET` nesse parâmetro. É o controle positivo, **por tentativa**: um dono que não é
+   superusuário também recebe a recusa no `session_replication_role` (medido, `seguranca.md` S2).
 
 ---
 
@@ -81,11 +83,13 @@ processo que serve.
 2. **Given** uma tabela nova criada por uma migração, **When** a aplicação a usa, **Then** o papel
    que serve tem nela os mesmos privilégios das outras, sem passo manual.
 3. **Given** o processo que serve já de pé, **When** se procura a credencial do papel que migra no
-   ambiente dele, **Then** ela não está lá.
+   ambiente **dele**, **Then** ela não está lá. **O limite, decidido em 2026-10-02**: processos
+   abertos por `docker exec`, inclusive o `HEALTHCHECK`, recebem o ambiente configurado do contêiner,
+   e código dentro do processo que serve pode lê-los em `/proc` (medido, S5). Isso fica como risco
+   residual, e não como garantia.
 4. **Given** a credencial do papel que migra ausente no deploy, **When** o contêiner sobe, **Then**
-   a migração roda com a credencial que serve, como hoje, a aplicação sobe, e o log do deploy e a
-   conferência de FR-009 dizem "separação NÃO em vigor" (decisão da pessoa mantenedora,
-   2026-10-02).
+   o resultado segue os três estados de FR-008, e em nenhum deles a aplicação serve sobre esquema
+   pela metade.
 
 ---
 
@@ -133,53 +137,103 @@ recusadas.
 
 ### Functional Requirements
 
-- **FR-001**: O processo que serve MUST conectar ao banco com um papel que **não é dono** de nenhuma
-  tabela do esquema e **não é superusuário**.
-- **FR-002**: O papel que serve MUST ter só os privilégios que a aplicação usa:
-  - ler, inserir, alterar e apagar linhas em todas as tabelas da aplicação, incluindo as do Oban;
-  - usar as sequências.
+> **Emendado em 2026-10-02** pela avaliação do agente `security` (`seguranca.md`, S1 a S10) e pelas
+> decisões da pessoa mantenedora sobre S4, S5 e S11.
 
-  Ele MUST NOT ter `TRUNCATE`, `REFERENCES`, `TRIGGER`, nem nenhum privilégio de alterar estrutura.
-- **FR-003**: Desligar ou apagar um trigger, apagar uma constraint, truncar uma tabela e mudar
-  `session_replication_role` MUST ser recusados ao papel que serve, por falta de privilégio.
-- **FR-004**: A migração MUST rodar no entrypoint com um papel que é dono do esquema, por uma
-  credencial **separada** da que serve.
-- **FR-005**: Toda tabela e sequência criada por migração MUST nascer com os privilégios de FR-002
-  para o papel que serve, sem passo manual: por privilégios padrão, e por uma concessão inicial às
-  que já existem.
+- **FR-001**: O processo que serve MUST conectar com um papel que:
+  - não é superusuário, nem tem `CREATEROLE`, `CREATEDB`, `REPLICATION` ou `BYPASSRLS`;
+  - **não é dono de nenhum objeto da base**: tabela, sequência, função, tipo, esquema, nem a
+    própria base;
+  - **não é membro**, direto ou herdado, de nenhum papel dono de objeto da base, nem de
+    `pg_execute_server_program`, `pg_read_server_files`, `pg_write_server_files` ou
+    `pg_signal_backend`;
+  - é **diferente** do papel que migra (S1).
+- **FR-002**: O papel que serve MUST ter **exatamente** estes privilégios, por nome e nunca `ALL`:
+  - `SELECT, INSERT, UPDATE, DELETE` em toda tabela da aplicação, inclusive as do Oban,
+    **exceto `schema_migrations`**, em que não tem privilégio nenhum (S3);
+  - `USAGE, SELECT` nas sequências, sem `UPDATE`;
+  - `USAGE` no esquema `public` e `CONNECT` na base.
+
+  Ele MUST NOT ter `TRUNCATE`, `REFERENCES`, `TRIGGER`, `CREATE` no esquema ou na base, nem `SET`
+  em `session_replication_role`. No PostgreSQL 17, também não `MAINTAIN` (S8).
+- **FR-003**: Estas tentativas MUST ser recusadas ao papel que serve com o código **`42501`**
+  (`insufficient_privilege`):
+  - desligar um trigger (`DISABLE TRIGGER`);
+  - apagar um trigger, uma constraint, uma função de trigger (`DROP FUNCTION … CASCADE`) ou uma
+    tabela;
+  - truncar;
+  - criar tabela em `public`;
+  - mudar `session_replication_role`;
+  - inserir em `schema_migrations`.
+
+  Outra classe de erro **não** conta como recusa.
+- **FR-004**: A migração MUST rodar no entrypoint com o papel que migra, por uma credencial
+  **separada**, numa variável que **só o entrypoint lê**. `config/runtime.exs` e `lib/` não
+  conhecem o nome dela. O entrypoint a entrega só ao comando da migração e nunca a exporta, nem com
+  `set -x`.
+- **FR-005**: A cada deploy, depois de migrar e com a credencial que migra, um passo **idempotente**
+  MUST:
+  - conceder FR-002 em todas as tabelas e sequências existentes;
+  - definir os privilégios padrão `FOR ROLE <papel que migra>` para tabelas e sequências novas;
+  - revogar tudo em `schema_migrations`.
+
+  O nome do papel que serve vem do usuário da credencial que serve, e nunca é escrito em migração.
+  É o que torna a transição e a restauração auto-corretivas (S7).
 - **FR-006**: O entrypoint MUST tirar a credencial do papel que migra do ambiente **antes** de
-  iniciar o servidor. Ela não pode estar no ambiente do processo que serve.
-- **FR-007**: Os comandos de release que rodam por `eval` MUST usar o papel que serve, salvo
-  `rollback/2`, que usa o papel que migra. Nenhum comando de release escreve o esquema fora de
-  migração.
-- **FR-008**: Se a credencial do papel que migra faltar no deploy, a migração MUST rodar com a
-  credencial que serve, como hoje, e a aplicação MUST subir. O log do deploy MUST dizer, numa linha
-  própria, "separação NÃO em vigor", e a conferência de FR-009 MUST dizer o mesmo, com o motivo.
-  **Decidido pela pessoa mantenedora em 2026-10-02**: manter a produção no ar. O G1 continua aberto
-  até as credenciais existirem, e isso fica declarado na nota da release.
-- **FR-009**: Uma conferência operável pela pessoa mantenedora MUST dizer, contra o ambiente, se a
-  separação está em vigor:
-  - o papel que serve não é dono nem superusuário;
-  - as tentativas de FR-003 são recusadas.
+  iniciar o servidor. FR-006 protege o ambiente **do processo que serve**, e não o contêiner.
+  **Decidido em 2026-10-02 (S5, opção "aceitar e declarar")**: o `HEALTHCHECK` e qualquer
+  `docker exec` recebem o ambiente configurado do contêiner, com a credencial. Isso é risco
+  residual, nomeado na nota da release, com issue para levar a migração para fora do contêiner que
+  serve.
+- **FR-007**: Os comandos de release MUST usar o papel que serve, salvo `rollback/2`, que recebe a
+  credencial que migra **só** pela atribuição no próprio comando, como diz o roteiro. Nenhum
+  comando de release lê a variável que migra, e isso é verificado (cenário A6 de `seguranca.md`).
+- **FR-008**: O veredito de "separação em vigor" MUST vir de uma **medição no banco**, e não da
+  presença da variável. Com a credencial que migra ausente:
 
-  A conferência não pode alterar nada.
+  | estado | o que acontece |
+  |---|---|
+  | a credencial que serve **consegue** migrar (é dona, o estado de hoje) | migra com ela e sobe, como decidido em 2026-10-02; o relator diz "separação NÃO em vigor: credencial que migra ausente" |
+  | a que serve **não** consegue migrar, e **não há migração pendente** | sobe sem migrar; o relator diz "separação em vigor no banco, credencial que migra ausente" (decidido em 2026-10-02). As pendentes se conferem lendo `schema_migrations` sem a `Ecto.Migrator`, que faz DDL |
+  | a que serve não consegue migrar, e **há migração pendente** | **não sobe**, com uma linha que nomeia a variável que falta (decidido em 2026-10-02) |
+
+  Em todos, a linha do relator sai no log do deploy, e a aplicação a repete em `warning` a cada
+  subida (S4).
+- **FR-009**: Uma conferência MUST rodar por `rpc`, dentro do nó que serve, para medir o papel que
+  de fato serve. Ela:
+  - lê o catálogo, sem lock: os atributos e as pertenças de FR-001, as posses, os privilégios
+    comparados à lista **fechada** de FR-002, `schema_migrations` sem privilégio, e as funções de
+    trigger em `public` sem `search_path` fixo (S10);
+  - tenta as recusas de FR-003 numa transação que sempre termina em `ROLLBACK`, com
+    `lock_timeout` curto, e só aceita `42501` como recusa. Sucesso, `lock_not_available` ou outro
+    código dão "NÃO em vigor" ou "inconclusivo", e nunca "em vigor";
+  - devolve o relator de FR-008. A frase é tradução dele, e a conferência não altera nada.
 - **FR-010**: O roteiro de operação MUST cobrir:
-  - a criação dos dois papéis, sem superusuário para o que serve;
-  - a concessão inicial;
-  - a troca das credenciais no painel;
-  - a conferência de FR-009;
-  - o backup e a restauração com os papéis novos.
+  - **o estado-alvo, decidido em 2026-10-02 (S11)**: um papel que migra **dedicado e não
+    superusuário**, `the_band_owner`, que recebe a posse uma vez (`REASSIGN OWNED`, como
+    `postgres`), ficando o `postgres` só para administração e backup;
+  - a criação do papel que serve;
+  - conferir `rolsuper` e a posse da base **antes** da troca, e não supor;
+  - nunca `GRANT <dono> TO <quem serve>`, nem base com `OWNER` de quem serve, com o motivo;
+  - senha só hexadecimal (`openssl rand -hex 32`, S6);
+  - a troca das duas credenciais no painel;
+  - o ensaio do runbook §6 criando os papéis no cluster de ensaio, servindo pela credencial que
+    serve e terminando com a conferência de FR-009 (S7).
 
-  Nenhum valor de credencial pode aparecer no roteiro.
-- **FR-011**: Um teste MUST provar FR-003 conectado com um papel equivalente ao que serve, e MUST
-  ser visto reprovando quando o papel tem privilégio de dono.
+  Nenhum valor de credencial aparece no roteiro.
+- **FR-011**: Um teste MUST provar FR-003 conectado com um papel equivalente ao que serve.
+  - O papel recebe os privilégios **pelo mesmo artefato** que a produção usa (o passo de FR-005), e
+    não por `GRANT` escrito no teste.
+  - A asserção é sobre o código `42501` e sobre o trigger continuar ativo (`tgenabled = 'O'`).
+  - O teste MUST ser visto reprovando com o controle positivo de US1-5.
 - **FR-012**: As credenciais dos dois papéis MUST NOT passar por chat, commit, log ou mensagem de
-  erro. A conferência e os logs nomeiam o papel, e nunca a senha.
+  erro. Um erro de URL de banco é traduzido sem a URL, porque `Ecto.InvalidURLError` a imprime
+  (medido, S6). A conferência e os logs nomeiam o papel, e nunca a senha.
 
 ### Key Entities
 
-- **Papel que migra**: dono do esquema; criado por quem opera; usado só pelo passo de migração e
-  pelo `rollback`.
+- **Papel que migra**: `the_band_owner`, dono do esquema e não superusuário (S11); criado por quem
+  opera; usado só pelo passo de migração, pelo passo de concessão de FR-005 e pelo `rollback`.
 - **Papel que serve**: sem posse e sem superusuário; usado por toda requisição, job e comando de
   release que não migra.
 - **Privilégios padrão**: a regra do banco que dá ao papel que serve os privilégios de FR-002 em
@@ -191,31 +245,39 @@ recusadas.
 
 - **SC-001**: Com o papel que serve, 4 de 4 tentativas de desligar guardas (trigger, constraint,
   truncamento, réplica de sessão) são recusadas, e 0 guardas ficam desligadas depois delas.
-- **SC-002**: Com o papel que migra, as mesmas 4 tentativas passam, no ambiente de teste. É a prova
-  de que a medição mede.
-- **SC-003**: A suíte inteira da aplicação passa com o processo conectado pelo papel que serve. Ou
-  seja, nenhuma funcionalidade dependia de ser dono.
+- **SC-002**: No ambiente de teste, cada tentativa de FR-003 passa com o papel que tem o privilégio
+  dela (o controle positivo de US1-5). É a prova de que a medição mede.
+- **SC-003**: A suíte inteira da aplicação passa com o processo conectado pelo papel que serve. Um
+  ensaio de fumaça com o Oban ligado também passa: enfileira, executa e apaga job (S9). Ou seja,
+  nenhuma funcionalidade dependia de ser dono.
 - **SC-004**: Depois do deploy que introduz os papéis, a conferência de FR-009 contra a produção
   diz "em vigor". Antes de a pessoa mantenedora criar os papéis, ela diz "não em vigor", e diz por
   quê.
-- **SC-005**: Um backup feito antes da troca é restaurado depois dela, e a aplicação serve sem
-  intervenção manual nos privilégios.
+- **SC-005**: Um backup feito antes da troca é restaurado num cluster de ensaio com os papéis, e a
+  aplicação serve pela credencial que serve. A conferência de FR-009 diz "em vigor" no ambiente
+  restaurado, porque o passo de FR-005 reaplica as concessões (S7).
 
 ## Assumptions
 
-- **O papel que migra é o dono atual das tabelas em produção**, qualquer que seja ele. A feature
-  **cria só o papel que serve** e não transfere posse. Transferir posse (`REASSIGN OWNED`) exigiria
-  superusuário e não é necessário para fechar o G1. Se a pessoa mantenedora preferir um dono
-  dedicado (`the_band_owner`) no lugar do `postgres`, é passo do roteiro, opcional.
-- O backup do Dokploy roda com o usuário administrativo do banco, e não com o papel que serve. Ele
-  preserva os `GRANT`s, porque o `pg_dump` os inclui por padrão. A restauração os recria.
-- `LISTEN/NOTIFY`, usado pelo Oban, não exige privilégio de tabela.
+- **O estado-alvo é o dono dedicado** (`the_band_owner`, não superusuário), decidido em 2026-10-02
+  (S11). O roteiro transfere a posse uma vez. Até o roteiro ser seguido, o papel que migra é o dono
+  atual, e a conferência diz isso.
+- **Os papéis não entram no `pg_dump`**, e os `GRANT`s só voltam num cluster em que os papéis
+  existem, sem `--no-acl`. A restauração não é suposta correta: ela é conferida, e o passo de FR-005
+  a corrige no deploy seguinte (S7).
+- `LISTEN/NOTIFY`, usado pelo Oban, não exige privilégio de tabela (medido). A única sequência é
+  `oban_jobs_id_seq`. `gen_random_uuid` é do núcleo do PostgreSQL 16.
+- O CI usa PostgreSQL 17 e a produção usa 16. A lista de privilégios vai por nome, e o teste confere
+  os dois modelos (S8).
 - **O que esta feature não fecha** (risco residual, para a nota da release):
-  - quem tem o terminal do Dokploy tem o contêiner, e pode ler a credencial do papel que migra no
-    ambiente do contêiner antes do `unset`, ou abrir uma VM por `eval` com ela;
-  - uma execução de código arbitrário dentro do processo que serve não tem a credencial (FR-006),
-    mas tem o papel que serve, e com ele lê e escreve todo dado de todo tenant.
-
-  A feature fecha o **desligar as guardas**, e não o acesso a dado.
-- A avaliação do agente `security` vem antes do plano (AGENTS §14.0: acesso e dependência de
-  infraestrutura). Ela é de quem não escreveu este desenho.
+  - **a credencial que migra no contêiner** (S5, decidido aceitar e declarar): o `HEALTHCHECK` e
+    todo `docker exec` a recebem, e código no processo que serve pode lê-la em `/proc`. Há issue
+    para levar a migração para fora do contêiner que serve;
+  - quem tem o terminal do Dokploy tem o contêiner, e com ele a credencial;
+  - uma execução de código arbitrário no processo que serve tem o papel que serve, e com ele lê e
+    escreve todo dado de todo tenant. A feature fecha o **desligar as guardas**, e não o acesso a
+    dado;
+  - `TEMP` continua concedido a `PUBLIC` na base. Por isso toda função de trigger precisa de
+    `search_path` fixo, e a conferência o verifica (S10).
+- A avaliação do agente `security` foi feita em 2026-10-02, por quem não escreveu este desenho
+  (`seguranca.md`). Ela vem antes do plano.
