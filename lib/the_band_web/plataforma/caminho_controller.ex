@@ -8,7 +8,7 @@ defmodule TheBandWeb.Plataforma.CaminhoController do
   rota de operador sem operador não podem dar respostas distinguíveis, ou a diferença diria a quem
   varre quais caminhos são de verdade.
 
-  Até T039 e T040, as rotas do contrato também apontam para cá.
+  Até T040, as rotas de organização também apontam para cá.
   """
   use TheBandWeb, :controller
 

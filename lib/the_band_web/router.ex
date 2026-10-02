@@ -159,22 +159,21 @@ defmodule TheBandWeb.Router do
     forward "/", TheBandWeb.MCP.Porta
   end
 
-  # As rotas de `rotas-da-plataforma.md`. Até T039 e T040 elas respondem o `404` do curinga; a
-  # lista já está aqui para o curinga e `require_operator` serem provados contra as rotas reais.
+  # As rotas de `rotas-da-plataforma.md`. As de organização respondem o `404` do curinga até T040.
   scope "/platform", TheBandWeb.Plataforma do
     pipe_through :plataforma
 
-    get "/sign-in", CaminhoController, :nao_encontrado
-    post "/session", CaminhoController, :nao_encontrado
-    get "/setup", CaminhoController, :nao_encontrado
-    post "/setup", CaminhoController, :nao_encontrado
-    post "/setup/second-factor", CaminhoController, :nao_encontrado
-    post "/setup/recovery-codes", CaminhoController, :nao_encontrado
+    get "/sign-in", EntradaController, :new
+    post "/session", EntradaController, :create
+    get "/setup", CadastroController, :new
+    post "/setup", CadastroController, :create
+    post "/setup/second-factor", CadastroController, :second_factor
+    post "/setup/recovery-codes", CadastroController, :recovery_codes
 
     scope "/" do
       pipe_through :require_operator
 
-      delete "/session", CaminhoController, :nao_encontrado
+      delete "/session", EntradaController, :delete
       get "/organizations", CaminhoController, :nao_encontrado
       get "/organizations/:slug", CaminhoController, :nao_encontrado
       post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado

@@ -74,6 +74,16 @@ com um código já consumido, e recebe a recusa. Cenário C8 de `seguranca-totp.
 
 ## As rotas
 
+**Emendado em 2026-10-02 por T039**:
+
+- os passos 2 e 3 levam o `email` num campo oculto, além do código do passo, porque
+  `confirmar_segundo_fator/3` e `concluir_cadastro/2` recebem o e-mail. Ele não é segredo;
+- `password_confirmation` diferente de `password` é conferido no controller **antes** de
+  `definir_senha/3`, e o código de definição não é gasto. A frase dessa recusa, *"The two passwords
+  do not match. Your setup code still works."*, não está no protótipo aprovado, e fica para a
+  conferência da pessoa mantenedora;
+- toda recusa de formulário responde `422`.
+
 | método e caminho | quem | o que faz |
 |---|---|---|
 | `GET /platform/sign-in` | público | formulário de entrada |
