@@ -20,7 +20,8 @@ defmodule TheBand.Jobs.ReprocessMappings do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"tenant_id" => tenant_id} = args}) do
     # O tenant vem nos args e é validado antes de qualquer coisa acontecer.
-    with {:ok, tenant} <- Tenants.fetch(tenant_id) do
+    with {:ok, tenant} <- Tenants.fetch(tenant_id),
+         :ok <- Tenants.ensure_active(tenant) do
       opts = raw_entity_type_opts(args)
 
       case SemanticIntegration.reprocess_mappings(tenant, opts) do
@@ -36,6 +37,10 @@ defmodule TheBand.Jobs.ReprocessMappings do
           SemanticIntegration.broadcast_report(tenant, %{error: :no_raw_payloads})
           {:cancel, :no_raw_payloads}
       end
+    else
+      # Organização suspensa (#1033): tentar de novo não muda nada até alguém reativá-la.
+      {:error, :tenant_inactive} -> {:cancel, :tenant_inactive}
+      {:error, motivo} -> {:error, motivo}
     end
   end
 

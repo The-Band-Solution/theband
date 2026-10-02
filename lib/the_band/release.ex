@@ -111,10 +111,37 @@ defmodule TheBand.Release do
         Ecto.Migrator.with_repo(repo, fn _ ->
           {:ok, n} = Sessions.girar_todas()
           IO.puts("#{n} sessão(ões) encerrada(s). Todas as pessoas precisam entrar de novo.")
+
+          # O aviso às telas abertas não sai desta VM (#1050). Com a aplicação no ar, o caminho
+          # é `girar_sessoes/0` por `rpc`; este é o da aplicação parada, depois de restaurar.
+          IO.puts(
+            "Se a aplicação está no ar, as telas abertas não caem por este caminho. " <>
+              "Use: /app/bin/the_band rpc 'IO.puts(TheBand.Release.girar_sessoes())'"
+          )
         end)
     end
 
     :ok
+  end
+
+  @doc """
+  **Encerra a sessão de todo mundo, e derruba as telas abertas** — issue #1050.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.girar_sessoes())'
+
+  Roda por `rpc`, **dentro do nó que está servindo**, como `saude_da_fila/0`. É o caminho com a
+  aplicação no ar: `Sessions.girar_todas/0` avisa as telas pelo PubSub do nó (#1042), e cada
+  LiveView aberta reconfere a sessão e cai em `/sign-in`. Pelo `eval` de
+  `encerrar_todas_as_sessoes/0`, o aviso sai em outra VM e não chega a ninguém.
+
+  Devolve a frase com o número, e só o número.
+  """
+  @spec girar_sessoes() :: String.t()
+  def girar_sessoes do
+    {:ok, n} = Sessions.girar_todas()
+
+    "#{n} sessão(ões) encerrada(s), e as telas abertas foram avisadas. " <>
+      "Todas as pessoas precisam entrar de novo."
   end
 
   @doc """
@@ -134,6 +161,34 @@ defmodule TheBand.Release do
       {:parada, _minutos} -> "parada"
     end
   end
+
+  @doc """
+  **Recifra todos os campos cifrados com a chave mestra nova** — issue #1052.
+
+      /app/bin/the_band rpc 'IO.puts(TheBand.Release.rotacionar_chave())'
+
+  A release não tem `mix`, e `mix the_band.rotate_key` não existe em produção. Roda por `rpc`,
+  **dentro do nó que serve**, porque o `TheBand.Vault` dele já subiu com as duas chaves do
+  ambiente: a nova em `THE_BAND_MASTER_KEY` e a antiga em `THE_BAND_PREVIOUS_MASTER_KEY`. Os
+  passos estão no runbook §12.
+
+  Devolve a frase com as contagens por tabela, e nunca um valor. Com qualquer registro ilegível,
+  não grava nada e diz quantos, por tabela.
+  """
+  @spec rotacionar_chave() :: String.t()
+  def rotacionar_chave do
+    case TheBand.Rotacao.recifrar(false) do
+      {:ok, contagens} ->
+        "recifradas: " <> por_tabela(contagens) <> ". Agora remova THE_BAND_PREVIOUS_MASTER_KEY."
+
+      {:error, {:ilegiveis, por}} ->
+        "NADA FOI GRAVADO. Ilegíveis com as chaves configuradas: " <>
+          por_tabela(por) <> ". Confira THE_BAND_PREVIOUS_MASTER_KEY."
+    end
+  end
+
+  defp por_tabela(contagens),
+    do: Enum.map_join(contagens, ", ", fn {tabela, n} -> "#{n} em #{tabela}" end)
 
   @doc """
   Desfaz até a versão dada. **Não é chamado automaticamente em lugar nenhum.**

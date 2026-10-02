@@ -93,7 +93,15 @@ config :the_band, Oban,
   # `rodadas` é fila **própria**, e não uma vaga a mais em `perfis` — feature 027, T003. Uma
   # rodada mensal percorre até 34 pessoas em sequência: de 15 a 35 minutos, medidos. Na fila
   # `perfis`, que tem concorrência 1, ela deixaria toda geração pedida a mão esperando o mês.
-  queues: [ingestion: 5, transformation: 5, perfis: 1, rodadas: 1],
+  #
+  # `manutencao` é fila **própria** para os jobs do `Cron` que mantêm a plataforma — issue #801,
+  # achado S1 da avaliação de segurança de 2026-10-01. Eles estavam na `ingestion`, que tem 5
+  # vagas, e cada coleta ocupa uma vaga por horas: com cinco coletas simultâneas nenhum job
+  # completava, e o verificador da fila (`TheBand.Saude`) dizia "parada" com a fila trabalhando.
+  # O healthcheck marcava o contêiner `unhealthy`, e reiniciá-lo mataria as cinco coletas. Numa
+  # fila só deles, o `Cron` completa a cada 5 minutos enquanto o Oban estiver vivo, que é
+  # exatamente o que o verificador mede.
+  queues: [ingestion: 5, transformation: 5, perfis: 1, rodadas: 1, manutencao: 2],
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     # Reconcilia execuções presas a cada cinco minutos. É o atraso máximo aceitável entre a

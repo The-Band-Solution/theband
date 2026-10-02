@@ -20,7 +20,7 @@ defmodule TheBand.Jobs.ScheduleDueSyncs do
   Três implementações da mesma regra é o defeito que este projeto pagou em outras features, e
   é o que o moduledoc de `ReconcileStuckSyncs` já registra.
   """
-  use Oban.Worker, queue: :ingestion, max_attempts: 1
+  use Oban.Worker, queue: :manutencao, max_attempts: 1
 
   require Logger
 

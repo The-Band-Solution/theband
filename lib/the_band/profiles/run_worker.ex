@@ -25,6 +25,10 @@ defmodule TheBand.Profiles.RunWorker do
   alias TheBand.Repo
   alias TheBand.Tenants
 
+  # O motivo gravado na rodada. Fica em português porque é registro interno, como os demais
+  # motivos de `ended_early`.
+  @organizacao_inativa "organização suspensa"
+
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"tenant_id" => tenant_id, "run_id" => run_id}}) do
     with {:ok, tenant} <- Tenants.fetch(tenant_id),
@@ -44,7 +48,20 @@ defmodule TheBand.Profiles.RunWorker do
     :ok
   end
 
+  # Organização suspensa não roda — issue #1033. A rodada fecha com o motivo, em vez de ficar
+  # aberta e impedir a próxima depois da reativação.
   defp executar(tenant, run) do
+    case Tenants.ensure_active(tenant) do
+      :ok ->
+        selecionar_e_percorrer(tenant, run)
+
+      {:error, :tenant_inactive} ->
+        {:ok, _} = Runs.finish(run, {:ended_early, @organizacao_inativa})
+        {:cancel, :tenant_inactive}
+    end
+  end
+
+  defp selecionar_e_percorrer(tenant, run) do
     case Regeneration.select(tenant, escopo(run)) do
       {:ok, vereditos} ->
         ja_feitas = Runs.recorded_person_ids(run)
@@ -97,11 +114,18 @@ defmodule TheBand.Profiles.RunWorker do
   defp processar(tenant, run, pessoa, :generate) do
     # A condição de observação é reavaliada **agora**, e não só na seleção: uma rodada de
     # trinta pessoas leva dezenas de minutos, e a observação pode ser encerrada no meio dela.
-    if observacao_encerrada?(pessoa) do
-      {:ok, _} = Runs.record(run, pessoa.id, %{outcome: "skipped", reason: "observation_ended"})
-      :continua
-    else
-      gerar(tenant, run, pessoa)
+    # E o estado da organização também: suspensa no meio da rodada, nenhuma pessoa a mais vai
+    # ao modelo (#1033).
+    cond do
+      observacao_encerrada?(pessoa) ->
+        {:ok, _} = Runs.record(run, pessoa.id, %{outcome: "skipped", reason: "observation_ended"})
+        :continua
+
+      organizacao_inativa?(tenant) ->
+        {:encerra, @organizacao_inativa}
+
+      true ->
+        gerar(tenant, run, pessoa)
     end
   end
 
@@ -150,6 +174,13 @@ defmodule TheBand.Profiles.RunWorker do
   # antes de ela circular. Aqui só se garante que o que vai para a coluna é texto.
   defp texto(motivo) when is_binary(motivo), do: motivo
   defp texto(motivo), do: inspect(motivo)
+
+  defp organizacao_inativa?(tenant) do
+    case Tenants.fetch(tenant.id) do
+      {:ok, atual} -> Tenants.ensure_active(atual) != :ok
+      {:error, :not_found} -> true
+    end
+  end
 
   defp observacao_encerrada?(%Person{id: id}) do
     case Repo.get(Person, id) do

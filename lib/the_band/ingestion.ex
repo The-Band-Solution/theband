@@ -41,15 +41,27 @@ defmodule TheBand.Ingestion do
   """
   @spec start_sync(Tenant.t(), ConnectedTool.t(), keyword()) ::
           {:ok, Sync.t()}
-          | {:error, :already_running | :no_active_credential | :enqueue_failed | term()}
+          | {:error,
+             :tenant_inactive
+             | :already_running
+             | :no_active_credential
+             | :enqueue_failed
+             | term()}
   def start_sync(%Tenant{id: tenant_id} = tenant, %ConnectedTool{} = tool, opts \\ []) do
     # Origem encerrada não é coletada (FR-008). O filtro passa por
     # `observation_ended?/1`, que é o mesmo caminho que a tela usa — dois caminhos
     # discordariam, e a plataforma coletaria do que a tela mostra como encerrado.
-    if Sources.observation_ended?(tool) do
-      {:error, :observation_ended}
-    else
-      do_start_sync(tenant_id, tenant, tool, Keyword.get(opts, :worker, SyncGitHubEO))
+    # Organização suspensa não é coletada — issue #1033. Antes da observação encerrada, e antes
+    # de criar o `Sync`: o botão e o agendador passam os dois por aqui.
+    cond do
+      TheBand.Tenants.ensure_active(tenant) != :ok ->
+        {:error, :tenant_inactive}
+
+      Sources.observation_ended?(tool) ->
+        {:error, :observation_ended}
+
+      true ->
+        do_start_sync(tenant_id, tenant, tool, Keyword.get(opts, :worker, SyncGitHubEO))
     end
   end
 

@@ -65,6 +65,83 @@ defmodule TheBand.SaudeTest do
     end
   end
 
+  describe "leitura/2 — o que a tela /syncs precisa (Q3)" do
+    test "andando: o último completado e a hora da conferência, sem causa" do
+      job("completed", completado: minutos_antes(3))
+      l = Saude.leitura(@agora, 15)
+
+      assert l.estado == :andando
+      assert l.causa == nil
+      assert DateTime.compare(l.ultimo_completado_em, DateTime.add(@agora, -3, :minute)) == :eq
+      assert l.conferido_em == @agora
+    end
+
+    test "parada pelo último completado: a causa e os minutos" do
+      job("completed", completado: minutos_antes(47))
+      l = Saude.leitura(@agora, 15)
+
+      assert %{estado: :parada, causa: :ultimo_completado, parada_ha_minutos: 47} = l
+      assert l.esperando_desde == nil
+    end
+
+    test "parada sem histórico: a causa é o job esperando mais antigo" do
+      job("available", agendado: minutos_antes(20))
+      l = Saude.leitura(@agora, 15)
+
+      assert %{estado: :parada, causa: :esperando_mais_antigo, parada_ha_minutos: 20} = l
+      assert l.ultimo_completado_em == nil
+      assert DateTime.compare(l.esperando_desde, DateTime.add(@agora, -20, :minute)) == :eq
+    end
+
+    test "sem histórico e sem espera longa: :sem_historico, que não é parada nem andando" do
+      assert %{estado: :sem_historico, causa: nil} = Saude.leitura(@agora, 15)
+
+      job("available", agendado: minutos_antes(3))
+      assert %{estado: :sem_historico, esperando_desde: %DateTime{}} = Saude.leitura(@agora, 15)
+    end
+
+    test "S3: só o agregado escalar, sem nada que identifique tenant, worker ou contagem" do
+      # Dois tenants com jobs na mesma tabela, com o tenant nos `args`, como a coleta grava.
+      for t <- [Ecto.UUID.generate(), Ecto.UUID.generate()] do
+        Repo.query!(
+          """
+          INSERT INTO oban_jobs (state, queue, worker, args, attempt, max_attempts,
+                                 inserted_at, scheduled_at, completed_at)
+          VALUES ('completed', 'ingestion', 'TheBand.Jobs.SyncGitHubEO', $1, 1, 5, $2, $2, $2)
+          """,
+          [%{"tenant_id" => t}, minutos_antes(30)]
+        )
+      end
+
+      l = Saude.leitura(@agora, 15)
+
+      assert Enum.sort(Map.keys(l)) ==
+               Enum.sort([
+                 :estado,
+                 :causa,
+                 :ultimo_completado_em,
+                 :esperando_desde,
+                 :parada_ha_minutos,
+                 :conferido_em
+               ])
+
+      texto = inspect(l)
+      refute texto =~ "SyncGitHubEO"
+      refute texto =~ "tenant"
+      refute texto =~ "ingestion"
+    end
+
+    test "fila/2 e leitura/2 dão o mesmo veredito, porque uma sai da outra" do
+      for minutos <- [1, 14, 15, 16, 600] do
+        Repo.query!("DELETE FROM oban_jobs")
+        job("completed", completado: minutos_antes(minutos))
+
+        parada? = Saude.leitura(@agora, 15).estado == :parada
+        assert parada? == match?({:parada, _}, Saude.fila(@agora, 15))
+      end
+    end
+  end
+
   describe "as portas" do
     test "GET /health responde 200 ok com a fila andando", %{conn: conn} do
       job("completed", completado: NaiveDateTime.utc_now())

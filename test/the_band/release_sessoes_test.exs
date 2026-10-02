@@ -8,6 +8,7 @@ defmodule TheBand.ReleaseSessoesTest do
 
   import Ecto.Query, only: [from: 2]
   import ExUnit.CaptureIO
+  import Phoenix.LiveViewTest
 
   alias TheBand.Release
   alias TheBand.Repo
@@ -26,5 +27,18 @@ defmodule TheBand.ReleaseSessoesTest do
     assert saida =~ "sessão(ões) encerrada(s)"
     assert Repo.aggregate(from(s in UserSession, where: is_nil(s.ended_at)), :count) == 0
     assert redirected_to(get(conn_a, ~p"/people")) == ~p"/sign-in"
+  end
+
+  # Issue #1050: pelo `rpc`, no nó que serve, a tela já aberta cai. O `eval` sobe outra VM, e o
+  # aviso dele não alcança ninguém; este teste roda no mesmo nó da tela, como o `rpc` roda.
+  test "girar_sessoes/0 encerra todas e derruba a tela aberta", %{conn: conn} do
+    {_tenant, a} = tenant_with_admin()
+    {:ok, view, _html} = conn |> log_in(a) |> live(~p"/people")
+
+    assert Release.girar_sessoes() =~
+             "sessão(ões) encerrada(s), e as telas abertas foram avisadas"
+
+    assert Repo.aggregate(from(s in UserSession, where: is_nil(s.ended_at)), :count) == 0
+    assert_redirect(view, "/sign-in")
   end
 end
