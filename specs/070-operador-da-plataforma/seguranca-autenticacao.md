@@ -535,3 +535,102 @@ aceitos pelo Product Owner.
 - Busquei em `lib/` as escritas em `tenants` pelos padrões `Tenant.changeset`,
   `update_all(Tenant` e `change(tenant`. Não fiz uma leitura arquivo a arquivo: uma escrita por
   SQL cru com outro texto não seria encontrada.
+
+## Conferência do trigger e do U1 (2026-10-02)
+
+Agente `security`, sobre o commit `16aaf58`; não escrevi o desenho. Escopo estreito: `data-model.md`
+§4a, T044a em `tasks.md`, as duas exceções do Constitution Check em `plan.md`, e U1/U2 em
+`contracts/suspensao.md` e `contracts/rotas-da-plataforma.md`. **Medido** no `the_band_postgres`
+(PostgreSQL 16.14), com a função de §4a copiada literalmente para `pg_temp`, sobre tabelas
+temporárias, tudo dentro de `BEGIN … ROLLBACK`.
+
+### Vereditos
+
+| Ponto | Veredito | Como |
+|---|---|---|
+| `UPDATE` de `status` sem episódio (`Repo.update_all`, `force_change`, `eval` de release, SQL cru) | **recusado** com `check_violation` e o texto de §4a | medido: o `UPDATE` direto é recusado ao forçar a conferência; toda forma Elixir chega como `UPDATE … SET status` e cai no mesmo trigger |
+| sequência legítima, estado antes do episódio | **passa** | medido |
+| `SET CONSTRAINTS … DEFERRED` | **só adia**: a conferência acontece no `COMMIT` mesmo assim | medido |
+| `ALTER TABLE … DISABLE TRIGGER` antes da escrita | **contorna** | medido. Depois da escrita, recusado: `cannot ALTER TABLE "tenants" because it has pending trigger events` |
+| `SET session_replication_role = replica` | **contorna** (o evento nem entra na fila) | medido; exige superusuário |
+| `TRUNCATE` | **não contorna**: `TRUNCATE tenant_suspensions` cai em `nao_trunca`, e `TRUNCATE tenants CASCADE` dispara o `BEFORE TRUNCATE` da tabela em cascata | medido sobre tabelas análogas; `nao_trunca` também cai com `replica` |
+| ordem com os `not_recorded` de T044 | **certa** no texto: o `up` confere antes de criar o trigger e levanta com as contagens | leitura; ressalva em G4 |
+| quem pode desabilitar | **a própria aplicação**: `rel/entrypoint.sh:27` migra com o mesmo `DATABASE_URL`, então o papel da aplicação é dono das tabelas e pode `DISABLE TRIGGER`/`DROP TRIGGER`. No dev, o papel é `postgres`, superusuário, e as tabelas são dele | dev medido; **produção não verificada** (o `DATABASE_URL` é segredo e não o li) |
+| defeitos a injetar de T044a | **dois de três provam o que dizem**; o primeiro, não sozinho (G3) | medido |
+| U1/U2: oráculo do slug | **existe, de um bit, para quem já sabia**; informativo, como o contrato declara | leitura |
+
+### Achados
+
+**G1 — baixa, não bloqueia. O invariante vale contra acidente, não contra quem executa SQL.** Todo
+contorno medido (`DISABLE TRIGGER`, `replica`, `DROP TRIGGER`) exige executar SQL arbitrário como
+dono das tabelas ou superusuário, e o papel da aplicação é, no mínimo, dono. Isso é exatamente o que
+D1-a pediu (fechar o caminho por `update_all`, `force_change`, `eval`), e nada além. **O que fecha**:
+uma frase em §4a dizendo isso, para ninguém ler o trigger como controle contra atacante; separar o
+papel da migração do papel da aplicação seria feature própria. **Se não entrar**: nada piora; o
+risco é só de leitura errada da garantia.
+
+**G2 — baixa, não bloqueia. Nomes não qualificados na função.** `tenant_estado_tem_episodio()` lê
+`tenants` e `tenant_suspensions` sem esquema, e no PostgreSQL `pg_temp` vem antes de `public` na
+resolução: uma sessão que cria `CREATE TEMP TABLE tenant_suspensions (…)` com uma linha aberta faz
+a conferência do `COMMIT` ler a tabela dela (sombreamento medido: `SELECT count(*) FROM tenants`
+passa de 2 para 0 depois da temporária). O atacante é o mesmo de G1, que já pode desabilitar o
+trigger, por isso baixa. **O que fecha**: `public.tenants` e `public.tenant_suspensions` no corpo,
+ou `SET search_path = pg_catalog, public` na função. **Teste**: na mesma transação, temporária
+`tenant_suspensions` com linha aberta para a organização, `UPDATE` de `status` para `suspended`,
+`SET CONSTRAINTS ALL IMMEDIATE` — tem de ser recusado.
+
+**G3 — média, não bloqueia. O primeiro defeito a injetar de T044a não prova o caso que diz.** O teste
+força a conferência com `SET CONSTRAINTS tenants_estado_tem_episodio, … IMMEDIATE`, **por nome**.
+Com o trigger removido, esse comando falha com `constraint "tenants_estado_tem_episodio" does not
+exist` (medido) — também um `Postgrex.Error`. Um caso escrito como `assert_raise Postgrex.Error`
+continua verde com a defesa removida; a suíte reprova só porque os casos legítimos quebram, pelo
+motivo errado. (Por nome com o trigger `NOT DEFERRABLE` não dá erro — medido —, então o segundo
+defeito prova o que diz.) **O que fecha**: `SET CONSTRAINTS ALL IMMEDIATE`, como T056 já usa, e a
+asserção sobre `postgres.constraint == "tenant_estado_tem_episodio"` (ou o texto da `RAISE`), não só
+sobre a classe do erro.
+
+**G4 — baixa, não bloqueia. Janela entre a conferência do `up` e o `CREATE TRIGGER`.** O `up` lê as
+duas contagens e só depois cria os triggers; o `CREATE TRIGGER` toma o lock de `tenants` depois da
+leitura. Uma escrita de `status` sem episódio confirmada nesse intervalo por uma instância antiga
+ainda servindo fica para sempre fora do invariante (o trigger não confere linha antiga), em
+silêncio. **O que fecha**: `LOCK TABLE tenants, tenant_suspensions IN SHARE ROW EXCLUSIVE MODE` como
+primeiro comando do `up`. Não verifiquei se o Dokploy mantém o contêiner antigo servindo durante a
+migração do novo.
+
+**G5 — informativo. Assimetria de concorrência em `REPEATABLE READ`, não medida.** A função lê
+`tenants` sem lock. Uma transação em `REPEATABLE READ` que só abre um episódio, concorrente a uma
+reativação legítima, leria o `status` antigo do próprio snapshot no `COMMIT` e passaria. A aplicação
+usa `READ COMMITTED` (padrão), em que cada `SELECT` da função vê o confirmado, e o ato legítimo
+escreve `tenants`; não achei caminho real. Não medi (exige duas sessões sobre tabelas reais).
+`SELECT … FOR SHARE` na leitura de `tenants` fecharia, com custo de lock no `COMMIT`.
+
+**U2 — informativo, confirmado como o contrato declara.** O oráculo existe: `get_by_slug/1` antes de
+`:autorizacao`, e só `:nao_autorizado` encerra o cookie (e o `:not_found` responde também mais
+rápido, sem abrir transação — oráculo de tempo, mesmo público). Mas quem o alcança passou por
+`require_operator`, que lê sessão **e** concessão vigente na mesma consulta
+(`sessao-do-operador.md:34`): anônimo e admin de organização param no `404` do plug e nunca chegam ao
+ato. Sobra o operador cuja concessão é revogada entre o plug e o `FOR SHARE` do passo
+`:autorizacao` — milissegundos —, e ele aprende, uma vez por requisição em voo, se um slug existe,
+o que via na lista um instante antes. Nenhuma pessoa de organização aprende nada. Concordo com
+"desprezível".
+
+### O que mudou nos contratos
+
+Nada. Nenhum ponto bloqueante falhou. G1–G4 são recomendações para `data-model.md` §4a e para T044a,
+abertas até serem corrigidas ou aceitas pelo Product Owner; G3 é a de maior valor por custo.
+
+### O que NÃO conferi
+
+- **O papel do banco em produção** (dono? superusuário?): não li o `DATABASE_URL`. Só o dev.
+- Os triggers sobre `public.tenants` reais: medi com a função copiada para `pg_temp` e tabelas
+  temporárias; o comportamento é o mesmo do PostgreSQL, mas não é a migração de T044a, que não existe.
+- G5 em duas sessões concorrentes; o comportamento do Dokploy no deploy (G4).
+- Se algum código em `lib/` usa `REPEATABLE READ` ou `SERIALIZABLE` em transação que toque as duas
+  tabelas.
+- O restante da spec: `spec.md`, `quickstart.md`, os demais contratos e tarefas.
+
+**Aplicado em 2026-10-02**, pela sessão orquestradora: G1 como frase em `data-model.md` §4a e risco
+residual em T062; G2 com `SET search_path = pg_catalog, public` e nomes qualificados na função, com
+caso e defeito em T044a; G3 com `SET CONSTRAINTS ALL IMMEDIATE` e a asserção pelo nome da
+constraint em T044a; G4 com `LOCK TABLE … IN SHARE ROW EXCLUSIVE MODE` como primeiro comando do
+`up`. G5 fica como informativo.

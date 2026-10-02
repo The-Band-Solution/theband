@@ -197,7 +197,13 @@ Migração própria, `priv/repo/migrations/<ts>_estado_tem_episodio.exs` (tarefa
 de §4 (T044), que cria `tenant_suspensions` e insere os episódios `not_recorded`:
 
 ```sql
-CREATE FUNCTION tenant_estado_tem_episodio() RETURNS trigger AS $$
+-- G4: primeiro comando do `up`, antes da conferência das contagens, para nenhuma escrita de uma
+-- instância antiga caber entre a conferência e o CREATE TRIGGER.
+LOCK TABLE tenants, tenant_suspensions IN SHARE ROW EXCLUSIVE MODE;
+
+-- G2: `search_path` fixo, para uma tabela temporária de mesmo nome não sombrear a conferência.
+CREATE FUNCTION tenant_estado_tem_episodio() RETURNS trigger
+SET search_path = pg_catalog, public AS $$
 DECLARE
   alvo uuid;
   estado text;
@@ -214,9 +220,9 @@ BEGIN
     alvo := NEW.tenant_id;
   END IF;
 
-  SELECT status INTO estado FROM tenants WHERE id = alvo;
+  SELECT status INTO estado FROM public.tenants WHERE id = alvo;
   IF NOT FOUND THEN RETURN NULL; END IF;
-  aberto := EXISTS (SELECT 1 FROM tenant_suspensions
+  aberto := EXISTS (SELECT 1 FROM public.tenant_suspensions
                     WHERE tenant_id = alvo AND reactivated_at IS NULL);
   IF (estado = 'suspended') IS DISTINCT FROM aberto THEN
     RAISE EXCEPTION 'organização % com estado % e episódio aberto = %', alvo, estado, aberto
@@ -254,6 +260,11 @@ CREATE CONSTRAINT TRIGGER tenant_suspensions_estado_tem_episodio
   dentro da transação. É também por isso que os testes de `Tenants` que suspendem por `update_all`
   sem episódio (T013) continuam verdes: não confirmam nada. Fora do sandbox, a mesma escrita é
   recusada;
+- **o que ele garante, e o que não** (G1 da conferência de 2026-10-02): fecha o caminho por
+  acidente — `update_all`, `force_change`, `eval`, SQL cru — e **não** é controle contra quem
+  executa SQL como dono das tabelas, que pode `DISABLE TRIGGER` ou `DROP TRIGGER`. O papel da
+  aplicação migra com o mesmo `DATABASE_URL` (`rel/entrypoint.sh:27`), e é dono. Separar o papel que
+  migra do que serve é feature própria; até lá, é risco residual declarado em T062;
 - é o **primeiro trigger de constraint adiado** do repositório; os anteriores (`nao_apaga`,
   `so_revoga`, `so_fecha`, `nao_trunca`, §2 e §4) são imediatos.
 

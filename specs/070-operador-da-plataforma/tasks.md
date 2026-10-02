@@ -879,13 +879,19 @@ de antes vai para `/sign-in`. Com o encerramento retirado, o teste precisa dar `
     --step 1` volta ao estado anterior; com uma organização `suspended` sem episódio semeada antes, o
     `up` levanta dizendo quantas
   - **Teste**: `test/the_band/platform/estado_tem_episodio_test.exs`. O sandbox nunca faz `COMMIT`,
-    então cada caso força a conferência com `SET CONSTRAINTS tenants_estado_tem_episodio,
-    tenant_suspensions_estado_tem_episodio IMMEDIATE` no fim da transação (é o `COMMIT` visto de
-    dentro do sandbox). **Defeitos a injetar**, um por vez: o trigger **removido** (o `update_all` sem
+    então cada caso força a conferência com `SET CONSTRAINTS ALL IMMEDIATE` no fim da transação (é
+    o `COMMIT` visto de dentro do sandbox). **Por `ALL`, e não pelo nome** (G3 da conferência de
+    2026-10-02): pelo nome, com o trigger removido o comando falha com `constraint … does not exist`,
+    que também é `Postgrex.Error`, e o caso de recusa ficaria verde sem a defesa. E a asserção é
+    sobre `postgres.constraint == "tenant_estado_tem_episodio"`, e não só sobre a classe do erro.
+    Mais dois casos: uma tabela temporária `tenant_suspensions` com linha aberta na mesma transação
+    **não** faz passar o estado sem episódio (G2, `search_path` fixo); e o `up` começa com o `LOCK
+    TABLE` (G4). **Defeitos a injetar**, um por vez: o trigger **removido** (o `update_all` sem
     episódio passa e o teste reprova); o trigger criado **`NOT DEFERRABLE`** (imediato) — a sequência
     legítima, estado antes do episódio, é recusada no primeiro `UPDATE` e o teste reprova; voltar o
     `CASE TG_TABLE_NAME … NEW.tenant_id` para o `DECLARE` (o caso de `create_tenant/1` reprova com
-    `record "new" has no field "tenant_id"`; achado E1)
+    `record "new" has no field "tenant_id"`; achado E1); tirar o `SET search_path` da função (o caso
+    da tabela temporária reprova; G2)
 
 - [ ] T045 [US1] Provar que o episódio é um só e não se reescreve
   - **Pronta quando**: T044 concluída
