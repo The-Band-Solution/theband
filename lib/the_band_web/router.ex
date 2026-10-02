@@ -174,7 +174,7 @@ defmodule TheBandWeb.Router do
       pipe_through :require_operator
 
       delete "/session", EntradaController, :delete
-      get "/organizations", CaminhoController, :nao_encontrado
+      get "/organizations", OrganizacaoController, :index
       get "/organizations/:slug", CaminhoController, :nao_encontrado
       post "/organizations/:slug/suspension", CaminhoController, :nao_encontrado
       post "/organizations/:slug/reactivation", CaminhoController, :nao_encontrado

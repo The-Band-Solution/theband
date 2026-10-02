@@ -13,17 +13,29 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
   """
   use TheBandWeb, :html
 
-  attr :passo, :string, default: nil
+  attr :operador, :any, default: nil, doc: "o `%Operator{}` da sessão, nas telas de quem entrou"
+  attr :largura, :string, default: "max-w-md"
   slot :inner_block, required: true
 
-  # A moldura comum: a faixa do produto e a coluna do formulário. Não usa `Layouts.app`, que
+  # A moldura comum: a faixa do produto e a coluna do conteúdo. Não usa `Layouts.app`, que
   # depende de `current_tenant` e `current_user`, e o operador não tem nenhum dos dois.
   defp moldura(assigns) do
     ~H"""
-    <main class="mx-auto flex min-h-screen max-w-md flex-col gap-5 px-4 py-10 sm:py-16">
-      <div class="flex items-baseline gap-2">
-        <span class="font-semibold">The Band</span>
-        <span class="text-sm opacity-60">platform operation</span>
+    <main class={["mx-auto flex min-h-screen flex-col gap-5 px-4 py-10 sm:py-16", @largura]}>
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+        <div class="flex items-baseline gap-2">
+          <span class="font-semibold">The Band</span>
+          <span class="text-sm opacity-60">platform operation</span>
+        </div>
+        <div :if={@operador} class="flex flex-wrap items-baseline gap-2 text-sm">
+          <span>{@operador.name}</span>
+          <span class="opacity-60 break-all">· {@operador.email}</span>
+          <form action={~p"/platform/session"} method="post" class="inline">
+            <input type="hidden" name="_method" value="delete" />
+            <.csrf />
+            <button type="submit" class="link">Sign out</button>
+          </form>
+        </div>
       </div>
       {render_slot(@inner_block)}
     </main>
@@ -349,6 +361,71 @@ defmodule TheBandWeb.Plataforma.TelasHTML do
       <% end %>
       <.link href={~p"/platform/sign-in"} class="btn btn-primary">Go to sign in</.link>
     </.moldura>
+    """
+  end
+
+  # ------------------------------------------------------- tela 4 · as organizações
+
+  @doc """
+  Tela 4: toda organização, com o estado e nada do que ela tem (FR-007). A linha acima da tabela
+  diz o que o operador **não** vê (D5): a regra visível, e não uma lacuna que pareça defeito.
+  """
+  def organizacoes(assigns) do
+    ~H"""
+    <.moldura operador={@operador} largura="max-w-4xl">
+      <h1 class="text-xl font-semibold">Organisations</h1>
+      <p class="text-sm opacity-70">
+        You see each organisation's name, slug, state and suspension history. You do not see its
+        people, teams, work or numbers. Operating the platform does not open any organisation.
+      </p>
+
+      <table class="table table-sm stacked">
+        <thead>
+          <tr>
+            <th>organisation</th>
+            <th>slug</th>
+            <th>state</th>
+            <th>last suspended</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :for={o <- @organizacoes}>
+            <td data-label="organisation">
+              <.link href={~p"/platform/organizations/#{o.slug}"} class="link">{o.name}</.link>
+            </td>
+            <td data-label="slug" class="font-mono">{o.slug}</td>
+            <td data-label="state"><.estado status={o.status} /></td>
+            <td data-label="last suspended">
+              <%= if o.ultimo_episodio_em do %>
+                <span class="font-mono">{Calendar.strftime(o.ultimo_episodio_em, "%Y-%m-%d")}</span>
+              <% else %>
+                <%!-- A ausência é da plataforma: nenhum episódio registrado. Escrita, nunca `—`. --%>
+                <.absent reason="never suspended" />
+              <% end %>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </.moldura>
+    """
+  end
+
+  attr :status, :string, required: true
+
+  # O estado em texto, sempre: a cor acompanha, e nunca carrega sozinha (WCAG 1.4.1).
+  defp estado(assigns) do
+    ~H"""
+    <span class="inline-flex items-center gap-1.5">
+      <span
+        class={[
+          "size-2 shrink-0 rounded-full",
+          @status == "active" && "bg-success",
+          @status != "active" && "bg-warning"
+        ]}
+        aria-hidden="true"
+      ></span>
+      {@status}
+    </span>
     """
   end
 
